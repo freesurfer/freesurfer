@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:53 $
- *    $Revision: 1.557.2.9 $
+ *    $Date: 2008/03/10 13:59:45 $
+ *    $Revision: 1.557.2.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -628,7 +628,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.9 2008/03/02 18:35:53 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.10 2008/03/10 13:59:45 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -4882,7 +4882,7 @@ MRISclone(MRI_SURFACE *mris_src)
 #if 0
     vdst->oripflag = vsrc->oripflag ;
     vdst->origripflag = vsrc->origripflag ;
-    memcpy(vdst->coord, vsrc->coord, sizeof(vsrc->coord)) ;
+    memmove(vdst->coord, vsrc->coord, sizeof(vsrc->coord)) ;
 #endif
   }
 
@@ -23334,7 +23334,7 @@ MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
   parms.nfields = old_parms->nfields;
   parms.flags &= IP_USE_MULTIFRAMES;
   for (n=0;n < MNOFIV ;n++)
-    memcpy(&parms.fields[n],&old_parms->fields[n],sizeof(FIELD_LABEL));
+    memmove(&parms.fields[n],&old_parms->fields[n],sizeof(FIELD_LABEL));
 
   parms.l_pcorr = parms.l_corr = 0.0f ;
   parms.dt = old_parms->dt ;
@@ -35414,7 +35414,7 @@ static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris,DEFECT_LIST *dl )
             defect=&dl->defects[i];
             if (defect->nvertices)
             { /* this defect is not empty */
-              memcpy(&new_dl->defects[new_dl->ndefects++],
+              memmove(&new_dl->defects[new_dl->ndefects++],
                      defect,sizeof(DEFECT));
             }
           }
@@ -36427,7 +36427,7 @@ static int findSegment(SEGMENTATION *segmentation)
     tmp=segmentation->segments;
     segmentation->segments=
       (SEGMENT*)calloc(segmentation->max_segments,sizeof(SEGMENT));
-    memcpy(segmentation->segments,tmp,segmentation->nsegments*sizeof(SEGMENT));
+    memmove(segmentation->segments,tmp,segmentation->nsegments*sizeof(SEGMENT));
     free(tmp);
   }
   for ( n = 0 ; n < segmentation->nsegments ; n++)
@@ -36474,7 +36474,7 @@ static int addEdgeToSegment
     tmp=segment->edges;
     segment->max_edges+=10;
     segment->edges=(int*)malloc(segment->max_edges*sizeof(int));
-    memcpy(segment->edges,tmp,segment->nedges*sizeof(int));
+    memmove(segment->edges,tmp,segment->nedges*sizeof(int));
     free(tmp);
   }
   segment->edges[segment->nedges++]=edge_n;
@@ -36490,7 +36490,7 @@ static int addEdgeToSegment
     tmp=segment->xedges;
     segment->max_xedges=nedges+10;
     segment->xedges=(int*)malloc(segment->max_xedges*sizeof(int));
-    memcpy(segment->xedges,tmp,segment->nxedges*sizeof(int));
+    memmove(segment->xedges,tmp,segment->nxedges*sizeof(int));
     free(tmp);
   }
   for ( n = 0 ; n < es->nxedges ; n++)
@@ -36537,7 +36537,7 @@ static int mergeSegmentToSegment
     tmp=segment1->edges;
     segment1->max_edges=nedges+10;
     segment1->edges=(int*)malloc(segment1->max_edges*sizeof(int));
-    memcpy(segment1->edges,tmp,segment1->nedges*sizeof(int));
+    memmove(segment1->edges,tmp,segment1->nedges*sizeof(int));
     free(tmp);
   }
 
@@ -36558,7 +36558,7 @@ static int mergeSegmentToSegment
     tmp=segment1->xedges;
     segment1->max_xedges=nedges+10;
     segment1->xedges=(int*)malloc(segment1->max_xedges*sizeof(int));
-    memcpy(segment1->xedges,tmp,segment1->nxedges*sizeof(int));
+    memmove(segment1->xedges,tmp,segment1->nxedges*sizeof(int));
     free(tmp);
   }
   /* copy edges into segment1 */
@@ -36736,7 +36736,7 @@ static SEGMENTATION* segmentIntersectingEdges
       new_es[m].xedges=es[n].xedges;
       new_es[m++].nxedges=es[n].nxedges;
     }
-    memcpy(es,new_es,nes*sizeof(ES));
+    memmove(es,new_es,nes*sizeof(ES));
     free(new_es);
   }
 #endif
@@ -36874,7 +36874,7 @@ static SEGMENTATION* segmentIntersectingEdges
     sd=&new_segmentation->segments[n];
     ss=&segmentation->segments[segments[n]];
 
-    memcpy(sd,ss,sizeof(SEGMENT));
+    memmove(sd,ss,sizeof(SEGMENT));
 
     ss->edges=NULL;
     ss->xedges=NULL;
@@ -36980,7 +36980,7 @@ static SEGMENTATION* segmentIntersectingEdges
           tp=seg->edges;
           seg->max_edges+=10;
           seg->edges=(int*)malloc(seg->max_edges*sizeof(int));
-          memcpy(seg->edges,tp,seg->nedges*sizeof(int));
+          memmove(seg->edges,tp,seg->nedges*sizeof(int));
           free(tp);
         }
         seg->edges[seg->nedges++]=n;
@@ -38939,7 +38939,7 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
   if (nthings==nfaces) fprintf(WHICH_OUTPUT,"error in the retessellation \n");
   tp->faces=(int*)malloc(nthings*sizeof(int));
   tp->nfaces=nthings;
-  memcpy(tp->faces,things,nthings*sizeof(int));
+  memmove(tp->faces,things,nthings*sizeof(int));
   free(things);
 }
 
@@ -39961,7 +39961,7 @@ static int retessellateDefect(MRI_SURFACE *mris,
   /* store list of used edges */
   dp->tp.nedges=nthings;
   dp->tp.edges=(int*)malloc(nthings*sizeof(int));
-  memcpy(dp->tp.edges,things,nthings*sizeof(int));
+  memmove(dp->tp.edges,things,nthings*sizeof(int));
   free(things);
 
 #if DEBUG_INFO
@@ -39998,7 +39998,7 @@ static int retessellateDefect(MRI_SURFACE *mris,
   }
   dp->tp.nvertices=nthings;
   dp->tp.vertices=(int*)malloc(nthings*sizeof(int));
-  memcpy(dp->tp.vertices,things,nthings*sizeof(int));
+  memmove(dp->tp.vertices,things,nthings*sizeof(int));
   free(things);
 
   /* number of discarded vertices */
@@ -41481,14 +41481,14 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl)
 
         defect->area = -1;
         /* update inside vertices */
-        memcpy(vlist,defect->vertices,defect->nvertices*sizeof(int));
+        memmove(vlist,defect->vertices,defect->nvertices*sizeof(int));
         nadded=defect->nvertices;
-        memcpy(&vlist[nadded],dl->defects[j-1].vertices,dl->defects[j-1].nvertices*sizeof(int));
+        memmove(&vlist[nadded],dl->defects[j-1].vertices,dl->defects[j-1].nvertices*sizeof(int));
         nadded += dl->defects[j-1].nvertices;
 
         free(defect->vertices);
         defect->vertices=(int*)malloc(nadded*sizeof(int));
-        memcpy(defect->vertices,vlist,nadded*sizeof(int));
+        memmove(defect->vertices,vlist,nadded*sizeof(int));
         defect->nvertices=nadded;
 
         free(defect->status);
@@ -41560,7 +41560,7 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl)
 
       free(defect->border);
       defect->border=(int*)malloc(nadded*sizeof(int));
-      memcpy(defect->border,vlist,nadded*sizeof(int));
+      memmove(defect->border,vlist,nadded*sizeof(int));
       defect->nborder=nadded;
       /* set marks to zero */
       for (n=0;n<defect->nborder;n++)
@@ -41582,7 +41582,7 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl)
     defect=&dl->defects[i];
     if (defect->nvertices)
     { /* this defect is not empty */
-      memcpy(&new_dl->defects[new_dl->ndefects++],defect,sizeof(DEFECT));
+      memmove(&new_dl->defects[new_dl->ndefects++],defect,sizeof(DEFECT));
     }
   }
 
@@ -42711,7 +42711,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
         free(defect->chull);
         defect->nchull=defect->nborder;
         defect->chull=(int*)malloc(defect->nchull*sizeof(int));
-        memcpy(defect->chull,defect->border,defect->nchull*sizeof(int));
+        memmove(defect->chull,defect->border,defect->nchull*sizeof(int));
 
         /* save border positions */
         for ( n = 0 ; n < defect->nborder ; n++)
@@ -43486,7 +43486,7 @@ mrisSegmentDefect
   if (!defect->status)
     ErrorExit(ERROR_NO_MEMORY,
               "mrisSegmentDefect: could allocate defect status list") ;
-  memcpy(defect->vertices, vlist, defect->nvertices*sizeof(int)) ;
+  memmove(defect->vertices, vlist, defect->nvertices*sizeof(int)) ;
 
 
   /* analyze if some extra vertices should be added to the surface */
@@ -43572,7 +43572,7 @@ mrisSegmentDefect
 
   defect->border = (int *)calloc(nfilled, sizeof(int)) ;
   defect->nborder = nfilled ;
-  memcpy(defect->border, vlist, defect->nborder*sizeof(int)) ;
+  memmove(defect->border, vlist, defect->nborder*sizeof(int)) ;
   mrisMarkDefectBorder(mris, defect, 0) ;
 
   nx = ny = nz = 0.0f ;
@@ -43650,7 +43650,7 @@ static int mrisSegmentConnectedComponents(MRIS *mris)
         }
       }
       nvertices=next_nvertices;
-      memcpy(vlist,next_vlist,mris->nvertices*sizeof(int));
+      memmove(vlist,next_vlist,mris->nvertices*sizeof(int));
       total_vertices += nvertices;
     }
     if (maxv < total_vertices)
@@ -43898,7 +43898,7 @@ static int mrisSimplyConnectedDefect
   /* first list good enclosing edges */
   defect->edges=(EDGE*)malloc(added_edges*sizeof(EDGE));
   defect->nedges=added_edges;
-  memcpy(defect->edges,edges,added_edges*sizeof(EDGE));
+  memmove(defect->edges,edges,added_edges*sizeof(EDGE));
   free(edges);
 
   /* then keep updating inside and border vertices */
@@ -43920,10 +43920,10 @@ static int mrisSimplyConnectedDefect
   defect->nvertices=vnb;
   defect->vertices=(int*)malloc(vnb*sizeof(int));
   defect->status=(char*)calloc(vnb,sizeof(char));
-  memcpy(defect->vertices,varray,vnb*sizeof(int));
+  memmove(defect->vertices,varray,vnb*sizeof(int));
   defect->nborder=bnb;
   defect->border=(int*)malloc(bnb*sizeof(int));
-  memcpy(defect->border,barray,bnb*sizeof(int));
+  memmove(defect->border,barray,bnb*sizeof(int));
   free(varray);
   free(barray);
 
@@ -50250,7 +50250,7 @@ static int mrisComputeOptimalRetessellation
   /* generate Random Patch */
   rp.best_ordering=(int*)malloc(nedges*sizeof(int));
   rp.status=(char*)malloc(defect->nvertices*sizeof(char));
-  memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+  memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
   rp.nused=(int*)calloc(defect->nvertices,sizeof(int));
   rp.vertex_fitness=(float*)calloc(defect->nvertices,sizeof(float));
 
@@ -50366,8 +50366,8 @@ static int mrisComputeOptimalRetessellation
 
       if (!i)  //fisrt patch
       {
-        memcpy(rp.best_ordering,dp->ordering,nedges*sizeof(int));
-        memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+        memmove(rp.best_ordering,dp->ordering,nedges*sizeof(int));
+        memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
         dp->defect->initial_face_ll=dp->tp.face_ll;
         dp->defect->initial_vertex_ll=dp->tp.vertex_ll;
         dp->defect->initial_curv_ll=dp->tp.curv_ll;
@@ -50409,9 +50409,9 @@ static int mrisComputeOptimalRetessellation
 
         rp.best_fitness=best_fitness;
         /* save ordering*/
-        memcpy(rp.best_ordering,dp->ordering,nedges*sizeof(int));
+        memmove(rp.best_ordering,dp->ordering,nedges*sizeof(int));
         /* save current status of vertices */
-        memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+        memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
 
         if (parms->verbose==VERBOSE_MODE_LOW)
           printDefectStatistics(dp);
@@ -50551,8 +50551,8 @@ static int mrisComputeOptimalRetessellation
 
       if (!i)
       {
-        memcpy(rp.best_ordering,dp->ordering,nedges*sizeof(int));
-        memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+        memmove(rp.best_ordering,dp->ordering,nedges*sizeof(int));
+        memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
 
         dp->defect->initial_face_ll=dp->tp.face_ll;
         dp->defect->initial_vertex_ll=dp->tp.vertex_ll;
@@ -50597,9 +50597,9 @@ static int mrisComputeOptimalRetessellation
 
         rp.best_fitness=best_fitness;
         /* save ordering*/
-        memcpy(rp.best_ordering,dp->ordering,nedges*sizeof(int));
+        memmove(rp.best_ordering,dp->ordering,nedges*sizeof(int));
         /* save current status of vertices */
-        memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+        memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
 
         if (parms->verbose==VERBOSE_MODE_LOW)
           printDefectStatistics(dp);
@@ -50717,9 +50717,9 @@ static int mrisComputeOptimalRetessellation
 
         rp.best_fitness=best_fitness;
         /* save ordering*/
-        memcpy(rp.best_ordering,dp->ordering,nedges*sizeof(int));
+        memmove(rp.best_ordering,dp->ordering,nedges*sizeof(int));
         /* save current status of vertices */
-        memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+        memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
 
         if (parms->verbose>VERBOSE_MODE_DEFAULT)
           fprintf(WHICH_OUTPUT,"replacement %d MUTATION: new optimal "
@@ -50882,9 +50882,9 @@ static int mrisComputeOptimalRetessellation
 
         rp.best_fitness=best_fitness;
         /* save ordering*/
-        memcpy(rp.best_ordering,dp->ordering,nedges*sizeof(int));
+        memmove(rp.best_ordering,dp->ordering,nedges*sizeof(int));
         /* save current status of vertices */
-        memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+        memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
 
         if (parms->verbose>VERBOSE_MODE_DEFAULT)
           fprintf(WHICH_OUTPUT,
@@ -50958,9 +50958,9 @@ static int mrisComputeOptimalRetessellation
 
           rp.best_fitness=best_fitness;
           /* save ordering*/
-          memcpy(rp.best_ordering,dp->ordering,nedges*sizeof(int));
+          memmove(rp.best_ordering,dp->ordering,nedges*sizeof(int));
           /* save current status of vertices */
-          memcpy(rp.status,defect->status,
+          memmove(rp.status,defect->status,
                  defect->nvertices*sizeof(char));
 
           if (parms->verbose>VERBOSE_MODE_DEFAULT)
@@ -51154,8 +51154,8 @@ debug_use_this_patch:
   nkilled += nfinalvertices;
 
   /* use the best ordering to retessellate the defected patch */
-  memcpy(dp->ordering,rp.best_ordering,nedges*sizeof(int));
-  memcpy(defect->status,rp.status,defect->nvertices*sizeof(char));
+  memmove(dp->ordering,rp.best_ordering,nedges*sizeof(int));
+  memmove(defect->status,rp.status,defect->nvertices*sizeof(char));
 
   /* set back to unrip the correct vertices*/
   for (i = 0 ; i < defect->nvertices ; i++)
@@ -51486,7 +51486,7 @@ mrisComputeRandomRetessellation
   /* generate Random Patch */
   rp.best_ordering=(int*)malloc(nedges*sizeof(int));
   rp.status=(char*)malloc(defect->nvertices*sizeof(char));
-  memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+  memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
   rp.nused=(int*)calloc(defect->nvertices,sizeof(int));
   rp.vertex_fitness=(float*)calloc(defect->nvertices,sizeof(float));
 
@@ -51556,9 +51556,9 @@ mrisComputeRandomRetessellation
 
       rp.best_fitness=best_fitness;
       /* save ordering*/
-      memcpy(rp.best_ordering,dp.ordering,nedges*sizeof(int));
+      memmove(rp.best_ordering,dp.ordering,nedges*sizeof(int));
       /* save current status of vertices */
-      memcpy(rp.status,defect->status,defect->nvertices*sizeof(char));
+      memmove(rp.status,defect->status,defect->nvertices*sizeof(char));
 
       if (parms->verbose==VERBOSE_MODE_LOW)
         printDefectStatistics(&dp);
@@ -51619,8 +51619,8 @@ mrisComputeRandomRetessellation
   nkilled += nfinalvertices;
 
   /* use the best ordering to retessellate the defected patch */
-  memcpy(dp.ordering,rp.best_ordering,nedges*sizeof(int));
-  memcpy(defect->status,rp.status,defect->nvertices*sizeof(char));
+  memmove(dp.ordering,rp.best_ordering,nedges*sizeof(int));
+  memmove(defect->status,rp.status,defect->nvertices*sizeof(char));
 
   /* set back to unrip the correct vertices*/
   for (i = 0 ; i < defect->nvertices ; i++)
@@ -52512,7 +52512,7 @@ mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
   if (v->vnum >= MAX_VLIST-1)
     ErrorExit(ERROR_NOMEMORY, "mrisAddEdge: too many edges (%d)",v->vnum) ;
 
-  memcpy(vlist, v->v, v->vnum*sizeof(int)) ;
+  memmove(vlist, v->v, v->vnum*sizeof(int)) ;
   vlist[(unsigned int)v->vnum++] = vno2 ;
   v->vtotal = v->vnum ;
   if (v->v)
@@ -52522,11 +52522,11 @@ mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
     ErrorExit(ERROR_NO_MEMORY,
               "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
 
-  memcpy(v->v, vlist, v->vnum*sizeof(int)) ;
+  memmove(v->v, vlist, v->vnum*sizeof(int)) ;
 
   /* add v1 link to v2 struct */
   v = &mris->vertices[vno2] ;
-  memcpy(vlist, v->v, v->vnum*sizeof(int)) ;
+  memmove(vlist, v->v, v->vnum*sizeof(int)) ;
   vlist[(unsigned int)v->vnum++] = vno1 ;
   v->vtotal = v->vnum ;
   if (v->v)
@@ -52536,7 +52536,7 @@ mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
     ErrorExit(ERROR_NO_MEMORY,
               "mrisAddEdge(%d, %d): could not allocate %d len vlist", v->vnum);
 
-  memcpy(v->v, vlist, v->vnum*sizeof(int)) ;
+  memmove(v->v, vlist, v->vnum*sizeof(int)) ;
 
   return(NO_ERROR) ;
 }
@@ -52583,7 +52583,7 @@ mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
     v = &mris->vertices[f->v[n]] ;
     if (v->num >= 255)
       continue ;
-    memcpy(ilist, v->f, v->num*sizeof(int)) ;
+    memmove(ilist, v->f, v->num*sizeof(int)) ;
     ilist[v->num++] = fno ;
     if (v->f)
       free(v->f) ;
@@ -52591,16 +52591,16 @@ mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
     if (!v->f)
       ErrorExit(ERROR_NOMEMORY,
                 "mrisAddFace: could not allocate face list") ;
-    memcpy(v->f, ilist, v->num*sizeof(int)) ;
+    memmove(v->f, ilist, v->num*sizeof(int)) ;
 
-    memcpy(ulist, v->n, (v->num-1)*sizeof(uchar)) ;
+    memmove(ulist, v->n, (v->num-1)*sizeof(uchar)) ;
     ulist[v->num-1] = n ;
     if (v->n)
       free(v->n) ;
     v->n = (uchar *)calloc(v->num, sizeof(uchar)) ;
     if (!v->n)
       ErrorExit(ERROR_NOMEMORY, "mrisAddFace: could not allocate n list") ;
-    memcpy(v->n, ulist, v->num*sizeof(uchar)) ;
+    memmove(v->n, ulist, v->num*sizeof(uchar)) ;
   }
 
   mrisCalculateCanonicalFaceCentroid(mris, fno, &cx, &cy, &cz);
@@ -54215,7 +54215,7 @@ for (nb = dno = 0 ; dno < dl->ndefects ; dno++)
   }
   for (n = 0 ; n < defect->nborder ; n++)
     mris->vertices[vtrans[defect->border[n]]].marked = 1 ;
-  memcpy(blist+nb, defect->border, defect->nborder*sizeof(int)) ;
+  memmove(blist+nb, defect->border, defect->nborder*sizeof(int)) ;
   nb += defect->nborder ;
 }
 
@@ -54291,7 +54291,7 @@ do   /* grow border inwards one edge length at each iteration */
   }
   nb = nbnew ;
   if (nb > 0)
-    memcpy(blist, tmp, nb*sizeof(int)) ;
+    memmove(blist, tmp, nb*sizeof(int)) ;
 }
 while (nb > 0) ;
 
@@ -54584,7 +54584,7 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
 
   defect->chull = chull ;
   defect->nchull = defect->nborder ;  /* include border vertices first*/
-  memcpy(chull, defect->border, defect->nborder*sizeof(int)) ;
+  memmove(chull, defect->border, defect->nborder*sizeof(int)) ;
 
   MRISclearMarks(mris) ;
   mrisMarkDefectConvexHull(mris, defect, 1) ;
@@ -54613,7 +54613,7 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
     ErrorExit(ERROR_NO_MEMORY,
               "mrisFindConvexHull: could not allocate %d vlist\n",
               defect->nchull) ;
-  memcpy(defect->chull, chull, defect->nchull*sizeof(int)) ;
+  memmove(defect->chull, chull, defect->nchull*sizeof(int)) ;
 
   return(NO_ERROR) ;
 #else
@@ -54653,7 +54653,7 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
   }
   defect->chull = chull ;
   defect->nchull = defect->nborder ;
-  memcpy(chull, defect->border, defect->nborder*sizeof(int)) ;
+  memmove(chull, defect->border, defect->nborder*sizeof(int)) ;
 
   MRISclearMarks(mris) ;
   mrisMarkDefectConvexHull(mris, defect, 1) ;
@@ -54692,7 +54692,7 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
     ErrorExit(ERROR_NO_MEMORY,
               "mrisFindConvexHull: could not allocate %d vlist\n",
               defect->nchull) ;
-  memcpy(defect->chull, chull, defect->nchull*sizeof(int)) ;
+  memmove(defect->chull, chull, defect->nchull*sizeof(int)) ;
 
   return(NO_ERROR) ;
 #endif
@@ -59778,7 +59778,7 @@ MRI *MRISdistSphere(MRIS *surf, double dmax)
     XNbrVtxNo[vtxno] = (int*)calloc(nXNbrs[vtxno],sizeof(int));
 
     // Can just copy vertex numbers
-    memcpy(XNbrVtxNo[vtxno],XNbrVtxNoTmp,nXNbrs[vtxno]*sizeof(int));
+    memmove(XNbrVtxNo[vtxno],XNbrVtxNoTmp,nXNbrs[vtxno]*sizeof(int));
 
     /* Loop through the extended neighbors */
     for (n = 0; n < nXNbrs[vtxno]; n++)

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 06:01:09 $
- *    $Revision: 1.74.2.1 $
+ *    $Date: 2008/03/10 13:59:44 $
+ *    $Revision: 1.74.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1833,7 +1833,7 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
 
       if (found == 0) // all nbrs on - add it to the new label
       {
-        memcpy (&new_lv[num_new_lvs], &area->lv[label_vno],sizeof(LV));
+        memmove (&new_lv[num_new_lvs], &area->lv[label_vno],sizeof(LV));
         num_new_lvs++;
       }
     }
@@ -1877,7 +1877,7 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
     num_new_lvs = 0;
 
     /* Copy the existing lvs over first and increment our count. */
-    memcpy (new_lv, area->lv, area->n_points * sizeof(LV));
+    memmove (new_lv, area->lv, area->n_points * sizeof(LV));
     num_new_lvs = area->n_points;
 
 

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 02:52:21 $
- *    $Revision: 1.27.2.1 $
+ *    $Date: 2008/03/10 13:59:44 $
+ *    $Revision: 1.27.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -821,7 +821,7 @@ MLFC *ReadMatlabFileContents(const char *fname)
   mlfc = (MLFC *) calloc(sizeof(MLFC),1);
   len = strlen(fname);
   mlfc->mfile = (char *) calloc(sizeof(char),len+1);
-  memcpy(mlfc->mfile,fname,len);
+  memmove(mlfc->mfile,fname,len);
 
   while (1)
   {
@@ -975,30 +975,30 @@ znzreadMatFile(char *unbuff, MATFILE *mf, double **real_matrix, double **imag_ma
       {
       case MAT_BYTE:
         offset = 56 + col * (int)(mf->mrows) * sizeof(char) + row * sizeof(char);
-        memcpy(&bval, &unbuff[offset], sizeof(char));
+        memmove(&bval, &unbuff[offset], sizeof(char));
         real_matrix[row][col] = (double)bval ;
         break ;
       case MAT_SHORT:
         offset = 56 + col * (int)(mf->mrows) * sizeof(short) + row * sizeof(short);
-        memcpy(&sval, &unbuff[offset], sizeof(short));
+        memmove(&sval, &unbuff[offset], sizeof(short));
         if (DIFFERENT_ENDIAN(mf)) sval = swapShort(sval) ;
         real_matrix[row][col] = (double)sval ;
         break ;
       case MAT_INT:   /* 32 bit integer */
         offset = 56 + col * (int)(mf->mrows) * sizeof(long) + row * sizeof(long);
-        memcpy(&lval, &unbuff[offset], sizeof(long));
+        memmove(&lval, &unbuff[offset], sizeof(long));
         if (DIFFERENT_ENDIAN(mf)) lval = swapLong32(lval) ;
         real_matrix[row][col] = (double)lval ;
         break ;
       case MAT_FLOAT:
         offset = 56 + col * (int)(mf->mrows) * sizeof(float) + row * sizeof(float);
-        memcpy(&fval, &unbuff[offset], sizeof(float));
+        memmove(&fval, &unbuff[offset], sizeof(float));
         if (DIFFERENT_ENDIAN(mf)) fval = (float)swapLong32((long32)fval) ;
         real_matrix[row][col] = (double)fval ;
         break ;
       case MAT_DOUBLE:
         offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
-        memcpy(&dval, &unbuff[offset], sizeof(double));
+        memmove(&dval, &unbuff[offset], sizeof(double));
         if (DIFFERENT_ENDIAN(mf))  dval = swapDouble(dval) ;
         real_matrix[row][col] = dval ;
         break ;
@@ -1018,7 +1018,7 @@ znzreadMatFile(char *unbuff, MATFILE *mf, double **real_matrix, double **imag_ma
         case MAT_DOUBLE:
           offset = 56 + col * (int)(mf->mrows) * sizeof(double) + row * sizeof(double);
           offset += (mf->mrows * mf->ncols * sizeof(double)); // get past real part
-          memcpy(&dval, &unbuff[offset], sizeof(double));
+          memmove(&dval, &unbuff[offset], sizeof(double));
           break ;
         default:
           break ;
@@ -1209,7 +1209,7 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
     fseek(fp,12,SEEK_CUR) ;
     fread(&tmp, sizeof(long), 1, fp) ;
     if (DIFFERENT_ENDIAN(mf)) tmp = swapLong32(tmp) ;
-    memcpy(&ctmp, &tmp, 4); // tmp is long, ctmp is char
+    memmove(&ctmp, &tmp, 4); // tmp is long, ctmp is char
 
     mf->imagf = (long)(m & ctmp[3]); //0=real, 1=imag
     fseek(fp,12,SEEK_CUR) ;
@@ -1260,7 +1260,7 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
     {       /*small data element*/
       fread(&(mf->namlen), 1, sizeof(long), fp);
       if (DIFFERENT_ENDIAN(mf))  mf->namlen = swapLong32(mf->namlen);
-      memcpy(&namlen_temp, &mf->namlen, sizeof(short));
+      memmove(&namlen_temp, &mf->namlen, sizeof(short));
       mf->namlen = (long)namlen_temp;
       name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
       fread(name, (int)mf->namlen, sizeof(char), fp);
@@ -1402,11 +1402,11 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   // same way that we addressed into the file.
 
   // 18 is whether there is an imaginary part or not
-  memcpy(&c, &unbuff[18], sizeof(char));
+  memmove(&c, &unbuff[18], sizeof(char));
   mf->imagf = (long)(m & c) ;
 
-  memcpy(&(mf->mrows), &unbuff[32], sizeof(long));
-  memcpy(&(mf->ncols), &unbuff[36], sizeof(long));
+  memmove(&(mf->mrows), &unbuff[32], sizeof(long));
+  memmove(&(mf->ncols), &unbuff[36], sizeof(long));
   if (DIFFERENT_ENDIAN(mf))
   {
     mf->mrows = swapLong32(mf->mrows) ;
@@ -1414,30 +1414,30 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   }
 
   // Get the name of the varible. See MatReadHeader() for docs.
-  memcpy(&tmp, &unbuff[40], sizeof(long));
+  memmove(&tmp, &unbuff[40], sizeof(long));
   if (DIFFERENT_ENDIAN(mf))  tmp = swapLong32(tmp) ;
-  memcpy(&test_data, &tmp, 4);
+  memmove(&test_data, &tmp, 4);
   if (test_data[0]==0 && test_data[1]==0 )
   {
     /*normal data*/
-    memcpy(&(mf->namlen), &unbuff[44], sizeof(long));
+    memmove(&(mf->namlen), &unbuff[44], sizeof(long));
     name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-    memcpy(name, &unbuff[48], (int)mf->namlen * sizeof(char));
+    memmove(name, &unbuff[48], (int)mf->namlen * sizeof(char));
     padding = 48 + ((((int)mf->namlen -1)/ 8) +1);
-    memcpy(&(mf->type), &unbuff[padding], sizeof(long));
+    memmove(&(mf->type), &unbuff[padding], sizeof(long));
     if (DIFFERENT_ENDIAN(mf))  mf->type = swapLong32(mf->type);
   }
   else
   {
     /*small data*/
-    memcpy(&(mf->namlen), &unbuff[40], sizeof(long));
+    memmove(&(mf->namlen), &unbuff[40], sizeof(long));
     if (DIFFERENT_ENDIAN(mf))
       mf->namlen = swapLong32(mf->namlen);
-    memcpy(&namlen_temp, &mf->namlen, sizeof(short));
+    memmove(&namlen_temp, &mf->namlen, sizeof(short));
     mf->namlen = (long)namlen_temp;
     name = (char *) calloc ( (int)mf->namlen, sizeof(char)) ;
-    memcpy(name, &unbuff[44], (int)mf->namlen * sizeof(char));
-    memcpy(&(mf->type), &unbuff[48], sizeof(long));
+    memmove(name, &unbuff[44], (int)mf->namlen * sizeof(char));
+    memmove(&(mf->type), &unbuff[48], sizeof(long));
     if (DIFFERENT_ENDIAN(mf)) mf->type = swapLong32(mf->type);
   }
   *data = unbuff;

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/31 00:34:19 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:59:52 $
+ *    $Revision: 1.19.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.19 2007/07/31 00:34:19 greve Exp $
+  $Id: surfcluster.c,v 1.19.2.1 2008/03/10 13:59:52 nicks Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -389,7 +389,7 @@ SCS *SortSurfClusterSum(SCS *scs, int nClusters)
   scs_sorted = (SCS *) calloc(nClusters, sizeof(SCS));
 
   for (n=0; n < nClusters; n++)
-    memcpy(&scs_sorted[n],&scs[n],sizeof(SCS));
+    memmove(&scs_sorted[n],&scs[n],sizeof(SCS));
 
   /* Note: scs_sorted.clusterno does not changed */
   qsort((void *) scs_sorted, nClusters, sizeof(SCS), sclustCompare);
@@ -489,7 +489,7 @@ SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters,
   nth = 0;
   for(n=0; n < nclusters; n++){
     if(ClusterList[n].pval_clusterwise <= cwpvalthresh){
-      memcpy(&scs[nth],&ClusterList[n],sizeof(SCS));
+      memmove(&scs[nth],&ClusterList[n],sizeof(SCS));
       map[n] = nth;
       nth++;
     }

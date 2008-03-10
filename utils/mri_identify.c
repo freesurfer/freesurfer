@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/21 23:00:48 $
- *    $Revision: 1.61.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:59:45 $
+ *    $Revision: 1.61.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -136,7 +136,7 @@ char *type_to_string(int type)
 
   lentmp = strlen(tmpstr);
   typestring = (char *)calloc(lentmp+1,sizeof(char));
-  memcpy(typestring,tmpstr,lentmp);
+  memmove(typestring,tmpstr,lentmp);
   return(typestring);
 }
 
@@ -436,7 +436,7 @@ char *IDstemFromName(char *name)
   ext = &(name[len-2]); 
   if(!strcmp(ext,".w")){
     stem = (char*)calloc(len-2+1,sizeof(char));
-    memcpy(stem,name,len-2);
+    memmove(stem,name,len-2);
     return(stem);
   }
 
@@ -446,7 +446,7 @@ char *IDstemFromName(char *name)
   if(!strcmp(ext,".nii") || !strcmp(ext,".mgz") || 
      !strcmp(ext,".mgh") || !strcmp(ext,".img")){
     stem = (char*)calloc(len-4+1,sizeof(char));
-    memcpy(stem,name,len-4);
+    memmove(stem,name,len-4);
     return(stem);
   }
 
@@ -455,7 +455,7 @@ char *IDstemFromName(char *name)
   ext = &(name[len-5]); 
   if(!strcmp(ext,".bhdr")){
     stem = (char*)calloc(len-5+1,sizeof(char));
-    memcpy(stem,name,len-5);
+    memmove(stem,name,len-5);
     return(stem);
   }
 
@@ -464,7 +464,7 @@ char *IDstemFromName(char *name)
   ext = &(name[len-7]); 
   if(!strcmp(ext,".nii.gz")){
     stem = (char*)calloc(len-7+1,sizeof(char));
-    memcpy(stem,name,len-7);
+    memmove(stem,name,len-7);
     return(stem);
   }
 
@@ -473,7 +473,7 @@ char *IDstemFromName(char *name)
   ext = &(name[len-11]); 
   if(!strcmp(ext,"_000.bfloat") || !strcmp(ext,"_000.bshort")){
     stem = (char*)calloc(len-11+1,sizeof(char));
-    memcpy(stem,name,len-11);
+    memmove(stem,name,len-11);
     return(stem);
   }
 
@@ -885,7 +885,7 @@ char * bhdr_stem(char *fname)
   if (! is_bhdr(fname)) return(NULL);
   len = strlen(fname);
   stem = (char *) calloc(len+1,sizeof(char));
-  memcpy(stem,fname,len);
+  memmove(stem,fname,len);
   i = len-1;
   while (stem[i] != '.')
   {

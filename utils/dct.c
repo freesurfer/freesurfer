@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/01 13:29:17 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:59:43 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,9 +34,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/04/01 13:29:17 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: nicks $
+// Revision Date  : $Date: 2008/03/10 13:59:43 $
+// Revision       : $Revision: 1.2.2.1 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -430,7 +430,7 @@ soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_c
   int    iter, i, j, num ;
   
   tmp_vals = (double *)calloc(N, sizeof(double)) ;
-  memcpy(out_vals, in_vals, N*sizeof(double)) ;
+  memmove(out_vals, in_vals, N*sizeof(double)) ;
 
 
   // fix first and last point to min and max index +- 1
@@ -458,7 +458,7 @@ soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_c
   do
   {
     max_change = 0 ;
-    memcpy(tmp_vals, out_vals, N*sizeof(double)) ;
+    memmove(tmp_vals, out_vals, N*sizeof(double)) ;
 
     for (i = 0 ; i < N ; i++)
     {
@@ -477,7 +477,7 @@ soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_c
     iter++ ;
     if (iter > 1000)
       break ;
-    memcpy(tmp_vals, out_vals, N*sizeof(double)) ;
+    memmove(tmp_vals, out_vals, N*sizeof(double)) ;
   } while (max_change > 0.001) ;
 
   free(tmp_vals) ;

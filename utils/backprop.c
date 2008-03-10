@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/03/10 13:59:43 $
+ *    $Revision: 1.10.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,8 +36,11 @@
 
       Description:
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.10 2006/12/29 01:49:30 nicks Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.10.2.1 2008/03/10 13:59:43 nicks Exp $
   $Log: backprop.c,v $
+  Revision 1.10.2.1  2008/03/10 13:59:43  nicks
+  replaced memcpy with memmove, as memcpy doesnt guarantee correct copy if src and dst overlap
+
   Revision 1.10  2006/12/29 01:49:30  nicks
   added license header; ran astyle to set to kr and ansi code styling
 
@@ -192,8 +195,8 @@ BackpropAlloc(int ninputs, int noutputs, int nhidden, float trate,
   backprop->std_out = (float *)calloc(noutputs, sizeof(float)) ;
   if (!backprop->std_out)
     ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not output range vector\n") ;
-  memcpy(backprop->mean_out, mean_out, noutputs*sizeof(float)) ;
-  memcpy(backprop->std_out, std_out, noutputs*sizeof(float)) ;
+  memmove(backprop->mean_out, mean_out, noutputs*sizeof(float)) ;
+  memmove(backprop->std_out, std_out, noutputs*sizeof(float)) ;
   backprop->errors = (float *)calloc(noutputs, sizeof(float)) ;
   if (!backprop->errors)
     ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not allocate error vector\n") ;
@@ -402,13 +405,13 @@ BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst)
   bp_dst->old_momentum = bp_src->old_momentum ;
   bp_dst->sse = bp_src->sse ;
 
-  memcpy(bp_dst->mean_out, bp_src->mean_out, bp_src->noutputs * sizeof(float));
-  memcpy(bp_dst->std_out, bp_src->std_out, bp_src->noutputs * sizeof(float)) ;
-  memcpy(bp_dst->errors, bp_src->errors, bp_src->noutputs * sizeof(float)) ;
+  memmove(bp_dst->mean_out, bp_src->mean_out, bp_src->noutputs * sizeof(float));
+  memmove(bp_dst->std_out, bp_src->std_out, bp_src->noutputs * sizeof(float)) ;
+  memmove(bp_dst->errors, bp_src->errors, bp_src->noutputs * sizeof(float)) ;
   if ((bp_dst->user_bytes = bp_src->user_bytes) != 0)
   {
     bp_dst->user = (void *)calloc(bp_src->user_bytes, sizeof(char)) ;
-    memcpy(bp_dst->user, bp_src->user, bp_src->user_bytes) ;
+    memmove(bp_dst->user, bp_src->user, bp_src->user_bytes) ;
   }
 
   bpCopyLayer(&bp_src->hidden, &bp_dst->hidden) ;
@@ -428,15 +431,15 @@ bpCopyLayer(LAYER *lsrc, LAYER *ldst)
   int nweights ;
 
   nweights = lsrc->nunits * lsrc->ninputs ;
-  memcpy(ldst->w, lsrc->w, nweights*sizeof(*(lsrc->w))) ;
-  memcpy(ldst->dw, lsrc->dw, nweights*sizeof(*(lsrc->dw))) ;
-  memcpy(ldst->biases, lsrc->biases, lsrc->nunits*sizeof(*(lsrc->biases))) ;
-  memcpy(ldst->db, lsrc->db, lsrc->nunits*sizeof(*(lsrc->db))) ;
+  memmove(ldst->w, lsrc->w, nweights*sizeof(*(lsrc->w))) ;
+  memmove(ldst->dw, lsrc->dw, nweights*sizeof(*(lsrc->dw))) ;
+  memmove(ldst->biases, lsrc->biases, lsrc->nunits*sizeof(*(lsrc->biases))) ;
+  memmove(ldst->db, lsrc->db, lsrc->nunits*sizeof(*(lsrc->db))) ;
   if (lsrc->deltas)
   {
     if (!ldst->deltas)
       ldst->deltas = (float *)calloc(lsrc->nunits, sizeof(float)) ;
-    memcpy(ldst->deltas, lsrc->deltas, lsrc->nunits*sizeof(*(lsrc->deltas))) ;
+    memmove(ldst->deltas, lsrc->deltas, lsrc->nunits*sizeof(*(lsrc->deltas))) ;
   }
 }
 /*----------------------------------------------------------------------

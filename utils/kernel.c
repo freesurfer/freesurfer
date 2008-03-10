@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:33 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/03/10 13:59:44 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -659,7 +659,7 @@ KernelImageToSeq(KIMAGE *kimage)
         fsrc = kernel->weights[krow] + kcol ;
         fdst = fbase + drow * kcols + dcol ;
         if (drow >= 0 && (drow < krows) && (npix > 0))
-          memcpy((char *)fdst, (char *)fsrc, npix*sizeof(float)) ;
+          memmove((char *)fdst, (char *)fsrc, npix*sizeof(float)) ;
       }
     }
   }
@@ -738,7 +738,7 @@ KernelImageFromSeq(IMAGE *image)
         fdst = kernel->weights[krow] + kcol ;
         fsrc = fbase + drow * kcols + dcol ;
         if (drow >= 0 && (drow < krows) && (npix > 0))
-          memcpy((char *)fdst, (char *)fsrc, npix*sizeof(float)) ;
+          memmove((char *)fdst, (char *)fsrc, npix*sizeof(float)) ;
       }
     }
   }

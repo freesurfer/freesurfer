@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/23 20:03:08 $
- *    $Revision: 1.40 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:59:52 $
+ *    $Revision: 1.40.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -657,14 +657,14 @@ VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc)
   vc2 = clustAllocCluster(vc->nmembers);
 
   ncopy = vc->nmembers * sizeof(int);
-  memcpy(vc2->col,vc->col,ncopy);
-  memcpy(vc2->row,vc->row,ncopy);
-  memcpy(vc2->slc,vc->slc,ncopy);
+  memmove(vc2->col,vc->col,ncopy);
+  memmove(vc2->row,vc->row,ncopy);
+  memmove(vc2->slc,vc->slc,ncopy);
 
   ncopy = vc->nmembers * sizeof(float);
-  memcpy(vc2->x,vc->x,ncopy);
-  memcpy(vc2->y,vc->y,ncopy);
-  memcpy(vc2->z,vc->z,ncopy);
+  memmove(vc2->x,vc->x,ncopy);
+  memmove(vc2->y,vc->y,ncopy);
+  memmove(vc2->z,vc->z,ncopy);
 
   vc2->maxmember = vc->maxmember;
   vc2->maxval = vc->maxval;

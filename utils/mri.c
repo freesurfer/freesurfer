@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:53:22 $
- *    $Revision: 1.395.2.3 $
+ *    $Date: 2008/03/10 13:59:44 $
+ *    $Revision: 1.395.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.3 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.4 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -3370,19 +3370,19 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
         switch (mri_src->type)
         {
         case MRI_UCHAR:
-          memcpy(&MRIseq_vox(mri_dst, x1, yd, zd,frame),
+          memmove(&MRIseq_vox(mri_dst, x1, yd, zd,frame),
                  &MRIseq_vox(mri_src,x0,ys,zs,frame), bytes);
           break ;
         case MRI_FLOAT:
-          memcpy(&MRIFseq_vox(mri_dst, x1, yd, zd,frame),
+          memmove(&MRIFseq_vox(mri_dst, x1, yd, zd,frame),
                  &MRIFseq_vox(mri_src,x0,ys,zs,frame), bytes);
           break ;
         case MRI_SHORT:
-          memcpy(&MRISseq_vox(mri_dst, x1, yd, zd,frame),
+          memmove(&MRISseq_vox(mri_dst, x1, yd, zd,frame),
                  &MRISseq_vox(mri_src,x0,ys,zs,frame), bytes);
           break ;
         case MRI_LONG:
-          memcpy(&MRILseq_vox(mri_dst, x1, yd, zd,frame),
+          memmove(&MRILseq_vox(mri_dst, x1, yd, zd,frame),
                  &MRILseq_vox(mri_src,x0,ys,zs,frame), bytes);
           break ;
         }
@@ -5017,7 +5017,7 @@ MRIcopy(MRI *mri_src, MRI *mri_dst)
       {
         for (y = 0 ; y < height ; y++)
         {
-          memcpy(mri_dst->slices[z+frame*depth][y],
+          memmove(mri_dst->slices[z+frame*depth][y],
                  mri_src->slices[z+frame*depth][y], bytes) ;
         }
       }
@@ -6828,15 +6828,15 @@ MRItoImage(MRI *mri, IMAGE *I, int slice)
       switch (mri->type)
       {
       case MRI_INT:
-        memcpy
+        memmove
         (IMAGEIpix(I, 0, yp),mri->slices[slice][y],width*sizeof(int)) ;
         break ;
       case MRI_FLOAT:
-        memcpy
+        memmove
         (IMAGEFpix(I, 0, yp),mri->slices[slice][y],width*sizeof(float));
         break ;
       case MRI_UCHAR:
-        memcpy(IMAGEpix(I, 0, yp), mri->slices[slice][y],
+        memmove(IMAGEpix(I, 0, yp), mri->slices[slice][y],
                width*sizeof(unsigned char)) ;
         break ;
       default:
@@ -14309,7 +14309,7 @@ char *MRIcheckOrientationString(char *ostr)
   if (err)
   {
     errstrret = (char *) calloc(sizeof(char),strlen(errstr)+1);
-    memcpy(errstrret,errstr,strlen(errstr));
+    memmove(errstrret,errstr,strlen(errstr));
   }
 
   return(errstrret);
@@ -14399,7 +14399,7 @@ char *MRIsliceDirectionName(MRI *mri)
 
   len = strlen(slicedir);
   rtstr = (char *) calloc(sizeof(char),len+1);
-  memcpy(rtstr,slicedir,len);
+  memmove(rtstr,slicedir,len);
 
   return(rtstr);
 }

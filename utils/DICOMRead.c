@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/28 01:46:43 $
- *    $Revision: 1.111.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/10 13:59:43 $
+ *    $Revision: 1.111.2.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -971,7 +971,7 @@ char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
       /* match found. get the value (the third string) */
       sscanf(lists[i], "%*s %*s %s",tmpstr2);
       VariableValue = (char *) calloc(strlen(tmpstr2)+1,sizeof(char));
-      memcpy(VariableValue, tmpstr2, strlen(tmpstr2));
+      memmove(VariableValue, tmpstr2, strlen(tmpstr2));
     }
     else
       continue;
@@ -1082,7 +1082,7 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
       /* match found */
       sscanf(linestr,"%*s %*s %s",tmpstr2);
       VariableValue = (char *) calloc(strlen(tmpstr2)+1,sizeof(char));
-      memcpy(VariableValue, tmpstr2, strlen(tmpstr2));
+      memmove(VariableValue, tmpstr2, strlen(tmpstr2));
       break;
     }
   }
@@ -1467,7 +1467,7 @@ int sdcmIsMosaic(char *dcmfile,
   /* COL means that each row is a different phase encode */
   e = GetElementFromFile(dcmfile, 0x18, 0x1312);
   if (e == NULL) return(0);
-  memcpy(PhEncDir,e->d.string,3);
+  memmove(PhEncDir,e->d.string,3);
   FreeElementData(e);
   free(e);
 
@@ -1568,7 +1568,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   l = strlen(dcmfile);
   sdcmfi->FileName = (char *) calloc(l+1,sizeof(char));
-  memcpy(sdcmfi->FileName,dcmfile,l);
+  memmove(sdcmfi->FileName,dcmfile,l);
 
   // This stores the 'Transfer Syntax Unique Identification',
   // which reports the structure of the image data, revealing
@@ -2166,13 +2166,13 @@ char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile)
     fbase = fio_basename(tmpstr,NULL);
     sprintf(tmpstr,"%s/%s",dcmdir,fbase);
     SeriesList[n] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
-    memcpy(SeriesList[n],tmpstr,strlen(tmpstr));
+    memmove(SeriesList[n],tmpstr,strlen(tmpstr));
     free(fbase);
   }
   if (AddDCMFile)
   {
     SeriesList[n] = (char *) calloc(strlen(dcmfile)+1,sizeof(char));
-    memcpy(SeriesList[n],dcmfile,strlen(dcmfile));
+    memmove(SeriesList[n],dcmfile,strlen(dcmfile));
   }
 
   fclose(fp);
@@ -2244,7 +2244,7 @@ char **ScanSiemensSeries(char *dcmfile, int *nList)
       if (SeriesNoTest == SeriesNo)
       {
         SeriesList[*nList] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
-        memcpy(SeriesList[*nList], tmpstr, strlen(tmpstr));
+        memmove(SeriesList[*nList], tmpstr, strlen(tmpstr));
         //printf("%3d  %s\n",*nList,SeriesList[*nList]);
         (*nList)++;
       }
@@ -2589,7 +2589,7 @@ char *sdfiFirstFileInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist)
     {
       len = strlen(sdfi->FileName);
       FirstFileName = (char *) calloc(len+1,sizeof(char));
-      memcpy(FirstFileName,sdfi->FileName,len);
+      memmove(FirstFileName,sdfi->FileName,len);
       return(FirstFileName);
     }
   }
@@ -3270,7 +3270,7 @@ CONDITION GetString(DCM_OBJECT** object, DCM_TAG tag, char **st)
   if (cond != DCM_NORMAL)
   {
     *st=(char*)calloc(10, sizeof(char));
-    memcpy(*st,"unknown",8);
+    memmove(*st,"unknown",8);
     return cond;
   }
   *st=(char*)calloc(attribute.length+1, sizeof(char));
@@ -4457,7 +4457,7 @@ int scandir(const char *dir, struct_dirent ***namelist,
                 sizeof(entry->d_name)+strlen(entry->d_name)+1;
       (*namelist)[i]=(struct_dirent *)malloc(entrysize);
       if ((*namelist)[i] == NULL) return(-1);
-      memcpy((*namelist)[i], entry, entrysize);
+      memmove((*namelist)[i], entry, entrysize);
       i++;
     }
   }
@@ -4554,7 +4554,7 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
     GetDICOMInfo(FileNames[nthfile], &TmpDCMInfo, FALSE, 1);
     if (TmpDCMInfo.SeriesNumber != RefDCMInfo.SeriesNumber) continue;
     dcminfo[ndcmfiles] = (DICOMInfo *)calloc(1,sizeof(DICOMInfo));
-    memcpy(dcminfo[ndcmfiles],&TmpDCMInfo,sizeof(DICOMInfo));
+    memmove(dcminfo[ndcmfiles],&TmpDCMInfo,sizeof(DICOMInfo));
     ndcmfiles ++;
   }
 
@@ -4602,7 +4602,7 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
     return(NULL);
   }
   // update reference
-  memcpy(&RefDCMInfo,dcminfo[0],sizeof(DICOMInfo));
+  memmove(&RefDCMInfo,dcminfo[0],sizeof(DICOMInfo));
 
   mritype = MRI_SHORT;
   if (LoadVolume)

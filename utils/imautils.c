@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 02:02:02 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/03/10 13:59:44 $
+ *    $Revision: 1.13.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -458,7 +458,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
 
   len = strlen(imafile);
   ifi->FileName = (char *) calloc(sizeof(char),len+1);
-  memcpy(ifi->FileName,imafile,len);
+  memmove(ifi->FileName,imafile,len);
 
   ifi->NFilesInSeries = imaCountFilesInSeries(imafile, &FirstImageNo);
 
@@ -472,11 +472,11 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   sprintf(tmpstr,"%04ld%02ld%02ld",Year,Month,Day);
   len = strlen(tmpstr);
   ifi->PatientDOB = (char *) calloc(sizeof(char),len+1);
-  memcpy(ifi->PatientDOB,tmpstr,len);
+  memmove(ifi->PatientDOB,tmpstr,len);
 
   imaLoadValFromKey(fp,"G10_PatMod_PatientSex", &itmp);
-  if (itmp == 1) memcpy(ifi->PatientGender,"female",6);
-  else          memcpy(ifi->PatientGender,"male",  4);
+  if (itmp == 1) memmove(ifi->PatientGender,"female",6);
+  else          memmove(ifi->PatientGender,"male",  4);
 
 
   imaLoadValFromKey(fp,"G08_Ide_StudyDate_Year", &Year);
@@ -485,7 +485,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   sprintf(tmpstr,"%04ld%02ld%02ld",Year,Month,Day);
   len = strlen(tmpstr);
   ifi->StudyDate = (char *) calloc(sizeof(char),len+1);
-  memcpy(ifi->StudyDate,tmpstr,len);
+  memmove(ifi->StudyDate,tmpstr,len);
 
   imaLoadValFromKey(fp,"G08_Ide_StudyTime_Hour", &Hour);
   imaLoadValFromKey(fp,"G08_Ide_StudyTime_Minute",  &Min);
@@ -493,7 +493,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   sprintf(tmpstr,"%02ld%02ld%02ld",Hour,Min,Sec);
   len = strlen(tmpstr);
   ifi->StudyTime = (char *) calloc(sizeof(char),len+1);
-  memcpy(ifi->StudyTime,tmpstr,len);
+  memmove(ifi->StudyTime,tmpstr,len);
 
   imaLoadValFromKey(fp,"G19_Acq2_Mr_FlipAngle",&dtmp);
   ifi->FlipAngle = (float) M_PI*dtmp/180.0; /* Convert to radians */
@@ -974,7 +974,7 @@ IMAFILEINFO *imaLoadDefaultFileInfo(char *imafile)
 
   n = strlen(imafile);
   ifi->filename = (char *) calloc(n+1,sizeof(char));
-  memcpy(ifi->filename,imafile,n);
+  memmove(ifi->filename,imafile,n);
 
   for (n=0; n < ifi->nelements; n++)
   {
@@ -1235,14 +1235,14 @@ IMAELEMENT *imaMakeElement(char *descr, int offset, int type, int nitems)
     else
     {
       e->string = (char *) calloc(e->nbytes+1,sizeof(char));
-      memcpy(e->string,val,e->nbytes);
+      memmove(e->string,val,e->nbytes);
     }
   }
 #endif
 
   descrlen = strlen(descr);
   e->descr = (char *) calloc(descrlen+1,sizeof(char));
-  memcpy(e->descr,descr,descrlen);
+  memmove(e->descr,descr,descrlen);
 
   //printf("element descr: %s\n",e->descr);
 
@@ -1271,11 +1271,11 @@ IMAELEMENT *imaCopyElement(IMAELEMENT *esrc)
       esrc->string != NULL)
   {
     edest->string = (char *) calloc(edest->nitems+1,sizeof(char));
-    memcpy(edest->string,esrc->string,edest->nitems);
+    memmove(edest->string,esrc->string,edest->nitems);
   }
   descrlen = strlen(esrc->descr);
   edest->descr = (char *) calloc(descrlen+1,sizeof(char));
-  memcpy(edest->descr,esrc->descr,descrlen);
+  memmove(edest->descr,esrc->descr,descrlen);
 
   return(edest);
 }

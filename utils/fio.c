@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.30 $
+ *    $Date: 2008/03/10 13:59:43 $
+ *    $Revision: 1.30.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,8 +31,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:31 $
-// Revision       : $Revision: 1.30 $
+// Revision Date  : $Date: 2008/03/10 13:59:43 $
+// Revision       : $Revision: 1.30.2.1 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -338,7 +338,7 @@ int fwriteFloat(float f, FILE *fp)
 {
   int ret;
   char  buf[4];
-  memcpy(buf,&f,4);
+  memmove(buf,&f,4);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   byteswapbuffloat(buf,1);
   //f = swapFloat(f);  // old way
@@ -408,7 +408,7 @@ char *fio_dirname(char *pathname)
   }
 
   dirname = (char *) calloc(n+1,sizeof(char));
-  memcpy(dirname,pathname,n);
+  memmove(dirname,pathname,n);
   return(dirname);
 }
 /*------------------------------------------------------
@@ -453,7 +453,7 @@ char *fio_basename(char *pathname, char *ext)
     basename = (char *) calloc(2,sizeof(char));
     if (l==0) basename[0] = '/';
     else     basename[0] = pathname[0];
-    memcpy(pathname,tmp,strlen(tmp));
+    memmove(pathname,tmp,strlen(tmp));
     free(tmp);
     return(basename);
   }
@@ -463,10 +463,10 @@ char *fio_basename(char *pathname, char *ext)
   for (n=l; n >= 0; n--) if (pathname[n] == '/') break;
 
   basename = (char *) calloc(l-n,sizeof(char));
-  memcpy(basename,&(pathname[n+1]),l-n);
+  memmove(basename,&(pathname[n+1]),l-n);
 
   // Make sure that pathname does not change
-  memcpy(pathname,tmp,strlen(tmp));
+  memmove(pathname,tmp,strlen(tmp));
   free(tmp);
 
   return(basename);
@@ -499,7 +499,7 @@ char *fio_extension(char *pathname)
   if (lext == 0) return(NULL);
 
   ext = (char *) calloc(sizeof(char),lext+1);
-  memcpy(ext,&(pathname[n+1]),lext);
+  memmove(ext,&(pathname[n+1]),lext);
 
   return(ext);
 }

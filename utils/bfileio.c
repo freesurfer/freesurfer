@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/03/10 13:59:43 $
+ *    $Revision: 1.8.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@ Purpose: Routines for handling bfile (bshort and bfloat) I/O.
 Author:  Douglas Greve
 Date:    11/22/00
 
-$Id: bfileio.c,v 1.8 2006/12/29 01:49:30 nicks Exp $
+$Id: bfileio.c,v 1.8.2.1 2008/03/10 13:59:43 nicks Exp $
 
 Bfile names are assumed to have the following format:
   stem_%03d.bext
@@ -149,7 +149,7 @@ char * bf_getstemfromname(char *bfname)
     return(NULL);
   }
 
-  memcpy(stem,bfname,stemlen);
+  memmove(stem,bfname,stemlen);
   return(stem);
 }
 /*---------------------------------------------*/
@@ -426,7 +426,7 @@ int bf_svbfile(float *bfdata, char *bfname,
         return(1);
       }
       fdatadealloc = 1;
-      memcpy(fdata, bfdata, ntot*sizeof(float));
+      memmove(fdata, bfdata, ntot*sizeof(float));
       byteswapbuffloat(fdata, ntot*sizeof(float));
     }
     else fdata = bfdata;

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.34 $
+ *    $Date: 2008/03/10 13:59:45 $
+ *    $Revision: 1.34.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -765,7 +765,7 @@ Surf_tErr Surf_CopyGeometryInformation ( mriSurfaceRef this,
                      eResult, Surf_tErr_InvalidParameter );
 
   /* Copy the information out. */
-  memcpy( ioVolumeGeometry, &(this->mSurface->vg), sizeof(VOL_GEOM) );
+  memmove( ioVolumeGeometry, &(this->mSurface->vg), sizeof(VOL_GEOM) );
 
   DebugCatch;
   DebugCatchError( eResult, Surf_tErr_NoErr, Surf_GetErrorString );
