@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/03/04 01:27:52 $
-#    $Revision: 1.176 $
+#    $Author: nicks $
+#    $Date: 2008/03/11 21:14:58 $
+#    $Revision: 1.177 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.176 2008/03/04 01:27:52 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.177 2008/03/11 21:14:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -156,8 +156,8 @@ set brain_template = talairach_mixed_with_skull.gca
 set face_template  = face.gca
 
 # For subcortical segmentation
-set GCA      = RB_all_2007-08-08.gca
-set GCASkull = RB_all_withskull_2007-08-08.gca
+set GCA      = RB_all_2008-03-10.gca
+set GCASkull = RB_all_withskull_2008-03-10.gca
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "${FREESURFER_HOME}/average"
