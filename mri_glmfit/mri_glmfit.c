@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/06 20:25:42 $
- *    $Revision: 1.149 $
+ *    $Date: 2008/03/11 18:37:13 $
+ *    $Revision: 1.150 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -527,7 +527,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.149 2008/03/06 20:25:42 greve Exp $";
+"$Id: mri_glmfit.c,v 1.150 2008/03/11 18:37:13 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -882,6 +882,14 @@ int main(int argc, char **argv) {
   }
   if (OneSampleGroupMean) {
     mriglm->Xg = MatrixConstVal(1.0,mriglm->y->nframes,1,NULL);
+  }
+
+  if (! DontSave) {
+    if (GLMDir != NULL) {
+      sprintf(tmpstr,"%s/Xg.dat",GLMDir);
+      printf("Saving design matrix to %s\n",tmpstr);
+      MatrixWriteTxt(tmpstr, mriglm->Xg);
+    }
   }
 
   // Check the condition of the global matrix -----------------
