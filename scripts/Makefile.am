@@ -2,7 +2,6 @@
 # Makefile.am for scripts
 #
 dist_bin_SCRIPTS = \
-archive_pull \
 aparc2feat \
 aseg2feat \
 aparcstats2table \
@@ -13,7 +12,6 @@ batchjobs \
 bblabel \
 bedpostx_seychelles \
 browse-minc-header.tcl \
-browse-sessions \
 bugr \
 build_desikan_killiany_gcs.csh \
 check_subject \
@@ -106,7 +104,6 @@ ms_refine_subject \
 parc_atlas_jackknife_test \
 petsc_setup \
 plot_structure_stats.tcl \
-printdat \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
@@ -208,14 +205,29 @@ wrappers.tcl \
 fsgdfPlot.tcl
 
 install-exec-hook:
+	if ! test -f "$(DESTDIR)$(bindir)/fs_tclsh"; then \
+		ln -s $(DESTDIR)$(libdir)/tcltktixblt/bin/tclsh \
+		$(DESTDIR)$(bindir)/fs_tclsh;fi;
 	cp $(srcdir)/unpacksdcmdir $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/unpacksdcmdir
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/unpacksdcmdir
-	echo "unpacksdcmdir.tcl \$$argv" >> $(DESTDIR)$(bindir)/unpacksdcmdir
+	echo "#!/bin/tcsh -ef" \
+		> $(DESTDIR)$(bindir)/unpacksdcmdir
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/unpacksdcmdir
+	echo "fs_tclsh \$$FREESURFER_HOME/bin/unpacksdcmdir.tcl \$$argv" \
+		>> $(DESTDIR)$(bindir)/unpacksdcmdir
 	chmod a+x $(DESTDIR)$(bindir)/unpacksdcmdir
+	cp $(srcdir)/fsfget $(DESTDIR)$(bindir)/fsfget.tcl
+	echo "#!/bin/tcsh -ef" \
+		> $(DESTDIR)$(bindir)/fsfget
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/fsfget
+	echo "fs_tclsh \$$FREESURFER_HOME/bin/fsfget.tcl \$$argv" \
+		>> $(DESTDIR)$(bindir)/fsfget
+	chmod a+x $(DESTDIR)$(bindir)/fsfget
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
+	rm -f $(DESTDIR)$(bindir)/fsfget.tcl
 
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
 extract_talairach_avi_QA.awk

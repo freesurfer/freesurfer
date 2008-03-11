@@ -1,12 +1,10 @@
-#! /usr/bin/tclsh
-
 ##
 ## tkregister2.tcl
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:35 $
-##    $Revision: 1.3 $
+##    $Date: 2008/03/11 19:49:07 $
+##    $Revision: 1.4 $
 ##
 ## Copyright (C) 1996 Martin Sereno and Anders Dale
 ## Copyright (C) 2002-2007,
