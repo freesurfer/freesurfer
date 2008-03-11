@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/23 17:41:28 $
-#    $Revision: 1.3 $
+#    $Date: 2008/03/11 17:47:29 $
+#    $Revision: 1.3.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,11 +25,23 @@
 
 if($#argv != 1) then
   echo "USAGE: getnframes stem "
-  echo '$Id: getnframes,v 1.3 2007/07/23 17:41:28 greve Exp $'
+  echo '$Id: getnframes,v 1.3.2.1 2008/03/11 17:47:29 greve Exp $'
   exit 1;
 endif
 
 set stem = $argv[1];
+
+# First, check for bshort/bfloat without bhdr
+set f0 = $stem"_000.hdr";
+if(-e $f0) then
+  if(! -e $stem.bhdr) then
+    set nframes = `cat $f0 | awk '{print $3}'`;
+    echo $nframes
+    exit 0
+  endif
+endif
+
+# If it gets here, then bhdr exists or is not bshort/bfloat
 set fname = `stem2fname $stem`;
 if($status) then
   echo "$fname"
