@@ -1,4 +1,3 @@
-#!/usr/bin/wish
 
 ##
 ## unpack_ima.tcl
@@ -6,8 +5,8 @@
 ## Original Author: Tony Harris
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/01/05 00:21:39 $
-##    $Revision: 1.10 $
+##    $Date: 2008/03/11 19:56:37 $
+##    $Revision: 1.10.2.1 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 

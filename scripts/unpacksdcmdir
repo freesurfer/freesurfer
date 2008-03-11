@@ -1,4 +1,3 @@
-#!/usr/bin/tclsh
 
 #------------------------------------------------------------------#
 proc PrintUsage { } {
@@ -353,7 +352,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.19.2.1 2007/09/19 14:34:42 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.19.2.2 2008/03/11 19:56:38 nicks Exp $}
 
 exit 1;
 
@@ -808,7 +807,7 @@ set mriconvert mri_convert
 
 # Dump some info to the screen
 puts "";
-puts {$Id: unpacksdcmdir,v 1.19.2.1 2007/09/19 14:34:42 greve Exp $};
+puts {$Id: unpacksdcmdir,v 1.19.2.2 2008/03/11 19:56:38 nicks Exp $};
 puts "";
 puts [pwd];
 puts "$argv"
@@ -857,7 +856,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.19.2.1 2007/09/19 14:34:42 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.19.2.2 2008/03/11 19:56:38 nicks Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];

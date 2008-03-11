@@ -1,12 +1,11 @@
-#!/usr/bin/wish
 
 ##
 ## browse-minc-header.tcl
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2007/01/05 00:20:58 $
-##    $Revision: 1.2 $
+##    $Date: 2008/03/11 19:56:37 $
+##    $Revision: 1.2.2.1 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
