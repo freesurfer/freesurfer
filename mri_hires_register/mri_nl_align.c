@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/25 23:32:27 $
- *    $Revision: 1.17 $
+ *    $Date: 2008/03/12 19:45:03 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/01/25 23:32:27 $
-// Revision       : $Revision: 1.17 $
+// Revision Date  : $Date: 2008/03/12 19:45:03 $
+// Revision       : $Revision: 1.18 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -59,6 +59,7 @@
 #include "transform.h"
 #include "fastmarching.h"
 #include "voxlist.h"
+#include "mrisurf.h"
 
 #define NONMAX 0
 #define PAD      10
@@ -79,7 +80,40 @@ static int regrid = 0 ;
 static void  usage_exit(int ecode) ;
 static int get_option(int argc, char *argv[]) ;
 
+static char *source_surf = "";
+static char *target_surf = ".toM02100023.resample";
 
+// NOTE: the order here *must* match the frame #s listed in gcamorph.c:dtrans_label_to_frame
+static int dtrans_labels[] =
+  {
+    Left_Thalamus_Proper,
+    Right_Thalamus_Proper,
+    Left_Putamen,
+    Right_Putamen,
+    Left_Pallidum,
+    Right_Pallidum,
+    Left_Lateral_Ventricle,
+    Right_Lateral_Ventricle,
+    Left_Caudate,
+    Right_Caudate,
+    Left_Cerebral_White_Matter,
+    Right_Cerebral_White_Matter,
+    Left_Hippocampus,
+    Right_Hippocampus,
+    Left_Amygdala,
+    Right_Amygdala,
+    Left_VentralDC,
+    Right_VentralDC,
+    Brain_Stem,
+    Left_Inf_Lat_Vent,
+    Right_Inf_Lat_Vent,
+    Left_Cerebral_Cortex,
+    Right_Cerebral_Cortex,
+    Left_Cerebellum_White_Matter,
+    Right_Cerebellum_White_Matter
+  } ;
+
+#define NDTRANS_LABELS (sizeof(dtrans_labels) / sizeof(dtrans_labels[0]))
 char *Progname ;
 
 static int skip = 2 ;
@@ -89,6 +123,7 @@ static int nozero = 1 ;
 static int match_peak_intensity_ratio = 0 ;
 static int match_mean_intensity = 1 ;
 
+static char *ribbon_name = NULL ;
 
 static TRANSFORM  *transform = NULL ;
 static GCA_MORPH_PARMS mp ;
@@ -247,6 +282,83 @@ main(int argc, char *argv[])
 		gcam = GCAMcreateFromIntensityImage(mri_source, mri_target, transform) ;
     if (use_aseg)
     {
+      if (ribbon_name)
+      {
+        char fname[STRLEN], path[STRLEN], *str, *hemi ;
+        int  h, s, label ;
+        MRI_SURFACE *mris_white, *mris_pial ;
+        MRI         *mri ;
+
+        for (s = 0 ; s <= 1 ; s++) // source and target
+        {
+          if (s == 0)
+          {
+            str = source_surf ;
+            mri = mri_source ;
+            FileNamePath(mri->fname, path) ;
+            strcat(path, "/../surf") ;
+          }
+          else
+          {
+            mri = mri_target ;
+            FileNamePath(mri->fname, path) ;
+            strcat(path, "/../elastic") ;
+            str = target_surf ;
+          }
+          // sorry - these values come from FreeSurferColorLUT.txt
+          MRIreplaceValueRange(mri, mri, 1000, 1034, Left_Cerebral_Cortex) ;
+          MRIreplaceValueRange(mri, mri, 1100, 1180, Left_Cerebral_Cortex) ;
+          MRIreplaceValueRange(mri, mri, 2000, 2034, Right_Cerebral_Cortex) ;
+          MRIreplaceValueRange(mri, mri, 2100, 2180, Right_Cerebral_Cortex) ;
+          for (h = LEFT_HEMISPHERE ; h <= RIGHT_HEMISPHERE ; h++)  
+          {
+            if (h == LEFT_HEMISPHERE)
+            {
+              hemi = "lh" ;
+              label = Left_Cerebral_Cortex ;
+            }
+            else
+            {
+              label = Right_Cerebral_Cortex ;
+              hemi = "rh" ;
+            }
+            sprintf(fname, "%s/%s%s.white", path, hemi, str) ;
+            mris_white = MRISread(fname) ;
+            if (mris_white == NULL)
+              ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
+            MRISsaveVertexPositions(mris_white, WHITE_VERTICES) ;
+            sprintf(fname, "%s/%s%s.pial", path, hemi, str) ;
+            mris_pial = MRISread(fname) ;
+            if (mris_pial == NULL)
+              ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
+            MRISsaveVertexPositions(mris_pial, PIAL_VERTICES) ;
+            if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+            {
+              sprintf(fname, "sb.mgz") ;
+              MRIwrite(mri_source, fname) ; 
+              sprintf(fname, "tb.mgz") ;
+              MRIwrite(mri_target, fname) ;
+            }
+
+            insert_ribbon_into_aseg(mri, mri, mris_white, mris_pial, h) ;
+            if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+            {
+              sprintf(fname, "sa.mgz") ;
+              MRIwrite(mri_source, fname) ; 
+              sprintf(fname, "ta.mgz") ;
+              MRIwrite(mri_target, fname) ;
+            }
+            MRISfree(&mris_white) ; MRISfree(&mris_pial) ;
+          }
+        }
+        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        {
+          sprintf(fname, "s.mgz") ;
+          MRIwrite(mri_source, fname) ; 
+          sprintf(fname, "t.mgz") ;
+          MRIwrite(mri_target, fname) ;
+        }
+      }
       GCAMinitLabels(gcam, mri_source) ;
       GCAMsetVariances(gcam, 1.0) ;
       mp.mri_dist_map = create_distance_transforms(mri_source, mri_target, NULL, 10.0, gcam) ;
@@ -292,8 +404,13 @@ main(int argc, char *argv[])
 		}
 		else
 		{
-			mri_gca = MRIclone(mri_source, NULL) ;
-			GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+      if (use_aseg)
+        mri_gca = GCAMwriteMRI(gcam, NULL, GCAM_LABEL) ;
+      else
+      {
+        mri_gca = MRIclone(mri_source, NULL) ;
+        GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+      }
 			printf("writing target volume to %s...\n", fname) ;
 			MRIwrite(mri_gca, fname) ;
 			sprintf(fname, "%s_target", mp.base_name) ;
@@ -377,6 +494,8 @@ get_option(int argc, char *argv[])
     mp.l_log_likelihood = 0 ;
     renormalize = 0 ;
     printf("treating inputs as segmentations\n") ;
+    mp.dtrans_labels = dtrans_labels ;
+    mp.ndtrans = NDTRANS_LABELS ;
   }
   else if (!stricmp(option, "MOMENTUM") || !stricmp(option, "FIXED"))
   {
@@ -470,6 +589,12 @@ get_option(int argc, char *argv[])
     mp.sigma = atof(argv[2]) ;
     nargs = 1 ;
     printf("using sigma=%2.3f\n", mp.sigma) ;
+  }
+  else if (!stricmp(option, "ribbon"))
+  {
+    ribbon_name = argv[2] ;
+    printf("reading ribbon from %s and inserting into aseg\n", ribbon_name) ;
+    nargs = 1 ;
   }
 	else if (!stricmp(option, "rthresh"))
   {
@@ -664,33 +789,6 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 	return(NO_ERROR) ;
 }
 
-// NOTE: the order here *must* match the frame #s listed in gcamorph.c:dtrans_label_to_frame
-static int dtrans_labels[] =
-  {
-    Left_Thalamus_Proper,
-    Right_Thalamus_Proper,
-    Left_Putamen,
-    Right_Putamen,
-    Left_Pallidum,
-    Right_Pallidum,
-    Left_Lateral_Ventricle,
-    Right_Lateral_Ventricle,
-    Left_Caudate,
-    Right_Caudate,
-    Left_Cerebral_White_Matter,
-    Right_Cerebral_White_Matter,
-    Left_Hippocampus,
-    Right_Hippocampus,
-    Left_Amygdala,
-    Right_Amygdala,
-    Left_VentralDC,
-    Right_VentralDC,
-    Brain_Stem,
-    Left_Inf_Lat_Vent,
-    Right_Inf_Lat_Vent
-  } ;
-
-#define NDTRANS_LABELS (sizeof(dtrans_labels) / sizeof(dtrans_labels[0]))
 
 static MRI *
 create_distance_transforms(MRI *mri_source, MRI *mri_target, MRI *mri_all_dtrans, float max_dist, GCA_MORPH *gcam)
