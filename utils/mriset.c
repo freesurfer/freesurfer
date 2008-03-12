@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/20 21:46:53 $
- *    $Revision: 1.58 $
+ *    $Date: 2008/03/12 00:21:49 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -146,33 +146,24 @@ MRIunion(MRI *mri1, MRI *mri2, MRI *mri_dst)
 MRI *
 MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z ;
-  BUFTYPE *p1, *p2, *pdst, v1, v2 ;
+  int     width, height, depth, x, y, z, f, v1, v2 ;
 
   MRIcheckVolDims(mri1, mri2);
 
-  width = mri1->width ;
-  height = mri1->height ;
-  depth = mri1->depth ;
+  width = mri1->width ; height = mri1->height ; depth = mri1->depth ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri1, NULL) ;
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      p1 = &MRIvox(mri1, 0, y, z) ;
-      p2 = &MRIvox(mri2, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        v1 = *p1++ ;
-        v2 = *p2++ ;
-        *pdst++ = MIN(v1, v2) ;
-      }
-    }
-  }
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    for (z = 0 ; z < depth ; z++)
+      for (y = 0 ; y < height ; y++)
+        for (x = 0 ; x < width ; x++)
+        {
+          v1 = MRIgetVoxVal(mri1, x, y, z, f) ;
+          v2 = MRIgetVoxVal(mri2, x, y, z, f) ;
+          MRIsetVoxVal(mri_dst, x, y,z, f, MIN(v1, v2)) ;
+        }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -185,14 +176,11 @@ MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst)
 MRI *
 MRIcomplement(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, *pdst, b ;
+  int     width, height, depth, x, y, z, val, f ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   if (!mri_dst)
   {
@@ -200,19 +188,15 @@ MRIcomplement(MRI *mri_src, MRI *mri_dst)
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      psrc = mri_src->slices[z][y] ;
-      pdst = mri_dst->slices[z][y] ;
-      for (x = 0 ; x < width ; x++)
-      {
-        b = *psrc++ ;
-        *pdst++ = !b ;
-      }
-    }
-  }
+  for (f = 0 ; f < mri_src->nframes ; f++)
+    for (z = 0 ; z < depth ; z++)
+      for (y = 0 ; y < height ; y++)
+        for (x = 0 ; x < width ; x++)
+        {
+          val = (int)MRIgetVoxVal(mri_src, x, y, z, f) ;
+          MRIsetVoxVal(mri_dst, x, y, z, f, !val) ;
+        }
+
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -1558,12 +1542,44 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
   }
   return(mri_dst) ;
 }
+// replace a range of values with a specified one
+MRI   *
+MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,float low_in_val, float hi_in_val, float out_val) 
+{
+  int     width, height, depth, x, y, z;
+  float   val ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        if (val >= low_in_val && val <= hi_in_val)
+          val = out_val ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------
   Parameters:
 
   Returns value:
 
   Description
+  replace a single value with a specified one
   ------------------------------------------------------*/
 MRI *
 MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)

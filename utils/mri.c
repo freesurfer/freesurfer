@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:27 $
- *    $Revision: 1.411 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/12 00:21:49 $
+ *    $Revision: 1.412 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.411 $";
+const char *MRI_C_VERSION = "$Revision: 1.412 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -10954,7 +10954,9 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
   {
     MRIlimits(src, &src_min, &src_max);
 
-    if (no_scale_option_flag)
+    if (no_scale_option_flag > 1)
+      no_scale_flag = TRUE;
+    else if (no_scale_option_flag == 1)
     {
       if (dest_type == MRI_UCHAR &&
           src_min >= UCHAR_MIN &&
