@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/15 18:19:42 $
- *    $Revision: 1.362 $
+ *    $Date: 2008/03/12 00:22:09 $
+ *    $Revision: 1.363 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -811,6 +811,8 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol,
                      int resample_type, float fill_val) ;
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
                         float in_val, float out_val) ;
+MRI   *MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,
+                            float low_in_val, float hi_in_val, float out_val) ;
 MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,
                              BUFTYPE in_val, BUFTYPE out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
