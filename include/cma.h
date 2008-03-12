@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/02/29 01:02:59 $
- *    $Revision: 1.46 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/12 19:49:44 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -176,7 +176,7 @@
 #define Cerebral_Cortex           220
 #define Inf_Lat_Vent              221
 
-#if 0
+#if 1
 #define Left_hippocampal_fissure  193
 #define Left_CADG_head            194
 #define Left_subiculum            195
@@ -383,4 +383,9 @@ char *cma_label_to_name(int label) ;
 #define IS_CSF_CLASS(l) (((l) == Left_Lateral_Ventricle) || ((l) == Right_Lateral_Ventricle) || ((l) == CSF) || ((l) == CSF_SA) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle) || ((l) == Fifth_Ventricle) || ((l) == left_hippocampal_fissure) || ((l) == right_hippocampal_fissure) || ((l) == hippocampal_fissure))
 
 #define IS_CLASS(l,c) (c == CSF_CLASS ? IS_CSF_CLASS(l) : c == GM_CLASS ? IS_GRAY_CLASS(l) : IS_WHITE_CLASS(l))
+
+#include "mrisurf.h"
+int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, 
+                            MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, 
+                            int hemi) ;
 #endif
