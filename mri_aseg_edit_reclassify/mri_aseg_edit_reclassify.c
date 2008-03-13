@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 17:38:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/03/13 17:47:46 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "cma.h"
 #include "class_array.h"
 
-static char vcid[] = "$Id: mri_aseg_edit_reclassify.c,v 1.2 2008/03/13 17:38:57 fischl Exp $";
+static char vcid[] = "$Id: mri_aseg_edit_reclassify.c,v 1.3 2008/03/13 17:47:46 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -81,7 +81,7 @@ int
 main(int argc, char *argv[]) {
   SVM          *svm ;
   MRI          *mri_aseg, *mri_norm, *mri_grad[NSCALES], *mri_kernel, *mri_smooth[NSCALES],
-               *mri_laplacian[NSCALES], *mri_dtrans, *mri_dtrans_grad, **mri_2nd_deriv_s ;
+               *mri_laplacian[NSCALES], *mri_dtrans, *mri_dtrans_grad, *mri_2nd_deriv_s[NSCALES] ;
   char         **av, *norm_name, *input_aseg_name, *output_aseg_name, *svm_name ;
   int          ac, nargs, ninputs, i ;
   struct timeb start ;
@@ -90,7 +90,7 @@ main(int argc, char *argv[]) {
   float        *svm_inputs = NULL, svm_out ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_reclassify.c,v 1.2 2008/03/13 17:38:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_reclassify.c,v 1.3 2008/03/13 17:47:46 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
