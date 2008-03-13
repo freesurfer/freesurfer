@@ -1,15 +1,20 @@
 /**
  * @file  cmd_line_interface.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief automate the parsing of the command-line
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * this class is meant to automate the parsing of the command-line
+ * its main purpose is to minimize new code being written when a new program is written
+ *
+ *  as such, the data it holds have 2 purposes:
+ *    1. will process the options, as well as the input and output files the user enters
+ *    2. will help automate the print_help command, which otherwise would not be centralized
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/03/13 22:00:34 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,21 +30,11 @@
  *
  */
 
-
-
 #include <list>
 #include <vector>
 #include <string>
 
 #include "cmd_line_interface.h"
-
-// this class is meant to automate the parsing of the command-line
-// its main purpose is to minimize new code being written when a new program is written
-//
-//   as such, the data it holds have 2 purposes:
-//    1. will process the options, as well as the input and output files the user enters
-//    2. will help automate the print_help command, which otherwise would not be centralized
-
 
 using namespace std;
 // this sucks a little - cannot make generic code here
