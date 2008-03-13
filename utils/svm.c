@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/13 15:24:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,18 +32,25 @@
 #include <string.h>
 #include <ctype.h>
 
+#define USE_SVM_LIB 0
+
 #include "error.h"
 #include "fio.h"
 #include "diag.h"
 #include "svm.h"
 #include "proto.h"
 #include "utils.h"
+#if USE_SVM_LIB
+#include "svm-lib-c.h"
+#endif
 
-#if 0
+#if 1
 static double svm_rbf_dot(int ninputs, float *xi, float *xj, double sigma) ;
 static double svm_linear_dot(int ninputs, float *xi, float *xj) ;
+#if !USE_SVM_LIB
 static double SVMlagrangian(SVM *svm, int ntraining, float **x,
                             float *y, double **dot_matrix) ;
+#endif
 SVM   *
 SVMalloc(int ninputs, char *c1_name, char *c2_name)
 {
@@ -66,6 +73,147 @@ SVMalloc(int ninputs, char *c1_name, char *c2_name)
   return(svm) ;
 }
 
+#if USE_SVM_LIB
+int
+SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
+         double tol, int max_iter)
+{
+  SVMparam *svmp ;
+  SVMreal  **data, *alpha ;
+  int      posCount, negCount, i, j, *indices, k ;
+
+  svm->ntraining = ntraining ;
+  svm->C = C ;
+  svmp = (SVMparam *)calloc(1, sizeof(SVMparam)) ;
+  if (!svmp)
+    ErrorExit(ERROR_NOMEMORY, 
+              "SVMtrain(%d): could not allocate internal buffers", ntraining);
+  indices = (int *)calloc(ntraining, sizeof(int)) ;
+  if (!indices)
+    ErrorExit(ERROR_NOMEMORY, 
+              "SVMtrain(%d): could not allocate internal buffers", ntraining);
+  data = (SVMreal **)calloc(MAX(40, ntraining), sizeof(SVMreal *)) ;
+  if (!data)
+    ErrorExit(ERROR_NOMEMORY, 
+              "SVMtrain(%d): could not allocate internal buffers", ntraining);
+  
+  for (posCount = i = 0 ; i < ntraining ; i++)
+  {
+    if (y[i] < 0)
+      continue ;
+
+    data[posCount] = (SVMreal *)calloc(svm->ninputs, sizeof(SVMreal)) ;
+    if (!data[posCount])
+      ErrorExit(ERROR_NOMEMORY, 
+                "SVMtrain(%d): could not allocate %dth internal buffers", 
+                ntraining, i);
+    for (j = 0 ; j < svm->ninputs ; j++)
+      data[posCount][j] = (SVMreal)x[i][j] ;
+    posCount++ ;
+  }
+  for (negCount = i = 0 ; i < ntraining ; i++)
+  {
+    if (y[i] > 0)
+      continue ;
+
+    data[negCount+posCount] = (SVMreal *)calloc(svm->ninputs, sizeof(SVMreal));
+    if (!data[negCount+posCount])
+      ErrorExit(ERROR_NOMEMORY, 
+                "SVMtrain(%d): could not allocate %dth internal buffers", 
+                ntraining, i);
+    for (j = 0 ; j < svm->ninputs ; j++)
+      data[negCount+posCount][j] = (SVMreal)x[i][j] ;
+    negCount++ ;
+  }
+
+  svmp->C = C ;
+  svmp->maxIterations = max_iter ;
+  switch (svm->type)
+  {
+  default:
+  case SVM_KERNEL_LINEAR:
+    sprintf(svmp->kernel, "1") ;
+    break ;
+  case SVM_KERNEL_RBF:
+    sprintf(svmp->kernel, "3 %f", svm->sigma*svm->sigma*2) ;
+    break ;
+  }
+  svmp->alphaEpsilon = tol ;
+  //  svmp->alphaEpsilon = 1e-4 ;
+  svmp->classEpsilon = tol ;
+  svmp->optEpsilon = .05 /*tol*/ ;
+  svmp->sigDig = 8 ;
+  svmp->verbose = 1;
+
+  svmp->alphaEpsilon = -1 ;
+  svmp->classEpsilon = 1e-6 ;
+  svmp->optEpsilon = 1e-4 ;
+  svmp->sigDig = 12 ;
+
+  SVMsetParam(svmp) ;
+  SVMLtrain(data, posCount, negCount, svm->ninputs) ;
+  SVMgetSvCount(&svm->nsupport) ;
+  printf("%d support vectors found\n", svm->nsupport) ;
+  alpha = (SVMreal *)calloc(ntraining, sizeof(SVMreal)) ;
+  if (!svm->alpha)
+    svm->alpha = (double *)calloc(svm->ntraining, sizeof(double)) ;
+  if (!svm->alpha)
+    ErrorExit(ERROR_NOMEMORY, 
+              "SVMtrain(%d): could not allocate internal buffers", 
+              ntraining);
+  SVMgetAlphas(alpha) ;
+
+  SVMgetSvIndex(indices) ;
+  SVMgetB(&svm->threshold) ;
+  svm->ysupport = (float *)calloc(svm->nsupport, sizeof(float)) ;
+  if (!svm->ysupport)
+    ErrorExit(ERROR_NOMEMORY, 
+              "SVMtrain(%d): could not allocate internal buffers", 
+              ntraining);
+  svm->xsupport = (float **)calloc(svm->nsupport, sizeof(float *)) ;
+  if (!svm->xsupport)
+    ErrorExit(ERROR_NOMEMORY, 
+              "SVMtrain(%d): could not allocate internal buffers", 
+              ntraining);
+  svm->asupport = (double *)calloc(svm->nsupport, sizeof(double)) ;
+  if (!svm->asupport)
+    ErrorExit(ERROR_NOMEMORY, 
+              "SVMtrain(%d): could not allocate internal buffers", 
+              ntraining);
+  for (j = 0 ; j < svm->nsupport ; j++)
+  {
+    svm->asupport[j] = alpha[j] ;
+    svm->xsupport[j] = (float *)calloc(svm->ninputs, sizeof(float)) ;
+    if (!svm->xsupport[j])
+      ErrorExit(ERROR_NOMEMORY, 
+                "SVMtrain(%d): could not allocate internal buffers", 
+                ntraining);
+
+    i = indices[j] ;
+    if (i < 0 || i >= ntraining)
+      DiagBreak() ;
+
+#if 1
+    svm->alpha[i] = svm->asupport[j] ;
+#endif
+    svm->ysupport[j] = y[i] ;
+    for (k = 0 ; k < svm->ninputs ; k++)
+    {
+      svm->xsupport[j][k] = x[i][k] ;
+      svm->w[k] += svm->alpha[i]*y[i]*x[i][k] ;
+    }
+  }
+
+  for (i= 0 ; i < ntraining ; i++)
+    free(data[i]) ;
+  free(alpha) ;
+  free(data) ;
+  free(svmp);
+  free(indices) ;
+  return(NO_ERROR) ;
+}
+
+#else
 int
 SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
          double tol, int max_iter)
@@ -114,12 +262,14 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
         break ;
       }
 
+      if (!finite(dot))
+        DiagBreak() ;
       dot_matrix[i][j] = dot_matrix[j][i] = dot ;
     }
   }
 
 
-  step_size = 0.01/svm->ninputs ;
+  step_size = 0.1/svm->ninputs ;
   min_step_size = step_size/10000 ;
 
   /* use gradient ascent to maximize lagrangian */
@@ -137,6 +287,8 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
 
       da_old[k] = step_size*da ;
     }
+    if (!finite(da_old[k]))
+      DiagBreak() ;
 
     /* build permutation */
     for (i = 0 ; i < ntraining ; i++)
@@ -227,10 +379,14 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
       if (ai >= C)
         ai = C ;
       dai = ai - svm->alpha[i] ;
+      if (!finite(dai))
+        DiagBreak() ;
 
       /* move i and j by equal and opposite amounts */
       daj = -dai * y[i] / y[j] ;
 
+      if (!finite(daj))
+        DiagBreak() ;
       /* update jth alpha and make sure it stays in the feasible region */
       aj = svm->alpha[j] + daj ;
       if (aj < 0)
@@ -365,6 +521,7 @@ SVMlagrangian(SVM *svm, int ntraining, float **x, float *y, double **dot_matrix)
   return(L) ;
 }
 
+#endif
 int
 SVMwrite(SVM *svm, char *fname)
 {
@@ -377,10 +534,13 @@ SVMwrite(SVM *svm, char *fname)
                 (ERROR_BADPARM, "SVMwrite(%s): could not open file", fname)) ;
 
   fprintf(fp, "NINPUTS\t%d\n", svm->ninputs) ;
+  fprintf(fp, "NTRAINING\t%d\n", svm->ntraining) ;
   fprintf(fp, "CLASS1\t%s\n", svm->class1_name) ;
   fprintf(fp, "CLASS2\t%s\n", svm->class2_name) ;
   fprintf(fp, "C\t%f\n", svm->C) ;
   fprintf(fp, "TYPE\t%d\n", svm->type) ;
+  if (svm->type == SVM_KERNEL_RBF)
+    fprintf(fp, "SIGMA\t%f\n", svm->sigma) ;
   if (svm->extra_args > 0)
   {
     fprintf(fp, "EXTRA\t%d\n", svm->extra_args) ;
@@ -389,9 +549,11 @@ SVMwrite(SVM *svm, char *fname)
   }
 
   fprintf(fp, "THRESHOLD\t%e\n", svm->threshold) ;
+#if !USE_SVM_LIB
   fprintf(fp, "WEIGHTS\n") ;
   for (i = 0 ; i < svm->ninputs ; i++)
     fprintf(fp, "%e\n", svm->w[i]) ;
+#endif
 
   fprintf(fp, "NSUPPORT\t%d\n", svm->nsupport) ;
   for (i = 0 ; i < svm->nsupport ; i++)
@@ -401,7 +563,15 @@ SVMwrite(SVM *svm, char *fname)
       fprintf(fp, "%f\n", svm->xsupport[i][j]) ;
   }
 
+  fprintf(fp, "ALPHA\n") ;
+  for (i = 0 ; i < svm->ntraining ; i++)
+    fprintf(fp, "%e\n", svm->alpha[i]) ;
+
+#if USE_SVM_LIB
+  fprintf(fp, "SVM\n") ;
+  SVMwriteClassifierToFile(fp, 0) ;
   fclose(fp) ;
+#endif
   return(NO_ERROR) ;
 }
 
@@ -409,7 +579,7 @@ SVM *
 SVMread(char *fname)
 {
   FILE    *fp ;
-  int     i, ninputs, retval, j ;
+  int     i, ninputs, retval, j, ntraining ;
   SVM     *svm ;
   char    class1_name[STRLEN], class2_name[STRLEN], token[STRLEN], line[STRLEN], *cp ;
 
@@ -419,6 +589,7 @@ SVMread(char *fname)
                 (ERROR_BADPARM, "SVMread(%s): could not open file", fname)) ;
 
   retval = fscanf(fp, "NINPUTS\t%d\n", &ninputs) ;
+  retval = fscanf(fp, "NTRAINING\t%d\n", &ntraining) ;
   retval = fscanf(fp, "CLASS1\t%s\n", class1_name) ;
   retval = fscanf(fp, "CLASS2\t%s\n", class2_name) ;
 
@@ -427,6 +598,9 @@ SVMread(char *fname)
     ErrorReturn(NULL,
                 (ERROR_BADPARM, "SVMread(%s): could not create svm", fname)) ;
 
+  svm->ntraining = ntraining ;
+  strcpy(svm->class1_name, class1_name) ;
+  strcpy(svm->class2_name, class2_name) ;
   cp = fgetl(line, STRLEN-1, fp) ;
   while (NULL != cp)
   {
@@ -435,9 +609,30 @@ SVMread(char *fname)
     {
       retval = sscanf(cp, "%*s\t%lf", &svm->C) ;
     }
+    else if (stricmp(token, "SIGMA") == 0)
+    {
+      retval = sscanf(cp, "%*s\t%lf", &svm->sigma) ;
+    }
+    else if (stricmp(token, "NTRAINING") == 0)
+    {
+      retval = sscanf(cp, "%*s\t%d", &svm->ntraining) ;
+    }
     else if (stricmp(token, "TYPE") == 0)
     {
       retval = sscanf(cp, "%*s\t%d", &svm->type) ;
+    }
+    else if (stricmp(token, "ALPHA") == 0)
+    {
+      svm->alpha = (double *)calloc(svm->ntraining, sizeof(double)) ;
+      if (svm->alpha == NULL)
+        ErrorExit(ERROR_NOMEMORY, "SVMread(%s) - %d calloc failed",
+                  fname, svm->ntraining) ;
+
+      for (i = 0 ; i < svm->ntraining ; i++)
+      {
+        cp = fgetl(line, STRLEN-1, fp) ;
+        retval = sscanf(cp, "%le\n", &svm->alpha[i]) ;
+      }
     }
     else if (stricmp(token, "NEXTRA") == 0)
     {
@@ -471,10 +666,11 @@ SVMread(char *fname)
       svm->xsupport = (float **)calloc(svm->nsupport, sizeof(float *)) ;
       for (i = 0 ; i < svm->nsupport ; i++)
       {
-
+        if (i == Gdiag_no)
+          DiagBreak() ;
         retval = fscanf(fp, "%le %f\n", &svm->asupport[i], &svm->ysupport[i]) ;
         svm->xsupport[i] = (float *)calloc(svm->ninputs, sizeof(float)) ;
-        for (j = 0 ; j < svm->nsupport ; j++)
+        for (j = 0 ; j < svm->ninputs ; j++)
           retval = fscanf(fp, "%f\n", &svm->xsupport[i][j]) ;
       }
     }
@@ -484,6 +680,12 @@ SVMread(char *fname)
       {
         retval = fscanf(fp, "%le\n", &svm->w[i]) ;
       }
+    }
+    else if (stricmp(token, "SVM") == 0)
+    {
+#if USE_SVM_LIB
+      SVMreadClassifierFromFile(fp, 0) ;
+#endif
     }
     cp = fgetl(line, STRLEN-1, fp) ;
   }
@@ -519,9 +721,11 @@ double
 SVMclassify(SVM *svm, float *x)
 {
   int    i ;
-  double classification, dot ;
+  double classification, dot, c2 ;
 
-  for (classification = 0.0, i = 0 ; i < svm->nsupport ; i++)
+
+  classification = -svm->threshold ;
+  for (i = 0 ; i < svm->nsupport ; i++)
   {
     switch (svm->type)
     {
@@ -533,13 +737,20 @@ SVMclassify(SVM *svm, float *x)
       dot = svm_rbf_dot(svm->ninputs, svm->xsupport[i], x, svm->sigma) ;
       break ;
     }
-    classification += (svm->ysupport[i] * svm->asupport[i] * dot) ;
+    //    classification += (svm->ysupport[i] * svm->asupport[i] * dot) ;
+    classification += (svm->asupport[i] * dot) ;
   }
-  classification -= svm->threshold ;
 
+#if !USE_SVM_LIB
   for (classification = 0.0, i = 0 ; i < svm->ninputs ; i++)
     classification += svm->w[i]*x[i] ;
   classification -= svm->threshold ;
+#else
+
+  c2 = SVMLclassify(x) ;
+#endif
+  if (!FZERO(classification-c2))
+    DiagBreak() ;
   return(classification) ;
 }
 
@@ -550,8 +761,12 @@ svm_linear_dot(int ninputs, float *xi, float *xj)
   double dot ;
 
   for (dot = 0.0, k = 0 ; k < ninputs ; k++)
+  {
     dot += xi[k] * xj[k] ;
-  return(dot) ;
+    if (!finite(dot))
+      DiagBreak() ;
+  }
+  return(1+dot) ;
 }
 
 static double
