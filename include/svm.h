@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/13 15:24:16 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@ SVM, SUPPORT_VECTOR_MACHINE ;
 
 
 #define DEFAULT_SVM_C       1
-#define DEFAULT_SVM_TOL     1e-11
+#define DEFAULT_SVM_TOL     1e-7
 #define DEFAULT_SVM_SIGMA   4
 
 #define SVM_KERNEL_LINEAR       0
