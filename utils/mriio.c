@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:32 $
- *    $Revision: 1.343 $
+ *    $Author: greve $
+ *    $Date: 2008/03/13 01:42:53 $
+ *    $Revision: 1.344 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1934,8 +1934,9 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   if(IsDICOM(fname)){
     printf("INFO: this looks like a dicom, not an old Siemens .ima file, ");
     printf("so I'm going to unpack it as a dicom.\n");
-    //printf("If this fails, run mri_convert with -it dicom\n");
-    mri = DICOMRead2(fname, read_volume_flag);
+    printf("If this fails, run mri_convert with -it dicom\n");
+    //mri = DICOMRead2(fname, read_volume_flag); // generic dicom
+    mri = sdcmLoadVolume(fname, read_volume_flag, -1); // siemens dicom
     return(mri);
   }
 
