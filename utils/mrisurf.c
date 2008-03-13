@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:34 $
- *    $Revision: 1.600 $
+ *    $Date: 2008/03/13 19:07:50 $
+ *    $Revision: 1.601 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.600 2008/03/10 13:35:34 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.601 2008/03/13 19:07:50 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -63199,4 +63199,79 @@ void UpdateMRIS(MRI_SURFACE *mris, char *fname)
   mris->radius = MRISaverageRadius(mris);
   MRIScomputeMetricProperties(mris);
   MRISstoreCurrentPositions(mris);
+}
+/*
+  use MARS code from Mert and Thomas to compute the distance at each point on the surface
+  to the boundary of a label.
+  
+  The distances will be returned in the vertex->val field.
+*/
+
+#include "MARS_DT_Boundary.h"
+int
+MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode)
+{
+  int    *vertices, *vertNbrs, vno, max_nbrs, j, index ;
+  double *cost, *vertDists ;
+  VERTEX *v ;
+
+  cost = (double *)calloc(mris->nvertices, sizeof(double)) ;
+  if (cost == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISdistanceTransform: could not allocate %d cost array\n", mris->nvertices) ;
+  vertices = (int *)calloc(mris->nvertices, sizeof(int)) ;
+  if (vertices == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISdistanceTransform: could not allocate %d vertex array\n", mris->nvertices) ;
+
+  for (vno = max_nbrs = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->vnum > max_nbrs)
+      max_nbrs = v->vnum ;
+  }
+  vertNbrs = (int *)calloc(mris->nvertices*max_nbrs, sizeof(int)) ;
+  if (vertNbrs == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISdistanceTransform: could not allocate nbrs (%d x %d) array\n", 
+              mris->nvertices, max_nbrs) ;
+  vertDists = (double *)calloc(mris->nvertices*max_nbrs, sizeof(double)) ;
+  if (vertDists == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISdistanceTransform: could not allocate dist (%d x %d) array\n", 
+              mris->nvertices, max_nbrs) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    for (j = 0 ; j < v->vnum ; j++)
+    {
+      index = index_2D_array(j, vno, max_nbrs) ;
+      vertDists[index] = v->dist[j] ;
+      vertNbrs[index] = v->v[j]+1 ;  // nbrs is 1-based
+    }
+  }
+
+  for (vno = 0 ; vno < area->n_points ; vno++)
+    if (area->lv[vno].vno >= 0)
+      vertices[area->lv[vno].vno] = 1 ;
+  
+  // compute outside distances
+  MARS_DT_Boundary(vertices, mris->nvertices, max_nbrs, vertNbrs, vertDists, cost) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].val = cost[vno] ;  // distance to outside points
+    
+  if (mode == DTRANS_MODE_SIGNED || mode == DTRANS_MODE_UNSIGNED)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      vertices[vno] = !vertices[vno] ;
+    // compute distance to interior points
+    MARS_DT_Boundary(vertices, mris->nvertices, max_nbrs, vertNbrs, vertDists, cost) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      if (cost[vno] > 0)
+        mris->vertices[vno].val = mode == DTRANS_MODE_SIGNED ? -cost[vno] : cost[vno] ;
+  }
+
+  free(vertices) ; free(cost) ; free(vertDists) ; free(vertNbrs) ;
+  return(NO_ERROR) ;
 }
