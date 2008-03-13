@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/13 15:23:37 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/13 19:09:24 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -44,7 +44,7 @@
 #include "MARS_DT_Boundary.h"
 
 static char vcid[] = 
-"$Id: mris_distance_transform.c,v 1.1 2008/03/13 15:23:37 fischl Exp $";
+"$Id: mris_distance_transform.c,v 1.2 2008/03/13 19:09:24 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -60,7 +60,7 @@ int
 main(int argc, char *argv[])
 {
   char          **av, *output_fname ;
-  int           ac, nargs, msec, mode ;
+  int           ac, nargs, msec, mode=-1 ;
   LABEL         *area ;
   MRI_SURFACE   *mris ;
   struct timeb  then ;
@@ -68,7 +68,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_distance_transform.c,v 1.1 2008/03/13 15:23:37 fischl Exp $", 
+     "$Id: mris_distance_transform.c,v 1.2 2008/03/13 19:09:24 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
