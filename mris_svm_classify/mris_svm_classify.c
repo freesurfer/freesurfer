@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/13 15:47:01 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,12 @@ static int navgs = 0 ;
 static LABEL *area = NULL ;
 static char *label_name = NULL ;
 
+#define MAX_ANNOTATIONS 100
+static int annotations[MAX_ANNOTATIONS] ;
+static char *anames[MAX_ANNOTATIONS] ;
+static int nannotations = 0 ;
+static char *annot_name = "aparc" ;
+
 int
 main(int argc, char *argv[]) {
   char         **av, fname[STRLEN], *input_name, *subject_name, *cp,*hemi,
@@ -70,7 +76,7 @@ main(int argc, char *argv[]) {
   MRI_SP       *mrisp ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_svm_classify.c,v 1.4 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_svm_classify.c,v 1.5 2008/03/13 15:47:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -127,6 +133,38 @@ main(int argc, char *argv[]) {
   if (MRISreadCurvature(mris, input_name) != NO_ERROR)
     ErrorExit(ERROR_BADPARM, "%s: could not read curvature from %s", input_name) ;
 
+    if (nannotations > 0)
+    {
+      int vno, a, found ;
+      VERTEX *v ;
+      
+      if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
+        ErrorExit(ERROR_NOFILE, 
+                  "%s: could not read annot file %s for subject %s",
+                  Progname, annot_name, subject_name) ;
+      for (a = 0 ; a < nannotations ; a++)
+      {
+        int index ;
+        
+        CTABfindName(mris->ct, anames[a], &index) ;
+        CTABannotationAtIndex(mris->ct, index, &annotations[a]) ;
+        printf("mapping annot %s to %d\n",
+               anames[a], annotations[a]) ;
+      }
+      // rip all vertices that don't have one of the specified annotations
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag)
+          continue ;
+        found = 0 ;
+        for (a = 0 ; a < nannotations ; a++)
+          if (v->annotation == annotations[a])
+            found = 1 ;
+        if (found == 0)
+          v->ripflag = 1 ;
+      }
+    }
   if (navgs > 0)
     MRISaverageCurvatures(mris, navgs) ;
 
@@ -205,6 +243,18 @@ get_option(int argc, char *argv[]) {
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
+  } else if (!stricmp(option, "aname")) {
+    annot_name = argv[2] ;
+    printf("using %s as name of annotation file\n", annot_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "annot")) {
+    if (nannotations >= MAX_ANNOTATIONS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many annotations specified (%d)",
+                Progname, nannotations) ;
+    anames[nannotations] = argv[2] ;
+    printf("using annotation %s\n", anames[nannotations]) ;
+    nannotations++;
+    nargs = 1 ;
   } else switch (toupper(*option)) {
     case 'A':
       navgs = atoi(argv[2]) ;
