@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 15:23:10 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/03/13 17:38:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,9 +48,9 @@
 #include "version.h"
 #include "voxlist.h"
 #include "cma.h"
-#include "aseg_edit_svm.h"
+#include "class_array.h"
 
-static char vcid[] = "$Id: mri_aseg_edit_reclassify.c,v 1.1 2008/03/13 15:23:10 fischl Exp $";
+static char vcid[] = "$Id: mri_aseg_edit_reclassify.c,v 1.2 2008/03/13 17:38:57 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -81,7 +81,7 @@ int
 main(int argc, char *argv[]) {
   SVM          *svm ;
   MRI          *mri_aseg, *mri_norm, *mri_grad[NSCALES], *mri_kernel, *mri_smooth[NSCALES],
-               *mri_laplacian[NSCALES], *mri_dtrans, *mri_dtrans_grad ;
+               *mri_laplacian[NSCALES], *mri_dtrans, *mri_dtrans_grad, **mri_2nd_deriv_s ;
   char         **av, *norm_name, *input_aseg_name, *output_aseg_name, *svm_name ;
   int          ac, nargs, ninputs, i ;
   struct timeb start ;
@@ -90,7 +90,7 @@ main(int argc, char *argv[]) {
   float        *svm_inputs = NULL, svm_out ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_reclassify.c,v 1.1 2008/03/13 15:23:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_reclassify.c,v 1.2 2008/03/13 17:38:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -146,6 +146,7 @@ main(int argc, char *argv[]) {
     mri_smooth[i] = MRIconvolveGaussian(mri_norm, NULL, mri_kernel) ;
     mri_grad[i] = MRIsobel(mri_smooth[i], NULL, NULL) ;
     mri_laplacian[i] = MRIlaplacian(mri_smooth[i], NULL) ;
+    mri_2nd_deriv_s[i] = MRI2ndDirectionalDerivative(mri_smooth[i], NULL, 0, -1, 0) ;
     MRIfree(&mri_kernel) ;
   }
   mri_dtrans = MRIdistanceTransform(mri_aseg, NULL, target_label, 10, DTRANS_MODE_SIGNED) ;
@@ -156,8 +157,9 @@ main(int argc, char *argv[]) {
     x = vl_border->xi[i] ;  y = vl_border->yi[i] ;  z = vl_border->zi[i] ; 
     if  (x == Gx && y == Gy && z == Gz)
       DiagBreak() ;
-    svm_inputs = build_svm_inputs_at_voxel(vl_border, i, target_label, mri_smooth, mri_grad, 
-                                           mri_laplacian, mri_dtrans, mri_dtrans_grad, WSIZE, NSCALES, svm_inputs) ;
+    svm_inputs = CAbuildInputsAtVoxel(vl_border, i, mri_smooth, mri_grad, 
+                                      mri_laplacian, mri_dtrans, mri_dtrans_grad, mri_2nd_deriv_s,
+                                      WSIZE, NSCALES, svm_inputs, 0) ;
     svm_out = SVMclassify(svm, svm_inputs) ;
     if  (x == Gx && y == Gy && z == Gz)
       printf("voxel(%d, %d, %d): svm_out = %2.3f\n", Gx, Gy, Gz, svm_out) ;
