@@ -24,8 +24,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/08/07 21:08:37 $
-#    $Revision: 1.14 $
+#    $Date: 2008/03/13 15:54:43 $
+#    $Revision: 1.14.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.14 2007/08/07 21:08:37 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.14.2.1 2008/03/13 15:54:43 nicks Exp $';
 
 #set echo=1
 
@@ -297,7 +297,7 @@ foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
     if ( -e  $mridir/transforms/${M3D_ONE}) rm -f $mridir/transforms/${M3D_ONE}
 
-    set cmd=($careg -smooth 1.0 -levels 2 -mask $mridir/${MASK_VOL})
+    set cmd=($careg -align-after -smooth 1.0 -levels 2 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA_ONE} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${M3D_ONE})
     echo $cmd >>& $LF
@@ -432,7 +432,7 @@ foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
     if ( -e $mridir/transforms/${M3D} ) rm -f $mridir/transforms/${M3D}
 
-    set cmd=($careg -smooth 1.0 -mask $mridir/${MASK_VOL})
+    set cmd=($careg -align-after -smooth 1.0 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA} $mridir/transforms/${M3D})
     echo $cmd >>& $LF
