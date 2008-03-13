@@ -95,6 +95,7 @@ EXTRA_DIST=\
 	macros.h \
 	mailbox.h \
 	map.h \
+	MARS_DT_Boundary.h \
 	matfile.h \
 	matrix.h \
 	MC.h \
@@ -102,6 +103,7 @@ EXTRA_DIST=\
 	mghendian.h \
 	mgh_filter.h \
 	mgh_matrix.h \
+	min_heap.h \
 	mincutils.h \
 	minc_volume_io.h \
 	minmaxrc.h \
