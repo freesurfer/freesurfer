@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/07 00:11:57 $
- *    $Revision: 1.313 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/13 18:10:16 $
+ *    $Revision: 1.314 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1633,6 +1633,7 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris,
 int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct);
 int MRISsetVal2(MRI_SURFACE *mris, float val);
 MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri, float resolution) ;
+int MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode) ;
 int MRISinvertMarks(MRI_SURFACE *mris) ;
 
 
