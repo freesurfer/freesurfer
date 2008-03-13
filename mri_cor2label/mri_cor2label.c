@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/07 23:30:22 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/03/13 18:41:30 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.9 2008/02/07 23:30:22 greve Exp $
+  $Id: mri_cor2label.c,v 1.10 2008/03/13 18:41:30 greve Exp $
   Author: Douglas Greve
   Purpose: Converts values in any volume file (not just cor) 
   to a label.
@@ -112,7 +112,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.9 2008/02/07 23:30:22 greve Exp $";
+static char vcid[] = "$Id: mri_cor2label.c,v 1.10 2008/03/13 18:41:30 greve Exp $";
 char *Progname ;
 int main(int argc, char *argv[]) ;
 
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
   MATRIX *vox2rastkr=NULL, *crs=NULL, *xyz=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.9 2008/02/07 23:30:22 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.10 2008/03/13 18:41:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -321,7 +321,7 @@ static int parse_commandline(int argc, char **argv) {
       subject_name = pargv[1];
       hemi = pargv[2];
       nargs = 3;
-      if(nargc > 2 && !CMDisFlag(pargv[3])){
+      if(nargc > 3 && !CMDisFlag(pargv[3])){
 	surfname = pargv[3];
 	nargs ++;
       }
