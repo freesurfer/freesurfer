@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 16:39:34 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/03/13 16:46:52 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -712,8 +712,8 @@ CAclassifyVoxel(CA *ca, MRI *mri_normals, int x, int y, int z,
   cl = &ca->classifiers[xi][yi][zi][o] ;
   if (xi == Gx && yi == Gy && zi == Gz)
   {
-    printf("classifying voxel (%d, %d, %d) at %d, CL = (%d, %d, %d, %d), NT=(%d, %d)\n",
-           Gx, Gy, Gz, i, xi, yi, zi, o, cl->c1_ntraining,
+    printf("classifying voxel (%d, %d, %d), CL = (%d, %d, %d, %d), NT=(%d, %d)\n",
+           Gx, Gy, Gz, xi, yi, zi, o, cl->c1_ntraining,
            cl->c2_ntraining) ;
     DiagBreak() ;
     }
