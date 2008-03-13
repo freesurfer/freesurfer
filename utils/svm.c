@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 15:24:02 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/03/13 16:04:00 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -721,7 +721,10 @@ double
 SVMclassify(SVM *svm, float *x)
 {
   int    i ;
-  double classification, dot, c2 ;
+  double classification, dot ;
+#if USE_SMV_LIB
+  double c2 ;
+#endif
 
 
   classification = -svm->threshold ;
@@ -748,9 +751,9 @@ SVMclassify(SVM *svm, float *x)
 #else
 
   c2 = SVMLclassify(x) ;
-#endif
   if (!FZERO(classification-c2))
     DiagBreak() ;
+#endif
   return(classification) ;
 }
 
