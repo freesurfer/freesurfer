@@ -72,6 +72,7 @@ libutils_main_SOURCES=\
 	Bruker.c \
 	chklc.c \
 	cluster.c \
+	class_array.c \
 	cma.c \
 	cmdargs.c \
 	colortab.c \
@@ -128,10 +129,12 @@ libutils_main_SOURCES=\
 	label.c \
 	lpafile.c \
 	machine.c \
+	MARS_DT_Boundary.c \
 	matfile.c \
 	matrix.c \
 	mgh_filter.c \
 	mgh_matrix.c \
+	min_heap.c \
 	mincutils.c \
 	minmaxrc.c \
 	morph.c \

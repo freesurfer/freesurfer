@@ -16,6 +16,7 @@ EXTRA_DIST=\
 	cephes.h \
 	chklc.h \
 	classify.h \
+	class_array.h \
 	cluster.h \
 	cma.h \
 	cmdargs.h \
