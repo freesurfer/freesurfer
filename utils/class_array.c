@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 16:18:07 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/03/13 16:39:34 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -599,22 +599,25 @@ CAwrite(CA *ca, char *fname)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        cl = &ca->classifiers[x][y][z][o] ;
-        switch (ca->type)
+        for (o = 0 ; o < ICO0_NVERTICES ; o++)
         {
-        case CA_GAUSSIAN:
-          break ;
-        case CA_SVM:
-          fwriteInt(cl->c1_ntraining, fp) ;
-          fwriteInt(cl->c2_ntraining, fp) ;
-          for (i = 0 ; i < ca->ninputs ; i++)
+          cl = &ca->classifiers[x][y][z][o] ;
+          switch (ca->type)
           {
-            fwriteDouble(cl->c1_means[i], fp) ;
-            fwriteDouble(cl->c1_vars[i], fp) ;
-            fwriteDouble(cl->c2_means[i], fp) ;
-            fwriteDouble(cl->c2_vars[i], fp) ;
+          case CA_GAUSSIAN:
+            break ;
+          case CA_SVM:
+            fwriteInt(cl->c1_ntraining, fp) ;
+            fwriteInt(cl->c2_ntraining, fp) ;
+            for (i = 0 ; i < ca->ninputs ; i++)
+            {
+              fwriteDouble(cl->c1_means[i], fp) ;
+              fwriteDouble(cl->c1_vars[i], fp) ;
+              fwriteDouble(cl->c2_means[i], fp) ;
+              fwriteDouble(cl->c2_vars[i], fp) ;
+            }
+            break ;
           }
-          break ;
         }
       }
     }
