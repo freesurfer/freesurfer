@@ -63,7 +63,7 @@ static int
 Min_HeapExchangeElements(MIN_HEAP *MH, int i, int j)
 {
    double tempHeapKey;
-   int tempID;
+   int tempID = 0;
    void *tempData;
 
 
