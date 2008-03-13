@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 15:23:25 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/03/13 17:10:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@
 #include "cma.h"
 #include "class_array.h"
 
-static char vcid[] = "$Id: mri_aseg_edit_train.c,v 1.1 2008/03/13 15:23:25 fischl Exp $";
+static char vcid[] = "$Id: mri_aseg_edit_train.c,v 1.2 2008/03/13 17:10:00 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -230,7 +230,7 @@ main(int argc, char *argv[]) {
 #endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_train.c,v 1.1 2008/03/13 15:23:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_train.c,v 1.2 2008/03/13 17:10:00 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -276,6 +276,7 @@ main(int argc, char *argv[]) {
   n = ARGV_OFFSET ;
   nsubjects = argc-ARGV_OFFSET-1 ; ;
   printf("training on %d subjects\n", nsubjects) ;
+  subject_name = argv[ARGV_OFFSET] ;
 
   /* real all the asegas in for group1 */
   for (n = 0 ; n < nsubjects ; n++) {
