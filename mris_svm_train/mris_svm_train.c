@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.4 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/13 15:47:10 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "svm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_svm_train.c,v 1.4 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_svm_train.c,v 1.5 2008/03/13 15:47:10 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -67,7 +67,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
-static char *wfile_name ;
+static char *wfile_name = NULL ;
 static char *c1_name = "class1" ;
 static char *c2_name = "class2" ;
 static char *sdir = NULL ;
@@ -139,6 +139,12 @@ float y[20] = {
               } ;
 #endif
 
+#define MAX_ANNOTATIONS 100
+static int annotations[MAX_ANNOTATIONS] ;
+static char *anames[MAX_ANNOTATIONS] ;
+static int nannotations = 0 ;
+static char *annot_name = "aparc" ;
+
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
@@ -146,10 +152,10 @@ main(int argc, char *argv[]) {
   SVM          *svm ;
   MRI_SURFACE  *mris ;
   char         **av, *curv_name, *surf_name, *hemi, fname[STRLEN],
-  *cp, *subject_name, subjects_dir[STRLEN],
-  **cv_subjects, *out_fname ;
+    *cp, *subject_name, subjects_dir[STRLEN],
+    **cv_subjects, *out_fname ;
   int          ac, nargs, n, nsubjects, num_class1, num_class2, i, nvertices,
-  index ;
+    index ;
   float        **cv_thickness, *cv_outputs, **cv_avg_thickness ;
   MRI_SP       *mrisp ;
   LABEL        *area ;
@@ -162,45 +168,63 @@ main(int argc, char *argv[]) {
   {
     float **x ;
     int   ntraining = 20, i, j, k ;
-    double sum, w[2], out ;
-
-
-    x = (float **)calloc(ntraining, sizeof(float)) ;
+    double /*sum,*/ w[2], out ;
+    x = (float **)calloc(ntraining, sizeof(float*)) ;
     for (i = 0 ; i < ntraining ; i++) {
-      x[i] = (float *)calloc(2, sizeof(float)) ;
+      x[i] = (float *)calloc(ntraining, sizeof(float)) ;
       x[i][0] = x_[i][0] ;
       x[i][1] = x_[i][1] ;
     }
 
-    svm = SVMalloc(2, "c1", "c2") ;
-    for (k = 0; k < 1 ; k++) {
-      srandom(k);
-      SVMtrain(svm, x, y, 20, svm_C, tol, 100000) ;
+    for (n = 0 ; n < 2 ; n++)
+    {
+      if (n == 0)
+      {
+        svm = SVMalloc(2, "c1", "c2") ;
+        svm->type = SVM_KERNEL_RBF ;
+        svm->sigma = 2 ;
+      }
+      else
+      {
+        svm = SVMread("test.svm") ;
+      }
 
-      sum = SVMconstraint(svm, y, ntraining) ;
-      printf("constraint = %f\n", sum) ;
-      for (j = 0 ; j < 2 ; j++) {
-        w[j] = 0 ;
-        for (i = 0 ; i < svm->nsupport ; i++)
-          w[j] += svm->asupport[i] * svm->ysupport[i] * svm->xsupport[i][j] ;
-      }
-#if 1
-      for (i = 0 ; i < ntraining ; i++) {
-        out = SVMclassify(svm, x[i]) ;
-        printf("%d (%2.1f,%2.1f) (%2.4f): %f (%f) --> %s\n",
-               i, x[i][0], x[i][1], svm->alpha[i],
-               y[i], out, y[i]*out > 0 ? "CORRECT" : "INCORRECT") ;
-      }
+      for (k = 0; k < 1 ; k++) {
+        srandom(k);
+        if (n == 0)
+        {
+          SVMtrain(svm, x, y, 20, svm_C, tol, 100000) ;
+          SVMwrite(svm, "test.svm") ;
+        }
+
+#if 0
+        sum = SVMconstraint(svm, y, ntraining) ;
+        printf("constraint = %f\n", sum) ;
 #endif
-      printf("%d support vectors found, weights = %2.3f, %2.3f\n",
-             svm->nsupport, w[0], w[1]) ;
+        for (j = 0 ; j < 2 ; j++) {
+          w[j] = 0 ;
+          for (i = 0 ; i < svm->nsupport ; i++)
+            w[j] += svm->asupport[i] * svm->ysupport[i] * svm->xsupport[i][j] ;
+        }
+#if 1
+        for (i = 0 ; i < ntraining ; i++) {
+          out = SVMclassify(svm, x[i]) ;
+          printf("%d (%2.1f,%2.1f) (%2.4f): %f (%f) --> %s\n",
+                 i, x[i][0], x[i][1], svm->alpha[i],
+                 y[i], out, y[i]*out > 0 ? "CORRECT" : "INCORRECT") ;
+        }
+#endif
+        printf("%d support vectors found, weights = %2.3f, %2.3f\n",
+               svm->nsupport, w[0], w[1]) ;
+      }
     }
     exit(0) ;
   }
 #endif
 
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_svm_train.c,v 1.4 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_svm_train.c,v 1.5 2008/03/13 15:47:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -282,7 +306,7 @@ main(int argc, char *argv[]) {
 
   cv_subjects = (char **)calloc(nsubjects, sizeof(char *)) ;
   cv_thickness = (float **)calloc(nsubjects, sizeof(char *)) ;
-  cv_avg_thickness = (float **)calloc(nsubjects, sizeof(char *)) ;
+  cv_avg_thickness = (float **)calloc(nsubjects, sizeof(float *)) ;
   cv_outputs = (float *)calloc(nsubjects, sizeof(float)) ;
   for (n = 0 ; n < num_class1 ; n++) {
     cv_outputs[n] = 1 ;
@@ -294,7 +318,6 @@ main(int argc, char *argv[]) {
                 "%s: could not allocate %dth list of %d curvatures",
                 Progname, n, nvertices) ;
 
-    strcpy(cv_subjects[n], argv[ARGV_OFFSET+n]) ;
     /*    fprintf(stderr, "class1[%d] - %s\n", n, cv_subjects[n]) ;*/
   }
   i = n+1+ARGV_OFFSET ;  /* starting index */
@@ -308,7 +331,6 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOMEMORY,
                 "%s: could not allocate %dth list of %d curvatures",
                 Progname, n, nvertices) ;
-    strcpy(cv_subjects[index], argv[i+n]) ;
     /*    fprintf(stderr, "class2[%d] - %s\n", n, c2_subjects[n]) ;*/
   }
 
@@ -320,7 +342,7 @@ main(int argc, char *argv[]) {
   } else
     area = NULL ;
 
-  /* real all the curvatures in for group1 */
+  /* read all the curvatures in for group1 */
   for (n = 0 ; n < nsubjects ; n++) {
     /* transform each subject's curvature into the output subject's space */
     subject_name = cv_subjects[n] ;
@@ -340,6 +362,41 @@ main(int argc, char *argv[]) {
               subjects_dir,subject_name,hemi,curv_name);
     if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
       ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
+    if (nannotations > 0)
+    {
+      int vno, a, found ;
+      VERTEX *v ;
+      
+      if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
+        ErrorExit(ERROR_NOFILE, 
+                  "%s: could not read annot file %s for subject %s",
+                  Progname, annot_name, subject_name) ;
+      if (n == 0)  // first time fill in annot index table
+      {
+        for (a = 0 ; a < nannotations ; a++)
+        {
+          int index ;
+
+          CTABfindName(mris->ct, anames[a], &index) ;
+          CTABannotationAtIndex(mris->ct, index, &annotations[a]) ;
+          printf("mapping annot %s to %d\n",
+                 anames[a], annotations[a]) ;
+        }
+      }
+      // rip all vertices that don't have one of the specified annotations
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag)
+          continue ;
+        found = 0 ;
+        for (a = 0 ; a < nannotations ; a++)
+          if (v->annotation == annotations[a])
+            found = 1 ;
+        if (found == 0)
+          v->ripflag = 1 ;
+      }
+    }
     if (navgs > 0)
       MRISaverageCurvatures(mris, navgs) ;
     mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
@@ -369,29 +426,30 @@ main(int argc, char *argv[]) {
     svm->sigma = poly_d ;
   }
 
-  SVMtrain(svm, cv_avg_thickness, cv_outputs, nsubjects, svm_C, tol, max_iter) ;
-
-  sprintf(fname, "%s/%s/surf/%s.%s",
-          subjects_dir,output_subject,hemi,surf_name);
-  fprintf(stderr, "reading output surface %s...\n", fname) ;
-  mris = MRISread(fname) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, fname) ;
-
-  if (area)
-    MRISripNotLabel(mris, area) ;
-
+  SVMtrain(svm, cv_avg_thickness, cv_outputs, nsubjects, svm_C, tol, max_iter);
+  
   if (wfile_name) {
     int vno ;
     char  fname[STRLEN] ;
-
+    
+    sprintf(fname, "%s/%s/surf/%s.%s",
+            subjects_dir,output_subject,hemi,surf_name);
+    fprintf(stderr, "reading output surface %s...\n", fname) ;
+    mris = MRISread(fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, fname) ;
+    
+    if (area)
+      MRISripNotLabel(mris, area) ;
+    
     for (vno = 0 ; vno < mris->nvertices ; vno++)
       mris->vertices[vno].val = (float)mris->nvertices*svm->w[vno] ;
     sprintf(fname, "./%s.%s.w", hemi, wfile_name) ;
+    sprintf(fname, "./%s", wfile_name) ;
     MRISwriteValues(mris, fname) ;
   }
-
+  
   printf("writing trained SVM to %s...\n", out_fname) ;
   SVMwrite(svm, out_fname) ;
   msec = TimerStop(&start) ;
@@ -450,6 +508,18 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "tol")) {
     tol = atof(argv[2]) ;
     printf("using integration tolerance = %e\n", tol) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "aname")) {
+    annot_name = argv[2] ;
+    printf("using %s as name of annotation file\n", annot_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "annot")) {
+    if (nannotations >= MAX_ANNOTATIONS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many annotations specified (%d)",
+                Progname, nannotations) ;
+    anames[nannotations] = argv[2] ;
+    printf("using annotation %s\n", anames[nannotations]) ;
+    nannotations++;
     nargs = 1 ;
   } else switch (toupper(*option)) {
     case 'L':
@@ -511,7 +581,7 @@ static void
 print_usage(void) {
   fprintf(stderr,
           "usage: %s -o <output subject> [options] \n"
-          "\t<hemi> <surf> <curv> \n\t<c1_subject1> <cv_subject2>... : \n"
+          "\t<hemi> <surf> <curv> \n\t<c1_subject1> <c1_subject2>... : \n"
           "\t<c2_subject1> <c2_subject2>...\n",
           Progname) ;
   fprintf(stderr, "where surf must be a spherical surface suitable for "
@@ -525,8 +595,8 @@ static void
 print_help(void) {
   print_usage() ;
   fprintf(stderr,
-          "\nThis program will compute the autocorrelation function of"
-          " a curvature file\n") ;
+          "\nThis program will train an SVM classifier based on thickness (or other curv) "
+          " measures\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
@@ -534,7 +604,5 @@ print_help(void) {
 static void
 print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
-  exit(1) ;
+  exit(1)  ;
 }
-
-
