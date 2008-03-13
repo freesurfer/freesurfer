@@ -44,6 +44,8 @@ MRISUBDIRS=\
 	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
+	mri_aseg_edit_train \
+	mri_aseg_edit_reclassify \
 	mri_ca_normalize \
 	mri_ca_tissue_parms \
 	mri_ca_register \
@@ -164,6 +166,7 @@ MRISSUBDIRS=\
 	label2flat \
 	spherical_stats \
 	tridec \
+	mris_distance_transform \
 	mris_calc \
 	mris_shrinkwrap \
 	mris_density \

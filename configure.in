@@ -2463,6 +2463,7 @@ AC_OUTPUT([Makefile
            mri_label_accuracy/Makefile
            mri_multispectral_segment/Makefile
            mris2rgb/Makefile
+           mris_distance_transform/Makefile
            mris_add_template/Makefile
            mris_aseg_distance/Makefile
            mris_density/Makefile
@@ -2474,6 +2475,10 @@ AC_OUTPUT([Makefile
            mris_ca_label/Makefile
            mris_divide_parcellation/Makefile
            mris_ca_train/Makefile
+           mri_aseg_edit_train/Makefile
+           mri_aseg_edit_reclassify/Makefile
+           mris_svm_classify/Makefile
+           mris_svm_train/Makefile
            mris_calc/Makefile
            mris_classify_thickness/Makefile
            mris_compute_acorr/Makefile
