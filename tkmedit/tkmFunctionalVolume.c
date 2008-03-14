@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/18 18:27:03 $
- *    $Revision: 1.59 $
+ *    $Author: greve $
+ *    $Date: 2008/03/14 18:16:24 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2160,8 +2160,14 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
     mid = (max-min) / 2.0;
   } else {
     min = (float)(this->mThresholdMin);
-    mid = (float)(this->mThresholdMid);
-    max = 0.5 / (float)(this->mThresholdSlope) + mid;
+    if( bOpaque ) {
+      mid = 1.001*min;
+      max = 1 / (float)(this->mThresholdSlope) + min;
+    }
+    else {
+      mid = (float)(this->mThresholdMid);
+      max = 0.5 / (float)(this->mThresholdSlope) + mid;
+    }
   }
 
   /* if we're truncating values, modify approriatly */
@@ -2199,45 +2205,25 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   /* calc the color */
   if ( f >= 0 ) {
 
-    if( bOpaque ) {
-
-      /* If opaque, don't use blending at all. Min->mid is all
-	 red, and mid->max gets yellower. */
-      r = ((f<min) ? br : 1.0);
-      g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      b = ((f<min) ? bb : 0);
- 
-    } else {
-
-      /* the offset is a portion of the color that is 'blended' into
-	 the functional color. the rest is a standard interpolated
-	 color scale. */
-      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      b = ob;
-    }
-
+    /* the offset is a portion of the color that is 'blended' into
+       the functional color. the rest is a standard interpolated
+       color scale. */
+    or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+    g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+    b = ob;
+    
   } else {
     f = -f;
 
-    if( bOpaque ) {
-
-      b = ((f<min) ? bb : 1.0);
-      g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      r = ((f<min) ? br : 0);
-
-    } else {
-
-      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      r = or;
-    }
+    or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+    g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+    r = or;
   }
 
   /* cap values at 1 just in case */
