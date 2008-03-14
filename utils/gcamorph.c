@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 00:12:34 $
- *    $Revision: 1.133 $
+ *    $Date: 2008/03/14 20:04:07 $
+ *    $Revision: 1.134 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -837,7 +837,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
             parms->start_rms = last_rms ;
           level_steps = parms->start_t ;
           GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
-          if (parms->write_fname)
+          if (parms->write_fname && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
           {
             char path[STRLEN], fname_only[STRLEN] ;
             FileNameOnly(parms->write_fname, fname_only) ;
