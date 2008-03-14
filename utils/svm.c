@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 16:04:00 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/03/14 00:09:41 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "diag.h"
 #include "svm.h"
 #include "proto.h"
+#include "macros.h"
 #include "utils.h"
 #if USE_SVM_LIB
 #include "svm-lib-c.h"
