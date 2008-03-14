@@ -7,6 +7,10 @@
 #
 # Process this file with autoconf to produce a configure script.
 #
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2008/03/14 22:19:43 $
+#    $Revision: 1.393 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -990,6 +994,60 @@ AC_SUBST(PETSC_LIB)
 AC_SUBST(PETSC_DIR)
 
 AM_CONDITIONAL(HAVE_PETSC_LIBS, ! test "x$ac_petsc_dir" = "xNO")
+
+
+################################################################
+# MPI
+################################################################
+ac_mpi_includes="NO"
+ac_mpi_libraries="NO"
+ac_mpi_bindir="NO"
+ac_mpi_dir="NO"
+MPI_CFLAGS=""
+MPI_LIBS=""
+MPI_LIB=""
+MPI_DIR=""
+LIBS_MPI=""
+
+AC_MSG_CHECKING(MPI directory)
+
+AC_ARG_WITH(mpi-dir,
+  [  --with-mpi-dir=DIR      where the root of MPI is installed.],
+  [  ac_mpi_includes="$withval"/include
+     ac_mpi_libraries="$withval"/lib
+     ac_mpi_bindir="$withval"/bin
+     ac_mpi_dir="$withval"
+  ])
+
+AC_ARG_WITH(mpi-include,
+  [  --with-mpi-include=DIR      root of MPI include directory.],
+  [  ac_mpi_includes="$withval"
+  ])
+
+AC_ARG_WITH(mpi-libraries,
+  [  --with-mpi-libraries=DIR    root of MPI lib directory.],
+  [  ac_mpi_libraries="$withval"
+  ])
+
+if test ! "$ac_mpi_includes" = "NO"; then
+  AC_MSG_RESULT(MPI directory is $withval)
+  MPI_CFLAGS=-I$ac_mpi_includes
+  MPI_DIR=$ac_mpi_dir
+else
+  AC_MSG_RESULT(MPI directory is not supplied)
+fi
+
+if test ! "$ac_mpi_libraries" = "NO"; then
+  MPI_LIB=$ac_mpi_libraries
+  MPI_LIBS=-L$ac_mpi_libraries
+fi
+
+AC_SUBST(MPI_CFLAGS)
+AC_SUBST(MPI_LIBS)
+AC_SUBST(MPI_LIB)
+AC_SUBST(MPI_DIR)
+
+AM_CONDITIONAL(HAVE_MPI_LIBS, ! test "x$ac_mpi_dir" = "xNO")
 
 
 ############################################################
@@ -2298,6 +2356,7 @@ AC_OUTPUT([Makefile
            dngtester/Makefile
            dummy/Makefile
            expat/Makefile
+           fem_elastic/Makefile
            fsfast/Makefile
            fsfast/bin/Makefile
            fsfast/docs/Makefile

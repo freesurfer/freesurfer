@@ -268,6 +268,7 @@ MISCDIRS=\
 	images \
 	distribution \
 	dummy \
+	fem_elastic \
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register
