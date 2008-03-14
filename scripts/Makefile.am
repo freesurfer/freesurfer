@@ -197,16 +197,15 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
+# these utilities should use our local build of tclsh, as that
+# has the bug fix to allow usage on 64bit NFS file systems
 install-exec-hook:
-	if ! test -f "$(DESTDIR)$(bindir)/fs_tclsh"; then \
-		ln -s $(DESTDIR)$(libdir)/tcltktixblt/bin/tclsh \
-		$(DESTDIR)$(bindir)/fs_tclsh;fi;
 	cp $(srcdir)/unpacksdcmdir $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
 	echo "#!/bin/tcsh -ef" \
 		> $(DESTDIR)$(bindir)/unpacksdcmdir
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/unpacksdcmdir
-	echo "fs_tclsh \$$FREESURFER_HOME/bin/unpacksdcmdir.tcl \$$argv" \
+	echo "\$$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 \$$FREESURFER_HOME/bin/unpacksdcmdir.tcl \$$argv" \
 		>> $(DESTDIR)$(bindir)/unpacksdcmdir
 	chmod a+x $(DESTDIR)$(bindir)/unpacksdcmdir
 	cp $(srcdir)/fsfget $(DESTDIR)$(bindir)/fsfget.tcl
@@ -214,7 +213,7 @@ install-exec-hook:
 		> $(DESTDIR)$(bindir)/fsfget
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/fsfget
-	echo "fs_tclsh \$$FREESURFER_HOME/bin/fsfget.tcl \$$argv" \
+	echo "\$$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 \$$FREESURFER_HOME/bin/fsfget.tcl \$$argv" \
 		>> $(DESTDIR)$(bindir)/fsfget
 	chmod a+x $(DESTDIR)$(bindir)/fsfget
 
