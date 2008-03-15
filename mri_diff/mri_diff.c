@@ -19,9 +19,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/01/23 00:16:41 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/15 04:34:14 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,10 +174,11 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.21 2008/01/23 00:16:41 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.22 2008/03/15 04:34:14 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
+int verbose=0;
 int checkoptsonly=0;
 struct utsname uts;
 
@@ -232,7 +233,7 @@ int main(int argc, char *argv[]) {
 
   if (debug) dump_options(stdout);
 
-  // njs: commente-out so that mri_diff is useful w/o SUBJECTS_DIR declared
+  // njs: commented-out so that mri_diff is useful w/o SUBJECTS_DIR declared
   //  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   //  if(SUBJECTS_DIR == NULL){
   //    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
@@ -424,19 +425,24 @@ int main(int argc, char *argv[]) {
     for (c=0; c < InVol1->width; c++) {
       for (r=0; r < InVol1->height; r++) {
         for (s=0; s < InVol1->depth; s++) {
-	  SumSqErr = 0.0;
+          SumSqErr = 0.0;
           for (f=0; f < InVol1->nframes; f++) {
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-	    diff = val1-val2;
-	    SumSqErr += (diff*diff);
+            diff = val1-val2;
+            if (diff && verbose) {
+              printf("diff %f at %d %d %d %d\n",diff,c,r,s,f);
+            }
+            SumSqErr += (diff*diff);
             if(AbsDiff)   diff = fabs(diff);
             if(DiffAbs)   diff = fabs(fabs(val1)-fabs(val2));
-	    if(DiffPct)   diff = 100*(val1-val2)/((val1+val2)/2.0);
+            if(DiffPct)   diff = 100*(val1-val2)/((val1+val2)/2.0);
             if(DiffVolFile && !DoRSS) MRIsetVoxVal(DiffVol,c,r,s,f,diff);
             if(DiffLabelVolFile) {
               if (diff==0) MRIsetVoxVal(DiffLabelVol,c,r,s,f,val1);
-              else         MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS);
+              else {
+                MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS);
+              }
             }
             if (maxdiff < diff) {
               maxdiff = diff;
@@ -446,12 +452,14 @@ int main(int argc, char *argv[]) {
               fmax = f;
             }
           }
-	  if(DiffVolFile && DoRSS) MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr));
+          if(DiffVolFile && DoRSS) {
+            MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr));
+          }
         }
       }
     }
     if (debug) printf("maxdiff %f at %d %d %d %d\n",
-                        maxdiff,cmax,rmax,smax,fmax);
+                      maxdiff,cmax,rmax,smax,fmax);
 
     if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
     if (DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
@@ -523,6 +531,7 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--verbose")) verbose = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--no-exit-on-diff")) ExitOnDiff = 0;
@@ -683,6 +692,7 @@ static void print_usage(void) {
   printf("                                     (for comparing aseg.mgz's)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
+  printf("   --verbose   print out info on all differences found\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
