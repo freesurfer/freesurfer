@@ -167,6 +167,8 @@ MRISSUBDIRS=\
 	spherical_stats \
 	tridec \
 	mris_distance_transform \
+	mris_svm_classify \
+	mris_svm_train \
 	mris_calc \
 	mris_shrinkwrap \
 	mris_density \
