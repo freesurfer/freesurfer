@@ -11,12 +11,11 @@ LIBS=
 noinst_LIBRARIES=libtiff.a
 
 libtiff_a_SOURCES=\
+	uvcode.h \
 	port.h \
-	tif_dir.h \
 	tiffcomp.h \
 	tiff.h \
 	tiffiop.h \
-	tif_predict.h \
 	t4.h \
 	tiffconf.h \
 	tiffio.h \
