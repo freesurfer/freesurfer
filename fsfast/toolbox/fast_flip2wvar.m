@@ -5,7 +5,7 @@ function [wvar, ivar] = fast_flip2wvar(mn1,mn2,var1,var2)
 % with different proportions. The instability variance is that
 % from the first scan.
 %
-% $Id: fast_flip2wvar.m,v 1.2 2007/05/04 04:59:31 greve Exp $
+% $Id: fast_flip2wvar.m,v 1.3 2008/03/17 22:49:27 greve Exp $
 
 %
 % fast_flip2var
@@ -13,8 +13,8 @@ function [wvar, ivar] = fast_flip2wvar(mn1,mn2,var1,var2)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/04 04:59:31 $
-%    $Revision: 1.2 $
+%    $Date: 2008/03/17 22:49:27 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@ end
 % changing the acq parameters:
 v = (mn1./mn2).^2;
 
-wvar = (v*var2 - var1)./(v-1);
+wvar = (v.*var2 - var1)./(v-1);
 ivar = var1 - wvar;
 
 return;
