@@ -1,4 +1,4 @@
-/* $Header: /space/repo/1/dev/dev/tiff/tiffconf.h,v 1.1 2008/02/26 00:49:05 nicks Exp $ */
+/* $Header: /space/repo/1/dev/dev/tiff/tiffconf.h,v 1.2 2008/03/17 04:50:45 nicks Exp $ */
 /*
  * Copyright (c) 1988-1997 Sam Leffler
  * Copyright (c) 1991-1997 Silicon Graphics, Inc.
@@ -86,6 +86,8 @@
  *    PIXARLOG_SUPPORT	enable support for Pixar log-format algorithm
  *    LOGLUV_SUPPORT	enable support for LogLuv high dynamic range encoding
  */
+#define ZIP_SUPPORT
+#define JPEG_SUPPORT
 #define	CCITT_SUPPORT
 #define	PACKBITS_SUPPORT
 #define	LZW_SUPPORT

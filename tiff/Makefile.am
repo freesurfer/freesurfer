@@ -1,6 +1,7 @@
 #
 # Makefile.am
 #
+# tiffconf.h defines the build options (JPEG_SUPPORT, ZIP_SUPPORT)
 
 AM_CPPFLAGS=
 
@@ -67,7 +68,8 @@ foo:
 check_PROGRAMS=foo test_tiff
 
 test_tiff_SOURCES=test_tiff.c
-test_tiff_LDADD=$(top_builddir)/tiff/libtiff.a
+test_tiff_LDADD=$(top_builddir)/tiff/libtiff.a \
+	$(top_builddir)/jpeg/libjpeg.a -lz
 
 TESTS=tiff_test
 
