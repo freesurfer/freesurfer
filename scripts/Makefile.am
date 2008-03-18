@@ -137,6 +137,7 @@ segment_subject_sc \
 segment_subject_talmgh \
 setlabelstat\
 show_tal \
+skip_long_make_checks \
 sphere_subject \
 sphere_subject-lh \
 sphere_subject-rh \
