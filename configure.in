@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/03/14 22:19:43 $
-#    $Revision: 1.393 $
+#    $Date: 2008/03/18 14:29:50 $
+#    $Revision: 1.394 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1204,75 +1204,6 @@ AC_SUBST(BLT_LIBS)
 
 
 ################################################################
-# KWWidgets
-################################################################
-ac_kwwidgets_includes="NO"
-ac_kwwidgets_libraries="NO"
-ac_kwwidgets_dir="NO"
-KWWIDGETS_CFLAGS=""
-KWWIDGETS_CXXFLAGS=""
-KWWIDGETS_LIBS=""
-
-AC_MSG_CHECKING(KWWidgets config)
-
-AC_ARG_WITH(kwwidgets-dir,
-  [  --with-kwwidgets-dir=DIR where the root of KWWidgets is installed.],
-  [  ac_kwwidgets_includes="$withval"/include/KWWidgets
-     ac_kwwidgets_libraries="$withval"/lib/KWWidgets
-     ac_kwwidgets_dir="$withval"
-  ])
-
-if test "x$ac_kwwidgets_dir" = "x"; then
-  # if a KWWidgets root was not supplied, but one exists in the
-  # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/KWWidgets/current" ; then
-    withval=/usr/pubsw/packages/KWWidgets/current
-    ac_kwwidgets_includes="$withval"/include/KWWidgets
-    ac_kwwidgets_libraries="$withval"/lib/KWWidgets
-    ac_kwwidgets_dir="$withval"
-  fi
-fi
-
-if test ! "$ac_kwwidgets_includes" = "NO"; then
-  AC_MSG_RESULT(KWWidgets directory is $withval)
-  for item in $ac_kwwidgets_includes; do
-    KWWIDGETS_CFLAGS="${KWWIDGETS_CFLAGS} -I${item}"
-    KWWIDGETS_CXXFLAGS="${KWWIDGETS_CXXFLAGS} -I${item}"
-  done
-  KWWIDGETS_DIR=$ac_kwwidgets_dir
-  AC_SUBST(KWWIDGETS_DIR)
-  kww_apps="yes"
-fi
-
-if test ! "$ac_kwwidgets_libraries" = "NO"; then
-  for item in $ac_kwwidgets_libraries; do
-    KWWIDGETS_LIBS="${KWWIDGETS_LIBS} -L${item}"
-  done
-  KWWIDGETS_LIBS="${KWWIDGETS_LIBS}"
-  AC_SUBST(KWWIDGETS_DIR)
-fi
-
-AC_ARG_ENABLE(kww-apps,
- [  --enable-kww-apps       enable building KWWidgets-based apps],
- [ kww_apps="yes"
- ])
-
-if test "$kww_apps" = "yes"; then
-  AC_MSG_RESULT([Enabled building of KWWidgets apps.])
-  # enable testing for OpenGL libs:
-  need_opengl=yes
-else
-  AC_MSG_RESULT([Not building KWWidgets apps.])
-fi
-
-AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test "$kww_apps" = "yes")
-
-AC_SUBST(KWWIDGETS_CFLAGS)
-AC_SUBST(KWWIDGETS_CXXFLAGS)
-AC_SUBST(KWWIDGETS_LIBS)
-
-
-################################################################
 # XawPlus
 ################################################################
 ac_xawplus_includes="NO"
@@ -1600,6 +1531,80 @@ AC_SUBST(VTK_LIBS)
 AC_SUBST(VTK_LIB)
 AC_SUBST(VTK_LIB_VTK)
 AC_SUBST(VTK_DIR)
+
+
+################################################################
+# KWWidgets
+################################################################
+ac_kwwidgets_includes="NO"
+ac_kwwidgets_libraries="NO"
+ac_kwwidgets_dir="NO"
+KWWIDGETS_CFLAGS=""
+KWWIDGETS_CXXFLAGS=""
+KWWIDGETS_LIBS=""
+KWWIDGETS_DIR=""
+
+AC_MSG_CHECKING(KWWidgets config)
+
+AC_ARG_WITH(kwwidgets-dir,
+  [  --with-kwwidgets-dir=DIR where the root of KWWidgets is installed.],
+  [  ac_kwwidgets_includes="$withval"/include/KWWidgets
+     ac_kwwidgets_libraries="$withval"/lib/KWWidgets
+     ac_kwwidgets_dir="$withval"
+     KWWIDGETS_DIR=$ac_kwwidgets_dir
+  ])
+
+if test "x$ac_kwwidgets_dir" = "x"; then
+  # if a KWWidgets root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/KWWidgets/current" ; then
+    withval=/usr/pubsw/packages/KWWidgets/current
+    ac_kwwidgets_includes="$withval"/include/KWWidgets
+    ac_kwwidgets_libraries="$withval"/lib/KWWidgets
+    ac_kwwidgets_dir="$withval"
+    KWWIDGETS_DIR=$ac_kwwidgets_dir
+    kww_apps="yes"
+  fi
+fi
+
+if test ! "$ac_kwwidgets_includes" = "NO"; then
+  AC_MSG_RESULT(KWWidgets directory is $withval)
+  for item in $ac_kwwidgets_includes; do
+    KWWIDGETS_CFLAGS="${KWWIDGETS_CFLAGS} -I${item}"
+    KWWIDGETS_CXXFLAGS="${KWWIDGETS_CXXFLAGS} -I${item}"
+  done
+  KWWIDGETS_DIR=$ac_kwwidgets_dir
+  kww_apps="yes"
+fi
+
+if test ! "$ac_kwwidgets_libraries" = "NO"; then
+  for item in $ac_kwwidgets_libraries; do
+    KWWIDGETS_LIBS="${KWWIDGETS_LIBS} -L${item}"
+  done
+  KWWIDGETS_LIBS="${KWWIDGETS_LIBS}"
+  kww_apps="yes"
+fi
+
+AC_ARG_ENABLE(kww-apps,
+ [  --enable-kww-apps       enable building KWWidgets-based apps],
+ [ kww_apps="yes"
+ ])
+
+if test "$kww_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of KWWidgets apps.])
+  # enable testing for OpenGL libs:
+  need_opengl=yes
+else
+  AC_MSG_RESULT([Not building KWWidgets apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test "$kww_apps" = "yes")
+
+AC_SUBST(KWWIDGETS_CFLAGS)
+AC_SUBST(KWWIDGETS_CXXFLAGS)
+AC_SUBST(KWWIDGETS_LIBS)
+AC_SUBST(KWWIDGETS_DIR)
+
 
 ################################################################
 # ITK
