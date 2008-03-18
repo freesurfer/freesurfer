@@ -3,7 +3,15 @@
 #
 # tiffconf.h defines the build options (JPEG_SUPPORT, ZIP_SUPPORT)
 
-AM_CPPFLAGS=
+if USE_LOCAL_JPEG
+JPEGCFLAGS=-I$(top_srcdir)/jpeg
+LIBJPEG=$(top_builddir)/jpeg/libjpeg.a
+else
+JPEGCFLAGS=$(JPEG_CFLAGS)
+LIBJPEG=$(LIB_JPEG)
+endif
+
+AM_CPPFLAGS=$(JPEGCFLAGS)
 
 AM_LDFLAGS=
 
@@ -69,7 +77,7 @@ check_PROGRAMS=foo test_tiff
 
 test_tiff_SOURCES=test_tiff.c
 test_tiff_LDADD=$(top_builddir)/tiff/libtiff.a \
-	$(top_builddir)/jpeg/libjpeg.a -lz
+	$(LIBJPEG) -lz
 
 TESTS=tiff_test
 
