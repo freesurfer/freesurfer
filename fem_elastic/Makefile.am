@@ -5,13 +5,15 @@
 if HAVE_ITK_LIBS
 if HAVE_PETSC_LIBS
 if HAVE_MPI_LIBS
+if HAVE_BOOST_LIBS
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tetgen \
 	$(VXL_CFLAGS)	\
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
 	$(MPI_CFLAGS) \
-	$(PETSC_CFLAGS)
+	$(PETSC_CFLAGS) \
+	$(BOOST_CFLAGS)
 
 AM_LDFLAGS=$(OS_LDFLAGS)
 
@@ -35,8 +37,7 @@ createMorph_SOURCES=\
 
 createMorph_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(top_builddir)/tetgen/libtetgen.a \
-	-lboost_program_options
+	$(top_builddir)/tetgen/libtetgen.a $(BOOST_PO_LIB)
 
 applyMorph_SOURCES=\
 	$(common3d_SOURCES) \
@@ -48,9 +49,9 @@ applyMorph_SOURCES=\
 
 applyMorph_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(top_builddir)/tetgen/libtetgen.a \
-	-lboost_program_options
+	$(top_builddir)/tetgen/libtetgen.a $(BOOST_PO_LIB)
 
+endif
 endif
 endif
 endif
