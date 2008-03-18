@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/03/18 20:49:48 $
-#    $Revision: 1.395 $
+#    $Date: 2008/03/18 23:30:52 $
+#    $Revision: 1.396 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1670,7 +1670,7 @@ AC_MSG_CHECKING(wxWidgets config)
 
 AC_ARG_WITH(wxwidgets-dir,
   [  --with-wxwidgets-dir=DIR where the root of wxWidgets is installed.],
-  [  ac_wxwidgets_includes="$withval"/include
+  [  ac_wxwidgets_includes="$withval"/include/wx-2.8
      ac_wxwidgets_libraries="$withval"/lib
      ac_wxwidgets_dir="$withval"
      WXWIDGETS_DIR=$ac_wxwidgets_dir
@@ -1679,9 +1679,13 @@ AC_ARG_WITH(wxwidgets-dir,
 if test "x$ac_wxwidgets_dir" = "x"; then
   # if a wxWidgets root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/wxWidgets/current" ; then
+
+#
+# feature disabled for now (see xxxxxxx)
+#
+  if test -d "/usr/pubsw/packages/wxWidgets/currentxxxxxxxx" ; then
     withval=/usr/pubsw/packages/wxWidgets/current
-    ac_wxwidgets_includes="$withval"/include
+    ac_wxwidgets_includes="$withval"/include/wx-2.8
     ac_wxwidgets_libraries="$withval"/lib
     ac_wxwidgets_dir="$withval"
     WXWIDGETS_DIR=$ac_wxwidgets_dir
@@ -2769,6 +2773,7 @@ AC_OUTPUT([Makefile
            scripts/Makefile
            scuba/Makefile
            scuba2/Makefile
+           scuba3/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
            stim/Makefile
