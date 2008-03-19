@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/14 07:17:10 $
- *    $Revision: 1.32 $
+ *    $Date: 2008/03/19 21:56:46 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,8 @@
   --sum sumfile : def is outreg.sum
   --no-surf : do not use surface-based method
   --1dpreopt min max delta : brute force in PE direction
+
+  --no-mask : do not mask out regions
 
   --frame nthframe : use given frame in input (default = 0)
   --mid-frame : use use middle frame
@@ -165,7 +167,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.32 2008/01/14 07:17:10 greve Exp $";
+"$Id: mri_segreg.c,v 1.33 2008/03/19 21:56:46 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -227,6 +229,7 @@ int UseSurf = 1;
 MRIS *lhwm, *rhwm, *lhctx, *rhctx;
 double SurfProj = 0.5;
 MRI *lhsegmask, *rhsegmask;
+int UseMask = 1;
 char *cmdline2;
 struct utsname uts;
 
@@ -253,13 +256,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.32 2008/01/14 07:17:10 greve Exp $",
+     "$Id: mri_segreg.c,v 1.33 2008/03/19 21:56:46 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.32 2008/01/14 07:17:10 greve Exp $",
+     "$Id: mri_segreg.c,v 1.33 2008/03/19 21:56:46 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -715,6 +718,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
     else if (!strcasecmp(option, "--1dmin"))     DoPowell = 0;
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
+    else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
     else if (!strcasecmp(option, "--surf")){
       UseSurf = 1;
       DoCrop = 0;
@@ -924,6 +928,8 @@ printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("\n");
+printf("  --no-mask : do not mask out regions\n");
+printf("\n");
 printf("  --frame nthframe : use given frame in input (default = 0)\n");
 printf("  --mid-frame : use middle frame\n");
 printf("\n");
@@ -1019,6 +1025,7 @@ static void dump_options(FILE *fp)
   if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
   if(outfile) fprintf(fp,"outfile %s\n",outfile);
   fprintf(fp,"UseSurf %d\n",UseSurf);
+  fprintf(fp,"UseMask %d\n",UseMask);
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
@@ -1697,6 +1704,7 @@ int MRISsegReg(char *subject, int ForceReRun)
 double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 		     double *p, double *costs)
 {
+  extern int UseMask;
   extern MRI *lhsegmask, *rhsegmask;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern int PenaltySign;
@@ -1752,7 +1760,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 
   //fp = fopen("tmp.dat","w");
   for(n = 0; n < lhwm->nvertices; n++){
-    if(MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
+    if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
     vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
     if(vwm == 0.0) continue;
     vctx = MRIgetVoxVal(vlhctx,n,0,0,0);
@@ -1774,7 +1782,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
   }
   for(n = 0; n < rhwm->nvertices; n++){
-    if(MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
+    if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
     vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
     if(vwm == 0.0) continue;
     vctx = MRIgetVoxVal(vrhctx,n,0,0,0);
