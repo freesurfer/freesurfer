@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:24 $
- *    $Revision: 1.302 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/19 15:50:59 $
+ *    $Revision: 1.303 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -106,6 +106,7 @@ static void t_to_p(int dof) ;
 static void f_to_p(int numer_dof, int denom_dof) ;
 int mask_label(char *label_name) ;
 
+static int zero_mean = 0 ;
 MRI_SURFACE *mris = NULL, *mris2 = NULL ;
 static char *sdir = NULL ;
 static char *sphere_reg ;
@@ -2269,6 +2270,12 @@ int  main(int argc,char *argv[])
       timecourse_reg_type = FunD_tRegistration_File;
       nargs = 1;
     } 
+    else if (!stricmp(argv[i], "-zm"))
+    {
+      zero_mean = 1 ;
+      printf("zero meaning input overlays\n") ;
+      nargs = 1 ;
+    }
     else if (!stricmp(argv[i], "-fslope"))
     {
       nargs = 2 ;
@@ -9061,7 +9068,7 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
   float*                saved_vals = NULL;
   char                  val_name[STRLEN];
   char                  cmd[STRLEN];
-  float                 min, max;
+  float                 min, max, mean;
 
   /* unload this field if it already exists */
   sclv_unload_field (field);
@@ -9095,6 +9102,22 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
     return (error_code);
   }
 
+  // remove the mean if specified by the user
+  if (zero_mean)  
+  {
+    mean = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      mean += v->val ;
+    }
+    mean /= mris->nvertices ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      v->val -= mean ;
+    }
+  }
   /* look for the min and max values. */
   min = 1000000;
   max = -1000000;
@@ -9107,6 +9130,7 @@ sclv_read_from_dotw(char *fname, int field)  /* marty: openclose */
       min = v->val;
     if (v->val > max)
       max = v->val;
+    mean += v->val ;
   }
 
   /* move the v->vals into the proper field and restore the saved
@@ -9249,6 +9273,12 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
 
   /* Notify the volume we're in tkreg space, so our transform is
      correct. */
+  if (zero_mean)
+  {
+    double mean = MRImeanFrame(volume->mpData, -1);
+    printf("removing mean %2.2f from input volume\n", mean) ;
+    MRIzeroMean(volume->mpData, volume->mpData) ;
+  }
   volume_error = FunD_ClientSpaceIsTkRegRAS (volume);
   if (volume_error!=FunD_tErr_NoError)
   {
@@ -18616,6 +18646,7 @@ print_help_tksurfer(void)
   printf("                             : file\n");
   printf("-overlay-reg-identity        : calculate an identity transform for registration\n");
   printf("-mni152reg : for use with average subject when overlay is mni152\n");
+  printf("-zm                          : remove mean from overlays\n") ;
   printf("-fslope <value>              : set the overlay threshold slope value\n");
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
@@ -20627,7 +20658,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.302 2008/03/10 13:35:24 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.303 2008/03/19 15:50:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
