@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/19 21:56:46 $
- *    $Revision: 1.33 $
+ *    $Date: 2008/03/19 23:05:37 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -167,7 +167,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.33 2008/03/19 21:56:46 greve Exp $";
+"$Id: mri_segreg.c,v 1.34 2008/03/19 23:05:37 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -239,6 +239,7 @@ int DoMidFrame = 0;
 
 int Do1DPreOpt = 0;
 double PreOptMin, PreOptMax, PreOptDelta, PreOpt, PreOptAtMin;
+char *surfcostbase=NULL, *lhcostfile=NULL, *rhcostfile=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -256,13 +257,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.33 2008/03/19 21:56:46 greve Exp $",
+     "$Id: mri_segreg.c,v 1.34 2008/03/19 23:05:37 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.33 2008/03/19 21:56:46 greve Exp $",
+     "$Id: mri_segreg.c,v 1.34 2008/03/19 23:05:37 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -509,7 +510,15 @@ int main(int argc, char **argv) {
 
   // Recompute at optimal. This forces MRI *out to be the output at best reg
   if(!UseSurf)  GetCosts(mov,     segreg, R0, R, p, costs);
-  else          GetSurfCosts(mov, segreg, R0, R, p, costs);
+  else{
+    if(surfcostbase){
+      sprintf(tmpstr,"lh.%s.mgh",surfcostbase);
+      lhcostfile = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"rh.%s.mgh",surfcostbase);
+      rhcostfile = strcpyalloc(tmpstr);
+    }
+    GetSurfCosts(mov, segreg, R0, R, p, costs);
+  }
   
 
   printf("Min cost was %lf\n",costs[7]);
@@ -690,7 +699,7 @@ int main(int argc, char **argv) {
 /* ------------------------------------------------------------------ */
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
-  char **pargv, *option ;
+  char **pargv, *option;
   int err,nv,n;
   double vmin, vmax, vdelta;
 
@@ -724,7 +733,11 @@ static int parse_commandline(int argc, char **argv) {
       DoCrop = 0;
     }
     else if (!strcasecmp(option, "--no-surf"))   UseSurf = 0;
-    else if (istringnmatch(option, "--mov",0)) {
+    else if (istringnmatch(option, "--surf-cost",0)) {
+      if(nargc < 1) argnerr(option,1);
+      surfcostbase = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
       nargsused = 1;
@@ -1028,6 +1041,8 @@ static void dump_options(FILE *fp)
   fprintf(fp,"UseMask %d\n",UseMask);
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
+  fprintf(fp,"lhcostfile %s\n",lhcostfile);
+  fprintf(fp,"rhcostfile %s\n",rhcostfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   fprintf(fp,"frame  %d\n",frame);
   fprintf(fp,"DoPowell  %d\n",DoPowell);
@@ -1704,6 +1719,8 @@ int MRISsegReg(char *subject, int ForceReRun)
 double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 		     double *p, double *costs)
 {
+  static MRI *lhcost=NULL, *rhcost=NULL;
+  extern char *lhcostfile, *rhcostfile;
   extern int UseMask;
   extern MRI *lhsegmask, *rhsegmask;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
@@ -1750,6 +1767,11 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 			  rhctx, 0,SAMPLE_TRILINEAR, 
 			  FLT2INT_ROUND, NULL, 0);
 
+  if(lhcost == NULL){
+    lhcost = MRIclone(vlhctx,NULL);
+    rhcost = MRIclone(vrhctx,NULL);
+  }
+
   for(n = 0; n < 8; n++) costs[n] = 0;
 
   dsum = 0.0;
@@ -1760,6 +1782,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 
   //fp = fopen("tmp.dat","w");
   for(n = 0; n < lhwm->nvertices; n++){
+    if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
     if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
     vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
     if(vwm == 0.0) continue;
@@ -1779,9 +1802,11 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     c = 1+tanh(a);
     csum += c;
     csum2 += (c*c);
+    if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,c);
     //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
   }
   for(n = 0; n < rhwm->nvertices; n++){
+    if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
     if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
     vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
     if(vwm == 0.0) continue;
@@ -1801,6 +1826,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     c = 1+tanh(a);
     csum += c;
     csum2 += (c*c);
+    if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,c);
     //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
   }
   //fclose(fp);
@@ -1827,6 +1853,15 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   MRIfree(&vlhctx);
   MRIfree(&vrhwm);
   MRIfree(&vrhctx);
+
+  if(lhcostfile){
+    printf("Writing lh cost to %s\n",lhcostfile);
+    MRIwrite(lhcost,lhcostfile);
+  }
+  if(rhcostfile){
+    printf("Writing rh cost to %s\n",rhcostfile);
+    MRIwrite(rhcost,rhcostfile);
+  }
 
   return(costs);
 }
