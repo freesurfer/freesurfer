@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/20 02:41:18 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/03/20 18:16:01 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,8 @@
 #include "mrisutils.h"
 #include "image.h"
 #include "retinotopy.h"
+#include "bfileio.h"
+#include "cma.h"
 
 // setenv SUBJECTS_DIR /space/greve/1/users/greve/subjects
 // /autofs/space/greve_001/users/greve/dev/trunk/dngtester
@@ -99,7 +101,7 @@ int msecFitTime;
 double a,b,zthresh,pthresh;
 char *SUBJECTS_DIR;
 char tmpstr[2000];
-MRIS *surf;
+MRIS *surf, *surf2;
 char *hemi;
 
 MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var);
@@ -118,36 +120,191 @@ MRIS *MRISaverageSurfaces(int nsurfaces, MRIS **surfs);
 MATRIX *MatrixLoadFSL(char *fname);
 int find_path ( int* vert_vno, int num_vno, int max_path_length,
                 int* path, int* path_length, MRIS *mris );
+MRI *seg1, *seg2;
+int mygd(char *fname);
+MRI *MRIaddB(MRI *mri1, MRI *mri2, MRI *mriadd);
 
 /*----------------------------------------*/
-int main(int argc, char **argv) {
+int main(int argc, char **argv) 
+{
   int err,area32p,area32v,superiorfrontal,medialorbitofrontal;
   int rostralanteriorcingulate, rostralmiddlefrontal;
-  int index,k,c,r,s,nvox;
+  int index,k,c,r,s,nvox,a1,a2,k1,k2;
   int *nunits;
-  char *parcnames[10];
+  char *parcnames[10], *annot1, *annot2;
   COLOR_TABLE *ct ;
-  //LABEL *lcortex=NULL;
   VERTEX *vtx;
   float dlhw,DotProdThresh;
   int  lhwvtx;
   double sumval;
+  int nsegid1, *segidlist1;
+  int nsegid2, *segidlist2;
+  int nsegs, *segidlist;
+  double *area1, *area2, *area12, *dice;
+  double f;
+  COLOR_TABLE *ctab = NULL;
+
+  k = 1;
+  printf("%d %s\n",k,argv[k]);
+  seg1 = MRIread(argv[k]);
+  if(seg1 == NULL) exit(1);
+
+  k = 2;
+  printf("%d %s\n",k,argv[k]);
+  seg2 = MRIread(argv[k]);
+  if(seg2 == NULL) exit(1);
+
+  mri = MRIadd(seg1,seg2,NULL);
+  if(mri == NULL) exit(1);
+
+  for(k=3; k < argc-1; k++){
+    printf("%d %s\n",k,argv[k]);
+    seg2 = MRIread(argv[k]);
+    if(seg2 == NULL) exit(1);
+    mri = MRIadd(mri,seg2,mri);
+    if(mri == NULL) exit(1);
+  }
+
+  f = 1.0/((double)(argc-2));
+  printf("Dividing by %lf\n",f);
+  MRImultiplyConst(mri, f, mri);
+  printf("Saving to %s\n",argv[argc-1]);
+  MRIwrite(mri,argv[argc-1]);
+  exit(0);
+
+
+  mri = MRIsegDiff(seg1,seg2,&k);
+  printf("DiffFlag %d\n",k);
+  MRIwrite(mri,"aseg.diff.mgz");
+
+  mri2 = MRIsegMergeDiff(seg1, mri);
+  MRIwrite(mri2,"aseg.new.mgz");
+
+  exit(0);
+
+  seg1 = MRIread(argv[1]);
+  seg2 = MRIread(argv[2]);
+  dice = MRIsegDice(seg1, seg2, &nsegs, &segidlist);
+
+  ctab = CTABreadASCII("/space/greve/1/users/greve/freesurfer/FreeSurferColorLUT.txt");
+  if (ctab == NULL) {
+    printf("ERROR: reading ctab\n");
+    exit(1);
+  }
+
+  for(k=0; k < nsegs; k++){
+    if(segidlist[k] >= 0){
+      CTABcopyName(ctab,segidlist[k],tmpstr,sizeof(tmpstr));
+      printf("%2d %4d %-30s %7.5lf\n",k,segidlist[k],tmpstr,dice[k]);
+    }
+  }
+
+
+  return(0);
+
+
   //----------------------------------------------------
   subject = argv[1];
   hemi = argv[2];
+  annot1 = argv[3];
+  annot2 = argv[4];
+
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
   printf("\nReading lh white surface \n %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) exit(1);
+  MRIScomputeMetricProperties(surf);
+
+  surf2 = MRISread(tmpstr);
+  if(!surf2) exit(1);
+
+  sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot1);
+  printf("Loading annotations from %s\n",tmpstr);
+  err = MRISreadAnnotation(surf, tmpstr);
+  if(err) exit(1);
+
+  sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot2);
+  printf("Loading annotations from %s\n",tmpstr);
+  err = MRISreadAnnotation(surf2, tmpstr);
+  if(err) exit(1);
+
+  dice = MRISannotDice(surf, surf2, &nsegs, &segidlist);
+
+  for(k=0; k < nsegs; k++){
+    if(segidlist[k] >= 0){
+      printf("%2d %4d %-25s  %7.5lf\n",k,segidlist[k],
+	     surf->ct->entries[segidlist[k]]->name,
+	     dice[k]);
+    }
+  }
+
+
+
+  return(0);
+  //----------------------------------------------------
+
+  seg1 = MRISannot2seg(surf,1000);
+  seg2 = MRISannot2seg(surf2,1000);
+
+  printf("Generating list of segmentation ids\n");
+  segidlist1 = MRIsegIdList(seg1, &nsegid1,0);
+  printf("Found %d\n",nsegid1);
+  fflush(stdout);
+
+  printf("Generating list of segmentation ids\n");
+  segidlist2 = MRIsegIdList(seg1, &nsegid2,0);
+  printf("Found %d\n",nsegid2);
+  fflush(stdout);
+
+  area1 = (double *) calloc(nsegid1,sizeof(double));
+  area2 = (double *) calloc(nsegid1,sizeof(double));
+  area12 = (double *) calloc(nsegid1,sizeof(double));
+
+  for(c=0; c < seg1->width; c++){
+    for(r=0; r < seg1->height; r++){
+      for(s=0; s < seg1->depth; s++){
+	a1 = MRIgetVoxVal(seg1,c,r,s,0);
+	k1 = -1;
+	for(k=0; k < nsegid1; k++) {
+	  if(a1 == segidlist1[k]){
+	    k1 = k; 
+	    break;
+	  }
+	}
+	a2 = MRIgetVoxVal(seg2,c,r,s,0);
+	k2 = -1;
+	for(k=0; k < nsegid2; k++) {
+	  if(a2 == segidlist2[k]){
+	    k2 = k; 
+	    break;
+	  }
+	}
+	area1[k1] += surf->vertices[c].area;
+	area2[k2] += surf->vertices[c].area;
+	if(a1 == a2) area12[k1] += surf->vertices[c].area;
+      }
+    }
+  }
+
+  for(k=0; k < nsegid1; k++) {
+    printf("%2d %4d   %7.1lf %7.1lf %7.1lf   %6.4f\n",
+	   k,segidlist1[k],
+	   area1[k],area2[k],area12[k],
+	   (float)area12[k]/((area1[k]+area2[k])/2.0));
+  }
+
+
+  exit(1);
 
   sprintf(tmpstr,"%s/%s/label/%s.aparc.annot",SUBJECTS_DIR,subject,hemi);
   printf("Loading annotations from %s\n",tmpstr);
   err = MRISreadAnnotation(surf, tmpstr);
   if(err) exit(1);
 
+
   MRISfbirnAnnot(surf);
-  sprintf(tmpstr,"%s.fbirn2b.annot",hemi);
+  sprintf(tmpstr,"%s.fbirn.annot",hemi);
   MRISwriteAnnotation(surf, tmpstr);
 
   exit(1);
@@ -912,3 +1069,72 @@ int find_path ( int* vert_vno, int num_vno, int max_path_length,
   return (ERROR_NONE);
 }
 
+int mygd(char *fname)
+{
+  FILE *fp;
+  char *match = "DiffusionGradientDirection\0";
+  char *check;
+  int matchlen, n, m;
+  int c, hit;
+  float f;
+  char buf[4];
+  
+  fp = fopen(fname,"r");
+  
+  matchlen = strlen(match);
+  check = calloc(sizeof(char),matchlen);
+
+  n = -1;
+  while(fp){
+    n++;
+    c = fgetc(fp);
+    if(n < matchlen){
+      check[n] = c;
+      continue;
+    }
+    for(m=0; m < matchlen-1; m++) check[m] = check[m+1];
+    check[m] = c;
+
+    hit = 1;
+    for(m=0; m < matchlen; m++){
+      if(check[m] != match[m]) hit = 0;
+    }
+    if(hit){
+      for(m = 0; m < 10; m++){
+	fread(buf,sizeof(float),1,fp);
+	byteswapbuffloat(buf,1);
+	f = (float)buf[0];
+	//printf("%s %7.4f %7.4f %7.4f \n",fname,f[0],f[1],f[2]);
+	printf("%d %7.4f\n",m,f);
+      }
+      return(0);
+    }
+  }
+  return(1);
+}
+
+MRI *MRIaddB(MRI *mri1, MRI *mri2, MRI *mriadd)
+{
+  int c,r,s,f;
+  double v1,v2,vadd;
+
+  if(mriadd == NULL){
+    mriadd = MRIallocSequence(mri1->width, mri1->height,mri1->depth,
+			      MRI_FLOAT, mri1->nframes);
+    MRIcopyHeader(mri1, mriadd);
+  }
+
+  for(c=0; c < mri1->width; c++){
+    for(r=0; r < mri1->height; r++){
+      for(s=0; s < mri1->depth; s++){
+	for(f=0; f < mri1->nframes; f++){
+	  v1 = MRIgetVoxVal(mri1,c,r,s,f);
+	  v2 = MRIgetVoxVal(mri2,c,r,s,f);
+	  vadd = v1+v2;
+	  MRIsetVoxVal(mriadd,c,r,s,f,vadd);
+	}
+      }
+    }
+  }
+  return(mriadd);
+}
