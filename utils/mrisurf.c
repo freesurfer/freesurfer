@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/20 16:21:32 $
- *    $Revision: 1.602 $
+ *    $Date: 2008/03/20 16:24:57 $
+ *    $Revision: 1.603 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.602 2008/03/20 16:21:32 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.603 2008/03/20 16:24:57 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -63293,7 +63293,7 @@ MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode)
   for label 2, computed using MRISdistanceTransform
 */
 double
-MRIScomputeHausdorffDistances(MRI_SURFACE *mris, int mode)
+MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode)
 {
   double   hdist = 0, d, dist ;
   int      vno, n, num ;
