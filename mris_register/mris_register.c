@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/28 00:49:46 $
- *    $Revision: 1.50 $
+ *    $Date: 2008/03/20 16:25:19 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.50 2007/12/28 00:49:46 fischl Exp $";
+"$Id: mris_register.c,v 1.51 2008/03/20 16:25:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -137,14 +137,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.50 2007/12/28 00:49:46 fischl Exp $", 
+     "$Id: mris_register.c,v 1.51 2008/03/20 16:25:19 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.50 2007/12/28 00:49:46 fischl Exp $", 
+     "$Id: mris_register.c,v 1.51 2008/03/20 16:25:19 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -278,6 +278,8 @@ main(int argc, char *argv[])
     hemi[2] = 0 ;
     fprintf(stderr, "reading spherical surface %s...\n", template_fname) ;
     mris_template = MRISread(template_fname) ;
+    if (mris_template == NULL)
+      ErrorExit(ERROR_NOFILE, "") ;
     MRISsaveVertexPositions(mris_template, CANONICAL_VERTICES) ;
     MRIScomputeMetricProperties(mris_template) ;
     MRISstoreMetricProperties(mris_template) ;
@@ -733,6 +735,14 @@ get_option(int argc, char *argv[])
   {
     fprintf(stderr, "disabling initial sulc alignment...\n") ;
     parms.flags |= IP_NO_SULC ;
+  }
+  else if (!stricmp(option, "sulc"))
+  {
+    curvature_names[1] = argv[2] ;
+    fprintf(stderr, "using %s to replace 'sulc' alignment\n", 
+            curvature_names[1]) ;
+    nargs = 1 ;
+    MRISsetSulcFileName(argv[2]);
   }
   else if (!stricmp(option, "lm"))
   {
