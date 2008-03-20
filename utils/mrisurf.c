@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/13 19:07:50 $
- *    $Revision: 1.601 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/20 16:21:32 $
+ *    $Revision: 1.602 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.601 2008/03/13 19:07:50 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.602 2008/03/20 16:21:32 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5354,6 +5354,14 @@ MRISsetInflatedFileName(char *inflated_name)
   sprintf(fname, "%s.H", inflated_name) ;
   curvature_names[0] = (char *)calloc(strlen(fname)+1, sizeof(char)) ;
   strcpy(curvature_names[0], fname) ;
+  return(NO_ERROR) ;
+}
+
+int
+MRISsetSulcFileName(char *sulc_name)
+{
+  curvature_names[1] = (char *)calloc(strlen(sulc_name)+1, sizeof(char)) ;
+  strcpy(curvature_names[1], sulc_name) ;
   return(NO_ERROR) ;
 }
 
@@ -63255,17 +63263,22 @@ MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode)
   for (vno = 0 ; vno < area->n_points ; vno++)
     if (area->lv[vno].vno >= 0)
       vertices[area->lv[vno].vno] = 1 ;
+  if (mode == DTRANS_MODE_INSIDE) // mark exterior and compute distance from it
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      vertices[vno] = !vertices[vno] ;
+  }
   
   // compute outside distances
   MARS_DT_Boundary(vertices, mris->nvertices, max_nbrs, vertNbrs, vertDists, cost) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
-    mris->vertices[vno].val = cost[vno] ;  // distance to outside points
+    mris->vertices[vno].val = cost[vno] ;  // distance to inside points
     
   if (mode == DTRANS_MODE_SIGNED || mode == DTRANS_MODE_UNSIGNED)
   {
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-      vertices[vno] = !vertices[vno] ;
     // compute distance to interior points
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      vertices[vno] = !vertices[vno] ;  // 1=in exterior, 0=in interior
     MARS_DT_Boundary(vertices, mris->nvertices, max_nbrs, vertNbrs, vertDists, cost) ;
     for (vno = 0 ; vno < mris->nvertices ; vno++)
       if (cost[vno] > 0)
@@ -63275,3 +63288,68 @@ MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode)
   free(vertices) ; free(cost) ; free(vertDists) ; free(vertNbrs) ;
   return(NO_ERROR) ;
 }
+/*
+  assumes v->val has the distances for label1 and v->val2 has the distances
+  for label 2, computed using MRISdistanceTransform
+*/
+double
+MRIScomputeHausdorffDistances(MRI_SURFACE *mris, int mode)
+{
+  double   hdist = 0, d, dist ;
+  int      vno, n, num ;
+  VERTEX   *v, *vn ;
+
+  // assume mode is symmetric mean for now
+  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->ripflag)
+        continue ;
+      // look for zero crossings in val
+      if (vn->val * v->val < 0) // different signs - compute location of 0 between them
+      {
+        // compute distance of '0' point from v to vn
+        if (vn->val < 0)
+        {
+          dist = -vn->val / (-vn->val + v->val) ; // fraction of way
+          dist = 1-dist ;  // measure from v not vn
+        }
+        else
+          dist = -v->val / (-v->val + vn->val) ; // fraction of way
+        d = dist*v->val2 + (1-dist)*vn->val2 ;  // compute val2 at this point
+        num++ ;
+        hdist += d ;
+      }
+
+      // look for zero crossings in val2
+      if (vn->val2 * v->val2 < 0) // different signs - compute location of 0 between them
+      {
+        // compute distance of '0' point from v to vn
+        if (vn->val2 < 0)
+        {
+          dist = -vn->val2 / (-vn->val2 + v->val2) ; // fraction of way
+          dist = 1-dist ;  // measure from v not vn
+        }
+        else
+          dist = -v->val2 / (-v->val2 + vn->val2) ; // fraction of way
+        num++ ;
+        d = dist*v->val + (1-dist)*vn->val ;  // compute val2 at this point
+      }
+    }
+  }
+  if (num > 0)
+    hdist /= num ;
+
+      
+  return(hdist) ;
+}
+
+
