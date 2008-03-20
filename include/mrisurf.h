@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/20 16:21:26 $
- *    $Revision: 1.315 $
+ *    $Date: 2008/03/20 16:24:54 $
+ *    $Revision: 1.316 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -334,7 +334,7 @@ positive areas */
 
 // different Hausdorff distance modes
 #define HDIST_MODE_SYMMETRIC_MEAN 0
-double MRIScomputeHausdorffDistances(MRI_SURFACE *mris, int mode) ;
+double MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode) ;
 
 
 /*
