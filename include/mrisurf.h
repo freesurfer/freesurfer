@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 18:10:16 $
- *    $Revision: 1.314 $
+ *    $Date: 2008/03/20 16:21:26 $
+ *    $Revision: 1.315 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -331,6 +331,10 @@ positive areas */
 #define MRIS_PARAMETERIZED_SPHERE  5
 #define MRIS_RIGID_BODY            6
 #define MRIS_SPHERICAL_PATCH       7
+
+// different Hausdorff distance modes
+#define HDIST_MODE_SYMMETRIC_MEAN 0
+double MRIScomputeHausdorffDistances(MRI_SURFACE *mris, int mode) ;
 
 
 /*
@@ -1280,6 +1284,7 @@ int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
+int MRISsetSulcFileName(char *sulc_name) ;
 int MRISsetInflatedFileName(char *inflated_name) ;
 
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;

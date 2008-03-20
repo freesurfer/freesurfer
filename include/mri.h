@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/12 00:22:09 $
- *    $Revision: 1.363 $
+ *    $Date: 2008/03/20 16:21:26 $
+ *    $Revision: 1.364 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1141,6 +1141,7 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 #define DTRANS_MODE_SIGNED   1
 #define DTRANS_MODE_UNSIGNED 2
 #define DTRANS_MODE_OUTSIDE  3
+#define DTRANS_MODE_INSIDE   4
 
 /** This is deprecated.  Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,
