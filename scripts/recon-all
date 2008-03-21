@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/03/15 21:09:16 $
-#    $Revision: 1.133.2.27 $
+#    $Author: greve $
+#    $Date: 2008/03/21 03:33:02 $
+#    $Revision: 1.133.2.28 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.27 2008/03/15 21:09:16 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.28 2008/03/21 03:33:02 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2237,7 +2237,7 @@ if($DoAParc2ASeg) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
   # Rahul's
-  set cmd = (mri_aparc2aseg --s $subjid --ribbon $xopts)
+  set cmd = (mri_aparc2aseg --s $subjid --volmask $xopts)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -2245,7 +2245,7 @@ if($DoAParc2ASeg) then
   echo $cmd > $touchdir/aparc2aseg.touch
   # Now do Christophe's
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
-  set cmd = (mri_aparc2aseg --s $subjid --ribbon --a2005s $xopts)
+  set cmd = (mri_aparc2aseg --s $subjid --volmask --a2005s $xopts)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -2260,7 +2260,7 @@ if($DoWMParc) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
   set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown \
-             --ribbon --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
+             --volmask --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
