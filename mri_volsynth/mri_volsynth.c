@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/31 17:20:29 $
- *    $Revision: 1.36 $
+ *    $Date: 2008/03/21 05:07:05 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.36 2007/07/31 17:20:29 greve Exp $";
+"$Id: mri_volsynth.c,v 1.37 2008/03/21 05:07:05 greve Exp $";
 
 char *Progname = NULL;
 
@@ -101,6 +101,7 @@ int numdof =  2;
 int dendof = 20;
 int AddOffset=0;
 MRI *offset;
+int OffsetFrame=0;
 char *sum2file = NULL;
 int NoOutput = 0;
 MRI_REGION boundingbox;
@@ -120,6 +121,7 @@ int main(int argc, char **argv)
   int c,r,s;
   double val;
   FILE *fp;
+  MRI *mritmp;
 
   Progname = argv[0] ;
   argc --;
@@ -169,7 +171,7 @@ int main(int argc, char **argv)
 
   if(mritemp) {
     if(SpikeTP >= mritemp->nframes){
-      printf("ERROR: SpikeTP = %d >= mritmp->nframes = %d\n",
+      printf("ERROR: SpikeTP = %d >= mritemp->nframes = %d\n",
              SpikeTP,mritemp->nframes);
       exit(1);
     }
@@ -346,10 +348,16 @@ int main(int argc, char **argv)
     }
   }
 
-  if (AddOffset) {
+  if(AddOffset) {
     printf("Adding offset\n");
     offset = MRIread(tempid);
-    if (offset == NULL) exit(1);
+    if(offset == NULL) exit(1);
+    if(OffsetFrame == -1) OffsetFrame = nint(offset->nframes/2);
+    printf("Offset frame %d\n",OffsetFrame);
+    mritmp = fMRIframe(offset, OffsetFrame, NULL);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&offset);
+    offset = mritmp;
     fMRIaddOffset(mri, offset, NULL, mri);
   }
 
@@ -413,10 +421,13 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nogmnnorm")) gmnnorm = 0;
     else if (!strcasecmp(option, "--rescale"))   rescale=1;
     else if (!strcasecmp(option, "--norescale")) rescale=0;
-    else if (!strcasecmp(option, "--offset"))    AddOffset=1;
     else if (!strcasecmp(option, "--no-output")) NoOutput = 1;
     else if (!strcasecmp(option, "--fft"))       UseFFT = 1;
-
+    else if (!strcasecmp(option, "--offset"))    AddOffset=1;
+    else if (!strcasecmp(option, "--offset-mid")){
+      AddOffset = 1;
+      OffsetFrame = -1;
+    }
     else if (!strcmp(option, "--sum2")) {
       if (nargc < 1) argnerr(option,1);
       sum2file = pargv[0];
@@ -596,6 +607,7 @@ static void print_usage(void) {
   printf("   --temp templateid : see also --curv\n");
   printf("   --nframes nframes : override template\n");
   printf("   --offset : use template as intensity offset\n");
+  printf("   --offset-mid : use middle frame of template as intensity offset\n");
   printf("   --curv subject hemi : save output as curv (uses lh.thickness as template)\n");
   printf("\n");
   printf(" Specify geometry explicitly\n");
