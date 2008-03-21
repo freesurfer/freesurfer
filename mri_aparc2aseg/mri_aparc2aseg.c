@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/24 22:11:07 $
- *    $Revision: 1.28 $
+ *    $Date: 2008/03/21 20:11:58 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.28 2007/08/24 22:11:07 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.29 2008/03/21 20:11:58 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -311,7 +311,7 @@ int main(int argc, char **argv) {
     printf("ERROR: loading aseg %s\n",tmpstr);
     exit(1);
   }
-  mritmp = MRIchangeType(ASeg,MRI_INT,0,0,0);
+  mritmp = MRIchangeType(ASeg,MRI_INT,0,0,1);
   MRIfree(&ASeg);
   ASeg = mritmp;
 
@@ -716,7 +716,8 @@ static void print_usage(void) {
   printf("   --annot annotname : use annotname instead of aparc\n");
   printf("\n");
   printf("   --labelwm : gyral white matter parcellation \n");
-  printf("   --wmparc-dmax : max dist (mm) from cortex to be labeld as gyral WM\n");
+  printf("   --wmparc-dmax dmax  max dist (mm) from cortex to be labeld as gyral WM (%gmm)\n",
+	 dmaxctx);
   printf("   --rip-unknown : do not label WM based on 'unknown' corical label\n");
   printf("   --hypo-as-wm : label hypointensities as WM\n");
   printf("\n");
