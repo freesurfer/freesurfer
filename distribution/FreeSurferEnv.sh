@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.43 2008/01/14 21:55:17 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.44 2008/03/21 21:00:38 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.43 2008/01/14 21:55:17 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.44 2008/03/21 21:00:38 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -81,7 +81,7 @@ if [ ! -d $FREESURFER_HOME ]; then
     return 1;
 fi
 
-if [ $output == 1 ]; then
+if [[ $output == 1 ]]; then
     if [ -e $FREESURFER_HOME/build-stamp.txt ]; then
         echo "-------- `cat $FREESURFER_HOME/build-stamp.txt` --------"
     fi
@@ -183,7 +183,7 @@ export       LOCAL_DIR=$FREESURFER_HOME/local
 ## Make sure these directories exist.
 for d in "$FSFAST_HOME" "$SUBJECTS_DIR"; do
     if [ ! -d $d ]; then
-        if [ $output == 1 ]; then
+        if [[ $output == 1 ]]; then
             echo "WARNING: $d does not exist"
         fi
     fi
@@ -193,7 +193,7 @@ if [[ -z "$FSF_OUTPUT_FORMAT" || $FS_OVERRIDE != 0 ]]; then
   export FSF_OUTPUT_FORMAT=nii
 fi
 
-if [ $output == 1 ]; then
+if [[ $output == 1 ]]; then
     echo "FREESURFER_HOME   $FREESURFER_HOME"
     echo "FSFAST_HOME       $FSFAST_HOME"
     echo "FSF_OUTPUT_FORMAT $FSF_OUTPUT_FORMAT"
@@ -234,7 +234,7 @@ if [[ -z "$NO_FSFAST" ]]; then
     tmp3=`grep FREESURFER_HOME $SUF   | wc -l`;
 
     if [[ $tmp1 == 0 && $tmp2 == 0 && $tmp3 == 0 ]]; then
-        if [ $output == 1 ]; then
+        if [[ $output == 1 ]]; then
             echo ""
             echo "WARNING: The $SUF file does not appear to be";
             echo "         configured correctly. You may not be able"
@@ -272,12 +272,12 @@ fi
 if [ -z "$NO_MINC" ]; then
     if [ -n "$MINC_BIN_DIR" ]; then
         if [ ! -d $MINC_BIN_DIR ]; then
-            if [ $output == 1 ]; then
+            if [[ $output == 1 ]]; then
                 echo "WARNING: MINC_BIN_DIR '$MINC_BIN_DIR' does not exist.";
             fi
         fi
     else
-        if [ $output == 1 ]; then
+        if [[ $output == 1 ]]; then
             echo "WARNING: MINC_BIN_DIR not defined."
             echo "         'nu_correct' and other MINC tools"
             echo "         are used by some Freesurfer utilities."
@@ -286,12 +286,12 @@ if [ -z "$NO_MINC" ]; then
     fi
     if [ -n "$MINC_LIB_DIR" ]; then
         if [ ! -d $MINC_LIB_DIR ]; then
-            if [ $output == 1 ]; then
+            if [[ $output == 1 ]]; then
                 echo "WARNING: MINC_LIB_DIR '$MINC_LIB_DIR' does not exist.";
             fi
         fi
     else
-        if [ $output == 1 ]; then
+        if [[ $output == 1 ]]; then
             echo "WARNING: MINC_LIB_DIR not defined."
             echo "         Some Freesurfer utilities rely on the"
             echo "         MINC toolkit libraries."
@@ -392,7 +392,7 @@ if [ -n "$FSL_DIR" ]; then
     export FSLDIR=$FSL_DIR
     export FSL_BIN=$FSL_DIR/bin
     if [ ! -d $FSL_BIN ]; then
-        if [ $output == 1 ]; then
+        if [[ $output == 1 ]]; then
             echo "WARNING: $FSL_BIN does not exist.";
         fi
     fi
