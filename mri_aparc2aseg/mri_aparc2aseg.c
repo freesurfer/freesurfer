@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/08/24 22:12:01 $
- *    $Revision: 1.27.2.1 $
+ *    $Date: 2008/03/21 20:16:24 $
+ *    $Revision: 1.27.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.27.2.1 2007/08/24 22:12:01 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27.2.2 2008/03/21 20:16:24 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -311,7 +311,7 @@ int main(int argc, char **argv) {
     printf("ERROR: loading aseg %s\n",tmpstr);
     exit(1);
   }
-  mritmp = MRIchangeType(ASeg,MRI_INT,0,0,0);
+  mritmp = MRIchangeType(ASeg,MRI_INT,0,0,1);
   MRIfree(&ASeg);
   ASeg = mritmp;
 
