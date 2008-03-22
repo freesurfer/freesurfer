@@ -5,9 +5,9 @@
 /*
  * Original Author:  Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/14 21:43:16 $
- *    $Revision: 1.7 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/22 01:41:01 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,7 @@ extern "C"
                                    float *oEigenValues,
                                    float *oEigenVectors );
 
-  void OpenDFPMin( float p[], int n, float ftol, int *iter, float *fret,
+  int OpenDFPMin( float p[], int n, float ftol, int *iter, float *fret,
                    float(*func)(float []), void (*dfunc)(float [], float []),
                    // addition
                    void (*step_func)(int itno,

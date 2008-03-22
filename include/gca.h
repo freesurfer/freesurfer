@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/01 22:42:27 $
- *    $Revision: 1.89 $
+ *    $Date: 2008/03/22 01:41:01 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,6 +195,7 @@ int  GCAvoxelToNodeNearest(GCA *gca, MRI *mri,
                            int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
 GCA  *GCAalloc(int ninputs, float prior_spacing, float node_spacing, int width, int height, int depth, int flags) ;
 int  GCAfree(GCA **pgca) ;
+int  GCAPfree(GCA_PRIOR *gcap) ;
 int  GCANfree(GCA_NODE *gcan, int ninputs) ;
 int  GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform,
               GCA *gca_prune, int noint) ;
@@ -356,6 +357,10 @@ int  GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
                                 int xp, int yp, int zp,
                                 float *pxv, float *pyv, float *pzv) ;
 int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template) ;
+int GCAcheck(GCA *gca) ;
+GC1D *GCAfindClosestValidGC(GCA *gca,
+                            int x, int y, int z,
+                            int label, int check_var) ;
 GC1D *GCAfindGC(GCA *gca, int x, int y, int z,int label) ;
 GC1D *GCAfindSourceGC(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
 int GCAlabelExists(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
@@ -427,5 +432,17 @@ COLOR_TABLE *GCAcolorTableCMA(GCA *gca);
 int GCAstructureBoundingBox(GCA *gca, int label, MRI_REGION *box) ;
 
 int GCArenormalizeClass(GCA *gca, int the_class, float scale_to_wm) ;
+MRI *GCAcomputeOptimalScale(GCA *gca, TRANSFORM *transform, MRI *mri_inputs, MRI *mri_aseg, MRI *mri_sigma,
+                            int wsize, double min_sigma, double max_sigma, double delta_sigma);
+MRI *GCAreclassifyUnlikelyVoxels(GCA *gca, TRANSFORM *transform, 
+                                 MRI *mri_inputs, MRI *mri_aseg, 
+                                 MRI *mri_aseg_changed, 
+                                 float mah_dist_thresh,
+                                 int wsize, float sigma) ;
+MRI *
+GCAreclassifyVoxelsAtOptimalScale(GCA *gca, TRANSFORM *transform, 
+                                  MRI *mri_inputs, 
+                                  MRI *mri_aseg, MRI *mri_aseg_changed, 
+                                  MRI *mri_sigma, int wsize);
 
 #endif
