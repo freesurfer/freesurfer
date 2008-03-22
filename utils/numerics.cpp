@@ -5,9 +5,9 @@
 /*
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:40 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/22 01:40:24 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -938,7 +938,7 @@ extern "C" float OpenGammaIncomplete(float p, float x)
 }
 
 
-extern "C" void OpenDFPMin
+extern "C" int OpenDFPMin
   ( float p[], int n, float iTolerance,
     int *oIterations,
     float *oFinalFunctionReturn, float(*iFunction)(float []),
@@ -947,6 +947,7 @@ extern "C" void OpenDFPMin
     void *iStepFunctionParams,
     void (*iUserCallBackFunction)(float[]) )
 {  
+  int returnCode ;
   fs_cost_function costFunction( iFunction, iDerivativeFunction, n );
 
   vnl_vector< double > finalParameters( n );
@@ -993,11 +994,12 @@ extern "C" void OpenDFPMin
     *oIterations = observer.getNumberOfOptimalUpdates();
     *oFinalFunctionReturn = minimizer.get_end_error();
     ConvertFromVNLDoubleToFloat( finalParameters, p, n );
+    returnCode = 0 ;
   }
   else
   {
 
-    int returnCode = minimizer.get_failure_code();
+    returnCode = minimizer.get_failure_code();
 
     if ( returnCode == vnl_nonlinear_minimizer::ERROR_FAILURE )
     {
@@ -1023,7 +1025,9 @@ extern "C" void OpenDFPMin
                 "quasi-Newton minimization (lbfsg) tolerances too small");
     }
   }
+  return(returnCode) ;
 }
+
 
 
 /**

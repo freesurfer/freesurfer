@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/14 20:04:07 $
- *    $Revision: 1.134 $
+ *    $Date: 2008/03/22 01:40:23 $
+ *    $Revision: 1.135 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1254,14 +1254,22 @@ GCAMinit(GCA_MORPH *gcam,
             gcamn->n = max_n ;
             gcamn->prior = max_p ;
             gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
+            if (gc == NULL)
+            {
+              int xn, yn, zn ;
+              GCApriorToNode(gca, x, y, z, &xn, &yn, &zn);
+              gc = GCAfindClosestValidGC(gca, xn, yn, zn, max_label,0);
+            }
             // gc can be NULL
             gcamn->gc = gc ;
             gcamn->log_p = 0 ;
 #endif
             if (x == Gx && y == Gy && z == Gz)
             {
-              printf("node(%d,%d,%d) --> MRI (%2.1f, %2.1f, %2.1f)\n",
-                     x, y, z, ox, oy, oz) ;
+              printf("node(%d,%d,%d) --> MRI (%2.1f, %2.1f, %2.1f), label %s (%d) = %2.1f\n",
+                     x, y, z, ox, oy, oz, cma_label_to_name(max_label), 
+                     max_label, 
+                     gcamn->gc ? gcamn->gc->means[0] : -1) ;
               DiagBreak() ;
 #if 0
               Gvx = nint(ox) ;
@@ -5811,6 +5819,12 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
           gcamn->n = n ;
           gcamn->prior = gcap->priors[n] ;
           gcamn->gc = gc = GCAfindPriorGC(gcam->gca, x, y, z, label) ;
+          if (gc == NULL && gcam->gca != NULL) // find a nearby one
+          {
+            int xn, yn, zn ;
+            GCApriorToNode(gcam->gca, x, y, z, &xn, &yn, &zn);
+            gcamn->gc = gc = GCAfindClosestValidGC(gcam->gca, xn, yn, zn, label,0);
+          }
         }
         else  /* out of FOV probably */
         {
