@@ -135,7 +135,15 @@ EXTRA_DIST=\
 	usage.doc  \
 	wizard.doc \
 	README \
-	license.jpeg
+	license.jpeg \
+	test_jpeg \
+	testimg.bmp \
+	testimg.jpg \
+	testimgp.jpg \
+	testimg.ppm \
+	testorigcom.jpg \
+	testorig.jpg \
+	testprog.jpg
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
