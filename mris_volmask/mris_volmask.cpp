@@ -8,9 +8,9 @@
 /*
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/13 22:00:34 $
- *    $Revision: 1.13 $
+ *    $Author: lzollei $
+ *    $Date: 2008/03/24 20:49:33 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -220,9 +220,10 @@ main(int ac, char* av[])
   /*
     Process LEFT hemisphere
   */
-
+  printf("Process LEFT hemi ...\n");
   //---------------------
   // proces white surface - convert to voxel-space
+  printf("Process white surface ...\n");
   ConvertSurfaceVertexCoordinates(surfLeftWhite, mriTemplate);
   // allocate distance
   MRI* dLeftWhite = MRIalloc( mriTemplate->width,
@@ -247,6 +248,7 @@ main(int ac, char* av[])
 
   //-----------------------
   // process pial surface
+  printf("Process pial surface ...\n");
   ConvertSurfaceVertexCoordinates(surfLeftPial,  mriTemplate);
   MRI* dLeftPial = MRIalloc( mriTemplate->width,
                              mriTemplate->height,
@@ -265,6 +267,7 @@ main(int ac, char* av[])
 
   // combine them and create a mask for the left hemi. Must be
   // outside of white and inside pial. Creates labels for WM and Ribbon.
+  cout << "Create hemi mask ..." << endl;
   MRI* maskLeftHemi = CreateHemiMask(dLeftPial,dLeftWhite,
                                      params.labelLeftWhite,
                                      params.labelLeftRibbon,
@@ -276,9 +279,10 @@ main(int ac, char* av[])
   /*
     Process RIGHT hemi
   */
-
+  printf("Process RIGHT hemi ...\n");
   //-------------------
   // process white
+  printf("Process white surface ...\n");
   ConvertSurfaceVertexCoordinates(surfRightWhite,mriTemplate);
   MRI* dRightWhite = MRIalloc( mriTemplate->width,
                                mriTemplate->height,
@@ -297,6 +301,7 @@ main(int ac, char* av[])
 
   //--------------------
   // process pial
+  printf("Process pial surface ...\n");
   ConvertSurfaceVertexCoordinates(surfRightPial, mriTemplate);
   MRI* dRightPial = MRIalloc( mriTemplate->width,
                               mriTemplate->height,
@@ -313,6 +318,7 @@ main(int ac, char* av[])
                           params.outRoot + ".mgz").c_str() )
     );
   // compute hemi mask
+  cout << "Create hemi mask ..." << endl;
   MRI* maskRightHemi = CreateHemiMask(dRightPial, dRightWhite,
                                       params.labelRightWhite,
                                       params.labelRightRibbon,
@@ -326,6 +332,7 @@ main(int ac, char* av[])
   finally combine the two created masks -- need to resolve overlap
 
   */
+  printf("Combine the two masks ...\n");
   MRI* finalMask = CombineMasks(maskLeftHemi, maskRightHemi,
                                 params.labelBackground);
   MRIcopyHeader( mriTemplate, finalMask);
@@ -479,10 +486,10 @@ IoParams::parse(int ac, char* av[])
     "\n"
     " Computes a volume mask, at the same resolution as the\n"
     " <subject>/mri/brain.mgz.  The volume mask contains 4 values:\n"
-    "   LH_WM (default 10)\n"
-    "   LH_GM (default 100)\n"
-    "   RH_WM (default 20)\n"
-    "   RH_GM (default 200)\n"
+    "   LH_WM (default 20)\n"
+    "   LH_GM (default 10)\n"
+    "   RH_WM (default 120)\n"
+    "   RH_GM (default 110)\n"
     " The algorithm uses the 4 surfaces situated in\n"
     " <subject>/surf/[lh|rh].[white|pial].surf and labels voxels\n"
     " based on the signed-distance function from the surface.\n";
@@ -554,6 +561,7 @@ LoadInputFiles(const IoParams& params,
   surfLeftWhite = MRISread
                   ( const_cast<char*>( pathSurfLeftWhite.c_str() )
                   );
+  cout << "LW surface:" << pathSurfLeftWhite.c_str() << endl;
   if ( !surfLeftWhite )
     throw IoError( std::string("failed to read left white surface ")
                    + pathSurfLeftWhite );
@@ -561,6 +569,7 @@ LoadInputFiles(const IoParams& params,
   surfLeftPial  = MRISread
                   ( const_cast<char*>( pathSurfLeftPial.c_str() )
                   );
+  cout << "LP surface:" << pathSurfLeftPial.c_str() << endl;
   if ( !surfLeftPial )
     throw IoError( std::string("failed to read left pial surface ")
                    + pathSurfLeftPial );
@@ -568,6 +577,7 @@ LoadInputFiles(const IoParams& params,
   surfRightWhite = MRISread
                    ( const_cast<char*>( pathSurfRightWhite.c_str() )
                    );
+  cout << "RW surface:" << pathSurfRightWhite.c_str() << endl;
   if ( !surfRightWhite )
     throw IoError( std::string("failed to read right white surface ")
                    + pathSurfRightWhite );
@@ -575,6 +585,7 @@ LoadInputFiles(const IoParams& params,
   surfRightPial = MRISread
                   ( const_cast<char*>( pathSurfRightPial.c_str() )
                   );
+  cout << "RP surface:" << pathSurfRightPial.c_str() << endl;
   if ( !surfRightPial )
     throw IoError( std::string("failed to read right pial surface ")
                    + pathSurfRightPial );
@@ -582,6 +593,7 @@ LoadInputFiles(const IoParams& params,
   mriTemplate = MRIread
                 ( const_cast<char*>( pathMriInput.c_str() )
                 );
+  cout << "MRI: " << pathMriInput.c_str() << endl;
   if ( !mriTemplate )
     throw IoError( std::string("failed to read template mri ")
                    + pathMriInput );
@@ -598,6 +610,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   vtkCellArray* faces;
   vtkPolyData* mesh;
 
+  //cout << "In ComputeSurfaceDistanceFunction ..." << endl;
   points = vtkPoints::New();
   points->SetNumberOfPoints( mris->nvertices );
   VERTEX* pvtx = &( mris->vertices[0] );
@@ -607,6 +620,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
     points->SetPoint(ui, pvtx->x, pvtx->y, pvtx->z);
   } // next ui
 
+  //cout << "In ComputeSurfaceDistanceFunction: setting faces ..." << endl;
   faces = vtkCellArray::New();
   faces->Allocate( mris->nfaces );
   FACE* pface = &( mris->faces[0] );
@@ -617,6 +631,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
                           (vtkIdType*)pface->v );
   } // next ui
 
+  //cout << "In ComputeSurfaceDistanceFunction: setting mesh ..." << endl;
   mesh = vtkPolyData::New();
   mesh->SetPoints(points);
   mesh->SetPolys(faces);
@@ -629,6 +644,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   sp->SetDimensions(dims);
 
   // compute the unsigned distance
+  //cout << "In ComputeSurfaceDistanceFunction: compute unsigned dist ..." << endl;
   vtkImplicitModeller* implicit = vtkImplicitModeller::New();
   implicit->SetInput(mesh);
   double bounds[6] =
@@ -665,6 +681,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   vtkIdType incx,incy,incz;
   sp->GetIncrements(incx,incy,incz);
 
+  //cout << "In ComputeSurfaceDistanceFunction: iterate through volume points..." << endl;
   // iterate thru each volume point, apply sign to tab
   for (vtkIdType i=0; i<npoints; ++i)
   {
@@ -704,6 +721,8 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
     }
   } // next i
 
+  //cout << "In ComputeSurfaceDistanceFunction: before final loop...." << endl;
+    
   for (vtkIdType j=0; j<npoints; ++j)
   {
     const int x = j%incy;
@@ -712,7 +731,8 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
 
     MRIsetVoxVal(vol, x,y,z,0, tab[j] );
   }
-
+  cout << "Leaving ComputeSurfaceDistanceFunction ..." << endl;
+    
 }
 
 MRI*
