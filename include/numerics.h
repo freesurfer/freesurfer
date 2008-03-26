@@ -1,17 +1,15 @@
 /**
  * @file  numerics.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief Wrappers for core math routines from open-sources: VNL and CEPHES.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author:  Dennis Jen and Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/03/26 19:43:44 $
+ *    $Revision: 1.4.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -56,6 +54,9 @@ extern "C"
   void OpenPowell( float p[], float **ioInitialDirection, int n, float ftol,
                    int *iter, float *fret,
                    float (*func)(float []) );
+  int OpenPowell2( float p[], float **ioInitialDirection, int n, float ftol,
+		   float linmintol, int maxiters, int *iter, float *fret,
+		   float (*func)(float []) );
 
   int OpenEigenSystem( float *iaData, int icData, float *oEigenValues,
                        float *oEigenVectors );
@@ -65,7 +66,7 @@ extern "C"
                                    float *oEigenValues,
                                    float *oEigenVectors );
 
-  void OpenDFPMin( float p[], int n, float ftol, int *iter, float *fret,
+  int OpenDFPMin( float p[], int n, float ftol, int *iter, float *fret,
                    float(*func)(float []), void (*dfunc)(float [], float []),
                    // addition
                    void (*step_func)(int itno,

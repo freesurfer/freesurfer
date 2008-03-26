@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:00:11 $
- *    $Revision: 1.80.2.3 $
+ *    $Date: 2008/03/26 19:43:47 $
+ *    $Revision: 1.80.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,12 +53,18 @@
 static int GCAremoveWMSA(GCA *gca) ;
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
+static char *save_gca_fname = NULL ;
 
 static float regularize = 0 ;
 static float regularize_mean = 0 ;
 static int avgs = 0 ;
 static int norm_PD = 0;
 static int map_to_flash = 0 ;
+
+static int reclassify_unlikely = 0 ;
+static int unlikely_wsize = 9 ;
+static float unlikely_sigma = .5 ;
+static float unlikely_mah_dist_thresh = 4 ;  // more than this many sigmas from mean means unlikely 
 
 static int wmsa = 0 ;   // apply wmsa postprocessing (using T2/PD data)
 static int nowmsa = 0 ; // remove all wmsa labels from the atlas
@@ -171,13 +177,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.80.2.3 2008/03/02 02:00:11 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.80.2.4 2008/03/26 19:43:47 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.80.2.3 2008/03/02 02:00:11 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.80.2.4 2008/03/26 19:43:47 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -604,6 +610,8 @@ main(int argc, char *argv[]) {
 
         if (regularize_mean > 0)
           GCAregularizeConditionalDensities(gca, regularize_mean) ;
+        if (save_gca_fname)
+          GCAwrite(gca, save_gca_fname) ;
         GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
         {
           MRI *mri_imp ;
@@ -616,6 +624,8 @@ main(int argc, char *argv[]) {
           GCAmapRenormalizeByClass(gca, mri_inputs, transform) ;
         else
           GCAmapRenormalize(gca, mri_inputs, transform) ;
+        if (save_gca_fname)
+          GCAwrite(gca, save_gca_fname) ;
         printf("relabeling volume...\n") ;
         if (regularize_mean > 0)
           GCAregularizeConditionalDensities(gca, regularize_mean) ;
@@ -783,6 +793,29 @@ main(int argc, char *argv[]) {
     MRIwrite(mri_labeled, fname) ;
   }
 
+  if (reclassify_unlikely)
+  {
+    MRI *mri_sigma ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_labeled, "aseg_before.mgz") ;
+    mri_sigma = GCAcomputeOptimalScale(gca, transform, mri_inputs, mri_labeled, NULL,
+                                       2*(gca->node_spacing+1), 0.5, 2, .5) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_sigma, "sigma.mgz") ;
+
+#if 0
+    GCAreclassifyUnlikelyVoxels(gca, transform, mri_inputs, mri_labeled, 
+                                mri_labeled, unlikely_mah_dist_thresh,
+                                unlikely_wsize, unlikely_sigma) ;
+#else
+    GCAreclassifyVoxelsAtOptimalScale(gca, transform, mri_inputs, mri_labeled, 
+                                      mri_labeled,
+                                      mri_sigma, unlikely_wsize) ;
+#endif
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_labeled, "aseg_after.mgz") ;
+    MRIfree(&mri_sigma) ;
+  }
   if (read_fname == NULL)
     GCAconstrainLabelTopology(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
   if (wmsa) {
@@ -837,6 +870,21 @@ get_option(int argc, char *argv[]) {
     wm_fname = argv[2] ;
     nargs = 1 ;
     printf("inserting white matter segmentation from %s...\n", wm_fname) ;
+  } else if (!stricmp(option, "SAVE_GCA")) {
+    save_gca_fname = argv[2] ;
+    nargs = 1 ;
+    printf("saving renormalized gca to %s\n", save_gca_fname) ;
+  } else if (!stricmp(option, "RELABEL_UNLIKELY")) {
+    reclassify_unlikely = atoi(argv[2]) ;
+    unlikely_wsize = atoi(argv[3]) ;
+    unlikely_sigma = atof(argv[4]) ;
+    unlikely_mah_dist_thresh = atof(argv[5]) ;
+    if (reclassify_unlikely)
+      printf("relabeling unlikely voxels more than %2.1f sigmas from label mean, with sigma=%2.1fmm, wsize=%dmm\n",
+             unlikely_mah_dist_thresh, unlikely_sigma, unlikely_wsize) ;
+    else
+      printf("not relabeling unlikely voxels\n") ;
+    nargs = 4 ;
   } else if (!stricmp(option, "CONFORM")) {
     conform_flag = TRUE ;
     printf("resampling input volume(s) to be 256^3 and 1mm^3\n") ;
@@ -870,6 +918,12 @@ get_option(int argc, char *argv[]) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging node (%d, %d, %d)\n", Gx,Gy,Gz) ;
+  } else if (!stricmp(option, "DEBUG_PRIOR")) {
+    Gxp = atoi(argv[2]) ;
+    Gyp = atoi(argv[3]) ;
+    Gzp = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Gx,Gy,Gz) ;
   } else if (!stricmp(option, "DEBUG_LABEL")) {
@@ -1127,6 +1181,9 @@ usage_exit(int code) {
          "with threshold t (default=.5) mode filter f (default=0)times\n");
   printf("\t-L <mri_vol> <LTA>           longitudinal processing: mri_vol "
          "is label from tp1, LTA is registration from tp1 to current data\n");
+  printf("\t-RELABEL_UNLIKELY <1/0> <wsize> <sigma> <thresh>\n") ;
+  printf("\treclassify voxels at least <thresh> std devs from the mean using a <wsize> Gaussian window\n"
+         "\t(with <sigma> standard dev) to recompute priors and likelihoods\n") ;
   exit(code) ;
 }
 

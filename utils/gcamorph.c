@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:53:21 $
- *    $Revision: 1.129.2.2 $
+ *    $Date: 2008/03/26 19:43:46 $
+ *    $Revision: 1.129.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -149,8 +149,8 @@ static int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                                GCA_MORPH_PARMS *parms) ;
 static int gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                                  double l_log_likelihood) ;
-static int gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri,double l_dtrans) ;
-static double gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri) ;
+static int gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri,double l_dtrans, GCA_MORPH_PARMS *mp) ;
+static double gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *mp) ;
 static int gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                               double l_likelihood, GCA_MORPH_PARMS *parms) ;
 static double gcamMapEnergy(GCA_MORPH *gcam, MRI *mri) ;
@@ -837,7 +837,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
             parms->start_rms = last_rms ;
           level_steps = parms->start_t ;
           GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
-          if (parms->write_fname)
+          if (parms->write_fname && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
           {
             char path[STRLEN], fname_only[STRLEN] ;
             FileNameOnly(parms->write_fname, fname_only) ;
@@ -1254,14 +1254,22 @@ GCAMinit(GCA_MORPH *gcam,
             gcamn->n = max_n ;
             gcamn->prior = max_p ;
             gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
+            if (gc == NULL)
+            {
+              int xn, yn, zn ;
+              GCApriorToNode(gca, x, y, z, &xn, &yn, &zn);
+              gc = GCAfindClosestValidGC(gca, xn, yn, zn, max_label,0);
+            }
             // gc can be NULL
             gcamn->gc = gc ;
             gcamn->log_p = 0 ;
 #endif
             if (x == Gx && y == Gy && z == Gz)
             {
-              printf("node(%d,%d,%d) --> MRI (%2.1f, %2.1f, %2.1f)\n",
-                     x, y, z, ox, oy, oz) ;
+              printf("node(%d,%d,%d) --> MRI (%2.1f, %2.1f, %2.1f), label %s (%d) = %2.1f\n",
+                     x, y, z, ox, oy, oz, cma_label_to_name(max_label), 
+                     max_label, 
+                     gcamn->gc ? gcamn->gc->means[0] : -1) ;
               DiagBreak() ;
 #if 0
               Gvx = nint(ox) ;
@@ -4779,7 +4787,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     l_sse = MAX(parms->l_log_likelihood, parms->l_likelihood) * 
       gcamLogLikelihoodEnergy(gcam, mri) ;
   if (!DZERO(parms->l_dtrans))
-    dtrans_sse = gcamDistanceTransformEnergy(gcam, parms->mri_dist_map) ;
+    dtrans_sse = gcamDistanceTransformEnergy(gcam, parms->mri_dist_map, parms) ;
   check_gcam(gcam) ;
   if (!DZERO(parms->l_label))
     label_sse = parms->l_label * 
@@ -4859,7 +4867,7 @@ gcamComputeGradient
                  parms->mri_dist_map, parms->l_binary) ;
   gcamExpansionTerm(gcam, mri, parms->l_expansion)  ;
   gcamLikelihoodTerm(gcam, mri, mri_smooth, parms->l_likelihood, parms)  ;
-  gcamDistanceTransformTerm(gcam, parms->mri_dist_map, parms->l_dtrans)  ;
+  gcamDistanceTransformTerm(gcam, parms->mri_dist_map, parms->l_dtrans, parms)  ;
   gcamLogLikelihoodTerm(gcam, mri, mri_smooth, parms->l_log_likelihood)  ;
   gcamDistanceTerm(gcam, mri, parms->l_distance)  ;
   gcamAreaSmoothnessTerm(gcam, mri_smooth, parms->l_area_smoothness)  ;
@@ -5811,6 +5819,12 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
           gcamn->n = n ;
           gcamn->prior = gcap->priors[n] ;
           gcamn->gc = gc = GCAfindPriorGC(gcam->gca, x, y, z, label) ;
+          if (gc == NULL && gcam->gca != NULL) // find a nearby one
+          {
+            int xn, yn, zn ;
+            GCApriorToNode(gcam->gca, x, y, z, &xn, &yn, &zn);
+            gcamn->gc = gc = GCAfindClosestValidGC(gcam->gca, xn, yn, zn, label,0);
+          }
         }
         else  /* out of FOV probably */
         {
@@ -12960,10 +12974,16 @@ GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma)
   return(NO_ERROR) ;
 }
 static int
-dtrans_label_to_frame(int label)
+dtrans_label_to_frame(GCA_MORPH_PARMS *mp, int label)
 {
   int frame ;
 
+#if 1
+  for (frame = 0 ; frame < mp->ndtrans ; frame++)
+    if (mp->dtrans_labels[frame] == label)
+      return(frame) ;
+  return(-1) ;
+#else
   switch (label)
   {
   case Left_Thalamus_Proper:       frame = 0 ; break ;
@@ -12989,11 +13009,12 @@ dtrans_label_to_frame(int label)
   case Right_Inf_Lat_Vent:         frame = 20 ; break ;
   default:                         frame = -1 ;  // not one of the labels that has a dtrans frame
   }
+#endif
   return(frame) ;
 }
 
 static int
-gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans)
+gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans, GCA_MORPH_PARMS *mp)
 {
   int             x, y, z, frame ;
   GCA_MORPH_NODE  *gcamn ;
@@ -13015,7 +13036,7 @@ gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans)
         if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
           continue ;
 
-        frame = dtrans_label_to_frame(gcamn->label) ;
+        frame = dtrans_label_to_frame(mp, gcamn->label) ;
         if (frame < 0)  // not one that distance transform applies to
           continue ;
 
@@ -13035,7 +13056,7 @@ gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans)
   return(NO_ERROR) ;
 }
 static double
-gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri)
+gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *mp)
 {
   double          sse = 0.0 ;
   int             x, y, z, frame ;
@@ -13056,7 +13077,7 @@ gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri)
         if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
           continue ;
 
-        frame = dtrans_label_to_frame(gcamn->label) ;
+        frame = dtrans_label_to_frame(mp, gcamn->label) ;
         if (frame < 0)
           continue ;   // no distance transform for this label
 
@@ -13101,4 +13122,79 @@ GCAMsetMeansForLabel(GCA_MORPH *gcam, MRI *mri_labels, MRI *mri_vals,int label)
     }
   }
   return(NO_ERROR) ;
+}
+MRI *
+GCAMbuildLabelVolume(GCA_MORPH *gcam, MRI *mri)
+{
+  int            x,  y, z, xn, yn, zn, width, depth, height ;
+  GCA_MORPH_NODE *gcamn ;
+
+  // error check
+  if (!mri)
+    ErrorExit
+      (ERROR_BADPARM, "GCAbuildLabelVolume called with null MRI.\n");
+  if (mri->width != gcam->atlas.width
+      || mri->height != gcam->atlas.height
+      || mri->depth != gcam->atlas.depth)
+    ErrorExit(ERROR_BADPARM, \
+              "GCAbuildMostLikelyVolume called with mri dimension "
+              "being different from M3D.\n");
+
+  // set direction cosines etc.
+  useVolGeomToMRI(&gcam->atlas, mri);
+
+  width = mri->width ;
+  depth = mri->depth ;
+  height = mri->height ;
+
+  if (gcam->gca)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+
+          if (!GCAvoxelToPrior(gcam->gca, mri, x, y, z, &xn, &yn, &zn))
+          {
+            if (xn == Gx && yn == Gy && zn == Gz)
+              DiagBreak() ;
+            gcamn = &gcam->nodes[xn][yn][zn] ;
+
+            if (gcamn->invalid == GCAM_POSITION_INVALID)
+              continue;
+
+            MRIsetVoxVal(mri, x, y, z, 0, gcamn->label) ;
+          }// !GCA
+        }
+      }
+    }
+  }
+  else   // no gca
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+
+          gcamn = &gcam->nodes[x][y][z] ;
+
+          if (gcamn->invalid == GCAM_POSITION_INVALID)
+            continue;
+
+          MRIsetVoxVal(mri, x, y, z, 0, gcamn->label) ;
+        }
+      }
+    }
+  }
+
+
+  return(mri) ;
 }

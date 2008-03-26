@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 01:53:51 $
- *    $Revision: 1.67.2.2 $
+ *    $Date: 2008/03/26 19:43:47 $
+ *    $Revision: 1.67.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -8938,7 +8938,7 @@ static int
 mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
 {
   float p[5*5], fold, fnew ;
-  int   row, col, i, iter, steps ;
+  int   row, col, i, iter, steps, retval ;
   MATRIX *m_L ;
 
   user_call_func = showTran;
@@ -8973,13 +8973,17 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
       fprintf(stdout,"pass %d through quasi-newton minimization...\n",steps);
     fold = fnew ;
 
-    OpenDFPMin(p, 12, parms->tol, &iter, &fnew,
-               //    void (*func)(float [])
-               computeEMAlignmentErrorFunctional,
-               //    void (*dfunc)(float [], float []), void (*stepfunc), parms
-               computeEMAlignmentGradient, dfp_em_step_func, parms,
-               user_call_func ) ;
+    // retval is not to be trusted, not sure why
+    retval =  
+      OpenDFPMin(p, 12, parms->tol, &iter, &fnew,
+                 //    void (*func)(float [])
+                 computeEMAlignmentErrorFunctional,
+                 //  void (*dfunc)(float [], float []), void (*stepfunc), parms
+                 computeEMAlignmentGradient, dfp_em_step_func, parms,
+                 user_call_func ) ;
 
+    if (iter == 0)  // parms can be corrupted if no step taken
+      break ;
     if (parms->rigid)
       mriOrthonormalizeTransform(parms->lta->xforms[0].m_L) ;
     parms->start_t += iter ;

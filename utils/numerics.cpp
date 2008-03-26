@@ -6,10 +6,10 @@
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:06:23 $
- *    $Revision: 1.8.2.1 $
+ *    $Date: 2008/03/26 19:43:47 $
+ *    $Revision: 1.8.2.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -46,6 +46,7 @@
 extern "C"
 {
 #include "error.h"
+#include "diag.h"
 #include "cephes.h"
 #include "numerics.h"
 }
@@ -937,7 +938,7 @@ extern "C" float OpenGammaIncomplete(float p, float x)
 }
 
 
-extern "C" void OpenDFPMin
+extern "C" int OpenDFPMin
   ( float p[], int n, float iTolerance,
     int *oIterations,
     float *oFinalFunctionReturn, float(*iFunction)(float []),
@@ -946,6 +947,7 @@ extern "C" void OpenDFPMin
     void *iStepFunctionParams,
     void (*iUserCallBackFunction)(float[]) )
 {  
+  int returnCode ;
   fs_cost_function costFunction( iFunction, iDerivativeFunction, n );
 
   vnl_vector< double > finalParameters( n );
@@ -992,11 +994,12 @@ extern "C" void OpenDFPMin
     *oIterations = observer.getNumberOfOptimalUpdates();
     *oFinalFunctionReturn = minimizer.get_end_error();
     ConvertFromVNLDoubleToFloat( finalParameters, p, n );
+    returnCode = 0 ;
   }
   else
   {
 
-    int returnCode = minimizer.get_failure_code();
+    returnCode = minimizer.get_failure_code();
 
     if ( returnCode == vnl_nonlinear_minimizer::ERROR_FAILURE )
     {
@@ -1022,7 +1025,9 @@ extern "C" void OpenDFPMin
                 "quasi-Newton minimization (lbfsg) tolerances too small");
     }
   }
+  return(returnCode) ;
 }
+
 
 
 /**
@@ -1136,6 +1141,76 @@ extern "C" void OpenPowell( float iaParams[], float **ioInitialDirection,
     ConvertFromVNLDoubleToFloat( initialDirection, ioInitialDirection,
                                  icParams);
   }
+}
+
+/*------------------------------------------------------------------------
+  OpenPowell2() - this is a mod of OpenPowell() above. There are several
+  changes:
+    1. It sets the ftol tolerance instead of the xtol. ftol
+       is the fraction of the cost that the difference in successive costs
+      must drop below to stop. 
+    2. You can set the max number iterations.
+    3. If Gdiag > 0, then prints out info as it optimizes (setenv DIAG_NO 1)
+    4. Returns 0 if no error, or 1 if error. The other version just exited.
+    5. Sets all params even if an error is returned.
+    6. Allows user to set the tolerance on the 1D Min
+  I made a new function because BF uses OpenPowell() in a lot of places.
+  It would be better to have more options on this function.
+  Note: each "iteration" is a loop thru a 1D min for each parameter.
+  ------------------------------------------------------------------------*/
+extern "C" int OpenPowell2( float iaParams[], float **ioInitialDirection,
+			    int icParams, float iTolerance, float iLinMinTol,
+			    int MaxIterations, int *oIterations,
+			    float *oFinalFunctionReturn,
+			    float (*iFunction)(float []) )
+{
+  fs_cost_function costFunction( iFunction );
+  fs_powell minimizer( &costFunction );
+
+  vnl_vector< double > finalParameters( icParams );
+  ConvertFromFloatToVNLDouble( iaParams, finalParameters, icParams );
+
+  vnl_matrix< double > initialDirection( icParams, icParams,
+                                         vnl_matrix_identity );
+
+  if ( ioInitialDirection != NULL ){
+    ConvertFromFloatToVNLDouble( ioInitialDirection, initialDirection,
+                                 icParams);
+  }
+
+  if (Gdiag_no > 0)  {
+    minimizer.set_trace(1);
+    minimizer.set_verbose(1);
+  }
+  minimizer.set_linmin_xtol(iLinMinTol);
+  //minimizer.set_x_tolerance(iLinMinTol);
+
+  minimizer.set_f_tolerance(iTolerance);
+  minimizer.set_max_function_evals(MaxIterations);
+
+  int returnCode = minimizer.minimize( finalParameters, &initialDirection );
+
+  *oIterations = minimizer.get_num_iterations();
+  *oFinalFunctionReturn = minimizer.get_end_error();
+  ConvertFromVNLDoubleToFloat( finalParameters, iaParams, icParams );
+  ConvertFromVNLDoubleToFloat( initialDirection, ioInitialDirection,
+			       icParams);
+
+  if ( returnCode == fs_powell::FAILED_TOO_MANY_ITERATIONS ){
+    printf("powell exceeded maximum iterations\n");
+    return(1);
+  }
+  else if ( returnCode == fs_powell::ERROR_FAILURE ||
+            returnCode == fs_powell::ERROR_DODGY_INPUT ||
+            returnCode == fs_powell::FAILED_FTOL_TOO_SMALL ||
+            returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
+            returnCode == fs_powell::FAILED_GTOL_TOO_SMALL )    {
+    printf("powell error %d\n",returnCode);
+    return(1);
+  }
+
+  // success
+  return(0);
 }
 
 

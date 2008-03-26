@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:53:19 $
- *    $Revision: 1.54.2.1 $
+ *    $Date: 2008/03/26 19:43:47 $
+ *    $Revision: 1.54.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -54,6 +54,7 @@ static void modify_transform(TRANSFORM *transform, MRI *mri, GCA *gca) ;
 static int lateralize_hypointensities(MRI *mri_seg) ;
 static int check(MRI *mri_seg, char *subjects_dir, char *subject_name) ;
 
+static int conform = 1 ;
 static int flash = 0 ;
 static int binarize = 0 ;
 static int binarize_in = 0 ;
@@ -128,7 +129,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.54.2.1 2008/03/02 02:53:19 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.54.2.2 2008/03/26 19:43:47 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -410,7 +411,8 @@ main(int argc, char *argv[])
            fname);
         }
         // input check 2
-        if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+        if (conform &&
+            (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1))
         {
           ErrorExit
           (ERROR_BADPARM,
@@ -483,6 +485,7 @@ main(int argc, char *argv[])
         MRIfree(&mri_tmp) ;
       }// end of inputs per subject
 
+      MRIeraseBorderPlanes(mri_inputs, 1) ;
       // when loaded gca->type = GCA_FLASH, these should have been set?????
       if (i == 0 && flash)   /* first subject */
         GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
@@ -615,6 +618,7 @@ main(int argc, char *argv[])
       // gca_prune    is so far null
       // noint        is whether to use intensity information or not
       GCAtrain(gca, mri_inputs, mri_seg, transform, gca_prune, noint) ;
+      GCAcheck(gca) ;
       MRIfree(&mri_seg) ;
       MRIfree(&mri_inputs) ;
       TransformFree(&transform) ;
@@ -737,7 +741,8 @@ main(int argc, char *argv[])
            fname);
         }
         // input check 2
-        if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+        if (conform &&
+            (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 ||mri_tmp->zsize != 1))
         {
           ErrorExit
           (ERROR_BADPARM,
@@ -924,6 +929,7 @@ main(int argc, char *argv[])
   }
 
   printf("writing trained GCA to %s...\n", out_fname) ;
+  GCAcheck(gca) ;
   if (GCAwrite(gca, out_fname) != NO_ERROR)
     ErrorExit
     (ERROR_BADFILE, "%s: could not write gca to %s", Progname, out_fname) ;
@@ -1005,6 +1011,13 @@ get_option(int argc, char *argv[])
     parms.prior_spacing = atof(argv[2]) ;
     nargs = 1 ;
     printf("spacing priors every %2.1f mm\n", parms.prior_spacing) ;
+  }
+  else if (!stricmp(option, "CONFORM"))
+  {
+    conform = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("%sassuming input volumes are conformed\n", 
+           conform ? "" : "NOT ") ;
   }
   else if (!stricmp(option, "XGRAD"))
   {
@@ -1102,6 +1115,14 @@ get_option(int argc, char *argv[])
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
+  }
+  else if (!stricmp(option, "DEBUG_PRIOR"))
+  {
+    Gxp = atoi(argv[2]) ;
+    Gyp = atoi(argv[3]) ;
+    Gzp = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging prior (%d, %d, %d)\n", Gxp,Gyp,Gzp) ;
   }
   else if (!stricmp(option, "DEBUG_LABEL"))
   {

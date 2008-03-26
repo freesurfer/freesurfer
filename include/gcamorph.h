@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:53:19 $
- *    $Revision: 1.46.2.1 $
+ *    $Date: 2008/03/26 19:43:44 $
+ *    $Revision: 1.46.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,6 +190,8 @@ typedef struct
   int    min_avgs ;
   int    diag_sample_type ;
   char   *write_fname ;   // for writing intermiediate results (NULL otherwise)
+  int    *dtrans_labels ;
+  int    ndtrans ;
 }
 GCA_MORPH_PARMS, GMP ;
 
@@ -234,6 +236,7 @@ int GCAMsampleInverseMorphRAS(GCA_MORPH *gcam,
 
 int       GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam) ;
 MRI       *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri) ;
+MRI       *GCAMbuildLabelVolume(GCA_MORPH *gcam, MRI *mri) ;
 MRI       *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri) ;
 int       GCAMinvert(GCA_MORPH *gcam, MRI *mri) ;
 int       GCAMfreeInverse(GCA_MORPH *gcam) ;
