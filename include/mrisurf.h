@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/20 16:24:54 $
- *    $Revision: 1.316 $
+ *    $Date: 2008/03/26 16:46:04 $
+ *    $Revision: 1.317 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -670,6 +670,8 @@ int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
 #define NORM_NONE  -1
 #define NORM_MEAN   0
 #define NORM_MEDIAN 1
+#define NORM_MAX    2
+
 int          MRISnormalizeCurvature(MRI_SURFACE *mris, int norm_type) ;
 int          MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) ;
 int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
@@ -1286,6 +1288,7 @@ int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
 int MRISsetSulcFileName(char *sulc_name) ;
 int MRISsetInflatedFileName(char *inflated_name) ;
+int MRISsetRegistrationSigmas(float *sigmas, int nsigmas) ;
 
 int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) ;
