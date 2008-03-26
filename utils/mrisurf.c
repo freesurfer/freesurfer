@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/20 16:24:57 $
- *    $Revision: 1.603 $
+ *    $Date: 2008/03/26 16:45:48 $
+ *    $Revision: 1.604 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.603 2008/03/20 16:24:57 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.604 2008/03/26 16:45:48 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -745,12 +745,14 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
          "ERROR: MRISread: file '%s' has %d vertices!\n"
          "Probably trying to use a scalar data file as a surface!\n",
          fname,nvertices);
+#if 0
     if (nquads > nvertices) /* sanity-checks */
       ErrorExit
         (ERROR_BADFILE,
          "ERROR: MRISread: file '%s' has more faces than vertices!\n"
          "Probably trying to use a scalar data file as a surface!\n",
          fname);
+#endif
     
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stdout,"reading %d vertices and %d faces.\n",
@@ -5323,13 +5325,23 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   Description
   ------------------------------------------------------*/
-static float sigmas[] =
+static float sigmas_default[] =
   {
     //    16.00, 4.0f, 2.0f, 1.0f, 0.5f
     //    8.00f, 4.00f, 2.0f, 0.5f
     4.00f, 2.0f, 1.0f, 0.5f
   } ;
-#define NSIGMAS  (sizeof(sigmas)  / sizeof(sigmas[0]))
+static float *sigmas = sigmas_default ;  // can be changed by caller
+#define NSIGMAS  (sizeof(sigmas_default)  / sizeof(sigmas_default[0]))
+static double nsigmas = NSIGMAS ;
+
+int
+MRISsetRegistrationSigmas(float *sigmas_local, int nsigmas_local) 
+{
+  nsigmas = nsigmas_local ;
+  sigmas = sigmas_local ;
+  return(NO_ERROR) ;
+}
 
 static char *surface_names[] =
   {
@@ -5537,7 +5549,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
         mrisLogIntegrationParms(stderr, mris, parms) ;
     }
 
-    for (i = 0 ; i < NSIGMAS ; i++)  /* for each spatial scale (blurring) */
+    for (i = 0 ; i < nsigmas ; i++)  /* for each spatial scale (blurring) */
     {
       parms->sigma = sigma = sigmas[i] ;
       parms->dt = base_dt ;
@@ -5821,7 +5833,7 @@ void MRISnormalizeField(MRIS *mris , int distance_field, int which_norm)
   if (which_norm == NORM_NONE)
     return ;
 
-  if (distance_field)
+  if (distance_field || which_norm == NORM_MAX)
   { /* distance fields have their max value set to 1 */
     for (max_value=0.0f,n=0; n < mris->nvertices; n++)
     {
@@ -5830,12 +5842,15 @@ void MRISnormalizeField(MRIS *mris , int distance_field, int which_norm)
       if (v->curv>max_value) max_value=v->curv;//fabs(v->curv);
     }
     if (!FZERO(max_value)) /* normalize the max value to 1.0f */
+    {
+      printf("normalizing max %2.1f to be in [0 1]\n", max_value) ;
       for (n=0; n < mris->nvertices; n++)
       {
         v=&mris->vertices[n];
         if (v->ripflag) continue;
         v->curv=v->curv/max_value;
       }
+    }
   }
   else /* gaussian */
     MRISnormalizeCurvature(mris, which_norm);
@@ -6019,10 +6034,10 @@ int MRISvectorRegister(MRI_SURFACE *mris,
 
 #define DEBUG_NO_BLURRING 0
 
-  for (i = 0 ; i < NSIGMAS ; i++)  /* for each spatial scale (blurring) */
+  for (i = 0 ; i < nsigmas ; i++)  /* for each spatial scale (blurring) */
   {
 #if (DEBUG_NO_BLURRING)
-    i = NSIGMAS-1;
+    i = nsigmas-1;
     first=0;
 #endif
 
@@ -61779,10 +61794,17 @@ MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolution)
 {
   MRI    *mri_tmp, *mri_mask ;
 
-  mri_tmp = MRISfillInterior(mris, resolution, NULL) ;
+  if (mri_dist != NULL)
+    mri_tmp = MRIclone(mri_dist, NULL) ;
+  else
+    mri_tmp = NULL ; // will get allocated by MRISfillInterior
+  mri_tmp = MRISfillInterior(mris, resolution, mri_tmp) ;
 
 #define PAD 10
-  mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, PAD) ;
+  if (mri_dist == NULL)
+    mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, PAD) ;
+  else
+    mri_mask = MRIcopy(mri_tmp, NULL) ;   // geometry specified by caller
   mri_dist = MRIdistanceTransform(mri_mask, mri_dist, 1, nint(PAD/mri_mask->xsize), 
                                   DTRANS_MODE_SIGNED) ;
 
@@ -63324,7 +63346,7 @@ MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode)
         }
         else
           dist = -v->val / (-v->val + vn->val) ; // fraction of way
-        d = dist*v->val2 + (1-dist)*vn->val2 ;  // compute val2 at this point
+        d = dist*fabs(v->val2) + (1-dist)*fabs(vn->val2) ;  // compute val2 at this point
         num++ ;
         hdist += d ;
       }
@@ -63341,7 +63363,8 @@ MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode)
         else
           dist = -v->val2 / (-v->val2 + vn->val2) ; // fraction of way
         num++ ;
-        d = dist*v->val + (1-dist)*vn->val ;  // compute val2 at this point
+        d = dist*fabs(v->val) + (1-dist)*fabs(vn->val) ;  // compute val2 at this point
+        hdist += d ;
       }
     }
   }
