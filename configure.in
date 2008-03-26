@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/03/18 23:30:52 $
-#    $Revision: 1.396 $
+#    $Date: 2008/03/26 18:31:55 $
+#    $Revision: 1.397 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -29,7 +29,7 @@ AC_MSG_NOTICE(Setting System...)
 # set target, build, host etc.
 AC_CANONICAL_SYSTEM
 
-##########################################################################
+########################################################################
 # To use the Intel C/C++ compiler, assuming it is installed here:
 #   /opt/intel/cce/10.0.023
 # do this prior to configuring:
@@ -40,8 +40,8 @@ AC_CANONICAL_SYSTEM
 #   setenv LDFLAGS "-L/opt/intel/cce/10.0.023/lib"
 #
 # Note: until all the warnings produced by icc are fixed in the source,
-# it is necessary to remove -Werror from CFLAGS (see WERROR in this file).
-##########################################################################
+# it is necessary to remove -Werror from CFLAGS (see WERROR in this file)
+########################################################################
 
 
 #####################################################################
@@ -234,9 +234,9 @@ AC_CHECK_FUNCS([\
   strtol \
   uname])
 
-# many systems dont have libg2c.so, the shared lib supporting g77, so build
-# using the static lib if available, so that distro is more widely compatible.
-# the talairach_avi/Makefile.am file uses LIB_G2C_A
+# many systems dont have libg2c.so, the shared lib supporting g77, so 
+# build using the static lib if available, so that distro is more 
+# widely compatible. the talairach_avi/Makefile.am file uses LIB_G2C_A
 LIB_G2C_A=""
 if test -e /usr/local/lib/libg2c.a ; then
   LIB_G2C_A="/usr/local/lib/libg2c.a"
@@ -314,16 +314,17 @@ LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 # like pragma indent
 NUPRAG="-Wno-unknown-pragmas"
 
-# some freesurfer code operates on pointers such that this  warning message
-# is issued with gcc 4.1:
-# "warning: dereferencing type-punned pointer will break strict-aliasing rules"
-# the -fno-strict-aliasing flag disables optimizations that would otherwise
-# require the code to comply with the strict aliasing rules
+# some freesurfer code operates on pointers such that this warning 
+# message is issued with gcc 4.1:
+# "warning: dereferencing type-punned pointer will break 
+#  strict-aliasing rules"
+# the -fno-strict-aliasing flag disables optimizations that would 
+# otherwise require the code to comply with the strict aliasing rules
 NSALIASING="-fno-strict-aliasing"
 
 # Freesurfer should compile with -Wall (which enables all warnings)
-# and -Werror (which escalates warnings to errors, thus stopping the build),
-# but here we allow a bypass:
+# and -Werror (which escalates warnings to errors, thus stopping the 
+# build), but here we allow a bypass:
 WALL="-Wall"
 WERROR="-Werror"
 AC_ARG_ENABLE(Wall,
@@ -334,8 +335,9 @@ AC_ARG_ENABLE(Werror,
  [  --disable-Werror        do not add -Werror to compiler flags],
  [ WERROR="" ],
  [ WERROR="-Werror" ])
-# the Intel C/C++ compiler complains about *a lot* of stuff, so escalating
-# warnings to errors (which stops the build) is not an option right now
+# the Intel C/C++ compiler complains about *a lot* of stuff, so 
+# escalating warnings to errors (which stops the build) is not an 
+# possible right now
 if test "x$CC" = "xicc"; then
   WERROR=""
 fi
@@ -609,8 +611,8 @@ AC_MSG_RESULT($found)
 fi
 
 # if using the Intel compiler, enable additional interprocedural 
-# optimizations for single file compilation, and generate  SSE3, SSE2, and 
-# SSE instructions, and enable auto-parallelization. 
+# optimizations for single file compilation, and generate  SSE3, SSE2, 
+# and SSE instructions, and enable auto-parallelization. 
 if test "x$CC" = "xicc"; then
   AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
   CPUFLAGS="-ip -axP -parallel -O3 $CPUFLAGS"
@@ -731,6 +733,8 @@ fi
 AC_SUBST(X_LIBS)
 
 
+AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
+
 ##############################################################
 # allow user to specify root of multi-package directory,
 # such as one containing all freesurfer dependencies.
@@ -760,8 +764,6 @@ fi
 AC_SUBST(pkgs_includes)
 AC_SUBST(pkgs_libraries)
 
-
-AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 
 #############################################################
 # MNI
@@ -863,6 +865,7 @@ AC_SUBST(NIFTI_LIB)
 AC_SUBST(NIFTI_DIR)
 
 AM_CONDITIONAL(HAVE_NIFTI_LIBS, ! test "x$ac_nifti_dir" = "xNO")
+
 
 ################################################################
 # VXL
@@ -1106,15 +1109,16 @@ tcltk_apps="NO"
 itk_apps="NO"
 kww_apps="NO"
 AC_ARG_ENABLE(all-apps,
- [  --enable-all-apps       enable building Tcl/Tk, ITK, KWW, and OpenGL-based apps],
+ [  --enable-all-apps       enable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
  [ tcltk_apps="yes"
    itk_apps="yes"
    kww_apps="yes"
+   wxw_apps="yes"
    need_opengl="yes"
  ])
 
 AC_ARG_ENABLE(gl-apps,
- [  --enable-gl-apps      enable building OpenGL-based apps],
+ [  --enable-gl-apps        enable building OpenGL-based apps],
  [ need_opengl="yes"
  ])
 
@@ -1266,7 +1270,7 @@ XAWPLUS_LIBS=""
 AC_MSG_CHECKING(XawPlus config)
 
 AC_ARG_WITH(xawplus-dir,
-  [  --with-xawplus-dir=DIR where the root of XawPlus is installed.],
+  [  --with-xawplus-dir=DIR  where the root of XawPlus is installed.],
   [  ac_xawplus_includes="$withval"/include
      ac_xawplus_libraries="$withval"/lib
      ac_xawplus_dir="$withval"
@@ -1681,7 +1685,7 @@ if test "x$ac_wxwidgets_dir" = "x"; then
   # default packages path at the NMR Center, then use that:
 
 #
-# feature disabled for now (see xxxxxxx)
+# feature disabled for now (remove xxxxxxx in pathname below to enable)
 #
   if test -d "/usr/pubsw/packages/wxWidgets/currentxxxxxxxx" ; then
     withval=/usr/pubsw/packages/wxWidgets/current
@@ -1786,7 +1790,8 @@ AC_ARG_ENABLE(itk-apps,
 if test "$itk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of ITK apps.])
 
-  # these are the minimum ITK libs necessary to support Nrrd IO:
+  # these are the minimum ITK libs necessary to support Nrrd IO,
+  # notice they are all static (avoiding LD_LIBRARY_PATH usage)
   LIBS_ITK="$ac_itk_libraries/libITKAlgorithms.a \
   $ac_itk_libraries/libITKIO.a \
   $ac_itk_libraries/libITKMetaIO.a \
@@ -1856,7 +1861,8 @@ AC_SUBST(EXPAT_LIBS)
 AC_SUBST(LIB_EXPAT)
 
 #
-# these are used by the local freesurfer expat source, declared in config.h
+# these are used by the local freesurfer expat source, 
+# declared in config.h
 # 
 AC_DEFINE([XML_NS], 1,
 [Define to make XML Namespaces functionality available.])
@@ -2140,10 +2146,10 @@ AC_SUBST(LIBS_NIFTI)
 
 # some systems, like Debian, do not include certain VTK libs which are
 # normally found elsewhere (from their official sources).  so here,
-# first we declare the commonly found lib, and override with vtk versions 
-# only if the locally installed versions are not found.
-# note: older freetype libs dont have FTC_Manager_LookupSize, so that func
-# is checked explicitly (for instance, Linux rh9 doesnt have this).
+# first we declare the commonly found lib, and override with vtk 
+# versions only if the locally installed versions are not found.
+# note: older freetype libs dont have FTC_Manager_LookupSize, so that
+# func is checked explicitly (for instance, Linux rh9 doesnt have this).
 VTK_EXPAT_LIB="-lexpat"
 VTK_FREETYPE_LIB="-lfreetype"
 VTK_TIFF_LIB="-ltiff"
@@ -2152,7 +2158,7 @@ VTK_PNG_LIB="-lpng"
 VTK_Z_LIB="-lz"
 
 # limit the possible paths where these can be found, as things like
-# libfreetype can be squirreled away in odd locations (like /usr/X11R6/lib)
+# libfreetype can be squirreled away in odd locations (/usr/X11R6/lib)
 local_cppflags_save=$CPPFLAGS
 local_ldflags_save=$LDFLAGS
 local_libs_save=$LIBS
@@ -2183,11 +2189,12 @@ AC_SUBST(VTK_JPEG_LIB)
 AC_SUBST(VTK_PNG_LIB)
 AC_SUBST(VTK_Z_LIB)
 
-# libexpat is now used by libutils, but the shared libexpat is not found in
-# the default search path on the Mac platform (it is found in /usr/X11R6/lib),
+# libexpat is now used by libutils, but the shared libexpat is not found
+# in the default search path on the Mac platform (it is found in 
+# /usr/X11R6/lib),
 # so in the interest of full compatibility, the static libexpat is used
-# if it can be found, otherwise, whatever VTK_EXPAT_LIB was set to is used.
-# (but dont do this if --with-expat-dir=DIR was used)
+# if it can be found, otherwise, whatever VTK_EXPAT_LIB was set to is 
+# used. (but dont do this if --with-expat-dir=DIR was used)
 if test "$ac_expat_libraries" = "NO"; then
   if test -e /usr/pubsw/packages/expat/current/lib/libexpat.a ; then
     VTK_EXPAT_LIB="/usr/pubsw/packages/expat/current/lib/libexpat.a"
@@ -2552,6 +2559,8 @@ AC_OUTPUT([Makefile
            mri_aparc2aseg/Makefile
            mri_aparc2wmseg/Makefile
            mri_apply_inu_correction/Makefile
+           mri_aseg_edit_train/Makefile
+           mri_aseg_edit_reclassify/Makefile
            mri_auto_fill/Makefile
            mri_average/Makefile
            mri_dct_align/Makefile
@@ -2646,7 +2655,6 @@ AC_OUTPUT([Makefile
            mri_segment/Makefile
            mri_segment_wm_damage/Makefile
            mri_segreg/Makefile
-           mris_register_to_volume/Makefile
            mri_segstats/Makefile
            mri_stats2seg/Makefile
            mri_strip_nonwhite/Makefile
@@ -2690,8 +2698,6 @@ AC_OUTPUT([Makefile
            mris_ca_label/Makefile
            mris_divide_parcellation/Makefile
            mris_ca_train/Makefile
-           mri_aseg_edit_train/Makefile
-           mri_aseg_edit_reclassify/Makefile
            mris_svm_classify/Makefile
            mris_svm_train/Makefile
            mris_calc/Makefile
@@ -2732,6 +2738,7 @@ AC_OUTPUT([Makefile
            mris_multiscale_stats/Makefile
            mris_niters2fwhm/Makefile
            mris_register/Makefile
+           mris_register_to_volume/Makefile
            mris_remove_variance/Makefile
            mris_rescale/Makefile
            mris_reverse/Makefile
