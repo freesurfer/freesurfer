@@ -8,8 +8,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/12 00:21:49 $
- *    $Revision: 1.26 $
+ *    $Date: 2008/03/26 16:46:46 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.26 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.27 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -126,8 +126,9 @@ MRI *MRISribbon(MRI_SURFACE *inner_mris,
   MRI *mri_inter;
 
   /* Allocate new MRI structures as needed */
-  printf("MRISribbon: Creating new (_inter)MRI of %d, %d,%d...\n",
-         mri_src->width,mri_src->height,mri_src->depth);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("MRISribbon: Creating new (_inter)MRI of %d, %d,%d...\n",
+           mri_src->width,mri_src->height,mri_src->depth);
   mri_inter=MRIalloc(mri_src->width,
                      mri_src->height,
                      mri_src->depth,
@@ -135,7 +136,8 @@ MRI *MRISribbon(MRI_SURFACE *inner_mris,
   MRIcopyHeader(mri_src, mri_inter);
   if (!mri_dst)
   {
-    printf("MRISribbon: Creating new (_dst)MRI...\n");
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("MRISribbon: Creating new (_dst)MRI...\n");
     mri_dst=MRIalloc(mri_src->width,
                      mri_src->height,
                      mri_src->depth,
@@ -143,7 +145,8 @@ MRI *MRISribbon(MRI_SURFACE *inner_mris,
     MRIcopyHeader(mri_src, mri_dst);
   }
 
-  printf("Creating volume inside outer shell...\n");
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Creating volume inside outer shell...\n");
   /* Create volume inside outer shell */
   /* Create shell corresponding to surface 
      in MRI volume (includes outer shell in surface) */
@@ -165,17 +168,20 @@ MRI *MRISribbon(MRI_SURFACE *inner_mris,
   MRISaccentuate(mri_inter,mri_inter,1,254);
   MRIcomplement(mri_inter,mri_inter);
 
-  printf("Creating volume outside inner shell...\n");
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Creating volume outside inner shell...\n");
   /* Create volume outside inner shell */
   MRISshell(mri_src,inner_mris,mri_dst,1);
   MRISfloodoutside(mri_dst,mri_dst);
 
-  printf("Finding intersection of volumes...\n");
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Finding intersection of volumes...\n");
   /* Find intersection of volumes to create ribbon */
   MRIintersect(mri_inter,mri_dst,mri_dst);
   MRISaccentuate(mri_dst,mri_dst,1,255);
 
-  printf("Done with intersection...\n");
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Done with intersection...\n");
   MRIfree(&mri_inter);
 
   return mri_dst;
@@ -510,7 +516,8 @@ MRI *MRISpartialshell(MRI *mri_src,
   depth = mri_src->depth;
   if (!mri_dst)
   {
-    printf("MRISshell: Creating new (_dst)MRI...\n");
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("MRISshell: Creating new (_dst)MRI...\n");
     mri_dst = MRIalloc(width, height, depth, mri_src->type);
     MRIcopyHeader(mri_src, mri_dst);
   }
@@ -829,10 +836,12 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,
   MRISpartialfloodoutside(mri_inter1,mri_dst);
   // save this results in inter3
   MRIcopy(mri_dst, mri_inter3);
-  printf("  - finding union of inner shell and outward-filled volume...\n");
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("  - finding union of inner shell and outward-filled volume...\n");
   MRIbitwiseor(mri_inter1,mri_dst,mri_dst);
 
-  printf("Finding intersection of outershell-inside "
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Finding intersection of outershell-inside "
          "volume and innershell-outside volume\n");
   /* Find bitwise and of volumes to create ribbon */
   MRIbitwiseand(mri_inter2,mri_dst,mri_dst);
@@ -1452,7 +1461,7 @@ MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
 
   saved_use_Real_RAS = mris->useRealRAS ;
   mris->useRealRAS = 1 ;  // MRISshell needs this
-  
+    
   MRIScomputeMetricProperties(mris) ;
 
   if (mri_interior)
@@ -1482,11 +1491,12 @@ MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
     *MATRIX_RELT(m_vox2ras, 3, 4) = mris->zlo+mris->vg.c_s ;
     
     MRIsetVoxelToRasXform(mri_shell, m_vox2ras) ;
+    mri_interior = MRIclone(mri_shell, NULL) ;
   }
   MRISshell(mri_shell, mris, mri_shell, 1) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_shell, "shell.mgz") ;
-
+    
   mri_outside = MRISfloodoutside(mri_shell, NULL) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_outside, "out.mgz") ;
