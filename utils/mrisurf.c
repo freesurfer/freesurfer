@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/26 16:45:48 $
- *    $Revision: 1.604 $
+ *    $Author: nicks $
+ *    $Date: 2008/03/26 18:23:44 $
+ *    $Revision: 1.605 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.604 2008/03/26 16:45:48 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.605 2008/03/26 18:23:44 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -745,14 +745,15 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
          "ERROR: MRISread: file '%s' has %d vertices!\n"
          "Probably trying to use a scalar data file as a surface!\n",
          fname,nvertices);
-#if 0
-    if (nquads > nvertices) /* sanity-checks */
+    if (nquads > 4*nvertices) /* sanity-checks */
+    {
+      fprintf(stderr, "nquads=%d,  nvertices=%d\n", nquads, nvertices);
       ErrorExit
         (ERROR_BADFILE,
-         "ERROR: MRISread: file '%s' has more faces than vertices!\n"
+         "ERROR: MRISread: file '%s' has many more faces than vertices!\n"
          "Probably trying to use a scalar data file as a surface!\n",
          fname);
-#endif
+    }
     
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stdout,"reading %d vertices and %d faces.\n",
