@@ -74,13 +74,8 @@ for iV = 1 : nsteps: length(mesh_outer.vertices)
           
     if lGI > 7 
         disp(['WARNING -- Problem for vertex iV = ', num2str(iV), ', lGI value is aberrantly high (lGI=', num2str(lGI), ')...'])
-        disp([ '...lGI process interrupted... Try to relaunch mris_compute_lgi. Repeated interruptions of mris_compute_lgi may be caused by a bad topology of the pial 
-surface, try mris_euler_number ?h.pial'])
-        %step = 7;
-        clear lGI
-	break
-%        lGI = redo_lgi(mesh_total, A, mesh_outer, iV, radius, step) % caution: does not output any value if higher than 7
-%        save ratio_intermed.mat mtTotalWeightDegressive mtTotalRatioDegressive vertexRatio ;
+        disp([ '...lGI computation will be stopped. This may be caused by topological defects, check mris_euler_number on the pial surface.'])
+        return
     end
 
     disp(['lGI for vertex number ',num2str(iV),' of the outer mesh is ',num2str(lGI)])
