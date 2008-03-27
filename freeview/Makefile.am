@@ -1,11 +1,11 @@
 AM_CXXFLAGS=\
-	-Wno-deprecated 
+	-Wno-deprecated \
 	-I$(top_srcdir)/include \
 	$(TCL_CFLAGS) \
 	$(VTK_CXXFLAGS) \
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
-	$(WXWIDGETS_CXXFLAGS) 
+	$(WXWIDGETS_CXXFLAGS) \
 	-D_FILE_OFFSET_BITS=64 \
 	-D_LARGE_FILES \
 	-D_LARGEFILE_SOURCE=1 \
