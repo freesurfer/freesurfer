@@ -137,13 +137,12 @@ EXTRA_DIST=\
 	README \
 	license.jpeg \
 	test_jpeg \
+	testorig.jpg \
+	testimg.ppm \
+	testprog.jpg \
 	testimg.bmp \
 	testimg.jpg \
-	testimgp.jpg \
-	testimg.ppm \
-	testorigcom.jpg \
-	testorig.jpg \
-	testprog.jpg
+	testimgp.jpg
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
