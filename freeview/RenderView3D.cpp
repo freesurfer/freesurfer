@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/27 18:12:15 $
- *    $Revision: 1.1 $
+ *    $Author: rpwang $
+ *    $Date: 2008/03/27 20:39:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include "vtkPolyDataMapper.h"
 #include "vtkActor.h"
 #include "vtkCamera.h"
+#include "vtkActor2D.h"
 #include "Interactor3DNavigate.h"
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView3D, RenderView)
@@ -79,6 +80,9 @@ void RenderView3D::RefreshAllActors()
 	
 	m_renderer->RemoveAllViewProps();
 	lcm->Append3DProps( m_renderer );
+	
+	// add focus frame
+	m_renderer->AddViewProp( m_actorFocusFrame );
 	
 	Render();
 }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/27 18:12:15 $
- *    $Revision: 1.1 $
+ *    $Author: rpwang $
+ *    $Date: 2008/03/27 20:39:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -917,6 +917,7 @@ void MainWindow::SetViewLayout( int nLayout )
 	}
 	
 	m_renderViewHolder->Layout();
+	view[0]->SetFocus();
 	
 	NeedRedraw();
 }
@@ -1161,7 +1162,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 				else
 					lc->AddLayer( layer );
 		
-				m_fileHistory->AddFileToHistory( layer->GetFileName() );
+				m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
 		
 				m_controlPanel->RaisePage( "Volumes" );
 			}		

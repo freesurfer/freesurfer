@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/27 18:12:15 $
- *    $Revision: 1.1 $
+ *    $Author: rpwang $
+ *    $Date: 2008/03/27 20:39:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 
 class vtkRenderer;
 class vtkRenderWindow;
+class vtkActor2D;
 class LayerCollection;
 class Interactor;
 
@@ -48,7 +49,8 @@ public:
     static RenderView * New();
     void PrintSelf( ostream& os, vtkIndent indent );
     
-	void OnFocus( wxFocusEvent& event);
+	void OnSetFocus( wxFocusEvent& event);
+	void OnKillFocus( wxFocusEvent& event );
 	void OnButtonDown( wxMouseEvent& event );
 	void OnButtonUp( wxMouseEvent& event );
 	void OnMouseMove( wxMouseEvent& event );
@@ -82,11 +84,13 @@ public:
 		{ return m_renderer; }
 	
 protected:
+	void InitializeRenderView();
 	void OnInternalIdle(); 
 
 protected:
 	vtkRenderer*		m_renderer;
 	vtkRenderWindow*	m_renderWindow;
+	vtkActor2D*			m_actorFocusFrame;
 
 	double				m_dWorldOrigin[3];
 	double				m_dWorldSize[3];	
@@ -101,6 +105,6 @@ protected:
 
 };
 
-#endif // ScubaApp_H
+#endif 
 
 

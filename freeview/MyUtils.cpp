@@ -74,3 +74,11 @@ wxString MyUtils::GetNormalizedPath( const wxString& filename )
 	fn.Normalize( wxPATH_NORM_ENV_VARS | wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE );
 	return fn.GetPath();
 }
+
+
+wxString MyUtils::GetNormalizedFullPath( const wxString& filename )
+{
+	wxFileName fn( filename );
+	fn.Normalize( wxPATH_NORM_ENV_VARS | wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE );
+	return fn.GetFullPath();
+}

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/27 18:12:14 $
- *    $Revision: 1.1 $
+ *    $Author: rpwang $
+ *    $Date: 2008/03/27 20:38:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -192,17 +192,34 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
 		return Interactor::ProcessKeyDownEvent( event, renderview );
 	}
 		
-	if ( event.GetKeyCode() == WXK_UP )
+	int nKeyCode = event.GetKeyCode();
+	if ( nKeyCode == WXK_PAGEUP )
 	{
 		double* voxelSize = lcm->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
 		int nPlane = view->GetViewPlane();
 		lcm->OffsetSlicePosition( nPlane, voxelSize[nPlane] );
 	}
-	else if ( event.GetKeyCode() == WXK_DOWN)
+	else if ( nKeyCode == WXK_PAGEDOWN)
 	{
 		double* voxelSize = lcm->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
 		int nPlane = view->GetViewPlane();
 		lcm->OffsetSlicePosition( nPlane, -voxelSize[nPlane] );
+	}
+	else if ( nKeyCode == WXK_UP )
+	{
+		view->MoveUp();
+	}
+	else if ( nKeyCode == WXK_DOWN )
+	{
+		view->MoveDown();
+	}
+	else if ( nKeyCode == WXK_LEFT )
+	{
+		view->MoveLeft();
+	}
+	else if ( nKeyCode == WXK_RIGHT )
+	{
+		view->MoveRight();
 	}
 	else
 		return Interactor::ProcessKeyDownEvent( event, view );

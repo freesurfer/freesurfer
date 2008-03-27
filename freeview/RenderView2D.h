@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/27 18:12:15 $
- *    $Revision: 1.1 $
+ *    $Author: rpwang $
+ *    $Date: 2008/03/27 20:39:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,6 +69,11 @@ public:
 		{ return m_cursor2D; }
 	
 	void UpdateCursor();
+	
+	void MoveLeft();
+	void MoveRight();
+	void MoveUp();
+	void MoveDown();
     
 protected:
 	void Initialize2D();
@@ -87,6 +92,6 @@ protected:
 
 };
 
-#endif // ScubaApp_H
+#endif 
 
 

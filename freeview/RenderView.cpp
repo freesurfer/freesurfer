@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/27 18:12:15 $
- *    $Revision: 1.1 $
+ *    $Author: rpwang $
+ *    $Date: 2008/03/27 20:39:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,16 +26,24 @@
  
 #include "RenderView.h"
 #include <vtkRenderer.h>
+#include <vtkActor2D.h>
 #include "vtkConeSource.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkActor.h"
 #include "Interactor.h"
 #include "MainWindow.h"
+#include <vtkCoordinate.h>
+#include <vtkPolyDataMapper2D.h>
+#include <vtkPolyData.h>
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkProperty2D.h>
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView, wxVTKRenderWindowInteractor)
 
 BEGIN_EVENT_TABLE(RenderView, wxVTKRenderWindowInteractor)
-	EVT_SET_FOCUS	( RenderView::OnFocus )	
+	EVT_SET_FOCUS	( RenderView::OnSetFocus )	
+	EVT_KILL_FOCUS	( RenderView::OnKillFocus )	
 	EVT_LEFT_DOWN	( RenderView::OnButtonDown )	
 	EVT_MIDDLE_DOWN	( RenderView::OnButtonDown )
 	EVT_RIGHT_DOWN	( RenderView::OnButtonDown )
@@ -54,16 +62,7 @@ RenderView::RenderView() : wxVTKRenderWindowInteractor(),
 			Listener( "RenderView" ), 
 			Broadcaster( "RenderView" )
 {
-	m_renderWindow = this->GetRenderWindow();
-	m_renderer = vtkRenderer::New();
-	m_renderWindow->AddRenderer( m_renderer );
-	m_renderer->SetBackground( 0, 0, 0 );
-
-	m_interactor = new Interactor();
-	m_nInteractionMode = 0;
-	m_nRedrawCount = 0;
-	
-	UseCaptureMouseOn();
+	InitializeRenderView();
 }
 
 RenderView::RenderView( wxWindow* parent, int id ) : 
@@ -73,6 +72,11 @@ RenderView::RenderView( wxWindow* parent, int id ) :
 		Listener( "RenderView" ), 
 		Broadcaster( "RenderView" )
 {
+	InitializeRenderView();
+}
+
+void RenderView::InitializeRenderView()
+{
 	m_renderWindow = this->GetRenderWindow();
 	m_renderer = vtkRenderer::New();
 	m_renderWindow->AddRenderer( m_renderer );
@@ -81,6 +85,48 @@ RenderView::RenderView( wxWindow* parent, int id ) :
 	m_interactor = new Interactor();
 	m_nInteractionMode = 0;
 	m_nRedrawCount = 0;
+	
+	// initialize focus frame
+	m_actorFocusFrame = vtkActor2D::New();
+	m_actorFocusFrame->VisibilityOff();
+	vtkPoints* Pts = vtkPoints::New();
+	Pts->InsertNextPoint( 0, 0, 0 );
+	Pts->InsertNextPoint( 0, 1, 0 );
+	Pts->InsertNextPoint( 1, 1, 0 );
+	Pts->InsertNextPoint( 1, 0, 0 );
+	vtkCellArray* Lines = vtkCellArray::New();
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 0 );
+	Lines->InsertCellPoint( 1 );
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 1 );
+	Lines->InsertCellPoint( 2 );
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 2 );
+	Lines->InsertCellPoint( 3 );
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 3 );
+	Lines->InsertCellPoint( 0 );
+
+	vtkPolyData* Grid = vtkPolyData::New();
+	Grid->SetPoints(Pts);
+	Grid->SetLines(Lines);
+	Pts->Delete();
+	Lines->Delete();
+	
+	vtkCoordinate* normCoords = vtkCoordinate::New();
+	normCoords->SetCoordinateSystemToNormalizedDisplay();
+
+	vtkPolyDataMapper2D* pMapper = vtkPolyDataMapper2D::New();
+	pMapper->SetInput(Grid);
+	pMapper->SetTransformCoordinate(normCoords);
+	Grid->Delete();
+	normCoords->Delete();
+
+	m_actorFocusFrame->SetMapper(pMapper);
+	m_actorFocusFrame->GetProperty()->SetColor( 0.9, 0.9, 0);
+	m_actorFocusFrame->GetProperty()->SetLineWidth( 5 );	
+	pMapper->Delete();
 	
 	UseCaptureMouseOn();
 }
@@ -97,11 +143,23 @@ RenderView::~RenderView()
 		m_renderer->Delete();
 	
 	delete m_interactor;
+	m_actorFocusFrame->Delete();
 }
 
-void RenderView::OnFocus( wxFocusEvent& event )
+void RenderView::OnSetFocus( wxFocusEvent& event )
 {
-	Render();
+	m_actorFocusFrame->VisibilityOn();
+	NeedRedraw();
+	event.Skip();
+}
+
+void RenderView::OnKillFocus( wxFocusEvent& event )
+{
+	if ( m_actorFocusFrame->GetVisibility() )
+	{
+		m_actorFocusFrame->VisibilityOff();
+		NeedRedraw();
+	}
 	event.Skip();
 }
 
@@ -232,3 +290,4 @@ void RenderView::OnInternalIdle()
 		m_nRedrawCount--;
 	}
 }
+

@@ -20,6 +20,7 @@ public:
 	static bool HasExtension( const wxString& filename, const wxString& ext );
 	
 	static wxString GetNormalizedPath( const wxString& filename );
+	static wxString GetNormalizedFullPath( const wxString& filename );
 };
 	
 
