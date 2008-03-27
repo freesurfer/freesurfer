@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/03/26 18:31:55 $
-#    $Revision: 1.397 $
+#    $Date: 2008/03/27 18:12:14 $
+#    $Revision: 1.398 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2780,7 +2780,7 @@ AC_OUTPUT([Makefile
            scripts/Makefile
            scuba/Makefile
            scuba2/Makefile
-           scuba3/Makefile
+           freeview/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
            stim/Makefile

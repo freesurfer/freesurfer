@@ -306,7 +306,7 @@ SUBDIRS=\
 	matlab \
 	scuba \
 	scuba2 \
-	scuba3 \
+	freeview \
 	qdec_glmfit
 
 # build stamp and symlinks to necessary 3rd-party packages.
