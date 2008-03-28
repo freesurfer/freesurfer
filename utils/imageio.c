@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:44 $
- *    $Revision: 1.42 $
+ *    $Date: 2008/03/28 19:31:34 $
+ *    $Revision: 1.42.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -833,7 +833,7 @@ TiffReadImage(char *fname, int frame0)
   int type = PFBYTE; // just make compiler happy
   int      width, height, ret, row;
   short    nsamples, bits_per_sample;
-  int      nframe=0,frame;
+  int      nframe,frame;
   byte     *iptr ;
   tdata_t *buf;
   short    photometric;
@@ -856,6 +856,7 @@ TiffReadImage(char *fname, int frame0)
     return(NULL) ;
 
   /* Find out how many frames we have */
+  nframe = 1 ; // note that TIFFOpen reads the 1st directory
   while (TIFFReadDirectory(tif))
     nframe++;
 
@@ -1439,7 +1440,7 @@ PGMWriteImage(IMAGE *I, char *fname, int frame)
   if ((outf = fopen(fname, "wb")) == NULL)
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED,
-                 "JPEGWrite: only PFBYTE currently supported")) ;
+                 "PGMWrite: could not open file")) ;
 
   pgm_writepgminit(outf, I->ocols, I->orows, 255, 0);
   for (i=I->orows-1;i>=0;i--)
