@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/02/26 01:02:52 $
- *    $Revision: 1.43 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/28 13:50:46 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -833,7 +833,7 @@ TiffReadImage(char *fname, int frame0)
   int type = PFBYTE; // just make compiler happy
   int      width, height, ret, row;
   short    nsamples, bits_per_sample;
-  int      nframe=0,frame;
+  int      nframe,frame;
   byte     *iptr ;
   tdata_t *buf;
   short    photometric;
@@ -856,6 +856,7 @@ TiffReadImage(char *fname, int frame0)
     return(NULL) ;
 
   /* Find out how many frames we have */
+  nframe = 1 ; // note that TIFFOpen reads the 1st directory
   while (TIFFReadDirectory(tif))
     nframe++;
 
