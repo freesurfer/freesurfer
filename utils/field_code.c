@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/12 18:55:20 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/03/28 23:27:52 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,9 @@ char *ReturnFieldName(int which_field)
   {
   case OVERLAY_FRAME:
     return(OVERLAY_NAME) ;
+    break ;
+  case DISTANCE_TRANSFORM_FRAME:
+    return(DISTANCE_TRANSFORM_NAME) ;
     break ;
   case INFLATED_CURV_CORR_FRAME:
     return INFLATED_CURVATURE_NAME;
@@ -138,6 +141,7 @@ int IsDistanceField(int which_field)
   case  LAT_VENTRICLE_CORR_FRAME :
     return 1;
     break;
+  case DISTANCE_TRANSFORM_FRAME:
   case  INF_LAT_VENTRICLE_CORR_FRAME :
     return 1;
     break;

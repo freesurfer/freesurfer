@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/12 18:55:37 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/03/28 23:27:19 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,7 @@
 #define LAT_VENTRICLE_CORR_FRAME      12
 #define INF_LAT_VENTRICLE_CORR_FRAME  13
 #define OVERLAY_FRAME                 14
+#define DISTANCE_TRANSFORM_FRAME      15
 
 /* surface names */
 #define INFLATED_CURVATURE_NAME         NULL      /* directly computed */
@@ -67,7 +68,7 @@
 #define  LAT_VENTRICLE_DIST_NAME      "latventricle_dist"
 #define  INF_LAT_VENTRICLE_DIST_NAME  "inflatventricle_dist"
 #define   OVERLAY_NAME                 "overlay"
-
+#define   DISTANCE_TRANSFORM_NAME      "distance_transform"
 #ifndef MAX_OF_TWO
 #define MAX_OF_TWO(a,b) ((a)>(b) ? (a):(b))
 #endif
