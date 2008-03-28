@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/20 16:25:19 $
- *    $Revision: 1.51 $
+ *    $Date: 2008/03/28 13:52:23 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.51 2008/03/20 16:25:19 fischl Exp $";
+"$Id: mris_register.c,v 1.52 2008/03/28 13:52:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,6 +70,10 @@ static char *curvature_names[] =
     "sulc",
     NULL
   } ;
+
+#define MAX_SIGMAS 10
+static int nsigmas=0 ;
+static float sigmas[MAX_SIGMAS] ;
 
 #define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
 #define SURFACES         sizeof(curvature_names) / sizeof(curvature_names[0])
@@ -137,14 +141,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.51 2008/03/20 16:25:19 fischl Exp $", 
+     "$Id: mris_register.c,v 1.52 2008/03/28 13:52:23 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.51 2008/03/20 16:25:19 fischl Exp $", 
+     "$Id: mris_register.c,v 1.52 2008/03/28 13:52:23 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -195,6 +199,8 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
+  if (nsigmas > 0)
+    MRISsetRegistrationSigmas(sigmas, nsigmas) ;
   parms.which_norm = which_norm ;
   if (argc < 4) usage_exit() ;
 
@@ -353,18 +359,26 @@ main(int argc, char *argv[])
     if (!mrisp_template)
       ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
                 Progname, template_fname) ;
+    if (noverlays > 0)
+    {
+      if (mrisp_template->Ip->num_frame != IMAGES_PER_SURFACE*noverlays)
+        ErrorExit(ERROR_BADPARM, 
+                  "template frames (%d) doesn't match input (%d x %d) = %d\n",
+                  mrisp_template->Ip->num_frame, IMAGES_PER_SURFACE,noverlays,
+                  IMAGES_PER_SURFACE*noverlays) ;
+}
   }
   if (use_defaults)
   {
     if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0)  /* 1st time */
     {
-      parms.l_dist = 0.5 ;
+      parms.l_dist = 5.0 ;
       parms.l_corr = 1.0 ;
-      parms.l_parea = 0.1 ;
+      parms.l_parea = 0.2 ;
     } 
     else   /* subsequent alignments */
     {
-      parms.l_dist = 0.1 ;
+      parms.l_dist = 5.0 ;
       parms.l_corr = 1.0 ;
       parms.l_parea = 0.2 ;
     }
@@ -551,6 +565,14 @@ get_option(int argc, char *argv[])
   {
     parms.var_smoothness = 1 ;
     printf("using space/time varying smoothness weighting\n") ;
+  }
+  else if (!stricmp(option, "sigma"))
+  {
+    if (nsigmas >= MAX_SIGMAS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many sigmas specified (%d)\n", Progname, nsigmas) ;
+    sigmas[nsigmas] = atof(argv[2]) ;
+    nargs = 1 ;
+    nsigmas++ ;
   }
   else if (!stricmp(option, "vector"))
   {
@@ -900,6 +922,32 @@ get_option(int argc, char *argv[])
                   0.0, 
                   navgs, 
                   which_norm);
+    SetFieldName(&parms.fields[n], argv[2]) ;
+    atlas_size++ ;
+    nargs = 2 ;
+  }
+  else if (!stricmp(option, "distance"))
+  {
+    int navgs ;
+    if (noverlays == 0)
+      atlas_size = 0 ;
+    if (multiframes == 0)
+    {
+      initParms() ;
+      multiframes = 1 ;
+    }
+    overlays[noverlays++] = argv[2] ;
+    navgs = atof(argv[3]) ;
+    printf("reading overlay from %s and smoothing it %d times\n", 
+           argv[2], navgs) ;
+    n=parms.nfields++;
+    SetFieldLabel(&parms.fields[n], 
+                  DISTANCE_TRANSFORM_FRAME, 
+                  atlas_size,
+                  l_ocorr,
+                  0.0, 
+                  navgs, 
+                  NORM_MAX) ;
     SetFieldName(&parms.fields[n], argv[2]) ;
     atlas_size++ ;
     nargs = 2 ;
