@@ -7,8 +7,8 @@ foodir=$(prefix)/average
 
 GCA=\
 	face.gca \
-	RB_all_2008-03-13.gca \
-	RB_all_withskull_2008-03-13.gca
+	RB_all_2008-03-26.gca \
+	RB_all_withskull_2008-03-26.gca
 
 GCS=\
 	lh.atlas2002_simple.gcs \

@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/03/19 20:11:52 $
-#    $Revision: 1.179 $
+#    $Author: nicks $
+#    $Date: 2008/03/29 18:04:49 $
+#    $Revision: 1.180 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.179 2008/03/19 20:11:52 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.180 2008/03/29 18:04:49 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -156,8 +156,8 @@ set brain_template = talairach_mixed_with_skull.gca
 set face_template  = face.gca
 
 # For subcortical segmentation
-set GCA      = RB_all_2008-03-13.gca
-set GCASkull = RB_all_withskull_2008-03-13.gca
+set GCA      = RB_all_2008-03-26.gca
+set GCASkull = RB_all_withskull_2008-03-26.gca
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "${FREESURFER_HOME}/average"
@@ -1434,7 +1434,7 @@ if($DoCALabel) then
 
   # ----------- Prior to changing aseg.auto.mgz -------------------#
   if( -e aseg.mgz &&  -e aseg.auto.mgz) then
-    # aseg.mgz and aseg.auto.mgz DO exit (at least 2nd pass)
+    # aseg.mgz and aseg.auto.mgz DO exist (at least 2nd pass)
     if(! -e aseg.manedit.mgz) then
       # aseg.manedit.mgz does NOT exist
       # Check for diffs between aseg.auto and aseg
