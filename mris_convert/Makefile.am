@@ -30,7 +30,7 @@ check_PROGRAMS=foo
 
 TESTS=test_mris_convert test_gifti
 
-EXTRA_DIST=test_mris_convert giftidata.tar.gz
+EXTRA_DIST=test_mris_convert test_gifti giftidata.tar.gz
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
