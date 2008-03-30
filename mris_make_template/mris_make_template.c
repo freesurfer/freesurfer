@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/01/24 00:43:32 $
- *    $Revision: 1.25 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/30 20:35:36 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -40,7 +40,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_make_template.c,v 1.25 2008/01/24 00:43:32 nicks Exp $";
+  "$Id: mris_make_template.c,v 1.26 2008/03/30 20:35:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -105,7 +105,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_template.c,v 1.25 2008/01/24 00:43:32 nicks Exp $",
+           "$Id: mris_make_template.c,v 1.26 2008/03/30 20:35:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -608,6 +608,11 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
     which_norm = NORM_MEDIAN ;
     printf("using median normalization\n") ;
   }
+  else if (!stricmp(option, "nonorm"))
+  {
+    which_norm = NORM_NONE ;
+    printf("not normalizing input data\n") ;
+  }
   else if (!stricmp(option, "infname"))
   {
     char fname[STRLEN] ;
@@ -676,6 +681,25 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
                   0.0,
                   navgs,
                   which_norm);
+    SetFieldName(&parms->fields[n], argv[2]) ;
+    atlas_size++ ;
+    nargs = 2 ;
+  }
+  else if (!strcmp(option, "distance"))
+  {
+    int navgs ;
+    overlays[noverlays++] = argv[2] ;
+    navgs = atoi(argv[3]) ;
+    printf("reading overlay from %s...\n", argv[2]) ;
+    multiframes = 1 ;
+    n=parms->nfields++;
+    SetFieldLabel(&parms->fields[n],
+                  DISTANCE_TRANSFORM_FRAME,
+                  atlas_size,
+                  0.0,
+                  0.0,
+                  navgs,
+                  NORM_MAX);
     SetFieldName(&parms->fields[n], argv[2]) ;
     atlas_size++ ;
     nargs = 2 ;
