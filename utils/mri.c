@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/12 00:21:49 $
- *    $Revision: 1.412 $
+ *    $Date: 2008/03/30 20:38:16 $
+ *    $Revision: 1.413 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.412 $";
+const char *MRI_C_VERSION = "$Revision: 1.413 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -10780,18 +10780,38 @@ MRImeanFrame(MRI *mri, int frame)
                      "MRImeanFrame: frame %d out of bounds (%d)",
                      frame, mri->nframes));
 
-  for (mean = 0.0, z = 0 ; z < depth ; z++)
+  if (frame >= 0)
   {
-    for (y = 0 ; y < height ; y++)
+    for (mean = 0.0, z = 0 ; z < depth ; z++)
     {
-      for (x = 0 ; x < width ; x++)
+      for (y = 0 ; y < height ; y++)
       {
-        MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
         mean += (double)val ;
+        }
       }
     }
+    mean /= (double)(width*height*depth) ;
   }
-  mean /= (double)(width*height*depth) ;
+  else
+  {
+    for (mean = 0.0, frame = 0 ; frame < mri->nframes ; frame++)
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            val = MRIgetVoxVal(mri, x, y, z, frame) ;
+            mean += (double)val ;
+          }
+        }
+      }
+    mean /= (double)(width*height*depth*mri->nframes) ;
+  }
+
   return(mean) ;
 }
 /*-----------------------------------------------------
@@ -15006,34 +15026,36 @@ int MRInormalizeFrames(MRI *mri)
 MRI *
 MRIzeroMean(MRI *mri_src, MRI *mri_dst)
 {
-  int     x, y, z ;
+  int     x, y, z, f ;
   double  mean ;
 
   if (mri_dst == NULL)
     mri_dst = MRIcopy(mri_src, NULL) ;
 
-  for (mean = 0.0, x = 0 ; x < mri_src->width ; x++)
-  {
-    for (y = 0 ; y < mri_src->height ; y++)
+  for (mean = 0.0, f = 0 ; f < mri_src->nframes ; f++)
+    for (x = 0 ; x < mri_src->width ; x++)
     {
-      for (z = 0 ; z < mri_src->height ; z++)
+      for (y = 0 ; y < mri_src->height ; y++)
       {
-        mean += MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        for (z = 0 ; z < mri_src->height ; z++)
+        {
+          mean += MRIgetVoxVal(mri_src, x, y, z, f) ;
+        }
       }
     }
-  }
-  mean /= (mri_src->width*mri_src->height*mri_src->depth) ;
-  for (x = 0 ; x < mri_src->width ; x++)
-  {
-    for (y = 0 ; y < mri_src->height ; y++)
+  mean /= (mri_src->width*mri_src->height*mri_src->depth*mri_src->nframes) ;
+  for (f = 0 ; f < mri_src->nframes ; f++)
+    for (x = 0 ; x < mri_src->width ; x++)
     {
-      for (z = 0 ; z < mri_src->height ; z++)
+      for (y = 0 ; y < mri_src->height ; y++)
       {
-        MRIsetVoxVal(mri_dst, x, y, z, 0, 
-                     MRIgetVoxVal(mri_src, x, y, z, 0)-mean) ;
+        for (z = 0 ; z < mri_src->height ; z++)
+        {
+          MRIsetVoxVal(mri_dst, x, y, z, f, 
+                       MRIgetVoxVal(mri_src, x, y, z, f)-mean) ;
+        }
       }
     }
-  }
   return(mri_dst) ;
 }
 
