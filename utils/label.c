@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:26 $
- *    $Revision: 1.81 $
+ *    $Author: fischl $
+ *    $Date: 2008/03/30 20:36:16 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -465,8 +465,8 @@ LabelWrite(LABEL *area, char *label_name)
   char   fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN] ;
 
   strcpy(lname, label_name) ;
-  cp = strstr(lname, ".label") ;
-  if (cp)
+  cp = strrchr(lname, '.') ;
+  if (cp && stricmp(cp, ".label"))
     *cp = 0 ;
   label_name = lname ;
   cp = strrchr(lname, '/') ;
