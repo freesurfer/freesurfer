@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/26 18:23:44 $
- *    $Revision: 1.605 $
+ *    $Author: fischl $
+ *    $Date: 2008/04/01 17:18:43 $
+ *    $Revision: 1.606 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.605 2008/03/26 18:23:44 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.606 2008/04/01 17:18:43 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61039,7 +61039,6 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
     x = v->x-WM_SAMPLE_DIST*v->nx ;
     y = v->y-WM_SAMPLE_DIST*v->ny ;
     z = v->z-WM_SAMPLE_DIST*v->nz ;
-    MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
     MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xw, &yw, &zw) ;
     
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
@@ -61051,13 +61050,12 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
     x = v->x+1.0*v->nx ;
     y = v->y+1.0*v->ny ;
     z = v->z+1.0*v->nz ;
-    MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
+    MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolume(mri, xw, yw, zw, &val) ;
     bin = nint(val - min_val) ;
     if (bin < 0 || bin >= h_gray->nbins)
       DiagBreak() ;
     h_gray->counts[bin]++ ;
-
   }
 
   if (pcsf_mode)
@@ -61075,22 +61073,30 @@ MRIScomputeClassModes(MRI_SURFACE *mris,
       x = v->x-0.5*v->nx ;
       y = v->y-0.5*v->ny ;
       z = v->z-0.5*v->nz ;
-      MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-      MRIsampleVolume(mri, xw, yw, zw, &val) ;
-      bin = nint(val - min_val) ;
-      if (bin < 0 || bin >= h_gray->nbins)
-        DiagBreak() ;
-      h_gray->counts[bin]++ ;
+      MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xw, &yw, &zw) ;
+      if (MRIindexNotInVolume(mri, xw, yw, zw) == 0)
+      {
+        MRIsampleVolume(mri, xw, yw, zw, &val) ;
+        bin = nint(val - min_val) ;
+        if (bin < 0 || bin >= h_gray->nbins)
+          DiagBreak() ;
+        h_gray->counts[bin]++ ;
+      }
 
       x = v->x+0.5*v->nx ;
       y = v->y+0.5*v->ny ;
       z = v->z+0.5*v->nz ;
-      MRISrasToVoxel(mris, mri, x, y, z, &xw, &yw, &zw);
-      MRIsampleVolume(mri, xw, yw, zw, &val) ;
-      bin = nint(val - min_val) ;
-      if (bin < 0 || bin >= h_gray->nbins)
-        DiagBreak() ;
-      h_csf->counts[bin]++ ;
+      MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xw, &yw, &zw) ;
+      if (MRIindexNotInVolume(mri, xw, yw, zw) == 0)
+      {
+        MRIsampleVolume(mri, xw, yw, zw, &val) ;
+        bin = nint(val - min_val) ;
+        if (bin < 0 || bin >= h_csf->nbins)
+          DiagBreak() ;
+        if (bin == 68)
+          DiagBreak() ;
+        h_csf->counts[bin]++ ;
+      }
     }
     HISTOclearZeroBin(h_csf) ;
     csf_peak = HISTOfindHighestPeakInRegion(h_csf, 0, h_csf->nbins) ;
