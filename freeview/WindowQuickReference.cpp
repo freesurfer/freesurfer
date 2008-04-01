@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/01 22:18:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,16 +28,22 @@
 #include <wx/xrc/xmlres.h>
 #include <wx/html/htmlwin.h>
 #include <wx/config.h>
+#include <wx/fs_mem.h>
 
 BEGIN_EVENT_TABLE( WindowQuickReference, wxFrame )
 	EVT_CLOSE		( WindowQuickReference::OnClose )
 END_EVENT_TABLE()
 
+#include "res/QuickRef.h"
 WindowQuickReference::WindowQuickReference( wxWindow* parent )
 {
 	wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_FRAME_QUICK_REFERENCE") );
 	m_wndHtml = XRCCTRL( *this, "ID_HTML_WINDOW", wxHtmlWindow );
-	m_wndHtml->LoadPage( "/autofs/homes/005/rpwang/bin_pub/QuickRef.html" );
+
+	wxFileSystem::AddHandler( new wxMemoryFSHandler );
+	wxMemoryFSHandler::AddFileWithMimeType( "QuickRef.html", QuickRef_binary, QuickRef_binary_LEN, _T("text/html") );
+	m_wndHtml->LoadPage( wxT("memory:QuickRef.html") );
+//	m_wndHtml->LoadPage( "/homes/5/rpwang/freesurfer/dev/freeview/res/QuickRef.html" );
 	wxConfigBase* config = wxConfigBase::Get();
 	if ( config )
 	{
@@ -45,6 +51,7 @@ WindowQuickReference::WindowQuickReference( wxWindow* parent )
 		int h = config->Read( _T("/QuickRefWindow/Height"), 520L );
 		SetSize( w, h );
 	}
+	wxMemoryFSHandler::RemoveFile( "QuickRef.html" );
 }
 
 void WindowQuickReference::OnClose( wxCloseEvent& event )

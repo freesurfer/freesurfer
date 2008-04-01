@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/01 22:18:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,10 +27,13 @@
 #ifndef MainWindow_h
 #define MainWindow_h
 
+#include <wx/wx.h>
 #include <wx/frame.h>
+#include <wx/dynarray.h>
 #include "Listener.h"
 #include "Broadcaster.h"
 #include "LayerCollectionManager.h"
+#include <vector>
 
 #define ID_WORKER_THREAD	wxID_HIGHEST + 1
 
@@ -147,7 +150,10 @@ public:
 	
 	static MainWindow* GetMainWindowPointer();
 
-	void NeedRedraw( int nCount = 2 );		
+	void NeedRedraw( int nCount = 2 );	
+		
+	void AddScript( const wxArrayString& script );
+	void RunScript(); 
 	
 protected:
 	void OnInternalIdle(); 
@@ -186,6 +192,8 @@ private:
 	bool			m_bSaving;
 	bool			m_bLoading;
     
+	std::vector<wxArrayString>	m_scripts;
+	
     DECLARE_CLASS( MainWindow )
     // any class wishing to process wxWindows events must use this macro
     DECLARE_EVENT_TABLE()

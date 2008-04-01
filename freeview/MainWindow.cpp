@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/01 22:18:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1173,7 +1173,9 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 				m_viewSagittal->SetInteractionMode( RenderView2D::IM_Navigate );
 			}
 			
-			m_controlPanel->UpdateUI();			
+			m_controlPanel->UpdateUI();	
+			
+			RunScript();		
 		}
 		else if ( event.GetInt() == 0 )		// just started
 		{
@@ -1263,4 +1265,51 @@ void MainWindow::LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, 
 	
 	WorkerThread* thread = new WorkerThread( this );
 	thread->LoadVolume( layer );
+}
+
+void MainWindow::AddScript( const wxArrayString& script )
+{
+	m_scripts.push_back( script );
+}
+
+void MainWindow::RunScript()
+{
+	if ( m_scripts.size() == 0 )
+		return;
+	
+	wxArrayString sa = m_scripts[0];
+	m_scripts.erase( m_scripts.begin() );
+	if ( sa[0] == "loadvolume" )
+	{
+		wxString strValue = sa[1];
+		int nColorMap = LayerPropertiesMRI::Grayscale;
+		int n = strValue.Find( ":" );
+		if ( n != wxNOT_FOUND )
+		{
+			wxString strg = strValue.Mid( n + 1 );
+			strValue = 	strValue.Left( n );	
+			if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
+			{
+				strg = strg.Mid( n + 1 ).Lower();
+				if ( strg == "heat" )
+					nColorMap = LayerPropertiesMRI::Heat;
+				else if ( strg == "jet" )
+					nColorMap = LayerPropertiesMRI::Jet;
+				else if ( strg == "lut" )
+					nColorMap = LayerPropertiesMRI::LUT;
+			}
+		}
+		bool bResample = true;
+		if ( sa.GetCount() > 2 && sa[2] == "nr" )
+			bResample = false;
+		LoadVolumeFile( strValue, bResample, nColorMap );
+	} 
+	else if ( sa[0] == "loaddti" )
+	{
+		bool bResample = true;
+		if ( sa.GetCount() > 3 && sa[3] == "nr" )
+			bResample = false;
+		if ( sa.GetCount() > 2 )
+			LoadDTIFile( sa[1], sa[2], bResample );
+	}
 }

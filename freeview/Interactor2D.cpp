@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/01 22:18:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,8 +57,10 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 		m_nDownPosX = m_nMousePosX;
 		m_nDownPosY = m_nMousePosY;
 		
-		if ( event.ControlDown() )
-			m_bChangeSlice = true;
+	//	if ( event.ControlDown() )
+	//		m_bChangeSlice = true;
+		if ( event.ShiftDown() )
+			m_bWindowLevel = true;
 		else 
 		{
 			view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );

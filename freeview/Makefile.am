@@ -91,6 +91,8 @@ freeview_SOURCES=\
 	MainWindow.h \
 	MyUtils.cpp \
 	MyUtils.h \
+	MyCmdLineParser.cpp \
+	MyCmdLineParser.h \
 	PanelROI.cpp \
 	PanelROI.h \
 	PanelVolume.cpp \
