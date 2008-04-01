@@ -8,8 +8,8 @@
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/27 05:25:11 $
-#    $Revision: 1.7 $
+#    $Date: 2008/04/01 17:29:30 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,14 +25,14 @@
 #
 
 
-set VERSION = '$Id: mris_volsmooth,v 1.7 2008/02/27 05:25:11 greve Exp $'
+set VERSION = '$Id: mris_volsmooth,v 1.8 2008/04/01 17:29:30 greve Exp $'
 set invol  = ();
 set reg = ();
 set outvol = ();
 set fwhm   = ();
 set niters = ();
 set volfwhm = ();
-set projfrac = 0.5;
+set projfrac = ();
 set pfa_min   = ();
 set pfa_max   = ();
 set pfa_delta = ();
@@ -322,6 +322,7 @@ if($#projfrac && $#pfa_min) then
   echo "ERROR: cannot specify both --projfrac and --projfrac-avg"
   exit 1;
 endif
+if($#projfrac == 0 && $#pfa_min == 0) set projfrac = 0.5;
 
 goto check_params_return;
 ############--------------##################
