@@ -13,9 +13,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:29 $
- *    $Revision: 1.124 $
+ *    $Author: fischl $
+ *    $Date: 2008/04/01 17:18:11 $
+ *    $Revision: 1.125 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@ using namespace std;
 int const ScubaView::kBytesPerPixel = 4;
 map<int,bool> ScubaView::mViewIDLinkedList;
 Point3<float> ScubaView::mCursor( 0, 0, 0 );
-int ScubaView::mcMarkers = 50;
+int ScubaView::mcMarkers = 25000;
 int ScubaView::mNextMarker = 0;
 std::map<int,Point3<float> > ScubaView::mMarkerRAS;
 std::map<int,bool> ScubaView::mMarkerVisible;
