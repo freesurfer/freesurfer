@@ -5,11 +5,11 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:45:31 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/04/01 17:41:24 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.12 2007/10/26 12:45:31 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.13 2008/04/01 17:41:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,6 +87,8 @@ static int quadfit = 0 ;
 static int polyfit = 0 ;
 static int extra = 0 ;
 
+static float norm_max = 0 ;
+
 /* The following specifies the src and dst volumes of the input FSL/LTA transform */
 MRI          *lta_src = 0;
 MRI          *lta_dst = 0;
@@ -103,7 +105,7 @@ main(int argc, char *argv[]) {
   MRI           *mri, *mri_profiles ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.12 2007/10/26 12:45:31 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.13 2008/04/01 17:41:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -463,6 +465,10 @@ get_option(int argc, char *argv[]) {
     strcpy(white_name, argv[2]) ;
     fprintf(stderr,  "reading white surface from file named %s\n", white_name) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "norm_max")) {
+    norm_max = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have max value %2.3f\n", norm_max) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "wmnorm")) {
     wm_norm_fname = argv[2] ;
     fprintf(stderr,  "reading wm normalization volume from %s\n", wm_norm_fname) ;
@@ -657,6 +663,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
   white_mode, gray_mode, min_gray, max_gray, csf_mode, min_gray_at_wm ;
   Real    x, y, z, xv, yv, zv, val ;
   MRI     *mri_profiles ;
+  float   scale = 1 ;
 
   MRIScomputeClassModes(mris, mri, &white_mode, &gray_mode, &csf_mode) ;
   min_gray = (gray_mode + 2*csf_mode)/3 ;
@@ -666,6 +673,14 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
   mri_profiles = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, max_samples) ;
 
   /* current vertex positions are gray matter, orig are white matter */
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    MRISsurfaceRASToVoxelCached(mris, mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
+    if (MRIindexNotInVolume(mri, xv, yv, zv))
+      v->ripflag = 1 ;
+  }
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     if (!(vno % 25000))
       fprintf(stdout, "%d of %d vertices processed\n", vno,mris->nvertices) ;
@@ -766,6 +781,9 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
         z = v->origz + d*dz ;
         MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
+        if (norm_max > 0 && nsamples == 0)
+          scale = norm_max/val ;
+        val *= scale ;
         MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
       }
     } else {
@@ -785,6 +803,9 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
           z = v->origz + d*dz ;
           MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
           MRIsampleVolume(mri, xv, yv, zv, &val) ;
+          if (norm_max > 0 && nsamples == 0)
+            scale = norm_max/val ;
+          val *= scale ;
           MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
         }
       }
@@ -843,6 +864,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
     if (v->ripflag == 2)
       v->ripflag = 1 ;
   }
+  //  MRISunrip(mris) ;
   return(mri_profiles) ;
 }
 static MRI *
