@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/03/06 04:48:14 $
-#    $Revision: 1.7 $
+#    $Date: 2008/04/01 20:18:40 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.7 2008/03/06 04:48:14 greve Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.8 2008/04/01 20:18:40 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -108,6 +108,7 @@ tee $MLF > /dev/null <<EOF
   monly     = $monly;
   DoGradient  = [$DoGradient];
   MergeFileList = splitstring('$MergeFileList');
+  monly = [$monly];
 
   mc = textread(mcfile);
   mc = mc(:,2:7);
@@ -208,7 +209,7 @@ tee $MLF > /dev/null <<EOF
 
 EOF
 #------------------------------------------#
-
+if(! $monly ) echo "quit;" >> $MLF
 
 echo "----------- Matlab file --------------" | tee -a $LF
 cat $MLF | tee -a $LF

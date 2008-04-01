@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.14 $
+#    $Author: greve $
+#    $Date: 2008/04/01 20:23:06 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: selxavg2,v 1.14 2007/01/09 22:41:18 nicks Exp $'
+set VERSION = '$Id: selxavg2,v 1.15 2008/04/01 20:23:06 greve Exp $'
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;
@@ -215,6 +215,7 @@ echo "if(r==0)" >> $MLF;
 echo "  fmri_touch('$okfile');" >> $MLF;
 echo "end" >> $MLF;
 echo "qoe;" >> $MLF;
+if(! $monly ) echo "quit;" >> $MLF
 
 echo "----------- Matlab file --------------" | tee -a $LF
 cat $MLF | tee -a $LF
