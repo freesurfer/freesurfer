@@ -22,9 +22,9 @@
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.11 $
+%    $Author: greve $
+%    $Date: 2008/04/02 18:01:09 $
+%    $Revision: 1.12 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -191,7 +191,7 @@ for nthsess = 1:nsess
         beta = reshape(beta,[nv nbeta])';
         rvar = reshape(rvar,[nv 1])';
         
-	ind = find(rvar == 0);
+	ind = find(rvar == 0 | isnan(rvar));
         rvar(ind) = 10e10;
 
         % Load mean offset %
@@ -323,6 +323,8 @@ for nthsess = 1:nsess
           if(J>1) F = (sum(ces .* (cescvm*ces))./rvar)/J;
           else    F = t.^2;
           end
+	  ind = find(isnan(F));
+	  F(ind) = 0;
           Fsig = FTest(J, DOF, F, FTestDOFMax);
 
           Fstem = sprintf('%s/f%s',condir,hemicode);
