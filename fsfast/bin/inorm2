@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.5 $
+#    $Author: greve $
+#    $Date: 2008/04/02 21:56:21 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: inorm2,v 1.5 2007/01/09 22:41:17 nicks Exp $';
+set VERSION = '$Id: inorm2,v 1.6 2008/04/02 21:56:21 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -207,6 +207,16 @@ check_params:
     exit 1;
   endif
   if($#meanvalfile == 0) set meanvalfile = $instem.meanval
+
+  if($#maskstem) then
+    set tmp = `stem2fname $maskstem`;
+    if($status) then
+      echo "$tmp"
+      echo "$maskstem may not exist"
+      pwd
+      exit 1;
+    endif
+  endif
 
 goto check_params_return;
 ############--------------##################
