@@ -15,8 +15,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/02 22:24:06 $
- *    $Revision: 1.28 $
+ *    $Date: 2008/04/02 22:26:31 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
   Author:  Douglas N. Greve
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    1/2/00
-  $Id: mri_vol2roi.c,v 1.28 2008/04/02 22:24:06 greve Exp $
+  $Id: mri_vol2roi.c,v 1.29 2008/04/02 22:26:31 greve Exp $
 */
 
 #include <stdio.h>
@@ -90,7 +90,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.28 2008/04/02 22:24:06 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.29 2008/04/02 22:26:31 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
   //int endian,roitype;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.28 2008/04/02 22:24:06 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.29 2008/04/02 22:26:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -705,6 +705,8 @@ static void print_usage(void) {
   printf("\n");
   printf("   --roiavgtxt fname :output text file for ROI average\n");
   printf("   --roiavg    stem : output stem or stem.ext for ROI average\n");
+  printf("   --list listfile : save ROI voxel values in text file.\n");
+  printf("\n");
   printf("   --finalmskvol path in which to save final mask\n");
   printf("   --finalmskcrs fname: save col,row,slice in text fname\n");
   printf("   --srcmskvol path in which to save masked source\n");
