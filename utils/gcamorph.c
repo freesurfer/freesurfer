@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/22 01:40:23 $
- *    $Revision: 1.135 $
+ *    $Date: 2008/04/02 11:59:49 $
+ *    $Revision: 1.136 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3337,12 +3337,11 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
   height = mri_in->height ;
   depth = mri_in->depth ;
   thick = mri_in->thick ;
-#define SCALE_FACTOR 25.0f  /* so we can use byte images for float values */
 
   // uses the input volume size
-  mri_weights = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  mri_weights = MRIalloc(width, height, depth, MRI_FLOAT) ;
   MRIcopyHeader(mri_in, mri_weights);
-  mri_s_morphed = MRIalloc(width, height, depth, MRI_SHORT) ;
+  mri_s_morphed = MRIalloc(width, height, depth, MRI_FLOAT) ;
   MRIcopyHeader(mri_in, mri_s_morphed);
 
   // loop over input volume indices
@@ -3352,6 +3351,9 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
     {
       for (z = 0 ; z < depth ; z++)
       {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+
         /* compute voxel coordinates of this morph point */
         if (!GCAMsampleMorph(gcam, 
                              (float)x*thick, (float)y*thick, (float)z*thick,
@@ -3389,37 +3391,53 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
           dz = zd - zm1 ;
 
           /* now compute contribution to each of 8 nearest voxels */
+          if (xm1 == Gx && ym1 == Gy && zm1 == Gz)
+            DiagBreak() ;
           weight = (1-dx) * (1-dy) * (1-dz) ;
-          MRISvox(mri_s_morphed,xm1,ym1,zm1) += weight * orig_val ;
-          MRIvox(mri_weights,xm1,ym1,zm1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xm1,ym1,zm1) += weight * orig_val ;
+          MRIFvox(mri_weights,xm1,ym1,zm1) += weight ;
 
+          if (xp1 == Gx && ym1 == Gy && zm1 == Gz)
+            DiagBreak() ;
           weight = (dx) * (1-dy) * (1-dz) ;
-          MRISvox(mri_s_morphed,xp1,ym1,zm1) += weight * orig_val ;
-          MRIvox(mri_weights,xp1,ym1,zm1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xp1,ym1,zm1) += weight * orig_val ;
+          MRIFvox(mri_weights,xp1,ym1,zm1) += weight ;
 
+          if (xm1 == Gx && yp1 == Gy && zm1 == Gz)
+            DiagBreak() ;
           weight = (1-dx) * (dy) * (1-dz) ;
-          MRISvox(mri_s_morphed,xm1,yp1,zm1) += weight * orig_val ;
-          MRIvox(mri_weights,xm1,yp1,zm1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xm1,yp1,zm1) += weight * orig_val ;
+          MRIFvox(mri_weights,xm1,yp1,zm1) += weight ;
 
+          if (xm1 == Gx && ym1 == Gy && zp1 == Gz)
+            DiagBreak() ;
           weight = (1-dx) * (1-dy) * (dz) ;
-          MRISvox(mri_s_morphed,xm1,ym1,zp1) += weight * orig_val ;
-          MRIvox(mri_weights,xm1,ym1,zp1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xm1,ym1,zp1) += weight * orig_val ;
+          MRIFvox(mri_weights,xm1,ym1,zp1) += weight ;
 
+          if (xp1 == Gx && yp1 == Gy && zm1 == Gz)
+            DiagBreak() ;
           weight = (dx) * (dy) * (1-dz) ;
-          MRISvox(mri_s_morphed,xp1,yp1,zm1) += weight * orig_val ;
-          MRIvox(mri_weights,xp1,yp1,zm1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xp1,yp1,zm1) += weight * orig_val ;
+          MRIFvox(mri_weights,xp1,yp1,zm1) += weight ;
 
+          if (xp1 == Gx && ym1 == Gy && zp1 == Gz)
+            DiagBreak() ;
           weight = (dx) * (1-dy) * (dz) ;
-          MRISvox(mri_s_morphed,xp1,ym1,zp1) += weight * orig_val ;
-          MRIvox(mri_weights,xp1,ym1,zp1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xp1,ym1,zp1) += weight * orig_val ;
+          MRIFvox(mri_weights,xp1,ym1,zp1) += weight ;
 
+          if (xm1 == Gx && yp1 == Gy && zp1 == Gz)
+            DiagBreak() ;
           weight = (1-dx) * (dy) * (dz) ;
-          MRISvox(mri_s_morphed,xm1,yp1,zp1) += weight * orig_val ;
-          MRIvox(mri_weights,xm1,yp1,zp1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xm1,yp1,zp1) += weight * orig_val ;
+          MRIFvox(mri_weights,xm1,yp1,zp1) += weight ;
 
+          if (xp1 == Gx && yp1 == Gy && zp1 == Gz)
+            DiagBreak() ;
           weight = (dx) * (dy) * (dz) ;
-          MRISvox(mri_s_morphed,xp1,yp1,zp1) += weight * orig_val ;
-          MRIvox(mri_weights,xp1,yp1,zp1) += nint(weight * SCALE_FACTOR) ;
+          MRIFvox(mri_s_morphed,xp1,yp1,zp1) += weight * orig_val ;
+          MRIFvox(mri_weights,xp1,yp1,zp1) += weight ;
         }
       }
     }
@@ -3432,13 +3450,15 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
     {
       for (z = 0 ; z < depth ; z++)
       {
-        weight = (float)MRIvox(mri_weights,x,y,z) / SCALE_FACTOR ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        weight = (float)MRIFvox(mri_weights,x,y,z) ;
         if (!FZERO(weight))
         {
-          val = (Real)MRISvox(mri_s_morphed,x,y,z) / weight ;
+          val = (Real)MRIFvox(mri_s_morphed,x,y,z) / weight ;
           if (val > 255.0)
             val = 255.0 ;
-          MRISvox(mri_s_morphed,x,y,z) = (short)nint(val) ;
+          MRIFvox(mri_s_morphed,x,y,z) = (short)nint(val) ;
         }
       }
     }
@@ -3455,16 +3475,18 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
     {
       for (z = 0 ; z < depth ; z++)
       {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         switch (mri_morphed->type)
         {
         case MRI_UCHAR:
-          MRIvox(mri_morphed,x,y,z) = (BUFTYPE)MRISvox(mri_s_morphed,x,y,z) ;
+          MRIvox(mri_morphed,x,y,z) = (BUFTYPE)MRIFvox(mri_s_morphed,x,y,z) ;
           break ;
         case MRI_SHORT:
-          MRISvox(mri_morphed,x,y,z) = MRISvox(mri_s_morphed,x,y,z) ;
+          MRISvox(mri_morphed,x,y,z) = MRIFvox(mri_s_morphed,x,y,z) ;
           break ;
         case MRI_FLOAT:
-          MRIFvox(mri_morphed,x,y,z) = (float)MRISvox(mri_s_morphed,x,y,z) ;
+          MRIFvox(mri_morphed,x,y,z) = (float)MRIFvox(mri_s_morphed,x,y,z) ;
           break ;
         default:
           ErrorReturn(NULL,
@@ -3480,7 +3502,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
   MRIfree(&mri_s_morphed) ;
 
   /* run soap bubble to fill in remaining holes */
-#if 0
+#if 1
   mri_ctrl = MRIclone(mri_in, NULL) ;
 #else
   mri_ctrl = mri_weights ;
@@ -3491,7 +3513,9 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
     {
       for (z = 0 ; z < depth ; z++)
       {
-        weight = (float)MRIvox(mri_weights,x,y,z) / SCALE_FACTOR ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        weight = (float)MRIFvox(mri_weights,x,y,z) ;
         if (weight > .1)
           MRIvox(mri_ctrl, x, y, z) = 1 ;
         else
@@ -3500,7 +3524,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
     }
   }
 
-#if 0
+#if 1
   MRIfree(&mri_weights) ;
 #endif
   MRIbuildVoronoiDiagram(mri_morphed, mri_ctrl, mri_morphed) ;
