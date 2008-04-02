@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/08 09:53:52 $
- *    $Revision: 1.42 $
+ *    $Date: 2008/04/02 23:03:20 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $
+  $Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $
 
 */
 
@@ -433,7 +433,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -489,6 +489,7 @@ int DoDelta  = 0;
 char tmpstr[2000];
 
 int DoMorph = 0;
+int InvertMorph = 0;
 TRANSFORM *Rtransform;  //types : M3D, M3Z, LTA, FSLMAT, DAT, OCT(TA), XFM
 GCAM      *gcam;
 char gcamfile[1000];
@@ -520,12 +521,12 @@ int main(int argc, char **argv) {
   int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.42 2008/03/08 09:53:52 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -733,7 +734,8 @@ int main(int argc, char **argv) {
     printf("Reading gcam\n");
     sprintf(gcamfile,"%s/%s/mri/transforms/%s",
 	    SUBJECTS_DIR,subject,m3zfile);
-    gcam = GCAMread(gcamfile);
+    if(!InvertMorph) gcam = GCAMread(gcamfile);
+    else             gcam = GCAMreadAndInvert(gcamfile);
     if(gcam == NULL) exit(1);
 
     printf("Applying reg to gcam\n");
@@ -742,6 +744,7 @@ int main(int argc, char **argv) {
     printf("Applying morph to input\n");
     out = GCAMmorphToAtlas(in, gcam, NULL, -1, interpcode);
 
+    if(0){
     printf("Extracting region\n");
     region.x = 51;
     region.y = 0;
@@ -752,6 +755,7 @@ int main(int argc, char **argv) {
     tmpmri = MRIextractRegion(out, NULL, &region) ;
     MRIfree(&out);
     out = tmpmri;
+    }
   }
 
   if(SegRegCostFile){
@@ -844,6 +848,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
+      fstarg = 1;
+    } else if (!strcasecmp(option, "--inv-morph")) {
+      DoMorph = 1;
+      InvertMorph = 1;
       fstarg = 1;
     } else if (istringnmatch(option, "--m3z",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -1414,6 +1422,11 @@ static void dump_options(FILE *fp) {
   if (interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
   fprintf(fp,"precision  %s (%d)\n",precision,precisioncode);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
+
+  if(DoMorph){
+    fprintf(fp,"Morphing\n");
+    fprintf(fp,"InvertMorph %d\n",InvertMorph);
+  }
 
   fprintf(fp,"Synth      %d\n",synth);
   fprintf(fp,"SynthSeed  %d\n",SynthSeed);
