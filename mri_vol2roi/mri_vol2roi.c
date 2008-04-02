@@ -15,8 +15,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/16 03:51:01 $
- *    $Revision: 1.27 $
+ *    $Date: 2008/04/02 22:24:06 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
   Author:  Douglas N. Greve
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    1/2/00
-  $Id: mri_vol2roi.c,v 1.27 2008/01/16 03:51:01 greve Exp $
+  $Id: mri_vol2roi.c,v 1.28 2008/04/02 22:24:06 greve Exp $
 */
 
 #include <stdio.h>
@@ -90,7 +90,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.27 2008/01/16 03:51:01 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.28 2008/04/02 22:24:06 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -153,6 +153,7 @@ char *talxfm = "talairach.xfm";
 
 int bfiletype;
 char *outext = NULL;
+char *ListFile = NULL;
 
 /*---------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -168,7 +169,7 @@ int main(int argc, char **argv) {
   //int endian,roitype;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.27 2008/01/16 03:51:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.28 2008/04/02 22:24:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -388,7 +389,7 @@ int main(int argc, char **argv) {
     for (r=0;r<mFinalMskVol->height;r++) {
       for (c=0;c<mFinalMskVol->width;c++) {
         for (s=0;s<mFinalMskVol->depth;s++) {
-          val = MRIFseq_vox(mFinalMskVol,c,r,s,0);
+          val = MRIgetVoxVal(mFinalMskVol,c,r,s,0);
           if (val > 0.5) nfinalhits ++;
         }
       }
@@ -427,7 +428,7 @@ int main(int argc, char **argv) {
     for (r=0;r<mFinalMskVol->height;r++) {
       for (c=0;c<mFinalMskVol->width;c++) {
         for (s=0;s<mFinalMskVol->depth;s++) {
-          val = MRIFseq_vox(mFinalMskVol,c,r,s,0);
+          val = MRIgetVoxVal(mFinalMskVol,c,r,s,0);
           if (val > 0.5) {
             fprintf(fp,"%d %d %d\n",c,r,s);
           }
@@ -447,17 +448,19 @@ int main(int argc, char **argv) {
   }
 
   /* save the target volume in an appropriate format */
-  sprintf(tmpstr,"%s.%s",roifile,outext);
-  MRIwrite(mROI,tmpstr);
-  /* for a stat volume, save the .dat file */
-  if (is_sxa_volume(srcvolid)) {
-    sxa->nrows = 1;
-    sxa->ncols = 1;
-    sv_sxadat_by_stem(sxa,roifile);
+  if(roifile != NULL){
+    sprintf(tmpstr,"%s.%s",roifile,outext);
+    MRIwrite(mROI,tmpstr);
+    /* for a stat volume, save the .dat file */
+    if (is_sxa_volume(srcvolid)) {
+      sxa->nrows = 1;
+      sxa->ncols = 1;
+      sv_sxadat_by_stem(sxa,roifile);
+    }
   }
 
   /* save as text */
-  if (roitxtfile != NULL) {
+  if(roitxtfile != NULL) {
     fp = fopen(roitxtfile,"w");
     if (fp==NULL) {
       fprintf(stderr,"ERROR: cannot open %s\n",roitxtfile);
@@ -472,7 +475,7 @@ int main(int argc, char **argv) {
       fprintf(fp,"%d \n",nfinalhits);
     }
     for (f=0; f < mROI->nframes; f++)
-      fprintf(fp,"%9.4f\n",MRIFseq_vox(mROI,0,0,0,f));
+      fprintf(fp,"%9.4f\n",MRIgetVoxVal(mROI,0,0,0,f));
     fclose(fp);
   }
 
@@ -481,7 +484,7 @@ int main(int argc, char **argv) {
     for (r=0;r<mFinalMskVol->height;r++) {
       for (c=0;c<mFinalMskVol->width;c++) {
         for (s=0;s<mFinalMskVol->depth;s++) {
-          val = MRIFseq_vox(mFinalMskVol,c,r,s,0);
+          val = MRIgetVoxVal(mFinalMskVol,c,r,s,0);
           if (val < 0.5) {
             for (f=0; f < mROI->nframes; f++)
               MRIFseq_vox(mSrcVol,c,r,s,f) = 0.0;
@@ -490,6 +493,26 @@ int main(int argc, char **argv) {
       }
     }
     MRIwrite(mSrcVol,srcmskvolid);
+  }
+
+  /* ------- Save as a text list  ------------------ */
+  if (ListFile != 0) {
+    fp = fopen(ListFile,"w");
+    for (c=0;c<mFinalMskVol->width;c++) {
+      for (r=0;r<mFinalMskVol->height;r++) {
+        for (s=0;s<mFinalMskVol->depth;s++) {
+          val = MRIFseq_vox(mFinalMskVol,c,r,s,0);
+          if(val < 0.5) continue;
+	  fprintf(fp,"%3d %3d %3d ",c,r,s);
+	  for (f=0; f < mROI->nframes; f++){
+	    val = MRIgetVoxVal(mSrcVol,c,r,s,f);
+	    fprintf(fp,"%f ",val);
+          }
+	  fprintf(fp,"\n");
+        }
+      }
+    }
+    fclose(fp);
   }
 
   return(0);
@@ -591,6 +614,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--mskvol")) {
       if (nargc < 1) argnerr(option,1);
       mskvolid = IDnameFromStem(pargv[0]);
+      if(mskvolid == NULL) mskvolid = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--mskfmt")) {
       if (nargc < 1) argnerr(option,1);
@@ -629,11 +653,15 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--srcmskvol")) {
       if (nargc < 1) argnerr(option,1);
-      srcmskvolid = IDnameFromStem(pargv[0]);
+      srcmskvolid = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--finalmskcrs")) {
       if (nargc < 1) argnerr(option,1);
       finalmskcrs = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--list")) {
+      if (nargc < 1) argnerr(option,1);
+      ListFile = pargv[0];
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -811,6 +839,14 @@ static void print_help(void) {
     "Save the column, row, and slice of the voxels in the mask in a text\n"
     "file. The indicies are zero-based.\n"
     "\n"
+    "--list list.txt\n"
+    "\n"
+    "Save the values in the ROI on a voxel-by-voxel basis. The first\n"
+    "three numbers will be the 0-based column, row, and slice of the\n"
+    "voxel. The following numbers will be the value at each frame. There\n"
+    "will be as many rows as voxels in the ROI. Eg:\n"
+    "  mri_vol2roi --srcvol beta.nii --list list.dat --mskvol mask.nii\n"
+    "\n"
     "CREATING A BINARY MASK VOLUME FROM A LABEL\n"
     "\n"
     "mri_vol2roi can be used to create a binary mask volume, ie, a volume\n"
@@ -857,8 +893,8 @@ static void check_options(void) {
     fprintf(stderr,"A source volume path must be supplied\n");
     exit(1);
   }
-  if (roifile == NULL) {
-    fprintf(stderr,"A ROI output path must be supplied\n");
+  if(roifile == NULL && roitxtfile == NULL && ListFile == NULL) {
+    fprintf(stderr,"ERROR: No output specified\n");
     exit(1);
   }
 
