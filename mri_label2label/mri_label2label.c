@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/08/10 18:23:46 $
- *    $Revision: 1.33 $
+ *    $Author: fischl $
+ *    $Date: 2008/04/03 13:28:32 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.33 2007/08/10 18:23:46 greve Exp $
+  $Id: mri_label2label.c,v 1.34 2008/04/03 13:28:32 fischl Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -98,10 +98,11 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.33 2007/08/10 18:23:46 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.34 2008/04/03 13:28:32 fischl Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
+static char  *sample_surf_file = NULL ;
 LABEL *srclabel     = NULL;
 LABEL *tmplabel     = NULL;
 char  *srcsubject   = NULL;
@@ -176,7 +177,7 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.33 2007/08/10 18:23:46 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.34 2008/04/03 13:28:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -630,6 +631,18 @@ int main(int argc, char **argv) {
       exit(1);
     }
   } else {
+    if (sample_surf_file)
+    {
+      MRI_SURFACE *mris ;
+      mris = MRISread(sample_surf_file) ;
+      if (mris == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not load sampling surface %s",
+                  sample_surf_file) ;
+      printf("sampling label onto surface %s...\n", sample_surf_file) ;
+      LabelUnassign(trglabel) ;
+      LabelFillUnassignedVertices(mris, trglabel, CURRENT_VERTICES);
+      MRISfree(&mris) ;
+    }
     printf("Writing label file %s \n",trglabelfile);
     if (LabelWrite(trglabel,trglabelfile))
       printf("ERROR: writing label file\n");
@@ -687,6 +700,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--srclabel")) {
       if (nargc < 1) argnerr(option,1);
       srclabelfile = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--sample")) {
+      if (nargc < 1) argnerr(option,1);
+      sample_surf_file = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--srcicoorder")) {
       if (nargc < 1) argnerr(option,1);
@@ -819,6 +836,7 @@ static void print_usage(void) {
   printf("   --s subject : use for both target and source\n");
   printf("\n");
   printf("   --trglabel     output label file \n");
+  printf("   --sample       output subject surface : sample label onto surface \n");
   printf("   --outmask      maskfile : save output label as a binary mask (surf only)\n");
   printf("\n");
   printf("   --regmethod    registration method (surface, volume) \n");
