@@ -23,9 +23,9 @@
 #
 # Original author: Xiao Han
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/03/13 15:54:19 $
-#    $Revision: 1.15 $
+#    $Author: fischl $
+#    $Date: 2008/04/03 00:45:09 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.15 2008/03/13 15:54:19 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.16 2008/04/03 00:45:09 fischl Exp $';
 
 #set echo=1
 
@@ -164,7 +164,7 @@ if ("$1" == "2") goto stage2
 echo "$canorm each subject using its ${SEG_VOL}, producing ${T1_VOL}..."
 foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
-    if(-e $mridir/${T1_VOL}) rm -f $mridir/${T1_VOL}
+    if($RunIt & -e $mridir/${T1_VOL}) rm -f $mridir/${T1_VOL}
 
     set cmd=($canorm -mask $mridir/${MASK_VOL})
     set cmd=($cmd -seg $mridir/${SEG_VOL})
@@ -230,27 +230,11 @@ foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
     mkdir -p $mridir/transforms
     set tdir=($mridir/transforms)
-    if ( -e $tdir/${LTA_ONE} ) rm -f $tdir/${LTA_ONE}
+    if ( $RunIt & -e $tdir/${LTA_ONE} ) rm -f $tdir/${LTA_ONE}
 
     set cmd=($emreg -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${LTA_ONE})
-    echo $cmd >>& $LF
-    if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
-end
-echo "\n\n" >>& $LF
-# wait until the registration is done
-foreach subject (${SUBJECTS})
-    set TEST = 0
-    if ($RunIt) set TEST = 1
-    while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/transforms/${LTA_ONE}) then
-            set TEST = 0
-        else
-            sleep 30
-        endif
-    end
-    echo "\t...finished $emreg on subject $subject" >>& $LF
-end
+
 ##########################################################################
 
 
@@ -259,31 +243,12 @@ end
 #
 # normalization by GCA_ONE
 #
-echo "$canorm each subject using one-subject GCA, producing ${T1_VOL}..."
-foreach subject (${SUBJECTS})
-    set mridir=(${SUBJECTS_DIR}/$subject/mri)
-    if ( -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
+    if ($RunIt &  -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
 
-    set cmd=($canorm -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
+    set cmd=($cmd; $canorm -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${LTA_ONE})
     set cmd=($cmd $mridir/${T1_VOL})
-    echo $cmd >>& $LF
-    if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
-end
-echo "\n\n" >>& $LF
-# wait until the normalization is done
-foreach subject (${SUBJECTS})
-    set TEST = 0
-    if ($RunIt) set TEST = 1
-    while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL}) then
-            set TEST = 0
-        else
-            sleep 30
-        endif
-    end
-    echo "\t...finished $canorm on subject $subject" >>& $LF
-end
+
 ##########################################################################
 
 
@@ -292,12 +257,9 @@ end
 #
 # CA_registration by GCA_ONE
 #
-echo "$careg each subject to one-subj GCA, producing transforms/${M3D_ONE}..."
-foreach subject (${SUBJECTS})
-    set mridir=(${SUBJECTS_DIR}/$subject/mri)
-    if ( -e  $mridir/transforms/${M3D_ONE}) rm -f $mridir/transforms/${M3D_ONE}
+    if ($RunIt &  -e  $mridir/transforms/${M3D_ONE}) rm -f $mridir/transforms/${M3D_ONE}
 
-    set cmd=($careg -align-after -smooth 1.0 -levels 2 -mask $mridir/${MASK_VOL})
+    set cmd=($cmd; $careg -align-after -smooth 1.0 -levels 2 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA_ONE} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${M3D_ONE})
     echo $cmd >>& $LF
@@ -334,7 +296,7 @@ stage2:
 #
 # TRAIN FROM SEGMENTED_SUBJECTS USING M3D_ONE
 #
-if (-e ${GCA} ) rm -f ${GCA}
+if ($RunIt & -e ${GCA} ) rm -f ${GCA}
 
 echo "$train using all subjects, using ${M3D_ONE}, producing ${GCA}..."
 set cmd=($train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
@@ -354,6 +316,14 @@ echo "\t...finished $train, produced ${GCA}" >>& $LF
 ##########################################################################
 
 
+##########################################################################
+
+
+#
+# may want to restart here
+# to start-up here, use '3' as the input arg. default is run both stages.
+#
+stage3:
 
 ##########################################################################
 #
@@ -364,28 +334,11 @@ echo "$emreg each subject to GCA, producing transforms/${LTA}..."
 foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
     set tdir=($mridir/transforms)
-    if ( -e $tdir/${LTA} ) rm -f $tdir/${LTA}
+    if ($RunIt & -e $tdir/${LTA} ) rm -f $tdir/${LTA}
 
     set cmd=($emreg -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA})
     set cmd=($cmd $mridir/transforms/${LTA})
-    echo $cmd >>& $LF
-    if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
-end
-echo "\n\n" >>& $LF
-# wait until the registration is done
-foreach subject (${SUBJECTS})
-    set TEST = 0
-    if ($RunIt) set TEST = 1
-    while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/transforms/${LTA}) then
-            set TEST = 0
-        else
-            sleep 30
-        endif
-    end
-    echo "\t...finished $emreg on subject $subject" >>& $LF
-end
 ##########################################################################
 
 
@@ -394,31 +347,11 @@ end
 #
 # normalization by GCA
 #
-echo "$canorm each subject using GCA, producing ${T1_VOL}..."
-foreach subject (${SUBJECTS})
-    set mridir=(${SUBJECTS_DIR}/$subject/mri)
-    if ( -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
+    if ($RunIt &  -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
 
-    set cmd=($canorm -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
+    set cmd=($cmd ; $canorm -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA} $mridir/transforms/${LTA})
     set cmd=($cmd $mridir/${T1_VOL})
-    echo $cmd >>& $LF
-    if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
-end
-echo "\n\n" >>& $LF
-# wait until the normalization is done
-foreach subject (${SUBJECTS})
-    set TEST = 0
-    if ($RunIt) set TEST = 1
-    while($TEST)
-        if(-e ${SUBJECTS_DIR}/$subject/mri/${T1_VOL}) then
-            set TEST = 0
-        else
-            sleep 30
-        endif
-    end
-    echo "\t...finished $canorm on subject $subject" >>& $LF
-end
 ##########################################################################
 
 
@@ -427,12 +360,9 @@ end
 #
 # CA_registration by GCA
 #
-echo "$careg each subject to GCA, producing transforms/${M3D}..."
-foreach subject (${SUBJECTS})
-    set mridir=(${SUBJECTS_DIR}/$subject/mri)
-    if ( -e $mridir/transforms/${M3D} ) rm -f $mridir/transforms/${M3D}
+    if ($RunIt & -e $mridir/transforms/${M3D} ) rm -f $mridir/transforms/${M3D}
 
-    set cmd=($careg -align-after -smooth 1.0 -mask $mridir/${MASK_VOL})
+    set cmd=($cmd ; $careg -align-after -smooth 1.0 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA} $mridir/transforms/${M3D})
     echo $cmd >>& $LF
@@ -460,7 +390,7 @@ end
 #
 # RETRAIN GCA USING M3D
 #
-rm -f ${GCA}
+if ($RunIt) rm -f ${GCA}
 
 echo "$train, using ${M3D}, producing ${GCA}..."
 set cmd=($train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
@@ -478,7 +408,7 @@ while($TEST)
 end
 echo "\t...finished $train, produced final $GCA" >>& $LF
 
-rm -f ${GCA_SKULL}
+if ($RunIt) rm -f ${GCA_SKULL}
 
 echo "$train, using ${LTA}, producing ${GCA_SKULL}..."
 set cmd=($train -prior_spacing 2 -node_spacing 4)
@@ -540,7 +470,7 @@ foreach subject (${SUBJECTS})
     echo "\t...subject $subject has orig.mgz"
 end
 foreach subject (${SUBJECTS})
-    rm -f ${SUBJECTS_DIR}/$subject/mri/brain.mgz
+    if ($RunIt) rm -f ${SUBJECTS_DIR}/$subject/mri/brain.mgz
     set cmd=(recon-all -s $subject)
     set cmd=($cmd -nuintensitycor)
     set cmd=($cmd -talairach)
