@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/02 23:03:20 $
- *    $Revision: 1.43 $
+ *    $Date: 2008/04/03 17:16:48 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $
+  $Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $
 
 */
 
@@ -433,7 +433,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -521,12 +521,12 @@ int main(int argc, char **argv) {
   int n;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.43 2008/04/02 23:03:20 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -734,15 +734,31 @@ int main(int argc, char **argv) {
     printf("Reading gcam\n");
     sprintf(gcamfile,"%s/%s/mri/transforms/%s",
 	    SUBJECTS_DIR,subject,m3zfile);
-    if(!InvertMorph) gcam = GCAMread(gcamfile);
-    else             gcam = GCAMreadAndInvert(gcamfile);
-    if(gcam == NULL) exit(1);
-
-    printf("Applying reg to gcam\n");
-    GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
-
-    printf("Applying morph to input\n");
-    out = GCAMmorphToAtlas(in, gcam, NULL, -1, interpcode);
+    if(! InvertMorph){
+      //mri_vol2vol --mov orig.mgz --morph --s subject --o orig.morphed.mgz
+      gcam = GCAMread(gcamfile);
+      if(gcam == NULL) exit(1);
+      printf("Applying reg to gcam\n");
+      GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
+      printf("Applying morph to input\n");
+      out = GCAMmorphToAtlas(in, gcam, NULL, -1, interpcode);
+    }
+    else{
+      //mri_vol2vol --mov orig.morphed.mgz --inv-morph --s subject --o origB.mgz
+      gcam = GCAMreadAndInvert(gcamfile);
+      if(gcam == NULL) exit(1);
+      printf("Applying reg to gcam\n");
+      GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
+      if(in->type != MRI_UCHAR){
+	printf("Changing type to uchar\n");
+	tmpmri = MRISeqchangeType(in, MRI_UCHAR, 0 , 255, 1);
+	MRIfree(&in);
+	in = tmpmri;
+      }
+      printf("Applying inverse morph to input\n");
+      out = GCAMmorphFromAtlas(in, gcam, NULL);
+    }
+    if(out == NULL) exit(1);
 
     if(0){
     printf("Extracting region\n");
