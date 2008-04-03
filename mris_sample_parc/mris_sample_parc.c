@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/02 18:16:32 $
- *    $Revision: 1.25 $
+ *    $Date: 2008/04/03 16:15:53 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_sample_parc.c,v 1.25 2008/01/02 18:16:32 fischl Exp $";
+  "$Id: mris_sample_parc.c,v 1.26 2008/04/03 16:15:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -88,6 +88,7 @@ static int   trans_out[MAX_TRANS] ;
 static int sample_from_vol_to_surf = 0 ;
 static char  *mask_fname = NULL ;
 static int   mask_val ;
+static int label_index = -1 ;
 
 int
 main(int argc, char *argv[]) {
@@ -102,7 +103,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_sample_parc.c,v 1.25 2008/01/02 18:16:32 fischl Exp $", "$Name:  $");
+                                 "$Id: mris_sample_parc.c,v 1.26 2008/04/03 16:15:53 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -136,7 +137,10 @@ main(int argc, char *argv[]) {
     strcpy(sdir, cp) ;
   }
 
-  sprintf(fname, "%s/%s/mri/%s", sdir, subject_name, parc_name) ;
+  if (parc_name[0] == '/')  // full path specified
+    strcpy(fname, parc_name) ;
+  else
+    sprintf(fname, "%s/%s/mri/%s", sdir, subject_name, parc_name) ;
   printf("reading parcellation volume from %s...\n", fname) ;
   mri_parc = MRIread(fname) ;
   if (!mri_parc)
@@ -292,8 +296,32 @@ main(int argc, char *argv[]) {
   /* this will fill in the v->annotation field from the v->val ones */
   translate_indices_to_annotations(mris, translation_fname) ;
 
-  printf("writing annotation to %s...\n", annot_name) ;
-  MRISwriteAnnotation(mris, annot_name) ;
+  if (label_index >= 0)
+  {
+    int index ;
+    LABEL *area ;
+
+    printf("writing label to %s...\n", annot_name) ;
+    MRISclearMarks(mris) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->annotation > 0)
+        DiagBreak() ;
+      v = &mris->vertices[vno] ;
+      CTABfindAnnotation(mris->ct, v->annotation, &index);
+      if (index == label_index)
+        v->marked = 1 ;
+    }
+    area = LabelFromMarkedSurface(mris) ;
+    LabelWrite(area, annot_name) ;
+  }
+  else
+  {
+    printf("writing annotation to %s...\n", annot_name) ;
+    MRISwriteAnnotation(mris, annot_name) ;
+  }
   /*  MRISreadAnnotation(mris, fname) ;*/
   exit(0) ;
 
@@ -319,6 +347,11 @@ get_option(int argc, char *argv[]) {
     strcpy(sdir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as SUBJECTS_DIR\n", sdir) ;
+  } else if (!stricmp(option, "label")) {
+    label_index = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("using label %s (%d) and writing output in label format\n",
+           cma_label_to_name(label_index), label_index) ;
   } else if (!stricmp(option, "surf")) {
     surf_name = argv[2] ;
     nargs = 1 ;
