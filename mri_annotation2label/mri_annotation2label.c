@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/02/19 18:15:13 $
- *    $Revision: 1.16 $
+ *    $Author: fischl $
+ *    $Date: 2008/04/03 17:10:51 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.16 2008/02/19 18:15:13 greve Exp $
+  $Id: mri_annotation2label.c,v 1.17 2008/04/03 17:10:51 fischl Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -51,6 +51,7 @@
 #include "version.h"
 #include "mri.h"
 #include "fio.h"
+#include "cma.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -64,7 +65,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.16 2008/02/19 18:15:13 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.17 2008/04/03 17:10:51 fischl Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -94,6 +95,8 @@ int  segbase = -1000;
 
 char *borderfile=NULL;
 
+static int label_index = -1 ;  // if >= 0 only extract this label
+
 
 /*-------------------------------------------------*/
 /*-------------------------------------------------*/
@@ -104,7 +107,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.16 2008/02/19 18:15:13 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.17 2008/04/03 17:10:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -132,10 +135,13 @@ int main(int argc, char **argv) {
   }
 
   /*--- Get environment variables ------*/
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR==NULL) {
-    fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
+  if (SUBJECTS_DIR == NULL)  // otherwise specified on cmdline
+  {
+    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+    if (SUBJECTS_DIR==NULL) {
+      fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
+      exit(1);
+    }
   }
 
   /* ------ Load subject's surface ------ */
@@ -213,6 +219,8 @@ int main(int argc, char **argv) {
   // Go thru each index present and save a label
   for (ani=0; ani <= animax; ani++) {
 
+    if (label_index >= 0 && ani != label_index)
+      continue ;
     if (nperannot[ani] == 0) {
       if (DIAG_VERBOSE_ON)
         printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
@@ -265,6 +273,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--sd")) {
+      if (nargc < 1) argnerr(option,1);
+      SUBJECTS_DIR = pargv[0];
+      nargsused = 1;
     } else if (!strcmp(option, "--surface") || !strcmp(option, "--surf")) {
       if (nargc < 1) argnerr(option,1);
       surfacename = pargv[0];
@@ -272,6 +284,12 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--labelbase")) {
       if (nargc < 1) argnerr(option,1);
       labelbase = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--label")) {
+      if (nargc < 1) argnerr(option,1);
+      label_index = atoi(pargv[0]);
+      printf("only extracting label %s (%d)\n",
+             cma_label_to_name(label_index), label_index) ;
       nargsused = 1;
     } else if (!strcmp(option, "--outdir")) {
       if (nargc < 1) argnerr(option,1);
@@ -333,6 +351,7 @@ static void print_usage(void) {
   printf("   --border borderfile : output will be a binary overlay of the parc borders \n");
   printf("\n");
   printf("   --annotation as found in SUBJDIR/labels <aparc>\n");
+  printf("   --sd <SUBJECTS_DIR>  specify SUBJECTS_DIR on cmdline\n") ;
   printf("   --surface    name of surface <white>. Only affect xyz in label.\n");
   printf("\n");
   printf("   --table : obsolete. Now gets from annotation file\n");
