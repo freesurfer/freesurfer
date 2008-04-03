@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/13 03:28:15 $
- *    $Revision: 1.50 $
+ *    $Date: 2008/04/03 16:47:17 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.50 2008/02/13 03:28:15 greve Exp $
+  $Id: fmriutils.c,v 1.51 2008/04/03 16:47:17 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.50 2008/02/13 03:28:15 greve Exp $");
+  return("$Id: fmriutils.c,v 1.51 2008/04/03 16:47:17 greve Exp $");
 }
 
 
@@ -2234,4 +2234,66 @@ MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub)
   }
 
   return(fsub);
+}
+/*!
+  \fn MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
+  \brief Temporal gaussian smoothing.
+  \param src - source volume
+  \param gstdmsec - gaussian stddev in milisec (divided by src->tr)
+  \param targ - output
+*/
+MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
+{
+  MATRIX *G, *v;
+  int c,r,s,f;
+
+  if (targ == NULL){
+    targ = MRIallocSequence(src->width,src->height,src->depth,
+                            MRI_FLOAT,src->nframes);
+    if (targ == NULL){
+      printf("ERROR: MRIgaussianSmooth: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopy(src,targ);
+  }
+  else {
+    if(src->width != targ->width) {
+      printf("ERROR: MRIgaussianSmooth: width dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->height != targ->height)    {
+      printf("ERROR: MRIgaussianSmooth: height dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->depth != targ->depth)    {
+      printf("ERROR: MRIgaussianSmooth: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->nframes != targ->nframes)    {
+      printf("ERROR: MRIgaussianSmooth: frames dimension mismatch\n");
+      return(NULL);
+    }
+    if (src != targ) MRIcopy(src,targ);
+  }
+
+  // Normalized at the edges
+  G = GaussianMatrix(src->nframes, gstdmsec/src->tr, 1, NULL);
+
+  v = MatrixAlloc(src->nframes,1,MATRIX_REAL);
+  for(c=0; c < src->width; c++){
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+	for(f=0; f < src->nframes; f++) 
+	  v->rptr[f+1][1] = MRIgetVoxVal(src,c,r,s,f);
+	MatrixMultiply(G,v,v);
+	for(f=0; f < src->nframes; f++) 
+	  MRIsetVoxVal(targ,c,r,s,f,v->rptr[f+1][1]);
+      }
+    }
+  }
+
+  MatrixFree(&G);
+  MatrixFree(&v);
+
+  return(targ);
 }
