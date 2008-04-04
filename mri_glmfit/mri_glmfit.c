@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/04 18:19:59 $
- *    $Revision: 1.151 $
+ *    $Date: 2008/04/04 23:13:56 $
+ *    $Revision: 1.152 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -533,7 +533,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.151 2008/04/04 18:19:59 greve Exp $";
+"$Id: mri_glmfit.c,v 1.152 2008/04/04 23:13:56 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2585,6 +2585,10 @@ static void check_options(void) {
   if(UseUniform){
     if(DoSim == 0 && synth == 0){
       printf("ERROR: need --sim or --synth with --uniform\n");
+      exit(1);
+    }
+    if(DoSim && strcmp(csd->simtype,"mc-full") != 0){
+      printf("ERROR: must use mc-full with --uniform\n");
       exit(1);
     }
     if(UniformMax <= UniformMin){
