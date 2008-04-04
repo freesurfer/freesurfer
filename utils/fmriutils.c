@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/03 16:47:17 $
- *    $Revision: 1.51 $
+ *    $Date: 2008/04/04 23:49:46 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.51 2008/04/03 16:47:17 greve Exp $
+  $Id: fmriutils.c,v 1.52 2008/04/04 23:49:46 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.51 2008/04/03 16:47:17 greve Exp $");
+  return("$Id: fmriutils.c,v 1.52 2008/04/04 23:49:46 greve Exp $");
 }
 
 
@@ -2246,31 +2246,32 @@ MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
 {
   MATRIX *G, *v;
   int c,r,s,f;
+  double sum;
 
   if (targ == NULL){
     targ = MRIallocSequence(src->width,src->height,src->depth,
                             MRI_FLOAT,src->nframes);
     if (targ == NULL){
-      printf("ERROR: MRIgaussianSmooth: could not alloc\n");
+      printf("ERROR: MRItemporalGaussian: could not alloc\n");
       return(NULL);
     }
     MRIcopy(src,targ);
   }
   else {
     if(src->width != targ->width) {
-      printf("ERROR: MRIgaussianSmooth: width dimension mismatch\n");
+      printf("ERROR: MRItemporalGaussian: width dimension mismatch\n");
       return(NULL);
     }
     if(src->height != targ->height)    {
-      printf("ERROR: MRIgaussianSmooth: height dimension mismatch\n");
+      printf("ERROR: MRItemporalGaussian: height dimension mismatch\n");
       return(NULL);
     }
     if(src->depth != targ->depth)    {
-      printf("ERROR: MRIgaussianSmooth: depth dimension mismatch\n");
+      printf("ERROR: MRItemporalGaussian: depth dimension mismatch\n");
       return(NULL);
     }
     if(src->nframes != targ->nframes)    {
-      printf("ERROR: MRIgaussianSmooth: frames dimension mismatch\n");
+      printf("ERROR: MRItemporalGaussian: frames dimension mismatch\n");
       return(NULL);
     }
     if (src != targ) MRIcopy(src,targ);
@@ -2278,6 +2279,12 @@ MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
 
   // Normalized at the edges
   G = GaussianMatrix(src->nframes, gstdmsec/src->tr, 1, NULL);
+  for(r=0; r < src->nframes; r++){
+    sum = 0.0;
+    for(c=0; c < src->nframes; c++) sum += G->rptr[r+1][c+1];
+    for(c=0; c < src->nframes; c++) G->rptr[r+1][c+1] /= sum;
+  }
+  //MatrixWriteTxt("g.txt",G);
 
   v = MatrixAlloc(src->nframes,1,MATRIX_REAL);
   for(c=0; c < src->width; c++){
