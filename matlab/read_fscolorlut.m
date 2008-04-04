@@ -11,9 +11,9 @@ function [code, name, rgbv] = read_fscolorlut(fname)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.2 $
+%    $Author: fischl $
+%    $Date: 2008/04/04 18:00:24 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ while(1)
   b = sscanf(tline,'%*d %*s %*d %*d %d',1);
   v = sscanf(tline,'%*d %*s %*d %*d %*d %d',1);
   code(nthitem,1) = c;
-  name = strvcat(name,n);
+  name = strvcat(name,n');
   rgbv(nthitem,:) = [r g b v];
 
   nthitem = nthitem + 1;
