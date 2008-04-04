@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/03 16:15:53 $
- *    $Revision: 1.26 $
+ *    $Date: 2008/04/04 00:33:24 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_sample_parc.c,v 1.26 2008/04/03 16:15:53 fischl Exp $";
+  "$Id: mris_sample_parc.c,v 1.27 2008/04/04 00:33:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -68,6 +68,7 @@ int MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) ;
 
 char *Progname ;
 static int   avgs = 0 ;
+static int nclose = 0 ;
 static char *color_table_fname = NULL ;
 static int   mode_filter = 0 ;
 static char *surf_name = WHITE_MATTER_NAME ;
@@ -103,7 +104,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_sample_parc.c,v 1.26 2008/04/03 16:15:53 fischl Exp $", "$Name:  $");
+                                 "$Id: mris_sample_parc.c,v 1.27 2008/04/04 00:33:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -307,14 +308,19 @@ main(int argc, char *argv[]) {
     {
       if (vno == Gdiag_no)
         DiagBreak() ;
+      v = &mris->vertices[vno] ;
       if (v->annotation > 0)
         DiagBreak() ;
-      v = &mris->vertices[vno] ;
       CTABfindAnnotation(mris->ct, v->annotation, &index);
       if (index == label_index)
         v->marked = 1 ;
     }
     area = LabelFromMarkedSurface(mris) ;
+    if (nclose > 0)
+    {
+      LabelDilate(area, mris, nclose) ;
+      LabelErode(area, mris, nclose) ;
+    }
     LabelWrite(area, annot_name) ;
   }
   else
@@ -364,6 +370,10 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "vol2surf")) {
     sample_from_vol_to_surf = 1 ;
     printf("sampling from volume to surface...\n") ;
+  } else if (!stricmp(option, "close")) {
+    nclose = atoi(argv[2]) ;
+    printf("applying %dth order morphological close to label\n", nclose) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "fix")) {
     fix_topology = atoi(argv[2]) ;
     printf("fixing topology of all labels smaller "
