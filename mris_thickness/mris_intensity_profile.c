@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/01 17:41:24 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/04/04 12:13:11 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,8 +42,9 @@
 #include "macros.h"
 #include "version.h"
 #include "transform.h"
+#include "fmriutils.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.13 2008/04/01 17:41:24 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.14 2008/04/04 12:13:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,6 +66,7 @@ static char white_name[100] = WHITE_MATTER_NAME ;
 static char *label_names[MAX_LABELS] ;
 static int nlabels = 0 ;
 
+double normal_sigma = 0 ;
 static int inorm = 0 ;
 static int nbhd_size = 2 ;
 static float max_thick = 5.0 ;
@@ -89,6 +91,10 @@ static int extra = 0 ;
 
 static float norm_max = 0 ;
 
+static char *overlay_fname = NULL ;
+static int overlay_t0 ;
+static int overlay_t1 ;
+
 /* The following specifies the src and dst volumes of the input FSL/LTA transform */
 MRI          *lta_src = 0;
 MRI          *lta_dst = 0;
@@ -105,7 +111,7 @@ main(int argc, char *argv[]) {
   MRI           *mri, *mri_profiles ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.13 2008/04/01 17:41:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.14 2008/04/04 12:13:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -374,6 +380,7 @@ main(int argc, char *argv[]) {
   mri_profiles =
     MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh) ;
 
+  mri_profiles->tr = 1 ;
   if (remove_bad)
     remove_bad_profiles(mris, mri_profiles, mri, 20) ;
   if (navgs > 0) {
@@ -414,6 +421,51 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_mean);
   }
 
+
+  if (normal_sigma > 0)
+  {
+    MRI *mri_tmp ;
+    float v1, v2, v3 ;
+
+    if (Gdiag_no >= 0)
+    {
+      v1 = MRIgetVoxVal(mri_profiles, Gdiag_no, 0, 0, 0) ;
+      v2 = MRIgetVoxVal(mri_profiles, Gdiag_no, 0, 0, 1) ;
+      v3 = MRIgetVoxVal(mri_profiles, Gdiag_no, 0, 0, 2) ;
+    }
+    printf("smoothing profiles in normal direction\n") ;
+    mri_tmp = fMRItemporalGaussian(mri_profiles, normal_sigma, NULL);
+    MRIfree(&mri_profiles) ; mri_profiles = mri_tmp ; 
+    if (Gdiag_no >= 0)
+    {
+      v1 = MRIgetVoxVal(mri_profiles, Gdiag_no, 0, 0, 0) ;
+      v2 = MRIgetVoxVal(mri_profiles, Gdiag_no, 0, 0, 1) ;
+      v3 = MRIgetVoxVal(mri_profiles, Gdiag_no, 0, 0, 2) ;
+      DiagBreak() ;
+    }
+  }
+  if (overlay_fname)
+  {
+    MRI *mri_overlay ;
+    int vno, t ;
+    double avg ;
+
+    mri_overlay = MRIalloc(mri_profiles->width, 1, 1, MRI_FLOAT) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      for (avg = 0.0, t = overlay_t0 ; t <= overlay_t1 ; t++)
+      {
+        avg += MRIgetVoxVal(mri_profiles, vno, 0, 0, t) ;
+      }
+      avg /= (1.0+overlay_t1-overlay_t0);
+      MRIsetVoxVal(mri_overlay, vno, 0, 0, 0, avg);
+    }
+    fprintf(stderr, "writing overlay to %s...\n", overlay_fname) ;
+    MRIwrite(mri_overlay, overlay_fname) ;
+    MRIfree(&mri_overlay) ;
+  }
   if (quadfit) {
     MRI *mri_quad ;
 
@@ -464,6 +516,18 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "white")) {
     strcpy(white_name, argv[2]) ;
     fprintf(stderr,  "reading white surface from file named %s\n", white_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "overlay")) {
+    overlay_fname = argv[2] ;
+    overlay_t0 = atoi(argv[3]) ;
+    overlay_t1 = atoi(argv[4]) ;
+    fprintf(stderr,  "computing overlay as average in interval [%d %d]\n",
+            overlay_t0, overlay_t1) ;
+    nargs = 3 ;
+  } else if (!stricmp(option, "nsigma")) {
+    normal_sigma = atof(argv[2]) ;
+    fprintf(stderr,  "applying surface normal smoothing with sigma=%2.2f\n",
+            normal_sigma) ;
     nargs = 1 ;
   } else if (!stricmp(option, "norm_max")) {
     norm_max = atof(argv[2]) ;
@@ -782,7 +846,13 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
         MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         if (norm_max > 0 && nsamples == 0)
-          scale = norm_max/val ;
+        {
+          if (FZERO(val))
+            scale = 1 ;
+          else
+            scale = norm_max/val ;
+        }
+          
         val *= scale ;
         MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
       }
@@ -804,7 +874,12 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
           MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
           MRIsampleVolume(mri, xv, yv, zv, &val) ;
           if (norm_max > 0 && nsamples == 0)
-            scale = norm_max/val ;
+          {
+            if (FZERO(val))
+              scale = 1 ;
+            else
+              scale = norm_max/val ;
+          }
           val *= scale ;
           MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
         }
@@ -815,6 +890,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 
   // now check profiles and correct them where they are obviously wrong
   min_vox = (int)ceil(MIN_BORDER_DIST/mri->xsize) ;  // within 2cm of edge
+  if (FZERO(norm_max))
   {
     int  bad ;
 
