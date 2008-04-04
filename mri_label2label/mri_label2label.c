@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/04/03 13:28:32 $
- *    $Revision: 1.34 $
+ *    $Author: greve $
+ *    $Date: 2008/04/04 22:58:56 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.34 2008/04/03 13:28:32 fischl Exp $
+  $Id: mri_label2label.c,v 1.35 2008/04/04 22:58:56 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -98,7 +98,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.34 2008/04/03 13:28:32 fischl Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.35 2008/04/04 22:58:56 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -159,13 +159,17 @@ char *OutMaskFile = NULL;
 MRI *outmask;
 
 int SrcInv = 0, TrgInv = 0;
+int DoPaint = 0;
+double PaintMax = 2.0;
+int DoRescale = 1;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
-  int err;
+  int err,m;
   MATRIX *xyzSrc, *xyzTrg;
   MHT *TrgHash, *SrcHash=NULL;
   VERTEX *srcvtx, *trgvtx, *trgregvtx;
+  VERTEX v;
   int n,srcvtxno,trgvtxno,allzero,nrevhits;
   float dmin, projdist=0.0, dx, dy, dz;
   float SubjRadius, Scale;
@@ -177,7 +181,7 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.34 2008/04/03 13:28:32 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.35 2008/04/04 22:58:56 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -335,11 +339,13 @@ int main(int argc, char **argv) {
         fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
-      printf("Rescaling ... ");
-      SubjRadius = MRISaverageRadius(SrcSurfReg) ;
-      Scale = IcoRadius / SubjRadius;
-      MRISscaleBrain(SrcSurfReg, SrcSurfReg, Scale);
-      printf(" original radius = %g\n",SubjRadius);
+      if(DoRescale){
+	printf("Rescaling ... ");
+	SubjRadius = MRISaverageRadius(SrcSurfReg) ;
+	Scale = IcoRadius / SubjRadius;
+	MRISscaleBrain(SrcSurfReg, SrcSurfReg, Scale);
+	printf(" original radius = %g\n",SubjRadius);
+      }
     } else {
       printf("Reading icosahedron, order = %d, radius = %g\n",
              srcicoorder,IcoRadius);
@@ -377,11 +383,13 @@ int main(int argc, char **argv) {
         fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
-      printf("Rescaling ... ");
-      SubjRadius = MRISaverageRadius(TrgSurfReg) ;
-      Scale = IcoRadius / SubjRadius;
-      MRISscaleBrain(TrgSurfReg, TrgSurfReg, Scale);
-      printf(" original radius = %g\n",SubjRadius);
+      if(DoRescale){
+	printf("Rescaling ... ");
+	SubjRadius = MRISaverageRadius(TrgSurfReg) ;
+	Scale = IcoRadius / SubjRadius;
+	MRISscaleBrain(TrgSurfReg, TrgSurfReg, Scale);
+	printf(" original radius = %g\n",SubjRadius);
+      }
     } else {
       printf("Reading icosahedron, order = %d, radius = %g\n",
              trgicoorder,IcoRadius);
@@ -397,6 +405,9 @@ int main(int argc, char **argv) {
       printf("Building target registration hash (res=%g).\n",hashres);
       TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,
                                       CURRENT_VERTICES,hashres);
+      printf("Building source registration hash (res=%g).\n",hashres);
+      SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,
+				      CURRENT_VERTICES,hashres);
     }
     if (useprojfrac) {
       sprintf(fname,"%s/%s/surf/%s.thickness",SUBJECTS_DIR,srcsubject,srchemi);
@@ -441,19 +452,29 @@ int main(int argc, char **argv) {
 
     /* Loop through each source label and map its xyz to target */
     allzero = 1;
+    m = 0;
     for (n = 0; n < srclabel->n_points; n++) {
 
       /* vertex number of the source label */
-      srcvtxno = srclabel->lv[n].vno;
-      if (srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices) {
-        printf("ERROR: there is a vertex in the label that cannot be \n");
-        printf("matched to the surface. This usually occurs when\n");
-        printf("the label and surface are from different subjects or \n");
-        printf("hemispheres or the surface has been changed since\n");
-        printf("the label was created.\n");
-        printf("Label point %d: vno = %d, max = %d\n",
-               n,srcvtxno, SrcSurfReg->nvertices);
-        exit(1);
+      if(DoPaint){
+	v.x = srclabel->lv[n].x;
+	v.y = srclabel->lv[n].y;
+	v.z = srclabel->lv[n].z;
+	if(usehash) srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,&v,&dmin);
+	else        srcvtxno = MRISfindClosestVertex(SrcSurfReg,v.x,v.y,v.z,&dmin);
+	if(dmin > PaintMax) continue;
+      } else {
+	srcvtxno = srclabel->lv[n].vno;
+	if (srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices) {
+	  printf("ERROR: there is a vertex in the label that cannot be \n");
+	  printf("matched to the surface. This usually occurs when\n");
+	  printf("the label and surface are from different subjects or \n");
+	  printf("hemispheres or the surface has been changed since\n");
+	  printf("the label was created.\n");
+	  printf("Label point %d: vno = %d, max = %d\n",
+		 n,srcvtxno, SrcSurfReg->nvertices);
+	  exit(1);
+	}
       }
 
       if(srcvtxno != 0) allzero = 0;
@@ -489,14 +510,14 @@ int main(int argc, char **argv) {
         dz = 0.0;
       }
 
-      trglabel->lv[n].vno = trgvtxno;
-      trglabel->lv[n].x = trgvtx->x + dx;
-      trglabel->lv[n].y = trgvtx->y + dy;
-      trglabel->lv[n].z = trgvtx->z + dz;
-      trglabel->lv[n].stat = srclabel->lv[n].stat;
-
+      trglabel->lv[m].vno = trgvtxno;
+      trglabel->lv[m].x = trgvtx->x + dx;
+      trglabel->lv[m].y = trgvtx->y + dy;
+      trglabel->lv[m].z = trgvtx->z + dz;
+      trglabel->lv[m].stat = srclabel->lv[m].stat;
+      m++;
     }
-    printf("INFO: found  %d nlabel points\n",trglabel->n_points);
+    printf("INFO: found  %d nlabel points\n",m);
 
     /* Do reverse loop here: (1) go through each target vertex
        not already in the label, (2) find closest source vertex,
@@ -505,12 +526,6 @@ int main(int argc, char **argv) {
 
     if (reversemap) {
       printf("Performing mapping from target back to the source label\n");
-      if (usehash) {
-        printf("Building source registration hash (res=%g).\n",hashres);
-        SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,
-                                        CURRENT_VERTICES,hashres);
-      }
-
       nrevhits = 0;
       for (trgvtxno = 0; trgvtxno < TrgSurf->nvertices; trgvtxno++) {
 
@@ -801,6 +816,15 @@ static int parse_commandline(int argc, char **argv) {
       if (!strcmp(regmethod,"surf")) regmethod = "surface";
       if (!strcmp(regmethod,"vol"))  regmethod = "volume";
       nargsused = 1;
+    } else if (!strcmp(option, "--paint")){
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&PaintMax);
+      DoPaint = 1;
+      DoRescale = 0;
+      reversemap = 0;
+      regmethod = "surface";
+      surfreg = "white";
+      nargsused = 1;
     } else if (!strcmp(option, "--xfm")) {
       if (nargc < 1) argnerr(option,1);
       XFMFile = pargv[0];
@@ -851,6 +875,9 @@ static void print_usage(void) {
   printf("   --surfreg     surface registration (sphere.reg)  \n");
   printf("   --srcsurfreg  source surface registration (sphere.reg)\n");
   printf("   --trgsurfreg  target surface registration (sphere.reg)\n");
+  printf("\n");
+  printf("   --paint dmax : map to closest vertex if d < dmax\n");
+  printf("     uses white surface and surface regmethod.\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
   printf("   --srcmasksign sign (<abs>,pos,neg)\n");
@@ -974,6 +1001,8 @@ static void dump_options(FILE *fp) {
   }
   printf("Use ProjAbs  = %d, %g\n",useprojabs,projabs);
   printf("Use ProjFrac = %d, %g\n",useprojfrac,projfrac);
+  printf("DoPaint %d\n",DoPaint);
+  if(DoPaint)  printf("PaintMax %lf\n",PaintMax);
 
   fprintf(fp,"\n");
 
