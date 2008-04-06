@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/19 15:50:59 $
- *    $Revision: 1.303 $
+ *    $Date: 2008/04/06 01:37:56 $
+ *    $Revision: 1.304 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -9359,6 +9359,11 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
 
   /* paint the first condition/timepoint in this field */
   sclv_set_timepoint_of_field (field, 0, 0);
+  if (sclv_field_info[field].num_timepoints > 1)
+  {
+    enable_menu_set(MENUSET_TIMECOURSE_LOADED, 1) ;
+    enable_menu_set(MENUSET_OVERLAY_LOADED, 1) ;
+  }
 
   /* calc the frquencies */
   sclv_calc_frequencies (field);
@@ -20658,7 +20663,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.303 2008/03/19 15:50:59 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.304 2008/04/06 01:37:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
