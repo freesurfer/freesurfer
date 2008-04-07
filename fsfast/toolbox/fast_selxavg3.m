@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.55.2.2 2007/11/27 18:42:09 greve Exp $
+% $Id: fast_selxavg3.m,v 1.55.2.3 2008/04/07 21:26:00 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/11/27 18:42:09 $
-%    $Revision: 1.55.2.2 $
+%    $Date: 2008/04/07 21:26:00 $
+%    $Revision: 1.55.2.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.55.2.2 2007/11/27 18:42:09 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.55.2.3 2008/04/07 21:26:00 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -435,21 +435,35 @@ if(DoGLMFit)
   % Residual variance
   rvarmat0 = rsse/DOF;
   
+  rho1mn = mri;
+  rho1mn.vol = mean(rho1.vol,4);
+
   % Save input mask
   fname = sprintf('%s/mask.%s',outanadir,ext);
   MRIwrite(mask,fname);
   
-  % Save AR1 maps
-  fname = sprintf('%s/rho1.%s',outanadir,ext);
-  MRIwrite(rho1,fname);
-  rho1mn = mri;
-  rho1mn.vol = mean(rho1.vol,4);
-  fname = sprintf('%s/rho1mn.%s',outanadir,ext);
-  MRIwrite(rho1mn,fname);
-
   % Apply bias correction
   nrho1mn = mri;
   nrho1mn.vol = rfm.M(1) + rfm.M(2)*rho1mn.vol;
+
+  % Find places where the correction pushes AR1 > 0.90
+  % Probably means there is something wrong with the scan
+  ind = find(abs(nrho1mn.vol) > 0.90);
+  fprintf('Found %d voxels with corrected AR1 > 0.90\n',length(ind));
+  if(length(ind) > 0)
+    % This is a bit of a hack to "fix" them - just rescale to
+    % within +/-1
+    tmp = nrho1mn.vol(ind);
+    nrho1mn.vol(ind) = (.9 + .1*abs(tmp)/max(abs(tmp))).*sign(tmp);
+  end
+  
+  % Save AR1 maps
+  fname = sprintf('%s/rho1.%s',outanadir,ext);
+  MRIwrite(rho1,fname);
+  fname = sprintf('%s/rho1mn.%s',outanadir,ext);
+  MRIwrite(rho1mn,fname);
+  fname = sprintf('%s/nrho1mn.%s',outanadir,ext);
+  MRIwrite(nrho1mn,fname);
 
   clear rho1 rho1mn;
   % Save AR2 maps
@@ -508,6 +522,7 @@ if(DoGLMFit)
     for nthseg = 1:flac0.acfbins
       indseg = find(acfseg.vol==nthseg);
       nsegvox = length(indseg);
+      if(nsegvox == 0) continue; end
       nrho1segmn(nthseg) = mean(nrho1mn.vol(indseg));
       fprintf(fp,'%2d \t AR1(%0.2f) \t %3d %3d %3d \t %7.4f\n',...
 	      nthseg,nrho1segmn(nthseg),...
