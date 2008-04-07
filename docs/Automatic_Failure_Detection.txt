@@ -1,0 +1,4 @@
+Laurence's AFD working directory:
+
+/space/okapi/3/data/laurence/ADF
+
