@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/03 17:16:48 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/04/07 23:26:27 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $
+  $Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $
 
 */
 
@@ -59,6 +59,8 @@ mri_vol2vol
   --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)
 
   --fstarg            : use orig.mgz from subject in --reg as target
+  --crop scale        : crop and change voxel size
+
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --precision precisionid : output precision (def is float)
   --kernel            : save the trilinear interpolation kernel instead
@@ -180,6 +182,12 @@ is 2 mm, but can be changed to 1.0 mm with --fstalres 1
 
 Set target to orig.mgz from the subject found in register.dat
 file. Requires --reg.  Same as tkregister2.
+
+--crop scale
+
+Crop mov volume down to minimum size to fit non-zero voxels. The size of
+the voxels is reduced by scale (ie, --crop 2 would crop and reduce the
+voxel size by a factor of 2, eg 1.0 mm becomes 0.5 mm).
 
 --interp method
 
@@ -433,7 +441,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -511,6 +519,8 @@ char *RegFileFinal=NULL;
 
 int SynthSeed = -1;
 int synth = 0;
+int DoCrop = 0;
+double CropScale = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -518,15 +528,17 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
   double costs[8];
   FILE *fp;
-  int n;
+  int n,err;
+  MRI *crop, *cropnew;
+  MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.44 2008/04/03 17:16:48 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -552,6 +564,49 @@ int main(int argc, char **argv) {
   srand48(SynthSeed);
 
   dump_options(stdout);
+
+  if(DoCrop){
+    printf("Crop %lf\n",CropScale);
+    mov = MRIread(movvolfile);
+    if(mov == NULL) exit(1);
+    err = MRIboundingBox(mov, 0.5, &box);
+    if(err) exit(1);
+    crop  = MRIcrop(mov,box.x, box.y, box.z,
+		    box.x+box.dx, box.y+box.dy, box.z+box.dz);
+    //MRIwrite(crop,"crop.mgh");
+
+    cropnew = MRIalloc(nint(crop->width*CropScale),
+		       nint(crop->height*CropScale),
+		       nint(crop->depth*CropScale),
+		       mov->type);
+    cropnew->x_r = crop->x_r;
+    cropnew->x_a = crop->x_a;
+    cropnew->x_s = crop->x_s;
+
+    cropnew->y_r = crop->y_r;
+    cropnew->y_a = crop->y_a;
+    cropnew->y_s = crop->y_s;
+
+    cropnew->z_r = crop->z_r;
+    cropnew->z_a = crop->z_a;
+    cropnew->z_s = crop->z_s;
+
+    cropnew->c_r = crop->c_r;
+    cropnew->c_a = crop->c_a;
+    cropnew->c_s = crop->c_s;
+
+    cropnew->xsize = crop->xsize/CropScale;
+    cropnew->ysize = crop->ysize/CropScale;
+    cropnew->zsize = crop->zsize/CropScale;
+
+    printf("vol2vol\n");
+    err = MRIvol2Vol(crop,cropnew,NULL,SAMPLE_NEAREST,0);
+    if(err) exit(1);
+    printf("Saving\n");
+    err = MRIwrite(cropnew,outvolfile);
+    printf("mri_vol2vol done\n");
+    exit(err);
+  }
 
   /*-----------------------------------------------------*/
   if (fstal) {
@@ -929,6 +984,11 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
+    } else if (istringnmatch(option, "--crop",6)) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&CropScale);
+      DoCrop = 1;
+      nargsused = 1;
     } else if (istringnmatch(option, "--interp",8)) {
       if (nargc < 1) argnerr(option,1);
       interpmethod = pargv[0];
@@ -1039,6 +1099,8 @@ printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
 printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
 printf("\n");
 printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
+printf("  --crop scale        : crop and change voxel size\n");
+printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
@@ -1160,6 +1222,12 @@ printf("--fstarg\n");
 printf("\n");
 printf("Set target to orig.mgz from the subject found in register.dat\n");
 printf("file. Requires --reg.  Same as tkregister2.\n");
+printf("\n");
+printf("--crop scale\n");
+printf("\n");
+printf("Crop mov volume down to minimum size to fit non-zero voxels. The size of\n");
+printf("the voxels is reduced by scale (ie, --crop 2 would crop and reduce the\n");
+printf("voxel size by a factor of 2, eg 1.0 mm becomes 0.5 mm).\n");
 printf("\n");
 printf("--interp method\n");
 printf("\n");
@@ -1376,23 +1444,27 @@ static void check_options(void) {
     printf("ERROR: No output volume supplied.\n");
     exit(1);
   }
-  if (!fstal && !fstarg && targvolfile == NULL) {
+  if(!fstal && !DoCrop && !fstarg && targvolfile == NULL) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
   }
-  if (fstarg && targvolfile != NULL) {
+  if(fstarg && targvolfile != NULL) {
     printf("ERROR: Do not specify a targ volume with --fstarg.\n");
     exit(1);
   }
-  if (fstal && targvolfile != NULL) {
+  if(DoCrop && targvolfile != NULL) {
+    printf("ERROR: Do not specify a targ volume with --crop.\n");
+    exit(1);
+  }
+  if(fstal && targvolfile != NULL) {
     printf("ERROR: Do not specify a targ volume with --tal.\n");
     exit(1);
   }
-  if (fstal && fstarg) {
+  if(fstal && fstarg) {
     printf("ERROR: cannot specify a --tal and --fstarg.\n");
     exit(1);
   }
-  if (xfmfile != NULL && regfile != NULL) {
+  if(xfmfile != NULL && regfile != NULL) {
     printf("ERROR: cannot specify both --xfm and --reg.\n");
     exit(1);
   }
@@ -1400,11 +1472,11 @@ static void check_options(void) {
     printf("ERROR: cannot specify both --regheader and --reg.\n");
     exit(1);
   }
-  if (fstarg && regfile == NULL && subject == NULL) {
+  if(fstarg && regfile == NULL && subject == NULL) {
     printf("ERROR: Need --reg with --fstarg.\n");
     exit(1);
   }
-  if (fstarg) {
+  if(fstarg) {
     sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
     if (!fio_FileExistsReadable(tmpstr))
       sprintf(tmpstr,"%s/%s/mri/orig",SUBJECTS_DIR,subject);
