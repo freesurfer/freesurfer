@@ -1,0 +1,226 @@
+#! /bin/tcsh -ef
+
+# inputs:
+set subj=$1
+set t1wb=$2
+set t2upper=$3
+set t2lower=$4
+
+# outputs:
+set t2combined=$5
+set log=$0.log
+
+# options:
+set show=$6
+
+# check args:
+if ( "$subj" == "" ) goto usage
+if ( "$t1wb" == "" ) goto usage
+if ( "$t2upper" == "" ) goto usage
+if ( "$t2lower" == "" ) goto usage
+if ( "$t2combined" == "" ) goto usage
+goto start
+
+usage:
+echo "Usage:"
+echo "-----"
+echo "$0 subjid t1wb t2upper t2lower t2combined [show]"
+echo ""
+echo "Inputs:"
+echo "------"
+echo "subjid  - subject id of the freesurfer anatomical"
+echo "t1wb    - T1 7T whole-brain"
+echo "t2upper - T2* 7T partial-brain upper half"
+echo "t2lower - T2* 7T partial-brain lower half"
+echo ""
+echo "Outputs:"
+echo "-------"
+echo "t2combined - T2* 7T combined partial-brain halves"
+echo "A logfile named $log is generated."
+echo ""
+echo "Option:"
+echo "------"
+echo "show - if the last argument is 'show', then the commands"
+echo "       that will run are shown, but not executed."
+echo ""
+echo "Example:"
+echo "-------"
+echo "$0 bert t1-7t.nii.gz t2upper.nii.gz t2lower.nii.gz t2combined.nii.gz"
+echo ""
+echo "The purpose of this utility is to combine two T2* 7T partial-"
+echo "brain volumes into one volume, retaining the resolution, and"
+echo "registered to mprage anatomical, such that surfaces can be overlayed."
+echo "To do this requires: 1. anatomical data processed by Freesurfer;"
+echo "2. 7T T1-weighted scan taken in the same session as the 7T T2*-weighted"
+echo "scans; and 3. pair of 7T T2*-weighted upper and lower brain scans."
+echo ""
+echo "tkregister2 is run during this script.  When it appears, the "
+echo "registration should be inspected, and the Save Reg button pressed to"
+echo "save the registration. Then exit tkregister2 to continue the script."
+echo ""
+
+exit 1
+
+start:
+
+if ("$show" == "show") then
+  set RunIt=0
+else
+  set RunIt=1
+  if (-e $log) mv -f $log $log.old
+  echo ""
+  echo "Writing to logfile '$log'..."
+endif
+
+
+#########################################################################
+# Register the 7T whole-brain to the 3T structural
+#########################################################################
+set cmd=(fslregister \
+  --s $subj \
+  --mov $t1wb \
+  --reg register-t1wb-${subj}.dat)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+
+#########################################################################
+# Produce an initial alignment of the pial surface to each the 
+# 7T partial-brain scans (via the intermediate registration)
+#########################################################################
+set cmd=(tkregister2 \
+  --mov $t2upper \
+  --int $t1wb register-t1wb-${subj}.dat \
+  --reg register-t2upper.dat \
+  --surf pial \
+  --s $subj)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+set cmd=(tkregister2 \
+  --mov $t2lower \
+  --int $t1wb register-t1wb-${subj}.dat \
+  --reg register-t2lower.dat \
+  --surf pial \
+  --s $subj)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+
+#########################################################################
+# Use the BB registration utility, mri_segreg, to refine the 3T to 
+# 7T-(upper/lower) alignments
+#########################################################################
+segreg:
+set cmd=(mri_segreg \
+  --mov $t2upper \
+  --reg register-t2upper.dat \
+  --out-reg segreg-t2upper.dat \
+  --cost cost.upper)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+set cmd=(mri_segreg \
+  --mov $t2lower \
+  --reg register-t2lower.dat \
+  --out-reg segreg-t2lower.dat \
+  --cost cost.lower)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+
+#########################################################################
+# Create a hi-res cropped template volume from the 3T structural
+# and a registration to it, and to each of the 7T partial-brain scans
+#########################################################################
+set cmd=(mri_vol2vol \
+  --mov $SUBJECTS_DIR/${subj}/mri/brain.mgz \
+  --crop 3 \
+  --o ${subj}-brain-hires-template.nii.gz)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+set cmd=(tkregister2 \
+  --mov ${subj}-brain-hires-template.nii.gz \
+  --s $subj \
+  --regheader \
+  --reg register-${subj}-brain-hires-template.dat)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+set cmd=(mri_matrix_multiply \
+  -im segreg-t2upper.dat \
+  -iim register-${subj}-brain-hires-template.dat \
+  -om register-t2upper-${subj}-brain-hires.dat)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+set cmd=(mri_matrix_multiply \
+  -im segreg-t2lower.dat \
+  -iim register-${subj}-brain-hires-template.dat \
+  -om register-t2lower-${subj}-brain-hires.dat)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+
+#########################################################################
+# Combine the two 7T partial-brain scans into one volume (7T-combined)
+#########################################################################
+set cmd=(mri_vol2vol \
+  --mov $t2upper \
+  --targ ${subj}-brain-hires-template.nii.gz \
+  --reg register-t2upper-${subj}-brain-hires.dat \
+  --o tmp-t2upper-hires.nii.gz)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+set cmd=(mri_vol2vol \
+  --mov $t2lower \
+  --targ ${subj}-brain-hires-template.nii.gz \
+  --reg register-t2lower-${subj}-brain-hires.dat \
+  --o tmp-t2lower-hires.nii.gz)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+set cmd=(mri_concat \
+  --combine \
+  --i tmp-t2upper-hires.nii.gz \
+  --i tmp-t2lower-hires.nii.gz \
+  --o $t2combined)
+echo -------------------
+echo $cmd
+echo -------------------
+if ($RunIt) $cmd >>& $log
+
+echo -------------------
+if ($RunIt) echo done!
+echo -------------------
+
+echo "To view: "
+set cmd=(scuba2 --subject $subj \
+   --volume $t2combined ${subj}-brain-hires-template.nii.gz \
+   --surface lh.pial lh.white rh.pial rh.white)
+echo $cmd
+

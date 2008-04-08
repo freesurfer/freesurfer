@@ -93,6 +93,7 @@ morph_tables-rh \
 mri_nu_correct.mni\
 mri-func2sph \
 mri-funcvits \
+mri_create_t2combined \
 mri_mergelabels \
 mri_motion_correct \
 mri_motion_correct2 \
