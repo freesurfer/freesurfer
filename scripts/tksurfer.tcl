@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: greve $
-##    $Date: 2007/10/05 19:00:27 $
-##    $Revision: 1.151 $
+##    $Author: krish $
+##    $Date: 2008/04/08 14:03:49 $
+##    $Revision: 1.152 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -788,6 +788,20 @@ proc FillOverlayLayerMenu { iowOverlay {iSelectField none} } {
     }
 }
 
+# SetOffset draws a black dotted line which is a visual marker for foffset
+proc SetOffset { iWidget inThresh } {
+    global gaLinkedVars
+    global gaHistogramData
+
+    # set the linked value to the value on which they
+    # clicked. draw a new dotted black line on this value.
+    set gaLinkedVars(foffset) [expr $inThresh]
+    $iWidget marker create line \
+	-coords [list $gaLinkedVars(foffset) -Inf $gaLinkedVars(foffset) Inf] \
+	-name offsetmarker -outline black -dashes [list 2 4] 
+}
+
+
 proc SetMin { iWidget inThresh } {
     global gaLinkedVars
     global gaHistogramData
@@ -795,13 +809,15 @@ proc SetMin { iWidget inThresh } {
     # set the linked value to the abs of the value on which they
     # clicked. draw a new line on this value.
     set gaLinkedVars(fthresh) [expr abs($inThresh)]
+    set min_shift_right [expr $gaLinkedVars(foffset) + $gaLinkedVars(fthresh)] 
+    set min_shift_left [expr $gaLinkedVars(foffset) - $gaLinkedVars(fthresh) ]
+    
     $iWidget marker create line \
-	-coords [list $gaLinkedVars(fthresh) -Inf $gaLinkedVars(fthresh) Inf] \
-	-name thresh -outline red
-    set negMin [expr -$gaLinkedVars(fthresh)]
+	-coords [list $min_shift_right -Inf $min_shift_right Inf] \
+	-name thresh -outline red  
     $iWidget marker create line \
-	-coords [list $negMin -Inf $negMin Inf] \
-	-name negthresh -outline red
+	-coords [list $min_shift_left -Inf $min_shift_left Inf] \
+	-name negthresh -outline red 
 }
 
 proc SetMid { iWidget inThresh } {
@@ -811,15 +827,16 @@ proc SetMid { iWidget inThresh } {
     # set the linked value to the abs of the value on which they
     # clicked. draw a new line on this value.
     set gaLinkedVars(fmid) [expr abs($inThresh)]
+    set mid_shift_right [expr $gaLinkedVars(foffset) + $gaLinkedVars(fmid)] 
+    set mid_shift_left [expr $gaLinkedVars(foffset) - $gaLinkedVars(fmid) ]
 
     # Only draw the mid line if we're in piecewise mode.
     if { [string match $gaHistogramData(threshMode) piecewise] } {
 	$iWidget marker create line \
-	    -coords [list $gaLinkedVars(fmid) -Inf $gaLinkedVars(fmid) Inf] \
+	    -coords [list $mid_shift_right -Inf $mid_shift_right Inf] \
 	    -name mid -outline blue
-	set negMid [expr -$gaLinkedVars(fmid)]
 	$iWidget marker create line \
-	    -coords [list $negMid -Inf $negMid Inf] \
+	    -coords [list $mid_shift_left -Inf $mid_shift_left Inf] \
 	    -name negmid -outline blue
     } elseif { [string match $gaHistogramData(threshMode) linear-opaque] ||
 	       [string match $gaHistogramData(threshMode) linear-blend] } {
@@ -834,13 +851,14 @@ proc SetMax { iWidget inThresh } {
     # set the linked value to the abs of the value on which they
     # clicked. draw a new line on this value.
     set gaLinkedVars(fthreshmax) [expr abs($inThresh)]
+    set max_shift_right [expr $gaLinkedVars(foffset) + $gaLinkedVars(fthreshmax)] 
+    set max_shift_left [expr $gaLinkedVars(foffset) - $gaLinkedVars(fthreshmax) ]
 
     $iWidget marker create line \
-	-coords [list $gaLinkedVars(fthreshmax) -Inf $gaLinkedVars(fthreshmax) Inf] \
+	-coords [list $max_shift_right -Inf $max_shift_right Inf] \
 	-name max -outline green
-    set negMax [expr -$gaLinkedVars(fthreshmax)]
     $iWidget marker create line \
-	-coords [list $negMax -Inf $negMax Inf] \
+	-coords [list $max_shift_left -Inf $max_shift_left Inf] \
 	-name negmax -outline green
 }
 
@@ -850,6 +868,7 @@ proc SetSlope { iWidget inSlope } {
     # set the linked value to the value on which they clicked.
     set gaLinkedVars(fslope) $inSlope
 }
+
 
 proc CalcNewLinearThreshold { iWidget } {
     global gaLinkedVars
@@ -1076,9 +1095,10 @@ proc DoConfigOverlayDisplayDlog {} {
 	# linear threshold. In piecewise mode, clicking mid or max
 	# will update the slope. Only set the midpoint if we're
 	# in piecewise thresh mode.
+	# These Min, Mid and Max indicators  are *always* relative to foffset!
 	bind $gaHistoWidget(graph) <ButtonPress-1> \
 	    { 
-		SetMin %W [%W axis invtransform x %x] 
+		SetMin %W [expr [%W axis invtransform x %x] - $gaLinkedVars(foffset)] 
 		if { [string match $gaHistogramData(threshMode) \
 			  linear-opaque] ||
 		     [string match $gaHistogramData(threshMode) \
@@ -1089,13 +1109,13 @@ proc DoConfigOverlayDisplayDlog {} {
 	bind $gaHistoWidget(graph) <ButtonPress-2> \
 	    { 
 		if { [string match $gaHistogramData(threshMode) piecewise] } { 
-		    SetMid %W [%W axis invtransform x %x] 
+		    SetMid %W [expr [%W axis invtransform x %x] - $gaLinkedVars(foffset)] 
 		    CalcNewPiecewiseThresholdSlopeFromMidMax $gaHistoWidget(graph)
 		}
 	    }
 	bind $gaHistoWidget(graph) <ButtonPress-3> \
 	    { 
-		SetMax %W [%W axis invtransform x %x]
+		SetMax %W [expr [%W axis invtransform x %x] - $gaLinkedVars(foffset)] 
 	     if { [string match $gaHistogramData(threshMode) \
 		       linear-opaque] ||
 		  [string match $gaHistogramData(threshMode) \
@@ -1223,178 +1243,179 @@ proc DoConfigOverlayDisplayDlog {} {
 	set gsHistoValue "Move mouse over graph bar"
 
 	# The offset field.
-	tkm_MakeEntry $ewOffset "Offset" gaLinkedVars(foffset) 6 {}
+tkm_MakeEntry $ewOffset "Offset" gaLinkedVars(foffset) 6 {}
 
-	pack $ewValue -side left -expand yes -fill x
-	pack $ewOffset -side left
+pack $ewValue -side left -expand yes -fill x
+pack $ewOffset -side left
 
-	# set initial values for the histogram.
-	SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
-	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
-	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
-	
-	pack $ewMin $ewMid $ewMax $ewSlope \
-	    -side left
+# set initial values for the histogram.
+SetOffset $gaHistoWidget(graph) $gaLinkedVars(foffset)
+SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
+SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
+SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
 
-	checkbutton $cbwIgnoreZeroes \
-	    -variable gaLinkedVars(ignorezeroesinhistogramflag) \
-	    -text "Ignore Zeroes in Histogram" \
-	    -font [tkm_GetNormalFont]
+pack $ewMin $ewMid $ewMax $ewSlope \
+    -side left
 
-	# Our threshMode selector. There are two linear modes, one
-	# opaque and one blended, and a piecewise mode. However, what
-	# we really control is two thresh-setting modes, linear and
-	# piecewise, and an opaque mode. Wvery time we change here, we
-	# set the opaque flag mode as well as the thresh mode.
-	tkm_MakeRadioButtons $fwThreshMode x "Threshold" \
-	    gaHistogramData(threshMode) {
-		{text "Linear" linear-blend {set gaLinkedVars(fopaqueflag) 0; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
-		{text "Linear opaque" linear-opaque {set gaLinkedVars(fopaqueflag) 1; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
-		{text "Piecewise" piecewise {set gaLinkedVars(fopaqueflag) 0; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
-	}
+checkbutton $cbwIgnoreZeroes \
+    -variable gaLinkedVars(ignorezeroesinhistogramflag) \
+    -text "Ignore Zeroes in Histogram" \
+    -font [tkm_GetNormalFont]
 
-	# Label frame for the x axis range.
-	tixLabelFrame $fwRange \
-	    -label "X Axis Range" \
-	    -labelside acrosstop
-	
-	# Sub widgets.
-	set fwRangeSub     [$fwRange subwidget frame]
-	set rbwRangeAuto   $fwRangeSub.rbwRangeAuto
-	set fwRangeManual  $fwRangeSub.fwRangeManual
-	set rbwRangeManual $fwRangeManual.rbwRangeManual
-	set ewRangeXMin    $fwRangeManual.ewRangeXMin
-	set ewRangeXMax    $fwRangeManual.ewRangeXMax
-	set ewXMin         $fwRangeSub.ewXMin
-	set ewXMax         $fwRangeSub.ewXMax
+# Our threshMode selector. There are two linear modes, one
+# opaque and one blended, and a piecewise mode. However, what
+# we really control is two thresh-setting modes, linear and
+# piecewise, and an opaque mode. Every time we change here, we
+# set the opaque flag mode as well as the thresh mode.
+tkm_MakeRadioButtons $fwThreshMode x "Threshold" \
+    gaHistogramData(threshMode) {
+	{text "Linear" linear-blend {set gaLinkedVars(fopaqueflag) 0; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
+	{text "Linear opaque" linear-opaque {set gaLinkedVars(fopaqueflag) 1; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
+	{text "Piecewise" piecewise {set gaLinkedVars(fopaqueflag) 0; SendLinkedVarGroup overlay; UpdateOverlayDlogInfo} "" }
+}
 
-	# Automatic rbw.
-	radiobutton $rbwRangeAuto \
-	    -text "Automatic" \
-	    -command UpdateOverlayDlogInfo \
-	    -variable gaHistogramData(autoRange) \
-	    -value 1 \
-	    -font [tkm_GetNormalFont]
+# Label frame for the x axis range.
+tixLabelFrame $fwRange \
+    -label "X Axis Range" \
+    -labelside acrosstop
 
-	# Manual rbw is in a frame with the entries.
-	frame $fwRangeManual
-	radiobutton $rbwRangeManual \
-	    -text "Manual" \
-	    -command UpdateOverlayDlogInfo \
-	    -variable gaHistogramData(autoRange) \
-	    -value 0 \
-	    -font [tkm_GetNormalFont]
-	tkm_MakeEntry $ewRangeXMin "Min" gaHistogramData(minXRange) 6 \
-	    {set gaHistogramData(autoRange) 0; UpdateOverlayDlogInfo}
-	tkm_MakeEntry $ewRangeXMax "Max" gaHistogramData(maxXRange) 6 \
-	    {set gaHistogramData(autoRange) 0; UpdateOverlayDlogInfo}
+# Sub widgets.
+set fwRangeSub     [$fwRange subwidget frame]
+set rbwRangeAuto   $fwRangeSub.rbwRangeAuto
+set fwRangeManual  $fwRangeSub.fwRangeManual
+set rbwRangeManual $fwRangeManual.rbwRangeManual
+set ewRangeXMin    $fwRangeManual.ewRangeXMin
+set ewRangeXMax    $fwRangeManual.ewRangeXMax
+set ewXMin         $fwRangeSub.ewXMin
+set ewXMax         $fwRangeSub.ewXMax
 
-	# Pack manual frame.
-	pack $rbwRangeManual $ewRangeXMin $ewRangeXMax -side left
+# Automatic rbw.
+radiobutton $rbwRangeAuto \
+    -text "Automatic" \
+    -command UpdateOverlayDlogInfo \
+    -variable gaHistogramData(autoRange) \
+    -value 1 \
+    -font [tkm_GetNormalFont]
 
-	# Space the auto and manual frame as far apart as possible.
-	grid $rbwRangeAuto  -column 0 -row 0 -sticky w
-	grid $fwRangeManual -column 1 -row 0 -sticky e
-	grid columnconfigure $fwRangeSub 0 -weight 1
-	grid columnconfigure $fwRangeSub 1 -weight 0
+# Manual rbw is in a frame with the entries.
+frame $fwRangeManual
+radiobutton $rbwRangeManual \
+    -text "Manual" \
+    -command UpdateOverlayDlogInfo \
+    -variable gaHistogramData(autoRange) \
+    -value 0 \
+    -font [tkm_GetNormalFont]
+tkm_MakeEntry $ewRangeXMin "Min" gaHistogramData(minXRange) 6 \
+    {set gaHistogramData(autoRange) 0; UpdateOverlayDlogInfo}
+tkm_MakeEntry $ewRangeXMax "Max" gaHistogramData(maxXRange) 6 \
+    {set gaHistogramData(autoRange) 0; UpdateOverlayDlogInfo}
 
-	# make the button and menu that the user can use to copy the
-	# threshold settings to another layer.
-	frame $fwCopy
-	tkm_MakeButtons $bwCopy \
-	    [list \
-	     [list text "Copy Settings to Layer" \
-	      {sclv_copy_view_settings_from_current_field $gCopyFieldTarget}]]
-	tixOptionMenu $owTarget \
-	    -variable $gCopyFieldTarget
-	FillOverlayLayerMenu $owTarget current
-	set gCopyFieldTarget 0
+# Pack manual frame.
+pack $rbwRangeManual $ewRangeXMin $ewRangeXMax -side left
 
-	# if checked, will copy settings to all other layers
-	checkbutton $cbwAll \
-	    -variable gbOverlayApplyToAll \
-	    -text "Apply changes to all layers" \
-	    -font [tkm_GetNormalFont]
+# Space the auto and manual frame as far apart as possible.
+grid $rbwRangeAuto  -column 0 -row 0 -sticky w
+grid $fwRangeManual -column 1 -row 0 -sticky e
+grid columnconfigure $fwRangeSub 0 -weight 1
+grid columnconfigure $fwRangeSub 1 -weight 0
 
-	# button and field for setting the threshold using FDR.
-	frame $fwFDR
-	tkm_MakeButtons $bwFDR \
-	    [list \
-		 [list text "Set Threshold Using FDR" \
-		      {sclv_set_current_threshold_using_fdr $gFDRRate $gbFDRMarked}]]
+# make the button and menu that the user can use to copy the
+# threshold settings to another layer.
+frame $fwCopy
+tkm_MakeButtons $bwCopy \
+    [list \
+     [list text "Copy Settings to Layer" \
+      {sclv_copy_view_settings_from_current_field $gCopyFieldTarget}]]
+tixOptionMenu $owTarget \
+    -variable $gCopyFieldTarget
+FillOverlayLayerMenu $owTarget current
+set gCopyFieldTarget 0
 
-	tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
+# if checked, will copy settings to all other layers
+checkbutton $cbwAll \
+    -variable gbOverlayApplyToAll \
+    -text "Apply changes to all layers" \
+    -font [tkm_GetNormalFont]
 
-	checkbutton $cbFDRMarked \
-	    -variable gbFDRMarked \
-	    -text "Only marked" \
-	    -font [tkm_GetNormalFont]
-	
-	pack $bwFDR $ewFDRRate $cbFDRMarked \
-	    -side left \
-	    -expand yes \
-	    -fill x
-	
-	grid $bwCopy   -column 0 -row 0 
-	grid $owTarget -column 1 -row 0 -sticky news
-	grid $cbwAll   -column 0 -row 1 -columnspan 2
-	grid columnconfigure $fwCopy 0 -weight 0
-	grid columnconfigure $fwCopy 1 -weight 1
+# button and field for setting the threshold using FDR.
+frame $fwFDR
+tkm_MakeButtons $bwFDR \
+    [list \
+	 [list text "Set Threshold Using FDR" \
+	      {sclv_set_current_threshold_using_fdr $gFDRRate $gbFDRMarked}]]
 
-	pack $lwHisto -side top
-	pack $gaHistoWidget(graph) -fill both -expand yes
-	pack $fwThresh -side top
-	pack $fwValueOffset -side top -expand yes -fill x
-	pack $cbwIgnoreZeroes -side top -expand yes -fill x
-	pack $fwThreshMode -side top -expand yes -fill x
-	pack $fwRange -side top -expand yes -fill x
-	pack $fwCopy -side top  -expand yes -fill x
-	pack $fwFDR  -side top  -expand yes -fill x
+tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
 
-	# Create buttons, including callback functions
-	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
-		[list Apply { SendLinkedVarGroup overlay; 
-		    SetOverlayTimepointAndCondition;
-		    if { $gbOverlayApplyToAll } {
-			sclv_copy_all_view_settings_from_current_field 
-		    };
-		    RequestOverlayInfoUpdate; }] \
-		[list Close {}] \
-		[list Help {ShowOverlayHelpWindow}] \
-	]
-	
-	pack $fwMain $fwDisplay $fwPlane $fwColorScale \
-	    $fwFlags $fwHisto $fwFDR $fwButtons \
-	    -side top       \
-	    -expand yes     \
-	    -fill x         \
-	    -padx 5         \
-	    -pady 5
+checkbutton $cbFDRMarked \
+    -variable gbFDRMarked \
+    -text "Only marked" \
+    -font [tkm_GetNormalFont]
 
-	# now update it so that we have the current info and stuff.
-	UpdateOverlayDlogInfo
+pack $bwFDR $ewFDRRate $cbFDRMarked \
+    -side left \
+    -expand yes \
+    -fill x
 
-	# Since the max threshold is an artifical value that is only
-	# used on the interface side, we have to initialize it
-	# ourselves if this is the first time we've opened the dlog.
-	CalcNewPiecewiseThresholdMaxFromMidSlope $gaHistoWidget(graph)
-    }
+grid $bwCopy   -column 0 -row 0 
+grid $owTarget -column 1 -row 0 -sticky news
+grid $cbwAll   -column 0 -row 1 -columnspan 2
+grid columnconfigure $fwCopy 0 -weight 0
+grid columnconfigure $fwCopy 1 -weight 1
+
+pack $lwHisto -side top
+pack $gaHistoWidget(graph) -fill both -expand yes
+pack $fwThresh -side top
+pack $fwValueOffset -side top -expand yes -fill x
+pack $cbwIgnoreZeroes -side top -expand yes -fill x
+pack $fwThreshMode -side top -expand yes -fill x
+pack $fwRange -side top -expand yes -fill x
+pack $fwCopy -side top  -expand yes -fill x
+pack $fwFDR  -side top  -expand yes -fill x
+
+# Create buttons, including callback functions
+tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+	[list Apply { SendLinkedVarGroup overlay; 
+	    SetOverlayTimepointAndCondition;
+	    if { $gbOverlayApplyToAll } {
+		sclv_copy_all_view_settings_from_current_field 
+	    };
+	    RequestOverlayInfoUpdate; }] \
+	[list Close {}] \
+	[list Help {ShowOverlayHelpWindow}] \
+]
+
+pack $fwMain $fwDisplay $fwPlane $fwColorScale \
+    $fwFlags $fwHisto $fwFDR $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+# now update it so that we have the current info and stuff.
+UpdateOverlayDlogInfo
+
+# Since the max threshold is an artifical value that is only
+# used on the interface side, we have to initialize it
+# ourselves if this is the first time we've opened the dlog.
+CalcNewPiecewiseThresholdMaxFromMidSlope $gaHistoWidget(graph)
+}
 }
 
 proc ShowOverlayHelpWindow {} {
 
-    set wwDialog .wwConfigOverlayHelpDlog
-    if { [Dialog_Create $wwDialog "Overlay Help" {-borderwidth 10}] } {
+set wwDialog .wwConfigOverlayHelpDlog
+if { [Dialog_Create $wwDialog "Overlay Help" {-borderwidth 10}] } {
 
-	set fwMain    $wwDialog.fwMain
-	set twHelp    $fwMain.twHelp
-	set fwButtons $wwDialog.fwButtons
+set fwMain    $wwDialog.fwMain
+set twHelp    $fwMain.twHelp
+set fwButtons $wwDialog.fwButtons
 
-	frame $fwMain
+frame $fwMain
 
-	tixScrolledText $twHelp -scrollbar y
-	[$twHelp subwidget text] config -wrap word -relief ridge -bd 1
-	[$twHelp subwidget text] insert end "At the top of the window, there are two entry widgets with up/down arrows next to them. If there are multiple time points or conditions in the overlay data, you can change the time point and condition of the overlay volume with these controls. You can see the total range of each variable in the parentheses next to the label.
+tixScrolledText $twHelp -scrollbar y
+[$twHelp subwidget text] config -wrap word -relief ridge -bd 1
+[$twHelp subwidget text] insert end "At the top of the window, there are two entry widgets with up/down arrows next to them. If there are multiple time points or conditions in the overlay data, you can change the time point and condition of the overlay volume with these controls. You can see the total range of each variable in the parentheses next to the label.
 
 Next is the color scale. You can change the color scheme in which the overlay layers are drawn. Some do not work with simple scalar overlays and need multiple values loaded, but don't be afraid to experiment.
 
@@ -1410,20 +1431,20 @@ The Copy Settings to Layer button can be used to copy the current threshold sett
 
 You always need to click the Apply button to apply any of these changes to the actually display. You can also press the space bar as a shortcut (but only when the cursor is not active in any of the numerical fields)."
 
-	pack $twHelp \
-	    -fill both \
-	    -expand yes
+pack $twHelp \
+    -fill both \
+    -expand yes
 
-	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
-		[list Close {}] \
-	]
+tkm_MakeDialogButtons $fwButtons $wwDialog [list \
+	[list Close {}] \
+]
 
-	pack $fwMain $fwButtons \
-	    -side top \
-	    -expand yes \
-	    -fill x \
-	    -pady 5
-    }
+pack $fwMain $fwButtons \
+    -side top \
+    -expand yes \
+    -fill x \
+    -pady 5
+}
 }
 
 proc UpdateOverlayDlogInfo {} {
@@ -1507,9 +1528,12 @@ proc UpdateOverlayDlogInfo {} {
 	}	
 
 	# set the lines in the histogram
+	# foffset is updated first and everything else are relative to foffset.
+	SetOffset $gaHistoWidget(graph) $gaLinkedVars(foffset)
 	SetMin $gaHistoWidget(graph) $gaLinkedVars(fthresh)
 	SetMid $gaHistoWidget(graph) $gaLinkedVars(fmid)
 	SetSlope $gaHistoWidget(graph) $gaLinkedVars(fslope)
+	SetMax $gaHistoWidget(graph) $gaLinkedVars(fthreshmax)
 
 	# Automatically calculate a good width for the ticks.
 	$gaHistoWidget(graph) axis configure x -stepsize 0
