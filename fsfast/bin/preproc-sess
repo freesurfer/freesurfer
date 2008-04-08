@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/03/04 15:42:34 $
-#    $Revision: 1.18 $
+#    $Date: 2008/04/08 21:53:03 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.18 2008/03/04 15:42:34 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.19 2008/04/08 21:53:03 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -38,7 +38,8 @@ set smoutstem  = ();
 set inormstem  = ();
 set maskdir    = masks
 set maskstem   = brain;
-set fwhm    = ();
+set fwhm     = ();
+set surffwhm = ();
 set SliceOrder = ();
 set fsd     = bold;
 set rlf     = ();
@@ -52,8 +53,13 @@ set UpdateOnly = 1;
 set DoMask   = 1;
 set DoMC     = 1;
 set DoSTC    = 0;
-set DoSmooth = 1;
+set DoVolSmooth = 1;
+set DoSurfSmooth = 0;
+set DoSmooth = 1; # any smoothing
 set DoInorm  = 0;
+set regfile = register.dat
+set ProjFrac = (); # default will be 0.5
+set DoProjAvg = 0;
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -119,7 +125,7 @@ date          >> $LF
 echo "instem   $instem " | tee -a $LF
 echo "mc   $DoMC     $mcinstem $mcoutstem " | tee -a $LF
 echo "stc  $DoSTC    $stcinstem $stcoutstem"  | tee -a $LF
-echo "sm   $DoSmooth $sminstem $smoutstem "| tee -a $LF
+echo "sm   $DoVolSmooth $sminstem $smoutstem "| tee -a $LF
 echo "mask $DoMask   $maskstem"| tee -a $LF
 
 set ProjectDir = `pwd`;
@@ -191,7 +197,7 @@ foreach sess ($SessList)
     endif
   endif
 
-  if($DoSmooth) then
+  if($DoVolSmooth) then
     set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
     set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent)
     if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
@@ -199,7 +205,7 @@ foreach sess ($SessList)
     if($UpdateOnly) set cmd = ($cmd -update);
     if($DoInorm)    set cmd = ($cmd -inorm);
     if(! $DoInorm)  set cmd = ($cmd -noinorm);
-    echo "$sessid Smooth ------------------------" |& tee -a $LF
+    echo "$sessid Volume Smoothing ---------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -207,6 +213,27 @@ foreach sess ($SessList)
     $cmd |& tee -a $LF
     if($status) then
       echo "ERROR: spatialsmooth-sess failed" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  if($DoSurfSmooth) then
+    set cmd = (surfsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
+    set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent -reg $regfile)
+    if($#ProjFrac)  set cmd = ($cmd -projfrac $ProjFrac)
+    if($DoProjAvg)  set cmd = ($cmd -projfrac-avg)
+    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($nolog)      set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    if($MCPerRun)   set cmd = ($cmd -perrun)
+    echo "$sessid Surface Smoothing ---------------------" |& tee -a $LF
+    date      |& tee -a $LF
+    pwd       |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    echo "----------------------------------------" |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: surfsmooth-sess failed" |& tee -a $LF
       exit 1;
     endif
   endif
@@ -337,10 +364,35 @@ while( $#argv != 0 )
       set maskdir= $argv[1]; shift;
       breaksw
 
+    case "-vol-fwhm":
     case "-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
+      set DoVolSmooth = 1;
+      set DoSurfSmooth = 0;
       set DoSmooth = 1;
+      breaksw
+
+    case "-surf-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      set DoVolSmooth = 0;
+      set DoSurfSmooth = 1;
+      set DoSmooth = 1;
+      breaksw
+
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set ProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac-avg":
+      set DoProjAvg = 1;
       breaksw
 
     case "-nskip":
@@ -389,6 +441,8 @@ while( $#argv != 0 )
 
     case "-no-smooth":
     case "-nosmooth":
+      set DoVolSmooth = 0;
+      set DoSurfSmooth = 0;
       set DoSmooth = 0;
       breaksw
 
@@ -507,11 +561,14 @@ check_params:
       exit 1;
     endif
     if($#sminstem  == 0) set sminstem  = $stcoutstem
-    if($#smoutstem == 0) set smoutstem = $sminstem"sm"$fwhm
+    if($#smoutstem == 0) then
+      if($DoVolSmooth) set smoutstem = $sminstem"sm"$fwhm
+      if($DoSurfSmooth) set smoutstem = $sminstem"sm"$fwhm"s"
+    endif
   endif
 
   if($DoInorm && $#inormstem == 0) then
-    if($DoSmooth) then
+    if($DoVolSmooth) then
       set inormstem = $smoutstem;
     else if($DoMC) then
       set inormstem = $mcoutstem;
@@ -540,6 +597,10 @@ check_params:
     exit 1;
   endif
 
+  if($#ProjFrac && $DoProjAvg) then
+    echo "ERROR: cannot -projfrac and -projfrac-avg"
+    exit 1;
+  endif
 
 goto check_params_return;
 ############--------------##################
@@ -555,8 +616,9 @@ usage_exit:
   echo ""
   echo "USAGE: preproc-sess"
   echo ""
-  echo "  -i    instem   : stem to use as overal input <f>"
-  echo "  -fwhm fwhm     : 3D fwhm (mm)"
+  echo "  -i    instem    : stem to use as overal input <f>"
+  echo "  -vol-fwhm  fwhm : 3D fwhm (mm) (not with -surf-fwhm)"
+  echo "  -surf-fwhm fwhm : 2D fwhm (mm) (not with -vol-fwhm)"
   echo "  -sliceorder so : turn on slice timing correction with the given slice order"
   echo "  -update        : only run a stage if input is newer than output (default)"
   echo "  -force         : force reprocessing of all stages (turns off -update)"
@@ -586,6 +648,10 @@ usage_exit:
   echo "  -maskperrun : perform masking on all runs separately"
   echo ""
   echo "  -perrun : perform masking and MC on all runs separately"
+  echo ""
+  echo "  -reg regfile   : registration file for use with -surf-fwhm (register.dat)"
+  echo "  -projfrac frac : projection fraction for use with -surf-fwhm (0.5)"
+  echo "  -projfrac-avg  : average over ribbon (not with -projfrac)"
   echo ""
   echo "Session Arguments (Required)"
   echo "  -sf sessidfile  ..."
@@ -626,12 +692,31 @@ reference for all runs.
 
 Explicitly specify input stem. Default is f.
 
--fwhm fwhm
+-vol-fwhm fwhm
 
-Specify the fwhm for 3D spatial smoothing. There is not default.
-The output will have "smFWHM" appened to it. Eg, for -fwhm 5, then
-the output will have "sm5" appened. If you do not want to perform
-smoothing, use -nosmooth. See also spatialsmooth-sess.
+Specify the fwhm for 3D spatial smoothing. There is no default.  The
+output will have "smFWHM" appened to it. Eg, for -vol-fwhm 5, then the
+output will have "sm5" appened. If you do not want to perform
+smoothing, use -nosmooth. See also spatialsmooth-sess. Cannot be run
+with -surf-fwhm.
+
+-surf-fwhm fwhm
+
+Specify the fwhm for 2D (surface) spatial smoothing. The raw data are
+resampled to the surface, smoothed, and then put back into the volume
+(so that they can be analyzed in standard volumetric fashion). Values
+not on the surface are not changed.  Surface smoothing can be slow, so
+be patient! Requires that registration have been performed
+(spmregister-sess or fslregister-sess).  The output will have
+"smFWHMs" appened to it. Eg, for -surf-fwhm 5, then the output will
+have "sm5s" appened. If you do not want to perform smoothing, use
+-nosmooth. See also surfsmooth-sess. Cannot be run with -vol-fwhm.
+Any per-run instruction will force surface smoothing to use
+"register.dat" in each run directory. The registration file name can
+be changed with -reg. By default, samples midway between the white and
+pial surfaces (ie, projection fraction of 0.5), but this can be
+changed with -projfrac. Or the average over the ribbon can be computed
+with -projfrac-avg (but this will be slow).
 
 -sliceorder so
 
@@ -688,7 +773,7 @@ When -mcperrun is used, the target volume is the middle frame.
 EXAMPLE 1 
 To perform MC, smoothing by fwhm of 5mm, and brain mask, run
 
-  preproc-sess -sf sessidlist -df sessdirlist -fwhm 5
+  preproc-sess -sf sessidlist -df sessdirlist -vol-fwhm 5
 
 For MC the input will be f and the output will be fmc
 For Smoothiing the input will be fmc and the output will be fmcsm5
@@ -697,7 +782,7 @@ For Smoothiing the input will be fmc and the output will be fmcsm5
 EXAMPLE 2
 To perform MC, STC, smoothing by fwhm of 7.1 mm, and brain mask, run
 
-  preproc-sess -sf sessidlist -df sessdirlist -fwhm 7.1 -stc
+  preproc-sess -sf sessidlist -df sessdirlist -vol-fwhm 7.1 -stc
 
 For MC  the input will be f and the output will be fmc
 For STC the input will be fmc and the output will be fmcstc
