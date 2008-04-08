@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/08 21:53:03 $
-#    $Revision: 1.19 $
+#    $Date: 2008/04/08 22:40:46 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.19 2008/04/08 21:53:03 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.20 2008/04/08 22:40:46 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -114,13 +114,15 @@ echo "preproc-sess logfile is $LF"
 echo "--------------------------------------------------------------"
 
 echo "preproc-sess log file" >> $LF
-echo $VERSION >> $LF
-id            >> $LF
-pwd           >> $LF
-echo $0        >> $LF
-echo $inputargs  >> $LF
-uname -a      >> $LF
-date          >> $LF
+echo $VERSION | tee -a $LF
+echo "$user"  | tee -a $LF
+echo "setenv FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+uname -a        | tee -a $LF
+pwd             | tee -a $LF
+echo $0         | tee -a $LF
+echo $inputargs | tee -a $LF
+date          | tee -a $LF
 
 echo "instem   $instem " | tee -a $LF
 echo "mc   $DoMC     $mcinstem $mcoutstem " | tee -a $LF
