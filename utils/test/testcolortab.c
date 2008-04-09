@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/09 18:39:39 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/04/09 18:45:16 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "colortab.h"
 
@@ -52,7 +53,7 @@ int main(int argc, char *argv[])
   }
   errs=ctabDuplicates; // CTABreadASCII puts duplicate count in ctabDuplicates
   errs+=CTABfindDuplicateNames(ct);
-  if (argv[2]) errs+=CTABfindDuplicateAnnotations(ct);
+  if ((NULL!=argv[2]) && (0==strcmp(argv[2],"1"))) errs+=CTABfindDuplicateAnnotations(ct);
   if (errs)
   {
     fflush(stderr);
