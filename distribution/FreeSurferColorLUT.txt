@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.46 2008/04/09 01:34:41 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.47 2008/04/09 14:23:12 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -845,30 +845,30 @@
 7007   Cortical-nucleus	                    221 249 166 0
 7008   Accessory-Basal-nucleus                 232 146 35  0
 7009   Corticoamygdaloid-transitio             2   119 16  0
-70010  Anterior-amygdaloid-area-AAA            4   115 17  0
-70011  Fusion-amygdala-HP-FAH                  122 187 222 0
-70012  Hippocampal-amygdala-transition-HATA    237 12  177 0
-70013  Endopiriform-nucleus                    10  49  255 0
-70014  Lateral-nucleus-olfactory-tract         205 184 144 0
-70015  Paralaminar-nucleus                     45  205 165 0
-70016  Intercalated-nucleus                    117 160 175 0
-70017  Prepiriform-cortex                      221 217 21  0
-70018  extra1                                  104 254 253 0
-70019  extra2                                  79  195 99  0
-70020  extra3                                  61  57  211 0
+7010  Anterior-amygdaloid-area-AAA            4   115 17  0
+7011  Fusion-amygdala-HP-FAH                  122 187 222 0
+7012  Hippocampal-amygdala-transition-HATA    237 12  177 0
+7013  Endopiriform-nucleus                    10  49  255 0
+7014  Lateral-nucleus-olfactory-tract         205 184 144 0
+7015  Paralaminar-nucleus                     45  205 165 0
+7016  Intercalated-nucleus                    117 160 175 0
+7017  Prepiriform-cortex                      221 217 21  0
+7018  extra1                                  104 254 253 0
+7019  extra2                                  79  195 99  0
+7020  extra3                                  61  57  211 0
 
-7001   Thalamus-Anterior                        74  130 181 0
-7002   Thalamus-Ventral-anterior                242 241 240 0
-7003   Thalamus-Lateral-dorsal                  206 65  78  0
-7004   Thalamus-Lateral-posterior               120 21  133 0
-7005   Thalamus-Ventral-lateral                 195 61  246 0
-7006   Thalamus-Ventral-posterior-medial         3   147 6   0
-7007   Thalamus-Ventral-posterior-lateral        220 251 163 0
-7008   Thalamus-intralaminar                     232 146 33  0
-7009   Thalamus-intralaminar                     2   119 13  0
-70010  Thalamus-centromedian                     4   114 14  0
-70011  Thalamus-mediodorsal                      121 184 220 0
-70012  Thalamus-medial                           235 11  175 0
-70013  Thalamus-pulvinar                         12  46  250 0
-70014  Thalamus-lateral-geniculate               203 182 143 0
-70015  Thalamus-medial-geniculate                42  204 167 0
+8001   Thalamus-Anterior                        74  130 181 0
+8002   Thalamus-Ventral-anterior                242 241 240 0
+8003   Thalamus-Lateral-dorsal                  206 65  78  0
+8004   Thalamus-Lateral-posterior               120 21  133 0
+8005   Thalamus-Ventral-lateral                 195 61  246 0
+8006   Thalamus-Ventral-posterior-medial         3   147 6   0
+8007   Thalamus-Ventral-posterior-lateral        220 251 163 0
+8008   Thalamus-intralaminar                     232 146 33  0
+8009   Thalamus-intralaminar                     2   119 13  0
+8010  Thalamus-centromedian                     4   114 14  0
+8011  Thalamus-mediodorsal                      121 184 220 0
+8012  Thalamus-medial                           235 11  175 0
+8013  Thalamus-pulvinar                         12  46  250 0
+8014  Thalamus-lateral-geniculate               203 182 143 0
+8015  Thalamus-medial-geniculate                42  204 167 0
