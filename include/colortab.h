@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/18 17:53:52 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2008/04/09 18:33:42 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,8 +64,12 @@ COLOR_TABLE, CT ;
 /* Reads a color table from an ASCII file. In this format, each line
    contains a structure index, an rgb triple in 0-255 format, and then
    a transparency integer, which is 255-alpha. Allocates the entire
-   table. */
+   table. 
+   Upon exit, ctabDuplicates contains a count of the number duplicate 
+   structures found in fname (duplicates are skipped with a warning).
+*/
 COLOR_TABLE *CTABreadASCII(char *fname);
+extern int ctabDuplicates;
 
 /* Reads and writes a table to and from a binary stream. In this
    format, a negative version number is written (see special case in

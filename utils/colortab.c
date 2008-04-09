@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:25 $
- *    $Revision: 1.28 $
+ *    $Date: 2008/04/09 18:33:43 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,7 @@ static int         CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp);
 static COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries);
 static COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp);
 
+int ctabDuplicates;
 
 /*-------------------------------------------------------------------
   ----------------------------------------------------------------*/
@@ -120,6 +121,7 @@ COLOR_TABLE *CTABreadASCII(char *fname)
      allocate a CTE. This will leave the items in the array for which
      we don't have entries NULL. */
   line_num = 1;
+  ctabDuplicates = 0;
   rewind(fp);
   while ((cp = fgets(line, STRLEN, fp)) != NULL)
   {
@@ -139,6 +141,7 @@ COLOR_TABLE *CTABreadASCII(char *fname)
                 ct->entries[structure]->gi,
                 ct->entries[structure]->bi,
                 ct->entries[structure]->ai);
+        ctabDuplicates++;
       }
       else
       {
