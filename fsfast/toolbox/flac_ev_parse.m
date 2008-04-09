@@ -15,8 +15,8 @@ function ev = flac_ev_parse(tline)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/01/19 22:32:05 $
-%    $Revision: 1.15 $
+%    $Date: 2008/04/09 04:25:00 $
+%    $Revision: 1.16 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -205,6 +205,21 @@ switch (ev.model)
   ev.npsd = round((ev.psdwin(2)-ev.psdwin(1))/ev.psdwin(3));
   ev.ishrf = 1;  
   ev.nreg = 1+ev.params(4); % 1+nderiv
+  
+ %--------------------------------------------
+ case {'texclude'} % Time Exclude - values are time in sec to exclude
+  % 1 parameter: texcludfile
+  % EV TX texclude texclude.dat
+  [ev.stf c] = sscanfitem(tline,5);
+  if(c ~= 1) 
+    fprintf('Format error: %s: stf\n',ev.model); 
+    fprintf('Expected something like: EV TX texclude\n');
+    ev=[]; 
+    return; 
+  end
+  ev.ishrf = 0;  
+  ev.params = [];
+  ev.nreg = -1; % don't know until we read it in
   
  %--------------------------------------------
  case {'selfregseg'} % Segmentation-based Self-Regressor

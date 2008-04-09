@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/18 04:32:21 $
-%    $Revision: 1.34 $
+%    $Date: 2008/04/09 04:25:00 $
+%    $Revision: 1.35 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -71,31 +71,6 @@ end
 flacnew.mri = mri;
 flacnew.ntp = mri.nframes;
 flacnew.funcfspec = fstem;
-
-% Time-point exclude file
-if(~isempty(flac.tpexcfile))
-  fname = sprintf('%s/%s',runpath,flac.tpexcfile);
-  fp = fopen(fname,'r'); % ok if it does not exist
-  if(fp ~= -1)
-    flacnew.tpexc = round(fscanf(fp,'%lf')); 
-    flacnew.tpexc = flacnew.tpexc + 1; % change to 1-based
-    indtmp = find(flacnew.tpexc >= flacnew.ntp);
-    if(~isempty(indtmp))
-      fprintf('ERROR: time points in %s exceed nframes (%d)\n',...
-	      fname,flacnew.ntp);
-      flacnew = [];
-      return; 
-    end
-    fclose(fp);
-    % Set up 1-based points to include
-    flacnew.tpinc = ones(flacnew.ntp,1); 
-    flacnew.tpinc(flacnew.tpexc+1) = 0;
-    ntpexc = length(flacnew.tpexc);
-    fprintf('Excluding %d points\n',ntpexc);
-  else
-    flacnew.tpexc = [];
-  end
-end
 
 % Parfile
 if(~isempty(flac.parfile))
@@ -205,7 +180,6 @@ for nthev = 1:nev
     if(size(X,2) < ev.params(1))
       fprintf('ERROR: not enough columns %s\n',nonparpath);
       size(X)
-      keyboard
       flacnew = [];
       return;
     end
@@ -214,6 +188,38 @@ for nthev = 1:nev
     Xmn = mean(X,1);
     X = X - repmat(Xmn,[flacnew.ntp 1]);
     flacnew.ev(nthev).X = X;
+    continue;
+  end
+
+  % Time exclude file (values are in seconds)
+  if(strcmp(ev.model,'texclude'))
+    fname = sprintf('%s/%s',runpath,ev.stf);
+    fp = fopen(fname,'r'); % ok if it does not exist
+    if(fp ~= -1)
+      texcl = fscanf(fp,'%lf'); 
+      fclose(fp);
+      tpexcl = round(texcl/flacnew.TR) + 1; % change to 1-based index
+      indtmp = find(tpexcl >= flacnew.ntp);
+      if(~isempty(indtmp))
+	fprintf('ERROR: time points in %s exceed nframes (%d)\n',...
+		fname,flacnew.ntp);
+	flacnew = [];
+	return; 
+      end
+      nexclude = length(tpexcl);
+      fprintf('Excluding %d points\n',nexclude);
+      X = zeros(flacnew.ntp,nexclude);
+      for nth = 1:nexclude
+	X(tpexcl(nth),nth) = 1;
+      end
+      flacnew.ev(nthev).X = X;
+      flacnew.ev(nthev).nreg = nexclude;
+      flacnew.tpexc = tpexcl;
+    else
+      flacnew.ev(nthev).X = [];
+      flacnew.ev(nthev).nreg = 0;
+      flacnew.tpexc = [];
+    end
     continue;
   end
 
@@ -267,6 +273,14 @@ flacnew = flac_desmat(flacnew);
 flacnew.indtask = flac_taskregind(flacnew);			    
 flacnew.indnuis = flac_nuisregind(flacnew);			    
 
+% Regenerate contrast matrices in case one of the EVs
+% did not have number of regressors set.
+ncon = length(flacnew.con);
+for nthcon = 1:ncon
+  flacnew = flac_conmat(flacnew,nthcon);  
+end
+
+
 flacnew.betafspec = sprintf('%s/%s/%s/%s/beta',flacnew.sess,...
 			    flacnew.fsd,flacnew.name,...
 			    flacnew.runlist(flacnew.nthrun,:));
@@ -290,7 +304,6 @@ flacnew.acfsegfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
 
 %fprintf('\n');
 %fprintf('run %d ---------------------- \n',flacnew.nthrun);
-ncon = length(flacnew.con);
 for nthcon = 1:ncon
   flacnew.con(nthcon).ffspec = ...
       sprintf('%s/%s/%s/%s/%s/f',flacnew.sess,flacnew.fsd,flacnew.name,...

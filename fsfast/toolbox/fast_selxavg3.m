@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.58 2008/04/07 21:25:42 greve Exp $
+% $Id: fast_selxavg3.m,v 1.59 2008/04/09 04:25:00 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/04/07 21:25:42 $
-%    $Revision: 1.58 $
+%    $Date: 2008/04/09 04:25:00 $
+%    $Revision: 1.59 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.58 2008/04/07 21:25:42 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.59 2008/04/09 04:25:00 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -202,7 +202,7 @@ for nthouter = outer_runlist
 
     % This is for comparing cross-run FFX analysis vs this analysis 
     % in which the data and design matrices are concatenated.
-    Xrun = flac0.X;
+    Xrun = flac.X;
     for nthcon = 1:ncontrasts
       C = flac.con(nthcon).C;
       M = C*inv(Xrun'*Xrun)*C';
@@ -237,12 +237,12 @@ for nthouter = outer_runlist
   Xn = X ./ repmat(Xsss,[ntptot 1]);
   XtX = Xn'*Xn;
   XCond = cond(XtX);
+  tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
+  fprintf('Saving X matrix to %s\n',tmpxfile);
+  save(tmpxfile,'X','flac','Xsss','Xn','XtX');
   fprintf('XCond = %g (normalized)\n',XCond);
   if(XCond > 1e4)
     fprintf('ERROR: design is ill-conditioned\n');
-    tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
-    fprintf('Saving X matrix to %s\n',tmpxfile);
-    save(tmpxfile,'X','flac');
     return;
   end
 
@@ -270,7 +270,9 @@ for nthouter = outer_runlist
     C = flacC.con(nthcon).C;
     C = C(:,indtask);
     for nthrun = nthrunlist
-      flac = flac_customize(flac0);
+      flac = flac0;
+      flac.nthrun = nthrun;
+      flac = flac_customize(flac);
       Crun = flac.con(nthcon).C;
       indnuis = flac_nuisregind(flac);    
       Cnuis = Crun(:,indnuis);

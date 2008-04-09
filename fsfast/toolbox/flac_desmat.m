@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/01/19 22:32:05 $
-%    $Revision: 1.13 $
+%    $Date: 2008/04/09 04:25:00 $
+%    $Revision: 1.14 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -93,25 +93,27 @@ for nthev = 1:nev
       if(fdelta < 0) fdelta = []; end % Use fftdelta
       X = fast_aareg(flac.ntp,flac.TR,fmax,fdelta);
       flacnew.ev(nthev).X = X(:,1:nkeep);
-     case {'nonpar','selfregseg'}  
+     case {'nonpar','selfregseg'}
       % Nonpar X must be already loaded with flac_customize.
       if(isempty(flacnew.ev(nthev).X))
 	fprintf('ERROR: empty %s matrix for %s\n',ev.model,ev.name);
 	flacnew = [];
 	return;
       end
+     case {'texclude'}  
+      % texclude X must be already loaded with flac_customize,
+      % OR it can also be empty.
      otherwise
       fprintf('ERROR: model %s unrecognized\n');
       flacnew = [];
       return;
     end
   end
-%keyboard
+  %keyboard
   
   flacnew.X = [flacnew.X flacnew.ev(nthev).X];
   
 end % for ev
-
 
 return;
 
