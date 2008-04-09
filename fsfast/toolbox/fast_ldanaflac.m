@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/12/20 21:06:21 $
-%    $Revision: 1.25.2.2 $
+%    $Date: 2008/04/09 20:35:41 $
+%    $Revision: 1.25.2.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -330,6 +330,14 @@ if(~isempty(extreg))
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
 end
+
+
+if(~isempty(flac.tpexcfile))
+  tline = sprintf('EV TExclude texclude nuis %s',flac.tpexcfile);
+  flac.ev(nthev) = flac_ev_parse(tline);
+  nthev = nthev+1;
+end
+
 
 if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   %-------------- contrasts --------------------------

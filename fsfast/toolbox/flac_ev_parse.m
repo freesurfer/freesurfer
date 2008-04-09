@@ -15,8 +15,8 @@ function ev = flac_ev_parse(tline)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/27 23:05:31 $
-%    $Revision: 1.14 $
+%    $Date: 2008/04/09 20:35:41 $
+%    $Revision: 1.14.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -207,6 +207,21 @@ switch (ev.model)
   ev.nreg = 1+ev.params(4); % 1+nderiv
   
  %--------------------------------------------
+ case {'texclude'} % Time Exclude - values are time in sec to exclude
+  % 1 parameter: texcludfile
+  % EV TX texclude texclude.dat
+  [ev.stf c] = sscanfitem(tline,5);
+  if(c ~= 1) 
+    fprintf('Format error: %s: stf\n',ev.model); 
+    fprintf('Expected something like: EV TX texclude\n');
+    ev=[]; 
+    return; 
+  end
+  ev.ishrf = 0;  
+  ev.params = [];
+  ev.nreg = -1; % don't know until we read it in
+  
+ %--------------------------------------------
  case {'selfregseg'} % Segmentation-based Self-Regressor
    % Variable number of params
    % EV CSF selfreg nuis segstem ResidFlag nPCA Id1 ... IdN
@@ -257,7 +272,7 @@ switch (ev.model)
  %--------------------------------------------
  case {'nonpar'} % Non-parametric regressor
   % 2 parameters: name, ncols
-  % EV MCReg nonpar nuiss mcextreg 3  
+  % EV MCReg nonpar nuis mcextreg 3  
   [ev.nonparname c] = sscanfitem(tline,5);
   if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
 
@@ -283,6 +298,25 @@ switch (ev.model)
   if(strcmp(item,'tag-first'))   ev.params(1) = 0; end
   if(strcmp(item,'tag-second'))  ev.params(1) = 1; end
   ev.nreg = 1;
+  ev.ishrf = 0;  
+
+ %--------------------------------------------
+ case {'aareg'} % 
+  % 3 parameters
+  % EV AAREG aareg nuis nkeep fmax fdelta
+  [item c] = sscanfitem(tline,5);
+  if(c ~= 1) fprintf('Format error: %s\n',tline); ev=[]; return; end
+  ev.params(1) = sscanf(item,'%d',1); % nkeep
+  ev.nreg = ev.params(1);
+
+  [item c] = sscanfitem(tline,6);
+  if(c ~= 1) fprintf('Format error: %s\n',tline); ev=[]; return; end
+  ev.params(2) = sscanf(item,'%f',1); % fmax
+
+  [item c] = sscanfitem(tline,7);
+  if(c ~= 1) fprintf('Format error: %s\n',tline); ev=[]; return; end
+  ev.params(3) = sscanf(item,'%f',1); % fdelta
+  
   ev.ishrf = 0;  
 
  %--------------------------------------------  
