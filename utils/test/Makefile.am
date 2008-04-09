@@ -8,7 +8,8 @@ AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/NrrdIO
 LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
-CHECKS=test_c_nr_wrapper mnitest i2rtest icotest extest \
+CHECKS=testcolortab \
+	test_c_nr_wrapper mnitest i2rtest icotest extest \
 	mghxform inftest checkanalyze \
 	test_mri_identify \
 	sc_test tiff_write_image
@@ -30,6 +31,9 @@ foo:
 	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
 		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
 					$(top_builddir)/distribution/lib/bem/; fi;
+	if ! test -f "$(top_builddir)/distribution/FreeSurferColorLUT.txt"; then \
+		cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt \
+					$(top_builddir)/distribution/FreeSurferColorLUT.txt; fi;
 
 if HAVE_CPPUNIT
 CPPUNIT_CHECKS=test_nr_wrapper test_matrix
