@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,6 +49,7 @@
 IMPLEMENT_DYNAMIC_CLASS(RenderView2D, RenderView)
 
 BEGIN_EVENT_TABLE(RenderView2D, RenderView) 
+	EVT_SIZE        ( RenderView2D::OnSize )
 END_EVENT_TABLE()
 
 RenderView2D::RenderView2D() : RenderView(), m_nViewPlane( 0 )
@@ -175,7 +176,14 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* const iData
 			iMsg == "LayerAdded" || 
 			iMsg == "LayerMoved" || 
 			iMsg == "LayerRemoved" )
-		UpdateAnnotation();
+	{
+		UpdateAnnotation();	
+	}
+	else if ( iMsg == "CursorRASPositionChanged" )
+	{
+		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+		m_cursor2D->SetPosition( lc->GetCursorRASPosition() );
+	}
 	
 	RenderView::DoListenToMessage( iMsg, iData );
 }
@@ -211,8 +219,9 @@ void RenderView2D::UpdateCursorRASPosition( int posX, int posY, bool bConnectPre
 	MousePositionToRAS( posX, posY, pos );
 	
 	lc->SetCursorRASPosition( pos );
+	lc->SetSlicePosition( pos );
 	
-	m_cursor2D->SetPosition( pos, bConnectPrevious );
+//	m_cursor2D->SetPosition( pos, bConnectPrevious );
 }
 
 void RenderView2D::MousePositionToRAS( int posX, int posY, double* pos )
@@ -257,6 +266,7 @@ void RenderView2D::MoveLeft()
 	cam->SetPosition( cam_pos );
 	
 	UpdateAnnotation();
+	UpdateCursor();
 	NeedRedraw();
 }
 
@@ -280,6 +290,7 @@ void RenderView2D::MoveRight()
 	cam->SetPosition( cam_pos );
 	
 	UpdateAnnotation();
+	UpdateCursor();
 	NeedRedraw();
 }
 
@@ -301,6 +312,7 @@ void RenderView2D::MoveUp()
 	cam->SetPosition( cam_pos );
 	
 	UpdateAnnotation();
+	UpdateCursor();
 	NeedRedraw();
 }
 	
@@ -322,5 +334,16 @@ void RenderView2D::MoveDown()
 	cam->SetPosition( cam_pos );
 	
 	UpdateAnnotation();
+	UpdateCursor();
 	NeedRedraw();
+}
+
+
+
+void RenderView2D::OnSize( wxSizeEvent& event )
+{
+	UpdateCursor();
+	UpdateAnnotation();
+	
+	event.Skip();
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
 #include "RenderView.h"
 #include "vtkSmartPointer.h"
 
-class vtkCursor3D;
+class vtkActor2D;
 class vtkRenderer;
 class vtkActor;
 class RenderView2D;
@@ -51,14 +51,14 @@ public:
 	void SetColor( double r, double g, double b );
 	
 	int GetRadius();
-	void SetRadius( int nRadius );
+	void SetRadius( int nPixels );
 	
 	void Update( bool bConnectPrevious = false );  
 	
 	void AppendCursor( vtkRenderer* renderer );
 	
 private:
-	vtkSmartPointer<vtkActor>	m_actorCursor;
+	vtkSmartPointer<vtkActor2D>	m_actorCursor;
 	
 	RenderView2D*	m_view;
 	

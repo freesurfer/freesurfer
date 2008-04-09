@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/01 22:18:49 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,6 +115,7 @@ public:
 	void OnEditPreferences( wxCommandEvent& event );
 	
 	void OnHelpQuickReference( wxCommandEvent& event );
+	void OnHelpAbout( wxCommandEvent& event );
 		
 	void OnWorkerThreadResponse( wxCommandEvent& event );
 	

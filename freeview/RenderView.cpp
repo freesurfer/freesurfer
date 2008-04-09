@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -89,42 +89,42 @@ void RenderView::InitializeRenderView()
 	// initialize focus frame
 	m_actorFocusFrame = vtkActor2D::New();
 	m_actorFocusFrame->VisibilityOff();
-	vtkPoints* Pts = vtkPoints::New();
-	Pts->InsertNextPoint( 0, 0, 0 );
-	Pts->InsertNextPoint( 0, 1, 0 );
-	Pts->InsertNextPoint( 1, 1, 0 );
-	Pts->InsertNextPoint( 1, 0, 0 );
-	vtkCellArray* Lines = vtkCellArray::New();
-	Lines->InsertNextCell( 2 );
-	Lines->InsertCellPoint( 0 );
-	Lines->InsertCellPoint( 1 );
-	Lines->InsertNextCell( 2 );
-	Lines->InsertCellPoint( 1 );
-	Lines->InsertCellPoint( 2 );
-	Lines->InsertNextCell( 2 );
-	Lines->InsertCellPoint( 2 );
-	Lines->InsertCellPoint( 3 );
-	Lines->InsertNextCell( 2 );
-	Lines->InsertCellPoint( 3 );
-	Lines->InsertCellPoint( 0 );
-
-	vtkPolyData* Grid = vtkPolyData::New();
-	Grid->SetPoints(Pts);
-	Grid->SetLines(Lines);
-	Pts->Delete();
-	Lines->Delete();
-	
-	vtkCoordinate* normCoords = vtkCoordinate::New();
-	normCoords->SetCoordinateSystemToNormalizedDisplay();
-
-	vtkPolyDataMapper2D* pMapper = vtkPolyDataMapper2D::New();
-	pMapper->SetInput(Grid);
-	pMapper->SetTransformCoordinate(normCoords);
-	Grid->Delete();
-	normCoords->Delete();
-
-	m_actorFocusFrame->SetMapper(pMapper);
-	m_actorFocusFrame->GetProperty()->SetColor( 0.9, 0.9, 0);
+	vtkPoints* Pts = vtkPoints::New();
+	Pts->InsertNextPoint( 0, 0, 0 );
+	Pts->InsertNextPoint( 0, 1, 0 );
+	Pts->InsertNextPoint( 1, 1, 0 );
+	Pts->InsertNextPoint( 1, 0, 0 );
+	vtkCellArray* Lines = vtkCellArray::New();
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 0 );
+	Lines->InsertCellPoint( 1 );
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 1 );
+	Lines->InsertCellPoint( 2 );
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 2 );
+	Lines->InsertCellPoint( 3 );
+	Lines->InsertNextCell( 2 );
+	Lines->InsertCellPoint( 3 );
+	Lines->InsertCellPoint( 0 );
+
+	vtkPolyData* Grid = vtkPolyData::New();
+	Grid->SetPoints(Pts);
+	Grid->SetLines(Lines);
+	Pts->Delete();
+	Lines->Delete();
+	
+	vtkCoordinate* normCoords = vtkCoordinate::New();
+	normCoords->SetCoordinateSystemToNormalizedDisplay();
+
+	vtkPolyDataMapper2D* pMapper = vtkPolyDataMapper2D::New();
+	pMapper->SetInput(Grid);
+	pMapper->SetTransformCoordinate(normCoords);
+	Grid->Delete();
+	normCoords->Delete();
+
+	m_actorFocusFrame->SetMapper(pMapper);
+	m_actorFocusFrame->GetProperty()->SetColor( 0.9, 0.9, 0);
 	m_actorFocusFrame->GetProperty()->SetLineWidth( 5 );	
 	pMapper->Delete();
 	
@@ -290,4 +290,3 @@ void RenderView::OnInternalIdle()
 		m_nRedrawCount--;
 	}
 }
-

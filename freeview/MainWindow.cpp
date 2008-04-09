@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/01 22:18:49 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -125,6 +125,7 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU		( XRCID( "ID_VIEW_3D" ),				MainWindow::OnView3D )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_3D" ),				MainWindow::OnView3DUpdateUI )
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
+    EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
 /*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
 	EVT_IDLE		(MainWindow::OnIdle)
 	EVT_MENU		(XRCID("ID_EVENT_LOAD_DATA"),	MainWindow::OnWorkerEventLoadData)
@@ -1064,6 +1065,14 @@ void MainWindow::OnHelpQuickReference( wxCommandEvent& event )
 	}
 }
 
+void MainWindow::OnHelpAbout( wxCommandEvent& event )
+{
+	wxString msg = "freeview 1.0 (internal)";
+	
+	wxMessageDialog dlg( this, msg, "About", wxOK | wxICON_INFORMATION );
+	dlg.ShowModal();
+}
+
 void MainWindow::OnFileNew( wxCommandEvent& event )
 {
 	NewVolume();
@@ -1158,6 +1167,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 					m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
 					m_view3D->SetWorldCoordinateInfo( worigin, wsize );
 					lc->AddLayer( layer, true );
+					lc->SetCursorRASPosition( lc->GetSlicePosition() );
 				}
 				else
 					lc->AddLayer( layer );

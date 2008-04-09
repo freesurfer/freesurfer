@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/01 22:18:49 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,4 +107,29 @@ wxString MyUtils::GetNormalizedFullPath( const wxString& filename )
 	wxFileName fn( filename );
 	fn.Normalize( wxPATH_NORM_ENV_VARS | wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE );
 	return fn.GetFullPath();
+}
+
+wxArrayString MyUtils::SplitString( const wxString& strg_to_split, const wxString& divider )
+{
+	wxArrayString sa;
+	wxString strg = strg_to_split;
+	strg.Trim( true );
+	strg.Trim( false );
+	int n = strg.Find( divider );
+	while ( n != wxNOT_FOUND )
+	{
+		wxString substr = strg.Left( n );
+		substr.Trim( true );
+		substr.Trim( false );
+		if ( substr.Length() > 0 )
+			sa.Add( substr );
+		strg = strg.Mid( n + divider.Length() );
+		strg.Trim( true );
+		strg.Trim( false );
+		n = strg.Find( divider );
+	}
+	if ( strg.Length() > 0 )
+		sa.Add( strg );
+	
+	return sa;
 }

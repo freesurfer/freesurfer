@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,9 +27,9 @@
 #include <wx/xrc/xmlres.h> 
 #include "Cursor2D.h"
 #include "vtkRenderer.h"
-#include "vtkActor.h"
+#include "vtkActor2D.h"
 #include "vtkProperty.h"
-#include "vtkPolyDataMapper.h"
+#include "vtkPolyDataMapper2D.h"
 #include "vtkPolyData.h"
 #include "MainWindow.h"
 #include "RenderView2D.h"
@@ -37,6 +37,7 @@
 #include "vtkPoints.h"
 #include "vtkCellArray.h"
 #include "vtkFloatArray.h"
+#include <vtkProperty2D.h>
 #include "MyUtils.h"
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
@@ -44,10 +45,11 @@
 
 Cursor2D::Cursor2D( RenderView2D* view )
 {
-	m_actorCursor = vtkSmartPointer<vtkActor>::New();
+	m_actorCursor = vtkSmartPointer<vtkActor2D>::New();
 	m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
 	m_nRadius = 5;
 	m_view = view;
+	Update();
 }
 
 Cursor2D::~Cursor2D()
@@ -75,20 +77,17 @@ void Cursor2D::SetPosition( double* pos, bool bConnectPrevious  )
 void Cursor2D::Update( bool bConnectPrevious )
 {
 	vtkRenderer* renderer = m_view->GetRenderer();
-	double pos1[3] = { 0, 0, 0 }, pos2[3] = { m_nRadius, 0, 0 };
-	renderer->ViewportToNormalizedViewport( pos1[0], pos1[1] );
-	renderer->ViewportToNormalizedViewport( pos2[0], pos2[1] );	
-	renderer->NormalizedViewportToView( pos1[0], pos1[1], pos1[2] );
-	renderer->NormalizedViewportToView( pos2[0], pos2[1], pos2[2] );
-	renderer->ViewToWorld( pos1[0], pos1[1], pos1[2] );
-	renderer->ViewToWorld( pos2[0], pos2[1], pos2[2] );
-	
-	double dLen = MyUtils::GetDistance<double>( pos1, pos2 );
+
+	double dLen = m_nRadius;
 	double pos[3] = { m_dPosition[0], m_dPosition[1], m_dPosition[2] };
-	double prev_pos[3] = { m_dPosition2[0], m_dPosition2[1], m_dPosition2[2] };
-	int nPlane = m_view->GetViewPlane();
-	pos[nPlane] += ( nPlane == 2 ? -0.001 : 0.001 );
-	prev_pos[nPlane] += ( nPlane == 2 ? -0.001 : 0.001 );
+	double prev_pos[3] = { m_dPosition2[0], m_dPosition2[1], m_dPosition2[2] };	
+	renderer->WorldToView( prev_pos[0], prev_pos[1], prev_pos[2] );
+	renderer->WorldToView( pos[0], pos[1], pos[2] );
+	renderer->ViewToNormalizedViewport( prev_pos[0], prev_pos[1], prev_pos[2] );
+	renderer->ViewToNormalizedViewport( pos[0], pos[1], pos[2] );
+	renderer->NormalizedViewportToViewport( prev_pos[0], prev_pos[1] );
+	renderer->NormalizedViewportToViewport( pos[0], pos[1] );
+
 	int n = 0;
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 	vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
@@ -110,17 +109,16 @@ void Cursor2D::Update( bool bConnectPrevious )
 	lines->InsertNextCell( 2 );
 	lines->InsertCellPoint( n++ );	
 	lines->InsertCellPoint( n++ );
-	points->InsertNextPoint( pos[0], pos[1], pos[2] + dLen );
-	points->InsertNextPoint( pos[0], pos[1], pos[2] - dLen );
-	lines->InsertNextCell( 2 );
-	lines->InsertCellPoint( n++ );	
-	lines->InsertCellPoint( n++ );
 	
 	vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
 	polydata->SetPoints( points );
 	polydata->SetLines( lines );
-	vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	vtkSmartPointer<vtkPolyDataMapper2D> mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
 	mapper->SetInput( polydata );
+	vtkSmartPointer<vtkCoordinate> coords = vtkSmartPointer<vtkCoordinate>::New();
+	coords->SetCoordinateSystemToViewport();
+	mapper->SetTransformCoordinate( coords );
+
 	m_actorCursor->SetMapper( mapper );	
 }
 

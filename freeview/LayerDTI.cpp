@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -116,7 +116,7 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 		int z = i/(dim[0]*dim[1]);
 		m_volumeRAS->SetScalarComponentFromFloat( x, y, z, 0, fa );
 		m_volumeRAS->SetScalarComponentFromFloat( x, y, z, 1, scalar );
-		if ( i%(nSize/5) == 0 )
+		if ( nSize >= 5 && i%(nSize/5) == 0 )
 		{
 			event.SetInt( event.GetInt() + nProgressStep );  
 			wxPostEvent( wnd, event );

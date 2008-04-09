@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -152,4 +152,18 @@ void Layer::SetSlicePosition( int nPlane, double slicePos )
 	}
 }
 
+void Layer::RASToVoxel( const double* pos, int* n )
+{
+	for ( int i = 0; i < 3; i++ )
+	{
+		n[i] = ( int )( ( pos[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
+	}
+}
 
+void Layer::VoxelToRAS( const int* n, double* pos )
+{
+	for ( int i = 0; i < 3; i++ )
+	{
+		pos[i] = m_dWorldOrigin[i] + m_dWorldVoxelSize[i] * n[i];
+	}
+}

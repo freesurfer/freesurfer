@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,9 @@ class Layer : public Listener, public Broadcaster
 		void GetSlicePosition( double* slicePos );
 		void SetSlicePosition( double* slicePos );
 		void SetSlicePosition( int nPlane, double slicePos );
+		
+		void RASToVoxel( const double* pos, int* n );
+		void VoxelToRAS( const int* n, double* pos );
 		
 		virtual void OnSlicePositionChanged( int nPlane ) = 0;
 		

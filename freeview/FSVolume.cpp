@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -206,7 +206,7 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxComm
 			BUFTYPE* buf = &MRIseq_vox( m_MRI, 0, j, k, 0);
 			memcpy( buf, ptr, m_MRI->width*out->GetScalarSize() );		
 		}
-		if ( j%(m_MRI->height/5) == 0 )
+		if ( m_MRI->height >= 5 && j%(m_MRI->height/5) == 0 )
 		{
 			event.SetInt( event.GetInt() + nProgressStep );
 			wxPostEvent( wnd, event );
@@ -465,7 +465,7 @@ void FSVolume::MapMRIToImage ( wxWindow* wnd, wxCommandEvent& event )
 #endif
 		}
 	
-		if ( nZ%(zZ/5) == 0 )
+		if ( nZ%(max(1, zZ/5)) == 0 )
 		{
 			event.SetInt( event.GetInt() + nProgressStep );  
 			wxPostEvent( wnd, event );

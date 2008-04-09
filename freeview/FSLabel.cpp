@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -97,7 +97,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 				}
 			}
 		}
-		if ( i%(dim[0]/5) == 0 )
+		if ( dim[0] >= 5 && i%(dim[0]/5) == 0 )
 		{
 			event.SetInt( event.GetInt() + nProgressStep );
 			wxPostEvent( wnd, event );

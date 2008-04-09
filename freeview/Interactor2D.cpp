@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/01 22:18:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/04/09 19:09:09 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -89,6 +89,7 @@ bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 	m_bChangeSlice = false;
 	
 	view->UpdateAnnotation();
+	view->UpdateCursor();
 	
 	if ( event.LeftUp() )
 	{
@@ -152,7 +153,10 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
 	else
 	{	
 		if ( event.MiddleIsDown() || event.RightIsDown() )
+		{
 			view->UpdateAnnotation();
+			view->UpdateCursor();
+		}
 		else
 			view->UpdateMouseRASPosition( posX, posY );
 
