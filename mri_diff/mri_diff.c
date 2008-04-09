@@ -19,9 +19,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/15 04:34:14 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2008/04/09 09:45:51 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,7 +174,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.22 2008/03/15 04:34:14 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.23 2008/04/09 09:45:51 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -188,6 +188,7 @@ char *subject, *hemi, *SUBJECTS_DIR;
 double pixthresh=0, resthresh=0, geothresh=0;
 char *DiffFile=NULL;
 int DiffAbs=0, AbsDiff=1,DiffPct=0;
+char *AvgDiffFile=NULL;
 
 MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL, *DiffLabelVol=NULL;
 char *DiffVolFile=NULL;
@@ -209,9 +210,10 @@ int DoRSS = 0; // Compute sqrt of sum squares
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, r, c, s, f;
-  int rmax, cmax, smax, fmax;
+  int rmax, cmax, smax, fmax,navg;
   double diff,maxdiff;
   double val1, val2, SumSqErr;
+  double AvgDiff=0.0,SumDiff=0.0;
   FILE *fp=NULL;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -417,6 +419,7 @@ int main(int argc, char *argv[]) {
                                       InVol1->depth,MRI_FLOAT,InVol1->nframes);
       MRIcopyHeader(InVol1,DiffLabelVol);
     }
+    SumDiff=0.0;
     c=r=s=f=0;
     val1 = MRIgetVoxVal(InVol1,c,r,s,f);
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
@@ -437,7 +440,8 @@ int main(int argc, char *argv[]) {
             if(AbsDiff)   diff = fabs(diff);
             if(DiffAbs)   diff = fabs(fabs(val1)-fabs(val2));
             if(DiffPct)   diff = 100*(val1-val2)/((val1+val2)/2.0);
-            if(DiffVolFile && !DoRSS) MRIsetVoxVal(DiffVol,c,r,s,f,diff);
+            if(DiffVolFile && !DoRSS)  MRIsetVoxVal(DiffVol,c,r,s,f,diff);
+            if(AvgDiffFile && !DoRSS)  SumDiff += diff;
             if(DiffLabelVolFile) {
               if (diff==0) MRIsetVoxVal(DiffLabelVol,c,r,s,f,val1);
               else {
@@ -452,19 +456,27 @@ int main(int argc, char *argv[]) {
               fmax = f;
             }
           }
-          if(DiffVolFile && DoRSS) {
-            MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr));
-          }
+          if(DiffVolFile && DoRSS) MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr));
+          if(AvgDiffFile && DoRSS) SumDiff += sqrt(SumSqErr);
         }
       }
     }
-    if (debug) printf("maxdiff %f at %d %d %d %d\n",
-                      maxdiff,cmax,rmax,smax,fmax);
+    if(debug) printf("maxdiff %f at %d %d %d %d\n",
+		     maxdiff,cmax,rmax,smax,fmax);
 
     if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
-    if (DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
+    if(DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
+    if(AvgDiffFile){
+      navg = InVol1->width * InVol1->height * InVol1->depth;
+      if(! DoRSS) navg *= InVol1->nframes;
+      AvgDiff = SumDiff/navg;
+      if(debug) printf("AvgStats %d %lf %lf\n",navg,SumDiff,AvgDiff);
+      fp = fopen(AvgDiffFile,"w");
+      fprintf(fp,"%lf\n",AvgDiff);
+      fclose(fp);
+    }
 
-    if (maxdiff > pixthresh) {
+    if(maxdiff > pixthresh) {
       printf("Volumes differ in pixel data\n");
       printf("maxdiff %f at %d %d %d %d\n",
              maxdiff,cmax,rmax,smax,fmax);
@@ -589,6 +601,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--avg-diff")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      AvgDiffFile = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--diff_label_suspicious")) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffLabelVolFile = pargv[0];
@@ -690,6 +706,7 @@ static void print_usage(void) {
   printf("   --diff_label_suspicious DiffVol : differing voxels replaced\n");
   printf("                                     with label SUSPICIOUS\n");
   printf("                                     (for comparing aseg.mgz's)\n");
+  printf("   --avg-diff avgdiff.txt : save average difference \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --verbose   print out info on all differences found\n");
