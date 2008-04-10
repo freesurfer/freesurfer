@@ -65,6 +65,8 @@ install-exec-hook:orient_mri
 		>> $(DESTDIR)$(bindir)/orient_mri
 	echo "orient_mri.bin \$$argv" >> $(DESTDIR)$(bindir)/orient_mri
 	chmod a+x $(DESTDIR)$(bindir)/orient_mri
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/orient_mri.bin; fi
 
 else
 bin_PROGRAMS = 

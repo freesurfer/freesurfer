@@ -318,6 +318,8 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/scuba
 	echo "scuba.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba
 	chmod a+x $(DESTDIR)$(bindir)/scuba
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/scuba.bin; fi
 else
 install-exec-hook:
 endif

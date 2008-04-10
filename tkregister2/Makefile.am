@@ -32,6 +32,8 @@ install-exec-hook:
 		>> $(DESTDIR)$(bindir)/tkregister2
 	echo "tkregister2.bin \$$argv" >> $(DESTDIR)$(bindir)/tkregister2
 	chmod a+x $(DESTDIR)$(bindir)/tkregister2
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tkregister2.bin; fi
 else
 all:
 	@echo ""
