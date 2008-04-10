@@ -78,6 +78,8 @@ install-exec-hook:qdec
 	echo "endif" >> $(DESTDIR)$(bindir)/qdec
 	echo "qdec.bin \$$argv" >> $(DESTDIR)$(bindir)/qdec
 	chmod a+x $(DESTDIR)$(bindir)/qdec
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/qdec.bin; fi
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/qdec.bin

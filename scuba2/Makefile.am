@@ -210,6 +210,8 @@ install-exec-hook:scuba2
 		>> $(DESTDIR)$(bindir)/scuba2
 	echo "scuba2.bin \$$argv" >> $(DESTDIR)$(bindir)/scuba2
 	chmod a+x $(DESTDIR)$(bindir)/scuba2
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/scuba2.bin; fi
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/scuba2.bin

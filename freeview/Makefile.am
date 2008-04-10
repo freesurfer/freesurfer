@@ -177,6 +177,8 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "freeview.bin \$$argv" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/freeview.bin; fi
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview.bin

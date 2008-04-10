@@ -47,6 +47,8 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/tkmedit
 	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit
 	chmod a+x $(DESTDIR)$(bindir)/tkmedit
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tkmedit.bin; fi
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/tkmedit.bin
