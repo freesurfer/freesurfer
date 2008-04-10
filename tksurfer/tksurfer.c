@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/10 18:30:14 $
- *    $Revision: 1.305 $
+ *    $Date: 2008/04/10 18:39:47 $
+ *    $Revision: 1.306 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -15609,10 +15609,8 @@ draw_colscalebar(void)
             /* Figure out a good label position based. Here,
                strlen(label)*3.1 + strlen(label)*colscalebar_font_size*0.6 is
                a good rough estimate as to the width of the string. */
-#ifdef Darwin
             glDisable(GL_LIGHTING); // necessary to get color setting to work:
             // http://www.devmaster.net/forums/showthread.php?p=55473
-#endif
             glColor3f (1.0, 1.0, 1.0);// white
             if (colscalebarvertflag)
             {
@@ -15636,9 +15634,7 @@ draw_colscalebar(void)
             {
               glutBitmapCharacter (glut_font, label[cur_char]);
             }
-#ifdef Darwin
             glEnable(GL_LIGHTING); // restore (was disabled to set color
-#endif
           }
         }
   }
@@ -20670,7 +20666,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.305 2008/04/10 18:30:14 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.306 2008/04/10 18:39:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -29143,9 +29139,7 @@ cptn_draw ()
   /* Note that the color of bitmaps is taken from the raster color,
      which is only set when glRasterPos is called. So set the color
      first, then call glRasterPos. */
-#ifdef Darwin
   glDisable(GL_LIGHTING); // necessary to get color setting to work
-#endif
   glNormal3f (0.0, 0.0, 1.0);
   glColor3f (1.0, 1.0, 1.0);
   glRasterPos3f (fov*sf * CPTN_LOC_CAPTION_X,
@@ -29156,9 +29150,7 @@ cptn_draw ()
   {
     glutBitmapCharacter (CPTN_FONT, cptn_value_string[cur_char]);
   }
-#ifdef Darwin
   glEnable(GL_LIGHTING); // restore
-#endif
 
   glFinish();
 
