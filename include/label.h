@@ -9,8 +9,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:42:33 $
- *    $Revision: 1.40 $
+ *    $Date: 2008/04/10 15:25:26 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,6 +69,7 @@ int     LabelDump(FILE *fp, LABEL *area) ;
 LABEL   *LabelRead(char *subject_name, char *label_name) ;
 int     LabelWrite(LABEL *area, char *fname) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelThreshold(LABEL *area, float thresh) ;
 int     LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh);
 int     LabelMarkSurface(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToOriginal(LABEL *area, MRI_SURFACE *mris) ;
@@ -107,7 +108,6 @@ int     LabelMean(LABEL *area, double *px, double *py, double *pz) ;
 int     LabelMark(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelMarkStats(LABEL *area, MRI_SURFACE *mris) ;
-LABEL   *LabelFromMarkedSurfaces(MRI_SURFACE *mris) ;
 int     LabelUnmark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurface(MRI_SURFACE *mris) ;
 int     LabelNormalizeStats(LABEL *area, float norm) ;
