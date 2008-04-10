@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2008/04/10 18:42:24 $
-##    $Revision: 1.153 $
+##    $Date: 2008/04/10 20:31:25 $
+##    $Revision: 1.154 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -4127,7 +4127,7 @@ proc CreateGraphFrame { ifwGraph } {
     set gwGraph(graph) $ifwGraph.gwGraph
     set fwLabel        $ifwGraph.fwLabel
     set fwNotes        $ifwGraph.fwNotes
-    set fwToggleLockAxis        $ifwGraph.fwToggleLockAxis
+    set fwTcOptions      $ifwGraph.fwTcOptions
 
     blt::graph $gwGraph(graph) -title "Time Course" \
 	-plotbackground white
@@ -4136,10 +4136,26 @@ proc CreateGraphFrame { ifwGraph } {
     set gwGraph(label) [$fwLabel.label subwidget label]
 
     tkm_MakeSmallLabel $fwNotes "Click-1 to set time point. Click-2 and drag to zoom in. Click-3 to unzoom."
-    
+  
+    tixLabelFrame $fwTcOptions \
+      -label "Options" \
+      -labelside acrosstop \
+      -options { label.padX 5 }
+   
+    # Essentially, the time course GUI has a few options 
+    # *  Toggle Axis Locking
+    # * Save the Graph as ps
+    # Following code realizes them in a subframe
+    set fwOptionSub          [$fwTcOptions subwidget frame]
+    set fwToggleLockAxis        $fwOptionSub.fwToggleLockAxis
+    set fwSaveGraphPS        $fwOptionSub.fwSaveGraphPS
+   
     tkm_MakeCheckboxes $fwToggleLockAxis v [list  { \
     text "Automatically size graph" gbAutoRangeGraph \
     {set gbAutoRangeGraph $gbAutoRangeGraph; Graph_UpdateSize; } } ]
+    
+    tkm_MakeButtons $fwSaveGraphPS { \
+    { text "Save Graph to PS" {DoFileDlog SaveGraphToPS} "Save the graph as a Postscript file" } } x
     
     pack $gwGraph(graph) \
 	-side top    \
@@ -4151,12 +4167,17 @@ proc CreateGraphFrame { ifwGraph } {
 	-fill x   \
 	-expand true
     
-    pack $fwToggleLockAxis \
+    pack $fwTcOptions $fwToggleLockAxis \
 	-side top \
 	-fill x   \
 	-expand yes \
 	-anchor w
-
+    
+    pack $fwSaveGraphPS \
+	-side left \
+	-fill x   \
+	-expand no \
+	-anchor w
     
     pack $fwLabel \
 	-side top \
