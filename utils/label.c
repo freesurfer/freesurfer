@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/08 14:43:32 $
- *    $Revision: 1.83 $
+ *    $Date: 2008/04/10 15:25:24 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2479,5 +2479,23 @@ LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which)
     }
   }
   return(NO_ERROR) ;
+}
+
+int
+LabelThreshold(LABEL *area, float thresh)
+{
+  int          n, ndel ;
+  LABEL_VERTEX *lv ;
+
+  for (ndel = n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->stat < thresh)
+    {
+      lv->deleted = 1 ;
+      ndel++ ;
+    }
+  }
+  return(ndel) ;
 }
 
