@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2008/04/08 14:03:49 $
-##    $Revision: 1.152 $
+##    $Date: 2008/04/10 18:42:24 $
+##    $Revision: 1.153 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -4120,12 +4120,14 @@ proc CreateGraphFrame { ifwGraph } {
 
     global gwGraph
     global knLineWidth
+    global gbAutoRangeGraph gnFixedAxesSize
 
     frame $ifwGraph
 
     set gwGraph(graph) $ifwGraph.gwGraph
     set fwLabel        $ifwGraph.fwLabel
     set fwNotes        $ifwGraph.fwNotes
+    set fwToggleLockAxis        $ifwGraph.fwToggleLockAxis
 
     blt::graph $gwGraph(graph) -title "Time Course" \
 	-plotbackground white
@@ -4135,12 +4137,28 @@ proc CreateGraphFrame { ifwGraph } {
 
     tkm_MakeSmallLabel $fwNotes "Click-1 to set time point. Click-2 and drag to zoom in. Click-3 to unzoom."
     
+    tkm_MakeCheckboxes $fwToggleLockAxis v [list  { \
+    text "Automatically size graph" gbAutoRangeGraph \
+    {set gbAutoRangeGraph $gbAutoRangeGraph; Graph_UpdateSize; } } ]
+    
     pack $gwGraph(graph) \
 	-side top    \
 	-fill both   \
 	-expand true
     
-    pack $fwNotes $fwLabel \
+    pack $fwNotes \
+	-side top \
+	-fill x   \
+	-expand true
+    
+    pack $fwToggleLockAxis \
+	-side top \
+	-fill x   \
+	-expand yes \
+	-anchor w
+
+    
+    pack $fwLabel \
 	-side top \
 	-fill x   \
 	-expand true
