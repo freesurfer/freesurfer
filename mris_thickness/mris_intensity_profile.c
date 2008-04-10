@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/04 12:13:11 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/04/10 15:26:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,13 +44,14 @@
 #include "transform.h"
 #include "fmriutils.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.14 2008/04/04 12:13:11 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.15 2008/04/10 15:26:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 static int remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border_mm) ;
+static float *mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, float *norm, int navgs) ;
 MRI *MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
-    float max_thick, int normalize, int curv_thresh);
+    float max_thick, int normalize, int curv_thresh, float *norm);
 static MRI *MRIfitPolynomial(MRI *mri_profiles, MRI *mri_poly, int order) ;
 static MRI *MRIfitQuadratic(MRI *mri_profiles, MRI *mri_quad) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -89,11 +90,19 @@ static int quadfit = 0 ;
 static int polyfit = 0 ;
 static int extra = 0 ;
 
-static float norm_max = 0 ;
+static float norm_gw = 0 ;
+static float norm_white ;
+static float norm_pial = 0 ;
+static float norm_mid = 0 ;
+static float norm_mean = 0 ;
+static float norm_median = 0 ;
 
 static char *overlay_fname = NULL ;
 static int overlay_t0 ;
 static int overlay_t1 ;
+
+static int ratio_offsets[4] ;
+static int ratio = 0 ;
 
 /* The following specifies the src and dst volumes of the input FSL/LTA transform */
 MRI          *lta_src = 0;
@@ -109,9 +118,10 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
   LABEL         *label = NULL ;
   MRI           *mri, *mri_profiles ;
+  float         *norm = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.14 2008/04/04 12:13:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.15 2008/04/10 15:26:05 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -377,15 +387,19 @@ main(int argc, char *argv[]) {
     LabelRipRestOfSurfaceWithThreshold(ltotal, mris, thresh) ;
   }
 
+  if (norm_white > 0)
+    norm = mrisComputeWhiteMatterIntensities(mris, mri, 9, NULL, 100) ;
   mri_profiles =
-    MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh) ;
+    MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh, norm) ;
 
   mri_profiles->tr = 1 ;
   if (remove_bad)
     remove_bad_profiles(mris, mri_profiles, mri, 20) ;
   if (navgs > 0) {
+    MRIwriteFrame(mri_profiles, "lh.f0.mgz", 0) ;
     printf("smoothing profiles %d times\n", navgs) ;
     MRISsmoothFrames(mris, mri_profiles, navgs) ;
+    MRIwriteFrame(mri_profiles, "lh.f0.smooth.mgz", 0) ;
   }
 
   if (mean_outname != NULL) {
@@ -448,18 +462,36 @@ main(int argc, char *argv[]) {
   {
     MRI *mri_overlay ;
     int vno, t ;
-    double avg ;
+    double avg, avg2 ;
 
     mri_overlay = MRIalloc(mri_profiles->width, 1, 1, MRI_FLOAT) ;
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       if (vno == Gdiag_no)
         DiagBreak() ;
-      for (avg = 0.0, t = overlay_t0 ; t <= overlay_t1 ; t++)
+      if (ratio)
       {
-        avg += MRIgetVoxVal(mri_profiles, vno, 0, 0, t) ;
+        for (avg = 0.0, t = ratio_offsets[0] ; t <= ratio_offsets[1] ; t++)
+        {
+          avg += MRIgetVoxVal(mri_profiles, vno, 0, 0, t) ;
+        }
+        avg /= (1.0+ratio_offsets[1]-ratio_offsets[0]);
+        for (avg2 = 0.0, t = ratio_offsets[2] ; t <= ratio_offsets[3] ; t++)
+        {
+          avg2 += MRIgetVoxVal(mri_profiles, vno, 0, 0, t) ;
+        }
+        avg2 /= (1.0+ratio_offsets[3]-ratio_offsets[2]);
+        if (!FZERO(avg2))
+          avg /= avg2 ;
       }
-      avg /= (1.0+overlay_t1-overlay_t0);
+      else
+      {
+        for (avg = 0.0, t = overlay_t0 ; t <= overlay_t1 ; t++)
+        {
+          avg += MRIgetVoxVal(mri_profiles, vno, 0, 0, t) ;
+        }
+        avg /= (1.0+overlay_t1-overlay_t0);
+      }
       MRIsetVoxVal(mri_overlay, vno, 0, 0, 0, avg);
     }
     fprintf(stderr, "writing overlay to %s...\n", overlay_fname) ;
@@ -524,14 +556,44 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr,  "computing overlay as average in interval [%d %d]\n",
             overlay_t0, overlay_t1) ;
     nargs = 3 ;
+  } else if (!stricmp(option, "ratio")) {
+    int i ;
+    overlay_fname = argv[2] ;
+    ratio = 1 ;
+
+    for (i = 0 ; i < 4 ; i++)
+      ratio_offsets[i] = atoi(argv[3+i]) ;
+    fprintf(stderr,  "computing overlay as ratio of intervals [%d %d] / [%d %d]\n",
+            ratio_offsets[0], ratio_offsets[1], ratio_offsets[2], ratio_offsets[3]);
+    nargs = 5 ;
   } else if (!stricmp(option, "nsigma")) {
     normal_sigma = atof(argv[2]) ;
     fprintf(stderr,  "applying surface normal smoothing with sigma=%2.2f\n",
             normal_sigma) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "norm_max")) {
-    norm_max = atof(argv[2]) ;
-    fprintf(stderr,  "normalizing intensities to have max value %2.3f\n", norm_max) ;
+  } else if (!stricmp(option, "norm_gw")) {
+    norm_gw = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have be %2.2f at gray/white boundary\n", norm_gw) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "norm_white")) {
+    norm_white = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have be %2.2f relative to white matter\n", norm_white) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "norm_pial")) {
+    norm_pial = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have be %2.2f at gray/csf boundary\n", norm_pial) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "norm_mid")) {
+    norm_mid = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have be %2.2f at mid point of ribbon\n", norm_mid) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "norm_median")) {
+    norm_median = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have median value %2.3f\n", norm_median) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "norm_mean")) {
+    norm_mean = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have mean value %2.3f\n", norm_mean) ;
     nargs = 1 ;
   } else if (!stricmp(option, "wmnorm")) {
     wm_norm_fname = argv[2] ;
@@ -719,7 +781,7 @@ print_version(void) {
 MRI *
 MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
                                      float max_thick,
-                                     int normalize, int curv_thresh) {
+                                     int normalize, int curv_thresh, float *norm) {
   int     vno, n, vlist[100000], vtotal, ns, i, vnum, min_n,
   pial_vno, nsamples, min_vox ;
   VERTEX  *v, *vn, *vn2 ;
@@ -839,26 +901,92 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
       DiagBreak() ;
     if (normalize) {
       sample_dist = thick / (max_samples-1);
-      for (nsamples = 0, d = 0.0 ; nsamples < max_samples ; d += sample_dist, nsamples++) {
-        x = v->origx + d*dx ;
-        y = v->origy + d*dy ;
-        z = v->origz + d*dz ;
+      if (norm_white > 0 && norm)
+        scale = norm_white / norm[vno] ;
+      if (norm_mean > 0)
+      {
+        for (nsamples = 0, d = 0.0, scale = 0.0 ; nsamples < max_samples ; d += sample_dist, nsamples++) 
+        {
+          x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
+          MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
+          MRIsampleVolume(mri, xv, yv, zv, &val) ;
+          scale += val ;
+        }
+        scale /= (double) nsamples ;
+        scale = norm_mean / scale ;
+      }
+      if (norm_pial > 0 || norm_mid > 0 || norm_gw > 0)
+      {
+        if (norm_pial > 0)
+        {
+          scale = norm_pial ;
+          d = thick ;
+        }
+        else if (norm_mid > 0)
+        {
+          scale = norm_mid ;
+          d = thick/2 ;
+        }
+        else
+        {
+          d = 0 ;
+          scale = norm_gw ;
+        }
+        x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
         MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
-        if (norm_max > 0 && nsamples == 0)
-        {
-          if (FZERO(val))
-            scale = 1 ;
-          else
-            scale = norm_max/val ;
-        }
-          
+        if (!FZERO(val))
+          scale = scale / val ;
+        else
+          scale = 1 ;
+      }
+      for (nsamples = 0, d = 0.0 ; nsamples < max_samples ; d += sample_dist, nsamples++) {
+        x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
+        MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
+        MRIsampleVolume(mri, xv, yv, zv, &val) ;
         val *= scale ;
         MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
       }
     } else {
       sample_dist = SAMPLE_DIST * mri->xsize ; 
       //   for (nsamples = 0, d = 0.0 ; d <= max_thick ; d += sample_dist, nsamples++)
+      if (norm_mean > 0)
+      {
+        for (nsamples = 0, d = 0.0, scale = 0.0 ; nsamples < max_samples ; d += sample_dist, nsamples++) 
+        {
+          x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
+          MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
+          MRIsampleVolume(mri, xv, yv, zv, &val) ;
+          scale += val ;
+        }
+        scale /= (double) nsamples ;
+        scale = norm_mean / scale ;
+      }
+      if (norm_pial > 0 || norm_mid > 0 || norm_gw > 0)
+      {
+        if (norm_pial > 0)
+        {
+          scale = norm_pial ;
+          d = thick ;
+        }
+        else if (norm_mid > 0)
+        {
+          scale = norm_mid ;
+          d = thick/2 ;
+        }
+        else
+        {
+          d = 0 ;
+          scale = norm_gw ;
+        }
+        x = v->origx + d*dx ; y = v->origy + d*dy ; z = v->origz + d*dz ;
+        MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
+        MRIsampleVolume(mri, xv, yv, zv, &val) ;
+        if (!FZERO(val))
+          scale = scale / val ;
+        else
+          scale = 1 ;
+      }
       for (nsamples = 0, d = -extra*sample_dist ;nsamples < max_samples; d += sample_dist, nsamples++) {
 #if 0
         if (d > thick)  // so each row has the same # of cols
@@ -873,13 +1001,6 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
           z = v->origz + d*dz ;
           MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
           MRIsampleVolume(mri, xv, yv, zv, &val) ;
-          if (norm_max > 0 && nsamples == 0)
-          {
-            if (FZERO(val))
-              scale = 1 ;
-            else
-              scale = norm_max/val ;
-          }
           val *= scale ;
           MRIFseq_vox(mri_profiles, vno, 0, 0, nsamples) = val ;
         }
@@ -890,7 +1011,7 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
 
   // now check profiles and correct them where they are obviously wrong
   min_vox = (int)ceil(MIN_BORDER_DIST/mri->xsize) ;  // within 2cm of edge
-  if (FZERO(norm_max))
+  if (FZERO(norm_gw) && 0)
   {
     int  bad ;
 
@@ -1097,3 +1218,79 @@ remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border
   }
   return(NO_ERROR) ;
 }
+static float *
+mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, float *norm, int navgs)
+{
+  int     vno, whalf, num, xk, yk, zk, i ;
+  VERTEX  *v ;
+  MRI     *mri_interior ;
+  VECTOR  *v1, *v2, *m_vox2vox ;
+  float   avg_wm ;
+  Real    xv, yv, zv, xi, yi, zi, val ;
+
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  mri_interior = MRISfillInterior(mris, mri->xsize/2, NULL) ;
+  for (i = 0 ; i < nint(2/mri->xsize) ; i++)
+    MRIerode(mri_interior, mri_interior) ;   // avoid partial volume voxels.
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_interior, "i.mgz") ;
+  whalf = (nint(wsize_mm / mri_interior->xsize)-1)/2 ;
+  if (norm == NULL)
+    norm = (float *)calloc(mris->nvertices, sizeof(float)) ;
+  if (norm == NULL)
+    ErrorExit(ERROR_NOMEMORY, "mrisComputeWhiteMatterIntensities: couldn't allocate array") ;
+
+
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_interior, mri) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    MRISsurfaceRASToVoxel(mris, mri_interior, v->x, v->y, v->z, &xv, &yv, &zv) ;
+    for (avg_wm = 0.0, num = 0, xk = -whalf ; xk <= whalf ; xk++)
+    {
+      xi = xv+xk ;
+      for (yk = -whalf ; yk <= whalf ; yk++)
+      {
+        yi = yv+yk ;
+        for (zk = -whalf ; zk <= whalf ; zk++)
+        {
+          zi = zv+zk ;
+          MRIsampleVolume(mri_interior, xi, yi, zi, &val) ;
+          if (val > 0.5)  // in wm
+          {
+            V3_X(v1) = xi ; V3_Y(v1) = yi ; V3_Z(v1) = zi ;
+            MatrixMultiply(m_vox2vox, v1, v2) ;
+            MRIsampleVolume(mri, V3_X(v2), V3_Y(v2), V3_Z(v2), &val) ;
+            avg_wm += val ;
+            num++ ;
+          }
+        }
+      }
+    }
+    if (num > 0)
+      norm[vno] = avg_wm / num;
+  }
+
+  MRISimportValVector(mris, norm) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteValues(mris, "lh.norm.mgz") ;
+  MRISaverageVals(mris, navgs) ;
+  MRISexportValVector(mris, norm) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRISwriteValues(mris, "lh.norm.smooth.mgz") ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
+  MRIfree(&mri_interior) ;
+  return(norm) ;
+}
+
