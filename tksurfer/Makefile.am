@@ -40,6 +40,8 @@ install-exec-hook:
 		>> $(DESTDIR)$(bindir)/tksurfer
 	echo "tksurfer.bin \$$argv" >> $(DESTDIR)$(bindir)/tksurfer
 	chmod a+x $(DESTDIR)$(bindir)/tksurfer
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tksurfer.bin; fi
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/tksurfer.bin
