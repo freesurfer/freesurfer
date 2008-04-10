@@ -15,7 +15,7 @@ function hdr = load_nifti_hdr(niftifile)
 % reading hdr.glmin = ncols when hdr.dim(2) < 0. This
 % is FreeSurfer specific, for handling surfaces.
 %
-% $Id: load_nifti_hdr.m,v 1.8 2007/05/22 05:24:11 greve Exp $
+% $Id: load_nifti_hdr.m,v 1.9 2008/04/10 22:06:25 greve Exp $
 
 
 %
@@ -24,8 +24,8 @@ function hdr = load_nifti_hdr(niftifile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/22 05:24:11 $
-%    $Revision: 1.8 $
+%    $Date: 2008/04/10 22:06:25 $
+%    $Revision: 1.9 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -128,9 +128,12 @@ end
 % look at xyz units and convert to mm if needed
 xyzunits = bitand(hdr.xyzt_units,7); % 0x7
 switch(xyzunits)
-  case 1, xyzscale = 1000.000; % meters
-  case 2, xyzscale =    1.000; % mm
-  case 3, xyzscale =     .001; % microns
+ case 1, xyzscale = 1000.000; % meters
+ case 2, xyzscale =    1.000; % mm
+ case 3, xyzscale =     .001; % microns
+ otherwise, 
+  fprintf('WARNING: xyz units code %d is unrecognized\n',xyzunits);
+  xyzscale = 10^10; % Make it silly
 end
 hdr.pixdim(2:4) = hdr.pixdim(2:4) * xyzscale;
 hdr.srow_x = hdr.srow_x * xyzscale;
