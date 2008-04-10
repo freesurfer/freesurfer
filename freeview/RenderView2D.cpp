@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/04/10 19:59:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@
 #include "Interactor2DNavigate.h"
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
+#include "MyUtils.h"
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
@@ -148,7 +149,6 @@ void RenderView2D::UpdateViewByWorldCoordinate()
 		wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
 	}
 	cam->SetFocalPoint( wcenter );
-	cam->SetParallelScale( max( max(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) / 2 );
 	switch ( m_nViewPlane )
 	{
 		case 0:
@@ -163,6 +163,8 @@ void RenderView2D::UpdateViewByWorldCoordinate()
 			cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2] );
 			break;
 	}
+	cam->SetParallelScale( max( max(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) / 2 );
+//	m_renderer->ResetCameraClippingRange(); 
 }
 
 void RenderView2D::UpdateAnnotation()
@@ -239,6 +241,46 @@ void RenderView2D::MousePositionToRAS( int posX, int posY, double* pos )
 	double slicePos[3];
 	MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetSlicePosition( slicePos );
 	pos[m_nViewPlane] = slicePos[m_nViewPlane];
+}
+
+void RenderView2D::ZoomAtCursor( int nX, int nY, bool ZoomIn )
+{
+	wxSize sz = GetClientSize();
+	double pos[3];
+	pos[0] = nX;
+	pos[1] = sz.GetHeight() - nY;
+	pos[2] = 0;
+	m_renderer->ViewportToNormalizedViewport( pos[0], pos[1] );
+	m_renderer->NormalizedViewportToView( pos[0], pos[1], pos[2] );
+	m_renderer->ViewToWorld( pos[0], pos[1], pos[2] );
+	
+	// first move the click point to the center of viewport
+	double focalPt[3], camPos[3], vproj[3];
+	vtkCamera* cam = m_renderer->GetActiveCamera();
+	cam->GetFocalPoint( focalPt );
+	cam->GetPosition( camPos );
+	cam->GetDirectionOfProjection( vproj );
+	double camDist = cam->GetDistance();
+	
+	double dist = MyUtils::GetDistance( pos, focalPt );
+	double v[3];
+	MyUtils::GetVector( pos, focalPt, v );
+	dist *= MyUtils::Dot( vproj, v );
+	
+	for ( int i = 0; i < 3; i++ )
+	{
+		focalPt[i] = pos[i] + vproj[i] * dist;
+		camPos[i] = focalPt[i] - vproj[i] * camDist;
+	}
+	
+	cam->SetFocalPoint( focalPt );
+	cam->SetPosition( camPos );
+	
+	// then zoom
+	cam->Zoom( ZoomIn ? 2 : 0.5 );
+	UpdateCursor();
+	UpdateAnnotation();
+	Render();
 }
 
 void RenderView2D::UpdateCursor()

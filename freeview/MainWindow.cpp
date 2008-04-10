@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/04/10 19:59:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -124,6 +124,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_AXIAL" ),				MainWindow::OnViewAxialUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_3D" ),				MainWindow::OnView3D )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_3D" ),				MainWindow::OnView3DUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewReset )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewResetUpdateUI )
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
 /*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
@@ -999,6 +1001,24 @@ void MainWindow::OnView3DUpdateUI( wxUpdateUIEvent& event )
 	event.Check( m_nMainView == MV_3D );
 }
 
+void MainWindow::OnViewReset( wxCommandEvent& event )
+{
+	wxWindow* wnd = FindFocus();
+	if ( wnd == m_viewAxial )
+		m_viewAxial->ResetView();
+	else if ( wnd == m_viewSagittal )
+		m_viewSagittal->ResetView();
+	else if ( wnd == m_viewCoronal )
+		m_viewCoronal->ResetView();
+	else if ( wnd == m_view3D )
+		m_view3D->ResetView();
+}
+
+void MainWindow::OnViewResetUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
+}
+
 void MainWindow::NeedRedraw( int nCount )
 {
 	m_nRedrawCount = nCount;
@@ -1067,7 +1087,7 @@ void MainWindow::OnHelpQuickReference( wxCommandEvent& event )
 
 void MainWindow::OnHelpAbout( wxCommandEvent& event )
 {
-	wxString msg = "freeview 1.0 (internal)";
+	wxString msg = wxString( "freeview 1.0 (internal) \r\nbuild ") + MyUtils::GetDateAndTime();
 	
 	wxMessageDialog dlg( this, msg, "About", wxOK | wxICON_INFORMATION );
 	dlg.ShowModal();

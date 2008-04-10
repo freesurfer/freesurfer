@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/04/10 19:59:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,13 +52,25 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 	
 	view->UpdateAnnotation();
 	
+	if ( event.ControlDown() )
+	{
+		if ( event.LeftDown() )
+		{
+			view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, true );
+			return false;
+		}
+		else if ( event.RightDown() )
+		{
+			view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, false );
+			return false;
+		}
+	}
+	
 	if ( event.LeftDown() )
 	{
 		m_nDownPosX = m_nMousePosX;
 		m_nDownPosY = m_nMousePosY;
 		
-	//	if ( event.ControlDown() )
-	//		m_bChangeSlice = true;
 		if ( event.ShiftDown() )
 			m_bWindowLevel = true;
 		else 

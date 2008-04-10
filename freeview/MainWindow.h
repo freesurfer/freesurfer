@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/04/10 19:59:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,6 +92,8 @@ public:
 	void OnViewAxialUpdateUI( wxUpdateUIEvent& event );
 	void OnView3D( wxCommandEvent& event );
 	void OnView3DUpdateUI( wxUpdateUIEvent& event );
+	void OnViewReset( wxCommandEvent& event );
+	void OnViewResetUpdateUI( wxUpdateUIEvent& event );
 	
 	void OnActionNavigate( wxCommandEvent& event );
 	void OnActionNavigateUpdateUI( wxUpdateUIEvent& event);

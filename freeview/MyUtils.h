@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/04/10 19:59:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,11 +42,14 @@ public:
 	template <class T> static bool Equal( T* pt1, T* p2, int n = 3 );
 	template <class T> static T** AllocateMatrix(int ny, int nx);
 	template <class T> static void FreeMatrix(T** p, int ny);
+	template <class T> static double Dot( T* v1, T* v2 );
 	
 	static bool HasExtension( const wxString& filename, const wxString& ext );
 	
 	static wxString GetNormalizedPath( const wxString& filename );
 	static wxString GetNormalizedFullPath( const wxString& filename );
+	
+	static wxString	GetDateAndTime();
 	
 	static wxArrayString SplitString( const wxString& strg, const wxString& divider );
 };
@@ -62,6 +65,12 @@ template <class T>
 	}
 	
 	return sqrt( dRes );
+}
+
+template <class T>
+		double MyUtils::Dot( T* v1, T* v2 )
+{
+	return ( double )( v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2] );
 }
 
 template <class T> 

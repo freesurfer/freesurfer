@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/04/10 19:59:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -224,6 +224,12 @@ void RenderView::SetWorldCoordinateInfo( const double* origin, const double* siz
 		m_dWorldSize[i] = size[i];
 	}
 	UpdateViewByWorldCoordinate();
+}
+
+void RenderView::ResetView()
+{
+	UpdateViewByWorldCoordinate();
+	NeedRedraw();
 }
 
 void RenderView::DoListenToMessage ( std::string const iMsg, void* const iData )

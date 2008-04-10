@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/04/10 19:59:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,7 @@
 #include "vtkFSVolumeSource.h"
 #include <math.h>
 #include <wx/filename.h>
+#include <stddef.h>
 
 typedef struct { int xl, xr, y, dy; } LINESEGMENT;
 
@@ -132,4 +133,11 @@ wxArrayString MyUtils::SplitString( const wxString& strg_to_split, const wxStrin
 		sa.Add( strg );
 	
 	return sa;
+}
+
+wxString MyUtils::GetDateAndTime()
+{
+	wxString strg = wxString( __DATE__) + " " + __TIME__;
+	
+	return strg;
 }
