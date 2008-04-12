@@ -10,11 +10,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/04/02 11:59:49 $
- *    $Revision: 1.136 $
+ *    $Author: nicks $
+ *    $Date: 2008/04/12 02:46:07 $
+ *    $Revision: 1.137 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -1718,10 +1718,10 @@ gcamLogLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri)
   Real            max_increase = 0, increase ;
   if (last_sse == NULL)
   {
-    last_sse = (float ***)calloc(gcam->width, sizeof(float)) ;
+    last_sse = (float ***)calloc(gcam->width, sizeof(float*)) ;
     for (x = 0 ; x < gcam->width ; x++)
     {
-      last_sse[x] = (float **)calloc(gcam->height, sizeof(float)) ;
+      last_sse[x] = (float **)calloc(gcam->height, sizeof(float*)) ;
       for (y = 0 ; y < gcam->height ; y++)
       {
         last_sse[x][y] = (float *)calloc(gcam->depth, sizeof(float)) ;

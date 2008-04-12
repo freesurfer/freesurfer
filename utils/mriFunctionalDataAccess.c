@@ -1,15 +1,14 @@
 /**
  * @file  mriFunctionalDataAccess.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief fmri utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: inverse
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/01 15:41:29 $
- *    $Revision: 1.48 $
+ *    $Author: nicks $
+ *    $Date: 2008/04/12 02:46:07 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -97,7 +96,6 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
                      int                    inScalarSize,
                      mriVolumeRef           iAnatomicalVolume )
 {
-
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
 
@@ -514,7 +512,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       DebugNote( ("Allocating cov mtx") );
       this->mCovMtx =
         (float**) calloc (this->mNumTimePoints * (this->mNumConditions-1),
-                          sizeof(float) );
+                          sizeof(float*) );
       DebugAssertThrowX( (NULL != this->mCovMtx),
                          eResult, FunD_tErr_CouldntAllocateStorage );
 
@@ -528,7 +526,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
         DebugNote( ("Allocating cov mtx col %d", nCovMtxCol) );
         this->mCovMtx[nCovMtxRow] =
           (float*) calloc (this->mNumTimePoints * (this->mNumConditions-1),
-                           sizeof(float) );
+                           sizeof(float*) );
         DebugAssertThrowX( (NULL != this->mCovMtx),
                            eResult, FunD_tErr_CouldntAllocateStorage );
 

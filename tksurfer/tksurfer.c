@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/10 18:39:47 $
- *    $Revision: 1.306 $
+ *    $Date: 2008/04/12 02:46:07 $
+ *    $Revision: 1.307 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2458,7 +2458,8 @@ int  main(int argc,char *argv[])
     else if (!stricmp(argv[i], "-timecourse-offset-reg-file"))
     {
       nargs = 2;
-      strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
+      strncpy (timecourse_offset_reg, argv[i+1], 
+               sizeof(timecourse_offset_reg));
       timecourse_offset_reg_type = FunD_tRegistration_File;
     }
     else if (!stricmp(argv[i], "-timecourse-offset-reg-find"))
@@ -2695,7 +2696,12 @@ int  main(int argc,char *argv[])
   }
   sprintf(lsrname,"/%s",path[0]);  /* reassemble absolute */
   for (i=1;i<j;i++)
-    sprintf(lsrname,"%s/%s",lsrname,path[i]);
+  {
+    // dont do this: sprintf(lsrname,"%s/%s",lsrname,path[i]);
+    // instead, do this:
+    strcat(lsrname,"/");
+    strcat(lsrname,path[i]);
+  }
   printf("surfer: session root data dir ($session) set to:\n");
   printf("surfer:     %s\n",lsrname);
 
@@ -9245,6 +9251,15 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
               "registration method.\n");
       return ERROR_BADPARM;
     }
+  }
+
+  if ((FunD_tRegistration_File == reg_type) && 
+      (registration) &&
+      (strlen(registration)==0))
+  {
+    printf ("surfer: sclv_read_from_volume,  ERROR: "
+            "missing registration filename\n");
+    return ERROR_BADPARM;
   }
 
   /* create volume. */
@@ -18143,6 +18158,7 @@ open_window(char *name)
     /* begin rkt */
     /* if we don't get a display, try again with the other kind of
     buffer. */
+    printf("surfer: tkoInitWindow(%s)\n",name);
     success = tkoInitWindow(name);
     if (!success)
     {
@@ -20666,7 +20682,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.306 2008/04/10 18:39:47 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.307 2008/04/12 02:46:07 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23422,40 +23438,42 @@ enable_menu_set (int set, int enable)
   switch (set)
   {
   case MENUSET_VSET_INFLATED_LOADED:
-    sprintf (tcl_cmd, "%s mg_InflatedVSetLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_InflatedVSetLoaded");
     break;
   case MENUSET_VSET_WHITE_LOADED:
-    sprintf (tcl_cmd, "%s mg_WhiteVSetLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_WhiteVSetLoaded");
     break;
   case MENUSET_VSET_PIAL_LOADED:
-    sprintf (tcl_cmd, "%s mg_PialVSetLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_PialVSetLoaded");
     break;
   case MENUSET_VSET_ORIGINAL_LOADED:
-    sprintf (tcl_cmd, "%s mg_OriginalVSetLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_OriginalVSetLoaded");
     break;
   case MENUSET_TIMECOURSE_LOADED:
-    sprintf (tcl_cmd, "%s mg_TimeCourseLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_TimeCourseLoaded");
     break;
   case MENUSET_OVERLAY_LOADED:
-    sprintf (tcl_cmd, "%s mg_OverlayLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_OverlayLoaded");
     break;
   case MENUSET_CURVATURE_LOADED:
-    sprintf (tcl_cmd, "%s mg_CurvatureLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_CurvatureLoaded");
     break;
   case MENUSET_LABEL_LOADED:
-    sprintf (tcl_cmd, "%s mg_LabelLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_LabelLoaded");
     break;
   case MENUSET_FIELDSIGN_LOADED:
-    sprintf (tcl_cmd, "%s mg_FieldSignLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_FieldSignLoaded");
     break;
   case MENUSET_FIELDMASK_LOADED:
-    sprintf (tcl_cmd, "%s mg_FieldMaskLoaded", tcl_cmd);
+    strcat (tcl_cmd, " mg_FieldMaskLoaded");
     break;
   default:
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,
                                "enable_menu_set: bad set %d\n",set));
   }
-  sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
+  char enable_cmd[100];
+  sprintf (enable_cmd, " %d", enable);
+  strcat (tcl_cmd, enable_cmd);
   send_tcl_command(tcl_cmd);
 
   return(ERROR_NONE);
@@ -24268,6 +24286,14 @@ int func_load_timecourse (char* fname, FunD_tRegistrationType reg_type,
     }
   }
 
+  if ((FunD_tRegistration_File == reg_type) && 
+      (registration) &&
+      (strlen(registration)==0))
+  {
+    printf ("surfer: func_load_timecourse,  ERROR: "
+            "missing registration filename\n");
+    return ERROR_BADPARM;
+  }
 
   /* create new volume */
   volume_error = FunD_New (&func_timecourse,
@@ -24370,11 +24396,11 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
     return ERROR_BADPARM;
   }
 
-  /* If they want to use the identity registration method, we need to
-     load up a volume for them to use as the base for the
+  /* Unless they selected the none-needed registration method, we need
+     to load up a volume for them to use as the base for the
      transform. So we use the orig header, which should already have
      been loaded, to get one. */
-  if (FunD_tRegistration_Identity == reg_type)
+  if (FunD_tRegistration_NoneNeeded != reg_type)
   {
     good = 0;
     if (NULL != orig_mri_header)
@@ -24394,12 +24420,21 @@ int func_load_timecourse_offset (char* fname, FunD_tRegistrationType reg_type,
     {
       if (NULL != volm)
         Volm_Delete (&volm);
-      printf ("surfer: ERROR: You specified registration type identity, "
+      printf ("surfer: ERROR: You specified a registration type, "
               "but tksurfer cannot find an anatomical volume with which "
-              "to calculate the identity transform. Please try another "
-              "registration method.\n");
+              "to calculate the registration. Please make sure the "
+              "orig volume is present in the subject's mri/ directory.\n");
       return ERROR_BADPARM;
     }
+  }
+
+  if ((FunD_tRegistration_File == reg_type) && 
+      (registration) &&
+      (strlen(registration)==0))
+  {
+    printf ("surfer: func_load_timecourse_offset,  ERROR: "
+            "missing registration filename\n");
+    return ERROR_BADPARM;
   }
 
   /* create new volume */
@@ -25842,7 +25877,7 @@ int sclv_send_histogram ( int field )
   }
 
   /* close up the command and send it off */
-  sprintf (tcl_cmd, "%s}", tcl_cmd);
+  strcat (tcl_cmd, "}");
   send_tcl_command (tcl_cmd);
 
   free (tcl_cmd);
