@@ -1,15 +1,14 @@
 /**
  * @file  mriFunctionalDataAccess.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief fmri utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: inverse
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/06 20:02:41 $
- *    $Revision: 1.47 $
+ *    $Author: nicks $
+ *    $Date: 2008/04/12 02:50:59 $
+ *    $Revision: 1.47.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -97,7 +96,6 @@ FunD_tErr FunD_New ( mriFunctionalDataRef*  opVolume,
                      int                    inScalarSize,
                      mriVolumeRef           iAnatomicalVolume )
 {
-
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
 
@@ -351,6 +349,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   float     fPreStimSecs   = 0;
   FILE*     pHeader        = NULL;
   tBoolean  bGood          = FALSE;
+  tBoolean  bSomethingRead = FALSE;
   char      sKeyword[256]  = "";
   int       nNumValues     = 0;
   int       nCovMtxCol     = 0;
@@ -437,7 +436,14 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   /* Try to open the file. */
   pHeader = fopen( sFileName, "r" );
 
-  /* Start scanning for keywords... */
+  /* Start scanning for keywords... We use bSomethingRead to keep
+     track if recognized a keyword and tried to read something. Since
+     we are happy to skip unrecognized lines, we could have a totally
+     random .dat file there that we would skip over and not get any
+     valid meta information. So if end up going through the file and
+     not recognizing anything, we want to bail. This will be the case
+     is bSomethingRead is still false at the end of the reading. */
+  bSomethingRead = FALSE;
   while (!feof( pHeader ) )
   {
 
@@ -457,14 +463,14 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       DebugNote( ("Reading TER") );
       nValuesRead = fscanf( pHeader, "%f", &this->mTimeResolution );
       bGood = (1 == nValuesRead);
-
+      bSomethingRead = TRUE;
     }
     else if ( strcmp( sKeyword, "TPreStim" ) == 0 )
     {
       DebugNote( ("Reading TPreStim") );
       nValuesRead = fscanf( pHeader, "%f", &fPreStimSecs );
       bGood = (1 == nValuesRead);
-
+      bSomethingRead = TRUE;
     }
     else if ( strcmp( sKeyword, "nCond" ) == 0 )
     {
@@ -472,14 +478,14 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       nValuesRead = fscanf( pHeader, "%d", &this->mNumConditions );
       bGood = (1 == nValuesRead);
       this->mbNullConditionPresent = TRUE;
-
+      bSomethingRead = TRUE;
     }
     else if ( strcmp( sKeyword, "Nh" ) == 0 )
     {
       DebugNote( ("Reading Nh") );
       nValuesRead = fscanf( pHeader, "%d", &this->mNumTimePoints );
       bGood = (1 == nValuesRead);
-
+      bSomethingRead = TRUE;
     }
     else if ( strcmp( sKeyword, "Npercond" ) == 0 )
     {
@@ -487,7 +493,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       nNumValues = this->mNumConditions;
       for ( nValue = 0; nValue < nNumValues; nValue++ )
         fscanf( pHeader, "%*d" );
-
+      bSomethingRead = TRUE;
     }
     else if ( strcmp( sKeyword, "SumXtX" ) == 0 )
     {
@@ -495,7 +501,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       nNumValues = pow( this->mNumTimePoints * (this->mNumConditions-1), 2 );
       for ( nValue = 0; nValue < nNumValues; nValue++ )
         fscanf( pHeader, "%*d" );
-
+      bSomethingRead = TRUE;
     }
     else if ( strcmp( sKeyword, "hCovMtx" ) == 0 )
     {
@@ -506,7 +512,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       DebugNote( ("Allocating cov mtx") );
       this->mCovMtx =
         (float**) calloc (this->mNumTimePoints * (this->mNumConditions-1),
-                          sizeof(float) );
+                          sizeof(float*) );
       DebugAssertThrowX( (NULL != this->mCovMtx),
                          eResult, FunD_tErr_CouldntAllocateStorage );
 
@@ -520,7 +526,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
         DebugNote( ("Allocating cov mtx col %d", nCovMtxCol) );
         this->mCovMtx[nCovMtxRow] =
           (float*) calloc (this->mNumTimePoints * (this->mNumConditions-1),
-                           sizeof(float) );
+                           sizeof(float*) );
         DebugAssertThrowX( (NULL != this->mCovMtx),
                            eResult, FunD_tErr_CouldntAllocateStorage );
 
@@ -539,10 +545,15 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
                              FunD_tErr_UnrecognizedHeaderFormat );
         }
       }
+      bSomethingRead = TRUE;
     }
 
     DebugAssertThrowX( (bGood), eResult, FunD_tErr_UnrecognizedHeaderFormat );
   }
+
+  /* If nothing was read, this isn't a real .dat file, so bail. */
+  DebugAssertThrowX( (bSomethingRead),
+		     eResult, FunD_tErr_UnrecognizedHeaderFormat );
 
   /* Divide the num prestim points by the time res. Do it here because
      we might not have gotten the timeres when we read TPreStim up
@@ -558,7 +569,6 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   DebugPrint( ("Last parsed keyword: '%s' nValuesRead=%d\n",
                sKeyword, nValuesRead ) );
-  exit(1);
   EndDebugCatch;
 
   if ( NULL != pHeader )
@@ -586,7 +596,6 @@ FunD_tErr FunD_GuessMetaInformation_ ( mriFunctionalDataRef this )
   this->mNumTimePoints = this->mpData->nframes;
   this->mNumPreStimTimePoints = 0;
   this->mbErrorDataPresent = FALSE;
-
 
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
