@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/19 23:05:37 $
- *    $Revision: 1.34 $
+ *    $Date: 2008/04/14 19:45:24 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,8 @@
   --1dpreopt min max delta : brute force in PE direction
 
   --no-mask : do not mask out regions
+  --lh-only : only use left hemisphere
+  --rh-only : only use right hemisphere
 
   --frame nthframe : use given frame in input (default = 0)
   --mid-frame : use use middle frame
@@ -167,7 +169,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.34 2008/03/19 23:05:37 greve Exp $";
+"$Id: mri_segreg.c,v 1.35 2008/04/14 19:45:24 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -241,6 +243,9 @@ int Do1DPreOpt = 0;
 double PreOptMin, PreOptMax, PreOptDelta, PreOpt, PreOptAtMin;
 char *surfcostbase=NULL, *lhcostfile=NULL, *rhcostfile=NULL;
 
+int UseLH = 1;
+int UseRH = 1;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -257,13 +262,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.34 2008/03/19 23:05:37 greve Exp $",
+     "$Id: mri_segreg.c,v 1.35 2008/04/14 19:45:24 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.34 2008/03/19 23:05:37 greve Exp $",
+     "$Id: mri_segreg.c,v 1.35 2008/04/14 19:45:24 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -728,6 +733,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--1dmin"))     DoPowell = 0;
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
+    else if (!strcasecmp(option, "--lh-only")){ UseLH = 1; UseRH = 0;}
+    else if (!strcasecmp(option, "--rh-only")){ UseLH = 0; UseRH = 1;}
     else if (!strcasecmp(option, "--surf")){
       UseSurf = 1;
       DoCrop = 0;
@@ -942,9 +949,11 @@ printf("  --no-surf : do not use surface-based method\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("\n");
 printf("  --no-mask : do not mask out regions\n");
+printf("  --lh-only : only use left hemisphere\n");
+printf("  --rh-only : only use right hemisphere\n");
 printf("\n");
 printf("  --frame nthframe : use given frame in input (default = 0)\n");
-printf("  --mid-frame : use middle frame\n");
+printf("  --mid-frame : use use middle frame\n");
 printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("  --no-crop: do not crop anat (crops by default)\n");
@@ -1039,6 +1048,8 @@ static void dump_options(FILE *fp)
   if(outfile) fprintf(fp,"outfile %s\n",outfile);
   fprintf(fp,"UseSurf %d\n",UseSurf);
   fprintf(fp,"UseMask %d\n",UseMask);
+  fprintf(fp,"UseLH %d\n",UseLH);
+  fprintf(fp,"UseRH %d\n",UseRH);
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
   fprintf(fp,"lhcostfile %s\n",lhcostfile);
@@ -1514,6 +1525,7 @@ int MRISsegReg(char *subject, int ForceReRun)
   extern MRI *lhsegmask, *rhsegmask;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern double SurfProj;
+  extern int UseLH, UseRH, UseMask;
   char *SUBJECTS_DIR;
   char tmpstr[2000];
   int c,r,s,n,v,z=0;
@@ -1525,55 +1537,61 @@ int MRISsegReg(char *subject, int ForceReRun)
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
-  // Load the LH white surface, project it into WM and Ctx
-  printf("Loading lh.white surf\n");
-  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
-  lhwm = MRISread(tmpstr);
-  if(lhwm == NULL) exit(1);
-  lhctx = MRISread(tmpstr);
+  if(UseLH){
+    // Load the LH white surface, project it into WM and Ctx
+    printf("Loading lh.white surf\n");
+    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+    lhwm = MRISread(tmpstr);
+    if(lhwm == NULL) exit(1);
+    lhctx = MRISread(tmpstr);
 
-  printf("Loading lh.thickness\n");
-  sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
-  err = MRISreadCurvatureFile(lhwm, tmpstr);
-  if(err) exit(1);
-  err = MRISreadCurvatureFile(lhctx, tmpstr);
+    printf("Loading lh.thickness\n");
+    sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
+    err = MRISreadCurvatureFile(lhwm, tmpstr);
+    if(err) exit(1);
+    err = MRISreadCurvatureFile(lhctx, tmpstr);
 
-  printf("Projecting LH Surfs by %g\n",SurfProj);
-  for(n = 0; n < lhwm->nvertices; n++){
-    ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -SurfProj);
-    lhwm->vertices[n].x = fx;
-    lhwm->vertices[n].y = fy;
-    lhwm->vertices[n].z = fz;
-    ProjNormFracThick(&fx, &fy, &fz, lhctx, n, +SurfProj);
-    lhctx->vertices[n].x = fx;
-    lhctx->vertices[n].y = fy;
-    lhctx->vertices[n].z = fz;
+    printf("Projecting LH Surfs by %g\n",SurfProj);
+    for(n = 0; n < lhwm->nvertices; n++){
+      ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -SurfProj);
+      lhwm->vertices[n].x = fx;
+      lhwm->vertices[n].y = fy;
+      lhwm->vertices[n].z = fz;
+      ProjNormFracThick(&fx, &fy, &fz, lhctx, n, +SurfProj);
+      lhctx->vertices[n].x = fx;
+      lhctx->vertices[n].y = fy;
+      lhctx->vertices[n].z = fz;
+    }
   }
 
-  // Load the RH white surface, project it into WM and Ctx
-  printf("Loading rh.white surf\n");
-  sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
-  rhwm = MRISread(tmpstr);
-  if(rhwm == NULL) exit(1);
-  rhctx = MRISread(tmpstr);
-
-  printf("Loading rh.thickness\n");
-  sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
-  err = MRISreadCurvatureFile(rhwm, tmpstr);
-  if(err) exit(1);
-  err = MRISreadCurvatureFile(rhctx, tmpstr);
-
-  printf("Projecting RH Surfs by %g\n",SurfProj);
-  for(n = 0; n < rhwm->nvertices; n++){
-    ProjNormFracThick(&fx, &fy, &fz, rhwm,n,-SurfProj);
-    rhwm->vertices[n].x = fx;
-    rhwm->vertices[n].y = fy;
-    rhwm->vertices[n].z = fz;
-    ProjNormFracThick(&fx, &fy, &fz, rhctx,n,+SurfProj);
-    rhctx->vertices[n].x = fx;
-    rhctx->vertices[n].y = fy;
-    rhctx->vertices[n].z = fz;
+  if(UseRH){
+    // Load the RH white surface, project it into WM and Ctx
+    printf("Loading rh.white surf\n");
+    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+    rhwm = MRISread(tmpstr);
+    if(rhwm == NULL) exit(1);
+    rhctx = MRISread(tmpstr);
+    
+    printf("Loading rh.thickness\n");
+    sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
+    err = MRISreadCurvatureFile(rhwm, tmpstr);
+    if(err) exit(1);
+    err = MRISreadCurvatureFile(rhctx, tmpstr);
+    
+    printf("Projecting RH Surfs by %g\n",SurfProj);
+    for(n = 0; n < rhwm->nvertices; n++){
+      ProjNormFracThick(&fx, &fy, &fz, rhwm,n,-SurfProj);
+      rhwm->vertices[n].x = fx;
+      rhwm->vertices[n].y = fy;
+      rhwm->vertices[n].z = fz;
+      ProjNormFracThick(&fx, &fy, &fz, rhctx,n,+SurfProj);
+      rhctx->vertices[n].x = fx;
+      rhctx->vertices[n].y = fy;
+      rhctx->vertices[n].z = fz;
+    }
   }
+
+  if(!UseMask) return(0);
 
   // Determine whether segreg needs to be recomputed or not
   ReRun = 0;
@@ -1721,7 +1739,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 {
   static MRI *lhcost=NULL, *rhcost=NULL;
   extern char *lhcostfile, *rhcostfile;
-  extern int UseMask;
+  extern int UseMask, UseLH, UseRH;
   extern MRI *lhsegmask, *rhsegmask;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern int PenaltySign;
@@ -1754,22 +1772,23 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //printf("Trans: %g %g %g\n",p[0],p[1],p[2]);
   //printf("Rot:   %g %g %g\n",p[3],p[4],p[5]);
 
-  vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			  lhwm, 0,SAMPLE_TRILINEAR, 
-			  FLT2INT_ROUND, NULL, 0);
-  vlhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			  lhctx, 0,SAMPLE_TRILINEAR, 
-			  FLT2INT_ROUND, NULL, 0);
-  vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			  rhwm, 0,SAMPLE_TRILINEAR, 
-			  FLT2INT_ROUND, NULL, 0);
-  vrhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			  rhctx, 0,SAMPLE_TRILINEAR, 
-			  FLT2INT_ROUND, NULL, 0);
-
-  if(lhcost == NULL){
-    lhcost = MRIclone(vlhctx,NULL);
-    rhcost = MRIclone(vrhctx,NULL);
+  if(UseLH){
+    vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			    lhwm, 0,SAMPLE_TRILINEAR, 
+			    FLT2INT_ROUND, NULL, 0);
+    vlhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			     lhctx, 0,SAMPLE_TRILINEAR, 
+			     FLT2INT_ROUND, NULL, 0);
+  if(lhcost == NULL) lhcost = MRIclone(vlhctx,NULL);
+  }
+  if(UseRH){
+    vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			    rhwm, 0,SAMPLE_TRILINEAR, 
+			    FLT2INT_ROUND, NULL, 0);
+    vrhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
+			     rhctx, 0,SAMPLE_TRILINEAR, 
+			     FLT2INT_ROUND, NULL, 0);
+    if(rhcost == NULL) rhcost = MRIclone(vrhctx,NULL);
   }
 
   for(n = 0; n < 8; n++) costs[n] = 0;
@@ -1781,55 +1800,59 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   nhits = 0;
 
   //fp = fopen("tmp.dat","w");
-  for(n = 0; n < lhwm->nvertices; n++){
-    if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
-    if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
-    vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
-    if(vwm == 0.0) continue;
-    vctx = MRIgetVoxVal(vlhctx,n,0,0,0);
-    if(vctx == 0.0) continue;
-    nhits++;
-    costs[1] += vwm;
-    costs[2] += (vwm*vwm);
-    costs[4] += vctx;
-    costs[5] += (vctx*vctx);
-    d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
-    dsum += d;
-    dsum2 += (d*d);
-    if(PenaltySign ==  0) a = -abs(PenaltySlope*d);
-    if(PenaltySign == -1) a =    -(PenaltySlope*d);
-    if(PenaltySign == +1) a =    +(PenaltySlope*d);
-    c = 1+tanh(a);
-    csum += c;
-    csum2 += (c*c);
-    if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,c);
-    //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
+  if(UseLH){
+    for(n = 0; n < lhwm->nvertices; n++){
+      if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
+      if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
+      vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
+      if(vwm == 0.0) continue;
+      vctx = MRIgetVoxVal(vlhctx,n,0,0,0);
+      if(vctx == 0.0) continue;
+      nhits++;
+      costs[1] += vwm;
+      costs[2] += (vwm*vwm);
+      costs[4] += vctx;
+      costs[5] += (vctx*vctx);
+      d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
+      dsum += d;
+      dsum2 += (d*d);
+      if(PenaltySign ==  0) a = -abs(PenaltySlope*d);
+      if(PenaltySign == -1) a =    -(PenaltySlope*d);
+      if(PenaltySign == +1) a =    +(PenaltySlope*d);
+      c = 1+tanh(a);
+      csum += c;
+      csum2 += (c*c);
+      if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,c);
+      //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
+    }
   }
-  for(n = 0; n < rhwm->nvertices; n++){
-    if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
-    if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
-    vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
-    if(vwm == 0.0) continue;
-    vctx = MRIgetVoxVal(vrhctx,n,0,0,0);
-    if(vctx == 0.0) continue;
-    nhits++;
-    costs[1] += vwm;
-    costs[2] += (vwm*vwm);
-    costs[4] += vctx;
-    costs[5] += (vctx*vctx);
-    d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
-    dsum += d;
-    dsum2 += (d*d);
-    if(PenaltySign ==  0) a = -abs(PenaltySlope*d); // not sure this is useful
-    if(PenaltySign == -1) a =    -(PenaltySlope*d);
-    if(PenaltySign == +1) a =    +(PenaltySlope*d);
-    c = 1+tanh(a);
-    csum += c;
-    csum2 += (c*c);
-    if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,c);
-    //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
+  if(UseRH){
+    for(n = 0; n < rhwm->nvertices; n++){
+      if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
+      if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
+      vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
+      if(vwm == 0.0) continue;
+      vctx = MRIgetVoxVal(vrhctx,n,0,0,0);
+      if(vctx == 0.0) continue;
+      nhits++;
+      costs[1] += vwm;
+      costs[2] += (vwm*vwm);
+      costs[4] += vctx;
+      costs[5] += (vctx*vctx);
+      d = 100*(vctx-vwm)/((vctx+vwm)/2.0);
+      dsum += d;
+      dsum2 += (d*d);
+      if(PenaltySign ==  0) a = -abs(PenaltySlope*d); // not sure this is useful
+      if(PenaltySign == -1) a =    -(PenaltySlope*d);
+      if(PenaltySign == +1) a =    +(PenaltySlope*d);
+      c = 1+tanh(a);
+      csum += c;
+      csum2 += (c*c);
+      if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,c);
+      //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
+    }
+    //fclose(fp);
   }
-  //fclose(fp);
 
   dmean = dsum/nhits;
   dstd  = sum2stddev(dsum,dsum2,nhits);
@@ -1849,18 +1872,23 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 
   MatrixFree(&Mrot);
   MatrixFree(&Mtrans);
-  MRIfree(&vlhwm);
-  MRIfree(&vlhctx);
-  MRIfree(&vrhwm);
-  MRIfree(&vrhctx);
 
-  if(lhcostfile){
-    printf("Writing lh cost to %s\n",lhcostfile);
-    MRIwrite(lhcost,lhcostfile);
+  if(UseLH){
+    MRIfree(&vlhwm);
+    MRIfree(&vlhctx);
+    if(lhcostfile){
+      printf("Writing lh cost to %s\n",lhcostfile);
+      MRIwrite(lhcost,lhcostfile);
+    }
   }
-  if(rhcostfile){
-    printf("Writing rh cost to %s\n",rhcostfile);
-    MRIwrite(rhcost,rhcostfile);
+
+  if(UseRH){
+    MRIfree(&vrhwm);
+    MRIfree(&vrhctx);
+    if(rhcostfile){
+      printf("Writing rh cost to %s\n",rhcostfile);
+      MRIwrite(rhcost,rhcostfile);
+    }
   }
 
   return(costs);
