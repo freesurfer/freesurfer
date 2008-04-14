@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/22 20:01:53 $
-#    $Revision: 1.48 $
+#    $Date: 2008/04/14 16:42:58 $
+#    $Revision: 1.49 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.48 2008/02/22 20:01:53 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.49 2008/04/14 16:42:58 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -208,6 +208,7 @@ foreach subj ($subjlist)
       set cmd = ($cmd --out $srcsurfpath)
       if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
       if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
+      if($reshape)   set cmd = ($cmd --reshape);
       if(! $reshape) set cmd = ($cmd --noreshape);
       echo "-----------------------"| tee -a $LF
       echo $cmd | tee -a $LF
@@ -238,6 +239,7 @@ foreach subj ($subjlist)
     if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
     if($#fwhmsrc)   set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
     if($#niterssrc) set cmd = ($cmd --nsmooth-in $niterssrc) # Smth in the targ space below
+    if($reshape)   set cmd = ($cmd --reshape);
     if(! $reshape)  set cmd = ($cmd --noreshape);
     if(! $hash)     set cmd = ($cmd --nohash);
     if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
@@ -262,6 +264,7 @@ foreach subj ($subjlist)
       set cmd = ($cmd --tval $tcache)
       if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
       if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
+      if($reshape)   set cmd = ($cmd --reshape);
       if(! $reshape)   set cmd = ($cmd --noreshape);
       if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
       if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
@@ -313,6 +316,7 @@ if(! $CacheOutOnly) then
     set cmd = ($cmd --tval $outpath)
     if($#fwhmtarg)   set cmd = ($cmd --fwhm-trg $fwhmtarg)
     if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
+    if($reshape)   set cmd = ($cmd --reshape);
     if(! $reshape)   set cmd = ($cmd --noreshape);
     if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
     if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
