@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/04/09 20:35:41 $
-%    $Revision: 1.34.2.1 $
+%    $Date: 2008/04/14 04:38:41 $
+%    $Revision: 1.34.2.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -199,7 +199,7 @@ for nthev = 1:nev
       texcl = fscanf(fp,'%lf'); 
       fclose(fp);
       tpexcl = round(texcl/flacnew.TR) + 1; % change to 1-based index
-      indtmp = find(tpexcl >= flacnew.ntp);
+      indtmp = find(tpexcl > flacnew.ntp);
       if(~isempty(indtmp))
 	fprintf('ERROR: time points in %s exceed nframes (%d)\n',...
 		fname,flacnew.ntp);
