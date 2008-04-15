@@ -1507,8 +1507,9 @@ if test "$itk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of ITK apps.])
 
   # these are the minimum ITK libs necessary to support Nrrd IO:
-  LIBS_ITK="$ac_itk_libraries/libITKAlgorithms.a \
-  $ac_itk_libraries/libITKIO.a \
+  LIBS_ITK="$ac_itk_libraries/libITKIO.a \
+  $ac_itk_libraries/libITKAlgorithms.a \
+  $ac_itk_libraries/libITKCommon.a \
   $ac_itk_libraries/libITKMetaIO.a \
   $ac_itk_libraries/libITKniftiio.a \
   $ac_itk_libraries/libITKNrrdIO.a \
@@ -1517,7 +1518,6 @@ if test "$itk_apps" = "yes"; then
   $ac_itk_libraries/libitktiff.a \
   $ac_itk_libraries/libitkv3p_netlib.a \
   $ac_itk_libraries/libitkzlib.a \
-  $ac_itk_libraries/libITKCommon.a \
   $ac_itk_libraries/libitkgdcm.a \
   $ac_itk_libraries/libitkopenjpeg.a \
   $ac_itk_libraries/libitkjpeg8.a \
