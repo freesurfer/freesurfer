@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/03/27 18:12:14 $
-#    $Revision: 1.398 $
+#    $Date: 2008/04/15 23:21:40 $
+#    $Revision: 1.399 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -615,7 +615,7 @@ fi
 # and SSE instructions, and enable auto-parallelization. 
 if test "x$CC" = "xicc"; then
   AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
-  CPUFLAGS="-ip -axP -parallel -O3 $CPUFLAGS"
+  CPUFLAGS="-ip -axP -parallel -O3 -fast -march=core2 -msse3 -xO -unroll-aggressive $CPUFLAGS"
 fi
 
 ###############################################################
@@ -1100,6 +1100,57 @@ AC_SUBST(BOOST_LIB)
 AC_SUBST(BOOST_DIR)
 
 AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$ac_boost_libraries" = "xNO")
+
+
+################################################################
+# ANN (Approximate Nearest Neighbors library)
+################################################################
+ac_ann_includes="NO"
+ac_ann_libraries="NO"
+ac_ann_dir="NO"
+ANN_CFLAGS=""
+ANN_LIBS=""
+ANN_LIB=""
+ANN_DIR=""
+
+AC_MSG_CHECKING(ANN Approximate Nearest Neighbors directory)
+
+AC_ARG_WITH(ann-dir,
+  [  --with-ann-dir=DIR      where the root of ANN is installed.],
+  [  ac_ann_includes="$withval"/include
+     ac_ann_libraries="$withval"/lib
+     ac_ann_dir="$withval"
+  ])
+
+AC_ARG_WITH(ann-include,
+  [  --with-ann-include=DIR      root of ANN include directory.],
+  [  ac_ann_includes="$withval"
+  ])
+
+AC_ARG_WITH(ann-libraries,
+  [  --with-ann-libraries=DIR    root of ANN lib directory.],
+  [  ac_ann_libraries="$withval"
+  ])
+
+if test ! "$ac_ann_includes" = "NO"; then
+  AC_MSG_RESULT(ANN directory is $withval)
+  ANN_CFLAGS=-I$ac_ann_includes
+  ANN_DIR=$ac_ann_dir
+else
+  AC_MSG_RESULT(ANN directory is not supplied)
+fi
+
+if test ! "$ac_ann_libraries" = "NO"; then
+  ANN_LIB=$ac_ann_libraries
+  ANN_LIBS=-L$ac_ann_libraries
+fi
+
+AC_SUBST(ANN_CFLAGS)
+AC_SUBST(ANN_LIBS)
+AC_SUBST(ANN_LIB)
+AC_SUBST(ANN_DIR)
+
+AM_CONDITIONAL(HAVE_ANN_LIBS, ! test "x$ac_ann_libraries" = "xNO")
 
 
 ############################################################
@@ -1792,8 +1843,9 @@ if test "$itk_apps" = "yes"; then
 
   # these are the minimum ITK libs necessary to support Nrrd IO,
   # notice they are all static (avoiding LD_LIBRARY_PATH usage)
-  LIBS_ITK="$ac_itk_libraries/libITKAlgorithms.a \
-  $ac_itk_libraries/libITKIO.a \
+  LIBS_ITK="$ac_itk_libraries/libITKIO.a \
+  $ac_itk_libraries/libITKAlgorithms.a \
+  $ac_itk_libraries/libITKCommon.a \
   $ac_itk_libraries/libITKMetaIO.a \
   $ac_itk_libraries/libITKniftiio.a \
   $ac_itk_libraries/libITKNrrdIO.a \
@@ -1802,7 +1854,6 @@ if test "$itk_apps" = "yes"; then
   $ac_itk_libraries/libitktiff.a \
   $ac_itk_libraries/libitkv3p_netlib.a \
   $ac_itk_libraries/libitkzlib.a \
-  $ac_itk_libraries/libITKCommon.a \
   $ac_itk_libraries/libitkgdcm.a \
   $ac_itk_libraries/libitkopenjpeg.a \
   $ac_itk_libraries/libitkjpeg8.a \
