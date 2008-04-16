@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/08 19:49:48 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/04/16 16:07:55 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -450,6 +450,18 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
 
     } // end for (int nthcol = 0; nthcol < ncols; nthcol++)
 
+    // check if this subj_id is already in the table (indicated an error)
+    for (unsigned int m=0; m < this->mSubjects.size(); m++)
+    {
+      if (subj_id == this->mSubjects[m]->GetId())
+      {
+        printf("\nERROR: Subject %s already exists in %s!\n",
+               subj_id.c_str(),isFileName);
+        return(-1);
+      }
+    }
+
+    // add this subject data to our Subjects list
     assert( theFactors.size() );
     QdecSubject *qsubj = new QdecSubject( subj_id.c_str(), theFactors );
     this->mSubjects.push_back( qsubj );
