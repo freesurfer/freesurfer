@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/01 17:18:43 $
- *    $Revision: 1.606 $
+ *    $Date: 2008/04/16 19:19:55 $
+ *    $Revision: 1.607 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -211,6 +211,7 @@ static int mris_readval_frame = -1;
 static int fix_vertex_area = 1;
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
+int MRIScomputeAllDistances(MRI_SURFACE *mris) ;
 #if 0
 static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris, 
                                    MRI_SP *mrisp_source, 
@@ -626,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.606 2008/04/01 17:18:43 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.607 2008/04/16 19:19:55 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -2914,11 +2915,13 @@ MRISremoveRipped(MRI_SURFACE *mris)
       if (v->ripflag)
       {
         // remove it
+#if 0
         if (v->dist)
           free(v->dist) ;
         if (v->dist_orig)
           free(v->dist_orig) ;
         v->dist = v->dist_orig = NULL ;
+#endif
         continue ;
       }
 
@@ -3255,7 +3258,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
       for (pv = v->v, n = 0 ; n < vtotal ; n++)
       {
         vn = &mris->vertices[*pv++] ;
-        if (vn->ripflag) continue ;
+        //        if (vn->ripflag) continue ;
         xd = v->x - vn->x ;
         yd = v->y - vn->y ;
         zd = v->z - vn->z ;
@@ -6370,8 +6373,13 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         fprintf(stdout, "resampling long-range distances") ;
       MRISsaveVertexPositions(mris, TMP_VERTICES) ;
       MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-      MRISsampleDistances(mris, nbrs, parms->nbhd_size) ;
+      MRIScomputeMetricProperties(mris) ;
+      if (parms->complete_dist_mat)
+        MRIScomputeAllDistances(mris) ;
+      else
+        MRISsampleDistances(mris, nbrs, parms->nbhd_size) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      MRIScomputeMetricProperties(mris) ;
       mrisClearMomentum(mris) ;
     }
 
@@ -6533,7 +6541,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
                          MAX_NEG_AREA_PCT, 2);
   MRISresetNeighborhoodSize(mris, 3) ;
 
-  if (mris->status == MRIS_PLANE)  /* smooth out remaining folds */
+  if (mris->status == MRIS_PLANE && parms->complete_dist_mat == 0)  /* smooth out remaining folds */
   {
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "smoothing final surface...\n") ;
@@ -9280,6 +9288,32 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "min %d (%2.3f)\n", mini, dt_in[mini]) ;
+
+  if (mris->status==MRIS_PLANE)  // remove global translation component
+  {
+    double dx, dy, dz ;
+    int    nv, vno ;
+    VERTEX *v ;
+
+    for (dx = dy = dz = 0.0, nv = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      dx += v->dx ; dy += v->dy ; dz += v->dz ;
+      nv++ ;
+    }
+    if (nv == 0)
+      nv = 1; 
+    dx /= nv ; dy /= nv ; dz /= nv ; 
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->dx -= dx ; v->dy -= dy ; v->dz -= dz ;
+    }
+  }
 
   if (mris->status==MRIS_SPHERICAL_PATCH &&
       parms->flags & IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL)
@@ -20062,6 +20096,8 @@ MRISpercentDistanceError(MRI_SURFACE *mris)
       dist = dist_scale*v->dist[n] ;
       odist = v->dist_orig[n] ;
       mean_error += fabs(dist-odist) ;
+      if (fabs(dist-odist) > 50)
+        DiagBreak() ;
     }
   }
   mean /= (double)nvertices ;
@@ -63262,8 +63298,8 @@ MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode)
   for (vno = max_nbrs = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
+    //    if (v->ripflag)
+    // continue ;
     if (v->vnum > max_nbrs)
       max_nbrs = v->vnum ;
   }
@@ -63279,15 +63315,51 @@ MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak();
+    //    if (v->ripflag)
+    //      continue ;
     for (j = 0 ; j < v->vnum ; j++)
     {
+      //      if (mris->vertices[v->v[j]].ripflag)
+      // continue ;
       index = index_2D_array(j, vno, max_nbrs) ;
       vertDists[index] = v->dist[j] ;
       vertNbrs[index] = v->v[j]+1 ;  // nbrs is 1-based
     }
   }
+
+#if 0
+  if (area->lv[0].vno == Gdiag_no)
+  {
+    FILE *fp ; 
+    fp = fopen("test.log", "w") ;
+    v = &mris->vertices[16156] ;
+    fprintf(fp, "vno %d:\n", (int)(v-mris->vertices)) ;
+    for (j = 0 ; j < v->vnum ; j++)
+    {
+      //      if (mris->vertices[v->v[j]].ripflag)
+      // continue ;
+      index = index_2D_array(j, vno, max_nbrs) ;
+      fprintf(fp, "vno %d, index %d, j %d, dist %2.4f, nbr %d\n", v->v[j], index, j, v->dist[j], v->v[j]+1) ;
+      vertDists[index] = v->dist[j] ;
+      vertNbrs[index] = v->v[j]+1 ;  // nbrs is 1-based
+    }
+
+    v = &mris->vertices[16244] ;
+    fprintf(fp, "vno %d:\n", (int)(v-mris->vertices)) ;
+    for (j = 0 ; j < v->vnum ; j++)
+    {
+      //      if (mris->vertices[v->v[j]].ripflag)
+      // continue ;
+      index = index_2D_array(j, vno, max_nbrs) ;
+      fprintf(fp, "vno %d, index %d, j %d, dist %2.4f, nbr %d\n", v->v[j], index, j, v->dist[j], v->v[j]+1) ;
+      vertDists[index] = v->dist[j] ;
+      vertNbrs[index] = v->v[j]+1 ;  // nbrs is 1-based
+    }
+    fclose(fp) ;
+  }
+#endif
 
   for (vno = 0 ; vno < area->n_points ; vno++)
     if (area->lv[vno].vno >= 0)
@@ -63382,4 +63454,88 @@ MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode)
   return(hdist) ;
 }
 
+
+int
+MRIScomputeAllDistances(MRI_SURFACE *mris)
+{
+  VERTEX *v, *vn ;
+  int    vno, n, nvalid, *old_v, vno2 ;
+  LABEL  *area ;
+
+  area = LabelAlloc(1, NULL, NULL) ;
+
+  MRIScomputeMetricProperties(mris) ;
+  nvalid = MRISvalidVertices(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    area->lv[0].vno = vno ;
+    area->n_points = 1 ;
+    MRISdistanceTransform(mris, area, DTRANS_MODE_UNSIGNED) ;
+    if (v->dist_orig)
+      free(v->dist_orig) ;
+    if (v->dist)
+      free(v->dist) ;
+    old_v = v->v ;
+    v->dist_orig = (float *)calloc(nvalid-1, sizeof(float)) ;
+    v->dist = (float *)calloc(nvalid-1, sizeof(float)) ;
+    v->v = (int *)calloc(nvalid-1, sizeof(int) );
+    if (!v->v || !v->dist || !v->dist_orig)
+      ErrorExit(ERROR_NOMEMORY, 
+                "MRIScomputeAllDistances: could not allocate %d-sized arrays",
+                nvalid-1) ;
+    memmove(v->v, old_v, v->vtotal*sizeof(v->v[0])) ;
+    free(old_v) ;
+    MRISclearMarks(mris) ;
+    v->marked = 1 ;  // don't add self to list
+    // read out first vtotal nbrs
+    for (n = 0 ; n < v->vtotal ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      v->dist[n] = v->dist_orig[n] = vn->val;  // v->dist will be restored by caller
+      vn->marked = 1 ;
+    }
+    // now read out rest
+    for (vno2 = 0 ; vno2 < mris->nvertices ; vno2++)
+    {
+      vn = &mris->vertices[vno2] ;
+      if (vn->ripflag || vn->marked)
+        continue ;
+      v->dist[n] = v->dist_orig[n] = vn->val;
+      v->v[n++] = vno2 ;
+      vn->marked = 1 ;
+    }
+    v->vtotal = nvalid-1 ;
+    if (vno == Gdiag_no)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "vno%d.mgz", vno) ;
+      MRISwriteValues(mris, fname) ;
+
+      for (n = vno2 = 0 ; vno2 < mris->nvertices ; vno2++)
+      {
+        vn = &mris->vertices[vno2] ;
+        if (vn->marked)
+        {
+          int m, found ;
+          n++ ;
+          for (found = m = 0 ; m < v->vtotal ; m++)
+            if (v->v[m] == vno2)
+            {
+              found = 1 ;
+              break ;
+            }
+          if (found == 0 && vno2 != vno)
+            DiagBreak() ;
+        }
+      }
+    }
+  }
+  LabelFree(&area) ;
+  return(NO_ERROR) ;
+}
 
