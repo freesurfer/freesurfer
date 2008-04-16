@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/06 23:55:12 $
- *    $Revision: 1.67 $
+ *    $Date: 2008/04/16 19:44:36 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.67 $";
+char *MRI_INFO_VERSION = "$Revision: 1.68 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.67 2008/03/06 23:55:12 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.68 2008/04/16 19:44:36 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -538,19 +538,13 @@ static void do_file(char *fname) {
     return;
   }
   if(PrintScanner2Tkr) {
-    m = MRIxfmCRS2XYZ(mri,0);
-    minv = MatrixInverse(m,NULL);
-    m2 = MRIxfmCRS2XYZtkreg(mri);
-    p = MatrixMultiply(m2,minv,NULL);
+    p = surfaceRASFromRAS_(mri);
     for (r=1; r<=4; r++) {
       for (c=1; c<=4; c++) {
         fprintf(fpout,"%10.5f ",p->rptr[r][c]);
       }
       fprintf(fpout,"\n");
     }
-    MatrixFree(&m) ;
-    MatrixFree(&minv) ;
-    MatrixFree(&m2) ;
     MatrixFree(&p) ;
     return;
   }
