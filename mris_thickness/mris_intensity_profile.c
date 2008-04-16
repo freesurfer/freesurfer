@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/10 15:26:05 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/04/16 19:18:55 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,13 +43,15 @@
 #include "version.h"
 #include "transform.h"
 #include "fmriutils.h"
+#include "cma.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.15 2008/04/10 15:26:05 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.16 2008/04/16 19:18:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 static int remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border_mm) ;
-static float *mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, float *norm, int navgs) ;
+static float *mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, float *norm, int navgs,
+                                                MRI *mri_aseg) ;
 MRI *MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
     float max_thick, int normalize, int curv_thresh, float *norm);
 static MRI *MRIfitPolynomial(MRI *mri_profiles, MRI *mri_poly, int order) ;
@@ -67,6 +69,7 @@ static char white_name[100] = WHITE_MATTER_NAME ;
 static char *label_names[MAX_LABELS] ;
 static int nlabels = 0 ;
 
+static MRI *mri_aseg = NULL ;
 double normal_sigma = 0 ;
 static int inorm = 0 ;
 static int nbhd_size = 2 ;
@@ -121,7 +124,7 @@ main(int argc, char *argv[]) {
   float         *norm = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.15 2008/04/10 15:26:05 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.16 2008/04/16 19:18:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -388,7 +391,7 @@ main(int argc, char *argv[]) {
   }
 
   if (norm_white > 0)
-    norm = mrisComputeWhiteMatterIntensities(mris, mri, 9, NULL, 100) ;
+    norm = mrisComputeWhiteMatterIntensities(mris, mri, 15, NULL, 100, mri_aseg) ;
   mri_profiles =
     MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh, norm) ;
 
@@ -458,6 +461,28 @@ main(int argc, char *argv[]) {
       DiagBreak() ;
     }
   }
+  if (quadfit) {
+    MRI *mri_quad ;
+
+    mri_quad = MRIfitQuadratic(mri_profiles, NULL) ;
+    printf("writing best fitting quadratic fits to %s...\n", out_fname) ;
+    MRIwrite(mri_quad, out_fname) ;
+  } else if (polyfit > 0) {
+    MRI *mri_poly ;
+    char fname[STRLEN], ext[STRLEN] ;
+
+    mri_poly = MRIfitPolynomial(mri_profiles, NULL, polyfit) ;
+    printf("writing cortical intensity profiles to %s...\n", out_fname) ;
+    MRIwrite(mri_profiles, out_fname) ;
+    FileNameExtension(out_fname, ext) ;
+    FileNameRemoveExtension(out_fname, fname) ;
+    strcat(fname, "_poly.mgz") ;
+    printf("writing best fitting %dth order polynomial fits to %s...\n", polyfit, fname) ;
+    MRIwrite(mri_poly, fname) ;
+  } else {
+    printf("writing cortical intensity profiles to %s...\n", out_fname) ;
+    MRIwrite(mri_profiles, out_fname) ;
+  }
   if (overlay_fname)
   {
     MRI *mri_overlay ;
@@ -498,28 +523,6 @@ main(int argc, char *argv[]) {
     MRIwrite(mri_overlay, overlay_fname) ;
     MRIfree(&mri_overlay) ;
   }
-  if (quadfit) {
-    MRI *mri_quad ;
-
-    mri_quad = MRIfitQuadratic(mri_profiles, NULL) ;
-    printf("writing best fitting quadratic fits to %s...\n", out_fname) ;
-    MRIwrite(mri_quad, out_fname) ;
-  } else if (polyfit > 0) {
-    MRI *mri_poly ;
-    char fname[STRLEN], ext[STRLEN] ;
-
-    mri_poly = MRIfitPolynomial(mri_profiles, NULL, polyfit) ;
-    printf("writing cortical intensity profiles to %s...\n", out_fname) ;
-    MRIwrite(mri_profiles, out_fname) ;
-    FileNameExtension(out_fname, ext) ;
-    FileNameRemoveExtension(out_fname, fname) ;
-    strcat(fname, "_poly.mgz") ;
-    printf("writing best fitting %dth order polynomial fits to %s...\n", polyfit, fname) ;
-    MRIwrite(mri_poly, fname) ;
-  } else {
-    printf("writing cortical intensity profiles to %s...\n", out_fname) ;
-    MRIwrite(mri_profiles, out_fname) ;
-  }
   MRIfree(&mri_profiles) ;
 
   exit(0) ;
@@ -548,6 +551,13 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "white")) {
     strcpy(white_name, argv[2]) ;
     fprintf(stderr,  "reading white surface from file named %s\n", white_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "aseg")) {
+    mri_aseg = MRIread(argv[2]) ;
+    if (mri_aseg == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, argv[2]) ;
+    nargs = 1 ;
+    printf("using aseg volume %s to constrain wm voxels\n", argv[2]) ;
     nargs = 1 ;
   } else if (!stricmp(option, "overlay")) {
     overlay_fname = argv[2] ;
@@ -1219,12 +1229,13 @@ remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border
   return(NO_ERROR) ;
 }
 static float *
-mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, float *norm, int navgs)
+mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, float *norm, int navgs, MRI *mri_aseg)
 {
-  int     vno, whalf, num, xk, yk, zk, i ;
+  int     vno, whalf, num, xk, yk, zk, i, whalf_orig, label ;
   VERTEX  *v ;
   MRI     *mri_interior ;
-  VECTOR  *v1, *v2, *m_vox2vox ;
+  VECTOR  *v1, *v2 ;
+  MATRIX  *m_vox2vox_aseg, *m_vox2vox ;
   float   avg_wm ;
   Real    xv, yv, zv, xi, yi, zi, val ;
 
@@ -1232,11 +1243,11 @@ mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, f
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   mri_interior = MRISfillInterior(mris, mri->xsize/2, NULL) ;
-  for (i = 0 ; i < nint(2/mri->xsize) ; i++)
+  for (i = 0 ; i < nint(1.5/mri_interior->xsize) ; i++)
     MRIerode(mri_interior, mri_interior) ;   // avoid partial volume voxels.
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_interior, "i.mgz") ;
-  whalf = (nint(wsize_mm / mri_interior->xsize)-1)/2 ;
+  whalf_orig = (nint(wsize_mm / mri_interior->xsize)-1)/2 ;
   if (norm == NULL)
     norm = (float *)calloc(mris->nvertices, sizeof(float)) ;
   if (norm == NULL)
@@ -1244,6 +1255,10 @@ mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, f
 
 
   m_vox2vox = MRIgetVoxelToVoxelXform(mri_interior, mri) ;
+  if (mri_aseg)
+    m_vox2vox_aseg = MRIgetVoxelToVoxelXform(mri_interior, mri_aseg) ;
+  else
+    m_vox2vox_aseg = NULL ;
   v1 = VectorAlloc(4, MATRIX_REAL) ;
   v2 = VectorAlloc(4, MATRIX_REAL) ;
   VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
@@ -1255,29 +1270,48 @@ mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, f
     if (vno == Gdiag_no)
       DiagBreak() ;
     MRISsurfaceRASToVoxel(mris, mri_interior, v->x, v->y, v->z, &xv, &yv, &zv) ;
-    for (avg_wm = 0.0, num = 0, xk = -whalf ; xk <= whalf ; xk++)
+    whalf = whalf_orig ;
+    do
     {
-      xi = xv+xk ;
-      for (yk = -whalf ; yk <= whalf ; yk++)
+      for (avg_wm = 0.0, num = 0, xk = -whalf ; xk <= whalf ; xk++)
       {
-        yi = yv+yk ;
-        for (zk = -whalf ; zk <= whalf ; zk++)
+        xi = xv+xk ;
+        for (yk = -whalf ; yk <= whalf ; yk++)
         {
-          zi = zv+zk ;
-          MRIsampleVolume(mri_interior, xi, yi, zi, &val) ;
-          if (val > 0.5)  // in wm
+          yi = yv+yk ;
+          for (zk = -whalf ; zk <= whalf ; zk++)
           {
-            V3_X(v1) = xi ; V3_Y(v1) = yi ; V3_Z(v1) = zi ;
-            MatrixMultiply(m_vox2vox, v1, v2) ;
-            MRIsampleVolume(mri, V3_X(v2), V3_Y(v2), V3_Z(v2), &val) ;
-            avg_wm += val ;
-            num++ ;
+            zi = zv+zk ;
+            MRIsampleVolume(mri_interior, xi, yi, zi, &val) ;
+            if (val > 0.5)  // in wm
+            {
+              V3_X(v1) = xi ; V3_Y(v1) = yi ; V3_Z(v1) = zi ;
+              MatrixMultiply(m_vox2vox_aseg, v1, v2) ;
+              if (mri_aseg)
+                MRIsampleVolumeType(mri_aseg, V3_X(v2), V3_Y(v2), V3_Z(v2), &val, SAMPLE_NEAREST) ;
+              else
+                val = (float)Left_Cerebral_White_Matter ;
+
+              label = (int)val ;
+              if (IS_WM(label) == 0)
+                continue ;
+              MatrixMultiply(m_vox2vox, v1, v2) ;
+              MRIsampleVolume(mri, V3_X(v2), V3_Y(v2), V3_Z(v2), &val) ;
+
+              avg_wm += val ;
+              num++ ;
+            }
           }
         }
       }
-    }
+      whalf += 3 ;
+      if (whalf > 3*whalf_orig)
+        break ;
+    } while (num < 3) ;
     if (num > 0)
       norm[vno] = avg_wm / num;
+    else
+      norm[vno] = 1 ;  // couldn't find any wm
   }
 
   MRISimportValVector(mris, norm) ;
@@ -1290,6 +1324,8 @@ mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, f
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
+  if (m_vox2vox_aseg)
+    MatrixFree(&m_vox2vox_aseg) ;
   MRIfree(&mri_interior) ;
   return(norm) ;
 }
