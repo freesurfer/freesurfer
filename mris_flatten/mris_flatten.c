@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/12/10 14:30:19 $
- *    $Revision: 1.34 $
+ *    $Date: 2008/04/16 19:19:17 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "fastmarching.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.34 2007/12/10 14:30:19 fischl Exp $";
+  "$Id: mris_flatten.c,v 1.35 2008/04/16 19:19:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -62,6 +62,7 @@ char *Progname ;
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE     1.0
 static float base_dt_scale = BASE_DT_SCALE ;
+static char *label_fname = NULL ;
 static int nbrs = 2 ;
 static int inflate = 0 ;
 static double disturb = 0 ;
@@ -74,6 +75,7 @@ static int   max_passes = 1 ;
 static int sphere_flag = 0 ;
 static int plane_flag = 0 ;
 static int dilate = 0 ;
+static int dilate_label = 0 ; // how many times to dilate label after reading
 
 static int one_surf_flag = 0 ;
 static char *original_surf_name = SMOOTH_NAME ;
@@ -92,7 +94,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.34 2007/12/10 14:30:19 fischl Exp $",
+           "$Id: mris_flatten.c,v 1.35 2008/04/16 19:19:17 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -196,22 +198,47 @@ main(int argc, char *argv[])
     MRISstoreMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
 
-  } else
+  } 
+  else
   {
     MRISresetNeighborhoodSize(mris, mris->vertices[0].nsize) ; // set back to max
-    if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
-      ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
-                Progname, in_patch_fname) ;
-    if (dilate)
+    if (label_fname) // read in a label instead of a patch
     {
-      printf("dilating patch %d times\n", dilate) ;
-      MRISdilateRipped(mris, dilate) ;
+      LABEL *area ;
+      area = LabelRead(NULL, label_fname) ;
+      if (area == NULL)
+        ErrorExit(ERROR_BADPARM, "%s: could not read label file %s",
+                  Progname, label_fname) ;
+
+      LabelDilate(area, mris, dilate_label) ;
+      MRISclearMarks(mris) ;
+      LabelMark(area, mris) ;
+      MRISripUnmarked(mris) ;
+      MRISripFaces(mris);
+      mris->patch = 1 ;
+      mris->status = MRIS_CUT ;
+      LabelFree(&area) ;
       printf("%d valid vertices (%2.1f %% of total)\n",
-             MRISvalidVertices(mris), 100.0*MRISvalidVertices(mris)/mris->nvertices) ;
+             MRISvalidVertices(mris), 
+             100.0*MRISvalidVertices(mris)/mris->nvertices) ;
+    }
+    else
+    {
+      if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
+        ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
+                  Progname, in_patch_fname) ;
+      if (dilate)
+      {
+        printf("dilating patch %d times\n", dilate) ;
+        MRISdilateRipped(mris, dilate) ;
+        printf("%d valid vertices (%2.1f %% of total)\n",
+               MRISvalidVertices(mris), 100.0*MRISvalidVertices(mris)/mris->nvertices) ;
+      }
     }
     MRISremoveRipped(mris) ;
+    MRISupdateSurface(mris) ;
 #if 0
-    mris->nsize = 1 ; // fore recalculation of 2 and 3-nbrs
+    mris->nsize = 1 ; // before recalculation of 2 and 3-nbrs
     {
       int vno ;
       VERTEX *v ;
@@ -522,6 +549,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
   }
+  else if (!stricmp(option, "complete"))
+  {
+    parms.complete_dist_mat = 1 ;
+    fprintf(stderr, "using complete distance matrix\n") ;
+  }
   else if (!stricmp(option, "vnum") || (!stricmp(option, "distances")))
   {
     parms.nbhd_size = atof(argv[2]) ;
@@ -574,6 +606,13 @@ get_option(int argc, char *argv[])
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
+      break ;
+    case 'L':
+      label_fname = argv[2] ;
+      dilate_label = atof(argv[3]) ;
+      nargs = 2;
+      printf("loading label %s and dilating it %d times for flattening it\n",
+             label_fname, dilate_label) ;
       break ;
     case 'D':
       disturb = atof(argv[2]) ;
