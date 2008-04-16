@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/02/23 00:48:15 $
- *    $Revision: 1.24 $
+ *    $Author: fischl $
+ *    $Date: 2008/04/16 00:02:21 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,7 +115,7 @@ ENDHELP
 #include "gcamorph.h"
 
 static char vcid[] = 
-"$Id: mris_make_average_surface.c,v 1.24 2007/02/23 00:48:15 nicks Exp $";
+"$Id: mris_make_average_surface.c,v 1.25 2008/04/16 00:02:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -152,7 +152,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_make_average_surface.c,v 1.24 2007/02/23 00:48:15 nicks Exp $",
+     "$Id: mris_make_average_surface.c,v 1.25 2008/04/16 00:02:21 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -258,24 +258,27 @@ main(int argc, char *argv[]) {
 
     // this means that we transform "pial" surface
 
-    if (!strcmp(xform_name,"talairach.xfm")) {
-      printf("  Applying linear transform\n");
-      fflush(stdout);
-      XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
-      if (XFM == NULL) exit(1);
-      MRISmatrixMultiply(mris, XFM);
-      MatrixFree(&XFM);
-    } else if (!strcmp(xform_name,"talairach.m3z")) {
-      printf("  Applying GCA Morph\n");
-      fflush(stdout);
-      sprintf(fname, "%s/%s/mri/transforms/talairach.m3z", sdir, argv[i]) ;
-      gcam = GCAMreadAndInvert(fname);
-      if (gcam == NULL) exit(1);
-      GCAMmorphSurf(mris, gcam);
-      GCAMfree(&gcam);
-    } else {
-      printf("ERROR: don't know what to do with %s\n",xform_name);
-      exit(1);
+    if (xform_name)
+    {
+      if (!strcmp(xform_name,"talairach.xfm")) {
+        printf("  Applying linear transform\n");
+        fflush(stdout);
+        XFM = DevolveXFMWithSubjectsDir(argv[i], NULL, "talairach.xfm", sdir);
+        if (XFM == NULL) exit(1);
+        MRISmatrixMultiply(mris, XFM);
+        MatrixFree(&XFM);
+      } else if (!strcmp(xform_name,"talairach.m3z")) {
+        printf("  Applying GCA Morph\n");
+        fflush(stdout);
+        sprintf(fname, "%s/%s/mri/transforms/talairach.m3z", sdir, argv[i]) ;
+        gcam = GCAMreadAndInvert(fname);
+        if (gcam == NULL) exit(1);
+        GCAMmorphSurf(mris, gcam);
+        GCAMfree(&gcam);
+      } else {
+        printf("ERROR: don't know what to do with %s\n",xform_name);
+        exit(1);
+      }
     }
 
     // save transformed position in ->orig 
@@ -407,6 +410,9 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "sdir")) {
     sdir = argv[2];
     nargs = 1 ;
+  } else if (!stricmp(option, "identity")) {
+    xform_name = NULL ;
+    printf("using identity transform\n") ;
   } else if (!stricmp(option, "sdir-out")) {
     sdirout = argv[2];
     nargs = 1 ;
