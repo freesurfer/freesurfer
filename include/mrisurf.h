@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/26 16:46:04 $
- *    $Revision: 1.317 $
+ *    $Date: 2008/04/16 19:19:33 $
+ *    $Revision: 1.318 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -489,7 +489,7 @@ typedef struct
      fields[n].l_corrs and fields[n].l_pcorrs.
      MRISvectorRegistration will use the structure VALS_VP in v->vp
   */
-#define MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION  20
+#define MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION  50
 #define MNOFIV MAX_NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
   int nfields;                  /* the number of fields in mrisp */
   FIELD_LABEL fields[MNOFIV];   /* information for each field */
@@ -528,6 +528,7 @@ typedef struct
   int     grad_dir ;          // use this instead of gradient direction
   int     fill_interior ;     // use filled interior to constrain gradient to not leave surface
   double  rms ;
+  int     complete_dist_mat ; //whether to sample or use complete dist mat
 }
 INTEGRATION_PARMS ;
 
