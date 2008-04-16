@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/12 02:46:07 $
- *    $Revision: 1.137 $
+ *    $Author: fischl $
+ *    $Date: 2008/04/16 19:47:19 $
+ *    $Revision: 1.138 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3317,7 +3317,7 @@ MRI *
 GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
 {
   int        width, height, depth, x, y, z,
-  xm1, ym1, zm1, xp1, yp1, zp1 ;
+             xm1, ym1, zm1, xp1, yp1, zp1 ;
   float      xd, yd, zd, dx, dy, dz, thick ;
   Real       weight, orig_val, val ;
   MRI        *mri_weights, *mri_ctrl, *mri_s_morphed ;
@@ -3527,8 +3527,12 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
 #if 1
   MRIfree(&mri_weights) ;
 #endif
+  /*
+    disable Voronoi stuff - it will extrapolate morph in regions
+    that won't be accurate anyway.
   MRIbuildVoronoiDiagram(mri_morphed, mri_ctrl, mri_morphed) ;
-  MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 5) ;
+  */
+  MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 3*gcam->spacing) ;
 
   MRIfree(&mri_ctrl) ;
 
