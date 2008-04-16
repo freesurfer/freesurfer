@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:23 $
- *    $Revision: 1.327 $
+ *    $Author: greve $
+ *    $Date: 2008/04/16 17:22:33 $
+ *    $Revision: 1.328 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.327 $";
+char *VERSION = "$Revision: 1.328 $";
 
 #define TCL
 #define TKMEDIT
@@ -1186,7 +1186,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.327 2008/03/10 13:35:23 nicks Exp $",
+     "$Id: tkmedit.c,v 1.328 2008/04/16 17:22:33 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1258,6 +1258,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("                            : (default is register.dat "
            "in same path as\n");
     printf("                            :  volume)\n");
+    printf("\n");
+    printf("-reg regfile : use regfile for both overlay and time course\n");
     printf("\n");
     printf("-fthresh <value> : threshold for overlay (FS_TKFTHRESH)\n");
     printf("-fmax <value>    : max/sat for overlay (FS_TKFMAX)\n");
@@ -1624,7 +1626,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) ||
+      } 
+      else if ( MATCH( sArg, "-overlay-reg" ) || MATCH( sArg, "-orf" ) ||
                   MATCH( sArg, "-oreg" ) || MATCH( sArg, "-ovreg" ) ) {
 
         /* make sure there are enough args */
@@ -1661,7 +1664,41 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-overlay-reg-find" ) ) {
+      } 
+
+      //---------------------------------------------------------------
+      else if ( MATCH( sArg, "-reg" ) || 
+		MATCH( sArg, "-ovtreg" ) || MATCH( sArg, "-tovreg" )){
+        /* make sure there are enough args */
+        if( !( argc > nCurrentArg + 1 && '-' != argv[nCurrentArg+1][0]) ){
+          printf("ERROR: Parsing -ovtreg option. Expected an argument.\n");
+	  exit(1);
+	}
+	DebugNote( ("Parsing -reg option") );
+	xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
+		       sizeof(sOverlayRegistration) );
+	if (!fio_FileExistsReadable(sOverlayRegistration)) {
+	  printf("ERROR: cannot find overlay reg %s\n",sOverlayRegistration);
+	  exit(1);
+	}
+	overlayRegType = FunD_tRegistration_File;
+	xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
+		       sizeof(sTimeCourseRegistration) );
+	timecourseRegType = FunD_tRegistration_File;
+	nCurrentArg += 2;
+	if(bGetSubjectFromReg){
+	  FILE *fp;
+	  fp = fopen(sOverlayRegistration,"r");
+	  fscanf(fp,"%s",sSubject);
+	  fclose(fp);
+	  printf("Setting subject name to %s\n",sSubject);
+	  DebugNote( ("Setting subject home from env") );
+	  eResult = SetSubjectHomeDirFromEnv( sSubject );
+	  DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	}
+      } 
+
+      else if ( MATCH( sArg, "-overlay-reg-find" ) ) {
 
         /* set our reg type  */
         overlayRegType = FunD_tRegistration_Find;
@@ -2472,7 +2509,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
               bGetSubjectFromReg = TRUE;
             }
             // Automatically set brightness/contrast for fsaverage
-            if(!strcmp(sSubject,"fsaverage")){
+	    // Not needed as of 4/16/08
+            if(0 && !strcmp(sSubject,"fsaverage")){
               fBrightnessMain = .58;
               fContrastMain = 14;
               bBrightContrastMain = TRUE;
@@ -5794,7 +5832,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.327 2008/03/10 13:35:23 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.328 2008/04/16 17:22:33 greve Exp $ $Name:  $\n"
         )
       );
 
