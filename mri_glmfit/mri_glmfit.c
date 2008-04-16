@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/04 23:13:56 $
- *    $Revision: 1.152 $
+ *    $Date: 2008/04/16 17:35:40 $
+ *    $Revision: 1.153 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -43,8 +43,9 @@ USAGE: ./mri_glmfit
    --y inputfile
    --fsgd FSGDF <gd2mtx> : freesurfer descriptor file
    --X design matrix file
-   --C contrast1.mat <--C contrast2.mat ...>
+   --C contrast1.mtx <--C contrast2.mtx ...>
    --osgm : construct X and C as a one-sample group mean
+   --no-contrasts-ok : do not fail if no contrasts specified
 
    --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors
    --selfreg col row slice   : self-regressor from index col row slice
@@ -227,13 +228,15 @@ you, you will have to specify the design matrix manually (with --X).
 Explicitly specify the design matrix. Can be in simple text or in matlab4
 format. If matlab4, you can save a matrix with save('X.mat','X','-v4');
 
---C contrast1.mat <--C contrast2.mat ...>
+--C contrast1.mtx <--C contrast2.mtx ...>
 
-Specify one or more contrasts to test. The contrast.mat file is an
+Specify one or more contrasts to test. The contrast.mtx file is an
 ASCII text file with the contrast matrix in it (make sure the last
-line is blank). The output will be saved in glmdir/contrast1,
-glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput
-will be glmdir/norm-v-cont.
+line is blank). The name can be (almost) anything. If the extension is
+.mtx, .mat, .dat, or .con, the extension will be stripped of to form
+the directory output name.  The output will be saved in
+glmdir/contrast1, glmdir/contrast2, etc. Eg, if --C norm-v-cont.mtx,
+then the ouput will be glmdir/norm-v-cont.
 
 --osgm
 
@@ -533,7 +536,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.152 2008/04/04 23:13:56 greve Exp $";
+"$Id: mri_glmfit.c,v 1.153 2008/04/16 17:35:40 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -660,6 +663,7 @@ int DoFFx = 0;
 IMAGE *I;
 
 int IllCondOK = 0;
+int NoContrastsOK = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1096,7 +1100,10 @@ int main(int argc, char **argv) {
     for (n=0; n < nContrasts; n++) {
       if (! useasl && ! useqa) {
         // Get its name
-        mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
+        mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat"); //strip .mat
+        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".mtx"); //strip .mtx
+        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".dat"); //strip .dat
+        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".con"); //strip .con
         // Read it in
         mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
         if (mriglm->glm->C[n] == NULL) {
@@ -1505,8 +1512,8 @@ int main(int argc, char **argv) {
 
   sprintf(tmpstr,"%s/dof.dat",GLMDir);
   fp = fopen(tmpstr,"w");  
-  if(DoFFx) fprintf(fp,"%d",(int)mriglm->ffxdof);
-  else      fprintf(fp,"%d",(int)mriglm->glm->dof);
+  if(DoFFx) fprintf(fp,"%d\n",(int)mriglm->ffxdof);
+  else      fprintf(fp,"%d\n",(int)mriglm->glm->dof);
 
   if(useqa){
     // Compute FSNR
@@ -1796,6 +1803,7 @@ static int parse_commandline(int argc, char **argv) {
       asl1val = 0;
       asl2val = 1;
     }
+    else if (!strcasecmp(option, "--no-contrasts-ok")) NoContrastsOK = 1;
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -2063,7 +2071,8 @@ static int parse_commandline(int argc, char **argv) {
 
 
 /* --------------------------------------------- */
-static void print_usage(void) {
+static void print_usage(void) 
+{
 printf("\n");
 printf("USAGE: ./mri_glmfit\n");
 printf("\n");
@@ -2072,8 +2081,9 @@ printf("\n");
 printf("   --y inputfile\n");
 printf("   --fsgd FSGDF <gd2mtx> : freesurfer descriptor file\n");
 printf("   --X design matrix file\n");
-printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
+printf("   --C contrast1.mtx <--C contrast2.mtx ...>\n");
 printf("   --osgm : construct X and C as a one-sample group mean\n");
+printf("   --no-contrasts-ok : do not fail if no contrasts specified\n");
 printf("\n");
 printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
@@ -2131,6 +2141,7 @@ printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must a
 printf("                  before --fsgd)\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
 printf("\n");
+
 }
 
 
@@ -2259,13 +2270,15 @@ printf("\n");
 printf("Explicitly specify the design matrix. Can be in simple text or in matlab4\n");
 printf("format. If matlab4, you can save a matrix with save('X.mat','X','-v4');\n");
 printf("\n");
-printf("--C contrast1.mat <--C contrast2.mat ...>\n");
+printf("--C contrast1.mtx <--C contrast2.mtx ...>\n");
 printf("\n");
-printf("Specify one or more contrasts to test. The contrast.mat file is an\n");
+printf("Specify one or more contrasts to test. The contrast.mtx file is an\n");
 printf("ASCII text file with the contrast matrix in it (make sure the last\n");
-printf("line is blank). The output will be saved in glmdir/contrast1,\n");
-printf("glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput\n");
-printf("will be glmdir/norm-v-cont.\n");
+printf("line is blank). The name can be (almost) anything. If the extension is\n");
+printf(".mtx, .mat, .dat, or .con, the extension will be stripped of to form\n");
+printf("the directory output name.  The output will be saved in\n");
+printf("glmdir/contrast1, glmdir/contrast2, etc. Eg, if --C norm-v-cont.mtx,\n");
+printf("then the ouput will be glmdir/norm-v-cont.\n");
 printf("\n");
 printf("--osgm\n");
 printf("\n");
@@ -2522,8 +2535,11 @@ static void check_options(void) {
     printf("ERROR: cannot specify --C with --osgm\n");
     exit(1);
   }
-  if (nContrasts == 0 && !OneSampleGroupMean && !usedti && !useasl && !useqa) {
-    printf("ERROR: no contrasts specified\n");
+
+  if(OneSampleGroupMean || usedti || useasl || useqa) NoContrastsOK = 1;
+
+  if(nContrasts == 0 && ! NoContrastsOK) {
+    printf("ERROR: no contrasts specified.\n");
     exit(1);
   }
   if (GLMDir == NULL && !DontSave) {
