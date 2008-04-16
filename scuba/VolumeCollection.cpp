@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/02/02 21:56:04 $
- *    $Revision: 1.119 $
+ *    $Author: greve $
+ *    $Date: 2008/04/16 20:35:18 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -383,24 +383,24 @@ VolumeCollection::InitializeFromMRI () {
     throw runtime_error( "InitializeFromMRI called without an MRI" );
   }
 
-  // Get our TkRegRAS -> index transform.
-  MATRIX* voxelFromTkRegRAS = extract_r_to_i( mMRI );
-  if ( NULL == voxelFromTkRegRAS ) {
-    throw runtime_error( "Couldn't get voxelFromTkRegRAS matrix" );
+  // Get our ScannerRAS -> index transform.
+  MATRIX* voxelFromScannerRAS = extract_r_to_i( mMRI );
+  if ( NULL == voxelFromScannerRAS ) {
+    throw runtime_error( "Couldn't get voxelFromScannerRAS matrix" );
   }
 
   if (getenv("FS_DEBUG_XFORMS"))
     {
-      printf("voxelFromTkRegRAS:\n") ;
-      MatrixPrint(stdout, voxelFromTkRegRAS) ;
+      printf("voxelFromScannerRAS:\n") ;
+      MatrixPrint(stdout, voxelFromScannerRAS) ;
     }
   // Copy it to a Matrix44 and release the MATRIX. Then set our
   // mDataToIndexTransform transform from this matrix. Then calculate
   // the WorldToIndex transform.
   Matrix44 m;
-  m.SetMatrix( voxelFromTkRegRAS );
+  m.SetMatrix( voxelFromScannerRAS );
 
-  MatrixFree( &voxelFromTkRegRAS );
+  MatrixFree( &voxelFromScannerRAS );
 
   mDataToIndexTransform.SetMainTransform( m );
 
