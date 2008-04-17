@@ -7,9 +7,9 @@ function runlist = fast_runlistfile(runlistfile)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2008/04/17 17:21:57 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@ while( ~isempty(runid) )
   runlist = strvcat(runlist,runid);
   runid = fscanf(fid,'%s',1);
 end
+fclose(fid);
 
 if(isempty(runlist))
   msg = sprintf('ERROR: no runs found in %s\n',runlistfile);
