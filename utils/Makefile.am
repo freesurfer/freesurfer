@@ -223,7 +223,8 @@ libutils_main_SOURCES=\
 	fs_lbfgs_subject.cpp \
 	fs_powell.cpp \
 	mri_fastmarching.cpp \
-	mriio_nrrd.cpp \
+	mriio_nrrd.c \
+	mriio_nrrd_itk.cpp \
 	numerics.cpp
 
 libutils_cephes_SOURCES=\
