@@ -295,12 +295,12 @@ SUBDIRS=\
 	qdecproject \
 	svm-lib \
 	$(FSGDF) \
+	$(GLSUBDIRS) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
 	$(FSLUTILS) \
 	$(STATSDIRS) \
 	$(MISCDIRS) \
-	$(GLSUBDIRS) \
 	$(DMRISUBDIRS) \
 	fsfast \
 	matlab \
