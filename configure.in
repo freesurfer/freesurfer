@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/04/18 01:11:37 $
-#    $Revision: 1.400 $
+#    $Date: 2008/04/18 01:35:29 $
+#    $Revision: 1.401 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2082,13 +2082,13 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
-CPPFLAGS="$CPPFLAGS $PETSC_CFLAGS $ITK_CFLAGS \
+CPPFLAGS="$CPPFLAGS $PETSC_CFLAGS $ITK_CFLAGS $ANN_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
 $GL_CFLAGS $GLU_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS \
 $EXPAT_CFLAGS"
 LDFLAGS="$LDFLAGS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
 $gl_libs $GL_LIBS $GLU_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
-$PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $EXPAT_LIBS"
+$PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $EXPAT_LIBS $ANN_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 # AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 # AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -2142,6 +2142,14 @@ Set LDFLAGS or --with-vxl-dir.])] )
 AC_CHECK_LIB([vnl_algo], [main],[],
   [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
 Set LDFLAGS or --with-vxl-dir.])] )
+
+# ANN check
+if test ! "x$ac_ann_dir" = "xNO"; then
+  # if --with-ann-dir was used, make sure necessary libs exist
+  AC_CHECK_LIB([ANN], [main],[],
+    [AC_MSG_ERROR([FATAL: ANN Approximate Nearest Neighbors lib not found. \
+  Set LDFLAGS or --with-ann-dir.])] )
+fi
 
 # PETSc check
 if test ! "x$ac_petsc_dir" = "xNO"; then
