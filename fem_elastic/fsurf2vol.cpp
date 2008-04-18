@@ -273,11 +273,9 @@ main(int argc,
 
   PetscInitialize(&argc, &argv, (char*)0, help);
 
-#ifdef HAVE_MPI
   PetscMPIInt       mpiSize;
   ierr = MPI_Comm_size(PETSC_COMM_WORLD, &mpiSize);
   CHKERRQ(ierr);
-#endif
 
   // process cmd-line
 

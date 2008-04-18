@@ -8,13 +8,6 @@
 #include <boost/program_options.hpp>
 #include <boost/progress.hpp>
 
-// MPI
-#undef SEEK_SET
-#undef SEEK_END
-#undef SEEK_CUR
-#include <mpi.h>
-
-
 // OWN
 #include "morph.h"
 

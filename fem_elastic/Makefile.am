@@ -2,17 +2,6 @@
 # Makefile.am
 #
 
-if HAVE_MPI_LIBS
-#MPI_STUFF=$(MPI_LIBS) -lmpich -lnsl -lrt
-#MPI_DEFINE=-DHAVE_MPI
-MPI_STUFF=
-MPI_DEFINE=
-else
-MPI_STUFF=
-MPI_DEFINE=
-endif
-
-
 if HAVE_ITK_LIBS
 if HAVE_PETSC_LIBS
 if HAVE_BOOST_LIBS
@@ -21,7 +10,6 @@ AM_CPPFLAGS=\
 	-I$(top_srcdir)/tetgen \
 	$(VXL_CFLAGS)	\
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
-	$(MPI_CFLAGS) $(MPI_DEFINE) \
 	$(PETSC_CFLAGS) \
 	$(BOOST_CFLAGS)
 
@@ -77,7 +65,7 @@ surf2vol_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a \
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
-	-lpetscvec -lpetsc -lmpiuni -lblas -llapack $(MPI_STUFF)
+	-lpetscvec -lpetsc -lmpich -lblas -llapack
 
 endif
 endif
