@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/04/18 01:35:29 $
-#    $Revision: 1.401 $
+#    $Date: 2008/04/18 15:59:15 $
+#    $Revision: 1.402 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -961,11 +961,26 @@ AC_MSG_CHECKING(PETSc directory)
 
 AC_ARG_WITH(petsc-dir,
   [  --with-petsc-dir=DIR    where the root of PETSc is installed.],
-  [  ac_petsc_includes="$withval"/include
+  [  petsc_i="$withval"/include
+     ac_petsc_includes="$petsc_i"
      ac_petsc_libraries="$withval"/lib
      ac_petsc_bindir="$withval"/bin
      ac_petsc_dir="$withval"
+     PETSC_DIR="$withval"
+     AC_SUBST(PETSC_DIR)
   ])
+
+if test "x$PETSC_DIR" = "x"; then
+  # if a PETSC root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/petsc/current" ; then
+    withval=/usr/pubsw/packages/petsc/current
+    PETSC_DIR="$withval"
+    petsc_i="$withval"/include
+    ac_petsc_includes="$petsc_i"
+    ac_petsc_libraries="$withval"/lib
+  fi
+fi
 
 AC_ARG_WITH(petsc-include,
   [  --with-petsc-include=DIR    root of PETSc include directory.],
@@ -979,7 +994,9 @@ AC_ARG_WITH(petsc-libraries,
 
 if test ! "$ac_petsc_includes" = "NO"; then
   AC_MSG_RESULT(PETSc directory is $withval)
-  PETSC_CFLAGS=-I$ac_petsc_includes
+  for item in $ac_petsc_includes; do
+    PETSC_CFLAGS="${PETSC_CFLAGS} -I${item}"
+  done
   PETSC_DIR=$ac_petsc_dir
 else
   AC_MSG_RESULT(PETSc directory is not supplied)
@@ -1120,7 +1137,20 @@ AC_ARG_WITH(ann-dir,
   [  ac_ann_includes="$withval"/include
      ac_ann_libraries="$withval"/lib
      ac_ann_dir="$withval"
+     ANN_DIR="$withval"
+     AC_SUBST(ANN_DIR)
   ])
+
+if test "x$ANN_DIR" = "x"; then
+  # if a ANN root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/ann/current" ; then
+    withval=/usr/pubsw/packages/ann/current
+    ANN_DIR="$withval"
+    ac_ann_includes="$withval"/include
+    ac_ann_libraries="$withval"/lib
+  fi
+fi
 
 AC_ARG_WITH(ann-include,
   [  --with-ann-include=DIR      root of ANN include directory.],
@@ -2154,7 +2184,7 @@ fi
 # PETSc check
 if test ! "x$ac_petsc_dir" = "xNO"; then
   # if --with-petsc-dir was used, make sure necessary libs exist
-  AC_CHECK_LIB([petsc -lmpiuni], [PetscInitialize],[],
+  AC_CHECK_LIB([petsc -lmpich -lpthread], [PetscInitialize],[],
     [AC_MSG_ERROR([FATAL: petsc lib not found. \
   Set LDFLAGS or --with-petsc-dir.])] )
 fi
