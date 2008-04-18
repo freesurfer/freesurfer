@@ -65,8 +65,10 @@ struct DataItem
 class AbstractFilter
 {
 public:
-  AbstractFilter(){}
-  virtual ~AbstractFilter(){}
+  AbstractFilter()
+  {}
+  virtual ~AbstractFilter()
+  {}
   std::string strInput;
   std::string strOutput;
 

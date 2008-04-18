@@ -66,7 +66,8 @@ public:
   virtual bool dst_contains(const tCoords& c) const =0;
   void dst_box(tCoords& c_min, tCoords& c_max) const;
   virtual tCoords inv_img(const tCoords& dst_coords) const =0;
-  virtual double dst_volume() const=0; // returns the volume element (=area in 2D)
+  virtual double dst_volume() const=0; // returns the volume 
+  // element (=area in 2D)
   //--
 
   //---
@@ -76,7 +77,8 @@ public:
   virtual double src_volume() const=0; //  volume element (=area in 2D)
   //---
 
-  virtual bool orientation_pb(Frame f=both) const=0; // returns 1 if the determinant changes signs
+  virtual bool orientation_pb(Frame f=both) const=0; // returns 1 if 
+  // the determinant changes signs
   virtual bool orientation_test(double dalpha) const=0;
 
   // a valid return value will be comprised between 0 and 1
@@ -88,7 +90,8 @@ protected:
   int      m_id; // -1 = not set
 
   typedef typename std::vector<TNode<n>*> NodeContainerType;
-  NodeContainerType m_vpNodes;  // no ownership over nodes -> shared between elements
+  NodeContainerType m_vpNodes;  // no ownership over nodes -> 
+  //shared between elements
   const VMaterial*       m_cpMaterial; // material is shared
 };
 

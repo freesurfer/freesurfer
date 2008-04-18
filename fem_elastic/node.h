@@ -82,7 +82,8 @@ public:
   }
 
   void set_bc(const tCoords& c); // activates constraints on all directions
-  void set_bc(int no, double val); // activates a constraint in one direction -> DISPLACEMENT
+  void set_bc(int no, double val); // activates a constraint in 
+  // one direction -> DISPLACEMENT
 
   void print(std::ostream& os) const;
 
@@ -232,7 +233,8 @@ template<int n>
 void
 TNode<n>::print(std::ostream& os) const
 {
-  os << " node [[ id=" << m_id << " coords=" << m_coords << " delta=" << m_delta << " ]]";
+  os << " node [[ id=" << m_id << " coords=" << m_coords 
+     << " delta=" << m_delta << " ]]";
 }
 
 template<int n>

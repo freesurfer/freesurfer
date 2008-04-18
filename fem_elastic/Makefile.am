@@ -2,16 +2,26 @@
 # Makefile.am
 #
 
+if HAVE_MPI_LIBS
+#MPI_STUFF=$(MPI_LIBS) -lmpich -lnsl -lrt
+#MPI_DEFINE=-DHAVE_MPI
+MPI_STUFF=
+MPI_DEFINE=
+else
+MPI_STUFF=
+MPI_DEFINE=
+endif
+
+
 if HAVE_ITK_LIBS
 if HAVE_PETSC_LIBS
-if HAVE_MPI_LIBS
 if HAVE_BOOST_LIBS
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tetgen \
 	$(VXL_CFLAGS)	\
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
-	$(MPI_CFLAGS) \
+	$(MPI_CFLAGS) $(MPI_DEFINE) \
 	$(PETSC_CFLAGS) \
 	$(BOOST_CFLAGS)
 
@@ -25,7 +35,7 @@ common3d_SOURCES=\
 	morph.cpp morph.h \
 	morph_utils.cpp morph_utils.h
 
-bin_PROGRAMS=createMorph applyMorph
+bin_PROGRAMS=createMorph applyMorph surf2vol
 
 createMorph_SOURCES=\
 	$(common3d_SOURCES) \
@@ -51,7 +61,24 @@ applyMorph_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a $(BOOST_PO_LIB)
 
-endif
+surf2vol_SOURCES=\
+	$(common3d_SOURCES) \
+	fsurf2vol.cpp cstats.h surf_types.h \
+	surf_powell.cpp surf_powell.h \
+	surf_energy.cpp surf_energy.h \
+	misc_maths.cpp \
+	transformUtils.cpp \
+	surf_utils.cpp \
+	ZlibStringCompressor.cpp \
+	pbCluster_mesh_crop.cpp pbCluster_mesh_crop.h mesh_bfs.h \
+	untangler.cpp untangler.h pbmesh_crop.h
+
+surf2vol_LDADD=\
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(top_builddir)/tetgen/libtetgen.a \
+	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
+	-lpetscvec -lpetsc -lmpiuni -lblas -llapack $(MPI_STUFF)
+
 endif
 endif
 endif

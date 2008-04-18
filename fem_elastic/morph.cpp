@@ -401,8 +401,8 @@ DenseDisplacementField::doOwnImg(const tCoords& pt) const
 
 DeltaTransform3d::DeltaTransform3d()
     : m_interpolation(SAMPLE_TRILINEAR),
-      m_field(NULL),
-      m_mask(NULL)
+    m_field(NULL),
+    m_mask(NULL)
 {}
 
 DeltaTransform3d::~DeltaTransform3d()

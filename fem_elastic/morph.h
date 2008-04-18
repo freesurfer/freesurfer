@@ -3,7 +3,11 @@
 Gheorghe Postelnicu,
 June 2006
 
-A volume morph is obtained through a transform. The role of a transform is to provide a mapping of a location of origin to a destination point. This can be done in a number of ways.  Will create an abstract transform class and then transform composition can be implemented in a transparent polymorphic way.
+A volume morph is obtained through a transform. The role of a 
+transform is to provide a mapping of a location of origin to a 
+destination point.  This can be done in a number of ways.  Will 
+create an abstract transform class and then transform composition 
+can be implemented in a transparent polymorphic way.
 
 **/
 
@@ -342,7 +346,8 @@ public:
 
   TransformContainerType m_transforms;
 
-  // if true, the following option will cache a volume with the VF of the images
+  // if true, the following option will cache a volume with 
+  // the VF of the images
   MRI* apply_transforms(MRI*,
                         bool cacheField=false,
                         const VG* vgOutput=NULL) const;
@@ -364,7 +369,10 @@ public:
   //
   // since this is meant to be used by mri_nl_align
   // will need to use the bounding box to corect for this
-  GCA_MORPH* exportGcam(MRI* moving=NULL, bool useTemplateBoundingBox=false, int thresh=0, int padding=1) const;
+  GCA_MORPH* exportGcam(MRI* moving=NULL, 
+                        bool useTemplateBoundingBox=false, 
+                        int thresh=0, 
+                        int padding=1) const;
 
   // extract all initial transforms and place them in the regular list
   void serialize();

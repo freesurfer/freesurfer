@@ -75,12 +75,14 @@ public:
   void save(std::ostream& os) const;
 
 
-  std::pair<TCoords<double,n>, TCoords<double,n> > invert(); // in-place inversion
+  std::pair<TCoords<double,n>, 
+    TCoords<double,n> > invert(); // in-place inversion
 
   // material management
 
   // label used by default
-  void set_constants(double _e, double _nu); // will set constants for all the elements
+  void set_constants(double _e, 
+                     double _nu); // will set constants for all the elements
 
   void clear_materials(); // will clear the map and reinit it
   void add_material(std::string strLabel, VMaterial* vm);
@@ -166,9 +168,11 @@ public:
     return m_vpElements[i];
   }
 
-  // recover all the elements that have a common NODE in common with current one
+  // recover all the elements that have a common NODE 
+  // in common with current one
   typedef std::list<unsigned int> ElementIndexContainer;
-  int get_neighboring_elts(unsigned int i, int radius, ElementIndexContainer& eltIndex) const;
+  int get_neighboring_elts(unsigned int i, int radius, 
+                           ElementIndexContainer& eltIndex) const;
 
   template<class In> void remove_elts(In begin, In end) throw(gmpErr);
   bool check_elt_id() const;
@@ -177,7 +181,8 @@ public:
   // Mapping functionality
   // if signalTopology is true and the element has a topological defect,
   //    an invalid point will be returned
-  tCoords        dir_img(const tCoords&, bool signalTopology = false) const throw(gmpErr);
+  tCoords        dir_img(const tCoords&, 
+                         bool signalTopology = false) const throw(gmpErr);
   void           get_dst_box(tCoords& cmin,
                              tCoords& cmax) const;
   //----------------------------
@@ -195,8 +200,10 @@ public:
   // fast orientation problem checking - stops at the first true
   bool orientation_pb(Frame f=both) const;
 
-  // for this version, the template argument should be an output_iterator to the container at hand
-  template <class InsertIterator> void orientation_pb(Frame f, InsertIterator ii) const;
+  // for this version, the template argument should be an 
+  // output_iterator to the container at hand
+  template <class InsertIterator> void orientation_pb(Frame f, 
+                                                      InsertIterator ii) const;
 
   //----------------------------
 
@@ -769,7 +776,8 @@ TMesh<Cstr,n>::get_node(unsigned int i,
 {
   if ( i>=m_vpNodes.size() )
   {
-    std::cerr << "TMesh::get_node -> incorrect index " << i << " >= " << m_vpNodes.size() << std::endl;
+    std::cerr << "TMesh::get_node -> incorrect index " 
+              << i << " >= " << m_vpNodes.size() << std::endl;
     *ppnode = NULL;
     return false;
   }
@@ -874,7 +882,8 @@ TMesh<Cstr,n>::element_at_point(const tCoords& c) const
   if ( pnode )
   {
     if (bdbg) os << " node id = " << pnode->get_id() << std::endl;
-    // go through all the elements which contain the node and check if any belongs
+    // go through all the elements which contain the node 
+    // and check if any belongs
     typedef typename tNode::tElt_citer NodeEltsConstIterator;
     NodeEltsConstIterator cit, end;
     pnode->get_elt_citer(cit, end);
@@ -913,7 +922,8 @@ TMesh<Cstr,n>::local_closest_node(tStack nodes,
     if ( !pnode )
       throw gmpErr("TMesh::local_closest_node -> error from point ");
     double buf_dist = ( c - pnode->coords() ).norm();
-    if (bdbg) std::cout << " node id = " << pnode->get_id() << " dist = " << buf_dist << std::endl;
+    if (bdbg) std::cout << " node id = " << pnode->get_id() 
+                        << " dist = " << buf_dist << std::endl;
     if ( buf_dist<dist)
     {
       dist = buf_dist;
@@ -1054,7 +1064,8 @@ struct FunctorClearElementTies
   }
 };
 
-// use a mutable data member to avoid the overhead of constantly re-declaring this
+// use a mutable data member to avoid the overhead of 
+// constantly re-declaring this
 template<class Cstr, int n>
 struct FunctorUpdateNodesFromElements
 {

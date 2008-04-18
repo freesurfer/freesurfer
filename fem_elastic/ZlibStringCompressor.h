@@ -16,14 +16,17 @@ public:
   Bytef* setBufferSize(unsigned long size);
   unsigned int m_bufferAllocationMultiplier;
 private:
-  static void checkZlibResult(const int result, const char* file, const int line);
+  static void checkZlibResult(const int result, 
+                              const char* file, 
+                              const int line);
   long unsigned m_bufferSize;
   /*
     pointer to start of buffer
   */
   Bytef* m_buffer;
   static unsigned long findSizeInBytes(const string& s);
-  static unsigned long findRequiredBufferSize(const unsigned long uncompressedSize);
+  static unsigned long findRequiredBufferSize
+    (const unsigned long uncompressedSize);
   int m_debugLevel;
 };
 
@@ -34,7 +37,8 @@ inline unsigned long ZlibStringCompressor::findSizeInBytes(const string&s )
 }
 
 // buffer size myst be at least original size + 0.1% + 12 bytes
-inline unsigned long ZlibStringCompressor::findRequiredBufferSize(long unsigned unbufferedSize)
+inline unsigned long ZlibStringCompressor::findRequiredBufferSize
+(long unsigned unbufferedSize)
 {
   return unbufferedSize + unbufferedSize/1000 + 12;
 }
