@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/18 19:58:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,8 +55,12 @@ class LayerEditable : public Layer
 		
 		float GetFillValue();
 		void SetFillValue( float fFill );
+		
 		float GetBlankValue();
 		void SetBlankValue( float fBlank );
+		
+		int GetBrushRadius();
+		void SetBrushRadius( int nRadius );
 		
 		virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
 		virtual void Append3DProps( vtkRenderer* renderer ) = 0;
@@ -113,6 +117,8 @@ class LayerEditable : public Layer
 		
 		std::vector<UndoRedoBufferItem>		m_bufferUndo;
 		std::vector<UndoRedoBufferItem>		m_bufferRedo;
+		
+		int			m_nBrushRadius;
 		
 		int			m_nMaxUndoSteps;		
 		bool		m_bModified;

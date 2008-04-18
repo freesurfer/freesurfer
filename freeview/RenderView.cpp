@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/04/18 19:58:19 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,7 +165,13 @@ void RenderView::OnKillFocus( wxFocusEvent& event )
 
 void RenderView::OnButtonDown( wxMouseEvent& event )
 {
-	this->SetFocus();
+	if ( FindFocus() != this )
+	{
+		this->SetFocus();
+		// if left button down, do not pass along mouse event further down
+		if ( event.LeftDown() )
+			return;
+	}
 
 	if ( m_interactor->ProcessMouseDownEvent( event, this ) )
 		wxVTKRenderWindowInteractor::OnButtonDown( event );

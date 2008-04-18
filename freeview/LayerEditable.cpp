@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/18 19:58:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@ LayerEditable::LayerEditable() : Layer()
 	
 	m_fFillValue = 1;
 	m_fBlankValue = 0;
+	m_nBrushRadius = 1;
 	m_bModified = false;
 	m_bEditable = true;
 	m_nMaxUndoSteps = 100;
@@ -108,47 +109,6 @@ void LayerEditable::SetVoxelByRAS( double* ras, bool bAdd )
 	//	PopUndo();		// roi not really changed, so pop the previously saved undo step
 	}
 }
-
-/*
-void LayerEditable::SetVoxelByRAS( double* ras1, double* ras2, bool bAdd )
-{
-	int n1[3], n2[3];
-	for ( int i = 0; i < 3; i++ )
-	{
-		n1[i] = ( int )( ( ras1[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
-		n2[i] = ( int )( ( ras2[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
-	}
-	
-	bool bChanged = SetVoxelByIndex( n2, bAdd );
-	if ( !MyUtils::Equal<int>( n1, n2 ) )
-	{
-		double v[3];
-		MyUtils::GetVector<int>( n1, n2, v );
-		double dist = MyUtils::GetDistance<int>( n1, n2 );
-		
-		double d = 1;
-		int n[3];
-		while ( d < dist+1 )
-		{
-			for ( int i = 0; i < 3; i++ )
-				n[i] = ( int )( n1[i] + d * v[i] + 0.5 );
-						
-			bChanged = SetVoxelByIndex( n, bAdd ) || bChanged;
-			d += 1;
-		}
-	}
-	
-	if ( bChanged )
-	{
-		SetModified();
-		this->SendBroadcast( "LayerActorUpdated", this );
-	}
-	else
-	{
-		PopUndo();
-	}
-}
-*/
 
 void LayerEditable::SetVoxelByRAS( double* ras1, double* ras2, bool bAdd )
 {
@@ -472,6 +432,16 @@ float LayerEditable::GetBlankValue()
 void LayerEditable::SetBlankValue( float fBlank )
 {
 	m_fBlankValue = fBlank;
+}
+
+int LayerEditable::GetBrushRadius()
+{
+	return m_nBrushRadius;
+}
+
+void LayerEditable::SetBrushRadius( int nRadius )
+{
+	m_nBrushRadius = nRadius;
 }
 		
 void LayerEditable::SetModified()

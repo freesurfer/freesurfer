@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/18 19:58:19 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 #include "LayerPropertiesMRI.h"
 #include "LayerPropertiesDTI.h"
 #include "wxColorIndicator.h"
+#include "DialogEditLookupTable.h"
 
 BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
 /*	EVT_IDLE(PanelVolume::OnIdle)
@@ -125,6 +126,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 	{
 		m_choiceLUT->Append( m_luts->GetName( i ) );
 	}
+//	m_choiceLUT->Append( "Edit/add lookup table..." );
+	
 	m_choiceDirectionCode->Append( "RAS -> RGB" );
 	m_choiceDirectionCode->Append( "RAS -> RBG" );
 	m_choiceDirectionCode->Append( "RAS -> GRB" );
@@ -379,6 +382,14 @@ void PanelVolume::OnChoiceColorMap( wxCommandEvent& event )
 
 void PanelVolume::OnChoiceLUT( wxCommandEvent& event )
 {
+	if ( event.GetSelection() >= m_luts->GetCount() )
+	{
+		// to add/edit lookup table
+		DialogEditLookupTable dlg( this );
+		dlg.ShowModal();
+		return;
+	}	
+	
 	if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
 	{
 		LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );

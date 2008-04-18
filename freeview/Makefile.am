@@ -33,6 +33,8 @@ freeview_SOURCES=\
 	ControlPanel.h \
 	Cursor2D.cpp \
 	Cursor2D.h \
+	DialogEditLookupTable.cpp \
+	DialogEditLookupTable.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
 	DialogLoadVolume.cpp \

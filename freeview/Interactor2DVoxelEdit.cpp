@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/04/18 19:58:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@ Interactor2DVoxelEdit::~Interactor2DVoxelEdit()
 bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* renderview )
 {
 	RenderView2D* view = ( RenderView2D* )renderview;
-	
+
 	if ( event.LeftDown() )
 	{
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( "MRI" );
@@ -66,13 +66,13 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 			
 			double ras[3];
 			view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
-			if ( m_nAction == EM_Freehand && ( event.ControlDown() ) )
+			if ( m_nAction == EM_Freehand ) //&& ( event.ControlDown() ) )
 			{
 				mri->SaveForUndo( view->GetViewPlane() );			
 				m_bEditing = true;				
 				mri->SetVoxelByRAS( ras, !event.ShiftDown() );
 			}
-			else if ( m_nAction == EM_Fill && ( event.ControlDown() ) )
+			else if ( m_nAction == EM_Fill ) //&& ( event.ControlDown() ) )
 			{
 				mri->SaveForUndo( view->GetViewPlane() );
 				mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
