@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/04/15 23:21:40 $
-#    $Revision: 1.399 $
+#    $Date: 2008/04/18 01:11:37 $
+#    $Revision: 1.400 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2791,6 +2791,7 @@ AC_OUTPUT([Makefile
            mris_register/Makefile
            mris_register_to_volume/Makefile
            mris_remove_variance/Makefile
+           mris_resample/Makefile
            mris_rescale/Makefile
            mris_reverse/Makefile
            mris_rotate/Makefile

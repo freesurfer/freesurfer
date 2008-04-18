@@ -222,6 +222,7 @@ MRISSUBDIRS=\
 	mris_diff \
 	mris_distance_to_label \
 	mris_register \
+	mris_resample \
 	mris_sample_label \
 	mris_sample_parc \
 	mris_segment_vals \
