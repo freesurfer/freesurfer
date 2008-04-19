@@ -3,8 +3,9 @@
 ##
 
 if HAVE_ANN_LIBS
+if HAVE_BOOST
 
-AM_CXXFLAGS=-I$(top_srcdir)/include $(ANN_CFLAGS)	$(BOOST_CFLAGS)
+AM_CXXFLAGS=-I$(top_srcdir)/include $(ANN_CFLAGS) $(BOOST_CFLAGS)
 
 bin_PROGRAMS = mris_resample
 mris_resample_SOURCES=mris_resample.cpp
@@ -12,6 +13,7 @@ mris_resample_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(BOOST_PO_LIB) $(ANN_LIBS) -lANN
 mris_resample_LDFLAGS=$(OS_LDFLAGS)
 
+endif
 endif
 
 # Our release target. Include files to be excluded here. They will be
