@@ -4,6 +4,7 @@
 
 if HAVE_ITK_LIBS
 if HAVE_PETSC_LIBS
+if HAVE_BOOST_LIBS
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tetgen \
@@ -66,6 +67,7 @@ surf2vol_LDADD=\
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
 	-lpetscvec -lpetsc -lmpich -lblas -llapack
 
+endif
 endif
 endif
 

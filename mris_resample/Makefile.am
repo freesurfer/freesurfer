@@ -3,7 +3,7 @@
 ##
 
 if HAVE_ANN_LIBS
-if HAVE_BOOST
+if HAVE_BOOST_LIBS
 
 AM_CXXFLAGS=-I$(top_srcdir)/include $(ANN_CFLAGS) $(BOOST_CFLAGS)
 
