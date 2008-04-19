@@ -1,4 +1,4 @@
-#! /bin/tcsh -ef
+#! /bin/tcsh -f
 
 #
 # mris_compute_lgi
@@ -14,10 +14,10 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/09 01:38:18 $
-#    $Revision: 1.19 $
+#    $Date: 2008/04/19 00:40:47 $
+#    $Revision: 1.20 $
 #
-# Copyright (C) 2007,
+# Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.19 2007/12/09 01:38:18 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.20 2008/04/19 00:40:47 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -86,6 +86,10 @@ echo "================="
 echo "$cmd"
 echo "================="
 if ($RunIt) $cmd
+if($status) then
+  echo "ERROR: $cmd failed!"
+  exit 1;
+endif
 
 #
 # make_outer_surface.m
@@ -121,12 +125,20 @@ if ($use_mris_extract) then
   echo "$cmd"
   echo "================="
   if ($RunIt) $cmd
+  if($status) then
+    echo "ERROR: $cmd failed!"
+    exit 1;
+  endif
 else
   set cmd=(cp ${tmpdir}/${input}-outer ${tmpdir}/${input}-outer-main)
   echo "================="
   echo "$cmd"
   echo "================="
   if ($RunIt) $cmd
+  if($status) then
+    echo "ERROR: $cmd failed!"
+    exit 1;
+  endif
 endif
 
 #
@@ -140,6 +152,10 @@ echo "================="
 echo "$cmd"
 echo "================="
 if ($RunIt) $cmd
+if($status) then
+  echo "ERROR: $cmd failed!"
+  exit 1;
+endif
 
 #
 # mris_euler_number (a QA check, total defects should = 0)
@@ -149,6 +165,10 @@ echo "================="
 echo "$cmd"
 echo "================="
 if ($RunIt) $cmd
+if($status) then
+  echo "ERROR: $cmd failed!"
+  exit 1;
+endif
 
 #
 # mris_convert
@@ -161,6 +181,10 @@ echo "================="
 echo "$cmd"
 echo "================="
 if ($RunIt) $cmd
+if($status) then
+  echo "ERROR: $cmd failed!"
+  exit 1;
+endif
 
 
 #
@@ -231,6 +255,10 @@ if ($RunIt) then
   echo "$cmd"
   echo "================="
   $cmd
+  if($status) then
+    echo "ERROR: $cmd failed!"
+    exit 1;
+  endif
 else # -dontrun flag is set
   echo "================="
   echo "mri_path2label..."
@@ -279,6 +307,10 @@ echo "================="
 echo "$cmd"
 echo "================="
 if ($RunIt) $cmd
+if($status) then
+  echo "ERROR: $cmd failed!"
+  exit 1;
+endif
 
 
 #--------
