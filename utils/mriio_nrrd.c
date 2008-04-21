@@ -8,8 +8,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/17 03:33:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/04/21 21:08:48 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA).
@@ -68,14 +68,15 @@ MRI *mriNrrdRead(char *fname, int read_volume)
     return NULL;
   }
 
-  /* if it has more than 3 dimensions, then maybe its diffusion data */
-  if (nin->dim != 3) 
+  /* if it has more than 3 dimensions, then maybe its diffusion data that
+     the ITK reader might understand (assuming we're building with ITK)*/
+  if ( ((nin->dim != 3) && (nin->dim != 4)) || (nin->spaceDim != 3) )
   {
     /* say something about the array */
     printf("mriNrrdRead: \"%s\" is a %d-dimensional nrrd of type %d (%s)\n",
            fname, nin->dim, nin->type,
            airEnumStr(nrrdType, nin->type));
-    printf("mriNrrRead: the array contains %d elements, %d bytes in size\n",
+    printf("mriNrrdRead: the array contains %d elements, %d bytes in size\n",
            (int)nrrdElementNumber(nin), (int)nrrdElementSize(nin));
     if (nin->content) printf("mriNrrdRead: content: %s\n", nin->content);
 
@@ -118,67 +119,99 @@ MRI *mriNrrdRead(char *fname, int read_volume)
   }
 
   // alloc mri struct with the correct dimensions.
-  // recall that we know that nin->dim == 3
   int width  = nin->axis[0].size;
   int height = nin->axis[1].size;
   int depth  = nin->axis[2].size;
-  MRI *mri = MRIalloc( width, height, depth, type );
+  int nframes = 1; // default nin->dim = 3
+  if (nin->dim == 4) nframes = nin->axis[3].size; // multiple frames found
+  MRI *mri = MRIallocSequence( width, height, depth, type, nframes );
   if( NULL == mri )
   {
-    printf("mriNrrdRead: Couldn't allocate MRI of size %d %d %d\n",
-           width, height, depth);
+    printf("mriNrrdRead: Couldn't allocate MRI of size %d %d %d %d\n",
+           width, height, depth, nframes);
     return NULL;
   }
 
   // Copy all the pixel data.
-  int x,y,z;
-  for( z = 0; z < depth; z++ )
+  int x,y,z,f;
+  if (type == MRI_UCHAR)
   {
-    for( y = 0; y < height; y++ )
-    {
-      for( x = 0; x < width; x++ )
-      {
-        int index = (x) + (y * width) + (z * width * height);
-        switch( type )
-        {
-        case MRI_UCHAR:
-        {
-          char *_uc = (char*)nin->data;
-          MRIseq_vox( mri, x, y, z, 0 ) = (BUFTYPE)_uc[index];
-          break;
-        }
-        case MRI_SHORT:
-        {
-          short *_s = (short*)nin->data;
-          MRISseq_vox( mri, x, y, z, 0 ) = (short)_s[index];
-          break;
-        }
-        case MRI_INT:
-        {
-          int *_i = (int*)nin->data;
-          MRIIseq_vox( mri, x, y, z, 0 ) = (int)_i[index];
-          break;
-        }
-        case MRI_LONG:
-        {
-          long *_l = (long*)nin->data;
-          MRILseq_vox( mri, x, y, z, 0 ) = (long)_l[index];
-          break;
-        }
-        case MRI_FLOAT:
-        {
-          float *_f = (float*)nin->data;
-          MRIFseq_vox( mri, x, y, z, 0 ) = (float)_f[index];
-          break;
-        }
-        default:
-          return NULL;
-        }
-      }
-    }
+    for (f = 0; f < nframes; f++)
+      for (z = 0; z < depth; z++)
+        for (y = 0; y < height; y++)
+          for (x = 0; x < width; x++)
+          {
+            int index = x + (y * width) + 
+              (z * width * height) + (f * width * height * depth);
+            unsigned char *_uc = (unsigned char*)nin->data;
+            MRIseq_vox(mri, x, y, z, f) = (BUFTYPE)_uc[index];
+          }
+  }
+  else if (type == MRI_SHORT)
+  {
+    for (f = 0; f < nframes; f++)
+      for (z = 0; z < depth; z++)
+        for (y = 0; y < height; y++)
+          for (x = 0; x < width; x++)
+          {
+            int index = x + (y * width) + 
+              (z * width * height) + (f * width * height * depth);
+            short *_s = (short*)nin->data;
+            MRISseq_vox( mri, x, y, z, f ) = (short)_s[index];
+          }
+  }
+  else if (type == MRI_INT)
+  {
+    for (f = 0; f < nframes; f++)
+      for (z = 0; z < depth; z++)
+        for (y = 0; y < height; y++)
+          for (x = 0; x < width; x++)
+          {
+            int index = x + (y * width) + 
+              (z * width * height) + (f * width * height * depth);
+            int *_i = (int*)nin->data;
+            MRIIseq_vox( mri, x, y, z, f ) = (int)_i[index];
+          }
+  }
+  else if (type == MRI_LONG)
+  {
+    for (f = 0; f < nframes; f++)
+      for (z = 0; z < depth; z++)
+        for (y = 0; y < height; y++)
+          for (x = 0; x < width; x++)
+          {
+            int index = x + (y * width) + 
+              (z * width * height) + (f * width * height * depth);
+            long *_l = (long*)nin->data;
+            MRILseq_vox( mri, x, y, z, f ) = (long)_l[index];
+          }
+  }
+  else if (type == MRI_FLOAT)
+  {
+    for (f = 0; f < nframes; f++)
+      for (z = 0; z < depth; z++)
+        for (y = 0; y < height; y++)
+          for (x = 0; x < width; x++)
+          {
+            int index = x + (y * width) + 
+              (z * width * height) + (f * width * height * depth);
+            float *_f = (float*)nin->data;
+            MRIFseq_vox( mri, x, y, z, f ) = (float)_f[index];
+          }
+  }
+  else
+  {
+    printf("mriNrrdRead: Unsupported type=%d\n", type);
+    return NULL;
   }
 
-  // Get and set the spacing.
+  // get and set the origin
+  mri->c_r = (float)nin->spaceOrigin[0];
+  mri->c_a = (float)nin->spaceOrigin[1];
+  mri->c_s = (float)nin->spaceOrigin[2];
+  mri->ras_good_flag = 1;
+
+  // get and set the spacing
   mri->xsize = (float)nin->axis[0].spaceDirection[0];
   mri->ysize = (float)nin->axis[1].spaceDirection[1];
   mri->zsize = (float)nin->axis[2].spaceDirection[2];
