@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.48 2008/04/09 19:13:02 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.49 2008/04/22 16:14:00 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -868,10 +868,10 @@
 8006  Thalamus-Ventral-posterior-medial                 3   147 6   0
 8007  Thalamus-Ventral-posterior-lateral                220 251 163 0
 8008  Thalamus-intralaminar                             232 146 33  0
+8009  Thalamus-centromedian                             4   114 14  0
+8010  Thalamus-mediodorsal                              121 184 220 0
+8011  Thalamus-medial                                   235 11  175 0
+8012  Thalamus-pulvinar                                 12  46  250 0
+8013  Thalamus-lateral-geniculate                       203 182 143 0
+8014  Thalamus-medial-geniculate                        42  204 167 0
 
-8010  Thalamus-centromedian                             4   114 14  0
-8011  Thalamus-mediodorsal                              121 184 220 0
-8012  Thalamus-medial                                   235 11  175 0
-8013  Thalamus-pulvinar                                 12  46  250 0
-8014  Thalamus-lateral-geniculate                       203 182 143 0
-8015  Thalamus-medial-geniculate                        42  204 167 0
