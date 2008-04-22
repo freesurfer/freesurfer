@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/20 21:08:55 $
- *    $Revision: 1.20.2.1 $
+ *    $Author: greve $
+ *    $Date: 2008/04/22 00:48:47 $
+ *    $Revision: 1.20.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.20.2.1 2007/11/20 21:08:55 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.20.2.2 2008/04/22 00:48:47 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -67,8 +67,12 @@ char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
 char *maskfile = NULL;
 int DoMean=0;
+int DoMean2=0;
+int DoSum=0;
+int DoVar=0;
 int DoStd=0;
 int DoMax=0;
+int DoMaxIndex=0;
 int DoPaired=0;
 int DoPairedAvg=0;
 int DoPairedSum=0;
@@ -80,10 +84,18 @@ int DoVote=0;
 int DoSort=0;
 int DoCombine=0;
 
+int DoMultiply=0;
+double MultiplyVal=0;
+
+int DoAdd=0;
+double AddVal=0;
+int DoBonfCor=0;
+int DoAbs = 0;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
-  int r,c,s,f;
+  int r,c,s,f,nframes;
   double v, v1, v2, vavg;
 
   /* rkt: check for and handle version tag */
@@ -163,6 +175,10 @@ int main(int argc, char **argv) {
       MRIcopyHeader(mritmp, mriout);
       //mriout->nframes = nframestot;
     }
+    if(DoAbs) {
+      if(Gdiag_no > 0 || debug) printf("Removing sign from input\n");
+      MRIabs(mritmp,mritmp);
+    }
     for(f=0; f < mritmp->nframes; f++) {
       for(c=0; c < nc; c++) {
         for(r=0; r < nr; r++) {
@@ -217,6 +233,13 @@ int main(int argc, char **argv) {
     MRIfree(&mriout);
     mriout = mritmp;
   }
+  nframes = mriout->nframes;
+  printf("nframes = %d\n",nframes);
+
+  if(DoBonfCor){
+    DoAdd = 1;
+    AddVal = -log10(mriout->nframes);
+  }
 
   if(DoMean) {
     printf("Computing mean across frames\n");
@@ -224,17 +247,29 @@ int main(int argc, char **argv) {
     MRIfree(&mriout);
     mriout = mritmp;
   }
+  if(DoMean2) {
+    printf("Computing mean2 = sum/(nframes^2)\n");
+    mritmp = MRIframeSum(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+    MRImultiplyConst(mriout, 1.0/(nframes*nframes), mriout);
+  }
+  if(DoSum) {
+    printf("Computing sum across frames\n");
+    mritmp = MRIframeSum(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
 
-  if(DoStd) {
-    printf("Computing std across frames\n");
+  if(DoStd || DoVar) {
+    printf("Computing std/var across frames\n");
     if(mriout->nframes < 2){
       printf("ERROR: cannot compute std from one frame\n");
       exit(1);
     }
     //mritmp = fMRIvariance(mriout, -1, 1, NULL);
     mritmp = fMRIcovariance(mriout, 0, -1, NULL, NULL);
-
-    MRIsqrt(mritmp, mritmp);
+    if(DoStd) MRIsqrt(mritmp, mritmp);
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -242,6 +277,13 @@ int main(int argc, char **argv) {
   if(DoMax) {
     printf("Computing max across all frames \n");
     mritmp = MRIvolMax(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
+  if(DoMaxIndex) {
+    printf("Computing max index across all frames \n");
+    mritmp = MRIvolMaxIndex(mriout,1,NULL,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
   }
@@ -258,6 +300,16 @@ int main(int argc, char **argv) {
     mritmp = MRIvote(mriout,mask,NULL);
     MRIfree(&mriout);
     mriout = mritmp;
+  }
+
+  if(DoMultiply){
+    printf("Multiplying by %lf\n",MultiplyVal);
+    MRImultiplyConst(mriout, MultiplyVal, mriout);
+  }
+
+  if(DoAdd){
+    printf("Adding %lf\n",AddVal);
+    MRIaddConst(mriout, AddVal, mriout);
   }
 
   printf("Writing to %s\n",out);
@@ -291,10 +343,19 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
+    else if (!strcasecmp(option, "--mean2"))  DoMean2 = 1;
+    else if (!strcasecmp(option, "--sum"))    DoSum = 1;
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
+    else if (!strcasecmp(option, "--var"))    DoVar = 1;
+    else if (!strcasecmp(option, "--abs"))    DoAbs = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
+    else if (!strcasecmp(option, "--max-index")) DoMaxIndex = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
     else if (!strcasecmp(option, "--sort"))   DoSort = 1;
+    else if (!strcasecmp(option, "--max-bonfcor")){
+      DoMax = 1;
+      DoBonfCor = 1;
+    }
     else if (!strcasecmp(option, "--asl")){
       DoPairedDiff = 1;
       DoMean = 1;
@@ -338,6 +399,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       maskfile = pargv[0];
       nargsused = 1;
+    } else if ( !strcmp(option, "--mul") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&MultiplyVal);
+      DoMultiply = 1;
+      nargsused = 1;
+    } else if ( !strcmp(option, "--add") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&AddVal);
+      DoAdd = 1;
+      nargsused = 1;
     } else {
       inlist[ninputs] = option;
       ninputs ++;
@@ -373,11 +444,20 @@ static void print_usage(void) {
   printf("   --combine : combine non-zero values into a one-frame volume\n");
   printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
   printf("\n");
+  printf("   --abs  : take abs of input\n");
   printf("   --mean : compute mean of concatenated volumes\n");
+  printf("   --mean2 : compute sum/(nframes.^2) \n");
+  printf("   --sum  : compute sum of concatenated volumes\n");
+  printf("   --var  : compute var  of concatenated volumes\n");
   printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
+  printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
+  printf("\n");
+  printf("   --max-bonfcor  : compute max and bonferroni correct (assumes -log10(p))\n");
+  printf("   --mul mulval   : multiply by mulval\n");
+  printf("   --add addval   : add addval\n");
   printf("\n");
   printf("   --mask maskfile : mask used with --vote or --sort\n");
   printf("   --help      print out information on how to use this program\n");
@@ -447,6 +527,10 @@ static void check_options(void) {
   }
   if(mask && !DoVote && !DoSort){
     printf("ERROR: --mask only valid with --vote or --sort\n");
+    exit(1);
+  }
+  if(DoStd && DoVar){
+    printf("ERROR: cannot compute std and var, you bonehead.\n");
     exit(1);
   }
 
