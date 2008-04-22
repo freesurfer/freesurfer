@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/07 21:16:24 $
- *    $Revision: 1.47.2.1 $
+ *    $Date: 2008/04/22 00:48:25 $
+ *    $Revision: 1.47.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.47.2.1 2008/02/07 21:16:24 greve Exp $
+  $Id: fmriutils.c,v 1.47.2.2 2008/04/22 00:48:25 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.47.2.1 2008/02/07 21:16:24 greve Exp $");
+  return("$Id: fmriutils.c,v 1.47.2.2 2008/04/22 00:48:25 greve Exp $");
 }
 
 
@@ -2169,3 +2169,75 @@ MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub)
 
   return(fsub);
 }
+
+/*---------------------------------------------------------------
+  MRIframeSum() - computes sum over frames of each voxel.
+  --------------------------------------------------------------*/
+MRI *MRIframeSum(MRI *vol, MRI *volsum)
+{
+  int c, r, s,f;
+  double v;
+
+  if (volsum == NULL){
+    volsum = MRIallocSequence(vol->width,vol->height,vol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(vol,volsum);
+  }
+
+  for (c=0; c < vol->width; c++)  {
+    for (r=0; r < vol->height; r++)    {
+      for (s=0; s < vol->depth; s++)      {
+        v = 0;
+        for (f=0; f < vol->nframes; f++)
+          v += MRIgetVoxVal(vol,c,r,s,f);
+        MRIsetVoxVal(volsum,c,r,s,0,v);
+      }//s
+    }//r
+  }//s
+  return(volsum);
+}
+
+/*----------------------------------------------------------------
+  MRI *MRIvolMaxIndex(MRI *vol, MRI *out) - the value at each voxel
+  is the frame index of the maximum over the frames at that voxel.
+  base is added to the index.
+  --------------------------------------------------------------*/
+MRI *MRIvolMaxIndex(MRI *invol, int base, MRI *mask, MRI *out)
+{
+  int c, r, s, f, index;
+  double v, max, m;
+
+  if(out==NULL){
+    out = MRIalloc(invol->width,invol->height,invol->depth,MRI_INT);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(invol,out);
+  }
+  if (out->width != invol->width || out->height != invol->height ||
+      out->depth != invol->depth){
+    printf("ERROR: MRIvolMax: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for (c=0; c < invol->width; c++)  {
+    for (r=0; r < invol->height; r++) {
+      for (s=0; s < invol->depth; s++) {
+        MRIsetVoxVal(out,c,r,s,0,0);
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+        max = MRIgetVoxVal(invol,c,r,s,0);
+	index = 0;
+        for (f=1; f < invol->nframes; f++) {
+          v = MRIgetVoxVal(invol,c,r,s,f);
+          if(max < v){
+	    max = v;
+	    index = f;
+	  }
+        }
+        MRIsetVoxVal(out,c,r,s,0,index+base);
+      }
+    }
+  }
+  return(out);
+}
+
