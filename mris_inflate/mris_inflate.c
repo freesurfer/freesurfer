@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/16 01:40:10 $
- *    $Revision: 1.33.2.2 $
+ *    $Date: 2008/04/22 19:47:47 $
+ *    $Revision: 1.33.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_inflate.c,v 1.33.2.2 2007/08/16 01:40:10 nicks Exp $";
+  "$Id: mris_inflate.c,v 1.33.2.3 2008/04/22 19:47:47 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -63,11 +63,14 @@ static INTEGRATION_PARMS  parms ;
 static int talairach_flag = 0 ;
 static int nbrs = 2 ;
 static int navgs = 0 ;
+static int DEFAULT_ITERATIONS = 10;
+static float DEFAULT_DIST = 0.1f;
 
 #define BASE_DT_SCALE    1.0
 static float base_dt_scale = BASE_DT_SCALE ;
 
 static int SaveSulc = 1;
+static char *sulc_name = "sulc" ;
 
 int
 main(int argc, char *argv[])
@@ -83,13 +86,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_inflate.c,v 1.33.2.2 2007/08/16 01:40:10 nicks Exp $",
+   "$Id: mris_inflate.c,v 1.33.2.3 2008/04/22 19:47:47 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_inflate.c,v 1.33.2.2 2007/08/16 01:40:10 nicks Exp $",
+           "$Id: mris_inflate.c,v 1.33.2.3 2008/04/22 19:47:47 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -110,12 +113,12 @@ main(int argc, char *argv[])
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
   parms.n_averages = 16 ;
   parms.l_angle = 0.0 ;
-  parms.l_dist = .1 ;
+  parms.l_dist = DEFAULT_DIST ;
   parms.l_area = 0.0 ;
   parms.l_spring = 0.0 ;
   parms.l_spring_norm = 1.0 ;
   parms.l_curv = 0.0 ;
-  parms.niterations = 10 ;   /* per # of averages */
+  parms.niterations = DEFAULT_ITERATIONS ;   /* per # of averages */
   parms.write_iterations = 0 /*WRITE_ITERATIONS */;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -187,7 +190,7 @@ main(int argc, char *argv[])
     MRISscaleBrainArea(mris) ;
     parms.n_averages = 0 ;
     parms.niterations = 70 ;
-    parms.l_dist = .1 ;
+    parms.l_dist = DEFAULT_DIST ;
     MRISinflateBrain(mris, &parms) ;
 #endif
   }
@@ -202,8 +205,8 @@ main(int argc, char *argv[])
 
   if (SaveSulc)
   {
-    sprintf(fname, "%s/%s.sulc", path,
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+    sprintf(fname, "%s/%s.%s", path,
+            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sulc_name) ;
     fprintf(stderr, "writing sulcal depths to %s\n", fname) ;
     MRISwriteCurvature(mris, fname) ;
   }
@@ -240,6 +243,14 @@ get_option(int argc, char *argv[])
     strcpy(parms.base_name, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "base name = %s\n", parms.base_name) ;
+  }
+  else if (!stricmp(option, "sulc"))
+  {
+    if (argc < 2)
+      print_usage() ;
+    sulc_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "sulc name = %s\n", sulc_name) ;
   }
   else if (!stricmp(option, "angle"))
   {
@@ -531,13 +542,15 @@ print_help(void)
           "\nThis program will inflate a cortical surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-n <# of iterations> - \n\t"
-          "set the maximum # of iterations (default = 55)\n") ;
+          "set the maximum # of iterations (default = %d)\n",
+          DEFAULT_ITERATIONS) ;
   fprintf(stderr, "-w <# of iterations> - \n\t"
           "write out a snapshot of the inflation every #th time step.\n") ;
   fprintf(stderr, "-dist <distance coefficient> - \n"
           "\tspecify the relative strength of the metric preserving term in\n"
           "\tthe cost functional versus the "
-          "smoothing term (default = 0.1).\n");
+          "smoothing term (default = %f).\n",
+          DEFAULT_DIST);
   printf("-no-save-sulc : do not save ?h.sulc\n");
   exit(1) ;
 }
