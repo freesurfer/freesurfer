@@ -1,9 +1,9 @@
-#$Id: FreeSurferColorLUT.txt,v 1.38.2.1 2007/08/20 01:52:07 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.38.2.2 2008/04/22 16:17:15 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
 0   Unknown                                 0   0   0   0
-1   Left-Cerebral-Exterior                  205 62  78  0
+1   Left-Cerebral-Exterior                  70  130 180 0
 2   Left-Cerebral-White-Matter              245 245 245 0
 3   Left-Cerebral-Cortex                    205 62  78  0
 4   Left-Lateral-Ventricle                  120 18  134 0
@@ -42,7 +42,7 @@
 37  Left-Stellate                           120 62  43  0
 38  Left-Porg                               74  155 60  0
 39  Left-Aorg                               122 135 50  0
-40  Right-Cerebral-Exterior                 205 62  78  0
+40  Right-Cerebral-Exterior                 70  130 180 0
 41  Right-Cerebral-White-Matter             0   225 0   0
 42  Right-Cerebral-Cortex                   205 62  78  0
 43  Right-Lateral-Ventricle                 120 18  134 0
@@ -195,6 +195,9 @@
 254 CC_Mid_Anterior                         0   0   208 0
 255 CC_Anterior                             0   0   255 0
 
+# This is for keeping track of voxel changes
+256 Voxel-Unchanged                         0   0   0   0
+
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
 332 Left-Common-IliacA                      255 80  0   0
@@ -288,7 +291,7 @@
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
 
-999 SUSPICIOUS                              255  100 100 0
+999 SUSPICIOUS                              255 100 100 0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg in which the aseg cortex label is replaced
@@ -304,6 +307,7 @@
 # Centrum semiovale is also labled with 5001 (left) and 5002 (right).
 # Even further below is the color table for aparc.a2005s.
 
+#No.    Label Name:                         R   G   B   A
 1000    ctx-lh-unknown                      25  5   25  0
 1001    ctx-lh-bankssts                     25  100 40  0
 1002    ctx-lh-caudalanteriorcingulate      125 100 160 0
@@ -453,11 +457,12 @@
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005 flag) in which the aseg
 # cortex label is replaced by the labels in the aparc.a2005. The
-# cortical lables are the same as in Simple_surface_labels2005.txt,
+# cortical labels are the same as in Simple_surface_labels2005.txt,
 # except that left hemisphere has 1100 added to the index and the
 # right has 2100 added.  The label names are also prepended with
 # ctx-lh or ctx-rh.
 
+#No.    Label Name:                                     R   G   B   A
 1100    ctx-lh-Unknown                                  0   0   0   0
 1101    ctx-lh-Corpus_callosum                          50  50  50  0
 1102    ctx-lh-G_and_S_Insula_ONLY_AVERAGE              180 20  30  0
@@ -789,3 +794,84 @@
 4179    wm-rh-S_temporal_inferior                       21  180 180 0
 4180    wm-rh-S_temporal_superior                       223 220 60  0
 4181    wm-rh-S_temporal_transverse                     221 60  60  0
+
+
+5050   Left-SLF1_waypoint                               120 19  134 0
+5051   Left-SLF1-Start                                  197 58  250 0
+5052   Left-SLF1-End                                    198 58  250 0
+5053   Right-SLF1_waypoint                              120 20  134 0
+5054   Right-SLF1-Start                                 199 58  250 0
+5055   Right-SLF1-End                                   200 58  250 0
+6010   Left-SLF1                                        236 16  231 0
+6020   Right-SLF1                                       237 18  232 0
+
+5056   Left-SLF2_waypoint                               236 14  176 0
+5057   Left-SLF2-Start                                  206 62  78  0
+5058   Left-SLF2-End                                    207 62  78  0
+5059   Right-SLF2_waypoint                              236 15  176 0
+5060   Right-SLF2-Start                                 208 62  78  0
+5061   Right-SLF2-End                                   209 62  78  0
+6070   Left-SLF2                                        236 14  230 0
+6080   Right-SLF2                                       237 14  230 0
+
+5062   Left-SLF3_waypoint                               12  49  255 0
+5063   Left-SLF3-Start                                  123 186 220 0
+5064   Left-SLF3-End                                    124 186 220 0
+5065   Right-SLF3_waypoint                              12  50  255 0
+5066   Right-SLF3-Start                                 125 186 220 0
+5067   Right-SLF3-End                                   126 186 220 0
+6030   Left-SLF3                                        236 13  227 0
+6040   Right-SLF3                                       236 17  228 0
+
+5068   Left-CST_waypoint                                255 166 0   0
+5069   Left-CST-Start                                   221 216 20  0
+5070   Left-CST-End                                     222 216 20  0
+5071   Right-CST_waypoint                               255 167 0   0
+5072   Right-CST-Start                                  223 216 20  0
+5073   Right-CST-End                                    224 216 20  0
+6050   Left-CST                                         1   255 1   0
+6060   Right-CST                                        2   255 1   0
+
+6000   CST-orig                                         0   255 0   0
+6001   CST-hammer                                       255 255 0   0
+6002   CST-CVS                                          0   255 255 0
+6003   CST-flirt                                        0   0   255 0
+
+#No.  Label Name:                                       R   G   B   A
+
+7001  Lateral-nucleus                                   72  132 181 0
+7002  Basolateral-nucleus                               243 243 243 0
+7003  Basal-nucleus                                     207 63  79  0
+7004  Centromedial-nucleus                              121 20  135 0
+7005  Central-nucleus                                   197 60  248 0
+7006  Medial-nucleus                                    2   149 2   0
+7007  Cortical-nucleus                                  221 249 166 0
+7008  Accessory-Basal-nucleus                           232 146 35  0
+7009  Corticoamygdaloid-transitio                       2   119 16  0
+7010  Anterior-amygdaloid-area-AAA                      4   115 17  0
+7011  Fusion-amygdala-HP-FAH                            122 187 222 0
+7012  Hippocampal-amygdala-transition-HATA              237 12  177 0
+7013  Endopiriform-nucleus                              10  49  255 0
+7014  Lateral-nucleus-olfactory-tract                   205 184 144 0
+7015  Paralaminar-nucleus                               45  205 165 0
+7016  Intercalated-nucleus                              117 160 175 0
+7017  Prepiriform-cortex                                221 217 21  0
+7018  extra1                                            104 254 253 0
+7019  extra2                                            79  195 99  0
+7020  extra3                                            61  57  211 0
+
+8001  Thalamus-Anterior                                 74  130 181 0
+8002  Thalamus-Ventral-anterior                         242 241 240 0
+8003  Thalamus-Lateral-dorsal                           206 65  78  0
+8004  Thalamus-Lateral-posterior                        120 21  133 0
+8005  Thalamus-Ventral-lateral                          195 61  246 0
+8006  Thalamus-Ventral-posterior-medial                 3   147 6   0
+8007  Thalamus-Ventral-posterior-lateral                220 251 163 0
+8008  Thalamus-intralaminar                             232 146 33  0
+8009  Thalamus-centromedian                             4   114 14  0
+8010  Thalamus-mediodorsal                              121 184 220 0
+8011  Thalamus-medial                                   235 11  175 0
+8012  Thalamus-pulvinar                                 12  46  250 0
+8013  Thalamus-lateral-geniculate                       203 182 143 0
+8014  Thalamus-medial-geniculate                        42  204 167 0
+
