@@ -7,9 +7,9 @@
 #
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2008/04/23 18:15:08 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 set labellist = ();
 set outlabel = ();
 
-set VERSION = '$Id: merge-labels,v 1.4 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: merge-labels,v 1.5 2008/04/23 18:15:08 greve Exp $';
 set inputargs = ($argv);
 set PrintHelp = 0;
 
@@ -62,7 +62,7 @@ set line1 = `head -n 1 $labellist[1]`;
 set tmpfile = /tmp/$$.label
 rm -f $tmpfile
 foreach labelfile ($labellist)
-  cat $labelfile | tail +3  >> $tmpfile
+  cat $labelfile | tail -n +3  >> $tmpfile
 end
 
 cat $tmpfile | sort | uniq > $tmpfile.2

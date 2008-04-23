@@ -8,8 +8,8 @@
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/08/10 20:01:57 $
-#    $Revision: 1.4 $
+#    $Date: 2008/04/23 18:13:52 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
 # a functional data set by projecting out the eigenvectors
 # as computed from evfunc (fast_evfunc.m)
 #
-set VERSION = '$Id: mri_mergelabels,v 1.4 2007/08/10 20:01:57 greve Exp $'
+set VERSION = '$Id: mri_mergelabels,v 1.5 2008/04/23 18:13:52 greve Exp $'
 set inputargs = ($argv);
 
 set PWDCMD = `getpwdcmd`;
@@ -68,7 +68,7 @@ echo $nlabelsum >> $outlabel
 
 # Cat the data into the label #
 foreach inlabel ($inputlist)
-  tail +3 $inlabel >> $outlabel
+  tail -n +3 $inlabel >> $outlabel
 end
 
 echo "Done"
