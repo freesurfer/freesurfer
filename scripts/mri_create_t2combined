@@ -8,7 +8,7 @@ set t2lower=$4
 
 # outputs:
 set t2combined=$5
-set log=$0.log
+set log=$PWD/mri_create_t2combined.log
 
 # options:
 set show=$6
