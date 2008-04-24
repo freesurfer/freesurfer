@@ -15,6 +15,7 @@ foo_DATA=\
 	freesurfer_read_surf.m \
 	getFaceArea.m \
 	getFacesArea.m \
+	getMeshArea.m \
 	getOrthogonalVector.m \
 	getVerticesAndFacesInSphere.m \
 	isInGeodesicROI.m \
