@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.2 $
+ *    $Author: greve $
+ *    $Date: 2008/04/24 21:17:35 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Segment the head.
-  $Id: mri_seghead.c,v 1.2 2006/12/29 02:09:08 nicks Exp $
+  $Id: mri_seghead.c,v 1.3 2008/04/24 21:17:35 greve Exp $
 */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seghead.c,v 1.2 2006/12/29 02:09:08 nicks Exp $";
+static char vcid[] = "$Id: mri_seghead.c,v 1.3 2008/04/24 21:17:35 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *subjid;
@@ -87,6 +87,7 @@ MRI *mrgvol;
 MRI *mritmp;
 
 char tmpstr[1000];
+char *hvoldat = NULL;
 FILE *fp;
 
 /*---------------------------------------------------------------*/
@@ -262,10 +263,17 @@ int main(int argc, char **argv) {
     }
   }
   printf("N Head Voxels = %d\n",n);
+  if(hvoldat){
+    fp = fopen(hvoldat,"w");
+    fprintf(fp,"%lf\n",n*invol->xsize*invol->ysize*invol->zsize);
+    fclose(fp);
+  }
 
-  printf("Writing output\n");
-  fflush(stdout);
-  MRIwrite(outvol,outvolid);
+  if(outvolid){
+    printf("Writing output\n");
+    fflush(stdout);
+    MRIwrite(outvol,outvolid);
+  }
 
   printf("Done\n");
 
@@ -334,6 +342,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nhitsmin);
       nargsused = 1;
+    } else if (stringmatch(option, "--hvoldat")) {
+      if (nargc < 1) argnerr(option,1);
+      hvoldat = pargv[0];
+      nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
@@ -354,13 +366,14 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --invol     input volume id\n");
+  printf("   --invol     input volume id (eg, T1)\n");
   printf("   --outvol    input volume id\n");
   printf("   --fill      fill value  (255)\n");
-  printf("   --thresh1   threshold value  \n");
-  printf("   --thresh2   threshold value  \n");
+  printf("   --thresh1   threshold value  (eg, 20)\n");
+  printf("   --thresh2   threshold value  (eg, 20)\n");
   printf("   --thresh    single threshold value for 1 and 2 \n");
   printf("   --nhitsmin  min number of consecutive hits (2) \n");
+  printf("   --hvoldat   file : write head volume (mm3) to an ascii file \n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -419,7 +432,7 @@ static void check_options(void) {
     printf("An input volume path must be supplied\n");
     exit(1);
   }
-  if (outvolid == NULL) {
+  if(outvolid == NULL && hvoldat == NULL) {
     printf("An output volume path must be supplied\n");
     exit(1);
   }
