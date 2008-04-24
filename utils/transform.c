@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:58 $
- *    $Revision: 1.112.2.4 $
+ *    $Date: 2008/04/24 18:18:43 $
+ *    $Revision: 1.112.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -236,6 +236,8 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
   int  fail = 0;
   while ((p = fgets(line, sizeof(line), fp)) && counter < 8)
   {
+    if (strlen(p) == 0)
+      break ;
     sscanf(line, "%s %s %*s", param, eq);
     if (!strcmp(param, "valid"))
     {
