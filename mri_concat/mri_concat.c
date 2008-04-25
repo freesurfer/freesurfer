@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/03/09 01:13:07 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2008/04/25 17:52:52 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.26 2008/03/09 01:13:07 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.27 2008/04/25 17:52:52 nicks Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -149,6 +149,9 @@ int main(int argc, char **argv) {
     nframestot += mritmp->nframes;
     MRIfree(&mritmp);
   }
+
+  if (DoCombine) nframestot = 1; // combine creates a single-frame volume
+
   printf("nframestot = %d\n",nframestot);
 
   if (DoPaired) {
