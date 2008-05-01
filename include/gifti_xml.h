@@ -1,14 +1,13 @@
-/* Author: Rick Reynolds reynoldr@mail.nih.gov */
-
-#ifndef _GIFTI_XML_H_
-#define _GIFTI_XML_H_
+#ifndef GIFTI_XML_H
+#define GIFTI_XML_H
 
 #define GXML_MAX_DEPTH 10    /* maximum stack depth */
 #define GXML_MAX_ELEN  128   /* maximum element length */
 
-#ifndef XMLCALL
-#define XMLCALL
-#endif
+#define GIFTI_XML_VERSION       "1.0"
+#define GIFTI_XML_ENCODING      "UTF-8"
+#define GIFTI_XML_DTD_SOURCE    \
+                  "http://www.nitrc.org/frs/download.php/115/gifti.dtd"
 
 /* ----------------------------------------------------------------------
    element      depths  parent(s)       children
@@ -61,31 +60,51 @@
 #define GXML_ETYPE_CDATA       14      /* CDATA element            */
 #define GXML_ETYPE_LAST        14      /* should match last entry  */
 
+typedef struct {
+    long long   nalloc;                 /* allocation length    */
+    long long   nused;                  /* number of bytes used */
+    char      * buf;                    /* buffer               */
+} gxml_buffer;
 
 typedef struct {
     int            verb;            /* verbose level                */
     int            dstore;          /* flag: store data             */
+    int            indent;          /* spaces per depth level       */
     int            buf_size;        /* for XML buffer               */
+    int            b64_check;       /* 0=no, 1=check, 2=count, 3=skip */
+    int            update_ok;       /* library can update metadata  */
+    int            zlevel;          /* compression level -1..9      */
+
+    int          * da_list;         /* DA index list to store       */
+    int            da_len;          /* DA index list length         */
+    int            da_ind;          /* current DA index list index  */
+
+    int            eleDA;           /* number of elements found     */
+    int            expDA;           /* number of elements expected  */
+    int            b64_errors;      /* bad chars, per DATA element  */
     int            errors;          /* number of errors encountered */
     int            skip;            /* stack depth to skip          */
     int            depth;           /* current stack depth          */
     int            stack[GXML_MAX_DEPTH+1]; /* stack of etypes      */
 
-    int            dind;            /* index into decode array      */
-    int            doff;            /* offset into data buffer      */
+    long long      dind;            /* index into data->data/xform  */
     int            clen;            /* length of current CDATA      */
     int            xlen;            /* length of xform buffer       */
     int            dlen;            /* length of Data buffer        */
+    int            doff;            /* offset into data buffer      */
+    int            zlen;            /* length of compression buffer */
     char        ** cdata;           /* pointer to current CDATA     */
-    char         * xdata;           /* xform buffer (free at end)   */
-    char         * ddata;           /* Data buffer (free at end)    */
+    char         * xdata;           /* xform buffer                 */
+    char         * ddata;           /* I/O buffer xml->ddata->data  */
+    char         * zdata;           /* zlib compression buffer      */
     gifti_image  * gim;             /* pointer to returning image   */
 } gxml_data;
 
 /* protos */
 
 /* main interface */
-gifti_image * gxml_read_image (const char * fname, int read_data);
+gifti_image * gxml_read_image (const char * fname, int read_data,
+                               const int * dalist, int len);
 int           gxml_write_image(gifti_image * gim, const char * fname,
                                int write_data);
 
@@ -93,8 +112,16 @@ int   gxml_set_verb        ( int val );
 int   gxml_get_verb        ( void    );
 int   gxml_set_dstore      ( int val );
 int   gxml_get_dstore      ( void    );
+int   gxml_set_indent      ( int val );
+int   gxml_get_indent      ( void    );
 int   gxml_set_buf_size    ( int val );
 int   gxml_get_buf_size    ( void    );
+int   gxml_set_b64_check   ( int val );
+int   gxml_get_b64_check   ( void    );
+int   gxml_set_update_ok   ( int val );
+int   gxml_get_update_ok   ( void    );
+int   gxml_set_zlevel      ( int val );
+int   gxml_get_zlevel      ( void    );
 
 
-#endif /* _GIFTI_XML_H_ */
+#endif /* GIFTI_XML_H */

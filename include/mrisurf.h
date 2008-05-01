@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:52 $
- *    $Revision: 1.298.2.3 $
+ *    $Date: 2008/05/01 20:50:28 $
+ *    $Revision: 1.298.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1805,3 +1805,7 @@ int	MRISuseK2Curvature(
 );
 
 // Discrete Principle Curvature and Related ^^^^^^^^^^^^^^^^^^
+
+
+void UpdateMRIS(MRI_SURFACE *mris, char *fname);
+int  MRISreadTransform(MRIS *mris, char *fname);
