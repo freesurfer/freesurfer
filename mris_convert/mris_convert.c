@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/31 16:51:08 $
- *    $Revision: 1.23 $
+ *    $Date: 2008/05/01 20:47:48 $
+ *    $Revision: 1.23.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -42,12 +42,12 @@
 #include "version.h"
 #include "matrix.h"
 #include "transform.h"
+#include "gifti_local.h"
 
-int MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.23 2007/07/31 16:51:08 nicks Exp $";
+"$Id: mris_convert.c,v 1.23.2.1 2008/05/01 20:47:48 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -80,7 +80,10 @@ static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
 static int output_normals=0;
+static int PrintXYZOnly = 0;
 static MATRIX *XFM=NULL;
+static int write_vertex_neighbors = 0;
+int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -88,14 +91,15 @@ int
 main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
   char         **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
-  *cp, path[STRLEN], *dot, ext[STRLEN] ;
-  int          ac, nargs ;
+    *cp, path[STRLEN], *dot, ext[STRLEN] ;
+  int          ac, nargs,nthvtx ;
+  FILE *fp=NULL;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_convert.c,v 1.23 2007/07/31 16:51:08 nicks Exp $",
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mris_convert.c,v 1.23.2.1 2008/05/01 20:47:48 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -207,12 +211,25 @@ main(int argc, char *argv[]) {
     type = MRISfileNameType(out_fname) ;
     if (type == MRIS_ASCII_FILE)
       writeAsciiCurvFile(mris, out_fname) ;
+    else if (type == MRIS_GIFTI_FILE)
+      MRISwriteScalarGIFTI(mris, out_fname, curv_fname);
     else
       MRISwriteCurvature(mris, out_fname) ;
   } else if (mris->patch)
     MRISwritePatch(mris, out_fname) ;
   else if (output_normals)
     MRISwriteNormalsAscii(mris, out_fname) ;
+  else if (write_vertex_neighbors)
+    MRISwriteVertexNeighborsAscii(mris, out_fname) ;
+  else if(PrintXYZOnly){
+    printf("Printing only XYZ to ascii file\n");
+    fp = fopen(out_fname,"w");
+    for(nthvtx = 0; nthvtx < mris->nvertices; nthvtx++){
+      fprintf(fp,"%9.4f %9.4f %9.4f\n",mris->vertices[nthvtx].x,
+              mris->vertices[nthvtx].y,mris->vertices[nthvtx].z);
+    }
+    fclose(fp);
+  }
   else
     MRISwrite(mris, out_fname) ;
 
@@ -239,46 +256,53 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-version"))
     print_version() ;
   else switch (toupper(*option)) {
-    case 'C':
-      curv_file_flag = 1 ;
-      curv_fname = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case 'N':
-      output_normals = 1;
-      break ;
-    case 'O':
-      read_orig_positions = 1 ;
-      orig_surf_name = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case 'S':
-      sscanf(argv[2],"%lf",&scale);
-      nargs = 1 ;
-      break ;
-    case 'R':
-      rescale = 1;
-      break ;
-    case 'P':
-      patch_flag = 1 ;
-      nargs = 0 ;
-      break ;
-    case 'T':
-      talairach_flag = 1 ;
-      talxfmsubject = argv[2] ;
-      nargs = 1 ;
-      break ;
-    case '?':
-    case 'U':
-    case 'H':
-      print_help() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  case 'A':
+    PrintXYZOnly = 1;
+    break ;
+  case 'C':
+    curv_file_flag = 1 ;
+    curv_fname = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'N':
+    output_normals = 1;
+    break ;
+  case 'O':
+    read_orig_positions = 1 ;
+    orig_surf_name = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'S':
+    sscanf(argv[2],"%lf",&scale);
+    nargs = 1 ;
+    break ;
+  case 'R':
+    rescale = 1;
+    break ;
+  case 'P':
+    patch_flag = 1 ;
+    nargs = 0 ;
+    break ;
+  case 'T':
+    talairach_flag = 1 ;
+    talxfmsubject = argv[2] ;
+    nargs = 1 ;
+    break ;
+  case 'V':
+    write_vertex_neighbors = 1;
+    nargs = 0 ;
+    break ;
+  case '?':
+  case 'U':
+  case 'H':
+    print_help() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
@@ -314,14 +338,23 @@ print_help(void) {
           "                    vertex xyz\n");
   printf( "  -n                output is an ascii file where vertex data\n") ;
   printf( "                    is the surface normal vector\n") ;
+  printf( "  -v Writes out neighbors of a vertex in each row. The first\n");
+  printf( "     column is the vertex number, the 2nd col is the number of neighbors,\n");
+  printf( "     the remaining cols are the vertex numbers of the neighbors.  \n");
+  printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
+  printf( "  -a Print only surface xyz to ascii file\n") ;
   printf( "\n") ;
-  printf( "Surface and scalar files can be ascii or binary.\n") ;
+  printf( "Surface and scalar files can be ascii, gifti or binary.\n") ;
   printf( "Ascii file is assumed if filename ends with .asc\n") ;
+  printf( "Gifti format is assumed if filename ends with .gii\n") ;
   printf( "\n") ;
   printf( "EXAMPLES:\n") ;
   printf( "\n");
   printf( "Convert a surface file to ascii:\n");
   printf( "  mris_convert lh.white lh.white.asc\n") ;
+  printf( "\n");
+  printf( "Write vertex neighbors  to ascii:\n");
+  printf( "  mris_convert -v lh.white lh.white.neighbors.asc\n") ;
   printf( "\n");
   printf( "Convert a surface file to ascii (vertices are surface normals):\n");
   printf( "  mris_convert -n lh.white lh.white.normals.asc\n") ;
@@ -436,5 +469,35 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) {
 
   fclose(fp) ;
   return(NO_ERROR) ;
+}
+
+/*
+  \fn int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
+  \brief Writes out neighbors of a vertex in each row. The first
+  column is the vertex number, the 2nd col is the number of neighbors,
+  the remaining cols are the vertex numbers of the neighbors.
+*/
+
+int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
+{
+  int vno, nnbrs, nbrvno;
+  FILE *fp;
+
+  fp = fopen(out_fname,"w");
+  if(fp == NULL){
+    printf("ERROR: opening %s\n",out_fname);
+    exit(1);
+  }
+
+  for(vno=0; vno < mris->nvertices; vno++){
+    nnbrs = mris->vertices[vno].vnum;
+    fprintf(fp,"%6d %2d   ",vno,nnbrs);
+    for (nbrvno = 0; nbrvno < nnbrs; nbrvno++)
+      fprintf(fp,"%6d ",mris->vertices[vno].v[nbrvno]);
+    fprintf(fp,"\n");
+  }
+  fclose(fp);
+
+  return(0);
 }
 
