@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2008/04/10 20:31:25 $
-##    $Revision: 1.154 $
+##    $Date: 2008/05/01 22:27:54 $
+##    $Revision: 1.155 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -2276,6 +2276,40 @@ proc GDF_LoadDlog {} {
     }
 }
 
+
+proc DoLabelThresholdDlog {} {
+
+    global gnSelectedLabel
+
+    set wwDialog .wwLabelThresholdDlog
+
+    if { [Dialog_Create $wwDialog "Threshold the selected Label" {-borderwidth 10}] } {
+
+  set fwMain             $wwDialog.fwMain
+  set fwThreshold          $wwDialog.fwThreshold
+  set fwButtons          $wwDialog.fwButtons
+
+  frame $fwMain
+
+  # field for threshold entry
+  tkm_MakeEntry $fwThreshold "Threshold: " fThreshold 6 
+
+  # buttons.
+  set okCmd { 
+      labl_threshold $gnSelectedLabel $fThreshold;
+      UpdateAndRedraw }
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+      "$okCmd"
+  
+  pack $fwMain $fwThreshold $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
 proc DoLabelToOverlayDlog {} {
 
     set wwDialog .wwLabelToOverlayDlog
@@ -3341,7 +3375,7 @@ proc CreateMenuBar { ifwMenuBar } {
     }
 
     
-    # tools me
+    # tools menu
     tkm_MakeMenu $mbwTools "Tools" {
 	{ command 
 	    "Save Point"
@@ -3372,6 +3406,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command "Delete Selected Label"
 		{ labl_remove $gnSelectedLabel
 		    UpdateAndRedraw }
+		mg_LabelLoaded }
+	    { command "Threshold Selected Label..."
+		{ DoLabelThreshold }
 		mg_LabelLoaded }
 	    { command "Delete All Labels"
 		{ labl_remove_all

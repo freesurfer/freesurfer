@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/12 02:46:07 $
- *    $Revision: 1.307 $
+ *    $Author: krish $
+ *    $Date: 2008/05/01 22:29:13 $
+ *    $Revision: 1.308 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1814,6 +1814,9 @@ int labl_remove_marked_vertices_from_label (int index);
 /* marks all the vertices in a label. */
 int labl_mark_vertices (int index);
 
+/* marks thresholded vertices in a label. */
+int labl_mark_threshold_vertices (int index, float threshold);
+
 /* selects a label, drawing it with apn outline and hilighting it in
    the label list tcl window. */
 int labl_select (int index);
@@ -1848,6 +1851,9 @@ int labl_all_changed ();
 /* removes and deletes the label and bumps down all other labels in
    the list. */
 int labl_remove (int index);
+
+/* Thresholds a label according to a user entered scalar value */
+int labl_threshold (int index, float threshold);
 
 /* removes and deletes all labels. */
 int labl_remove_all ();
@@ -20351,6 +20357,10 @@ int W_labl_remove WBEGIN
 ERR(2,"Wrong # args: labl_remove index")
 labl_remove (atoi(argv[1]));
 WEND
+int W_labl_threshold WBEGIN
+ERR(3,"Wrong # args: labl_threshold index threshold")
+labl_threshold (atoi(argv[1]), atof(argv[2]));
+WEND
 int W_labl_remove_all WBEGIN
 ERR(1,"Wrong # args: labl_remove_all")
 labl_remove_all ();
@@ -20682,7 +20692,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.307 2008/04/12 02:46:07 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.308 2008/05/01 22:29:13 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21463,6 +21473,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_labl_set_color, REND);
   Tcl_CreateCommand(interp, "labl_remove",
                     (Tcl_CmdProc*) W_labl_remove, REND);
+  Tcl_CreateCommand(interp, "labl_threshold",
+                    (Tcl_CmdProc*) W_labl_threshold, REND);
   Tcl_CreateCommand(interp, "labl_remove_all",
                     (Tcl_CmdProc*) W_labl_remove_all, REND);
   Tcl_CreateCommand(interp, "labl_erode",
@@ -27561,6 +27573,50 @@ int labl_remove (int index)
   /* find all the borders again. */
   labl_find_and_set_all_borders ();
 
+  return (ERROR_NONE);
+}
+
+int labl_mark_threshold_vertices (int index, float threshold)
+{
+  int    n, vno ;
+  VERTEX* v;
+  LABEL* area = labl_labels[index].label ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    /* for the nth vertex in the label */
+    vno = area->lv[n].vno ;
+    if (vno < 0 || vno >= mris->nvertices)
+      return (ERROR_BADPARM) ;
+
+    /* mark the vertex if it's less than threshold */
+    if ( area->lv[n].stat < threshold )
+    {
+      v = &mris->vertices[vno] ;
+      v->marked = 1 ;
+    }
+  }
+  return (ERROR_NONE) ;
+}
+
+int labl_threshold (int index, float threshold)
+{
+  if (index < 0 || index >= labl_num_labels)
+    return (ERROR_BADPARM);
+
+  /* mark all the vertices below the threshold */
+  labl_mark_threshold_vertices(index, threshold);
+
+  /* remove the marked vertices from the label */
+  labl_remove_marked_vertices_from_label(index);
+
+  labl_update_cache (TRUE);
+  
+  labl_find_and_set_border (index);
+  
+  /* clear the marked vertices */
+  clear_all_vertex_marks();
+  
   return (ERROR_NONE);
 }
 
