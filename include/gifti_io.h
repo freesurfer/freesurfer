@@ -173,23 +173,31 @@ int    gifti_set_zlevel         (int level);
 
 /* data copy routines */
 int     gifti_convert_to_float(gifti_image * gim);
-int     gifti_copy_nvpairs    (nvpairs *dest, const nvpairs *src);
 char ** gifti_copy_char_list  (char ** list, int len);
+int     gifti_copy_all_DA_meta(giiDataArray *dest, giiDataArray *src);
+int     gifti_copy_DA_meta    (giiDataArray *dest, giiDataArray *src,
+                               const char *name);
+int     gifti_copy_DA_meta_many(gifti_image * dest, gifti_image * src,
+                                const char * name, const int * dalist, int len);
+int     gifti_copy_gifti_meta (gifti_image * dest, gifti_image * src,
+                               const char * name);
 int     gifti_copy_LabelTable (giiLabelTable * dest, const giiLabelTable * src);
+int     gifti_copy_nvpairs    (nvpairs *dest, const nvpairs *src);
+
 char  * gifti_strdup          (const char * src);
 gifti_image    * gifti_copy_gifti_image(const gifti_image *gold, int copy_data);
 giiCoordSystem * gifti_copy_CoordSystem(const giiCoordSystem *src);
 giiDataArray   * gifti_copy_DataArray  (const giiDataArray *orig, int get_data);
 
 
-long long gifti_darray_nvals    (giiDataArray * da);
+long long gifti_darray_nvals    (const giiDataArray * da);
 long long gifti_gim_DA_size     (const gifti_image * p, int in_mb);
 
 int    gifti_check_swap         (void *data, int endian, long long nsets,
                                  int swapsize);
 int    gifti_datatype_sizes     (int datatype, int *nbyper, int *swapsize);
 char * gifti_datatype2str       (int type);
-char * gifti_get_meta_value     (nvpairs * nvp, char * name);
+char * gifti_get_meta_value     (const nvpairs * nvp, const char * name);
 int    gifti_get_this_endian    (void);
 int    gifti_image_has_data     (const gifti_image * gim);
 int    gifti_intent_from_string (const char * name);
@@ -235,18 +243,38 @@ int    gifti_set_DA_meta        (gifti_image *gim, const char *name,
                                  int len, int replace);
 int    gifti_set_dims_all_DA    (gifti_image * gim, int ndim, const int * dims);
 int    gifti_update_nbyper      (gifti_image * gim);
-int    gifti_valid_DataArray    (giiDataArray * da, int whine);
+int    gifti_valid_DataArray    (const giiDataArray * da, int whine);
 int    gifti_valid_datatype     (int dtype, int whine);
-int    gifti_valid_dims         (giiDataArray * da, int whine);
+int    gifti_valid_dims         (const giiDataArray * da, int whine);
 int    gifti_valid_int_list     (const int *list, int len, int min, int max,
                                  int whine);
-int    gifti_valid_LabelTable   (giiLabelTable * T, int whine);
+int    gifti_valid_LabelTable   (const giiLabelTable * T, int whine);
 int    gifti_valid_nbyper       (int nbyper, int whine);
 int    gifti_valid_num_dim      (int num_dim, int whine);
-int    gifti_valid_nvpairs      (nvpairs * nvp, int whine);
-int    gifti_validate_dims      (giiDataArray * da, int whine);
+int    gifti_valid_nvpairs      (const nvpairs * nvp, int whine);
 
+/* comparison functions */
+int gifti_compare_coordsys      (const giiCoordSystem * s1,
+                                 const giiCoordSystem * s2,int verb);
+int gifti_compare_DA_data       (const giiDataArray *d1, const giiDataArray *d2,
+                                 int verb);
+int gifti_compare_DA_pair       (const giiDataArray *d1, const giiDataArray *d2,
+                                 int comp_data, int verb);
+int gifti_compare_gifti_data    (const gifti_image * g1, const gifti_image * g2,
+                                 int verb);
+int gifti_compare_gifti_images  (const gifti_image * g1, const gifti_image * g2,
+                                 int comp_data, int verb);
+int gifti_compare_gims_only     (const gifti_image * g1, const gifti_image * g2,
+                                 int verb);
+int gifti_compare_labeltable    (const giiLabelTable*t1, const giiLabelTable*t2,
+                                 int verb);
+int gifti_compare_nvpairs       (const nvpairs *p1, const nvpairs *p2,int verb);
+int gifti_strdiff               (const char * s1, const char * s2);
 
+long long gifti_compare_raw_data(const void * p1, const void * p2,
+                                 long long length);
+
+/* display functions */
 void   gifti_disp_dtd_url        (void);
 void   gifti_disp_lib_hist       (void);
 void   gifti_disp_lib_version    (void);

@@ -27,9 +27,14 @@ static char * g_history[] =
   "     - reformatted help output\n"
   "0.3  16 Jan, 2008:\n",
   "     - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates\n"
+  "0.4  18 Mar, 2008: added comparison options\n",
+  "     -compare_gifti, -compare_data, compare_verb\n"
+  "0.5  24 Mar, 2008: -compare_data is now separate from -compare_gifti\n",
+  "0.6  28 Mar, 2008: added copy meta options:\n",
+  "     -copy_gifti_meta, -copy_DA_meta\n"
 };
 
-static char g_version[] = "gifti_tool version 0.3, 16 January 2008";
+static char g_version[] = "gifti_tool version 0.6, 28 March 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -60,8 +65,9 @@ int main( int argc, char * argv[] )
 
     /* choose top-level operation to perform */
     if     ( opts.gt_display ) rv = gt_display(&opts);
+    else if( opts.gt_compare ) rv = gt_compare(&opts);
+    else if( opts.gt_copy )    rv = gt_copy(&opts);
     else if( opts.gt_write )   rv = gt_write(&opts);
-    else if( opts.gt_compare ) rv = 1; /* gt_compare(&opts); to do */
     else                       rv = gt_test(&opts);
 
     free_gt_opts(&opts);
@@ -138,8 +144,40 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-buf_size");
             opts->buf_size = atoi(argv[ac]);
-        } else if( !strcmp(argv[ac], "-gifti_test") ) {
-            opts->gt_test = 1;
+        /* compare options */
+        } else if( !strcmp(argv[ac], "-compare_data") ) {
+            opts->comp_data = 1;
+            opts->gt_compare = 1;
+        } else if( !strcmp(argv[ac], "-compare_gifti") ) {
+            opts->comp_gifti = 1;
+            opts->gt_compare = 1;
+        } else if( !strcmp(argv[ac], "-compare_verb") ) {
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-compare_verb");
+            opts->comp_verb = atoi(argv[ac]);
+        /* copy options */
+        } else if( !strcmp(argv[ac], "-copy_gifti_meta") ) {
+            opts->copy_gim_meta = 1;
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-copy_gifti_meta");
+            if( add_to_str_list(&opts->gim_meta, argv[ac] ) ) return -1;
+        } else if( !strcmp(argv[ac], "-copy_DA_meta") ) {
+            opts->copy_DA_meta = 1;
+            ac++;
+            CHECK_NEXT_OPT(ac, argc, "-copy_DA_meta");
+            if( add_to_str_list(&opts->DA_meta, argv[ac] ) ) return -1;
+        } else if( !strcmp(argv[ac], "-DA_index_list") ) {
+            ac++;
+            for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
+               if( add_to_int_list(&opts->DAlist, atoi(argv[ac])) ) return -1;
+            if( G.verb > 1 )
+                fprintf(stderr,"+d have %d DA indices\n", c);
+            if( opts->DAlist.len == 0 ) {
+                fprintf(stderr,"** no DA indices with -DA_index_list'\n");
+                return -1;
+            }
+            /* and back up if we've looked too far */
+            if( ac < argc && argv[ac][0] == '-') ac--;
         } else if( !strcmp(argv[ac], "-encoding") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-encoding");
@@ -153,6 +191,8 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
                 fprintf(stderr,"** invalid parm to -encoding: %s\n",argv[ac]);
                 return -1;
             }
+        } else if( !strcmp(argv[ac], "-gifti_test") ) {
+            opts->gt_test = 1;
         } else if( !strcmp(argv[ac], "-indent") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-indent");
@@ -275,10 +315,10 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         } else if( !strcmp(argv[ac], "-read_DAs") ) {
             ac++;
             for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
-               if( add_to_int_list(&opts->DAlist, atoi(argv[ac])) ) return -1;
+               if( add_to_int_list(&opts->DAlistr, atoi(argv[ac])) ) return -1;
             if( G.verb > 1 )
                 fprintf(stderr,"+d have %d DA indices names\n", c);
-            if( opts->DAlist.len == 0 ) {
+            if( opts->DAlistr.len == 0 ) {
                 fprintf(stderr,"** no DA indices with -read_DAs'\n");
                 return -1;
             }
@@ -291,17 +331,14 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-write_1D");
             opts->ofile_1D = argv[ac];
-            opts->gt_write = 1;
         } else if( !strcmp(argv[ac], "-write_asc") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-write_asc");
             opts->ofile_asc = argv[ac];
-            opts->gt_write = 1;
         } else if( !strcmp(argv[ac], "-write_gifti") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-write_gifti");
             opts->ofile_gifti = argv[ac];
-            opts->gt_write = 1;
         } else if( !strcmp(argv[ac], "-zlevel") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-zlevel");
@@ -318,6 +355,13 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
                       opts->mod_DA_atr   || opts->mod_DA_meta  ||
                       opts->mod_to_float;
 
+    /* flag whether we have a copying operation */
+    opts->gt_copy = opts->copy_gim_meta || opts->copy_DA_meta;
+
+    /* flag whether we have a general write operation (only if not copying) */
+    if( !opts->gt_copy )
+        opts->gt_write = opts->ofile_1D || opts->ofile_asc || opts->ofile_gifti;
+
     if( G.verb > 3 ) disp_gt_opts("options read: ", opts, stderr);
 
     /* be sure we have something to read */
@@ -327,10 +371,15 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
     }
 
     /* only allow one major operation per program execution */
-    c = opts->gt_compare + opts->gt_display + opts->gt_write;
+    c = opts->gt_compare + opts->gt_copy + opts->gt_display + opts->gt_write;
     if( c == 0 ) opts->gt_test = 1;
     else if( c > 1 ) {
         fprintf(stderr,"** only 1 major operation allowed, have %d\n", c);
+        return 1;
+    }
+
+    if( opts->gt_copy && opts->gt_modify ) {
+        fprintf(stderr,"** cannot mix copy and modify options\n");
         return 1;
     }
 
@@ -350,10 +399,26 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
 static int free_gt_opts(gt_opts * opts)
 {
     if( opts->DAlist.len  > 0 && opts->DAlist.list  ) free(opts->DAlist.list);
+    if( opts->DAlistr.len > 0 && opts->DAlistr.list ) free(opts->DAlistr.list);
+    if( opts->DAmodlist.len>0&&opts->DAmodlist.list) free(opts->DAmodlist.list);
+
+    if( opts->gim_atrs.len>0 && opts->gim_atrs.list ) free(opts->gim_atrs.list);
+    if( opts->gim_meta.len>0 && opts->gim_meta.list ) free(opts->gim_meta.list);
+    if( opts->DA_atrs.len > 0 && opts->DA_atrs.list ) free(opts->DA_atrs.list);
+    if( opts->DA_meta.len > 0 && opts->DA_meta.list ) free(opts->DA_meta.list);
+
     if( opts->infiles.len > 0 && opts->infiles.list ) free(opts->infiles.list);
 
-    opts->DAlist.len = 0;   opts->DAlist.list = NULL;
-    opts->infiles.len = 0;  opts->infiles.list = NULL;
+    opts->DAlist.len = 0;    opts->DAlist.list = NULL;
+    opts->DAlistr.len = 0;   opts->DAlistr.list = NULL;
+    opts->DAmodlist.len = 0; opts->DAmodlist.list = NULL;
+
+    opts->gim_atrs.len = 0;  opts->gim_atrs.list = NULL;
+    opts->gim_meta.len = 0;  opts->gim_meta.list = NULL;
+    opts->DA_atrs.len = 0;   opts->DA_atrs.list = NULL;
+    opts->DA_meta.len = 0;   opts->DA_meta.list = NULL;
+
+    opts->infiles.len = 0;   opts->infiles.list = NULL;
 
     return 0;
 }
@@ -381,6 +446,121 @@ int gt_display(gt_opts * opts)
         }
         else gifti_free_image(gim);
     }
+
+    return rv;
+}
+
+/* compare gifti structures and/or included data */
+int gt_compare(gt_opts * opts)
+{
+    gifti_image * gimA;
+    gifti_image * gimB;
+    int           rv0 = 0, rv1 = 0;
+
+    if( opts->infiles.len != 2 ) {
+        fprintf(stderr,"** must have exactly 2 gifti_images files to test\n");
+        return 1;
+    }
+
+    gimA = gt_read_dataset(opts, opts->infiles.list[0]);
+    gimB = gt_read_dataset(opts, opts->infiles.list[1]);
+
+    if( !gimA || !gimB ) rv0 = -1;  /* if failure, make no comparison */
+    else {
+        if( opts->comp_gifti ) {
+            rv0 = gifti_compare_gifti_images(gimA, gimB, 0, opts->comp_verb);
+            if( !rv0 && opts->comp_verb > 0 )
+                printf("++ no differences between gifti_images\n");
+        }
+        if( opts->comp_data ) {
+            rv1 = gifti_compare_gifti_data(gimA, gimB, opts->comp_verb);
+            if( !rv1 && opts->comp_verb > 0 )
+                printf("++ no data differences between gifti_images\n");
+        }
+
+        rv0 |= rv1;
+    }
+
+    gifti_free_image(gimA);
+    gifti_free_image(gimB);
+
+    return rv0;
+}
+
+/* copy MetaData between GIFTI elements or some DataArray elements */
+int gt_copy(gt_opts * opts)
+{
+    gifti_image  * src;
+    gifti_image  * dest;
+    char        ** names;
+    int            c, rv = 0, cumrv = 0;
+
+    if( opts->infiles.len != 2 ) {
+        fprintf(stderr,"** copy operation requires exactly 2 gifti_images\n");
+        return 1;
+    }
+
+    if( !opts->ofile_gifti ) {
+        fprintf(stderr,"** missing output filename for copy operation\n");
+        return 1;
+    }
+
+    src = gt_read_dataset(opts, opts->infiles.list[0]);
+    dest = gt_read_dataset(opts, opts->infiles.list[1]);
+
+    /* if we fail to read or the metadata is not valid, bail */
+    if( !src || !dest || !gifti_valid_nvpairs(&src->meta, 1)
+                      || !gifti_valid_nvpairs(&dest->meta, 1) )
+    {
+        gifti_free_image(src);
+        gifti_free_image(dest);
+        return -1;
+    }
+
+    /* first go for GIFTI meta */
+    if(opts->copy_gim_meta) {
+        /* if ALL, copy everything, else get what's in the list */
+        if(opts->gim_meta.len==1 && !strcmp(opts->gim_meta.list[0],"ALL"))
+        {
+            names = src->meta.name;
+            for( c = 0; c < src->meta.length; c++ ) {
+                rv = gifti_copy_gifti_meta(dest, src, names[c]);
+                cumrv |= rv;
+            }
+        } else {
+            names = opts->gim_meta.list;
+            for( c = 0; c < opts->gim_meta.len; c++ )
+                rv |= gifti_copy_gifti_meta(dest,src,names[c]);
+        }
+    }
+
+    if(opts->copy_DA_meta) {
+        /* if ALL, copy everything, else get what's in the list */
+        if(opts->DA_meta.len==1 && !strcmp(opts->DA_meta.list[0],"ALL")) {
+            if(src->numDA != dest->numDA || src->numDA <= 0) {
+                fprintf(stderr,"** bad numDA for DA MD copy, %d, %d\n",
+                        src->numDA, dest->numDA);
+                rv = 1;
+            } else if(!src->darray || !dest->darray) {
+                fprintf(stderr,"** invalid darray pointers for copy\n");
+                rv = 1;
+            } else {  /* all seems well, copy all meta from src to dest */
+                for( c = 0; c < src->numDA; c++ )
+                    rv |= gifti_copy_all_DA_meta(dest->darray[c],
+                                                 src->darray[c]);
+            }
+        } else {
+            names = opts->DA_meta.list;
+            for( c = 0; c < opts->DA_meta.len; c++ )
+                rv |= gifti_copy_DA_meta_many(dest, src, names[c],
+                                          opts->DAlist.list, opts->DAlist.len);
+        }
+    }
+
+    gt_write_dataset(opts, dest);
+
+    gifti_free_image(src);
+    gifti_free_image(dest);
 
     return rv;
 }
@@ -420,7 +600,7 @@ int gt_test(gt_opts * opts)
 int gt_write(gt_opts * opts)
 {
     gifti_image * gim;
-    int           c;
+    int           rv;
 
     if( opts->infiles.len > 1 ) {
         fprintf(stderr,"** when writing, only one input dataset is allowed\n");
@@ -430,6 +610,30 @@ int gt_write(gt_opts * opts)
     /* actually read the dataset */
     gim = gt_read_dataset(opts, opts->infiles.list[0]);
     if( !gim ){ fprintf(stderr,"** failed gifti_read_da_list()\n"); return 1; }
+
+    rv = gt_write_dataset(opts, gim);
+
+    /* clean up */
+    gifti_free_image(gim);  gim = NULL;
+
+    return rv;
+}
+
+/* apply encoding, and allow other formats */
+int gt_write_dataset(gt_opts * opts, gifti_image * gim)
+{
+    int c; 
+
+    if( !gim ) {
+        if( opts->verb ) fprintf(stderr,"** trying to write NULL dataset\n");
+        return 1;
+    }
+
+    if( opts->verb > 1 )
+        fprintf(stderr,"++ gt_write_dataset: gim %s, 1D %s, asc %s\n",
+                G_CHECK_NULL_STR(opts->ofile_gifti),
+                G_CHECK_NULL_STR(opts->ofile_1D),
+                G_CHECK_NULL_STR(opts->ofile_asc));
 
     /* possibly adjust encoding */
     if( opts->encoding > GIFTI_ENCODING_UNDEF &&
@@ -441,9 +645,6 @@ int gt_write(gt_opts * opts)
     if(opts->ofile_gifti) gifti_write_image(gim,opts->ofile_gifti,opts->dstore);
     if(opts->ofile_1D)  write_1D_file(gim->darray,gim->numDA,opts->ofile_1D,1); 
     if(opts->ofile_asc) write_as_asc(gim, opts->ofile_asc);
-
-    /* clean up */
-    gifti_free_image(gim);  gim = NULL;
 
     return 0;
 }
@@ -530,7 +731,7 @@ gifti_image * gt_read_dataset(gt_opts * opts, char * fname)
         gim = gifti_read_da_list(infile, opts->dstore, dalist+1, dalist[0]);
     else
         gim = gifti_read_da_list(infile, opts->dstore,
-                                 opts->DAlist.list, opts->DAlist.len);
+                                 opts->DAlistr.list, opts->DAlistr.len);
 
     /* possibly make modifications */
     if( opts->gt_modify ) gt_modify_dset(opts, gim);
@@ -573,6 +774,8 @@ static int init_opts(gt_opts * opts)
     opts->new_ndim = 0;
     /* opts->new_dims left with zeros */
     opts->new_data = 0;
+
+    opts->comp_verb = 1;
 
     opts->verb = 1;
     opts->indent = -1;
@@ -619,6 +822,9 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         "    mod_DA_meta   : %d\n"
         "    mod_to_float  : %d\n"
         "\n"
+        "    comp_data     : %d\n"
+        "    comp_verb     : %d\n"
+        "\n"
         "    verb          : %d\n"
         "    indent        : %d\n"
         "    buf_size      : %d\n"
@@ -635,6 +841,7 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
         opts->new_data, opts->mod_add_data, opts->mod_gim_atr,
         opts->mod_gim_meta, opts->mod_DA_atr, opts->mod_DA_meta,
         opts->mod_to_float,
+        opts->comp_data, opts->comp_verb,
         opts->verb, opts->indent, opts->buf_size, opts->b64_check,
         opts->update_ok, opts->zlevel,
         opts->dstore, opts->encoding, opts->show_gifti,
@@ -649,6 +856,14 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
     else
         gifti_disp_raw_data(opts->DAlist.list, NIFTI_TYPE_INT32,
                             opts->DAlist.len, 1, fp);
+
+    /* DataArray index list */
+    fprintf(fp, "    DAlistr[%d]    : ", opts->DAlistr.len);
+    if( opts->DAlistr.len <= 0 || !opts->DAlistr.list )
+        fprintf(fp, "<empty>\n");
+    else
+        gifti_disp_raw_data(opts->DAlistr.list, NIFTI_TYPE_INT32,
+                            opts->DAlistr.len, 1, fp);
 
     /* DataArray modification list */
     fprintf(fp, "    DAmodlist[%d]  : ", opts->DAmodlist.len);
@@ -710,45 +925,102 @@ static int show_help()
     "\n"
     "  general examples:\n"
     "\n"
-    "    1. read in a GIFTI dataset (verbose?  show output?)\n"
+    "    1. read in a GIFTI dataset (set verbose level?  show GIFTI dataset?)\n"
     "\n"
-    "        gifti_tool -infile dset.gii\n"
-    "        gifti_tool -infile dset.gii -verb 3\n"
-    "        gifti_tool -infile dset.gii -show_gifti\n"
+    "         gifti_tool -infile dset.gii\n"
+    "         gifti_tool -infile dset.gii -verb 3\n"
+    "         gifti_tool -infile dset.gii -show_gifti\n"
     "\n"
-    "    2. copy a GIFTI dataset (check differences?)\n"
+    "    2. copy a GIFTI dataset\n"
     "\n"
-    "        gifti_tool -infile dset.gii -write_gifti copy.gii\n"
-    "        diff dset.gii copy.gii\n"
+    "      a. create a simple copy, and check for differences\n"
     "\n"
-    "    3. copy a GIFTI data, but write out only 3 surf indices: 4, 0, 5\n"
+    "         gifti_tool -infile dset.gii -write_gifti copy.gii\n"
+    "         diff dset.gii copy.gii\n"
     "\n"
-    "        gifti_tool -infile time_series.gii -write_gifti ts3.gii  \\\n"
-    "                   -read_DAs 4 0 5\n"
-    "              OR\n"
+    "      b. copy only 3 DataArray indices: 4, 0, 5\n"
     "\n"
-    "        gifti_tool -infile time_series.gii'[4,0,5]' -write_gifti ts3.gii\n"
+    "         gifti_tool -infile time_series.gii -write_gifti ts3.gii  \\\n"
+    "                    -read_DAs 4 0 5\n"
+    "               OR\n"
     "\n"
-    "    4. create .asc FreeSurfer-style surface dataset (pial.asc)\n"
+    "         gifti_tool -infile time_series.gii'[4,0,5]'  \\\n"
+    "                    -write_gifti ts3.gii\n"
     "\n"
-    "        gifti_tool -infile pial.gii -write_asc pial.asc\n"
+    "    3. write datasets in other formats\n"
     "\n"
-    "    5. create .1D time series surface dataset (ts.1D)\n"
+    "      a. FreeSurfer-style .asc surface dataset\n"
     "\n"
-    "        gifti_tool -infile time_series.gii -write_1D ts.1D\n"
+    "         gifti_tool -infile pial.gii -write_asc pial.asc\n"
     "\n"
-    "    6. create a new gifti dataset from nothing\n"
+    "      b. .1D time series surface dataset\n"
     "\n"
-    "        gifti_tool -new_dset -write_gifti new.gii           \\\n"
-    "                   -new_numDA 3 -new_dtype NIFTI_TYPE_INT16 \\\n"
-    "                   -new_intent NIFTI_INTENT_TTEST           \\\n"
-    "                   -new_ndim 2 -new_dims 5 2 0 0 0 0\n"
+    "         gifti_tool -infile time_series.gii -write_1D ts.1D\n"
+    "\n"
+    "    4. create a new gifti dataset from nothing, where:\n"
+    "\n"
+    "       - the dataset has 3 DataArray elements\n"
+    "       - the data will be of type 'short' (NIFTI_TYPE_INT16)\n"
+    "       - the intent codes will reflect a t-test\n"
+    "       - the data will be 2-dimensional (per DataArray), 5 by 2 shorts\n"
+    "       - memory will be allocated for the data (a modification option)\n"
+    "       - the result will be written to created.gii\n"
+    "\n"
+    "         gifti_tool -new_dset                                \\\n"
+    "                    -new_numDA 3 -new_dtype NIFTI_TYPE_INT16 \\\n"
+    "                    -new_intent NIFTI_INTENT_TTEST           \\\n"
+    "                    -new_ndim 2 -new_dims 5 2 0 0 0 0        \\\n"
+    "                    -mod_add_data -write_gifti created.gii\n"
+    "\n"
+    "    5. modify a gifti dataset\n"
+    "\n"
+    "      a. apply various modifications at the GIFTI level and to all DAs\n"
+    "\n"
+    "         - set the Version attribute at the GIFTI level\n"
+    "         - set 'Date' as GIFTI MetaData, with value of today's date\n"
+    "         - set 'Description' as GIFTI MetaData, with some value\n"
+    "         - set all DA Intent attributes to be an F-test\n"
+    "         - set 'Name' as an attribute of all DAs, with some value\n"
+    "         - read created.gii, and write to first_mod.gii\n"
+    "\n"
+    "         gifti_tool -mod_gim_atr Version 1.0                       \\\n"
+    "                    -mod_gim_meta Date \"`date`\"                    \\\n"
+    "                    -mod_gim_meta Description 'modified surface'   \\\n"
+    "                    -mod_DA_atr Intent NIFTI_INTENT_FTEST          \\\n"
+    "                    -mod_DA_meta Name 'same name for all DAs'      \\\n"
+    "                    -infile created.gii -write_gifti first_mod.gii\n"
+    "\n"
+    "      b. modify the 'Name' attribute is DA index #42 only\n"
+    "\n"
+    "         gifti_tool -mod_DA_meta Name 'data from pickle #42'       \\\n"
+    "                    -mod_DAs 42                                    \\\n"
+    "                    -infile stats.gii -write_gifti mod_stats.gii\n"
+    "\n"
+    "    6. compare 2 gifti datasets\n"
+    "       (compare GIFTI structures, compare data, and report all diffs)\n"
+    "\n"
+    "         gifti_tool -compare_gifti -compare_data -compare_verb 3 \\\n"
+    "                    -infiles created.gii first_mod.gii\n"
+    "\n"
+    "    7. copy MetaData from one dataset to another\n"
+    "       (any old Value will be replaced if the Name already exists)\n"
+    "\n"
+    "         - copy every (ALL) MetaData element at the GIFTI level\n"
+    "         - copy MetaData named 'Label' per DataArray element\n"
+    "         - only apply DataArray copies to indices 0, 3 and 6\n"
+    "         - first input file is the source, second is the destination\n"
+    "         - write the modified 'destination.gii' dataset to meta_copy.gii\n"
+    "\n"
+    "         gifti_tool -copy_gifti_meta ALL                   \\\n"
+    "                    -copy_DA_meta Label                    \\\n"
+    "                    -DA_index_list 0 3 6                   \\\n"
+    "                    -infiles source.gii destination.gii    \\\n"
+    "                    -write_gifti meta_copy.gii\n"
     "\n"
     "----------------------------------------------------------------------\n"
     );
     printf (
     "\n"
-    "  (comparison function are still on the TODO list)\n"
     "  (all warranties are void in Montana, and after 4 pm)\n"
     "\n"
     "----------------------------------------------------------------------\n"
@@ -788,6 +1060,37 @@ static int show_help()
     "\n"
     "           e.g. -buf_size 1024\n"
     "\n"
+    "     -DA_index_list I0 I1 ... : specify a list of DataArray indices\n"
+    "\n"
+    "           e.g. -DA_index_list 0\n"
+    "           e.g. -DA_index_list 0 17 19\n"
+    "\n"
+    "           This option is used to specify a list of DataArray indices\n"
+    "           for use via some other option (such as -copy_DA_meta).\n"
+    "\n"
+    "           Each DataArray element corresponding to one of the given\n"
+    "           indices will have the appropriate action applied, such as\n"
+    "           copying a given MetaData element from the source dataset\n"
+    "           to the destination dataset.\n"
+    "\n"
+    "           Note that this differs from -read_DAs, which specifies which\n"
+    "           DataArray elements to even read in.  Both options could be\n"
+    "           used in the same command, such as if one wanted to copy the\n"
+    "           'Name' MetaData from index 17 of a source dataset into the\n"
+    "           MetaData of the first DataArray in a dataset with only two\n"
+    "           DataArray elements.\n"
+    "\n"
+    "           e.g. gifti_tool -infiles source.gii dest.gii        \\\n"
+    "                           -write_gifti new_dest.gii           \\\n"
+    "                           -copy_DA_meta Name                  \\\n"
+    "                           -read_DAs 17 17                     \\\n"
+    "                           -DA_index_list 0\n"
+    "\n"
+    "           Note that DA_index_list applies to the indices _after_ the\n"
+    "           datasets are read in.\n"
+    "\n"
+    );
+    printf (
     "     -gifti_test       : test whether each gifti dataset is valid\n"
     "\n"
     "           This performs a consistency check on each input GIFTI\n"
@@ -977,6 +1280,7 @@ static int show_help()
     );
     printf (
     "  ----------------------------------------\n"
+    "\n"
     "  creation (new dataset) options\n"
     "\n"
     "     -new_dset         : create a new GIFTI dataset\n"
@@ -990,6 +1294,70 @@ static int show_help()
     "     -new_dims D0...D5 : set dims[] to these 6 values\n"
     "                         e.g. -new_ndim 2 -new_dims 7 2 0 0 0 0\n"
     "     -new_data         : allocate space for data in created dataset\n"
+    "\n"
+    );
+    printf (
+    "  ----------------------------------------\n"
+    "  comparison options\n"
+    "\n"
+    "     -compare_gifti           : specifies to compare two GIFTI datasets\n"
+    "\n"
+    "           This compares all elements of the two GIFTI structures.\n"
+    "           The attributes, LabelTabels, MetaData are compared, and then\n"
+    "           each of the included DataArray elements.  All sub-structures\n"
+    "           of the DataArrays are compared, except for the actual 'data',\n"
+    "           which requires the '-compare_data' flag.\n"
+    "\n"
+    "           There must be exactly 2 input datasets to use this option.\n"
+    "           See example #7 for sample usage.\n"
+    "\n"
+    "     -compare_data            : flag to request comparison of the data\n"
+    "\n"
+    "           Data comparison is done per DataArray element.\n"
+    "\n"
+    "           Comparing data is a separate operation from comparing GIFTI.\n"
+    "           Neither implies the other.\n"
+    "\n"
+    "     -compare_verb LEVEL      : set the verbose level of comparisons\n"
+    "\n"
+    "           Data comparison is done per DataArray element.  Setting the\n"
+    "           verb level will have the following effect:\n"
+    "\n"
+    "           0 : quiet, only return whether there was a difference\n"
+    "           1 : show whether there was a difference\n"
+    "           2 : show whether there was a difference per DataArray\n"
+    "           3 : show all differences\n"
+    "\n"
+    );
+    printf (
+    "  ----------------------------------------\n"
+    "\n"
+    "  MetaData copy options\n"
+    "\n"
+    "     -copy_gifti_meta MD_NAME      : copy MetaData with name MD_NAME\n"
+    "\n"
+    "           e.g. -copy_gifti_meta AFNI_History\n"
+    "\n"
+    "           Copy the MetaData with the given name from the first input\n"
+    "           dataset to the second (last).  This applies to MetaData at\n"
+    "           the GIFTI level (not in the DataArray elements).\n"
+    "\n"
+    "     -copy_DA_meta MD_NAME         : copy MetaData with name MD_NAME\n"
+    "\n"
+    "           e.g. -copy_DA_meta intent_p1\n"
+    "\n"
+    "           Copy the MetaData with the given name from the first input\n"
+    "           dataset to the second (last).  This applies to MetaData at\n"
+    "           DataArray level.\n"
+    "\n"
+    "           This will apply to all DataArray elements, unless the\n"
+    "           -DA_index_list option is used to specify a zero-based\n"
+    "           index list.\n"
+    "\n"
+    "           see also -DA_index_list\n"
+    "\n"
+    );
+    printf (
     "------------------------------------------------------------\n"
     );
     return 0;

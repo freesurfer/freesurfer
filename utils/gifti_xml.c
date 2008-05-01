@@ -2719,7 +2719,7 @@ static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
 
         sprintf(attr, " Index=\"%d\"", lt->index[c]);
         ewrite_text_ele(GXML_ETYPE_LABEL, lt->label[c], attr,
-                        spaces+xd->indent, 0, fp);
+                        spaces+xd->indent, 1, fp);
     }
     fprintf(fp, "%*s</LabelTable>\n", spaces, "");
 

@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/08 00:16:37 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/05/01 20:04:02 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -332,8 +332,7 @@ static void gifti_set_DA_value_2D (giiDataArray* da,
   Returns value: freesurfer surface structure
 
   Description:   reads a GIFTI file, putting vertices, 
-                 faces, and face normals into an 
-                 MRIS_SURFACE structure.
+                 and faces into an MRIS_SURFACE structure.
   ------------------------------------------------------*/
 MRI_SURFACE * mrisReadGIFTIfile(char *fname)
 {
@@ -370,9 +369,6 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
     return NULL;
   }
 
-  /* Get normals if we can. */
-  giiDataArray* normals = gifti_find_DA (image, NIFTI_INTENT_NORMAL, 0);
-
   /* Check the number of vertices and faces. */
   long long num_vertices = 0;
   long long num_cols = 0;
@@ -395,22 +391,6 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
              fname, (int)num_faces, (int)num_cols);
     gifti_free_image (image);
     return NULL;
-  }
-
-  /* If we got normals, check they match the number of verts. If they
-     don't match, just don't use them.*/
-  if (NULL != normals)
-  {
-    long long num_normals = 0;
-    num_cols = 0;
-    gifti_DA_rows_cols (normals, &num_normals, &num_cols);
-    if (num_normals != num_vertices || num_cols != 3)
-    {
-      fprintf (stderr,"mrisReadGIFTIfile: malformed normals data array in "
-               "file %s: num_normals=%d (num_vertices=%d) num_cols=%d\n",
-               fname, (int)num_normals, (int)num_vertices, (int)num_cols);
-      normals = NULL;
-    }
   }
 
   /* Try to allocate a surface. */
@@ -458,20 +438,6 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
     if (y<ylo) ylo=y;
     if (z>zhi) zhi=z;
     if (z<zlo) zlo=z;
-
-    /* Do not use the normals found in the gifti file!
-     * To ensure consistency, compute them ourselves (and do 
-     * this after faces copied...
-     if (NULL != normals)
-     {
-     mris->vertices[vertex_index].nx =
-     (float) gifti_get_DA_value_2D (normals, vertex_index, 0);
-     mris->vertices[vertex_index].ny =
-     (float) gifti_get_DA_value_2D (normals, vertex_index, 1);
-     mris->vertices[vertex_index].nz =
-     (float) gifti_get_DA_value_2D (normals, vertex_index, 2);
-     }
-    */
   }
   mris->xlo = xlo ;
   mris->ylo = ylo ;
@@ -700,8 +666,7 @@ static void insertMetaData(MRIS* mris, giiDataArray* dataArray)
   Returns value: 0 if passed, else error code
 
   Description:   writes a GIFTI file, putting vertices, 
-                 faces, and face normals from input 
-                 MRIS_SURFACE structure.
+                 and faces from input MRIS_SURFACE structure.
   ------------------------------------------------------*/
 int MRISwriteGIFTI(MRIS* mris, char *fname)
 {
@@ -839,59 +804,6 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
                            mris->faces[face_index].v[1]);
     gifti_set_DA_value_2D (faces, face_index, 2,
                            mris->faces[face_index].v[2]);
-  }
-
-  /* -------------------------------------------------------
-   * Normals array. 
-   */
-  giiDataArray* normals = gifti_alloc_and_add_darray (image);
-  if (NULL == normals)
-  {
-    fprintf (stderr,"MRISwriteGIFTI: couldn't allocate giiDataArray\n");
-    gifti_free_image (image);
-    return ERROR_NOMEMORY;
-  }
-
-  /* Set its attributes. */
-  normals->intent = NIFTI_INTENT_NORMAL;
-  normals->datatype = NIFTI_TYPE_FLOAT32;
-  normals->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
-  normals->num_dim = 2;
-  normals->dims[0] = mris->nvertices; /* In highest first, dim0 = rows */
-  normals->dims[1] = 3;               /* In highest first, dim1 = cols */
-  normals->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
-#if (BYTE_ORDER == LITTLE_ENDIAN)
-  normals->endian = GIFTI_ENDIAN_LITTLE;
-#else
-  normals->endian = GIFTI_ENDIAN_BIG;
-#endif
-  normals->coordsys = NULL;
-  normals->nvals = gifti_darray_nvals (normals);
-  gifti_datatype_sizes (normals->datatype, &normals->nbyper, NULL);
-
-  /* Allocate the data array. */
-  normals->data = NULL;
-  normals->data = (void*) calloc (normals->nvals, normals->nbyper);
-  if (NULL == normals->data)
-  {
-    fprintf (stderr,"MRISwriteGIFTI: couldn't allocate normals data of "
-             "length %d, element size %d\n",
-             (int)normals->nvals,normals->nbyper);
-    gifti_free_image (image);
-    return ERROR_NOMEMORY;
-  }
-
-  /* Copy in all our data. */
-  int normal_index;
-  for (normal_index = 0; normal_index < mris->nvertices; normal_index++)
-  {
-    if (mris->vertices[normal_index].ripflag) continue;
-    gifti_set_DA_value_2D (normals, normal_index, 0,
-                           mris->vertices[normal_index].nx);
-    gifti_set_DA_value_2D (normals, normal_index, 1,
-                           mris->vertices[normal_index].ny);
-    gifti_set_DA_value_2D (normals, normal_index, 2,
-                           mris->vertices[normal_index].nz);
   }
 
   /* check for compliance */
