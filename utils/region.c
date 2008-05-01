@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:36 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/05/01 17:58:17 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -244,7 +244,7 @@ float
 REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2)
 {
   float       min_dist = 10000.0f, dist, dx, dy, dz ;
-  int         i, j, x0, y0, z0, x1, y1, z1 ;
+  int         i, j, x0=0, y0=0, z0=0, x1=0, y1=0, z1=0 ;
   MRI_REGION  r3 ;
 
   REGIONintersect(r1, r2, &r3) ;

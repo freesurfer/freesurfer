@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/04/19 00:53:13 $
-#    $Revision: 1.403 $
+#    $Date: 2008/05/01 17:58:15 $
+#    $Revision: 1.404 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -320,7 +320,8 @@ NUPRAG="-Wno-unknown-pragmas"
 #  strict-aliasing rules"
 # the -fno-strict-aliasing flag disables optimizations that would 
 # otherwise require the code to comply with the strict aliasing rules
-NSALIASING="-fno-strict-aliasing"
+NSALIASING=
+#"-fno-strict-aliasing"
 
 # Freesurfer should compile with -Wall (which enables all warnings)
 # and -Werror (which escalates warnings to errors, thus stopping the 
@@ -1688,7 +1689,7 @@ AC_ARG_WITH(kwwidgets-dir,
      KWWIDGETS_DIR=$ac_kwwidgets_dir
   ])
 
-if test "x$ac_kwwidgets_dir" = "x"; then
+if test "x$KWWIDGETS_DIR" = "x"; then
   # if a KWWidgets root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
   if test -d "/usr/pubsw/packages/KWWidgets/current" ; then

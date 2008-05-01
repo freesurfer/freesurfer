@@ -14,8 +14,7 @@ AM_CPPFLAGS=\
 	$(TCL_CFLAGS) $(TIFFCFLAGS) \
 	$(tcl_includes) $(GL_CFLAGS) \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/glut \
-	-fno-strict-aliasing
+	-I$(top_srcdir)/glut
 AM_LDFLAGS=$(LDFLAGS_TCL) $(TIFF_LIBS)
 
 if ENABLE_TCLTK_APPS

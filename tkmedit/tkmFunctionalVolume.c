@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/03/14 18:16:24 $
- *    $Revision: 1.60 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/01 17:58:16 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2284,8 +2284,9 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
   while ( xList_tErr_NoErr == eList ) {
 
     /* try to get a voxel */
+    void* pvoid = (void*) &pVoxel;
     eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                           (void**)&pVoxel );
+                                           (void**)pvoid );
 
     /* if we got one */
     if ( NULL != pVoxel ) {
@@ -2321,7 +2322,8 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
        NULL != oFuncRAS ) {
 
     /* get the first voxel in the selection */
-    eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+    void* pvoid = (void*) &pVoxel;
+    eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)pvoid );
     if ( NULL != pVoxel ) {
 
       /* convert to functional index */
@@ -2529,8 +2531,9 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
   while ( xList_tErr_NoErr == eList ) {
 
     /* try to get a voxel */
+    void* pvoid = (void*) &pVoxel;
     eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                           (void**)&pVoxel );
+                                           (void**)pvoid );
 
     /* if we got one */
     if ( NULL != pVoxel ) {
@@ -2624,7 +2627,8 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
     if ( 0 == nNumValues ) {
       /* Keep last update */
     } else if ( 1 == nNumValues ) {
-      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+      void* pvoid = (void*) &pVoxel;
+      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)pvoid );
       if ( NULL != pVoxel ) {
         FunD_ConvertClientToFuncRAS_( this->mpTimeCourseVolume,
                                       pVoxel, &funcRAS );
@@ -2681,7 +2685,8 @@ FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this )
     return(eResult);
   }
 
-  xList_GetNextItemFromPosition( this->mpSelectedVoxels, (void**)&pVoxel );
+  void* pvoid = (void*) &pVoxel;
+  xList_GetNextItemFromPosition( this->mpSelectedVoxels, (void**)pvoid );
   printf("%f %f %f\n",pVoxel->mfX,pVoxel->mfY,pVoxel->mfZ);
 
   /* send the command for starting to draw the graph */
@@ -2981,8 +2986,9 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
   while ( xList_tErr_NoErr == eList ) {
 
     /* try to get a voxel */
+    void* pvoid = (void*) &pVoxel;
     eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                           (void**)&pVoxel );
+                                           (void**)pvoid );
 
     /* if we got one */
     if ( NULL != pVoxel ) {
@@ -3093,8 +3099,9 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
     while ( xList_tErr_NoErr == eList ) {
 
       /* try to get a voxel */
+      void* pvoid = (void*) &pVoxel;
       eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                             (void**)&pVoxel );
+                                             (void**)pvoid );
 
       /* if we got one */
       if ( NULL != pVoxel ) {
@@ -4450,7 +4457,8 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
        name accordingly. */
     xList_GetCount( this->mpSelectedVoxels, &nValue );
     if ( nValue <= 1 ) {
-      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+      void* pvoid = (void*) &pVoxel;
+      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)pvoid );
       if ( NULL != pVoxel ) {
         FunD_ConvertClientToFuncRAS_( this->mpTimeCourseVolume,
                                       pVoxel, &funcIdx );
@@ -4634,7 +4642,8 @@ FunV_tErr FunV_OverlayChanged_ ( tkmFunctionalVolumeRef this ) {
   char                   sTclArguments[256] = "";
 
   /* try to get the first selected voxel */
-  eList = xList_GetFirstItem ( this->mpSelectedVoxels, (void**)&pVoxel );
+  void* pvoid = (void*) &pVoxel;
+  eList = xList_GetFirstItem ( this->mpSelectedVoxels, (void**)pvoid );
   if ( xList_tErr_NoErr == eList ) {
 
     /* try to get a value for it */

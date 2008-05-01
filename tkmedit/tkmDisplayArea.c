@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/18 18:27:03 $
- *    $Revision: 1.141 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/01 17:58:16 $
+ *    $Revision: 1.142 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -5832,7 +5832,8 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
 
     /* traverse the list */
     eList = xList_ResetPosition( list );
-    while ( (eList = xList_NextFromPos( list, (void**)&MRIIdx ))
+    void* pvoid = (void*) &MRIIdx;
+    while ( (eList = xList_NextFromPos( list, (void**)pvoid ))
             != xList_tErr_EndOfList ) {
 
       if ( MRIIdx ) {

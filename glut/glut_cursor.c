@@ -76,9 +76,10 @@ getFullCrosshairCursor(void)
     if (crosshairAtom != None)
     {
       value = 0;        /* Make compiler happy. */
+      void* pvoid = (void*)&value;
       rc = XGetWindowProperty(__glutDisplay, __glutRoot,
                               crosshairAtom, 0, 1, False, XA_CURSOR, &actualType,
-                              &actualFormat, &n, &left, (unsigned char **) &value);
+                              &actualFormat, &n, &left, (unsigned char **) pvoid);
       if (rc == Success && actualFormat == 32 && n >= 1)
       {
         cursor = value[0];

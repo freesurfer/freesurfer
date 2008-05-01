@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/04/16 17:22:33 $
- *    $Revision: 1.328 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/01 17:58:16 $
+ *    $Revision: 1.329 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.328 $";
+char *VERSION = "$Revision: 1.329 $";
 
 #define TCL
 #define TKMEDIT
@@ -1186,7 +1186,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.328 2008/04/16 17:22:33 greve Exp $",
+     "$Id: tkmedit.c,v 1.329 2008/05/01 17:58:16 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5832,7 +5832,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.328 2008/04/16 17:22:33 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.329 2008/05/01 17:58:16 nicks Exp $ $Name:  $\n"
         )
       );
 
@@ -7159,7 +7159,8 @@ void WriteControlPointFile () {
 
     /* Traverse the list */
     eList = xList_ResetPosition( list );
-    while ( (eList = xList_NextFromPos( list, (void**)&MRIIdx ))
+    void* pvoid = (void*) &MRIIdx;
+    while ( (eList = xList_NextFromPos( list, (void**)pvoid ))
             != xList_tErr_EndOfList ) {
 
       if ( MRIIdx ) {
@@ -7270,7 +7271,8 @@ float FindNearestMRIIdxControlPoint ( xVoxelRef        iMRIIdx,
 
     /* Traverse the list */
     eList = xList_ResetPosition( list );
-    while ( (eList = xList_NextFromPos( list, (void**)&MRIIdx ))
+    void* pvoid = (void*) &MRIIdx;
+    while ( (eList = xList_NextFromPos( list, (void**)pvoid ))
             != xList_tErr_EndOfList ) {
 
       if ( MRIIdx ) {
@@ -7378,7 +7380,8 @@ void DeleteMRIIdxControlPoint ( xVoxelRef iMRIIdx ) {
   MRIIdx = iMRIIdx;
 
   /* Find this voxel in the list and delete it. */
-  e3DList = x3Lst_RemoveItem( gControlPointList, MRIIdx, (void**)&MRIIdx );
+  void* pvoid = (void*) &MRIIdx;
+  e3DList = x3Lst_RemoveItem( gControlPointList, MRIIdx, (void**)pvoid );
   DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
 
   /* delete it */
@@ -7521,12 +7524,14 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
 
       /* Find and remove it from the list. */
       eList = xList_ResetPosition( gSelectionList );
+      void* pvoid = (void*) &delVoxel;
       while ( xList_tErr_NoErr ==
               (eList = xList_NextFromPos( gSelectionList, 
-                                          (void**)&delVoxel ))) {
+                                          (void**)pvoid ))) {
         if ( NULL != delVoxel ) {
           if ( xVoxl_IsEqualFloat( delVoxel, &iaMRIIdx[nVoxel] ) ) {
-            xList_RemoveItem( gSelectionList, (void**)&delVoxel );
+            void* pvoidVoxel = (void*) &delVoxel;
+            xList_RemoveItem( gSelectionList, (void**)pvoidVoxel );
             xVoxl_Delete( &delVoxel );
 
             /* Dec our selection count. */
@@ -7554,8 +7559,9 @@ void ClearSelection () {
 
   /* Clear the list */
   DebugNote( ("Clearing selection list") );
+  void* pvoid = (void*) &delVoxel;
   while ( xList_tErr_NoErr ==
-          (eList = xList_PopItem( gSelectionList, (void**)&delVoxel ))) {
+          (eList = xList_PopItem( gSelectionList, (void**)pvoid ))) {
     if ( NULL != delVoxel ) {
       xVoxl_Delete( &delVoxel );
     }
@@ -7607,8 +7613,9 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
 
   /* Go through the selection list. */
   eList = xList_ResetPosition( gSelectionList );
+  void* pvoid = (void*) &MRIIdx;
   while ( xList_tErr_NoErr ==
-          (eList = xList_NextFromPos( gSelectionList, (void**)&MRIIdx ))) {
+          (eList = xList_NextFromPos( gSelectionList, (void**)pvoid ))) {
 
     if ( NULL != MRIIdx ) {
 

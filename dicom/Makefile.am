@@ -3,7 +3,7 @@
 #
 
 AM_CPPFLAGS=-I$(top_srcdir)/include \
-	-I$(top_srcdir)/include/dicom -fno-strict-aliasing
+	-I$(top_srcdir)/include/dicom
 
 AM_LDFLAGS=
 

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/04/01 17:19:50 $
- *    $Revision: 1.124 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/01 17:58:17 $
+ *    $Revision: 1.125 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1789,11 +1789,17 @@ TransformFree(TRANSFORM **ptrans)
   switch (trans->type)
   {
   default:
-    errCode = LTAfree((LTA **)(&trans->xform)) ;
+  {
+    void* pvoid = (void*)&trans->xform;
+    errCode = LTAfree((LTA **)pvoid) ;
     break ;
+  }
   case MORPH_3D_TYPE:
-    errCode = GCAMfree((GCA_MORPH **)(&trans->xform)) ;
+  {
+    void *pvoid = (void*)&trans->xform;
+    errCode = GCAMfree((GCA_MORPH **)pvoid) ;
     break ;
+  }
   }
   free(trans) ;
 

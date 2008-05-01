@@ -243,7 +243,7 @@ extern "C" {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.16 2008/01/18 21:23:25 nicks Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.17 2008/05/01 17:58:15 nicks Exp $
  * 
  * swigtcl8.swg
  */
@@ -952,7 +952,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"o:gdfPrintStdout gd ",0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfPrintStdout(arg1);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -969,7 +970,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oo:gdfGetTitle gd OUTSTRING ",0,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg2 = (char*)calloc(2048,sizeof(char));
     }
@@ -1000,7 +1002,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oo:gdfGetMeasurementName gd OUTSTRING ",0,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg2 = (char*)calloc(2048,sizeof(char));
     }
@@ -1031,7 +1034,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"os:gdfGetSubjectName gd OUSTRING ",0,&arg2) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetSubjectName(arg1,arg2);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1048,7 +1052,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oo:gdfGetDataFileName gd OUTSTRING ",0,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg2 = (char*)calloc(2048,sizeof(char));
     }
@@ -1081,7 +1086,8 @@ extern "C" {
     
     arg2 = &temp2;
     if (SWIG_GetArgs(interp, objc, objv,"o:gdfGetNumClasses gd ",0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetNumClasses(arg1,arg2);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1104,7 +1110,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oio:gdfGetNthClassLabel gd nclass OUTSTRING ",0,&arg2,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg3 = (char*)calloc(2048,sizeof(char));
     }
@@ -1136,7 +1143,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oio:gdfGetNthClassMarker gd nclass OUTSTRING ",0,&arg2,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg3 = (char*)calloc(2048,sizeof(char));
     }
@@ -1168,7 +1176,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oio:gdfGetNthClassColor gd nclass OUTSTRING ",0,&arg2,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg3 = (char*)calloc(2048,sizeof(char));
     }
@@ -1201,7 +1210,8 @@ extern "C" {
     
     arg2 = &temp2;
     if (SWIG_GetArgs(interp, objc, objv,"o:gdfGetNumVariables gd ",0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetNumVariables(arg1,arg2);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1224,7 +1234,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oio:gdfGetNthVariableLabel gd nvariable OUTSTRING ",0,&arg2,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg3 = (char*)calloc(2048,sizeof(char));
     }
@@ -1255,7 +1266,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oo:gdfGetDefaultVariable gd OUTSTRING ",0,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg2 = (char*)calloc(2048,sizeof(char));
     }
@@ -1288,7 +1300,8 @@ extern "C" {
     
     arg2 = &temp2;
     if (SWIG_GetArgs(interp, objc, objv,"o:gdfGetDefaultVariableIndex gd ",0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetDefaultVariableIndex(arg1,arg2);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1312,7 +1325,8 @@ extern "C" {
     
     arg2 = &temp2;
     if (SWIG_GetArgs(interp, objc, objv,"o:gdfGetNumSubjects gd ",0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetNumSubjects(arg1,arg2);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1335,7 +1349,8 @@ extern "C" {
     int result;
     
     if (SWIG_GetArgs(interp, objc, objv,"oio:gdfGetNthSubjectID gd nsubject OUTSTRING ",0,&arg2,0) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     {
       arg3 = (char*)calloc(2048,sizeof(char));
     }
@@ -1369,7 +1384,8 @@ extern "C" {
     
     arg3 = &temp3;
     if (SWIG_GetArgs(interp, objc, objv,"oi:gdfGetNthSubjectClass gd nsubject ",0,&arg2) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetNthSubjectClass(arg1,arg2,arg3);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1395,7 +1411,8 @@ extern "C" {
     
     arg4 = &temp4;
     if (SWIG_GetArgs(interp, objc, objv,"oii:gdfGetNthSubjectNthValue gd nsubject nvariable ",0,&arg2,&arg3) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetNthSubjectNthValue(arg1,arg2,arg3,arg4);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1423,7 +1440,8 @@ extern "C" {
     
     arg6 = &temp6;
     if (SWIG_GetArgs(interp, objc, objv,"oiiii:gdfGetNthSubjectMeasurement gd nsubject x y z ",0,&arg2,&arg3,&arg4,&arg5) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfGetNthSubjectMeasurement(arg1,arg2,arg3,arg4,arg5,arg6);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
@@ -1455,7 +1473,8 @@ extern "C" {
     arg7 = &temp7;
     arg8 = &temp8;
     if (SWIG_GetArgs(interp, objc, objv,"oiiiii:gdfOffsetSlope gd nclass nvar x y z ",0,&arg2,&arg3,&arg4,&arg5,&arg6) == TCL_ERROR) SWIG_fail;
-    if ((SWIG_ConvertPtr(objv[1], (void **) &arg1, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
+    void* pvoid = (void*)&arg1;
+    if ((SWIG_ConvertPtr(objv[1], (void **) pvoid, SWIGTYPE_p_FSGD,SWIG_POINTER_EXCEPTION | 0) != TCL_OK)) SWIG_fail;
     result = (int)gdfOffsetSlope(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));

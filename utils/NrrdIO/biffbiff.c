@@ -182,7 +182,8 @@ _biffNewEntry(const char *key)
     exit(1);
   }
   strcpy(ent->key, key);
-  ent->AA = airArrayNew((void**)&(ent->err),
+  void* pvoid = (void*)&(ent->err);
+  ent->AA = airArrayNew((void**)pvoid,
                         &(ent->num), sizeof(char*), _BIFF_INCR);
   if (!ent->AA)
   {

@@ -1,4 +1,4 @@
-/* $Header: /space/repo/1/dev/dev/tiff/tif_dir.c,v 1.1 2008/02/26 00:49:04 nicks Exp $ */
+/* $Header: /space/repo/1/dev/dev/tiff/tif_dir.c,v 1.2 2008/05/01 17:58:16 nicks Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -466,7 +466,8 @@ _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
  		break;
 	case TIFFTAG_RICHTIFFIPTC: 
   		td->td_richtiffiptcLength = (uint32) va_arg(ap, uint32);
-  		_TIFFsetLongArray ((uint32**)&td->td_richtiffiptcData,
+      void* pvoid = (void*)&td->td_richtiffiptcData;
+  		_TIFFsetLongArray (pvoid,
 				   va_arg(ap, uint32*),
 				   td->td_richtiffiptcLength);
  		break;

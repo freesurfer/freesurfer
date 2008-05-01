@@ -551,8 +551,9 @@ __glutCreateWindow(GLUTwindow * parent,
   window->num = winnum;
 
 #if !defined(_WIN32)
+  void* pvoid = (void*) &fbc;
   window->vis = __glutDetermineWindowVisual(&window->treatAsSingle,
-                &window->visAlloced, (void**) &fbc);
+                &window->visAlloced, (void**) pvoid);
   if (!window->vis)
   {
     __glutFatalError(

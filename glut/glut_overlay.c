@@ -410,8 +410,9 @@ glutEstablishOverlay(void)
   if (!overlay)
     __glutFatalError("out of memory.");
 
+  void* pvoid = (void*) &fbc;
   overlay->vis = determineOverlayVisual(&overlay->treatAsSingle,
-                                        &overlay->visAlloced, (void **) &fbc);
+                                        &overlay->visAlloced, (void **) pvoid);
   if (!overlay->vis)
   {
     __glutFatalError("lacks overlay support.");

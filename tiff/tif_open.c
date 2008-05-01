@@ -1,4 +1,4 @@
-/* $Header: /space/repo/1/dev/dev/tiff/tif_open.c,v 1.1 2008/02/26 00:49:05 nicks Exp $ */
+/* $Header: /space/repo/1/dev/dev/tiff/tif_open.c,v 1.2 2008/05/01 17:58:16 nicks Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -361,8 +361,9 @@ TIFFClientOpen(
 		 * has not explicitly suppressed usage with the
 		 * 'm' flag in the open mode (see above).
 		 */
+    void* ptd = (void*) &tif->tif_base;
 		if ((tif->tif_flags & TIFF_MAPPED) &&
-	!TIFFMapFileContents(tif, (tdata_t*) &tif->tif_base, &tif->tif_size))
+	!TIFFMapFileContents(tif, ptd, &tif->tif_size))
 			tif->tif_flags &= ~TIFF_MAPPED;
 		if (TIFFReadDirectory(tif)) {
 			tif->tif_rawcc = -1;

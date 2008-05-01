@@ -121,7 +121,8 @@ nrrdIoStateNew(void)
     nio->dataFN = NULL;
     nio->headerStringRead = NULL;
     nio->headerStringWrite = NULL;
-    nio->dataFNArr = airArrayNew((void**)(&(nio->dataFN)), NULL,
+    void* pvoid = (void*)&(nio->dataFN);
+    nio->dataFNArr = airArrayNew((void**)pvoid, NULL,
                                  sizeof(char *), NRRD_FILENAME_INCR);
     airArrayPointerCB(nio->dataFNArr, airNull, airFree);
     nio->format = nrrdFormatUnknown;
@@ -455,7 +456,8 @@ nrrdNew(void)
 
   /* create comment airArray (even though it starts empty) */
   nrrd->cmt = NULL;
-  nrrd->cmtArr = airArrayNew((void**)(&(nrrd->cmt)), NULL,
+  void *pvoid = (void*)&(nrrd->cmt);
+  nrrd->cmtArr = airArrayNew((void**)pvoid, NULL,
                              sizeof(char *), NRRD_COMMENT_INCR);
   if (!nrrd->cmtArr)
   {
@@ -465,7 +467,8 @@ nrrdNew(void)
 
   /* create key/value airArray (even thought it starts empty) */
   nrrd->kvp = NULL;
-  nrrd->kvpArr = airArrayNew((void**)(&(nrrd->kvp)), NULL,
+  pvoid = &(nrrd->kvp);
+  nrrd->kvpArr = airArrayNew((void**)pvoid, NULL,
                              2*sizeof(char *), NRRD_KEYVALUE_INCR);
   if (!nrrd->kvpArr)
   {

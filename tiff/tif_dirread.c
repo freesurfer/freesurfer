@@ -1,4 +1,4 @@
-/* $Header: /space/repo/1/dev/dev/tiff/tif_dirread.c,v 1.2 2008/02/27 00:13:53 nicks Exp $ */
+/* $Header: /space/repo/1/dev/dev/tiff/tif_dirread.c,v 1.3 2008/05/01 17:58:16 nicks Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -810,7 +810,8 @@ static float
 TIFFFetchFloat(TIFF* tif, TIFFDirEntry* dir)
 {
 	long l = TIFFExtractData(tif, dir->tdir_type, dir->tdir_offset);
-	float v = *(float*) &l;
+  void *pvoid = (void*) &l;
+	float v = *(float*) pvoid;
 	TIFFCvtIEEEFloatToNative(tif, 1, &v);
 	return (v);
 }
@@ -956,7 +957,8 @@ TIFFFetchFloatArray(TIFF* tif, TIFFDirEntry* dir, float* v)
 {
 
 	if (dir->tdir_count == 1) {
-		v[0] = *(float*) &dir->tdir_offset;
+    void* pvoid = (void*)&dir->tdir_offset;
+		v[0] = *(float*) pvoid;
 		TIFFCvtIEEEFloatToNative(tif, dir->tdir_count, v);
 		return (1);
 	} else	if (TIFFFetchData(tif, dir, (char*) v)) {
