@@ -7,20 +7,17 @@
   * Original Author: Robert W Cox
   * CVS Revision Info:
   *    $Author: nicks $
-  *    $Date: 2008/05/01 20:36:10 $
-  *    $Revision: 1.9 $
+  *    $Date: 2008/05/02 17:18:56 $
+  *    $Revision: 1.10 $
   *
   * General inquiries: freesurfer@nmr.mgh.harvard.edu
   * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
   *
   */
 
-/* NIFTI IO code is found in the ITK library, and, of course, the NIFTI
-   library.  So if either of those libs exists when Freesurfer is configured,
-   as specified by --with-itk-dir or --with-nifti-dir, then this code is
-   not built. (NJS)
+/* NIFTI IO code can also be found in an external NIFTI library.
+   So if --with-nifti-dir is used, then this code is not built. (NJS)
  */
-#ifndef HAVE_ITK_LIBS
 #ifndef HAVE_NIFTI_LIBS
 
 
@@ -7002,4 +6999,3 @@ int nifti_disp_type_list( int which )
 
 
 #endif //  HAVE_NIFTI_LIBS
-#endif //  HAVE_ITK_LIBS
