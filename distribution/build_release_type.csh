@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.94.2.1 2007/12/15 23:03:34 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.94.2.2 2008/05/03 23:24:59 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,13 +13,17 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.2"
-set STABLE_PUB_VER_NUM="v4.0.2"
+set STABLE_VER_NUM="v4.0.4"
+set STABLE_PUB_VER_NUM="v4.0.4"
 
 set HOSTNAME=`hostname -s`
 
-set SUCCESS_MAIL_LIST=(nicks)
-set FAILURE_MAIL_LIST=(nicks fischl greve)
+# note: Mac's need full email addr
+set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu \
+    fischl@nmr.mgh.harvard.edu \
+    greve@nmr.mgh.harvard.edu \
+    krish@nmr.mgh.harvard.edu )
 #set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
 if ("$HOSTNAME" == "blade") then
   set FAILURE_MAIL_LIST=(nicks)
@@ -58,21 +62,25 @@ if ($?USE_SPACE_MINERVA) then
   setenv LOCAL_FS /space/minerva/1/users/nicks/build/install/${HOSTNAME}
 endif
 
-setenv BUILD_DIR      ${SPACE_FS}/build/$HOSTNAME
+setenv BUILD_HOSTNAME_DIR      ${SPACE_FS}/build/$HOSTNAME
 setenv PLATFORM       "`cat ${LOCAL_FS}/PLATFORM`"
-setenv BUILD_PLATFORM "`cat ${BUILD_DIR}/PLATFORM`"
+setenv BUILD_PLATFORM "`cat ${BUILD_HOSTNAME_DIR}/PLATFORM`"
 
-# DEV_DIR is the CVS checkout of either the main trunk and the stable branch.
-# DEST_DIR is where the build will be installed.
+# SRC_DIR is the CVS checkout of either the main trunk and the stable branch.
+# BUILD_DIR is where the build occurs (doesnt have to be SRC_DIR)
+# INSTALL_DIR is where the build will be installed.
 if ("$RELEASE_TYPE" == "dev") then
-  set DEV_DIR=${BUILD_DIR}/trunk/dev
-  set DEST_DIR=${LOCAL_FS}/dev
+  set SRC_DIR=${BUILD_HOSTNAME_DIR}/trunk/dev
+  set BUILD_DIR=${SRC_DIR}
+  set INSTALL_DIR=${LOCAL_FS}/dev
 else if ("$RELEASE_TYPE" == "stable") then
-  set DEV_DIR=${BUILD_DIR}/stable/dev
-  set DEST_DIR=${LOCAL_FS}/stable4
+  set SRC_DIR=${BUILD_HOSTNAME_DIR}/stable/dev
+  set BUILD_DIR=${SRC_DIR}
+  set INSTALL_DIR=${LOCAL_FS}/stable4
 else if ("$RELEASE_TYPE" == "stable-pub") then
-  set DEV_DIR=${BUILD_DIR}/stable/dev
-  set DEST_DIR=${LOCAL_FS}/stable4-pub
+  set SRC_DIR=${BUILD_HOSTNAME_DIR}/stable/dev
+  set BUILD_DIR=${SRC_DIR}
+  set INSTALL_DIR=${LOCAL_FS}/stable4-pub
 else
   echo "ERROR: release_type must be either dev, stable or stable-pub"
   echo ""
@@ -94,10 +102,11 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
+  set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
-  setenv FSLDIR /usr/pubsw/packages/fsl/4.0.0
+  setenv FSLDIR /usr/pubsw/packages/fsl/4.0.2
   if ( "x`uname -m`" == "xx86_64" ) then
-    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/4.0.0
+    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/4.0.2
   endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
@@ -109,7 +118,6 @@ else
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
-  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   if ( "x`uname -m`" == "xx86_64" ) then
     setenv FSLDIR /usr/pubsw/packages/fsl.64bit/current
@@ -133,7 +141,7 @@ endif
 # Output log files (OUTPUTF and CVSUPDATEF)
 ######################################################################
 #
-set FAILED_FILE=${BUILD_DIR}/${RELEASE_TYPE}-build-FAILED
+set FAILED_FILE=${BUILD_HOSTNAME_DIR}/${RELEASE_TYPE}-build-FAILED
 set OUTPUTF=${LOG_DIR}/build_log-${RELEASE_TYPE}-${HOSTNAME}.txt
 set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}.txt
 echo "$HOSTNAME $RELEASE_TYPE build" >& $OUTPUTF
@@ -152,35 +160,41 @@ set TIME_STAMP=`date +%Y%m%d`
 if(! -d $SCRIPT_DIR) then 
   echo "$SCRIPT_DIR doesn't exist" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
-if(! -d $DEV_DIR) then 
-  echo "$DEV_DIR doesn't exist" >>& $OUTPUTF
+if(! -d $SRC_DIR) then 
+  echo "$SRC_DIR doesn't exist" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
-if(! -d $DEST_DIR) then 
-  echo "$DEST_DIR doesn't exist" >>& $OUTPUTF
+if(! -d $BUILD_DIR) then 
+  echo "$BUILD_DIR doesn't exist" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
+  exit 1  
+endif
+if(! -d $INSTALL_DIR) then 
+  echo "$INSTALL_DIR doesn't exist" >>& $OUTPUTF
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 if ("${BUILD_PLATFORM}" != "${PLATFORM}") then
   echo "PLATFORM mismatch!" >>& $OUTPUTF
   echo "${LOCAL_FS}/PLATFORM=${PLATFORM}" >>& $OUTPUTF
-  echo "${BUILD_DIR}/PLATFORM=${BUILD_PLATFORM}" >>& $OUTPUTF
+  echo "${BUILD_HOSTNAME_DIR}/PLATFORM=${BUILD_PLATFORM}" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
 
 # Source the source_before_building file if it exists
-if( -f ${BUILD_DIR}/source_before_building.csh ) then
-  echo "source ${BUILD_DIR}/source_before_building.csh" >>& $OUTPUTF
-  source ${BUILD_DIR}/source_before_building.csh
+if( -f ${BUILD_HOSTNAME_DIR}/source_before_building.csh ) then
+  echo "source ${BUILD_HOSTNAME_DIR}/source_before_building.csh" >>& $OUTPUTF
+  source ${BUILD_HOSTNAME_DIR}/source_before_building.csh
 endif
 echo "##########################################################" >>& $OUTPUTF
 echo "Settings" >>& $OUTPUTF
@@ -188,18 +202,19 @@ echo "PLATFORM $PLATFORM" >>& $OUTPUTF
 echo "HOSTNAME $HOSTNAME" >>& $OUTPUTF
 if ($?CC) then
   if ("$CC" == "icc") then
-    echo "icc      `icc --version | grep icc`" >>& $OUTPUTF
+    echo "ICC      `icc --version | grep icc`" >>& $OUTPUTF
   else
-    echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+    echo "GCC      `gcc --version | grep gcc`" >>& $OUTPUTF
   endif
 else
-  echo "gcc      `gcc --version | grep gcc`" >>& $OUTPUTF
+  echo "GCC      `gcc --version | grep gcc`" >>& $OUTPUTF
 endif
-echo "BUILD_DIR $BUILD_DIR" >>& $OUTPUTF
-echo "SCRIPT_DIR $SCRIPT_DIR" >>& $OUTPUTF
-echo "LOG_DIR $LOG_DIR" >>& $OUTPUTF
-echo "DEV_DIR $DEV_DIR" >>& $OUTPUTF
-echo "DEST_DIR $DEST_DIR" >>& $OUTPUTF
+echo "BUILD_HOSTNAME_DIR $BUILD_HOSTNAME_DIR" >>& $OUTPUTF
+echo "SCRIPT_DIR         $SCRIPT_DIR" >>& $OUTPUTF
+echo "LOG_DIR            $LOG_DIR" >>& $OUTPUTF
+echo "SRC_DIR            $SRC_DIR" >>& $OUTPUTF
+echo "BUILD_DIR          $BUILD_DIR" >>& $OUTPUTF
+echo "INSTALL_DIR        $INSTALL_DIR" >>& $OUTPUTF
 if( $?CFLAGS ) then 
   echo "CFLAGS $CFLAGS" >>& $OUTPUTF
 endif
@@ -217,12 +232,12 @@ echo "" >>& $OUTPUTF
 # in case a new dev dir needed to be created, and the old one cannot
 # be deleted because of permissions, then name that old dir 'devold',
 # and it will get deleted here:
-set DEVOLD=${BUILD_DIR}/trunk/devold
+set DEVOLD=${BUILD_HOSTNAME_DIR}/trunk/devold
 if (-e ${DEVOLD}) then
   echo "CMD: rm -Rf ${DEVOLD}" >>& $OUTPUTF
   rm -rf ${DEVOLD} >>& $OUTPUTF
 endif
-set DEVOLD=${BUILD_DIR}/stable/devold
+set DEVOLD=${BUILD_HOSTNAME_DIR}/stable/devold
 if (-e ${DEVOLD}) then
   echo "CMD: rm -Rf ${DEVOLD}" >>& $OUTPUTF
   rm -rf ${DEVOLD} >>& $OUTPUTF
@@ -235,10 +250,15 @@ endif
 #
 echo "##########################################################" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
-cd ${DEV_DIR} >>& $OUTPUTF
-echo "CMD: make distclean" >>& $OUTPUTF
-if (-e Makefile) make distclean >>& $OUTPUTF
+echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
+cd ${BUILD_DIR} >>& $OUTPUTF
+if ( "${BUILD_DIR}" == "${SRC_DIR}" ) then
+  echo "CMD: make distclean" >>& $OUTPUTF
+  if (-e Makefile) make distclean >>& $OUTPUTF
+else
+  echo "CMD: rm -Rf ${BUILD_DIR}/*" >>& $OUTPUTF
+  rm -Rf ${BUILD_DIR}/* >>& $OUTPUTF
+endif
 
 
 #
@@ -255,10 +275,10 @@ if (-e Makefile) make distclean >>& $OUTPUTF
 # one in CVS) will not be used.  Also check for removed files, added
 # files, and files with conflicts, all these being a big no-no.
 echo "##########################################################" >>& $OUTPUTF
-echo "Updating $DEV_DIR" >>& $OUTPUTF
+echo "Updating $SRC_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: cd $DEV_DIR" >>& $OUTPUTF
-cd ${DEV_DIR} >>& $OUTPUTF
+echo "CMD: cd $SRC_DIR" >>& $OUTPUTF
+cd ${SRC_DIR} >>& $OUTPUTF
 echo "CMD: cvs update -P -d \>\& $CVSUPDATEF" >>& $OUTPUTF
 cvs update -P -d >& $CVSUPDATEF
 chmod g+w $CVSUPDATEF
@@ -268,7 +288,7 @@ grep -e "Permission denied" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update permission denied"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -277,7 +297,7 @@ grep -e "cvs update: move away" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file in the way"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -286,7 +306,7 @@ grep -e ^\[M\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file modified!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -295,7 +315,7 @@ grep -e ^\[C\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file conflict!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -304,7 +324,7 @@ grep -e ^\[R\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file removed!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -313,7 +333,7 @@ grep -e ^\[A\]\   $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file added!"
   echo "$msg" >>& $OUTPUTF
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
@@ -328,6 +348,15 @@ if ($status != 0 && ! -e ${FAILED_FILE} ) then
   echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
   rm -f $CVSUPDATEF
   exit 0
+endif
+
+echo "CMD: grep -e "No such file" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "No such file" $CVSUPDATEF >& $CVSUPDATEF-nosuchfiles
+if ($status == 0) then
+  set msg="$HOSTNAME $RELEASE_TYPE build problem - cvs update "
+  echo "$msg" >>& $CVSUPDATEF-nosuchfiles
+  tail -n 200 $CVSUPDATEF-nosuchfiles | mail -s "$msg" $SUCCESS_MAIL_LIST
+  rm -f $CVSUPDATEF-nosuchfiles
 endif
 
 # assume failure (file removed only after successful build)
@@ -347,6 +376,8 @@ rm -f $CVSUPDATEF
 #
 echo "##########################################################" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
+echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
+cd ${BUILD_DIR} >>& $OUTPUTF
 echo "CMD: rm -rf autom4te.cache" >>& $OUTPUTF
 if (-e autom4te.cache) rm -rf autom4te.cache >>& $OUTPUTF
 echo "CMD: libtoolize --force" >>& $OUTPUTF
@@ -365,16 +396,16 @@ automake --version >>& $OUTPUTF
 automake >>& $OUTPUTF
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED after automake"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+  chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   exit 1
 endif
 echo "CMD: ./configure..." >>& $OUTPUTF
@@ -386,28 +417,33 @@ if ("${RELEASE_TYPE}" == "stable-pub") then
   # public build doesn't get the extra special stuff
   set ENAB_NMR=""
 endif
-setenv FREESURFER_HOME $DEST_DIR
-set cnfgr=(./configure)
+setenv FREESURFER_HOME $INSTALL_DIR
+set cnfgr=(${SRC_DIR}/configure)
 set cnfgr=($cnfgr --prefix=${FREESURFER_HOME})
-set cnfgr=($cnfgr --bindir=${DEST_DIR}/bin-new)
+set cnfgr=($cnfgr --bindir=${INSTALL_DIR}/bin-new)
 set cnfgr=($cnfgr $ENAB_NMR)
 if (("${RELEASE_TYPE}" == "stable") || \
     ("${RELEASE_TYPE}" == "stable-pub")) then
-  set cnfgr=($cnfgr `cat ${BUILD_DIR}/stable-configure_options.txt`)
+  set cnfgr=($cnfgr `cat ${BUILD_HOSTNAME_DIR}/stable-configure_options.txt`)
 else
-  set cnfgr=($cnfgr `cat ${BUILD_DIR}/dev-configure_options.txt`)
+  set cnfgr=($cnfgr `cat ${BUILD_HOSTNAME_DIR}/dev-configure_options.txt`)
 endif
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
 set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
-    set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
+  set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
 endif
 if ($?KWWDIR) then
-    set cnfgr=($cnfgr --with-kwwidgets-dir=${KWWDIR})
+  set cnfgr=($cnfgr --with-kwwidgets-dir=${KWWDIR})
 endif
-set cnfgr=($cnfgr --with-tiff-dir=${TJGDIR})
-set cnfgr=($cnfgr --with-jpeg-dir=${TJGDIR})
-set cnfgr=($cnfgr --with-glut-dir=${TJGDIR})
+if ($?EXPATDIR) then
+  set cnfgr=($cnfgr --with-expat-dir=${EXPATDIR})
+endif
+if ($?TJGDIR) then
+  set cnfgr=($cnfgr --with-tiff-dir=${TJGDIR})
+  set cnfgr=($cnfgr --with-jpeg-dir=${TJGDIR})
+  set cnfgr=($cnfgr --with-glut-dir=${TJGDIR})
+endif
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
 if ($?CPPUNITDIR) then
@@ -419,20 +455,23 @@ if ($status != 0) then
   echo "########################################################" >>& $OUTPUTF
   echo "config.log" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
-  cat ${DEV_DIR}/config.log >>& $OUTPUTF
+  cat ${BUILD_DIR}/config.log >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED after configure"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+  chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   exit 1
 endif
+# save-away the configure string for debug:
+head config.log | grep configure | grep prefix > conf
+chmod 777 conf
 
 
 #
@@ -450,24 +489,26 @@ if (-e Makefile) make clean >>& $OUTPUTF
 ######################################################################
 #
 echo "##########################################################" >>& $OUTPUTF
-echo "Making $DEV_DIR" >>& $OUTPUTF
+echo "Making $BUILD_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
+echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
+cd ${BUILD_DIR} >>& $OUTPUTF
 echo "CMD: make -j 4" >>& $OUTPUTF
 make -j 4 >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
   set msg="$HOSTNAME $RELEASE_TYPE build (make) FAILED"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+  chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   exit 1  
 endif
 
@@ -476,27 +517,29 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
-#goto make_check_done
+if ($?SKIP_ALL_MAKE_CHECKS) goto make_check_done
 if ("$RELEASE_TYPE" != "stable-pub") then
   echo "########################################################" >>& $OUTPUTF
-  echo "Make check $DEV_DIR" >>& $OUTPUTF
+  echo "Make check $BUILD_DIR" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
+  echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
+  cd ${BUILD_DIR} >>& $OUTPUTF
   echo "CMD: make check" >>& $OUTPUTF
   make check >>& $OUTPUTF
   if ($status != 0) then
     # note: /usr/local/freesurfer/dev/bin/ dirs have not 
     # been modified (bin/ gets written after make install)
     set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
-    mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+    tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
-    echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-    chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-    echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-    chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-    chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-    chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+    echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+    echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+    chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+    chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+    chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
     exit 1  
   endif
 endif
@@ -508,8 +551,8 @@ make_check_done:
 ######################################################################
 # (recall that configure sets $bindir to bin-new/ instead of /bin, 
 # to minimize disruption of machines using contents of /bin)
-echo "CMD: rm -Rf ${DEST_DIR}/bin-new" >>& $OUTPUTF
-if (-e ${DEST_DIR}/bin-new) rm -rf ${DEST_DIR}/bin-new >>& $OUTPUTF
+echo "CMD: rm -Rf ${INSTALL_DIR}/bin-new" >>& $OUTPUTF
+if (-e ${INSTALL_DIR}/bin-new) rm -rf ${INSTALL_DIR}/bin-new >>& $OUTPUTF
 if ("${RELEASE_TYPE}" == "stable-pub") then
   # make release does make install, and runs some extra commands that
   # remove stuff not intended for public release
@@ -518,32 +561,34 @@ if ("${RELEASE_TYPE}" == "stable-pub") then
 else
   set make_cmd=(make install)
 endif
+echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
+cd ${BUILD_DIR} >>& $OUTPUTF
 echo "$make_cmd" >>& $OUTPUTF
 $make_cmd >>& $OUTPUTF
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
-  mail -s "$msg" $FAILURE_MAIL_LIST < $OUTPUTF
+  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   rm -f ${FAILED_FILE}
   touch ${FAILED_FILE}
   # set group write bit on files changed by make tools:
-  echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-  echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-  chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-  chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+  echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+  chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+  chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   # and the fsaverage in the subjects dir...
-  echo "CMD: chmod ${change_flags} g+rw ${DEST_DIR}/subjects/fsaverage" \
+  echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
     >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
-  chgrp ${change_flags} fsdev ${DEST_DIR}/subjects/fsaverage >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+  chgrp ${change_flags} fsdev ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
 if (("${RELEASE_TYPE}" == "stable") || \
     ("${RELEASE_TYPE}" == "stable-pub")) then
-  echo "CMD: strip ${DEST_DIR}/bin-new/*" >>& $OUTPUTF
-  strip ${DEST_DIR}/bin-new/* >& /dev/null
+  echo "CMD: strip ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
+  strip ${INSTALL_DIR}/bin-new/* >& /dev/null
 endif
 #
 # Shift bin/ to bin-old/ to keep old versions.
@@ -552,30 +597,72 @@ endif
 # Move newly created bin-new/ to bin/.
 # This series of mv's minimizes the time window where the /bin directory
 # would appear empty to a machine trying to reference its contents in recon-all
-echo "CMD: rm -Rf ${DEST_DIR}/bin-old" >>& $OUTPUTF
-rm -Rf ${DEST_DIR}/bin-old >>& $OUTPUTF
-echo "CMD: mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old" >>& $OUTPUTF
-mv ${DEST_DIR}/bin ${DEST_DIR}/bin-old >>& $OUTPUTF
-echo "CMD: mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin" >>& $OUTPUTF
-mv ${DEST_DIR}/bin-new ${DEST_DIR}/bin >>& $OUTPUTF
+echo "CMD: rm -Rf ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
+rm -Rf ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
+mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+echo "CMD: mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin" >>& $OUTPUTF
+mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin >>& $OUTPUTF
 #
 # make install is now complete, and /bin dir is now setup with new code
 #
 echo "##########################################################" >>& $OUTPUTF
 echo "Setting permissions" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
-echo "CMD: chgrp ${change_flags} fsdev ${DEST_DIR}" >>& $OUTPUTF
-chgrp ${change_flags} fsdev ${DEST_DIR} >>& $OUTPUTF
-echo "CMD: chmod ${change_flags} g+rw ${DEST_DIR}" >>& $OUTPUTF
-chmod ${change_flags} g+rw ${DEST_DIR} >>& $OUTPUTF
-echo "CMD: chgrp ${change_flags} fsdev ${DEV_DIR}" >>& $OUTPUTF
-chgrp ${change_flags} fsdev ${DEV_DIR} >>& $OUTPUTF
-echo "CMD: chmod ${change_flags} g+rw ${DEV_DIR}" >>& $OUTPUTF
-chmod ${change_flags} g+rw ${DEV_DIR} >>& $OUTPUTF
-chmod g+rw ${DEV_DIR}/autom4te.cache >>& $OUTPUTF
-chgrp fsdev ${DEV_DIR}/config.h.in >>& $OUTPUTF
+echo "CMD: chgrp ${change_flags} fsdev ${INSTALL_DIR}" >>& $OUTPUTF
+chgrp ${change_flags} fsdev ${INSTALL_DIR} >>& $OUTPUTF
+echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}" >>& $OUTPUTF
+chmod ${change_flags} g+rw ${INSTALL_DIR} >>& $OUTPUTF
+echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
 echo "CMD: chmod ${change_flags} g+rw ${LOG_DIR}" >>& $OUTPUTF
 chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
+
+
+#
+# make distcheck
+######################################################################
+# make distcheck creates a source tarball (as does make dist) and then
+# checks that the tarball works by untarring into a _build directory,
+# runs make, then make check, make install, and make uninstall.
+#goto make_distcheck_done
+if ("$RELEASE_TYPE" == "dev") then
+# just do this once a week, as it takes a few hours to run
+date | grep "Sat " >& /dev/null
+if ( ! $status ) then
+  echo "########################################################" >>& $OUTPUTF
+  echo "Make distcheck $BUILD_DIR" >>& $OUTPUTF
+  echo "" >>& $OUTPUTF
+  echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
+  cd ${BUILD_DIR} >>& $OUTPUTF
+  echo "CMD: make distcheck" >>& $OUTPUTF
+  make distcheck >>& $OUTPUTF
+  if ($status != 0) then
+    set msg="$HOSTNAME $RELEASE_TYPE build FAILED make distcheck"
+
+#
+# HACK : mail to nicks for now, until it passes regularly
+#
+
+    tail -n 20 $OUTPUTF | mail -s "$msg" $SUCCESS_MAIL_LIST
+    rm -f ${FAILED_FILE}
+    touch ${FAILED_FILE}
+    # set group write bit on files changed by make tools:
+    echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+    echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+    chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+    chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+    chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+    exit 1  
+  endif
+endif
+endif
+make_distcheck_done:
 
 
 #
@@ -586,7 +673,8 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 #
 if (("${RELEASE_TYPE}" == "stable") || \
     ("${RELEASE_TYPE}" == "stable-pub")) then
-  cp /usr/local/freesurfer/dev/bin/dmri_poistats ${DEST_DIR}/bin/ >& /dev/null
+  cp /usr/local/freesurfer/dev/bin/dmri_poistats \
+    ${INSTALL_DIR}/bin/ >& /dev/null
 endif
 
 
@@ -599,19 +687,19 @@ endif
 symlinks:
 
   # first remove existing links
-  rm -f ${DEST_DIR}/mni
-  rm -f ${DEST_DIR}/fsl
-  rm -f ${DEST_DIR}/lib/tcltktixblt
-  rm -f ${DEST_DIR}/lib/vtk
-  rm -f ${DEST_DIR}/lib/vxl
-  rm -f ${DEST_DIR}/lib/misc
+  rm -f ${INSTALL_DIR}/mni
+  rm -f ${INSTALL_DIR}/fsl
+  rm -f ${INSTALL_DIR}/lib/tcltktixblt
+  rm -f ${INSTALL_DIR}/lib/vtk
+  rm -f ${INSTALL_DIR}/lib/vxl
+  rm -f ${INSTALL_DIR}/lib/misc
   # then setup for proper installation
-  set cmd1=(ln -s ${MNIDIR} ${DEST_DIR}/mni)
+  set cmd1=(ln -s ${MNIDIR} ${INSTALL_DIR}/mni)
   set cmd2=
-  set cmd3=(ln -s ${TCLDIR} ${DEST_DIR}/lib/tcltktixblt)
+  set cmd3=(ln -s ${TCLDIR} ${INSTALL_DIR}/lib/tcltktixblt)
   set cmd4=
   if ($?VTKDIR) then
-    set cmd5=(ln -s ${VTKDIR} ${DEST_DIR}/lib/vtk)
+    set cmd5=(ln -s ${VTKDIR} ${INSTALL_DIR}/lib/vtk)
   else
     set cmd5=
   endif
@@ -636,8 +724,8 @@ symlinks:
   echo "$cmd8" >>& $OUTPUTF
   $cmd8
   # also setup sample subject:
-  rm -f ${DEST_DIR}/subjects/bert
-  set cmd=(ln -s ${SPACE_FS}/subjects/bert ${DEST_DIR}/subjects/bert)
+  rm -f ${INSTALL_DIR}/subjects/bert
+  set cmd=(ln -s ${SPACE_FS}/subjects/bert ${INSTALL_DIR}/subjects/bert)
   echo "$cmd" >>& $OUTPUTF
   $cmd
 
@@ -653,12 +741,12 @@ symlinks:
 set DATE_STAMP="`date +%Y%m%d`"
 set FS_PREFIX="freesurfer-${OSTYPE}-${PLATFORM}-${RELEASE_TYPE}"
 if ("$RELEASE_TYPE" == "dev") then
-  echo "${FS_PREFIX}-${DATE_STAMP}" > ${DEST_DIR}/build-stamp.txt
+  echo "${FS_PREFIX}-${DATE_STAMP}" > ${INSTALL_DIR}/build-stamp.txt
 else if ("$RELEASE_TYPE" == "stable") then
   echo "${FS_PREFIX}-${STABLE_VER_NUM}-${DATE_STAMP}" \
-    > ${DEST_DIR}/build-stamp.txt
+    > ${INSTALL_DIR}/build-stamp.txt
 else if ("$RELEASE_TYPE" == "stable-pub") then
-  echo "${FS_PREFIX}-${STABLE_PUB_VER_NUM}" > ${DEST_DIR}/build-stamp.txt
+  echo "${FS_PREFIX}-${STABLE_PUB_VER_NUM}" > ${INSTALL_DIR}/build-stamp.txt
 else
   echo "ERROR: unknown RELEASE_TYPE: $RELEASE_TYPE"
   exit 1
@@ -669,7 +757,7 @@ endif
 # create tarball
 ######################################################################
 # If building stable-pub, then create a tarball
-if ("$RELEASE_TYPE" == "stable-pub" || -e ${BUILD_DIR}/TARBALL ) then
+if ("$RELEASE_TYPE" == "stable-pub" || -e ${BUILD_HOSTNAME_DIR}/TARBALL ) then
   set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
@@ -677,8 +765,9 @@ if ("$RELEASE_TYPE" == "stable-pub" || -e ${BUILD_DIR}/TARBALL ) then
     echo "create_targz.csh failed to create tarball!"
     # don't exit with error, since create_targz can be re-run manually
   endif
-  rm -f ${BUILD_DIR}/TARBALL >& /dev/null
+  rm -f ${BUILD_HOSTNAME_DIR}/TARBALL >& /dev/null
 endif
+
 
 #
 # copy libraries and include filed needed by those who want to 
@@ -687,30 +776,30 @@ endif
 #
 if ("$RELEASE_TYPE" == "dev") then
   # remove existing 
-  set cmd=(rm -Rf ${DEST_DIR}/lib/dev)
+  set cmd=(rm -Rf ${INSTALL_DIR}/lib/dev)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
-  set cmd=(rm -Rf ${DEST_DIR}/include)
+  set cmd=(rm -Rf ${INSTALL_DIR}/include)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
-  set cmd=(mkdir -p ${DEST_DIR}/lib/dev)
+  set cmd=(mkdir -p ${INSTALL_DIR}/lib/dev)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
   # cp necessary libs
-  set dirlist=(${DEV_DIR}/dicom/libdicom.a \
-	${DEV_DIR}/hipsstubs/libhipsstubs.a \
-	${DEV_DIR}/rgb/librgb.a \
-	${DEV_DIR}/unix/libunix.a \
-	${DEV_DIR}/utils/libutils.a)
-  set cmd=(cp $dirlist ${DEST_DIR}/lib/dev)
+  set dirlist=(${BUILD_DIR}/dicom/libdicom.a \
+	${BUILD_DIR}/hipsstubs/libhipsstubs.a \
+	${BUILD_DIR}/rgb/librgb.a \
+	${BUILD_DIR}/unix/libunix.a \
+	${BUILD_DIR}/utils/libutils.a)
+  set cmd=(cp $dirlist ${INSTALL_DIR}/lib/dev)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
   # cp include dir
-  set cmd=(cp -r ${DEV_DIR}/include ${DEST_DIR})
+  set cmd=(cp -r ${BUILD_DIR}/include ${INSTALL_DIR})
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
-  # make sure all files in DEST_DIR are group writable
-  set cmd=(chmod ${change_flags} g+rw ${DEST_DIR})
+  # make sure all files in INSTALL_DIR are group writable
+  set cmd=(chmod ${change_flags} g+rw ${INSTALL_DIR})
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
 endif
@@ -744,12 +833,12 @@ rm $LOG_DIR/message-$HOSTNAME.txt
 #
 # Now for a cheap way to build stable-pub, which is normally only run
 # when a public distribution is needed.  Just create an empty file
-# called PUB in the BUILD_DIR, and stable-pub will be built.
+# called PUB in the BUILD_HOSTNAME_DIR, and stable-pub will be built.
 if ("$RELEASE_TYPE" == "stable") then
-  if (-e ${BUILD_DIR}/PUB) then
-    rm -f ${BUILD_DIR}/PUB
+  if (-e ${BUILD_HOSTNAME_DIR}/PUB) then
+    rm -f ${BUILD_HOSTNAME_DIR}/PUB
     # force stable build to run again by removing a CVS'd file:
-    rm -f ${DEV_DIR}/setup_configure
+    rm -f ${SRC_DIR}/setup_configure
     ${SCRIPT_DIR}/build_stable-pub.csh
   endif
 endif
