@@ -2,13 +2,14 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.8 2007/08/23 19:17:13 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.9 2008/05/03 18:59:54 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
 
 set InputVol = ();
 set DoEddyCorrect = 1;
+set ECRefTP = 0; # 0 for 1st frame
 set subject = ();
 set bvals = ();
 set bvecs = ();
@@ -55,6 +56,7 @@ echo $0 $inputargs       | tee -a $LF
 hostname                 | tee -a $LF
 whoami                   | tee -a $LF
 which eddy_correct       | tee -a $LF
+echo "ECRefTP $ECRefTP"  | tee -a $LF
 
 # Force FSL to use nifti
 setenv FSLOUTPUTTYPE NIFTI
@@ -93,7 +95,7 @@ if($DoEddyCorrect) then
   set ectmp = $OutDir/ectmp
   mkdir -p $ectmp
   pushd $ectmp > /dev/null
-  set cmd = (eddy_correct $f $fec 0) # 0 for 1st frame
+  set cmd = (eddy_correct $f $fec $ECRefTP) 
   #set cmd = (cp $f $fec)
   echo "cd `pwd`" |  tee -a $LF
   echo $cmd       |  tee -a $LF 
@@ -240,6 +242,11 @@ while( $#argv != 0 )
       set OutDir = $argv[1]; shift;
       breaksw
 
+    case "--ecref":
+      if($#argv < 1) goto arg1err;
+      set ECRefTP = $argv[1]; shift;
+      breaksw
+
     case "--no-ec":
       set DoEddyCorrect = 0;
       breaksw
@@ -286,7 +293,7 @@ arg3err:
 
 ############--------------##################
 check_params:
-  if($InputVol == 0) then
+  if($#InputVol == 0) then
     echo "ERROR: must specify input volume"
     exit 1;
   endif
@@ -350,6 +357,7 @@ usage_exit:
   echo "   --o outputdir"
   echo ""
   echo " Other Arguments (Optional)"
+  echo "  --ecref TP       : Use TP as 0-based reference time points for EC"
   echo "  --no-ec          : turn off eddy/motion correction"
   echo "  --sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  --debug          : print out lots of info"
