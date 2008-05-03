@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.116 2008/03/02 17:53:52 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.117 2008/05/03 23:23:03 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,14 +13,17 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.3"
-set STABLE_PUB_VER_NUM="v4.0.3"
+set STABLE_VER_NUM="v4.0.4"
+set STABLE_PUB_VER_NUM="v4.0.4"
 
 set HOSTNAME=`hostname -s`
 
 # note: Mac's need full email addr
-set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu fischl@nmr.mgh.harvard.edu greve@nmr.mgh.harvard.edu)
+set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu \
+    fischl@nmr.mgh.harvard.edu \
+    greve@nmr.mgh.harvard.edu \
+    krish@nmr.mgh.harvard.edu )
 #set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
 if ("$HOSTNAME" == "blade") then
   set FAILURE_MAIL_LIST=(nicks)
@@ -466,6 +469,9 @@ if ($status != 0) then
   chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   exit 1
 endif
+# save-away the configure string for debug:
+head config.log | grep configure | grep prefix > conf
+chmod 777 conf
 
 
 #
@@ -637,7 +643,12 @@ if ( ! $status ) then
   make distcheck >>& $OUTPUTF
   if ($status != 0) then
     set msg="$HOSTNAME $RELEASE_TYPE build FAILED make distcheck"
-    tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
+
+#
+# HACK : mail to nicks for now, until it passes regularly
+#
+
+    tail -n 20 $OUTPUTF | mail -s "$msg" $SUCCESS_MAIL_LIST
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
