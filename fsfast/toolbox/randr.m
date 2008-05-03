@@ -10,12 +10,12 @@ function [r, rmean, wstd] = randr(rsize,rmean)
 %   r = abs(wstd*(randn(rsize) + i*randn(rsize)));
 %
 % Note:
-%  rmean = rstd/sqrt(4/pi-1);
 %  rmean = wstd*sqrt(pi/2);
+%  rstd  = wstd*sqrt(2-pi/2);
 %  rstd  = rmean*sqrt(4/pi-1);
+%  rmean = rstd/sqrt(4/pi-1);
 %  wstd  = rmean/sqrt(pi/2);
 %  wstd  = rstd/sqrt(2-pi/2);
-%
 %
 
 
@@ -24,9 +24,9 @@ function [r, rmean, wstd] = randr(rsize,rmean)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:34 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2008/05/03 22:04:55 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
