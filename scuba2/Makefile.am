@@ -8,7 +8,8 @@ AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 if ENABLE_KWWIDGETS_APPS
 bin_PROGRAMS = scuba2
 scuba2_SOURCES= \
-	ScubaMain.cxx \
+	ScubaMain.cxx string_fixed.h \
+	ScubaViewProperties.h \
 	vtkKWScubaApp.cxx vtkKWScubaApp.h vtkKWScubaAppTcl.cxx \
 	vtkKWScubaApplicationSettingsInterface.cxx \
 	vtkKWScubaApplicationSettingsInterface.h \
@@ -38,6 +39,10 @@ scuba2_SOURCES= \
 	vtkKWScubaLayerCollectionODFTcl.cxx\
 	ScubaCollectionProperties.h \
 	ScubaCollectionPropertiesMRI.h \
+	ScubaCollectionPropertiesMRIS.h \
+	ScubaCollectionPropertiesDTI.h \
+	ScubaCollectionPropertiesODF.h \
+	ScubaCollectionPropertiesPath.h \
 	vtkKWScubaLayer2DMRI.cxx vtkKWScubaLayer2DMRI.h \
 	vtkKWScubaLayer2DMRITcl.cxx \
 	vtkKWScubaLayer3DMRI.cxx vtkKWScubaLayer3DMRI.h \
