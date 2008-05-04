@@ -5,22 +5,7 @@ AM_CXXFLAGS=\
 	$(VTK_CXXFLAGS) \
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
-	$(WXWIDGETS_CXXFLAGS) \
-	-D_FILE_OFFSET_BITS=64 \
-	-D_LARGE_FILES \
-	-D_LARGEFILE_SOURCE=1 \
-	-D__WXGTK__ \
-	-D__WXGTK20__ \
-	-I/usr/include/gtk-2.0 \
-	-I/usr/lib/gtk-2.0/include \
-	-I/usr/lib64/gtk-2.0/include \
-	-I/usr/include/glib-2.0 \
-	-I/usr/lib/glib-2.0/include \
-	-I/usr/lib64/glib-2.0/include \
-	-I/usr/include/pango-1.0 \
-	-I/usr/include/cairo \
-	-I/usr/include/atk-1.0 \
-	-pthread
+	$(WXWIDGETS_CXXFLAGS)
 
 if ENABLE_WXWIDGETS_APPS
 bin_PROGRAMS = freeview
@@ -123,33 +108,7 @@ freeview_SOURCES=\
 	res/resource.cpp \
 	res/resource.h
 
-WXGTK_LIBS=-L/usr/pubsw/packages/wxWidgets/current/lib
-
-LIBS_WXGTK=\
-	-lwx_gtk2_richtext-2.8 \
-	-lwx_gtk2_aui-2.8 \
-	-lwx_gtk2_xrc-2.8 \
-	-lwx_gtk2_qa-2.8 \
-	-lwx_gtk2_html-2.8 \
-	-lwx_gtk2_adv-2.8 \
-	-lwx_gtk2_core-2.8 \
-	-lwx_base_xml-2.8 \
-	-lwx_base_net-2.8 \
-	-lwx_base-2.8
-
-GTK_LIBS=-L/usr/lib/gtk-2.0 -L/usr/lib64/gtk-2.0
-
-LIBS_GTK=\
-	-lgtk-x11-2.0 \
-	-latk-1.0 \
-	-lgdk_pixbuf-2.0 \
-	-lpango-1.0 \
-	-lgobject-2.0 \
-	-lgmodule-2.0 \
-	-lgthread-2.0 \
-	-lglib-2.0
-
-freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL) $(WXGTK_LIBS) $(GTK_LIBS)
+freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
 freeview_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
@@ -166,8 +125,7 @@ freeview_LDADD=\
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkWidgets -lvtkHybrid \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
-	$(LIBS_WXGTK) -lpng -lXxf86vm \
-	$(LIBS_GTK)
+	$(WXWIDGETS_LIBS)
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:freeview
