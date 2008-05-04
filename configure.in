@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/05/04 00:08:06 $
-#    $Revision: 1.405 $
+#    $Date: 2008/05/04 00:21:50 $
+#    $Revision: 1.406 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1762,7 +1762,7 @@ AC_ARG_WITH(wxwidgets-dir,
      WXWIDGETS_DIR=$ac_wxwidgets_dir
   ])
 
-if test "x$ac_wxwidgets_dir" = "x"; then
+if test "x$WXWIDGETS_DIR" = "x"; then
   # if a wxWidgets root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
   if test -d "/usr/pubsw/packages/wxWidgets/current" ; then
