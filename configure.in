@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/05/04 00:21:50 $
-#    $Revision: 1.406 $
+#    $Date: 2008/05/04 00:32:10 $
+#    $Revision: 1.407 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1765,7 +1765,11 @@ AC_ARG_WITH(wxwidgets-dir,
 if test "x$WXWIDGETS_DIR" = "x"; then
   # if a wxWidgets root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/wxWidgets/current" ; then
+
+# HACK when the mac can build with wxwidgets then turn on this search
+# ie. remove the xxxxxxx's
+
+  if test -d "/usr/pubsw/packages/wxWidgets/currentxxxxxx" ; then
     withval=/usr/pubsw/packages/wxWidgets/current
     ac_wxwidgets_includes="$withval"/include/wx-2.8
     ac_wxwidgets_libraries="$withval"/lib
