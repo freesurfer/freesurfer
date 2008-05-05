@@ -2,6 +2,8 @@
 
 set bin=mri_create_t2combined
 
+set inargs = ($argv)
+
 # inputs:
 set subj=$1
 set t1wb=$2
@@ -76,6 +78,13 @@ else
   echo "Writing to logfile '$log'..."
 endif
 
+pwd |& tee -a $log
+echo $0 |& tee -a $log
+echo $inargs |& tee -a $log
+date |& tee -a $log
+uname -a |& tee -a $log
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" |& tee -a $log
+echo "FREESURFER_HOME $FREESURFER_HOME" |& tee -a $log
 
 #########################################################################
 # Register the 7T whole-brain to the 3T structural
@@ -84,9 +93,9 @@ set cmd=(fslregister \
   --s $subj \
   --mov $t1wb \
   --reg register-t1wb-${subj}.dat)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 
@@ -100,9 +109,9 @@ set cmd=(tkregister2 \
   --reg register-t2upper.dat \
   --surf pial \
   --s $subj)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 if ("$t2middle" != "none") then
@@ -112,9 +121,9 @@ if ("$t2middle" != "none") then
     --reg register-t2middle.dat \
     --surf pial \
     --s $subj)
-  echo -------------------
-  echo $cmd
-  echo -------------------
+  echo ------------------- |& tee -a $log
+  echo $cmd |& tee -a $log
+  echo ------------------- |& tee -a $log
   if ($RunIt) $cmd >>& $log
 endif
 
@@ -124,9 +133,9 @@ set cmd=(tkregister2 \
   --reg register-t2lower.dat \
   --surf pial \
   --s $subj)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 
@@ -140,8 +149,8 @@ set cmd=(mri_segreg \
   --reg register-t2upper.dat \
   --out-reg segreg-t2upper.dat \
   --cost cost.upper)
-echo -------------------
-echo $cmd
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
 echo -------------------
 if ($RunIt) $cmd >>& $log
 
@@ -150,10 +159,11 @@ if ("$t2middle" != "none") then
     --mov $t2middle \
     --reg register-t2middle.dat \
     --out-reg segreg-t2middle.dat \
-    --cost cost.middle)
-  echo -------------------
-  echo $cmd
-  echo -------------------
+    --cost cost.middle \
+    --1dpreopt -10 10 1)
+  echo ------------------- |& tee -a $log
+  echo $cmd |& tee -a $log
+  echo ------------------- |& tee -a $log
   if ($RunIt) $cmd >>& $log
 endif
 
@@ -161,10 +171,11 @@ set cmd=(mri_segreg \
   --mov $t2lower \
   --reg register-t2lower.dat \
   --out-reg segreg-t2lower.dat \
-  --cost cost.lower)
-echo -------------------
-echo $cmd
-echo -------------------
+  --cost cost.lower \
+  --1dpreopt -10 10 1)
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 
@@ -176,9 +187,9 @@ set cmd=(mri_vol2vol \
   --mov $SUBJECTS_DIR/${subj}/mri/brain.mgz \
   --crop 3 \
   --o ${subj}-brain-hires-template.nii.gz)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 set cmd=(tkregister2 \
@@ -186,18 +197,18 @@ set cmd=(tkregister2 \
   --s $subj \
   --regheader \
   --reg register-${subj}-brain-hires-template.dat)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 set cmd=(mri_matrix_multiply \
   -im segreg-t2upper.dat \
   -iim register-${subj}-brain-hires-template.dat \
   -om register-t2upper-${subj}-brain-hires.dat)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 if ("$t2middle" != "none") then
@@ -205,9 +216,9 @@ if ("$t2middle" != "none") then
     -im segreg-t2middle.dat \
     -iim register-${subj}-brain-hires-template.dat \
     -om register-t2middle-${subj}-brain-hires.dat)
-  echo -------------------
-  echo $cmd
-  echo -------------------
+  echo ------------------- |& tee -a $log
+  echo $cmd |& tee -a $log
+  echo ------------------- |& tee -a $log
   if ($RunIt) $cmd >>& $log
 endif
 
@@ -215,9 +226,9 @@ set cmd=(mri_matrix_multiply \
   -im segreg-t2lower.dat \
   -iim register-${subj}-brain-hires-template.dat \
   -om register-t2lower-${subj}-brain-hires.dat)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 
@@ -229,9 +240,9 @@ set cmd=(mri_vol2vol \
   --targ ${subj}-brain-hires-template.nii.gz \
   --reg register-t2upper-${subj}-brain-hires.dat \
   --o tmp-t2upper-hires.nii.gz)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 if ("$t2middle" != "none") then
@@ -240,9 +251,9 @@ if ("$t2middle" != "none") then
     --targ ${subj}-brain-hires-template.nii.gz \
     --reg register-t2middle-${subj}-brain-hires.dat \
     --o tmp-t2middle-hires.nii.gz)
-  echo -------------------
-  echo $cmd
-  echo -------------------
+  echo ------------------- |& tee -a $log
+  echo $cmd |& tee -a $log
+  echo ------------------- |& tee -a $log
   if ($RunIt) $cmd >>& $log
 endif
 
@@ -251,9 +262,9 @@ set cmd=(mri_vol2vol \
   --targ ${subj}-brain-hires-template.nii.gz \
   --reg register-t2lower-${subj}-brain-hires.dat \
   --o tmp-t2lower-hires.nii.gz)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
 set tmpmid=()
@@ -263,18 +274,19 @@ set cmd=(mri_concat \
   --i tmp-t2upper-hires.nii.gz $tmpmid  \
   --i tmp-t2lower-hires.nii.gz \
   --o $t2combined)
-echo -------------------
-echo $cmd
-echo -------------------
+echo ------------------- |& tee -a $log
+echo $cmd |& tee -a $log
+echo ------------------- |& tee -a $log
 if ($RunIt) $cmd >>& $log
 
-echo -------------------
-if ($RunIt) echo done!
-echo -------------------
+echo ------------------- |& tee -a $log
+if ($RunIt) echo done! |& tee -a $log
+echo ------------------- |& tee -a $log
 
 echo "To view: "
 set cmd=(scuba2 --subject $subj \
    --volume $t2combined ${subj}-brain-hires-template.nii.gz \
    --surface lh.pial lh.white rh.pial rh.white)
-echo $cmd
+echo $cmd |& tee -a $log
 
+exit 0
