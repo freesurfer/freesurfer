@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/05/04 21:19:16 $
-#    $Revision: 1.408 $
+#    $Date: 2008/05/05 20:19:22 $
+#    $Revision: 1.409 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1999,7 +1999,10 @@ ac_save_cflags=$CFLAGS
 ac_save_ldflags=$LDFLAGS
 CFLAGS="$gl_cflags $CFLAGS"
 # bug in AX_CHECK_GL: assumes HAVE_WINDOWS_H is defined, so fix CFLAGS
-CFLAGS="-DHAVE_WINDOWS_H=0 $CFLAGS"
+# (note: Mac doesnt have this bug)
+if test ! "$OS" = "Darwin"; then
+  CFLAGS="-DHAVE_WINDOWS_H=0 $CFLAGS"
+fi
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GL
 if test "X$no_gl" = "Xyes"; then
