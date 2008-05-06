@@ -7,8 +7,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2008/02/05 17:21:11 $
-#    $Revision: 1.2 $
+#    $Date: 2008/05/06 00:12:50 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -60,9 +60,9 @@ echo "INFO: input image determinant is $indeterm"
 set sign = `echo $inorient | sed "s/[LAS]/+\ /g; s/[RPI]/-\ /g"`
 set order = `echo $inorient | sed "s/[LR]/1\ /; s/[AP]/2\ /; s/[IS]/3\ /"`
 set xyz = (x y z)
-set swapstr
+set swapstr = (0 0 0)
 foreach k (1 2 3)
-  set swapstr = ($swapstr $sign[$order[$k]]$xyz[$order[$k]])
+  set swapstr[$order[$k]] = $sign[$k]$xyz[$k]
 end
 set swapstr = `echo $swapstr | sed "s/+/\ /g"`
 
@@ -100,9 +100,14 @@ if (-e $inbvecs) then
     set sign = `echo $inorient | sed "s/[RAS]/+\ /g; s/[LPI]/-\ /g"`
   endif
   cp /dev/null $outbvecs
-  foreach k (1 2 3)
-    printf '%s ' `cat $inbvecs | awk -v sgn=$sign[$order[$k]]1 -v n=$order[$k] '{print sgn*$n}'` >> $outbvecs
-    printf '\n' >> $outbvecs
+  foreach j (1 2 3)
+    foreach k (1 2 3)
+      if ($order[$k] == $j) then
+        printf '%s ' `cat $inbvecs | awk -v sgn=$sign[$k]1 -v n=$k '{print sgn*$n}'` \
+                    >> $outbvecs
+        printf '\n' >> $outbvecs
+      endif
+    end
   end
 endif
 
