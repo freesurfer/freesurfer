@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/05/05 20:19:22 $
-#    $Revision: 1.409 $
+#    $Date: 2008/05/06 15:56:05 $
+#    $Revision: 1.410 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2013,8 +2013,9 @@ if test "X$no_gl" = "Xyes"; then
   fi
 else
   AC_MSG_RESULT([GL found:
-Setting GL_CFLAGS='$GL_CFLAGS'
+Setting GL_CFLAGS='$GL_CFLAGS $gl_cflags'
 and GL_LIBS='$GL_LIBS'])
+  GL_CFLAGS="$GL_CFLAGS $gl_cflags"
   LIBS_OPENGL="$GL_LIBS $mac_gl_libs"
 fi
 CFLAGS=$ac_save_cflags
