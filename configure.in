@@ -1696,8 +1696,9 @@ if test "X$no_gl" = "Xyes"; then
   fi
 else
   AC_MSG_RESULT([GL found:
-Setting GL_CFLAGS='$GL_CFLAGS'
+Setting GL_CFLAGS='$GL_CFLAGS $gl_cflags'
 and GL_LIBS='$GL_LIBS'])
+  GL_CFLAGS="$GL_CFLAGS $gl_cflags"
   LIBS_OPENGL="$LIBS_OPENGL $GL_LIBS $mac_gl_libs"
 fi
 CFLAGS=$ac_save_cflags
