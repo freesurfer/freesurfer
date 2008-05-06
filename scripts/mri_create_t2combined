@@ -1,4 +1,4 @@
-#! /bin/tcsh -ef
+#! /bin/tcsh -f
 
 set bin=mri_create_t2combined
 
@@ -96,7 +96,8 @@ set cmd=(fslregister \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if($RunIt) $cmd |& tee -a $log
+if($status) exit 1;
 
 
 #########################################################################
@@ -112,7 +113,7 @@ set cmd=(tkregister2 \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 if ("$t2middle" != "none") then
   set cmd=(tkregister2 \
@@ -124,7 +125,7 @@ if ("$t2middle" != "none") then
   echo ------------------- |& tee -a $log
   echo $cmd |& tee -a $log
   echo ------------------- |& tee -a $log
-  if ($RunIt) $cmd >>& $log
+  if ($RunIt) $cmd |& tee -a $log
 endif
 
 set cmd=(tkregister2 \
@@ -136,7 +137,7 @@ set cmd=(tkregister2 \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 
 #########################################################################
@@ -148,11 +149,13 @@ set cmd=(mri_segreg \
   --mov $t2upper \
   --reg register-t2upper.dat \
   --out-reg segreg-t2upper.dat \
-  --cost cost.upper)
+  --cost cost.upper \
+  --1dpreopt -10 10 1 --no-mask)
+
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo -------------------
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 if ("$t2middle" != "none") then
   set cmd=(mri_segreg \
@@ -160,11 +163,11 @@ if ("$t2middle" != "none") then
     --reg register-t2middle.dat \
     --out-reg segreg-t2middle.dat \
     --cost cost.middle \
-    --1dpreopt -10 10 1)
+    --1dpreopt -10 10 1 --no-mask)
   echo ------------------- |& tee -a $log
   echo $cmd |& tee -a $log
   echo ------------------- |& tee -a $log
-  if ($RunIt) $cmd >>& $log
+  if ($RunIt) $cmd |& tee -a $log
 endif
 
 set cmd=(mri_segreg \
@@ -172,11 +175,11 @@ set cmd=(mri_segreg \
   --reg register-t2lower.dat \
   --out-reg segreg-t2lower.dat \
   --cost cost.lower \
-  --1dpreopt -10 10 1)
+  --1dpreopt -10 10 1 --no-mask)
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 
 #########################################################################
@@ -190,7 +193,7 @@ set cmd=(mri_vol2vol \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 set cmd=(tkregister2 \
   --mov ${subj}-brain-hires-template.nii.gz \
@@ -200,7 +203,7 @@ set cmd=(tkregister2 \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 set cmd=(mri_matrix_multiply \
   -im segreg-t2upper.dat \
@@ -209,7 +212,7 @@ set cmd=(mri_matrix_multiply \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 if ("$t2middle" != "none") then
   set cmd=(mri_matrix_multiply \
@@ -219,7 +222,7 @@ if ("$t2middle" != "none") then
   echo ------------------- |& tee -a $log
   echo $cmd |& tee -a $log
   echo ------------------- |& tee -a $log
-  if ($RunIt) $cmd >>& $log
+  if ($RunIt) $cmd |& tee -a $log
 endif
 
 set cmd=(mri_matrix_multiply \
@@ -229,7 +232,7 @@ set cmd=(mri_matrix_multiply \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 
 #########################################################################
@@ -243,7 +246,7 @@ set cmd=(mri_vol2vol \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 if ("$t2middle" != "none") then
   set cmd=(mri_vol2vol \
@@ -254,7 +257,7 @@ if ("$t2middle" != "none") then
   echo ------------------- |& tee -a $log
   echo $cmd |& tee -a $log
   echo ------------------- |& tee -a $log
-  if ($RunIt) $cmd >>& $log
+  if ($RunIt) $cmd |& tee -a $log
 endif
 
 set cmd=(mri_vol2vol \
@@ -265,7 +268,7 @@ set cmd=(mri_vol2vol \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 set tmpmid=()
 if ("$t2middle" != "none") set tmpmid=(--i tmp-t2middle-hires.nii.gz)
@@ -277,7 +280,7 @@ set cmd=(mri_concat \
 echo ------------------- |& tee -a $log
 echo $cmd |& tee -a $log
 echo ------------------- |& tee -a $log
-if ($RunIt) $cmd >>& $log
+if ($RunIt) $cmd |& tee -a $log
 
 echo ------------------- |& tee -a $log
 if ($RunIt) echo done! |& tee -a $log
