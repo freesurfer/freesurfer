@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/01 17:58:16 $
- *    $Revision: 1.329 $
+ *    $Author: krish $
+ *    $Date: 2008/05/07 21:51:03 $
+ *    $Revision: 1.330 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.329 $";
+char *VERSION = "$Revision: 1.330 $";
 
 #define TCL
 #define TKMEDIT
@@ -213,7 +213,6 @@ static int gbForceEnableControlPoints = FALSE;
 #include "xList.h"
 #include "x3DList.h"
 #include "tkmMeditWindow.h"
-
 
 // ============================================================= FILENAME MGMT
 
@@ -1186,7 +1185,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.329 2008/05/01 17:58:16 nicks Exp $",
+     "$Id: tkmedit.c,v 1.330 2008/05/07 21:51:03 krish Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5832,7 +5831,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.329 2008/05/01 17:58:16 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.330 2008/05/07 21:51:03 krish Exp $ $Name:  $\n"
         )
       );
 
@@ -7487,10 +7486,9 @@ void AddVoxelsToSelection ( xVoxelRef iaMRIIdx, int inCount ) {
     /* Set this location in the selection volume to 1 */
     eVolume = Volm_GetValueAtMRIIdx( gSelectionVolume,
                                      &iaMRIIdx[nVoxel], &value );
-    if (0 == value) {
+    if ( fabs( 0.0 - value) < 0.00001) {
 
       Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 1.0 );
-
       /* Add it to the list as well. */
       xVoxl_New( &newVoxel );
       xVoxl_Copy( newVoxel, &iaMRIIdx[nVoxel] );
@@ -7512,14 +7510,12 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
 
   if ( NULL == gSelectionVolume )
     return;
-
   for ( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
     /* Set this location in the selection volume to 0 */
     eVolume = Volm_GetValueAtMRIIdx( gSelectionVolume,
                                      &iaMRIIdx[nVoxel], &value );
-    if ( 1.0 == value ) {
-
+    if ( fabs(1.0 - value) < 0.00001 ) {
       Volm_SetValueAtMRIIdx( gSelectionVolume, &iaMRIIdx[nVoxel], 0 );
 
       /* Find and remove it from the list. */
@@ -7528,8 +7524,8 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
       while ( xList_tErr_NoErr ==
               (eList = xList_NextFromPos( gSelectionList, 
                                           (void**)pvoid ))) {
-        if ( NULL != delVoxel ) {
-          if ( xVoxl_IsEqualFloat( delVoxel, &iaMRIIdx[nVoxel] ) ) {
+	  if ( NULL != delVoxel ) {
+          if ( xVoxl_IsEqualInt( delVoxel, &iaMRIIdx[nVoxel] ) ) {
             void* pvoidVoxel = (void*) &delVoxel;
             xList_RemoveItem( gSelectionList, (void**)pvoidVoxel );
             xVoxl_Delete( &delVoxel );
