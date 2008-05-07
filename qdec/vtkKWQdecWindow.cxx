@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/07 22:32:36 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2008/05/07 17:14:48 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.2 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.3 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -801,6 +801,8 @@ vtkKWQdecWindow::CreateWidget () {
   mMenuMeasure->GetMenu()->AddRadioButton( "white.K" );
   mMenuMeasure->GetMenu()->AddRadioButton( "white.H" );
   mMenuMeasure->GetMenu()->AddRadioButton( "jacobian_white" );
+  mMenuMeasure->GetMenu()->AddRadioButton( "intensity.deep" );
+  mMenuMeasure->GetMenu()->AddRadioButton( "intensity.superficial" );
   mMenuMeasure->SetValue( "thickness" );
   this->Script( "grid %s -column 1 -row %d -sticky nw",
                 mMenuMeasure->GetWidgetName(), nRow );
