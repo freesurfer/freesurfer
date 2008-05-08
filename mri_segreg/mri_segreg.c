@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/08 22:39:04 $
- *    $Revision: 1.37 $
+ *    $Date: 2008/05/08 23:34:41 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -179,7 +179,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.37 2008/05/08 22:39:04 greve Exp $";
+"$Id: mri_segreg.c,v 1.38 2008/05/08 23:34:41 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -280,13 +280,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.37 2008/05/08 22:39:04 greve Exp $",
+     "$Id: mri_segreg.c,v 1.38 2008/05/08 23:34:41 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.37 2008/05/08 22:39:04 greve Exp $",
+     "$Id: mri_segreg.c,v 1.38 2008/05/08 23:34:41 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -466,6 +466,16 @@ int main(int argc, char **argv) {
   for(nth=0; nth < 6; nth++) p[nth] = 0.0;
   if(!UseSurf)  GetCosts(mov,     segreg, R0, R, p, costs);
   else          GetSurfCosts(mov, segreg, R0, R, p, costs);
+
+  if(DoProfile){
+    printf("Profiling over 100 iterations\n");
+    TimerStart(&mytimer) ;
+    for(n=0; n < 100; n++) GetSurfCosts(mov, segreg, R0, R, p, costs);
+    secCostTime = TimerStop(&mytimer)/1000.0;
+    printf("ttot = %g\n",secCostTime);
+    printf("tper = %g\n",secCostTime/100);
+    exit(0);
+  }
 
   printf("Initial cost is %lf\n",costs[7]);
   printf("Initial Costs\n");
