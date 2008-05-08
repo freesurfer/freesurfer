@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/08 18:51:29 $
- *    $Revision: 1.36 $
+ *    $Date: 2008/05/08 22:39:04 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,10 @@
   --sum sumfile : def is outreg.sum
   --no-surf : do not use surface-based method
   --1dpreopt min max delta : brute force in PE direction
+
+  --preopt-file file : save preopt results in file
+  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
+  --preopt-only : only preopt, so not optimize
 
   --gm-gt-wm slope : gray matter brighter than WM
   --wm-gt-gm slope : WM brighter than gray matter
@@ -175,7 +179,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.36 2008/05/08 18:51:29 greve Exp $";
+"$Id: mri_segreg.c,v 1.37 2008/05/08 22:39:04 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -247,6 +251,10 @@ int DoMidFrame = 0;
 
 int Do1DPreOpt = 0;
 double PreOptMin, PreOptMax, PreOptDelta, PreOpt, PreOptAtMin;
+int PreOptDim = 2;
+char *PreOptFile = NULL;
+int PreOptOnly = 0;
+
 char *surfcostbase=NULL, *lhcostfile=NULL, *rhcostfile=NULL;
 
 int UseLH = 1;
@@ -254,6 +262,7 @@ int UseRH = 1;
 
 MATRIX *MrotPre=NULL,*MtransPre=NULL;
 char *MinCostFile=NULL;
+
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -267,17 +276,17 @@ int main(int argc, char **argv) {
   struct timeb  mytimer;
   double secCostTime;
   MRI_REGION box;
-  FILE *fp, *fpMinCost;
+  FILE *fp, *fpMinCost, *fpPreOpt=NULL;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.36 2008/05/08 18:51:29 greve Exp $",
+     "$Id: mri_segreg.c,v 1.37 2008/05/08 22:39:04 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.36 2008/05/08 18:51:29 greve Exp $",
+     "$Id: mri_segreg.c,v 1.37 2008/05/08 22:39:04 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -488,8 +497,9 @@ int main(int argc, char **argv) {
     PreOptAtMin = 0;
     for(nth=0; nth < 6; nth++) p[nth] = 0.0;
     nth = 0;
+    if(PreOptFile) fpPreOpt = fopen(PreOptFile,"w");
     for(PreOpt = PreOptMin; PreOpt <= PreOptMax; PreOpt += PreOptDelta){
-      p[2] = PreOpt;
+      p[PreOptDim] = PreOpt;
       GetSurfCosts(mov, segreg, R0, R, p, costs);
       if(costs[7] < mincost) {
 	mincost = costs[7];
@@ -497,15 +507,16 @@ int main(int argc, char **argv) {
       }
       printf("%8.4lf %8.4lf %8.4lf \n",PreOpt,costs[7],mincost);
       fprintf(fp,"%8.4lf %8.4lf %8.4lf \n",PreOpt,costs[7],mincost);
-      //sprintf(tmpstr,"myreg.%02d.dat",nth);
-      //regio_write_register(tmpstr,subject,mov->xsize,
-      //mov->zsize,intensity,R,FLT2INT_ROUND);
+      if(PreOptFile) fprintf(fpPreOpt,"%8.4lf %8.4lf \n",PreOpt,costs[7]);
       nth ++;
     }
-    p[2] = PreOptAtMin; // phase encode direction
+    if(PreOptFile) fclose(fpPreOpt);
+    if(PreOptOnly) {
+      printf("PreOptOnly specified, so exiting now\n");
+      exit(0);
+    }
+    p[PreOptDim] = PreOptAtMin; // phase encode direction
     GetSurfCosts(mov, segreg, R0, R, p, costs);
-    //regio_write_register("myreg.reg",subject,mov->xsize,
-    //		 mov->zsize,intensity,R,FLT2INT_ROUND);
     MatrixCopy(R0,R);
     printf("\n");
     fprintf(fp,"\n");
@@ -786,7 +797,19 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%lf",&PreOptDelta);
       Do1DPreOpt = 1;
       nargsused = 3;
-    } else if (istringnmatch(option, "--nmax",0)) {
+    } 
+    else if (istringnmatch(option, "--preopt-file",0)) {
+      if(nargc < 1) argnerr(option,1);
+      PreOptFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--preopt-only",0)) PreOptOnly = 1;
+    else if (istringnmatch(option, "--preopt-dim",0)) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&PreOptDim);
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--nmax",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nMaxItersPowell);
       nargsused = 1;
@@ -998,6 +1021,10 @@ printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("\n");
+printf("  --preopt-file file : save preopt results in file\n");
+printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
+printf("  --preopt-only : only preopt, so not optimize\n");
+printf("\n");
 printf("  --gm-gt-wm slope : gray matter brighter than WM\n");
 printf("  --wm-gt-gm slope : WM brighter than gray matter\n");
 printf("\n");
@@ -1029,6 +1056,7 @@ printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
 printf("\n");
+
 }
 /* --------------------------------------------- */
 static void print_help(void) {
