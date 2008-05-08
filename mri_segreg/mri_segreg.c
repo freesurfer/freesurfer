@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/14 19:45:24 $
- *    $Revision: 1.35 $
+ *    $Date: 2008/05/08 18:51:29 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -41,12 +41,18 @@
   --no-surf : do not use surface-based method
   --1dpreopt min max delta : brute force in PE direction
 
+  --gm-gt-wm slope : gray matter brighter than WM
+  --wm-gt-gm slope : WM brighter than gray matter
+
   --no-mask : do not mask out regions
   --lh-only : only use left hemisphere
   --rh-only : only use right hemisphere
 
   --frame nthframe : use given frame in input (default = 0)
   --mid-frame : use use middle frame
+
+  --trans Tx Ty Tz : translate input reg (mm)
+  --rot   Ax Ay Zz : rotate input reg (degrees)
 
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --no-crop: do not crop anat (crops by default)
@@ -169,7 +175,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.35 2008/04/14 19:45:24 greve Exp $";
+"$Id: mri_segreg.c,v 1.36 2008/05/08 18:51:29 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -246,6 +252,9 @@ char *surfcostbase=NULL, *lhcostfile=NULL, *rhcostfile=NULL;
 int UseLH = 1;
 int UseRH = 1;
 
+MATRIX *MrotPre=NULL,*MtransPre=NULL;
+char *MinCostFile=NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -258,17 +267,17 @@ int main(int argc, char **argv) {
   struct timeb  mytimer;
   double secCostTime;
   MRI_REGION box;
-  FILE *fp;
+  FILE *fp, *fpMinCost;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.35 2008/04/14 19:45:24 greve Exp $",
+     "$Id: mri_segreg.c,v 1.36 2008/05/08 18:51:29 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.35 2008/04/14 19:45:24 greve Exp $",
+     "$Id: mri_segreg.c,v 1.36 2008/05/08 18:51:29 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -293,6 +302,14 @@ int main(int argc, char **argv) {
   fflush(fp);
 
   R00 = MatrixCopy(R0,NULL);
+
+  if(MrotPre || MtransPre){
+    printf("Applying Pre Transform to input reg\n");
+    if(MrotPre)   R0 = MatrixMultiply(MrotPre,R0,R0);
+    if(MtransPre) R0 = MatrixMultiply(MtransPre,R0,R0);
+    printf("Current input reg:\n");
+    MatrixPrint(stdout,R0);
+  }
 
   printf("Loading mov\n");
   mov = MRIread(movvolfile);
@@ -524,7 +541,12 @@ int main(int argc, char **argv) {
     }
     GetSurfCosts(mov, segreg, R0, R, p, costs);
   }
-  
+
+  if(MinCostFile){
+    fpMinCost = fopen(MinCostFile,"w");
+    fprintf(fpMinCost,"%lf\n",costs[7]);
+    fclose(fpMinCost);
+  }
 
   printf("Min cost was %lf\n",costs[7]);
   printf("Number of iterations %5d\n",nth);
@@ -707,6 +729,7 @@ static int parse_commandline(int argc, char **argv) {
   char **pargv, *option;
   int err,nv,n;
   double vmin, vmax, vdelta;
+  double angles[3],xyztrans[3];
 
   if (argc < 1) usage_exit();
 
@@ -790,7 +813,30 @@ static int parse_commandline(int argc, char **argv) {
                                 &intensity, &R0, &float2int);
       if (err) exit(1);
       nargsused = 1;
-    } else if (istringnmatch(option, "--out-reg",0)) {
+    } else if (istringnmatch(option, "--rot",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Angles are in degrees
+      sscanf(pargv[0],"%lf",&angles[0]);
+      sscanf(pargv[1],"%lf",&angles[1]);
+      sscanf(pargv[2],"%lf",&angles[2]);
+      angles[0] *= (M_PI/180);
+      angles[1] *= (M_PI/180);
+      angles[2] *= (M_PI/180);
+      MrotPre = MRIangles2RotMat(angles);
+      nargsused = 3;
+    } else if (istringnmatch(option, "--trans",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Translation in mm
+      sscanf(pargv[0],"%lf",&xyztrans[0]);
+      sscanf(pargv[1],"%lf",&xyztrans[1]);
+      sscanf(pargv[2],"%lf",&xyztrans[2]);
+      MtransPre = MatrixIdentity(4,NULL);
+      MtransPre->rptr[1][4] = xyztrans[0];
+      MtransPre->rptr[2][4] = xyztrans[1];
+      MtransPre->rptr[3][4] = xyztrans[2];
+      nargsused = 3;
+    } 
+    else if (istringnmatch(option, "--out-reg",0)) {
       if (nargc < 1) argnerr(option,1);
       outregfile = pargv[0];
       nargsused = 1;
@@ -908,6 +954,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       SegRegCostFile = pargv[0];
       nargsused = 1;
+    } else if (istringnmatch(option, "--mincost",0)) {
+      if (nargc < 1) argnerr(option,1);
+      MinCostFile = pargv[0];
+      nargsused = 1;
     } else if (istringnmatch(option, "--interp",8)) {
       if (nargc < 1) argnerr(option,1);
       interpmethod = pargv[0];
@@ -948,12 +998,18 @@ printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("\n");
+printf("  --gm-gt-wm slope : gray matter brighter than WM\n");
+printf("  --wm-gt-gm slope : WM brighter than gray matter\n");
+printf("\n");
 printf("  --no-mask : do not mask out regions\n");
 printf("  --lh-only : only use left hemisphere\n");
 printf("  --rh-only : only use right hemisphere\n");
 printf("\n");
 printf("  --frame nthframe : use given frame in input (default = 0)\n");
 printf("  --mid-frame : use use middle frame\n");
+printf("\n");
+printf("  --trans Tx Ty Tz : translate input reg (mm)\n");
+printf("  --rot   Ax Ay Zz : rotate input reg (degrees)\n");
 printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("  --no-crop: do not crop anat (crops by default)\n");
