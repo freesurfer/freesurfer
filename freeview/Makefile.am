@@ -106,7 +106,8 @@ freeview_SOURCES=\
 	wxVTKRenderWindowInteractor.cpp \
 	wxVTKRenderWindowInteractor.h \
 	res/resource.cpp \
-	res/resource.h
+	res/resource.h \
+	res/QuickRef.h
 
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
