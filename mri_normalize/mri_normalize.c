@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/01 19:11:12 $
- *    $Revision: 1.53 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/12 17:33:07 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,14 +105,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.53 2008/03/01 19:11:12 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.54 2008/05/12 17:33:07 nicks Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.53 2008/03/01 19:11:12 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.54 2008/05/12 17:33:07 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -349,7 +349,9 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "no1d")) {
+  if (!stricmp(option, "-help")) {
+    usage_exit(0);
+  } else if (!stricmp(option, "no1d")) {
     no1d = 1 ;
     fprintf(stderr, "disabling 1d normalization...\n") ;
   } else if (!stricmp(option, "MASK")) {
@@ -500,12 +502,16 @@ get_option(int argc, char *argv[]) {
 static void
 usage_exit(int code) {
   printf("%s input output\n\n", Progname) ;
+  printf("  -n <int n>         use n 3d normalization "
+         "iterations (default=%d)\n", num_3d_iter);
   printf("  -no1d              disable 1d normalization\n");
   printf("  -conform           interpolate and embed volume to be 256^3\n");
+  printf("  -noconform         do not conform the volume\n");
   printf("  -gentle            perform kinder gentler normalization\n");
   printf("  -f <path to file>  use control points "
          "file (usually control.dat)\n");
-  printf("  -w <mri_vol c> <mri_vol b> write ctrl point(c) "
+  printf("  -fonly <fname>     use only control points file\n");
+  printf("  -w <mri_vol c> <mri_vol b> : write ctrl point(c) "
          "and bias field(b) volumes\n");
   printf("  -a <float a>       use control point with "
          "intensity a above target (default=%2.1f)\n", intensity_above);
@@ -513,20 +519,19 @@ usage_exit(int code) {
          "intensity b below target (default=%2.1f)\n", intensity_below);
   printf("  -g <float g>       use max intensity/mm "
          "gradient g (default=%2.3f)\n", mni.max_gradient);
-  printf("  -v                 verbose\n");
-  printf("  -v Gvx Gvy Gvz : for debuggin\n");
-  printf("  -n <int n>         use n 3d normalization "
-         "iterations (default=%d)\n", num_3d_iter);
-  printf("  -u or -h            print usage\n");
-  printf("  -prune <boolean>     turn pruning of control points "
-         "on/off (default=off). Useful if white is expanding into gm\n") ;
+  printf("  -prune <boolean>   turn pruning of control points "
+         "on/off (default=off).\n"
+         "                     pruning useful if white is "
+         "expanding into gm\n") ;
   printf("  -MASK maskfile \n");
-  printf("  -monkey : turns of 1d, sets num_3d_iter=1\n");
-  printf("  -nosnr : disable snr normalization\n");
-  printf("  -sigma sigma : smooth bias field\n");
+  printf("  -monkey            turns off 1d, sets num_3d_iter=1\n");
+  printf("  -nosnr             disable snr normalization\n");
+  printf("  -sigma sigma       smooth bias field\n");
   printf("  -aseg aseg\n");
-  printf("  -d Gx Gy Gz : for debuggin\n");
+  printf("  -v Gvx Gvy Gvz     for debugging\n");
+  printf("  -d Gx Gy Gz        for debugging\n");
   printf("  -r controlpoints biasfield : for reading\n");
+  printf("  -u or -h           print usage\n");
   printf("  \n");
 
   exit(code);
