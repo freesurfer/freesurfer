@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/23 05:04:43 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/05/12 18:40:42 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -915,7 +915,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       if (nthcf == 0)
       {
         sprintf(tmpstr,
-                "Avg-Intercept-%s",
+                "%s-Avg-Intercept-%s",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,
@@ -928,7 +929,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         name = strdup(tmpstr);
@@ -947,7 +949,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherFactorName = otherFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         name = strdup(tmpstr);
@@ -997,7 +1000,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       if (nthcf == 0)
       {
         sprintf(tmpstr,
-                "Avg-Intercept-%s",
+                "%s-Avg-Intercept-%s",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,
@@ -1010,7 +1014,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         name = strdup(tmpstr);
@@ -1031,7 +1036,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherContFactorName = otherFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         name = strdup(tmpstr);
@@ -1062,7 +1068,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthcf == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ between %s and %s?",
@@ -1073,7 +1080,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       {
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
@@ -1092,7 +1100,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherContFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
@@ -1156,7 +1165,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       if (nthcf == 0)
       {
         sprintf(tmpstr,
-                "Avg-Intercept-%s",
+                "%s-Avg-Intercept-%s",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ from zero?",
@@ -1168,7 +1178,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         name = strdup(tmpstr);
@@ -1189,7 +1200,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherContFactorName = otherFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         name = strdup(tmpstr);
@@ -1222,7 +1234,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthcf == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s, accounting for %s, "
@@ -1236,7 +1249,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       {
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
@@ -1258,7 +1272,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherContFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
@@ -1293,7 +1308,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthcf == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df2l1name,df2l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s, accounting for %s, "
@@ -1307,7 +1323,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       {
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df2l1name,df2l2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
@@ -1329,7 +1346,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherContFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df2l1name,df2l2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
@@ -1364,7 +1382,8 @@ int QdecGlmDesign::GenerateContrasts ( )
       string question = "";
       if (nthcf == 0)
       {
-        sprintf(tmpstr,"X-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-X-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df1name,df2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Is there a %s--%s interaction in the mean %s?",
@@ -1376,7 +1395,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
         string contFactorName = contFactor->GetFactorName();
         sprintf(tmpstr,
-                "X-%s-%s-Cor-%s-%s",
+                "%s-X-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1name,df2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
@@ -1397,7 +1417,8 @@ int QdecGlmDesign::GenerateContrasts ( )
         else otherFactor = this->mContinuousFactors[nthcf-2];
         string otherContFactorName = otherFactor->GetFactorName();
         sprintf(tmpstr,
-                "X-%s-%s-Cor-%s-%s",
+                "%s-X-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1name,df2name,
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
