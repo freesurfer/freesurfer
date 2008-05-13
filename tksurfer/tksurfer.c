@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2008/05/01 22:29:13 $
- *    $Revision: 1.308 $
+ *    $Date: 2008/05/13 16:07:02 $
+ *    $Revision: 1.309 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -15452,12 +15452,9 @@ draw_colscalebar(void)
 {
   int i, j;
   float v[3], tmpzf, stat, maxval;
-  int NSEGMENTS = 100 ;
+  int NSEGMENTS = 10000 ;
   void *glut_font;
-  float abs_func_value;
   float func_per_segment;
-  int num_decimals;
-  char format[256];
   char label[256];
   int cur_char;
   float bar_min_value;
@@ -15473,7 +15470,7 @@ draw_colscalebar(void)
   v[2] = 1.0;
   n3f(v);
 
-  /* This is an array of segement indices at which we will draw
+  /* This is an array of segment indices at which we will draw
      labels. Init them to -1 for now. */
   for (i=0; i<4; i++)
   {
@@ -15578,7 +15575,7 @@ draw_colscalebar(void)
     }
     endpolygon();
 
-    /* Check our list of segements at which to draw labels, and see if
+    /* Check our list of segments at which to draw labels, and see if
        this is one of them. */
     if (colscalebartextflag || colscalebartickflag)
       for (j=0; j <4; j++)
@@ -15608,23 +15605,8 @@ draw_colscalebar(void)
             }
             else
             {
-              /* Calc how many decimals our label should have. */
-              abs_func_value = fabs(stat);
-              if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
-              else if (abs_func_value > 0.1) num_decimals = 3;
-              else if (abs_func_value > 0.01) num_decimals = 4;
-              else if (abs_func_value > 0.001) num_decimals = 5;
-              else if (abs_func_value > 0.0001) num_decimals = 6;
-              else if (abs_func_value > 0.00001) num_decimals = 7;
-              else if (abs_func_value > 0.000001) num_decimals = 8;
-              else if (abs_func_value > 0.0000001) num_decimals = 9;
-              else num_decimals = 10;
-
-              /* Make a format string with that many decimals. */
-              sprintf (format, "%%2.%df", num_decimals);
-
-              /* Copy the value to the label using that format string. */
-              sprintf (label, format, stat);
+              /* Force label to have 3 decimal places*/
+              sprintf (label, "%2.3f", stat);
             }
 
             /* Figure out a good label position based. Here,
@@ -20692,7 +20674,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.308 2008/05/01 22:29:13 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.309 2008/05/13 16:07:02 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
