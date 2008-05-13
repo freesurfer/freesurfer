@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.8 $
+#    $Author: greve $
+#    $Date: 2008/05/13 20:43:21 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 
 
-set VERSION = '$Id: func2sph-sess,v 1.8 2007/01/09 22:41:17 nicks Exp $';
+set VERSION = '$Id: func2sph-sess,v 1.9 2008/05/13 20:43:21 greve Exp $';
 
 set inputargs = ($argv);
 set analysis    = ();
@@ -230,12 +230,13 @@ foreach sess ($SessList)
 
       #set v2s = /space/greve/1/users/greve/build/mri_vol2surf/mri_vol2surf
       set v2s = mri_vol2surf
+      set fname = `stem2fname $funcstem`
       set cmd = ();
-      set cmd = ($cmd $v2s --srcvol $funcstem --src_type bfloat --srcreg $srcreg)
+      set cmd = ($cmd $v2s --srcvol $fname  --srcreg $srcreg)
       set cmd = ($cmd --trgsubject $TrgSubject $IcoOrderOption)
       set cmd = ($cmd --mapmethod $MapMethod)
       set cmd = ($cmd --hemi $hemi --surf $Surface --surfreg $SurfaceReg)
-      set cmd = ($cmd --out $sphstem --out_type bfloat --float2int $Float2Int)
+      set cmd = ($cmd --out $sphstem.$FSF_OUTPUT_FORMAT --float2int $Float2Int)
       set cmd = ($cmd --interp $Interp)
       if($#fwhm != 0) set cmd = ($cmd --fwhm $fwhm)
       if($synth != 0) set cmd = ($cmd --srcsynth -1)
