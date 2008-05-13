@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/08 23:34:41 $
- *    $Revision: 1.38 $
+ *    $Date: 2008/05/13 23:45:18 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -73,6 +73,9 @@
 
   --1dmin : use brute force 1D minimizations instead of powell
   --n1dmin n1dmin : number of 1d minimization (default = 3)
+
+  --mincost MinCostFile
+  --rms     RMSDiffFile
 
   --mksegreg subject : create segreg.mgz and exit
 
@@ -179,7 +182,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.38 2008/05/08 23:34:41 greve Exp $";
+"$Id: mri_segreg.c,v 1.39 2008/05/13 23:45:18 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -263,30 +266,34 @@ int UseRH = 1;
 MATRIX *MrotPre=NULL,*MtransPre=NULL;
 char *MinCostFile=NULL;
 
+int DoRMSDiff = 0;
+char *RMSDiffFile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
   double costs[8], mincost, p[6];
   double tx, ty, tz, ax, ay, az;
-  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n, err;
+  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n, err,vno;
   MATRIX *Ttemp=NULL, *invTtemp=NULL, *Stemp=NULL, *invStemp=NULL;
   MATRIX *R=NULL, *Rcrop=NULL, *R00=NULL, *Rdiff=NULL;
   MATRIX *Rmin=NULL, *Scrop=NULL, *invScrop=NULL, *invTcrop=NULL, *Tcrop=NULL;
   struct timeb  mytimer;
   double secCostTime;
   MRI_REGION box;
-  FILE *fp, *fpMinCost, *fpPreOpt=NULL;
+  FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL;
+  double rmsDiffSum, rmsDiffMean=0, d;
+  VERTEX *v;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.38 2008/05/08 23:34:41 greve Exp $",
+     "$Id: mri_segreg.c,v 1.39 2008/05/13 23:45:18 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.38 2008/05/08 23:34:41 greve Exp $",
+     "$Id: mri_segreg.c,v 1.39 2008/05/13 23:45:18 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -647,8 +654,40 @@ int main(int argc, char **argv) {
   fprintf(fp,"Original Reg - Optimal Reg\n");
   MatrixPrint(fp,Rdiff);
   fprintf(fp,"\n");
+
+  if(DoRMSDiff){
+    rmsDiffSum = 0;
+    if(lhwm){
+      printf("Computing change in lh position\n");
+      MRISmatrixMultiply(lhwm,Rdiff);
+      for(vno = 0; vno < lhwm->nvertices; vno++){
+	v = &(lhwm->vertices[vno]);
+	d = sqrt(v->x*v->x + v->y*v->y + v->z*v->z );
+	rmsDiffSum += d;
+      }
+      rmsDiffMean = rmsDiffSum/(lhwm->nvertices);
+      printf("LH rmsDiffMean %lf\n",rmsDiffMean);
+    }
+    if(rhwm){
+      printf("Computing change in rh position\n");
+      MRISmatrixMultiply(rhwm,Rdiff);
+      for(vno = 0; vno < rhwm->nvertices; vno++){
+	v = &(rhwm->vertices[vno]);
+	d = sqrt(v->x*v->x + v->y*v->y + v->z*v->z );
+	rmsDiffSum += d;
+      }
+      rmsDiffMean = rmsDiffSum/(lhwm->nvertices + rhwm->nvertices);
+    }
+    printf("rmsDiffMean %lf\n",rmsDiffMean);
+    fprintf(fp,"rmsDiffMean %lf\n",rmsDiffMean);
+    if(RMSDiffFile){
+      fpRMSDiff = fopen(RMSDiffFile,"w");
+      fprintf(fpRMSDiff,"%lf\n",rmsDiffMean);
+      fclose(fpRMSDiff);
+    }    
+  }
+
   fclose(fp);
-  
   printf("mri_segreg done\n");
 
   exit(0);
@@ -991,6 +1030,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       MinCostFile = pargv[0];
       nargsused = 1;
+    } else if (istringnmatch(option, "--rms",0)) {
+      if (nargc < 1) argnerr(option,1);
+      RMSDiffFile = pargv[0];
+      DoRMSDiff = 1;
+      nargsused = 1;
     } else if (istringnmatch(option, "--interp",8)) {
       if (nargc < 1) argnerr(option,1);
       interpmethod = pargv[0];
@@ -1064,9 +1108,11 @@ printf("\n");
 printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
 printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
+printf("  --mincost MinCostFile\n");
+printf("  --rms     RMSDiffFile\n");
+printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
 printf("\n");
-
 }
 /* --------------------------------------------- */
 static void print_help(void) {
