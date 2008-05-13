@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/13 23:45:18 $
- *    $Revision: 1.39 $
+ *    $Date: 2008/05/13 23:55:01 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -75,7 +75,7 @@
   --n1dmin n1dmin : number of 1d minimization (default = 3)
 
   --mincost MinCostFile
-  --rms     RMSDiffFile
+  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff
 
   --mksegreg subject : create segreg.mgz and exit
 
@@ -182,7 +182,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.39 2008/05/13 23:45:18 greve Exp $";
+"$Id: mri_segreg.c,v 1.40 2008/05/13 23:55:01 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -266,7 +266,7 @@ int UseRH = 1;
 MATRIX *MrotPre=NULL,*MtransPre=NULL;
 char *MinCostFile=NULL;
 
-int DoRMSDiff = 0;
+int DoRMSDiff = 1; // this is fast, so ok to do automatically
 char *RMSDiffFile = NULL;
 
 /*---------------------------------------------------------------*/
@@ -287,13 +287,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.39 2008/05/13 23:45:18 greve Exp $",
+     "$Id: mri_segreg.c,v 1.40 2008/05/13 23:55:01 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.39 2008/05/13 23:45:18 greve Exp $",
+     "$Id: mri_segreg.c,v 1.40 2008/05/13 23:55:01 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -678,11 +678,12 @@ int main(int argc, char **argv) {
       }
       rmsDiffMean = rmsDiffSum/(lhwm->nvertices + rhwm->nvertices);
     }
-    printf("rmsDiffMean %lf\n",rmsDiffMean);
-    fprintf(fp,"rmsDiffMean %lf\n",rmsDiffMean);
+    printf("Surface Mean RMS Diff (mm) %lf\n",rmsDiffMean);
+    fprintf(fp,"Surface Mean RMS Diff (mm) %lf\n",rmsDiffMean);
     if(RMSDiffFile){
       fpRMSDiff = fopen(RMSDiffFile,"w");
-      fprintf(fpRMSDiff,"%lf\n",rmsDiffMean);
+      fprintf(fpRMSDiff,"%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf\n",
+	 p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean);
       fclose(fpRMSDiff);
     }    
   }
@@ -1109,7 +1110,7 @@ printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
 printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
 printf("  --mincost MinCostFile\n");
-printf("  --rms     RMSDiffFile\n");
+printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff\n");
 printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
 printf("\n");
