@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:23 $
- *    $Revision: 1.70 $
+ *    $Author: greve $
+ *    $Date: 2008/05/14 20:34:43 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.70 2008/03/10 13:35:23 nicks Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.71 2008/05/14 20:34:43 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -365,7 +365,7 @@ int SrcIcoOrder = -1;
 int UseSurfSrc=0; // Get source values from surface, eg, xyz
 char *SurfSrcName=NULL;
 MRI_SURFACE *SurfSrc;
-MATRIX *XFM=NULL;
+MATRIX *XFM=NULL, *XFMSubtract=NULL;
 #define SURF_SRC_XYZ     1
 #define SURF_SRC_TAL_XYZ 2
 #define SURF_SRC_AREA    3
@@ -436,6 +436,8 @@ int UseCortexLabel = 0;
 int OKToRevFaceOrder = 1;
 int RevFaceOrder = 0;
 
+char *RMSDatFile = NULL;
+
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
   int f,tvtx,svtx,n,err;
@@ -453,7 +455,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.70 2008/03/10 13:35:23 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.71 2008/05/14 20:34:43 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -582,12 +584,35 @@ int main(int argc, char **argv) {
         MRISmatrixMultiply(SurfSrc,XFM);
       }
       if(ApplyReg) {
+	if(XFMSubtract) {
+	  // This is primarily for testing (computing rms diffs below)
+	  printf("Computing diff in registration matrices\n");
+	  XFM = MatrixSubtract(XFM,XFMSubtract,XFM);
+	}
         printf("Applying linear registration transform\n");
         MatrixPrint(stdout,XFM);
         MRISmatrixMultiply(SurfSrc,XFM);
 	if(MatrixDeterminant(XFM) < 0.0 && OKToRevFaceOrder) {
 	  printf("Determinant of linear transform is negative, so reversing face order\n");
 	  RevFaceOrder = 1;
+	}
+	if(RMSDatFile){
+	  // This is primarily for testing
+	  printf("Computing RMS\n");
+	  a1 = 0.0;
+	  for(n=0; n < SurfSrc->nvertices; n++){
+	    x = SurfSrc->vertices[n].x;
+	    y = SurfSrc->vertices[n].y;
+	    z = SurfSrc->vertices[n].z;
+	    a0 = sqrt(x*x + y*y + z*z);
+	    a1 += a0;
+	  }
+	  a1 /= SurfSrc->nvertices;
+	  printf("RMS %lf\n",a1);
+	  fp = fopen(RMSDatFile,"w");
+	  fprintf(fp,"%lf\n",a1);
+	  fclose(fp);
+	  exit(0);
 	}
       }
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 2, "z"); // start at z to autoalloc
@@ -1021,6 +1046,16 @@ static int parse_commandline(int argc, char **argv) {
       if (err) exit(1);
       ApplyReg = 1;
       nargsused = 1;
+    } else if (!strcasecmp(option, "--reg-diff")) {
+      if (nargc < 1) argnerr(option,1);
+      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
+                                &intensity, &XFMSubtract, &float2int);
+      if (err) exit(1);
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--rms")) {
+      if (nargc < 1) argnerr(option,1);
+      RMSDatFile = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--reg-inv")) {
       if (nargc < 1) argnerr(option,1);
       err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
@@ -1270,7 +1305,9 @@ static void print_usage(void) {
   printf("   --ones  : replace input with 1s\n");
   printf("   --normvar : rescale so that stddev=1 (good with --synth)\n");
   printf("   --seed seed : seed for synth (default is auto)\n");
-
+  printf("\n");
+  printf("   --reg-diff reg2 : subtract reg2 from --reg (primarily for testing)\n");
+  printf("   --rms rms.dat   : save rms of reg1-reg2 (primarily for testing)\n");
   printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
@@ -1591,12 +1628,12 @@ static void check_options(void) {
     fprintf(stdout,"ERROR: no target subject specified\n");
     exit(1);
   }
-  if (trgvalfile == NULL) {
+  if(trgvalfile == NULL && RMSDatFile == NULL) {
     fprintf(stdout,"A target value path must be supplied\n");
     exit(1);
   }
 
-  if (UseSurfTarg == 0 && UseSurfSrc != SURF_SRC_ANNOT) {
+  if (UseSurfTarg == 0 && UseSurfSrc != SURF_SRC_ANNOT && RMSDatFile == NULL) {
     if ( strcasecmp(trgtypestring,"w") != 0 &&
          strcasecmp(trgtypestring,"curv") != 0 &&
          strcasecmp(trgtypestring,"paint") != 0 ) {
