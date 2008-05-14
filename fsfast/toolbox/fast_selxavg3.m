@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.55.2.5 2008/05/13 21:10:30 greve Exp $
+% $Id: fast_selxavg3.m,v 1.55.2.6 2008/05/14 20:01:35 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/05/13 21:10:30 $
-%    $Revision: 1.55.2.5 $
+%    $Date: 2008/05/14 20:01:35 $
+%    $Revision: 1.55.2.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.55.2.5 2008/05/13 21:10:30 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.55.2.6 2008/05/14 20:01:35 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -607,6 +607,7 @@ if(DoGLMFit)
       flac.nthrun = nthrun;
       flac = flac_customize(flac);
       indrun = find(tpindrun == nthrun);
+
       if(~DoSynth)
 	yrun = MRIread(flac.funcfspec);
 	yrun = fast_vol2mat(yrun);
@@ -629,6 +630,7 @@ if(DoGLMFit)
 	end
 	yrun = ynoise + ysignal;
       end
+
       yrun = RescaleFactor*yrun;
       Xrun = X(indrun,:);
       yhatrun = Xrun*betamat;
@@ -658,10 +660,11 @@ if(DoGLMFit)
     fprintf('Not Whitening\n');
     rvarmat = rvarmat0;
     betamat = betamat0;
+    W = [];
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
-  save(xfile,'X','DOF','flac0','runflac','RescaleFactor',...
+  save(xfile,'X','W','DOF','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn',...
        'DoSynth','SynthSeed','UseFloat','yrun_randn');
   
