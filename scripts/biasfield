@@ -1,0 +1,242 @@
+#! /bin/tcsh -f
+
+#
+# biasfield
+#
+# Creates intensity profile
+#
+# --help option will show usage
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2008/05/14 17:20:50 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: biasfield,v 1.1 2008/05/14 17:20:50 greve Exp $';
+
+set PrintHelp = 0;
+set subject = ();
+set cleanup = 1;
+set tmpdir = ();
+set DoTal = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+#----------------------------------------------------------
+setenv FSLOUTPUTTYPE NIFTI
+# Get avwmaths cmd
+set maths = $FSLDIR/bin/avwmaths
+if(! -e $maths) then
+  set maths = $FSLDIR/bin/fslmaths
+  if(! -e $maths) then
+    echo "ERROR: cannot find avwmaths or fslmaths" 
+    exit 1;
+  endif
+endif
+
+cd $SUBJECTS_DIR/$subject/mri
+set LF =  $SUBJECTS_DIR/$subject/scripts/biasfield.log
+if(-e $LF) mv $LF $LF.bak
+
+date | tee -a $LF
+uname -a | tee -a $LF
+
+if($#tmpdir == 0) set tmpdir = biasfield.tmp.$$
+mkdir -p $tmpdir
+
+# Convert rawavg (uncorrected) to 256^3 (but not conformed)
+set rawcor = $tmpdir/rawavg.cor.nii
+set cmd = (mri_vol2vol --mov rawavg.mgz --targ orig.mgz \
+  --regheader --o $rawcor)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Convert T1 (corrected)
+set T1 = $tmpdir/t1.nii
+set cmd = (mri_convert T1.mgz $T1)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Divide uncorrected by corrected - when correcting another volume,
+# divide it by the profile. So voxels where the biasfield is small
+# should be bright in the uncorrected, then darkened by biasfield.
+set iprofnii = $tmpdir/biasfield.nii
+set cmd = ($maths $rawcor -div $T1 $iprofnii)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Compute mean biasfield in Central CC
+set sumfile = $tmpdir/iprof.sum.dat
+set cmd = (mri_segstats --in $iprofnii --seg aseg.mgz --id 253 --sum $sumfile)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+set scale = `cat $sumfile | grep -v  \# | awk '{print 1/$5}'`
+echo "scale is $scale" | tee -a $LF
+
+# Rescale so that Central CC is 1.0 and convert to mgz
+set iprofmgz = biasfield.mgz
+set cmd = (mri_convert $iprofnii $iprofmgz --scale $scale)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Sample in tal space
+if($DoTal) then
+  set cmd = (mri_vol2vol --mov biasfield.mgz --tal --talres 2 \
+    --s $subject --o biasfield.tal.mgz --no-save-reg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
+if($cleanup) rm -r $tmpdir
+
+date  | tee -a $LF
+echo "biasfield done" | tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1];shift;
+
+  switch($flag)
+
+    case "--help":
+      set PrintHelp = 1;
+      goto usage_exit;
+      exit 0;
+
+    case "--version":
+      echo $VERSION
+      exit 0;
+
+    case "--s":
+    case "--subject":
+      if( $#argv < 1) goto arg1moreerr;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if( $#argv < 1) goto arg1moreerr;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--no-cleanup":
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set echo = 1;
+      set verbose = 1
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#subject == 0) then
+    echo "ERROR: must spec subject"
+    exit 1
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannto find $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg1moreerr:
+  echo "ERROR: flag $flag requires one or more arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "biasfield"
+  echo ""
+  echo "  --s subject"
+  echo ""
+  echo "   --tmp tmpdir"
+  echo "   --nocleanup"
+  echo "   --help"
+  echo "   --debug"
+  echo "   --version : script version info"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo Version: $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the bias field based on the (unconformed) rawavg.mgz and the
+T1.mgz.  The intensity is normalized so that the mean bias field in
+the central corpus callosum is 1. The output is a file called
+biasfield.mgz in the subject mri dir.
