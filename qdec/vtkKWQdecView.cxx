@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 01:05:43 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/05/14 02:03:23 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -70,11 +70,14 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.3 $" );
 
+// these control the amount and speed of rotation
+// with AnimateSteps=1, it doesnt animate, and its instaneous
+// old values shown for the slow rotation animation when Rotate buttons pushed
 double const vtkKWQdecView::kAnimationDegrees = 90.0;
-double const vtkKWQdecView::kcAnimateSteps = 10.0;
-double const vtkKWQdecView::kAnimateTimeInSeconds = 1.0;
+double const vtkKWQdecView::kcAnimateSteps = 1;  // was 10.0
+double const vtkKWQdecView::kAnimateTimeInSeconds = 0.1;  // was 1.0
 
 vtkKWQdecView::vtkKWQdecView () :
   mfnSurface( "" ),
