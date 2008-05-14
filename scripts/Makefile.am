@@ -10,6 +10,7 @@ aparcstatsdiff \
 asegstatsdiff \
 batchjobs \
 bblabel \
+biasfield \
 bedpostx_seychelles \
 browse-minc-header.tcl \
 bugr \
