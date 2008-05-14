@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/14 17:20:50 $
-#    $Revision: 1.1 $
+#    $Date: 2008/05/14 17:50:53 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: biasfield,v 1.1 2008/05/14 17:20:50 greve Exp $';
+set VERSION = '$Id: biasfield,v 1.2 2008/05/14 17:50:53 greve Exp $';
 
 set PrintHelp = 0;
 set subject = ();
@@ -65,9 +65,23 @@ if(! -e $maths) then
 endif
 
 cd $SUBJECTS_DIR/$subject/mri
+
+# Check that the rawavg is not uchar
+set cmd = (mri_info --o /tmp/tmp.$$.type --type rawavg.mgz)
+echo $cmd 
+$cmd 
+if($status) exit 1;
+set dtype = `cat /tmp/tmp.$$.type`
+rm -f /tmp/tmp.$$.type
+echo "dtype $dtype"
+if($dtype == "uchar") then
+  echo "ERROR: it appears that rawavg.mgz is conformed"
+  exit 1;
+endif
+
+# Create log file
 set LF =  $SUBJECTS_DIR/$subject/scripts/biasfield.log
 if(-e $LF) mv $LF $LF.bak
-
 date | tee -a $LF
 uname -a | tee -a $LF
 
@@ -84,7 +98,7 @@ if($status) exit 1;
 
 # Convert T1 (corrected)
 set T1 = $tmpdir/t1.nii
-set cmd = (mri_convert T1.mgz $T1)
+set cmd = (mri_convert norm.mgz $T1)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -107,9 +121,27 @@ if($status) exit 1;
 set scale = `cat $sumfile | grep -v  \# | awk '{print 1/$5}'`
 echo "scale is $scale" | tee -a $LF
 
-# Rescale so that Central CC is 1.0 and convert to mgz
+# Rescale so that Central CC is 1.0
+set cmd = (mri_convert $iprofnii $iprofnii --scale $scale)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Convert to mgz
 set iprofmgz = biasfield.mgz
-set cmd = (mri_convert $iprofnii $iprofmgz --scale $scale)
+set cmd = (mri_convert $iprofnii $iprofmgz)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Unbias raw cor
+set cmd = ($maths $rawcor -div $iprofnii $rawcor)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Convert unbiased raw cor to mgz
+set cmd = (mri_convert $rawcor rawavg.cor.norm.mgz)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -236,7 +268,13 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Computes the bias field based on the (unconformed) rawavg.mgz and the
-T1.mgz.  The intensity is normalized so that the mean bias field in
-the central corpus callosum is 1. The output is a file called
-biasfield.mgz in the subject mri dir.
+Computes the bias field by dividing the (unconformed) rawavg.mgz by
+the norm.mgz.  The bias field is normalized so that the mean bias
+field in the central corpus callosum is 1. The output is a file called
+biasfield.mgz in the subject mri dir. Also creates a file called
+rawavg.cor.norm.mgz, which is the rawavg in 256^3, 1mm^3 space with
+the bias field removed (note that this is not fully conformed).
+
+NOTE: this cannot be run if the rawavg.mgz is already conformed or
+if the inputs (001.mgz, etc) have been conformed.
+
