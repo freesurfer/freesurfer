@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/14 01:37:27 $
- *    $Revision: 1.41 $
+ *    $Date: 2008/05/14 04:35:11 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,7 @@
   --sum sumfile : def is outreg.sum
   --no-surf : do not use surface-based method
   --1dpreopt min max delta : brute force in PE direction
+  --fwhm fwhm : smooth input by fwhm mm
 
   --preopt-file file : save preopt results in file
   --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
@@ -182,7 +183,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.41 2008/05/14 01:37:27 greve Exp $";
+"$Id: mri_segreg.c,v 1.42 2008/05/14 04:35:11 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -269,6 +270,9 @@ char *MinCostFile=NULL;
 int DoRMSDiff = 1; // this is fast, so ok to do automatically
 char *RMSDiffFile = NULL;
 
+int DoSmooth = 0;
+double fwhm = 0, gstd = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -287,13 +291,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.41 2008/05/14 01:37:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.42 2008/05/14 04:35:11 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.41 2008/05/14 01:37:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.42 2008/05/14 04:35:11 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -338,6 +342,11 @@ int main(int argc, char **argv) {
     mritmp = fMRIframe(mov, frame, NULL);
     MRIfree(&mov);
     mov = mritmp;
+  }
+
+  if(DoSmooth){
+    printf("Smoothing input by fwhm=%lf, gstd=%lf\n",fwhm,gstd);
+    MRImaskedGaussianSmooth(mov, NULL, gstd, mov);
   }
 
   if(inormfile){
@@ -927,6 +936,12 @@ static int parse_commandline(int argc, char **argv) {
       PenaltySign = +1;
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
+    } else if (istringnmatch(option, "--fwhm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fwhm);
+      gstd = fwhm/sqrt(log(256.0));
+      DoSmooth = 1;
+      nargsused = 1;
     } else if (istringnmatch(option, "--noise",0)) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&NoiseStd);
@@ -1075,6 +1090,7 @@ printf("  --cost costfile\n");
 printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
+printf("  --fwhm fwhm : smooth input by fwhm mm\n");
 printf("\n");
 printf("  --preopt-file file : save preopt results in file\n");
 printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
