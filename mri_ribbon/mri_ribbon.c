@@ -7,11 +7,11 @@
  *              input_volume_pref output_volume_pref
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/03 02:20:46 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/15 15:51:35 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,11 @@
 
 char *Progname;
 
-MRI *MRIcropVolumeToLabel(MRI *mri_src, MRI *mri_dst, LABEL *area, MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial);
+MRI *MRIcropVolumeToLabel(MRI *mri_src, 
+                          MRI *mri_dst, 
+                          LABEL *area, 
+                          MRI_SURFACE *mris_white, 
+                          MRI_SURFACE *mris_pial);
 
 int main(int argc, char *argv[]) {
   char *inner_mris_fname,*outer_mris_fname,*input_mri_pref,*output_mri_pref;
@@ -58,7 +62,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ribbon.c,v 1.10 2008/03/03 02:20:46 fischl Exp $", 
+     "$Id: mri_ribbon.c,v 1.11 2008/05/15 15:51:35 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -76,12 +80,15 @@ int main(int argc, char *argv[]) {
         nargs = 1 ;
         area = LabelRead(NULL, argv[2]) ;
         if (area == NULL)
-          ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", argv[2]) ;
+          ErrorExit(ERROR_NOFILE, 
+                    "%s: could not read label file %s\n", 
+                    argv[2]) ;
         break ;
       default:
         break ;
       }
       argc -= (nargs+1) ;
+      if (argc == 1) break;
       argv += (nargs+1) ;
     }
 
@@ -140,7 +147,11 @@ int main(int argc, char *argv[]) {
 }
 
 MRI *
-MRIcropVolumeToLabel(MRI *mri_src, MRI *mri_dst, LABEL *area, MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial)
+MRIcropVolumeToLabel(MRI *mri_src, 
+                     MRI *mri_dst, 
+                     LABEL *area, 
+                     MRI_SURFACE *mris_white, 
+                     MRI_SURFACE *mris_pial)
 {
   MHT    *mht_white, *mht_pial ;
   int    x, y, z ;
@@ -165,9 +176,13 @@ MRIcropVolumeToLabel(MRI *mri_src, MRI *mri_dst, LABEL *area, MRI_SURFACE *mris_
               
         if (MRIgetVoxVal(mri_src, x, y, z, 0) > 0)
         {
-          MRISsurfaceRASFromVoxel(mris_white, mri_dst, x, y, z, &xs, &ys, &zs) ;
-          v_white = MHTfindClosestVertexInTable(mht_white, mris_white, xs, ys, zs, 1) ;
-          v_pial = MHTfindClosestVertexInTable(mht_pial, mris_pial, xs, ys, zs, 1) ;
+          MRISsurfaceRASFromVoxel(mris_white, mri_dst, 
+                                  x, y, z, 
+                                  &xs, &ys, &zs) ;
+          v_white = MHTfindClosestVertexInTable(mht_white, mris_white, 
+                                                xs, ys, zs, 1) ;
+          v_pial = MHTfindClosestVertexInTable(mht_pial, mris_pial, 
+                                               xs, ys, zs, 1) ;
           if ((v_white && v_white->marked == 1) ||
               (v_pial && v_pial->marked == 1))
           {
