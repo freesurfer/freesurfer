@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/12 00:47:48 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/05/15 15:02:00 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.44 2007/12/12 00:47:48 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.45 2008/05/15 15:02:00 greve Exp $";
 
 char *Progname = NULL;
 
@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.44 2007/12/12 00:47:48 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.45 2008/05/15 15:02:00 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -412,7 +412,7 @@ int main(int argc, char **argv) {
     SurfValsP = 
       vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc,
                       Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
-                      ProjDistFlag);
+                      ProjDistFlag, 1);
     fflush(stdout);
     if (SurfValsP == NULL) {
       printf("ERROR: mapping volume to source\n");

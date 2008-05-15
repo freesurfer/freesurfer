@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/24 20:51:32 $
- *    $Revision: 1.29 $
+ *    $Date: 2008/05/15 15:02:00 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.29 2008/01/24 20:51:32 greve Exp $
+  $Id: resample.c,v 1.30 2008/05/15 15:02:00 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -722,7 +722,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
                      MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc,
                      MRI_SURFACE *TrgSurf, float ProjFrac,
                      int InterpMethod, int float2int, MRI *SrcHitVol,
-                     int ProjDistFlag)
+                     int ProjDistFlag, int nskip)
 {
   MATRIX *QFWDsrc;
   MATRIX *Scrs, *Txyz;
@@ -771,7 +771,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
   valvect = (float *) calloc(sizeof(float),SrcVol->nframes);
   nhits = 0;
   /*--- loop through each vertex ---*/
-  for (vtx = 0; vtx < TrgSurf->nvertices; vtx++)
+  for (vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip)
   {
 
     if (ProjFrac != 0.0)

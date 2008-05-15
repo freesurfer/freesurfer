@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/14 04:35:11 $
- *    $Revision: 1.42 $
+ *    $Date: 2008/05/15 15:02:01 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,7 @@
   --no-surf : do not use surface-based method
   --1dpreopt min max delta : brute force in PE direction
   --fwhm fwhm : smooth input by fwhm mm
+  --skip nskip : only sample every nskip vertices
 
   --preopt-file file : save preopt results in file
   --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
@@ -183,7 +184,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.42 2008/05/14 04:35:11 greve Exp $";
+"$Id: mri_segreg.c,v 1.43 2008/05/15 15:02:01 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -272,6 +273,7 @@ char *RMSDiffFile = NULL;
 
 int DoSmooth = 0;
 double fwhm = 0, gstd = 0;
+int vskip = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -291,13 +293,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.42 2008/05/14 04:35:11 greve Exp $",
+     "$Id: mri_segreg.c,v 1.43 2008/05/15 15:02:01 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.42 2008/05/14 04:35:11 greve Exp $",
+     "$Id: mri_segreg.c,v 1.43 2008/05/15 15:02:01 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -868,6 +870,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&PreOptDim);
       nargsused = 1;
     } 
+    else if (istringnmatch(option, "--skip",0)) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&vskip);
+      nargsused = 1;
+    } 
     else if (istringnmatch(option, "--nmax",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nMaxItersPowell);
@@ -1091,6 +1098,7 @@ printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("  --fwhm fwhm : smooth input by fwhm mm\n");
+printf("  --skip nskip : only sample every nskip vertices\n");
 printf("\n");
 printf("  --preopt-file file : save preopt results in file\n");
 printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
@@ -1813,9 +1821,9 @@ int MRISsegReg(char *subject, int ForceReRun)
 
   // Now sample the new mask on the both the wm and ctx LH surfaces
   lhwmmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			     lhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+			     lhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
   lhctxmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			      lhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+			      lhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
 
   // Load the LH cortex label
   label = LabelRead(subject, "lh.cortex.label");
@@ -1848,10 +1856,10 @@ int MRISsegReg(char *subject, int ForceReRun)
   LabelFree(&label);
 
   rhwmmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			     rhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+			     rhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
 
   rhctxmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			      rhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0);
+			      rhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
 
   rhsegmask = MRIalloc(rhwm->nvertices,1,1,MRI_FLOAT);
   for(n = 0; n < rhwm->nvertices; n++){
@@ -1901,6 +1909,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern int PenaltySign;
   extern double PenaltySlope;
+  extern int vskip;
   double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean,a=0;
   MATRIX *Mrot=NULL, *Mtrans=NULL;
   MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
@@ -1932,19 +1941,19 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   if(UseLH){
     vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			    lhwm, 0,SAMPLE_TRILINEAR, 
-			    FLT2INT_ROUND, NULL, 0);
+			    FLT2INT_ROUND, NULL, 0, vskip);
     vlhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			     lhctx, 0,SAMPLE_TRILINEAR, 
-			     FLT2INT_ROUND, NULL, 0);
+			     FLT2INT_ROUND, NULL, 0, vskip);
   if(lhcost == NULL) lhcost = MRIclone(vlhctx,NULL);
   }
   if(UseRH){
     vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			    rhwm, 0,SAMPLE_TRILINEAR, 
-			    FLT2INT_ROUND, NULL, 0);
+			    FLT2INT_ROUND, NULL, 0, vskip);
     vrhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			     rhctx, 0,SAMPLE_TRILINEAR, 
-			     FLT2INT_ROUND, NULL, 0);
+			     FLT2INT_ROUND, NULL, 0, vskip);
     if(rhcost == NULL) rhcost = MRIclone(vrhctx,NULL);
   }
 
@@ -1958,7 +1967,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 
   //fp = fopen("tmp.dat","w");
   if(UseLH){
-    for(n = 0; n < lhwm->nvertices; n++){
+    for(n = 0; n < lhwm->nvertices; n += vskip){
       if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
       if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
@@ -1984,7 +1993,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     }
   }
   if(UseRH){
-    for(n = 0; n < rhwm->nvertices; n++){
+    for(n = 0; n < rhwm->nvertices; n += vskip){
       if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
       if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
