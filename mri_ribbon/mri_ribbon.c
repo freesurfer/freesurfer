@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/15 15:51:35 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/05/15 15:56:20 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ribbon.c,v 1.11 2008/05/15 15:51:35 nicks Exp $", 
+     "$Id: mri_ribbon.c,v 1.12 2008/05/15 15:56:20 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -94,8 +94,11 @@ int main(int argc, char *argv[]) {
 
   /* Set command-line parameters */
   if (argc!=5) {
-    printf("Usage: mri_ribbon inner_surface_fname outer_surface_fname "
-           "input_volume_pref output_volume_pref\n");
+    printf("Usage: mri_ribbon [-l fname.label] \\ \n"
+           "       inner_surface_fname \\ \n"
+           "       outer_surface_fname \\ \n"
+           "       input_volume_pref \\ \n"
+           "       output_volume_pref\n");
     exit(1);
   }
 
