@@ -326,7 +326,11 @@ install-data-hook:
 	if test ! "x$(FSLDIR)" = "x" ; then \
 		if test -e $(FSLDIR) ; then \
 			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(bindir) ; \
-			rm -Rf $(DESTDIR)$(prefix)/fsl ; \
+		fi; \
+	fi;
+	if test ! "x$(ANFIDIR)" = "x" ; then \
+		if test -e $(AFNIDIR) ; then \
+			cp -f $(ANFIDIR)/bin/3dvolreg $(DESTDIR)$(bindir) ; \
 		fi; \
 	fi;
 	if test ! "x$(TCL_DIR)" = "x" ; then \
