@@ -300,6 +300,11 @@ install-data-hook:
 			rm -Rf $(DESTDIR)$(prefix)/fsl ; \
 		fi; \
 	fi;
+	if test ! "x$(AFNIDIR)" = "x" ; then \
+		if test -e $(AFNIDIR) ; then \
+			cp -f $(AFNIDIR)/bin/3dvolreg $(DESTDIR)$(bindir) ; \
+		fi; \
+	fi;
 	if test ! "x$(TCL_DIR)" = "x" ; then \
 		if test ! "$(TCL_DIR)" = "$(DESTDIR)$(prefix)/lib/tcltktixblt" ; then \
 			if test -e $(TCL_DIR) ; then \
