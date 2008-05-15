@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/16 19:18:55 $
- *    $Revision: 1.16 $
+ *    $Date: 2008/05/15 16:16:55 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "fmriutils.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mris_intensity_profile.c,v 1.16 2008/04/16 19:18:55 fischl Exp $";
+static char vcid[] = "$Id: mris_intensity_profile.c,v 1.17 2008/05/15 16:16:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,6 +69,7 @@ static char white_name[100] = WHITE_MATTER_NAME ;
 static char *label_names[MAX_LABELS] ;
 static int nlabels = 0 ;
 
+static int zero_mean = 0 ;
 static MRI *mri_aseg = NULL ;
 double normal_sigma = 0 ;
 static int inorm = 0 ;
@@ -95,6 +96,7 @@ static int extra = 0 ;
 
 static float norm_gw = 0 ;
 static float norm_white ;
+static float norm_csf = 0 ;
 static float norm_pial = 0 ;
 static float norm_mid = 0 ;
 static float norm_mean = 0 ;
@@ -124,7 +126,7 @@ main(int argc, char *argv[]) {
   float         *norm = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.16 2008/04/16 19:18:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.17 2008/05/15 16:16:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -398,6 +400,17 @@ main(int argc, char *argv[]) {
   mri_profiles->tr = 1 ;
   if (remove_bad)
     remove_bad_profiles(mris, mri_profiles, mri, 20) ;
+  if (norm_csf > 0)
+  {
+    double csf_mean ;
+    if (mri_aseg == NULL)
+      ErrorExit(ERROR_BADPARM, "%s: must specify aseg volume with -aseg", Progname) ;
+    csf_mean = MRImeanInLabel(mri,  mri_aseg, Left_Lateral_Ventricle) ;
+    csf_mean += MRImeanInLabel(mri,  mri_aseg, Right_Lateral_Ventricle) ;
+    csf_mean /= 2 ;
+    printf("normalizing by csf mean %2.0f\n", csf_mean) ;
+    MRIscalarMul(mri_profiles, mri_profiles, norm_csf/csf_mean) ;
+  }
   if (navgs > 0) {
     MRIwriteFrame(mri_profiles, "lh.f0.mgz", 0) ;
     printf("smoothing profiles %d times\n", navgs) ;
@@ -472,6 +485,12 @@ main(int argc, char *argv[]) {
     char fname[STRLEN], ext[STRLEN] ;
 
     mri_poly = MRIfitPolynomial(mri_profiles, NULL, polyfit) ;
+    if (zero_mean)
+    {
+      printf("removing mean from profiles...\n") ;
+      MRIzeroMeanTimecourse(mri_profiles, mri_profiles) ;
+    }
+
     printf("writing cortical intensity profiles to %s...\n", out_fname) ;
     MRIwrite(mri_profiles, out_fname) ;
     FileNameExtension(out_fname, ext) ;
@@ -480,6 +499,8 @@ main(int argc, char *argv[]) {
     printf("writing best fitting %dth order polynomial fits to %s...\n", polyfit, fname) ;
     MRIwrite(mri_poly, fname) ;
   } else {
+    if (zero_mean)
+      MRIzeroMeanTimecourse(mri_profiles, mri_profiles) ;
     printf("writing cortical intensity profiles to %s...\n", out_fname) ;
     MRIwrite(mri_profiles, out_fname) ;
   }
@@ -589,6 +610,10 @@ get_option(int argc, char *argv[]) {
     norm_white = atof(argv[2]) ;
     fprintf(stderr,  "normalizing intensities to have be %2.2f relative to white matter\n", norm_white) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "norm_csf")) {
+    norm_csf = atof(argv[2]) ;
+    fprintf(stderr,  "normalizing intensities to have be %2.2f relative to csf\n", norm_csf) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "norm_pial")) {
     norm_pial = atof(argv[2]) ;
     fprintf(stderr,  "normalizing intensities to have be %2.2f at gray/csf boundary\n", norm_pial) ;
@@ -683,6 +708,10 @@ get_option(int argc, char *argv[]) {
     }
     nargs = 1;
   } else switch (toupper(*option)) {
+    case 'Z':
+      zero_mean = 1 ;
+      printf("making profiles zero mean\n") ;
+      break ;
     case 'B':
       remove_bad = atoi(argv[2]) ;
       nargs = 1 ;
@@ -900,9 +929,12 @@ MRISmeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MRI *mri, int nbhd_size,
       dy = vn2->y-v->origy ;
       dz = vn2->z-v->origz ;
       thick = sqrt(dx*dx + dy*dy + dz*dz) ;
-      dx /= thick ;
-      dy /= thick ;
-      dz /= thick ;
+      if (FZERO(thick) == 0)
+      {
+        dx /= thick ;
+        dy /= thick ;
+        dz /= thick ;
+      }
     }
     if (use_pial == 0)
       thick = max_thick ;  // uniform length for samples
@@ -1236,13 +1268,14 @@ mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, f
   MRI     *mri_interior ;
   VECTOR  *v1, *v2 ;
   MATRIX  *m_vox2vox_aseg, *m_vox2vox ;
-  float   avg_wm ;
+  float   avg_wm, res ;
   Real    xv, yv, zv, xi, yi, zi, val ;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-  mri_interior = MRISfillInterior(mris, mri->xsize/2, NULL) ;
+  res = MAX(0.5, mri->xsize/2) ;
+  mri_interior = MRISfillInterior(mris, res, NULL) ;
   for (i = 0 ; i < nint(1.5/mri_interior->xsize) ; i++)
     MRIerode(mri_interior, mri_interior) ;   // avoid partial volume voxels.
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
