@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.117 2008/05/03 23:23:03 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.118 2008/05/15 03:11:24 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -110,6 +110,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
+  set AFNIDIR=/usr/pubsw/packages/AFNI/current
 else
   # dev build uses most current
   set MNIDIR=/usr/pubsw/packages/mni/current
@@ -124,6 +125,7 @@ else
   endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
+  set AFNIDIR=/usr/pubsw/packages/AFNI/current
 endif
 
 # GSL and Qt are no longer used, so they're not defined
