@@ -1,17 +1,16 @@
 /**
  * @file  stats.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for manipulating statistical volumes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 06:01:14 $
- *    $Revision: 1.27.2.1 $
+ *    $Author: greve $
+ *    $Date: 2008/05/16 17:24:39 $
+ *    $Revision: 1.27.2.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -43,6 +42,7 @@
 #include "mrinorm.h"
 #include "transform.h"
 #include "mghendian.h"
+#include "mri_identify.h"
 #include "stats.h"
 
 extern const char* Progname;
@@ -92,10 +92,11 @@ StatReadRegistration(char *fname)
     for (col = 1 ; col <= REG_COLS ; col++)
     {
       if (fscanf(fp, "%f  ", &reg->mri2fmri->rptr[row][col]) != 1)
-        ErrorReturn(NULL,
-                    (ERROR_BADFILE,
-                     "StatReadRegistration(%s): could not scan element (%d, %d)",
-                     fname, row, col)) ;
+        ErrorReturn
+          (NULL,
+           (ERROR_BADFILE,
+            "StatReadRegistration(%s): could not scan element (%d, %d)",
+            fname, row, col)) ;
     }
     fscanf(fp, "\n") ;
   }
@@ -119,13 +120,13 @@ StatFreeRegistration(fMRI_REG **preg)
   MatrixFree(&reg->fmri2mri) ;
   MatrixFree(&reg->mri2fmri) ;
   free(reg) ;
+  reg=NULL; // yes, this leaks a small amount of memory
   return(NO_ERROR) ;
 }
 
 /*------------------------------------------------------------------------
 ------------------------------------------------------------------------*/
-SV *
-StatReadVolume(char *prefix)
+SV *StatReadVolume(char *prefix)
 {
   char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN], *cp ;
   STAT_VOLUME  *sv ;
@@ -353,7 +354,6 @@ StatReadVolume(char *prefix)
 
     fclose(fp) ;
 
-
     if (!sv->mri_avg_dofs[event])
       continue ;
 
@@ -408,19 +408,132 @@ StatReadVolume(char *prefix)
     fclose(fp) ;
   }
 
-  for (event = 0 ; event < sv->nevents ; event++)
-  {
-    MRIsetResolution(sv->mri_avgs[event], sv->reg->in_plane_res,
-                     sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+  free(buf) ;
+  return(sv) ;
+}
 
-    if (sv->mri_stds[event])
-    {
-      MRIsetResolution(sv->mri_stds[event], sv->reg->in_plane_res,
-                       sv->reg->in_plane_res, sv->reg->slice_thickness) ;
-    }
+/*------------------------------------------------------------------------
+------------------------------------------------------------------------*/
+SV *StatReadVolume2(char *prefix)
+{
+  char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN];
+  STAT_VOLUME  *sv ;
+  FILE         *fp ;
+  int event_number, which_alloc, nframes, t;
+  int event, x, y, z, f, DatVersion, DOF;
+  float fval,TER;
+  char  *regfile = NULL, *hfile = NULL;
+  MRI *h;
+
+  FileNamePath(prefix, path) ;
+  sv = (SV *)calloc(1, sizeof(SV)) ;
+  if (!sv)
+    ErrorExit(ERROR_NOMEMORY, "StatReadVolume(%s): could not allocate sv",
+              prefix) ;
+
+  /* read in register.dat */
+  if (regfile != NULL)  sprintf(fname, "%s", regfile);
+  else                 sprintf(fname, "%s/register.dat", path) ;
+
+  sv->reg = StatReadRegistration(fname) ;
+  if (!sv->reg)  return(NULL) ;
+
+  /* read the selavg/selxavg dat file, if it exists */
+  sprintf(fname, "%s.dat", prefix) ;
+  fp = fopen(fname, "r") ;
+  which_alloc = ALLOC_MEANS | ALLOC_STDS ;
+  if(!fp){
+    printf("ERROR: could not open %s\n",fname);
+    return(NULL);
+  }
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %f", &sv->tr) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %f", &sv->timewindow) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %f", &sv->prestim) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %d", &sv->nevents) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %d", &sv->time_per_event) ;
+  if (fscanf(fp,"%*s %d",&DatVersion) != EOF){
+    fscanf(fp,"%*s %f",&TER);
+    fscanf(fp,"%*s %d",&DOF);
+    printf("SelXAvg Format TER = %g, DOF =  %d\n",TER,DOF);
+    sv->voltype = 2;
+    fprintf(stderr,"INFO: detected volume %s as type selxavg\n",prefix);
+  }
+  fclose(fp) ;
+
+  if (sv->nevents > MAX_EVENTS) {
+    fprintf(stderr,"ERROR: %s, StatReadVolume():\n",Progname);
+    fprintf(stderr,"Number of events (%d) exceeds maximum allowed (%d)\n",
+            sv->nevents, MAX_EVENTS);
+    exit(1);
   }
 
-  free(buf) ;
+  if (sv->voltype == 0) DOF = 1; /* for raw type */
+  for (event_number = 0; event_number < sv->nevents; event_number++) {
+    sv->mean_dofs[event_number] = (float)DOF+1;
+    sv->std_dofs[event_number]  = (float)DOF;
+  }
+
+  hfile = IDnameFromStem(prefix);
+  if(hfile == NULL) return(NULL);
+  h = MRIread(hfile);
+  if(h == NULL) return(NULL);
+
+  sv->nslices = h->depth;
+
+  nframes = sv->time_per_event * sv->nevents ;
+  if(which_alloc & ALLOC_STDS)  nframes *= 2;
+
+  StatAllocVolume(sv, sv->nevents, h->width, h->height, h->depth,
+		  sv->time_per_event, which_alloc);
+
+  /* read it after nevents */
+  if(stricmp(sv->reg->name, "talairach") &&
+     stricmp(sv->reg->name, "spherical")) StatReadTransform(sv, sv->reg->name);
+
+
+  f = 0;
+  for (event = 0 ; event < sv->nevents ; event++) {
+    /* read slice of means for each time point */
+    for (t = 0 ; t < sv->time_per_event ; t++)  {
+      for (z = 0 ; z < h->depth ; z++)    {
+	for (y = 0 ; y < h->height ; y++)   {
+	  for (x = 0 ; x < h->width ; x++)    {
+	    fval = MRIgetVoxVal(h,x,y,z,f);
+            MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) = fval ;
+          } // x
+        } // y
+      } // z
+      printf("Avgs event %d, t %d, f = %2d\n",event,t,f);
+      f++;
+    } // t
+    /* read slice of std for each time point */
+    for (t = 0 ; t < sv->time_per_event ; t++)  {
+      for (z = 0 ; z < h->depth ; z++)    {
+	for (y = 0 ; y < h->height ; y++)   {
+	  for (x = 0 ; x < h->width ; x++)    {
+	    fval = MRIgetVoxVal(h,x,y,z,f);
+            MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = fval ;
+          } // x
+        } // y
+      } // z
+      printf("Stds event %d, t %d, f = %2d\n",event,t,f);
+      f++;
+    } // t
+  } // event
+
+  for (event = 0 ; event < sv->nevents ; event++) {
+    MRIsetResolution(sv->mri_avgs[event], sv->reg->in_plane_res,
+                     sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+    if (sv->mri_stds[event])
+      MRIsetResolution(sv->mri_stds[event], sv->reg->in_plane_res,
+                       sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+  }
+
   return(sv) ;
 }
 
@@ -541,8 +654,11 @@ StatAllocStructuralVolume(SV *sv, float fov, float resolution, char *name)
   int    width, height, depth, event ;
 
   width = height = depth = nint(fov / resolution) ;
-  sv_tal = StatAllocVolume(NULL, sv->nevents, width, height, depth,
-                           sv->time_per_event,ALLOC_MEANS|ALLOC_STDS|ALLOC_DOFS);
+  sv_tal = StatAllocVolume(NULL, 
+                           sv->nevents, 
+                           width, height, depth,
+                           sv->time_per_event,
+                           ALLOC_MEANS|ALLOC_STDS|ALLOC_DOFS);
 
   sv_tal->voltype = sv->voltype;
   strcpy(sv_tal->reg->name, name) ;
@@ -634,12 +750,14 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
       MRIclear(mri_std) ;
       MRIclear(mri_ctrl) ;
       /*
-         sample from the surface, through the strucural space, into the functional
-         one.
+        sample from the surface, through the strucural space, 
+        into the functional
+        one.
        */
 
       /*
-         first build average volume for this subjects. This is to avoid sampling
+         first build average volume for this subjects. 
+         This is to avoid sampling
          from the volume onto the surface which would take forever since it
          would require searching the entire surface for the nearest point for
          every point in the volume.
@@ -649,8 +767,9 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
         vertex = &mris->vertices[vno] ;
 
         /*
-           read the functional data from the coordinates in 'folded' space, then
-           write them into the structural volume using the canonical coordinates.
+           read the functional data from the coordinates in 'folded' space, 
+           then write them into the structural volume using the 
+           canonical coordinates.
         */
         xs = vertex->x ;
         ys = vertex->y ;
@@ -687,8 +806,8 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
             continue ;
 
           /*
-             at this point (xv,yv,zv) is a functional coordinate, and (x,y,z) is
-             the corresponding structural coordinate.
+             at this point (xv,yv,zv) is a functional coordinate, 
+             and (x,y,z) is the corresponding structural coordinate.
            */
           /* update means */
           surf_mean = MRIFseq_vox(mri_avg, x, y, z, 0) ;
@@ -721,7 +840,7 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
       {
         int niter = atoi(getenv("SOAP_STATS")) ;
 
-        fprintf(stderr, "performing soap bubble for %d iterations...\n", niter) ;
+        fprintf(stderr,"performing soap bubble for %d iterations...\n", niter);
         /*        MRIsoapBubbleExpand(mri_avg, mri_ctrl, mri_avg, 1) ;*/
         MRIbuildVoronoiDiagram(mri_avg, mri_ctrl, mri_avg) ;
         MRIsoapBubble(mri_avg, mri_ctrl, mri_avg, niter) ;
@@ -733,7 +852,7 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
       /*
          now use the intermediate structural volumes to update the
          cross-subject average volume.
-         */
+      */
       for (z = 0 ; z < depth ; z++)
       {
         for (y = 0 ; y < height ; y++)
@@ -1172,8 +1291,9 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
 
   fp = fopen(fname, "w") ;
   if (!fp)
-    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
-                               "StatWriteRegistration: could not open %s", fname)) ;
+    ErrorReturn(ERROR_NOFILE, 
+                (ERROR_NOFILE,
+                 "StatWriteRegistration: could not open %s", fname)) ;
   fprintf(fp, "%s\n", reg->name) ;
   fprintf(fp, "%f\n", reg->in_plane_res) ;
   fprintf(fp, "%f\n", reg->slice_thickness) ;
