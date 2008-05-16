@@ -6,9 +6,9 @@
 /*
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/11 20:00:44 $
- *    $Revision: 1.29 $
+ *    $Author: greve $
+ *    $Date: 2008/05/16 17:20:17 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@
 #include "mrinorm.h"
 #include "transform.h"
 #include "mghendian.h"
+#include "mri_identify.h"
 #include "stats.h"
 
 extern const char* Progname;
@@ -125,8 +126,7 @@ StatFreeRegistration(fMRI_REG **preg)
 
 /*------------------------------------------------------------------------
 ------------------------------------------------------------------------*/
-SV *
-StatReadVolume(char *prefix)
+SV *StatReadVolume(char *prefix)
 {
   char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN], *cp ;
   STAT_VOLUME  *sv ;
@@ -354,7 +354,6 @@ StatReadVolume(char *prefix)
 
     fclose(fp) ;
 
-
     if (!sv->mri_avg_dofs[event])
       continue ;
 
@@ -409,19 +408,132 @@ StatReadVolume(char *prefix)
     fclose(fp) ;
   }
 
-  for (event = 0 ; event < sv->nevents ; event++)
-  {
-    MRIsetResolution(sv->mri_avgs[event], sv->reg->in_plane_res,
-                     sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+  free(buf) ;
+  return(sv) ;
+}
 
-    if (sv->mri_stds[event])
-    {
-      MRIsetResolution(sv->mri_stds[event], sv->reg->in_plane_res,
-                       sv->reg->in_plane_res, sv->reg->slice_thickness) ;
-    }
+/*------------------------------------------------------------------------
+------------------------------------------------------------------------*/
+SV *StatReadVolume2(char *prefix)
+{
+  char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN];
+  STAT_VOLUME  *sv ;
+  FILE         *fp ;
+  int event_number, which_alloc, nframes, t;
+  int event, x, y, z, f, DatVersion, DOF;
+  float fval,TER;
+  char  *regfile = NULL, *hfile = NULL;
+  MRI *h;
+
+  FileNamePath(prefix, path) ;
+  sv = (SV *)calloc(1, sizeof(SV)) ;
+  if (!sv)
+    ErrorExit(ERROR_NOMEMORY, "StatReadVolume(%s): could not allocate sv",
+              prefix) ;
+
+  /* read in register.dat */
+  if (regfile != NULL)  sprintf(fname, "%s", regfile);
+  else                 sprintf(fname, "%s/register.dat", path) ;
+
+  sv->reg = StatReadRegistration(fname) ;
+  if (!sv->reg)  return(NULL) ;
+
+  /* read the selavg/selxavg dat file, if it exists */
+  sprintf(fname, "%s.dat", prefix) ;
+  fp = fopen(fname, "r") ;
+  which_alloc = ALLOC_MEANS | ALLOC_STDS ;
+  if(!fp){
+    printf("ERROR: could not open %s\n",fname);
+    return(NULL);
+  }
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %f", &sv->tr) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %f", &sv->timewindow) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %f", &sv->prestim) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %d", &sv->nevents) ;
+  fgetl(line, MAX_LINE_LEN-1, fp) ;
+  sscanf(line, "%*s %d", &sv->time_per_event) ;
+  if (fscanf(fp,"%*s %d",&DatVersion) != EOF){
+    fscanf(fp,"%*s %f",&TER);
+    fscanf(fp,"%*s %d",&DOF);
+    printf("SelXAvg Format TER = %g, DOF =  %d\n",TER,DOF);
+    sv->voltype = 2;
+    fprintf(stderr,"INFO: detected volume %s as type selxavg\n",prefix);
+  }
+  fclose(fp) ;
+
+  if (sv->nevents > MAX_EVENTS) {
+    fprintf(stderr,"ERROR: %s, StatReadVolume():\n",Progname);
+    fprintf(stderr,"Number of events (%d) exceeds maximum allowed (%d)\n",
+            sv->nevents, MAX_EVENTS);
+    exit(1);
   }
 
-  free(buf) ;
+  if (sv->voltype == 0) DOF = 1; /* for raw type */
+  for (event_number = 0; event_number < sv->nevents; event_number++) {
+    sv->mean_dofs[event_number] = (float)DOF+1;
+    sv->std_dofs[event_number]  = (float)DOF;
+  }
+
+  hfile = IDnameFromStem(prefix);
+  if(hfile == NULL) return(NULL);
+  h = MRIread(hfile);
+  if(h == NULL) return(NULL);
+
+  sv->nslices = h->depth;
+
+  nframes = sv->time_per_event * sv->nevents ;
+  if(which_alloc & ALLOC_STDS)  nframes *= 2;
+
+  StatAllocVolume(sv, sv->nevents, h->width, h->height, h->depth,
+		  sv->time_per_event, which_alloc);
+
+  /* read it after nevents */
+  if(stricmp(sv->reg->name, "talairach") &&
+     stricmp(sv->reg->name, "spherical")) StatReadTransform(sv, sv->reg->name);
+
+
+  f = 0;
+  for (event = 0 ; event < sv->nevents ; event++) {
+    /* read slice of means for each time point */
+    for (t = 0 ; t < sv->time_per_event ; t++)  {
+      for (z = 0 ; z < h->depth ; z++)    {
+	for (y = 0 ; y < h->height ; y++)   {
+	  for (x = 0 ; x < h->width ; x++)    {
+	    fval = MRIgetVoxVal(h,x,y,z,f);
+            MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) = fval ;
+          } // x
+        } // y
+      } // z
+      printf("Avgs event %d, t %d, f = %2d\n",event,t,f);
+      f++;
+    } // t
+    /* read slice of std for each time point */
+    for (t = 0 ; t < sv->time_per_event ; t++)  {
+      for (z = 0 ; z < h->depth ; z++)    {
+	for (y = 0 ; y < h->height ; y++)   {
+	  for (x = 0 ; x < h->width ; x++)    {
+	    fval = MRIgetVoxVal(h,x,y,z,f);
+            MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = fval ;
+          } // x
+        } // y
+      } // z
+      printf("Stds event %d, t %d, f = %2d\n",event,t,f);
+      f++;
+    } // t
+  } // event
+
+  for (event = 0 ; event < sv->nevents ; event++) {
+    MRIsetResolution(sv->mri_avgs[event], sv->reg->in_plane_res,
+                     sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+    if (sv->mri_stds[event])
+      MRIsetResolution(sv->mri_stds[event], sv->reg->in_plane_res,
+                       sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+  }
+
   return(sv) ;
 }
 

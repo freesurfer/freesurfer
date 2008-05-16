@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:17 $
- *    $Revision: 1.12 $
+ *    $Author: greve $
+ *    $Date: 2008/05/16 17:20:18 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: stat_normalize.c,v 1.12 2006/12/29 02:09:17 nicks Exp $";
+  "$Id: stat_normalize.c,v 1.13 2008/05/16 17:20:18 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,7 +71,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: stat_normalize.c,v 1.12 2006/12/29 02:09:17 nicks Exp $",
+     "$Id: stat_normalize.c,v 1.13 2008/05/16 17:20:18 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -127,7 +127,7 @@ main(int argc, char *argv[]) {
     FileNamePath(in_prefix, path) ;
     FileNameOnly(in_prefix, name) ;
 
-    sv = StatReadVolume(in_prefix) ;
+    sv = StatReadVolume2(in_prefix) ;
     if (!sv)
       ErrorExit(ERROR_NOFILE, "%s: could not read stat files %s",
                 Progname, in_prefix) ;
