@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/10 11:37:25 $
- *    $Revision: 1.55 $
+ *    $Date: 2008/05/16 01:05:09 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/04/10 11:37:25 $
-// Revision       : $Revision: 1.55 $
+// Revision Date  : $Date: 2008/05/16 01:05:09 $
+// Revision       : $Revision: 1.56 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -215,12 +215,12 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.55 2008/04/10 11:37:25 fischl Exp $", "$Name:  $",
+   "$Id: mri_ms_fitparms.c,v 1.56 2008/05/16 01:05:09 fischl Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_ms_fitparms.c,v 1.55 2008/04/10 11:37:25 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_ms_fitparms.c,v 1.56 2008/05/16 01:05:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -674,7 +674,12 @@ main(int argc, char *argv[]) {
           useVolGeomToMRI(&Glta->xforms[0].dst, mri_flash_synth[j]) ;
         MRIaddCommandLine(mri_flash_synth[j], cmdline) ;
         MRIwrite(mri_flash_synth[j], fname) ;
+#if 0
         sprintf(fname,"%s/vol%d.lta",out_dir,j);
+#else
+        sprintf(fname,"%s/flash%d.lta",out_dir,
+                nint(DEGREES(mri_flash_synth[j]->flip_angle)));
+#endif
         printf("writing registration matrix to %s...\n", fname);
         lta = LTAalloc(1,NULL) ;
         MatrixCopy(M_reg[j],lta->xforms[0].m_L) ;
