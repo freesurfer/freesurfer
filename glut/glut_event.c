@@ -425,6 +425,7 @@ processEventsAndTimeouts(void)
           GLUTmenu *menu;
 
           if (__glutMappedMenu &&
+              (__glutGetMenu) &&
               (menu = __glutGetMenu(event.xexpose.window)))
           {
             __glutPaintMenu(menu);
@@ -470,7 +471,9 @@ processEventsAndTimeouts(void)
             menuNum = window->menu[event.xbutton.button - 1];
             /* Make sure that __glutGetMenuByNum is only called if there
             really is a menu present. */
-            if ((menuNum > 0) && (menu = __glutGetMenuByNum(menuNum)))
+            if ((menuNum > 0) && 
+                (__glutGetMenuByNum) &&
+                (menu = __glutGetMenuByNum(menuNum)))
             {
               if (event.type == ButtonPress && !__glutMappedMenu)
               {
@@ -772,7 +775,7 @@ skip:
 
           break;
         }
-        if (__glutMappedMenu)
+        if (__glutMappedMenu && __glutGetMenuItem)
         {
           GLUTmenuItem *item;
           int num;
