@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/20 16:21:26 $
- *    $Revision: 1.364 $
+ *    $Date: 2008/05/17 13:43:20 $
+ *    $Revision: 1.365 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1075,6 +1075,7 @@ MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri, int mask_size) ;
 
+MRI *MRIzeroMeanTimecourse(MRI *mri_src, MRI *mri_dst);
 MRI *MRIzeroMean(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIlog10(MRI *inmri, MRI *mask, MRI *outmri, int negflag);
 MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out);
