@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/01 20:50:29 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2008/05/19 20:30:48 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -715,14 +715,14 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
       mris->SRASToTalSRAS_->rows==4 &&
       mris->SRASToTalSRAS_->cols==4)
   { // found a valid xform, so use it...
-    coords->coordsys = (giiCoordSystem*)calloc(1,sizeof(giiCoordSystem));
-    coords->coordsys->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
-    coords->coordsys->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
+    gifti_add_empty_CS( coords );
+    coords->coordsys[0]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
+    coords->coordsys[0]->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
     MATRIX *xform = mris->SRASToTalSRAS_;
     int r,c;
     for (r=1; r <= 4; r++)
       for (c=1; c <= 4; c++)
-        coords->coordsys->xform[r-1][c-1] = xform->rptr[r][c];
+        coords->coordsys[0]->xform[r-1][c-1] = xform->rptr[r][c];
   }
 
   insertMetaData (mris, coords); /* standard meta data */

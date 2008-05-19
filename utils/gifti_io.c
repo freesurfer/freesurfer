@@ -94,9 +94,16 @@ static char * gifti_history[] =
   "0.17 28 March, 2008 : added copy MetaData routines\n",
   "     - gifti_copy_gifti_meta, gifti_copy_DA_meta, gifti_copy_all_DA_meta,\n"
   "     - gifti_copy_DA_meta_many, gifti_copy_nvpairs\n"
+  "0.18 08 May, 2008 : DataArray can now contain a list of CoordSystems\n",
+  "     - modified giiDataArray struct: new numCS, coordsys is now CS**\n"
+  "     - added gifti_free_CS_list, gifti_add_empty_CS\n"
+  "1.0  13 May, 2008 : release version of gifticlib\n",
+  "     - (allow external data)\n"
+  "     - added gifti_read/write_extern_DA_data() and\n"
+  "             gifti_set_extern_filelist()\n"
 };
 
-static char gifti_version[] = "gifti library version 0.17, 28 March, 2008";
+static char gifti_version[] = "gifti library version 1.0, 13 May, 2008";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -513,13 +520,34 @@ int gifti_free_DataArray( giiDataArray * darray )
     if(darray->ext_fname) { free(darray->ext_fname); darray->ext_fname = NULL; }
 
     (void)gifti_free_nvpairs(&darray->meta);
-    if( darray->coordsys) {
-        gifti_free_CoordSystem(darray->coordsys);
-        darray->coordsys = NULL;
-    }
+    (void)gifti_free_CS_list(darray);
     if( darray->data ) { free(darray->data); darray->data = NULL; }
     (void)gifti_free_nvpairs(&darray->ex_atrs);
     free(darray);
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
+ *! free the CoordSystem array from a DataArray
+ *  passing NULL is okay
+*//*-------------------------------------------------------------------*/
+int gifti_free_CS_list( giiDataArray * da )
+{
+    int c;
+
+    if( !da ) return 0;
+
+    if( G.verb > 3 ) fprintf(stderr,"-- freeing giiCoordSystem list\n");
+
+    if( da->coordsys && da->numCS > 0 ) {
+        for( c = 0; c < da->numCS; c++ )
+            gifti_free_CoordSystem(da->coordsys[c]);
+        free(da->coordsys);
+    }
+
+    da->coordsys = NULL;
+    da->numCS = 0;
 
     return 0;
 }
@@ -841,7 +869,7 @@ int gifti_valid_dims(const giiDataArray * da, int whine)
         vals *= da->dims[c];
     }
 
-    /* each DA must have the same length (hmmm, we should check all dims...) */
+    /* verify computed vals and nbyper against stored ones */
     if( vals != da->nvals ) {
         if( G.verb > 3 ) {
             fprintf(stderr,"** nvals = %lld does not match %lld for dims[%d]: ",
@@ -1071,6 +1099,41 @@ int gifti_clear_CoordSystem(giiCoordSystem * p)
 }
 
 /*----------------------------------------------------------------------
+ *! add an empty CoordSystem struct to the DataArray
+*//*-------------------------------------------------------------------*/
+int gifti_add_empty_CS(giiDataArray * da)
+{
+    if( !da ) return 1;
+
+    /* be safe, if anything looks bad, start clean */
+    if(da->numCS <= 0 || !da->coordsys) { da->numCS = 0; da->coordsys = NULL; }
+
+    if(G.verb > 3 )fprintf(stderr,"++ adding empty CS[%d]\n", da->numCS);
+
+    /* realloc coordsys pointer array, and add an empty structure */
+    da->coordsys = (giiCoordSystem **)realloc(da->coordsys,
+                        (da->numCS+1) * sizeof(giiCoordSystem *));
+    if( !da->coordsys ) {
+        fprintf(stderr,"** AECS: failed to alloc %d CoordSys pointers\n",
+                       da->numCS+1);
+        da->numCS = 0;
+        return 1;
+    }
+
+    da->coordsys[da->numCS] = (giiCoordSystem *)malloc(sizeof(giiCoordSystem));
+    if( !da->coordsys[da->numCS] ) {
+        fprintf(stderr,"** push_cstm: failed to alloc new CoordSystem\n");
+        return 1;
+    }
+
+    gifti_clear_CoordSystem(da->coordsys[da->numCS]);
+
+    da->numCS++;
+
+    return 0;
+}
+
+/*----------------------------------------------------------------------
  *! add an empty DataArray struct to the gim->darray list
  *
  *  this both reallocates gim->darray and allocates gim->darray[new]
@@ -1233,6 +1296,7 @@ int gifti_disp_CoordSystem(const char * mesg, const giiCoordSystem * p)
 *//*-------------------------------------------------------------------*/
 int gifti_disp_DataArray(const char * mesg, const giiDataArray * p, int subs)
 {
+    int c;
     fprintf(stderr,"--------------------------------------------------\n");
 
     if( mesg ) { fputs(mesg, stderr); fputc(' ', stderr); }
@@ -1265,12 +1329,15 @@ int gifti_disp_DataArray(const char * mesg, const giiDataArray * p, int subs)
            );
 
     if( subs ) gifti_disp_nvpairs("darray->meta", &p->meta);
-    if( subs ) gifti_disp_CoordSystem("darray->coordsys", p->coordsys);
+    if( subs ) for( c = 0; c < p->numCS; c++ )
+                   gifti_disp_CoordSystem("darray->coordsys", p->coordsys[c]);
                 
     fprintf(stderr,"    data       = %s\n"
                    "    nvals      = %u\n"
-                   "    nbyper     = %d\n",
-                p->data ? "<set>" : "NULL", (unsigned)p->nvals, p->nbyper);
+                   "    nbyper     = %d\n"
+                   "    numCS      = %d\n",
+                p->data ? "<set>" : "NULL", (unsigned)p->nvals,
+                p->nbyper, p->numCS);
 
     if( subs ) gifti_disp_nvpairs("darray->ex_atrs", &p->ex_atrs);
     fprintf(stderr,"--------------------------------------------------\n");
@@ -1728,6 +1795,207 @@ int gifti_check_swap(void * data, int endian, long long nsets, int swapsize)
 }
 
 /*---------------------------------------------------------------------*/
+/*! Allocate and fill the data array with data read from the given
+ *  external file.
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_read_extern_DA_data(giiDataArray * da)
+{
+    FILE      * fp;
+    long long   nbytes, nread;
+
+    if( !da || !da->ext_fname || !*da->ext_fname ) return 0;
+
+    if(G.verb > 4) fprintf(stderr,"-- external read of '%s'\n",da->ext_fname);
+
+    if( da->ext_offset < 0 ) {
+        fprintf(stderr,"** want external DA data with bad offset %lld\n",
+                da->ext_offset);
+        return 1;
+    } else if( da->data ) {
+        fprintf(stderr,"** want external DA data but data already allocated\n");
+        return 1;
+    } else if ( !gifti_valid_dims(da, 1) ) {
+        fprintf(stderr,"** cannot read external DA data with bad dims...\n");
+        return 1;
+    }
+
+    /* allocate data */
+    nbytes = da->nvals * da->nbyper;
+    da->data = calloc(da->nvals, da->nbyper); /* zero in case of read failure */
+    if( !da->data ) {
+        fprintf(stderr,"** failed to alloc %lld bytes for external read\n",
+                nbytes);
+        return 1;
+    }
+
+    /* open file, jump to offset and read */
+    fp = fopen(da->ext_fname, "r");
+    if( !fp ) {
+        fprintf(stderr,"** ext read: failed to open '%s'\n",da->ext_fname);
+        return 1;
+    }
+
+    if( fseek(fp, da->ext_offset, SEEK_SET) ) {
+        fprintf(stderr,"** ext read: failed to seek to %lld in '%s'\n",
+                da->ext_offset, da->ext_fname);
+        fclose(fp); return 1;
+    }
+
+    nread = fread(da->data, sizeof(char), nbytes, fp);
+    fclose(fp);  /* close now in any case */
+
+    if( nread != nbytes ) {
+        fprintf(stderr,"** ext_read: read only %lld of %lld bytes from %s\n",
+                nread, nbytes, da->ext_fname);
+        return 1;
+    }
+
+    if(G.verb > 2)
+        fprintf(stderr,"-- read %lld bytes from external '%s' @ %lld\n",
+                       nbytes, da->ext_fname, da->ext_offset);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Write DA data to the given external file.
+ *
+ *  Note: the given ext_offset _must_ refer to the current end of file.
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_write_extern_DA_data(giiDataArray * da)
+{
+    FILE      * fp;
+    long long   nbytes, nwritten, posn;
+
+    if( !da || !da->ext_fname || !*da->ext_fname ) return 0;
+
+    if(G.verb > 4) fprintf(stderr,"-- external write to '%s'\n",da->ext_fname);
+
+    if( da->ext_offset < 0 ) {
+        fprintf(stderr,"** bad offset for external DA data write, %lld\n",
+                da->ext_offset);
+        return 1;
+    } else if( !da->data ) {
+        fprintf(stderr,"** no data for external DA data write\n");
+        return 1;
+    } else if ( !gifti_valid_dims(da, 1) ) {
+        fprintf(stderr,"** cannot write external DA data with bad dims...\n");
+        return 1;
+    }
+
+    nbytes = da->nvals * da->nbyper;
+
+    /* open file for append and verify that the file offset matches this one */
+    fp = fopen(da->ext_fname, "a+");
+    if( !fp ) {
+        fprintf(stderr,"** ext write: failed to open '%s' for append\n",
+                da->ext_fname);
+        return 1;
+    }
+
+    /* we should be at the end of the file, which measn posn da->ext_offset */
+    fseek(fp, 0, SEEK_END);  /* append should write to the end, but be sure */
+    posn = ftell(fp);
+    if( posn != da->ext_offset ) {
+        fprintf(stderr,"** ext write: cur posn (%lld) not ext_offset (%lld)"
+                       " in file %s\n", posn, da->ext_offset, da->ext_fname);
+        fclose(fp); return 1;
+    }
+
+    nwritten = fwrite(da->data, sizeof(char), nbytes, fp);
+
+    fclose(fp);         /* close now in any case */
+
+    if( nwritten != nbytes ) {
+        fprintf(stderr,"** ext_write: appended only %lld of %lld bytes to %s\n",
+                nwritten, nbytes, da->ext_fname);
+        return 1;
+    }
+
+    if(G.verb > 2)
+        fprintf(stderr,"-- appended %lld bytes to external '%s' @ %lld\n",
+                       nbytes, da->ext_fname, da->ext_offset);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Apply the file list as external files.
+ *
+ *  The files are assumed to be partitioned by DataArray entries.  So
+ *  the list length must divide numDA evenly.
+ *
+ *  External files are not checked for her, as this is independent of any
+ *  read or write operation.
+ *
+ *  return 0 on success
+*//*-------------------------------------------------------------------*/
+int gifti_set_extern_filelist(gifti_image * gim, int nfiles, char ** files)
+{
+    giiDataArray * da;
+    long long      nbytes, offset;
+    int            nper;
+    int            daindex, findex, oindex;
+
+    if(!gim || gim->numDA <= 0 || nfiles <= 0 || !files) {
+        if(G.verb>1) fprintf(stderr,"-- set_extern_filelist: nothing to do\n");
+        return 1;
+    }
+
+    if(G.verb > 4) fprintf(stderr,"-- set_extern_flist for %d files\n", nfiles);
+
+    nper = gim->numDA / nfiles;
+    if( nfiles * nper != gim->numDA ) { /* be sure division is integral */
+        fprintf(stderr,"** Cannot evenly divide %d DataArrays by %d"
+                       " external files\n", gim->numDA, nfiles);
+        return 1;
+    }
+
+    /* note and check nbytes */
+    nbytes = gim->darray[0]->nvals * gim->darray[0]->nbyper;
+    if( nbytes <= 0 ) {
+        fprintf(stderr,"** gifti_set_extern_filelist: bad nbytes\n");
+        return 1;
+    }
+
+    daindex = 0;  /* DataArray index */
+    for( findex = 0; findex < nfiles; findex++ ) {
+        if( !files[findex] || !*files[findex] ) {
+            fprintf(stderr,"** set_extern_flist: missing filename %d\n",findex);
+            return 1;
+        }
+
+        /* within this file, offset will be multiples of nbytes */
+        for( oindex=0, offset=0; oindex < nper; oindex++, offset += nbytes ) {
+            da = gim->darray[daindex];
+
+            if( nbytes != da->nvals * da->nbyper ) {
+              fprintf(stderr,"** set_extern_flist: nbytes mismatch at DA[%d]\n",
+                      daindex);
+              return 1;
+            }
+
+            /* set encoding and external file fields */
+            da->encoding   = GIFTI_ENCODING_EXTBIN;
+            da->ext_fname  = gifti_strdup(files[findex]);
+            da->ext_offset = offset;
+
+            daindex++;  /* increment DataArray index every time */
+        }
+    }
+
+    if(G.verb > 2)
+        fprintf(stderr,"++ set extern file list, %d files, %d DAs per file",
+                nfiles, nper);
+
+    return 0;
+}
+
+/*---------------------------------------------------------------------*/
 /*! Given a NIFTI_INTENT string, such as "NIFTI_INTENT_NODE_INDEX",
  *  return the corresponding integral intent code.  The intent code is
  *  the macro value defined in nifti1.h.
@@ -1820,6 +2088,7 @@ char * gifti_strdup( const char * src )
 giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
 {
     giiDataArray * gnew;
+    int            c;
 
     if( ! orig ){ fprintf(stderr,"** copy_DA: input is NULL\n"); return NULL; }
 
@@ -1834,7 +2103,17 @@ giiDataArray * gifti_copy_DataArray(const giiDataArray * orig, int get_data)
     /* copy any pointer data or structures */
     gnew->ext_fname = gifti_strdup(orig->ext_fname);
     gifti_copy_nvpairs(&gnew->meta, &orig->meta);
-    gnew->coordsys = gifti_copy_CoordSystem(orig->coordsys);
+    if( orig->numCS > 0 && orig->coordsys ) {
+        gnew->coordsys = (giiCoordSystem **)malloc(gnew->numCS *
+                                sizeof(giiCoordSystem *));
+        if(!gnew->coordsys) {
+            fprintf(stderr,"** copy_DA: failed to alloc %d CS pointers\n",
+                    gnew->numCS);
+            gnew->numCS = 0;
+        } else
+            for( c = 0; c < gnew->numCS; c++ )
+                gnew->coordsys[c] = gifti_copy_CoordSystem(orig->coordsys[c]);
+    }
 
     /* maybe the needy user wants data, too */
     if(orig->data && get_data) {
@@ -2437,11 +2716,20 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
         if( lverb < 3 ) return 1;
     }
 
-    if( gifti_compare_coordsys(d1->coordsys, d2->coordsys, verb) ) {
+    if( d1->numCS != d2->numCS ) {
         diffs = 1;
-        if( lverb > 1 ) printf("-- diff in DA coordsys\n");
+        if( lverb > 1 ) printf("-- diff in DA numCS\n");
         if( lverb < 3 ) return 1;
     }
+
+    /* compare each of the CoordSystem structs */
+    top = d1->numCS < d2->numCS ? d1->numCS : d2->numCS;
+    for( c = 0; c < top; c++ )
+        if( gifti_compare_coordsys(d1->coordsys[c], d2->coordsys[c], verb) ) {
+            diffs = 1;
+            if( lverb > 1 ) printf("-- diff in DA coordsys[%d]\n", c);
+            if( lverb < 3 ) return 1;
+        }
 
     if( d1->nvals != d2->nvals ) {
         diffs = 1;

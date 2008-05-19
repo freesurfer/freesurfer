@@ -28,13 +28,15 @@ static char * g_history[] =
   "0.3  16 Jan, 2008:\n",
   "     - added options -gifti_zlib, -gifti_test, -mod_to_float, -no_updates\n"
   "0.4  18 Mar, 2008: added comparison options\n",
-  "     -compare_gifti, -compare_data, compare_verb\n"
+  "     - added -compare_gifti, -compare_data, -compare_verb\n"
   "0.5  24 Mar, 2008: -compare_data is now separate from -compare_gifti\n",
   "0.6  28 Mar, 2008: added copy meta options:\n",
-  "     -copy_gifti_meta, -copy_DA_meta\n"
+  "     - added -copy_gifti_meta, -copy_DA_meta\n"
+  "1.0  13 May, 2008: based on release library version 1.0\n",
+  "     - added -set_extern_filelist\n"
 };
 
-static char g_version[] = "gifti_tool version 0.6, 28 March 2008";
+static char g_version[] = "gifti_tool version 1.0, 13 March 2008";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -56,7 +58,7 @@ static int show_version(void);
 int main( int argc, char * argv[] )
 {
     gt_opts       opts;
-    int           rv;
+    int           rv = 0;
 
     init_opts(&opts);
     rv = process_opts(argc, argv, &opts);
@@ -324,6 +326,20 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
             }
             /* and back up if we've looked too far */
             if( ac < argc && argv[ac][0] == '-') ac--;
+        } else if( !strcmp(argv[ac], "-set_extern_filelist") ) {
+            opts->set_extern = 1;
+            ac++;
+            for( c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++ )
+               if( add_to_str_list(&opts->ext_files, argv[ac]) ) return -1;
+            if( G.verb > 1 )
+                fprintf(stderr,"+d have %d external files\n", c);
+            if( opts->ext_files.len == 0 ) {
+                fprintf(stderr,
+                        "** no external files with -set_extern_filelist\n");
+                return -1;
+            }
+            /* and back up if we've looked too far */
+            if( ac < argc && argv[ac][0] == '-') ac--;
         } else if( !strcmp(argv[ac], "-show_gifti") ) {
             opts->gt_display = 1;
             opts->show_gifti = 1;
@@ -493,7 +509,7 @@ int gt_copy(gt_opts * opts)
     gifti_image  * src;
     gifti_image  * dest;
     char        ** names;
-    int            c, rv = 0, cumrv = 0;
+    int            c, rv = 0;
 
     if( opts->infiles.len != 2 ) {
         fprintf(stderr,"** copy operation requires exactly 2 gifti_images\n");
@@ -523,10 +539,8 @@ int gt_copy(gt_opts * opts)
         if(opts->gim_meta.len==1 && !strcmp(opts->gim_meta.list[0],"ALL"))
         {
             names = src->meta.name;
-            for( c = 0; c < src->meta.length; c++ ) {
-                rv = gifti_copy_gifti_meta(dest, src, names[c]);
-                cumrv |= rv;
-            }
+            for( c = 0; c < src->meta.length; c++ )
+                rv |= gifti_copy_gifti_meta(dest, src, names[c]);
         } else {
             names = opts->gim_meta.list;
             for( c = 0; c < opts->gim_meta.len; c++ )
@@ -624,25 +638,51 @@ int gt_write_dataset(gt_opts * opts, gifti_image * gim)
 {
     int c; 
 
-    if( !gim ) {
-        if( opts->verb ) fprintf(stderr,"** trying to write NULL dataset\n");
+    if(!gim) {
+        if(opts->verb) fprintf(stderr,"** trying to write NULL dataset\n");
         return 1;
     }
 
-    if( opts->verb > 1 )
+    if(opts->verb > 1)
         fprintf(stderr,"++ gt_write_dataset: gim %s, 1D %s, asc %s\n",
                 G_CHECK_NULL_STR(opts->ofile_gifti),
                 G_CHECK_NULL_STR(opts->ofile_1D),
                 G_CHECK_NULL_STR(opts->ofile_asc));
 
     /* possibly adjust encoding */
-    if( opts->encoding > GIFTI_ENCODING_UNDEF &&
-        opts->encoding <= GIFTI_ENCODING_MAX )
-        for( c = 0; c < gim->numDA; c++ )
+    if(opts->encoding > GIFTI_ENCODING_UNDEF &&
+       opts->encoding <= GIFTI_ENCODING_MAX)
+        for( c = 0; c < gim->numDA; c++ ) {
+            /* when modifying enconding, if we are changing _from_ external,
+               then clear the external filename and offset */
+            if(gim->darray[c]->encoding == GIFTI_ENCODING_EXTBIN &&
+               opts->encoding != GIFTI_ENCODING_EXTBIN) {
+                if(gim->darray[c]->ext_fname) {
+                    if(opts->verb>2) fprintf(stderr,"-- deleting ext_fname\n");
+                    free(gim->darray[c]->ext_fname);
+                    gim->darray[c]->ext_fname = NULL;
+                }
+                gim->darray[c]->ext_offset = 0;
+            }
+
+            /* actually make the user-requested change */
             if( gim->darray[c]->encoding )
                 gim->darray[c]->encoding = opts->encoding;
+        }
 
-    if(opts->ofile_gifti) gifti_write_image(gim,opts->ofile_gifti,opts->dstore);
+    if(opts->ofile_gifti) {
+        /* maybe user wants to point to external files */
+        if(opts->set_extern) {
+            if(opts->ext_files.len <= 0 || !opts->ext_files.list) {
+                fprintf(stderr,"** no file list to set as external\n");
+                return 1;
+            }
+            if(gifti_set_extern_filelist(gim, opts->ext_files.len,
+                                              opts->ext_files.list))
+                return 1;
+        }
+        gifti_write_image(gim,opts->ofile_gifti,opts->dstore);
+    }
     if(opts->ofile_1D)  write_1D_file(gim->darray,gim->numDA,opts->ofile_1D,1); 
     if(opts->ofile_asc) write_as_asc(gim, opts->ofile_asc);
 
@@ -877,6 +917,7 @@ static int disp_gt_opts(char * mesg, gt_opts * opts, FILE * stream)
     show_str_list("    gim_meta ", &opts->gim_meta, fp);
     show_str_list("    DA_atrs ", &opts->DA_atrs, fp);
     show_str_list("    DA_meta ", &opts->DA_meta, fp);
+    show_str_list("    ext_files ", &opts->ext_files, fp);
     show_str_list("    infiles ", &opts->infiles, fp);
 
     return 0;
@@ -957,20 +998,34 @@ static int show_help()
     "\n"
     "         gifti_tool -infile time_series.gii -write_1D ts.1D\n"
     "\n"
-    "    4. create a new gifti dataset from nothing, where:\n"
+    );
+    printf (
+    "    4. create a new gifti dataset from nothing, where\n"
     "\n"
-    "       - the dataset has 3 DataArray elements\n"
-    "       - the data will be of type 'short' (NIFTI_TYPE_INT16)\n"
-    "       - the intent codes will reflect a t-test\n"
-    "       - the data will be 2-dimensional (per DataArray), 5 by 2 shorts\n"
-    "       - memory will be allocated for the data (a modification option)\n"
-    "       - the result will be written to created.gii\n"
+    "      a. - the dataset has 3 DataArray elements\n"
+    "         - the data will be of type 'short' (NIFTI_TYPE_INT16)\n"
+    "         - the intent codes will reflect a t-test\n"
+    "         - the data will be 2-dimensional (per DataArray), 5 by 2 shorts\n"
+    "         - memory will be allocated for the data (a modification option)\n"
+    "         - the result will be written to created.gii\n"
     "\n"
     "         gifti_tool -new_dset                                \\\n"
     "                    -new_numDA 3 -new_dtype NIFTI_TYPE_INT16 \\\n"
     "                    -new_intent NIFTI_INTENT_TTEST           \\\n"
     "                    -new_ndim 2 -new_dims 5 2 0 0 0 0        \\\n"
     "                    -mod_add_data -write_gifti created.gii\n"
+    "\n"
+    "      b. - the dataset has 12 DataArray elements (40 floats each)\n"
+    "         - the data is partitioned over 2 files (so 6*40 floats in each)\n"
+    "\n"
+    "           ** Note: since dataset creation does not add data (without\n"
+    "                    -mod_add_data), this operation will not create or\n"
+    "                    try to overwrite the external datafiles.\n"
+    "\n"
+    "         gifti_tool -new_dset -new_numDA 12                   \\\n"
+    "                    -new_ndim 1 -new_dims 40 0 0 0 0 0        \\\n"
+    "                    -set_extern_filelist ext1.bin ext2.bin    \\\n"
+    "                    -write_gifti points_to_extern.gii\n"
     "\n"
     "    5. modify a gifti dataset\n"
     "\n"
@@ -996,6 +1051,17 @@ static int show_help()
     "                    -mod_DAs 42                                    \\\n"
     "                    -infile stats.gii -write_gifti mod_stats.gii\n"
     "\n"
+    "      c. set the data to point to a single external data file, without\n"
+    "         overwriting the external file on write (so use -no_data), \n"
+    "         and where the DataArrays will point to sequential partitions\n"
+    "         of the file\n"
+    "\n"
+    "         gifti_tool -infiles created.gii -no_data          \\\n"
+    "                    -set_extern_filelist ex_data.bin       \\\n"
+    "                    -write_gifti extern.gii\n"
+    "\n"
+    );
+    printf (
     "    6. compare 2 gifti datasets\n"
     "       (compare GIFTI structures, compare data, and report all diffs)\n"
     "\n"
