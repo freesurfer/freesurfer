@@ -48,6 +48,7 @@ typedef struct {
 
     int           dstore;       /* whether to store read data           */
     int           encoding;     /* encoding for output data             */
+    int           set_extern;   /* set data to be external files        */
     int           show_gifti;   /* display the gifti_image              */
 
     char        * ofile_1D;     /* 1D output filename                   */
@@ -61,6 +62,7 @@ typedef struct {
     gt_str_list   gim_meta;
     gt_str_list   DA_atrs;
     gt_str_list   DA_meta;
+    gt_str_list   ext_files;    /* external files as data source        */
     gt_str_list   infiles;
 } gt_opts;
 
