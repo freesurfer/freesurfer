@@ -2,18 +2,18 @@
  * @file  mris_volmask.cpp
  * @brief Uses the 4 surfaces of a scan to construct a mask volume
  *
- * Uses the 4 surfaces of a scan to construct a mask volume showing the 
- *      position of each voxel with respect to the surfaces - GM, WM, LH or RH.
+ * Uses the 4 surfaces of a scan to construct a mask volume showing the
+ * position of each voxel with respect to the surfaces - GM, WM, LH or RH.
  */
 /*
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/18 20:28:56 $
- *    $Revision: 1.10.2.2 $
+ *    $Date: 2008/05/19 22:53:49 $
+ *    $Revision: 1.10.2.3 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2007-2008,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -27,10 +27,16 @@
  */
 
 // STL
-#include <iostream>
 #include <queue>
 #include <string>
+#include <iostream>
+#include <iomanip>
+#include <cstdio>
+#include <vector>
 
+// option to use VTK libs to perform surface/volume intersection detection
+#define USE_VTK 1
+#if USE_VTK
 // VTK
 #include <vtkPoints.h>
 #include <vtkCellArray.h>
@@ -38,28 +44,38 @@
 #include <vtkStructuredPoints.h>
 #include <vtkImplicitModeller.h>
 #include <vtkOBBTree.h>
-
+#endif
 #include "cmd_line_interface.h"
 
 // FS
-extern "C" {
+extern "C"
+{
 #include "fsenv.h"
 #include "mrisurf.h"
 #include "mri.h"
+#include "error.h"
+#include "cma.h"
+#include "diag.h"
+#include "macros.h"
+#include "gca.h"
 };
 char *Progname;
 
 // static function declarations
-
 // forward declaration
 struct IoParams;
+using namespace std;
 
-class IoError : public std::exception {
+class IoError : public std::exception
+{
 public:
   IoError(const std::string& what)
-      : m_what(what) {}
-  virtual ~IoError() throw() {}
-  virtual const char* what() {
+      : m_what(what)
+  {}
+  virtual ~IoError() throw()
+  {}
+  virtual const char* what()
+  {
     return m_what.c_str();
   }
 private:
@@ -67,14 +83,13 @@ private:
 };
 
 /*
-
-loads all the input files
-the return value is the output path for the volume files
-
+  loads all the input files
+  the return value is the output path for the volume files
 */
 std::string
 operator/(const std::string& a,
-          const std::string& b) {
+          const std::string& b)
+{
   std::string s(a);
   s += "/" + b;
   return s;
@@ -89,16 +104,15 @@ LoadInputFiles(const IoParams& params,
                MRIS*& surfRightPial) throw(IoError) ;
 
 /*
-
-converts vertices to the index space
-
+  converts vertices to the index space
 */
 void ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
                                      MRI* vol);
 
-void ComputeSurfaceDistanceFunction(MRIS* mris, //input surface
-                                    float thickness, // cap value for the precise distance value
-                                    MRI* mriInOut); // output mri structure
+void ComputeSurfaceDistanceFunction
+(MRIS* mris, //input surface
+ float thickness, // cap value for the precise distance value
+ MRI* mriInOut); // output mri structure
 
 MRI* CreateHemiMask(MRI* dpial, MRI* dwhite,
                     const unsigned char lblWhite,
@@ -114,18 +128,18 @@ MRI* FilterLabel(MRI* initialMask,
                  const unsigned char lbl);
 
 /*
-
-IO structure
-
-The user can either specify an input subject (thus implicitly setting the names of the in-out files)
-or use an advanced mode and manually specify the files
-
+  IO structure
+  
+  The user can either specify an input subject (thus implicitly
+  setting the names of the in-out files)
+  or use an advanced mode and manually specify the files
 */
-struct IoParams {
+struct IoParams
+{
   typedef std::string StringType;
 
-
   StringType  subject;
+  StringType  subjectsDir;
 
   StringType  templateMri;
   StringType  surfWhiteRoot;
@@ -143,18 +157,23 @@ struct IoParams {
 
   bool bSaveDistance;
   bool bSaveRibbon;
+  bool bEditAseg;
 
   IoParams();
   void parse(int ac, char* av[]);
 };
 
 int
-main(int ac, char* av[]) {
+main(int ac, char* av[])
+{
   // parse command-line
   IoParams params;
-  try {
+  try
+  {
     params.parse(ac,av);
-  } catch (std::exception& excp) {
+  }
+  catch (std::exception& excp)
+  {
     std::cerr << " Exception caught while parsing the command-line\n"
     << excp.what() << std::endl;
     exit(1);
@@ -171,17 +190,38 @@ main(int ac, char* av[]) {
 
   std::string outputPath;
 
-  try {
+  try
+  {
     outputPath = LoadInputFiles(params,
                                 mriTemplate,
                                 surfLeftWhite,
                                 surfLeftPial,
                                 surfRightWhite,
                                 surfRightPial);
-  } catch (std::exception& e) {
+  }
+  catch (std::exception& e)
+  {
     std::cerr << " Exception caught while processing input files \n"
     << e.what() << std::endl;
     exit(1);
+  }
+
+  if (params.bEditAseg)
+  {
+    std::string subjDir = params.subjectsDir / params.subject;
+    std::string pathSurf(subjDir / "surf"),
+    pathMriOutput = outputPath / "aseg.ribbon.mgz";
+
+    printf("inserting LH into aseg...\n") ;
+    insert_ribbon_into_aseg(mriTemplate, mriTemplate,
+                            surfLeftWhite, surfLeftPial, LEFT_HEMISPHERE) ;
+    printf("inserting RH into aseg...\n") ;
+    insert_ribbon_into_aseg(mriTemplate, mriTemplate,
+                            surfRightWhite, surfRightPial, RIGHT_HEMISPHERE);
+    printf("writing output to %s\n",
+           (const_cast<char*>( pathMriOutput.c_str() )));
+    MRIwrite(mriTemplate,  (const_cast<char*>( pathMriOutput.c_str() ))) ;
+    exit(0) ;
   }
 
   /*
@@ -190,7 +230,9 @@ main(int ac, char* av[]) {
 
   //---------------------
   // proces white surface - convert to voxel-space
+#if USE_VTK
   ConvertSurfaceVertexCoordinates(surfLeftWhite, mriTemplate);
+#endif
   // allocate distance
   MRI* dLeftWhite = MRIalloc( mriTemplate->width,
                               mriTemplate->height,
@@ -199,38 +241,50 @@ main(int ac, char* av[]) {
   MRIcopyHeader(mriTemplate, dLeftWhite);
 
   // Computes the signed distance to given surface. Sign indicates
-  // whether it is on the inside or outside. params.capValue - 
+  // whether it is on the inside or outside. params.capValue -
   // saturation/clip value for distance.
+#if USE_VTK
   ComputeSurfaceDistanceFunction(surfLeftWhite,
                                  params.capValue,
                                  dLeftWhite);
+#else
+  std::cout << "computing distance to left white surface \n" ;
+  MRIScomputeDistanceToSurface(surfLeftWhite, dLeftWhite, mriTemplate->xsize) ;
+#endif
   // if the option is there, output distance
   if ( params.bSaveDistance )
     MRIwrite
     ( dLeftWhite,
-      const_cast<char*>( (outputPath / "lh.dwhite." + params.outRoot + ".mgz")
-                         .c_str() )
+      const_cast<char*>( (outputPath / "lh.dwhite." +
+                          params.outRoot + ".mgz").c_str() )
     );
 
   //-----------------------
   // process pial surface
+#if USE_VTK
   ConvertSurfaceVertexCoordinates(surfLeftPial,  mriTemplate);
+#endif
   MRI* dLeftPial = MRIalloc( mriTemplate->width,
                              mriTemplate->height,
                              mriTemplate->depth,
                              MRI_FLOAT);
   MRIcopyHeader(mriTemplate,dLeftPial);
+#if USE_VTK
   ComputeSurfaceDistanceFunction(surfLeftPial,
                                  params.capValue,
                                  dLeftPial);
+#else
+  std::cout << "computing distance to left pial surface \n" ;
+  MRIScomputeDistanceToSurface(surfLeftPial, dLeftPial, mriTemplate->xsize) ;
+#endif
   if ( params.bSaveDistance )
     MRIwrite
     ( dLeftPial,
-      const_cast<char*>( (outputPath / "lh.dpial." + params.outRoot + ".mgz")
-                         .c_str() )
+      const_cast<char*>( (outputPath / "lh.dpial." +
+                          params.outRoot + ".mgz").c_str() )
     );
 
-  // combine them and create a mask for the left hemi. Must be 
+  // combine them and create a mask for the left hemi. Must be
   // outside of white and inside pial. Creates labels for WM and Ribbon.
   MRI* maskLeftHemi = CreateHemiMask(dLeftPial,dLeftWhite,
                                      params.labelLeftWhite,
@@ -241,45 +295,57 @@ main(int ac, char* av[]) {
   MRIfree(&dLeftPial);
 
   /*
-
-  Process RIGHT hemi
-
+    Process RIGHT hemi
   */
 
   //-------------------
   // process white
+#if USE_VTK
   ConvertSurfaceVertexCoordinates(surfRightWhite,mriTemplate);
+#endif
   MRI* dRightWhite = MRIalloc( mriTemplate->width,
                                mriTemplate->height,
                                mriTemplate->depth,
                                MRI_FLOAT);
   MRIcopyHeader(mriTemplate, dRightWhite);
+#if USE_VTK
   ComputeSurfaceDistanceFunction( surfRightWhite,
                                   params.capValue,
                                   dRightWhite);
+#else
+  std::cout << "computing distance to right white surface \n" ;
+  MRIScomputeDistanceToSurface(surfRightWhite, dRightWhite, mriTemplate->xsize) ;
+#endif
   if ( params.bSaveDistance )
     MRIwrite
     ( dRightWhite,
-      const_cast<char*>( (outputPath / "rh.dwhite." + params.outRoot + ".mgz")
-                         .c_str() )
+      const_cast<char*>( (outputPath / "rh.dwhite." +
+                          params.outRoot + ".mgz").c_str() )
     );
 
   //--------------------
   // process pial
+#if USE_VTK
   ConvertSurfaceVertexCoordinates(surfRightPial, mriTemplate);
+#endif
   MRI* dRightPial = MRIalloc( mriTemplate->width,
                               mriTemplate->height,
                               mriTemplate->depth,
                               MRI_FLOAT);
   MRIcopyHeader(mriTemplate, dRightPial);
+#if USE_VTK
   ComputeSurfaceDistanceFunction(surfRightPial,
                                  params.capValue,
                                  dRightPial);
+#else
+  std::cout << "computing distance to right pial surface \n" ;
+  MRIScomputeDistanceToSurface(surfRightPial, dRightPial, mriTemplate->xsize) ;
+#endif
   if ( params.bSaveDistance )
     MRIwrite
     ( dRightPial,
-      const_cast<char*>( (outputPath / "rh.dpial." + params.outRoot + ".mgz")
-                         .c_str() )
+      const_cast<char*>( (outputPath / "rh.dpial." +
+                          params.outRoot + ".mgz").c_str() )
     );
   // compute hemi mask
   MRI* maskRightHemi = CreateHemiMask(dRightPial, dRightWhite,
@@ -299,23 +365,28 @@ main(int ac, char* av[]) {
                                 params.labelBackground);
   MRIcopyHeader( mriTemplate, finalMask);
   // write final mask
+
+  std::cout << "writing volume " <<  const_cast<char*>( (outputPath / (params.outRoot +
+                                                                        ".mgz")).c_str() ) << endl;
+
   MRIwrite( finalMask,
-            const_cast<char*>( (outputPath / (params.outRoot + ".mgz"))
-                               .c_str() )
+            const_cast<char*>( (outputPath / (params.outRoot +
+                                              ".mgz")).c_str() )
           );
 
   /*
-     if present, also write the ribbon masks by themselves
+    if present, also write the ribbon masks by themselves
   */
-  if ( params.bSaveRibbon ) {
+  if ( params.bSaveRibbon )
+  {
     std::cout << " writing ribbon files\n";
     // filter the mask of the left hemi
     MRI* ribbon = FilterLabel(maskLeftHemi,
                               params.labelLeftRibbon);
     MRIcopyHeader( mriTemplate, ribbon);
     MRIwrite( ribbon,
-              const_cast<char*>( (outputPath / "lh." + params.outRoot + ".mgz")
-                                 .c_str()  )
+              const_cast<char*>( (outputPath / "lh." +
+                                  params.outRoot + ".mgz").c_str()  )
             );
     MRIfree(&ribbon);
 
@@ -323,8 +394,8 @@ main(int ac, char* av[]) {
                          params.labelRightRibbon);
     MRIcopyHeader( mriTemplate, ribbon);
     MRIwrite( ribbon,
-              const_cast<char*>( (outputPath / "rh." + params.outRoot + ".mgz")
-                                 .c_str() )
+              const_cast<char*>( (outputPath / "rh." +
+                                  params.outRoot + ".mgz").c_str() )
             );
     MRIfree(&ribbon);
   }
@@ -333,9 +404,8 @@ main(int ac, char* av[]) {
 }
 
 
-
-
-IoParams::IoParams() {
+IoParams::IoParams()
+{
   labelBackground = 0;
 
   labelLeftWhite = 20;
@@ -346,15 +416,21 @@ IoParams::IoParams() {
 
   capValue = 3;
   bSaveDistance = false;
+  bEditAseg = false ;
   bSaveRibbon = false;
 
   outRoot = "ribbon";
   surfWhiteRoot = "white";
   surfPialRoot = "pial";
+
+  char *sd = FSENVgetSUBJECTS_DIR();
+  if (NULL == sd) subjectsDir = "";
+  else subjectsDir = sd;
 }
 
 void
-IoParams::parse(int ac, char* av[]) {
+IoParams::parse(int ac, char* av[])
+{
   std::string sl = "left_";
   std::string sr = "right_";
   std::string srib = "ribbon";
@@ -368,61 +444,94 @@ IoParams::parse(int ac, char* av[]) {
   iRightRibbon(labelRightRibbon),
   iBackground(labelBackground);
 
-
-  std::string strUse =  " surface root name (i.e. <subject>/surf/$hemi.<NAME>";
+  std::string strUse =  "surface root name (i.e. <subject>/surf/$hemi.<NAME>";
   CCmdLineInterface interface(av[0]);
   bool showHelp(false);
 
-
-  interface.AddOptionBool( "help", &showHelp, " display help message");
-  interface.AddOptionString( (ssurf+sw).c_str(), &surfWhiteRoot,
-                             (strUse + " - default value is white").c_str()
-                           );
-  interface.AddOptionString( (ssurf+"pial").c_str(), &surfPialRoot,
-                             (strUse + " - default value is pial").c_str()
-                           );
-  interface.AddOptionString( "out_root", &outRoot,
-                             " default value is ribbon - output will then be mri/ribbon.mgz and  mri/lh.ribbon.mgz and mri/rh.ribbon.mgz (last 2 if -save_ribbon is used)"
-                           );
-  interface.AddOptionInt( (slbl+"background").c_str(), &iBackground,
-                          " override default value for background label value (0)"
-                        );
-  interface.AddOptionInt( (slbl+sl+sw).c_str(), &iLeftWhite,
-                          " override default value for left white matter label - 20"
-                        );
-  interface.AddOptionInt( (slbl+sl+srib).c_str(), &iLeftRibbon,
-                          " override default value for left ribbon label - 10"
-                        );
-  interface.AddOptionInt( (slbl+sr+sw).c_str(), &iRightWhite,
-                          " override default value for right white matter label - 120"
-                        );
-  interface.AddOptionInt( (slbl+sr+srib).c_str(), &iRightRibbon,
-                          " override default value for right ribbon label - 110"
-                        );
-  interface.AddOptionFloat( "cap_distance", &capValue,
-                            (char*)" maximum distance up to which the signed distance function computation is accurate"
-                          );
-  interface.AddOptionBool( "save_distance", &bSaveDistance,
-                           " option to save the signed distance function as ?h.dwhite.mgz ?h.dpial.mgz in the mri directory"
-                         );
-  interface.AddOptionBool( "save_ribbon", &bSaveRibbon,
-                           " option to save just the ribbon for the hemispheres - in the format ?h.outRoot.mgz"
-                         );
-  interface.AddIoItem(&subject, " subject");
+  interface.AddOptionBool
+  ( "help", &showHelp, "display help message");
+  interface.AddOptionString
+  ( (ssurf+sw).c_str(), &surfWhiteRoot,
+    (strUse + " - default value is white").c_str()
+  );
+  interface.AddOptionString
+  ( (ssurf+"pial").c_str(), &surfPialRoot,
+    (strUse + " - default value is pial").c_str()
+  );
+  interface.AddOptionString
+  ( "out_root", &outRoot,
+    "default value is ribbon - output will then be mri/ribbon.mgz and "
+    "mri/lh.ribbon.mgz and mri/rh.ribbon.mgz "
+    "(last 2 if -save_ribbon is used)"
+  );
+  interface.AddOptionInt
+  ( (slbl+"background").c_str(), &iBackground,
+    "override default value for background label value (0)"
+  );
+  interface.AddOptionInt
+  ( (slbl+sl+sw).c_str(), &iLeftWhite,
+    "override default value for left white matter label - 20"
+  );
+  interface.AddOptionInt
+  ( (slbl+sl+srib).c_str(), &iLeftRibbon,
+    "override default value for left ribbon label - 10"
+  );
+  interface.AddOptionInt
+  ( (slbl+sr+sw).c_str(), &iRightWhite,
+    "override default value for right white matter label - 120"
+  );
+  interface.AddOptionInt
+  ( (slbl+sr+srib).c_str(), &iRightRibbon,
+    "override default value for right ribbon label - 110"
+  );
+  interface.AddOptionFloat
+  ( "cap_distance", &capValue,
+    (char*)"maximum distance up to which the signed distance function "
+    "computation is accurate"
+  );
+  interface.AddOptionBool
+  ( "save_distance", &bSaveDistance,
+    "option to save the signed distance function as ?h.dwhite.mgz "
+    "?h.dpial.mgz in the mri directory"
+  );
+  interface.AddOptionBool
+  ( "edit_aseg", &bEditAseg,
+    "option to edit the aseg using the ribbons and save to "
+    "aseg.ribbon.mgz in the mri directory"
+  );
+  interface.AddOptionBool
+  ( "save_ribbon", &bSaveRibbon,
+    "option to save just the ribbon for the hemispheres - "
+    "in the format ?h.ribbon.mgz"
+  );
+  interface.AddOptionString
+  ( "sd", &subjectsDir,
+    "option to specify SUBJECTS_DIR, default is read from enviro"
+  );
+  interface.AddIoItem
+  (&subject, " subject (required param!)");
 
   // if ac == 0, then print complete help
-  if ( ac == 1 ) {
-    std::cout << " Summary Description : \n\n"
-    << " Computes a volume mask, at the same resolution as the <subject>/mri/brain.mgz.\n"
-    << " The volume mask contains 4 values: LH_WM (default 10), LH_GM (default 100), RH_WM (default 20), RH_GM(default 200)\n"
-    << " The algorithm uses the 4 surfaces situated in <subject>/surf/[lh|rh].[white|pial].surf and labels voxels based on the signed-distance function from the surface.\n";
+  if ( ac == 1 )
+  {
+    std::cout <<
+    "\n"
+    " Computes a volume mask, at the same resolution as the\n"
+    " <subject>/mri/brain.mgz.  The volume mask contains 4 values:\n"
+    "   LH_WM (default 10)\n"
+    "   LH_GM (default 100)\n"
+    "   RH_WM (default 20)\n"
+    "   RH_GM (default 200)\n"
+    " The algorithm uses the 4 surfaces situated in\n"
+    " <subject>/surf/[lh|rh].[white|pial].surf and labels voxels\n"
+    " based on the signed-distance function from the surface.\n";
     interface.PrintHelp();
     exit(0);
   }
 
-
   interface.Parse(ac,av);
-  if ( showHelp ) {
+  if ( showHelp )
+  {
     exit(0);
   }
 
@@ -441,7 +550,8 @@ LoadInputFiles(const IoParams& params,
                MRIS*& surfLeftWhite,
                MRIS*& surfLeftPial,
                MRIS*& surfRightWhite,
-               MRIS*& surfRightPial) throw(IoError) {
+               MRIS*& surfRightPial) throw(IoError)
+{
   // determine the mode of the application and infer the input file names
   // use the BOOST filesystem library to resolve paths (system-independent)
 
@@ -453,64 +563,77 @@ LoadInputFiles(const IoParams& params,
   pathMriInput,
   pathOutput;
 
-  char* sd= FSENVgetSUBJECTS_DIR();
-  if ( NULL == sd ) 
+  if ( params.subjectsDir.empty() )
   {
-    cerr << "Could not get SUBJECTS_DIR" << endl;
+    cerr << "SUBJECTS_DIR not found. Use --sd <dir>, or set SUBJECTS_DIR"
+    << endl;
     exit(1);
+  }
+  else
+  {
+    cout << "SUBJECTS_DIR is " << params.subjectsDir << endl;
   }
 
   if ( !params.subject.empty() ) // application is in subject-mode
   {
-    std::string subjDir = std::string( sd ) / params.subject;
+    std::string subjDir = params.subjectsDir / params.subject;
     std::string pathSurf(subjDir / "surf");
     pathSurfLeftWhite = pathSurf / "lh.white";
     pathSurfLeftPial = pathSurf / "lh.pial";
     pathSurfRightWhite = pathSurf / "rh.white";
     pathSurfRightPial = pathSurf / "rh.pial";
-    pathMriInput = subjDir / "mri" / "orig.mgz";
+    pathMriInput = subjDir / "mri" / "aseg.mgz";
 
     pathOutput = subjDir / "mri";
   }
+
+  printf("loading input data...\n") ;
 
   // load actual files now
   surfLeftWhite = MRISread
                   ( const_cast<char*>( pathSurfLeftWhite.c_str() )
                   );
-  if ( !surfLeftWhite ) throw IoError( std::string("failed to read left white surface ")
-                                         + pathSurfLeftWhite );
+  if ( !surfLeftWhite )
+    throw IoError( std::string("failed to read left white surface ")
+                   + pathSurfLeftWhite );
 
   surfLeftPial  = MRISread
                   ( const_cast<char*>( pathSurfLeftPial.c_str() )
                   );
-  if ( !surfLeftPial ) throw IoError( std::string("failed to read left pial surface ")
-                                        + pathSurfLeftPial );
+  if ( !surfLeftPial )
+    throw IoError( std::string("failed to read left pial surface ")
+                   + pathSurfLeftPial );
 
   surfRightWhite = MRISread
                    ( const_cast<char*>( pathSurfRightWhite.c_str() )
                    );
-  if ( !surfRightWhite ) throw IoError( std::string("failed to read right white surface ")
-                                          + pathSurfRightWhite );
+  if ( !surfRightWhite )
+    throw IoError( std::string("failed to read right white surface ")
+                   + pathSurfRightWhite );
 
   surfRightPial = MRISread
                   ( const_cast<char*>( pathSurfRightPial.c_str() )
                   );
-  if ( !surfRightPial ) throw IoError( std::string("failed to read right pial surface ")
-                                         + pathSurfRightPial );
+  if ( !surfRightPial )
+    throw IoError( std::string("failed to read right pial surface ")
+                   + pathSurfRightPial );
 
   mriTemplate = MRIread
                 ( const_cast<char*>( pathMriInput.c_str() )
                 );
-  if ( !mriTemplate ) throw IoError( std::string("failed to read template mri ")
-                                       + pathMriInput );
+  if ( !mriTemplate )
+    throw IoError( std::string("failed to read template mri ")
+                   + pathMriInput );
 
   return pathOutput;
 }
 
+#if USE_VTK
 void
 ComputeSurfaceDistanceFunction(MRIS* mris,
                                float thickness,
-                               MRI* vol) {
+                               MRI* vol)
+{
   vtkPoints* points;
   vtkCellArray* faces;
   vtkPolyData* mesh;
@@ -519,7 +642,8 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   points->SetNumberOfPoints( mris->nvertices );
   VERTEX* pvtx = &( mris->vertices[0] );
   for (unsigned int ui(0), nvertices(mris->nvertices);
-       ui < nvertices; ++ui, ++pvtx ) {
+       ui < nvertices; ++ui, ++pvtx )
+  {
     points->SetPoint(ui, pvtx->x, pvtx->y, pvtx->z);
   } // next ui
 
@@ -527,7 +651,8 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   faces->Allocate( mris->nfaces );
   FACE* pface = &( mris->faces[0] );
   for ( unsigned int ui(0), nfaces(mris->nfaces);
-        ui < nfaces; ++ui, ++pface ) {
+        ui < nfaces; ++ui, ++pface )
+  {
     faces->InsertNextCell((long long int)VERTICES_PER_FACE,
                           (vtkIdType*)pface->v );
   } // next ui
@@ -542,7 +667,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
                   vol->height,
                   vol->depth };
   sp->SetDimensions(dims);
- 
+
   // compute the unsigned distance
   vtkImplicitModeller* implicit = vtkImplicitModeller::New();
   implicit->SetInput(mesh);
@@ -581,7 +706,8 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   sp->GetIncrements(incx,incy,incz);
 
   // iterate thru each volume point, apply sign to tab
-  for (vtkIdType i=0; i<npoints; ++i) {
+  for (vtkIdType i=0; i<npoints; ++i)
+  {
     if (inout[i]) continue; // skip if already visited
 
     double pt[3];
@@ -590,7 +716,8 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
     if ( _inout == 0 ) std::cerr << "Warning: voxel could not be classified\n";
 
     filo.push(i);
-    while (!filo.empty()) {
+    while (!filo.empty())
+    {
       const vtkIdType j = filo.front();
       filo.pop();
       if (inout[j]) continue;
@@ -600,11 +727,13 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
       tab[j] *= _inout; // make it signed
 
       // mark its neighbors if distance > 1 (triangle inequality)
-      if ( dist>1 ) {
+      if ( dist>1 )
+      {
         const int x = j%incy;          //col
         const int y = (j%incz) / incy; //row
         const int z = j/incz;          //slice
-	// If not on boundary of volume and have not visited neighbor, then push
+        // If not on boundary of volume and have not visited neighbor,
+        // then push
         if (x>0 && !inout[j-incx]) filo.push(j-incx);
         if (y>0 && !inout[j-incy]) filo.push(j-incy);
         if (z>0 && !inout[j-incz]) filo.push(j-incz);
@@ -615,7 +744,8 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
     }
   } // next i
 
-  for (vtkIdType j=0; j<npoints; ++j) {
+  for (vtkIdType j=0; j<npoints; ++j)
+  {
     const int x = j%incy;
     const int y = (j%incz) / incy;
     const int z = j/incz;
@@ -624,13 +754,15 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   }
 
 }
+#endif
 
 MRI*
 CreateHemiMask(MRI* dpial,
                MRI* dwhite,
                const unsigned char lblWhite,
                const unsigned char lblRibbon,
-               const unsigned char lblBackground) {
+               const unsigned char lblBackground)
+{
   // allocate return volume
   MRI* mri = MRIalloc(dpial->width,
                       dpial->height,
@@ -642,27 +774,38 @@ CreateHemiMask(MRI* dpial,
     for (unsigned int y(0), height(dpial->height);
          y<height; ++y)
       for (unsigned int x(0), width(dpial->width);
-           x<width; ++x) {
+           x<width; ++x)
+      {
+        if (x == (unsigned int)Gx && y == (unsigned int)Gy && z == (unsigned int)Gz)
+          DiagBreak() ;
+#if USE_VTK
         if ( MRIFvox(dwhite,x,y,z) > 0 )
           MRIsetVoxVal(mri, x,y,z,0, lblWhite);
         else if ( MRIFvox(dpial,x,y,z) > 0 )
           MRIsetVoxVal(mri, x,y,z,0, lblRibbon);
         else
           MRIsetVoxVal(mri,x,y,z,0, lblBackground);
+#else
+        if ( MRIgetVoxVal(dwhite,x,y,z,0) < 0 )
+          MRIsetVoxVal(mri, x,y,z,0, lblWhite);
+        else if ( MRIgetVoxVal(dpial,x,y,z,0) < 0 )
+          MRIsetVoxVal(mri, x,y,z,0, lblRibbon);
+        else
+          MRIsetVoxVal(mri,x,y,z,0, lblBackground);
+#endif
       } // next x,y,z
 
   return mri;
 }
 
 /*
-
-implicit assumption the masks do not overlap
-if this is the case, a message will be printed
-
+  implicit assumption the masks do not overlap
+  if this is the case, a message will be printed
 */
 MRI* CombineMasks(MRI* maskOne,
                   MRI* maskTwo,
-                  const unsigned char lblBackground) {
+                  const unsigned char lblBackground)
+{
   MRI* mri = MRIalloc(maskOne->width,
                       maskOne->height,
                       maskOne->depth,
@@ -675,14 +818,17 @@ MRI* CombineMasks(MRI* maskOne,
     for (unsigned int y(0), height(maskOne->height);
          y<height; ++y)
       for (unsigned int x(0), width(maskOne->width);
-           x<width; ++x) {
+           x<width; ++x)
+      {
         voxOne = MRIvox(maskOne,x,y,z);
         voxTwo = MRIvox(maskTwo,x,y,z);
-        if ( voxOne!=lblBackground && voxTwo!=lblBackground ) {
+        if ( voxOne!=lblBackground && voxTwo!=lblBackground )
+        {
           // overlap
           ++overlap;
           MRIsetVoxVal(mri,x,y,z,0,voxOne);
-        } else if ( voxOne == lblBackground )
+        }
+        else if ( voxOne == lblBackground )
           MRIsetVoxVal(mri,x,y,z,0,voxTwo);
         else if ( voxTwo == lblBackground )
           MRIsetVoxVal(mri,x,y,z,0,voxOne);
@@ -694,7 +840,8 @@ MRI* CombineMasks(MRI* maskOne,
 
 void
 ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
-                                MRI* vol) {
+                                MRI* vol)
+{
   double cx, cy, cz;
   Real vx, vy, vz;
 
@@ -703,7 +850,8 @@ ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
 
   for ( unsigned int ui=0;
         ui < nvertices;
-        ++ui, ++pvtx ) {
+        ++ui, ++pvtx )
+  {
     cx = pvtx->x;
     cy = pvtx->y;
     cz = pvtx->z;
@@ -719,7 +867,8 @@ ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
 }
 
 MRI* FilterLabel(MRI* initialMask,
-                 const unsigned char lbl) {
+                 const unsigned char lbl)
+{
   MRI* mri = MRIalloc( initialMask->width,
                        initialMask->height,
                        initialMask->depth,
@@ -730,7 +879,8 @@ MRI* FilterLabel(MRI* initialMask,
     for (unsigned int y(0), height(initialMask->height);
          y<height; ++y)
       for (unsigned int x(0), width(initialMask->width);
-           x<width; ++x) {
+           x<width; ++x)
+      {
         if ( MRIvox(initialMask,x,y,z) == lbl )
           MRIsetVoxVal(mri, x,y,z,0, (unsigned char)(1) );
         else
@@ -739,3 +889,5 @@ MRI* FilterLabel(MRI* initialMask,
 
   return mri;
 }
+
+
