@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/19 22:52:43 $
+ *    $Revision: 1.3.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -408,5 +408,108 @@ int CMAzeroOutlines(CMAoutlineField *field)
   return(NO_ERROR);
 
 } /* end CMAzeroOutlines() */
+
+#include "mrisurf.h"
+#include "diag.h"
+#include "error.h"
+#include "macros.h"
+int
+insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, 
+                        MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, 
+                        int hemi)
+{
+  MRI  *mri_ribbon, *mri_white ;
+  int  x, y, z, gm_label, wm_label, label, nbr_label, dont_change ;
+
+  if (mri_src_aseg != mri_aseg)
+    mri_aseg = MRIcopy(mri_src_aseg, mri_aseg) ;
+
+  gm_label = hemi == LEFT_HEMISPHERE ? 
+    Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+  wm_label = hemi == LEFT_HEMISPHERE ? 
+    Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
+
+  mri_white = MRIclone(mri_aseg, NULL) ;
+  mri_ribbon = MRISribbon(mris_white, mris_pial, mri_aseg, NULL) ;
+  MRISfillInterior(mris_white, mri_aseg->xsize, mri_white) ;
+
+  for (x = 0 ; x < mri_aseg->width ; x++)
+    for (y = 0 ; y < mri_aseg->height ; y++)
+      for (z = 0 ; z < mri_aseg->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        label = nint(MRIgetVoxVal(mri_aseg, x, y, z, 0)) ;
+        if (nint(MRIgetVoxVal(mri_ribbon, x, y, z, 0)) == 255)  // in ribbon, set to GM
+        {
+          if (IS_CORTEX(label) || IS_WHITE_CLASS(label))
+          {
+            int  xi, yi, zi, xk, yk, zk ;
+            // check to make sure we are really in cortex
+            for (dont_change = 0, xk = -1 ; xk <= 1 ; xk++)
+            {
+              xi = mri_aseg->xi[xk+x] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
+                yi = mri_aseg->yi[yk+y] ;
+                for (zk = -1 ; zk <= 1 ; zk++)
+                {
+                  zi = mri_aseg->zi[zk+z] ;
+                  nbr_label = (int)MRIgetVoxVal(mri_aseg, xi, yi, zi, 0) ;
+                  switch (nbr_label)
+                  {
+                  default:
+                    break ;
+                  case Left_Hippocampus:
+                  case Right_Hippocampus:
+                  case Left_Amygdala:
+                  case Right_Amygdala:
+                  case Left_VentralDC:
+                  case Right_VentralDC:
+                  case Brain_Stem:
+                  case Left_Lateral_Ventricle:
+                  case Right_Lateral_Ventricle:
+                  case Left_Inf_Lat_Vent:
+                  case Right_Inf_Lat_Vent:
+                  case Left_Thalamus_Proper:
+                  case Right_Thalamus_Proper:
+                  case Left_choroid_plexus:
+                  case Right_choroid_plexus:
+                  case CC_Posterior:
+                  case CC_Mid_Posterior:
+                  case CC_Central:
+                  case CC_Mid_Anterior:
+                  case CC_Anterior:
+                    dont_change = 1 ;
+                    break ;
+                  }
+                }
+              }
+            }
+            if (dont_change == 0)
+              MRIsetVoxVal(mri_aseg, x, y, z, 0, gm_label) ;
+          }
+        }
+        else  // not in ribbon
+        {
+          if (MRIgetVoxVal(mri_white, x, y, z, 0) > 0)  // inside white surface - disambiguate
+          {
+            if (label == gm_label)  // gm inside white surface should be wm
+              MRIsetVoxVal(mri_aseg, x, y, z, 0, wm_label) ;
+          }
+          else if (label == gm_label)  // gm outside ribbon should be unknown
+            MRIsetVoxVal(mri_aseg, x, y, z, 0, Unknown) ;
+        }
+      }
+
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_ribbon, "r.mgz") ;
+    MRIwrite(mri_white, "w.mgz");
+  }
+  MRIfree(&mri_ribbon) ; MRIfree(&mri_white) ;
+  return(NO_ERROR) ;
+}
 
 /* eof */
