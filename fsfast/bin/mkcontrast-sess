@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/03 18:03:10 $
-#    $Revision: 1.8 $
+#    $Date: 2008/05/19 16:16:02 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.8 2007/07/03 18:03:10 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.9 2008/05/19 16:16:02 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -186,6 +186,10 @@ if($nircorr == 0) then
 endif
 
 set cmtxfile = $analname/$contrast
+
+# Make sure there is a .mat at the end
+set tmp = `basename $contrast .mat`
+if($tmp == $contrast) set cmtxfile = $cmtxfile.mat
 
 set cmd = (mkcontrast)
 if($UseSXADat) then
