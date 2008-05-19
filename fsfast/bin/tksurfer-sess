@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/25 18:18:26 $
-#    $Revision: 1.6 $
+#    $Date: 2008/05/19 15:43:34 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.6 2008/04/25 18:18:26 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.7 2008/05/19 15:43:34 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -164,7 +164,7 @@ foreach sess ($SessList)
 
   set cmd = (tksurfer $subject $hemi $surf)
   set cmd = ($cmd -overlay $mapconcatfile -overlay-reg $reg)
-  set cmd = ($cmd -label-outline)
+  set cmd = ($cmd -label-outline -colscalebarflag 1)
   if($ShowHDR) then
     set cmd = ($cmd -timecourse $hpath -timecourse-reg $reg)
     set cmd = ($cmd -timecourse-offset $hoffsetpath \
