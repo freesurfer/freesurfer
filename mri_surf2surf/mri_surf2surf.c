@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/14 20:34:43 $
- *    $Revision: 1.71 $
+ *    $Date: 2008/05/20 23:33:28 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.71 2008/05/14 20:34:43 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.72 2008/05/20 23:33:28 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -449,13 +449,13 @@ int main(int argc, char **argv) {
   int nargs;
   FACE *face;
   VERTEX *vtx0,*vtx1,*vtx2;
-  double area, a0, a1, a2;
+  double area, a0, a1, a2, d, dmin, dmax, dsum;
   COLOR_TABLE *ctab=NULL;
   LABEL *MaskLabel;
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.71 2008/05/14 20:34:43 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.72 2008/05/20 23:33:28 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -599,18 +599,22 @@ int main(int argc, char **argv) {
 	if(RMSDatFile){
 	  // This is primarily for testing
 	  printf("Computing RMS\n");
-	  a1 = 0.0;
+	  dmin = 10e10;
+	  dmax = 0.0;
+	  dsum = 0.0;
 	  for(n=0; n < SurfSrc->nvertices; n++){
 	    x = SurfSrc->vertices[n].x;
 	    y = SurfSrc->vertices[n].y;
 	    z = SurfSrc->vertices[n].z;
-	    a0 = sqrt(x*x + y*y + z*z);
-	    a1 += a0;
+	    d = sqrt(x*x + y*y + z*z);
+	    dsum += d;
+	    if(d > dmax) dmax = d;
+	    if(d < dmin) dmin = d;
 	  }
-	  a1 /= SurfSrc->nvertices;
-	  printf("RMS %lf\n",a1);
+	  d = dsum/SurfSrc->nvertices;
+	  printf("RMS %lf %lf %lf\n",d,dmin,dmax);
 	  fp = fopen(RMSDatFile,"w");
-	  fprintf(fp,"%lf\n",a1);
+	  fprintf(fp,"%lf %lf %lf\n",d,dmin,dmax);
 	  fclose(fp);
 	  exit(0);
 	}
