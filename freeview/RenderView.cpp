@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/18 19:58:19 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@
 #include <vtkPoints.h>
 #include <vtkCellArray.h>
 #include <vtkProperty2D.h>
+#include "MyUtils.h"
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView, wxVTKRenderWindowInteractor)
 
@@ -82,7 +83,7 @@ void RenderView::InitializeRenderView()
 	m_renderWindow->AddRenderer( m_renderer );
 //	m_renderer->SetBackground( 0.7, 0.7, 0.9 );
 
-	m_interactor = new Interactor();
+	m_interactor = NULL;
 	m_nInteractionMode = 0;
 	m_nRedrawCount = 0;
 	
@@ -142,7 +143,8 @@ RenderView::~RenderView()
 	if (m_renderer)
 		m_renderer->Delete();
 	
-	delete m_interactor;
+	if ( m_interactor )
+		delete m_interactor;
 	m_actorFocusFrame->Delete();
 }
 
@@ -302,3 +304,13 @@ void RenderView::OnInternalIdle()
 		m_nRedrawCount--;
 	}
 }
+
+bool RenderView::SaveScreenshot( const wxString& fn )
+{
+	PreScreenshot();
+	bool ret = MyUtils::VTKScreenCapture( GetRenderWindow(), m_renderer, fn.c_str() );
+	PostScreenshot();
+	
+	return ret;
+}
+

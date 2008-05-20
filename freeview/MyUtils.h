@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,9 @@
 
 #include <math.h>
 #include <wx/wx.h>
+
+class vtkRenderer;
+class vtkRenderWindow;
 
 class MyUtils 
 {
@@ -52,6 +55,9 @@ public:
 	static wxString	GetDateAndTime();
 	
 	static wxArrayString SplitString( const wxString& strg, const wxString& divider );
+	
+	static bool VTKScreenCapture( vtkRenderWindow* renderWindow, vtkRenderer* renderer, 
+								  const char* filename, bool bAntiAliasing = false, int nMag = 1 );
 };
 	
 

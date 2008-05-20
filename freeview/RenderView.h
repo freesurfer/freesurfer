@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,6 +69,7 @@ public:
 	
 	virtual void DoListenToMessage( std::string const iMessage, void* const iData );
 	
+	
 	int	GetInteractionMode();
 	virtual void SetInteractionMode( int nMode );
 	
@@ -84,6 +85,11 @@ public:
 	
 	vtkRenderer* GetRenderer()
 		{ return m_renderer; }
+	
+	bool SaveScreenshot( const wxString& fn );
+	
+	virtual void PreScreenshot() {}
+	virtual void PostScreenshot() {}
 	
 protected:
 	void InitializeRenderView();

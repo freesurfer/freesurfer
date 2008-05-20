@@ -1,5 +1,5 @@
 /**
- * @file  LayerMRI.h
+ * @file  LayerSurface.h
  * @brief Layer data object for MRI volume.
  *
  */
@@ -8,7 +8,7 @@
  * CVS Revision Info:
  *    $Author: rpwang $
  *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.3 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,14 +24,13 @@
  *
  */
  
-#ifndef LayerMRI_h
-#define LayerMRI_h
+#ifndef LayerSurface_h
+#define LayerSurface_h
 
-#include "LayerEditable.h"
+#include "Layer.h"
 #include "vtkSmartPointer.h"
 #include <string>
 
-class vtkFSVolumeSource;
 class vtkImageReslice;
 class vtkImageMapToColors;
 class vtkTransform;
@@ -40,77 +39,59 @@ class vtkPolyDataMapper;
 class vtkActor;
 class vtkImageActor;
 class vtkImageData;
-class LayerPropertiesMRI;
-class FSVolume;
+class LayerPropertiesSurface;
+class FSSurface;
 class wxWindow;
 class wxCommandEvent;
 
-class LayerMRI : public LayerEditable
+class LayerSurface : public Layer
 {
 	public:
-		LayerMRI();
-		virtual ~LayerMRI();
+		LayerSurface();
+		virtual ~LayerSurface();
 					
-//		bool LoadVolumeFromFile( std::string filename );
-		bool LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event );
-		bool Create( LayerMRI* mri, bool bCopyVoxel );
+		bool LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event );
 		
 		void Append2DProps( vtkRenderer* renderer, int nPlane );
 		void Append3DProps( vtkRenderer* renderer );
 		
-//		void SetSliceNumber( int* sliceNumber );
 		void SetSlicePositionToWorldCenter();
 		
-		virtual double GetVoxelValue( double* pos );
-		virtual std::string GetLabelName( double value );
-				
-		LayerPropertiesMRI* GetProperties();
+		LayerPropertiesSurface* GetProperties();
 		
 		virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
 		
 		virtual void SetVisible( bool bVisible = true );
 		virtual bool IsVisible();
 		
-		FSVolume* GetSourceVolume()
-			{ return m_volumeSource; }
+		FSSurface* GetSourceSurface()
+			{ return m_surfaceSource; }
 		
-		bool SaveVolume( wxWindow* wnd, wxCommandEvent& event );
+		const char* GetFileName()
+			{ return m_sFilename.c_str(); }
 		
-		void SetResampleToRAS( bool bResample );
-		
-		bool GetResampleToRAS()
-			{ return m_bResampleToRAS; }
-		
-		void RemapPositionToRealRAS( const double* pos_in, double* pos_out );
-
-		void RemapPositionToRealRAS( double x_in, double y_in, double z_in, 
-									 double& x_out, double& y_out, double& z_out );
-		int GetNumberOfFrames();
-		
-		void SetActiveFrame( int nFrame );
+		void SetFileName( const char* fn )
+			{ m_sFilename = fn; } 
 		
 	protected:
-		virtual void SetModified();
-		
-		void InitializeVolume();
+		void InitializeSurface();
 		void InitializeActors();		
 		void UpdateOpacity();
-		void UpdateResliceInterpolation();
-		void UpdateTextureSmoothing();
-		virtual void UpdateColorMap();
 		
 		virtual void OnSlicePositionChanged( int nPlane );	
 		
-		LayerPropertiesMRI* 					mProperties;
+		LayerPropertiesSurface* 				mProperties;
 		// Pipeline ------------------------------------------------------------
 		vtkSmartPointer<vtkImageReslice> 		mReslice[3];
 		vtkSmartPointer<vtkImageMapToColors> 	mColorMap[3];
 
-		FSVolume*			m_volumeSource;
+		FSSurface*			m_surfaceSource;
 		bool				m_bResampleToRAS;
 		
-		vtkImageActor*		m_sliceActor2D[3];
-		vtkImageActor*		m_sliceActor3D[3];
+		std::string			m_sFilename;
+		
+		vtkActor*		m_sliceActor2D[3];
+		vtkActor*		m_mainActor;
 };
 
 #endif 

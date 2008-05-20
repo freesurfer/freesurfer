@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,8 @@ class ControlPanel;
 class wxPanel;
 class wxSplitterWindow;
 class wxFileHistory;
+class wxSpinEvent;
+class RenderView;
 class RenderView2D;
 class RenderView3D;
 class PixelInfoPanel;
@@ -48,6 +50,8 @@ class WindowQuickReference;
 class StatusBar;
 class LayerCollectionManager;
 class LUTDataHolder;
+class wxToolBar;
+class BrushProperty;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -77,6 +81,9 @@ public:
 	void OnFileSaveROIAs( wxCommandEvent& event );
 	void OnFileSaveROIAsUpdateUI( wxUpdateUIEvent& event );
 	void OnFileLoadDTI( wxCommandEvent& event );
+	void OnFileSaveScreenshot( wxCommandEvent& event );
+	void OnFileSaveScreenshotUpdateUI( wxUpdateUIEvent& event );
+	void OnFileLoadSurface( wxCommandEvent& event );
 	
 	void OnViewLayout1X1( wxCommandEvent& event );
 	void OnViewLayout1X1UpdateUI( wxUpdateUIEvent& event );
@@ -95,8 +102,12 @@ public:
 	void OnViewReset( wxCommandEvent& event );
 	void OnViewResetUpdateUI( wxUpdateUIEvent& event );
 	
-	void OnActionNavigate( wxCommandEvent& event );
-	void OnActionNavigateUpdateUI( wxUpdateUIEvent& event);
+	void OnModeNavigate( wxCommandEvent& event );
+	void OnModeNavigateUpdateUI( wxUpdateUIEvent& event);	
+	void OnModeVoxelEdit( wxCommandEvent& event );
+	void OnModeVoxelEditUpdateUI( wxUpdateUIEvent& event);
+	void OnModeROIEdit( wxCommandEvent& event );
+	void OnModeROIEditUpdateUI( wxUpdateUIEvent& event);
 	void OnActionVoxelFreehand( wxCommandEvent& event );
 	void OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event );
 	void OnActionVoxelFill( wxCommandEvent& event );
@@ -110,6 +121,10 @@ public:
 	void OnActionROIPolyline( wxCommandEvent& event );
 	void OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event );
 	
+	void OnEditCopy( wxCommandEvent& event );
+	void OnEditCopyUpdateUI( wxUpdateUIEvent& event );
+	void OnEditPaste( wxCommandEvent& event );
+	void OnEditPasteUpdateUI( wxUpdateUIEvent& event );
 	void OnEditUndo( wxCommandEvent& event );
 	void OnEditUndoUpdateUI( wxUpdateUIEvent& event );
 	void OnEditRedo( wxCommandEvent& event );
@@ -120,6 +135,11 @@ public:
 	void OnHelpAbout( wxCommandEvent& event );
 		
 	void OnWorkerThreadResponse( wxCommandEvent& event );
+	
+	void OnSpinBrushSize( wxSpinEvent& event );
+	void OnSpinBrushTolerance( wxSpinEvent& event );
+	void OnCheckBrushTemplate( wxCommandEvent& event );
+	void OnChoiceBrushTemplate( wxCommandEvent& event );
 	
 	void OnActivate( wxActivateEvent& event );
 	void OnClose( wxCloseEvent &event );
@@ -134,10 +154,13 @@ public:
 	void NewROI();
 	void SaveROI();
 	void SaveROIAs();
+	
+	void LoadSurface();
 
 	void LoadVolumeFile( const wxString& fn, bool bResample = true, int nColorMap = 0 );
 	void LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, bool Resample = true );
 	void LoadROIFile( const wxString& fn );	
+	void LoadSurfaceFile( const wxString& fn );
 	
 	bool IsSaving()
 		{ return m_bSaving; }
@@ -158,6 +181,11 @@ public:
 	void AddScript( const wxArrayString& script );
 	void RunScript(); 
 	
+	int GetActiveViewId();
+	
+	BrushProperty* GetBrushProperty()
+		{ return m_propertyBrush; }
+	
 protected:
 	void OnInternalIdle(); 
 	virtual void DoListenToMessage ( std::string const iMsg, void* const iData );
@@ -165,6 +193,8 @@ protected:
 private:
 	void SetViewLayout( int nLayout );
 	void SetMainView( int nView );
+	void UpdateToolbars();
+	void DoUpdateToolbars();
 	
 	ControlPanel*		m_controlPanel;
 	PixelInfoPanel*		m_pixelInfoPanel;
@@ -173,13 +203,19 @@ private:
 	wxPanel*			m_renderViewHolder;	
 	WindowQuickReference*	m_wndQuickReference;
 	StatusBar*			m_statusBar;
+	wxToolBar*			m_toolbarVoxelEdit;
+	wxToolBar*			m_toolbarROIEdit;
+	wxToolBar*			m_toolbarBrush;
+	wxPanel*			m_panelToolbarHolder;
 	
 	RenderView2D*		m_viewAxial;
 	RenderView2D*		m_viewSagittal;
 	RenderView2D*		m_viewCoronal;
 	RenderView3D*		m_view3D;
+	RenderView*			m_viewRender[4];
 	int					m_nViewLayout;
 	int					m_nMainView;
+	int					m_nPrevActiveViewId;
 	
 	LayerCollectionManager*	m_layerCollectionManager;
 	
@@ -187,15 +223,19 @@ private:
 	wxFileHistory*		m_fileHistory;
 	int					m_nMaxRecentFiles;
 	bool				m_bResampleToRAS;
+	int					m_nScreenshotFilterIndex;
 	
 	LUTDataHolder*		m_luts;
 	
 	int				m_nRedrawCount;
+	bool			m_bToUpdateToolbars;
 	
 	bool			m_bSaving;
 	bool			m_bLoading;
     
 	std::vector<wxArrayString>	m_scripts;
+	
+	BrushProperty*	m_propertyBrush;
 	
     DECLARE_CLASS( MainWindow )
     // any class wishing to process wxWindows events must use this macro

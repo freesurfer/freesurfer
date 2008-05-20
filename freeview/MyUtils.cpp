@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,16 @@
 #include <math.h>
 #include <wx/filename.h>
 #include <stddef.h>
+#include <vtkRenderer.h>
+#include <vtkRenderWindow.h>
+#include <vtkImageWriter.h>
+#include <vtkBMPWriter.h>
+#include <vtkJPEGWriter.h>
+#include <vtkPNGWriter.h>
+#include <vtkTIFFWriter.h>
+#include <vtkPostScriptWriter.h>
+#include <vtkRenderLargeImage.h>
+#include <vtkVRMLExporter.h>
 
 typedef struct { int xl, xr, y, dy; } LINESEGMENT;
 
@@ -141,3 +151,49 @@ wxString MyUtils::GetDateAndTime()
 	
 	return strg;
 }
+
+bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd, vtkRenderer* renderer, 
+								const char* filename, bool bAntiAliasing, int nMag )
+{
+	wxString fn = filename;
+	vtkImageWriter* writer = 0;
+	if ( HasExtension( filename, "wrl" ) )
+	{
+		vtkVRMLExporter* exporter = vtkVRMLExporter::New();
+		exporter->SetFileName( filename );
+		exporter->SetRenderWindow( renderWnd );
+		exporter->Write();
+		exporter->Delete();
+	}
+	else if ( HasExtension( filename, "jpg" ) || HasExtension( filename, "jpeg" ) )
+		writer = vtkJPEGWriter::New();
+	else if ( HasExtension( filename, "bmp" ) )
+		writer = vtkBMPWriter::New();
+	else if ( HasExtension( filename, "ps" ) )
+		writer = vtkPostScriptWriter::New();
+	else if ( HasExtension( filename, "tif" ) || HasExtension( filename, "tiff" ) )
+		writer = vtkTIFFWriter::New();
+	else 
+	{
+		writer = vtkPNGWriter::New();
+		if ( !HasExtension( filename, "png") )
+			fn += ".png";
+	}
+	if (writer)
+	{
+	//	bool bCurrentAA = GetAntialiasing() > 0;
+	//	SetAntialiasing(bAntiAliasing, false);
+		vtkRenderLargeImage* image = vtkRenderLargeImage::New();
+		image->SetInput( renderer );
+		image->SetMagnification( nMag );
+		writer->SetInput( image->GetOutput() );
+		writer->SetFileName( fn.c_str() );
+		writer->Write();
+		image->Delete();
+		writer->Delete();
+	//	SetAntialiasing(bCurrentAA, false);
+	}
+	return true;	
+}
+
+

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/05/20 16:28:31 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,8 @@
 #include "Interactor2D.h"
 #include <vector>
 
+class wxWindow;
+
 class Interactor2DVoxelEdit : public Interactor2D
 {
 	public:
@@ -46,6 +48,8 @@ class Interactor2DVoxelEdit : public Interactor2D
 		virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
 		
 	protected:	
+		void UpdateCursor( wxWindow* wnd );
+		
 		bool	m_bEditing;
 	
 		std::vector<double>		m_dPolylinePoints;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/18 19:58:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,7 @@
 #include <vector>
 
 class vtkImageData;
+class BrushProperty;
 
 class LayerEditable : public Layer
 {
@@ -41,8 +42,8 @@ class LayerEditable : public Layer
 		LayerEditable();
 		virtual ~LayerEditable();
 
-		void SetVoxelByRAS( double* ras, bool bAdd = true );
-		void SetVoxelByRAS( double* ras1, double*ras2, bool bAdd = true );	
+		void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
+		void SetVoxelByRAS( double* ras1, double*ras2, int nPlane, bool bAdd = true );	
 		void FloodFillByRAS( double* ras, int nPlane, bool bAdd = true );	
 			
 		bool HasUndo();
@@ -50,6 +51,9 @@ class LayerEditable : public Layer
 		
 		void Undo();
 		void Redo();
+		
+		void Copy( int nPlane );
+		void Paste( int nPlane );
 		
 		void SaveForUndo( int nPlane );
 		
@@ -67,6 +71,12 @@ class LayerEditable : public Layer
 		
 		virtual void SetVisible( bool bVisible = true ) = 0;
 		virtual bool IsVisible() = 0;	
+		
+		virtual int GetActiveFrame()
+			{ return m_nActiveFrame; }
+		
+		virtual void SetActiveFrame( int nFrame )
+			{ m_nActiveFrame = nFrame; }
 		
 		vtkImageData* GetRASVolume()
 			{ return m_volumeRAS; }
@@ -91,12 +101,17 @@ class LayerEditable : public Layer
 		
 		bool IsEditable()
 			{ return m_bEditable; }
+		
+		void SetBrushProperty( BrushProperty* brush )
+			{ m_propertyBrush = brush; }
+		
+		bool IsValidToPaste( int nPlane );
 							
 	protected:
 		virtual void SetModified();
 		
-		bool SetVoxelByIndex( int* n, bool bAdd = true );	// true is to add, false is to remove
-		bool SetVoxelByIndex( int* n1, int* n2, bool bAdd = true );
+		bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true );	// true is to add, false is to remove
+		bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
 		bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true );
 		
 		struct UndoRedoBufferItem	
@@ -117,6 +132,7 @@ class LayerEditable : public Layer
 		
 		std::vector<UndoRedoBufferItem>		m_bufferUndo;
 		std::vector<UndoRedoBufferItem>		m_bufferRedo;
+		UndoRedoBufferItem				m_bufferClipboard;
 		
 		int			m_nBrushRadius;
 		
@@ -124,6 +140,9 @@ class LayerEditable : public Layer
 		bool		m_bModified;
 		
 		bool 		m_bEditable;
+		BrushProperty*		m_propertyBrush;
+		
+		int					m_nActiveFrame;
 		
 		std::string			m_sFilename;
 };

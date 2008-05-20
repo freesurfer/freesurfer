@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/18 19:58:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,8 @@
 #include "vtkImageData.h"
 #include "MyUtils.h"
 #include "LayerMRI.h"
+#include "BrushProperty.h"
+#include "MainWindow.h"
 #include <stdlib.h>
 
 LayerEditable::LayerEditable() : Layer()
@@ -42,6 +44,9 @@ LayerEditable::LayerEditable() : Layer()
 	m_bModified = false;
 	m_bEditable = true;
 	m_nMaxUndoSteps = 100;
+	m_bufferClipboard.data = NULL;
+	m_nActiveFrame = 0;
+	m_propertyBrush = MainWindow::GetMainWindowPointer()->GetBrushProperty();
 }
 
 LayerEditable::~LayerEditable()
@@ -54,52 +59,66 @@ LayerEditable::~LayerEditable()
 	for ( int i = 0; i < (int)m_bufferRedo.size(); i++ )
 		delete[] m_bufferRedo[i].data;
 	
+	if ( m_bufferClipboard.data )
+		delete[] m_bufferClipboard.data;
+	
 	m_bufferUndo.clear();
 }
 
-bool LayerEditable::SetVoxelByIndex( int* n, bool bAdd )
+bool LayerEditable::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 {
 	int* nDim = m_volumeRAS->GetDimensions();
-	for ( int i = 0; i < 3; i++ )
+/*	for ( int i = 0; i < 3; i++ )
 	{
-		if ( n[i] < 0 || n[i] >= nDim[i] )
+		if ( n_in[i] < 0 || n_in[i] >= nDim[i] )
 			return false;
 	}
-	
+*/	
 //	float* ptr = ( float* )m_volumeRAS->GetScalarPointer( n );
 //	if ( !ptr )
 //		return false;
 	
-	float fvalue = m_volumeRAS->GetScalarComponentAsFloat( n[0], n[1], n[2], 0 );
-	if ( bAdd )
+	int nBrushSize = m_propertyBrush->GetBrushSize();	
+	int n[3], nsize[3] = { nBrushSize/2+1, nBrushSize/2+1, nBrushSize/2+1 };
+	nsize[nPlane] = 1;
+	int nActiveComp = GetActiveFrame();
+	for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
 	{
-		if ( fvalue == m_fFillValue )
-			return false;
-		else
+		for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
 		{
-			m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, m_fFillValue );
-			return true;
+			for ( int k = -nsize[2]+1; k < nsize[2]; k++ )
+			{
+				n[0] = n_in[0] + i;
+				n[1] = n_in[1] + j;
+				n[2] = n_in[2] + k;
+				if ( n[0] >= 0 && n[0] < nDim[0] && 
+					 n[1] >= 0 && n[1] < nDim[1] && 
+					 n[2] >= 0 && n[2] < nDim[2] && 
+					 MyUtils::GetDistance<int>( n, n_in ) <= nBrushSize/2.0 )
+				{
+				//	float fvalue = m_volumeRAS->GetScalarComponentAsFloat( n[0], n[1], n[2], 0 );
+					if ( bAdd )
+					{
+						m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+					}
+					else 
+					{
+						m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
+					}
+				}
+			}
 		}
 	}
-	else 
-	{
-		if ( fvalue == m_fBlankValue )
-			return false;
-		else
-		{
-			m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, m_fBlankValue );
-			return true;
-		}
-	}
+	return true;
 }
 
-void LayerEditable::SetVoxelByRAS( double* ras, bool bAdd )
+void LayerEditable::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
 {
 	int n[3];
 	for ( int i = 0; i < 3; i++ )
 		n[i] = ( int )( ( ras[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
 	
-	if ( SetVoxelByIndex( n, bAdd ) )
+	if ( SetVoxelByIndex( n, nPlane, bAdd ) )
 	{
 		SetModified();
 		this->SendBroadcast( "LayerActorUpdated", this );
@@ -110,7 +129,7 @@ void LayerEditable::SetVoxelByRAS( double* ras, bool bAdd )
 	}
 }
 
-void LayerEditable::SetVoxelByRAS( double* ras1, double* ras2, bool bAdd )
+void LayerEditable::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd )
 {
 	int n1[3], n2[3];
 	for ( int i = 0; i < 3; i++ )
@@ -119,7 +138,7 @@ void LayerEditable::SetVoxelByRAS( double* ras1, double* ras2, bool bAdd )
 		n2[i] = ( int )( ( ras2[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
 	}
 	
-	if ( SetVoxelByIndex( n1, n2, bAdd ) )
+	if ( SetVoxelByIndex( n1, n2, nPlane, bAdd ) )
 	{
 		SetModified();
 		this->SendBroadcast( "LayerActorUpdated", this );
@@ -130,18 +149,16 @@ void LayerEditable::SetVoxelByRAS( double* ras1, double* ras2, bool bAdd )
 	}
 }
 	
-bool LayerEditable::SetVoxelByIndex( int* n1, int* n2, bool bAdd )
+bool LayerEditable::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
 {
-	int nPlane = 0, nx = 1, ny = 2;
-	if ( n1[1] == n2[1] )
+	int nx = 1, ny = 2;
+	if ( nPlane == 1 )
 	{
-		nPlane = 1;
 		nx = 0;
 		ny = 2;
 	}
-	else if ( n1[2] == n2[2] )
+	else if (  nPlane == 2 )
 	{
-		nPlane = 2;
 		nx = 0;
 		ny = 1;
 	}
@@ -151,7 +168,7 @@ bool LayerEditable::SetVoxelByIndex( int* n1, int* n2, bool bAdd )
 	int dy = y1 - y0;
 	double t = 0.5;
 	int n[3];
-	bool bChanged = SetVoxelByIndex( n1, bAdd );	
+	bool bChanged = SetVoxelByIndex( n1, nPlane, bAdd );	
 	if ( abs( dx ) > abs( dy ) )
 	{
 		double m = (double) dy / (double) dx;
@@ -165,7 +182,7 @@ bool LayerEditable::SetVoxelByIndex( int* n1, int* n2, bool bAdd )
 			n[nx] = x0;
 			n[ny] = (int) t;
 			n[nPlane] = n1[nPlane];
-			bChanged = SetVoxelByIndex( n, bAdd );
+			bChanged = SetVoxelByIndex( n, nPlane, bAdd );
 		}
 	}
 	else
@@ -181,7 +198,7 @@ bool LayerEditable::SetVoxelByIndex( int* n1, int* n2, bool bAdd )
 			n[nx] = (int) t;
 			n[ny] = y0;
 			n[nPlane] = n1[nPlane];
-			bChanged = SetVoxelByIndex( n, bAdd );
+			bChanged = SetVoxelByIndex( n, nPlane, bAdd );
 		}
 	}
 	return true;
@@ -227,36 +244,91 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 	}
 	char** mask = MyUtils::AllocateMatrix<char>( ny, nx );
 	int i, j;
-	float fVoxelValue = m_volumeRAS->GetScalarComponentAsFloat( n[0], n[1], n[2], 0 );
+	int nTolerance = m_propertyBrush->GetBrushTolerance();
+	LayerEditable* ref_layer = m_propertyBrush->GetReferenceLayer();
+	vtkImageData* ref = m_volumeRAS;
+	int nActiveCompRef = 0;
+	if ( ref_layer != NULL )
+	{
+		ref = ref_layer->GetRASVolume();
+		nActiveCompRef = ref_layer->GetActiveFrame();
+	}
+	int nActiveComp = this->GetActiveFrame();
+	float fVoxelValue = ref->GetScalarComponentAsFloat( n[0], n[1], n[2], 0 );
 	switch ( nPlane )
 	{
 		case 0:
-			for ( i = 0; i < nx; i++ )
+			if ( ref == m_volumeRAS )
 			{
-				for ( j = 0; j < ny; j++ )
+				for ( i = 0; i < nx; i++ )
 				{
-					mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( n[nPlane], i, j, 0 ) == fVoxelValue 
-							? 1 : 0 );
+					for ( j = 0; j < ny; j++ )
+					{
+						mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= nTolerance
+								? 1 : 0 );
+					}
+				}
+			}
+			else
+			{
+				for ( i = 0; i < nx; i++ )
+				{
+					for ( j = 0; j < ny; j++ )
+					{
+						mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveComp ) <= 0  &&
+								fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= nTolerance
+								? 1 : 0 );
+					}
 				}
 			}
 			break;
 		case 1:
-			for ( i = 0; i < nx; i++ )
+			if ( ref == m_volumeRAS )
 			{
-				for ( int j = 0; j < ny; j++ )
+				for ( i = 0; i < nx; i++ )
 				{
-					mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( i, n[nPlane], j, 0 ) == fVoxelValue 
-							? 1 : 0 );
+					for ( int j = 0; j < ny; j++ )
+					{
+						mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= nTolerance  
+								? 1 : 0 );
+					}
+				}
+			}
+			else
+			{			
+				for ( i = 0; i < nx; i++ )
+				{
+					for ( int j = 0; j < ny; j++ )
+					{
+						mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveComp ) <= 0  &&
+								fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= nTolerance  
+								? 1 : 0 );
+					}
 				}
 			}
 			break;
 		case 2:
-			for ( i = 0; i < nx; i++ )
+			if ( ref == m_volumeRAS )
 			{
-				for ( j = 0; j < ny; j++ )
+				for ( i = 0; i < nx; i++ )
 				{
-					mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( i, j, n[nPlane], 0 ) == fVoxelValue 
-							? 1 : 0 );
+					for ( j = 0; j < ny; j++ )
+					{
+						mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= nTolerance  
+								? 1 : 0 );
+					}
+				}
+			}
+			else
+			{
+				for ( i = 0; i < nx; i++ )
+				{
+					for ( j = 0; j < ny; j++ )
+					{
+						mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveComp ) <= 0  &&
+								fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= nTolerance  
+								? 1 : 0 );
+					}
 				}
 			}
 			break;
@@ -272,7 +344,7 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				for ( j = 0; j < ny; j++ )
 				{
 					if ( mask[j][i] == 2 )
-						m_volumeRAS->SetScalarComponentFromFloat( n[nPlane], i, j, 0, bAdd ? m_fFillValue : m_fBlankValue );
+						m_volumeRAS->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
 				}
 			}
 			break;
@@ -282,7 +354,7 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				for ( j = 0; j < ny; j++ )
 				{
 					if ( mask[j][i] == 2 )
-						m_volumeRAS->SetScalarComponentFromFloat( i, n[nPlane], j, 0, bAdd ? m_fFillValue : m_fBlankValue );
+						m_volumeRAS->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
 				}
 			}
 			break;
@@ -292,13 +364,13 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				for ( j = 0; j < ny; j++ )
 				{
 					if ( mask[j][i] == 2 )
-						m_volumeRAS->SetScalarComponentFromFloat( i, j, n[nPlane], 0, bAdd ? m_fFillValue : m_fBlankValue );
+						m_volumeRAS->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
 				}
 			}
 			break;
 	}
 	
-	MyUtils::FreeMatrix( mask, ny);
+	MyUtils::FreeMatrix( mask, ny );
 	
 	return true;
 }
@@ -369,6 +441,29 @@ void LayerEditable::SaveForUndo( int nPlane )
 	for ( int i = 0; i < (int)m_bufferRedo.size(); i++ )
 		delete[] m_bufferRedo[i].data;
 	m_bufferRedo.clear();
+}
+
+bool LayerEditable::IsValidToPaste( int nPlane )
+{
+	return ( m_bufferClipboard.data != NULL && m_bufferClipboard.plane == nPlane );
+}
+
+void LayerEditable::Copy( int nPlane )
+{
+	int nSlice = ( int )( ( m_dSlicePosition[nPlane] - m_dWorldOrigin[nPlane] ) / m_dWorldVoxelSize[nPlane] + 0.5 );
+	SaveBufferItem( m_bufferClipboard, nPlane, nSlice );
+}
+
+void LayerEditable::Paste( int nPlane )
+{
+	SaveForUndo( nPlane );
+	
+	int nSlice = ( int )( ( m_dSlicePosition[nPlane] - m_dWorldOrigin[nPlane] ) / m_dWorldVoxelSize[nPlane] + 0.5 );
+	m_bufferClipboard.slice = nSlice;
+	LoadBufferItem( m_bufferClipboard );
+		
+	SetModified();
+	this->SendBroadcast( "LayerActorUpdated", this );
 }
 
 void LayerEditable::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice )

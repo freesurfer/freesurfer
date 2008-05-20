@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,9 @@
 
 class Annotation2D;
 class Cursor2D;
+class Interactor2DNavigate;
+class Interactor2DVoxelEdit;
+class Interactor2DROIEdit;
 
 class VTK_RENDERING_EXPORT RenderView2D : public RenderView
 {
@@ -77,6 +80,9 @@ public:
 	void MoveUp();
 	void MoveDown();
 	void ZoomAtCursor( int nX, int nY, bool ZoomIn );
+	
+	void PreScreenshot();
+	void PostScreenshot();
     
 protected:
 	void Initialize2D();
@@ -89,6 +95,9 @@ protected:
 	
 	Annotation2D*		m_annotation2D;
 	Cursor2D*			m_cursor2D;
+	Interactor2DNavigate*	m_interactorNavigate;
+	Interactor2DVoxelEdit*	m_interactorVoxelEdit;
+	Interactor2DROIEdit*	m_interactorROIEdit;
 	
     // any class wishing to process wxWindows events must use this macro
     DECLARE_EVENT_TABLE()

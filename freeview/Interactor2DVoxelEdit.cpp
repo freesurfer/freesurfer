@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/18 19:58:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/20 16:28:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,13 +49,16 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 
 	if ( event.LeftDown() )
 	{
+		if ( event.ControlDown() )
+			return Interactor2D::ProcessMouseDownEvent( event, renderview );
+		
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( "MRI" );
 		LayerMRI* mri = ( LayerMRI* )lc->GetActiveLayer();
-		if ( (!mri || !mri->IsVisible()) && ( event.ControlDown() || m_nAction == EM_Polyline ) )
+		if ( (!mri || !mri->IsVisible()) ) //&& ( event.ControlDown() || m_nAction == EM_Polyline ) )
 		{
 			SendBroadcast( "MRINotVisible", this );
 		}
-		else if ( !mri->IsEditable() && ( event.ControlDown() || m_nAction == EM_Polyline ) )
+		else if ( !mri->IsEditable() ) //&& ( event.ControlDown() || m_nAction == EM_Polyline ) )
 		{
 			SendBroadcast( "MRINotEditable", this );
 		}
@@ -70,7 +73,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 			{
 				mri->SaveForUndo( view->GetViewPlane() );			
 				m_bEditing = true;				
-				mri->SetVoxelByRAS( ras, !event.ShiftDown() );
+				mri->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
 			}
 			else if ( m_nAction == EM_Fill ) //&& ( event.ControlDown() ) )
 			{
@@ -86,7 +89,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 				view->GetCursor()->SetPosition2( ras );			
 				if ( m_dPolylinePoints.size() > 0 )	
 				{
-					mri->SetVoxelByRAS( ras, ras2, !event.ShiftDown() );	
+					mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() );	
 				}			
 				else
 				{
@@ -127,7 +130,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 					view->GetCursor()->GetPosition( ras2 );
 					view->GetCursor()->SetPosition2( ras2 );
 					view->GetCursor()->SetPosition( ras1 );
-					mri->SetVoxelByRAS( ras1, ras2, !event.ShiftDown() );	
+					mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() );	
 				}
 			}
 		}
@@ -162,7 +165,8 @@ bool Interactor2DVoxelEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView
 
 bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
 {
-	RenderView2D* view = ( RenderView2D* )renderview;			
+	RenderView2D* view = ( RenderView2D* )renderview;
+	
 	if ( m_bEditing )
 	{
 		int posX = event.GetX();
@@ -177,7 +181,7 @@ bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderVi
 			view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
 			view->MousePositionToRAS( posX, posY, ras2 );
 			
-			mri->SetVoxelByRAS( ras1, ras2, !event.ShiftDown() );
+			mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() );
 		}
 		else if ( m_nAction == EM_Polyline )
 		{
@@ -205,4 +209,12 @@ bool Interactor2DVoxelEdit::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* 
 		return Interactor2D::ProcessKeyDownEvent( event, renderview );
 	else
 		return false;
+}
+
+void Interactor2DVoxelEdit::UpdateCursor( wxWindow* wnd )
+{
+/*	if ( wnd->FindFocus() == wnd && m_nAction == EM_Freehand )
+		wnd->SetCursor( wxCURSOR_PENCIL );	
+	else
+	wnd->SetCursor( wxNullCursor );*/
 }

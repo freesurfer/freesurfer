@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -221,8 +221,8 @@ void PanelROI::OnButtonDelete( wxCommandEvent& event )
 		Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
 		if ( ((LayerROI*)layer)->IsModified() )
 		{
-			wxString msg = "ROI has been modified. Do you want to delete it without saving?";
-			wxMessageDialog dlg( this, msg, "Delete", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
+			wxString msg = "ROI has been modified. Do you want to close it without saving?";
+			wxMessageDialog dlg( this, msg, "Close", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
 			if ( dlg.ShowModal() != wxID_YES )
 				return;			
 		}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,8 @@ protected:
 	void OnInternalIdle();
 	
 private:
-	void OnSliderOpacity( wxScrollEvent& event );
+	void OnSliderOpacityChanged( wxScrollEvent& event );
+	void OnTextOpacityChanged( wxCommandEvent& event );
 	void OnLayerSelectionChanged( wxCommandEvent& event );
 	void OnLayerVisibilityChanged( wxCommandEvent& event );
 	void OnListDoubleClicked( wxCommandEvent& event );
@@ -84,6 +85,8 @@ private:
 	void OnSliderMaxJetScaleChanged( wxScrollEvent& event );
 	void OnCheckSmooth( wxCommandEvent& event );
 	void OnChoiceDirectionCode( wxCommandEvent& event );
+	void OnSliderFrameChanged( wxScrollEvent& event );
+	void OnTextFrameChanged( wxCommandEvent& event );
 	
 	void DoUpdateUI();
 	void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
@@ -92,6 +95,8 @@ private:
 			
 	virtual void DoListenToMessage( std::string const iMsg, void* iData );
 	
+	void UpdateTextValue( wxTextCtrl* textctrl, double dvalue );
+	
 	wxCheckListBox*	m_listBoxLayers;
 	wxButton*		m_btnMoveUp;
 	wxButton*		m_btnMoveDown;
@@ -99,6 +104,7 @@ private:
 	wxButton*		m_btnDelete;
 	wxButton*		m_btnSave;
 	wxSlider*		m_sliderOpacity;	
+	wxTextCtrl*		m_textOpacity;
 	wxCheckBox*		m_checkClearBackground;
 	wxListBox*		m_listColorTable;
 	wxChoice*		m_choiceColorMap;
@@ -122,12 +128,15 @@ private:
 	wxCheckBox*		m_checkSmooth;
 	wxChoice*		m_choiceDirectionCode;
 	wxColorIndicator*	m_colorIndicator;
+	wxTextCtrl*		m_textFrame;
+	wxSlider*		m_sliderFrame;
 	
 	std::vector<wxWindow*>	m_widgetlistGrayScale;
 	std::vector<wxWindow*>	m_widgetlistHeatScale;
 	std::vector<wxWindow*>	m_widgetlistJetScale;
 	std::vector<wxWindow*>	m_widgetlistLUT;
 	std::vector<wxWindow*>	m_widgetlistDirectionCode;
+	std::vector<wxWindow*>	m_widgetlistFrame;
 	
 	LUTDataHolder*	m_luts;
 	

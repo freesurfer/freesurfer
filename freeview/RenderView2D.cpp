@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,6 +70,14 @@ void RenderView2D::Initialize2D()
 	m_annotation2D = new Annotation2D;	
 	m_cursor2D = new Cursor2D( this );
 	
+	m_interactorNavigate = new Interactor2DNavigate();
+	m_interactorVoxelEdit = new Interactor2DVoxelEdit();
+	m_interactorROIEdit = new Interactor2DROIEdit();
+	
+	m_interactorNavigate->AddListener( MainWindow::GetMainWindowPointer() );
+	m_interactorVoxelEdit->AddListener( MainWindow::GetMainWindowPointer() );
+	m_interactorROIEdit->AddListener( MainWindow::GetMainWindowPointer() );
+	
 	SetInteractionMode( IM_Navigate );
 }
 
@@ -81,8 +89,12 @@ RenderView2D* RenderView2D::New()
 
 RenderView2D::~RenderView2D()
 {
+	m_interactor = NULL;
 	delete m_annotation2D;
 	delete m_cursor2D;
+	delete m_interactorNavigate;
+	delete m_interactorVoxelEdit;
+	delete m_interactorROIEdit;
 }
 
 void RenderView2D::PrintSelf(ostream& os, vtkIndent indent)
@@ -94,23 +106,23 @@ void RenderView2D::SetInteractionMode( int nMode )
 {
 	RenderView::SetInteractionMode( nMode );
 	
-	if ( m_interactor )
-		delete m_interactor;
+//	if ( m_interactor )
+//		delete m_interactor;
 	
 	switch ( nMode )
 	{
 		case IM_ROIEdit:
-			m_interactor = new Interactor2DROIEdit();
+			m_interactor = m_interactorROIEdit;
 			break;
 		case IM_VoxelEdit:
-			m_interactor = new Interactor2DVoxelEdit();
+			m_interactor = m_interactorVoxelEdit;
 			break;
 		default:
-			m_interactor = new Interactor2DNavigate();
+			m_interactor = m_interactorNavigate;
 			break;
 	}
 		
-	m_interactor->AddListener( MainWindow::GetMainWindowPointer() );
+//	m_interactor->AddListener( MainWindow::GetMainWindowPointer() );
 }
 
 void RenderView2D::RefreshAllActors()
@@ -389,3 +401,25 @@ void RenderView2D::OnSize( wxSizeEvent& event )
 	
 	event.Skip();
 }
+
+void RenderView2D::PreScreenshot()
+{
+	LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+	
+	m_renderer->RemoveAllViewProps();
+	lcm->Append2DProps( m_renderer, m_nViewPlane );
+	
+	// add coordinate annotation
+	m_annotation2D->AppendAnnotations( m_renderer );
+//	m_cursor2D->AppendCursor( m_renderer );
+	
+	// add focus frame
+//	m_renderer->AddViewProp( m_actorFocusFrame );
+}
+
+
+void RenderView2D::PostScreenshot()
+{
+	RefreshAllActors();
+}
+

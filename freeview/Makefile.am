@@ -14,6 +14,8 @@ freeview_SOURCES=\
 	Annotation2D.h \
 	Broadcaster.cpp \
 	Broadcaster.h \
+	BrushProperty.cpp \
+	BrushProperty.h \
 	ControlPanel.cpp \
 	ControlPanel.h \
 	Cursor2D.cpp \
@@ -32,6 +34,8 @@ freeview_SOURCES=\
 	DialogPreferences.h \
 	FSLabel.cpp \
 	FSLabel.h \
+	FSSurface.cpp \
+	FSSurface.h \
 	FSVolume.cpp \
 	FSVolume.h \
 	Interactor.cpp \
@@ -66,8 +70,12 @@ freeview_SOURCES=\
 	LayerPropertiesMRI.h \
 	LayerPropertiesROI.cpp \
 	LayerPropertiesROI.h \
+	LayerPropertiesSurface.cpp \
+	LayerPropertiesSurface.h \
 	LayerROI.cpp \
 	LayerROI.h \
+	LayerSurface.cpp \
+	LayerSurface.h \
 	Listener.cpp \
 	Listener.h \
 	LUTDataHolder.cpp \

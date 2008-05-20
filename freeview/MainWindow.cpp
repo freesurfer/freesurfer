@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@
 #include <wx/msgdlg.h>
 #include <wx/textdlg.h>
 #include <wx/filename.h>
+#include <wx/spinctrl.h>
 
 #include "MainWindow.h"
 #include "ControlPanel.h"
@@ -51,6 +52,7 @@
 #include "LayerPropertiesMRI.h"
 #include "LayerROI.h"
 #include "LayerDTI.h"
+#include "LayerSurface.h"
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
 #include "DialogPreferences.h"
@@ -63,6 +65,7 @@
 #include "WorkerThread.h"
 #include "MyUtils.h"
 #include "LUTDataHolder.h"
+#include "BrushProperty.h"
 
 #define	CTRL_PANEL_WIDTH	240
 
@@ -90,9 +93,16 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_FILE_SAVE_ROI" ),			MainWindow::OnFileSaveROIUpdateUI )  
     EVT_MENU		( XRCID( "ID_FILE_SAVE_ROI_AS" ),		MainWindow::OnFileSaveROIAs )      
     EVT_UPDATE_UI	( XRCID( "ID_FILE_SAVE_ROI_AS" ),		MainWindow::OnFileSaveROIAsUpdateUI )   
-    EVT_MENU		( XRCID( "ID_FILE_LOAD_DTI" ),			MainWindow::OnFileLoadDTI )      
-    EVT_MENU		( XRCID( "ID_ACTION_NAVIGATE" ),		MainWindow::OnActionNavigate )  
-    EVT_UPDATE_UI	( XRCID( "ID_ACTION_NAVIGATE" ),		MainWindow::OnActionNavigateUpdateUI ) 
+    EVT_MENU		( XRCID( "ID_FILE_LOAD_DTI" ),			MainWindow::OnFileLoadDTI )  
+    EVT_MENU		( XRCID( "ID_FILE_SCREENSHOT" ),		MainWindow::OnFileSaveScreenshot )           
+    EVT_UPDATE_UI	( XRCID( "ID_FILE_SCREENSHOT" ),		MainWindow::OnFileSaveScreenshotUpdateUI ) 
+    EVT_MENU		( XRCID( "ID_FILE_LOAD_SURFACE" ),		MainWindow::OnFileLoadSurface ) 
+    EVT_MENU		( XRCID( "ID_MODE_NAVIGATE" ),			MainWindow::OnModeNavigate )  
+    EVT_UPDATE_UI	( XRCID( "ID_MODE_NAVIGATE" ),			MainWindow::OnModeNavigateUpdateUI )    
+    EVT_MENU		( XRCID( "ID_MODE_VOXEL_EDIT" ),		MainWindow::OnModeVoxelEdit )  
+    EVT_UPDATE_UI	( XRCID( "ID_MODE_VOXEL_EDIT" ),		MainWindow::OnModeVoxelEditUpdateUI )    
+    EVT_MENU		( XRCID( "ID_MODE_ROI_EDIT" ),			MainWindow::OnModeROIEdit )  
+    EVT_UPDATE_UI	( XRCID( "ID_MODE_ROI_EDIT" ),			MainWindow::OnModeROIEditUpdateUI ) 
     EVT_MENU		( XRCID( "ID_ACTION_ROI_FREEHAND" ),	MainWindow::OnActionROIFreehand )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_FREEHAND" ),	MainWindow::OnActionROIFreehandUpdateUI )
     EVT_MENU		( XRCID( "ID_ACTION_ROI_FILL" ),		MainWindow::OnActionROIFill )
@@ -105,6 +115,10 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_FILL" ),		MainWindow::OnActionVoxelFillUpdateUI )
     EVT_MENU		( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),	MainWindow::OnActionVoxelPolyline )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),	MainWindow::OnActionVoxelPolylineUpdateUI )
+    EVT_MENU		( XRCID( "ID_EDIT_COPY" ),				MainWindow::OnEditCopy )
+    EVT_UPDATE_UI	( XRCID( "ID_EDIT_COPY" ),				MainWindow::OnEditCopyUpdateUI )
+    EVT_MENU		( XRCID( "ID_EDIT_PASTE" ),				MainWindow::OnEditPaste )
+    EVT_UPDATE_UI	( XRCID( "ID_EDIT_PASTE" ),				MainWindow::OnEditPasteUpdateUI )
     EVT_MENU		( XRCID( "ID_EDIT_UNDO" ),				MainWindow::OnEditUndo )
     EVT_UPDATE_UI	( XRCID( "ID_EDIT_UNDO" ),				MainWindow::OnEditUndoUpdateUI )
     EVT_MENU		( XRCID( "ID_EDIT_REDO" ),				MainWindow::OnEditRedo )
@@ -134,6 +148,11 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
 	EVT_MENU		(XRCID("ID_EVENT_CALCULATE_MATRIX"),	MainWindow::OnWorkerEventCalculateMatrix)*/	
 
 	EVT_MENU		( ID_WORKER_THREAD,						MainWindow::OnWorkerThreadResponse )
+	EVT_SPINCTRL	( XRCID( "ID_SPIN_BRUSH_SIZE" ),		MainWindow::OnSpinBrushSize )
+	EVT_SPINCTRL	( XRCID( "ID_SPIN_BRUSH_TOLERANCE" ),	MainWindow::OnSpinBrushTolerance )
+	EVT_CHECKBOX	( XRCID( "ID_CHECK_TEMPLATE" ), 		MainWindow::OnCheckBrushTemplate )
+	EVT_CHOICE		( XRCID( "ID_CHOICE_TEMPLATE" ), 		MainWindow::OnChoiceBrushTemplate )
+			
     EVT_ACTIVATE	( MainWindow::OnActivate )
     EVT_CLOSE		( MainWindow::OnClose )   
 	EVT_KEY_DOWN    ( MainWindow::OnKeyDown )
@@ -149,21 +168,31 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_bLoading = false;
 	m_bSaving = false;
 	m_bResampleToRAS = true;
-	m_luts = new LUTDataHolder();
+	m_bToUpdateToolbars = false;
+	m_nPrevActiveViewId = -1;
+	m_luts = new LUTDataHolder();		
+	m_propertyBrush = new BrushProperty();
 	
     wxXmlResource::Get()->LoadFrame( this, NULL, wxT("ID_MAIN_WINDOW") );
 	
 	// must be created before the following controls	
 	m_layerCollectionManager = new LayerCollectionManager();
     
-    wxBoxSizer* sizer = new wxBoxSizer( wxVERTICAL );	
+	m_panelToolbarHolder = XRCCTRL( *this, "ID_PANEL_HOLDER", wxPanel );
+//	wxBoxSizer* sizer = (wxBoxSizer*)panelHolder->GetSizer(); //new wxBoxSizer( wxVERTICAL );	
     
     // create the main splitter window
-	m_splitterMain = new wxSplitterWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE );
+//	m_splitterMain = new wxSplitterWindow( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_LIVE_UPDATE );
+	m_splitterMain = XRCCTRL( *this, "ID_SPLITTER_MAIN", wxSplitterWindow );
 	m_splitterMain->SetMinimumPaneSize( 80 );
-	sizer->Add( m_splitterMain, 1, wxEXPAND );
-    
-	this->SetSizer( sizer );
+//	sizer->Add( m_splitterMain, 1, wxEXPAND );
+	
+	m_toolbarVoxelEdit = XRCCTRL( *this, "ID_TOOLBAR_VOXEL_EDIT", wxToolBar );
+	m_toolbarROIEdit = XRCCTRL( *this, "ID_TOOLBAR_ROI_EDIT", wxToolBar );	
+	m_toolbarBrush = XRCCTRL( *this, "ID_TOOLBAR_BRUSH", wxToolBar );	
+			
+//	this->SetSizer( sizer );
+//	sizer->Add( ( wxToolBar* )XRCCTRL( *this, "m_toolBar2", wxToolBar ), 0, wxEXPAND );
 	
 	// create the main control panel
     m_controlPanel = new ControlPanel( m_splitterMain );
@@ -187,12 +216,17 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_viewSagittal->SetViewPlane( 0 );	
 	m_viewCoronal->SetViewPlane( 1 );	
 	m_viewAxial->SetViewPlane( 2 );	
+	m_viewRender[0] = m_viewSagittal;
+	m_viewRender[1] = m_viewCoronal;
+	m_viewRender[2] = m_viewAxial;
+	m_viewRender[3] = m_view3D;
 
 	m_layerCollectionManager->AddListener( m_viewAxial );
 	m_layerCollectionManager->AddListener( m_viewSagittal );
 	m_layerCollectionManager->AddListener( m_viewCoronal );
 	m_layerCollectionManager->AddListener( m_view3D );	
 	m_layerCollectionManager->GetLayerCollection( "MRI" )->AddListener( m_pixelInfoPanel );
+	m_layerCollectionManager->AddListener( this );
 	
 	m_wndQuickReference = new WindowQuickReference( this );
 	m_wndQuickReference->Hide();
@@ -200,6 +234,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_statusBar = new StatusBar( this );
 	SetStatusBar( m_statusBar );
 	PositionStatusBar();
+
+	UpdateToolbars();	
 	
 	m_nViewLayout = VL_2X2;
 	m_nMainView = MV_Sagittal;
@@ -229,9 +265,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 		m_viewSagittal->SetBackgroundColor( color );
 		m_viewCoronal->SetBackgroundColor( color );
 		m_view3D->SetBackgroundColor( color );
-
+		
+		m_nScreenshotFilterIndex = config->Read( _T("/MainWindow/ScreenshotFilterIndex"), 0L );
 	}
-	SetViewLayout( m_nViewLayout );	
+	SetViewLayout( m_nViewLayout );		
 }
 
 // frame destructor
@@ -244,6 +281,8 @@ MainWindow::~MainWindow()
 	
 	delete m_layerCollectionManager;
 	delete m_luts;
+	
+	delete m_propertyBrush;
 }
 
 MainWindow* MainWindow::GetMainWindowPointer()
@@ -278,8 +317,9 @@ void MainWindow::OnClose( wxCloseEvent &event )
 	
 	if ( !text.IsEmpty() )
 	{
-		wxString msg = "The following volume(s) and/or label(s) have been modified but not saved. Do you still want to quit the program?\n\n";
-		wxMessageDialog dlg( this, msg + text, "Quit", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
+		wxString msg = "The following volume(s) and/or label(s) have been modified but not saved. \n\n";
+		msg += text + "\nDo you still want to quit the program?";
+		wxMessageDialog dlg( this, msg, "Quit", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
 		if ( dlg.ShowModal() != wxID_YES )
 			return;
 	}
@@ -304,6 +344,7 @@ void MainWindow::OnClose( wxCloseEvent &event )
 		config->Write( _T("/MainWindow/LastDir"), m_strLastDir );
 		config->Write( _T("/MainWindow/ViewLayout"), m_nViewLayout );
 		config->Write( _T("/MainWindow/MainView"), m_nMainView );
+		config->Write( _T("MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
 		
 		config->Write( _T("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
 		
@@ -663,124 +704,203 @@ void MainWindow::OnKeyDown( wxKeyEvent& event )
 	event.Skip();
 }
 
-void MainWindow::OnActionNavigate( wxCommandEvent& event )
+void MainWindow::UpdateToolbars()
+{
+	m_bToUpdateToolbars = true;
+}
+
+void MainWindow::DoUpdateToolbars()
+{
+	bool bVoxelEditVisible = m_toolbarVoxelEdit->IsShown();
+	bool bROIEditVisible = m_toolbarROIEdit->IsShown();
+	if ( bVoxelEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit) ||
+			bROIEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit) )
+	{
+		m_toolbarVoxelEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit );
+		m_toolbarROIEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
+		m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
+		m_panelToolbarHolder->Layout();
+	}
+		
+	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_SIZE", wxStaticText )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
+	XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_SIZE", wxSpinCtrl )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
+	wxCheckBox* checkTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHECK_TEMPLATE", wxCheckBox );
+	wxChoice* choiceTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHOICE_TEMPLATE", wxChoice );
+	checkTemplate->Enable( m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+	choiceTemplate->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_TOLERANCE", wxStaticText )->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+	XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+	
+	LayerEditable* layer = NULL;
+	if ( choiceTemplate->GetSelection() != wxNOT_FOUND )
+		layer = ( LayerEditable* )(void*)choiceTemplate->GetClientData( choiceTemplate->GetSelection() );
+	
+	choiceTemplate->Clear();
+	LayerCollection* lc = GetLayerCollection( "MRI" );
+	int nSel = 0;
+	for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+	{
+		LayerMRI* mri = (LayerMRI*)lc->GetLayer( i );
+		if ( layer == mri )
+		{
+			nSel = i;
+			m_propertyBrush->SetReferenceLayer( layer );
+		}
+		
+		choiceTemplate->Append( mri->GetName(), (void*)mri );
+	}
+	if ( !lc->IsEmpty() )
+		choiceTemplate->SetSelection( nSel );
+	if ( !checkTemplate->IsChecked() )
+		m_propertyBrush->SetReferenceLayer( NULL );
+	
+	if ( checkTemplate->IsChecked() )
+		m_propertyBrush->SetBrushTolerance( XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->GetValue() );
+	else
+		m_propertyBrush->SetBrushTolerance( 0 );
+	
+	m_bToUpdateToolbars = false;
+}
+
+void MainWindow::OnModeNavigate( wxCommandEvent& event )
 {
 	m_viewAxial->SetInteractionMode( RenderView2D::IM_Navigate );
 	m_viewCoronal->SetInteractionMode( RenderView2D::IM_Navigate );
 	m_viewSagittal->SetInteractionMode( RenderView2D::IM_Navigate );
+	UpdateToolbars();
 }
 
-void MainWindow::OnActionNavigateUpdateUI( wxUpdateUIEvent& event)
+void MainWindow::OnModeNavigateUpdateUI( wxUpdateUIEvent& event)
 {
 	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_Navigate );
 }
 
-void MainWindow::OnActionROIFreehand( wxCommandEvent& event )
+void MainWindow::OnModeVoxelEdit( wxCommandEvent& event )
+{
+	m_viewAxial->SetInteractionMode( RenderView2D::IM_VoxelEdit );
+	m_viewCoronal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
+	m_viewSagittal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
+	UpdateToolbars();
+}
+
+void MainWindow::OnModeVoxelEditUpdateUI( wxUpdateUIEvent& event)
+{
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit );
+	event.Enable( m_layerCollectionManager->HasLayer( "MRI" ) );
+}
+
+void MainWindow::OnModeROIEdit( wxCommandEvent& event )
 {
 	m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
 	m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
 	m_viewSagittal->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	
+	UpdateToolbars();
+}
+
+void MainWindow::OnModeROIEditUpdateUI( wxUpdateUIEvent& event)
+{
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
+	event.Enable( m_layerCollectionManager->HasLayer( "ROI" ) );
+}
+
+void MainWindow::OnActionROIFreehand( wxCommandEvent& event )
+{
 	m_viewAxial->SetAction( Interactor2DROIEdit::EM_Freehand );
 	m_viewCoronal->SetAction( Interactor2DROIEdit::EM_Freehand );
 	m_viewSagittal->SetAction( Interactor2DROIEdit::EM_Freehand );
+	UpdateToolbars();
 }
 
 void MainWindow::OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event)
 {
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit &&
-			m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Freehand );
-	event.Enable( m_layerCollectionManager->HasLayer( "ROI" ) );
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+			&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Freehand );
+	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+					&& m_layerCollectionManager->HasLayer( "ROI" ) );
 }
 
 void MainWindow::OnActionROIFill( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_ROIEdit );
 	m_viewAxial->SetAction( Interactor2DROIEdit::EM_Fill );
 	m_viewCoronal->SetAction( Interactor2DROIEdit::EM_Fill );
 	m_viewSagittal->SetAction( Interactor2DROIEdit::EM_Fill );
+	UpdateToolbars();
 }
 
 void MainWindow::OnActionROIFillUpdateUI( wxUpdateUIEvent& event)
 {
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit &&
-			m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+			&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
 	
-	event.Enable( m_layerCollectionManager->HasLayer( "ROI" ) );
+	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+			&& m_layerCollectionManager->HasLayer( "ROI" ) );
 }
 
 void MainWindow::OnActionROIPolyline( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_ROIEdit );
 	m_viewAxial->SetAction( Interactor2DROIEdit::EM_Polyline );
 	m_viewCoronal->SetAction( Interactor2DROIEdit::EM_Polyline );
 	m_viewSagittal->SetAction( Interactor2DROIEdit::EM_Polyline );
+	UpdateToolbars();
 }
 
 void MainWindow::OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event)
 {
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit &&
-			m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Polyline );
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+			&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Polyline );
 	
-	event.Enable( m_layerCollectionManager->HasLayer( "ROI" ) );
+	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+			&& m_layerCollectionManager->HasLayer( "ROI" ) );
 }
 
 void MainWindow::OnActionVoxelFreehand( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	
 	m_viewAxial->SetAction( Interactor2DVoxelEdit::EM_Freehand );
 	m_viewCoronal->SetAction( Interactor2DVoxelEdit::EM_Freehand );
 	m_viewSagittal->SetAction( Interactor2DVoxelEdit::EM_Freehand );
+	UpdateToolbars();
 }
 
 void MainWindow::OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event)
 {
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit &&
-			m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Freehand );
-	event.Enable( m_layerCollectionManager->HasLayer( "MRI" ) );
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Freehand );
+	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& m_layerCollectionManager->HasLayer( "MRI" ) );
 }
 
 void MainWindow::OnActionVoxelFill( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
 	m_viewAxial->SetAction( Interactor2DVoxelEdit::EM_Fill );
 	m_viewCoronal->SetAction( Interactor2DVoxelEdit::EM_Fill );
 	m_viewSagittal->SetAction( Interactor2DVoxelEdit::EM_Fill );
+	UpdateToolbars();
 }
 
 void MainWindow::OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event)
 {
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit &&
-			m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Fill );
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Fill );
 	
-	event.Enable( m_layerCollectionManager->HasLayer( "MRI" ) );
+	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& m_layerCollectionManager->HasLayer( "MRI" ) );
 }
 
 void MainWindow::OnActionVoxelPolyline( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
 	m_viewAxial->SetAction( Interactor2DVoxelEdit::EM_Polyline );
 	m_viewCoronal->SetAction( Interactor2DVoxelEdit::EM_Polyline );
 	m_viewSagittal->SetAction( Interactor2DVoxelEdit::EM_Polyline );
+	UpdateToolbars();
 }
 
 void MainWindow::OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event)
 {
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit &&
-			m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Polyline );
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Polyline );
 	
-	event.Enable( m_layerCollectionManager->HasLayer( "MRI" ) );
+	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& m_layerCollectionManager->HasLayer( "MRI" ) );
 }
 
 void MainWindow::OnEditUndo( wxCommandEvent& event )
@@ -842,6 +962,75 @@ void MainWindow::OnEditRedoUpdateUI( wxUpdateUIEvent& event )
 	{
 		LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
 		event.Enable( mri && mri->IsVisible() && mri->HasRedo() );
+	}
+	else
+		event.Enable( false );
+}
+
+
+void MainWindow::OnEditCopy( wxCommandEvent& event )
+{
+	int nWnd = GetActiveViewId();
+	if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
+	{
+		LayerROI* roi = ( LayerROI* )GetLayerCollection( "ROI" )->GetActiveLayer();
+		if ( roi && nWnd >= 0 && nWnd < 3 )
+			roi->Copy( nWnd );
+	}
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+	{
+		LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+		if ( mri && nWnd >= 0 && nWnd < 3 )
+			mri->Copy( nWnd );
+	}
+}
+
+void MainWindow::OnEditCopyUpdateUI( wxUpdateUIEvent& event )
+{
+	int nWnd = GetActiveViewId();
+	if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
+	{
+		LayerROI* roi = ( LayerROI* )GetLayerCollection( "ROI" )->GetActiveLayer();
+		event.Enable( roi && roi->IsVisible() && nWnd >= 0 && nWnd < 3 );
+	}
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+	{
+		LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+		event.Enable( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
+	}
+	else
+		event.Enable( false );
+}
+
+void MainWindow::OnEditPaste( wxCommandEvent& event )
+{
+	int nWnd = GetActiveViewId();
+	if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
+	{
+		LayerROI* roi = ( LayerROI* )GetLayerCollection( "ROI" )->GetActiveLayer();
+		if ( roi && nWnd >= 0 && nWnd < 3 )
+			roi->Paste( nWnd );
+	}
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+	{
+		LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+		if ( mri && nWnd >= 0 && nWnd < 3 )
+			mri->Paste( nWnd );
+	}
+}
+
+void MainWindow::OnEditPasteUpdateUI( wxUpdateUIEvent& event )
+{
+	int nWnd = GetActiveViewId();
+	if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
+	{
+		LayerROI* roi = ( LayerROI* )GetLayerCollection( "ROI" )->GetActiveLayer();
+		event.Enable( roi && roi->IsVisible() && roi->IsEditable() && nWnd >= 0 && nWnd < 3 && roi->IsValidToPaste( nWnd ) );
+	}
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+	{
+		LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+		event.Enable( mri && mri->IsVisible() && mri->IsEditable() && nWnd >= 0 && nWnd < 3 && mri->IsValidToPaste( nWnd ) );
 	}
 	else
 		event.Enable( false );
@@ -1039,6 +1228,9 @@ void MainWindow::OnInternalIdle()
 	}
 #endif	
 
+	if ( m_bToUpdateToolbars )
+		DoUpdateToolbars();
+
 	// hack to restore previously saved sub-splitter postion.
 	static bool run_once = false;
 	if ( !run_once && IsShown() )
@@ -1089,7 +1281,7 @@ void MainWindow::OnHelpAbout( wxCommandEvent& event )
 {
 	wxString msg = wxString( "freeview 1.0 (internal) \r\nbuild ") + MyUtils::GetDateAndTime();
 	
-	wxMessageDialog dlg( this, msg, "About", wxOK | wxICON_INFORMATION );
+	wxMessageDialog dlg( this, msg, "About freeview", wxOK | wxICON_INFORMATION );
 	dlg.ShowModal();
 }
 
@@ -1172,30 +1364,47 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 			m_bLoading = false;
 			m_statusBar->m_gaugeBar->Hide();
 			
-			LayerMRI* layer = ( LayerMRI* )(void*)event.GetClientData();
-			if ( strg == "Load" && layer && layer->IsTypeOf( "MRI" ) )
+			Layer* layer = ( Layer* )(void*)event.GetClientData();
+			if ( layer && layer->IsTypeOf( "MRI" ) )
 			{
-				LayerCollection* lc = GetLayerCollection( "MRI" );
-				if ( lc->GetNumberOfLayers() < 1 )
+				if ( strg == "Load" )
 				{
-					double worigin[3], wsize[3];
-					layer->GetWorldOrigin( worigin );
-					layer->GetWorldSize( wsize );
-					layer->SetSlicePositionToWorldCenter();
-					m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
-					m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
-					m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
-					m_view3D->SetWorldCoordinateInfo( worigin, wsize );
-					lc->AddLayer( layer, true );
-					lc->SetCursorRASPosition( lc->GetSlicePosition() );
-				}
-				else
+					LayerCollection* lc = GetLayerCollection( "MRI" );
+					LayerMRI* mri = (LayerMRI*)layer;					
+					if ( lc->GetNumberOfLayers() < 1 )
+					{
+						double worigin[3], wsize[3];
+						mri->GetWorldOrigin( worigin );
+						mri->GetWorldSize( wsize );
+						mri->SetSlicePositionToWorldCenter();
+						m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
+						m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
+						m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
+						m_view3D->SetWorldCoordinateInfo( worigin, wsize );
+						lc->AddLayer( mri, true );
+						lc->SetCursorRASPosition( lc->GetSlicePosition() );
+					}
+					else
+						lc->AddLayer( layer );
+			
+					m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( mri->GetFileName() ) );
+			
+					m_controlPanel->RaisePage( "Volumes" );
+				}		
+			}
+			else if ( layer && layer->IsTypeOf( "Surface" ) )
+			{
+				if ( strg == "Load" )
+				{
+					LayerCollection* lc = GetLayerCollection( "Surface" );
 					lc->AddLayer( layer );
-		
-				m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
-		
-				m_controlPanel->RaisePage( "Volumes" );
-			}		
+				
+				//	m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
+				
+					m_controlPanel->RaisePage( "Surfaces" );
+				}		
+			}
+			
 			if ( strg == "Load" )
 			{
 				m_viewAxial->SetInteractionMode( RenderView2D::IM_Navigate );
@@ -1230,7 +1439,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 		m_bSaving = false;
 		m_bLoading = false;
 		Layer* layer = ( Layer* )(void*)event.GetClientData();
-		if ( strg == "Load" && layer && layer->IsTypeOf( "MRI" ) )
+		if ( strg == "Load" && layer )
 			delete layer;	
 		m_controlPanel->UpdateUI();
 		strg = strg.Mid( 6 );
@@ -1243,19 +1452,22 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 
 void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
 {
+	if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerMoved" )
+			UpdateToolbars();	
+	
 	if ( iMsg == "MRINotVisible" )
 	{
-		wxMessageDialog dlg( this, "Volume is not visible. Please turn it on before editing.", "Error", wxOK | wxICON_ERROR );
+		wxMessageDialog dlg( this, "Active volume is not visible. Please turn it on before editing.", "Error", wxOK | wxICON_ERROR );
 		dlg.ShowModal();
 	}
 	if ( iMsg == "MRINotEditable" )
 	{
-		wxMessageDialog dlg( this, "Volume is not editable.", "Error", wxOK | wxICON_ERROR );
+		wxMessageDialog dlg( this, "Active volume is not editable.", "Error", wxOK | wxICON_ERROR );
 		dlg.ShowModal();
 	}
-	else if ( iMsg == "ROINotEditable" )
+	else if ( iMsg == "ROINotVisible" )
 	{
-		wxMessageDialog dlg( this, "ROI is not visible. Please turn it on before editing.", "Error", wxOK | wxICON_ERROR );
+		wxMessageDialog dlg( this, "Active ROI is not visible. Please turn it on before editing.", "Error", wxOK | wxICON_ERROR );
 		dlg.ShowModal();
 	}
 }
@@ -1286,7 +1498,7 @@ void MainWindow::LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, 
 
 	LayerDTI* layer = new LayerDTI();
 	layer->SetResampleToRAS( bResample );
-	wxString layerName = wxFileName( fn_fa ).GetName();
+	wxString layerName = wxFileName( fn_vector ).GetName();
 	if ( wxFileName( fn_fa ).GetExt().Lower() == "gz" )
 		layerName = wxFileName( layerName ).GetName();
 	layer->SetName( layerName.c_str() );
@@ -1342,4 +1554,115 @@ void MainWindow::RunScript()
 		if ( sa.GetCount() > 2 )
 			LoadDTIFile( sa[1], sa[2], bResample );
 	}
+}
+
+void MainWindow::OnSpinBrushSize( wxSpinEvent& event )
+{
+	m_propertyBrush->SetBrushSize( event.GetInt() );
+}
+	
+void MainWindow::OnSpinBrushTolerance( wxSpinEvent& event )
+{
+	m_propertyBrush->SetBrushTolerance( event.GetInt() );
+}
+
+void MainWindow::OnChoiceBrushTemplate( wxCommandEvent& event )
+{
+	wxChoice* choiceTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHOICE_TEMPLATE", wxChoice );
+	LayerEditable* layer = (LayerEditable*)(void*)choiceTemplate->GetClientData( event.GetSelection() );
+	if ( layer )
+		m_propertyBrush->SetReferenceLayer( layer );
+	
+	UpdateToolbars();
+}
+
+void MainWindow::OnCheckBrushTemplate( wxCommandEvent& event )
+{
+	UpdateToolbars();
+}
+
+int MainWindow::GetActiveViewId()
+{
+	wxWindow* wnd = FindFocus();
+	int nId = -1;
+	if ( wnd == m_viewSagittal )
+		nId = 0;
+	else if ( wnd == m_viewCoronal )
+		nId = 1;
+	else if ( wnd == m_viewAxial )
+		nId = 2;
+	else if ( wnd == m_view3D )
+		nId = 3;
+	
+	if ( nId >= 0 )
+		m_nPrevActiveViewId = nId;
+	
+	return nId;
+}
+
+void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
+{
+	int nId = GetActiveViewId();
+	if ( nId < 0 )
+		nId = m_nPrevActiveViewId;
+	
+	if ( nId < 0 )
+		return;
+	
+	wxString fn;
+	wxFileDialog dlg( this, _("Save screen capture"), m_strLastDir, _(""), 
+					  _T("PNG files (*.png)|*.png|JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|TIFF files (*.tif;*.tiff)|*.tif;*.tiff|Bitmap files (*.bmp)|*.bmp|PostScript files (*.ps)|*.ps|VRML files (*.wrl)|*.wrl|All files (*.*)|*.*"), 
+					  wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+	dlg.SetFilterIndex( m_nScreenshotFilterIndex );
+	if ( dlg.ShowModal() == wxID_OK )
+	{
+		fn = dlg.GetPath();
+	}
+	
+	if ( !fn.IsEmpty() )
+	{
+		m_strLastDir = MyUtils::GetNormalizedPath( fn );
+		m_nScreenshotFilterIndex = dlg.GetFilterIndex();
+		m_viewRender[nId]->SaveScreenshot( fn.c_str() );
+	}
+}
+	
+void MainWindow::OnFileSaveScreenshotUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( ( GetActiveViewId() >= 0 || m_nPrevActiveViewId >= 0 ) && m_layerCollectionManager->HasAnyLayer() );
+}
+
+
+void MainWindow::OnFileLoadSurface( wxCommandEvent& event )
+{
+	LoadSurface();
+}
+
+void MainWindow::LoadSurface()
+{
+	{
+		wxFileDialog dlg( this, _("Open surface file"), m_strLastDir, _(""), 
+						  _T("Surface files (*.*)|*.*"), 
+						  wxFD_OPEN );
+		if ( dlg.ShowModal() == wxID_OK )
+		{
+			this->LoadSurfaceFile( dlg.GetPath() );
+		}
+	}
+}
+
+void MainWindow::LoadSurfaceFile( const wxString& filename )
+{
+	m_strLastDir = MyUtils::GetNormalizedPath( filename );
+
+	LayerSurface* layer = new LayerSurface();
+	wxFileName fn( filename );	
+	wxString layerName = fn.GetName();
+	if ( fn.GetExt().Lower() == "gz" )
+		layerName = wxFileName( layerName ).GetName();
+	layer->SetName( layerName.c_str() );
+	layer->SetFileName( fn.GetFullPath().c_str() );
+	
+	WorkerThread* thread = new WorkerThread( this );
+	thread->LoadSurface( layer );
 }

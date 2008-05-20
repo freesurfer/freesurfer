@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/10 19:59:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/05/20 16:28:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 	
 	view->UpdateAnnotation();
 	
-	if ( event.ControlDown() )
+	if ( event.ControlDown() && !event.ShiftDown() )
 	{
 		if ( event.LeftDown() )
 		{
@@ -71,7 +71,7 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 		m_nDownPosX = m_nMousePosX;
 		m_nDownPosY = m_nMousePosY;
 		
-		if ( event.ShiftDown() )
+		if ( event.ShiftDown() && !event.ControlDown() )
 			m_bWindowLevel = true;
 		else 
 		{

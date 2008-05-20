@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/18 19:58:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/20 16:28:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,11 +50,14 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 		
 	if ( event.LeftDown() )
 	{
+		if ( event.ControlDown() )
+			return Interactor2D::ProcessMouseDownEvent( event, renderview );
+		
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( "ROI" );
 		LayerROI* roi = ( LayerROI* )lc->GetActiveLayer();
 		if ( !roi || !roi->IsVisible() )
 		{
-			SendBroadcast( "ROINotEditable", this );
+			SendBroadcast( "ROINotVisible", this );
 		}
 		else
 		{
@@ -67,7 +70,7 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 			{
 				roi->SaveForUndo( view->GetViewPlane() );			
 				m_bEditing = true;				
-				roi->SetVoxelByRAS( ras, !event.ShiftDown() );
+				roi->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
 			}
 			else if ( m_nAction == EM_Fill ) // && ( event.ControlDown() || event.ShiftDown() ) )
 			{
@@ -83,7 +86,7 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 				view->GetCursor()->SetPosition2( ras );			
 				if ( m_dPolylinePoints.size() > 0 )	
 				{
-					roi->SetVoxelByRAS( ras, ras2, !event.ShiftDown() );	
+					roi->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() );	
 				}			
 				else
 				{
@@ -121,7 +124,7 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 					view->GetCursor()->GetPosition( ras2 );
 					view->GetCursor()->SetPosition2( ras2 );
 					view->GetCursor()->SetPosition( ras1 );
-					roi->SetVoxelByRAS( ras1, ras2, !event.ShiftDown() );	
+					roi->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() );	
 				}
 			}
 		}
@@ -169,7 +172,7 @@ bool Interactor2DROIEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView
 			view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
 			view->MousePositionToRAS( posX, posY, ras2 );
 			
-			roi->SetVoxelByRAS( ras1, ras2, !event.ShiftDown() );
+			roi->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() );
 		}
 		else if ( m_nAction == EM_Polyline )
 		{

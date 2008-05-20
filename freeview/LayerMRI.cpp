@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,7 +102,6 @@ bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
 	m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
 	if ( !m_volumeSource->MRIRead( m_sFilename.c_str(), wnd, event ) )
 		return false;
-	
 	
 	event.SetInt( 100 );
 	wxPostEvent( wnd, event );
@@ -359,7 +358,7 @@ void LayerMRI::UpdateColorMap ()
 	assert( mProperties );
 
 	for ( int i = 0; i < 3; i++ )
-		mColorMap[i]->SetActiveComponent( 0 );
+		mColorMap[i]->SetActiveComponent( m_nActiveFrame );
 	
 	switch ( mProperties->GetColorMap() ) 
 	{
@@ -527,7 +526,6 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* const iData 
 	{
 		this->UpdateColorMap();
 		this->SendBroadcast( "LayerActorUpdated", this );
-		this->SendBroadcast( iMessage, this );
 	}
 	else if ( iMessage == "ResliceInterpolationChanged" )
 	{
@@ -585,7 +583,7 @@ double LayerMRI::GetVoxelValue( double* pos )
 		 n[2] < ext[4] || n[2] > ext[5] )
 		return 0;
 	else
-		return m_volumeRAS->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 );
+		return m_volumeRAS->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
 }
 
 void LayerMRI::SetModified()
@@ -630,3 +628,22 @@ void LayerMRI::RemapPositionToRealRAS( double x_in, double y_in, double z_in,
 {
 	m_volumeSource->RemapPositionToRealRAS( x_in, y_in, z_in, x_out, y_out, z_out );
 }
+
+int LayerMRI::GetNumberOfFrames()
+{
+	if ( m_volumeRAS )
+		return m_volumeRAS->GetNumberOfScalarComponents();
+	else
+		return 1;
+}
+
+void LayerMRI::SetActiveFrame( int nFrame )
+{
+	if ( nFrame != m_nActiveFrame && nFrame >= 0 && nFrame < this->GetNumberOfFrames() )
+	{
+		m_nActiveFrame = nFrame;
+		this->DoListenToMessage( "ColorMapChanged", this );		
+		this->SendBroadcast( "LayerActiveFrameChanged", this );
+	}
+}
+

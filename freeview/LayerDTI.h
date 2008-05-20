@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/05/20 16:28:32 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,9 @@ class LayerDTI : public LayerMRI
 		
 		void SetVectorFileName( std::string filename )
 			{ m_sVectorFileName = filename; }
+		
+		const char* GetVectorFileName()
+			{ return m_sVectorFileName.c_str(); }
 		
 		LayerPropertiesDTI*	GetProperties();
 
