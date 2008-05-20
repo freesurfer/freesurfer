@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/10 17:45:01 $
-#    $Revision: 1.27 $
+#    $Date: 2008/05/20 17:49:26 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.27 2008/02/10 17:45:01 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.28 2008/05/20 17:49:26 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -102,6 +102,27 @@ echo matlab $matlab |& tee -a $LF
 
 set StartTime = `date`;
 set DateString = "`date '+%y%m%d%H%M'`"
+
+# Use the rawavg as input (for testing only)
+if($fsvol == rawavg.cor) then
+  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
+  if(! -e $refvol) then
+    # Does not exist, create
+    set orig = $SUBJECTS_DIR/$subjid/mri/orig.mgz
+    set rawavg = $SUBJECTS_DIR/$subjid/mri/rawavg.mgz
+    set cmd = (mri_vol2vol --mov $rawavg --targ $orig --o $refvol \
+     --no-save-reg --regheader)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    # Now mask it
+    set brain = $SUBJECTS_DIR/$subjid/mri/brainmask.mgz
+    set cmd = (mri_mask $refvol $brain $refvol)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif
 
 # Convert reference to analyze
 set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
