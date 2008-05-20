@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/15 15:02:01 $
- *    $Revision: 1.43 $
+ *    $Date: 2008/05/20 21:15:39 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -184,7 +184,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.43 2008/05/15 15:02:01 greve Exp $";
+"$Id: mri_segreg.c,v 1.44 2008/05/20 21:15:39 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -194,8 +194,8 @@ char *regfile=NULL;
 char *outregfile=NULL;
 char *sumfile=NULL;
 
-char *interpmethod = "trilinear";
-int   interpcode = 0;
+char *interpmethod = "nearest";
+int   interpcode = SAMPLE_TRILINEAR;
 int   sinchw;
 
 MRI *mov, *out;
@@ -293,13 +293,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.43 2008/05/15 15:02:01 greve Exp $",
+     "$Id: mri_segreg.c,v 1.44 2008/05/20 21:15:39 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.43 2008/05/15 15:02:01 greve Exp $",
+     "$Id: mri_segreg.c,v 1.44 2008/05/20 21:15:39 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -648,7 +648,7 @@ int main(int argc, char **argv) {
     printf("Writing output volume to %s \n",outfile);
     fflush(stdout);
     MRIsetValues(segreg0,0.0);
-    MRIvol2VolTkReg(mov, segreg0, R, interpcode, sinchw);
+    MRIvol2VolTkReg(mov, segreg0, R, SAMPLE_TRILINEAR, sinchw);
     MRIwrite(segreg0,outfile);
   }
 
@@ -1066,7 +1066,16 @@ static int parse_commandline(int argc, char **argv) {
         sscanf(pargv[1],"%d",&sinchw);
         nargsused ++;
       }
-    } else {
+    } 
+    else if (istringnmatch(option, "--trilinear",6)) {
+      interpmethod = "trilinear";
+      interpcode = SAMPLE_TRILINEAR;
+    }
+    else if (istringnmatch(option, "--nearest",7)) {
+      interpmethod = "nearest";
+      interpcode = SAMPLE_NEAREST;
+    }
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -1691,6 +1700,7 @@ int MRISsegReg(char *subject, int ForceReRun)
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern double SurfProj;
   extern int UseLH, UseRH, UseMask;
+  extern int interpcode, sinchw;
   char *SUBJECTS_DIR;
   char tmpstr[2000];
   int c,r,s,n,v,z=0;
@@ -1940,19 +1950,19 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 
   if(UseLH){
     vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			    lhwm, 0,SAMPLE_TRILINEAR, 
+			    lhwm, 0,interpcode, 
 			    FLT2INT_ROUND, NULL, 0, vskip);
     vlhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			     lhctx, 0,SAMPLE_TRILINEAR, 
+			     lhctx, 0,interpcode, 
 			     FLT2INT_ROUND, NULL, 0, vskip);
   if(lhcost == NULL) lhcost = MRIclone(vlhctx,NULL);
   }
   if(UseRH){
     vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			    rhwm, 0,SAMPLE_TRILINEAR, 
+			    rhwm, 0,interpcode, 
 			    FLT2INT_ROUND, NULL, 0, vskip);
     vrhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
-			     rhctx, 0,SAMPLE_TRILINEAR, 
+			     rhctx, 0,interpcode, 
 			     FLT2INT_ROUND, NULL, 0, vskip);
     if(rhcost == NULL) rhcost = MRIclone(vrhctx,NULL);
   }
