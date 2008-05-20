@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2008/05/20 19:10:34 $
-##    $Revision: 1.156 $
+##    $Date: 2008/05/20 19:16:24 $
+##    $Revision: 1.157 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -3271,7 +3271,7 @@ proc CreateMenuBar { ifwMenuBar } {
 		    "Overlay Layer 9"
 		    "ShowLabel kLabel_StdError $gbShowLabel(kLabel_StdError)"
 		    gbShowLabel(kLabel_StdError)
-		    mg_PialVSetLoadedyLoaded }
+		    mg_OverlayLoaded }
 		{ check
 		    "Amplitude"
 		    "ShowLabel kLabel_Amplitude $gbShowLabel(kLabel_Amplitude)"
