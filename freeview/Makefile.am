@@ -1,4 +1,5 @@
 AM_CXXFLAGS=\
+	-fno-strict-aliasing \
 	-Wno-deprecated \
 	-I$(top_srcdir)/include \
 	$(TCL_CFLAGS) \
