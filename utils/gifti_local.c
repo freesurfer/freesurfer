@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/19 20:30:48 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2008/05/20 20:57:54 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -539,15 +539,20 @@ int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname)
     return ERROR_BADFILE;
   }
 
-  /* check for 'shape' data */
+  /* check for 'shape' or functional data */
   giiDataArray* scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, 0);
   if (NULL == scalars)
   {
-    fprintf 
-      (stderr,
-       "mrisReadScalarGIFTIfile: no coordinates in file %s\n", fname);
-    gifti_free_image (image);
-    return ERROR_BADFILE;
+    scalars = gifti_find_DA (image, NIFTI_INTENT_NONE, 0);
+    if (NULL == scalars)
+    {
+      fprintf 
+        (stderr,
+         "mrisReadScalarGIFTIfile: no shape or func data found in file %s\n", 
+         fname);
+      gifti_free_image (image);
+      return ERROR_BADFILE;
+    }
   }
 
   /* Check the number of vertices */
