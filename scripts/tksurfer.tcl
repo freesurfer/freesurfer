@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2008/05/01 22:27:54 $
-##    $Revision: 1.155 $
+##    $Date: 2008/05/20 19:10:34 $
+##    $Revision: 1.156 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -2761,6 +2761,126 @@ proc DoEditVertexDlog {} {
     }
 }
 
+
+proc save_surface_multiviews { fbasename } {
+  # filename is something like <basename>_<surfacename>_<viewname>.tif	
+  # devel note : redraw works and UpdateAndRedraw doesn't
+  make_lateral_view	
+  set viewname _lateral.tif
+  set fname $fbasename$viewname
+  puts "saving $fname ..."
+  redraw
+  save_tiff $fname	
+  
+  make_lateral_view
+  rotate_brain_y 180
+  set viewname _medial.tif
+  set fname $fbasename$viewname
+  puts "saving $fname ..."
+  redraw
+  save_tiff $fname	
+
+  make_lateral_view
+  rotate_brain_x 90
+  set viewname _inferior.tif
+  set fname $fbasename$viewname
+  puts "saving $fname ..."
+  redraw
+  save_tiff $fname	
+
+  make_lateral_view
+  rotate_brain_x -90
+  set viewname _superior.tif
+  set fname $fbasename$viewname
+  puts "saving $fname ..."
+  redraw
+  save_tiff $fname	
+}
+
+proc DoMultiTiffSaveDlog {} {
+
+  global glShortcutDirs
+  global gbEnabledGroups
+  global gaLinkedVars
+  UpdateLinkedVarGroup view
+  set wwDialog .wwMultiTiffSaveDlog;
+
+  if { [Dialog_Create $wwDialog "Save Multiple Views as TIFFs" {-borderwidth 10}] } {
+
+  set fwMain             $wwDialog.fwMain
+  set fwDirName         $wwDialog.fwDirName
+  set fwBasename          $wwDialog.fwBasename
+  set fwBaseinfo          $wwDialog.fwBaseinfo
+  set fwButtons          $wwDialog.fwButtons
+
+  frame $fwMain
+
+  # make file name selector
+  set sDirName [GetDefaultLocation SaveTIFFAs]
+  tkm_MakeDirectorySelector $fwDirName \
+      "Choose the directory:" sDirName \
+      [list GetDefaultLocation SaveTIFFAs] \
+      $glShortcutDirs
+
+  [$fwDirName.ew subwidget entry] icursor end
+  tkm_MakeBigLabel $fwBaseinfo "TIFFs are saved as <Basename>_<surface>_<view>.tif"
+  # field for basename
+  tkm_MakeEntry $fwBasename "Basename: "  fBaseName 20 
+
+  # buttons.
+  set okCmd { 
+      SetDefaultLocation SaveTIFFAs $sDirName;
+   
+      # few warnings
+      if { $fBaseName == "" } {
+	      puts "WARNING! : Empty basename"
+      }
+      if { $sDirName == "" } {
+	      puts "WARNING! : Empty directory name. Attempting to write files in ROOT directory"
+      }
+
+      # process depending on whether user has loaded white, inflated and pial surfaces.
+      # the magic numbers following set_current_vertex_set are defined when creating menus. 
+      if { $gbEnabledGroups(mg_WhiteVSetLoaded) } {
+              set_current_vertex_set 2 
+	      UpdateLinkedVarGroup view
+	      UpdateAndRedraw
+	      set surfname _white
+	      set fname $sDirName/$fBaseName$surfname
+	      save_surface_multiviews $fname
+      }
+      if { $gbEnabledGroups(mg_InflatedVSetLoaded) } {
+              set_current_vertex_set 1 
+	      UpdateLinkedVarGroup view
+	      UpdateAndRedraw
+	      set surfname _inflated
+	      set fname $sDirName/$fBaseName$surfname
+	      save_surface_multiviews $fname
+      }
+      if { $gbEnabledGroups(mg_PialVSetLoaded) } {
+              set_current_vertex_set 3 
+	      UpdateLinkedVarGroup view
+	      UpdateAndRedraw
+	      set surfname _pial
+	      set fname $sDirName/$fBaseName$surfname
+	      save_surface_multiviews $fname
+      }
+      make_lateral_view
+      redraw
+     }
+
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+      "$okCmd"
+  
+  pack $fwMain $fwBaseinfo $fwBasename $fwDirName $fwButtons \
+    -side top      \
+    -expand yes    \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
 proc LabelsChanged {} { 
 
     # This is called when labels are changed on the C side. We'll
@@ -2888,6 +3008,8 @@ proc DoShowTimeCourseCorrelationDlog {} {
 	} $wwDialog $knWidth $wwDialog $wwDialog $knWidth $wwDialog] 
     }
 }
+
+
 
 proc CreateWindow { iwwTop } {
     global ksWindowName
@@ -3149,7 +3271,7 @@ proc CreateMenuBar { ifwMenuBar } {
 		    "Overlay Layer 9"
 		    "ShowLabel kLabel_StdError $gbShowLabel(kLabel_StdError)"
 		    gbShowLabel(kLabel_StdError)
-		    mg_OverlayLoaded }
+		    mg_PialVSetLoadedyLoaded }
 		{ check
 		    "Amplitude"
 		    "ShowLabel kLabel_Amplitude $gbShowLabel(kLabel_Amplitude)"
@@ -3408,7 +3530,7 @@ proc CreateMenuBar { ifwMenuBar } {
 		    UpdateAndRedraw }
 		mg_LabelLoaded }
 	    { command "Threshold Selected Label..."
-		{ DoLabelThreshold }
+		{ DoLabelThresholdDlog }
 		mg_LabelLoaded }
 	    { command "Delete All Labels"
 		{ labl_remove_all
@@ -3548,6 +3670,8 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { DoFileDlog SaveRGBAs } }
 	{ command "Save TIFF As..."
 	    { DoFileDlog SaveTIFFAs } }
+	{ command "Save Multiple Views as TIFFs..."
+	    { DoMultiTiffSaveDlog } }
 	{ command "Make Frame"
 	    { save_rgb_cmp_frame } }
     }
@@ -3776,6 +3900,7 @@ proc CreateToolBar { ifwToolBar } {
     set fwLabels           $gfwaToolBar(main).fwLabels
     set fwLabelStyle       $gfwaToolBar(main).fwLabelStyle
     set fwScreenShot       $gfwaToolBar(main).fwScreenShot
+    set fwSaveMultiview       $gfwaToolBar(main).fwSaveMultiview
     
     frame $gfwaToolBar(main) -border 2 -relief raised
     
@@ -3886,11 +4011,20 @@ proc CreateToolBar { ifwToolBar } {
 	{ image icon_camera { DoFileDlog SaveTIFFAs } "Save TIFF" } 
     }
 
+    tkm_MakeButtons $fwSaveMultiview { 
+	{ image icon_disk_multiview { DoMultiTiffSaveDlog } "Save Multiple Views as TIFFs" } 
+    }
+    
     pack $fwRedraw $fwPoint $fwSurfaces $fwCurv \
-	$fwOverlay $fwLabels $fwLabelStyle $fwScreenShot \
+	$fwOverlay $fwLabels $fwLabelStyle $fwScreenShot\
 	-side left \
 	-anchor w \
 	-padx 5
+    
+    pack $fwSaveMultiview\
+	-side left \
+	-anchor w \
+	-padx 1 
 
     # Tools toolbar
     set gfwaToolBar(tools)   $ifwToolBar.fwToolsBar
@@ -5665,7 +5799,7 @@ proc CreateImages {} {
 	icon_draw_line icon_draw_line_closed icon_fill_label icon_erase_line
 	icon_surface_main icon_surface_original icon_surface_pial 
 	icon_surface_white icon_surface_inflated
-	icon_home icon_redraw icon_curv icon_camera } {
+	icon_home icon_redraw icon_curv icon_camera icon_disk_multiview } {
 	
 	if { [catch {image create photo $image_name -file \
 	    [file join $ksImageDir $image_name.gif]} sResult] != 0 } {
