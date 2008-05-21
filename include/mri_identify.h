@@ -1,17 +1,15 @@
 /**
  * @file  mri_identify.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief Identify MRI volume format based on filename extension
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/05/22 03:50:26 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/21 21:45:02 $
+ *    $Revision: 1.18 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *

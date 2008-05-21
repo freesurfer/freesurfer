@@ -7,10 +7,10 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:32 $
- *    $Revision: 1.65 $
+ *    $Date: 2008/05/21 21:45:15 $
+ *    $Revision: 1.66 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -129,6 +129,9 @@ char *type_to_string(int type)
   case MRI_CURV_FILE:
     tmpstr = "curv";
     break;
+  case GIFTI_FILE:
+    tmpstr = "gii";
+    break;
   default:
     tmpstr = "unknown";
     break;
@@ -208,6 +211,7 @@ int string_to_type(char *string)
       || !strcmp(ls, "pbm") || !strcmp(ls, "rgb"))
     type = IMAGE_FILE;
   if (strcmp(ls, "curv") == 0) type = MRI_CURV_FILE;
+  if (strcmp(ls, "gii") == 0)  type = GIFTI_FILE;
 
   return(type);
 
@@ -352,6 +356,9 @@ int mri_identify(char *fname_passed)
         case NRRD_FILE:
           if (is_nrrd(fname))
             return type;
+          break;
+        case GIFTI_FILE:
+          return type;
           break;
         default:
           break;

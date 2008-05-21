@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/03/13 01:42:53 $
- *    $Revision: 1.344 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/21 21:45:15 $
+ *    $Revision: 1.345 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,6 +80,7 @@
 #include "znzlib.h"
 #include "mri_circulars.h"
 #include "dti.h"
+#include "gifti_local.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -689,6 +690,8 @@ static MRI *mri_read
   }
   else if (type == MRI_CURV_FILE)
     mri = MRISreadCurvAsMRI(fname_copy, volume_flag);
+  else if (type == GIFTI_FILE)
+    mri = MRISreadGiftiAsMRI(fname_copy, volume_flag);
   else if (type == IMAGE_FILE)
   {
     I = ImageRead(fname_copy);
@@ -1106,6 +1109,10 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   else if (type == NRRD_FILE)
   {
     error = mriNrrdWrite(mri, fname);
+  }
+  else if (type == GIFTI_FILE)
+  {
+    error = mriWriteGifti(mri, fname);
   }
   else if (type == GENESIS_FILE)
   {
