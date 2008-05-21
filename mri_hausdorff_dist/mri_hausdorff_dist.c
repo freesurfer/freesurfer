@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/05/21 18:46:41 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/05/21 21:58:27 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.2 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.3 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index) ;
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.2 2008/05/21 18:46:41 fischl Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.3 2008/05/21 21:58:27 fischl Exp $";
 
 char *Progname ;
 
@@ -169,10 +169,10 @@ static void usage_exit(void) {
 static double
 compute_hdist(MRI **mri, int nvolumes, int index)
 {
-  int   x, y, z, width, depth, height, nvox, n ;
-  float d ;
+  int   x, y, z, width, depth, height, nvox, n, xk, yk, zk, xi, yi, zi ;
+  float d, d2, dist, dx, dy, dz ;
   MRI   *mri_src ;
-  double hdists[MAX_VOLUMES], hdists_sigma[MAX_VOLUMES], hdist ;
+  double hdists[MAX_VOLUMES], hdists_sigma[MAX_VOLUMES], hdist, max_vox,xf, yf, zf, zval;
   FILE   *fp ;
   static int i = 0 ;
   char fname[STRLEN] ;
@@ -184,6 +184,7 @@ compute_hdist(MRI **mri, int nvolumes, int index)
 
   width = mri_src->width ; height = mri_src->height ;  depth = mri_src->depth ; 
 
+  max_vox = MAX(mri_src->xsize, MAX(mri_src->ysize, mri_src->zsize)) ;
   for (hdist = 0.0, n = 0 ; n < nvolumes ; n++)
   {
     if (n == index)
@@ -193,16 +194,47 @@ compute_hdist(MRI **mri, int nvolumes, int index)
         for (z = 0 ; z < depth ; z++)
         {
           d = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-          if (FEQUAL(d, -0.5))
+          if (fabs(d) > max_vox)
+            continue ;
+
+          // find locations on either side of 0
+          for (xk = -1 ; xk <= 1 ; xk++)
           {
-            d = MRIgetVoxVal(mri[n], x, y, z, 0) ;
-            fprintf(fp, "%d %d %d %d %2.3f\n", n, x, y, z, d) ;
-            if (d > 40)
-              DiagBreak() ;
-            d = fabs(d- (-0.5)) ;
-            hdists[n] += d ;
-            hdists_sigma[n] += d*d ;
-            nvox++ ;
+            xi = mri_src->xi[x+xk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_src->yi[y+yk] ;
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
+                if (fabs(xk) + fabs(yk) + fabs(zk) != 1)
+                  continue ;
+
+                zi = mri_src->zi[z+zk] ;
+                
+                d2 = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+                if (d * d2 > 0)
+                  continue ;  // not on either side of 0
+
+                // compute dist in mm to nbr voxel
+                dx = (xi - x) * mri_src->xsize ;
+                dy = (yi - y) * mri_src->ysize ;
+                dz = (zi - z) * mri_src->zsize ;
+                dist = sqrt(dx*dx + dy*dy + dz*dz);
+
+                // convert to voxel coords of 0-crossing
+                dx = (xi - x) ; dy = (yi - y) ; dz = (zi - z) ;
+                xf = x + dx * fabs(d2)/dist ;
+                yf = y + dy * fabs(d2)/dist ;
+                zf = z + dz * fabs(d2)/dist ;
+                MRIsampleVolume(mri[n], xf, yf, zf, &zval) ;
+                //                fprintf(fp, "%d %d %d %d %2.3f\n", n, x, y, z, d) ;
+                if (zval > 40)
+                  DiagBreak() ;
+                hdists[n] += zval ;
+                hdists_sigma[n] += zval*zval ;
+                nvox++ ;
+              }
+            }
           }
         }
     hdists[n] /= (double)nvox ;
