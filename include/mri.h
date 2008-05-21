@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:05:48 $
- *    $Revision: 1.347.2.2 $
+ *    $Date: 2008/05/21 21:46:17 $
+ *    $Revision: 1.347.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -730,6 +730,7 @@ extern float ic_z_vertices[]  ;
 #define NII_FILE                      24 // NIfTI-1 .nii (single file)
 #define MRI_CURV_FILE                 25 // surface curv format
 #define NRRD_FILE                     26 // NRRD .nrrd single file
+#define GIFTI_FILE                    27 // GIFTI func data frames
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;
@@ -811,6 +812,8 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol,
                      int resample_type, float fill_val) ;
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
                         float in_val, float out_val) ;
+MRI   *MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,
+                            float low_in_val, float hi_in_val, float out_val) ;
 MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,
                              BUFTYPE in_val, BUFTYPE out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
@@ -1139,6 +1142,7 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 #define DTRANS_MODE_SIGNED   1
 #define DTRANS_MODE_UNSIGNED 2
 #define DTRANS_MODE_OUTSIDE  3
+#define DTRANS_MODE_INSIDE   4
 
 /** This is deprecated.  Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,

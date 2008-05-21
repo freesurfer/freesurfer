@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/01 20:47:48 $
- *    $Revision: 1.23.2.1 $
+ *    $Date: 2008/05/21 21:46:18 $
+ *    $Revision: 1.23.2.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.23.2.1 2008/05/01 20:47:48 nicks Exp $";
+"$Id: mris_convert.c,v 1.23.2.2 2008/05/21 21:46:18 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -76,6 +76,8 @@ static int w_file_dst_flag = 0 ;
 static int w_file_src_flag = 0 ;
 static int curv_file_flag = 0 ;
 static char *curv_fname ;
+static int func_file_flag = 0 ;
+static char *func_fname ;
 static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
@@ -98,7 +100,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.23.2.1 2008/05/01 20:47:48 nicks Exp $",
+     "$Id: mris_convert.c,v 1.23.2.2 2008/05/21 21:46:18 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -126,7 +128,7 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // check whether outputis a .w file
+  // check whether output is a .w file
   dot = strrchr(out_fname, '.') ;
   if (dot) {
     strcpy(ext, dot+1) ;
@@ -207,7 +209,7 @@ main(int argc, char *argv[]) {
   if (curv_file_flag) {
     int type ;
 
-    MRISreadCurvatureFile(mris, curv_fname) ;
+    if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR) exit(1);
     type = MRISfileNameType(out_fname) ;
     if (type == MRIS_ASCII_FILE)
       writeAsciiCurvFile(mris, out_fname) ;
@@ -215,7 +217,17 @@ main(int argc, char *argv[]) {
       MRISwriteScalarGIFTI(mris, out_fname, curv_fname);
     else
       MRISwriteCurvature(mris, out_fname) ;
-  } else if (mris->patch)
+  } 
+  else if (func_file_flag) {
+    MRI* mri = MRIread( func_fname );
+    if (NULL == mri) {
+      printf("ERROR: unable to to read %s\n",func_fname);
+      exit(1);
+    }
+    MRIwrite(mri, out_fname);
+    exit(0);
+  }
+  else if (mris->patch)
     MRISwritePatch(mris, out_fname) ;
   else if (output_normals)
     MRISwriteNormalsAscii(mris, out_fname) ;
@@ -258,6 +270,11 @@ get_option(int argc, char *argv[]) {
   else switch (toupper(*option)) {
   case 'A':
     PrintXYZOnly = 1;
+    break ;
+  case 'F':
+    func_file_flag = 1 ;
+    func_fname = argv[2] ;
+    nargs = 1 ;
     break ;
   case 'C':
     curv_file_flag = 1 ;
@@ -324,12 +341,13 @@ static void
 print_help(void) {
   print_usage() ;
   printf(
-    "\nThis program will convert an MRI surface to ascii, and "
-    "vice-versa.\n") ;
+    "\nThis program will convert a MRI surface data formats.\n") ;
   printf( "\nValid options are:\n") ;
   printf( "  -p                input is a patch, not a full surface\n") ;
   printf( "  -c <scalar file>  input is scalar overlay file (must still\n"
           "                    specify surface)\n") ;
+  printf( "  -f <scalar file>  input is functional time-series or other\n"
+          "                    multi-frame data (must specify surface)\n") ;
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
   printf( "  -r                rescale vertex xyz so total area is\n"

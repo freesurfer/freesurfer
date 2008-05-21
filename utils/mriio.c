@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:45 $
- *    $Revision: 1.335.2.6 $
+ *    $Date: 2008/05/21 21:46:18 $
+ *    $Revision: 1.335.2.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,6 +80,7 @@
 #include "znzlib.h"
 #include "mri_circulars.h"
 #include "dti.h"
+#include "gifti_local.h"
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -195,8 +196,7 @@ static int mghAppend(MRI *mri, char *fname, int frame) ;
 
 extern int errno;
 
-extern char *Progname;
-/*char *Progname;*/
+extern const char *Progname;
 
 static char *command_line;
 static char *subject_name;
@@ -690,6 +690,8 @@ static MRI *mri_read
   }
   else if (type == MRI_CURV_FILE)
     mri = MRISreadCurvAsMRI(fname_copy, volume_flag);
+  else if (type == GIFTI_FILE)
+    mri = MRISreadGiftiAsMRI(fname_copy, volume_flag);
   else if (type == IMAGE_FILE)
   {
     I = ImageRead(fname_copy);
@@ -1107,6 +1109,10 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   else if (type == NRRD_FILE)
   {
     error = mriNrrdWrite(mri, fname);
+  }
+  else if (type == GIFTI_FILE)
+  {
+    error = mriWriteGifti(mri, fname);
   }
   else if (type == GENESIS_FILE)
   {
@@ -1935,8 +1941,9 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   if(IsDICOM(fname)){
     printf("INFO: this looks like a dicom, not an old Siemens .ima file, ");
     printf("so I'm going to unpack it as a dicom.\n");
-    //printf("If this fails, run mri_convert with -it dicom\n");
-    mri = DICOMRead2(fname, read_volume_flag);
+    printf("If this fails, run mri_convert with -it dicom\n");
+    //mri = DICOMRead2(fname, read_volume_flag); // generic dicom
+    mri = sdcmLoadVolume(fname, read_volume_flag, -1); // siemens dicom
     return(mri);
   }
 
@@ -10542,17 +10549,13 @@ static MRI *niiRead(char *fname, int read_volume)
     // no voxel value scaling needed
     void *buf;
 
-    for (t = 0;t < mri->nframes;t++)
-    {
-      for (k = 0;k < mri->depth;k++)
-      {
-        for (j = 0;j < mri->height;j++)
-        {
+    for (t = 0;t < mri->nframes;t++)    {
+      for (k = 0;k < mri->depth;k++)      {
+        for (j = 0;j < mri->height;j++)        {
           buf = &MRIseq_vox(mri, 0, j, k, t);
 
           n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
-          if (n_read != mri->width)
-          {
+          if(n_read != mri->width) {
 	    printf("ERROR: Read %d, expected %d\n",n_read,mri->width);
             znzclose(fp);
             MRIfree(&mri);
@@ -12399,7 +12402,7 @@ mghRead(char *fname, int read_volume, int frame)
             (mri->transform_fname)[0] = '\0';
           }
         }
-/* useless message:
+/* freakin' annoying and useless warning message:
         else
         {
           fprintf(stderr,
@@ -12410,6 +12413,7 @@ mghRead(char *fname, int read_volume, int frame)
         }
 */
         break ;
+
       case TAG_CMDLINE:
         if (mri->ncmds > MAX_CMDS)
           ErrorExit(ERROR_NOMEMORY,
@@ -12420,9 +12424,16 @@ mghRead(char *fname, int read_volume, int frame)
         mri->cmdlines[mri->ncmds][len] = 0 ;
         mri->ncmds++ ;
         break ;
+
       case TAG_AUTO_ALIGN:
-	mri->AutoAlign = TAGreadAutoAlign(fp);
-	break;
+        mri->AutoAlign = TAGreadAutoAlign(fp);
+        break;
+
+      case TAG_PEDIR:
+        mri->pedir = (char*)calloc(len+1,sizeof(char));
+        fread(mri->pedir,sizeof(char),len,fp);
+        break;
+
       default:
         TAGskip(fp, tag, (long long)len) ;
         break ;
@@ -12674,6 +12685,8 @@ mghWrite(MRI *mri, char *fname, int frame)
   }
 
   if(mri->AutoAlign) TAGwriteAutoAlign(fp, mri->AutoAlign);
+  if(mri->pedir) TAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
+  else TAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
 
   // write other tags
   {

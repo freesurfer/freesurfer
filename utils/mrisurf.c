@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/01 20:50:29 $
- *    $Revision: 1.557.2.11 $
+ *    $Date: 2008/05/21 21:46:19 $
+ *    $Revision: 1.557.2.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.11 2008/05/01 20:50:29 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.12 2008/05/21 21:46:19 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3947,6 +3947,7 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   else
     strcpy(fname, sname) ;  /* path specified explicitly */
   mritype = mri_identify(sname);
+  if (mritype == GIFTI_FILE) return(mrisReadScalarGIFTIfile(mris, fname)) ;
   if (mritype != MRI_VOLUME_TYPE_UNKNOWN)
   {
     frame = MRISgetReadFrame();
@@ -9517,7 +9518,7 @@ MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
     MRI *TempMRI ;
     VERTEX *v ;
 
-    printf("writing curvature to surface-encoded volume file\n") ;
+    printf("writing curv-formated data to surface-encoded volume file\n") ;
     TempMRI = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
     if (TempMRI==NULL) return(ERROR_NOMEMORY);
     vno = 0;

@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/20 20:57:54 $
- *    $Revision: 1.1.2.3 $
+ *    $Date: 2008/05/21 21:46:18 $
+ *    $Revision: 1.1.2.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -539,20 +539,16 @@ int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname)
     return ERROR_BADFILE;
   }
 
-  /* check for 'shape' or functional data */
+  /* check for 'shape' data */
   giiDataArray* scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, 0);
   if (NULL == scalars)
   {
-    scalars = gifti_find_DA (image, NIFTI_INTENT_NONE, 0);
-    if (NULL == scalars)
-    {
-      fprintf 
-        (stderr,
-         "mrisReadScalarGIFTIfile: no shape or func data found in file %s\n", 
-         fname);
-      gifti_free_image (image);
-      return ERROR_BADFILE;
-    }
+    fprintf 
+      (stderr,
+       "mrisReadScalarGIFTIfile: no shape data found in file %s\n", 
+       fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
   }
 
   /* Check the number of vertices */
@@ -587,12 +583,146 @@ int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname)
 }
 
 
+
+/*-----------------------------------------------------------
+  MRISreadGiftiAsMRI() - reads GIFTI functional frames into
+  an MRI volume struct, which is a retro-fit usage to store
+  multiple frames of data (where in this case, a frame is one
+  complete vector of vertices).
+  -----------------------------------------------------------*/
+MRI *MRISreadGiftiAsMRI(char *fname, int read_volume)
+{
+  /* Attempt to read the file. */
+  gifti_image* image = gifti_read_image (fname, 1);
+  if (NULL == image)
+  {
+    fprintf 
+      (stderr,
+       "MRISreadGiftiAsMRI: gifti_read_image() returned NULL\n");
+    return NULL;
+  }
+
+  /* check for compliance */
+  int valid = gifti_valid_gifti_image (image, 1);
+  if (valid == 0)
+  {
+    fprintf 
+      (stderr,
+       "MRISreadGiftiAsMRI: GIFTI file %s is invalid!\n", fname);
+    gifti_free_image (image);
+    return NULL;
+  }
+
+  /* check for overlay data */
+  giiDataArray* scalars = NULL;
+  int frame_count = 0;
+  long long num_vertices = 0;
+  long long num_cols = 0;
+  do
+  {
+    scalars = gifti_find_DA (image, NIFTI_INTENT_NONE, frame_count);
+    if (NULL == scalars)
+    {
+      scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, frame_count);
+      if (NULL == scalars)
+      {
+        scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, frame_count);
+        if (NULL == scalars) break;
+        else
+        {
+          //printf("Found NIFTI_INTENT_SHAPE data array #%d\n", frame_count);
+        }
+      }
+      else
+      {
+        //printf("Found NIFTI_INTENT_TIME_SERIES data array #%d\n", 
+        //     frame_count);
+      }
+    }
+    else
+    {
+      //printf("Found NIFTI_INTENT_NONE data array #%d\n", frame_count);
+    }
+    long long nvertices, ncols;
+    gifti_DA_rows_cols (scalars, &nvertices, &ncols);
+    if (frame_count == 0)
+    {
+      num_vertices=nvertices;
+      num_cols=ncols;
+    }
+    else
+    {
+      if (num_vertices <= 0 ||
+          num_vertices != nvertices ||
+          ncols != 1)
+      {
+        fprintf 
+          (stderr,
+           "MRISreadGiftiAsMRI: malformed data array in file "
+           "%s: nvertices=%d ncols=%d expected num_vertices=%d\n",
+           fname, (int)nvertices, (int)num_cols, (int)num_vertices);
+        gifti_free_image (image);
+        return NULL;
+      }
+    }
+    frame_count++;
+  } while ( scalars );
+
+  if (frame_count == 0)
+  {
+    fprintf 
+      (stderr,
+       "MRISreadGiftiAsMRI: no overlay data found in file %s\n", 
+       fname);
+    gifti_free_image (image);
+    return NULL;
+  }
+
+  /* if we don't need to read the volume, just return a header */
+  MRI *mri;
+  if (!read_volume)
+  {
+    mri = MRIallocHeader(num_vertices,1,1,MRI_FLOAT);
+    mri->nframes = frame_count;
+    return(mri);
+  }
+
+  /* Copy in each scalar frame to 'volume' frame. */
+  mri =  MRIallocSequence(num_vertices,1,1,MRI_FLOAT,frame_count);
+  int frame_counter;
+  for (frame_counter = 0; frame_counter < frame_count; frame_counter++)
+  {
+    scalars = gifti_find_DA (image, NIFTI_INTENT_NONE, frame_counter);
+    if (NULL == scalars)
+    {
+      scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, frame_counter);
+      if (NULL == scalars)
+      {
+        scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, frame_counter);
+      }
+      if (NULL == scalars) break;
+    }
+    int scalar_index;
+    for (scalar_index = 0; scalar_index < num_vertices; scalar_index++)
+    {
+      float val = (float) gifti_get_DA_value_2D (scalars, scalar_index, 0);
+      MRIsetVoxVal(mri,scalar_index,0,0,frame_counter,val);
+    }
+  }
+
+  /* And we're done. */
+  gifti_free_image (image);
+  return(mri) ;
+}
+
+
 /*
  *
  */
 static void insertMetaData(MRIS* mris, giiDataArray* dataArray)
 {
-  if (mris->fname)
+
+  if (mris && mris->fname)
   {
     const char *primary=NULL, *secondary=NULL, *geotype=NULL;
     char *name = mris->fname;
@@ -633,7 +763,7 @@ static void insertMetaData(MRIS* mris, giiDataArray* dataArray)
     gifti_add_to_meta( &dataArray->meta, "Name", name, 1 );
   }
 
-  if (strlen(mris->subject_name))
+  if (mris && strlen(mris->subject_name))
   {
     gifti_add_to_meta( &dataArray->meta, "SubjectID", mris->subject_name, 1 );
   }
@@ -848,14 +978,14 @@ int MRISwriteScalarGIFTI(MRIS* mris, char *fname, char *scalar_fname)
 {
   if (NULL == mris || NULL == fname)
   {
-    fprintf (stderr,"MRISwriteScalarGIFTI: invalid parameter\n");
+    fprintf (stderr,"MRISwriteScalarGIFTI: invalid input parameters\n");
     return ERROR_BADPARM;
   }
 
   gifti_image* image = (gifti_image *)calloc(1,sizeof(gifti_image));
   if (NULL == image)
   {
-    fprintf (stderr,"MRISwriteScalarGIFTI: couldn't allocate image\n");
+    fprintf (stderr,"MRISwriteScalarGIFTI: couldn't allocate gifti_image\n");
     return ERROR_NOMEMORY;
   }
   image->version = strcpyalloc(GIFTI_XML_VERSION);
@@ -942,6 +1072,112 @@ int MRISwriteScalarGIFTI(MRIS* mris, char *fname, char *scalar_fname)
   if (gifti_write_image (image, fname, 1))
   {
     fprintf (stderr,"MRISwriteScalarGIFTI: couldn't write image\n");
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  gifti_free_image (image);
+
+  return ERROR_NONE;
+}
+
+
+/*-----------------------------------------------------------
+  Parameters:    MRI structure (surface-encoded volume),
+                 output file name of GIFTI file,
+
+  Returns value: 0 if passed, else error code
+
+  Description:   writes a GIFTI file containing functional or
+                 timeseries data
+  -----------------------------------------------------------*/
+int mriWriteGifti(MRI* mri, char *fname)
+{
+  if (NULL == mri || NULL == fname)
+  {
+    fprintf (stderr,"mriWriteGifti: invalid input parameters\n");
+    return ERROR_BADPARM;
+  }
+
+  gifti_image* image = (gifti_image *)calloc(1,sizeof(gifti_image));
+  if (NULL == image)
+  {
+    fprintf (stderr,"mriWriteGifti: couldn't allocate gifti_image\n");
+    return ERROR_NOMEMORY;
+  }
+  image->version = strcpyalloc(GIFTI_XML_VERSION);
+
+  /* -------------------------------------------------------
+   * One DataArray for each 'frame' in the 'volume' data
+   */
+  int frame;
+  for (frame=0; frame < mri->nframes; frame++)
+  {
+    giiDataArray* scalars = gifti_alloc_and_add_darray (image);
+    if (NULL == scalars)
+    {
+      fprintf (stderr,"mriWriteGifti: couldn't allocate giiDataArray\n");
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+    /* Set its attributes. */
+    scalars->intent = NIFTI_INTENT_NONE;
+    scalars->datatype = NIFTI_TYPE_FLOAT32;
+    scalars->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
+    scalars->num_dim = 2;
+    scalars->dims[0] = mri->width;
+    scalars->dims[1] = 1;
+    scalars->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+    scalars->endian = GIFTI_ENDIAN_LITTLE;
+#else
+    scalars->endian = GIFTI_ENDIAN_BIG;
+#endif
+    scalars->coordsys = NULL;
+    scalars->nvals = gifti_darray_nvals (scalars);
+    gifti_datatype_sizes (scalars->datatype, &scalars->nbyper, NULL);
+
+    /* include some metadata describing this thing */
+    insertMetaData (NULL, scalars); /* standard meta data */
+
+    /* Allocate the data array. */
+    scalars->data = NULL;
+    scalars->data = (void*) calloc (scalars->nvals, scalars->nbyper);
+    if (NULL == scalars->data)
+    {
+      fprintf (stderr,"mriWriteGifti: couldn't allocate scalars data of "
+               "length %d, element size %d\n",
+               (int)scalars->nvals,scalars->nbyper);
+      gifti_free_image (image);
+      return ERROR_NOMEMORY;
+    }
+
+    /* Copy in all our data. */
+    int scalar_index;
+    for (scalar_index = 0; scalar_index < mri->width; scalar_index++)
+    {
+      float val = MRIgetVoxVal(mri,scalar_index,0,0,frame);
+      gifti_set_DA_value_2D (scalars, scalar_index, 0, val);
+    }
+
+    // next frame
+  }
+
+  /* check for compliance */
+  int valid = gifti_valid_gifti_image (image, 1);
+  if (valid == 0)
+  {
+    fprintf (stderr,"mriWriteGifti: GIFTI file %s is invalid!\n", 
+             fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* Write the file. */
+  if (gifti_write_image (image, fname, 1))
+  {
+    fprintf (stderr,"mriWriteGifti: couldn't write image\n");
     gifti_free_image (image);
     return ERROR_BADFILE;
   }
