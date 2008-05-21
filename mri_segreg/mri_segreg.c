@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/20 21:15:39 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/05/21 12:30:00 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -184,7 +184,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.44 2008/05/20 21:15:39 greve Exp $";
+"$Id: mri_segreg.c,v 1.45 2008/05/21 12:30:00 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -293,13 +293,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.44 2008/05/20 21:15:39 greve Exp $",
+     "$Id: mri_segreg.c,v 1.45 2008/05/21 12:30:00 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.44 2008/05/20 21:15:39 greve Exp $",
+     "$Id: mri_segreg.c,v 1.45 2008/05/21 12:30:00 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1700,7 +1700,6 @@ int MRISsegReg(char *subject, int ForceReRun)
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern double SurfProj;
   extern int UseLH, UseRH, UseMask;
-  extern int interpcode, sinchw;
   char *SUBJECTS_DIR;
   char tmpstr[2000];
   int c,r,s,n,v,z=0;
@@ -1920,6 +1919,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern int PenaltySign;
   extern double PenaltySlope;
   extern int vskip;
+  extern int interpcode;
   double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean,a=0;
   MATRIX *Mrot=NULL, *Mtrans=NULL;
   MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
