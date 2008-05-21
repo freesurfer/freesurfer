@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/09 08:03:46 $
- *    $Revision: 1.16 $
+ *    $Author: nicks $
+ *    $Date: 2008/05/21 21:48:24 $
+ *    $Revision: 1.16.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,7 @@
 #define TAG_AUTO_ALIGN              33
 
 #define TAG_SCALAR_DOUBLE           40
+#define TAG_PEDIR                   41
 
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
