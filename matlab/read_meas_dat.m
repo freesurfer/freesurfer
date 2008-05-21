@@ -1,4 +1,4 @@
-function varargout = read_meas_dat(filename, options)
+function varargout = read_meas_dat(filename, user_options)
 %READ_MEAS_DAT  read in Siemens format raw data, VB13A/VB15A-style "meas.dat"
 %
 % data = read_meas_dat(filename, <options>)
@@ -82,10 +82,10 @@ function varargout = read_meas_dat(filename, options)
 
 
 % jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.10 2008/03/04 04:10:31 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.11 2008/05/21 19:19:18 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.10 $';
+  VERSION = '$Revision: 1.11 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
@@ -114,6 +114,8 @@ function varargout = read_meas_dat(filename, options)
 
   DO__RECOVER_FROM_INCOMPLETE = 1;
 
+  
+  
   DO__FLIP_REFLECTED_LINES = 1;
   DO__PHASCOR_COLLAPSE_SEGMENTS = 1;
   DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
@@ -124,65 +126,61 @@ function varargout = read_meas_dat(filename, options)
   DO__RETURN_STRUCT = 0;
 
   % by default, return all data as full arrays of type SINGLE
-  DO__MATRIX_SPARSE = 0;
   DO__MATRIX_DOUBLE = 0;
+  DO__MATRIX_SPARSE = 0;
 
 
   % if the "options" struct is provided by caller, then override default
   % flags
 
-  if ( exist('options', 'var') ),
+  if ( exist('user_options', 'var') ),
 
-    if ( isfield(options, 'ReverseLines') ),
-      DO__FLIP_REFLECTED_LINES = options.ReverseLines;
+    if ( isfield(user_options, 'ReverseLines') ),
+      DO__FLIP_REFLECTED_LINES = user_options.ReverseLines;
       disp(sprintf(' :FLIP_REFLECTED_LINES = %d', DO__FLIP_REFLECTED_LINES));
-    else,
-      options.ReverseLines = DO__FLIP_REFLECTED_LINES;
     end;
 
-    if ( isfield(options, 'PhascorCollapseSegments') ),
-      DO__PHASCOR_COLLAPSE_SEGMENTS = options.PhascorCollapseSegments;
+    if ( isfield(user_options, 'PhascorCollapseSegments') ),
+      DO__PHASCOR_COLLAPSE_SEGMENTS = user_options.PhascorCollapseSegments;
       disp(sprintf(' :PHASCOR_COLLAPSE_SEGMENTS = %d', DO__PHASCOR_COLLAPSE_SEGMENTS));
-    else,
-      options.PhascorCollapseSegments = DO__PHASCOR_COLLAPSE_SEGMENTS;
     end;
 
-    if ( isfield(options, 'CanonicalReorderCoilChannels') ),
-      DO__CANONICAL_REORDER_COIL_CHANNELS = options.CanonicalReorderCoilChannels;
+    if ( isfield(user_options, 'CanonicalReorderCoilChannels') ),
+      DO__CANONICAL_REORDER_COIL_CHANNELS = user_options.CanonicalReorderCoilChannels;
       disp(sprintf(' :CANONICAL_REORDER_COIL_CHANNELS = %d', DO__CANONICAL_REORDER_COIL_CHANNELS));
-    else,
-      options.CanonicalReorderCoilChannels = DO__CANONICAL_REORDER_COIL_CHANNELS;
     end;
 
-    if ( isfield(options, 'ApplyFFTScaleFactors') ),
-      DO__APPLY_FFT_SCALEFACTORS = options.ApplyFFTScaleFactors;
+    if ( isfield(user_options, 'ApplyFFTScaleFactors') ),
+      DO__APPLY_FFT_SCALEFACTORS = user_options.ApplyFFTScaleFactors;
       disp(sprintf(' :APPLY_FFT_SCALEFACTORS = %d', DO__APPLY_FFT_SCALEFACTORS));
-    else,
-      options.ApplyFFTScaleFactors = DO__APPLY_FFT_SCALEFACTORS;
     end;
 
-    if ( isfield(options, 'ReadMultipleRepetitions') ),
-      DO__READ_MULTIPLE_REPETITIONS = options.ReadMultipleRepetitions;
+    if ( isfield(user_options, 'ReadMultipleRepetitions') ),
+      DO__READ_MULTIPLE_REPETITIONS = user_options.ReadMultipleRepetitions;
       disp(sprintf(' :READ_MULTIPLE_REPETITIONS = %d', DO__READ_MULTIPLE_REPETITIONS));
-    else,
-      options.ReadMultipleRepetitions = DO__READ_MULTIPLE_REPETITIONS;
     end;
 
-    if ( isfield(options, 'ReturnStruct') ),
-      DO__RETURN_STRUCT = options.ReturnStruct;
+    if ( isfield(user_options, 'ReturnStruct') ),
+      DO__RETURN_STRUCT = user_options.ReturnStruct;
       disp(sprintf(' :RETURN_STRUCT = %d', DO__RETURN_STRUCT));
-    else,
-      options.ReturnStruct = DO__RETURN_STRUCT;
     end;
 
-    if ( isfield(options, 'MatrixDouble') ),
-      DO__MATRIX_DOUBLE = options.MatrixDouble;
+    if ( isfield(user_options, 'MatrixDouble') ),
+      DO__MATRIX_DOUBLE = user_options.MatrixDouble;
       disp(sprintf(' :MATRIX_DOUBLE = %d', DO__MATRIX_DOUBLE));
-    else,
-      options.MatrixDouble = DO__MATRIX_DOUBLE;
     end;
 
   end;
+
+  options = struct('ReverseLines',                  DO__FLIP_REFLECTED_LINES, ...
+                   'PhascorCollapseSegments',       DO__PHASCOR_COLLAPSE_SEGMENTS, ...
+                   'CanonicalReorderCoilChannels',  DO__CANONICAL_REORDER_COIL_CHANNELS, ...
+                   'ApplyFFTScaleFactors',          DO__APPLY_FFT_SCALEFACTORS, ...
+                   'ReadMultipleRepetitions',       DO__READ_MULTIPLE_REPETITIONS, ...
+                   'ReturnStruct',                  DO__RETURN_STRUCT, ...
+                   'MatrixDouble',                  DO__MATRIX_DOUBLE);
+
+
 
 
   % constants defined in <n4/pkg/MrServers/MrMeasSrv/SeqIF/MDH/mdh.h>
@@ -200,7 +198,7 @@ function varargout = read_meas_dat(filename, options)
 
   t0 = clock;
 
-  [pathstr, filestr] = fileparts(filename);
+  [pathstr, filestr, extstr] = fileparts(filename);
 
   [fp, errstr] = fopen(filename, 'r', 'l');
   if ( fp == -1 ),
@@ -265,19 +263,19 @@ function varargout = read_meas_dat(filename, options)
 
       %%% SPECIAL CASE: "NSegMeas"
 
-      % the number of segments is listed in two places in the header with the
-      % field names "NSegMeas" and "NSeg", and for some reason only the "NSeg"
-      % field gives the correct number of segments; SO for this field we break
-      % with the convention [TODO: fix the bug in the martinos EPI sequence
-      % that causes this hack]
-      % UPDATE: it appears that "NSegMeas" corresponds to the cumulative
-      % number of distinct segments appearing in the loop counters, whereas
-      % "NSeg" is the true number of segments that is the same as the
-      % number of shots, i.e., they should differ by a factor of 2 when the
-      % "OnlineTSE" functor is in use.
-      if ( strcmp(param, 'NSegMeas') ),
-        param = 'NSeg';
-      end;
+%%      % the number of segments is listed in two places in the header with the
+%%      % field names "NSegMeas" and "NSeg", and for some reason only the "NSeg"
+%%      % field gives the correct number of segments; SO for this field we break
+%%      % with the convention [TODO: fix the bug in the martinos EPI sequence
+%%      % that causes this hack]
+%%      % UPDATE: it appears that "NSegMeas" corresponds to the cumulative
+%%      % number of distinct segments appearing in the loop counters, whereas
+%%      % "NSeg" is the true number of segments that is the same as the
+%%      % number of shots, i.e., they should differ by a factor of 2 when the
+%%      % "OnlineTSE" functor is in use.
+%%      if ( strcmp(param, 'NSegMeas') ),
+%%        param = 'NSeg';
+%%      end;
 
       % exploit MATLAB regexp machinery to pull out parameter/value pairs
       match = regexp(header, ['(?<param>' param, ').{0,5}\{\s*(?<value>\d*)\s*\}'], 'names');
@@ -387,13 +385,13 @@ function varargout = read_meas_dat(filename, options)
   % initializations...
   meas_num = 0;
   scan_num = 0;
-  echo_num = 0;
 
   mdh = read_meas__mdh_struct;
 
   %--------------------------------------------------------------------------%
 
   matrixtype = @single;
+  matrixtypestr = 'single';
 
   % unfortunately, matlab does not support sparse arrays whose number of
   % dimensions is larger than 2.   :(
@@ -403,6 +401,7 @@ function varargout = read_meas_dat(filename, options)
 
   if ( DO__MATRIX_DOUBLE ),
     matrixtype = @double;
+    matrixtypestr = 'double';
   end;
 
 
@@ -410,7 +409,13 @@ function varargout = read_meas_dat(filename, options)
   % 'Config_.evp' file contained within "meas.dat" header; allocate memory
   % for measurement data, and grow data matrix with each line (this method
   % is, surprisingly, faster than pre-allocation!)
-  %  data                    = matrixtype(complex(zeros(dimensions.NColMeas, 1)));
+%  dimensions
+%  tic;
+%  fprintf(' allocating memory...');
+%  data                    = complex(zeros(struct2array(dimensions), matrixtypestr));
+%  fprintf('done!  ');
+%  toc;
+%  fprintf('\n');
   data                    = matrixtype([]);
 
   FLAG__data               = 0;
@@ -418,27 +423,33 @@ function varargout = read_meas_dat(filename, options)
 
   FLAG__phascor1d          = 0;  % indicating presence of any type of phascor line
 
-  data_phascor1d          = matrixtype([]);
+  data_phascor1d           = matrixtype([]);
   FLAG__data_phascor1d     = 0;
-  data_phascor2d          = matrixtype([]);
+  data_phascor2d           = matrixtype([]);
   FLAG__data_phascor2d     = 0;
-  data_fieldmap           = matrixtype([]);
+  data_fieldmap            = matrixtype([]);
   FLAG__data_fieldmap      = 0;
-  noiseadjscan            = matrixtype([]);
+  noiseadjscan             = matrixtype([]);
   FLAG__noiseadjscan       = 0;
-  patrefscan              = matrixtype([]);
+  patrefscan               = matrixtype([]);
   FLAG__patrefscan         = 0;
-  patrefscan_phascor      = matrixtype([]);
+  patrefscan_phascor       = matrixtype([]);
   FLAG__patrefscan_phascor = 0;
   FLAG__patrefandimascan   = 0;
-  phasestabscan           = matrixtype([]);
-  refphasestabscan        = matrixtype([]);
+  phasestabscan            = matrixtype([]);
+  refphasestabscan         = matrixtype([]);
   FLAG__phasestabscan      = 0;
 
 
   FLAG__data_phascor1d_orderswap = 0;
 
   FLAG__patrefscan_phascor_orderswap = 0;
+
+  FLAG__syncdata = 0;
+
+  % set to zero if trouble
+  FLAG__status_OK = 1;
+
 
   % convert binary mask into strings
   EvalInfoMask = read_meas__evaluation_info_mask_definition;
@@ -461,8 +472,8 @@ function varargout = read_meas_dat(filename, options)
     %------------------------------------------------------------------------%
 
     ulDMALength = uint16(fread(fp, 1, 'uint16'));
-    ulFlags1    = uint16(fread(fp, 1, 'uint16'));
-    ulFlags2    = uint16(fread(fp, 1, 'uint16'));
+    ulFlags1    = uint8(fread(fp, 1, 'uint8'));
+    ulFlags2    = uint8(fread(fp, 1, 'uint8'));
 
     fseek(fp, fpos, 'bof');
 
@@ -473,6 +484,7 @@ function varargout = read_meas_dat(filename, options)
 
       %----------------------------------------------------------------------%
 
+      meas_pos = ftell(fp);
       meas_num = meas_num + 1;
 
       if ( DO__MDH_SAVE ),
@@ -482,18 +494,29 @@ function varargout = read_meas_dat(filename, options)
         idx = 1;
       end;
 
-      %      mdh(idx).ulFlagsAndDMALength        = uint32(fread(fp, 1, 'uint32'));
       ulDMALength = uint16(fread(fp, 1, 'uint16'));
+%      fseek(fp, dimensions.NColMeas * 2 * 4 + 128 - 2, 'cof');
+%      fseek(fp, meas_pos + ulDMALength*4, 'bof');
+%      continue;
+
+      % to skip this scan and start reading next MDH:
+      %%% fseek(fp, ulDMALength-2, 'cof')
+      %%% fseek(fp, meas_pos + ulDMALength, 'bof')
+
+      % to slurp up MDH and data for this scan:
+      %%% binary = fread(fp, double(ulDMALength-2), 'uchar=>uchar');
+
       ulFlags1    = uint8(fread(fp, 1, 'uint8'));
       ulFlags2    = uint8(fread(fp, 1, 'uint8'));
 
+      % the old way, at beginning of each MDH:    mdh(idx).ulFlagsAndDMALength        = uint32(fread(fp, 1, 'uint32'));
       mdh(idx).ulFlagsAndDMALength        = uint32(double(ulFlags2) * 2^24) + uint32(double(ulFlags1) * 2^16) + uint32(ulDMALength);
 
       mdh(idx).lMeasUID                   = int32(fread(fp, 1, 'int32'));
       mdh(idx).ulScanCounter              = uint32(fread(fp, 1, 'uint32'));
       if ( ~isempty(mdh(idx).ulScanCounter) ), scan_num = mdh(idx).ulScanCounter; end;
-      mdh(idx).ulTimeStamp                = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
-      mdh(idx).ulPMUTimeStamp             = uint32(fread(fp, 1, 'uint32')*2.5); % milliseconds
+      mdh(idx).ulTimeStamp                = uint32(round(fread(fp, 1, 'uint32')*2.5)); % milliseconds
+      mdh(idx).ulPMUTimeStamp             = uint32(round(fread(fp, 1, 'uint32')*2.5)); % milliseconds
 
 %      timestamp(mdh(idx).ulScanCounter).mdh = mdh(idx).ulTimeStamp;
 %      timestamp(mdh(idx).ulScanCounter).pmu = mdh(idx).ulPMUTimeStamp;
@@ -579,17 +602,18 @@ function varargout = read_meas_dat(filename, options)
       end;  % IF "IS__VB13_PRE_RELEASE_VERSION"
 
       % for some auxiliary scans (e.g., "AdjCoilSens" for the prescan
-      % normalize), the first MDH contains gibberish and its mask contains
+      % normalize), the first scan contains gibberish and its mask contains
       % the 'SYNCDATA' bit. if this is found, just skip ahead to the next
       % MDH.
-      if ( read_meas__extract_flag(mdh(idx).aulEvalInfoMask(1), 'SYNCDATA') ),
+      if ( ~FLAG__syncdata && read_meas__extract_flag(mdh(idx).aulEvalInfoMask(1), 'SYNCDATA') ),
         fread(fp, double(ulDMALength) - 128, 'uint8');
         continue;
       end;
+      FLAG__syncdata = 1;
 
 
       % finally, after MDH, read in the data
-      adc = single(fread(fp, double(mdh(idx).ushSamplesInScan)*2, 'float32'));
+      adc = (fread(fp, double(mdh(idx).ushSamplesInScan)*2, 'float32=>single'));
       adc_real = adc(1:2:end);
       adc_imag = adc(2:2:end);
       adc_cplx = K_ICE_AMPL_SCALE_FACTOR * complex(adc_real,adc_imag);
@@ -615,7 +639,7 @@ function varargout = read_meas_dat(filename, options)
       end;
 
       % for testing, abort after first repetition
-      if ( ~DO__READ_MULTIPLE_REPETITIONS & mdh(idx).ushRepetition > 0 ),
+      if ( ~DO__READ_MULTIPLE_REPETITIONS && mdh(idx).ushRepetition > 0 ),
 
         % PHASCOR2D HACK: early versions of "epi_seg_3d" collect a dummy scan
         % for the 2D phascor after the phase correction reference lines and
@@ -742,16 +766,16 @@ function varargout = read_meas_dat(filename, options)
       % (e.g., data and "patrefscan" lines) follow the same convention with
       % the segment loop counter---but this may not be true!
       if ( FLAG__phascor1d && FLAG__data_reflect && DO__PHASCOR_COLLAPSE_SEGMENTS ),
-        pos(08) = floor(pos(08)/2);
+        pos(08) = pos(08)/2;  % if condition true, pos(08) should always be even, so quotient should be integer!
       end;
 
-      % Acquisition: the last of reference scan batch [three are collected for
-      % each slice (2D) or partition (3D)] is assigned an acquisition index
-      % of 1
+      % Acquisition: the last of reference navigators scan batch [three are
+      % collected for each slice (2D) or partition (3D)] is assigned an
+      % acquisition index of 1, for siemens's "EPIPhaseCorrPEFunctor"
       % [TODO: fix this hack]
       if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
                                   EvalInfoMask.MDH_PHASCOR) ),
-        pos(16) = 1;
+        pos(16) = ceil(pos(16)/2);
       end;
 
 
@@ -789,40 +813,46 @@ function varargout = read_meas_dat(filename, options)
           FLAG__patrefscan = 1;
         end;
 
-        %%% CATEGORY #2A: phase correction reference line for iPAT ACS lines reference scan
+        %%% CATEGORY #2A: phase correction navigator line for iPAT ACS lines reference scan
         if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
 
           if ( ~FLAG__patrefscan_phascor ),
             disp(' PATREFSCAN_PHASCOR detected.');
             FLAG__patrefscan_phascor = 1;
 
-            % check if first phase correction reference line is reflected (see comments below)
+            % check if first phase correction navigator line is reflected (see comments below)
             if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
-
-              disp('first "PATREFSCAN_PHASCOR" line reflected! compensating with odd--even order swap...');
               FLAG__patrefscan_phascor_orderswap = 1;
             end;
 
-            ref_line = 0;
-            ref_part = 1;  % (see comments below)
+	    nav_base_segment = pos(08);
 
+            nav_line = 0;
+	    
           end;
 
-          % reset reference scan line counter at the beginning of each slice
+          % reset navigator scan line counter at the beginning of each slice
           if ( (mdh(idx).ushChannelId == channel_1) && ...
                read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
-            ref_line = 0;
+            nav_line = 0;
+          end;
+
+          % reset navigator scan line counter
+          if ( (mdh(idx).ushChannelId == channel_1) && ...
+               pos(08) >= (nav_base_segment+2) )
+            nav_line = 0;
+	    nav_base_segment = pos(08);
           end;
 
 
-          % increment reference scan line counter after all channels' data is in
+          % increment navigator scan line counter after all channels' data is in
           if ( mdh(idx).ushChannelId == channel_1 ),
-            ref_line = ref_line + 1;
+            nav_line = nav_line + 1;
           end;
 
           patrefscan_phascor(...
-              :,   ref_line, ...     % only center line and center partition collected
-              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
+              :,   nav_line, ...     % only center line and center partition collected
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), 1, ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
 
           %%% CATEGORY #2B: lines used for both iPAT ACS and data
@@ -867,7 +897,7 @@ function varargout = read_meas_dat(filename, options)
 
           % hack, hack, hack
           if ( isempty(data) ),
-            data = matrixtype(complex(zeros(size(adc_cplx))));
+            data = complex(zeros(size(adc_cplx), matrixtypestr));
           end;
 
           % store ADC line in listed position within data volume (using 1-based indices)
@@ -922,18 +952,18 @@ function varargout = read_meas_dat(filename, options)
         %   the imaging scans, which belong to the same phase stabilization
         %   echo, may only differ in the ECO ICE Dimension."
 
-          if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
+        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFPHASESTABSCAN) ),
 
-            % the phase stabilization works by collecting a full set
-            % (potentially multiple echoes) of lines at the beginning of each
-            % slice that are tagged as MDH_REFPHASESTABSCAN, followed by a
-            % *single* measurement that is tagged as both MDH_REFPHASESTABSCAN
-            % and MDH_PHASESTABSCAN. it is this last scan that serves as the
-            % reference, and it will exhibit the same timing as the subsequent
-            % phase stabilization scans that follow each group of image
-            % echoes. therefore the group of MDH_REFPHASESTABSCAN lines
-            % preceding each *single* reference echo are not used by the
-            % correction and are discarded.
+          % the phase stabilization works by collecting a full set
+          % (potentially multiple echoes) of lines at the beginning of each
+          % slice that are tagged as MDH_REFPHASESTABSCAN, followed by a
+          % *single* measurement that is tagged as both MDH_REFPHASESTABSCAN
+          % and MDH_PHASESTABSCAN. it is this last scan that serves as the
+          % reference, and it will exhibit the same timing as the subsequent
+          % phase stabilization scans that follow each group of image
+          % echoes. therefore the group of MDH_REFPHASESTABSCAN lines
+          % preceding each *single* reference echo are not used by the
+          % correction and are discarded.
 
           refphasestabscan(...
               :, pos(02), ...
@@ -954,55 +984,65 @@ function varargout = read_meas_dat(filename, options)
         %%% CATEGORY #4: data
       else,
 
-        %%% CATEGORY #4A: phase correction reference line for data
+        %%% CATEGORY #4A: phase correction navigator line for data
         if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_PHASCOR) ),
 
           if ( ~FLAG__data_phascor1d ),
             disp(' PHASCOR (1D) detected.');
             FLAG__data_phascor1d = 1;
 
-            % check if first phase correction reference line is reflected
+            % check if first phase correction navigator line is reflected
             if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_REFLECT) ),
 
               % for example, siemens's "ep2d_bold" reflects the first
-              % reference line, in which case the EVEN-indexed reference
+              % navigator line, in which case the EVEN-indexed navigator
               % lines will correspond to the ODD-indexed data lines. yuck!
-              disp('first "PHASCOR" line reflected! compensating with odd--even order swap...');
               FLAG__data_phascor1d_orderswap = 1;
 
               % TODO: store the reflected and non-reflected lines in
               % separate matrices, instead of adhering to the "odd--even"
               % organization, since siemens appears to like to collect more
-              % of one than the other!
+              % of one than the other! (DONE!)
             end;
 
-            ref_line = 0;
-
-            % if 2D, only one partition. if 3D each reference line is
-            % collected at center of k-space, but partition loopcounter set
-            % to center partition, so here we force it to 1 so that only
-            % ref_line counter is incremented.
-            ref_part = 1;
+	    nav_base_segment = pos(08);
+            
+	    nav_line = 0;
+	    
           end;
 
-          % reset reference scan line counter at the beginning of each slice
+          % reset navigator scan line counter at the beginning of each slice
           if ( mdh(idx).ushChannelId == channel_1 && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
-            ref_line = 0;
+	    nav_line = 0;
+	    nav_reset = nav_line;
+	    nav_base_segment = pos(08);
+          end;
+
+          % reset navigator scan line counter
+          if ( (mdh(idx).ushChannelId == channel_1) && ...
+               pos(08) >= (nav_base_segment+2) )
+            nav_line = nav_reset;
+	    nav_base_segment = pos(08);
           end;
 
 
-          % increment reference scan line counter after all channels' data is in
+          % increment navigator scan line counter after all channels' data is in
           if ( mdh(idx).ushChannelId == channel_1 ),
-            ref_line = ref_line + 1;
+            nav_line = nav_line + 1;
           end;
-
-          data_phascor1d(...
-              :, ref_line, ...     % only center line and center partition collected
-              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
-              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
-
-
-          % reference scan partition counter should NEVER be reset
+	  
+	  % if 2D, only one partition. if 3D each navigator line is
+	  % collected at center of k-space, but partition loopcounter set
+	  % to center partition, so here we force it to 1 so that only
+	  % nav_line counter is incremented.
+	  
+	  data_phascor1d(...
+	      :, nav_line, ...     % only center line and center partition collected
+	      pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), 1, ...
+	      pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
+	  
+	  
+          % navigator scan partition counter should NEVER be reset
 
 
           % PE line and PE partition incrementing depends on whether
@@ -1010,15 +1050,15 @@ function varargout = read_meas_dat(filename, options)
           % loop counter values on first line are equal to the center
           % line/partition of k-space.
 
-          % increment reference scan partition counter at the end of each partition
-          if ( FLAG__stored_channel_indices && ...
-               ( mdh(idx).ushChannelId == channel_N ) && ...
-               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_LASTSCANINSLICE) ...
-               && ( mdh(idx).ushPartition == mdh(idx).ushKSpaceCentrePartitionNo ) ...
-               && ( mdh(idx).ushKSpaceCentrePartitionNo > 0 ) ...    % since always == 0 for 2D imaging
-               ),
-            ref_part = ref_part + 1;
-          end;
+%          % increment navigator scan partition counter at the end of each partition
+%          if ( FLAG__stored_channel_indices && ...
+%               ( mdh(idx).ushChannelId == channel_N ) && ...
+%               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_LASTSCANINSLICE) ...
+%               && ( mdh(idx).ushPartition == mdh(idx).ushKSpaceCentrePartitionNo ) ...
+%               && ( mdh(idx).ushKSpaceCentrePartitionNo > 0 ) ...    % since always == 0 for 2D imaging
+%               ),
+%            nav_part = nav_part + 1;
+%          end;
 
           % QUESTION: for two partitions, is the center == 0 or == 1?
 
@@ -1026,9 +1066,9 @@ function varargout = read_meas_dat(filename, options)
           %%%/        if (  ( (mdh(idx).ushChannelId + 1) == mdh(idx).ushUsedChannels ) && ...
           %%%/              ( (mdh(idx).ushAcquisition + 1) > 1 )  ),
           %%%/
-          %%%/          % for some multi-shot scans (e.g., ge_functionals), get reference
+          %%%/          % for some multi-shot scans (e.g., ge_functionals), get nagivator
           %%%/          % lines with each shot
-          %%%/          ref_ = ref_ + 1;
+          %%%/          nav_ = nav_ + 1;
           %%%/        end;
 
           %%% CATEGORY #4B: field map lines for data
@@ -1039,44 +1079,27 @@ function varargout = read_meas_dat(filename, options)
           if ( ~FLAG__data_phascor2d ),
             disp(' PHASCOR (2D) detected.');
             FLAG__data_phascor2d = 1;
-            ref_line = 0;
-            ref_part = 0;
+            nav_part = 1;
           end;
 
-          % TODO: when sequence code is fixed, this will be deleted!
-          % reset reference scan line counter at the beginning of each slice
-          if ( (mdh(idx).ushChannelId == channel_1) && ...
-               read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
-            ref_line = 0;
-          end;
+          % navigator scan partition counter should NEVER be reset
 
-          % TODO: when sequence code is fixed, this will be deleted!
-          % increment reference scan line counter after all channels' data is in
-          if ( mdh(idx).ushChannelId == channel_1 ),
-            ref_line = ref_line + 1;
-          end;
-
-
-          % reference scan partition counter should NEVER be reset
-
-          % increment reference scan partition counter at the end of each partition
-          % (ASSUME here that these reference lines ONLY appear in 3D sequences)
-          if ( FLAG__stored_channel_indices && ...
-               ( mdh(idx).ushChannelId == channel_1 ) ...
-               && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
-                                         EvalInfoMask.MDH_FIRSTSCANINSLICE) ),
-            ref_part = ref_part + 1;
-          end;
-
-
-          % TODO: when sequence code is fixed, ref_line will be replaced by pos(02)!
           data_phascor2d(...
-              :, ref_line, ...     % only center line and center partition collected
-              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), ref_part, ...
+              :, pos(02), ...     
+              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), nav_part, ...  % only center partition collected
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
 
-
-          %%% CATEGORY #4C: data lines
+          % increment navigator scan partition counter at the end of each partition (signified with the "LASTSCANINSLICE" flag)
+          % (ASSUME here that these navigator lines ONLY appear in 3D sequences)
+          if ( FLAG__stored_channel_indices && ...
+               ( mdh(idx).ushChannelId == channel_N ) ...
+               && read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
+                                         EvalInfoMask.MDH_LASTSCANINSLICE) ),
+            nav_part = nav_part + 1;
+          end;
+	  
+	  
+          %%% CATEGORY #4C: data lines (finally!)
         else,
 
           if ( ~FLAG__data ),
@@ -1086,7 +1109,7 @@ function varargout = read_meas_dat(filename, options)
 
           % hack, hack, hack
           if ( isempty(data) ),
-            data = matrixtype(complex(zeros(size(adc_cplx))));
+            data = complex(zeros(size(adc_cplx), matrixtypestr));
           end;
 
           % store ADC line in listed position within data volume (using 1-based indices)
@@ -1123,6 +1146,8 @@ function varargout = read_meas_dat(filename, options)
         disp(sprintf('<!> [%s]:  ABORTING read, incomplete file!!!', mfilename));
         fprintf(1, '\n');
 
+        FLAG__status_OK = 0;
+
       else,
         error(caught.identifier, caught.message);
       end;
@@ -1145,7 +1170,11 @@ function varargout = read_meas_dat(filename, options)
   % correction line index by one and insert a duplicate of the second
   % line at the beginning.
 
-  if ( FLAG__patrefscan_phascor_orderswap ),
+
+  if ( DO__PHASCOR_COLLAPSE_SEGMENTS && FLAG__patrefscan_phascor_orderswap ),
+
+    disp('first "PATREFSCAN_PHASCOR" line reflected! compensating with odd--even order swap...');
+
     patrefscan_phascor(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
         patrefscan_phascor(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
 
@@ -1154,7 +1183,10 @@ function varargout = read_meas_dat(filename, options)
   end;
 
 
-  if ( FLAG__data_phascor1d_orderswap ),
+  if ( DO__PHASCOR_COLLAPSE_SEGMENTS && FLAG__data_phascor1d_orderswap ),
+
+    disp('first "PHASCOR" line reflected! compensating with odd--even order swap...');
+
     data_phascor1d(:, 2:end+1, :, :, :, :, :, :, :, :, :, :, :, :, :, :) = ...
         data_phascor1d(:, 1:end, :, :, :, :, :, :, :, :, :, :, :, :, :, :);
 
@@ -1179,35 +1211,35 @@ function varargout = read_meas_dat(filename, options)
   dstr = sprintf('total read time = %s', TIME);
   disp(sprintf('<t> [%s]: %s', mfilename, dstr));
 
-
-  if ( nnz(data) == 0 ),
-    if ( nargout > 0 ),
-      warning('no data found!!!');
-    else,
-      disp('no data found!!!');
-      return;
-    end;
-  end;
-
-
-  disp(sprintf('data memory allocated:    %10.2f MB', getfield(whos('data'), 'bytes')/2^20));
-
-  density = nnz(data) / numel(data);
-  % sparsity = 1 - density;
-  redundancy = 1 / density;
-
-  if ( redundancy > 1 && density < 0.99 ),
-    disp(sprintf('data sparsity detected---potential redundancy factor = [[ %5.1f X ]]', ...
-                 redundancy));
-  end;
-
+%
+%  if ( nnz(data) == 0 ),
+%    if ( nargout > 0 ),
+%      warning('no data found!!!');
+%    else,
+%      disp('no data found!!!');
+%      return;
+%    end;
+%  end;
+%
+%
+%  disp(sprintf('data memory allocated:    %10.2f MB', getfield(whos('data'), 'bytes')/2^20));
+%
+%  density = nnz(data) / numel(data);
+%  % sparsity = 1 - density;
+%  redundancy = 1 / density;
+%
+%  if ( redundancy > 1 && density < 0.99 ),
+%    disp(sprintf('data sparsity detected---potential redundancy factor = [[ %5.1f X ]]', ...
+%                 redundancy));
+%  end;
+%
 
   %------------------------------------------------------------------------%
 
   if ( DO__RETURN_STRUCT ),
 
     meas = struct;
-    meas.file = filestr;
+    meas.file = strcat(filestr, extstr);
     meas.time = datestr(t1, 'yyyy-mmm-dd HH:MM:SS');
 
     meas.data = data;
@@ -1248,6 +1280,12 @@ function varargout = read_meas_dat(filename, options)
 %    meas.timestamp = timestamp;
 
     meas.options = options;
+
+    if ( FLAG__status_OK ),
+      meas.STATUS = 'success';
+    else,
+      meas.STATUS = 'ABORTED';
+    end;
 
 
     if ( nargout > 0 ),
