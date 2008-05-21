@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/08/29 13:47:36 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/05/21 18:46:41 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.1 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.2 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -51,23 +51,27 @@ char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.1 $";
 #include "cmdargs.h"
 #include "macros.h"
 
-static int  parse_commandline(int argc, char **argv);
-static void check_options(void);
+static int  get_option(int argc, char *argv[]) ;
+static void print_version(void) ;
 static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index) ;
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.1 2007/08/29 13:47:36 fischl Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.2 2008/05/21 18:46:41 fischl Exp $";
 
 char *Progname ;
 
 #define MAX_VOLUMES 100
 
+static int binarize = 0 ;
+static float binarize_thresh = 0 ;
+static int target_label = 1 ;
+
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[]) 
 {
-  int   nargs, nvolumes, n ;
-  char  *name, fname[STRLEN], *out_fname;
+  int   nargs, nvolumes, n, ac ;
+  char  *name, fname[STRLEN], *out_fname, **av;
   MRI   *mri[MAX_VOLUMES], *mri_tmp ;
   double hdist ;
   FILE   *fp  ;
@@ -79,23 +83,29 @@ int main(int argc, char *argv[])
   argc -= nargs;
 
   Progname = argv[0] ;
-  argc --;
-  argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
   if (argc == 0) 
     usage_exit();
 
-  parse_commandline(argc, argv);
-  check_options();
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
-  nvolumes = argc-1 ;
-  out_fname = argv[nvolumes] ;
+  nvolumes = argc-2 ;  // last argument is output file name
+  if (nvolumes < 2)
+    ErrorExit(ERROR_BADPARM, "%s: must specify at least 2 input volumes and an output text file",
+              Progname);
+  out_fname = argv[nvolumes+1] ;
   fprintf(stderr, "processing %d volumes and writing output to %s\n", nvolumes, out_fname) ;
 
   for (n = 0 ; n < nvolumes ; n++)
   {
-    name = argv[n] ;
+    name = argv[n+1] ;
     fprintf(stderr, "reading input volume %d from %s\n", n+1, name) ;
     mri_tmp = MRIread(name) ;
     if (mri_tmp == NULL)
@@ -103,7 +113,16 @@ int main(int argc, char *argv[])
     sprintf(fname, "d%d.mgz", n) ;
 #define USE_DISTANCE_TRANSFORM 1
 #if USE_DISTANCE_TRANSFORM 
-    mri[n] = MRIdistanceTransform(mri_tmp, NULL, 1, 100, DTRANS_MODE_SIGNED) ;
+    if (binarize)
+    {
+      MRI *mri_tmp2 ;
+      mri_tmp2 = MRIbinarize(mri_tmp, NULL, binarize_thresh, 0, target_label) ;
+      MRIfree(&mri_tmp) ;
+      mri_tmp = mri_tmp2 ;
+    }
+    mri[n] = MRIdistanceTransform(mri_tmp, NULL, target_label, 
+                                  mri_tmp->width+mri_tmp->height+mri_tmp->depth, 
+                                  DTRANS_MODE_SIGNED) ;
     MRIfree(&mri_tmp) ;
     //    MRIwrite(mri[n], fname) ;
 #else
@@ -124,35 +143,11 @@ int main(int argc, char *argv[])
 
 } /* end main() */
 
-/* ------------------------------------------------------------------ */
-static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
-  char **pargv, *option ;
-
-  if (argc < 1) usage_exit();
-
-  nargc = argc;
-  pargv = argv;
-  while (nargc > 0) {
-
-    option = pargv[0];
-    nargc -= 1;
-    pargv += 1;
-
-    nargsused = 0;
-
-    if (!strcasecmp(option, "--help"))  
-      print_help() ;
-    else {
-    }
-    nargc -= nargsused;
-    pargv += nargsused;
-  }
-  return(0);
-}
 /* --------------------------------------------- */
 static void print_usage(void) {
-  printf("USAGE: %s fname1 <fname2> <options> \n",Progname) ;
+  printf("USAGE: %s <options> <vol1> <vol2> ... <output text file> \n",Progname) ;
+  printf("\twhere options are:\n") ;
+  printf("\t-b <thresh>        binarize input volumes with threshold <thresh>\n") ;
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -163,9 +158,6 @@ static void print_help(void) {
     "Computes the mean of the min distances between point sets\n") ;
 
   exit(1) ;
-}
-/* --------------------------------------------- */
-static void check_options(void) {
 }
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
@@ -207,7 +199,7 @@ compute_hdist(MRI **mri, int nvolumes, int index)
             fprintf(fp, "%d %d %d %d %2.3f\n", n, x, y, z, d) ;
             if (d > 40)
               DiagBreak() ;
-            d = fabs(d-0.5) ;
+            d = fabs(d- (-0.5)) ;
             hdists[n] += d ;
             hdists_sigma[n] += d*d ;
             nvox++ ;
@@ -277,3 +269,37 @@ compute_hdist(MRI **mri, int nvolumes, int index)
   return(hdist) ;
 }
 #endif
+static int
+get_option(int argc, char *argv[]) {
+  int  nargs = 0 ;
+  char *option ;
+
+  option = argv[1] + 1 ;            /* past '-' */
+  if (!stricmp(option, "-help"))
+    print_help() ;
+  else if (!stricmp(option, "-version"))
+    print_version() ;
+  else switch (toupper(*option)) {
+    case 'B':
+      binarize = 1 ;
+      binarize_thresh = atof(argv[2]) ;
+      printf("binarizing input data with threshold %2.2f\n", binarize_thresh) ;
+      nargs = 1 ;
+      break ;
+    case '?':
+    case 'U':
+      print_usage() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+  }
+  return(nargs) ;
+}
+static void
+print_version(void) {
+  fprintf(stderr, "%s\n", vcid) ;
+  exit(1) ;
+}
