@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/20 17:49:26 $
-#    $Revision: 1.23 $
+#    $Date: 2008/05/21 16:49:54 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.23 2008/05/20 17:49:26 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.24 2008/05/21 16:49:54 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -53,6 +53,7 @@ set DoMidFrame = 0;
 set templateout = ();
 set DoSegReg = 0;
 set Verbosity = 0;
+set nIters = 4;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -89,6 +90,7 @@ echo $inputargs |& tee -a $LF
 echo $VERSION |& tee -a $LF
 hostname |& tee -a $LF
 uname -a |& tee -a $LF
+echo "nIters $nIters" |& tee -a $LF
 
 set StartTime = `date`;
 set DateString = "`date '+%y%m%d%H%M'`"
@@ -218,12 +220,13 @@ set cmd = ($cmd  -searchrx -$maxangle $maxangle);
 set cmd = ($cmd  -searchry -$maxangle $maxangle);
 set cmd = ($cmd  -searchrz -$maxangle $maxangle);
 set cmd = ($cmd  -verbose $Verbosity);
-if($#fslmat0) set cmd = ($cmd -init $fslmat0)
 if($#outvol) then
   set outvolbase = $tmpdir/outvol.fslregister
   set outvolimg  = $outvolbase.nii
   set cmd = ($cmd -o $outvolimg);
 endif
+set cmdA = ($cmd); # cmd line without init
+if($#fslmat0) set cmd = ($cmd -init $fslmat0)
 date | tee -a $LF
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
@@ -232,6 +235,23 @@ if($status) then
   echo "ERROR: flirt" | tee -a $LF
   exit 1;
 endif
+
+# Go thru some iterations to reduce senstivity to initialization
+@ nthIter = 2
+while($nthIter <= $nIters)
+  echo "Iteration $nthIter" | tee -a $LF
+  set cmd = ($cmdA -init $fslmat)
+  date | tee -a $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: flirt" | tee -a $LF
+    exit 1;
+  endif
+  @ nthIter = $nthIter + 1;
+end
+
 
 # Convert the output to volume to output format
 if($#outvol) then
@@ -278,7 +298,6 @@ if($DoSegReg) then
     exit 1;
   endif
 endif
-
 
 if($#templateout) then
   mri_convert $movvolimg $templateout
@@ -351,6 +370,11 @@ while( $#argv != 0 )
     case "--bins":
       if ( $#argv == 0) goto arg1err;
       set bins = $argv[1]; shift;
+      breaksw
+
+    case "--niters":
+      if ( $#argv == 0) goto arg1err;
+      set nIters = $argv[1]; shift;
       breaksw
 
     case "--cost":
@@ -599,6 +623,12 @@ registration does not need to be close at this point.
 Initialize FLIRT based on the geometry information in the header of the
 reference and movable volumes. Note that the geometry information must
 be correct in these volumes.
+
+--niters nIterations
+
+Run FLIRT multiple times, using the output from the previous
+evaluation as an initialization for the next. This helps to remove
+sensitivity to initialization. Default is 4.
 
 --dof dof
 
