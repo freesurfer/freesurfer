@@ -131,7 +131,7 @@ MRISUBDIRS=\
 	mri_vol2roi \
 	mri_vol2vol \
 	mri_segreg \
-	mris_register_to_volume \
+	mri_hausdorff_dist \
 	mri_segstats \
 	mri_stats2seg \
 	mri_vol2surf \
@@ -166,6 +166,8 @@ MRISSUBDIRS=\
 	label2flat \
 	spherical_stats \
 	tridec \
+	mris_register_to_volume \
+	mris_hausdorff_dist \
 	mris_distance_transform \
 	mris_svm_classify \
 	mris_svm_train \
