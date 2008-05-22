@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/05/21 21:58:27 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/05/22 02:23:06 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.3 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.4 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index) ;
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.3 2008/05/21 21:58:27 fischl Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.4 2008/05/22 02:23:06 fischl Exp $";
 
 char *Progname ;
 
@@ -173,12 +173,12 @@ compute_hdist(MRI **mri, int nvolumes, int index)
   float d, d2, dist, dx, dy, dz ;
   MRI   *mri_src ;
   double hdists[MAX_VOLUMES], hdists_sigma[MAX_VOLUMES], hdist, max_vox,xf, yf, zf, zval;
-  FILE   *fp ;
+  //  FILE   *fp ;
   static int i = 0 ;
   char fname[STRLEN] ;
 
   sprintf(fname, "hdists%d.txt", i++) ;
-  fp = fopen(fname, "w") ;
+  //  fp = fopen(fname, "w") ;
 
   mri_src = mri[index] ;
 
@@ -243,7 +243,7 @@ compute_hdist(MRI **mri, int nvolumes, int index)
   }
 
   hdist /= (nvolumes-1) ;
-  fclose(fp) ;
+  //  fclose(fp) ;
   return(hdist) ;
 }
 
