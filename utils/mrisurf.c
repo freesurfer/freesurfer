@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/21 21:45:16 $
- *    $Revision: 1.608 $
+ *    $Author: fischl $
+ *    $Date: 2008/05/22 23:49:26 $
+ *    $Revision: 1.609 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.608 2008/05/21 21:45:16 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.609 2008/05/22 23:49:26 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -63540,3 +63540,52 @@ MRIScomputeAllDistances(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+int
+MRISsetValues(MRI_SURFACE *mris, float val)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno];
+    if (v->ripflag)
+      continue ;
+    v->val = val;
+  }
+  return(NO_ERROR) ;
+}
+
+LABEL *
+MRISannotation_to_label(MRI_SURFACE *mris, int annot_index)
+{
+  int    vno, nv, annot ;
+  VERTEX *v ;
+  LABEL  *area ;
+
+  CTABannotationAtIndex(mris->ct, annot_index, &annot) ;
+  for (nv = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->annotation == annot)
+      nv++ ;
+  }
+  if (nv == 0)
+    return(NULL) ;
+  area = LabelAlloc(nv, NULL, mris->ct->entries[annot_index]->name);
+  for (nv = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->annotation == annot)
+    {
+      area->lv[nv].vno = vno ;
+      area->n_points++ ;
+      nv++ ;
+    }
+  }
+  return(area) ;
+}

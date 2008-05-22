@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/16 19:19:33 $
- *    $Revision: 1.318 $
+ *    $Date: 2008/05/22 23:49:53 $
+ *    $Revision: 1.319 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1826,3 +1826,5 @@ int	MRISuseK2Curvature(
 
 void UpdateMRIS(MRI_SURFACE *mris, char *fname);
 int  MRISreadTransform(MRIS *mris, char *fname);
+int MRISsetValues(MRI_SURFACE *mris, float val) ;
+LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index) ;
