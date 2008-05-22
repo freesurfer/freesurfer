@@ -15,9 +15,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:22 $
- *    $Revision: 1.19 $
+ *    $Author: greve $
+ *    $Date: 2008/05/22 20:19:59 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.19 2008/03/10 13:35:22 nicks Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.20 2008/05/22 20:19:59 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.19 2008/03/10 13:35:22 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.20 2008/05/22 20:19:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -459,8 +459,8 @@ static void print_help(void) {
     "      pixel spacing      28 30\n"
     "      rows               28 10\n"
     "      cols               28 11\n"
-    "      image orientation  20 32\n"
-    "      image position     20 1041\n"
+    "      image position     20 32\n"
+    "      image orientation  20 37\n"
     "\n"
     "  --d directive\n"
     "\n"
