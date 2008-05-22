@@ -45,23 +45,23 @@ bin_PROGRAMS= \
 TRX_SRCS=rec.c Getifh.c endianio.c
 
 analyzeto4dfp_SOURCES=analyzeto4dfp.c $(TRX_SRCS) cflip.c
-analyzeto4dfp_LDADD=$(LIBS_ICC)
+analyzeto4dfp_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
 
 4dfptoanalyze_SOURCES=4dfptoanalyze.c $(TRX_SRCS) cflip.c Inithdr.c
-4dfptoanalyze_LDADD=$(LIBS_ICC)
+4dfptoanalyze_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
 
 flip_4dfp_SOURCES=flip_4dfp.c $(TRX_SRCS) cflip.c
-flip_4dfp_LDADD=$(LIBS_ICC)
+flip_4dfp_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
 
 RMS_SRCS=cgauss3d.c fftsol.f imgpad.f polfit.f matopr.f eigen.f param6opr.f
 
 ACT_SRCS=conc.c
 
 gauss_4dfp_SOURCES=gauss_4dfp.c $(TRX_SRCS) $(RMS_SRCS) $(ACT_SRCS) cgauss3dd.c
-gauss_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS)
+gauss_4dfp_LDADD=$(LIB_G2C_A) $(LIBS_ICC) $(FCLIBS)
 
 zero_lt_4dfp_SOURCES=zero_lt_4dfp.c $(TRX_SRCS)
-zero_lt_4dfp_LDADD=$(LIBS_ICC)
+zero_lt_4dfp_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
 
 LIN_SRCS=t4_sub.f t4scale.c
 
@@ -69,7 +69,7 @@ IMG_SRCS=fimgreg.f imgvalm.f imgvalx.f ffind.f
 
 imgreg_4dfp_SOURCES=imgreg_4dfp.c $(TRX_SRCS) $(RMS_SRCS) \
 	$(LIN_SRCS) $(IMG_SRCS) cflip.c
-imgreg_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS)
+imgreg_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 T4IMGS_SRCS=ft4imgo.f to_711-2B.f ft4imgn.f set_rnan.f
 
@@ -77,14 +77,14 @@ T4A_SRCS=ft4ixyz.f
 
 t4imgs_4dfp_SOURCES=t4imgs_4dfp.c $(TRX_SRCS) $(RMS_SRCS) $(LIN_SRCS) \
 	$(IMG_SRCS) $(T4IMGS_SRCS) $(T4A_SRCS) cflip.c spline3dvgh.f
-t4imgs_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS)
+t4imgs_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 compute_vox2vox_SOURCES=compute_vox2vox.c $(TRX_SRCS) $(RMS_SRCS) $(LIN_SRCS) \
 	$(IMG_SRCS) cflip.c set_rnan.f ft4imgo.f 
-compute_vox2vox_LDADD=$(LIBS_ICC) $(FCLIBS)
+compute_vox2vox_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 ifh2hdr_SOURCES=ifh2hdr.c Inithdr.c $(TRX_SRCS)
-ifh2hdr_LDADD=$(LIBS_ICC)
+ifh2hdr_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
 
 TESTS=
 
