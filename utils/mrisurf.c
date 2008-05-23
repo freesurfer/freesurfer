@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/21 21:46:19 $
- *    $Revision: 1.557.2.12 $
+ *    $Date: 2008/05/23 00:06:05 $
+ *    $Revision: 1.557.2.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.12 2008/05/21 21:46:19 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.13 2008/05/23 00:06:05 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61348,11 +61348,21 @@ MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolution)
 {
   MRI    *mri_tmp, *mri_mask ;
 
-  mri_tmp = MRISfillInterior(mris, resolution, NULL) ;
+  if (mri_dist != NULL)
+      mri_tmp = MRIclone(mri_dist, NULL) ;
+  else
+      mri_tmp = NULL ; // will get allocated by MRISfillInterior
+  mri_tmp = MRISfillInterior(mris, resolution, mri_tmp) ;
 
 #define PAD 10
-  mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, PAD) ;
-  mri_dist = MRIdistanceTransform(mri_mask, mri_dist, 1, nint(PAD/mri_mask->xsize), 
+  if (mri_dist == NULL)
+      mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, PAD) ;
+  else
+      mri_mask = MRIcopy(mri_tmp, NULL) ; // geometry specified by caller
+  mri_dist = MRIdistanceTransform(mri_mask, 
+				  mri_dist, 
+				  1, 
+				  nint(PAD/mri_mask->xsize), 
                                   DTRANS_MODE_SIGNED) ;
 
   MRIfree(&mri_tmp) ; MRIfree(&mri_mask) ;
