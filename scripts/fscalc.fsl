@@ -1,0 +1,104 @@
+#!/bin/tcsh -f
+#
+# This is a utility that extends fslmaths so that an format that can
+# be read/written by freesurfer can be used. It operates in the same
+# way as fslmaths, just use the same command line flags and arguments
+# with the exception that the input file formats can be anything that
+# freesurfer reads, and the output file format can be anything that
+# freesurfer writes. Note that volume-encoded surface files will still
+# fail due to nifti dimension incompatibility.
+# 
+# $Id: fscalc.fsl,v 1.1 2008/05/23 16:54:27 greve Exp $
+#
+
+if($#argv < 3) then
+  echo ""
+  echo "fscalc.fsl - a freesurfer wrapper around fslmaths"
+  echo ""
+  echo "This is a utility that extends fslmaths so that any format that can"
+  echo "be read/written by freesurfer can be used. It operates in the same"
+  echo "way as fslmaths, just use the same command line flags and arguments"
+  echo "with the exception that the input file formats can be anything that"
+  echo "freesurfer reads, and the output file format can be anything that"
+  echo "freesurfer writes. Note that volume-encoded surface files will still"
+  echo "fail due to nifti dimension incompatibility. See fslmaths for more"
+  echo "info."
+  echo ""
+  exit 1
+endif
+
+if($FSLOUTPUTTYPE == NIFTI)    set ext = nii
+if($FSLOUTPUTTYPE == NIFTI_GZ) set ext = nii.gz
+
+@ nmax = $#argv - 1
+set args = ($argv[1-$nmax]);
+set out = $argv[$#argv]
+set outbase = `basename $out`
+
+set outdir = `dirname $out`;
+mkdir -p $outdir
+set tmpdir = $outdir/tmp.fscalc.fsl.$$  # may not actually be created
+
+set newargs = ();
+@ ntharg = 0;
+foreach arg ($args)
+  @ ntharg = $ntharg + 1;
+  if(-e "$arg") then
+    # It is a file, chech whether it is nifti
+    isnifti $arg
+    if(! $status) then
+      # It is not a nifti file, so convert it
+      mkdir -p $tmpdir # Have to create tmpdir now
+      set argbase = `basename $arg`
+      set tmparg = $tmpdir/`fname2stem $argbase`.$ntharg.nii
+      mri_convert $arg $tmparg
+      if($status) exit 1;
+      set newargs = ($newargs $tmparg)
+    else
+      # It is a nifti file
+      set newargs = ($newargs $arg)
+    endif
+  else
+    # Argument is not a file
+    set newargs = ($newargs $arg)
+  endif
+end
+
+# Check whether the output is nifti
+set outstem = `fname2stem $outbase`
+isnifti $out
+if(! $status) then
+  # Output is not nifti, will need to convert back
+  mkdir -p $tmpdir # Have to create tmpdir now
+  set tmpout = $tmpdir/$outstem
+  set DoConv = 1;
+else
+  # It is a nifti file, does flavor agree with FSLOUTPUTTYPE?
+  if($outstem.$ext != $outbase) then
+    # No, it does not
+    mkdir -p $tmpdir # Have to create tmpdir now
+    set tmpout = $tmpdir/$outstem
+    set DoConv = 1;
+  else
+    # Yes, it does
+    set tmpout = $out
+    set DoConv = 0;
+  endif
+endif
+
+# Run FSL Maths
+set cmd = (fslmaths $newargs $tmpout)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Convert output to proper format, if needed
+if($DoConv) then
+  mri_convert $tmpout.$ext $out
+  if($status) exit 1;
+endif
+
+# Clean up
+if(-e $tmpdir) rm -rf $tmpdir
+
+exit 0
