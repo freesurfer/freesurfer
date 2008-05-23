@@ -38,6 +38,7 @@ fix_subject_on_seychelles \
 fix_subject-rh \
 flip4fsl \
 fname2stem \
+fscalc.fsl \
 fsl_sub_seychelles \
 stem2fname \
 freesurfer \
