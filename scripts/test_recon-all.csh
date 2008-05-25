@@ -32,10 +32,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/22 23:42:25 $
-#    $Revision: 1.22 $
+#    $Date: 2008/05/25 15:01:30 $
+#    $Revision: 1.23 $
 #
-# Copyright (C) 2007,
+# Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -49,12 +49,12 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.22 2008/02/22 23:42:25 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.23 2008/05/25 15:01:30 nicks Exp $'
 
-#set MAIL_LIST=(kteich@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
-set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-#failure mailing list:
-set FMAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+# failure mailing list:
+set FMAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+
 
 umask 002
 
@@ -341,6 +341,28 @@ foreach tstvol ($TEST_VOLUMES)
     endif
     if (-e $MRIDIFFF) chmod g+rw $MRIDIFFF
     if (-e $DIFF_VOL) chmod g+rw $DIFF_VOL
+
+    # squeeze-in a check of the transform matrices, where appropriate
+    if ("$tstvol" == "brainmask.mgz") then
+      foreach xform (talairach.xfm talairach.lta talairach_with_skull.lta)
+        # filter-out time-stamp from .lta files:
+        grep -v created $SUBJECTS_DIR/ref_subj/mri/transforms/$xform \
+            > /tmp/ref_$xform
+        grep -v created $SUBJECTS_DIR/$TEST_SUBJ/mri/transforms/$xform \
+            > /tmp/tst_$xform
+        set cmd=(diff /tmp/ref_$xform /tmp/tst_$xform)           
+        $cmd
+        set diff_status=$status
+        if ($diff_status != 0) then
+          printf "***FAILED :: diff $xform\n" >>& $OUTPUTF
+          setenv FOUND_ERROR 1
+          # continue running tests
+        else
+          printf "   pass :: diff $xform\n" >>& $OUTPUTF
+        endif
+      end
+    endif
+
   endif # ($RunIt)
 end
 
