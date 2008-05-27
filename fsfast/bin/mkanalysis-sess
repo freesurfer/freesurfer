@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/18 02:21:38 $
-#    $Revision: 1.12 $
+#    $Date: 2008/05/27 16:14:38 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 
 
 
-set VERSION = '$Id: mkanalysis-sess,v 1.12 2007/06/18 02:21:38 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.13 2008/05/27 16:14:38 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -137,7 +137,14 @@ set sxacfg = $analysis/$sxacfg
 rm -f $sxacfg
 touch $sxacfg
 
-if($#TER == 0) set TER = $TR;
+if($#TER == 0) then
+  if($gammafit || $spmhrf != -1) then
+    set TER = `echo $TR/20 | bc -l`
+  else
+    set TER = $TR;
+  endif
+endif
+echo "Setting TER to $TER"
 
 if($designtype == "event-related" || $designtype == "blocked") then
   set Nh  = `echo "($IdealTW/$TR)" | bc`;
@@ -1237,13 +1244,14 @@ of the whitening fillter. Usually, one would run  mkbrainmask-sess
 to create masks/brain, and then specify brain as maskid.
  
 -TER TemporalEstimationResolution 
- 
-(For event-related designs). The TER is the Temporal Estimation 
-Resolution. This is the resolution to which the hemodynamic response 
-will be estimated (in seconds). It must be an integer divisor of  
-the TR. The stimulus schedule (ie, paradigm file) must have been 
-created with with the given TER in mind. 
- 
+
+(For event-related designs). The TER is the Temporal Estimation
+Resolution. This is the resolution to which the hemodynamic response
+will be estimated (in seconds) for FIR analyses. It must be an integer
+divisor of the TR. If TER < TR, then stimulus schedule (ie, paradigm
+file) must have been created with with the given TER in mind. If 
+-spmhrf or -gammafit are used, then it is automatically set to TR/20.
+
 -timeoffset toffset 
  
 (For blocked and event-related designs). The time to add to the times 
