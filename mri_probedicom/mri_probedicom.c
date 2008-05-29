@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/22 20:19:59 $
- *    $Revision: 1.20 $
+ *    $Date: 2008/05/29 21:53:16 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.20 2008/05/22 20:19:59 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.21 2008/05/29 21:53:16 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -124,6 +124,8 @@ GLubyte *ImageBuff;
 
 int DoPatientName = 1;
 
+char *title = NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   DCM_OBJECT *object;
@@ -136,7 +138,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.20 2008/05/22 20:19:59 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.21 2008/05/29 21:53:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -356,6 +358,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lx",&elementtag);
       nargsused = 1;
+    } else if (!strcmp(option, "--title")) {
+      if (nargc < 1) argnerr(option,1);
+      title = pargv[0];
+      nargsused = 1;
     } else if (!strcmp(option, "--view")) {
       DisplayImage = 1;
       DoPartialDump = 0;
@@ -396,6 +402,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep \n");
   fprintf(stdout, "   --no-name         : do not print patient name (10,10) with dump \n");
   fprintf(stdout, "   --view            : view the image  \n");
+  fprintf(stdout, "   --title title     : set window title when viewing the image \n");
   fprintf(stdout, "   --o file          : dump binary pixel data into file  \n");
   fprintf(stdout, "   --ob stem         : dump binary pixel data into bshort  \n");
   fprintf(stdout, "   --dictionary      : dump dicom dictionary and exit\n");
@@ -1250,6 +1257,7 @@ void reshape(int w, int h) {
 }
 
 int RenderImage(int argc, char **argv) {
+  extern char *title;
   int nrows, ncols, row, col, n,m;
   char c;
   DCM_OBJECT *object;
@@ -1314,7 +1322,11 @@ int RenderImage(int argc, char **argv) {
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
   glutInitWindowSize(ncols,nrows);
   glutInitWindowPosition(100, 100);
-  sprintf(tmpstr,"mri_probedicom: %s",dicomfile);
+  if(title == NULL)
+    sprintf(tmpstr,"mri_probedicom: %s",dicomfile);
+  else
+    sprintf(tmpstr,"%s",title);
+
   glutCreateWindow(tmpstr);
   init();
   glutDisplayFunc(display);
