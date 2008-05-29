@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2008/05/22 23:50:45 $
-#    $Revision: 1.411 $
+#    $Author: nicks $
+#    $Date: 2008/05/29 16:20:52 $
+#    $Revision: 1.412 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1349,7 +1349,7 @@ XAWPLUS_CFLAGS=""
 XAWPLUS_CXXFLAGS=""
 XAWPLUS_LIBS=""
 
-AC_MSG_CHECKING(XawPlus config)
+AC_MSG_CHECKING(XawPlus directory)
 
 AC_ARG_WITH(xawplus-dir,
   [  --with-xawplus-dir=DIR  where the root of XawPlus is installed.],
@@ -1357,6 +1357,17 @@ AC_ARG_WITH(xawplus-dir,
      ac_xawplus_libraries="$withval"/lib
      ac_xawplus_dir="$withval"
   ])
+
+if test "x$ac_xawplus_dir" = "xNO"; then
+  # if a Xawplus root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/xawplus/current" ; then
+    withval=/usr/pubsw/packages/xawplus/current
+    ac_xawplus_dir="$withval"
+    ac_xawplus_includes="$withval"/include
+    ac_xawplus_libraries="$withval"/lib
+  fi
+fi
 
 if test ! "$ac_xawplus_includes" = "NO"; then
   AC_MSG_RESULT(XawPlus directory is $withval)
@@ -1367,6 +1378,8 @@ if test ! "$ac_xawplus_includes" = "NO"; then
   XAWPLUS_DIR=$ac_xawplus_dir
   AC_SUBST(XAWPLUS_DIR)
   xawplus_apps="yes"
+else
+  AC_MSG_RESULT(XawPlus directory is not supplied)
 fi
 
 if test ! "$ac_xawplus_libraries" = "NO"; then
@@ -1552,7 +1565,7 @@ AC_ARG_WITH(cppunit-dir,
      ac_cppunit_dir="$withval"
   ])
 
-if test "x$ac_cppunit_dir" = "x"; then
+if test "x$ac_cppunit_dir" = "xNO"; then
   # if a CppUnit root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
   if test -d "/usr/pubsw/packages/cppunit/current" ; then
