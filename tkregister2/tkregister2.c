@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:24 $
- *    $Revision: 1.94 $
+ *    $Author: greve $
+ *    $Date: 2008/05/30 18:43:53 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.94 2008/03/10 13:35:24 nicks Exp $";
+"$Id: tkregister2.c,v 1.95 2008/05/30 18:43:53 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -334,7 +334,7 @@ char *xfmfname=NULL; /* something.xfm (minc reg mat) */
 char *afname;        /* analyse.dat */
 char *targpref;      /* abs single image structural stem name */
 char *movformat;     /* abs single image epi structural stem name */
-char *tfname;        /* (dir!) subjectsdir/name/tmp/ */
+char *tfname;        /* (dir!) SUBJECTS_DIR/name/tmp/ */
 char *sgfname;       /* (dir!) set: get from cwd: $session/rgb/ */
 char *tkrtitle=NULL; /* window title */
 
@@ -426,6 +426,14 @@ int DoFMovTarg = 0;
 char *DetFile = NULL;
 int AllocBuffs(void);
 
+char *seg_vol_id = NULL;
+MRI *seg_vol = NULL;
+COLOR_TABLE *ctab = NULL;
+char *ctabfile = NULL;
+int DoASeg=0, DoAParcASeg=0, DoWMParc=0;
+int ShowSeg=0;
+char *FREESURFER_HOME=NULL;
+
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
              Tcl_Interp *interp,
@@ -473,6 +481,30 @@ int Register(ClientData clientData,
     read_reg(regfname);
   // Just use identity
   if (identityreg) RegMat = MatrixIdentity(4,NULL);
+
+  if(DoASeg){
+    sprintf(tmpstr,"%s/%s/mri/aseg.mgz",subjectsdir,subjectid);
+    seg_vol_id = strcpyalloc(tmpstr);
+  }
+  if(DoAParcASeg){
+    sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",subjectsdir,subjectid);
+    seg_vol_id = strcpyalloc(tmpstr);
+  }
+  if(DoWMParc){
+    sprintf(tmpstr,"%s/%s/mri/wmparc.mgz",subjectsdir,subjectid);
+    seg_vol_id = strcpyalloc(tmpstr);
+  }
+  if(seg_vol_id){
+    FREESURFER_HOME = getenv("FREESURFER_HOME");
+    if(ctabfile == NULL){
+      ctabfile = (char *) calloc(sizeof(char),1000);
+      sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
+      ctab = CTABreadASCII(ctabfile);
+    }
+    seg_vol = MRIread(seg_vol_id);
+    if(seg_vol == NULL) exit(1);
+    fscale_2 = 1.0;
+  }
 
   if(fstal) {
     if (subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
@@ -1074,7 +1106,15 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         targ_vol_fmt = checkfmt(fmt);
       }
-    } else if (!strcmp(option, "--targ-orientation")) {
+    } else if (!strcmp(option, "--seg")) {
+      if (nargc < 1) argnerr(option,1);
+      seg_vol_id = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--aseg")) DoASeg = 1;
+    else if (!strcmp(option, "--aparc+aseg")) DoAParcASeg = 1;
+    else if (!strcmp(option, "--wmparc")) DoWMParc = 1;
+    else if (!strcmp(option, "--targ-orientation")) {
       if (nargc < 1) argnerr(option,1);
       targ_ostr = pargv[0];
       errstr = MRIcheckOrientationString(targ_ostr);
@@ -1399,6 +1439,9 @@ static void print_usage(void) {
   printf("   --2 : double window size \n");
   printf("   --size scale : scale window by scale (eg, 0.5, 1.5) \n");
   printf("   --det  detfile : save determinant of reg mat here\n");
+  printf("   --aseg : load aseg (hit 'c' to toggle)\n");
+  printf("   --aparc+aseg : load aparc+aseg (hit 'c' to toggle)\n");
+  printf("   --wmparc : load wmparc (hit 'c' to toggle)\n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
@@ -2055,6 +2098,7 @@ void draw_image2(int imc,int ic,int jc) {
   int r,c,k;
   char *planestring = NULL;
   unsigned char voxval;
+  int ivoxval;
   int cor, ax, sag, toob=0;
   unsigned char* lvidbuf;
   float f=0;
@@ -2068,6 +2112,7 @@ void draw_image2(int imc,int ic,int jc) {
   float fcMov,frMov,fsMov;
   int icTarg,irTarg,isTarg;
   int icMov,irMov,isMov;
+  int valid;
 
   if (firstpass)    update_needed = 1;
   else {
@@ -2181,13 +2226,17 @@ void draw_image2(int imc,int ic,int jc) {
             irTarg < 0 || irTarg >= targ_vol->height ||
             isTarg < 0 || isTarg >= targ_vol->depth)  continue;
 
-        /* Could interp here, but why bother? */
-        //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
-        /* This implements the trilinear interp - makes it so that
-           when the same volume is loaded as targ and mov, the
-           registration is perfect */
-        MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
-        targimg[r][c] = rVoxVal;
+	if(! ShowSeg){
+	  /* Could interp here, but why bother? */
+	  //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
+	  /* This implements the trilinear interp - makes it so that
+	     when the same volume is loaded as targ and mov, the
+	     registration is perfect */
+	  MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
+	  targimg[r][c] = rVoxVal;
+	}
+	else
+	  targimg[r][c] = MRIgetVoxVal(seg_vol,icTarg,irTarg,isTarg,0);
 
         if (UseSurf) surfimg[r][c] = MRIvox(mrisurf,icTarg,irTarg,isTarg);
 
@@ -2273,9 +2322,11 @@ void draw_image2(int imc,int ic,int jc) {
     if (movimgrange == 0) movimgrange = 1;
     for (r = 0; r < ydim; r++) {
       for (c = 0; c < xdim; c++) {
-        if (use_inorm) {
-          targimg[r][c] = 255*(targimg[r][c] - targimgmin)/targimgrange;
-          if (targimg[r][c] < 0) targimg[r][c] = 0;
+        if(use_inorm) {
+	  if(! ShowSeg){
+	    targimg[r][c] = 255*(targimg[r][c] - targimgmin)/targimgrange;
+	    if (targimg[r][c] < 0) targimg[r][c] = 0;
+	  }
           movimg[r][c]  = 255*(movimg[r][c]  - movimgmin)/movimgrange;
           if (movimg[r][c] < 0) movimg[r][c] = 0;
         } 
@@ -2320,6 +2371,17 @@ void draw_image2(int imc,int ic,int jc) {
           lvidbuf[3*k+1] = voxval;
           lvidbuf[3*k+2] = voxval;
         }
+	if(overlay_mode == TARGET && ShowSeg) {
+	  ivoxval = targimg[r][c];
+          CTABisEntryValid(ctab,ivoxval,&valid);
+          if(!valid) {
+            printf("ERROR: cannot find seg id %d (%d,%d)\n",ivoxval,r,c);
+            exit(1);
+          }
+          lvidbuf[3*k]   = ctab->entries[ivoxval]->ri;
+          lvidbuf[3*k+1] = ctab->entries[ivoxval]->gi;
+          lvidbuf[3*k+2] = ctab->entries[ivoxval]->bi;
+	}
       }
       k++;
     }
@@ -2881,12 +2943,18 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         record_swapbuffers();
         updateflag = TRUE;
         break;
-      case XK_c:
-        if (altkeypressed) {
+      case 'c':
+        if(altkeypressed) {
           if (overlay_mode == TARGET) overlay_mode = MOVEABLE;
           else if (overlay_mode == MOVEABLE) overlay_mode = TARGET;
           updateflag = TRUE;
         }
+	else{
+	  if(seg_vol != NULL){
+	    ShowSeg = ~ShowSeg;
+	    updateflag = TRUE;
+	  }
+	}
         break;
 
       case XK_1:
@@ -4581,7 +4649,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.94 2008/03/10 13:35:24 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.95 2008/05/30 18:43:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
