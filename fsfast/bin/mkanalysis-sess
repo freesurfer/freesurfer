@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/27 16:14:56 $
-#    $Revision: 1.12.2.1 $
+#    $Date: 2008/06/03 15:06:42 $
+#    $Revision: 1.12.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 
 
 
-set VERSION = '$Id: mkanalysis-sess,v 1.12.2.1 2008/05/27 16:14:56 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.12.2.2 2008/06/03 15:06:42 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -38,7 +38,7 @@ set eventrelated = 0;
 set blocked    = 0;
 set abblocked  = 0;
 set retinotopy = 0;
-set inorm      = 0;
+set inorm      = 1;
 set motioncor  = 0;
 set designtype = ()
 set tpexclude = ();
@@ -306,28 +306,6 @@ echo "cd .."                >> $scr
 echo "mc-sess -method afni -toff 0 $GSPArgs $umaskarg" >> $scr
 echo ""                     >> $scr
 
-##---- Create default inorm (no motion correction) script ------#
-set scr = scripts/run-inorm-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "       >> $scr
-echo "# Intesity Normalization of Raw (ie, Not Motion-Corrected) Data" >> $scr
-echo "cd ../"              >> $scr
-echo "inorm-sess  $umaskarg $GSPArgs " >> $scr
-echo ""                      >> $scr
-
-##---- Create default inorm (motion correction) script ------#
-set scr = scripts/run-inorm-mc-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Intesity Normalization of Motion-Corrected Data" >> $scr
-echo "cd ../"                        >> $scr
-echo "inorm-sess -motioncor $umaskarg $GSPArgs " >> $scr
-echo ""                                >> $scr
-
 if($designtype == "event-related" || $designtype == "blocked") then
 ##---- Create default selxavg script ------##
 set scr = $scriptsdir/run-selxavg-sess
@@ -481,7 +459,8 @@ while( $#argv != 0 )
 
   set trendfit = `cat $cacfg | awk '{if($1 == "-detrend") print 1}'`;
   set qtrendfit = `cat $cacfg | awk '{if($1 == "-qtrendfit") print 1}'`;
-  set inorm = `cat $cacfg | awk '{if($1 == "-rescale") print 1}'`;
+  set tmp = `cat $cacfg | awk '{if($1 == "-rescale") print 1}'`;
+  if($#tmp != 0) set inorm = 1;
   set PolyFitOrder = `cat $cacfg | awk '{if($1 == "-polyfit") print $2}'`;
   set nyqreg = `cat $cacfg | awk '{if($1 == "-nyqreg") print $1}'|wc -l`;
 
@@ -780,6 +759,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-noinorm":
+    case "-no-inorm":
       set inorm = 0;
       breaksw
 
@@ -975,7 +955,7 @@ usage_exit:
   echo "   -funcstem stem         : stem of functional data (default = f or fmc)"
   echo "   -motioncor             : use motion corrected data (see mc-sess) "
   echo "   -runlistfile filename  : file with list of runs to include in analysis"
-  echo "   -inorm                 : intensity normalize data (see inorm-sess)"
+  echo "   -inorm                 : intensity normalize data"
   echo "   -fwhm        FWHM      : Full-Width/Half-Max for in-plane smoothing (mm)"
   echo "   -nskip       N         : skip the first N time points in each run"
   echo "   -tpef      filename    : time-point exclude file name"
@@ -1095,13 +1075,12 @@ processed in that session. The name must be the same across sessions
 but the contents of each file can vary. If an RLF is not specified, 
 all runs found in the FSD will be processed. 
  
--inorm 
- 
-Perform intensity normalization. This requires that inorm-sess be run 
-on the volume specified by -funcstem (or whatever it defaults to).  
-Intensity normalization will force the grand within-tissue mean of the 
-functional data to be 1000 for each run.  
- 
+-no-inorm 
+
+Do not perform intensity normalization (default, as of 6/3/08, is to
+apply it). Intensity normalization will force the grand within-tissue
+mean of the functional data to be 1000 for each run.
+
 -fwhm Full-Width-Half-Max  
  
 This functionality is somewhat obsolete. Consider using spatialsmooth-sess 
