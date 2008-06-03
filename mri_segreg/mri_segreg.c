@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/21 12:30:00 $
- *    $Revision: 1.45 $
+ *    $Date: 2008/06/03 19:51:33 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -53,6 +53,7 @@
   --no-mask : do not mask out regions
   --lh-only : only use left hemisphere
   --rh-only : only use right hemisphere
+  --projabs : project -1mm and + 2mm
 
   --frame nthframe : use given frame in input (default = 0)
   --mid-frame : use use middle frame
@@ -184,7 +185,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.45 2008/05/21 12:30:00 greve Exp $";
+"$Id: mri_segreg.c,v 1.46 2008/06/03 19:51:33 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -275,6 +276,10 @@ int DoSmooth = 0;
 double fwhm = 0, gstd = 0;
 int vskip = 1;
 
+int ProjAbs = 0;
+double WMProjAbs = -1.0;
+double GMProjAbs = +2.0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -293,13 +298,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.45 2008/05/21 12:30:00 greve Exp $",
+     "$Id: mri_segreg.c,v 1.46 2008/06/03 19:51:33 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.45 2008/05/21 12:30:00 greve Exp $",
+     "$Id: mri_segreg.c,v 1.46 2008/06/03 19:51:33 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -828,6 +833,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--1dmin"))     DoPowell = 0;
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
+    else if (!strcasecmp(option, "--projabs")) ProjAbs = 1;
     else if (!strcasecmp(option, "--lh-only")){ UseLH = 1; UseRH = 0;}
     else if (!strcasecmp(option, "--rh-only")){ UseLH = 0; UseRH = 1;}
     else if (!strcasecmp(option, "--surf")){
@@ -1119,6 +1125,7 @@ printf("\n");
 printf("  --no-mask : do not mask out regions\n");
 printf("  --lh-only : only use left hemisphere\n");
 printf("  --rh-only : only use right hemisphere\n");
+printf("  --projabs : project -1mm and + 2mm\n");
 printf("\n");
 printf("  --frame nthframe : use given frame in input (default = 0)\n");
 printf("  --mid-frame : use use middle frame\n");
@@ -1727,11 +1734,14 @@ int MRISsegReg(char *subject, int ForceReRun)
 
     printf("Projecting LH Surfs by %g\n",SurfProj);
     for(n = 0; n < lhwm->nvertices; n++){
-      ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -SurfProj);
+      if(ProjAbs) ProjNormDist(&fx, &fy, &fz, lhwm,  n, WMProjAbs);
+      else        ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -SurfProj);
       lhwm->vertices[n].x = fx;
       lhwm->vertices[n].y = fy;
       lhwm->vertices[n].z = fz;
-      ProjNormFracThick(&fx, &fy, &fz, lhctx, n, +SurfProj);
+      if(ProjAbs) ProjNormDist(&fx, &fy, &fz, lhctx,  n, GMProjAbs);
+      else        ProjNormFracThick(&fx, &fy, &fz, lhctx,  n, +SurfProj);
+      ProjNormDist(&fx, &fy, &fz, lhctx,  n, 2.5);
       lhctx->vertices[n].x = fx;
       lhctx->vertices[n].y = fy;
       lhctx->vertices[n].z = fz;
@@ -1754,11 +1764,13 @@ int MRISsegReg(char *subject, int ForceReRun)
     
     printf("Projecting RH Surfs by %g\n",SurfProj);
     for(n = 0; n < rhwm->nvertices; n++){
-      ProjNormFracThick(&fx, &fy, &fz, rhwm,n,-SurfProj);
+      if(ProjAbs) ProjNormDist(&fx, &fy, &fz, rhwm,  n, WMProjAbs);
+      else        ProjNormFracThick(&fx, &fy, &fz, rhwm,  n, -SurfProj);
       rhwm->vertices[n].x = fx;
       rhwm->vertices[n].y = fy;
       rhwm->vertices[n].z = fz;
-      ProjNormFracThick(&fx, &fy, &fz, rhctx,n,+SurfProj);
+      if(ProjAbs) ProjNormDist(&fx, &fy, &fz, rhctx,  n, GMProjAbs);
+      else        ProjNormFracThick(&fx, &fy, &fz, rhctx,  n, +SurfProj);
       rhctx->vertices[n].x = fx;
       rhctx->vertices[n].y = fy;
       rhctx->vertices[n].z = fz;
