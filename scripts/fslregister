@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/23 04:27:26 $
-#    $Revision: 1.25 $
+#    $Date: 2008/06/03 18:34:28 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.25 2008/05/23 04:27:26 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.26 2008/06/03 18:34:28 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -549,6 +549,7 @@ usage_exit:
   echo "   --fslmat fsl.mat : output registration matrix in fsl format"
   echo "   --initfslmat matfile : supply initial fsl matrix file (implies --noinitxfm)"
   echo "   --noinitxfm  : do not initialize based on header goemetry"
+  echo "   --niters niters  : iterate niter times (default is $nIters)"
   echo " "
   echo "   --dof  dof       : FLIRT DOF (default is $dof)"
   echo "   --bins bins      : FLIRT bins (default is $bins)"
