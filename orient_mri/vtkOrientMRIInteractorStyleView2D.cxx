@@ -13,8 +13,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/23 20:58:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/03 23:51:59 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "vtkRenderWindow.h"
 #include "vtkWindowLevelLookupTable.h"
 
-vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView2D, "$Revision: 1.3 $");
+vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView2D, "$Revision: 1.4 $");
 vtkStandardNewMacro(vtkOrientMRIInteractorStyleView2D);
 
 vtkOrientMRIInteractorStyleView2D::vtkOrientMRIInteractorStyleView2D () :
@@ -121,10 +121,14 @@ vtkOrientMRIInteractorStyleView2D::OnLeftButtonDown () {
   // If this is a control click, start doing a line ortho
   // edit. Otherwise, do a window/level operation.
   if( this->Interactor->GetControlKey() ) {
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     this->GrabFocus( this->EventCallbackCommand );
+#endif
     this->StartOrthoLineEdit( 0 );
   } else {
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     this->GrabFocus( this->EventCallbackCommand );
+#endif
     this->StartWindowLevel();
   }
 }
@@ -137,14 +141,18 @@ vtkOrientMRIInteractorStyleView2D::OnLeftButtonUp () {
   if( IS_WindowLevel == this->State ) {
     
     this->EndWindowLevel();
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     if( this->Interactor )
       this->ReleaseFocus();
+#endif
 
   } else if( IS_OrthoLineEdit == this->State ) {
     
     this->EndOrthoLineEdit();
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     if( this->Interactor )
       this->ReleaseFocus();
+#endif
 
   } else {
     
@@ -165,7 +173,9 @@ vtkOrientMRIInteractorStyleView2D::OnMiddleButtonDown () {
   // If this is a control click, start doing a line ortho
   // edit. 
   if( this->Interactor->GetControlKey() ) {
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     this->GrabFocus( this->EventCallbackCommand );
+#endif
     this->StartOrthoLineEdit( 1 );
   } else {
     return this->vtkInteractorStyleTrackballCamera::OnMiddleButtonDown();
@@ -180,8 +190,10 @@ vtkOrientMRIInteractorStyleView2D::OnMiddleButtonUp () {
   if( IS_OrthoLineEdit == this->State ) {
     
     this->EndOrthoLineEdit();
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     if( this->Interactor )
       this->ReleaseFocus();
+#endif
 
   } else {
     
@@ -203,7 +215,9 @@ vtkOrientMRIInteractorStyleView2D::OnRightButtonDown () {
   // If this is a control click, start doing a line ortho
   // edit. 
   if( this->Interactor->GetControlKey() ) {
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     this->GrabFocus( this->EventCallbackCommand );
+#endif
     this->StartOrthoLineEdit( 2 );
   }  else {
     return this->vtkInteractorStyleTrackballCamera::OnRightButtonDown();
@@ -218,8 +232,10 @@ vtkOrientMRIInteractorStyleView2D::OnRightButtonUp () {
   if( IS_OrthoLineEdit == this->State ) {
     
     this->EndOrthoLineEdit();
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
     if( this->Interactor )
       this->ReleaseFocus();
+#endif
 
   } else {
     

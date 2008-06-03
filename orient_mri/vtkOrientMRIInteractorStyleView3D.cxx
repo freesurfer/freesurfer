@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/13 20:58:21 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2008/06/03 23:51:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "vtkRenderWindow.h"
 #include "vtkTransform.h"
 
-vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView3D, "$Revision: 1.1 $");
+vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView3D, "$Revision: 1.2 $");
 vtkStandardNewMacro(vtkOrientMRIInteractorStyleView3D);
 
 vtkOrientMRIInteractorStyleView3D::vtkOrientMRIInteractorStyleView3D () :
@@ -119,7 +119,9 @@ vtkOrientMRIInteractorStyleView3D::OnLeftButtonDown () {
 
   // Grab the focus and work on the prop: if ctrl is down, spin it,
   // othewise rotate it.
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   this->GrabFocus( this->EventCallbackCommand );
+#endif
   if( this->Interactor->GetControlKey() )
     this->StartSpinProp();
   else
@@ -148,8 +150,10 @@ vtkOrientMRIInteractorStyleView3D::OnLeftButtonUp () {
     vtkErrorMacro( << "Unrecognized style state" );
   }
   
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   if( this->Interactor )
     this->ReleaseFocus();
+#endif
 }
 
 void
@@ -164,7 +168,9 @@ vtkOrientMRIInteractorStyleView3D::OnMiddleButtonDown () {
   
   // Grab the focus and work on the camera: if ctrl is down, spin it,
   // othewise rotate it.
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   this->GrabFocus( this->EventCallbackCommand );
+#endif
   if( this->Interactor->GetControlKey() )
     this->StartSpinCamera();
   else
@@ -193,8 +199,10 @@ vtkOrientMRIInteractorStyleView3D::OnMiddleButtonUp () {
     vtkErrorMacro( << "Unrecognized style state" );
   }
   
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   if( this->Interactor )
     this->ReleaseFocus();
+#endif
 }
 
 void
@@ -208,7 +216,9 @@ vtkOrientMRIInteractorStyleView3D::OnRightButtonDown () {
     return;
   
   // Grab the focus and start dollying the camera.
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   this->GrabFocus(this->EventCallbackCommand);
+#endif
   this->StartDollyCamera();
 }
 
@@ -229,8 +239,10 @@ vtkOrientMRIInteractorStyleView3D::OnRightButtonUp () {
     vtkErrorMacro( << "Unrecognized style state" );
   }
   
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   if( this->Interactor )
     this->ReleaseFocus();
+#endif
 }
 
 void
