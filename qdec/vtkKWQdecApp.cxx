@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 01:05:43 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/03 22:54:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -48,7 +48,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.3 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -118,8 +118,15 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
                     "Project file (*.qdec) to load" );
 
   vector<string> lfnSurfaces;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--surface", args.MULTI_ARGUMENT, &lfnSurfaces,
                     "A surface file or list of files to load" );
+#else
+  string fnSurface;
+  args.AddArgument( "--surface", args.SPACE_ARGUMENT, &fnSurface,
+                    "A surface file to load" );
+  lfnSurfaces.push_back(fnSurface);
+#endif
 
   string fnGDF;
   args.AddArgument( "--gdf", args.SPACE_ARGUMENT, &fnGDF,
@@ -128,8 +135,15 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
                     "FSGDF file to load" );
 
   vector<string> lfnScalars;
-  args.AddArgument( "--scalars", args.MULTI_ARGUMENT, &lfnScalars,
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
+  args.AddArgument( "--scalar", args.MULTI_ARGUMENT, &lfnScalars,
                     "A scalar file or list of files to load" );
+#else
+  string fnScalar;
+  args.AddArgument( "--scalar", args.SPACE_ARGUMENT, &fnScalar,
+                    "A scalar file to load" );
+  lfnScalars.push_back(fnScalar);
+#endif
 
   string fnCurvature;
   args.AddArgument( "--curvature", args.SPACE_ARGUMENT, &fnCurvature,
@@ -140,8 +154,10 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
                     "Annotation file to load" );
 
   vector<string> lfnOverlay;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--overlay", args.MULTI_ARGUMENT, &lfnOverlay,
                     "Overlay file and color file to load" );
+#endif
 
   string fnLabel;
   args.AddArgument( "--label", args.SPACE_ARGUMENT, &fnLabel,

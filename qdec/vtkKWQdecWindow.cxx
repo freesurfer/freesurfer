@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/08 03:25:18 $
- *    $Revision: 1.18 $
+ *    $Date: 2008/06/03 22:54:55 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.18 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.19 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -1923,7 +1923,8 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
       QdecUtilities::AssertFileIsReadable( fnGDF );
       this->LoadGDFFile( fnGDF.c_str() );
 
-      this->SetStatusText( "Analyzed data loaded." );
+      this->SetStatusText( "Analyzed data loaded. Select results for "
+                           "display from the Scalars list." );
       this->GetProgressGauge()->SetValue( 100 );
       this->AddRecentFile(iGlmResults->GetGlmDesign()->GetWorkingDir().c_str(),
                           this, "LoadAnalyzedData" );
