@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/03 22:54:55 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/04 13:44:42 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -48,7 +48,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.4 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -125,7 +125,7 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   string fnSurface;
   args.AddArgument( "--surface", args.SPACE_ARGUMENT, &fnSurface,
                     "A surface file to load" );
-  lfnSurfaces.push_back(fnSurface);
+  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
 #endif
 
   string fnGDF;
@@ -142,7 +142,7 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   string fnScalar;
   args.AddArgument( "--scalar", args.SPACE_ARGUMENT, &fnScalar,
                     "A scalar file to load" );
-  lfnScalars.push_back(fnScalar);
+  if (fnScalar.size()) lfnScalars.push_back(fnScalar);
 #endif
 
   string fnCurvature;

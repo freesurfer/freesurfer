@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/03 23:51:47 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/06/04 13:45:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.9 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () {
 
@@ -107,7 +107,7 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnVolume;
   args.AddArgument( "--volume", args.SPACE_ARGUMENT, &fnVolume,
 		    "A volume file to load" );
-  lfnVolumes.push_back(fnVolume);
+  if (fnVolume.size()) lfnVolumes.push_back(fnVolume);
 #endif
 
   vector<string> lfnSurfaces;
@@ -118,7 +118,7 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnSurface;
   args.AddArgument( "--surface", args.SPACE_ARGUMENT, &fnSurface,
 		    "A surface file to load" );
-  lfnSurfaces.push_back(fnSurface);
+  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
 #endif
 
   vector<string> lfnDTIs;
@@ -129,7 +129,7 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnDTI;
   args.AddArgument( "--dti", args.SPACE_ARGUMENT, &fnDTI,
 		    "A DTI file to load" );
-  lfnDTIs.push_back(fnDTI);
+  if (fnDTI.size()) lfnDTIs.push_back(fnDTI);
 #endif
 
   vector<string> lfnPaths;
@@ -140,7 +140,7 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnPath;
   args.AddArgument( "--path", args.SPACE_ARGUMENT, &fnPath,
 		    "A path file to load" );
-  lfnPaths.push_back(fnPath);
+  if(fnPath.size()) lfnPaths.push_back(fnPath);
 #endif
 
   // Try and parse the arguments. If there was an error, print our
