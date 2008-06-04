@@ -968,11 +968,12 @@ tcltk_apps="NO"
 itk_apps="NO"
 kww_apps="NO"
 AC_ARG_ENABLE(all-apps,
- [  --enable-all-apps       enable building Tcl/Tk, ITK, KWW, and GLut-based apps],
+ [  --enable-all-apps       enable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
  [ glut_apps="yes"
    tcltk_apps="yes"
    itk_apps="yes"
    kww_apps="yes"
+   wxw_apps="yes"
    need_opengl="yes"
  ])
 
@@ -1161,6 +1162,76 @@ AM_CONDITIONAL(ENABLE_KWWIDGETS_APPS, test "$kww_apps" = "yes")
 AC_SUBST(KWWIDGETS_CFLAGS)
 AC_SUBST(KWWIDGETS_CXXFLAGS)
 AC_SUBST(KWWIDGETS_LIBS)
+
+
+################################################################
+# wxWidgets
+################################################################
+WXWIDGETS_CFLAGS=""
+WXWIDGETS_CXXFLAGS=""
+WXWIDGETS_LIBS=""
+WXWIDGETS_DIR=""
+
+AC_MSG_CHECKING(wxWidgets config)
+
+AC_ARG_WITH(wxwidgets-dir,
+  [  --with-wxwidgets-dir=DIR where the root of wxWidgets is installed.],
+  [  WXWIDGETS_DIR="$withval" 
+     wxw_apps="yes"
+  ])
+
+if test "x$WXWIDGETS_DIR" = "x"; then
+  # if a wxWidgets root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/wxWidgets/current" ; then
+    WXWIDGETS_DIR=/usr/pubsw/packages/wxWidgets/current
+    wxw_apps="yes"
+  fi
+fi
+
+# use the handy wx-config utility to get the compiler and linker flags
+if test ! "x$WXWIDGETS_DIR" = "x"; then
+  WXCONFIG="${WXWIDGETS_DIR}/bin/wx-config"
+  WXWIDGETS_CFLAGS="`${WXCONFIG} --cflags`"
+  WXWIDGETS_CXXFLAGS="`${WXCONFIG} --cxxflags`"
+  WXWIDGETS_LIBS="`${WXCONFIG} --libs`"
+
+  # except wx-config isn't so handy in including some header paths on Linux:
+  if test -d /usr/include/gtk-2.0 ; then
+  WXWIDGETS_GTK_CFLAGS="-D__WXGTK20__"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/gtk-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/gtk-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib64/gtk-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/glib-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/glib-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib64/glib-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/pango-1.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/cairo"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/atk-1.0"
+  WXWIDGETS_CFLAGS="$WXWIDGETS_CFLAGS	$WXWIDGETS_GTK_CFLAGS"
+  WXWIDGETS_CXXFLAGS="$WXWIDGETS_CXXFLAGS	$WXWIDGETS_GTK_CFLAGS"
+  fi
+fi
+
+AC_ARG_ENABLE(wxw-apps,
+ [  --enable-wxw-apps       enable building wxWidgets-based apps],
+ [ wxw_apps="yes"
+ ])
+
+if test "$wxw_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of wxWidgets apps.])
+  # enable testing for OpenGL libs:
+  need_opengl=yes
+else
+  AC_MSG_RESULT([Not building wxWidgets apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_WXWIDGETS_APPS, test "$wxw_apps" = "yes")
+
+AC_SUBST(WXWIDGETS_CFLAGS)
+AC_SUBST(WXWIDGETS_CXXFLAGS)
+AC_SUBST(WXWIDGETS_LIBS)
+AC_SUBST(WXWIDGETS_DIR)
 
 
 ################################################################
@@ -2506,6 +2577,7 @@ AC_OUTPUT([Makefile
            scripts/Makefile
            scuba/Makefile
            scuba2/Makefile
+           freeview/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
            stim/Makefile

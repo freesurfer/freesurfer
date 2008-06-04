@@ -280,6 +280,7 @@ SUBDIRS=include \
 	matlab \
 	scuba \
 	scuba2 \
+	freeview \
 	qdec_glmfit
 
 # build stamp and symlinks to necessary 3rd-party packages
