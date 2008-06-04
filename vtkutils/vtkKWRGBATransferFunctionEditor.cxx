@@ -17,8 +17,8 @@
  * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:37 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/04 19:12:14 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,7 +71,7 @@
 #include <vtksys/stl/string>
 
 vtkStandardNewMacro(vtkKWRGBATransferFunctionEditor);
-vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.6 $");
+vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.7 $");
 
 #define VTK_KW_CTFE_COLOR_RAMP_TAG "color_ramp_tag"
 
@@ -1015,7 +1015,7 @@ void vtkKWRGBATransferFunctionEditor::DoubleClickOnPointCallback(
       this->GetPointColorAsRGB(id, rgb) &&
       vtkKWTkUtilities::QueryUserForColor(
         this->GetApplication(),
-        this->GetWidgetName(),
+        this,
         NULL,
         rgb[0], rgb[1], rgb[2],
         &rgb[0], &rgb[1], &rgb[2])) {
