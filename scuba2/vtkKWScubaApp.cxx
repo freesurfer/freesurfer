@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/25 19:53:47 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2008/06/04 20:37:03 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.6.2.1 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () {
 
@@ -84,6 +84,7 @@ vtkKWScubaApp::~vtkKWScubaApp () {
   this->SaveApplicationSettingsToRegistry();
 }
 
+
 void
 vtkKWScubaApp::Start ( int argc, char* argv[] ) {
 
@@ -100,20 +101,48 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
 		    "A subject name whose directory (prepended with the value of SUBJECTS_DIR and appened with the relative subdirectory) will be used as a prefix for data file names." );
 
   vector<string> lfnVolumes;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--volume", args.MULTI_ARGUMENT, &lfnVolumes,
 		    "A volume file or list of files to load" );
+#else
+  string fnVolume;
+  args.AddArgument( "--volume", args.SPACE_ARGUMENT, &fnVolume,
+		    "A volume file to load" );
+  if (fnVolume.size()) lfnVolumes.push_back(fnVolume);
+#endif
 
   vector<string> lfnSurfaces;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--surface", args.MULTI_ARGUMENT, &lfnSurfaces,
 		    "A surface file or list of files to load" );
+#else
+  string fnSurface;
+  args.AddArgument( "--surface", args.SPACE_ARGUMENT, &fnSurface,
+		    "A surface file to load" );
+  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
+#endif
 
   vector<string> lfnDTIs;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--dti", args.MULTI_ARGUMENT, &lfnDTIs,
 		    "A DTI file or list of files to load" );
+#else
+  string fnDTI;
+  args.AddArgument( "--dti", args.SPACE_ARGUMENT, &fnDTI,
+		    "A DTI file to load" );
+  if (fnDTI.size()) lfnDTIs.push_back(fnDTI);
+#endif
 
   vector<string> lfnPaths;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--path", args.MULTI_ARGUMENT, &lfnPaths,
 		    "A path file or list of files to load" );
+#else
+  string fnPath;
+  args.AddArgument( "--path", args.SPACE_ARGUMENT, &fnPath,
+		    "A path file to load" );
+  if(fnPath.size()) lfnPaths.push_back(fnPath);
+#endif
 
   // Try and parse the arguments. If there was an error, print our
   // help message and quit.
