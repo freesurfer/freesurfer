@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 23:58:14 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2008/06/04 20:15:46 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.1 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.2 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -109,45 +109,61 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   // Add the arguments we'll look for.
   bool bHelp = false;
   args.AddArgument( "--help", args.NO_ARGUMENT, &bHelp,
-		    "Print option information" );
-  
+                    "Print option information" );
+
   string fnTable;
   args.AddArgument( "--table", args.SPACE_ARGUMENT, &fnTable,
-		    "Data table to load" );
+                    "Data table to load" );
 
   string fnProject;
   args.AddArgument( "--project", args.SPACE_ARGUMENT, &fnProject,
-		    "Project file (*.qdec) to load" );
+                    "Project file (*.qdec) to load" );
 
   vector<string> lfnSurfaces;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--surface", args.MULTI_ARGUMENT, &lfnSurfaces,
-		    "A surface file or list of files to load" );
+                    "A surface file or list of files to load" );
+#else
+  string fnSurface;
+  args.AddArgument( "--surface", args.SPACE_ARGUMENT, &fnSurface,
+                    "A surface file to load" );
+  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
+#endif
 
   string fnGDF;
   args.AddArgument( "--gdf", args.SPACE_ARGUMENT, &fnGDF,
-		    "FSGDF file to load" );
+                    "FSGDF file to load" );
   args.AddArgument( "--fsgd", args.SPACE_ARGUMENT, &fnGDF,
-		    "FSGDF file to load" );
+                    "FSGDF file to load" );
 
   vector<string> lfnScalars;
-  args.AddArgument( "--scalars", args.MULTI_ARGUMENT, &lfnScalars,
-		    "A scalar file or list of files to load" );
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
+  args.AddArgument( "--scalar", args.MULTI_ARGUMENT, &lfnScalars,
+                    "A scalar file or list of files to load" );
+#else
+  string fnScalar;
+  args.AddArgument( "--scalar", args.SPACE_ARGUMENT, &fnScalar,
+                    "A scalar file to load" );
+  if (fnScalar.size()) lfnScalars.push_back(fnScalar);
+#endif
 
   string fnCurvature;
   args.AddArgument( "--curvature", args.SPACE_ARGUMENT, &fnCurvature,
-		    "Curvature file to load" );
+                    "Curvature file to load" );
 
   string fnAnnotation;
   args.AddArgument( "--annotation", args.SPACE_ARGUMENT, &fnAnnotation,
-		    "Annotation file to load" );
+                    "Annotation file to load" );
 
   vector<string> lfnOverlay;
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
   args.AddArgument( "--overlay", args.MULTI_ARGUMENT, &lfnOverlay,
-		    "Overlay file and color file to load" );
+                    "Overlay file and color file to load" );
+#endif
 
   string fnLabel;
   args.AddArgument( "--label", args.SPACE_ARGUMENT, &fnLabel,
-		    "Label file to load" );
+                    "Label file to load" );
 
   // Try and parse the arguments. If there was an error, print our
   // help message and quit.
