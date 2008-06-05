@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/06/05 21:47:40 $
-#    $Revision: 1.33 $
+#    $Date: 2008/06/05 22:18:16 $
+#    $Revision: 1.34 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.33 2008/06/05 21:47:40 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.34 2008/06/05 22:18:16 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -50,6 +50,7 @@ set BBRMask = 1;
 set fmt = nii # Format for temporary volumes
 set UseSPMGetSpace = 1;
 set DNG = (); # For testing
+set DOF = 6;
 
 if($?FS_SPMREG_MATLAB) then
   set matlab = $FS_SPMREG_MATLAB
@@ -175,6 +176,12 @@ rm -f $okfile
 
 if(-e $regfile) mv $regfile $regfile.$DateString
 
+set params = (0 0 0 0 0 0);
+
+# These are experimental
+if($DOF ==  9) set params = ($params 1 1 1);
+if($DOF == 12) set params = ($params 1 1 1 0 0 0);
+
 #--------------------------------------------------------#
 tee $MLF <<EOF
 
@@ -205,7 +212,7 @@ defaults.coreg.estimate.cost_fun = 'nmi';
 defaults.coreg.estimate.sep      = [4 2];
 defaults.coreg.estimate.tol      = [0.02 0.02 0.02 0.001 0.001 0.001 0.01 0.01 0.01 0.001 0.001 0.001];
 defaults.coreg.estimate.fwhm     = [7 7];
-defaults.coreg.estimate.params	 = [0 0 0  0 0 0];
+defaults.coreg.estimate.params	 = [$params];
 defaults.coreg.estimate.graphics = 0; % dont crate ps file
 
 
@@ -517,6 +524,16 @@ while( $#argv != 0 )
 
     case "--dng":
       set DNG = "_dng";
+      breaksw
+
+    # Experimental
+    case "--9":
+      set DOF = 9;
+      set UseSPMGetSpace = 0;
+      breaksw
+    case "--12":
+      set DOF = 12;
+      set UseSPMGetSpace = 0;
       breaksw
 
     case "--umask":
