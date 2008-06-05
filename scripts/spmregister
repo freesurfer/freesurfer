@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/23 04:27:26 $
-#    $Revision: 1.29 $
+#    $Date: 2008/06/05 21:36:50 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.29 2008/05/23 04:27:26 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.30 2008/06/05 21:36:50 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -47,6 +47,7 @@ set DoSegReg = 0;
 set segregfile = ();
 set OutVol = ();
 set BBRMask = 1;
+set fmt = nii # Format for temporary volumes
 
 if($?FS_SPMREG_MATLAB) then
   set matlab = $FS_SPMREG_MATLAB
@@ -83,7 +84,7 @@ check_params_return:
 if($#frame == 0) set frame = 0;
 
 set movvoldir = `dirname $movvol`;
-if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
+if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.spmreg.$$
 mkdir -p $tmpdir
 
 if(! $nolog) then
@@ -136,7 +137,7 @@ if(! -e $refvol/COR-.info) then
   endif
 endif
 set refvolbase = $tmpdir/refvol.spmregister
-set refvolimg  = $refvolbase.img
+set refvolimg  = $refvolbase.$fmt
 set cmd = (mri_convert $refvol $refvolimg)
 if($zero_center) set cmd = ($cmd -ic 0 0 0)
 echo "--------------------------------------" |& tee -a $LF
@@ -147,7 +148,7 @@ if($status) exit 1;
 
 # Convert input to analyze #
 set movvolbase = $tmpdir/movvol.spmregister
-set movvolimg  = $movvolbase.img
+set movvolimg  = $movvolbase.$fmt
 set cmd = (mri_convert $movvol $movvolimg)
 if($zero_center) set cmd = ($cmd -ic 0 0 0)
 if($midframe) set cmd = ($cmd --mid-frame)
@@ -240,6 +241,10 @@ if(isempty(x))
   if(~monly) quit; end
 end
 fprintf('Finished after %g sec\n',toc);
+
+fprintf('Parameters ');
+fprintf('%g ',x);
+fprintf('\n');
 
 %---------write out the .mat file---see spm_coreg_ui.m line 283
 
@@ -474,6 +479,13 @@ while( $#argv != 0 )
       set nolog = 1;
       breaksw
 
+    case "--img":
+      set fmt = img;
+      breaksw
+    case "--nii":
+      set fmt = nii;
+      breaksw
+
     case "--umask":
       if ( $#argv == 0) goto arg1err;
       umask $1; shift;
@@ -629,7 +641,7 @@ Uses normalize mutual information.
 BUGS
 
 There may be a series of warnings of the form:
-"Warning: Assuming a scalefactor of 1 for refvol.spm_rigid_register.img".
+"Warning: Assuming a scalefactor of 1 for refvol.spm_rigid_register.nii".
 This can be ignored.
 
 The movable volume needs to have "valid" geometry (eg, SPM-style .mat
