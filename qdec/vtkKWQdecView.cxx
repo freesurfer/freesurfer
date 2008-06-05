@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 23:58:14 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2008/06/05 17:42:57 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -71,11 +71,14 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.1 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.2 $" );
 
+// these control the amount and speed of rotation
+// with AnimateSteps=1, it doesnt animate, and its instaneous
+// old values shown for the slow rotation animation when Rotate buttons pushed
 double const vtkKWQdecView::kAnimationDegrees = 90.0;
-double const vtkKWQdecView::kcAnimateSteps = 10.0;
-double const vtkKWQdecView::kAnimateTimeInSeconds = 1.0;
+double const vtkKWQdecView::kcAnimateSteps = 1;  // was 10.0
+double const vtkKWQdecView::kAnimateTimeInSeconds = 0.1;  // was 1.0
 
 vtkKWQdecView::vtkKWQdecView () :
   mfnSurface( "" ),
@@ -159,6 +162,10 @@ vtkKWQdecView::ViewInteractor::OnLeftButtonDown () {
     mView->ResetPath();
 
   } else if( this->GetInteractor()->GetControlKey() ) {
+    
+    // Select it.
+    mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
+  } else { // duplicate the Ctrl-left click as just left-click
     
     // Select it.
     mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
