@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/06/05 21:45:22 $
-#    $Revision: 1.32 $
+#    $Date: 2008/06/05 21:47:40 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.32 2008/06/05 21:45:22 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.33 2008/06/05 21:47:40 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -279,7 +279,14 @@ if(~monly) quit; end
 EOF
 #--------------------------------------------------------#
 
-if($monly) exit 1;
+if($monly) then
+  echo "Make sure to use proper version of matlab (eg, 7.1)"
+  if($?FS_SPMREG_MATLAB) then
+    echo "$FS_SPMREG_MATLAB"
+  endif
+  echo ""
+  exit 1;
+endif
 
 cat $MLF | $matlab -nosplash -display iconic -nodesktop |& tee -a $LF
 rm $MLF
