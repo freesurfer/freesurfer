@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.120 2008/05/16 12:03:05 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.121 2008/06/05 18:11:57 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -100,7 +100,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VTKDIR=/usr/pubsw/packages/vtk/current
+  set VTKDIR=/usr/pubsw/packages/vtk/5.0.4
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
