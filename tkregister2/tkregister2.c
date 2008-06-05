@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/30 18:43:53 $
- *    $Revision: 1.95 $
+ *    $Date: 2008/06/05 23:32:11 $
+ *    $Revision: 1.96 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.95 2008/05/30 18:43:53 greve Exp $";
+"$Id: tkregister2.c,v 1.96 2008/06/05 23:32:11 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -284,8 +284,8 @@ int updateflag = FALSE;
 int blinkflag = FALSE;
 int blinkdelay = BLINK_DELAY;
 int blinktime = BLINK_TIME;
-int overlay_mode = TARGET;
-int overlay_mode_init = TARGET;
+int overlay_mode = MOVEABLE;
+int overlay_mode_init = MOVEABLE;
 int visible_mode = 0;
 int last_visible_mode = 0;
 int visible_plane = 0;
@@ -4649,7 +4649,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.95 2008/05/30 18:43:53 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.96 2008/06/05 23:32:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
