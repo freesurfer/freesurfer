@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/14 02:03:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/05 17:34:02 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.3 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.4 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -160,6 +160,10 @@ vtkKWQdecView::ViewInteractor::OnLeftButtonDown () {
     mView->ResetPath();
 
   } else if( this->GetInteractor()->GetControlKey() ) {
+    
+    // Select it.
+    mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
+  } else { // duplicate the Ctrl-left click as just left-click
     
     // Select it.
     mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
