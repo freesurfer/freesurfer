@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/06/05 21:43:14 $
-#    $Revision: 1.31 $
+#    $Date: 2008/06/05 21:45:22 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.31 2008/06/05 21:43:14 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.32 2008/06/05 21:45:22 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -49,6 +49,7 @@ set OutVol = ();
 set BBRMask = 1;
 set fmt = nii # Format for temporary volumes
 set UseSPMGetSpace = 1;
+set DNG = (); # For testing
 
 if($?FS_SPMREG_MATLAB) then
   set matlab = $FS_SPMREG_MATLAB
@@ -238,7 +239,7 @@ fprintf('\n\nINFO: ignore warnings about scalefactor\n\n');
 disp('determining coregistration parameters...')
 
 tic;
-x  = spm_coreg(VG.fname,VF.fname,defaults.coreg.estimate);
+x  = spm_coreg$DNG(VG.fname,VF.fname,defaults.coreg.estimate);
 if(isempty(x))
   fprintf('ERROR: spm_coreg\n');
   if(~monly) quit; end
@@ -505,6 +506,10 @@ while( $#argv != 0 )
       breaksw
     case "--no-spm_get_space":
       set UseSPMGetSpace = 0;
+      breaksw
+
+    case "--dng":
+      set DNG = "_dng";
       breaksw
 
     case "--umask":
