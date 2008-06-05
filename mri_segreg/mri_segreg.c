@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/06/03 19:51:33 $
- *    $Revision: 1.46 $
+ *    $Date: 2008/06/05 23:55:13 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -39,13 +39,17 @@
   --cost costfile
   --sum sumfile : def is outreg.sum
   --no-surf : do not use surface-based method
+
+  --brute min max delta : brute force in all directions
   --1dpreopt min max delta : brute force in PE direction
+
   --fwhm fwhm : smooth input by fwhm mm
   --skip nskip : only sample every nskip vertices
 
   --preopt-file file : save preopt results in file
   --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
   --preopt-only : only preopt, so not optimize
+
 
   --gm-gt-wm slope : gray matter brighter than WM
   --wm-gt-gm slope : WM brighter than gray matter
@@ -185,7 +189,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.46 2008/06/03 19:51:33 greve Exp $";
+"$Id: mri_segreg.c,v 1.47 2008/06/05 23:55:13 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -280,10 +284,12 @@ int ProjAbs = 0;
 double WMProjAbs = -1.0;
 double GMProjAbs = +2.0;
 
+int BruteForce = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
-  double costs[8], mincost, p[6];
+  double costs[8], mincost, p[6], pmin[6];
   double tx, ty, tz, ax, ay, az;
   int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n, err,vno;
   MATRIX *Ttemp=NULL, *invTtemp=NULL, *Stemp=NULL, *invStemp=NULL;
@@ -295,16 +301,17 @@ int main(int argc, char **argv) {
   FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL;
   double rmsDiffSum, rmsDiffMean=0, d;
   VERTEX *v;
+  int vskipsave = 0;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.46 2008/06/03 19:51:33 greve Exp $",
+     "$Id: mri_segreg.c,v 1.47 2008/06/05 23:55:13 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.46 2008/06/03 19:51:33 greve Exp $",
+     "$Id: mri_segreg.c,v 1.47 2008/06/05 23:55:13 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -553,6 +560,81 @@ int main(int argc, char **argv) {
     MatrixCopy(R0,R);
     printf("\n");
     fprintf(fp,"\n");
+  }
+
+  if(BruteForce){
+    n = pow((PreOptMax-PreOptMin)/PreOptDelta+1.0,6.0);
+    printf("\n");
+    printf("------------------------------------\n");
+    vskipsave = vskip;
+    vskip = 2000;
+    printf("Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
+    fprintf(fp,"\n");
+    fprintf(fp,"Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
+    mincost = 10e10;
+    PreOptAtMin = 0;
+    for(n=0; n < 6; n++) p[n] = 0.0;
+    TimerStart(&mytimer) ;
+    nth = 0;
+    if(PreOptFile) fpPreOpt = fopen(PreOptFile,"w");
+    for(tx = PreOptMin; tx <= PreOptMax; tx += PreOptDelta){
+      for(ty = PreOptMin; ty <= PreOptMax; ty += PreOptDelta){
+	for(tz = PreOptMin; tz <= PreOptMax; tz += PreOptDelta){
+	  for(ax = PreOptMin; ax <= PreOptMax; ax += PreOptDelta){
+	    for(ay = PreOptMin; ay <= PreOptMax; ay += PreOptDelta){
+	      for(az = PreOptMin; az <= PreOptMax; az += PreOptDelta){
+		p[0] = tx;
+		p[1] = ty;
+		p[2] = tz;
+		p[3] = ax;
+		p[4] = ay;
+		p[5] = az;
+		GetSurfCosts(mov, segreg, R0, R, p, costs);
+		if(costs[7] < mincost) {
+		  mincost = costs[7];
+		  for(n=0; n < 6; n++) pmin[n] = p[n];
+		}
+		if(nth == 0 || nth%1000 == 0){
+		  secCostTime = TimerStop(&mytimer)/1000.0 ;
+		  printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+			 nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+		  fprintf(fp,"%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+			  nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+		  if(PreOptFile) 
+		    fprintf(fpPreOpt,"%8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf\n",
+			    tx,ty,tz,ax,ay,az,costs[7]);
+		}
+		nth ++;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+    for(n=0; n < 6; n++) p[n] = pmin[n];
+    GetSurfCosts(mov, segreg, R0, R, p, costs);
+    MatrixCopy(R0,R);
+    printf("Brute Force --------------------------\n");
+    printf("Min cost was %lf\n",mincost);
+    printf("Number of iterations %5d\n",nth);
+    secCostTime = TimerStop(&mytimer)/1000.0 ;
+    printf("Optmization time %lf sec\n",secCostTime);
+    printf("Parameters at optimum (transmm, rotdeg)\n");
+    printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
+	   p[0],p[1],p[2],p[3],p[4],p[5]);
+    printf("--------------------------------------------\n");
+    
+    if(PreOptFile) fclose(fpPreOpt);
+    if(PreOptOnly) {
+      printf("PreOptOnly specified, so exiting now\n");
+      exit(0);
+    }
+    printf("\n");
+    fprintf(fp,"\n");
+    // Restore
+    interpmethod = "trilinear";
+    interpcode = SAMPLE_TRILINEAR;
+    vskip = vskipsave;
   }
 
   TimerStart(&mytimer) ;
@@ -830,7 +912,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
     else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
     else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
-    else if (!strcasecmp(option, "--1dmin"))     DoPowell = 0;
+    else if (!strcasecmp(option, "--brute"))     {
+      if (nargc < 3) argnerr(option,3);
+      nargsused = 3;
+      sscanf(pargv[0],"%lf",&PreOptMin);
+      sscanf(pargv[1],"%lf",&PreOptMax);
+      sscanf(pargv[2],"%lf",&PreOptDelta);
+      BruteForce = 1;
+    }
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
     else if (!strcasecmp(option, "--projabs")) ProjAbs = 1;
@@ -1111,7 +1200,10 @@ printf("  --out-reg outreg : reg at lowest cost\n");
 printf("  --cost costfile\n");
 printf("  --sum sumfile : def is outreg.sum\n");
 printf("  --no-surf : do not use surface-based method\n");
+
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
+printf("  --brute min max delta : brute force in all directions\n");
+
 printf("  --fwhm fwhm : smooth input by fwhm mm\n");
 printf("  --skip nskip : only sample every nskip vertices\n");
 printf("\n");
@@ -1231,6 +1323,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"UseMask %d\n",UseMask);
   fprintf(fp,"UseLH %d\n",UseLH);
   fprintf(fp,"UseRH %d\n",UseRH);
+  fprintf(fp,"vskip %d\n",vskip);
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
   fprintf(fp,"lhcostfile %s\n",lhcostfile);
