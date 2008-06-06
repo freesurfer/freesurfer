@@ -23,7 +23,10 @@ else
 GLUT_THINGS=
 endif
 
-AM_CPPFLAGS=$(X_CFLAGS) $(VXL_CFLAGS) \
+# note: EXPAT_CFLAGS must precede X_CFLAGS, because on the
+# Mac Tiger OS, an old version of expat is in /usr/X11R6/include
+AM_CPPFLAGS=$(EXPAT_CFLAGS) \
+	$(X_CFLAGS) $(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	-I$(top_srcdir)/include/NrrdIO \
