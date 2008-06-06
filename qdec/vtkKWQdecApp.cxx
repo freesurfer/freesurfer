@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 13:44:42 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/06 22:34:59 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -48,7 +48,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.5 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -383,11 +383,11 @@ vtkKWQdecApp::DisplayHelpDialog ( vtkKWTopLevel* iTop ) {
     text->QuickFormattingOn();
     text->AppendText( "__Mouse Commands in Display View:__\n" );
     text->AppendText( "\n" );
-    text->AppendText( "**Button 1:** Rotate camera\n" );
-    text->AppendText( "**Button 2:** Pan camera\n" );
-    text->AppendText( "**Button 3:** Zoom camera\n" );
-    text->AppendText( "**Ctrl-Button 1:** Select vertex (and graph GDF)\n" );
-    text->AppendText( "**Shift-Button 1, drag:** Draw a path\n" );
+    text->AppendText( "**Button 1:** Select vertex (and graph GDF)\n" );
+    text->AppendText( "**Button 2:**                Pan camera\n" );
+    text->AppendText( "**Button 3:**                Zoom camera\n" );
+    text->AppendText( "**Ctrl-Button 1:**           Rotate camera\n" );
+    text->AppendText( "**Shift-Button 1, drag:**    Draw a path\n" );
     text->AppendText( "**Shift-Button 1, no drag:** Clear path\n" );
     text->AppendText( "\n" );
     text->AppendText( "For more help, please visit:\n" );

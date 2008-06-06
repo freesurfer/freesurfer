@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/05 17:34:02 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/06 22:34:59 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.4 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.5 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -161,11 +161,11 @@ vtkKWQdecView::ViewInteractor::OnLeftButtonDown () {
 
   } else if( this->GetInteractor()->GetControlKey() ) {
     
-    // Select it.
-    mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
-  } else { // duplicate the Ctrl-left click as just left-click
+    // just let it rotate camera
+    // (need this else if so that it doesnt select vertex)
+  } else { 
     
-    // Select it.
+    // Select vertex
     mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
   }
 }
