@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/06/05 23:55:13 $
- *    $Revision: 1.47 $
+ *    $Date: 2008/06/06 18:35:11 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -189,7 +189,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.47 2008/06/05 23:55:13 greve Exp $";
+"$Id: mri_segreg.c,v 1.48 2008/06/06 18:35:11 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -305,13 +305,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.47 2008/06/05 23:55:13 greve Exp $",
+     "$Id: mri_segreg.c,v 1.48 2008/06/06 18:35:11 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.47 2008/06/05 23:55:13 greve Exp $",
+     "$Id: mri_segreg.c,v 1.48 2008/06/06 18:35:11 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -339,9 +339,21 @@ int main(int argc, char **argv) {
 
   if(MrotPre || MtransPre){
     printf("Applying Pre Transform to input reg\n");
-    if(MrotPre)   R0 = MatrixMultiply(MrotPre,R0,R0);
-    if(MtransPre) R0 = MatrixMultiply(MtransPre,R0,R0);
-    printf("Current input reg:\n");
+    if(MrotPre){
+      printf("Rot:\n");
+      MatrixPrint(stdout,MrotPre);
+      fprintf(fp,"Rot:\n");
+      MatrixPrint(fp,MrotPre);
+      R0 = MatrixMultiply(MrotPre,R0,R0);
+    }
+    if(MtransPre){
+      printf("Trans:\n");
+      MatrixPrint(stdout,MtransPre);
+      fprintf(fp,"Trans:\n");
+      MatrixPrint(fp,MtransPre);
+      R0 = MatrixMultiply(MtransPre,R0,R0);
+    }
+    printf("New input reg:\n");
     MatrixPrint(stdout,R0);
   }
 
@@ -571,6 +583,7 @@ int main(int argc, char **argv) {
     printf("Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
     fprintf(fp,"\n");
     fprintf(fp,"Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
+    fflush(stdout); fflush(fp);
     mincost = 10e10;
     PreOptAtMin = 0;
     for(n=0; n < 6; n++) p[n] = 0.0;
@@ -593,17 +606,26 @@ int main(int argc, char **argv) {
 		if(costs[7] < mincost) {
 		  mincost = costs[7];
 		  for(n=0; n < 6; n++) pmin[n] = p[n];
-		}
-		if(nth == 0 || nth%1000 == 0){
 		  secCostTime = TimerStop(&mytimer)/1000.0 ;
 		  printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
 			 nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
 		  fprintf(fp,"%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
 			  nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
-		  if(PreOptFile) 
-		    fprintf(fpPreOpt,"%8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf\n",
-			    tx,ty,tz,ax,ay,az,costs[7]);
+		  fflush(stdout); fflush(fp);
+
+		} else {
+		  if(nth == 0 || nth%1000 == 0){
+		    secCostTime = TimerStop(&mytimer)/1000.0 ;
+		    printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+			   nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+		    fprintf(fp,"%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+			    nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+		    fflush(stdout); fflush(fp);
+		  }
 		}
+		if(PreOptFile) 
+		  fprintf(fpPreOpt,"%8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf\n",
+			  tx,ty,tz,ax,ay,az,costs[7]);
 		nth ++;
 	      }
 	    }
@@ -618,8 +640,8 @@ int main(int argc, char **argv) {
     printf("Min cost was %lf\n",mincost);
     printf("Number of iterations %5d\n",nth);
     secCostTime = TimerStop(&mytimer)/1000.0 ;
-    printf("Optmization time %lf sec\n",secCostTime);
-    printf("Parameters at optimum (transmm, rotdeg)\n");
+    printf("Search time %lf sec\n",secCostTime);
+    printf("Parameters at best (transmm, rotdeg)\n");
     printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
 	   p[0],p[1],p[2],p[3],p[4],p[5]);
     printf("--------------------------------------------\n");
