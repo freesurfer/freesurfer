@@ -1635,8 +1635,34 @@ if test ! "$ac_expat_libraries" = "NO"; then
   EXPAT_LIBS=-L$ac_expat_libraries
 fi
 
+# libexpat is now used by libutils, but the shared libexpat is not found in
+# the default search path on the Mac platform (it is found in /usr/X11R6/lib),
+# so in the interest of full compatibility, the static libexpat is used
+# if it can be found
+LIB_EXPAT="-lexpat"
+if test -e "$ac_expat_libraries"/libexpat.a ; then
+  LIB_EXPAT="$ac_expat_libraries"/libexpat.a
+else
+  if test -e /usr/pubsw/packages/expat/current/lib/libexpat.a ; then
+    LIB_EXPAT="/usr/pubsw/packages/expat/current/lib/libexpat.a"
+  else
+    if test -e /usr/X11R6/lib/libexpat.a ; then
+      LIB_EXPAT="/usr/X11R6/lib/libexpat.a"
+    else
+      if test -e /usr/lib/libexpat.a ; then
+        LIB_EXPAT="/usr/lib/libexpat.a"
+      else
+        if test -e /usr/lib64/libexpat.a ; then
+          LIB_EXPAT="/usr/lib64/libexpat.a"
+        fi
+      fi
+    fi
+  fi
+fi
+
 AC_SUBST(EXPAT_CFLAGS)
 AC_SUBST(EXPAT_LIBS)
+AC_SUBST(LIB_EXPAT)
 
 
 #####################################################
@@ -2090,40 +2116,32 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
   AC_SUBST(LIB_BLT)
 fi 
 
-# some systems, like Debian, do not include certain VTK libs which are
-# normally found elsewhere (from their official sources).  so here,
-# first we declare the commonly found lib, and override with vtk versions 
-# only if the locally installed versions are not found.
-# note: older freetype libs dont have FTC_Manager_LookupSize, so that func
-# is checked explicitly (for instance, Linux rh9 doesnt have this).
-VTK_EXPAT_LIB="-lexpat"
-VTK_FREETYPE_LIB="-lfreetype"
-VTK_TIFF_LIB="-ltiff"
-VTK_JPEG_LIB="-ljpeg"
-VTK_PNG_LIB="-lpng"
-VTK_Z_LIB="-lz"
-
-# limit the possible paths where these can be found, as things like
-# libfreetype can be squirreled away in odd locations (like /usr/X11R6/lib)
-local_cppflags_save=$CPPFLAGS
-local_ldflags_save=$LDFLAGS
-local_libs_save=$LIBS
-CPPFLAGS="$EXPAT_CFLAGS $TIFF_CFLAGS $JPEG_CFLAGS"
-LDFLAGS="$EXPAT_LIBS $TIFF_LIBS $JPEG_LIBS -L/usr/lib64"
-LIBS=""
-# AC_MSG_RESULT(CFLAGS: $CPPFLAGS)
-# AC_MSG_RESULT(LDFLAGS: $LDFLAGS)
-# AC_MSG_RESULT(LIBS: $LIBS)
-AC_CHECK_LIB([expat], [main], [], [VTK_EXPAT_LIB="-lvtkexpat"])
-AC_CHECK_LIB([freetype], [FTC_Manager_LookupSize], 
-                         [], [VTK_FREETYPE_LIB="-lvtkfreetype"])
-AC_CHECK_LIB([tiff], [TIFFGetVersion], [], [VTK_TIFF_LIB="-lvtktiff"])
-AC_CHECK_LIB([jpeg], [jpeg_start_compress], [], [VTK_JPEG_LIB="-lvtkjpeg"])
-AC_CHECK_LIB([png], [main], [], [VTK_PNG_LIB="-lvtkpng"])
-AC_CHECK_LIB([z], [gzopen], [], [VTK_Z_LIB="-lvtkzlib"])
-CPPFLAGS=$local_cppflags_save
-LDFLAGS=$local_ldflags_save
-LIBS=$local_libs_save
+# test for vtk versions of system libs, and if not found (ie, not
+# built when vtk was built), then use the system lib
+AC_CHECK_LIB([vtkexpat], [main],
+             [VTK_EXPAT_LIB="-lvtkexpat"],
+             [AC_CHECK_LIB([expat],[main],[VTK_EXPAT_LIB="-lexpat"],
+             [AC_MSG_ERROR([FATAL: libvtkexpat or libexpat not found.])])])
+AC_CHECK_LIB([vtkfreetype], [FTC_Manager_LookupSize],
+             [VTK_FREETYPE_LIB="-lvtkfreetype"],
+             [AC_CHECK_LIB([freetype],[FTC_Manager_LookupSize],[VTK_FREETYPE_LIB="-lfreetype"],
+             [AC_MSG_ERROR([FATAL: libvtkfreetype or libfreetype not found.])])])
+AC_CHECK_LIB([vtktiff], [TIFFGetVersion],
+             [VTK_TIFF_LIB="-lvtktiff"],
+             [AC_CHECK_LIB([tiff],[TIFFGetVersion],[VTK_TIFF_LIB="-ltiff"],
+             [AC_MSG_ERROR([FATAL: libvtktiff or libtiff not found.])])])
+AC_CHECK_LIB([vtkjpeg], [jpeg_start_compress], 
+             [VTK_JPEG_LIB="-lvtkjpeg"],
+             [AC_CHECK_LIB([jpeg],[jpeg_start_compress],[VTK_JPEG_LIB="-ljpeg"],
+             [AC_MSG_ERROR([FATAL: libvtkjpeg or libjpeg not found.])])])
+AC_CHECK_LIB([vtkpng], [main],
+             [VTK_PNG_LIB="-lvtkpng"],
+             [AC_CHECK_LIB([png],[main],[VTK_PNG_LIB="-lpng"],
+             [AC_MSG_ERROR([FATAL: libvtkpng or libpng not found.])])])
+AC_CHECK_LIB([vtkzlib], [gzopen],
+             [VTK_Z_LIB="-lvtkzlib"],
+             [AC_CHECK_LIB([z],[gzopen],[VTK_Z_LIB="-lz"],
+             [AC_MSG_ERROR([FATAL: libvtkzlib or libz not found.])])])
 
 AC_SUBST(VTK_EXPAT_LIB)
 AC_SUBST(VTK_FREETYPE_LIB)
@@ -2131,27 +2149,6 @@ AC_SUBST(VTK_TIFF_LIB)
 AC_SUBST(VTK_JPEG_LIB)
 AC_SUBST(VTK_PNG_LIB)
 AC_SUBST(VTK_Z_LIB)
-
-# libexpat is now used by libutils, but the shared libexpat is not found in
-# the default search path on the Mac platform (it is found in /usr/X11R6/lib),
-# so in the interest of full compatibility, the static libexpat is used
-# if it can be found, otherwise, whatever VTK_EXPAT_LIB was set to is used.
-# (but dont do this if --with-expat-dir=DIR was used)
-if test "$ac_expat_libraries" = "NO"; then
-  if test -e /usr/pubsw/packages/expat/current/lib/libexpat.a ; then
-    VTK_EXPAT_LIB="/usr/pubsw/packages/expat/current/lib/libexpat.a"
-  fi
-  if test -e /usr/X11R6/lib/libexpat.a ; then
-    VTK_EXPAT_LIB="/usr/X11R6/lib/libexpat.a"
-  fi
-  if test -e /usr/lib/libexpat.a ; then
-    VTK_EXPAT_LIB="/usr/lib/libexpat.a"
-  fi
-  if test -e /usr/lib64/libexpat.a ; then
-    VTK_EXPAT_LIB="/usr/lib64/libexpat.a"
-  fi
-  AC_SUBST(VTK_EXPAT_LIB)
-fi
 
 # check for VTK libs
 AC_CHECK_FILE($VTK_LIB/libvtkCommon$DYNAMIC_LIB_EXT,
@@ -2258,7 +2255,7 @@ $ITK_LIBS $EXPAT_LIBS"
 # The order is important here. When adding or removing a lib, be sure
 # to test the link line to make sure you don't need to adjust the
 # order.
-LIBS="$VTK_EXPAT_LIB -ljpeg -ltiff -lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
+LIBS="$LIB_EXPAT -ljpeg -ltiff -lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
 LIBS="$LIBS $LIBS_MNI"
 LIBS="$LIBS $LIBS_VXL"
 LIBS="$LIBS $LIBS_NIFTI"
