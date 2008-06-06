@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/06/06 20:34:31 $
-#    $Revision: 1.413 $
+#    $Date: 2008/06/06 22:47:50 $
+#    $Revision: 1.414 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2123,13 +2123,14 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 ac_save_libs=$LIBS
 ac_save_cppflags=$CPPFLAGS
 ac_save_ldflags=$LDFLAGS
-CPPFLAGS="$CPPFLAGS $PETSC_CFLAGS $ITK_CFLAGS $ANN_CFLAGS \
+CPPFLAGS="$CPPFLAGS $EXPAT_CFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
+$PETSC_CFLAGS $ITK_CFLAGS $ANN_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
-$GL_CFLAGS $GLU_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS \
-$EXPAT_CFLAGS"
+$GL_CFLAGS $GLU_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS"
 LDFLAGS="$LDFLAGS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
+$EXPAT_LIBS $TIFF_LIBS $JPEG_LIBS \
 $gl_libs $GL_LIBS $GLU_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
-$PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $EXPAT_LIBS $ANN_LIBS"
+$PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $ANN_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 # AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 # AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -2258,14 +2259,14 @@ AC_CHECK_LIB([vtkfreetype], [FTC_Manager_LookupSize],
              [VTK_FREETYPE_LIB="-lvtkfreetype"],
              [AC_CHECK_LIB([freetype],[FTC_Manager_LookupSize],[VTK_FREETYPE_LIB="-lfreetype"],
              [AC_MSG_ERROR([FATAL: libvtkfreetype or libfreetype not found.])])])
-AC_CHECK_LIB([vtktiff], [TIFFGetVersion],
-             [VTK_TIFF_LIB="-lvtktiff"],
-             [AC_CHECK_LIB([tiff],[TIFFGetVersion],[VTK_TIFF_LIB="-ltiff"],
-             [AC_MSG_ERROR([FATAL: libvtktiff or libtiff not found.])])])
-AC_CHECK_LIB([vtkjpeg], [jpeg_start_compress], 
+AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress], 
              [VTK_JPEG_LIB="-lvtkjpeg"],
              [AC_CHECK_LIB([jpeg],[jpeg_start_compress],[VTK_JPEG_LIB="-ljpeg"],
              [AC_MSG_ERROR([FATAL: libvtkjpeg or libjpeg not found.])])])
+AC_CHECK_LIB([vtktiff -lvtkjpeg], [vtk_TIFFGetVersion],
+             [VTK_TIFF_LIB="-lvtktiff"],
+             [AC_CHECK_LIB([tiff],[TIFFGetVersion],[VTK_TIFF_LIB="-ltiff"],
+             [AC_MSG_ERROR([FATAL: libvtktiff or libtiff not found.])])])
 AC_CHECK_LIB([vtkpng], [main],
              [VTK_PNG_LIB="-lvtkpng"],
              [AC_CHECK_LIB([png],[main],[VTK_PNG_LIB="-lpng"],
