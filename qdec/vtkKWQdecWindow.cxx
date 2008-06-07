@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/03 22:54:55 $
- *    $Revision: 1.19 $
+ *    $Date: 2008/06/07 13:47:38 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.19 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.20 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -587,9 +587,11 @@ vtkKWQdecWindow::CreateWidget () {
     ksSubjectsPanelName, "Explore data from the subjects data table", NULL );
   mPanel->AddPage(
     ksDesignPanelName, "Create the GLM Design matrix", NULL );
+#if 0 //HACK disable Contrast tab for now
   mPanel->AddPage(
     ksContrastPanelName, "Create the Contrast matrix, and begin the analysis",
     NULL );
+#endif
   mPanel->AddPage(
     ksDisplayPanelName, "Configure the view of the results", NULL );
 
@@ -944,7 +946,7 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryDegreesOfFreedom->SetReadOnly( 1 );
   this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
-
+#if 0 //HACK disable Contrast tab for now
   // ---------------------------------------------------------------------
   //
   // Contrast pane gets the control for configuring the contrast matrix input
@@ -985,6 +987,7 @@ vtkKWQdecWindow::CreateWidget () {
     ( this, "NuisanceFactorsListBoxCallback" );
   this->Script( "pack %s -fill x -expand y", 
                 mListNuisanceFactors->GetWidgetName() );
+#endif
 
   //
   // Now for the 'go' button (to start analysis)
