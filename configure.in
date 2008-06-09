@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/06/08 22:22:59 $
-#    $Revision: 1.415 $
+#    $Date: 2008/06/09 01:59:46 $
+#    $Revision: 1.416 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1482,11 +1482,17 @@ fi
 if test -e "$ac_tcl_libraries/libjpeg.a"; then
   LIB_JPEG="$ac_tcl_libraries/libjpeg.a"
 fi
-if test -e "$ac_jpeg_libraries/libjpeg.a"; then
-  LIB_JPEG="$ac_jpeg_libraries/libjpeg.a"
-fi
 if test -e "/usr/lib/libjpeg.a"; then
   LIB_JPEG="/usr/lib/libjpeg.a"
+fi
+if test -e "/usr/lib64/libjpeg.a"; then
+  LIB_JPEG="/usr/lib64/libjpeg.a"
+fi
+if test -e "/usr/pubsw/packages/tiffjpegglut/current/lib/libjpeg.a"; then
+  LIB_JPEG="/usr/pubsw/packages/tiffjpegglut/current/lib/libjpeg.a"
+fi
+if test -e "$ac_jpeg_libraries/libjpeg.a"; then
+  LIB_JPEG="$ac_jpeg_libraries/libjpeg.a"
 fi
 
 AM_CONDITIONAL(USE_LOCAL_JPEG, test "$ac_jpeg_libraries" = "NO")
