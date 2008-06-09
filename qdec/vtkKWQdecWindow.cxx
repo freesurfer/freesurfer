@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/07 13:47:38 $
- *    $Revision: 1.20 $
+ *    $Date: 2008/06/09 17:39:09 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.20 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.21 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3458,6 +3458,16 @@ vtkKWQdecWindow::UpdateSurfaceScalarsColorsEditor () {
     vtkFloatArray* surfaceScalars =
       maSurfaceScalars[mnCurrentSurfaceScalars].mValues;
 
+    // saturate at +-100, since the vtkHistogram code has a problem with
+    // extremes (like +-10000000000)
+    for( int nVertex = 0; 
+         nVertex < surfaceScalars->GetNumberOfTuples(); 
+         nVertex++ ) {
+      float val = surfaceScalars->GetValue(nVertex);
+      if (val > 100) surfaceScalars->SetValue(nVertex, 100);
+      else if (val < -100) surfaceScalars->SetValue(nVertex, -100);
+    }
+    
     // Make the histogram.
     mHistogramSurfaceScalarColors->BuildHistogram( surfaceScalars, 0 );
     mEditorSurfaceScalarColors->
