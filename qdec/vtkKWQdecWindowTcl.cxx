@@ -131,20 +131,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
-  if ((!strcmp("SetUseHistogramEditor",argv[1]))&&(argc == 3))
-    {
-    bool   temp0;
-    error = 0;
-
-    if (Tcl_GetInt(interp,argv[2],&tempi) != TCL_OK) error = 1;
-    temp0 = tempi ? true : false;
-    if (!error)
-    {
-    op->SetUseHistogramEditor(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
   if ((!strcmp("FinishCreating",argv[1]))&&(argc == 2))
     {
     op->FinishCreating();
@@ -539,6 +525,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
   if ((!strcmp("ClearSurfaceScalars",argv[1]))&&(argc == 2))
     {
     op->ClearSurfaceScalars();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("UnloadSurfaceScalars",argv[1]))&&(argc == 2))
+    {
+    op->UnloadSurfaceScalars();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -1194,7 +1186,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  IsA\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  NewInstance\n",NULL);
     Tcl_AppendResult(interp,"  SafeDownCast\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  SetUseHistogramEditor\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  FinishCreating\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentMeasure\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentSurfaceMeasure\t with 1 arg\n",NULL);
@@ -1235,6 +1226,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SaveTIFFImage\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentSurfaceScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ClearSurfaceScalars\n",NULL);
+    Tcl_AppendResult(interp,"  UnloadSurfaceScalars\n",NULL);
     Tcl_AppendResult(interp,"  ClearCurvature\n",NULL);
     Tcl_AppendResult(interp,"  RestoreView\n",NULL);
     Tcl_AppendResult(interp,"  ZoomBy\t with 1 arg\n",NULL);

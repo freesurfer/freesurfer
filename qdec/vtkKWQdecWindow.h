@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/23 01:54:19 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/06/09 21:58:20 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -196,6 +196,9 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // Delete all the scalars.
   void ClearSurfaceScalars ();
+
+  // Clear the currently displayed scalar
+  void UnloadSurfaceScalars ();
 
   // Delete the curvature.
   void ClearCurvature ();

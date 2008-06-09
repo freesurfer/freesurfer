@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/09 17:39:09 $
- *    $Revision: 1.21 $
+ *    $Date: 2008/06/09 21:58:20 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.21 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.22 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -578,7 +578,7 @@ vtkKWQdecWindow::CreateWidget () {
   // labeled frames inside those.
   //
 
-  this->GetMainSplitFrame()->SetFrame1Size( 325 );
+  this->GetMainSplitFrame()->SetFrame1Size( 375 );
 
   mPanel = vtkSmartPointer<vtkKWUserInterfacePanel>::New();
   mPanel->SetUserInterfaceManager( this->GetMainUserInterfaceManager() );
@@ -716,7 +716,7 @@ vtkKWQdecWindow::CreateWidget () {
   excludeFrame->SetParent( panelFrame );
   excludeFrame->Create();
   excludeFrame->SetLabelText( "Subject Exclusions" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
                 excludeFrame->GetWidgetName(), nRow );
   nRow++;
 
@@ -730,7 +730,7 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryExcludeFactor->SetValue( "<none selected>" );
   mEntryExcludeFactor->SetWidth( 25 );
   mEntryExcludeFactor->SetReadOnly( 1 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -746,7 +746,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectGT, 
                                          "ValueCallback" );
   mEntryExcludeSubjectGT->SetCommand ( this, "SetExcludeSubjectGT" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -762,7 +762,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectLT, 
                                          "ValueCallback" );
   mEntryExcludeSubjectLT->SetCommand ( this, "SetExcludeSubjectLT" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -778,7 +778,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectET, 
                                          "ValueCallback" );
   mEntryExcludeSubjectET->SetCommand ( this, "SetExcludeSubjectET" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -786,10 +786,10 @@ vtkKWQdecWindow::CreateWidget () {
   vtkSmartPointer<vtkKWPushButton> clrButton =
     vtkSmartPointer<vtkKWPushButton>::New();
   clrButton->SetParent( excludeFrame->GetFrame() );
-  clrButton->SetText( "Clear" );
+  clrButton->SetText( "Clear Exclusions" );
   clrButton->Create();
   clrButton->SetCommand( this, "ClearAllExcludedSubjects" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 1 -row %d",
                 clrButton->GetWidgetName(), nRow );
   nRow++;
 
@@ -936,9 +936,15 @@ vtkKWQdecWindow::CreateWidget () {
   sCmd = string( "SetDesignMatrixType " ) + radBtn2->GetText();
   radBtn2->SetCommand( this, sCmd.c_str() );
 
-  // show degrees of freedom
+  // show degrees of freedom, inside its own frame
+  vtkSmartPointer<vtkKWFrameWithLabel> dofFrame =
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  dofFrame->SetParent( panelFrame );
+  dofFrame->SetLabelText( "DOF" );
+  dofFrame->Create();
+  this->Script( "pack %s -fill x", dofFrame->GetWidgetName() );
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
-  labeledEntry->SetParent( panelFrame );
+  labeledEntry->SetParent( dofFrame->GetFrame() );
   labeledEntry->SetLabelText( "Degrees Of Freedom:" );
   labeledEntry->Create();
   mEntryDegreesOfFreedom = labeledEntry->GetWidget();
@@ -2426,31 +2432,10 @@ vtkKWQdecWindow::SetCurrentSurfaceScalars ( int inEntry ) {
       // Save the new current index.
       mnCurrentSurfaceScalars = inEntry;
 
-#if 0
-      // Quick histogram.
-      if( mnCurrentSurfaceScalars >= 0 ) {
-        vtkFloatArray* a =
-          maSurfaceScalars[mnCurrentSurfaceScalars].mValues;
-        int const cBins = 10;
-        int* aBins = (int*) calloc( cBins, sizeof(int) );
-        double binRange =
-          (a->GetRange()[1] - a->GetRange()[0] + 0.00001) / (double)(cBins);
-        for( int n = 0; n < a->GetNumberOfTuples(); n++ )
-          aBins[(int)floor((a->GetTuple1(n)-a->GetRange()[0])/binRange)]++;
-        cerr << "Histogram " << a->GetNumberOfTuples()
-             << " values over [" << a->GetRange()[0]
-             << "," << a->GetRange()[1] << "]" << endl;
-        for( double n = 0; n < cBins; n += 1.0 )
-          cerr << "[" << a->GetRange()[0] + (n*binRange) << ","
-               << a->GetRange()[0] + ((n+1.0)*binRange)
-               << "): " << aBins[(int)n] << endl;
-        free( aBins );
-      };
-#endif
-
       // Call this to display these scalars.
       this->ComposeSurfaceScalarsAndShow();
 
+      // Histogram 
       this->UpdateSurfaceScalarsColorsEditor();
 
       // Update our menu.
@@ -2462,6 +2447,7 @@ vtkKWQdecWindow::SetCurrentSurfaceScalars ( int inEntry ) {
   }
 
 }
+
 
 void
 vtkKWQdecWindow::ClearSurfaceScalars () {
@@ -2482,6 +2468,34 @@ vtkKWQdecWindow::ClearSurfaceScalars () {
   this->UpdateDisplayPage();
   this->UpdateCommandStatus();
 }
+
+
+void
+vtkKWQdecWindow::UnloadSurfaceScalars () {
+
+  // unlike ClearSurfaceScalars, this just clears the currenly loaded
+  // scalar (blanking the surface)
+  mView->SetSurfaceScalars( NULL );
+  mView->SetSurfaceScalarsColors( NULL );
+  mView->SetAnnotationMessage( "" );
+  mView->SetSurfaceLookupScalars( NULL );
+  mView->SetSurfaceLegendColors( NULL );
+
+  // No selected scalar.
+  mnCurrentSurfaceScalars = -1;
+  mTableSurfaceScalars->ClearSelection();
+
+  // Redraw.
+  this->ComposeSurfaceScalarsAndShow();
+
+  // Update the colors editor.
+  this->UpdateSurfaceScalarsColorsEditor();
+
+  // Update our menu and page.
+  this->UpdateDisplayPage();
+  this->UpdateCommandStatus();
+}
+
 
 void
 vtkKWQdecWindow::ClearCurvature () {
@@ -3128,22 +3142,40 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       ( mTableSurfaceScalars,
         "ScheduleRefreshColorsOfAllCellsWithWindowCommand" );
 
+    // Now a frame for the clear button and the reverse value checkbox
+    vtkSmartPointer<vtkKWFrame> frameClearBtn =
+      vtkSmartPointer<vtkKWFrame>::New();
+    frameClearBtn->SetParent( scalarsFrame->GetFrame() );
+    frameClearBtn->Create();
+
+    // Button to clear scalars (ie. unload currently loaded scalar)
+    vtkSmartPointer<vtkKWPushButton> buttonClearScalars = 
+      vtkSmartPointer<vtkKWPushButton>::New();
+    buttonClearScalars->SetParent( frameClearBtn );
+    buttonClearScalars->Create();
+    buttonClearScalars->SetText( "Clear" );
+    buttonClearScalars->SetCommand( this, "UnloadSurfaceScalars" );
+
     // Checkbox for reverse values.
     vtkSmartPointer<vtkKWCheckButtonWithLabel> labeledCheckReverse =
       vtkSmartPointer<vtkKWCheckButtonWithLabel>::New();
-    labeledCheckReverse->SetParent( scalarsFrame->GetFrame() );
+    labeledCheckReverse->SetParent( frameClearBtn );
     labeledCheckReverse->Create();
     labeledCheckReverse->SetLabelText( "Reverse Values" );
     labeledCheckReverse->SetLabelPositionToRight();
-    this->Script( "pack %s -side top",
+
+    this->Script( "pack %s -side left -expand y -fill x -padx 5",
+                  buttonClearScalars->GetWidgetName() );
+    this->Script( "pack %s -side left -fill x -padx 5",
                   labeledCheckReverse->GetWidgetName() );
+    this->Script( "pack %s -side top -fill x -pady 2",
+                  frameClearBtn->GetWidgetName() );
 
     mCheckSurfaceScalarsColorReverse = labeledCheckReverse->GetWidget();
     mCheckSurfaceScalarsColorReverse->
       SetSelectedState( mbSurfaceScalarsColorReverse );
     mCheckSurfaceScalarsColorReverse->
       SetCommand( this, "SetSurfaceScalarsColorReverse" );
-
 
     // Checkboxes for positve and negative values (inside an inner
     // frame).
