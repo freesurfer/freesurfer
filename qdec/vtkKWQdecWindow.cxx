@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/09 21:58:20 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/06/10 04:42:10 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.22 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.23 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -716,7 +716,7 @@ vtkKWQdecWindow::CreateWidget () {
   excludeFrame->SetParent( panelFrame );
   excludeFrame->Create();
   excludeFrame->SetLabelText( "Subject Exclusions" );
-  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
                 excludeFrame->GetWidgetName(), nRow );
   nRow++;
 
@@ -730,7 +730,7 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryExcludeFactor->SetValue( "<none selected>" );
   mEntryExcludeFactor->SetWidth( 25 );
   mEntryExcludeFactor->SetReadOnly( 1 );
-  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -746,7 +746,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectGT, 
                                          "ValueCallback" );
   mEntryExcludeSubjectGT->SetCommand ( this, "SetExcludeSubjectGT" );
-  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -762,7 +762,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectLT, 
                                          "ValueCallback" );
   mEntryExcludeSubjectLT->SetCommand ( this, "SetExcludeSubjectLT" );
-  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -778,7 +778,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectET, 
                                          "ValueCallback" );
   mEntryExcludeSubjectET->SetCommand ( this, "SetExcludeSubjectET" );
-  this->Script( "grid %s -column 0 -columnspan 1 -row %d -sticky new",
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
                 labeledEntry->GetWidgetName(), nRow );
   nRow++;
 
@@ -789,7 +789,7 @@ vtkKWQdecWindow::CreateWidget () {
   clrButton->SetText( "Clear Exclusions" );
   clrButton->Create();
   clrButton->SetCommand( this, "ClearAllExcludedSubjects" );
-  this->Script( "grid %s -column 0 -columnspan 1 -row %d",
+  this->Script( "grid %s -column 0 -columnspan 2 -row %d",
                 clrButton->GetWidgetName(), nRow );
   nRow++;
 
