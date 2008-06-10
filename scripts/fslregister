@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/06/03 18:34:28 $
-#    $Revision: 1.26 $
+#    $Date: 2008/06/10 23:13:52 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.26 2008/06/03 18:34:28 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.27 2008/06/10 23:13:52 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -76,7 +76,7 @@ check_params_return:
 setenv FSLOUTPUTTYPE NIFTI
 
 set movvoldir = `dirname $movvol`;
-if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.$$
+if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.fslregister.$$
 mkdir -p $tmpdir
 
 set LF = $regfile.fslregister.log
@@ -118,21 +118,14 @@ if($fsvol == rawavg.cor) then
 endif
 
 # Convert reference to analyze
-set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
-if(! -e $refvol) then
-  if($fsvol == brainmask) then
-    # Try using brain instead
-    set refvol = $SUBJECTS_DIR/$subjid/mri/brain.mgz
-    if(-e $refvol) set fsvol = brain;
-  endif
-  if(! -e $refvol) then
-    # OK, Might be COR,
-    set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
-    if(! -e $refvol/COR-.info) then
-      # Give up
-      echo "ERROR: $refvol not found"
-      exit 1;
-    endif
+set refvol = `stem2fname $SUBJECTS_DIR/$subjid/mri/$fsvol`
+if($status) then
+  # OK, Might be COR,
+  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
+  if(! -e $refvol/COR-.info) then
+    # Give up
+    echo "ERROR: $refvol not found"
+    exit 1;
   endif
 endif
 
