@@ -8,8 +8,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:56:53 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/10 04:40:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -78,6 +78,11 @@ public:
    * @return vector < QdecFactor* >
    */
   vector < QdecFactor* > GetFactors ( );
+
+  /**
+   * @param  isFactorName
+   */
+  void DeleteFactor ( const char* isFactorName );
 
 private:
 

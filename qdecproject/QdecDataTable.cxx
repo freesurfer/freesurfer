@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/16 16:07:55 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/06/10 04:40:58 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -50,8 +50,6 @@ QdecDataTable::~QdecDataTable ( )
     delete this->mFactors.back();
     this->mFactors.pop_back();
   }
-  this->mDiscreteFactorNames.clear();
-  this->mContinuousFactorNames.clear();
   while (this->mSubjects.size() != 0)
   {
     delete this->mSubjects.back();
@@ -95,8 +93,6 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     delete this->mFactors.back();
     this->mFactors.pop_back();
   }
-  this->mDiscreteFactorNames.clear();
-  this->mContinuousFactorNames.clear();
   while (this->mSubjects.size() != 0)
   {
     delete this->mSubjects.back();
@@ -471,29 +467,16 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
 
   ifsDatFile.close();
 
+  // now remove any continuous factors that have both zero mean and std
+  int purged = this->PurgeNullFactors ( );
+  if (purged)
+  { 
+    printf("\nPurged %d null (zero mean and std) factors.\n",purged);
+  }
+
   printf("\nData table %s loaded.\n",isFileName);
 
   free(tmpstr);
-
-  // keep a local copy of the factor names
-  this->mDiscreteFactorNames.clear();
-  this->mContinuousFactorNames.clear();
-  for (unsigned int i=0; i < this->mFactors.size(); i++)
-  {
-    if (this->mFactors[i]->IsDiscrete())
-    {
-      this->mDiscreteFactorNames.push_back
-        ( this->mFactors[i]->GetFactorName() );
-    }
-  }
-  for (unsigned int i=0; i < this->mFactors.size(); i++)
-  {
-    if (this->mFactors[i]->IsContinuous())
-    {
-      this->mContinuousFactorNames.push_back
-        ( this->mFactors[i]->GetFactorName() );
-    }
-  }
 
   return 0;
 }
@@ -656,7 +639,16 @@ QdecFactor* QdecDataTable::GetFactor ( const char* isFactorName )
  */
 vector< string > QdecDataTable::GetDiscreteFactorNames ( )
 {
-  return this->mDiscreteFactorNames;
+  vector < string > discreteFactorNames;
+  for (unsigned int i=0; i < this->mFactors.size(); i++)
+  {
+    if (this->mFactors[i]->IsDiscrete())
+    {
+      discreteFactorNames.push_back
+        ( this->mFactors[i]->GetFactorName() );
+    }
+  }
+  return discreteFactorNames;
 }
 
 
@@ -665,7 +657,16 @@ vector< string > QdecDataTable::GetDiscreteFactorNames ( )
  */
 vector< string > QdecDataTable::GetContinuousFactorNames ( )
 {
-  return this->mContinuousFactorNames;
+  vector < string > continuousFactorNames;
+  for (unsigned int i=0; i < this->mFactors.size(); i++)
+  {
+    if (this->mFactors[i]->IsContinuous())
+    {
+      continuousFactorNames.push_back
+        ( this->mFactors[i]->GetFactorName() );
+    }
+  }
+  return continuousFactorNames;
 }
 
 
@@ -745,6 +746,49 @@ vector< double > QdecDataTable::GetMeanAndStdDev( const char* isFactorName )
 }
 
 
+
+/**
+ * deletes all continuous factors that have a zero mean and zero stddev.
+ * those are useless factors (probably originating from a stats table).
+ * @return number of factors purged
+ */
+int QdecDataTable::PurgeNullFactors ( )
+{
+  int purgeCount=0;
+
+  vector<QdecFactor*>::iterator iter = mFactors.begin() ; 
+  while( iter != mFactors.end() )
+  {
+    QdecFactor* factor = *iter;
+    if (factor->IsContinuous())
+    {
+      string factorName = factor->GetFactorName();
+      vector< double > vals =
+        this->GetMeanAndStdDev( factorName.c_str() );
+      if ((vals[0] == 0.0) && (vals[1] == 0.0))
+      {
+        // this factor has both zero mean and stddev, so get rid of it
+        iter = mFactors.erase( iter );
+        purgeCount++;
+
+        // now must also delete this factor from each subject
+        vector<QdecSubject*>::iterator iterSubj = mSubjects.begin() ; 
+        while( iterSubj != mSubjects.end() )
+        {
+          QdecSubject* subject = *iterSubj;
+          subject->DeleteFactor( factorName.c_str() );
+          ++iterSubj;
+        }
+      }
+      else ++iter;
+    }
+    else ++iter;
+  }
+
+  return purgeCount;
+}
+
+
 /**
  * Check that all subjects exist in the specified subjects_dir (including the
  * specified average subject).  Print to stderr and ErrorMessage any errors
@@ -756,5 +800,8 @@ vector< double > QdecDataTable::GetMeanAndStdDev( const char* isFactorName )
  */
 int QdecDataTable::VerifySubjects ( )
 {
+  // TODO
   return 0;
 }
+
+

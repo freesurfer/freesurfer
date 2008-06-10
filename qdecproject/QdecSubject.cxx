@@ -8,8 +8,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:56:53 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/10 04:40:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -128,3 +128,21 @@ vector < QdecFactor* > QdecSubject::GetFactors ( )
 }
 
 
+/**
+ * @param  isFactorName
+ */
+void QdecSubject::DeleteFactor ( const char* isFactorName )
+{
+  vector<QdecFactor*>::iterator iter = mFactors.begin() ; 
+  while( iter != mFactors.end() )
+  {
+    QdecFactor* factor = *iter;
+    string factorName = factor->GetFactorName();
+    if ( 0 == strcmp( factorName.c_str(), isFactorName ) )
+    {
+      mFactors.erase( iter );
+      return;
+    }
+    ++iter;
+  }
+}

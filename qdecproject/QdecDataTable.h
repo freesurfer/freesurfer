@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/23 00:39:56 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/10 04:40:58 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -133,6 +133,13 @@ public:
    */
   vector< double > GetMeanAndStdDev ( const char* isFactorName );
 
+  /**
+   * deletes all continuous factors that have a zero mean and zero stddev.
+   * those are useless factors (probably originating from a stats table).
+   * @return number of factors purged
+   */
+  int PurgeNullFactors ( );
+
 private:
 
   // private attributes
@@ -140,10 +147,8 @@ private:
 
   string mfnFileName;
 
+  // discrete and continuous factors as found on first line of data table
   vector < QdecFactor* > mFactors;
-
-  vector < string > mDiscreteFactorNames;
-  vector < string > mContinuousFactorNames;
 
   // Stores subject data (id and factors) as read from the
   // table.dat input file.
