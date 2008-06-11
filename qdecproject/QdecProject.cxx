@@ -10,10 +10,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/20 00:11:12 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/06/11 04:58:26 $
+ *    $Revision: 1.16 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -899,3 +899,122 @@ QdecProject::FormatCommandString ( const char* ifnProject,
   while( string::npos != (n = iosCommand.find( "%3" )) )
     iosCommand.replace( n, 2, isWorkingDir );
 }
+
+
+
+/**
+ * run asegstats2table and aparcstats2table to generate fresurfer stats data
+ * on each subject, for later optional inclusion into the main mDataTable
+ * creates file aseg_vol.dat, lh_aparc_thickness.dat...
+ *
+ * returns the names of the data that were created (aseg_vol, 
+ * lh_aparc_thickness...)
+ *
+ * @return vector< string >
+ */
+vector< string > QdecProject::CreateStatsDataTables ()
+{
+  // to be returned with names of stats data categories (files) created
+  vector< string > statsDataNames;  
+
+  vector< string > subjects = this->GetSubjectIDs();
+  int numSubjects = this->GetSubjectIDs().size();
+
+  if ( 0 == numSubjects )
+    throw runtime_error( "Zero subjects! Cannot run asegstats2table\n" );
+
+  /*
+   * start by running asegstats2table
+   */
+
+  // build a command line
+  string name = "aseg.vol";
+  stringstream ssCommand;
+  ssCommand << "asegstats2table --meas vol --t "
+            << this->GetWorkingDir() << "/" << name << ".stats.dat"
+            << " --subjects"; 
+  for( int i=0; i < numSubjects; i++ )
+  {
+    ssCommand << " " << subjects[i];
+  }
+
+  // and run the command...
+  char* sCommand = strdup( ssCommand.str().c_str() );
+  printf( "\n----------------------------------------------------------\n" );
+  printf( "%s\n", sCommand );
+  fflush(stdout);fflush(stderr);
+  int rRun = system( sCommand );
+  if ( -1 == rRun )
+    throw runtime_error( "system call failed: " + ssCommand.str() );
+  if ( rRun > 0 )
+    throw runtime_error( "command failed: " + ssCommand.str() );
+  free( sCommand );
+
+  // save the name of this file
+  statsDataNames.push_back( name );
+
+
+  /*
+   * now the variants of aparctats2table
+   */
+
+  vector< string > hemi;
+  vector< string > parc;
+  vector< string > meas;
+  hemi.push_back( "lh" );
+  hemi.push_back( "rh" );
+  parc.push_back( "aparc" );
+  parc.push_back( "aparc.a2005s" );
+  meas.push_back( "area" );
+  meas.push_back( "volume" );
+  meas.push_back( "thickness" );
+  meas.push_back( "meancurv" );
+  unsigned int h,p,m;
+  for( h=0; h < hemi.size(); h++ ) // for each hemi...
+  {
+    for( p=0; p < parc.size(); p++ ) // for each parcellation type
+    {
+      for( m=0; m < meas.size(); m++ ) // for each measure
+      {
+        // construct name of output file
+        stringstream ssFname;
+        ssFname <<  hemi[h]
+                << "." << parc[p] 
+                << "." << meas[m];
+
+        // build a command line
+        stringstream ssCommand;
+        ssCommand << "aparcstats2table"
+                  << " --h " << hemi[h]
+                  << " --parc " << parc[p]
+                  << " --meas " << meas[m]
+                  << " --t " << this->GetWorkingDir() 
+                  << "/" << ssFname.str() << ".stats.dat"
+                  << " --subjects"; 
+        for( int i=0; i < numSubjects; i++ )
+        {
+          ssCommand << " " << subjects[i];
+        }
+
+        // and run the command...
+        char* sCommand = strdup( ssCommand.str().c_str() );
+        printf( "\n------------------------------------------------------\n" );
+        printf( "%s\n", sCommand );
+        fflush(stdout);fflush(stderr);
+        int rRun = system( sCommand );
+        if ( -1 == rRun )
+          throw runtime_error( "system call failed: " + ssCommand.str() );
+        if ( rRun > 0 )
+          throw runtime_error( "command failed: " + ssCommand.str() );
+        free( sCommand );
+
+        // save the name of this data (now that we know it was successfully
+        // created
+        statsDataNames.push_back( ssFname.str() );
+      }
+    }
+  }
+
+  return statsDataNames;
+}
+

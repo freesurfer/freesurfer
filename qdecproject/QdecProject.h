@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/20 00:11:12 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/06/11 04:58:26 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -120,6 +120,19 @@ public:
    * @return QdecDataTable*
    */
   QdecDataTable* GetDataTable ( );
+
+
+  /**
+   * run asegstats2table and aparcstats2table to generate fresurfer stats data
+   * on each subject, for later optional inclusion into the main mDataTable
+   * creates file aseg_vol.dat, lh_aparc_thickness.dat...
+   *
+   * returns the names of the data that were created (aseg_vol, 
+   * lh_aparc_thickness...)
+   *
+   * @return vector< string >
+   */
+  vector< string > CreateStatsDataTables ();
 
 
   /**

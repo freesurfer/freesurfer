@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/10 04:40:58 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/11 04:58:26 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -54,8 +54,11 @@ public:
    * @return int
    * @param  isFileName
    * @param  osNewSubjDir
+   * @param  isFsIdColName
    */
-  int Load (const char* isFileName, char* osNewSubjDir );
+  int Load (const char* isFileName, 
+            char* osNewSubjDir=NULL,
+            const char* isFsIdColName=NULL);
 
 
   /**
@@ -145,13 +148,13 @@ private:
   // private attributes
   //
 
+  // name of the text file from which this data is loaded
   string mfnFileName;
 
   // discrete and continuous factors as found on first line of data table
   vector < QdecFactor* > mFactors;
 
-  // Stores subject data (id and factors) as read from the
-  // table.dat input file.
+  // Stores subject data (id and factors) as read from table.dat input file.
   vector < QdecSubject* > mSubjects;
 
   /**

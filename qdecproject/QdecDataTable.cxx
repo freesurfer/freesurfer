@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/10 04:40:58 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/06/11 04:58:26 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -72,8 +72,11 @@ QdecDataTable::~QdecDataTable ( )
  * @return int
  * @param  isFileName
  * @param  osNewSubjDir
+ * @param  isFsIdColName
  */
-int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
+int QdecDataTable::Load (const char* isFileName, 
+                         char* osNewSubjDir,
+                         const char* isFsIdColName)
 {
   size_t tmpstrMaxSize = 200000; // maximum size of one line in the file
   char *tmpstr = (char *)malloc( tmpstrMaxSize );
@@ -173,6 +176,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     else if (!strcmp(token,"subjid")) fsidcol = ncols;
     else if (!strcmp(token,"subject")) fsidcol = ncols;
     else if (!strcmp(token,"Subject")) fsidcol = ncols;
+    else if (isFsIdColName && !strcmp(token,isFsIdColName)) fsidcol = ncols;
     ncols++;
     token = strtok(NULL,WHITESPC); // get next token in this line
   }

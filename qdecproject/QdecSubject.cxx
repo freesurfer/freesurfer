@@ -8,8 +8,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/10 04:40:58 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/11 04:58:26 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
  */
 
 #include <stdexcept>
+#include <sstream>
 
 #include "QdecSubject.h"
 
@@ -77,7 +78,10 @@ string QdecSubject::GetDiscreteFactorValue (const char* isFactorName )
     }
   }
 
-  throw runtime_error( "ERROR: QdecSubject::GetDiscreteFactor failure\n" );
+  stringstream ssErr;
+  ssErr << "ERROR: QdecSubject::GetDiscreteFactor failure: could not find "
+    "factor name: " << isFactorName;
+  throw runtime_error( ssErr.str().c_str() );
   return NULL;
 }
 
@@ -96,7 +100,10 @@ double QdecSubject::GetContinuousFactorValue (const char* isFactorName )
     }
   }
 
-  throw runtime_error( "ERROR: QdecSubject::GetContinuousFactor failure\n" );
+  stringstream ssErr;
+  ssErr << "ERROR: QdecSubject::GetContinuousFactor failure: could not find "
+    "factor name: " << isFactorName;
+  throw runtime_error( ssErr.str().c_str() );
   return 0.0;
 }
 
