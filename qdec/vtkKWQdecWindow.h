@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/09 21:58:20 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/06/11 04:59:45 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -333,8 +333,11 @@ class vtkKWQdecWindow : public vtkKWWindow
   void SetExcludeSubjectET ( double inExcludeET );
   void SetExcludeSubjectET ( const char* isExcludeET );
   void ClearAllExcludedSubjects ( );
-
-  // Implements QdecVertexAnnotationLookup, which the view will use to
+  
+  void GenerateStatsDataTables ( );
+  void SetStatsImportItem ( const char* isStatsImportItem );
+  
+// Implements QdecVertexAnnotationLookup, which the view will use to
   // get an annotation string for a vertex number. We use this to
   // return a region string.
   const char* GetAnnotationForVertex ( int inVertex );
@@ -519,6 +522,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>       mEntryNumberOfSubjects;
   vtkSmartPointer<vtkKWListBox>     mListScatterPlot;
   vtkSmartPointer<vtkKWLabel>       mLabelScatterPlotLegend;
+  vtkSmartPointer<vtkKWFrameWithLabel> mFrameStatsImport;
+  vtkSmartPointer<vtkKWPushButton>  mBtnStatsGenerate;
+  vtkSmartPointer<vtkKWMenuButton>  mMenuStatsData;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeFactor;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectGT;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectLT;
@@ -594,6 +600,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   // Data objects.
   FsgdfPlot* mVertexPlot;
   QdecProject* mQdecProject;
+  QdecDataTable* mStatsImportDataTable;
   int mcVertices;
   std::map<std::string,vtkSmartPointer<vtkFSSurfaceSource> > maSurfaceSource;
   std::string msCurrentSurfaceSource;

@@ -1141,6 +1141,25 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("GenerateStatsDataTables",argv[1]))&&(argc == 2))
+    {
+    op->GenerateStatsDataTables();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("SetStatsImportItem",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetStatsImportItem(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
   if ((!strcmp("GetAnnotationForVertex",argv[1]))&&(argc == 3))
     {
     int      temp0;
@@ -1281,6 +1300,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ClearAllExcludedSubjects\n",NULL);
+    Tcl_AppendResult(interp,"  GenerateStatsDataTables\n",NULL);
+    Tcl_AppendResult(interp,"  SetStatsImportItem\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  GetAnnotationForVertex\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ComposeSurfaceScalarsAndShow\n",NULL);
     return TCL_OK;

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/10 04:42:10 $
- *    $Revision: 1.23 $
+ *    $Date: 2008/06/11 04:59:45 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.23 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.24 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -612,9 +612,6 @@ vtkKWQdecWindow::CreateWidget () {
   // Get the inner scrolled frame as the parent for everything else.
   panelFrame = scrolledFrame->GetFrame();
 
-  // We're packing this frame in a grid, keep track of our rows.
-  int nRow = 0;
-
   vtkSmartPointer<vtkKWEntryWithLabel> labeledEntry =
     vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( panelFrame );
@@ -633,21 +630,17 @@ vtkKWQdecWindow::CreateWidget () {
     mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
   }
   mEntrySubjectsDir->SetReadOnly( 0 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( panelFrame );
   labeledEntry->SetLabelText( "Data Table:" );
   labeledEntry->Create();
-  labeledEntry->SetLabelPositionToTop();
+  //labeledEntry->SetLabelPositionToTop();
   mEntryDataTable = labeledEntry->GetWidget();
   mEntryDataTable->SetValue( "<not loaded>" );
   mEntryDataTable->SetReadOnly( 1 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( panelFrame );
@@ -656,9 +649,7 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryNumberOfSubjects = labeledEntry->GetWidget();
   mEntryNumberOfSubjects->SetValue( "0" );
   mEntryNumberOfSubjects->SetReadOnly( 1 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   // Entry box for alternate fsaverage subject
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
@@ -672,19 +663,15 @@ vtkKWQdecWindow::CreateWidget () {
                                        mEntryAverageSubject, 
                                        "ValueCallback" );
   mEntryAverageSubject->SetCommand ( this, "SetAverageSubject" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   // Create the subject data scatter-plot exploration frame.
   vtkSmartPointer<vtkKWFrameWithLabel> exploreFrame = 
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
   exploreFrame->SetParent( panelFrame );
   exploreFrame->Create();
-  exploreFrame->SetLabelText( "Scatter Plot" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                exploreFrame->GetWidgetName(), nRow );
-  nRow++;
+  exploreFrame->SetLabelText( "Data Table View" );
+  this->Script( "pack %s -fill x", exploreFrame->GetWidgetName() );
 
   vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel> listBox =
     vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
@@ -710,15 +697,29 @@ vtkKWQdecWindow::CreateWidget () {
   this->Script( "pack %s -side top -fill x -expand yes",
                 label->GetWidgetName() );
 
+  // Create the stats data import frame.
+  mFrameStatsImport = vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  mFrameStatsImport->SetParent( panelFrame );
+  mFrameStatsImport->Create();
+  mFrameStatsImport->SetLabelText( "Stats Data Import" );
+  this->Script( "pack %s -fill x", mFrameStatsImport->GetWidgetName() );
+
+  // button to generate stats data
+  mBtnStatsGenerate =  vtkSmartPointer<vtkKWPushButton>::New();
+  mBtnStatsGenerate->SetParent( mFrameStatsImport->GetFrame() );
+  mBtnStatsGenerate->SetText( "Generate Stats Data Tables" );
+  mBtnStatsGenerate->Create();
+  mBtnStatsGenerate->SetCommand( this, "GenerateStatsDataTables" );
+  this->Script( "pack %s", mBtnStatsGenerate->GetWidgetName() );
+
+
   // Create the subject exclusion frame.
   vtkSmartPointer<vtkKWFrameWithLabel> excludeFrame = 
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
   excludeFrame->SetParent( panelFrame );
   excludeFrame->Create();
   excludeFrame->SetLabelText( "Subject Exclusions" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                excludeFrame->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", excludeFrame->GetWidgetName() );
 
   // Entry boxes for excluding subjects
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
@@ -730,9 +731,7 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryExcludeFactor->SetValue( "<none selected>" );
   mEntryExcludeFactor->SetWidth( 25 );
   mEntryExcludeFactor->SetReadOnly( 1 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( excludeFrame->GetFrame() );
@@ -746,9 +745,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectGT, 
                                          "ValueCallback" );
   mEntryExcludeSubjectGT->SetCommand ( this, "SetExcludeSubjectGT" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( excludeFrame->GetFrame() );
@@ -762,9 +759,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectLT, 
                                          "ValueCallback" );
   mEntryExcludeSubjectLT->SetCommand ( this, "SetExcludeSubjectLT" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( excludeFrame->GetFrame() );
@@ -778,9 +773,7 @@ vtkKWQdecWindow::CreateWidget () {
                                          mEntryExcludeSubjectET, 
                                          "ValueCallback" );
   mEntryExcludeSubjectET->SetCommand ( this, "SetExcludeSubjectET" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   // button to clear all excluded subjects
   vtkSmartPointer<vtkKWPushButton> clrButton =
@@ -789,20 +782,10 @@ vtkKWQdecWindow::CreateWidget () {
   clrButton->SetText( "Clear Exclusions" );
   clrButton->Create();
   clrButton->SetCommand( this, "ClearAllExcludedSubjects" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d",
-                clrButton->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s", clrButton->GetWidgetName() );
 
-  // the Subjects panel is now complete, so finish configing and show...
-  this->Script( "grid columnconfigure %s 0 -weight 0",
-                panelFrame->GetWidgetName() );
-  this->Script( "grid columnconfigure %s 1 -weight 1",
-                panelFrame->GetWidgetName() );
-  this->Script( "grid rowconfigure %s %d -weight 1",
-                panelFrame->GetWidgetName(), nRow );
-  for( int nRowConfigure = 0; nRowConfigure <= nRow; nRowConfigure++ )
-    this->Script( "grid rowconfigure %s %d -pad 4",
-                  panelFrame->GetWidgetName(), nRowConfigure );
+  // the Subjects panel is now complete
+
 
   // ---------------------------------------------------------------------
   //
@@ -1145,6 +1128,7 @@ vtkKWQdecWindow::EndActionWithProgress() {
 
 void 
 vtkKWQdecWindow::SetCurrentMeasure( const char* isMeasure ) {
+
   // remove the existing frame contents
   if( mFrameSurfaceMeasures ) mFrameSurfaceMeasures->Unpack();
   if( mFrameVolumeMeasures ) mFrameVolumeMeasures->Unpack();
@@ -4489,6 +4473,57 @@ vtkKWQdecWindow::ClearAllExcludedSubjects ( ) {
     // Redraw our graph.
     this->UpdateScatterPlot();
   }
+}
+
+
+void
+vtkKWQdecWindow::GenerateStatsDataTables ( ) {
+
+  if ( this->mQdecProject ) {
+
+    if ( 0 == this->mQdecProject->GetDataTable()->GetNumberOfSubjects() ) {
+      cerr << "ERROR: Must load a main data table first!" << endl;
+      return;
+    }
+
+    // run asegstats2table and aparcstats2table scripts
+    vector< string > statsNames = this->mQdecProject->CreateStatsDataTables();
+
+    if ( statsNames.size() ) { // it sppears to have given us some data
+
+      // remove the generate button
+      if( mBtnStatsGenerate ) mBtnStatsGenerate->Unpack();
+
+      // and replace with a menu button containing names of the generated
+      // stats tables
+      mMenuStatsData = vtkSmartPointer<vtkKWMenuButton>::New();
+      mMenuStatsData->SetParent( mFrameStatsImport->GetFrame() );
+      mMenuStatsData->Create();
+      mMenuStatsData->GetMenu()->AddRadioButton( "<none selected>" );
+      mMenuStatsData->SetValue( "<none selected>" );
+      for( unsigned int i=0; i < statsNames.size(); i++ ) {
+        string sCmd = string( "SetStatsImportItem " ) + statsNames[i].c_str();
+        mMenuStatsData->GetMenu()->AddRadioButton( statsNames[i].c_str(),
+                                                   this,
+                                                   sCmd.c_str());
+      }
+      this->Script( "pack %s -fill x", mFrameStatsImport->GetWidgetName() );
+      this->Script( "pack %s", mMenuStatsData->GetWidgetName() );
+    }
+  }
+}
+void
+vtkKWQdecWindow::SetStatsImportItem ( const char* isStatsImportItem ) {
+  // load from file
+  stringstream ssFname;
+  ssFname << isStatsImportItem << ".stats.dat";
+  stringstream ssFsIdColName;
+  if ( !strcmp(isStatsImportItem,"aseg.vol") ) ssFsIdColName << "volume";
+  else ssFsIdColName << isStatsImportItem;
+  mStatsImportDataTable = new QdecDataTable();
+  mStatsImportDataTable->Load( ssFname.str().c_str(), 
+                               NULL, 
+                               ssFsIdColName.str().c_str() );
 }
 
 
