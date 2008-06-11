@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/11 21:30:19 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,16 @@
 #include <vtkPoints.h>
 #include <vtkCellArray.h>
 #include <vtkProperty2D.h>
+#include <vtkInteractorStyleTrackballCamera.h>
+#include <vtkCamera.h>
+#include <vtkMath.h>
 #include "MyUtils.h"
+
+
+#define max(a,b)  (((a) > (b)) ? (a) : (b))
+#define min(a,b)  (((a) < (b)) ? (a) : (b))
+#define SCALE_FACTOR		200
+
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView, wxVTKRenderWindowInteractor)
 
@@ -78,10 +87,15 @@ RenderView::RenderView( wxWindow* parent, int id ) :
 
 void RenderView::InitializeRenderView()
 {
+  	vtkInteractorStyleTrackballCamera* istyle = vtkInteractorStyleTrackballCamera::New();
+  	this->SetInteractorStyle(istyle);
+  	istyle->Delete();
+	
 	m_renderWindow = this->GetRenderWindow();
 	m_renderer = vtkRenderer::New();
 	m_renderWindow->AddRenderer( m_renderer );
 //	m_renderer->SetBackground( 0.7, 0.7, 0.9 );
+//	m_renderWindow->SetDesiredUpdateRate( 5000 );
 
 	m_interactor = NULL;
 	m_nInteractionMode = 0;
@@ -243,7 +257,8 @@ void RenderView::ResetView()
 void RenderView::DoListenToMessage ( std::string const iMsg, void* const iData )
 {
 	if ( iMsg == "LayerActorUpdated" )
-		Render();
+	//	Render();
+		NeedRedraw();
 	
 	else if ( iMsg == "LayerAdded" || iMsg == "LayerMoved" || iMsg == "LayerRemoved" )
 		RefreshAllActors();
@@ -312,5 +327,90 @@ bool RenderView::SaveScreenshot( const wxString& fn )
 	PostScreenshot();
 	
 	return ret;
+}
+
+
+void RenderView::MoveLeft()
+{
+	vtkCamera* cam = m_renderer->GetActiveCamera();
+	double viewup[3], proj[3], v[3];
+	cam->GetViewUp( viewup );
+	cam->GetDirectionOfProjection( proj );
+	vtkMath::Cross( viewup, proj, v );
+	double focal_pt[3], cam_pos[3];
+	cam->GetFocalPoint( focal_pt );
+	cam->GetPosition( cam_pos );
+	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+	for ( int i = 0; i < 3; i++ )
+	{
+		focal_pt[i] -= v[i] * scale;
+		cam_pos[i] -= v[i] * scale;
+	}
+	cam->SetFocalPoint( focal_pt );
+	cam->SetPosition( cam_pos );
+	
+	NeedRedraw();
+}
+
+void RenderView::MoveRight()
+{
+	vtkCamera* cam = m_renderer->GetActiveCamera();
+	double viewup[3], proj[3], v[3];
+	cam->GetViewUp( viewup );
+	cam->GetDirectionOfProjection( proj );
+	vtkMath::Cross( viewup, proj, v );
+	double focal_pt[3], cam_pos[3];
+	cam->GetFocalPoint( focal_pt );
+	cam->GetPosition( cam_pos );
+	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+	for ( int i = 0; i < 3; i++ )
+	{
+		focal_pt[i] += v[i] * scale;
+		cam_pos[i] += v[i] * scale;
+	}
+	cam->SetFocalPoint( focal_pt );
+	cam->SetPosition( cam_pos );
+	
+	NeedRedraw();
+}
+
+void RenderView::MoveUp()
+{
+	vtkCamera* cam = m_renderer->GetActiveCamera();
+	double v[3];
+	cam->GetViewUp( v );
+	double focal_pt[3], cam_pos[3];
+	cam->GetFocalPoint( focal_pt );
+	cam->GetPosition( cam_pos );
+	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+	for ( int i = 0; i < 3; i++ )
+	{
+		focal_pt[i] -= v[i] * scale;
+		cam_pos[i] -= v[i] * scale;
+	}
+	cam->SetFocalPoint( focal_pt );
+	cam->SetPosition( cam_pos );
+	
+	NeedRedraw();
+}
+	
+void RenderView::MoveDown()
+{
+	vtkCamera* cam = m_renderer->GetActiveCamera();
+	double v[3];
+	cam->GetViewUp( v );
+	double focal_pt[3], cam_pos[3];
+	cam->GetFocalPoint( focal_pt );
+	cam->GetPosition( cam_pos );
+	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
+	for ( int i = 0; i < 3; i++ )
+	{
+		focal_pt[i] += v[i] * scale;
+		cam_pos[i] += v[i] * scale;
+	}
+	cam->SetFocalPoint( focal_pt );
+	cam->SetPosition( cam_pos );
+	
+	NeedRedraw();
 }
 

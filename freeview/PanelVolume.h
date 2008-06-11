@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/11 21:30:19 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@ class wxComboBox;
 class wxChoice;
 class wxTextCtrl;
 class wxColorIndicator;
+class Layer;
 
 class PanelVolume : public wxPanel, public Listener, public Broadcaster
 {
@@ -92,6 +93,8 @@ private:
 	void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
 	void PopulateColorTable( COLOR_TABLE* ct );
 	void UpdateColorIndicator();
+	
+	void UpdateLayerList( Layer* layer );
 			
 	virtual void DoListenToMessage( std::string const iMsg, void* iData );
 	

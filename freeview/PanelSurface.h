@@ -1,5 +1,5 @@
 /**
- * @file  PanelROI.h
+ * @file  PanelSurface.h
  * @brief Layer control panel.
  *
  */
@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/11 21:30:19 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -23,8 +23,8 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-#ifndef PanelROI_h
-#define PanelROI_h
+#ifndef PanelSurface_h
+#define PanelSurface_h
 
 #include <wx/wx.h>
 #include "Listener.h"
@@ -38,11 +38,11 @@ class wxColourPickerCtrl;
 class wxColourPickerEvent;
 class Layer;
 
-class PanelROI : public wxPanel, public Listener, public Broadcaster
+class PanelSurface : public wxPanel, public Listener, public Broadcaster
 {
 public:
-	PanelROI(wxWindow* parent);
-	virtual ~PanelROI();
+	PanelSurface(wxWindow* parent);
+	virtual ~PanelSurface();
 	
 	void UpdateUI( bool bForce = false );
 	
@@ -54,13 +54,12 @@ private:
 	void OnLayerSelectionChanged( wxCommandEvent& event );
 	void OnLayerVisibilityChanged( wxCommandEvent& event );
 	
-	void OnButtonNew( wxCommandEvent& event );
 	void OnButtonLoad( wxCommandEvent& event );
-	void OnButtonSave( wxCommandEvent& event );
 	void OnButtonMoveUp( wxCommandEvent& event );
 	void OnButtonMoveDown( wxCommandEvent& event );
 	void OnButtonDelete( wxCommandEvent& event );
 	void OnColorChanged( wxColourPickerEvent& event );
+	void OnEdgeColorChanged( wxColourPickerEvent& event );
 	
 	void DoUpdateUI();
 	
@@ -77,6 +76,7 @@ private:
 	wxButton*		m_btnDelete;
 	wxSlider*		m_sliderOpacity;	
 	wxColourPickerCtrl*		m_colorPicker;
+	wxColourPickerCtrl*		m_colorPickerEdge;
 	wxTextCtrl*		m_textFileName;
 
 	bool			m_bUINeedUpdate;

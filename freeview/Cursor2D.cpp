@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,12 +43,13 @@
 #include "LayerPropertiesMRI.h"
 
 
-Cursor2D::Cursor2D( RenderView2D* view )
+Cursor2D::Cursor2D( RenderView2D* view ) :
+	m_view( view ),
+	m_nRadius( 5 )
 {
 	m_actorCursor = vtkSmartPointer<vtkActor2D>::New();
 	m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
-	m_nRadius = 5;
-	m_view = view;
+
 	Update();
 }
 
@@ -132,9 +133,20 @@ void Cursor2D::SetColor( double r, double g, double b )
 	m_actorCursor->GetProperty()->SetColor( r, g, b );
 }
 
+void Cursor2D::SetColor( const wxColour& color )
+{
+	m_actorCursor->GetProperty()->SetColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+}
+
 void Cursor2D::GetColor( double* rgb )
 {
 	m_actorCursor->GetProperty()->GetColor( rgb );
+}
+
+wxColour Cursor2D::GetColor()
+{
+	double* rgb = m_actorCursor->GetProperty()->GetColor();
+	return wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
 }
 
 int Cursor2D::GetRadius()

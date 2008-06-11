@@ -91,6 +91,8 @@ freeview_SOURCES=\
 	MyCmdLineParser.h \
 	PanelROI.cpp \
 	PanelROI.h \
+	PanelSurface.cpp \
+	PanelSurface.h \
 	PanelVolume.cpp \
 	PanelVolume.h \
 	PixelInfoPanel.cpp \

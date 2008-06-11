@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/11 21:30:19 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,7 @@
 #include <vtkMath.h>
 #include <vtkActor2D.h>
 #include "LayerCollection.h"
+#include "LayerCollectionManager.h"
 #include "MainWindow.h"
 #include "vtkPropCollection.h"
 #include "LayerMRI.h"
@@ -43,9 +44,10 @@
 #include "Interactor2DVoxelEdit.h"
 #include "MyUtils.h"
 
+
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
-#define SCALE_FACTOR		200
+
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView2D, RenderView)
 
@@ -233,7 +235,7 @@ void RenderView2D::UpdateCursorRASPosition( int posX, int posY, bool bConnectPre
 	MousePositionToRAS( posX, posY, pos );
 	
 	lc->SetCursorRASPosition( pos );
-	lc->SetSlicePosition( pos );
+	MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->SetSlicePosition( pos );
 	
 //	m_cursor2D->SetPosition( pos, bConnectPrevious );
 }
@@ -302,94 +304,34 @@ void RenderView2D::UpdateCursor()
 
 void RenderView2D::MoveLeft()
 {
-	vtkCamera* cam = m_renderer->GetActiveCamera();
-	double viewup[3], proj[3], v[3];
-	cam->GetViewUp( viewup );
-	cam->GetDirectionOfProjection( proj );
-	vtkMath::Cross( viewup, proj, v );
-	double focal_pt[3], cam_pos[3];
-	cam->GetFocalPoint( focal_pt );
-	cam->GetPosition( cam_pos );
-	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
-	for ( int i = 0; i < 3; i++ )
-	{
-		focal_pt[i] -= v[i] * scale;
-		cam_pos[i] -= v[i] * scale;
-	}
-	cam->SetFocalPoint( focal_pt );
-	cam->SetPosition( cam_pos );
+	RenderView::MoveLeft();
 	
 	UpdateAnnotation();
 	UpdateCursor();
-	NeedRedraw();
 }
 
 void RenderView2D::MoveRight()
 {
-	vtkCamera* cam = m_renderer->GetActiveCamera();
-	double viewup[3], proj[3], v[3];
-	cam->GetViewUp( viewup );
-	cam->GetDirectionOfProjection( proj );
-	vtkMath::Cross( viewup, proj, v );
-	double focal_pt[3], cam_pos[3];
-	cam->GetFocalPoint( focal_pt );
-	cam->GetPosition( cam_pos );
-	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
-	for ( int i = 0; i < 3; i++ )
-	{
-		focal_pt[i] += v[i] * scale;
-		cam_pos[i] += v[i] * scale;
-	}
-	cam->SetFocalPoint( focal_pt );
-	cam->SetPosition( cam_pos );
+	RenderView::MoveRight();
 	
 	UpdateAnnotation();
 	UpdateCursor();
-	NeedRedraw();
 }
 
 void RenderView2D::MoveUp()
 {
-	vtkCamera* cam = m_renderer->GetActiveCamera();
-	double v[3];
-	cam->GetViewUp( v );
-	double focal_pt[3], cam_pos[3];
-	cam->GetFocalPoint( focal_pt );
-	cam->GetPosition( cam_pos );
-	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
-	for ( int i = 0; i < 3; i++ )
-	{
-		focal_pt[i] -= v[i] * scale;
-		cam_pos[i] -= v[i] * scale;
-	}
-	cam->SetFocalPoint( focal_pt );
-	cam->SetPosition( cam_pos );
+	RenderView::MoveUp();
 	
 	UpdateAnnotation();
 	UpdateCursor();
-	NeedRedraw();
 }
 	
 void RenderView2D::MoveDown()
 {
-	vtkCamera* cam = m_renderer->GetActiveCamera();
-	double v[3];
-	cam->GetViewUp( v );
-	double focal_pt[3], cam_pos[3];
-	cam->GetFocalPoint( focal_pt );
-	cam->GetPosition( cam_pos );
-	double scale = min( min( m_dWorldSize[0], m_dWorldSize[1] ), m_dWorldSize[2] ) / SCALE_FACTOR;
-	for ( int i = 0; i < 3; i++ )
-	{
-		focal_pt[i] += v[i] * scale;
-		cam_pos[i] += v[i] * scale;
-	}
-	cam->SetFocalPoint( focal_pt );
-	cam->SetPosition( cam_pos );
+	RenderView::MoveDown();
 	
 	UpdateAnnotation();
 	UpdateCursor();
-	NeedRedraw();
 }
 
 

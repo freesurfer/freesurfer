@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,8 +40,9 @@ END_EVENT_TABLE()
 DialogPreferences::DialogPreferences( wxWindow* parent ) 
 {
 	wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_PREFERENCES") );
-	m_colorPicker = XRCCTRL( *this, "ID_COLORPICKER", wxColourPickerCtrl );
-	m_colorPicker->SetFocus();
+	m_colorPickerBackground = XRCCTRL( *this, "ID_COLORPICKER_BACKGROUND", wxColourPickerCtrl );
+	m_colorPickerBackground->SetFocus();
+	m_colorPickerCursor = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
 }
 
 DialogPreferences::~DialogPreferences()
@@ -50,16 +51,26 @@ DialogPreferences::~DialogPreferences()
 
 wxColour DialogPreferences::GetBackgroundColor() const
 {
-	return m_colorPicker->GetColour();
+	return m_colorPickerBackground->GetColour();
 }
 
 void DialogPreferences::SetBackgroundColor( const wxColour& color )
 {
-	m_colorPicker->SetColour( color );
+	m_colorPickerBackground->SetColour( color );
+}
+
+
+wxColour DialogPreferences::GetCursorColor() const
+{
+	return m_colorPickerCursor->GetColour();
+}
+
+void DialogPreferences::SetCursorColor( const wxColour& color )
+{
+	m_colorPickerCursor->SetColour( color );
 }
 
 void DialogPreferences::OnOK( wxCommandEvent& event )
 {
-	
 	event.Skip();
 }

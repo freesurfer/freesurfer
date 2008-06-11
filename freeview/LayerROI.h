@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@ class vtkPolyDataMapper;
 class vtkActor;
 class vtkImageActor;
 class vtkImageData;
+class vtkProp;
 class LayerMRI;
 class LayerPropertiesROI;
 class wxWindow;
@@ -56,6 +57,7 @@ class LayerROI : public LayerEditable
 		
 		void Append2DProps( vtkRenderer* renderer, int nPlane );
 		void Append3DProps( vtkRenderer* renderer );
+		bool HasProp( vtkProp* prop );
 		
 		virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
 				

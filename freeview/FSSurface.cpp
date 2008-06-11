@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:31 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,12 +33,14 @@
 #include "vtkFloatArray.h"
 #include "vtkPointData.h"
 #include "vtkCellData.h"
+#include "vtkCellArray.h"
 #include "vtkIntArray.h"
 #include "vtkSmartPointer.h"
 #include "vtkImageReslice.h"
 #include "vtkMatrix4x4.h"
 #include "vtkTransform.h"
 #include "vtkImageChangeInformation.h"
+#include "vtkPolyData.h"
 
 using namespace std;
 
@@ -47,6 +49,7 @@ FSSurface::FSSurface() :
 	m_bBoundsCacheDirty( true ),
 	m_HashTable( NULL )
 {
+	m_polydata = vtkPolyData::New();
 }
 	
 FSSurface::~FSSurface()
@@ -56,6 +59,8 @@ FSSurface::~FSSurface()
 	
 	if ( m_HashTable )
 		MHTfree( &m_HashTable );
+	
+	m_polydata->Delete();
 }
 		
 bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event  )
@@ -71,7 +76,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 	free( fn );	
 	
 	if ( m_MRIS == NULL ) {
-		cerr << "MRISread failed";
+		cerr << "MRISread failed" << endl;
 		return false;
 	}	
 	cout << "MRISread finished" << endl;
@@ -130,9 +135,64 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 		MHTfree( &m_HashTable );
 	m_HashTable = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
 		
+	UpdatePolyData();
+	
 	return true;
 }
 
+void FSSurface::UpdatePolyData()
+{
+  // Allocate all our arrays.
+	int cVertices = m_MRIS->nvertices;
+	int cFaces = m_MRIS->nfaces;
+
+	vtkSmartPointer<vtkPoints> newPoints = 
+			vtkSmartPointer<vtkPoints>::New();
+	newPoints->Allocate( cVertices );
+
+	vtkSmartPointer<vtkCellArray> newPolys = 
+			vtkSmartPointer<vtkCellArray>::New();
+	newPolys->Allocate( newPolys->EstimateSize(cFaces,VERTICES_PER_FACE) );
+
+	vtkSmartPointer<vtkFloatArray> newNormals =
+			vtkSmartPointer<vtkFloatArray>::New();
+	newNormals->Allocate( cVertices );
+	newNormals->SetNumberOfComponents( 3 );
+	newNormals->SetName( "Normals" );
+
+  // Go through the surface and copy the vertex and normal for each
+  // vertex. We have to transform them from surface RAS into normal
+  // RAS.
+	float point[3], normal[3], surfaceRAS[3];
+	for ( int vno = 0; vno < cVertices; vno++ ) {
+
+		surfaceRAS[0] = m_MRIS->vertices[vno].x;
+		surfaceRAS[1] = m_MRIS->vertices[vno].y;
+		surfaceRAS[2] = m_MRIS->vertices[vno].z;
+		this->ConvertSurfaceToRAS( surfaceRAS, point );
+		newPoints->InsertNextPoint( point );
+
+		normal[0] = m_MRIS->vertices[vno].nx;
+		normal[1] = m_MRIS->vertices[vno].ny;
+		normal[2] = m_MRIS->vertices[vno].nz;
+		newNormals->InsertNextTuple( normal );
+	}
+
+  // Go through and add the face indices.
+	vtkIdType face[VERTICES_PER_FACE];
+	for ( int fno = 0; fno < cFaces; fno++ ) {
+
+		face[0] = m_MRIS->faces[fno].v[0];
+		face[1] = m_MRIS->faces[fno].v[1];
+		face[2] = m_MRIS->faces[fno].v[2];
+		newPolys->InsertNextCell( 3, face );
+	}
+
+	m_polydata->SetPoints( newPoints );
+	m_polydata->GetPointData()->SetNormals( newNormals );
+	newPolys->Squeeze(); // since we've estimated size; reclaim some space
+	m_polydata->SetPolys( newPolys );	
+}
 
 void FSSurface::ConvertSurfaceToRAS ( float iX, float iY, float iZ,
 		float& oX, float& oY, float& oZ ) const 

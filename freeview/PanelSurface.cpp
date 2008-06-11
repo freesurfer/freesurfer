@@ -1,5 +1,5 @@
 /**
- * @file  PanelROI.h
+ * @file  PanelSurface.h
  * @brief Main control panel.
  *
  */
@@ -8,7 +8,7 @@
  * CVS Revision Info:
  *    $Author: rpwang $
  *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.4 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,35 +26,34 @@
  
 #include "wx/wx.h"
 #include <wx/clrpicker.h>
-#include "PanelROI.h"
+#include "PanelSurface.h"
 #include <wx/xrc/xmlres.h>
 #include "MainWindow.h"
 #include "LayerCollection.h"
 #include "Layer.h"
-#include "LayerROI.h"
-#include "LayerPropertiesROI.h"
+#include "LayerSurface.h"
+#include "LayerPropertiesSurface.h"
 
-BEGIN_EVENT_TABLE( PanelROI, wxPanel )
-	EVT_LISTBOX			( XRCID( wxT( "ID_LISTBOX_ROIS" ) ),			PanelROI::OnLayerSelectionChanged )	
-	EVT_CHECKLISTBOX	( XRCID( wxT( "ID_LISTBOX_ROIS" ) ),			PanelROI::OnLayerVisibilityChanged )
-	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_OPACITY" ) ),			PanelROI::OnSliderOpacity )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_MOVE_UP" ) ),			PanelROI::OnButtonMoveUp )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_MOVE_DOWN" ) ),		PanelROI::OnButtonMoveDown )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_DELETE" ) ),			PanelROI::OnButtonDelete )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_NEW" ) ),				PanelROI::OnButtonNew )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_LOAD" ) ),				PanelROI::OnButtonLoad )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SAVE" ) ),				PanelROI::OnButtonSave )
-	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER" ) ), 	PanelROI::OnColorChanged )
+BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
+	EVT_LISTBOX			( XRCID( wxT( "ID_LISTBOX_SURFACE" ) ),			PanelSurface::OnLayerSelectionChanged )	
+	EVT_CHECKLISTBOX	( XRCID( wxT( "ID_LISTBOX_SURFACE" ) ),			PanelSurface::OnLayerVisibilityChanged )
+	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_OPACITY" ) ),			PanelSurface::OnSliderOpacity )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_MOVE_UP" ) ),			PanelSurface::OnButtonMoveUp )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_MOVE_DOWN" ) ),		PanelSurface::OnButtonMoveDown )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_LOAD" ) ),				PanelSurface::OnButtonLoad )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_DELETE" ) ),			PanelSurface::OnButtonDelete )
+	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER" ) ), 	PanelSurface::OnColorChanged )
+	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER_EDGE" ) ), 	PanelSurface::OnEdgeColorChanged )
 END_EVENT_TABLE()
 
 
-PanelROI::PanelROI( wxWindow* parent ) : 
-		Listener( "PanelROI" ), 
-		Broadcaster( "PanelROI" ),
+PanelSurface::PanelSurface( wxWindow* parent ) : 
+		Listener( "PanelSurface" ), 
+		Broadcaster( "PanelSurface" ),
 		m_bUINeedUpdate( false )
 {
-	wxXmlResource::Get()->LoadPanel( this, parent, wxT("ID_PANEL_ROI") );
-	m_listBoxLayers = XRCCTRL( *this, "ID_LISTBOX_ROIS", wxCheckListBox );
+	wxXmlResource::Get()->LoadPanel( this, parent, wxT("ID_PANEL_SURFACE") );
+	m_listBoxLayers = XRCCTRL( *this, "ID_LISTBOX_SURFACE", wxCheckListBox );
 	m_sliderOpacity = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
 	m_btnNew = XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
 	m_btnLoad = XRCCTRL( *this, "ID_BUTTON_LOAD", wxButton );
@@ -63,25 +62,25 @@ PanelROI::PanelROI( wxWindow* parent ) :
 	m_btnMoveUp = XRCCTRL( *this, "ID_BUTTON_MOVE_UP", wxButton );
 	m_btnMoveDown = XRCCTRL( *this, "ID_BUTTON_MOVE_DOWN", wxButton );
 	m_colorPicker = XRCCTRL( *this, "ID_COLOR_PICKER", wxColourPickerCtrl );
+	m_colorPickerEdge = XRCCTRL( *this, "ID_COLOR_PICKER_EDGE", wxColourPickerCtrl );
 	m_textFileName = XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
-	MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" )->AddListener( this );
-	MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->AddListener( this );
+	MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 	
 	UpdateUI();
 }
 
-PanelROI::~PanelROI()
+PanelSurface::~PanelSurface()
 {
 }
 
-void PanelROI::DoListenToMessage( std::string const iMsg, void* iData )
+void PanelSurface::DoListenToMessage( std::string const iMsg, void* iData )
 {
 //	MainWindow* mainwnd = MainWindow::GetMainWindow();
 //	LayerCollection* lc = mainwnd->GetLayerCollection();
 	if ( iMsg == "LayerAdded" )
 	{
 		Layer* layer = ( Layer* )iData;
-		if ( layer && layer->IsTypeOf( "ROI" ) )
+		if ( layer && layer->IsTypeOf( "Surface" ) )
 		{
 			m_listBoxLayers->Insert( layer->GetName(), 0, (void*)layer );
 			m_listBoxLayers->Check( 0 );
@@ -93,7 +92,7 @@ void PanelROI::DoListenToMessage( std::string const iMsg, void* iData )
 	else if ( iMsg == "LayerMoved" )
 	{
 		Layer* layer = ( Layer* )iData;
-		if ( layer && layer->IsTypeOf( "ROI" ) )
+		if ( layer && layer->IsTypeOf( "Surface" ) )
 		{
 			UpdateLayerList( layer );
 		}
@@ -104,22 +103,22 @@ void PanelROI::DoListenToMessage( std::string const iMsg, void* iData )
 	}
 }
 
-void PanelROI::OnSliderOpacity( wxScrollEvent& event )
+void PanelSurface::OnSliderOpacity( wxScrollEvent& event )
 {
 	if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
 	{
-		LayerROI* layer = ( LayerROI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+		LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
 		if ( layer )
 			layer->GetProperties()->SetOpacity( event.GetPosition() / 100.0 );
 	}
 }
 
-void PanelROI::OnLayerSelectionChanged( wxCommandEvent& event )
+void PanelSurface::OnLayerSelectionChanged( wxCommandEvent& event )
 {
 	UpdateUI();
 }
 
-void PanelROI::UpdateUI( bool bForce )
+void PanelSurface::UpdateUI( bool bForce )
 {
 	if ( bForce )
 		DoUpdateUI();
@@ -127,37 +126,36 @@ void PanelROI::UpdateUI( bool bForce )
 		m_bUINeedUpdate = true;
 }
 
-void PanelROI::DoUpdateUI()
+void PanelSurface::DoUpdateUI()
 {
-	bool bHasROI = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-	bool bHasVolume = !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty();
-	LayerROI* layer = NULL;
-	if ( bHasROI )
+	bool bHasSurface = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+//	bool bHasVolume = !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty();
+	LayerSurface* layer = NULL;
+	if ( bHasSurface )
 	{
-		layer = ( LayerROI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+		layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
 		if ( layer )
 		{
 			m_sliderOpacity->SetValue( (int)( layer->GetProperties()->GetOpacity() * 100 ) );
 			double* rgb = layer->GetProperties()->GetColor();
 			m_colorPicker->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+			rgb = layer->GetProperties()->GetEdgeColor();
+			m_colorPickerEdge->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
 			m_textFileName->ChangeValue( layer->GetFileName() );
 			m_textFileName->SetInsertionPointEnd();
 			m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
 		}
 		
-		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
+		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
 		lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
-	m_btnNew->Enable( bHasVolume );
-	m_btnLoad->Enable( bHasVolume );
-	m_btnDelete->Enable( bHasROI && !mainWnd->IsSaving() );	
-	m_btnMoveUp->Enable( bHasROI && m_listBoxLayers->GetSelection() != 0 );
-	m_btnMoveDown->Enable( bHasROI && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
-	m_btnSave->Enable( bHasROI && layer && layer->IsModified() && !mainWnd->IsSaving() );
+	m_btnDelete->Enable( bHasSurface && !mainWnd->IsSaving() );	
+	m_btnMoveUp->Enable( bHasSurface && m_listBoxLayers->GetSelection() != 0 );
+	m_btnMoveDown->Enable( bHasSurface && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
 }
 
-void PanelROI::OnLayerVisibilityChanged( wxCommandEvent& event )
+void PanelSurface::OnLayerVisibilityChanged( wxCommandEvent& event )
 {
 	int nItem = event.GetInt();
 	Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nItem );
@@ -167,9 +165,9 @@ void PanelROI::OnLayerVisibilityChanged( wxCommandEvent& event )
 	}
 }
 
-void PanelROI::OnButtonMoveUp( wxCommandEvent& event )
+void PanelSurface::OnButtonMoveUp( wxCommandEvent& event )
 {
-	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
 	int nSel = m_listBoxLayers->GetSelection();
 	if ( lc && nSel != wxNOT_FOUND )
 	{
@@ -180,9 +178,9 @@ void PanelROI::OnButtonMoveUp( wxCommandEvent& event )
 	}
 }
 
-void PanelROI::OnButtonMoveDown( wxCommandEvent& event )
+void PanelSurface::OnButtonMoveDown( wxCommandEvent& event )
 {
-	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
 	int nSel = m_listBoxLayers->GetSelection();
 	if ( lc && nSel != wxNOT_FOUND )
 	{
@@ -194,9 +192,9 @@ void PanelROI::OnButtonMoveDown( wxCommandEvent& event )
 }
 
 
-void PanelROI::UpdateLayerList( Layer* layer )
+void PanelSurface::UpdateLayerList( Layer* layer )
 {
-	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
 	int nIndex = lc->GetLayerIndex( layer );
 	if ( nIndex != -1 )
 	{
@@ -226,20 +224,13 @@ void PanelROI::UpdateLayerList( Layer* layer )
 	}	
 }
 
-void PanelROI::OnButtonDelete( wxCommandEvent& event )
+void PanelSurface::OnButtonDelete( wxCommandEvent& event )
 {
-	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
 	int nSel = m_listBoxLayers->GetSelection();
 	if ( lc && nSel != wxNOT_FOUND )
 	{
 		Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
-		if ( ((LayerROI*)layer)->IsModified() )
-		{
-			wxString msg = "ROI has been modified. Do you want to close it without saving?";
-			wxMessageDialog dlg( this, msg, "Close", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
-			if ( dlg.ShowModal() != wxID_YES )
-				return;			
-		}
 		
 		m_listBoxLayers->Delete( nSel );
 		
@@ -254,23 +245,13 @@ void PanelROI::OnButtonDelete( wxCommandEvent& event )
 		UpdateUI();
 	}
 }
-	
-void PanelROI::OnButtonNew( wxCommandEvent& event )
+
+void PanelSurface::OnButtonLoad( wxCommandEvent& event )
 {
-	MainWindow::GetMainWindowPointer()->NewROI();
+	MainWindow::GetMainWindowPointer()->LoadSurface();
 }
 
-void PanelROI::OnButtonLoad( wxCommandEvent& event )
-{
-	MainWindow::GetMainWindowPointer()->LoadROI();
-}
-
-void PanelROI::OnButtonSave( wxCommandEvent& event )
-{
-	MainWindow::GetMainWindowPointer()->SaveROI();
-}
-
-void PanelROI::OnInternalIdle()
+void PanelSurface::OnInternalIdle()
 {
 	if ( m_bUINeedUpdate )
 	{
@@ -280,12 +261,23 @@ void PanelROI::OnInternalIdle()
 	wxPanel::OnInternalIdle();
 }
 
-void PanelROI::OnColorChanged( wxColourPickerEvent& event )
+void PanelSurface::OnColorChanged( wxColourPickerEvent& event )
 {
-	LayerROI* roi = ( LayerROI* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" )->GetActiveLayer();
-	if ( roi )
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
 	{
 		wxColour c = event.GetColour();
-		roi->GetProperties()->SetColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
+		surf->GetProperties()->SetColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
+	}	
+}
+
+
+void PanelSurface::OnEdgeColorChanged( wxColourPickerEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		wxColour c = event.GetColour();
+		surf->GetProperties()->SetEdgeColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
 	}	
 }

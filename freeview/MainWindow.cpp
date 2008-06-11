@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,7 @@
 #include "MyUtils.h"
 #include "LUTDataHolder.h"
 #include "BrushProperty.h"
+#include "Cursor2D.h"
 
 #define	CTRL_PANEL_WIDTH	240
 
@@ -140,6 +141,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_3D" ),				MainWindow::OnView3DUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewReset )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewResetUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayer )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayerUpdateUI )
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
 /*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
@@ -260,11 +263,16 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 		m_nViewLayout = config->Read( _T("/MainWindow/ViewLayout"), m_nViewLayout );
 		m_nMainView = config->Read( _T("/MainWindow/MainView"), m_nMainView );
 		
-		wxColour color = wxColour( config->Read( _T("RenderWindow/BackgroundColor"), "rgb(0,0,0" ) );
+		wxColour color = wxColour( config->Read( _T("RenderWindow/BackgroundColor"), "rgb(0,0,0)" ) );
 		m_viewAxial->SetBackgroundColor( color );
 		m_viewSagittal->SetBackgroundColor( color );
 		m_viewCoronal->SetBackgroundColor( color );
 		m_view3D->SetBackgroundColor( color );
+		
+		color = wxColour( config->Read( _T("RenderWindow/CursorColor"), "rgb(255,0,0)" ) );
+		m_viewAxial->GetCursor()->SetColor( color );
+		m_viewSagittal->GetCursor()->SetColor( color );
+		m_viewCoronal->GetCursor()->SetColor( color );
 		
 		m_nScreenshotFilterIndex = config->Read( _T("/MainWindow/ScreenshotFilterIndex"), 0L );
 	}
@@ -347,6 +355,7 @@ void MainWindow::OnClose( wxCloseEvent &event )
 		config->Write( _T("MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
 		
 		config->Write( _T("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
+		config->Write( _T("RenderWindow/CursorColor"), m_viewAxial->GetCursor()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
 		
 		m_fileHistory->Save( *config );
 	}
@@ -1208,6 +1217,42 @@ void MainWindow::OnViewResetUpdateUI( wxUpdateUIEvent& event )
 	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
 }
 
+
+void MainWindow::OnViewCycleLayer( wxCommandEvent& event )
+{
+	LayerCollection* lc = NULL;
+	switch ( m_controlPanel->GetCurrentLayerCollectionIndex() )
+	{
+		case 0:			// Volume
+			lc = GetLayerCollection( "MRI" );
+			break;
+		case 1:			// ROI
+			lc = GetLayerCollection( "ROI" );
+			break;
+	}
+	
+	if ( lc )
+	{
+		lc->CycleLayer();
+	}
+}
+
+void MainWindow::OnViewCycleLayerUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerCollection* lc = NULL;
+	switch ( m_controlPanel->GetCurrentLayerCollectionIndex() )
+	{
+		case 0:			// Volume
+			lc = GetLayerCollection( "MRI" );
+			break;
+		case 1:			// ROI
+			lc = GetLayerCollection( "ROI" );
+			break;
+	}
+	
+	event.Enable( lc && lc->GetNumberOfLayers() > 1 );
+}
+
 void MainWindow::NeedRedraw( int nCount )
 {
 	m_nRedrawCount = nCount;
@@ -1252,10 +1297,16 @@ void MainWindow::OnEditPreferences( wxCommandEvent& event )
 {
 	DialogPreferences dlg( this );
 	dlg.SetBackgroundColor( m_viewAxial->GetBackgroundColor() );
+	dlg.SetCursorColor( m_viewAxial->GetCursor()->GetColor() );
 	
 	if ( dlg.ShowModal() == wxID_OK )
 	{
-		wxColour color = dlg.GetBackgroundColor();
+		wxColour color = dlg.GetCursorColor();
+		m_viewAxial->GetCursor()->SetColor( color );
+		m_viewSagittal->GetCursor()->SetColor( color );
+		m_viewCoronal->GetCursor()->SetColor( color );
+		
+		color = dlg.GetBackgroundColor();
 		m_viewAxial->SetBackgroundColor( color );
 		m_viewSagittal->SetBackgroundColor( color );
 		m_viewCoronal->SetBackgroundColor( color );
@@ -1397,10 +1448,37 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 				if ( strg == "Load" )
 				{
 					LayerCollection* lc = GetLayerCollection( "Surface" );
-					lc->AddLayer( layer );
+					LayerSurface* sf = (LayerSurface*)layer;
+					if ( lc->GetNumberOfLayers() < 1 )
+					{
+						double worigin[3], wsize[3];
+						sf->GetWorldOrigin( worigin );
+						sf->GetWorldSize( wsize );
+						sf->SetSlicePositionToWorldCenter();
+						if ( GetLayerCollection( "MRI" )->IsEmpty() )
+						{
+							m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
+							m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
+							m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
+							m_view3D->SetWorldCoordinateInfo( worigin, wsize );
+							lc->AddLayer( sf, true );
+						}
+						else
+						{
+							LayerCollection* mri_lc = GetLayerCollection( "MRI" );
+							lc->SetWorldOrigin( mri_lc->GetWorldOrigin() );
+							lc->SetWorldSize( mri_lc->GetWorldSize() );
+							lc->SetWorldVoxelSize( mri_lc->GetWorldVoxelSize() );
+							lc->SetSlicePosition( mri_lc->GetSlicePosition() );
+							lc->AddLayer( sf );
+						}
+						lc->SetCursorRASPosition( lc->GetSlicePosition() );	
+					}
+					else
+						lc->AddLayer( layer );
 				
 				//	m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
-				
+					
 					m_controlPanel->RaisePage( "Surfaces" );
 				}		
 			}
@@ -1453,7 +1531,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
 {
 	if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerMoved" )
-			UpdateToolbars();	
+		UpdateToolbars();	
 	
 	if ( iMsg == "MRINotVisible" )
 	{
@@ -1533,9 +1611,9 @@ void MainWindow::RunScript()
 			if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
 			{
 				strg = strg.Mid( n + 1 ).Lower();
-				if ( strg == "heat" )
+				if ( strg == "heat" || strg == "heatscale" )
 					nColorMap = LayerPropertiesMRI::Heat;
-				else if ( strg == "jet" )
+				else if ( strg == "jet" || strg == "jetscale" )
 					nColorMap = LayerPropertiesMRI::Jet;
 				else if ( strg == "lut" )
 					nColorMap = LayerPropertiesMRI::LUT;
@@ -1553,6 +1631,10 @@ void MainWindow::RunScript()
 			bResample = false;
 		if ( sa.GetCount() > 2 )
 			LoadDTIFile( sa[1], sa[2], bResample );
+	}
+	else if ( sa[0] == "loadsurface" )
+	{
+		LoadSurfaceFile( sa[1] );
 	}
 }
 
@@ -1657,9 +1739,9 @@ void MainWindow::LoadSurfaceFile( const wxString& filename )
 
 	LayerSurface* layer = new LayerSurface();
 	wxFileName fn( filename );	
-	wxString layerName = fn.GetName();
-	if ( fn.GetExt().Lower() == "gz" )
-		layerName = wxFileName( layerName ).GetName();
+	wxString layerName = fn.GetFullName();
+//	if ( fn.GetExt().Lower() == "gz" )
+//		layerName = wxFileName( layerName ).GetName();
 	layer->SetName( layerName.c_str() );
 	layer->SetFileName( fn.GetFullPath().c_str() );
 	

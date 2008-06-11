@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@ LayerCollection::LayerCollection( std::string strType) :
 
 LayerCollection::~LayerCollection()
 {
-	for (unsigned int i = 0; i < m_layers.size(); i++)
+	for ( unsigned int i = 0; i < m_layers.size(); i++ )
 		delete m_layers[i];
 
 	m_layers.clear();
@@ -53,6 +53,16 @@ LayerCollection::~LayerCollection()
 bool LayerCollection::IsEmpty()
 {
 	return m_layers.size() == 0;
+}
+
+int LayerCollection::GetLayerIndex( Layer* layer )
+{
+	for ( unsigned int i = 0; i < m_layers.size(); i++ )
+	{
+		if ( m_layers[i] == layer )
+			return i;
+	}
+	return -1;
 }
  
 bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
@@ -158,6 +168,25 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
 	return false;
 }
 
+bool LayerCollection::CycleLayer()
+{
+	if ( (int)m_layers.size() > 1 )
+	{
+		Layer* layer0 = m_layers[0];
+		for ( unsigned int i = 1; i < m_layers.size(); i++ )
+		{
+			m_layers[i-1] = m_layers[i];
+		}
+		m_layers[m_layers.size()-1] = layer0;
+		
+		this->SendBroadcast( "LayerCycled", layer0 );
+		this->SendBroadcast( "LayerMoved", layer0 );
+		
+		return true;
+	}
+	else
+		return false;
+}
 
 bool LayerCollection::Contains( Layer* layer )
 {
@@ -364,4 +393,14 @@ void LayerCollection::SetWorldVoxelSize( double* dVoxelSize )
 {
 	for ( int i = 0; i < 3; i++ )
 		m_dWorldVoxelSize[i] = dVoxelSize[i];
+}
+
+bool LayerCollection::HasProp( vtkProp* prop )
+{
+	for ( int i = 0; i < (int)m_layers.size(); i++ )
+	{
+		if ( m_layers[i]->HasProp( prop ) )
+			return true;
+	}
+	return false;
 }

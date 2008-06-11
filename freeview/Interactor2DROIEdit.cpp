@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:31 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,9 +35,10 @@
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
 
-Interactor2DROIEdit::Interactor2DROIEdit() : Interactor2D()
+Interactor2DROIEdit::Interactor2DROIEdit() : 
+		Interactor2D(),
+		m_bEditing( false )
 {
-	m_bEditing = false;
 }
 
 Interactor2DROIEdit::~Interactor2DROIEdit()

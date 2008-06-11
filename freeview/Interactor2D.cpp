@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:31 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,10 +33,12 @@
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
 
-Interactor2D::Interactor2D() : Interactor()
+Interactor2D::Interactor2D() : Interactor(),
+		m_nMousePosX( -1 ),
+		m_nMousePosY( -1 ),
+		m_bWindowLevel( false ),
+		m_bChangeSlice( false )
 {
-	m_bWindowLevel = false;
-	m_bChangeSlice = false;
 }
 
 Interactor2D::~Interactor2D()

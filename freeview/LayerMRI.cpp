@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "vtkProperty.h"
 #include "vtkImageReslice.h"
 #include "vtkFreesurferLookupTable.h"
+#include "vtkCubeSource.h"
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
@@ -423,7 +424,9 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
 void LayerMRI::Append3DProps( vtkRenderer* renderer )
 {
 	for ( int i = 0; i < 3; i++ )
+	{
 		renderer->AddViewProp( m_sliceActor3D[i] ); 
+	}
 }
 
 /*
@@ -456,7 +459,7 @@ void LayerMRI::SetSlicePositionToWorldCenter()
 
 void LayerMRI::OnSlicePositionChanged( int nPlane ) 
 {  
-	if ( m_volumeSource == NULL )
+	if ( m_volumeSource == NULL || nPlane < 0 || nPlane > 2)
 		return;
 	
 	assert( mProperties );
@@ -482,7 +485,6 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
 					0, 0, 1,
 					1, 0, 0 );
 			mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
-			
 			break;
 		case 1:
 			m_sliceActor2D[1]->PokeMatrix( matrix );
@@ -647,3 +649,12 @@ void LayerMRI::SetActiveFrame( int nFrame )
 	}
 }
 
+bool LayerMRI::HasProp( vtkProp* prop )
+{
+	for ( int i = 0; i < 3; i++ )
+	{
+		if ( m_sliceActor3D[i] == prop )
+			return true;
+	}
+	return false;
+}

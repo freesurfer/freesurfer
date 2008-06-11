@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@ class vtkPolyDataMapper;
 class vtkActor;
 class vtkImageActor;
 class vtkImageData;
+class vtkProp;
 class LayerPropertiesMRI;
 class FSVolume;
 class wxWindow;
@@ -57,6 +58,7 @@ class LayerMRI : public LayerEditable
 		
 		void Append2DProps( vtkRenderer* renderer, int nPlane );
 		void Append3DProps( vtkRenderer* renderer );
+		bool HasProp( vtkProp* prop );
 		
 //		void SetSliceNumber( int* sliceNumber );
 		void SetSlicePositionToWorldCenter();

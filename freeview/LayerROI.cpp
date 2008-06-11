@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:39:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -320,4 +320,14 @@ bool LayerROI::SaveROI( wxWindow* wnd, wxCommandEvent& event )
 		m_bModified = true;
 	
 	return bSaved;
+}
+
+bool LayerROI::HasProp( vtkProp* prop )
+{
+	for ( int i = 0; i < 3; i++ )
+	{
+		if ( m_sliceActor2D[i] == prop || m_sliceActor3D[i] == prop )
+			return true;
+	}
+	return false;
 }

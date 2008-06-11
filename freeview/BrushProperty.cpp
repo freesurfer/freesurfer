@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:50:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,9 @@
 using namespace std;
 
 BrushProperty::BrushProperty () :
-		m_nBrushSize( 1 ), m_nBrushTolerance( 0 ), m_layerRef( NULL )
+		m_nBrushSize( 1 ), 
+		m_nBrushTolerance( 0 ), 
+		m_layerRef( NULL )
 {
 }
 	

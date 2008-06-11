@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/11 21:30:19 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -200,6 +200,14 @@ void PanelVolume::DoListenToMessage( std::string const iMsg, void* iData )
 			UpdateUI();
 		}
 	}
+	else if ( iMsg == "LayerMoved" )
+	{
+		Layer* layer = ( Layer* )iData;
+		if ( layer && layer->IsTypeOf( "MRI" ) )
+		{
+			UpdateLayerList( layer );
+		}
+	}
 	else if ( iMsg == "LayerModified" || iMsg == /*"WindowLevelChanged"*/ "LayerActorUpdated" )
 	{
 		UpdateUI();
@@ -257,21 +265,8 @@ void PanelVolume::OnButtonMoveUp( wxCommandEvent& event )
 	{	
 		Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
 		
-		if ( nSel != 0 )
-		{
-			void* old_ptr = m_listBoxLayers->GetClientData( nSel - 1 );
-			wxString old_name = m_listBoxLayers->GetString( nSel - 1 );
-			bool old_checked = m_listBoxLayers->IsChecked( nSel - 1 );
-			
-			m_listBoxLayers->Delete( nSel - 1 );
-			m_listBoxLayers->Insert( old_name, nSel, old_ptr );
-			m_listBoxLayers->Check( nSel, old_checked ); 
-			
-			if ( layer )
-				lc->MoveLayerUp( layer );
-			
-			UpdateUI();
-		}
+		if ( layer )
+			lc->MoveLayerUp( layer );
 	}
 }
 
@@ -283,22 +278,41 @@ void PanelVolume::OnButtonMoveDown( wxCommandEvent& event )
 	{
 		Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
 		
-		if ( nSel != (int)m_listBoxLayers->GetCount()-1 )
+		if ( layer )
+			lc->MoveLayerDown( layer );
+	}
+}
+
+void PanelVolume::UpdateLayerList( Layer* layer )
+{
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+	int nIndex = lc->GetLayerIndex( layer );
+	if ( nIndex != -1 )
+	{
+		wxString name;
+		bool bchecked = false;
+		bool bselected = false;
+		for ( int i = 0; i < (int)m_listBoxLayers->GetCount(); i++ )
 		{
-			void* old_ptr = m_listBoxLayers->GetClientData( nSel + 1 );
-			wxString old_name = m_listBoxLayers->GetString( nSel + 1 );
-			bool old_checked = m_listBoxLayers->IsChecked( nSel + 1 );
-			
-			m_listBoxLayers->Delete( nSel + 1 );
-			m_listBoxLayers->Insert( old_name, nSel, old_ptr ); 
-			m_listBoxLayers->Check( nSel, old_checked ); 
-			
-			if ( layer )
-				lc->MoveLayerDown( layer );
+			if ( layer == m_listBoxLayers->GetClientData( i ) )
+			{
+				name = m_listBoxLayers->GetString( i );
+				bchecked = m_listBoxLayers->IsChecked( i );
+				bselected = ( m_listBoxLayers->GetSelection() == i );
+				m_listBoxLayers->Delete( i );
+				break;
+			}
+		}
+		if ( !name.IsEmpty() )
+		{
+			m_listBoxLayers->Insert( name, nIndex, layer );
+			m_listBoxLayers->Check( nIndex, bchecked );
+			if ( bselected )
+				m_listBoxLayers->SetSelection( nIndex );
 			
 			UpdateUI();
 		}
-	}
+	}	
 }
 
 void PanelVolume::OnButtonDelete( wxCommandEvent& event )

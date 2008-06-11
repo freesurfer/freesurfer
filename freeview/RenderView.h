@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/11 21:30:19 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,6 +79,11 @@ public:
 	wxColour GetBackgroundColor() const;
 	void SetBackgroundColor( const wxColour& color );
 	
+	virtual void MoveUp();
+	virtual void MoveDown();
+	virtual void MoveLeft();
+	virtual void MoveRight();
+	
 	void NeedRedraw();
 	
 	void ResetView();
@@ -93,7 +98,7 @@ public:
 	
 protected:
 	void InitializeRenderView();
-	void OnInternalIdle(); 
+	virtual void OnInternalIdle(); 
 
 protected:
 	vtkRenderer*		m_renderer;

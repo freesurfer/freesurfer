@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,7 @@
 class Layer;
 class LayerMRI;
 class vtkRenderer;
+class vtkProp;
 
 class LayerCollection : public Listener, public Broadcaster
 {
@@ -44,11 +45,13 @@ class LayerCollection : public Listener, public Broadcaster
 		
 		int GetNumberOfLayers();		
 		Layer* GetLayer( int i );
+		int GetLayerIndex( Layer* layer );
 		
 		bool AddLayer( Layer* layer, bool initializeCoordinate = false );
 		bool RemoveLayer( Layer* layer, bool deleteObject = true );
 		bool MoveLayerUp( Layer* layer );
 		bool MoveLayerDown( Layer* layer );
+		bool CycleLayer();
     
 		void Append2DProps( vtkRenderer* renderer, int nImagePlane );
 		void Append3DProps( vtkRenderer* renderer );
@@ -86,6 +89,8 @@ class LayerCollection : public Listener, public Broadcaster
 		void SetWorldVoxelSize( double* dVoxelSize );	
 		
 		std::vector<Layer*> GetLayers();
+		
+		bool HasProp( vtkProp* prop );
 		
 		virtual void DoListenToMessage( std::string const iMsg, void* iData );
 		

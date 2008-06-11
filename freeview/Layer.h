@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include <vector>
 
 class vtkRenderer;
+class vtkProp;
 
 class Layer : public Listener, public Broadcaster
 {
@@ -48,6 +49,8 @@ class Layer : public Listener, public Broadcaster
     	
 		virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
 		virtual void Append3DProps( vtkRenderer* renderer ) = 0;
+		
+		virtual bool HasProp( vtkProp* prop ) = 0;
 		
 		virtual void SetVisible( bool bVisible = true ) = 0;
 		virtual bool IsVisible() = 0;

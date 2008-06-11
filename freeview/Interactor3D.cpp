@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,12 @@
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
 
-Interactor3D::Interactor3D() : Interactor()
+Interactor3D::Interactor3D() : 
+	Interactor(),
+	m_nMousePosX( -1 ),
+	m_nMousePosY( -1 ),
+	m_bWindowLevel( false )
 {
-	m_bWindowLevel = false;
 }
 
 Interactor3D::~Interactor3D()
@@ -44,8 +47,12 @@ Interactor3D::~Interactor3D()
 
 bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* renderview )
 {
+	RenderView3D* view = ( RenderView3D* )renderview;
+	
 	m_nMousePosX = event.GetX();
 	m_nMousePosY = event.GetY();
+	
+	view->CancelUpdateMouseRASPosition();
 	
 	if ( event.MiddleDown() && event.ControlDown() )
 	{
@@ -70,6 +77,8 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 
 bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
 {
+	RenderView3D* view = ( RenderView3D* )renderview;
+	
 	LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
 	if ( !lcm->HasAnyLayer() )
 	{
@@ -103,7 +112,14 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
 	}
 	else
 	{	
-		return Interactor::ProcessMouseMoveEvent( event, renderview );
+		if ( event.MiddleIsDown() || event.RightIsDown() || event.LeftIsDown() )
+		{
+			view->CancelUpdateMouseRASPosition();
+		}
+		else
+			view->UpdateMouseRASPosition( posX, posY );
+
+		return Interactor::ProcessMouseMoveEvent( event, view );
 	}
 	
 	return false;
@@ -111,5 +127,33 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
 
 bool Interactor3D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* renderview )
 {	
-	return Interactor::ProcessKeyDownEvent( event, renderview );
+	RenderView3D* view = ( RenderView3D* )renderview;
+		
+	LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+	if ( !lcm->HasAnyLayer() )
+	{
+		return Interactor::ProcessKeyDownEvent( event, renderview );
+	}
+		
+	int nKeyCode = event.GetKeyCode();
+	if  ( nKeyCode == WXK_UP )
+	{
+		view->MoveUp();
+	}
+	else if ( nKeyCode == WXK_DOWN )
+	{
+		view->MoveDown();
+	}
+	else if ( nKeyCode == WXK_LEFT )
+	{
+		view->MoveLeft();
+	}
+	else if ( nKeyCode == WXK_RIGHT )
+	{
+		view->MoveRight();
+	}
+	else
+		return Interactor::ProcessKeyDownEvent( event, view );
+	
+	return false;
 }

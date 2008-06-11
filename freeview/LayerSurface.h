@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,8 +37,12 @@ class vtkTransform;
 class vtkTexture;
 class vtkPolyDataMapper;
 class vtkActor;
+class vtkLODActor;
 class vtkImageActor;
 class vtkImageData;
+class vtkPlane;
+class vtkDecimatePro;
+class vtkProp;
 class LayerPropertiesSurface;
 class FSSurface;
 class wxWindow;
@@ -54,6 +58,7 @@ class LayerSurface : public Layer
 		
 		void Append2DProps( vtkRenderer* renderer, int nPlane );
 		void Append3DProps( vtkRenderer* renderer );
+		bool HasProp( vtkProp* prop );
 		
 		void SetSlicePositionToWorldCenter();
 		
@@ -77,21 +82,26 @@ class LayerSurface : public Layer
 		void InitializeSurface();
 		void InitializeActors();		
 		void UpdateOpacity();
+		void UpdateColorMap();
 		
 		virtual void OnSlicePositionChanged( int nPlane );	
 		
 		LayerPropertiesSurface* 				mProperties;
 		// Pipeline ------------------------------------------------------------
-		vtkSmartPointer<vtkImageReslice> 		mReslice[3];
+		vtkSmartPointer<vtkPlane> 				mReslicePlane[3];
 		vtkSmartPointer<vtkImageMapToColors> 	mColorMap[3];
+		
+		vtkSmartPointer<vtkDecimatePro>			mLowResFilter;
+		vtkSmartPointer<vtkDecimatePro>			mMediumResFilter;
 
 		FSSurface*			m_surfaceSource;
 		bool				m_bResampleToRAS;
 		
 		std::string			m_sFilename;
-		
-		vtkActor*		m_sliceActor2D[3];
-		vtkActor*		m_mainActor;
+				
+		vtkActor*			m_sliceActor2D[3];
+		vtkActor*			m_sliceActor3D[3];
+		vtkLODActor*		m_mainActor;
 };
 
 #endif 

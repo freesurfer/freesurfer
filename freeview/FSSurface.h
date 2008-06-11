@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:31 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/06/11 21:30:18 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@ extern "C" {
 class wxWindow;
 class wxCommandEvent;
 class vtkTransform;
+class vtkPolyData;
 
 class FSSurface 
 {
@@ -62,23 +63,27 @@ public:
 	void ConvertRASToSurface ( float const iRAS[3], float oSurf[3] ) const;
 	void ConvertRASToSurface ( double const iRAS[3], double oSurf[3] ) const;
 
-	
 	int GetNumberOfVertices () const;
+	
+	vtkPolyData* GetPolyData()
+		{ return m_polydata; }
 	
 	MRIS* GetMRIS() { return m_MRIS; }
 	
 protected:	
+	void UpdatePolyData();
+	
 	MRIS*			m_MRIS;
 	
 	double			m_SurfaceToRASMatrix[16];
 	vtkSmartPointer<vtkTransform> m_SurfaceToRASTransform;
-
 	
 	// RAS bounds.
 	bool  	m_bBoundsCacheDirty;
 	float 	m_RASBounds[6];
 	float	m_RASCenter[3];
 	
+	vtkPolyData*	m_polydata;
 
 	// Hash table so we can look up vertices. Uses v->x,y,z.
 	MRIS_HASH_TABLE* m_HashTable;
