@@ -195,6 +195,7 @@ public:
                tDblCoords cmax,
                double dEltVol,
                double de, double dnu);
+  virtual ~DelaunayMesh() {};
   CMesh3d* get();
 
 protected:

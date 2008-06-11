@@ -34,7 +34,7 @@ struct BC
   BC(const tCoords& _pt, const tCoords& _delta) : pt(_pt), delta(_delta),
       isActive(false)
   {}
-
+  virtual ~BC() {};
   virtual bool find_candidate(tMesh* pmesh)
   {
     return false;
@@ -53,7 +53,7 @@ struct BCNatural : public BC<Cstr,n>
   {}
   BCNatural(const tCoords& _pt, const tCoords& _delta) : BC<Cstr,n>(_pt, _delta), pnode(NULL)
   {}
-
+  virtual ~BCNatural() {};
   virtual bool find_candidate(tMesh* pmesh)
   {
     pnode = pmesh->closest_node(this->pt);
@@ -71,7 +71,7 @@ struct BCMfc : public BC<Cstr, n>
   tElement* pelt;
   BCMfc(const tCoords& _pt, const tCoords& _delta) : BC<Cstr,n>(_pt, _delta), pelt(NULL)
   {}
-
+  virtual ~BCMfc() {};
   virtual bool find_candidate(tMesh* pmesh)
   {
     pelt = pmesh->element_at_point(this->pt);
