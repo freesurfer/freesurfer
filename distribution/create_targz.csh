@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.21 2008/05/06 20:50:00 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.22 2008/06/11 14:41:50 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -21,12 +21,7 @@ if ($?USE_SPACE_MINERVA) then
   setenv LOCAL_FS /space/minerva/1/users/nicks/build/install/${HOSTNAME}
 endif
 
-if ("$PLATFORM" == "rh7.3") then
-    if ("${HOSTNAME}" != "martinos01" ) then
-        echo "must run on machine martinos01"
-        exit 1
-    endif
-else if ("$PLATFORM" == "rh9") then
+if ("$PLATFORM" == "rh9") then
     if ("${HOSTNAME}" != "kani" ) then
         echo "must run on machine kani"
         exit 1
@@ -41,7 +36,7 @@ else if ("$PLATFORM" == "centos4_x86_64") then
         echo "must run on machine minerva"
         exit 1
     endif
-else if ("$PLATFORM" == "leopard") then
+else if ("$PLATFORM" == "leopard-ppc") then
     if ("${HOSTNAME}" != "storm" ) then
         echo "must run on machine storm"
         exit 1
@@ -51,20 +46,27 @@ else if ("$PLATFORM" == "leopard-i686") then
         echo "must run on machine hima"
         exit 1
     endif
-else if ("$PLATFORM" == "tiger") then
+else if ("$PLATFORM" == "tiger-ppc") then
     if ("${HOSTNAME}" != "mist" ) then
         echo "must run on machine mist"
+        exit 1
+    endif
+else if ("$PLATFORM" == "tiger-i686") then
+    if ("${HOSTNAME}" != "sleet" ) then
+        echo "must run on machine sleet"
         exit 1
     endif
 else
     echo "Usage:"
     echo "$0 <platform> <release_type>"
-    echo "where <platform> is rh7.3, rh9, centos4, centos4_x86_64, leopard, leopard-i686 or tiger"
+    echo "where <platform> is rh9, centos4, centos4_x86_64, leopard-ppc, leopard-i686, tiger-ppc or tiger-i686"
     echo "and <release_type> is either dev, or stable-pub"
     exit 1
 endif
 
-if (("$RELEASE_TYPE" != "dev") && ("$RELEASE_TYPE" != "stable-pub") && ("$RELEASE_TYPE" != "stable3-pub")) then
+if (("$RELEASE_TYPE" != "dev") && \
+    ("$RELEASE_TYPE" != "stable-pub") \
+    && ("$RELEASE_TYPE" != "stable3-pub")) then
   echo "ERROR: release_type is either dev or stable-pub"
   exit 1
 endif
@@ -72,7 +74,10 @@ endif
 echo "cd ${LOCAL_FS}"
 cd ${LOCAL_FS}
 
-if ( ("$PLATFORM" == "leopard") || ("$PLATFORM" == "leopard-i686") || ( "$PLATFORM" == "tiger") ) then
+if ( ("$PLATFORM" == "leopard-ppc") || \
+    ("$PLATFORM" == "leopard-i686") || \
+    ( "$PLATFORM" == "tiger-ppc") || \
+    ( "$PLATFORM" == "tiger-i686") ) then
   if (-e /Users/Shared/tmp/$RELEASE_TYPE) \
     rm -Rf /Users/Shared/tmp/$RELEASE_TYPE
   echo "cp -r $RELEASE_TYPE /Users/Shared/tmp"
