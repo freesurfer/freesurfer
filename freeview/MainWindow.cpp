@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/06/12 20:59:16 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1415,28 +1415,39 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 			m_bLoading = false;
 			m_statusBar->m_gaugeBar->Hide();
 			
+			LayerCollection* lc_mri = GetLayerCollection( "MRI" );
+			LayerCollection* lc_surface = GetLayerCollection( "Surface" );
 			Layer* layer = ( Layer* )(void*)event.GetClientData();
 			if ( layer && layer->IsTypeOf( "MRI" ) )
 			{
 				if ( strg == "Load" )
 				{
-					LayerCollection* lc = GetLayerCollection( "MRI" );
 					LayerMRI* mri = (LayerMRI*)layer;					
-					if ( lc->GetNumberOfLayers() < 1 )
+					if ( lc_mri->IsEmpty() )
 					{
 						double worigin[3], wsize[3];
 						mri->GetWorldOrigin( worigin );
 						mri->GetWorldSize( wsize );
-						mri->SetSlicePositionToWorldCenter();
-						m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
-						m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
-						m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
-						m_view3D->SetWorldCoordinateInfo( worigin, wsize );
-						lc->AddLayer( mri, true );
-						lc->SetCursorRASPosition( lc->GetSlicePosition() );
+						if ( lc_surface->IsEmpty() )
+						{
+							mri->SetSlicePositionToWorldCenter();
+							m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
+							m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
+							m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
+							m_view3D->SetWorldCoordinateInfo( worigin, wsize );
+						}
+						else
+						{
+							mri->SetSlicePosition( lc_surface->GetSlicePosition() );
+							lc_surface->SetWorldVoxelSize( mri->GetWorldVoxelSize() );
+							lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
+							lc_surface->SetWorldSize( mri->GetWorldSize() );
+						}
+						lc_mri->AddLayer( mri, true );
+						lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
 					}
 					else
-						lc->AddLayer( layer );
+						lc_mri->AddLayer( layer );
 			
 					m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( mri->GetFileName() ) );
 			
@@ -1447,35 +1458,33 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 			{
 				if ( strg == "Load" )
 				{
-					LayerCollection* lc = GetLayerCollection( "Surface" );
 					LayerSurface* sf = (LayerSurface*)layer;
-					if ( lc->GetNumberOfLayers() < 1 )
+					if ( lc_surface->IsEmpty() )
 					{
 						double worigin[3], wsize[3];
 						sf->GetWorldOrigin( worigin );
 						sf->GetWorldSize( wsize );
 						sf->SetSlicePositionToWorldCenter();
-						if ( GetLayerCollection( "MRI" )->IsEmpty() )
+						if ( lc_mri->IsEmpty() )
 						{
 							m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
 							m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
 							m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
 							m_view3D->SetWorldCoordinateInfo( worigin, wsize );
-							lc->AddLayer( sf, true );
+							lc_surface->AddLayer( sf, true );
 						}
 						else
 						{
-							LayerCollection* mri_lc = GetLayerCollection( "MRI" );
-							lc->SetWorldOrigin( mri_lc->GetWorldOrigin() );
-							lc->SetWorldSize( mri_lc->GetWorldSize() );
-							lc->SetWorldVoxelSize( mri_lc->GetWorldVoxelSize() );
-							lc->SetSlicePosition( mri_lc->GetSlicePosition() );
-							lc->AddLayer( sf );
+							lc_surface->SetWorldOrigin( lc_mri->GetWorldOrigin() );
+							lc_surface->SetWorldSize( lc_mri->GetWorldSize() );
+							lc_surface->SetWorldVoxelSize( lc_mri->GetWorldVoxelSize() );
+							lc_surface->SetSlicePosition( lc_mri->GetSlicePosition() );
+							lc_surface->AddLayer( sf );
 						}
-						lc->SetCursorRASPosition( lc->GetSlicePosition() );	
+					//	lc_surface->SetCursorRASPosition( lc_surface->GetSlicePosition() );	
 					}
 					else
-						lc->AddLayer( layer );
+						lc_surface->AddLayer( layer );
 				
 				//	m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
 					

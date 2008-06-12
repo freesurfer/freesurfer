@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/12 20:59:16 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -167,21 +167,21 @@ void LayerSurface::InitializeActors()
     // Actors in the scene, drawing the mapped lines.
 		//
 		m_sliceActor2D[i]->SetMapper( mapper );
-		m_sliceActor2D[i]->SetBackfaceProperty( m_sliceActor2D[i]->MakeProperty() );
-		m_sliceActor2D[i]->GetBackfaceProperty()->BackfaceCullingOff();
+//		m_sliceActor2D[i]->SetBackfaceProperty( m_sliceActor2D[i]->MakeProperty() );
+//		m_sliceActor2D[i]->GetBackfaceProperty()->BackfaceCullingOff();
 		m_sliceActor2D[i]->SetProperty( m_sliceActor2D[i]->MakeProperty() );
 		m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
 		m_sliceActor2D[i]->GetProperty()->SetLineWidth( 1 );
 		
 		m_sliceActor3D[i]->SetMapper( mapper2 );
-		m_sliceActor3D[i]->SetBackfaceProperty( m_sliceActor3D[i]->MakeProperty() );
-		m_sliceActor3D[i]->GetBackfaceProperty()->BackfaceCullingOff();
+//		m_sliceActor3D[i]->SetBackfaceProperty( m_sliceActor3D[i]->MakeProperty() );
+//		m_sliceActor3D[i]->GetBackfaceProperty()->BackfaceCullingOff();
 		m_sliceActor3D[i]->SetProperty( m_sliceActor3D[i]->MakeProperty() );
 		m_sliceActor3D[i]->GetProperty()->SetLineWidth( 2 );
 		m_sliceActor3D[i]->GetProperty()->SetInterpolationToFlat();		
 
   // Set ourselves up.
-		this->OnSlicePositionChanged( i );		
+		this->OnSlicePositionChanged( i );	
 	}
 		
 	this->UpdateOpacity();
