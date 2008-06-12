@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 03:17:06 $
- *    $Revision: 1.17 $
+ *    $Date: 2008/06/12 06:52:24 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -553,7 +553,7 @@ int QdecProject::SetUnzipCommandFormat ( const char* isFormat ) {
 int QdecProject::LoadDataTable ( const char* isFileName )
 {
   char subjectsDir[3000];
-  delete this->mDataTable;
+  if ( this->mDataTable ) delete this->mDataTable;
   this->mDataTable = new QdecDataTable();
   int ret = this->mDataTable->Load ( isFileName, subjectsDir );
   if ( ret ) return ret;
@@ -561,7 +561,43 @@ int QdecProject::LoadDataTable ( const char* isFileName )
   if ( ret ) return ret;
   delete this->mGlmDesign;
   this->mGlmDesign = new QdecGlmDesign( this->mDataTable );
+  ret = this->VerifySubjects();
+  if ( ret ) 
+  {
+    delete this->mDataTable;
+    this->mDataTable = new QdecDataTable(); // on err, return empty table
+  }
   return ret;
+}
+
+
+/**
+ * Check that all subjects exist in the specified subjects_dir (including the
+ * specified average subject).  Print to stderr and ErrorMessage any errors
+ * found (one message for each error).  Also check that thickness, sulc, curv,
+ * area and jacobian_white files exist, and that their vertex numbers equal
+ * their inflated surface (and that surfaces all have the same number of
+ * vertices).
+ * @return int
+ */
+int QdecProject::VerifySubjects ( )
+{
+  int errs=0;
+  vector< QdecSubject* > theSubjects = this->mDataTable->GetSubjects();
+  for (unsigned int i=0; i < theSubjects.size(); i++) 
+  {
+    string id = theSubjects[i]->GetId();
+    string sCommand = "ls " + 
+      this->GetSubjectsDir() + "/" + id + " >& /dev/null";
+    int rSystem = system( sCommand.c_str() );
+    if( 0 != rSystem ) {
+      fprintf( stderr, "ERROR: QdecProject::VerifySubjects: Couldn't "
+               "find subject '%s' in SUBJECTS_DIR\n", id.c_str() );
+      errs++;
+    }
+  }
+
+  return errs;
 }
 
 
@@ -571,7 +607,7 @@ int QdecProject::LoadDataTable ( const char* isFileName )
 bool QdecProject::HaveDataTable ( )
 {
   if ( this->mDataTable &&
-       this->mDataTable->GetNumberOfSubjects() ) return true;
+       (this->mDataTable->GetNumberOfSubjects() > 0) ) return true;
 
   return false;
 }
@@ -927,7 +963,9 @@ QdecProject::FormatCommandString ( const char* ifnProject,
 vector< string > QdecProject::CreateStatsDataTables ()
 {
   // to be returned with names of stats data categories (files) created
-  vector< string > statsDataNames;  
+  vector< string > statsDataNames;
+
+  if ( ! this->HaveDataTable() ) return statsDataNames;
 
   vector< string > subjects = this->GetSubjectIDs();
   int numSubjects = this->GetSubjectIDs().size();

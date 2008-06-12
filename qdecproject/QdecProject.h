@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 03:17:06 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/06/12 06:52:24 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -103,16 +103,31 @@ public:
    */
   int LoadDataTable ( const char* isFileName );
 
+
+  /**
+   * Check that all subjects exist in the specified subjects_dir (including the
+   * specified average subject).  Print to stderr and ErrorMessage any errors
+   * found (one message for each error).  Also check that thickness, sulc,
+   * curv, area and jacobian_white files exist, and that their vertex
+   * numbers equal their inflated surface (and that surfaces all have the
+   * same number of vertices).
+   * @return int
+   */
+  int VerifySubjects ( );
+
+
   /**
    * @return void
    * @param  iFilePointer
    */
   void DumpDataTable ( FILE* iFilePointer );
 
+
   /**
    * @return bool  true if a table has been loaded
    */
   bool HaveDataTable ( );
+
 
   /**
    * @return int

@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 03:17:06 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/12 06:52:24 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -182,17 +182,6 @@ private:
 
   // Stores subject data (id and factors) as read from table.dat input file.
   vector < QdecSubject* > mSubjects;
-
-  /**
-   * Check that all subjects exist in the specified subjects_dir (including the
-   * specified average subject).  Print to stderr and ErrorMessage any errors
-   * found (one message for each error).  Also check that thickness, sulc,
-   * curv, area and jacobian_white files exist, and that their vertex
-   * numbers equal their inflated surface (and that surfaces all have the
-   * same number of vertices).
-   * @return int
-   */
-  int VerifySubjects ( );
 
 };
 
