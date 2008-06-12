@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 03:19:29 $
- *    $Revision: 1.25 $
+ *    $Date: 2008/06/12 06:53:06 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.25 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.26 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -2896,6 +2896,7 @@ vtkKWQdecWindow::UpdateDesignPage () {
   assert( mListDiscreteFactors.GetPointer() );
   assert( mListContinuousFactors.GetPointer() );
   assert( mQdecProject ) ;
+  if ( ! mQdecProject->HaveDataTable() ) return;
   assert( mQdecProject->GetDataTable() );
   assert( mQdecProject->GetGlmDesign() );
 
@@ -2945,7 +2946,7 @@ vtkKWQdecWindow::UpdateDesignPage () {
   factors = this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
   for(unsigned int i=0; i < factors.size(); i++) {
     mListContinuousFactors->Append( factors[i].c_str() );
-
+    
     // If this factor is one of our chosen continuous factors from the
     // design, enter its index in our selections, and select this
     // item.
@@ -2964,7 +2965,6 @@ vtkKWQdecWindow::UpdateDesignPage () {
   if( mEntryDegreesOfFreedom ) {
     mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
   }
-
 }
 
 
@@ -4540,7 +4540,7 @@ vtkKWQdecWindow::SetExcludeSubjectET ( const char* isExcludeET ) {
 void
 vtkKWQdecWindow::ClearAllExcludedSubjects ( ) {
 
-  if( this->mQdecProject )
+  if( this->mQdecProject && this->mQdecProject->HaveDataTable() )
   {
     this->mEntryExcludeSubjectGT->SetValue( "" );
     this->mEntryExcludeSubjectLT->SetValue( "" );
