@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/11 04:59:45 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/06/12 03:19:29 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -160,6 +160,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   void LoadCurvatureFromDlog ();      // debugging.
   void LoadAnnotationFromDlog ();
   void LoadLabelFromDlog ();
+  void SaveDataTableFromDlog ();
   void SaveProjectFileFromDlog ();
   void SaveScatterPlotPostscriptFromDlog ();
   void SaveTIFFImageFromDlog ();
@@ -334,10 +335,14 @@ class vtkKWQdecWindow : public vtkKWWindow
   void SetExcludeSubjectET ( const char* isExcludeET );
   void ClearAllExcludedSubjects ( );
   
+  // These are part of the Stats Data Import frame
+  void ResetStatsImportFrame ( );
   void GenerateStatsDataTables ( );
   void SetStatsImportItem ( const char* isStatsImportItem );
+  void AddStatsToDataTable ( );
+  void RemoveFactorFromDataTable ( );
   
-// Implements QdecVertexAnnotationLookup, which the view will use to
+  // Implements QdecVertexAnnotationLookup, which the view will use to
   // get an annotation string for a vertex number. We use this to
   // return a region string.
   const char* GetAnnotationForVertex ( int inVertex );
@@ -473,6 +478,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   MenuItem* mMenuLoadProjectFile;
   MenuItem* mMenuLoadLabel;
   MenuItem* mMenuLoadAnnotation;
+  MenuItem* mMenuSaveDataTable;
   MenuItem* mMenuSaveProjectFile;
   MenuItem* mMenuSaveScatterPlotPostscript;
   MenuItem* mMenuSaveTIFF;
@@ -522,9 +528,15 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>       mEntryNumberOfSubjects;
   vtkSmartPointer<vtkKWListBox>     mListScatterPlot;
   vtkSmartPointer<vtkKWLabel>       mLabelScatterPlotLegend;
+  vtkSmartPointer<vtkKWPushButton>  mBtnFactorRemove;
+
   vtkSmartPointer<vtkKWFrameWithLabel> mFrameStatsImport;
   vtkSmartPointer<vtkKWPushButton>  mBtnStatsGenerate;
   vtkSmartPointer<vtkKWMenuButton>  mMenuStatsData;
+  vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel> mListBoxStatsImport;
+  vtkSmartPointer<vtkKWListBox>     mListStatsImportFactors;
+  vtkSmartPointer<vtkKWPushButton>  mBtnStatsAddToDataTable;
+
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeFactor;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectGT;
   vtkSmartPointer<vtkKWEntry>       mEntryExcludeSubjectLT;

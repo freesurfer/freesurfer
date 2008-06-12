@@ -405,6 +405,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("SaveDataTableFromDlog",argv[1]))&&(argc == 2))
+    {
+    op->SaveDataTableFromDlog();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("SaveProjectFileFromDlog",argv[1]))&&(argc == 2))
     {
     op->SaveProjectFileFromDlog();
@@ -1141,6 +1147,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("ResetStatsImportFrame",argv[1]))&&(argc == 2))
+    {
+    op->ResetStatsImportFrame();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("GenerateStatsDataTables",argv[1]))&&(argc == 2))
     {
     op->GenerateStatsDataTables();
@@ -1159,6 +1171,18 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+    }
+  if ((!strcmp("AddStatsToDataTable",argv[1]))&&(argc == 2))
+    {
+    op->AddStatsToDataTable();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("RemoveFactorFromDataTable",argv[1]))&&(argc == 2))
+    {
+    op->RemoveFactorFromDataTable();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
     }
   if ((!strcmp("GetAnnotationForVertex",argv[1]))&&(argc == 3))
     {
@@ -1231,6 +1255,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  LoadCurvatureFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  LoadAnnotationFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  LoadLabelFromDlog\n",NULL);
+    Tcl_AppendResult(interp,"  SaveDataTableFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveProjectFileFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveScatterPlotPostscriptFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveTIFFImageFromDlog\n",NULL);
@@ -1300,8 +1325,11 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ClearAllExcludedSubjects\n",NULL);
+    Tcl_AppendResult(interp,"  ResetStatsImportFrame\n",NULL);
     Tcl_AppendResult(interp,"  GenerateStatsDataTables\n",NULL);
     Tcl_AppendResult(interp,"  SetStatsImportItem\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  AddStatsToDataTable\n",NULL);
+    Tcl_AppendResult(interp,"  RemoveFactorFromDataTable\n",NULL);
     Tcl_AppendResult(interp,"  GetAnnotationForVertex\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ComposeSurfaceScalarsAndShow\n",NULL);
     return TCL_OK;

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/11 04:59:45 $
- *    $Revision: 1.24 $
+ *    $Date: 2008/06/12 03:19:29 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.24 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.25 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -116,6 +116,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mMenuLoadProjectFile( NULL ),
   mMenuLoadLabel( NULL ),
   mMenuLoadAnnotation( NULL ),
+  mMenuSaveDataTable( NULL ),
   mMenuSaveProjectFile( NULL ),
   mMenuSaveScatterPlotPostscript( NULL ),
   mMenuSaveTIFF( NULL ),
@@ -191,6 +192,7 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuSmoothSurfaceScalars;
   delete mMenuGraphAverageROI;
   delete mQdecProject;
+  delete mStatsImportDataTable;
 }
 
 void
@@ -427,6 +429,13 @@ vtkKWQdecWindow::CreateWidget () {
 #endif
   this->GetFileMenu()->InsertSeparator( nItem++ );
 
+  // Save Data Table.
+  mMenuSaveDataTable = new MenuItem();
+  mMenuSaveDataTable->
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Save Data Table...", this, "SaveDataTableFromDlog",
+                 NULL, NULL );
+
   // Save Project File.
   mMenuSaveProjectFile = new MenuItem();
   mMenuSaveProjectFile->
@@ -461,6 +470,9 @@ vtkKWQdecWindow::CreateWidget () {
     MakeCommand( this->GetFileMenu(), nItem++,
                  "Save Label...", this, "SaveLabelFromDlog",
                  NULL, "SaveLabel" );
+
+  // Insert a separator,
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
   // Map label
   mMenuMapLabel = new MenuItem();
@@ -636,7 +648,7 @@ vtkKWQdecWindow::CreateWidget () {
   labeledEntry->SetParent( panelFrame );
   labeledEntry->SetLabelText( "Data Table:" );
   labeledEntry->Create();
-  //labeledEntry->SetLabelPositionToTop();
+  labeledEntry->SetLabelPositionToTop();
   mEntryDataTable = labeledEntry->GetWidget();
   mEntryDataTable->SetValue( "<not loaded>" );
   mEntryDataTable->SetReadOnly( 1 );
@@ -697,7 +709,18 @@ vtkKWQdecWindow::CreateWidget () {
   this->Script( "pack %s -side top -fill x -expand yes",
                 label->GetWidgetName() );
 
+  // button to remove factor from data table
+  mBtnFactorRemove =  vtkSmartPointer<vtkKWPushButton>::New();
+  mBtnFactorRemove->SetParent( exploreFrame->GetFrame() );
+  mBtnFactorRemove->SetText( "Remove Selection from Data Table" );
+  mBtnFactorRemove->Create();
+  mBtnFactorRemove->SetCommand( this, "RemoveFactorFromDataTable" );
+  this->Script( "pack %s", mBtnFactorRemove->GetWidgetName() );
+
+
+  //
   // Create the stats data import frame.
+  //
   mFrameStatsImport = vtkSmartPointer<vtkKWFrameWithLabel>::New();
   mFrameStatsImport->SetParent( panelFrame );
   mFrameStatsImport->Create();
@@ -705,15 +728,31 @@ vtkKWQdecWindow::CreateWidget () {
   this->Script( "pack %s -fill x", mFrameStatsImport->GetWidgetName() );
 
   // button to generate stats data
+  // when the button is pressed, and after it generates the data tables,
+  // then the generate button disappears and is replaced by a menu list
+  // see GenerateStatsDataTables
   mBtnStatsGenerate =  vtkSmartPointer<vtkKWPushButton>::New();
   mBtnStatsGenerate->SetParent( mFrameStatsImport->GetFrame() );
   mBtnStatsGenerate->SetText( "Generate Stats Data Tables" );
   mBtnStatsGenerate->Create();
   mBtnStatsGenerate->SetCommand( this, "GenerateStatsDataTables" );
-  this->Script( "pack %s", mBtnStatsGenerate->GetWidgetName() );
 
+  // continue setup (this routine exists because its called if a new 
+  // table or project is loaded)
+  this->ResetStatsImportFrame();
 
+  // also prepare the button used to add stats to the Data Table
+  mBtnStatsAddToDataTable =  vtkSmartPointer<vtkKWPushButton>::New();
+  mBtnStatsAddToDataTable->SetParent( mFrameStatsImport->GetFrame() );
+  mBtnStatsAddToDataTable->SetText( "Add Selection(s) to Data Table" );
+  mBtnStatsAddToDataTable->Create();
+  mBtnStatsAddToDataTable->SetCommand( this, "AddStatsToDataTable" );
+  // packed in SetStatsImportItem
+
+  
+  //
   // Create the subject exclusion frame.
+  //
   vtkSmartPointer<vtkKWFrameWithLabel> excludeFrame = 
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
   excludeFrame->SetParent( panelFrame );
@@ -1483,6 +1522,36 @@ vtkKWQdecWindow::LoadAnnotationFromDlog () {
   }
 }
 
+
+void
+vtkKWQdecWindow::SaveDataTableFromDlog () {
+
+  assert( mQdecProject );
+
+  vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
+    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
+  dialog->SetApplication( this->GetApplication() );
+  dialog->SaveDialogOn();
+  dialog->Create();
+  dialog->SetTitle( "Save Data Table" );
+  dialog->SetFileTypes( "{{Data file} {*.dat}} {{All} {*}}" );
+  dialog->SetDefaultExtension( ".dat" );
+
+  // Make the file name the currently loaded data table filename
+  string fnDefault = this->mQdecProject->GetDataTable()->GetFileName();
+  dialog->SetInitialFileName( fnDefault.c_str() );
+
+  // Set the default dir to the subjects dir / qdec.
+  string sQdecDir = this->mQdecProject->GetSubjectsDir() + "/qdec";
+  dialog->SetLastPath( sQdecDir.c_str() );
+
+  if( dialog->Invoke() ) {
+    string fnProject( dialog->GetFileName() );
+    this->mQdecProject->GetDataTable()->Save( fnProject.c_str() );
+  }
+}
+
+
 void
 vtkKWQdecWindow::SaveProjectFileFromDlog () {
 
@@ -1511,6 +1580,7 @@ vtkKWQdecWindow::SaveProjectFileFromDlog () {
     this->SaveProjectFile( fnProject.c_str() );
   }
 }
+
 
 void
 vtkKWQdecWindow::SaveScatterPlotPostscriptFromDlog () {
@@ -1723,7 +1793,13 @@ vtkKWQdecWindow::LoadDataTable ( const char* ifnDataTable ) {
 
       // data table may have set SUBJECTS_DIR, so update our mEntry display
       string sSubjectsDir = this->mQdecProject->GetSubjectsDir();
-      mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
+      this->mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
+      
+      // new data table means any prior stats data is invalid
+      this->ResetStatsImportFrame();
+      if ( mEntryExcludeFactor ) {
+        this->mEntryExcludeFactor->SetValue( "<none selected>" );
+      }
 
       // We need to update our tabs.
       this->UpdateSubjectsPage();
@@ -1760,6 +1836,9 @@ vtkKWQdecWindow::LoadProjectFile ( const char* ifnProject ) {
 
         QdecGlmFitResults* results = mQdecProject->GetGlmFitResults();
         assert( results );
+
+        // new data table means any prior stats data is invalid
+        this->ResetStatsImportFrame();
 
         // We need to update our tabs.
         this->UpdateDesignPage();
@@ -3895,6 +3974,10 @@ vtkKWQdecWindow::UpdateScatterPlot () {
       mMenuSaveScatterPlotPostscript->SetStateToNormal();
     }
   }
+  else
+  {
+    mGraph->DeleteAllElements();
+  }
 
   // Draw the graph.
   mGraph->Draw();
@@ -4476,13 +4559,58 @@ vtkKWQdecWindow::ClearAllExcludedSubjects ( ) {
 }
 
 
+void vtkKWQdecWindow::ResetStatsImportFrame ( ) {
+
+  // start by removing any frames that might already be displayed
+  if ( mMenuStatsData ) mMenuStatsData->Unpack();
+  if ( mListBoxStatsImport ) mListBoxStatsImport->Unpack();
+  if ( mBtnStatsAddToDataTable ) mBtnStatsAddToDataTable->Unpack();
+
+  // menu to hold stat table names, once those are generated
+  mMenuStatsData = vtkSmartPointer<vtkKWMenuButton>::New();
+  mMenuStatsData->SetParent( mFrameStatsImport->GetFrame() );
+  mMenuStatsData->Create();
+  mMenuStatsData->GetMenu()->AddRadioButton( "<none selected>",
+                                             this,
+                                             "SetStatsImportItem none");
+  mMenuStatsData->SetValue( "<none selected>" );
+
+  // prepare a new menu list to be filled with the factors from the selected
+  // stats data table
+  mListBoxStatsImport = 
+    vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
+  mListBoxStatsImport->SetParent( mFrameStatsImport->GetFrame() );
+  mListBoxStatsImport->SetLabelText( "Continuous Factors:" );
+  mListBoxStatsImport->Create();
+  mListBoxStatsImport->SetLabelPositionToTop();
+  mListStatsImportFactors = mListBoxStatsImport->GetWidget()->GetWidget();
+  mListStatsImportFactors->ExportSelectionOff();
+  mListStatsImportFactors->SetHeight ( 5 );
+  mListStatsImportFactors->SetSelectionModeToMultiple();
+  // notice it doesnt get packed (displayed), that is done in 
+  // SetStatsImportItem
+
+  // show just the generate button
+  this->Script( "pack %s", mBtnStatsGenerate->GetWidgetName() );
+  // the routine below, GenerateStatsDataTables, is what is executed when
+  // that button is pressed.
+}
 void
 vtkKWQdecWindow::GenerateStatsDataTables ( ) {
 
   if ( this->mQdecProject ) {
 
-    if ( 0 == this->mQdecProject->GetDataTable()->GetNumberOfSubjects() ) {
-      cerr << "ERROR: Must load a main data table first!" << endl;
+    // make sure the main data table has been loaded
+    if ( ! this->mQdecProject->HaveDataTable() ) {
+      vtkSmartPointer<vtkKWMessageDialog> dialog =
+        vtkSmartPointer<vtkKWMessageDialog>::New();
+
+      dialog->SetStyleToMessage();
+      dialog->SetOptions( vtkKWMessageDialog::WarningIcon );
+      dialog->SetApplication( this->GetApplication() );
+      dialog->Create();
+      dialog->SetText( "The main data table must be loaded first." );
+      dialog->Invoke();
       return;
     }
 
@@ -4490,41 +4618,120 @@ vtkKWQdecWindow::GenerateStatsDataTables ( ) {
     vector< string > statsNames = this->mQdecProject->CreateStatsDataTables();
 
     if ( statsNames.size() ) { // it sppears to have given us some data
-
-      // remove the generate button
+      // remove the generate button...
       if( mBtnStatsGenerate ) mBtnStatsGenerate->Unpack();
 
-      // and replace with a menu button containing names of the generated
+      // ...and replace with a menu button containing names of the generated
       // stats tables
-      mMenuStatsData = vtkSmartPointer<vtkKWMenuButton>::New();
-      mMenuStatsData->SetParent( mFrameStatsImport->GetFrame() );
-      mMenuStatsData->Create();
-      mMenuStatsData->GetMenu()->AddRadioButton( "<none selected>" );
-      mMenuStatsData->SetValue( "<none selected>" );
       for( unsigned int i=0; i < statsNames.size(); i++ ) {
         string sCmd = string( "SetStatsImportItem " ) + statsNames[i].c_str();
         mMenuStatsData->GetMenu()->AddRadioButton( statsNames[i].c_str(),
                                                    this,
                                                    sCmd.c_str());
       }
-      this->Script( "pack %s -fill x", mFrameStatsImport->GetWidgetName() );
+      //this->Script( "pack %s -fill x", mFrameStatsImport->GetWidgetName() );
       this->Script( "pack %s", mMenuStatsData->GetWidgetName() );
     }
   }
 }
 void
 vtkKWQdecWindow::SetStatsImportItem ( const char* isStatsImportItem ) {
+  // remove prior selections
+  mListStatsImportFactors->DeleteAll();
+
+  // handle case of <none selected>
+  if ( ! strcmp(isStatsImportItem,"none")) return;
+
   // load from file
   stringstream ssFname;
-  ssFname << isStatsImportItem << ".stats.dat";
+  ssFname << this->mQdecProject->GetWorkingDir() 
+          << "/stats_tables/" << isStatsImportItem << ".stats.dat";
+
+  // hack: aseg.vol.stats.dat file uses word 'volume' as is fsid column name
   stringstream ssFsIdColName;
   if ( !strcmp(isStatsImportItem,"aseg.vol") ) ssFsIdColName << "volume";
   else ssFsIdColName << isStatsImportItem;
+
+  // load the table
   mStatsImportDataTable = new QdecDataTable();
-  mStatsImportDataTable->Load( ssFname.str().c_str(), 
-                               NULL, 
-                               ssFsIdColName.str().c_str() );
+  int ret = mStatsImportDataTable->Load( ssFname.str().c_str(), 
+                                         NULL, 
+                                         ssFsIdColName.str().c_str() );
+  if ( ret ) {
+    // some error loading the table, so fall-back
+    mMenuStatsData->SetValue( "<none selected>" );
+    return;
+  }
+
+  // fill our menu list with the factors from this data table
+  vector< string > factors = mStatsImportDataTable->GetContinuousFactorNames();
+  for(unsigned int i=0; i < factors.size(); i++) {
+    mListStatsImportFactors->Append( factors[i].c_str() );
+  }
+  this->Script( "pack %s -fill x -expand y", 
+                mListBoxStatsImport->GetWidgetName() );
+
+  // dont forget to show the button
+  this->Script( "pack %s", mBtnStatsAddToDataTable->GetWidgetName() );
 }
+void vtkKWQdecWindow::AddStatsToDataTable ( ) {
+
+  // this routine is called when the Add Stats To Data Table button is pressed
+  int nItemsMerged=0;
+  for( int nItem = 0; 
+       nItem < this->mListStatsImportFactors->GetNumberOfItems(); 
+       nItem++ ) {
+    if( this->mListStatsImportFactors->GetSelectState( nItem ) ) {
+      // Get the name of the factor.
+      string sFactor( this->mListStatsImportFactors->GetItem( nItem ) );
+
+      // and merge it into our Data Table
+      this->mQdecProject->MergeFactorIntoDataTable( sFactor.c_str(), 
+                                                    mStatsImportDataTable );
+      nItemsMerged++;
+    }
+  }
+
+  // We need to update our tabs.
+  if ( nItemsMerged ) this->UpdateDesignPage();
+  if ( nItemsMerged ) this->UpdateSubjectsPage();
+
+  // so the user can see what was just added...
+  if ( nItemsMerged ) this->mQdecProject->DumpDataTable( stdout );
+}
+void vtkKWQdecWindow::RemoveFactorFromDataTable ( ) {
+
+  // this routine is called when the Remove Factor from Data Table 
+  // button is pressed
+
+  mScatterPlotSelection = mListScatterPlot->GetSelectionIndex();
+  if ( -1 == mScatterPlotSelection ) return; // nothing selected
+
+  // pop-up an 'are you really really really really really sure' box
+  if ( vtkKWMessageDialog::PopupOkCancel 
+       ( this->GetApplication(), this, "", "Remove this factor?" ) ) {
+
+    // Get the name of the selected factor.
+    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
+    mScatterPlotSelection = -1; // not going to exist much longer
+    
+    // and delete it from our Data Table
+    this->mQdecProject->RemoveFactorFromDataTable( sFactor.c_str() );
+
+    // We need to update our tabs.
+    if ( mEntryExcludeFactor ) {
+      this->mEntryExcludeFactor->SetValue( "<none selected>" );
+    }
+    this->UpdateScatterPlot();
+    this->UpdateDesignPage();
+    this->UpdateSubjectsPage();
+
+    // so the user can see what was just deleted...
+    this->mQdecProject->DumpDataTable( stdout );
+  }
+}
+
+
 
 
 char const*
@@ -4900,7 +5107,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
   if( mPanel.GetPointer() ) {
     vtkKWWidget* panelSubjects = mPanel->GetPageWidget( "Subjects" );
     if( panelSubjects )
-      if( this->mQdecProject->GetDataTable() ) {
+      if( this->mQdecProject->HaveDataTable() ) {
         panelSubjects->EnabledOn();
         panelSubjects->UpdateEnableState();
       } else {
@@ -4910,7 +5117,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
 
     vtkKWWidget* panelDesign = mPanel->GetPageWidget( "Design" );
     if( panelDesign )
-      if( this->mQdecProject->GetDataTable() ) {
+      if( this->mQdecProject->HaveDataTable() ) {
         panelDesign->EnabledOn();
         panelDesign->UpdateEnableState();
       } else {
@@ -4928,6 +5135,12 @@ vtkKWQdecWindow::UpdateCommandStatus () {
         panelDisplay->UpdateEnableState();
       }
   }
+
+  assert( mMenuSaveDataTable );
+  if( mQdecProject && mQdecProject->HaveDataTable() )
+    mMenuSaveDataTable->SetStateToNormal();
+  else
+    mMenuSaveDataTable->SetStateToDisabled();
 
   assert( mMenuSaveProjectFile );
   if( mQdecProject && mQdecProject->GetGlmFitResults() )
