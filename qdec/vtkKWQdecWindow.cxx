@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 06:53:06 $
- *    $Revision: 1.26 $
+ *    $Date: 2008/06/12 17:33:19 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.26 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.27 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4644,8 +4644,8 @@ vtkKWQdecWindow::SetStatsImportItem ( const char* isStatsImportItem ) {
 
   // load from file
   stringstream ssFname;
-  ssFname << this->mQdecProject->GetWorkingDir() 
-          << "/stats_tables/" << isStatsImportItem << ".stats.dat";
+  ssFname << this->mQdecProject->GetStatsDataTablesDir() 
+          << "/" << isStatsImportItem << ".stats.dat";
 
   // hack: aseg.vol.stats.dat file uses word 'volume' as is fsid column name
   stringstream ssFsIdColName;
@@ -4707,16 +4707,19 @@ void vtkKWQdecWindow::RemoveFactorFromDataTable ( ) {
   mScatterPlotSelection = mListScatterPlot->GetSelectionIndex();
   if ( -1 == mScatterPlotSelection ) return; // nothing selected
 
-  // pop-up an 'are you really really really really really sure' box
-  if ( vtkKWMessageDialog::PopupOkCancel 
-       ( this->GetApplication(), this, "", "Remove this factor?" ) ) {
+  // Get the name of the selected factor.
+  string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
 
-    // Get the name of the selected factor.
-    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
-    mScatterPlotSelection = -1; // not going to exist much longer
+  string sPopUpMsg = "Remove factor '" + sFactor + "'?";
     
-    // and delete it from our Data Table
+  // pop-up an 'are you really really really really really sure' box
+  if ( vtkKWMessageDialog::PopupOkCancel ( this->GetApplication(), 
+                                           this, "", sPopUpMsg.c_str() ) ) {
+
+    // Ok was clicked, so delete factor from our Data Table
     this->mQdecProject->RemoveFactorFromDataTable( sFactor.c_str() );
+
+    mScatterPlotSelection = -1; // default to empty factor selection
 
     // We need to update our tabs.
     if ( mEntryExcludeFactor ) {

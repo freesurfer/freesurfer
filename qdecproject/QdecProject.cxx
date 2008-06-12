@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 06:52:24 $
- *    $Revision: 1.18 $
+ *    $Date: 2008/06/12 17:33:17 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -47,6 +47,7 @@ QdecProject::QdecProject ( ) :
   msZipCommandFormat( "cd %3; zip -r %1 %2 > /dev/null" ),
   msUnzipCommandFormat( "unzip -o -d %3 %1 > /dev/null" )
 {
+  msStatsDataTablesDir = mGlmDesign->GetDefaultWorkingDir() + "/stats_tables/";
 }
 
 QdecProject::~QdecProject ( )
@@ -973,9 +974,9 @@ vector< string > QdecProject::CreateStatsDataTables ()
   if ( 0 == numSubjects )
     throw runtime_error( "Zero subjects! Cannot run asegstats2table\n" );
 
-  // Make the /stats_tables dir in the working dir
+  // Make the sure the storage dir (/stats_tables) exists
   {
-    string sCommand = "mkdir -p " + this->GetWorkingDir() + "/stats_tables";
+    string sCommand = "mkdir -p " + this->msStatsDataTablesDir;
     cout << sCommand << endl;
     int rRun = system( sCommand.c_str() );
     if ( -1 == rRun )
@@ -992,7 +993,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
   string name = "aseg.vol";
   stringstream ssCommand;
   ssCommand << "asegstats2table --meas vol --t "
-            << this->GetWorkingDir() << "/stats_tables/" 
+            << this->msStatsDataTablesDir 
             << name << ".stats.dat"
             << " --subjects"; 
   for( int i=0; i < numSubjects; i++ )
@@ -1050,7 +1051,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
                   << " --h " << hemi[h]
                   << " --parc " << parc[p]
                   << " --meas " << meas[m]
-                  << " --t " << this->GetWorkingDir() << "/stats_tables" 
+                  << " --t " << this->msStatsDataTablesDir 
                   << "/" << ssFname.str() << ".stats.dat"
                   << " --subjects"; 
         for( int i=0; i < numSubjects; i++ )
@@ -1079,5 +1080,3 @@ vector< string > QdecProject::CreateStatsDataTables ()
 
   return statsDataNames;
 }
-
-

@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 06:52:24 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/06/12 17:33:17 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -156,6 +156,12 @@ public:
 
 
   /**
+   * @return string   directory where stats data tables are stored
+   */
+  string GetStatsDataTablesDir () { return this->msStatsDataTablesDir; }
+  
+
+  /**
    * Merge the factor given by isFactorName from data table iDataTable
    * into our main DataTable.  Used to add selections from an asegstats
    * table or aparcstats table into the main table (which would require
@@ -291,6 +297,7 @@ public:
    */
   QdecGlmFitResults* GetGlmFitResults ( );
 
+
   /**
    * Run mri_label2label on each subject, mapping the label that was drawn on 
    * the average surface to each subject. Optionally supply a window manager
@@ -303,10 +310,12 @@ public:
     ( const char* ifnLabel,
       ProgressUpdateGUI* iProgressUpdateGUI=NULL );
 
+
   /**
    * @return QdecGlmDesign
    */
   QdecGlmDesign* GetGlmDesign ( );
+
 
   /**
    * The file name of our metadata file, for the project file archive.
@@ -341,6 +350,10 @@ private:
   // The command format to run to zip and unzip a file. 
   string msZipCommandFormat;
   string msUnzipCommandFormat;
+
+  // directory where stats data tables are stored
+  string msStatsDataTablesDir;
+
 };
 
 #endif // QDECPROJECT_H
