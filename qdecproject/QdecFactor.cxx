@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:56:53 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/12 03:17:06 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -82,6 +82,17 @@ QdecFactor::QdecFactor ( const char* isName,
   mHaveDotLevelsFile = false;
 }
 
+
+//Copy constructor
+QdecFactor::QdecFactor ( const QdecFactor *iFactor )
+{
+  msName = iFactor->msName;
+  mType = iFactor->mType;
+  mLevelNames = iFactor->mLevelNames;
+  mContinuousValue = iFactor->mContinuousValue;
+  msDiscreteValue = iFactor->msDiscreteValue;
+  mHaveDotLevelsFile = iFactor->mHaveDotLevelsFile;
+} 
 
 QdecFactor::~QdecFactor ( )
 { }

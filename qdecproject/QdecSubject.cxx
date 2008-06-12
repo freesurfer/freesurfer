@@ -8,8 +8,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/11 04:58:26 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/12 03:17:06 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -48,18 +48,6 @@ QdecSubject::~QdecSubject ( )
     mFactors.pop_back();
   }
 }
-
-/**
- * Get the value of msId the subject identifier, as found in the
- * 'fsid' column of the table.dat input file.
- * @return the value of msId
- * @return string
- */
-string QdecSubject::GetId ( )
-{
-  return msId;
-}
-
 
 /**
  * @return string
@@ -127,11 +115,23 @@ vector < QdecFactor* > QdecSubject::GetContinuousFactors ( )
 
 
 /**
- * @return vector < QdecFactor* >
+ * @return QdecFactor
  */
-vector < QdecFactor* > QdecSubject::GetFactors ( )
+QdecFactor* QdecSubject::GetFactor ( const char* isFactorName )
 {
-  return mFactors;
+  for (unsigned int i=0; i < mFactors.size(); i++)
+  {
+    if ( 0 == strcmp( mFactors[i]->GetFactorName().c_str(), isFactorName ) )
+    {
+      return mFactors[i];
+    }
+  }
+
+  stringstream ssErr;
+  ssErr << "ERROR: QdecSubject::GetFactor failure: could not find "
+    "factor name: " << isFactorName;
+  throw runtime_error( ssErr.str().c_str() );
+  return NULL;
 }
 
 

@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/11 04:58:26 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/12 03:17:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -94,6 +94,15 @@ public:
 
 
   /**
+   * @return QdecFactor*
+   * @param isSubjectName
+   * @param isFactorName
+   */
+  QdecFactor* GetFactor ( const char* isSubjectName,
+                          const char* isFactorName );
+
+
+  /**
    * @return vector< string >
    */
   vector< string > GetDiscreteFactorNames ( );
@@ -142,6 +151,23 @@ public:
    * @return number of factors purged
    */
   int PurgeNullFactors ( );
+
+  /**
+   * merge a factor from a given data table into this data table
+   *
+   * @return int
+   * @param  isFactorName
+   * @param  iDataTable
+   */
+  int MergeFactor ( const char* isFactorName, QdecDataTable* iDataTable);
+
+  /**
+   * delete a factor from this data table
+   *
+   * @return int
+   * @param  isFactorName
+   */
+  int DeleteFactor ( const char* isFactorName );
 
 private:
 

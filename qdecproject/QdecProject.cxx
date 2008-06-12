@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/11 04:58:26 $
- *    $Revision: 1.16 $
+ *    $Date: 2008/06/12 03:17:06 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -566,6 +566,18 @@ int QdecProject::LoadDataTable ( const char* isFileName )
 
 
 /**
+ * @return bool  true if a table has been loaded
+ */
+bool QdecProject::HaveDataTable ( )
+{
+  if ( this->mDataTable &&
+       this->mDataTable->GetNumberOfSubjects() ) return true;
+
+  return false;
+}
+
+
+/**
  * @return void
  * @param  iFilePointer
  */
@@ -904,8 +916,8 @@ QdecProject::FormatCommandString ( const char* ifnProject,
 
 /**
  * run asegstats2table and aparcstats2table to generate fresurfer stats data
- * on each subject, for later optional inclusion into the main mDataTable
- * creates file aseg_vol.dat, lh_aparc_thickness.dat...
+ * on each subject, for later optional inclusion into the main mDataTable.
+ * creates files aseg_vol.dat, lh_aparc_thickness.dat...
  *
  * returns the names of the data that were created (aseg_vol, 
  * lh_aparc_thickness...)
@@ -923,6 +935,17 @@ vector< string > QdecProject::CreateStatsDataTables ()
   if ( 0 == numSubjects )
     throw runtime_error( "Zero subjects! Cannot run asegstats2table\n" );
 
+  // Make the /stats_tables dir in the working dir
+  {
+    string sCommand = "mkdir -p " + this->GetWorkingDir() + "/stats_tables";
+    cout << sCommand << endl;
+    int rRun = system( sCommand.c_str() );
+    if ( -1 == rRun )
+      throw runtime_error( "system call failed: " + sCommand );
+    if ( rRun > 0 )
+      throw runtime_error( "command failed: " + sCommand );
+  }
+
   /*
    * start by running asegstats2table
    */
@@ -931,7 +954,8 @@ vector< string > QdecProject::CreateStatsDataTables ()
   string name = "aseg.vol";
   stringstream ssCommand;
   ssCommand << "asegstats2table --meas vol --t "
-            << this->GetWorkingDir() << "/" << name << ".stats.dat"
+            << this->GetWorkingDir() << "/stats_tables/" 
+            << name << ".stats.dat"
             << " --subjects"; 
   for( int i=0; i < numSubjects; i++ )
   {
@@ -988,7 +1012,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
                   << " --h " << hemi[h]
                   << " --parc " << parc[p]
                   << " --meas " << meas[m]
-                  << " --t " << this->GetWorkingDir() 
+                  << " --t " << this->GetWorkingDir() << "/stats_tables" 
                   << "/" << ssFname.str() << ".stats.dat"
                   << " --subjects"; 
         for( int i=0; i < numSubjects; i++ )
@@ -1017,4 +1041,5 @@ vector< string > QdecProject::CreateStatsDataTables ()
 
   return statsDataNames;
 }
+
 

@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/11 04:58:26 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/06/12 03:17:06 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -110,6 +110,11 @@ public:
   void DumpDataTable ( FILE* iFilePointer );
 
   /**
+   * @return bool  true if a table has been loaded
+   */
+  bool HaveDataTable ( );
+
+  /**
    * @return int
    * @param  isFileName
    */
@@ -133,6 +138,35 @@ public:
    * @return vector< string >
    */
   vector< string > CreateStatsDataTables ();
+
+
+  /**
+   * Merge the factor given by isFactorName from data table iDataTable
+   * into our main DataTable.  Used to add selections from an asegstats
+   * table or aparcstats table into the main table (which would require
+   * saving the table to disk if the user wants to keep those changes)
+   *
+   * @return int
+   * @param  isFactorName
+   * @param  iDataTable
+   */
+  int MergeFactorIntoDataTable ( const char* isFactorName, 
+                                 QdecDataTable* iDataTable )
+  {
+    return this->mDataTable->MergeFactor( isFactorName, iDataTable );
+  }
+
+
+  /**
+   * Delete the factor isFactorName from data table
+   *
+   * @return int
+   * @param  isFactorName
+   */
+  int RemoveFactorFromDataTable ( const char* isFactorName )
+  {
+    return this->mDataTable->DeleteFactor( isFactorName );
+  }
 
 
   /**

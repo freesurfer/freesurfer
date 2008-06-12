@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 02:56:53 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/12 03:17:06 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -54,7 +54,8 @@ public:
                vector< string > iLevelNames );
   QdecFactor ( const char* isName,
                int iType, // ==2 continuous
-               double iValue );
+               double iValue );  
+  QdecFactor ( const QdecFactor* iFactor ); //Copy constructor
 
   virtual ~QdecFactor ( );
 
