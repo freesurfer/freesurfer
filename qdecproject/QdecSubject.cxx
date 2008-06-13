@@ -8,8 +8,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
  */
 
 #include <stdexcept>
+#include <sstream>
 
 #include "QdecSubject.h"
 
@@ -49,22 +50,10 @@ QdecSubject::~QdecSubject ( )
 }
 
 /**
- * Get the value of msId the subject identifier, as found in the
- * 'fsid' column of the table.dat input file.
- * @return the value of msId
- * @return string
- */
-string QdecSubject::GetId ( )
-{
-  return msId;
-}
-
-
-/**
  * @return string
  * @param  isFactorName
  */
-string QdecSubject::GetDiscreteFactor (const char* isFactorName )
+string QdecSubject::GetDiscreteFactorValue (const char* isFactorName )
 {
   for (unsigned int i=0; i < mFactors.size(); i++)
   {
@@ -77,7 +66,10 @@ string QdecSubject::GetDiscreteFactor (const char* isFactorName )
     }
   }
 
-  throw runtime_error( "ERROR: QdecSubject::GetDiscreteFactor failure\n" );
+  stringstream ssErr;
+  ssErr << "ERROR: QdecSubject::GetDiscreteFactor failure: could not find "
+    "factor name: " << isFactorName;
+  throw runtime_error( ssErr.str().c_str() );
   return NULL;
 }
 
@@ -86,20 +78,20 @@ string QdecSubject::GetDiscreteFactor (const char* isFactorName )
  * @return double
  * @param  isFactorName
  */
-double QdecSubject::GetContinuousFactor (const char* isFactorName )
+double QdecSubject::GetContinuousFactorValue (const char* isFactorName )
 {
   for (unsigned int i=0; i < mFactors.size(); i++)
   {
-    if (mFactors[i]->IsContinuous())
+    if ( 0 == strcmp( mFactors[i]->GetFactorName().c_str(), isFactorName ) )
     {
-      if ( 0 == strcmp( mFactors[i]->GetFactorName().c_str(), isFactorName ) )
-      {
-        return mFactors[i]->GetContinuousValue();
-      }
+      return mFactors[i]->GetContinuousValue();
     }
   }
 
-  throw runtime_error( "ERROR: QdecSubject::GetContinuousFactor failure\n" );
+  stringstream ssErr;
+  ssErr << "ERROR: QdecSubject::GetContinuousFactor failure: could not find "
+    "factor name: " << isFactorName;
+  throw runtime_error( ssErr.str().c_str() );
   return 0.0;
 }
 
@@ -123,11 +115,41 @@ vector < QdecFactor* > QdecSubject::GetContinuousFactors ( )
 
 
 /**
- * @return vector < QdecFactor* >
+ * @return QdecFactor
  */
-vector < QdecFactor* > QdecSubject::GetFactors ( )
+QdecFactor* QdecSubject::GetFactor ( const char* isFactorName )
 {
-  return mFactors;
+  for (unsigned int i=0; i < mFactors.size(); i++)
+  {
+    if ( 0 == strcmp( mFactors[i]->GetFactorName().c_str(), isFactorName ) )
+    {
+      return mFactors[i];
+    }
+  }
+
+  stringstream ssErr;
+  ssErr << "ERROR: QdecSubject::GetFactor failure: could not find "
+    "factor name: " << isFactorName;
+  throw runtime_error( ssErr.str().c_str() );
+  return NULL;
 }
 
 
+/**
+ * @param  isFactorName
+ */
+void QdecSubject::DeleteFactor ( const char* isFactorName )
+{
+  vector<QdecFactor*>::iterator iter = mFactors.begin() ; 
+  while( iter != mFactors.end() )
+  {
+    QdecFactor* factor = *iter;
+    string factorName = factor->GetFactorName();
+    if ( 0 == strcmp( factorName.c_str(), isFactorName ) )
+    {
+      mFactors.erase( iter );
+      return;
+    }
+    ++iter;
+  }
+}

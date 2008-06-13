@@ -10,10 +10,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.13.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.13.2.2 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -47,6 +47,7 @@ QdecProject::QdecProject ( ) :
   msZipCommandFormat( "cd %3; zip -r %1 %2 > /dev/null" ),
   msUnzipCommandFormat( "unzip -o -d %3 %1 > /dev/null" )
 {
+  msStatsDataTablesDir = mGlmDesign->GetDefaultWorkingDir() + "/stats_tables/";
 }
 
 QdecProject::~QdecProject ( )
@@ -262,6 +263,8 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
     return errorCode;
   
   // Create fit results data.
+  delete this->mGlmFitter;
+  this->mGlmFitter = new QdecGlmFit();
   errorCode = 
     mGlmFitter->CreateResultsFromCachedData ( this->mGlmDesign );
   if( errorCode )
@@ -280,6 +283,8 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
 int QdecProject::SaveProjectFile ( const char* ifnProject,
 				   const char* ifnDataDir )
 {
+
+  cout << "Saving project file...\n";
 
   // If the project file name doesn't have a path, give it one.
   string fnProject( ifnProject );
@@ -315,6 +320,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   string fnSubjectsDir = this->GetSubjectsDir();
   string sSubjectName = this->GetAverageSubject();
   string fnWorkingDir = this->GetWorkingDir();
+  string fnDefaultWorkingDir = this->GetDefaultWorkingDir();
 
   // Find the base name of the project file.
   string fnProjectBase( fnProject );
@@ -330,6 +336,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Erase old working directory if present.
   string sCommand = "rm -rf " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   int rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -339,6 +346,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Make a temporary directory for our data.
   sCommand = "mkdir " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -357,6 +365,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms " + 
     fnExpandedProjectDir + "/" + sSubjectName + "/surf " + 
     fnExpandedProjectDir + "/" + sSubjectName + "/label";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -368,6 +377,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   sCommand = "ln -s " +
     fnSubjectsDir + "/" + sSubjectName + "/mri/transforms/talairach.xfm " +
     fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -382,6 +392,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnSubjectsDir + "/" + sSubjectName + "/surf/*.pial " +
     fnSubjectsDir + "/" + sSubjectName + "/surf/*.white " +
     fnExpandedProjectDir + "/" + sSubjectName + "/surf";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -393,6 +404,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   sCommand = "ln -s " +
     fnSubjectsDir + "/" + sSubjectName + "/label/*.aparc.annot " +
     fnExpandedProjectDir + "/" + sSubjectName + "/label";
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -402,6 +414,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // The whole working dir.
   sCommand = "ln -s " + fnWorkingDir + " " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -423,21 +436,26 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   // in a symbolic link command properly. For example, on kani, with ln 
   // version 4.5.3, this will create a dead qdec.table.dat link in /tmp:
   // ln -s $PWD/qdec.table.dat *.levels /tmp
-  // so the files are linked singly
-  sCommand = "ln -s " + fnDataTable + " " + fnExpandedProjectDir;
+  // so the files are linked/copied singly
+  sCommand = "ln -s " + fnDefaultWorkingDir + "/" + fnDataTableBase + 
+    " " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
 	     "link data table (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
-  sCommand = "ln -s " + fnDataTablePath + "/*.levels " + fnExpandedProjectDir;
+  sCommand = "cp " + fnDefaultWorkingDir + "/*.levels " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
+  /* .levels files may not exist, so don't check for copy error:
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link *.levels (cmd=%s)\n", sCommand.c_str() );
+	     "copy *.levels (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
+  */
 
   // Generate the meta data file.
   string fnMetadata = fnExpandedProjectDir + "/" + this->GetMetadataFileName();
@@ -478,7 +496,6 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   fMetadata.close();
 
-
   // Get our command string and compress the directory to the
   // destination location with the .qdec filename.
   this->FormatCommandString( fnProject.c_str(),
@@ -486,6 +503,7 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 			     ifnDataDir,
 			     msZipCommandFormat.c_str(),
 			     sCommand );
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
@@ -495,12 +513,15 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
 
   // Delete the temp directory.
   sCommand = "rm -rf " + fnExpandedProjectDir;
+  cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
 	     "remove temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
+
+  cout << "Saving project file done.\n";
 
   return 0;
 }
@@ -532,11 +553,64 @@ int QdecProject::SetUnzipCommandFormat ( const char* isFormat ) {
  */
 int QdecProject::LoadDataTable ( const char* isFileName )
 {
-  char sd[3000];
-  int ret = this->mDataTable->Load ( isFileName, sd );
+  char subjectsDir[3000];
+  if ( this->mDataTable ) delete this->mDataTable;
+  this->mDataTable = new QdecDataTable();
+  int ret = this->mDataTable->Load ( isFileName, subjectsDir );
   if ( ret ) return ret;
-  if ( strlen(sd) > 0 ) ret = this->SetSubjectsDir ( sd );
+  if ( strlen(subjectsDir) > 0 ) ret = this->SetSubjectsDir ( subjectsDir );
+  if ( ret ) return ret;
+  delete this->mGlmDesign;
+  this->mGlmDesign = new QdecGlmDesign( this->mDataTable );
+  ret = this->VerifySubjects();
+  if ( ret ) 
+  {
+    delete this->mDataTable;
+    this->mDataTable = new QdecDataTable(); // on err, return empty table
+  }
   return ret;
+}
+
+
+/**
+ * Check that all subjects exist in the specified subjects_dir (including the
+ * specified average subject).  Print to stderr and ErrorMessage any errors
+ * found (one message for each error).  Also check that thickness, sulc, curv,
+ * area and jacobian_white files exist, and that their vertex numbers equal
+ * their inflated surface (and that surfaces all have the same number of
+ * vertices).
+ * @return int
+ */
+int QdecProject::VerifySubjects ( )
+{
+  int errs=0;
+  vector< QdecSubject* > theSubjects = this->mDataTable->GetSubjects();
+  for (unsigned int i=0; i < theSubjects.size(); i++) 
+  {
+    string id = theSubjects[i]->GetId();
+    string sCommand = "ls " + 
+      this->GetSubjectsDir() + "/" + id + " >& /dev/null";
+    int rSystem = system( sCommand.c_str() );
+    if( 0 != rSystem ) {
+      fprintf( stderr, "ERROR: QdecProject::VerifySubjects: Couldn't "
+               "find subject '%s' in SUBJECTS_DIR\n", id.c_str() );
+      errs++;
+    }
+  }
+
+  return errs;
+}
+
+
+/**
+ * @return bool  true if a table has been loaded
+ */
+bool QdecProject::HaveDataTable ( )
+{
+  if ( this->mDataTable &&
+       (this->mDataTable->GetNumberOfSubjects() > 0) ) return true;
+
+  return false;
 }
 
 
@@ -644,18 +718,18 @@ vector< string > QdecProject::GetSubjectIDs ( )
 /**
  * @return vector< string >
  */
-vector< string > QdecProject::GetDiscreteFactors ( )
+vector< string > QdecProject::GetDiscreteFactorNames ( )
 {
-  return this->mDataTable->GetDiscreteFactors();
+  return this->mDataTable->GetDiscreteFactorNames();
 }
 
 
 /**
  * @return vector< string >
  */
-vector< string > QdecProject::GetContinousFactors ( )
+vector< string > QdecProject::GetContinousFactorNames ( )
 {
-  return this->mDataTable->GetContinuousFactors();
+  return this->mDataTable->GetContinuousFactorNames();
 }
 
 
@@ -873,4 +947,136 @@ QdecProject::FormatCommandString ( const char* ifnProject,
     iosCommand.replace( n, 2, isExpandedProjectBaseName );
   while( string::npos != (n = iosCommand.find( "%3" )) )
     iosCommand.replace( n, 2, isWorkingDir );
+}
+
+
+
+/**
+ * run asegstats2table and aparcstats2table to generate fresurfer stats data
+ * on each subject, for later optional inclusion into the main mDataTable.
+ * creates files aseg_vol.dat, lh_aparc_thickness.dat...
+ *
+ * returns the names of the data that were created (aseg_vol, 
+ * lh_aparc_thickness...)
+ *
+ * @return vector< string >
+ */
+vector< string > QdecProject::CreateStatsDataTables ()
+{
+  // to be returned with names of stats data categories (files) created
+  vector< string > statsDataNames;
+
+  if ( ! this->HaveDataTable() ) return statsDataNames;
+
+  vector< string > subjects = this->GetSubjectIDs();
+  int numSubjects = this->GetSubjectIDs().size();
+
+  if ( 0 == numSubjects )
+    throw runtime_error( "Zero subjects! Cannot run asegstats2table\n" );
+
+  // Make the sure the storage dir (/stats_tables) exists
+  {
+    string sCommand = "mkdir -p " + this->msStatsDataTablesDir;
+    cout << sCommand << endl;
+    int rRun = system( sCommand.c_str() );
+    if ( -1 == rRun )
+      throw runtime_error( "system call failed: " + sCommand );
+    if ( rRun > 0 )
+      throw runtime_error( "command failed: " + sCommand );
+  }
+
+  /*
+   * start by running asegstats2table
+   */
+
+  // build a command line
+  string name = "aseg.vol";
+  stringstream ssCommand;
+  ssCommand << "asegstats2table --meas vol --t "
+            << this->msStatsDataTablesDir 
+            << name << ".stats.dat"
+            << " --subjects"; 
+  for( int i=0; i < numSubjects; i++ )
+  {
+    ssCommand << " " << subjects[i];
+  }
+
+  // and run the command...
+  char* sCommand = strdup( ssCommand.str().c_str() );
+  printf( "\n----------------------------------------------------------\n" );
+  printf( "%s\n", sCommand );
+  fflush(stdout);fflush(stderr);
+  int rRun = system( sCommand );
+  if ( -1 == rRun )
+    throw runtime_error( "system call failed: " + ssCommand.str() );
+  if ( rRun > 0 )
+    throw runtime_error( "command failed: " + ssCommand.str() );
+  free( sCommand );
+
+  // save the name of this file
+  statsDataNames.push_back( name );
+
+
+  /*
+   * now the variants of aparctats2table
+   */
+
+  vector< string > hemi;
+  vector< string > parc;
+  vector< string > meas;
+  hemi.push_back( "lh" );
+  hemi.push_back( "rh" );
+  parc.push_back( "aparc" );
+  parc.push_back( "aparc.a2005s" );
+  meas.push_back( "area" );
+  meas.push_back( "volume" );
+  meas.push_back( "thickness" );
+  meas.push_back( "meancurv" );
+  unsigned int h,p,m;
+  for( h=0; h < hemi.size(); h++ ) // for each hemi...
+  {
+    for( p=0; p < parc.size(); p++ ) // for each parcellation type
+    {
+      for( m=0; m < meas.size(); m++ ) // for each measure
+      {
+        // construct name of output file
+        stringstream ssFname;
+        ssFname <<  hemi[h]
+                << "." << parc[p] 
+                << "." << meas[m];
+
+        // build a command line
+        stringstream ssCommand;
+        ssCommand << "aparcstats2table"
+                  << " --h " << hemi[h]
+                  << " --parc " << parc[p]
+                  << " --meas " << meas[m]
+                  << " --t " << this->msStatsDataTablesDir 
+                  << "/" << ssFname.str() << ".stats.dat"
+                  << " --subjects"; 
+        for( int i=0; i < numSubjects; i++ )
+        {
+          ssCommand << " " << subjects[i];
+        }
+
+        // and run the command...
+        char* sCommand = strdup( ssCommand.str().c_str() );
+        printf( "\n------------------------------------------------------\n" );
+        printf( "%s\n", sCommand );
+        fflush(stdout);fflush(stderr);
+        int rRun = system( sCommand );
+        if ( -1 == rRun )
+          throw runtime_error( "system call failed: " + ssCommand.str() );
+        if ( rRun > 0 )
+          throw runtime_error( "command failed: " + ssCommand.str() );
+        free( sCommand );
+
+        // save the name of this data (now that we know it was successfully
+        // created
+        statsDataNames.push_back( ssFname.str() );
+      }
+    }
+  }
+
+  return statsDataNames;
 }

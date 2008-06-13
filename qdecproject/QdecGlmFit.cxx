@@ -9,8 +9,8 @@
  * Original Authors: Nick Schmansky and Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.4.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.4.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -93,7 +93,8 @@ int QdecGlmFit::Run ( QdecGlmDesign* iGlmDesign )
   // We need to build a command line.
   stringstream ssCommand;
   ssCommand << "mri_glmfit --y " << iGlmDesign->GetYdataFileName()
-            << " --fsgd " << iGlmDesign-> GetFsgdFileName()
+            << " --fsgd " << iGlmDesign->GetFsgdFileName()
+            << " " << iGlmDesign->GetDesignMatrixType()
             << " --glmdir " << iGlmDesign->GetWorkingDir()
             << " --surf " << iGlmDesign->GetAverageSubject()
             << " " << iGlmDesign->GetHemi() << ssCortexLabel.str();

@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/06 22:40:14 $
- *    $Revision: 1.1.2.3 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.1.2.4 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -43,14 +43,12 @@
 #include "vtksys/CommandLineArguments.hxx"
 #include "vtksys/SystemTools.hxx"
 #include "QdecUtilities.h"
-extern "C" {
-#include "fsgdf_wrap.h"
-}
+#include "FsgdfPlot.h"
 
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.3 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.4 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -203,53 +201,6 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   mWindow->Create();
   mWindow->FinishCreating();
 
-  // Load up our FSGDF stuff.
-  if( Fsgdf_Init( this->GetMainInterp() ) == TCL_ERROR ) {
-    cerr << "Fsgdf_Init failed: "
-         << Tcl_GetStringResult( this->GetMainInterp() ) << endl;
-  }
-
-  // Look in a few places for the fsgdfPlot.tcl script.
-  bool bFound = false;
-  string fnFSGDF = "../scripts/fsgdfPlot.tcl";
-  const char* rsTcl = NULL;
-  if( QdecUtilities::IsFileReadable( fnFSGDF ) )
-    bFound = this->LoadScript( fnFSGDF.c_str() );
-  if( !bFound ) {
-    char* pfnFreesurferDir = getenv( "FREESURFER_HOME" );
-    if( NULL != pfnFreesurferDir ) {
-      fnFSGDF = string(pfnFreesurferDir) + "/lib/tcl/fsgdfPlot.tcl";
-      if( QdecUtilities::IsFileReadable( fnFSGDF ) )
-        bFound = this->LoadScript( fnFSGDF.c_str() );
-    }
-  }
-  if( !bFound ) {
-    char* pfnFSGDFDir = getenv( "FSGDF_DIR" );
-    if( NULL != pfnFSGDFDir ) {
-      fnFSGDF = string(pfnFSGDFDir) + "/fsgdfPlot.tcl";
-      if( QdecUtilities::IsFileReadable( fnFSGDF ) )
-        bFound = this->LoadScript( fnFSGDF.c_str() );
-    }
-  }
-  if( !bFound ) {
-    this->ErrorMessage( "Couldn't find fsgdfPlot.tcl" );
-    this->SetExitStatus( 1 );
-    return;
-  }
-
-  // Log what script we're using.
-  string sMessage = string("Using ") + fnFSGDF;
-  this->InformationMessage( sMessage.c_str() );
-
-  // Initialize the FSGDF plotting stuff.
-  rsTcl = this->Script( "FsgdfPlot_Init" );
-  if( 0 != strcmp( rsTcl, "" ) ) {
-    string sError = string("FsgdfPlot_Init returned an error: ") + rsTcl;
-    this->ErrorMessage( sError.c_str() );
-    this->SetExitStatus( 1 );
-    return;
-  }
-
   // Show the window.
   mWindow->Display();
 
@@ -260,35 +211,35 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   // Load up the data we got.
   try {
 
-    if( !fnTable.empty() ) 
+    if( !fnTable.empty() )
       this->LoadDataTable( fnTable.c_str() );
-    
+
     if( !fnProject.empty() )
       this->LoadProjectFile( fnProject.c_str() );
-    
+
     vector<string>::iterator tfn;
     for( tfn = lfnSurfaces.begin(); tfn != lfnSurfaces.end(); ++tfn )
       this->LoadSurface( tfn->c_str() );
-    
+
     if( !fnGDF.empty() )
       this->LoadGDFFile( fnGDF.c_str() );
-    
+
     for( tfn = lfnScalars.begin(); tfn != lfnScalars.end(); ++tfn )
       this->LoadSurfaceScalars( tfn->c_str() );
-    
+
     if( !fnCurvature.empty() )
-    this->LoadSurfaceCurvatureScalars( fnCurvature.c_str() );
-    
+      this->LoadSurfaceCurvatureScalars( fnCurvature.c_str() );
+
     if( !fnAnnotation.empty() )
       this->LoadAnnotation( fnAnnotation.c_str() );
-    
+
     if( lfnOverlay.size() == 2 )
-      this->LoadSurfaceOverlayScalars( lfnOverlay[0].c_str(), 
-				       lfnOverlay[1].c_str() );
-    
+      this->LoadSurfaceOverlayScalars( lfnOverlay[0].c_str(),
+                                       lfnOverlay[1].c_str() );
+
     if( !fnLabel.empty() )
       this->LoadLabel( fnLabel.c_str() );
-    
+
   }
   catch( exception& e ) {
     this->ErrorMessage( e.what() );
@@ -312,8 +263,8 @@ vtkKWQdecApp::AddAboutText( ostream &os) {
   buildStamp += __DATE__ ;
   buildStamp += " " ;
   buildStamp += __TIME__ ;
-  buildStamp += "\n  - Copyright (c) 2007 ";
-  buildStamp += "The General Hospital Corporation (Boston, MA),\n";
+  buildStamp += "\n  - Copyright (c) 2007-2008\n";
+  buildStamp += "    The General Hospital Corporation (Boston, MA),\n";
   buildStamp += "    Martinos Center for Biomedical Imaging,\n";
   buildStamp += "    http://www.nmr.mgh.harvard.edu\n";
 
@@ -383,7 +334,7 @@ vtkKWQdecApp::LoadLabel ( const char* ifnLabel ) {
 void
 vtkKWQdecApp::ErrorMessage ( const char* isMessage ) {
 
-  vtkSmartPointer<vtkKWMessageDialog> dialog = 
+  vtkSmartPointer<vtkKWMessageDialog> dialog =
     vtkSmartPointer<vtkKWMessageDialog>::New();
   dialog->SetStyleToMessage();
   dialog->SetOptions( vtkKWMessageDialog::ErrorIcon );
@@ -414,7 +365,7 @@ vtkKWQdecApp::DisplayHelpDialog ( vtkKWTopLevel* iTop ) {
     scrolledText->SetParent( mDlogHelp );
     scrolledText->HorizontalScrollbarVisibilityOff();
     scrolledText->Create();
-    
+
     vtkSmartPointer<vtkKWPushButton> btnClose =
       vtkSmartPointer<vtkKWPushButton>::New();
     btnClose->SetParent( mDlogHelp );
@@ -422,20 +373,20 @@ vtkKWQdecApp::DisplayHelpDialog ( vtkKWTopLevel* iTop ) {
     btnClose->SetText( "Close" );
     btnClose->SetCommand( mDlogHelp, "Withdraw" );
     btnClose->SetWidth( 10 );
-    
+
     this->Script( "pack %s -side top -fill both -expand yes -padx 10 -pady 10",
-		  scrolledText->GetWidgetName() );
+                  scrolledText->GetWidgetName() );
     this->Script( "pack %s -side top -anchor e -padx 10 -pady 10",
-		  btnClose->GetWidgetName() );
-    
+                  btnClose->GetWidgetName() );
+
     vtkKWText* text = scrolledText->GetWidget();
     text->QuickFormattingOn();
     text->AppendText( "__Mouse Commands in Display View:__\n" );
     text->AppendText( "\n" );
     text->AppendText( "**Button 1:** Select vertex (and graph GDF)\n" );
-    text->AppendText( "**Button 2:**      Pan camera\n" );
-    text->AppendText( "**Button 3:**      Zoom camera\n" );
-    text->AppendText( "**Ctrl-Button 1:** Rotate camera\n" );
+    text->AppendText( "**Button 2:**                Pan camera\n" );
+    text->AppendText( "**Button 3:**                Zoom camera\n" );
+    text->AppendText( "**Ctrl-Button 1:**           Rotate camera\n" );
     text->AppendText( "**Shift-Button 1, drag:**    Draw a path\n" );
     text->AppendText( "**Shift-Button 1, no drag:** Clear path\n" );
     text->AppendText( "\n" );

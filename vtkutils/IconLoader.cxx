@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/01 20:02:17 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2008/06/13 00:24:28 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -244,9 +244,9 @@ IconLoader::LoadIcon ( const char* isKey,
         // We read it into tempData, now copy it in reverse row order
         // into data.
         for ( int nRow = zImageHeight-1; nRow >= 0; nRow-- ) {
-          memcpy( (void*)&data[(zImageHeight-1-nRow) * zImageWidth],
-                  (void*)&tempData[nRow * zImageWidth],
-                  sizeof(uint32) * zImageWidth );
+          memmove( (void*)&data[(zImageHeight-1-nRow) * zImageWidth],
+                   (void*)&tempData[nRow * zImageWidth],
+                   sizeof(uint32) * zImageWidth );
         }
 
         maTIFFData[isKey] = (unsigned char*) data;

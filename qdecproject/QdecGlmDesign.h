@@ -12,10 +12,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.3.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.3.2.2 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -87,31 +87,45 @@ public:
                ProgressUpdateGUI* iProgressUpdateGUI );
 
   /**
-  * Using the design parameters, writes FSGF file to the working directory.
-   * @return int
+   *
    */
-  int WriteFsgdFile ( );
+  void ClearDiscreteFactors ( );
 
 
   /**
-   * Using the design parameters, writes .mat files for all our contrasts.
-   * @return int
+   *
    */
-  int WriteContrastMatrices ( );
+  void AddDiscreteFactor ( const char* isFactorName);
 
 
   /**
-   * Using the design parameters, creates the 'y' input data to
-   * mri_glmfit, by concatenating the subject volumes, and writes it
-   * to the specified filename.
+   *
+   */
+  void ClearContinuousFactors ( );
+
+
+  /**
+   *
+   */
+  void AddContinuousFactor ( const char* isFactorName);
+
+
+  /**
    * @return int
    */
-  int WriteYdataFile ( );
+  int GetDegreesOfFreedom ( );
+
 
   /**
    * @return string
    */
   string GetName ( );
+
+
+  /**
+   * 
+   */
+  void SetName ( const char* isName );
 
 
   /**
@@ -121,15 +135,44 @@ public:
 
 
   /**
+   * 
+   */
+  void SetHemi ( const char* isHemi );
+
+
+  /**
    * @return string
    */
   string GetMeasure ( );
 
 
   /**
+   * 
+   */
+  void SetMeasure ( const char* isMeasure );
+
+
+  /**
    * @return int
    */
   int GetSmoothness ( );
+
+
+  /**
+   *
+   */
+  void SetSmoothness ( int iVal );
+
+  /**
+   * @return string
+   */
+  string GetDesignMatrixType ( );
+
+
+  /**
+   * @param const char*
+   */
+  void SetDesignMatrixType ( const char* isDesignMatrixType );
 
 
   /**
@@ -142,7 +185,6 @@ public:
    * @param const char*
    */
   int SetSubjectsDir ( const char* ifnSubjectsDir );
-
 
   /**
    * @return string
@@ -228,6 +270,60 @@ public:
    */
   bool GetExcludeSubjectID ( const char* isSubjectID );
 
+  /**
+   * SetExcludeSubjectsFactorGT
+   */
+  void SetExcludeSubjectsFactorGT ( const char* isFactorName,
+                                    double inExcludeGT,
+                                    bool ibExclude );
+
+  /**
+   * SetExcludeSubjectsFactorLT
+   */
+  void SetExcludeSubjectsFactorLT ( const char* isFactorName,
+                                    double inExcludeLT,
+                                    bool ibExclude );
+
+  /**
+   * SetExcludeSubjectsFactorET
+   */
+  void SetExcludeSubjectsFactorET ( const char* isFactorName,
+                                    double inExcludeET,
+                                    bool ibExclude );
+
+  /**
+   * ClearAllExcludedSubjects
+   */
+  void  ClearAllExcludedSubjects ( );
+
+  /**
+   * GetNumberOfExcludedSubjects
+   */
+  int  GetNumberOfExcludedSubjects ( );
+
+
+  /**
+   * Using the design parameters, writes FSGF file to the working directory.
+   * @return int
+   */
+  int WriteFsgdFile ( );
+
+
+  /**
+   * Using the design parameters, writes .mat files for all our contrasts.
+   * @return int
+   */
+  int WriteContrastMatrices ( );
+
+
+  /**
+   * Using the design parameters, creates the 'y' input data to
+   * mri_glmfit, by concatenating the subject volumes, and writes it
+   * to the specified filename.
+   * @return int
+   */
+  int WriteYdataFile ( );
+
   /** 
    * Access the discrete and continuous factor names.
    * Returns a const vector of QdecFactors pointers. 
@@ -250,6 +346,7 @@ private:
   string msMeasure;
   string msHemi;
   int mSmoothness;
+  string msDesignMatrixType; // dods or doss
   string mfnSubjectsDir;
   string msAverageSubject;
   // Stores contrasts created from an fsgdf file. Can be empty.
@@ -261,9 +358,9 @@ private:
   ProgressUpdateGUI* mProgressUpdateGUI;  
 
   // A list of excluded subjects. These will not be included when
-  // writing the ydata file. The key values are subject IDs, as found
-  // in data table, and if there is a value present in the set, that
-  // subject is to be excluded.
+  // writing the fsgd and ydata files. The key values are subject IDs, 
+  // as found in data table, and if there is a value present in the set,
+  // that subject is to be excluded.
   std::set<string> maExcludedSubjects;
 
   // private methods

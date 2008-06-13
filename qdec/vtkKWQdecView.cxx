@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/06 22:40:14 $
- *    $Revision: 1.1.2.3 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.1.2.4 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -67,11 +67,10 @@
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
 
-
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.3 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.4 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -82,8 +81,7 @@ double const vtkKWQdecView::kAnimateTimeInSeconds = 0.1;  // was 1.0
 
 vtkKWQdecView::vtkKWQdecView () :
   mfnSurface( "" ),
-  mbGDFLoaded( false ),
-  mGDFID( -1 ),
+  mVertexPlot( NULL ),
   mnCursorVertexIndex( -1 ),
   mOverlayOpacity( 0.3 ),
   mAnnotationLookup( NULL ),
@@ -162,11 +160,10 @@ vtkKWQdecView::ViewInteractor::OnLeftButtonDown () {
     mView->ResetPath();
 
   } else if( this->GetInteractor()->GetControlKey() ) {
-
-    // just let it rotate the camera
-    // (need this else to prevent it from selecting vertex)
     
-  } else {
+    // just let it rotate camera
+    // (need this else if so that it doesnt select vertex)
+  } else { 
     
     // Select vertex
     mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
@@ -189,8 +186,8 @@ vtkKWQdecView::ViewInteractor::OnLeftButtonUp () {
     vector<int> lVertices;
     try {
       mView->mCurrentSurfaceSource->
-	FindPath( mView->mnLastVertexInPath, mView->mnFirstVertexInPath,
-		  lVertices );
+        FindPath( mView->mnLastVertexInPath, mView->mnFirstVertexInPath,
+                  lVertices );
     }
     catch( exception& e ) {
       return;
@@ -235,23 +232,23 @@ vtkKWQdecView::ViewInteractor::OnMouseMove () {
       // Make a path from the last clicked vertex to this one.
       vector<int> lVertices;
       try {
-	mView->mCurrentSurfaceSource->
-	  FindPath( mView->mnLastVertexInPath, nVertex, lVertices );
+        mView->mCurrentSurfaceSource->
+          FindPath( mView->mnLastVertexInPath, nVertex, lVertices );
       }
       catch( exception& e ) {
-	return;
+        return;
       }
       
       // Add all the vertices to the list of lines.
       while( !lVertices.empty() ) {
 	
-	// Get a vertex number.
-	int nVertexToAdd = lVertices.back();
-	lVertices.pop_back();
+        // Get a vertex number.
+        int nVertexToAdd = lVertices.back();
+        lVertices.pop_back();
 	    
-	// Add it to the path.
-	mView->AddVertexToPath( nVertexToAdd );
-     }
+        // Add it to the path.
+        mView->AddVertexToPath( nVertexToAdd );
+      }
 
       // Rebuild this segment and draw it.
       mView->RebuildPathLine ();
@@ -284,8 +281,8 @@ vtkKWQdecView::ViewInteractor::GetVertexAtPicker () {
   // picked.
   double worldCoords[3] = { 0,0,0 };
   picker->Pick( this->GetInteractor()->GetEventPosition()[0],
-		this->GetInteractor()->GetEventPosition()[1],
-		0, mView->GetRenderer() );
+                this->GetInteractor()->GetEventPosition()[1],
+                0, mView->GetRenderer() );
   picker->GetPickPosition( worldCoords );
   
   // Our world points are our RAS points.
@@ -306,7 +303,7 @@ vtkKWQdecView::ViewInteractor::GetVertexAtPicker () {
       // Find the surface vertex at this point.
       float distance;
       int nVertex = mView->mCurrentSurfaceSource->
-	FindVertexAtRAS( RAS, &distance );
+        FindVertexAtRAS( RAS, &distance );
       
       return nVertex;
     }
@@ -528,23 +525,6 @@ vtkKWQdecView::SetSurface ( vtkFSSurfaceSource* iSurface ) {
   this->Render();
 }
 
-void
-vtkKWQdecView::SetGDFID ( int iGDFID ) {
-
-  // If our GDF plot window is open from a previous analysis, we
-  // should close it now.
-  if( mbGDFLoaded )
-    this->Script( "FsgdfPlot_HideWindow %d", mGDFID );
-
-  // Save the new ID.
-  mGDFID = iGDFID;
-  if( mGDFID >= 0 )
-    mbGDFLoaded = true;
-  else
-    mbGDFLoaded = false;
-}
-
-
 void 
 vtkKWQdecView::ResetView () {
 
@@ -629,7 +609,7 @@ vtkKWQdecView::SetSurfaceLookupScalars ( vtkFloatArray* iScalars ) {
 
 void
 vtkKWQdecView::SetSurfaceOverlayScalarsAndColors ( vtkFloatArray* iScalars,
-					      vtkScalarsToColors* iColors ) {
+                                                   vtkScalarsToColors* iColors ) {
 
   // Save the pointers.
   mCurrentOverlayScalars = iScalars;
@@ -747,10 +727,10 @@ vtkKWQdecView::SelectSurfaceVertex ( int inVertex ) {
     // Clear the annotation.
     this->GetCornerAnnotation()->SetText( 0, "" );
 
-    // Clear the GDF is loaded.
-    if( mbGDFLoaded ) {
-      this->Script( "FsgdfPlot_BeginPointList %d", mGDFID );
-      this->Script( "FsgdfPlot_EndPointList %d", mGDFID );
+    // Clear the GDF if loaded.
+    if( mVertexPlot && mVertexPlot->IsLoaded() ) {
+      mVertexPlot->BeginPointList();
+      mVertexPlot->EndPointList();
     }
 
   } else {
@@ -762,8 +742,8 @@ vtkKWQdecView::SelectSurfaceVertex ( int inVertex ) {
     float surfaceRAS[3];
     mCurrentSurfaceSource->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
     ssLabel << "(" << fixed << setprecision(2)
-	    << surfaceRAS[0] << ", "
-	    << surfaceRAS[1] << ", " << surfaceRAS[2] << ")";
+            << surfaceRAS[0] << ", "
+            << surfaceRAS[1] << ", " << surfaceRAS[2] << ")";
     
     // Add the info to the label.
     ssLabel << " Vertex #" << inVertex;
@@ -780,24 +760,21 @@ vtkKWQdecView::SelectSurfaceVertex ( int inVertex ) {
     }
     
     // If our GDF is loaded, plot this point and set the info.
-    if( mbGDFLoaded ) {
-      this->Script( "FsgdfPlot_SetPoint %d %d 0 0", mGDFID, inVertex );
-      this->Script( "FsgdfPlot_SetInfo %d \"%s\"",
-		    mGDFID, ssLabel.str().c_str() );
+    if( mVertexPlot && mVertexPlot->IsLoaded() ) {
+      mVertexPlot->SetPoint( inVertex );
+      mVertexPlot->SetInfo( ssLabel.str().c_str() );
     }
   
     // Set the label in the lower left annotation.
     this->GetCornerAnnotation()->SetText( 0, ssLabel.str().c_str() );
     
-  
     // Set the cursor focal point.
     if( mCursor.GetPointer() ) {
       double worldCoords[3];
       for( int n = 0; n < 3; n ++ )
-	worldCoords[n] = static_cast<double>( surfaceRAS[n] );
+        worldCoords[n] = static_cast<double>( surfaceRAS[n] );
       mCursor->SetFocalPoint( worldCoords );
     }
-  
   }
 
   // Save the index of this vertex.
@@ -807,7 +784,7 @@ vtkKWQdecView::SelectSurfaceVertex ( int inVertex ) {
   SurfaceVertexInformation info;
   info.mnVertexIndex = mnCursorVertexIndex;
   this->InvokeEvent( QdecEvents::UserSelectedVertex, 
-		     static_cast<void*>(&info) );
+                     static_cast<void*>(&info) );
     
   // Render the view.
   this->Render();

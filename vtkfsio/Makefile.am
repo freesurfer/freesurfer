@@ -15,14 +15,17 @@ noinst_LIBRARIES= libvtkfsio.a
 
 libvtkfsio_a_SOURCES=\
 	vtkFSSurfaceLabelSource.cxx \
+	vtkFSSurfaceLabelSource.h \
 	vtkFSSurfaceWriter.cxx \
+	vtkFSSurfaceWriter.h \
 	vtkFSSurfaceScalarsReader.cxx \
+	vtkFSSurfaceScalarsReader.h \
 	vtkFSSurfaceSource.cxx \
-	vtkFSVolumeSource.cxx
+	vtkFSSurfaceSource.h \
+	vtkFSVolumeSource.cxx \
+	vtkFSVolumeSource.h
 
-am_libvtkfsio_a_OBJECTS=$(libvtkfsio_a_SOURCES:%.cxx=%.o)
-
-EXTRA_DIST=$(wildcard *.h)
+EXTRA_DIST=$(libvtkfsio_a_SOURCES)
 
 if ENABLE_KWWIDGETS_APPS
 check_PROGRAMS = vtkFSSurfaceWriterTester
@@ -33,10 +36,11 @@ endif
 vtkFSSurfaceWriterTester_SOURCES=vtkFSSurfaceWriterTester.cxx
 
 vtkFSSurfaceWriterTester_LDADD=\
-	$(top_srcdir)/fsgdf/libfsgdf.a \
-	$(top_srcdir)/vtkfsio/libvtkfsio.a \
-	$(top_srcdir)/vtkutils/libvtkutils.a \
-	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
+	$(top_builddir)/fsgdf/libfsgdf.a \
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \

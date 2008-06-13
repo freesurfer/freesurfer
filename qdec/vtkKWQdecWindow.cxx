@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/07 17:14:48 $
- *    $Revision: 1.1.2.3 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.1.2.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,60 +101,65 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.3 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.4 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
+const char* vtkKWQdecWindow::ksContrastPanelName = "Contrast";
 const char* vtkKWQdecWindow::ksDisplayPanelName = "Display";
 
 vtkKWQdecWindow::vtkKWQdecWindow () :
-    vtkKWWindow(),
-    mbUseHistogramEditor( true ),
-    mMenuLoadDataTable( NULL ),
-    mMenuLoadProjectFile( NULL ),
-    mMenuLoadLabel( NULL ),
-    mMenuSaveProjectFile( NULL ),
-    mMenuSaveTIFF( NULL ),
-    mMenuSaveGDFPostscript( NULL ),
-    mMenuSaveLabel( NULL ),
-    mMenuMapLabel( NULL ),
-    mMenuClearCurvature( NULL ),
-    mMenuClearSurfaceScalars( NULL ),
-    mMenuRestoreView( NULL ),
-    mMenuZoomOut( NULL ),
-    mMenuZoomIn( NULL ),
-    mMenuShowCursor( NULL ),
-    mMenuAddSelectionToROI( NULL ),
-    mMenuRemoveSelectionFromROI( NULL ),
-    mMenuClearROI( NULL ),
-    mMenuSmoothCurvatureScalars( NULL ),
-    mMenuSmoothSurfaceScalars( NULL ),
-    mMenuGraphAverageROI( NULL ),
-    mbFrameSurfaceInited( false ),
-    mbFrameCurvatureInited( false ),
-    mbFrameOverlayInited( false ),
-    mbFrameSurfaceScalarsInited( false ),
-    mPlotContinuousFactorSelection( -1 ),
-    mQdecProject( NULL ),
-    mcVertices( -1 ),
-    msCurrentSurfaceSource( "" ),
-    mGDFID( -1 ),
-    mbGDFLoaded( false ),
-    mnCurrentSurfaceScalars( -1 ),
-    maAnnotationIndicies( NULL ),
-    mAnnotationTable( NULL ),
-    mbShowCurvature( true ),
-    mSurfaceScalarsColorMin( 2.0 ),
-    mSurfaceScalarsColorMid( 4.0 ),
-    mSurfaceScalarsColorMax( 5.0 ),
-    mSurfaceScalarsColorOffset( 0.0 ),
-    mbSurfaceScalarsColorReverse( false ),
-    mbSurfaceScalarsColorShowPositive( true ),
-    mbSurfaceScalarsColorShowNegative( true ),
-    mbDrawCurvatureGreenRedIfNoScalars( false ),
-    mSurfaceScalarsColorsFDRRate( 0.05 ),
-    msOverlayDescription( "" ),
-    mbViewInitialized( false ) {
+  vtkKWWindow(),
+  mCurrentNotebookPanelName ( NULL ),
+  mbUseHistogramEditor( true ),
+  mMenuLoadDataTable( NULL ),
+  mMenuLoadProjectFile( NULL ),
+  mMenuLoadLabel( NULL ),
+  mMenuLoadAnnotation( NULL ),
+  mMenuSaveDataTable( NULL ),
+  mMenuSaveProjectFile( NULL ),
+  mMenuSaveScatterPlotPostscript( NULL ),
+  mMenuSaveTIFF( NULL ),
+  mMenuSaveGDFPostscript( NULL ),
+  mMenuSaveLabel( NULL ),
+  mMenuMapLabel( NULL ),
+  mMenuClearCurvature( NULL ),
+  mMenuClearSurfaceScalars( NULL ),
+  mMenuRestoreView( NULL ),
+  mMenuZoomOut( NULL ),
+  mMenuZoomIn( NULL ),
+  mMenuShowCursor( NULL ),
+  mMenuAddSelectionToROI( NULL ),
+  mMenuRemoveSelectionFromROI( NULL ),
+  mMenuClearROI( NULL ),
+  mMenuSmoothCurvatureScalars( NULL ),
+  mMenuSmoothSurfaceScalars( NULL ),
+  mMenuGraphAverageROI( NULL ),
+  mbFrameSurfaceInited( false ),
+  mbFrameCurvatureInited( false ),
+  mbFrameOverlayInited( false ),
+  mbFrameSurfaceScalarsInited( false ),
+  mScatterPlotSelection( -1 ),
+  mScatterPlotLegend( "" ),
+  mVertexPlot( NULL ),
+  mQdecProject( NULL ),
+  mcVertices( -1 ),
+  msCurrentSurfaceSource( "" ),
+  mnCurrentSurfaceScalars( -1 ),
+  maAnnotationIndicies( NULL ),
+  mAnnotationTable( NULL ),
+  mbShowCurvature( true ),
+  mSurfaceScalarsColorMin( 2.0 ),
+  mSurfaceScalarsColorMid( 4.0 ),
+  mSurfaceScalarsColorMax( 5.0 ),
+  mSurfaceScalarsColorOffset( 0.0 ),
+  mbSurfaceScalarsColorReverse( false ),
+  mbSurfaceScalarsColorShowPositive( true ),
+  mbSurfaceScalarsColorShowNegative( true ),
+  mbDrawCurvatureGreenRedIfNoScalars( false ),
+  mSurfaceScalarsColorsFDRRate( 0.05 ),
+  msOverlayDescription( "" ),
+  mbViewInitialized( false ) {
 
   maDiscreteFactorSelection[0] = -1;
   maDiscreteFactorSelection[1] = -1;
@@ -167,7 +172,9 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuLoadDataTable;
   delete mMenuLoadProjectFile;
   delete mMenuLoadLabel;
+  delete mMenuLoadAnnotation;
   delete mMenuSaveProjectFile;
+  delete mMenuSaveScatterPlotPostscript;
   delete mMenuSaveTIFF;
   delete mMenuSaveGDFPostscript;
   delete mMenuSaveLabel;
@@ -185,6 +192,7 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuSmoothSurfaceScalars;
   delete mMenuGraphAverageROI;
   delete mQdecProject;
+  delete mStatsImportDataTable;
 }
 
 void
@@ -239,8 +247,8 @@ vtkKWQdecWindow::CreateWidget () {
   // Load data table
   mBtnLoadDataTable.TakeReference( 
     this->MakeToolbarButton( toolbar,
-			     "Load a .dat file into the Design tab",
-			     this, "LoadDataTableFromDlog", "LoadDataTable" )
+                             "Load a .dat file into the Design tab",
+                             this, "LoadDataTableFromDlog", "LoadDataTable" )
     );
     
   // Load project file
@@ -383,74 +391,95 @@ vtkKWQdecWindow::CreateWidget () {
   mMenuLoadDataTable = new MenuItem();
   mMenuLoadDataTable->
     MakeCommand( this->GetFileMenu(), nItem++,
-		 "L&oad Data Table...", this, "LoadDataTableFromDlog",
-		 "Ctrl+O", "LoadDataTable" );
+                 "L&oad Data Table...", this, "LoadDataTableFromDlog",
+                 "Ctrl+O", "LoadDataTable" );
 
   // Load Project File..
   mMenuLoadProjectFile = new MenuItem();
   mMenuLoadProjectFile->
     MakeCommand( this->GetFileMenu(), nItem++,
-		 "Load Pro&ject File...", this, "LoadProjectFileFromDlog",
-		 "Ctrl+J", "LoadAnalyzedData" );
+                 "Load Pro&ject File...", this, "LoadProjectFileFromDlog",
+                 "Ctrl+J", "LoadAnalyzedData" );
 
   // Load Label
   mMenuLoadLabel = new MenuItem();
   mMenuLoadLabel->
     MakeCommand( this->GetFileMenu(), nItem++,
-		 "Load &Label...", this, "LoadLabelFromDlog",
-		 "Ctrl+L", "LoadLabel" );
+                 "Load &Label...", this, "LoadLabelFromDlog",
+                 "Ctrl+L", "LoadLabel" );
 
-  // These menu items are for loading pieces of data individuall, and
+  // Load Annotation
+  mMenuLoadAnnotation = new MenuItem();
+  mMenuLoadAnnotation->
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Load &Annotation...", this, "LoadAnnotationFromDlog",
+                 "Ctrl+A", "LoadAnnotation" );
+
+  // These menu items are for loading pieces of data individually, and
   // can be enabled for debugging.
 #if 0
   this->GetFileMenu()->InsertCommand( nItem++, "Load Surface...",
-				      this, "LoadSurfaceFromDlog" );
+                                      this, "LoadSurfaceFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load GDF...",
-				      this, "LoadGDFFromDlog" );
+                                      this, "LoadGDFFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load Scalars...",
-				      this, "LoadSurfaceScalarsFromDlog" );
+                                      this, "LoadSurfaceScalarsFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load Curvature...",
-				      this, "LoadCurvatureFromDlog" );
-  this->GetFileMenu()->InsertCommand( nItem++, "Load Annotation...",
-				      this, "LoadAnnotationFromDlog" );
+                                      this, "LoadCurvatureFromDlog" );
 #endif
-
   this->GetFileMenu()->InsertSeparator( nItem++ );
+
+  // Save Data Table.
+  mMenuSaveDataTable = new MenuItem();
+  mMenuSaveDataTable->
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Save Data Table...", this, "SaveDataTableFromDlog",
+                 NULL, NULL );
 
   // Save Project File.
   mMenuSaveProjectFile = new MenuItem();
   mMenuSaveProjectFile->
     MakeCommand( this->GetFileMenu(), nItem++,
-		 "Save Project File...", this, "SaveProjectFileFromDlog",
-		 NULL, NULL );
+                 "Save Project File...", this, "SaveProjectFileFromDlog",
+                 NULL, NULL );
+
+  // Save Postcript of continuous factor plot
+  mMenuSaveScatterPlotPostscript = new MenuItem();
+  mMenuSaveScatterPlotPostscript->
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Save Scatter Plot as Postcript...", this,
+                 "SaveScatterPlotPostscriptFromDlog", NULL, NULL );
 
   // Save TIFF
   mMenuSaveTIFF = new MenuItem();
   mMenuSaveTIFF->
-  MakeCommand( this->GetFileMenu(), nItem++,
-               "Save TIFF...", this, "SaveTIFFImageFromDlog",
-               NULL, "SaveTIFF" );
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Save TIFF...", this, "SaveTIFFImageFromDlog",
+                 NULL, "SaveTIFF" );
 
   // Save Postcript of GDF
   mMenuSaveGDFPostscript = new MenuItem();
   mMenuSaveGDFPostscript->
     MakeCommand( this->GetFileMenu(), nItem++,
-		 "Save GDF Plot as Postcript...", this,
-		 "SaveGDFPostscriptFromDlog", NULL, NULL );
+                 "Save GDF Plot as Postcript...", this,
+                 "SaveGDFPostscriptFromDlog", NULL, NULL );
 
   // Save Label
   mMenuSaveLabel = new MenuItem();
   mMenuSaveLabel->
-  MakeCommand( this->GetFileMenu(), nItem++,
-               "Save Label...", this, "SaveLabelFromDlog",
-               NULL, "SaveLabel" );
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "Save Label...", this, "SaveLabelFromDlog",
+                 NULL, "SaveLabel" );
+
+  // Insert a separator,
+  this->GetFileMenu()->InsertSeparator( nItem++ );
 
   // Map label
   mMenuMapLabel = new MenuItem();
   mMenuMapLabel->
     MakeCommand( this->GetFileMenu(), nItem++,
-		 "Map Label to Subjects...", this, "MapLabelFromDlog",
-		 NULL, NULL );
+                 "Map Label to Subjects...", this, "MapLabelFromDlog",
+                 NULL, NULL );
   
   // Insert a separator, then the recent files, then another
   // separator. The quit items will be after that.
@@ -466,15 +495,15 @@ vtkKWQdecWindow::CreateWidget () {
   // Clear Curvatures.
   mMenuClearCurvature = new MenuItem();
   mMenuClearCurvature->
-  MakeCommand( this->GetEditMenu(), nItem++,
-               "Clear Curvature", this, "ClearCurvature", NULL, NULL );
+    MakeCommand( this->GetEditMenu(), nItem++,
+                 "Clear Curvature", this, "ClearCurvature", NULL, NULL );
 
   // Clear scalars.
   mMenuClearSurfaceScalars = new MenuItem();
   mMenuClearSurfaceScalars->
-  MakeCommand( this->GetEditMenu(), nItem++,
-               "Clear Surface Scalars", this, "ClearSurfaceScalars",
-               NULL, NULL );
+    MakeCommand( this->GetEditMenu(), nItem++,
+                 "Clear Surface Scalars", this, "ClearSurfaceScalars",
+                 NULL, NULL );
 
   this->GetEditMenu()->InsertSeparator( nItem++ );
 
@@ -482,22 +511,22 @@ vtkKWQdecWindow::CreateWidget () {
   mMenuAddSelectionToROI = new MenuItem();
   mMenuAddSelectionToROI->
     MakeCommand( this->GetEditMenu(), nItem++,
-		 "Add Selection to ROI", this, "AddSelectionToROI",
-		 NULL, NULL );
+                 "Add Selection to ROI", this, "AddSelectionToROI",
+                 NULL, NULL );
   
   // Remove selection remove from ROI
   mMenuRemoveSelectionFromROI = new MenuItem();
   mMenuRemoveSelectionFromROI->
     MakeCommand( this->GetEditMenu(), nItem++,
-		 "Remove Selection from ROI", this, "RemoveSelectionFromROI",
-		 NULL, NULL );
+                 "Remove Selection from ROI", this, "RemoveSelectionFromROI",
+                 NULL, NULL );
   
   // Clear ROI
   mMenuClearROI = new MenuItem();
   mMenuClearROI->
     MakeCommand( this->GetEditMenu(), nItem++,
-		 "Clear ROI", this, "ClearROI",
-		 NULL, NULL );
+                 "Clear ROI", this, "ClearROI",
+                 NULL, NULL );
   
   this->GetEditMenu()->InsertSeparator( nItem++ );
 
@@ -505,42 +534,43 @@ vtkKWQdecWindow::CreateWidget () {
   mMenuSmoothCurvatureScalars = new MenuItem();
   mMenuSmoothCurvatureScalars->
     MakeCommand( this->GetEditMenu(), nItem++, "Smooth Curvature Scalars", 
-		 this, "SmoothCurvatureScalarsFromDlog", NULL, NULL );
+                 this, "SmoothCurvatureScalarsFromDlog", NULL, NULL );
 
   // Smooth surface scalars.
   mMenuSmoothSurfaceScalars = new MenuItem();
   mMenuSmoothSurfaceScalars->
     MakeCommand( this->GetEditMenu(), nItem++, "Smooth Surface Scalars", 
-		 this, "SmoothSurfaceScalarsFromDlog", NULL, NULL );
+                 this, "SmoothSurfaceScalarsFromDlog", NULL, NULL );
 
   // View menu.
   // Restore view.
   nItem = this->GetViewMenuInsertPosition();
   mMenuRestoreView = new MenuItem();
   mMenuRestoreView->
-  MakeCommand( this->GetViewMenu(), nItem++,
-               "Restore &View", this, "RestoreView", "Ctrl+V", "RestoreView" );
+    MakeCommand( this->GetViewMenu(), nItem++,
+                 "Restore &View", this, "RestoreView", 
+                 "Ctrl+V", "RestoreView" );
 
   this->GetViewMenu()->InsertSeparator( nItem++ );
 
   // Zoom Out.
   mMenuZoomOut = new MenuItem();
   mMenuZoomOut->
-  MakeCommand( this->GetViewMenu(), nItem++,
-               "Zoom Out", this, "ZoomOut", NULL, "ZoomOut" );
+    MakeCommand( this->GetViewMenu(), nItem++,
+                 "Zoom Out", this, "ZoomOut", NULL, "ZoomOut" );
 
   // Zoom In.
   mMenuZoomIn = new MenuItem();
   mMenuZoomIn->
-  MakeCommand( this->GetViewMenu(), nItem++,
-               "Zoom In", this, "ZoomIn", NULL, "ZoomIn" );
+    MakeCommand( this->GetViewMenu(), nItem++,
+                 "Zoom In", this, "ZoomIn", NULL, "ZoomIn" );
 
   // Show Cursor
   mMenuShowCursor = new MenuItem();
   mMenuShowCursor->
-  MakeCheckButton( this->GetViewMenu(), nItem++,
-                   "Show Cursor",
-                   this, "SetShowCursorFromMenu", NULL, "ShowCursor" );
+    MakeCheckButton( this->GetViewMenu(), nItem++,
+                     "Show Cursor",
+                     this, "SetShowCursorFromMenu", NULL, "ShowCursor" );
 
   this->GetViewMenu()->InsertSeparator( nItem++ );
 
@@ -548,8 +578,8 @@ vtkKWQdecWindow::CreateWidget () {
   mMenuGraphAverageROI = new MenuItem();
   mMenuGraphAverageROI->
     MakeCommand( this->GetViewMenu(), nItem++,
-		 "Graph Average ROI",
-		 this, "GraphAverageROIInGDF", NULL, NULL );
+                 "Graph Average ROI",
+                 this, "GraphAverageROIInGDF", NULL, NULL );
 
 
   // ---------------------------------------------------------------------
@@ -560,7 +590,7 @@ vtkKWQdecWindow::CreateWidget () {
   // labeled frames inside those.
   //
 
-  this->GetMainSplitFrame()->SetFrame1Size( 325 );
+  this->GetMainSplitFrame()->SetFrame1Size( 375 );
 
   mPanel = vtkSmartPointer<vtkKWUserInterfacePanel>::New();
   mPanel->SetUserInterfaceManager( this->GetMainUserInterfaceManager() );
@@ -568,13 +598,18 @@ vtkKWQdecWindow::CreateWidget () {
   mPanel->AddPage(
     ksSubjectsPanelName, "Explore data from the subjects data table", NULL );
   mPanel->AddPage(
-    ksDesignPanelName, "Design the GLM query and begin the analysis", NULL );
+    ksDesignPanelName, "Create the GLM Design matrix", NULL );
+#if 0 //HACK disable Contrast tab for now
+  mPanel->AddPage(
+    ksContrastPanelName, "Create the Contrast matrix, and begin the analysis",
+    NULL );
+#endif
   mPanel->AddPage(
     ksDisplayPanelName, "Configure the view of the results", NULL );
 
   //
   // Use the Subjects pane and put some sample form stuff in it
-  vtkKWWidget* panelFrame = mPanel->GetPageWidget( "Subjects" );
+  vtkKWWidget* panelFrame = mPanel->GetPageWidget( ksSubjectsPanelName );
 
   // Make the top level frame in this page a scrolling frame.
   vtkSmartPointer<vtkKWFrameWithScrollbar> scrolledFrame = 
@@ -584,13 +619,10 @@ vtkKWQdecWindow::CreateWidget () {
   scrolledFrame->VerticalScrollbarVisibilityOn();
   scrolledFrame->HorizontalScrollbarVisibilityOff();
   this->Script( "pack %s -expand yes -fill both",
-		scrolledFrame->GetWidgetName() );
+                scrolledFrame->GetWidgetName() );
 
   // Get the inner scrolled frame as the parent for everything else.
   panelFrame = scrolledFrame->GetFrame();
-
-  // We're packing this frame in a grid, keep track of our rows.
-  int nRow = 0;
 
   vtkSmartPointer<vtkKWEntryWithLabel> labeledEntry =
     vtkSmartPointer<vtkKWEntryWithLabel>::New();
@@ -610,9 +642,7 @@ vtkKWQdecWindow::CreateWidget () {
     mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
   }
   mEntrySubjectsDir->SetReadOnly( 0 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( panelFrame );
@@ -622,9 +652,7 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryDataTable = labeledEntry->GetWidget();
   mEntryDataTable->SetValue( "<not loaded>" );
   mEntryDataTable->SetReadOnly( 1 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( panelFrame );
@@ -633,33 +661,9 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryNumberOfSubjects = labeledEntry->GetWidget();
   mEntryNumberOfSubjects->SetValue( "0" );
   mEntryNumberOfSubjects->SetReadOnly( 1 );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
-  // Create the subject data scatter-plot exploration frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> exploreFrame = 
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  exploreFrame->SetParent( panelFrame );
-  exploreFrame->Create();
-  exploreFrame->SetLabelText( "Scatter Plot" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                exploreFrame->GetWidgetName(), nRow );
-  nRow++;
-
-  vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel> listBox =
-    vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
-  listBox->SetParent( exploreFrame->GetFrame() );
-  listBox->SetLabelText( "Continuous Factors:" );
-  listBox->Create();
-  listBox->SetLabelPositionToTop();
-  mListPlotContinuousFactors = listBox->GetWidget()->GetWidget();
-  mListPlotContinuousFactors->ExportSelectionOff();
-  this->Script( "pack %s -side top -fill x -expand yes",
-                listBox->GetWidgetName() );
-  mListPlotContinuousFactors->
-    SetSelectionCommand( this, "PlotContinuousFactorsListBoxCallback" );
-
+  // Entry box for alternate fsaverage subject
   labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
   labeledEntry->SetParent( panelFrame );
   labeledEntry->SetLabelText( "Common-space Subject:" );
@@ -668,28 +672,165 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryAverageSubject->SetValue( "fsaverage" );
   mEntryAverageSubject->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
   mEntryAverageSubject->RemoveBinding( "<Unmap>", 
-                                    mEntryAverageSubject, 
-                                    "ValueCallback" );
+                                       mEntryAverageSubject, 
+                                       "ValueCallback" );
   mEntryAverageSubject->SetCommand ( this, "SetAverageSubject" );
-  this->Script( "grid %s -column 0 -columnspan 2 -row %d -sticky new",
-                labeledEntry->GetWidgetName(), nRow );
-  nRow++;
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
-  this->Script( "grid columnconfigure %s 0 -weight 0",
-                panelFrame->GetWidgetName() );
-  this->Script( "grid columnconfigure %s 1 -weight 1",
-                panelFrame->GetWidgetName() );
-  this->Script( "grid rowconfigure %s %d -weight 1",
-                panelFrame->GetWidgetName(), nRow );
-  for( int nRowConfigure = 0; nRowConfigure <= nRow; nRowConfigure++ )
-    this->Script( "grid rowconfigure %s %d -pad 4",
-                  panelFrame->GetWidgetName(), nRowConfigure );
+  // Create the subject data scatter-plot exploration frame.
+  vtkSmartPointer<vtkKWFrameWithLabel> exploreFrame = 
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  exploreFrame->SetParent( panelFrame );
+  exploreFrame->Create();
+  exploreFrame->SetLabelText( "Data Table View" );
+  this->Script( "pack %s -fill x", exploreFrame->GetWidgetName() );
+
+  vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel> listBox =
+    vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
+  listBox->SetParent( exploreFrame->GetFrame() );
+  listBox->SetLabelText( "Discrete and Continuous Factors:" );
+  listBox->Create();
+  listBox->SetLabelPositionToTop();
+  mListScatterPlot = listBox->GetWidget()->GetWidget();
+  mListScatterPlot->SetHeight( 5 );
+  mListScatterPlot->ExportSelectionOff();
+  this->Script( "pack %s -side top -fill x -expand yes",
+                listBox->GetWidgetName() );
+  mListScatterPlot->
+    SetSelectionCommand( this, "ScatterPlotListBoxCallback" );
+  mListScatterPlot->SetSelectionModeToSingle();
+
+  vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+  label->SetParent( exploreFrame->GetFrame() );
+  label->Create();
+  mLabelScatterPlotLegend = label;
+  mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
+  mLabelScatterPlotLegend->SetJustificationToRight();
+  this->Script( "pack %s -side top -fill x -expand yes",
+                label->GetWidgetName() );
+
+  // button to remove factor from data table
+  mBtnFactorRemove =  vtkSmartPointer<vtkKWPushButton>::New();
+  mBtnFactorRemove->SetParent( exploreFrame->GetFrame() );
+  mBtnFactorRemove->SetText( "Remove Selection from Data Table" );
+  mBtnFactorRemove->Create();
+  mBtnFactorRemove->SetCommand( this, "RemoveFactorFromDataTable" );
+  this->Script( "pack %s", mBtnFactorRemove->GetWidgetName() );
+
+
+  //
+  // Create the stats data import frame.
+  //
+  mFrameStatsImport = vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  mFrameStatsImport->SetParent( panelFrame );
+  mFrameStatsImport->Create();
+  mFrameStatsImport->SetLabelText( "Stats Data Import" );
+  this->Script( "pack %s -fill x", mFrameStatsImport->GetWidgetName() );
+
+  // button to generate stats data
+  // when the button is pressed, and after it generates the data tables,
+  // then the generate button disappears and is replaced by a menu list
+  // see GenerateStatsDataTables
+  mBtnStatsGenerate =  vtkSmartPointer<vtkKWPushButton>::New();
+  mBtnStatsGenerate->SetParent( mFrameStatsImport->GetFrame() );
+  mBtnStatsGenerate->SetText( "Generate Stats Data Tables" );
+  mBtnStatsGenerate->Create();
+  mBtnStatsGenerate->SetCommand( this, "GenerateStatsDataTables" );
+
+  // continue setup (this routine exists because its called if a new 
+  // table or project is loaded)
+  this->ResetStatsImportFrame();
+
+  // also prepare the button used to add stats to the Data Table
+  mBtnStatsAddToDataTable =  vtkSmartPointer<vtkKWPushButton>::New();
+  mBtnStatsAddToDataTable->SetParent( mFrameStatsImport->GetFrame() );
+  mBtnStatsAddToDataTable->SetText( "Add Selection(s) to Data Table" );
+  mBtnStatsAddToDataTable->Create();
+  mBtnStatsAddToDataTable->SetCommand( this, "AddStatsToDataTable" );
+  // packed in SetStatsImportItem
+
+  
+  //
+  // Create the subject exclusion frame.
+  //
+  vtkSmartPointer<vtkKWFrameWithLabel> excludeFrame = 
+    vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  excludeFrame->SetParent( panelFrame );
+  excludeFrame->Create();
+  excludeFrame->SetLabelText( "Subject Exclusions" );
+  this->Script( "pack %s -fill x", excludeFrame->GetWidgetName() );
+
+  // Entry boxes for excluding subjects
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->SetLabelText( "Selected Factor:" );
+  labeledEntry->Create();
+  labeledEntry->SetLabelPositionToLeft();
+  mEntryExcludeFactor = labeledEntry->GetWidget();
+  mEntryExcludeFactor->SetValue( "<none selected>" );
+  mEntryExcludeFactor->SetWidth( 25 );
+  mEntryExcludeFactor->SetReadOnly( 1 );
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
+
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->Create();
+  labeledEntry->SetLabelText( "Greater Than:" );
+  mEntryExcludeSubjectGT = labeledEntry->GetWidget();
+  mEntryExcludeSubjectGT->SetRestrictValueToDouble();
+  mEntryExcludeSubjectGT->SetValue( "" );
+  mEntryExcludeSubjectGT->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
+  mEntryExcludeSubjectGT->RemoveBinding( "<Unmap>", 
+                                         mEntryExcludeSubjectGT, 
+                                         "ValueCallback" );
+  mEntryExcludeSubjectGT->SetCommand ( this, "SetExcludeSubjectGT" );
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
+
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->Create();
+  labeledEntry->SetLabelText( "Less Than:" );
+  mEntryExcludeSubjectLT = labeledEntry->GetWidget();
+  mEntryExcludeSubjectLT->SetRestrictValueToDouble();
+  mEntryExcludeSubjectLT->SetValue( "" );
+  mEntryExcludeSubjectLT->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
+  mEntryExcludeSubjectLT->RemoveBinding( "<Unmap>", 
+                                         mEntryExcludeSubjectLT, 
+                                         "ValueCallback" );
+  mEntryExcludeSubjectLT->SetCommand ( this, "SetExcludeSubjectLT" );
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
+
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( excludeFrame->GetFrame() );
+  labeledEntry->Create();
+  labeledEntry->SetLabelText( "Equal To:" );
+  mEntryExcludeSubjectET = labeledEntry->GetWidget();
+  mEntryExcludeSubjectET->SetRestrictValueToDouble();
+  mEntryExcludeSubjectET->SetValue( "" );
+  mEntryExcludeSubjectET->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
+  mEntryExcludeSubjectET->RemoveBinding( "<Unmap>", 
+                                         mEntryExcludeSubjectET, 
+                                         "ValueCallback" );
+  mEntryExcludeSubjectET->SetCommand ( this, "SetExcludeSubjectET" );
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
+
+  // button to clear all excluded subjects
+  vtkSmartPointer<vtkKWPushButton> clrButton =
+    vtkSmartPointer<vtkKWPushButton>::New();
+  clrButton->SetParent( excludeFrame->GetFrame() );
+  clrButton->SetText( "Clear Exclusions" );
+  clrButton->Create();
+  clrButton->SetCommand( this, "ClearAllExcludedSubjects" );
+  this->Script( "pack %s", clrButton->GetWidgetName() );
+
+  // the Subjects panel is now complete
+
 
   // ---------------------------------------------------------------------
   //
-  // Design pane gets the control for configuring the input to
+  // Design pane gets the control for configuring the design matrix input to
   // mri_glmfit.
-  panelFrame = mPanel->GetPageWidget( "Design" );
+  panelFrame = mPanel->GetPageWidget( ksDesignPanelName );
 
   // Make the top level frame in this page a scrolling frame.
   scrolledFrame = vtkSmartPointer<vtkKWFrameWithScrollbar>::New();
@@ -698,7 +839,7 @@ vtkKWQdecWindow::CreateWidget () {
   scrolledFrame->VerticalScrollbarVisibilityOn();
   scrolledFrame->HorizontalScrollbarVisibilityOff();
   this->Script( "pack %s -expand yes -fill both",
-		scrolledFrame->GetWidgetName() );
+                scrolledFrame->GetWidgetName() );
 
   // Get the inner scrolled frame as the parent for everything else.
   panelFrame = scrolledFrame->GetFrame();
@@ -711,24 +852,55 @@ vtkKWQdecWindow::CreateWidget () {
   mEntryDesignName->SetValue( "Untitled" );
   mEntryDesignName->SetCommandTrigger ( vtkKWEntry::TriggerOnReturnKey );
   mEntryDesignName->RemoveBinding( "<Unmap>", 
-                                    mEntryDesignName, 
-                                    "ValueCallback" );
+                                   mEntryDesignName, 
+                                   "ValueCallback" );
   mEntryDesignName->SetCommand ( this, "SetDesignName" );
   this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
+  //
+  // Create the Measures frame, above the Factors frame.
+  mFrameMeasures = vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  mFrameMeasures->SetParent( panelFrame );
+  mFrameMeasures->Create();
+  mFrameMeasures->SetLabelText( "Measure (Dependent variable)" );
+  this->Script( "pack %s -fill x", mFrameMeasures->GetWidgetName() );
+
+  // radio-buttons selecting measure category
+  mRadBtnSetMeasure = vtkSmartPointer<vtkKWRadioButtonSet>::New();
+  mRadBtnSetMeasure->SetParent(  mFrameMeasures->GetFrame() );
+  mRadBtnSetMeasure->Create();
+  mRadBtnSetMeasure->PackHorizontallyOn();
+  this->Script( "pack %s -side top -fill both",
+                mRadBtnSetMeasure->GetWidgetName() );
+
+  int nButton = 0;
+  vtkSmartPointer<vtkKWRadioButton> radBtn;
+  // first category is Surface-based measures
+  radBtn.TakeReference( mRadBtnSetMeasure->AddWidget( nButton++ ) );
+  radBtn->SetText( "Surface-based" );
+  radBtn->SelectedStateOn(); // this one is the default, so its on
+  string sCmd = string( "SetCurrentMeasure " ) + radBtn->GetText();
+  radBtn->SetCommand( this, sCmd.c_str() );
+  // second category is Volume-based measures
+  radBtn.TakeReference( mRadBtnSetMeasure->AddWidget( nButton++ ) );
+  radBtn->SetText( "Volume-based" );
+  radBtn->SelectedStateOff();
+  sCmd = string( "SetCurrentMeasure " ) + radBtn->GetText();
+  radBtn->SetCommand( this, sCmd.c_str() );
+  
   //
   // Create the Factors frame.
   vtkSmartPointer<vtkKWFrameWithLabel> factorsFrame =
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
   factorsFrame->SetParent( panelFrame );
   factorsFrame->Create();
-  factorsFrame->SetLabelText( "Factors" );
+  factorsFrame->SetLabelText( "Model Factors (Independent Variables)" );
   this->Script( "pack %s -fill x", factorsFrame->GetWidgetName() );
 
   // Discrete and continuous list boxes are inside the Factors frame.
   listBox = vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
   listBox->SetParent( factorsFrame->GetFrame() );
-  listBox->SetLabelText( "Discrete (choose up to two):" );
+  listBox->SetLabelText( "Discrete (Fixed Factors):" );
   listBox->Create();
   listBox->SetLabelPositionToTop();
   mListDiscreteFactors = listBox->GetWidget()->GetWidget();
@@ -741,143 +913,109 @@ vtkKWQdecWindow::CreateWidget () {
 
   listBox = vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
   listBox->SetParent( factorsFrame->GetFrame() );
-  listBox->SetLabelText( "Continuous (choose up to two):" );
+  listBox->SetLabelText( "Continuous (Covariates):" );
   listBox->Create();
   listBox->SetLabelPositionToTop();
   mListContinuousFactors = listBox->GetWidget()->GetWidget();
   mListContinuousFactors->ExportSelectionOff();
+  mListContinuousFactors->SetHeight ( 5 );
   this->Script( "pack %s -fill x -expand y", listBox->GetWidgetName() );
   mListContinuousFactors->SetSelectionModeToMultiple();
   mListContinuousFactors->
     SetSelectionCommand( this, "ContinuousFactorsListBoxCallback" );
 
-  //
-  // Create the Measures frame, below the Factors frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> measuresFrame =
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  measuresFrame->SetParent( panelFrame );
-  measuresFrame->Create();
-  measuresFrame->SetLabelText( "Measures" );
-  this->Script( "pack %s -fill x", measuresFrame->GetWidgetName() );
+  // call the radio-button handler once to set it up
+  this->SetCurrentMeasure( "Surface-based" );
 
   //
-  // Create the Surface-based frame, inside the Measures frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> surfaceMeasuresFrame = 
+  // Create the Design Matrix Type frame.
+  vtkSmartPointer<vtkKWFrameWithLabel> designMatrixTypeFrame =
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  surfaceMeasuresFrame->SetParent( measuresFrame->GetFrame() );
-  surfaceMeasuresFrame->Create();
-  surfaceMeasuresFrame->SetLabelText( "Surface-based" );
-  this->Script( "pack %s -fill x", surfaceMeasuresFrame->GetWidgetName() );
+  designMatrixTypeFrame->SetParent( panelFrame );
+  designMatrixTypeFrame->Create();
+  designMatrixTypeFrame->SetLabelText( "Design Matrix Type" );
+  this->Script( "pack %s -fill x", designMatrixTypeFrame->GetWidgetName() );
+  
+  // radio-buttons selecting type
+  vtkSmartPointer<vtkKWRadioButtonSet> radBtnSet = 
+    vtkSmartPointer<vtkKWRadioButtonSet>::New();
+  radBtnSet->SetParent(  designMatrixTypeFrame->GetFrame() );
+  radBtnSet->Create();
+  radBtnSet->PackHorizontallyOn();
+  this->Script( "pack %s -side top -fill both", radBtnSet->GetWidgetName() );
 
-  // The widgets inside the Surface-based Measures frame. We'll pack
-  // these in a grid so we can get the actual menus as wide as
-  // possible and aligned nicely.
-  vtkSmartPointer<vtkKWFrameWithLabel> morphMeasuresFrame =
+  // select between DODS and DOSS
+  vtkSmartPointer<vtkKWRadioButton> radBtn2;
+  radBtn2.TakeReference( radBtnSet->AddWidget( nButton++ ) );
+  radBtn2->SetText( "DODS" );
+  radBtn2->SelectedStateOn(); // this one is the default, so its on
+  this->SetDesignMatrixType( "DODS" ); // needs to know the default
+  sCmd = string( "SetDesignMatrixType " ) + radBtn2->GetText();
+  radBtn2->SetCommand( this, sCmd.c_str() );
+  radBtn2.TakeReference( radBtnSet->AddWidget( nButton++ ) );
+  radBtn2->SetText( "DOSS" );
+  radBtn2->SelectedStateOff();
+  sCmd = string( "SetDesignMatrixType " ) + radBtn2->GetText();
+  radBtn2->SetCommand( this, sCmd.c_str() );
+
+  // show degrees of freedom, inside its own frame
+  vtkSmartPointer<vtkKWFrameWithLabel> dofFrame =
     vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  morphMeasuresFrame->SetParent( surfaceMeasuresFrame->GetFrame() );
-  morphMeasuresFrame->Create();
-  morphMeasuresFrame->SetLabelText( "Morphometric" );
-  this->Script( "pack %s -fill x", morphMeasuresFrame->GetWidgetName() );
+  dofFrame->SetParent( panelFrame );
+  dofFrame->SetLabelText( "DOF" );
+  dofFrame->Create();
+  this->Script( "pack %s -fill x", dofFrame->GetWidgetName() );
+  labeledEntry = vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntry->SetParent( dofFrame->GetFrame() );
+  labeledEntry->SetLabelText( "Degrees Of Freedom:" );
+  labeledEntry->Create();
+  mEntryDegreesOfFreedom = labeledEntry->GetWidget();
+  mEntryDegreesOfFreedom->SetValue( "0" );
+  mEntryDegreesOfFreedom->SetReadOnly( 1 );
+  this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
 
-  nRow = 0;
-  vtkSmartPointer<vtkKWLabel> label = 
-    vtkSmartPointer<vtkKWLabel>::New();
-  label->SetParent( morphMeasuresFrame->GetFrame() );
-  label->Create();
-  label->SetText( "Measure: " );
-  label->SetJustificationToRight();
-  this->Script( "grid %s -column 0 -row %d -sticky ne",
-                label->GetWidgetName(), nRow );
+#if 0 //HACK disable Contrast tab for now
+  // ---------------------------------------------------------------------
+  //
+  // Contrast pane gets the control for configuring the contrast matrix input
+  // to mri_glmfit.
+  panelFrame = mPanel->GetPageWidget( ksContrastPanelName );
 
-  mMenuMeasure = vtkSmartPointer<vtkKWMenuButton>::New();
-  mMenuMeasure->SetParent( morphMeasuresFrame->GetFrame() );
-  mMenuMeasure->Create();
-  mMenuMeasure->GetMenu()->AddRadioButton( "thickness" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "area" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "area.pial" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "volume" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "sulc" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "curv" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "white.K" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "white.H" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "jacobian_white" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "intensity.deep" );
-  mMenuMeasure->GetMenu()->AddRadioButton( "intensity.superficial" );
-  mMenuMeasure->SetValue( "thickness" );
-  this->Script( "grid %s -column 1 -row %d -sticky nw",
-                mMenuMeasure->GetWidgetName(), nRow );
+  // Make the top level frame in this page a scrolling frame.
+  scrolledFrame = vtkSmartPointer<vtkKWFrameWithScrollbar>::New();
+  scrolledFrame->SetParent( panelFrame );
+  scrolledFrame->Create();
+  scrolledFrame->VerticalScrollbarVisibilityOn();
+  scrolledFrame->HorizontalScrollbarVisibilityOff();
+  this->Script( "pack %s -expand yes -fill both",
+                scrolledFrame->GetWidgetName() );
 
-  nRow++;
-  label = vtkSmartPointer<vtkKWLabel>::New();
-  label->SetParent( morphMeasuresFrame->GetFrame() );
-  label->Create();
-  label->SetText( "Hemisphere: " );
-  label->SetJustificationToRight();
-  this->Script( "grid %s -column 0 -row %d -sticky ne",
-                label->GetWidgetName(), nRow );
-
-  mMenuHemisphere = vtkSmartPointer<vtkKWMenuButton>::New();
-  mMenuHemisphere->SetParent( morphMeasuresFrame->GetFrame() );
-  mMenuHemisphere->Create();
-  mMenuHemisphere->GetMenu()->AddRadioButton( "lh" );
-  mMenuHemisphere->GetMenu()->AddRadioButton( "rh" );
-  mMenuHemisphere->SetValue( "lh" );
-  this->Script( "grid %s -column 1 -row %d -sticky nw",
-                mMenuHemisphere->GetWidgetName(), nRow );
-
-  nRow++;
-  label = vtkSmartPointer<vtkKWLabel>::New();
-  label->SetParent( morphMeasuresFrame->GetFrame() );
-  label->Create();
-  label->SetText( "Smoothing (FWHM): " );
-  label->SetJustificationToRight();
-  this->Script( "grid %s -column 0 -row %d -sticky ne",
-                label->GetWidgetName(), nRow );
-
-  mMenuSmoothness = vtkSmartPointer<vtkKWMenuButton>::New();
-  mMenuSmoothness->SetParent( morphMeasuresFrame->GetFrame() );
-  mMenuSmoothness->Create();
-  mMenuSmoothness->GetMenu()->AddRadioButton( "0" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "5" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "10" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "15" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "20" );
-  mMenuSmoothness->GetMenu()->AddRadioButton( "25" );
-  mMenuSmoothness->SetValue( "10" );
-  this->Script( "grid %s -column 1 -row %d -sticky nw",
-                mMenuSmoothness->GetWidgetName(), nRow );
-
-  // Weight our grid properly.
-  this->Script( "grid columnconfigure %s 0 -weight 0",
-                morphMeasuresFrame->GetFrame()->GetWidgetName() );
-  this->Script( "grid columnconfigure %s 1 -weight 1",
-                morphMeasuresFrame->GetFrame()->GetWidgetName() );
-  this->Script( "grid rowconfigure %s %d -weight 1",
-                morphMeasuresFrame->GetFrame()->GetWidgetName(), nRow );
-  for( int nRowConfigure = 0; nRowConfigure <= nRow; nRowConfigure++ )
-    this->Script( "grid rowconfigure %s %d -pad 4",
-                  surfaceMeasuresFrame->GetFrame()->GetWidgetName(),
-                  nRowConfigure );
+  // Get the inner scrolled frame as the parent for everything else.
+  panelFrame = scrolledFrame->GetFrame();
 
   //
-  // Create the Functional based frame, inside the Measures frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> functionalMeasuresFrame = 
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  functionalMeasuresFrame->SetParent( surfaceMeasuresFrame->GetFrame() );
-  functionalMeasuresFrame->Create();
-  functionalMeasuresFrame->SetLabelText( "Functional" );
-  functionalMeasuresFrame->CollapseFrame();
-  this->Script( "pack %s -fill x", functionalMeasuresFrame->GetWidgetName() );
+  // Create the Nuisance Factors frame.
+  factorsFrame = vtkSmartPointer<vtkKWFrameWithLabel>::New();
+  factorsFrame->SetParent( panelFrame );
+  factorsFrame->Create();
+  factorsFrame->SetLabelText( "Nuisance Factors" );
+  this->Script( "pack %s -fill x", factorsFrame->GetWidgetName() );
 
-  //
-  // Create the Volume-based frame, inside the Measures frame.
-  vtkSmartPointer<vtkKWFrameWithLabel> volumeMeasuresFrame =
-    vtkSmartPointer<vtkKWFrameWithLabel>::New();
-  volumeMeasuresFrame->SetParent( measuresFrame->GetFrame() );
-  volumeMeasuresFrame->Create();
-  volumeMeasuresFrame->SetLabelText( "Volume-based" );
-  volumeMeasuresFrame->CollapseFrame();
-  this->Script( "pack %s -fill x", volumeMeasuresFrame->GetWidgetName() );
+  // List box is inside the Nuisance Factors frame.
+  mListNuisanceFactors = 
+    vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
+  mListNuisanceFactors->SetParent( factorsFrame->GetFrame() );
+  mListNuisanceFactors->Create();
+  mListNuisanceFactors->SetLabelPositionToTop();
+  mListNuisanceFactors->SetLabelText( "<none selected>" );
+  mListNuisanceFactors->SetHeight( 5 );
+  mListNuisanceFactors->GetWidget()->GetWidget()->ExportSelectionOff();
+  mListNuisanceFactors->GetWidget()->GetWidget()->SetSelectionModeToMultiple();
+  mListNuisanceFactors->GetWidget()->GetWidget()->SetSelectionCommand
+    ( this, "NuisanceFactorsListBoxCallback" );
+  this->Script( "pack %s -fill x -expand y", 
+                mListNuisanceFactors->GetWidgetName() );
+#endif
 
   //
   // Now for the 'go' button (to start analysis)
@@ -894,7 +1032,7 @@ vtkKWQdecWindow::CreateWidget () {
   // ---------------------------------------------------------------------
   //
   // Display pane gets the settings for the surface display.
-  panelFrame = mPanel->GetPageWidget( "Display" );
+  panelFrame = mPanel->GetPageWidget( ksDisplayPanelName );
 
 
   // Make the top level frame in this page a scrolling frame.
@@ -904,7 +1042,7 @@ vtkKWQdecWindow::CreateWidget () {
   scrolledFrame->VerticalScrollbarVisibilityOn();
   scrolledFrame->HorizontalScrollbarVisibilityOff();
   this->Script( "pack %s -expand yes -fill both",
-		scrolledFrame->GetWidgetName() );
+                scrolledFrame->GetWidgetName() );
 
   // Get the inner scrolled frame as the parent for everything else.
   panelFrame = scrolledFrame->GetFrame();
@@ -953,6 +1091,13 @@ vtkKWQdecWindow::CreateWidget () {
                 mFrameOverlay->GetWidgetName(),
                 mFrameSurfaceScalars->GetWidgetName() );
 
+  // Create the vertex plot window (hidden until a vertex is seleted)
+  // Create the vertex plot window object
+//  mVertexPlot = new FsgdfPlot( this->GetApplication()->GetMainInterp() );
+  mVertexPlot = new FsgdfPlot();
+  mView->SetVertexPlot( mVertexPlot );
+
+
   // ---------------------------------------------------------------------
   //
   // Make a callback and observe our view for UserSelectedVertex events.
@@ -967,22 +1112,22 @@ vtkKWQdecWindow::CreateWidget () {
   callback->SetClientData( this );
   callback->SetCallback( NotebookRaisePageCallback );
   this->GetMainNotebook()->AddObserver( vtkKWEvent::NotebookRaisePageEvent, 
-					callback );
+                                        callback );
 
   // Add callbacks for the graph.
   callback = vtkSmartPointer<vtkCallbackCommand>::New();
   callback->SetClientData( this );
-  callback->SetCallback( ContinuousPlotGraphMouseoverEnterElementCallback );
+  callback->SetCallback( ScatterPlotGraphMouseoverEnterElementCallback );
   mGraph->AddObserver( vtkKWBltGraph::MouseoverEnterElementEvent, callback );
 
   callback = vtkSmartPointer<vtkCallbackCommand>::New();
   callback->SetClientData( this );
-  callback->SetCallback( ContinuousPlotGraphMouseoverExitElementCallback );
+  callback->SetCallback( ScatterPlotGraphMouseoverExitElementCallback );
   mGraph->AddObserver( vtkKWBltGraph::MouseoverExitElementEvent, callback );
 
   callback = vtkSmartPointer<vtkCallbackCommand>::New();
   callback->SetClientData( this );
-  callback->SetCallback( ContinuousPlotGraphContextualMenuOpeningCallback );
+  callback->SetCallback( ScatterPlotGraphContextualMenuOpeningCallback );
   mGraph->AddObserver( vtkKWBltGraph::ContextualMenuOpening, callback );
 
 }
@@ -1019,6 +1164,215 @@ vtkKWQdecWindow::EndActionWithProgress() {
 }
 // ------------------------------------
 
+
+void 
+vtkKWQdecWindow::SetCurrentMeasure( const char* isMeasure ) {
+
+  // remove the existing frame contents
+  if( mFrameSurfaceMeasures ) mFrameSurfaceMeasures->Unpack();
+  if( mFrameVolumeMeasures ) mFrameVolumeMeasures->Unpack();
+
+  // if Surface-based radio button was clicked...
+  if( 0 == strcmp(isMeasure,"Surface-based") )
+  {
+    // Create the Surface-based frame, inside the Measures frame.
+    mFrameSurfaceMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameSurfaceMeasures->SetParent( mFrameMeasures->GetFrame() );
+    mFrameSurfaceMeasures->Create();
+    this->Script( "pack %s -fill x", mFrameSurfaceMeasures->GetWidgetName() );
+
+    // radio-buttons selecting surface measure category
+    mRadBtnSetSurfaceMeasure = vtkSmartPointer<vtkKWRadioButtonSet>::New();
+    mRadBtnSetSurfaceMeasure->SetParent(  mFrameSurfaceMeasures );
+    mRadBtnSetSurfaceMeasure->Create();
+    mRadBtnSetSurfaceMeasure->PackHorizontallyOn();
+    this->Script( "pack %s -side top -fill both",
+                  mRadBtnSetSurfaceMeasure->GetWidgetName() );
+
+    int nButton = 0;
+    vtkSmartPointer<vtkKWRadioButton> radBtn;
+    // first category is Morphometric measures
+    radBtn.TakeReference( mRadBtnSetSurfaceMeasure->AddWidget( nButton++ ) );
+    radBtn->SetText( "Morphometric" );
+    radBtn->SelectedStateOn(); // this one is the default, so its on
+    string sCmd = string( "SetCurrentSurfaceMeasure " ) + radBtn->GetText();
+    radBtn->SetCommand( this, sCmd.c_str() );
+    // second category is Functional measures
+    radBtn.TakeReference( mRadBtnSetSurfaceMeasure->AddWidget( nButton++ ) );
+    radBtn->SetText( "Functional" );
+    radBtn->SelectedStateOff();
+    sCmd = string( "SetCurrentSurfaceMeasure " ) + radBtn->GetText();
+    radBtn->SetCommand( this, sCmd.c_str() );
+    // run once to display
+    SetCurrentSurfaceMeasure( "Morphometric" );
+  
+  } // end if "Surface-based", else if Volume-based radio button was clicked:
+  else if( 0 == strcmp(isMeasure,"Volume-based") ) {
+    //
+    // Create the Volume-based frame, inside the Measures frame.
+    mFrameVolumeMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameVolumeMeasures->SetParent( mFrameMeasures->GetFrame() );
+    mFrameVolumeMeasures->Create();
+    this->Script( "pack %s -fill x", mFrameVolumeMeasures->GetWidgetName() );
+
+    // temporary message:
+    int nRow=0;
+    vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameVolumeMeasures );
+    label->Create();
+    label->SetText( "-----<not yet implemented>-----" );
+    label->SetJustificationToCenter();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+  }
+
+  // make sure Design tab has most current info displayed
+  this->UpdateDesignPage();
+}
+
+void
+vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
+
+  if( mFrameMorphMeasures ) mFrameMorphMeasures->Unpack();
+  if( mFrameFunctionalMeasures ) mFrameFunctionalMeasures->Unpack();
+
+  // if Morphometric radio button was clicked...
+  if( 0 == strcmp(isMeasure,"Morphometric") )
+  {
+    // The widgets inside the Surface-based Measures frame. We'll pack
+    // these in a grid so we can get the actual menus as wide as
+    // possible and aligned nicely.
+    mFrameMorphMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameMorphMeasures->SetParent( mFrameSurfaceMeasures );
+    mFrameMorphMeasures->Create();
+    this->Script( "pack %s -fill x", mFrameMorphMeasures->GetWidgetName() );
+
+    int nRow = 0;
+    vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameMorphMeasures );
+    label->Create();
+    label->SetText( "Measure: " );
+    label->SetJustificationToRight();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+    if( mMenuMorphMeasure ) mMenuMorphMeasure->Unpack();
+    mMenuMorphMeasure = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuMorphMeasure->SetParent( mFrameMorphMeasures );
+    mMenuMorphMeasure->Create();
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "thickness" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "area" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "area.pial" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "volume" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "sulc" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "curv" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "white.K" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "white.H" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "jacobian_white" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep.mgz" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial.mgz" );
+    mMenuMorphMeasure->SetValue( "thickness" );
+    this->Script( "grid %s -column 1 -row %d -sticky nw",
+                  mMenuMorphMeasure->GetWidgetName(), nRow );
+    nRow++;
+
+    label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameMorphMeasures );
+    label->Create();
+    label->SetText( "Smoothing (FWHM): " );
+    label->SetJustificationToRight();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+    if( mMenuMorphSmoothness ) mMenuMorphSmoothness->Unpack();
+    mMenuMorphSmoothness = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuMorphSmoothness->SetParent( mFrameMorphMeasures );
+    mMenuMorphSmoothness->Create();
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "0" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "5" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "10" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "15" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "20" );
+    mMenuMorphSmoothness->GetMenu()->AddRadioButton( "25" );
+    mMenuMorphSmoothness->SetValue( "10" );
+    this->Script( "grid %s -column 1 -row %d -sticky nw",
+                  mMenuMorphSmoothness->GetWidgetName(), nRow );
+    nRow++;
+
+    label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameMorphMeasures );
+    label->Create();
+    label->SetText( "Hemisphere: " );
+    label->SetJustificationToRight();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+    if( mMenuMorphHemisphere ) mMenuMorphHemisphere->Unpack();
+    mMenuMorphHemisphere = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuMorphHemisphere->SetParent( mFrameMorphMeasures );
+    mMenuMorphHemisphere->Create();
+    mMenuMorphHemisphere->GetMenu()->AddRadioButton( "lh" );
+    mMenuMorphHemisphere->GetMenu()->AddRadioButton( "rh" );
+    mMenuMorphHemisphere->SetValue( "lh" );
+    this->Script( "grid %s -column 1 -row %d -sticky nw",
+                  mMenuMorphHemisphere->GetWidgetName(), nRow );
+    nRow++;
+
+    // Weight our grid properly.
+    this->Script( "grid columnconfigure %s 0 -weight 0",
+                  mFrameMorphMeasures->GetWidgetName() );
+    this->Script( "grid columnconfigure %s 1 -weight 1",
+                  mFrameMorphMeasures->GetWidgetName() );
+    this->Script( "grid rowconfigure %s %d -weight 1",
+                  mFrameMorphMeasures->GetWidgetName(), nRow );
+    for( int nRowConfigure = 0; nRowConfigure <= nRow; nRowConfigure++ )
+      this->Script( "grid rowconfigure %s %d -pad 4",
+                    mFrameSurfaceMeasures->GetWidgetName(), nRowConfigure );
+
+  } // end if Morphometric, else if Functional radio button was clicked...
+  else if( 0 == strcmp(isMeasure,"Functional") ) {
+    //
+    // Create the Functional based frame, inside the Measures frame.
+    //if( mFrameFunctionalMeasures ) delete mFrameFunctionalMeasures;
+    mFrameFunctionalMeasures = vtkSmartPointer<vtkKWFrame>::New();
+    mFrameFunctionalMeasures->SetParent( mFrameSurfaceMeasures );
+    mFrameFunctionalMeasures->Create();
+    this->Script( "pack %s -fill x", 
+                  mFrameFunctionalMeasures->GetWidgetName() );
+    // temporary message:
+    int nRow=0;
+    vtkSmartPointer<vtkKWLabel> label = vtkSmartPointer<vtkKWLabel>::New();
+    label->SetParent( mFrameFunctionalMeasures );
+    label->Create();
+    label->SetText( "-----<not yet implemented>-----" );
+    label->SetJustificationToCenter();
+    this->Script( "grid %s -column 0 -row %d -sticky ne",
+                  label->GetWidgetName(), nRow );
+
+  }
+
+}
+
+
+void
+vtkKWQdecWindow::SetDesignMatrixType( const char* isType ) {
+
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+
+  if( 0 == strcmp(isType,"DODS") ) {
+    design->SetDesignMatrixType( "dods" ); 
+  } else if( 0 == strcmp(isType,"DOSS") ) {
+    design->SetDesignMatrixType( "doss" );
+  }  
+
+  // make sure Design tab has most current info displayed
+  this->UpdateDesignPage();
+}
 
 
 void
@@ -1124,7 +1478,8 @@ vtkKWQdecWindow::LoadSurfaceScalarsFromDlog () {
   dialog->SetApplication( this->GetApplication() );
   dialog->Create();
   dialog->SetTitle( "Load Scalars" );
-  dialog->SetFileTypes( "{{Volume encoded scalars} {*.mgh *.mgz}} {{All} {*}}" );
+  dialog->SetFileTypes( 
+    "{{Volume encoded scalars} {*.mgh *.mgz}} {{All} {*}}" );
   dialog->RetrieveLastPathFromRegistry( "LoadSurfaceScalars" );
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadSurfaceScalars" );
@@ -1167,6 +1522,36 @@ vtkKWQdecWindow::LoadAnnotationFromDlog () {
   }
 }
 
+
+void
+vtkKWQdecWindow::SaveDataTableFromDlog () {
+
+  assert( mQdecProject );
+
+  vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
+    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
+  dialog->SetApplication( this->GetApplication() );
+  dialog->SaveDialogOn();
+  dialog->Create();
+  dialog->SetTitle( "Save Data Table" );
+  dialog->SetFileTypes( "{{Data file} {*.dat}} {{All} {*}}" );
+  dialog->SetDefaultExtension( ".dat" );
+
+  // Make the file name the currently loaded data table filename
+  string fnDefault = this->mQdecProject->GetDataTable()->GetFileName();
+  dialog->SetInitialFileName( fnDefault.c_str() );
+
+  // Set the default dir to the subjects dir / qdec.
+  string sQdecDir = this->mQdecProject->GetSubjectsDir() + "/qdec";
+  dialog->SetLastPath( sQdecDir.c_str() );
+
+  if( dialog->Invoke() ) {
+    string fnProject( dialog->GetFileName() );
+    this->mQdecProject->GetDataTable()->Save( fnProject.c_str() );
+  }
+}
+
+
 void
 vtkKWQdecWindow::SaveProjectFileFromDlog () {
 
@@ -1196,6 +1581,27 @@ vtkKWQdecWindow::SaveProjectFileFromDlog () {
   }
 }
 
+
+void
+vtkKWQdecWindow::SaveScatterPlotPostscriptFromDlog () {
+
+  vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
+    vtkSmartPointer<vtkKWLoadSaveDialog>::New();
+  dialog->SetApplication( this->GetApplication() );
+  dialog->SaveDialogOn();
+  dialog->Create();
+  dialog->SetTitle( "Save Scatter Plot" );
+
+  dialog->SetFileTypes( "{{All} {*}}" );
+  dialog->RetrieveLastPathFromRegistry( "SaveScatterPlot" );
+  if( dialog->Invoke() ) {
+    dialog->SaveLastPathToRegistry( "SaveScatterPlot" );
+    string fnPostscript( dialog->GetFileName() );
+    mGraph->SavePostscript( fnPostscript.c_str() );
+  }
+}
+
+
 void
 vtkKWQdecWindow::SaveTIFFImageFromDlog () {
 
@@ -1224,7 +1630,7 @@ vtkKWQdecWindow::SaveTIFFImageFromDlog () {
   sizeLabel->Create();
   stringstream ssCurrentSize;
   ssCurrentSize << "Current size: " << mView->GetWidth() 
-		<< ", " << mView->GetHeight() << endl;
+                << ", " << mView->GetHeight() << endl;
   sizeLabel->SetText( ssCurrentSize.str().c_str() );
 
   vtkSmartPointer<vtkKWEntryWithLabel> labeledEntry = 
@@ -1236,27 +1642,26 @@ vtkKWQdecWindow::SaveTIFFImageFromDlog () {
   labeledEntry->GetWidget()->SetValueAsInt( 1 );
 
   this->Script( "pack %s %s -side top -anchor w",
-		sizeLabel->GetWidgetName(),
-		labeledEntry->GetWidgetName() );
+                sizeLabel->GetWidgetName(),
+                labeledEntry->GetWidgetName() );
 
   this->Script( "pack %s -side top -fill x",
-		labeledFrame->GetWidgetName() );
+                labeledFrame->GetWidgetName() );
 
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "SaveTIFFImage" );
     string fnTIFF( dialog->GetFileName() );
     this->SaveTIFFImage( fnTIFF.c_str(), 
-			 labeledEntry->GetWidget()->GetValueAsInt() );
+                         labeledEntry->GetWidget()->GetValueAsInt() );
   }
 }
 
 void
 vtkKWQdecWindow::SaveGDFPostscriptFromDlog () {
 
-  assert( mbGDFLoaded );
-  assert( mGDFID >= 0  );
-  assert( this->GetApplication()->
-	  EvaluateBooleanExpression( "FsgdfPlot_IsWindowShowing %d", mGDFID ));
+  assert( mVertexPlot );
+  assert( mVertexPlot->IsLoaded() );
+  assert( mVertexPlot->IsWindowShowing() );
 
   vtkSmartPointer<vtkKWLoadSaveDialog> dialog =
     vtkSmartPointer<vtkKWLoadSaveDialog>::New();
@@ -1269,11 +1674,11 @@ vtkKWQdecWindow::SaveGDFPostscriptFromDlog () {
   dialog->RetrieveLastPathFromRegistry( "SaveGDF" );
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "SaveGDF" );
-    string fnPostscript( dialog->GetFileName() );
-    this->Script( "FsgdfPlot_SaveToPostscript %d %s", 
-		  mGDFID, fnPostscript.c_str() );
+    string fn = dialog->GetFileName();
+    mVertexPlot->SaveToPostscript( fn.c_str() );
   }
 }
+
 
 void
 vtkKWQdecWindow::SaveLabelFromDlog () {
@@ -1311,7 +1716,9 @@ vtkKWQdecWindow::MapLabelFromDlog () {
   dialog->SetStyleToOkCancel();
   dialog->Create();
   dialog->SetTitle( "Map Label" );
-  dialog->SetText( "This will save the current label and map it to each indiviudal subject's space, saving it in each one's label directory." );
+  dialog->SetText( "This will save the current label and map it to each "
+                   "indiviudal subject's space, saving it in each one's "
+                   "label directory." );
   dialog->SetOKButtonText( "Save" );
 
   dialog->GetEntry()->SetLabelText( "Label name: " );
@@ -1332,7 +1739,8 @@ vtkKWQdecWindow::SmoothCurvatureScalarsFromDlog () {
   dialog->SetStyleToOkCancel();
   dialog->Create();
   dialog->SetTitle( "Smooth Curvature" );
-  dialog->SetText( "This will smooth the curvature values using the surface topography by the number of steps given." );
+  dialog->SetText( "This will smooth the curvature values using the surface "
+                   "topography by the number of steps given." );
   dialog->SetOKButtonText( "Smooth" );
 
   dialog->GetEntry()->SetLabelText( "Number of steps: " );
@@ -1350,7 +1758,7 @@ void
 vtkKWQdecWindow::SmoothSurfaceScalarsFromDlog () {
 
   assert( maSurfaceScalars.find(mnCurrentSurfaceScalars) !=
-	  maSurfaceScalars.end() );
+          maSurfaceScalars.end() );
   assert( maSurfaceScalars[mnCurrentSurfaceScalars].mValues );
 
   vtkKWSimpleEntryDialog* dialog = vtkKWSimpleEntryDialog::New();
@@ -1358,7 +1766,8 @@ vtkKWQdecWindow::SmoothSurfaceScalarsFromDlog () {
   dialog->SetStyleToOkCancel();
   dialog->Create();
   dialog->SetTitle( "Smooth Scalars" );
-  dialog->SetText( "This will smooth the current scalars using the surface topography by the number of steps given." );
+  dialog->SetText( "This will smooth the current scalars using the surface "
+                   "topography by the number of steps given." );
   dialog->SetOKButtonText( "Smooth" );
 
   dialog->GetEntry()->SetLabelText( "Number of steps: " );
@@ -1384,7 +1793,13 @@ vtkKWQdecWindow::LoadDataTable ( const char* ifnDataTable ) {
 
       // data table may have set SUBJECTS_DIR, so update our mEntry display
       string sSubjectsDir = this->mQdecProject->GetSubjectsDir();
-      mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
+      this->mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
+      
+      // new data table means any prior stats data is invalid
+      this->ResetStatsImportFrame();
+      if ( mEntryExcludeFactor ) {
+        this->mEntryExcludeFactor->SetValue( "<none selected>" );
+      }
 
       // We need to update our tabs.
       this->UpdateSubjectsPage();
@@ -1409,28 +1824,31 @@ vtkKWQdecWindow::LoadProjectFile ( const char* ifnProject ) {
     try {
       if( ifnProject ) { 
 
-	this->SetStatusText( "Loading project file..." );
+        this->SetStatusText( "Loading project file..." );
 
-	if( this->mQdecProject->LoadProjectFile( ifnProject ) )
-	  throw runtime_error( "Error loading the project file." );
+        if( this->mQdecProject->LoadProjectFile( ifnProject ) )
+          throw runtime_error( "Error loading the project file." );
 
-  // the project file always has a subjects dir, so make sure the GUI
-  // Subjects Display panel has that updated info
-  string sSubjectsDir = this->mQdecProject->GetSubjectsDir();
-  this->mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
+        // the project file always has a subjects dir, so make sure the GUI
+        // Subjects Display panel has that updated info
+        string sSubjectsDir = this->mQdecProject->GetSubjectsDir();
+        this->mEntrySubjectsDir->SetValue( sSubjectsDir.c_str() );
 
-	QdecGlmFitResults* results = mQdecProject->GetGlmFitResults();
-	assert( results );
+        QdecGlmFitResults* results = mQdecProject->GetGlmFitResults();
+        assert( results );
 
-	// We need to update our tabs.
-	this->UpdateDesignPage();
-	this->UpdateSubjectsPage();
+        // new data table means any prior stats data is invalid
+        this->ResetStatsImportFrame();
 
-	// Load in the data.
-	this->LoadAnalyzedData( results );
+        // We need to update our tabs.
+        this->UpdateDesignPage();
+        this->UpdateSubjectsPage();
+
+        // Load in the data.
+        this->LoadAnalyzedData( results );
 	
-	this->SetStatusText( "Project file loaded." );
-	this->AddRecentFile( ifnProject, this, "LoadProjectFile" );
+        this->SetStatusText( "Project file loaded." );
+        this->AddRecentFile( ifnProject, this, "LoadProjectFile" );
 
       }
     } catch ( exception& e ) {
@@ -1447,13 +1865,13 @@ vtkKWQdecWindow::SaveProjectFile ( const char* ifnProject ) {
     try {
       if( ifnProject ) { 
 
-	this->SetStatusText( "Saving project file..." );
+        this->SetStatusText( "Saving project file..." );
 
-	if( this->mQdecProject->SaveProjectFile( ifnProject ) )
-	  throw runtime_error( "Error saving the project file." );
+        if( this->mQdecProject->SaveProjectFile( ifnProject ) )
+          throw runtime_error( "Error saving the project file." );
 	
-	this->SetStatusText( "Project file saved." );
-	this->AddRecentFile( ifnProject, this, "SaveProjectFile" );
+        this->SetStatusText( "Project file saved." );
+        this->AddRecentFile( ifnProject, this, "SaveProjectFile" );
 	
       }
     } catch ( exception& e ) {
@@ -1486,7 +1904,7 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
       // Load the white surface at
       // SUBJECTS_DIR/fsaverage/surf/$hemi.white if it's available.
       string fnWhite = sSubjectsDir + "/" +  sAverageSubj +
-                      "/surf/" + sHemisphere + ".white";
+        "/surf/" + sHemisphere + ".white";
       if( QdecUtilities::IsFileReadable( fnWhite ) ) {
         this->SetStatusText( "Loading white surface..." );
         this->GetProgressGauge()->SetValue( (float)nStep++ * stepIncrement );
@@ -1496,7 +1914,7 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
       // Load the pial surface at
       // SUBJECTS_DIR/fsaverage/surf/$hemi.pial if it's available.
       string fnPial = sSubjectsDir + "/" +  sAverageSubj +
-                      "/surf/" + sHemisphere + ".pial";
+        "/surf/" + sHemisphere + ".pial";
       if( QdecUtilities::IsFileReadable( fnPial ) ) {
         this->SetStatusText( "Loading pial surface..." );
         this->GetProgressGauge()->SetValue( (float)nStep++ * stepIncrement );
@@ -1508,7 +1926,7 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
       this->SetStatusText( "Loading inflated surface..." );
       this->GetProgressGauge()->SetValue( (float)nStep++ * stepIncrement );
       string fnInflated = sSubjectsDir + "/" + sAverageSubj +
-                           "/surf/" + sHemisphere + ".inflated";
+        "/surf/" + sHemisphere + ".inflated";
       QdecUtilities::AssertFileIsReadable( fnInflated );
       this->LoadSurface( fnInflated.c_str(), "inflated" );
 
@@ -1541,7 +1959,7 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
       vector<string> sContrastQuestions = iGlmResults->GetContrastQuestions();
       assert( fnContrastSigFiles.size() == sContrastQuestions.size() );
       for( unsigned int i=0;
-            i < iGlmResults->GetContrastSigFiles().size(); i++) {
+           i < iGlmResults->GetContrastSigFiles().size(); i++) {
         QdecUtilities::AssertFileIsReadable( fnContrastSigFiles[i] );
         int nScalar = this->LoadSurfaceScalars( fnContrastSigFiles[i].c_str(),
                                                 sContrastQuestions[i].c_str());
@@ -1577,10 +1995,11 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
       QdecUtilities::AssertFileIsReadable( fnGDF );
       this->LoadGDFFile( fnGDF.c_str() );
 
-      this->SetStatusText( "Analyzed data loaded." );
+      this->SetStatusText( "Analyzed data loaded. Select results for "
+                           "display from the Scalars list." );
       this->GetProgressGauge()->SetValue( 100 );
       this->AddRecentFile(iGlmResults->GetGlmDesign()->GetWorkingDir().c_str(),
-			  this, "LoadAnalyzedData" );
+                          this, "LoadAnalyzedData" );
 
     } catch ( exception& e ) {
       this->GetApplication()->ErrorMessage( e.what() );
@@ -1662,25 +2081,9 @@ vtkKWQdecWindow::LoadGDFFile ( const char* ifnGDFFile ) {
 
   if( mView ) {
     try {
-
-      // Try to load the GDF.
-      const char* sResult = this->Script( "FsgdfPlot_Read %s", ifnGDFFile );
-
-      int id = strtol( sResult, (char**)NULL, 10 );
-      if( ERANGE == errno ) {
-        cerr << "Couldn't load GDF: " << sResult;
-        return;
-      }
-
-      mGDFID = id;
-      mbGDFLoaded = true;
-
-      // Tell the view.
-      mView->SetGDFID( mGDFID );
-
+      if (mVertexPlot->ReadFile( ifnGDFFile )) return;
       this->SetStatusText( "GDF file loaded." );
       this->AddRecentFile( ifnGDFFile, this, "LoadGDFFile" );
-
     } catch ( exception& e ) {
       this->GetApplication()->ErrorMessage( e.what() );
     }
@@ -1834,7 +2237,7 @@ vtkKWQdecWindow::LoadAnnotation ( const char* ifnAnnotation ) {
 
 void
 vtkKWQdecWindow::LoadSurfaceOverlayScalars ( const char* ifnScalars,
-					     const char* ifnColors ) {
+                                             const char* ifnColors ) {
 
   assert( ifnScalars );
   if( maSurfaceSource.size() < 1 )
@@ -1954,6 +2357,7 @@ vtkKWQdecWindow::LoadLabel ( const char* ifnLabel ) {
     this->GetApplication()->ErrorMessage( e.what() );
   }
 
+  // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
 
@@ -1975,6 +2379,7 @@ vtkKWQdecWindow::SaveLabel ( const char* ifnLabel ) {
     this->GetApplication()->ErrorMessage( e.what() );
   }
 
+  // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
 
@@ -2000,23 +2405,25 @@ vtkKWQdecWindow::MapLabelToSubjects ( const char* ifnLabel ) {
     this->GetApplication()->ErrorMessage( e.what() );
   }
 
+  // Update our menu and buttons.
   this->UpdateCommandStatus();
 }
 
 void
 vtkKWQdecWindow::SaveTIFFImage ( const char* ifnTIFF, 
-				 int iMagnificationLevel ) {
+                                 int iMagnificationLevel ) {
 
   assert( iMagnificationLevel >= 1 );
 
+  // if there is an image on the Display page...
   if( mView ) {
     try {
 
       // Turn the legend and annotation off if we're doing any
       // magnification.
       if( iMagnificationLevel != 1 ) {
-	mView->SetShowLegend( 0 );
-	mView->SetShowAnnotation( 0 );
+        mView->SetShowLegend( 0 );
+        mView->SetShowAnnotation( 0 );
       }
       
       // Create our pipeline objects. vtkWindowToImageFilter just
@@ -2028,22 +2435,22 @@ vtkKWQdecWindow::SaveTIFFImage ( const char* ifnTIFF,
       // If we have a magnification level, make the imageMag,
       // otherwise make the shot.
       if( iMagnificationLevel != 1 ) {
-	imageMag = vtkSmartPointer<vtkRenderLargeImage>::New();
-	imageMag->SetInput( (vtkRenderer*)mView->GetRenderer() );
-	imageMag->SetMagnification( iMagnificationLevel );
+        imageMag = vtkSmartPointer<vtkRenderLargeImage>::New();
+        imageMag->SetInput( (vtkRenderer*)mView->GetRenderer() );
+        imageMag->SetMagnification( iMagnificationLevel );
       } else {
-	shot = vtkSmartPointer<vtkWindowToImageFilter>::New();
-	shot->SetInput( (vtkWindow*)mView->GetRenderWindow() );
+        shot = vtkSmartPointer<vtkWindowToImageFilter>::New();
+        shot->SetInput( (vtkWindow*)mView->GetRenderWindow() );
       }
       
       // Make the writer object and connect whichever filter object we
       // just made to it.
       vtkSmartPointer<vtkTIFFWriter> writer = 
-	vtkSmartPointer<vtkTIFFWriter>::New();
+        vtkSmartPointer<vtkTIFFWriter>::New();
       if( imageMag.GetPointer() ) 
-	writer->SetInput( imageMag->GetOutput() );
+        writer->SetInput( imageMag->GetOutput() );
       else 
-	writer->SetInput( shot->GetOutput() );
+        writer->SetInput( shot->GetOutput() );
 
       // Write the file.
       writer->SetFileName( ifnTIFF );
@@ -2051,11 +2458,11 @@ vtkKWQdecWindow::SaveTIFFImage ( const char* ifnTIFF,
 
       // Reshow the legend and annotation.
       if( iMagnificationLevel != 1 ) {
-	mView->SetShowLegend( 1 );
-	mView->SetShowAnnotation( 1 );
+        mView->SetShowLegend( 1 );
+        mView->SetShowAnnotation( 1 );
       }
 
-      this->SetStatusText( "TIFF saved." );
+      this->SetStatusText( "Display Panel TIFF saved." );
 
     } catch ( exception& e ) {
       this->GetApplication()->ErrorMessage( e.what() );
@@ -2088,31 +2495,10 @@ vtkKWQdecWindow::SetCurrentSurfaceScalars ( int inEntry ) {
       // Save the new current index.
       mnCurrentSurfaceScalars = inEntry;
 
-#if 0
-      // Quick histogram.
-      if( mnCurrentSurfaceScalars >= 0 ) {
-        vtkFloatArray* a =
-          maSurfaceScalars[mnCurrentSurfaceScalars].mValues;
-        int const cBins = 10;
-        int* aBins = (int*) calloc( cBins, sizeof(int) );
-        double binRange =
-          (a->GetRange()[1] - a->GetRange()[0] + 0.00001) / (double)(cBins);
-        for( int n = 0; n < a->GetNumberOfTuples(); n++ )
-          aBins[(int)floor((a->GetTuple1(n)-a->GetRange()[0])/binRange)]++;
-        cerr << "Histogram " << a->GetNumberOfTuples()
-        << " values over [" << a->GetRange()[0]
-        << "," << a->GetRange()[1] << "]" << endl;
-        for( double n = 0; n < cBins; n += 1.0 )
-          cerr << "[" << a->GetRange()[0] + (n*binRange) << ","
-          << a->GetRange()[0] + ((n+1.0)*binRange)
-          << "): " << aBins[(int)n] << endl;
-        free( aBins );
-      };
-#endif
-
       // Call this to display these scalars.
       this->ComposeSurfaceScalarsAndShow();
 
+      // Histogram 
       this->UpdateSurfaceScalarsColorsEditor();
 
       // Update our menu.
@@ -2124,6 +2510,7 @@ vtkKWQdecWindow::SetCurrentSurfaceScalars ( int inEntry ) {
   }
 
 }
+
 
 void
 vtkKWQdecWindow::ClearSurfaceScalars () {
@@ -2144,6 +2531,34 @@ vtkKWQdecWindow::ClearSurfaceScalars () {
   this->UpdateDisplayPage();
   this->UpdateCommandStatus();
 }
+
+
+void
+vtkKWQdecWindow::UnloadSurfaceScalars () {
+
+  // unlike ClearSurfaceScalars, this just clears the currenly loaded
+  // scalar (blanking the surface)
+  mView->SetSurfaceScalars( NULL );
+  mView->SetSurfaceScalarsColors( NULL );
+  mView->SetAnnotationMessage( "" );
+  mView->SetSurfaceLookupScalars( NULL );
+  mView->SetSurfaceLegendColors( NULL );
+
+  // No selected scalar.
+  mnCurrentSurfaceScalars = -1;
+  mTableSurfaceScalars->ClearSelection();
+
+  // Redraw.
+  this->ComposeSurfaceScalarsAndShow();
+
+  // Update the colors editor.
+  this->UpdateSurfaceScalarsColorsEditor();
+
+  // Update our menu and page.
+  this->UpdateDisplayPage();
+  this->UpdateCommandStatus();
+}
+
 
 void
 vtkKWQdecWindow::ClearCurvature () {
@@ -2230,7 +2645,7 @@ vtkKWQdecWindow::SetCurrentSurface ( const char* isLabel ) {
     // Update the source for the ROI if we have one.
     if( NULL != mROISource ) {
       mROISource->
-	SetMris( maSurfaceSource[msCurrentSurfaceSource]->GetMRIS() );
+        SetMris( maSurfaceSource[msCurrentSurfaceSource]->GetMRIS() );
       mView->SetROI( mROISource->GetOutput() );
     }
   }
@@ -2263,6 +2678,51 @@ vtkKWQdecWindow::SetCurrentSurfaceScalarsFromTableSelection () {
   this->SetCurrentSurfaceScalars( nEntry );
 }
 
+
+void
+vtkKWQdecWindow::ScatterPlotListBoxCallback () {
+  assert( mListScatterPlot.GetPointer() );
+
+  mScatterPlotSelection =
+    mListScatterPlot->GetSelectionIndex();
+
+  if (mScatterPlotSelection != -1 &&
+      mEntryExcludeFactor &&
+      mEntryExcludeSubjectGT &&
+      mEntryExcludeSubjectLT &&
+      mEntryExcludeSubjectET ) {
+    // Get the name of the selected factor.
+    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
+    // and update the Subject Exclusions box
+    mEntryExcludeFactor->SetValue( sFactor.c_str() );
+    mEntryExcludeSubjectGT->SetValue( "" );
+    mEntryExcludeSubjectLT->SetValue( "" );
+    mEntryExcludeSubjectET->SetValue( "" );
+
+    // if the selected factor is discrete, print a legend at the bottom
+    QdecFactor* lFactor = 
+      this->mQdecProject->GetDataTable()->GetFactor( sFactor.c_str() );
+    if( lFactor->IsDiscrete() ) {
+      vector< string > lLevelNames = lFactor->GetLevelNames();
+      mScatterPlotLegend = "Legend:  ";
+      for( unsigned int i=0; i < lLevelNames.size(); i++ ) {
+        mScatterPlotLegend += lLevelNames[i];
+        mScatterPlotLegend += "=";
+        stringstream val;
+        val << lFactor->GetContinuousValue(lLevelNames[i].c_str());
+        mScatterPlotLegend += val.str().c_str();
+        mScatterPlotLegend += "  ";
+        mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
+      }
+    } else {
+      mScatterPlotLegend = "";
+      mLabelScatterPlotLegend->SetText( mScatterPlotLegend.c_str() );
+    }
+  }
+  this->UpdateScatterPlot();
+}
+
+
 void
 vtkKWQdecWindow::DiscreteFactorsListBoxCallback () {
 
@@ -2270,6 +2730,24 @@ vtkKWQdecWindow::DiscreteFactorsListBoxCallback () {
 
   this->ManageFactorListBoxSelections( mListDiscreteFactors,
                                        maDiscreteFactorSelection );
+
+  // keep the QdecGlmDesign object up-to-date
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+  design->ClearDiscreteFactors();
+  for( unsigned int i=0; i < 2; i++ ) {
+    if( -1 != maDiscreteFactorSelection[i] ) {
+      design->AddDiscreteFactor
+        ( strdup( mListDiscreteFactors->GetItem
+                  ( maDiscreteFactorSelection[i] ) ) );
+    }
+  }
+
+  // update degrees of freedom value
+  if( mEntryDegreesOfFreedom ) {
+    mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
+  }
 }
 
 void
@@ -2279,21 +2757,30 @@ vtkKWQdecWindow::ContinuousFactorsListBoxCallback () {
 
   this->ManageFactorListBoxSelections( mListContinuousFactors,
                                        maContinuousFactorSelection );
+
+  // keep the QdecGlmDesign object up-to-date
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+  design->ClearContinuousFactors();
+  for( unsigned int i=0; i < 2; i++ ) {
+    if( -1 != maContinuousFactorSelection[i] ) {
+      design->AddContinuousFactor
+        ( strdup( mListContinuousFactors->GetItem
+                  ( maContinuousFactorSelection[i] ) ) );
+    }
+  }
+
+  // update degrees of freedom value
+  if( mEntryDegreesOfFreedom ) {
+    mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
+  }
 }
 
-void
-vtkKWQdecWindow::PlotContinuousFactorsListBoxCallback () {
-  assert( mListPlotContinuousFactors.GetPointer() );
-
-  mPlotContinuousFactorSelection =
-    mListPlotContinuousFactors->GetSelectionIndex();
-
-  this->UpdateContinuousFactorPlot();
-}
 
 void
 vtkKWQdecWindow::ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
-						 int iaSelections[2] ) {
+                                                 int iaSelections[2] ) {
 
   // Make sure that we only have two items selected, max. If more than
   // two, unselect the first one.
@@ -2342,28 +2829,65 @@ vtkKWQdecWindow::ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
 }
 
 void
+vtkKWQdecWindow::NuisanceFactorsListBoxCallback () {
+
+  assert( mListNuisanceFactors.GetPointer() );
+
+  int cSelected = 0;
+  for( int nItem = 0; 
+       nItem < 
+         mListNuisanceFactors->GetWidget()->GetWidget()->GetNumberOfItems(); 
+       nItem++ )
+    if(mListNuisanceFactors->GetWidget()->GetWidget()->GetSelectState(nItem))
+      cSelected++;
+
+  if( cSelected == 0 ) {
+    mListNuisanceFactors->SetLabelText( "<none selected>" );
+  } else {
+    mListNuisanceFactors->SetLabelText( "" );
+  }
+}
+
+
+void
 vtkKWQdecWindow::UpdateSubjectsPage () {
 
   assert( mEntryDataTable.GetPointer() );
-  assert( mEntryNumberOfSubjects.GetPointer() );
   assert( mQdecProject );
-  assert( mQdecProject->GetDataTable() );
-  assert( mListPlotContinuousFactors.GetPointer() );
+  assert( mListScatterPlot.GetPointer() );
 
-  QdecDataTable* dTable = this->mQdecProject->GetDataTable();
-
-  mEntryDataTable->SetValue( dTable->GetFileName().c_str() );
-  mEntryNumberOfSubjects->SetValueAsInt( dTable->GetSubjectIDs().size() );
+  this->UpdateNumberOfSubjects();
   this->mQdecProject->SetAverageSubject( mEntryAverageSubject->GetValue() );
   this->mQdecProject->SetSubjectsDir( mEntrySubjectsDir->GetValue() );
 
-  mListPlotContinuousFactors->DeleteAll();
+  mListScatterPlot->DeleteAll();
 
   vector< string > factors =
-    this->mQdecProject->GetDataTable()->GetContinuousFactors();
+    this->mQdecProject->GetDataTable()->GetDiscreteFactorNames();
   for(unsigned int i=0; i < factors.size(); i++) {
-    mListPlotContinuousFactors->Append( factors[i].c_str() );
+    mListScatterPlot->Append( factors[i].c_str() );
   }
+  factors = this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
+  for(unsigned int i=0; i < factors.size(); i++) {
+    mListScatterPlot->Append( factors[i].c_str() );
+  }
+}
+
+void
+vtkKWQdecWindow::UpdateNumberOfSubjects () {
+
+  assert( mEntryNumberOfSubjects.GetPointer() );
+  assert( mQdecProject );
+  assert( mQdecProject->GetDataTable() );
+  assert( mQdecProject->GetGlmDesign() );
+
+  QdecDataTable* dTable = this->mQdecProject->GetDataTable();
+  QdecGlmDesign* design = this->mQdecProject->GetGlmDesign();
+
+  mEntryDataTable->SetValue( dTable->GetFileName().c_str() );
+  mEntryNumberOfSubjects->SetValueAsInt
+    ( dTable->GetSubjectIDs().size() - design->GetNumberOfExcludedSubjects() );
+
 }
 
 void
@@ -2372,23 +2896,26 @@ vtkKWQdecWindow::UpdateDesignPage () {
   assert( mListDiscreteFactors.GetPointer() );
   assert( mListContinuousFactors.GetPointer() );
   assert( mQdecProject ) ;
+  if ( ! mQdecProject->HaveDataTable() ) return;
   assert( mQdecProject->GetDataTable() );
   assert( mQdecProject->GetGlmDesign() );
 
   // Fill our our entries with the values from the design.
   QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
   mEntryDesignName->SetValue( design->GetName().c_str() );
-  mMenuMeasure->SetValue( design->GetMeasure().c_str() );
-  mMenuHemisphere->SetValue( design->GetHemi().c_str() );
-  stringstream ssSmoothness;
-  ssSmoothness << design->GetSmoothness();
-  mMenuSmoothness->SetValue( ssSmoothness.str().c_str() );
+  if( mFrameMorphMeasures ) {
+    mMenuMorphMeasure->SetValue( design->GetMeasure().c_str() );
+    mMenuMorphHemisphere->SetValue( design->GetHemi().c_str() );
+    stringstream ssSmoothness;
+    ssSmoothness << design->GetSmoothness();
+    mMenuMorphSmoothness->SetValue( ssSmoothness.str().c_str() );
+  }
 
   // Clear the factor lists.
   mListDiscreteFactors->DeleteAll();
   mListContinuousFactors->DeleteAll();
 
-  // Get the current factors.
+  // Get the current factors selected for this design.
   vector<QdecFactor*> const& lDiscreteFactors =
     design->GetDiscreteFactors();
   vector<QdecFactor*> const& lContinuousFactors = 
@@ -2397,35 +2924,76 @@ vtkKWQdecWindow::UpdateDesignPage () {
   int nContinuousSelection = 0;
 
   vector< string > factors =
-    this->mQdecProject->GetDataTable()->GetDiscreteFactors();
+    this->mQdecProject->GetDataTable()->GetDiscreteFactorNames();
+
   for(unsigned int i=0; i < factors.size(); i++) {
     mListDiscreteFactors->Append( factors[i].c_str() );
 
     // If this factor is one of our chosen discrete factors from the
     // design, enter its index in our selections, and select this
     // item.
-    if( (lDiscreteFactors.size() > 0 && 
-	 lDiscreteFactors[0]->GetFactorName() == factors[i]) ||
-	(lDiscreteFactors.size() > 1 &&
-	 lDiscreteFactors[1]->GetFactorName() == factors[i]) ) {
-      maDiscreteFactorSelection[nDiscreteSelection++] = i;
-      mListDiscreteFactors->SetSelectState( i, 1 );
+    for(unsigned int j=0; j < lDiscreteFactors.size(); j++) {
+      if (lDiscreteFactors[j]) {
+        string factorName = lDiscreteFactors[j]->GetFactorName();
+        if (factorName == factors[i]) {
+          maDiscreteFactorSelection[nDiscreteSelection++] = i;
+          mListDiscreteFactors->SetSelectState( i, 1 );
+        }
+      }
     }
   }
 
-  factors = this->mQdecProject->GetDataTable()->GetContinuousFactors();
+  factors = this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
   for(unsigned int i=0; i < factors.size(); i++) {
     mListContinuousFactors->Append( factors[i].c_str() );
-
-    if( (lContinuousFactors.size() > 0 && 
-	 lContinuousFactors[0]->GetFactorName() == factors[i] ) ||
-	(lContinuousFactors.size() > 1 && 
-	 lContinuousFactors[1]->GetFactorName() == factors[i] ) ) {
-      maContinuousFactorSelection[nContinuousSelection++] = i;
-      mListContinuousFactors->SetSelectState( i, 1 );
+    
+    // If this factor is one of our chosen continuous factors from the
+    // design, enter its index in our selections, and select this
+    // item.
+    for(unsigned int j=0; j < lContinuousFactors.size(); j++) {
+      if (lContinuousFactors[j]) {
+        string factorName = lContinuousFactors[j]->GetFactorName();
+        if (factorName == factors[i]) {
+          maContinuousFactorSelection[nContinuousSelection++] = i;
+          mListContinuousFactors->SetSelectState( i, 1 );
+        }
+      }
     }
   }
+
+  // update degrees of freedom value
+  if( mEntryDegreesOfFreedom ) {
+    mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
+  }
 }
+
+
+void
+vtkKWQdecWindow::UpdateContrastPage () {
+
+  assert( mListNuisanceFactors.GetPointer() );
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetDataTable() );
+  assert( mQdecProject->GetGlmDesign() );
+
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+
+   // Get the current factors selected for this design.
+  mListNuisanceFactors->GetWidget()->GetWidget()->DeleteAll();
+  vector<QdecFactor*> const& lDiscreteFactors =
+    design->GetDiscreteFactors();
+  for(unsigned int j=0; j < lDiscreteFactors.size(); j++) {
+    mListNuisanceFactors->GetWidget()->GetWidget()->Append
+      ( lDiscreteFactors[j]->GetFactorName().c_str() );
+  }
+  vector<QdecFactor*> const& lContinuousFactors = 
+    design->GetContinuousFactors();
+  for(unsigned int j=0; j < lContinuousFactors.size(); j++) {
+    mListNuisanceFactors->GetWidget()->GetWidget()->Append
+      ( lContinuousFactors[j]->GetFactorName().c_str() );
+  }
+}
+
 
 void
 vtkKWQdecWindow::UpdateDisplayPage () {
@@ -2456,14 +3024,14 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mRadBtnSetSurface = vtkSmartPointer<vtkKWRadioButtonSet>::New();
     mRadBtnSetSurface->SetParent( surfaceFrame->GetFrame() );
     mRadBtnSetSurface->Create();
-    mRadBtnSetSurface->PackHorizontallyOff();
+    mRadBtnSetSurface->PackHorizontallyOn();
     this->Script( "pack %s -side top -fill both",
                   mRadBtnSetSurface->GetWidgetName() );
 
     int nButton = 0;
     map<string,vtkSmartPointer<vtkFSSurfaceSource> >::iterator tSurface;
     for( tSurface = maSurfaceSource.begin();
-          tSurface != maSurfaceSource.end(); ++tSurface ) {
+         tSurface != maSurfaceSource.end(); ++tSurface ) {
 
       string sSurface = tSurface->first;
 
@@ -2626,7 +3194,8 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mTableSurfaceScalars = scrolls->GetWidget();
     mTableSurfaceScalars->AddColumn( "Description" );
     mTableSurfaceScalars->SetSelectionModeToSingle();
-    mTableSurfaceScalars->SetSelectionChangedCommand( this,
+    mTableSurfaceScalars->SetSelectionChangedCommand
+      ( this,
         "SetCurrentSurfaceScalarsFromTableSelection" );
     mTableSurfaceScalars->SetSelectionBackgroundColor( 0.5, 0.8, 0.5 );
     mTableSurfaceScalars->SetSelectionForegroundColor( 0.0, 0.0, 0.0 );
@@ -2636,22 +3205,40 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       ( mTableSurfaceScalars,
         "ScheduleRefreshColorsOfAllCellsWithWindowCommand" );
 
+    // Now a frame for the clear button and the reverse value checkbox
+    vtkSmartPointer<vtkKWFrame> frameClearBtn =
+      vtkSmartPointer<vtkKWFrame>::New();
+    frameClearBtn->SetParent( scalarsFrame->GetFrame() );
+    frameClearBtn->Create();
+
+    // Button to clear scalars (ie. unload currently loaded scalar)
+    vtkSmartPointer<vtkKWPushButton> buttonClearScalars = 
+      vtkSmartPointer<vtkKWPushButton>::New();
+    buttonClearScalars->SetParent( frameClearBtn );
+    buttonClearScalars->Create();
+    buttonClearScalars->SetText( "Clear" );
+    buttonClearScalars->SetCommand( this, "UnloadSurfaceScalars" );
+
     // Checkbox for reverse values.
     vtkSmartPointer<vtkKWCheckButtonWithLabel> labeledCheckReverse =
       vtkSmartPointer<vtkKWCheckButtonWithLabel>::New();
-    labeledCheckReverse->SetParent( scalarsFrame->GetFrame() );
+    labeledCheckReverse->SetParent( frameClearBtn );
     labeledCheckReverse->Create();
     labeledCheckReverse->SetLabelText( "Reverse Values" );
     labeledCheckReverse->SetLabelPositionToRight();
-    this->Script( "pack %s -side top",
+
+    this->Script( "pack %s -side left -expand y -fill x -padx 5",
+                  buttonClearScalars->GetWidgetName() );
+    this->Script( "pack %s -side left -fill x -padx 5",
                   labeledCheckReverse->GetWidgetName() );
+    this->Script( "pack %s -side top -fill x -pady 2",
+                  frameClearBtn->GetWidgetName() );
 
     mCheckSurfaceScalarsColorReverse = labeledCheckReverse->GetWidget();
     mCheckSurfaceScalarsColorReverse->
-    SetSelectedState( mbSurfaceScalarsColorReverse );
+      SetSelectedState( mbSurfaceScalarsColorReverse );
     mCheckSurfaceScalarsColorReverse->
-    SetCommand( this, "SetSurfaceScalarsColorReverse" );
-
+      SetCommand( this, "SetSurfaceScalarsColorReverse" );
 
     // Checkboxes for positve and negative values (inside an inner
     // frame).
@@ -2677,7 +3264,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
 
     mCheckSurfaceScalarsColorShowPositive = labeledCheckPos->GetWidget();
     mCheckSurfaceScalarsColorShowPositive->
-    SetSelectedState(mbSurfaceScalarsColorShowPositive);
+      SetSelectedState(mbSurfaceScalarsColorShowPositive);
     mCheckSurfaceScalarsColorShowPositive->
       SetCommand( this, "SetSurfaceScalarsColorShowPositive" );
 
@@ -2690,7 +3277,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
 
     mCheckSurfaceScalarsColorShowNegative = labeledCheckNeg->GetWidget();
     mCheckSurfaceScalarsColorShowNegative->
-    SetSelectedState(mbSurfaceScalarsColorShowNegative);
+      SetSelectedState(mbSurfaceScalarsColorShowNegative);
     mCheckSurfaceScalarsColorShowNegative->
       SetCommand( this, "SetSurfaceScalarsColorShowNegative" );
     
@@ -2712,7 +3299,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     if( mbUseHistogramEditor ) {
       
       mEditorSurfaceScalarColors = 
-	vtkSmartPointer<vtkKWRGBATransferFunctionEditor>::New();
+        vtkSmartPointer<vtkKWRGBATransferFunctionEditor>::New();
       mEditorSurfaceScalarColors->SetParent( scalarsFrame->GetFrame() );
       
       mEditorSurfaceScalarColors->ParameterRangeVisibilityOff();
@@ -2743,22 +3330,23 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       mEditorSurfaceScalarColors->ComputeValueTicksFromHistogramOn();
       mEditorSurfaceScalarColors->SetParameterTicksFormat("%-#6.0f");
       mEditorSurfaceScalarColors->
-	SetFunctionChangedCommand( this, "SurfaceScalarColorsEditorChanged" );
+        SetFunctionChangedCommand( this, "SurfaceScalarColorsEditorChanged" );
       
       // This is the histogram that will go in the editor. We make it with
       // some dummy data so that it will take up space in the beginning.
       mHistogramSurfaceScalarColors = vtkSmartPointer<vtkKWHistogram>::New();
       vtkSmartPointer<vtkFloatArray> dummy =
-	vtkSmartPointer<vtkFloatArray>::New();
+        vtkSmartPointer<vtkFloatArray>::New();
       dummy->Allocate( 2 );
       dummy->SetNumberOfComponents( 1 );
       dummy->InsertNextValue( -mSurfaceScalarsColorMax );
       dummy->InsertNextValue( mSurfaceScalarsColorMax );
       mHistogramSurfaceScalarColors->BuildHistogram( dummy, 0 );
-      mEditorSurfaceScalarColors->SetHistogram( mHistogramSurfaceScalarColors );
+      mEditorSurfaceScalarColors->SetHistogram
+        ( mHistogramSurfaceScalarColors );
       // Pack the editor.
       this->Script( "pack %s -side top -fill both",
-		    mEditorSurfaceScalarColors->GetWidgetName() );
+                    mEditorSurfaceScalarColors->GetWidgetName() );
 
       // Now we'll get the user frame and populate it.
       editorUserFrame = mEditorSurfaceScalarColors->GetUserFrame();
@@ -2771,7 +3359,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
 
       // Pack the editor.
       this->Script( "pack %s -side top -fill both",
-		    editorUserFrame->GetWidgetName() );
+                    editorUserFrame->GetWidgetName() );
     }
 
     vtkSmartPointer<vtkKWFrame> frameEntries = 
@@ -2869,8 +3457,8 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     // Pack the three items in the user frame.
     this->Script( "pack %s %s %s -side top -fill x -pady 2",
                   frameEntries->GetWidgetName(), 
-		  frameFDR->GetWidgetName(),
-		  labeledEntryOffset->GetWidgetName() );
+                  frameFDR->GetWidgetName(),
+                  labeledEntryOffset->GetWidgetName() );
 
     // Update the editors with the current min/mid/max values and a
     // dummy histogram.
@@ -2900,17 +3488,18 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mTableSurfaceScalars->DeleteAllRows();
     map<int,SurfaceScalar>::iterator tScalar;
     for( tScalar = maSurfaceScalars.begin();
-          tScalar != maSurfaceScalars.end();
-          ++tScalar ) {
+         tScalar != maSurfaceScalars.end();
+         ++tScalar ) {
 
       // Set the cell text.
       mTableSurfaceScalars->
-      InsertCellText( (*tScalar).second.mnEntry, 0,
-                      (*tScalar).second.msLabel.c_str() );
+        InsertCellText( (*tScalar).second.mnEntry, 0,
+                        (*tScalar).second.msLabel.c_str() );
 
       // When this cell is actually created, call CreateScalarTableEntry.
-      mTableSurfaceScalars->SetCellWindowCommand( (*tScalar).second.mnEntry, 0,
-						  this, "CreateScalarTableEntry" );
+      mTableSurfaceScalars->SetCellWindowCommand
+        ( (*tScalar).second.mnEntry, 0,
+          this, "CreateScalarTableEntry" );
 
     }
   }
@@ -2959,11 +3548,21 @@ vtkKWQdecWindow::UpdateSurfaceScalarsColorsEditor () {
   // If we have scalars right now, make a histogram of them, set it in
   // the editor, and make sure the range for the editor is correct.
   if( maSurfaceScalars.find( mnCurrentSurfaceScalars ) !=
-       maSurfaceScalars.end() ) {
+      maSurfaceScalars.end() ) {
 
     vtkFloatArray* surfaceScalars =
       maSurfaceScalars[mnCurrentSurfaceScalars].mValues;
 
+    // saturate at +-100, since the vtkHistogram code has a problem with
+    // extremes (like +-10000000000)
+    for( int nVertex = 0; 
+         nVertex < surfaceScalars->GetNumberOfTuples(); 
+         nVertex++ ) {
+      float val = surfaceScalars->GetValue(nVertex);
+      if (val > 100) surfaceScalars->SetValue(nVertex, 100);
+      else if (val < -100) surfaceScalars->SetValue(nVertex, -100);
+    }
+    
     // Make the histogram.
     mHistogramSurfaceScalarColors->BuildHistogram( surfaceScalars, 0 );
     mEditorSurfaceScalarColors->
@@ -3003,8 +3602,8 @@ vtkKWQdecWindow::UpdateSurfaceScalarsColorsEditor () {
 
 void
 vtkKWQdecWindow::CreateScalarTableEntry ( const char* iTable,
-					  int iRow, int iColumn,
-					  const char* iWidget ) {
+                                          int iRow, int iColumn,
+                                          const char* iWidget ) {
   
   assert( mTableSurfaceScalars.GetPointer() );
   assert( iTable );
@@ -3075,14 +3674,14 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMin ( double iMin ) {
 
   // If not already equal...
   if( fabs( iMin - mSurfaceScalarsColorMin ) >
-       numeric_limits<double>::epsilon() ) {
+      numeric_limits<double>::epsilon() ) {
 
     // Save our new value.
     mSurfaceScalarsColorMin = iMin;
 
     // Set the value in the entry if not equal.
     if( fabs( mEntrySurfaceScalarsColorMin->GetValueAsDouble() -
-               mSurfaceScalarsColorMin ) > numeric_limits<double>::epsilon() )
+              mSurfaceScalarsColorMin ) > numeric_limits<double>::epsilon() )
       mEntrySurfaceScalarsColorMin->SetValueAsDouble
         ( mSurfaceScalarsColorMin );
 
@@ -3101,14 +3700,14 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMid ( double iMid ) {
 
   // If not already equal...
   if( fabs( iMid - mSurfaceScalarsColorMid ) >
-       numeric_limits<double>::epsilon() ) {
+      numeric_limits<double>::epsilon() ) {
 
     // Save our new value.
     mSurfaceScalarsColorMid = iMid;
 
     // Set the value in the entry if not equal.
     if( fabs( mEntrySurfaceScalarsColorMid->GetValueAsDouble() -
-               mSurfaceScalarsColorMid ) > numeric_limits<double>::epsilon() )
+              mSurfaceScalarsColorMid ) > numeric_limits<double>::epsilon() )
       mEntrySurfaceScalarsColorMid->SetValueAsDouble
         ( mSurfaceScalarsColorMid );
 
@@ -3127,14 +3726,14 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMax ( double iMax ) {
 
   // If not already equal...
   if( fabs( iMax - mSurfaceScalarsColorMax ) >
-       numeric_limits<double>::epsilon() ) {
+      numeric_limits<double>::epsilon() ) {
 
     // Save our new value.
     mSurfaceScalarsColorMax = iMax;
 
     // Set the value in the entry if not equal.
     if( fabs( mEntrySurfaceScalarsColorMax->GetValueAsDouble() -
-               mSurfaceScalarsColorMax ) > numeric_limits<double>::epsilon() )
+              mSurfaceScalarsColorMax ) > numeric_limits<double>::epsilon() )
       mEntrySurfaceScalarsColorMax->SetValueAsDouble
         ( mSurfaceScalarsColorMax );
 
@@ -3148,7 +3747,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMax ( double iMax ) {
 
 void
 vtkKWQdecWindow::SetSurfaceScalarsColors ( double iMin, double iMid,
-    double iMax ) {
+                                           double iMax ) {
 
   assert( mEntrySurfaceScalarsColorMin.GetPointer() );
   assert( mEntrySurfaceScalarsColorMid.GetPointer() );
@@ -3160,14 +3759,14 @@ vtkKWQdecWindow::SetSurfaceScalarsColors ( double iMin, double iMid,
 
   // If not already equal...
   if( fabs( iMin - mSurfaceScalarsColorMin ) >
-       numeric_limits<double>::epsilon() ) {
+      numeric_limits<double>::epsilon() ) {
 
     // Save our new value.
     mSurfaceScalarsColorMin = iMin;
 
     // Set the value in the entry if not equal.
     if( fabs( mEntrySurfaceScalarsColorMin->GetValueAsDouble() -
-               mSurfaceScalarsColorMin ) > numeric_limits<double>::epsilon() )
+              mSurfaceScalarsColorMin ) > numeric_limits<double>::epsilon() )
       mEntrySurfaceScalarsColorMin->SetValueAsDouble
         ( mSurfaceScalarsColorMin );
 
@@ -3177,14 +3776,14 @@ vtkKWQdecWindow::SetSurfaceScalarsColors ( double iMin, double iMid,
 
   // If not already equal...
   if( fabs( iMid - mSurfaceScalarsColorMid ) >
-       numeric_limits<double>::epsilon() ) {
+      numeric_limits<double>::epsilon() ) {
 
     // Save our new value.
     mSurfaceScalarsColorMid = iMid;
 
     // Set the value in the entry if not equal.
     if( fabs( mEntrySurfaceScalarsColorMid->GetValueAsDouble() -
-               mSurfaceScalarsColorMid ) > numeric_limits<double>::epsilon() )
+              mSurfaceScalarsColorMid ) > numeric_limits<double>::epsilon() )
       mEntrySurfaceScalarsColorMid->SetValueAsDouble
         ( mSurfaceScalarsColorMid );
 
@@ -3194,14 +3793,14 @@ vtkKWQdecWindow::SetSurfaceScalarsColors ( double iMin, double iMid,
 
   // If not already equal...
   if( fabs( iMax - mSurfaceScalarsColorMax ) >
-       numeric_limits<double>::epsilon() ) {
+      numeric_limits<double>::epsilon() ) {
 
     // Save our new value.
     mSurfaceScalarsColorMax = iMax;
 
     // Set the value in the entry if not equal.
     if( fabs( mEntrySurfaceScalarsColorMax->GetValueAsDouble() -
-               mSurfaceScalarsColorMax ) > numeric_limits<double>::epsilon() )
+              mSurfaceScalarsColorMax ) > numeric_limits<double>::epsilon() )
       mEntrySurfaceScalarsColorMax->SetValueAsDouble
         ( mSurfaceScalarsColorMax );
 
@@ -3226,14 +3825,15 @@ vtkKWQdecWindow::SetSurfaceScalarsColorOffset ( double iOffset ) {
 
   // If not already equal...
   if( fabs( iOffset - mSurfaceScalarsColorOffset ) >
-       numeric_limits<double>::epsilon() ) {
+      numeric_limits<double>::epsilon() ) {
 
     // Save our new value.
     mSurfaceScalarsColorOffset = iOffset;
 
     // Set the value in the entry if not equal.
     if( fabs( mEntrySurfaceScalarsColorOffset->GetValueAsDouble() -
-           mSurfaceScalarsColorOffset ) > numeric_limits<double>::epsilon() )
+              mSurfaceScalarsColorOffset ) > 
+        numeric_limits<double>::epsilon() )
       mEntrySurfaceScalarsColorOffset->SetValueAsDouble
         ( mSurfaceScalarsColorOffset );
 
@@ -3249,9 +3849,9 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
   try {
 
     if( maSurfaceSource.find( msCurrentSurfaceSource ) ==
-         maSurfaceSource.end() ||
-         maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
-         maSurfaceScalars.end() ) {
+        maSurfaceSource.end() ||
+        maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
+        maSurfaceScalars.end() ) {
       throw runtime_error( "Must have a surface loaded and scalars selected.");
     }
 
@@ -3310,21 +3910,20 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsFDRRate ( const char* isValue ) {
 }
 
 void
-vtkKWQdecWindow::UpdateContinuousFactorPlot () {
+vtkKWQdecWindow::UpdateScatterPlot () {
 
   assert( mGraph.GetPointer() );
   assert( mQdecProject );
 
-  // Remove all the elements in the graph.
-  mGraph->DeleteAllElements();
+  this->UpdateNumberOfSubjects(); // depends on number of excluded subjects
 
-  if( mPlotContinuousFactorSelection != -1 ) {
+  if( mScatterPlotSelection != -1 ) {
       
     // Start a list of points for our data to graph.
     vector<double> lPoints;
     
     // Get the name of the factor.
-    string sFactor( mListPlotContinuousFactors->GetItem(mPlotContinuousFactorSelection) );
+    string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
     
     // For each subject...
     vector<QdecSubject*>::iterator tSubject;
@@ -3332,11 +3931,11 @@ vtkKWQdecWindow::UpdateContinuousFactorPlot () {
       mQdecProject->GetDataTable()->GetSubjects();
     int nIndex = 0;
     for( tSubject = lSubjects.begin();
-	 tSubject != lSubjects.end();
-	 ++tSubject, nIndex++ ) {
+         tSubject != lSubjects.end();
+         ++tSubject, nIndex++ ) {
       
       // Get the value.
-      float value = (*tSubject)->GetContinuousFactor( sFactor.c_str() );
+      float value = (*tSubject)->GetContinuousFactorValue( sFactor.c_str() );
       
       // Add this index,value pair to the list of values to graph.
       lPoints.clear();
@@ -3350,25 +3949,38 @@ vtkKWQdecWindow::UpdateContinuousFactorPlot () {
       string sSymbol;
       float color[3] = {0, 0, 0};
       if( design->GetExcludeSubjectID( (*tSubject)->GetId().c_str() ) ) {
-	sSymbol = "cross";
-	color[0] = 1.0; // red
+        sSymbol = "cross";
+        color[0] = 1.0; // red
       } else {
-	sSymbol = "plus";
-	color[2] = 1.0; // blue
+        sSymbol = "plus";
+        color[2] = 1.0; // blue
       }
+
+      mGraph->DeleteElement( (*tSubject)->GetId().c_str() );
 
       // Add the data to the graph.
       mGraph->AddElement( (*tSubject)->GetId().c_str(),
-			  lPoints,
-			  sSymbol.c_str(),
-			  0,
-			  color[0], color[1], color[2] );
+                          lPoints,
+                          sSymbol.c_str(),
+                          0,
+                          color[0], color[1], color[2] );
+
+      // and the axis labels
+      mGraph->SetYAxisTitle( sFactor.c_str() ); 
+      string sXaxis = "Subject";
+      mGraph->SetXAxisTitle( sXaxis.c_str() ); 
+
+      // and un-gray the Save Factor Plot to Postscript menu item
+      mMenuSaveScatterPlotPostscript->SetStateToNormal();
     }
+  }
+  else
+  {
+    mGraph->DeleteAllElements();
   }
 
   // Draw the graph.
   mGraph->Draw();
-
 }
 
 void
@@ -3416,7 +4028,7 @@ vtkKWQdecWindow::AddSelectionToROI () {
   // If we don't have a label source, create one now.
   if( !mROISource.GetPointer() ) {
     mROISource = vtkSmartPointer<vtkFSSurfaceLabelSource>::New();
-    string sLabelName = mMenuHemisphere->GetValue();
+    string sLabelName = mMenuMorphHemisphere->GetValue();
     sLabelName += ".untitled.label";
     mROISource->SetLabelFileName( sLabelName.c_str() );
     vtkFSSurfaceSource* surface = maSurfaceSource[msCurrentSurfaceSource];
@@ -3460,7 +4072,7 @@ vtkKWQdecWindow::RemoveSelectionFromROI () {
   // If we don't have a label source, create one now.
   if( !mROISource.GetPointer() ) {
     mROISource = vtkSmartPointer<vtkFSSurfaceLabelSource>::New();
-    string sLabelName = mMenuHemisphere->GetValue();
+    string sLabelName = mMenuMorphHemisphere->GetValue();
     sLabelName += ".untitled.label";
     mROISource->SetLabelFileName( sLabelName.c_str() );
     vtkFSSurfaceSource* surface = maSurfaceSource.begin()->second;
@@ -3500,7 +4112,7 @@ void
 vtkKWQdecWindow::GraphAverageROIInGDF () {
 
   assert( mROISource.GetPointer() );
-  assert( mbGDFLoaded );
+  assert( mVertexPlot->IsLoaded() );
 
   // Create a vertex vector.
   vector<int> lVertices;
@@ -3517,26 +4129,28 @@ vtkKWQdecWindow::GraphAverageROIInGDF () {
     dialog->SetOptions( vtkKWMessageDialog::WarningIcon );
     dialog->SetApplication( this->GetApplication() );
     dialog->Create();
-    dialog->SetText( "The ROI has no points in it; there is nothing to average." );
+    dialog->SetText( "The ROI has no points in it; "
+                     "there is nothing to average." );
     dialog->Invoke();
     return;
   }
 
   // Start the point list.
-  this->Script( "FsgdfPlot_BeginPointList %d", mGDFID );
+  mVertexPlot->BeginPointList();
 
   // For each vertex, add it to the point list.
   vector<int>::iterator tVertex;
   for( tVertex = lVertices.begin(); tVertex != lVertices.end(); ++tVertex ) {
     int nVertex = *tVertex;
-    this->Script( "FsgdfPlot_AddPoint %d %d 0 0", mGDFID, nVertex );
+    mVertexPlot->AddPoint( nVertex );
   }
 
   // End the point list and draw the graph.
-  this->Script( "FsgdfPlot_EndPointList %d", mGDFID );
+  mVertexPlot->EndPointList();
 
   // Set the info string.
-  this->Script( "FsgdfPlot_SetInfo %d \"Average of ROI\"", mGDFID );
+  string info = "\"Average of ROI\"";
+  mVertexPlot->SetInfo( info.c_str() );
 }
 
 void
@@ -3559,14 +4173,14 @@ vtkKWQdecWindow::SmoothSurfaceScalars ( int icSteps ) {
   
   assert( maSurfaceSource.size() > 0 );
   assert( maSurfaceScalars.find(mnCurrentSurfaceScalars) !=
-	  maSurfaceScalars.end() );
+          maSurfaceScalars.end() );
   assert( maSurfaceScalars[mnCurrentSurfaceScalars].mValues.GetPointer() );
 
   // Get the first surface to use to do the smoothing, and smooth the
   // values using that surface topography.
   maSurfaceSource.begin()->second->
     SmoothValuesOnSurface( *maSurfaceScalars[mnCurrentSurfaceScalars].mValues, 
-			   icSteps );
+                           icSteps );
 
   // Redraw.
   this->ComposeSurfaceScalarsAndShow();
@@ -3580,35 +4194,43 @@ vtkKWQdecWindow::NotebookPageRaised ( const char* isTitle ) {
   assert( mGraph.GetPointer() );
 
   if( 0 == strcmp( isTitle, ksSubjectsPanelName ) ) {
-
+    this->mCurrentNotebookPanelName = ksSubjectsPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
-		  mGraph->GetWidgetName() );
-  
+                  mGraph->GetWidgetName() );
+    this->SetStatusText( "Subjects selection" );
   } else if ( 0 == strcmp( isTitle, ksDesignPanelName ) ) {
-
+    this->mCurrentNotebookPanelName = ksDesignPanelName;
     this->GetViewFrame()->UnpackChildren();
-
+    this->SetStatusText( "Design matrix creation" );
+  } else if ( 0 == strcmp( isTitle, ksContrastPanelName ) ) {
+    this->mCurrentNotebookPanelName = ksContrastPanelName;
+    this->GetViewFrame()->UnpackChildren();
+    this->SetStatusText( "Contrast matrix creation and analysis launch" );
+    this->UpdateContrastPage();
   } else if ( 0 == strcmp( isTitle, ksDisplayPanelName ) ) {
-
+    this->mCurrentNotebookPanelName = ksDisplayPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->Script( "pack %s -expand yes -fill both -anchor c",
-		  mView->GetWidgetName() );
+                  mView->GetWidgetName() );
+    this->SetStatusText( "Display of results" );
   }
+
+  this->UpdateCommandStatus();
 }
 
 void
 vtkKWQdecWindow::NotebookRaisePageCallback ( vtkObject* iCaller,
-					     unsigned long iEventId,
-					     void* iClientData,
-					     void* iCallData ) {
+                                             unsigned long iEventId,
+                                             void* iClientData,
+                                             void* iCallData ) {
 
   assert( vtkKWEvent::NotebookRaisePageEvent == iEventId );
   assert( iCallData );
   assert( iClientData );
 
   // Extract the client and call data and call the window's
-  // ContinuousPlotGraphMouseoverEnterElement function.
+  // ScatterPlotGraphMouseoverEnterElement function.
   try {
 
     char** args = static_cast<char**>( iCallData );
@@ -3626,27 +4248,28 @@ vtkKWQdecWindow::NotebookRaisePageCallback ( vtkObject* iCaller,
 }
 
 void 
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElement ( const char* isElement ) {
+vtkKWQdecWindow::ScatterPlotGraphMouseoverEnterElement 
+( const char* isElement ) {
 
   // Just show it in our status bar.
   this->SetStatusText( isElement );
 }
 
 void 
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverExitElement () {
+vtkKWQdecWindow::ScatterPlotGraphMouseoverExitElement () {
 
   // Clear our status bar.
   this->SetStatusText( "" );
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphSetUpContextualMenu (const char* isElement,
-							 vtkKWMenu* iMenu ) {
+vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
+                                                         vtkKWMenu* iMenu ) {
 
   assert( isElement );
   assert( iMenu );
   assert( mQdecProject );
-  assert( mMenuHemisphere.GetPointer() );
+  assert( mMenuMorphHemisphere.GetPointer() );
 
   // Add an inactive item at the top with the element (subject) name.
   iMenu->AddCommand( isElement,  NULL, "" ); 
@@ -3674,28 +4297,52 @@ vtkKWQdecWindow::ContinuousPlotGraphSetUpContextualMenu (const char* isElement,
     
     // Add commands to load this subject's data in tksurfer and tkmedit.
     iMenu->AddSeparator();
+    stringstream ssTkmeditCmd;
     stringstream ssTkmeditCommand;
     // catch { exec tkmedit $s norm.mgz $hemi.white -segmentation aseg.mgz }
+    ssTkmeditCmd << envVars->FREESURFER_HOME << "/bin/tkmedit "
+                 << isElement << " norm.mgz " 
+                 << "lh.white -aux-surface rh.white "
+                 << "-segmentation aseg.mgz";
     ssTkmeditCommand << "set err [catch { exec "
-		     << envVars->FREESURFER_HOME << "/bin/tkmedit "
-		     << isElement << " norm.mgz " 
-		     << mMenuHemisphere->GetValue() << ".white "
-		     << "-segmentation aseg.mgz"
-		     << " }] ; if { $err != 0 } { "
-		     << this->GetApplication()->GetTclName() << " "
-		     << "ErrorMessage \"Couldn't start tkmedit.\" }";
+                     << ssTkmeditCmd.str().c_str()
+                     << " }] ; if { $err != 0 } { "
+                     << this->GetApplication()->GetTclName() << " "
+                     << "ErrorMessage \"Exec error: " 
+                     << ssTkmeditCmd.str().c_str()
+                     << "\" }";
+    //cout << ssTkmeditCommand.str() << endl;
     iMenu->AddCommand( "Open in tkmedit ", NULL, 
-		       ssTkmeditCommand.str().c_str() );
+                       ssTkmeditCommand.str().c_str() );
+
+    // tksurfer, left hemi
+    stringstream ssTksurferCmd;
     stringstream ssTksurferCommand;
     // catch { exec tksurfer $s $hemi inflated -annotation aparc.annot }
-    ssTksurferCommand << "catch { exec "
-		      << envVars->FREESURFER_HOME << "/bin/tksurfer "
-		      << isElement << " " 
-		      << mMenuHemisphere->GetValue() << " inflated "
-		      << "-annotation aparc.annot"
-		      << " }";
-    iMenu->AddCommand( "Open in tksurfer ", NULL, 
-		       ssTksurferCommand.str().c_str() );
+    ssTksurferCmd << envVars->FREESURFER_HOME << "/bin/tksurfer "
+                  << isElement << " " 
+                  << "lh inflated "
+                  << "-annotation aparc.annot";
+    ssTksurferCommand << "set err [catch { exec "
+                      << ssTksurferCmd.str().c_str()
+                      << " }] ; ";
+    //cout << ssTksurferCommand.str() << endl;
+    iMenu->AddCommand( "Open lh in tksurfer ", NULL, 
+                       ssTksurferCommand.str().c_str() );
+
+    // tksurfer, right hemi
+    stringstream ssTksurferCmd2;
+    stringstream ssTksurferCommand2;
+    ssTksurferCmd2 << envVars->FREESURFER_HOME << "/bin/tksurfer "
+                  << isElement << " " 
+                  << "rh inflated "
+                  << "-annotation aparc.annot";
+    ssTksurferCommand2 << "set err [catch { exec "
+                       << ssTksurferCmd2.str().c_str()
+                       << " }] ; ";
+    //cout << ssTksurferCommand2.str() << endl;
+    iMenu->AddCommand( "Open rh in tksurfer ", NULL, 
+                       ssTksurferCommand2.str().c_str() );
 
   } else {
 
@@ -3709,7 +4356,7 @@ vtkKWQdecWindow::ContinuousPlotGraphSetUpContextualMenu (const char* isElement,
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElementCallback
+vtkKWQdecWindow::ScatterPlotGraphMouseoverEnterElementCallback
 ( vtkObject* iCaller, unsigned long iEventId, void* iClientData,
   void* iCallData ) {
 
@@ -3718,7 +4365,7 @@ vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElementCallback
   assert( iClientData );
 
   // Extract the client and call data and call the window's
-  // ContinuousPlotGraphMouseoverEnterElement function.
+  // ScatterPlotGraphMouseoverEnterElement function.
   try {
 
     vtkKWBltGraph::SelectedElementAndPoint* foundElement =
@@ -3728,16 +4375,16 @@ vtkKWQdecWindow::ContinuousPlotGraphMouseoverEnterElementCallback
       static_cast<vtkKWQdecWindow*>( iClientData );
     
     if( window )
-      window->ContinuousPlotGraphMouseoverEnterElement( foundElement->msLabel);
+      window->ScatterPlotGraphMouseoverEnterElement( foundElement->msLabel);
   }
   catch(...) {
     cerr << "Invalid call or client data in "
-	 << "ContinuousPlotGraphMouseoverEnterElementCallback" << endl;
+         << "ScatterPlotGraphMouseoverEnterElementCallback" << endl;
   }
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphMouseoverExitElementCallback
+vtkKWQdecWindow::ScatterPlotGraphMouseoverExitElementCallback
 ( vtkObject* iCaller, unsigned long iEventId, void* iClientData,
   void* iCallData ) {
 
@@ -3745,23 +4392,23 @@ vtkKWQdecWindow::ContinuousPlotGraphMouseoverExitElementCallback
   assert( iClientData );
 
   // Extract the client data and call the window's
-  // ContinuousPlotGraphMouseoverExitElement function.
+  // ScatterPlotGraphMouseoverExitElement function.
   try {
 
     vtkKWQdecWindow* window = 
       static_cast<vtkKWQdecWindow*>( iClientData );
     
     if( window )
-      window->ContinuousPlotGraphMouseoverExitElement();
+      window->ScatterPlotGraphMouseoverExitElement();
   }
   catch(...) {
     cerr << "Invalid call or client data in "
-	 << "ContinuousPlotGraphMouseoverExitElementCallback" << endl;
+         << "ScatterPlotGraphMouseoverExitElementCallback" << endl;
   }
 }
 
 void
-vtkKWQdecWindow::ContinuousPlotGraphContextualMenuOpeningCallback
+vtkKWQdecWindow::ScatterPlotGraphContextualMenuOpeningCallback
 ( vtkObject* iCaller, unsigned long iEventId, void* iClientData,
   void* iCallData ) {
 
@@ -3770,7 +4417,7 @@ vtkKWQdecWindow::ContinuousPlotGraphContextualMenuOpeningCallback
   assert( iCallData );
 
   // Extract the client and call data and call the window's
-  // ContinuousPlotGraphSetUpContextualMenu function.
+  // ScatterPlotGraphSetUpContextualMenu function.
   try {
 
     vtkKWBltGraph::ContextualMenuElement* clickedElement =
@@ -3780,18 +4427,18 @@ vtkKWQdecWindow::ContinuousPlotGraphContextualMenuOpeningCallback
       static_cast<vtkKWQdecWindow*>( iClientData );
     
     if( window )
-      window->ContinuousPlotGraphSetUpContextualMenu(clickedElement->msElement,
-						     clickedElement->mMenu);
+      window->ScatterPlotGraphSetUpContextualMenu(clickedElement->msElement,
+                                                     clickedElement->mMenu);
   }
   catch(...) {
     cerr << "Invalid call or client data in "
-	 << "ContinuousPlotGraphContextualMenuOpeningCallback" << endl;
+         << "ScatterPlotGraphContextualMenuOpeningCallback" << endl;
   }
 }
 
 void
 vtkKWQdecWindow::SetExcludeSubjectID ( const char* isElement, 
-				       int ibExclude ) {
+                                       int ibExclude ) {
 
   assert( isElement );
   assert( mQdecProject );
@@ -3804,8 +4451,291 @@ vtkKWQdecWindow::SetExcludeSubjectID ( const char* isElement,
   design->SetExcludeSubjectID( isElement, ibExclude );
 
   // Redraw our graph.
-  this->UpdateContinuousFactorPlot();
+  this->UpdateScatterPlot();
 }
+
+void
+vtkKWQdecWindow::SetExcludeSubjectGT ( double inExcludeGT ) {
+
+  if( this->mQdecProject )
+  {
+    string value = this->mEntryExcludeSubjectGT->GetValue();
+    if ( value == "") return;
+
+    this->mEntryExcludeSubjectGT->SetValueAsDouble( inExcludeGT );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Set the exclude flag in the design for all subjects having the
+    // continuous factor value greater than iExcludeGT
+    design->SetExcludeSubjectsFactorGT( this->mEntryExcludeFactor->GetValue(),
+                                        inExcludeGT, 1 );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+void
+vtkKWQdecWindow::SetExcludeSubjectGT ( const char* isExcludeGT ) {
+  if ( strcmp( isExcludeGT, "" ) == 0 ) return;
+}
+
+void
+vtkKWQdecWindow::SetExcludeSubjectLT ( double inExcludeLT ) {
+
+  if( this->mQdecProject )
+  {
+    this->mEntryExcludeSubjectLT->SetValueAsDouble( inExcludeLT );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Set the exclude flag in the design for all subjects having the
+    // continuous factor value less than iExcludeLT
+    design->SetExcludeSubjectsFactorLT( this->mEntryExcludeFactor->GetValue(),
+                                       inExcludeLT, 1 );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+void
+vtkKWQdecWindow::SetExcludeSubjectLT ( const char* isExcludeLT ) {
+  if ( strcmp( isExcludeLT, "" ) == 0 ) return;
+}
+
+
+void
+vtkKWQdecWindow::SetExcludeSubjectET ( double inExcludeET ) {
+
+  if( this->mQdecProject )
+  {
+    string value = this->mEntryExcludeSubjectET->GetValue();
+    if ( value == "") return;
+
+    this->mEntryExcludeSubjectET->SetValueAsDouble( inExcludeET );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Set the exclude flag in the design for all subjects having the
+    // continuous factor value greater than iExcludeET
+    design->SetExcludeSubjectsFactorET( this->mEntryExcludeFactor->GetValue(),
+                                        inExcludeET, 1 );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+void
+vtkKWQdecWindow::SetExcludeSubjectET ( const char* isExcludeET ) {
+  if ( strcmp( isExcludeET, "" ) == 0 ) return;
+}
+
+
+void
+vtkKWQdecWindow::ClearAllExcludedSubjects ( ) {
+
+  if( this->mQdecProject && this->mQdecProject->HaveDataTable() )
+  {
+    this->mEntryExcludeSubjectGT->SetValue( "" );
+    this->mEntryExcludeSubjectLT->SetValue( "" );
+    this->mEntryExcludeSubjectET->SetValue( "" );
+
+    // Get the design from the project.
+    QdecGlmDesign* design = mQdecProject->GetGlmDesign();
+    assert( design );
+  
+    // Clear the exclude flag in the design for all subjects
+    design->ClearAllExcludedSubjects( );
+
+    // Redraw our graph.
+    this->UpdateScatterPlot();
+  }
+}
+
+
+void vtkKWQdecWindow::ResetStatsImportFrame ( ) {
+
+  // start by removing any frames that might already be displayed
+  if ( mMenuStatsData ) mMenuStatsData->Unpack();
+  if ( mListBoxStatsImport ) mListBoxStatsImport->Unpack();
+  if ( mBtnStatsAddToDataTable ) mBtnStatsAddToDataTable->Unpack();
+
+  // menu to hold stat table names, once those are generated
+  mMenuStatsData = vtkSmartPointer<vtkKWMenuButton>::New();
+  mMenuStatsData->SetParent( mFrameStatsImport->GetFrame() );
+  mMenuStatsData->Create();
+  mMenuStatsData->GetMenu()->AddRadioButton( "<none selected>",
+                                             this,
+                                             "SetStatsImportItem none");
+  mMenuStatsData->SetValue( "<none selected>" );
+
+  // prepare a new menu list to be filled with the factors from the selected
+  // stats data table
+  mListBoxStatsImport = 
+    vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
+  mListBoxStatsImport->SetParent( mFrameStatsImport->GetFrame() );
+  mListBoxStatsImport->SetLabelText( "Continuous Factors:" );
+  mListBoxStatsImport->Create();
+  mListBoxStatsImport->SetLabelPositionToTop();
+  mListStatsImportFactors = mListBoxStatsImport->GetWidget()->GetWidget();
+  mListStatsImportFactors->ExportSelectionOff();
+  mListStatsImportFactors->SetHeight ( 5 );
+  mListStatsImportFactors->SetSelectionModeToMultiple();
+  // notice it doesnt get packed (displayed), that is done in 
+  // SetStatsImportItem
+
+  // show just the generate button
+  this->Script( "pack %s", mBtnStatsGenerate->GetWidgetName() );
+  // the routine below, GenerateStatsDataTables, is what is executed when
+  // that button is pressed.
+}
+void
+vtkKWQdecWindow::GenerateStatsDataTables ( ) {
+
+  if ( this->mQdecProject ) {
+
+    // make sure the main data table has been loaded
+    if ( ! this->mQdecProject->HaveDataTable() ) {
+      vtkSmartPointer<vtkKWMessageDialog> dialog =
+        vtkSmartPointer<vtkKWMessageDialog>::New();
+
+      dialog->SetStyleToMessage();
+      dialog->SetOptions( vtkKWMessageDialog::WarningIcon );
+      dialog->SetApplication( this->GetApplication() );
+      dialog->Create();
+      dialog->SetText( "The main data table must be loaded first." );
+      dialog->Invoke();
+      return;
+    }
+
+    // run asegstats2table and aparcstats2table scripts
+    vector< string > statsNames = this->mQdecProject->CreateStatsDataTables();
+
+    if ( statsNames.size() ) { // it sppears to have given us some data
+      // remove the generate button...
+      if( mBtnStatsGenerate ) mBtnStatsGenerate->Unpack();
+
+      // ...and replace with a menu button containing names of the generated
+      // stats tables
+      for( unsigned int i=0; i < statsNames.size(); i++ ) {
+        string sCmd = string( "SetStatsImportItem " ) + statsNames[i].c_str();
+        mMenuStatsData->GetMenu()->AddRadioButton( statsNames[i].c_str(),
+                                                   this,
+                                                   sCmd.c_str());
+      }
+      //this->Script( "pack %s -fill x", mFrameStatsImport->GetWidgetName() );
+      this->Script( "pack %s", mMenuStatsData->GetWidgetName() );
+    }
+  }
+}
+void
+vtkKWQdecWindow::SetStatsImportItem ( const char* isStatsImportItem ) {
+  // remove prior selections
+  mListStatsImportFactors->DeleteAll();
+
+  // handle case of <none selected>
+  if ( ! strcmp(isStatsImportItem,"none")) return;
+
+  // load from file
+  stringstream ssFname;
+  ssFname << this->mQdecProject->GetStatsDataTablesDir() 
+          << "/" << isStatsImportItem << ".stats.dat";
+
+  // hack: aseg.vol.stats.dat file uses word 'volume' as is fsid column name
+  stringstream ssFsIdColName;
+  if ( !strcmp(isStatsImportItem,"aseg.vol") ) ssFsIdColName << "volume";
+  else ssFsIdColName << isStatsImportItem;
+
+  // load the table
+  mStatsImportDataTable = new QdecDataTable();
+  int ret = mStatsImportDataTable->Load( ssFname.str().c_str(), 
+                                         NULL, 
+                                         ssFsIdColName.str().c_str() );
+  if ( ret ) {
+    // some error loading the table, so fall-back
+    mMenuStatsData->SetValue( "<none selected>" );
+    return;
+  }
+
+  // fill our menu list with the factors from this data table
+  vector< string > factors = mStatsImportDataTable->GetContinuousFactorNames();
+  for(unsigned int i=0; i < factors.size(); i++) {
+    mListStatsImportFactors->Append( factors[i].c_str() );
+  }
+  this->Script( "pack %s -fill x -expand y", 
+                mListBoxStatsImport->GetWidgetName() );
+
+  // dont forget to show the button
+  this->Script( "pack %s", mBtnStatsAddToDataTable->GetWidgetName() );
+}
+void vtkKWQdecWindow::AddStatsToDataTable ( ) {
+
+  // this routine is called when the Add Stats To Data Table button is pressed
+  int nItemsMerged=0;
+  for( int nItem = 0; 
+       nItem < this->mListStatsImportFactors->GetNumberOfItems(); 
+       nItem++ ) {
+    if( this->mListStatsImportFactors->GetSelectState( nItem ) ) {
+      // Get the name of the factor.
+      string sFactor( this->mListStatsImportFactors->GetItem( nItem ) );
+
+      // and merge it into our Data Table
+      this->mQdecProject->MergeFactorIntoDataTable( sFactor.c_str(), 
+                                                    mStatsImportDataTable );
+      nItemsMerged++;
+    }
+  }
+
+  // We need to update our tabs.
+  if ( nItemsMerged ) this->UpdateDesignPage();
+  if ( nItemsMerged ) this->UpdateSubjectsPage();
+
+  // so the user can see what was just added...
+  if ( nItemsMerged ) this->mQdecProject->DumpDataTable( stdout );
+}
+void vtkKWQdecWindow::RemoveFactorFromDataTable ( ) {
+
+  // this routine is called when the Remove Factor from Data Table 
+  // button is pressed
+
+  mScatterPlotSelection = mListScatterPlot->GetSelectionIndex();
+  if ( -1 == mScatterPlotSelection ) return; // nothing selected
+
+  // Get the name of the selected factor.
+  string sFactor( mListScatterPlot->GetItem(mScatterPlotSelection) );
+
+  string sPopUpMsg = "Remove factor '" + sFactor + "'?";
+    
+  // pop-up an 'are you really really really really really sure' box
+  if ( vtkKWMessageDialog::PopupOkCancel ( this->GetApplication(), 
+                                           this, "", sPopUpMsg.c_str() ) ) {
+
+    // Ok was clicked, so delete factor from our Data Table
+    this->mQdecProject->RemoveFactorFromDataTable( sFactor.c_str() );
+
+    mScatterPlotSelection = -1; // default to empty factor selection
+
+    // We need to update our tabs.
+    if ( mEntryExcludeFactor ) {
+      this->mEntryExcludeFactor->SetValue( "<none selected>" );
+    }
+    this->UpdateScatterPlot();
+    this->UpdateDesignPage();
+    this->UpdateSubjectsPage();
+
+    // so the user can see what was just deleted...
+    this->mQdecProject->DumpDataTable( stdout );
+  }
+}
+
+
+
 
 char const*
 vtkKWQdecWindow::GetAnnotationForVertex ( int inVertex ) {
@@ -3822,7 +4752,7 @@ vtkKWQdecWindow::GetAnnotationForVertex ( int inVertex ) {
   // Get the table index and then look it up in the table.
   int nEntry = 0;
   CTABfindAnnotation( mAnnotationTable, 
-		      maAnnotationIndicies[inVertex], &nEntry );
+                      maAnnotationIndicies[inVertex], &nEntry );
   
   // Make sure this entry is valid.
   int bValid = false;
@@ -3841,7 +4771,7 @@ vtkKWQdecWindow::GetAnnotationForVertex ( int inVertex ) {
 
 void
 vtkKWQdecWindow::FindVerticesInsidePath ( vtkPoints* iPath,
-    vtkIntArray* ioVertices ) {
+                                          vtkIntArray* ioVertices ) {
 
   assert( iPath );
   assert( ioVertices );
@@ -3877,7 +4807,7 @@ vtkKWQdecWindow::FindVerticesInsidePath ( vtkPoints* iPath,
 
 vtkFloatArray*
 vtkKWQdecWindow::NewScalarsFromSurfaceScalarsFile ( const char* ifnScalars,
-    int inIndex ) {
+                                                    int inIndex ) {
 
   if( maSurfaceSource.size() < 1 )
     throw runtime_error( "Must load a surface before loading scalars." );
@@ -3921,8 +4851,8 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
 
     // If no scalars to show, set NULL everything and return.
     if( NULL == mCurvatureScalars.GetPointer() &&
-         maSurfaceScalars.find(mnCurrentSurfaceScalars) ==
-	maSurfaceScalars.end() ) {
+        maSurfaceScalars.find(mnCurrentSurfaceScalars) ==
+        maSurfaceScalars.end() ) {
 
       mView->SetSurfaceScalars( NULL );
       mView->SetSurfaceScalarsColors( NULL );
@@ -3946,7 +4876,7 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
 
     vtkFloatArray* surfaceScalars = NULL;
     if( maSurfaceScalars.find(mnCurrentSurfaceScalars) !=
-         maSurfaceScalars.end() )
+        maSurfaceScalars.end() )
       surfaceScalars = maSurfaceScalars[mnCurrentSurfaceScalars].mValues;
 
     // Get the number of elements and initialize the composed scalar
@@ -3979,7 +4909,7 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
       float surfaceScalar = 0;
       if( surfaceScalars )
         surfaceScalar = surfaceScalars->GetTuple1( nValue ) -
-	  mSurfaceScalarsColorOffset; // subtract the offset
+          mSurfaceScalarsColorOffset; // subtract the offset
 
       if( mbSurfaceScalarsColorReverse )
         surfaceScalar = -surfaceScalar;
@@ -3991,18 +4921,18 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
 
       // Insert the appropriate color into the composed array.
       if( surfaceScalar < mSurfaceScalarsColorMin &&
-	  surfaceScalar > -mSurfaceScalarsColorMin ) {
-	// Here, it's possible for the background (curvature) value to
-	// be higher than the min scalar value. If so, we'll get a
-	// background color with a scalar color, and that will be
-	// bad. So clamp it to the -min/min. NOTE this should be able
-	// to be adjusted with EPS but it was never big enough to make
-	// a difference, so use 0.1 for now.
-	if( background < -mSurfaceScalarsColorMin )
-	  background = -mSurfaceScalarsColorMin + 0.1;
-	if( background > mSurfaceScalarsColorMin )
-	  background = mSurfaceScalarsColorMin - 0.1;
-	composedScalars->InsertNextValue( background );
+          surfaceScalar > -mSurfaceScalarsColorMin ) {
+        // Here, it's possible for the background (curvature) value to
+        // be higher than the min scalar value. If so, we'll get a
+        // background color with a scalar color, and that will be
+        // bad. So clamp it to the -min/min. NOTE this should be able
+        // to be adjusted with EPS but it was never big enough to make
+        // a difference, so use 0.1 for now.
+        if( background < -mSurfaceScalarsColorMin )
+          background = -mSurfaceScalarsColorMin + 0.1;
+        if( background > mSurfaceScalarsColorMin )
+          background = mSurfaceScalarsColorMin - 0.1;
+        composedScalars->InsertNextValue( background );
       }
       else
         composedScalars->InsertNextValue( surfaceScalar );
@@ -4050,22 +4980,22 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
 
     // This is our curvature color range -- binary gray or red/green.
     if( mCurvatureScalars.GetPointer() &&
-         mbShowCurvature &&
-         mSurfaceScalarsColorMin != 0 ) {
+        mbShowCurvature &&
+        mSurfaceScalarsColorMin != 0 ) {
 
       // Do red/green if we have our flag set and there are no
       // scalars, otherwise do gray.
       if( mbDrawCurvatureGreenRedIfNoScalars && 
-	  NULL == surfaceScalars ) {
-	composedColors->AddRGBPoint( -curvatureMin,     0.0, 1.0, 0.0 );
-	composedColors->AddRGBPoint( -curvatureMin/2.0, 0.0, 0.8, 0.0 );
-	composedColors->AddRGBPoint(  curvatureMin/2.0, 0.8, 0.0, 0.0 );
-	composedColors->AddRGBPoint(  curvatureMin,     1.0, 0.0, 0.0 );
+          NULL == surfaceScalars ) {
+        composedColors->AddRGBPoint( -curvatureMin,     0.0, 1.0, 0.0 );
+        composedColors->AddRGBPoint( -curvatureMin/2.0, 0.0, 0.8, 0.0 );
+        composedColors->AddRGBPoint(  curvatureMin/2.0, 0.8, 0.0, 0.0 );
+        composedColors->AddRGBPoint(  curvatureMin,     1.0, 0.0, 0.0 );
       } else {
-	composedColors->AddRGBPoint( -curvatureMin, 0.6, 0.6, 0.6 );
-	composedColors->AddRGBPoint(  0,            0.6, 0.6, 0.6 );
-	composedColors->AddRGBPoint(  EPS,          0.4, 0.4, 0.4 );
-	composedColors->AddRGBPoint(  curvatureMin, 0.4, 0.4, 0.4 );
+        composedColors->AddRGBPoint( -curvatureMin, 0.6, 0.6, 0.6 );
+        composedColors->AddRGBPoint(  0,            0.6, 0.6, 0.6 );
+        composedColors->AddRGBPoint(  EPS,          0.4, 0.4, 0.4 );
+        composedColors->AddRGBPoint(  curvatureMin, 0.4, 0.4, 0.4 );
       }
     }
 
@@ -4094,7 +5024,7 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
 
       // Show the label in the annoation.
       mView->SetAnnotationMessage
-	( maSurfaceScalars[mnCurrentSurfaceScalars].msLabel.c_str() );
+        ( maSurfaceScalars[mnCurrentSurfaceScalars].msLabel.c_str() );
 
       // Pass it to the view as the lookup scalars. This way we'll
       // only print surface scalar values and not curvature values when
@@ -4131,9 +5061,9 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
 
 void
 vtkKWQdecWindow::UserSelectedVertexCallback ( vtkObject* iCaller, 
-					      unsigned long iEventId,
-					      void* iClientData,
-					      void* iCallData ) {
+                                              unsigned long iEventId,
+                                              void* iClientData,
+                                              void* iCallData ) {
 
   assert( QdecEvents::UserSelectedVertex == iEventId );
   assert( iClientData );
@@ -4157,7 +5087,8 @@ vtkKWQdecWindow::UserSelectedVertexCallback ( vtkObject* iCaller,
 }
 
 void
-vtkKWQdecWindow::UserSelectedVertex ( vtkKWQdecView::SurfaceVertexInformation& iInfo ) {
+vtkKWQdecWindow::UserSelectedVertex 
+( vtkKWQdecView::SurfaceVertexInformation& iInfo ) {
 
   assert( mMenuSaveGDFPostscript );
 
@@ -4165,9 +5096,8 @@ vtkKWQdecWindow::UserSelectedVertex ( vtkKWQdecView::SurfaceVertexInformation& i
   // and the window is showing, update the status of our Save GDF menu
   // command.
   if( iInfo.mnVertexIndex >= 0 &&
-      mbGDFLoaded && 
-      this->GetApplication()->
-      EvaluateBooleanExpression( "FsgdfPlot_IsWindowShowing %d", mGDFID )) {
+      mVertexPlot->IsLoaded() && 
+      mVertexPlot->IsWindowShowing() ) {
     mMenuSaveGDFPostscript->SetStateToNormal();
   } else {
     mMenuSaveGDFPostscript->SetStateToDisabled();
@@ -4180,7 +5110,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
   if( mPanel.GetPointer() ) {
     vtkKWWidget* panelSubjects = mPanel->GetPageWidget( "Subjects" );
     if( panelSubjects )
-      if( this->mQdecProject->GetDataTable() ) {
+      if( this->mQdecProject->HaveDataTable() ) {
         panelSubjects->EnabledOn();
         panelSubjects->UpdateEnableState();
       } else {
@@ -4190,7 +5120,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
 
     vtkKWWidget* panelDesign = mPanel->GetPageWidget( "Design" );
     if( panelDesign )
-      if( this->mQdecProject->GetDataTable() ) {
+      if( this->mQdecProject->HaveDataTable() ) {
         panelDesign->EnabledOn();
         panelDesign->UpdateEnableState();
       } else {
@@ -4209,15 +5139,33 @@ vtkKWQdecWindow::UpdateCommandStatus () {
       }
   }
 
+  assert( mMenuSaveDataTable );
+  if( mQdecProject && mQdecProject->HaveDataTable() )
+    mMenuSaveDataTable->SetStateToNormal();
+  else
+    mMenuSaveDataTable->SetStateToDisabled();
+
   assert( mMenuSaveProjectFile );
   if( mQdecProject && mQdecProject->GetGlmFitResults() )
     mMenuSaveProjectFile->SetStateToNormal();
   else
     mMenuSaveProjectFile->SetStateToDisabled();
 
+  assert( mMenuSaveScatterPlotPostscript );
+  if( ( mScatterPlotSelection != -1 ) && 
+      mGraph &&
+      ( mCurrentNotebookPanelName == ksSubjectsPanelName) )
+  {
+    mMenuSaveScatterPlotPostscript->SetStateToNormal();
+  } else {
+    mMenuSaveScatterPlotPostscript->SetStateToDisabled();
+  }
+
   assert( mMenuSaveTIFF );
   assert( mBtnSaveTIFF.GetPointer() );
-  if( maSurfaceSource.size() > 0 ) {
+  if( (maSurfaceSource.size() > 0) &&
+      mView &&
+      ( mCurrentNotebookPanelName == ksDisplayPanelName) ) {
     mBtnSaveTIFF->SetStateToNormal();
     mMenuSaveTIFF->SetStateToNormal();
   } else {
@@ -4226,13 +5174,13 @@ vtkKWQdecWindow::UpdateCommandStatus () {
   }
 
   assert( mMenuSaveGDFPostscript );
-  if( mbGDFLoaded && 
-      this->GetApplication()->EvaluateBooleanExpression( "FsgdfPlot_IsWindowShowing %d", mGDFID )) {
+  if( mVertexPlot->IsLoaded() && 
+      mVertexPlot->IsWindowShowing() ) {
     mMenuSaveGDFPostscript->SetStateToNormal();
   } else {
     mMenuSaveGDFPostscript->SetStateToDisabled();
   }
-
+  
   assert( mMenuClearCurvature );
 
   if( mCurvatureScalars.GetPointer() ) {
@@ -4317,7 +5265,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
     mMenuMapLabel->SetStateToDisabled();
   }
 
-  if( mbGDFLoaded && mROISource.GetPointer() ) {
+  if( mVertexPlot->IsLoaded() && mROISource.GetPointer() ) {
     mMenuGraphAverageROI->SetStateToNormal();
   } else {
     mMenuGraphAverageROI->SetStateToDisabled();
@@ -4329,9 +5277,9 @@ vtkKWQdecWindow::AnalyzeDesign () {
 
   assert( mListDiscreteFactors.GetPointer() );
   assert( mListContinuousFactors.GetPointer() );
-  assert( mMenuSmoothness.GetPointer() );
-  assert( mMenuMeasure.GetPointer() );
-  assert( mMenuHemisphere.GetPointer() );
+  assert( mMenuMorphSmoothness.GetPointer() );
+  assert( mMenuMorphMeasure.GetPointer() );
+  assert( mMenuMorphHemisphere.GetPointer() );
   assert( mEntryDesignName.GetPointer() );
   assert( mEntryAverageSubject.GetPointer() );
 
@@ -4348,9 +5296,9 @@ vtkKWQdecWindow::AnalyzeDesign () {
 
     // Gather-up our selected design parameters, from user menu selections
     const char* name = strdup( mEntryDesignName->GetValue() );
-    const char* measure = strdup( mMenuMeasure->GetValue() );
-    int smoothness = atoi( mMenuSmoothness->GetValue() );
-    const char* hemi = strdup( mMenuHemisphere->GetValue() );
+    const char* measure = strdup( mMenuMorphMeasure->GetValue() );
+    int smoothness = atoi( mMenuMorphSmoothness->GetValue() );
+    const char* hemi = strdup( mMenuMorphHemisphere->GetValue() );
     const char sNone[10] = "none";
     const char* df1;
     if( -1 != maDiscreteFactorSelection[0] ) {
@@ -4383,16 +5331,16 @@ vtkKWQdecWindow::AnalyzeDesign () {
 
     // Now create the design input files (checking for validity before running)
     if( this->mQdecProject->CreateGlmDesign
-         (name,
-          df1, // first discrete factor
-          df2, // second discrete factor
-          cf1, // first continuous factor
-          cf2, // second continuous factor
-          measure,
-          hemi,
-          smoothness,
-          this  /* ProgressUpdateGUI */ )
-       ) {
+        (name,
+         df1, // first discrete factor
+         df2, // second discrete factor
+         cf1, // first continuous factor
+         cf2, // second continuous factor
+         measure,
+         hemi,
+         smoothness,
+         this  /* ProgressUpdateGUI */ )
+      ) {
       this->SetStatusText( "Error during design creation" );
     } else if( this->mQdecProject->RunGlmFit() ) { // Now actually run the fit
       this->SetStatusText( "Error during design analysis" );
@@ -4451,6 +5399,12 @@ void
 vtkKWQdecWindow::SetDesignName ( const char* isDesignName ) {
 
   this->mEntryDesignName->SetValue( isDesignName );
+
+  // keep the QdecGlmDesign object up-to-date
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+  design->SetName( isDesignName );
 }
 
 void
@@ -4564,10 +5518,10 @@ vtkKWQdecWindow::MakeToolbarButton ( vtkKWToolbar* iToolbar,
 
 vtkKWCheckButton*
 vtkKWQdecWindow::MakeToolbarCheckButton ( vtkKWToolbar* iToolbar,
-    const char* isBalloonHelpText,
-    vtkObject* iCommandObject,
-    const char* isCommand,
-    const char* isIconKey ) {
+                                          const char* isBalloonHelpText,
+                                          vtkObject* iCommandObject,
+                                          const char* isCommand,
+                                          const char* isIconKey ) {
 
   if( NULL == iToolbar )
     throw runtime_error( "MakeCheckToolbarButton: iToolbar was NULL" );
@@ -4622,18 +5576,18 @@ vtkKWQdecWindow::AddSpacerToToolbar ( vtkKWToolbar* iToolbar, int iWidth ) {
 }
 
 vtkKWQdecWindow::MenuItem::MenuItem ()  :
-    mMenu( NULL ),
-    mnItem( -1 ) {}
+  mMenu( NULL ),
+  mnItem( -1 ) {}
 
 
 void
 vtkKWQdecWindow::MenuItem::MakeCommand ( vtkKWMenu* iMenu,
-					 int inItem,
-					 const char* isText,
-					 vtkObject* iCommandObject,
-					 const char* isCommand,
-					 const char* isAccelerator,
-					 const char* isIconKey ) {
+                                         int inItem,
+                                         const char* isText,
+                                         vtkObject* iCommandObject,
+                                         const char* isCommand,
+                                         const char* isAccelerator,
+                                         const char* isIconKey ) {
   
   if( NULL == iMenu )
     throw( "MakeCommand: iMenu was NULL" );
@@ -4675,12 +5629,12 @@ vtkKWQdecWindow::MenuItem::MakeCommand ( vtkKWMenu* iMenu,
 
 void
 vtkKWQdecWindow::MenuItem::MakeCheckButton ( vtkKWMenu* iMenu,
-					     int inItem,
-					     const char* isText,
-					     vtkObject* iCommandObject,
-					     const char* isCommand,
-					     const char* isAccelerator,
-					     const char* isIconKey ) {
+                                             int inItem,
+                                             const char* isText,
+                                             vtkObject* iCommandObject,
+                                             const char* isCommand,
+                                             const char* isAccelerator,
+                                             const char* isIconKey ) {
   
   if( NULL == iMenu )
     throw( "MakeCheckButton: iMenu was NULL" );

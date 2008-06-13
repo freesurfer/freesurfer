@@ -131,16 +131,176 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
-  if ((!strcmp("SetUseHistogramEditor",argv[1]))&&(argc == 3))
+  if ((!strcmp("FinishCreating",argv[1]))&&(argc == 2))
     {
-    bool   temp0;
+    op->FinishCreating();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("SetCurrentMeasure",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
     error = 0;
 
-    if (Tcl_GetInt(interp,argv[2],&tempi) != TCL_OK) error = 1;
-    temp0 = tempi ? true : false;
+    temp0 = argv[2];
     if (!error)
     {
-    op->SetUseHistogramEditor(temp0);
+    op->SetCurrentMeasure(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetCurrentSurfaceMeasure",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetCurrentSurfaceMeasure(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetDesignMatrixType",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetDesignMatrixType(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadDataTable",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadDataTable(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadProjectFile",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadProjectFile(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurface",argv[1]))&&(argc == 4))
+    {
+    char    *temp0;
+    char    *temp1;
+    error = 0;
+
+    temp0 = argv[2];
+    temp1 = argv[3];
+    if (!error)
+    {
+    op->LoadSurface(temp0,temp1);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadGDFFile",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadGDFFile(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadAnnotation",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadAnnotation(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurfaceScalars",argv[1]))&&(argc == 5))
+    {
+    char    *temp0;
+    char    *temp1;
+    int      temp2;
+    int      temp20;
+    error = 0;
+
+    temp0 = argv[2];
+    temp1 = argv[3];
+    if (Tcl_GetInt(interp,argv[4],&tempi) != TCL_OK) error = 1;
+    temp2 = tempi;
+    if (!error)
+    {
+    temp20 = (op)->LoadSurfaceScalars(temp0,temp1,temp2);
+    char tempResult[1024];
+    sprintf(tempResult,"%i",temp20);
+    Tcl_SetResult(interp, tempResult, TCL_VOLATILE);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurfaceOverlayScalars",argv[1]))&&(argc == 4))
+    {
+    char    *temp0;
+    char    *temp1;
+    error = 0;
+
+    temp0 = argv[2];
+    temp1 = argv[3];
+    if (!error)
+    {
+    op->LoadSurfaceOverlayScalars(temp0,temp1);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadSurfaceCurvatureScalars",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadSurfaceCurvatureScalars(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("LoadLabel",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->LoadLabel(temp0);
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -148,12 +308,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
   if ((!strcmp("CreateWidget",argv[1]))&&(argc == 2))
     {
     op->CreateWidget();
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-  if ((!strcmp("FinishCreating",argv[1]))&&(argc == 2))
-    {
-    op->FinishCreating();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -251,9 +405,21 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("SaveDataTableFromDlog",argv[1]))&&(argc == 2))
+    {
+    op->SaveDataTableFromDlog();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("SaveProjectFileFromDlog",argv[1]))&&(argc == 2))
     {
     op->SaveProjectFileFromDlog();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("SaveScatterPlotPostscriptFromDlog",argv[1]))&&(argc == 2))
+    {
+    op->SaveScatterPlotPostscriptFromDlog();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -293,32 +459,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
-  if ((!strcmp("LoadDataTable",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadDataTable(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadProjectFile",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadProjectFile(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
   if ((!strcmp("SaveProjectFile",argv[1]))&&(argc == 3))
     {
     char    *temp0;
@@ -328,109 +468,6 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     if (!error)
     {
     op->SaveProjectFile(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurface",argv[1]))&&(argc == 4))
-    {
-    char    *temp0;
-    char    *temp1;
-    error = 0;
-
-    temp0 = argv[2];
-    temp1 = argv[3];
-    if (!error)
-    {
-    op->LoadSurface(temp0,temp1);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadGDFFile",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadGDFFile(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurfaceScalars",argv[1]))&&(argc == 5))
-    {
-    char    *temp0;
-    char    *temp1;
-    int      temp2;
-    int      temp20;
-    error = 0;
-
-    temp0 = argv[2];
-    temp1 = argv[3];
-    if (Tcl_GetInt(interp,argv[4],&tempi) != TCL_OK) error = 1;
-    temp2 = tempi;
-    if (!error)
-    {
-    temp20 = (op)->LoadSurfaceScalars(temp0,temp1,temp2);
-    char tempResult[1024];
-    sprintf(tempResult,"%i",temp20);
-    Tcl_SetResult(interp, tempResult, TCL_VOLATILE);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurfaceCurvatureScalars",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadSurfaceCurvatureScalars(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadAnnotation",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadAnnotation(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadSurfaceOverlayScalars",argv[1]))&&(argc == 4))
-    {
-    char    *temp0;
-    char    *temp1;
-    error = 0;
-
-    temp0 = argv[2];
-    temp1 = argv[3];
-    if (!error)
-    {
-    op->LoadSurfaceOverlayScalars(temp0,temp1);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("LoadLabel",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->LoadLabel(temp0);
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -494,6 +531,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
   if ((!strcmp("ClearSurfaceScalars",argv[1]))&&(argc == 2))
     {
     op->ClearSurfaceScalars();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("UnloadSurfaceScalars",argv[1]))&&(argc == 2))
+    {
+    op->UnloadSurfaceScalars();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -600,9 +643,15 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
-  if ((!strcmp("PlotContinuousFactorsListBoxCallback",argv[1]))&&(argc == 2))
+  if ((!strcmp("NuisanceFactorsListBoxCallback",argv[1]))&&(argc == 2))
     {
-    op->PlotContinuousFactorsListBoxCallback();
+    op->NuisanceFactorsListBoxCallback();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("ScatterPlotListBoxCallback",argv[1]))&&(argc == 2))
+    {
+    op->ScatterPlotListBoxCallback();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -961,7 +1010,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
-  if ((!strcmp("ContinuousPlotGraphMouseoverEnterElement",argv[1]))&&(argc == 3))
+  if ((!strcmp("ScatterPlotGraphMouseoverEnterElement",argv[1]))&&(argc == 3))
     {
     char    *temp0;
     error = 0;
@@ -969,18 +1018,18 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     temp0 = argv[2];
     if (!error)
     {
-    op->ContinuousPlotGraphMouseoverEnterElement(temp0);
+    op->ScatterPlotGraphMouseoverEnterElement(temp0);
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
     }
-  if ((!strcmp("ContinuousPlotGraphMouseoverExitElement",argv[1]))&&(argc == 2))
+  if ((!strcmp("ScatterPlotGraphMouseoverExitElement",argv[1]))&&(argc == 2))
     {
-    op->ContinuousPlotGraphMouseoverExitElement();
+    op->ScatterPlotGraphMouseoverExitElement();
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
-  if ((!strcmp("ContinuousPlotGraphSetUpContextualMenu",argv[1]))&&(argc == 4))
+  if ((!strcmp("ScatterPlotGraphSetUpContextualMenu",argv[1]))&&(argc == 4))
     {
     char    *temp0;
     vtkKWMenu  *temp1;
@@ -990,7 +1039,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     temp1 = (vtkKWMenu *)(vtkTclGetPointerFromObject(argv[3],(char *) "vtkKWMenu",interp,error));
     if (!error)
     {
-    op->ContinuousPlotGraphSetUpContextualMenu(temp0,temp1);
+    op->ScatterPlotGraphSetUpContextualMenu(temp0,temp1);
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
@@ -1010,6 +1059,130 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+    }
+  if ((!strcmp("SetExcludeSubjectGT",argv[1]))&&(argc == 3))
+    {
+    double   temp0;
+    error = 0;
+
+    if (Tcl_GetDouble(interp,argv[2],&tempd) != TCL_OK) error = 1;
+    temp0 = tempd;
+    if (!error)
+    {
+    op->SetExcludeSubjectGT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectGT",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetExcludeSubjectGT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectLT",argv[1]))&&(argc == 3))
+    {
+    double   temp0;
+    error = 0;
+
+    if (Tcl_GetDouble(interp,argv[2],&tempd) != TCL_OK) error = 1;
+    temp0 = tempd;
+    if (!error)
+    {
+    op->SetExcludeSubjectLT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectLT",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetExcludeSubjectLT(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectET",argv[1]))&&(argc == 3))
+    {
+    double   temp0;
+    error = 0;
+
+    if (Tcl_GetDouble(interp,argv[2],&tempd) != TCL_OK) error = 1;
+    temp0 = tempd;
+    if (!error)
+    {
+    op->SetExcludeSubjectET(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetExcludeSubjectET",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetExcludeSubjectET(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("ClearAllExcludedSubjects",argv[1]))&&(argc == 2))
+    {
+    op->ClearAllExcludedSubjects();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("ResetStatsImportFrame",argv[1]))&&(argc == 2))
+    {
+    op->ResetStatsImportFrame();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("GenerateStatsDataTables",argv[1]))&&(argc == 2))
+    {
+    op->GenerateStatsDataTables();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("SetStatsImportItem",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetStatsImportItem(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("AddStatsToDataTable",argv[1]))&&(argc == 2))
+    {
+    op->AddStatsToDataTable();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("RemoveFactorFromDataTable",argv[1]))&&(argc == 2))
+    {
+    op->RemoveFactorFromDataTable();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
     }
   if ((!strcmp("GetAnnotationForVertex",argv[1]))&&(argc == 3))
     {
@@ -1033,6 +1206,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("ComposeSurfaceScalarsAndShow",argv[1]))&&(argc == 2))
+    {
+    op->ComposeSurfaceScalarsAndShow();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
 
   if (!strcmp("ListInstances",argv[1]))
     {
@@ -1050,9 +1229,20 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  IsA\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  NewInstance\n",NULL);
     Tcl_AppendResult(interp,"  SafeDownCast\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  SetUseHistogramEditor\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  CreateWidget\n",NULL);
     Tcl_AppendResult(interp,"  FinishCreating\n",NULL);
+    Tcl_AppendResult(interp,"  SetCurrentMeasure\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetCurrentSurfaceMeasure\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetDesignMatrixType\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadDataTable\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadProjectFile\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurface\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  LoadGDFFile\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadAnnotation\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurfaceScalars\t with 3 args\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurfaceOverlayScalars\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurfaceCurvatureScalars\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  LoadLabel\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  CreateWidget\n",NULL);
     Tcl_AppendResult(interp,"  BeginActionWithProgress\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  UpdateProgressMessage\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  UpdateProgressPercent\t with 1 arg\n",NULL);
@@ -1065,28 +1255,22 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  LoadCurvatureFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  LoadAnnotationFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  LoadLabelFromDlog\n",NULL);
+    Tcl_AppendResult(interp,"  SaveDataTableFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveProjectFileFromDlog\n",NULL);
+    Tcl_AppendResult(interp,"  SaveScatterPlotPostscriptFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveTIFFImageFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveGDFPostscriptFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SaveLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  MapLabelFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SmoothCurvatureScalarsFromDlog\n",NULL);
     Tcl_AppendResult(interp,"  SmoothSurfaceScalarsFromDlog\n",NULL);
-    Tcl_AppendResult(interp,"  LoadDataTable\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadProjectFile\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SaveProjectFile\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurface\t with 2 args\n",NULL);
-    Tcl_AppendResult(interp,"  LoadGDFFile\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurfaceScalars\t with 3 args\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurfaceCurvatureScalars\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadAnnotation\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurfaceOverlayScalars\t with 2 args\n",NULL);
-    Tcl_AppendResult(interp,"  LoadLabel\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SaveLabel\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  MapLabelToSubjects\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SaveTIFFImage\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentSurfaceScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ClearSurfaceScalars\n",NULL);
+    Tcl_AppendResult(interp,"  UnloadSurfaceScalars\n",NULL);
     Tcl_AppendResult(interp,"  ClearCurvature\n",NULL);
     Tcl_AppendResult(interp,"  RestoreView\n",NULL);
     Tcl_AppendResult(interp,"  ZoomBy\t with 1 arg\n",NULL);
@@ -1099,7 +1283,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetCurrentSurfaceScalarsFromTableSelection\n",NULL);
     Tcl_AppendResult(interp,"  DiscreteFactorsListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  ContinuousFactorsListBoxCallback\n",NULL);
-    Tcl_AppendResult(interp,"  PlotContinuousFactorsListBoxCallback\n",NULL);
+    Tcl_AppendResult(interp,"  NuisanceFactorsListBoxCallback\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  AnalyzeDesign\n",NULL);
     Tcl_AppendResult(interp,"  SetSubjectsDir\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetAverageSubject\t with 1 arg\n",NULL);
@@ -1129,11 +1314,24 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SmoothCurvatureScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SmoothSurfaceScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  NotebookPageRaised\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  ContinuousPlotGraphMouseoverEnterElement\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  ContinuousPlotGraphMouseoverExitElement\n",NULL);
-    Tcl_AppendResult(interp,"  ContinuousPlotGraphSetUpContextualMenu\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotGraphMouseoverEnterElement\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotGraphMouseoverExitElement\n",NULL);
+    Tcl_AppendResult(interp,"  ScatterPlotGraphSetUpContextualMenu\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  SetExcludeSubjectID\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectGT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectGT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectLT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectLT\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetExcludeSubjectET\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  ClearAllExcludedSubjects\n",NULL);
+    Tcl_AppendResult(interp,"  ResetStatsImportFrame\n",NULL);
+    Tcl_AppendResult(interp,"  GenerateStatsDataTables\n",NULL);
+    Tcl_AppendResult(interp,"  SetStatsImportItem\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  AddStatsToDataTable\n",NULL);
+    Tcl_AppendResult(interp,"  RemoveFactorFromDataTable\n",NULL);
     Tcl_AppendResult(interp,"  GetAnnotationForVertex\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  ComposeSurfaceScalarsAndShow\n",NULL);
     return TCL_OK;
     }
 

@@ -105,13 +105,16 @@ class vtkKWBltGraph : public vtkKWCoreWidget {
   void Draw ();
 
   // Description:
-  // Delete all elements
+  // Delete <all> element<s>
+  void DeleteElement ( const char* isLabel );
   void DeleteAllElements ();
 
   // Description:
   // These callbacks are for Tk events in the widget.
   void MotionCallback ( const char* isWidget, int iX, int iY );
   void Button3DownCallback ( const char* isWidget, int iX, int iY );
+
+  void SavePostscript ( const char* ifnPS );
 
  protected:
 

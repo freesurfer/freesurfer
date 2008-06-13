@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.2.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,8 @@
  *
  */
 
+#include <iostream>
+#include <stdexcept>
 #include "QdecFactor.h"
 
 
@@ -48,7 +50,8 @@ QdecFactor::QdecFactor ( const char* isName,
 
 QdecFactor::QdecFactor ( const char* isName,
                          int iType, // ==1 discrete
-                         const char* iValue )
+                         const char* iValue,
+                         vector< string > iLevelNames )
 {
   msName = isName;
 
@@ -58,7 +61,7 @@ QdecFactor::QdecFactor ( const char* isName,
   assert( mType == 1 );
 
   msDiscreteValue = iValue;
-
+  mLevelNames = iLevelNames;
   mHaveDotLevelsFile = false;
 }
 
@@ -79,6 +82,17 @@ QdecFactor::QdecFactor ( const char* isName,
   mHaveDotLevelsFile = false;
 }
 
+
+//Copy constructor
+QdecFactor::QdecFactor ( const QdecFactor *iFactor )
+{
+  msName = iFactor->msName;
+  mType = iFactor->mType;
+  mLevelNames = iFactor->mLevelNames;
+  mContinuousValue = iFactor->mContinuousValue;
+  msDiscreteValue = iFactor->msDiscreteValue;
+  mHaveDotLevelsFile = iFactor->mHaveDotLevelsFile;
+} 
 
 QdecFactor::~QdecFactor ( )
 { }
@@ -178,13 +192,37 @@ string QdecFactor::GetDiscreteValue ( )
 
 
 /**
- * Returns the value of the continous factor stored in this instance
- * (null if this is not a continuous factor).
+ * Returns the value of the continous factor stored in this instance.
+ * If this is actually a discrete factor, then return the level number.
  * @return double
  */
 double QdecFactor::GetContinuousValue ( )
 {
-  assert( mType == 2 );
-  return mContinuousValue;
+  if( mType == 2 ) return mContinuousValue;
+
+  // else its a discrete factor
+  for ( unsigned int i=0; i < mLevelNames.size(); i++ )
+  {
+    if ( msDiscreteValue == mLevelNames[i] ) return i+1;
+  }
+  throw runtime_error( "ERROR: QdecFactor::GetContinuousValue failure\n" );
+  return -1.0;
+}
+
+/**
+ * Returns the value as a continous even though its a  discrete factor, 
+ * value is the level number of the specified discrete value
+ * @return double
+ */
+double QdecFactor::GetContinuousValue ( const char* isDiscreteValue )
+{
+  assert( mType == 1 );
+
+  for ( unsigned int i=0; i < mLevelNames.size(); i++ )
+  {
+    if ( isDiscreteValue == mLevelNames[i] ) return i+1;
+  }
+  throw runtime_error( "ERROR: QdecFactor::GetContinuousValue failure\n" );
+  return -1.0;
 }
 

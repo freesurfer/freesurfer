@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -54,8 +54,11 @@ public:
    * @return int
    * @param  isFileName
    * @param  osNewSubjDir
+   * @param  isFsIdColName
    */
-  int Load (const char* isFileName, char* osNewSubjDir );
+  int Load (const char* isFileName, 
+            char* osNewSubjDir=NULL,
+            const char* isFsIdColName=NULL);
 
 
   /**
@@ -91,16 +94,30 @@ public:
 
 
   /**
-   * @return vector< string >
+   * @return QdecFactor*
+   * @param isSubjectName
+   * @param isFactorName
    */
-  vector< string > GetDiscreteFactors ( );
+  QdecFactor* GetFactor ( const char* isSubjectName,
+                          const char* isFactorName );
 
 
   /**
    * @return vector< string >
    */
-  vector< string > GetContinuousFactors ( );
+  vector< string > GetDiscreteFactorNames ( );
 
+
+  /**
+   * @return vector< string >
+   */
+  vector< string > GetContinuousFactorNames ( );
+
+
+  /**
+   * GetNumberOfClasses( ) - returns the number of subjects in the table
+   */
+  int GetNumberOfSubjects ( );
 
   /**
    * GetNumberOfClasses( ) - returns the number of classes for the design.
@@ -128,29 +145,43 @@ public:
    */
   vector< double > GetMeanAndStdDev ( const char* isFactorName );
 
+  /**
+   * deletes all continuous factors that have a zero mean and zero stddev.
+   * those are useless factors (probably originating from a stats table).
+   * @return number of factors purged
+   */
+  int PurgeNullFactors ( );
+
+  /**
+   * merge a factor from a given data table into this data table
+   *
+   * @return int
+   * @param  isFactorName
+   * @param  iDataTable
+   */
+  int MergeFactor ( const char* isFactorName, QdecDataTable* iDataTable);
+
+  /**
+   * delete a factor from this data table
+   *
+   * @return int
+   * @param  isFactorName
+   */
+  int DeleteFactor ( const char* isFactorName );
+
 private:
 
   // private attributes
   //
 
+  // name of the text file from which this data is loaded
   string mfnFileName;
 
+  // discrete and continuous factors as found on first line of data table
   vector < QdecFactor* > mFactors;
 
-  // Stores subject data (id and factors) as read from the
-  // table.dat input file.
+  // Stores subject data (id and factors) as read from table.dat input file.
   vector < QdecSubject* > mSubjects;
-
-  /**
-   * Check that all subjects exist in the specified subjects_dir (including the
-   * specified average subject).  Print to stderr and ErrorMessage any errors
-   * found (one message for each error).  Also check that thickness, sulc,
-   * curv, area and jacobian_white files exist, and that their vertex
-   * numbers equal their inflated surface (and that surfaces all have the
-   * same number of vertices).
-   * @return int
-   */
-  int VerifySubjects ( );
 
 };
 

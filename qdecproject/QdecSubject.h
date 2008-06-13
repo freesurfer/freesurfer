@@ -8,8 +8,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -53,31 +53,50 @@ public:
    * @return the value of msId
    * @return string
    */
-  string GetId ( );
+  string GetId ( ) { return this->msId; }
 
 
   /**
    * @return string
    * @param  isFactorName
    */
-  string GetDiscreteFactor ( const char* isFactorName );
+  string GetDiscreteFactorValue ( const char* isFactorName );
 
 
   /**
    * @return double
    * @param  isFactorName
    */
-  double GetContinuousFactor ( const char* isFactorName );
+  double GetContinuousFactorValue ( const char* isFactorName );
+
 
   /**
    * @return vector < QdecFactor* >
    */
   vector < QdecFactor* > GetContinuousFactors ( );
 
+
   /**
    * @return vector < QdecFactor* >
    */
-  vector < QdecFactor* > GetFactors ( );
+  vector < QdecFactor* > GetFactors ( ) { return this->mFactors; }
+
+
+  /**
+   * @return QdecFactor
+   */
+  QdecFactor* GetFactor ( const char* isFactorName );
+
+
+  /**
+   */
+  void AddFactor ( QdecFactor* iFactor ) {this->mFactors.push_back(iFactor);}
+
+
+  /**
+   * @param  isFactorName
+   */
+  void DeleteFactor ( const char* isFactorName );
 
 private:
 

@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/08 19:51:40 $
- *    $Revision: 1.7.2.3 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.7.2.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,6 @@
 
 #include <stdio.h>
 #include <math.h>
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -73,8 +72,11 @@ QdecDataTable::~QdecDataTable ( )
  * @return int
  * @param  isFileName
  * @param  osNewSubjDir
+ * @param  isFsIdColName
  */
-int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
+int QdecDataTable::Load (const char* isFileName, 
+                         char* osNewSubjDir,
+                         const char* isFsIdColName)
 {
   size_t tmpstrMaxSize = 200000; // maximum size of one line in the file
   char *tmpstr = (char *)malloc( tmpstrMaxSize );
@@ -174,6 +176,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     else if (!strcmp(token,"subjid")) fsidcol = ncols;
     else if (!strcmp(token,"subject")) fsidcol = ncols;
     else if (!strcmp(token,"Subject")) fsidcol = ncols;
+    else if (isFsIdColName && !strcmp(token,isFsIdColName)) fsidcol = ncols;
     ncols++;
     token = strtok(NULL,WHITESPC); // get next token in this line
   }
@@ -276,7 +279,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
 
     char factor[1024];
     strncpy( factor, token, sizeof(factor) );
-    //    printf("factor: %s\n",factor);
+    //printf("factor: %s\n",factor);
 
     // if there exists a file called 'factor'.levels, where 'factor' is the
     // token read from the line, then it is a discrete factor, in which
@@ -294,6 +297,7 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
     // Build the levels file name.
     stringstream fnLevels;
     fnLevels << fnPath << "/" << factor << ".levels";
+    //cout << fnLevels.str().c_str() << endl;
 
     // Try to open the levels file.
     ifstream ifsLevelFile( fnLevels.str().c_str(), ios::in );
@@ -434,7 +438,8 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
             new QdecFactor
             ( this->mFactors[nthfactor]->GetFactorName().c_str(),
               QdecFactor::qdecDiscreteFactorType,
-              (const char*)strdup(token) /* value */ );
+              (const char*)strdup(token), /* value */ 
+              this->mFactors[nthfactor]->GetLevelNames() );
           theFactors.push_back( qf ); // save this factor data
         }
         nthfactor++;
@@ -445,6 +450,18 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
 
     } // end for (int nthcol = 0; nthcol < ncols; nthcol++)
 
+    // check if this subj_id is already in the table (indicated an error)
+    for (unsigned int m=0; m < this->mSubjects.size(); m++)
+    {
+      if (subj_id == this->mSubjects[m]->GetId())
+      {
+        printf("\nERROR: Subject %s already exists in %s!\n",
+               subj_id.c_str(),isFileName);
+        return(-1);
+      }
+    }
+
+    // add this subject data to our Subjects list
     assert( theFactors.size() );
     QdecSubject *qsubj = new QdecSubject( subj_id.c_str(), theFactors );
     this->mSubjects.push_back( qsubj );
@@ -453,6 +470,13 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
   } // end for (int nthInput = 0; nthInput < nInputs; nthInput++)
 
   ifsDatFile.close();
+
+  // now remove any continuous factors that have both zero mean and std
+  int purged = this->PurgeNullFactors ( );
+  if (purged)
+  { 
+    printf("\nPurged %d null (zero mean and std) factors.\n",purged);
+  }
 
   printf("\nData table %s loaded.\n",isFileName);
 
@@ -468,6 +492,55 @@ int QdecDataTable::Load (const char* isFileName, char* osNewSubjDir )
  */
 int QdecDataTable::Save (const char* isFileName )
 {
+  int nFactors=this->GetContinuousFactorNames().size()+
+               this->GetDiscreteFactorNames().size();
+  int nInputs=this->mSubjects.size();
+
+  if ((nFactors == 0) || (nInputs == 0))
+  {
+    printf("The data table is empty!  Nothing to save!\n");
+    return 1;
+  }
+
+  FILE* fp = fopen( isFileName, "w" );
+  if ( NULL == fp )
+  {
+    printf("ERROR: Unable to open file '%s' for writing!\n", isFileName);
+    return 1;
+  }
+
+  const char* fsid = "fsid";
+  fprintf(fp,"%-16s",fsid); // first line, first column: our file identifier
+  for (int m=0; m < nInputs; m++)
+  {
+    vector < QdecFactor* > subjectFactors = this->mSubjects[m]->GetFactors();
+
+    // handle first line: the factor names
+    if (m == 0) 
+    {
+      for (unsigned int n=0; n < subjectFactors.size(); n++)
+      {
+        fprintf(fp," %-16s",subjectFactors[n]->GetFactorName().c_str());
+      }
+      fprintf(fp,"\n");
+    }
+
+    // now the data belonging to each subject, one subject per line
+    fprintf(fp,"%-16s ",this->mSubjects[m]->GetId().c_str());
+    for (unsigned int n=0; n < subjectFactors.size(); n++)
+    {
+      if (subjectFactors[n]->IsDiscrete())
+        fprintf(fp,"%-16s ",subjectFactors[n]->GetDiscreteValue().c_str());
+      else
+        fprintf(fp,"%-16.3f ",subjectFactors[n]->GetContinuousValue());
+    }
+    fprintf(fp,"\n");
+  }
+
+  fclose(fp);
+
+  printf("Saved file %s\n",isFileName);
+
   return 0;
 }
 
@@ -478,12 +551,12 @@ int QdecDataTable::Save (const char* isFileName )
  */
 void QdecDataTable::Dump (FILE* fp )
 {
-  int nFactors=this->GetContinuousFactors().size()+
-               this->GetDiscreteFactors().size();
+  int nFactors=this->GetContinuousFactorNames().size()+
+               this->GetDiscreteFactorNames().size();
   int nInputs=this->mSubjects.size();
 
-  assert(nFactors);
-  assert(nInputs);
+  if (nFactors == 0) return;
+  if (nInputs == 0) return;
 
   fprintf(fp,"Input table: %s\n",this->GetFileName().c_str());
 
@@ -520,14 +593,19 @@ void QdecDataTable::Dump (FILE* fp )
   }
 
   // for testing GetMeanAndStdDev()...
-  vector< string > contFactorNames = this->GetContinuousFactors();
-  fprintf(fp,"Continuous Factors:                  Mean:  \tStdDev:\n");
-  for( unsigned int i=0; i < this->GetContinuousFactors().size(); i++)
+  vector< string > contFactorNames = this->GetContinuousFactorNames();
+  fprintf
+    (fp,
+     "                Continuous Factors:         Mean:       StdDev:\n"
+     "                -------------------         -----       -------\n");
+  for( unsigned int i=0; i < this->GetContinuousFactorNames().size(); i++)
   {
     vector< double > vals = 
       this->GetMeanAndStdDev( contFactorNames[i].c_str() );
-    fprintf(fp,"%35s  %5.3f  \t%5.3f\n",
-            contFactorNames[i].c_str(),vals[0],vals[1]);
+    char val1[1000]; char val2[1000];
+    sprintf(val1,"%5.3f",vals[0]);
+    sprintf(val2,"%5.3f",vals[1]);
+    fprintf(fp,"%35s %13s %13s\n", contFactorNames[i].c_str(),val1,val2);
   }
 
   fprintf(fp,
@@ -538,8 +616,8 @@ void QdecDataTable::Dump (FILE* fp )
           "Number of regressors: %d\n",
           nInputs,
           nFactors,
-          (int)this->GetDiscreteFactors().size(),
-          (int)this->GetContinuousFactors().size(),
+          (int)this->GetDiscreteFactorNames().size(),
+          (int)this->GetContinuousFactorNames().size(),
           this->GetNumberOfClasses(),
           this->GetNumberOfRegressors());
 
@@ -589,13 +667,39 @@ vector< QdecSubject* > QdecDataTable::GetSubjects ( )
  */
 QdecFactor* QdecDataTable::GetFactor ( const char* isFactorName )
 {
-  QdecFactor* qf=NULL;
-  for (unsigned int i=0; i < this->mFactors.size(); i++)
+  unsigned int i;
+  for (i=0; i < this->mFactors.size(); i++)
   {
     if ( 0 == strcmp( isFactorName,
                       this->mFactors[i]->GetFactorName().c_str() ) )
     {
-      qf = this->mFactors[i];
+      return this->mFactors[i];
+    }
+  }
+  if ( i == this->mFactors.size() ) 
+  {
+    printf("ERROR: QdecDataTable::GetFactor: '%s' is not in datatable!\n",
+           isFactorName); 
+  }
+
+  return NULL;
+}
+
+
+/**
+ * @return QdecFactor*
+ * @param isFactorName
+ */
+QdecFactor* QdecDataTable::GetFactor ( const char* isSubjectName,
+                                       const char* isFactorName )
+{
+  QdecFactor* qf=NULL;
+  for (unsigned int i=0; i < this->mSubjects.size(); i++)
+  {
+    if ( 0 == strcmp( isSubjectName,
+                      this->mSubjects[i]->GetId().c_str() ) )
+    {
+      qf = this->mSubjects[i]->GetFactor( isFactorName );
       break;
     }
   }
@@ -612,38 +716,45 @@ QdecFactor* QdecDataTable::GetFactor ( const char* isFactorName )
 /**
  * @return vector< string >
  */
-vector< string > QdecDataTable::GetDiscreteFactors ( )
+vector< string > QdecDataTable::GetDiscreteFactorNames ( )
 {
-  vector<string> oFactorNames;
-
+  vector < string > discreteFactorNames;
   for (unsigned int i=0; i < this->mFactors.size(); i++)
   {
     if (this->mFactors[i]->IsDiscrete())
     {
-      oFactorNames.push_back( this->mFactors[i]->GetFactorName() );
+      discreteFactorNames.push_back
+        ( this->mFactors[i]->GetFactorName() );
     }
   }
-
-  return oFactorNames;
+  return discreteFactorNames;
 }
 
 
 /**
  * @return vector< string >
  */
-vector< string > QdecDataTable::GetContinuousFactors ( )
+vector< string > QdecDataTable::GetContinuousFactorNames ( )
 {
-  vector<string> oFactorNames;
-
+  vector < string > continuousFactorNames;
   for (unsigned int i=0; i < this->mFactors.size(); i++)
   {
     if (this->mFactors[i]->IsContinuous())
     {
-      oFactorNames.push_back( this->mFactors[i]->GetFactorName() );
+      continuousFactorNames.push_back
+        ( this->mFactors[i]->GetFactorName() );
     }
   }
+  return continuousFactorNames;
+}
 
-  return oFactorNames;
+
+/**
+ * GetNumberOfClasses( ) - returns the number of subjects in the table
+ */
+int QdecDataTable::GetNumberOfSubjects ( )
+{
+  return this->mSubjects.size();
 }
 
 
@@ -674,7 +785,7 @@ int QdecDataTable::GetNumberOfClasses( )
 int QdecDataTable::GetNumberOfRegressors( )
 {
   int nReg = this->GetNumberOfClasses() *
-    ( this->GetContinuousFactors().size() + 1 );
+    ( this->GetContinuousFactorNames().size() + 1 );
   return(nReg);
 }
 
@@ -698,7 +809,7 @@ vector< double > QdecDataTable::GetMeanAndStdDev( const char* isFactorName )
   vector< QdecSubject* > subjects = this->GetSubjects();
   for (unsigned int i=0; i < this->GetSubjects().size(); i++,N++)
   {
-    d = subjects[i]->GetContinuousFactor( isFactorName );
+    d = subjects[i]->GetContinuousFactorValue( isFactorName );
     Sum  += d;
     Sum2 += (d*d);
   }
@@ -714,16 +825,153 @@ vector< double > QdecDataTable::GetMeanAndStdDev( const char* isFactorName )
 }
 
 
+
 /**
- * Check that all subjects exist in the specified subjects_dir (including the
- * specified average subject).  Print to stderr and ErrorMessage any errors
- * found (one message for each error).  Also check that thickness, sulc, curv,
- * area and jacobian_white files exist, and that their vertex numbers equal
- * their inflated surface (and that surfaces all have the same number of
- * vertices).
- * @return int
+ * deletes all continuous factors that have a zero mean and zero stddev.
+ * those are useless factors (probably originating from a stats table).
+ * @return number of factors purged
  */
-int QdecDataTable::VerifySubjects ( )
+int QdecDataTable::PurgeNullFactors ( )
 {
+  int purgeCount=0;
+
+  vector<QdecFactor*>::iterator iter = mFactors.begin() ; 
+  while( iter != mFactors.end() )
+  {
+    QdecFactor* factor = *iter;
+    if (factor->IsContinuous())
+    {
+      string factorName = factor->GetFactorName();
+      vector< double > vals =
+        this->GetMeanAndStdDev( factorName.c_str() );
+      if ((vals[0] == 0.0) && (vals[1] == 0.0))
+      {
+        // this factor has both zero mean and stddev, so get rid of it
+        iter = mFactors.erase( iter );
+        purgeCount++;
+
+        // now must also delete this factor from each subject
+        vector<QdecSubject*>::iterator iterSubj = mSubjects.begin() ; 
+        while( iterSubj != mSubjects.end() )
+        {
+          QdecSubject* subject = *iterSubj;
+          subject->DeleteFactor( factorName.c_str() );
+          ++iterSubj;
+        }
+      }
+      else ++iter;
+    }
+    else ++iter;
+  }
+
+  return purgeCount;
+}
+
+
+/**
+ * merge a factor from a given data table into this data table
+ *
+ * @return int
+ * @param  isFactorName
+ * @param  iDataTable
+ */
+int QdecDataTable::MergeFactor ( const char* isFactorName, 
+                                 QdecDataTable* iDataTable ) 
+{
+  // first, some sanity checks on this alien data
+  if ( (NULL == isFactorName) || (0 == strlen(isFactorName)) ) 
+  {
+    printf("ERROR: QdecDataTable::MergeFactor: invalid factor name\n");
+    return 1;
+  }
+  if ( iDataTable->GetNumberOfSubjects() != this->GetNumberOfSubjects() ) 
+  {
+    printf("ERROR: QdecDataTable::MergeFactor: invalid input data table: "
+           "mismatch in number of subjects\n");
+    return 1;
+  }
+  vector< string > theirIDs = iDataTable->GetSubjectIDs();
+  vector< string > ourIDs = this->GetSubjectIDs();
+  for (unsigned int i=0; i < theirIDs.size(); i++)
+  {
+    if ( ourIDs[i].compare(theirIDs[i]) ) 
+    {
+      printf("ERROR: QdecDataTable::MergeFactor: invalid input data table: "
+             "mismatch in name of subjects: %s vs. %s\n",
+             theirIDs[i].c_str(), ourIDs[i].c_str());
+      return 1;
+    }
+  }
+
+  // lets check if this factor is already in our table
+  for (unsigned int i=0; i < this->mFactors.size(); i++)
+  {
+    const char* theFactor = this->mFactors[i]->GetFactorName().c_str();
+    if ( 0 == strcmp(isFactorName, theFactor) ) return 0; // already got it
+  }
+
+
+  // so far so good, so add this factor to our list of factors
+  QdecFactor* newFactor = 
+    new QdecFactor ( iDataTable->GetFactor( isFactorName ) );
+  this->mFactors.push_back( newFactor );
+
+  // and add the data for each subject
+  for (unsigned int i=0; i < this->mSubjects.size(); i++) 
+  {
+    // get factor data for this subject from input table
+    QdecFactor* theirFactor = new QdecFactor 
+      ( iDataTable->GetFactor( this->mSubjects[i]->GetId().c_str(),
+                               isFactorName ) );
+    // and stick in our table
+    this->mSubjects[i]->AddFactor( theirFactor );
+  }
+
   return 0;
 }
+
+
+/**
+ * delete a factor from this data table
+ *
+ * @return int
+ * @param  isFactorName
+ */
+int QdecDataTable::DeleteFactor ( const char* isFactorName )
+{
+  // first, some sanity checks on this alien data
+  if ( (NULL == isFactorName) || (0 == strlen(isFactorName)) ) 
+  {
+    printf("ERROR: QdecDataTable::DeleteFactor: invalid factor name\n");
+    return 1;
+  }
+
+  // search and destroy!  search and destroy!
+  vector<QdecFactor*>::iterator iter = mFactors.begin() ; 
+  while( iter != mFactors.end() )
+  {
+    QdecFactor* factor = *iter;
+    string factorName = factor->GetFactorName();
+    if ( 0 == strcmp(isFactorName, factorName.c_str()) )
+    {
+      // found it, so get rid of it
+      iter = mFactors.erase( iter );
+
+      // now must also delete this factor from each subject
+      vector<QdecSubject*>::iterator iterSubj = mSubjects.begin() ; 
+      while( iterSubj != mSubjects.end() )
+      {
+        QdecSubject* subject = *iterSubj;
+        subject->DeleteFactor( factorName.c_str() );
+        ++iterSubj;
+      }
+    }
+    else ++iter;
+  }
+
+  return 0;
+}
+
+
+
+

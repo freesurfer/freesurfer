@@ -17,8 +17,8 @@
  * Original Author: Kitware, Inc, modified by Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 19:58:40 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2008/06/13 00:24:28 $
+ *    $Revision: 1.5.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,7 +71,7 @@
 #include <vtksys/stl/string>
 
 vtkStandardNewMacro(vtkKWRGBATransferFunctionEditor);
-vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.5.2.1 $");
+vtkCxxRevisionMacro(vtkKWRGBATransferFunctionEditor, "$Revision: 1.5.2.2 $");
 
 #define VTK_KW_CTFE_COLOR_RAMP_TAG "color_ramp_tag"
 

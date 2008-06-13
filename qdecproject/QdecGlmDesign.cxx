@@ -12,10 +12,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.7.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.7.2.2 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -52,6 +52,7 @@ QdecGlmDesign::QdecGlmDesign ( QdecDataTable* iDataTable )
   this->msMeasure = "thickness";
   this->msHemi = "lh";
   this->mSmoothness = 10;
+  this->msDesignMatrixType = "dods";
   if( NULL == getenv("SUBJECTS_DIR") )
   {
     fprintf( stderr, "SUBJECTS_DIR not defined!\n" );
@@ -77,10 +78,10 @@ QdecGlmDesign::QdecGlmDesign ( QdecDataTable* iDataTable )
 QdecGlmDesign::~QdecGlmDesign ( )
 {
   while (mContrasts.size() != 0)
-    {
-      delete mContrasts.back();
-      mContrasts.pop_back();
-    }
+  {
+    delete mContrasts.back();
+    mContrasts.pop_back();
+  }
 }
 
 //
@@ -139,10 +140,10 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
   mContinuousFactors.clear();  // containers; QdecDataTable does
 
   while (mContrasts.size() != 0)
-    {
-      delete mContrasts.back();
-      mContrasts.pop_back();
-    }
+  {
+    delete mContrasts.back();
+    mContrasts.pop_back();
+  }
 
   // begin absorbing input parameters
 
@@ -252,11 +253,73 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
 
 
 /**
+ *
+ */
+void QdecGlmDesign::ClearDiscreteFactors ( )
+{
+  mDiscreteFactors.clear();
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::AddDiscreteFactor ( const char* isFactorName)
+{
+  QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
+  if( NULL == qf )
+  {
+    fprintf( stderr,"ERROR: QdecGlmDesign::AddDiscreteFactor: bad factor!\n" );
+    mDataTable->Dump( stderr );
+    return;
+  }
+  assert( qf->IsDiscrete() );
+  this->mDiscreteFactors.push_back( qf );
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::ClearContinuousFactors ( )
+{
+  mContinuousFactors.clear();
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
+{
+  QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
+  if( NULL == qf )
+  {
+    fprintf( stderr,
+             "ERROR: QdecGlmDesign::AddContinuousFactor: bad factor!\n" );
+    mDataTable->Dump( stderr );
+    return;
+  }
+  assert( qf->IsContinuous() );
+  this->mContinuousFactors.push_back( qf );
+}
+
+
+/**
  * @return string
  */
 string QdecGlmDesign::GetName ( )
 {
   return this->msName;
+}
+
+
+/**
+ * 
+ */
+void QdecGlmDesign::SetName ( const char* isName )
+{
+  this->msName = isName;
 }
 
 
@@ -270,6 +333,15 @@ string QdecGlmDesign::GetHemi ( )
 
 
 /**
+ * 
+ */
+void QdecGlmDesign::SetHemi ( const char* isHemi )
+{
+  this->msHemi = isHemi;
+}
+
+
+/**
  * @return string
  */
 string QdecGlmDesign::GetMeasure ( )
@@ -279,11 +351,46 @@ string QdecGlmDesign::GetMeasure ( )
 
 
 /**
+ * 
+ */
+void QdecGlmDesign::SetMeasure ( const char* isMeasure )
+{
+  this->msMeasure = isMeasure;
+}
+
+
+/**
  * @return int
  */
 int QdecGlmDesign::GetSmoothness ( )
 {
   return this->mSmoothness;
+}
+
+/**
+ *
+ */
+void QdecGlmDesign::SetSmoothness ( int iVal )
+{
+  this->mSmoothness = iVal;
+}
+
+
+/**
+ * @return string
+ */
+string QdecGlmDesign::GetDesignMatrixType ( )
+{
+  return this->msDesignMatrixType;
+}
+
+
+/**
+ * @param const char*
+ */
+void QdecGlmDesign::SetDesignMatrixType ( const char* isDesignMatrixType )
+{
+  this->msDesignMatrixType = isDesignMatrixType;
 }
 
 
@@ -438,14 +545,14 @@ ProgressUpdateGUI* QdecGlmDesign::GetProgressUpdateGUI ( )
 /**
  * SetExcludeSubjectID( const char* isSubjecID, bool ibExclude ) -
  * sets a subject ID's exclusion status. If excluded, it will not be
- * included when writing the ydata file. This function modifies the
+ * included when writing the fsgd and ydata files. This function modifies the
  * maExcludedSubjects set, adding the subject ID if ibExclude is true
  * and removing it if not.
  * param const char* isSubjectID
  * param bool ibExclude
  */
 void QdecGlmDesign::SetExcludeSubjectID ( const char* isSubjectID, 
-					  bool ibExclude )
+                                          bool ibExclude )
 {
   assert( isSubjectID );
   
@@ -453,7 +560,7 @@ void QdecGlmDesign::SetExcludeSubjectID ( const char* isSubjectID,
     maExcludedSubjects.insert( string(isSubjectID) );
   } else {
     if( maExcludedSubjects.find( string(isSubjectID) ) != 
-	maExcludedSubjects.end() ) {
+        maExcludedSubjects.end() ) {
       maExcludedSubjects.erase( string(isSubjectID) );
     }
   }
@@ -476,6 +583,89 @@ bool QdecGlmDesign::GetExcludeSubjectID ( const char* isSubjectID )
 }
 
 /**
+ * SetExcludeSubjectsFactorGT
+ */
+void  QdecGlmDesign::SetExcludeSubjectsFactorGT ( const char* isFactorName,
+                                                  double inExcludeGT,
+                                                  bool ibExclude )
+{
+  assert( isFactorName );
+
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (subjs[m]->GetContinuousFactorValue( isFactorName ) > inExcludeGT)
+    {
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
+    }
+  }
+}
+
+/**
+ * SetExcludeSubjectsFactorLT
+ */
+void  QdecGlmDesign::SetExcludeSubjectsFactorLT ( const char* isFactorName,
+                                                  double inExcludeLT,
+                                                  bool ibExclude )
+{
+  assert( isFactorName );
+
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (subjs[m]->GetContinuousFactorValue( isFactorName ) < inExcludeLT)
+    {
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
+    }
+  }
+}
+
+
+/**
+ * SetExcludeSubjectsFactorET
+ */
+void  QdecGlmDesign::SetExcludeSubjectsFactorET ( const char* isFactorName,
+                                                  double inExcludeET,
+                                                  bool ibExclude )
+{
+  assert( isFactorName );
+
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (subjs[m]->GetContinuousFactorValue( isFactorName ) == inExcludeET)
+    {
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), ibExclude );
+    }
+  }
+}
+
+/**
+ * ClearAllExcludedSubjects
+ */
+void  QdecGlmDesign::ClearAllExcludedSubjects ( )
+{
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), 0 );
+  }
+}
+
+/**
+ * GetNumberOfExcludedSubjects
+ */
+int QdecGlmDesign::GetNumberOfExcludedSubjects ( )
+{
+  return this->maExcludedSubjects.size();
+}
+
+
+/**
  * GetNumberOfClasses( ) - returns the number of classes for the design.
  * The number of classes is just all the combinations of all
  * the levels for the discrete factors.
@@ -484,10 +674,12 @@ bool QdecGlmDesign::GetExcludeSubjectID ( const char* isSubjectID )
 int QdecGlmDesign::GetNumberOfClasses( )
 {
   int nClasses = 1;
+
   for (unsigned int i=0; i < this->mDiscreteFactors.size(); i++)
   {
     nClasses *= this->mDiscreteFactors[i]->GetLevelNames().size();
   }
+
   return(nClasses);
 }
 
@@ -498,9 +690,32 @@ int QdecGlmDesign::GetNumberOfClasses( )
  */
 int QdecGlmDesign::GetNumberOfRegressors( )
 {
-  int nReg = this->GetNumberOfClasses() * 
+  int Nr = 0;
+
+  if( this->msDesignMatrixType == "dods" )
+  {
+    Nr = this->GetNumberOfClasses() * 
     ( this->GetNumberOfContinuousFactors() + 1 );
-  return(nReg);
+  }
+  else if( this->msDesignMatrixType == "doss" )
+  {
+    Nr = this->GetNumberOfClasses() + this->GetNumberOfContinuousFactors();
+  }
+
+  return(Nr);
+}
+
+
+/**
+ * @return int
+ */
+int QdecGlmDesign::GetDegreesOfFreedom ( )
+{
+  int Ns = this->mDataTable->GetNumberOfSubjects() - 
+    this->GetNumberOfExcludedSubjects();
+  int Nr = this->GetNumberOfRegressors();
+
+  return( Ns - Nr );
 }
 
 
@@ -525,12 +740,12 @@ string QdecGlmDesign::GetLevels2ClassName ( unsigned int* nthlevels )
     if ( nthlevels[df] >= nLevels )
     {
       fprintf
-      (stderr,
-       "ERROR: QdecGlmDesign::GetLevels2ClassName: "
-       "factor %s, level %d >= nlevels = %d\n",
-       F->GetFactorName().c_str(),
-       nthlevels[df],
-       nLevels);
+        (stderr,
+         "ERROR: QdecGlmDesign::GetLevels2ClassName: "
+         "factor %s, level %d >= nlevels = %d\n",
+         F->GetFactorName().c_str(),
+         nthlevels[df],
+         nLevels);
       break;
     }
     vector< string > levelNames = F->GetLevelNames();
@@ -552,7 +767,8 @@ string QdecGlmDesign::GetLevels2ClassName ( unsigned int* nthlevels )
 int QdecGlmDesign::WriteFsgdFile ( )
 {
   if( !this->IsValid() ) {
-    fprintf( stderr, "ERROR: QdecGlmDesign::WriteFsgdFile: Design parameters not valid.\n" );
+    fprintf( stderr, "ERROR: QdecGlmDesign::WriteFsgdFile: "
+             "Design parameters not valid.\n" );
     return(-1);
   }
   
@@ -614,6 +830,12 @@ int QdecGlmDesign::WriteFsgdFile ( )
   unsigned int nInputs = subjs.size();
   for (unsigned int m=0; m < nInputs; m++)
   {
+    // If this name is in our list of subject exclusions, skip it.
+    if( maExcludedSubjects.find( subjs[m]->GetId() ) !=
+        maExcludedSubjects.end() ) {
+      continue;
+    }
+
     fprintf( fp, "Input %s ", subjs[m]->GetId().c_str() );
     if ( nDiscreteFactors > 0 )
     {
@@ -624,7 +846,7 @@ int QdecGlmDesign::WriteFsgdFile ( )
       {
         string factorName = mDiscreteFactors[f]->GetFactorName();
         ClassName += factorName;
-        ClassName += subjs[m]->GetDiscreteFactor( factorName.c_str() );
+        ClassName += subjs[m]->GetDiscreteFactorValue( factorName.c_str() );
         if (ndf > 1 && df < ndf-1) ClassName += "-";
         df++;
       }
@@ -637,7 +859,7 @@ int QdecGlmDesign::WriteFsgdFile ( )
       {
         const char* factorName = 
           this->mContinuousFactors[f]->GetFactorName().c_str();
-        fprintf( fp, "%lf ", subjs[m]->GetContinuousFactor( factorName ) );
+        fprintf( fp, "%lf ", subjs[m]->GetContinuousFactorValue(factorName) );
       }
     }
     fprintf( fp, "\n" );
@@ -660,17 +882,18 @@ int QdecGlmDesign::GenerateContrasts ( )
   char tmpstr[2000];
 
   while (mContrasts.size() != 0)
-    {
-      delete mContrasts.back();
-      mContrasts.pop_back();
-    }
+  {
+    delete mContrasts.back();
+    mContrasts.pop_back();
+  }
 
   /*----------------------------------------------------------*/
   unsigned int ndf = this->GetNumberOfDiscreteFactors();
   if (ndf > 2)
   {
     fprintf(stderr,
-            "ERROR: QdecGlmDesign::GenerateContrasts: ndf = %d > 2\n",
+            "ERROR: QdecGlmDesign::GenerateContrasts: "
+            "number of discrete factors = %d > 2\n",
             ndf);
     return -1;
   }
@@ -681,18 +904,19 @@ int QdecGlmDesign::GenerateContrasts ( )
   if (ndf == 0)
   {
     int nc = ncf+1;
-    for (int nthc = 0; nthc < nc; nthc++)
+    for (int nthcf = 0; nthcf < nc; nthcf++)
     {
       vector< double > contrast;
       for (unsigned int i=0; i < nreg; i++) contrast.push_back( 0.0 );
       assert( contrast.size() == nreg );
-      contrast[nthc] = 1;
+      contrast[nthcf] = 1;
       string name = "";
       string question = "";
-      if (nthc == 0)
+      if (nthcf == 0)
       {
         sprintf(tmpstr,
-                "Avg-Intercept-%s",
+                "%s-Avg-Intercept-%s",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,
@@ -700,18 +924,41 @@ int QdecGlmDesign::GenerateContrasts ( )
                 this->msMeasure.c_str());
         question = strdup(tmpstr);
       }
-      else
+      else if (ncf == 1)
       {
-        QdecFactor* otherFactor = this->mContinuousFactors[nthc-1];
-        string otherFactorName = otherFactor->GetFactorName();
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,
                 "Does the correlation between %s and %s differ from zero?",
                 this->msMeasure.c_str(),
+                contFactorName.c_str());
+        question = strdup(tmpstr);
+      }
+      else if (ncf == 2)
+      {
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        QdecFactor* otherFactor;
+        if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
+        else otherFactor = this->mContinuousFactors[nthcf-2];
+        string otherFactorName = otherFactor->GetFactorName();
+        sprintf(tmpstr,
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
+        name = strdup(tmpstr);
+        sprintf(tmpstr,
+                "Does the correlation between %s and %s, accounting for %s, "
+                "differ from zero?",
+                this->msMeasure.c_str(),
+                contFactorName.c_str(),
                 otherFactorName.c_str());
         question = strdup(tmpstr);
       }
@@ -727,6 +974,7 @@ int QdecGlmDesign::GenerateContrasts ( )
   {
     // Two types of tests/contrasts: MainEffect and SimpleMainEffect
     QdecFactor* df1 = this->mDiscreteFactors[0];
+    string df1Name = df1->GetFactorName();
     int nl1 = df1->GetLevelNames().size();
     if (nl1 != 2)
     {
@@ -739,20 +987,21 @@ int QdecGlmDesign::GenerateContrasts ( )
     const char* df1l2name = levelNames[1].c_str();
 
     // Do the Main Effects first
-    for (unsigned int nthvar = 0; nthvar < (ncf+1); nthvar++)
+    for (unsigned int nthcf = 0; nthcf < (ncf+1); nthcf++)
     {
       vector< double > contrast;
       for (unsigned int i=0; i < nreg; i++) contrast.push_back( 0.0 );
       assert( contrast.size() == nreg );
-      int a = 2*nthvar;
+      int a = 2*nthcf;
       contrast[a] = 1;
       contrast[a+1] = 1;
       string name = "";
       string question = "";
-      if (nthvar == 0)
+      if (nthcf == 0)
       {
         sprintf(tmpstr,
-                "Avg-Intercept-%s",
+                "%s-Avg-Intercept-%s",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,
@@ -760,19 +1009,45 @@ int QdecGlmDesign::GenerateContrasts ( )
                 this->msMeasure.c_str());
         question = strdup(tmpstr);
       }
-      else
+      else if (ncf == 1)
       {
-        QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
-        string otherFactorName = otherFactor->GetFactorName();
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,
-                "Does the correlation between %s and %s differ from zero?",
+                "Does the correlation between %s and %s, accounting for %s, "
+                "differ from zero?",
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str(),
+                df1Name.c_str());
+        question = strdup(tmpstr);
+      }
+      else if (ncf == 2)
+      {
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        QdecFactor* otherFactor;
+        if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
+        else otherFactor = this->mContinuousFactors[nthcf-2];
+        string otherContFactorName = otherFactor->GetFactorName();
+        sprintf(tmpstr,
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
+        name = strdup(tmpstr);
+        sprintf(tmpstr,
+                "Does the correlation between %s and %s, accounting for %s "
+                "and %s, differ from zero?",
+                this->msMeasure.c_str(),
+                contFactorName.c_str(),
+                df1Name.c_str(),
+                otherContFactorName.c_str());
         question = strdup(tmpstr);
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
@@ -781,37 +1056,61 @@ int QdecGlmDesign::GenerateContrasts ( )
       this->mContrasts.push_back( newContrast );
     }
     // Now do the Within-Factor (Simple Main) Effects
-    for (unsigned int nthvar = 0; nthvar < (ncf+1); nthvar++)
+    for (unsigned int nthcf = 0; nthcf < (ncf+1); nthcf++)
     {
       vector< double > contrast;
       for (unsigned int i=0; i < nreg; i++) contrast.push_back( 0.0 );
       assert( contrast.size() == nreg );
-      int a = 2*nthvar;
+      int a = 2*nthcf;
       contrast[a] = 1;
       contrast[a+1] = -1;
       string name = "";
       string question = "";
-      if (nthvar == 0)
+      if (nthcf == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ between %s and %s?",
                 this->msMeasure.c_str(),df1l1name,df1l2name);
         question = strdup(tmpstr);
       }
-      else
+      else if (ncf == 1)
       {
-        QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
-        string otherFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the %s--%s correlation differ between %s and %s?",
                 this->msMeasure.c_str(),
-                otherFactorName.c_str(),
+                contFactorName.c_str(),
+                df1l1name,df1l2name);
+        question = strdup(tmpstr);
+      }
+      else if (ncf == 2)
+      {
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        QdecFactor* otherFactor;
+        if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
+        else otherFactor = this->mContinuousFactors[nthcf-2];
+        string otherContFactorName = otherFactor->GetFactorName();
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
+                df1l1name,df1l2name,
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
+        name = strdup(tmpstr);
+        sprintf(tmpstr,"Does the %s--%s correlation, accounting for %s, "
+                "differ between %s and %s?",
+                this->msMeasure.c_str(),
+                contFactorName.c_str(),
+                otherContFactorName.c_str(),
                 df1l1name,df1l2name);
         question = strdup(tmpstr);
       }
@@ -826,6 +1125,7 @@ int QdecGlmDesign::GenerateContrasts ( )
   if (ndf == 2)
   {
     QdecFactor* df1 = this->mDiscreteFactors[0];
+    string df1Name = df1->GetFactorName();
     int nl1 = df1->GetLevelNames().size();
     if (nl1 != 2)
     {
@@ -839,6 +1139,7 @@ int QdecGlmDesign::GenerateContrasts ( )
     const char* df1l2name = df1LevelNames[1].c_str();
 
     QdecFactor* df2 = this->mDiscreteFactors[1];
+    string df2Name = df2->GetFactorName();
     int nl2 = df2->GetLevelNames().size();
     if (nl2 != 2)
     {
@@ -852,38 +1153,65 @@ int QdecGlmDesign::GenerateContrasts ( )
     const char* df2l2name = df2LevelNames[1].c_str();
 
     // Do the Main Effects first
-    for (unsigned int nthvar = 0; nthvar < (ncf+1); nthvar++)
+    for (unsigned int nthcf = 0; nthcf < (ncf+1); nthcf++)
     {
       vector< double > contrast;
       for (unsigned int i=0; i < nreg; i++) contrast.push_back( 0.0 );
       assert( contrast.size() == nreg );
-      int a = 4*nthvar;
+      int a = 4*nthcf;
       for (unsigned int d=0;d<4;d++) contrast[a+d] = 1;
       string name = "";
       string question = "";
-      if (nthvar == 0)
+      if (nthcf == 0)
       {
         sprintf(tmpstr,
-                "Avg-Intercept-%s",
+                "%s-Avg-Intercept-%s",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Does the average %s differ from zero?",
                 this->msMeasure.c_str());
         question = strdup(tmpstr);
       }
-      else
+      else if (ncf == 1)
       {
-        QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
-        string otherFactorName = otherFactor->GetFactorName();
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
         sprintf(tmpstr,
-                "Avg-%s-%s-Cor",
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,
-                "Does the correlation between %s and %s differ from zero?",
+                "Does the correlation between %s and %s, accounting for %s "
+                "and %s, differ from zero?",
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str(),
+                df1Name.c_str(),df2Name.c_str());
+        question = strdup(tmpstr);
+      }
+      else if (ncf == 2)
+      {
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        QdecFactor* otherFactor;
+        if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
+        else otherFactor = this->mContinuousFactors[nthcf-2];
+        string otherContFactorName = otherFactor->GetFactorName();
+        sprintf(tmpstr,
+                "%s-Avg-%s-%s-Cor",
+                this->msHemi.c_str(),
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
+        name = strdup(tmpstr);
+        sprintf(tmpstr,
+                "Does the correlation between %s and %s, accounting for %s "
+                "and %s and %s, differ from zero?",
+                this->msMeasure.c_str(),
+                contFactorName.c_str(),
+                df1Name.c_str(),df2Name.c_str(),
+                otherContFactorName.c_str());
         question = strdup(tmpstr);
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
@@ -892,39 +1220,71 @@ int QdecGlmDesign::GenerateContrasts ( )
       this->mContrasts.push_back( newContrast );
     }
     // Now do the Within-Factor-1 (Simple Main) Effects
-    for (unsigned int nthvar = 0; nthvar < (ncf+1); nthvar++)
+    for (unsigned int nthcf = 0; nthcf < (ncf+1); nthcf++)
     {
       vector< double > contrast;
       for (unsigned int i=0; i < nreg; i++) contrast.push_back( 0.0 );
       assert( contrast.size() == nreg );
-      int a = 4*nthvar;
+      int a = 4*nthcf;
       contrast[a]   = +1;
       contrast[a+1] = -1;
       contrast[a+2] = +1;
       contrast[a+3] = -1;
       string name = "";
       string question = "";
-      if (nthvar == 0)
+      if (nthcf == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
-        sprintf(tmpstr,"Does the average %s differ between %s and %s?",
-                this->msMeasure.c_str(),df1l1name,df1l2name);
+        sprintf(tmpstr,"Does the average %s, accounting for %s, "
+                "differ between %s and %s?",
+                this->msMeasure.c_str(),
+                df2Name.c_str(),
+                df1l1name,df1l2name);
         question = strdup(tmpstr);
       }
-      else
+      else if (ncf == 1)
       {
-        QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
-        string otherFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1l1name,df1l2name,
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
         name = strdup(tmpstr);
-        sprintf(tmpstr,"Does the %s--%s correlation differ between %s and %s?",
+        sprintf(tmpstr,
+                "Does the %s--%s correlation, accounting for %s, "
+                "differ between %s and %s?",
                 this->msMeasure.c_str(),
-                otherFactorName.c_str(),
+                contFactorName.c_str(),
+                df2Name.c_str(),
+                df1l1name,df1l2name);
+        question = strdup(tmpstr);
+      }
+      else if (ncf == 2)
+      {
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        QdecFactor* otherFactor;
+        if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
+        else otherFactor = this->mContinuousFactors[nthcf-2];
+        string otherContFactorName = otherFactor->GetFactorName();
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
+                df1l1name,df1l2name,
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
+        name = strdup(tmpstr);
+        sprintf(tmpstr,
+                "Does the %s--%s correlation, accounting for %s and %s, "
+                "differ between %s and %s?",
+                this->msMeasure.c_str(),
+                contFactorName.c_str(),
+                df2Name.c_str(),
+                otherContFactorName.c_str(),
                 df1l1name,df1l2name);
         question = strdup(tmpstr);
       }
@@ -934,39 +1294,71 @@ int QdecGlmDesign::GenerateContrasts ( )
       this->mContrasts.push_back( newContrast );
     }
     // Now do the Within-Factor-2 (Simple Main) Effects
-    for (unsigned int nthvar = 0; nthvar < (ncf+1); nthvar++)
+    for (unsigned int nthcf = 0; nthcf < (ncf+1); nthcf++)
     {
       vector< double > contrast;
       for (unsigned int i=0; i < nreg; i++) contrast.push_back( 0.0 );
       assert( contrast.size() == nreg );
-      int a = 4*nthvar;
+      int a = 4*nthcf;
       contrast[a]   = +1;
       contrast[a+1] = +1;
       contrast[a+2] = -1;
       contrast[a+3] = -1;
       string name = "";
       string question = "";
-      if (nthvar == 0)
+      if (nthcf == 0)
       {
-        sprintf(tmpstr,"Diff-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-Diff-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df2l1name,df2l2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
-        sprintf(tmpstr,"Does the average %s differ between %s and %s?",
-                this->msMeasure.c_str(),df2l1name,df2l2name);
+        sprintf(tmpstr,"Does the average %s, accounting for %s, "
+                "differ between %s and %s?",
+                this->msMeasure.c_str(),
+                df1Name.c_str(),
+                df2l1name,df2l2name);
         question = strdup(tmpstr);
       }
-      else
+      else if (ncf == 1)
       {
-        QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
-        string otherFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"Diff-%s-%s-Cor-%s-%s",
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df2l1name,df2l2name,
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
         name = strdup(tmpstr);
-        sprintf(tmpstr,"Does the %s--%s correlation differ between %s and %s?",
+        sprintf(tmpstr,
+                "Does the %s--%s correlation, accounting for %s, "
+                "differ between %s and %s?",
                 this->msMeasure.c_str(),
-                otherFactorName.c_str(),
+                contFactorName.c_str(),
+                df1Name.c_str(),
+                df2l1name,df2l2name);
+        question = strdup(tmpstr);
+      }
+      else if (ncf == 2)
+      {
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        QdecFactor* otherFactor;
+        if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
+        else otherFactor = this->mContinuousFactors[nthcf-2];
+        string otherContFactorName = otherFactor->GetFactorName();
+        sprintf(tmpstr,"%s-Diff-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
+                df2l1name,df2l2name,
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
+        name = strdup(tmpstr);
+        sprintf(tmpstr,
+                "Does the %s--%s correlation, accounting for %s and %s, "
+                "differ between %s and %s?",
+                this->msMeasure.c_str(),
+                contFactorName.c_str(),
+                df1Name.c_str(),
+                otherContFactorName.c_str(),
                 df2l1name,df2l2name);
         question = strdup(tmpstr);
       }
@@ -976,41 +1368,68 @@ int QdecGlmDesign::GenerateContrasts ( )
       this->mContrasts.push_back( newContrast );
     }
     // Now do the Interactions
-    for (unsigned int nthvar = 0; nthvar < (ncf+1); nthvar++)
+    for (unsigned int nthcf = 0; nthcf < (ncf+1); nthcf++)
     {
       vector< double > contrast;
       for (unsigned int i=0; i < nreg; i++) contrast.push_back( 0.0 );
       assert( contrast.size() == nreg );
-      int a = 4*nthvar;
+      int a = 4*nthcf;
       contrast[a]   = +1;
       contrast[a+1] = -1;
       contrast[a+2] = -1;
       contrast[a+3] = +1;
       string name = "";
       string question = "";
-      if (nthvar == 0)
+      if (nthcf == 0)
       {
-        sprintf(tmpstr,"X-%s-%s-Intercept-%s",
+        sprintf(tmpstr,"%s-X-%s-%s-Intercept-%s",
+                this->msHemi.c_str(),
                 df1name,df2name,this->msMeasure.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr,"Is there a %s--%s interaction in the mean %s?",
                 df1name,df2name,this->msMeasure.c_str());
         question = strdup(tmpstr);
       }
-      else
+      else if (ncf == 1)
       {
-        QdecFactor* otherFactor = this->mContinuousFactors[nthvar-1];
-        string otherFactorName = otherFactor->GetFactorName();
-        sprintf(tmpstr,"X-%s-%s-Cor-%s-%s",
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        sprintf(tmpstr,
+                "%s-X-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
                 df1name,df2name,
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
         name = strdup(tmpstr);
         sprintf(tmpstr, 
                 "Is there a %s--%s interaction in the %s--%s correlation?",
                 df1name,df2name,
                 this->msMeasure.c_str(),
-                otherFactorName.c_str());
+                contFactorName.c_str());
+        question = strdup(tmpstr);
+      }
+      else if (ncf == 2)
+      {
+        QdecFactor* contFactor = this->mContinuousFactors[nthcf-1];
+        string contFactorName = contFactor->GetFactorName();
+        QdecFactor* otherFactor;
+        if (nthcf == 1) otherFactor = this->mContinuousFactors[nthcf];
+        else otherFactor = this->mContinuousFactors[nthcf-2];
+        string otherContFactorName = otherFactor->GetFactorName();
+        sprintf(tmpstr,
+                "%s-X-%s-%s-Cor-%s-%s",
+                this->msHemi.c_str(),
+                df1name,df2name,
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
+        name = strdup(tmpstr);
+        sprintf(tmpstr, 
+                "Is there a %s--%s interaction, accounting for %s, "
+                "in the %s--%s correlation?",
+                df1name,df2name,
+                otherContFactorName.c_str(),
+                this->msMeasure.c_str(),
+                contFactorName.c_str());
         question = strdup(tmpstr);
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
@@ -1026,7 +1445,9 @@ int QdecGlmDesign::GenerateContrasts ( )
 int QdecGlmDesign::WriteContrastMatrices () 
 {
   if( !this->IsValid() ) {
-    fprintf( stderr, "ERROR: QdecGlmDesign::WriteContrastMatrices: Design parameters not valid.\n" );
+    fprintf( stderr, 
+             "ERROR: QdecGlmDesign::WriteContrastMatrices: "
+             "Design parameters not valid.\n" );
     return(-1);
   }
   
@@ -1055,7 +1476,10 @@ int QdecGlmDesign::WriteContrastMatrices ()
 int QdecGlmDesign::WriteYdataFile ( )
 {
   if( !this->IsValid() ) {
-    fprintf( stderr, "ERROR: QdecGlmDesign::WriteYdataFile: Design parameters not valid.\n" );
+    fprintf
+      ( stderr, 
+        "ERROR: QdecGlmDesign::WriteYdataFile: "
+        "Design parameters not valid.\n" );
     return(-1);
   }
 
@@ -1084,7 +1508,7 @@ int QdecGlmDesign::WriteYdataFile ( )
   {
     // If this name is in our list of subject exclusions, skip it.
     if( maExcludedSubjects.find( *tSubjectID ) !=
-	maExcludedSubjects.end() ) {
+        maExcludedSubjects.end() ) {
       continue;
     }
 
@@ -1110,7 +1534,7 @@ int QdecGlmDesign::WriteYdataFile ( )
   if ( lfnInputs.size() < 1 )
     throw runtime_error( "No input files" );
 
-   // Go through and concatenate copy all the volumes.
+  // Go through and concatenate copy all the volumes.
   if( this->mProgressUpdateGUI )
   {
     this->mProgressUpdateGUI->UpdateProgressMessage( "Concatenating volumes..." );

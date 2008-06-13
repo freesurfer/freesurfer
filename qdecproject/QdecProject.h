@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:41:57 $
- *    $Revision: 1.6.2.1 $
+ *    $Date: 2008/06/13 00:24:27 $
+ *    $Revision: 1.6.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -103,11 +103,31 @@ public:
    */
   int LoadDataTable ( const char* isFileName );
 
+
+  /**
+   * Check that all subjects exist in the specified subjects_dir (including the
+   * specified average subject).  Print to stderr and ErrorMessage any errors
+   * found (one message for each error).  Also check that thickness, sulc,
+   * curv, area and jacobian_white files exist, and that their vertex
+   * numbers equal their inflated surface (and that surfaces all have the
+   * same number of vertices).
+   * @return int
+   */
+  int VerifySubjects ( );
+
+
   /**
    * @return void
    * @param  iFilePointer
    */
   void DumpDataTable ( FILE* iFilePointer );
+
+
+  /**
+   * @return bool  true if a table has been loaded
+   */
+  bool HaveDataTable ( );
+
 
   /**
    * @return int
@@ -120,6 +140,54 @@ public:
    * @return QdecDataTable*
    */
   QdecDataTable* GetDataTable ( );
+
+
+  /**
+   * run asegstats2table and aparcstats2table to generate fresurfer stats data
+   * on each subject, for later optional inclusion into the main mDataTable
+   * creates file aseg_vol.dat, lh_aparc_thickness.dat...
+   *
+   * returns the names of the data that were created (aseg_vol, 
+   * lh_aparc_thickness...)
+   *
+   * @return vector< string >
+   */
+  vector< string > CreateStatsDataTables ();
+
+
+  /**
+   * @return string   directory where stats data tables are stored
+   */
+  string GetStatsDataTablesDir () { return this->msStatsDataTablesDir; }
+  
+
+  /**
+   * Merge the factor given by isFactorName from data table iDataTable
+   * into our main DataTable.  Used to add selections from an asegstats
+   * table or aparcstats table into the main table (which would require
+   * saving the table to disk if the user wants to keep those changes)
+   *
+   * @return int
+   * @param  isFactorName
+   * @param  iDataTable
+   */
+  int MergeFactorIntoDataTable ( const char* isFactorName, 
+                                 QdecDataTable* iDataTable )
+  {
+    return this->mDataTable->MergeFactor( isFactorName, iDataTable );
+  }
+
+
+  /**
+   * Delete the factor isFactorName from data table
+   *
+   * @return int
+   * @param  isFactorName
+   */
+  int RemoveFactorFromDataTable ( const char* isFactorName )
+  {
+    return this->mDataTable->DeleteFactor( isFactorName );
+  }
 
 
   /**
@@ -174,13 +242,13 @@ public:
   /**
    * @return vector< string >
    */
-  vector< string > GetDiscreteFactors ( );
+  vector< string > GetDiscreteFactorNames ( );
 
 
   /**
    * @return vector< string >
    */
-  vector< string > GetContinousFactors ( );
+  vector< string > GetContinousFactorNames ( );
 
 
   /**
@@ -229,6 +297,7 @@ public:
    */
   QdecGlmFitResults* GetGlmFitResults ( );
 
+
   /**
    * Run mri_label2label on each subject, mapping the label that was drawn on 
    * the average surface to each subject. Optionally supply a window manager
@@ -241,10 +310,12 @@ public:
     ( const char* ifnLabel,
       ProgressUpdateGUI* iProgressUpdateGUI=NULL );
 
+
   /**
    * @return QdecGlmDesign
    */
   QdecGlmDesign* GetGlmDesign ( );
+
 
   /**
    * The file name of our metadata file, for the project file archive.
@@ -279,6 +350,10 @@ private:
   // The command format to run to zip and unzip a file. 
   string msZipCommandFormat;
   string msUnzipCommandFormat;
+
+  // directory where stats data tables are stored
+  string msStatsDataTablesDir;
+
 };
 
 #endif // QDECPROJECT_H

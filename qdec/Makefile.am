@@ -1,4 +1,5 @@
-AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS)
+AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS) \
+	-I/usr/include/libxml2
 
 AM_CXXFLAGS=-Wno-deprecated -I$(top_srcdir)/include \
 	-I$(top_srcdir)/vtkfsio \
@@ -16,14 +17,13 @@ qdec_SOURCES= \
 	vtkKWQdecWindow.cxx vtkKWQdecWindow.h vtkKWQdecWindowTcl.cxx \
 	vtkKWQdecView.cxx vtkKWQdecView.h vtkKWQdecViewTcl.cxx \
 	QdecUtilities.cxx QdecLibInit.cxx \
-	QdecEvents.h QdecVertexAnnotationLookup.h \
-	$(top_srcdir)/fsgdf/fsgdf_wrap.c
+	QdecEvents.h QdecVertexAnnotationLookup.h
 qdec_LDADD=  \
-	$(top_srcdir)/fsgdf/libfsgdf.a \
-	$(top_srcdir)/vtkfsio/libvtkfsio.a \
-	$(top_srcdir)/vtkutils/libvtkutils.a \
-	$(top_srcdir)/qdecproject/libqdecproject.a \
-	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
+	$(top_builddir)/fsgdf/libfsgdf.a \
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(top_builddir)/qdecproject/libqdecproject.a \
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
 	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
@@ -62,7 +62,7 @@ QdecLibInit.cxx: QdecLibInit.data
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:qdec
-	cp $(srcdir)/qdec $(DESTDIR)$(bindir)/qdec.bin
+	cp $(top_builddir)/qdec/qdec $(DESTDIR)$(bindir)/qdec.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/qdec
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/qdec
@@ -80,6 +80,9 @@ install-exec-hook:qdec
 	chmod a+x $(DESTDIR)$(bindir)/qdec
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/qdec.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/qdec.bin
 
 else
 bin_PROGRAMS = 
@@ -109,8 +112,25 @@ vtkKWQdecViewTcl.cxx:
 QdecLibInit.cxx:
 endif
 
-EXTRA_DIST=QdecIcons.txt $(wildcard *.h) $(wildcard *.cxx) $(wildcard *.data) \
-qdec2.table.dat $(dist_bin_SCRIPTS)
+EXTRA_DIST=QdecIcons.txt \
+qdec2.table.dat $(dist_bin_SCRIPTS) \
+QdecEvents.h \
+QdecLibInit.cxx \
+QdecLibInit.data \
+QdecMain.cxx \
+QdecUtilities.cxx \
+QdecUtilities.h \
+QdecVertexAnnotationLookup.h \
+vtkKWQdecApp.cxx \
+vtkKWQdecApp.h \
+vtkKWQdecAppTcl.cxx \
+vtkKWQdecView.cxx \
+vtkKWQdecView.h \
+vtkKWQdecViewTcl.cxx \
+vtkKWQdecWindow.cxx \
+vtkKWQdecWindow.h \
+vtkKWQdecWindowTcl.cxx
+
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
