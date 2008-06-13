@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/13 17:14:31 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,6 +65,9 @@ class LayerMRI : public LayerEditable
 		
 		virtual double GetVoxelValue( double* pos );
 		virtual std::string GetLabelName( double value );
+		
+		void RASToOriginalIndex( const double* pos, int* n );
+		void OriginalIndexToRAS( const int* n, double* pos );
 				
 		LayerPropertiesMRI* GetProperties();
 		

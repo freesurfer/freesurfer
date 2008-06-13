@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/13 17:14:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -657,4 +657,19 @@ bool LayerMRI::HasProp( vtkProp* prop )
 			return true;
 	}
 	return false;
+}
+
+void LayerMRI::RASToOriginalIndex( const double* pos, int* n )
+{
+	m_volumeSource->RASToOriginalIndex( (float)(pos[0]), (float)(pos[1]), (float)(pos[2]), 
+										 n[0], n[1], n[2] );
+}
+		
+void LayerMRI::OriginalIndexToRAS( const int* n, double* pos )
+{
+	float x, y, z;
+	m_volumeSource->OriginalIndexToRAS( n[0], n[1], n[2], x, y, z );
+	pos[0] = x;
+	pos[1] = y;
+	pos[2] = z;
 }
