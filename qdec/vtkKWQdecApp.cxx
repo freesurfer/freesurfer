@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/06 22:34:59 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/13 23:31:21 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -48,7 +48,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.6 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -125,7 +125,6 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   string fnSurface;
   args.AddArgument( "--surface", args.SPACE_ARGUMENT, &fnSurface,
                     "A surface file to load" );
-  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
 #endif
 
   string fnGDF;
@@ -142,7 +141,6 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   string fnScalar;
   args.AddArgument( "--scalar", args.SPACE_ARGUMENT, &fnScalar,
                     "A scalar file to load" );
-  if (fnScalar.size()) lfnScalars.push_back(fnScalar);
 #endif
 
   string fnCurvature;
@@ -176,6 +174,12 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
     cerr << args.GetHelp() << endl;
     exit( 1 );
   }
+
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
+#else
+  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
+  if (fnScalar.size()) lfnScalars.push_back(fnScalar);
+#endif
 
   // Check results.
   if( lfnOverlay.size() != 0 &&
