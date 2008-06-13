@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 13:45:07 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/06/13 20:47:12 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWScubaApp );
-vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkKWScubaApp, "$Revision: 1.10 $" );
 
 vtkKWScubaApp::vtkKWScubaApp () {
 
@@ -107,7 +107,6 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnVolume;
   args.AddArgument( "--volume", args.SPACE_ARGUMENT, &fnVolume,
 		    "A volume file to load" );
-  if (fnVolume.size()) lfnVolumes.push_back(fnVolume);
 #endif
 
   vector<string> lfnSurfaces;
@@ -118,7 +117,6 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnSurface;
   args.AddArgument( "--surface", args.SPACE_ARGUMENT, &fnSurface,
 		    "A surface file to load" );
-  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
 #endif
 
   vector<string> lfnDTIs;
@@ -129,7 +127,6 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnDTI;
   args.AddArgument( "--dti", args.SPACE_ARGUMENT, &fnDTI,
 		    "A DTI file to load" );
-  if (fnDTI.size()) lfnDTIs.push_back(fnDTI);
 #endif
 
   vector<string> lfnPaths;
@@ -140,7 +137,6 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
   string fnPath;
   args.AddArgument( "--path", args.SPACE_ARGUMENT, &fnPath,
 		    "A path file to load" );
-  if(fnPath.size()) lfnPaths.push_back(fnPath);
 #endif
 
   // Try and parse the arguments. If there was an error, print our
@@ -150,6 +146,14 @@ vtkKWScubaApp::Start ( int argc, char* argv[] ) {
     cerr << args.GetHelp() << endl;
     exit( 1 );
   }
+
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 0))
+#else
+  if (fnVolume.size()) lfnVolumes.push_back(fnVolume);
+  if (fnSurface.size()) lfnSurfaces.push_back(fnSurface);
+  if (fnDTI.size()) lfnDTIs.push_back(fnDTI);
+  if (fnPath.size()) lfnPaths.push_back(fnPath);
+#endif
 
   // Load up the data we got.
   vector<string>::iterator tfn;
