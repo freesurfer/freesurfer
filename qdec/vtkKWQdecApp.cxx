@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 23:32:50 $
- *    $Revision: 1.1.2.5 $
+ *    $Date: 2008/06/14 00:59:07 $
+ *    $Revision: 1.1.2.6 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@
 #include "vtkKWMessageDialog.h"
 #include "vtkKWOptionDataBase.h"
 #include "vtkKWPushButton.h"
+#include "vtkKWSplashScreen.h"
 #include "vtkKWText.h"
 #include "vtkKWTextWithScrollbars.h"
 #include "vtkSmartPointer.h"
@@ -48,7 +49,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.5 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.6 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -81,12 +82,15 @@ vtkKWQdecApp::vtkKWQdecApp () :
 
   // Set some application stuff.
   this->SetName( "Qdec" );
+  this->SetMajorVersion( 1 ); // v1.1
+  this->SetMinorVersion( 1 );
   this->SetHelpDialogStartingPage
     ("https://surfer.nmr.mgh.harvard.edu/fswiki/Qdec");
+  this->SupportSplashScreenOn ( );
+  this->SplashScreenVisibilityOn ( );
 
   // Set the window size from the registry values.
   this->RestoreApplicationSettingsFromRegistry();
-
 
 }
 
@@ -99,6 +103,14 @@ vtkKWQdecApp::~vtkKWQdecApp () {
 
 void
 vtkKWQdecApp::Start ( int argc, char* argv[] ) {
+
+  vtkKWSplashScreen* pSplash = this->GetSplashScreen();
+  char* pfnFreesurferDir = getenv( "FREESURFER_HOME" );
+  if( NULL != pfnFreesurferDir ) {
+    string fSplash = string(pfnFreesurferDir) + "/lib/images/qdec_splash.png";
+    pSplash->ReadImage( fSplash.c_str() );
+    pSplash->Display();
+  }
 
   // Create our command line argument parser.
   vtksys::CommandLineArguments args;
