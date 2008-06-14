@@ -1,3 +1,7 @@
+foodir=$(prefix)/lib/images
+
+foo_DATA=qdec_splash.png
+
 AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS) \
 	-I/usr/include/libxml2
 
@@ -112,7 +116,7 @@ vtkKWQdecViewTcl.cxx:
 QdecLibInit.cxx:
 endif
 
-EXTRA_DIST=QdecIcons.txt \
+EXTRA_DIST=QdecIcons.txt $(foo_DATA) \
 qdec2.table.dat $(dist_bin_SCRIPTS) \
 QdecEvents.h \
 QdecLibInit.cxx \

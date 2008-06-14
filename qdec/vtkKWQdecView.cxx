@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/06 22:34:59 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/14 00:58:26 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.5 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.6 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -417,6 +417,7 @@ vtkKWQdecView::SetSurface ( vtkFSSurfaceSource* iSurface ) {
   // Remove current actors to clear the existing surface if
   // present. Then add the surface actors.
   //
+  //this->GetRenderer()->SetBackground( 1, 1, 1 ); // white background
   this->GetRenderer()->RemoveAllViewProps();
   if( mSurfaceActor.GetPointer() )
     this->GetRenderer()->AddActor( mSurfaceActor );
