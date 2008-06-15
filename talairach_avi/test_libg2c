@@ -1,0 +1,24 @@
+#! /bin/tcsh -f
+
+# the talairach_avi utils must not build against the shared libg2c, as that
+# lib is not found on most installations (and there is no reason to distribute
+# it if we can avoid it).
+
+set OS=`uname -s`
+
+set grepstatus=1
+
+if ("$OS" == "Linux") then
+  ldd ./gauss_4dfp | grep libg2c
+  set grepstatus=$status
+endif
+
+if ("$OS" == "Darwin") then
+  otool -L ./gauss_4dfp | grep libg2c
+  set grepstatus=$status
+endif
+
+if ( ! $grepstatus ) then
+  echo "ERROR: gauss_4dfp built against shared libg2c!"
+  exit 1
+endif

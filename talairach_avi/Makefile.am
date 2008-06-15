@@ -58,7 +58,7 @@ RMS_SRCS=cgauss3d.c fftsol.f imgpad.f polfit.f matopr.f eigen.f param6opr.f
 ACT_SRCS=conc.c
 
 gauss_4dfp_SOURCES=gauss_4dfp.c $(TRX_SRCS) $(RMS_SRCS) $(ACT_SRCS) cgauss3dd.c
-gauss_4dfp_LDADD=$(LIB_G2C_A) $(LIBS_ICC) $(FCLIBS)
+gauss_4dfp_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 
 zero_lt_4dfp_SOURCES=zero_lt_4dfp.c $(TRX_SRCS)
 zero_lt_4dfp_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
@@ -86,11 +86,62 @@ compute_vox2vox_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 ifh2hdr_SOURCES=ifh2hdr.c Inithdr.c $(TRX_SRCS)
 ifh2hdr_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
 
-TESTS=
+CFILES=\
+	4dfptoanalyze.c \
+	analyzeto4dfp.c \
+	cflip.c \
+	cgauss3d.c \
+	cgauss3dd.c \
+	compute_vox2vox.c \
+	conc.c \
+	endianio.c \
+	flip_4dfp.c \
+	gauss_4dfp.c \
+	Getifh.c \
+	ifh2hdr.c \
+	imgreg_4dfp.c \
+	Inithdr.c \
+	rec.c \
+	t4imgs_4dfp.c \
+	t4scale.c \
+	zero_lt_4dfp.c
+
+HFILES=\
+	ANALYZE.h \
+	conc.h \
+	endianio.h \
+	Getifh.h \
+	ifh.h \
+	librms.h \
+	rec.h
+
+FFILES=\
+	eigen.f \
+	ffind.f \
+	fftsol.f \
+	fimgreg.f \
+	ft4imgn.f \
+	ft4imgo.f \
+	ft4ixyz.f \
+	imgpad.f \
+	imgvalm.f \
+	imgvalx.f \
+	matopr.f \
+	param6opr.f \
+	polfit.f \
+	set_rnan.f \
+	spline3dvgh.f \
+	t4_sub.f \
+	to_711-2B.f
+
+TESTS=test_libg2c
 
 EXTRA_DIST=$(dist_bin_SCRIPTS) \
-	$(wildcard *.h) $(wildcard *.c) $(wildcard *.f) \
-	$(foo_DATA)
+	$(foo_DATA) \
+	$(CFILES) \
+	$(HFILES) \
+	$(FFILES) \
+	test_libg2c
 
 listfiles:
 	@echo $(EXTRA_DIST) Makefile.am
@@ -106,32 +157,32 @@ tarball:
 # to show differences, and copy these files from src
 
 diff_cfiles_from_src:
-	list=( $(wildcard *.c) ); for p in $${list[@]}; do \
+	list=( $(CFILES) ); for p in $${list[@]}; do \
 		find src -follow -type f -name $$p -exec diff $$p {} \;; \
 	done;
 
 diff_hfiles_from_src:
-	list=( $(wildcard *.h) ); for p in $${list[@]}; do \
+	list=( $(HFILES) ); for p in $${list[@]}; do \
 		find src -follow -type f -name $$p -exec diff $$p {} \;; \
 	done;
 
 diff_ffiles_from_src:
-	list=( $(wildcard *.f) ); for p in $${list[@]}; do \
+	list=( $(FFILES) ); for p in $${list[@]}; do \
 		find src -follow -type f -name $$p -exec diff $$p {} \;; \
 	done;
 
 copy_cfiles_from_src:
-	list=( $(wildcard *.c) ); for p in $${list[@]}; do \
+	list=( $(CFILES) ); for p in $${list[@]}; do \
 		find src -follow -type f -name $$p -exec cp -iv {} . \;; \
 	done;
 
 copy_hfiles_from_src:
-	list=( $(wildcard *.h) ); for p in $${list[@]}; do \
+	list=( $(HFILES) ); for p in $${list[@]}; do \
 		find src -follow -type f -name $$p -exec cp -iv {} . \;; \
 	done;
 
 copy_ffiles_from_src:
-	list=( $(wildcard *.f) ); for p in $${list[@]}; do \
+	list=( $(FFILES) ); for p in $${list[@]}; do \
 		find src -follow -type f -name $$p -exec cp -iv {} . \;; \
 	done;
 
