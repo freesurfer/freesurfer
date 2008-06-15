@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 17:33:17 $
- *    $Revision: 1.19 $
+ *    $Date: 2008/06/15 23:23:36 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1077,6 +1077,8 @@ vector< string > QdecProject::CreateStatsDataTables ()
       }
     }
   }
+
+  cout << "Completed creation of aseg and aparc stats data tables." << endl;
 
   return statsDataNames;
 }
