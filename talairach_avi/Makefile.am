@@ -86,8 +86,6 @@ compute_vox2vox_LDADD=$(LIBS_ICC) $(FCLIBS) $(LIB_G2C_A)
 ifh2hdr_SOURCES=ifh2hdr.c Inithdr.c $(TRX_SRCS)
 ifh2hdr_LDADD=$(LIBS_ICC) $(LIB_G2C_A)
 
-TESTS=
-
 CFILES=\
 	4dfptoanalyze.c \
 	analyzeto4dfp.c \
@@ -136,11 +134,14 @@ FFILES=\
 	t4_sub.f \
 	to_711-2B.f
 
+TESTS=test_libg2c
+
 EXTRA_DIST=$(dist_bin_SCRIPTS) \
 	$(foo_DATA) \
 	$(CFILES) \
 	$(HFILES) \
-	$(FFILES)
+	$(FFILES) \
+	test_libg2c
 
 listfiles:
 	@echo $(EXTRA_DIST) Makefile.am
