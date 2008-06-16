@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 17:33:19 $
- *    $Revision: 1.27 $
+ *    $Date: 2008/06/16 20:05:53 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.27 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.28 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -158,8 +158,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbSurfaceScalarsColorShowNegative( true ),
   mbDrawCurvatureGreenRedIfNoScalars( false ),
   mSurfaceScalarsColorsFDRRate( 0.05 ),
-  msOverlayDescription( "" ),
-  mbViewInitialized( false ) {
+  msOverlayDescription( "" ) {
 
   maDiscreteFactorSelection[0] = -1;
   maDiscreteFactorSelection[1] = -1;
@@ -2058,11 +2057,8 @@ vtkKWQdecWindow::LoadSurface ( const char* ifnSurface, const char* isLabel ) {
       // Select this one.
       this->SetCurrentSurface( sLabel.c_str() );
 
-      // First time we do this, reset the view to initialize it.
-      if( !mbViewInitialized ) {
-        mView->ResetView();
-        mbViewInitialized = true;
-      }
+      // reset the view to initialized it
+      mView->ResetView();
 
       this->SetStatusText( "Surface loaded." );
       this->AddRecentFile( ifnSurface, this, "LoadSurface" );
@@ -2589,13 +2585,13 @@ vtkKWQdecWindow::ZoomBy ( float iFactor ) {
 void
 vtkKWQdecWindow::ZoomIn () {
 
-  this->ZoomBy( 2.0 );
+  this->ZoomBy( 1.1 );
 }
 
 void
 vtkKWQdecWindow::ZoomOut () {
 
-  this->ZoomBy( 0.5 );
+  this->ZoomBy( 0.9090 );
 }
 
 void

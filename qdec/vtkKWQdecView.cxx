@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/14 00:58:26 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/16 20:05:53 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.6 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.7 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -93,6 +93,7 @@ vtkKWQdecView::vtkKWQdecView () :
     mDefaultFocalPoint[n] = 0;
     mDefaultViewUp[n] = 0;
   }
+  mDefaultZoom = 1.2; // make the default just a little bigger than normal
   
   mSurfaceSelectionPoints = vtkPoints::New();
   mSurfaceSelectionLines = vtkCellArray::New();
@@ -451,7 +452,7 @@ vtkKWQdecView::SetSurface ( vtkFSSurfaceSource* iSurface ) {
     vtkSmartPointer<vtkProperty> property;
     property.TakeReference( cursorActor->MakeProperty() );
     cursorActor->SetProperty( property );
-    property->SetColor( 0, 1, 0 );
+    property->SetColor( 0, 1, 0 ); // green cross-hairs
     cursorActor->PickableOff();
     
     // Add the cursor actor.
@@ -536,6 +537,7 @@ vtkKWQdecView::ResetView () {
 
   // Reset the camera to show all the actors.
   this->GetRenderer()->ResetCamera();
+  this->GetRenderer()->GetActiveCamera()->Zoom( mDefaultZoom );
   this->GetRenderer()->GetRenderWindow()->Render();
 
   // Grab the starting camera information so we can restore it later.
@@ -554,6 +556,7 @@ vtkKWQdecView::RestoreView () {
   this->GetRenderer()->GetActiveCamera()->SetViewUp( mDefaultViewUp );
 
   this->GetRenderer()->ResetCamera();
+  this->GetRenderer()->GetActiveCamera()->Zoom( mDefaultZoom );
   this->GetRenderer()->GetRenderWindow()->Render();
 }
 
@@ -801,10 +804,20 @@ vtkKWQdecView::InitializeScalarBar () {
 
   // Make a new one.
   mScalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
+#if 0
+  // vertical, on right
   mScalarBar->SetOrientationToVertical();
-  mScalarBar->GetLabelTextProperty()->SetFontSize( 6 );
+  mScalarBar->GetLabelTextProperty()->SetFontSize( 5 );
   mScalarBar->SetPosition( 0.9, 0.1 );
   mScalarBar->SetWidth( 0.1 );
+#else
+  // horizonal, at bottom right
+  mScalarBar->SetOrientationToHorizontal();
+  mScalarBar->GetLabelTextProperty()->SetFontSize( 4 );
+  mScalarBar->SetPosition( 0.66, 0.0 );
+  mScalarBar->SetHeight( 0.1 );
+  mScalarBar->SetWidth( 0.3 );
+#endif
   mScalarBar->PickableOff();
   mScalarBar->SetTitle( "p-value" );
 

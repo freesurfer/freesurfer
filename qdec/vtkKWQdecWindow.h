@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 03:19:29 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/06/16 20:05:53 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -649,10 +649,6 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // A label for the overlay scale bar.
   std::string msOverlayDescription;
-
-  // Initially false, until the view has been initialized by being
-  // reset.
-  bool mbViewInitialized;
 
   //ETX
 };
