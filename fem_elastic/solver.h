@@ -1276,9 +1276,9 @@ TDirectSolver<Cstr,n>::solve()
     kspConvergenceReason[KSP_CONVERGED_RTOL] = "ksp-converged-rtol";
     kspConvergenceReason[KSP_CONVERGED_ATOL] = "ksp-converged-atol";
     kspConvergenceReason[KSP_CONVERGED_ITS]  = "ksp-converged-its";
-    kspConvergenceReason[KSP_CONVERGED_STCG_NEG_CURVE] = 
+    kspConvergenceReason[KSP_CONVERGED_CG_NEG_CURVE] = 
       "ksp-converged-stcg-neg-curve";
-    kspConvergenceReason[KSP_CONVERGED_STCG_CONSTRAINED] = 
+    kspConvergenceReason[KSP_CONVERGED_CG_CONSTRAINED] = 
       "ksp-converged-stcg-constrained";
     kspConvergenceReason[KSP_CONVERGED_STEP_LENGTH] = 
       "ksp-converged-step-length";
