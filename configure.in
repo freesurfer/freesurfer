@@ -2126,10 +2126,17 @@ AC_CHECK_LIB([vtkfreetype], [FTC_Manager_LookupSize],
              [VTK_FREETYPE_LIB="-lvtkfreetype"],
              [AC_CHECK_LIB([freetype],[FTC_Manager_LookupSize],[VTK_FREETYPE_LIB="-lfreetype"],
              [AC_MSG_ERROR([FATAL: libvtkfreetype or libfreetype not found.])])])
+if test "$OS" = "Darwin"; then
+# don't use vtktiff on the mac, it causes a bus error in the IconLoader
+# when running TIFFReadEncodedStrip, killing qdec
+AC_CHECK_LIB([tiff],[TIFFGetVersion],[VTK_TIFF_LIB="-ltiff"],
+             [AC_MSG_ERROR([FATAL: libvtktiff or libtiff not found.])])
+else
 AC_CHECK_LIB([vtktiff], [TIFFGetVersion],
              [VTK_TIFF_LIB="-lvtktiff"],
              [AC_CHECK_LIB([tiff],[TIFFGetVersion],[VTK_TIFF_LIB="-ltiff"],
              [AC_MSG_ERROR([FATAL: libvtktiff or libtiff not found.])])])
+fi
 AC_CHECK_LIB([vtkjpeg], [jpeg_start_compress], 
              [VTK_JPEG_LIB="-lvtkjpeg"],
              [AC_CHECK_LIB([jpeg],[jpeg_start_compress],[VTK_JPEG_LIB="-ljpeg"],
