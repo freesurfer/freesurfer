@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:27 $
- *    $Revision: 1.13.2.2 $
+ *    $Date: 2008/06/17 22:36:01 $
+ *    $Revision: 1.13.2.3 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1065,15 +1065,16 @@ vector< string > QdecProject::CreateStatsDataTables ()
         printf( "%s\n", sCommand );
         fflush(stdout);fflush(stderr);
         int rRun = system( sCommand );
-        if ( -1 == rRun )
-          throw runtime_error( "system call failed: " + ssCommand.str() );
-        if ( rRun > 0 )
-          throw runtime_error( "command failed: " + ssCommand.str() );
         free( sCommand );
 
-        // save the name of this data (now that we know it was successfully
-        // created
-        statsDataNames.push_back( ssFname.str() );
+        // dont exit on error, just continue (an error will be printed)
+        // some aseg/aparc tables dont exist, so just skip it
+        if ( 0 == rRun )
+        {
+          // save the name of this data (now that we know it was successfully
+          // created
+          statsDataNames.push_back( ssFname.str() );
+        }
       }
     }
   }
