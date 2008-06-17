@@ -48,14 +48,20 @@ foo:
 	if ! test -f "$(top_builddir)/vtkutils/vtkKWRGBATransferFunctionEditorTester-scalars.mgh"; then \
 	cp -v $(top_srcdir)/vtkutils/vtkKWRGBATransferFunctionEditorTester-scalars.mgh \
 				$(top_builddir)/vtkutils/; fi;
+	if ! test -f "$(top_builddir)/vtkutils/IconLoaderTestIcons.txt"; then \
+	cp -v $(top_srcdir)/vtkutils/IconLoaderTestIcons.txt \
+				$(top_builddir)/vtkutils/; fi;
 
-check_PROGRAMS=foo vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
+check_PROGRAMS=foo IconLoaderTest vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
 #TESTS is commented-out because the tests are interactive (can't run automatically)
 #TESTS=vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
+TESTS=IconLoaderTest
 else
 check_PROGRAMS=
 TESTS=
 endif
+
+IconLoaderTest_SOURCES=IconLoaderTest.cxx IconLoader.cxx
 
 # vtkKWRGBATransferFunctionEditorTester test program
 vtkKWRGBATransferFunctionEditorTester_SOURCES=vtkKWRGBATransferFunctionEditorTester.cxx \
@@ -122,7 +128,8 @@ vtkKWRGBATransferFunctionEditorTester.h \
 vtkODFGlyph.h \
 vtkRGBATransferFunction.h \
 RgbatransferfunctioneditortesterLibInit.data \
-vtkKWRGBATransferFunctionEditorTester-scalars.mgh
+vtkKWRGBATransferFunctionEditorTester-scalars.mgh \
+IconLoaderTest.cxx IconLoaderTestIcons.txt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
