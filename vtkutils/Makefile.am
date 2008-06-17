@@ -149,7 +149,8 @@ vtkODFGlyph.h \
 vtkRGBATransferFunction.h \
 RgbatransferfunctioneditortesterLibInit.data \
 vtkKWRGBATransferFunctionEditorTester-scalars.mgh \
-IconLoaderTest.cxx IconLoaderTestIcons.txt testIconLoader
+IconLoaderTest.cxx IconLoaderTest.h \
+IconLoaderTestIcons.txt testIconLoader
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
