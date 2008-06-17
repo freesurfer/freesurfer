@@ -23,7 +23,7 @@ common3d_SOURCES=\
 	morph.cpp morph.h \
 	morph_utils.cpp morph_utils.h
 
-bin_PROGRAMS=createMorph applyMorph surf2vol
+bin_PROGRAMS=createMorph applyMorph surf2vol exportGcam
 
 createMorph_SOURCES=\
 	$(common3d_SOURCES) \
@@ -66,6 +66,15 @@ surf2vol_LDADD=\
 	$(top_builddir)/tetgen/libtetgen.a \
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
 	-lpetscvec -lpetsc -lmpich -lblas -llapack
+
+exportGcam_SOURCES=\
+	$(common3d_SOURCES) \
+	exportGcam.cpp \
+	ZlibStringCompressor.cpp ZlibStringCompressor.h
+
+exportGcam_LDADD=\
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(top_builddir)/tetgen/libtetgen.a $(BOOST_PO_LIB)
 
 endif
 endif
