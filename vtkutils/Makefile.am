@@ -52,14 +52,41 @@ foo:
 	if ! test -f "$(top_builddir)/vtkutils/vtkKWRGBATransferFunctionEditorTester-scalars.mgh"; then \
 	cp -v $(top_srcdir)/vtkutils/vtkKWRGBATransferFunctionEditorTester-scalars.mgh \
 				$(top_builddir)/vtkutils/; fi;
+	if ! test -f "$(top_builddir)/vtkutils/IconLoaderTestIcons.txt"; then \
+	cp -v $(top_srcdir)/vtkutils/IconLoaderTestIcons.txt \
+				$(top_builddir)/vtkutils/; fi;
 
-check_PROGRAMS=foo vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
-#TESTS is commented-out because the tests are interactive (can't run automatically)
+check_PROGRAMS=foo IconLoaderTest \
+vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
+TESTS=testIconLoader
+#these commented-out because the tests are interactive (can't run automatically)
 #TESTS=vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
 else
 check_PROGRAMS=
 TESTS=
 endif
+
+IconLoaderTest_SOURCES=IconLoaderTest.cxx IconLoader.cxx
+
+IconLoaderTest_LDADD=\
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys \
+	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
+	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
+	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
+	-lvtkFilteringTCL -lvtkWidgetsTCL \
+	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
+	-lvtkCommonTCL \
+	$(KWWIDGETS_LIBS) -lKWWidgets
+
 
 # vtkKWRGBATransferFunctionEditorTester test program
 vtkKWRGBATransferFunctionEditorTester_SOURCES=vtkKWRGBATransferFunctionEditorTester.cxx \
@@ -126,7 +153,8 @@ vtkKWRGBATransferFunctionEditorTester.h \
 vtkODFGlyph.h \
 vtkRGBATransferFunction.h \
 RgbatransferfunctioneditortesterLibInit.data \
-vtkKWRGBATransferFunctionEditorTester-scalars.mgh
+vtkKWRGBATransferFunctionEditorTester-scalars.mgh \
+IconLoaderTest.cxx IconLoaderTestIcons.txt testIconLoader
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
