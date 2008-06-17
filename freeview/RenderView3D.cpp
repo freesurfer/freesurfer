@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/17 23:08:18 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,7 +66,8 @@ void RenderView3D::InitializeRenderView3D()
 	m_interactor = new Interactor3DNavigate();
 	
 	m_bToUpdateRASPosition = false;
-	vtkPointPicker* picker = vtkPointPicker::New();
+	vtkCellPicker* picker = vtkCellPicker::New();
+//	vtkPointPicker* picker = vtkPointPicker::New();
 	this->SetPicker( picker );
 	picker->Delete();
 }
@@ -135,7 +136,8 @@ void RenderView3D::DoUpdateMouseRASPosition( int posX, int posY )
 	LayerCollection* lc_surface = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );	
 	
 //	MousePositionToRAS( posX, posY, pos );
-	vtkPointPicker* picker = vtkPointPicker::SafeDownCast( this->GetPicker() );
+//	vtkPointPicker* picker = vtkPointPicker::SafeDownCast( this->GetPicker() );
+	vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetPicker() );
 	if ( picker )
 	{
 		double pos[3];

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/17 23:08:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,23 @@ public:
 	void ConvertRASToSurface ( float const iRAS[3], float oSurf[3] ) const;
 	void ConvertRASToSurface ( double const iRAS[3], double oSurf[3] ) const;
 
+  // Description:
+  // Get the vertex number from a RAS or surface RAS point. This uses
+  // the hash table and finds only the closest vertex point. If
+  // oDistance is not NULL, the distance to the found point will be
+  // returned there.
+	int FindVertexAtRAS        ( float  const iRAS[3],       float*  oDistance );
+	int FindVertexAtRAS        ( double const iRAS[3],       double* oDistance );
+	int FindVertexAtSurfaceRAS ( float  const iSurfaceRAS[3],float*  oDistance );
+	int FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],double* oDistance );
+
+  // Description:
+  // Get the RAS or surface RAS coords at a vertex index.
+	void GetRASAtVertex        ( int inVertex, float  ioRAS[3] );
+	void GetRASAtVertex        ( int inVertex, double ioRAS[3] );
+	void GetSurfaceRASAtVertex ( int inVertex, float  ioRAS[3] );
+	void GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] );	
+	
 	int GetNumberOfVertices () const;
 	
 	vtkPolyData* GetPolyData()

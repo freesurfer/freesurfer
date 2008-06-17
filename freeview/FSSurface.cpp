@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/17 23:08:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -333,4 +333,108 @@ int FSSurface::GetNumberOfVertices () const
 		return m_MRIS->nvertices;
 	else
 		return 0;
+}
+
+
+int FSSurface::FindVertexAtRAS ( float const iRAS[3], float* oDistance ) 
+{
+	float surf[3];
+	this->ConvertRASToSurface( iRAS, surf );
+
+	return this->FindVertexAtSurfaceRAS( surf, oDistance );
+}
+
+int	FSSurface::FindVertexAtRAS ( double const iRAS[3], double* oDistance ) 
+{
+	double surf[3];
+	this->ConvertRASToSurface( iRAS, surf );
+
+	return this->FindVertexAtSurfaceRAS( surf, oDistance );
+}
+
+int	FSSurface::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
+						float* oDistance ) 
+{
+	VERTEX v;
+	v.x = iSurfaceRAS[0];
+	v.y = iSurfaceRAS[1];
+	v.z = iSurfaceRAS[2];
+	float distance;
+	int nClosestVertex =
+	MHTfindClosestVertexNo( m_HashTable, m_MRIS, &v, &distance );
+
+	if ( -1 == nClosestVertex ) 
+	{
+	//	cerr << "No vertices found." << endl;
+		return -1;
+	}
+
+	if ( NULL != oDistance ) 
+	{
+		*oDistance = distance;
+	}
+
+	return nClosestVertex;
+}
+
+int	FSSurface::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],
+								double* oDistance ) 
+{
+	VERTEX v;
+	v.x = static_cast<float>(iSurfaceRAS[0]);
+	v.y = static_cast<float>(iSurfaceRAS[1]);
+	v.z = static_cast<float>(iSurfaceRAS[2]);
+	float distance;
+	int nClosestVertex = MHTfindClosestVertexNo( m_HashTable, m_MRIS, &v, &distance );
+	if ( -1 == nClosestVertex ) 
+	{
+	//	cerr << "No vertices found.";
+	}
+
+	if ( NULL != oDistance ) 
+	{
+		*oDistance = static_cast<double>(distance);
+	}
+
+	return nClosestVertex;
+}
+
+void FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3] ) 
+{
+	float surfaceRAS[3];
+	this->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
+	this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+}
+
+void FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3] ) 
+{
+	double surfaceRAS[3];
+	this->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
+	this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+}
+
+void FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] ) 
+{
+	if( m_MRIS == NULL )
+		throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
+
+	if( inVertex < 0 || inVertex >= m_MRIS->nvertices )
+		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+
+	ioRAS[0] = m_MRIS->vertices[inVertex].x;
+	ioRAS[1] = m_MRIS->vertices[inVertex].y;
+	ioRAS[2] = m_MRIS->vertices[inVertex].z;
+}
+
+void FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] ) 
+{
+	if( m_MRIS == NULL )
+		throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
+	
+	if( inVertex < 0 || inVertex >= m_MRIS->nvertices )
+		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+
+	ioRAS[0] = static_cast<double>(m_MRIS->vertices[inVertex].x);
+	ioRAS[1] = static_cast<double>(m_MRIS->vertices[inVertex].y);
+	ioRAS[2] = static_cast<double>(m_MRIS->vertices[inVertex].z);
 }

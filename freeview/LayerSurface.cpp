@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/12 20:59:16 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/17 23:08:18 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -326,3 +326,10 @@ bool LayerSurface::HasProp( vtkProp* prop )
 	return prop == m_mainActor;
 }
 
+int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )
+{
+	if ( m_surfaceSource == NULL )
+		return -1;
+	
+	return m_surfaceSource->FindVertexAtRAS( ras, distance );
+}

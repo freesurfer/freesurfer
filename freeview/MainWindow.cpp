@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/12 20:59:16 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/06/17 23:08:18 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -143,6 +143,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewResetUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayer )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayerUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibility )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibilityUpdateUI )
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
 /*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
@@ -1251,6 +1253,22 @@ void MainWindow::OnViewCycleLayerUpdateUI( wxUpdateUIEvent& event )
 	}
 	
 	event.Enable( lc && lc->GetNumberOfLayers() > 1 );
+}
+
+void MainWindow::OnViewToggleVolumeVisibility( wxCommandEvent& event )
+{
+	LayerCollection* lc = GetLayerCollection( "MRI" );
+	if ( !lc->IsEmpty() )
+	{
+		Layer* layer = lc->GetActiveLayer();
+		if ( layer )
+			layer->SetVisible( !layer->IsVisible() );
+	}
+}
+
+void MainWindow::OnViewToggleVolumeVisibilityUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
 }
 
 void MainWindow::NeedRedraw( int nCount )

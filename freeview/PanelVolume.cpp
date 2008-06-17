@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/17 23:08:18 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -496,6 +496,7 @@ void PanelVolume::DoUpdateUI()
 		layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
 		if ( layer )
 		{
+			m_listBoxLayers->Check( m_listBoxLayers->GetSelection(), layer->IsVisible() );
 			m_sliderOpacity->SetValue( (int)( layer->GetProperties()->GetOpacity() * 100 ) );
 			UpdateTextValue( m_textOpacity, layer->GetProperties()->GetOpacity() );
 			m_checkClearBackground->SetValue( layer->GetProperties()->GetClearZero() );
