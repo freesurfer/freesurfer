@@ -163,29 +163,6 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     return TCL_OK;
     }
     }
-  if ((!strcmp("GetShowCursor",argv[1]))&&(argc == 2))
-    {
-    bool   temp20;
-    temp20 = (op)->GetShowCursor();
-    char tempResult[1024];
-    sprintf(tempResult,"%i",(int)temp20);
-    Tcl_SetResult(interp, tempResult, TCL_VOLATILE);
-    return TCL_OK;
-    }
-  if ((!strcmp("SetShowCursor",argv[1]))&&(argc == 3))
-    {
-    bool   temp0;
-    error = 0;
-
-    if (Tcl_GetInt(interp,argv[2],&tempi) != TCL_OK) error = 1;
-    temp0 = tempi ? true : false;
-    if (!error)
-    {
-    op->SetShowCursor(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
   if ((!strcmp("SetSurface",argv[1]))&&(argc == 3))
     {
     vtkFSSurfaceSource  *temp0;
@@ -414,8 +391,6 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     Tcl_AppendResult(interp,"  ResetView\n",NULL);
     Tcl_AppendResult(interp,"  RestoreView\n",NULL);
     Tcl_AppendResult(interp,"  ZoomBy\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  GetShowCursor\n",NULL);
-    Tcl_AppendResult(interp,"  SetShowCursor\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurface\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColors\t with 1 arg\n",NULL);
