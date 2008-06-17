@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:27 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2008/06/17 23:54:38 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -219,6 +219,7 @@ public:
   double mDefaultPosition[3];
   double mDefaultFocalPoint[3];
   double mDefaultViewUp[3];
+  float  mDefaultZoom;
 
   // The currently selected vertex at the cursor. We use this to sync
   // the cursor when switching surfaces.
