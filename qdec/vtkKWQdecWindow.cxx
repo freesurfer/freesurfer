@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:27 $
- *    $Revision: 1.1.2.4 $
+ *    $Date: 2008/06/18 19:55:14 $
+ *    $Revision: 1.1.2.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.4 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.5 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -2058,11 +2058,9 @@ vtkKWQdecWindow::LoadSurface ( const char* ifnSurface, const char* isLabel ) {
       // Select this one.
       this->SetCurrentSurface( sLabel.c_str() );
 
-      // First time we do this, reset the view to initialize it.
-      if( !mbViewInitialized ) {
-        mView->ResetView();
-        mbViewInitialized = true;
-      }
+      // reset the view to initialize it.
+      mView->ResetView();
+      mbViewInitialized = true;
 
       this->SetStatusText( "Surface loaded." );
       this->AddRecentFile( ifnSurface, this, "LoadSurface" );
