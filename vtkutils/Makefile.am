@@ -55,7 +55,7 @@ foo:
 check_PROGRAMS=foo IconLoaderTest vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
 #TESTS is commented-out because the tests are interactive (can't run automatically)
 #TESTS=vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
-TESTS=testIconLoader
+#TESTS=testIconLoader
 else
 check_PROGRAMS=
 TESTS=
