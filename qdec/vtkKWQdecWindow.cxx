@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/16 20:05:53 $
- *    $Revision: 1.28 $
+ *    $Date: 2008/06/18 21:26:01 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.28 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.29 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -416,11 +416,11 @@ vtkKWQdecWindow::CreateWidget () {
 
   // These menu items are for loading pieces of data individually, and
   // can be enabled for debugging.
-#if 0
+#if 1
   this->GetFileMenu()->InsertCommand( nItem++, "Load Surface...",
                                       this, "LoadSurfaceFromDlog" );
-  this->GetFileMenu()->InsertCommand( nItem++, "Load GDF...",
-                                      this, "LoadGDFFromDlog" );
+//  this->GetFileMenu()->InsertCommand( nItem++, "Load GDF...",
+//                                      this, "LoadGDFFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load Scalars...",
                                       this, "LoadSurfaceScalarsFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load Curvature...",
@@ -1445,6 +1445,13 @@ vtkKWQdecWindow::LoadSurfaceFromDlog () {
   dialog->SetTitle( "Load Surface" );
   dialog->SetFileTypes( "{{Surface} {lh.* rh.*}} {{All} {*}}" );
   dialog->RetrieveLastPathFromRegistry( "LoadSurface" );
+
+  // Set the default dir to the fsaverage subject surf dir,
+  // because more often than not the fsaverage inflated surf is desired
+  string sQdecDir = this->mQdecProject->GetSubjectsDir() + 
+    + "/" + this->mQdecProject->GetAverageSubject() + "/surf";
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadSurface" );
     string fn( dialog->GetFileName() );
@@ -1479,7 +1486,11 @@ vtkKWQdecWindow::LoadSurfaceScalarsFromDlog () {
   dialog->SetTitle( "Load Scalars" );
   dialog->SetFileTypes( 
     "{{Volume encoded scalars} {*.mgh *.mgz}} {{All} {*}}" );
-  dialog->RetrieveLastPathFromRegistry( "LoadSurfaceScalars" );
+
+  // Set the default dir to the subjects dir / qdec.
+  string sQdecDir = this->mQdecProject->GetSubjectsDir() + "/qdec";
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadSurfaceScalars" );
     string fn( dialog->GetFileName() );
@@ -1496,7 +1507,11 @@ vtkKWQdecWindow::LoadCurvatureFromDlog () {
   dialog->Create();
   dialog->SetTitle( "Load Curvature" );
   dialog->SetFileTypes( "{{Curvature} {*.curv}} {{All} {*}}" );
-  dialog->RetrieveLastPathFromRegistry( "LoadCurvature" );
+
+  // Set the default dir to the subjects dir.
+  string sQdecDir = this->mQdecProject->GetSubjectsDir();
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadCurvature" );
     string fn( dialog->GetFileName() );
@@ -1513,7 +1528,11 @@ vtkKWQdecWindow::LoadAnnotationFromDlog () {
   dialog->Create();
   dialog->SetTitle( "Load Annotation" );
   dialog->SetFileTypes( "{{Annotation} {*.annot}} {{All} {*}}" );
-  dialog->RetrieveLastPathFromRegistry( "LoadAnnotation" );
+
+  // Set the default dir to the subjects dir
+  string sQdecDir = this->mQdecProject->GetSubjectsDir();
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadAnnotation" );
     string fn( dialog->GetFileName() );
