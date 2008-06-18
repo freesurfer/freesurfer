@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/17 21:34:27 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/18 02:56:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA).
@@ -33,16 +33,14 @@
 #include "IconLoaderTest.h"
 
 extern "C" {
-
 #include "unistd.h" // getcwd
 #include "tix.h"
-  
-  extern int Qdeclib_SafeInit( Tcl_Interp* iInterp );
-  extern int Blt_Init( Tcl_Interp* iInterp );
-
+    extern int Blt_Init( Tcl_Interp* iInterp );
 }
 
 using namespace std;
+
+static int errs=0;
 
 vtkStandardNewMacro( IconLoaderTest );
 
@@ -54,21 +52,23 @@ IconLoaderTest::IconLoaderTest () :
     IconLoader::Initialize( this );
     
     try {
-      IconLoader::LoadIconsFromFile( "./IconLoaderTestIcons.txt" );
+      errs += IconLoader::LoadIconsFromFile( "./IconLoaderTestIcons.txt" );
     }
     catch(...) {
       char* pfnFreesurferDir = getenv( "FREESURFER_HOME" );
       if( NULL != pfnFreesurferDir ) {
         string fnIcons =
           string(pfnFreesurferDir) + "/lib/resource/QdecIcons.txt";
-        IconLoader::LoadIconsFromFile( fnIcons.c_str() );
+        errs += IconLoader::LoadIconsFromFile( fnIcons.c_str() );
       }
     }
   }
   catch( exception& e ) {
     cerr << "Error loading icons: " << e.what() << endl;
+    errs++;
   }
-  cout << "Success loading icons" << endl;
+
+  if (0 == errs) cout << "Success loading icons" << endl;
 };
 
 IconLoaderTest::~IconLoaderTest () {
@@ -104,5 +104,5 @@ int main ( int argc, char** argv ) {
   IconLoaderTest* app = IconLoaderTest::New();
   app->Delete();
 
-  return 0;
+  return errs;
 }

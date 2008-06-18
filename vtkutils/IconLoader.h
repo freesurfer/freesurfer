@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/01 19:56:45 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2008/06/18 02:56:58 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@ public:
   // home IMAGEDIR/home.tif IMAGEDIR/home.gif
   // back /usr/share/tif/back.tif /usr/share/gif/back.gif
   // forwards ./forward.tif ./forward.gif
-  static void LoadIconsFromFile ( const char* ifn );
+  static int LoadIconsFromFile ( const char* ifn );
   
   // Description:
   // Call this to load icons at run time. The key is a string key (no
@@ -73,7 +73,7 @@ public:
   // is used to load image data, and a GIF file will be loaded into
   // Tk. It will substitute IMAGEDIR/ in the filename with the
   // FREESURFER_HOME/lib/images/, or a static file name can be used.
-  static void LoadIcon ( const char* isKey,
+  static int LoadIcon ( const char* isKey,
 			 const char* ifnTIFF,
 			 const char* ifnGIF );
 

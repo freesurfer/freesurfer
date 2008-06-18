@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:37 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/18 02:56:58 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -148,8 +148,10 @@ IconLoader:: SetMenuItemIcon ( const char* isKey,
   iMenu->SetItemImage( inItem, isKey );
 }
  
-void
+int
 IconLoader::LoadIconsFromFile ( const char* ifn ) {
+
+  int errs=0;
 
   // Try to open the file.
   ifstream fIcons( ifn, ios::in );
@@ -176,34 +178,45 @@ IconLoader::LoadIconsFromFile ( const char* ifn ) {
 
       // Try to load the icon with the strings that we got.
       try { 
-	LoadIcon( sKey.c_str(), sfnTIFF.c_str(), sfnGIF.c_str() );
+        //cout << "LoadIcon: " << sKey.c_str() << ", " 
+        //   << sfnTIFF.c_str() << ", " 
+        //   << sfnGIF.c_str() << endl;
+        errs += LoadIcon( sKey.c_str(), sfnTIFF.c_str(), sfnGIF.c_str() );
       } 
       catch( exception& e ) {
-	cerr << "Error reading " << ifn << ", line " << nLine << ": "
-	     << e.what() << endl;
+        cerr << "Error reading " << ifn << ", line " << nLine << ": "
+             << e.what() << endl;
+        errs++;
       }
 
     } else {
       
       cerr << "Error reading " << ifn << ", line " << nLine 
-	   << ": Malformed line, unexpected number of entries." << endl;
+           << ": Malformed line, unexpected number of entries." << endl;
+      errs++;
     }
 
     nLine++;
   }
 
   fIcons.close();
+
+  return errs;
 }
 
-void
+int
 IconLoader::LoadIcon ( const char* isKey,
 		       const char* ifnTIFF,
 		       const char* ifnGIF ) {
   
+  int errs=0;
+
   // We'll substitute any IMAGEDIR in the file name with these
   // strings.
+  string fnImageDir;
   char* FREESURFER_HOME = getenv( "FREESURFER_HOME" );
-  string fnImageDir = string(FREESURFER_HOME) + "/lib/images";
+  if (NULL == FREESURFER_HOME) fnImageDir= "../images";
+  else fnImageDir = string(FREESURFER_HOME) + "/lib/images";
 
   string fnTIFF = ifnTIFF;
   string fnGIF = ifnGIF;
@@ -247,22 +260,24 @@ IconLoader::LoadIcon ( const char* isKey,
           memmove( (void*)&data[(zImageHeight-1-nRow) * zImageWidth],
                    (void*)&tempData[nRow * zImageWidth],
                    sizeof(uint32) * zImageWidth );
-        }
+        } 
 
         maTIFFData[isKey] = (unsigned char*) data;
         maWidth[isKey] = zImageWidth;
         maHeight[isKey] = zImageHeight;
 
       } else {
+        errs++;
         _TIFFfree( data );
         _TIFFfree( tempData );
       }
-    }
+    } else errs++;
 
     _TIFFfree( tempData );
     TIFFClose( tiff );
 
   } else {
+    errs++;
     string sError;
     sError = string("Couldn't open ") + fnTIFF + ", missing?";
     throw runtime_error( sError );
@@ -274,4 +289,6 @@ IconLoader::LoadIcon ( const char* isKey,
   mApp->Script( "image create photo %s -file %s", isKey, fnGIF.c_str());
 
   mabTkIconLoaded[isKey] = true;
+
+  return errs;
 }

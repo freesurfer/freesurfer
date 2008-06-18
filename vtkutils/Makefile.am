@@ -3,18 +3,34 @@
 #
 
 if USE_LOCAL_TIFF
-TIFFCFLAGS=-I$(top_srcdir)/tiff
+TIFF_THINGS=-I$(top_srcdir)/tiff -L$(top_srcdir)/tiff
 else
-TIFFCFLAGS=$(TIFF_CFLAGS)
+TIFF_THINGS=$(TIFF_CFLAGS)
 endif
 
+if USE_LOCAL_JPEG
+JPEG_THINGS=-I$(top_srcdir)/jpeg -L$(top_srcdir)/jpeg
+else
+JPEG_THINGS=$(JPEG_CFLAGS)
+endif
+
+if USE_LOCAL_EXPAT
+EXPAT_THINGS=-I$(top_srcdir)/expat -L$(top_srcdir)/expat
+else
+EXPAT_THINGS=$(EXPAT_CFLAGS)
+endif
+
+
 AM_CPPFLAGS= -Wno-deprecated \
+	$(TIFF_THINGS) $(JPEG_THINGS) $(EXPAT_THINGS) \
 	$(GL_CFLAGS) \
 	$(TCL_CFLAGS) \
-	$(VXL_CFLAGS) $(TIFFCFLAGS) \
+	$(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	$(VTK_CXXFLAGS) \
 	$(KWWIDGETS_CXXFLAGS)
+
+AM_CXXFLAGS=$(AM_CPPFLAGS)
 
 AM_LDFLAGS=
 
@@ -77,8 +93,8 @@ IconLoaderTest_LDADD=\
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
+	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
@@ -111,8 +127,8 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
+	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
@@ -131,8 +147,8 @@ vtkArrowPipelineTester_LDADD=\
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
+	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
