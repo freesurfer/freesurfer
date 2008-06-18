@@ -74,9 +74,9 @@ foo:
 
 check_PROGRAMS=foo IconLoaderTest \
 vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
-TESTS=testIconLoader
 #these commented-out because the tests are interactive (can't run automatically)
 #TESTS=vtkKWRGBATransferFunctionEditorTester vtkArrowPipelineTester
+#TESTS=testIconLoader
 else
 check_PROGRAMS=
 TESTS=
