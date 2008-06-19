@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/21 21:45:02 $
- *    $Revision: 1.366 $
+ *    $Author: fischl $
+ *    $Date: 2008/06/19 19:23:12 $
+ *    $Revision: 1.367 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -735,6 +735,8 @@ extern float ic_z_vertices[]  ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
+double     MRImaxNorm(MRI *mri) ;
+
 int        MRIlabelValRange(MRI *mri,
                             MRI *mri_labeled,
                             int label,
@@ -1204,4 +1206,8 @@ MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched,
 #define MRI_WASHU_MPRAGE     3
 #define MRI_MIND_MPRAGE      4
 
+
+MRI *MRIcreateDistanceTransforms(MRI *mri, MRI *mri_all_dtrans, 
+                                 float max_dist,
+                                 int *labels, int nlabels);
 #endif
