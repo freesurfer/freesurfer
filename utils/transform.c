@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/01 17:58:17 $
- *    $Revision: 1.125 $
+ *    $Author: fischl $
+ *    $Date: 2008/06/22 23:01:37 $
+ *    $Revision: 1.126 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -734,7 +734,7 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 MRI *
 LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
 {
-  int         y1, y2, y3, width, height, depth, xi, yi, zi ;
+  int         y1, y2, y3, width, height, depth, xi, yi, zi, f ;
   VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
   Real        x1, x2, x3 ;
   MATRIX      *m_L, *m_L_inv ;
@@ -928,7 +928,220 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         xi = mri_dst->xi[nint(x1)] ;
         yi = mri_dst->yi[nint(x2)] ;
         zi = mri_dst->zi[nint(x3)] ;
-        MRIvox(mri_dst, y1, y2, y3) = MRIvox(mri_src, xi, yi, zi) ;
+        for (f = 0 ; f < mri_dst->nframes ; f++)
+          MRIsetVoxVal(mri_dst, y1, y2, y3, f, MRIgetVoxVal(mri_src, xi, yi, zi, f)) ;
+      }
+    }
+#if 0
+    if (y3 > 10)
+      exit(0) ;
+#endif
+  }
+
+  MatrixFree(&v_X) ;
+  MatrixFree(&v_Y) ;
+  MatrixFree(&m_L) ;
+  MatrixFree(&m_L_inv) ;
+
+  return(mri_dst) ;
+}
+MRI *
+LTAinverseTransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
+{
+  int         y1, y2, y3, width, height, depth, xi, yi, zi, f ;
+  VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
+  Real        x1, x2, x3 ;
+  MATRIX      *m_L, *m_L_inv ;
+  LT *tran = &lta->inv_xforms[0];
+  MATRIX *r2i = 0;
+  MATRIX *i2r = 0;
+  MATRIX *tmp = 0;
+  MATRIX *v2v = 0;
+  MRI *resMRI = 0;
+
+  if (lta->num_xforms == 1)
+  {
+    /////////////////////////////////////////////////////////////////////////
+    //  The transform was created using src and dst
+    //           src vox ----> RAS
+    //            |             |
+    //            V             V
+    //           dst vox ----> RAS
+    //
+    //  Note: RAS is the physical space.  vox is the way to
+    // embed voxel in physical space
+    //
+    //  You can take arbitray embedding of the dst but keeping the RAS same.
+    //
+    //           src vox ----> RAS
+    //            | v2v         | r2r
+    //            V             V
+    //           dst vox ----> RAS
+    //            |             || identity
+    //            V             ||
+    //           dst' vox ---> RAS
+    //
+    //  where dst->dst' map is given by V2V' = r2i(dst')*i2r(dst)
+    //
+    //  Note that in order to obtain src->dst' with r2r, you
+    // "don't need any info from dst"
+    //  since
+    //          src->dst'  = r2i(dst')* r2r * i2r(src)
+    //
+    //  However, using v2v, you need the information from dst
+    //  since
+    //          src->dst'  = r2i(dst')* i2r(dst) * v2v
+    //
+    ////////////////////////////////////////////////////////////////////////
+    // when the dst volume is not given
+    if (!mri_dst)
+    {
+      // use the same volume size as the src
+      mri_dst = MRIclone(mri_src, NULL);
+      if (tran->dst.valid == 1) // transform dst is valid
+      {
+        // modify dst c_(r,a,s) using the transform dst value
+        // to make the better positioning (i.e. put the
+        // head in the same position in
+        // the volume as the dst was)
+        if (DIAG_VERBOSE_ON)
+          fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
+                  "using the transform dst\n");
+        mri_dst->c_r = tran->dst.c_r;
+        mri_dst->c_a = tran->dst.c_a;
+        mri_dst->c_s = tran->dst.c_s;
+        mri_dst->ras_good_flag = 1;
+        // now we cache transform and thus we have to do
+        // the following whenever
+        // we change direction cosines
+        MRIreInitCache(mri_dst);
+      }
+      else if (getenv("USE_AVERAGE305"))
+      {
+        fprintf(stderr, "INFO: Environmental variable "
+                "USE_AVERAGE305 set\n");
+        fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
+                "using average_305 values\n");
+        mri_dst->c_r = -0.0950;
+        mri_dst->c_a = -16.5100;
+        mri_dst->c_s = 9.7500;
+        mri_dst->ras_good_flag = 1;
+        // now we cache transform and thus we have to
+        // do the following whenever
+        // we change direction cosines
+        MRIreInitCache(mri_dst);
+      }
+      else
+        fprintf(stderr, "INFO: Transform dst volume "
+                "info is not used (valid flag = 0).\n");
+    }
+    ////////////////////////////////////////////////////////////////////////
+    if (lta->type == LINEAR_RAS_TO_RAS)
+    {
+      // don't need any info from dst
+      return(MRIapplyRASlinearTransformInterp(mri_src,
+                                              mri_dst,
+                                              lta->inv_xforms[0].m_L,
+                                              interp)) ;
+    }
+    else if (lta->type == LINEAR_VOX_TO_VOX)// vox-to-vox
+    {
+      if (lta->xforms[0].dst.valid)
+      {
+        i2r = vg_i_to_r(&lta->inv_xforms[0].dst); // allocated
+        r2i = extract_r_to_i(mri_dst);
+        tmp = MatrixMultiply(i2r, lta->inv_xforms[0].m_L, NULL);
+        v2v = MatrixMultiply(r2i, tmp, NULL);
+        resMRI = MRIlinearTransformInterp(mri_src, mri_dst, v2v, interp);
+        MatrixFree(&v2v);
+        v2v = 0;
+        MatrixFree(&i2r);
+        i2r = 0;
+        MatrixFree(&r2i);
+        r2i = 0;
+        MatrixFree(&tmp);
+        tmp = 0;
+        return resMRI;
+      }
+      else
+      {
+        fprintf(stderr, "INFO: assumes that the dst volume "
+                "given is the same as the dst for the transform\n");
+        return(MRIlinearTransformInterp(mri_src, mri_dst,
+                                        lta->inv_xforms[0].m_L, interp)) ;
+      }
+    }
+    else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
+    {
+      // must have both transform src and dst geometry information
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      return(MRIapplyRASlinearTransformInterp(mri_src, mri_dst,
+                                              lta->inv_xforms[0].m_L, interp)) ;
+    }
+    else
+      ErrorExit(ERROR_BADPARM, "LTAtransform: unknown linear transform\n");
+  }
+  fprintf(stderr, "applying octree transform to image...\n") ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  v_X     = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  v_Y     = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+  m_L     = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  m_L_inv = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  v_Y->rptr[4][1] = 1.0f ;
+
+  if (lta->num_xforms == 1)
+  {
+    LTAtransformAtPoint(lta, 0, 0, 0, m_L_inv) ;
+    if (m_L_inv == NULL)
+    {
+      ErrorReturn(NULL,
+                  (ERROR_BADPARM, "LTAinverseTransform: could not invert matrix")) ;
+    }
+  }
+  for (y3 = 0 ; y3 < depth ; y3++)
+  {
+    DiagHeartbeat((float)y3 / (float)(depth-1)) ;
+    V3_Z(v_Y) = y3 ;
+
+    for (y2 = 0 ; y2 < height ; y2++)
+    {
+      V3_Y(v_Y) = y2 ;
+      for (y1 = 0 ; y1 < width ; y1++)
+      {
+        V3_X(v_Y) = y1 ;
+
+        /*
+          this is not quite right. Should use the weighting at
+          the point that maps to (y1,y2,y3), not (y1,y2,y3) itself,
+          but this is much easier....
+        */
+        if (lta->num_xforms > 1)
+        {
+          LTAtransformAtPoint(lta, y1, y2, y3, m_L) ;
+#if 0
+          if (MatrixSVDInverse(m_L, m_L_inv) == NULL)
+            continue ;
+#else
+          if (MatrixInverse(m_L, m_L_inv) == NULL)
+            continue ;
+#endif
+        }
+        MatrixMultiply(m_L_inv, v_Y, v_X) ;
+        x1 = V3_X(v_X) ;
+        x2 = V3_Y(v_X) ;
+        x3 = V3_Z(v_X) ;
+
+        xi = mri_dst->xi[nint(x1)] ;
+        yi = mri_dst->yi[nint(x2)] ;
+        zi = mri_dst->zi[nint(x3)] ;
+        for (f = 0 ; f < mri_dst->nframes ; f++)
+          MRIsetVoxVal(mri_dst, y1, y2, y3, f, MRIgetVoxVal(mri_src, xi, yi, zi, f)) ;
       }
     }
 #if 0
@@ -2268,6 +2481,25 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
     LTAinvert(lta);
     mri_dst = LTAtransform(mri_src, NULL, lta);
     LTAinvert(lta); // restore the original
+    break ;
+  }
+  return(mri_dst) ;
+}
+MRI *
+TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type)
+{
+  LTA *lta = 0;
+  switch (transform->type)
+  {
+  case MORPH_3D_TYPE:
+    mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL);
+    break ;
+  default:
+    // the following does not work for ras-to-ras
+    // mri_dst = MRIinverseLinearTransform(mri_src, NULL,
+    //      ((LTA *)transform->xform)->xforms[0].m_L);
+    lta = (LTA*) transform->xform;
+    mri_dst = LTAinverseTransformInterp(mri_src, NULL, lta, interp_type);
     break ;
   }
   return(mri_dst) ;
