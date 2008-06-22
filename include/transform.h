@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/14 20:30:04 $
- *    $Revision: 1.58 $
+ *    $Author: fischl $
+ *    $Date: 2008/06/22 23:02:00 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -185,6 +185,8 @@ int       TransformSwapInverse(TRANSFORM *transform) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 MRI       *TransformCreateDensityMap(TRANSFORM *transform,
                                      MRI *mri_src, MRI *mri_dst) ;
+MRI *      TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, 
+                                     int interp_type);
 MRI       *TransformApplyType(TRANSFORM *transform,
                               MRI *mri_src, MRI *mri_dst, int interp_type) ;
 MRI       *TransformApplyInverse(TRANSFORM *transform,
