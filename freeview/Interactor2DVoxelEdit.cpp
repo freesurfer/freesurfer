@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/23 21:29:00 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/06/23 21:28:14 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -167,7 +167,7 @@ bool Interactor2DVoxelEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView
 bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
 {
 	RenderView2D* view = ( RenderView2D* )renderview;
-//	UpdateCursor( view );
+	UpdateCursor( view );
 	
 	if ( m_bEditing )
 	{
