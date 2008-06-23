@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/17 23:08:18 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/23 21:28:14 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,7 @@
 #include "vtkPlane.h"
 #include "vtkCutter.h"
 #include "vtkDecimatePro.h"
+#include "vtkMapperCollection.h"
 #include "LayerPropertiesSurface.h"
 #include "MyUtils.h"
 #include "FSSurface.h"
@@ -96,10 +97,10 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
 	InitializeSurface();
 	InitializeActors();
 	
+	mProperties->SetSurfaceSource( m_surfaceSource );
+	
 	event.SetInt( 100 );
 	wxPostEvent( wnd, event );
-	
-//	mProperties->SetSurfaceSource( m_surfaceSource );
 	
 	return true;	
 }
@@ -198,17 +199,31 @@ void LayerSurface::UpdateOpacity()
 	m_mainActor->GetProperty()->SetOpacity( mProperties->GetOpacity() );
 }
 
-void LayerSurface::UpdateColorMap () 
+void LayerSurface::UpdateColorMap() 
 {
-	assert( mProperties );
-
+	if ( m_surfaceSource == NULL )
+		return;
+	
 	for ( int i = 0; i < 3; i++ )
 	{
 		m_sliceActor2D[i]->GetProperty()->SetColor( mProperties->GetEdgeColor() );
 		m_sliceActor3D[i]->GetProperty()->SetColor( mProperties->GetEdgeColor() );
+		m_sliceActor2D[i]->GetMapper()->ScalarVisibilityOff();
+		m_sliceActor3D[i]->GetMapper()->ScalarVisibilityOff();
 	}
 	
 	m_mainActor->GetProperty()->SetColor( mProperties->GetColor() );
+	if ( m_surfaceSource->IsCurvatureLoaded() )
+	{
+		m_mainActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
+		vtkSmartPointer<vtkMapperCollection> mc = m_mainActor->GetLODMappers();
+		mc->InitTraversal();
+		vtkMapper* mapper = NULL;
+		while ( ( mapper = mc->GetNextItem() ) != NULL )
+		{
+			mapper->SetLookupTable( mProperties->GetCurvatureLUT() );
+		} 
+	}
 }
 
 void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
@@ -258,8 +273,6 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
 {  
 	if ( m_surfaceSource == NULL )
 		return;
-	
-	assert( mProperties );
 		
 	vtkSmartPointer<vtkMatrix4x4> matrix = 
 			vtkSmartPointer<vtkMatrix4x4>::New();

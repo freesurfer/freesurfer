@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/17 23:08:18 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/23 21:28:14 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -493,6 +493,9 @@ void PanelVolume::DoUpdateUI()
 	LayerPropertiesMRI::ColorMapType nColorMap = LayerPropertiesMRI::NoColorMap;
 	if ( bHasVolume )
 	{
+		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+		for ( int i = 0; i < (int)m_listBoxLayers->GetCount() && i < lc->GetNumberOfLayers(); i++ )
+			m_listBoxLayers->Check( i, lc->GetLayer( i )->IsVisible() );
 		layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
 		if ( layer )
 		{

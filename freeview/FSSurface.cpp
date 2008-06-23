@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/17 23:08:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/23 21:28:13 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,7 @@
  */
 
 #include <wx/wx.h>
+#include <wx/filename.h>
 #include "FSSurface.h"
 #include <stdexcept>
 #include "vtkShortArray.h"
@@ -47,7 +48,12 @@ using namespace std;
 FSSurface::FSSurface() :
 	m_MRIS( NULL ),
 	m_bBoundsCacheDirty( true ),
-	m_HashTable( NULL )
+	m_HashTable( NULL ),
+	m_bOriginalSurfaceLoaded( false ),
+	m_bWhiteSurfaceLoaded( false ),
+	m_bInflatedSurfaceLoaded( false ),
+	m_bPialSurfaceLoaded( false ),
+	m_bCurvatureLoaded( false )
 {
 	m_polydata = vtkPolyData::New();
 }
@@ -79,7 +85,8 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 		cerr << "MRISread failed" << endl;
 		return false;
 	}	
-	cout << "MRISread finished" << endl;
+//	wxFileName wxfn( filename );
+//	wxString fn_prefix = wxfn.GetPath( wxPATH_GET_SEPARATOR | wxPATH_GET_VOLUME ) + wxfn.GetName();
 	
   // Get some info from the MRIS. This can either come from the volume
   // geometry data embedded in the surface; this is done for newer
@@ -137,7 +144,99 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 		
 	UpdatePolyData();
 	
+	LoadWhiteSurface();
+	LoadInflatedSurface();
+	LoadPialSurface();
+	LoadCurvature();
+	
+	cout << "MRISread finished" << endl;
+		
 	return true;
+}
+
+bool FSSurface::LoadOriginalSurface( const char* filename )
+{
+	return true;
+}
+
+bool FSSurface::LoadWhiteSurface( const char* filename )
+{
+	if ( ::MRISreadWhiteCoordinates( m_MRIS, (char*)(filename ? filename : "white") ) != 0 )
+	{
+		cerr << "could not white matter surface from " << (filename ? filename : "white") << endl;
+		m_bWhiteSurfaceLoaded = false;
+		return false;
+	}
+	else
+	{
+	//	::MRISsaveVertexPositions( m_MRIS, TMP_VERTICES );
+	//	::MRISrestoreVertexPositions( m_MRIS, WHITE_VERTICES );
+	//	vset_save_surface_vertices( VSET_WHITE );
+	//	::MRISrestoreVertexPositions( m_MRIS, TMP_VERTICES );
+		m_bWhiteSurfaceLoaded = true;
+		return true;
+	}	
+}
+
+bool FSSurface::LoadInflatedSurface( const char* filename )
+{
+	if ( ::MRISreadInflatedCoordinates( m_MRIS, (char*)(filename ? filename : "inflated" ) ) != 0 )
+	{
+		cerr << "could not read inflated surface from " << (filename ? filename : "inflated") << endl;
+		m_bInflatedSurfaceLoaded = false;
+		return false;
+	}
+	else
+	{
+		m_bInflatedSurfaceLoaded = true;
+		return true;
+	}	
+}
+
+bool FSSurface::LoadPialSurface	( const char* filename )
+{
+	::MRISsaveVertexPositions( m_MRIS, TMP_VERTICES );
+	if ( ::MRISreadVertexPositions( m_MRIS, (char*)(filename ? filename : "pial" ) ) != 0 )
+	{
+		cerr << "could not read canonical surface from " << (filename ? filename : "pial") << endl;
+		m_bPialSurfaceLoaded = false;
+		return false;
+	}
+	else
+	{
+		::MRISsaveVertexPositions( m_MRIS, PIAL_VERTICES );
+		::MRISrestoreVertexPositions( m_MRIS, TMP_VERTICES );
+		m_bPialSurfaceLoaded = true;
+		return true;
+	}
+}
+
+bool FSSurface::LoadCurvature( const char* filename )
+{
+	if ( ::MRISreadCurvatureFile( m_MRIS, (char*)(filename ? filename : "curv" ) ) != 0 )
+	{
+		cerr << "could not read curvature from " << (filename ? filename : "curv") << endl;
+		m_bCurvatureLoaded = false;
+		return false;
+	}
+	else
+	{
+		int cVertices = m_MRIS->nvertices;
+
+		vtkSmartPointer<vtkFloatArray> curvs =
+				vtkSmartPointer<vtkFloatArray>::New();
+		curvs->Allocate( cVertices );
+		curvs->SetNumberOfComponents( 1 );
+		curvs->SetName( "Curvature" );
+
+ 		for ( int vno = 0; vno < cVertices; vno++ ) 
+		{
+			curvs->InsertNextValue( m_MRIS->vertices[vno].curv );
+		}
+		m_polydata->GetPointData()->SetScalars( curvs );
+		m_bCurvatureLoaded = true;
+		return true;
+	}
 }
 
 void FSSurface::UpdatePolyData()

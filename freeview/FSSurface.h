@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/17 23:08:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/23 21:28:14 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,6 +82,27 @@ public:
 	
 	int GetNumberOfVertices () const;
 	
+	bool LoadOriginalSurface( const char* filename = NULL );
+	bool LoadWhiteSurface	( const char* filename = NULL );
+	bool LoadInflatedSurface( const char* filename = NULL );
+	bool LoadPialSurface	( const char* filename = NULL );
+	bool LoadCurvature		( const char* filename = NULL );
+	
+	bool IsOriginalSurfaceLoaded()
+		{ return m_bOriginalSurfaceLoaded; }
+	
+	bool IsWhiteSurfaceLoaded()
+		{ return m_bWhiteSurfaceLoaded; }
+	
+	bool IsPialSurfaceLoaded()
+		{ return m_bPialSurfaceLoaded; }
+	
+	bool IsInflatedSurfaceLoaded()
+		{ return m_bInflatedSurfaceLoaded; }
+	
+	bool IsCurvatureLoaded()
+		{ return m_bCurvatureLoaded; }
+	
 	vtkPolyData* GetPolyData()
 		{ return m_polydata; }
 	
@@ -104,6 +125,12 @@ protected:
 
 	// Hash table so we can look up vertices. Uses v->x,y,z.
 	MRIS_HASH_TABLE* m_HashTable;
+	
+	bool	m_bOriginalSurfaceLoaded;
+	bool	m_bWhiteSurfaceLoaded;
+	bool	m_bInflatedSurfaceLoaded;
+	bool	m_bPialSurfaceLoaded;
+	bool	m_bCurvatureLoaded;
 };
 
 #endif 

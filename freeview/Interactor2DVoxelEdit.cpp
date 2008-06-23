@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/23 21:29:00 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -167,6 +167,7 @@ bool Interactor2DVoxelEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView
 bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
 {
 	RenderView2D* view = ( RenderView2D* )renderview;
+//	UpdateCursor( view );
 	
 	if ( m_bEditing )
 	{
@@ -214,8 +215,13 @@ bool Interactor2DVoxelEdit::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* 
 
 void Interactor2DVoxelEdit::UpdateCursor( wxWindow* wnd )
 {
-/*	if ( wnd->FindFocus() == wnd && m_nAction == EM_Freehand )
-		wnd->SetCursor( wxCURSOR_PENCIL );	
+	if ( wnd->FindFocus() == wnd )
+	{
+		if ( m_nAction == EM_Freehand )
+			wnd->SetCursor( wxCURSOR_PENCIL );
+		else if ( m_nAction == EM_Fill )
+			wnd->SetCursor( wxCURSOR_PAINT_BRUSH );
+	}	
 	else
-	wnd->SetCursor( wxNullCursor );*/
+		wnd->SetCursor( wxNullCursor );
 }

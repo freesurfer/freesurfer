@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/23 21:28:14 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -168,6 +168,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
 	return false;
 }
 
+/*
 bool LayerCollection::CycleLayer()
 {
 	if ( (int)m_layers.size() > 1 )
@@ -178,6 +179,39 @@ bool LayerCollection::CycleLayer()
 			m_layers[i-1] = m_layers[i];
 		}
 		m_layers[m_layers.size()-1] = layer0;
+		
+		this->SendBroadcast( "LayerCycled", layer0 );
+		this->SendBroadcast( "LayerMoved", layer0 );
+		
+		return true;
+	}
+	else
+		return false;
+}
+*/
+
+bool LayerCollection::CycleLayer()
+{
+	if ( (int)m_layers.size() > 1 )
+	{
+		Layer* layer0 = m_layers[0];
+		bool* bVisibility = new bool[m_layers.size()];
+		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		{
+			bVisibility[i] = m_layers[i]->IsVisible();
+		}
+		for ( unsigned int i = 1; i < m_layers.size(); i++ )
+		{
+			m_layers[i-1] = m_layers[i];
+		}
+		m_layers[m_layers.size()-1] = layer0;
+		
+		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		{
+			m_layers[i]->SetVisible( bVisibility[i] );
+		}
+		
+		delete[] bVisibility;
 		
 		this->SendBroadcast( "LayerCycled", layer0 );
 		this->SendBroadcast( "LayerMoved", layer0 );
