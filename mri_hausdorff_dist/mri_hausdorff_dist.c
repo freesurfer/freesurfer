@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/05/22 02:23:06 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/30 16:58:35 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.4 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.5 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index) ;
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.4 2008/05/22 02:23:06 fischl Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.5 2008/06/30 16:58:35 fischl Exp $";
 
 char *Progname ;
 
@@ -98,10 +98,13 @@ int main(int argc, char *argv[])
 
   nvolumes = argc-2 ;  // last argument is output file name
   if (nvolumes < 2)
+    usage_exit() ;
+  if (nvolumes < 2)
     ErrorExit(ERROR_BADPARM, "%s: must specify at least 2 input volumes and an output text file",
               Progname);
   out_fname = argv[nvolumes+1] ;
   fprintf(stderr, "processing %d volumes and writing output to %s\n", nvolumes, out_fname) ;
+  fflush(stderr) ;
 
   for (n = 0 ; n < nvolumes ; n++)
   {
@@ -110,6 +113,12 @@ int main(int argc, char *argv[])
     mri_tmp = MRIread(name) ;
     if (mri_tmp == NULL)
       ErrorExit(ERROR_BADPARM, "%s: could not read %dth input volume from %s", Progname,n,name);
+    if (mri_tmp->type != MRI_FLOAT)
+    {
+      MRI *m ;
+      m = MRIchangeType(mri_tmp, MRI_FLOAT, 0, 1, 1) ;
+      MRIfree(&mri_tmp) ; mri_tmp = m ;
+    }
     sprintf(fname, "d%d.mgz", n) ;
 #define USE_DISTANCE_TRANSFORM 1
 #if USE_DISTANCE_TRANSFORM 
