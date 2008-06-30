@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,16 +49,17 @@ public:
     static RenderView * New();
     void PrintSelf( ostream& os, vtkIndent indent );
     
-	void OnSetFocus( wxFocusEvent& event);
-	void OnKillFocus( wxFocusEvent& event );
-	void OnButtonDown( wxMouseEvent& event );
-	void OnButtonUp( wxMouseEvent& event );
-	void OnMouseMove( wxMouseEvent& event );
-	void OnMouseWheel( wxMouseEvent& event );
-	void OnMouseEnter( wxMouseEvent& event );
-	void OnMouseLeave( wxMouseEvent& event );
-	void OnKeyDown( wxKeyEvent& event );
-	void OnSize( wxSizeEvent& event );
+	void OnSetFocus		( wxFocusEvent& event);
+	void OnKillFocus	( wxFocusEvent& event );
+	void OnButtonDown	( wxMouseEvent& event );
+	void OnButtonUp		( wxMouseEvent& event );
+	void OnMouseMove	( wxMouseEvent& event );
+	void OnMouseWheel	( wxMouseEvent& event );
+	void OnMouseEnter	( wxMouseEvent& event );
+	void OnMouseLeave	( wxMouseEvent& event );
+	void OnKeyDown		( wxKeyEvent& event );
+	void OnKeyUp		( wxKeyEvent& event );
+	void OnSize			( wxSizeEvent& event );
 		
 	void SetWorldCoordinateInfo( const double* origin, const double* size );
 	virtual void UpdateViewByWorldCoordinate() {}	

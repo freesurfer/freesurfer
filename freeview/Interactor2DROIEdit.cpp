@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include "LayerPropertiesMRI.h"
 #include "LayerROI.h"
 #include "LayerMRI.h"
+#include "CursorFactory.h"
 #include <vtkRenderer.h>
 
 Interactor2DROIEdit::Interactor2DROIEdit() : 
@@ -51,8 +52,8 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 		
 	if ( event.LeftDown() )
 	{
-		if ( event.ControlDown() )
-			return Interactor2D::ProcessMouseDownEvent( event, renderview );
+	//	if ( event.ControlDown() )
+	//		return Interactor2D::ProcessMouseDownEvent( event, renderview );
 		
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( "ROI" );
 		LayerROI* roi = ( LayerROI* )lc->GetActiveLayer();
@@ -69,9 +70,16 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 			view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
 			if ( m_nAction == EM_Freehand ) // && ( event.ControlDown() || event.ShiftDown() ) )
 			{
-				roi->SaveForUndo( view->GetViewPlane() );			
-				m_bEditing = true;				
-				roi->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
+				roi->SaveForUndo( view->GetViewPlane() );		
+				if ( event.ControlDown() )
+				{
+					roi->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
+				}
+				else
+				{	
+					m_bEditing = true;				
+					roi->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
+				}
 			}
 			else if ( m_nAction == EM_Fill ) // && ( event.ControlDown() || event.ShiftDown() ) )
 			{
@@ -82,9 +90,9 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 			{
 				m_bEditing = true;
 				double ras2[3];
-				view->GetCursor()->GetPosition( ras2 );
-				view->GetCursor()->SetPosition( ras );
-				view->GetCursor()->SetPosition2( ras );			
+				view->GetCursor2D()->GetPosition( ras2 );
+				view->GetCursor2D()->SetPosition( ras );
+				view->GetCursor2D()->SetPosition2( ras );			
 				if ( m_dPolylinePoints.size() > 0 )	
 				{
 					roi->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() );	
@@ -110,7 +118,7 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 		{
 			if ( event.MiddleDown() )
 			{
-				view->GetCursor()->Update();
+				view->GetCursor2D()->Update();
 				view->NeedRedraw();
 			}
 			else if ( event.RightDown() )
@@ -122,9 +130,9 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 					
 					double ras1[3] = { m_dPolylinePoints[0], m_dPolylinePoints[1], m_dPolylinePoints[2] };
 					double ras2[3];
-					view->GetCursor()->GetPosition( ras2 );
-					view->GetCursor()->SetPosition2( ras2 );
-					view->GetCursor()->SetPosition( ras1 );
+					view->GetCursor2D()->GetPosition( ras2 );
+					view->GetCursor2D()->SetPosition2( ras2 );
+					view->GetCursor2D()->SetPosition( ras1 );
 					roi->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() );	
 				}
 			}
@@ -139,6 +147,7 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 bool Interactor2DROIEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderview )
 {
 //	RenderView2D* view = ( RenderView2D* )renderview;
+	UpdateCursor( event, renderview );
 	
 	if ( m_bEditing )
 	{
@@ -161,9 +170,9 @@ bool Interactor2DROIEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView
 	RenderView2D* view = ( RenderView2D* )renderview;			
 	if ( m_bEditing )
 	{
+		UpdateCursor( event, view );	
 		int posX = event.GetX();
 		int posY = event.GetY();
-		
 		if ( m_nAction == EM_Freehand )
 		{
 			LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
@@ -179,8 +188,8 @@ bool Interactor2DROIEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView
 		{
 			double ras[3];
 			view->MousePositionToRAS( posX, posY, ras );
-			view->GetCursor()->SetPosition2( ras );
-			view->GetCursor()->SetPosition( view->GetCursor()->GetPosition(), true );
+			view->GetCursor2D()->SetPosition2( ras );
+			view->GetCursor2D()->SetPosition( view->GetCursor2D()->GetPosition(), true );
 			view->NeedRedraw();
 		}
 		
@@ -197,8 +206,45 @@ bool Interactor2DROIEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView
 
 bool Interactor2DROIEdit::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* renderview )
 {
+	UpdateCursor( event, renderview );
+	
 	if ( !m_bEditing )
 		return Interactor2D::ProcessKeyDownEvent( event, renderview );
 	else
 		return false;
+}
+
+void Interactor2DROIEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
+{
+	if ( wnd->FindFocus() == wnd )
+	{
+		if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) 
+				   && ( event.GetEventType() == wxEVT_MIDDLE_DOWN || event.GetEventType() == wxEVT_RIGHT_DOWN )
+				   && !m_bEditing )
+		{
+			Interactor2D::UpdateCursor( event, wnd );
+			return;
+		}
+		
+		if ( m_nAction == EM_Freehand || m_nAction == EM_Polyline )
+		{
+			if ( event.IsKindOf( CLASSINFO( wxKeyEvent ) ) && (( wxKeyEvent* )&event)->GetKeyCode() == WXK_CONTROL &&
+						  (( wxKeyEvent* )&event)->GetEventType() != wxEVT_KEY_UP )
+			{
+				wnd->SetCursor( CursorFactory::CursorFill );
+			}
+			else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->ControlDown() )
+			{
+				wnd->SetCursor( CursorFactory::CursorFill );
+			}
+			else
+				wnd->SetCursor( m_nAction == EM_Freehand ? CursorFactory::CursorPencil : CursorFactory::CursorPolyline );
+		}
+		else if ( m_nAction == EM_Fill )
+			wnd->SetCursor( CursorFactory::CursorFill );
+		else 
+			Interactor2D::UpdateCursor( event, wnd );			
+	}	
+	else
+		Interactor2D::UpdateCursor( event, wnd );
 }

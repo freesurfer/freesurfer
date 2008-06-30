@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/23 21:28:14 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,8 @@ extern "C" {
 #include "mrisurf.h"
 }
 
+#define NUM_OF_VSETS	5	
+
 class wxWindow;
 class wxCommandEvent;
 class vtkTransform;
@@ -45,6 +47,8 @@ class FSSurface
 public:
 	FSSurface();
 	virtual ~FSSurface();
+	
+	enum ACTIVE_SURFACE { SurfaceMain = 0, SurfaceInflated, SurfaceWhite, SurfacePial, SurfaceOriginal };
 	
 	bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event );	
 
@@ -82,26 +86,19 @@ public:
 	
 	int GetNumberOfVertices () const;
 	
-	bool LoadOriginalSurface( const char* filename = NULL );
-	bool LoadWhiteSurface	( const char* filename = NULL );
-	bool LoadInflatedSurface( const char* filename = NULL );
-	bool LoadPialSurface	( const char* filename = NULL );
+	bool LoadSurface		( const char* filename, int nSet );
 	bool LoadCurvature		( const char* filename = NULL );
 	
-	bool IsOriginalSurfaceLoaded()
-		{ return m_bOriginalSurfaceLoaded; }
-	
-	bool IsWhiteSurfaceLoaded()
-		{ return m_bWhiteSurfaceLoaded; }
-	
-	bool IsPialSurfaceLoaded()
-		{ return m_bPialSurfaceLoaded; }
-	
-	bool IsInflatedSurfaceLoaded()
-		{ return m_bInflatedSurfaceLoaded; }
+	bool IsSurfaceLoaded( int nSet )
+		{ return m_bSurfaceLoaded[nSet]; }
 	
 	bool IsCurvatureLoaded()
 		{ return m_bCurvatureLoaded; }
+	
+	bool SetActiveSurface( int nIndex );
+	
+	int GetActiveSurface()
+		{ return m_nActiveSurface; }
 	
 	vtkPolyData* GetPolyData()
 		{ return m_polydata; }
@@ -110,6 +107,16 @@ public:
 	
 protected:	
 	void UpdatePolyData();
+	void UpdateVerticesAndNormals();
+	void ComputeNormals();
+	void NormalFace(int fac, int n, float *norm );
+	float TriangleArea( int fac, int n );
+	void Normalize( float v[3] );
+	
+	void SaveNormals	( MRIS* mris, int nSet );
+	void RestoreNormals	( MRIS* mris, int nSet );
+	void SaveVertices	( MRIS* mris, int nSet );
+	void RestoreVertices( MRIS* mris, int nSet );
 	
 	MRIS*			m_MRIS;
 	
@@ -126,11 +133,20 @@ protected:
 	// Hash table so we can look up vertices. Uses v->x,y,z.
 	MRIS_HASH_TABLE* m_HashTable;
 	
-	bool	m_bOriginalSurfaceLoaded;
-	bool	m_bWhiteSurfaceLoaded;
-	bool	m_bInflatedSurfaceLoaded;
-	bool	m_bPialSurfaceLoaded;
+	bool	m_bSurfaceLoaded[NUM_OF_VSETS];
 	bool	m_bCurvatureLoaded;
+	
+	int		m_nActiveSurface;
+		
+	struct VertexItem 
+	{
+		float x;
+		float y;
+		float z;
+	};
+
+	VertexItem*		m_fVertexSets[NUM_OF_VSETS];
+	VertexItem*		m_fNormalSets[NUM_OF_VSETS];
 };
 
 #endif 

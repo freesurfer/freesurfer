@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/17 23:08:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 
 #include "Layer.h"
 #include "vtkSmartPointer.h"
-#include <string>
+#include <string>	
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -80,6 +80,10 @@ class LayerSurface : public Layer
 		void SetFileName( const char* fn )
 			{ m_sFilename = fn; } 
 		
+		int GetActiveSurface();
+		
+		void SetActiveSurface( int nSurfaceType );
+		
 	protected:
 		void InitializeSurface();
 		void InitializeActors();		
@@ -95,7 +99,7 @@ class LayerSurface : public Layer
 		
 		vtkSmartPointer<vtkDecimatePro>			mLowResFilter;
 		vtkSmartPointer<vtkDecimatePro>			mMediumResFilter;
-
+		
 		FSSurface*			m_surfaceSource;
 		bool				m_bResampleToRAS;
 		
@@ -103,7 +107,8 @@ class LayerSurface : public Layer
 				
 		vtkActor*			m_sliceActor2D[3];
 		vtkActor*			m_sliceActor3D[3];
-		vtkLODActor*		m_mainActor;
+	//	vtkLODActor*		m_mainActor;
+		vtkActor*			m_mainActor;
 };
 
 #endif 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,8 @@
 
 
 class wxColourPickerCtrl;
+class wxCheckBox;
+struct Settings2D;
 
 class DialogPreferences : public wxDialog
 {
@@ -43,11 +45,15 @@ public:
 	wxColour GetCursorColor() const;
 	void SetCursorColor( const wxColour& color );
 	
+	Settings2D Get2DSettings();
+	void Set2DSettings( const Settings2D& s );
+			
 	void OnOK( wxCommandEvent& event ); 
 	
 private:
 	wxColourPickerCtrl*		m_colorPickerBackground;
 	wxColourPickerCtrl*		m_colorPickerCursor;
+	wxCheckBox*				m_checkSyncZoomFactor;
 	
 	DECLARE_EVENT_TABLE()
 };

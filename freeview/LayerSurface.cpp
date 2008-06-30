@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/23 21:28:14 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,7 +62,8 @@ LayerSurface::LayerSurface() : Layer(),
 	}
 	mProperties = new LayerPropertiesSurface();
 	mProperties->AddListener( this );
-	m_mainActor = vtkLODActor::New();
+//	m_mainActor = vtkLODActor::New();
+	m_mainActor = vtkActor::New();
 	mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
 	mLowResFilter->SetTargetReduction( 0.9 );
 //	mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
@@ -133,12 +134,12 @@ void LayerSurface::InitializeActors()
 	mapper->SetInput( m_surfaceSource->GetPolyData() );
 	m_mainActor->SetMapper( mapper );
 	mapper->Update();
-	mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+/*	mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	mLowResFilter->SetInput( m_surfaceSource->GetPolyData() );
 	mapper->SetInput( mLowResFilter->GetOutput() );
 	m_mainActor->AddLODMapper( mapper );
 	mapper->Update();
-/*	mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+	mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	mMediumResFilter->SetInput( m_surfaceSource->GetPolyData() );
 	mapper->SetInput( mMediumResFilter->GetOutput() );
 	m_mainActor->AddLODMapper( mapper );
@@ -216,14 +217,14 @@ void LayerSurface::UpdateColorMap()
 	if ( m_surfaceSource->IsCurvatureLoaded() )
 	{
 		m_mainActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
-		vtkSmartPointer<vtkMapperCollection> mc = m_mainActor->GetLODMappers();
+/*		vtkSmartPointer<vtkMapperCollection> mc = m_mainActor->GetLODMappers();
 		mc->InitTraversal();
 		vtkMapper* mapper = NULL;
 		while ( ( mapper = mc->GetNextItem() ) != NULL )
 		{
 			mapper->SetLookupTable( mProperties->GetCurvatureLUT() );
-		} 
-	}
+		} */
+	}	
 }
 
 void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
@@ -345,4 +346,17 @@ int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )
 		return -1;
 	
 	return m_surfaceSource->FindVertexAtRAS( ras, distance );
+}
+
+void LayerSurface::SetActiveSurface( int nSurface )
+{
+	if ( m_surfaceSource && m_surfaceSource->SetActiveSurface( nSurface ) )
+	{		
+		this->SendBroadcast( "LayerActorUpdated", this );
+	}
+}
+
+int LayerSurface::GetActiveSurface()
+{
+	return ( m_surfaceSource ? m_surfaceSource->GetActiveSurface() : -1 );
 }

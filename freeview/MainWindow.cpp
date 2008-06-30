@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/17 23:08:18 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,7 @@
 #include "LayerROI.h"
 #include "LayerDTI.h"
 #include "LayerSurface.h"
+#include "FSSurface.h"
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
 #include "DialogPreferences.h"
@@ -145,6 +146,16 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayerUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibility )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibilityUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_SURFACE_MAIN" ),		MainWindow::OnViewSurfaceMain )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_MAIN" ),		MainWindow::OnViewSurfaceMainUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_SURFACE_INFLATED" ),	MainWindow::OnViewSurfaceInflated )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_INFLATED" ),	MainWindow::OnViewSurfaceInflatedUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_SURFACE_WHITE" ),		MainWindow::OnViewSurfaceWhite )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_WHITE" ),		MainWindow::OnViewSurfaceWhiteUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_SURFACE_PIAL" ),		MainWindow::OnViewSurfacePial )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_PIAL" ),		MainWindow::OnViewSurfacePialUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),	MainWindow::OnViewSurfaceOriginal )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),	MainWindow::OnViewSurfaceOriginalUpdateUI )
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
 /*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
@@ -225,6 +236,14 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_viewRender[1] = m_viewCoronal;
 	m_viewRender[2] = m_viewAxial;
 	m_viewRender[3] = m_view3D;
+	for ( int i = 0; i < 3; i++ )
+	{
+		for ( int j = 0; j < 3; j++ )
+		{
+			if ( i != j )
+				m_viewRender[i]->AddListener( m_viewRender[j] );
+		}
+	}
 
 	m_layerCollectionManager->AddListener( m_viewAxial );
 	m_layerCollectionManager->AddListener( m_viewSagittal );
@@ -272,11 +291,13 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 		m_view3D->SetBackgroundColor( color );
 		
 		color = wxColour( config->Read( _T("RenderWindow/CursorColor"), "rgb(255,0,0)" ) );
-		m_viewAxial->GetCursor()->SetColor( color );
-		m_viewSagittal->GetCursor()->SetColor( color );
-		m_viewCoronal->GetCursor()->SetColor( color );
+		m_viewAxial->GetCursor2D()->SetColor( color );
+		m_viewSagittal->GetCursor2D()->SetColor( color );
+		m_viewCoronal->GetCursor2D()->SetColor( color );
 		
 		m_nScreenshotFilterIndex = config->Read( _T("/MainWindow/ScreenshotFilterIndex"), 0L );
+		
+		config->Read( _T("/RenderWindow/SyncZoomFactor"), &m_settings2D.SyncZoomFactor, true );
 	}
 	SetViewLayout( m_nViewLayout );		
 }
@@ -357,7 +378,8 @@ void MainWindow::OnClose( wxCloseEvent &event )
 		config->Write( _T("MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
 		
 		config->Write( _T("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
-		config->Write( _T("RenderWindow/CursorColor"), m_viewAxial->GetCursor()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
+		config->Write( _T("RenderWindow/CursorColor"), m_viewAxial->GetCursor2D()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
+		config->Write( _T("/RenderWindow/SyncZoomFactor"), m_settings2D.SyncZoomFactor );
 		
 		m_fileHistory->Save( *config );
 	}
@@ -737,10 +759,10 @@ void MainWindow::DoUpdateToolbars()
 	XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_SIZE", wxSpinCtrl )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
 	wxCheckBox* checkTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHECK_TEMPLATE", wxCheckBox );
 	wxChoice* choiceTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHOICE_TEMPLATE", wxChoice );
-	checkTemplate->Enable( m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-	choiceTemplate->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_TOLERANCE", wxStaticText )->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-	XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+//	checkTemplate->Enable( m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+//	choiceTemplate->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_TOLERANCE", wxStaticText )->Enable( checkTemplate->IsChecked() ); //&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
+	XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->Enable( checkTemplate->IsChecked() );//&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
 	
 	LayerEditable* layer = NULL;
 	if ( choiceTemplate->GetSelection() != wxNOT_FOUND )
@@ -1271,6 +1293,80 @@ void MainWindow::OnViewToggleVolumeVisibilityUpdateUI( wxUpdateUIEvent& event )
 	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
 }
 
+void MainWindow::OnViewSurfaceMain( wxCommandEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( layer )
+		layer->SetActiveSurface( FSSurface::SurfaceMain );
+}
+
+void MainWindow::OnViewSurfaceMainUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	event.Enable( layer );
+	event.Check( layer && layer->GetActiveSurface() == FSSurface::SurfaceMain );
+}
+
+void MainWindow::OnViewSurfaceInflated( wxCommandEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( layer )
+		layer->SetActiveSurface( FSSurface::SurfaceInflated );
+}
+
+void MainWindow::OnViewSurfaceInflatedUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	FSSurface* surf = ( layer ? layer->GetSourceSurface() : NULL ); 
+	event.Enable( layer && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) );
+	event.Check( layer && layer->GetActiveSurface() == FSSurface::SurfaceInflated );
+}
+
+void MainWindow::OnViewSurfaceWhite( wxCommandEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( layer )
+		layer->SetActiveSurface( FSSurface::SurfaceWhite );
+}
+
+void MainWindow::OnViewSurfaceWhiteUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	FSSurface* surf = ( layer ? layer->GetSourceSurface() : NULL ); 
+	event.Enable( layer && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) );
+	event.Check( layer && layer->GetActiveSurface() == FSSurface::SurfaceWhite );
+}
+
+void MainWindow::OnViewSurfacePial( wxCommandEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( layer )
+		layer->SetActiveSurface( FSSurface::SurfacePial );
+}
+
+void MainWindow::OnViewSurfacePialUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	FSSurface* surf = ( layer ? layer->GetSourceSurface() : NULL ); 
+	event.Enable( layer && surf && surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
+	event.Check( layer && layer->GetActiveSurface() == FSSurface::SurfacePial );
+}
+
+void MainWindow::OnViewSurfaceOriginal( wxCommandEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( layer )
+		layer->SetActiveSurface( FSSurface::SurfaceOriginal );
+}
+
+void MainWindow::OnViewSurfaceOriginalUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+	FSSurface* surf = ( layer ? layer->GetSourceSurface() : NULL ); 
+	event.Enable( layer && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) );
+	event.Check( layer && layer->GetActiveSurface() == FSSurface::SurfaceOriginal );
+}
+
 void MainWindow::NeedRedraw( int nCount )
 {
 	m_nRedrawCount = nCount;
@@ -1315,20 +1411,22 @@ void MainWindow::OnEditPreferences( wxCommandEvent& event )
 {
 	DialogPreferences dlg( this );
 	dlg.SetBackgroundColor( m_viewAxial->GetBackgroundColor() );
-	dlg.SetCursorColor( m_viewAxial->GetCursor()->GetColor() );
+	dlg.SetCursorColor( m_viewAxial->GetCursor2D()->GetColor() );
+	dlg.Set2DSettings( m_settings2D );
 	
 	if ( dlg.ShowModal() == wxID_OK )
 	{
 		wxColour color = dlg.GetCursorColor();
-		m_viewAxial->GetCursor()->SetColor( color );
-		m_viewSagittal->GetCursor()->SetColor( color );
-		m_viewCoronal->GetCursor()->SetColor( color );
+		m_viewAxial->GetCursor2D()->SetColor( color );
+		m_viewSagittal->GetCursor2D()->SetColor( color );
+		m_viewCoronal->GetCursor2D()->SetColor( color );
 		
 		color = dlg.GetBackgroundColor();
 		m_viewAxial->SetBackgroundColor( color );
 		m_viewSagittal->SetBackgroundColor( color );
 		m_viewCoronal->SetBackgroundColor( color );
 		m_view3D->SetBackgroundColor( color );
+		m_settings2D = dlg.Get2DSettings();
 	}
 }
 
@@ -1707,6 +1805,15 @@ int MainWindow::GetActiveViewId()
 		m_nPrevActiveViewId = nId;
 	
 	return nId;
+}
+
+RenderView* MainWindow::GetActiveView()
+{
+	int nId = GetActiveViewId();
+	if ( nId >= 0 )
+		return m_viewRender[nId];
+	else
+		return NULL;
 }
 
 void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )

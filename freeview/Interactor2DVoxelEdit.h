@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:31 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ class Interactor2DVoxelEdit : public Interactor2D
 		virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
 		
 	protected:	
-		void UpdateCursor( wxWindow* wnd );
+		void UpdateCursor( wxEvent& event, wxWindow* wnd );
 		
 		bool	m_bEditing;
 	

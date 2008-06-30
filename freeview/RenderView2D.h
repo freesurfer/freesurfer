@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,16 +70,19 @@ public:
 	
 	void MousePositionToRAS( int nX, int nY, double* ras );
 	
-	Cursor2D* GetCursor()
+	Cursor2D* GetCursor2D()
 		{ return m_cursor2D; }
 	
-	void UpdateCursor();
+	void UpdateCursor2D();
+	bool EnsureCursor2DVisible();
 	
 	void MoveLeft();
 	void MoveRight();
 	void MoveUp();
 	void MoveDown();
-	void ZoomAtCursor( int nX, int nY, bool ZoomIn );
+	void ZoomAtCursor( int nX, int nY, bool ZoomIn, double factor = 2 );
+	void PanToWorld( double* pos );
+	void SyncZoomTo( RenderView2D* view );
 	
 	void PreScreenshot();
 	void PostScreenshot();

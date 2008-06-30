@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,8 @@ public:
 	virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
 		
 protected:	
+	void UpdateCursor( wxEvent& event, wxWindow* wnd );
+		
 	bool	m_bEditing;
 	
 	std::vector<double>		m_dPolylinePoints;

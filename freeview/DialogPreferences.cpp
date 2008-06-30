@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,8 @@
 
 
 #include "DialogPreferences.h"
+#include "MainWindow.h"
+#include <wx/wx.h>
 #include <wx/clrpicker.h>
 #include <wx/xrc/xmlres.h>
 #include "stdlib.h"
@@ -43,6 +45,7 @@ DialogPreferences::DialogPreferences( wxWindow* parent )
 	m_colorPickerBackground = XRCCTRL( *this, "ID_COLORPICKER_BACKGROUND", wxColourPickerCtrl );
 	m_colorPickerBackground->SetFocus();
 	m_colorPickerCursor = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
+	m_checkSyncZoomFactor = XRCCTRL( *this, "ID_CHECK_SYNC_ZOOM", wxCheckBox );
 }
 
 DialogPreferences::~DialogPreferences()
@@ -73,4 +76,17 @@ void DialogPreferences::SetCursorColor( const wxColour& color )
 void DialogPreferences::OnOK( wxCommandEvent& event )
 {
 	event.Skip();
+}
+
+void DialogPreferences::Set2DSettings( const Settings2D& s )
+{
+	m_checkSyncZoomFactor->SetValue( s.SyncZoomFactor );
+}
+
+Settings2D DialogPreferences::Get2DSettings()
+{
+	Settings2D s;
+	s.SyncZoomFactor = m_checkSyncZoomFactor->IsChecked();
+	
+	return s;
 }

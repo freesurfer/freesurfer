@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -199,11 +199,52 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* const iData
 	{
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
 		m_cursor2D->SetPosition( lc->GetCursorRASPosition() );
+		if ( EnsureCursor2DVisible() )
+			UpdateCursor2D();
+	}
+	else if ( iMsg == "Zooming" )
+	{
+		Settings2D s = MainWindow::GetMainWindowPointer()->Get2DSettings();
+		if ( s.SyncZoomFactor )
+		{
+			RenderView2D* view = (RenderView2D*)iData;
+			if ( view )
+			{
+				SyncZoomTo( view );
+			}
+		}
 	}
 	
 	RenderView::DoListenToMessage( iMsg, iData );
 }
+
+void RenderView2D::SyncZoomTo( RenderView2D* view )
+{
+	m_renderer->GetActiveCamera()->SetParallelScale( view->m_renderer->GetActiveCamera()->GetParallelScale() );
+//	PanToWorld( GetCursor2D()->GetPosition() );	
+	EnsureCursor2DVisible();	
+	UpdateCursor2D();
+	UpdateAnnotation();
+	NeedRedraw();
+}
 		
+bool RenderView2D::EnsureCursor2DVisible()
+{
+	double* pos = GetCursor2D()->GetPosition();
+	double x = pos[0], y = pos[1], z = pos[2];
+	m_renderer->WorldToView( x, y, z );
+	m_renderer->ViewToNormalizedViewport( x, y, z );
+	if ( x < 0 || x > 1 || y < 0 || y > 1 )
+	{
+		PanToWorld( pos );
+		return true;
+	}
+	else
+	{
+		return false;
+	}	
+}
+
 void RenderView2D::TriggerContextMenu( const wxPoint& pos )
 {
 /*	wxMenu menu;
@@ -257,7 +298,7 @@ void RenderView2D::MousePositionToRAS( int posX, int posY, double* pos )
 	pos[m_nViewPlane] = slicePos[m_nViewPlane];
 }
 
-void RenderView2D::ZoomAtCursor( int nX, int nY, bool ZoomIn )
+void RenderView2D::ZoomAtCursor( int nX, int nY, bool ZoomIn, double factor )
 {
 	wxSize sz = GetClientSize();
 	double pos[3];
@@ -269,6 +310,17 @@ void RenderView2D::ZoomAtCursor( int nX, int nY, bool ZoomIn )
 	m_renderer->ViewToWorld( pos[0], pos[1], pos[2] );
 	
 	// first move the click point to the center of viewport
+	PanToWorld( pos );
+	
+	// then zoom
+	m_renderer->GetActiveCamera()->Zoom( ZoomIn ? factor : 1.0/factor );
+	UpdateCursor2D();
+	UpdateAnnotation();
+	NeedRedraw();
+}
+
+void RenderView2D::PanToWorld( double* pos )
+{
 	double focalPt[3], camPos[3], vproj[3];
 	vtkCamera* cam = m_renderer->GetActiveCamera();
 	cam->GetFocalPoint( focalPt );
@@ -289,15 +341,9 @@ void RenderView2D::ZoomAtCursor( int nX, int nY, bool ZoomIn )
 	
 	cam->SetFocalPoint( focalPt );
 	cam->SetPosition( camPos );
-	
-	// then zoom
-	cam->Zoom( ZoomIn ? 2 : 0.5 );
-	UpdateCursor();
-	UpdateAnnotation();
-	Render();
 }
 
-void RenderView2D::UpdateCursor()
+void RenderView2D::UpdateCursor2D()
 {
 	m_cursor2D->Update();
 }
@@ -307,7 +353,7 @@ void RenderView2D::MoveLeft()
 	RenderView::MoveLeft();
 	
 	UpdateAnnotation();
-	UpdateCursor();
+	UpdateCursor2D();
 }
 
 void RenderView2D::MoveRight()
@@ -315,7 +361,7 @@ void RenderView2D::MoveRight()
 	RenderView::MoveRight();
 	
 	UpdateAnnotation();
-	UpdateCursor();
+	UpdateCursor2D();
 }
 
 void RenderView2D::MoveUp()
@@ -323,7 +369,7 @@ void RenderView2D::MoveUp()
 	RenderView::MoveUp();
 	
 	UpdateAnnotation();
-	UpdateCursor();
+	UpdateCursor2D();
 }
 	
 void RenderView2D::MoveDown()
@@ -331,14 +377,12 @@ void RenderView2D::MoveDown()
 	RenderView::MoveDown();
 	
 	UpdateAnnotation();
-	UpdateCursor();
+	UpdateCursor2D();
 }
-
-
 
 void RenderView2D::OnSize( wxSizeEvent& event )
 {
-	UpdateCursor();
+	UpdateCursor2D();
 	UpdateAnnotation();
 	
 	event.Skip();

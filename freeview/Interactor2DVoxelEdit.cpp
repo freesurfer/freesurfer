@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/23 21:28:14 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,11 @@
 #include "LayerCollectionManager.h"
 #include "LayerPropertiesMRI.h"
 #include "LayerMRI.h"
+#include "CursorFactory.h"
 #include <vtkRenderer.h>
+
+#define FV_CURSOR_PENCIL	wxCursor( wxImage("res/images/cursor_pencil.png") )
+#define FV_CURSOR_FILL		wxCursor( wxImage("res/images/cursor_fill.png" ) )
 
 Interactor2DVoxelEdit::Interactor2DVoxelEdit() : 
 		Interactor2D(),
@@ -47,11 +51,12 @@ Interactor2DVoxelEdit::~Interactor2DVoxelEdit()
 bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* renderview )
 {
 	RenderView2D* view = ( RenderView2D* )renderview;
+//	UpdateCursor( event, view );
 
 	if ( event.LeftDown() )
 	{
-		if ( event.ControlDown() )
-			return Interactor2D::ProcessMouseDownEvent( event, renderview );
+	//	if ( event.ControlDown() )
+	//		return Interactor2D::ProcessMouseDownEvent( event, renderview );
 		
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( "MRI" );
 		LayerMRI* mri = ( LayerMRI* )lc->GetActiveLayer();
@@ -72,9 +77,16 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 			view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
 			if ( m_nAction == EM_Freehand ) //&& ( event.ControlDown() ) )
 			{
-				mri->SaveForUndo( view->GetViewPlane() );			
-				m_bEditing = true;				
-				mri->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
+				mri->SaveForUndo( view->GetViewPlane() );
+				if ( event.ControlDown() )
+				{
+					mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
+				}
+				else
+				{			
+					m_bEditing = true;				
+					mri->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() );
+				}
 			}
 			else if ( m_nAction == EM_Fill ) //&& ( event.ControlDown() ) )
 			{
@@ -85,9 +97,9 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 			{
 				m_bEditing = true;
 				double ras2[3];
-				view->GetCursor()->GetPosition( ras2 );
-				view->GetCursor()->SetPosition( ras );
-				view->GetCursor()->SetPosition2( ras );			
+				view->GetCursor2D()->GetPosition( ras2 );
+				view->GetCursor2D()->SetPosition( ras );
+				view->GetCursor2D()->SetPosition2( ras );			
 				if ( m_dPolylinePoints.size() > 0 )	
 				{
 					mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() );	
@@ -116,7 +128,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 		{
 			if ( event.MiddleDown() )
 			{
-				view->GetCursor()->Update();
+				view->GetCursor2D()->Update();
 				view->NeedRedraw();
 			}
 			else if ( event.RightDown() )
@@ -128,9 +140,9 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 					
 					double ras1[3] = { m_dPolylinePoints[0], m_dPolylinePoints[1], m_dPolylinePoints[2] };
 					double ras2[3];
-					view->GetCursor()->GetPosition( ras2 );
-					view->GetCursor()->SetPosition2( ras2 );
-					view->GetCursor()->SetPosition( ras1 );
+					view->GetCursor2D()->GetPosition( ras2 );
+					view->GetCursor2D()->SetPosition2( ras2 );
+					view->GetCursor2D()->SetPosition( ras1 );
 					mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() );	
 				}
 			}
@@ -147,6 +159,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 bool Interactor2DVoxelEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderview )
 {
 //	RenderView2D* view = ( RenderView2D* )renderview;
+	UpdateCursor( event, renderview );
 	
 	if ( m_bEditing )
 	{
@@ -167,10 +180,10 @@ bool Interactor2DVoxelEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView
 bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
 {
 	RenderView2D* view = ( RenderView2D* )renderview;
-	UpdateCursor( view );
 	
 	if ( m_bEditing )
 	{
+		UpdateCursor( event, view );		
 		int posX = event.GetX();
 		int posY = event.GetY();
 		
@@ -189,8 +202,8 @@ bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderVi
 		{
 			double ras[3];
 			view->MousePositionToRAS( posX, posY, ras );
-			view->GetCursor()->SetPosition2( ras );
-			view->GetCursor()->SetPosition( view->GetCursor()->GetPosition(), true );
+			view->GetCursor2D()->SetPosition2( ras );
+			view->GetCursor2D()->SetPosition( view->GetCursor2D()->GetPosition(), true );
 			view->NeedRedraw();
 		}
 		
@@ -207,21 +220,45 @@ bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderVi
 
 bool Interactor2DVoxelEdit::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* renderview )
 {
+	UpdateCursor( event, renderview );
+	
 	if ( !m_bEditing )
 		return Interactor2D::ProcessKeyDownEvent( event, renderview );
 	else
 		return false;
 }
 
-void Interactor2DVoxelEdit::UpdateCursor( wxWindow* wnd )
+void Interactor2DVoxelEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
 {
 	if ( wnd->FindFocus() == wnd )
 	{
-		if ( m_nAction == EM_Freehand )
-			wnd->SetCursor( wxCURSOR_PENCIL );
+		if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) 
+			&& ( event.GetEventType() == wxEVT_MIDDLE_DOWN || event.GetEventType() == wxEVT_RIGHT_DOWN )
+				   && !m_bEditing )
+		{
+			Interactor2D::UpdateCursor( event, wnd );
+			return;
+		}
+		
+		if ( m_nAction == EM_Freehand || m_nAction == EM_Polyline )
+		{
+			if ( event.IsKindOf( CLASSINFO( wxKeyEvent ) ) && (( wxKeyEvent* )&event)->GetKeyCode() == WXK_CONTROL &&
+						  (( wxKeyEvent* )&event)->GetEventType() != wxEVT_KEY_UP )
+			{
+				wnd->SetCursor( CursorFactory::CursorFill );
+			}
+			else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->ControlDown() )
+			{
+				wnd->SetCursor( CursorFactory::CursorFill );
+			}
+			else
+				wnd->SetCursor( m_nAction == EM_Freehand ? CursorFactory::CursorPencil : CursorFactory::CursorPolyline );
+		}
 		else if ( m_nAction == EM_Fill )
-			wnd->SetCursor( wxCURSOR_PAINT_BRUSH );
+			wnd->SetCursor( CursorFactory::CursorFill );
+		else 
+			Interactor2D::UpdateCursor( event, wnd );			
 	}	
 	else
-		wnd->SetCursor( wxNullCursor );
+		Interactor2D::UpdateCursor( event, wnd );
 }

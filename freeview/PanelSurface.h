@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,16 +50,19 @@ protected:
 	void OnInternalIdle();
 		
 private:
-	void OnSliderOpacity( wxScrollEvent& event );
-	void OnLayerSelectionChanged( wxCommandEvent& event );
-	void OnLayerVisibilityChanged( wxCommandEvent& event );
+	void OnSliderOpacity			( wxScrollEvent& event );
+	void OnLayerSelectionChanged	( wxCommandEvent& event );
+	void OnLayerVisibilityChanged	( wxCommandEvent& event );
 	
-	void OnButtonLoad( wxCommandEvent& event );
-	void OnButtonMoveUp( wxCommandEvent& event );
-	void OnButtonMoveDown( wxCommandEvent& event );
-	void OnButtonDelete( wxCommandEvent& event );
-	void OnColorChanged( wxColourPickerEvent& event );
-	void OnEdgeColorChanged( wxColourPickerEvent& event );
+	void OnButtonLoad			( wxCommandEvent& event );
+	void OnButtonDelete			( wxCommandEvent& event );
+	void OnColorChanged			( wxColourPickerEvent& event );
+	void OnEdgeColorChanged		( wxColourPickerEvent& event );
+	void OnButtonSurfaceMain	( wxCommandEvent& event );
+	void OnButtonSurfaceInflated( wxCommandEvent& event );
+	void OnButtonSurfaceWhite	( wxCommandEvent& event );
+	void OnButtonSurfacePial	( wxCommandEvent& event );
+	void OnButtonSurfaceOriginal( wxCommandEvent& event );
 	
 	void DoUpdateUI();
 	
@@ -68,12 +71,15 @@ private:
 	virtual void DoListenToMessage( std::string const iMsg, void* iData );
 		
 	wxCheckListBox*	m_listBoxLayers;
-	wxButton*		m_btnMoveUp;
-	wxButton*		m_btnMoveDown;
 	wxButton*		m_btnNew;
 	wxButton*		m_btnLoad;
 	wxButton*		m_btnSave;
 	wxButton*		m_btnDelete;
+	wxButton*		m_btnSurfaceMain;
+	wxButton*		m_btnSurfaceInflated;
+	wxButton*		m_btnSurfaceWhite;
+	wxButton*		m_btnSurfacePial;
+	wxButton*		m_btnSurfaceOriginal;
 	wxSlider*		m_sliderOpacity;	
 	wxColourPickerCtrl*		m_colorPicker;
 	wxColourPickerCtrl*		m_colorPickerEdge;

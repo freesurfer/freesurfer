@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,6 +26,7 @@
 
 #include "Interactor.h"
 #include "RenderView.h"
+#include "CursorFactory.h"
 #include <vtkRenderer.h>
 
 Interactor::Interactor() : Broadcaster( "Interactor" )
@@ -54,6 +55,8 @@ bool Interactor::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view )
 		m_nDownPosX = event.GetX();
 		m_nDownPosY = event.GetY();
 	}
+	UpdateCursor( event, view );
+	
 	return true;
 }
 
@@ -62,30 +65,63 @@ bool Interactor::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view )
 	if ( event.RightUp() && m_nDownPosX == event.GetX() && m_nDownPosY == event.GetY() )
 		view->TriggerContextMenu( event.GetPosition() );
 	
+	UpdateCursor( event, view );
+	
 	return true;
 }
 
 bool Interactor::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view )
 {
+	UpdateCursor( event, view );
+	
 	return true;
 }
 
 bool Interactor::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view )
 {
+	UpdateCursor( event, view );
+	
+	return true;
+}
+
+bool Interactor::ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view )
+{
+	UpdateCursor( event, view );
+	
 	return true;
 }
 
 bool Interactor::ProcessMouseWheelEvent(	wxMouseEvent& event, RenderView* view )
 {
+	UpdateCursor( event, view );
+	
 	return true;
 }
 	
 bool Interactor::ProcessMouseEnterEvent(	wxMouseEvent& event, RenderView* view )
 {
+	UpdateCursor( event, view );
+	
 	return true;
 }
 	
 bool Interactor::ProcessMouseLeaveEvent( wxMouseEvent& event, RenderView* view )
 {
+	UpdateCursor( event, view );
+	
 	return true;
 } 
+
+void Interactor::UpdateCursor( wxEvent& event, wxWindow* wnd )
+{
+	if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->GetEventType() == wxEVT_MIDDLE_DOWN )
+	{
+		wnd->SetCursor( CursorFactory::CursorPan );
+	}
+	else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->GetEventType() == wxEVT_RIGHT_DOWN )
+	{
+		wnd->SetCursor( CursorFactory::CursorZoom );
+	}
+	else
+		wnd->SetCursor( wxNullCursor );
+}

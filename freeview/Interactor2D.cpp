@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,7 +103,7 @@ bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 	m_bChangeSlice = false;
 	
 	view->UpdateAnnotation();
-	view->UpdateCursor();
+	view->UpdateCursor2D();
 	
 	if ( event.LeftUp() )
 	{
@@ -169,7 +169,9 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
 		if ( event.MiddleIsDown() || event.RightIsDown() )
 		{
 			view->UpdateAnnotation();
-			view->UpdateCursor();
+			view->UpdateCursor2D();
+			if ( event.RightIsDown() )
+				view->SendBroadcast( "Zooming", view );
 		}
 		else
 			view->UpdateMouseRASPosition( posX, posY );
@@ -184,8 +186,9 @@ void Interactor2D::ProcessPostMouseWheelEvent( wxMouseEvent& event, RenderView* 
 {
 	RenderView2D* view = ( RenderView2D* )renderview;
 	view->UpdateAnnotation();
-	view->UpdateCursor();
+	view->UpdateCursor2D();
 	view->NeedRedraw();
+	view->SendBroadcast( "Zooming", view );
 	
 	Interactor::ProcessPostMouseWheelEvent( event, renderview );
 }
@@ -195,7 +198,7 @@ void Interactor2D::ProcessPostMouseMoveEvent( wxMouseEvent& event, RenderView* r
 	RenderView2D* view = ( RenderView2D* )renderview;
 	if ( event.RightIsDown() )
 	{
-		view->UpdateCursor();
+		view->UpdateCursor2D();
 		view->NeedRedraw();
 	}
 	
@@ -240,6 +243,10 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
 	else if ( nKeyCode == WXK_RIGHT )
 	{
 		view->MoveRight();
+	}
+	else if ( nKeyCode == '3' || nKeyCode == 'w' || nKeyCode == 's' || nKeyCode == 'r' || nKeyCode == 'f' )
+	{
+		// do nothing, just intercept these keycodes
 	}
 	else
 		return Interactor::ProcessKeyDownEvent( event, view );

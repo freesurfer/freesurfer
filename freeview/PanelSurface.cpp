@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,15 +33,19 @@
 #include "Layer.h"
 #include "LayerSurface.h"
 #include "LayerPropertiesSurface.h"
+#include "FSSurface.h"
 
 BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
 	EVT_LISTBOX			( XRCID( wxT( "ID_LISTBOX_SURFACE" ) ),			PanelSurface::OnLayerSelectionChanged )	
 	EVT_CHECKLISTBOX	( XRCID( wxT( "ID_LISTBOX_SURFACE" ) ),			PanelSurface::OnLayerVisibilityChanged )
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_OPACITY" ) ),			PanelSurface::OnSliderOpacity )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_MOVE_UP" ) ),			PanelSurface::OnButtonMoveUp )
-	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_MOVE_DOWN" ) ),		PanelSurface::OnButtonMoveDown )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_LOAD" ) ),				PanelSurface::OnButtonLoad )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_DELETE" ) ),			PanelSurface::OnButtonDelete )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_MAIN" ) ),		PanelSurface::OnButtonSurfaceMain )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_INFLATED" ) ),	PanelSurface::OnButtonSurfaceInflated )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_WHITE" ) ),	PanelSurface::OnButtonSurfaceWhite )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_PIAL" ) ),		PanelSurface::OnButtonSurfacePial )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_ORIGINAL" ) ),	PanelSurface::OnButtonSurfaceOriginal )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER" ) ), 	PanelSurface::OnColorChanged )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER_EDGE" ) ), 	PanelSurface::OnEdgeColorChanged )
 END_EVENT_TABLE()
@@ -55,15 +59,20 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
 	wxXmlResource::Get()->LoadPanel( this, parent, wxT("ID_PANEL_SURFACE") );
 	m_listBoxLayers = XRCCTRL( *this, "ID_LISTBOX_SURFACE", wxCheckListBox );
 	m_sliderOpacity = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
-	m_btnNew = XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
-	m_btnLoad = XRCCTRL( *this, "ID_BUTTON_LOAD", wxButton );
-	m_btnSave = XRCCTRL( *this, "ID_BUTTON_SAVE", wxButton );
-	m_btnDelete = XRCCTRL( *this, "ID_BUTTON_DELETE", wxButton );
-	m_btnMoveUp = XRCCTRL( *this, "ID_BUTTON_MOVE_UP", wxButton );
-	m_btnMoveDown = XRCCTRL( *this, "ID_BUTTON_MOVE_DOWN", wxButton );
-	m_colorPicker = XRCCTRL( *this, "ID_COLOR_PICKER", wxColourPickerCtrl );
-	m_colorPickerEdge = XRCCTRL( *this, "ID_COLOR_PICKER_EDGE", wxColourPickerCtrl );
-	m_textFileName = XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
+	m_btnNew 		= XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
+	m_btnLoad 		= XRCCTRL( *this, "ID_BUTTON_LOAD", wxButton );
+	m_btnSave 		= XRCCTRL( *this, "ID_BUTTON_SAVE", wxButton );
+	m_btnDelete 	= XRCCTRL( *this, "ID_BUTTON_DELETE", wxButton );
+	
+	m_btnSurfaceMain 		= XRCCTRL( *this, "ID_BUTTON_SURFACE_MAIN", wxButton );
+	m_btnSurfaceInflated 	= XRCCTRL( *this, "ID_BUTTON_SURFACE_INFLATED", wxButton );
+	m_btnSurfaceWhite 		= XRCCTRL( *this, "ID_BUTTON_SURFACE_WHITE", wxButton );
+	m_btnSurfacePial 		= XRCCTRL( *this, "ID_BUTTON_SURFACE_PIAL", wxButton );
+	m_btnSurfaceOriginal 	= XRCCTRL( *this, "ID_BUTTON_SURFACE_ORIGINAL", wxButton );
+	
+	m_colorPicker 			= XRCCTRL( *this, "ID_COLOR_PICKER", wxColourPickerCtrl );
+	m_colorPickerEdge 		= XRCCTRL( *this, "ID_COLOR_PICKER_EDGE", wxColourPickerCtrl );
+	m_textFileName 			= XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
 	MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 	
 	UpdateUI();
@@ -131,6 +140,7 @@ void PanelSurface::DoUpdateUI()
 	bool bHasSurface = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
 //	bool bHasVolume = !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty();
 	LayerSurface* layer = NULL;
+	FSSurface* surf = NULL;
 	if ( bHasSurface )
 	{
 		layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
@@ -144,6 +154,7 @@ void PanelSurface::DoUpdateUI()
 			m_textFileName->ChangeValue( layer->GetFileName() );
 			m_textFileName->SetInsertionPointEnd();
 			m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
+			surf = layer->GetSourceSurface();
 		}
 		
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
@@ -151,8 +162,11 @@ void PanelSurface::DoUpdateUI()
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
 	m_btnDelete->Enable( bHasSurface && !mainWnd->IsSaving() );	
-	m_btnMoveUp->Enable( bHasSurface && m_listBoxLayers->GetSelection() != 0 );
-	m_btnMoveDown->Enable( bHasSurface && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
+	m_btnSurfaceMain->Enable( bHasSurface );
+	m_btnSurfaceInflated->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) );
+	m_btnSurfaceWhite->Enable	( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) );
+	m_btnSurfacePial->Enable	( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
+	m_btnSurfaceOriginal->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) );
 }
 
 void PanelSurface::OnLayerVisibilityChanged( wxCommandEvent& event )
@@ -165,6 +179,7 @@ void PanelSurface::OnLayerVisibilityChanged( wxCommandEvent& event )
 	}
 }
 
+/*
 void PanelSurface::OnButtonMoveUp( wxCommandEvent& event )
 {
 	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
@@ -190,7 +205,7 @@ void PanelSurface::OnButtonMoveDown( wxCommandEvent& event )
 			lc->MoveLayerDown( layer );
 	}
 }
-
+*/
 
 void PanelSurface::UpdateLayerList( Layer* layer )
 {
@@ -280,4 +295,50 @@ void PanelSurface::OnEdgeColorChanged( wxColourPickerEvent& event )
 		wxColour c = event.GetColour();
 		surf->GetProperties()->SetEdgeColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
 	}	
+}
+
+
+void PanelSurface::OnButtonSurfaceMain( wxCommandEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->SetActiveSurface( FSSurface::SurfaceMain );
+	}
+}
+
+void PanelSurface::OnButtonSurfaceInflated( wxCommandEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->SetActiveSurface( FSSurface::SurfaceInflated );
+	}
+}
+
+void PanelSurface::OnButtonSurfaceWhite( wxCommandEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->SetActiveSurface( FSSurface::SurfaceWhite );
+	}
+}
+
+void PanelSurface::OnButtonSurfacePial( wxCommandEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->SetActiveSurface( FSSurface::SurfacePial );
+	}
+}
+
+void PanelSurface::OnButtonSurfaceOriginal( wxCommandEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->SetActiveSurface( FSSurface::SurfaceOriginal );
+	}
 }

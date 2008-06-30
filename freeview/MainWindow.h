@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/17 23:08:18 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +52,11 @@ class LayerCollectionManager;
 class LUTDataHolder;
 class wxToolBar;
 class BrushProperty;
+
+struct Settings2D
+{
+	bool	SyncZoomFactor;
+};
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -105,6 +110,17 @@ public:
 	void OnViewCycleLayerUpdateUI( wxUpdateUIEvent& event );
 	void OnViewToggleVolumeVisibility( wxCommandEvent& event );
 	void OnViewToggleVolumeVisibilityUpdateUI( wxUpdateUIEvent& event );
+	
+	void OnViewSurfaceMain( wxCommandEvent& event );
+	void OnViewSurfaceMainUpdateUI( wxUpdateUIEvent& event );
+	void OnViewSurfaceInflated( wxCommandEvent& event );
+	void OnViewSurfaceInflatedUpdateUI( wxUpdateUIEvent& event );
+	void OnViewSurfaceWhite( wxCommandEvent& event );
+	void OnViewSurfaceWhiteUpdateUI( wxUpdateUIEvent& event );
+	void OnViewSurfacePial( wxCommandEvent& event );
+	void OnViewSurfacePialUpdateUI( wxUpdateUIEvent& event );
+	void OnViewSurfaceOriginal( wxCommandEvent& event );
+	void OnViewSurfaceOriginalUpdateUI( wxUpdateUIEvent& event );
 	
 	void OnModeNavigate( wxCommandEvent& event );
 	void OnModeNavigateUpdateUI( wxUpdateUIEvent& event);	
@@ -187,8 +203,13 @@ public:
 	
 	int GetActiveViewId();
 	
+	RenderView* GetActiveView();
+	
 	BrushProperty* GetBrushProperty()
 		{ return m_propertyBrush; }
+	
+	Settings2D Get2DSettings()
+		{ return m_settings2D; }
 	
 protected:
 	void OnInternalIdle(); 
@@ -222,6 +243,8 @@ private:
 	int					m_nPrevActiveViewId;
 	
 	LayerCollectionManager*	m_layerCollectionManager;
+	
+	Settings2D			m_settings2D;
 	
 	wxString			m_strLastDir;
 	wxFileHistory*		m_fileHistory;

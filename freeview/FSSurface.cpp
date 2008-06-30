@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/23 21:28:13 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,13 +49,17 @@ FSSurface::FSSurface() :
 	m_MRIS( NULL ),
 	m_bBoundsCacheDirty( true ),
 	m_HashTable( NULL ),
-	m_bOriginalSurfaceLoaded( false ),
-	m_bWhiteSurfaceLoaded( false ),
-	m_bInflatedSurfaceLoaded( false ),
-	m_bPialSurfaceLoaded( false ),
-	m_bCurvatureLoaded( false )
+	m_bCurvatureLoaded( false ),
+	m_nActiveSurface( SurfaceMain )
 {
 	m_polydata = vtkPolyData::New();
+	
+	for ( int i = 0; i < NUM_OF_VSETS; i++ )
+	{
+		m_fVertexSets[i] = NULL;
+		m_fNormalSets[i] = NULL;
+		m_bSurfaceLoaded[i] = false;
+	}
 }
 	
 FSSurface::~FSSurface()
@@ -66,6 +70,14 @@ FSSurface::~FSSurface()
 	if ( m_HashTable )
 		MHTfree( &m_HashTable );
 	
+	for ( int i = 0; i < NUM_OF_VSETS; i++ )
+	{
+		if ( m_fNormalSets[i] )
+			delete[] m_fNormalSets[i];
+		if ( m_fVertexSets[i] )
+			delete[] m_fVertexSets[i];
+	}
+		
 	m_polydata->Delete();
 }
 		
@@ -144,9 +156,15 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 		
 	UpdatePolyData();
 	
-	LoadWhiteSurface();
-	LoadInflatedSurface();
-	LoadPialSurface();
+	// Save main vertices and normals
+	SaveVertices( m_MRIS, SurfaceMain );
+	SaveNormals	( m_MRIS, SurfaceMain );
+	m_bSurfaceLoaded[SurfaceMain] = true;
+			
+	LoadSurface	( "inflated", 	SurfaceInflated );
+	LoadSurface	( "white", 		SurfaceWhite );
+	LoadSurface	( "pial", 		SurfacePial );
+	LoadSurface	( "orig", 		SurfaceOriginal );
 	LoadCurvature();
 	
 	cout << "MRISread finished" << endl;
@@ -154,61 +172,22 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 	return true;
 }
 
-bool FSSurface::LoadOriginalSurface( const char* filename )
+bool FSSurface::LoadSurface( const char* filename, int nSet )
 {
-	return true;
-}
-
-bool FSSurface::LoadWhiteSurface( const char* filename )
-{
-	if ( ::MRISreadWhiteCoordinates( m_MRIS, (char*)(filename ? filename : "white") ) != 0 )
+	if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) != 0 )
 	{
-		cerr << "could not white matter surface from " << (filename ? filename : "white") << endl;
-		m_bWhiteSurfaceLoaded = false;
+		cerr << "could not load surface from " << filename << endl;
+		m_bSurfaceLoaded[nSet] = false;
 		return false;
 	}
 	else
 	{
-	//	::MRISsaveVertexPositions( m_MRIS, TMP_VERTICES );
-	//	::MRISrestoreVertexPositions( m_MRIS, WHITE_VERTICES );
-	//	vset_save_surface_vertices( VSET_WHITE );
-	//	::MRISrestoreVertexPositions( m_MRIS, TMP_VERTICES );
-		m_bWhiteSurfaceLoaded = true;
+		ComputeNormals();		
+		SaveVertices( m_MRIS, nSet );
+		SaveNormals	( m_MRIS, nSet );
+		m_bSurfaceLoaded[nSet] = true;
 		return true;
 	}	
-}
-
-bool FSSurface::LoadInflatedSurface( const char* filename )
-{
-	if ( ::MRISreadInflatedCoordinates( m_MRIS, (char*)(filename ? filename : "inflated" ) ) != 0 )
-	{
-		cerr << "could not read inflated surface from " << (filename ? filename : "inflated") << endl;
-		m_bInflatedSurfaceLoaded = false;
-		return false;
-	}
-	else
-	{
-		m_bInflatedSurfaceLoaded = true;
-		return true;
-	}	
-}
-
-bool FSSurface::LoadPialSurface	( const char* filename )
-{
-	::MRISsaveVertexPositions( m_MRIS, TMP_VERTICES );
-	if ( ::MRISreadVertexPositions( m_MRIS, (char*)(filename ? filename : "pial" ) ) != 0 )
-	{
-		cerr << "could not read canonical surface from " << (filename ? filename : "pial") << endl;
-		m_bPialSurfaceLoaded = false;
-		return false;
-	}
-	else
-	{
-		::MRISsaveVertexPositions( m_MRIS, PIAL_VERTICES );
-		::MRISrestoreVertexPositions( m_MRIS, TMP_VERTICES );
-		m_bPialSurfaceLoaded = true;
-		return true;
-	}
 }
 
 bool FSSurface::LoadCurvature( const char* filename )
@@ -238,6 +217,94 @@ bool FSSurface::LoadCurvature( const char* filename )
 		return true;
 	}
 }
+
+void FSSurface::SaveVertices( MRIS* mris, int nSet )
+{
+	if ( !mris || nSet >= NUM_OF_VSETS )
+		return;
+	
+	int nvertices = mris->nvertices;
+	VERTEX *v;
+	
+	if ( m_fVertexSets[nSet] == NULL )
+	{
+		m_fVertexSets[nSet] = new VertexItem[nvertices];
+		if ( !m_fVertexSets[nSet] )
+		{
+			cerr << "Can not allocate memory for vertex sets." << endl;
+			return;
+		}
+	}
+	for ( int vno = 0; vno < nvertices; vno++ )
+	{
+		v = &mris->vertices[vno];
+		m_fVertexSets[nSet][vno].x = v->x;
+		m_fVertexSets[nSet][vno].y = v->y;
+		m_fVertexSets[nSet][vno].z = v->z;
+	}
+}
+	
+void FSSurface::RestoreVertices( MRIS* mris, int nSet )
+{
+	if ( !mris || nSet >= NUM_OF_VSETS || m_fVertexSets[nSet] == NULL)
+		return;
+	
+	int nvertices = mris->nvertices;
+	VERTEX *v;
+
+	for ( int vno = 0; vno < nvertices; vno++ )
+	{
+		v = &mris->vertices[vno];
+		v->x = m_fVertexSets[nSet][vno].x;
+		v->y = m_fVertexSets[nSet][vno].y;
+		v->z = m_fVertexSets[nSet][vno].z;
+	}
+}
+
+
+void FSSurface::SaveNormals( MRIS* mris, int nSet )
+{
+	if ( !mris || nSet >= NUM_OF_VSETS )
+		return;
+	
+	int nvertices = mris->nvertices;
+	VERTEX *v;
+	
+	if ( m_fNormalSets[nSet] == NULL )
+	{
+		m_fNormalSets[nSet] = new VertexItem[nvertices];
+		if ( !m_fNormalSets[nSet] )
+		{
+			cerr << "Can not allocate memory for normal sets." << endl;
+			return;
+		}
+	}
+	for ( int vno = 0; vno < nvertices; vno++ )
+	{
+		v = &mris->vertices[vno];
+		m_fNormalSets[nSet][vno].x = v->nx;
+		m_fNormalSets[nSet][vno].y = v->ny;
+		m_fNormalSets[nSet][vno].z = v->nz;
+	}
+}
+	
+void FSSurface::RestoreNormals( MRIS* mris, int nSet )
+{
+	if ( !mris || nSet >= NUM_OF_VSETS || m_fNormalSets[nSet] == NULL)
+		return;
+	
+	int nvertices = mris->nvertices;
+	VERTEX *v;
+
+	for ( int vno = 0; vno < nvertices; vno++ )
+	{
+		v = &mris->vertices[vno];
+		v->nx = m_fNormalSets[nSet][vno].x;
+		v->ny = m_fNormalSets[nSet][vno].y;
+		v->nz = m_fNormalSets[nSet][vno].z;
+	}
+}
+
 
 void FSSurface::UpdatePolyData()
 {
@@ -291,6 +358,176 @@ void FSSurface::UpdatePolyData()
 	m_polydata->GetPointData()->SetNormals( newNormals );
 	newPolys->Squeeze(); // since we've estimated size; reclaim some space
 	m_polydata->SetPolys( newPolys );	
+//	m_polydata->Update();
+}
+
+void FSSurface::UpdateVerticesAndNormals()
+{
+  // Allocate all our arrays.
+	int cVertices = m_MRIS->nvertices;
+
+	vtkSmartPointer<vtkPoints> newPoints = 
+			vtkSmartPointer<vtkPoints>::New();
+	newPoints->Allocate( cVertices );
+
+	vtkSmartPointer<vtkFloatArray> newNormals =
+			vtkSmartPointer<vtkFloatArray>::New();
+	newNormals->Allocate( cVertices );
+	newNormals->SetNumberOfComponents( 3 );
+	newNormals->SetName( "Normals" );
+
+  // Go through the surface and copy the vertex and normal for each
+  // vertex. We have to transform them from surface RAS into normal
+  // RAS.
+	float point[3], normal[3], surfaceRAS[3];
+	for ( int vno = 0; vno < cVertices; vno++ ) {
+
+		surfaceRAS[0] = m_MRIS->vertices[vno].x;
+		surfaceRAS[1] = m_MRIS->vertices[vno].y;
+		surfaceRAS[2] = m_MRIS->vertices[vno].z;
+		this->ConvertSurfaceToRAS( surfaceRAS, point );
+		newPoints->InsertNextPoint( point );
+
+		normal[0] = m_MRIS->vertices[vno].nx;
+		normal[1] = m_MRIS->vertices[vno].ny;
+		normal[2] = m_MRIS->vertices[vno].nz;
+		newNormals->InsertNextTuple( normal );
+	}
+
+	m_polydata->SetPoints( newPoints );
+	m_polydata->GetPointData()->SetNormals( newNormals );
+//	m_polydata->Update();
+}
+
+bool FSSurface::SetActiveSurface( int nIndex )
+{
+	if ( nIndex == m_nActiveSurface )
+		return false;
+	
+	m_nActiveSurface = nIndex;
+	
+	RestoreVertices( m_MRIS, nIndex );
+	
+	if ( m_fNormalSets[nIndex] == NULL )
+	{
+		ComputeNormals();
+		SaveNormals( m_MRIS, nIndex );
+	}
+	else
+	{
+		RestoreNormals( m_MRIS, nIndex );
+	}
+	
+	UpdateVerticesAndNormals();
+	
+	return true;
+}
+
+void FSSurface::NormalFace(int fac, int n, float *norm)
+{
+	int n0,n1;
+	FACE *f;
+	MRIS* mris = m_MRIS;
+	float v0[3],v1[3];
+
+	n0 = (n==0)                   ? VERTICES_PER_FACE-1 : n-1;
+	n1 = (n==VERTICES_PER_FACE-1) ? 0                   : n+1;
+	f = &mris->faces[fac];
+	v0[0] = mris->vertices[f->v[n]].x - mris->vertices[f->v[n0]].x;
+	v0[1] = mris->vertices[f->v[n]].y - mris->vertices[f->v[n0]].y;
+	v0[2] = mris->vertices[f->v[n]].z - mris->vertices[f->v[n0]].z;
+	v1[0] = mris->vertices[f->v[n1]].x - mris->vertices[f->v[n]].x;
+	v1[1] = mris->vertices[f->v[n1]].y - mris->vertices[f->v[n]].y;
+	v1[2] = mris->vertices[f->v[n1]].z - mris->vertices[f->v[n]].z;
+	Normalize(v0);
+	Normalize(v1);
+	norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
+	norm[1] = v1[0]*v0[2] - v0[0]*v1[2];
+	norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
+  /*
+	printf("[%5.2f,%5.2f,%5.2f] x [%5.2f,%5.2f,%5.2f] = [%5.2f,%5.2f,%5.2f]\n",
+	v0[0],v0[1],v0[2],v1[0],v1[1],v1[2],norm[0],norm[1],norm[2]);
+  */
+}
+
+float FSSurface::TriangleArea(int fac, int n)
+{
+	int n0,n1;
+	FACE *f;
+	MRIS* mris = m_MRIS;
+	float v0[3],v1[3],d1,d2,d3;
+
+	n0 = (n==0)                   ? VERTICES_PER_FACE-1 : n-1;
+	n1 = (n==VERTICES_PER_FACE-1) ? 0                   : n+1;
+	f = &mris->faces[fac];
+	v0[0] = mris->vertices[f->v[n]].x - mris->vertices[f->v[n0]].x;
+	v0[1] = mris->vertices[f->v[n]].y - mris->vertices[f->v[n0]].y;
+	v0[2] = mris->vertices[f->v[n]].z - mris->vertices[f->v[n0]].z;
+	v1[0] = mris->vertices[f->v[n1]].x - mris->vertices[f->v[n]].x;
+	v1[1] = mris->vertices[f->v[n1]].y - mris->vertices[f->v[n]].y;
+	v1[2] = mris->vertices[f->v[n1]].z - mris->vertices[f->v[n]].z;
+	d1 = -v1[1]*v0[2] + v0[1]*v1[2];
+	d2 = v1[0]*v0[2] - v0[0]*v1[2];
+	d3 = -v1[0]*v0[1] + v0[0]*v1[1];
+	return sqrt(d1*d1+d2*d2+d3*d3)/2;
+}
+
+void FSSurface::Normalize( float v[3] )
+{
+	float d;
+
+	d = sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+	if (d>0)
+	{
+		v[0] /= d;
+		v[1] /= d;
+		v[2] /= d;
+	}
+}
+
+void FSSurface::ComputeNormals()  
+{
+	if ( !m_MRIS )
+		return;
+	
+	MRIS* mris = m_MRIS;
+	int k,n;
+	VERTEX *v;
+	FACE *f;
+	float norm[3],snorm[3];
+
+	for (k=0;k<mris->nfaces;k++)
+		if (mris->faces[k].ripflag)
+	{
+		f = &mris->faces[k];
+		for (n=0;n<VERTICES_PER_FACE;n++)
+			mris->vertices[f->v[n]].border = TRUE;
+	}
+	for (k=0;k<mris->nvertices;k++)
+		if (!mris->vertices[k].ripflag)
+	{
+		v = &mris->vertices[k];
+		snorm[0]=snorm[1]=snorm[2]=0;
+		v->area = 0;
+		for (n=0;n<v->num;n++)
+			if (!mris->faces[v->f[n]].ripflag)
+		{
+			NormalFace(v->f[n],v->n[n],norm);
+			snorm[0] += norm[0];
+			snorm[1] += norm[1];
+			snorm[2] += norm[2];
+			v->area += TriangleArea(v->f[n],v->n[n]);
+			/* Note: overest. area by 2! */
+		}
+		Normalize( snorm );
+
+		if (v->origarea<0)
+			v->origarea = v->area;
+
+		v->nx = snorm[0];
+		v->ny = snorm[1];
+		v->nz = snorm[2];
+	}
 }
 
 void FSSurface::ConvertSurfaceToRAS ( float iX, float iY, float iZ,

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/06/30 20:48:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,6 +65,7 @@ BEGIN_EVENT_TABLE(RenderView, wxVTKRenderWindowInteractor)
 	EVT_ENTER_WINDOW( RenderView::OnMouseEnter )
 	EVT_LEAVE_WINDOW( RenderView::OnMouseLeave )
 	EVT_KEY_DOWN	( RenderView::OnKeyDown )
+	EVT_KEY_UP		( RenderView::OnKeyUp )
 	EVT_SIZE        ( RenderView::OnSize )
 END_EVENT_TABLE()
 
@@ -230,6 +231,12 @@ void RenderView::OnMouseLeave( wxMouseEvent& event )
 void RenderView::OnKeyDown( wxKeyEvent& event )
 {
 	if ( m_interactor->ProcessKeyDownEvent( event, this ) )
+		event.Skip();
+}
+
+void RenderView::OnKeyUp( wxKeyEvent& event )
+{
+	if ( m_interactor->ProcessKeyUpEvent( event, this ) )
 		event.Skip();
 }
 
