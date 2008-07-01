@@ -7,9 +7,9 @@
 /*
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/26 16:46:46 $
- *    $Revision: 1.27 $
+ *    $Author: icsapo $
+ *    $Date: 2008/07/01 16:35:10 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.27 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.28 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -343,21 +343,29 @@ MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
 
 #define FILL_VAL  1
   MRIsetVoxVal(mri_dst,0,0,0,0,FILL_VAL) ;
+  MRIsetVoxVal(mri_dst,width-1,0,0,0,FILL_VAL) ;
+  MRIsetVoxVal(mri_dst,0,height-1,0,0,FILL_VAL) ;
+  MRIsetVoxVal(mri_dst,0,0,depth-1,0,FILL_VAL) ;
+  MRIsetVoxVal(mri_dst,width-1,height-1,0,0,FILL_VAL) ;
+  MRIsetVoxVal(mri_dst,width-1,0,depth-1,0,FILL_VAL) ;
+  MRIsetVoxVal(mri_dst,0,height-1,depth-1,0,FILL_VAL) ;
+  MRIsetVoxVal(mri_dst,width-1,height-1,depth-1,0,FILL_VAL) ;
 
   newfilled=1;
   while (newfilled>0)
   {
     newfilled=0;
 
+    /* corner: 0 0 0 */
     for (i=0;i<width;i++)
       for (j=0;j<height;j++)
         for (k=0;k<depth;k++)
         {
           if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
           {
-            v1 = (int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0);
-            v2 = (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0);
-            v3 = (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0);
+            v1 = (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0);
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0);
             if (v1==FILL_VAL||
                 v2==FILL_VAL||
                 v3==FILL_VAL)
@@ -369,15 +377,79 @@ MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
             }
           }
         }
+    /* corner: w 0 0 */
     for (i=width-1;i>=0;i--)
+      for (j=0;j<height;j++)
+        for (k=0;k<depth;k++)
+        {
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0);
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL)
+            {
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
+              newfilled++;
+            }
+          }
+        }
+    /* corner: 0 h 0 */
+    for (i=0;i<width;i++)
       for (j=height-1;j>=0;j--)
+        for (k=0;k<depth;k++)
+        {
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0);
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL)
+            {
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
+              newfilled++;
+            }
+          }
+        }
+    /* corner: 0 0 d */
+    for (i=0;i<width;i++)
+      for (j=0;j<height;j++)
         for (k=depth-1;k>=0;k--)
         {
           if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
           {
-            v1 = (int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0);
-            v2 = (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0) ;
-            v3 = (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0);
+            v1 = (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0);
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL)
+            {
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
+              newfilled++;
+            }
+          }
+        }
+    /* corner: w h 0 */
+    for (i=width-1;i>=0;i--)
+      for (j=height-1;j>=0;j--)
+        for (k=0;k<depth;k++)
+        {
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0) ;
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k-1+((k==0)? 1:0),0);
             if (v1==FILL_VAL||
                 v2==FILL_VAL||
                 v3==FILL_VAL) 
@@ -385,7 +457,70 @@ MRISfloodoutside(MRI *mri_src,MRI *mri_dst)
               if (i == Gx && j == Gy && k == Gz)
                 DiagBreak() ;
               MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
-              newfilled++;
+	      newfilled++;
+            }
+          }
+        }
+    /* corner: w 0 d */
+    for (i=width-1;i>=0;i--)
+      for (j=0;j<height;j++)
+        for (k=depth-1;k>=0;k--)
+        {
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0) ;
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j-1+((j==0)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL) 
+            {
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
+	      newfilled++;
+            }
+          }
+        }
+    /* corner: 0 h d */
+    for (i=0;i<width;i++)
+      for (j=height-1;j>=0;j--)
+        for (k=depth-1;k>=0;k--)
+        {
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i-1+((i==0)?1:0),j,k,0) ;
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL) 
+            {
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
+	      newfilled++;
+            }
+          }
+        }
+    /* corner: w h d */
+    for (i=width-1;i>=0;i--)
+      for (j=height-1;j>=0;j--)
+        for (k=depth-1;k>=0;k--)
+        {
+          if ((int)MRIgetVoxVal(mri_dst,i,j,k,0)==0)
+          {
+            v1 = (int)MRIgetVoxVal(mri_dst,i+1-((i==width-1)?1:0),j,k,0) ;
+            v2 = (int)MRIgetVoxVal(mri_dst,i,j+1-((j==height-1)?1:0),k,0);
+            v3 = (int)MRIgetVoxVal(mri_dst,i,j,k+1-((k==depth-1)?1:0),0);
+            if (v1==FILL_VAL||
+                v2==FILL_VAL||
+                v3==FILL_VAL) 
+            {
+              if (i == Gx && j == Gy && k == Gz)
+                DiagBreak() ;
+              MRIsetVoxVal(mri_dst,i,j,k,0,FILL_VAL);
+	      newfilled++;
             }
           }
         }
