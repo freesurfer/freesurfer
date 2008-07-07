@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2008/01/03 13:45:36 $
-##    $Revision: 1.24.2.2 $
+##    $Date: 2008/07/07 22:29:10 $
+##    $Revision: 1.24.2.3 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -29,7 +29,7 @@ set gbLibLoaded 0
 if { [info commands gdfRead] == "gdfRead" }  {
   set gbLibLoaded 1
 } else {
-  puts "Couldn't find gdf commands."
+  puts "fsgdfPlot.tcl: Couldn't find gdf commands."
 }
 
 
@@ -42,7 +42,7 @@ proc FindFile { ifnFile ilDirs } {
       return $sFullFileName
     }
   }
-  puts "Couldn't find $ifnFile: Not in $ilDirs"
+  puts "fsgdfPlot.tcl: Couldn't find $ifnFile: Not in $ilDirs"
   return ""
 }
 
@@ -417,7 +417,7 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
       # default.
       set n [lsearch -exact $kValid(lMarkers) $gGDF($ID,classes,$nClass,marker)]
       if { $n == -1 } {
-        puts "WARNING: Marker for class $gGDF($ID,classes,$nClass,label) was invalid."
+        #puts "WARNING: Marker for class $gGDF($ID,classes,$nClass,label) was invalid."
         set gGDF($ID,classes,$nClass,marker) \
           [lindex $kValid(lMarkers) $nMarker]
         incr nMarker
@@ -440,7 +440,7 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
       set n [lsearch -exact $kValid(lColors) \
              $gGDF($ID,classes,$nClass,color)]
       if { $n == -1 } {
-        puts "WARNING: Color for class $gGDF($ID,classes,$nClass,label) was invalid."
+        #puts "WARNING: Color for class $gGDF($ID,classes,$nClass,label) was invalid."
         set gGDF($ID,classes,$nClass,color) \
           [lindex $kValid(lColors) $nColor]
         incr nColor
