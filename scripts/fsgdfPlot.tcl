@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2008/01/21 01:06:57 $
-##    $Revision: 1.27 $
+##    $Date: 2008/07/07 22:27:53 $
+##    $Revision: 1.28 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -417,7 +417,7 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
       # default.
       set n [lsearch -exact $kValid(lMarkers) $gGDF($ID,classes,$nClass,marker)]
       if { $n == -1 } {
-        puts "WARNING: Marker for class $gGDF($ID,classes,$nClass,label) was invalid."
+        #puts "WARNING: Marker for class $gGDF($ID,classes,$nClass,label) was invalid."
         set gGDF($ID,classes,$nClass,marker) \
           [lindex $kValid(lMarkers) $nMarker]
         incr nMarker
@@ -440,7 +440,7 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
       set n [lsearch -exact $kValid(lColors) \
              $gGDF($ID,classes,$nClass,color)]
       if { $n == -1 } {
-        puts "WARNING: Color for class $gGDF($ID,classes,$nClass,label) was invalid."
+        #puts "WARNING: Color for class $gGDF($ID,classes,$nClass,label) was invalid."
         set gGDF($ID,classes,$nClass,color) \
           [lindex $kValid(lColors) $nColor]
         incr nColor
