@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/06 02:42:19 $
-#    $Revision: 1.21.2.2 $
+#    $Date: 2008/07/07 13:53:49 $
+#    $Revision: 1.21.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.21.2.2 2007/11/06 02:42:19 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.21.2.3 2008/07/07 13:53:49 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -428,6 +428,10 @@ check_params:
 
   if($#subjid == 0) then
     echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subjid) then
+    echo "ERROR: cannot find $subjid in $SUBJECTS_DIR"
     exit 1;
   endif
 
