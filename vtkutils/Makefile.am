@@ -82,7 +82,7 @@ check_PROGRAMS=
 TESTS=
 endif
 
-IconLoaderTest_SOURCES=IconLoaderTest.cxx IconLoader.cxx
+IconLoaderTest_SOURCES=IconLoaderTest.cxx IconLoaderTest.h IconLoader.cxx
 
 IconLoaderTest_LDADD=\
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
