@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 16:01:48 $
-#    $Revision: 1.6 $
+#    $Date: 2008/07/08 17:33:14 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_anatomical_stats,v 1.6 2008/02/26 16:01:48 nicks Exp $'
+set VERSION='$Id: test_mris_anatomical_stats,v 1.7 2008/07/08 17:33:14 nicks Exp $'
 
 umask 002
 
@@ -72,6 +72,7 @@ endif
 #
 # test2: repeat basic call sequence for lh, plus -log
 #
+if ( -e test2_logfile.observed ) rm -f test2_logfile.observed
 set cmd=( ./mris_anatomical_stats -log test2_logfile.observed testdata2 lh )
 echo ""
 echo $cmd
