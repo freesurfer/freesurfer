@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/17 22:36:01 $
- *    $Revision: 1.13.2.3 $
+ *    $Date: 2008/07/08 21:27:59 $
+ *    $Revision: 1.13.2.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -562,12 +562,12 @@ int QdecProject::LoadDataTable ( const char* isFileName )
   if ( ret ) return ret;
   delete this->mGlmDesign;
   this->mGlmDesign = new QdecGlmDesign( this->mDataTable );
-  ret = this->VerifySubjects();
-  if ( ret ) 
-  {
-    delete this->mDataTable;
-    this->mDataTable = new QdecDataTable(); // on err, return empty table
-  }
+  this->VerifySubjects();
+  //if ( ret ) 
+  //{
+  //  delete this->mDataTable;
+  //  this->mDataTable = new QdecDataTable(); // on err, return empty table
+  // }
   return ret;
 }
 
