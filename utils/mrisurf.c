@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/06/30 15:12:07 $
- *    $Revision: 1.610 $
+ *    $Author: greve $
+ *    $Date: 2008/07/08 17:35:58 $
+ *    $Revision: 1.611 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.610 2008/06/30 15:12:07 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.611 2008/07/08 17:35:58 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61575,9 +61575,10 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   Real   val ;
 
   mri_filled = MRISfillInterior(mris, resolution, NULL) ;
-  mri_filled->c_r += mri_aseg->c_r ;
-  mri_filled->c_a += mri_aseg->c_a ;
-  mri_filled->c_s += mri_aseg->c_s ;
+  // This cras adjustment is now done in MRISfillInterior() DNG 7/8/08
+  //mri_filled->c_r += mri_aseg->c_r ;
+  //mri_filled->c_a += mri_aseg->c_a ;
+  //mri_filled->c_s += mri_aseg->c_s ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_filled, "f.mgz") ;
   m_vox2vox = MRIgetVoxelToVoxelXform(mri_filled, mri_aseg) ;
