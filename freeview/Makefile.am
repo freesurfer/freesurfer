@@ -120,7 +120,12 @@ freeview_SOURCES=\
 	wxVTKRenderWindowInteractor.h \
 	res/resource.cpp \
 	res/resource.h \
-	res/QuickRef.h
+	res/QuickRef.h \
+	res/CursorFill_png.h \
+	res/CursorPencil_png.h \
+	res/CursorPolyline_png.h \
+	res/CursorPan_png.h \
+	res/CursorZoom_png.h
 
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
