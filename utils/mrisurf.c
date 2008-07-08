@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/23 00:06:05 $
- *    $Revision: 1.557.2.13 $
+ *    $Author: greve $
+ *    $Date: 2008/07/08 18:08:07 $
+ *    $Revision: 1.557.2.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.13 2008/05/23 00:06:05 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.14 2008/07/08 18:08:07 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61085,9 +61085,9 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   Real   val ;
 
   mri_filled = MRISfillInterior(mris, resolution, NULL) ;
-  mri_filled->c_r += mri_aseg->c_r ;
-  mri_filled->c_a += mri_aseg->c_a ;
-  mri_filled->c_s += mri_aseg->c_s ;
+  //mri_filled->c_r += mri_aseg->c_r ;
+  //mri_filled->c_a += mri_aseg->c_a ;
+  //mri_filled->c_s += mri_aseg->c_s ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_filled, "f.mgz") ;
   m_vox2vox = MRIgetVoxelToVoxelXform(mri_filled, mri_aseg) ;
