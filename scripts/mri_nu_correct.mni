@@ -3,13 +3,11 @@
 #
 # mri_nu_correct.mni
 #
-# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
-#
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/11/07 19:06:26 $
-#    $Revision: 1.8 $
+#    $Author: nicks $
+#    $Date: 2008/07/09 21:04:14 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +24,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.8 2007/11/07 19:06:26 greve Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.9 2008/07/09 21:04:14 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -100,6 +98,7 @@ while($nthIter <= $nIters)
   echo "Iteration $nthIter `date`" |& tee -a $LF
   @ m = $nthIter - 1
   set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
+  set cmd = ($cmd -tmpdir ${tmpdir}/${m}/ );
   if($#nProtoIters)   set cmd = ($cmd -iterations $nProtoIters);
   if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
   if($#Distance)      set cmd = ($cmd -distance $Distance);
