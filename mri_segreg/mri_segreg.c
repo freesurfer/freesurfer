@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/08 20:03:10 $
- *    $Revision: 1.49 $
+ *    $Date: 2008/07/09 03:25:06 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -32,13 +32,11 @@
 
   --reg regfile
   --mov fvol
-  --inorm inorm : intensity profile in reg with anat
-
-  --o out : save final output
   --out-reg outreg : reg at lowest cost
+
   --cost costfile
-  --sum sumfile : def is outreg.sum
-  --no-surf : do not use surface-based method
+  --sum sumfile : default is outreg.sum
+  --o out : save final output
 
   --brute min max delta : brute force in all directions
   --1dpreopt min max delta : brute force in PE direction
@@ -50,9 +48,10 @@
   --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
   --preopt-only : only preopt, so not optimize
 
-
   --gm-gt-wm slope : gray matter brighter than WM
   --wm-gt-gm slope : WM brighter than gray matter
+  --c0 offset : cost offset (pct)
+  --cf cfile  : save cost function values (pct,cost)
 
   --no-mask : do not mask out regions
   --lh-only : only use left hemisphere
@@ -83,7 +82,7 @@
 
   --mincost MinCostFile
   --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost
-  --surf-cost basename
+  --surf-cost basename : saves as ?h.basename.mgh
 
   --mksegreg subject : create segreg.mgz and exit
 
@@ -185,12 +184,14 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 #include "tags.h"
 static int istringnmatch(char *str1, char *str2, int n);
+double VertexCost(double vctx, double vwm, double slope, 
+		  double center, double sign, double *pct);
 
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.49 2008/07/08 20:03:10 greve Exp $";
+"$Id: mri_segreg.c,v 1.50 2008/07/09 03:25:06 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -258,6 +259,7 @@ struct utsname uts;
 
 int PenaltySign  = -1;
 double PenaltySlope = .5;
+double PenaltyCenter = 0;
 int DoMidFrame = 0;
 
 int Do1DPreOpt = 0;
@@ -307,13 +309,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.49 2008/07/08 20:03:10 greve Exp $",
+     "$Id: mri_segreg.c,v 1.50 2008/07/09 03:25:06 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.49 2008/07/08 20:03:10 greve Exp $",
+     "$Id: mri_segreg.c,v 1.50 2008/07/09 03:25:06 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -915,8 +917,9 @@ static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option;
   int err,nv,n;
-  double vmin, vmax, vdelta;
+  double vmin, vmax, vdelta, v, c, d;
   double angles[3],xyztrans[3];
+  FILE *fp;
 
   if (argc < 1) usage_exit();
 
@@ -1075,6 +1078,15 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
     } else if (istringnmatch(option, "--c0",0)) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&PenaltyCenter);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--wm-gt-gm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      PenaltySign = +1;
+      sscanf(pargv[0],"%lf",&PenaltySlope);
+      nargsused = 1;
+    } else if (istringnmatch(option, "--abs",0)) {
       // no direction of contrast expected
       PenaltySign = 0;
       nargsused = 1;
@@ -1193,6 +1205,16 @@ static int parse_commandline(int argc, char **argv) {
       RMSDiffFile = pargv[0];
       DoRMSDiff = 1;
       nargsused = 1;
+    } else if (istringnmatch(option, "--cf",0)) {
+      if (nargc < 1) argnerr(option,1);
+      nargsused = 1;
+      fp = fopen(pargv[0],"w");
+      for(v = -30; v < +30; v++){
+	c = VertexCost(10*(1+v/200)/(1-v/200), 10, PenaltySlope, PenaltyCenter, PenaltySign, &d);
+	fprintf(fp,"%lf %lf\n",d,c);
+      }
+      fclose(fp);
+      exit(0);
     } else if (istringnmatch(option, "--interp",8)) {
       if (nargc < 1) argnerr(option,1);
       interpmethod = pargv[0];
@@ -1233,17 +1255,15 @@ printf("  mri_segreg\n");
 printf("\n");
 printf("  --reg regfile\n");
 printf("  --mov fvol\n");
-printf("  --inorm inorm : intensity profile in reg with anat\n");
+printf("  --out-reg outreg : reg at lowest cost\n");
 printf("\n");
 printf("  --o out : save final output\n");
-printf("  --out-reg outreg : reg at lowest cost\n");
 printf("  --cost costfile\n");
-printf("  --sum sumfile : def is outreg.sum\n");
-printf("  --no-surf : do not use surface-based method\n");
-
-printf("  --1dpreopt min max delta : brute force in PE direction\n");
+printf("  --sum sumfile : default is outreg.sum\n");
+printf("\n");
 printf("  --brute min max delta : brute force in all directions\n");
-
+printf("  --1dpreopt min max delta : brute force in PE direction\n");
+printf("\n");
 printf("  --fwhm fwhm : smooth input by fwhm mm\n");
 printf("  --skip nskip : only sample every nskip vertices\n");
 printf("\n");
@@ -1251,8 +1271,11 @@ printf("  --preopt-file file : save preopt results in file\n");
 printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
 printf("  --preopt-only : only preopt, so not optimize\n");
 printf("\n");
+printf("\n");
 printf("  --gm-gt-wm slope : gray matter brighter than WM\n");
 printf("  --wm-gt-gm slope : WM brighter than gray matter\n");
+printf("  --c0 offset : cost offset (pct)\n");
+printf("  --cf cfile  : save cost function values (pct,cost)\n");
 printf("\n");
 printf("  --no-mask : do not mask out regions\n");
 printf("  --lh-only : only use left hemisphere\n");
@@ -1283,7 +1306,7 @@ printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
 printf("  --mincost MinCostFile\n");
 printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost\n");
-printf("  --surf-cost basename : output is ?h.basename.mgh\n");
+printf("  --surf-cost basename : saves as ?h.basename.mgh\n");
 printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
 printf("\n");
@@ -1367,6 +1390,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"vskip %d\n",vskip);
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
+  fprintf(fp,"PenaltyCenter %lf\n",PenaltyCenter);
   fprintf(fp,"lhcostfile %s\n",lhcostfile);
   fprintf(fp,"rhcostfile %s\n",rhcostfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
@@ -2053,6 +2077,26 @@ int MRISsegReg(char *subject, int ForceReRun)
   return(0);
 }
 
+/*------------------------------------------------------
+  vctx - intensity in cortex
+  vwm - intensity in wm
+  slope - cost function slope at center
+  center - cost function center (percent contrast)
+  sign - 0 (abs), +1 (gm>wm), -1 (gm<wm)
+  --------------------------------------------------------*/
+double VertexCost(double vctx, double vwm, double slope, 
+		  double center, double sign, double *pct)
+{
+  double d,a=0,c;
+  d = 100*(vctx-vwm)/((vctx+vwm)/2.0); // percent contrast
+  if(sign ==  0) a = -abs(slope*(d-center)); // not sure this is useful
+  if(sign == -1) a = -(slope*(d-center));
+  if(sign == +1) a = +(slope*(d-center));
+  c = 1+tanh(a);
+  *pct = d;
+  return(c);
+}
+
 /*-------------------------------------------------------*/
 double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 		     double *p, double *costs)
@@ -2068,7 +2112,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern double PenaltySlope;
   extern int vskip;
   extern int interpcode;
-  double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean,a=0;
+  double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean;
   MATRIX *Mrot=NULL, *Mtrans=NULL;
   MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
   int nhits,n;
@@ -2140,13 +2184,9 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       costs[2] += (vwm*vwm);
       costs[4] += vctx;
       costs[5] += (vctx*vctx);
-      d = 100*(vctx-vwm)/((vctx+vwm)/2.0); // percent contrast
+      c = VertexCost(vctx, vwm, PenaltySlope, PenaltyCenter, PenaltySign, &d);
       dsum += d;
       dsum2 += (d*d);
-      if(PenaltySign ==  0) a = -abs(PenaltySlope*d);
-      if(PenaltySign == -1) a =    -(PenaltySlope*d);
-      if(PenaltySign == +1) a =    +(PenaltySlope*d);
-      c = 1+tanh(a);
       csum += c;
       csum2 += (c*c);
       if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,c);
@@ -2168,13 +2208,9 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       costs[2] += (vwm*vwm);
       costs[4] += vctx;
       costs[5] += (vctx*vctx);
-      d = 100*(vctx-vwm)/((vctx+vwm)/2.0); // percent contrast
+      c = VertexCost(vctx, vwm, PenaltySlope, PenaltyCenter, PenaltySign, &d);
       dsum += d;
       dsum2 += (d*d);
-      if(PenaltySign ==  0) a = -abs(PenaltySlope*d); // not sure this is useful
-      if(PenaltySign == -1) a =    -(PenaltySlope*d);
-      if(PenaltySign == +1) a =    +(PenaltySlope*d);
-      c = 1+tanh(a);
       csum += c;
       csum2 += (c*c);
       if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,c);
