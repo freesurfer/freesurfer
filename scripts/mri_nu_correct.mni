@@ -3,13 +3,11 @@
 #
 # mri_nu_correct.mni
 #
-# REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
-#
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.7 $
+#    $Date: 2008/07/09 21:05:39 $
+#    $Revision: 1.7.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +24,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.7 2007/01/06 00:01:14 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.7.2.1 2008/07/09 21:05:39 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -34,6 +32,8 @@ set nIters = 4; # default in recon-all
 set HiRes = ();
 set nProtoIters = ();
 set StopThresh = ();
+set Distance = ();
+set FWHM = ();
 set LF = ();
 
 set debug = 0;
@@ -98,8 +98,11 @@ while($nthIter <= $nIters)
   echo "Iteration $nthIter `date`" |& tee -a $LF
   @ m = $nthIter - 1
   set cmd = (nu_correct -clobber $tmpdir/nu${m}.mnc $tmpdir/nu${nthIter}.mnc)
+  set cmd = ($cmd -tmpdir ${tmpdir}/${m}/ );
   if($#nProtoIters)   set cmd = ($cmd -iterations $nProtoIters);
   if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
+  if($#Distance)      set cmd = ($cmd -distance $Distance);
+  if($#FWHM)          set cmd = ($cmd -distance $FWHM);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
@@ -168,6 +171,16 @@ while( $#argv != 0 )
       set StopThresh = $argv[1]; shift;
       breaksw
 
+    case "--distance":
+      if ( $#argv == 0) goto arg1err;
+      set Distance = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set FWHM = $argv[1]; shift;
+      breaksw
+
     case "--cm":
       set HiRes = (-cm)
       breaksw
@@ -227,7 +240,9 @@ usage_exit:
   echo " --o  outvol : output volume"
   echo " --n  niters : number of iterations, default is $nIters"
   echo " --proto-iters Np : number of protocol iterations "
-  echo " --stop thresh    : N3 option"
+  echo " --stop thresh        : N3 option"
+  echo " --distance Distance  : N3 -distance option"
+  echo " --fwhm FWHM          : N3 -fwhm option"
   echo ""
   echo " --cm        : conform COR volumes to the min voxel size "
   echo ""
