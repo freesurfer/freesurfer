@@ -1,5 +1,5 @@
-function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
-% Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>)
+function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
+% Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_v3>)
 %
 % Computes the FIR design matrix for the given schedule of one
 % event type.
@@ -9,6 +9,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % TR = time between time points
 % psdwin = [psdmin psdmax dpsd];
 % usew:  0, [], not spec = dont use weight, 1 = use weight
+% use_v3 - make (more) consistent with version 3
 %
 % Notes:
 %  1. Number of rows in st is the number of presentations.
@@ -20,7 +21,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %     but it is a good idea.
 %  6. If two stimuli fall within the sam TR bin, the Xfir
 %     matrix will have a 2 instead of a 1.
-% $Id: fast_st2fir.m,v 1.15 2007/07/08 20:58:28 greve Exp $
+% $Id: fast_st2fir.m,v 1.16 2008/07/10 21:00:09 greve Exp $
 
 
 %
@@ -29,8 +30,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/07/08 20:58:28 $
-%    $Revision: 1.15 $
+%    $Date: 2008/07/10 21:00:09 $
+%    $Revision: 1.16 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -49,12 +50,14 @@ Xfir = [];
 a = [];
 Xfirss = [];
 
-if(nargin < 4 | nargin > 5)
-  fprintf('Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>)\n');
+if(nargin < 4 | nargin > 6)
+  fprintf('Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_v3>)\n');
   return;
 end
 if(~exist('usew','var')) usew = []; end
 if(isempty(usew)) usew = 0; end
+if(~exist('use_v3','var')) use_v3 = []; end
+if(isempty(use_v3)) use_v3 = 0; end
 
 psdmin  = psdwin(1);  % start of PSD window
 psdmax  = psdwin(2);  % end of PSD window
@@ -126,11 +129,14 @@ Xfirss = toeplitz(a,b);
 % Subsample 
 %Xfir = Xfirss(1:ssr:end,:);
 if(ssr > 1)
-  tmp = reshape(Xfirss,[ssr ntp npsdwin]);
-  Xfir = squeeze(sum(tmp));
+  if(use_v3)
+    Xfir = Xfirss(1:ssr:end,:);
+  else
+    tmp = reshape(Xfirss,[ssr ntp npsdwin]);
+    Xfir = squeeze(sum(tmp));
+  end
 else
   Xfir = Xfirss;
 end
-
 
 return;
