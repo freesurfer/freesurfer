@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:43 $
- *    $Revision: 1.111.2.7 $
+ *    $Author: greve $
+ *    $Date: 2008/07/10 19:43:13 $
+ *    $Revision: 1.111.2.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1603,6 +1603,8 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x1030);
   cond=GetString(&object, tag, &sdcmfi->ProtocolName);
+  if(strlen(sdcmfi->ProtocolName) == 0) 
+    sdcmfi->ProtocolName = strcpyalloc("PROTOCOL_UNKOWN");
 
   tag=DCM_MAKETAG(0x20, 0x11);
   cond=GetUSFromString(&object, tag, &ustmp);
