@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/04/14 04:38:25 $
-%    $Revision: 1.36 $
+%    $Date: 2008/07/11 19:30:57 $
+%    $Revision: 1.37 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -149,6 +149,15 @@ for nthev = 1:nev
       if(strcmp(flac.ev(nthev).model,'fir') & size(st,2) > 2)
 	fprintf('Ignoring duration for FIR model\n');
 	st(:,2) = flac.ev(nthev).psdwin(3)*ones(size(st,1),1);
+      end
+    end
+    if(strcmp(flac.ev(nthev).model,'fir'))
+      stmax = max(st(:,2));
+      if(stmax > flac.ev(nthev).psdwin(3))
+	fprintf('WARNING: stimulus duration for %s exceeds dpsd\\TER\n',...
+		flac.ev(nthev).name);
+	%fprintf('Setting duration to TER for FIR\n');
+	%st(:,2) = flac.ev(nthev).psdwin(3); 
       end
     end
     flacnew.ev(nthev).st = st;
