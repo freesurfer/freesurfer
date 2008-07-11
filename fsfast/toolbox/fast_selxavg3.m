@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.61 2008/05/14 20:01:23 greve Exp $
+% $Id: fast_selxavg3.m,v 1.62 2008/07/11 19:28:13 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/05/14 20:01:23 $
-%    $Revision: 1.61 $
+%    $Date: 2008/07/11 19:28:13 $
+%    $Revision: 1.62 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.61 2008/05/14 20:01:23 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.62 2008/07/11 19:28:13 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -204,6 +204,10 @@ for nthouter = outer_runlist
     % in which the data and design matrices are concatenated.
     Xrun = flac.X;
     for nthcon = 1:ncontrasts
+      if(~isempty(ConList))
+	ind = strmatch(flac0.con(nthcon).name,ConList);
+	if(isempty(ind)) continue; end
+      end
       C = flac.con(nthcon).C;
       M = C*inv(Xrun'*Xrun)*C';
       if(nthrun == 1) conffx(nthcon).Msum = 0; end
@@ -266,6 +270,10 @@ for nthouter = outer_runlist
   fprintf('Computing contrast matrices\n');
   flacC = flac0;
   for nthcon = 1:ncontrasts
+    if(~isempty(ConList))
+      ind = strmatch(flac0.con(nthcon).name,ConList);
+      if(isempty(ind)) continue; end
+    end
     indtask = flac_taskregind(flac0);
     C = flacC.con(nthcon).C;
     C = C(:,indtask);
@@ -750,6 +758,10 @@ if(DoContrasts)
   %---------------------------------------------------------------%
   fprintf('Starting contrasts\n');
   for nthcon = 1:ncontrasts
+    if(~isempty(ConList))
+      ind = strmatch(flac0.con(nthcon).name,ConList);
+      if(isempty(ind)) continue; end
+    end
     C = flacC.con(nthcon).C;
     [J K] = size(C);
     fprintf('%s J=%d -------------\n',flacC.con(nthcon).name,J);

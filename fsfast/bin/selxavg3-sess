@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/01 20:20:38 $
-#    $Revision: 1.34 $
+#    $Date: 2008/07/11 19:28:13 $
+#    $Revision: 1.35 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.34 2008/04/01 20:20:38 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.35 2008/07/11 19:28:13 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -44,6 +44,7 @@ set LF = ();
 
 set DoGLMFit = 1;
 set DoContrasts = 1;
+set ConList = ();
 set DoFWHM = 1;
 set SaveRes = 0;
 set UseFloat = 0;
@@ -212,6 +213,7 @@ foreach sess ($SessList)
   echo "jkrun          = $jkrun;"          >> $MLF
   echo "DoGLMFit       = $DoGLMFit;"       >> $MLF
   echo "DoContrasts    = $DoContrasts;"    >> $MLF
+  echo "ConList        = splitstring('$ConList');" >> $MLF
   echo "DoSynth        = $DoSynth;"        >> $MLF
   echo "UseFloat       = $UseFloat;"       >> $MLF
   echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
@@ -416,6 +418,12 @@ while( $#argv != 0 )
       set DoContrasts = 1;
       breaksw
 
+    case "-c"
+      if( $#argv < 1) goto arg1err;
+      set DoContrasts = 1;
+      set ConList = ($ConList $argv[1]); shift
+      breaksw
+
     case "-perrun":
       set perrun = 1;
       breaksw
@@ -539,7 +547,8 @@ usage_exit:
   echo ""
   echo "   -skip           : skip session of already analyzed"
   echo "   -overwrite      : delete analysis if session of already analyzed"
-  echo "   -contrasts-only : only compute contrasts (estimation done) <-co>"
+  echo "   -contrasts-only : only compute contrasts (estimation already done) <-co>"
+  echo "   -c c1 <-c c2 ...> : compute contrasts c1, c2, ... (default is to compute all)"
   echo "   -svres          : save residuals (usually not needed)"
   echo "   -hemi hemi      : assume raw data is on a the surface of the given hemi"
   echo "   -subject subject : override subject name"
