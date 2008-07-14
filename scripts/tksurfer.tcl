@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2008/05/20 19:16:24 $
-##    $Revision: 1.157 $
+##    $Date: 2008/07/14 20:48:31 $
+##    $Revision: 1.158 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -2763,7 +2763,7 @@ proc DoEditVertexDlog {} {
 
 
 proc save_surface_multiviews { fbasename } {
-  # filename is something like <basename>_<surfacename>_<viewname>.tif	
+  # filename is something like <basename>_<viewname>.tif	
   # devel note : redraw works and UpdateAndRedraw doesn't
   make_lateral_view	
   set viewname _lateral.tif
@@ -2823,7 +2823,7 @@ proc DoMultiTiffSaveDlog {} {
       $glShortcutDirs
 
   [$fwDirName.ew subwidget entry] icursor end
-  tkm_MakeBigLabel $fwBaseinfo "TIFFs are saved as <Basename>_<surface>_<view>.tif"
+  tkm_MakeBigLabel $fwBaseinfo "TIFFs are saved as <Basename>_<view>.tif"
   # field for basename
   tkm_MakeEntry $fwBasename "Basename: "  fBaseName 20 
 
@@ -2839,32 +2839,11 @@ proc DoMultiTiffSaveDlog {} {
 	      puts "WARNING! : Empty directory name. Attempting to write files in ROOT directory"
       }
 
-      # process depending on whether user has loaded white, inflated and pial surfaces.
-      # the magic numbers following set_current_vertex_set are defined when creating menus. 
-      if { $gbEnabledGroups(mg_WhiteVSetLoaded) } {
-              set_current_vertex_set 2 
-	      UpdateLinkedVarGroup view
-	      UpdateAndRedraw
-	      set surfname _white
-	      set fname $sDirName/$fBaseName$surfname
-	      save_surface_multiviews $fname
-      }
-      if { $gbEnabledGroups(mg_InflatedVSetLoaded) } {
-              set_current_vertex_set 1 
-	      UpdateLinkedVarGroup view
-	      UpdateAndRedraw
-	      set surfname _inflated
-	      set fname $sDirName/$fBaseName$surfname
-	      save_surface_multiviews $fname
-      }
-      if { $gbEnabledGroups(mg_PialVSetLoaded) } {
-              set_current_vertex_set 3 
-	      UpdateLinkedVarGroup view
-	      UpdateAndRedraw
-	      set surfname _pial
-	      set fname $sDirName/$fBaseName$surfname
-	      save_surface_multiviews $fname
-      }
+      set fname $sDirName/$fBaseName
+      # call the procedure to do work
+      save_surface_multiviews $fname
+      
+      # revert back to lateral
       make_lateral_view
       redraw
      }
