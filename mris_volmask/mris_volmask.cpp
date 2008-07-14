@@ -9,8 +9,8 @@
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/01 17:56:51 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/07/14 22:33:49 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -34,9 +34,10 @@
 #include <cstdio>
 #include <vector>
 
-// option to use VTK libs to perform surface/volume intersection detection
-#define USE_VTK 1
-#if USE_VTK
+// option to not use VTK libs to perform surface/volume intersection detection
+// this is useful to build a version w/o the VTK/GL dependency, which is
+// problematic for cluster machines which may not have those libs
+#ifndef NO_VTK
 // VTK
 #include <vtkPoints.h>
 #include <vtkCellArray.h>
@@ -230,7 +231,7 @@ main(int ac, char* av[])
 
   //---------------------
   // proces white surface - convert to voxel-space
-#if USE_VTK
+#ifndef NO_VTK
   ConvertSurfaceVertexCoordinates(surfLeftWhite, mriTemplate);
 #endif
   // allocate distance
@@ -243,7 +244,7 @@ main(int ac, char* av[])
   // Computes the signed distance to given surface. Sign indicates
   // whether it is on the inside or outside. params.capValue -
   // saturation/clip value for distance.
-#if USE_VTK
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction(surfLeftWhite,
                                  params.capValue,
                                  dLeftWhite);
@@ -261,7 +262,7 @@ main(int ac, char* av[])
 
   //-----------------------
   // process pial surface
-#if USE_VTK
+#ifndef NO_VTK
   ConvertSurfaceVertexCoordinates(surfLeftPial,  mriTemplate);
 #endif
   MRI* dLeftPial = MRIalloc( mriTemplate->width,
@@ -269,7 +270,7 @@ main(int ac, char* av[])
                              mriTemplate->depth,
                              MRI_FLOAT);
   MRIcopyHeader(mriTemplate,dLeftPial);
-#if USE_VTK
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction(surfLeftPial,
                                  params.capValue,
                                  dLeftPial);
@@ -300,7 +301,7 @@ main(int ac, char* av[])
 
   //-------------------
   // process white
-#if USE_VTK
+#ifndef NO_VTK
   ConvertSurfaceVertexCoordinates(surfRightWhite,mriTemplate);
 #endif
   MRI* dRightWhite = MRIalloc( mriTemplate->width,
@@ -308,13 +309,15 @@ main(int ac, char* av[])
                                mriTemplate->depth,
                                MRI_FLOAT);
   MRIcopyHeader(mriTemplate, dRightWhite);
-#if USE_VTK
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction( surfRightWhite,
                                   params.capValue,
                                   dRightWhite);
 #else
   std::cout << "computing distance to right white surface \n" ;
-  MRIScomputeDistanceToSurface(surfRightWhite, dRightWhite, mriTemplate->xsize) ;
+  MRIScomputeDistanceToSurface(surfRightWhite, 
+                               dRightWhite, 
+                               mriTemplate->xsize) ;
 #endif
   if ( params.bSaveDistance )
     MRIwrite
@@ -325,7 +328,7 @@ main(int ac, char* av[])
 
   //--------------------
   // process pial
-#if USE_VTK
+#ifndef NO_VTK
   ConvertSurfaceVertexCoordinates(surfRightPial, mriTemplate);
 #endif
   MRI* dRightPial = MRIalloc( mriTemplate->width,
@@ -333,7 +336,7 @@ main(int ac, char* av[])
                               mriTemplate->depth,
                               MRI_FLOAT);
   MRIcopyHeader(mriTemplate, dRightPial);
-#if USE_VTK
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction(surfRightPial,
                                  params.capValue,
                                  dRightPial);
@@ -366,8 +369,9 @@ main(int ac, char* av[])
   MRIcopyHeader( mriTemplate, finalMask);
   // write final mask
 
-  std::cout << "writing volume " <<  const_cast<char*>( (outputPath / (params.outRoot +
-                                                                        ".mgz")).c_str() ) << endl;
+  std::cout << "writing volume " <<  
+    const_cast<char*>( (outputPath / (params.outRoot +
+                                      ".mgz")).c_str() ) << endl;
 
   MRIwrite( finalMask,
             const_cast<char*>( (outputPath / (params.outRoot +
@@ -628,7 +632,7 @@ LoadInputFiles(const IoParams& params,
   return pathOutput;
 }
 
-#if USE_VTK
+#ifndef NO_VTK
 void
 ComputeSurfaceDistanceFunction(MRIS* mris,
                                float thickness,
@@ -776,9 +780,11 @@ CreateHemiMask(MRI* dpial,
       for (unsigned int x(0), width(dpial->width);
            x<width; ++x)
       {
-        if (x == (unsigned int)Gx && y == (unsigned int)Gy && z == (unsigned int)Gz)
+        if (x == (unsigned int)Gx && 
+            y == (unsigned int)Gy && 
+            z == (unsigned int)Gz)
           DiagBreak() ;
-#if USE_VTK
+#ifndef NO_VTK
         if ( MRIFvox(dwhite,x,y,z) > 0 )
           MRIsetVoxVal(mri, x,y,z,0, lblWhite);
         else if ( MRIFvox(dpial,x,y,z) > 0 )

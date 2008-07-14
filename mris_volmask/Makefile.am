@@ -5,7 +5,7 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 
-bin_PROGRAMS = mris_volmask
+bin_PROGRAMS=mris_volmask mris_volmask_novtk
 
 mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
 mris_volmask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
@@ -21,6 +21,10 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
 -lvtksys \
 $(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
+
+mris_volmask_novtk_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
+mris_volmask_novtk_CPPFLAGS=-DNO_VTK
+mris_volmask_novtk_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 # trick to get test data into the build directory
 foo_SOURCES=
