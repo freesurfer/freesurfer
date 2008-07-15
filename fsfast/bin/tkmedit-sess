@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/10 21:16:13 $
-#    $Revision: 1.24.2.2 $
+#    $Date: 2008/07/15 15:59:35 $
+#    $Revision: 1.24.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.24.2.2 2007/12/10 21:16:13 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.24.2.3 2008/07/15 15:59:35 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -259,7 +259,16 @@ if(! $nosig) then
     endif
     set maplist = ($maplist $mapfile)
   end
-  set mapconcatfile = $mapsess/$mapfsd/$mapanalysis$anapend/tkmconcat.nii
+  set ddir = $mapsess/$mapfsd/$mapanalysis$anapend/
+  if(! -w $ddir) then
+    if($#tmpdir == 0) then
+      echo "ERROR: you do not have write permission to $ddir"
+      echo "try using -tmp or setting FREESURFER_TMP_DIR"
+      exit 1;
+    endif
+    set ddir = $tmpdir
+  endif
+  set mapconcatfile = $ddir/tkmconcat.nii
   set cmd = (mri_concat $maplist --o $mapconcatfile);
   echo $cmd
   $cmd
@@ -305,6 +314,11 @@ if(-e $tmp) then
   set MGZ = ".mgz";
 else
   set MGZ = ();
+endif
+
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+  exit 1;
 endif
 
 if($#auxvolid) then
@@ -672,6 +686,11 @@ while( $#argv != 0 )
     case "-hsurf":
       if($#argv < 1) goto arg1err;
       set hsurf = $argv[1]; shift;
+      breaksw
+
+    case "-tmp":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
       breaksw
 
     case "-sessanat":
