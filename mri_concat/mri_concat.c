@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/27 02:16:46 $
- *    $Revision: 1.20.2.4 $
+ *    $Author: greve $
+ *    $Date: 2008/07/15 15:51:35 $
+ *    $Revision: 1.20.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.20.2.4 2008/04/27 02:16:46 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.20.2.5 2008/07/15 15:51:35 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -95,7 +95,7 @@ int DoAbs = 0;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
-  int r,c,s,f,nframes;
+  int r,c,s,f,nframes,err;
   double v, v1, v2, vavg;
 
   /* rkt: check for and handle version tag */
@@ -318,7 +318,9 @@ int main(int argc, char **argv) {
   }
 
   printf("Writing to %s\n",out);
-  MRIwrite(mriout,out);
+  err = MRIwrite(mriout,out);
+  if(err) exit(err);
+
 
   return(0);
 }
