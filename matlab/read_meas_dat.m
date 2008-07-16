@@ -12,7 +12,7 @@ function varargout = read_meas_dat(filename, user_options)
 % "options" is a structure which allows changing of some of the defaults:
 %
 %    options.ReverseLines                 -- set to 0 or 1  (default is 1)
-%    options.PhascorCollapseSegments      -- set to 0 or 1  (default is 1)
+%    options.PhascorCollapseSegments      -- set to 0 or 1  (default is 0)
 %    options.CanonicalReorderCoilChannels -- set to 0 or 1  (default is 1)
 %    options.ApplyFFTScaleFactors         -- set to 0 or 1  (default is 0)
 %    options.ReadMultipleRepetitions      -- set to 0 or 1  (default is 1)
@@ -82,10 +82,10 @@ function varargout = read_meas_dat(filename, user_options)
 
 
 % jonathan polimeni <jonp@nmr.mgh.harvard.edu>, 10/04/2006
-% $Id: read_meas_dat.m,v 1.11 2008/05/21 19:19:18 jonnyreb Exp $
+% $Id: read_meas_dat.m,v 1.12 2008/07/16 06:45:24 jonnyreb Exp $
 %**************************************************************************%
 
-  VERSION = '$Revision: 1.11 $';
+  VERSION = '$Revision: 1.12 $';
   if ( nargin == 0 ), help(mfilename); return; end;
 
 
@@ -117,7 +117,7 @@ function varargout = read_meas_dat(filename, user_options)
   
   
   DO__FLIP_REFLECTED_LINES = 1;
-  DO__PHASCOR_COLLAPSE_SEGMENTS = 1;
+  DO__PHASCOR_COLLAPSE_SEGMENTS = 0;
   DO__CANONICAL_REORDER_COIL_CHANNELS = 0;
   DO__APPLY_FFT_SCALEFACTORS = 0;
   DO__READ_MULTIPLE_REPETITIONS = 1;
@@ -216,6 +216,8 @@ function varargout = read_meas_dat(filename, user_options)
   % "data_start" should be 32.
   if ( data_start == 32 ),
     disp('no header detected! assuming "meas.out" format...');
+
+    IS__VB13A_RELEASE_VERSION = 0;
 
     [pathstr, name, ext] = fileparts(filename);
     meas_asc = fullfile(pathstr, [name, '.asc']);
@@ -420,18 +422,21 @@ function varargout = read_meas_dat(filename, user_options)
 
   FLAG__data               = 0;
   FLAG__data_reflect       = 0;
+  FLAG__data_swapped       = 0;
 
   FLAG__phascor1d          = 0;  % indicating presence of any type of phascor line
 
   data_phascor1d           = matrixtype([]);
   FLAG__data_phascor1d     = 0;
   data_phascor2d           = matrixtype([]);
+%  scan_phascor2d           = matrixtype([]);
   FLAG__data_phascor2d     = 0;
   data_fieldmap            = matrixtype([]);
   FLAG__data_fieldmap      = 0;
   noiseadjscan             = matrixtype([]);
   FLAG__noiseadjscan       = 0;
   patrefscan               = matrixtype([]);
+%  scan_patrefscan          = matrixtype([]);
   FLAG__patrefscan         = 0;
   patrefscan_phascor       = matrixtype([]);
   FLAG__patrefscan_phascor = 0;
@@ -440,7 +445,7 @@ function varargout = read_meas_dat(filename, user_options)
   refphasestabscan         = matrixtype([]);
   FLAG__phasestabscan      = 0;
 
-
+  
   FLAG__data_phascor1d_orderswap = 0;
 
   FLAG__patrefscan_phascor_orderswap = 0;
@@ -638,20 +643,29 @@ function varargout = read_meas_dat(filename, user_options)
         end;
       end;
 
+      if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_SWAPPED) ),
+	if ( ~FLAG__data_swapped ),
+	  % not sure what to do about swapped lines, but for now just report it to user.
+	  disp(' SWAPPED detected, ignoring.');
+          FLAG__data_swapped = 1;
+	end;
+      end;
+	
+      
       % for testing, abort after first repetition
       if ( ~DO__READ_MULTIPLE_REPETITIONS && mdh(idx).ushRepetition > 0 ),
 
-        % PHASCOR2D HACK: early versions of "epi_seg_3d" collect a dummy scan
-        % for the 2D phascor after the phase correction reference lines and
-        % increments the "repetition" loop counter for the 2D phascor lines
-        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
-                                    EvalInfoMask.MDH_PHASCOR) ),
-          continue;
-        elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
-                                        EvalInfoMask.MDH_ONLINE) ),
+%%%        % PHASCOR2D HACK: early versions of "epi_seg_3d" collect a dummy scan
+%%%        % for the 2D phascor after the phase correction reference lines and
+%%%        % increments the "repetition" loop counter for the 2D phascor lines
+%%%        if ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
+%%%                                    EvalInfoMask.MDH_PHASCOR) ),
+%%%          continue;
+%%%        elseif ( read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), ...
+%%%                                        EvalInfoMask.MDH_ONLINE) ),
           disp('aborting after first repetition...');
           break;
-        end;
+%%%        end;
       end;
 
       ACQEND = read_meas__extract_bit(mdh(idx).aulEvalInfoMask(1), EvalInfoMask.MDH_ACQEND);
@@ -718,13 +732,13 @@ function varargout = read_meas_dat(filename, user_options)
             % everything.
             if ( ~isempty(data) ), data = data(:,:,channel_sort); end;
 
-            if ( FLAG__data_phascor1d ),     data_phascor1d     = data_phascor1d(:,:,channel_sort);     end;
-            if ( FLAG__data_phascor2d ),     data_phascor2d     = data_phascor2d(:,:,channel_sort);     end;
-            if ( FLAG__data_fieldmap ),      data_fieldmap      = data_fieldmap(:,:,channel_sort);      end;
-            if ( FLAG__noiseadjscan ),       noiseadjscan       = noiseadjscan(:,:,channel_sort);       end;
-            if ( FLAG__patrefscan ),         patrefscan         = patrefscan(:,:,channel_sort);         end;
+            if ( FLAG__data_phascor1d ),     data_phascor1d     = data_phascor1d(    :,:,channel_sort); end;
+            if ( FLAG__data_phascor2d ),     data_phascor2d     = data_phascor2d(    :,:,channel_sort); end;
+            if ( FLAG__data_fieldmap ),      data_fieldmap      = data_fieldmap(     :,:,channel_sort); end;
+            if ( FLAG__noiseadjscan ),       noiseadjscan       = noiseadjscan(      :,:,channel_sort); end;
+            if ( FLAG__patrefscan ),         patrefscan         = patrefscan(        :,:,channel_sort); end;
             if ( FLAG__patrefscan_phascor ), patrefscan_phascor = patrefscan_phascor(:,:,channel_sort); end;
-            if ( FLAG__phasestabscan ),      refphasestabscan   = refphasestabscan(:,:,channel_sort);   end;
+            if ( FLAG__phasestabscan ),      refphasestabscan   = refphasestabscan(  :,:,channel_sort); end;
 
           end;
         end;
@@ -914,6 +928,11 @@ function varargout = read_meas_dat(filename, user_options)
               pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
 
+%          scan_patrefscan(...
+%              1, pos(02), ...
+%              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), pos(09), ...
+%              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = mdh(idx).ulScanCounter;
+
         end;
         continue;
 
@@ -1088,7 +1107,13 @@ function varargout = read_meas_dat(filename, user_options)
               :, pos(02), ...     
               pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), nav_part, ...  % only center partition collected
               pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = adc_cplx;
-
+	  
+%	  scan_phascor2d(...
+%              1, pos(02), ...     
+%              pos(03), pos(04), pos(05), pos(06), pos(07), pos(08), nav_part, ...  
+%              pos(10), pos(11), pos(12), pos(13), pos(14), pos(15), pos(16)) = mdh(idx).ulScanCounter;
+	  
+	  
           % increment navigator scan partition counter at the end of each partition (signified with the "LASTSCANINSLICE" flag)
           % (ASSUME here that these navigator lines ONLY appear in 3D sequences)
           if ( FLAG__stored_channel_indices && ...
@@ -1250,6 +1275,7 @@ function varargout = read_meas_dat(filename, user_options)
 
     if ( FLAG__data_phascor2d ),
       meas.data_phascor2d = data_phascor2d;
+%      meas.scan_phascor2d = scan_phascor2d;
     end;
 
     if ( FLAG__noiseadjscan ),
@@ -1258,6 +1284,7 @@ function varargout = read_meas_dat(filename, user_options)
 
     if ( FLAG__patrefscan ),
       meas.patrefscan = patrefscan;
+%      meas.scan_patrefscan = scan_patrefscan;
     end;
 
     if ( FLAG__patrefscan_phascor ),
@@ -1273,7 +1300,7 @@ function varargout = read_meas_dat(filename, user_options)
       meas.mdh = mdh;
     end;
 
-    if ( exist('read_meas_prot', 'file') ),
+    if ( exist('read_meas_prot', 'file') && IS__VB13A_RELEASE_VERSION ),
       [meas.prot, meas.evp] = read_meas_prot(filename, header);
     end;
 
