@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/05/25 15:01:30 $
-#    $Revision: 1.23 $
+#    $Date: 2008/07/17 22:41:49 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.23 2008/05/25 15:01:30 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.24 2008/07/17 22:41:49 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -228,6 +228,7 @@ if ( ! $status ) then
     mail -s "test_recon-all -all FAILED: MNI tools build using /usr/pubsw/perl!" $FMAIL_LIST < $RECON_LOG
     cp $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
+    chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
 endif
 
@@ -258,13 +259,14 @@ if ($#INVOL == "0") then
     mail -s "test_recon-all -all FAILED: no input volumes found" $FMAIL_LIST < $RECON_LOG
     cp $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
+    chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
 endif
 
 set cmd=(recon-all)
 #if ("`uname -n`" == "hades") then
 #  set cmd=(nice +19 recon-all)
-#else if ("`uname -n`" == "mist") then
+#if ("`uname -n`" == "mist") then
 #  set cmd=(nice +19 recon-all)
 #endif
 set cmd=($cmd -s $TEST_SUBJ $INVOL)
@@ -272,19 +274,22 @@ set cmd=($cmd -all -debug -clean -norandomness -time);
 echo $cmd
 if ($RunIt) then
   cd $SUBJECTS_DIR
-  # recon-all: this will take some 30 hours to run...
-  /usr/bin/time $cmd >& /tmp/recon-all.log.txt
+  # recon-all: this will take some 40 hours to run...
+  /usr/bin/time $cmd >& $SUBJECTS_DIR/recon-all.log.txt
   if ($status != 0) then
     echo "***FAILED :: $PROC recon-all -all"  >>& $OUTPUTF
     mail -s "test_recon-all -all FAILED on $PROC" $FMAIL_LIST < $RECON_LOG
     cp $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
+    chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
+    chmod a+w $SUBJECTS_DIR/recon-all.log.txt
     exit 1
   else
     set CURRENT_TIME=`date`
-    set ELAPSED=`grep elapsed /tmp/recon-all.log.txt | grep CPU | awk '{print $3}'`
+    set ELAPSED=`grep elapsed $SUBJECTS_DIR/recon-all.log.txt | grep CPU | awk '{print $3}'`
     echo "   pass :: recon-all -all (Finish: $CURRENT_TIME, ${ELAPSED})" >>& $OUTPUTF
     cp $RECON_LOG $LOG_DIR/
+    chmod a+w $SUBJECTS_DIR/recon-all.log.txt
   endif
 endif # ($RunIt)
 
@@ -297,6 +302,7 @@ if (-e $SUBJECTS_DIR/$TEST_SUBJ/scripts/IsRunning.lh+rh) then
     echo "Check recon-all.log to pinpoint failure" >>& $OUTPUTF
     mail -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
     touch $SUBJECTS_DIR/test_recon-all_FAILED
+    chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
 endif
 
@@ -312,6 +318,7 @@ if (! -e $SUBJECTS_DIR/$TEST_SUBJ) then
     echo "missing $SUBJECTS_DIR/$TEST_SUBJ" >>& $OUTPUTF
     mail -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
     touch $SUBJECTS_DIR/test_recon-all_FAILED
+    chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
 endif
 
@@ -347,10 +354,10 @@ foreach tstvol ($TEST_VOLUMES)
       foreach xform (talairach.xfm talairach.lta talairach_with_skull.lta)
         # filter-out time-stamp from .lta files:
         grep -v created $SUBJECTS_DIR/ref_subj/mri/transforms/$xform \
-            > /tmp/ref_$xform
+            > $SUBJECTS_DIR/ref.$xform
         grep -v created $SUBJECTS_DIR/$TEST_SUBJ/mri/transforms/$xform \
-            > /tmp/tst_$xform
-        set cmd=(diff /tmp/ref_$xform /tmp/tst_$xform)           
+            > $SUBJECTS_DIR/tst.$xform
+        set cmd=(diff $SUBJECTS_DIR/ref.$xform $SUBJECTS_DIR/tst.$xform)           
         $cmd
         set diff_status=$status
         if ($diff_status != 0) then
@@ -684,6 +691,8 @@ mv *.aparc* aparc/ > /dev/null
 if ( ! $?SKIP_RECON) then
     rm -Rf $SUBJECTS_DIR/$TEST_SUBJ-done
     mv $SUBJECTS_DIR/$TEST_SUBJ $SUBJECTS_DIR/$TEST_SUBJ-done
+    chgrp -R fsdev $SUBJECTS_DIR/$TEST_SUBJ-done
+    chmod -R g+rw $SUBJECTS_DIR/$TEST_SUBJ-done
 endif
 
 
@@ -692,6 +701,10 @@ endif
 #
 
 done:
+chgrp -R fsdev $LOG_DIR
+chmod -R g+rw $LOG_DIR
+chgrp fsdev $OUTPUTF
+chmod g+rw $OUTPUTF
 set END_TIME=`date`
 echo "Finish: $END_TIME" >>& $OUTPUTF
 if ($?FOUND_ERROR) then
@@ -701,7 +714,7 @@ if ($?FOUND_ERROR) then
     mail -s "test_recon-all $TEST_SUBJ FAILURE(s) on $PROC" \
         $FMAIL_LIST < $OUTPUTF
     touch $SUBJECTS_DIR/test_recon-all_FAILED
-    chmod g+rw $OUTPUTF
+    chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
   endif
 else
@@ -709,7 +722,6 @@ else
   if ($RunIt) then
     mail -s "test_recon-all $TEST_SUBJ success on $PROC" \
       $MAIL_LIST < $OUTPUTF
-    chmod g+rw $OUTPUTF
     exit 0
   endif
 endif
