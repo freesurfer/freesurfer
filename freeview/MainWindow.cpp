@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/07/18 20:23:24 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,7 @@
 #include "LUTDataHolder.h"
 #include "BrushProperty.h"
 #include "Cursor2D.h"
+#include "ToolWindowEdit.h"
 
 #define	CTRL_PANEL_WIDTH	240
 
@@ -172,6 +173,7 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_ACTIVATE	( MainWindow::OnActivate )
     EVT_CLOSE		( MainWindow::OnClose )   
 	EVT_KEY_DOWN    ( MainWindow::OnKeyDown )
+	EVT_ICONIZE		( MainWindow::OnIconize )
 END_EVENT_TABLE()
 
 // ----------------------------------------------------------------------------
@@ -205,7 +207,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	
 	m_toolbarVoxelEdit = XRCCTRL( *this, "ID_TOOLBAR_VOXEL_EDIT", wxToolBar );
 	m_toolbarROIEdit = XRCCTRL( *this, "ID_TOOLBAR_ROI_EDIT", wxToolBar );	
-	m_toolbarBrush = XRCCTRL( *this, "ID_TOOLBAR_BRUSH", wxToolBar );	
+	m_toolbarBrush = XRCCTRL( *this, "ID_TOOLBAR_BRUSH", wxToolBar );
+	m_toolbarBrush->Show( false );
+	m_toolbarVoxelEdit->Show( false );
+	m_toolbarROIEdit->Show( false );	
 			
 //	this->SetSizer( sizer );
 //	sizer->Add( ( wxToolBar* )XRCCTRL( *this, "m_toolBar2", wxToolBar ), 0, wxEXPAND );
@@ -258,6 +263,9 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_statusBar = new StatusBar( this );
 	SetStatusBar( m_statusBar );
 	PositionStatusBar();
+	
+	m_toolWindowEdit = new ToolWindowEdit( this );
+	m_toolWindowEdit->Hide();
 
 	UpdateToolbars();	
 	
@@ -547,13 +555,23 @@ void MainWindow::OnFileExit( wxCommandEvent& event )
 	Close();
 }
 
-void MainWindow::OnActivate(wxActivateEvent& event)
+void MainWindow::OnActivate( wxActivateEvent& event )
 {
 #ifdef __WXGTK__
 	NeedRedraw();
 #endif	
 	event.Skip();
 }
+
+void MainWindow::OnIconize( wxIconizeEvent& event )
+{
+#ifdef __WXGTK__
+	if ( !event.Iconized() )
+		NeedRedraw();
+#endif	
+	event.Skip();
+}
+
 
 void MainWindow::OnFileRecent( wxCommandEvent& event )
 {
@@ -744,17 +762,23 @@ void MainWindow::UpdateToolbars()
 
 void MainWindow::DoUpdateToolbars()
 {
-	bool bVoxelEditVisible = m_toolbarVoxelEdit->IsShown();
-	bool bROIEditVisible = m_toolbarROIEdit->IsShown();
-	if ( bVoxelEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit) ||
-			bROIEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit) )
+//	bool bVoxelEditVisible = m_toolbarVoxelEdit->IsShown();
+//	bool bROIEditVisible = m_toolbarROIEdit->IsShown();
+//	if ( bVoxelEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit) ||
+//			bROIEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit) )
+	
+//	bool bToolWindowVisible = m_toolWindowEdit->IsShown();
+//	if ( bToolWindowVisible != (m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate ) )
 	{
-		m_toolbarVoxelEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit );
-		m_toolbarROIEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
-		m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
-		m_panelToolbarHolder->Layout();
+	//	m_toolbarVoxelEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit );
+	//	m_toolbarROIEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
+	//	m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
+	//	m_panelToolbarHolder->Layout();
+		m_toolWindowEdit->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
+	//	m_toolWindowEdit->ResetPosition();
+		m_toolWindowEdit->UpdateTools();
 	}
-		
+	/*		
 	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_SIZE", wxStaticText )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
 	XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_SIZE", wxSpinCtrl )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
 	wxCheckBox* checkTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHECK_TEMPLATE", wxCheckBox );
@@ -791,16 +815,21 @@ void MainWindow::DoUpdateToolbars()
 		m_propertyBrush->SetBrushTolerance( XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->GetValue() );
 	else
 		m_propertyBrush->SetBrushTolerance( 0 );
-	
+	*/
 	m_bToUpdateToolbars = false;
+}
+
+void MainWindow::SetMode( int nMode )
+{
+	m_viewAxial->SetInteractionMode( nMode );
+	m_viewCoronal->SetInteractionMode( nMode );
+	m_viewSagittal->SetInteractionMode( nMode );
+	UpdateToolbars();
 }
 
 void MainWindow::OnModeNavigate( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_Navigate );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_Navigate );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_Navigate );
-	UpdateToolbars();
+	SetMode( RenderView2D::IM_Navigate );
 }
 
 void MainWindow::OnModeNavigateUpdateUI( wxUpdateUIEvent& event)
@@ -810,10 +839,7 @@ void MainWindow::OnModeNavigateUpdateUI( wxUpdateUIEvent& event)
 
 void MainWindow::OnModeVoxelEdit( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_VoxelEdit );
-	UpdateToolbars();
+	SetMode( RenderView2D::IM_VoxelEdit );
 }
 
 void MainWindow::OnModeVoxelEditUpdateUI( wxUpdateUIEvent& event)
@@ -824,10 +850,7 @@ void MainWindow::OnModeVoxelEditUpdateUI( wxUpdateUIEvent& event)
 
 void MainWindow::OnModeROIEdit( wxCommandEvent& event )
 {
-	m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	m_viewSagittal->SetInteractionMode( RenderView2D::IM_ROIEdit );
-	UpdateToolbars();
+	SetMode( RenderView2D::IM_ROIEdit );
 }
 
 void MainWindow::OnModeROIEditUpdateUI( wxUpdateUIEvent& event)
@@ -836,12 +859,17 @@ void MainWindow::OnModeROIEditUpdateUI( wxUpdateUIEvent& event)
 	event.Enable( m_layerCollectionManager->HasLayer( "ROI" ) );
 }
 
+void MainWindow::SetAction( int nAction )
+{
+	m_viewAxial->SetAction( nAction );
+	m_viewCoronal->SetAction( nAction );
+	m_viewSagittal->SetAction( nAction );
+	UpdateToolbars();
+}
+
 void MainWindow::OnActionROIFreehand( wxCommandEvent& event )
 {
-	m_viewAxial->SetAction( Interactor2DROIEdit::EM_Freehand );
-	m_viewCoronal->SetAction( Interactor2DROIEdit::EM_Freehand );
-	m_viewSagittal->SetAction( Interactor2DROIEdit::EM_Freehand );
-	UpdateToolbars();
+	SetAction( Interactor2DROIEdit::EM_Freehand );
 }
 
 void MainWindow::OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event)
@@ -854,10 +882,7 @@ void MainWindow::OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event)
 
 void MainWindow::OnActionROIFill( wxCommandEvent& event )
 {
-	m_viewAxial->SetAction( Interactor2DROIEdit::EM_Fill );
-	m_viewCoronal->SetAction( Interactor2DROIEdit::EM_Fill );
-	m_viewSagittal->SetAction( Interactor2DROIEdit::EM_Fill );
-	UpdateToolbars();
+	SetAction( Interactor2DROIEdit::EM_Fill );
 }
 
 void MainWindow::OnActionROIFillUpdateUI( wxUpdateUIEvent& event)
@@ -871,10 +896,7 @@ void MainWindow::OnActionROIFillUpdateUI( wxUpdateUIEvent& event)
 
 void MainWindow::OnActionROIPolyline( wxCommandEvent& event )
 {
-	m_viewAxial->SetAction( Interactor2DROIEdit::EM_Polyline );
-	m_viewCoronal->SetAction( Interactor2DROIEdit::EM_Polyline );
-	m_viewSagittal->SetAction( Interactor2DROIEdit::EM_Polyline );
-	UpdateToolbars();
+	SetAction( Interactor2DROIEdit::EM_Polyline );
 }
 
 void MainWindow::OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event)
@@ -888,10 +910,7 @@ void MainWindow::OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event)
 
 void MainWindow::OnActionVoxelFreehand( wxCommandEvent& event )
 {
-	m_viewAxial->SetAction( Interactor2DVoxelEdit::EM_Freehand );
-	m_viewCoronal->SetAction( Interactor2DVoxelEdit::EM_Freehand );
-	m_viewSagittal->SetAction( Interactor2DVoxelEdit::EM_Freehand );
-	UpdateToolbars();
+	SetAction( Interactor2DVoxelEdit::EM_Freehand );
 }
 
 void MainWindow::OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event)
@@ -904,10 +923,7 @@ void MainWindow::OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event)
 
 void MainWindow::OnActionVoxelFill( wxCommandEvent& event )
 {
-	m_viewAxial->SetAction( Interactor2DVoxelEdit::EM_Fill );
-	m_viewCoronal->SetAction( Interactor2DVoxelEdit::EM_Fill );
-	m_viewSagittal->SetAction( Interactor2DVoxelEdit::EM_Fill );
-	UpdateToolbars();
+	SetAction( Interactor2DVoxelEdit::EM_Fill );
 }
 
 void MainWindow::OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event)
@@ -921,10 +937,7 @@ void MainWindow::OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event)
 
 void MainWindow::OnActionVoxelPolyline( wxCommandEvent& event )
 {
-	m_viewAxial->SetAction( Interactor2DVoxelEdit::EM_Polyline );
-	m_viewCoronal->SetAction( Interactor2DVoxelEdit::EM_Polyline );
-	m_viewSagittal->SetAction( Interactor2DVoxelEdit::EM_Polyline );
-	UpdateToolbars();
+	SetAction( Interactor2DVoxelEdit::EM_Polyline );
 }
 
 void MainWindow::OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event)
@@ -1568,7 +1581,12 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 					m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( mri->GetFileName() ) );
 			
 					m_controlPanel->RaisePage( "Volumes" );
-				}		
+				}
+						
+				if ( strg == "Save" )
+				{
+					cout << ( (LayerEditable*)layer )->GetFileName() << " saved successfully." << endl;
+				}
 			}
 			else if ( layer && layer->IsTypeOf( "Surface" ) )
 			{
@@ -1656,7 +1674,21 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
 {
 	if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerMoved" )
-		UpdateToolbars();	
+	{
+		UpdateToolbars();
+		if ( !GetLayerCollection( "MRI" )->IsEmpty() )
+		{
+			SetTitle( wxString( GetLayerCollection( "MRI" )->GetLayer( 0 )->GetName() ) + " - freeview" );
+		}
+		else if ( !GetLayerCollection( "Surface" )->IsEmpty() )
+		{
+			SetTitle( wxString( GetLayerCollection( "Surface" )->GetLayer( 0 )->GetName() ) + " - freeview" );
+		}
+		else
+		{
+			SetTitle( "freeview" );
+		}
+	}	
 	
 	if ( iMsg == "MRINotVisible" )
 	{
@@ -1775,10 +1807,10 @@ void MainWindow::OnSpinBrushTolerance( wxSpinEvent& event )
 
 void MainWindow::OnChoiceBrushTemplate( wxCommandEvent& event )
 {
-	wxChoice* choiceTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHOICE_TEMPLATE", wxChoice );
-	LayerEditable* layer = (LayerEditable*)(void*)choiceTemplate->GetClientData( event.GetSelection() );
-	if ( layer )
-		m_propertyBrush->SetReferenceLayer( layer );
+//	wxChoice* choiceTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHOICE_TEMPLATE", wxChoice );
+//	LayerEditable* layer = (LayerEditable*)(void*)choiceTemplate->GetClientData( event.GetSelection() );
+//	if ( layer )
+//		m_propertyBrush->SetReferenceLayer( layer );
 	
 	UpdateToolbars();
 }
@@ -1826,7 +1858,7 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
 		return;
 	
 	wxString fn;
-	wxFileDialog dlg( this, _("Save screen capture"), m_strLastDir, _(""), 
+	wxFileDialog dlg( this, _("Save screenshot as"), m_strLastDir, _(""), 
 					  _T("PNG files (*.png)|*.png|JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|TIFF files (*.tif;*.tiff)|*.tif;*.tiff|Bitmap files (*.bmp)|*.bmp|PostScript files (*.ps)|*.ps|VRML files (*.wrl)|*.wrl|All files (*.*)|*.*"), 
 					  wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
 	dlg.SetFilterIndex( m_nScreenshotFilterIndex );

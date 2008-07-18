@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/07/18 20:23:24 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +52,7 @@ class LayerCollectionManager;
 class LUTDataHolder;
 class wxToolBar;
 class BrushProperty;
+class ToolWindowEdit;
 
 struct Settings2D
 {
@@ -161,9 +162,10 @@ public:
 	void OnCheckBrushTemplate( wxCommandEvent& event );
 	void OnChoiceBrushTemplate( wxCommandEvent& event );
 	
-	void OnActivate( wxActivateEvent& event );
-	void OnClose( wxCloseEvent &event );
-	void OnKeyDown( wxKeyEvent &event );
+	void OnActivate	( wxActivateEvent& event );
+	void OnIconize	( wxIconizeEvent& event );
+	void OnClose	( wxCloseEvent &event );
+	void OnKeyDown	( wxKeyEvent &event );
 	
 	void LoadVolume();
 	void NewVolume();
@@ -205,11 +207,18 @@ public:
 	
 	RenderView* GetActiveView();
 	
+	RenderView* GetRenderView( int nIndex )
+		{ return m_viewRender[nIndex]; }
+	
 	BrushProperty* GetBrushProperty()
 		{ return m_propertyBrush; }
 	
 	Settings2D Get2DSettings()
 		{ return m_settings2D; }
+	
+	void SetAction( int nAction );
+	
+	void SetMode( int nMode );
 	
 protected:
 	void OnInternalIdle(); 
@@ -232,6 +241,7 @@ private:
 	wxToolBar*			m_toolbarROIEdit;
 	wxToolBar*			m_toolbarBrush;
 	wxPanel*			m_panelToolbarHolder;
+	ToolWindowEdit*		m_toolWindowEdit;
 	
 	RenderView2D*		m_viewAxial;
 	RenderView2D*		m_viewSagittal;

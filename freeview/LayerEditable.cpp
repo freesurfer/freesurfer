@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/18 20:23:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,6 +82,16 @@ bool LayerEditable::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 	int n[3], nsize[3] = { nBrushSize/2+1, nBrushSize/2+1, nBrushSize/2+1 };
 	nsize[nPlane] = 1;
 	int nActiveComp = GetActiveFrame();
+	double* draw_range = m_propertyBrush->GetDrawRange();
+	double* exclude_range = m_propertyBrush->GetExcludeRange();
+	LayerEditable* ref_layer = m_propertyBrush->GetReferenceLayer();
+	vtkImageData* ref = m_volumeRAS;
+	int nActiveCompRef = 0;
+	if ( ref_layer != NULL )
+	{
+		ref = ref_layer->GetRASVolume();
+		nActiveCompRef = ref_layer->GetActiveFrame();
+	}
 	for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
 	{
 		for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
@@ -93,13 +103,21 @@ bool LayerEditable::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 				n[2] = n_in[2] + k;
 				if ( n[0] >= 0 && n[0] < nDim[0] && 
 					 n[1] >= 0 && n[1] < nDim[1] && 
-					 n[2] >= 0 && n[2] < nDim[2] && 
+					 n[2] >= 0 && n[2] < nDim[2] &&
 					 MyUtils::GetDistance<int>( n, n_in ) <= nBrushSize/2.0 )
 				{
-				//	float fvalue = m_volumeRAS->GetScalarComponentAsFloat( n[0], n[1], n[2], 0 );
-					if ( bAdd )
+					if ( bAdd ) 
 					{
-						m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+						double fvalue = ref->GetScalarComponentAsDouble( n[0], n[1], n[2], nActiveCompRef );
+						if ( ( m_propertyBrush->GetDrawRangeEnabled() && 
+							 ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
+							 ( m_propertyBrush->GetExcludeRangeEnabled() && 
+							 ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) || 
+							 ( m_propertyBrush->GetDrawConnectedOnly() && 
+							 ( !GetConnectedToOld( m_volumeRAS, nActiveComp, n, nPlane ) ) ) )
+							;
+						else	 
+							m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
 					}
 					else 
 					{
@@ -110,6 +128,36 @@ bool LayerEditable::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 		}
 	}
 	return true;
+}
+
+bool LayerEditable::GetConnectedToOld( vtkImageData* img, int nFrame, int* n_in, int nPlane )
+{
+	int* nDim = img->GetDimensions();
+	int nBounds[6] = { -1, 1, -1, 1, -1, 1 };
+	nBounds[nPlane*2] = nBounds[nPlane*2+1] = 0;
+	int n[3];
+	for ( int i = nBounds[0]; i <= nBounds[1]; i++ )
+	{
+		for ( int j = nBounds[2]; j <= nBounds[3]; j++ )
+		{
+			for ( int k = nBounds[4]; k <= nBounds[5]; k++ )
+			{
+				n[0] = n_in[0] + i;
+				n[1] = n_in[1] + j;
+				n[2] = n_in[2] + k;
+				if ( abs( i + j + k ) == 1 &&
+					 n[0] >= 0 && n[0] < nDim[0] && 
+					 n[1] >= 0 && n[1] < nDim[1] && 
+					 n[2] >= 0 && n[2] < nDim[2] )
+				{
+					double fvalue = img->GetScalarComponentAsDouble( n[0], n[1], n[2], nFrame );
+					if ( fvalue > 0 )
+						return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 void LayerEditable::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
@@ -245,6 +293,8 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 	char** mask = MyUtils::AllocateMatrix<char>( ny, nx );
 	int i, j;
 	int nTolerance = m_propertyBrush->GetBrushTolerance();
+	double* draw_range = m_propertyBrush->GetDrawRange();
+	double* exclude_range = m_propertyBrush->GetExcludeRange();
 	LayerEditable* ref_layer = m_propertyBrush->GetReferenceLayer();
 	vtkImageData* ref = m_volumeRAS;
 	int nActiveCompRef = 0;
@@ -344,7 +394,18 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				for ( j = 0; j < ny; j++ )
 				{
 					if ( mask[j][i] == 2 )
-						m_volumeRAS->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+					{
+						double fvalue = ref->GetScalarComponentAsDouble( n[nPlane], i, j, nActiveCompRef );
+						if ( ( m_propertyBrush->GetDrawRangeEnabled() && 
+							( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
+							( m_propertyBrush->GetExcludeRangeEnabled() && 
+							( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
+							;
+						else
+						{
+							m_volumeRAS->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+						}
+					}
 				}
 			}
 			break;
@@ -354,7 +415,18 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				for ( j = 0; j < ny; j++ )
 				{
 					if ( mask[j][i] == 2 )
-						m_volumeRAS->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+					{
+						double fvalue = ref->GetScalarComponentAsDouble( i, n[nPlane], j, nActiveCompRef );
+						if ( ( m_propertyBrush->GetDrawRangeEnabled() && 
+								 ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
+								 ( m_propertyBrush->GetExcludeRangeEnabled() && 
+								 ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
+							;
+						else
+						{
+							m_volumeRAS->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+						}
+					}
 				}
 			}
 			break;
@@ -364,7 +436,18 @@ bool LayerEditable::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				for ( j = 0; j < ny; j++ )
 				{
 					if ( mask[j][i] == 2 )
-						m_volumeRAS->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+					{
+						double fvalue = ref->GetScalarComponentAsDouble( i, j, n[nPlane], nActiveCompRef );
+						if ( ( m_propertyBrush->GetDrawRangeEnabled() && 
+							( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
+							( m_propertyBrush->GetExcludeRangeEnabled() && 
+							( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
+							;
+						else
+						{
+							m_volumeRAS->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+						}
+					}
 				}
 			}
 			break;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/07/18 20:23:24 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -167,6 +167,8 @@ void PanelSurface::DoUpdateUI()
 	m_btnSurfaceWhite->Enable	( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) );
 	m_btnSurfacePial->Enable	( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
 	m_btnSurfaceOriginal->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) );
+	m_colorPicker->Enable( layer );
+	m_colorPickerEdge->Enable( layer );
 }
 
 void PanelSurface::OnLayerVisibilityChanged( wxCommandEvent& event )

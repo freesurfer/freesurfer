@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:50:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/07/18 20:23:24 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,20 +37,43 @@ class BrushProperty
 public:
 
   	BrushProperty ();
-  	virtual ~BrushProperty () {}
+	virtual ~BrushProperty (); 
 
-	int GetBrushSize();
-	void SetBrushSize( int nSize );
+	int 	GetBrushSize();
+	void	SetBrushSize( int nSize );
 	
-	int GetBrushTolerance();
-	void SetBrushTolerance( int nTolerance );
+	int 	GetBrushTolerance();
+	void 	SetBrushTolerance( int nTolerance );
 	
-	LayerEditable* GetReferenceLayer();
-	void SetReferenceLayer( LayerEditable* layer );
+	LayerEditable* 	GetReferenceLayer();
+	void 			SetReferenceLayer( LayerEditable* layer );
+	
+	double* GetDrawRange();
+	void 	SetDrawRange( double* range );
+	void 	SetDrawRange( double low, double high );
+	
+	bool	GetDrawRangeEnabled();
+	void	SetDrawRangeEnabled( bool bEnable ); 
+	 
+	double* GetExcludeRange();
+	void	SetExcludeRange( double* range );
+	void 	SetExcludeRange( double low, double high );
+	
+	bool	GetExcludeRangeEnabled();
+	void	SetExcludeRangeEnabled( bool bEnable );
+	 
+	bool	GetDrawConnectedOnly();
+	void	SetDrawConnectedOnly( bool bEnable );
 	
 protected:
-  	int	m_nBrushSize;
-  	int	m_nBrushTolerance;
+  	int		m_nBrushSize;
+  	int		m_nBrushTolerance;
+	double	m_dDrawRange[2];
+	bool	m_bEnableDrawRange;
+	double	m_dExcludeRange[2];
+	bool	m_bEnableExcludeRange;
+	bool	m_bDrawConnectedOnly;
+	
 	LayerEditable*	m_layerRef;
 };
 

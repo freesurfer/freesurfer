@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/07/18 20:23:24 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,14 +91,14 @@ bool Interactor::ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view )
 	return true;
 }
 
-bool Interactor::ProcessMouseWheelEvent(	wxMouseEvent& event, RenderView* view )
+bool Interactor::ProcessMouseWheelEvent( wxMouseEvent& event, RenderView* view )
 {
 	UpdateCursor( event, view );
 	
 	return true;
 }
 	
-bool Interactor::ProcessMouseEnterEvent(	wxMouseEvent& event, RenderView* view )
+bool Interactor::ProcessMouseEnterEvent( wxMouseEvent& event, RenderView* view )
 {
 	UpdateCursor( event, view );
 	
@@ -119,6 +119,10 @@ void Interactor::UpdateCursor( wxEvent& event, wxWindow* wnd )
 		wnd->SetCursor( CursorFactory::CursorPan );
 	}
 	else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->GetEventType() == wxEVT_RIGHT_DOWN )
+	{
+		wnd->SetCursor( CursorFactory::CursorZoom );
+	}
+	else if ( event.GetEventType() == wxEVT_MOUSEWHEEL )
 	{
 		wnd->SetCursor( CursorFactory::CursorZoom );
 	}

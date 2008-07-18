@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/18 20:23:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,6 +113,8 @@ class LayerEditable : public Layer
 		bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true );	// true is to add, false is to remove
 		bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
 		bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true );
+		
+		bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );
 		
 		struct UndoRedoBufferItem	
 		{

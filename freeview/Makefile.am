@@ -47,6 +47,8 @@ freeview_SOURCES=\
 	Interactor2D.h \
 	Interactor2DNavigate.cpp \
 	Interactor2DNavigate.h \
+	Interactor2DRegionEdit.cpp \
+	Interactor2DRegionEdit.h \
 	Interactor2DROIEdit.cpp \
 	Interactor2DROIEdit.h \
 	Interactor2DVoxelEdit.cpp \
@@ -99,6 +101,8 @@ freeview_SOURCES=\
 	PanelVolume.h \
 	PixelInfoPanel.cpp \
 	PixelInfoPanel.h \
+	Region.cpp \
+	Region.h \
 	RenderView2D.cpp \
 	RenderView2D.h \
 	RenderView3D.cpp \
@@ -108,6 +112,8 @@ freeview_SOURCES=\
 	StatusBar.cpp \
 	StatusBar.h \
 	string_fixed.h \
+	ToolWindowEdit.cpp \
+	ToolWindowEdit.h \
 	WindowQuickReference.cpp \
 	WindowQuickReference.h \
 	WorkerThread.cpp \
