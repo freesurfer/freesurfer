@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/18 20:23:24 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/07/21 19:48:42 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -112,7 +112,7 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
 			int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
 			int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
 			Move( x, y );
-	//		cout << "in OnShow " << x << " " << y << endl;
+	//		cout << "in OnShow show:" << x << " " << y << endl;
 		}
 	}
 	else
@@ -124,6 +124,7 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
 			GetPosition( &x, &y );
 			config->Write( _T("/ToolWindowEdit/PosX"), (long) x );
 			config->Write( _T("/ToolWindowEdit/PosY"), (long) y );
+	//		cout << "in OnShow hide:" << x << " " << y << endl;
 		}
 	}
 }
@@ -138,7 +139,7 @@ void ToolWindowEdit::ResetPosition()
 			int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
 			int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
 			Move( x, y );
-	//		cout << x << " " << y << endl;
+		//	cout << x << " " << y << endl;
 		}	
 	}
 }
@@ -151,7 +152,7 @@ void ToolWindowEdit::UpdateTools()
 void ToolWindowEdit::DoUpdateTools()
 {
 	RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-
+		
 	bool bVoxelEditVisible = m_toolbarVoxelEdit->IsShown();
 	bool bROIEditVisible = m_toolbarROIEdit->IsShown();
 	if ( bVoxelEditVisible != (view->GetInteractionMode() == RenderView2D::IM_VoxelEdit) ||
@@ -161,7 +162,7 @@ void ToolWindowEdit::DoUpdateTools()
 		m_toolbarROIEdit	->Show( view->GetInteractionMode() == RenderView2D::IM_ROIEdit );
 		Layout();
 	}
-		
+				
 //	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_SIZE", wxStaticText )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
 	m_spinBrushSize->Enable( view->GetAction() != Interactor2DROIEdit::EM_Fill );
 	m_spinBrushTolerance->Enable( view->GetAction() == Interactor2DROIEdit::EM_Fill );

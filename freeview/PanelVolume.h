@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/21 19:48:42 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,8 +63,14 @@ private:
 	void OnButtonLoad( wxCommandEvent& event );
 	void OnButtonSave( wxCommandEvent& event );
 	void OnButtonMoveUp( wxCommandEvent& event );
+	void OnMoveUpUpdateUI( wxUpdateUIEvent& event );
 	void OnButtonMoveDown( wxCommandEvent& event );
+	void OnMoveDownUpdateUI( wxUpdateUIEvent& event );
 	void OnButtonDelete( wxCommandEvent& event );
+	void OnVolumeCloseUpdateUI( wxUpdateUIEvent& event );
+	void OnVolumeLock( wxCommandEvent& event );
+	void OnVolumeLockUpdateUI( wxUpdateUIEvent& event );
+	
 	void OnCheckClearBackground( wxCommandEvent& event );
 	void OnChoiceColorMap( wxCommandEvent& event );
 	void OnChoiceLUT( wxCommandEvent& event );

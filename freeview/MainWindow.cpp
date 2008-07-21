@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/18 20:23:24 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/07/21 19:48:42 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -266,7 +266,6 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	
 	m_toolWindowEdit = new ToolWindowEdit( this );
 	m_toolWindowEdit->Hide();
-
 	UpdateToolbars();	
 	
 	m_nViewLayout = VL_2X2;
@@ -774,9 +773,11 @@ void MainWindow::DoUpdateToolbars()
 	//	m_toolbarROIEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
 	//	m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
 	//	m_panelToolbarHolder->Layout();
+	//	bool bNeedReposition = ( m_toolWindowEdit->IsShown() != (m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate) );
 		m_toolWindowEdit->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
-	//	m_toolWindowEdit->ResetPosition();
-		m_toolWindowEdit->UpdateTools();
+		m_toolWindowEdit->UpdateTools();	
+		//	if ( bNeedReposition)
+	//		m_toolWindowEdit->ResetPosition();
 	}
 	/*		
 	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_SIZE", wxStaticText )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );

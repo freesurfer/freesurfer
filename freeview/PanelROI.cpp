@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/21 19:48:42 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,6 +44,12 @@ BEGIN_EVENT_TABLE( PanelROI, wxPanel )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_NEW" ) ),				PanelROI::OnButtonNew )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_LOAD" ) ),				PanelROI::OnButtonLoad )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SAVE" ) ),				PanelROI::OnButtonSave )
+	EVT_MENU			( XRCID( wxT( "ID_ROI_CLOSE" ) ),				PanelROI::OnButtonDelete )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_ROI_CLOSE" ) ),				PanelROI::OnROICloseUpdateUI )
+	EVT_MENU			( XRCID( wxT( "ID_ROI_MOVE_UP" ) ),				PanelROI::OnButtonMoveUp )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_ROI_MOVE_UP" ) ),				PanelROI::OnMoveUpUpdateUI )
+	EVT_MENU			( XRCID( wxT( "ID_ROI_MOVE_DOWN" ) ),			PanelROI::OnButtonMoveDown )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_ROI_MOVE_DOWN" ) ),			PanelROI::OnMoveDownUpdateUI )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER" ) ), 	PanelROI::OnColorChanged )
 END_EVENT_TABLE()
 
@@ -288,4 +294,22 @@ void PanelROI::OnColorChanged( wxColourPickerEvent& event )
 		wxColour c = event.GetColour();
 		roi->GetProperties()->SetColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
 	}	
+}
+
+void PanelROI::OnROICloseUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && 
+			!MainWindow::GetMainWindowPointer()->IsSaving() );	
+}
+	
+void PanelROI::OnMoveUpUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && 
+			m_listBoxLayers->GetSelection() != 0 );	
+}
+	
+void PanelROI::OnMoveDownUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && 
+			m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );	
 }

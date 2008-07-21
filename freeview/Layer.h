@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/21 19:48:41 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,6 +84,11 @@ class Layer : public Listener, public Broadcaster
 		
 		void SetErrorString( std::string msg )
 			{ m_strError = msg; }
+				
+		bool IsLocked()
+			{ return m_bLocked; }
+		
+		void Lock( bool bLock );
 		
 		std::string GetEndType();
 		
@@ -93,6 +98,9 @@ class Layer : public Listener, public Broadcaster
 		double			m_dWorldOrigin[3];
 		double			m_dWorldVoxelSize[3];
 		double 			m_dWorldSize[3];
+		
+		bool			m_bLocked;
+		
 		std::string		m_strError;
 		std::vector<std::string>	m_strTypeNames;	
 };

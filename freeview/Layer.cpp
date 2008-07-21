@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/07/21 19:48:41 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@ Layer::Layer() : Listener( "Layer" ), Broadcaster( "Layer" )
 		m_dWorldVoxelSize[i] = 1;
 		m_dWorldSize[i] = 0;
 	}
+	m_bLocked = false;
 }
 
 Layer::~Layer()
@@ -166,4 +167,10 @@ void Layer::VoxelToRAS( const int* n, double* pos )
 	{
 		pos[i] = m_dWorldOrigin[i] + m_dWorldVoxelSize[i] * n[i];
 	}
+}
+
+void Layer::Lock( bool bLock )
+{
+	m_bLocked = bLock;
+	this->SendBroadcast( "LayerLockChanged", this );
 }

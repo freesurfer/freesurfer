@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/23 21:28:14 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/07/21 19:48:42 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,6 +58,15 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_NEW" ) ),				PanelVolume::OnButtonNew )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_LOAD" ) ),				PanelVolume::OnButtonLoad )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SAVE" ) ),				PanelVolume::OnButtonSave )
+	EVT_MENU			( XRCID( wxT( "ID_VOLUME_CLOSE" ) ),			PanelVolume::OnButtonDelete )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_CLOSE" ) ),			PanelVolume::OnVolumeCloseUpdateUI )
+	EVT_MENU			( XRCID( wxT( "ID_VOLUME_MOVE_UP" ) ),			PanelVolume::OnButtonMoveUp )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_MOVE_UP" ) ),			PanelVolume::OnMoveUpUpdateUI )
+	EVT_MENU			( XRCID( wxT( "ID_VOLUME_MOVE_DOWN" ) ),		PanelVolume::OnButtonMoveDown )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_MOVE_DOWN" ) ),		PanelVolume::OnMoveDownUpdateUI )	
+	EVT_MENU			( XRCID( wxT( "ID_VOLUME_LOCK" ) ),				PanelVolume::OnVolumeLock )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_LOCK" ) ),				PanelVolume::OnVolumeLockUpdateUI )
+	
 	EVT_CHECKBOX		( XRCID( wxT( "ID_CHECKBOX_CLEAR_BACKGROUND" ) ),	PanelVolume::OnCheckClearBackground )
 	EVT_CHECKBOX		( XRCID( wxT( "ID_CHECKBOX_SMOOTH" ) ),			PanelVolume::OnCheckSmooth )
 	EVT_CHOICE			( XRCID( wxT( "ID_CHOICE_COLORMAP" ) ),			PanelVolume::OnChoiceColorMap )
@@ -878,6 +887,39 @@ void PanelVolume::OnTextFrameChanged( wxCommandEvent& event )
 	{	
 		layer->SetActiveFrame( value - 1 ); 
 	}	
+}
+
+void PanelVolume::PanelVolume::OnVolumeCloseUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && !MainWindow::GetMainWindowPointer()->IsSaving() );	
+}
+
+void PanelVolume::OnMoveUpUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && m_listBoxLayers->GetSelection() != 0 );
+}
+
+void PanelVolume::OnMoveDownUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && 
+			m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
+}
+
+
+void PanelVolume::OnVolumeLock( wxCommandEvent& event )
+{
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	if ( layer )
+	{	
+		layer->Lock( event.IsChecked() ); 
+	}
+}
+
+void PanelVolume::OnVolumeLockUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	event.Check( layer && layer->IsLocked() );
 }
 
 

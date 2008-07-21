@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/18 20:23:24 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/07/21 19:48:42 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,9 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_OPACITY" ) ),			PanelSurface::OnSliderOpacity )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_LOAD" ) ),				PanelSurface::OnButtonLoad )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_DELETE" ) ),			PanelSurface::OnButtonDelete )
+	EVT_MENU			( XRCID( wxT( "ID_SURFACE_CLOSE" ) ),			PanelSurface::OnButtonDelete )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_SURFACE_CLOSE" ) ),			PanelSurface::OnSurfaceCloseUpdateUI )
+	
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_MAIN" ) ),		PanelSurface::OnButtonSurfaceMain )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_INFLATED" ) ),	PanelSurface::OnButtonSurfaceInflated )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_WHITE" ) ),	PanelSurface::OnButtonSurfaceWhite )
@@ -344,3 +347,9 @@ void PanelSurface::OnButtonSurfaceOriginal( wxCommandEvent& event )
 		surf->SetActiveSurface( FSSurface::SurfaceOriginal );
 	}
 }
+
+void PanelSurface::OnSurfaceCloseUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+}
+

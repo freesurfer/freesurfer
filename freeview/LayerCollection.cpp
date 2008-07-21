@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/23 21:28:14 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/21 19:48:41 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -134,13 +134,33 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
 
 bool LayerCollection::MoveLayerUp( Layer* layer )
 {
-	for ( unsigned int i = 1; i < m_layers.size(); i++)
+	std::vector<Layer*>	unlocked_layers;
+	for ( unsigned int i = 0; i < m_layers.size(); i++ )
 	{
-		if ( m_layers[i] == layer )
+		if ( !m_layers[i]->IsLocked() )
+			unlocked_layers.push_back( m_layers[i] );
+	}
+	
+	for ( unsigned int i = 1; i < unlocked_layers.size(); i++)
+	{
+		if ( unlocked_layers[i] == layer )
 		{
-			Layer* temp = m_layers[i-1];
-			m_layers[i-1] = layer;
-			m_layers[i] = temp;
+			Layer* temp = unlocked_layers[i-1];
+			unlocked_layers[i-1] = layer;
+			unlocked_layers[i] = temp;
+			
+			// restore locked layers
+			for ( unsigned int j = 0; j < m_layers.size(); j++ )
+			{
+				if ( m_layers[j]->IsLocked() )
+				{
+					if ( j < unlocked_layers.size() )
+						unlocked_layers.insert( unlocked_layers.begin() + j, m_layers[j] );
+					else
+						unlocked_layers.push_back( m_layers[j] );
+				}
+			}
+			m_layers = unlocked_layers;
 			
 			this->SendBroadcast( "LayerMoved", layer );
 			
@@ -152,13 +172,33 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
 
 bool LayerCollection::MoveLayerDown( Layer* layer )
 {
-	for ( unsigned int i = 0; i < m_layers.size()-1; i++)
+	std::vector<Layer*>	unlocked_layers;
+	for ( unsigned int i = 0; i < m_layers.size(); i++ )
 	{
-		if ( m_layers[i] == layer )
+		if ( !m_layers[i]->IsLocked() )
+			unlocked_layers.push_back( m_layers[i] );
+	}
+	
+	for ( unsigned int i = 0; i < unlocked_layers.size()-1; i++)
+	{
+		if ( unlocked_layers[i] == layer )
 		{
-			Layer* temp = m_layers[i+1];
-			m_layers[i+1] = layer;
-			m_layers[i] = temp;
+			Layer* temp = unlocked_layers[i+1];
+			unlocked_layers[i+1] = layer;
+			unlocked_layers[i] = temp;
+			
+			// restore locked layers
+			for ( unsigned int j = 0; j < m_layers.size(); j++ )
+			{
+				if ( m_layers[j]->IsLocked() )
+				{
+					if ( j < unlocked_layers.size() )
+						unlocked_layers.insert( unlocked_layers.begin() + j, m_layers[j] );
+					else
+						unlocked_layers.push_back( m_layers[j] );
+				}
+			}
+			m_layers = unlocked_layers;
 			
 			this->SendBroadcast( "LayerMoved", layer );
 			
@@ -194,17 +234,38 @@ bool LayerCollection::CycleLayer()
 {
 	if ( (int)m_layers.size() > 1 )
 	{
-		Layer* layer0 = m_layers[0];
+		std::vector<Layer*>	unlocked_layers;
+		unlocked_layers.clear();
+		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		{
+			if ( !m_layers[i]->IsLocked() )
+				unlocked_layers.push_back( m_layers[i] );
+		}
+		
 		bool* bVisibility = new bool[m_layers.size()];
 		for ( unsigned int i = 0; i < m_layers.size(); i++ )
 		{
 			bVisibility[i] = m_layers[i]->IsVisible();
 		}
-		for ( unsigned int i = 1; i < m_layers.size(); i++ )
+		
+		Layer* layer0 = unlocked_layers[0];
+		for ( unsigned int i = 1; i < unlocked_layers.size(); i++ )
 		{
-			m_layers[i-1] = m_layers[i];
+			unlocked_layers[i-1] = unlocked_layers[i];
 		}
-		m_layers[m_layers.size()-1] = layer0;
+		unlocked_layers[unlocked_layers.size()-1] = layer0;
+		
+		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		{
+			if ( m_layers[i]->IsLocked() )
+			{
+				if ( i < unlocked_layers.size() )
+					unlocked_layers.insert( unlocked_layers.begin() + i, m_layers[i] );
+				else
+					unlocked_layers.push_back( m_layers[i] );
+			}
+		}
+		m_layers = unlocked_layers;
 		
 		for ( unsigned int i = 0; i < m_layers.size(); i++ )
 		{
