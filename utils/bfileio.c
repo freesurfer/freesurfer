@@ -22,8 +22,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:25 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/07/22 21:45:15 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,37 @@
 #include "bfileio.h"
 
 extern int errno;
+
+/* ------------------------- */
+int byteswapbufdouble(void *buf, long int nbufbytes)
+{
+  register char *cbuf,c;
+  register long int n, nmax;
+
+  nmax = nbufbytes;
+  cbuf = (char *)buf;
+  for (n=0;n<nmax;n+=8)
+  {
+    c = *cbuf;
+    *cbuf = *(cbuf+7);
+    *(cbuf+7) = c;
+
+    c = *(cbuf+1);
+    *(cbuf+1) = *(cbuf+6);
+    *(cbuf+6) = c;
+
+    c = *(cbuf+2);
+    *(cbuf+2) = *(cbuf+5);
+    *(cbuf+5) = c;
+
+    c = *(cbuf+3);
+    *(cbuf+3) = *(cbuf+4);
+    *(cbuf+4) = c;
+
+    cbuf += 8;
+  }
+  return(0);
+}
 
 /* ------------------------- */
 int byteswapbuffloat(void *buf, long int nbufbytes)

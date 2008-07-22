@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/21 21:45:15 $
- *    $Revision: 1.345 $
+ *    $Date: 2008/07/22 21:45:15 $
+ *    $Revision: 1.346 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -6329,6 +6329,12 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   /* Alloc the maximum amount of memory that a row could need */
   buf = (char *)malloc(mri->width * 8);
+  if (NULL == buf) 
+  {
+    printf("ERROR: analyzeRead(): malloc failure\n");
+    MRIfree(&mri);
+    return(NULL);
+  }
 
   /* Open the one file, if there is one file */
   if (nfiles == 1)
@@ -6395,10 +6401,30 @@ static MRI *analyzeRead(char *fname, int read_volume)
             byteswapbufshort((void*)buf,bytes_per_voxel*mri->width);
           if (bytes_per_voxel == 4)
             byteswapbuffloat((void*)buf,bytes_per_voxel*mri->width);
+          if (bytes_per_voxel == 8)
+            byteswapbufdouble((void*)buf,bytes_per_voxel*mri->width);
           //nflip(buf, bytes_per_voxel, mri->width); /* byte swap */
         }
 
-        memmove(mri->slices[k][row], buf, bytes_per_voxel*mri->width); /*copy*/
+        // check if this is 64bit double data, which we have to convert
+        // to float, since the mri struct only supports float
+        if ( (bytes_per_voxel == 8) && 
+             (hdr->dime.datatype == DT_DOUBLE) &&
+             (mritype == MRI_FLOAT) )
+        {
+          // convert double to float
+          int width;
+          double *dp = (double*)buf;
+          for (width=0; width < mri->width; width++)
+          {
+            MRIFvox(mri,width,row,slice) = (float)*dp++;
+          }
+        }
+        else
+        {
+          /*copy*/
+          memmove(mri->slices[k][row], buf, bytes_per_voxel*mri->width);
+        }
 
       } /* End Row Loop */
     }  /* End Slice Loop */
