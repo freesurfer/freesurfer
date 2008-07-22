@@ -1,15 +1,14 @@
 /**
  * @file  bfileio.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Routines for handling bfile (bshort and bfloat) I/O
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/22 21:47:08 $
+ *    $Revision: 1.4.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,13 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/**********************************************************
-Routines for handling bfile data. See bfileio.c for
-more info.
-***********************************************************/
-
 
 #ifndef BF_H_INC
 #define BF_H_INC
@@ -124,6 +116,7 @@ int bf_dumpvolinfo(FILE *fp, BF_DATA *bfd);
 int bf_rcf2index(BF_DATA *bfd, int r, int c, int f);
 int bf_index2rcf(BF_DATA *bfd, int index, int *r, int *c, int *f);
 
+int byteswapbufdouble(void *buf, long int nbufbytes);
 int byteswapbuffloat(void *buf, long int nbufbytes);
 int byteswapbufshort(void *buf, long int nbufbytes);
 

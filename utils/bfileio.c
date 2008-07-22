@@ -1,15 +1,29 @@
 /**
  * @file  bfileio.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Routines for handling bfile (bshort and bfloat) I/O.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Bfile names are assumed to have the following format:
+ * stem_%03d.bext
+ * where stem can include a path, and bext is either bshort or bfloat,
+ * %03d indicates that the slice number is designated with a 3-digit,
+ * zero-padded number. It is always assumed that the slices start with 0.
+ *
+ * Each Bfile has a corresponding header file with name stem_%03d.hdr.
+ * This file has 4 numbers in it: nrows ncols nframes endianness.
+ * Endianness = 1 for PCs and 0 for non-PCs.
+ * 
+ * Bfile data within a slice are stored with column as fastest, row next,
+ * and frame the slowest.
+ *
+ * Unless otherwise specified, functions return 0 if there where no
+ *  errors and non-0 if there were errors.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:43 $
- *    $Revision: 1.8.2.1 $
+ *    $Date: 2008/07/22 21:47:08 $
+ *    $Revision: 1.8.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,32 +39,6 @@
  *
  */
 
-
-/***************************************************************
-Name:    bfileio.c
-Purpose: Routines for handling bfile (bshort and bfloat) I/O.
-Author:  Douglas Greve
-Date:    11/22/00
-
-$Id: bfileio.c,v 1.8.2.1 2008/03/10 13:59:43 nicks Exp $
-
-Bfile names are assumed to have the following format:
-  stem_%03d.bext
-where stem can include a path, and bext is either bshort or bfloat,
-%03d indicates that the slice number is designated with a 3-digit,
-zero-padded number. It is always assumed that the slices start with 0.
-
-Each Bfile has a corresponding header file with name stem_%03d.hdr.
-This file has 4 numbers in it: nrows ncols nframes endianness.
-Endianness = 1 for PCs and 0 for non-PCs.
-
-Bfile data within a slice are stored with column as fastest, row next,
-and frame the slowest.
-
-Unless otherwise specified, functions return 0 if there where no
-errors and non-0 if there were errors.
-
-****************************************************************/
 #define BFILEIO_SRC
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,6 +51,37 @@ errors and non-0 if there were errors.
 #include "bfileio.h"
 
 extern int errno;
+
+/* ------------------------- */
+int byteswapbufdouble(void *buf, long int nbufbytes)
+{
+  register char *cbuf,c;
+  register long int n, nmax;
+
+  nmax = nbufbytes;
+  cbuf = (char *)buf;
+  for (n=0;n<nmax;n+=8)
+  {
+    c = *cbuf;
+    *cbuf = *(cbuf+7);
+    *(cbuf+7) = c;
+
+    c = *(cbuf+1);
+    *(cbuf+1) = *(cbuf+6);
+    *(cbuf+6) = c;
+
+    c = *(cbuf+2);
+    *(cbuf+2) = *(cbuf+5);
+    *(cbuf+5) = c;
+
+    c = *(cbuf+3);
+    *(cbuf+3) = *(cbuf+4);
+    *(cbuf+4) = c;
+
+    cbuf += 8;
+  }
+  return(0);
+}
 
 /* ------------------------- */
 int byteswapbuffloat(void *buf, long int nbufbytes)
