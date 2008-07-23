@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.9 2008/05/03 18:59:54 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.10 2008/07/23 19:38:22 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -13,6 +13,8 @@ set ECRefTP = 0; # 0 for 1st frame
 set subject = ();
 set bvals = ();
 set bvecs = ();
+set DoRegistration = 1;
+set DoTalairach = 1;
 
 set PrintHelp = 0;
 set LF = ();
@@ -50,7 +52,9 @@ if(-e $LF) mv $LF $LF.bak
 echo "dt_recon logfile" | tee -a $LF
 date                    | tee -a $LF
 echo "VERSION $VERSION"  | tee -a $LF
-echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+if($DoRegistration) then
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+endif
 echo "cd `pwd`"          | tee -a $LF
 echo $0 $inputargs       | tee -a $LF
 hostname                 | tee -a $LF
@@ -135,45 +139,53 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 
 # Register to subject
-echo "#@#-------------------------------" |  tee -a $LF
-echo "Registration" |  tee -a $LF
-date |  tee -a $LF
 set reg = $OutDir/register.dat
-set cmd = (fslregister --s $subject --mov $OutDir/lowb.nii)
-set cmd = ($cmd --reg $reg)
-echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
-echo "cd `pwd`" |  tee -a $LF
-echo $cmd       |  tee -a $LF 
-$cmd            |& tee -a $LF
-if($status) exit 1;
-echo "" | tee -a $LF
-echo "" | tee -a $LF
+if($DoRegistration) then
+  echo "#@#-------------------------------" |  tee -a $LF
+  echo "Registration" |  tee -a $LF
+  date |  tee -a $LF
+  set cmd = (fslregister --s $subject --mov $OutDir/lowb.nii)
+  set cmd = ($cmd --reg $reg)
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+  echo "cd `pwd`" |  tee -a $LF
+  echo $cmd       |  tee -a $LF 
+  $cmd            |& tee -a $LF
+  if($status) exit 1;
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+endif
 
-# Map Mask to talairach space
-echo "#@#-------------------------------" |  tee -a $LF
-echo "Reslicing to Tal" |  tee -a $LF
-date |  tee -a $LF
-set mask = $OutDir/mask.nii
-set masktal = $OutDir/mask-tal.nii
-set cmd = (mri_vol2vol --reg $reg --tal --interp nearest\
-            --mov $mask --o $masktal)
-echo "cd `pwd`" |  tee -a $LF
-echo $cmd       |  tee -a $LF 
-$cmd            |& tee -a $LF
-if($status) exit 1;
-echo "" | tee -a $LF
-echo "" | tee -a $LF
+if($DoTalairach) then
+  # Map Mask to talairach space
+  echo "#@#-------------------------------" |  tee -a $LF
+  echo "Reslicing to Tal" |  tee -a $LF
+  if(! -e $reg) then
+    echo "ERROR: cannot find $reg"
+    exit 1;
+  endif
+  date |  tee -a $LF
+  set mask = $OutDir/mask.nii
+  set masktal = $OutDir/mask-tal.nii
+  set cmd = (mri_vol2vol --reg $reg --tal --interp nearest\
+              --mov $mask --o $masktal)
+  echo "cd `pwd`" |  tee -a $LF
+  echo $cmd       |  tee -a $LF 
+  $cmd            |& tee -a $LF
+  if($status) exit 1;
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
 
-# Map FA to talairach space
-set fa = $OutDir/fa.nii
-set fatal = $OutDir/fa-tal.nii
-set cmd = (mri_vol2vol --reg $reg --tal --mov $fa --o $fatal)
-echo "cd `pwd`" |  tee -a $LF
-echo $cmd       |  tee -a $LF 
-$cmd            |& tee -a $LF
-if($status) exit 1;
-echo "" | tee -a $LF
-echo "" | tee -a $LF
+  # Map FA to talairach space
+  set fa = $OutDir/fa.nii
+  set fatal = $OutDir/fa-tal.nii
+  set cmd = (mri_vol2vol --reg $reg --tal --mov $fa --o $fatal)
+  echo "cd `pwd`" |  tee -a $LF
+  echo $cmd       |  tee -a $LF 
+  $cmd            |& tee -a $LF
+  if($status) exit 1;
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+endif
 
 echo "dt_recon finished without error at `date`" |& tee -a $LF
 
@@ -251,6 +263,15 @@ while( $#argv != 0 )
       set DoEddyCorrect = 0;
       breaksw
 
+    case "--no-reg":
+      set DoRegistration = 0;
+      set DoTalairach = 0;
+      breaksw
+
+    case "--no-tal":
+      set DoTalairach = 0;
+      breaksw
+
     case "--verbose":
       set verbose = 1;
       breaksw
@@ -306,27 +327,29 @@ check_params:
     exit 1;
   endif
 
-  if($#subject == 0) then
-    echo "ERROR: must specify a subject"
-    exit 1;
-  endif
+  if($DoRegistration) then
+    if($#subject == 0) then
+      echo "ERROR: must specify a subject"
+      exit 1;
+    endif
 
-  if(! $?SUBJECTS_DIR ) then
-    echo "ERROR: environment variable SUBJECTS_DIR not set"
-    echo "  this can be done by setting it in the shell before"
-    echo "  executing recon-all or by using the -sd flag"
-    exit 1;
-  endif
-  if(! -e $SUBJECTS_DIR ) then
-    echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
-    exit 1;
-  endif
-  # Get the full path #
-  echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
-  set subjdir = $SUBJECTS_DIR/$subject
-  if(! -e $subjdir) then
-    echo "ERROR: $subjdir does not exist"
-    exit 1;
+    if(! $?SUBJECTS_DIR ) then
+      echo "ERROR: environment variable SUBJECTS_DIR not set"
+      echo "  this can be done by setting it in the shell before"
+      echo "  executing recon-all or by using the -sd flag"
+      exit 1;
+    endif
+    if(! -e $SUBJECTS_DIR ) then
+      echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+      exit 1;
+    endif
+    # Get the full path #
+    echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+    set subjdir = $SUBJECTS_DIR/$subject
+    if(! -e $subjdir) then
+      echo "ERROR: $subjdir does not exist"
+      exit 1;
+    endif
   endif
  
   if(! $?FREESURFER_HOME ) then
@@ -359,6 +382,8 @@ usage_exit:
   echo " Other Arguments (Optional)"
   echo "  --ecref TP       : Use TP as 0-based reference time points for EC"
   echo "  --no-ec          : turn off eddy/motion correction"
+  echo "  --no-reg         : do not register to subject or resample to talairach"
+  echo "  --no-tal         : do not resample FA to talairch space"
   echo "  --sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  --debug          : print out lots of info"
   echo "  --version        : print version of this script and exit"
