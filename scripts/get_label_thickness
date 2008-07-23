@@ -1,0 +1,33 @@
+#! /bin/tcsh -ef
+
+# script to get the thickness values for the vertices found in a label file.
+# inputs:  label file and ascii thickness file
+# output:  label file with thickness data
+# example usage:  
+#  get_label_thickness lh.roi.label lh.thickness.asc lh.roi.thickness.asc
+
+#set echo=1
+
+set labelf=$1
+set thickf=$2
+set outf=$3
+
+set tmp1=tmp1.$$
+set tmp2=tmp2.$$
+set tmp3=tmp3.$$
+
+# cut the first two lines from the label file, as these are not vertices
+grep -v -e "^`head -n 1 $labelf`" $labelf > $tmp1
+grep -v -e "^`head -n 1 $tmp1`" $tmp1 > $tmp2
+
+# now get just the vertices
+cat $tmp2 | awk '{print $1}' > $tmp3
+
+# and output the thickness data for each vertex
+if ( -e $outf ) rm -f $outf
+foreach v (`cat $tmp3`)
+  grep -e "^$v" $thickf >> $outf
+end
+
+rm -f $tmp1 $tmp2 $tmp3
+

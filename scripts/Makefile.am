@@ -48,6 +48,7 @@ fsl_rigid_register \
 fslregister \
 fsfget \
 getfullpath \
+get_label_thickness \
 grad_unwarp \
 inflate_subject \
 inflate_subject3 \
