@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/21 21:45:14 $
- *    $Revision: 1.29 $
+ *    $Date: 2008/07/23 19:02:29 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.29 2008/05/21 21:45:14 nicks Exp $";
+"$Id: mris_convert.c,v 1.30 2008/07/23 19:02:29 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.29 2008/05/21 21:45:14 nicks Exp $",
+     "$Id: mris_convert.c,v 1.30 2008/07/23 19:02:29 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -341,7 +341,7 @@ static void
 print_help(void) {
   print_usage() ;
   printf(
-    "\nThis program will convert a MRI surface data formats.\n") ;
+    "\nThis program will convert MRI-surface data formats.\n") ;
   printf( "\nValid options are:\n") ;
   printf( "  -p                input is a patch, not a full surface\n") ;
   printf( "  -c <scalar file>  input is scalar overlay file (must still\n"
