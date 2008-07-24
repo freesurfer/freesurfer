@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/07 23:26:27 $
- *    $Revision: 1.45 $
+ *    $Date: 2008/07/24 21:11:04 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $
+  $Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $
 
 */
 
@@ -45,6 +45,7 @@ mri_vol2vol
   --mov  movvol       : input (or output template with --inv)
   --targ targvol      : output template (or input with --inv)
   --o    outvol       : output volume
+  --disp dispvol      : displacement volume
 
   --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)
   --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
@@ -410,6 +411,7 @@ ENDHELP --------------------------------------------------------------
 #include "MRIio_old.h"
 #include "registerio.h"
 #include "resample.h"
+#include "transform.h"
 #include "gca.h"
 #include "gcamorph.h"
 #include "fio.h"
@@ -441,7 +443,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -469,12 +471,12 @@ MRI *mov, *targ, *out;
 MRI *in, *template;
 MRI *tmpmri;
 
-MATRIX *R, *invR, *XFM;
+MATRIX *R=NULL, *R2=NULL, *invR, *XFM;
 MATRIX *vox2vox, *vox2ras;
 MATRIX *Xtal,*invXtal,*Rtal,*invRtal;
 MATRIX *Tin, *invTin, *Sin, *invSin;
 MATRIX *Ttemp, *invTtemp, *Stemp, *invStemp;
-MATRIX *Rfsl;
+MATRIX *Rfsl, *Rfsl2;
 
 char *FSH=NULL;
 char *SUBJECTS_DIR=NULL;
@@ -522,6 +524,9 @@ int synth = 0;
 int DoCrop = 0;
 double CropScale = 0;
 
+char *DispFile = NULL;
+MRI *DispMap = NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile[1000];
@@ -533,12 +538,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.45 2008/04/07 23:26:27 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -672,10 +677,17 @@ int main(int argc, char **argv) {
   if(fslregfile) {
     printf("Computing registration based on fsl registration\n");
     R = MRIfsl2TkReg(targ, mov, Rfsl);
+    if(Rfsl2) R2 = MRIfsl2TkReg(targ, mov, Rfsl2);
   }
 
-  if (R == NULL)
+  if(R == NULL)
     ErrorExit(ERROR_BADPARM, "ERROR: no registration specified\n") ;
+
+
+  if(R2){
+    R = MatrixSubtract(R,R2,R);
+    for(n=1; n<4; n++) R->rptr[n][n] += 1.0;
+  }
 
   if(Mrot){
     printf("Applying rotation matrix (R=M*R)\n");
@@ -718,12 +730,22 @@ int main(int argc, char **argv) {
     R = MatrixInverse(R,NULL);
   }
 
-  invR = MatrixInverse(R,NULL);
-
   printf("\n");
   printf("Final tkRAS-to-tkRAS Matrix is:\n");
   MatrixPrint(stdout,R);
   printf("\n");
+
+  if(DispFile){
+    printf("Computing affine displacment\n");
+    DispMap = MRIaffineDisplacment(in, R);
+    MRIwrite(DispMap,DispFile);
+    if(outvolfile == NULL) {
+      printf("No other output specified, so exiting now\n");
+      exit(0);
+    }
+  }
+
+  invR = MatrixInverse(R,NULL);
 
   // Vox-to-tkRAS Matrices
   Tin      = MRIxfmCRS2XYZtkreg(in);
@@ -954,11 +976,16 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (istringnmatch(option, "--fsl",0) ||
                istringnmatch(option, "--fslreg",0)) {
-      if (nargc < 1) argnerr(option,1);
+      if(nargc < 1) argnerr(option,1);
       fslregfile = pargv[0];
       Rfsl = LoadRfsl(fslregfile);
-      if (Rfsl == NULL) exit(1);
+      if(Rfsl == NULL) exit(1);
       nargsused = 1;
+      if(nargc > 1 && !CMDisFlag(pargv[1])){
+	Rfsl2 = LoadRfsl(pargv[1]);
+	if(Rfsl2 == NULL) exit(1);
+	nargsused++;
+      }
     } else if (istringnmatch(option, "--xfm",0)) {
       if (nargc < 1) argnerr(option,1);
       xfmfile = pargv[0];
@@ -971,12 +998,19 @@ static int parse_commandline(int argc, char **argv) {
       talxfmfile = pargv[0];
       fstal = 1;
       nargsused = 1;
-    } else if (istringnmatch(option, "--out",0) ||
+    } 
+    else if (istringnmatch(option, "--out",0) ||
                istringnmatch(option, "--o",0)) {
       if (nargc < 1) argnerr(option,1);
       outvolfile = pargv[0];
       nargsused = 1;
-    } else if (istringnmatch(option, "--talres",8)) {
+    } 
+    else if (istringnmatch(option, "--disp",0)){
+      if(nargc < 1) argnerr(option,1);
+      DispFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--talres",8)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&fstalres);
       if (fstalres != 1 && fstalres != 2) {
@@ -1085,6 +1119,7 @@ printf("\n");
 printf("  --mov  movvol       : input (or output template with --inv)\n");
 printf("  --targ targvol      : output template (or input with --inv)\n");
 printf("  --o    outvol       : output volume\n");
+printf("  --disp dispvol      : displacement volume\n");
 printf("\n");
 printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
 printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
@@ -1120,6 +1155,7 @@ printf("\n");
 printf("  --help : go ahead, make my day\n");
 printf("  --debug\n");
 printf("  --version\n");
+printf("\n");
 printf("\n");
 }
 /* --------------------------------------------- */
@@ -1440,7 +1476,7 @@ static void check_options(void) {
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
-  if (outvolfile == NULL) {
+  if(outvolfile == NULL && DispFile == NULL) {
     printf("ERROR: No output volume supplied.\n");
     exit(1);
   }
@@ -1616,4 +1652,3 @@ MATRIX *LoadRfsl(char *fname) {
   }
   return(FSLRegMat);
 }
-

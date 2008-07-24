@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/06/22 23:01:37 $
- *    $Revision: 1.126 $
+ *    $Author: greve $
+ *    $Date: 2008/07/24 21:11:03 $
+ *    $Revision: 1.127 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -4145,67 +4145,53 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
   return(0);
 }
 
-#if 0
-// This is the old version that uses MRIgetVoxVal(), which is somewhat
-// slower.
-double *SegRegCost(MRI *regseg, MRI *f, double *costs)
+/*!
+  \fn MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R)
+  \brief Computes the displacment magnitude at each voxel due to
+  applying R (which is a tkreg matrix). The output is a single-frame
+  MRI with the unsigned displacment.
+*/
+MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R)
 {
-  double wmsum, wmsum2, wmmean, wmstd;
-  double ctxsum, ctxsum2, ctxmean, ctxstd;
-  double vseg, vf, t, cost;
-  int r,c,s,nwmhits,nctxhits;
+  MRI *disp;
+  int c,r,s;
+  MATRIX *Pcrs, *Pras, *Pras2, *Vox2RAS, *Vox2RAS2;
+  double dx,dy,dz,d;
 
-  if(costs == NULL) costs = (double *) calloc(sizeof(double),8);
+  disp = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_FLOAT, 1);
+  MRIcopyHeader(mri,disp);
 
-  nwmhits = 0;
-  nctxhits = 0;
-  wmsum = 0;
-  wmsum2 = 0;
-  ctxsum = 0;
-  ctxsum2 = 0;
-  for(c=0; c < f->width; c++){
-    for(r=0; r < f->height; r++){
-      for(s=0; s < f->depth; s++){
-	vf = MRIgetVoxVal(f,c,r,s,0);
-	if(vf == 0) continue;
-	vseg = MRIgetVoxVal(regseg,c,r,s,0);
-	if(vseg == 2 || vseg == 41){
-	  wmsum  += vf;
-	  wmsum2 += (vf*vf);
-	  nwmhits ++;
-	}
-	if(vseg == 3 || vseg == 42){
-	  ctxsum  += vf;
-	  ctxsum2 += (vf*vf);
-	  nctxhits ++;
-	}
+  Pcrs  = MatrixAlloc(4,1,MATRIX_REAL);
+  Pcrs->rptr[4][1] = 1;
+  Pras  = MatrixAlloc(4,1,MATRIX_REAL);
+  Pras2 = MatrixAlloc(4,1,MATRIX_REAL);
+  Vox2RAS = MRIxfmCRS2XYZtkreg(disp);
+  Vox2RAS2 = MatrixMultiply(R,Vox2RAS,NULL);
+
+  for(c=0; c < disp->width; c++){
+    for(r=0; r < disp->height; r++){
+      for(s=0; s < disp->depth; s++){
+	Pcrs->rptr[1][1] = c;
+	Pcrs->rptr[2][1] = r;
+	Pcrs->rptr[3][1] = s;
+	Pras  = MatrixMultiply(Vox2RAS,Pcrs,Pras);
+	Pras2 = MatrixMultiply(Vox2RAS2,Pcrs,Pras2);
+	dx = Pras->rptr[1][1] - Pras2->rptr[1][1];
+	dy = Pras->rptr[2][1] - Pras2->rptr[2][1];
+	dz = Pras->rptr[3][1] - Pras2->rptr[3][1];
+	d = sqrt(dx*dx + dy*dy + dz*dz);
+	MRIsetVoxVal(disp,c,r,s,0,d);
       }
     }
   }
 
-  //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
+  MatrixFree(&Pcrs);
+  MatrixFree(&Pras);
+  MatrixFree(&Pras2);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&Vox2RAS2);
 
-  wmmean = wmsum/nwmhits;
-  wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/nwmhits );
-
-  ctxmean = ctxsum/nctxhits;
-  ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
-
-  t = fabs(ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
-  cost = 1/t;
-
-  //printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
-  // nwmhits,wmmean,wmstd, nctxhits,ctxmean,ctxstd, cost);
-
-  costs[0] = nwmhits;
-  costs[1] = wmmean;
-  costs[2] = wmstd;
-  costs[3] = nctxhits;
-  costs[4] = ctxmean;
-  costs[5] = ctxstd;
-  costs[6] = t;
-  costs[7] = cost;
-
-  return(0);
+  return(disp);
 }
-#endif
+
+

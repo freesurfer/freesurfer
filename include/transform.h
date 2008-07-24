@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/06/22 23:02:00 $
- *    $Revision: 1.59 $
+ *    $Author: greve $
+ *    $Date: 2008/07/24 21:11:02 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -239,5 +239,6 @@ int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 
 MATRIX *MRIangles2RotMat(double *angles);
 double *SegRegCost(MRI *regseg, MRI *f, double *costs);
+MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R);
 
 #endif
