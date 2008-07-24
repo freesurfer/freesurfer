@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:42 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -112,7 +112,7 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
 			int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
 			int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
 			Move( x, y );
-	//		cout << "in OnShow show:" << x << " " << y << endl;
+		//	cout << "in OnShow show:" << x << " " << y << endl;
 		}
 	}
 	else
@@ -124,7 +124,7 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
 			GetPosition( &x, &y );
 			config->Write( _T("/ToolWindowEdit/PosX"), (long) x );
 			config->Write( _T("/ToolWindowEdit/PosY"), (long) y );
-	//		cout << "in OnShow hide:" << x << " " << y << endl;
+		//	cout << "in OnShow hide:" << x << " " << y << endl;
 		}
 	}
 }

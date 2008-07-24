@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -346,6 +346,15 @@ int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )
 		return -1;
 	
 	return m_surfaceSource->FindVertexAtRAS( ras, distance );
+}
+
+bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
+{
+	if ( m_surfaceSource == NULL )
+		return false;
+		
+	m_surfaceSource->GetRASAtVertex( nVertex, ras );
+	return true;
 }
 
 void LayerSurface::SetActiveSurface( int nSurface )

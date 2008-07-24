@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:19 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,17 +46,21 @@ public:
 	void UpdateMouseRASPosition( int posX, int posY );
 	void CancelUpdateMouseRASPosition();
 	
+	void UpdateCursorRASPosition( int posX, int posY );
+	
 	void UpdateViewByWorldCoordinate();
 	
 protected:
 	void OnInternalIdle();
-	void DoUpdateMouseRASPosition( int posX, int posY );	 
+	void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );	
 	
 private:
 	void InitializeRenderView3D();
 	
 	int 	m_nPickCoord[2];
+	int		m_nCursorCoord[2];
 	bool	m_bToUpdateRASPosition;
+	bool	m_bToUpdateCursorPosition;
 	
     // any class wishing to process wxWindows events must use this macro
     DECLARE_EVENT_TABLE()

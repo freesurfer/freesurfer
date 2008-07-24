@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -267,17 +267,14 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
 		return 1;
 	}
 	
-	Real wx, wy, wz;
-	int ix, iy, iz;
+	Real ix, iy, iz;
 	int r;
 
-	wx = iRASX;
-	wy = iRASY;
-	wz = iRASZ;
-	r = ::MRIworldToVoxelIndex( m_MRI, wx, wy, wz, &ix, &iy, &iz );
-	oIdxX = ix;
-	oIdxY = iy;
-	oIdxZ = iz;
+	r = ::MRIworldToVoxel( m_MRI, iRASX, iRASY, iRASZ, &ix, &iy, &iz );
+	
+	oIdxX = (int)( ix + 0.5 );
+	oIdxY = (int)( iy + 0.5 );
+	oIdxZ = (int)( iz + 0.5 );
 
 	return r;
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,6 +70,8 @@ class LayerSurface : public Layer
 		virtual bool IsVisible();
 		
 		int GetVertexIndexAtRAS( double* ras, double* distance );
+		
+		bool GetRASAtVertex( int nVertex, double* ras );
 		
 		FSSurface* GetSourceSurface()
 			{ return m_surfaceSource; }

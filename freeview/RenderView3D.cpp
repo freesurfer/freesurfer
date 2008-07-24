@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 21:07:57 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 #include "vtkActor2D.h"
 #include "vtkCellPicker.h"
 #include "vtkPointPicker.h"
+#include "vtkPropPicker.h"
 #include "vtkProp3DCollection.h"
 #include "Interactor3DNavigate.h"
 
@@ -66,8 +67,12 @@ void RenderView3D::InitializeRenderView3D()
 	m_interactor = new Interactor3DNavigate();
 	
 	m_bToUpdateRASPosition = false;
-//	vtkCellPicker* picker = vtkCellPicker::New();
-	vtkPointPicker* picker = vtkPointPicker::New();
+	m_bToUpdateCursorPosition = false;
+	
+	vtkCellPicker* picker = vtkCellPicker::New();
+//	vtkPointPicker* picker = vtkPointPicker::New();
+//	vtkPropPicker* picker = vtkPropPicker::New();
+	picker->SetTolerance( 0.001 );
 	this->SetPicker( picker );
 	picker->Delete();
 }
@@ -129,15 +134,16 @@ void RenderView3D::CancelUpdateMouseRASPosition()
 	m_bToUpdateRASPosition = false;
 }
 
-void RenderView3D::DoUpdateMouseRASPosition( int posX, int posY )
+void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
 {	
 	LayerCollection* lc_mri = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );	
 	LayerCollection* lc_roi = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );	
 	LayerCollection* lc_surface = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );	
 	
 //	MousePositionToRAS( posX, posY, pos );
-	vtkPointPicker* picker = vtkPointPicker::SafeDownCast( this->GetPicker() );
-//	vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetPicker() );
+//	vtkPointPicker* picker = vtkPointPicker::SafeDownCast( this->GetPicker() );
+	vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetPicker() );
+//	vtkPropPicker* picker = vtkPropPicker::SafeDownCast( this->GetPicker() );
 	if ( picker )
 	{
 		double pos[3];
@@ -148,9 +154,22 @@ void RenderView3D::DoUpdateMouseRASPosition( int posX, int posY )
 	//	cout << pos[0] << " " << pos[1] << " " << pos[2] << ",   " << prop << endl;
 		if ( prop && ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) || lc_surface->HasProp( prop ) ) )
 		{		
-			lc_mri->SetCurrentRASPosition( pos );
+			if ( bCursor )
+			{
+				lc_mri->SetCursorRASPosition( pos );
+				MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->SetSlicePosition( pos );
+			}
+			else
+				lc_mri->SetCurrentRASPosition( pos );
 		}
 	}
+}
+
+void RenderView3D::UpdateCursorRASPosition( int posX, int posY )
+{
+	m_bToUpdateCursorPosition = true;
+	m_nCursorCoord[0] = posX;
+	m_nCursorCoord[1] = posY;
 }
 
 void RenderView3D::OnInternalIdle()
@@ -159,8 +178,12 @@ void RenderView3D::OnInternalIdle()
 	
 	if ( m_bToUpdateRASPosition )
 	{
-		DoUpdateMouseRASPosition( m_nPickCoord[0], m_nPickCoord[1] );
+		DoUpdateRASPosition( m_nPickCoord[0], m_nPickCoord[1] );
 		m_bToUpdateRASPosition = false;
 	}
-		
+	if ( m_bToUpdateCursorPosition )
+	{
+		DoUpdateRASPosition( m_nCursorCoord[0], m_nCursorCoord[1], true );
+		m_bToUpdateCursorPosition = false;
+	}	
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,10 +38,11 @@ BEGIN_EVENT_TABLE( DialogLoadVolume, wxDialog )
 END_EVENT_TABLE()
 
 
-DialogLoadVolume::DialogLoadVolume( wxWindow* parent ) 
+DialogLoadVolume::DialogLoadVolume( wxWindow* parent, bool bEnableResample ) 
 {
 	wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_LOAD_VOLUME") );	
 	m_checkNoResample = XRCCTRL( *this, "ID_CHECK_NO_RESAMPLE", wxCheckBox );
+	m_checkNoResample->Show( bEnableResample );
 	m_btnOpen = XRCCTRL( *this, "ID_BUTTON_FILE", wxButton );
 	m_comboFileName = XRCCTRL( *this, "ID_COMBO_FILENAME", wxComboBox );
 	m_comboFileName->SetFocus();

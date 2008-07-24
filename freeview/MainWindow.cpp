@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:42 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -147,6 +147,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayerUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibility )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibilityUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOXEL_COORDS" ),	MainWindow::OnViewToggleVoxelCoordinates )
+    
     EVT_MENU		( XRCID( "ID_VIEW_SURFACE_MAIN" ),		MainWindow::OnViewSurfaceMain )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_MAIN" ),		MainWindow::OnViewSurfaceMainUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_SURFACE_INFLATED" ),	MainWindow::OnViewSurfaceInflated )
@@ -157,6 +159,7 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_PIAL" ),		MainWindow::OnViewSurfacePialUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),	MainWindow::OnViewSurfaceOriginal )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),	MainWindow::OnViewSurfaceOriginalUpdateUI )
+    
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
 /*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
@@ -504,9 +507,9 @@ void MainWindow::SaveVolumeAs()
 
 void MainWindow::LoadVolume()
 {
-	if ( GetLayerCollection( "MRI" )->IsEmpty() )
+//	if ( GetLayerCollection( "MRI" )->IsEmpty() )
 	{
-		DialogLoadVolume dlg( this );
+		DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
 		dlg.SetLastDir( m_strLastDir );
 		wxArrayString list;
 		for ( int i = 0; i < m_fileHistory->GetMaxFiles(); i++ )
@@ -517,7 +520,7 @@ void MainWindow::LoadVolume()
 			this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.IsToResample() );
 		}
 	}
-	else
+/*	else
 	{
 		wxFileDialog dlg( this, _("Open volume file"), m_strLastDir, _(""), 
 						_T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"), 
@@ -526,7 +529,7 @@ void MainWindow::LoadVolume()
 		{
 			this->LoadVolumeFile( dlg.GetPath(), m_bResampleToRAS );
 		}
-	}
+}*/
 }
 
 void MainWindow::LoadVolumeFile( const wxString& filename, bool bResample, int nColorMap )
@@ -774,7 +777,12 @@ void MainWindow::DoUpdateToolbars()
 	//	m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
 	//	m_panelToolbarHolder->Layout();
 	//	bool bNeedReposition = ( m_toolWindowEdit->IsShown() != (m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate) );
-		m_toolWindowEdit->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
+		if ( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate )
+		{
+			m_toolWindowEdit->Show();
+		}
+		else
+			m_toolWindowEdit->Close();
 		m_toolWindowEdit->UpdateTools();	
 		//	if ( bNeedReposition)
 	//		m_toolWindowEdit->ResetPosition();
@@ -1082,6 +1090,12 @@ void MainWindow::OnEditPasteUpdateUI( wxUpdateUIEvent& event )
 	else
 		event.Enable( false );
 }
+
+void MainWindow::OnViewToggleVoxelCoordinates( wxCommandEvent& event )
+{
+	m_pixelInfoPanel->ToggleShowVoxelCoordinates();
+}
+
 
 void MainWindow::SetViewLayout( int nLayout )
 {
@@ -1915,3 +1929,5 @@ void MainWindow::LoadSurfaceFile( const wxString& filename )
 	WorkerThread* thread = new WorkerThread( this );
 	thread->LoadSurface( layer );
 }
+
+

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/18 20:23:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/07/24 20:14:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,9 +68,21 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 
 bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderview )
 {	
-	m_nMousePosX = event.GetX();
-	m_nMousePosY = event.GetY();
+	RenderView3D* view = ( RenderView3D* )renderview;
+	
 	m_bWindowLevel = false;
+	if ( event.GetX() == m_nMousePosX && event.GetY() == m_nMousePosY )
+	{
+		if ( event.LeftUp() )
+		{
+			view->UpdateCursorRASPosition( event.GetX(), event.GetY() );
+		}
+	}
+	else
+	{
+		m_nMousePosX = event.GetX();
+		m_nMousePosY = event.GetY();
+	}	
 	
 	return Interactor::ProcessMouseUpEvent( event, renderview );
 }
