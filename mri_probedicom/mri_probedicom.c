@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/06/10 04:18:11 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/07/24 23:40:53 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.22 2008/06/10 04:18:11 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.23 2008/07/24 23:40:53 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -125,6 +125,7 @@ GLubyte *ImageBuff;
 int DoPatientName = 1;
 
 char *title = NULL;
+int DoBackslash = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -138,7 +139,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.22 2008/06/10 04:18:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.23 2008/07/24 23:40:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -350,7 +351,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%lx",&elementtag);
       nargsused = 2;
       DoPartialDump = 0;
-    } else if (!strcmp(option, "--g")) {
+    } 
+    else if (!strcmp(option, "--backslash")) DoBackslash = 1;
+    else if (!strcmp(option, "--g")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lx",&grouptag);
       nargsused = 1;
@@ -407,6 +410,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --ob stem         : dump binary pixel data into bshort  \n");
   fprintf(stdout, "   --dictionary      : dump dicom dictionary and exit\n");
   fprintf(stdout, "   --compare dcm1 dcm2 : compare on key parameters\n");
+  fprintf(stdout, "   --backslash       : replace backslashes with spaces\n");
   fprintf(stdout, "   --help            : how to use this program \n");
   fprintf(stdout, "\n");
 }
@@ -715,7 +719,7 @@ char *RepString(int RepCode) {
 char *ElementValueString(DCM_ELEMENT *e) {
   // declared at top of file:  extern char tmpstr[TMPSTRLEN];
   char* evstring;
-  int len;
+  int n,len;
 
   memset(&tmpstr[0],0,TMPSTRLEN);
 
@@ -762,6 +766,11 @@ char *ElementValueString(DCM_ELEMENT *e) {
   len = strlen(tmpstr);
   evstring = (char *) calloc(len+1,sizeof(char));
   memmove(evstring,tmpstr,len+1);
+
+  if(DoBackslash){
+    // replace backslashes with spaces
+    for(n=0; n < len; n++) if(evstring[n] == '\\') evstring[n] = ' ';
+  }
 
   return(evstring);
 }
@@ -942,7 +951,10 @@ int PartialDump(char *dicomfile, FILE *fp) {
 
   e = GetElementFromFile(dicomfile, 0x18, 0x1030);
   if (e != NULL) {
-    fprintf(fp,"ProtocolName %s\n",e->d.string);
+    if(strlen(e->d.string) != 0)
+      fprintf(fp,"ProtocolName %s\n",e->d.string);
+    else
+      fprintf(fp,"ProtocolName PROTOTCOL_UKNOWN\n");
     FreeElementData(e);
     free(e);
   }
