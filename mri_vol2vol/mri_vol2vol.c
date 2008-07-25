@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/24 21:11:04 $
- *    $Revision: 1.46 $
+ *    $Date: 2008/07/25 03:46:33 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $
+  $Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $
 
 */
 
@@ -61,6 +61,7 @@ mri_vol2vol
 
   --fstarg            : use orig.mgz from subject in --reg as target
   --crop scale        : crop and change voxel size
+  --slice-crop sS sE  : crop output slices to be within sS and sE
 
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --precision precisionid : output precision (def is float)
@@ -189,6 +190,11 @@ file. Requires --reg.  Same as tkregister2.
 Crop mov volume down to minimum size to fit non-zero voxels. The size of
 the voxels is reduced by scale (ie, --crop 2 would crop and reduce the
 voxel size by a factor of 2, eg 1.0 mm becomes 0.5 mm).
+
+--slice-crop start end
+
+Crop output volume to be within slices start and end. The geometry is 
+updated to reflect the new limits.
 
 --interp method
 
@@ -443,7 +449,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -527,6 +533,9 @@ double CropScale = 0;
 char *DispFile = NULL;
 MRI *DispMap = NULL;
 
+int slice_crop_flag = 0;
+int slice_crop_start, slice_crop_stop;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile[1000];
@@ -538,12 +547,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.46 2008/07/24 21:11:04 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -767,6 +776,14 @@ int main(int argc, char **argv) {
     MatrixMultiply(vox2ras,invR,vox2ras);
     MatrixMultiply(vox2ras,Tin,vox2ras);
     MRIsetVoxelToRasXform(in,vox2ras);
+    if(slice_crop_flag){
+      printf("Cropping slices from %d to %d\n",slice_crop_start,slice_crop_stop);
+      crop  = MRIcrop(in, 0, 0, slice_crop_start,
+		      in->width-1, in->height-1,slice_crop_stop);
+      if(crop == NULL) exit(1);
+      MRIfree(&in);
+      in = crop;
+    }
     MRIwrite(in,outvolfile);
     printf("To check registration, run:\n");
     printf("\n");
@@ -869,6 +886,14 @@ int main(int argc, char **argv) {
     if(CostOnly) exit(0);
   }
 
+  if(slice_crop_flag){
+    printf("Cropping slices from %d to %d\n",slice_crop_start,slice_crop_stop);
+    crop  = MRIcrop(out, 0, 0, slice_crop_start,
+		    out->width-1, out->height-1,slice_crop_stop);
+    if(crop == NULL) exit(1);
+    MRIfree(&out);
+    out = crop;
+  }
   MRIwrite(out,outvolfile);
 
   sprintf(regfile,"%s.reg",outvolfile);
@@ -1023,6 +1048,12 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&CropScale);
       DoCrop = 1;
       nargsused = 1;
+    } else if (istringnmatch(option, "--slice-crop",12)) {
+      if(nargc < 2) argnerr(option,2);
+      slice_crop_flag = 1;
+      sscanf(pargv[0],"%d",&slice_crop_start);
+      sscanf(pargv[1],"%d",&slice_crop_stop);
+      nargsused = 2;
     } else if (istringnmatch(option, "--interp",8)) {
       if (nargc < 1) argnerr(option,1);
       interpmethod = pargv[0];
@@ -1135,6 +1166,7 @@ printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transform
 printf("\n");
 printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
 printf("  --crop scale        : crop and change voxel size\n");
+printf("  --slice-crop sS sE  : crop output slices to be within sS and sE\n");
 printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("  --precision precisionid : output precision (def is float)\n");
@@ -1155,7 +1187,6 @@ printf("\n");
 printf("  --help : go ahead, make my day\n");
 printf("  --debug\n");
 printf("  --version\n");
-printf("\n");
 printf("\n");
 }
 /* --------------------------------------------- */
@@ -1264,6 +1295,11 @@ printf("\n");
 printf("Crop mov volume down to minimum size to fit non-zero voxels. The size of\n");
 printf("the voxels is reduced by scale (ie, --crop 2 would crop and reduce the\n");
 printf("voxel size by a factor of 2, eg 1.0 mm becomes 0.5 mm).\n");
+printf("\n");
+printf("--slice-crop start end\n");
+printf("\n");
+printf("Crop output volume to be within slices start and end. The geometry is \n");
+printf("updated to reflect the new limits.\n");
 printf("\n");
 printf("--interp method\n");
 printf("\n");
