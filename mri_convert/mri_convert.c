@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:22 $
- *    $Revision: 1.151 $
+ *    $Author: greve $
+ *    $Date: 2008/07/25 03:26:06 $
+ *    $Revision: 1.152 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,7 @@
 #include "diag.h"
 #include "error.h"
 #include "mri.h"
+#include "mri2.h"
 #include "fmriutils.h"
 #include "mri_identify.h"
 #include "gcamorph.h"
@@ -61,6 +62,9 @@ char *Progname;
 
 MRI *MRIcutEndSlices(MRI *mri, int ncut);
 int ncutends = 0, cutends_flag = 0;
+
+int slice_crop_flag = FALSE;
+int slice_crop_start, slice_crop_stop;
 
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -183,7 +187,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.151 2008/03/10 13:35:22 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.152 2008/07/25 03:26:06 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -285,7 +289,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.151 2008/03/10 13:35:22 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.152 2008/07/25 03:26:06 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -384,6 +388,11 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[i], "--crop")==0) {
       crop_flag = TRUE ;
       get_ints(argc, argv, &i, crop_center, 3);
+    }
+    else if (strcmp(argv[i], "--slice-crop")==0) {
+      slice_crop_flag = TRUE ;
+      get_ints(argc, argv, &i, &slice_crop_start , 1);
+      get_ints(argc, argv, &i, &slice_crop_stop , 1);
     }
     else if (strcmp(argv[i], "--cropsize")==0) {
       crop_flag = TRUE ;
@@ -1280,7 +1289,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.151 2008/03/10 13:35:22 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.152 2008/07/25 03:26:06 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1406,6 +1415,15 @@ int main(int argc, char *argv[]) {
   if (mri == NULL) {
     if (in_like_flag) MRIfree(&mri_in_like);
     exit(1);
+  }
+
+  if(slice_crop_flag){
+    printf("Cropping slices from %d to %d\n",slice_crop_start,slice_crop_stop);
+    mri2  = MRIcrop(mri, 0, 0, slice_crop_start,
+		    mri->width-1, mri->height-1,slice_crop_stop);
+    if(mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
   }
 
   if(LeftRightReverse){
@@ -2491,6 +2509,8 @@ void usage(FILE *stream) {
   fprintf(stream, "  --cropsize <dx> <dy> <dz> crop to size "
           "<dx, dy, dz> \n");
   fprintf(stream, "  --cutends ncut : remove ncut slices from the ends\n");
+  fprintf(stream, "  --slice-crop s_start s_end : keep slices s_start to s_end\n");
+
   fprintf(stream, "  --fwhm fwhm : smooth input volume by fwhm mm\n ");
   fprintf(stream, "\n");
 
