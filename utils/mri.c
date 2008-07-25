@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:44 $
- *    $Revision: 1.395.2.4 $
+ *    $Author: greve $
+ *    $Date: 2008/07/25 18:38:47 $
+ *    $Revision: 1.395.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.4 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.5 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -2863,9 +2863,10 @@ int MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
 {
   Real xv, yv, zv;
   MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
-  *pxv = (int) xv;
-  *pyv = (int) yv;
-  *pzv = (int) zv;
+  // Changed on 7/25/08 so that it rounds intead of truncates
+  *pxv = (int)rint(xv);
+  *pyv = (int)rint(yv);
+  *pzv = (int)rint(zv);
   return(NO_ERROR) ;
 }
 
