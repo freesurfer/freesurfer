@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/09 03:25:06 $
- *    $Revision: 1.50 $
+ *    $Date: 2008/07/25 04:04:29 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -31,6 +31,7 @@
   mri_segreg
 
   --reg regfile
+  --regheader subject
   --mov fvol
   --out-reg outreg : reg at lowest cost
 
@@ -191,7 +192,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.50 2008/07/09 03:25:06 greve Exp $";
+"$Id: mri_segreg.c,v 1.51 2008/07/25 04:04:29 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -289,6 +290,7 @@ double WMProjAbs = -1.0;
 double GMProjAbs = +2.0;
 
 int BruteForce = 0;
+int   regheader=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -309,13 +311,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.50 2008/07/09 03:25:06 greve Exp $",
+     "$Id: mri_segreg.c,v 1.51 2008/07/25 04:04:29 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.50 2008/07/09 03:25:06 greve Exp $",
+     "$Id: mri_segreg.c,v 1.51 2008/07/25 04:04:29 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -339,6 +341,18 @@ int main(int argc, char **argv) {
   dump_options(fp);
   fflush(fp);
 
+  printf("Loading mov\n");
+  mov = MRIread(movvolfile);
+  if (mov == NULL) exit(1);
+
+  if(regheader) {
+    printf("Computing registration based on scanner-to-scanner\n");
+    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+    segreg = MRIread(tmpstr); // Just need a template
+    if(segreg == NULL) exit(1);
+    R0 = MRItkRegMtx(segreg,mov,NULL);
+  }
+
   R00 = MatrixCopy(R0,NULL);
 
   if(MrotPre || MtransPre){
@@ -360,10 +374,6 @@ int main(int argc, char **argv) {
     printf("New input reg:\n");
     MatrixPrint(stdout,R0);
   }
-
-  printf("Loading mov\n");
-  mov = MRIread(movvolfile);
-  if (mov == NULL) exit(1);
 
   if(DoMidFrame) frame = nint(mov->nframes/2);
 
@@ -1036,7 +1046,14 @@ static int parse_commandline(int argc, char **argv) {
                                 &intensity, &R0, &float2int);
       if (err) exit(1);
       nargsused = 1;
-    } else if (istringnmatch(option, "--rot",0)) {
+    } 
+    else if (!strcasecmp(option, "--regheader")){
+      if(nargc < 1) argnerr(option,1);
+      regheader = 1;
+      subject = pargv[0];
+      nargsused = 1;
+    }
+    else if (istringnmatch(option, "--rot",0)) {
       if (nargc < 3) argnerr(option,3);
       // Angles are in degrees
       sscanf(pargv[0],"%lf",&angles[0]);
@@ -1254,6 +1271,7 @@ printf("\n");
 printf("  mri_segreg\n");
 printf("\n");
 printf("  --reg regfile\n");
+printf("  --regheader subject\n");
 printf("  --mov fvol\n");
 printf("  --out-reg outreg : reg at lowest cost\n");
 printf("\n");
@@ -1330,8 +1348,8 @@ static void check_options(void)
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
-  if(regfile == NULL) {
-    printf("ERROR: need --reg.\n");
+  if(regfile == NULL && ! regheader) {
+    printf("ERROR: need --reg or --regheader.\n");
     exit(1);
   }
   if(outregfile == NULL) {
