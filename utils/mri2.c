@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/29 01:02:59 $
- *    $Revision: 1.47 $
+ *    $Date: 2008/07/25 03:43:33 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.47 2008/02/29 01:02:59 greve Exp $
+  $Id: mri2.c,v 1.48 2008/07/25 03:43:33 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -2234,7 +2234,7 @@ MRI *MRIcrop(MRI *mri, int c1, int r1, int s1, int c2, int r2, int s2)
   }
 
   if(c2 < 0 || c2 >= mri->width || r2 < 0 || r2 >= mri->height ||
-     s2 < 0 || r2 >= mri->depth){
+     s2 < 0 || s2 >= mri->depth){
     printf("MRIcrop(): end point %d %d %d out of range\n",c2,r2,s2);
     return(NULL);
   }
