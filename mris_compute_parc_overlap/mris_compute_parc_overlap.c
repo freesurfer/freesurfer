@@ -18,6 +18,7 @@
  *
  * Optional:
  *   --sd subj_dir        set SUBJECTS_DIR
+ *   --use-labels file    file containing labels to check, one per line
  *   --version            version info
  *   --help               this usage info
  *
@@ -32,8 +33,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/07/29 16:07:56 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/07/29 22:19:05 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -57,6 +58,7 @@
 #include "version.h"
 #include "hipsu.h"
 #include "error.h"
+#include "utils.h"
 
 #define MAX_VNOS 200000
 typedef struct _labelInfo
@@ -89,6 +91,8 @@ static const COLOR_TABLE miniColorTable =
 
 static void addToExcludedLabelsList(COLOR_TABLE *ct, char *labelToExclude);
 static int isExcludedLabel(int colortabIndex);
+static void addToIncludedLabelsList(COLOR_TABLE *ct, char *labelToInclude);
+static int isIncludedLabel(int colortabIndex);
 static void calcMeanMinLabelDistances(void);
 static void usage(int exit_val);
 static int  parse_commandline(int argc, char **argv);
@@ -102,7 +106,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.13 2008/07/29 16:07:56 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.14 2008/07/29 22:19:05 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -124,7 +128,7 @@ static int use_label2_xyz = 0;
 static int check_label1_xyz = 1;
 static int check_label2_xyz = 1;
 static char tmpstr[2000];
-
+static char *labelsfile=NULL; // optional file containing lists of label to chk
 
 int main(int argc, char *argv[])
 {
@@ -281,6 +285,31 @@ int main(int argc, char *argv[])
     printf("ERROR: surface1->nvertices=%d >= MAX_VNOS=%d\n",
            surface1->nvertices,MAX_VNOS);
     exit(1); // need to increase MAX_VNOS
+  }
+
+  /*
+   * if a file containing a list of labels to use was specified, 
+   * then initialize list of labels to include in accuracy measurements
+   */
+  if (labelsfile)
+  {
+    char *cp, line[STRLEN], label[STRLEN];
+    FILE* fp = fopen(labelsfile,"r");
+    if (NULL == fp)
+    {
+      printf("ERROR: could not open file '%s'\n",labelsfile);
+      exit(1);
+    }
+    while ((cp = fgetl(line, STRLEN, fp)) != NULL)
+    {
+      COLOR_TABLE *ct=surface1->ct;
+      if (!sscanf(cp, "%s", label))    
+      {
+        printf("ERROR: could not scan # of lines from %s",labelsfile);
+        exit(1);
+      }
+      addToIncludedLabelsList(ct, label);
+    }
   }
 
   /*
@@ -513,6 +542,13 @@ int main(int argc, char *argv[])
     {
       // skip overlapping excluded labels
     }
+    else if ((NULL != labelsfile) &&
+             (( ! isIncludedLabel(colorTabIndex1)) ||
+             ( ! isIncludedLabel(colorTabIndex2))) )
+    {
+      // if a label-list file was specified on command-line, 
+      // then skip labels not found in that list
+    }
     else
     {
       if (colorTabIndex1 != colorTabIndex2)
@@ -738,6 +774,54 @@ static int isExcludedLabel(int colortabIndex)
 }
 
 
+static int *includedLabelsList=NULL;
+static int numIncludedLabels;
+static void addToIncludedLabelsList(COLOR_TABLE *ct, char *labelToInclude)
+{
+  // first-time setup
+  if (includedLabelsList == NULL)
+  {
+    includedLabelsList=malloc(10000*sizeof(int));
+    numIncludedLabels=0;
+  }
+  if (includedLabelsList == NULL)
+  {
+    printf("ERROR: failed to malloc memory for includedLabels list\n");
+    exit(1);
+  }
+
+  int index=0;
+  CTABfindName(ct, labelToInclude, &index);
+  if (index == -1)
+  {
+    //printf("INFO: could not retrieve index for label '%s'\n",labelToInclude);
+  }
+  else
+  {
+    //printf("Including label '%s' in measurements\n",labelToInclude);
+    includedLabelsList[numIncludedLabels] = index; // add to list
+    if (++numIncludedLabels >= 10000)
+    {
+      printf("ERROR: exceeded max num included labels\n");
+      exit(1);
+    }
+  }
+}
+static int isIncludedLabel(int colortabIndex)
+{
+  if (includedLabelsList)
+  {
+    int i;
+    for (i=0; i < numIncludedLabels; i++)
+    {
+      if (includedLabelsList[i] == colortabIndex) return 1; // included label
+    }
+  }
+
+  return 0;
+}
+
+
 /*
  * A superior accuracy measure to the Dice coeffient is the following:
  *
@@ -820,6 +904,10 @@ static void calcMeanMinLabelDistances(void)
   {
     // skip excluded labels
     if ( isExcludedLabel(cti) ) continue;
+
+    // if a label-list file was specified on command-line, 
+    // then skip labels not found in that list
+    if ((NULL != labelsfile) && ( ! isIncludedLabel(cti) )) continue;
 
     int boundaryVertexCount=0;
     // for each label...(valid label if nonzero annot id)
@@ -913,6 +1001,10 @@ static void calcMeanMinLabelDistances(void)
     // skip excluded labels
     if ( isExcludedLabel(cti) ) continue;
 
+    // if a label-list file was specified on command-line, 
+    // then skip labels not found in that list
+    if ((NULL != labelsfile) && ( ! isIncludedLabel(cti) )) continue;
+
     int boundaryVertexCount=0;
     // for each label...(valid label if nonzero annot id)
     if (surf2BoundaryLabels[cti].annotation != 0)
@@ -998,6 +1090,10 @@ static void calcMeanMinLabelDistances(void)
   for (cti=0; cti < MAX_LABELS; cti++)
   {
     if (isExcludedLabel(cti)) continue;  // skip excluded labels from calc
+
+    // if a label-list file was specified on command-line, 
+    // then skip labels not found in that list
+    if ((NULL != labelsfile) && ( ! isIncludedLabel(cti) )) continue;
 
     // for each label...(valid label if nonzero annot id)
     if (surf1BoundaryLabels[cti].annotation != 0)
@@ -1090,6 +1186,8 @@ static void usage(int exit_val)
   fprintf(fout, "    --label2 labelfile     second .label file\n");
   fprintf(fout, "\nOptional:\n");
   fprintf(fout, "  --sd subj_dir            set SUBJECTS_DIR\n");
+  fprintf(fout, "  --label-list file        file containing labels to \n"
+                "                           check, one per line");
   fprintf(fout, "  --nocheck-label1-xyz     when loading label1 file, don't\n"
                 "                           check x,y,z coords to surface\n"
                 "                           default: check x,y,x\n");
@@ -1254,6 +1352,12 @@ static int parse_commandline(int argc, char **argv)
     {
       if (nargc < 1) argnerr(option,1);
       label2name = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--label-list"))
+    {
+      if (nargc < 1) argnerr(option,1);
+      labelsfile = pargv[0];
       nargsused = 1;
     }
     else
