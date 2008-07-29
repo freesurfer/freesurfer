@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:52 $
- *    $Revision: 1.33.2.1 $
+ *    $Author: greve $
+ *    $Date: 2008/07/29 18:03:30 $
+ *    $Revision: 1.33.2.2 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -414,7 +414,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.33.2.1 2008/03/02 18:35:52 nicks Exp $";
+"$Id: mri_segstats.c,v 1.33.2.2 2008/07/29 18:03:30 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -441,10 +441,12 @@ int UserSegIdList[1000];
 int nUserSegIdList = 0;
 int DoExclSegId = 0, ExclSegId = 0;
 int DoExclCtxGMWM= 0;
-int DoSurfCtxGMWM = 0;
+int DoSurfCtxVol = 0;
 int DoSurfWMVol = 0;
-double lhwhitevol, lhpialvol, lhctxvol;
-double rhwhitevol, rhpialvol, rhctxvol;
+double lhwhitevol;
+double rhwhitevol;
+double lhwhitevolTot, lhpialvolTot, lhctxvol;
+double rhwhitevolTot, rhpialvolTot, rhctxvol;
 
 char *gcafile = NULL;
 GCA *gca;
@@ -647,40 +649,41 @@ int main(int argc, char **argv) {
     MRIfree(&mri_aseg);
   }
 
-  if(DoSurfCtxGMWM){
+  if(DoSurfCtxVol){
     printf("Getting Cerebral GM and WM volumes from surfaces\n");
+    // Does this include the non-cortical areas of the surface?
 
     sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
-    lhwhitevol = MRISvolumeInSurf(mris);
+    lhwhitevolTot = MRISvolumeInSurf(mris);
     MRISfree(&mris);
 
     sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
-    lhpialvol = MRISvolumeInSurf(mris);
-    lhctxvol = lhpialvol - lhwhitevol;
+    lhpialvolTot = MRISvolumeInSurf(mris);
+    lhctxvol = lhpialvolTot - lhwhitevolTot;
     MRISfree(&mris);
 
     sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
-    rhwhitevol = MRISvolumeInSurf(mris);
+    rhwhitevolTot = MRISvolumeInSurf(mris);
     MRISfree(&mris);
 
     sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
     mris = MRISread(tmpstr);
     if(mris==NULL) exit(1);
-    rhpialvol = MRISvolumeInSurf(mris);
-    rhctxvol = rhpialvol - rhwhitevol;
+    rhpialvolTot = MRISvolumeInSurf(mris);
+    rhctxvol = rhpialvolTot - rhwhitevolTot;
     MRISfree(&mris);
     mris = NULL;
 
-    printf("lh surface-based volumes (mm3): w = %lf,  p = %lf c = %lf \n",
-           lhwhitevol,lhpialvol,lhctxvol);
-    printf("rh surface-based volumes (mm3): w = %lf,  p = %lf c = %lf \n",
-           rhwhitevol,rhpialvol,rhctxvol);
+    printf("lh surface-based volumes (mm3): wTot = %lf,  pTot = %lf c = %lf \n",
+           lhwhitevolTot,lhpialvolTot,lhctxvol);
+    printf("rh surface-based volumes (mm3): wTot = %lf,  pTot = %lf c = %lf \n",
+           rhwhitevolTot,rhpialvolTot,rhctxvol);
     fflush(stdout);
   }
 
@@ -1099,27 +1102,16 @@ int main(int argc, char **argv) {
       fprintf(fp,"# PVVolFile  %s \n",PVVolFile);
       fprintf(fp,"# PVVolFileTimeStamp  %s \n",VERfileTimeStamp(PVVolFile));
     }
-    if(DoSurfCtxGMWM){
-      fprintf(fp,
-              "# surface-based-volume mm3 lh-cerebral-white-matter %lf\n",
-              lhwhitevol);
-      fprintf(fp,
-              "# surface-based-volume mm3 lh-cerebral-cortex       %lf\n",
-              lhctxvol);
-      fprintf(fp,
-              "# surface-based-volume mm3 rh-cerebral-white-matter %lf\n",
-              rhwhitevol);
-      fprintf(fp,
-              "# surface-based-volume mm3 rh-cerebral-cortex       %lf\n",
-              rhctxvol);
+    if(DoSurfCtxVol){
+      // Does this include the non-cortical areas of the surface?
+      fprintf(fp,"# surface-based-volume mm3 lh-cerebral-cortex       %lf\n",lhctxvol);
+      fprintf(fp,"# surface-based-volume mm3 rh-cerebral-cortex       %lf\n",rhctxvol);
+      fprintf(fp,"# surface-based-volume mm3 tot-cerebral-cortex      %lf\n",lhctxvol+rhctxvol);
     }
     if(DoSurfWMVol){
-      fprintf(fp,
-              "# surface-based-volume mm3 lh-cerebral-white-matter %lf\n",
-              lhwhitevol);
-      fprintf(fp,
-              "# surface-based-volume mm3 rh-cerebral-white-matter %lf\n",
-              rhwhitevol);
+      fprintf(fp,"# surface-based-volume mm3 lh-cerebral-white-matter %lf\n",lhwhitevol);
+      fprintf(fp,"# surface-based-volume mm3 rh-cerebral-white-matter %lf\n",rhwhitevol);
+      fprintf(fp,"# surface-based-volume mm3 tot-cerebral-white-matter %lf\n",lhwhitevol+rhwhitevol);
     }
     if(DoExclSegId)
       fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
@@ -1310,7 +1302,7 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
     else if ( !strcmp(option, "--excl-ctxgmwm") ) DoExclCtxGMWM = 1;
-    else if ( !strcmp(option, "--surf-ctxgmwm") ) DoSurfCtxGMWM = 1;
+    else if ( !strcmp(option, "--surf-ctx-vol") ) DoSurfCtxVol = 1;
     else if ( !strcmp(option, "--surf-wm-vol") )  DoSurfWMVol = 1;
     else if ( !strcmp(option, "--sqr") )  DoSquare = 1;
     else if ( !strcmp(option, "--sqrt") )  DoSquareRoot = 1;
@@ -1492,6 +1484,7 @@ static void print_usage(void) {
   printf("   --excludeid segid : exclude seg id from report\n");
   printf("   --excl-ctxgmwm : exclude cortical gray and white matter\n");
   printf("   --surf-wm-vol : compute coritcal white volume from surf\n");
+  printf("   --surf-ctx-vol : compute coritcal white volume from surf\n");
   printf("   --nonempty : only report non-empty segmentations\n");
   printf("\n");
   printf("Masking options\n");
@@ -1861,8 +1854,8 @@ static void check_options(void) {
     printf("ERROR: cannot specify ctab and gca\n");
     exit(1);
   }
-  if(DoSurfCtxGMWM && subject == NULL){
-    printf("ERROR: need --subject with --surf-gmwm\n");
+  if(DoSurfCtxVol && subject == NULL){
+    printf("ERROR: need --subject with --surf-ctx-vol\n");
     exit(1);
   }
   if (masksign == NULL) masksign = "abs";
