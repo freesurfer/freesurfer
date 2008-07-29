@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.10 2008/07/23 19:38:22 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.11 2008/07/29 19:55:17 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -365,6 +365,15 @@ check_params:
   endif
 
 goto check_params_return;
+############--------------##################
+
+############--------------##################
+error_exit:
+  uname -a | tee -a $LF 
+  echo "" |& tee -a $LF 
+  echo "dt_recon exited with ERRORS at `date`" |& tee -a $LF 
+  echo "" |& tee -a $LF 
+  exit 1;
 ############--------------##################
 
 
