@@ -32,8 +32,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/27 23:06:43 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/07/29 16:08:29 $
+ *    $Revision: 1.12.2.1 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -102,7 +102,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.12 2007/05/27 23:06:43 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.12.2.1 2008/07/29 16:08:29 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -818,6 +818,9 @@ static void calcMeanMinLabelDistances(void)
   int cti; // colortable indexl (ie, label index)
   for (cti=0; cti < MAX_LABELS; cti++)
   {
+    // skip excluded labels
+    if ( isExcludedLabel(cti) ) continue;
+
     int boundaryVertexCount=0;
     // for each label...(valid label if nonzero annot id)
     if (surf1BoundaryLabels[cti].annotation != 0)
@@ -907,6 +910,9 @@ static void calcMeanMinLabelDistances(void)
    */
   for (cti=0; cti < MAX_LABELS; cti++)
   {
+    // skip excluded labels
+    if ( isExcludedLabel(cti) ) continue;
+
     int boundaryVertexCount=0;
     // for each label...(valid label if nonzero annot id)
     if (surf2BoundaryLabels[cti].annotation != 0)
