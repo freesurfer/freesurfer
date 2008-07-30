@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/07/25 18:36:58 $
- *    $Revision: 1.416 $
+ *    $Author: fischl $
+ *    $Date: 2008/07/30 13:37:22 $
+ *    $Revision: 1.417 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.416 $";
+const char *MRI_C_VERSION = "$Revision: 1.417 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -10795,8 +10795,8 @@ MRImeanFrame(MRI *mri, int frame)
       {
         for (x = 0 ; x < width ; x++)
         {
-          MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
-        mean += (double)val ;
+          val = MRIgetVoxVal(mri, x, y, z, frame) ;
+          mean += (double)val ;
         }
       }
     }
@@ -10817,6 +10817,67 @@ MRImeanFrame(MRI *mri, int frame)
         }
       }
     mean /= (double)(width*height*depth*mri->nframes) ;
+  }
+
+  return(mean) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+   compute the mean in a frame of all values
+  ------------------------------------------------------*/
+double
+MRImeanFrameNonzeroMask(MRI *mri, int frame, MRI *mri_mask)
+{
+  int       width, height, depth, x, y, z, nvox ;
+  double    mean ;
+  Real      val ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  if (mri->nframes <= frame)
+    ErrorReturn(0.0,(ERROR_BADPARM,
+                     "MRImeanFrameNonzeroMask: frame %d out of bounds (%d)",
+                     frame, mri->nframes));
+
+  nvox = 0 ;
+  if (frame >= 0)
+  {
+    for (mean = 0.0, z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (MRIgetVoxVal(mri_mask, x, y, z, frame) == 0)
+            continue ;
+          val = MRIgetVoxVal(mri, x, y, z, frame) ;
+          mean += (double)val ;
+          nvox++ ;
+        }
+      }
+    }
+    mean /= nvox ;
+  }
+  else
+  {
+    for (mean = 0.0, frame = 0 ; frame < mri->nframes ; frame++)
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            if (MRIgetVoxVal(mri_mask, x, y, z, frame) == 0)
+              continue ;
+            val = MRIgetVoxVal(mri, x, y, z, frame) ;
+            mean += (double)val ;
+          }
+        }
+      }
+    mean /= nvox ;
   }
 
   return(mean) ;
@@ -15515,3 +15576,99 @@ MRImaxNorm(MRI *mri)
   return(sqrt(max_norm)) ;
 }
 
+static int compare_sort_mri(const void *plp1, const void *plp2);
+typedef struct
+{
+  unsigned char x, y, z, val ;
+}
+SORT_VOXEL ;
+
+
+static int
+compare_sort_mri(const void *psv1, const void *psv2)
+{
+  SORT_VOXEL  *sv1, *sv2 ;
+
+  sv1 = (SORT_VOXEL *)psv1 ;
+  sv2 = (SORT_VOXEL *)psv2 ;
+
+  if (sv1->val > sv2->val)
+    return(1) ;
+  else if (sv1->val < sv2->val)
+    return(-1) ;
+
+  return(0) ;
+}
+int
+MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, short *z_indices)
+{
+  int         width, height, depth, nindices, index, x, y, z ;
+  SORT_VOXEL  *sort_voxels ;
+
+  width = mri->width, height = mri->height ;
+  depth = mri->depth ;
+  nindices = width*height*depth ;
+
+  sort_voxels = (SORT_VOXEL *)calloc(nindices, sizeof(SORT_VOXEL)) ;
+  if (!sort_voxels)
+    ErrorExit(ERROR_NOMEMORY,"MRIorderIndices: could not allocate sort table");
+
+  for (index = x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++, index++)
+      {
+        sort_voxels[index].x = x ;
+        sort_voxels[index].y = y ;
+        sort_voxels[index].z = z ;
+        sort_voxels[index].val = MRIgetVoxVal(mri, x, y, z,0) ;
+      }
+    }
+  }
+  qsort(sort_voxels, nindices, sizeof(SORT_VOXEL), compare_sort_mri) ;
+
+  for (index = 0 ; index < nindices ; index++)
+  {
+    x_indices[index] = sort_voxels[index].x ;
+    y_indices[index] = sort_voxels[index].y ;
+    z_indices[index] = sort_voxels[index].z ;
+  }
+
+  free(sort_voxels) ;
+  return(NO_ERROR) ;
+}
+int
+MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
+                           short *z_indices)
+{
+  int width, height, depth, tmp, nindices, i, index ;
+
+  width = mri->width, height = mri->height ;
+  depth = mri->depth ;
+  nindices = width*height*depth ;
+
+  for (i = 0 ; i < nindices ; i++)
+  {
+    x_indices[i] = i % width ;
+    y_indices[i] = (i/width) % height ;
+    z_indices[i] = (i / (width*height)) % depth ;
+  }
+  for (i = 0 ; i < nindices ; i++)
+  {
+    index = (int)randomNumber(0.0, (double)(nindices-0.0001)) ;
+
+    tmp = x_indices[index] ;
+    x_indices[index] = x_indices[i] ;
+    x_indices[i] = tmp ;
+
+    tmp = y_indices[index] ;
+    y_indices[index] = y_indices[i] ;
+    y_indices[i] = tmp ;
+
+    tmp = z_indices[index] ;
+    z_indices[index] = z_indices[i] ;
+    z_indices[i] = tmp ;
+  }
+  return(NO_ERROR) ;
+}
