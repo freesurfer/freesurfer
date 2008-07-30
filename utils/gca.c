@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/22 01:40:23 $
- *    $Revision: 1.245 $
+ *    $Author: nicks $
+ *    $Date: 2008/07/30 16:38:00 $
+ *    $Revision: 1.246 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -162,9 +162,6 @@ static GC1D *gcanGetGC(GCA_NODE *gcan, int label) ;
 static GC1D *findGCInWindow(GCA *gca,
                             int x, int y, int z,
                             int label, int wsize) ;
-
-static int    MRIorderIndices(MRI *mri, short *x_indices, short *y_indices,
-                              short *z_indices) ;
 static int gcaCheck(GCA *gca) ;
 static double gcaVoxelLogPosterior(GCA *gca,
                                     MRI *mri_labels,
@@ -7436,40 +7433,7 @@ fixed = (mri_fixed != NULL) ;
 
   return(mri_dst) ;
 }
-int
-MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
-                           short *z_indices)
-{
-  int width, height, depth, tmp, nindices, i, index ;
 
-  width = mri->width, height = mri->height ;
-  depth = mri->depth ;
-  nindices = width*height*depth ;
-
-  for (i = 0 ; i < nindices ; i++)
-  {
-    x_indices[i] = i % width ;
-    y_indices[i] = (i/width) % height ;
-    z_indices[i] = (i / (width*height)) % depth ;
-  }
-  for (i = 0 ; i < nindices ; i++)
-  {
-    index = (int)randomNumber(0.0, (double)(nindices-0.0001)) ;
-
-    tmp = x_indices[index] ;
-    x_indices[index] = x_indices[i] ;
-    x_indices[i] = tmp ;
-
-    tmp = y_indices[index] ;
-    y_indices[index] = y_indices[i] ;
-    y_indices[i] = tmp ;
-
-    tmp = z_indices[index] ;
-    z_indices[index] = z_indices[i] ;
-    z_indices[i] = tmp ;
-  }
-  return(NO_ERROR) ;
-}
 
 #if 0
 static int
@@ -7913,68 +7877,6 @@ gcaVoxelLogPosterior(GCA *gca,
   return(log_posterior) ;
 }
 
-static int compare_sort_mri(const void *plp1, const void *plp2);
-typedef struct
-{
-  unsigned char x, y, z, val ;
-}
-SORT_VOXEL ;
-
-static int
-MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, short *z_indices)
-{
-  int         width, height, depth, nindices, index, x, y, z ;
-  SORT_VOXEL  *sort_voxels ;
-
-  width = mri->width, height = mri->height ;
-  depth = mri->depth ;
-  nindices = width*height*depth ;
-
-  sort_voxels = (SORT_VOXEL *)calloc(nindices, sizeof(SORT_VOXEL)) ;
-  if (!sort_voxels)
-    ErrorExit(ERROR_NOMEMORY,"MRIorderIndices: could not allocate sort table");
-
-  for (index = x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++, index++)
-      {
-        sort_voxels[index].x = x ;
-        sort_voxels[index].y = y ;
-        sort_voxels[index].z = z ;
-        sort_voxels[index].val = MRIgetVoxVal(mri, x, y, z,0) ;
-      }
-    }
-  }
-  qsort(sort_voxels, nindices, sizeof(SORT_VOXEL), compare_sort_mri) ;
-
-  for (index = 0 ; index < nindices ; index++)
-  {
-    x_indices[index] = sort_voxels[index].x ;
-    y_indices[index] = sort_voxels[index].y ;
-    z_indices[index] = sort_voxels[index].z ;
-  }
-
-  free(sort_voxels) ;
-  return(NO_ERROR) ;
-}
-
-static int
-compare_sort_mri(const void *psv1, const void *psv2)
-{
-  SORT_VOXEL  *sv1, *sv2 ;
-
-  sv1 = (SORT_VOXEL *)psv1 ;
-  sv2 = (SORT_VOXEL *)psv2 ;
-
-  if (sv1->val > sv2->val)
-    return(1) ;
-  else if (sv1->val < sv2->val)
-    return(-1) ;
-
-  return(0) ;
-}
 
 MRI *
 GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
