@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/07/08 17:35:58 $
- *    $Revision: 1.611 $
+ *    $Author: fischl $
+ *    $Date: 2008/07/30 13:35:47 $
+ *    $Revision: 1.612 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.611 2008/07/08 17:35:58 greve Exp $");
+  return("$Id: mrisurf.c,v 1.612 2008/07/30 13:35:47 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -27732,7 +27732,7 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
             wsize = nint(3.0/mri_wm->xsize) ;
             wsize = (wsize/2)*2 + 1 ;
             min_wm_val = MRIvoxelMin(mri_wm, xi, yi, zi, wsize) ;
-            mean_wm_val = MRIvoxelMean(mri_wm, xi, yi, zi, wsize) ;
+            mean_wm_val = MRIvoxelMean(mri_wm, xi, yi, zi, wsize, 0) ;
             std_wm_val = MRIvoxelStd(mri_wm, xi, yi, zi, mean_wm_val,wsize) ;
             
             if (min_val > min_wm_val)

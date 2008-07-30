@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/26 12:41:25 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/07/30 13:35:47 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -194,7 +194,7 @@ MRIvoxelGradient(MRI *mri, int x,int y,int z,float *pdx,float *pdy,float *pdz)
         Description
 ------------------------------------------------------*/
 float
-MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize)
+MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize, int frame)
 {
   float   mean, total  ;
   int     whalf, width, height, depth, x, y, z, npix, xmin, xmax,
@@ -221,7 +221,7 @@ MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize)
     {
       psrc = &MRIvox(mri, xmin, y, z) ;
       for (x = xmin ; x <= xmax ; x++)
-        total += MRIgetVoxVal(mri, x, y, z, 0) ;
+        total += MRIgetVoxVal(mri, x, y, z, frame) ;
     }
   }
   if (npix > 0)
@@ -461,7 +461,7 @@ MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize)
   float   mean, std, zscore, src ;
 
   src = (float)MRIvox(mri, x, y, z) ;
-  mean = MRIvoxelMean(mri, x, y, z, wsize) ;
+  mean = MRIvoxelMean(mri, x, y, z, wsize, 0) ;
   std = MRIvoxelStd(mri, x, y, z, mean, wsize) ;
   if (!FZERO(std))
     zscore = (src - mean) / std ;

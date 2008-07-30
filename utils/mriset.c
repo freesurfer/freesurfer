@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/12 00:21:49 $
- *    $Revision: 1.59 $
+ *    $Date: 2008/07/30 13:35:47 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1584,7 +1584,7 @@ MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,float low_in_val, float hi_in_va
 MRI *
 MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 {
-  int     width, height, depth, x, y, z;
+  int     width, height, depth, x, y, z, frame ;
   float   val ;
 
   MRIcheckVolDims(mri_src, mri_dst);
@@ -1605,10 +1605,51 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
     {
       for (x = 0 ; x < width ; x++)
       {
-        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-        if (FEQUAL(val, in_val))
-          val = out_val ;
-        MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+        for (frame = 0 ; frame < mri_src->nframes ; frame++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
+          if (FEQUAL(val, in_val))
+            val = out_val ;
+            MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+MRI *
+MRIreplaceValuesOnly(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
+{
+  int     width, height, depth, x, y, z, frame ;
+  float   val ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
+    return(MRIreplaceValuesUchar
+           (mri_src, mri_dst, (BUFTYPE)nint(in_val), (BUFTYPE)nint(out_val))) ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        for (frame = 0 ; frame < mri_src->nframes ; frame++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
+          if (FEQUAL(val, in_val))
+          {
+            val = out_val ;
+            MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
+          }
+        }
       }
     }
   }
@@ -1700,7 +1741,7 @@ MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
 
         if (mask_val == mask)
         {
-          val = MRIvoxelMean(mri_src, x, y, z, wsize) ;
+          val = MRIvoxelMean(mri_src, x, y, z, wsize, 0) ;
         }
         MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
