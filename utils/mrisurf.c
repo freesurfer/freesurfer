@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/07/30 13:35:47 $
- *    $Revision: 1.612 $
+ *    $Author: greve $
+ *    $Date: 2008/07/30 17:27:19 $
+ *    $Revision: 1.613 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.612 2008/07/30 13:35:47 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.613 2008/07/30 17:27:19 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61621,6 +61621,11 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
         case Right_Cerebral_White_Matter:
         case Left_WM_hypointensities:
         case Right_WM_hypointensities:
+        case CC_Posterior:
+        case CC_Mid_Posterior:
+        case CC_Central:
+        case CC_Mid_Anterior:
+        case CC_Anterior:
           total_volume += vox_volume ;
           break ;
         }
