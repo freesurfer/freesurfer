@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/06/19 19:23:12 $
- *    $Revision: 1.367 $
+ *    $Date: 2008/07/30 13:36:27 $
+ *    $Revision: 1.368 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -208,7 +208,7 @@ float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize,
                                      int *pxv, int *pyv, int *pzv) ;
 /* single pixel filtering */
 float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize) ;
-float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize) ;
+float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize, int frame) ;
 float MRIvoxelMin(MRI *mri, int x0, int y0, int z0, int wsize) ;
 float MRIvoxelStd(MRI *mri, int x, int y, int z, float mean, int wsize) ;
 float MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize) ;
@@ -812,6 +812,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
 MRI *MRIresampleFill(MRI *src, MRI *template_vol,
                      int resample_type, float fill_val) ;
+MRI *MRIreplaceValuesOnly(MRI *mri_src, MRI *mri_dst, float in_val, float out_val) ;
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
                         float in_val, float out_val) ;
 MRI   *MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,
@@ -849,6 +850,7 @@ MRI *MRIstdsToVariances(MRI *mri_std, MRI *mri_var, int source_frame) ;
 MRI *MRIvariancesToStds(MRI *mri_var, MRI *mri_std, int dst_frame) ;
 MRI *MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst);
 MRI *MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame) ;
+double MRImeanFrameNonzeroMask(MRI *mri, int frame, MRI *mri_mask) ;
 double MRImeanFrame(MRI *mri, int frame) ;
 
 int   MRIcountPlanarAboveThreshold(MRI *mri_src, int vertex, int x, int y,
@@ -1210,4 +1212,9 @@ MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched,
 MRI *MRIcreateDistanceTransforms(MRI *mri, MRI *mri_all_dtrans, 
                                  float max_dist,
                                  int *labels, int nlabels);
+MRI *MRIapplyMorph(MRI *mri_source, MRI *mri_morph, MRI *mri_dst, int sample_type);
+int MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, short *z_indices) ;
+int MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
+                               short *z_indices);
+
 #endif
