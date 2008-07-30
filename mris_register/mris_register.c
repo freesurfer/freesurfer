@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/28 13:52:23 $
- *    $Revision: 1.52 $
+ *    $Date: 2008/07/30 16:44:17 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.52 2008/03/28 13:52:23 fischl Exp $";
+"$Id: mris_register.c,v 1.53 2008/07/30 16:44:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -116,6 +116,7 @@ static LABEL *labels[MAX_LABELS] ;
 static char  *label_names[MAX_LABELS] ;
 static GCSA  *label_gcsa[MAX_LABELS] ;
 static int   label_indices[MAX_LABELS] ;
+static int   label_annots[MAX_LABELS] ;
 
 /* multiframe registration */
 static int multiframes = 0;
@@ -141,14 +142,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.52 2008/03/28 13:52:23 fischl Exp $", 
+     "$Id: mris_register.c,v 1.53 2008/07/30 16:44:17 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.52 2008/03/28 13:52:23 fischl Exp $", 
+     "$Id: mris_register.c,v 1.53 2008/07/30 16:44:17 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -994,6 +995,8 @@ get_option(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, 
                   "%s: could not map name %s to index", 
                   Progname, argv[3]) ;
+      CTABannotationAtIndex(label_gcsa[nlabels]->ct, label_indices[nlabels], 
+                            &label_annots[nlabels]);
       nlabels++ ;
       gMRISexternalSSE = gcsaSSE ;
       break ;
@@ -1155,7 +1158,7 @@ gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       for (n = 0 ; n < cpn->nlabels ; n++)
       {
         cp = &cpn->cps[n] ;
-        if (cpn->labels[n] == label_indices[ano])
+        if (cpn->labels[n] == label_annots[ano])
         {
           found = 1 ;
           break ;
