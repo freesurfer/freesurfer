@@ -1,0 +1,8 @@
+project(include)
+add_subdirectory(dicom)
+add_subdirectory(fs_vnl)
+add_subdirectory(NrrdIO)
+add_subdirectory(pixrect)
+add_subdirectory(sys)
+add_subdirectory(topology)
+add_subdirectory(xview)
