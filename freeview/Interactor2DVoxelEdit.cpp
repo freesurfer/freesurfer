@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/07/31 22:51:45 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,8 +55,8 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 
 	if ( event.LeftDown() )
 	{
-	//	if ( event.ControlDown() )
-	//		return Interactor2D::ProcessMouseDownEvent( event, renderview );
+		if ( event.ControlDown() && event.ShiftDown() )
+			return Interactor2D::ProcessMouseDownEvent( event, renderview );
 		
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( "MRI" );
 		LayerMRI* mri = ( LayerMRI* )lc->GetActiveLayer();
@@ -228,26 +228,41 @@ bool Interactor2DVoxelEdit::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* 
 		return false;
 }
 
+bool Interactor2DVoxelEdit::ProcessKeyUpEvent( wxKeyEvent& event, RenderView* renderview )
+{
+	UpdateCursor( event, renderview );
+	
+	return Interactor2D::ProcessKeyUpEvent( event, renderview );
+}
+
 void Interactor2DVoxelEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
 {
 	if ( wnd->FindFocus() == wnd )
 	{
-		if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) 
-			&& ( event.GetEventType() == wxEVT_MIDDLE_DOWN || event.GetEventType() == wxEVT_RIGHT_DOWN )
-				   && !m_bEditing )
-		{
-			Interactor2D::UpdateCursor( event, wnd );
-			return;
+		if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) )
+		{ 
+			wxMouseEvent* e = ( wxMouseEvent* )&event;
+			if ( ( ( e->MiddleDown() || e->RightDown() ) && !m_bEditing ) ||
+				 ( e->ControlDown() && e->ShiftDown() ) )
+			{
+				Interactor2D::UpdateCursor( event, wnd );
+				return;
+			}
 		}
 		
 		if ( m_nAction == EM_Freehand || m_nAction == EM_Polyline )
 		{
-			if ( event.IsKindOf( CLASSINFO( wxKeyEvent ) ) && (( wxKeyEvent* )&event)->GetKeyCode() == WXK_CONTROL &&
-						  (( wxKeyEvent* )&event)->GetEventType() != wxEVT_KEY_UP )
-			{
-				wnd->SetCursor( CursorFactory::CursorFill );
+			if ( event.IsKindOf( CLASSINFO( wxKeyEvent ) ) )
+			{	
+				wxKeyEvent* e = ( wxKeyEvent* )&event;
+				if ( e->GetEventType() != wxEVT_KEY_UP && ( e->GetKeyCode() == WXK_CONTROL && !e->ShiftDown() ) )
+				{
+					wnd->SetCursor( CursorFactory::CursorFill );
+					return;
+				}
 			}
-			else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->ControlDown() )
+			
+			if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->ControlDown() )
 			{
 				wnd->SetCursor( CursorFactory::CursorFill );
 			}
