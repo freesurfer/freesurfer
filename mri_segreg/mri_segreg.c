@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/25 04:04:29 $
- *    $Revision: 1.51 $
+ *    $Date: 2008/08/01 20:03:30 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -82,8 +82,8 @@
   --n1dmin n1dmin : number of 1d minimization (default = 3)
 
   --mincost MinCostFile
-  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost
-  --surf-cost basename : saves as ?h.basename.mgh
+  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost WM Ctx PctContrast
+  --surf-cost basename : saves as basename.?h.mgh
 
   --mksegreg subject : create segreg.mgz and exit
 
@@ -192,7 +192,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.51 2008/07/25 04:04:29 greve Exp $";
+"$Id: mri_segreg.c,v 1.52 2008/08/01 20:03:30 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -311,13 +311,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.51 2008/07/25 04:04:29 greve Exp $",
+     "$Id: mri_segreg.c,v 1.52 2008/08/01 20:03:30 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.51 2008/07/25 04:04:29 greve Exp $",
+     "$Id: mri_segreg.c,v 1.52 2008/08/01 20:03:30 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -535,9 +535,9 @@ int main(int argc, char **argv) {
 
   fprintf(fp,"Initial costs ----------------\n");
   fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
-  fprintf(fp,"WM  Intensity %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
-  fprintf(fp,"Ctx Intensity %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
-  fprintf(fp,"Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
+  fprintf(fp,"WM  Intensity0 %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
+  fprintf(fp,"Ctx Intensity0 %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
+  fprintf(fp,"Pct Contrast0  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
   fprintf(fp,"Cost %8.4lf\n",costs[7]); 
   fflush(fp);
 
@@ -690,9 +690,9 @@ int main(int argc, char **argv) {
   if(!UseSurf) GetCosts(mov, segreg, R0, R, p, costs);
   else{
     if(surfcostbase){
-      sprintf(tmpstr,"lh.%s.mgh",surfcostbase);
+      sprintf(tmpstr,"%s.lh.mgh",surfcostbase);
       lhcostfile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"rh.%s.mgh",surfcostbase);
+      sprintf(tmpstr,"%s.rh.mgh",surfcostbase);
       rhcostfile = strcpyalloc(tmpstr);
     }
     if(surfconbase){
@@ -706,13 +706,14 @@ int main(int argc, char **argv) {
 
   if(MinCostFile){
     fpMinCost = fopen(MinCostFile,"w");
-    fprintf(fpMinCost,"%lf\n",costs[7]);
+    //MinCost, WMMean, CtxMean, PctContrast
+    fprintf(fpMinCost,"%lf %lf %lf %lf \n",costs[7],costs[1],costs[4],costs[6]);
     fclose(fpMinCost);
   }
 
   printf("Min cost was %lf\n",costs[7]);
   printf("Number of iterations %5d\n",nth);
-  printf("Optmization time %lf sec\n",secCostTime);
+  printf("Optimization time %lf sec\n",secCostTime);
   printf("Parameters at optimum (transmm, rotdeg)\n");
   printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
@@ -730,7 +731,7 @@ int main(int argc, char **argv) {
   
   fprintf(fp,"Min cost was %lf\n",costs[7]);
   fprintf(fp,"Number of iterations %5d\n",nth);
-  fprintf(fp,"Optmization time %lf sec\n",secCostTime);
+  fprintf(fp,"Optimization time %lf sec\n",secCostTime);
   fprintf(fp,"Parameters at optimum (transmm, rotdeg)\n");
   fprintf(fp,"%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
@@ -820,8 +821,9 @@ int main(int argc, char **argv) {
     fprintf(fp,"Surface Mean RMS Diff (mm) %lf\n",rmsDiffMean);
     if(RMSDiffFile){
       fpRMSDiff = fopen(RMSDiffFile,"w");
-      fprintf(fpRMSDiff,"%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf %lf\n",
-	      p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean,costs[7]);
+      //Tx Ty Tz Rx Ry Rz rmsDiffMean MinCost WMMean CtxMean PctContrast
+      fprintf(fpRMSDiff,"%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf %lf %lf %lf %lf \n",
+	      p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean,costs[7],costs[1],costs[4],costs[6]);
       fclose(fpRMSDiff);
     }    
   }
@@ -1323,8 +1325,8 @@ printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
 printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
 printf("\n");
 printf("  --mincost MinCostFile\n");
-printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost\n");
-printf("  --surf-cost basename : saves as ?h.basename.mgh\n");
+printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost WM Ctx PctContrast");
+printf("  --surf-cost basename : saves as basename.?h.mgh\n");
 printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
 printf("\n");
