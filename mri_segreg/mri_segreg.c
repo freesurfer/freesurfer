@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/01 22:10:33 $
- *    $Revision: 1.53 $
+ *    $Date: 2008/08/03 04:23:27 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -65,6 +65,9 @@
 
   --trans Tx Ty Tz : translate input reg (mm)
   --rot   Ax Ay Zz : rotate input reg (degrees)
+
+  --trans-rand Tmax : uniformly dist -Tmax to +Tmax (Tx,Ty,Tz)
+  --rot-rand   Amax : uniformly dist -Amax to +Amax (Ax,Ay,Az)
 
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --no-crop: do not crop anat (crops by default)
@@ -194,7 +197,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.53 2008/08/01 22:10:33 greve Exp $";
+"$Id: mri_segreg.c,v 1.54 2008/08/03 04:23:27 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -277,6 +280,8 @@ int UseLH = 1;
 int UseRH = 1;
 
 MATRIX *MrotPre=NULL,*MtransPre=NULL;
+double TransRandMax = 0;
+double RotRandMax = 0;
 char *MinCostFile=NULL;
 
 int DoRMSDiff = 1; // this is fast, so ok to do automatically
@@ -318,13 +323,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.53 2008/08/01 22:10:33 greve Exp $",
+     "$Id: mri_segreg.c,v 1.54 2008/08/03 04:23:27 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.53 2008/08/01 22:10:33 greve Exp $",
+     "$Id: mri_segreg.c,v 1.54 2008/08/03 04:23:27 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -338,6 +343,10 @@ int main(int argc, char **argv) {
   DiagInit(NULL, NULL, NULL) ;
 
   if(argc == 0) usage_exit();
+
+  // do this before parse
+  if(SynthSeed < 0) SynthSeed = PDFtodSeed(); 
+  srand48(SynthSeed);
 
   parse_commandline(argc, argv);
   if(gdiagno > -1) Gdiag_no = gdiagno;
@@ -507,8 +516,6 @@ int main(int argc, char **argv) {
 
   if(AddNoise){
     // Seed the random number generator just in case
-    if (SynthSeed < 0) SynthSeed = PDFtodSeed();
-    srand48(SynthSeed);
     printf("Adding noise, Seed = %d, stddev = %lf\n",SynthSeed,NoiseStd);
     fprintf(fp,"Adding noise, Seed = %d, stddev = %lf\n",SynthSeed,NoiseStd);
     noise = MRIrandn(mov->width,mov->height,mov->depth,mov->nframes,
@@ -976,14 +983,6 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%lf",&PreOptDelta);
       BruteForce = 1;
     }
-    else if (!strcasecmp(option, "--proj-frac")) {
-      if(nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%lf",&GMProjFrac);
-      WMProjFrac = GMProjFrac;
-      DoGMProjFrac = 1;
-      DoWMProjFrac = 1;
-      nargsused = 1;
-    }
     else if (!strcasecmp(option, "--gm-proj-frac")) {
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&GMProjFrac);
@@ -1114,6 +1113,16 @@ static int parse_commandline(int argc, char **argv) {
       angles[2] *= (M_PI/180);
       MrotPre = MRIangles2RotMat(angles);
       nargsused = 3;
+    } 
+    else if (istringnmatch(option, "--rot-rand",0)) {
+      if(nargc < 1) argnerr(option,1);
+      // Rotation in deg
+      sscanf(pargv[0],"%lf",&RotRandMax);
+      angles[0] = 2.0*(drand48()-0.5)*RotRandMax*(M_PI/180);
+      angles[1] = 2.0*(drand48()-0.5)*RotRandMax*(M_PI/180);
+      angles[2] = 2.0*(drand48()-0.5)*RotRandMax*(M_PI/180);
+      MrotPre = MRIangles2RotMat(angles);
+      nargsused = 1;
     } else if (istringnmatch(option, "--trans",0)) {
       if (nargc < 3) argnerr(option,3);
       // Translation in mm
@@ -1125,6 +1134,16 @@ static int parse_commandline(int argc, char **argv) {
       MtransPre->rptr[2][4] = xyztrans[1];
       MtransPre->rptr[3][4] = xyztrans[2];
       nargsused = 3;
+    } 
+    else if (istringnmatch(option, "--trans-rand",0)) {
+      if(nargc < 1) argnerr(option,1);
+      // Translation in mm
+      sscanf(pargv[0],"%lf",&TransRandMax);
+      MtransPre = MatrixIdentity(4,NULL);
+      MtransPre->rptr[1][4] = 2.0*(drand48()-0.5)*TransRandMax;
+      MtransPre->rptr[2][4] = 2.0*(drand48()-0.5)*TransRandMax;
+      MtransPre->rptr[3][4] = 2.0*(drand48()-0.5)*TransRandMax;
+      nargsused = 1;
     } 
     else if (istringnmatch(option, "--out-reg",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -1356,6 +1375,8 @@ static void print_usage(void) {
   printf("\n");
   printf("  --trans Tx Ty Tz : translate input reg (mm)\n");
   printf("  --rot   Ax Ay Zz : rotate input reg (degrees)\n");
+  printf("    --trans-rand Tmax : uniformly dist -Tmax to +Tmax (Tx,Ty,Tz)\n");
+  printf("    --rot-rand   Amax : uniformly dist -Amax to +Amax (Ax,Ay,Az)\n");
   printf("\n");
   printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
   printf("  --no-crop: do not crop anat (crops by default)\n");
@@ -1462,8 +1483,8 @@ static void dump_options(FILE *fp)
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
   fprintf(fp,"PenaltyCenter %lf\n",PenaltyCenter);
-  if(DoGMProjFrac) fprintf(fp,"GMProjFrac %lf\n",WMProjFrac);
-  if(DoGMProjAbs)  fprintf(fp,"GMProjAbs %lf\n",WMProjAbs);
+  if(DoGMProjFrac) fprintf(fp,"GMProjFrac %lf\n",GMProjFrac);
+  if(DoGMProjAbs)  fprintf(fp,"GMProjAbs %lf\n",GMProjAbs);
   if(DoWMProjFrac) fprintf(fp,"WMProjFrac %lf\n",WMProjFrac);
   if(DoWMProjAbs)  fprintf(fp,"WMProjAbs %lf\n",WMProjAbs);
   fprintf(fp,"lhcostfile %s\n",lhcostfile);
@@ -1479,6 +1500,9 @@ static void dump_options(FILE *fp)
   fprintf(fp,"Profile   %d\n",DoProfile);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
   fprintf(fp,"AddNoise  %d (%g)\n",AddNoise,NoiseStd);
+  fprintf(fp,"SynthSeed %d\n",SynthSeed);
+  fprintf(fp,"TransRandMax %lf\n",TransRandMax);
+  fprintf(fp,"RotRandMax %lf\n",RotRandMax);
   fprintf(fp,"Input reg\n");
   MatrixPrint(fp,R0);
   fprintf(fp,"\n");
@@ -1974,6 +1998,8 @@ int MRISsegReg(char *subject, int ForceReRun)
     if(err) exit(1);
     err = MRISreadCurvatureFile(lhctx, tmpstr);
 
+    printf("GM Proj: %d %lf %lf\n",DoGMProjFrac,GMProjFrac,GMProjAbs);
+    printf("WM Proj: %d %lf %lf\n",DoWMProjFrac,WMProjFrac,WMProjAbs);
     printf("Projecting LH Surfs\n");
     for(n = 0; n < lhwm->nvertices; n++){
       if(DoWMProjAbs)  ProjNormDist(&fx, &fy, &fz, lhwm,  n, -WMProjAbs);
@@ -1983,13 +2009,13 @@ int MRISsegReg(char *subject, int ForceReRun)
       lhwm->vertices[n].z = fz;
       if(DoGMProjAbs)  ProjNormDist(&fx, &fy, &fz, lhctx,  n, +GMProjAbs);
       if(DoGMProjFrac) ProjNormFracThick(&fx, &fy, &fz, lhctx,  n, +GMProjFrac);
-      ProjNormDist(&fx, &fy, &fz, lhctx,  n, 2.5);
       lhctx->vertices[n].x = fx;
       lhctx->vertices[n].y = fy;
       lhctx->vertices[n].z = fz;
     }
   }
 
+  printf("Projecting RH Surfs\n");
   if(UseRH){
     // Load the RH white surface, project it into WM and Ctx
     printf("Loading rh.white surf\n");
@@ -2013,7 +2039,6 @@ int MRISsegReg(char *subject, int ForceReRun)
       rhwm->vertices[n].z = fz;
       if(DoGMProjAbs)  ProjNormDist(&fx, &fy, &fz, rhctx,  n, +GMProjAbs);
       if(DoGMProjFrac) ProjNormFracThick(&fx, &fy, &fz, rhctx,  n, +GMProjFrac);
-      ProjNormDist(&fx, &fy, &fz, rhctx,  n, 2.5);
       rhctx->vertices[n].x = fx;
       rhctx->vertices[n].y = fy;
       rhctx->vertices[n].z = fz;
