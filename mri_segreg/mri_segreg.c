@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/03 04:23:27 $
- *    $Revision: 1.54 $
+ *    $Date: 2008/08/04 18:43:43 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
   --1dpreopt min max delta : brute force in PE direction
 
   --fwhm fwhm : smooth input by fwhm mm
-  --skip nskip : only sample every nskip vertices
+  --subsamp nsub : only sample every nsub vertices
 
   --preopt-file file : save preopt results in file
   --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
@@ -54,9 +54,18 @@
   --c0 offset : cost offset (pct)
   --cf cfile  : save cost function values (pct,cost)
 
-  --no-mask : do not mask out regions
+  --mask : mask out regions edge and B0 regions
+  --no-mask : do not mask out (default)
+
   --lh-only : only use left hemisphere
   --rh-only : only use right hemisphere
+
+  --gm-proj-frac frac : fraction of cortical thickness (default, 0.5)
+  --gm-proj-abs  dist : absolute distance into cortex
+
+  --wm-proj-frac frac : fraction of cortical thickness
+  --wm-proj-abs  dist : absolute distance into WM (default 2mm)
+
   --projabs : project -1mm and + 2mm
   --proj-frac frac : projection fraction
 
@@ -87,7 +96,7 @@
 
   --mincost MinCostFile
   --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost 
-              WMMean CtxMean PctContrast C0 Slope Skip UseMask
+              WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask
   --surf-cost basename : saves as basename.?h.mgh
 
   --mksegreg subject : create segreg.mgz and exit
@@ -197,7 +206,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.54 2008/08/03 04:23:27 greve Exp $";
+"$Id: mri_segreg.c,v 1.55 2008/08/04 18:43:43 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -258,7 +267,7 @@ double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 int UseSurf = 1;
 MRIS *lhwm, *rhwm, *lhctx, *rhctx;
 MRI *lhsegmask, *rhsegmask;
-int UseMask = 1;
+int UseMask = 0;
 char *cmdline2;
 struct utsname uts;
 
@@ -289,17 +298,17 @@ char *RMSDiffFile = NULL;
 
 int DoSmooth = 0;
 double fwhm = 0, gstd = 0;
-int vskip = 1;
+int nsubsamp = 1;
 
-int  DoGMProjFrac = 1;
-double GMProjFrac = 0.5;
-int  DoWMProjFrac = 1;
+int  DoGMProjFrac = 1;   // default
+double GMProjFrac = 0.5; // default
+int  DoWMProjFrac = 0;
 double WMProjFrac = 0.5;
 
 int  DoGMProjAbs = 0;
 double GMProjAbs = +2.0;
-int  DoWMProjAbs = 0;
-double WMProjAbs =  1.0;
+int  DoWMProjAbs = 1;    // default
+double WMProjAbs =  2.0; // default
 
 int BruteForce = 0;
 int   regheader=0;
@@ -319,17 +328,17 @@ int main(int argc, char **argv) {
   FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL;
   double rmsDiffSum, rmsDiffMean=0, d;
   VERTEX *v;
-  int vskipsave = 0;
+  int nsubsampsave = 0;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.54 2008/08/03 04:23:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.55 2008/08/04 18:43:43 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.54 2008/08/03 04:23:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.55 2008/08/04 18:43:43 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -600,8 +609,8 @@ int main(int argc, char **argv) {
     n = pow((PreOptMax-PreOptMin)/PreOptDelta+1.0,6.0);
     printf("\n");
     printf("------------------------------------\n");
-    vskipsave = vskip;
-    vskip = 2000;
+    nsubsampsave = nsubsamp;
+    nsubsamp = 2000;
     printf("Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
     fprintf(fp,"\n");
     fprintf(fp,"Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
@@ -678,7 +687,7 @@ int main(int argc, char **argv) {
     // Restore
     interpmethod = "trilinear";
     interpcode = SAMPLE_TRILINEAR;
-    vskip = vskipsave;
+    nsubsamp = nsubsampsave;
   }
 
   TimerStart(&mytimer) ;
@@ -763,7 +772,7 @@ int main(int argc, char **argv) {
   fprintf(fp,
 	  "#C# %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf %lf %lf %lf %lf %lf %lf %5d %d\n",
 	  p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean,costs[7],costs[1],costs[4],costs[6],
-	  PenaltyCenter,PenaltySlope,vskip,UseMask);
+	  PenaltyCenter,PenaltySlope,nsubsamp,UseMask);
   
   fprintf(fp,"Reg at min cost was \n");
   MatrixPrint(fp,R);
@@ -839,11 +848,11 @@ int main(int argc, char **argv) {
     fprintf(fp,"Surface Mean RMS Diff (mm) %lf\n",rmsDiffMean);
     if(RMSDiffFile){
       fpRMSDiff = fopen(RMSDiffFile,"w");
-      //Tx Ty Tz Rx Ry Rz rmsDiffMean MinCost WMMean CtxMean PctContrast C0 Slope vskip UseMask
+      //Tx Ty Tz Rx Ry Rz rmsDiffMean MinCost WMMean CtxMean PctContrast C0 Slope nsubsamp UseMask
       fprintf(fpRMSDiff,
 	      "%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf %lf %lf %lf %lf %lf %lf %5d %d\n",
 	      p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean,costs[7],costs[1],costs[4],costs[6],
-	      PenaltyCenter,PenaltySlope,vskip,UseMask);
+	      PenaltyCenter,PenaltySlope,nsubsamp,UseMask);
       fclose(fpRMSDiff);
     }    
   }
@@ -1013,6 +1022,7 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
+    else if (!strcasecmp(option, "--mask"))    UseMask = 1;
     else if (!strcasecmp(option, "--lh-only")){ UseLH = 1; UseRH = 0;}
     else if (!strcasecmp(option, "--rh-only")){ UseLH = 0; UseRH = 1;}
     else if (!strcasecmp(option, "--surf")){
@@ -1061,9 +1071,10 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&PreOptDim);
       nargsused = 1;
     } 
-    else if (istringnmatch(option, "--skip",0)) {
+    else if(istringnmatch(option, "--nsub",0) ||
+	    istringnmatch(option, "--skip",0)) {
       if(nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%d",&vskip);
+      sscanf(pargv[0],"%d",&nsubsamp);
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--nmax",0)) {
@@ -1335,73 +1346,82 @@ static void usage_exit(void) {
   exit(1) ;
 }
 /* --------------------------------------------- */
-static void print_usage(void) {
-  printf("\n");
-  printf("  mri_segreg\n");
-  printf("\n");
-  printf("  --reg regfile\n");
-  printf("  --regheader subject\n");
-  printf("  --mov fvol\n");
-  printf("  --out-reg outreg : reg at lowest cost\n");
-  printf("\n");
-  printf("  --o out : save final output\n");
-  printf("  --cost costfile\n");
-  printf("  --sum sumfile : default is outreg.sum\n");
-  printf("\n");
-  printf("  --brute min max delta : brute force in all directions\n");
-  printf("  --1dpreopt min max delta : brute force in PE direction\n");
-  printf("\n");
-  printf("  --fwhm fwhm : smooth input by fwhm mm\n");
-  printf("  --skip nskip : only sample every nskip vertices\n");
-  printf("\n");
-  printf("  --preopt-file file : save preopt results in file\n");
-  printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
-  printf("  --preopt-only : only preopt, so not optimize\n");
-  printf("\n");
-  printf("\n");
-  printf("  --gm-gt-wm slope : gray matter brighter than WM\n");
-  printf("  --wm-gt-gm slope : WM brighter than gray matter\n");
-  printf("  --c0 offset : cost offset (pct)\n");
-  printf("  --cf cfile  : save cost function values (pct,cost)\n");
-  printf("\n");
-  printf("  --no-mask : do not mask out regions\n");
-  printf("  --lh-only : only use left hemisphere\n");
-  printf("  --rh-only : only use right hemisphere\n");
-  printf("  --projabs : project -1mm and + 2mm\n");
-  printf("  --proj-frac frac : projection fraction\n");
-  printf("\n");
-  printf("  --frame nthframe : use given frame in input (default = 0)\n");
-  printf("  --mid-frame : use use middle frame\n");
-  printf("\n");
-  printf("  --trans Tx Ty Tz : translate input reg (mm)\n");
-  printf("  --rot   Ax Ay Zz : rotate input reg (degrees)\n");
-  printf("    --trans-rand Tmax : uniformly dist -Tmax to +Tmax (Tx,Ty,Tz)\n");
-  printf("    --rot-rand   Amax : uniformly dist -Amax to +Amax (Ax,Ay,Az)\n");
-  printf("\n");
-  printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
-  printf("  --no-crop: do not crop anat (crops by default)\n");
-  printf("  --profile : print out info about exec time\n");
-  printf("\n");
-  printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
-  printf("  --seed randseed : for use with --noise\n");
-  printf("\n");
-  printf("  --aseg : use aseg instead of segreg.mgz\n");
-  printf("\n");
-  printf("  --nmax nmax   : max number of powell iterations (def 36)\n");
-  printf("  --tol   tol   : powell inter-iteration tolerance on cost\n");
-  printf("  --tol1d tol1d : tolerance on powell 1d minimizations\n");
-  printf("\n");
-  printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
-  printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
-  printf("\n");
-  printf("  --mincost MinCostFile\n");
-  printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost\n");
-  printf("               WMMean CtxMean PctContrast C0 Slope Skip UseMask\n");
-  
-  printf("  --surf-cost basename : saves as basename.?h.mgh\n");
-  printf("\n");
-  printf("  --mksegreg subject : create segreg.mgz and exit\n");
-  printf("\n");
+static void print_usage(void) 
+{
+printf("\n");
+printf("  mri_segreg\n");
+printf("\n");
+printf("  --reg regfile\n");
+printf("  --regheader subject\n");
+printf("  --mov fvol\n");
+printf("  --out-reg outreg : reg at lowest cost\n");
+printf("\n");
+printf("  --cost costfile\n");
+printf("  --sum sumfile : default is outreg.sum\n");
+printf("  --o out : save final output\n");
+printf("\n");
+printf("  --brute min max delta : brute force in all directions\n");
+printf("  --1dpreopt min max delta : brute force in PE direction\n");
+printf("\n");
+printf("  --fwhm fwhm : smooth input by fwhm mm\n");
+printf("  --subsamp nsub : only sample every nsub vertices\n");
+printf("\n");
+printf("  --preopt-file file : save preopt results in file\n");
+printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
+printf("  --preopt-only : only preopt, so not optimize\n");
+printf("\n");
+printf("  --gm-gt-wm slope : gray matter brighter than WM\n");
+printf("  --wm-gt-gm slope : WM brighter than gray matter\n");
+printf("  --c0 offset : cost offset (pct)\n");
+printf("  --cf cfile  : save cost function values (pct,cost)\n");
+printf("\n");
+printf("  --mask : mask out regions edge and B0 regions\n");
+printf("  --no-mask : do not mask out (default)\n");
+printf("\n");
+printf("  --lh-only : only use left hemisphere\n");
+printf("  --rh-only : only use right hemisphere\n");
+printf("\n");
+printf("  --gm-proj-frac frac : fraction of cortical thickness (default, 0.5)\n");
+printf("  --gm-proj-abs  dist : absolute distance into cortex\n");
+printf("\n");
+printf("  --wm-proj-frac frac : fraction of cortical thickness\n");
+printf("  --wm-proj-abs  dist : absolute distance into WM (default 2mm)\n");
+printf("\n");
+printf("  --projabs : project -1mm and + 2mm\n");
+printf("  --proj-frac frac : projection fraction\n");
+printf("\n");
+printf("  --frame nthframe : use given frame in input (default = 0)\n");
+printf("  --mid-frame : use use middle frame\n");
+printf("\n");
+printf("  --trans Tx Ty Tz : translate input reg (mm)\n");
+printf("  --rot   Ax Ay Zz : rotate input reg (degrees)\n");
+printf("\n");
+printf("  --trans-rand Tmax : uniformly dist -Tmax to +Tmax (Tx,Ty,Tz)\n");
+printf("  --rot-rand   Amax : uniformly dist -Amax to +Amax (Ax,Ay,Az)\n");
+printf("\n");
+printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
+printf("  --no-crop: do not crop anat (crops by default)\n");
+printf("  --profile : print out info about exec time\n");
+printf("\n");
+printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
+printf("  --seed randseed : for use with --noise\n");
+printf("\n");
+printf("  --aseg : use aseg instead of segreg.mgz\n");
+printf("\n");
+printf("  --nmax nmax   : max number of powell iterations (def 36)\n");
+printf("  --tol   tol   : powell inter-iteration tolerance on cost\n");
+printf("  --tol1d tol1d : tolerance on powell 1d minimizations\n");
+printf("\n");
+printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
+printf("  --n1dmin n1dmin : number of 1d minimization (default = 3)\n");
+printf("\n");
+printf("  --mincost MinCostFile\n");
+printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost \n");
+printf("              WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask\n");
+printf("  --surf-cost basename : saves as basename.?h.mgh\n");
+printf("\n");
+printf("  --mksegreg subject : create segreg.mgz and exit\n");
+printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -1430,9 +1450,9 @@ static void check_options(void)
     printf("ERROR: need --out-reg.\n");
     exit(1);
   }
-  if (SegRegCostFile == NULL) {
-    printf("ERROR: need --cost.\n");
-    exit(1);
+  if(SegRegCostFile == NULL) {
+    sprintf(tmpstr,"%s.cost",outregfile);
+    SegRegCostFile = strcpyalloc(tmpstr);
   }
 
   interpcode = MRIinterpCode(interpmethod);
@@ -1479,7 +1499,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"UseMask %d\n",UseMask);
   fprintf(fp,"UseLH %d\n",UseLH);
   fprintf(fp,"UseRH %d\n",UseRH);
-  fprintf(fp,"vskip %d\n",vskip);
+  fprintf(fp,"nsubsamp %d\n",nsubsamp);
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
   fprintf(fp,"PenaltyCenter %lf\n",PenaltyCenter);
@@ -2220,7 +2240,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern int PenaltySign;
   extern double PenaltySlope;
-  extern int vskip;
+  extern int nsubsamp;
   extern int interpcode;
   double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean;
   MATRIX *Mrot=NULL, *Mtrans=NULL;
@@ -2253,20 +2273,20 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   if(UseLH){
     vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			    lhwm, 0,interpcode, 
-			    FLT2INT_ROUND, NULL, 0, vskip);
+			    FLT2INT_ROUND, NULL, 0, nsubsamp);
     vlhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			     lhctx, 0,interpcode, 
-			     FLT2INT_ROUND, NULL, 0, vskip);
+			     FLT2INT_ROUND, NULL, 0, nsubsamp);
     if(lhcost == NULL) lhcost = MRIclone(vlhctx,NULL);
     if(lhcon == NULL)  lhcon  = MRIclone(vlhctx,NULL);
   }
   if(UseRH){
     vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			    rhwm, 0,interpcode, 
-			    FLT2INT_ROUND, NULL, 0, vskip);
+			    FLT2INT_ROUND, NULL, 0, nsubsamp);
     vrhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			     rhctx, 0,interpcode, 
-			     FLT2INT_ROUND, NULL, 0, vskip);
+			     FLT2INT_ROUND, NULL, 0, nsubsamp);
     if(rhcost == NULL) rhcost = MRIclone(vrhctx,NULL);
     if(rhcon == NULL)  rhcon  = MRIclone(vrhctx,NULL);
   }
@@ -2281,7 +2301,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 
   //fp = fopen("tmp.dat","w");
   if(UseLH){
-    for(n = 0; n < lhwm->nvertices; n += vskip){
+    for(n = 0; n < lhwm->nvertices; n += nsubsamp){
       if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
       if(lhconfile)  MRIsetVoxVal(lhcon,n,0,0,0,0.0);
       if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
@@ -2305,7 +2325,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     }
   }
   if(UseRH){
-    for(n = 0; n < rhwm->nvertices; n += vskip){
+    for(n = 0; n < rhwm->nvertices; n += nsubsamp){
       if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
       if(rhconfile)  MRIsetVoxVal(rhcon,n,0,0,0,0.0);
       if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
