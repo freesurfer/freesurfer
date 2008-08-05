@@ -9,8 +9,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/25 03:46:33 $
- *    $Revision: 1.47 $
+ *    $Date: 2008/08/05 17:35:01 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $
+  $Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $
 
 */
 
@@ -62,6 +62,8 @@ mri_vol2vol
   --fstarg            : use orig.mgz from subject in --reg as target
   --crop scale        : crop and change voxel size
   --slice-crop sS sE  : crop output slices to be within sS and sE
+  --slice-reverse     : reverse order of slices, update vox2ras
+  --slice-bias alpha  : apply half-cosine bias field
 
   --interp interptype : interpolation trilinear or nearest (def is trilin)
   --precision precisionid : output precision (def is float)
@@ -449,7 +451,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -535,6 +537,9 @@ MRI *DispMap = NULL;
 
 int slice_crop_flag = 0;
 int slice_crop_start, slice_crop_stop;
+int SliceReverse = 0;
+int SliceBias  = 0;
+double SliceBiasAlpha = 1.0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -543,16 +548,16 @@ int main(int argc, char **argv) {
   double costs[8];
   FILE *fp;
   int n,err;
-  MRI *crop, *cropnew;
+  MRI *crop, *cropnew, *mri;
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.47 2008/07/25 03:46:33 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -783,6 +788,17 @@ int main(int argc, char **argv) {
       if(crop == NULL) exit(1);
       MRIfree(&in);
       in = crop;
+    }
+    if(SliceReverse){
+      printf("Reversing slices, updating vox2ras\n");
+      mri = MRIreverseSlices(in, NULL);
+      if(mri == NULL) exit(1);
+      MRIfree(&in);
+      in = mri;
+    }
+    if(SliceBias){
+      printf("Applying Half-Cosine Slice Bias, Alpha = %g\n",SliceBiasAlpha);
+      MRIhalfCosBias(in, SliceBiasAlpha, in);
     }
     MRIwrite(in,outvolfile);
     printf("To check registration, run:\n");
@@ -1048,13 +1064,21 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&CropScale);
       DoCrop = 1;
       nargsused = 1;
-    } else if (istringnmatch(option, "--slice-crop",12)) {
+    } else if(istringnmatch(option, "--slice-crop",12)) {
       if(nargc < 2) argnerr(option,2);
       slice_crop_flag = 1;
       sscanf(pargv[0],"%d",&slice_crop_start);
       sscanf(pargv[1],"%d",&slice_crop_stop);
       nargsused = 2;
-    } else if (istringnmatch(option, "--interp",8)) {
+    } 
+    else if(istringnmatch(option, "--slice-reverse",0)) SliceReverse = 1;
+    else if(istringnmatch(option, "--slice-bias",0)){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&SliceBiasAlpha);
+      SliceBias = 1;
+      nargsused = 1;
+    }
+    else if (istringnmatch(option, "--interp",8)) {
       if (nargc < 1) argnerr(option,1);
       interpmethod = pargv[0];
       nargsused = 1;
@@ -1167,6 +1191,8 @@ printf("\n");
 printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
 printf("  --crop scale        : crop and change voxel size\n");
 printf("  --slice-crop sS sE  : crop output slices to be within sS and sE\n");
+printf("  --slice-reverse     : reverse order of slices, update vox2ras\n");
+printf("  --slice-bias alpha  : apply half-cosine bias field\n");
 printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
 printf("  --precision precisionid : output precision (def is float)\n");
