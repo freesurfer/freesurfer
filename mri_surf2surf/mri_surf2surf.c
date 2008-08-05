@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/05/20 23:33:28 $
- *    $Revision: 1.72 $
+ *    $Date: 2008/08/05 03:49:42 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.72 2008/05/20 23:33:28 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.73 2008/08/05 03:49:42 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -437,6 +437,8 @@ int OKToRevFaceOrder = 1;
 int RevFaceOrder = 0;
 
 char *RMSDatFile = NULL;
+char *RMSMaskFile = NULL;
+MRI *RMSMask = NULL;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -455,7 +457,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.72 2008/05/20 23:33:28 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.73 2008/08/05 03:49:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -599,10 +601,22 @@ int main(int argc, char **argv) {
 	if(RMSDatFile){
 	  // This is primarily for testing
 	  printf("Computing RMS\n");
+	  if(RMSMaskFile){
+	    printf("Loading RMS Mask %s\n",RMSMaskFile);
+	    RMSMask = MRIread(RMSMaskFile);
+	    if(RMSMask == NULL) exit(1);
+	    if(RMSMask->width != SurfSrc->nvertices){
+	      printf("Dimension Mismatch: %d %d\n",RMSMask->width,SurfSrc->nvertices);
+	      exit(1);
+	    }
+	  }
 	  dmin = 10e10;
 	  dmax = 0.0;
 	  dsum = 0.0;
+	  f = 0;
 	  for(n=0; n < SurfSrc->nvertices; n++){
+	    if(RMSMask && fabs(MRIgetVoxVal(RMSMask,n,0,0,0)) < 1e-6) continue;
+	    f++;
 	    x = SurfSrc->vertices[n].x;
 	    y = SurfSrc->vertices[n].y;
 	    z = SurfSrc->vertices[n].z;
@@ -611,10 +625,10 @@ int main(int argc, char **argv) {
 	    if(d > dmax) dmax = d;
 	    if(d < dmin) dmin = d;
 	  }
-	  d = dsum/SurfSrc->nvertices;
-	  printf("RMS %lf %lf %lf\n",d,dmin,dmax);
+	  d = dsum/f;
+	  printf("RMS %lf %lf %lf %d\n",d,dmin,dmax,f);
 	  fp = fopen(RMSDatFile,"w");
-	  fprintf(fp,"%lf %lf %lf\n",d,dmin,dmax);
+	  fprintf(fp,"RMS %lf %lf %lf %d\n",d,dmin,dmax,f);
 	  fclose(fp);
 	  exit(0);
 	}
@@ -1056,11 +1070,18 @@ static int parse_commandline(int argc, char **argv) {
                                 &intensity, &XFMSubtract, &float2int);
       if (err) exit(1);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--rms")) {
+    } 
+    else if (!strcasecmp(option, "--rms")) {
       if (nargc < 1) argnerr(option,1);
       RMSDatFile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--reg-inv")) {
+    } 
+    else if (!strcasecmp(option, "--rms-mask")) {
+      if (nargc < 1) argnerr(option,1);
+      RMSMaskFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--reg-inv")) {
       if (nargc < 1) argnerr(option,1);
       err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
                                 &intensity, &XFM, &float2int);
@@ -1312,6 +1333,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --reg-diff reg2 : subtract reg2 from --reg (primarily for testing)\n");
   printf("   --rms rms.dat   : save rms of reg1-reg2 (primarily for testing)\n");
+  printf("   --rms-mask mask : only compute rms in mask (primarily for testing)\n");
   printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
