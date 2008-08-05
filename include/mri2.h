@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/02/29 15:51:59 $
- *    $Revision: 1.28 $
+ *    $Author: greve $
+ *    $Date: 2008/08/05 16:16:38 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,11 +76,14 @@ double MRIsum2All(MRI *mri);
 MRI *MRIchecker(MRI *mri, MRI *checker);
 MRI *MRIcrop(MRI *mri,int c1, int r1, int s1, int c2, int r2, int s2);
 MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2);
+MRI *MRIreverseSlices(MRI *in, MRI *out);
+MRI *MRIcutEndSlices(MRI *mri, int ncut);
 MRI *MRIsquare(MRI *in, MRI *mask, MRI *out);
 MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out);
 int *MRIsegIdList(MRI *seg, int *nlist, int frame);
 double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
+MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out);
 
 #endif

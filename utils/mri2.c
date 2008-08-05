@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/25 03:43:33 $
- *    $Revision: 1.48 $
+ *    $Date: 2008/08/05 16:16:40 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.48 2008/07/25 03:43:33 greve Exp $
+  $Id: mri2.c,v 1.49 2008/08/05 16:16:40 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI
   structures.
   -------------------------------------------------------------------*/
@@ -2322,6 +2322,97 @@ MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int 
 }
 /* ----------------------------------------------------------*/
 /*!
+  \fn MRI *MRIreverseSlices(MRI *in, MRI *out)
+  \brief Reverses the order of the slices and updates the
+    vox2ras matrix.
+*/
+MRI *MRIreverseSlices(MRI *in, MRI *out)
+{
+  int c,r,s,f;
+  MATRIX *M, *invM, *Sin, *Sout;
+  double v;
+
+  if(in == out){
+    printf("ERROR: MRIreverseSlices(): cannot be done in-place\n");
+    return(NULL);
+  }
+
+  out = MRIcopy(in,out);
+  if(out == NULL) return(NULL);
+
+  // vox2ras for the input
+  Sin = MRIxfmCRS2XYZ(in,0);
+
+  // M converts inCRS to outCRS 
+  M = MatrixAlloc(4,4,MATRIX_REAL);
+  M->rptr[1][1] = 1.0;
+  M->rptr[2][2] = 1.0;
+  // for reversal: sliceout = (Nslices-1) - slicein
+  M->rptr[3][3] = -1.0; 
+  M->rptr[3][4] = in->depth-1.0; 
+  M->rptr[4][4] = 1.0;
+  invM = MatrixInverse(M,NULL);
+  if(invM == NULL){
+    printf("ERROR: inverting M\n");
+    return(NULL);
+  }
+
+  // vox2ras for the output
+  Sout = MatrixMultiply(Sin,invM,NULL);
+  MRIsetVoxelToRasXform(out, Sout);
+  MatrixFree(&Sin);
+  MatrixFree(&M);
+  MatrixFree(&invM);
+  MatrixFree(&Sout);
+
+  for(s=0; s < out->depth; s++){
+    for(c=0; c < out->width; c++){
+      for(r=0; r < out->height; r++){
+	for(f=0; f < out->nframes; f++){
+	  v = MRIgetVoxVal(in,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,(in->depth-1.0)-s,f,v);
+	}
+      }
+    }
+  }
+      
+  return(out);
+}
+/*----------------------------------------------------------------*/
+MRI *MRIcutEndSlices(MRI *mri, int ncut)
+{
+  MRI *out;
+  int nslices;
+  int c,r,s,f,scut;
+  double v;
+
+  nslices = mri->depth - 2*ncut;
+  if(nslices <= 0){
+    printf("ERROR: MRIcutEndSlices(): ncut = %d, input only has %d \n",
+	   ncut,mri->depth);
+    return(NULL);
+  }
+
+  out = MRIallocSequence(mri->width, mri->height, nslices, mri->type, mri->nframes);
+  MRIcopyHeader(mri,out);
+
+  for(c = 0; c < mri->width; c ++){
+    for(r = 0; r < mri->height; r ++){
+      scut = 0;
+      for(s = ncut; s < mri->depth - ncut; s++){
+	for(f = 0; f < mri->nframes; f++){
+	  v = MRIgetVoxVal(mri,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,scut,f,v);
+	}
+	scut ++;
+      }
+    }
+  }
+  return(out);
+}
+
+/* ----------------------------------------------------------*/
+/*!
   \fn int *MRIsegIdList(MRI *seg, int *nlist, int frame) 
   \brief Returns a list of the unique segmentation ids in
    the volume. The number in the list is *nlist. The volume need not
@@ -2496,4 +2587,36 @@ MRI *MRIsegMergeDiff(MRI *old, MRI *diff)
   }
 
   return(new);
+}
+
+/* ----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out)
+  \brief Applies intensity bias using a half cosine. Each
+    slice is rescaled separately. The scale factor is given
+    by f = (alpha*cos(pi*s/(Ns-1))+(2-alpha))/2. Alpha is
+    a control parameter. When 0, there is no bias. 1 is full
+    bias.
+*/
+MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out)
+{
+  int c,r,s,f;
+  double v,w;
+
+  out = MRIcopy(in,out);
+
+  for(s=0; s < out->depth; s++){
+    w = (alpha*cos(M_PI*s/(out->depth-1.0))+(2.0-alpha))/2.0;
+    //printf("%2d %g\n",s,w);
+    for(c=0; c < out->width; c++){
+      for(r=0; r < out->height; r++){
+	for(f=0; f < out->nframes; f++){
+	  v = MRIgetVoxVal(in,c,r,s,f);
+	  MRIsetVoxVal(out,c,r,s,f,w*v);
+	}
+      }
+    }
+  }
+      
+  return(out);
 }
