@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/06/05 23:32:11 $
- *    $Revision: 1.96 $
+ *    $Date: 2008/08/05 16:49:49 $
+ *    $Revision: 1.97 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.96 2008/06/05 23:32:11 greve Exp $";
+"$Id: tkregister2.c,v 1.97 2008/08/05 16:49:49 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -762,6 +762,7 @@ int Register(ClientData clientData,
     }
     Int2MovRegMat = MRItkRegMtx(int_vol,mov_vol,NULL);
     RegMat = MatrixMultiply(Int2MovRegMat,IntRegMat,NULL);
+    if(fscale_2 == 0.0) fscale_2 = int_fscale;
     MRIfree(&int_vol);
     MatrixFree(&IntRegMat);
     MatrixFree(&Int2MovRegMat);
@@ -3477,6 +3478,7 @@ void write_reg(char *fname) {
   fprintf(fp,"%s\n",pname);
   fprintf(fp,"%f\n",ps_2);
   fprintf(fp,"%f\n",st_2);
+  if(fscale_2 == 0.0) fscale_2 = .1;
   fprintf(fp,"%f\n",fscale_2);
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++)
@@ -4649,7 +4651,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.96 2008/06/05 23:32:11 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.97 2008/08/05 16:49:49 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
