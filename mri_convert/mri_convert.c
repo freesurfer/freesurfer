@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/25 03:26:06 $
- *    $Revision: 1.152 $
+ *    $Date: 2008/08/05 16:17:05 $
+ *    $Revision: 1.153 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,6 @@ extern int errno;
 
 char *Progname;
 
-MRI *MRIcutEndSlices(MRI *mri, int ncut);
 int ncutends = 0, cutends_flag = 0;
 
 int slice_crop_flag = FALSE;
@@ -177,6 +176,9 @@ int main(int argc, char *argv[]) {
   char cmdline[STRLEN] ;
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
+  int SliceReverse = FALSE;
+  int SliceBias  = FALSE;
+  float SliceBiasAlpha = 1.0;
   char AutoAlignFile[STRLEN];
   MATRIX *AutoAlign = NULL;
   MATRIX *cras = NULL, *vmid = NULL;
@@ -187,7 +189,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.152 2008/07/25 03:26:06 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.153 2008/08/05 16:17:05 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -289,7 +291,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.152 2008/07/25 03:26:06 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.153 2008/08/05 16:17:05 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -304,6 +306,7 @@ int main(int argc, char *argv[]) {
     }
     else if(strcmp(argv[i], "--debug") == 0) debug = 1;
     else if(strcmp(argv[i], "--left-right-reverse") == 0) LeftRightReverse = 1;
+    else if(strcmp(argv[i], "--slice-reverse") == 0) SliceReverse = 1;
     else if(strcmp(argv[i], "--ascii") == 0) {
       ascii_flag = 1;
       force_out_type_flag = TRUE;
@@ -826,6 +829,10 @@ int main(int argc, char *argv[]) {
       get_ints(argc, argv, &i, &ncutends, 1);
       cutends_flag = TRUE;
     }
+    else if(strcmp(argv[i], "--slice-bias") == 0) {
+      get_floats(argc, argv, &i, &SliceBiasAlpha, 1);
+      SliceBias = TRUE;
+    }
     else if(strcmp(argv[i], "--mid-frame") == 0)        {
       frame_flag = TRUE;
       mid_frame_flag = TRUE;
@@ -1289,7 +1296,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.152 2008/07/25 03:26:06 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.153 2008/08/05 16:17:05 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1486,7 +1493,20 @@ int main(int argc, char *argv[]) {
     MatrixFree(&cras);
   }
 
-  if (fwhm > 0) {
+  if(SliceReverse){
+    printf("Reversing slices, updating vox2ras\n");
+    mri2 = MRIreverseSlices(mri, NULL);
+    if(mri2 == NULL) exit(1);
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
+  if(SliceBias){
+    printf("Applying Half-Cosine Slice Bias, Alpha = %g\n",SliceBiasAlpha);
+    MRIhalfCosBias(mri, SliceBiasAlpha, mri);
+  }
+
+  if(fwhm > 0) {
     printf("Smoothing input at fwhm = %g, gstd = %g\n",fwhm,gstd);
     MRIgaussianSmooth(mri, gstd, 1, mri);
   }
@@ -2510,6 +2530,8 @@ void usage(FILE *stream) {
           "<dx, dy, dz> \n");
   fprintf(stream, "  --cutends ncut : remove ncut slices from the ends\n");
   fprintf(stream, "  --slice-crop s_start s_end : keep slices s_start to s_end\n");
+  fprintf(stream, "  --slice-reverse : reverse order of slices, update vox2ras\n");
+  fprintf(stream, "  --slice-bias alpha : apply half-cosine bias field\n");
 
   fprintf(stream, "  --fwhm fwhm : smooth input volume by fwhm mm\n ");
   fprintf(stream, "\n");
@@ -2872,37 +2894,3 @@ int findRightSize(MRI *mri, float conform_size) {
   }
   return conform_width;
 }
-
-/*----------------------------------------------------------------*/
-MRI *MRIcutEndSlices(MRI *mri, int ncut)
-{
-  MRI *out;
-  int nslices;
-  int c,r,s,f,scut;
-  double v;
-
-  nslices = mri->depth - 2*ncut;
-  if(nslices <= 0){
-    printf("ERROR: MRIcutEndSlices(): ncut = %d, input only has %d \n",
-	   ncut,mri->depth);
-    return(NULL);
-  }
-
-  out = MRIallocSequence(mri->width, mri->height, nslices, mri->type, mri->nframes);
-  MRIcopyHeader(mri,out);
-
-  for(c = 0; c < mri->width; c ++){
-    for(r = 0; r < mri->height; r ++){
-      scut = 0;
-      for(s = ncut; s < mri->depth - ncut; s++){
-	for(f = 0; f < mri->nframes; f++){
-	  v = MRIgetVoxVal(mri,c,r,s,f);
-	  MRIsetVoxVal(out,c,r,scut,f,v);
-	}
-	scut ++;
-      }
-    }
-  }
-  return(out);
-}
-
