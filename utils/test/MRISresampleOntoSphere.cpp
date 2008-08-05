@@ -7,8 +7,8 @@
  * Original Author: Peng Yu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 19:26:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/05 23:14:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,8 +51,6 @@ extern "C"
 #include "matrix.h"
 }
 
-static char vcid[] = 
-"$Id: MRISresampleOntoSphere.cpp,v 1.3 2007/12/10 19:26:11 nicks Exp $";
 #define VERTEX_EDGE(vec, v0, v1)   VECTOR_LOAD(vec,v1->x-v0->x,v1->y-v0->y, v1->z-v0->z)
 typedef struct _double_3d
 {
@@ -729,7 +727,7 @@ get_option(int argc, char *argv[])
     {
     case '?':
     case 'U':
-      fprintf(stdout, "usage: %s <input spherical  surface> <orig surface> <mode> <output surface> \n");
+      fprintf(stdout, "usage: %s <input spherical  surface> <orig surface> <mode> <output surface> \n", Progname);
       exit(1) ;
       break ;
     default:
