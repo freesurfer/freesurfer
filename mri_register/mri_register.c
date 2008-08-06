@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 13:39:55 $
- *    $Revision: 1.21 $
+ *    $Date: 2008/08/06 15:56:18 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,7 +324,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_register.c,v 1.21 2008/08/06 13:39:55 fischl Exp $", 
+     "$Id: mri_register.c,v 1.22 2008/08/06 15:56:18 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1062,6 +1062,8 @@ main(int argc, char *argv[]) {
                                                    2*sigmas[nsigmas-1],
                                                    parms.dtrans_labels,
                                                    parms.ndtrans) ;
+  done = 0 ;
+  gca_log_posterior = 0.0 ;
   do
   {
     TRANSFORM _transform, *gcam_transform = &_transform ;
