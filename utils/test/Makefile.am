@@ -8,11 +8,11 @@ AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/NrrdIO
 LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
-bin_PROGRAMS = MRISresampleOntoSphere
-MRISresampleOntoSphere_SOURCES=MRISresampleOntoSphere.cpp
-MRISresampleOntoSphere_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(ANN_LIBS) -lANN
-MRISresampleOntoSphere_LDFLAGS=$(OS_LDFLAGS)
+#bin_PROGRAMS = MRISresampleOntoSphere
+#MRISresampleOntoSphere_SOURCES=MRISresampleOntoSphere.cpp
+#MRISresampleOntoSphere_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+#	$(ANN_LIBS) -lANN
+#MRISresampleOntoSphere_LDFLAGS=$(OS_LDFLAGS)
 
 CHECKS=testcolortab \
 	test_c_nr_wrapper mnitest i2rtest icotest extest \
