@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 00:12:23 $
- *    $Revision: 1.48 $
+ *    $Date: 2008/08/06 13:39:00 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,6 +81,7 @@ typedef struct
   float  predicted_val ; /* weighted average of all class means in a ball around this node */
   double sum_ci_vi_ui ;
   double sum_ci_vi ;
+  float  target_dist ;   // target distance to move towards for label matching with distance xform
 }
 GCA_MORPH_NODE, GMN ;
 
@@ -103,8 +104,17 @@ typedef struct
   VOL_GEOM src;
   MATRIX   *m_affine ;         // affine transform to initialize with
   double   det ;               // determinant of affine transform
+  void    *vgcam_ms ;
 }
 GCA_MORPH, GCAM ;
+
+typedef struct
+{
+  GCAM   *gcam ;
+  GCA    **gcas ;               // one at each sigma scale
+  double *sigmas ;              // array of smoothing scales
+  int    nsigmas ;
+} GCAM_MULTISCALE, GCAM_MS;
 
 typedef struct
 {
@@ -153,6 +163,7 @@ typedef struct
   double l_spring ;
   double l_area_smoothness;
   double l_dtrans ;         // distance transform coefficient
+  double l_multiscale ;     // marginalize over smoothness scale
   double tol ;
   int    levels ;
   FILE   *log_fp ;
@@ -207,7 +218,7 @@ GCA_MORPH *GCAMread(char *fname) ;
 GCA_MORPH *GCAMreadAndInvert(char *gcamfname);
 int       GCAMfree(GCA_MORPH **pgcam) ;
 int       GCAMfreeContents(GCA_MORPH *gcam) ;
-MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst) ;
+MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int sample_type) ;
 MRI       *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, 
                                                  GCA_MORPH *gcam, 
                                                  MRI *mri_morphed, int frame) ;
@@ -218,6 +229,10 @@ MRI       *GCAMmorphToAtlasType(MRI *mri_src,
                                 MRI *mri_dst, int frame, int interp_type) ;
 int       GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam) ;
 int       GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
+int       GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels, 
+                             MRI *mri_atlas_labels, 
+                             GCA_MORPH_PARMS *parms, double max_dist, MRI *mri_pvals,
+                             MRI *mri_atlas_dtrans_orig) ;
 int       GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                             GCA_MORPH_PARMS *parms) ;
 int       GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
@@ -285,10 +300,12 @@ int GCAMremoveCompressedRegions(GCA_MORPH *gcam, float min_ratio) ;
 int GCAMcountCompressedNodes(GCA_MORPH *gcam, float min_ratio) ;
 int GCAMsetVariances(GCA_MORPH *gcam, float var) ;
 int GCAMsetMeansForLabel(GCA_MORPH *gcam, MRI *mri_labels, MRI *mri_vals, int label) ;
+int GCAMsetTargetDistancesForLabel(GCA_MORPH *gcam, MRI *mri_labels, MRI *mri_dist, int label) ;
 GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, 
                                         MRI *mri_target, 
                                         TRANSFORM *transform);
 int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
+double GCAMlogPosterior(GCA_MORPH *gcam, MRI *mri) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, 
                       LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
@@ -296,6 +313,8 @@ int GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_source, MRI *mri_target) ;
 int GCAMmatchVentricles(GCA_MORPH *gcam, MRI *mri_inputs) ;
 int GCAMdeformVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mr_target) ;
+MRI *GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_all_dtrans, 
+                                  MRI **pmri_atlas_dtrans, float max_dist);
 
 #define MAX_LTT_LABELS 1000
 typedef struct
@@ -355,4 +374,33 @@ int GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma);
 #include "mrisurf.h"
 int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam);
 
+MRI *GCAMMScomputeOptimalScale(GCAM_MS *gcam_ms, TRANSFORM *transform, MRI *mri_inputs, 
+                               MRI *mri_sigma, MRI *mri_aseg, MRI *mri_pvals, MRI *mri_s) ;
+// labels included in the distance transform stuff
+extern int dtrans_labels[] ;
+extern int NDTRANS_LABELS ;
+
+MRI *GCAMreadDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans, 
+                                MRI **pmri_atlas_dtrans, char *dist_name, double max_dist);
+int GCAMwriteDistanceTransforms(GCA_MORPH *gcam,  MRI *mri_source_dist_map, 
+                                MRI *mri_atlas_dist_map, 
+                                char *write_dist_name) ;
+int GCAMreadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
+MRI *GCAMwriteWarpToMRI(GCA_MORPH *gcam, MRI *mri_warp);
+int GCAMreadInverseWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
+MRI *GCAMwriteInverseWarpToMRI(GCA_MORPH *gcam, MRI *mri_warp);
+int GCAMcompose(GCA_MORPH *gcam, MRI *mri_warp);
+MRI  *GCAMSreclassifyUsingGibbsPriors(MRI *mri_inputs,
+                                      GCAM_MS *gcam_ms,
+                                      MRI *mri_dst,
+                                      TRANSFORM *transform,
+                                      int max_iter, int restart,
+                                      void (*update_func)(MRI *), MRI *mri_sigma);
+
+double GCAMMSgibbsImageLogPosterior(GCAM_MS *gcam_ms,MRI *mri_labels,
+                                   MRI *mri_inputs,
+                                   TRANSFORM *transform, MRI *mri_s_index) ;
+int GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
+extern int combine_labels[8][2] ;
+extern int NCOMBINE_LABELS ;
 #endif

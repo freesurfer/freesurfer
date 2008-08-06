@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/22 01:41:01 $
- *    $Revision: 1.90 $
+ *    $Date: 2008/08/06 13:39:00 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -185,6 +185,8 @@ GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 int  GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs) ;
 int  GCAunifyVariance(GCA *gca) ;
+int GCAvoxelToPriorReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
+                        Real *pxp, Real *pyp, Real *pzp);
 int  GCAvoxelToPrior(GCA *gca, MRI *mri,
                      int xv, int yv, int zv, int *pxp,int *pyp,int *pzp);
 int  GCAvoxelToNode(GCA *gca, MRI *mri,
@@ -240,6 +242,9 @@ int    GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
 int    GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                              int xv, int yv, int zv,
                              int *pxp, int *pyp, int *pzp) ;
+int    GCAsourceVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
+                                 int xv, int yv, int zv,
+                                 Real *pxp, Real *pyp, Real *pzp) ;
 int    GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                                   float xv, float yv, float zv,
                                   int *pxp, int *pyp, int *pzp) ;
@@ -370,8 +375,9 @@ MATRIX *load_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
 MATRIX *load_inverse_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
 double covariance_determinant(GC1D *gc, int ninputs) ;
 void load_vals(MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs) ;
+double GCAcomputePosteriorDensity(GCA_PRIOR *gcap, GCA_NODE *gcan, int node_n, int prior_n, float *vals, 
+                                  int ninputs, int xn, int yn, int zn, GCA *gca) ;
 int    GCAisPossible(GCA *gca, MRI *mri, int label, TRANSFORM *transform, int x, int y, int z, int use_mrf) ;
-double GCAcomputePosteriorDensity(GCA_PRIOR *gcap, GCA_NODE *gcan, int n, float *vals, int ninputs) ;
 double GCAcomputeConditionalDensity(GC1D *gc, float *vals, int ninputs, int label) ;
 double GCAmahDistIdentityCovariance(GC1D *gc, float *vals, int ninputs) ;
 double GCAmahDist(GC1D *gc, float *vals, int ninputs) ;
@@ -444,5 +450,30 @@ GCAreclassifyVoxelsAtOptimalScale(GCA *gca, TRANSFORM *transform,
                                   MRI *mri_inputs, 
                                   MRI *mri_aseg, MRI *mri_aseg_changed, 
                                   MRI *mri_sigma, int wsize);
+
+GCA *GCAsmooth(GCA *gca, double sigma) ;
+GCA *GCAcopy(GCA *gca_src, GCA *gca_dst) ;
+int GCAgetMaxPriorLabel(GCA *gca, int xp, int yp, int zp, double *p_prior) ;
+double GCAgibbsImageLogPosterior(GCA *gca,MRI *mri_labels,
+                                 MRI *mri_inputs,
+                                 TRANSFORM *transform) ;
+double GCAnbhdGibbsLogPosterior(GCA *gca,
+                                MRI *mri_labels,
+                                MRI *mri_inputs,
+                                int x, int y, int z,
+                                TRANSFORM *transform,
+                                double gibbs_coef) ;
+double GCAvoxelLogPosterior(GCA *gca,
+                            MRI *mri_labels,
+                            MRI *mri_inputs,
+                            int x, int y, int z,
+                            TRANSFORM *transform);
+double GCAvoxelGibbsLogPosterior(GCA *gca,
+                                 MRI *mri_labels,
+                                 MRI *mri_inputs,
+                                 int x, int y, int z,
+                                 TRANSFORM *transform,
+                                 double gibbs_coef) ;
+GCA *GCAnodeDownsample2(GCA *gca) ;
 
 #endif

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/02 13:28:56 $
- *    $Revision: 1.20 $
+ *    $Date: 2008/08/06 13:39:00 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,6 +102,9 @@ extern int Gdiag_no ;           /* misc. int for diagnostics */
 extern int Gx ;
 extern int Gy ;
 extern int Gz ;
+extern int Gx2 ;
+extern int Gy2 ;
+extern int Gz2 ;
 extern int Gsx ;
 extern int Gsy ;
 extern int Gsz ;
