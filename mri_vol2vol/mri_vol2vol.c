@@ -1,18 +1,20 @@
 /**
  * @file  mri_vol2vol.c
- * @brief program for transforming a volume from one coordinate system
- *        to another.
+ * @brief converts values in one volume to another volume
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Resamples a volume into another field-of-view using various types of 
+ * matrices (FreeSurfer, FSL, SPM, and MNI). This is meant to be used
+ * in conjunction with tkregister2.
+ *
  */
 /*
- * Original Author: Greg Grev
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/08/05 17:35:01 $
- *    $Revision: 1.48 $
+ *    $Author: nicks $
+ *    $Date: 2008/08/06 16:25:43 $
+ *    $Revision: 1.49 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,17 +27,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
-  Name:    mri_vol2vol
-  Author:  Douglas N. Greve
-  email:   analysis-bugs@nmr.mgh.harvard.edu
-  Date:    2/27/02
-  Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $
-
-*/
 
 /*
 BEGINUSAGE --------------------------------------------------------------
@@ -451,7 +442,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.49 2008/08/06 16:25:43 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -552,12 +543,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.49 2008/08/06 16:25:43 nicks Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.48 2008/08/05 17:35:01 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.49 2008/08/06 16:25:43 nicks Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -866,7 +857,7 @@ int main(int argc, char **argv) {
 	in = tmpmri;
       }
       printf("Applying inverse morph to input\n");
-      out = GCAMmorphFromAtlas(in, gcam, NULL);
+      out = GCAMmorphFromAtlas(in, gcam, NULL, SAMPLE_TRILINEAR);
     }
     if(out == NULL) exit(1);
 
