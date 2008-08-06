@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/07/24 21:11:03 $
- *    $Revision: 1.127 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/06 15:20:05 $
+ *    $Revision: 1.128 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2041,6 +2041,7 @@ TransformSample(TRANSFORM *transform,
   if (transform->type == MORPH_3D_TYPE)
   {
     gcam = (GCA_MORPH *)transform->xform ;
+    
     if (!gcam->mri_xind)
       ErrorReturn(ERROR_UNSUPPORTED,
                   (ERROR_UNSUPPORTED,
@@ -2099,9 +2100,11 @@ TransformSample(TRANSFORM *transform,
     yt = V3_Y(v_canon) ;
     zt = V3_Z(v_canon) ;
 
+#if 0
     if (xt < 0) xt = 0;
     if (yt < 0) yt = 0;
     if (zt < 0) zt = 0;
+#endif
   }
   *px = xt ;
   *py = yt ;
@@ -2471,7 +2474,7 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
-    mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL);
+    mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL, SAMPLE_NEAREST);
     break ;
   default:
     // the following does not work for ras-to-ras
@@ -2492,7 +2495,7 @@ TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int 
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
-    mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL);
+    mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL, interp_type);
     break ;
   default:
     // the following does not work for ras-to-ras
