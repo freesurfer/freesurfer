@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/11 02:08:20 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/06 15:31:46 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -93,7 +93,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_auto_fill.c,v 1.12 2007/12/11 02:08:20 nicks Exp $",
+           "$Id: mri_auto_fill.c,v 1.13 2008/08/06 15:31:46 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -174,7 +174,8 @@ main(int argc, char *argv[])
   {
     mri_rh_inverse_template = MRIclone(mri_rh_template, NULL);
     mri_rh_inverse_template =
-      GCAMmorphFromAtlas(mri_rh_template, gcam, mri_rh_inverse_template);
+      GCAMmorphFromAtlas(mri_rh_template, gcam, mri_rh_inverse_template,
+                         SAMPLE_TRILINEAR);
   }
   MRIfree(&mri_rh_template) ;
   /////////////////////////////////////////////////////////////////////////
@@ -198,7 +199,7 @@ main(int argc, char *argv[])
   else
   {
     mri_inv_T1 = MRIclone(mri_tmp, NULL);
-    mri_inv_T1 = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1);
+    mri_inv_T1 = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1,SAMPLE_TRILINEAR);
   }
   MRIfree(&mri_tmp) ;
   //////////////////////////////////////////////////////////////////////////
@@ -214,7 +215,7 @@ main(int argc, char *argv[])
   else
   {
     mri_inv_T1_std = MRIclone(mri_tmp, NULL);
-    mri_inv_T1_std = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1_std);
+    mri_inv_T1_std = GCAMmorphFromAtlas(mri_tmp, gcam, mri_inv_T1_std,SAMPLE_TRILINEAR);
   }
   MRIfree(&mri_tmp) ;
   //////////////////////////////////////////////////////////////////////////
@@ -273,7 +274,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                 Progname, xform_fname) ;
     mri_inv_lv = MRIclone(mri_lv, NULL);
-    mri_inv_lv = GCAMmorphFromAtlas(mri_lv, gcam, mri_inv_lv);
+    mri_inv_lv = GCAMmorphFromAtlas(mri_lv, gcam, mri_inv_lv,SAMPLE_TRILINEAR);
     GCAMfree(&gcam);
   }
   fprintf(stderr, "done.\n") ;
@@ -320,7 +321,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                 Progname, xform_fname) ;
     mri_inv_rv = MRIclone(mri_rv, NULL);
-    mri_inv_rv = GCAMmorphFromAtlas(mri_rv, gcam, mri_inv_rv);
+    mri_inv_rv = GCAMmorphFromAtlas(mri_rv, gcam, mri_inv_rv,SAMPLE_TRILINEAR);
     GCAMfree(&gcam);
   }
   MRIfree(&mri_rv) ;
