@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,7 @@ class Cursor2D;
 class Interactor2DNavigate;
 class Interactor2DVoxelEdit;
 class Interactor2DROIEdit;
+class Interactor2DWayPointsEdit;
 
 class VTK_RENDERING_EXPORT RenderView2D : public RenderView
 {
@@ -48,13 +49,12 @@ public:
 	
 	void OnSize( wxSizeEvent& event );
     
-	enum InteractionMode { IM_Navigate = 0, IM_VoxelEdit, IM_ROIEdit }; 
+	enum InteractionMode { IM_Navigate = 0, IM_VoxelEdit, IM_ROIEdit, IM_WayPointsEdit }; 
 	
     static RenderView2D * New();
     void PrintSelf(ostream& os, vtkIndent indent);
 
 	virtual void RefreshAllActors();
-	virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
 	
 	virtual void TriggerContextMenu( const wxPoint& pos );
 	
@@ -90,6 +90,7 @@ public:
 protected:
 	void Initialize2D();
 	void UpdateAnnotation();
+	virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
 	
 	int		m_nViewPlane;
 	
@@ -101,6 +102,7 @@ protected:
 	Interactor2DNavigate*	m_interactorNavigate;
 	Interactor2DVoxelEdit*	m_interactorVoxelEdit;
 	Interactor2DROIEdit*	m_interactorROIEdit;
+	Interactor2DWayPointsEdit*	m_interactorWayPointsEdit;
 	
     // any class wishing to process wxWindows events must use this macro
     DECLARE_EVENT_TABLE()

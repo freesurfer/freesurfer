@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/06 21:07:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -123,7 +123,7 @@ void Cursor2D::Update( bool bConnectPrevious )
 	m_actorCursor->SetMapper( mapper );	
 }
 
-void Cursor2D::AppendCursor( vtkRenderer* renderer )
+void Cursor2D::AppendActor( vtkRenderer* renderer )
 {
 	renderer->AddViewProp( m_actorCursor );
 }

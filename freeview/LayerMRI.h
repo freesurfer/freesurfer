@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/13 17:14:31 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/06 21:07:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 #ifndef LayerMRI_h
 #define LayerMRI_h
 
-#include "LayerEditable.h"
+#include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
 #include <string>
 
@@ -46,7 +46,7 @@ class FSVolume;
 class wxWindow;
 class wxCommandEvent;
 
-class LayerMRI : public LayerEditable
+class LayerMRI : public LayerVolumeBase
 {
 	public:
 		LayerMRI();

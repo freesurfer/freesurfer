@@ -21,6 +21,8 @@ freeview_SOURCES=\
 	ControlPanel.h \
 	Cursor2D.cpp \
 	Cursor2D.h \
+	Cursor3D.cpp \
+	Cursor3D.h \
 	CursorFactory.cpp \
 	CursorFactory.h \
 	DialogEditLookupTable.cpp \
@@ -33,6 +35,8 @@ freeview_SOURCES=\
 	DialogNewROI.h \
 	DialogNewVolume.cpp \
 	DialogNewVolume.h \
+	DialogNewWayPoints.cpp \
+	DialogNewWayPoints.h \
 	DialogPreferences.cpp \
 	DialogPreferences.h \
 	FSLabel.cpp \
@@ -41,6 +45,8 @@ freeview_SOURCES=\
 	FSSurface.h \
 	FSVolume.cpp \
 	FSVolume.h \
+	FSWayPoints.cpp \
+	FSWayPoints.h \
 	Interactor.cpp \
 	Interactor.h \
 	Interactor2D.cpp \
@@ -53,6 +59,8 @@ freeview_SOURCES=\
 	Interactor2DROIEdit.h \
 	Interactor2DVoxelEdit.cpp \
 	Interactor2DVoxelEdit.h \
+	Interactor2DWayPointsEdit.cpp \
+	Interactor2DWayPointsEdit.h \
 	Interactor3D.cpp \
 	Interactor3D.h \
 	Interactor3DNavigate.cpp \
@@ -77,10 +85,16 @@ freeview_SOURCES=\
 	LayerPropertiesROI.h \
 	LayerPropertiesSurface.cpp \
 	LayerPropertiesSurface.h \
+	LayerPropertiesWayPoints.cpp \
+	LayerPropertiesWayPoints.h \
 	LayerROI.cpp \
 	LayerROI.h \
 	LayerSurface.cpp \
 	LayerSurface.h \
+	LayerVolumeBase.cpp \
+	LayerVolumeBase.h \
+	LayerWayPoints.cpp \
+	LayerWayPoints.h \
 	Listener.cpp \
 	Listener.h \
 	LUTDataHolder.cpp \
@@ -95,10 +109,14 @@ freeview_SOURCES=\
 	MyCmdLineParser.h \
 	PanelROI.cpp \
 	PanelROI.h \
+	PanelSceneSetting.cpp \
+	PanelSceneSetting.h \
 	PanelSurface.cpp \
 	PanelSurface.h \
 	PanelVolume.cpp \
 	PanelVolume.h \
+	PanelWayPoints.cpp \
+	PanelWayPoints.h \
 	PixelInfoPanel.cpp \
 	PixelInfoPanel.h \
 	Region.cpp \

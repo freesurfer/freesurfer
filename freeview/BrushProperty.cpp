@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/18 20:23:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/06 21:07:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 
 #include "BrushProperty.h"
-#include "LayerEditable.h"
+#include "LayerVolumeBase.h"
 #include <wx/config.h>
 
 using namespace std;
@@ -97,12 +97,12 @@ void BrushProperty::SetBrushTolerance( int nTolerance )
 	m_nBrushTolerance = nTolerance;
 }
 
-LayerEditable* BrushProperty::GetReferenceLayer()
+LayerVolumeBase* BrushProperty::GetReferenceLayer()
 {
 	return m_layerRef;
 }
 	
-void BrushProperty::SetReferenceLayer( LayerEditable* layer )
+void BrushProperty::SetReferenceLayer( LayerVolumeBase* layer )
 {
 	m_layerRef = layer;
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/24 20:14:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/06 21:07:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -813,6 +813,35 @@ void FSVolume::RASToOutputIndex( const double* pos_in, int* index_out )
 				pos[i] = dim[i] + pos[i];
 			
 			index_out[i] = ( int )( pos[i] + 0.5 );
+		}
+	}
+}
+
+void FSVolume::RASToOutputRAS( const double* pos_in, double* pos_out )
+{
+	if ( m_bResampleToRAS )
+	{
+		memcpy( pos_out, pos_in, sizeof( double ) * 3 );
+	}
+	else
+	{
+		float pos[4] = { 0 };
+		RASToOriginalIndex( pos_in[0], pos_in[1], pos_in[2], pos[0], pos[1], pos[2] );
+		double ident[4] = { 1, 1, 1, 0 };
+		double mat[16];
+		vtkMatrix4x4::Transpose( m_MRIToImageMatrix, mat );
+		vtkMatrix4x4::MultiplyPoint(mat, pos, pos );
+		vtkMatrix4x4::MultiplyPoint(mat, ident, ident );
+//		cout << "remap: " << pos[0] << " " << pos[1] << " " << pos[2] << endl;
+		int* dim = m_imageData->GetDimensions();
+		double* vs = m_imageData->GetSpacing();
+		double* orig = m_imageData->GetOrigin();
+		for ( int i = 0; i < 3; i++ )
+		{
+			if ( ident[i] < 0 )
+				pos[i] = dim[i] + pos[i];
+			
+			pos_out[i] = orig[i] + pos[i] * vs[i];
 		}
 	}
 }

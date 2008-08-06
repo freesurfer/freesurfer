@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/08/06 21:07:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -89,6 +89,8 @@ public:
 								 double& x_out, double& y_out, double& z_out );
 	
 	void RASToOutputIndex( const double* pos_in, int* index_out );
+	
+	void RASToOutputRAS( const double* pos_in, double* pos_out );
 	
 protected:	
 	void MapMRIToImage( wxWindow* wnd, wxCommandEvent& event );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/13 17:14:31 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/08/06 21:07:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "MyUtils.h"
 #include "FSVolume.h"
 
-LayerMRI::LayerMRI() : LayerEditable(),
+LayerMRI::LayerMRI() : LayerVolumeBase(),
 		m_volumeSource( NULL),
 		m_bResampleToRAS( true )
 {
@@ -594,7 +594,7 @@ void LayerMRI::SetModified()
 	mReslice[1]->Modified();
 	mReslice[2]->Modified();
 	
-	LayerEditable::SetModified();
+	LayerVolumeBase::SetModified();
 }
 
 std::string LayerMRI::GetLabelName( double value )

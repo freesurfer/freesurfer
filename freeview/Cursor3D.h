@@ -1,5 +1,5 @@
 /**
- * @file  Cursor2D.h
+ * @file  Cursor3D.h
  * @brief Annotation class for 2D view.
  *
  */
@@ -8,7 +8,7 @@
  * CVS Revision Info:
  *    $Author: rpwang $
  *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.5 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,26 +24,24 @@
  *
  */
  
-#ifndef Cursor2D_h
-#define Cursor2D_h
+#ifndef Cursor3D_h
+#define Cursor3D_h
 
 #include "RenderView.h"
 #include "vtkSmartPointer.h"
 #include <wx/colour.h>
 
-class vtkActor2D;
 class vtkRenderer;
 class vtkActor;
-class RenderView2D;
+class RenderView3D;
 
-class Cursor2D
+class Cursor3D
 {
 public:
-	Cursor2D( RenderView2D* view );
-    virtual ~Cursor2D();	
+	Cursor3D( RenderView3D* view );
+    virtual ~Cursor3D();	
 
-	void SetPosition( double* pos, bool bConnectPrevious = false );	
-	void SetPosition2( double* pos);
+	void SetPosition( double* pos );
 	
 	double* GetPosition();
 	void GetPosition( double* pos );
@@ -54,22 +52,18 @@ public:
 	wxColour GetColor();
 	void SetColor( const wxColour& color );
 	
-	int GetRadius();
-	void SetRadius( int nPixels );
-	
-	void Update( bool bConnectPrevious = false );  
+	void Update();  
 	
 	void AppendActor( vtkRenderer* renderer );
 	
 private:
-	vtkSmartPointer<vtkActor2D>	m_actorCursor;
+	void RebuildActor();
 	
-	RenderView2D*	m_view;
+	vtkSmartPointer<vtkActor>	m_actorCursor;
+	
+	RenderView3D*	m_view;
 	
 	double		m_dPosition[3];
-	double		m_dPosition2[3];
-	
-	int			m_nRadius;
 };
 
 #endif 

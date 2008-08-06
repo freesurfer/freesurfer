@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/24 20:14:44 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "vtkPropPicker.h"
 #include "vtkProp3DCollection.h"
 #include "Interactor3DNavigate.h"
+#include "Cursor3D.h"
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView3D, RenderView)
 
@@ -75,6 +76,11 @@ void RenderView3D::InitializeRenderView3D()
 	picker->SetTolerance( 0.001 );
 	this->SetPicker( picker );
 	picker->Delete();
+	
+	for ( int i = 0; i < 3; i++ )
+		m_bSliceVisibility[i] = true;
+	
+	m_cursor3D = new Cursor3D( this );
 }
 
 RenderView3D* RenderView3D::New()
@@ -85,7 +91,7 @@ RenderView3D* RenderView3D::New()
 
 RenderView3D::~RenderView3D()
 {
-
+	delete m_cursor3D;
 }
 
 void RenderView3D::PrintSelf(ostream& os, vtkIndent indent)
@@ -100,12 +106,15 @@ void RenderView3D::RefreshAllActors()
 	m_renderer->RemoveAllViewProps();
 	lcm->Append3DProps( m_renderer );
 	
+	m_cursor3D->AppendActor( m_renderer );
+	
 	// add focus frame
 	m_renderer->AddViewProp( m_actorFocusFrame );
 	
 	m_renderer->ResetCameraClippingRange();
 	
-	Render();
+	NeedRedraw();
+	// Render();
 }
 
 void RenderView3D::UpdateViewByWorldCoordinate()
@@ -186,4 +195,21 @@ void RenderView3D::OnInternalIdle()
 		DoUpdateRASPosition( m_nCursorCoord[0], m_nCursorCoord[1], true );
 		m_bToUpdateCursorPosition = false;
 	}	
+}
+
+void RenderView3D::DoListenToMessage ( std::string const iMsg, void* const iData )
+{
+	if ( iMsg == "CursorRASPositionChanged" )
+	{
+		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+		m_cursor3D->SetPosition( lc->GetCursorRASPosition() );
+	}
+	
+	RenderView::DoListenToMessage( iMsg, iData );
+}
+
+void RenderView3D::ShowVolumeSlice( int nPlane, bool bShow )
+{
+	m_bSliceVisibility[nPlane] = bShow;
+	RefreshAllActors();
 }

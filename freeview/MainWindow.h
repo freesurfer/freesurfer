@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/24 20:14:44 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,78 +69,90 @@ public:
 	enum MainView 	{ MV_Sagittal = 0, MV_Coronal, MV_Axial, MV_3D };
 	
     // event handlers (these functions should _not_ be virtual)
-    void OnFileOpen( wxCommandEvent& event );
-	void OnFileNew( wxCommandEvent& event );
-	void OnFileNewUpdateUI( wxUpdateUIEvent& event );
-	void OnFileSave( wxCommandEvent& event );
-	void OnFileSaveUpdateUI( wxUpdateUIEvent& event );
-	void OnFileSaveAs( wxCommandEvent& event );
-	void OnFileSaveAsUpdateUI( wxUpdateUIEvent& event );
-    void OnFileExit( wxCommandEvent& event );
-	void OnFileRecent( wxCommandEvent& event );
-	void OnFileNewROI( wxCommandEvent& event );
-	void OnFileNewROIUpdateUI( wxUpdateUIEvent& event );
-	void OnFileLoadROI( wxCommandEvent& event );
-	void OnFileLoadROIUpdateUI( wxUpdateUIEvent& event );
-	void OnFileSaveROI( wxCommandEvent& event );
-	void OnFileSaveROIUpdateUI( wxUpdateUIEvent& event );
-	void OnFileSaveROIAs( wxCommandEvent& event );
+    void OnFileOpen				( wxCommandEvent& event );
+	void OnFileNew				( wxCommandEvent& event );
+	void OnFileNewUpdateUI		( wxUpdateUIEvent& event );
+	void OnFileSave				( wxCommandEvent& event );
+	void OnFileSaveUpdateUI		( wxUpdateUIEvent& event );
+	void OnFileSaveAs			( wxCommandEvent& event );
+	void OnFileSaveAsUpdateUI	( wxUpdateUIEvent& event );
+    void OnFileExit				( wxCommandEvent& event );
+	void OnFileRecent			( wxCommandEvent& event );
+	void OnFileNewROI			( wxCommandEvent& event );
+	void OnFileNewROIUpdateUI	( wxUpdateUIEvent& event );
+	void OnFileLoadROI			( wxCommandEvent& event );
+	void OnFileLoadROIUpdateUI	( wxUpdateUIEvent& event );
+	void OnFileSaveROI			( wxCommandEvent& event );
+	void OnFileSaveROIUpdateUI	( wxUpdateUIEvent& event );
+	void OnFileSaveROIAs		( wxCommandEvent& event );
 	void OnFileSaveROIAsUpdateUI( wxUpdateUIEvent& event );
-	void OnFileLoadDTI( wxCommandEvent& event );
-	void OnFileSaveScreenshot( wxCommandEvent& event );
+	void OnFileLoadDTI			( wxCommandEvent& event );
+	void OnFileSaveScreenshot	( wxCommandEvent& event );
 	void OnFileSaveScreenshotUpdateUI( wxUpdateUIEvent& event );
-	void OnFileLoadSurface( wxCommandEvent& event );
+	void OnFileLoadSurface		( wxCommandEvent& event );
 	
-	void OnViewLayout1X1( wxCommandEvent& event );
+	void OnFileNewWayPoints			( wxCommandEvent& event );
+	void OnFileNewWayPointsUpdateUI	( wxUpdateUIEvent& event );
+	void OnFileLoadWayPoints		( wxCommandEvent& event );
+	void OnFileLoadWayPointsUpdateUI	( wxUpdateUIEvent& event );
+	void OnFileSaveWayPoints			( wxCommandEvent& event );
+	void OnFileSaveWayPointsUpdateUI	( wxUpdateUIEvent& event );
+	void OnFileSaveWayPointsAs			( wxCommandEvent& event );
+	void OnFileSaveWayPointsAsUpdateUI	( wxUpdateUIEvent& event );
+	
+	void OnViewLayout1X1		( wxCommandEvent& event );
 	void OnViewLayout1X1UpdateUI( wxUpdateUIEvent& event );
-	void OnViewLayout2X2( wxCommandEvent& event );
+	void OnViewLayout2X2		( wxCommandEvent& event );
 	void OnViewLayout2X2UpdateUI( wxUpdateUIEvent& event );
-	void OnViewLayout1N3( wxCommandEvent& event );
+	void OnViewLayout1N3		( wxCommandEvent& event );
 	void OnViewLayout1N3UpdateUI( wxUpdateUIEvent& event );
-	void OnViewSagittal( wxCommandEvent& event );
-	void OnViewSagittalUpdateUI( wxUpdateUIEvent& event );
-	void OnViewCoronal( wxCommandEvent& event );
-	void OnViewCoronalUpdateUI( wxUpdateUIEvent& event );
-	void OnViewAxial( wxCommandEvent& event );
-	void OnViewAxialUpdateUI( wxUpdateUIEvent& event );
-	void OnView3D( wxCommandEvent& event );
-	void OnView3DUpdateUI( wxUpdateUIEvent& event );
-	void OnViewReset( wxCommandEvent& event );
-	void OnViewResetUpdateUI( wxUpdateUIEvent& event );
-	void OnViewCycleLayer( wxCommandEvent& event );
-	void OnViewCycleLayerUpdateUI( wxUpdateUIEvent& event );
-	void OnViewToggleVolumeVisibility( wxCommandEvent& event );
+	void OnViewSagittal			( wxCommandEvent& event );
+	void OnViewSagittalUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewCoronal			( wxCommandEvent& event );
+	void OnViewCoronalUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewAxial			( wxCommandEvent& event );
+	void OnViewAxialUpdateUI	( wxUpdateUIEvent& event );
+	void OnView3D				( wxCommandEvent& event );
+	void OnView3DUpdateUI		( wxUpdateUIEvent& event );
+	void OnViewReset			( wxCommandEvent& event );
+	void OnViewResetUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewCycleLayer		( wxCommandEvent& event );
+	void OnViewCycleLayerUpdateUI		( wxUpdateUIEvent& event );
+	void OnViewToggleVolumeVisibility	( wxCommandEvent& event );
 	void OnViewToggleVolumeVisibilityUpdateUI( wxUpdateUIEvent& event );
-	void OnViewToggleVoxelCoordinates( wxCommandEvent& event );
+	void OnViewToggleVoxelCoordinates	( wxCommandEvent& event );
 	
-	void OnViewSurfaceMain( wxCommandEvent& event );
-	void OnViewSurfaceMainUpdateUI( wxUpdateUIEvent& event );
-	void OnViewSurfaceInflated( wxCommandEvent& event );
+	void OnViewSurfaceMain			( wxCommandEvent& event );
+	void OnViewSurfaceMainUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewSurfaceInflated		( wxCommandEvent& event );
 	void OnViewSurfaceInflatedUpdateUI( wxUpdateUIEvent& event );
-	void OnViewSurfaceWhite( wxCommandEvent& event );
-	void OnViewSurfaceWhiteUpdateUI( wxUpdateUIEvent& event );
-	void OnViewSurfacePial( wxCommandEvent& event );
-	void OnViewSurfacePialUpdateUI( wxUpdateUIEvent& event );
-	void OnViewSurfaceOriginal( wxCommandEvent& event );
+	void OnViewSurfaceWhite			( wxCommandEvent& event );
+	void OnViewSurfaceWhiteUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewSurfacePial			( wxCommandEvent& event );
+	void OnViewSurfacePialUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewSurfaceOriginal		( wxCommandEvent& event );
 	void OnViewSurfaceOriginalUpdateUI( wxUpdateUIEvent& event );
 	
-	void OnModeNavigate( wxCommandEvent& event );
-	void OnModeNavigateUpdateUI( wxUpdateUIEvent& event);	
-	void OnModeVoxelEdit( wxCommandEvent& event );
+	void OnModeNavigate			( wxCommandEvent& event );
+	void OnModeNavigateUpdateUI	( wxUpdateUIEvent& event);	
+	void OnModeVoxelEdit		( wxCommandEvent& event );
 	void OnModeVoxelEditUpdateUI( wxUpdateUIEvent& event);
-	void OnModeROIEdit( wxCommandEvent& event );
-	void OnModeROIEditUpdateUI( wxUpdateUIEvent& event);
-	void OnActionVoxelFreehand( wxCommandEvent& event );
+	void OnModeROIEdit			( wxCommandEvent& event );
+	void OnModeROIEditUpdateUI	( wxUpdateUIEvent& event);
+	void OnModeWayPointsEdit			( wxCommandEvent& event );
+	void OnModeWayPointsEditUpdateUI	( wxUpdateUIEvent& event);
+	
+	void OnActionVoxelFreehand	( wxCommandEvent& event );
 	void OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event );
-	void OnActionVoxelFill( wxCommandEvent& event );
+	void OnActionVoxelFill		( wxCommandEvent& event );
 	void OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event );
-	void OnActionVoxelPolyline( wxCommandEvent& event );
+	void OnActionVoxelPolyline	( wxCommandEvent& event );
 	void OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event );
-	void OnActionROIFreehand( wxCommandEvent& event );
+	void OnActionROIFreehand	( wxCommandEvent& event );
 	void OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event );
-	void OnActionROIFill( wxCommandEvent& event );
+	void OnActionROIFill		( wxCommandEvent& event );
 	void OnActionROIFillUpdateUI( wxUpdateUIEvent& event );
-	void OnActionROIPolyline( wxCommandEvent& event );
+	void OnActionROIPolyline	( wxCommandEvent& event );
 	void OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event );
 	
 	void OnEditCopy( wxCommandEvent& event );
@@ -178,12 +190,18 @@ public:
 	void SaveROI();
 	void SaveROIAs();
 	
+	void LoadWayPoints();
+	void NewWayPoints();
+	void SaveWayPoints();
+	void SaveWayPointsAs();
+	
 	void LoadSurface();
 
 	void LoadVolumeFile( const wxString& fn, bool bResample = true, int nColorMap = 0 );
 	void LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, bool Resample = true );
 	void LoadROIFile( const wxString& fn );	
 	void LoadSurfaceFile( const wxString& fn );
+	void LoadWayPointsFile( const wxString& fn );
 	
 	bool IsSaving()
 		{ return m_bSaving; }

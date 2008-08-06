@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/24 20:14:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,8 @@
 #define RenderView3D_h
 
 #include "RenderView.h"
+
+class Cursor3D;
 
 class VTK_RENDERING_EXPORT RenderView3D : public RenderView
 {
@@ -50,10 +52,18 @@ public:
 	
 	void UpdateViewByWorldCoordinate();
 	
+	Cursor3D* GetCursor3D()
+		{ return m_cursor3D; }
+	
+	void ShowVolumeSlice( int nPlane, bool bShow = true );
+	
+	bool GetShowVolumeSlice( int nPlane );
+	
 protected:
 	void OnInternalIdle();
 	void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );	
-	
+	virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
+		
 private:
 	void InitializeRenderView3D();
 	
@@ -61,6 +71,10 @@ private:
 	int		m_nCursorCoord[2];
 	bool	m_bToUpdateRASPosition;
 	bool	m_bToUpdateCursorPosition;
+	
+	Cursor3D*	m_cursor3D;
+	
+	bool	m_bSliceVisibility[3];
 	
     // any class wishing to process wxWindows events must use this macro
     DECLARE_EVENT_TABLE()

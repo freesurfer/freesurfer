@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 #ifndef LayerROI_h
 #define LayerROI_h
 
-#include "LayerEditable.h"
+#include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
 #include <string>
 #include <vector>
@@ -47,7 +47,7 @@ class LayerPropertiesROI;
 class wxWindow;
 class wxCommandEvent;
 
-class LayerROI : public LayerEditable
+class LayerROI : public LayerVolumeBase
 {
 	public:
 		LayerROI( LayerMRI* layerMRI );
@@ -55,8 +55,8 @@ class LayerROI : public LayerEditable
 					
 		bool LoadROIFromFile( std::string filename );
 		
-		void Append2DProps( vtkRenderer* renderer, int nPlane );
-		void Append3DProps( vtkRenderer* renderer );
+		virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
+		virtual void Append3DProps( vtkRenderer* renderer );
 		bool HasProp( vtkProp* prop );
 		
 		virtual void DoListenToMessage ( std::string const iMessage, void* const iData );

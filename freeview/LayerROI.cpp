@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,7 @@
 #include "FSLabel.h"
 #include <stdlib.h>
 
-LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerEditable()
+LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerVolumeBase()
 {
 	m_strTypeNames.push_back( "ROI" );
 	
@@ -305,7 +305,7 @@ void LayerROI::SetModified()
 	mReslice[1]->Modified();
 	mReslice[2]->Modified();	
 	
-	LayerEditable::SetModified();
+	LayerVolumeBase::SetModified();
 }
 
 bool LayerROI::SaveROI( wxWindow* wnd, wxCommandEvent& event )

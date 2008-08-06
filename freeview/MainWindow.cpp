@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/24 20:14:44 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,7 @@
 #include "LayerROI.h"
 #include "LayerDTI.h"
 #include "LayerSurface.h"
+#include "LayerWayPoints.h"
 #include "FSSurface.h"
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
@@ -62,12 +63,14 @@
 #include "StatusBar.h"
 #include "DialogNewVolume.h"
 #include "DialogNewROI.h"
+#include "DialogNewWayPoints.h"
 #include "DialogLoadVolume.h"
 #include "WorkerThread.h"
 #include "MyUtils.h"
 #include "LUTDataHolder.h"
 #include "BrushProperty.h"
 #include "Cursor2D.h"
+#include "Cursor3D.h"
 #include "ToolWindowEdit.h"
 
 #define	CTRL_PANEL_WIDTH	240
@@ -96,7 +99,15 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_FILE_SAVE_ROI" ),			MainWindow::OnFileSaveROIUpdateUI )  
     EVT_MENU		( XRCID( "ID_FILE_SAVE_ROI_AS" ),		MainWindow::OnFileSaveROIAs )      
     EVT_UPDATE_UI	( XRCID( "ID_FILE_SAVE_ROI_AS" ),		MainWindow::OnFileSaveROIAsUpdateUI )   
-    EVT_MENU		( XRCID( "ID_FILE_LOAD_DTI" ),			MainWindow::OnFileLoadDTI )  
+    EVT_MENU		( XRCID( "ID_FILE_LOAD_DTI" ),			MainWindow::OnFileLoadDTI )    
+    EVT_MENU		( XRCID( "ID_FILE_NEW_WAYPOINTS" ),		MainWindow::OnFileNewWayPoints )      
+    EVT_UPDATE_UI	( XRCID( "ID_FILE_NEW_WAYPOINTS" ),		MainWindow::OnFileNewWayPointsUpdateUI )    
+    EVT_MENU		( XRCID( "ID_FILE_LOAD_WAYPOINTS" ),	MainWindow::OnFileLoadWayPoints )      
+    EVT_UPDATE_UI	( XRCID( "ID_FILE_LOAD_WAYPOINTS" ),	MainWindow::OnFileLoadWayPointsUpdateUI )    
+    EVT_MENU		( XRCID( "ID_FILE_SAVE_WAYPOINTS" ),	MainWindow::OnFileSaveWayPoints )      
+    EVT_UPDATE_UI	( XRCID( "ID_FILE_SAVE_WAYPOINTS" ),	MainWindow::OnFileSaveWayPointsUpdateUI )  
+    EVT_MENU		( XRCID( "ID_FILE_SAVE_WAYPOINTS_AS" ),	MainWindow::OnFileSaveWayPointsAs )      
+    EVT_UPDATE_UI	( XRCID( "ID_FILE_SAVE_WAYPOINTS_AS" ),	MainWindow::OnFileSaveWayPointsAsUpdateUI )   
     EVT_MENU		( XRCID( "ID_FILE_SCREENSHOT" ),		MainWindow::OnFileSaveScreenshot )           
     EVT_UPDATE_UI	( XRCID( "ID_FILE_SCREENSHOT" ),		MainWindow::OnFileSaveScreenshotUpdateUI ) 
     EVT_MENU		( XRCID( "ID_FILE_LOAD_SURFACE" ),		MainWindow::OnFileLoadSurface ) 
@@ -105,7 +116,9 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU		( XRCID( "ID_MODE_VOXEL_EDIT" ),		MainWindow::OnModeVoxelEdit )  
     EVT_UPDATE_UI	( XRCID( "ID_MODE_VOXEL_EDIT" ),		MainWindow::OnModeVoxelEditUpdateUI )    
     EVT_MENU		( XRCID( "ID_MODE_ROI_EDIT" ),			MainWindow::OnModeROIEdit )  
-    EVT_UPDATE_UI	( XRCID( "ID_MODE_ROI_EDIT" ),			MainWindow::OnModeROIEditUpdateUI ) 
+    EVT_UPDATE_UI	( XRCID( "ID_MODE_ROI_EDIT" ),			MainWindow::OnModeROIEditUpdateUI )  
+    EVT_MENU		( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),	MainWindow::OnModeWayPointsEdit )  
+    EVT_UPDATE_UI	( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),	MainWindow::OnModeWayPointsEditUpdateUI ) 
     EVT_MENU		( XRCID( "ID_ACTION_ROI_FREEHAND" ),	MainWindow::OnActionROIFreehand )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_FREEHAND" ),	MainWindow::OnActionROIFreehandUpdateUI )
     EVT_MENU		( XRCID( "ID_ACTION_ROI_FILL" ),		MainWindow::OnActionROIFill )
@@ -246,6 +259,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_viewRender[3] = m_view3D;
 	for ( int i = 0; i < 3; i++ )
 	{
+	//	m_viewRender[i]->Render();
 		for ( int j = 0; j < 3; j++ )
 		{
 			if ( i != j )
@@ -269,6 +283,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	
 	m_toolWindowEdit = new ToolWindowEdit( this );
 	m_toolWindowEdit->Hide();
+	
 	UpdateToolbars();	
 	
 	m_nViewLayout = VL_2X2;
@@ -304,6 +319,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 		m_viewAxial->GetCursor2D()->SetColor( color );
 		m_viewSagittal->GetCursor2D()->SetColor( color );
 		m_viewCoronal->GetCursor2D()->SetColor( color );
+		m_view3D->GetCursor3D()->SetColor( color );
 		
 		m_nScreenshotFilterIndex = config->Read( _T("/MainWindow/ScreenshotFilterIndex"), 0L );
 		
@@ -342,6 +358,7 @@ void MainWindow::OnClose( wxCloseEvent &event )
 	
 	LayerCollection* lc_mri = GetLayerCollection( "MRI" );
 	LayerCollection* lc_roi = GetLayerCollection( "ROI" );
+	LayerCollection* lc_wp = GetLayerCollection( "WayPoints" );
 	wxString text = "";
 	for ( int i = 0; i < lc_mri->GetNumberOfLayers(); i++ )
 	{
@@ -352,6 +369,12 @@ void MainWindow::OnClose( wxCloseEvent &event )
 	for ( int i = 0; i < lc_roi->GetNumberOfLayers(); i++ )
 	{
 		LayerEditable* layer = ( LayerEditable* )lc_roi->GetLayer( i );
+		if ( layer->IsModified() )
+			text += wxString( layer->GetName() ) + + "\t(" + wxFileName( layer->GetFileName() ).GetShortPath() + ")\n";
+	}
+	for ( int i = 0; i < lc_wp->GetNumberOfLayers(); i++ )
+	{
+		LayerEditable* layer = ( LayerEditable* )lc_wp->GetLayer( i );
 		if ( layer->IsModified() )
 			text += wxString( layer->GetName() ) + + "\t(" + wxFileName( layer->GetFileName() ).GetShortPath() + ")\n";
 	}
@@ -631,7 +654,11 @@ void MainWindow::LoadROIFile( const wxString& fn )
 		m_controlPanel->RaisePage( "ROIs" );
 	}
 	else
+	{
 		delete roi;
+		wxMessageDialog dlg( this, wxString( "Can not load ROI from " ) + fn, "Error", wxOK );
+		dlg.ShowModal();
+	}
 }
 
 void MainWindow::NewROI()
@@ -749,6 +776,169 @@ void MainWindow::OnFileNewROIUpdateUI( wxUpdateUIEvent& event )
 	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
 }
 
+
+void MainWindow::OnFileNewWayPoints( wxCommandEvent& event )
+{
+	NewWayPoints();
+}
+	
+void MainWindow::OnFileNewWayPointsUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
+}
+
+
+void MainWindow::LoadWayPoints()
+{
+	if ( GetLayerCollection( "MRI" )->IsEmpty() )
+	{
+		return;
+	}
+	wxFileDialog dlg( this, _("Open Way Points file"), m_strLastDir, _(""), 
+					  _T("Way Points files (*.label)|*.label|All files (*.*)|*.*"), 
+					  wxFD_OPEN );
+	if ( dlg.ShowModal() == wxID_OK )
+	{
+		this->LoadWayPointsFile( dlg.GetPath() );
+	}
+}
+
+void MainWindow::LoadWayPointsFile( const wxString& fn )
+{
+	m_strLastDir = MyUtils::GetNormalizedPath( fn );
+
+	LayerCollection* col_mri = GetLayerCollection( "MRI" );	
+	LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
+	LayerWayPoints* wp = new LayerWayPoints( mri );
+	wp->SetName( wxFileName( fn ).GetName().c_str() );
+	if ( wp->LoadFromFile( fn.c_str() ) )
+	{			
+		LayerCollection* col_wp = GetLayerCollection( "WayPoints" );
+		if ( col_wp->IsEmpty() )
+		{
+			col_wp->SetWorldOrigin( col_mri->GetWorldOrigin() );
+			col_wp->SetWorldSize( col_mri->GetWorldSize() );
+			col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
+			col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
+		}
+		col_wp->AddLayer( wp );
+		
+		m_controlPanel->RaisePage( "Way Points" );
+	}
+	else
+	{
+		delete wp;
+		wxMessageDialog dlg( this, wxString( "Can not load Way Points from " ) + fn, "Error", wxOK );
+		dlg.ShowModal();
+	}
+}
+
+
+void MainWindow::NewWayPoints()
+{
+	// first check if there is any volume/MRI layer and if the current one is visible
+	LayerCollection* col_mri = m_layerCollectionManager->GetLayerCollection( "MRI" );
+	LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
+	if ( !layer_mri)
+	{
+		wxMessageDialog dlg( this, "Can not create new way points without volume image.", "Error", wxOK );
+		dlg.ShowModal();
+		return;
+	}
+		
+	// enter the name of the new ROI
+	DialogNewWayPoints dlg( this, col_mri );
+	dlg.SetWayPointsName( "New Way Points" );
+	if ( dlg.ShowModal() != wxID_OK )
+		return;
+	
+	// finally we are about to create new ROI.
+	LayerCollection* col_wp = m_layerCollectionManager->GetLayerCollection( "WayPoints" );
+	if ( col_wp->IsEmpty() )
+	{
+		col_wp->SetWorldOrigin( col_mri->GetWorldOrigin() );
+		col_wp->SetWorldSize( col_mri->GetWorldSize() );
+		col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
+		col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
+	}
+	LayerWayPoints* layer_wp = new LayerWayPoints( dlg.GetTemplate() );
+	layer_wp->SetName( dlg.GetWayPointsName().c_str() );
+	col_wp->AddLayer( layer_wp );
+	
+	m_controlPanel->RaisePage( "Way Points" );
+	
+	m_viewAxial->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
+	m_viewCoronal->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
+	m_viewSagittal->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
+}
+
+void MainWindow::SaveWayPoints()
+{
+	LayerCollection* col_wp = m_layerCollectionManager->GetLayerCollection( "WayPoints" );
+	LayerWayPoints* layer_wp = ( LayerWayPoints* )col_wp->GetActiveLayer();
+	if ( !layer_wp )
+	{
+		return;
+	}
+	else if ( !layer_wp->IsVisible() )
+	{
+		wxMessageDialog dlg( this, "Current Way Points layer is not visible. Please turn it on before saving.", "Error", wxOK );
+		dlg.ShowModal();
+		return;
+	} 	
+	wxString fn = layer_wp->GetFileName();
+	if ( fn.IsEmpty() )
+	{
+		wxFileDialog dlg( this, _("Save Way Points file"), m_strLastDir, _(""), 
+						  _T("Way Points files (*.label)|*.label|All files (*.*)|*.*"), 
+						  wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+		if ( dlg.ShowModal() == wxID_OK )
+		{
+			fn = dlg.GetPath();
+		}
+	}
+	
+	if ( !fn.IsEmpty() )
+	{
+		if ( !MyUtils::HasExtension( fn, "label" ) )
+		{
+			fn += ".label";
+		}
+		layer_wp->SetFileName( fn.char_str() );		
+		layer_wp->ResetModified();
+		WorkerThread* thread = new WorkerThread( this );
+		thread->SaveWayPoints( layer_wp );
+	}	
+}
+
+
+void MainWindow::SaveWayPointsAs()
+{
+	LayerCollection* col_wp = m_layerCollectionManager->GetLayerCollection( "WayPoints" );
+	LayerWayPoints* layer_wp = ( LayerWayPoints* )col_wp->GetActiveLayer();
+	if ( !layer_wp )
+	{
+		return;
+	}
+	else if ( !layer_wp->IsVisible() )
+	{
+		wxMessageDialog dlg( this, "Current Way Points layer is not visible. Please turn it on before saving.", "Error", wxOK );
+		dlg.ShowModal();
+		return;
+	} 	
+	
+	wxString fn = layer_wp->GetFileName();
+	wxFileDialog dlg( this, _("Save Way Points file as"), m_strLastDir, fn, 
+					  _T("Way Points files (*.label)|*.label|All files (*.*)|*.*"), 
+					  wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+	if ( dlg.ShowModal() == wxID_OK )
+	{
+		layer_wp->SetFileName( dlg.GetPath().c_str() );
+		SaveWayPoints();
+		m_controlPanel->UpdateUI();
+	}
+}
+
 void MainWindow::OnKeyDown( wxKeyEvent& event )
 {
 //	cout << "test" << endl;
@@ -777,7 +967,8 @@ void MainWindow::DoUpdateToolbars()
 	//	m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
 	//	m_panelToolbarHolder->Layout();
 	//	bool bNeedReposition = ( m_toolWindowEdit->IsShown() != (m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate) );
-		if ( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate )
+		if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
+			 m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
 		{
 			m_toolWindowEdit->Show();
 		}
@@ -825,6 +1016,23 @@ void MainWindow::DoUpdateToolbars()
 	else
 		m_propertyBrush->SetBrushTolerance( 0 );
 	*/
+	
+		
+	switch ( m_viewAxial->GetInteractionMode() )
+	{
+		case RenderView2D::IM_VoxelEdit:
+			m_controlPanel->RaisePage( "Volumes" );
+			break;
+		case RenderView2D::IM_ROIEdit:
+			m_controlPanel->RaisePage( "ROIs" );
+			break;
+		case RenderView2D::IM_WayPointsEdit:
+			m_controlPanel->RaisePage( "Way Points" );
+			break;
+		default:
+			break;
+	}
+	
 	m_bToUpdateToolbars = false;
 }
 
@@ -833,6 +1041,7 @@ void MainWindow::SetMode( int nMode )
 	m_viewAxial->SetInteractionMode( nMode );
 	m_viewCoronal->SetInteractionMode( nMode );
 	m_viewSagittal->SetInteractionMode( nMode );
+	
 	UpdateToolbars();
 }
 
@@ -866,6 +1075,17 @@ void MainWindow::OnModeROIEditUpdateUI( wxUpdateUIEvent& event)
 {
 	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
 	event.Enable( m_layerCollectionManager->HasLayer( "ROI" ) );
+}
+
+void MainWindow::OnModeWayPointsEdit( wxCommandEvent& event )
+{
+	SetMode( RenderView2D::IM_WayPointsEdit );
+}
+
+void MainWindow::OnModeWayPointsEditUpdateUI( wxUpdateUIEvent& event)
+{
+	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_WayPointsEdit );
+	event.Enable( m_layerCollectionManager->HasLayer( "WayPoints" ) );
 }
 
 void MainWindow::SetAction( int nAction )
@@ -972,6 +1192,12 @@ void MainWindow::OnEditUndo( wxCommandEvent& event )
 		if ( mri )
 			mri->Undo();
 	}
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_WayPointsEdit )
+	{
+		LayerWayPoints* wp = ( LayerWayPoints* )GetLayerCollection( "WayPoints" )->GetActiveLayer();
+		if ( wp )
+			wp->Undo();
+	}
 }
 
 void MainWindow::OnEditUndoUpdateUI( wxUpdateUIEvent& event )
@@ -985,6 +1211,11 @@ void MainWindow::OnEditUndoUpdateUI( wxUpdateUIEvent& event )
 	{
 		LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
 		event.Enable( mri && mri->IsVisible() && mri->HasUndo() );
+	}
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_WayPointsEdit )
+	{
+		LayerWayPoints* wp = ( LayerWayPoints* )GetLayerCollection( "WayPoints" )->GetActiveLayer();
+		event.Enable( wp && wp->IsVisible() && wp->HasUndo() );
 	}
 	else
 		event.Enable( false );
@@ -1004,6 +1235,12 @@ void MainWindow::OnEditRedo( wxCommandEvent& event )
 		if ( mri )
 			mri->Redo();
 	}
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_WayPointsEdit )
+	{
+		LayerWayPoints* wp = ( LayerWayPoints* )GetLayerCollection( "WayPoints" )->GetActiveLayer();
+		if ( wp )
+			wp->Redo();
+	}
 }
 
 void MainWindow::OnEditRedoUpdateUI( wxUpdateUIEvent& event )
@@ -1017,6 +1254,11 @@ void MainWindow::OnEditRedoUpdateUI( wxUpdateUIEvent& event )
 	{
 		LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
 		event.Enable( mri && mri->IsVisible() && mri->HasRedo() );
+	}	
+	else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_WayPointsEdit )
+	{
+		LayerWayPoints* wp = ( LayerWayPoints* )GetLayerCollection( "WayPoints" )->GetActiveLayer();
+		event.Enable( wp && wp->IsVisible() && wp->HasRedo() );
 	}
 	else
 		event.Enable( false );
@@ -1407,10 +1649,9 @@ void MainWindow::OnInternalIdle()
 #ifdef __WXGTK__	
 	if ( IsShown() && m_nRedrawCount > 0 )
 	{
-		m_viewAxial->Render();
-		m_viewSagittal->Render();
-		m_viewCoronal->Render();
-		m_view3D->Render();
+		for ( int i = 0; i < 4; i++ )
+			if ( m_viewRender[i]->IsShown() )
+				m_viewRender[i]->Render();
 		m_nRedrawCount--;
 	}
 #endif	
@@ -1544,6 +1785,41 @@ void MainWindow::OnFileSaveROIAs( wxCommandEvent& event )
 void MainWindow::OnFileSaveROIAsUpdateUI( wxUpdateUIEvent& event )
 {
 	LayerROI* layer = ( LayerROI* )( GetLayerCollection( "ROI" )->GetActiveLayer() );	
+	event.Enable( layer && !IsLoading() && !IsSaving() );
+}
+
+
+void MainWindow::OnFileLoadWayPoints( wxCommandEvent& event )
+{
+	LoadWayPoints();
+}
+	
+void MainWindow::OnFileLoadWayPointsUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsLoading() && !IsSaving() );
+}
+
+
+void MainWindow::OnFileSaveWayPoints( wxCommandEvent& event )
+{
+	SaveWayPoints();
+}
+	
+void MainWindow::OnFileSaveWayPointsUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerWayPoints* layer = ( LayerWayPoints* )( GetLayerCollection( "WayPoints" )->GetActiveLayer() );	
+	event.Enable( layer && layer->IsModified() && !IsLoading() && !IsSaving() );
+}
+
+
+void MainWindow::OnFileSaveWayPointsAs( wxCommandEvent& event )
+{
+	SaveWayPointsAs();
+}
+	
+void MainWindow::OnFileSaveWayPointsAsUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerWayPoints* layer = ( LayerWayPoints* )( GetLayerCollection( "WayPoints" )->GetActiveLayer() );	
 	event.Enable( layer && !IsLoading() && !IsSaving() );
 }
 
@@ -1807,6 +2083,10 @@ void MainWindow::RunScript()
 	else if ( sa[0] == "loadsurface" )
 	{
 		LoadSurfaceFile( sa[1] );
+	}
+	else if ( sa[0] == "loadwaypoints" )
+	{
+		LoadWayPointsFile( sa[1] );
 	}
 }
 

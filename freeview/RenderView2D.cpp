@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/18 20:23:24 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@
 #include "Interactor2DNavigate.h"
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
+#include "Interactor2DWayPointsEdit.h"
 #include "MyUtils.h"
 
 
@@ -72,13 +73,15 @@ void RenderView2D::Initialize2D()
 	m_annotation2D = new Annotation2D;	
 	m_cursor2D = new Cursor2D( this );
 	
-	m_interactorNavigate = new Interactor2DNavigate();
-	m_interactorVoxelEdit = new Interactor2DVoxelEdit();
-	m_interactorROIEdit = new Interactor2DROIEdit();
+	m_interactorNavigate 	= new Interactor2DNavigate();
+	m_interactorVoxelEdit 	= new Interactor2DVoxelEdit();
+	m_interactorROIEdit 	= new Interactor2DROIEdit();
+	m_interactorWayPointsEdit = new Interactor2DWayPointsEdit();
 	
 	m_interactorNavigate->AddListener( MainWindow::GetMainWindowPointer() );
 	m_interactorVoxelEdit->AddListener( MainWindow::GetMainWindowPointer() );
 	m_interactorROIEdit->AddListener( MainWindow::GetMainWindowPointer() );
+	m_interactorWayPointsEdit->AddListener( MainWindow::GetMainWindowPointer() );
 	
 	SetInteractionMode( IM_Navigate );
 }
@@ -119,6 +122,9 @@ void RenderView2D::SetInteractionMode( int nMode )
 		case IM_VoxelEdit:
 			m_interactor = m_interactorVoxelEdit;
 			break;
+		case IM_WayPointsEdit:
+			m_interactor = m_interactorWayPointsEdit;
+			break;
 		default:
 			m_interactor = m_interactorNavigate;
 			break;
@@ -136,12 +142,13 @@ void RenderView2D::RefreshAllActors()
 	
 	// add coordinate annotation
 	m_annotation2D->AppendAnnotations( m_renderer );
-	m_cursor2D->AppendCursor( m_renderer );
+	m_cursor2D->AppendActor( m_renderer );
 	
 	// add focus frame
 	m_renderer->AddViewProp( m_actorFocusFrame );
 	
-	Render();
+	NeedRedraw();
+	//Render();
 }
 
 void RenderView2D::SetViewPlane( int nPlane )

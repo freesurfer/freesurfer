@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/24 20:14:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/06 21:07:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,7 +171,7 @@ void ToolWindowEdit::DoUpdateTools()
 //	XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->Enable( checkTemplate->IsChecked() );//&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
 	
 	BrushProperty* bp = MainWindow::GetMainWindowPointer()->GetBrushProperty();
-	LayerEditable* layer = bp->GetReferenceLayer();
+	LayerVolumeBase* layer = bp->GetReferenceLayer();
 //	if ( m_choiceTemplate->GetSelection() != wxNOT_FOUND )
 //		layer = ( LayerEditable* )(void*)m_choiceTemplate->GetClientData( m_choiceTemplate->GetSelection() );
 	
@@ -343,7 +343,7 @@ void ToolWindowEdit::OnSpinBrushTolerance( wxSpinEvent& event )
 
 void ToolWindowEdit::OnChoiceBrushTemplate( wxCommandEvent& event )
 {
-	LayerEditable* layer = (LayerEditable*)(void*)m_choiceTemplate->GetClientData( event.GetSelection() );
+	LayerVolumeBase* layer = (LayerVolumeBase*)(void*)m_choiceTemplate->GetClientData( event.GetSelection() );
 	BrushProperty* bp = MainWindow::GetMainWindowPointer()->GetBrushProperty();
 	bp->SetReferenceLayer( layer );
 	UpdateTools();
