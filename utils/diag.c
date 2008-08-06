@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/02 13:28:47 $
- *    $Revision: 1.32 $
+ *    $Date: 2008/08/06 13:39:14 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -77,6 +77,9 @@ int            Gdiag_no   = -1 ;
 int Gx = -1 ;
 int Gy = -1 ;
 int Gz = -1 ;
+int Gx2 = -1 ;
+int Gy2 = -1 ;
+int Gz2 = -1 ;
 #define DEFAULT_IMAGE_SIZE       512
 int IMAGE_SIZE = DEFAULT_IMAGE_SIZE ;
 
