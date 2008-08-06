@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 13:38:35 $
- *    $Revision: 1.247 $
+ *    $Date: 2008/08/06 15:16:44 $
+ *    $Revision: 1.248 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22600,6 +22600,7 @@ GCAnodeDownsample2(GCA *gca)
   float     sigma ;
 
   sigma = gca->node_spacing/2 ;
+  wsize = (int)(4*sigma)+1 ;
   gca_smooth = GCAalloc(gca->ninputs, gca->prior_spacing, gca->node_spacing*2,
                         gca->width, gca->height, gca->depth, 0) ;
   GCAcopy(gca, gca_smooth) ;
