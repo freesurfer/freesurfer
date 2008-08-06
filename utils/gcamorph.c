@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 13:38:34 $
- *    $Revision: 1.139 $
+ *    $Date: 2008/08/06 23:52:35 $
+ *    $Revision: 1.140 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -14398,6 +14398,7 @@ GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels,
   {
     float xf, yf, zf ;
 
+    xf = yf = zf = 0 ;
     GCAMsampleInverseMorph(gcam, Gx2, Gy2, Gz2, &xf, &yf, &zf) ;
     Gx = nint(xf) ; Gy = nint(yf) ; Gz = nint(zf) ; 
     printf("GCAMdemonsRegister: (%d, %d, %d) = %s in source, and (%d, %d, %d) = %s in atlas\n",
