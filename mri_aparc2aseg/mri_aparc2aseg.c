@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/21 20:16:24 $
- *    $Revision: 1.27.2.2 $
+ *    $Date: 2008/08/06 17:15:28 $
+ *    $Revision: 1.27.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.27.2.2 2008/03/21 20:16:24 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27.2.3 2008/08/06 17:15:28 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -117,7 +117,7 @@ MRI *CtxSeg = NULL;
 int main(int argc, char **argv) {
   int nargs, err, asegid, c, r, s, nctx, annot,vtxno,nripped;
   int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
-  int isRibbonWM=0, isRibbonGM=0, RibbonVal=0,nbrute=0;
+  int RibbonVal=0,nbrute=0;
   float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
 
   /* rkt: check for and handle version tag */
@@ -386,31 +386,19 @@ int main(int argc, char **argv) {
 	//  ribbon=GM => GM
 	//  aseg=GM AND ribbon=WM => WM
 	//  ribbon=UNKNOWN => UNKNOWN
-        if (UseNewRibbon && ( IsCortex || IsWM || (!asegid) ) )	    {
+        if(UseNewRibbon && ( IsCortex || IsWM || asegid==0 ) ) {
 	  RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
-	  isRibbonGM = (RibbonVal%100==10);
-	  isRibbonWM = (RibbonVal%100==20);
-	  if ( isRibbonGM && !IsCortex )		{
-	    // set it according to the hemi as GM
-	    if ( RibbonVal/100 == 0 )
-	      MRIsetVoxVal(ASeg,c,r,s,0, 42);
-	    else
-	      MRIsetVoxVal(ASeg,c,r,s,0, 3);
-	    IsCortex = 1;
-	    IsWM = 0;
-	  }
-	  else if ( isRibbonWM && !IsWM )		{
-	    // set it according to the hemi as WM
-	    if ( RibbonVal/100 == 0 ) // integer division - 0 = LH for ribbon
-	      MRIsetVoxVal(ASeg,c,r,s,0, 2);
-	    else // RH
-	      MRIsetVoxVal(ASeg,c,r,s,0, 41);
-	    IsCortex = 0;
+	  MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
+	  if(RibbonVal==4 || RibbonVal==41) {
 	    IsWM = 1;
-	  } // 
-	  else if ( !RibbonVal && asegid )	{
-	    MRIsetVoxVal(ASeg,c,r,s,0,0);
-	    continue;
+	    IsCortex = 0;
+	  }
+	  else if(RibbonVal==3 || RibbonVal==42){
+	    IsWM = 0;
+	    IsCortex = 1;
+	  } if(RibbonVal==0){
+	    IsWM = 0;
+	    IsCortex = 0;
 	  }
 	}
 	
@@ -716,7 +704,8 @@ static void print_usage(void) {
   printf("   --annot annotname : use annotname instead of aparc\n");
   printf("\n");
   printf("   --labelwm : gyral white matter parcellation \n");
-  printf("   --wmparc-dmax : max dist (mm) from cortex to be labeld as gyral WM\n");
+  printf("   --wmparc-dmax dmax  max dist (mm) from cortex to be labeld as gyral WM (%gmm)\n",
+	 dmaxctx);
   printf("   --rip-unknown : do not label WM based on 'unknown' corical label\n");
   printf("   --hypo-as-wm : label hypointensities as WM\n");
   printf("\n");
