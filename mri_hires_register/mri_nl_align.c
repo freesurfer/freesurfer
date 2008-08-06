@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/12 19:45:03 $
- *    $Revision: 1.18 $
+ *    $Date: 2008/08/06 13:39:39 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/03/12 19:45:03 $
-// Revision       : $Revision: 1.18 $
+// Revision Date  : $Date: 2008/08/06 13:39:39 $
+// Revision       : $Revision: 1.19 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -83,37 +83,6 @@ static int get_option(int argc, char *argv[]) ;
 static char *source_surf = "";
 static char *target_surf = ".toM02100023.resample";
 
-// NOTE: the order here *must* match the frame #s listed in gcamorph.c:dtrans_label_to_frame
-static int dtrans_labels[] =
-  {
-    Left_Thalamus_Proper,
-    Right_Thalamus_Proper,
-    Left_Putamen,
-    Right_Putamen,
-    Left_Pallidum,
-    Right_Pallidum,
-    Left_Lateral_Ventricle,
-    Right_Lateral_Ventricle,
-    Left_Caudate,
-    Right_Caudate,
-    Left_Cerebral_White_Matter,
-    Right_Cerebral_White_Matter,
-    Left_Hippocampus,
-    Right_Hippocampus,
-    Left_Amygdala,
-    Right_Amygdala,
-    Left_VentralDC,
-    Right_VentralDC,
-    Brain_Stem,
-    Left_Inf_Lat_Vent,
-    Right_Inf_Lat_Vent,
-    Left_Cerebral_Cortex,
-    Right_Cerebral_Cortex,
-    Left_Cerebellum_White_Matter,
-    Right_Cerebellum_White_Matter
-  } ;
-
-#define NDTRANS_LABELS (sizeof(dtrans_labels) / sizeof(dtrans_labels[0]))
 char *Progname ;
 
 static int skip = 2 ;
@@ -248,6 +217,7 @@ main(int argc, char *argv[])
 			printf("converting ras xform to voxel xform\n") ;
 			m_L = MRIrasXformToVoxelXform(mri_source, mri_target, lta->xforms[0].m_L, NULL) ;
 			MatrixFree(&lta->xforms[0].m_L) ;
+      lta->type = LINEAR_VOX_TO_VOX ;
 		}
 		else
 		{
@@ -486,8 +456,13 @@ get_option(int argc, char *argv[])
     mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
     printf("using optimal time-step integration\n") ;
   }
-  else if (!stricmp(option, "aseg"))
-  {
+  else if (!stricmp(option, "NONEG")) {
+    mp.noneg = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("%s allowing temporary folds during numerical minimization\n",
+           mp.noneg ? "not" : "") ;
+  }
+  else if (!stricmp(option, "aseg"))  {
     match_mean_intensity = match_peak_intensity_ratio = 0 ;
     use_aseg = 1 ;
     mp.l_dtrans = 1 ;
