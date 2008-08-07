@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/07 22:29:11 $
- *    $Revision: 1.42 $
+ *    $Date: 2008/08/07 22:42:16 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,13 +61,18 @@ bfloat).
 
 --annot subject hemi parc
 
-Create a segmentation from hemi.parc.annot. If parc is aparc or aparc.a2005s,
-then the segmentation numbers will match those in 
+Create a segmentation from hemi.parc.annot. If parc is aparc or
+aparc.a2005s, then the segmentation numbers will match those in
 $FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The
-numbering can also be altered with --segbase. If an input is used,
-it must be a surface ovelay with the same dimension as the parcellation.
-This functionality makes mri_segstats partially redundant with 
+numbering can also be altered with --segbase. If an input is used, it
+must be a surface ovelay with the same dimension as the parcellation.
+This functionality makes mri_segstats partially redundant with
 mris_anatomical_stats.
+
+--label subject hemi labelfile
+
+Create a segmentation from the given surface label. The points in 
+the label are given a value of 1; 0 for outside.
 
 --sum summaryfile
 
@@ -414,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.42 2008/08/07 22:29:11 greve Exp $";
+"$Id: mri_segstats.c,v 1.43 2008/08/07 22:42:16 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -479,6 +484,7 @@ int  segbase = -1000;
 
 int DoSquare = 0;
 int DoSquareRoot = 0;
+char *LabelFile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -495,6 +501,7 @@ int main(int argc, char **argv) {
   int ntotalsegid=0;
   int valid;
   int usersegid=0;
+  LABEL *label;
   nhits = 0;
   vol = 0;
 
@@ -577,7 +584,8 @@ int main(int argc, char **argv) {
 	}
       }
     }
-  } else {
+  } 
+  else if(annot) {
     printf("Constructing seg from annotation\n");
     sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
     mris = MRISread(tmpstr);
@@ -608,6 +616,19 @@ int main(int argc, char **argv) {
       CTABwriteFileASCII(mris->ct,ctabfile);
     }
   }
+  else {
+    printf("Constructing seg from label\n");
+    label = LabelRead(NULL, LabelFile);
+    if(label == NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+    mris = MRISread(tmpstr);
+    if (mris==NULL) exit(1);
+    seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
+    for (n = 0; n < label->n_points; n++)
+      MRIsetVoxVal(seg,label->lv[n].vno,0,0,0, 1);
+    MRIwrite(seg,"labelseg.mgh");
+  }
+
   if (ctabfile != NULL) {
     /* Load the color table file */
     ctab = CTABreadASCII(ctabfile);
@@ -1076,6 +1097,7 @@ int main(int argc, char **argv) {
       fprintf(fp,"# SegVolFileTimeStamp  %s \n",VERfileTimeStamp(SegVolFile));
     }
     if (annot) fprintf(fp,"# Annot %s %s %s\n",subject,hemi,annot);
+    if (LabelFile) fprintf(fp,"# Label %s %s %s\n",subject,hemi,LabelFile);
     if (ctabfile) {
       fprintf(fp,"# ColorTable %s \n",ctabfile);
       fprintf(fp,"# ColorTableTimeStamp %s \n",VERfileTimeStamp(ctabfile));
@@ -1426,13 +1448,22 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--annot")) {
+    } 
+    else if (!strcmp(option, "--annot")) {
       if (nargc < 3) argnerr(option,1);
       subject = pargv[0];
       hemi    = pargv[1];
       annot   = pargv[2];
       nargsused = 3;
-    } else if (!strcmp(option, "--segbase")) {
+    } 
+    else if (!strcmp(option, "--label")) {
+      if (nargc < 3) argnerr(option,1);
+      subject = pargv[0];
+      hemi    = pargv[1];
+      LabelFile = pargv[2];
+      nargsused = 3;
+    } 
+    else if (!strcmp(option, "--segbase")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&segbase);
       nargsused = 1;
@@ -1834,7 +1865,7 @@ static void argnerr(char *option, int n) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (SegVolFile == NULL && annot == NULL) {
+  if (SegVolFile == NULL && annot == NULL && LabelFile == NULL) {
     printf("ERROR: must specify a segmentation volume\n");
     exit(1);
   }
