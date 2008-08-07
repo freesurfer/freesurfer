@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/07 22:42:16 $
- *    $Revision: 1.43 $
+ *    $Date: 2008/08/07 22:45:22 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -419,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.43 2008/08/07 22:42:16 greve Exp $";
+"$Id: mri_segstats.c,v 1.44 2008/08/07 22:45:22 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -626,7 +626,6 @@ int main(int argc, char **argv) {
     seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
     for (n = 0; n < label->n_points; n++)
       MRIsetVoxVal(seg,label->lv[n].vno,0,0,0, 1);
-    MRIwrite(seg,"labelseg.mgh");
   }
 
   if (ctabfile != NULL) {
