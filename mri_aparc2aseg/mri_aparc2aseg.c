@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/06 17:15:28 $
- *    $Revision: 1.27.2.3 $
+ *    $Date: 2008/08/07 17:08:11 $
+ *    $Revision: 1.27.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.27.2.3 2008/08/06 17:15:28 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27.2.4 2008/08/07 17:08:11 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -449,7 +449,7 @@ int main(int argc, char **argv) {
       */
 	    lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
 	    lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
-	    rhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+	    rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
 	    rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
 	    nbrute ++;
 	    //exit(1);
@@ -458,7 +458,7 @@ int main(int argc, char **argv) {
 	else {
 	  lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
 	  lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
-	  rhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+	  rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
 	  rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
 	}
 
@@ -906,6 +906,15 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
     printf("ERROR2: could not map to any surface.\n");
     printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
 	   c,r,s,vtx.x,vtx.y,vtx.z);
+    printf("Using Bruce Force\n");
+    *lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+    *lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+    *rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+    *rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+    printf("lh white: %d %g\n",*lhwvtx,dlhw);
+    printf("lh pial:  %d %g\n",*lhpvtx,dlhp);
+    printf("rh white: %d %g\n",*rhwvtx,drhw);
+    printf("rh pial:  %d %g\n",*rhpvtx,drhp);
     return(1);
   }
   if(dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
