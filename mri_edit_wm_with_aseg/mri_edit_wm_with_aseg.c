@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/11 01:16:26 $
- *    $Revision: 1.18 $
+ *    $Date: 2008/08/07 17:03:34 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/10/11 01:16:26 $
-// Revision       : $Revision: 1.18 $
+// Revision Date  : $Date: 2008/08/07 17:03:34 $
+// Revision       : $Revision: 1.19 $
 //
 
 #include <stdio.h>
@@ -113,10 +113,10 @@ main(int argc, char *argv[]) {
   int    msec, nargs ;
   char cmdline[CMD_LINE_LEN], *output_file_name,*input_file_name, *edits_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.18 2007/10/11 01:16:26 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.19 2008/08/07 17:03:34 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.18 2007/10/11 01:16:26 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.19 2008/08/07 17:03:34 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
 
   TimerStart(&then) ;
@@ -507,8 +507,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
         case non_WM_hypointensities:
         case Left_non_WM_hypointensities:
         case Right_non_WM_hypointensities:
-          if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
-              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
+          // only fill these if they are not adjacent to cortex
+          if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) == 0) &&
+              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) == 0) &&
               (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)) {
             if (x == Gx && y == Gy && z == Gz)
               DiagBreak2() ;
@@ -517,10 +518,26 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
             non++ ;
           }
           break ;
+        case Left_choroid_plexus:
+        case Right_choroid_plexus:
+          // don't fill in choroid next to inf lat vent
+          if (((neighborLabel(mri_seg, x, y, z,1,Left_Inf_Lat_Vent) == 0) &&
+               (neighborLabel(mri_seg, x, y, z,1,Right_Inf_Lat_Vent) == 0)) &&
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)) {
+            if (x == Gx && y == Gy && z == Gz) {
+              printf("filling choroid adjacent to ventricle at (%d, %d, %d)\n", x,y,z) ;
+              DiagBreak2() ;
+            }
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            non++ ;
+            break ;
+          }
+          break ;
         case Left_Lateral_Ventricle:
         case Right_Lateral_Ventricle:
-          if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_White_Matter) > 0) &&
-              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_White_Matter) > 0) &&
+          if (((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_White_Matter) > 0) ||
+              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_White_Matter) > 0)) &&
               (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)) {
             if (x == Gx && y == Gy && z == Gz) {
               printf("filling ventricle adjacent to wm at (%d, %d, %d)\n", x,y,z) ;
