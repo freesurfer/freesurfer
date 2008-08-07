@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/07 17:08:11 $
- *    $Revision: 1.27.2.4 $
+ *    $Date: 2008/08/07 20:58:15 $
+ *    $Revision: 1.27.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +52,7 @@
 #include "fio.h"
 #include "annotation.h"
 #include "version.h"
+#include "mrisegment.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -70,11 +71,12 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 			    MRIS *rhwhite, MRIS *rhpial,
 			    MHT *lhwhite_hash, MHT *lhpial_hash, 
 			    MHT *rhwhite_hash, MHT *rhpial_hash);
+int CCSegment(MRI *seg, int segid, int segidunknown);
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.27.2.4 2008/08/07 17:08:11 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27.2.5 2008/08/07 20:58:15 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -112,6 +114,8 @@ int UseHash = 1;
 
 char *CtxSegFile = NULL;
 MRI *CtxSeg = NULL;
+
+int FixParaHipWM = 1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -581,6 +585,25 @@ int main(int argc, char **argv) {
   printf("nctx = %d\n",nctx);
   printf("Used brute-force search on %d voxels\n",nbrute);
 
+  if(FixParaHipWM){
+    /* This is a bit of a hack. There are some vertices that have been
+       ripped because they are "unkown". When the above alorithm finds
+       these, it searches for the closest known vertex. If this is
+       less than dmax away, then the wm voxel gets labeled
+       accordingly.  However, there are often some voxels near
+       ventralDC that are just close enough in 3d space to parahip to
+       get labeled even though they are very far away along the
+       surface. These voxels end up forming an island. CCSegment()
+       will eliminate any islands. Unforunately, CCSegment() uses
+       6-neighbor (face) definition of connectedness, so some voxels
+       may be eliminated.
+     */
+    printf("Fixing Parahip LH WM\n");
+    CCSegment(ASeg, 3016, 5001); //3016 = lhphwm, 5001 = unsegmented WM left
+    printf("Fixing Parahip RH WM\n");
+    CCSegment(ASeg, 4016, 5002); //4016 = rhphwm, 5002 = unsegmented WM right
+  }
+
   printf("Writing output aseg to %s\n",OutASegFile);
   MRIwrite(ASeg,OutASegFile);
 
@@ -625,6 +648,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--volmask"))  UseNewRibbon = 1;
     else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
+    else if (!strcasecmp(option, "--fix-parahipwm"))  FixParaHipWM = 1;
+    else if (!strcasecmp(option, "--no-fix-parahipwm"))  FixParaHipWM = 0;
     else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
     else if (!strcasecmp(option, "--rip-unknown"))  RipUnknown = 1;
     else if (!strcasecmp(option, "--no-hash"))  UseHash = 0;
@@ -708,7 +733,7 @@ static void print_usage(void) {
 	 dmaxctx);
   printf("   --rip-unknown : do not label WM based on 'unknown' corical label\n");
   printf("   --hypo-as-wm : label hypointensities as WM\n");
-  printf("\n");
+  printf("   --no-fix-parahip : do not remove unconnected regions from WM parahip\n");
   printf("\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
@@ -830,6 +855,8 @@ static void check_options(void) {
       CtxSegFile = strcpyalloc(tmpstr);
     }
   }
+  if(FixParaHipWM && ! LabelWM) FixParaHipWM  = 0;
+
   return;
 }
 
@@ -959,5 +986,39 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 
 
   
+  return(0);
+}
+
+/*!
+  \fn int CCSegment(MRI *seg, int segid, int segidunknown)
+  Constraints a sementation ID to consist of voxels that
+  are spatially contiguous (6 face neighbors, not edge
+  or corner). The voxels in the largest cluster are not
+  changed. The voxels in the other clusters are set to
+  segidunknown.
+*/
+int CCSegment(MRI *seg, int segid, int segidunknown)
+{
+  MRI_SEGMENTATION *sgmnt;
+  int k,kmax,index,c,r,s;
+
+  sgmnt = MRIsegment(seg,segid-.5,segid+.5);
+  printf("  Found %d clusters\n",sgmnt->nsegments);
+
+  kmax = 0;
+  for(k=0; k < sgmnt->nsegments; k++)
+    if(sgmnt->segments[k].nvoxels > sgmnt->segments[kmax].nvoxels) kmax = k;
+
+  for(k=0; k < sgmnt->nsegments; k++){
+    printf("     %d k %f\n",k,sgmnt->segments[k].area);
+    if(k==kmax) continue;
+    for(index = 0; index < sgmnt->segments[k].nvoxels; index++){
+      c = sgmnt->segments[k].voxels[index].x;
+      r = sgmnt->segments[k].voxels[index].y;
+      s = sgmnt->segments[k].voxels[index].z;
+      MRIsetVoxVal(seg,c,r,s,0,segidunknown);
+    }
+  }
+  MRIsegmentFree(&sgmnt);
   return(0);
 }
