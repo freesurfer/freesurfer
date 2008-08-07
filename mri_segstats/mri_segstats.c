@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/29 18:02:24 $
- *    $Revision: 1.41 $
+ *    $Date: 2008/08/07 22:29:11 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -414,7 +414,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.41 2008/07/29 18:02:24 greve Exp $";
+"$Id: mri_segstats.c,v 1.42 2008/08/07 22:29:11 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1247,11 +1247,11 @@ int main(int argc, char **argv) {
     if(FrameAvgFile) {
       printf("Writing to %s\n",FrameAvgFile);
       fp = fopen(FrameAvgFile,"w");
-      fprintf(fp,"-1 -1 ");
-      for (n=0; n < nsegid; n++) fprintf(fp,"%4d ", StatSumTable[n].id);
-      fprintf(fp,"\n");
+      //fprintf(fp,"-1 -1 ");
+      //for (n=0; n < nsegid; n++) fprintf(fp,"%4d ", StatSumTable[n].id);
+      //fprintf(fp,"\n");
       for (f=0; f < invol->nframes; f++) {
-        fprintf(fp,"%3d %7.3f ",f,f*invol->tr/1000);
+        //fprintf(fp,"%3d %7.3f ",f,f*invol->tr/1000);
         for (n=0; n < nsegid; n++) fprintf(fp,"%g ",favg[n][f]);
         fprintf(fp,"\n");
       }
