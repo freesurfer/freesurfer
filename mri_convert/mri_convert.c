@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/06 15:49:45 $
- *    $Revision: 1.154 $
+ *    $Date: 2008/08/08 22:59:17 $
+ *    $Revision: 1.155 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,6 +80,7 @@ int main(int argc, char *argv[]) {
   int conform_flag;
   int conform_min;  // conform to the smallest dimension
   int conform_width;
+  int conform_width_256_flag;
   int parse_only_flag;
   int reorder_flag;
   int in_stats_flag, out_stats_flag;
@@ -189,7 +190,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.154 2008/08/06 15:49:45 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.155 2008/08/08 22:59:17 nicks Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -242,7 +243,8 @@ int main(int argc, char *argv[]) {
   in_info_flag = FALSE;
   out_info_flag = FALSE;
   voxel_size_flag = FALSE;
-  conform_flag = FALSE; // TRUE;
+  conform_flag = FALSE;
+  conform_width_256_flag = FALSE;
   nochange_flag = FALSE ;
   parse_only_flag = FALSE;
   reorder_flag = FALSE;
@@ -291,7 +293,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.154 2008/08/06 15:49:45 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.155 2008/08/08 22:59:17 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -322,6 +324,11 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[i], "-c") == 0 ||
              strcmp(argv[i], "--conform") == 0)
       conform_flag = TRUE;
+    else if (strcmp(argv[i], "--cw256") == 0)
+    {
+      conform_flag = TRUE;
+      conform_width_256_flag = TRUE;
+    }
     else if (strcmp(argv[i], "--sphinx") == 0 )
       sphinx_flag = TRUE;
     else if(strcmp(argv[i], "--autoalign") == 0){
@@ -1296,7 +1303,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.154 2008/08/06 15:49:45 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.155 2008/08/08 22:59:17 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1953,7 +1960,11 @@ int main(int argc, char *argv[]) {
     if(conform_flag) {
       conform_width = 256;
       if(conform_min == TRUE)  conform_size = findMinSize(mri, &conform_width);
-      else                    conform_width = findRightSize(mri, conform_size);
+      else
+      {
+        if(conform_width_256_flag) conform_width = 256; // force it
+        else conform_width = findRightSize(mri, conform_size);
+      }
       template->width =
       template->height = template->depth = conform_width;
       template->imnr0 = 1;
@@ -2885,8 +2896,6 @@ int findRightSize(MRI *mri, float conform_size) {
             fwidth, fheight, fdepth);
     fprintf(stderr, "The resulting volume will have %d slices.\n",
             conform_width);
-    fprintf(stderr, "The freesurfer tools should be "
-            "able to handle more than 256 slices.\n");
     fprintf(stderr, "If you find problems, please let us know "
             "(freesurfer@nmr.mgh.harvard.edu).\n");
     fprintf(stderr, "=================================================="
