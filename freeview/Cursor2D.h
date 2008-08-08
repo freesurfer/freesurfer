@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/08 20:13:39 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,6 +60,10 @@ public:
 	void Update( bool bConnectPrevious = false );  
 	
 	void AppendActor( vtkRenderer* renderer );
+	
+	void Show( bool bShow = true );
+	
+	bool IsShown();
 	
 private:
 	vtkSmartPointer<vtkActor2D>	m_actorCursor;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/08/08 20:13:40 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,7 +92,7 @@ public:
 	vtkRenderer* GetRenderer()
 		{ return m_renderer; }
 	
-	bool SaveScreenshot( const wxString& fn );
+	bool SaveScreenshot( const wxString& fn, int nMagnification = 1 );
 	
 	virtual void PreScreenshot() {}
 	virtual void PostScreenshot() {}

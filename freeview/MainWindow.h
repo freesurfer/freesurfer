@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/08/08 20:13:39 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,13 @@ class ToolWindowEdit;
 struct Settings2D
 {
 	bool	SyncZoomFactor;
+};
+
+struct SettingsScreenshot
+{
+	bool	HideCursor;
+	bool	HideCoords;
+	int		Magnification;
 };
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
@@ -116,11 +123,20 @@ public:
 	void OnView3DUpdateUI		( wxUpdateUIEvent& event );
 	void OnViewReset			( wxCommandEvent& event );
 	void OnViewResetUpdateUI	( wxUpdateUIEvent& event );
-	void OnViewCycleLayer		( wxCommandEvent& event );
-	void OnViewCycleLayerUpdateUI		( wxUpdateUIEvent& event );
-	void OnViewToggleVolumeVisibility	( wxCommandEvent& event );
+	
+	void OnViewCycleLayer					( wxCommandEvent& event );
+	void OnViewCycleLayerUpdateUI			( wxUpdateUIEvent& event );
+	void OnViewToggleVoxelCoordinates		( wxCommandEvent& event );
+	void OnViewToggleVolumeVisibility		( wxCommandEvent& event );
 	void OnViewToggleVolumeVisibilityUpdateUI( wxUpdateUIEvent& event );
-	void OnViewToggleVoxelCoordinates	( wxCommandEvent& event );
+	void OnViewToggleROIVisibility			( wxCommandEvent& event );
+	void OnViewToggleROIVisibilityUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewToggleSurfaceVisibility		( wxCommandEvent& event );
+	void OnViewToggleSurfaceVisibilityUpdateUI( wxUpdateUIEvent& event );
+	void OnViewToggleWayPointsVisibility	( wxCommandEvent& event );
+	void OnViewToggleWayPointsVisibilityUpdateUI( wxUpdateUIEvent& event );
+	void OnViewToggleCursorVisibility			( wxCommandEvent& event );
+	void OnViewToggleCursorVisibilityUpdateUI	( wxUpdateUIEvent& event );
 	
 	void OnViewSurfaceMain			( wxCommandEvent& event );
 	void OnViewSurfaceMainUpdateUI	( wxUpdateUIEvent& event );
@@ -235,6 +251,9 @@ public:
 	Settings2D Get2DSettings()
 		{ return m_settings2D; }
 	
+	SettingsScreenshot GetScreenshotSettings()
+		{ return m_settingsScreenshot; }
+	
 	void SetAction( int nAction );
 	
 	void SetMode( int nMode );
@@ -274,6 +293,7 @@ private:
 	LayerCollectionManager*	m_layerCollectionManager;
 	
 	Settings2D			m_settings2D;
+	SettingsScreenshot	m_settingsScreenshot;
 	
 	wxString			m_strLastDir;
 	wxFileHistory*		m_fileHistory;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/08/08 20:13:40 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -403,8 +403,11 @@ void RenderView2D::PreScreenshot()
 	lcm->Append2DProps( m_renderer, m_nViewPlane );
 	
 	// add coordinate annotation
-	m_annotation2D->AppendAnnotations( m_renderer );
-//	m_cursor2D->AppendCursor( m_renderer );
+	SettingsScreenshot s = MainWindow::GetMainWindowPointer()->GetScreenshotSettings();
+	if ( !s.HideCoords )
+		m_annotation2D->AppendAnnotations( m_renderer );
+	if ( !s.HideCursor )
+		m_cursor2D->AppendActor( m_renderer );
 	
 	// add focus frame
 //	m_renderer->AddViewProp( m_actorFocusFrame );

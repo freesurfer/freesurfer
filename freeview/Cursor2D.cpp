@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/08 20:13:39 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,4 +172,14 @@ void Cursor2D::GetPosition( double* pos )
 {
 	for ( int i = 0; i < 3; i++ )
 		pos[i] = m_dPosition[i];
+}
+
+void Cursor2D::Show( bool bShow )
+{
+	m_actorCursor->SetVisibility( bShow?1:0 );
+}
+	
+bool Cursor2D::IsShown()
+{
+	return m_actorCursor->GetVisibility() > 0;
 }

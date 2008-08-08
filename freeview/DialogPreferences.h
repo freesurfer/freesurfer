@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/08 20:13:39 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,9 @@
 
 class wxColourPickerCtrl;
 class wxCheckBox;
+class wxSpinCtrl;
 struct Settings2D;
+struct SettingsScreenshot;
 
 class DialogPreferences : public wxDialog
 {
@@ -47,6 +49,9 @@ public:
 	
 	Settings2D Get2DSettings();
 	void Set2DSettings( const Settings2D& s );
+	
+	SettingsScreenshot GetScreenshotSettings();
+	void SetScreenshotSettings( const SettingsScreenshot& s );
 			
 	void OnOK( wxCommandEvent& event ); 
 	
@@ -54,6 +59,10 @@ private:
 	wxColourPickerCtrl*		m_colorPickerBackground;
 	wxColourPickerCtrl*		m_colorPickerCursor;
 	wxCheckBox*				m_checkSyncZoomFactor;
+	
+	wxCheckBox*				m_checkHideCursor;
+	wxCheckBox*				m_checkHideCoords;
+	wxSpinCtrl*				m_spinMagnification;
 	
 	DECLARE_EVENT_TABLE()
 };

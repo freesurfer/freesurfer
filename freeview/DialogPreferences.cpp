@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/08 20:13:39 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
 #include <wx/wx.h>
 #include <wx/clrpicker.h>
 #include <wx/xrc/xmlres.h>
+#include <wx/spinctrl.h>
 #include "stdlib.h"
 #include "stdio.h"
 
@@ -46,6 +47,10 @@ DialogPreferences::DialogPreferences( wxWindow* parent )
 	m_colorPickerBackground->SetFocus();
 	m_colorPickerCursor = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
 	m_checkSyncZoomFactor = XRCCTRL( *this, "ID_CHECK_SYNC_ZOOM", wxCheckBox );
+	
+	m_checkHideCursor = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR", wxCheckBox );
+	m_checkHideCoords = XRCCTRL( *this, "ID_CHECK_HIDE_COORDS", wxCheckBox );
+	m_spinMagnification = XRCCTRL( *this, "ID_SPIN_MAGNIFICATION", wxSpinCtrl );
 }
 
 DialogPreferences::~DialogPreferences()
@@ -87,6 +92,24 @@ Settings2D DialogPreferences::Get2DSettings()
 {
 	Settings2D s;
 	s.SyncZoomFactor = m_checkSyncZoomFactor->IsChecked();
+	
+	return s;
+}
+
+
+void DialogPreferences::SetScreenshotSettings( const SettingsScreenshot& s )
+{
+	m_spinMagnification->SetValue( s.Magnification );
+	m_checkHideCursor->SetValue( s.HideCursor );
+	m_checkHideCoords->SetValue( s.HideCoords );
+}
+
+SettingsScreenshot DialogPreferences::GetScreenshotSettings()
+{
+	SettingsScreenshot s;
+	s.HideCursor = m_checkHideCursor->IsChecked();
+	s.HideCoords = m_checkHideCoords->IsChecked();
+	s.Magnification = m_spinMagnification->GetValue();
 	
 	return s;
 }

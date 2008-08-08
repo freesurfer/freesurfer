@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/08/08 20:13:39 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,10 @@ public:
 	void Update();  
 	
 	void AppendActor( vtkRenderer* renderer );
+	
+	void Show( bool bShow = true );
+	
+	bool IsShown();
 	
 private:
 	void RebuildActor();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/08 20:13:40 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -213,3 +213,26 @@ void RenderView3D::ShowVolumeSlice( int nPlane, bool bShow )
 	m_bSliceVisibility[nPlane] = bShow;
 	RefreshAllActors();
 }
+
+void RenderView3D::PreScreenshot()
+{
+	LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+	
+	m_renderer->RemoveAllViewProps();
+	lcm->Append3DProps( m_renderer );
+	
+	// add coordinate annotation
+	SettingsScreenshot s = MainWindow::GetMainWindowPointer()->GetScreenshotSettings();
+	if ( !s.HideCursor )
+		m_cursor3D->AppendActor( m_renderer );
+	
+	// add focus frame
+//	m_renderer->AddViewProp( m_actorFocusFrame );
+}
+
+
+void RenderView3D::PostScreenshot()
+{
+	RefreshAllActors();
+}
+

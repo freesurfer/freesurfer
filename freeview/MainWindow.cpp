@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/08/08 20:13:39 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -160,6 +160,14 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayerUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibility )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibilityUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_ROI" ),		MainWindow::OnViewToggleROIVisibility )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_ROI" ),		MainWindow::OnViewToggleROIVisibilityUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_SURFACE" ),		MainWindow::OnViewToggleSurfaceVisibility )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_SURFACE" ),		MainWindow::OnViewToggleSurfaceVisibilityUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_WAYPOINTS" ),		MainWindow::OnViewToggleWayPointsVisibility )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_WAYPOINTS" ),		MainWindow::OnViewToggleWayPointsVisibilityUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_CURSOR" ),			MainWindow::OnViewToggleCursorVisibility )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_TOGGLE_CURSOR" ),			MainWindow::OnViewToggleCursorVisibilityUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOXEL_COORDS" ),	MainWindow::OnViewToggleVoxelCoordinates )
     
     EVT_MENU		( XRCID( "ID_VIEW_SURFACE_MAIN" ),		MainWindow::OnViewSurfaceMain )
@@ -324,6 +332,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 		m_nScreenshotFilterIndex = config->Read( _T("/MainWindow/ScreenshotFilterIndex"), 0L );
 		
 		config->Read( _T("/RenderWindow/SyncZoomFactor"), &m_settings2D.SyncZoomFactor, true );
+		
+		config->Read( _T("/Screenshot/Magnification" ), &m_settingsScreenshot.Magnification, 1 );
+		config->Read( _T("/Screenshot/HideCursor" ),	&m_settingsScreenshot.HideCursor, false );
+		config->Read( _T("/Screenshot/HideCoords" ),	&m_settingsScreenshot.HideCoords, false );
 	}
 	SetViewLayout( m_nViewLayout );		
 }
@@ -413,6 +425,10 @@ void MainWindow::OnClose( wxCloseEvent &event )
 		config->Write( _T("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
 		config->Write( _T("RenderWindow/CursorColor"), m_viewAxial->GetCursor2D()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
 		config->Write( _T("/RenderWindow/SyncZoomFactor"), m_settings2D.SyncZoomFactor );
+		
+		config->Write( _T("/Screenshot/Magnification" ), 	m_settingsScreenshot.Magnification );
+		config->Write( _T("/Screenshot/HideCursor" ),		m_settingsScreenshot.HideCursor );
+		config->Write( _T("/Screenshot/HideCoords" ),		m_settingsScreenshot.HideCoords );
 		
 		m_fileHistory->Save( *config );
 	}
@@ -1563,6 +1579,72 @@ void MainWindow::OnViewToggleVolumeVisibilityUpdateUI( wxUpdateUIEvent& event )
 	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
 }
 
+
+void MainWindow::OnViewToggleROIVisibility( wxCommandEvent& event )
+{
+	LayerCollection* lc = GetLayerCollection( "ROI" );
+	if ( !lc->IsEmpty() )
+	{
+		Layer* layer = lc->GetActiveLayer();
+		if ( layer )
+			layer->SetVisible( !layer->IsVisible() );
+	}
+}
+
+void MainWindow::OnViewToggleROIVisibilityUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( !GetLayerCollection( "ROI" )->IsEmpty() );
+}
+
+
+void MainWindow::OnViewToggleSurfaceVisibility( wxCommandEvent& event )
+{
+	LayerCollection* lc = GetLayerCollection( "Surface" );
+	if ( !lc->IsEmpty() )
+	{
+		Layer* layer = lc->GetActiveLayer();
+		if ( layer )
+			layer->SetVisible( !layer->IsVisible() );
+	}
+}
+
+void MainWindow::OnViewToggleSurfaceVisibilityUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( !GetLayerCollection( "Surface" )->IsEmpty() );
+}
+
+
+void MainWindow::OnViewToggleWayPointsVisibility( wxCommandEvent& event )
+{
+	LayerCollection* lc = GetLayerCollection( "WayPoints" );
+	if ( !lc->IsEmpty() )
+	{
+		Layer* layer = lc->GetActiveLayer();
+		if ( layer )
+			layer->SetVisible( !layer->IsVisible() );
+	}
+}
+
+void MainWindow::OnViewToggleWayPointsVisibilityUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( !GetLayerCollection( "WayPoints" )->IsEmpty() );
+}
+
+void MainWindow::OnViewToggleCursorVisibility( wxCommandEvent& event )
+{
+	bool bCur = m_viewAxial->GetCursor2D()->IsShown(); 
+	m_viewAxial->GetCursor2D()->Show( !bCur );
+	m_viewSagittal->GetCursor2D()->Show( !bCur );
+	m_viewCoronal->GetCursor2D()->Show( !bCur );
+	m_view3D->GetCursor3D()->Show( !bCur );
+	NeedRedraw( 1 );
+}
+
+void MainWindow::OnViewToggleCursorVisibilityUpdateUI( wxUpdateUIEvent& event )
+{
+
+}
+
 void MainWindow::OnViewSurfaceMain( wxCommandEvent& event )
 {
 	LayerSurface* layer = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
@@ -1682,6 +1764,7 @@ void MainWindow::OnEditPreferences( wxCommandEvent& event )
 	dlg.SetBackgroundColor( m_viewAxial->GetBackgroundColor() );
 	dlg.SetCursorColor( m_viewAxial->GetCursor2D()->GetColor() );
 	dlg.Set2DSettings( m_settings2D );
+	dlg.SetScreenshotSettings( m_settingsScreenshot );
 	
 	if ( dlg.ShowModal() == wxID_OK )
 	{
@@ -1696,6 +1779,7 @@ void MainWindow::OnEditPreferences( wxCommandEvent& event )
 		m_viewCoronal->SetBackgroundColor( color );
 		m_view3D->SetBackgroundColor( color );
 		m_settings2D = dlg.Get2DSettings();
+		m_settingsScreenshot = dlg.GetScreenshotSettings();
 	}
 }
 
@@ -2166,7 +2250,7 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
 	{
 		m_strLastDir = MyUtils::GetNormalizedPath( fn );
 		m_nScreenshotFilterIndex = dlg.GetFilterIndex();
-		m_viewRender[nId]->SaveScreenshot( fn.c_str() );
+		m_viewRender[nId]->SaveScreenshot( fn.c_str(), m_settingsScreenshot.Magnification );
 	}
 }
 	
