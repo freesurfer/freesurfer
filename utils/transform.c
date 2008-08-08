@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/24 18:18:43 $
- *    $Revision: 1.112.2.5 $
+ *    $Date: 2008/08/08 19:01:14 $
+ *    $Revision: 1.112.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1746,6 +1746,20 @@ TransformRead(char *fname)
 
   trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
 
+  // firstly, check for filename 'identify.nofile', which does not exist
+  // as a file, but instead is used to force creation of an identity
+  // matrix of type linear ras2ras
+  if (0 == strcmp(fname, "identity.nofile"))
+  {
+    trans->type = LINEAR_RAS_TO_RAS;
+    LTA* lta = LTAalloc(1, NULL);
+    lta->xforms[0].m_L = MatrixIdentity(4, NULL);
+    lta->type = LINEAR_RAS_TO_RAS;
+    trans->xform = (void*)lta;
+    return trans;
+  }
+  // continue normal processing...
+
   trans->type = TransformFileNameType(fname) ;
   switch (trans->type)
   {
@@ -2722,6 +2736,18 @@ LTAreadEx(const char *fname)
 #if 0
   MATRIX *V, *W, *m_tmp;
 #endif
+
+  // firstly, check for filename 'identify.nofile', which does not exist
+  // as a file, but instead is used to force creation of an identity
+  // matrix of type linear ras2ras
+  if (0 == strcmp(fname, "identity.nofile"))
+  {
+    LTA* lta = LTAalloc(1, NULL);
+    lta->xforms[0].m_L = MatrixIdentity(4, NULL);
+    lta->type = LINEAR_RAS_TO_RAS;
+    return lta;
+  }
+  // continue normal processing...
 
   type = TransformFileNameType((char *) fname) ;
   switch (type)
