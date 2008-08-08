@@ -1,5 +1,7 @@
 project(dmri_poistats)
-
+include_directories (BEFORE ${dmri_poistats_SOURCE_DIR}/../itkutils)
+include_directories (BEFORE ${dmri_poistats_SOURCE_DIR}/../itkio)
+include_directories (BEFORE ${dmri_poistats_SOURCE_DIR})
 SET (DMRI_DATAMODEL_SRCS
 	datamodel/PoistatsModel.cxx 
 	datamodel/PoistatsModel.h
@@ -53,22 +55,22 @@ SET(dmri_poistats_SOURCES
 SET (dmri_poistats_LDADD 
 itkutils
 ITKBasicFilters 
-litkgdcm 
-litkpng 
-litktiff 
-lITKSpatialObject
-lITKNumerics
-litkvnl_inst
-litkvnl_algo
-litkv3p_netlib
-litkvnl
-litkvcl
-lITKMetaIO 
-litksys 
-lITKEXPAT 
-lITKniftiio 
-lITKznz 
-litkzlib
+itkgdcm 
+itkpng 
+itktiff 
+ITKSpatialObject
+ITKNumerics
+itkvnl_inst
+itkvnl_algo
+itkv3p_netlib
+itkvnl
+itkvcl
+ITKMetaIO 
+itksys 
+ITKEXPAT 
+ITKniftiio 
+ITKznz 
+itkzlib
 ${FS_LIBS}
 )
 add_executable (dmri_poistats ${dmri_poistats_SOURCES})
@@ -76,30 +78,30 @@ target_link_libraries(dmri_poistats ${dmri_poistats_LDADD})
 install(TARGETS dmri_poistats DESTINATION bin)	
 
 SET( dmri_initialize_path_SOURCES 
-  ${DATAMODEL_SRCS}
-  ${UTILS_SRCS}
+  ${DMRI_DATAMODEL_SRCS}
+  ${DMRI_UTILS_SRCS}
   dmri_initialize_path.cxx 
   )
   
 SET (dmri_initialize_path_LDADD 
 itkutils
 ITKBasicFilters 
-litkgdcm 
-litkpng 
-litktiff 
-lITKSpatialObject
-lITKNumerics
-litkvnl_inst
-litkvnl_algo
-litkv3p_netlib
-litkvnl
-litkvcl
-lITKMetaIO 
-litksys 
-lITKEXPAT 
-lITKniftiio 
-lITKznz 
-litkzlib
+itkgdcm 
+itkpng 
+itktiff 
+ITKSpatialObject
+ITKNumerics
+itkvnl_inst
+itkvnl_algo
+itkv3p_netlib
+itkvnl
+itkvcl
+ITKMetaIO 
+itksys 
+ITKEXPAT 
+ITKniftiio 
+ITKznz 
+itkzlib
 ${FS_LIBS}
 )
 add_executable (dmri_initialize_path ${dmri_initialize_path_SOURCES})
@@ -119,4 +121,3 @@ SET (dmri_mask_LDADD
 add_executable (dmri_mask ${dmri_mask_SOURCES})
 target_link_libraries(dmri_mask ${dmri_mask_LDADD})
 install(TARGETS dmri_mask DESTINATION bin)	
-

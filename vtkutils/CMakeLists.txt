@@ -50,6 +50,8 @@ SET (vtkKWRGBATransferFunctionEditorTester_SRCS
 SET (MVTKUTILS_TEST_LIBS
 vtkfsio
 vtkutils
+${TIX_LIBRARY}
+${BLT_LIBRARY} 
 ${FS_LIBS}
 )
 
@@ -61,4 +63,5 @@ target_link_libraries(vtkKWRGBATransferFunctionEditorTester ${MVTKUTILS_TEST_LIB
 
 add_executable(vtkArrowPipelineTester vtkArrowPipelineTester.cxx)
 target_link_libraries(vtkArrowPipelineTester ${MVTKUTILS_TEST_LIBS})
+
 

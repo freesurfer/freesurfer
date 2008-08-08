@@ -10,13 +10,20 @@ fsgdf_wrap.c
 FsgdfPlot.cxx
 )
 
+SET (FSGDFTEST_SRCS
+test.c
+fsgdf_wrap.c
+)
+
 SET (test-fsgdf-libs
 fsgdf
 ${FS_LIBS}
 )
 
+
+
 add_library(fsgdf STATIC ${fsgdf_SRCS})
-add_executable(test-fsgdf test.c)
+add_executable(test-fsgdf ${FSGDFTEST_SRCS})
 target_link_libraries(test-fsgdf ${test-fsgdf-libs})
 install(TARGETS test-fsgdf DESTINATION bin)	
 

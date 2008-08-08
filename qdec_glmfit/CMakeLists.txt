@@ -7,6 +7,7 @@ ${MINC_INCLUDE_DIRS})
 
 SET(qdec_glmfit_SRCS
 qdec_glmfit.cxx
+${qdec_glmfit_SOURCE_DIR}/../utils/getopt_long.c
 )
 
 SET (QDECLIBS
