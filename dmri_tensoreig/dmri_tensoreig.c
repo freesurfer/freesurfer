@@ -345,7 +345,7 @@ int main(int argc, char *argv[]) {
           }
     }
     printf("INFO: Mask contains %g%% of total voxels\n",
-           MRIvoxelMean(mask, nx/2, ny/2, nz/2, MAX(MAX(nx,ny),nz), 0) * 100);
+           MRIvoxelMean(mask, nx/2, ny/2, nz/2, MAX(MAX(nx,ny),nz)) * 100);
     printf("INFO: SNR of low-b image is %g\n",
            avgsnr(invol, mask, 0, 1));
     printf("INFO: Average SNR of all DW images is %g\n",
