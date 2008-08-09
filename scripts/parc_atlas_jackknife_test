@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/07/20 00:32:09 $
-#    $Revision: 1.13 $
+#    $Date: 2008/08/09 21:34:34 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.13 2007/07/20 00:32:09 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.14 2008/08/09 21:34:34 nicks Exp $';
 
 # defaults:
 # setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
@@ -294,7 +294,7 @@ foreach test_subj ($ALL_SUBJECTS)
                 echo "${cmd} |& tee -a ${LF}" >> ${cmdf}
                 chmod a+x ${cmdf}
                 pbsubmit ${pbs_flags} -c "${cmdf}"
-                sleep 3
+                sleep 30
             else
                 ${cmd} |& tee -a ${LF} &
             endif
@@ -367,7 +367,7 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${atlas}) rm -f ${atlas}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
-                sleep 3
+                sleep 30
             else
                 ${cmd} &
             endif
@@ -405,7 +405,7 @@ foreach test_subj ($ALL_SUBJECTS)
             if (-e ${annot}) rm -f ${annot}
             if ($PBS) then
                 pbsubmit ${pbs_flags} -c "${cmd}"
-                sleep 3
+                sleep 30
             else
                 ${cmd} &
             endif
