@@ -6,9 +6,9 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/13 03:50:38 $
- *    $Revision: 1.25 $
+ *    $Author: nicks $
+ *    $Date: 2008/08/09 21:35:26 $
+ *    $Revision: 1.25.2.1 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -45,11 +45,20 @@
 #define DCM_NODICOMFILES 1
 #define DCM_MULTIPLESTUDIES 2
 
-typedef unsigned short int BOOL;
-// typedef unsigned short int bool;
-
+#ifdef WIN32
+#ifndef BOOL
+typedef int BOOL;
 #define true 1
 #define false 0
+#endif 
+#else
+#ifndef BOOL
+typedef unsigned short int BOOL;
+// typedef unsigned short int bool;
+#define true 1
+#define false 0
+#endif   
+#endif
 
 #ifdef _DICOMRead_SRC
 char *SDCMStatusFile = 0;

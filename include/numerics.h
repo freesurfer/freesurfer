@@ -6,8 +6,8 @@
  * Original Author:  Dennis Jen and Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/26 19:43:44 $
- *    $Revision: 1.4.2.1 $
+ *    $Date: 2008/08/09 21:50:57 $
+ *    $Revision: 1.4.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,14 @@ extern "C"
 #endif
 
 #include "matrix.h"
+//PPJ
+#ifndef M_PI
+#define M_PI    3.14159265358979323846
+#endif
+ 
+#ifndef M_E
+#define M_E     2.718281828
+#endif
 
 #define SPLINE_USE_QUADRATIC         0
 #define SPLINE_USE_FIRST_DERIVATIVE  1

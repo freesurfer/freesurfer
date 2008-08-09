@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/09 21:38:13 $
+ *    $Revision: 1.4.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,6 +69,8 @@ typedef struct
   float roi_scale;
   float funused1;
   float funused2;
+  float funused8;
+  float funused9;
   float cal_max;
   float cal_min;
   int compressed;

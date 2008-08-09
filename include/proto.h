@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:41 $
- *    $Revision: 1.35 $
+ *    $Date: 2008/08/09 21:51:21 $
+ *    $Revision: 1.35.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@
 #endif
 
 /*----------------- ALL PLATFORMS *--------------------*/
-#ifndef Windows_NT
+#if !defined(WIN32) && !defined(Windows_NT)
 int stricmp(char *str1, char *str2) ;
 #endif
 
@@ -151,8 +151,10 @@ double rint(double x) ;
 #endif   /* MSDOS */
 
 /*----------- Windows Cygwin -----------------------*/
-#ifdef Windows_NT
+#if  defined(Windows_NT) || defined(WIN32)
 #define nint(f)   ((int) (floor(f + .5)))
+#define isnan(f) 0
+#define unlink _unlink
 #endif   /* Windows Cygwin */
 
 #endif   /* #ifndef PROTO_H */

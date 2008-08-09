@@ -7,9 +7,9 @@
 /*
  * Original Author: Florent Segonne  
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/05/01 16:56:01 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2008/08/09 21:38:58 $
+ *    $Revision: 1.9.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,7 @@ extern "C"
 {
 #include "mrisurf.h"
 #include "error.h"
+#include "utils.h"
 }
 
 #define mapMRI_XYZ(mri,x,y,z) for(int z =0 ; z < mri->depth ; z++) \

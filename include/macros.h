@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/24 22:26:13 $
- *    $Revision: 1.34.2.1 $
+ *    $Date: 2008/08/09 21:47:35 $
+ *    $Revision: 1.34.2.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,10 +71,10 @@
 #define DEGREES(rad) ((360.0 * (double)(rad)) / (2.0 * M_PI))
 #define NDEGREES(rad) (DEGREES(normAngle(rad)))
 
-#define ISSMALL(f)   (fabs(f) < 0.000001f)
-#define ISTINY(f)    (fabs(f) < 0.00000001f)
+#define ISSMALL(x)   (fabs(x) < (0.000001f))
+#define ISTINY(x)    (fabs(x) < (0.00000001f))
 
-#define FZERO(f)     (fabs(f) < 0.0000001F)
+#define FZERO(x)     (fabs(x) < 0.0000001F)
 #define DZERO(d)     (fabs(d) < 1e-15)
 #define iszero(f)   (FZERO(f))
 #define FEQUAL(f1,f2) (FZERO(f1-f2))

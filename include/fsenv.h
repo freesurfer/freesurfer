@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/18 20:28:54 $
- *    $Revision: 1.3.2.1 $
+ *    $Date: 2008/08/09 21:39:48 $
+ *    $Revision: 1.3.2.2 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,9 @@
 #ifndef FSENV_INC
 #define FSENV_INC
 
+#ifndef WIN32
 #include <sys/utsname.h>
+#endif
 #include "colortab.h"
 
 typedef struct

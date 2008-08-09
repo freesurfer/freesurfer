@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/28 01:53:44 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/09 21:42:59 $
+ *    $Revision: 1.7.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,7 +34,11 @@
 
 typedef struct
 {
+#ifdef WIN32
+  double x, y, z ;
+#else
   float x, y, z ;
+#endif
 }
 IC_VERTEX ;
 

@@ -10,5 +10,11 @@
 # include <sys/types.h>
 
 #if !HAVE_DECL_GETLINE
-ssize_t getline (char **lineptr, size_t *n, FILE *stream);
+
+#ifdef WIN32
+size_t getline (char **lineptr, size_t *n, FILE *stream); 
+#else
+ssize_t getline (char **lineptr, size_t *n, FILE *stream);   
+#endif
+
 #endif /* !HAVE_GETLINE */
