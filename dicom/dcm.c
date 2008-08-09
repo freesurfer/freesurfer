@@ -86,13 +86,19 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2007/04/27 02:23:40 $
+** Last Update:   $Author: nicks $, $Date: 2008/08/09 20:58:20 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.30 $
+** Revision:    $Revision: 1.30.2.1 $
 ** Status:    $State: Exp $
 */
 
-#include <sys/fcntl.h>
+
+#ifdef WIN32
+
+#else
+#include <sys/fcntl.h>   
+#endif
+
 #include <ctype.h>
 
 #ifdef SunOS
@@ -3751,7 +3757,7 @@ union {
   unsigned short sh[2];
   unsigned char ch[4];
 }
-groupElement = {};
+groupElement;
 
 static CONDITION
 exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
@@ -7342,7 +7348,8 @@ DCM_CopyObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
       if (elementItem->element.representation == DCM_SQ) {
         copySequence(&dstObj, &elementItem->element);
       } else {
-        DCM_AddElement((DCM_OBJECT **) & dstObj, &elementItem->element);
+        void* pvoid = (void*)& dstObj;
+        DCM_AddElement((DCM_OBJECT **) pvoid, &elementItem->element);
       }
       elementItem = LST_Next(&groupItem->elementList);
     }
@@ -7393,7 +7400,8 @@ DCM_MergeObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
       if (elementItem->element.representation == DCM_SQ) {
         copySequence(&dstObj, &elementItem->element);
       } else {
-        DCM_AddElement((DCM_OBJECT **) & dstObj, &elementItem->element);
+        void* pvoid = (void*) & dstObj;
+        DCM_AddElement((DCM_OBJECT **) pvoid, &elementItem->element);
       }
       elementItem = LST_Next(&groupItem->elementList);
     }

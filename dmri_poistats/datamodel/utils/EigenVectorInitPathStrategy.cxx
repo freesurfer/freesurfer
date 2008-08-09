@@ -1,3 +1,8 @@
+#ifdef WIN32
+#include <Windows.h>
+#include <time.h>
+#endif
+#include <iostream>
 #include "EigenVectorInitPathStrategy.h"
 
 // for MRIextractDistanceMap
@@ -6,7 +11,7 @@
 // for random number generator
 #include "numerics.h"
 
-#include <iostream>
+
 
 EigenVectorInitPathStrategy::EigenVectorInitPathStrategy() {
   m_EigenVectors = NULL;

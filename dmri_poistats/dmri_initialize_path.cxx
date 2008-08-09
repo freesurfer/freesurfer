@@ -6,7 +6,9 @@
 
 extern "C"
 {
+#include "utils.h"
 #include "matrix.h"
+char *Progname;
 }
 
 #include "ui/CommandParser.h"
@@ -15,7 +17,7 @@ extern "C"
 #include "datamodel/utils/InitializePath.h"
 
 /** This is needed by the freesurfer utils library */
-char *Progname;
+
 
 /**
  * C++ replacement of the matlab Poistats.

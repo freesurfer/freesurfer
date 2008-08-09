@@ -7,11 +7,9 @@
 
 #include <itkScalarVector.h>
 
-#include "dmri_poistats/datamodel/data/PoistatsReplicas.h"
-
-#include "dmri_poistats/datamodel/PoistatsModel.h"
-
-#include "dmri_poistats/datamodel/events/PoistatsEvents.h"
+#include "datamodel/data/PoistatsReplicas.h"// dmri_poistats
+#include "datamodel/PoistatsModel.h"// dmri_poistats
+#include "datamodel/events/PoistatsEvents.h"// dmri_poistats
 
 namespace itk
 {
@@ -316,7 +314,7 @@ private:
    type *ONLY* in some compilers... 
  */
   // itkStaticConstMacro( DEFAULT_COOL_FACTOR, double, 0.995 );
-  static const double DEFAULT_COOL_FACTOR = 0.995;
+  static const double DEFAULT_COOL_FACTOR;
 
   double m_CoolFactor;
   itkGetMacro(CoolFactor, double);
@@ -366,13 +364,13 @@ private:
   PoistatsReplicas *m_Replicas;
   
   double m_ReplicaExchangeProbability;
-  static const double DEFAULT_REPLICA_EXCHANGE_PROBABILITY = 0.05;
+  static const double DEFAULT_REPLICA_EXCHANGE_PROBABILITY;
 
   double m_SigmaTimeConstant;
-  static const double DEFAULT_SIGMA_TIME_CONSTANT = 2*1e2;  
+  static const double DEFAULT_SIGMA_TIME_CONSTANT;  
 
   double m_PointsToImageGamma;
-  static const double DEFAULT_POINTS_TO_IMAGE_GAMMA = 0.5;  
+  static const double DEFAULT_POINTS_TO_IMAGE_GAMMA;  
   
   int m_CurrentIteration;
   int m_CurrentLull;
@@ -390,6 +388,24 @@ private:
   
 };
 
+/*
+class ITK_EXPORT PoistatsFilter<TInputImage, TOutputImage>::DEFAULT_COOL_FACTOR = 0.995;
+
+class ITK_EXPORT PoistatsFilter<TInputImage, TOutputImage>::DEFAULT_REPLICA_EXCHANGE_PROBABILITY = 0.05;
+
+class ITK_EXPORT PoistatsFilter<TInputImage, TOutputImage>::DEFAULT_SIGMA_TIME_CONSTANT = 2*1e2;
+
+class ITK_EXPORT PoistatsFilter<TInputImage, TOutputImage>::DEFAULT_POINTS_TO_IMAGE_GAMMA = 0.5;
+
+static const double DEFAULT_COOL_FACTOR = 0.995;
+static const double DEFAULT_REPLICA_EXCHANGE_PROBABILITY = 0.05;
+
+double m_SigmaTimeConstant;
+static const double DEFAULT_SIGMA_TIME_CONSTANT = 2*1e2;  
+
+double m_PointsToImageGamma;
+static const double DEFAULT_POINTS_TO_IMAGE_GAMMA = 0.5;  
+*/
 } // end namespace itk
 
 #ifndef ITK_MANUAL_INSTANTIATION

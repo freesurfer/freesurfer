@@ -1,6 +1,7 @@
 #ifndef __PoistatsModel_h
 #define __PoistatsModel_h
 
+#include <iostream>
 #include "itkutils/bspline/itkBSplineDataPointSetToImageFilter.h"
 
 #include <vnl/vnl_random.h>

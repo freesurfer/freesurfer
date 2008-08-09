@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:40 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/08/09 20:55:29 $
+ *    $Revision: 1.9.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 #include "const.h"
 #include "version.h"
 #include "mghendian.h"
+#include "utils.h"
 
 #define MAX_FILES  10000
 
@@ -74,7 +75,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: check_siemens_dir.c,v 1.9 2007/04/27 02:23:40 nicks Exp $", 
+     "$Id: check_siemens_dir.c,v 1.9.2.1 2008/08/09 20:55:29 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

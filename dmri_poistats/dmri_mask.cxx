@@ -5,7 +5,10 @@
 #include "ui/FreeSurferExecutable.h"
 
 /** This is needed by the freesurfer utils library */
+extern "C" {
+#include "utils.h"
 char *Progname;
+}
 
 /**
  * Mask and binarize a path based on the eigen vector.

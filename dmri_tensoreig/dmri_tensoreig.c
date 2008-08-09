@@ -1,17 +1,16 @@
 /**
- * @file  dti_tensoreig.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @file  dmri_tensoreig.c
+ * @brief calculates eigensystem and fa
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author$
  *    $Date$
  *    $Revision$
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,23 +24,17 @@
  *
  */
 
-
-////////////////////////////////////////////////////////////////////
-// dti_tensoreig.c
-//
-// Warning: Do not edit the following three lines.  CVS maintains them.
-// Revision Author: $Author$
-// Revision Date  : $Date$
-// Revision       : $Revision$
-//
-////////////////////////////////////////////////////////////////////
-
 char *MRI_INFO_VERSION = "$Revision$";
 
 #include <float.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <sys/utsname.h>
+
+#ifdef WIN32
+#include <direct.h>
+#else
+#include <sys/utsname.h>   
+#endif
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
@@ -94,7 +87,11 @@ char *MaskFile = NULL;
 char *OutFmt = "nii";
 int IsTensorInput = 0;
 int debug = 0;
-struct utsname uts;
+
+#ifndef WIN32
+struct utsname uts;   
+#endif
+
 char *cmdline, cwd[2000];
 int DiffMode;
 char tmpstr[2000];
@@ -107,10 +104,12 @@ int main(int argc, char *argv[]) {
   float *grads = NULL;
   float *gp = NULL;
   float *eval = NULL;
-  MATRIX *B = NULL, *Bpseudo = NULL, *dwi = NULL, *tensor = NULL, *Tensor = NULL, *Evec = NULL;
+  MATRIX *B = NULL, *Bpseudo = NULL, *dwi = NULL, *tensor = NULL, 
+    *Tensor = NULL, *Evec = NULL;
   MRI *invol = NULL, *mask = NULL, *lowb = NULL, *avgdwi = NULL,
-  *tenstack = NULL, *eigval = NULL, *eigvec1 = NULL, *eigvec2 = NULL, *eigvec3 = NULL, 
-  *trace = NULL, *fa = NULL;
+  *tenstack = NULL, *eigval = NULL, 
+    *eigvec1 = NULL, *eigvec2 = NULL, *eigvec3 = NULL, 
+    *trace = NULL, *fa = NULL;
   FILE *fp = NULL;
   char outfile[1024];
   const double minexp = exp(-10^35);
@@ -120,7 +119,11 @@ int main(int argc, char *argv[]) {
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
-  uname(&uts);
+
+#ifndef WIN32
+  uname(&uts);   
+#endif
+
   getcwd(cwd,2000);
 
   Progname = argv[0] ;
@@ -230,7 +233,8 @@ int main(int argc, char *argv[]) {
       ig++;
     fclose(fp);
     if (ig != ng-3) {
-      printf("ERROR: Expected %d values in %s, found %d\n", ng-3, GradFile, ig);
+      printf("ERROR: Expected %d values in %s, found %d\n", 
+             ng-3, GradFile, ig);
       exit(1);
     }
     if (debug) {
@@ -320,8 +324,11 @@ int main(int argc, char *argv[]) {
         printf("ERROR: Could not open %s\n", MaskFile);
         exit(1);
       }
-      if ( (nx != mask->width) || (ny != mask->height) || (nz != mask->depth) ) {
-        printf("ERROR: Mask size %d x %d x %d does not agree with image size\n",
+      if ( (nx != mask->width) || 
+           (ny != mask->height) || 
+           (nz != mask->depth) ) {
+        printf("ERROR: Mask size %d x %d x %d does not agree "
+               "with image size\n",
                mask->width, mask->height, mask->depth);
         exit(1);
       }
@@ -338,7 +345,7 @@ int main(int argc, char *argv[]) {
           }
     }
     printf("INFO: Mask contains %g%% of total voxels\n",
-           MRIvoxelMean(mask, nx/2, ny/2, nz/2, MAX(MAX(nx,ny),nz)) * 100);
+           MRIvoxelMean(mask, nx/2, ny/2, nz/2, MAX(MAX(nx,ny),nz), 0) * 100);
     printf("INFO: SNR of low-b image is %g\n",
            avgsnr(invol, mask, 0, 1));
     printf("INFO: Average SNR of all DW images is %g\n",
@@ -388,7 +395,8 @@ int main(int argc, char *argv[]) {
   
             /* Average and mask DWI voxel values
                (just to save to disk, not used in tensor estimation) */
-            MRIsetVoxVal(lowb, ix, iy, iz, 0, MRIgetVoxVal(invol, ix, iy, iz, 0));
+            MRIsetVoxVal(lowb, ix, iy, iz, 0, 
+                         MRIgetVoxVal(invol, ix, iy, iz, 0));
             mean = 0;
             for (id=1; id<nDir+1; id++)
               mean += MRIgetVoxVal(invol, ix, iy, iz, id);
@@ -562,7 +570,8 @@ static int parse_commandline(int argc, char **argv) {
       OutDir = pargv[0];
       nargc --;
       pargv ++;
-    } else if (!strcasecmp(option, "--sdcm") || !strcasecmp(option, "--infodump")) {
+    } else if (!strcasecmp(option, "--sdcm") || 
+               !strcasecmp(option, "--infodump")) {
       // Pass it a siemens dicom or an info dump file from which parameters
       // should be extracted.
       if (nargc < 1) CMDargNErr(option,1);
@@ -635,7 +644,8 @@ static void print_usage(void) {
   printf("   --ndir num : number of diffusion directions \n");
   printf("   --g   file : gradient file \n");
   printf("   --m   file : mask file\n");
-  printf("   --tensor   : create the output from the input tensors, rather than creating\nthem from the diffusion weighted images \n");
+  printf("   --tensor   : create the output from the input tensors,"
+         "rather than creating\nthem from the diffusion weighted images \n");
   printf("\n");
 }
 
@@ -693,9 +703,17 @@ static void dump_options(FILE *fp) {
   fprintf(fp, "%s\n", vcid);
   fprintf(fp, "Cwd %s\n", cwd);
   fprintf(fp, "Cmdline %s\n", cmdline);
+
+#ifdef WIN32
+  fprintf(fp, "Sysname %s\n", "Windows");
+  fprintf(fp, "Hostname %s\n", "UNKNOWN");
+  fprintf(fp, "Machine %s\n", "i386 compatible");   
+#else
   fprintf(fp, "Sysname %s\n", uts.sysname);
   fprintf(fp, "Hostname %s\n", uts.nodename);
-  fprintf(fp, "Machine %s\n", uts.machine);
+  fprintf(fp, "Machine %s\n", uts.machine);   
+#endif
+
   fprintf(fp, "User %s\n", VERuser());
   fprintf(fp, "Input file %s\n", InFile);
   fprintf(fp, "Output directory %s\n", OutDir);

@@ -1,3 +1,9 @@
+
+#ifdef WIN32
+#include <Windows.h>
+#include <time.h>
+#endif 
+#include <iostream>
 #include "InitializePath.h"
 
 // for MRIextractDistanceMap
@@ -6,7 +12,7 @@
 // for random number generator
 #include "numerics.h"
 
-#include <iostream>
+
 
 InitializePath::InitializePath() {
   m_PoistatsModel = NULL;

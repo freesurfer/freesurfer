@@ -1,6 +1,13 @@
-#include "FieldLineInitPathStrategy.h"
+
+#ifdef WIN32
+#include <Windows.h>   
+#include <time.h>
+#endif
 
 #include <iostream>
+#include "FieldLineInitPathStrategy.h"
+
+
 
 FieldLineInitPathStrategy::FieldLineInitPathStrategy( PoistatsModel* model ) {
   m_PoistatsModel = model;
