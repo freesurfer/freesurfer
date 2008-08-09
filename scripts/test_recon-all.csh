@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/07/29 13:49:14 $
-#    $Revision: 1.25 $
+#    $Date: 2008/08/09 17:46:31 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.25 2008/07/29 13:49:14 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.26 2008/08/09 17:46:31 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -391,7 +391,8 @@ if ($RunIt) then
 endif
 
 set TEST_SURFACES=(orig.nofix smoothwm.nofix inflated.nofix qsphere.nofix \
-orig smoothwm inflated white pial sphere sphere.reg jacobian_white)
+orig smoothwm inflated white pial sphere sphere.reg)
+# note: mris_diff cannot check jacobian_white)
 set TEST_HEMIS=(rh lh)
 
 foreach hemi ($TEST_HEMIS)
