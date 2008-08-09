@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/09 22:17:38 $
+ *    $Revision: 1.4.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
    Date: 8/24/03
    Purpose: Create a new registration matrix that will map a functional
    to the orig of another subject.
-   $Id: mkxsubjreg.c,v 1.4 2006/12/29 02:09:04 nicks Exp $
+   $Id: mkxsubjreg.c,v 1.4.2.1 2008/08/09 22:17:38 nicks Exp $
 */
 
 #include <stdio.h>
@@ -40,7 +40,13 @@
 #include <math.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/time.h>
+
+#ifdef WIN32
+#include <time.h>   
+#else
+#include <sys/time.h>   
+#endif
+
 
 #include "error.h"
 #include "diag.h"
@@ -51,7 +57,7 @@
 #include "fio.h"
 #include "version.h"
 #include "resample.h"
-
+#include "utils.h"
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -64,7 +70,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mkxsubjreg.c,v 1.4 2006/12/29 02:09:04 nicks Exp $";
+static char vcid[] = "$Id: mkxsubjreg.c,v 1.4.2.1 2008/08/09 22:17:38 nicks Exp $";
 char *Progname = NULL;
 
 char *srcregpath  = NULL;
@@ -173,7 +179,7 @@ static int parse_commandline(int argc, char **argv) {
   if (argc < 1) usage_exit();
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mkxsubjreg.c,v 1.4 2006/12/29 02:09:04 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mkxsubjreg.c,v 1.4.2.1 2008/08/09 22:17:38 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

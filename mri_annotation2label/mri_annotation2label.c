@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/06/01 00:37:10 $
- *    $Revision: 1.13 $
+ *    $Author: nicks $
+ *    $Date: 2008/08/09 22:19:45 $
+ *    $Revision: 1.13.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $
+  $Id: mri_annotation2label.c,v 1.13.2.1 2008/08/09 22:19:45 nicks Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -38,10 +38,13 @@
 #include <math.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#ifdef WIN32
+#include <direct.h>
+#else
 #include <sys/utsname.h>
+#endif
 #include <unistd.h>
 #include <string.h>
-
 #include "MRIio_old.h"
 #include "error.h"
 #include "diag.h"
@@ -62,7 +65,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.13.2.1 2008/08/09 22:19:45 nicks Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -95,7 +98,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.13 2007/06/01 00:37:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.13.2.1 2008/08/09 22:19:45 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

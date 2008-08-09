@@ -4,7 +4,11 @@
 #include <iterator>
 
 #include <unistd.h>
-#include <sys/utsname.h>
+#ifdef WIN32
+#include <direct.h>
+#else
+#include <sys/utsname.h>   
+#endif
 
 #include "FreeSurferExecutable.h"
 
@@ -394,25 +398,40 @@ FreeSurferExecutable::GetCurrentDirectory() {
 
 std::string 
 FreeSurferExecutable::GetOperatingSystem() {  
-  utsname uts;
-  uname( &uts );    
-  std::string name( uts.sysname );
+
+#ifdef WIN32
+	std::string name( "unk");
+#else
+	utsname uts;
+	uname( &uts );    
+	std::string name( uts.sysname );   
+#endif
+
   return name;
 }
 
 std::string
 FreeSurferExecutable::GetHostName() {
-  utsname uts;
-  uname( &uts );
-  std::string name( uts.nodename );
+#ifdef WIN32
+	std::string name( "unk");
+#else
+	utsname uts;
+	uname( &uts );    
+	std::string name( uts.nodename );   
+#endif
   return name;
 }
 
 std::string
 FreeSurferExecutable::GetMachine() {
-  utsname uts;
-  uname( &uts );
-  std::string machine( uts.machine );
+#ifdef WIN32
+	std::string machine( "unk");
+#else
+	utsname uts;
+	uname( &uts );
+	std::string machine( uts.machine );
+  
+#endif
   return machine;
 }
 

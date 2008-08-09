@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:03 $
- *    $Revision: 1.41 $
+ *    $Date: 2008/08/09 22:15:55 $
+ *    $Revision: 1.41.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,6 +79,7 @@
 #include "error.h"
 #include "proto.h"
 #include "timer.h"
+#include "utils.h"
 
 /*----------------------------------------------------------------------
                            CONSTANTS
@@ -2293,7 +2294,7 @@ writeTimes(char *fname, LOGMAP_INFO *lmi, int niter) {
 
 #define FSCALE  1000.0f
 
-#define ISZERO(f)   FZERO(f*10.0f*FSCALE)
+#define ISZERO(x)   FZERO(x*10.0f*FSCALE)
 
 static int imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize,
                                 IMAGE *Iorient, int x0,int y0) ;
