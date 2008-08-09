@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/09 21:18:13 $
+ *    $Revision: 1.7.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: dummy.c,v 1.7 2006/12/29 02:08:57 nicks Exp $
+// $Id: dummy.c,v 1.7.2.1 2008/08/09 21:18:13 nicks Exp $
 
 /*
   BEGINHELP
@@ -56,7 +56,13 @@
 double round(double x);
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/utsname.h>
+
+#ifdef WIN32
+#include <direct.h>
+#else
+#include <sys/utsname.h>   
+#endif
+
 #include <unistd.h>
 
 #include "macros.h"
@@ -91,12 +97,18 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: dummy.c,v 1.7 2006/12/29 02:08:57 nicks Exp $";
+static char vcid[] = "$Id: dummy.c,v 1.7.2.1 2008/08/09 21:18:13 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
-struct utsname uts;
+
+#ifdef WIN32
+
+#else
+struct utsname uts;   
+#endif
+
 
 char *TempVolFile=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
@@ -109,7 +121,13 @@ int main(int argc, char *argv[]) {
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
-  uname(&uts);
+
+#ifdef WIN32
+
+#else
+  uname(&uts);   
+#endif
+
   getcwd(cwd,2000);
 
   Progname = argv[0] ;
@@ -249,9 +267,15 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
+
+#ifdef WIN32
+
+#else
   fprintf(fp,"sysname  %s\n",uts.sysname);
   fprintf(fp,"hostname %s\n",uts.nodename);
-  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"machine  %s\n",uts.machine);   
+#endif
+
   fprintf(fp,"user     %s\n",VERuser());
 
   return;

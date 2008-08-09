@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:06:16 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2008/08/09 21:22:58 $
+ *    $Revision: 1.5.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 #include <iostream>
 #include <iomanip>
-#if (__GNUC__ < 3)
+#if (__GNUC__ < 3) && !defined(WIN32)
 #include "/usr/include/g++-3/alloc.h"
 #endif
 #include <string>

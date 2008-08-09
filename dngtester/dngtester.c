@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/14 03:37:54 $
- *    $Revision: 1.41.2.1 $
+ *    $Date: 2008/08/09 21:17:19 $
+ *    $Revision: 1.41.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -371,8 +371,10 @@ int main(int argc, char **argv) {
 
   return(0);
 
+#ifndef WIN32
   printrgb();
   return(0);
+#endif
 
   printf("Reading\n");
   mri = MRIread(argv[1]);

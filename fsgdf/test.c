@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/04/11 19:46:51 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/08/09 21:22:18 $
+ *    $Revision: 1.13.2.1 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@ int main (int argc, char** argv) {
   char fnTestPath[1000];
   char fnTest[1000];
   int  rTcl;
-
+  Tcl_Interp* interp;
   if ( argc > 1 ) {
 
     /* Grab the file name from the arg */
@@ -85,7 +85,7 @@ int main (int argc, char** argv) {
   printf("C Test successful.\n\n");
 
   printf("Tcl_CreateInterp..."); fflush(stdout);
-  Tcl_Interp* interp = Tcl_CreateInterp();
+  interp = Tcl_CreateInterp();
   Assert( NULL != interp, "Tcl_CreateInterp returned null" );
   printf("done.\n");
 

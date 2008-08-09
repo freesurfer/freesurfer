@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:26 $
- *    $Revision: 1.42.2.1 $
+ *    $Date: 2008/08/09 21:22:17 $
+ *    $Revision: 1.42.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -102,6 +102,9 @@ static int gdfGetDefVarLabelNo(FSGD *gd);
 char *Progname = "fsgdf";
 #endif
 
+#ifdef WIN32
+#define isblank(x) ((x)==' ')
+#endif
 /*--------------------------------------------------*/
 FSGD *gdfAlloc(int version) {
   FSGD *gd;
