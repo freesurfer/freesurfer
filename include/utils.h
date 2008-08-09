@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/09 22:04:55 $
- *    $Revision: 1.27.2.2 $
+ *    $Date: 2008/08/09 22:12:21 $
+ *    $Revision: 1.27.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,8 @@
 #define UTILS_H
 
 #include <stdio.h>
+
+#include "config.h"  // defines what we HAVE_...
 
 #define MATLAB_FILE   0
 #define HIPS_FILE     1
