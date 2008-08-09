@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:52 $
- *    $Revision: 1.27.2.1 $
+ *    $Date: 2008/08/09 22:04:55 $
+ *    $Revision: 1.27.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -97,4 +97,67 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 void __ltoq(void);
 void __qtol(void);
 
+#ifndef S_ISDIR
+#define S_ISDIR(m)      (((m) & S_IFMT) == S_IFDIR)
 #endif
+
+#ifndef S_ISREG
+#define S_ISREG(x) (((x) & S_IFMT) == S_IFREG)
+#endif
+
+#ifdef WIN32
+#undef HAVE_STRNCASECMP
+#undef HAVE_STRCASECMP
+#endif
+
+#ifndef HAVE_STRNCASECMP 
+#define strncasecmp _strnicmp 
+#endif
+#ifndef HAVE_STRCASECMP 
+#define strcasecmp _stricmp 
+#endif
+
+#ifdef WIN32
+#define log2(x) log(x)/log(2)
+#define exp2(x) pow(2.0,x)
+#define random rand
+#define srandom srand
+#define round(x) ((x)>=0?(long)((x)+0.5):(long)((x)-0.5))
+#define snprintf _snprintf
+double rint(double x);
+// ascii to unsigned long long
+#if defined(_MSC_VER) || defined(_MSC_EXTENSIONS)
+#define DELTA_EPOCH_IN_MICROSECS  11644473600000000Ui64
+#else
+#define DELTA_EPOCH_IN_MICROSECS  11644473600000000ULL
+#endif
+
+struct timezone 
+{
+	int  tz_minuteswest; /* minutes W of Greenwich */
+	int  tz_dsttime;     /* type of dst correction */
+};
+int gettimeofday(struct timeval *tv, struct timezone *tz);
+double finite (double d);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
+extern char* optarg;
+extern int optind;
+extern int opterr;
+extern int optopt;
+
+int getopt(int argc, char** argv, char* optstr);
+
+
+#ifdef __cplusplus
+}
+#endif
+#define MORE_MSVC_ODDITIES
+#endif
+
+#endif
+
