@@ -131,7 +131,6 @@ MRISUBDIRS=\
 	mri_vol2roi \
 	mri_vol2vol \
 	mri_segreg \
-	mri_hausdorff_dist \
 	mri_segstats \
 	mri_stats2seg \
 	mri_vol2surf \
