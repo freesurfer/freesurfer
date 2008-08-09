@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/08/09 22:34:46 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,9 +52,11 @@
 #include "version.h"
 #define MYFZERO(f)     (fabs(f) < 0.0001F)
 #define SAMPLE_BSPLINE 5
+#ifndef DBL_EPSILON 
 #define DBL_EPSILON 1e-10
+#endif
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.2 2006/12/29 02:09:09 nicks Exp $";
+static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.2.2.1 2008/08/09 22:34:46 nicks Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -127,7 +129,7 @@ main(int argc, char *argv[]) {
   int i, nbins, bin;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.2 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.2.2.1 2008/08/09 22:34:46 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;
