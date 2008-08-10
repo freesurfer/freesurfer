@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/28 19:31:34 $
- *    $Revision: 1.42.2.1 $
+ *    $Date: 2008/08/10 16:00:59 $
+ *    $Revision: 1.42.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,18 +44,18 @@
 
 #include "hips.h"
 
+#include "tiffio.h"
+#include "jpeglib.h"
 #include "image.h"
 #include "error.h"
 #include "matrix.h"
 #include "matfile.h"
-#include "utils.h"
-#include "macros.h"
 #include "machine.h"
+#include "macros.h"
+#include "utils.h"
 #include "proto.h"
 #include "diag.h"
 #include "canny.h"
-#include "tiffio.h"
-#include "jpeglib.h"
 #include "rgb_image.h"
 #include "rgb_utils.h"
 #ifndef IRIX

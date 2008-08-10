@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/10 15:47:20 $
- *    $Revision: 1.27.2.4 $
+ *    $Date: 2008/08/10 16:00:58 $
+ *    $Revision: 1.27.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,8 @@
 
 #include <stdio.h>
 
-undef HAVE_STDDEF_H
+#undef HAVE_STDDEF_H
+#undef HAVE_STDLIB_H
 #include "config.h"  // defines what we HAVE_...
 
 #define MATLAB_FILE   0
