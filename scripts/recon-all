@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/04/17 20:38:23 $
-#    $Revision: 1.133.2.30 $
+#    $Date: 2008/08/11 22:21:27 $
+#    $Revision: 1.133.2.31 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.30 2008/04/17 20:38:23 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.31 2008/08/11 22:21:27 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -120,6 +120,8 @@ set DoMultiStrip = 0 # if 1, then multiple instances of mri_watershed and
 set IsMPRAGE = 0     # if 1, then -mprage added to mri_normalize/segment
 set IsWashuMPRAGE = 0 # if 1, then -washu_mprage added to mri_normalize/segment
 set DoCropsize256 = 0 # if 1, then crop to 256^3 during mri_convert -conform
+set DoConformWidth256 = 0 # if 1, then conform to 256^3 during
+                          # the mri_convert -conform step
 set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
@@ -668,6 +670,11 @@ if($DoMotionCor) then
     set cmd = ($cmd $HiRes)
   else
     set cmd = ($cmd --conform)
+    if($DoConformWidth256) then
+      # force conform width to 256
+      set cmd = ($cmd --cw256)
+      # see note just below on when -cw256 is necessary (ie, when FOV > 256)
+    endif
   endif
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -679,6 +686,11 @@ if($DoMotionCor) then
 
   # the cropsize256 option is used to process files having a FOV >256.
   # the image is cropped, and the center ras is properly set.
+  # NJS note: this cropping option doesnt work in all cases where FOV > 256
+  # so its usage is deprecated.  instead, the check below for FOV > 256
+  # forces an error exit, and people must add the -cw256 flag, which is
+  # added to mri_convert conform step (ie mri_convert -conform -cw256)
+  # which creates the 256^3 1mm^3 file
   if($DoCropsize256) then
     set cmd = (mri_convert $origvol $origvol)
     set cmd1 = ($cmd --cropsize 256 256 256)
@@ -697,14 +709,15 @@ if($DoMotionCor) then
     endif
   endif
 
-  # check if FOV > 256 and issue warning if so
+  # check if FOV > 256 and error exit if so
   set FOV=`mri_info ${origvol} | grep fov: | awk '{print $2}'`
   set FOV_gt_256=`echo "${FOV} > 256" | bc`
   if ($FOV_gt_256) then
-    echo "\n*************************************" |& tee -a $LF
-    echo "WARNING! FOV=${FOV} > 256" |& tee -a $LF
-    echo "The flag -cropsize256 is recommended!" |& tee -a $LF
-    echo "*************************************\n" |& tee -a $LF
+    echo "\n****************************************" |& tee -a $LF
+    echo "ERROR! FOV=${FOV} > 256" |& tee -a $LF
+    echo "Include the flag --cw256 with recon-all!" |& tee -a $LF
+    echo "****************************************\n" |& tee -a $LF
+    goto error_exit;
   endif
 
   # Add xfm to orig, eventhough it does not exist yet. This is a
@@ -3506,6 +3519,10 @@ while( $#argv != 0 )
       set DoCropsize256 = 1;
       breaksw;
 
+    case "-cw256":
+      set DoConformWidth256 = 1;
+      breaksw;
+
     case "-nowmsa":
       set NoWMSA = 1;
       breaksw;
@@ -4375,10 +4392,10 @@ and mri_ca_label, and mris_make_surfaces indirectly via aseg.mgz.
 The random number generator used by certain binaries is seeded with the
 same number, thus producing identical results from run to run.
 
--cropsize256
+-cw256
 
 Include this flag after -autorecon1 if images have a FOV > 256.  The
-flag causes mri_convert to crop the image to dimensions of 256^3.
+flag causes mri_convert to conform the image to dimensions of 256^3.
 
 -notal-check
 
