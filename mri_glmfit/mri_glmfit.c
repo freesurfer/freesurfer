@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/09/12 15:38:19 $
- *    $Revision: 1.138.2.1 $
+ *    $Date: 2008/08/11 21:59:22 $
+ *    $Revision: 1.138.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -470,7 +470,11 @@ ENDHELP --------------------------------------------------------------
 double round(double x);
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/utsname.h>
+#ifdef WIN32
+#include <direct.h>
+#else
+#include <sys/utsname.h>   
+#endif
 #include <unistd.h>
 #include <float.h>
 
@@ -525,7 +529,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.1 2007/09/12 15:38:19 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.2 2008/08/11 21:59:22 nicks Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -586,7 +590,11 @@ int npca = -1;
 MATRIX *Upca=NULL,*Spca=NULL;
 MRI *Vpca=NULL;
 
+#ifdef WIN32
+
+#else
 struct utsname uts;
+#endif
 char *cmdline, cwd[2000];
 
 char *MaxVoxBase = NULL;
@@ -664,8 +672,14 @@ int main(int argc, char **argv) {
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
+
+#ifdef WIN32
+
+#else
   cmdline = argv2cmdline(argc,argv);
   uname(&uts);
+#endif
+
   getcwd(cwd,2000);
 
   Progname = argv[0] ;
@@ -1340,8 +1354,12 @@ int main(int argc, char **argv) {
         }
         fprintf(fp,"# ClusterSimulationData 2\n");
         fprintf(fp,"# mri_glmfit simulation sim\n");
+#ifdef WIN32
+
+#else
         fprintf(fp,"# hostname %s\n",uts.nodename);
         fprintf(fp,"# machine  %s\n",uts.machine);
+#endif
         fprintf(fp,"# runtime_min %g\n",msecFitTime/(1000*60.0));
         fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
         if (mriglm->mask) fprintf(fp,"# masking 1\n");
@@ -2486,9 +2504,13 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
+#ifdef WIN32
+
+#else
   fprintf(fp,"sysname  %s\n",uts.sysname);
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
+#endif
   fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"FixVertexAreaFlag = %d\n",MRISgetFixVertexAreaValue());
 
