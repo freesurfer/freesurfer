@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/08/09 21:34:34 $
-#    $Revision: 1.14 $
+#    $Date: 2008/08/11 19:49:27 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.14 2008/08/09 21:34:34 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.15 2008/08/11 19:49:27 nicks Exp $';
 
 # defaults:
 # setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
@@ -394,6 +394,7 @@ foreach test_subj ($ALL_SUBJECTS)
         endif
         set annot="$SUBJECTS_DIR/$test_subj/label/$hemi.aparc_jackknife.annot"
         set cmd=(mris_ca_label \
+            -seed 1234 \
             -t ${SUBJECTS_DIR}/scripts/colortable_final.txt \
             ${test_subj} \
             ${hemi} \
