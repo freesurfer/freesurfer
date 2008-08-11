@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:53:20 $
- *    $Revision: 1.146.2.2 $
+ *    $Date: 2008/08/11 22:18:58 $
+ *    $Revision: 1.146.2.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -32,6 +32,7 @@
 #include "diag.h"
 #include "error.h"
 #include "mri.h"
+#include "mri2.h"
 #include "fmriutils.h"
 #include "mri_identify.h"
 #include "gcamorph.h"
@@ -41,6 +42,16 @@
 #include "utils.h"
 #include "macros.h"
 #include "fmriutils.h"
+
+#ifdef WIN32
+#define SLASH '\\'
+#define DOTSLASH ".\\"
+#define DOTDOTSLASH "..\\"
+#else
+#define SLASH '/'
+#define DOTSLASH "./"
+#define DOTDOTSLASH "../"
+#endif
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
@@ -52,6 +63,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 float findMinSize(MRI *mri, int *conform_width);
 int   findRightSize(MRI *mri, float conform_size);
+MRI *MRIcutEndSlices(MRI *mri, int ncut);
 
 int debug=0;
 
@@ -59,7 +71,6 @@ extern int errno;
 
 char *Progname;
 
-MRI *MRIcutEndSlices(MRI *mri, int ncut);
 int ncutends = 0, cutends_flag = 0;
 
 /*-------------------------------------------------------------*/
@@ -77,6 +88,7 @@ int main(int argc, char *argv[]) {
   int conform_flag;
   int conform_min;  // conform to the smallest dimension
   int conform_width;
+  int conform_width_256_flag;
   int parse_only_flag;
   int reorder_flag;
   int in_stats_flag, out_stats_flag;
@@ -183,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.146.2.2 2008/03/02 02:53:20 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.146.2.3 2008/08/11 22:18:58 nicks Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -215,7 +227,7 @@ int main(int argc, char *argv[]) {
   invert_transform_flag = FALSE;
 
   /* ----- get the program name ----- */
-  Progname = strrchr(argv[0], '/');
+  Progname = strrchr(argv[0], SLASH);
   Progname = (Progname == NULL ? argv[0] : Progname + 1);
 
   /* ----- pass the command line to mriio ----- */
@@ -236,7 +248,8 @@ int main(int argc, char *argv[]) {
   in_info_flag = FALSE;
   out_info_flag = FALSE;
   voxel_size_flag = FALSE;
-  conform_flag = FALSE; // TRUE;
+  conform_flag = FALSE;
+  conform_width_256_flag = FALSE;
   nochange_flag = FALSE ;
   parse_only_flag = FALSE;
   reorder_flag = FALSE;
@@ -285,7 +298,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.146.2.2 2008/03/02 02:53:20 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.146.2.3 2008/08/11 22:18:58 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -315,6 +328,11 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[i], "-c") == 0 ||
              strcmp(argv[i], "--conform") == 0)
       conform_flag = TRUE;
+    else if (strcmp(argv[i], "--cw256") == 0)
+    {
+      conform_flag = TRUE;
+      conform_width_256_flag = TRUE;
+    }
     else if (strcmp(argv[i], "--sphinx") == 0 )
       sphinx_flag = TRUE;
     else if(strcmp(argv[i], "--autoalign") == 0){
@@ -968,7 +986,7 @@ int main(int argc, char *argv[]) {
       }
       i++;
       SDCMStatusFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
-      memcpy(SDCMStatusFile,argv[i],strlen(argv[i]));
+      memmove(SDCMStatusFile,argv[i],strlen(argv[i]));
       fptmp = fopen(SDCMStatusFile,"w");
       if (fptmp == NULL) {
         fprintf(stderr,"ERROR: could not open %s for writing\n",
@@ -992,7 +1010,7 @@ int main(int argc, char *argv[]) {
       }
       i++;
       SDCMListFile = (char *) calloc(strlen(argv[i])+1,sizeof(char));
-      memcpy(SDCMListFile,argv[i],strlen(argv[i]));
+      memmove(SDCMListFile,argv[i],strlen(argv[i]));
       fptmp = fopen(SDCMListFile,"r");
       if (fptmp == NULL) {
         fprintf(stderr,"ERROR: could not open %s for reading\n",
@@ -1280,7 +1298,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.146.2.2 2008/03/02 02:53:20 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.146.2.3 2008/08/11 22:18:58 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1468,7 +1486,7 @@ int main(int argc, char *argv[]) {
     MatrixFree(&cras);
   }
 
-  if (fwhm > 0) {
+  if(fwhm > 0) {
     printf("Smoothing input at fwhm = %g, gstd = %g\n",fwhm,gstd);
     MRIgaussianSmooth(mri, gstd, 1, mri);
   }
@@ -1746,7 +1764,7 @@ int main(int argc, char *argv[]) {
           // copy transform filename
           strcpy(buf, transform_fname);
           // reverse look for the first '/'
-          p = strrchr(buf, '/');
+          p = strrchr(buf, SLASH);
           if (p != 0) {
             p++;
             *p = '\0';
@@ -1754,9 +1772,10 @@ int main(int argc, char *argv[]) {
             // ".... mri/transforms" from "
             //..../mri/transforms/talairach.xfm"
           } else {// no / present means only a filename is given
-            strcpy(buf, "./");
+            strcpy(buf, DOTSLASH);
           }
-          strcat(buf, "../orig"); // go to mri/orig from
+          strcat(buf, DOTDOTSLASH);
+          strcat(buf, "orig"); // go to mri/orig from
           // mri/transforms/
           // check whether we can read header info or not
           mriOrig = MRIreadHeader(buf, MRI_VOLUME_TYPE_UNKNOWN);
@@ -1798,7 +1817,11 @@ int main(int argc, char *argv[]) {
         MRIcopyHeader(tmp, mri_transformed);
         MRIfree(&tmp);
         tmp = 0;
-        mri_transformed =  LTAtransformInterp(mri, mri_transformed, lta_transform, resample_type_val);
+        mri_transformed =  
+          LTAtransformInterp(mri, 
+                             mri_transformed, 
+                             lta_transform, 
+                             resample_type_val);
       } else {
         printf("Applying LTAtransformInterp (resample_type %d)\n",
                resample_type_val);
@@ -1914,7 +1937,11 @@ int main(int argc, char *argv[]) {
     if(conform_flag) {
       conform_width = 256;
       if(conform_min == TRUE)  conform_size = findMinSize(mri, &conform_width);
-      else                    conform_width = findRightSize(mri, conform_size);
+      else
+      {
+        if(conform_width_256_flag) conform_width = 256; // force it
+        else conform_width = findRightSize(mri, conform_size);
+      }
       template->width =
       template->height = template->depth = conform_width;
       template->imnr0 = 1;
@@ -2842,8 +2869,6 @@ int findRightSize(MRI *mri, float conform_size) {
             fwidth, fheight, fdepth);
     fprintf(stderr, "The resulting volume will have %d slices.\n",
             conform_width);
-    fprintf(stderr, "The freesurfer tools should be "
-            "able to handle more than 256 slices.\n");
     fprintf(stderr, "If you find problems, please let us know "
             "(freesurfer@nmr.mgh.harvard.edu).\n");
     fprintf(stderr, "=================================================="
@@ -2852,6 +2877,8 @@ int findRightSize(MRI *mri, float conform_size) {
   }
   return conform_width;
 }
+
+
 
 /*----------------------------------------------------------------*/
 MRI *MRIcutEndSlices(MRI *mri, int ncut)
@@ -2864,22 +2891,26 @@ MRI *MRIcutEndSlices(MRI *mri, int ncut)
   nslices = mri->depth - 2*ncut;
   if(nslices <= 0){
     printf("ERROR: MRIcutEndSlices(): ncut = %d, input only has %d \n",
-	   ncut,mri->depth);
+           ncut,mri->depth);
     return(NULL);
   }
 
-  out = MRIallocSequence(mri->width, mri->height, nslices, mri->type, mri->nframes);
+  out = MRIallocSequence(mri->width, 
+                         mri->height, 
+                         nslices, 
+                         mri->type, 
+                         mri->nframes);
   MRIcopyHeader(mri,out);
 
   for(c = 0; c < mri->width; c ++){
     for(r = 0; r < mri->height; r ++){
       scut = 0;
       for(s = ncut; s < mri->depth - ncut; s++){
-	for(f = 0; f < mri->nframes; f++){
-	  v = MRIgetVoxVal(mri,c,r,s,f);
-	  MRIsetVoxVal(out,c,r,scut,f,v);
-	}
-	scut ++;
+        for(f = 0; f < mri->nframes; f++){
+          v = MRIgetVoxVal(mri,c,r,s,f);
+          MRIsetVoxVal(out,c,r,scut,f,v);
+        }
+        scut ++;
       }
     }
   }
