@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/05 03:48:27 $
- *    $Revision: 1.56 $
+ *    $Date: 2008/08/11 22:37:40 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 
   mri_segreg
 
-  --reg regfile
+  --init-reg regfile
   --regheader subject
   --mov fvol
   --out-reg outreg : reg at lowest cost
@@ -43,6 +43,7 @@
   --1dpreopt min max delta : brute force in PE direction
 
   --fwhm fwhm : smooth input by fwhm mm
+  --abs       : compute abs of mov
   --subsamp nsub : only sample every nsub vertices
 
   --preopt-file file : save preopt results in file
@@ -98,6 +99,8 @@
   --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost 
               WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask
   --surf-cost basename : saves as basename.?h.mgh
+  --init-surf-cost basename0 : saves init cost as basename0.?h.mgh
+  --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh
 
   --mksegreg subject : create segreg.mgz and exit
 
@@ -206,7 +209,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.56 2008/08/05 03:48:27 greve Exp $";
+"$Id: mri_segreg.c,v 1.57 2008/08/11 22:37:40 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -284,6 +287,8 @@ int PreOptOnly = 0;
 
 char *surfcostbase=NULL, *lhcostfile=NULL, *rhcostfile=NULL;
 char *surfconbase=NULL, *lhconfile=NULL, *rhconfile=NULL;
+char *surfcost0base=NULL, *lhcost0file=NULL, *rhcost0file=NULL;
+char *surfcostdiffbase=NULL;
 
 int UseLH = 1;
 int UseRH = 1;
@@ -313,6 +318,13 @@ double WMProjAbs =  2.0; // default
 int BruteForce = 0;
 int   regheader=0;
 
+int DoAbs = 0;
+MRI *lhcost=NULL, *lhcost0=NULL, *rhcost=NULL, *rhcost0=NULL;
+MRI *lhcostdiff=NULL, *rhcostdiff=NULL;
+MRI *lhcon=NULL, *rhcon=NULL;
+
+MRI *lhCortexLabel=NULL, *rhCortexLabel=NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -329,16 +341,17 @@ int main(int argc, char **argv) {
   double rmsDiffSum, rmsDiffMean=0, d;
   VERTEX *v;
   int nsubsampsave = 0;
+  LABEL *label;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.56 2008/08/05 03:48:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.57 2008/08/11 22:37:40 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.56 2008/08/05 03:48:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.57 2008/08/11 22:37:40 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -369,6 +382,11 @@ int main(int argc, char **argv) {
   printf("Loading mov\n");
   mov = MRIread(movvolfile);
   if (mov == NULL) exit(1);
+
+  if(DoAbs){
+    printf("Computing abs\n");
+    MRIabs(mov,mov);
+  }
 
   if(regheader) {
     printf("Computing registration based on scanner-to-scanner\n");
@@ -428,6 +446,21 @@ int main(int argc, char **argv) {
     mritmp = MRIchangeType(segreg,MRI_FLOAT,0,0,0);
     MRIfree(&segreg);
     segreg = mritmp;
+    if(UseLH){
+      // Load the LH cortex label
+      label = LabelRead(subject, "lh.cortex.label");
+      if(label == NULL) exit(1);
+      lhCortexLabel = MRISlabel2Mask(lhwm, label, NULL);
+      LabelFree(&label);
+    }
+    if(UseRH){
+      // Load the RH cortex label
+      label = LabelRead(subject, "rh.cortex.label");
+      if(label == NULL) exit(1);
+      rhCortexLabel = MRISlabel2Mask(rhwm, label, NULL);
+      LabelFree(&label);
+    }
+
   } else {
   if(!UseASeg){
     if(!MkSegReg){
@@ -544,7 +577,25 @@ int main(int argc, char **argv) {
   // Compute cost at initial
   for(nth=0; nth < 6; nth++) p[nth] = 0.0;
   if(!UseSurf)  GetCosts(mov,     segreg, R0, R, p, costs);
-  else          GetSurfCosts(mov, segreg, R0, R, p, costs);
+  else{
+    if(surfcost0base){
+      if(UseLH){
+	sprintf(tmpstr,"%s.lh.mgh",surfcost0base);
+	lhcost0file = strcpyalloc(tmpstr);
+      }
+      if(UseRH){
+	sprintf(tmpstr,"%s.rh.mgh",surfcost0base);
+	rhcost0file = strcpyalloc(tmpstr);
+      }
+    }
+    GetSurfCosts(mov, segreg, R0, R, p, costs);
+    if(UseLH) lhcost0 = MRIcopy(lhcost,NULL);
+    if(UseRH) rhcost0 = MRIcopy(rhcost,NULL);
+    //if(lhcost0file)  MRIwrite(lhcost0,lhcost0file);
+    //if(rhcost0file)  MRIwrite(rhcost0,rhcost0file);
+    free(lhcost0file);lhcost0file=NULL;
+    free(rhcost0file);rhcost0file=NULL;
+  }
 
   if(DoProfile){
     printf("Profiling over 100 iterations\n");
@@ -719,13 +770,30 @@ int main(int argc, char **argv) {
       rhcostfile = strcpyalloc(tmpstr);
     }
     if(surfconbase){
-      sprintf(tmpstr,"lh.%s.mgh",surfconbase);
+      sprintf(tmpstr,"%s.lh.mgh",surfconbase);
       lhconfile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"rh.%s.mgh",surfconbase);
+      sprintf(tmpstr,"%s.rh.mgh",surfconbase);
       rhconfile = strcpyalloc(tmpstr);
     }
     GetSurfCosts(mov, segreg, R0, R, p, costs);
+    if(surfcostdiffbase){
+      if(UseLH){
+	sprintf(tmpstr,"%s.lh.mgh",surfcostdiffbase);
+	printf("Writing lh diff to %s\n",tmpstr);
+	mritmp = MRIsubtract(lhcost,lhcost0,NULL);
+	MRIwrite(mritmp,tmpstr);
+	MRIfree(&mritmp);
+      }
+      if(UseRH){
+	sprintf(tmpstr,"%s.rh.mgh",surfcostdiffbase);
+	printf("Writing rh diff to %s\n",tmpstr);
+	mritmp = MRIsubtract(rhcost,rhcost0,NULL);
+	MRIwrite(mritmp,tmpstr);
+	MRIfree(&mritmp);
+      }
+    }
   }
+
 
   if(MinCostFile){
     fpMinCost = fopen(MinCostFile,"w");
@@ -987,7 +1055,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
     else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
     else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
-    else if (!strcasecmp(option, "--brute"))     {
+    else if (!strcasecmp(option, "--abs"))       DoAbs = 1;
+    else if (!strcasecmp(option, "--no-abs"))    DoAbs = 0;
+    else if (!strcasecmp(option, "--brute")){
       if (nargc < 3) argnerr(option,3);
       nargsused = 3;
       sscanf(pargv[0],"%lf",&PreOptMin);
@@ -1041,6 +1111,16 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--surf-con",0)) {
       if(nargc < 1) argnerr(option,1);
       surfconbase = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--init-surf-cost",0)) {
+      if(nargc < 1) argnerr(option,1);
+      surfcost0base = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--surf-cost-diff",0)) {
+      if(nargc < 1) argnerr(option,1);
+      surfcostdiffbase = pargv[0];
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--mov",0)) {
@@ -1102,7 +1182,8 @@ static int parse_commandline(int argc, char **argv) {
       outfile = pargv[0];
       nargsused = 1;
     } 
-    else if (istringnmatch(option, "--reg",0)) {
+    else if(istringnmatch(option, "--init-reg",0) ||
+	    istringnmatch(option, "--reg",0)) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
@@ -1354,7 +1435,7 @@ static void print_usage(void)
 printf("\n");
 printf("  mri_segreg\n");
 printf("\n");
-printf("  --reg regfile\n");
+printf("  --init-reg regfile\n");
 printf("  --regheader subject\n");
 printf("  --mov fvol\n");
 printf("  --out-reg outreg : reg at lowest cost\n");
@@ -1367,6 +1448,7 @@ printf("  --brute min max delta : brute force in all directions\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("\n");
 printf("  --fwhm fwhm : smooth input by fwhm mm\n");
+printf("  --abs       : compute abs of mov\n");
 printf("  --subsamp nsub : only sample every nsub vertices\n");
 printf("\n");
 printf("  --preopt-file file : save preopt results in file\n");
@@ -1421,7 +1503,10 @@ printf("\n");
 printf("  --mincost MinCostFile\n");
 printf("  --rms     RMSDiffFile : saves Tx Ty Tz Ax Ay Az RMSDiff MinCost \n");
 printf("              WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask\n");
-printf("  --surf-cost basename : saves as basename.?h.mgh\n");
+printf("  --surf-cost basename : saves final cost as basename.?h.mgh\n");
+printf("  --init-surf-cost basename0 : saves init cost as basename0.?h.mgh\n");
+printf("  --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh\n");
+
 printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
 printf("\n");
@@ -1999,9 +2084,9 @@ int MRISsegReg(char *subject, int ForceReRun)
   char *SUBJECTS_DIR;
   char tmpstr[2000];
   int c,r,s,n,v,z=0;
-  LABEL *label;
   MRI *apas, *brain;
-  MRI *lhCortexLabel, *rhCortexLabel, *lhwmmask, *rhwmmask, *lhctxmask, *rhctxmask;
+  extern MRI *lhCortexLabel, *rhCortexLabel;
+  MRI *lhwmmask, *rhwmmask, *lhctxmask, *rhctxmask;
   float  fx, fy, fz;
   int ReRun=0;
 
@@ -2137,12 +2222,6 @@ int MRISsegReg(char *subject, int ForceReRun)
   lhctxmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
 			      lhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
 
-  // Load the LH cortex label
-  label = LabelRead(subject, "lh.cortex.label");
-  if(label == NULL) exit(1);
-  lhCortexLabel = MRISlabel2Mask(lhwm, label, NULL);
-  LabelFree(&label);
-
   // Create the final mask by forcing each vertex to be in both
   // the wm and ctx masks as well as in the cortex label
   lhsegmask = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
@@ -2161,12 +2240,6 @@ int MRISsegReg(char *subject, int ForceReRun)
 
   // -----------------------------------------------------
   // Do the same thing for the RH 
-  // Load the RH cortex label
-  label = LabelRead(subject, "rh.cortex.label");
-  if(label == NULL) exit(1);
-  rhCortexLabel = MRISlabel2Mask(rhwm, label, NULL);
-  LabelFree(&label);
-
   rhwmmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
 			     rhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
 
@@ -2200,10 +2273,8 @@ int MRISsegReg(char *subject, int ForceReRun)
   }
   MRIfree(&lhwmmask);
   MRIfree(&lhctxmask);
-  MRIfree(&lhCortexLabel);
   MRIfree(&rhctxmask);
   MRIfree(&rhwmmask);
-  MRIfree(&rhCortexLabel);
   MRIfree(&brain);
   MRIfree(&apas);
 
@@ -2234,12 +2305,13 @@ double VertexCost(double vctx, double vwm, double slope,
 double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 		     double *p, double *costs)
 {
-  static MRI *lhcost=NULL, *rhcost=NULL;
-  static MRI *lhcon=NULL, *rhcon=NULL;
+  extern MRI *lhcost, *rhcost;
+  extern MRI *lhcon, *rhcon;
   extern char *lhcostfile, *rhcostfile;
   extern char *lhconfile, *rhconfile;
   extern int UseMask, UseLH, UseRH;
   extern MRI *lhsegmask, *rhsegmask;
+  extern MRI *lhCortexLabel, *rhCortexLabel;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
   extern int PenaltySign;
   extern double PenaltySlope;
@@ -2305,8 +2377,9 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //fp = fopen("tmp.dat","w");
   if(UseLH){
     for(n = 0; n < lhwm->nvertices; n += nsubsamp){
-      if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
+      if(lhcostfile || lhcost0file) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
       if(lhconfile)  MRIsetVoxVal(lhcon,n,0,0,0,0.0);
+      if(lhCortexLabel && MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5) continue;
       if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
       if(vwm == 0.0) continue;
@@ -2322,15 +2395,16 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       dsum2 += (d*d);
       csum += c;
       csum2 += (c*c);
-      if(lhcostfile) MRIsetVoxVal(lhcost,n,0,0,0,c);
+      if(lhcostfile || lhcost0file) MRIsetVoxVal(lhcost,n,0,0,0,c);
       if(lhconfile)  MRIsetVoxVal(lhcon,n,0,0,0,d);
       //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
     }
   }
   if(UseRH){
     for(n = 0; n < rhwm->nvertices; n += nsubsamp){
-      if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
+      if(rhcostfile || rhcost0file) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
       if(rhconfile)  MRIsetVoxVal(rhcon,n,0,0,0,0.0);
+      if(rhCortexLabel && MRIgetVoxVal(rhCortexLabel,n,0,0,0) < 0.5) continue;
       if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
       if(vwm == 0.0) continue;
@@ -2346,7 +2420,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       dsum2 += (d*d);
       csum += c;
       csum2 += (c*c);
-      if(rhcostfile) MRIsetVoxVal(rhcost,n,0,0,0,c);
+      if(rhcostfile || rhcost0file) MRIsetVoxVal(rhcost,n,0,0,0,c);
       if(rhconfile)  MRIsetVoxVal(rhcon,n,0,0,0,d);
       //fprintf(fp,"%6d %lf %lf %lf %lf %lf %lf %lf\n",nhits,vwm,vctx,d,dsum,a,c,csum);
     }
@@ -2375,6 +2449,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   if(UseLH){
     MRIfree(&vlhwm);
     MRIfree(&vlhctx);
+    if(lhcost0file){
+      printf("Writing lh init cost to %s\n",lhcost0file);
+      MRIwrite(lhcost,lhcost0file);
+    }
     if(lhcostfile){
       printf("Writing lh cost to %s\n",lhcostfile);
       MRIwrite(lhcost,lhcostfile);
@@ -2388,6 +2466,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   if(UseRH){
     MRIfree(&vrhwm);
     MRIfree(&vrhctx);
+    if(rhcost0file){
+      printf("Writing rh init cost to %s\n",rhcost0file);
+      MRIwrite(rhcost,rhcost0file);
+    }
     if(rhcostfile){
       printf("Writing rh cost to %s\n",rhcostfile);
       MRIwrite(rhcost,rhcostfile);
