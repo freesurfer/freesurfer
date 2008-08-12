@@ -3,7 +3,7 @@
 #
 
 SUBDIRS=average lib docs grad_unwarp_tables \
-	fsafd subjects sessions diffusion
+	fsafd subjects sessions diffusion fsl-extra
 
 foodir=$(prefix)
 foo_DATA=surface_labels.txt \
