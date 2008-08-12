@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/11 22:37:40 $
- *    $Revision: 1.57 $
+ *    $Date: 2008/08/12 19:26:03 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -89,7 +89,10 @@
   --aseg : use aseg instead of segreg.mgz
 
   --nmax nmax   : max number of powell iterations (def 36)
-  --tol   tol   : powell inter-iteration tolerance on cost
+  --tol   tol   : powell inter-iteration tolerance on cost. 
+     This is the fraction of the cost that the difference in 
+     successive costs must drop below to stop the optimization. 
+
   --tol1d tol1d : tolerance on powell 1d minimizations
 
   --1dmin : use brute force 1D minimizations instead of powell
@@ -209,7 +212,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.57 2008/08/11 22:37:40 greve Exp $";
+"$Id: mri_segreg.c,v 1.58 2008/08/12 19:26:03 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -324,6 +327,7 @@ MRI *lhcostdiff=NULL, *rhcostdiff=NULL;
 MRI *lhcon=NULL, *rhcon=NULL;
 
 MRI *lhCortexLabel=NULL, *rhCortexLabel=NULL;
+int nCostEvaluations=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -345,13 +349,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.57 2008/08/11 22:37:40 greve Exp $",
+     "$Id: mri_segreg.c,v 1.58 2008/08/12 19:26:03 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.57 2008/08/11 22:37:40 greve Exp $",
+     "$Id: mri_segreg.c,v 1.58 2008/08/12 19:26:03 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -794,7 +798,6 @@ int main(int argc, char **argv) {
     }
   }
 
-
   if(MinCostFile){
     fpMinCost = fopen(MinCostFile,"w");
     //MinCost, WMMean, CtxMean, PctContrast
@@ -802,9 +805,12 @@ int main(int argc, char **argv) {
     fclose(fpMinCost);
   }
 
-  printf("Min cost was %lf\n",costs[7]);
   printf("Number of iterations %5d\n",nth);
-  printf("Optimization time %lf sec\n",secCostTime);
+  printf("Min cost was %lf\n",costs[7]);
+  printf("Number of FunctionCalls %5d\n",nCostEvaluations);
+  printf("TolPowell %lf\n",TolPowell);
+  printf("nMaxItersPowell %d\n",nMaxItersPowell);
+  printf("OptimizationTime %lf sec\n",secCostTime);
   printf("Parameters at optimum (transmm, rotdeg)\n");
   printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
@@ -820,9 +826,10 @@ int main(int argc, char **argv) {
   MatrixPrint(stdout,R);
   printf("\n");
   
-  fprintf(fp,"Min cost was %lf\n",costs[7]);
   fprintf(fp,"Number of iterations %5d\n",nth);
-  fprintf(fp,"Optimization time %lf sec\n",secCostTime);
+  fprintf(fp,"Min cost was %lf\n",costs[7]);
+  fprintf(fp,"Number of FunctionCalls %5d\n",nCostEvaluations);
+  fprintf(fp,"OptimizationTime %lf sec\n",secCostTime);
   fprintf(fp,"Parameters at optimum (transmm, rotdeg)\n");
   fprintf(fp,"%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
@@ -1495,6 +1502,8 @@ printf("  --aseg : use aseg instead of segreg.mgz\n");
 printf("\n");
 printf("  --nmax nmax   : max number of powell iterations (def 36)\n");
 printf("  --tol   tol   : powell inter-iteration tolerance on cost\n");
+printf("       This is the fraction of the cost that the difference in \n");
+printf("       successive costs must drop below to stop the optimization.  \n");
 printf("  --tol1d tol1d : tolerance on powell 1d minimizations\n");
 printf("\n");
 printf("  --1dmin : use brute force 1D minimizations instead of powell\n");
@@ -1901,8 +1910,8 @@ float compute_powell_cost(float *p)
   extern MRI *seg_powell;
   extern MATRIX *R0_powell;
   extern char *costfile_powell;
+  extern int nCostEvaluations;
   static MATRIX *R = NULL;
-  static int nth=0;
   static double copt = -1;
   double costs[8], pp[6];
   int n, newopt;
@@ -1930,7 +1939,7 @@ float compute_powell_cost(float *p)
   if(costfile_powell != NULL){
     // write costs to file
     fp = fopen(costfile_powell,"a");
-    fprintf(fp,"%4d ",nth);
+    fprintf(fp,"%4d ",nCostEvaluations);
     fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
@@ -1944,7 +1953,7 @@ float compute_powell_cost(float *p)
 
   if(newopt){
     fp = stdout;
-    fprintf(fp,"%4d ",nth);
+    fprintf(fp,"%4d ",nCostEvaluations);
     fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
@@ -1956,7 +1965,7 @@ float compute_powell_cost(float *p)
     fflush(stdout); 
   }
 
-  nth++;
+  nCostEvaluations++;
   return((float)costs[7]);
 }
 
