@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/08 18:56:31 $
- *    $Revision: 1.129 $
+ *    $Date: 2008/08/13 17:56:32 $
+ *    $Revision: 1.130 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1966,10 +1966,11 @@ TransformRead(char *fname)
   // matrix of type linear ras2ras
   if (0 == strcmp(fname, "identity.nofile"))
   {
-    trans->type = LINEAR_RAS_TO_RAS;
+    trans->type = LINEAR_VOX_TO_VOX;
     LTA* lta = LTAalloc(1, NULL);
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
-    lta->type = LINEAR_RAS_TO_RAS;
+    lta->xforms[0].type = trans->type;
+    lta->type = trans->type;
     trans->xform = (void*)lta;
     return trans;
   }
@@ -2987,8 +2988,9 @@ LTAreadEx(const char *fname)
   if (0 == strcmp(fname, "identity.nofile"))
   {
     LTA* lta = LTAalloc(1, NULL);
+    lta->type = LINEAR_VOX_TO_VOX;
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
-    lta->type = LINEAR_RAS_TO_RAS;
+    lta->xforms[0].type = lta->type;
     return lta;
   }
   // continue normal processing...
