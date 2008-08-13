@@ -13,8 +13,8 @@
 # Original author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/08/11 19:49:27 $
-#    $Revision: 1.15 $
+#    $Date: 2008/08/13 21:47:15 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: parc_atlas_jackknife_test,v 1.15 2008/08/11 19:49:27 nicks Exp $';
+set VERSION='$Id: parc_atlas_jackknife_test,v 1.16 2008/08/13 21:47:15 nicks Exp $';
 
 # defaults:
 # setenv SUBJECTS_DIR /space/amaebi/26/users/buckner_cortical_atlas
@@ -45,6 +45,7 @@ if ("$HOST" == "seychelles") set PBS=1
 set pbs_flags="-l nodes=1:opteron"
 set reg_dist=""
 set reg_append=""
+set reg_arg=""  # allow specifying an arbitrary argument to mris_register
 
 # parse command line
 set cmdline = ($argv);
@@ -57,6 +58,12 @@ while( $#argv != 0 )
     case "-register":
     case "--register":
       set DoRegister=1
+      breaksw
+
+    case "-reg_arg":
+    case "--reg_arg":
+      set DoRegister=1
+      set reg_arg=" $argv[1]"; shift;
       breaksw
 
     case "-reg_dist":
@@ -276,7 +283,7 @@ foreach test_subj ($ALL_SUBJECTS)
     foreach hemi (rh lh)
         set sphere_reg="${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere.reg"
         set sphere_reg="${sphere_reg}${reg_append}"
-        set cmd=(mris_register ${reg_dist} \
+        set cmd=(mris_register ${reg_arg} ${reg_dist} \
             ${SUBJECTS_DIR}/${test_subj}/surf/${hemi}.sphere \
             ${SUBJECTS_DIR}/average/${hemi}.${tif} \
             ${sphere_reg})
