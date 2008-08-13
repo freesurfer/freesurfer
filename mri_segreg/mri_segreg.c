@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/13 02:20:54 $
- *    $Revision: 1.59 $
+ *    $Date: 2008/08/13 03:04:58 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -212,7 +212,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.59 2008/08/13 02:20:54 greve Exp $";
+"$Id: mri_segreg.c,v 1.60 2008/08/13 03:04:58 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -260,8 +260,8 @@ int n1dmin = 3;
 
 int DoPowell = 1;
 int nMaxItersPowell = 36;
-double TolPowell = .0001;
-double LinMinTolPowell = .1;
+double TolPowell = 1e-8;
+double LinMinTolPowell = 1e-8;
 
 int MkSegReg = 0;
 
@@ -349,13 +349,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.59 2008/08/13 02:20:54 greve Exp $",
+     "$Id: mri_segreg.c,v 1.60 2008/08/13 03:04:58 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.59 2008/08/13 02:20:54 greve Exp $",
+     "$Id: mri_segreg.c,v 1.60 2008/08/13 03:04:58 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -665,7 +665,7 @@ int main(int argc, char **argv) {
     printf("\n");
     printf("------------------------------------\n");
     nsubsampsave = nsubsamp;
-    nsubsamp = 500;
+    nsubsamp = 50;
     printf("Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
     fprintf(fp,"\n");
     fprintf(fp,"Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
