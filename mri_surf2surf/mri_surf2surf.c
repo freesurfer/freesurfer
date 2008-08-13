@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/05 03:49:42 $
- *    $Revision: 1.73 $
+ *    $Date: 2008/08/13 02:28:51 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.73 2008/08/05 03:49:42 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.74 2008/08/13 02:28:51 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -457,7 +457,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.73 2008/08/05 03:49:42 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.74 2008/08/13 02:28:51 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -626,9 +626,9 @@ int main(int argc, char **argv) {
 	    if(d < dmin) dmin = d;
 	  }
 	  d = dsum/f;
-	  printf("RMS %lf %lf %lf %d\n",d,dmin,dmax,f);
+	  printf("RMS %13.10lf %13.10lf %13.10lf %d\n",d,dmin,dmax,f);
 	  fp = fopen(RMSDatFile,"w");
-	  fprintf(fp,"RMS %lf %lf %lf %d\n",d,dmin,dmax,f);
+	  fprintf(fp,"%13.10lf %13.10lf %13.10lf %d\n",d,dmin,dmax,f);
 	  fclose(fp);
 	  exit(0);
 	}
