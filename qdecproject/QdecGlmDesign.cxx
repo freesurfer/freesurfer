@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/12 18:40:42 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/08/13 19:23:14 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -29,6 +29,7 @@
  *
  */
 
+#include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
 
@@ -38,6 +39,11 @@
 #include <stdexcept>
 
 #include "QdecGlmDesign.h"
+
+extern "C"
+{
+  #include "mri.h" // MRIallocSequence
+}
 
 
 // Constructors/Destructors
@@ -1469,8 +1475,10 @@ int QdecGlmDesign::WriteContrastMatrices ()
 
 
 /**
- * Creates the 'y' input data to mri_glmfit, by concatenating the
- * subject volumes, and writes it to the specified filename (single volume).
+ * Creates the 'y' input data to mri_glmfit for a surface-based analysis, 
+ * by concatenating the subject 'volumes' (actually, volume-encoded surface
+ * data, like thickness), and writes it to the specified filename (a single 
+ * volume: y.mgh).
  * @return int
  */
 int QdecGlmDesign::WriteYdataFile ( )
@@ -1537,7 +1545,8 @@ int QdecGlmDesign::WriteYdataFile ( )
   // Go through and concatenate copy all the volumes.
   if( this->mProgressUpdateGUI )
   {
-    this->mProgressUpdateGUI->UpdateProgressMessage( "Concatenating volumes..." );
+    this->mProgressUpdateGUI->
+      UpdateProgressMessage( "Concatenating volumes..." );
     this->mProgressUpdateGUI->UpdateProgressPercent( 50 );
   }
 
@@ -1565,6 +1574,62 @@ int QdecGlmDesign::WriteYdataFile ( )
 
   return 0;
 }
+
+
+/**
+ * Creates the 'y' input data to mri_glmfit for a volume-based analysis, 
+ * by creating a multi-frame 'volume' of 1x1x1 size, sticking the single
+ * dat point for each subject in the 'volume'.  One frame per subject.
+ * @return int
+ */
+int QdecGlmDesign::WriteYdataFile ( const char* isMeasureName )
+{
+  if( !this->IsValid() ) {
+    fprintf
+      ( stderr, 
+        "ERROR: QdecGlmDesign::WriteYdataFile: "
+        "Design parameters not valid.\n" );
+    return(-1);
+  }
+
+  vector<string> lSubjectIDs = this->mDataTable->GetSubjectIDs();
+  vector<string> lActiveSubjectIDs;
+  for ( vector<string>::iterator tSubjectID = lSubjectIDs.begin();
+        tSubjectID != lSubjectIDs.end(); ++tSubjectID )
+  {
+    // If this name is in our list of subject exclusions, skip it.
+    if( maExcludedSubjects.find( *tSubjectID ) !=
+        maExcludedSubjects.end() ) {
+      continue;
+    }
+
+    // Add it to our list.
+    lActiveSubjectIDs.push_back( *tSubjectID );
+  }
+  if ( lActiveSubjectIDs.size() < 1 )
+    throw runtime_error( "No input files" );
+
+  // now create the 'volume'
+  unsigned int nframes = lActiveSubjectIDs.size();
+  MRI* mriVol = MRIallocSequence(1, 1, 1, MRI_FLOAT, nframes);
+
+  int frame=0;
+  for ( vector<string>::iterator tSubjectID = lActiveSubjectIDs.begin();
+        tSubjectID != lActiveSubjectIDs.end(); 
+        ++tSubjectID )
+  {
+    string theSubject = *tSubjectID;
+    QdecFactor* theFactor = this->mDataTable->GetFactor( theSubject.c_str(), 
+                                                        isMeasureName );
+    float v = (float)theFactor->GetContinuousValue();
+    MRIsetVoxVal( mriVol, 0,0,0, frame++, v );
+  }
+  MRIwrite( mriVol, (char*)this->GetYdataFileName().c_str() ) ;
+
+  return 0;
+}
+
+
 
 vector<QdecFactor*> const&
 QdecGlmDesign::GetDiscreteFactors () const {
