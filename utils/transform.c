@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/13 17:56:32 $
- *    $Revision: 1.130 $
+ *    $Date: 2008/08/13 18:06:46 $
+ *    $Revision: 1.131 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1963,7 +1963,7 @@ TransformRead(char *fname)
 
   // firstly, check for filename 'identify.nofile', which does not exist
   // as a file, but instead is used to force creation of an identity
-  // matrix of type linear ras2ras
+  // matrix of type linear vox2vox
   if (0 == strcmp(fname, "identity.nofile"))
   {
     trans->type = LINEAR_VOX_TO_VOX;
@@ -2984,7 +2984,7 @@ LTAreadEx(const char *fname)
 
   // firstly, check for filename 'identify.nofile', which does not exist
   // as a file, but instead is used to force creation of an identity
-  // matrix of type linear ras2ras
+  // matrix of type linear vox2vox
   if (0 == strcmp(fname, "identity.nofile"))
   {
     LTA* lta = LTAalloc(1, NULL);
