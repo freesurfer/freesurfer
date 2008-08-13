@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/12 19:26:03 $
- *    $Revision: 1.58 $
+ *    $Date: 2008/08/13 02:20:54 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -212,7 +212,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.58 2008/08/12 19:26:03 greve Exp $";
+"$Id: mri_segreg.c,v 1.59 2008/08/13 02:20:54 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -342,20 +342,20 @@ int main(int argc, char **argv) {
   double secCostTime;
   MRI_REGION box;
   FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL;
-  double rmsDiffSum, rmsDiffMean=0, d;
+  double rmsDiffSum, rmsDiffMean=0, rmsDiffMax=0, d;
   VERTEX *v;
   int nsubsampsave = 0;
   LABEL *label;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.58 2008/08/12 19:26:03 greve Exp $",
+     "$Id: mri_segreg.c,v 1.59 2008/08/13 02:20:54 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.58 2008/08/12 19:26:03 greve Exp $",
+     "$Id: mri_segreg.c,v 1.59 2008/08/13 02:20:54 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -812,7 +812,7 @@ int main(int argc, char **argv) {
   printf("nMaxItersPowell %d\n",nMaxItersPowell);
   printf("OptimizationTime %lf sec\n",secCostTime);
   printf("Parameters at optimum (transmm, rotdeg)\n");
-  printf("%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
+  printf("%8.5lf %8.5lf %8.5lf %8.5lf %8.5lf %8.5lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
   printf("Costs at optimum\n");
   printf("%7d %10.4lf %8.4lf ",
@@ -831,7 +831,7 @@ int main(int argc, char **argv) {
   fprintf(fp,"Number of FunctionCalls %5d\n",nCostEvaluations);
   fprintf(fp,"OptimizationTime %lf sec\n",secCostTime);
   fprintf(fp,"Parameters at optimum (transmm, rotdeg)\n");
-  fprintf(fp,"%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf \n",
+  fprintf(fp,"%8.5lf %8.5lf %8.5lf %8.5lf %8.5lf %8.5lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
   fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
   fprintf(fp,"WM  Intensity %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
@@ -845,8 +845,8 @@ int main(int argc, char **argv) {
   fprintf(fp,"conmn = %8.4lf costmn = %8.4lf ",costs[6],costs[7]); // conmn costmn
   fprintf(fp,"\n");
   fprintf(fp,
-	  "#C# %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf %lf %lf %lf %lf %lf %lf %5d %d\n",
-	  p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean,costs[7],costs[1],costs[4],costs[6],
+	  "#C# %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf %lf %lf %lf %lf %lf %lf %lf %5d %d\n",
+	  p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean,rmsDiffMax,costs[7],costs[1],costs[4],costs[6],
 	  PenaltyCenter,PenaltySlope,nsubsamp,UseMask);
   
   fprintf(fp,"Reg at min cost was \n");
@@ -898,6 +898,7 @@ int main(int argc, char **argv) {
 
   if(DoRMSDiff){
     rmsDiffSum = 0;
+    rmsDiffMax = 0;
     if(lhwm){
       printf("Computing change in lh position\n");
       MRISmatrixMultiply(lhwm,Rdiff);
@@ -905,6 +906,7 @@ int main(int argc, char **argv) {
 	v = &(lhwm->vertices[vno]);
 	d = sqrt(v->x*v->x + v->y*v->y + v->z*v->z );
 	rmsDiffSum += d;
+	if(rmsDiffMax < d) rmsDiffMax = d;
       }
       rmsDiffMean = rmsDiffSum/(lhwm->nvertices);
       printf("LH rmsDiffMean %lf\n",rmsDiffMean);
@@ -916,21 +918,24 @@ int main(int argc, char **argv) {
 	v = &(rhwm->vertices[vno]);
 	d = sqrt(v->x*v->x + v->y*v->y + v->z*v->z );
 	rmsDiffSum += d;
+	if(rmsDiffMax < d) rmsDiffMax = d;
       }
       if(lhwm)
 	rmsDiffMean = rmsDiffSum/(lhwm->nvertices + rhwm->nvertices);
       else
 	rmsDiffMean = rmsDiffSum/(rhwm->nvertices);
     }
-    printf("Surface Mean RMS Diff (mm) %lf\n",rmsDiffMean);
-    fprintf(fp,"Surface Mean RMS Diff (mm) %lf\n",rmsDiffMean);
+    printf("Surface RMS Diff (mm) %lf %lf\n",rmsDiffMean,rmsDiffMax);
+    fprintf(fp,"Surface RMS Diff (mm) %lf %lf\n",rmsDiffMean,rmsDiffMax);
     if(RMSDiffFile){
       fpRMSDiff = fopen(RMSDiffFile,"w");
-      //Tx Ty Tz Rx Ry Rz rmsDiffMean MinCost WMMean CtxMean PctContrast C0 Slope nsubsamp UseMask
+      //rmsDiffMean rmsDiffMax MinCost Nevals Tx Ty Tz Rx Ry Rz  WMMean CtxMean PctContrast 
       fprintf(fpRMSDiff,
-	      "%7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf %lf %lf %lf %lf %lf %lf %lf %5d %d\n",
-	      p[0],p[1],p[2],p[3],p[4],p[5],rmsDiffMean,costs[7],costs[1],costs[4],costs[6],
-	      PenaltyCenter,PenaltySlope,nsubsamp,UseMask);
+	      "%12.9lf %12.9lf %12.9lf %4d  %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf  %lf %lf %lf \n",
+	      rmsDiffMean,rmsDiffMax,costs[7],nCostEvaluations,
+	      p[0],p[1],p[2],p[3],p[4],p[5],
+	      costs[1],costs[4],costs[6]);
+	      
       fclose(fpRMSDiff);
     }    
   }
@@ -1946,7 +1951,7 @@ float compute_powell_cost(float *p)
 	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
     fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
 	    costs[3],costs[4],costs[5]); // CTX n mean std
-    fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
+    fprintf(fp,"%8.4lf %12.10lf   %12.10lf ",costs[6],costs[7],copt); // t, cost=1/t
     fprintf(fp,"\n");
     fclose(fp);
   }
