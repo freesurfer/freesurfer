@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/06 21:54:47 $
- *    $Revision: 1.154 $
+ *    $Date: 2008/08/13 17:13:37 $
+ *    $Revision: 1.155 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -541,7 +541,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.154 2008/08/06 21:54:47 greve Exp $";
+"$Id: mri_glmfit.c,v 1.155 2008/08/13 17:13:37 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1583,9 +1583,12 @@ int main(int argc, char **argv) {
     if (mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 
     if(UseStatTable){
-      for(m=0; m < OutStatTable->nrows; m++)
+      for(m=0; m < OutStatTable->nrows; m++){
 	//OutStatTable->data[m][n] = MRIgetVoxVal(mriglm->p[n],m,0,0,0);
 	OutStatTable->data[m][n] = MRIgetVoxVal(sig,m,0,0,0);
+	if(mriglm->glm->C[n]->rows == 1)
+	  OutStatTable->data[m][n] *= SIGN(MRIgetVoxVal(mriglm->gamma[n],m,0,0,0));
+      }
     }
 
     // Compute and Save CNR
