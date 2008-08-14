@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/06/03 15:06:22 $
-#    $Revision: 1.14 $
+#    $Date: 2008/08/14 20:14:08 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 
 
 
-set VERSION = '$Id: mkanalysis-sess,v 1.14 2008/06/03 15:06:22 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.15 2008/08/14 20:14:08 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -147,8 +147,8 @@ endif
 echo "Setting TER to $TER"
 
 if($designtype == "event-related" || $designtype == "blocked") then
-  set Nh  = `echo "($IdealTW/$TR)" | bc`;
-  set TW  = `echo "$TR*$Nh" | bc`;
+  set Nh  = `echo "($IdealTW/$TER)" | bc`;
+  set TW  = `echo "$TER*$Nh" | bc -l`;
   #if($#PreStim == 0) set PreStim = `echo "2*$TR"   | bc -l`;
   if($gammafit) then
     @ nth = 1;
@@ -561,8 +561,10 @@ while( $#argv != 0 )
       set WhitenFlag = 1;
       breaksw
 
+    case "-no-whiten":
     case "-nowhiten":
       set WhitenFlag = 0;
+      set acfbins = 0;
       breaksw
 
     case "-mask":
@@ -1213,7 +1215,8 @@ of TauMax seconds.
 
 Spatially segment the brain into nbins within the mask for the
 purposes of computing separate autocorrelation/whitening functions. 
-Default is 10. This only affects to selxavg3-sess.
+Default is 10. This only affects to selxavg3-sess. Set to 0 to
+turn off whitening (or use -no-whiten).
 
 -mask maskid
 
