@@ -6,7 +6,7 @@ function [indpeak twfPer] = peakfinder(twf)
 % samples. If the 1st or last peak are less than 90% of the mean of
 % the rest of the peaks, they are exluded.
 %
-% $Id: peakfinder.m,v 1.1 2008/08/14 19:05:50 greve Exp $
+% $Id: peakfinder.m,v 1.2 2008/08/14 19:06:11 greve Exp $
 
 indpeak = [];
 
@@ -22,8 +22,8 @@ Ntp = length(twf);
 nfft = Ntp/2 + 1;
 nnfft = 1:nfft;
 twffft = abs(fft(twf-mean(twf)));
-plot(fftaxis,twffft(nnfft))
-keyboard
+%plot(fftaxis,twffft(nnfft))
+%keyboard
 [tmp k] = max(twffft);
 twfFreq = fftaxis(k);
 twfPer = 1/twfFreq;
