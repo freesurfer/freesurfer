@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/15 18:19:23 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/08/14 15:11:13 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -7903,6 +7903,7 @@ ICOreadOverAlloc(char *fname, double pct_over)
   }
 
   MRIScomputeMetricProperties(mris) ;
+  mris->radius = MRISaverageRadius(mris) ;
 #if 0
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
