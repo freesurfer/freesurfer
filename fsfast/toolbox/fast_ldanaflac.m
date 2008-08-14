@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/04/09 04:25:00 $
-%    $Revision: 1.29 $
+%    $Date: 2008/08/14 20:15:31 $
+%    $Revision: 1.30 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -148,9 +148,9 @@ while(1)
    case '-nextreg',    nextreg     = sscanf(tline,'%*s %d',1);
    case '-rescale',    flac.inorm  = sscanf(tline,'%*s %f',1);
    case '-nskip',      nskip       = sscanf(tline,'%*s %d',1);
-   case '-prestim',    prestim     = sscanf(tline,'%*s %d',1);
-   case '-timewindow', timewindow  = sscanf(tline,'%*s %d',1);
-   case '-ncycles',    ncycles     = sscanf(tline,'%*s %d',1);
+   case '-prestim',    prestim     = sscanf(tline,'%*s %f',1);
+   case '-timewindow', timewindow  = sscanf(tline,'%*s %f',1);
+   case '-ncycles',    ncycles     = sscanf(tline,'%*s %f',1);
    case '-delay',      delay       = sscanf(tline,'%*s %f',1);
    case '-timeoffset', timeoffset  = sscanf(tline,'%*s %f',1);
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
