@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/08/12 18:15:52 $
-#    $Revision: 1.417 $
+#    $Author: fischl $
+#    $Date: 2008/08/14 19:11:16 $
+#    $Revision: 1.418 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2832,6 +2832,7 @@ AC_OUTPUT([Makefile
            mris_multiscale_stats/Makefile
            mris_niters2fwhm/Makefile
            mris_register/Makefile
+           mris_congeal/Makefile
            mris_register_to_volume/Makefile
            mris_remove_variance/Makefile
            mris_resample/Makefile
