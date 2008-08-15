@@ -1,5 +1,5 @@
-function [u,s,v,M] = fast_svd(y,M)
-% [u s v M] = fast_svd(y,<M>)
+function [u,s,v,M,pvs] = fast_svd(y,M)
+% [u s v M pvs] = fast_svd(y,<M>)
 % 
 % Computes efficient SVD when the number of rows and columns are
 % not the same. It is efficient in the sense that only the minimum
@@ -24,9 +24,9 @@ function [u,s,v,M] = fast_svd(y,M)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.7 $
+%    $Author: greve $
+%    $Date: 2008/08/15 17:38:12 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,6 +60,8 @@ end
 if(nr > nc)
   if(~exist('M','var')) M = y'*y; end
   [v s blah] = svd(M);
+  ds = diag(s);
+  pvs = 100*ds/sum(ds);
   s = sqrt(s);
   % Could do: u = y*v*inv(s)), but inv(s) is just a scale factor
   % which will be removed during normalization
@@ -73,6 +75,8 @@ end
 
 if(~exist('M','var')) M = y*y'; end
 [u s blah] = svd(M);
+ds = diag(s);
+pvs = 100*ds/sum(ds);
 s = sqrt(s);
 % Could do: v = y'*(u*inv(s)), but inv(s) is just a scale factor
 % which will be removed during normalization
