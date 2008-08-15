@@ -2,7 +2,7 @@
 # Makefile.am
 #
 
-foodir=$(prefix)/bin
+foodir=$(DESTDIR)$(bindir)
 foo_DATA=flirt.newdefault.20080811.sch
 
 EXTRA_DIST=$(foo_DATA)
