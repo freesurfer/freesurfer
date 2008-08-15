@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/26 19:43:47 $
- *    $Revision: 1.80.2.4 $
+ *    $Date: 2008/08/15 21:00:02 $
+ *    $Revision: 1.80.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -177,13 +177,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.80.2.4 2008/03/26 19:43:47 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.80.2.5 2008/08/15 21:00:02 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.80.2.4 2008/03/26 19:43:47 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.80.2.5 2008/08/15 21:00:02 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -724,6 +724,26 @@ main(int argc, char *argv[]) {
         MRIwrite(mri_labeled, fname) ;
       }
 
+      if (renormalize_align)
+      {
+        FILE *logfp ;
+        char base_name[STRLEN] ;
+
+        FileNameOnly(out_fname, base_name) ;
+        FileNameRemoveExtension(base_name, base_name) ;
+        if (Gdiag & DIAG_WRITE) {
+          char fname[STRLEN] ;
+          strcpy(fname, base_name) ;
+          strcat(fname, ".log") ;
+          logfp = fopen(fname, "w") ;
+        } else
+          logfp = NULL ;
+        GCAmapRenormalizeWithAlignment
+          (gca, mri_inputs, transform,
+           logfp, base_name, NULL, handle_expanded_ventricles) ;
+      }
+      if (save_gca_fname)
+        GCAwrite(gca, save_gca_fname) ;
       //This normalization seems to bias WM to gets larger
 #if 0
       if (ninputs == 1)
