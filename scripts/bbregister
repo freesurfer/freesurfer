@@ -1,0 +1,404 @@
+#! /bin/tcsh -f
+
+#
+# bbregister
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2008/08/15 23:04:33 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+#
+set VERSION = '$Id: bbregister,v 1.1 2008/08/15 23:04:33 greve Exp $';
+set inputargs = ($argv);
+
+set subject = ();
+set movvol = ();
+set outreg = ();
+set InitFSL = 0;
+set InitSPM = 0;
+set InitHeader = 0;
+set InitReg = ();
+
+set fsvol  = brainmask;
+set refvol = ();
+set debug = 0;
+set tmpdir = ();
+set cleanup = 1;
+set monly = 0;
+set MLF = ();
+set PrintHelp = 0;
+set frame = ();
+set midframe = 0;
+set templateout = ();
+set nolog = 0;
+set OutVol = ();
+set LHOnly = 0;
+set RHOnly = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+set outdir = `dirname $outreg`;
+if($#tmpdir == 0) set tmpdir = $outdir/tmp.bbregister.$$
+mkdir -p $tmpdir
+
+if(! $nolog) then
+  set LF = $outreg.log
+  if(-e $LF) mv $LF $LF.old
+else
+  set LF = /dev/null
+endif
+
+echo "Log file is $LF"
+
+echo "Logfile for bbregister" >> $LF
+date |& tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" |& tee -a $LF
+echo "cd `pwd`" |& tee -a $LF
+echo $0 |& tee -a $LF
+echo $VERSION |& tee -a $LF
+uname -a |& tee -a $LF
+echo "FREESURFER_HOME $FREESURFER_HOME" |& tee -a $LF
+
+# Create template
+if($#templateout) then
+  set template = $templateout
+else
+  set template = $tmpdir/template.nii
+endif
+set cmd = (mri_convert $movvol $template)
+if($#frame != 0) set cmd = ($cmd --frame $cmd)
+if($midframe) set cmd = ($cmd --mid-frame $cmd)
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+if($#InitReg == 0) then
+  set InitReg = $tmpdir/reg.init.dat
+  if($InitFSL) then
+    set cmd = (fslregister --s $subject --mov $template --reg $InitReg \
+      --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  if($InitSPM) then
+    set cmd = (spmregister --s $subject --mov $template --reg $InitReg \
+      --tmp $tmpdir/fslregister)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  if($InitHeader) then
+    set cmd = (tkregister2_cmdl --s $subject --mov $template --regheader -reg $InitReg)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif
+
+set Pass1Reg = $tmpdir/bbr.pass1.dat
+set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
+  --nsub 100 --tol 1e-4 --tol1d 1e-4 --brute -4 4 4)
+if($LHOnly) set cmd = ($cmd --lh-only);
+if($RHOnly) set cmd = ($cmd --rh-only);
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
+  --out-reg $outreg --brute -.1 .1 .1)
+if($LHOnly) set cmd = ($cmd --lh-only);
+if($RHOnly) set cmd = ($cmd --rh-only);
+if($#OutVol) set cmd = ($cmd --o $OutVol);
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Cleanup
+if($cleanup) then
+  echo "Cleaning up" |& tee -a $LF
+  rm -r $tmpdir
+endif
+
+echo " " |& tee -a $LF
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "bbregister Done" |& tee -a $LF
+echo " "
+
+if(-e $SUBJECTS_DIR/$subject/surf/lh.orig) then
+  set tmp = "--surf orig"
+else
+  set tmp = ""
+endif
+
+echo "To check results, run:"
+if($#templateout) then
+  echo "tkregister2 --mov $templateout --reg $outreg $tmp"
+else
+  echo "tkregister2 --mov $movvol --reg $outreg $tmp"
+endif
+echo " "
+
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--mov":
+      if ( $#argv < 1) goto arg1err;
+      set movvol = $argv[1]; shift;
+      if(! -e $movvol) then
+        echo "ERROR: cannot find $movvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--reg":
+      if ( $#argv < 1) goto arg1err;
+      set outreg = $argv[1]; shift;
+      breaksw
+
+    case "--init-fsl":
+      set InitFSL = 1;
+      set InitSPM = 0;
+      set InitHeader = 0;
+      set InitReg = ();
+      breaksw
+ 
+    case "--init-spm":
+      set InitFSL = 0;
+      set InitSPM = 1;
+      set InitHeader = 0;
+      set InitReg = ();
+      breaksw
+ 
+    case "--init-header":
+      set InitFSL = 0;
+      set InitSPM = 0;
+      set InitHeader = 1;
+      set InitReg = ();
+      breaksw
+ 
+    case "--init-reg":
+      if ( $#argv < 1) goto arg1err;
+      set InitReg = $argv[1]; shift;
+      if(! -e $InitReg) then
+        echo "ERROR: cannot find $InitReg"
+        exit 1;
+      endif
+      set InitFSL = 0;
+      set InitSPM = 0;
+      set InitHeader = 0;
+      breaksw
+
+    case "--s-from-reg":
+      if ( $#argv < 1) goto arg1err;
+      set tmpfile = $argv[1]; shift;
+      set subject = `head -n 1 $tmpfile`;
+      if($status) then
+        echo "$subject"
+        exit 1;
+      endif
+      breaksw
+
+    case "--fsvol":
+      if ( $#argv < 1) goto arg1err;
+      set fsvol = $argv[1]; shift;
+      breaksw
+
+    case "--template-out":
+      if ( $#argv < 1) goto arg1err;
+      set templateout = $argv[1]; shift;
+      breaksw
+
+    case "--frame":
+      if ( $#argv < 1) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "--mid-frame":
+      set midframe = 1;
+      breaksw
+
+    case "--lh-only":
+      set LHOnly = 1;
+      set RHOnly = 0;
+      breaksw
+
+    case "--rh-only":
+      set LHOnly = 0;
+      set RHOnly = 1;
+      breaksw
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set OutVol = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "--nolog":
+      set nolog = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subject == 0) then
+    echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+
+  if($#movvol == 0) then
+    echo "ERROR: must spec an movput vol"
+    exit 1;
+  endif
+
+  if($#outreg == 0) then
+    echo "ERROR: must spec an output reg file"
+    exit 1;
+  endif
+
+  if($#frame && $midframe) then
+    echo "ERROR: cannot --frame AND --mid-frame"
+    exit 1;
+  endif
+
+  if(! $InitFSL && ! $InitSPM && ! $InitHeader && ! $#InitReg) then
+    echo "ERROR: must spec an init method"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: bbregister"
+  echo ""
+  echo "Required Arguments:";
+  echo "   --s subject"
+  echo "   --mov volid  : input/movable volume"
+  echo "   --reg register.dat"
+  echo ""
+  echo "Initialization Arguments (one required)"
+  echo ""
+  echo "   --init-fsl"
+  echo "   --init-spm"
+  echo "   --init-header"
+  echo "   --init-reg initregfile"
+  echo ""
+  echo "Optional Arguments"
+  echo "   --s-from-reg reg : get subject name from regfile"
+  echo "   --lh-only : only use left hemi"
+  echo "   --rh-only : only use right hemi"
+  echo "   --frame frameno : reg to frameno (default 0=1st)"
+  echo "   --mid-frame : reg to middle frame (not with --frame)"
+  echo "   --template-out template : save template (good with --frame)"
+  echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
+  echo "   --o outvol : resample mov and save as outvol"
+  echo ""
+  echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
+  echo "   --nocleanup  : do not delete temporary files"
+  echo "   --version : print version and exit"
+  echo "   --help    : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
