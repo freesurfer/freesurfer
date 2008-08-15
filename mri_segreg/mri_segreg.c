@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/13 03:04:58 $
- *    $Revision: 1.60 $
+ *    $Date: 2008/08/15 17:15:15 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -50,6 +50,8 @@
   --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
   --preopt-only : only preopt, so not optimize
 
+  --T1, --t1         : assume T1 gray/white contrast
+  --T2, --t2, --bold : assume T2/BOLD gray/white contrast (default)
   --gm-gt-wm slope : gray matter brighter than WM
   --wm-gt-gm slope : WM brighter than gray matter
   --c0 offset : cost offset (pct)
@@ -212,7 +214,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.60 2008/08/13 03:04:58 greve Exp $";
+"$Id: mri_segreg.c,v 1.61 2008/08/15 17:15:15 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -346,16 +348,17 @@ int main(int argc, char **argv) {
   VERTEX *v;
   int nsubsampsave = 0;
   LABEL *label;
+  int PrintT1Warning = 0, PrintT2Warning = 0;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.60 2008/08/13 03:04:58 greve Exp $",
+     "$Id: mri_segreg.c,v 1.61 2008/08/15 17:15:15 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.60 2008/08/13 03:04:58 greve Exp $",
+     "$Id: mri_segreg.c,v 1.61 2008/08/15 17:15:15 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -625,6 +628,30 @@ int main(int argc, char **argv) {
   printf("Ctx Intensity %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
   printf("Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
   printf("Cost %8.4lf\n",costs[7]); 
+
+  if(costs[6] < 0 && PenaltySign < 0) PrintT1Warning = 1;
+  if(PrintT1Warning){
+    fprintf(fp,"\n\n");
+    fprintf(fp,"WARNING: initial G-W contrast is negative, but expecting positive.\n");
+    fprintf(fp,"If the mov data has a T1 contrast, re-run with --T1\n");
+    fprintf(fp,"\n\n");
+    printf("\n\n");
+    printf("WARNING: initial G-W contrast is negative, but expecting positive.\n");
+    printf("If the mov data has a T1 contrast, re-run with --T1\n");
+    printf("\n\n");
+  }
+
+  if(costs[6] > 0 && PenaltySign > 0) PrintT2Warning = 1;
+  if(PrintT2Warning){
+    fprintf(fp,"\n\n");
+    fprintf(fp,"WARNING: initial G-W contrast is positive, but expecting negative.\n");
+    fprintf(fp,"If the mov data has a T2 contrast, re-run with --T2\n");
+    fprintf(fp,"\n\n");
+    printf("\n\n");
+    printf("WARNING: initial G-W contrast is positive, but expecting negative.\n");
+    printf("If the mov data has a T2 contrast, re-run with --T2\n");
+    printf("\n\n");
+  }
 
   if(Do1DPreOpt){
     printf("\n");
@@ -939,6 +966,28 @@ int main(int argc, char **argv) {
       fclose(fpRMSDiff);
     }    
   }
+
+  if(PrintT1Warning){
+    fprintf(fp,"\n\n");
+    fprintf(fp,"WARNING: initial G-W contrast was negative, but expected positive.\n");
+    fprintf(fp,"If the mov data has a T1 contrast, re-run with --T1\n");
+    fprintf(fp,"\n\n");
+    printf("\n\n");
+    printf("WARNING: initial G-W contrast was negative, but expected positive.\n");
+    printf("If the mov data has a T1 contrast, re-run with --T1\n");
+    printf("\n\n");
+  }
+  if(PrintT2Warning){
+    fprintf(fp,"\n\n");
+    fprintf(fp,"WARNING: initial G-W contrast was positive, but expected negative.\n");
+    fprintf(fp,"If the mov data has a T2 contrast, re-run with --T2\n");
+    fprintf(fp,"\n\n");
+    printf("\n\n");
+    printf("WARNING: initial G-W contrast was positive, but expected negative.\n");
+    printf("If the mov data has a T2 contrast, re-run with --T2\n");
+    printf("\n\n");
+  }
+
 
   fclose(fp);
   printf("mri_segreg done\n");
@@ -1270,7 +1319,13 @@ static int parse_commandline(int argc, char **argv) {
       PenaltySign = +1;
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
-    } else if (istringnmatch(option, "--c0",0)) {
+    } 
+    else if (istringnmatch(option, "--T1",0) ||
+	     istringnmatch(option, "--t1",0))   PenaltySign = +1;
+    else if (istringnmatch(option, "--T2",0) ||
+	     istringnmatch(option, "--t2",0) ||
+	     istringnmatch(option, "--bold",0)) PenaltySign = -1;
+    else if (istringnmatch(option, "--c0",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&PenaltyCenter);
       nargsused = 1;
@@ -1467,6 +1522,8 @@ printf("  --preopt-file file : save preopt results in file\n");
 printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
 printf("  --preopt-only : only preopt, so not optimize\n");
 printf("\n");
+printf("  --T1, --t1         : assume T1 gray/white contrast\n");
+printf("  --T2, --t2, --bold : assume T2/BOLD gray/white contrast (default)\n");
 printf("  --gm-gt-wm slope : gray matter brighter than WM\n");
 printf("  --wm-gt-gm slope : WM brighter than gray matter\n");
 printf("  --c0 offset : cost offset (pct)\n");
