@@ -1,5 +1,5 @@
-function Xirf = flac_ev2irf(flac,nthev)
-% Xirf = flac_ev2irf(flac,nthev)
+function [Xirf tirf] = flac_ev2irf(flac,nthev)
+% [Xirf tirf] = flac_ev2irf(flac,nthev)
 %
 %
 
@@ -9,9 +9,9 @@ function Xirf = flac_ev2irf(flac,nthev)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2008/08/15 16:30:35 $
+%    $Revision: 1.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@ function Xirf = flac_ev2irf(flac,nthev)
 
 Xirf = [];
 if(nargin ~= 2)
-  fprintf('Xirf = flac_ev2irf(flac,nthev)\n');
+  fprintf('[Xirf tirf] = flac_ev2irf(flac,nthev)\n');
   return;
 end
 
@@ -42,12 +42,13 @@ switch(ev.model)
  
  case {'fir'}
   Xirf = eye(ev.npsd);
+  tirf = [];
  
  case {'spmhrf'}
   nderiv = ev.params(1);
   dpsd   = ev.params(2);
-  t = dpsd*[0:ev.npsd-1]';
-  Xirf = fast_spmhrf(t);
+  tirf = dpsd*[0:ev.npsd-1]';
+  Xirf = fast_spmhrf(tirf);
   dhspmhrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
@@ -62,8 +63,8 @@ switch(ev.model)
   alpha  = ev.params(3);
   nderiv = ev.params(4);
   dpsd   = ev.params(5);
-  t = dpsd*[0:ev.npsd-1]';
-  Xirf = fmri_hemodyn(t,delay,tau,alpha);
+  tirf = dpsd*[0:ev.npsd-1]';
+  Xirf = fmri_hemodyn(tirf,delay,tau,alpha);
   Xirf = Xirf/max(Xirf); % consistent with selxavg
   dh_hrf = Xirf;
   for n = 1:nderiv
@@ -81,8 +82,8 @@ switch(ev.model)
   b = meanlag/(sigma^2);
   nderiv  = ev.params(4);
   dpsd    = ev.params(5);
-  t = dpsd*[0:ev.npsd-1]' + flac.TR/2;
-  Xirf = pdf_gamma(t,a,b);  
+  tirf = dpsd*[0:ev.npsd-1]' + flac.TR/2;
+  Xirf = pdf_gamma(tirf,a,b);  
   Xirf = Xirf/sum(Xirf);
   dh_hrf = Xirf;
   for n = 1:nderiv
