@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2008/05/07 21:51:03 $
- *    $Revision: 1.330 $
+ *    $Author: greve $
+ *    $Date: 2008/08/15 16:25:32 $
+ *    $Revision: 1.331 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.330 $";
+char *VERSION = "$Revision: 1.331 $";
 
 #define TCL
 #define TKMEDIT
@@ -966,6 +966,8 @@ tkm_tErr ExecuteQueuedScripts ();
 char gsCachedScriptNames[tkm_knMaxNumCachedScripts][tkm_knPathLen];
 int gnNumCachedScripts = 0;
 
+int LoadOrigSurf = 1;
+
 // ===========================================================================
 
 #ifdef Linux
@@ -1185,7 +1187,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.330 2008/05/07 21:51:03 krish Exp $",
+     "$Id: tkmedit.c,v 1.331 2008/08/15 16:25:32 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1216,14 +1218,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("               : in $SUBJECTS_DIR/subject/mri or "
            "specify absolute path\n");
     printf("\n");
-    printf("-surface <surface>     : load surface as main surface. "
-           "relative to\n");
+    printf("-surface <surface>     : load surface as main surface. Relative to\n");
     printf("                       : in $SUBJECTS_DIR/subject/surf "
            "or specify absolute path\n");
     printf("-aux-surface <surface> : load surface as auxilliary surface. "
            "relative to\n");
     printf("                       : in $SUBJECTS_DIR/subject/surf or "
            "specify absolute path\n");
+    printf("-surfs : load lh.white and rh.white\n");
     printf("-annotation <annotation> <color table> : import a "
            "surface annotation and color\n");
     printf("                                         table to "
@@ -1296,6 +1298,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("                                   : overlay (default is 0.3)\n");
     printf("-aseg : load aseg.mgz and standard color table\n");
     printf("-aparc+aseg : load aparc+aseg.mgz and standard color table\n");
+    printf("-wmparc : load wmparc.mgz and standard color table\n");
     printf("\n");
     printf("-seg-conform      : conform the main segmentation volume\n");
     printf("-aux-seg-conform  : conform the aux segmentation volume\n");
@@ -1483,7 +1486,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg += 1;
         }
 
-      } else if ( MATCH( sArg, "-aux-surface" ) ) {
+      } 
+      else if ( MATCH( sArg, "-surfs" ) ) {
+	xUtil_strncpy( sSurface, "lh.white", sizeof(sSurface) );
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "rh.white", sizeof(sAuxSurface) );
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 0;
+	nCurrentArg ++;
+      }
+      else if ( MATCH( sArg, "-aux-surface" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
@@ -1496,7 +1508,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           bAuxSurfaceDeclared = TRUE;
           nCurrentArg += 2;
 
-        } else {
+        } 
+	else {
 
           /* misuse of that option */
           tkm_DisplayError( "Parsing -aux-surface option",
@@ -1835,7 +1848,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         bEnablingRegistration = TRUE;
         nCurrentArg ++;
 
-      } else if ( MATCH( sArg, "-aseg" ) ) {
+      } 
+      else if ( MATCH( sArg, "-aseg" ) ) {
         xUtil_strncpy( sSegmentationPath, "aseg.mgz",
                        sizeof(sSegmentationPath) );
         pEnvVar = getenv("FREESURFER_HOME");
@@ -1843,15 +1857,24 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         bLoadingSegmentation = TRUE;
         nCurrentArg += 1;
 
-      } else if ( MATCH( sArg, "-aparc+aseg" ) ) {
+      } 
+      else if ( MATCH( sArg, "-aparc+aseg" ) ) {
         xUtil_strncpy( sSegmentationPath, "aparc+aseg.mgz",
                        sizeof(sSegmentationPath) );
         pEnvVar = getenv("FREESURFER_HOME");
         sprintf( sSegmentationColorFile,"%s/FreeSurferColorLUT.txt", pEnvVar );
         bLoadingSegmentation = TRUE;
         nCurrentArg += 1;
-
-      } else if ( MATCH( sArg, "-segmentation" ) ||
+      } 
+      else if ( MATCH( sArg, "-wmparc" ) ) {
+        xUtil_strncpy( sSegmentationPath, "wmparc.mgz",
+                       sizeof(sSegmentationPath) );
+        pEnvVar = getenv("FREESURFER_HOME");
+        sprintf( sSegmentationColorFile,"%s/FreeSurferColorLUT.txt", pEnvVar );
+        bLoadingSegmentation = TRUE;
+        nCurrentArg += 1;
+      } 
+      else if ( MATCH( sArg, "-segmentation" ) ||
                   MATCH( sArg, "-seg" ) ||
                   MATCH( sArg, "-parcellation" ) ||
                   MATCH( sArg, "-parc" ) ) {
@@ -3671,8 +3694,10 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   }
 
   /* load other vertex sets. See if they exist first. */
-  DebugNote( ("Loading orig set") );
-  LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
+  if(LoadOrigSurf){
+    DebugNote( ("Loading orig set") );
+    LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
+  }
   DebugNote( ("Loading pial set") );
   LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, "pial" );
 
@@ -5831,7 +5856,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.330 2008/05/07 21:51:03 krish Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.331 2008/08/15 16:25:32 greve Exp $ $Name:  $\n"
         )
       );
 
