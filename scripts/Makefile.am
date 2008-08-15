@@ -33,6 +33,7 @@ fix_subject_corrected-rh \
 fix_subject-lh \
 fix_subject_on_seychelles \
 fix_subject-rh \
+flirt.newdefault.20080811.sch \
 fname2stem \
 stem2fname \
 freesurfer \
