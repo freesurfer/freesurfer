@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/14 19:11:40 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/08/15 02:05:13 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_congeal.c,v 1.1 2008/08/14 19:11:40 fischl Exp $";
+"$Id: mris_congeal.c,v 1.2 2008/08/15 02:05:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -150,14 +150,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_congeal.c,v 1.1 2008/08/14 19:11:40 fischl Exp $", 
+     "$Id: mris_congeal.c,v 1.2 2008/08/15 02:05:13 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_congeal.c,v 1.1 2008/08/14 19:11:40 fischl Exp $", 
+     "$Id: mris_congeal.c,v 1.2 2008/08/15 02:05:13 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1123,7 +1123,7 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
       sse = MRIScongealEstimateTemplate(mris_ico, mris_array, mht_array, nsubjects, parms,-1) ;
       pct_change = 100 * (last_sse - sse) / last_sse ;
       done = (last_sse >= 0) && (pct_change < parms->tol) ;
-      iter++ ;
+      iter++ ; 
       printf("iter %d: sse = %2.2f, last_sse = %2.2f, (%2.2f%%)\n",iter, sse, last_sse, pct_change) ;
       last_sse = sse ;
     }
@@ -1167,7 +1167,7 @@ MRIScongealComputeSurfaceError(MRI_SURFACE *mris_ico, MRI_SURFACE *mris, MHT *mh
   int    vno ;
   VERTEX *v, *vsurf ;
 
-  for (error = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  for (sse = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
