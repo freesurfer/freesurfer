@@ -1,12 +1,12 @@
-function flacnew = flac_desmat(flac)
-% flacnew = flac_desmat(flac)
+function flacnew = flac_desmat(flac,IRFOnly)
+% flacnew = flac_desmat(flac,<IRFOnly>)
 %
 % Builds design matrices for each EV and performs the horizontal
 % concatenation. Requires that flac.ntp and flac.ev(n).st already be
 % set. If a nonpar is used, the matrix must already be set. These are
 % done by flac_customize but could be done in some other way (allows
-% for optseq-type optimization).
-%
+% for optseq-type optimization). If IRFOnly=1 and the FIR matrix
+% exists, then the FIR matrix is not rebuilt (for speed).
 %
 
 
@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/04/09 20:35:41 $
-%    $Revision: 1.11.2.2 $
+%    $Date: 2008/08/15 16:29:14 $
+%    $Revision: 1.11.2.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -34,10 +34,12 @@ function flacnew = flac_desmat(flac)
 
 flacnew = [];
 
-if(nargin ~= 1)
- fprintf('flacnew = flac_desmat(flac)\n');
+if(nargin < 1 || nargin > 2)
+ fprintf('flacnew = flac_desmat(flac,IRFOnly)\n');
  return;
 end
+
+if(nargin == 1) IRFOnly = 0; end
 
 flacnew = flac;
 flacnew.X = [];
@@ -49,20 +51,25 @@ for nthev = 1:nev
   if(ev.ishrf)  
     % HRF Regressors
     st = ev.st; % Delay has already been added
-    flacnew.ev(nthev).Xfir = fast_st2fir(st,flac.ntp,flac.TR,ev.psdwin,1);
-    if(isempty(flacnew.ev(nthev).Xfir)) 
-      fprintf('ERROR: creating FIR design matrix for %s\n',...
-	      flacnew.ev(nthev).name);
-      flacnew = [];
-      return; 
+    if(~isfield(ev,'Xfir')) ev.Xfir = []; end
+    if(~IRFOnly | isempty(ev.Xfir))
+      flacnew.ev(nthev).Xfir = fast_st2fir(st,flac.ntp,flac.TR,ev.psdwin,1);
+      if(isempty(flacnew.ev(nthev).Xfir)) 
+	fprintf('ERROR: creating FIR design matrix for %s\n',...
+		flacnew.ev(nthev).name);
+	flacnew = [];
+	return; 
+      end
     end
-    flacnew.ev(nthev).Xirf = flac_ev2irf(flac,nthev);
-    if(isempty(flacnew.ev(nthev).Xirf)) 
+    [Xirf tirf] = flac_ev2irf(flac,nthev);
+    if(isempty(Xirf)) 
       fprintf('ERROR: creating IRF design matrix for %s\n',...
 	      flacnew.ev(nthev).name);
       flacnew = [];
       return; 
     end
+    flacnew.ev(nthev).Xirf = Xirf;
+    flacnew.ev(nthev).tirf = tirf;
     flacnew.ev(nthev).X = flacnew.ev(nthev).Xfir * flacnew.ev(nthev).Xirf;
   else
     switch(ev.model)
