@@ -36,7 +36,7 @@ mris_congeal_LDFLAGS=$(OS_LDFLAGS)
 #PETSC install-exec-hook:
 #PETSC endif
 
-EXTRA_DIST=make_mris_congeal_movie.tcl
+EXTRA_DIST=render_surface.tcl make_movie.csh
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
