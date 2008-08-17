@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/04 22:01:28 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/08/17 14:02:06 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1773,7 +1773,7 @@ VERTEX * MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht,
 {
 //------------------------------------------------------
   VERTEX * vtx;
-  int rslt;
+  int rslt, i;
 
   mhtFindCommonSanityCheck(mht, mris);
 
@@ -1785,11 +1785,24 @@ VERTEX * MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht,
                                      1000,
                                      1, // max_mhts: search out to 7x7x7 (was 1, BRF)
                                      &vtx, NULL, NULL);
-  if (!vtx && do_global_search) // did not find a vertex, so use brute-force (BRF)
+  if (!vtx && do_global_search)  // do more local search first
   {
-    int vnum = mhtBruteForceClosestVertex(mris, x, y, z, 
-                                          mht->which_vertices, NULL);    
-    vtx = &mris->vertices[vnum];
+    for (i = 2 ; i <= 4 ; i++)
+    {
+      rslt = MHTfindClosestVertexGeneric(mht, mris,
+                                         x, y, z,
+                                         1000,
+                                         i, // max_mhts: search out to 7x7x7 (was 1, BRF)
+                                         &vtx, NULL, NULL);
+      if (vtx) // found it
+        break ;
+    }
+    if (!vtx)    // did not find a vertex, so use brute-force (BRF)
+    {
+      int vnum = mhtBruteForceClosestVertex(mris, x, y, z, 
+                                            mht->which_vertices, NULL);    
+      vtx = &mris->vertices[vnum];
+    }
   }
 
   return vtx;
