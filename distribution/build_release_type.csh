@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.121 2008/06/05 18:11:57 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.122 2008/08/18 23:02:50 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.4"
-set STABLE_PUB_VER_NUM="v4.0.4"
+set STABLE_VER_NUM="v4.0.5"
+set STABLE_PUB_VER_NUM="v4.0.5"
 
 set HOSTNAME=`hostname -s`
 
@@ -103,11 +103,8 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set VTKDIR=/usr/pubsw/packages/vtk/5.0.4
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
-  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
-  setenv FSLDIR /usr/pubsw/packages/fsl/4.0.2
-  if ( "x`uname -m`" == "xx86_64" ) then
-    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/4.0.2
-  endif
+  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
+  setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
   setenv AFNIDIR /usr/pubsw/packages/AFNI/current
@@ -120,9 +117,6 @@ else
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
-  if ( "x`uname -m`" == "xx86_64" ) then
-    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/current
-  endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
   setenv AFNIDIR /usr/pubsw/packages/AFNI/current
