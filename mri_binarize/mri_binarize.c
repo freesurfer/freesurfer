@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/19 21:24:36 $
- *    $Revision: 1.17 $
+ *    $Date: 2008/08/18 21:01:33 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.17 2007/12/19 21:24:36 greve Exp $
+// $Id: mri_binarize.c,v 1.18 2008/08/18 21:01:33 greve Exp $
 
 /*
   BEGINHELP
@@ -154,7 +154,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.17 2007/12/19 21:24:36 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.18 2008/08/18 21:01:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -417,9 +417,15 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--zero-slice-edges")) ZeroSliceEdges = 1;
     else if (!strcasecmp(option, "--wm")){
-      nMatch = 2;
       MatchValues[0] =  2;
       MatchValues[1] = 41;
+      MatchValues[2] = 82;
+      MatchValues[3] = 251;
+      MatchValues[4] = 252;
+      MatchValues[5] = 253;
+      MatchValues[6] = 254;
+      MatchValues[7] = 255;
+      nMatch = 8;
       DoMatch = 1;
     }
     else if (!strcasecmp(option, "--ventricles")){
