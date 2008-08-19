@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/06/10 23:13:52 $
-#    $Revision: 1.27 $
+#    $Date: 2008/08/19 22:27:00 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.27 2008/06/10 23:13:52 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.28 2008/08/19 22:27:00 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -35,10 +35,10 @@ set movvol = ();
 set outvol = ();
 set dof = 6;
 set bins = 256;
-set maxangle = 70;
+set maxangle = 90;
 set cost = corratio;
 set fslmat = ();
-set betmov = 1;
+set betmov = 0;
 set betfvalue = 0.1
 set UseBETFunc = 0;
 set betref = 0;
@@ -53,8 +53,10 @@ set DoMidFrame = 0;
 set templateout = ();
 set DoSegReg = 0;
 set Verbosity = 0;
-set nIters = 4;
+set nIters = 1;
 set BBRMask = 1;
+set UseNewSchedule = 1;
+set sch = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -214,6 +216,7 @@ set cmd = ($cmd  -searchrx -$maxangle $maxangle);
 set cmd = ($cmd  -searchry -$maxangle $maxangle);
 set cmd = ($cmd  -searchrz -$maxangle $maxangle);
 set cmd = ($cmd  -verbose $Verbosity);
+if($#sch) set cmd = ($cmd -schedule $sch);
 if($#outvol) then
   set outvolbase = $tmpdir/outvol.fslregister
   set outvolimg  = $outvolbase.nii
@@ -384,6 +387,11 @@ while( $#argv != 0 )
 
     case "--betfunc":
       set UseBETFunc = 1;
+      set betmov = 1;
+      breaksw
+
+    case "--betmov":
+      set betmov = 1;
       breaksw
 
     case "--nobetmov":
@@ -460,6 +468,10 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "--no-new-schedule":
+      set UseNewSchedule = 0;
+      breaksw
+
     case "--verbose":
       if ( $#argv < 1) goto arg1err;
       set Verbosity = $argv[1]; shift;
@@ -513,6 +525,14 @@ check_params:
     exit 1;
   endif
 
+  if($UseNewSchedule) then
+    set sch = $FREESURFER_HOME/bin/flirt.newdefault.20080811.sch
+    if(! -e $sch) then
+      echo "ERROR: cannot find $sch"
+      exit 1;
+    endif
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -548,8 +568,9 @@ usage_exit:
   echo "   --bins bins      : FLIRT bins (default is $bins)"
   echo "   --cost cost      : FLIRT cost (default is $cost)"
   echo "   --maxangle angle : FLIRT max search angle (default is $maxangle)"
+  echo "   --no-new-schedule "
   echo " "
-  echo "   --nobetmov    : do not perform brain extration on mov"
+  echo "   --betmov      : perform brain extration on mov"
   echo "   --betfvalue f : f value for bet, 0.1 default (passed with -f to bet)"
   echo "   --betfunc     : betfunc on mov instead of simply bet"
   echo " "
