@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/08/18 19:21:32 $
-#    $Revision: 1.4 $
+#    $Date: 2008/08/19 21:40:59 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,28 +23,38 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.4 2008/08/18 19:21:32 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.5 2008/08/19 21:40:59 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
 set movvol = ();
+set frame = ();
+set midframe = 0;
 set outreg = ();
 set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
 set InitReg = ();
 
-set frame = ();
-set midframe = 0;
-set templateout = ();
-set fsvol  = brainmask;
-set OutVol = ();
 set LHOnly = 0;
 set RHOnly = 0;
 set Slope1 = 0.5;
 set Slope2 = 0.1;
+set Offset2 = 0;
 set Contrast = +1;
 set Tol = 1e-4;
+
+set GMProjFrac = 0.5;
+set WMProjAbs = 2;
+set nSubSamp = 1;
+set RandInitMax = ();
+set Interp = trilinear
+set UseEPIMask = 0;
+
+set RMSFile = ();
+set templateout = ();
+set OutVol = ();
+set fsvol  = brainmask;
 
 set debug = 0;
 set tmpdir = ();
@@ -130,21 +140,31 @@ if($#InitReg == 0) then
   endif
 endif
 
+# Pass 1
 set Pass1Reg = $tmpdir/bbr.pass1.dat
 set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
-  --nsub 100 --tol 1e-4 --tol1d 1e-4 --brute -4 4 4)
+  --nsub 100 --tol 1e-4 --tol1d 1e-4 --brute -4 4 4);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
+if($UseEPIMask) set cmd = ($cmd --mask);
+if($#RandInitMax) then
+  set cmd = ($cmd --trans-rand $RandInitMax --rot-rand $RandInitMax);
+endif
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
+# Pass 2
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
-  --out-reg $outreg --brute -0.1 0.1 0.1)
+  --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
+  --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
+  --c0 $Offset2)
+if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
+if($UseEPIMask) set cmd = ($cmd --mask);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
 set cmd = ($cmd --tol $Tol --tol1d $Tol)
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
@@ -152,6 +172,31 @@ if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+
+# Compute RMS wrt the initial reg (however it was created)
+if($#RMSFile) then
+  set rmsdat = ();
+  if(! $RHOnly) then
+    set lhrms = $tmpdir/rh.rms
+    set cmd = (mri_surf2surf --reg $InitReg --reg-diff $outreg \
+     --sval-xyz white --rms $lhrms --s $subject --hemi lh)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    set rmsdat = (`cat $lhrms`);
+  endif
+  if(! $LHOnly) then
+    set rhrms = $tmpdir/rh.rms
+    set cmd = (mri_surf2surf --reg $InitReg --reg-diff $outreg \
+     --sval-xyz white --rms $rhrms --s $subject --hemi rh)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    set rmsdat = ($rmsdat `cat $rhrms`);
+  endif
+  echo $rmsdat > $RMSFile
+  echo Final RMS $rmsdat | tee -a $LF
+endif
 
 # Cleanup
 if($cleanup) then
@@ -255,6 +300,11 @@ while( $#argv != 0 )
       set Slope2 = $argv[1]; shift;
       breaksw
 
+    case "--offset2":
+      if ( $#argv < 1) goto arg1err;
+      set Offset2 = $argv[1]; shift;
+      breaksw
+
     case "--bold":
     case "--dti":
     case "--T2":
@@ -309,6 +359,50 @@ while( $#argv != 0 )
     case "--o":
       if ( $#argv < 1) goto arg1err;
       set OutVol = $argv[1]; shift;
+      breaksw
+
+    case "--tol":
+      if ( $#argv < 1) goto arg1err;
+      set Tol = $argv[1]; shift;
+      breaksw
+
+    case "--gm-proj-frac":
+      if($#argv < 1) goto arg1err;
+      set GMProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "--wm-proj-abs":
+      if($#argv < 1) goto arg1err;
+      set WMProjAbs = $argv[1]; shift;
+      breaksw
+
+    case "--nsub":
+    case "--nsubsamp":
+      if($#argv < 1) goto arg1err;
+      set nSubSamp = $argv[1]; shift;
+      breaksw
+
+    case "--rms":
+      if($#argv < 1) goto arg1err;
+      set RMSFile = $argv[1]; shift;
+      breaksw
+
+    case "--rand-init":
+      if($#argv < 1) goto arg1err;
+      set RandInitMax = $argv[1]; shift;
+      breaksw
+
+    case "--nearest":
+      set Interp = nearest
+      breaksw
+
+    case "--trilin":
+    case "--trilinear":
+      set Interp = trilinear
+      breaksw
+
+    case "--epi-mask":
+      set UseEPIMask = 1;
       breaksw
 
     case "--tmp":
@@ -412,18 +506,26 @@ usage_exit:
   echo "   --t1 : assume t1 contrast, ie, WM brighter than GM"
   echo "   --t2 : assume t2 contrast, ie, GM brighter than WM (default)"
   echo "   --bold : same as --t2"
-  echo "   --slope1 slope1 : cost slope for 1st stage (default is $Slope1)"
-  echo "   --slope2 slope2 : cost slope for 2nd stage (default is $Slope2)"
-  echo "   --tol tol : final tolerance (default is $Tol)"
   echo ""
   echo "   --mid-frame : reg to middle frame (not with --frame)"
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --template-out template : save template (good with --frame)"
+  echo "   --o outvol : resample mov and save as outvol"
   echo "   --s-from-reg reg : get subject name from regfile"
+  echo "   --rms rmsfile : RMS change in cortical surface position"
+  echo ""
   echo "   --lh-only : only use left hemi"
   echo "   --rh-only : only use right hemi"
-  echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
-  echo "   --o outvol : resample mov and save as outvol"
+  echo "   --slope1 slope1 : cost slope for 1st stage (default is $Slope1)"
+  echo "   --slope2  slope2 : cost slope for 2nd stage (default is $Slope2)"
+  echo "   --offset2 offset2 : cost offset for 2nd stage (default is $Offset2)"
+  echo "   --tol tol : 2nd stage tolerance (default is $Tol)"
+  echo "   --rand-init randmax : randomly change input to 1st stage reg"
+  echo "   --gm-proj-frac frac : 2nd stage, default is 0.5"
+  echo "   --wm-proj-abs  dist : 2nd stage, default is 2mm"
+  echo "   --nsub nsub : 2nd stage, default is 1"
+  echo "   --nearest  : 2nd stage, use nearest neighbor interp (defalt is trilinear)"
+  echo "   --epi-mask : mask out brain edge and B0 regions (1st and 2nd stages)"
   echo ""
   echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
