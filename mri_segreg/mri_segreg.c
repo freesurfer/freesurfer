@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/15 17:15:15 $
- *    $Revision: 1.61 $
+ *    $Date: 2008/08/20 16:11:13 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -50,11 +50,12 @@
   --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)
   --preopt-only : only preopt, so not optimize
 
+  --slope slope    : set cost slope
+  --offset offset  : cost offset (pct)
   --T1, --t1         : assume T1 gray/white contrast
   --T2, --t2, --bold : assume T2/BOLD gray/white contrast (default)
-  --gm-gt-wm slope : gray matter brighter than WM
-  --wm-gt-gm slope : WM brighter than gray matter
-  --c0 offset : cost offset (pct)
+  --gm-gt-wm slope : set cost slope, spec gray matter brighter than WM
+  --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter
   --cf cfile  : save cost function values (pct,cost)
 
   --mask : mask out regions edge and B0 regions
@@ -106,6 +107,7 @@
   --surf-cost basename : saves as basename.?h.mgh
   --init-surf-cost basename0 : saves init cost as basename0.?h.mgh
   --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh
+  --surf-con basename : saves final contrast as basename.?h.mgh
 
   --mksegreg subject : create segreg.mgz and exit
 
@@ -214,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.61 2008/08/15 17:15:15 greve Exp $";
+"$Id: mri_segreg.c,v 1.62 2008/08/20 16:11:13 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -352,13 +354,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.61 2008/08/15 17:15:15 greve Exp $",
+     "$Id: mri_segreg.c,v 1.62 2008/08/20 16:11:13 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.61 2008/08/15 17:15:15 greve Exp $",
+     "$Id: mri_segreg.c,v 1.62 2008/08/20 16:11:13 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1216,6 +1218,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if(istringnmatch(option, "--nsub",0) ||
+	    istringnmatch(option, "--subsamp",0) ||
 	    istringnmatch(option, "--skip",0)) {
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nsubsamp);
@@ -1314,9 +1317,15 @@ static int parse_commandline(int argc, char **argv) {
       PenaltySign = -1;
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
-    } else if (istringnmatch(option, "--wm-gt-gm",0)) {
+    } 
+    else if (istringnmatch(option, "--wm-gt-gm",0)) {
       if (nargc < 1) argnerr(option,1);
       PenaltySign = +1;
+      sscanf(pargv[0],"%lf",&PenaltySlope);
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--slope",0)) {
+      if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
     } 
@@ -1325,7 +1334,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--T2",0) ||
 	     istringnmatch(option, "--t2",0) ||
 	     istringnmatch(option, "--bold",0)) PenaltySign = -1;
-    else if (istringnmatch(option, "--c0",0)) {
+    else if (istringnmatch(option, "--c0",0) ||
+	     istringnmatch(option, "--offset",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&PenaltyCenter);
       nargsused = 1;
@@ -1524,8 +1534,9 @@ printf("  --preopt-only : only preopt, so not optimize\n");
 printf("\n");
 printf("  --T1, --t1         : assume T1 gray/white contrast\n");
 printf("  --T2, --t2, --bold : assume T2/BOLD gray/white contrast (default)\n");
-printf("  --gm-gt-wm slope : gray matter brighter than WM\n");
-printf("  --wm-gt-gm slope : WM brighter than gray matter\n");
+printf("  --slope slope    : set cost slope\n");
+printf("  --gm-gt-wm slope : set cost slope, spec gray matter brighter than WM\n");
+printf("  --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter\n");
 printf("  --c0 offset : cost offset (pct)\n");
 printf("  --cf cfile  : save cost function values (pct,cost)\n");
 printf("\n");
@@ -1577,6 +1588,7 @@ printf("              WMMean CtxMean PctContrast C0 Slope NSubSamp UseMask\n");
 printf("  --surf-cost basename : saves final cost as basename.?h.mgh\n");
 printf("  --init-surf-cost basename0 : saves init cost as basename0.?h.mgh\n");
 printf("  --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh\n");
+printf("  --surf-con basename : saves final contrast as basename.?h.mgh\n");
 
 printf("\n");
 printf("  --mksegreg subject : create segreg.mgz and exit\n");
