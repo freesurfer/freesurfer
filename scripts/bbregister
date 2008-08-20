@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/08/19 23:05:03 $
-#    $Revision: 1.6 $
+#    $Date: 2008/08/20 16:30:48 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.6 2008/08/19 23:05:03 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.7 2008/08/20 16:30:48 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -55,6 +55,8 @@ set RMSFile = ();
 set templateout = ();
 set OutVol = ();
 set fsvol  = brainmask;
+set surfcost = ();
+set surfcon  = ();
 
 set debug = 0;
 set tmpdir = ();
@@ -170,6 +172,8 @@ if($#OutVol) set cmd = ($cmd --o $OutVol);
 set cmd = ($cmd --tol $Tol --tol1d $Tol)
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
+if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
+if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
@@ -286,6 +290,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $InitReg"
         exit 1;
       endif
+      set subject = `head -n 1 $InitReg`
       set InitFSL = 0;
       set InitSPM = 0;
       set InitHeader = 0;
@@ -362,6 +367,16 @@ while( $#argv != 0 )
       set OutVol = $argv[1]; shift;
       breaksw
 
+    case "--surf-cost":
+      if ( $#argv < 1) goto arg1err;
+      set surfcost = $argv[1]; shift;
+      breaksw
+
+    case "--surf-con":
+      if ( $#argv < 1) goto arg1err;
+      set surfcon = $argv[1]; shift;
+      breaksw
+
     case "--tol":
       if ( $#argv < 1) goto arg1err;
       set Tol = $argv[1]; shift;
@@ -378,7 +393,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--nsub":
-    case "--nsubsamp":
+    case "--subsamp":
       if($#argv < 1) goto arg1err;
       set nSubSamp = $argv[1]; shift;
       breaksw
@@ -524,9 +539,12 @@ usage_exit:
   echo "   --rand-init randmax : randomly change input to 1st stage reg"
   echo "   --gm-proj-frac frac : 2nd stage, default is 0.5"
   echo "   --wm-proj-abs  dist : 2nd stage, default is 2mm"
-  echo "   --nsub nsub : 2nd stage, default is 1"
+  echo "   --subsamp nsub : 2nd stage vertex subsampling, default is 1"
   echo "   --nearest  : 2nd stage, use nearest neighbor interp (defalt is trilinear)"
   echo "   --epi-mask : mask out brain edge and B0 regions (1st and 2nd stages)"
+  echo ""
+  echo "   --surf-cost basename : saves final cost as basename.?h.mgh"
+  echo "   --surf-con  basename : saves final contrast as basename.?h.mgh"
   echo ""
   echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
