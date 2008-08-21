@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/07/30 13:37:22 $
- *    $Revision: 1.417 $
+ *    $Author: greve $
+ *    $Date: 2008/08/21 20:54:19 $
+ *    $Revision: 1.418 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.417 $";
+const char *MRI_C_VERSION = "$Revision: 1.418 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4464,10 +4464,8 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
   return(mri_dst) ;
 }
 #endif
-/*-----------------------------------------------------
-  ------------------------------------------------------*/
-MRI *
-MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
+
+MRI * MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
   BUFTYPE *p1, *p2, *pdst, v1, v2 ;
@@ -4521,8 +4519,10 @@ MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
   }
   return(mri_dst) ;
 }
-/*-----------------------------------------------------
-  ------------------------------------------------------*/
+/*!
+  \fn MRI *MRIabs(MRI *mri_src, MRI *mri_dst)
+  \brief Computes the abs() of each voxel
+*/
 MRI *MRIabs(MRI *mri_src, MRI *mri_dst)
 {
   int   width, height, depth, nframes, x, y, z,f ;
@@ -4533,20 +4533,15 @@ MRI *MRIabs(MRI *mri_src, MRI *mri_dst)
   depth = mri_src->depth ;
   nframes = mri_src->nframes;
 
-  if (!mri_dst)
-  {
+  if (!mri_dst)  {
     mri_dst = MRIallocSequence(width, height, depth, mri_src->type, nframes) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        for (f = 0 ; f < nframes ; f++)
-        {
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
+      for (x = 0 ; x < width ; x++)      {
+        for (f = 0 ; f < nframes ; f++)        {
           val = fabs(MRIgetVoxVal(mri_src,x,y,z,f));
           MRIsetVoxVal(mri_dst,x,y,z,f,val);
         }
@@ -4555,6 +4550,72 @@ MRI *MRIabs(MRI *mri_src, MRI *mri_dst)
   }
   return(mri_dst) ;
 }
+/*!
+  \fn MRI *MRIpos(MRI *mri_src, MRI *mri_dst)
+  \brief If a voxel is negative, sets it to 0.
+*/
+MRI *MRIpos(MRI *mri_src, MRI *mri_dst)
+{
+  int   width, height, depth, nframes, x, y, z,f ;
+  float val;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  nframes = mri_src->nframes;
+
+  if (!mri_dst){
+    mri_dst = MRIallocSequence(width, height, depth, mri_src->type, nframes) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
+      for (x = 0 ; x < width ; x++)      {
+        for (f = 0 ; f < nframes ; f++) {
+          val = MRIgetVoxVal(mri_src,x,y,z,f);
+	  if(val < 0.0) val = 0.0;
+          MRIsetVoxVal(mri_dst,x,y,z,f,val);
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*!
+  \fn MRI *MRIpos(MRI *mri_src, MRI *mri_dst)
+  \brief If a voxel is postive, sets it to 0.
+*/
+MRI *MRIneg(MRI *mri_src, MRI *mri_dst)
+{
+  int   width, height, depth, nframes, x, y, z,f ;
+  float val;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  nframes = mri_src->nframes;
+
+  if (!mri_dst){
+    mri_dst = MRIallocSequence(width, height, depth, mri_src->type, nframes) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  for (z = 0 ; z < depth ; z++)  {
+    for (y = 0 ; y < height ; y++)    {
+      for (x = 0 ; x < width ; x++)      {
+        for (f = 0 ; f < nframes ; f++) {
+          val = MRIgetVoxVal(mri_src,x,y,z,f);
+	  if(val > 0.0) val = 0.0;
+          MRIsetVoxVal(mri_dst,x,y,z,f,val);
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
+
 /*-----------------------------------------------------*/
 MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {

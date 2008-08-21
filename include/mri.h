@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/07/30 13:36:27 $
- *    $Revision: 1.368 $
+ *    $Author: greve $
+ *    $Date: 2008/08/21 20:54:20 $
+ *    $Revision: 1.369 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,6 +324,9 @@ MRI   *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
+MRI   *MRIneg(MRI *mri_src, MRI *mri_dst);
+MRI   *MRIpos(MRI *mri_src, MRI *mri_dst);
+
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame) ;
 
