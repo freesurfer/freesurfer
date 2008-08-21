@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/07/30 19:36:02 $
- *    $Revision: 1.99.2.4 $
+ *    $Date: 2008/08/21 22:48:22 $
+ *    $Revision: 1.99.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.99.2.4 2008/07/30 19:36:02 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.99.2.5 2008/08/21 22:48:22 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) ;
 static int compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0, 
                                 int label, int whalf, 
                                 double *pnx, double *pny, 
-                                double *pnz);
+                                double *pnz, int use_abs);
 
 static int edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg) ;
 #if 0
@@ -237,13 +237,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.99.2.4 2008/07/30 19:36:02 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.99.2.5 2008/08/21 22:48:22 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.99.2.4 2008/07/30 19:36:02 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.99.2.5 2008/08/21 22:48:22 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -790,8 +790,8 @@ main(int argc, char *argv[]) {
         v = &mris->vertices[Gdiag_no] ;
         fprintf
         (stderr,
-         "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
-         Gdiag_no, v->val, v->mean, v->d) ;
+         "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
+         Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
       }
     }
 
@@ -1109,8 +1109,8 @@ main(int argc, char *argv[]) {
           v = &mris->vertices[Gdiag_no] ;
           fprintf
           (stderr,
-           "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
-           Gdiag_no, v->val, v->mean, v->d) ;
+           "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
+           Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
         }
       }
 
@@ -1208,8 +1208,8 @@ main(int argc, char *argv[]) {
           v = &mris->vertices[Gdiag_no] ;
           fprintf
           (stderr,
-           "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
-           Gdiag_no, v->val, v->mean, v->d) ;
+           "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f, ripflag=%d\n",
+           Gdiag_no, v->val, v->mean, v->d, v->ripflag) ;
         }
       }
 
@@ -2141,11 +2141,49 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       }
     }
 
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+    MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+    label = nint(val) ;
     if (label == Left_Putamen || label == Right_Putamen)
-      compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz) ;
+      compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz, 1) ;
     else
       nx = ny = nz = 0 ;
+
+    /*
+      for gray/white surface, if we are in insula, don't want to let the 
+      surface diverge into the putamen.
+    */
+    if (which == GRAY_WHITE)
+    {
+      // search inwards
+      for (d = 0 ; d <= 2 ; d += 0.5) 
+      {
+        xs = v->x - d*v->nx ;
+        ys = v->y - d*v->ny ;
+        zs = v->z - d*v->nz ;
+        MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
+        MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+        label = nint(val) ;
+        if (label == Left_Putamen || label == Right_Putamen)
+        {
+          compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz, 1) ;
+          if (fabs(nx) > fabs(ny) && fabs(nx) > fabs(nz))
+          {
+            if (vno == Gdiag_no)
+              DiagBreak() ;
+            MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+            MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+            v->val = val ;
+            v->d = 0 ;
+            v->marked = 1 ;
+            if (Gdiag & DIAG_SHOW && vno == Gdiag_no)
+              printf("marking vertex %d as adjacent to putamen in insula\n",vno);
+          }
+        }
+      }
+    }
     // search inwards
     for (d = 0 ; d <= 2 ; d += 0.5) 
     {
@@ -2180,10 +2218,6 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           // putamen can be adjacent to insula in aseg for pial
           (which == GRAY_WHITE && (d < 1.1) &&
            (label == Left_Putamen || label == Right_Putamen)))
-#if 0
-           ((mris->hemisphere == LEFT_HEMISPHERE && nx < 0) ||
-            (mris->hemisphere == RIGHT_HEMISPHERE && nx > 0))))
-#endif
 
       {
         if (label == Left_Putamen || label == Right_Putamen)
@@ -2226,7 +2260,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
         MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
         label = nint(val) ;
-        compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz) ;
+        compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz, 1) ;
 
 #if 0
         if (v->nz < 0 &&
@@ -2250,10 +2284,15 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     }
   }
 
-
+  if (Gdiag_no > 0)
+    printf("v %d: ripflag = %d before connected components\n", 
+           Gdiag_no, mris->vertices[Gdiag_no].marked) ;
   MRISdilateMarked(mris, 3) ;
   MRISerodeMarked(mris, 3) ;
   MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
+  if (Gdiag_no > 0)
+    printf("v %d: ripflag = %d after morphology\n", 
+           Gdiag_no, mris->vertices[Gdiag_no].marked) ;
   for (n = 0 ; n < nlabels ; n++)
   {
     if (labels[n]->n_points < 5)
@@ -2268,102 +2307,13 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   }
   free(labels) ;
 
+  if (Gdiag_no > 0)
+    printf("v %d: ripflag = %d after connected components\n", 
+           Gdiag_no, mris->vertices[Gdiag_no].marked) ;
   MRISripMarked(mris) ;
   MRISsetAllMarks(mris, 0) ;
   return(NO_ERROR) ;
 }
-
-#if 0
-int
-MRISdilateRipped(MRI_SURFACE *mris, int niter) {
-  int    vno, n, i ;
-  VERTEX *v, *vn ;
-
-  MRISsetAllMarks(mris, 0) ;
-  for (i = 0 ; i < niter ; i++) {
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag == 0)
-        continue ;
-      for (n = 0 ; n < v->vnum ; n++) {
-        vn = &mris->vertices[v->v[n]] ;
-        if (vn->ripflag == 0) {
-          if (v->v[n] == Gdiag_no)
-            DiagBreak() ;
-          vn->marked = 1 ;  // rip it at end of loop
-        }
-      }
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag == 0 && v->marked) {
-        if (vno == Gdiag_no)
-          DiagBreak() ;
-        v->ripflag = 1 ;
-      }
-    }
-    MRISsetAllMarks(mris, 0) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      LABEL *l ;
-      char fname[STRLEN] ;
-      MRISsetMarks(mris, 1) ;
-      l = LabelFromMarkedSurface(mris) ;
-      sprintf(fname, "%s.dilate%d.label",
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-              i) ;
-      LabelWrite(l, fname) ;
-      LabelFree(&l) ;
-      MRISsetAllMarks(mris, 0) ;
-    }
-  }
-  return(NO_ERROR) ;
-}
-int
-MRISerodeRipped(MRI_SURFACE *mris, int niter) {
-  int    vno, n, i ;
-  VERTEX *v, *vn ;
-
-  MRISsetAllMarks(mris, 0) ;
-  for (i = 0 ; i < niter ; i++) {
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      // look for nbrs that are ripped and mark them
-      for (n = 0 ; n < v->vnum ; n++) {
-        vn = &mris->vertices[v->v[n]] ;
-        if (vn->ripflag) {
-          if (v->v[n] == Gdiag_no)
-            DiagBreak() ;
-          vn->marked = 1 ;  // unrip it at end of loop
-        }
-      }
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++) {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag && v->marked) {
-        if (vno == Gdiag_no)
-          DiagBreak() ;
-        v->ripflag = 0 ;
-      }
-    }
-    MRISsetAllMarks(mris, 0) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-      LABEL *l ;
-      char fname[STRLEN] ;
-      MRISsetMarks(mris, 1) ;
-      l = LabelFromMarkedSurface(mris) ;
-      sprintf(fname, "%s.erode%d.label",
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-              i) ;
-      LabelWrite(l, fname) ;
-      LabelFree(&l) ;
-      MRISsetAllMarks(mris, 0) ;
-    }
-  }
-  return(NO_ERROR) ;
-}
-#endif
 
 #if 0
 static double
@@ -2673,7 +2623,7 @@ edit_aseg_with_surfaces(MRI_SURFACE *mris, MRI *mri_aseg)
 static int
 compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0, 
                      int label, int whalf, double *pnx, double *pny, 
-                     double *pnz)
+                     double *pnz, int use_abs)
 {
   int xi, yi, zi, xk, yk, zk, nvox = 0, val, dx, dy, dz, xn, yn, zn ;
   double  nx, ny, nz, mag ;
@@ -2704,7 +2654,14 @@ compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
               if (val != label)  // "surface" of label - interface between label and non-label
               {
                 nvox++ ;
-                nx += dx ;  ny += dy ;  nz += dz ; 
+                if (use_abs)
+                {
+                  nx += fabs(dx) ;  ny += fabs(dy) ;  nz += fabs(dz) ; 
+                }
+                else
+                {
+                  nx += dx ;  ny += dy ;  nz += dz ; 
+                }
               }
             }
       }
