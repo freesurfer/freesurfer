@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/08/21 16:58:04 $
-#    $Revision: 1.1 $
+#    $Date: 2008/08/21 17:07:18 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,12 +23,13 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.1 2008/08/21 16:58:04 greve Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.2 2008/08/21 17:07:18 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
 set fsvol = rawavg;
 set movvol = ();
+set reg = ();
 
 set DoLH = 1;
 set DoRH = 1;
@@ -85,8 +86,6 @@ echo $VERSION |& tee -a $LF
 uname -a |& tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" |& tee -a $LF
 
-set mov = $SUBJECTS_DIR/$subject/mri/$fsvol.mgz
-
 set hemilist = ();
 if($DoLH) set hemilist = ($hemilist lh);
 if($DoRH) set hemilist = ($hemilist rh);
@@ -95,18 +94,22 @@ foreach hemi ($hemilist)
 
   # Sample surf in white matter
   set wm = $tmpdir/$hemi.wm.$ext
-  set cmd = (mri_vol2surf --mov $mov --regheader $subject \
+  set cmd = (mri_vol2surf --mov $mov \
     --hemi $hemi --reshape --interp $Interp \
     --projdist -$WMProjAbs --o $wm)
+  if($#reg == 0) set cmd = (--regheader $subject);
+  if($#reg != 0) set cmd = (--reg $reg);
   echo $cmd
   $cmd
   if($status) exit 1;
 
   # Sample surf in gray matter
   set gm = $tmpdir/$hemi.gm.$ext
-  set cmd = (mri_vol2surf --mov $mov --regheader $subject \
+  set cmd = (mri_vol2surf --mov $mov \
     --hemi $hemi --reshape --interp $Interp \
     --projfrac $GMProjFrac --o $gm)
+  if($#reg == 0) set cmd = (--regheader $subject);
+  if($#reg != 0) set cmd = (--reg $reg);
   echo $cmd
   $cmd
   if($status) exit 1;
@@ -161,9 +164,14 @@ while( $#argv != 0 )
     case "--reg":
       if ( $#argv < 1) goto arg1err;
       set reg = $argv[1]; shift;
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg"
+        exit 1;
+      endif
+      set subject = `head -n 1 $reg`
       breaksw
 
-    case "--o":
+    case "--b":
       if ( $#argv < 1) goto arg1err;
       set OutBase = $argv[1]; shift;
       breaksw
@@ -270,7 +278,7 @@ usage_exit:
   echo "Other Arguments:";
   echo ""
   echo "  --fsvol fsvol : use fsvol instead of $fsvol"
-  echo "  --o outbase : use outbase instead of $OutBase (?h.$OutBase.mgh)"
+  echo "  --b outbase : use outbase instead of $OutBase (?h.$OutBase.mgh)"
   echo "  --lh-only, --no-rh : compute lh only"
   echo "  --rh-only, --no-lh : compute rh only"
   echo "  --gm-proj-frac frac : GM projection fraction (default is $GMProjFrac)"
