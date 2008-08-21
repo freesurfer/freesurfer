@@ -1,0 +1,317 @@
+#! /bin/tcsh -f
+
+#
+# pctsurfcon
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2008/08/21 16:58:04 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+#
+set VERSION = '$Id: pctsurfcon,v 1.1 2008/08/21 16:58:04 greve Exp $';
+set inputargs = ($argv);
+
+set subject = ();
+set fsvol = rawavg;
+set movvol = ();
+
+set DoLH = 1;
+set DoRH = 1;
+
+set GMProjFrac = 0.5;
+set WMProjAbs = 2;
+set Interp = trilinear
+set OutBase = w-g.pct;
+
+set debug = 0;
+set tmpdir = ();
+set cleanup = 1;
+set PrintHelp = 0;
+set nolog = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set ext = mgh;
+
+set outdir = $SUBJECTS_DIR/$subject/surf
+if($#tmpdir == 0) set tmpdir = $outdir/tmp.pctsurfcon.$$
+mkdir -p $tmpdir
+
+if(! $nolog) then
+  set LF = $SUBJECTS_DIR/$subject/scripts/pctsurfcon.log
+  if(-e $LF) mv $LF $LF.old
+else
+  set LF = /dev/null
+endif
+
+echo "Log file is $LF"
+
+echo "Logfile for pctsurfcon" >> $LF
+date |& tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" |& tee -a $LF
+echo "cd `pwd`" |& tee -a $LF
+echo $0 |& tee -a $LF
+echo $VERSION |& tee -a $LF
+uname -a |& tee -a $LF
+echo "FREESURFER_HOME $FREESURFER_HOME" |& tee -a $LF
+
+set mov = $SUBJECTS_DIR/$subject/mri/$fsvol.mgz
+
+set hemilist = ();
+if($DoLH) set hemilist = ($hemilist lh);
+if($DoRH) set hemilist = ($hemilist rh);
+
+foreach hemi ($hemilist)
+
+  # Sample surf in white matter
+  set wm = $tmpdir/$hemi.wm.$ext
+  set cmd = (mri_vol2surf --mov $mov --regheader $subject \
+    --hemi $hemi --reshape --interp $Interp \
+    --projdist -$WMProjAbs --o $wm)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+
+  # Sample surf in gray matter
+  set gm = $tmpdir/$hemi.gm.$ext
+  set cmd = (mri_vol2surf --mov $mov --regheader $subject \
+    --hemi $hemi --reshape --interp $Interp \
+    --projfrac $GMProjFrac --o $gm)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+
+  # Compute percent difference pct = 100*(w-g)/((w+g)/2)
+  set out = $outdir/$hemi.$OutBase.mgh
+  set cmd = (mri_concat $wm $gm --paired-diff-norm \
+    --mul 100 --o $out)
+  echo $cmd 
+  $cmd
+  if($status) exit 1;
+
+end
+
+# Cleanup
+if($cleanup) then
+  echo "Cleaning up" |& tee -a $LF
+  rm -r $tmpdir
+endif
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--fsvol":
+      if ( $#argv < 1) goto arg1err;
+      set fsvol = $argv[1]; shift;
+      breaksw
+
+    case "--mov":
+      if ( $#argv < 1) goto arg1err;
+      set movvol = $argv[1]; shift;
+      if(! -e $movvol) then
+        echo "ERROR: cannot find $movvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--reg":
+      if ( $#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set OutBase = $argv[1]; shift;
+      breaksw
+
+    case "--lh-only":
+    case "--no-rh":
+      set DoRH = 0;
+      breaksw
+
+    case "--rh-only":
+    case "--no-lh":
+      set DoLH = 0;
+      breaksw
+
+    case "--gm-proj-frac":
+      if($#argv < 1) goto arg1err;
+      set GMProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "--wm-proj-abs":
+      if($#argv < 1) goto arg1err;
+      set WMProjAbs = $argv[1]; shift;
+      breaksw
+
+    case "--nearest":
+      set Interp = nearest
+      breaksw
+
+    case "--trilin":
+    case "--trilinear":
+      set Interp = trilinear
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "--nolog":
+      set nolog = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subject == 0) then
+    echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+
+  if($#movvol == 0) set movvol = $SUBJECTS_DIR/$subject/mri/$fsvol.mgz
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "pctsurfcon - compute surface-wise gray/white contrast"
+  echo ""
+  echo "Required Arguments:";
+  echo ""
+  echo "  --s subject  : FreeSurfer subject name"
+  echo ""
+  echo "Other Arguments:";
+  echo ""
+  echo "  --fsvol fsvol : use fsvol instead of $fsvol"
+  echo "  --o outbase : use outbase instead of $OutBase (?h.$OutBase.mgh)"
+  echo "  --lh-only, --no-rh : compute lh only"
+  echo "  --rh-only, --no-lh : compute rh only"
+  echo "  --gm-proj-frac frac : GM projection fraction (default is $GMProjFrac)"
+  echo "  --wm-proj-abs  dist : WM projection distance (default is $WMProjAbs mm)"
+  echo ""
+  echo "Even more arguments"
+  echo ""
+  echo "  --tmp tmpdir  : temporary dir (implies --nocleanup)"
+  echo "  --nocleanup  : do not delete temporary files"
+  echo "  --version : print version and exit"
+  echo "  --help    : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the vertex-by-vertex percent contrast between white and gray
+matter. The computation is:
+
+         100*(W-G)
+   pct = ---------
+         0.5*(W+G)
+
+The white matter is sampled 2mm below the white surface. This distance
+is changeable with --wm-proj-abs. The gray matter is sampled half the
+thickness into the cortex. This fraction is changeable with
+--gm-proj-frac. The volume that is sampled is rawavg.mgz, but this
+can be changed with --fsvol.
+
+The output is stored in the surf dir of the given subject as
+?h.w-g.pct.mgh. This can be changed to ?h.outbase.mgh with 
+--o outbase.
+
+Note: no attempt is made to zero out the non-cortex region.
+
+Example:
+
+pctsurfcon --s subject
+
