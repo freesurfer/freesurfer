@@ -149,6 +149,7 @@ sphere_subject-rh \
 spmmat2register \
 spm_t_to_b \
 spmregister \
+pctsurfcon\
 talairach \
 talairach2 \
 talairach_mgh \
