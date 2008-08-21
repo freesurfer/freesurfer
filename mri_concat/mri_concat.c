@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/15 15:50:15 $
- *    $Revision: 1.29 $
+ *    $Date: 2008/08/21 20:55:42 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.29 2008/07/15 15:50:15 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.30 2008/08/21 20:55:42 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -91,6 +91,8 @@ int DoAdd=0;
 double AddVal=0;
 int DoBonfCor=0;
 int DoAbs = 0;
+int DoPos = 0;
+int DoNeg = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -181,6 +183,14 @@ int main(int argc, char **argv) {
     if(DoAbs) {
       if(Gdiag_no > 0 || debug) printf("Removing sign from input\n");
       MRIabs(mritmp,mritmp);
+    }
+    if(DoPos) {
+      if(Gdiag_no > 0 || debug) printf("Setting input negatives to 0.\n");
+      MRIpos(mritmp,mritmp);
+    }
+    if(DoNeg) {
+      if(Gdiag_no > 0 || debug) printf("Setting input positives to 0.\n");
+      MRIneg(mritmp,mritmp);
     }
     for(f=0; f < mritmp->nframes; f++) {
       for(c=0; c < nc; c++) {
@@ -354,6 +364,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
     else if (!strcasecmp(option, "--var"))    DoVar = 1;
     else if (!strcasecmp(option, "--abs"))    DoAbs = 1;
+    else if (!strcasecmp(option, "--pos"))    DoPos = 1;
+    else if (!strcasecmp(option, "--neg"))    DoNeg = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--max-index")) DoMaxIndex = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
@@ -451,6 +463,8 @@ static void print_usage(void) {
   printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
   printf("\n");
   printf("   --abs  : take abs of input\n");
+  printf("   --pos  : set input negatives to 0\n");
+  printf("   --neg  : set input postives to 0\n");
   printf("   --mean : compute mean of concatenated volumes\n");
   printf("   --mean2 : compute sum/(nframes.^2) \n");
   printf("   --sum  : compute sum of concatenated volumes\n");
@@ -539,6 +553,11 @@ static void check_options(void) {
     printf("ERROR: cannot compute std and var, you bonehead.\n");
     exit(1);
   }
+  if(DoAbs + DoPos + DoNeg > 1){
+    printf("ERROR: do not use more than one of --abs, --pos, --neg\n");
+    exit(1);
+  }
+
 
   return;
 }
@@ -547,14 +566,3 @@ static void check_options(void) {
 static void dump_options(FILE *fp) {
   return;
 }
-/*---------------------------------------------------------------*/
-#if 0
-static int singledash(char *flag) {
-  int len;
-  len = strlen(flag);
-  if (len < 2) return(0);
-
-  if (flag[0] == '-' && flag[1] != '-') return(1);
-  return(0);
-}
-#endif
