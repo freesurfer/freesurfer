@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:19 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 03:05:51 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,9 +32,9 @@
 // original written by Florent Segonne (March, 2005)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:19 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2008/08/26 03:05:51 $
+// Revision       : $Revision: 1.3 $
 
 #include "fastmarching.h"
 
@@ -98,7 +98,7 @@ extern "C" void MRISextractOutsideDistanceMap(MRIS *mris, MRI *mri_src, int labe
   /* set values to zero */
   mapMRI_XYZ(mri_fastmarching,x,y,z) MRIFvox(mri_fastmarching,x,y,z)=0.0f;
 
-  FastMarching<+1> fastmarching_out(mri_fastmarching);
+  FastMarching<+1> fastmarching_out(mri_fastmarching, NULL);
   fastmarching_out.SetLimit(2*resolution*max_distance);
   fastmarching_out.InitForOutsideMatch(mri_distance,mri_src,label);
   fastmarching_out.Run(2*resolution*max_distance);
