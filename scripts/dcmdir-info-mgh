@@ -8,8 +8,8 @@
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/12/13 01:53:53 $
-#    $Revision: 1.13 $
+#    $Date: 2008/08/26 22:11:27 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -24,58 +24,35 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
+set VERSION = '$Id: dcmdir-info-mgh,v 1.14 2008/08/26 22:11:27 greve Exp $';
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.13 2007/12/13 01:53:53 greve Exp $';
+set dcmdir = ();
+set unpackdir = ();
+set UsePre = 1;
 
-if($#argv != 1 && $#argv != 2) then
-  echo "dcmdir-info-mgh dicomdir"
-  echo "dcmdir-info-mgh dicomdir unpackdir"
-  echo "dcmdir-info-mgh -help"
-  exit 1;
-endif
-
-if("$argv[1]" == "-help") then
-  echo ""
-  echo "dcmdir-info-mgh dicomdir <unpackdir>"
-  echo ""
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
   echo $VERSION
-  echo ""
-  echo "Scans a DICOM directory and extracts information about each series."
-  echo "The files in the directory must conform to the following naming"
-  echo "convention:"
-  echo ""
-  echo "        NNNNNN-S-MMMMM.dcm"
-  echo ""
-  echo "where NNNNNN and MMMMM are any strings of any length as long as thay"
-  echo "do not contain dashes (-). S is the series/run number. This is the"
-  echo "naming convention of the data at MGH after being pushed from the scanner"
-  echo "to the network archive. This function will not work on data burned to"
-  echo "CD from the scanner.  Example: 953000-2-9.dcm"
-  echo ""
-  echo "This function is considerably faster than using unpacksdcmdir with"
-  echo "the -scanonly option, but it does require that the files be named"
-  echo "appropriately."
-  echo ""
-  echo "The output is a list of series/runs with the pulse sequence, "
-  echo "protocol, and file name from the series. The Patient Name, Study Date,"
-  echo "and Study Time are echo also printed out."
-  echo ""
-  echo "If an unpackdir is given, the the dicom files are converted to mgz "
-  echo "format with the following name: sequencename_runR.mgz, where R is the "
-  echo "run number. "
-  echo ""
-  exit 1;
+  exit 0;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
 endif
 
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
 
-set dcmdir = $argv[1];
 if(! -e $dcmdir) then
   echo "ERROR: cannot find $dcmdir"
   exit 1;
 endif
 
-if($#argv == 2) then
-  set unpackdir = $argv[2];
+if($#unpackdir) then
   mkdir -p $unpackdir
   set LF = $unpackdir/dcmdir-info-mgh.log
   if(-e $LF) mv $LF $LF.bak
@@ -85,8 +62,6 @@ if($#argv == 2) then
   pushd $unpackdir > /dev/null
   set unpackdir = `pwd`;
   popd > /dev/null
-else
-  set unpackdir = ();
 endif
 
 pushd $dcmdir > /dev/null
@@ -106,7 +81,8 @@ if($#serlist == 0) then
 endif
 
 set series = $serlist[1];
-set flist = `ls *-$series-*.dcm`
+if($UsePre)   set flist = (`ls *-$series-*.dcm`)
+if(! $UsePre) set flist = (`ls $series-*.dcm`)
 set dcm0 = $flist[1];
 set Patient = `mri_probedicom --i $dcm0 | grep PatientName`;
 set Date    = `mri_probedicom --i $dcm0 | grep StudyDate`;
@@ -116,7 +92,8 @@ echo $Date
 echo $Time
 
 foreach series ($serlist)
-  set flist = `ls *-$series-*.dcm`
+  if($UsePre)   set flist = (`ls *-$series-*.dcm`)
+  if(! $UsePre) set flist = (`ls $series-*.dcm`)
   set dcm = $flist[1];
   #echo $dcm0
 
@@ -140,3 +117,110 @@ foreach series ($serlist)
 end
 
 exit 0
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--debug":
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "--nopre":
+    case "-nopre":
+      set UsePre = 0;
+      breaksw
+
+    default:
+      if($#dcmdir == 0) then
+        set dcmdir = $flag;
+        echo "dcmdir $dcmdir"
+        breaksw;
+      endif
+      if($#unpackdir == 0) then
+        set unpackdir = $flag;
+        echo "unpackdir $unpackdir"
+        breaksw;
+      endif
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#dcmdir == 0) then
+    echo "ERROR: must spec a dcmdir"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: dcmdir-info-mgh dicomdir <unpackdir>"
+  echo ""
+  echo "   --version : print version and exit"
+  echo "   --help    : print help and exit"
+  echo "   --nopre   : do not assume NNNNNN-"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Scans a DICOM directory and extracts information about each series.
+The files in the directory must conform to the following naming
+convention:
+
+        NNNNNN-S-MMMMM.dcm
+
+where NNNNNN and MMMMM are any strings of any length as long as thay
+do not contain dashes (-). S is the series/run number. This is the
+naming convention of the data at MGH after being pushed from the scanner
+to the network archive. This function will not work on data burned to
+CD from the scanner.  Example: 953000-2-9.dcm
+
+This function is considerably faster than using unpacksdcmdir with
+the -scanonly option, but it does require that the files be named
+appropriately.
+
+The output is a list of series/runs with the pulse sequence, 
+protocol, and file name from the series. The Patient Name, Study Date,
+and Study Time are echo also printed out.
+
+If an unpackdir is given, the the dicom files are converted to mgz 
+format with the following name: sequencename_runR.mgz, where R is the 
+run number. 
