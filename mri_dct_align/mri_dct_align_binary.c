@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/03 02:34:53 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 13:28:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -314,8 +314,8 @@ main(int argc, char *argv[])
   {
     printf("creating distance transforms...\n") ;
     
-    mri_dist_source = MRIdistanceTransform(mri_source, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
-    mri_dist_target = MRIdistanceTransform(mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
+    mri_dist_source = MRIdistanceTransform(mri_source, NULL, binary_label, -1, DTRANS_MODE_SIGNED, NULL);
+    mri_dist_target = MRIdistanceTransform(mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED, NULL);
     MRIscalarMul(mri_dist_source, mri_dist_source, -1) ;
     MRIscalarMul(mri_dist_target, mri_dist_target, -1) ;
   }
