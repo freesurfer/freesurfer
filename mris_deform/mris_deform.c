@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/11/21 02:24:01 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/26 16:06:06 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -142,11 +142,11 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_deform.c,v 1.7 2007/11/21 02:24:01 fischl Exp $",
+   "$Id: mris_deform.c,v 1.8 2008/08/26 16:06:06 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.7 2007/11/21 02:24:01 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.8 2008/08/26 16:06:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -561,7 +561,7 @@ compute_target_intensities(MRI_SURFACE *mris, MRI *mri_labels, MRI *mri_intensit
   pad = ceil(3/mri_tmp->xsize) ;
   mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, pad) ;
   mri_dist = MRIdistanceTransform(mri_mask, NULL, 1, nint(10/mri_mask->xsize), 
-                                  DTRANS_MODE_SIGNED) ;
+                                  DTRANS_MODE_SIGNED, NULL) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "d.mgz") ;
 
@@ -735,7 +735,7 @@ compute_target_intensities_with_gcab(MRI_SURFACE *mris, MRI *mri_labels, MRI *mr
   pad = ceil(3/mri_tmp->xsize) ;
   mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, pad+1) ;
   mri_dist = MRIdistanceTransform(mri_mask, NULL, 1, nint(10/mri_mask->xsize), 
-                                  DTRANS_MODE_SIGNED) ;
+                                  DTRANS_MODE_SIGNED, NULL) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "d.mgz") ;
 
@@ -1265,7 +1265,7 @@ compute_pmap_with_gcab(GCA *gca, TRANSFORM *transform, MRI *mri_intensities, MRI
 
   mri_tmp = MRIclone(mri_labels, NULL) ;
   MRIcopyLabel(mri_labels, mri_tmp, target_label) ;
-  mri_dist1mm = MRIdistanceTransform(mri_tmp, NULL, target_label, 10, DTRANS_MODE_SIGNED) ;
+  mri_dist1mm = MRIdistanceTransform(mri_tmp, NULL, target_label, 10, DTRANS_MODE_SIGNED, NULL) ;
   MRIfree(&mri_tmp) ;
 
   mri_pgrad = MRIclone(mri_pmap, NULL) ;

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:34 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 16:09:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@ extern "C" {
 #include "fastmarching.h"
 
 static const char vcid[] = 
-  "$Id: mris_distance_to_label.cpp,v 1.5 2007/11/18 03:03:34 nicks Exp $";
+  "$Id: mris_distance_to_label.cpp,v 1.6 2008/08/26 16:09:55 fischl Exp $";
 
 static char *aseg_fname=NULL;
 
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
   struct timeb start;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_distance_to_label.cpp,v 1.5 2007/11/18 03:03:34 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_distance_to_label.cpp,v 1.6 2008/08/26 16:09:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -291,7 +291,7 @@ int main(int argc, char *argv[]) {
 
       if (labels[n]>=0) {
         fprintf(stderr, "generating distance map for label %d\n", labels[n]) ;
-        MRIextractDistanceMap(mri,mri_distance,labels[n],fdistance,mode);
+        MRIextractDistanceMap(mri,mri_distance,labels[n],fdistance,mode,NULL);
 
         fprintf(stderr, "extracting distance values for label %d\n", labels[n]) ;
         mrisExtractMRIvalues(mris,mri,mri_distance,fdistance,mode);
