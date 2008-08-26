@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/05/15 15:02:00 $
- *    $Revision: 1.45 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 01:16:35 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.45 2008/05/15 15:02:00 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.46 2008/08/26 01:16:35 fischl Exp $";
 
 char *Progname = NULL;
 
@@ -96,6 +96,8 @@ static char *srcwarp    = NULL;
 static int   srcoldreg  = 0;
 static char *srcsubject = NULL;
 static char *srcsubjectuse = NULL;
+
+static char *ref_vol_name = "orig.mgz" ;
 
 static char *srchitvolid   = NULL;
 static char *srchittypestring = NULL;
@@ -192,7 +194,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.45 2008/05/15 15:02:00 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.46 2008/08/26 01:16:35 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -270,7 +272,7 @@ int main(int argc, char **argv) {
     }
   } else {
     /* compute the registration from the header */
-    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,srcsubject);
+    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,srcsubject, ref_vol_name);
     printf("Computing registration from header.\n");
     printf("  Using %s as target reference.\n",tmpstr);
     TargVol = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
@@ -665,6 +667,16 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-reshape")) reshape = 0;
     else if (!strcasecmp(option, "--fixtkreg")) fixtkreg = 1;
     else if (!strcasecmp(option, "--nofixtkreg")) fixtkreg = 0;
+    else if (!strcasecmp(option, "--v")) 
+    {
+      Gdiag_no = atoi(pargv[0]);
+      nargsused = 1 ;
+    }
+    else if (!strcasecmp(option, "--ref")) 
+    {
+      ref_vol_name = pargv[0];
+      nargsused = 1 ;
+    }
     else if (!strcasecmp(option, "--inflated"))  surfname = "inflated";
 
     else if ( !strcmp(option, "--sd") ) {
@@ -938,6 +950,7 @@ static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --mov input volume path (or --src)\n");
+  printf("   --ref reference volume name (default=orig.mgz\n");
   printf("   --reg source registration  \n");
   printf("   --regheader subject\n");
   printf("   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
@@ -981,6 +994,7 @@ static void print_usage(void) {
   printf("   --reshape : so dims fit in nifti or analyze\n");
   printf("   --noreshape : do not reshape (default)\n");
   printf("   --scale scale : multiply all intensities by scale.\n");
+  printf("   --v vertex no : debug mapping of vertex.\n");
   printf("   --srcsynth seed : synthesize source volume\n");
   printf("   --seedfile fname : save synth seed to fname\n");
   printf("   --sd SUBJECTS_DIR \n");
