@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/24 20:14:44 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -234,7 +234,7 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
 	renderer->AddViewProp( m_sliceActor2D[nPlane] );
 }
 
-void LayerSurface::Append3DProps( vtkRenderer* renderer )
+void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
 	renderer->AddViewProp( m_mainActor ); 
 	
@@ -353,8 +353,7 @@ bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
 	if ( m_surfaceSource == NULL )
 		return false;
 		
-	m_surfaceSource->GetRASAtVertex( nVertex, ras );
-	return true;
+	return m_surfaceSource->GetRASAtVertex( nVertex, ras );
 }
 
 void LayerSurface::SetActiveSurface( int nSurface )

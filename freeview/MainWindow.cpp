@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/08 20:13:39 $
- *    $Revision: 1.15 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -156,6 +156,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_3D" ),				MainWindow::OnView3DUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewReset )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewResetUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_SCALAR_BAR" ),		MainWindow::OnViewScalarBar )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_SCALAR_BAR" ),		MainWindow::OnViewScalarBarUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayer )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayerUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibility )
@@ -180,6 +182,9 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_PIAL" ),		MainWindow::OnViewSurfacePialUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),	MainWindow::OnViewSurfaceOriginal )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),	MainWindow::OnViewSurfaceOriginalUpdateUI )
+    
+    EVT_MENU		( XRCID( "ID_VIEW_CONTROL_PANEL" ),		MainWindow::OnViewControlPanel )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_CONTROL_PANEL" ),		MainWindow::OnViewControlPanelUpdateUI )
     
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
@@ -280,6 +285,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_layerCollectionManager->AddListener( m_viewCoronal );
 	m_layerCollectionManager->AddListener( m_view3D );	
 	m_layerCollectionManager->GetLayerCollection( "MRI" )->AddListener( m_pixelInfoPanel );
+	m_layerCollectionManager->GetLayerCollection( "Surface" )->AddListener( m_pixelInfoPanel );
 	m_layerCollectionManager->AddListener( this );
 	
 	m_wndQuickReference = new WindowQuickReference( this );
@@ -336,6 +342,11 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 		config->Read( _T("/Screenshot/Magnification" ), &m_settingsScreenshot.Magnification, 1 );
 		config->Read( _T("/Screenshot/HideCursor" ),	&m_settingsScreenshot.HideCursor, false );
 		config->Read( _T("/Screenshot/HideCoords" ),	&m_settingsScreenshot.HideCoords, false );
+		
+		bool bShow = true;
+		config->Read( _T("/MainWindow/ShowControlPanel" ), &bShow, true );
+		
+		ShowControlPanel( bShow );
 	}
 	SetViewLayout( m_nViewLayout );		
 }
@@ -415,7 +426,8 @@ void MainWindow::OnClose( wxCloseEvent &event )
 			config->Write( _T("/MainWindow/Height"), (long) h );
 		}
 		config->Write( _T("/MainWindow/FullScreen"), IsFullScreen() );
-		config->Write( _T("/MainWindow/SplitterPosition"), m_splitterMain->GetSashPosition() );
+		if ( m_controlPanel->IsShown() )
+			config->Write( _T("/MainWindow/SplitterPosition"), m_splitterMain->GetSashPosition() );
 		config->Write( _T("/MainWindow/SplitterPositionSub"), m_splitterSub->GetSashPosition() );		
 		config->Write( _T("/MainWindow/LastDir"), m_strLastDir );
 		config->Write( _T("/MainWindow/ViewLayout"), m_nViewLayout );
@@ -429,6 +441,8 @@ void MainWindow::OnClose( wxCloseEvent &event )
 		config->Write( _T("/Screenshot/Magnification" ), 	m_settingsScreenshot.Magnification );
 		config->Write( _T("/Screenshot/HideCursor" ),		m_settingsScreenshot.HideCursor );
 		config->Write( _T("/Screenshot/HideCoords" ),		m_settingsScreenshot.HideCoords );
+		
+		config->Write( _T("/MainWindow/ShowControlPanel" ),	m_controlPanel->IsShown() );
 		
 		m_fileHistory->Save( *config );
 	}
@@ -1435,7 +1449,18 @@ void MainWindow::SetViewLayout( int nLayout )
 
 void MainWindow::SetMainView( int nView )
 {
+	if ( m_nMainView >= 0 )
+	{
+		// udpate scalar bar
+		bool bScalarBar = m_viewRender[m_nMainView]->GetShowScalarBar();
+		if ( bScalarBar )
+		{
+			m_viewRender[m_nMainView]->ShowScalarBar( false );
+			m_viewRender[nView]->ShowScalarBar( true );
+		}
+	}
 	m_nMainView = nView;
+	
 	SetViewLayout( m_nViewLayout );
 }
 	
@@ -1527,6 +1552,49 @@ void MainWindow::OnViewResetUpdateUI( wxUpdateUIEvent& event )
 	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
 }
 
+void MainWindow::ShowControlPanel( bool bShow )
+{
+	wxConfigBase* config = wxConfigBase::Get();
+	if ( bShow )
+	{
+		m_splitterMain->SplitVertically( m_controlPanel, m_splitterSub,		
+										 config ? config->Read( _T("/MainWindow/SplitterPosition"), 260L ) : 260 );	
+	}
+	else
+	{
+		if ( config )
+			config->Write( _T("/MainWindow/SplitterPosition"), m_splitterMain->GetSashPosition() );
+		m_splitterMain->Unsplit( m_controlPanel );
+	}
+}
+
+void MainWindow::OnViewControlPanel( wxCommandEvent& event )
+{
+	ShowControlPanel( event.IsChecked() );
+}
+	
+void MainWindow::OnViewControlPanelUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Check( m_controlPanel->IsShown() );
+}
+
+void MainWindow::OnViewScalarBar( wxCommandEvent& event )
+{
+	for ( int i = 0; i < 4; i++ )
+	{
+		if ( i != m_nMainView )
+			m_viewRender[i]->ShowScalarBar( false );
+	}
+	if ( m_nMainView >= 0 && m_nMainView < 4 )
+		m_viewRender[m_nMainView]->ShowScalarBar( event.IsChecked() );
+	
+	NeedRedraw( 1 );
+}
+
+void MainWindow::OnViewScalarBarUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer() );
+}
 
 void MainWindow::OnViewCycleLayer( wxCommandEvent& event )
 {

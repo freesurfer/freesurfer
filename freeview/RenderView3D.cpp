@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/08 20:13:40 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@
 #include "vtkPointPicker.h"
 #include "vtkPropPicker.h"
 #include "vtkProp3DCollection.h"
+#include "vtkScalarBarActor.h"
 #include "Interactor3DNavigate.h"
 #include "Cursor3D.h"
 
@@ -104,12 +105,15 @@ void RenderView3D::RefreshAllActors()
 	LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
 	
 	m_renderer->RemoveAllViewProps();
-	lcm->Append3DProps( m_renderer );
+	bool b[3] = { true, true, true };
+	lcm->Append3DProps( m_renderer, b );
 	
 	m_cursor3D->AppendActor( m_renderer );
 	
 	// add focus frame
 	m_renderer->AddViewProp( m_actorFocusFrame );
+	
+	m_renderer->AddViewProp( m_actorScalarBar );
 	
 	m_renderer->ResetCameraClippingRange();
 	
@@ -226,8 +230,8 @@ void RenderView3D::PreScreenshot()
 	if ( !s.HideCursor )
 		m_cursor3D->AppendActor( m_renderer );
 	
-	// add focus frame
-//	m_renderer->AddViewProp( m_actorFocusFrame );
+	// add scalar bar
+	m_renderer->AddViewProp( m_actorScalarBar );
 }
 
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ class LayerMRI : public LayerVolumeBase
 		bool Create( LayerMRI* mri, bool bCopyVoxel );
 		
 		void Append2DProps( vtkRenderer* renderer, int nPlane );
-		void Append3DProps( vtkRenderer* renderer );
+		void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
 		bool HasProp( vtkProp* prop );
 		
 //		void SetSliceNumber( int* sliceNumber );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:42 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,12 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
 	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_MOVE_DOWN" ) ),		PanelVolume::OnMoveDownUpdateUI )	
 	EVT_MENU			( XRCID( wxT( "ID_VOLUME_LOCK" ) ),				PanelVolume::OnVolumeLock )
 	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_LOCK" ) ),				PanelVolume::OnVolumeLockUpdateUI )
+	EVT_MENU			( XRCID( wxT( "ID_VOLUME_COPY_SETTING" ) ),		PanelVolume::OnVolumeCopySetting )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_COPY_SETTING" ) ),		PanelVolume::OnVolumeCopySettingUpdateUI )
+	EVT_MENU			( XRCID( wxT( "ID_VOLUME_PASTE_SETTING" ) ),	PanelVolume::OnVolumePasteSetting )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_PASTE_SETTING" ) ),	PanelVolume::OnVolumePasteSettingUpdateUI )
+	EVT_MENU			( XRCID( wxT( "ID_VOLUME_PASTE_SETTING_ALL" ) ),	PanelVolume::OnVolumePasteSettingAll )
+	EVT_UPDATE_UI		( XRCID( wxT( "ID_VOLUME_PASTE_SETTING_ALL" ) ),	PanelVolume::OnVolumePasteSettingAllUpdateUI )
 	
 	EVT_CHECKBOX		( XRCID( wxT( "ID_CHECKBOX_CLEAR_BACKGROUND" ) ),	PanelVolume::OnCheckClearBackground )
 	EVT_CHECKBOX		( XRCID( wxT( "ID_CHECKBOX_SMOOTH" ) ),			PanelVolume::OnCheckSmooth )
@@ -99,6 +105,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 {
 	m_curCTAB = NULL;
 	m_bUINeedUpdate = false;
+	m_layerCopied = NULL;
 	
 	wxXmlResource::Get()->LoadPanel( this, parent, wxT("ID_PANEL_VOLUME") );
 	m_btnNew = XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
@@ -922,4 +929,44 @@ void PanelVolume::OnVolumeLockUpdateUI( wxUpdateUIEvent& event )
 	event.Check( layer && layer->IsLocked() );
 }
 
+void PanelVolume::OnVolumeCopySetting( wxCommandEvent& event )
+{
+	m_layerCopied = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+}
+
+void PanelVolume::OnVolumeCopySettingUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+}
+
+void PanelVolume::OnVolumePasteSetting( wxCommandEvent& event )
+{
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	layer->GetProperties()->CopySetttings( m_layerCopied->GetProperties() );
+}
+
+void PanelVolume::OnVolumePasteSettingUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	event.Enable( lc->Contains( m_layerCopied ) && m_layerCopied != layer );
+}
+
+
+void PanelVolume::OnVolumePasteSettingAll( wxCommandEvent& event )
+{
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+	for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+	{
+		LayerMRI* layer = (LayerMRI*)lc->GetLayer( i );
+		if ( layer->GetProperties()->GetColorMap() == m_layerCopied->GetProperties()->GetColorMap() )
+			layer->GetProperties()->CopySetttings( m_layerCopied->GetProperties() );
+	}
+}
+
+void PanelVolume::OnVolumePasteSettingAllUpdateUI( wxUpdateUIEvent& event )
+{
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+	event.Enable( lc->Contains( m_layerCopied ) );
+}
 

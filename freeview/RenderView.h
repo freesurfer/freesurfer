@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/08 20:13:40 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@ class vtkRenderWindow;
 class vtkActor2D;
 class LayerCollection;
 class Interactor;
+class vtkScalarBarActor;
 
 class VTK_RENDERING_EXPORT RenderView : public wxVTKRenderWindowInteractor, public Listener, public Broadcaster
 {
@@ -97,14 +98,20 @@ public:
 	virtual void PreScreenshot() {}
 	virtual void PostScreenshot() {}
 	
+	void ShowScalarBar( bool bShow );
+	bool GetShowScalarBar();
+	
 protected:
 	void InitializeRenderView();
-	virtual void OnInternalIdle(); 
+	virtual void OnInternalIdle();
+	 
+	void UpdateScalarBar();
 
 protected:
 	vtkRenderer*		m_renderer;
 	vtkRenderWindow*	m_renderWindow;
 	vtkActor2D*			m_actorFocusFrame;
+	vtkScalarBarActor*	m_actorScalarBar;
 
 	double				m_dWorldOrigin[3];
 	double				m_dWorldSize[3];	

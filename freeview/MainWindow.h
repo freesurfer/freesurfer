@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/08 20:13:39 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -123,6 +123,12 @@ public:
 	void OnView3DUpdateUI		( wxUpdateUIEvent& event );
 	void OnViewReset			( wxCommandEvent& event );
 	void OnViewResetUpdateUI	( wxUpdateUIEvent& event );
+	
+	void OnViewControlPanel			( wxCommandEvent& event );
+	void OnViewControlPanelUpdateUI	( wxUpdateUIEvent& event );
+	
+	void OnViewScalarBar			( wxCommandEvent& event );
+	void OnViewScalarBarUpdateUI	( wxUpdateUIEvent& event );
 	
 	void OnViewCycleLayer					( wxCommandEvent& event );
 	void OnViewCycleLayerUpdateUI			( wxUpdateUIEvent& event );
@@ -265,6 +271,7 @@ protected:
 private:
 	void SetViewLayout( int nLayout );
 	void SetMainView( int nView );
+	void ShowControlPanel( bool bShow );
 	void UpdateToolbars();
 	void DoUpdateToolbars();
 	

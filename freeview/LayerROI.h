@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,8 @@ class LayerROI : public LayerVolumeBase
 		bool LoadROIFromFile( std::string filename );
 		
 		virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
-		virtual void Append3DProps( vtkRenderer* renderer );
+		virtual void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
+		
 		bool HasProp( vtkProp* prop );
 		
 		virtual void DoListenToMessage ( std::string const iMessage, void* const iData );

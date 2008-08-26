@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:41 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -303,13 +303,14 @@ void LayerCollection::Append2DProps( vtkRenderer* renderer, int nImagePlane )
 	}
 }
 
-void LayerCollection::Append3DProps( vtkRenderer* renderer )
+void LayerCollection::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
 	for ( int i = (int)m_layers.size()-1; i >= 0; i-- )
 	{
-		m_layers[i]->Append3DProps( renderer );
+		m_layers[i]->Append3DProps( renderer, bSliceVisibility );
 	}
 }
+
 
 int LayerCollection::GetNumberOfLayers()
 {
@@ -330,7 +331,10 @@ void LayerCollection::DoListenToMessage( std::string const iMsg, void* iData )
 void LayerCollection::SetActiveLayer( Layer* layer )
 {
 	if ( layer == NULL || this->Contains( layer ) )
-		m_layerActive = layer;
+	{
+		m_layerActive = layer;		
+		this->SendBroadcast( "ActiveLayerChanged", layer );
+	}
 }
 		
 Layer* LayerCollection::GetActiveLayer()

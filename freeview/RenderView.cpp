@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/08 20:13:39 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,9 @@
 #include "vtkActor.h"
 #include "Interactor.h"
 #include "MainWindow.h"
+#include "LayerMRI.h"
+#include "LayerCollection.h"
+#include "LayerPropertiesMRI.h"
 #include <vtkCoordinate.h>
 #include <vtkPolyDataMapper2D.h>
 #include <vtkPolyData.h>
@@ -41,6 +44,8 @@
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkCamera.h>
 #include <vtkMath.h>
+#include <vtkScalarBarActor.h>
+#include <vtkLookupTable.h>
 #include "MyUtils.h"
 
 
@@ -144,6 +149,19 @@ void RenderView::InitializeRenderView()
 	m_actorFocusFrame->GetProperty()->SetLineWidth( 5 );	
 	pMapper->Delete();
 	
+	m_actorScalarBar = vtkScalarBarActor::New();
+	m_actorScalarBar->SetOrientationToVertical();
+	m_actorScalarBar->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+	m_actorScalarBar->GetPositionCoordinate()->SetValue(0.9, 0.7);
+//	qDebug() << m_actorScalarBar->GetLabelTextProperty()->GetFontSize();
+//	m_actorScalarBar->GetTitleTextProperty()->SetFontSize(5);
+	m_actorScalarBar->SetHeight(0.3);
+	m_actorScalarBar->SetWidth(0.09);
+	m_actorScalarBar->VisibilityOff();
+	vtkLookupTable* lut = vtkLookupTable::New();
+	m_actorScalarBar->SetLookupTable(lut);
+	lut->Delete();
+	
 	UseCaptureMouseOn();
 }
 
@@ -160,7 +178,9 @@ RenderView::~RenderView()
 	
 	if ( m_interactor )
 		delete m_interactor;
+	
 	m_actorFocusFrame->Delete();
+	m_actorScalarBar->Delete();
 }
 
 void RenderView::OnSetFocus( wxFocusEvent& event )
@@ -264,11 +284,16 @@ void RenderView::ResetView()
 void RenderView::DoListenToMessage ( std::string const iMsg, void* const iData )
 {
 	if ( iMsg == "LayerActorUpdated" )
-	//	Render();
+	{
+		UpdateScalarBar();		
 		NeedRedraw();
+	}
 	
 	else if ( iMsg == "LayerAdded" || iMsg == "LayerMoved" || iMsg == "LayerRemoved" )
+	{
+		UpdateScalarBar();
 		RefreshAllActors();
+	}
 }
 
 int	RenderView::GetInteractionMode()
@@ -421,3 +446,20 @@ void RenderView::MoveDown()
 	NeedRedraw();
 }
 
+void RenderView::ShowScalarBar( bool bShow )
+{
+	m_actorScalarBar->SetVisibility( bShow?1:0 );
+}
+
+bool RenderView::GetShowScalarBar()
+{
+	return m_actorScalarBar->GetVisibility();
+}
+
+void RenderView::UpdateScalarBar()
+{
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+	LayerMRI* mri = (LayerMRI*)lc->GetActiveLayer();
+	if ( mri )
+		m_actorScalarBar->SetLookupTable( mri->GetProperties()->GetActiveLookupTable() );
+}

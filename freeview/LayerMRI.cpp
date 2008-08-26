@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,7 @@
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
+#include "MainWindow.h"
 
 LayerMRI::LayerMRI() : LayerVolumeBase(),
 		m_volumeSource( NULL),
@@ -421,11 +422,12 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
 	renderer->AddViewProp( m_sliceActor2D[nPlane] );
 }
 
-void LayerMRI::Append3DProps( vtkRenderer* renderer )
+void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
 	for ( int i = 0; i < 3; i++ )
 	{
-		renderer->AddViewProp( m_sliceActor3D[i] ); 
+		if ( bSliceVisibility == NULL || bSliceVisibility[i] )
+			renderer->AddViewProp( m_sliceActor3D[i] ); 
 	}
 }
 

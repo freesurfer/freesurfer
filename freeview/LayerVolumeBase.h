@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ class LayerVolumeBase : public LayerEditable
 		void SetBrushRadius( int nRadius );
 		
 		virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
-		virtual void Append3DProps( vtkRenderer* renderer ) = 0;
+		virtual void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL ) = 0;
 		
 		virtual void SetVisible( bool bVisible = true ) = 0;
 		virtual bool IsVisible() = 0;	

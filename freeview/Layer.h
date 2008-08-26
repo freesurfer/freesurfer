@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:41 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ class Layer : public Listener, public Broadcaster
 			{ m_strName = name; }
     	
 		virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
-		virtual void Append3DProps( vtkRenderer* renderer ) = 0;
+		virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL ) = 0;
 		
 		virtual bool HasProp( vtkProp* prop ) = 0;
 		

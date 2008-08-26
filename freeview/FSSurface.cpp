@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -735,42 +735,60 @@ int	FSSurface::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],
 	return nClosestVertex;
 }
 
-void FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3] ) 
+bool FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3] ) 
 {
 	float surfaceRAS[3];
-	this->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
-	this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+	if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS ) )
+	{
+		this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+		return true;
+	}
+	else
+		return false;
 }
 
-void FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3] ) 
+bool FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3] ) 
 {
 	double surfaceRAS[3];
-	this->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
-	this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+	if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS ) )
+	{
+		this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
+		return true;
+	}
+	else
+		return false;
 }
 
-void FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] ) 
+bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] ) 
 {
 	if( m_MRIS == NULL )
-		throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
+//		throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
+		return false;
 
 	if( inVertex < 0 || inVertex >= m_MRIS->nvertices )
-		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+//		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+		return false;
 
 	ioRAS[0] = m_MRIS->vertices[inVertex].x;
 	ioRAS[1] = m_MRIS->vertices[inVertex].y;
 	ioRAS[2] = m_MRIS->vertices[inVertex].z;
+	
+	return true;
 }
 
-void FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] ) 
+bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] ) 
 {
 	if( m_MRIS == NULL )
-		throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
+//		throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
+		return false;
 	
 	if( inVertex < 0 || inVertex >= m_MRIS->nvertices )
-		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+//		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
+		return false;
 
 	ioRAS[0] = static_cast<double>(m_MRIS->vertices[inVertex].x);
 	ioRAS[1] = static_cast<double>(m_MRIS->vertices[inVertex].y);
 	ioRAS[2] = static_cast<double>(m_MRIS->vertices[inVertex].z);
+	
+	return true;
 }

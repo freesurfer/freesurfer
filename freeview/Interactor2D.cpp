@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/18 20:23:24 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,7 +37,8 @@ Interactor2D::Interactor2D() : Interactor(),
 		m_nMousePosX( -1 ),
 		m_nMousePosY( -1 ),
 		m_bWindowLevel( false ),
-		m_bChangeSlice( false )
+		m_bChangeSlice( false ),
+		m_bMovingCursor( false )
 {
 }
 
@@ -77,6 +78,7 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 			m_bWindowLevel = true;
 		else 
 		{
+			m_bMovingCursor = true;
 			view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );
 			view->NeedRedraw();
 		}
@@ -101,6 +103,7 @@ bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 	m_nMousePosY = event.GetY();
 	m_bWindowLevel = false;
 	m_bChangeSlice = false;
+	m_bMovingCursor = false;
 	
 	view->UpdateAnnotation();
 	view->UpdateCursor2D();
@@ -141,6 +144,11 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
 			m_nMousePosX = posX;
 			m_nMousePosY = posY;	
 		}
+	}
+	else if ( m_bMovingCursor )
+	{
+		view->UpdateCursorRASPosition( posX, posY );
+		view->NeedRedraw();
 	}
 	else if ( m_bWindowLevel )
 	{

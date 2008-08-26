@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:42 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@ class wxChoice;
 class wxTextCtrl;
 class wxColorIndicator;
 class Layer;
+class LayerMRI;
 
 class PanelVolume : public wxPanel, public Listener, public Broadcaster
 {
@@ -70,6 +71,12 @@ private:
 	void OnVolumeCloseUpdateUI( wxUpdateUIEvent& event );
 	void OnVolumeLock( wxCommandEvent& event );
 	void OnVolumeLockUpdateUI( wxUpdateUIEvent& event );
+	void OnVolumeCopySetting( wxCommandEvent& event );
+	void OnVolumeCopySettingUpdateUI( wxUpdateUIEvent& event );
+	void OnVolumePasteSetting( wxCommandEvent& event );
+	void OnVolumePasteSettingUpdateUI( wxUpdateUIEvent& event );
+	void OnVolumePasteSettingAll( wxCommandEvent& event );
+	void OnVolumePasteSettingAllUpdateUI( wxUpdateUIEvent& event );
 	
 	void OnCheckClearBackground( wxCommandEvent& event );
 	void OnChoiceColorMap( wxCommandEvent& event );
@@ -152,6 +159,8 @@ private:
 	COLOR_TABLE*	m_curCTAB;
 	
 	bool			m_bUINeedUpdate;
+	
+	LayerMRI*		m_layerCopied;
     
 	DECLARE_EVENT_TABLE()
 };

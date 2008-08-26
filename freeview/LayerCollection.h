@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/11 21:30:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@ class LayerCollection : public Listener, public Broadcaster
 		bool CycleLayer();
     
 		void Append2DProps( vtkRenderer* renderer, int nImagePlane );
-		void Append3DProps( vtkRenderer* renderer );
+		void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
 		
 		bool Contains( Layer* layer );
 		bool IsEmpty();

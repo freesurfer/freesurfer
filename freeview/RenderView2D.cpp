@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/08 20:13:40 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/08/26 20:22:59 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
 #include <vtkCommand.h>
 #include <vtkMath.h>
 #include <vtkActor2D.h>
+#include <vtkScalarBarActor.h>
 #include "LayerCollection.h"
 #include "LayerCollectionManager.h"
 #include "MainWindow.h"
@@ -146,6 +147,9 @@ void RenderView2D::RefreshAllActors()
 	
 	// add focus frame
 	m_renderer->AddViewProp( m_actorFocusFrame );
+	
+	// add scalar bar
+	m_renderer->AddViewProp( m_actorScalarBar );
 	
 	NeedRedraw();
 	//Render();
@@ -409,8 +413,8 @@ void RenderView2D::PreScreenshot()
 	if ( !s.HideCursor )
 		m_cursor2D->AppendActor( m_renderer );
 	
-	// add focus frame
-//	m_renderer->AddViewProp( m_actorFocusFrame );
+	// add scalar bar
+	m_renderer->AddViewProp( m_actorScalarBar );
 }
 
 

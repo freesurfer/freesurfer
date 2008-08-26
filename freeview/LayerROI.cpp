@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -198,11 +198,15 @@ void LayerROI::Append2DProps( vtkRenderer* renderer, int nPlane )
 	renderer->AddViewProp( m_sliceActor2D[nPlane] );
 }
 
-void LayerROI::Append3DProps( vtkRenderer* renderer )
+void LayerROI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
 	for ( int i = 0; i < 3; i++ )
-		renderer->AddViewProp( m_sliceActor3D[i] ); 
+	{
+		if ( bSliceVisibility == NULL || bSliceVisibility[i] )
+			renderer->AddViewProp( m_sliceActor3D[i] );
+	} 
 }
+
 
 void LayerROI::OnSlicePositionChanged( int nPlane ) 
 {  

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/06/30 20:48:35 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/26 20:22:58 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,10 +79,10 @@ public:
 
   // Description:
   // Get the RAS or surface RAS coords at a vertex index.
-	void GetRASAtVertex        ( int inVertex, float  ioRAS[3] );
-	void GetRASAtVertex        ( int inVertex, double ioRAS[3] );
-	void GetSurfaceRASAtVertex ( int inVertex, float  ioRAS[3] );
-	void GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] );	
+	bool GetRASAtVertex        ( int inVertex, float  ioRAS[3] );
+	bool GetRASAtVertex        ( int inVertex, double ioRAS[3] );
+	bool GetSurfaceRASAtVertex ( int inVertex, float  ioRAS[3] );
+	bool GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] );	
 	
 	int GetNumberOfVertices () const;
 	
