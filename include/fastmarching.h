@@ -7,9 +7,9 @@
 /*
  * Original Author: Florent Segonne  
  * CVS Revision Info:
- *    $Author: dsjen $
- *    $Date: 2007/05/01 16:56:01 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 02:16:54 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,8 +37,9 @@ extern "C"
 
 #include "mri.h"
 #include "mrisurf.h"
+#include "diag.h"
 
-  MRI *MRIextractDistanceMap(MRI *mri_src, MRI *mri_dst,int label, float max_distance, int mode);
+  MRI *MRIextractDistanceMap(MRI *mri_src, MRI *mri_dst,int label, float max_distance, int mode, MRI *mri_mask);
   void MRISextractOutsideDistanceMap(MRIS *mris, MRI *mri_src, int label , int offset, float resolution, float max_distance);
 
 #ifdef __cplusplus
@@ -114,6 +115,7 @@ protected:
 public:
 
   MRI *mri;
+  MRI *mri_mask ;
   CoordHeap trial_heap;
   CoordList alive_list;
   MRI *status;
@@ -123,17 +125,35 @@ public:
 public:
 
   //constructor, destructor
-  FastMarching(MRI *_mri): mri(_mri), trial_heap( HeapCompare( mri ) )
+  FastMarching(MRI *_mri, MRI *_mri_mask): mri(_mri), mri_mask(_mri_mask), trial_heap( HeapCompare( mri ) )
   {
     status = MRIalloc( mri->width, mri->height, mri->depth, MRI_UCHAR );
     width = mri->width;
     height = mri->height;
     depth = mri->depth;
     Init();
+    // set mask value in status volume to eForbidden here 
+    if (mri_mask)
+    {
+      mapMRI_XYZ(status,x,y,z) 
+        if ((int)MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)
+        {
+          MRIvox(status,x,y,z)=eForbidden; // Por qua? Por qua pa?
+          MRIFvox(mri, x, y, z) = limit ;
+        }
+    }
   }
 
   ~FastMarching()
   {
+    if (mri_mask)
+    {
+      mapMRI_XYZ(status,x,y,z) 
+        if ((int)MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)
+        {
+          MRIFvox(mri, x, y, z) = limit ;
+        }
+    }
     MRIfree(&status);
   }
 
@@ -238,6 +258,8 @@ public:
         while (!trial_heap.empty())
         {
           pt = trial_heap.top();
+          if (MRIvox(status, pt.x, pt.y, pt.z) == eForbidden)
+            DiagBreak() ;
           MRIvox( status, pt.x, pt.y, pt.z ) = eFar;
           MRIFvox( mri, pt.x, pt.y, pt.z ) = limit;
           trial_heap.pop();
@@ -246,6 +268,8 @@ public:
       }
       // On enleve le point de la pile et on l'ajoute a la liste des points alive
       // One removes the point of the pile and one adds it to the alive list of the points
+      if (MRIvox(status, pt.x, pt.y, pt.z) == eForbidden)
+        DiagBreak() ;
       trial_heap.pop();
       MRIvox(status,pt.x,pt.y,pt.z) = eAlive;
       alive_list.push_back(pt);
@@ -277,6 +301,8 @@ private:
   void _UpdatePoint(int x, int y, int z)
   {
     const eState st = (eState)MRIvox(status,x,y,z);
+    if (x == Gx && y == Gy && z == Gz)
+    DiagBreak() ;
     if (st == eFar)
     {
       MRIvox(status,x,y,z)= eTrial;
@@ -306,6 +332,8 @@ private:
 
     // On reordonne les valeurs pour avoir C>=B>=A
     // One reorders the values to have C>=B>=A
+    if (x == Gx && y == Gy && z == Gz)
+    DiagBreak() ;
     if (A>B)
     {
       const float tmp = A;

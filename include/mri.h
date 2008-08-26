@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/08/21 20:54:20 $
- *    $Revision: 1.369 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 02:16:54 $
+ *    $Revision: 1.370 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1154,7 +1154,7 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 
 /** This is deprecated.  Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,
-                          int label, float max_dist, int mode);
+                          int label, float max_dist, int mode, MRI *mri_mask);
 int MRIaddCommandLine(MRI *mri, char *cmdline) ;
 MRI *MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup,
                        float thresh, int thresh_dir) ;
