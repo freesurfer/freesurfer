@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/05/15 15:02:00 $
- *    $Revision: 1.30 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 01:15:52 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.30 2008/05/15 15:02:00 greve Exp $
+  $Id: resample.c,v 1.31 2008/08/26 01:15:52 fischl Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -743,7 +743,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
 
   /* compute the transforms */
   QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
-  if (Gdiag_no > 0)
+  if (Gdiag_no >= 0)
   {
     printf("QFWDsrc: vol2surf: ------------------------------\n");
     MatrixPrint(stdout,QFWDsrc);
@@ -828,7 +828,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
         icol_src < 0 || icol_src >= SrcVol->width  ||
         islc_src < 0 || islc_src >= SrcVol->depth ) continue;
 
-    if (Gdiag_no > 0 && vtx == 30756)
+    if (Gdiag_no == vtx)
     {
       printf("diag -----------------------------\n");
       printf("vtx = %d  %g %g %g\n",vtx,Tx,Ty,Tz);
@@ -846,6 +846,8 @@ MRI *vol2surf_linear(MRI *SrcVol,
     {
       MRIsampleSeqVolume(SrcVol, fcol_src, frow_src, fslc_src,
                          valvect, 0, SrcVol->nframes-1) ;
+      if (Gdiag_no == vtx)
+        printf("val = %f\n", valvect[0]) ;
       for (frm = 0; frm < SrcVol->nframes; frm++)
         MRIFseq_vox(TrgVol,vtx,0,0,frm) = valvect[frm];
     }
@@ -866,6 +868,8 @@ MRI *vol2surf_linear(MRI *SrcVol,
           break ;
         } //switch
         MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
+        if (Gdiag_no == vtx)
+          printf("val[%d] = %f\n", frm, srcval) ;
       } // for
     }// else
     if (SrcHitVol != NULL)
