@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.12 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 13:46:04 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // Nov. 9th ,2000
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:06 $
-// Revision       : $Revision: 1.12 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2008/08/26 13:46:04 $
+// Revision       : $Revision: 1.13 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -313,9 +313,9 @@ main(int argc, char *argv[]) {
 #else
     if (transform == NULL) {
       mri_dist_src =
-        MRIdistanceTransform(mri_hires, NULL, 128, -1, DTRANS_MODE_SIGNED);
+        MRIdistanceTransform(mri_hires, NULL, 128, -1, DTRANS_MODE_SIGNED, NULL);
       mri_dist_dst =
-        MRIdistanceTransform(mri_lowres, NULL,128, -1, DTRANS_MODE_SIGNED);
+        MRIdistanceTransform(mri_lowres, NULL,128, -1, DTRANS_MODE_SIGNED, NULL);
       MRIwrite(mri_dist_src, "dist_src.mgz") ;
       MRIwrite(mri_dist_dst, "dist_dst.mgz") ;
     }

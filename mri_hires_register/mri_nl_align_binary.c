@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/03 11:50:07 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/08/26 13:46:04 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,8 +39,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/05/03 11:50:07 $
-// Revision       : $Revision: 1.12 $
+// Revision Date  : $Date: 2008/08/26 13:46:04 $
+// Revision       : $Revision: 1.13 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -358,8 +358,8 @@ main(int argc, char *argv[])
 #if NONMAX
 	printf("creating distance transforms...\n") ;
 	
-	mri_dist_source = MRIdistanceTransform(mri_source, NULL, target_label, -1, DTRANS_MODE_SIGNED);
-	mri_dist_target = MRIdistanceTransform(mri_target, NULL, target_label, -1, DTRANS_MODE_SIGNED);
+	mri_dist_source = MRIdistanceTransform(mri_source, NULL, target_label, -1, DTRANS_MODE_SIGNED, NULL);
+	mri_dist_target = MRIdistanceTransform(mri_target, NULL, target_label, -1, DTRANS_MODE_SIGNED, NULL);
 	MRIscalarMul(mri_dist_source, mri_dist_source, -1) ;
 	MRIscalarMul(mri_dist_target, mri_dist_target, -1) ;
 	MRIwrite(mri_dist_source, "dist_source.mgz") ;

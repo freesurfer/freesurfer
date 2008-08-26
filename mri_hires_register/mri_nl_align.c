@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 13:39:39 $
- *    $Revision: 1.19 $
+ *    $Date: 2008/08/26 13:46:05 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/08/06 13:39:39 $
-// Revision       : $Revision: 1.19 $
+// Revision Date  : $Date: 2008/08/26 13:46:05 $
+// Revision       : $Revision: 1.20 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -779,13 +779,13 @@ create_distance_transforms(MRI *mri_source, MRI *mri_target, MRI *mri_all_dtrans
   for (frame = 0 ; frame < NDTRANS_LABELS ; frame++)
   {
     printf("creating distance transform for %s, frame %d...\n", cma_label_to_name(dtrans_labels[frame]), frame) ;
-    mri_dtrans = MRIdistanceTransform(mri_target, NULL, dtrans_labels[frame], 10, DTRANS_MODE_SIGNED) ;
+    mri_dtrans = MRIdistanceTransform(mri_target, NULL, dtrans_labels[frame], 10, DTRANS_MODE_SIGNED, NULL) ;
     sprintf(fname, "%s.mgz", cma_label_to_name(dtrans_labels[frame])) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_dtrans, fname) ;
     MRIcopyFrame(mri_dtrans, mri_all_dtrans, 0, frame) ;
     MRIfree(&mri_dtrans) ;
-    mri_dtrans = MRIdistanceTransform(mri_source, NULL, dtrans_labels[frame], 10, DTRANS_MODE_SIGNED) ;
+    mri_dtrans = MRIdistanceTransform(mri_source, NULL, dtrans_labels[frame], 10, DTRANS_MODE_SIGNED, NULL) ;
     GCAMsetMeansForLabel(gcam, mri_source, mri_dtrans, dtrans_labels[frame]);
     MRIfree(&mri_dtrans) ;
   }

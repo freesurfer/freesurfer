@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/05/03 11:50:56 $
- *    $Revision: 1.16 $
+ *    $Date: 2008/08/26 13:46:04 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/05/03 11:50:56 $
-// Revision       : $Revision: 1.16 $
+// Revision Date  : $Date: 2008/08/26 13:46:04 $
+// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -366,8 +366,8 @@ main(int argc, char *argv[]) {
   }
   if (pf_overlap == compute_distance_transform_sse) {
     printf("creating distance transforms...\n") ;
-    mri_dist_src = MRIdistanceTransform(mri_source, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
-    mri_dist_target = MRIdistanceTransform(mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED);
+    mri_dist_src = MRIdistanceTransform(mri_source, NULL, binary_label, -1, DTRANS_MODE_SIGNED, NULL);
+    mri_dist_target = MRIdistanceTransform(mri_target, NULL, binary_label, -1, DTRANS_MODE_SIGNED, NULL);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
       MRIwrite(mri_dist_src, "dist_src.mgz") ;
       MRIwrite(mri_dist_target, "dist_target.mgz") ;
