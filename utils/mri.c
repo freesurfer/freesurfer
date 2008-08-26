@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/08/21 20:54:19 $
- *    $Revision: 1.418 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 02:18:00 $
+ *    $Revision: 1.419 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.418 $";
+const char *MRI_C_VERSION = "$Revision: 1.419 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -14742,7 +14742,7 @@ char *MRIsliceDirectionName(MRI *mri)
  * instead 
  **/
 MRI *
-MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode)
+MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode, MRI *mri_mask)
 {
 
   const int width = mri_src->width;
@@ -14776,7 +14776,7 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
     mode = outside;
   }
 
-  mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode);
+  mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode, mri_mask);
   mri_dist->outside_val = max_dist ;  
   MRIscalarMul(mri_dist, mri_dist, mri_src->xsize) ;
   return mri_dist;  

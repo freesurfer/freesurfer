@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 15:16:44 $
- *    $Revision: 1.248 $
+ *    $Date: 2008/08/26 02:17:57 $
+ *    $Revision: 1.249 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -20451,10 +20451,10 @@ initialize_ventricle_alignment(MRI *mri_seg,
 
   mri_vent = fill_ventricles(mri_seg, mri, border, NULL, label) ;
   mri_vent_dist = MRIdistanceTransform(mri_vent, NULL, 1, mri_vent->width, 
-                                       DTRANS_MODE_SIGNED) ;
+                                       DTRANS_MODE_SIGNED, NULL) ;
   mri_gca_vent_dist = MRIdistanceTransform(mri_gca_vent, NULL, 1, 
                                            mri_gca_vent->width, 
-                                           DTRANS_MODE_SIGNED) ;
+                                           DTRANS_MODE_SIGNED, NULL) ;
   MRIwrite(mri_gca_vent, "gv.mgz") ; 
   MRIwrite(mri_vent, "v.mgz") ; 
   MRIwrite(mri_gca_vent_dist, "gvd.mgz") ; 

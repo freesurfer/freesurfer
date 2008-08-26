@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 16:46:52 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/26 02:18:00 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -173,7 +173,7 @@ CAbuildInputs(VOXEL_LIST *vl_total, MRI *mri_intensity, MRI *mri_labels, int tar
   int   i ;
 
   if (which_inputs & (CA_INPUT_DTRANS | CA_INPUT_DTRANS_GRAD))
-    mri_dtrans = MRIdistanceTransform(mri_labels, NULL, target_label, 10, DTRANS_MODE_SIGNED) ;
+    mri_dtrans = MRIdistanceTransform(mri_labels, NULL, target_label, 10, DTRANS_MODE_SIGNED, NULL) ;
   for (i = 0 ; i < nscales ; i++)
   {
     mri_kernel = MRIgaussian1d(sigmas[i], -1) ;

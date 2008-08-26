@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/14 12:57:50 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/08/26 02:17:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1029,7 +1029,7 @@ GCABtrain(GCAB *gcab, MRI *mri_int, MRI *mri_seg, TRANSFORM *transform,
 
   mri_tmp = MRIclone(mri_seg, NULL) ;
   MRIcopyLabel(mri_seg, mri_tmp, target_label) ;
-  mri_dist = MRIdistanceTransform(mri_tmp, NULL, target_label, 10, DTRANS_MODE_SIGNED) ;
+  mri_dist = MRIdistanceTransform(mri_tmp, NULL, target_label, 10, DTRANS_MODE_SIGNED, NULL) ;
   MRIfree(&mri_tmp) ;
 
   gcab->ntraining++ ; // # of volumes that went into this atlas

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 23:52:35 $
- *    $Revision: 1.140 $
+ *    $Date: 2008/08/26 02:17:58 $
+ *    $Revision: 1.141 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -730,7 +730,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
     parms->mri_dist_map = 
       MRIdistanceTransform
-      (parms->mri_binary, NULL, parms->target_label, -1, DTRANS_MODE_SIGNED);
+      (parms->mri_binary, NULL, parms->target_label, -1, DTRANS_MODE_SIGNED, NULL);
 #if 0
     if (DZERO(parms->l_area_intensity))
     {
@@ -13988,7 +13988,7 @@ GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
     printf("creating distance transform for %s, frame %d...\n", cma_label_to_name(dtrans_labels[frame]), frame) ;
     if (dtrans_labels[frame] == Gdiag_no)
       DiagBreak() ;
-    mri_dtrans = MRIdistanceTransform(mri, NULL, dtrans_labels[frame], max_dist, DTRANS_MODE_SIGNED) ;
+    mri_dtrans = MRIdistanceTransform(mri, NULL, dtrans_labels[frame], max_dist, DTRANS_MODE_SIGNED, NULL) ;
     sprintf(fname, "%s.mgz", cma_label_to_name(dtrans_labels[frame])) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_dtrans, fname) ;
@@ -14000,7 +14000,7 @@ GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
       for interior points)
     */
     mri_dtrans = 
-      MRIdistanceTransform(mri_labels, NULL, dtrans_labels[frame], max_dist, DTRANS_MODE_SIGNED) ;
+      MRIdistanceTransform(mri_labels, NULL, dtrans_labels[frame], max_dist, DTRANS_MODE_SIGNED, NULL) ;
     GCAMsetTargetDistancesForLabel(gcam, mri_labels, mri_dtrans, dtrans_labels[frame]);
     MRIcopyFrame(mri_dtrans, *pmri_atlas_dtrans, 0, frame) ;
     MRIfree(&mri_dtrans) ;
@@ -14419,6 +14419,7 @@ GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels,
 
   /* user specifies atlas distance transform so it
      doesn't need to be recomputed every time */
+#if 0
   if (mri_atlas_dtrans_orig)
     mri_atlas_dtrans = MRIcopy(mri_atlas_dtrans_orig, NULL) ;
   else
@@ -14426,6 +14427,9 @@ GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels,
                                                    max_dist,
                                                    parms->dtrans_labels,
                                                    parms->ndtrans) ;
+#else
+  mri_atlas_dtrans = mri_atlas_dtrans_orig ;
+#endif
   step = parms->start_t ;
   mri_current_labels = MRIapplyMorph(mri_source_labels, mri_warp, NULL, SAMPLE_NEAREST) ;
   /*
@@ -14588,7 +14592,10 @@ GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels,
     MRIfree(&mri_m1) ; MRIfree(&mri_m2) ;
   }
   MRIfree(&mri_s_new) ; MRIfree(&mri_s_old) ; 
-  MRIfree(&mri_kernel) ; MRIfree(&mri_warp) ; MRIfree(&mri_atlas_dtrans) ;
+  MRIfree(&mri_kernel) ; MRIfree(&mri_warp) ; 
+#if 0
+  MRIfree(&mri_atlas_dtrans) ;
+#endif
 
   if (gcam->mri_xind)
   {
@@ -14756,7 +14763,7 @@ MRIcreateDistanceTransforms(MRI *mri, MRI *mri_all_dtrans, float max_dist,
 
   if (mri_all_dtrans == NULL)
     mri_all_dtrans = MRIallocSequence(mri->width, mri->height, mri->depth, 
-                                      MRI_FLOAT, NDTRANS_LABELS) ;
+                                      MRI_FLOAT, nlabels) ;
     
   MRIcopyHeader(mri, mri_all_dtrans) ;
 
@@ -14769,7 +14776,7 @@ MRIcreateDistanceTransforms(MRI *mri, MRI *mri_all_dtrans, float max_dist,
     if (dtrans_labels[frame] == Gdiag_no)
       DiagBreak() ;
     mri_dtrans = MRIdistanceTransform(mri, NULL, labels[frame], max_dist, 
-                                      DTRANS_MODE_SIGNED) ;
+                                      DTRANS_MODE_SIGNED, NULL) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       sprintf(fname, "%s.mgz", cma_label_to_name(dtrans_labels[frame])) ;

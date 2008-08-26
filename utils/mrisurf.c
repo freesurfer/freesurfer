@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/07/30 17:27:19 $
- *    $Revision: 1.613 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 02:17:55 $
+ *    $Revision: 1.614 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.613 2008/07/30 17:27:19 greve Exp $");
+  return("$Id: mrisurf.c,v 1.614 2008/08/26 02:17:55 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61856,7 +61856,7 @@ MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolution)
   else
     mri_mask = MRIcopy(mri_tmp, NULL) ;   // geometry specified by caller
   mri_dist = MRIdistanceTransform(mri_mask, mri_dist, 1, nint(PAD/mri_mask->xsize), 
-                                  DTRANS_MODE_SIGNED) ;
+                                  DTRANS_MODE_SIGNED, NULL) ;
 
   MRIfree(&mri_tmp) ; MRIfree(&mri_mask) ;
   return(mri_dist) ;
