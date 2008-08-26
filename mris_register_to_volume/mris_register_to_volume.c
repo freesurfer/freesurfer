@@ -11,8 +11,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/01 17:19:21 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/08/26 15:54:26 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,7 +165,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.8 2008/04/01 17:19:21 fischl Exp $";
+static char vcid[] = "$Id: mris_register_to_volume.c,v 1.9 2008/08/26 15:54:26 fischl Exp $";
 char *Progname = NULL;
 
 static double tscale = 5.0 ;
@@ -270,12 +270,12 @@ main(int argc, char **argv)
   struct timeb  then ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.8 2008/04/01 17:19:21 fischl Exp $",
+                          "$Id: mris_register_to_volume.c,v 1.9 2008/08/26 15:54:26 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.8 2008/04/01 17:19:21 fischl Exp $",
+                                "$Id: mris_register_to_volume.c,v 1.9 2008/08/26 15:54:26 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -509,7 +509,7 @@ main(int argc, char **argv)
           b = HISTOfindBinWithCount(hcdf, 0.8) ;
           thresh = h->bins[b] ;
           MRIbinarize(mri_edge, mri_edge, thresh, 0, 1) ;
-          mri_distance = MRIdistanceTransform(mri_edge, NULL, 1, 1000, DTRANS_MODE_UNSIGNED) ;
+          mri_distance = MRIdistanceTransform(mri_edge, NULL, 1, 1000, DTRANS_MODE_UNSIGNED, NULL) ;
           MRIscalarMul(mri_distance, mri_distance, -1) ;
           MRIwrite(mri_distance, "dist.mgz") ;
           mri_edge->outside_val = -1000;

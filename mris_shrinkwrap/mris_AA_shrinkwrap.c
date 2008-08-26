@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 15:58:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@
 static double compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri_dist) ;
 static int MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth, INTEGRATION_PARMS *parms) ;
 
-static char vcid[] = "$Id: mris_AA_shrinkwrap.c,v 1.3 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_AA_shrinkwrap.c,v 1.4 2008/08/26 15:58:47 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -123,7 +123,7 @@ main(int argc, char *argv[]) {
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.3 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.4 2008/08/26 15:58:47 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -246,7 +246,7 @@ main(int argc, char *argv[]) {
 
   mri_binary = MRIbinarize(mri_dif, mri_binary, 40, 0, 128) ;
   MRIwrite(mri_binary, "bin.mgz") ;
-  mri_distance = MRIdistanceTransform(mri_binary, NULL, 128, 100, DTRANS_MODE_SIGNED) ;
+  mri_distance = MRIdistanceTransform(mri_binary, NULL, 128, 100, DTRANS_MODE_SIGNED, NULL) ;
   MRIwrite(mri_distance, "dist.mgz") ;
   mri_masked_smooth = MRIconvolveGaussian(mri_distance, NULL, mri_kernel) ;
   MRIfree(&mri_kernel) ;
@@ -811,7 +811,7 @@ MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth, INTEGRATION_PARMS
     parms->momentum = 0.0 /*0.75*/ ;
 
   mri_bin = MRIbinarize(mri_smooth, NULL, 15, 0, TARGET_VAL) ;
-  mri_dist = MRIdistanceTransform(mri_bin, NULL, TARGET_VAL, 10*mri_bin->width, DTRANS_MODE_SIGNED) ;
+  mri_dist = MRIdistanceTransform(mri_bin, NULL, TARGET_VAL, 10*mri_bin->width, DTRANS_MODE_SIGNED, NULL) ;
   MRIwrite(mri_bin, "bin.mgz") ;
   MRIwrite(mri_dist, "dist.mgz") ;
   MRISscaleBrain(mris, mris, 0.5) ;  // start inside

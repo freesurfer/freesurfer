@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/27 22:50:59 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/26 15:57:06 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #include "mrisegment.h"
 
 static char vcid[] = 
-"$Id: mris_shrinkwrap.c,v 1.6 2007/11/27 22:50:59 nicks Exp $";
+"$Id: mris_shrinkwrap.c,v 1.7 2008/08/26 15:57:06 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -106,7 +106,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_shrinkwrap.c,v 1.6 2007/11/27 22:50:59 nicks Exp $", 
+     "$Id: mris_shrinkwrap.c,v 1.7 2008/08/26 15:57:06 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -210,7 +210,7 @@ main(int argc, char *argv[])
   {
     mri_dist = 
       MRIdistanceTransform(mri_masked, 
-                           NULL, BORDER_VAL, 10000, DTRANS_MODE_SIGNED) ;
+                           NULL, BORDER_VAL, 10000, DTRANS_MODE_SIGNED,NULL) ;
     parms.l_shrinkwrap = 0 ;  // use intensity term
     parms.l_spring_norm = parms.l_spring ;
     parms.l_spring = 0 ;
