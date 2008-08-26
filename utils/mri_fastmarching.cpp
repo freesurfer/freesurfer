@@ -30,7 +30,8 @@ extern "C" MRI *MRIextractDistanceMap( MRI *mri_src,
                                        MRI *mri_dst, 
                                        int label, 
                                        float max_distance, 
-                                       int mode ) 
+                                       int mode,
+                                       MRI *mri_mask) 
 {
   MRI *mri_distance = NULL;
 
@@ -95,14 +96,14 @@ extern "C" MRI *MRIextractDistanceMap( MRI *mri_src,
     const int bothUnsigned = 4;
 
     if ( mode == outside || mode == both || mode == bothUnsigned ) {
-      FastMarching< +1 > fastmarching_out( mri_distance );
+      FastMarching< +1 > fastmarching_out( mri_distance, mri_mask );
       fastmarching_out.SetLimit( max_distance );
       fastmarching_out.InitFromMRI( mri_src, label );
       fastmarching_out.Run( max_distance );
     }
 
     if ( mode == inside || mode == both || mode == bothUnsigned ) {
-      FastMarching< -1 > fastmarching_in( mri_distance );
+      FastMarching< -1 > fastmarching_in( mri_distance, mri_mask );
       fastmarching_in.SetLimit( -max_distance );
       fastmarching_in.InitFromMRI( mri_src, label );
       fastmarching_in.Run( -max_distance );
