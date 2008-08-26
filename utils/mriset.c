@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/07/30 13:35:47 $
- *    $Revision: 1.60 $
+ *    $Date: 2008/08/26 01:15:37 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -823,7 +823,7 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
 
   /* get everything outside of bounding box */
   mri_dst = MRIcopy(mri_src, mri_dst) ;
-
+  
   for (i = 0 ; i < niter ; i++)
   {
     mri_tmp = MRIcopy(mri_dst, mri_tmp) ; /* will allocate first time */
@@ -841,8 +841,7 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
         {
           for (x = 0 ; x < width ; x++)
           {
-            MRIsampleVolumeFrameType
-            (mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
+            val = MRIgetVoxVal(mri_tmp, x, y, z, f) ;
             if (val == label)
             {
               if (x-1 < xmin)
@@ -876,8 +875,9 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
         {
           for (x = xmin ; x <= xmax ; x++)
           {
-            MRIsampleVolumeFrameType
-            (mri_src, x, y, z, f, SAMPLE_NEAREST, &out_val) ;
+            if (x == Gx && y == Gy && z == Gz)
+              DiagBreak() ;
+            out_val = MRIgetVoxVal(mri_tmp, x, y, z, f) ;
             for (z0 = -1 ; z0 <= 1 ; z0++)
             {
               if (out_val == label)
@@ -893,18 +893,19 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
                   if (out_val == label)
                     break ;
                   xi = mri_tmp->xi[x+x0] ;
-                  MRIsampleVolumeFrameType
-                  (mri_src,x,y,z,f,SAMPLE_NEAREST, &val) ;
+                  val = MRIgetVoxVal(mri_tmp,xi,yi,zi,f) ;
                   if (val == label)
                   {
-                    break ;
                     out_val = label ;
+                    break ;
                   }
                 }
               }
             }
+            if (x == Gx && y == Gy && z == Gz)
+              DiagBreak() ;
+            MRIsetVoxVal(mri_dst, x, y, z, f, out_val) ;
           }
-          MRIsetVoxVal(mri_dst, x, y, z, f, out_val) ;
         }
       }
     }
@@ -2921,8 +2922,8 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
   VECTOR *v1, *v2 ;
   MATRIX *m_vox2vox ;
 
-  mri_src_dist = MRIdistanceTransform(mri_src, NULL, label, -1, DTRANS_MODE_UNSIGNED) ;
-  mri_ref_dist = MRIdistanceTransform(mri_ref, NULL, label, -1, DTRANS_MODE_UNSIGNED) ;
+  mri_src_dist = MRIdistanceTransform(mri_src, NULL, label, -1, DTRANS_MODE_UNSIGNED, NULL) ;
+  mri_ref_dist = MRIdistanceTransform(mri_ref, NULL, label, -1, DTRANS_MODE_UNSIGNED, NULL) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     MRIwrite(mri_src, "s.mgz") ;
