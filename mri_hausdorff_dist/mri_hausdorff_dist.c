@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/06/30 16:58:35 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/08/26 13:49:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.5 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.6 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index) ;
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.5 2008/06/30 16:58:35 fischl Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.6 2008/08/26 13:49:49 fischl Exp $";
 
 char *Progname ;
 
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
     }
     mri[n] = MRIdistanceTransform(mri_tmp, NULL, target_label, 
                                   mri_tmp->width+mri_tmp->height+mri_tmp->depth, 
-                                  DTRANS_MODE_SIGNED) ;
+                                  DTRANS_MODE_SIGNED, NULL) ;
     MRIfree(&mri_tmp) ;
     //    MRIwrite(mri[n], fname) ;
 #else
