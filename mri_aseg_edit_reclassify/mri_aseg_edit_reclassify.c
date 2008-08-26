@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/13 17:47:46 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/08/26 13:41:12 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "cma.h"
 #include "class_array.h"
 
-static char vcid[] = "$Id: mri_aseg_edit_reclassify.c,v 1.3 2008/03/13 17:47:46 fischl Exp $";
+static char vcid[] = "$Id: mri_aseg_edit_reclassify.c,v 1.4 2008/08/26 13:41:12 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -90,7 +90,7 @@ main(int argc, char *argv[]) {
   float        *svm_inputs = NULL, svm_out ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_reclassify.c,v 1.3 2008/03/13 17:47:46 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_aseg_edit_reclassify.c,v 1.4 2008/08/26 13:41:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -149,7 +149,7 @@ main(int argc, char *argv[]) {
     mri_2nd_deriv_s[i] = MRI2ndDirectionalDerivative(mri_smooth[i], NULL, 0, -1, 0) ;
     MRIfree(&mri_kernel) ;
   }
-  mri_dtrans = MRIdistanceTransform(mri_aseg, NULL, target_label, 10, DTRANS_MODE_SIGNED) ;
+  mri_dtrans = MRIdistanceTransform(mri_aseg, NULL, target_label, 10, DTRANS_MODE_SIGNED, NULL) ;
   mri_dtrans_grad = MRIsobel(mri_dtrans, NULL, NULL) ;
   
   for (nchanged = i = 0 ; i < vl_border->nvox ; i++)
