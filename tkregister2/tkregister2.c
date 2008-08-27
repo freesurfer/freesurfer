@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/19 00:05:25 $
- *    $Revision: 1.98 $
+ *    $Date: 2008/08/27 19:08:04 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.98 2008/08/19 00:05:25 greve Exp $";
+"$Id: tkregister2.c,v 1.99 2008/08/27 19:08:04 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1076,9 +1076,13 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mgz"))  ; // for backwards compat
     else if (stringmatch(option, "--fsl-targ")) {
       sprintf(tmpstr,"%s/etc/standard/avg152T1",getenv("FSLDIR"));
+      if(! fio_FileExistsReadable(tmpstr))
+	sprintf(tmpstr,"%s/data/standard/avg152T1",getenv("FSLDIR"));
       targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
     } else if (stringmatch(option, "--fsl-targ-lr")) {
       sprintf(tmpstr,"%s/etc/standard/avg152T1_LR-marked",getenv("FSLDIR"));
+      if(! fio_FileExistsReadable(tmpstr))
+	sprintf(tmpstr,"%s/data/standard/avg152T1_LR-marked",getenv("FSLDIR"));
       targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
     } else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
     else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ;
@@ -1227,6 +1231,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       //pargv[0] is featdir
       sprintf(tmpstr,"%s/etc/standard/avg152T1",getenv("FSLDIR"));
+      if(! fio_FileExistsReadable(tmpstr))
+	sprintf(tmpstr,"%s/data/standard/avg152T1",getenv("FSLDIR"));
       targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
       sprintf(tmpstr,"%s/example_func",pargv[0]);
       mov_vol_id = IDnameFromStem(tmpstr);
@@ -1403,8 +1409,8 @@ static void print_usage(void) {
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --check-reg : only check, no --reg needed\n");
   printf("   --regheader : compute regstration from headers\n");
-  printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
-  printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
+  printf("   --fsl-targ : use FSLDIR/data/standard/avg152T1.nii.gz\n");
+  printf("   --fsl-targ-lr : use FSLDIR/data/standard/avg152T1_LR-marked.nii.gz\n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --gca subject : check linear GCA registration  \n");
   printf("   --gca-skull subject : check linear 'with skull' GCA registration  \n");
@@ -4653,7 +4659,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.98 2008/08/19 00:05:25 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.99 2008/08/27 19:08:04 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
