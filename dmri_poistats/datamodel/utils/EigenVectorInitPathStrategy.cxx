@@ -208,7 +208,7 @@ EigenVectorInitPathStrategy::GetDistanceVolume( const int label ) {
   MRI* seedVolume = m_PoistatsModel->GetSeedVolume();
   
   // from fastmarching
-  MRI* distanceTransform = MRIextractDistanceMap( seedVolume, NULL, label, maxDistance, mode);
+  MRI* distanceTransform = MRIextractDistanceMap( seedVolume, NULL, label, maxDistance, mode,NULL);
   MRIcopyHeader( seedVolume, distanceTransform);
                           
   return distanceTransform;
