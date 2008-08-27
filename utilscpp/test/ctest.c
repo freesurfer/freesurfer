@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:19 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2008/08/27 13:29:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     return -1;
   }
   src = MRIread(argv[1]);
-  dst = MRIextractDistanceMap(src, NULL, label, max_distance, mode);
+  dst = MRIextractDistanceMap(src, NULL, label, max_distance, mode,NULL);
   return 0;
 }
 
