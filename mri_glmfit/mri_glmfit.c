@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/08/11 21:59:22 $
- *    $Revision: 1.138.2.2 $
+ *    $Author: greve $
+ *    $Date: 2008/08/27 13:33:05 $
+ *    $Revision: 1.138.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -364,10 +364,11 @@ Flag to save the condition number of the design matrix at eaach voxel.
 Normally, this is not very useful except for debugging. It is totally
 useless if not using weights or PVRs.
 
---nii
+--nii, --nii.gz
 
-Use nifti as output format instead of mgh. This might not work with 
-surfaces.
+Use nifti (or compressed nifti) as output format instead of mgh. This
+will work with surfaces, but you will not be able to open the output
+nifti files with non-freesurfer software.
 
 --seed seed
 
@@ -529,7 +530,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.2 2008/08/11 21:59:22 nicks Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.3 2008/08/27 13:33:05 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1716,6 +1717,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--nii")) format = "nii";
+    else if (!strcasecmp(option, "--nii.gz")) format = "nii.gz";
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
