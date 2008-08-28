@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/07 20:57:59 $
- *    $Revision: 1.32 $
+ *    $Date: 2008/08/28 16:46:09 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.32 2008/08/07 20:57:59 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.33 2008/08/28 16:46:09 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -393,7 +393,7 @@ int main(int argc, char **argv) {
         if(UseNewRibbon && ( IsCortex || IsWM || asegid==0 ) ) {
 	  RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
 	  MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
-	  if(RibbonVal==4 || RibbonVal==41) {
+	  if(RibbonVal==2 || RibbonVal==41) {
 	    IsWM = 1;
 	    IsCortex = 0;
 	  }
@@ -645,7 +645,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--ribbon"))  UseRibbon = 1;
-    else if (!strcasecmp(option, "--volmask"))  UseNewRibbon = 1;
+    else if (!strcasecmp(option, "--volmask") ||
+	     !strcasecmp(option, "--new-ribbon"))  UseNewRibbon = 1;
     else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--fix-parahipwm"))  FixParaHipWM = 1;
