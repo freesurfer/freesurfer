@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.6 2007/12/16 18:48:27 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.7 2008/08/28 23:09:40 greve Exp $';
 
 set subject = ();
 set srchemi = ();
@@ -25,6 +25,7 @@ set surfreg = xhemi.reg
 set UseNoNeg = 0
 set NoRandomness = 1;
 set RngSeed = 1234
+set DoReg = 1;
 set PrintHelp = 0;
 set outdir = ();
 
@@ -55,7 +56,7 @@ cd $SUBJECTS_DIR/$subject
 set xsubject = $subject/xhemi
 if($#outdir == 0) set outdir = $SUBJECTS_DIR/$xsubject
 echo "outdir is $outdir" 
-mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts
+mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts $outdir/stats
 
 set LF = $SUBJECTS_DIR/$xsubject/xhemireg.$srchemi.log
 if(-e $LF) mv $LF $LF.bak
@@ -74,7 +75,7 @@ echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 date | tee -a $LF
-foreach vol (orig aseg T1 brain brainmask nu norm )
+foreach vol (orig aseg aparc+aseg T1 brain brainmask nu norm )
   set cmd = (mri_convert mri/$vol.mgz $outdir/mri/$vol.mgz --left-right-reverse)
   echo $cmd  | tee -a $LF
   $cmd | tee -a $LF
@@ -121,20 +122,22 @@ foreach ov (curv sulc area area.pial curv.pial avg_curv \
   if($status) exit 1;
 end
 
-#------------------------------------------------------------------
-set cmd = (recon-all -sb $xsubject -hemi $trghemi \
-            -talairach -surfreg -cortparc -cortparc2)
-echo "" | tee -a $LF
-echo "" | tee -a $LF
-date | tee -a $LF
-echo $cmd  | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
+if($DoReg) then
+  #------------------------------------------------------------------
+  set cmd = (recon-all -sb $xsubject -hemi $trghemi \
+              -talairach -surfreg -cortparc -cortparc2)
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date | tee -a $LF
+  echo $cmd  | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
 
-#--------------------------------------------------------------
-cp $outdir/surf/$trghemi.sphere.reg surf/$srchemi.$trghemi.xhemi.reg |& tee -a $LF
-if($status) exit 1;
-
+  #--------------------------------------------------------------
+  cp $outdir/surf/$trghemi.sphere.reg \
+       surf/$srchemi.$trghemi.xhemi.reg |& tee -a $LF
+  if($status) exit 1;
+endif
 
 #--------------------------------------------------------------
 echo "" | tee -a $LF
@@ -181,6 +184,10 @@ while( $#argv != 0 )
     case "--o":
       if ( $#argv < 1) goto arg1err;
       set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--no-reg":
+      set DoReg = 0;
       breaksw
 
     case "--debug":
@@ -245,6 +252,7 @@ usage_exit:
   echo "   --reg surfreg : output will be srchemi.trghemi.surfreg (def xhemi.reg)"
   echo ""
   echo "   --o outdir  : output dir (subject/xhemireg.hemi by def)"
+  echo "   --noreg   : do not actually perform the reg, just set up dir"
   echo "   --version : print version and exit"
   echo "   --help    : print help and exit"
   echo ""
