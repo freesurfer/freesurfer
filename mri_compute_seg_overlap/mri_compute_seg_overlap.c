@@ -10,8 +10,8 @@
  * Original Authors: Xiao Han, Nick Schmansky 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/16 19:46:26 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/08/30 01:57:33 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,7 +71,7 @@ static const int labels_of_interest[24] = {
       Left_Inf_Lat_Vent, Right_Inf_Lat_Vent
     };
 
-/* Note: these are the labels not included in the
+/* Note: these are the labels included in the
      'overall subcortical Dice coefficient' calculations.
      It excludes:
      Left/Right-Cerebral-White-Matter (labels 2 and 41),
@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.7 2007/07/16 19:46:26 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.8 2008/08/30 01:57:33 nicks Exp $",
      "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
