@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/21 21:46:18 $
- *    $Revision: 1.335.2.7 $
+ *    $Date: 2008/09/02 22:39:00 $
+ *    $Revision: 1.335.2.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -6062,7 +6062,9 @@ static MRI *analyzeRead(char *fname, int read_volume)
   {
     if (nfiles == 1)
     {
-      printf("INFO: reading as a two-file NIFTI\n");
+      // don't print this info, as it messes-up the output
+      // when --tr, --te etc are used with mri_info
+      //printf("INFO: reading as a two-file NIFTI\n");
       mri = nifti1Read(hdrfile, read_volume);
       return(mri);
     }
