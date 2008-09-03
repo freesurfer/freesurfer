@@ -2,16 +2,18 @@
  * @file  mri_seg_diff.c
  * @brief Computes and merge differences in segmentation.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This program computes and merges differences in segmentation volumes
+ * (eg, aseg.auto.mgz and aseg.mgz) primarily for the purpose of
+ * managing manual edits to aseg.mgz.
  */
 /*
  * Original Author: greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/02/29 22:57:31 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2008/09/03 21:59:04 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -104,7 +106,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seg_diff.c,v 1.2 2008/02/29 22:57:31 greve Exp $";
+static char vcid[] = "$Id: mri_seg_diff.c,v 1.3 2008/09/03 21:59:04 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
