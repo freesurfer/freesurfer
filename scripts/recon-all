@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/08/15 14:54:24 $
-#    $Revision: 1.183 $
+#    $Date: 2008/09/03 21:52:31 $
+#    $Revision: 1.184 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.183 2008/08/15 14:54:24 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.184 2008/09/03 21:52:31 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5099,19 +5099,26 @@ longitudinal stream on your tp1 subject.  This new subject will be nearly
 identical to the default tp1 processing stream results, but not exactly, due
 to the various deviations in processing just described.  You will want to
 compare your tp2 longitudinal results to this tp1 longitudinal data, and not
-the default tp1 data, to obtain the most accurate comparison.
+the default (cross-sectional) tp1 data, to obtain the most accurate comparison.
 
 -long tp1subjid tp2subjid
 -longitudinal tp1subjid tp2subjid
 
 Enables longitudinal processing. The 'time point one' subject specified in
 the first argument of -long should be data fully processed by the default 
-processing stream, ie 'recon-all -all'.  The 'time point two' subject specified
-as the second argument is the basename for the subject id that will be created,
-which will have this form:  {tp2subjid}.long.(tp1subjid}
+(cross-sectional) processing stream, ie 'recon-all -all'.  The 'time point 
+two' subject specified as the second argument is the basename for the subject 
+id that will be created, which will have this form:  
+  {tp2subjid}.long.(tp1subjid}
 As with any recon-all, you will need to use the -i flag(s) to specify the
-input files (DICOMs) for tp2subjid.  This subject is processed in the different
-manner from the default processing stream, as described above.
+input files (DICOMs) for tp2subjid.  The full pathname to those input file(s)
+must be specified.  The resulting {tp2subjid}.long.(tp1subjid} subject is 
+processed in the different (longitudinal) manner as described above.
+
+-usetp1ctrlvol
+
+Optionally use a control-points volume created from tp1subjid and used to 
+specify control points for tp2subjid.
 
 -reg registration_file
 -regfile registration_file
@@ -5152,6 +5159,8 @@ mris_make_surfaces does not attempt to use it.
 Example:
 
   recon-all -all -long <tp1subjid> <tp2subjid> -i some/path/to/input.dcm
+
+The output subject is named <tp2subjid>.long.<tp1subjid>.
 
 (Notice that the -all flag is included. A work directive flag is required.)
 
