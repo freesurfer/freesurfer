@@ -2456,6 +2456,7 @@ AC_OUTPUT([Makefile
            mri_remove_neck/Makefile
            mri_ribbon/Makefile
            mri_rigid_register/Makefile
+           mri_seg_diff/Makefile
            mri_seghead/Makefile
            mri_segment/Makefile
            mri_segment_wm_damage/Makefile
