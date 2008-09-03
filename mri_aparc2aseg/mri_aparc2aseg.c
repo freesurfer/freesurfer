@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/28 16:46:29 $
- *    $Revision: 1.27.2.6 $
+ *    $Date: 2008/09/03 21:33:09 $
+ *    $Revision: 1.27.2.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.27.2.6 2008/08/28 16:46:29 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27.2.7 2008/09/03 21:33:09 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -670,11 +670,20 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--a2005s")) {
       annotname = "aparc.a2005s";
       baseoffset = 100;
-    } else if (!strcmp(option, "--annot")) {
+    } 
+    else if (!strcmp(option, "--annot")) {
       if (nargc < 1) argnerr(option,1);
       annotname = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--oaparc")) {
+    } 
+    else if (!strcmp(option, "--annot-table")) {
+      if(nargc < 1) argnerr(option,1);
+      // annotation_table_file is declared in annotation.h
+      // default is $FREESURFER_HOME/Simple_surface_labels2002.txt
+      annotation_table_file = pargv[0]; 
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--oaparc")) {
       if (nargc < 1) argnerr(option,1);
       OutAParcFile = pargv[0];
       nargsused = 1;
@@ -728,6 +737,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --a2005s : use aparc.a2005s instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
+  printf("   --annot-table annottable : default is $FREESURFER_HOME/Simple_surface_labels2002.txt\n");
   printf("\n");
   printf("   --labelwm : gyral white matter parcellation \n");
   printf("   --wmparc-dmax dmax  max dist (mm) from cortex to be labeld as gyral WM (%gmm)\n",
