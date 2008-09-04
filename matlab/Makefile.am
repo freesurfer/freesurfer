@@ -14,6 +14,7 @@ foo_DATA=\
 	cc_cut_afd.m \
 	cc_cut_dir_afd.m \
 	cc_cut_table.m \
+	convert_fieldsign.m \
 	convert_unwarp_resample.m \
 	cortical_labeling_afd_txt.m \
 	cortical_labeling_dir_afd_txt.m \
@@ -57,6 +58,7 @@ foo_DATA=\
 	MRIvote.m \
 	MRIwrite.m \
 	mri_zcdf.m \
+	peakfinder.m \
 	pons_cut_afd.m \
 	pons_cut_dir_afd.m \
 	pons_cut_table.m \
@@ -74,6 +76,9 @@ foo_DATA=\
 	read_genesis_image.m \
 	read_label.m \
 	read_label_old.m \
+	read_meas_dat.m \
+	read_meas_prot.m \
+	read_meas_prot__struct.m \
 	read_moviebyu.m \
 	read_patch.m \
 	readrec.m \
@@ -84,6 +89,7 @@ foo_DATA=\
 	read_type.m \
 	read_vf.m \
 	read_wfile.m \
+	remove_spaces.m \
 	ribbon_afd.m \
 	ribbon_dir_afd.m \
 	ribbon_table.m \
