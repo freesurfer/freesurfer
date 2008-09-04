@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/09/03 21:52:31 $
-#    $Revision: 1.184 $
+#    $Date: 2008/09/04 18:25:35 $
+#    $Revision: 1.185 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.184 2008/09/03 21:52:31 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.185 2008/09/04 18:25:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5069,22 +5069,22 @@ LONGITUDINAL PROCESSING
 The longitudinal processing scheme aims to incorporate the subject-wise
 correlation of longitudinal data into the processing stream in order to
 further reduce the measurement noise.  The longitudinal scheme differs
-from the default stream in three major steps: registration, intensity
-normalization and surface deformation. Assuming that a series of scans
-of the same subject are obtained at different time points, the data from
+from the default (cross-sectional) stream in three major steps: registration, 
+intensity normalization and surface deformation. Assuming that a series of 
+scans of the same subject are obtained at different time points, the data from
 time point one is first processed using the default procedure. For the
 processing of later time points, the three major steps mentioned above
 are modified. First, a linear registration is computed between the image
 volume of a later time point and that of the first time point. Note that
 the volume itself is not transformed, but only the registration matrix is
-stored and will be used in later steps. Second, at the intensity normalization
+stored and will be used in later steps. Next, at the intensity normalization
 step, instead of re-computing the WM control points, optionally the
 control points (automatically computed) from time point one are mapped to
 the current volume using the previously computed linear registration,
-which are then used to estimate the bias field. Third, at the GCA atlas
+which are then used to estimate the bias field. Then, at the GCA atlas
 registration step, the registration is initialized with tp1s nonlinear
-registration data (.mf3).  Then, during subcortical labeling, the process is
-initialized with the data from tp1s labelling (aseg). Lastly, at the surface
+registration data (.mf3).  Next, during subcortical labeling, the process is
+initialized with the data from tp1s labeling (aseg). Lastly, at the surface
 deformation step, instead of starting the deformation from the topology-
 corrected WM tessellation, the gray/white and pial surfaces reconstructed
 from time point one are first transformed using the linear registration
@@ -5094,12 +5094,37 @@ scheme reduces the problem of deformable model methods being sensitive to
 initialization and local optimality. It also eliminates variation in
 initial surface tessellation and topology correction since these two
 steps are no longer needed in the processing of later time points. See [12].
-For the best results in your longitudinal study, you will want to run the
-longitudinal stream on your tp1 subject.  This new subject will be nearly
-identical to the default tp1 processing stream results, but not exactly, due
-to the various deviations in processing just described.  You will want to
-compare your tp2 longitudinal results to this tp1 longitudinal data, and not
-the default (cross-sectional) tp1 data, to obtain the most accurate comparison.
+For optimal results in your longitudinal study, you will want to run the
+longitudinal stream on your tp1 subject. You will want to compare your tp2 
+longitudinal results to this tp1 longitudinal data, and not the default 
+(cross-sectional) tp1 data, to obtain the most accurate comparison.
+
+Here is a summary of the longitudinal workflow:
+
+1) cross-sectionally process tp1 subject (the default workflow):
+  recon-all -all -s <tp1subjid> -i path_to_tp1_dcm
+
+2) longitudinally process tp1:
+  recon-all -all -long <tp1subjid> <tp1subjid> -i path_to_tp1_dcm
+
+3) longitudinally process tp2:
+  recon-all -all -long <tp1subjid> <tp2subjid> -i path_to_tp2_dcm
+
+4) do comparisons on results from 2) and 3), e.g. calculate differences 
+between <tp2subjid>.long.<tp1subjid> - <tp1subjid>.long.<tp1subjid>
+
+Note that the longitudinal processing stream always produces output subject
+data containing  .long.  in the name (to help distinguish from the default
+stream).
+
+Step 2 above, where subject data <tp1subjid>.long.<tp1subjid> is created, is
+necessary to ensure that the error minimization routines executed during
+subcortical segmentation and surface deformation, are run the same number of
+steps as those run during step 3 (the tp2 longitudinal processing). Comparing
+to this subject data (rather than the originating cross-sectional) further
+reduces the measurement noise introduced by software processing.
+
+Flags for longitudinal analysis:
 
 -long tp1subjid tp2subjid
 -longitudinal tp1subjid tp2subjid
@@ -5158,11 +5183,11 @@ mris_make_surfaces does not attempt to use it.
 
 Example:
 
-  recon-all -all -long <tp1subjid> <tp2subjid> -i some/path/to/input.dcm
+  recon-all -all -long <tp1subjid> <tp2subjid> -i some/path/to/tp2/input.dcm
 
 The output subject is named <tp2subjid>.long.<tp1subjid>.
 
-(Notice that the -all flag is included. A work directive flag is required.)
+Notice that the -all flag is included. A work directive flag is required.
 
 
 MANUAL CHECKING AND EDITING OF SURFACES
