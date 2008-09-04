@@ -4,7 +4,7 @@
 
 foodir=$(prefix)/matlab
 
-MFILES=\
+foo_DATA=\
 	angles2rotmat.m \
 	barsegstats.m \
 	bmmcost.m \
