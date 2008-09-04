@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 01:15:37 $
- *    $Revision: 1.61 $
+ *    $Date: 2008/09/04 16:13:52 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2610,22 +2610,25 @@ MRIlabelOverlap(MRI *mri1, MRI *mri2, int label)
 int
 MRItotalVoxelsOn(MRI *mri, int thresh)
 {
-  int     width, height, depth, x, y, z, nvox ;
-  BUFTYPE *pbuf ;
+  int     width, height, depth, x, y, z, nvox, f ;
+  float   val ;
 
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
-  for (nvox = z = 0 ; z < depth ; z++)
+  for (nvox = f = 0 ; f < mri->nframes ; f++)
   {
-    for (y = 0 ; y < height ; y++)
+    for (z = 0 ; z < depth ; z++)
     {
-      pbuf = &MRIvox(mri, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
+      for (y = 0 ; y < height ; y++)
       {
-        if (*pbuf++ > thresh)
-          nvox++ ;
+        for (x = 0 ; x < width ; x++)
+        {
+          val = MRIgetVoxVal(mri, x, y, z, f) ;
+          if (val >= thresh)
+            nvox++ ;
+        }
       }
     }
   }
