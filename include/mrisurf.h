@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/05/22 23:49:53 $
- *    $Revision: 1.319 $
+ *    $Date: 2008/09/04 16:14:57 $
+ *    $Revision: 1.320 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -305,6 +305,7 @@ MRI_SURFACE, MRIS ;
 #define IP_USE_MULTIFRAMES              0x0080
 #define IP_NO_SULC                      0x0100
 #define IP_USE_INFLATED                 0x0200
+#define IP_NO_FOLD_REMOVAL              0x0400
 /* MRIScorrectTopology : topology preserving patch deformation */
 #define IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL 0x1000 /* apply topology
 preserving gradient */
@@ -529,6 +530,10 @@ typedef struct
   int     fill_interior ;     // use filled interior to constrain gradient to not leave surface
   double  rms ;
   int     complete_dist_mat ; //whether to sample or use complete dist mat
+  int     nsubjects ;
+  int     nlabels ;
+  void       **mht_array;
+  MRI_SURFACE **mris_array ;
 }
 INTEGRATION_PARMS ;
 
@@ -648,6 +653,7 @@ int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
 int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
 int          MRIScopyImagValuesToValues(MRI_SURFACE *mris) ;
+int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 
 int          MRIScopyValToVal2(MRI_SURFACE *mris) ;
