@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2008/05/13 16:07:02 $
- *    $Revision: 1.309 $
+ *    $Author: fischl $
+ *    $Date: 2008/09/04 20:21:04 $
+ *    $Revision: 1.310 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -86,6 +86,7 @@ static void grabPixels(unsigned int width, unsigned int height,
 
 static int  is_val_file(char *fname) ;
 void show_flat_regions(char *surf_name, double thresh) ;
+void set_area_thresh(float area) ;
 void val_to_mark(void) ;
 void transform_brain(void) ;
 void curv_to_val(void) ;
@@ -696,7 +697,7 @@ double decay = 0.9;
 float cweight = 0.33;
 float aweight = 0.33;
 float dweight = 0.33;
-float epsilon = 0.0001;
+float epsilon = 0.000001;
 
 double dip_spacing = 1.0;
 
@@ -9443,12 +9444,17 @@ int sclv_new_from_label (int field, int label)
      set our overlay value. Also check for min/max values. */
   area = labl_labels[label].label ;
   min = max = 0.0 ;
+  for (n = 0  ; n < mris->nvertices ; n++)
+  {
+    v = &mris->vertices[n] ;
+    sclv_set_value(v, field, 0) ;
+  }
   for (n = 0  ; n < area->n_points ; n++)
   {
     if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
     {
-      v = &mris->vertices[area->lv[n].vno] ;
       f = area->lv[n].stat ;
+      v = &mris->vertices[area->lv[n].vno] ;
 
       /* Set the value. */
       sclv_set_value(v, field, f) ;
@@ -9506,7 +9512,7 @@ sclv_new_empty (int field, char* name)
   if (field < 0 || field > NUM_SCALAR_VALUES)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
-                 "sclv_new_from_label: field was out of bounds: %d)",
+                 "sclv_new_empty: field was out of bounds: %d)",
                  field));
 
 
@@ -18730,9 +18736,11 @@ int W_dump_vertex  PARM;
 int W_show_flat_regions  PARM;
 int W_transform_brain  PARM;
 int W_resize_brain  PARM;
+int W_set_area_thresh  PARM;
 int W_val_to_mark  PARM;
 int W_val_to_curv  PARM;
 int W_val_to_stat  PARM;
+int W_set_vals  PARM;
 int W_stat_to_val  PARM;
 
 int W_read_imag_vals  PARM;
@@ -18937,6 +18945,7 @@ int W_sclv_read_from_volume  PARM;
 int W_sclv_write_dotw PARM;
 int W_sclv_smooth  PARM;
 int W_sclv_set_overlay_alpha  PARM;
+int W_sclv_unload_field  PARM;
 int W_sclv_set_current_field  PARM;
 int W_sclv_set_current_timepoint  PARM;
 int W_sclv_copy_view_settings_from_current_field PARM;
@@ -19832,6 +19841,12 @@ ERR(1,"Wrong # args: val_to_mark ")
 val_to_mark();
 WEND
 
+int                  W_set_area_thresh  WBEGIN
+ERR(2,"Wrong # args: set_area_thresh ")
+set_area_thresh(atof(argv[1]));
+WEND
+
+
 int                  W_scale_brain  WBEGIN
 ERR(2,"Wrong # args: scale_brain ")
 scale_brain(atof(argv[1]));
@@ -19855,6 +19870,11 @@ WEND
 int                  W_val_to_stat  WBEGIN
 ERR(1,"Wrong # args: val_to_stat ")
 val_to_stat();
+WEND
+
+int                  W_set_vals  WBEGIN
+ERR(2,"Wrong # args: set_vals ")
+MRISsetVals(mris,atof(argv[2]));
 WEND
 
 int                  W_stat_to_val  WBEGIN
@@ -20189,6 +20209,10 @@ WEND
 int W_sclv_set_current_field  WBEGIN
 ERR(2,"Wrong # args: sclv_set_current_field field")
 sclv_set_current_field(atoi(argv[1]));
+WEND
+int W_sclv_unload_field  WBEGIN
+ERR(2,"Wrong # args: sclv_unload_field field")
+sclv_unload_field(atoi(argv[1]));
 WEND
 int W_sclv_set_current_timepoint  WBEGIN
 ERR(3,"Wrong # args: sclv_set_current_timepoint timepoint condition")
@@ -20674,7 +20698,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.309 2008/05/13 16:07:02 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.310 2008/09/04 20:21:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21263,6 +21287,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_dump_vertex, REND);
   Tcl_CreateCommand(interp, "val_to_mark",
                     (Tcl_CmdProc*) W_val_to_mark, REND);
+  Tcl_CreateCommand(interp, "set_area_thresh",
+                    (Tcl_CmdProc*) W_set_area_thresh, REND);
   Tcl_CreateCommand(interp, "resize_brain",
                     (Tcl_CmdProc*) W_resize_brain, REND);
   Tcl_CreateCommand(interp, "transform_brain",
@@ -21271,6 +21297,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_show_flat_regions, REND);
   Tcl_CreateCommand(interp, "val_to_stat",
                     (Tcl_CmdProc*) W_val_to_stat, REND);
+  Tcl_CreateCommand(interp, "set_vals",
+                    (Tcl_CmdProc*) W_set_vals, REND);
   Tcl_CreateCommand(interp, "stat_to_val",
                     (Tcl_CmdProc*) W_stat_to_val, REND);
   Tcl_CreateCommand(interp, "read_soltimecourse",
@@ -21384,6 +21412,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_sclv_set_overlay_alpha, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_field",
                     (Tcl_CmdProc*) W_sclv_set_current_field, REND);
+  Tcl_CreateCommand(interp, "sclv_unload_field",
+                    (Tcl_CmdProc*) W_sclv_unload_field, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_timepoint",
                     (Tcl_CmdProc*) W_sclv_set_current_timepoint, REND);
   Tcl_CreateCommand(interp, "sclv_copy_view_settings_from_current_field",
@@ -30162,3 +30192,50 @@ int dngcolorwheel(float f, float *r, float *g, float *b)
   return(0);
 
 }
+#define MAX_STEPS 100
+void 
+set_area_thresh(float target_area)
+{
+  char                  cmd[STRLEN];
+  int   vno ;
+  float thresh_min, thresh, thresh_max, val, area, best_thresh, thresh_step, best_area ;
+
+  thresh_min = 1e10 ; thresh_max = -thresh_min ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+    if (val < thresh_min)
+      thresh_min = val ;
+    if (val > thresh_max)
+      thresh_max = val ;
+  }
+
+  thresh_step = (thresh_max - thresh_min) / MAX_STEPS ;
+  best_thresh = thresh_min ;
+  best_area = -1 ;
+  for (thresh = thresh_min ; thresh <= thresh_max ; thresh += thresh_step)
+  {
+    area = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+      if (val > thresh)
+        area += mris->vertices[vno].area ;
+    }
+    if (best_area < 0 || fabs(area-target_area) < best_area)
+    {
+      best_area = area ;
+      best_thresh = thresh ;
+    }
+  }
+  fthresh = best_thresh ;
+  fslope = 1/best_thresh ;
+  fmid = 2*fthresh ;
+  printf("best threshold at %2.5f (%2.5f), %2.2fmm\n", fthresh, fslope, best_area) ;
+  vertex_array_dirty = 1 ;
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+  sclv_field_info[sclv_current_field].fslope = fslope ;
+  sclv_field_info[field].fthresh = fthresh;
+}
+
