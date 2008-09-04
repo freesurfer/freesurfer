@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/10 15:25:24 $
- *    $Revision: 1.84 $
+ *    $Date: 2008/09/04 16:14:25 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1385,6 +1385,46 @@ LabelFromMarkedSurface(MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     if (!v->marked)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    area->lv[n].x = v->x ;
+    area->lv[n].y = v->y ;
+    area->lv[n].z = v->z ;
+    area->lv[n].vno = vno ;
+    area->lv[n].stat = v->stat ;
+    if (FZERO(v->stat))
+      DiagBreak() ;
+    n++ ;
+  }
+  area->n_points = npoints ;
+  return(area) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+LABEL *
+LabelFromMarkValue(MRI_SURFACE *mris, int mark)
+{
+  int    vno, npoints, n ;
+  LABEL  *area ;
+  VERTEX *v ;
+
+  for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
+    if (mris->vertices[vno].marked == mark)
+      npoints++ ;
+
+  if (!npoints)
+    return(NULL) ;
+  area = LabelAlloc(npoints, NULL, NULL) ;
+  for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked != mark)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
