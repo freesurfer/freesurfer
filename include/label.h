@@ -9,8 +9,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/10 15:25:26 $
- *    $Revision: 1.41 $
+ *    $Date: 2008/09/04 16:14:31 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -110,6 +110,7 @@ int     LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelMarkStats(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelUnmark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurface(MRI_SURFACE *mris) ;
+LABEL   *LabelFromMarkValue(MRI_SURFACE *mris, int mark);
 int     LabelNormalizeStats(LABEL *area, float norm) ;
 LABEL   *MaskSurfLabel(LABEL *lbl,
                        MRI *SurfMask,
