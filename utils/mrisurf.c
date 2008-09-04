@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 02:17:55 $
- *    $Revision: 1.614 $
+ *    $Date: 2008/09/04 16:14:50 $
+ *    $Revision: 1.615 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.614 2008/08/26 02:17:55 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.615 2008/09/04 16:14:50 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10947,6 +10947,22 @@ MRISreadImagValues(MRI_SURFACE *mris, char *fname)
     }
   }
   fclose(fp);
+  return(NO_ERROR) ;
+}
+int
+MRIScopyMarksToAnnotation(MRI_SURFACE *mris)
+{
+  int     vno, nvertices ;
+  VERTEX  *v ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->annotation = v->marked ;
+  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -63370,7 +63386,7 @@ MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode)
 #endif
 
   for (vno = 0 ; vno < area->n_points ; vno++)
-    if (area->lv[vno].vno >= 0)
+    if (area->lv[vno].vno >= 0 && area->lv[vno].deleted == 0)
       vertices[area->lv[vno].vno] = 1 ;
   if (mode == DTRANS_MODE_INSIDE) // mark exterior and compute distance from it
   {
