@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/04 20:21:04 $
- *    $Revision: 1.310 $
+ *    $Date: 2008/09/05 13:10:19 $
+ *    $Revision: 1.311 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20698,7 +20698,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.310 2008/09/04 20:21:04 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.311 2008/09/05 13:10:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -30232,10 +30232,10 @@ set_area_thresh(float target_area)
   fslope = 1/best_thresh ;
   fmid = 2*fthresh ;
   printf("best threshold at %2.5f (%2.5f), %2.2fmm\n", fthresh, fslope, best_area) ;
+  sclv_field_info[sclv_current_field].fslope = fslope ;
+  sclv_field_info[sclv_current_field].fthresh = fthresh;
   vertex_array_dirty = 1 ;
   sprintf (cmd, "UpdateLinkedVarGroup overlay");
   send_tcl_command (cmd);
-  sclv_field_info[sclv_current_field].fslope = fslope ;
-  sclv_field_info[field].fthresh = fthresh;
 }
 
