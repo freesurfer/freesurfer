@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/15 23:23:36 $
- *    $Revision: 1.19 $
+ *    $Date: 2008/09/05 23:17:46 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include <iostream>
 #include <fstream>
@@ -173,6 +174,7 @@ int QdecDataTable::Load (const char* isFileName,
   char *token = strtok(tmpstr,WHITESPC); // get first token in this line
   while (token != NULL)
   {
+    //cout << token << endl;
     if (!strcmp(token,"fsid")) fsidcol = ncols;
     else if (!strcmp(token,"ID")) fsidcol = ncols;
     else if (!strcmp(token,"Id")) fsidcol = ncols;
@@ -365,6 +367,8 @@ int QdecDataTable::Load (const char* isFileName,
   /*
    * read-in each row of subject data from the data table
    */
+  int numExpContFactors = 0; // these are used for sanity-checking
+  int numExpDiscFactors = 0;
   for (int nthInput = 0; nthInput < nInputs; nthInput++)
   {
     string subj_id;
@@ -389,8 +393,11 @@ int QdecDataTable::Load (const char* isFileName,
            << isFileName << endl;
       ifsDatFile.close();
       return (-1);
-    } //else cout << "token: %s\n",token);
+    } //else cout << "token: " << token << endl;
 
+    int numContFactors = 0; // these are used for sanity-checking
+    int numDiscFactors = 0;
+    int errs = 0;
     nthfactor = 0;
     for (int nthcol = 0; nthcol < ncols; nthcol++)
     {
@@ -407,12 +414,15 @@ int QdecDataTable::Load (const char* isFileName,
             ! this->mFactors[nthfactor]->IsDiscrete() &&
             ! this->mFactors[nthfactor]->HaveDotLevelsFile()) 
         { // yes!  its a continuous factor
-          //cout << nthInput << dtmp << endl;
+          //cout << "\t" << nthInput << ": " << dtmp << endl;
           QdecFactor* qf =
             new QdecFactor( this->mFactors[nthfactor]->GetFactorName().c_str(),
                             QdecFactor::qdecContinuousFactorType,
                             dtmp /* value */ );
           theFactors.push_back( qf ); // save this factor data
+          // for later sanity-checking:
+          if (nthInput == 0) numExpContFactors++; 
+          numContFactors++;
         }
         else // it must be a discrete factor
         {
@@ -449,6 +459,9 @@ int QdecDataTable::Load (const char* isFileName,
               (const char*)strdup(token), /* value */ 
               this->mFactors[nthfactor]->GetLevelNames() );
           theFactors.push_back( qf ); // save this factor data
+          // for later sanity-checking
+          if (nthInput == 0) numExpDiscFactors++;
+          numDiscFactors++;
         }
         nthfactor++;
       }
@@ -458,21 +471,40 @@ int QdecDataTable::Load (const char* isFileName,
 
     } // end for (int nthcol = 0; nthcol < ncols; nthcol++)
 
-    // check if this subj_id is already in the table (indicated an error)
+    // sanity-check, if this row has more or less than expected data
+    if (numExpContFactors != numContFactors)
+    {
+      cerr << "\nERROR: Subject " << subj_id << " seems to have a mismatched "
+        "number of continuous factors (expected " << numExpContFactors <<
+        ", found " << numContFactors << ")" << endl;
+      errs++;
+    }
+    if (numExpDiscFactors != numDiscFactors)
+    {
+      cerr << "\nERROR: Subject " << subj_id << " seems to have a mismatched "
+        "number of discrete factors (expected " << numExpDiscFactors <<
+        ", found " << numDiscFactors << ")" << endl;
+      errs++;
+    }
+
+    // check if this subj_id is already in the table (indicating an error)
     for (unsigned int m=0; m < this->mSubjects.size(); m++)
     {
       if (subj_id == this->mSubjects[m]->GetId())
       {
         cerr << "\nERROR: Subject " << subj_id << " already exists in "
              << isFileName << endl;
-        return(-1);
+        errs++;
       }
     }
 
-    // add this subject data to our Subjects list
+    // add this subject data to our Subjects list (if no errors found)
     assert( theFactors.size() );
-    QdecSubject *qsubj = new QdecSubject( subj_id.c_str(), theFactors );
-    this->mSubjects.push_back( qsubj );
+    if (errs == 0)
+    {
+      QdecSubject *qsubj = new QdecSubject( subj_id.c_str(), theFactors );
+      this->mSubjects.push_back( qsubj );
+    }
 
     // continue to next subject...
   } // end for (int nthInput = 0; nthInput < nInputs; nthInput++)
