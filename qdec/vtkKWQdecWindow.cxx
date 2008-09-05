@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/18 21:26:01 $
- *    $Revision: 1.29 $
+ *    $Date: 2008/09/05 23:15:50 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.29 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.30 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -1392,7 +1392,11 @@ vtkKWQdecWindow::LoadDataTableFromDlog () {
   }
   if( dialog->Invoke() ) {
     string fnDataTable( dialog->GetFileName() );
-    this->LoadDataTable( fnDataTable.c_str() );
+    try {
+      this->LoadDataTable( fnDataTable.c_str() );
+    } catch ( exception& e ) {
+      this->GetApplication()->ErrorMessage( e.what() );
+    }
   }
 }
 
