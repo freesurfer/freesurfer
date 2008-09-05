@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/05 13:10:19 $
- *    $Revision: 1.311 $
+ *    $Date: 2008/09/05 16:13:47 $
+ *    $Revision: 1.312 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20698,7 +20698,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.311 2008/09/05 13:10:19 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.312 2008/09/05 16:13:47 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -30200,6 +30200,7 @@ set_area_thresh(float target_area)
   int   vno ;
   float thresh_min, thresh, thresh_max, val, area, best_thresh, thresh_step, best_area ;
 
+  val = 0 ;
   thresh_min = 1e10 ; thresh_max = -thresh_min ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
