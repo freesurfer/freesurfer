@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/16 19:19:17 $
- *    $Revision: 1.35 $
+ *    $Date: 2008/09/06 01:32:15 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "fastmarching.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.35 2008/04/16 19:19:17 fischl Exp $";
+  "$Id: mris_flatten.c,v 1.36 2008/09/06 01:32:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.35 2008/04/16 19:19:17 fischl Exp $",
+           "$Id: mris_flatten.c,v 1.36 2008/09/06 01:32:15 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -611,7 +611,7 @@ get_option(int argc, char *argv[])
       label_fname = argv[2] ;
       dilate_label = atof(argv[3]) ;
       nargs = 2;
-      printf("loading label %s and dilating it %d times for flattening it\n",
+      printf("loading label %s and dilating it %d times before flattening\n",
              label_fname, dilate_label) ;
       break ;
     case 'D':
