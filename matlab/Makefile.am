@@ -2,9 +2,10 @@
 # Makefile.am for matlab files
 #
 
-foodir=$(prefix)/matlab
+mfilesdir=$(prefix)/matlab
+siemensdir=$(prefix)/matlab
 
-foo_DATA=\
+mfiles_DATA=\
 	angles2rotmat.m \
 	barsegstats.m \
 	bmmcost.m \
@@ -76,9 +77,6 @@ foo_DATA=\
 	read_genesis_image.m \
 	read_label.m \
 	read_label_old.m \
-	read_meas_dat.m \
-	read_meas_prot.m \
-	read_meas_prot__struct.m \
 	read_moviebyu.m \
 	read_patch.m \
 	readrec.m \
@@ -135,15 +133,18 @@ foo_DATA=\
 	xfm_read.m
 
 if NMR_INSTALL
-foo_DATA=$(M_FILES)	read_meas_dat.m
+siemens_DATA=\
+	read_meas_dat.m \
+	read_meas_prot.m \
+	read_meas_prot__struct.m
 else
-foo_DATA=$(M_FILES)
+siemens_DATA=
 endif
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(mfiles_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=read_meas_dat.m read_meas_prot.m read_meas_prot__struct.m
+EXCLUDE_FILES=$(siemens_DATA)
 include $(top_srcdir)/Makefile.extra
