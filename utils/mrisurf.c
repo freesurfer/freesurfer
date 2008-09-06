@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/04 16:14:50 $
- *    $Revision: 1.615 $
+ *    $Date: 2008/09/06 01:28:40 $
+ *    $Revision: 1.616 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.615 2008/09/04 16:14:50 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.616 2008/09/06 01:28:40 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -6341,17 +6341,32 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
                   fname) ;
     }
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
-    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
-      if (nbrs[i])
-        fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
-    fprintf(parms->fp, "\n") ;
+    int valid_vertices = MRISvalidVertices(mris); 
+    if (parms->complete_dist_mat)
+      fprintf(parms->fp, "using complete distance matrix (%d x %d)\n",
+             valid_vertices, valid_vertices) ;
+    else
+    {
+      for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+        if (nbrs[i])
+          fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
+      fprintf(parms->fp, "\n") ;
+
+    }
   }
   if (Gdiag & DIAG_SHOW)
   {
-    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
-      if (nbrs[i])
-        fprintf(stdout, "%d: %d | ", i, nbrs[i]) ;
-    fprintf(stdout, "\n") ;
+    int valid_vertices = MRISvalidVertices(mris); 
+    if (parms->complete_dist_mat)
+      printf("using complete distance matrix (%d x %d)\n",
+             valid_vertices, valid_vertices) ;
+    else
+    {
+      for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+        if (nbrs[i])
+          fprintf(stdout, "%d: %d | ", i, nbrs[i]) ;
+      fprintf(stdout, "\n") ;
+    }
     mrisLogIntegrationParms(stderr, mris, parms) ;
   }
 
@@ -63483,9 +63498,11 @@ int
 MRIScomputeAllDistances(MRI_SURFACE *mris)
 {
   VERTEX *v, *vn ;
-  int    vno, n, nvalid, *old_v, vno2 ;
+  int    vno, n, nvalid, *old_v, vno2, done = 0 ;
   LABEL  *area ;
 
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stdout, "\ncomputing complete distance matrix...\n") ;
   area = LabelAlloc(1, NULL, NULL) ;
 
   MRIScomputeMetricProperties(mris) ;
@@ -63495,6 +63512,13 @@ MRIScomputeAllDistances(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
+    
+    if ((Gdiag & DIAG_SHOW) && (++done % (nvalid/20)) == 0)
+    {
+      fprintf(stdout, "%%%1.0f done\n",
+              100.0f*(float)done / (float)nvalid) ;
+      fflush(stdout) ;
+    }
     if (vno == Gdiag_no)
       DiagBreak() ;
     area->lv[0].vno = vno ;
