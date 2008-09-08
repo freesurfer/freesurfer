@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/09/08 16:22:30 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/09/08 16:25:28 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@ bool Interactor2DROIEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 {
 	RenderView2D* view = ( RenderView2D* )renderview;
 		
-	if ( event.LeftDown() || ( event.RightDown() && event.LeftIsDown() )
+	if ( event.LeftDown() || ( event.RightDown() && event.LeftIsDown() ) )
 	{
 		if ( event.ControlDown() && event.ShiftDown() )
 			return Interactor2D::ProcessMouseDownEvent( event, renderview );

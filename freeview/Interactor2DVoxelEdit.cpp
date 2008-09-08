@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:58 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/09/08 16:22:30 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 	RenderView2D* view = ( RenderView2D* )renderview;
 //	UpdateCursor( event, view );
 
-	if ( event.LeftDown() )
+	if ( event.LeftDown() || ( event.RightDown() && event.LeftIsDown() ) )
 	{
 		if ( event.ControlDown() && event.ShiftDown() )
 			return Interactor2D::ProcessMouseDownEvent( event, renderview );
@@ -80,18 +80,18 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 				mri->SaveForUndo( view->GetViewPlane() );
 				if ( event.ControlDown() )
 				{
-					mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !::wxGetKeyState( WXK_CAPITAL) );
+					mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
 				}
 				else
 				{			
 					m_bEditing = true;				
-					mri->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !::wxGetKeyState( WXK_CAPITAL) );
+					mri->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
 				}
 			}
 			else if ( m_nAction == EM_Fill ) //&& ( event.ControlDown() ) )
 			{
 				mri->SaveForUndo( view->GetViewPlane() );
-				mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !::wxGetKeyState( WXK_CAPITAL) );
+				mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
 			}
 			else if ( m_nAction == EM_Polyline )
 			{
@@ -102,7 +102,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 				view->GetCursor2D()->SetPosition2( ras );			
 				if ( m_dPolylinePoints.size() > 0 )	
 				{
-					mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !::wxGetKeyState( WXK_CAPITAL) );	
+					mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );	
 				}			
 				else
 				{
@@ -143,7 +143,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 					view->GetCursor2D()->GetPosition( ras2 );
 					view->GetCursor2D()->SetPosition2( ras2 );
 					view->GetCursor2D()->SetPosition( ras1 );
-					mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() && !::wxGetKeyState( WXK_CAPITAL) );	
+					mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );	
 				}
 			}
 		}
@@ -196,7 +196,7 @@ bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderVi
 			view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
 			view->MousePositionToRAS( posX, posY, ras2 );
 			
-			mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() && !::wxGetKeyState( WXK_CAPITAL) );
+			mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
 		}
 		else if ( m_nAction == EM_Polyline )
 		{
