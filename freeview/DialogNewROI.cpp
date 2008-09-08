@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/09/08 16:23:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,7 @@
 
 BEGIN_EVENT_TABLE( DialogNewROI, wxDialog )
 	EVT_BUTTON					( wxID_OK,			 					DialogNewROI::OnOK )
+	EVT_TEXT_ENTER				( XRCID( wxT( "ID_TEXT_NAME" ) ),		DialogNewROI::OnTextEnter )
 END_EVENT_TABLE()
 
 
@@ -85,4 +86,16 @@ void DialogNewROI::OnOK( wxCommandEvent& event )
 	}
 		
 	event.Skip();
+}
+
+
+void DialogNewROI::OnTextEnter( wxCommandEvent& event )
+{
+	if ( GetROIName().IsEmpty() )
+	{
+		wxMessageDialog dlg( this, "ROI name can not be empty.", "Error", wxOK );
+		dlg.ShowModal();
+		return;
+	}
+	EndModal( wxID_OK );
 }

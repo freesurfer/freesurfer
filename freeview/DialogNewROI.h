@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/03/27 20:38:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/09/08 16:23:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,8 @@ public:
 	LayerMRI* GetTemplate();
 	
 	void OnOK( wxCommandEvent& event );
+	
+	void OnTextEnter( wxCommandEvent& event );
 	
 private:
 	wxChoice*		m_choiceTemplate;
