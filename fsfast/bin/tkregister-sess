@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/01/08 04:31:27 $
-#    $Revision: 1.25 $
+#    $Date: 2008/09/08 22:21:31 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.25 2008/01/08 04:31:27 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.26 2008/09/08 22:21:31 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -199,7 +199,11 @@ foreach sess ($SessList)
   echo $regfile
 
   if($UseNew) then
-    if(! -e $regfile || $ForceRegHeader) then
+    if(! -e $regfile) then
+      if(! $ForceRegHeader) then
+        echo "ERROR: $regfile not found. Create it or use -regheader"
+        exit 1;
+      endif
       echo ""
       echo "INFO: using default registration"
       echo ""
