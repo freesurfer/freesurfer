@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/21 20:55:42 $
- *    $Revision: 1.30 $
+ *    $Date: 2008/09/09 16:50:33 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.30 2008/08/21 20:55:42 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.31 2008/09/09 16:50:33 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -93,6 +93,11 @@ int DoBonfCor=0;
 int DoAbs = 0;
 int DoPos = 0;
 int DoNeg = 0;
+
+char *matfile = NULL;
+MATRIX *M = NULL;
+int ngroups = 0;
+MATRIX *GroupedMeanMatrix(int ngroups, int ntotal);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -152,9 +157,23 @@ int main(int argc, char **argv) {
     MRIfree(&mritmp);
   }
 
-  if (DoCombine) nframestot = 1; // combine creates a single-frame volume
-
+  if(DoCombine) nframestot = 1; // combine creates a single-frame volume
   printf("nframestot = %d\n",nframestot);
+
+  if(ngroups != 0){
+    printf("Creating grouped mean matrix ngroups=%d, nper=%d\n",ngroups,nframestot/ngroups);
+    M = GroupedMeanMatrix(ngroups,nframestot);
+    if(M==NULL) exit(1);
+    if(debug) MatrixPrint(stdout,M);
+  }
+
+  if(M != NULL){
+    if(nframestot != M->cols){
+      printf("ERROR: dimension mismatch between inputs (%d) and matrix (%d)\n",
+	     nframestot,M->rows);
+      exit(1);
+    }
+  }
 
   if (DoPaired) {
     if (remainder(nframestot,2) != 0) {
@@ -207,6 +226,14 @@ int main(int argc, char **argv) {
       fout++;
     }
     MRIfree(&mritmp);
+  }
+
+  if(M != NULL){
+    printf("Multiplying by matrix\n");
+    mritmp = fMRImatrixMultiply(mriout, M, NULL);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&mriout);
+    mriout = mritmp;
   }
 
 
@@ -409,11 +436,25 @@ static int parse_commandline(int argc, char **argv) {
       inlist[ninputs] = pargv[0];
       ninputs ++;
       nargsused = 1;
-    } else if ( !strcmp(option, "--o") ) {
+    } 
+    else if ( !strcmp(option, "--mtx") ) {
+      if (nargc < 1) argnerr(option,1);
+      matfile = pargv[0];
+      M = MatrixReadTxt(matfile, NULL);
+      if(M==NULL) exit(1);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--gmean") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&ngroups);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--o") ) {
       if (nargc < 1) argnerr(option,1);
       out = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--mask") ) {
+    } 
+    else if ( !strcmp(option, "--mask") ) {
       if (nargc < 1) argnerr(option,1);
       maskfile = pargv[0];
       nargsused = 1;
@@ -458,6 +499,8 @@ static void print_usage(void) {
   printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
   printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
   printf("   --paired-diff-norm2 : same as paired-diff but scale by TP2 \n");
+  printf("   --mtx matrix.asc    : multiply by matrix in ascii file\n");
+  printf("   --gmean Ng          : create matrix to average Ng groups, Nper=Ntot/Ng\n");
   printf("\n");
   printf("   --combine : combine non-zero values into a one-frame volume\n");
   printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
@@ -566,3 +609,23 @@ static void check_options(void) {
 static void dump_options(FILE *fp) {
   return;
 }
+
+MATRIX *GroupedMeanMatrix(int ngroups, int ntotal)
+{
+  int nper,r,c;
+  MATRIX *M;
+
+  nper = ntotal/ngroups;
+  if(nper*ngroups != ntotal){
+    printf("ERROR: --gmean, Ng must be integer divisor of Ntotal\n");
+    return(NULL);
+  }
+
+  M = MatrixAlloc(nper,ntotal,MATRIX_REAL);
+  for(r=1; r <= nper; r++){
+    for(c=r; c <= ntotal; c += nper)
+      M->rptr[r][c] = 1.0/ngroups;
+  }
+  return(M);
+}
+
