@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/25 04:16:17 $
-%    $Revision: 1.34 $
+%    $Date: 2008/09/09 19:30:49 $
+%    $Revision: 1.35 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,8 @@ if(isempty(flac))
   %flac.con = []; % Leave commented for inherit
   flac.inheritlevel = 0;
   flac.acfbins = 0;  
+  % Allows flac TR and data TR to be different (will use flac TR).
+  flac.OverrideTR = 0; 
   inherit = 0;
   ana.analysis     = '';
   ana.designtype   = '';

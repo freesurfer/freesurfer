@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.62 2008/07/11 19:28:13 greve Exp $
+% $Id: fast_selxavg3.m,v 1.63 2008/09/09 19:30:49 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/07/11 19:28:13 $
-%    $Revision: 1.62 $
+%    $Date: 2008/09/09 19:30:49 $
+%    $Revision: 1.63 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,6 @@
 % How to check that analyses are not being mixed?
 % RFx, FFx, MFx 2nd level analysis
 % Func2ROI
-
 
 if(0)
   monly       = 1;
@@ -61,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.62 2008/07/11 19:28:13 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.63 2008/09/09 19:30:49 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -324,9 +323,12 @@ if(DoGLMFit)
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
       if(abs(yrun.tr/1000 - flac.TR) > .001)
+	fprintf('\n\n');
 	fprintf('ERROR: TR mismatch between analysis and data\n');
 	fprintf('analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
-	return;
+	if(flac.OverrideTR == 0) return; end
+	fprintf('BUT you have specified to continue anyway with TR = %g.\n',flac.TR);
+	fprintf('\n\n');
       end
       if(UseFloat) yrun.vol = single(yrun.vol); end
       if(yrun.volsize(1) ~= mask.volsize(1) | ...

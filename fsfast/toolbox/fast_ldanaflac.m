@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/08/14 20:15:31 $
-%    $Revision: 1.30 $
+%    $Date: 2008/09/09 19:30:49 $
+%    $Revision: 1.31 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -73,6 +73,7 @@ while(1)
   switch(key)
    case 'analysis',    analysis         = sscanf(tline,'%*s %s',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
+   case 'OverrideTR',  flac.OverrideTR  = sscanf(tline,'%*s %d',1);
    case 'fsd',         flac.fsd         = sscanf(tline,'%*s %s',1);
    case 'funcstem',    flac.funcstem    = sscanf(tline,'%*s %s',1);
    case 'maskstem',    flac.mask        = sscanf(tline,'%*s %s',1);
