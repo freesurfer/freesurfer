@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2008/08/14 19:11:16 $
-#    $Revision: 1.418 $
+#    $Author: nicks $
+#    $Date: 2008/09/09 22:46:23 $
+#    $Revision: 1.419 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1680,6 +1680,8 @@ if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIB=$ac_vtk_libraries
   if test -e $ac_vtk_libraries/vtk-5.2 ; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.2"
+    VTK_LIBS=-L$ac_vtk_libraries/vtk-5.2
+    VTK_LIB=$ac_vtk_libraries/vtk-5.2
   elif test -e $ac_vtk_libraries/vtk-5.1 ; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.1"
   elif test -e $ac_vtk_libraries/vtk-5.0 ; then
@@ -2315,9 +2317,10 @@ AC_CHECK_LIB([vtkCommon -lstdc++], [main],[],
 Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
 
 # libverdict appeared in VTK v5.1.0, and is required by libvtkHybrid,
-# but doesnt exist in earlier versions of VTK
+# and libvtkGraphics (in v5.2.0), but doesnt exist in earlier versions of VTK
 VTK_VERDICT_LIB=""
-AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"], [])
+AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"], 
+  [AC_CHECK_LIB([vtkverdict], [main], [VTK_VERDICT_LIB="-lvtkverdict"], [])])
 AC_SUBST(VTK_VERDICT_LIB)
 
 # ditto for libvtksqlite
