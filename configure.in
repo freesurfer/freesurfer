@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/09/09 22:46:23 $
-#    $Revision: 1.419 $
+#    $Date: 2008/09/10 19:01:22 $
+#    $Revision: 1.420 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2276,9 +2276,10 @@ AC_CHECK_LIB([vtkexpat], [main],
 AC_SUBST(VTK_EXPAT_LIB)
 
 AC_CHECK_LIB([vtkfreetype], [FTC_Manager_LookupSize],
-             [VTK_FREETYPE_LIB="-lvtkfreetype"],
-             [AC_CHECK_LIB([freetype],[FTC_Manager_LookupSize],[VTK_FREETYPE_LIB="-lfreetype"],
-             [AC_MSG_ERROR([FATAL: libvtkfreetype or libfreetype not found.])])])
+  [VTK_FREETYPE_LIB="-lvtkfreetype"],
+  [AC_CHECK_LIB([vtkfreetype], [vtk_freetype_FTC_Manager_LookupSize], [VTK_FREETYPE_LIB="-lvtkfreetype"],
+    [AC_CHECK_LIB([freetype],[FTC_Manager_LookupSize],[VTK_FREETYPE_LIB="-lfreetype"],
+    [AC_MSG_ERROR([FATAL: libvtkfreetype or libfreetype not found.])])])])
 AC_SUBST(VTK_FREETYPE_LIB)
 
 AC_CHECK_LIB([vtkzlib], [gzopen],
