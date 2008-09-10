@@ -9,8 +9,8 @@
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/07/14 22:33:49 $
- *    $Revision: 1.16 $
+ *    $Date: 2008/09/10 19:18:38 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -649,7 +649,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
        ui < nvertices; ++ui, ++pvtx )
   {
     points->SetPoint(ui, pvtx->x, pvtx->y, pvtx->z);
-  } // next ui
+  } // next point (vertex)
 
   faces = vtkCellArray::New();
   faces->Allocate( mris->nfaces );
@@ -657,9 +657,12 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   for ( unsigned int ui(0), nfaces(mris->nfaces);
         ui < nfaces; ++ui, ++pface )
   {
-    faces->InsertNextCell((long long int)VERTICES_PER_FACE,
-                          (vtkIdType*)pface->v );
-  } // next ui
+    faces->InsertNextCell((long long int)VERTICES_PER_FACE);
+    for ( int i = 0; i < VERTICES_PER_FACE; i++ )
+    {
+      faces->InsertCellPoint(pface->v[i]);
+    }
+  } // next cell (face)
 
   mesh = vtkPolyData::New();
   mesh->SetPoints(points);
