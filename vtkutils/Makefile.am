@@ -88,8 +88,8 @@ IconLoaderTest_LDADD=\
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
 	$(top_builddir)/vtkutils/libvtkutils.a \
 	$(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
-	$(VTK_LIBS) $(VTK_VERDICT_LIB) $(VTL_SQLITE_LIB) \
-	-lvtkWidgets -lvtkGraphics \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) $(VTK_SQLITE_LIB) \
+	-lvtkIO -lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
@@ -123,7 +123,7 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
 	$(top_builddir)/vtkutils/libvtkutils.a \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
-	$(VTK_LIBS) $(VTK_VERDICT_LIB) $(VTL_SQLITE_LIB) \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) $(VTK_SQLITE_LIB) \
 	-lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
@@ -150,7 +150,7 @@ vtkArrowPipelineTester_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lexpat $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) $(VTL_SQLITE_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) $(VTK_SQLITE_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
