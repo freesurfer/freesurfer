@@ -42,7 +42,7 @@ vtkFSSurfaceWriterTester_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
-	-lvtkImaging -lvtkFiltering \
+	-lvtkImaging -lvtkFiltering $(VTK_SQLITE_LIB) \
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
