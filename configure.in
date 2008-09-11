@@ -1507,6 +1507,8 @@ if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIB=$ac_vtk_libraries
   if test -e $ac_vtk_libraries/vtk-5.2 ; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.2"
+    VTK_LIBS=-L$ac_vtk_libraries/vtk-5.2
+    VTK_LIB=$ac_vtk_libraries/vtk-5.2
   elif test -e $ac_vtk_libraries/vtk-5.1 ; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.1"
   elif test -e $ac_vtk_libraries/vtk-5.0 ; then
@@ -2123,9 +2125,12 @@ AC_CHECK_LIB([vtkexpat], [main],
              [AC_CHECK_LIB([expat],[main],[VTK_EXPAT_LIB="-lexpat"],
              [AC_MSG_ERROR([FATAL: libvtkexpat or libexpat not found.])])])
 AC_CHECK_LIB([vtkfreetype], [FTC_Manager_LookupSize],
-             [VTK_FREETYPE_LIB="-lvtkfreetype"],
-             [AC_CHECK_LIB([freetype],[FTC_Manager_LookupSize],[VTK_FREETYPE_LIB="-lfreetype"],
-             [AC_MSG_ERROR([FATAL: libvtkfreetype or libfreetype not found.])])])
+  [VTK_FREETYPE_LIB="-lvtkfreetype"],
+  [AC_CHECK_LIB([vtkfreetype], [vtk_freetype_FTC_Manager_LookupSize], [VTK_FREETYPE_LIB="-lvtkfreetype"],
+    [AC_CHECK_LIB([freetype],[FTC_Manager_LookupSize],[VTK_FREETYPE_LIB="-lfreetype"],
+    [AC_MSG_ERROR([FATAL: libvtkfreetype or libfreetype not found.])])])])
+AC_SUBST(VTK_FREETYPE_LIB)
+
 if test "$OS" = "Darwin"; then
 # don't use vtktiff on the mac, it causes a bus error in the IconLoader
 # when running TIFFReadEncodedStrip, killing qdec
