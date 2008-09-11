@@ -18,7 +18,7 @@ orient_mri_LDADD= \
 	$(top_srcdir)/vtkutils/libvtkutils.a \
 	$(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
-	-lvtkImaging -lvtkFiltering \
+	-lvtkImaging -lvtkFiltering $(VTK_SQLITE_LIB) \
 	-lvtkCommon -lvtksys \
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
