@@ -8,8 +8,8 @@
  * Original Author: Florent Segonne 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 02:19:06 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/09/12 16:16:12 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,8 +53,15 @@ static int MRIexpandDistancesIntoGrayMatter(MRI *mri_distance, MRI *mri_aseg, MR
 
 static MRI *mri_white = NULL, *mri_aseg = NULL ;
 static char *surf_name = NULL ;
+static float normalize = -1.0 ;
+static float wthresh = -1 ;
+static MRI *mri_thresh = NULL ;
+static float anterior_dist = -1 ;
+static float posterior_dist = -1 ;
 
 static int ndilations = 0 ;
+MRI *MRIthresholdPosterior(MRI *mri_src, MRI *mri_dst, float posterior_dist) ;
+MRI *MRIthresholdAnterior(MRI *mri_src, MRI *mri_dst, float anterior_dist) ;
 
 int main(int argc, char *argv[]) {
   MRI *mri,*mri_distance;
@@ -91,6 +98,10 @@ int main(int argc, char *argv[]) {
 
   if (ndilations > 0)
       MRIdilateLabel(mri, mri, label, ndilations) ;
+  if (posterior_dist > 0)
+    MRIthresholdPosterior(mri, mri, posterior_dist) ;
+  if (anterior_dist > 0)
+    MRIthresholdAnterior(mri, mri, anterior_dist) ;
   if (mri->type != MRI_FLOAT)
     {
       MRI *mri_tmp;
@@ -113,13 +124,37 @@ int main(int argc, char *argv[]) {
         ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s", Progname, surf_name) ;
       mri_white = MRIclone(mri, NULL) ;
       MRISfillInterior(mris, mri_white->xsize, mri_white) ;
+      if (normalize > 0)
+      {
+#if 0
+        normalize = MRItotalVoxelsOn(mri_white, 1) / (mri_white->xsize*mri_white->ysize*mri_white->zsize); ;
+        printf("normalizing distances by pow(%2.0f, 1/3) = %2.1f\n", normalize, pow(normalize, 1/3.0)) ;
+        normalize = pow(normalize, 1.0/3.0) ;
+#endif
+
+        normalize = sqrt(mris->total_area) ;
+        printf("normalizing surface distances by sqrt(%2.1f) = %2.1f\n", 
+               mris->total_area,normalize) ;
+        
+      }
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         MRIwrite(mri_white, "w.mgz") ;
+      if (mri_thresh != NULL)  // remove voxels that are in the ventricles
+      {
+        for (x = 0 ; x < mri_thresh->width ; x++)
+          for (y = 0 ; y < mri_thresh->height ; y++)
+            for (z = 0 ; z < mri_thresh->depth ; z++)
+              if (MRIgetVoxVal(mri_thresh, x, y, z, 0) < wthresh)
+                MRIsetVoxVal(mri_white, x, y, z, 0, 0) ;
+        MRIfree(&mri_thresh) ;
+      }
+
       mri_aseg = MRIdilate(mri_white, NULL) ;
       for (x = 0 ; x < mri_aseg->width ; x++)
         for (y = 0 ; y < mri_aseg->height ; y++)
           for (z = 0 ; z < mri_aseg->depth ; z++)
           {
+
             if (MRIgetVoxVal(mri_white, x, y, z, 0) != 0)
               MRIsetVoxVal(mri_aseg, x, y, z, 0, Left_Cerebral_White_Matter) ;
             else if ((MRIgetVoxVal(mri_aseg, x, y, z, 0) != 0)) 
@@ -136,6 +171,8 @@ int main(int argc, char *argv[]) {
       MRIexpandDistancesIntoGrayMatter(mri_distance, mri_aseg, mri_white, label) ;
     }
 
+  if (normalize > 0)
+    MRIscalarMul(mri_distance, mri_distance, 1.0/normalize) ;
   MRIwrite(mri_distance,argv[5]);
 
   MRIfree(&mri);
@@ -182,10 +219,36 @@ get_option(int argc, char *argv[]) {
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         MRIwrite(mri_white, "white.mgz");
     }
+  else if (!stricmp(option, "anterior"))
+  {
+    anterior_dist = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using anterior-most %2.3f mm of label only\n", anterior_dist) ;
+  }
+  else if (!stricmp(option, "posterior"))
+  {
+    posterior_dist = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using posterior-most %2.3f mm of label only\n", posterior_dist) ;
+  }
   else if (!stricmp(option, "wsurf"))
     {
       nargs = 1 ;
       surf_name = argv[2] ;
+    }
+  else if (!stricmp(option, "normalize"))
+    {
+      normalize = 1 ;
+      printf("normalizing distances by sqrt(surface area)\n") ;
+    }
+  else if (!stricmp(option, "wthresh"))
+    {
+      nargs = 2 ;
+      mri_thresh = MRIread(argv[2]) ;
+      if (mri_thresh == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not read threshold volume %s",Progname, argv[2]) ;
+      wthresh = atof(argv[3]) ;
+      printf("threshing interior volume %s at %2.0f  to remove ventricles from mask\n", argv[2], wthresh) ;
     }
   else if (!stricmp(option, "dilate"))
     {
@@ -252,5 +315,139 @@ MRIexpandDistancesIntoGrayMatter(MRI *mri_distance, MRI *mri_aseg, MRI *mri_whit
       }
 
   return(NO_ERROR) ;
+}
+
+MRI *
+MRIthresholdAnterior(MRI *mri_src, MRI *mri_dst, float anterior_dist)
+{
+  MATRIX  *m_vox2ras ;
+  VECTOR  *v_vox, *v_ras ;
+  int     x, y, z, f ;
+  float  amax ;
+
+  m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
+  v_vox = VectorAlloc(4, MATRIX_REAL) ;
+  v_ras = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v_vox,4) = VECTOR_ELT(v_ras,4) = 1.0 ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  amax = -100000;
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    {
+      for (x = 0 ; x < mri_dst->width ; x++)
+        {
+          for (y = 0 ; y < mri_dst->height ; y++)
+            {
+              for (z = 0 ; z < mri_dst->depth ; z++)
+                {
+                  if (x == Gx && y == Gy && z == Gz)
+                    DiagBreak() ;
+                  if ((int)MRIgetVoxVal(mri_dst, x, y, z, f) == 0)
+                    continue ;
+                  VECTOR_ELT(v_vox, 1) = x ;
+                  VECTOR_ELT(v_vox, 2) = y ;
+                  VECTOR_ELT(v_vox, 3) = z ;
+                  MatrixMultiply(m_vox2ras, v_vox, v_ras) ;
+                  if (VECTOR_ELT(v_ras, 2) > amax)
+                    amax = VECTOR_ELT(v_ras, 2) ;
+                }
+            }
+        }
+    }
+  amax -= anterior_dist ;
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    {
+      for (x = 0 ; x < mri_dst->width ; x++)
+        {
+          for (y = 0 ; y < mri_dst->height ; y++)
+            {
+              for (z = 0 ; z < mri_dst->depth ; z++)
+                {
+                  if (x == Gx && y == Gy && z == Gz)
+                    DiagBreak() ;
+                  if ((int)MRIgetVoxVal(mri_dst, x, y, z, f) == 0)
+                    continue ;
+                  VECTOR_ELT(v_vox, 1) = x ;
+                  VECTOR_ELT(v_vox, 2) = y ;
+                  VECTOR_ELT(v_vox, 3) = z ;
+                  MatrixMultiply(m_vox2ras, v_vox, v_ras) ;
+                  if (VECTOR_ELT(v_ras, 2) < amax)
+                    MRIsetVoxVal(mri_dst, x, y, z, f, 0) ;
+                }
+            }
+        }
+    }
+
+  MatrixFree(&m_vox2ras) ; VectorFree(&v_vox) ; VectorFree(&v_ras) ;
+  return(mri_dst) ;
+}
+
+MRI *
+MRIthresholdPosterior(MRI *mri_src, MRI *mri_dst, float posterior_dist)
+{
+  MATRIX  *m_vox2ras ;
+  VECTOR  *v_vox, *v_ras ;
+  int     x, y, z, f ;
+  float  amin ;
+
+  m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
+  v_vox = VectorAlloc(4, MATRIX_REAL) ;
+  v_ras = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v_vox,4) = VECTOR_ELT(v_ras,4) = 1.0 ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  amin = 100000;
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    {
+      for (x = 0 ; x < mri_dst->width ; x++)
+        {
+          for (y = 0 ; y < mri_dst->height ; y++)
+            {
+              for (z = 0 ; z < mri_dst->depth ; z++)
+                {
+                  if (x == Gx && y == Gy && z == Gz)
+                    DiagBreak() ;
+                  if ((int)MRIgetVoxVal(mri_dst, x, y, z, f) == 0)
+                    continue ;
+                  VECTOR_ELT(v_vox, 1) = x ;
+                  VECTOR_ELT(v_vox, 2) = y ;
+                  VECTOR_ELT(v_vox, 3) = z ;
+                  MatrixMultiply(m_vox2ras, v_vox, v_ras) ;
+                  if (VECTOR_ELT(v_ras, 2) < amin)
+                    amin = VECTOR_ELT(v_ras, 2) ;
+                }
+            }
+        }
+    }
+  amin += posterior_dist ;
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    {
+      for (x = 0 ; x < mri_dst->width ; x++)
+        {
+          for (y = 0 ; y < mri_dst->height ; y++)
+            {
+              for (z = 0 ; z < mri_dst->depth ; z++)
+                {
+                  if (x == Gx && y == Gy && z == Gz)
+                    DiagBreak() ;
+                  if ((int)MRIgetVoxVal(mri_dst, x, y, z, f) == 0)
+                    continue ;
+                  VECTOR_ELT(v_vox, 1) = x ;
+                  VECTOR_ELT(v_vox, 2) = y ;
+                  VECTOR_ELT(v_vox, 3) = z ;
+                  MatrixMultiply(m_vox2ras, v_vox, v_ras) ;
+                  if (VECTOR_ELT(v_ras, 2) > amin)
+                    MRIsetVoxVal(mri_dst, x, y, z, f, 0) ;
+                }
+            }
+        }
+    }
+
+  MatrixFree(&m_vox2ras) ; VectorFree(&v_vox) ; VectorFree(&v_ras) ;
+  return(mri_dst) ;
 }
 
