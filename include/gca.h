@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 13:39:00 $
- *    $Revision: 1.91 $
+ *    $Date: 2008/09/12 16:12:54 $
+ *    $Revision: 1.92 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -326,6 +326,8 @@ double GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles);
+int  GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles,
+                                            float *plabel_scales, float *plabel_offsets);
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
@@ -475,5 +477,7 @@ double GCAvoxelGibbsLogPosterior(GCA *gca,
                                  TRANSFORM *transform,
                                  double gibbs_coef) ;
 GCA *GCAnodeDownsample2(GCA *gca) ;
+int GCAapplyRenormalization(GCA *gca, 
+                            float *label_scales, float *label_offsets, int frame) ;
 
 #endif

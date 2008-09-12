@@ -9,8 +9,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/04 16:14:31 $
- *    $Revision: 1.42 $
+ *    $Date: 2008/09/12 16:12:54 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -138,5 +138,7 @@ LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
                                MRI_SURFACE *mris_dst, LABEL *area_dst);
 
 #define LabelClone(a)  LabelAlloc(a->max_points,a->subject_name,a->name)
+int LabelCropPosterior(LABEL *area, float anterior_dist) ;
+int LabelCropAnterior(LABEL *area, float anterior_dist) ;
 
 #endif

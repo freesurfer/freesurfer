@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 02:17:57 $
- *    $Revision: 1.249 $
+ *    $Date: 2008/09/12 16:12:41 $
+ *    $Revision: 1.250 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -16488,22 +16488,36 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                                LTA **plta,
                                int handle_expanded_ventricles)
 {
+  
+  return(GCAcomputeRenormalizationWithAlignment(gca, mri, transform, 
+                                                logfp, base_name, plta, 
+                                                handle_expanded_ventricles,
+                                                NULL, NULL));
+}
+int
+GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, 
+                                       FILE *logfp, char *base_name, LTA **plta, 
+                                       int handle_expanded_ventricles,
+                                       float *plabel_scales, float *plabel_offsets)
+{
   HISTOGRAM *h_mri, *h_gca ;
-  int       l, nbins, i, x, y, z, xn, yn, zn, num, frame, \
-  bin, j, n, computed[MAX_CMA_LABELS], b, label, k,
-  border = BORDER_SIZE, gca_peak, mri_peak ;
+  int       l, nbins, i, x, y, z, num, frame, bin, j, n, computed[MAX_CMA_LABELS], 
+            b, label, k, border = BORDER_SIZE, gca_peak, mri_peak ;
   float     fmin, fmax, label_scales[MAX_CMA_LABELS], overlap,
-  mean_gm_scale, mean_wm_scale, mean_csf_scale, label_peaks[MAX_CMA_LABELS],
-  label_offsets[MAX_CMA_LABELS], \
-  mean_wm_offset, mean_csf_offset, mean_gm_offset,
-  lower_thresh, upper_thresh ;
+            mean_gm_scale, mean_wm_scale, mean_csf_scale, label_peaks[MAX_CMA_LABELS],
+            label_offsets[MAX_CMA_LABELS], \
+            mean_wm_offset, mean_csf_offset, mean_gm_offset,
+            lower_thresh, upper_thresh ;
   Real      val/*, scale*/ ;
-  GCA_NODE  *gcan ;
-  GC1D      *gc ;
   MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL ;
   char      fname[STRLEN] ;
   MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
   LTA       *lta ;
+
+  if (plabel_scales == NULL)
+    plabel_scales = label_scales ;
+  if (plabel_offsets == NULL)
+    plabel_offsets = label_offsets ;
 
   double    det = -1 ;
   float peak_threshold = 0.03;
@@ -17373,7 +17387,6 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       {
       case Left_Pallidum:
       case Right_Pallidum:
-#if 1
         if ((label_peaks[l] >= .95*label_peaks[Left_Cerebral_White_Matter]) ||
             (label_peaks[l] >= .95*label_peaks[Right_Cerebral_White_Matter]))
         {
@@ -17382,17 +17395,19 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  (label_peaks[Left_Cerebral_White_Matter] +
                   label_peaks[Right_Cerebral_White_Matter])/2 ;
           scale = peak / label_peaks[l] ;
+#if 1
           printf("%s too bright - rescaling by %2.3f "
                  "(from %2.3f) to %2.1f (was %2.1f)\n",
                  cma_label_to_name(l),
                  scale, label_scales[l], peak, label_peaks[l]) ;
-          label_scales[l] = scale ;
+          label_scales[l] *= scale ;
           label_peaks[l] = peak ;
-        }
 #endif
+        }
         break ;
       case Left_Putamen:
       case Right_Putamen:
+#if 1
         if ((label_peaks[l] >= .9*label_peaks[Left_Cerebral_White_Matter]) ||
             (label_peaks[l] >= .9*label_peaks[Right_Cerebral_White_Matter]))
         {
@@ -17405,9 +17420,10 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  "(from %2.3f) to %2.1f (was %2.1f)\n",
                  cma_label_to_name(l),
                  scale, label_scales[l], peak, label_peaks[l]) ;
-          label_scales[l] = scale ;
+          label_scales[l] *= scale ;
           label_peaks[l] = peak ;
         }
+#endif
         break ;
       }
     }
@@ -17489,6 +17505,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 
 
     gcaCheck(gca) ;
+#if 1
+    GCAapplyRenormalization(gca, label_scales, label_offsets, frame) ;
+#else
     for (xn = 0 ; xn < gca->node_width ; xn++)
     {
       double     means_before[MAX_GCA_LABELS], \
@@ -17640,9 +17659,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         }
       }
     }
+#endif
     gcaCheck(gca) ;
   }
-
   if (plta)  // return linear transform array to caller
   {
     int i ;
@@ -17671,11 +17690,178 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
     printf("%d transforms computed\n", i) ;
   }
 
+  if (label_scales != plabel_scales) // copy to user-supplied space
+    memmove(plabel_scales, label_scales, MAX_CMA_LABELS*sizeof(label_scales[0]));
+  if (label_offsets != plabel_offsets) // copy to user-supplied space
+    memmove(plabel_offsets, label_offsets, MAX_CMA_LABELS*sizeof(label_offsets[0]));
+
   if (mri_seg)
     MRIfree(&mri_seg) ;
   return(NO_ERROR) ;
 }
 
+
+int
+GCAapplyRenormalization(GCA *gca, float *label_scales, float *label_offsets,int frame)
+{
+  int      xn, yn, zn, l, i ;
+  GCA_NODE *gcan ;
+  GC1D     *gc ;
+
+  for (xn = 0 ; xn < gca->node_width ; xn++)
+  {
+    double     means_before[MAX_GCA_LABELS], 
+               means_after[MAX_GCA_LABELS], scales[MAX_GCA_LABELS];
+#if 1
+    double     delta_i, delta_j ;
+    int        xp, yp, zp ;
+#endif
+    int        labels[MAX_GCA_LABELS], niter ;
+    LABEL_PROB ranks_before[MAX_GCA_LABELS], \
+      ranks_after[MAX_GCA_LABELS] ;
+    
+    for (yn = 0 ; yn < gca->node_height ; yn++)
+    {
+      for (zn = 0 ; zn < gca->node_depth ; zn++)
+      {
+        if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+          DiagBreak() ;
+        gcan = &gca->nodes[xn][yn][zn] ;
+        if (gcan->nlabels <= 0)
+          continue ;
+        
+        for (i = 0 ; i < gcan->nlabels ; i++)
+        {
+          gc = &gcan->gcs[i] ;
+          l = gcan->labels[i] ;
+          labels[i] = l ;
+          scales[i] = label_scales[l] ;
+          means_before[i] = gc->means[frame] ;
+          ranks_before[i].label = l ;
+          ranks_before[i].prob = means_before[i] ;
+          ranks_before[i].index = i ;
+        }
+        qsort(ranks_before, gcan->nlabels,
+              sizeof(LABEL_PROB), compare_sort_probabilities) ;
+        niter = 0 ;
+        for (i = 0 ; i < gcan->nlabels ; i++)
+        {
+          gc = &gcan->gcs[i] ;
+          l = gcan->labels[i] ;
+          means_after[i] =
+            means_before[i]*label_scales[l] + label_offsets[l] ;
+          if (means_after[i] < 0)
+            means_after[i] = 0 ;
+          ranks_after[i].label = l ;
+          ranks_after[i].prob = means_after[i] ;
+          ranks_after[i].index = i ;
+        }
+        qsort(ranks_after, gcan->nlabels,
+              sizeof(LABEL_PROB), compare_sort_probabilities) ;
+        for (i = 0 ; i < gcan->nlabels ; i++)
+        {
+#if 1
+          if (ranks_before[i].label != ranks_after[i].label)
+          {
+            double    pi, pj, lambda ;
+            int       j, ind_j, ind_i ;
+            GCA_PRIOR *gcap;
+            
+            /* two have swapped position - put them */
+            /* back in the right order */
+            for (j = 0 ; j < gcan->nlabels ; j++)
+              if (ranks_after[j].label == ranks_before[i].label)
+                break ;
+            if (j >= gcan->nlabels)
+            {
+              DiagBreak() ;
+              continue ;
+            }
+            gcaNodeToPrior(gca, xn, yn, zn, &xp, &yp, &zp) ;
+            gcap = &gca->priors[xp][yp][zp] ;
+            pi = getPrior(gcap, ranks_after[i].label) ;
+            pj = getPrior(gcap, ranks_after[j].label) ;
+            if (FZERO(pi) && FZERO(pj))
+              break ;   // both labels will never happen
+            lambda = pi / (pi + pj) ;
+            ind_j = ranks_after[j].index ;
+            ind_i = ranks_after[i].index ;
+            delta_j = (means_after[ind_j] -
+                       means_after[ind_i]) * lambda ;
+            delta_i = (means_after[ind_i] -
+                       means_after[ind_j]) * (1-lambda) ;
+            
+            if ((fabs(delta_j) < 1) && (fabs(delta_i) < 1))
+            {
+              // this will move one mean to the
+              // other side of the other
+              if ((fabs(delta_j) > fabs(delta_i)) &&
+                  !FZERO(delta_j))
+                delta_j /= fabs(delta_j) ;  // make it +-1
+              else if (!FZERO(delta_i))
+                delta_i /= fabs(delta_i) ;  // make it +-1
+            }
+            if (!finite(delta_i) || !finite(delta_j))
+            {
+              DiagBreak() ;
+              break ;
+            }
+            ranks_after[j].prob =
+              means_after[ind_j] = means_after[ind_j] - delta_j ;
+            ranks_after[i].prob =
+              means_after[ind_i] = means_after[ind_i] - delta_i ;
+            if ((xn == Gx && yn == Gy && zn == Gz) &&
+                (ranks_after[i].label == gcan->labels[i] ||
+                 ranks_after[j].label == gcan->labels[j] ||
+                 Ggca_label < 0))
+            {
+              printf("ordering of labels %s and %s changed, "
+                     "modifying means by %2.0f (%2.1f) "
+                     "and %2.0f (%2.1f)\n",
+                     cma_label_to_name(ranks_after[i].label),
+                     cma_label_to_name(ranks_after[j].label),
+                     means_after[i], delta_i,
+                     means_after[j], delta_i) ;
+            }
+            
+            qsort(ranks_after, gcan->nlabels,
+                  sizeof(LABEL_PROB),
+                  compare_sort_probabilities) ;
+            i = -1 ;   /* start loop over */
+            if (niter++ > 9)
+            {
+              DiagBreak() ;
+              break ;
+            }
+            continue ;
+          }
+#endif
+        }
+        
+        for (i = 0 ; i < gcan->nlabels ; i++)
+        {
+          if (FZERO(label_scales[gcan->labels[i]]))
+            continue ;
+          gc = &gcan->gcs[i] ;
+          if ((xn == Gx && yn == Gy && zn == Gz) &&
+              (Ggca_label == gcan->labels[i] || Ggca_label < 0))
+          {
+            printf("scaling gc for label %s at "
+                   "(%d, %d, %d) from %2.1f to %2.1f\n",
+                   cma_label_to_name(gcan->labels[i]),
+                   xn, yn, zn,
+                   means_before[i], means_after[i]) ;
+            DiagBreak() ;
+          }
+          gc->means[frame] = means_after[i] ;
+          check_finite("after rescaling", gc->means[frame]) ;
+        }
+      }
+    }
+  }
+  gcaCheck(gca) ;
+  return(NO_ERROR);
+}
 
 static float pthresh = 0.5 ;
 int

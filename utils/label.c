@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/04 16:14:25 $
- *    $Revision: 1.85 $
+ *    $Date: 2008/09/12 16:12:42 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2537,5 +2537,51 @@ LabelThreshold(LABEL *area, float thresh)
     }
   }
   return(ndel) ;
+}
+
+int
+LabelCropAnterior(LABEL *area, float anterior_dist)
+{
+  int    n ;
+  float  amax ;
+
+  amax = -100000;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y > amax)
+      amax = area->lv[n].y ;
+  }
+  
+  amax -= anterior_dist ;
+  printf("cropping all vertices with Y > %2.0f\n", amax) ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y < amax)
+      area->lv[n].deleted = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+LabelCropPosterior(LABEL *area, float anterior_dist)
+{
+  int    n ;
+  float  amax ;
+
+  amax = -100000;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y > amax)
+      amax = area->lv[n].y ;
+  }
+  
+  amax += anterior_dist ;
+  printf("cropping all vertices with Y > %2.0f\n", amax) ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y > amax)
+      area->lv[n].deleted = 1 ;
+  }
+  return(NO_ERROR) ;
 }
 
