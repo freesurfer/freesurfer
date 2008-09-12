@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/13 19:09:24 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2008/09/12 16:16:42 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -41,10 +41,11 @@
 #include "macros.h"
 #include "version.h"
 #include "label.h"
+#include "annotation.h"
 #include "MARS_DT_Boundary.h"
 
 static char vcid[] = 
-"$Id: mris_distance_transform.c,v 1.2 2008/03/13 19:09:24 nicks Exp $";
+"$Id: mris_distance_transform.c,v 1.3 2008/09/12 16:16:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -55,6 +56,12 @@ static void print_version(void) ;
 
 const char *Progname ;
 
+static float anterior_dist = -1 ;
+static float posterior_dist = -1 ;
+static int divide = 1 ;
+static char *divide_surf_name ;
+static int output_label = 0 ;
+static float normalize = -1 ;
 
 int
 main(int argc, char *argv[])
@@ -68,7 +75,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_distance_transform.c,v 1.2 2008/03/13 19:09:24 nicks Exp $", 
+     "$Id: mris_distance_transform.c,v 1.3 2008/09/12 16:16:42 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -102,6 +109,11 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read label %s",
               Progname, argv[2]) ;
 
+  if (anterior_dist > 0)
+    LabelCropAnterior(area, anterior_dist) ;
+  if (posterior_dist > 0)
+    LabelCropPosterior(area, posterior_dist) ;
+  
   if (stricmp(argv[3], "signed") == 0)
     mode = DTRANS_MODE_SIGNED ;
   else if (stricmp(argv[3], "unsigned") == 0)
@@ -116,8 +128,108 @@ main(int argc, char *argv[])
   output_fname = argv[4] ;
 
   MRIScomputeMetricProperties(mris) ;
-  MRISdistanceTransform(mris, area, mode) ;
-  MRISwriteValues(mris, output_fname) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+  if (normalize > 0)
+  {
+    normalize = sqrt(mris->total_area) ;
+    printf("normalizing surface distances by sqrt(%2.1f) = %2.1f\n", mris->total_area,normalize) ;
+  }
+  if (divide > 1)
+  {
+    int  i ;
+    char fname[STRLEN], ext[STRLEN], base_name[STRLEN] ;
+    LABEL *area_division ;
+
+    FileNameExtension(output_fname, ext) ;
+    FileNameRemoveExtension(output_fname, base_name) ;
+    LabelMark(area, mris) ;
+    MRIScopyMarksToAnnotation(mris) ;
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    if (MRISreadVertexPositions(mris, divide_surf_name) != NO_ERROR)
+      ErrorExit(ERROR_BADPARM, "%s: could not read vertex coords from %s", Progname, divide_surf_name) ;
+    MRIScomputeSecondFundamentalForm(mris) ;
+    MRISdivideAnnotationUnit(mris, 1, divide) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    MRIScomputeSecondFundamentalForm(mris) ;
+
+    
+    // MRISdivideAnnotationUnit sets the marked to be in [0,divide-1], make it [1,divide]
+    // make sure they are oriented along original a/p direction
+#define MAX_UNITS 100    
+    {
+      double cx[MAX_UNITS], cy[MAX_UNITS], cz[MAX_UNITS], min_a ;
+      int    index, num[MAX_UNITS], new_index[MAX_UNITS], j, min_i ;
+      VERTEX *v ;
+      
+      memset(num, 0, sizeof(num[0])*divide) ;
+      memset(cx, 0, sizeof(cx[0])*divide) ;
+      memset(cy, 0, sizeof(cy[0])*divide) ;
+      memset(cz, 0, sizeof(cz[0])*divide) ;
+      for (i = 0 ; i < area->n_points ; i++)
+      {
+        if (area->lv[i].vno < 0 || area->lv[i].deleted > 0)
+          continue ;
+        v = &mris->vertices[area->lv[i].vno] ;
+        v->marked++ ;
+        index = v->marked ;
+        cx[index] += v->x ;
+        cy[index] += v->y ;
+        cz[index] += v->z ;
+        num[index]++ ;
+      }
+      memset(new_index, 0, sizeof(new_index[0])*divide) ;
+      for (i = 1 ; i <= divide ; i++)
+        cy[i] /= num[i] ;
+
+      // order them from posterior to anterior
+      for (j = 1 ; j <= divide ; j++)
+      {
+        min_a = 1e10 ; min_i = 0 ;
+        for (i = 1 ; i <= divide ; i++)
+        {
+          if (cy[i] < min_a)
+          {
+            min_a = cy[i] ;
+            min_i = i ;
+          }
+        }
+        cy[min_i] = 1e10 ;  // make it biggest so it won't be considered again
+        new_index[j] = min_i ;
+      }
+      for (i = 0 ; i < area->n_points ; i++)
+      {
+        if (area->lv[i].vno < 0 || area->lv[i].deleted > 0)
+          continue ;
+        v = &mris->vertices[area->lv[i].vno] ;
+        v->marked = new_index[v->marked] ;
+      }
+    }
+    for (i = 1 ; i <= divide ; i++)
+    {
+      area_division = LabelFromMarkValue(mris, i) ;
+
+      printf("performing distance transform on division %d with %d vertices\n", 
+             i, area_division->n_points) ;
+      if (output_label)
+      {
+        sprintf(fname, "%s%d.label", base_name, i) ;
+        printf("writing %dth subdivision to %s\n", i, fname) ;
+        LabelWrite(area_division, fname);
+      }
+      MRISdistanceTransform(mris, area_division, mode) ;
+      sprintf(fname, "%s%d.%s", base_name, i, ext) ;
+      if (normalize > 0)
+        MRISmulVal(mris, 1.0/normalize) ;
+      MRISwriteValues(mris, fname) ;
+    }
+  }
+  else
+  {
+    MRISdistanceTransform(mris, area, mode) ;
+    if (normalize > 0)
+      MRISmulVal(mris, 1.0/normalize) ;
+    MRISwriteValues(mris, output_fname) ;
+  }
 
   msec = TimerStop(&then) ;
   fprintf(stderr,"distance transform took %2.1f minutes\n", (float)msec/(60*1000.0f));
@@ -143,6 +255,36 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "anterior"))
+  {
+    anterior_dist = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using anterior-most %2.3f mm of label only\n", anterior_dist) ;
+  }
+  else if (!stricmp(option, "normalize"))
+  {
+    normalize = 1 ;
+    printf("normalizing distances with surface area\n") ;
+  }
+  else if (!stricmp(option, "olabel"))
+  {
+    output_label = 1 ;
+    printf("writing out label subdivisions\n") ;
+  }
+  else if (!stricmp(option, "divide"))
+  {
+    divide = atoi(argv[2]) ;
+    divide_surf_name = argv[3] ;
+    nargs = 2 ;
+    printf("dividing label into %d parts along primary eigendirection using coords in %s\n", 
+           divide, divide_surf_name) ;
+  }
+  else if (!stricmp(option, "posterior"))
+  {
+    posterior_dist = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using posterior-most %2.3f mm of label only\n", posterior_dist) ;
+  }
   else switch (toupper(*option))
     {
     case '?':
@@ -185,7 +327,13 @@ print_help(void)
           "the surface\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr,
-          "(see the source code!)\n") ;
+          "\t-anterior <dist>   - only use anteriormost <dist> portion of label\n") ;
+  fprintf(stderr,
+          "\t-posterior <dist>  - only use posteriormost <dist> portion of label\n") ;
+  fprintf(stderr,
+          "\t-divide <n>        - divide label into <n> units along primary eigendirection\n") ;
+  fprintf(stderr,
+          "\t-olabel            - output label subdivisions\n") ;
   exit(1) ;
 }
 
@@ -197,3 +345,50 @@ print_version(void)
   exit(1) ;
 }
 
+#if 0
+static int
+crop_anterior_label(LABEL *area, float anterior_dist)
+{
+  int    n ;
+  float  amax ;
+
+  amax = -100000;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y > amax)
+      amax = area->lv[n].y ;
+  }
+  
+  amax -= anterior_dist ;
+  printf("cropping all vertices with Y > %2.0f\n", amax) ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y < amax)
+      area->lv[n].deleted = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+static int
+crop_posterior_label(LABEL *area, float anterior_dist)
+{
+  int    n ;
+  float  amax ;
+
+  amax = -100000;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y > amax)
+      amax = area->lv[n].y ;
+  }
+  
+  amax += anterior_dist ;
+  printf("cropping all vertices with Y > %2.0f\n", amax) ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    if (area->lv[n].y > amax)
+      area->lv[n].deleted = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+
+#endif
