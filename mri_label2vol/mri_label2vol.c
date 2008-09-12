@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/07/13 16:48:31 $
- *    $Revision: 1.25 $
+ *    $Author: fischl $
+ *    $Date: 2008/09/12 16:15:01 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $
+  $Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -145,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.25 2007/07/13 16:48:31 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -452,6 +452,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-new-aseg2vol"))  UseNewASeg2Vol = 0;
     else if (!strcasecmp(option, "--aparc+aseg"))  UseAParcPlusASeg = 1;
 
+    else if (!strcmp(option, "--surf")) {
+      if (nargc < 1) argnerr(option,1);
+      SurfId = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--label")) {
       if (nargc < 1) argnerr(option,1);
       LabelList[nlabels] = pargv[0];
@@ -549,6 +554,7 @@ static void print_usage(void) {
   printf("   --label labelid <--label labelid>  \n");
   printf("   --annot annotfile : surface annotation file  \n");
   printf("   --seg   segpath : segmentation\n");
+  printf("   --surf surface  : use surface instead of white\n") ;
   printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir\n");
   printf("\n");
   printf("   --temp tempvolid : template volume\n");
