@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.122 2008/08/18 23:02:50 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.123 2008/09/15 13:59:45 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -24,7 +24,7 @@ set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu \
     fischl@nmr.mgh.harvard.edu \
     greve@nmr.mgh.harvard.edu \
     krish@nmr.mgh.harvard.edu )
-#set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
+#set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 if ("$HOSTNAME" == "blade") then
   set FAILURE_MAIL_LIST=(nicks)
 endif
@@ -100,7 +100,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VTKDIR=/usr/pubsw/packages/vtk/5.0.4
+  set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
   set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
