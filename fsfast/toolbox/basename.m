@@ -1,19 +1,20 @@
-function name = basename(path)
-% name = basename(path)
+function name = basename(path,ext)
+% name = basename(path,<ext>)
 % 
 % This is an attempt to recreate the unix basename 
-% command in matlab.
+% command in matlab. If ext is present, it will check to
+% see if ext exists as an extension and strip it if it does.
 %
-
+% $Id: basename.m,v 1.3 2008/09/15 19:47:39 greve Exp $
 
 %
 % basename.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:29 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2008/09/15 19:47:39 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -30,9 +31,9 @@ function name = basename(path)
 
 name = [];
 
-if(nargin ~= 1)
-  msg = 'USAGE: name = basename(path)'
-  qoe(msg); error(msg);
+if(nargin < 1 | nargin > 2)
+  msg = 'name = basename(path,<ext>)'
+  return;
 end
 
 len = length(path);
@@ -42,6 +43,9 @@ if(len == 1)
     name = '/';
   else
     name = path;
+  end
+  if(nargin == 2) 
+    name = stripextension(name,ext); 
   end
   return;
 end
@@ -55,10 +59,34 @@ end
 for n = len-1:-1:1
   if(strcmp(path(n),'/'))
     name = path(n+1:len);    
+    if(nargin == 2) 
+      name = stripextension(name,ext); 
+    end
     return;
   end
 end
 
 name = path;
+if(nargin == 2) 
+  name = stripextension(name,ext); 
+end
 
 return;
+
+%----------------------------------------------------%
+function name = stripextension(name,ext)
+
+if(ext(1) ~= '.') 
+  ext = ['.' ext]; 
+end
+next = length(ext);
+nname = length(name);
+if(nname < next) return; end
+tmp = name(nname-next+1:end);
+if(~strcmp(tmp,ext)) return; end
+name  = name(1:nname-next);
+return;
+%----------------------------------------------------%
+
+
+
