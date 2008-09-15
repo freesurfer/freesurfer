@@ -4,7 +4,7 @@ function sratio = fast_sratio(num,den)
 %  if num > den then sratio = +num/den
 %  if num < den then sratio = -den/num
 %
-% $Id: fast_sratio.m,v 1.1 2008/09/05 20:18:00 greve Exp $
+% $Id: fast_sratio.m,v 1.2 2008/09/15 21:31:40 greve Exp $
 
 %
 % fast_fast_sratio.m
@@ -12,8 +12,8 @@ function sratio = fast_sratio(num,den)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/09/05 20:18:00 $
-%    $Revision: 1.1 $
+%    $Date: 2008/09/15 21:31:40 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,14 +33,27 @@ if(nargin ~= 2)
   return;
 end
 
-if(isfield(num,'vol'))  num = num.vol; end
-if(isfield(den,'vol'))  den = den.vol; end
+mri = [];
+if(isfield(num,'vol'))  
+  num = num.vol; 
+  mri = num;
+end
+if(isfield(den,'vol'))  
+  mri = den;
+  den = den.vol; 
+end
  
 sratio = zeros(size(num));
 ind = find(num > den & den ~= 0);
 sratio(ind) = num(ind)./den(ind);
 ind = find(num < den & num ~= 0);
 sratio(ind) = -den(ind)./num(ind);
+
+if(~isempty(mri))
+  mri.vol = sratio;
+  sratio = mri;
+end
+
 
 return;
 
