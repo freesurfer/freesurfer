@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/09/09 19:30:49 $
-%    $Revision: 1.35 $
+%    $Date: 2008/09/15 19:53:10 $
+%    $Revision: 1.36 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -107,6 +107,9 @@ if(fp == -1)
   return;
 end
 
+% Derive name from flac file without .flac extension.
+flac.name = basename(flacfile,'.flac');
+
 % Get the first line, should look like:
 % FSFAST-FLAC 1
 tline = fgetl(fp);
@@ -139,18 +142,7 @@ while(1)
   %fprintf('key = %s\n',key);
   
   switch(key)
-   case 'flacname',    
-    name  = sscanf(tline,'%*s %s',1);
-    if(~inherit) 
-      flac.name = name; % Dont inherit the name
-    else 
-      if(strcmp(flac.name,name))
-	fprintf('ERROR: flac parent and child have the same name\n');
-	flac = [];
-	return;
-      end
-    end 
-    
+   case 'flacname',    junk             = sscanf(tline,'%*s %s',1);
    case 'fsd',         flac.fsd         = sscanf(tline,'%*s %s',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
    case 'funcstem',    flac.funcstem    = sscanf(tline,'%*s %s',1);
