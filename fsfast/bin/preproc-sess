@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/08 22:40:46 $
-#    $Revision: 1.20 $
+#    $Date: 2008/09/17 17:43:43 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.20 2008/04/08 22:40:46 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.21 2008/09/17 17:43:43 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -46,6 +46,7 @@ set rlf     = ();
 set mcnthrun = ();
 set mcrun    = ();
 set mctargstem = ();
+set mctargframe = ();
 set MCPerRun = 0;
 set MaskPerRun = 0;
 
@@ -163,6 +164,7 @@ foreach sess ($SessList)
     if($#mcnthrun)  set cmd = ($cmd -targnthrun $mcnthrun)
     if($#mcrun)     set cmd = ($cmd -targrun    $mcrun)
     if($#mctargstem) set cmd = ($cmd -targstem  $mctargstem)
+    if($#mctargframe) set cmd = ($cmd -toff  $mctargframe)
     if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
@@ -329,6 +331,11 @@ while( $#argv != 0 )
     case "-mctargstem":
       if ( $#argv == 0) goto arg1err;
       set mctargstem = $argv[1]; shift;
+      breaksw
+
+    case "-mctargframe":
+      if($#argv < 1) goto arg1err;
+      set mctargframe = $argv[1]; shift;
       breaksw
 
     case "-stcin":
@@ -647,6 +654,7 @@ usage_exit:
   echo "  -mcnthrun nthrun : use nthrun as reference"
   echo "  -mcrun    RRR    : use run RRR as reference"
   echo "  -mctargstem stem : use stem as target instead of mcin"
+  echo "  -mctargframe frame : 0-based frame to use as MC target/reference (def 0)"
   echo "  -maskperrun : perform masking on all runs separately"
   echo ""
   echo "  -perrun : perform masking and MC on all runs separately"
