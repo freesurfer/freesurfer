@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/09/04 18:25:35 $
-#    $Revision: 1.185 $
+#    $Date: 2008/09/17 17:53:59 $
+#    $Revision: 1.186 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.185 2008/09/04 18:25:35 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.186 2008/09/17 17:53:59 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1331,6 +1331,8 @@ if($DoCANormalize) then
           $tp1dir/mri/${REG_FILE_TYPE}.mgz \
           $subjdir/mri/${REG_FILE_TYPE}.mgz \
           $subjdir/mri/transforms/${tp1id}_to_${subjid}_nl.m3z)
+      # the regfile is now the .m3z (the nonlinear)
+      set tp1totp2_regfile=(${tp1id}_to_${subjid}_nl.m3z)
     endif
 
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2728,6 +2730,7 @@ while( $#argv != 0 )
       breaksw
     case "-notalairach":
       set DoTalairach = 0;
+      set DoTalCheck = 0;
       breaksw
     case "-use-mritotal":
       set UseMincMritotal = 1;
