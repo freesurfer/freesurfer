@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/04 16:14:57 $
- *    $Revision: 1.320 $
+ *    $Date: 2008/09/18 18:51:21 $
+ *    $Revision: 1.321 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1651,6 +1651,28 @@ MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri, float resolution)
 int MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode) ;
 int MRISinvertMarks(MRI_SURFACE *mris) ;
 
+
+/* value field labels for swap_vertex_fields(), also used in tcl script */
+#define FIELD_CURV      0
+#define FIELD_CURVBAK   1
+#define FIELD_VAL       2
+#define FIELD_IMAG_VAL  3
+#define FIELD_VAL2      4
+#define FIELD_VALBAK    5
+#define FIELD_VAL2BAK   6
+#define FIELD_STAT      7
+
+#define SCLV_VAL          0
+#define SCLV_VAL2         1
+#define SCLV_VALBAK       2
+#define SCLV_VAL2BAK      3
+#define SCLV_VALSTAT      4
+#define SCLV_IMAG_VAL     5
+#define SCLV_MEAN         6
+#define SCLV_MEAN_IMAG    7
+#define SCLV_STD_ERROR    8
+#define NUM_SCALAR_VALUES 9
+HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field);
 
 #endif
 
