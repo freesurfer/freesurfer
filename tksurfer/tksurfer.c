@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/05 16:13:47 $
- *    $Revision: 1.312 $
+ *    $Date: 2008/09/18 18:51:53 $
+ *    $Revision: 1.313 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -707,6 +707,7 @@ float maxstress = 1e10;
 float avgstress = 0;
 int senstype = 0;
 double fthresh = 2.0;
+double fthreshmax = 5.0;
 double tksfmax;
 double wt = 0.5;
 double wa = 0.5;
@@ -1512,16 +1513,6 @@ int func_convert_error (FunD_tErr error);
 
 /* --------------------------------------------------- scalar value mgmnt */
 
-#define SCLV_VAL          0
-#define SCLV_VAL2         1
-#define SCLV_VALBAK       2
-#define SCLV_VAL2BAK      3
-#define SCLV_VALSTAT      4
-#define SCLV_IMAG_VAL     5
-#define SCLV_MEAN         6
-#define SCLV_MEAN_IMAG    7
-#define SCLV_STD_ERROR    8
-#define NUM_SCALAR_VALUES 9
 
 #if 0
 #define SCLV_FIELDSIGN    6
@@ -20698,7 +20689,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.312 2008/09/05 16:13:47 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.313 2008/09/18 18:51:53 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21693,6 +21684,7 @@ int main(int argc, char *argv[])   /* new main */
   /*=======================================================================*/
   /***** link global surfer DOUBLE variables to tcl equivalents (were float) */
   Tcl_LinkVar(interp,"decay",(char *)&decay, TCL_LINK_DOUBLE);
+  Tcl_LinkVar(interp,"fthreshmax",(char *)&fthreshmax, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fthresh",(char *)&fthresh, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fslope",(char *)&fslope, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fcurv",(char *)&fcurv, TCL_LINK_DOUBLE);
@@ -25348,6 +25340,8 @@ int sclv_send_current_field_info ()
   /* Send the current histogram info here as well. */
   sclv_send_histogram (sclv_current_field);
 
+  sprintf(cmd, "set gaLinkedVar(fslope) %f", fslope);
+  sprintf(cmd, "set gaLinkedVar(fthreshmax) %f", fthreshmax);
   sprintf (cmd, "UpdateLinkedVarGroup overlay");
   send_tcl_command (cmd);
   sprintf (cmd, "OverlayLayerChanged");
@@ -25541,10 +25535,34 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
 int sclv_set_current_threshold_from_percentile (float thresh, float mid,
     float max)
 {
+  HISTOGRAM *h ;
+  int       bthresh, bmid, bmax ;
+  float     thresh_value, mid_value, max_value, slope ;
+
+  h = MRISgetHistogram(mris, 1000, sclv_current_field);
+  HISTOmakeCDF(h, h) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h, "h.plt") ;
+  bthresh = HISTOfindBinWithCount(h, thresh) ;
+  bmid = HISTOfindBinWithCount(h, mid) ;
+  bmax = HISTOfindBinWithCount(h, max) ;
+  thresh_value = h->bins[bthresh] ; mid_value = h->bins[bmid] ; max_value = h->bins[bmax] ;
+  slope = .5 / (max_value - mid_value) ;
+  printf("HISTO vals should be %f, %f, %f (slope = .5/(mx-md) =  %2.2f)\n", 
+         thresh_value, mid_value, max_value, slope) ;
+  HISTOfree(&h) ;
+  fthresh = sclv_field_info[sclv_current_field].fthresh = thresh_value;
+  fmid = sclv_field_info[sclv_current_field].fmid = mid_value;
+  fslope = sclv_field_info[sclv_current_field].fslope = slope ;
+  fthreshmax = sclv_field_info[sclv_current_field].max_value = max_value ;
+  vertex_array_dirty = 1;
+#if 0
   sclv_set_threshold_from_percentile(sclv_current_field,
                                      thresh, mid, max);
+#endif
 
   sclv_send_current_field_info();
+  redraw() ;
 
   return (ERROR_NONE);
 }
@@ -30195,6 +30213,53 @@ int dngcolorwheel(float f, float *r, float *g, float *b)
 #define MAX_STEPS 100
 void 
 set_area_thresh(float target_area)
+{
+  char                  cmd[STRLEN];
+  int   vno ;
+  float thresh_min, thresh, thresh_max, val, area, best_thresh, thresh_step, best_area ;
+
+  val = 0 ;
+  thresh_min = 1e10 ; thresh_max = -thresh_min ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+    if (val < thresh_min)
+      thresh_min = val ;
+    if (val > thresh_max)
+      thresh_max = val ;
+  }
+
+  thresh_step = (thresh_max - thresh_min) / MAX_STEPS ;
+  best_thresh = thresh_min ;
+  best_area = -1 ;
+  for (thresh = thresh_min ; thresh <= thresh_max ; thresh += thresh_step)
+  {
+    area = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+      if (val > thresh)
+        area += mris->vertices[vno].area ;
+    }
+    if (best_area < 0 || fabs(area-target_area) < best_area)
+    {
+      best_area = area ;
+      best_thresh = thresh ;
+    }
+  }
+  fthresh = best_thresh ;
+  fslope = 1/best_thresh ;
+  fmid = 2*fthresh ;
+  printf("best threshold at %2.5f (%2.5f), %2.2fmm\n", fthresh, fslope, best_area) ;
+  sclv_field_info[sclv_current_field].fslope = fslope ;
+  sclv_field_info[sclv_current_field].fthresh = fthresh;
+  vertex_array_dirty = 1 ;
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+}
+
+void 
+set_thresh(float target_area)
 {
   char                  cmd[STRLEN];
   int   vno ;
