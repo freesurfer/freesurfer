@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/14 16:42:58 $
-#    $Revision: 1.49 $
+#    $Date: 2008/09/18 15:26:56 $
+#    $Revision: 1.50 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.49 2008/04/14 16:42:58 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.50 2008/09/18 15:26:56 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -762,6 +762,10 @@ if($#outpath == 0 && ! $CacheOutOnly) then
 endif
 if($#target == 0) then
   echo "ERROR: no target subject specified"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR) then
+  echo "ERROR: cannot find $SUBJECTS_DIR"
   exit 1;
 endif
 if(! -e $SUBJECTS_DIR/$target) then
