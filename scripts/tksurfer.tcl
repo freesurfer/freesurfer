@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: krish $
-##    $Date: 2008/07/14 20:48:31 $
-##    $Revision: 1.158 $
+##    $Author: fischl $
+##    $Date: 2008/09/18 16:10:44 $
+##    $Revision: 1.159 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1594,7 +1594,9 @@ proc SetOverlayTimepointAndCondition {} {
     SendLinkedVarGroup overlay
     sclv_set_current_timepoint $gaLinkedVars(ftimepoint) \
 	$gaLinkedVars(fcondition);
-    UpdateAndRedraw 
+#   redraw works and UpdateAndRedraw doesn't (BRF)
+#    UpdateAndRedraw 
+    redraw
 }
 
 proc SetOverlayField { inField } {
