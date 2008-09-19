@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/07 22:45:22 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/09/19 22:01:27 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -419,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.44 2008/08/07 22:45:22 greve Exp $";
+"$Id: mri_segstats.c,v 1.45 2008/09/19 22:01:27 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -485,6 +485,9 @@ int  segbase = -1000;
 int DoSquare = 0;
 int DoSquareRoot = 0;
 char *LabelFile = NULL;
+
+int DoMultiply = 0;
+double MultVal = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -725,6 +728,10 @@ int main(int argc, char **argv) {
     if(MRIdimMismatch(invol,seg,0)) {
       printf("ERROR: dimension mismatch between input volume and seg\n");
       exit(1); 
+    }
+    if(DoMultiply) {
+      printf("Multiplying input by %lf\n",MultVal);
+      MRImultiplyConst(invol,MultVal,invol);
     }
     if(DoSquare){
       printf("Computing square of input\n");
@@ -1328,6 +1335,12 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--sqr") )  DoSquare = 1;
     else if ( !strcmp(option, "--sqrt") )  DoSquareRoot = 1;
 
+    else if ( !strcmp(option, "--mul") ){
+      if(nargc < 1) argnerr(option,1);
+      DoMultiply = 1;
+      sscanf(pargv[0],"%lf",&MultVal);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--sd") ) {
       if(nargc < 1) argnerr(option,1);
       FSENVsetSUBJECTS_DIR(pargv[0]);
@@ -1506,6 +1519,7 @@ static void print_usage(void) {
   printf("   --frame frame : report stats on nth frame of input volume\n");
   printf("   --sqr  : compute the square of the input\n");
   printf("   --sqrt : compute the square root of the input\n");
+  printf("   --mul val : multiply input by val\n");
   printf("\n");
   printf("   --ctab ctabfile : color table file with seg id names\n");
   printf("   --ctab-default: use $FREESURFER_HOME/FreeSurferColorLUT.txt\n");
