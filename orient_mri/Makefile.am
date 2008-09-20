@@ -38,15 +38,15 @@ orient_mri_DATA=OrientMRIIcons.txt
 
 vtkKWOrientMRIAppTcl.cxx: vtkKWOrientMRIApp.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIApp.h \
-	${VTK_DIR}/src/VTK/Wrapping/hints 1 vtkKWOrientMRIAppTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWOrientMRIAppTcl.cxx
 
 vtkKWOrientMRIWindowTcl.cxx: vtkKWOrientMRIWindow.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIWindow.h \
-	${VTK_DIR}/src/VTK/Wrapping/hints 1 vtkKWOrientMRIWindowTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWOrientMRIWindowTcl.cxx
 
 vtkKWOrientMRIViewTcl.cxx: vtkKWOrientMRIView.h
 	${VTK_DIR}/bin/vtkWrapTcl vtkKWOrientMRIView.h \
-	${VTK_DIR}/src/VTK/Wrapping/hints 1 vtkKWOrientMRIViewTcl.cxx
+	${VTK_LIB_VTK}/hints 1 vtkKWOrientMRIViewTcl.cxx
 
 OrientMRILibInit.cxx: OrientMRILibInit.data
 	${VTK_DIR}/bin/vtkWrapTclInit OrientMRILibInit.data OrientMRILibInit.cxx
