@@ -74,8 +74,8 @@
 	specifiy a valid <curvFile1> since it is parsed by 'mris_calc'
 	to determine the size of output curvature file to create. In most
 	instances, <curvFile2> will denote a float value, and not an actual
-	curvature file, i.e. 'mris_calc set rh.pial 0.005' will create
-	an output curvature, 'out.crv' of the same size as rh.pial, and with
+	curvature file, i.e. 'mris_calc set rh.area 0.005' will create
+	an output curvature, 'out.crv' of the same size as rh.area, and with
 	each element set to 0.005.
 
         The 'ascii' command converts <curvFile1> to a text format file, 
@@ -101,26 +101,26 @@
 
     EXAMPLES        
 
-    	$>mris_calc rh.pial mul rh.thickness    
+    	$>mris_calc rh.area mul rh.thickness    
 
-	Multiply each value in <rh.pial> with the corresponding value
+	Multiply each value in <rh.area> with the corresponding value
 	in <rh.thickness>, creating a new file called 'out.crv' that
 	contains the result.
 
-    	$>mris_calc --output rh.weightedCortex rh.pial mul rh.thickness    
+    	$>mris_calc --output rh.weightedCortex rh.area mul rh.thickness    
 
 	Same as above, but give the ouput file the more meaningful name
 	of 'rh.weightedCortex'.
 
-        $>mris_calc rh.pial max
+        $>mris_calc rh.area max
        
-        Determine the maximum value in 'rh.pial' and print to stdout. In
-        addition to the max value, the index offset in 'rh.pial' containing
+        Determine the maximum value in 'rh.area' and print to stdout. In
+        addition to the max value, the index offset in 'rh.area' containing
         this value is also printed.
 
-        $>mris_calc rh.pial stats
+        $>mris_calc rh.area stats
 
-        Determine the size, min, max, mean, and std of 'rh.pial'.
+        Determine the size, min, max, mean, and std of 'rh.area'.
 
     ADVANCED EXAMPLES
 

@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/02/20 19:05:04 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/09/23 14:48:38 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.6 2008/02/20 19:05:04 rudolph Exp $";
+"$Id: mris_calc.c,v 1.7 2008/09/23 14:48:38 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -268,23 +268,22 @@ static void
 synopsis_show(void) {
   char  pch_synopsis[STRBUF];
 
-  sprintf(pch_synopsis, "\n\
- \n\
+  sprintf(pch_synopsis, " \n\
     NAME \n\
  \n\
           mris_calc \n\
  \n\
     SYNOPSIS \n\
  \n\
-          mris_calc [OPTIONS]                                   \\ \n\
-                <curvFile1> <ACTION> [<curvFile2> | <floatNumber>] \n\
+          mris_calc [OPTIONS]					\\ \n\
+          	<curvFile1> <ACTION> [<curvFile2> | <floatNumber>] \n\
  \n\
     DESCRIPTION \n\
  \n\
-        'mris_calc' is a simple calculator that operates on FreeSurfer \n\
-        curvature files. \n\
+	'mris_calc' is a simple calculator that operates on FreeSurfer \n\
+	curvature files. \n\
  \n\
-        In most cases, the calculator functions with three arguments: \n\
+	In most cases, the calculator functions with three arguments: \n\
         two inputs and an <ACTION> linking them. Some actions, however, \n\
         operate with only one input <curvFile1>. \n\
  \n\
@@ -298,38 +297,38 @@ synopsis_show(void) {
  \n\
     OPTIONS \n\
  \n\
-        --output <outputCurvFile> \n\
-         -o <outputCurvFile> \n\
+    	--output <outputCurvFile> \n\
+   	 -o <outputCurvFile> \n\
  \n\
-        By default, 'mris_calc' will save the output curvature to a file \n\
-        in the current working directory called 'out.crv'. This name can be \n\
-        set to something more meaningful with the '--output' option. \n\
+    	By default, 'mris_calc' will save the output curvature to a file \n\
+    	in the current working directory called 'out.crv'. This name can be \n\
+	set to something more meaningful with the '--output' option. \n\
  \n\
-        --version \n\
-        -v \n\
+    	--version \n\
+    	-v \n\
  \n\
-        Print out version number. \n\
+	Print out version number. \n\
  \n\
-        --verbosity <value> \n\
+    	--verbosity <value> \n\
  \n\
-        Set the verbosity of the program. Any positive value will trigger \n\
-        verbose output, displaying intermediate results. The <value> can be \n\
-        set arbitrarily. Useful mostly for debugging. \n\
+	Set the verbosity of the program. Any positive value will trigger \n\
+	verbose output, displaying intermediate results. The <value> can be \n\
+	set arbitrarily. Useful mostly for debugging. \n\
  \n\
     ACTION \n\
  \n\
-        The action to be perfomed on the two curvature files. This is a \n\
-        text string that defines the mathematical operation to execute. For two \n\
-        inputs, this action is applied in an indexed element-by-element fashion, \n\
-        i.e. <curvFile1>[n] <ACTION> <curvFile2>[n] where 'n' is an index \n\
-        counter. \n\
+	The action to be perfomed on the two curvature files. This is a \n\
+	text string that defines the mathematical operation to execute. For two \n\
+	inputs, this action is applied in an indexed element-by-element fashion, \n\
+	i.e. <curvFile1>[n] <ACTION> <curvFile2>[n] where 'n' is an index \n\
+	counter. \n\
  \n\
-        ACTION  INPUTS OUTPUTS                  EFFECT \n\
-          mul      2      1     <outputCurvFile> = <curvFile1> * <curvFile2> \n\
-          div      2      1     <outputCurvFile> = <curvFile1> / <curvFile2> \n\
-          add      2      1     <outputCurvFile> = <curvFile1> + <curvFile2> \n\
-          sub      2      1     <outputCurvFile> = <curvFile1> - <curvFile2> \n\
-          set      2      1     <outputCurvFile> = <curvFile2> \n\
+	ACTION  INPUTS OUTPUTS	                EFFECT \n\
+	  mul	   2      1     <outputCurvFile> = <curvFile1> * <curvFile2> \n\
+	  div	   2	  1     <outputCurvFile> = <curvFile1> / <curvFile2> \n\
+	  add      2	  1	<outputCurvFile> = <curvFile1> + <curvFile2> \n\
+	  sub	   2	  1     <outputCurvFile> = <curvFile1> - <curvFile2> \n\
+	  set	   2	  1     <outputCurvFile> = <curvFile2> \n\
  \n\
           ascii    1      1     <outputCurvFile> = ascii <curvFile1> \n\
  \n\
@@ -340,14 +339,14 @@ synopsis_show(void) {
           std      1      0     print the standard deviation of <curvFile1> \n\
           stats    1      0     process 'size', 'min', 'max', 'mean', 'std' \n\
  \n\
-        The 'set' command is somewhat different in that for practical purposes \n\
-        the contents of <curvFile1> are ignored. It is still important to \n\
-        specifiy a valid <curvFile1> since it is parsed by 'mris_calc' \n\
-        to determine the size of output curvature file to create. In most \n\
-        instances, <curvFile2> will denote a float value, and not an actual \n\
-        curvature file, i.e. 'mris_calc set rh.pial 0.005' will create \n\
-        an output curvature, 'out.crv' of the same size as rh.pial, and with \n\
-        each element set to 0.005. \n\
+	The 'set' command is somewhat different in that for practical purposes \n\
+	the contents of <curvFile1> are ignored. It is still important to \n\
+	specifiy a valid <curvFile1> since it is parsed by 'mris_calc' \n\
+	to determine the size of output curvature file to create. In most \n\
+	instances, <curvFile2> will denote a float value, and not an actual \n\
+	curvature file, i.e. 'mris_calc set rh.area 0.005' will create \n\
+	an output curvature, 'out.crv' of the same size as rh.area, and with \n\
+	each element set to 0.005. \n\
  \n\
         The 'ascii' command converts <curvFile1> to a text format file, \n\
         suitable for reading into MatLAB, for example. \n\
@@ -357,65 +356,67 @@ synopsis_show(void) {
  \n\
     ARBITRARY FLOATS AS SECOND INPUT ARGUMENT \n\
  \n\
-        If a second input argument is specified, 'mris_calc' will attempt to \n\
+	If a second input argument is specified, 'mris_calc' will attempt to \n\
         open the argument following <ACTION> as if it were a curvature file. \n\
         Should this file not exist, 'mricurc_calc' will attempt to parse the \n\
         argument as if it were a float value. \n\
  \n\
-        In such a case, 'mris_calc' will create a dummy internal \n\
-        curvature file and set all its elements to this float value. \n\
+	In such a case, 'mris_calc' will create a dummy internal \n\
+	curvature file and set all its elements to this float value. \n\
  \n\
     NOTES \n\
  \n\
-        <curvFile1> and <curvFile2> should typically be generated on the \n\
-        same subject. \n\
+	<curvFile1> and <curvFile2> should typically be generated on the \n\
+	same subject. \n\
  \n\
     EXAMPLES \n\
  \n\
-        $>mris_calc rh.pial mul rh.thickness \n\
+    	$>mris_calc rh.area mul rh.thickness \n\
  \n\
-        Multiply each value in <rh.pial> with the corresponding value \n\
-        in <rh.thickness>, creating a new file called 'out.crv' that \n\
-        contains the result. \n\
+	Multiply each value in <rh.area> with the corresponding value \n\
+	in <rh.thickness>, creating a new file called 'out.crv' that \n\
+	contains the result. \n\
  \n\
-        $>mris_calc --output rh.weightedCortex rh.pial mul rh.thickness \n\
+    	$>mris_calc --output rh.weightedCortex rh.area mul rh.thickness \n\
  \n\
-        Same as above, but give the ouput file the more meaningful name \n\
-        of 'rh.weightedCortex'. \n\
+	Same as above, but give the ouput file the more meaningful name \n\
+	of 'rh.weightedCortex'. \n\
  \n\
-        $>mris_calc rh.pial max \n\
+        $>mris_calc rh.area max \n\
  \n\
-        Determine the maximum value in 'rh.pial' and print to stdout. In \n\
-        addition to the max value, the index offset in 'rh.pial' containing \n\
+        Determine the maximum value in 'rh.area' and print to stdout. In \n\
+        addition to the max value, the index offset in 'rh.area' containing \n\
         this value is also printed. \n\
  \n\
-        $>mris_calc rh.pial stats \n\
+        $>mris_calc rh.area stats \n\
  \n\
-        Determine the size, min, max, mean, and std of 'rh.pial'. \n\
+        Determine the size, min, max, mean, and std of 'rh.area'. \n\
  \n\
     ADVANCED EXAMPLES \n\
  \n\
-        Consider the case when calculating the right hemisphere pseudo volume \n\
-        formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
-        file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
-        be expressed as a percentage of intercranial volume. \n\
+	Consider the case when calculating the right hemisphere pseudo volume \n\
+	formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
+	file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
+	be expressed as a percentage of intercranial volume. \n\
  \n\
-        $>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
-        Calculate the volume and store in a curvature format: \n\
+	$>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
+	Calculate the volume and store in a curvature format: \n\
  \n\
-        Now, find the intercranial volume (ICV) in the corresponding output \n\
-        file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
+	Now, find the intercranial volume (ICV) in the corresponding output \n\
+	file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
  \n\
-        $>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
-        Here the second <ACTION> argument is a number and not a curvature file. \n\
+	$>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
+	Here the second <ACTION> argument is a number and not a curvature file. \n\
  \n\
-        We could have achieved the same effect by first creating an \n\
-        intermediate curvature file, 'rh.ICV' with each element set to \n\
-        the ICV, and then divided by this curvature: \n\
+	We could have achieved the same effect by first creating an \n\
+	intermediate curvature file, 'rh.ICV' with each element set to \n\
+	the ICV, and then divided by this curvature: \n\
  \n\
-        $>mris_calc -o rh.ICV rh.area set 100000 \n\
-        $>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
+	$>mris_calc -o rh.ICV rh.area set 100000 \n\
+	$>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
  \n\
+ \n\
+
 \n");
 
   fprintf(stdout,pch_synopsis);
@@ -514,7 +515,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.6 2008/02/20 19:05:04 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.7 2008/09/23 14:48:38 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
