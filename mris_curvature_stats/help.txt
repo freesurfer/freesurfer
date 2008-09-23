@@ -31,7 +31,7 @@
           curvatures that result from the above calculations can be 
           saved to a series of text and binary-curvature files.  
 
- 	  PRINCIPAL CURVATURES AND FUNCTIONS
+	PRINCIPAL CURVATURES AND FUNCTIONS
 
 	  Given a surface file, 'mris_curvature_stats' can also compute
 	  all the principal curvatures relating to each point on the 
@@ -39,7 +39,7 @@
 	  curvatures.
 
 	  To calculate these principal curvatures, use a '-G' flag on the
-	  command line. In such an instance, you do need (nor probably even 
+	  command line. In such an instance, you do not need (nor probably even 
 	  want) any <curvFile> arguments. The following principal curvatures
 	  and derived measures are calculated (and statistics on each are
 	  presented) for each vertex on the surface:
@@ -52,6 +52,7 @@
 			S	Sharpness 	= (k1 - k2)^2
 	  		BE	Bending Energy 	= k1*k1 + k2*k2
 			SI	Shape Index	= atan((k1+k2)/(k2-k1))
+			FI	Folding Index	= |k1|*(|k1| - |k2|)
 	  
 	  Note that the 'BE' is not the same as the Willmore Bending Energy.
 	  The Willmore Bending Energy is the same as 'S' (sharpness). The 
@@ -76,7 +77,21 @@
        	  and can be selected with the '--discrete' command line argument.
 	  This is in fact the default mode for 'mris_curvature_stats'.
 
-    SURFACE INTEGRALS
+	NOTES ON CURVATURE FUNCTIONS
+	
+	  The FreeSurfer program, 'mris_anatomical_stats' reports additional
+	  curvature functions called 'intrinsic curvature index' (ICI) and 
+	  the 'folding index'.
+	  
+	  The 'folding index' reported by 'mris_curvature_stats' is related to
+	  that of 'mris_anatomical_stats' by a factor of 4*pi. In other words,
+	  results reported for the 'FI [Natural,Rectified,Positive,Negative]
+	  Surface Integral' need to be downscaled by 4*pi.
+	  
+	  Additionally, the ICI is found by downscaling the 'K Positive Surface
+	  Integral' by 4*pi.
+
+	SURFACE INTEGRALS
 
 	  The surface integrals for a given curvature map are filtered/modified
 	  in several ways.
@@ -89,6 +104,10 @@
 	  In addition, the following qualifiers are also evaluated:
     		- 'Mean':	the integral normalized to number of vertices
     		- 'AreaNorm':	the integral value normalized to unit surface
+
+	  The surface integral is defined as the sum across all the vertices
+	  of the particular curvature function at that vertex, weighted by the
+	  area of the vertex.
 
     OPTIONS         
 
@@ -141,6 +160,11 @@
           normalizing by the fractional vertex area which is defined by
           fractionalArea = (vertexArea/TotalSurfaceArea).
 
+    [--postScale <scaleFactor>]
+	
+	  If specified, scale the mean and areaNorm integrals by the amount
+	  <scaleFactor>. This can be useful in normalizing integral values.
+
     [--shapeIndex]
 
 	  The 'Shape Index' curvature map can be problematic due to
@@ -178,6 +202,7 @@
           <OHSC>.log		Full output, i.e the output of each curvature 
 				file mean +- sigma, as well as min/max and
 				surface integrals   
+
           <OHS>.raw.hist  	Raw histogram file. By 'raw' is implied that 
 				the curvature has not been further processed 
           			in any manner.  
@@ -190,6 +215,8 @@
 	  <OHS>.C.hist		C 'curvedness' histogram file 
 	  <OHS>.S.hist		S 'sharpness' histogram file 
 	  <OHS>.BE.hist		BE 'bending energy' histogram file 
+	  <OHS>.SI.hist		SI 'shape index' histogram file 
+	  <OHS>.FI.hist		FI 'folding index' histogram file 
 
           <HS>.norm.crv   	Normalised curv file	('-n')   
           <HS>.scaled.crv  	Scaled curv file	('-c' or '-d' '-e')  
@@ -200,6 +227,8 @@
           <HS>.S.crv   		S curv file  		('-G')
           <HS>.C.crv   		C curv file  		('-G')
           <HS>.BE.crv   	BE curv file  		('-G')
+          <HS>.SI.crv   	SI curv file  		('-G')
+          <HS>.FI.crv   	FI curv file  		('-G')
 
 	  (The above *.crv files can also be created with a 
 	  '--writeCurvatureFiles' flag)
