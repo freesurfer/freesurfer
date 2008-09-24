@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/18 18:51:37 $
- *    $Revision: 1.617 $
+ *    $Date: 2008/09/24 17:43:23 $
+ *    $Revision: 1.618 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.617 2008/09/18 18:51:37 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.618 2008/09/24 17:43:23 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -42515,14 +42515,17 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
     }
   }
 
-  //always writting out additional information
+  //always writing out additional information
   //if(Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-    MRISwrite(mris,"new_orig_uncorrected");
-    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-    MRISwrite(mris,"new_qsphere_uncorrected");
-    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISwrite(mris,"new_orig_uncorrected");
+      MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+      MRISwrite(mris,"new_qsphere_uncorrected");
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    }
     MRISclearCurvature(mris) ;
 
     for (i = 0 ; i < dl->ndefects ; i++)
@@ -42710,7 +42713,6 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
             defect->status[n] == DISCARD_VERTEX)
           vdst->ripflag=1;
         vertex_trans[vno] = mris_corrected->nvertices++ ;
-
       }
     }
   }
@@ -43127,6 +43129,26 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
     fprintf(WHICH_OUTPUT,"\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\nThe first retessellation error happened for defect %d\n\n",retessellation_error);
 #endif
 
+  if (Gdiag & DIAG_SAVE_DIAGS)
+  {
+    char fname[STRLEN], path[STRLEN] ;
+
+    MRISclearCurvature(mris_corrected) ;
+    for (i = 0 ; i < dl->ndefects ; i++)
+    {
+      defect = &dl->defects[i] ;
+      for ( n = 0 ; n < defect->nvertices ; n++)
+      {
+        vdst=&mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
+        if (vdst->ripflag == 0)
+          vdst->curv = (i+1) ;   // for diagnostics
+      }
+    }
+    FileNamePath(mris->fname, path) ;
+    sprintf(fname, "%s/%s.fixed.defect_labels.mgz", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+    printf("writing corrected defect labels to %s\n", fname) ;
+    MRISwriteCurvature(mris_corrected, fname) ;
+  }
   HISTOfree(&h_white) ;
   HISTOfree(&h_gray) ;
   HISTOfree(&h_border) ;
@@ -63673,7 +63695,11 @@ MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
   if (nbins < 0)
     nbins = 1000;
   h = HISTOalloc(nbins) ;
-  h->bin_size = bin_size = (fmax - fmin) / ((float)h->nbins-1) ;
+  if (fmax == fmin)
+    bin_size = 1 ;
+  else
+    bin_size = (fmax - fmin) / ((float)h->nbins-1) ;
+  h->bin_size = bin_size ;
   h->min = fmin ; h->max = fmax ;
   for (bin = 0 ; bin < h->nbins ; bin++)
     h->bins[bin] = bin*h->bin_size + h->min ;
