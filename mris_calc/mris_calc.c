@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/09/23 14:48:38 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/09/24 20:34:54 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.7 2008/09/23 14:48:38 rudolph Exp $";
+"$Id: mris_calc.c,v 1.8 2008/09/24 20:34:54 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -416,7 +416,6 @@ synopsis_show(void) {
 	$>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
  \n\
  \n\
-
 \n");
 
   fprintf(stdout,pch_synopsis);
@@ -515,7 +514,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.7 2008/09/23 14:48:38 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.8 2008/09/24 20:34:54 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
