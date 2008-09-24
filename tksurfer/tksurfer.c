@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/18 18:51:53 $
- *    $Revision: 1.313 $
+ *    $Date: 2008/09/24 17:42:39 $
+ *    $Revision: 1.314 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20689,7 +20689,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.313 2008/09/18 18:51:53 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.314 2008/09/24 17:42:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25540,6 +25540,8 @@ int sclv_set_current_threshold_from_percentile (float thresh, float mid,
   float     thresh_value, mid_value, max_value, slope ;
 
   h = MRISgetHistogram(mris, 1000, sclv_current_field);
+  if (ignorezeroesinhistogramflag)
+    HISTOclearZeroBin(h) ;
   HISTOmakeCDF(h, h) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     HISTOplot(h, "h.plt") ;
@@ -25547,9 +25549,25 @@ int sclv_set_current_threshold_from_percentile (float thresh, float mid,
   bmid = HISTOfindBinWithCount(h, mid) ;
   bmax = HISTOfindBinWithCount(h, max) ;
   thresh_value = h->bins[bthresh] ; mid_value = h->bins[bmid] ; max_value = h->bins[bmax] ;
-  slope = .5 / (max_value - mid_value) ;
-  printf("HISTO vals should be %f, %f, %f (slope = .5/(mx-md) =  %2.2f)\n", 
+  if (FEQUAL(max_value, thresh_value))
+    slope = 1.0 ;
+  else
+    slope = .5 / (max_value - mid_value) ;
+  if (thresh_value < 0)
+  {
+    sclv_field_info[sclv_current_field].foffset = foffset = thresh_value - (mid_value-thresh_value) ;
+    printf("setting foffset to %f\n", foffset) ;
+    thresh_value -= foffset ;
+    mid_value -= foffset ;
+    max_value -= foffset ;
+    printf("HISTO vals should be %f, %f, %f (slope = .5/(mx-md) =  %2.2f)\n", 
          thresh_value, mid_value, max_value, slope) ;
+  }
+  else
+    printf("HISTO vals should be %f, %f, %f (slope = .5/(mx-md) =  %2.2f)\n", 
+           thresh_value, mid_value, max_value, slope) ;
+
+    
   HISTOfree(&h) ;
   fthresh = sclv_field_info[sclv_current_field].fthresh = thresh_value;
   fmid = sclv_field_info[sclv_current_field].fmid = mid_value;
