@@ -77,20 +77,27 @@
        	  and can be selected with the '--discrete' command line argument.
 	  This is in fact the default mode for 'mris_curvature_stats'.
 
-	NOTES ON CURVATURE FUNCTIONS
+	NOTES ON CURVATURE / FOLDING INDICES
 	
-	  The FreeSurfer program, 'mris_anatomical_stats' reports additional
-	  curvature functions called 'intrinsic curvature index' (ICI) and 
-	  the 'folding index'.
+ 	  If a '-G' has been specified, 'mris_curvature_stats' will also
+ 	  output some folding/curvature index values. The 'Folding Index'
+	  is determined by dividing the integral of the FI curvature function 
+	  by 4*pi, and can also be reported by 'mris_anatomical_stats'.
 	  
-	  The 'folding index' reported by 'mris_curvature_stats' is related to
-	  that of 'mris_anatomical_stats' by a factor of 4*pi. In other words,
-	  results reported for the 'FI [Natural,Rectified,Positive,Negative]
-	  Surface Integral' need to be downscaled by 4*pi.
+	  Three 'Intrinsic Curvuture Index' measures are reported. These are
+	  simply found by dividing the Gaussian curvature surface integrals
+	  by 4*pi. The ICIp is also reported by 'mris_anatomical_stats'. The
+	  INIn and ICIt are extensions of the Intrinsic Curvature, derived from
+	  the negative and natural Gaussian surface integrals -- again by 
+	  dividing these integral results by 4*pi.
 	  
-	  Additionally, the ICI is found by downscaling the 'K Positive Surface
-	  Integral' by 4*pi.
-
+	  Note that the ICIt (the integral of the Gaussian curvature divided
+	  by 4*pi) should be close to 1.000 as per the Gauss-Bonnet theorem
+	  which states that the total Gaussian curvature of any closed surface
+	  is 2*pi*Euler_number. For topologically correct surfaces, the 
+	  Euler number is 2; thus the Gaussian integral is 4*pi and the ICIt
+	  is (in the ideal case) 1.
+ 	  
 	SURFACE INTEGRALS
 
 	  The surface integrals for a given curvature map are filtered/modified

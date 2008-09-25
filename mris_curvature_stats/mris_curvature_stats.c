@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/09/23 20:57:57 $
- *    $Revision: 1.47 $
+ *    $Date: 2008/09/25 19:21:34 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.47 2008/09/23 20:57:57 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.48 2008/09/25 19:21:34 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -295,6 +295,11 @@ static float	Gf_highPassFilterGaussian	= 0.;
 
 static int	Gb_signedPrincipals		= 0;
 
+static float	Gf_foldingIndex			= 0.;
+static float	Gf_intrinsicCurvaturePos	= 0.;
+static float	Gf_intrinsicCurvatureNeg	= 0.;
+static float	Gf_intrinsicCurvatureNat	= 0.;
+
 // All possible output file name and suffixes
 static	short	Gb_writeCurvatureFiles		= 0;
 static 	char 	Gpch_log[STRBUF];
@@ -418,7 +423,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.47 2008/09/23 20:57:57 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.48 2008/09/25 19:21:34 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -587,6 +592,12 @@ main(int argc, char *argv[]) {
       if (Gpch_SICurv[0] && Gb_writeCurvatureFiles) 
         MRISwriteCurvature(mris, 	Gpch_SICurv);
     }
+
+    printf("\n");
+    cprintf("Folding Index (FI)", Gf_foldingIndex);
+    cprintf("Intrinsic Curvature Index - positive (ICIp)", Gf_intrinsicCurvaturePos);
+    cprintf("Intrinsic Curvature Index - negative (ICIn)", Gf_intrinsicCurvatureNeg);    
+    cprintf("Intrinsic Curvature Index - natural  (ICIt)", Gf_intrinsicCurvatureNat);
   }
 
   if (Gf_n> 1.8) {
@@ -956,6 +967,14 @@ MRIS_surfaceIntegrals_report(
                            &f_SInegAreaNorm,		&f_SInegArea);
 
   strcpy(apch_report, "");
+
+  if(aesot == e_Gaussian) {
+	Gf_intrinsicCurvaturePos = f_SIpos / 4 / M_PI;
+	Gf_intrinsicCurvatureNeg = f_SIneg / 4 / M_PI;	
+	Gf_intrinsicCurvatureNat = f_SInatural / 4 / M_PI;
+  }
+  if(aesot == e_FI)
+	Gf_foldingIndex		 = f_SInatural / 4 / M_PI;
 
   sprintf(apch_report, "%s%10s%-40s", apch_report,
           pch_curveName, " Average Vertex Separation:");
@@ -2256,20 +2275,27 @@ print_help(void) {
        	  and can be selected with the '--discrete' command line argument. \n\
 	  This is in fact the default mode for 'mris_curvature_stats'. \n\
  \n\
-	NOTES ON CURVATURE FUNCTIONS \n\
+	NOTES ON CURVATURE / FOLDING INDICES \n\
 	 \n\
-	  The FreeSurfer program, 'mris_anatomical_stats' reports additional \n\
-	  curvature functions called 'intrinsic curvature index' (ICI) and \n\
-	  the 'folding index'. \n\
+ 	  If a '-G' has been specified, 'mris_curvature_stats' will also \n\
+ 	  output some folding/curvature index values. The 'Folding Index' \n\
+	  is determined by dividing the integral of the FI curvature function \n\
+	  by 4*pi, and can also be reported by 'mris_anatomical_stats'. \n\
 	 \n\
-	  The 'folding index' reported by 'mris_curvature_stats' is related to \n\
-	  that of 'mris_anatomical_stats' by a factor of 4*pi. In other words, \n\
-	  results reported for the 'FI [Natural,Rectified,Positive,Negative] \n\
-	  Surface Integral' need to be downscaled by 4*pi. \n\
+	  Three 'Intrinsic Curvuture Index' measures are reported. These are \n\
+	  simply found by dividing the Gaussian curvature surface integrals \n\
+	  by 4*pi. The ICIp is also reported by 'mris_anatomical_stats'. The \n\
+	  INIn and ICIt are extensions of the Intrinsic Curvature, derived from \n\
+	  the negative and natural Gaussian surface integrals -- again by \n\
+	  dividing these integral results by 4*pi. \n\
 	 \n\
-	  Additionally, the ICI is found by downscaling the 'K Positive Surface \n\
-	  Integral' by 4*pi. \n\
- \n\
+	  Note that the ICIt (the integral of the Gaussian curvature divided \n\
+	  by 4*pi) should be close to 1.000 as per the Gauss-Bonnet theorem \n\
+	  which states that the total Gaussian curvature of any closed surface \n\
+	  is 2*pi*Euler_number. For topologically correct surfaces, the \n\
+	  Euler number is 2; thus the Gaussian integral is 4*pi and the ICIt \n\
+	  is (in the ideal case) 1. \n\
+ 	 \n\
 	SURFACE INTEGRALS \n\
  \n\
 	  The surface integrals for a given curvature map are filtered/modified \n\
