@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/07 20:33:49 $
- *    $Revision: 1.85 $
+ *    $Date: 2008/09/26 23:22:29 $
+ *    $Revision: 1.85.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -155,6 +155,7 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
   if (npoints > MAX_SPLINE_POINTS)
     npoints = MAX_SPLINE_POINTS ;
 
+  printf("Starting OpenSpline(): npoints = %d\n",npoints);
   OpenSpline(inputs, outputs, npoints, 0.0f, 0.0f, outputs_2) ;
 
   if (!mri_dst)
@@ -813,6 +814,11 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
                 (ERROR_BADPARM,
                  "MRInormalize: could not find any valid peaks.\n"
                  "\nMake sure the Talairach alignment is correct!\n"));
+  printf("MRIsplineNormalize(): npeaks = %d\n",npeaks);
+  if(npeaks <= 1){
+    printf("ERROR: number of peaks must be > 1 for spline\n");
+    return(NULL);
+  }
   mri_dst = MRIsplineNormalize(mri_src, mri_dst,NULL,inputs,outputs,npeaks);
 
   if (Gdiag & DIAG_SHOW)
@@ -2250,163 +2256,6 @@ MRI3dGentleNormalize(MRI *mri_src,
   return(mri_norm) ;
 }
 
-#if 0
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-static MRI *
-mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
-{
-  int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
-  int     *pxi, *pyi, *pzi, nchanged, n, total ;
-  BUFTYPE *pmarked, *pctrl, ctrl, mark ;
-  float   *psrc, *pdst, src, val, mean ;
-  MRI     *mri_marked ;
-  float   scale ;
-
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
-
-  scale = mri_src->width / mri_dst->width ;
-  pxi = mri_src->xi ;
-  pyi = mri_src->yi ;
-  pzi = mri_src->zi ;
-
-  /* initialize dst image */
-  for (total = z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      psrc = &MRIFvox(mri_src, 0, y, z) ;
-      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
-      pdst = &MRIFvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        if (x == 141 && y == 68 && z == 127)
-          DiagBreak() ;
-        ctrl = *pctrl++ ;
-        src = *psrc++ ;
-        if (!ctrl)
-          val = 0 ;
-        else   /* find mean in region, and use it as bias field estimate */
-        {
-          val = src ;
-          total++ ;
-#if 0
-          mean = 0.0f ;
-          n = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
-            zi = pzi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = pyi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
-                xi = pxi[x+xk] ;
-                n++ ;
-                mean += MRIFvox(mri_src, xi, yi, zi) ;
-              }
-            }
-          }
-          val = mean / (float)n ;
-#else
-          val = MRIFvox(mri_src, x, y, z) ;/* it's already reduced,don't avg*/
-#endif
-        }
-        *pdst++ = val ;
-      }
-    }
-  }
-
-  total = width*height*depth - total ;  /* total # of voxels to be processed */
-  mri_marked = MRIcopy(mri_ctrl, NULL) ;
-
-  /* now propagate values outwards */
-  do
-  {
-    nchanged = 0 ;
-    /*
-      use mri_marked to keep track of the last set of voxels changed which
-      are marked CONTROL_MARKED. The neighbors of these will be marked
-      with CONTROL_TMP, and they are the only ones which need to be
-      examined.
-    */
-    mriMarkUnmarkedNeighbors(mri_marked, mri_ctrl, mri_marked,
-                             CONTROL_MARKED,
-                             CONTROL_TMP);
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NONE) ;
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_MARKED) ;
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        pmarked = &MRIvox(mri_marked, 0, y, z) ;
-        pdst = &MRIFvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-        {
-          mark = *pmarked++ ;
-          if (mark != CONTROL_MARKED)  /* not a neighbor of a marked point */
-          {
-            pdst++ ;
-            ;
-            continue ;
-          }
-
-          /* now see if any neighbors are on and set this voxel to the
-             average of the marked neighbors (if any) */
-          mean = 0.0f ;
-          n = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
-            zi = pzi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = pyi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
-                xi = pxi[x+xk] ;
-                if (MRIvox(mri_ctrl, xi, yi, zi))
-                {
-                  n++ ;
-                  mean += MRIFvox(mri_dst, xi, yi, zi) ;
-                }
-              }
-            }
-          }
-          if (n > 0)  /* some neighbors were on */
-          {
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has a value */
-            *pdst++ = mean / (float)n ;
-            nchanged++ ;
-          }
-          else   /* should never happen anymore */
-            pdst++ ;
-        }
-      }
-    }
-    total -= nchanged ;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr,
-              "Voronoi: %d voxels assigned, %d remaining.      \n",
-              nchanged, total) ;
-  }
-  while (nchanged > 0 && total > 0) ;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "\n") ;
-  MRIfree(&mri_marked) ;
-  MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NONE) ;
-  return(mri_dst) ;
-}
-#endif
 
 /*-----------------------------------------------------
   Parameters:
@@ -2426,9 +2275,9 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   MRI     *mri_marked ;
   float   scale ;
 
-  if (mri_src->type != MRI_SHORT
-      || mri_ctrl->type != MRI_UCHAR
-      || mri_dst->type != MRI_SHORT)
+  if (mri_src->type != MRI_SHORT || 
+      mri_ctrl->type != MRI_UCHAR || 
+      mri_dst->type != MRI_SHORT)
     ErrorExit(ERROR_UNSUPPORTED,
               "mriBuildVoronoiDiagramShort: incorrect input type(s)") ;
 
@@ -2594,6 +2443,12 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   MRI     *mri_marked ;
   float   scale ;
 
+  if (mri_src->type != MRI_FLOAT || 
+      mri_ctrl->type != MRI_UCHAR || 
+      mri_dst->type != MRI_FLOAT)
+    ErrorExit(ERROR_UNSUPPORTED,
+              "mriBuildVoronoiDiagramFloat: incorrect input type(s)") ;
+
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -2750,11 +2605,16 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int     *pxi, *pyi, *pzi, nchanged, n, total, visited ;
-  BUFTYPE *pmarked, *pctrl, ctrl, mark ;
+  int     ctrl, mark ;
   BUFTYPE *psrc, *pdst ;
   float   src, val, mean ;
   MRI     *mri_marked ;
   float   scale ;
+
+  if (mri_src->type != MRI_UCHAR || 
+      mri_dst->type != MRI_UCHAR)
+    ErrorExit(ERROR_UNSUPPORTED,
+              "mriBuildVoronoiDiagramUchar: incorrect input type(s)") ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2773,13 +2633,22 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;
-      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        ctrl = *pctrl++ ;
+        ctrl = (int)MRIgetVoxVal(mri_ctrl, x,y,z, 0);
+
+        if (ctrl > 255){
+          printf("ctrl=%d\n",ctrl);
+
+
+        }
+
+
+
+
         src = (float)*psrc++ ;
         if (!ctrl)
           val = 0 ;
@@ -2835,13 +2704,12 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     {
       for (y = 0 ; y < height ; y++)
       {
-        pmarked = &MRIvox(mri_marked, 0, y, z) ;
         pdst = &MRIvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
-          mark = *pmarked++ ;
+          mark = (int)MRIgetVoxVal(mri_marked, x,y,z, 0);
           if (mark != CONTROL_NBR)  /* not a neighbor of a marked point */
           {
             pdst++ ;
@@ -2863,7 +2731,7 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
               for (xk = -1 ; xk <= 1 ; xk++)
               {
                 xi = pxi[x+xk] ;
-                if (MRIvox(mri_marked, xi, yi, zi) ==
+                if ((int)MRIgetVoxVal(mri_marked, xi,yi,zi, 0) ==
                     CONTROL_MARKED)
                 {
                   n++ ;
@@ -2899,6 +2767,8 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   return(mri_dst) ;
 }
 
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -2906,7 +2776,6 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 
   Description
   ------------------------------------------------------*/
-#if 1
 MRI *
 MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 {
@@ -2926,162 +2795,7 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
                "MRIbuildVoronoiDiagram: src type %d unsupported",
                mri_src->type)) ;
 }
-#else
-MRI *
-MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
-{
-  int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi,
-  *pxi, *pyi, *pzi, nchanged, n, mean, total ;
-  BUFTYPE *pmarked, *psrc, *pctrl, *pdst, ctrl, src, val, mark ;
-  MRI     *mri_marked ;
-  float   scale ;
 
-  if (mri_src->type == MRI_FLOAT)
-    return(mriBuildVoronoiDiagramFloat(mri_src, mri_ctrl, mri_dst));
-  else if (mri_src->type == MRI_SHORT)
-    return(mriBuildVoronoiDiagramShort(mri_src, mri_ctrl, mri_dst));
-
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
-
-  scale = mri_src->width / mri_dst->width ;
-  pxi = mri_src->xi ;
-  pyi = mri_src->yi ;
-  pzi = mri_src->zi ;
-
-  /* initialize dst image */
-  for (total = z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        if (x == 167 && y == 127 && z == 126)
-          DiagBreak() ;
-        ctrl = *pctrl++ ;
-        src = *psrc++ ;
-        if (!ctrl)
-          val = 0 ;
-        else /* find mean in region, and use it as bias field estimate */
-        {
-          val = src ;
-          total++ ;
-#if 0
-          mean = n = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
-            zi = pzi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = pyi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
-                xi = pxi[x+xk] ;
-                n++ ;
-                mean += MRIvox(mri_src, xi, yi, zi) ;
-              }
-            }
-          }
-          val = nint((float)mean / (float)n) ;
-#else
-val = MRIvox(mri_src, x, y, z) ; /* it's already reduced,
-don't avg*/
-#endif
-        }
-        *pdst++ = val ;
-      }
-    }
-  }
-
-  total = width*height*depth - total ;  /* total # of voxels to be processed */
-  mri_marked = MRIcopy(mri_ctrl, NULL) ;
-
-  /* now propagate values outwards */
-  do
-  {
-    nchanged = 0 ;
-    /*
-    use mri_marked to keep track of the last set of voxels changed which
-    are marked CONTROL_MARKED. The neighbors of these will be marked
-    with CONTROL_TMP, and they are the only ones which need to be
-    examined.
-    */
-    mriMarkUnmarkedNeighbors(mri_marked, mri_ctrl, mri_marked,
-                             CONTROL_MARKED,
-                             CONTROL_TMP);
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NONE) ;
-    MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_MARKED) ;
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        pmarked = &MRIvox(mri_marked, 0, y, z) ;
-        pdst = &MRIvox(mri_dst, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
-        {
-          if (x == 167 && y == 127 && z == 126)
-            DiagBreak() ;
-          mark = *pmarked++ ;
-          if (mark != CONTROL_MARKED)  /* not a neighbor of
-            a marked point */
-          {
-            pdst++ ;
-            ;
-            continue ;
-          }
-
-          /* now see if any neighbors are on and set this voxel to the
-          average of the marked neighbors (if any) */
-          mean = n = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++)
-          {
-            zi = pzi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = pyi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++)
-              {
-                xi = pxi[x+xk] ;
-                if (MRIvox(mri_ctrl, xi, yi, zi))
-                {
-                  n++ ;
-                  mean += MRIvox(mri_dst, xi, yi, zi) ;
-                }
-              }
-            }
-          }
-          if (n > 0)  /* some neighbors were on */
-          {
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has a value */
-            *pdst++ = nint((float)mean / (float)n) ;
-            nchanged++ ;
-          }
-          else   /* should never happen anymore */
-            pdst++ ;
-        }
-      }
-    }
-    total -= nchanged ;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr,
-              "Voronoi: %d voxels assigned, %d remaining.      \n",
-              nchanged, total) ;
-  }
-  while (nchanged > 0 && total > 0) ;
-
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    fprintf(stderr, "\n") ;
-  MRIfree(&mri_marked) ;
-  MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NONE) ;
-  return(mri_dst) ;
-}
-#endif
 
 
 /*-----------------------------------------------------
@@ -3441,43 +3155,52 @@ static MRI *
 mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
-  *pxi, *pyi, *pzi, num ;
+          *pxi, *pyi, *pzi, num, x1, y1, z1, x2, y2, z2 ;
   BUFTYPE *pctrl, ctrl ;
   float   *ptmp ;
   float     mean ;
   MRI     *mri_tmp ;
+  MRI_REGION box ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  if (mri_ctrl->type != MRI_UCHAR)
+    ErrorExit(ERROR_UNSUPPORTED, "mriSoapBubbleFloat: ctrl must be UCHAR");
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
   if (!mri_dst)
     mri_dst = MRIcopy(mri_src, NULL) ;
 
-  pxi = mri_src->xi ;
-  pyi = mri_src->yi ;
-  pzi = mri_src->zi ;
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
 
   mri_tmp = MRIcopy(mri_dst, NULL) ;
 
-  for ( z = 0 ; z < depth ; z++)
+#ifdef WHALF 
+#undef WHALF
+#endif
+#define WHALF 2
+
+  MRIboundingBox(mri_ctrl, CONTROL_MARKED-1, &box) ;
+  x1 = box.x ; x2 = box.x+box.dx-1 ;
+  y1 = box.y ; y2 = box.y+box.dy-1 ;
+  z1 = box.z ; z2 = box.z+box.dz-1 ;
+
+  for ( z = MAX(0,z1-WHALF) ; z <= MIN(z2+WHALF,depth-1) ; z++)
   {
-    for (y = 0 ; y < height ; y++)
+    for (y = MAX(0,y1-WHALF) ; y <= MIN(y2+WHALF,height-1) ; y++)
     {
-      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
-      ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
+      pctrl = &MRIvox(mri_ctrl, MAX(0,x1-WHALF), y, z) ;
+      ptmp = &MRIFvox(mri_tmp, MAX(x1-WHALF, 0), y, z) ;
+      for (x = MAX(0,x1-WHALF) ; x <= MIN(x2+WHALF,width-1) ; x++)
       {
         ctrl = *pctrl++ ;
         if (ctrl == CONTROL_MARKED)
           continue ;
         num = mean = 0 ;
-        for (zk = -1 ; zk <= 1 ; zk++)
+        for (zk = -WHALF ; zk <= WHALF ; zk++)
         {
           zi = pzi[z+zk] ;
-          for (yk = -1 ; yk <= 1 ; yk++)
+          for (yk = -WHALF ; yk <= WHALF ; yk++)
           {
             yi = pyi[y+yk] ;
-            for (xk = -1 ; xk <= 1 ; xk++)
+            for (xk = -WHALF ; xk <= WHALF ; xk++)
             {
               xi = pxi[x+xk] ;
               if (MRIvox(mri_ctrl, xi, yi, zi) != CONTROL_MARKED)
@@ -3500,17 +3223,16 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
-    for ( z = 0 ; z < depth ; z++)
+    for ( z = z1 ; z <= z2 ; z++)
     {
-      for (y = 0 ; y < height ; y++)
+      for (y = y1 ; y <= y2 ; y++)
       {
-        pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
-        ptmp = &MRIFvox(mri_tmp, 0, y, z) ;
-        for (x = 0 ; x < width ; x++)
+        pctrl = &MRIvox(mri_ctrl, x1, y, z) ;
+        ptmp = &MRIFvox(mri_tmp, x1, y, z) ;
+        for (x = x1 ; x <= x2 ; x++)
         {
           ctrl = *pctrl++ ;
-          if (ctrl == CONTROL_MARKED)   /* marked point - don't
-            change it */
+          if (ctrl == CONTROL_MARKED)  // marked point - don't change it
           {
             ptmp++ ;
             continue ;
@@ -3537,6 +3259,8 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
       }
     }
     MRIcopy(mri_tmp, mri_dst) ;
+    x1 = MAX(x1-1, 0) ; y1 = MAX(y1-1, 0) ; z1 = MAX(z1-1, 0) ;
+    x2 = MIN(x2+1,width-1); y2 = MIN(y2+1,height-1); z2 = MIN(z2+1, depth-1);
   }
 
   MRIfree(&mri_tmp) ;
@@ -3769,15 +3493,23 @@ static MRI *
 mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
                          MRI *mri_dst, int mark, int nbr_mark)
 {
-  int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi,
-  *pzi ;
-  BUFTYPE *psrc, val ;
+  int width, height, depth, 
+    x, y, z, 
+    xk, yk, zk, 
+    xi, yi, zi, 
+    *pxi, *pyi, *pzi,
+    *psrc_int=NULL, val=0 ;
+  unsigned char *psrc_uchar=NULL ;
 
-  if (mri_src->type != MRI_UCHAR
-      || mri_marked->type != MRI_UCHAR
-      || mri_dst->type != MRI_UCHAR)
-    ErrorExit(ERROR_UNSUPPORTED,
-              "mriMarkUnmarkedNeighbors: all inputs must be MRI_UCHAR") ;
+  if ((mri_src->type != MRI_UCHAR || 
+       mri_marked->type != MRI_UCHAR || 
+       mri_dst->type != MRI_UCHAR) &&
+      (mri_src->type != MRI_INT || 
+       mri_marked->type != MRI_INT || 
+       mri_dst->type != MRI_INT))
+    ErrorExit(
+      ERROR_UNSUPPORTED,
+      "mriMarkUnmarkedNeighbors: all inputs must be MRI_UCHAR or MRI_INT") ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -3793,10 +3525,31 @@ mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
+      if (mri_src->type == MRI_UCHAR)
+      {
+        psrc_uchar = &MRIvox(mri_src, 0, y, z) ;
+      }
+      else if (mri_src->type == MRI_INT)
+      {
+        psrc_int = &MRIIvox(mri_src, 0, y, z) ;
+      }
+      else
+      {
+        ErrorExit(
+          ERROR_UNSUPPORTED,
+          "mriMarkUnmarkedNeighbors: all inputs must be "
+          "MRI_UCHAR or MRI_INT") ;
+      }
       for (x = 0 ; x < width ; x++)
       {
-        val = *psrc++ ;
+        if (mri_src->type == MRI_UCHAR)
+        {
+          val = *psrc_uchar++ ;
+        }
+        else if (mri_src->type == MRI_INT)
+        {
+          val = *psrc_int++;
+        }
         if (val == mark)   /* mark all neighbors */
         {
           for (zk = -1 ; zk <= 1 ; zk++)
@@ -3808,9 +3561,25 @@ mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
               for (xk = -1 ; xk <= 1 ; xk++)
               {
                 xi = pxi[x+xk] ;
-                if (MRIvox(mri_marked, xi, yi, zi) ==
-                    CONTROL_NONE)
-                  MRIvox(mri_dst, xi, yi, zi) = nbr_mark ;
+                if (mri_src->type == MRI_UCHAR)
+                {
+                  if (MRIvox(mri_marked, xi, yi, zi) ==
+                      CONTROL_NONE)
+                    MRIvox(mri_dst, xi, yi, zi) = nbr_mark ;
+                }
+                else if (mri_src->type == MRI_INT)
+                {
+                  if (MRIIvox(mri_marked, xi, yi, zi) ==
+                      CONTROL_NONE)
+                    MRIIvox(mri_dst, xi, yi, zi) = nbr_mark ;
+                }
+                else
+                {
+                  ErrorExit(
+                    ERROR_UNSUPPORTED,
+                    "mriMarkUnmarkedNeighbors: all inputs must be "
+                    "MRI_UCHAR or MRI_INT") ;
+                }
               }
             }
           }
