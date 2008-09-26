@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/09/04 16:13:52 $
- *    $Revision: 1.62 $
+ *    $Author: nicks $
+ *    $Date: 2008/09/26 23:10:18 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1609,9 +1609,8 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
         for (frame = 0 ; frame < mri_src->nframes ; frame++)
         {
           val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
-          if (FEQUAL(val, in_val))
-            val = out_val ;
-            MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
+          if (FEQUAL(val, in_val)) val = out_val ;
+          MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
         }
       }
     }
