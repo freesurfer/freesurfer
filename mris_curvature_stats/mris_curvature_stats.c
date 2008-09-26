@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/09/25 19:21:34 $
- *    $Revision: 1.48 $
+ *    $Date: 2008/09/26 13:43:03 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.48 2008/09/25 19:21:34 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.49 2008/09/26 13:43:03 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -423,7 +423,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.48 2008/09/25 19:21:34 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.49 2008/09/26 13:43:03 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -594,10 +594,10 @@ main(int argc, char *argv[]) {
     }
 
     printf("\n");
-    cprintf("Folding Index (FI)", Gf_foldingIndex);
-    cprintf("Intrinsic Curvature Index - positive (ICIp)", Gf_intrinsicCurvaturePos);
-    cprintf("Intrinsic Curvature Index - negative (ICIn)", Gf_intrinsicCurvatureNeg);    
-    cprintf("Intrinsic Curvature Index - natural  (ICIt)", Gf_intrinsicCurvatureNat);
+    printf("%-50s%12.5f\n", "Folding Index (FI):", Gf_foldingIndex);
+    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - positive (ICIp):", Gf_intrinsicCurvaturePos);
+    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - negative (ICIn):", Gf_intrinsicCurvatureNeg);    
+    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - natural  (ICIt):", Gf_intrinsicCurvatureNat);
   }
 
   if (Gf_n> 1.8) {
