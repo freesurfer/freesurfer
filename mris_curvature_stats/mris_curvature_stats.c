@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/09/26 13:43:03 $
- *    $Revision: 1.49 $
+ *    $Date: 2008/09/29 13:58:53 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.49 2008/09/26 13:43:03 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.50 2008/09/29 13:58:53 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -423,7 +423,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.49 2008/09/26 13:43:03 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.50 2008/09/29 13:58:53 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1091,6 +1091,9 @@ MRIS_curvatureStats_analyze(
   char	pch_minMaxReport[65536];
   char	pch_surfaceIntegralReport[65536];
   char*	pch_function	= "MRIS_curvatureStats_analyze";
+  char* pch_unitsmm	= "mm^-1";
+  char* pch_unitsmm2	= "mm^-2";
+  char 	pch_units[256];
 
   DebugEnterFunction (( pch_function ));
 
@@ -1114,11 +1117,22 @@ MRIS_curvatureStats_analyze(
     sprintf(pch_text, 
             "\n%s <mean> +- <std> (using '%s.%s'):",
             Gppch[aesot], hemi, surf_name);
+  strcpy(pch_units, "");
+  switch(aesot) {
+	case e_K1:
+	case e_K2:
+	case e_Mean:
+	    strcpy(pch_units, pch_unitsmm);
+	    break;
+	default:
+	    strcpy(pch_units, pch_unitsmm2);
+	    break;
+  }
   fprintf(stdout, "%-50s", pch_text);
-  fprintf(stdout, " %12.5f +- %2.4f mm\n", Gf_mean, Gf_sigma);
+  fprintf(stdout, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
   if(GpFILE_log) {
     fprintf(GpFILE_log, "%-50s", pch_text);
-    fprintf(GpFILE_log, " %12.5f +- %2.4f mm", Gf_mean, Gf_sigma);
+    fprintf(GpFILE_log, " %12.5f +- %2.4f %s", Gf_mean, Gf_sigma, pch_units);
   }
 
   // Now the min/max report
