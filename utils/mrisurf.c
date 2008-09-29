@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/24 17:43:23 $
- *    $Revision: 1.618 $
+ *    $Date: 2008/09/29 19:00:08 $
+ *    $Revision: 1.619 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.618 2008/09/24 17:43:23 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.619 2008/09/29 19:00:08 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10977,6 +10977,22 @@ MRIScopyMarksToAnnotation(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->annotation = v->marked ;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRIScopyStatsToValues(MRI_SURFACE *mris)
+{
+  int     vno, nvertices ;
+  VERTEX  *v ;
+
+  nvertices = mris->nvertices ;
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->val = v->stat ;
   }
   return(NO_ERROR) ;
 }
