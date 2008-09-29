@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/18 18:51:21 $
- *    $Revision: 1.321 $
+ *    $Date: 2008/09/29 19:00:17 $
+ *    $Revision: 1.322 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -655,6 +655,7 @@ int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
 int          MRIScopyImagValuesToValues(MRI_SURFACE *mris) ;
 int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
+int          MRIScopyStatsToValues(MRI_SURFACE *mris) ;
 
 int          MRIScopyValToVal2(MRI_SURFACE *mris) ;
 int          MRIScopyValToVal2Bak(MRI_SURFACE *mris) ;
