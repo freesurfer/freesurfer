@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/24 17:42:39 $
- *    $Revision: 1.314 $
+ *    $Date: 2008/09/29 14:10:09 $
+ *    $Revision: 1.315 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20689,7 +20689,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.314 2008/09/24 17:42:39 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.315 2008/09/29 14:10:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25564,8 +25564,12 @@ int sclv_set_current_threshold_from_percentile (float thresh, float mid,
          thresh_value, mid_value, max_value, slope) ;
   }
   else
+  {
+
+    sclv_field_info[sclv_current_field].foffset = foffset = 0;
     printf("HISTO vals should be %f, %f, %f (slope = .5/(mx-md) =  %2.2f)\n", 
            thresh_value, mid_value, max_value, slope) ;
+  }
 
     
   HISTOfree(&h) ;
