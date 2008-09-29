@@ -1,15 +1,15 @@
 /**
  * @file  mris_spherical_average.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief spherical averaging of labels, curvs and vals.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * apply spherical averaging to various scalars (see Fischl et al, HBM, 1999)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/10 15:25:45 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/09/29 19:00:31 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.22 2008/04/10 15:25:45 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.23 2008/09/29 19:00:31 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,6 +73,9 @@ static int which_ic = 7 ;
 static char *sdir = NULL ;
 static char *osdir = NULL ;
 
+static int spatial_prior_avgs = 0 ;
+static char *spatial_prior_fname = NULL ;
+
 int
 main(int argc, char *argv[]) {
   char            **av, *out_fname, *surf_name, fname[STRLEN],
@@ -85,10 +88,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.22 2008/04/10 15:25:45 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.23 2008/09/29 19:00:31 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.22 2008/04/10 15:25:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.23 2008/09/29 19:00:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -327,6 +330,14 @@ main(int argc, char *argv[]) {
              out_fname) ;
       if (normalize_flag)
         LabelNormalizeStats(area, (float)nsubjects) ;
+      if (spatial_prior_fname)
+      {
+        MRISclearMarks(mris) ;
+        LabelMarkStats(area, mris) ;
+        MRIScopyStatsToValues(mris) ;
+        MRISaverageVals(mris, spatial_prior_avgs) ;
+        MRISwriteValues(mris, spatial_prior_fname) ;
+      }
       if (threshold > 0)
         LabelThreshold(area, threshold) ;
       LabelWrite(area, out_fname) ;
@@ -378,6 +389,11 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "sdir")) {
     sdir = argv[2] ;
     nargs = 1 ;
+  } else if (!stricmp(option, "prior")) {
+    spatial_prior_avgs = atoi(argv[2]) ;
+    spatial_prior_fname = argv[3] ;
+    nargs = 2 ;
+    printf("blurring label priors and writing output to %s\n", spatial_prior_fname) ;
   } else if (!stricmp(option, "osdir")) {
     osdir = argv[2] ;
     nargs = 1 ;
