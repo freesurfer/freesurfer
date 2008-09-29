@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 01:16:35 $
- *    $Revision: 1.46 $
+ *    $Date: 2008/09/29 14:09:44 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.46 2008/08/26 01:16:35 fischl Exp $";
+"$Id: mri_vol2surf.c,v 1.47 2008/09/29 14:09:44 fischl Exp $";
 
 char *Progname = NULL;
 
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.46 2008/08/26 01:16:35 fischl Exp $", 
+     "$Id: mri_vol2surf.c,v 1.47 2008/09/29 14:09:44 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -386,7 +386,7 @@ int main(int argc, char **argv) {
   fflush(stdout);
 
   /* Load the thickness for projection along the normal*/
-  if (ProjFrac != 0) {
+  if (ProjFrac != 0 && ProjDistFlag == 0) {
     sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
             hemi,thicknessname);
     printf("Reading thickness %s\n",fname);
