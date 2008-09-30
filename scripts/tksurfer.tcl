@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: fischl $
-##    $Date: 2008/09/18 16:10:44 $
-##    $Revision: 1.159 $
+##    $Author: krish $
+##    $Date: 2008/09/30 19:53:30 $
+##    $Revision: 1.160 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1636,13 +1636,14 @@ proc SetOverlayField { inField } {
 	    $gaHistogramData(savedzoom,$gaHistoWidget(currentfield),zoomedmin)
 	set gaHistogramData(zoomedmax) \
 	    $gaHistogramData(savedzoom,$gaHistoWidget(currentfield),zoomedmax)
-
 	# If we were zoomed in, do it now, otherwise zoom out.
 	if { $gaHistogramData(zoomed) } {
-	    Histo_Zoom $gaHistoWidget(graph) \
-		$gaHistogramData(zoomedmin) $gaHistogramData(zoomedmax)
+	      if {[info exists gaHistoWidget(graph)]} {
+		Histo_Zoom $gaHistoWidget(graph) \
+		$gaHistogramData(zoomedmin) $gaHistogramData(zoomedmax) }
 	} else {
-	    Histo_Unzoom $gaHistoWidget(graph)
+	      if {[info exists gaHistoWidget(graph)]} {
+		Histo_Unzoom $gaHistoWidget(graph) }
 	}
     } else {
 	# No saved zoom settings, just zoom out.
