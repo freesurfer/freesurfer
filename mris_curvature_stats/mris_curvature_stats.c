@@ -5,15 +5,15 @@
  * 'mris_curvature_stats' calculates statistics on curvature across a surface. 
  * It also creates simple histograms on curvature distribution. 
  * Additionally, it can also be used to analyze a surface and determine the 
- * principle curvatures and save to extra curvature files, e.g. K, H, k1, k2.
+ * principal curvatures and save to extra curvature files, e.g. K, H, k1, k2.
  *
  */
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 21:49:04 $
- *    $Revision: 1.28.2.3 $
+ *    $Date: 2008/10/02 21:42:03 $
+ *    $Revision: 1.28.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,7 +70,8 @@ typedef enum _secondOrderType {
   e_BE			= 8,	// "bending energy"	= k1^2 + k2^2
   e_Normal 		= 9, 	// Normalised curvature
   e_Scaled 		= 10, 	// "Raw" scaled curvature
-  e_ScaledTrans 	= 11 	// Scaled and translated curvature
+  e_ScaledTrans 	= 11, 	// Scaled and translated curvature
+  e_FI			= 12 	// Folding Index 
 } e_secondOrderType;
 
 typedef enum _surfaceIntegrals {
@@ -93,13 +94,14 @@ char* Gppch[] = {
   "BE",
   "Normalised",
   "Scaled",
-  "ScaledTrans"
+  "ScaledTrans",
+  "FI"
 };
 
 // Output file prefixes
 typedef enum _OFSP {
   e_None,   			// No prefix
-  e_Partial,  		// A partial prefix (does not include the stem)
+  e_Partial,  			// A partial prefix (does not include the stem)
   e_Full,   			// Full prefix - including stem
 }   e_OFSP;
 
@@ -110,8 +112,8 @@ typedef enum _OFSP {
 typedef struct _minMax {
   float	f_min;			// The minimum curvature value
   float	f_max;			// The maximum curvature value
-  int		vertexMin;		// The vertex where min lives
-  int		vertexMax;		// The vertex where max lives
+  int	vertexMin;		// The vertex where min lives
+  int	vertexMax;		// The vertex where max lives
   short	b_minTest;		// If true, perform explicit min test
   short	b_maxTest;		// If true, perform explicit max test
   short	b_minViolation;		// If true, min value != explicit min
@@ -119,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.28.2.3 2007/12/10 21:49:04 nicks Exp $";
+  "$Id: mris_curvature_stats.c,v 1.28.2.4 2008/10/02 21:42:03 nicks Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -133,7 +135,7 @@ static void  print_version(void) ;
 // Function Prototypes: START //
 //----------------------------// 
 
-// Simple functions of principle curvatures
+// Simple functions of principal curvatures
 float 	f_sharpnessCurvature(float af_k1, float af_k2) 
 {return ((af_k1 - af_k2)*(af_k1 - af_k2));}
 float 	f_bendingEnergyCurvature(float af_k1, float af_k2) 
@@ -142,6 +144,8 @@ float 	f_curvednessCurvature(float af_k1, float af_k2)
 {return (sqrt(0.5*(af_k1*af_k1 + af_k2*af_k2)));}
 float 	f_shapeIndexCurvature(float af_k1, float af_k2) 
 {return (af_k1 == af_k2 ? 0 : atan((af_k1+af_k2)/(af_k2 - af_k1)));}
+float 	f_foldingIndexCurvature(float af_k1, float af_k2) 
+{return (fabs(af_k1)*(fabs(af_k1) - fabs(af_k2)));}
 
 // Simple functions on specific vertices
 float 	f_absCurv(VERTEX*		pv) {return (fabs(pv->curv));}
@@ -150,7 +154,7 @@ short 	f_allVertices(VERTEX*		pv) {return 1;}
 short 	f_greaterEqualZero(VERTEX*	pv) {return (pv->curv >= 0 ? 1 : 0);}
 short 	f_lessThanZero(VERTEX*		pv) {return (pv->curv <0 ? 1 : 0);}
 
-int 	MRISusePrincipleCurvatureFunction(
+int 	MRISusePrincipalCurvatureFunction(
 	MRI_SURFACE*		pmris, 
 	float 			(*f)(float k1, float k2)
   );
@@ -161,7 +165,7 @@ short 	MRIS_surfaceIntegral_compute(
 	float*			pf_areaCounted,
 	short			(*fcond)(VERTEX*	pv),
 	float			(*fv)	(VERTEX*	pv),
-  float*			pf_surfaceIntegral,
+  	float*			pf_surfaceIntegral,
 	float*			pf_meanIntegral,
 	float*			pf_areaNormalizedIntegral	
   );
@@ -196,25 +200,25 @@ void	outputFiles_open(void);
 void	outputFiles_close(void);
 
 int	MRIS_curvatureStats_analyze(
-	MRIS*			apmris,
-	e_secondOrderType	aesot
+  MRIS*				apmris,
+  e_secondOrderType		aesot
   );
 
 int  	MRISminMaxCurvaturesSearchSOT(
   MRI_SURFACE*  		apmris,
   int*   			ap_vertexMin,
   int*   			ap_vertexMax,
-  float*   		apf_min,
-  float*   		apf_max,
-  e_secondOrderType 	aesot
+  float*   			apf_min,
+  float*   			apf_max,
+  e_secondOrderType 		aesot
   );
 
 int  	MRISminMaxCurvaturesSearch(
   MRI_SURFACE*  		apmris,
   int*   			ap_vertexMin,
   int*   			ap_vertexMax,
-  float*   		apf_min,
-  float*   		apf_max
+  float*   			apf_min,
+  float*   			apf_max
   ) {
   MRISminMaxCurvaturesSearchSOT(  apmris,
                                   ap_vertexMin,
@@ -224,6 +228,11 @@ int  	MRISminMaxCurvaturesSearch(
                                   e_Raw);
   return(NO_ERROR);
 };
+
+int	MRISvertexAreaPostProcess(
+	MRI_SURFACE*		pmris
+);
+
 
 //----------------------------//
 // Function Prototypes: END   //
@@ -269,6 +278,10 @@ static int 	G_bins   			= 1;
 static int 	Gb_maxUlps  			= 0;
 static int 	G_maxUlps  			= 0;
 
+static int	Gb_vertexAreaNormalize		= 0;
+static int	Gb_vertexAreaWeigh		= 0;
+static int      Gb_vertexAreaNormalizeFrac      = 0;
+static int      Gb_vertexAreaWeighFrac          = 0;
 static int	Gb_postScale			= 0;
 static float	Gf_postScale			= 0.;
 static int	Gb_lowPassFilter		= 0;
@@ -280,7 +293,12 @@ static float	Gf_highPassFilter		= 0.;
 static int	Gb_highPassFilterGaussian	= 0;
 static float	Gf_highPassFilterGaussian	= 0.;
 
-static int	Gb_signedPrinciples		= 0;
+static int	Gb_signedPrincipals		= 0;
+
+static float	Gf_foldingIndex			= 0.;
+static float	Gf_intrinsicCurvaturePos	= 0.;
+static float	Gf_intrinsicCurvatureNeg	= 0.;
+static float	Gf_intrinsicCurvatureNat	= 0.;
 
 // All possible output file name and suffixes
 static	short	Gb_writeCurvatureFiles		= 0;
@@ -348,6 +366,12 @@ static FILE* 	GpFILE_SIHist  			= NULL;
 static char 	Gpch_SICurv[STRBUF];
 static char 	Gpch_SICurvS[]  		= "SI.crv";
 
+static char 	Gpch_FIHist[STRBUF];
+static char 	Gpch_FIHistS[]  		= "FI.hist";
+static FILE* 	GpFILE_FIHist  			= NULL;
+static char 	Gpch_FICurv[STRBUF];
+static char 	Gpch_FICurvS[]  		= "FI.crv";
+
 // These are used for tabular output
 const int 	G_leftCols  			= 10;
 const int 	G_rightCols 			= 40;
@@ -399,7 +423,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.28.2.3 2007/12/10 21:49:04 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.28.2.4 2008/10/02 21:42:03 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -520,18 +544,18 @@ main(int argc, char *argv[]) {
       MRIS_curvatureStats_analyze(mris, e_Raw); stats_update(i);
     }
 
-  // Should we calculate all the principle curvature based curvatures? 
+  // Should we calculate all the principal curvature based curvatures? 
   // This is a surface-based calculation, and does not depend on the 
   // curvature processing loop - thus the 'curv' input is irrelevant
   if (Gb_gaussianAndMean) {
     MRISsetNeighborhoodSize(mris, G_nbrs);
     if(!Gb_discreteCurvaturesUse) {
-      cprints("Calculating Continuous Principle Curvatures...", "");
+      cprints("Calculating Continuous Principal Curvatures...", "");
       MRIScomputeSecondFundamentalForm(mris);
       cprints("", "ok");
     } else {
-      cprints("Calculating Discrete Principle Curvatures...", "");
-      MRIScomputeSecondFundamentalFormDiscrete(mris, Gb_signedPrinciples);
+      cprints("Calculating Discrete Principal Curvatures...", "");
+      MRIScomputeSecondFundamentalFormDiscrete(mris, Gb_signedPrincipals);
     }
 
     MRIS_curvatureStats_analyze(mris, e_Gaussian); stats_update(i++);
@@ -555,6 +579,9 @@ main(int argc, char *argv[]) {
     MRIS_curvatureStats_analyze(mris, e_BE); stats_update(i++);
     if (Gpch_BECurv[0] && Gb_writeCurvatureFiles) 
       MRISwriteCurvature(mris, 	Gpch_BECurv);
+    MRIS_curvatureStats_analyze(mris, e_FI); stats_update(i++);
+    if (Gpch_FICurv[0] && Gb_writeCurvatureFiles) 
+      MRISwriteCurvature(mris, 	Gpch_FICurv);
     
     // NOTE:
     // The "Shape Index" can be problematic due to the atan calculations.
@@ -565,6 +592,12 @@ main(int argc, char *argv[]) {
       if (Gpch_SICurv[0] && Gb_writeCurvatureFiles) 
         MRISwriteCurvature(mris, 	Gpch_SICurv);
     }
+
+    printf("\n");
+    printf("%-50s%12.5f\n", "Folding Index (FI):", Gf_foldingIndex);
+    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - positive (ICIp):", Gf_intrinsicCurvaturePos);
+    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - negative (ICIn):", Gf_intrinsicCurvatureNeg);    
+    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - natural  (ICIt):", Gf_intrinsicCurvatureNat);
   }
 
   if (Gf_n> 1.8) {
@@ -745,27 +778,31 @@ MRIS_curvatures_prepare(
   case e_Mean:
     ret = MRISuseMeanCurvature(apmris);
     break;
- 	case e_K1:
+  case e_K1:
     ret = MRISuseK1Curvature(apmris);
     break;
- 	case e_K2:
+  case e_K2:
     ret = MRISuseK2Curvature(apmris);
     break;
-	case e_S:
-    ret = MRISusePrincipleCurvatureFunction(apmris, 
+  case e_S:
+    ret = MRISusePrincipalCurvatureFunction(apmris, 
                                             f_sharpnessCurvature);
     break;
-	case e_C:
-    ret = MRISusePrincipleCurvatureFunction(apmris, 
-                                            f_sharpnessCurvature);
+  case e_C:
+    ret = MRISusePrincipalCurvatureFunction(apmris, 
+                                            f_curvednessCurvature);
     break;
-	case e_BE:
-    ret = MRISusePrincipleCurvatureFunction(apmris,
+  case e_BE:
+    ret = MRISusePrincipalCurvatureFunction(apmris,
                                             f_bendingEnergyCurvature);
     break;
-	case e_SI:
-    ret = MRISusePrincipleCurvatureFunction(apmris, 
+  case e_SI:
+    ret = MRISusePrincipalCurvatureFunction(apmris, 
                                             f_shapeIndexCurvature);
+    break;
+  case e_FI:
+    ret = MRISusePrincipalCurvatureFunction(apmris, 
+                                            f_foldingIndexCurvature);
     break;
   case e_Raw:
   case e_Normal:
@@ -773,6 +810,13 @@ MRIS_curvatures_prepare(
   case e_ScaledTrans:
     break;
   }
+
+  // Check for possible normalizing / weighing factors
+  if(   Gb_vertexAreaNormalize          || 
+        Gb_vertexAreaWeigh              || 
+        Gb_vertexAreaNormalizeFrac      || 
+        Gb_vertexAreaWeighFrac)
+	MRISvertexAreaPostProcess(apmris);
   xDbg_PopStack();
   return ret;
 }
@@ -780,7 +824,7 @@ MRIS_curvatures_prepare(
 short
 MRIS_minMaxCurve_report(
 	MRIS*   		apmris,
-  e_secondOrderType 	aesot,
+  	e_secondOrderType 	aesot,
 	char*			apch_report
   ) {
   //
@@ -904,25 +948,33 @@ MRIS_surfaceIntegrals_report(
 
   surfaceIntegrals_compute(apmris, e_natural,
                            &f_SInatural, 		 	
-                           &f_SInaturalMean, 	&SInaturalVertices,
+                           &f_SInaturalMean, 		&SInaturalVertices,
                            &f_SInaturalAreaNorm,	&f_SInaturalArea);
 
   surfaceIntegrals_compute(apmris, e_rectified, 	 	
                            &f_SIabs, 		 	
                            &f_SIabsMean,		&SIabsVertices,
-                           &f_SIabsAreaNorm,	&f_SIabsArea);
+                           &f_SIabsAreaNorm,		&f_SIabsArea);
  
   surfaceIntegrals_compute(apmris, e_pos, 		 	
                            &f_SIpos, 		 	
                            &f_SIposMean,		&SIposVertices,
-                           &f_SIposAreaNorm,	&f_SIposArea);
+                           &f_SIposAreaNorm,		&f_SIposArea);
   
   surfaceIntegrals_compute(apmris, e_neg, 		 	
                            &f_SIneg, 		 	
                            &f_SInegMean,		&SInegVertices,
-                           &f_SInegAreaNorm,	&f_SInegArea);
+                           &f_SInegAreaNorm,		&f_SInegArea);
 
   strcpy(apch_report, "");
+
+  if(aesot == e_Gaussian) {
+	Gf_intrinsicCurvaturePos = f_SIpos / 4 / M_PI;
+	Gf_intrinsicCurvatureNeg = f_SIneg / 4 / M_PI;	
+	Gf_intrinsicCurvatureNat = f_SInatural / 4 / M_PI;
+  }
+  if(aesot == e_FI)
+	Gf_foldingIndex		 = f_SInatural / 4 / M_PI;
 
   sprintf(apch_report, "%s%10s%-40s", apch_report,
           pch_curveName, " Average Vertex Separation:");
@@ -1039,6 +1091,9 @@ MRIS_curvatureStats_analyze(
   char	pch_minMaxReport[65536];
   char	pch_surfaceIntegralReport[65536];
   char*	pch_function	= "MRIS_curvatureStats_analyze";
+  char* pch_unitsmm	= "mm^-1";
+  char* pch_unitsmm2	= "mm^-2";
+  char 	pch_units[256];
 
   DebugEnterFunction (( pch_function ));
 
@@ -1062,11 +1117,22 @@ MRIS_curvatureStats_analyze(
     sprintf(pch_text, 
             "\n%s <mean> +- <std> (using '%s.%s'):",
             Gppch[aesot], hemi, surf_name);
+  strcpy(pch_units, "");
+  switch(aesot) {
+	case e_K1:
+	case e_K2:
+	case e_Mean:
+	    strcpy(pch_units, pch_unitsmm);
+	    break;
+	default:
+	    strcpy(pch_units, pch_unitsmm2);
+	    break;
+  }
   fprintf(stdout, "%-50s", pch_text);
-  fprintf(stdout, " %12.5f +- %2.4f mm\n", Gf_mean, Gf_sigma);
+  fprintf(stdout, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
   if(GpFILE_log) {
     fprintf(GpFILE_log, "%-50s", pch_text);
-    fprintf(GpFILE_log, " %12.5f +- %2.4f mm", Gf_mean, Gf_sigma);
+    fprintf(GpFILE_log, " %12.5f +- %2.4f %s", Gf_mean, Gf_sigma, pch_units);
   }
 
   // Now the min/max report
@@ -1084,9 +1150,9 @@ MRIS_curvatureStats_analyze(
 
 int
 MRISvertexCurvature_set(
-  MRI_SURFACE*  apmris,
-  int   aindex,
-  float   af_val
+  	MRI_SURFACE*  	apmris,
+  	int   		aindex,
+  	float   	af_val
   ) {
   //
   // PRECONDITIONS
@@ -1144,12 +1210,12 @@ MRISvertexCurvature_set(
 
 int
 MRISminMaxCurvaturesSearchSOT(
-  MRI_SURFACE*  apmris,
-  int*   ap_vertexMin,
-  int*   ap_vertexMax,
-  float*   apf_min,
-  float*   apf_max,
-  e_secondOrderType aesot
+  	MRI_SURFACE*  	apmris,
+	int*   		ap_vertexMin,
+  	int*   		ap_vertexMax,
+  	float*   	apf_min,
+  	float*   	apf_max,
+  	e_secondOrderType 	aesot
   ) {
   //
   // PRECONDITIONS
@@ -1178,6 +1244,7 @@ MRISminMaxCurvaturesSearchSOT(
     case e_C:
     case e_S:
     case e_SI:
+    case e_FI:
     case e_BE:
     case e_Raw:
       f_curv  = pvertex->curv;
@@ -1251,22 +1318,6 @@ MRISminMaxCurvatureIndicesLookup(
 }
 
 int
-MRISusePrincipleCurvature(
-	MRIS*		apmris,
-	int		(*f)(MRIS* apmris)
-  ) {
-  //
-  // 	This is a thin wrapper/dispatch about an underlying
-  //	MRISuse[Gaussian|Mean|k1|k2]Curvature() function.
-  //
-  int	ret	= 0;
-
-  ret		= f(apmris);
-
-  return(ret);
-}
-
-int
 MRISuseK1Curvature(MRI_SURFACE *mris) {
   int    vno ;
   VERTEX *vertex ;
@@ -1311,12 +1362,12 @@ MRISuseK2Curvature(MRI_SURFACE *mris) {
 }
 
 int
-MRISusePrincipleCurvatureFunction(
+MRISusePrincipalCurvatureFunction(
 	MRI_SURFACE*		pmris, 
 	float 			(*f)(float k1, float k2)) {
   //
   // PRECONDITIONS
-  //	o The principle curvatures k1 and k2 for each vertex point on the 
+  //	o The principal curvatures k1 and k2 for each vertex point on the 
   //	  surface have been defined.
   //
   // POSTCONDITIONS
@@ -1330,8 +1381,8 @@ MRISusePrincipleCurvatureFunction(
   float		f_k1;
   float		f_k2;
 
-  float  f_min =  pmris->vertices[0].curv;
-  float  f_max = f_min;
+  float  	f_min           =  pmris->vertices[0].curv;
+  float  	f_max           = f_min;
 
   for (vno = 0 ; vno < pmris->nvertices ; vno++) {
     pvertex = &pmris->vertices[vno] ;
@@ -1342,6 +1393,45 @@ MRISusePrincipleCurvatureFunction(
     pvertex->curv 	= (*f)(f_k1, f_k2);
     if (pvertex->curv < f_min) f_min = pvertex->curv;
     if (pvertex->curv > f_max) f_max = pvertex->curv;
+  }
+
+  pmris->min_curv = f_min ;
+  pmris->max_curv = f_max;
+  return(NO_ERROR) ;
+}
+
+int
+MRISvertexAreaPostProcess(
+	MRI_SURFACE*		pmris
+) {
+  //
+  // PRECONDITIONS
+  //	o The 'curv' member at each vertex contains the curvature
+  //	  function value of interest.
+  //
+  // POSTCONDITIONS
+  // 	o If the Gb_vertexAreaNormalize{Frac} or Gb_vertexAreaWeigh{Frac}
+  //	  flags are set, process the 'curv' member accordingly.
+  //	o Reset the min_curv and max_curv values if necessary.
+  //
+
+  int    	vno ;
+  VERTEX*	pvertex ;
+  float         f_surfaceArea   = pmris->total_area;
+
+  float  	f_min =  pmris->vertices[0].curv;
+  float  	f_max = f_min;
+
+  for (vno = 0 ; vno < pmris->nvertices ; vno++) {
+      pvertex = &pmris->vertices[vno] ;
+      if (pvertex->ripflag)
+        continue ;
+      if (Gb_vertexAreaNormalize)       pvertex->curv /= pvertex->area;
+      if (Gb_vertexAreaWeigh)           pvertex->curv *= pvertex->area;
+      if (Gb_vertexAreaNormalizeFrac)   pvertex->curv /= (pvertex->area/f_surfaceArea);
+      if (Gb_vertexAreaWeighFrac)       pvertex->curv *= (pvertex->area/f_surfaceArea);
+      if (pvertex->curv < f_min) f_min = pvertex->curv;
+      if (pvertex->curv > f_max) f_max = pvertex->curv;
   }
 
   pmris->min_curv = f_min ;
@@ -1371,7 +1461,7 @@ MRIS_surfaceIntegral_compute(
   //	is first checked by the (*fcond) function for eligibility. 
   //	
   //	The actual curvature that is integrated can also be shaped
-  //	by the (*fcurv) function.
+  //	by the (*fv) function.
   //
   //	Global low pass filtering (on actual curvature values and
   //	Gaussian test) is always implemented. 
@@ -1440,7 +1530,7 @@ MRIS_surfaceIntegral_compute(
         b_canCount &= 0;
     }
     if(b_canCount && (*fcond)(pv)) {
-      f_total 		+= ((*fv)(pv) * pv->area) ;
+      f_total 			+= ((*fv)(pv) * pv->area) ;
       f_n 			+= 1.0 ;
       (*pf_areaCounted) 	+= pv->area;
       (*p_verticesCounted)++;
@@ -1632,6 +1722,10 @@ histogram_wrapper(
       if (GpFILE_SIHist!=NULL)
       { b_writeToFile = 1; pFILE = GpFILE_SIHist; }
       break;
+    case e_FI:
+      if (GpFILE_FIHist!=NULL)
+      { b_writeToFile = 1; pFILE = GpFILE_FIHist; }
+      break;
     case e_Normal:
       if (GpFILE_normHist!=NULL)
       { b_writeToFile = 1; pFILE = GpFILE_normHist; }
@@ -1789,6 +1883,18 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "-shapeIndex")) {
     Gb_shapeIndex		= 1;
     cprints("Toggling shape index map on", "ok");
+  } else if (!stricmp(option, "-vertexAreaNormalize")) {
+    Gb_vertexAreaNormalize	= 1;
+    cprints("Toggling vertex area normalize on", "ok");
+  } else if (!stricmp(option, "-vertexAreaWeigh")) {
+    Gb_vertexAreaWeigh		= 1;
+    cprints("Toggling vertex area weighing on", "ok");
+  } else if (!stricmp(option, "-vertexAreaNormalizeFrac")) {
+    Gb_vertexAreaNormalizeFrac   = 1;
+    cprints("Toggling fractional vertex area normalize on", "ok");
+  } else if (!stricmp(option, "-vertexAreaWeighFrac")) {
+    Gb_vertexAreaWeighFrac       = 1;
+    cprints("Toggling fractional vertex area weighing on", "ok");
   } else if (!stricmp(option, "-lowPassFilterGaussian")) {
     Gb_lowPassFilterGaussian	= 1;
     Gf_lowPassFilterGaussian	= atof(argv[2]);
@@ -1820,9 +1926,9 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "-writeCurvatureFiles")) {
     Gb_writeCurvatureFiles	= 1;
     cprints("Toggling save flag on curvature files", "ok");
-  } else if (!stricmp(option, "-signedPrinciples")) {
-    Gb_signedPrinciples	= 1;
-    cprints("Toggling 'signedPrinciples' flag ON", "ok");
+  } else if (!stricmp(option, "-signedPrincipals")) {
+    Gb_signedPrincipals	= 1;
+    cprints("Toggling 'signedPrincipals' flag ON", "ok");
   } else switch (toupper(*option)) {
   case 'O':
     output_fname  		= argv[2] ;
@@ -1976,6 +2082,8 @@ outputFileNames_create(void) {
   OFSP_create(Gpch_BECurv,  	Gpch_BECurvS, 		e_Partial);
   OFSP_create(Gpch_SIHist,  	Gpch_SIHistS, 		e_Full);
   OFSP_create(Gpch_SICurv,  	Gpch_SICurvS, 		e_Partial);
+  OFSP_create(Gpch_FIHist,  	Gpch_FIHistS, 		e_Full);
+  OFSP_create(Gpch_FICurv,  	Gpch_FICurvS, 		e_Partial);
   OFSP_create(Gpch_scaledHist,	Gpch_scaledHistS,	e_Full);
   OFSP_create(Gpch_scaledCurv,	Gpch_scaledCurvS,	e_Partial);
 }
@@ -2046,6 +2154,11 @@ outputFiles_open(void) {
                     "%s: Could not open file '%s' for writing.\n",
                     Progname, Gpch_SIHist);
         }
+        if ((GpFILE_FIHist=fopen(Gpch_FIHist, "w"))==NULL) {
+          ErrorExit(ERROR_NOFILE,
+                    "%s: Could not open file '%s' for writing.\n",
+                    Progname, Gpch_FIHist);
+        }
       }
     }
     if (Gb_scale || (Gb_scaleMin && Gb_scaleMax)) {
@@ -2077,6 +2190,7 @@ outputFiles_close(void) {
   if (GpFILE_CHist) 	 fclose(GpFILE_CHist);	   GpFILE_CHist 	= NULL;
   if (GpFILE_BEHist) 	 fclose(GpFILE_BEHist);	   GpFILE_BEHist 	= NULL;
   if (GpFILE_SIHist) 	 fclose(GpFILE_SIHist);	   GpFILE_SIHist 	= NULL;
+  if (GpFILE_FIHist) 	 fclose(GpFILE_FIHist);	   GpFILE_FIHist 	= NULL;
   if (GpFILE_scaledHist) fclose(GpFILE_scaledHist);GpFILE_scaledHist 	= NULL;
 }
 
@@ -2121,7 +2235,7 @@ print_help(void) {
           Curvatures can also be normalised and constrained to a given \n\
           range before computation. \n\
  \n\
-          Principle curvature (K, H, k1 and k2) calculations on a surface \n\
+          Principal curvature (K, H, k1 and k2) calculations on a surface \n\
 	  structure can also be performed, as well as several functions \n\
 	  derived from k1 and k2. \n\
  \n\
@@ -2129,16 +2243,16 @@ print_help(void) {
           curvatures that result from the above calculations can be \n\
           saved to a series of text and binary-curvature files. \n\
  \n\
- 	  PRINCIPLE CURVATURES AND FUNCTIONS \n\
+	PRINCIPAL CURVATURES AND FUNCTIONS \n\
  \n\
 	  Given a surface file, 'mris_curvature_stats' can also compute \n\
-	  all the principle curvatures relating to each point on the \n\
-	  surface as well as several functions of these principle \n\
+	  all the principal curvatures relating to each point on the \n\
+	  surface as well as several functions of these principal \n\
 	  curvatures. \n\
  \n\
-	  To calculate these principle curvatures, use a '-G' flag on the \n\
-	  command line. In such an instance, you do need (nor probably even \n\
-	  want) any <curvFile> arguments. The following principle curvatures \n\
+	  To calculate these principal curvatures, use a '-G' flag on the \n\
+	  command line. In such an instance, you do not need (nor probably even \n\
+	  want) any <curvFile> arguments. The following principal curvatures \n\
 	  and derived measures are calculated (and statistics on each are \n\
 	  presented) for each vertex on the surface: \n\
  \n\
@@ -2150,15 +2264,21 @@ print_help(void) {
 			S	Sharpness 	= (k1 - k2)^2 \n\
 	  		BE	Bending Energy 	= k1*k1 + k2*k2 \n\
 			SI	Shape Index	= atan((k1+k2)/(k2-k1)) \n\
+			FI	Folding Index	= |k1|*(|k1| - |k2|) \n\
 	 \n\
-	  Note that the SI is not calculated by default due to some issues \n\
+	  Note that the 'BE' is not the same as the Willmore Bending Energy. \n\
+	  The Willmore Bending Energy is the same as 'S' (sharpness). The \n\
+	  BE in this case only considers the square of the principal \n\
+	  curvatures. \n\
+ \n\
+	  Also note that the SI is not calculated by default due to some issues \n\
 	  with atan calculations. Use the '--shapeIndex' flag on the command \n\
 	  line to force SI. \n\
  \n\
 	  In addition, if a '--writeCurvatureFiles' is specified, each of the \n\
 	  above are written to a FreeSurfer format curvature file. \n\
  \n\
-	  Note that there are two methods to calculate principle curvatures. \n\
+	  Note that there are two methods to calculate principal curvatures. \n\
 	  The first method is based on calculating the Second Fundamental \n\
 	  Form, and is the method used by 'mris_anatomical_stats'. This \n\
 	  approach can be selected by the '--continuous' command line \n\
@@ -2169,7 +2289,28 @@ print_help(void) {
        	  and can be selected with the '--discrete' command line argument. \n\
 	  This is in fact the default mode for 'mris_curvature_stats'. \n\
  \n\
-    SURFACE INTEGRALS \n\
+	NOTES ON CURVATURE / FOLDING INDICES \n\
+	 \n\
+ 	  If a '-G' has been specified, 'mris_curvature_stats' will also \n\
+ 	  output some folding/curvature index values. The 'Folding Index' \n\
+	  is determined by dividing the integral of the FI curvature function \n\
+	  by 4*pi, and can also be reported by 'mris_anatomical_stats'. \n\
+	 \n\
+	  Three 'Intrinsic Curvuture Index' measures are reported. These are \n\
+	  simply found by dividing the Gaussian curvature surface integrals \n\
+	  by 4*pi. The ICIp is also reported by 'mris_anatomical_stats'. The \n\
+	  INIn and ICIt are extensions of the Intrinsic Curvature, derived from \n\
+	  the negative and natural Gaussian surface integrals -- again by \n\
+	  dividing these integral results by 4*pi. \n\
+	 \n\
+	  Note that the ICIt (the integral of the Gaussian curvature divided \n\
+	  by 4*pi) should be close to 1.000 as per the Gauss-Bonnet theorem \n\
+	  which states that the total Gaussian curvature of any closed surface \n\
+	  is 2*pi*Euler_number. For topologically correct surfaces, the \n\
+	  Euler number is 2; thus the Gaussian integral is 4*pi and the ICIt \n\
+	  is (in the ideal case) 1. \n\
+ 	 \n\
+	SURFACE INTEGRALS \n\
  \n\
 	  The surface integrals for a given curvature map are filtered/modified \n\
 	  in several ways. \n\
@@ -2183,22 +2324,65 @@ print_help(void) {
     		- 'Mean':	the integral normalized to number of vertices \n\
     		- 'AreaNorm':	the integral value normalized to unit surface \n\
  \n\
+	  The surface integral is defined as the sum across all the vertices \n\
+	  of the particular curvature function at that vertex, weighted by the \n\
+	  area of the vertex. \n\
+ \n\
     OPTIONS \n\
  \n\
     [-a <numberOfAverages] \n\
  \n\
           Average the curvature <numberOfAverages> times. \n\
  \n\
-    [-G] [--discrete] [--continuous] \n\
+    [-G] [--discrete] [--continuous] [--signedPrincipals] \n\
  \n\
-	  Calculate the principle curvatures ('-G'). The calculation method \n\
-	  used can be specified explicitly as '--discrete' which is slower \n\
-	  but more accurate, or as '--continuous' which will result in \n\
-	  measures similar to 'mris_anatomical_stats'. \n\
+          The '-G' flag triggers a series of derived curvature values that \n\
+          are calculated from the current <FreeSurferSurface>. These curvatures \n\
+          include the Gaussian, K, the mean, H, and the principal curvatures \n\
+          K1 and K2. Additionally, several curvature maps based off these \n\
+          values are also determined. \n\
  \n\
-	  Note that the default assumes '--discrete'. If you specify both \n\
-	  '--continuous' and '--discrete', the system will revert to its \n\
-	  default, i.e. '--discrete', behaviour. \n\
+          Two calculation methods are available, a '--discrete' method and a \n\
+          '--continuous' method. By default, '--discrete' is assumed. This \n\
+          method is slower than the '--continuous' method, but more accurate. \n\
+          The '--continuous' method is also used by 'mris_anatomical_stats', \n\
+          however, it does suffer from occasionally large Gaussian outliers. \n\
+ \n\
+          Note that if both '--discrete' and '--continuous' are specified \n\
+          together, the system will assume '--discrete'. \n\
+ \n\
+          In the '--discrete' mode, 'mris_curvature_stats' solves first for \n\
+          K and H, and then solves a quadratic function to determine K1 and K2. \n\
+          By default, K1 is assigned the fabs(max) solution, and K2 is \n\
+          assigned the fabs(min) solution. By specifying '--signedPrincipals', \n\
+          K1 is assigned the (signed) max and K2 the (signed) min. \n\
+ \n\
+          Thus, if the solution principal curves at a vertex are -10 and 0.5, \n\
+          the default assignment would be: \n\
+ \n\
+                K1 = -10 and K2 = 0.5 \n\
+ \n\
+           but with '--signedPrincipals', this becomes: \n\
+ \n\
+                K1 = 0.5 and K2 = -10 \n\
+ \n\
+    [--vertexAreaWeigh]         [--vertexAreaNormalize] \n\
+    [--vertexAreaWeighFrac]     [--vertexAreaNormalizeFrac] \n\
+ \n\
+	  If specified, will change the value of the curvature value \n\
+	  at each point. The '--vertexAreaWeigh' will multiply each \n\
+	  curvature value by the area of its vertex, and \n\
+	  '--vertexAreaNormalize' will divide each curvature value by \n\
+	  the area of its vertex. \n\
+ \n\
+          The {..}Frac flags use fractional operations, weighing or \n\
+          normalizing by the fractional vertex area which is defined by \n\
+          fractionalArea = (vertexArea/TotalSurfaceArea). \n\
+ \n\
+    [--postScale <scaleFactor>] \n\
+	 \n\
+	  If specified, scale the mean and areaNorm integrals by the amount \n\
+	  <scaleFactor>. This can be useful in normalizing integral values. \n\
  \n\
     [--shapeIndex] \n\
  \n\
@@ -2237,6 +2421,7 @@ print_help(void) {
           <OHSC>.log		Full output, i.e the output of each curvature \n\
 				file mean +- sigma, as well as min/max and \n\
 				surface integrals \n\
+ \n\
           <OHS>.raw.hist  	Raw histogram file. By 'raw' is implied that \n\
 				the curvature has not been further processed \n\
           			in any manner. \n\
@@ -2249,6 +2434,8 @@ print_help(void) {
 	  <OHS>.C.hist		C 'curvedness' histogram file \n\
 	  <OHS>.S.hist		S 'sharpness' histogram file \n\
 	  <OHS>.BE.hist		BE 'bending energy' histogram file \n\
+	  <OHS>.SI.hist		SI 'shape index' histogram file \n\
+	  <OHS>.FI.hist		FI 'folding index' histogram file \n\
  \n\
           <HS>.norm.crv   	Normalised curv file	('-n') \n\
           <HS>.scaled.crv  	Scaled curv file	('-c' or '-d' '-e') \n\
@@ -2259,6 +2446,8 @@ print_help(void) {
           <HS>.S.crv   		S curv file  		('-G') \n\
           <HS>.C.crv   		C curv file  		('-G') \n\
           <HS>.BE.crv   	BE curv file  		('-G') \n\
+          <HS>.SI.crv   	SI curv file  		('-G') \n\
+          <HS>.FI.crv   	FI curv file  		('-G') \n\
  \n\
 	  (The above *.crv files can also be created with a \n\
 	  '--writeCurvatureFiles' flag) \n\
@@ -2487,7 +2676,7 @@ print_help(void) {
  \n\
           Similarly, the Gaussian curvature can be processed, scaled, and \n\
           displayed, yielding very useful visual information. First \n\
-          create and save the principle curvature based files: \n\
+          create and save the principal curvature based files: \n\
  \n\
     $>mris_curvature_stats --writeCurvatureFiles -G 801_recon rh curv \n\
  \n\
@@ -2509,7 +2698,7 @@ print_help(void) {
  \n\
           which is a much better candidate to view in 'tksurfer' than \n\
           the original Gaussian curvature file. \n\
-           \n\
+ \n\
 \n");
 
   fprintf(stdout,pch_synopsis);
