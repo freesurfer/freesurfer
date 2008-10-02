@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/08/20 16:11:13 $
- *    $Revision: 1.62 $
+ *    $Author: fischl $
+ *    $Date: 2008/10/02 18:26:57 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.62 2008/08/20 16:11:13 greve Exp $";
+"$Id: mri_segreg.c,v 1.63 2008/10/02 18:26:57 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -226,7 +226,7 @@ char *regfile=NULL;
 char *outregfile=NULL;
 char *sumfile=NULL;
 
-char *interpmethod = "nearest";
+char *interpmethod = "trilinear";
 int   interpcode = SAMPLE_TRILINEAR;
 int   sinchw;
 
@@ -354,13 +354,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.62 2008/08/20 16:11:13 greve Exp $",
+     "$Id: mri_segreg.c,v 1.63 2008/10/02 18:26:57 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.62 2008/08/20 16:11:13 greve Exp $",
+     "$Id: mri_segreg.c,v 1.63 2008/10/02 18:26:57 fischl Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -674,7 +674,7 @@ int main(int argc, char **argv) {
       }
       printf("%8.4lf %8.4lf %8.4lf \n",PreOpt,costs[7],mincost);
       fprintf(fp,"%8.4lf %8.4lf %8.4lf \n",PreOpt,costs[7],mincost);
-      if(PreOptFile) fprintf(fpPreOpt,"%8.4lf %8.4lf \n",PreOpt,costs[7]);
+      if(PreOptFile) fprintf(fpPreOpt,"%8.8lf %8.8lf \n",PreOpt,costs[7]);
       nth ++;
     }
     if(PreOptFile) fclose(fpPreOpt);
@@ -739,7 +739,7 @@ int main(int argc, char **argv) {
 		  }
 		}
 		if(PreOptFile) 
-		  fprintf(fpPreOpt,"%8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf\n",
+		  fprintf(fpPreOpt,"%8.8lf %8.8lf %8.8lf %8.8lf %8.8lf %8.8lf    %8.8lf\n",
 			  tx,ty,tz,ax,ay,az,costs[7]);
 		nth ++;
 	      }
