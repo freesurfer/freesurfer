@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/09/17 17:56:18 $
-#    $Revision: 1.133.2.34 $
+#    $Date: 2008/10/02 22:36:43 $
+#    $Revision: 1.133.2.35 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.34 2008/09/17 17:56:18 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.35 2008/10/02 22:36:43 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1331,6 +1331,8 @@ if($DoCANormalize) then
           $tp1dir/mri/${REG_FILE_TYPE}.mgz \
           $subjdir/mri/${REG_FILE_TYPE}.mgz \
           $subjdir/mri/transforms/${tp1id}_to_${subjid}_nl.m3z)
+      # the regfile is now the .m3z (the nonlinear)
+      set tp1totp2_regfile=(${tp1id}_to_${subjid}_nl.m3z)
     endif
 
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1416,8 +1418,14 @@ if($DoRemoveNeck) then
   echo "#@# Remove Neck `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_remove_neck $XOptsFile`;
+  set xform = (transforms/talairach.m3z)
+  if ( ! -e $xform) then
+    echo "INFO: $xform not found, using talairach.lta instead" \
+      |& tee -a $LF |& tee -a $CF
+    set xform = (transforms/talairach.lta)
+  endif
   set cmd = (mri_remove_neck -radius $RmNeckRadius $xopts \
-             nu.mgz transforms/talairach.m3z \
+             nu.mgz $xform \
              $FREESURFER_HOME/average/$GCA nu_noneck.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
