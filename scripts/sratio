@@ -1,0 +1,128 @@
+#!/bin/tcsh -f
+# sratio - signed ratio
+#   +A/B if A>B
+#   -B/A if B>A
+# $Id: sratio,v 1.1 2008/10/03 18:23:11 greve Exp $
+
+#
+# sratio
+#
+# Script to computed a voxel-wise signed ratio. Uses fslmaths.
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2008/10/03 18:23:11 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2008,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+setenv FSLOUTPUTTYPE NIFTI
+set tmpdir = ();
+
+if($#argv < 3 && $#argv > 4) then
+  echo "sratio A B sAdivB <tmpdir>"
+  echo "  A/B if A>B, -B/A if B>A"
+  exit 1;
+endif
+
+set A = $argv[1]; shift;
+set B = $argv[1]; shift;
+set sAdivB = $argv[1]; shift;
+if($#argv != 0) then
+  set tmpdir = $argv[1]; shift
+endif
+
+if(! -e $A) then
+  echo "ERROR: cannot find $A"
+  exit 1;
+endif
+
+if(! -e $B) then
+  echo "ERROR: cannot find $B"
+  exit 1;
+endif
+
+if($#tmpdir == 0) set tmpdir = /tmp
+set code = $$
+if($tmpdir != "/tmp") set code = 0;
+
+mkdir -p $tmpdir
+
+# A > B
+set AgtB = $tmpdir/AgtB.$code.nii
+set cmd = (fslmaths $A -sub $B $AgtB)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# B > A (A < B)
+set BgtA = $tmpdir/BgtA.$code.nii
+set cmd = (fslmaths $B -sub $A $BgtA)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# A/B
+set AdivB = $tmpdir/AdivB.$code.nii
+set cmd = (fslmaths $A -div $B $AdivB)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# -B/A
+set BdivA = $tmpdir/BdivA.$code.nii
+set cmd = (fslmaths $B -div $A -mul -1 $BdivA) # signed by -1
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Anum = A/B where A > B
+set Anum = $tmpdir/Anum.$code.nii
+set cmd = (fslmaths $AdivB -mas $AgtB $Anum)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Bnum = -B/A where  B > A
+set Bnum = $tmpdir/Bnum.$code.nii
+set cmd = (fslmaths $BdivA -mas $BgtA $Bnum)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Now just add Anum and Bnum
+set sAdivBtmp = $tmpdir/sAdivB.$code.nii
+set cmd = (fslmaths $Anum -add $Bnum $sAdivBtmp)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Convert to output
+set cmd = (mri_convert $sAdivBtmp $sAdivB)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+# Clean up
+if($tmpdir == "/tmp") rm /tmp/*.$code.nii
+
+exit 0
+###################################################
+
+
+
+
+
+
