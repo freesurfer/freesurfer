@@ -2,7 +2,7 @@
 # sratio - signed ratio
 #   +A/B if A>B
 #   -B/A if B>A
-# $Id: sratio,v 1.1 2008/10/03 18:23:11 greve Exp $
+# $Id: sratio,v 1.2 2008/10/03 18:24:23 greve Exp $
 
 #
 # sratio
@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/03 18:23:11 $
-#    $Revision: 1.1 $
+#    $Date: 2008/10/03 18:24:23 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -31,7 +31,7 @@
 setenv FSLOUTPUTTYPE NIFTI
 set tmpdir = ();
 
-if($#argv < 3 && $#argv > 4) then
+if($#argv < 3 || $#argv > 4) then
   echo "sratio A B sAdivB <tmpdir>"
   echo "  A/B if A>B, -B/A if B>A"
   exit 1;
