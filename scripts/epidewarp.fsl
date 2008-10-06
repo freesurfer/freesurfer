@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2007/11/18 02:49:59 $
-#    $Revision: 1.32 $
+#    $Author: greve $
+#    $Date: 2008/10/06 23:40:13 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.32 2007/11/18 02:49:59 ayendiki Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.33 2008/10/06 23:40:13 greve Exp $'
 set inputargs = ($argv);
 
 set mag = ();
@@ -248,6 +248,7 @@ else if ($#dph != 0) then	# Input is phase difference and magnitude
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+  cp $tmpdir/dph.$ext $tmpdir/dph0.$ext
   set dph = $tmpdir/dph
   if($#epimat) cp $epimat `dirname $dph`/`basename $dph .$ext`.mat # Copy matfile
 
