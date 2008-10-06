@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/09/02 22:39:00 $
- *    $Revision: 1.335.2.8 $
+ *    $Date: 2008/10/06 20:39:25 $
+ *    $Revision: 1.335.2.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -317,7 +317,10 @@ int mriConformed(MRI *mri)
     return 0;
   else if (mri->width != 256 || mri->height != 256 || mri->depth != 256)
     return 0;
-  else if (mri->xsize != 1 || mri->ysize != 1 || mri->zsize != 1)
+  // check to four decimals of precision only
+  else if ((int)(mri->xsize*10000) != (int)10000 ||
+           (int)(mri->ysize*10000) != (int)10000 ||
+           (int)(mri->zsize*10000) != (int)10000)
     return 0;
   else
     return 1;
