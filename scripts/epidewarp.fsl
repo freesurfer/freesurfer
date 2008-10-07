@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/06 23:40:13 $
-#    $Revision: 1.33 $
+#    $Date: 2008/10/07 00:11:49 $
+#    $Revision: 1.34 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,8 +27,10 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.33 2008/10/06 23:40:13 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.34 2008/10/07 00:11:49 greve Exp $'
 set inputargs = ($argv);
+
+set KeepMean = 0;
 
 set mag = ();
 set dph = ();
@@ -248,7 +250,7 @@ else if ($#dph != 0) then	# Input is phase difference and magnitude
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-  cp $tmpdir/dph.$ext $tmpdir/dph0.$ext
+  cp $tmpdir/dph.$ext $tmpdir/dph.preprelude.$ext
   set dph = $tmpdir/dph
   if($#epimat) cp $epimat `dirname $dph`/`basename $dph .$ext`.mat # Copy matfile
 
@@ -261,7 +263,7 @@ else if ($#dph != 0) then	# Input is phase difference and magnitude
   # FUGUE wants a phase image for each echo, but we only have
   # phase difference between echoes. So create an image of 0s
   # and merging with the phase diff.
-  set ph1 = $tmpdir/ph1.$ext
+  set ph1 = $tmpdir/ph.zeros.$ext
   set cmd = ("$FSLPre"maths $dph -mul 0 $ph1)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
@@ -309,16 +311,18 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 if($#epimat) cp $epimat `dirname $vsmmag`/`basename $vsmmag .$ext`.mat
 
-# Remove the mean in-brain shift from VSM
-set vsmmean = `"$FSLPre"stats $vsmmag -M`;
-set cmd = ("$FSLPre"maths $vsmmag -sub $vsmmean $vsmmag)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
-set cmd = ("$FSLPre"maths $vsmmag -mul $brain $vsmmag);
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+if(! $KeepMean) then
+  # Remove the mean in-brain shift from VSM
+  set vsmmean = `"$FSLPre"stats $vsmmag -M`;
+  set cmd = ("$FSLPre"maths $vsmmag -sub $vsmmean $vsmmag)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  set cmd = ("$FSLPre"maths $vsmmag -mul $brain $vsmmag);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 # Forward warp the mag in order to reg with func
 # What does mask do here?
@@ -573,6 +577,10 @@ while( $#argv != 0 )
 
     case "--perev":
       set PERev = 1;
+      breaksw
+
+    case "--keep-mean":
+      set KeepMean = 1;
       breaksw
 
     case "--tmpdir":
