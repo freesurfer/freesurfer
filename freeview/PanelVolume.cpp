@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -588,10 +588,10 @@ void PanelVolume::DoUpdateUI()
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
 	m_btnNew->Enable( bHasVolume );
-	m_btnDelete->Enable( bHasVolume && !mainWnd->IsSaving() );	
+	m_btnDelete->Enable( bHasVolume && !mainWnd->IsProcessing() );	
 	m_btnMoveUp->Enable( bHasVolume && m_listBoxLayers->GetSelection() != 0 );
 	m_btnMoveDown->Enable( bHasVolume && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
-	m_btnSave->Enable( bHasVolume && layer && layer->IsModified() && !mainWnd->IsSaving() );	
+	m_btnSave->Enable( bHasVolume && layer && layer->IsModified() && !mainWnd->IsProcessing() );	
 	
 	ShowWidgets( m_widgetlistGrayScale, bHasVolume && nColorMap == LayerPropertiesMRI::Grayscale );
 	ShowWidgets( m_widgetlistHeatScale, bHasVolume && nColorMap == LayerPropertiesMRI::Heat );
@@ -898,7 +898,7 @@ void PanelVolume::OnTextFrameChanged( wxCommandEvent& event )
 
 void PanelVolume::PanelVolume::OnVolumeCloseUpdateUI( wxUpdateUIEvent& event )
 {
-	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && !MainWindow::GetMainWindowPointer()->IsSaving() );	
+	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && !MainWindow::GetMainWindowPointer()->IsProcessing() );	
 }
 
 void PanelVolume::OnMoveUpUpdateUI( wxUpdateUIEvent& event )

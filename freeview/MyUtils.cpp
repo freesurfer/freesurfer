@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -194,6 +194,24 @@ bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd, vtkRenderer* rendere
 	//	SetAntialiasing(bCurrentAA, false);
 	}
 	return true;	
+}
+
+
+void MyUtils::ViewportToWorld( vtkRenderer* renderer, double x, double y, double& world_x, double& world_y, double& world_z )
+{
+	world_x = x;
+	world_y = y;
+	renderer->ViewportToNormalizedViewport( world_x, world_y );
+	NormalizedViewportToWorld( renderer, world_x, world_y, world_x, world_y, world_z );
+}
+
+void MyUtils::NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y, double& world_x, double& world_y, double& world_z )
+{
+	world_x = x;
+	world_y = y;
+	world_z = 0;
+	renderer->NormalizedViewportToView( world_x, world_y, world_z );
+	renderer->ViewToWorld( world_x, world_y, world_z );
 }
 
 

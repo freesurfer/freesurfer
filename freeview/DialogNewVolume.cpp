@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/09/08 16:23:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,7 @@
 
 #include "DialogNewVolume.h"
 #include <wx/xrc/xmlres.h>
+#include <wx/msgdlg.h>
 #include "stdlib.h"
 #include "stdio.h"
 #include "LayerMRI.h"

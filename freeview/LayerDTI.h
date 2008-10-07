@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/05/20 16:28:32 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@ class LayerPropertiesDTI;
 class LayerDTI : public LayerMRI
 {
 	public:
-		LayerDTI();
+		LayerDTI( LayerMRI* ref );
 		virtual ~LayerDTI();
 					
 		bool LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event );

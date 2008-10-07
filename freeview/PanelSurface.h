@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:42 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,8 @@ class wxListBox;
 class wxCheckListBox;
 class wxColourPickerCtrl;
 class wxColourPickerEvent;
+class wxSpinCtrl;
+class wxSpinEvent;
 class Layer;
 
 class PanelSurface : public wxPanel, public Listener, public Broadcaster
@@ -59,6 +61,7 @@ private:
 	void OnSurfaceCloseUpdateUI	( wxUpdateUIEvent& event );
 	void OnColorChanged			( wxColourPickerEvent& event );
 	void OnEdgeColorChanged		( wxColourPickerEvent& event );
+	void OnSpinEdgeThickness	( wxSpinEvent& event );
 	void OnButtonSurfaceMain	( wxCommandEvent& event );
 	void OnButtonSurfaceInflated( wxCommandEvent& event );
 	void OnButtonSurfaceWhite	( wxCommandEvent& event );
@@ -85,6 +88,7 @@ private:
 	wxColourPickerCtrl*		m_colorPicker;
 	wxColourPickerCtrl*		m_colorPickerEdge;
 	wxTextCtrl*		m_textFileName;
+	wxSpinCtrl*		m_spinEdgeThickness;
 
 	bool			m_bUINeedUpdate;
     

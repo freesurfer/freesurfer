@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,6 +86,9 @@ public:
 	
 	void PreScreenshot();
 	void PostScreenshot();
+	
+	void ShowCoordinateAnnotation( bool bShow );
+	bool GetShowCoordinateAnnotation();
     
 protected:
 	void Initialize2D();

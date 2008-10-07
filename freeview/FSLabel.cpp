@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,7 +88,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 					pos[0] = i * vs[0] + orig[0];
 					pos[1] = j * vs[1] + orig[1];
 					pos[2] = k * vs[2] + orig[2];
-					ref_vol->RemapPositionToRealRAS( pos, pos );
+					ref_vol->TargetToRAS( pos, pos );
 					values.push_back( pos[0] ); 
 					values.push_back( pos[1] ); 
 					values.push_back( pos[2] ); 
@@ -160,7 +160,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 		pos[0] = m_label->lv[i].x;
 		pos[1] = m_label->lv[i].y;
 		pos[2] = m_label->lv[i].z;
-		ref_vol->RASToOutputIndex( pos, n );
+		ref_vol->RASToTargetIndex( pos, n );
 		if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
 				   n[2] >= 0 && n[2] < dim[2] )
 		{

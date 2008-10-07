@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:58 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,8 +45,9 @@
 #include "FSVolume.h"
 #include "MainWindow.h"
 
-LayerMRI::LayerMRI() : LayerVolumeBase(),
+LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
 		m_volumeSource( NULL),
+		m_volumeRef( ref ? ref->GetSourceVolume() : NULL ),
 		m_bResampleToRAS( true )
 {
 	m_strTypeNames.push_back( "MRI" );
@@ -100,9 +101,13 @@ bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
 	if ( m_volumeSource )
 		delete m_volumeSource;
 	
-	m_volumeSource = new FSVolume();
+	m_volumeSource = new FSVolume( m_volumeRef );
 	m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
-	if ( !m_volumeSource->MRIRead( m_sFilename.c_str(), wnd, event ) )
+
+	if ( !m_volumeSource->MRIRead( 	m_sFilename.c_str(), 
+		  							m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL, 
+									wnd, 
+									event ) )
 		return false;
 	
 	event.SetInt( 100 );
@@ -121,32 +126,33 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
 	if ( m_volumeSource )
 		delete m_volumeSource;
 	
-	m_volumeSource = new FSVolume();
+	m_volumeSource = new FSVolume( mri->m_volumeSource );
 	m_volumeSource->Create( mri->m_volumeSource, bCopyVoxelData );
+	
 	m_bResampleToRAS = mri->m_bResampleToRAS;
-	m_volumeRef = mri->GetRASVolume();
-	if ( m_volumeRef.GetPointer() )
+	m_imageDataRef = mri->GetImageData();
+	if ( m_imageDataRef.GetPointer() )
 	{
 		SetWorldOrigin( mri->GetWorldOrigin() );
 		SetWorldVoxelSize( mri->GetWorldVoxelSize() );
 		SetWorldSize( mri->GetWorldSize() );
 		
-		m_volumeRAS = vtkSmartPointer<vtkImageData>::New();
+		m_imageData = vtkSmartPointer<vtkImageData>::New();
 		
 		if ( bCopyVoxelData )
 		{
-			m_volumeRAS->DeepCopy( m_volumeRef );
+			m_imageData->DeepCopy( m_imageDataRef );
 		}
 		else
 		{			
-			m_volumeRAS->SetNumberOfScalarComponents( 1 );
-			m_volumeRAS->SetScalarTypeToFloat();
-			m_volumeRAS->SetOrigin( m_volumeRef->GetOrigin() );
-			m_volumeRAS->SetSpacing( m_volumeRef->GetSpacing() );	
-			m_volumeRAS->SetDimensions( m_volumeRef->GetDimensions() );
-			m_volumeRAS->AllocateScalars();
-			float* ptr = ( float* )m_volumeRAS->GetScalarPointer();
-			int* nDim = m_volumeRAS->GetDimensions();
+			m_imageData->SetNumberOfScalarComponents( 1 );
+			m_imageData->SetScalarTypeToFloat();
+			m_imageData->SetOrigin( m_imageDataRef->GetOrigin() );
+			m_imageData->SetSpacing( m_imageDataRef->GetSpacing() );	
+			m_imageData->SetDimensions( m_imageDataRef->GetDimensions() );
+			m_imageData->AllocateScalars();
+			float* ptr = ( float* )m_imageData->GetScalarPointer();
+			int* nDim = m_imageData->GetDimensions();
 		//	cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
 			memset( ptr, 0, sizeof( float ) * nDim[0] * nDim[1] * nDim[2] );
 		}
@@ -167,10 +173,10 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
 
 bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 {
-	if ( m_sFilename.size() == 0 || m_volumeRAS.GetPointer() == NULL )
+	if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
 		return false;
 		
-	m_volumeSource->UpdateMRIFromImage( m_volumeRAS, wnd, event );
+	m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
 	
 	wxPostEvent( wnd, event );
 	bool bSaved = m_volumeSource->MRIWrite( m_sFilename.c_str() );
@@ -178,6 +184,13 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 		m_bModified = true;
 	
 	return bSaved;
+}
+
+bool LayerMRI::RotateVolume( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+{
+	m_bResampleToRAS = false;
+	m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
+	return m_volumeSource->Rotate( rotations, wnd, event );
 }
 
 void LayerMRI::InitializeVolume()
@@ -198,107 +211,10 @@ void LayerMRI::InitializeVolume()
 	m_dWorldSize[1] = ( ( int )( (RASBounds[3] - RASBounds[2]) / m_dWorldVoxelSize[1] ) ) * m_dWorldVoxelSize[1];
 	m_dWorldSize[2] = ( ( int )( (RASBounds[5] - RASBounds[4]) / m_dWorldVoxelSize[2] ) ) * m_dWorldVoxelSize[2];
 	
-	m_volumeRAS = source->GetImageOutput();	
+	m_imageData = source->GetImageOutput();	
 }
 	
-/*
-void LayerMRI::InitializeVolume()
-{
-	if ( m_volumeSource == NULL )
-		return;
-
-	FSVolume* source = m_volumeSource;
-		
-	float RASBounds[6];
-	source->GetRASBounds( RASBounds );	
-	m_dWorldOrigin[0] = RASBounds[0];
-	m_dWorldOrigin[1] = RASBounds[2];
-	m_dWorldOrigin[2] = RASBounds[4]; 	
-//	MyUtils::GetFSVolumeSourceRASPixelSize( source, m_dWorldVoxelSize );
-	source->GetRASPixelSize( m_dWorldVoxelSize );
 	
-	double sizeX = m_dWorldVoxelSize[0];
-	double sizeY = m_dWorldVoxelSize[1];
-	double sizeZ = m_dWorldVoxelSize[2];
-	
-	// Get some values from the MRI.
-
-	m_dWorldSize[0] = RASBounds[1] - RASBounds[0];
-	m_dWorldSize[1] = RASBounds[3] - RASBounds[2];
-	m_dWorldSize[2] = RASBounds[5] - RASBounds[4];
-	
-	//
-  		// This transforms the voxel space source into RAS space.
-	//
-	vtkSmartPointer<vtkImageReslice> volumeToRAS = 
-			vtkSmartPointer<vtkImageReslice>::New();
-	volumeToRAS->SetInput( source->GetOutput() );
-	volumeToRAS->SetOutputDimensionality( 3 );
-
-		// This rotates the volume to the proper orientation. From
-		// ImageReslice: "applying a transform to the resampling grid (which
-		// lies in the output coordinate system) is equivalent to applying
-		// the inverse of that transform to the input volume."
-//	double rtv[16];
-//	source->GetUnscaledRASToVoxelMatrix( rtv );
-	double* rtv = source->GetRASToVoxelMatrix();
-
-		// 0,0 0,1 0,2 0,3      rtv[0]  rtv[1]  rtv[2]  0
-		// 1,0 1,1 1,2 1,3  =>  rtv[4]  rtv[5]  rtv[6]  0
-		// 2,0 2,1 2,2 2,3      rtv[8]  rtv[9]  rtv[10] 0
-		// 3,0 3,1 3,2 3,3        0       0       0     1
-	
-	vtkSmartPointer<vtkMatrix4x4> matrix = 
-			vtkSmartPointer<vtkMatrix4x4>::New();
-	matrix->SetElement( 0, 0, rtv[0] );
-	matrix->SetElement( 0, 1, rtv[1] );
-	matrix->SetElement( 0, 2, rtv[2] );
-	matrix->SetElement( 0, 3, 0 );
-	matrix->SetElement( 1, 0, rtv[4] );
-	matrix->SetElement( 1, 1, rtv[5] );
-	matrix->SetElement( 1, 2, rtv[6] );
-	matrix->SetElement( 1, 3, 0 );
-	matrix->SetElement( 2, 0, rtv[8] );
-	matrix->SetElement( 2, 1, rtv[9] );
-	matrix->SetElement( 2, 2, rtv[10] );
-	matrix->SetElement( 2, 3, 0 );
-	matrix->SetElement( 3, 0, 0 );
-	matrix->SetElement( 3, 1, 0 );
-	matrix->SetElement( 3, 2, 0 );
-	matrix->SetElement( 3, 3, 1 );
-
-	vtkSmartPointer<vtkTransform> transform = 
-			vtkSmartPointer<vtkTransform>::New();
-	transform->SetMatrix( matrix );
-
-	volumeToRAS->SetResliceTransform( transform );
-	volumeToRAS->BorderOff();
-
- //  This sets our output extent.
-	
-	volumeToRAS->SetOutputExtent( 0, ( int )( m_dWorldSize[0] / sizeX - 1 ), 
-								  0, ( int )( m_dWorldSize[1] / sizeY - 1 ),
-								  0, ( int )( m_dWorldSize[2] / sizeZ - 1 ) );
-	
-	volumeToRAS->SetOutputSpacing( sizeX, sizeY, sizeZ );
-//	volumeToRAS->SetOutputOrigin( RASBounds[0], RASBounds[2], RASBounds[4] );
-	
-	m_dWorldSize[0] = ( ( int )( m_dWorldSize[0] / sizeX ) ) * sizeX;
-	m_dWorldSize[1] = ( ( int )( m_dWorldSize[1] / sizeY ) ) * sizeY;
-	m_dWorldSize[2] = ( ( int )( m_dWorldSize[2] / sizeZ ) ) * sizeZ;
-	
-//	cout << "new world size: " << mWorldSize[0] << " " << mWorldSize[1] << " " << mWorldSize[2] << endl;
-		
-	volumeToRAS->Update();
-	source->SetOriginalOrigin( volumeToRAS->GetOutput()->GetOrigin() );
-	
-	vtkSmartPointer<vtkImageChangeInformation> infoFilter = vtkSmartPointer<vtkImageChangeInformation>::New();
-	infoFilter->SetInput( volumeToRAS->GetOutput() );
-	infoFilter->SetOutputOrigin( RASBounds[0], RASBounds[2], RASBounds[4] );
-	m_volumeRAS = infoFilter->GetOutput();	
-}
-*/		
-		
 void LayerMRI::InitializeActors()
 {
 	for ( int i = 0; i < 3; i++ )
@@ -306,7 +222,7 @@ void LayerMRI::InitializeActors()
   // The reslice object just takes a slice out of the volume.
 		//
 		mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
-		mReslice[i]->SetInput( m_volumeRAS );
+		mReslice[i]->SetInput( m_imageData );
 //		mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
 		mReslice[i]->BorderOff();
 
@@ -487,6 +403,7 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
 					0, 0, 1,
 					1, 0, 0 );
 			mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
+			mReslice[0]->Modified();
 			break;
 		case 1:
 			m_sliceActor2D[1]->PokeMatrix( matrix );
@@ -504,6 +421,7 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
 					0, 0, 1,
 					0, 1, 0 );
 			mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
+			mReslice[1]->Modified();
 			break;
 		case 2:
 			m_sliceActor2D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
@@ -515,6 +433,7 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
 					0, 1, 0,
 					0, 0, 1 );
 			mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
+			mReslice[2]->Modified();
 			break;
 	}
 }
@@ -569,12 +488,12 @@ bool LayerMRI::IsVisible()
 
 double LayerMRI::GetVoxelValue( double* pos )
 {
-	if ( m_volumeRAS.GetPointer() == NULL )
+	if ( m_imageData.GetPointer() == NULL )
 		return 0;
 	
-	double* orig = m_volumeRAS->GetOrigin();
-	double* vsize = m_volumeRAS->GetSpacing();
-	int* ext = m_volumeRAS->GetExtent();
+	double* orig = m_imageData->GetOrigin();
+	double* vsize = m_imageData->GetSpacing();
+	int* ext = m_imageData->GetExtent();
 	
 	int n[3];
 	for ( int i = 0; i < 3; i++ )
@@ -587,7 +506,7 @@ double LayerMRI::GetVoxelValue( double* pos )
 		 n[2] < ext[4] || n[2] > ext[5] )
 		return 0;
 	else
-		return m_volumeRAS->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
+		return m_imageData->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
 }
 
 void LayerMRI::SetModified()
@@ -624,19 +543,24 @@ std::string LayerMRI::GetLabelName( double value )
 
 void LayerMRI::RemapPositionToRealRAS( const double* pos_in, double* pos_out )
 {
-	m_volumeSource->RemapPositionToRealRAS( pos_in, pos_out );
+	m_volumeSource->TargetToRAS( pos_in, pos_out );
 }
 
 void LayerMRI::RemapPositionToRealRAS( double x_in, double y_in, double z_in, 
 							double& x_out, double& y_out, double& z_out )
 {
-	m_volumeSource->RemapPositionToRealRAS( x_in, y_in, z_in, x_out, y_out, z_out );
+	m_volumeSource->TargetToRAS( x_in, y_in, z_in, x_out, y_out, z_out );
+}
+
+void LayerMRI::RASToTarget( const double* pos_in, double* pos_out )
+{
+	m_volumeSource->RASToTarget( pos_in, pos_out );
 }
 
 int LayerMRI::GetNumberOfFrames()
 {
-	if ( m_volumeRAS )
-		return m_volumeRAS->GetNumberOfScalarComponents();
+	if ( m_imageData )
+		return m_imageData->GetNumberOfScalarComponents();
 	else
 		return 1;
 }

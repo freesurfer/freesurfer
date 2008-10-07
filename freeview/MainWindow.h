@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include "Listener.h"
 #include "Broadcaster.h"
 #include "LayerCollectionManager.h"
+#include "CommonDataStruct.h"
 #include <vector>
 
 #define ID_WORKER_THREAD	wxID_HIGHEST + 1
@@ -53,18 +54,7 @@ class LUTDataHolder;
 class wxToolBar;
 class BrushProperty;
 class ToolWindowEdit;
-
-struct Settings2D
-{
-	bool	SyncZoomFactor;
-};
-
-struct SettingsScreenshot
-{
-	bool	HideCursor;
-	bool	HideCoords;
-	int		Magnification;
-};
+class DialogRotateVolume;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -129,6 +119,8 @@ public:
 	
 	void OnViewScalarBar			( wxCommandEvent& event );
 	void OnViewScalarBarUpdateUI	( wxUpdateUIEvent& event );
+	void OnViewCoordinate			( wxCommandEvent& event );
+	void OnViewCoordinateUpdateUI	( wxUpdateUIEvent& event );
 	
 	void OnViewCycleLayer					( wxCommandEvent& event );
 	void OnViewCycleLayerUpdateUI			( wxUpdateUIEvent& event );
@@ -189,6 +181,9 @@ public:
 	
 	void OnHelpQuickReference( wxCommandEvent& event );
 	void OnHelpAbout( wxCommandEvent& event );
+	
+	void OnToolRotateVolume( wxCommandEvent& event );
+	void OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event );
 		
 	void OnWorkerThreadResponse( wxCommandEvent& event );
 	
@@ -207,6 +202,8 @@ public:
 	void SaveVolume();
 	void SaveVolumeAs();
 	
+	void RotateVolume( std::vector<RotationElement>& rotations );
+	
 	void LoadROI();
 	void NewROI();
 	void SaveROI();
@@ -219,17 +216,20 @@ public:
 	
 	void LoadSurface();
 
-	void LoadVolumeFile( const wxString& fn, bool bResample = true, int nColorMap = 0 );
-	void LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, bool Resample = true );
+	void LoadVolumeFile( const wxString& fn, const wxString& reg_fn, bool bResample = true, int nColorMap = 0 );
+	void LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, const wxString& reg_fn, bool Resample = true );
 	void LoadROIFile( const wxString& fn );	
 	void LoadSurfaceFile( const wxString& fn );
 	void LoadWayPointsFile( const wxString& fn );
 	
-	bool IsSaving()
-		{ return m_bSaving; }
+//	bool IsSaving()
+//		{ return m_bSaving; }
 	
-	bool IsLoading()
-		{ return m_bLoading; }
+//	bool IsLoading()
+//		{ return m_bLoading; }
+	
+	bool IsProcessing()
+		{ return m_bProcessing; }
 	
 	LayerCollection* GetLayerCollection( std::string strType );
 	LayerCollectionManager* GetLayerCollectionManager();
@@ -248,6 +248,8 @@ public:
 	
 	RenderView* GetActiveView();
 	
+	RenderView* GetPreviousActiveView();
+	
 	RenderView* GetRenderView( int nIndex )
 		{ return m_viewRender[nIndex]; }
 	
@@ -263,6 +265,8 @@ public:
 	void SetAction( int nAction );
 	
 	void SetMode( int nMode );
+	
+	void EnableControls( bool bEnable );
 	
 protected:
 	void OnInternalIdle(); 
@@ -287,6 +291,7 @@ private:
 	wxToolBar*			m_toolbarBrush;
 	wxPanel*			m_panelToolbarHolder;
 	ToolWindowEdit*		m_toolWindowEdit;
+	DialogRotateVolume*	m_dlgRotateVolume;
 	
 	RenderView2D*		m_viewAxial;
 	RenderView2D*		m_viewSagittal;
@@ -313,8 +318,9 @@ private:
 	int				m_nRedrawCount;
 	bool			m_bToUpdateToolbars;
 	
-	bool			m_bSaving;
-	bool			m_bLoading;
+//	bool			m_bSaving;
+//	bool			m_bLoading;
+	bool			m_bProcessing;
     
 	std::vector<wxArrayString>	m_scripts;
 	

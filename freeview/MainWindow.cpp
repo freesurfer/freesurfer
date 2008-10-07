@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.16 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,6 +72,7 @@
 #include "Cursor2D.h"
 #include "Cursor3D.h"
 #include "ToolWindowEdit.h"
+#include "DialogRotateVolume.h"
 
 #define	CTRL_PANEL_WIDTH	240
 
@@ -158,6 +159,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_RESET" ),				MainWindow::OnViewResetUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_SCALAR_BAR" ),		MainWindow::OnViewScalarBar )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_SCALAR_BAR" ),		MainWindow::OnViewScalarBarUpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_COORDINATE" ),		MainWindow::OnViewCoordinate )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_COORDINATE" ),		MainWindow::OnViewCoordinateUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayer )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CYCLE_LAYER" ),		MainWindow::OnViewCycleLayerUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),		MainWindow::OnViewToggleVolumeVisibility )
@@ -186,6 +189,9 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_MENU		( XRCID( "ID_VIEW_CONTROL_PANEL" ),		MainWindow::OnViewControlPanel )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CONTROL_PANEL" ),		MainWindow::OnViewControlPanelUpdateUI )
     
+    EVT_MENU		( XRCID( "ID_TOOL_ROTATE_VOLUME" ),		MainWindow::OnToolRotateVolume )
+    EVT_UPDATE_UI	( XRCID( "ID_TOOL_ROTATE_VOLUME" ),		MainWindow::OnToolRotateVolumeUpdateUI )    
+    
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
 /*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
@@ -212,8 +218,9 @@ END_EVENT_TABLE()
 // frame constructor
 MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 {
-	m_bLoading = false;
-	m_bSaving = false;
+//	m_bLoading = false;
+//	m_bSaving = false;
+	m_bProcessing = false;
 	m_bResampleToRAS = true;
 	m_bToUpdateToolbars = false;
 	m_nPrevActiveViewId = -1;
@@ -295,10 +302,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	SetStatusBar( m_statusBar );
 	PositionStatusBar();
 	
-	m_toolWindowEdit = new ToolWindowEdit( this );
-	m_toolWindowEdit->Hide();
+	m_toolWindowEdit = NULL;
+	m_dlgRotateVolume = NULL;
 	
-	UpdateToolbars();	
+	UpdateToolbars();
 	
 	m_nViewLayout = VL_2X2;
 	m_nMainView = MV_Sagittal;
@@ -372,9 +379,9 @@ MainWindow* MainWindow::GetMainWindowPointer()
 
 void MainWindow::OnClose( wxCloseEvent &event )
 {
-	if ( IsSaving() || IsLoading() )
+	if ( IsProcessing() )
 	{
-		wxMessageDialog dlg( this, "There is on-going data loading or saving process. Please wait till it finishes before closing.", "Quit", wxOK );
+		wxMessageDialog dlg( this, "There is on-going data processing. Please wait till it finishes before closing.", "Quit", wxOK );
 		dlg.ShowModal();
 		return;
 	}
@@ -474,7 +481,7 @@ void MainWindow::NewVolume()
 		return;
 		
 	// finally we are about to create new volume.
-	LayerMRI* layer_new = new LayerMRI();
+	LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
 	layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel() );
 	layer_new->SetName( dlg.GetVolumeName().c_str() );
 	col_mri->AddLayer( layer_new );
@@ -570,7 +577,8 @@ void MainWindow::LoadVolume()
 		dlg.SetRecentFiles( list );
 		if ( dlg.ShowModal() == wxID_OK )
 		{
-			this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.IsToResample() );
+			this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.GetRegFileName(), 
+								  ( GetLayerCollection( "MRI" )->IsEmpty() ? dlg.IsToResample() : m_bResampleToRAS ) );
 		}
 	}
 /*	else
@@ -580,30 +588,55 @@ void MainWindow::LoadVolume()
 						wxFD_OPEN );
 		if ( dlg.ShowModal() == wxID_OK )
 		{
-			this->LoadVolumeFile( dlg.GetPath(), m_bResampleToRAS );
+			this->LoadVolumeFile( dlg.GetPath(), "", m_bResampleToRAS );
 		}
-}*/
+} */
 }
 
-void MainWindow::LoadVolumeFile( const wxString& filename, bool bResample, int nColorMap )
+void MainWindow::LoadVolumeFile( const wxString& filename, const wxString& reg_filename, bool bResample, int nColorMap )
 {
+//	cout << bResample << endl;
 	m_strLastDir = MyUtils::GetNormalizedPath( filename );
 
 	m_bResampleToRAS = bResample;	
-	LayerMRI* layer = new LayerMRI();
+	LayerMRI* layer = new LayerMRI( (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 ) );
 	layer->SetResampleToRAS( bResample );
 	layer->GetProperties()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );	
 	layer->GetProperties()->SetColorMap( ( LayerPropertiesMRI::ColorMapType )nColorMap );
 	wxFileName fn( filename );	
+	fn.Normalize();
 	wxString layerName = fn.GetName();
 	if ( fn.GetExt().Lower() == "gz" )
 		layerName = wxFileName( layerName ).GetName();
 	layer->SetName( layerName.c_str() );
 	layer->SetFileName( fn.GetFullPath().c_str() );
+	if ( !reg_filename.IsEmpty() )
+	{
+		wxFileName reg_fn( reg_filename );
+		reg_fn.Normalize( wxPATH_NORM_ALL, fn.GetPath() );
+		layer->SetRegFileName( reg_fn.GetFullPath().c_str() );
+	}		
 	
+//	if ( !bResample )
+/*	{
+		LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
+		if ( mri )
+		{
+			layer->SetRefVolume( mri->GetSourceVolume() );
+		}
+	}
+*/	
 	WorkerThread* thread = new WorkerThread( this );
 	thread->LoadVolume( layer );
 }
+
+
+void MainWindow::RotateVolume( std::vector<RotationElement>& rotations )
+{
+	WorkerThread* thread = new WorkerThread( this );
+	thread->RotateVolume( rotations );
+}
+
 
 void MainWindow::OnFileExit( wxCommandEvent& event )
 {
@@ -632,7 +665,7 @@ void MainWindow::OnFileRecent( wxCommandEvent& event )
 {
 	wxString fn( m_fileHistory->GetHistoryFile( event.GetId() - wxID_FILE1 ) );
 	if ( !fn.IsEmpty() )
-		this->LoadVolumeFile( fn, m_bResampleToRAS );
+		this->LoadVolumeFile( fn, "", m_bResampleToRAS );
 }
 
 LayerCollection* MainWindow::GetLayerCollection( std::string strType )
@@ -997,13 +1030,17 @@ void MainWindow::DoUpdateToolbars()
 	//	m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
 	//	m_panelToolbarHolder->Layout();
 	//	bool bNeedReposition = ( m_toolWindowEdit->IsShown() != (m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate) );
+		if ( !m_toolWindowEdit )
+			m_toolWindowEdit = new ToolWindowEdit( this );
+	
 		if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
 			 m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
 		{
 			m_toolWindowEdit->Show();
 		}
 		else
-			m_toolWindowEdit->Close();
+			m_toolWindowEdit->Hide();
+		
 		m_toolWindowEdit->UpdateTools();	
 		//	if ( bNeedReposition)
 	//		m_toolWindowEdit->ResetPosition();
@@ -1594,6 +1631,25 @@ void MainWindow::OnViewScalarBar( wxCommandEvent& event )
 void MainWindow::OnViewScalarBarUpdateUI( wxUpdateUIEvent& event )
 {
 	event.Enable( MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer() );
+	if ( m_nMainView >= 0 && m_nMainView < 4 ) 
+		event.Check( m_viewRender[m_nMainView]->GetShowScalarBar() );
+}
+
+
+void MainWindow::OnViewCoordinate( wxCommandEvent& event )
+{
+	for ( int i = 0; i < 3; i++ )
+	{
+		( (RenderView2D*)m_viewRender[i] )->ShowCoordinateAnnotation( event.IsChecked() );
+	}
+	
+	NeedRedraw( 1 );
+}
+
+void MainWindow::OnViewCoordinateUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Enable( MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer() );
+	event.Check( m_viewAxial->GetShowCoordinateAnnotation() );
 }
 
 void MainWindow::OnViewCycleLayer( wxCommandEvent& event )
@@ -1891,7 +1947,7 @@ void MainWindow::OnFileSave( wxCommandEvent& event )
 void MainWindow::OnFileSaveUpdateUI( wxUpdateUIEvent& event )
 {
 	LayerMRI* layer = ( LayerMRI* )( GetLayerCollection( "MRI" )->GetActiveLayer() );	
-	event.Enable( layer && layer->IsModified() && !IsLoading() && !IsSaving() );
+	event.Enable( layer && layer->IsModified() && !IsProcessing() );
 }
 
 
@@ -1903,7 +1959,7 @@ void MainWindow::OnFileSaveAs( wxCommandEvent& event )
 void MainWindow::OnFileSaveAsUpdateUI( wxUpdateUIEvent& event )
 {
 	LayerMRI* layer = ( LayerMRI* )( GetLayerCollection( "MRI" )->GetActiveLayer() );	
-	event.Enable( layer && layer->IsEditable() && !IsLoading() && !IsSaving() );
+	event.Enable( layer && layer->IsEditable() && !IsProcessing() );
 }
 
 void MainWindow::OnFileLoadROI( wxCommandEvent& event )
@@ -1913,7 +1969,7 @@ void MainWindow::OnFileLoadROI( wxCommandEvent& event )
 	
 void MainWindow::OnFileLoadROIUpdateUI( wxUpdateUIEvent& event )
 {
-	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsLoading() && !IsSaving() );
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
 }
 
 
@@ -1925,7 +1981,7 @@ void MainWindow::OnFileSaveROI( wxCommandEvent& event )
 void MainWindow::OnFileSaveROIUpdateUI( wxUpdateUIEvent& event )
 {
 	LayerROI* layer = ( LayerROI* )( GetLayerCollection( "ROI" )->GetActiveLayer() );	
-	event.Enable( layer && layer->IsModified() && !IsLoading() && !IsSaving() );
+	event.Enable( layer && layer->IsModified() && !IsProcessing() );
 }
 
 
@@ -1937,7 +1993,7 @@ void MainWindow::OnFileSaveROIAs( wxCommandEvent& event )
 void MainWindow::OnFileSaveROIAsUpdateUI( wxUpdateUIEvent& event )
 {
 	LayerROI* layer = ( LayerROI* )( GetLayerCollection( "ROI" )->GetActiveLayer() );	
-	event.Enable( layer && !IsLoading() && !IsSaving() );
+	event.Enable( layer && !IsProcessing() );
 }
 
 
@@ -1948,7 +2004,7 @@ void MainWindow::OnFileLoadWayPoints( wxCommandEvent& event )
 	
 void MainWindow::OnFileLoadWayPointsUpdateUI( wxUpdateUIEvent& event )
 {
-	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsLoading() && !IsSaving() );
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
 }
 
 
@@ -1960,7 +2016,7 @@ void MainWindow::OnFileSaveWayPoints( wxCommandEvent& event )
 void MainWindow::OnFileSaveWayPointsUpdateUI( wxUpdateUIEvent& event )
 {
 	LayerWayPoints* layer = ( LayerWayPoints* )( GetLayerCollection( "WayPoints" )->GetActiveLayer() );	
-	event.Enable( layer && layer->IsModified() && !IsLoading() && !IsSaving() );
+	event.Enable( layer && layer->IsModified() && !IsProcessing() );
 }
 
 
@@ -1972,10 +2028,152 @@ void MainWindow::OnFileSaveWayPointsAs( wxCommandEvent& event )
 void MainWindow::OnFileSaveWayPointsAsUpdateUI( wxUpdateUIEvent& event )
 {
 	LayerWayPoints* layer = ( LayerWayPoints* )( GetLayerCollection( "WayPoints" )->GetActiveLayer() );	
-	event.Enable( layer && !IsLoading() && !IsSaving() );
+	event.Enable( layer && !IsProcessing() );
 }
 
 
+void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
+{
+	wxString strg = event.GetString();
+	
+	if ( strg.Left( 6 ) == "Failed" )
+	{
+		m_statusBar->m_gaugeBar->Hide();
+		m_bProcessing = false;
+		EnableControls( true );
+		m_controlPanel->UpdateUI();
+		strg = strg.Mid( 6 );
+		if ( strg.IsEmpty() )
+			strg = "Operation failed.";
+		wxMessageDialog dlg( this, strg, "Error", wxOK | wxICON_ERROR );
+		dlg.ShowModal();
+		return;
+	}
+	
+	if ( event.GetInt() == -1 )		// successfully finished
+	{
+		m_bProcessing = false;
+		EnableControls( true );
+		m_statusBar->m_gaugeBar->Hide();
+			
+		Layer* layer = ( Layer* )(void*)event.GetClientData();
+		wxASSERT( layer != NULL || strg == "Rotate" );		
+		LayerCollection* lc_mri = GetLayerCollection( "MRI" );
+		LayerCollection* lc_surface = GetLayerCollection( "Surface" );
+		
+		// loading operation finished
+		if ( strg == "Load" )
+		{
+			// volume loaded
+			if ( layer->IsTypeOf( "MRI" ) )
+			{
+				LayerMRI* mri = (LayerMRI*)layer;					
+				if ( lc_mri->IsEmpty() )
+				{
+					double worigin[3], wsize[3];
+					mri->GetWorldOrigin( worigin );
+					mri->GetWorldSize( wsize );
+					if ( lc_surface->IsEmpty() )
+					{
+						mri->SetSlicePositionToWorldCenter();
+						m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
+						m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
+						m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
+						m_view3D->SetWorldCoordinateInfo( worigin, wsize );
+					}
+					else
+					{
+						mri->SetSlicePosition( lc_surface->GetSlicePosition() );
+						lc_surface->SetWorldVoxelSize( mri->GetWorldVoxelSize() );
+						lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
+						lc_surface->SetWorldSize( mri->GetWorldSize() );
+					}
+					lc_mri->AddLayer( mri, true );
+					lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+				}
+				else
+					lc_mri->AddLayer( layer );
+			
+				m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( mri->GetFileName() ) );
+			
+				m_controlPanel->RaisePage( "Volumes" );
+			}
+			// surface loaded	
+			else if ( layer->IsTypeOf( "Surface" ) )
+			{
+				LayerSurface* sf = (LayerSurface*)layer;
+				if ( lc_surface->IsEmpty() )
+				{
+					double worigin[3], wsize[3];
+					sf->GetWorldOrigin( worigin );
+					sf->GetWorldSize( wsize );
+					sf->SetSlicePositionToWorldCenter();
+					if ( lc_mri->IsEmpty() )
+					{
+						m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
+						m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
+						m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
+						m_view3D->SetWorldCoordinateInfo( worigin, wsize );
+						lc_surface->AddLayer( sf, true );
+					}
+					else
+					{
+						lc_surface->SetWorldOrigin( lc_mri->GetWorldOrigin() );
+						lc_surface->SetWorldSize( lc_mri->GetWorldSize() );
+						lc_surface->SetWorldVoxelSize( lc_mri->GetWorldVoxelSize() );
+						lc_surface->SetSlicePosition( lc_mri->GetSlicePosition() );
+						lc_surface->AddLayer( sf );
+					}
+					//	lc_surface->SetCursorRASPosition( lc_surface->GetSlicePosition() );	
+				}
+				else
+					lc_surface->AddLayer( layer );
+				
+				//	m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
+					
+				m_controlPanel->RaisePage( "Surfaces" );
+			}
+			
+			m_viewAxial->SetInteractionMode( RenderView2D::IM_Navigate );
+			m_viewCoronal->SetInteractionMode( RenderView2D::IM_Navigate );
+			m_viewSagittal->SetInteractionMode( RenderView2D::IM_Navigate );		
+		}
+				
+		// Saving operation finished
+		else if ( strg == "Save" )
+		{
+			cout << ( (LayerEditable*)layer )->GetFileName() << " saved successfully." << endl;
+		}
+			
+		else if ( strg == "Rotate" )
+		{
+			m_bResampleToRAS = false;
+			m_layerCollectionManager->RefreshSlices();
+		}
+		m_controlPanel->UpdateUI();	
+			
+		RunScript();		
+	}
+	else if ( event.GetInt() == 0 )		// just started
+	{
+		m_bProcessing = true;
+		if ( strg == "Rotate" )
+		{
+			EnableControls( false );
+		}
+			
+		m_statusBar->ActivateProgressBar();
+		NeedRedraw();			
+		m_controlPanel->UpdateUI( true );	
+	}
+	else
+	{	
+	//	if ( event.GetInt() > m_statusBar->m_gaugeBar->GetValue() )
+			m_statusBar->m_gaugeBar->SetValue( event.GetInt() );
+	}
+}
+
+/*
 void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 {
 	wxString strg = event.GetString();
@@ -2102,9 +2300,9 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 		m_statusBar->m_gaugeBar->Hide();
 		m_bSaving = false;
 		m_bLoading = false;
-		Layer* layer = ( Layer* )(void*)event.GetClientData();
-		if ( strg == "Load" && layer )
-			delete layer;	
+	//	Layer* layer = ( Layer* )(void*)event.GetClientData();
+	//	if ( strg == "Load" && layer )
+	//		delete layer;	
 		m_controlPanel->UpdateUI();
 		strg = strg.Mid( 6 );
 		if ( strg.IsEmpty() )
@@ -2113,6 +2311,8 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 		dlg.ShowModal();
 	}
 }
+*/
+
 
 void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
 {
@@ -2166,15 +2366,15 @@ void MainWindow::OnFileLoadDTI( wxCommandEvent& event )
 	
 	wxString fn_vector = dlg.GetVectorFileName();
 	wxString fn_fa = dlg.GetFAFileName();
-	LoadDTIFile( fn_fa, fn_vector, dlg.IsToResample() );
+	this->LoadDTIFile( fn_fa, fn_vector, "", dlg.IsToResample() );
 }
 
-void MainWindow::LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, bool bResample )
+void MainWindow::LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, const wxString& reg_filename, bool bResample )
 {	
 	m_strLastDir = MyUtils::GetNormalizedPath( fn_fa );
 	m_bResampleToRAS = bResample;
 
-	LayerDTI* layer = new LayerDTI();
+	LayerDTI* layer = new LayerDTI( (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 ) );
 	layer->SetResampleToRAS( bResample );
 	wxString layerName = wxFileName( fn_vector ).GetName();
 	if ( wxFileName( fn_fa ).GetExt().Lower() == "gz" )
@@ -2182,7 +2382,19 @@ void MainWindow::LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, 
 	layer->SetName( layerName.c_str() );
 	layer->SetFileName( fn_fa.c_str() );
 	layer->SetVectorFileName( fn_vector.c_str() );
+	if ( !reg_filename.IsEmpty() )
+	{
+		wxFileName reg_fn( reg_filename );
+		reg_fn.Normalize( wxPATH_NORM_ALL, m_strLastDir );
+		layer->SetRegFileName( reg_fn.GetFullPath().c_str() );
+	}	
 	
+/*	LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
+	if ( mri )
+	{
+		layer->SetRefVolume( mri->GetSourceVolume() );
+	}
+*/		
 	WorkerThread* thread = new WorkerThread( this );
 	thread->LoadVolume( layer );
 }
@@ -2201,13 +2413,14 @@ void MainWindow::RunScript()
 	m_scripts.erase( m_scripts.begin() );
 	if ( sa[0] == "loadvolume" )
 	{
-		wxString strValue = sa[1];
 		int nColorMap = LayerPropertiesMRI::Grayscale;
-		int n = strValue.Find( ":" );
-		if ( n != wxNOT_FOUND )
+		wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
+		wxString fn = sa_vol[0];
+		wxString reg_fn;
+		for ( unsigned int i = 1; i < sa_vol.GetCount(); i++ )
 		{
-			wxString strg = strValue.Mid( n + 1 );
-			strValue = 	strValue.Left( n );	
+			wxString strg = sa_vol[i];
+			int n;	
 			if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
 			{
 				strg = strg.Mid( n + 1 ).Lower();
@@ -2218,11 +2431,16 @@ void MainWindow::RunScript()
 				else if ( strg == "lut" )
 					nColorMap = LayerPropertiesMRI::LUT;
 			}
+			else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
+			{
+				reg_fn = strg.Mid( n + 1 );
+			}
 		}
 		bool bResample = true;
-		if ( sa.GetCount() > 2 && sa[2] == "nr" )
+		if ( sa[ sa.GetCount()-1 ] == "nr" )
 			bResample = false;
-		LoadVolumeFile( strValue, bResample, nColorMap );
+		
+		LoadVolumeFile( fn, reg_fn, bResample, nColorMap );
 	} 
 	else if ( sa[0] == "loaddti" )
 	{
@@ -2230,7 +2448,15 @@ void MainWindow::RunScript()
 		if ( sa.GetCount() > 3 && sa[3] == "nr" )
 			bResample = false;
 		if ( sa.GetCount() > 2 )
-			LoadDTIFile( sa[1], sa[2], bResample );
+		{
+			wxString strg = sa[1], reg_fn;
+			int n;	
+			if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
+			{
+				reg_fn = strg.Mid( n + 1 );
+			}
+			this->LoadDTIFile( sa[1], sa[2], reg_fn, bResample );
+		}
 	}
 	else if ( sa[0] == "loadsurface" )
 	{
@@ -2293,6 +2519,14 @@ RenderView* MainWindow::GetActiveView()
 		return m_viewRender[nId];
 	else
 		return NULL;
+}
+
+RenderView* MainWindow::GetPreviousActiveView()
+{
+	if ( m_nPrevActiveViewId < 0 )
+		return NULL;
+	else
+		return m_viewRender[ m_nPrevActiveViewId ];
 }
 
 void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
@@ -2362,4 +2596,29 @@ void MainWindow::LoadSurfaceFile( const wxString& filename )
 	thread->LoadSurface( layer );
 }
 
+void MainWindow::OnToolRotateVolume( wxCommandEvent& event )
+{
+	if ( !m_dlgRotateVolume )
+		m_dlgRotateVolume = new DialogRotateVolume( this );
 
+	if ( event.IsChecked() )
+	{
+		wxMessageDialog dlg( this, "Rotation can only apply to volume for now. If you data includes ROI/Surface/Way Points, please do not use this feature yet.", "Warning", wxOK );
+		dlg.ShowModal();
+	}
+	
+	m_dlgRotateVolume->Show( event.IsChecked() );
+}
+
+void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
+}
+
+void MainWindow::EnableControls( bool bEnable )
+{
+	m_controlPanel->Enable( bEnable );
+	if ( m_dlgRotateVolume )
+		m_dlgRotateVolume->Enable( bEnable );
+}

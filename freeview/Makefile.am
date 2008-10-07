@@ -17,6 +17,7 @@ freeview_SOURCES=\
 	Broadcaster.h \
 	BrushProperty.cpp \
 	BrushProperty.h \
+	CommonDataStruct.h \
 	ControlPanel.cpp \
 	ControlPanel.h \
 	Cursor2D.cpp \
@@ -39,6 +40,8 @@ freeview_SOURCES=\
 	DialogNewWayPoints.h \
 	DialogPreferences.cpp \
 	DialogPreferences.h \
+	DialogRotateVolume.cpp \
+	DialogRotateVolume.h \
 	FSLabel.cpp \
 	FSLabel.h \
 	FSSurface.cpp \

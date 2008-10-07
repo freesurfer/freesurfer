@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:42 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -157,10 +157,10 @@ void PanelROI::DoUpdateUI()
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
 	m_btnNew->Enable( bHasVolume );
 	m_btnLoad->Enable( bHasVolume );
-	m_btnDelete->Enable( bHasROI && !mainWnd->IsSaving() );	
+	m_btnDelete->Enable( bHasROI && !mainWnd->IsProcessing() );	
 	m_btnMoveUp->Enable( bHasROI && m_listBoxLayers->GetSelection() != 0 );
 	m_btnMoveDown->Enable( bHasROI && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
-	m_btnSave->Enable( bHasROI && layer && layer->IsModified() && !mainWnd->IsSaving() );
+	m_btnSave->Enable( bHasROI && layer && layer->IsModified() && !mainWnd->IsProcessing() );
 }
 
 void PanelROI::OnLayerVisibilityChanged( wxCommandEvent& event )
@@ -299,7 +299,7 @@ void PanelROI::OnColorChanged( wxColourPickerEvent& event )
 void PanelROI::OnROICloseUpdateUI( wxUpdateUIEvent& event )
 {
 	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND && 
-			!MainWindow::GetMainWindowPointer()->IsSaving() );	
+			!MainWindow::GetMainWindowPointer()->IsProcessing() );	
 }
 	
 void PanelROI::OnMoveUpUpdateUI( wxUpdateUIEvent& event )

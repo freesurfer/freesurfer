@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -109,9 +109,9 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
 		wxConfigBase* config = wxConfigBase::Get();
 		if ( config )
 		{
-			int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
-			int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
-			Move( x, y );
+		//	int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
+		//	int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
+		//	Move( x, y );
 		//	cout << "in OnShow show:" << x << " " << y << endl;
 		}
 	}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,10 +32,11 @@
 #include <vtkMath.h>
 #include <vtkActor2D.h>
 #include <vtkScalarBarActor.h>
+#include <vtkPropCollection.h>
+#include <vtkCoordinate.h>
 #include "LayerCollection.h"
 #include "LayerCollectionManager.h"
 #include "MainWindow.h"
-#include "vtkPropCollection.h"
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
 #include "Annotation2D.h"
@@ -141,7 +142,7 @@ void RenderView2D::RefreshAllActors()
 	m_renderer->RemoveAllViewProps();
 	lcm->Append2DProps( m_renderer, m_nViewPlane );
 	
-	// add coordinate annotation
+	// add annotation and cursor
 	m_annotation2D->AppendAnnotations( m_renderer );
 	m_cursor2D->AppendActor( m_renderer );
 	
@@ -423,3 +424,12 @@ void RenderView2D::PostScreenshot()
 	RefreshAllActors();
 }
 
+void RenderView2D::ShowCoordinateAnnotation( bool bShow )
+{
+	m_annotation2D->Show( bShow );
+}
+
+bool RenderView2D::GetShowCoordinateAnnotation()
+{
+	return m_annotation2D->IsVisible();
+}

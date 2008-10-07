@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/04/09 19:09:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,7 +34,7 @@
 #include "vtkImageMapToColors.h"
 #include "vtkLookupTable.h"
 
-LayerDTI::LayerDTI() : LayerMRI(),
+LayerDTI::LayerDTI( LayerMRI* ref ) : LayerMRI( ref ),
 		m_vectorSource( NULL)
 {
 	m_strTypeNames.push_back( "DTI" );
@@ -66,10 +66,13 @@ bool LayerDTI::LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event )
 	if ( m_vectorSource )
 		delete m_vectorSource;
 	
-	m_vectorSource = new FSVolume();
+	m_vectorSource = new FSVolume( m_volumeRef );
 	m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
 	event.SetInt( 25 );
-	if ( !m_vectorSource->MRIRead( m_sVectorFileName.c_str(), wnd, event ) )
+	if ( !m_vectorSource->MRIRead( 	m_sVectorFileName.c_str(),  
+		  							m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL,
+									wnd, 
+									event ) )
 		return false;
 	
 	if ( m_vectorSource->GetNumberOfFrames() < 3 )
@@ -96,9 +99,9 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 	int c[3];
 	vtkDataArray* vectors = rasDTI->GetPointData()->GetScalars();
 	vtkFloatArray* fas = vtkFloatArray::New();
-	fas->DeepCopy( m_volumeRAS->GetPointData()->GetScalars() );
-	m_volumeRAS->SetNumberOfScalarComponents( 2 );
-	m_volumeRAS->AllocateScalars();
+	fas->DeepCopy( m_imageData->GetPointData()->GetScalars() );
+	m_imageData->SetNumberOfScalarComponents( 2 );
+	m_imageData->AllocateScalars();
 	int nProgressStep = ( 99-event.GetInt() ) / 5;	
 	for ( int i = 0; i < nSize; i++ )
 	{
@@ -114,8 +117,8 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 		int x = i%dim[0];
 		int y = (i/dim[0])%dim[1];
 		int z = i/(dim[0]*dim[1]);
-		m_volumeRAS->SetScalarComponentFromFloat( x, y, z, 0, fa );
-		m_volumeRAS->SetScalarComponentFromFloat( x, y, z, 1, scalar );
+		m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
+		m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
 		if ( nSize >= 5 && i%(nSize/5) == 0 )
 		{
 			event.SetInt( event.GetInt() + nProgressStep );  

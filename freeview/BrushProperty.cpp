@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,8 @@ BrushProperty::BrushProperty () :
 	if ( config )
 	{
 		config->Read( _T("/BrushProperty/Size"), &m_nBrushSize, 1L );
-		config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
+	//	config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
+		m_nBrushTolerance = 0;		
 		config->Read( _T("/BrushProperty/EnableDrawRange"), &m_bEnableDrawRange, false );
 		config->Read( _T("/BrushProperty/EnableExcludeRange"), &m_bEnableExcludeRange, false );
 		config->Read( _T("/BrushProperty/DrawConnected"), &m_bDrawConnectedOnly, false );

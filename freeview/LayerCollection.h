@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:58 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,6 +87,8 @@ class LayerCollection : public Listener, public Broadcaster
 		
 		double* GetWorldVoxelSize();
 		void SetWorldVoxelSize( double* dVoxelSize );	
+		
+		void GetWorldCenter( double* pos );
 		
 		std::vector<Layer*> GetLayers();
 		

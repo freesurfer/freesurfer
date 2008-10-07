@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkImageData.h"
 #include "vtkMatrix4x4.h"
+#include "CommonDataStruct.h"
 
 extern "C" {
 #include "mri.h"
@@ -41,12 +42,14 @@ class wxCommandEvent;
 class FSVolume 
 {
 public:
-	FSVolume();
+	FSVolume( FSVolume* ref );
 	virtual ~FSVolume();
+	
+	enum REG_MATRIX_TYPE { REG_TKREGISTER = 0, REG_MNI, REG_LTA };
 		
 	void Create( FSVolume* src, bool bCopyVoxelData );
 	
-	bool MRIRead( const char* filename, wxWindow* wnd, wxCommandEvent& event );	
+	bool MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );	
 	bool MRIWrite( const char* filename );
 	bool MRIWrite();
 		
@@ -62,6 +65,8 @@ public:
 	vtkImageData* GetImageOutput();
 
 	void GetBounds ( float oRASBounds[6] );
+	
+	void GetBounds( MRI* mri, float oRASBounds[6] );
 	
 	void GetPixelSize( double* pixelSize );
 	
@@ -84,31 +89,56 @@ public:
 	void SetResampleToRAS( bool bRemap )
 		{ m_bResampleToRAS = bRemap; }
 	
-	void RemapPositionToRealRAS( const double* pos_in, double* pos_out );
-	void RemapPositionToRealRAS( double x_in, double y_in, double z_in, 
+	void TargetToRAS( const double* pos_in, double* pos_out );
+	void TargetToRAS( double x_in, double y_in, double z_in, 
 								 double& x_out, double& y_out, double& z_out );
 	
-	void RASToOutputIndex( const double* pos_in, int* index_out );
+	void RASToTarget( const double* pos_in, double* pos_out );
 	
-	void RASToOutputRAS( const double* pos_in, double* pos_out );
+	void RASToTargetIndex( const double* pos_in, int* index_out );
+	
+	void SetMRITarget( MRI* mri );
+	
+	void SetMRI( MRI*& mri_out, MRI* mri_in );
+	
+	MRI* GetMRITarget()
+		{ return m_MRITarget; }
+	
+	MRI* GetMRI()
+		{ return m_MRI; }
+	
+	bool HasOriginalTarget()
+		{ return m_MRIOrigTarget != NULL; }
+	
+	bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 	
 protected:	
+	bool LoadRegistrationMatrix( const char* filename );
 	void MapMRIToImage( wxWindow* wnd, wxCommandEvent& event );
+	void CopyMRIDataToImage( MRI* mri, vtkImageData* image, wxWindow* wnd, wxCommandEvent& event );
 	void CopyMatricesFromMRI();	
-	void SetOriginalOrigin( double* origin );
+	void CreateImage( MRI* mri, wxWindow* wnd, wxCommandEvent& event );
+	
+	MATRIX* GetRotationMatrix( int nPlane, double angle, double* origin );
 	
 	vtkSmartPointer<vtkImageData>	m_imageData;
 			
 	MRI*			m_MRI;
+	MRI*			m_MRITarget;		// target space. header only
+	MRI*			m_MRIRef;			// reference target space, can also serve as the registration target. header only
+	MRI*			m_MRIOrigTarget;	// orignal target space, header only
+	MATRIX*			m_matReg;
+	int				m_nRegType;
+	
+	FSVolume*		m_volumeRef;
 	
 	double			m_RASToVoxelMatrix[16];
 	double			m_VoxelToRASMatrix[16];
+	double			m_VoxelToVoxelMatrix[16];
 	
 	float			m_fMinValue;
 	float			m_fMaxValue;
-	
-	double			m_fOriginalOrigin[3];
-	
+		
 	bool			m_bResampleToRAS;	
 	double			m_MRIToImageMatrix[16];		
 	

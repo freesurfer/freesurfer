@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,12 @@ class LayerEditable : public Layer
 		
 		void SetFileName( const char* fn )
 		{ m_sFilename = fn; } 
+		
+		const char* GetRegFileName()
+		{ return m_sRegFilename.c_str(); }
+		
+		void SetRegFileName( const char* fn )
+		{ m_sRegFilename = fn; }
 							
 	protected:
 		virtual void SetModified();
@@ -76,6 +82,7 @@ class LayerEditable : public Layer
 		bool 		m_bEditable;
 		
 		std::string	m_sFilename;
+		std::string	m_sRegFilename;
 };
 
 #endif 

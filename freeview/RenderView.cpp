@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,7 @@
  */
  
 #include "RenderView.h"
+#include "MainWindow.h"
 #include <vtkRenderer.h>
 #include <vtkActor2D.h>
 #include "vtkConeSource.h"
@@ -149,17 +150,20 @@ void RenderView::InitializeRenderView()
 	m_actorFocusFrame->GetProperty()->SetLineWidth( 5 );	
 	pMapper->Delete();
 	
-	m_actorScalarBar = vtkScalarBarActor::New();
-	m_actorScalarBar->SetOrientationToVertical();
-	m_actorScalarBar->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
-	m_actorScalarBar->GetPositionCoordinate()->SetValue(0.9, 0.7);
-//	qDebug() << m_actorScalarBar->GetLabelTextProperty()->GetFontSize();
-//	m_actorScalarBar->GetTitleTextProperty()->SetFontSize(5);
-	m_actorScalarBar->SetHeight(0.3);
-	m_actorScalarBar->SetWidth(0.09);
-	m_actorScalarBar->VisibilityOff();
-	vtkLookupTable* lut = vtkLookupTable::New();
-	m_actorScalarBar->SetLookupTable(lut);
+	// scalar bar actor
+	m_actorScalarBar = vtkScalarBarActor::New();
+	m_actorScalarBar->SetOrientationToVertical();
+	m_actorScalarBar->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+	m_actorScalarBar->GetPositionCoordinate()->SetValue(0.9, 0.7);
+
+//	qDebug() << m_actorScalarBar->GetLabelTextProperty()->GetFontSize();
+
+//	m_actorScalarBar->GetTitleTextProperty()->SetFontSize(5);
+	m_actorScalarBar->SetHeight(0.3);
+	m_actorScalarBar->SetWidth(0.09);
+	m_actorScalarBar->VisibilityOff();
+	vtkLookupTable* lut = vtkLookupTable::New();
+	m_actorScalarBar->SetLookupTable(lut);
 	lut->Delete();
 	
 	UseCaptureMouseOn();
@@ -206,7 +210,7 @@ void RenderView::OnButtonDown( wxMouseEvent& event )
 	{
 		this->SetFocus();
 		// if left button down, do not pass along mouse event further down
-		if ( event.LeftDown() )
+		if ( MainWindow::GetMainWindowPointer()->GetPreviousActiveView() != this && event.LeftDown() )
 			return;
 	}
 
@@ -289,7 +293,7 @@ void RenderView::DoListenToMessage ( std::string const iMsg, void* const iData )
 		NeedRedraw();
 	}
 	
-	else if ( iMsg == "LayerAdded" || iMsg == "LayerMoved" || iMsg == "LayerRemoved" )
+	else if ( iMsg == "LayerAdded" || iMsg == "LayerMoved" || iMsg == "LayerRemoved" || iMsg == "LayerRotated" )
 	{
 		UpdateScalarBar();
 		RefreshAllActors();
@@ -463,3 +467,14 @@ void RenderView::UpdateScalarBar()
 	if ( mri )
 		m_actorScalarBar->SetLookupTable( mri->GetProperties()->GetActiveLookupTable() );
 }
+
+void RenderView::ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z )
+{
+	MyUtils::ViewportToWorld( m_renderer, x, y, world_x, world_y, world_z );
+}
+
+void RenderView::NormalizedViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z )
+{
+	MyUtils::NormalizedViewportToWorld( m_renderer, x, y, world_x, world_y, world_z );
+}
+

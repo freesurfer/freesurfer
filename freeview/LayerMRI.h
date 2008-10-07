@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,7 @@
 
 #include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
+#include "CommonDataStruct.h"
 #include <string>
 
 class vtkFSVolumeSource;
@@ -49,7 +50,7 @@ class wxCommandEvent;
 class LayerMRI : public LayerVolumeBase
 {
 	public:
-		LayerMRI();
+		LayerMRI( LayerMRI* ref );
 		virtual ~LayerMRI();
 					
 //		bool LoadVolumeFromFile( std::string filename );
@@ -79,6 +80,12 @@ class LayerMRI : public LayerVolumeBase
 		FSVolume* GetSourceVolume()
 			{ return m_volumeSource; }
 		
+		FSVolume* GetRefVolume()
+			{ return m_volumeRef; }
+		
+		void SetRefVolume( FSVolume* ref )
+			{ m_volumeRef = ref; }
+		
 		bool SaveVolume( wxWindow* wnd, wxCommandEvent& event );
 		
 		void SetResampleToRAS( bool bResample );
@@ -90,9 +97,13 @@ class LayerMRI : public LayerVolumeBase
 
 		void RemapPositionToRealRAS( double x_in, double y_in, double z_in, 
 									 double& x_out, double& y_out, double& z_out );
+		void RASToTarget( const double* pos_in, double* pos_out );	
+	
 		int GetNumberOfFrames();
 		
 		void SetActiveFrame( int nFrame );
+		
+		bool RotateVolume( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 		
 	protected:
 		virtual void SetModified();
@@ -112,6 +123,7 @@ class LayerMRI : public LayerVolumeBase
 		vtkSmartPointer<vtkImageMapToColors> 	mColorMap[3];
 
 		FSVolume*			m_volumeSource;
+		FSVolume*			m_volumeRef;
 		bool				m_bResampleToRAS;
 		
 		vtkImageActor*		m_sliceActor2D[3];

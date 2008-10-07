@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/06 21:07:45 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,14 +64,14 @@ LayerVolumeBase::~LayerVolumeBase()
 
 bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 {
-	int* nDim = m_volumeRAS->GetDimensions();
+	int* nDim = m_imageData->GetDimensions();
 /*	for ( int i = 0; i < 3; i++ )
 	{
 		if ( n_in[i] < 0 || n_in[i] >= nDim[i] )
 			return false;
 	}
 */	
-//	float* ptr = ( float* )m_volumeRAS->GetScalarPointer( n );
+//	float* ptr = ( float* )m_imageData->GetScalarPointer( n );
 //	if ( !ptr )
 //		return false;
 	
@@ -82,11 +82,11 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 	double* draw_range = m_propertyBrush->GetDrawRange();
 	double* exclude_range = m_propertyBrush->GetExcludeRange();
 	LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
-	vtkImageData* ref = m_volumeRAS;
+	vtkImageData* ref = m_imageData;
 	int nActiveCompRef = 0;
 	if ( ref_layer != NULL )
 	{
-		ref = ref_layer->GetRASVolume();
+		ref = ref_layer->GetImageData();
 		nActiveCompRef = ref_layer->GetActiveFrame();
 	}
 	for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
@@ -111,14 +111,14 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 							 ( m_propertyBrush->GetExcludeRangeEnabled() && 
 							 ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) || 
 							 ( m_propertyBrush->GetDrawConnectedOnly() && 
-							 ( !GetConnectedToOld( m_volumeRAS, nActiveComp, n, nPlane ) ) ) )
+							 ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) )
 							;
 						else	 
-							m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+							m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
 					}
 					else 
 					{
-						m_volumeRAS->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
+						m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
 					}
 				}
 			}
@@ -264,7 +264,7 @@ void LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd )
 
 bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 {
-	int* nDim = m_volumeRAS->GetDimensions();
+	int* nDim = m_imageData->GetDimensions();
 	int nx = 0, ny = 0, x = 0, y = 0;
 	switch ( nPlane )
 	{
@@ -293,11 +293,11 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 	double* draw_range = m_propertyBrush->GetDrawRange();
 	double* exclude_range = m_propertyBrush->GetExcludeRange();
 	LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
-	vtkImageData* ref = m_volumeRAS;
+	vtkImageData* ref = m_imageData;
 	int nActiveCompRef = 0;
 	if ( ref_layer != NULL )
 	{
-		ref = ref_layer->GetRASVolume();
+		ref = ref_layer->GetImageData();
 		nActiveCompRef = ref_layer->GetActiveFrame();
 	}
 	int nActiveComp = this->GetActiveFrame();
@@ -305,7 +305,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 	switch ( nPlane )
 	{
 		case 0:
-			if ( ref == m_volumeRAS )
+			if ( ref == m_imageData )
 			{
 				for ( i = 0; i < nx; i++ )
 				{
@@ -322,7 +322,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				{
 					for ( j = 0; j < ny; j++ )
 					{
-						mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveComp ) <= 0  &&
+						mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveComp ) <= 0  &&
 								fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= nTolerance
 								? 1 : 0 );
 					}
@@ -330,7 +330,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 			}
 			break;
 		case 1:
-			if ( ref == m_volumeRAS )
+			if ( ref == m_imageData )
 			{
 				for ( i = 0; i < nx; i++ )
 				{
@@ -347,7 +347,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				{
 					for ( int j = 0; j < ny; j++ )
 					{
-						mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveComp ) <= 0  &&
+						mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveComp ) <= 0  &&
 								fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= nTolerance  
 								? 1 : 0 );
 					}
@@ -355,7 +355,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 			}
 			break;
 		case 2:
-			if ( ref == m_volumeRAS )
+			if ( ref == m_imageData )
 			{
 				for ( i = 0; i < nx; i++ )
 				{
@@ -372,7 +372,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 				{
 					for ( j = 0; j < ny; j++ )
 					{
-						mask[j][i] = ( m_volumeRAS->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveComp ) <= 0  &&
+						mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveComp ) <= 0  &&
 								fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= nTolerance  
 								? 1 : 0 );
 					}
@@ -400,7 +400,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 							;
 						else
 						{
-							m_volumeRAS->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+							m_imageData->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
 						}
 					}
 				}
@@ -421,7 +421,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 							;
 						else
 						{
-							m_volumeRAS->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+							m_imageData->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
 						}
 					}
 				}
@@ -442,7 +442,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 							;
 						else
 						{
-							m_volumeRAS->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+							m_imageData->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
 						}
 					}
 				}
@@ -549,21 +549,21 @@ void LayerVolumeBase::Paste( int nPlane )
 void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice )
 {
 	int nDim[3], nStart[3] = { 0, 0, 0 };
-	m_volumeRAS->GetDimensions( nDim );
+	m_imageData->GetDimensions( nDim );
 	nDim[nPlane] = 1;
 	nStart[nPlane] = nSlice;
 	item.plane = nPlane;
 	item.slice = nSlice;
-	item.data = new char[nDim[0]*nDim[1]*nDim[2]*m_volumeRAS->GetScalarSize()];
+	item.data = new char[nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize()];
 	for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
 	{
 		for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
 		{
 			for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
 			{
-				memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_volumeRAS->GetScalarSize(),
-						m_volumeRAS->GetScalarPointer( i, j, k ), 
-						m_volumeRAS->GetScalarSize() );
+				memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
+						m_imageData->GetScalarPointer( i, j, k ), 
+						m_imageData->GetScalarSize() );
 			}
 		}
 	}
@@ -572,7 +572,7 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
 void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item )
 {
 	int nDim[3], nStart[3] = { 0, 0, 0 };
-	m_volumeRAS->GetDimensions( nDim );
+	m_imageData->GetDimensions( nDim );
 	nDim[item.plane] = 1;
 	nStart[item.plane] = item.slice;
 	for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
@@ -581,9 +581,9 @@ void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item )
 		{
 			for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
 			{
-				memcpy( m_volumeRAS->GetScalarPointer( i, j, k ),
-						item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_volumeRAS->GetScalarSize(),
-						m_volumeRAS->GetScalarSize() );						
+				memcpy( m_imageData->GetScalarPointer( i, j, k ),
+						item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
+						m_imageData->GetScalarSize() );						
 			}
 		}
 	}

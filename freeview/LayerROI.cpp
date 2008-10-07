@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:58 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -73,26 +73,26 @@ LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerVolumeBase()
 	mROIProperties->AddListener( this );
 	
 	m_layerSource = layerMRI;
-	m_volumeRef = layerMRI->GetRASVolume();
+	m_imageDataRef = layerMRI->GetImageData();
 	if ( m_layerSource )
 	{
 		SetWorldOrigin( m_layerSource->GetWorldOrigin() );
 		SetWorldVoxelSize( m_layerSource->GetWorldVoxelSize() );
 		SetWorldSize( m_layerSource->GetWorldSize() );
 		
-		m_volumeRAS = vtkSmartPointer<vtkImageData>::New();
-	//	m_volumeRAS->DeepCopy( m_layerSource->GetRASVolume() );
+		m_imageData = vtkSmartPointer<vtkImageData>::New();
+	//	m_imageData->DeepCopy( m_layerSource->GetRASVolume() );
 		
-		m_volumeRAS->SetNumberOfScalarComponents( 1 );
-		m_volumeRAS->SetScalarTypeToFloat();
-		m_volumeRAS->SetOrigin( GetWorldOrigin() );
-		m_volumeRAS->SetSpacing( GetWorldVoxelSize() );	
-		m_volumeRAS->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
+		m_imageData->SetNumberOfScalarComponents( 1 );
+		m_imageData->SetScalarTypeToFloat();
+		m_imageData->SetOrigin( GetWorldOrigin() );
+		m_imageData->SetSpacing( GetWorldVoxelSize() );	
+		m_imageData->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
 									( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
 									( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
-		m_volumeRAS->AllocateScalars();
-		float* ptr = ( float* )m_volumeRAS->GetScalarPointer();
-		int* nDim = m_volumeRAS->GetDimensions();
+		m_imageData->AllocateScalars();
+		float* ptr = ( float* )m_imageData->GetScalarPointer();
+		int* nDim = m_imageData->GetDimensions();
 	//	cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
 		memset( ptr, 0, sizeof( float ) * nDim[0] * nDim[1] * nDim[2] );
 		InitializeActors();
@@ -118,7 +118,7 @@ bool LayerROI::LoadROIFromFile( std::string filename )
 	if ( !m_label->LabelRead( filename.c_str() ) )
 		return false;
 	
-	m_label->UpdateRASImage( m_volumeRAS, m_layerSource->GetSourceVolume() );
+	m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
 	
 	m_sFilename = filename;
 	
@@ -135,7 +135,7 @@ void LayerROI::InitializeActors()
   // The reslice object just takes a slice out of the volume.
 		//
 		mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
-		mReslice[i]->SetInput( m_volumeRAS );
+		mReslice[i]->SetInput( m_imageData );
 //		mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
 		mReslice[i]->BorderOff();
 
@@ -314,10 +314,10 @@ void LayerROI::SetModified()
 
 bool LayerROI::SaveROI( wxWindow* wnd, wxCommandEvent& event )
 {
-	if ( m_sFilename.size() == 0 || m_volumeRAS.GetPointer() == NULL )
+	if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
 		return false;
 		
-	m_label->UpdateLabelFromImage( m_volumeRAS, m_layerSource->GetSourceVolume(), wnd, event );
+	m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume(), wnd, event );
 	
 	bool bSaved = m_label->LabelWrite( m_sFilename.c_str() );
 	if ( !bSaved )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/07/21 19:48:42 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,7 @@
 #include <wx/clrpicker.h>
 #include "PanelSurface.h"
 #include <wx/xrc/xmlres.h>
+#include <wx/spinctrl.h>
 #include "MainWindow.h"
 #include "LayerCollection.h"
 #include "Layer.h"
@@ -51,6 +52,7 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_SURFACE_ORIGINAL" ) ),	PanelSurface::OnButtonSurfaceOriginal )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER" ) ), 	PanelSurface::OnColorChanged )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER_EDGE" ) ), 	PanelSurface::OnEdgeColorChanged )
+	EVT_SPINCTRL		( XRCID( wxT( "ID_SPIN_EDGE_THICKNESS" ) ),		PanelSurface::OnSpinEdgeThickness )
 END_EVENT_TABLE()
 
 
@@ -76,6 +78,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
 	m_colorPicker 			= XRCCTRL( *this, "ID_COLOR_PICKER", wxColourPickerCtrl );
 	m_colorPickerEdge 		= XRCCTRL( *this, "ID_COLOR_PICKER_EDGE", wxColourPickerCtrl );
 	m_textFileName 			= XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
+	m_spinEdgeThickness		= XRCCTRL( *this, "ID_SPIN_EDGE_THICKNESS", wxSpinCtrl );
+	
 	MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 	
 	UpdateUI();
@@ -157,6 +161,7 @@ void PanelSurface::DoUpdateUI()
 			m_textFileName->ChangeValue( layer->GetFileName() );
 			m_textFileName->SetInsertionPointEnd();
 			m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
+			m_spinEdgeThickness->SetValue( layer->GetProperties()->GetEdgeThickness() );
 			surf = layer->GetSourceSurface();
 		}
 		
@@ -164,7 +169,7 @@ void PanelSurface::DoUpdateUI()
 		lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
-	m_btnDelete->Enable( bHasSurface && !mainWnd->IsSaving() );	
+	m_btnDelete->Enable( bHasSurface && !mainWnd->IsProcessing() );	
 	m_btnSurfaceMain->Enable( bHasSurface );
 	m_btnSurfaceInflated->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) );
 	m_btnSurfaceWhite->Enable	( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) );
@@ -353,3 +358,11 @@ void PanelSurface::OnSurfaceCloseUpdateUI( wxUpdateUIEvent& event )
 	event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
 }
 
+void PanelSurface::OnSpinEdgeThickness( wxSpinEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->GetProperties()->SetEdgeThickness( event.GetInt() );
+	}
+}

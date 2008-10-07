@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:58 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/07 22:01:54 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -319,7 +319,10 @@ int LayerCollection::GetNumberOfLayers()
 
 Layer* LayerCollection::GetLayer( int n )
 {
-	return m_layers[n];
+	if ( n < (int)m_layers.size() )
+		return m_layers[n];
+	else
+		return NULL;
 }
 
 void LayerCollection::DoListenToMessage( std::string const iMsg, void* iData )
@@ -492,6 +495,12 @@ void LayerCollection::SetWorldVoxelSize( double* dVoxelSize )
 {
 	for ( int i = 0; i < 3; i++ )
 		m_dWorldVoxelSize[i] = dVoxelSize[i];
+}
+
+void LayerCollection::GetWorldCenter( double* pos )
+{
+	for ( int i = 0; i < 3; i++ )
+		pos[i] = ( m_dWorldSize[i] + m_dWorldOrigin[i] ) / 2;
 }
 
 bool LayerCollection::HasProp( vtkProp* prop )

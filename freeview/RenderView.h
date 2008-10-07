@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,6 +71,8 @@ public:
 	
 	virtual void DoListenToMessage( std::string const iMessage, void* const iData );
 	
+	void ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
+	void NormalizedViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
 	
 	int	GetInteractionMode();
 	virtual void SetInteractionMode( int nMode );

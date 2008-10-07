@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,15 +172,15 @@ void LayerSurface::InitializeActors()
 //		m_sliceActor2D[i]->SetBackfaceProperty( m_sliceActor2D[i]->MakeProperty() );
 //		m_sliceActor2D[i]->GetBackfaceProperty()->BackfaceCullingOff();
 		m_sliceActor2D[i]->SetProperty( m_sliceActor2D[i]->MakeProperty() );
-		m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
-		m_sliceActor2D[i]->GetProperty()->SetLineWidth( 1 );
+		m_sliceActor2D[i]->GetProperty()->SetInterpolationToGouraud();
+		m_sliceActor2D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
 		
 		m_sliceActor3D[i]->SetMapper( mapper2 );
 //		m_sliceActor3D[i]->SetBackfaceProperty( m_sliceActor3D[i]->MakeProperty() );
 //		m_sliceActor3D[i]->GetBackfaceProperty()->BackfaceCullingOff();
 		m_sliceActor3D[i]->SetProperty( m_sliceActor3D[i]->MakeProperty() );
-		m_sliceActor3D[i]->GetProperty()->SetLineWidth( 2 );
-		m_sliceActor3D[i]->GetProperty()->SetInterpolationToFlat();		
+		m_sliceActor3D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
+		m_sliceActor3D[i]->GetProperty()->SetInterpolationToGouraud();		
 
   // Set ourselves up.
 		this->OnSlicePositionChanged( i );	
@@ -198,6 +198,15 @@ void LayerSurface::UpdateOpacity()
 	//	m_sliceActor3D[i]->SetOpacity( mProperties->GetOpacity() );
 	}	
 	m_mainActor->GetProperty()->SetOpacity( mProperties->GetOpacity() );
+}
+
+void LayerSurface::UpdateEdgeThickness()
+{
+	for ( int i = 0; i < 3; i++ )
+	{
+		m_sliceActor2D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
+		m_sliceActor3D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
+	}
 }
 
 void LayerSurface::UpdateColorMap() 
@@ -310,6 +319,11 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* const iD
 	else if ( iMessage == "OpacityChanged" )
 	{
 		this->UpdateOpacity();
+		this->SendBroadcast( "LayerActorUpdated", this );
+	}
+	else if ( iMessage == "EdgeThicknessChanged" )
+	{
+		this->UpdateEdgeThickness();
 		this->SendBroadcast( "LayerActorUpdated", this );
 	}
 }

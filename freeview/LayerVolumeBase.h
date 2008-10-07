@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/08/26 20:22:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/10/07 22:01:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,11 +78,11 @@ class LayerVolumeBase : public LayerEditable
 		virtual void SetActiveFrame( int nFrame )
 			{ m_nActiveFrame = nFrame; }
 		
-		vtkImageData* GetRASVolume()
-			{ return m_volumeRAS; }
+		vtkImageData* GetImageData()
+			{ return m_imageData; }
 
-		vtkImageData* GetRefVolume()
-			{ return m_volumeRef; }
+		vtkImageData* GetImageDataRef()
+			{ return m_imageDataRef; }
 				
 		void SetBrushProperty( BrushProperty* brush )
 			{ m_propertyBrush = brush; }
@@ -107,8 +107,8 @@ class LayerVolumeBase : public LayerEditable
 		void SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice );
 		void LoadBufferItem( UndoRedoBufferItem& item );
 					
-		vtkSmartPointer<vtkImageData>	m_volumeRAS;
-		vtkSmartPointer<vtkImageData>	m_volumeRef;
+		vtkSmartPointer<vtkImageData>	m_imageData;
+		vtkSmartPointer<vtkImageData>	m_imageDataRef;
 		
 		float			m_fFillValue;
 		float			m_fBlankValue;
