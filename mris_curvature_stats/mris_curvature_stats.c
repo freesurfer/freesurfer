@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/09/29 13:58:53 $
- *    $Revision: 1.50 $
+ *    $Date: 2008/10/08 20:02:31 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.50 2008/09/29 13:58:53 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.51 2008/10/08 20:02:31 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -389,6 +389,8 @@ static double 	Gf_scaleMax  			= 0.;
 
 static int which_norm = NORM_MEAN;
 
+char		Gpch_calc[1024];
+
 int 
 stats_update(
 	int	ai
@@ -416,6 +418,7 @@ main(int argc, char *argv[]) {
   char          **av, fname[STRBUF], *sdir ;
   char          *subject_name;
   char		pch_surface[16384];
+  char		pch_tmp[1024];
   int           ac, nargs;
   int		i = START_i;
   MRI_SURFACE   *mris ;
@@ -423,7 +426,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.50 2008/09/29 13:58:53 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.51 2008/10/08 20:02:31 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -443,6 +446,10 @@ main(int argc, char *argv[]) {
     argc -= nargs ;
     argv += nargs ;
   }
+  if(Gb_discreteCurvaturesUse)
+  	strcpy(Gpch_calc, "discrete");
+  else
+	strcpy(Gpch_calc, "2nd order form");
 
   if (!strcmp(surf_name, "-x"))
     strcpy(surf_name, "smoothwm") ;
@@ -593,11 +600,17 @@ main(int argc, char *argv[]) {
         MRISwriteCurvature(mris, 	Gpch_SICurv);
     }
 
-    printf("\n");
-    printf("%-50s%12.5f\n", "Folding Index (FI):", Gf_foldingIndex);
-    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - positive (ICIp):", Gf_intrinsicCurvaturePos);
-    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - negative (ICIn):", Gf_intrinsicCurvatureNeg);    
-    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - natural  (ICIt):", Gf_intrinsicCurvatureNat);
+    strcpy(pch_tmp, "");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "%-55s%10s\n", "curv -- calculation type", Gpch_calc);
+    sprintf(pch_tmp, "curv -- Folding Index (FI)");
+    printf("%-55s%10.5f\n", pch_tmp , Gf_foldingIndex);
+    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - positive (ICIp):");
+    printf("%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvaturePos);
+    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - negative (ICIn):");
+    printf("%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvatureNeg);    
+    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - natural (ICIn):");
+    printf("%-55s%10.5f\n",pch_tmp, Gf_intrinsicCurvatureNat);
   }
 
   if (Gf_n> 1.8) {
@@ -940,11 +953,11 @@ MRIS_surfaceIntegrals_report(
   float f_SIabsAreaNorm	= 0.0; 	float f_SIabsArea	= 0.0;
   float f_SIposAreaNorm	= 0.0;	float f_SIposArea	= 0.0;
   float f_SInegAreaNorm	= 0.0;  float f_SInegArea	= 0.0;
-  char* pch_curveName;
+  char 	pch_curveName[1024];
   char* pch_function		= "MRIS_surfaceIntegrals_report";
 
   DebugEnterFunction (( pch_function ));
-  pch_curveName		= Gppch[aesot];
+  sprintf(pch_curveName, "%s", Gppch[aesot]);
 
   surfaceIntegrals_compute(apmris, e_natural,
                            &f_SInatural, 		 	
@@ -976,6 +989,10 @@ MRIS_surfaceIntegrals_report(
   if(aesot == e_FI)
 	Gf_foldingIndex		 = f_SInatural / 4 / M_PI;
 
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Curvature Calculation Type:");
+  sprintf(apch_report, "%s%12s\n", apch_report,
+          Gpch_calc);
   sprintf(apch_report, "%s%10s%-40s", apch_report,
           pch_curveName, " Average Vertex Separation:");
   sprintf(apch_report, "%s%12.5f +- %2.5f mm\n", apch_report,
@@ -1106,17 +1123,6 @@ MRIS_curvatureStats_analyze(
   if(Gb_minMaxShow) MRIS_minMaxCurve_report(apmris, aesot, pch_minMaxReport);
   MRIS_surfaceIntegrals_report(apmris, aesot, pch_surfaceIntegralReport);
 
-  // Now, dump the reports to stdout
-  //	First the mean/sigma results
-  Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
-  if(aesot == e_Raw)
-    sprintf(pch_text, 
-            "\n%s <mean> +- <std> (using '%s.%s'):",
-            Gppch[aesot], hemi, curv_fname);
-  else
-    sprintf(pch_text, 
-            "\n%s <mean> +- <std> (using '%s.%s'):",
-            Gppch[aesot], hemi, surf_name);
   strcpy(pch_units, "");
   switch(aesot) {
 	case e_K1:
@@ -1128,6 +1134,19 @@ MRIS_curvatureStats_analyze(
 	    strcpy(pch_units, pch_unitsmm2);
 	    break;
   }
+
+  // Now, dump the reports to stdout
+  //	First the mean/sigma results
+  Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
+  if(aesot == e_Raw) {
+    sprintf(pch_text, 
+            "\n%s <mean> +- <std> (using '%s.%s'):",
+            Gppch[aesot], hemi, curv_fname);
+    strcpy(pch_units, "");
+  } else
+    sprintf(pch_text, 
+            "\n%s <mean> +- <std> (using '%s.%s'):",
+            Gppch[aesot], hemi, surf_name);
   fprintf(stdout, "%-50s", pch_text);
   fprintf(stdout, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
   if(GpFILE_log) {
