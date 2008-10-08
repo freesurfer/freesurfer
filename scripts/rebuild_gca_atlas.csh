@@ -18,16 +18,18 @@
 # each subject's mri directory: nu.mgz, brain.mgz, nu_noneck.mgz and
 # seg_edited.mgz, where seg_edited.mgz is the manually labelled volume
 # from which the training data is derived.
-# The final atlas is stored as $SUBJECTS_DIR/average/RB_all_`date +%F`.gca
+# The final atlas is stored as:
+#  $SUBJECTS_DIR/average/${GCA_PRE}_all_`date +%F`.gca
+# where ${GCA_PRE} specifies the prefix (default is 'RB').
 # "nu_noneck.mgz" is needed for every subject to build the gca with skull.
 #
 # Original author: Xiao Han
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2008/04/03 00:45:09 $
-#    $Revision: 1.16 $
+#    $Author: nicks $
+#    $Date: 2008/10/08 19:20:24 $
+#    $Revision: 1.17 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -41,13 +43,18 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.16 2008/04/03 00:45:09 fischl Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.17 2008/10/08 19:20:24 nicks Exp $';
 
 #set echo=1
 
 # these are the subjects to use in training.
 # one of them, the target, set to ONE_SUBJECT, should be declared is this file:
 source ${SUBJECTS_DIR}/scripts/subjects.csh
+# also, GCA_PRE can optionally be defined in subjects.csh, to override the
+# default name prefix of 'RB'.
+if ( ! $?GCA_PRE) then
+  set GCA_PRE=(RB)
+endif
 
 # created GCA files, and log file, get this date appended
 set DATE=(`date +%F`)
@@ -103,7 +110,7 @@ set SEG_VOL=(seg_edited.mgz) # filename (symlink) for manual segmentation
 set ORIG_VOL=(nu.mgz)
 set MASK_VOL=(brain.mgz) # filename for brain mask
 set T1_NONECK=(nu_noneck.mgz) # file to build the atlas gca_with_skull
-set TAL_MAN=(RB_AVERAGE3new.xfm) # optional manual tal registration file
+set TAL_MAN=(talairach_man.xfm) # optional manual tal registration file
 set INPUTS=(${SEG_VOL} ${ORIG_VOL} ${MASK_VOL} ${T1_NONECK})
 set ALL_SUBJS=(${SUBJECTS} ${ONE_SUBJECT})
 foreach subject (${ALL_SUBJS}) # check for existence of required inputs
@@ -121,10 +128,7 @@ foreach subject (${ALL_SUBJS}) # check for existence of required inputs
         endif
     end
 end
-if ( ! -e ${SUBJECTS_DIR}/${ONE_SUBJECT}/mri/transforms/${TAL_MAN} ) then
-    echo "Missing ${SUBJECTS_DIR}/${ONE_SUBJECT}/mri/transforms/${TAL_MAN}!"
-    exit 1
-endif
+
 
 
 ##########################################################################
@@ -136,9 +140,9 @@ endif
 # Outputs:
 #
 mkdir -p ${SUBJECTS_DIR}/average
-set GCA=(${SUBJECTS_DIR}/average/RB_all_${DATE}.gca)
-set GCA_ONE=(${SUBJECTS_DIR}/average/RB_one_${DATE}.gca)
-set GCA_SKULL=(${SUBJECTS_DIR}/average/RB_all_withskull_${DATE}.gca)
+set GCA=(${SUBJECTS_DIR}/average/${GCA_PRE}_all_${DATE}.gca)
+set GCA_ONE=(${SUBJECTS_DIR}/average/${GCA_PRE}_one_${DATE}.gca)
+set GCA_SKULL=(${SUBJECTS_DIR}/average/${GCA_PRE}_all_withskull_${DATE}.gca)
 
 set LTA_ONE=(talairach_one.lta)
 set M3D_ONE=(talairach_one.m3z)
@@ -199,8 +203,13 @@ if(-e ${SUBJECTS_DIR}/$ONE_SUBJECT/mri/transforms/${TAL_MAN}) then
     echo "Using manual talairach registration ${TAL_MAN}..." >>& $LF
     set MAN_TAL=(-xform ${TAL_MAN})
 else
+  if(-e ${SUBJECTS_DIR}/$ONE_SUBJECT/mri/transforms/talairach.xfm) then
+    echo "Using talairach registration talairach.xfm..." >>& $LF
+    set MAN_TAL=(-xform talairach.xfm)
+  else
     echo "Initial talairach registration unavailable (no xform)..." >>& $LF
     set MAN_TAL=
+  endif
 endif
 echo "$train using one subject: $ONE_SUBJECT, producing ${GCA_ONE}..."
 set cmd=($train -prior_spacing 2 -node_spacing 8 -mask ${MASK_VOL})
