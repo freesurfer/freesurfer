@@ -7,10 +7,10 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/07 22:01:55 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/10/08 19:14:35 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -137,7 +137,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
 		SetWorldVoxelSize( mri->GetWorldVoxelSize() );
 		SetWorldSize( mri->GetWorldSize() );
 		
-		m_imageData = vtkSmartPointer<vtkImageData>::New();
+	/*	m_imageData = vtkSmartPointer<vtkImageData>::New();
 		
 		if ( bCopyVoxelData )
 		{
@@ -156,6 +156,8 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
 		//	cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
 			memset( ptr, 0, sizeof( float ) * nDim[0] * nDim[1] * nDim[2] );
 		}
+	*/
+		m_imageData = m_volumeSource->GetImageOutput();
 		
 		InitializeActors();
 		
@@ -190,6 +192,9 @@ bool LayerMRI::RotateVolume( std::vector<RotationElement>& rotations, wxWindow* 
 {
 	m_bResampleToRAS = false;
 	m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
+	if ( IsModified() )
+		m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
+	
 	return m_volumeSource->Rotate( rotations, wnd, event );
 }
 

@@ -7,10 +7,10 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/07 22:01:54 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/08 19:14:35 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -228,7 +228,28 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData )
 	if ( !bCopyVoxelData )
 		MRIcopyHeader( src_vol->m_MRI, m_MRI );
 	
-	m_imageData = src_vol->m_imageData;
+	if ( !m_imageData.GetPointer() )
+	{
+		m_imageData = vtkSmartPointer<vtkImageData>::New();
+	}
+	
+	if ( bCopyVoxelData )
+	{
+		m_imageData->DeepCopy( src_vol->m_imageData );
+	}
+	else
+	{
+		m_imageData->SetNumberOfScalarComponents( 1 );
+		m_imageData->SetScalarTypeToFloat();
+		m_imageData->SetOrigin( src_vol->m_imageData->GetOrigin() );
+		m_imageData->SetSpacing( src_vol->m_imageData->GetSpacing() );	
+		m_imageData->SetDimensions( src_vol->m_imageData->GetDimensions() );
+		m_imageData->AllocateScalars();
+		float* ptr = ( float* )m_imageData->GetScalarPointer();
+		int* nDim = m_imageData->GetDimensions();
+	//	cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
+		memset( ptr, 0, sizeof( float ) * nDim[0] * nDim[1] * nDim[2] );
+	}
 }
 
 void FSVolume::SetMRI( MRI*& mri_out, MRI* mri_in  )

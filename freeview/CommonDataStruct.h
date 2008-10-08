@@ -6,13 +6,13 @@
  * messages with a pointer data can be sent to a list of listeners.
  */
 /*
- * Original Author: Kevin Teich
+ * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 15:49:10 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/10/08 19:14:34 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
