@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/07 22:01:55 $
- *    $Revision: 1.17 $
+ *    $Date: 2008/10/08 16:29:13 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2366,10 +2366,10 @@ void MainWindow::OnFileLoadDTI( wxCommandEvent& event )
 	
 	wxString fn_vector = dlg.GetVectorFileName();
 	wxString fn_fa = dlg.GetFAFileName();
-	this->LoadDTIFile( fn_fa, fn_vector, "", dlg.IsToResample() );
+	this->LoadDTIFile( fn_vector, fn_fa, "", dlg.IsToResample() );
 }
 
-void MainWindow::LoadDTIFile( const wxString& fn_fa, const wxString& fn_vector, const wxString& reg_filename, bool bResample )
+void MainWindow::LoadDTIFile( const wxString& fn_vector, const wxString& fn_fa, const wxString& reg_filename, bool bResample )
 {	
 	m_strLastDir = MyUtils::GetNormalizedPath( fn_fa );
 	m_bResampleToRAS = bResample;
