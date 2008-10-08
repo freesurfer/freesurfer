@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/12 16:12:42 $
- *    $Revision: 1.86 $
+ *    $Date: 2008/10/08 18:08:07 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2026,7 +2026,7 @@ LABEL *
 LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
 {
   MRI    *mri ;
-  int    i, dst_index, vno, xi, yi, zi, xk, yk, zk, found, x2, y2, z2 ;
+  int    i, dst_index, vno, xi, yi, zi, xk, yk, zk, found, x2, y2, z2,nchanged;
   Real   xw, yw, zw, xv, yv, zv ;
   VERTEX *v ;
   LABEL  *area_dst ;
@@ -2045,67 +2045,79 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
     yw = area_src->lv[i].y  ;
     zw = area_src->lv[i].z ;
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+#if 0
     if (mris->useRealRAS)
       MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
     else
       MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+#else
+    MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv, &yv, &zv) ;
+#endif
     MRIvox(mri, nint(xv), nint(yv), nint(zv)) = 1 ;
   }
 
   dst_index = area_dst->n_points ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  do
   {
-    v = &mris->vertices[vno] ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-    if (v->ripflag || v->marked)   /* already in label */
-      continue ;
-    MRISvertexCoordToVoxel(mris, v, mri, coords, &xv, &yv, &zv) ;
-    xi = nint(xv) ;
-    yi = nint(yv) ;
-    zi = nint(zv) ;
-    if (MRIvox(mri, xi, yi, zi) == 1)
+    nchanged = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
-      MRISgetCoords(v, coords, &vx, &vy, &vz);
-      area_dst->lv[dst_index].vno = vno ;
-      area_dst->lv[dst_index].x = vx ;
-      area_dst->lv[dst_index].y = vy ;
-      area_dst->lv[dst_index].z = vz ;
-      dst_index++ ;
-      area_dst->n_points++ ;
-    }
-    if (MRIneighborsOn(mri, xi, yi, zi, 1) > 0)
-    {
-      found = 0 ;
-      for (xk = -1 ; !found && xk <= 1 ; xk++)
-        for (yk = -1 ; !found && yk <= 1 ; yk++)
-          for (zk = -1 ; !found && zk <= 1 ; zk++)
-          {
-            x2 = mri->xi[xi+xk] ;
-            y2 = mri->xi[yi+yk] ;
-            z2 = mri->xi[zi+zk] ;
-            if (MRIvox(mri, x2, y2, z2) == 1)
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->ripflag || v->marked)   /* already in label */
+        continue ;
+      MRISvertexCoordToVoxel(mris, v, mri, coords, &xv, &yv, &zv) ;
+      xi = nint(xv) ;
+      yi = nint(yv) ;
+      zi = nint(zv) ;
+      if (MRIvox(mri, xi, yi, zi) == 1)
+      {
+        MRISgetCoords(v, coords, &vx, &vy, &vz);
+        area_dst->lv[dst_index].vno = vno ;
+        area_dst->lv[dst_index].x = vx ;
+        area_dst->lv[dst_index].y = vy ;
+        area_dst->lv[dst_index].z = vz ;
+        v->marked = 1 ;
+        dst_index++ ;
+        nchanged++ ;
+        area_dst->n_points++ ;
+      }
+      if (MRIneighborsOn(mri, xi, yi, zi, 1) > 0)
+      {
+        found = 0 ;
+        for (xk = -1 ; !found && xk <= 1 ; xk++)
+          for (yk = -1 ; !found && yk <= 1 ; yk++)
+            for (zk = -1 ; !found && zk <= 1 ; zk++)
             {
-              dx = xv-(xi+xk) ;
-              dy = yv-(yi+yk) ;
-              dz = zv-(zi+zk) ;
-              dist = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-              if (dist < sqrt(.5*.5+.5*.5))
+              x2 = mri->xi[xi+xk] ;
+              y2 = mri->xi[yi+yk] ;
+              z2 = mri->xi[zi+zk] ;
+              if (MRIvox(mri, x2, y2, z2) == 1)
               {
-                found = 1 ;
-                MRISgetCoords(v, coords, &vx, &vy, &vz);
-                area_dst->lv[dst_index].vno = vno ;
-                area_dst->lv[dst_index].x = vx ;
-                area_dst->lv[dst_index].y = vy ;
-                area_dst->lv[dst_index].z = vz ;
-                dst_index++ ;
-                area_dst->n_points++ ;
-                break ;
+                dx = xv-(xi+xk) ;
+                dy = yv-(yi+yk) ;
+                dz = zv-(zi+zk) ;
+                dist = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
+                if (dist < sqrt(.5*.5+.5*.5))
+                {
+                  found = 1 ;
+                  MRISgetCoords(v, coords, &vx, &vy, &vz);
+                  area_dst->lv[dst_index].vno = vno ;
+                  area_dst->lv[dst_index].x = vx ;
+                  area_dst->lv[dst_index].y = vy ;
+                  area_dst->lv[dst_index].z = vz ;
+                  dst_index++ ;
+                  v->marked = 1 ;
+                  nchanged++ ;
+                  area_dst->n_points++ ;
+                  break ;
+                }
               }
             }
-          }
+      }
     }
-  }
+  } while (nchanged > 0) ;
 
   MRIfree(&mri) ;
   return(area_dst) ;
