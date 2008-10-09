@@ -1,15 +1,14 @@
 /**
  * @file  mri_conform.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief resample volume to isotropic 1mm^3
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:34 $
- *    $Revision: 1.33 $
+ *    $Date: 2008/10/09 20:46:42 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,13 +118,22 @@ MRI *MRIconform(MRI *mri)
     res = mri2;
   }
 
-
   /* ----- reslice if necessary ----- */
-  if (res->xsize != templ->xsize || res->ysize != templ->ysize   || res->zsize != templ->zsize ||
-      res->width != templ->width || res->height != templ->height || res->depth != templ->depth ||
-      res->x_r != templ->x_r || res->x_a != templ->x_a || res->x_s != templ->x_s ||
-      res->y_r != templ->y_r || res->y_a != templ->y_a || res->y_s != templ->y_s ||
-      res->z_r != templ->z_r || res->z_a != templ->z_a || res->z_s != templ->z_s)
+  if (res->xsize != templ->xsize || 
+      res->ysize != templ->ysize || 
+      res->zsize != templ->zsize ||
+      res->width != templ->width || 
+      res->height != templ->height || 
+      res->depth != templ->depth ||
+      res->x_r != templ->x_r || 
+      res->x_a != templ->x_a || 
+      res->x_s != templ->x_s ||
+      res->y_r != templ->y_r || 
+      res->y_a != templ->y_a || 
+      res->y_s != templ->y_s ||
+      res->z_r != templ->z_r || 
+      res->z_a != templ->z_a || 
+      res->z_s != templ->z_s)
   {
     mri2 = MRIresample(res, templ, SAMPLE_TRILINEAR);
     MRIfree(&res);
