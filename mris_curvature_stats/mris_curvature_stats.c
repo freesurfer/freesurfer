@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/10/08 20:02:31 $
- *    $Revision: 1.51 $
+ *    $Date: 2008/10/09 15:20:08 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.51 2008/10/08 20:02:31 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.52 2008/10/09 15:20:08 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -301,6 +301,7 @@ static float	Gf_intrinsicCurvatureNeg	= 0.;
 static float	Gf_intrinsicCurvatureNat	= 0.;
 
 // All possible output file name and suffixes
+static 	FILE*	GpSTDOUT			= NULL;
 static	short	Gb_writeCurvatureFiles		= 0;
 static 	char 	Gpch_log[STRBUF];
 static 	char 	Gpch_logS[]  			= "log";
@@ -423,10 +424,11 @@ main(int argc, char *argv[]) {
   int		i = START_i;
   MRI_SURFACE   *mris ;
 
+  GpSTDOUT	= stdout;
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.51 2008/10/08 20:02:31 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.52 2008/10/09 15:20:08 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -487,7 +489,7 @@ main(int argc, char *argv[]) {
     LabelFree(&area) ;
   }
   if (label_name)
-    fprintf(stdout,"%s: ", label_name) ;
+    fprintf(GpSTDOUT,"%s: ", label_name) ;
 
   outputFiles_close();
   outputFileNames_create();
@@ -601,30 +603,28 @@ main(int argc, char *argv[]) {
     }
 
     strcpy(pch_tmp, "");
-    fprintf(stdout, "\n");
-    fprintf(stdout, "%-55s%10s\n", "curv -- calculation type", Gpch_calc);
+    fprintf(GpSTDOUT, "\n");
+    fprintf(GpSTDOUT, "%-55s%10s\n", "curv -- calculation type", Gpch_calc);
     sprintf(pch_tmp, "curv -- Folding Index (FI)");
-    printf("%-55s%10.5f\n", pch_tmp , Gf_foldingIndex);
+    fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp , Gf_foldingIndex);
     sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - positive (ICIp):");
-    printf("%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvaturePos);
+    fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvaturePos);
     sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - negative (ICIn):");
-    printf("%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvatureNeg);    
+    fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvatureNeg);    
     sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - natural (ICIn):");
-    printf("%-55s%10.5f\n",pch_tmp, Gf_intrinsicCurvatureNat);
+    fprintf(GpSTDOUT, "%-55s%10.5f\n",pch_tmp, Gf_intrinsicCurvatureNat);
   }
 
   if (Gf_n> 1.8) {
     Gf_mean 	= Gf_total / Gf_n;
     Gf_sigma 	= sqrt(Gf_total_sq/Gf_n- Gf_mean*Gf_mean) ;
-    fprintf(stdout, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
+    fprintf(GpSTDOUT, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
             (int) Gf_n, Gf_mean, Gf_sigma) ;
-    if(GpFILE_log) 
-      fprintf(GpFILE_log, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
-              (int) Gf_n, Gf_mean, Gf_sigma) ;
   }
 
   MRISfree(&mris) ;
   outputFiles_close();
+  fprintf(GpSTDOUT, "\n\n");
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -1147,18 +1147,14 @@ MRIS_curvatureStats_analyze(
     sprintf(pch_text, 
             "\n%s <mean> +- <std> (using '%s.%s'):",
             Gppch[aesot], hemi, surf_name);
-  fprintf(stdout, "%-50s", pch_text);
-  fprintf(stdout, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
-  if(GpFILE_log) {
-    fprintf(GpFILE_log, "%-50s", pch_text);
-    fprintf(GpFILE_log, " %12.5f +- %2.4f %s", Gf_mean, Gf_sigma, pch_units);
-  }
+  fprintf(GpSTDOUT, "%-50s", pch_text);
+  fprintf(GpSTDOUT, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
 
   // Now the min/max report
-  if(Gb_minMaxShow) fprintf(stdout, "%s", pch_minMaxReport);
+  if(Gb_minMaxShow) fprintf(GpSTDOUT, "%s", pch_minMaxReport);
 
   // The surface integral report
-  fprintf(stdout, "%s", pch_surfaceIntegralReport);
+  fprintf(GpSTDOUT, "%s", pch_surfaceIntegralReport);
 
   // and any histograms...
   if(Gb_histogram) histogram_wrapper(apmris, aesot);
@@ -1840,9 +1836,9 @@ histogram_create(
   strcpy(pch_sot, Gppch[aesot]);
 
   nvertices  = amris_curvature->nvertices;
-  fprintf(stdout, "\n%*s%s = %f\n",
+  fprintf(GpSTDOUT, "\n%*s%s = %f\n",
           G_leftCols, pch_sot, " bin size", af_binSize);
-  fprintf(stdout, "%*s%s = %d\n",
+  fprintf(GpSTDOUT, "%*s%s = %d\n",
           G_leftCols, pch_sot, " surface vertices", nvertices);
   pf_curvature = calloc(nvertices, sizeof(float));
 
@@ -1880,9 +1876,9 @@ histogram_create(
     if (totalCount == nvertices)
       break;
   }
-  fprintf(stdout, "%*s%s = %d\n",
+  fprintf(GpSTDOUT, "%*s%s = %d\n",
           G_leftCols, pch_sot, " sorted vertices", totalCount);
-  fprintf(stdout, "%*s%s = %f\n",
+  fprintf(GpSTDOUT, "%*s%s = %f\n",
           G_leftCols, pch_sot, " ratio", (float)totalCount / (float)nvertices);
   free(pf_curvature);
 }
@@ -2118,6 +2114,7 @@ outputFiles_open(void) {
     if ((GpFILE_log=fopen(Gpch_log, "a"))==NULL)
       ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for appending.\n",
                 Progname, Gpch_log);
+    GpSTDOUT	= GpFILE_log;
     if (Gb_histogram && curv_fname) {
       if ((GpFILE_rawHist=fopen(Gpch_rawHist, "w"))==NULL)
         ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for writing.\n",
@@ -2720,7 +2717,7 @@ print_help(void) {
  \n\
 \n");
 
-  fprintf(stdout,pch_synopsis);
+  fprintf(stdout, pch_synopsis);
   exit(1) ;
 }
 
