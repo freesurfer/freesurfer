@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/27 19:09:51 $
- *    $Revision: 1.86.2.3 $
+ *    $Date: 2008/10/09 17:01:44 $
+ *    $Revision: 1.86.2.4 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.86.2.3 2008/08/27 19:09:51 greve Exp $";
+"$Id: tkregister2.c,v 1.86.2.4 2008/10/09 17:01:44 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1190,7 +1190,58 @@ static int parse_commandline(int argc, char **argv) {
       XFM = lta->xforms[0].m_L;
       mkheaderreg = 1;
       nargsused = 1;
-    } else if (!strcmp(option, "--vox2vox")){
+    } 
+    else if (!strcmp(option, "--gca-skull")) {
+      if(nargc < 1) argnerr(option,1);
+      sprintf(subjectid,"%s",pargv[0]);
+      sprintf(tmpstr,"%s/%s/mri/transforms/talairach_with_skull.lta",subjectsdir,subjectid);
+      FSXform = TransformRead(tmpstr);
+      if(FSXform == NULL) exit(1);
+      lta = (LTA*) FSXform->xform;
+      if(lta->type != LINEAR_RAS_TO_RAS){
+        printf("INFO: LTA input is not RAS to RAS...converting...\n");
+        lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      }
+      if(lta->type != LINEAR_RAS_TO_RAS){
+        printf("ERROR: LTA input is not RAS to RAS\n");
+        exit(1);
+      }
+      linxfm = &(lta->xforms[0]);
+      // Assume RAS2RAS and uses vox2ras from input volumes:
+      // Note: This ignores the volume geometry in the LTA file.
+      XFM = MatrixInverse(lta->xforms[0].m_L,NULL);
+      sprintf(tmpstr,"%s/%s/mri/T1.mgz",subjectsdir,subjectid);
+      targ_vol_id = strcpyalloc(tmpstr);
+      mov_vol_id = strcpyalloc(lta->xforms->dst.fname);
+      mkheaderreg = 1;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--gca")) {
+      if(nargc < 1) argnerr(option,1);
+      sprintf(subjectid,"%s",pargv[0]);
+      sprintf(tmpstr,"%s/%s/mri/transforms/talairach.lta",subjectsdir,subjectid);
+      FSXform = TransformRead(tmpstr);
+      if(FSXform == NULL) exit(1);
+      lta = (LTA*) FSXform->xform;
+      if(lta->type != LINEAR_RAS_TO_RAS){
+        printf("INFO: LTA input is not RAS to RAS...converting...\n");
+        lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      }
+      if(lta->type != LINEAR_RAS_TO_RAS){
+        printf("ERROR: LTA input is not RAS to RAS\n");
+        exit(1);
+      }
+      linxfm = &(lta->xforms[0]);
+      // Assume RAS2RAS and uses vox2ras from input volumes:
+      // Note: This ignores the volume geometry in the LTA file.
+      XFM = MatrixInverse(lta->xforms[0].m_L,NULL);
+      sprintf(tmpstr,"%s/%s/mri/T1.mgz",subjectsdir,subjectid);
+      targ_vol_id = strcpyalloc(tmpstr);
+      mov_vol_id = strcpyalloc(lta->xforms->dst.fname);
+      mkheaderreg = 1;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--vox2vox")){
       if (nargc < 1) argnerr(option,1);
       Vox2VoxFName = pargv[0];
       Vox2Vox = Load4x4(Vox2VoxFName);
@@ -1285,6 +1336,8 @@ static void print_usage(void) {
   printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
   printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
+  printf("   --gca subject : check linear GCA registration  \n");
+  printf("   --gca-skull subject : check linear 'with skull' GCA registration  \n");
   printf("   --no-zero-cras : do not zero target cras (done with --fstal)\n");
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --no-inorm  : turn off intensity normalization\n");
@@ -4485,7 +4538,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.86.2.3 2008/08/27 19:09:51 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.86.2.4 2008/10/09 17:01:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
