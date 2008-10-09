@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/10/02 22:35:56 $
-#    $Revision: 1.187 $
+#    $Date: 2008/10/09 22:05:16 $
+#    $Revision: 1.188 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.187 2008/10/02 22:35:56 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.188 2008/10/09 22:05:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -227,6 +227,7 @@ set DoCortParc       = 0;
 set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
+set DoCurvStats      = 0;
 set DoCortRibbonVolMask = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
@@ -426,6 +427,8 @@ mris_make_surfaces -all-info >> $LF
 mris_register -all-info >> $LF
 mris_anatomical_stats -all-info >> $LF
 mrisp_paint -all-info >> $LF
+mris_curvature_stats -all-info >> $LF
+
 echo "#######################################" >> $LF
 echo "GCA $GCA" >> $LF
 echo "GCASkull $GCASkull" >> $LF
@@ -2023,6 +2026,26 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.inflate2.touch
   endif
 
+  # ---------- Curvature Anatomical Stats ---------------------------
+  if($DoCurvStats) then
+    echo "\n#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Curvature Stats $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    set stats = ../stats/$hemi.curv.stats
+    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile`;
+    set cmd = (mris_curvature_stats -m --writeCurvatureFiles -G \
+            -o $stats -F smoothwm \
+            $xopts $subjid $hemi curv sulc);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.curvstats.touch
+  endif
+
+
   #---------------Begin Morph --------------------------------#
   #---------------- Sphere --------------------------#
   if($DoSphere) then
@@ -3229,6 +3252,13 @@ while( $#argv != 0 )
       set DoSegStats = 0;
       breaksw
 
+    case "-curvstats":
+      set DoCurvStats = 1;
+      breaksw
+    case "-nocurvstats":
+      set DoCurvStats = 0;
+      breaksw
+
     case "-aparc2aseg":
       set DoAParc2ASeg = 1;
       breaksw
@@ -3366,6 +3396,7 @@ while( $#argv != 0 )
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon1":
@@ -3427,6 +3458,7 @@ while( $#argv != 0 )
       set DoFinalSurfs     = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-inflate1":
@@ -3462,6 +3494,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-wm":
@@ -3477,6 +3510,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-pial":
@@ -3486,6 +3520,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon3":
@@ -3532,6 +3567,8 @@ while( $#argv != 0 )
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
+      set DoSegStats       = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-waitfor":
@@ -4143,7 +4180,7 @@ check_params:
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
-     ! $DoSurfVolume && ! $DoASegMerge) then
+     ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -5072,6 +5109,10 @@ curvature 8. integrated rectified Gaussian curvature 9. folding index
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.a2005s.stats.
 
+Curvature Statistics  (-<no>curvstats)
+
+Runs mris_curvature_stats to create a summary file (stats/?h.curv.stats)
+of cortical curvature statistics.
 
 LONGITUDINAL PROCESSING
 
