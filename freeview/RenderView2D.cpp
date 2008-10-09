@@ -7,10 +7,10 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/07 22:01:55 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/10/09 17:01:54 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -142,15 +142,18 @@ void RenderView2D::RefreshAllActors()
 	m_renderer->RemoveAllViewProps();
 	lcm->Append2DProps( m_renderer, m_nViewPlane );
 	
-	// add annotation and cursor
-	m_annotation2D->AppendAnnotations( m_renderer );
-	m_cursor2D->AppendActor( m_renderer );
+	if ( lcm->HasLayer( "MRI" ) )
+	{
+		// add annotation and cursor
+		m_annotation2D->AppendAnnotations( m_renderer );
+		m_cursor2D->AppendActor( m_renderer );
+	
+		// add scalar bar
+		m_renderer->AddViewProp( m_actorScalarBar );
+	}
 	
 	// add focus frame
 	m_renderer->AddViewProp( m_actorFocusFrame );
-	
-	// add scalar bar
-	m_renderer->AddViewProp( m_actorScalarBar );
 	
 	NeedRedraw();
 	//Render();

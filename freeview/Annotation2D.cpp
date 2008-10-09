@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:34 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/09 17:01:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,8 +102,8 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
 	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
 	lc->GetSlicePosition( slicePos );
 	bool bHasLayer = ( lc->GetNumberOfLayers() > 0 );
-	for ( int i = 0; i < NUMBER_OF_ANNOTATIONS; i++ )
-		m_actorCoordinates[i]->SetVisibility( bHasLayer ? 1 : 0 );
+//	for ( int i = 0; i < NUMBER_OF_ANNOTATIONS; i++ )
+//		m_actorCoordinates[i]->SetVisibility( bHasLayer ? 1 : 0 );
 			
 	if ( !bHasLayer )
 	{
