@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/11 19:41:29 $
- *    $Revision: 1.33 $
+ *    $Date: 2008/10/10 20:47:55 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,6 +84,8 @@ MRIsqrtAndNormalize(MRI *mri, float num) {
   for (x = 0 ; x < mri->width ; x++) {
     for (y = 0 ; y < mri->height ; y++) {
       for (z = 0 ; z < mri->depth ; z++) {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         val = MRIgetVoxVal(mri, x, y, z,0) ;
         val = sqrt(val/num) ;
         MRIsetVoxVal(mri, x, y, z, 0, val);
@@ -105,6 +107,8 @@ MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst) {
   for (x = 0 ; x < mri1->width ; x++) {
     for (y = 0 ; y < mri1->height ; y++) {
       for (z = 0 ; z < mri1->depth ; z++) {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         val1 = MRIgetVoxVal(mri1, x, y, z,0) ;
         if (mri2)
           val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
@@ -131,7 +135,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.33 2008/01/11 19:41:29 fischl Exp $",
+           "$Id: mri_average.c,v 1.34 2008/10/10 20:47:55 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -294,17 +298,15 @@ main(int argc, char *argv[]) {
       skipped++ ;
       continue ;
     }
-    if (sqr_images)
-      mri_avg = MRIsumSquare(mri_src, mri_avg, mri_avg) ;
-    else
+    if (mri_avg == NULL)
     {
-      if (mri_avg == NULL)
-      {
-        mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
-        MRIcopyHeader(mri_src, mri_avg) ;
-      }
-      MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
+      mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+      MRIcopyHeader(mri_src, mri_avg) ;
     }
+    if (sqr_images)
+      MRIsumSquare(mri_src, mri_avg, mri_avg) ;
+    else
+      MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
     MRIfree(&mri_src) ;
   }
   if (sqr_images)
