@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/10/09 15:20:08 $
- *    $Revision: 1.52 $
+ *    $Date: 2008/10/10 16:26:43 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.52 2008/10/09 15:20:08 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.53 2008/10/10 16:26:43 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -428,7 +428,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.52 2008/10/09 15:20:08 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.53 2008/10/10 16:26:43 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -604,8 +604,8 @@ main(int argc, char *argv[]) {
 
     strcpy(pch_tmp, "");
     fprintf(GpSTDOUT, "\n");
-    fprintf(GpSTDOUT, "%-55s%10s\n", "curv -- calculation type", Gpch_calc);
-    sprintf(pch_tmp, "curv -- Folding Index (FI)");
+    fprintf(GpSTDOUT, "%-55s%10s\n", "curv -- calculation type:", Gpch_calc);
+    sprintf(pch_tmp, "curv -- Folding Index (FI):");
     fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp , Gf_foldingIndex);
     sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - positive (ICIp):");
     fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvaturePos);
