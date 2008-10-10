@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/10/10 15:58:15 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,7 +172,7 @@ void LayerSurface::InitializeActors()
 //		m_sliceActor2D[i]->SetBackfaceProperty( m_sliceActor2D[i]->MakeProperty() );
 //		m_sliceActor2D[i]->GetBackfaceProperty()->BackfaceCullingOff();
 		m_sliceActor2D[i]->SetProperty( m_sliceActor2D[i]->MakeProperty() );
-		m_sliceActor2D[i]->GetProperty()->SetInterpolationToGouraud();
+		m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
 		m_sliceActor2D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
 		
 		m_sliceActor3D[i]->SetMapper( mapper2 );
@@ -180,7 +180,7 @@ void LayerSurface::InitializeActors()
 //		m_sliceActor3D[i]->GetBackfaceProperty()->BackfaceCullingOff();
 		m_sliceActor3D[i]->SetProperty( m_sliceActor3D[i]->MakeProperty() );
 		m_sliceActor3D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
-		m_sliceActor3D[i]->GetProperty()->SetInterpolationToGouraud();		
+		m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
 
   // Set ourselves up.
 		this->OnSlicePositionChanged( i );	
