@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/09/29 14:09:44 $
- *    $Revision: 1.47 $
+ *    $Author: greve $
+ *    $Date: 2008/10/10 21:03:16 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,6 +67,7 @@
 #include "selxavgio.h"
 #include "version.h"
 #include "fmriutils.h"
+#include "proto.h" // nint
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -80,7 +81,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.47 2008/09/29 14:09:44 fischl Exp $";
+"$Id: mri_vol2surf.c,v 1.48 2008/10/10 21:03:16 greve Exp $";
 
 char *Progname = NULL;
 
@@ -175,6 +176,13 @@ MATRIX *Mrot = NULL;
 double xyztrans[3] = {0,0,0};
 MATRIX *Mtrans = NULL;
 
+char *vsmfile = NULL;
+MRI *vsm = NULL;
+int UseOld = 1;
+MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
+		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
+		 float ProjFrac, int ProjType, int nskip);
+
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
 /*------------------------------------------------------------------*/
@@ -194,7 +202,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.47 2008/09/29 14:09:44 fischl Exp $", 
+     "$Id: mri_vol2surf.c,v 1.48 2008/10/10 21:03:16 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -344,6 +352,20 @@ int main(int argc, char **argv) {
     float2int = FLT2INT_ROUND;
   }
 
+  if(vsmfile){
+    printf("Reading vsm %s\n",vsmfile);
+    vsm =  MRIread(vsmfile);
+    if(vsm == NULL) {
+      printf("ERROR: could not read %s\n",vsmfile);
+      exit(1);
+    }
+    err = MRIdimMismatch(vsm,SrcVol,0);
+    if(err){
+      printf("ERROR: vsm dimension mismatch %d\n",err);
+      exit(1);
+    }
+  }
+
   /* Wsrc: Get the source warping Transform */
   Wsrc = NULL;
   /* Fsrc: Get the source FOV registration matrix */
@@ -411,10 +433,19 @@ int main(int argc, char **argv) {
        ProjFrac <= ProjFracMax; 
        ProjFrac += ProjFracDelta) {
     printf("%2d %g %g %g\n",nproj+1,ProjFrac,ProjFracMin,ProjFracMax);
-    SurfValsP = 
-      vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc,
-                      Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
-                      ProjDistFlag, 1);
+    if(UseOld){
+      printf("using old\n");
+      SurfValsP = 
+	vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc,
+			Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
+			ProjDistFlag, 1);
+    }
+    else{
+      printf("using new\n");
+      SurfValsP = 
+	MRIvol2surf(SrcVol, Dsrc, Surf, vsm, interpmethod, SrcHitVol, 
+		    ProjFrac, ProjDistFlag,1);
+    }
     fflush(stdout);
     if (SurfValsP == NULL) {
       printf("ERROR: mapping volume to source\n");
@@ -1410,4 +1441,142 @@ static int singledash(char *flag) {
   return(0);
 }
 
+
+
+/*---------------------------------------------------------------*/
+MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
+		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
+		 float ProjFrac, int ProjType, int nskip)
+{
+  MATRIX *ras2vox, *Scrs, *Txyz;
+  MRI *TrgVol;
+  int   irow, icol, islc; /* integer row, col, slc in source */
+  float frow, fcol, fslc; /* float row, col, slc in source */
+  float srcval, *valvect, rshift;
+  int frm, vtx,nhits, err;
+  Real rval;
+  float Tx, Ty, Tz;
+
+  if(vsm){
+    err = MRIdimMismatch(vsm,SrcVol,0);
+    if(err){
+      printf("ERROR: MRIvol2surf: vsm dimension mismatch %d\n",err);
+      exit(1);
+    }
+  }
+
+  vox2ras = MRIxfmCRS2XYZtkreg(SrcVol);
+  ras2vox = MatrixInverse(vox2ras,NULL);
+  if(Rtk != NULL) ras2vox = MatrixMultiply(ras2vox,Rtk,NULL);
+  MatrixFree(&vox2ras);
+  // ras2vox now converts surfacs RAS to SrcVol vox
+
+  /* preallocate the row-col-slc vectors */
+  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
+  Txyz = MatrixAlloc(4,1,MATRIX_REAL);
+  Txyz->rptr[3+1][0+1] = 1.0;
+
+  /* allocate a "volume" to hold the output */
+  TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
+  if (TrgVol == NULL) return(NULL);
+  MRIcopyHeader(SrcVol,TrgVol);
+
+  /* Zero the source hit volume */
+  if(SrcHitVol != NULL){
+    MRIconst(SrcHitVol->width,SrcHitVol->height,SrcHitVol->depth,
+             1,0,SrcHitVol);
+  }
+
+  srcval = 0;
+  valvect = (float *) calloc(sizeof(float),SrcVol->nframes);
+  nhits = 0;
+  /*--- loop through each vertex ---*/
+  for(vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip){
+
+    if(ProjFrac != 0.0){
+      if(ProjType == 0)
+        ProjNormDist(&Tx,&Ty,&Tz,TrgSurf,vtx,ProjFrac);
+      else
+        ProjNormFracThick(&Tx,&Ty,&Tz,TrgSurf,vtx,ProjFrac);
+    }
+    else{
+      Tx = TrgSurf->vertices[vtx].x;
+      Ty = TrgSurf->vertices[vtx].y;
+      Tz = TrgSurf->vertices[vtx].z;
+    }
+
+    /* Load the Target xyz vector */
+    Txyz->rptr[0+1][0+1] = Tx;
+    Txyz->rptr[1+1][0+1] = Ty;
+    Txyz->rptr[2+1][0+1] = Tz;
+
+    /* Compute the corresponding Source col-row-slc vector */
+    Scrs = MatrixMultiply(ras2vox,Txyz,Scrs);
+    fcol = Scrs->rptr[1][1];
+    frow = Scrs->rptr[2][1];
+    fslc = Scrs->rptr[3][1];
+
+    icol = nint(fcol);
+    irow = nint(frow);
+    islc = nint(fslc);
+
+    /* check that the point is in the bounds of the volume */
+    if (irow < 0 || irow >= SrcVol->height ||
+        icol < 0 || icol >= SrcVol->width  ||
+        islc < 0 || islc >= SrcVol->depth ) continue;
+
+    if(vsm){
+      MRIsampleSeqVolume(vsm, fcol, frow, fslc, &rshift, 0,0);
+      frow += rshift;
+      irow = nint(frow);
+      if(irow < 0 || irow >= SrcVol->height) continue;
+    }
+
+    if (Gdiag_no == vtx){
+      printf("diag -----------------------------\n");
+      printf("vtx = %d  %g %g %g\n",vtx,Txyz->rptr[1][1],
+	     Txyz->rptr[2][1],Txyz->rptr[3][1]);
+      printf("fCRS  %g %g %g\n",Scrs->rptr[1][1],
+             Scrs->rptr[2][1],Scrs->rptr[3][1]);
+      printf("CRS  %d %d %d\n",icol,irow,islc);
+    }
+
+    /* only gets here if it is in bounds */
+    nhits ++;
+
+    /* Assign output volume values */
+    if(InterpMethod == SAMPLE_TRILINEAR) {
+      MRIsampleSeqVolume(SrcVol, fcol, frow, fslc,
+                         valvect, 0, SrcVol->nframes-1) ;
+      if(Gdiag_no == vtx) printf("val = %f\n", valvect[0]) ;
+      for (frm = 0; frm < SrcVol->nframes; frm++)
+        MRIFseq_vox(TrgVol,vtx,0,0,frm) = valvect[frm];
+    }
+    else {
+      for (frm = 0; frm < SrcVol->nframes; frm++)  {
+        switch (InterpMethod) {
+        case SAMPLE_NEAREST:
+          srcval = MRIgetVoxVal(SrcVol,icol,irow,islc,frm);
+          break ;
+        case SAMPLE_SINC:      /* no multi-frame */
+          MRIsincSampleVolume(SrcVol, fcol, frow, fslc, 5, &rval) ;
+          srcval = rval;
+          break ;
+        } //switch
+        MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
+        if(Gdiag_no == vtx) printf("val[%d] = %f\n", frm, srcval) ;
+      } // for
+    }// else
+    if(SrcHitVol != NULL) MRIFseq_vox(SrcHitVol,icol,irow,islc,0)++;
+  }
+
+  MatrixFree(&ras2vox);
+  MatrixFree(&Scrs);
+  MatrixFree(&Txyz);
+  free(valvect);
+
+  //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
+
+  return(TrgVol);
+}
 
