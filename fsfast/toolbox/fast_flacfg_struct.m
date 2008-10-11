@@ -8,9 +8,9 @@ function flacfg = fast_flacfg_struct
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2008/10/11 15:22:08 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@ flacfg.version = 2;
 flacfg.flaname = '';
 flacfg.TR = [];
 flacfg.fxlist = [];          % Effects Models, see fast_fxcfg_struct.m
-flacfg.inorm = [];       % Intensity Normalization Target
+flacfg.inorm = 0;       % Intensity Normalization Target
 flacfg.nskip = [];
 flacfg.slicetiming = '';
 flacfg.noisemodel = [];

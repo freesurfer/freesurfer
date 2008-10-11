@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.63 2008/09/09 19:30:49 greve Exp $
+% $Id: fast_selxavg3.m,v 1.64 2008/10/11 15:22:08 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/09/09 19:30:49 $
-%    $Revision: 1.63 $
+%    $Date: 2008/10/11 15:22:08 $
+%    $Revision: 1.64 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.63 2008/09/09 19:30:49 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.64 2008/10/11 15:22:08 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -322,7 +322,7 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
-      if(abs(yrun.tr/1000 - flac.TR) > .001)
+      if(abs(yrun.tr/1000 - flac.TR) > .01)
 	fprintf('\n\n');
 	fprintf('ERROR: TR mismatch between analysis and data\n');
 	fprintf('analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
@@ -373,7 +373,7 @@ if(DoGLMFit)
   % baseline0 = mri;
   % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
   % Compute Rescale Factor
-  if(~isempty(flac0.inorm))
+  if(flac0.inorm ~= 0)
     gmean = mean(betamn0(indmask));
     RescaleFactor = flac0.inorm/gmean;
     fprintf('Global In-Mask Mean = %g\n',gmean);
