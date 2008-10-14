@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/08/06 16:25:43 $
- *    $Revision: 1.49 $
+ *    $Author: greve $
+ *    $Date: 2008/10/14 15:13:59 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -442,7 +442,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.49 2008/08/06 16:25:43 nicks Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.50 2008/10/14 15:13:59 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -532,6 +532,12 @@ int SliceReverse = 0;
 int SliceBias  = 0;
 double SliceBiasAlpha = 1.0;
 
+int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
+		  int InterpCode, float param, MRI *vsm);
+int useold = 1;
+MRI *vsm = NULL;
+char *vsmvolfile=NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile[1000];
@@ -543,12 +549,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.49 2008/08/06 16:25:43 nicks Exp $",
+                          "$Id: mri_vol2vol.c,v 1.50 2008/10/14 15:13:59 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.49 2008/08/06 16:25:43 nicks Exp $",
+                                "$Id: mri_vol2vol.c,v 1.50 2008/10/14 15:13:59 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -825,7 +831,15 @@ int main(int argc, char **argv) {
     } else {
       out = MRIcloneBySpace(template,-1,in->nframes);
       printf("Resampling\n");
-      MRIvol2Vol(in,out,vox2vox,interpcode,sinchw);
+      if(useold) MRIvol2Vol(in,out,vox2vox,interpcode,sinchw);
+      if(!useold){
+	if(vsmvolfile){
+	  printf("Reading %s\n",vsmvolfile);
+	  vsm = MRIread(vsmvolfile);
+	  if(vsm == NULL) exit(1);
+	}
+	MRIvol2VolVSM(in,out,vox2vox,interpcode,sinchw,vsm);
+      }
     }
   }
   else {
@@ -971,6 +985,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
     else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
+    else if (!strcasecmp(option, "--new"))   useold = 0;
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
@@ -985,6 +1000,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
+      nargsused = 1;
+    } else if (istringnmatch(option, "--vsm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      vsmvolfile = pargv[0];
       nargsused = 1;
     } else if (istringnmatch(option, "--targ",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -1705,3 +1724,139 @@ MATRIX *LoadRfsl(char *fname) {
   }
   return(FSLRegMat);
 }
+
+int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
+		  int InterpCode, float param, MRI *vsm)
+{
+  int   ct,  rt,  st,  f;
+  int   ics, irs, iss;
+  float fcs, frs, fss;
+  float *valvect,drvsm;
+  int sinchw;
+  Real rval;
+  MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
+  MATRIX *crsT=NULL,*crsS=NULL;
+  int FreeMats=0;
+
+  printf("Using MRIvol2VolVSM\n");
+
+  if (src->nframes != targ->nframes){
+    printf("ERROR: MRIvol2vol: source and target have different number "
+           "of frames\n");
+    return(1);
+  }
+
+  // Compute vox2vox matrix based on vox2ras of src and target.
+  // Assumes that src and targ have same RAS space.
+  if (Vt2s == NULL){
+    V2Rsrc = MRIxfmCRS2XYZ(src,0);
+    invV2Rsrc = MatrixInverse(V2Rsrc,NULL);
+    V2Rtarg = MRIxfmCRS2XYZ(targ,0);
+    Vt2s = MatrixMultiply(invV2Rsrc,V2Rtarg,NULL);
+    FreeMats = 1;
+  }
+  if (Gdiag_no > 0){
+    printf("MRIvol2Vol: Vt2s Matrix (%d)\n",FreeMats);
+    MatrixPrint(stdout,Vt2s);
+  }
+
+  sinchw = nint(param);
+  valvect = (float *) calloc(sizeof(float),src->nframes);
+
+  crsT = MatrixAlloc(4,1,MATRIX_REAL);
+  crsT->rptr[4][1] = 1;
+  crsS = MatrixAlloc(4,1,MATRIX_REAL);
+  for(ct=0; ct < targ->width; ct++) {
+    for(rt=0; rt < targ->height; rt++) {
+      for(st=0; st < targ->depth; st++) {
+
+	// Compute CRS in VSM space
+	crsT->rptr[1][1] = ct;
+	crsT->rptr[2][1] = rt;
+	crsT->rptr[3][1] = st;
+	crsS = MatrixMultiply(Vt2s,crsT,crsS);
+
+        fcs = crsS->rptr[1][1];
+        frs = crsS->rptr[2][1];
+        fss = crsS->rptr[3][1];
+        ics = nint(fcs);
+        irs = nint(frs);
+        iss = nint(fss);
+
+        if(ics < 0 || ics >= src->width) continue;
+        if(irs < 0 || irs >= src->height) continue;
+        if(iss < 0 || iss >= src->depth) continue;
+
+	if(vsm){
+	  /* Compute the voxel shift (converts from vsm 
+	     space to mov space). This does a 3d interp to 
+	     get vsm, not sure if really want a 2d*/
+          MRIsampleSeqVolume(vsm, fcs, frs, fss, &drvsm, 0, 0);
+	  frs += drvsm;
+	  irs = nint(frs);
+	  if(irs < 0 || irs >= src->height) continue;
+	}
+
+        /* Assign output volume values */
+        if (InterpCode == SAMPLE_TRILINEAR)
+          MRIsampleSeqVolume(src, fcs, frs, fss, valvect,
+                             0, src->nframes-1) ;
+        else {
+          for (f=0; f < src->nframes ; f++) {
+            switch (InterpCode) {
+            case SAMPLE_NEAREST:
+              valvect[f] = MRIgetVoxVal(src,ics,irs,iss,f);
+              break ;
+            case SAMPLE_SINC:      /* no multi-frame */
+              MRIsincSampleVolume(src, fcs, frs, fss, sinchw, &rval) ;
+              valvect[f] = rval;
+              break ;
+            }
+          }
+        }
+
+        for (f=0; f < src->nframes; f++)
+          MRIsetVoxVal(targ,ct,rt,st,f,valvect[f]);
+
+      } /* target col */
+    } /* target row */
+  } /* target slice */
+
+  free(valvect);
+  MatrixFree(&crsS);
+  MatrixFree(&crsT);
+  if(FreeMats){
+    MatrixFree(&V2Rsrc);
+    MatrixFree(&invV2Rsrc);
+    MatrixFree(&V2Rtarg);
+    MatrixFree(&Vt2s);
+  }
+
+  return(0);
+}
+
+
+
+MRI *MRIapplyVSM(MRI *src, MRI *vsm)
+{
+  MRI *out;
+  int c,r,s;
+  float dr,val;
+
+  out = MRIallocSequence(src->width, src->height, src->depth, 
+			 MRI_FLOAT, src->nframes);
+  MRIcopyHeader(src,out);
+  
+  for(c=0; c < src->width; c++){
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+	dr = r + MRIgetVoxVal(vsm,c,r,s,0);
+	MRIsampleSeqVolume(src, c, dr, s, &val, 0,0);
+	MRIsetVoxVal(out,c,r,s,0,val);
+      }
+    }
+  }
+
+  return(out);
+}
+
