@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/14 15:13:59 $
- *    $Revision: 1.50 $
+ *    $Date: 2008/10/14 17:03:09 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -442,7 +442,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.50 2008/10/14 15:13:59 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.51 2008/10/14 17:03:09 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -549,12 +549,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.50 2008/10/14 15:13:59 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.51 2008/10/14 17:03:09 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.50 2008/10/14 15:13:59 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.51 2008/10/14 17:03:09 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1004,6 +1004,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--vsm",0)) {
       if (nargc < 1) argnerr(option,1);
       vsmvolfile = pargv[0];
+      useold = 0;
       nargsused = 1;
     } else if (istringnmatch(option, "--targ",0)) {
       if (nargc < 1) argnerr(option,1);
