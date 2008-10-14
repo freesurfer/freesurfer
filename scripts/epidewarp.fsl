@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/07 19:51:52 $
-#    $Revision: 1.35 $
+#    $Date: 2008/10/14 21:27:50 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.35 2008/10/07 19:51:52 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.36 2008/10/14 21:27:50 greve Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -183,7 +183,6 @@ if($UseComplex) then
   set cmd = ("$FSLPre"complex -realabs $complex1 $mag)
   $cmd |& tee -a $LF
   if($status) exit 1;
-
 else
   # Keep only the first frame from mag
   set cmd = ("$FSLPre"roi $mag $tmpdir/mag 0 1)
@@ -199,6 +198,10 @@ set cmd = (bet $mag $brain)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+if(! -e $brain) then
+  echo "ERROR: $cmd" |& tee -a $LF
+  exit 1;
+endif
 set cmd = ("$FSLPre"maths $brain -bin $brain)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
