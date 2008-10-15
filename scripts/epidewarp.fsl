@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/14 21:27:50 $
-#    $Revision: 1.36 $
+#    $Date: 2008/10/15 00:11:43 $
+#    $Revision: 1.37 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.36 2008/10/14 21:27:50 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.37 2008/10/15 00:11:43 greve Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -61,6 +61,7 @@ set exf = ();
 set DoMagExfReg = 1;
 set UseComplex = 0;
 set PERev = 0;
+set MaskWithBrain = 1;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -300,6 +301,10 @@ if($PERev) then
   set esp = `echo "-1*$esp" | bc -l`; # mult esp by -1
 endif
 
+if($MaskWithBrain) set mask = $brain
+if(! $MaskWithBrain) set mask = $head
+echo "Masking with $mask" | tee -a $LF
+
 # Create the voxel shift map (VSM) in the mag/phase space. Use mag as
 # input to assure that VSM is same dimension as mag. The input only affects
 # the output dimension. The content of the input has no effect
@@ -307,7 +312,7 @@ endif
 if(! $#vsmmag) set vsmmag = $tmpdir/vsmmag.$ext
 set magdw = $tmpdir/magdw.$ext # To be thrown away
 set cmd = (fugue -i $mag -u $magdw -p $ph2 \
-    --dwell=$esp --asym=$tediff --mask=$brain --saveshift=$vsmmag);
+    --dwell=$esp --asym=$tediff --mask=$mask --saveshift=$vsmmag);
 if($#sigmamm && $sigmamm > 0) set cmd = ($cmd --smooth2=$sigmamm);
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -324,7 +329,7 @@ if(! $KeepMean) then
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-  set cmd = ("$FSLPre"maths $vsmmag -mul $brain $vsmmag);
+  set cmd = ("$FSLPre"maths $vsmmag -mul $mask $vsmmag);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -333,7 +338,7 @@ endif
 # Forward warp the mag in order to reg with func
 # What does mask do here?
 set magfw = $tmpdir/magfw.$ext
-set cmd = (fugue -i $mag -w $magfw --loadshift=$vsmmag --mask=$brain )
+set cmd = (fugue -i $mag -w $magfw --loadshift=$vsmmag --mask=$mask )
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
@@ -377,15 +382,15 @@ endif
 
 # Now resample brain mask into epi space. This will take care of any
 # differences in in-plane voxel size.
-set brainexf = $tmpdir/brainexf.$ext
-set cmd = (flirt -in $brain -ref $exf -out $brainexf \
+set maskexf = $tmpdir/maskexf.$ext
+set cmd = (flirt -in $mask -ref $exf -out $maskexf \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 if($#epimat) then # Propogate mat file
-  set base = `basename $brainexf .$ext`;
-  cp $epimat `dirname $brainexf`/$base.mat
+  set base = `basename $maskexf .$ext`;
+  cp $epimat `dirname $maskexf`/$base.mat
 endif
 
 # Check whether we can stop at this point
@@ -394,7 +399,7 @@ if($#exfdw == 0 && $#epidw == 0) goto done;
 #------------------ Dewarp the exf --------------------------#
 if($#exfdw != 0) then
   # Now apply the VSM to the exf
-  set cmd = (fugue -i $exf -u $exfdw --loadshift=$vsm --mask=$brainexf );
+  set cmd = (fugue -i $exf -u $exfdw --loadshift=$vsm --mask=$maskexf );
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -424,7 +429,7 @@ if($#epidw != 0) then
   while($nthframe < $nframes)
     set invol  = $tmpdir/epi-split/`printf vol%04d.$ext $nthframe`;
     set outvol = $tmpdir/epi-split/`printf voldw%04d.$ext $nthframe`;
-    set cmd = (fugue -i $invol -u $outvol --loadshift=$vsm --mask=$brainexf );
+    set cmd = (fugue -i $invol -u $outvol --loadshift=$vsm --mask=$maskexf );
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -608,6 +613,10 @@ while( $#argv != 0 )
       set cleanup_forced = 1;
       breaksw
 
+    case "--head":
+      set MaskWithBrain = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
@@ -750,6 +759,7 @@ usage_exit:
   echo "  --epidw volid : dewarped epi volume"
   echo "  "
   echo "  --nomagexfreg : assume mag and exf are in register"
+  echo "  --head        : mask to head instead of brain"
   echo "  --tmpdir dir  : save intermediate results here"
   echo "  --log logfile : use logfile instead of default"
   echo "  --nocleanup   : do not delete tmpdir"
