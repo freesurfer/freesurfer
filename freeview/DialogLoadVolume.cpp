@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,8 +51,6 @@ DialogLoadVolume::DialogLoadVolume( wxWindow* parent, bool bEnableResample )
 	m_checkApplyReg = XRCCTRL( *this, "ID_CHECK_APPLY_REG", wxCheckBox );
 	m_textRegFile = XRCCTRL( *this, "ID_TEXT_REG_FILE", wxTextCtrl );
 	m_btnRegFile = XRCCTRL( *this, "ID_BUTTON_REG_FILE", wxButton );
-	m_textRegFile->Enable( m_checkApplyReg->IsChecked() );
-	m_btnRegFile->Enable( m_checkApplyReg->IsChecked() );
 }
 
 DialogLoadVolume::~DialogLoadVolume()
@@ -127,7 +125,7 @@ void DialogLoadVolume::OnButtonRegFile( wxCommandEvent& event )
 {
 	m_strLastDir = wxFileName( GetVolumeFileName() ).GetPath();
 	wxFileDialog dlg( this, _("Open registration file"), m_strLastDir, _(""), 
-					  _T("Registration files (*.dat;*.xfm;*.lta)|*.dat;*.xfm;*.lta;|All files (*.*)|*.*"), 
+					  _T("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"), 
 					  wxFD_OPEN );
 	if ( dlg.ShowModal() == wxID_OK )
 	{

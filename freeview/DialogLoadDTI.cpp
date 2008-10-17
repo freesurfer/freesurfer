@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,19 +35,26 @@ BEGIN_EVENT_TABLE( DialogLoadDTI, wxDialog )
 	EVT_BUTTON			( wxID_OK,			 						DialogLoadDTI::OnOK )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_VECTOR_FILE" ) ),	DialogLoadDTI::OnButtonVector )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_FA_FILE" ) ),		DialogLoadDTI::OnButtonFA )
+	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_REG_FILE" ) ),		DialogLoadDTI::OnButtonReg )
 	EVT_COMBOBOX		( XRCID( wxT( "ID_COMBO_FA_FILE" ) ), 		DialogLoadDTI::OnComboFASelectionChanged )
+	EVT_CHECKBOX		( XRCID( wxT( "ID_CHECK_REG" ) ),			DialogLoadDTI::OnCheckApplyReg )
 END_EVENT_TABLE()
 
 
 DialogLoadDTI::DialogLoadDTI( wxWindow* parent ) 
 {
 	wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_LOAD_DTI") );	
-	m_textVector = XRCCTRL( *this, "ID_TEXT_VECTOR_FILE", wxTextCtrl );
+	m_textVector = XRCCTRL( *this, "ID_TEXT_VECTOR_FILE", wxTextCtrl );	
+	m_textReg = XRCCTRL( *this, "ID_TEXT_REG_FILE", wxTextCtrl );
 	m_comboFA = XRCCTRL( *this, "ID_COMBO_FA_FILE", wxComboBox );
 	m_btnVector = XRCCTRL( *this, "ID_BUTTON_VECTOR_FILE", wxButton );
 	m_btnFA = XRCCTRL( *this, "ID_BUTTON_FA_FILE", wxButton );
+	m_btnReg = XRCCTRL( *this, "ID_BUTTON_REG_FILE", wxButton );
 	m_checkNoResample = XRCCTRL( *this, "ID_CHECK_NO_RESAMPLE", wxCheckBox );
+	m_checkReg = XRCCTRL( *this, "ID_CHECK_REG", wxCheckBox );
 	m_textVector->SetFocus();
+	m_btnReg->Enable( false );
+	m_textReg->Enable( false );
 }
 
 DialogLoadDTI::~DialogLoadDTI()
@@ -63,6 +70,11 @@ wxString DialogLoadDTI::GetFAFileName()
 {
 	return m_comboFA->GetValue().Trim( true ).Trim( false );
 }
+	
+wxString DialogLoadDTI::GetRegFileName()
+{
+	return ( m_checkReg->IsChecked() ? m_textReg->GetValue().Trim( true ).Trim( false ) : "" );
+}
 
 void DialogLoadDTI::OnOK( wxCommandEvent& event )
 {
@@ -75,6 +87,12 @@ void DialogLoadDTI::OnOK( wxCommandEvent& event )
 	else if ( GetFAFileName().IsEmpty() )
 	{
 		wxMessageDialog dlg( this, "FA file name can not be empty.", "Error", wxOK | wxICON_ERROR );
+		dlg.ShowModal();
+		return;
+	}
+	else if ( m_checkReg->IsChecked() && GetRegFileName().IsEmpty() )
+	{
+		wxMessageDialog dlg( this, "Registration file name can not be empty.", "Error", wxOK | wxICON_ERROR );
 		dlg.ShowModal();
 		return;
 	}
@@ -109,6 +127,21 @@ void DialogLoadDTI::OnButtonFA( wxCommandEvent& event )
 	}
 }
 
+void DialogLoadDTI::OnButtonReg( wxCommandEvent& event )
+{
+	wxFileDialog dlg( this, _("Select Registration file"), m_strLastDir, _(""), 
+					  _T("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"), 
+					  wxFD_OPEN );
+	if ( dlg.ShowModal() == wxID_OK )
+	{
+		m_textReg->ChangeValue( dlg.GetPath() );
+		m_textReg->SetInsertionPointEnd();
+		m_textReg->ShowPosition( m_textReg->GetLastPosition() );
+	//	m_strLastDir = wxFileName( dlg.GetPath() ).GetPath();
+	}
+}
+
+
 bool DialogLoadDTI::IsToResample()
 {
 	return !m_checkNoResample->IsChecked();
@@ -140,4 +173,11 @@ void DialogLoadDTI::OnComboFASelectionChanged( wxCommandEvent& event )
 	wxString strg = wxFileName( GetFAFileName() ).GetPath();
 	if ( !strg.IsEmpty() )
 		m_strLastDir = strg;
+}
+
+
+void DialogLoadDTI::OnCheckApplyReg( wxCommandEvent& event )
+{
+	m_textReg->Enable( event.IsChecked() );
+	m_btnReg->Enable( event.IsChecked() );
 }

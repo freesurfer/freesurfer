@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,8 @@ class LayerDTI : public LayerMRI
 			{ return m_sVectorFileName.c_str(); }
 		
 		LayerPropertiesDTI*	GetProperties();
+		
+		bool GetVectorValue( double* pos_in, double* v_out );
 		
 		bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 

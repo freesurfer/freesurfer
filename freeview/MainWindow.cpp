@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.20 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -1089,7 +1089,7 @@ void MainWindow::DoUpdateToolbars()
 		m_propertyBrush->SetBrushTolerance( 0 );
 	*/
 	
-		
+/*		
 	switch ( m_viewAxial->GetInteractionMode() )
 	{
 		case RenderView2D::IM_VoxelEdit:
@@ -1102,8 +1102,9 @@ void MainWindow::DoUpdateToolbars()
 			m_controlPanel->RaisePage( "Way Points" );
 			break;
 		default:
-			break;
+		break;
 	}
+	*/
 	
 	m_bToUpdateToolbars = false;
 }
@@ -2375,9 +2376,7 @@ void MainWindow::OnFileLoadDTI( wxCommandEvent& event )
 	if ( dlg.ShowModal() != wxID_OK )
 		return;
 	
-	wxString fn_vector = dlg.GetVectorFileName();
-	wxString fn_fa = dlg.GetFAFileName();
-	this->LoadDTIFile( fn_vector, fn_fa, "", dlg.IsToResample() );
+	this->LoadDTIFile( dlg.GetVectorFileName(), dlg.GetFAFileName(), dlg.GetRegFileName(), dlg.IsToResample() );
 }
 
 void MainWindow::LoadDTIFile( const wxString& fn_vector, const wxString& fn_fa, const wxString& reg_filename, bool bResample )

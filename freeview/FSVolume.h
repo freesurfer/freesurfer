@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -125,6 +125,7 @@ protected:
 	void CopyMRIDataToImage( MRI* mri, vtkImageData* image, wxWindow* wnd, wxCommandEvent& event );
 	void CopyMatricesFromMRI();	
 	void CreateImage( MRI* mri, wxWindow* wnd, wxCommandEvent& event );
+	void UpdateRASToRASMatrix();
 	
 	MATRIX* GetRotationMatrix( int nPlane, double angle, double* origin );
 	

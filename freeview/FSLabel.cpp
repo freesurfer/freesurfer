@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -125,7 +125,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event )
 {
 	if ( m_label )
-	::LabelFree( &m_label );
+		::LabelFree( &m_label );
 	
 	int nCount = 0;
 	int* dim = rasImage->GetDimensions();
@@ -251,7 +251,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 			}
 			break;
 	}
-	
+
 	m_label = ::LabelAlloc( nCount, NULL, "" );
 	m_label->n_points = nCount;
 	for ( int i = 0; i < nCount; i++ )
@@ -304,6 +304,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 	double pos[3];
 	int* dim = rasImage->GetDimensions();
 	memset( rasImage->GetScalarPointer(), 0, dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
+//	cout << "to update ras image" << endl;
 	for ( int i = 0; i < m_label->n_points; i++ )
 	{
 		pos[0] = m_label->lv[i].x;
@@ -314,7 +315,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 		if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
 				   n[2] >= 0 && n[2] < dim[2] )
 		{
-		//	cout << "update scalar component" << endl;
+//			cout << "update scalar component" << endl;
 			rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1 );
 		}
 	}

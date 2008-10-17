@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -160,6 +160,35 @@ void LayerDTI::UpdateColorMap()
 		LayerMRI::UpdateColorMap();
 }
 
+bool LayerDTI::GetVectorValue( double* pos, double* v_out )
+{
+	vtkImageData* rasDTI = m_vectorSource->GetImageOutput();
+	if ( rasDTI == NULL )
+		return 0;
+	
+	double* orig = rasDTI->GetOrigin();
+	double* vsize = rasDTI->GetSpacing();
+	int* ext = rasDTI->GetExtent();
+	
+	int n[3];
+	for ( int i = 0; i < 3; i++ )
+	{
+		n[i] = (int)( ( pos[i] - orig[i] ) / vsize[i] + 0.5 );
+	}
+	
+	if ( n[0] < ext[0] || n[0] > ext[1] || 
+			n[1] < ext[2] || n[1] > ext[3] || 
+			n[2] < ext[4] || n[2] > ext[5] )
+		return false;
+	else
+	{
+		v_out[0] = rasDTI->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 );
+		v_out[1] = rasDTI->GetScalarComponentAsDouble( n[0], n[1], n[2], 1 );
+		v_out[2] = rasDTI->GetScalarComponentAsDouble( n[0], n[1], n[2], 2 );
+		return true;
+	}
+}
+
 bool LayerDTI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
 	m_bResampleToRAS = false;
@@ -171,3 +200,4 @@ bool LayerDTI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
 	InitializeDTIColorMap( wnd, event );
 	return ret;
 }
+

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -759,6 +759,24 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 		MatrixFree( &vox2vox );
 	}
 	
+//	cout << "MRIvol2Vol finished" << endl;
+			
+	SetMRITarget( rasMRI );
+	UpdateRASToRASMatrix();
+	
+	CreateImage( rasMRI, wnd, event );
+		
+	// copy mri pixel data to vtkImage we will use for display
+	CopyMRIDataToImage( rasMRI, m_imageData, wnd, event );
+
+  // Need to recalc our bounds at some point.
+	m_bBoundsCacheDirty = true;
+
+	::MRIfree( &rasMRI );
+}
+
+void FSVolume::UpdateRASToRASMatrix()
+{
 	// compute ras2ras matrix
 	MATRIX* r2r = MatrixAlloc( 4, 4, MATRIX_REAL );
 	for ( int i = 0; i < 16; i++ ) 
@@ -766,7 +784,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 		*MATRIX_RELT( r2r, (i/4)+1, (i%4)+1 ) = m_VoxelToVoxelMatrix[i];
 	}
 	MATRIX* mMov = MRIgetVoxelToRasXform( m_MRI );
-	MATRIX* mTarg = MRIgetVoxelToRasXform( rasMRI );
+	MATRIX* mTarg = MRIgetVoxelToRasXform( m_MRITarget );
 	MATRIX* mMov_inv = MatrixInverse( mMov, NULL );
 	MatrixMultiply( r2r, mMov_inv, r2r );
 	MatrixMultiply( mTarg, r2r, r2r );
@@ -779,21 +797,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 	MatrixFree( &r2r );
 	MatrixFree( &mMov );
 	MatrixFree( &mMov_inv );
-	MatrixFree( &mTarg );
-	
-//	cout << "MRIvol2Vol finished" << endl;
-			
-	SetMRITarget( rasMRI );
-	
-	CreateImage( rasMRI, wnd, event );
-		
-	// copy mri pixel data to vtkImage we will use for display
-	CopyMRIDataToImage( rasMRI, m_imageData, wnd, event );
-
-  // Need to recalc our bounds at some point.
-	m_bBoundsCacheDirty = true;
-
-	::MRIfree( &rasMRI );
+	MatrixFree( &mTarg );		
 }
 
 void FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
@@ -991,23 +995,11 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
 	{
 		*MATRIX_RELT((vm),(i/4)+1,(i%4)+1) = m_VoxelToVoxelMatrix[i];
 	}
-	MATRIX* vox2vox = MatrixMultiply( vm, v2v, NULL );
+	MATRIX* vox2vox = MatrixMultiply( v2v, vm, NULL );
 	MatrixInverse( vox2vox, v2v );
 	
-	if ( m_matReg )
-		MRIvol2Vol( m_MRI, rasMRI, v2v, SAMPLE_NEAREST, 0 );
-	else
-	{
-		MRIvol2Vol( m_MRI, rasMRI, NULL, SAMPLE_NEAREST, 0 );
-		MatrixFree( &vox2vox );
-		vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
-	}
+	MRIvol2Vol( m_MRI, rasMRI, v2v, SAMPLE_NEAREST, 0 );
 	
-/*	FILE* fp = fopen( "log.txt", "w" );
-	MatrixPrint( fp, vox2vox );
-	MatrixPrint( fp, MRIgetVoxelToVoxelXform( m_MRI, rasMRI ) );
-	fclose( fp );
-*/	
 	// copy vox2vox 
 	for ( int i = 0; i < 16; i++ ) 
 	{
@@ -1018,6 +1010,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
 	MatrixFree( &v2v );
 			
 	SetMRITarget( rasMRI );
+	UpdateRASToRASMatrix();
 	
 	// copy mri pixel data to vtkImage we will use for display
 	CopyMRIDataToImage( rasMRI, m_imageData, wnd, event );
@@ -1184,7 +1177,7 @@ void FSVolume::GetBounds ( float oRASBounds[6] )
 
 		return;
 	}
-	
+	 
 	if ( !m_bResampleToRAS )
 	{
 		if ( m_imageData.GetPointer() )
@@ -1216,6 +1209,18 @@ void FSVolume::GetBounds ( float oRASBounds[6] )
 		}
 		return;
 	}
+	else if ( m_MRITarget )
+	{
+		MATRIX* m = MRIgetVoxelToRasXform( m_MRITarget );
+		oRASBounds[0] = *MATRIX_RELT( m, 1, 4 );
+		oRASBounds[2] = *MATRIX_RELT( m, 2, 4 );
+		oRASBounds[4] = *MATRIX_RELT( m, 3, 4 );
+		oRASBounds[1] = m_MRITarget->width * m_MRITarget->xsize + oRASBounds[0];
+		oRASBounds[3] = m_MRITarget->height * m_MRITarget->ysize + oRASBounds[2];
+		oRASBounds[5] = m_MRITarget->depth * m_MRITarget->zsize + oRASBounds[4];
+		MatrixFree( &m );	
+		return;
+	}		
 	else if ( m_bBoundsCacheDirty ) 
 	{
 		m_RASBounds[0] = m_RASBounds[2] = m_RASBounds[4] = 999999;

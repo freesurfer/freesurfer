@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/17 20:43:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@ public:
 	
 	wxString GetVectorFileName();
 	wxString GetFAFileName();
+	wxString GetRegFileName();
 	
 	bool IsToResample();
 	
@@ -56,13 +57,17 @@ protected:
 	void OnButtonVector( wxCommandEvent& event );
 	void OnButtonFA( wxCommandEvent& event );
 	void OnComboFASelectionChanged( wxCommandEvent& event );
+	void OnButtonReg( wxCommandEvent& event );
+	void OnCheckApplyReg( wxCommandEvent& event );
 	
 	wxButton*		m_btnVector;
 	wxButton*		m_btnFA;
+	wxButton*		m_btnReg;
 	wxTextCtrl*		m_textVector;
-//	wxTextCtrl*		m_textFA;
+	wxTextCtrl*		m_textReg;
 	wxComboBox*		m_comboFA;
 	wxCheckBox*		m_checkNoResample;
+	wxCheckBox*		m_checkReg;
 	
 	wxString		m_strLastDir;
 	
