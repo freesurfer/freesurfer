@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/10/16 20:27:14 $
-#    $Revision: 1.421 $
+#    $Date: 2008/10/17 18:35:29 $
+#    $Revision: 1.422 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2236,7 +2236,12 @@ fi
 # PETSc check
 if test ! "x$ac_petsc_dir" = "xNO"; then
   # if --with-petsc-dir was used, make sure necessary libs exist
-  AC_CHECK_LIB([petsc -lmpich -lpthread], [PetscInitialize],[],
+  if test "$OS" = "Darwin"; then
+    PMPICH=-lpmpich
+  else
+    PMPICH=
+  fi
+  AC_CHECK_LIB([petsc -lmpich -lpthread ${PMPICH}], [PetscInitialize],[],
     [AC_MSG_ERROR([FATAL: petsc lib not found. \
   Set LDFLAGS or --with-petsc-dir.])] )
 fi
