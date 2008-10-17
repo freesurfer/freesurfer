@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/27 13:34:04 $
- *    $Revision: 1.156 $
+ *    $Date: 2008/10/17 22:12:10 $
+ *    $Revision: 1.157 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -66,6 +66,7 @@ USAGE: ./mri_glmfit
 
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
+   --cortex : use subjects ?h.cortex.label as --label
    --mask-inv : invert mask
    --prune : remove voxels that do not have a non-zero value at each frame (def)
    --no-prune : do not prune
@@ -321,6 +322,10 @@ only where mask=0. If performing a simulation (--sim), map maximums
 and clusters will only be searched for in the mask. The final binary
 mask will automatically be saved in glmdir/mask.mgh
 
+--cortex 
+
+use subjects ?h.cortex.label as --label
+
 --prune
 --no-prune
 
@@ -542,7 +547,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.156 2008/08/27 13:34:04 greve Exp $";
+"$Id: mri_glmfit.c,v 1.157 2008/10/17 22:12:10 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -674,6 +679,7 @@ int ComputeFWHM = 1;
 
 int UseStatTable = 0;
 STAT_TABLE *StatTable=NULL, *OutStatTable=NULL;
+int  UseCortexLabel = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -2024,11 +2030,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       maskFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--label")) {
+    } 
+    else if (!strcmp(option, "--label")) {
       if (nargc < 1) CMDargNErr(option,1);
       labelFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--w")) {
+    } 
+    else if (!strcmp(option, "--cortex")) {
+      UseCortexLabel = 1;
+    } 
+    else if (!strcmp(option, "--w")) {
       if (nargc < 1) CMDargNErr(option,1);
       wFile = pargv[0];
       nargsused = 1;
@@ -2163,6 +2174,7 @@ printf("   --no-est-fwhm : turn off FWHM output estimation\n");
 printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
+printf("   --cortex use subjects ?h.cortex.label as --label\n");
 printf("   --mask-inv : invert mask\n");
 printf("   --prune : remove voxels that do not have a non-zero value at each frame (def)\n");
 printf("   --no-prune : do not prune\n");
@@ -2632,7 +2644,16 @@ static void check_options(void) {
     }
   }
 
-  if (labelFile != NULL && surf==NULL) {
+  if(UseCortexLabel && labelFile != NULL){
+    printf("ERROR: cannot use --label and --cortex\n");
+    exit(1);
+  }
+  if(UseCortexLabel){
+    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);
+    labelFile = strcpyalloc(tmpstr);
+  }
+
+  if(labelFile != NULL && surf==NULL) {
     printf("ERROR: need --surf with --label\n");
     exit(1);
   }
