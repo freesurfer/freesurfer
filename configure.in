@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/10/17 18:35:29 $
-#    $Revision: 1.422 $
+#    $Date: 2008/10/17 23:15:16 $
+#    $Revision: 1.423 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -253,6 +253,45 @@ if test "$host" = "powerpc64-suse-linux"; then
   fi
 fi
 AC_SUBST(LIB_G2C_A)
+
+# as the law of unintended consequences would have it, when linking
+# against -lblas and -llapack, it uses the shared versions (.so) which
+# expect that shared libg2c exists, which it may not if we are forcing the
+# use of a static libg2c.a, so find the static libblas and liblapack.
+# the fem_elastic build dir uses LIB_BLAS_A and LIB_LAPACK_A
+LIB_BLAS_A=""
+if test -e /usr/local/lib/libblas.a ; then
+  LIB_BLAS_A="/usr/local/lib/libblas.a"
+fi
+if test -e /usr/lib/libblas.a ; then
+  LIB_BLAS_A="/usr/lib/libblas.a"
+fi
+if test -e /usr/lib64/libblas.a ; then
+  LIB_BLAS_A="/usr/lib64/libblas.a"
+fi
+if test "$host" = "powerpc64-suse-linux"; then
+  if test -e /usr/lib/libblas.a ; then
+    LIB_BLAS_A="/usr/lib/libblas.a"
+  fi
+fi
+AC_SUBST(LIB_BLAS_A)
+
+LIB_LAPACK_A=""
+if test -e /usr/local/lib/liblapack.a ; then
+  LIB_LAPACK_A="/usr/local/lib/liblapack.a"
+fi
+if test -e /usr/lib/liblapack.a ; then
+  LIB_LAPACK_A="/usr/lib/liblapack.a"
+fi
+if test -e /usr/lib64/liblapack.a ; then
+  LIB_LAPACK_A="/usr/lib64/liblapack.a"
+fi
+if test "$host" = "powerpc64-suse-linux"; then
+  if test -e /usr/lib/liblapack.a ; then
+    LIB_LAPACK_A="/usr/lib/liblapack.a"
+  fi
+fi
+AC_SUBST(LIB_LAPACK_A)
 
 
 ################################################################

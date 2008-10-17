@@ -65,7 +65,7 @@ surf2vol_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a \
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
-	-lpetscvec -lpetsc -lmpich -lblas -llapack
+	-lpetscvec -lpetsc -lmpich $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A)
 
 exportGcam_SOURCES=\
 	$(common3d_SOURCES) \
