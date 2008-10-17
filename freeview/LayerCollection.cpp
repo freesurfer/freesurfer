@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,7 @@
 LayerCollection::LayerCollection( std::string strType) : 
 	Listener( "LayerCollection" ), 
 	Broadcaster( "LayerCollection" ),
-	m_layerActive( 0 ),
+	m_layerActive( NULL ),
 	m_strType( strType )
 {
 	for ( int i = 0; i < 3; i++ )

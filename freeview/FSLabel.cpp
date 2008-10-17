@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,7 @@ bool FSLabel::LabelRead( const char* filename )
 	return true;
 }
 
+/* 
 void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event )
 {
 	if ( m_label )
@@ -76,6 +77,8 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 	float fvalue;
 	int nProgressStep = ( 90 - event.GetInt() ) / 5;
 	double pos[3];
+	cout << "update label begins" << endl;
+	// SLOWWWW
 	for ( int i = 0; i < dim[0]; i++ )
 	{
 		for ( int j = 0; j < dim[1]; j++ )
@@ -102,6 +105,151 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 			event.SetInt( event.GetInt() + nProgressStep );
 			wxPostEvent( wnd, event );
 		}
+	}
+	cout << "update label ends" << endl;
+	m_label = ::LabelAlloc( nCount, NULL, "" );
+	m_label->n_points = nCount;
+	for ( int i = 0; i < nCount; i++ )
+	{
+		m_label->lv[i].x = values[i*4];
+		m_label->lv[i].y = values[i*4+1];
+		m_label->lv[i].z = values[i*4+2];
+		m_label->lv[i].vno = -1;		
+		m_label->lv[i].deleted = false;
+		m_label->lv[i].stat = 1;
+	}
+}
+*/
+		
+
+void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event )
+{
+	if ( m_label )
+	::LabelFree( &m_label );
+	
+	int nCount = 0;
+	int* dim = rasImage->GetDimensions();
+	double* orig = rasImage->GetOrigin();
+	double* vs = rasImage->GetSpacing();
+	vector<float> values;
+	float fvalue;
+//	int nProgressStep = ( 90 - event.GetInt() ) / 5;
+	double pos[3];
+	
+	// ok. the following part looks tedious but it's 100 times faster than doing i, j, k 3d iterations!
+	int nsize = dim[0] * dim[1] * dim[2];
+	switch ( rasImage->GetScalarType() )
+	{
+		case VTK_UNSIGNED_CHAR:
+			{
+				unsigned char* p = (unsigned char*)rasImage->GetScalarPointer();
+				for ( int i = 0; i < nsize; i++ )
+				{
+					fvalue = p[i];
+					if ( fvalue != 0 )
+					{ 
+						pos[0] = (i%dim[0]) * vs[0] + orig[0];
+						pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
+						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
+						ref_vol->TargetToRAS( pos, pos );
+						ref_vol->RASToNativeRAS( pos, pos );
+						values.push_back( pos[0] ); 
+						values.push_back( pos[1] ); 
+						values.push_back( pos[2] ); 
+						values.push_back( fvalue );
+						nCount ++;
+					}
+				}
+			}
+			break;
+		case VTK_SHORT:
+			{
+				short* p = (short*)rasImage->GetScalarPointer();
+				for ( int i = 0; i < nsize; i++ )
+				{
+					fvalue = p[i];
+					if ( fvalue != 0 )
+					{ 
+						pos[0] = (i%dim[0]) * vs[0] + orig[0];
+						pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
+						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
+						ref_vol->TargetToRAS( pos, pos );
+						ref_vol->RASToNativeRAS( pos, pos );
+						values.push_back( pos[0] ); 
+						values.push_back( pos[1] ); 
+						values.push_back( pos[2] ); 
+						values.push_back( fvalue );
+						nCount ++;
+					}
+				}
+			}
+			break;
+		case VTK_FLOAT:
+			{
+				float* p = (float*)rasImage->GetScalarPointer();
+				for ( int i = 0; i < nsize; i++ )
+				{
+					fvalue = p[i];
+					if ( fvalue != 0 )
+					{ 
+						pos[0] = (i%dim[0]) * vs[0] + orig[0];
+						pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
+						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
+						ref_vol->TargetToRAS( pos, pos );
+						ref_vol->RASToNativeRAS( pos, pos );
+						values.push_back( pos[0] ); 
+						values.push_back( pos[1] ); 
+						values.push_back( pos[2] ); 
+						values.push_back( fvalue );
+						nCount ++;
+					}
+				}
+			}
+			break;
+		case VTK_LONG:
+			{
+				long* p = (long*)rasImage->GetScalarPointer();
+				for ( int i = 0; i < nsize; i++ )
+				{
+					fvalue = p[i];
+					if ( fvalue != 0 )
+					{ 
+						pos[0] = (i%dim[0]) * vs[0] + orig[0];
+						pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
+						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
+						ref_vol->TargetToRAS( pos, pos );
+						ref_vol->RASToNativeRAS( pos, pos );
+						values.push_back( pos[0] ); 
+						values.push_back( pos[1] ); 
+						values.push_back( pos[2] ); 
+						values.push_back( fvalue );
+						nCount ++;
+					}
+				}
+			}
+			break;
+		case VTK_INT:
+			{
+				int* p = (int*)rasImage->GetScalarPointer();
+				for ( int i = 0; i < nsize; i++ )
+				{
+					fvalue = p[i];
+					if ( fvalue != 0 )
+					{ 
+						pos[0] = (i%dim[0]) * vs[0] + orig[0];
+						pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
+						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
+						ref_vol->TargetToRAS( pos, pos );
+						ref_vol->RASToNativeRAS( pos, pos );
+						values.push_back( pos[0] ); 
+						values.push_back( pos[1] ); 
+						values.push_back( pos[2] ); 
+						values.push_back( fvalue );
+						nCount ++;
+					}
+				}
+			}
+			break;
 	}
 	
 	m_label = ::LabelAlloc( nCount, NULL, "" );
@@ -155,15 +303,18 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 	int n[3];
 	double pos[3];
 	int* dim = rasImage->GetDimensions();
+	memset( rasImage->GetScalarPointer(), 0, dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
 	for ( int i = 0; i < m_label->n_points; i++ )
 	{
 		pos[0] = m_label->lv[i].x;
 		pos[1] = m_label->lv[i].y;
 		pos[2] = m_label->lv[i].z;
+		ref_vol->NativeRASToRAS( pos, pos );
 		ref_vol->RASToTargetIndex( pos, n );
 		if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
 				   n[2] >= 0 && n[2] < dim[2] )
 		{
+		//	cout << "update scalar component" << endl;
 			rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1 );
 		}
 	}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/17 00:31:25 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,7 @@
 
 #include <math.h>
 #include <wx/wx.h>
+#include <vector>
 
 class vtkRenderer;
 class vtkRenderWindow;
@@ -62,9 +63,20 @@ public:
 								 double& world_x, double& world_y, double& world_z );
 	static void NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y, 
 										   double& world_x, double& world_y, double& world_z );
-
-};
 	
+	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
+										std::vector<void*> input_volumes, float* output_volume, int vol_size );
+	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
+										std::vector<void*> input_volumes, double* output_volume, int vol_size );
+	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
+										std::vector<void*> input_volumes, int* output_volume, int vol_size );
+	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
+										std::vector<void*> input_volumes, short* output_volume, int vol_size );
+	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
+										std::vector<void*> input_volumes, unsigned char* output_volume, int vol_size );
+	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
+										std::vector<void*> input_volumes, long* output_volume, int vol_size );
+};
 
 template <class T>
 		double MyUtils::GetDistance( T* pt1, T* pt2 )
@@ -148,5 +160,6 @@ template <class T>
 	delete[] p;
 	p = 0;
 }
+
 
 #endif

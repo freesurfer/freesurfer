@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,6 @@
 #include "vtkSmartPointer.h"
 #include <string>
 
-
 class FSVectorVolume;
 class wxWindow;
 class wxCommandEvent;
@@ -52,6 +51,8 @@ class LayerDTI : public LayerMRI
 			{ return m_sVectorFileName.c_str(); }
 		
 		LayerPropertiesDTI*	GetProperties();
+		
+		bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 
 	protected:
 		void UpdateColorMap();

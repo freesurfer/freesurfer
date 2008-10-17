@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.19 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,7 @@
 #include "LayerDTI.h"
 #include "LayerSurface.h"
 #include "LayerWayPoints.h"
+#include "LayerOptimal.h"
 #include "FSSurface.h"
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
@@ -73,6 +74,7 @@
 #include "Cursor3D.h"
 #include "ToolWindowEdit.h"
 #include "DialogRotateVolume.h"
+#include "DialogOptimalVolume.h"
 
 #define	CTRL_PANEL_WIDTH	240
 
@@ -191,6 +193,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     
     EVT_MENU		( XRCID( "ID_TOOL_ROTATE_VOLUME" ),		MainWindow::OnToolRotateVolume )
     EVT_UPDATE_UI	( XRCID( "ID_TOOL_ROTATE_VOLUME" ),		MainWindow::OnToolRotateVolumeUpdateUI )    
+    EVT_MENU		( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),	MainWindow::OnToolCreateOptimalVolume )
+    EVT_UPDATE_UI	( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),	MainWindow::OnToolCreateOptimalVolumeUpdateUI )    
     
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
@@ -223,6 +227,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_bProcessing = false;
 	m_bResampleToRAS = true;
 	m_bToUpdateToolbars = false;
+	m_layerVolumeRef = NULL;
 	m_nPrevActiveViewId = -1;
 	m_luts = new LUTDataHolder();		
 	m_propertyBrush = new BrushProperty();
@@ -599,7 +604,7 @@ void MainWindow::LoadVolumeFile( const wxString& filename, const wxString& reg_f
 	m_strLastDir = MyUtils::GetNormalizedPath( filename );
 
 	m_bResampleToRAS = bResample;	
-	LayerMRI* layer = new LayerMRI( (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 ) );
+	LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
 	layer->SetResampleToRAS( bResample );
 	layer->GetProperties()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );	
 	layer->GetProperties()->SetColorMap( ( LayerPropertiesMRI::ColorMapType )nColorMap );
@@ -2090,6 +2095,8 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 					}
 					lc_mri->AddLayer( mri, true );
 					lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+					m_layerVolumeRef = mri;
+					mri->AddListener( this );
 				}
 				else
 					lc_mri->AddLayer( layer );
@@ -2332,13 +2339,17 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
 			SetTitle( "freeview" );
 		}
 	}	
-	
-	if ( iMsg == "MRINotVisible" )
+	else if ( iMsg == "LayerObjectDeleted" )
+	{
+		if ( m_layerVolumeRef == iData )
+			m_layerVolumeRef = NULL;
+	} 
+	else if ( iMsg == "MRINotVisible" )
 	{
 		wxMessageDialog dlg( this, "Active volume is not visible. Please turn it on before editing.", "Error", wxOK | wxICON_ERROR );
 		dlg.ShowModal();
 	}
-	if ( iMsg == "MRINotEditable" )
+	else if ( iMsg == "MRINotEditable" )
 	{
 		wxMessageDialog dlg( this, "Active volume is not editable.", "Error", wxOK | wxICON_ERROR );
 		dlg.ShowModal();
@@ -2449,13 +2460,18 @@ void MainWindow::RunScript()
 			bResample = false;
 		if ( sa.GetCount() > 2 )
 		{
-			wxString strg = sa[1], reg_fn;
+			wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
+			wxString fn = sa_vol[0];
+			wxString strg, reg_fn;
+			if ( sa_vol.Count() > 0 )
+				strg = sa_vol[1];
 			int n;	
 			if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
 			{
 				reg_fn = strg.Mid( n + 1 );
 			}
-			this->LoadDTIFile( sa[1], sa[2], reg_fn, bResample );
+			cout << reg_fn.c_str() << endl;
+			this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
 		}
 	}
 	else if ( sa[0] == "loadsurface" )
@@ -2601,20 +2617,44 @@ void MainWindow::OnToolRotateVolume( wxCommandEvent& event )
 	if ( !m_dlgRotateVolume )
 		m_dlgRotateVolume = new DialogRotateVolume( this );
 
-	if ( event.IsChecked() )
+	if ( !m_dlgRotateVolume->IsVisible() )
 	{
 		wxMessageDialog dlg( this, "Rotation can only apply to volume for now. If you data includes ROI/Surface/Way Points, please do not use this feature yet.", "Warning", wxOK );
 		dlg.ShowModal();
+		m_dlgRotateVolume->Show();
 	}
 	
-	m_dlgRotateVolume->Show( event.IsChecked() );
 }
 
 void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
 {
-	event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+//	event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
 	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
 }
+
+
+void MainWindow::OnToolCreateOptimalVolume( wxCommandEvent& event )
+{
+	DialogOptimalVolume dlg( this, GetLayerCollection( "MRI" ) );
+	if ( dlg.ShowModal() == wxID_OK )
+	{
+		std::vector<LayerMRI*> layers = dlg.GetSelectedLayers();
+		LayerOptimal* layer_new = new LayerOptimal( layers[0] );
+		layer_new->Create( dlg.GetLabelVolume(), layers );
+		
+		layer_new->SetName( dlg.GetVolumeName().c_str() );
+		GetLayerCollection( "MRI" )->AddLayer( layer_new );
+
+		m_controlPanel->RaisePage( "Volumes" );
+	}
+}
+
+void MainWindow::OnToolCreateOptimalVolumeUpdateUI( wxUpdateUIEvent& event )
+{
+//	event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+	event.Enable( GetLayerCollection( "MRI" )->GetNumberOfLayers() > 1 && !IsProcessing() );
+}
+
 
 void MainWindow::EnableControls( bool bEnable )
 {

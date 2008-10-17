@@ -38,6 +38,8 @@ freeview_SOURCES=\
 	DialogNewVolume.h \
 	DialogNewWayPoints.cpp \
 	DialogNewWayPoints.h \
+	DialogOptimalVolume.cpp \
+	DialogOptimalVolume.h \
 	DialogPreferences.cpp \
 	DialogPreferences.h \
 	DialogRotateVolume.cpp \
@@ -80,6 +82,8 @@ freeview_SOURCES=\
 	LayerEditable.h \
 	LayerMRI.cpp \
 	LayerMRI.h \
+	LayerOptimal.cpp \
+	LayerOptimal.h \
 	LayerPropertiesDTI.cpp \
 	LayerPropertiesDTI.h \
 	LayerPropertiesMRI.cpp \

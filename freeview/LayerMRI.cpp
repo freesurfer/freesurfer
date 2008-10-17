@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -180,15 +180,18 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 		
 	m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
 	
-	wxPostEvent( wnd, event );
+//	wxPostEvent( wnd, event );
 	bool bSaved = m_volumeSource->MRIWrite( m_sFilename.c_str() );
 	if ( !bSaved )
 		m_bModified = true;
 	
+	event.SetInt( 99 );
+	wxPostEvent( wnd, event );
+	
 	return bSaved;
 }
 
-bool LayerMRI::RotateVolume( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
 	m_bResampleToRAS = false;
 	m_volumeSource->SetResampleToRAS( m_bResampleToRAS );

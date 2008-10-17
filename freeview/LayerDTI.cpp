@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include "vtkPointData.h"
 #include "vtkImageMapToColors.h"
 #include "vtkLookupTable.h"
+#include "vtkMath.h"
 
 LayerDTI::LayerDTI( LayerMRI* ref ) : LayerMRI( ref ),
 		m_vectorSource( NULL)
@@ -69,6 +70,7 @@ bool LayerDTI::LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event )
 	m_vectorSource = new FSVolume( m_volumeRef );
 	m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
 	event.SetInt( 25 );
+
 	if ( !m_vectorSource->MRIRead( 	m_sVectorFileName.c_str(),  
 		  							m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL,
 									wnd, 
@@ -95,7 +97,7 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 	vtkImageData* rasDTI = m_vectorSource->GetImageOutput();
 	int* dim = rasDTI->GetDimensions();
 	int nSize = dim[0]*dim[1]*dim[2];
-	double v[3];
+	double v[4] = { 0, 0, 0, 1 };
 	int c[3];
 	vtkDataArray* vectors = rasDTI->GetPointData()->GetScalars();
 	vtkFloatArray* fas = vtkFloatArray::New();
@@ -103,9 +105,24 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 	m_imageData->SetNumberOfScalarComponents( 2 );
 	m_imageData->AllocateScalars();
 	int nProgressStep = ( 99-event.GetInt() ) / 5;	
+	vtkMatrix4x4* rotation_mat = vtkMatrix4x4::New();
+	rotation_mat->Identity();
+	MATRIX* reg = m_vectorSource->GetRegMatrix();
+	if ( reg )
+	{
+		for ( int i = 0; i < 3; i++ )
+		{
+			for ( int j = 0; j < 3; j++ )
+			{
+				rotation_mat->SetElement( j, i, *MATRIX_RELT( reg, i+1, j+1 ) );
+			}
+		}
+	}
 	for ( int i = 0; i < nSize; i++ )
 	{
 		vectors->GetTuple( i, v );
+		rotation_mat->MultiplyPoint( v, v );
+		vtkMath::Normalize( v );
 		double fa = fas->GetComponent( i, 0 );
 		for ( int j = 0; j < 3; j++ )
 		{
@@ -125,7 +142,7 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 			wxPostEvent( wnd, event );
 		}
 	}
-
+	rotation_mat->Delete();
 	fas->Delete();
 }
 
@@ -141,4 +158,16 @@ void LayerDTI::UpdateColorMap()
 	}
 	else
 		LayerMRI::UpdateColorMap();
+}
+
+bool LayerDTI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+{
+	m_bResampleToRAS = false;
+	m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
+	m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
+	
+	bool ret = LayerMRI::Rotate( rotations, wnd, event ) && m_vectorSource->Rotate( rotations, wnd, event );
+	
+	InitializeDTIColorMap( wnd, event );
+	return ret;
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,11 +29,14 @@
 
 #include "Listener.h"
 #include "Broadcaster.h"
+#include "CommonDataStruct.h"
 #include <string>
 #include <vector>
 
 class vtkRenderer;
 class vtkProp;
+class wxWindow;
+class wxCommandEvent;
 
 class Layer : public Listener, public Broadcaster
 {
@@ -54,6 +57,9 @@ class Layer : public Listener, public Broadcaster
 		
 		virtual void SetVisible( bool bVisible = true ) = 0;
 		virtual bool IsVisible() = 0;
+		
+		virtual bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event ) 
+			{ return true; }
 		
 		double* GetWorldOrigin();
 		void GetWorldOrigin( double* origin );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.17 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,7 @@ class wxToolBar;
 class BrushProperty;
 class ToolWindowEdit;
 class DialogRotateVolume;
+class LayerMRI;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -184,6 +185,8 @@ public:
 	
 	void OnToolRotateVolume( wxCommandEvent& event );
 	void OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event );
+	void OnToolCreateOptimalVolume( wxCommandEvent& event );
+	void OnToolCreateOptimalVolumeUpdateUI( wxUpdateUIEvent& event );
 		
 	void OnWorkerThreadResponse( wxCommandEvent& event );
 	
@@ -303,6 +306,7 @@ private:
 	int					m_nPrevActiveViewId;
 	
 	LayerCollectionManager*	m_layerCollectionManager;
+	LayerMRI*			m_layerVolumeRef;
 	
 	Settings2D			m_settings2D;
 	SettingsScreenshot	m_settingsScreenshot;

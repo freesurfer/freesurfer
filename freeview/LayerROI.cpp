@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,17 +84,17 @@ LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerVolumeBase()
 	//	m_imageData->DeepCopy( m_layerSource->GetRASVolume() );
 		
 		m_imageData->SetNumberOfScalarComponents( 1 );
-		m_imageData->SetScalarTypeToFloat();
+		m_imageData->SetScalarTypeToUnsignedChar();
 		m_imageData->SetOrigin( GetWorldOrigin() );
 		m_imageData->SetSpacing( GetWorldVoxelSize() );	
 		m_imageData->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
 									( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
 									( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
 		m_imageData->AllocateScalars();
-		float* ptr = ( float* )m_imageData->GetScalarPointer();
+		void* ptr = m_imageData->GetScalarPointer();
 		int* nDim = m_imageData->GetDimensions();
 	//	cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
-		memset( ptr, 0, sizeof( float ) * nDim[0] * nDim[1] * nDim[2] );
+		memset( ptr, 0, m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
 		InitializeActors();
 	}
 }
@@ -236,7 +236,7 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
 					0, 0, 1,
 					1, 0, 0 );
 			mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
-			
+			mReslice[0]->Modified();
 			break;
 		case 1:
 			m_sliceActor2D[1]->PokeMatrix( matrix );
@@ -254,6 +254,7 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
 					0, 0, 1,
 					0, 1, 0 );
 			mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
+			mReslice[1]->Modified();
 			break;
 		case 2:
 			m_sliceActor2D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
@@ -265,6 +266,7 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
 					0, 1, 0,
 					0, 0, 1 );
 			mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
+			mReslice[2]->Modified();
 			break;
 	}
 }
@@ -334,4 +336,17 @@ bool LayerROI::HasProp( vtkProp* prop )
 			return true;
 	}
 	return false;
+}
+
+bool LayerROI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+{
+	m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+	
+	return true;
+}
+
+void LayerROI::UpdateLabelData( wxWindow* wnd, wxCommandEvent& event )
+{
+	if ( IsModified() )
+		m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume(), wnd, event );	
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -168,6 +168,10 @@ bool Interactor2DVoxelEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView
 		
 		if ( !event.LeftUp() || m_nAction != EM_Polyline || m_dPolylinePoints.size() == 0 )
 			m_bEditing = false;		
+		
+		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+		LayerMRI* mri = ( LayerMRI* )lc->GetActiveLayer();
+		mri->SendBroadcast( "LayerEdited", mri );
 		
 		return false;	
 	}

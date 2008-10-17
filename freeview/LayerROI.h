@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/17 00:31:24 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,10 @@ class LayerROI : public LayerVolumeBase
 		LayerPropertiesROI*	GetProperties();
 		
 		bool SaveROI( wxWindow* wnd, wxCommandEvent& event );
+		
+		void UpdateLabelData( wxWindow* wnd, wxCommandEvent& event );
+		
+		bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 		
 	protected:
 		void InitializeActors();		
