@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 20:43:58 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/10/20 20:54:14 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,8 @@ extern "C" {
 #include "registerio.h"
 #include "transform.h"
 }
+
+#define DEFAULT_RESAMPLE_ALGORITHM	SAMPLE_NEAREST
 
 using namespace std;
 
@@ -456,7 +458,7 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxComm
 	}
 	
 //	cout << "begin vol2vol" << endl;
-	MRIvol2Vol( mri, m_MRI, vox2vox, SAMPLE_NEAREST, 0 );
+	MRIvol2Vol( mri, m_MRI, vox2vox, DEFAULT_RESAMPLE_ALGORITHM, 0 );
 //	cout << "end vol2vol" << endl;
 	
 	MRIfree( &mri );
@@ -545,7 +547,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 	MATRIX* m = MatrixZero( 4, 4, NULL );
 	if ( m_matReg && m_MRIRef && m_volumeRef )
 	{
-		// if there is registration matrix set target as the reference's target
+		// if there is registration matrix, set target as the reference's target
 		MRI* mri = m_volumeRef->m_MRITarget;
 		rasMRI = MRIallocSequence( mri->width, mri->height, mri->depth, m_MRI->type, m_MRI->nframes );
 		MRIcopyHeader( mri, rasMRI );
@@ -698,7 +700,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 			MATRIX* t2r = MRIgetVoxelToVoxelXform( rasMRI, m_MRIRef );
 			MatrixMultiply( vox2vox, t2r, t2r );
 			
-			MRIvol2Vol( m_MRI, rasMRI, t2r, SAMPLE_NEAREST, 0 );
+			MRIvol2Vol( m_MRI, rasMRI, t2r, DEFAULT_RESAMPLE_ALGORITHM, 0 );
 			
 			// copy vox2vox
 			MatrixInverse( t2r, vox2vox );
@@ -730,7 +732,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 			MATRIX* t2r = MRIgetVoxelToVoxelXform( rasMRI, m_MRIRef );
 			MatrixMultiply( vox2vox, t2r, t2r );
 					
-			MRIvol2Vol( m_MRI, rasMRI, t2r, SAMPLE_NEAREST, 0 );
+			MRIvol2Vol( m_MRI, rasMRI, t2r, DEFAULT_RESAMPLE_ALGORITHM, 0 );
 			
 			// copy vox2vox 
 			MatrixInverse( t2r, vox2vox );	
@@ -750,7 +752,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 	}
 	else
 	{
-		MRIvol2Vol( m_MRI, rasMRI, NULL, SAMPLE_NEAREST, 0 );
+		MRIvol2Vol( m_MRI, rasMRI, NULL, DEFAULT_RESAMPLE_ALGORITHM, 0 );
 		MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
 		for ( int i = 0; i < 16; i++ ) 
 		{
@@ -998,7 +1000,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
 	MATRIX* vox2vox = MatrixMultiply( v2v, vm, NULL );
 	MatrixInverse( vox2vox, v2v );
 	
-	MRIvol2Vol( m_MRI, rasMRI, v2v, SAMPLE_NEAREST, 0 );
+	MRIvol2Vol( m_MRI, rasMRI, v2v, DEFAULT_RESAMPLE_ALGORITHM, 0 );
 	
 	// copy vox2vox 
 	for ( int i = 0; i < 16; i++ ) 
@@ -1320,6 +1322,18 @@ void FSVolume::GetPixelSize( double* pixelSize )
 		
 			return;
 		}
+	}
+	else if ( m_matReg && m_MRIRef )
+	{
+		MRI* mri = m_volumeRef->m_MRITarget;
+		if ( mri )
+		{
+			pixelSize[0] = mri->xsize;
+			pixelSize[1] = mri->ysize;
+			pixelSize[2] = mri->zsize;
+			
+			return;
+		}
 	}	
 	
 	double* m = GetVoxelToRASMatrix();
@@ -1359,9 +1373,10 @@ void FSVolume::TargetToRAS( double x_in, double y_in, double z_in,
 void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
 {
 	// if already resampled to standard RAS, no need to remap
-	if ( m_bResampleToRAS )
+/*	if ( m_bResampleToRAS )
 		memcpy( pos_out, pos_in, sizeof( double ) * 3 );
 	else
+*/
 	{
 		double pos[4] = { 0 };	
 		double* vs = m_imageData->GetSpacing();
@@ -1382,11 +1397,12 @@ void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
 
 void FSVolume::RASToTarget( const double* pos_in, double* pos_out )
 {
-	if ( m_bResampleToRAS )
+/*	if ( m_bResampleToRAS )
 	{
 		memcpy( pos_out, pos_in, sizeof( double ) * 3 );
 	}
 	else
+*/
 	{
 		Real pos[4] = { 0 };
 		::MRIworldToVoxel( m_MRITarget, (float)pos_in[0], (float)pos_in[1], (float)pos_in[2], 
@@ -1421,6 +1437,7 @@ void FSVolume::RASToNativeRAS( const double* pos_in, double* pos_out )
 	pos_out[0] = p[0];
 	pos_out[1] = p[1];
 	pos_out[2] = p[2];
+//	memcpy( pos_out, pos_in, sizeof(double)*3 );
 }
 
 void FSVolume::NativeRASToRAS( const double* pos_in, double* pos_out )
@@ -1430,4 +1447,6 @@ void FSVolume::NativeRASToRAS( const double* pos_in, double* pos_out )
 	pos_out[0] = p[0];
 	pos_out[1] = p[1];
 	pos_out[2] = p[2];
+	
+//	memcpy( pos_out, pos_in, sizeof(double)*3 );
 }

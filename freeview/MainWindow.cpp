@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 20:43:58 $
- *    $Revision: 1.21 $
+ *    $Date: 2008/10/20 20:54:17 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2384,7 +2384,7 @@ void MainWindow::LoadDTIFile( const wxString& fn_vector, const wxString& fn_fa, 
 	m_strLastDir = MyUtils::GetNormalizedPath( fn_fa );
 	m_bResampleToRAS = bResample;
 
-	LayerDTI* layer = new LayerDTI( (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 ) );
+	LayerDTI* layer = new LayerDTI( m_layerVolumeRef );
 	layer->SetResampleToRAS( bResample );
 	wxString layerName = wxFileName( fn_vector ).GetName();
 	if ( wxFileName( fn_fa ).GetExt().Lower() == "gz" )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 20:43:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/20 20:54:14 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -303,6 +303,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 	int n[3];
 	double pos[3];
 	int* dim = rasImage->GetDimensions();
+//	cout << "dim: " << dim[0] << " " <<  dim[1] << " " << dim[2] << endl;
 	memset( rasImage->GetScalarPointer(), 0, dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
 //	cout << "to update ras image" << endl;
 	for ( int i = 0; i < m_label->n_points; i++ )
@@ -312,6 +313,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 		pos[2] = m_label->lv[i].z;
 		ref_vol->NativeRASToRAS( pos, pos );
 		ref_vol->RASToTargetIndex( pos, n );
+	//	cout << n[0] << " " << n[1] << " " << n[2] << endl;
 		if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
 				   n[2] >= 0 && n[2] < dim[2] )
 		{
