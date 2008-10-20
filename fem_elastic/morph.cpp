@@ -995,7 +995,7 @@ VolumeMorph::save(const char* fname)
     ZlibStringCompressor compressor;
     std::string strBuf = compressor.compress( osit.str(),
                          Z_BEST_COMPRESSION );
-    std::cout << " writing transform size = " << strBuf.size() << std::endl;
+    //    std::cout << " writing transform size = " << strBuf.size() << std::endl;
 
     strTag =  ftags::CreateTag( tagTransform,
                                 strBuf
@@ -1167,7 +1167,7 @@ VolumeMorph::load_new(const char* fname,
     {
       ZlibStringCompressor compressor;
       compressor.m_bufferAllocationMultiplier = bufferMultiplier;
-      std::cout << " data size = " << tagReader.m_len << std::endl;
+      //      std::cout << " data size = " << tagReader.m_len << std::endl;
 
       const std::string strCompressed(tagReader.m_data, tagReader.m_len);
       const std::string strInflated = compressor.inflate(strCompressed);
@@ -1431,7 +1431,7 @@ loadTransform(std::istream& is, unsigned int zlibBufferMultiplier)
 {
   // read the string preceding the data
   unsigned int uilen = TRead<unsigned int>(is);
-  std::cout << " uilen = " << uilen << std::endl;
+  //  std::cout << " uilen = " << uilen << std::endl;
 
   char *buffer = new char[uilen];
   is.read(buffer, uilen);
@@ -1460,7 +1460,7 @@ loadTransform(std::istream& is, unsigned int zlibBufferMultiplier)
   else
     throw "loadTransform - unknown transform type";
 
-  std::cout << " loading transform id string = " << strName << std::endl;
+  //  std::cout << " loading transform id string = " << strName << std::endl;
   bp->load(is, zlibBufferMultiplier);
 
   return bp;
@@ -1471,7 +1471,7 @@ void
 saveTransform(std::ostream& os,
               boost::shared_ptr<Transform<3> > ptransform)
 {
-  std::cout << " saveTransform code\n";
+  //  std::cout << " saveTransform code\n";
 
 
   std::string strType;
