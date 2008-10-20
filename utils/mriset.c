@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/09/26 23:10:18 $
- *    $Revision: 1.63 $
+ *    $Author: fischl $
+ *    $Date: 2008/10/20 19:16:47 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -397,6 +397,98 @@ MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
                 xi = mri_src->xi[x+x0] ;
                 val = MRIvox(mri_src, xi,yi,zi) ;
                 if (val < min_val)
+                  min_val = val ;
+              }
+            }
+          }
+          *pdst++ = min_val ;
+        }
+      }
+    }
+  }
+  if (same)
+  {
+    MRIcopy(mri_dst, mri_src) ;
+    MRIfree(&mri_dst) ;
+    mri_dst = mri_src ;
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------*/
+MRI *MRIerodeZero(MRI *mri_src, MRI *mri_dst)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
+  BUFTYPE *pdst, min_val, val ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_dst == mri_src)
+  {
+    same = 1 ;
+    mri_dst = MRIclone(mri_src, NULL) ;
+  }
+  else
+    same = 0 ;
+
+  if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
+  {
+    Real fmin_val, fval ;
+
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          fmin_val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          for (z0 = -1 ; z0 <= 1 ; z0++)
+          {
+            zi = mri_src->zi[z+z0] ;
+            for (y0 = -1 ; y0 <= 1 ; y0++)
+            {
+              yi = mri_src->yi[y+y0] ;
+              for (x0 = -1 ; x0 <= 1 ; x0++)
+              {
+                xi = mri_src->xi[x+x0] ;
+                fval = MRIgetVoxVal(mri_src, xi,yi,zi, 0) ;
+                if (FZERO(fval))
+                  fmin_val = fval ;
+              }
+            }
+          }
+          MRIsetVoxVal(mri_dst, x, y, z, 0, fmin_val) ;
+        }
+      }
+    }
+  }
+  else
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        pdst = &MRIvox(mri_dst, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          min_val = 255 ;
+          for (z0 = -1 ; z0 <= 1 ; z0++)
+          {
+            zi = mri_src->zi[z+z0] ;
+            for (y0 = -1 ; y0 <= 1 ; y0++)
+            {
+              yi = mri_src->yi[y+y0] ;
+              for (x0 = -1 ; x0 <= 1 ; x0++)
+              {
+                xi = mri_src->xi[x+x0] ;
+                val = MRIvox(mri_src, xi,yi,zi) ;
+                if (val == 0)
                   min_val = val ;
               }
             }
