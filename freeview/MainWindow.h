@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.18 $
+ *    $Date: 2008/10/22 19:28:00 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,7 +63,7 @@ public:
     MainWindow();
     virtual ~MainWindow();
 	
-	enum ViewLayout { VL_1X1 = 0, VL_2X2, VL_1N3 };
+	enum ViewLayout { VL_1X1 = 0, VL_2X2, VL_1N3, VL_1N3_H };
 	enum MainView 	{ MV_Sagittal = 0, MV_Coronal, MV_Axial, MV_3D };
 	
     // event handlers (these functions should _not_ be virtual)
@@ -104,6 +104,8 @@ public:
 	void OnViewLayout2X2UpdateUI( wxUpdateUIEvent& event );
 	void OnViewLayout1N3		( wxCommandEvent& event );
 	void OnViewLayout1N3UpdateUI( wxUpdateUIEvent& event );
+	void OnViewLayout1N3_H		( wxCommandEvent& event );
+	void OnViewLayout1N3_HUpdateUI( wxUpdateUIEvent& event );
 	void OnViewSagittal			( wxCommandEvent& event );
 	void OnViewSagittalUpdateUI	( wxUpdateUIEvent& event );
 	void OnViewCoronal			( wxCommandEvent& event );
@@ -270,6 +272,9 @@ public:
 	void SetMode( int nMode );
 	
 	void EnableControls( bool bEnable );
+	
+	wxString GetLastDir()
+		{ return m_strLastDir; }
 	
 protected:
 	void OnInternalIdle(); 

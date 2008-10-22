@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/20 20:54:17 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/10/22 19:28:00 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -149,6 +149,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_LAYOUT_2X2" ),		MainWindow::OnViewLayout2X2UpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_LAYOUT_1N3" ),		MainWindow::OnViewLayout1N3 )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_LAYOUT_1N3" ),		MainWindow::OnViewLayout1N3UpdateUI )
+    EVT_MENU		( XRCID( "ID_VIEW_LAYOUT_1N3_H" ),		MainWindow::OnViewLayout1N3_H )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_LAYOUT_1N3_H" ),		MainWindow::OnViewLayout1N3_HUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_SAGITTAL" ),			MainWindow::OnViewSagittal )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_SAGITTAL" ),			MainWindow::OnViewSagittalUpdateUI )
     EVT_MENU		( XRCID( "ID_VIEW_CORONAL" ),			MainWindow::OnViewCoronal )
@@ -1473,6 +1475,24 @@ void MainWindow::SetViewLayout( int nLayout )
 		sizer2->AddSpacer( 1 );
 		sizer2->Add( view[3], 1, wxEXPAND );
 	}
+	else if ( m_nViewLayout == VL_1N3_H )
+	{
+		for ( int i = 0; i < 4; i++ )
+			view[i]->Show();
+
+		wxBoxSizer* sizer = new wxBoxSizer( wxHORIZONTAL );
+		m_renderViewHolder->SetSizer( sizer );
+		
+		sizer->Add( view[0], 2, wxEXPAND );
+		sizer->AddSpacer( 1 );
+		wxBoxSizer* sizer2 = new wxBoxSizer( wxVERTICAL );
+		sizer->Add( sizer2, 1, wxEXPAND );
+		sizer2->Add( view[1], 1, wxEXPAND );
+		sizer2->AddSpacer( 1 );
+		sizer2->Add( view[2], 1, wxEXPAND );
+		sizer2->AddSpacer( 1 );
+		sizer2->Add( view[3], 1, wxEXPAND );
+	}
 	else
 	{
 		wxGridSizer* grid = new wxGridSizer( 2, 2, 1, 1 );
@@ -1535,6 +1555,17 @@ void MainWindow::OnViewLayout1N3( wxCommandEvent& event )
 void MainWindow::OnViewLayout1N3UpdateUI( wxUpdateUIEvent& event )
 {
 	event.Check( m_nViewLayout == VL_1N3 );
+}
+
+
+void MainWindow::OnViewLayout1N3_H( wxCommandEvent& event )
+{
+	SetViewLayout( VL_1N3_H );
+}
+	
+void MainWindow::OnViewLayout1N3_HUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Check( m_nViewLayout == VL_1N3_H );
 }
 	
 void MainWindow::OnViewSagittal( wxCommandEvent& event )
