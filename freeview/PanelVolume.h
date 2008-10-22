@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/22 15:25:40 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,9 +90,11 @@ private:
 	void OnTextHeatScaleMinChanged( wxCommandEvent& event );
 	void OnTextHeatScaleMidChanged( wxCommandEvent& event );
 	void OnTextHeatScaleMaxChanged( wxCommandEvent& event );
+	void OnTextHeatScaleOffsetChanged( wxCommandEvent& event );
 	void OnSliderHeatScaleMinChanged( wxScrollEvent& event );
 	void OnSliderHeatScaleMidChanged( wxScrollEvent& event );
 	void OnSliderHeatScaleMaxChanged( wxScrollEvent& event );
+	void OnSliderHeatScaleOffsetChanged( wxScrollEvent& event );
 	void OnTextMinJetScaleChanged( wxCommandEvent& event );
 	void OnTextMaxJetScaleChanged( wxCommandEvent& event );
 	void OnSliderMinJetScaleChanged( wxScrollEvent& event );
@@ -134,9 +136,11 @@ private:
 	wxSlider*		m_sliderHeatScaleMin;
 	wxSlider*		m_sliderHeatScaleMid;
 	wxSlider*		m_sliderHeatScaleMax;
+	wxSlider*		m_sliderHeatScaleOffset;
 	wxTextCtrl*		m_textHeatScaleMin;
 	wxTextCtrl*		m_textHeatScaleMid;
 	wxTextCtrl*		m_textHeatScaleMax;
+	wxTextCtrl*		m_textHeatScaleOffset;
 	wxSlider*		m_sliderJetScaleMin;
 	wxSlider*		m_sliderJetScaleMax;
 	wxTextCtrl*		m_textJetScaleMin;

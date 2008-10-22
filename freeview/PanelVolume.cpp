@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/10/22 15:25:40 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
 	EVT_COMMAND_SCROLL	(XRCID(wxT("ID_SLIDER_SLICE_Y")),			PanelVolume::OnSliderSlice)*/
 	EVT_LISTBOX			( XRCID( wxT( "ID_LISTBOX_VOLUMES" ) ),			PanelVolume::OnLayerSelectionChanged )	
 	EVT_CHECKLISTBOX	( XRCID( wxT( "ID_LISTBOX_VOLUMES" ) ),			PanelVolume::OnLayerVisibilityChanged )
-	EVT_LISTBOX_DCLICK 	( XRCID( wxT( "ID_LISTBOX_VOLUMES" ) ),			PanelVolume::OnListDoubleClicked )
+//	EVT_LISTBOX_DCLICK 	( XRCID( wxT( "ID_LISTBOX_VOLUMES" ) ),			PanelVolume::OnListDoubleClicked )
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_OPACITY" ) ),			PanelVolume::OnSliderOpacityChanged )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_LOAD" ) ), 			PanelVolume::OnButtonLoad )
 	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_MOVE_UP" ) ),			PanelVolume::OnButtonMoveUp )
@@ -86,6 +86,7 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_HEATSCALE_MIN" ) ),		PanelVolume::OnTextHeatScaleMinChanged )
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_HEATSCALE_MID" ) ),		PanelVolume::OnTextHeatScaleMidChanged )
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_HEATSCALE_MAX" ) ),		PanelVolume::OnTextHeatScaleMaxChanged )
+	EVT_TEXT			( XRCID( wxT( "ID_TEXT_HEATSCALE_OFFSET" ) ),		PanelVolume::OnTextHeatScaleOffsetChanged )
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_JETSCALE_MIN" ) ),		PanelVolume::OnTextMinJetScaleChanged )
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_JETSCALE_MAX" ) ),		PanelVolume::OnTextMaxJetScaleChanged )
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_OPACITY" ) ),			PanelVolume::OnTextOpacityChanged )
@@ -94,6 +95,7 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_HEATSCALE_MIN" ) ),	PanelVolume::OnSliderHeatScaleMinChanged )	
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_HEATSCALE_MID" ) ),	PanelVolume::OnSliderHeatScaleMidChanged )	
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_HEATSCALE_MAX" ) ),	PanelVolume::OnSliderHeatScaleMaxChanged )	
+	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_HEATSCALE_OFFSET" ) ),	PanelVolume::OnSliderHeatScaleOffsetChanged )	
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_JETSCALE_MIN" ) ),		PanelVolume::OnSliderMinJetScaleChanged )	
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_JETSCALE_MAX" ) ),		PanelVolume::OnSliderMaxJetScaleChanged )		
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_FRAME" ) ),				PanelVolume::OnTextFrameChanged )
@@ -130,9 +132,11 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 	m_textHeatScaleMin = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MIN", wxTextCtrl );
 	m_textHeatScaleMid = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MID", wxTextCtrl );
 	m_textHeatScaleMax = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MAX", wxTextCtrl );
+	m_textHeatScaleOffset = XRCCTRL( *this, "ID_TEXT_HEATSCALE_OFFSET", wxTextCtrl );
 	m_sliderHeatScaleMin = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MIN", wxSlider );
 	m_sliderHeatScaleMid = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MID", wxSlider );
 	m_sliderHeatScaleMax = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MAX", wxSlider );
+	m_sliderHeatScaleOffset = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_OFFSET", wxSlider );
 	m_textJetScaleMin = XRCCTRL( *this, "ID_TEXT_JETSCALE_MIN", wxTextCtrl );
 	m_textJetScaleMax = XRCCTRL( *this, "ID_TEXT_JETSCALE_MAX", wxTextCtrl );
 	m_sliderJetScaleMin = XRCCTRL( *this, "ID_SLIDER_JETSCALE_MIN", wxSlider );
@@ -167,12 +171,15 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 	m_widgetlistHeatScale.push_back( m_textHeatScaleMin );
 	m_widgetlistHeatScale.push_back( m_textHeatScaleMid );
 	m_widgetlistHeatScale.push_back( m_textHeatScaleMax );
+	m_widgetlistHeatScale.push_back( m_textHeatScaleOffset );
 	m_widgetlistHeatScale.push_back( m_sliderHeatScaleMin );
 	m_widgetlistHeatScale.push_back( m_sliderHeatScaleMid );
 	m_widgetlistHeatScale.push_back( m_sliderHeatScaleMax );
+	m_widgetlistHeatScale.push_back( m_sliderHeatScaleOffset );
 	m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MIN", wxStaticText ) );
 	m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MID", wxStaticText ) );
 	m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MAX", wxStaticText ) );
+	m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_OFFSET", wxStaticText ) );
 	
 	m_widgetlistJetScale.push_back( m_textJetScaleMin );
 	m_widgetlistJetScale.push_back( m_textJetScaleMax );
@@ -544,9 +551,11 @@ void PanelVolume::DoUpdateUI()
 			m_sliderHeatScaleMin->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleMinThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
 			m_sliderHeatScaleMid->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleMidThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
 			m_sliderHeatScaleMax->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleMaxThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
+			m_sliderHeatScaleOffset->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleOffset() + fMax ) / ( fMax + fMax ) * 100 ) );
 			UpdateTextValue( m_textHeatScaleMin, layer->GetProperties()->GetHeatScaleMinThreshold() );
 			UpdateTextValue( m_textHeatScaleMid, layer->GetProperties()->GetHeatScaleMidThreshold() );
 			UpdateTextValue( m_textHeatScaleMax, layer->GetProperties()->GetHeatScaleMaxThreshold() );
+			UpdateTextValue( m_textHeatScaleOffset, layer->GetProperties()->GetHeatScaleOffset() );
 			
 			double fJetMin = fMin - (fMax-fMin)/4;
 			double fJetMax = fMax + (fMax-fMin)/4;
@@ -778,6 +787,19 @@ void PanelVolume::OnTextHeatScaleMaxChanged( wxCommandEvent& event )
 	}
 }
 
+void PanelVolume::OnTextHeatScaleOffsetChanged( wxCommandEvent& event )
+{
+	double dvalue;
+	if ( m_textHeatScaleOffset->GetValue().ToDouble( &dvalue ) )
+	{
+		LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+		if ( layer && layer->GetProperties()->GetHeatScaleOffset() != dvalue )
+		{
+			layer->GetProperties()->SetHeatScaleOffset( dvalue );
+		}		
+	}
+}
+
 void PanelVolume::OnSliderHeatScaleMinChanged( wxScrollEvent& event )
 {
 	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
@@ -811,6 +833,16 @@ void PanelVolume::OnSliderHeatScaleMaxChanged( wxScrollEvent& event )
 	}	
 }
 
+void PanelVolume::OnSliderHeatScaleOffsetChanged( wxScrollEvent& event )
+{
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	if ( layer )
+	{
+	//	double fMin = layer->GetProperties()->GetMinValue();
+		double fMax = layer->GetProperties()->GetMaxValue();
+		layer->GetProperties()->SetHeatScaleOffset( (double)m_sliderHeatScaleOffset->GetValue() / 100.0 * ( fMax + fMax ) - fMax ); 
+	}	
+}
 
 void PanelVolume::OnTextMinJetScaleChanged( wxCommandEvent& event )
 {

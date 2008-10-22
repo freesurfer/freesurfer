@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/10/22 15:25:40 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -300,7 +300,7 @@ void LayerMRI::UpdateColorMap ()
     
 		case LayerPropertiesMRI::Heat:
 			for ( int i = 0; i < 3; i++ )
-					mColorMap[i]->SetLookupTable( mProperties->GetHeatScaleTable() );
+				mColorMap[i]->SetLookupTable( mProperties->GetHeatScaleTable() );
 			break;
 		case LayerPropertiesMRI::Jet:
 			for ( int i = 0; i < 3; i++ )
