@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:09 $
- *    $Revision: 1.11 $
+ *    $Author: fischl $
+ *    $Date: 2008/10/22 18:34:57 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,12 +39,13 @@
 #include "proto.h"
 #include "transform.h"
 #include "version.h"
+#include "gcamorph.h"
 
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 //E/ should be in transform.h if it isn't already
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.11 2006/12/29 02:09:09 nicks Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.12 2008/10/22 18:34:57 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -87,11 +88,13 @@ main(int argc, char *argv[]) {
   VECTOR *mine;
   VECTOR *c;
 
+#if 0
   fprintf(stderr, "Please use 'mri_convert -at xfm.'  mri_transform contains too many bugs.\n");
   exit(1);
+#endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.11 2006/12/29 02:09:09 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.12 2008/10/22 18:34:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -254,6 +257,14 @@ main(int argc, char *argv[]) {
       MRIlinearTransformInterp(mri_in, mri_out, m_total, resample_type) ;
     }
   } else {
+    GCAM *gcam ;
+    gcam = (GCAM *)(transform->xform) ;
+    if (gcam->type == GCAM_RAS)
+    {
+      GCAMrasToVox(gcam, mri_out) ;
+      if (out_like_fname == NULL)
+        printf("!!! warning - no output geometry specified (should use -out_like <fname>) !!!!\n");
+    }
     if (invert_flag)
       mri_out = TransformApplyInverse(transform, mri_in, NULL) ;
     else
