@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/23 04:28:41 $
- *    $Revision: 1.49 $
+ *    $Date: 2008/10/23 22:37:32 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,7 +81,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.49 2008/10/23 04:28:41 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.50 2008/10/23 22:37:32 greve Exp $";
 
 char *Progname = NULL;
 
@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.49 2008/10/23 04:28:41 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.50 2008/10/23 22:37:32 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -910,11 +910,19 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--o") || !strcmp(option, "--out")) {
+    } 
+    else if (!strcmp(option, "--o") || !strcmp(option, "--out")) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--out_type") || !strcmp(option, "--ofmt")) {
+    } 
+    else if (!strcmp(option, "--vsm")) {
+      if (nargc < 1) argnerr(option,1);
+      vsmfile = pargv[0];
+      UseOld = 0;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--out_type") || !strcmp(option, "--ofmt")) {
       if (nargc < 1) argnerr(option,1);
       outtypestring = pargv[0];
       outtype = string_to_type(outtypestring);
@@ -1012,7 +1020,7 @@ static void print_usage(void) {
   //printf("   --thickness thickness file (thickness)\n");
   printf("\n");
   printf(" Options for output\n");
-  printf("   --out       output path\n");
+  printf("   --o         output path\n");
   printf("   --out_type  output format\n");
   printf("   --frame   nth :  save only 0-based nth frame \n");
   printf("   --noreshape do not save output as multiple 'slices'\n");
@@ -1164,7 +1172,7 @@ static void print_help(void) {
     "    between min and max at a spacing of delta. The samples are then averaged\n"
     "    together. The idea here is to average along the normal.\n"
     "\n"
-    "  --out  output path : location to store the data (see below)\n"
+    "  --o output path : location to store the data (see below)\n"
     "  --out_type format of output (see below)\n"
     "\n"
     "  --frame 0-based frame number : sample and save only the given frame \n"
