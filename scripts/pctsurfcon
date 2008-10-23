@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/08/21 17:15:32 $
-#    $Revision: 1.3 $
+#    $Date: 2008/10/23 04:27:12 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.3 2008/08/21 17:15:32 greve Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.4 2008/10/23 04:27:12 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -33,6 +33,9 @@ set reg = ();
 
 set DoLH = 1;
 set DoRH = 1;
+
+set Reshape = (--reshape);
+set Reshape = (--noreshape);
 
 set GMProjFrac = 0.5;
 set WMProjAbs = 2;
@@ -96,7 +99,7 @@ foreach hemi ($hemilist)
   # Sample surf in white matter
   set wm = $tmpdir/$hemi.wm.$ext
   set cmd = (mri_vol2surf --mov $mov \
-    --hemi $hemi --reshape --interp $Interp \
+    --hemi $hemi $Reshape --interp $Interp \
     --projdist -$WMProjAbs --o $wm)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
@@ -107,7 +110,7 @@ foreach hemi ($hemilist)
   # Sample surf in gray matter
   set gm = $tmpdir/$hemi.gm.$ext
   set cmd = (mri_vol2surf --mov $mov \
-    --hemi $hemi --reshape --interp $Interp \
+    --hemi $hemi $Reshape --interp $Interp \
     --projfrac $GMProjFrac --o $gm)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
@@ -119,6 +122,14 @@ foreach hemi ($hemilist)
   set out = $outdir/$hemi.$OutBase.mgh
   set cmd = (mri_concat $wm $gm --paired-diff-norm \
     --mul $ConSign --o $out)
+  echo $cmd 
+  $cmd
+  if($status) exit 1;
+
+  # Compute stats
+  set sum = $SUBJECTS_DIR/$subject/stats/$hemi.w-g.pct.stats
+  set cmd = (mri_segstats --in $out --annot $subject $hemi aparc \
+    --sum $sum);
   echo $cmd 
   $cmd
   if($status) exit 1;
