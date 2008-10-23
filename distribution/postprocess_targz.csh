@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.12 2007/08/06 16:55:29 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.13 2008/10/23 17:51:46 nicks Exp $'
 
 set echo=1
 
@@ -23,7 +23,8 @@ if ("$2" == "nostrip") then
 else
     strip freesurfer/bin/*
 endif
-sudo chmod -R a+rw freesurfer
+sudo chmod -R u+rw freesurfer
+sudo chmod -R go-w freesurfer
 if ($status) exit 1
 #sudo chmod -R a-w freesurfer/subjects/fsaverage
 #if ($status) exit 1
