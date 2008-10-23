@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/23 04:28:41 $
- *    $Revision: 1.64 $
+ *    $Date: 2008/10/23 18:26:57 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.64 2008/10/23 04:28:41 greve Exp $";
+"$Id: mri_segreg.c,v 1.65 2008/10/23 18:26:57 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -340,10 +340,10 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
   double costs[8], mincost, p[6], pmin[6];
   double tx, ty, tz, ax, ay, az;
-  int nth,nthtx, nthty, nthtz, nthax, nthay, nthaz, ntot, n, err,vno;
+  int nth, n, err,vno;
   MATRIX *Ttemp=NULL, *invTtemp=NULL, *Stemp=NULL, *invStemp=NULL;
   MATRIX *R=NULL, *Rcrop=NULL, *R00=NULL, *Rdiff=NULL;
-  MATRIX *Rmin=NULL, *Scrop=NULL, *invScrop=NULL, *invTcrop=NULL, *Tcrop=NULL;
+  MATRIX *Scrop=NULL, *invScrop=NULL, *invTcrop=NULL, *Tcrop=NULL;
   struct timeb  mytimer;
   double secCostTime;
   MRI_REGION box;
@@ -356,13 +356,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.64 2008/10/23 04:28:41 greve Exp $",
+     "$Id: mri_segreg.c,v 1.65 2008/10/23 18:26:57 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.64 2008/10/23 04:28:41 greve Exp $",
+     "$Id: mri_segreg.c,v 1.65 2008/10/23 18:26:57 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
