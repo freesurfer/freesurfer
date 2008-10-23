@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/08/20 16:30:48 $
-#    $Revision: 1.7 $
+#    $Date: 2008/10/23 22:57:07 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.7 2008/08/20 16:30:48 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.8 2008/10/23 22:57:07 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -35,6 +35,7 @@ set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
 set InitReg = ();
+set VSM = ();
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -152,6 +153,7 @@ if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
+if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
 if($#RandInitMax) then
   set cmd = ($cmd --trans-rand $RandInitMax --rot-rand $RandInitMax);
 endif
@@ -168,6 +170,7 @@ if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
+if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
 set cmd = ($cmd --tol $Tol --tol1d $Tol)
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
@@ -253,6 +256,15 @@ while( $#argv != 0 )
       set movvol = $argv[1]; shift;
       if(! -e $movvol) then
         echo "ERROR: cannot find $movvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--vsm":
+      if ( $#argv < 1) goto arg1err;
+      set VSM = $argv[1]; shift;
+      if(! -e $VSM) then
+        echo "ERROR: cannot find $VSM"
         exit 1;
       endif
       breaksw
