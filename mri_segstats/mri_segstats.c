@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/09/19 22:01:27 $
- *    $Revision: 1.45 $
+ *    $Date: 2008/10/23 04:38:32 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -403,7 +403,7 @@ typedef struct {
   char name[1000];
   int nhits;
   float vol;
-  float min, max, range, mean, std;
+  float min, max, range, mean, std, snr;
 }
 STATSUMENTRY;
 
@@ -419,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.45 2008/09/19 22:01:27 greve Exp $";
+"$Id: mri_segstats.c,v 1.46 2008/10/23 04:38:32 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -489,12 +489,14 @@ char *LabelFile = NULL;
 int DoMultiply = 0;
 double MultVal = 0;
 
+int DoSNR = 0;
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, n, n0, skip, nhits, f, nsegidrep, id, ind, nthsegid;
   int c,r,s,err;
   float voxelvolume,vol;
-  float min, max, range, mean, std;
+  float min, max, range, mean, std, snr;
   FILE *fp;
   double  **favg, *favgmn;
   struct utsname uts;
@@ -973,18 +975,21 @@ int main(int argc, char **argv) {
       if (nhits > 0) {
         MRIsegStats(seg, StatSumTable[n].id, invol, frame,
                     &min, &max, &range, &mean, &std);
+	snr = mean/std;
       } else {
         min=0;
         max=0;
         range=0;
         mean=0;
         std=0;
+        snr=0;
       }
       StatSumTable[n].min   = min;
       StatSumTable[n].max   = max;
       StatSumTable[n].range = range;
       StatSumTable[n].mean  = mean;
       StatSumTable[n].std   = std;
+      StatSumTable[n].snr   = snr;
     }
   }
   printf("\n");
@@ -1020,6 +1025,7 @@ int main(int argc, char **argv) {
       StatSumTable2[nthsegid].range = StatSumTable[n].range;
       StatSumTable2[nthsegid].mean  = StatSumTable[n].mean;
       StatSumTable2[nthsegid].std   = StatSumTable[n].std;
+      StatSumTable2[nthsegid].snr   = StatSumTable[n].snr;
       strcpy(StatSumTable2[nthsegid].name,StatSumTable[n].name);
       nthsegid++;
     }
@@ -1045,11 +1051,13 @@ int main(int argc, char **argv) {
       printf("%3d  %8d %10.1f  ", StatSumTable[n].id,StatSumTable[n].nhits,
              StatSumTable[n].vol);
       if (ctab != NULL) printf("%-30s ",StatSumTable[n].name);
-      if (InVolFile != NULL)
+      if (InVolFile != NULL){
         printf("%10.4f %10.4f %10.4f %10.4f %10.4f ",
                StatSumTable[n].min, StatSumTable[n].max,
                StatSumTable[n].range, StatSumTable[n].mean,
                StatSumTable[n].std);
+	if(DoSNR) printf("%10.4f ",StatSumTable[n].snr);
+      }
       printf("\n");
     }
   }
@@ -1218,23 +1226,26 @@ int main(int argc, char **argv) {
     if (!mris) fprintf(fp,"NVoxels Volume_mm3 ");
     else      fprintf(fp,"NVertices Area_mm2 ");
     if (ctab) fprintf(fp,"StructName ");
-    if (InVolFile) fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
-                           InIntensityName,
-                           InIntensityName,
-                           InIntensityName,
-                           InIntensityName,
+    if(InVolFile){
+      fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
+                           InIntensityName, InIntensityName,
+                           InIntensityName,InIntensityName,
                            InIntensityName);
+      if(DoSNR) fprintf(fp,"%sSNR ",InIntensityName);
+    }
     fprintf(fp,"\n");
 
     for (n=0; n < nsegid; n++) {
       fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
               StatSumTable[n].nhits, StatSumTable[n].vol);
       if (ctab != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
-      if (InVolFile != NULL)
+      if (InVolFile != NULL){
         fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
                 StatSumTable[n].mean, StatSumTable[n].std,
                 StatSumTable[n].min, StatSumTable[n].max,
                 StatSumTable[n].range);
+	if(DoSNR) fprintf(fp,"%10.4f ",StatSumTable[n].snr);
+      }
       fprintf(fp,"\n");
     }
     fclose(fp);
@@ -1334,6 +1345,7 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--surf-wm-vol") )  DoSurfWMVol = 1;
     else if ( !strcmp(option, "--sqr") )  DoSquare = 1;
     else if ( !strcmp(option, "--sqrt") )  DoSquareRoot = 1;
+    else if ( !strcmp(option, "--snr") )  DoSNR = 1;
 
     else if ( !strcmp(option, "--mul") ){
       if(nargc < 1) argnerr(option,1);
@@ -1520,6 +1532,7 @@ static void print_usage(void) {
   printf("   --sqr  : compute the square of the input\n");
   printf("   --sqrt : compute the square root of the input\n");
   printf("   --mul val : multiply input by val\n");
+  printf("   --snr : save mean/std as extra column in output table\n");
   printf("\n");
   printf("   --ctab ctabfile : color table file with seg id names\n");
   printf("   --ctab-default: use $FREESURFER_HOME/FreeSurferColorLUT.txt\n");
