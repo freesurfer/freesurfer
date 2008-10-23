@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/10/23 16:27:04 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -233,7 +233,6 @@ void RenderView3D::PreScreenshot()
 	// add scalar bar
 	m_renderer->AddViewProp( m_actorScalarBar );
 }
-
 
 void RenderView3D::PostScreenshot()
 {

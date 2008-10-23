@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/10/23 16:27:04 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -204,6 +204,11 @@ void RenderView::OnKillFocus( wxFocusEvent& event )
 	event.Skip();
 }
 
+void RenderView::SetFocusFrameColor( double r, double g, double b )
+{
+	m_actorFocusFrame->GetProperty()->SetColor( r, g, b);
+}
+
 void RenderView::OnButtonDown( wxMouseEvent& event )
 {
 	if ( FindFocus() != this )
@@ -226,6 +231,9 @@ void RenderView::OnButtonUp( wxMouseEvent& event )
 
 void RenderView::OnMouseMove( wxMouseEvent& event )
 {
+	if ( FindFocus() != this )
+		this->SetFocus();
+	
 	if ( m_interactor->ProcessMouseMoveEvent( event, this ) )
 		wxVTKRenderWindowInteractor::OnMotion( event );
 	
