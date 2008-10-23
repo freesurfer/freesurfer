@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/05 16:16:38 $
- *    $Revision: 1.29 $
+ *    $Date: 2008/10/23 04:28:41 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
 
 #include "mri.h"
 #include "mriTransform.h"
+#include "mrisurf.h"
 
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
@@ -85,5 +86,12 @@ double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
 MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out);
+int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
+		  int InterpCode, float param, MRI *vsm);
+int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
+		       int InterpCode, float param, MRI *vsm);
+MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
+		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
+		    float ProjFrac, int ProjType, int nskip);
 
 #endif

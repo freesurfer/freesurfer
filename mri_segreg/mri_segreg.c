@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/10/02 18:26:57 $
- *    $Revision: 1.63 $
+ *    $Author: greve $
+ *    $Date: 2008/10/23 04:28:41 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.63 2008/10/02 18:26:57 fischl Exp $";
+"$Id: mri_segreg.c,v 1.64 2008/10/23 04:28:41 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -332,6 +332,8 @@ MRI *lhcon=NULL, *rhcon=NULL;
 
 MRI *lhCortexLabel=NULL, *rhCortexLabel=NULL;
 int nCostEvaluations=0;
+MRI *vsm=NULL;
+char *vsmfile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -354,13 +356,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.63 2008/10/02 18:26:57 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.64 2008/10/23 04:28:41 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.63 2008/10/02 18:26:57 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.64 2008/10/23 04:28:41 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -387,6 +389,12 @@ int main(int argc, char **argv) {
   fp = fopen(sumfile,"w");
   dump_options(fp);
   fflush(fp);
+
+  if(vsmfile){
+    printf("Loading vsm\n");
+    vsm = MRIread(vsmfile);
+    if(vsm == NULL) exit(1);
+  }
 
   printf("Loading mov\n");
   mov = MRIread(movvolfile);
@@ -907,7 +915,7 @@ int main(int argc, char **argv) {
     printf("Writing output volume to %s \n",outfile);
     fflush(stdout);
     MRIsetValues(segreg0,0.0);
-    MRIvol2VolTkReg(mov, segreg0, R, SAMPLE_TRILINEAR, sinchw);
+    MRIvol2VolTkRegVSM(mov, segreg0, R, SAMPLE_TRILINEAR, sinchw, vsm);
     MRIwrite(segreg0,outfile);
   }
 
@@ -995,92 +1003,6 @@ int main(int argc, char **argv) {
   printf("mri_segreg done\n");
 
   exit(0);
-  /*- end main ----------------------------------------------------*/
-
-  ntot = ntx*nty*ntz*nax*nay*naz;
-  printf("Staring loop over %d\n",ntot);
-  nth = 0;
-  mincost = 10e10;
-  for(nthtx = 0; nthtx < ntx; nthtx++){
-    tx = txlist[nthtx];
-    for(nthty = 0; nthty < nty; nthty++){
-      ty = tylist[nthty];
-      for(nthtz = 0; nthtz < ntz; nthtz++){
-        tz = tzlist[nthtz];
-        for(nthax = 0; nthax < nax; nthax++){
-          ax = axlist[nthax];
-          for(nthay = 0; nthay < nay; nthay++){
-            ay = aylist[nthay];
-            for(nthaz = 0; nthaz < naz; nthaz++){
-              az = azlist[nthaz];
-              nth ++;
-
-              p[0] = tx;
-              p[1] = ty;
-              p[2] = tz;
-              p[3] = ax;
-              p[4] = ay;
-              p[5] = az;
-              TimerStart(&mytimer) ;
-              GetCosts(mov, segreg, R0, R, p, costs);
-              secCostTime = TimerStop(&mytimer)/1000.0 ;
-
-              // write costs to file
-              fp = fopen(SegRegCostFile,"a");
-              fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
-              fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
-              fprintf(fp,"%7d %10.4lf %8.4lf ",
-                      (int)costs[0],costs[1],costs[2]); // WM  n mean std
-              fprintf(fp,"%7d %10.4lf %8.4lf ",
-                      (int)costs[3],costs[4],costs[5]); // CTX n mean std
-              fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-              fprintf(fp,"\n");
-              fclose(fp);
-
-              fp = stdout;
-              fprintf(fp,"%5d ",nth);
-              fprintf(fp,"%7.3lf %7.3lf %7.3lf ",tx,ty,tz);
-              fprintf(fp,"%6.3lf %6.3lf %6.3lf ",ax,ay,az);
-              fprintf(fp,"%7d %10.4lf %8.4lf ",
-                      (int)costs[0],costs[1],costs[2]); // WM  n mean std
-              fprintf(fp,"%7d %10.4lf %8.4lf ",
-                      (int)costs[3],costs[4],costs[5]); // CTX n mean std
-              fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-              if(DoProfile) fprintf(fp,"%4.2lf ",secCostTime);
-              printf("\n");
-              fflush(stdout);
-
-              if(mincost > costs[7]){
-                mincost = costs[7];
-                Rmin = MatrixCopy(R,Rmin);
-                if(outregfile){
-                  regio_write_register(outregfile,subject,mov->xsize,
-                                       mov->zsize,intensity,Rmin,FLT2INT_ROUND);
-                }
-              }
-
-              // clean up
-            }
-          }
-        }
-      }
-    }
-  }
-
-  printf("min cost was %lf\n",mincost);
-  printf("Reg at min cost was \n");
-  MatrixPrint(stdout,Rmin);
-  printf("\n");
-
-  if(outregfile){
-    printf("Writing optimal reg to %s \n",outregfile);
-    regio_write_register(outregfile,subject,mov->xsize,
-                         mov->zsize,intensity,Rmin,FLT2INT_ROUND);
-  }
-
-  printf("\n");
-  printf("mri_segreg done\n");
-
   return(0);
 }
 
@@ -1190,7 +1112,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
       nargsused = 1;
-    } else if (istringnmatch(option, "--frame",0)) {
+    } 
+    else if (istringnmatch(option, "--vsm",0)) {
+      if (nargc < 1) argnerr(option,1);
+      vsmfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--frame",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&frame);
       nargsused = 1;
@@ -2429,22 +2357,28 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //printf("Rot:   %g %g %g\n",p[3],p[4],p[5]);
 
   if(UseLH){
-    vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
+    /*vlhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			    lhwm, 0,interpcode, 
 			    FLT2INT_ROUND, NULL, 0, nsubsamp);
     vlhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			     lhctx, 0,interpcode, 
 			     FLT2INT_ROUND, NULL, 0, nsubsamp);
+    */
+    vlhwm  = MRIvol2surfVSM(mov,R,lhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp);
+    vlhctx = MRIvol2surfVSM(mov,R,lhctx, vsm, interpcode, NULL, 0, 0, nsubsamp);
     if(lhcost == NULL) lhcost = MRIclone(vlhctx,NULL);
     if(lhcon == NULL)  lhcon  = MRIclone(vlhctx,NULL);
   }
   if(UseRH){
-    vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
+    /*vrhwm = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			    rhwm, 0,interpcode, 
 			    FLT2INT_ROUND, NULL, 0, nsubsamp);
     vrhctx = vol2surf_linear(mov,NULL,NULL,NULL,R,
 			     rhctx, 0,interpcode, 
 			     FLT2INT_ROUND, NULL, 0, nsubsamp);
+    */
+    vrhwm  = MRIvol2surfVSM(mov,R,rhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp);
+    vrhctx = MRIvol2surfVSM(mov,R,rhctx, vsm, interpcode, NULL, 0, 0, nsubsamp);
     if(rhcost == NULL) rhcost = MRIclone(vrhctx,NULL);
     if(rhcon == NULL)  rhcon  = MRIclone(vrhctx,NULL);
   }
