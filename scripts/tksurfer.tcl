@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: krish $
-##    $Date: 2008/09/30 19:53:30 $
-##    $Revision: 1.160 $
+##    $Author: nicks $
+##    $Date: 2008/10/24 19:02:37 $
+##    $Revision: 1.161 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -611,6 +611,8 @@ proc HandlePickedColor { icwPicker } {
     # mouse is in. This is our r-g-b tag. Extract the numerical elements.
     set color [lindex [$icwPicker gettags current] 1]
     scan $color "%d-%d-%d" r g b
+
+    puts "rgb= $r $g $b"
 
     # Detroy the color picker dlog.
     destroy .wwColorPicker
