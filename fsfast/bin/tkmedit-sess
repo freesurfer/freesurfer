@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/07/15 15:59:14 $
-#    $Revision: 1.28 $
+#    $Date: 2008/10/24 20:59:23 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.28 2008/07/15 15:59:14 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.29 2008/10/24 20:59:23 greve Exp $';
 set inputargs = ($argv);
 
 set PWDCMD = pwd
@@ -76,6 +76,7 @@ set hdrtmpdir = ()
 set talreg = 0; # show on tal using register.tal
 set MGZ = .mgz;
 set DoAllContrasts = 0;
+set flac = ();
 
 set nolog = 0;
 set tmpdir = ();
@@ -141,6 +142,12 @@ if($#analysis != 0) then
   if($#designtype == 0) then
     set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
   endif
+else if($#flac) then
+  set fsd = `cat $flac | awk '{if($1 == "fsd") print $2}'`
+  set designtype = "event-related"
+  set analysis = `basename $flac .flac`
+  echo $analysis $fsd
+  set nohdr = 1;
 else
   if($#fsd == 0) set fsd = bold;
   set nohdr = 1;
@@ -156,6 +163,9 @@ if($#mapanalysis != 0) then
     exit 1;
   endif
   set mapfsd = `cat $mapanalysis/analysis.info | awk '{if($1 == "fsd") print $2}'`;
+else if($#flac) then
+  set mapfsd = $fsd
+  set mapanalysis = $analysis
 else
   if($#mapfsd == 0) set mapfsd = bold;
   set nohdr = 1;
@@ -303,16 +313,30 @@ if(! $nosig) then
   
 endif
 
-if($#subject == 0) set subject = `cat $regfile | head -n 1`;
+if($#subject == 0) then
+  if($#regfile == 0) then
+    echo "ERROR: need reg file"
+    exit 1;
+  endif
+  if(! -e $regfile ) then
+    echo "ERROR: cannot find $regfile"
+    exit 1;
+  endif
+  set subject = `cat $regfile | head -n 1`;
+endif
 echo "INFO: subject is $subject"
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "cannot find $subject in $SUBJECTS_DIR"
+  exit  1;
+endif
 
 if($subject != talairach && $space == tal) set mrivolid = talairach
 
 set tmp = $SUBJECTS_DIR/$subject/mri/$mrivolid.mgz
 if(-e $tmp) then
-  echo "Cannot find $tmp, assuming COR"
   set MGZ = ".mgz";
 else
+  echo "Cannot find $tmp, assuming COR"
   set MGZ = ();
 endif
 
@@ -559,6 +583,11 @@ while( $#argv != 0 )
       set analysis = $argv[1]; shift;
       breaksw
 
+    case "-flac":
+      if ( $#argv == 0) goto arg1err;
+      set flac = $argv[1]; shift;
+      breaksw
+
     case "-anapend":
       if ( $#argv == 0) goto arg1err;
       set anapend = $argv[1]; shift;
@@ -776,41 +805,43 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#analysis == 0) then
-    echo "ERROR: no analysis specified" 
-    exit 1;
-  endif
-  if(! -e $analysis) then
-    echo "ERROR: $analysis does not exist"
-    exit 1;
-  endif
   if($#mapsessid == 0)   set mapsessid   = $sessid;
-  if($#mapanalysis == 0) set mapanalysis = $analysis;
-  if(! -e $mapanalysis) then
-    echo "ERROR: $mapanalysis does not exist"
-    exit 1;
-  endif
-  if($DoAllContrasts) then
-    set matlist = (`ls $mapanalysis/*.mat`);
-    if($status) then
-      echo "ERROR: cannot find any contrasts in $analysis"
+  if($#flac == 0) then
+    if($#analysis == 0) then
+      echo "ERROR: no analysis specified" 
       exit 1;
     endif
-    foreach m ($matlist)
-      set c = `basename $m .mat`;
-      set contrastlist = ($contrastlist $c);
-    end
-  endif
-  if($#contrastlist == 0) then
-    echo "ERROR: no contrast specified" 
-    exit 1;
-  endif
-  if($#contrastlist == 0)  set nosig = 1;
-  if($#analysis == 0)  set nohdr = 1;
-  if($#contrastlist != 0 && $#analysis == 0 ) then
-     echo "ERROR: must specify an analysis with contrast" 
-     exit 1
-  endif
+    if(! -e $analysis) then
+      echo "ERROR: $analysis does not exist"
+      exit 1;
+    endif
+    if($#mapanalysis == 0) set mapanalysis = $analysis;
+    if(! -e $mapanalysis) then
+      echo "ERROR: $mapanalysis does not exist"
+      exit 1;
+    endif
+    if($DoAllContrasts) then
+      set matlist = (`ls $mapanalysis/*.mat`);
+      if($status) then
+        echo "ERROR: cannot find any contrasts in $analysis"
+        exit 1;
+      endif
+      foreach m ($matlist)
+        set c = `basename $m .mat`;
+        set contrastlist = ($contrastlist $c);
+      end
+    endif
+    if($#contrastlist == 0) then
+      echo "ERROR: no contrast specified" 
+      exit 1;
+    endif
+    if($#contrastlist == 0)  set nosig = 1;
+    if($#analysis == 0)  set nohdr = 1;
+    if($#contrastlist != 0 && $#analysis == 0 ) then
+       echo "ERROR: must specify an analysis with contrast" 
+       exit 1
+    endif
+  endif #flac
 
   if($#sessid == 0) then
     echo "ERROR: no sessions specified" 
@@ -904,6 +935,7 @@ check_params:
   endif
 
   set sessinfo = $mapsess/session.info
+  if(-e $sessinfo) then
   set MapSessIsGroup = `grep GroupAverage $sessinfo | wc -l`;
   if($MapSessIsGroup) then
     echo "INFO: $sessid is a group average"  
@@ -916,6 +948,7 @@ check_params:
       echo "ERROR: must specify -mapisxavg with group" 
       exit 1;
     endif
+  endif
   endif
 
   if($#rawrun != 0 && $space != native ) then
