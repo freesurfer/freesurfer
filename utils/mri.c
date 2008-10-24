@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/26 02:18:00 $
- *    $Revision: 1.419 $
+ *    $Author: greve $
+ *    $Date: 2008/10/24 17:19:55 $
+ *    $Revision: 1.420 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.419 $";
+const char *MRI_C_VERSION = "$Revision: 1.420 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -649,7 +649,6 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   RegMat = MatrixMultiply(RegMat,invTref,RegMat);
 
   MatrixFree(&invDmov);
-  MatrixFree(&FSLRegMat);
   MatrixFree(&invFSLRegMat);
   MatrixFree(&Tmov);
   MatrixFree(&Tref);
