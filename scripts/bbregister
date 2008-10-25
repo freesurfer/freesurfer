@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/23 22:57:07 $
-#    $Revision: 1.8 $
+#    $Date: 2008/10/25 02:35:31 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,11 +23,12 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.8 2008/10/23 22:57:07 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.9 2008/10/25 02:35:31 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
 set movvol = ();
+set intvol = (); # intermediate volume
 set frame = ();
 set midframe = 0;
 set outreg = ();
@@ -120,28 +121,43 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 if($#InitReg == 0) then
+  set regvol = $template
   set InitReg = $tmpdir/reg.init.dat
+  if($#intvol) then
+    set regvol = $intvol
+    set InitReg = $tmpdir/reg.intermediate.dat
+  endif
   if($InitFSL) then
-    set cmd = (fslregister --s $subject --mov $template --reg $InitReg \
+    set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
       --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
   if($InitSPM) then
-    set cmd = (spmregister --s $subject --mov $template --reg $InitReg \
+    set cmd = (spmregister --s $subject --mov $regvol --reg $InitReg \
       --tmp $tmpdir/fslregister)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
   if($InitHeader) then
-    set cmd = (tkregister2_cmdl --s $subject --mov $template \
+    set cmd = (tkregister2_cmdl --s $subject --mov $regvol \
       --regheader --reg $InitReg --noedit)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
+  if($#intvol) then
+    set InitReg0 = $tmpdir/reg.init.dat
+    set cmd = (tkregister2_cmdl --s $subject --mov $template \
+      --int $intvol $InitReg  --noedit --reg $InitReg0)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    set InitReg = $InitReg0;
+  endif
+
 endif
 
 # Pass 1
@@ -256,6 +272,15 @@ while( $#argv != 0 )
       set movvol = $argv[1]; shift;
       if(! -e $movvol) then
         echo "ERROR: cannot find $movvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--int":
+      if ( $#argv < 1) goto arg1err;
+      set intvol = $argv[1]; shift;
+      if(! -e $intvol) then
+        echo "ERROR: cannot find $intvol"
         exit 1;
       endif
       breaksw
