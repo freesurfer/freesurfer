@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:25 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/10/27 15:47:40 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -255,7 +255,7 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1, int nsize1, int* vo
 	double sum = 0;
 	for ( int i = 0; i < nvars; i++ )
 	{
-		w[i] = fabs( *MATRIX_RELT( weight, i+1, 1 ) );
+		w[i] = *MATRIX_RELT( weight, i+1, 1 );
 		sum += w[i];
 		cout << w[i] << endl;
 	}
