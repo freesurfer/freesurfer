@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/27 21:50:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -122,6 +122,11 @@ void PanelROI::OnSliderOpacity( wxScrollEvent& event )
 
 void PanelROI::OnLayerSelectionChanged( wxCommandEvent& event )
 {
+	if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+	{
+		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
+		lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );
+	}
 	UpdateUI();
 }
 

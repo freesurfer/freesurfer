@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/27 21:50:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -97,9 +97,6 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 		cerr << "MRISread failed" << endl;
 		return false;
 	}	
-//	wxFileName wxfn( filename );
-//	wxString fn_prefix = wxfn.GetPath( wxPATH_GET_SEPARATOR | wxPATH_GET_VOLUME ) + wxfn.GetName();
-	
   // Get some info from the MRIS. This can either come from the volume
   // geometry data embedded in the surface; this is done for newer
   // surfaces. Or it can come from the source information in the
@@ -335,7 +332,11 @@ void FSSurface::UpdatePolyData()
 		surfaceRAS[0] = m_MRIS->vertices[vno].x;
 		surfaceRAS[1] = m_MRIS->vertices[vno].y;
 		surfaceRAS[2] = m_MRIS->vertices[vno].z;
+	//	if ( vno == 59424 )
+	//		cout << surfaceRAS[0] << " " << surfaceRAS[1] << " " << surfaceRAS[2] << endl;
 		this->ConvertSurfaceToRAS( surfaceRAS, point );
+	//	if ( vno == 59424 )
+	//		cout << point[0] << " " << point[1] << " " << point[2] << endl;
 		newPoints->InsertNextPoint( point );
 
 		normal[0] = m_MRIS->vertices[vno].nx;
@@ -769,9 +770,18 @@ bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] )
 //		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
 		return false;
 
-	ioRAS[0] = m_MRIS->vertices[inVertex].x;
-	ioRAS[1] = m_MRIS->vertices[inVertex].y;
-	ioRAS[2] = m_MRIS->vertices[inVertex].z;
+	if ( m_nActiveSurface >= 0 && m_fVertexSets[m_nActiveSurface] != NULL )
+	{
+		ioRAS[0] = m_fVertexSets[m_nActiveSurface][inVertex].x;
+		ioRAS[1] = m_fVertexSets[m_nActiveSurface][inVertex].y;
+		ioRAS[2] = m_fVertexSets[m_nActiveSurface][inVertex].z;
+	}
+	else
+	{
+		ioRAS[0] = m_MRIS->vertices[inVertex].x;
+		ioRAS[1] = m_MRIS->vertices[inVertex].y;
+		ioRAS[2] = m_MRIS->vertices[inVertex].z;
+	}
 	
 	return true;
 }
@@ -786,9 +796,17 @@ bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] )
 //		throw runtime_error( "GetRASAtVertex: inVertex was invalid" );
 		return false;
 
-	ioRAS[0] = static_cast<double>(m_MRIS->vertices[inVertex].x);
-	ioRAS[1] = static_cast<double>(m_MRIS->vertices[inVertex].y);
-	ioRAS[2] = static_cast<double>(m_MRIS->vertices[inVertex].z);
+	if ( m_nActiveSurface >= 0 && m_fVertexSets[m_nActiveSurface] != NULL )
+	{
+		ioRAS[0] = m_fVertexSets[m_nActiveSurface][inVertex].x;
+		ioRAS[1] = m_fVertexSets[m_nActiveSurface][inVertex].y;
+		ioRAS[2] = m_fVertexSets[m_nActiveSurface][inVertex].z;
+	}
+	else
+	{	ioRAS[0] = static_cast<double>(m_MRIS->vertices[inVertex].x);
+		ioRAS[1] = static_cast<double>(m_MRIS->vertices[inVertex].y);
+		ioRAS[2] = static_cast<double>(m_MRIS->vertices[inVertex].z);
+	}
 	
 	return true;
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/23 16:27:04 $
- *    $Revision: 1.24 $
+ *    $Date: 2008/10/27 21:50:56 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -281,7 +281,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	m_viewCoronal->SetViewPlane( 1 );	
 	m_viewAxial->SetViewPlane( 2 );	
 	m_viewSagittal->SetFocusFrameColor( 0.9, 0, 0 );
-	m_viewCoronal->SetFocusFrameColor( 0, 0.7, 0 );
+	m_viewCoronal->SetFocusFrameColor( 0, 0.8, 0 );
 	m_viewAxial->SetFocusFrameColor( 0, 0, 1 );
 	m_viewRender[0] = m_viewSagittal;
 	m_viewRender[1] = m_viewCoronal;

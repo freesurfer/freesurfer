@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/20 20:54:14 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/10/27 21:50:56 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,6 @@ FSVolume::FSVolume( FSVolume* ref ) :
 	m_MRIRef( NULL ),	
 	m_MRIOrigTarget( NULL ),
 	m_matReg( NULL ),
-	m_nRegType( REG_TKREGISTER ),
 	m_volumeRef( ref ),
 	m_fMinValue( 0 ),
 	m_fMaxValue( 1 ),
@@ -128,6 +127,7 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
 	return true;
 }
 
+/*
 bool FSVolume::LoadRegistrationMatrix( const char* filename )
 {
 	if ( m_matReg )
@@ -203,7 +203,81 @@ bool FSVolume::LoadRegistrationMatrix( const char* filename )
 	
 	return true;
 }
+*/
 
+// read in registration file and convert it to tkreg style
+bool FSVolume::LoadRegistrationMatrix( const char* filename )
+{
+	if ( m_matReg )
+	::MatrixFree( &m_matReg );
+	m_matReg = NULL;	
+	
+	if ( MyUtils::HasExtension( filename, "xfm" ) ) 	// MNI style
+	{
+		MATRIX* m = NULL;
+		if ( regio_read_mincxfm( (char*)filename, &m, NULL ) != 0 )
+			return false;
+		
+		m_matReg = MRItkRegMtx( m_MRIRef, m_MRI, m );
+		MatrixFree( &m );
+	}
+	else if ( MyUtils::HasExtension( filename, "mat" ) )		// fsl style
+	{
+		wxFFile file( filename );
+		wxString strg;
+		if ( !file.ReadAll( &strg ) )
+			return false;
+		strg.Replace( "\n", " " );
+		wxArrayString ar = MyUtils::SplitString( strg, " " );
+		if ( ar.Count() < 16 )
+			return false;
+			
+		MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
+		double val;
+		for ( int i = 0; i < 16; i++ )
+		{
+			ar[i].ToDouble( &val );
+			*MATRIX_RELT(m, (i/4)+1, (i%4)+1) = val;
+		}
+		m_matReg = MRIfsl2TkReg( m_MRIRef, m_MRI, m );
+		MatrixFree( &m );
+	}
+	else if ( MyUtils::HasExtension( filename, "dat" ) ) 	// tkregister style
+	{
+		char* subject = NULL;
+		float inplaneres, betplaneres, intensity;
+		int float2int;
+		if ( regio_read_register( (char*)filename, &subject, &inplaneres, &betplaneres, &intensity, &m_matReg, &float2int ) != 0 )
+			return false;
+		
+		free( subject );
+	}	
+	else 	// LTA style & all possible other styles
+	{
+		TRANSFORM* FSXform = TransformRead( (char*)filename );
+		if ( FSXform == NULL ) 
+			return false;
+		LTA* lta = (LTA*) FSXform->xform;
+		if ( lta->type != LINEAR_RAS_TO_RAS )
+		{
+			cout << "INFO: LTA input is not RAS to RAS...converting..." << endl;
+			lta = LTAchangeType( lta, LINEAR_RAS_TO_RAS );
+		}
+		if ( lta->type != LINEAR_RAS_TO_RAS )
+		{
+			cerr << "ERROR: LTA input is not RAS to RAS" << endl;
+			TransformFree( &FSXform );
+			return false;
+		}
+     // Assume RAS2RAS and uses vox2ras from input volumes:
+     // Note: This ignores the volume geometry in the LTA file.
+		m_matReg = MRItkRegMtx( m_MRIRef, m_MRI, lta->xforms[0].m_L ); 
+		TransformFree( &FSXform );
+	}
+
+	
+	return true;
+}
 
 void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData )
 {
@@ -554,7 +628,6 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 	}
 	else if ( m_bResampleToRAS )
 	{
-//		cout << "MRIalloc begins" << endl;
 		this->GetBounds( bounds );				
 		for ( int i = 0; i < 3; i++ )
 			dim[i] = (int) ( ( bounds[i*2+1] - bounds[i*2] ) / voxelSize[i] + 0.5 );		
@@ -575,7 +648,6 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 		*MATRIX_RELT( m, 2, 4 ) = bounds[2];
 		*MATRIX_RELT( m, 3, 4 ) = bounds[4];
 		MRIsetVoxelToRasXform( rasMRI, m);	
-//		cout << "MRIvol2Vol begins" << endl;
 	}
 	else
 	{
@@ -687,7 +759,8 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 		
 	if ( m_matReg && m_MRIRef )
 	{
-		if ( m_nRegType == REG_TKREGISTER )
+		// registration matrix is always converted to tkReg style now		
+	//	if ( m_nRegType == REG_TKREGISTER )
 		{
 			MATRIX *vox2vox, *Tmov, *invTmov, *Ttarg;
 			Tmov = MRIxfmCRS2XYZtkreg( m_MRI );
@@ -715,6 +788,9 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 			MatrixFree( &Ttarg );
 			MatrixFree( &t2r );
 		}
+		// Reg matrix is always converted to tkReg style at loading time, 
+		// but keep the following section of code for reference
+		/*
 		else if ( m_nRegType == REG_MNI || m_nRegType == REG_LTA )
 		{
 			MATRIX *vox2vox, *Tmov, *invTmov, *invReg, *Ttarg;
@@ -722,9 +798,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 			Ttarg = MRIgetVoxelToRasXform( m_MRIRef );
 			invTmov = MatrixInverse( Tmov, NULL );
 			invReg = MatrixInverse( m_matReg, NULL );
-			
-		//	invReg = MatrixCopy( m_matReg, NULL );
-			
+				
 			// vox2vox = invTmov*invR*Ttarg
 			vox2vox = MatrixMultiply( invReg, Ttarg, NULL );
 			MatrixMultiply( invTmov, vox2vox, vox2vox );
@@ -748,7 +822,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 			MatrixFree( &Ttarg );
 			MatrixFree( &t2r );
 		}
-		cout << "Reg matrix is being used." << endl;
+		*/
 	}
 	else
 	{
@@ -771,7 +845,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 	// copy mri pixel data to vtkImage we will use for display
 	CopyMRIDataToImage( rasMRI, m_imageData, wnd, event );
 
-  // Need to recalc our bounds at some point.
+  	// Need to recalc our bounds at some point.
 	m_bBoundsCacheDirty = true;
 
 	::MRIfree( &rasMRI );
@@ -1070,9 +1144,7 @@ MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
 
 void FSVolume::CopyMRIDataToImage( MRI* mri, vtkImageData* image, wxWindow* wnd, wxCommandEvent& event )
 {
-  // Copy the slice data into the scalars.
-//	vtkDebugMacro (<< "Copying " << cValues << " values into the scalars array");
-//	float* tuple = (float*) malloc( sizeof(float) * zFrames );	
+  	// Copy the slice data into the scalars.
 	int zX = mri->width;
 	int zY = mri->height;
 	int zZ = mri->depth;

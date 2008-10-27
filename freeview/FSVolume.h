@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 20:43:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/27 21:50:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,8 +44,6 @@ class FSVolume
 public:
 	FSVolume( FSVolume* ref );
 	virtual ~FSVolume();
-	
-	enum REG_MATRIX_TYPE { REG_TKREGISTER = 0, REG_MNI, REG_LTA };
 		
 	void Create( FSVolume* src, bool bCopyVoxelData );
 	
@@ -136,7 +134,6 @@ protected:
 	MRI*			m_MRIRef;			// reference target space, can also serve as the registration target. header only
 	MRI*			m_MRIOrigTarget;	// orignal target space, header only
 	MATRIX*			m_matReg;
-	int				m_nRegType;
 	
 	FSVolume*		m_volumeRef;
 	
