@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/27 19:08:04 $
- *    $Revision: 1.99 $
+ *    $Date: 2008/10/27 18:22:19 $
+ *    $Revision: 1.100 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.99 2008/08/27 19:08:04 greve Exp $";
+"$Id: tkregister2.c,v 1.100 2008/10/27 18:22:19 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -136,6 +136,7 @@ void write_reg(char fname[]);
 void write_fslreg(char *fname);
 void write_xfmreg(char *fname);
 void write_lta(char *fname);
+void write_freeviewreg(char *fname);
 void make_backup(char fname[]);
 void save_rgb(char fname[]);
 void scrsave_to_rgb(char fname[]);
@@ -382,6 +383,7 @@ MATRIX *Tscreen, *Qtarg, *Qmov;
 
 char *fslregfname;
 char *fslregoutfname;
+char *freeviewfname;
 char *xfmoutfname=NULL;
 MATRIX *invDmov, *FSLRegMat, *invFSLRegMat;
 MATRIX *Mtc, *invMtc, *Vt2s,*Ttargcor, *invTtargcor;
@@ -1330,11 +1332,18 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) argnerr(option,1);
       ltaoutfname = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--fslregout")) {
+    } 
+    else if (!strcmp(option, "--fslregout")) {
       if (nargc < 1) argnerr(option,1);
       fslregoutfname = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--xfmout")) {
+    } 
+    else if (!strcmp(option, "--freeview")) {
+      if (nargc < 1) argnerr(option,1);
+      freeviewfname = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--xfmout")) {
       if (nargc < 1) argnerr(option,1);
       xfmoutfname = pargv[0];
       nargsused = 1;
@@ -1431,6 +1440,7 @@ static void print_usage(void) {
   printf("   --xfmout file : MNI-style registration output matrix\n");
   printf("   --fsl file : FSL-style registration input matrix\n");
   printf("   --fslregout file : FSL-Style registration output matrix\n");
+  printf("   --freeview file : FreeView registration output matrix\n");
   printf("   --vox2vox file : vox2vox matrix in ascii\n");
   printf("   --lta ltafile : Linear Transform Array\n");
   printf("   --feat featdir : check example_func2standard registration\n");
@@ -3445,6 +3455,7 @@ void  read_fslreg(char *fname) {
 /*-----------------------------------------------------*/
 void write_reg(char *fname) {
   extern char *fslregoutfname, *subjectsdir, *pname;
+  extern char *freeviewfname;
   extern int fstal;
   extern char talxfmfile[2000];
   extern MATRIX *RegMat, *Mtc;
@@ -3498,9 +3509,10 @@ void write_reg(char *fname) {
   printf("register: file %s written\n",fname);
   fclose(fp);
 
-  if (fslregoutfname != NULL) write_fslreg(fslregoutfname);
-  if (xfmoutfname != NULL) write_xfmreg(xfmoutfname);
-  if (ltaoutfname != NULL) write_lta(ltaoutfname);
+  if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
+  if(freeviewfname != NULL) write_freeviewreg(freeviewfname);
+  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  if(ltaoutfname != NULL) write_lta(ltaoutfname);
 
   return;
 }
@@ -3530,6 +3542,66 @@ void write_fslreg(char *fname) {
     fprintf(fp,"\n");
   }
   fclose(fp);
+
+  return;
+}
+
+
+/*-----------------------------------------------------*/
+void write_freeviewreg(char *fname) {
+  extern MRI *mov_vol, *targ_vol0;
+  extern MATRIX *RegMat, *Mtc;
+  static MATRIX *RegMatTmp=NULL;
+  int i,j;
+  FILE *fp;
+  MATRIX *Mfv=NULL,*Ttarg, *Tmov, *Starg, *Smov,*InvTmov,*InvStarg;
+
+  RegMatTmp = MatrixMultiply(RegMat,Mtc,RegMatTmp);
+
+  Tmov  = MRIxfmCRS2XYZtkreg(mov_vol);
+  Ttarg = MRIxfmCRS2XYZtkreg(targ_vol0);
+  Smov  = MRIxfmCRS2XYZ(mov_vol,0);
+  Starg = MRIxfmCRS2XYZ(targ_vol0,0);
+
+  InvStarg = MatrixInverse(Starg,NULL);
+  InvTmov = MatrixInverse(Tmov,NULL);
+
+  Mfv = MatrixMultiply(Ttarg,InvStarg,NULL);
+  Mfv = MatrixMultiply(Mfv,Smov,Mfv);
+  Mfv = MatrixMultiply(Mfv,InvTmov,Mfv);
+  Mfv = MatrixMultiply(Mfv,RegMatTmp,Mfv);
+
+  printf("FreeView Matrix ---------------------------\n");
+  MatrixPrint(stdout,Mfv);
+
+  fp = fopen(fname,"w");
+  if (fp==NULL) {
+    printf("register: ### can't create file %s\n",fname);
+    return;
+  }
+  fprintf(fp,"%s\n",pname);
+  fprintf(fp,"%f\n",ps_2);
+  fprintf(fp,"%f\n",st_2);
+  if(fscale_2 == 0.0) fscale_2 = .1;
+  fprintf(fp,"%f\n",fscale_2);
+  for (i=0;i<4;i++) {
+    for (j=0;j<4;j++)
+      //fprintf(fp,"%e ",tm[i][j]);
+      fprintf(fp,"%e ",Mfv->rptr[i+1][j+1]);
+    fprintf(fp,"\n");
+  }
+  fprintf(fp,"round\n");
+  printf("register: file %s written\n",fname);
+  fclose(fp);
+
+  MatrixFree(&Mfv);
+  MatrixFree(&Ttarg);
+  MatrixFree(&Tmov);
+  MatrixFree(&InvTmov);
+  MatrixFree(&Starg);
+  MatrixFree(&InvStarg);
+  MatrixFree(&Smov);
+  MatrixFree(&RegMatTmp);
 
   return;
 }
@@ -4659,7 +4731,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.99 2008/08/27 19:08:04 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.100 2008/10/27 18:22:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
