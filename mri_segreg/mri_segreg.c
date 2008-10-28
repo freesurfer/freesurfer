@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/23 18:26:57 $
- *    $Revision: 1.65 $
+ *    $Date: 2008/10/28 21:59:25 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.65 2008/10/23 18:26:57 greve Exp $";
+"$Id: mri_segreg.c,v 1.66 2008/10/28 21:59:25 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -334,6 +334,8 @@ MRI *lhCortexLabel=NULL, *rhCortexLabel=NULL;
 int nCostEvaluations=0;
 MRI *vsm=NULL;
 char *vsmfile = NULL;
+double angles[3],xyztrans[3];
+
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -356,13 +358,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.65 2008/10/23 18:26:57 greve Exp $",
+     "$Id: mri_segreg.c,v 1.66 2008/10/28 21:59:25 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.65 2008/10/23 18:26:57 greve Exp $",
+     "$Id: mri_segreg.c,v 1.66 2008/10/28 21:59:25 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1015,7 +1017,6 @@ static int parse_commandline(int argc, char **argv) {
   char **pargv, *option;
   int err,nv,n;
   double vmin, vmax, vdelta, v, c, d;
-  double angles[3],xyztrans[3];
   FILE *fp;
 
   if (argc < 1) usage_exit();
@@ -1622,6 +1623,10 @@ static void dump_options(FILE *fp)
   fprintf(fp,"SynthSeed %d\n",SynthSeed);
   fprintf(fp,"TransRandMax %lf\n",TransRandMax);
   fprintf(fp,"RotRandMax %lf\n",RotRandMax);
+  fprintf(fp,"Tranlations %lf %lf %lf\n", MtransPre->rptr[1][1],
+	  MtransPre->rptr[1][2],MtransPre->rptr[1][3]);
+  fprintf(fp,"Rotations   %lf %lf %lf\n",angles[0],angles[1],angles[2]);
+
   fprintf(fp,"Input reg\n");
   MatrixPrint(fp,R0);
   fprintf(fp,"\n");
