@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/28 21:59:25 $
- *    $Revision: 1.66 $
+ *    $Date: 2008/10/28 22:02:36 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.66 2008/10/28 21:59:25 greve Exp $";
+"$Id: mri_segreg.c,v 1.67 2008/10/28 22:02:36 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -358,13 +358,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.66 2008/10/28 21:59:25 greve Exp $",
+     "$Id: mri_segreg.c,v 1.67 2008/10/28 22:02:36 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.66 2008/10/28 21:59:25 greve Exp $",
+     "$Id: mri_segreg.c,v 1.67 2008/10/28 22:02:36 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1227,10 +1227,13 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) argnerr(option,1);
       // Translation in mm
       sscanf(pargv[0],"%lf",&TransRandMax);
+      xyztrans[0] = 2.0*(drand48()-0.5)*TransRandMax;
+      xyztrans[1] = 2.0*(drand48()-0.5)*TransRandMax;
+      xyztrans[2] = 2.0*(drand48()-0.5)*TransRandMax;
       MtransPre = MatrixIdentity(4,NULL);
-      MtransPre->rptr[1][4] = 2.0*(drand48()-0.5)*TransRandMax;
-      MtransPre->rptr[2][4] = 2.0*(drand48()-0.5)*TransRandMax;
-      MtransPre->rptr[3][4] = 2.0*(drand48()-0.5)*TransRandMax;
+      MtransPre->rptr[1][4] = xyztrans[0];
+      MtransPre->rptr[2][4] = xyztrans[1];
+      MtransPre->rptr[3][4] = xyztrans[2];
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--out-reg",0)) {
@@ -1623,8 +1626,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"SynthSeed %d\n",SynthSeed);
   fprintf(fp,"TransRandMax %lf\n",TransRandMax);
   fprintf(fp,"RotRandMax %lf\n",RotRandMax);
-  fprintf(fp,"Tranlations %lf %lf %lf\n", MtransPre->rptr[1][1],
-	  MtransPre->rptr[1][2],MtransPre->rptr[1][3]);
+  fprintf(fp,"Tranlations %lf %lf %lf\n", xyztrans[0],xyztrans[1],xyztrans[2]);
   fprintf(fp,"Rotations   %lf %lf %lf\n",angles[0],angles[1],angles[2]);
 
   fprintf(fp,"Input reg\n");
