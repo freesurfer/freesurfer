@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/27 22:37:15 $
-#    $Revision: 1.10 $
+#    $Date: 2008/10/28 21:32:16 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.10 2008/10/27 22:37:15 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.11 2008/10/28 21:32:16 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -44,7 +44,7 @@ set Slope1 = 0.5;
 set Slope2 = 0.5;
 set Offset2 = 0;
 set Contrast = +1;
-set Tol = 1e-4;
+set Tol = 1e-6;
 
 set GMProjFrac = 0.5;
 set WMProjAbs = 2;
