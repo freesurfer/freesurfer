@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/27 15:47:40 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/10/28 21:21:34 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -244,23 +244,30 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1, int nsize1, int* vo
 	MATRIX* cov2 = MatrixCovariance( m2, NULL, mean2 );
 	if ( cov2 == NULL )
 		return false;
-	MATRIX* cov = MatrixAdd( cov1, cov2, NULL );
+	MATRIX* scov1 = MatrixScalarMul( cov1, (float)nsize1 / (nsize1 + nsize2 ), NULL );
+	MATRIX* scov2 = MatrixScalarMul( cov2, (float)nsize2 / (nsize1 + nsize2 ), NULL );
+	MATRIX* cov = MatrixAdd( scov1, scov2, NULL );
 	MATRIX* cov_inv = MatrixInverse( cov, NULL );
 	if ( cov_inv == NULL )
 		return false;
 	MATRIX* mean_sub = MatrixSubtract( mean1, mean2, NULL );
 	MATRIX* weight = MatrixMultiply( cov_inv, mean_sub, NULL );
+	cout << "condition number: " << MatrixConditionNumber( cov ) << endl;
+//	MATRIX* weight = MatrixCopy( mean_sub, NULL );
 
 	double* w = new double[nvars];
 	double sum = 0;
 	for ( int i = 0; i < nvars; i++ )
 	{
 		w[i] = *MATRIX_RELT( weight, i+1, 1 );
-		sum += w[i];
+		sum += fabs( w[i] );
+	}
+	cout << "Weight: " <<endl;
+	for ( int i = 0; i < nvars; i++ )
+	{
+		w[i] /= sum;
 		cout << w[i] << endl;
 	}
-	for ( int i = 0; i < nvars; i++ )
-		w[i] /= sum;
 	
 	double tmp = 0;
 	for ( int i = 0; i < vol_size; i++ )
@@ -278,6 +285,8 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1, int nsize1, int* vo
 	MatrixFree( &mean2 );
 	MatrixFree( &cov1 );
 	MatrixFree( &cov2 );
+	MatrixFree( &scov1 );
+	MatrixFree( &scov2 );
 	MatrixFree( &cov );
 	MatrixFree( &cov_inv );
 	MatrixFree( &mean_sub );

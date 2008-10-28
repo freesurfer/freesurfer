@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.3 $
+ *    $Date: 2008/10/28 21:21:34 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -481,6 +481,7 @@ void LayerVolumeBase::Undo()
 		
 		SetModified();
 		this->SendBroadcast( "LayerActorUpdated", this );
+		this->SendBroadcast( "LayerEdited", this );
 	}
 }
 
@@ -500,6 +501,7 @@ void LayerVolumeBase::Redo()
 		
 		SetModified();
 		this->SendBroadcast( "LayerActorUpdated", this );
+		this->SendBroadcast( "LayerEdited", this );
 	}
 }
 

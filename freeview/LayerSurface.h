@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/28 21:21:33 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,11 +47,12 @@ class LayerPropertiesSurface;
 class FSSurface;
 class wxWindow;
 class wxCommandEvent;
+class LayerMRI;
 
 class LayerSurface : public Layer
 {
 	public:
-		LayerSurface();
+		LayerSurface( LayerMRI* mri = NULL );
 		virtual ~LayerSurface();
 					
 		bool LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event );
@@ -71,7 +72,11 @@ class LayerSurface : public Layer
 		
 		int GetVertexIndexAtRAS( double* ras, double* distance );
 		
+		int GetVertexIndexAtTarget( double* ras, double* distance );		
+
 		bool GetRASAtVertex( int nVertex, double* ras );
+
+		bool GetTargetAtVertex( int nVertex, double* ras );
 		
 		FSSurface* GetSourceSurface()
 			{ return m_surfaceSource; }
@@ -105,6 +110,7 @@ class LayerSurface : public Layer
 		
 		FSSurface*			m_surfaceSource;
 		bool				m_bResampleToRAS;
+		LayerMRI*			m_volumeRef;
 		
 		std::string			m_sFilename;
 				

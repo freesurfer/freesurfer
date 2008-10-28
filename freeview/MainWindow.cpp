@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/27 21:50:56 $
- *    $Revision: 1.25 $
+ *    $Date: 2008/10/28 21:21:34 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -897,6 +897,12 @@ void MainWindow::LoadWayPointsFile( const wxString& fn )
 		col_wp->AddLayer( wp );
 		
 		m_controlPanel->RaisePage( "Way Points" );
+
+		wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+		event.SetInt( -1 );
+		event.SetString( "Load" );
+		event.SetClientData( (void*)wp );
+		wxPostEvent( this, event );
 	}
 	else
 	{
@@ -904,6 +910,7 @@ void MainWindow::LoadWayPointsFile( const wxString& fn )
 		wxMessageDialog dlg( this, wxString( "Can not load Way Points from " ) + fn, "Error", wxOK );
 		dlg.ShowModal();
 	}
+
 }
 
 
@@ -2215,147 +2222,6 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 	}
 }
 
-/*
-void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
-{
-	wxString strg = event.GetString();
-	if ( strg == "Save" || strg == "Load" )
-	{
-		if ( event.GetInt() == -1 )		// successfully finished
-		{
-			m_bSaving = false;
-			m_bLoading = false;
-			m_statusBar->m_gaugeBar->Hide();
-			
-			LayerCollection* lc_mri = GetLayerCollection( "MRI" );
-			LayerCollection* lc_surface = GetLayerCollection( "Surface" );
-			Layer* layer = ( Layer* )(void*)event.GetClientData();
-			if ( layer && layer->IsTypeOf( "MRI" ) )
-			{
-				if ( strg == "Load" )
-				{
-					LayerMRI* mri = (LayerMRI*)layer;					
-					if ( lc_mri->IsEmpty() )
-					{
-						double worigin[3], wsize[3];
-						mri->GetWorldOrigin( worigin );
-						mri->GetWorldSize( wsize );
-						if ( lc_surface->IsEmpty() )
-						{
-							mri->SetSlicePositionToWorldCenter();
-							m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
-							m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
-							m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
-							m_view3D->SetWorldCoordinateInfo( worigin, wsize );
-						}
-						else
-						{
-							mri->SetSlicePosition( lc_surface->GetSlicePosition() );
-							lc_surface->SetWorldVoxelSize( mri->GetWorldVoxelSize() );
-							lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
-							lc_surface->SetWorldSize( mri->GetWorldSize() );
-						}
-						lc_mri->AddLayer( mri, true );
-						lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
-					}
-					else
-						lc_mri->AddLayer( layer );
-			
-					m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( mri->GetFileName() ) );
-			
-					m_controlPanel->RaisePage( "Volumes" );
-				}
-						
-				if ( strg == "Save" )
-				{
-					cout << ( (LayerEditable*)layer )->GetFileName() << " saved successfully." << endl;
-				}
-			}
-			else if ( layer && layer->IsTypeOf( "Surface" ) )
-			{
-				if ( strg == "Load" )
-				{
-					LayerSurface* sf = (LayerSurface*)layer;
-					if ( lc_surface->IsEmpty() )
-					{
-						double worigin[3], wsize[3];
-						sf->GetWorldOrigin( worigin );
-						sf->GetWorldSize( wsize );
-						sf->SetSlicePositionToWorldCenter();
-						if ( lc_mri->IsEmpty() )
-						{
-							m_viewAxial->SetWorldCoordinateInfo( worigin, wsize );
-							m_viewSagittal->SetWorldCoordinateInfo( worigin, wsize );
-							m_viewCoronal->SetWorldCoordinateInfo( worigin, wsize );
-							m_view3D->SetWorldCoordinateInfo( worigin, wsize );
-							lc_surface->AddLayer( sf, true );
-						}
-						else
-						{
-							lc_surface->SetWorldOrigin( lc_mri->GetWorldOrigin() );
-							lc_surface->SetWorldSize( lc_mri->GetWorldSize() );
-							lc_surface->SetWorldVoxelSize( lc_mri->GetWorldVoxelSize() );
-							lc_surface->SetSlicePosition( lc_mri->GetSlicePosition() );
-							lc_surface->AddLayer( sf );
-						}
-					//	lc_surface->SetCursorRASPosition( lc_surface->GetSlicePosition() );	
-					}
-					else
-						lc_surface->AddLayer( layer );
-				
-				//	m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
-					
-					m_controlPanel->RaisePage( "Surfaces" );
-				}		
-			}
-			
-			if ( strg == "Load" )
-			{
-				m_viewAxial->SetInteractionMode( RenderView2D::IM_Navigate );
-				m_viewCoronal->SetInteractionMode( RenderView2D::IM_Navigate );
-				m_viewSagittal->SetInteractionMode( RenderView2D::IM_Navigate );
-			}
-			
-			m_controlPanel->UpdateUI();	
-			
-			RunScript();		
-		}
-		else if ( event.GetInt() == 0 )		// just started
-		{
-			if ( strg == "Save" )
-				m_bSaving = true;
-			else if ( strg == "Load" )
-				m_bLoading = true;
-			
-			m_statusBar->ActivateProgressBar();
-			NeedRedraw();			
-			m_controlPanel->UpdateUI( true );	
-		}
-		else
-		{	
-			if ( event.GetInt() > m_statusBar->m_gaugeBar->GetValue() )
-				m_statusBar->m_gaugeBar->SetValue( event.GetInt() );
-		}
-	}
-	else if ( strg.Left( 6 ) == "Failed" )
-	{
-		m_statusBar->m_gaugeBar->Hide();
-		m_bSaving = false;
-		m_bLoading = false;
-	//	Layer* layer = ( Layer* )(void*)event.GetClientData();
-	//	if ( strg == "Load" && layer )
-	//		delete layer;	
-		m_controlPanel->UpdateUI();
-		strg = strg.Mid( 6 );
-		if ( strg.IsEmpty() )
-			strg = "Operation failed.";
-		wxMessageDialog dlg( this, strg, "Error", wxOK | wxICON_ERROR );
-		dlg.ShowModal();
-	}
-}
-*/
-
-
 void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
 {
 	if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerMoved" )
@@ -2503,7 +2369,7 @@ void MainWindow::RunScript()
 			{
 				reg_fn = strg.Mid( n + 1 );
 			}
-			cout << reg_fn.c_str() << endl;
+		//	cout << reg_fn.c_str() << endl;
 			this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
 		}
 	}
@@ -2633,7 +2499,7 @@ void MainWindow::LoadSurfaceFile( const wxString& filename )
 {
 	m_strLastDir = MyUtils::GetNormalizedPath( filename );
 
-	LayerSurface* layer = new LayerSurface();
+	LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
 	wxFileName fn( filename );	
 	wxString layerName = fn.GetFullName();
 //	if ( fn.GetExt().Lower() == "gz" )

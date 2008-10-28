@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/10 15:58:15 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/10/28 21:21:33 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,10 +47,12 @@
 #include "LayerPropertiesSurface.h"
 #include "MyUtils.h"
 #include "FSSurface.h"
+#include "LayerMRI.h"
 
-LayerSurface::LayerSurface() : Layer(),
-		m_surfaceSource( NULL),
-		m_bResampleToRAS( true )
+LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
+		m_surfaceSource( NULL ),
+		m_bResampleToRAS( true ),
+		m_volumeRef( ref )
 {
 	m_strTypeNames.push_back( "Surface" );
 	
@@ -90,7 +92,7 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
 	if ( m_surfaceSource )
 		delete m_surfaceSource;
 	
-	m_surfaceSource = new FSSurface();
+	m_surfaceSource = new FSSurface( m_volumeRef->GetSourceVolume() );
 //	m_surfaceSource->SetResampleToRAS( m_bResampleToRAS );
 	if ( !m_surfaceSource->MRISRead( m_sFilename.c_str(), wnd, event ) )
 		return false;
@@ -362,12 +364,41 @@ int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )
 	return m_surfaceSource->FindVertexAtRAS( ras, distance );
 }
 
+int LayerSurface::GetVertexIndexAtTarget( double* ras, double* distance )
+{
+	if ( m_surfaceSource == NULL )
+		return -1;
+	
+	if ( m_volumeRef )
+	{
+		double realRas[3];
+		m_volumeRef->TargetToRAS( ras, realRas );
+		return m_surfaceSource->FindVertexAtRAS( realRas, distance );
+	}
+	else
+		return m_surfaceSource->FindVertexAtRAS( ras, distance );
+}
+
+
 bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
 {
 	if ( m_surfaceSource == NULL )
 		return false;
 		
 	return m_surfaceSource->GetRASAtVertex( nVertex, ras );
+}
+
+
+bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
+{
+	if ( m_surfaceSource == NULL )
+		return false;
+		
+	bool bRet = m_surfaceSource->GetRASAtVertex( nVertex, ras );
+	if ( bRet && m_volumeRef )
+		m_volumeRef->RASToTarget( ras, ras );
+
+	return bRet;
 }
 
 void LayerSurface::SetActiveSurface( int nSurface )
