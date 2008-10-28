@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/27 21:50:56 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/10/28 17:26:46 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -1466,6 +1466,14 @@ void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
 	}
 }
 
+void FSVolume::TargetToRAS( const float* pos_in, float* pos_out )
+{
+	double pos[3] = { 0 };
+	TargetToRAS( pos_in[0], pos_in[1], pos_in[2], pos[0], pos[1], pos[2] );
+	pos_out[0] = pos[0];
+	pos_out[1] = pos[1];
+	pos_out[2] = pos[2];
+}
 
 void FSVolume::RASToTarget( const double* pos_in, double* pos_out )
 {
@@ -1486,6 +1494,16 @@ void FSVolume::RASToTarget( const double* pos_in, double* pos_out )
 			pos_out[i] = vs[i] * pos[i] + origin[i];
 		}
 	}
+}
+
+void FSVolume::RASToTarget( const float* pos_in, float* pos_out )
+{
+	double p_in[3] = { pos_in[0], pos_in[1], pos_in[2] };
+	double p_out[3];
+	RASToTarget( p_in, p_out );
+	pos_out[0] = p_out[0];
+	pos_out[1] = p_out[1];
+	pos_out[2] = p_out[2];
 }
 
 void FSVolume::RASToTargetIndex( const double* pos_in, int* index_out )

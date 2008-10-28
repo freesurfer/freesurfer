@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/27 21:50:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/28 17:26:46 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,15 +42,16 @@
 #include "vtkTransform.h"
 #include "vtkImageChangeInformation.h"
 #include "vtkPolyData.h"
+#include "FSVolume.h"
 
 using namespace std;
 
-FSSurface::FSSurface() :
+FSSurface::FSSurface( FSVolume* ref ) :
 	m_MRIS( NULL ),
 	m_bBoundsCacheDirty( true ),
-	m_HashTable( NULL ),
 	m_bCurvatureLoaded( false ),
-	m_nActiveSurface( SurfaceMain )
+	m_nActiveSurface( SurfaceMain ), 
+	m_volumeRef( ref )
 {
 	m_polydata = vtkPolyData::New();
 	
@@ -59,6 +60,7 @@ FSSurface::FSSurface() :
 		m_fVertexSets[i] = NULL;
 		m_fNormalSets[i] = NULL;
 		m_bSurfaceLoaded[i] = false;
+		m_HashTable[i] = NULL;
 	}
 }
 	
@@ -67,15 +69,14 @@ FSSurface::~FSSurface()
 	if ( m_MRIS )
 		::MRISfree( &m_MRIS );
 	
-	if ( m_HashTable )
-		MHTfree( &m_HashTable );
-	
 	for ( int i = 0; i < NUM_OF_VSETS; i++ )
 	{
 		if ( m_fNormalSets[i] )
 			delete[] m_fNormalSets[i];
 		if ( m_fVertexSets[i] )
 			delete[] m_fVertexSets[i];
+		if ( m_HashTable[i] )
+			MHTfree( &m_HashTable[i] );
 	}
 		
 	m_polydata->Delete();
@@ -147,9 +148,9 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 	m_SurfaceToRASTransform->SetMatrix( m_SurfaceToRASMatrix );
   
   // Make the hash table. This makes it with v->x,y,z.
-	if ( m_HashTable )
-		MHTfree( &m_HashTable );
-	m_HashTable = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
+	if ( m_HashTable[0] )
+		MHTfree( &m_HashTable[0] );
+	m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
 		
 	UpdatePolyData();
 	
@@ -164,7 +165,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 	LoadSurface	( "orig", 		SurfaceOriginal );
 	LoadCurvature();
 	
-	cout << "MRISread finished" << endl;
+//	cout << "MRISread finished" << endl;
 		
 	return true;
 }
@@ -179,6 +180,9 @@ bool FSSurface::LoadSurface( const char* filename, int nSet )
 	}
 	else
 	{
+		if ( m_HashTable[nSet] )
+				MHTfree( &m_HashTable[nSet] );
+		m_HashTable[nSet] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
 		ComputeNormals();		
 		SaveVertices( m_MRIS, nSet );
 		SaveNormals	( m_MRIS, nSet );
@@ -332,11 +336,9 @@ void FSSurface::UpdatePolyData()
 		surfaceRAS[0] = m_MRIS->vertices[vno].x;
 		surfaceRAS[1] = m_MRIS->vertices[vno].y;
 		surfaceRAS[2] = m_MRIS->vertices[vno].z;
-	//	if ( vno == 59424 )
-	//		cout << surfaceRAS[0] << " " << surfaceRAS[1] << " " << surfaceRAS[2] << endl;
 		this->ConvertSurfaceToRAS( surfaceRAS, point );
-	//	if ( vno == 59424 )
-	//		cout << point[0] << " " << point[1] << " " << point[2] << endl;
+		if ( m_volumeRef )
+			m_volumeRef->RASToTarget( point, point );
 		newPoints->InsertNextPoint( point );
 
 		normal[0] = m_MRIS->vertices[vno].nx;
@@ -387,6 +389,8 @@ void FSSurface::UpdateVerticesAndNormals()
 		surfaceRAS[1] = m_MRIS->vertices[vno].y;
 		surfaceRAS[2] = m_MRIS->vertices[vno].z;
 		this->ConvertSurfaceToRAS( surfaceRAS, point );
+		if ( m_volumeRef )
+			m_volumeRef->RASToTarget( point, point );
 		newPoints->InsertNextPoint( point );
 
 		normal[0] = m_MRIS->vertices[vno].nx;
@@ -698,7 +702,7 @@ int	FSSurface::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
 	v.z = iSurfaceRAS[2];
 	float distance;
 	int nClosestVertex =
-	MHTfindClosestVertexNo( m_HashTable, m_MRIS, &v, &distance );
+	MHTfindClosestVertexNo( m_HashTable[m_nActiveSurface], m_MRIS, &v, &distance );
 
 	if ( -1 == nClosestVertex ) 
 	{
@@ -722,7 +726,7 @@ int	FSSurface::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],
 	v.y = static_cast<float>(iSurfaceRAS[1]);
 	v.z = static_cast<float>(iSurfaceRAS[2]);
 	float distance;
-	int nClosestVertex = MHTfindClosestVertexNo( m_HashTable, m_MRIS, &v, &distance );
+	int nClosestVertex = MHTfindClosestVertexNo( m_HashTable[m_nActiveSurface], m_MRIS, &v, &distance );
 	if ( -1 == nClosestVertex ) 
 	{
 	//	cerr << "No vertices found.";

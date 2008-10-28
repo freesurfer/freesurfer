@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/10/28 17:26:46 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -94,6 +94,9 @@ class LayerMRI : public LayerVolumeBase
 			{ return m_bResampleToRAS; }
 		
 		void RemapPositionToRealRAS( const double* pos_in, double* pos_out );
+
+		void TargetToRAS( const double* pos_in, double* pos_out )
+			{ RemapPositionToRealRAS( pos_in, pos_out ); } 
 
 		void RemapPositionToRealRAS( double x_in, double y_in, double z_in, 
 									 double& x_out, double& y_out, double& z_out );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/10/28 17:26:46 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,11 +41,12 @@ class wxWindow;
 class wxCommandEvent;
 class vtkTransform;
 class vtkPolyData;
+class FSVolume;
 
 class FSSurface 
 {
 public:
-	FSSurface();
+	FSSurface( FSVolume* ref = NULL );
 	virtual ~FSSurface();
 	
 	enum ACTIVE_SURFACE { SurfaceMain = 0, SurfaceInflated, SurfaceWhite, SurfacePial, SurfaceOriginal };
@@ -131,12 +132,14 @@ protected:
 	vtkPolyData*	m_polydata;
 
 	// Hash table so we can look up vertices. Uses v->x,y,z.
-	MRIS_HASH_TABLE* m_HashTable;
+	MRIS_HASH_TABLE* m_HashTable[5];
 	
 	bool	m_bSurfaceLoaded[NUM_OF_VSETS];
 	bool	m_bCurvatureLoaded;
 	
 	int		m_nActiveSurface;
+
+	FSVolume*	m_volumeRef;
 		
 	struct VertexItem 
 	{

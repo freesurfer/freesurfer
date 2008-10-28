@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/27 21:50:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/10/28 17:26:46 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,10 +88,15 @@ public:
 		{ m_bResampleToRAS = bRemap; }
 	
 	void TargetToRAS( const double* pos_in, double* pos_out );
+
+	void TargetToRAS( const float* pos_in, float* pos_out );
+
 	void TargetToRAS( double x_in, double y_in, double z_in, 
 								 double& x_out, double& y_out, double& z_out );
 	
 	void RASToTarget( const double* pos_in, double* pos_out );
+
+	void RASToTarget( const float* pos_in, float* pos_out );
 	
 	void RASToTargetIndex( const double* pos_in, int* index_out );
 	
