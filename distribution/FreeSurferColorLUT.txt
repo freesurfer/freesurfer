@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.53 2008/10/29 13:02:19 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.54 2008/10/29 13:02:46 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -914,7 +914,7 @@
 7020  extra3                                            61  57  211 0
 
 7100  Brainstem-inferior-colliculus                     42  201 168 0
-7100  Brainstem-cochlear-nucleus                        168 104 164 0
+7101  Brainstem-cochlear-nucleus                        168 104 162 0
 
 8001  Thalamus-Anterior                                 74  130 181 0
 8002  Thalamus-Ventral-anterior                         242 241 240 0
