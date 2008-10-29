@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.52 2008/08/18 19:09:02 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.53 2008/10/29 13:02:19 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -291,6 +291,7 @@
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
 
+600 Tumor                                   254 254 254 0
 999 SUSPICIOUS                              255 100 100 0
 
 # Below is the color table for the cortical labels of the seg volume
@@ -912,6 +913,9 @@
 7019  extra2                                            79  195 99  0
 7020  extra3                                            61  57  211 0
 
+7100  Brainstem-inferior-colliculus                     42  201 168 0
+7100  Brainstem-cochlear-nucleus                        168 104 164 0
+
 8001  Thalamus-Anterior                                 74  130 181 0
 8002  Thalamus-Ventral-anterior                         242 241 240 0
 8003  Thalamus-Lateral-dorsal                           206 65  78  0
@@ -926,4 +930,5 @@
 8012  Thalamus-pulvinar                                 12  46  250 0
 8013  Thalamus-lateral-geniculate                       203 182 143 0
 8014  Thalamus-medial-geniculate                        42  204 167 0
+
 
