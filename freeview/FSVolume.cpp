@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 17:26:46 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -1019,7 +1019,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
 		
 		// calculate rotation matrix
 		MATRIX* m_r = MatrixIdentity( 4, NULL ) ;
-		for ( int i = 0; i < (int) rotations.size(); i++ )
+		for ( size_t i = 0; i < rotations.size(); i++ )
 		{
 		/*	// convert RAS to voxel index
 			Real vx, vy, vz;

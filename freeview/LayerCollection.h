@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,6 +62,8 @@ class LayerCollection : public Listener, public Broadcaster
 		void SetActiveLayer( Layer* layer );
 		Layer* GetActiveLayer();
 		
+		Layer* GetFirstVisibleLayer();		
+
 		double* GetSlicePosition();
 		void GetSlicePosition( double* slicePos );
 		bool SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid = true );

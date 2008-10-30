@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/22 15:25:40 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -495,7 +495,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
 
 void PanelVolume::ShowWidgets( std::vector<wxWindow*>& list, bool bShow )
 {
-	for ( int i = 0; i < (int)list.size(); i++ )
+	for ( size_t i = 0; i < list.size(); i++ )
 	{
 		list[i]->Show( bShow );
 	}

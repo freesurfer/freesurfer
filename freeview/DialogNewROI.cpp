@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@ DialogNewROI::DialogNewROI( wxWindow* parent, LayerCollection* col_mri )
 			
 	std::vector<Layer*> layers = col_mri->GetLayers();
 	int nSel = 0;
-	for ( int i = 0; i < (int)layers.size(); i++ )
+	for ( size_t i = 0; i < layers.size(); i++ )
 	{
 		m_choiceTemplate->Insert( layers[i]->GetName(), 0, (void*)layers[i] );
 		if ( layers[i] == col_mri->GetActiveLayer() )

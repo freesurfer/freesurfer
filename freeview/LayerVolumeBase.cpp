@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 21:21:34 $
- *    $Revision: 1.4 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,12 +48,12 @@ LayerVolumeBase::LayerVolumeBase() : LayerEditable()
 
 LayerVolumeBase::~LayerVolumeBase()
 {
-	for ( int i = 0; i < (int)m_bufferUndo.size(); i++ )
+	for ( size_t i = 0; i < m_bufferUndo.size(); i++ )
 		delete[] m_bufferUndo[i].data;
 	
 	m_bufferUndo.clear();
 	
-	for ( int i = 0; i < (int)m_bufferRedo.size(); i++ )
+	for ( size_t i = 0; i < m_bufferRedo.size(); i++ )
 		delete[] m_bufferRedo[i].data;
 	
 	if ( m_bufferClipboard.data )
@@ -520,7 +520,7 @@ void LayerVolumeBase::SaveForUndo( int nPlane )
 	m_bufferUndo.push_back( item );
 	
 	// clear redo buffer
-	for ( int i = 0; i < (int)m_bufferRedo.size(); i++ )
+	for ( size_t i = 0; i < m_bufferRedo.size(); i++ )
 		delete[] m_bufferRedo[i].data;
 	m_bufferRedo.clear();
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 21:21:34 $
- *    $Revision: 1.26 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2114,7 +2114,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 			// volume loaded
 			if ( layer->IsTypeOf( "MRI" ) )
 			{
-				LayerMRI* mri = (LayerMRI*)layer;					
+				LayerMRI* mri = (LayerMRI*)layer;			
 				if ( lc_mri->IsEmpty() )
 				{
 					double worigin[3], wsize[3];
@@ -2135,10 +2135,12 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 						lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
 						lc_surface->SetWorldSize( mri->GetWorldSize() );
 					}
+				
 					lc_mri->AddLayer( mri, true );
 					lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
 					m_layerVolumeRef = mri;
-					mri->AddListener( this );
+					
+					mri->AddListener( this );	
 				}
 				else
 					lc_mri->AddLayer( layer );

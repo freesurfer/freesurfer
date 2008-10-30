@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ void MyCmdLineParser::SetProgramDescription( string text )
 	
 bool MyCmdLineParser::Found( const char* chFlag )
 {
-	for ( unsigned int i = 0; i < m_cmdLineEntries.size(); i++ )
+	for ( size_t i = 0; i < m_cmdLineEntries.size(); i++ )
 	{
 		if ( strcmp( m_cmdLineEntries[i].shortName, chFlag ) == 0 || 
 		     strcmp( m_cmdLineEntries[i].longName, chFlag ) == 0 )
@@ -158,7 +158,7 @@ bool MyCmdLineParser::Found( const char* ch, double* value )
 
 bool MyCmdLineParser::Found( const char* chFlag, CmdLineEntry* e )
 {
-	for ( unsigned int i = 0; i < m_cmdLineEntries.size(); i++ )
+	for ( size_t i = 0; i < m_cmdLineEntries.size(); i++ )
 	{
 		if ( strcmp( m_cmdLineEntries[i].shortName, chFlag ) == 0 || 
 				   strcmp( m_cmdLineEntries[i].longName, chFlag ) == 0 )
@@ -173,7 +173,7 @@ bool MyCmdLineParser::Found( const char* chFlag, CmdLineEntry* e )
 	
 bool MyCmdLineParser::IsValid( const char* chFlag, CmdLineEntry* e )
 {
-	for ( unsigned int i = 0; i < m_cmdLineEntriesValid.size(); i++ )
+	for ( size_t i = 0; i < m_cmdLineEntriesValid.size(); i++ )
 	{
 		if ( strcmp( m_cmdLineEntriesValid[i].shortName, chFlag ) == 0 || 
 				   strcmp( m_cmdLineEntriesValid[i].longName, chFlag ) == 0 )
@@ -235,8 +235,8 @@ void MyCmdLineParser::PrintHelp()
 		cout << desc.c_str() << endl;
 	cout << endl;
 	
-	unsigned int nLen = 0;
-	for ( unsigned int i = 0; i < m_cmdLineEntriesValid.size(); i++ )
+	size_t nLen = 0;
+	for ( size_t i = 0; i < m_cmdLineEntriesValid.size(); i++ )
 	{
 		CmdLineEntry e = m_cmdLineEntriesValid[i];
 		string strg = string( e.shortName ) + e.longName + e.arguName;
@@ -244,7 +244,7 @@ void MyCmdLineParser::PrintHelp()
 			nLen = strg.length();
 	}
 	nLen += 7;
-	for ( unsigned int i = 0; i < m_cmdLineEntriesValid.size(); i++ )
+	for ( size_t i = 0; i < m_cmdLineEntriesValid.size(); i++ )
 	{
 		CmdLineEntry e = m_cmdLineEntriesValid[i];
 		string strg( "-" );
@@ -306,7 +306,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
 	CmdLineEntry e;
 	bool bSucceed = true;
 	string error_msg = "";
-	for ( int i = 0; i < ( int )entries.size(); i++ )
+	for ( size_t i = 0; i < entries.size(); i++ )
 	{
 		string_array strgs = *entries[i];
 
@@ -319,9 +319,9 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
 		if ( e.type == CMD_LINE_OPTION )
 		{
 			e.arguments.clear();
-			for ( int j = 1; j < (int)strgs.size(); j++ )
+			for ( size_t j = 1; j < strgs.size(); j++ )
 			{
-				if ( j <= e.maxArguments )
+				if ( j <= (size_t)e.maxArguments )
 					e.arguments.push_back( strgs[j] );
 				else
 					pureArgs.push_back( strgs[j] );
@@ -335,7 +335,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
 		}
 		else if ( e.type == CMD_LINE_SWITCH )
 		{
-			for ( int j = 1; j < (int)strgs.size(); j++ )
+			for ( size_t j = 1; j < strgs.size(); j++ )
 			{
 				pureArgs.push_back( strgs[j] );
 			}
@@ -344,7 +344,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
 	}
 	
 	// release buffers
-	for ( int i = 0; i < ( int )entries.size(); i++ )
+	for ( size_t i = 0; i < entries.size(); i++ )
 	{
 		delete entries[i];
 	}

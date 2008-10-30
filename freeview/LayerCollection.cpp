@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@ LayerCollection::LayerCollection( std::string strType) :
 
 LayerCollection::~LayerCollection()
 {
-	for ( unsigned int i = 0; i < m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 		delete m_layers[i];
 
 	m_layers.clear();
@@ -57,7 +57,7 @@ bool LayerCollection::IsEmpty()
 
 int LayerCollection::GetLayerIndex( Layer* layer )
 {
-	for ( unsigned int i = 0; i < m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		if ( m_layers[i] == layer )
 			return i;
@@ -74,7 +74,7 @@ bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
 		return false;
 	}
 	
-	for ( unsigned int i = 0; i < m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		if ( m_layers[i] == layer )
 			return false;
@@ -104,7 +104,7 @@ bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
 
 bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
 {
-	for ( unsigned int i = 0; i < m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		if ( m_layers[i] == layer )
 		{
@@ -135,13 +135,13 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
 bool LayerCollection::MoveLayerUp( Layer* layer )
 {
 	std::vector<Layer*>	unlocked_layers;
-	for ( unsigned int i = 0; i < m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		if ( !m_layers[i]->IsLocked() )
 			unlocked_layers.push_back( m_layers[i] );
 	}
 	
-	for ( unsigned int i = 1; i < unlocked_layers.size(); i++)
+	for ( size_t i = 1; i < unlocked_layers.size(); i++)
 	{
 		if ( unlocked_layers[i] == layer )
 		{
@@ -150,7 +150,7 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
 			unlocked_layers[i] = temp;
 			
 			// restore locked layers
-			for ( unsigned int j = 0; j < m_layers.size(); j++ )
+			for ( size_t j = 0; j < m_layers.size(); j++ )
 			{
 				if ( m_layers[j]->IsLocked() )
 				{
@@ -173,13 +173,13 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
 bool LayerCollection::MoveLayerDown( Layer* layer )
 {
 	std::vector<Layer*>	unlocked_layers;
-	for ( unsigned int i = 0; i < m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		if ( !m_layers[i]->IsLocked() )
 			unlocked_layers.push_back( m_layers[i] );
 	}
 	
-	for ( unsigned int i = 0; i < unlocked_layers.size()-1; i++)
+	for ( size_t i = 0; i < unlocked_layers.size()-1; i++)
 	{
 		if ( unlocked_layers[i] == layer )
 		{
@@ -188,7 +188,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
 			unlocked_layers[i] = temp;
 			
 			// restore locked layers
-			for ( unsigned int j = 0; j < m_layers.size(); j++ )
+			for ( size_t j = 0; j < m_layers.size(); j++ )
 			{
 				if ( m_layers[j]->IsLocked() )
 				{
@@ -214,7 +214,7 @@ bool LayerCollection::CycleLayer()
 	if ( (int)m_layers.size() > 1 )
 	{
 		Layer* layer0 = m_layers[0];
-		for ( unsigned int i = 1; i < m_layers.size(); i++ )
+		for ( size_t i = 1; i < m_layers.size(); i++ )
 		{
 			m_layers[i-1] = m_layers[i];
 		}
@@ -236,26 +236,26 @@ bool LayerCollection::CycleLayer()
 	{
 		std::vector<Layer*>	unlocked_layers;
 		unlocked_layers.clear();
-		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		for ( size_t i = 0; i < m_layers.size(); i++ )
 		{
 			if ( !m_layers[i]->IsLocked() )
 				unlocked_layers.push_back( m_layers[i] );
 		}
 		
 		bool* bVisibility = new bool[m_layers.size()];
-		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		for ( size_t i = 0; i < m_layers.size(); i++ )
 		{
 			bVisibility[i] = m_layers[i]->IsVisible();
 		}
 		
 		Layer* layer0 = unlocked_layers[0];
-		for ( unsigned int i = 1; i < unlocked_layers.size(); i++ )
+		for ( size_t i = 1; i < unlocked_layers.size(); i++ )
 		{
 			unlocked_layers[i-1] = unlocked_layers[i];
 		}
 		unlocked_layers[unlocked_layers.size()-1] = layer0;
 		
-		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		for ( size_t i = 0; i < m_layers.size(); i++ )
 		{
 			if ( m_layers[i]->IsLocked() )
 			{
@@ -267,7 +267,7 @@ bool LayerCollection::CycleLayer()
 		}
 		m_layers = unlocked_layers;
 		
-		for ( unsigned int i = 0; i < m_layers.size(); i++ )
+		for ( size_t i = 0; i < m_layers.size(); i++ )
 		{
 			m_layers[i]->SetVisible( bVisibility[i] );
 		}
@@ -285,7 +285,7 @@ bool LayerCollection::CycleLayer()
 
 bool LayerCollection::Contains( Layer* layer )
 {
-	for ( unsigned int i = 0; i < m_layers.size(); i++)
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		if ( m_layers[i] == layer )
 		{
@@ -311,6 +311,17 @@ void LayerCollection::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibili
 	}
 }
 
+Layer* LayerCollection::GetFirstVisibleLayer()
+{
+	for ( size_t i = 0; i < m_layers.size(); i++ )
+	{
+		if ( m_layers[i]->IsVisible() )
+		{
+			return m_layers[i];
+		}
+	}
+	return NULL;
+}
 
 int LayerCollection::GetNumberOfLayers()
 {
@@ -362,7 +373,7 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
 	
 	m_dSlicePosition[nPlane] = dPos;
 	this->BlockBroadcast( true );
-	for ( int i = 0; i < (int)m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		m_layers[i]->SetSlicePosition( nPlane, dPos );
 	}
@@ -379,11 +390,11 @@ bool LayerCollection::OffsetSlicePosition( int nPlane, double dPosDiff, bool bRo
 		
 bool LayerCollection::SetSlicePosition( double* slicePos )
 {
-	for ( int i = 0; i < 3; i++ )
+	for ( size_t i = 0; i < 3; i++ )
 		m_dSlicePosition[i] = slicePos[i];
 	
 	this->BlockBroadcast( true );
-	for ( int i = 0; i < (int)m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		m_layers[i]->SetSlicePosition( slicePos );
 	}
@@ -505,7 +516,7 @@ void LayerCollection::GetWorldCenter( double* pos )
 
 bool LayerCollection::HasProp( vtkProp* prop )
 {
-	for ( int i = 0; i < (int)m_layers.size(); i++ )
+	for ( size_t i = 0; i < m_layers.size(); i++ )
 	{
 		if ( m_layers[i]->HasProp( prop ) )
 			return true;

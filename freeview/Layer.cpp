@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@ Layer::~Layer()
 
 bool Layer::IsTypeOf( std::string tname )
 {
-	for ( int i = 0; i < (int)m_strTypeNames.size(); i++ )
+	for ( size_t i = 0; i < m_strTypeNames.size(); i++ )
 	{
 		if ( m_strTypeNames[i] == tname )
 			return true;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/10/30 17:29:49 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -152,8 +152,15 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
 	}
 	else if ( m_bWindowLevel )
 	{
-		LayerMRI* layer = ( LayerMRI* )(lcm->GetLayerCollection( "MRI" )->GetActiveLayer());
-		if ( layer && layer->IsVisible() && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::Grayscale )
+		std::vector<Layer*> layers = lcm->GetLayerCollection( "MRI" )->GetLayers();
+		LayerMRI* layer = NULL;
+		for ( size_t i = 0; i < layers.size(); i++ )
+		{
+			layer = ( LayerMRI*)layers[i];
+			if ( layer->IsVisible() && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::Grayscale )
+				break;
+		}
+		if ( layer )
 		{
 			double scaleX = 0.002;
 			double scaleY = 0.002;
