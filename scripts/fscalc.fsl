@@ -8,7 +8,7 @@
 # freesurfer writes. Can convert volume-encoded surface files with
 # --surf if nvertices is not prime.
 # 
-# $Id: fscalc.fsl,v 1.2 2008/11/01 17:29:05 greve Exp $
+# $Id: fscalc.fsl,v 1.3 2008/11/01 17:42:06 greve Exp $
 #
 
 # First determine whether a surface is part of the mix
@@ -52,7 +52,7 @@ if($#newargv < 3) then
   echo "way as fslmaths, just use the same command line flags and arguments"
   echo "with the exception that the input file formats can be anything that"
   echo "freesurfer reads, and the output file format can be anything that"
-  echo "freesurfer writes."
+  echo "freesurfer writes. Forces output data type to be float."
   echo ""
   echo "This can work on some surfaces if the number of vertices is not"
   echo "prime. More specficially, the largest prime factor of the number"
@@ -67,6 +67,7 @@ if($#newargv < 3) then
   exit 1
 endif
 
+set dtout = ();
 set MATHS = `which fslmaths`
 if($status) then 
   set MATHS = `which avwmaths`
@@ -74,6 +75,8 @@ if($status) then
      echo "ERROR: cannot find either fslmats or avwmaths"
      exit 1;
    endif
+else
+  set dtout = (-odt float)
 endif
 
 if($FSLOUTPUTTYPE == NIFTI)    set ext = nii
@@ -170,8 +173,10 @@ else
 endif
 
 # Run FSL Maths
-set cmd = ($MATHS $newargs $tmpout)
+set cmd = ($MATHS $newargs $tmpout $dtout)
+echo ""
 echo $cmd
+echo ""
 $cmd
 if($status) exit 1;
 
