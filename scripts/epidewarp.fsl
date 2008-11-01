@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/15 00:11:43 $
-#    $Revision: 1.37 $
+#    $Date: 2008/11/01 17:30:00 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.37 2008/10/15 00:11:43 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.38 2008/11/01 17:30:00 greve Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -62,6 +62,7 @@ set DoMagExfReg = 1;
 set UseComplex = 0;
 set PERev = 0;
 set MaskWithBrain = 1;
+set PreludeOut = ();
 
 set tmpdir = ();
 set cleanup = 1;
@@ -247,6 +248,10 @@ if($UseComplex) then		# Input is real and imaginary part
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+  if($#PreludeOut) then
+    mri_convert $ph2 $PreludeOut  --in_like $real1 | tee -a $LF
+    if($status) exit 1;
+  endif
 else if ($#dph != 0) then	# Input is phase difference and magnitude
   # Rescale the delta phase to be between -pi and pi. Starts out
   # at 0 - 4095. Make sure the phase is float precision with _32R
@@ -278,6 +283,10 @@ else if ($#dph != 0) then	# Input is phase difference and magnitude
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+  if($#PreludeOut) then
+    mri_convert $dph.$ext $PreludeOut  --in_like $mag | tee -a $LF
+    if($status) exit 1;
+  endif
 else				# Input is phase and magnitude
   # Rescale the phase to be between -pi and pi. Starts out at 0 - 4095.
   # Make sure the phase is float precision with _32R
@@ -293,6 +302,10 @@ else				# Input is phase and magnitude
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+  if($#PreludeOut) then
+    mri_convert $ph.$ext $PreludeOut --in_like $mag | tee -a $LF
+    if($status) exit 1;
+  endif
   set ph2 = $ph
 endif
 
@@ -603,6 +616,11 @@ while( $#argv != 0 )
     case "--log":
       if ( $#argv == 0) goto arg1err;
       set LF = $argv[1]; shift;
+      breaksw
+
+    case "--prelude":
+      if ( $#argv == 0) goto arg1err;
+      set PreludeOut = $argv[1]; shift;
       breaksw
 
     case "--nocleanup":
