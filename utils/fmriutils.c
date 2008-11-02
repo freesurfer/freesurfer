@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/04 23:49:46 $
- *    $Revision: 1.52 $
+ *    $Date: 2008/11/02 23:45:23 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.52 2008/04/04 23:49:46 greve Exp $
+  $Id: fmriutils.c,v 1.53 2008/11/02 23:45:23 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.52 2008/04/04 23:49:46 greve Exp $");
+  return("$Id: fmriutils.c,v 1.53 2008/11/02 23:45:23 greve Exp $");
 }
 
 
@@ -2303,4 +2303,40 @@ MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
   MatrixFree(&v);
 
   return(targ);
+}
+
+MRI *fMRIkurtosis(MRI *y, MRI *mask)
+{
+  MRI *k;
+  int c, r, s, f;
+  double v,mn,m4=0,m2=0,g2,delta;
+  k = MRIallocSequence(y->width,y->height,y->depth,MRI_FLOAT,1);
+  MRIcopyHeader(y,k);
+
+  for (c=0; c < y->width; c++){
+    for (r=0; r < y->height; r++){
+      for (s=0; s < y->depth; s++){
+	if(mask){
+	  v = MRIgetVoxVal(mask,c,r,s,0);
+	  if(v < 0.5) continue;
+	}
+	mn = 0;
+	for(f=0; f < y->nframes; f++) mn += MRIgetVoxVal(y,c,r,s,f);
+	mn /= y->nframes;
+	m2 = 0;
+	m4 = 0;
+	for(f=0; f < y->nframes; f++){
+	  delta = mn-MRIgetVoxVal(y,c,r,s,f);
+	  m2 += pow(delta,2.0); // sum of squares
+	  m4 += pow(delta,4.0); // sum of quads
+	}
+	m4 *= y->nframes;
+	if(m2 != 0) g2 = m4/(m2*m2) - 3.0;
+	else        g2 = 0;
+	MRIsetVoxVal(k,c,r,s,0,g2);
+      }
+    }
+  }
+
+  return(k);
 }
