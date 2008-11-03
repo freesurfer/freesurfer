@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/02 23:45:23 $
- *    $Revision: 1.53 $
+ *    $Date: 2008/11/03 02:06:04 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.53 2008/11/02 23:45:23 greve Exp $
+  $Id: fmriutils.c,v 1.54 2008/11/03 02:06:04 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.53 2008/11/02 23:45:23 greve Exp $");
+  return("$Id: fmriutils.c,v 1.54 2008/11/03 02:06:04 greve Exp $");
 }
 
 
@@ -2309,9 +2309,13 @@ MRI *fMRIkurtosis(MRI *y, MRI *mask)
 {
   MRI *k;
   int c, r, s, f;
-  double v,mn,m4=0,m2=0,g2,delta;
+  double v,mn,m4=0,m2=0,g2,delta,b1,b2,n;
   k = MRIallocSequence(y->width,y->height,y->depth,MRI_FLOAT,1);
   MRIcopyHeader(y,k);
+
+  n = y->nframes;
+  b1 = (n+1)*(n-1)/((n-2)*(n-3));
+  b2 = ((n-1)*(n-1))/((n-2)*(n-3));
 
   for (c=0; c < y->width; c++){
     for (r=0; r < y->height; r++){
@@ -2331,7 +2335,7 @@ MRI *fMRIkurtosis(MRI *y, MRI *mask)
 	  m4 += pow(delta,4.0); // sum of quads
 	}
 	m4 *= y->nframes;
-	if(m2 != 0) g2 = m4/(m2*m2) - 3.0;
+	if(m2 != 0) g2 = b1*(m4/(m2*m2)) - 3*b2; // 0 mean
 	else        g2 = 0;
 	MRIsetVoxVal(k,c,r,s,0,g2);
       }
