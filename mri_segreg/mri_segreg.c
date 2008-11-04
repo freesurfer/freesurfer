@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/28 22:02:36 $
- *    $Revision: 1.67 $
+ *    $Date: 2008/11/04 16:10:27 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.67 2008/10/28 22:02:36 greve Exp $";
+"$Id: mri_segreg.c,v 1.68 2008/11/04 16:10:27 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -358,13 +358,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.67 2008/10/28 22:02:36 greve Exp $",
+     "$Id: mri_segreg.c,v 1.68 2008/11/04 16:10:27 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.67 2008/10/28 22:02:36 greve Exp $",
+     "$Id: mri_segreg.c,v 1.68 2008/11/04 16:10:27 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1585,6 +1585,7 @@ static void check_options(void)
 static void dump_options(FILE *fp)
 {
   int n;
+  fprintf(fp,"%s\n",vcid);
   fprintf(fp,"setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
   fprintf(fp,"cd %s\n",getcwd(tmpstr,sizeof(tmpstr)));
   fprintf(fp,"%s\n",cmdline2);
