@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/01 23:40:08 $
- *    $Revision: 1.41 $
+ *    $Author: nicks $
+ *    $Date: 2008/11/04 22:38:27 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -137,13 +137,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.41 2008/03/01 23:40:08 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.42 2008/11/04 22:38:27 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.41 2008/03/01 23:40:08 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.42 2008/11/04 22:38:27 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1171,8 +1171,15 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 static void
 usage_exit(int code)
 {
-  printf("usage: %s <in volume> <atlas> <transform> <normalized volume>\n\n",
+  printf("usage: %s [<options>] <in volume> <atlas> <transform> "
+         "<normalized volume>\n\n",
          Progname) ;
+  printf("\t<atlas>                      path/to/some.gca file "
+         "(or 'noatlas') \n");
+  printf("\t<transform>                  ex. transforms/talairach.lta "
+         "(or 'noxform') \n");
+  printf("\noptions:\n");
+  printf("\t-seg <filename>              aseg file, to help normalization\n");
   printf("\t-fsamples <filename>         write control points to filename\n");
   printf("\t-nsamples <filename>         write transformed "
          "normalization control points to filename\n");
