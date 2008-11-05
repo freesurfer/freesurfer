@@ -2,14 +2,16 @@
  * @file  mri_binarize.c
  * @brief binarizes an image
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Program to binarize a volume (or volume-encoded surface file). Can also
+ * be used to merge with other binarizations. Binarization can be done
+ * based on threshold or on matched values.
  */
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/08/18 21:01:33 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2008/11/05 23:20:36 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +28,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.18 2008/08/18 21:01:33 greve Exp $
+// $Id: mri_binarize.c,v 1.19 2008/11/05 23:20:36 nicks Exp $
 
 /*
   BEGINHELP
@@ -100,6 +102,10 @@ makes sure that all the voxels on the edge of the imaging volume are 0.
 
 Same as --zero-edges, but only for slices.
 
+--uchar
+
+Save output file in 'uchar' format.
+
   ENDHELP
 */
 
@@ -154,7 +160,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.18 2008/08/18 21:01:33 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.19 2008/11/05 23:20:36 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -192,9 +198,11 @@ int nErode3d = 0;
 int nDilate3d = 0;
 int DoBinCol = 0;
 
+int mriTypeUchar = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, c, r, s, nhits, InMask, n;
+  int nargs, c, r, s, nhits, InMask, n, mriType;
   double val,maskval,mergeval,gmean,gstd,gmax;
   FILE *fp;
 
@@ -285,7 +293,9 @@ int main(int argc, char *argv[]) {
   }
 
   // Prepare the output volume
-  OutVol = MRIalloc(InVol->width,InVol->height,InVol->depth,MRI_INT);
+  mriType = MRI_INT;
+  if (mriTypeUchar) mriType = MRI_UCHAR;
+  OutVol = MRIalloc(InVol->width,InVol->height,InVol->depth,mriType);
   if (OutVol == NULL) exit(1);
   MRIcopyHeader(InVol, OutVol);
 
@@ -410,6 +420,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
+    else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
     else if (!strcasecmp(option, "--zero-edges")){
       ZeroColEdges = 1;
       ZeroRowEdges = 1;
@@ -645,6 +656,10 @@ printf("\n");
 printf("--zero-slice-edges\n");
 printf("\n");
 printf("Same as --zero-edges, but only for slices.\n");
+printf("\n");
+printf("--uchar\n");
+printf("\n");
+printf("Save output in uchar format.\n");
 printf("\n");
   exit(1) ;
 }
