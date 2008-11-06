@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/30 17:29:49 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/11/06 22:26:49 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -229,6 +229,7 @@ void PanelVolume::DoListenToMessage( std::string const iMsg, void* iData )
 		if ( layer && layer->IsTypeOf( "MRI" ) )
 		{
 			UpdateLayerList( layer );
+		//	UpdateUI();
 		}
 	}
 	else if ( iMsg == "LayerModified" || iMsg == /*"WindowLevelChanged"*/ "LayerActorUpdated" )
@@ -276,7 +277,7 @@ void PanelVolume::OnLayerVisibilityChanged( wxCommandEvent& event )
 	Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nItem );
 	if ( layer )
 	{
-		layer->SetVisible( m_listBoxLayers->IsChecked( nItem ) );
+		layer->SetVisible( m_listBoxLayers->IsChecked( nItem) );
 	}
 }
 
@@ -306,6 +307,7 @@ void PanelVolume::OnButtonMoveDown( wxCommandEvent& event )
 	}
 }
 
+/*
 void PanelVolume::UpdateLayerList( Layer* layer )
 {
 	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
@@ -335,6 +337,29 @@ void PanelVolume::UpdateLayerList( Layer* layer )
 			
 			UpdateUI();
 		}
+	}	
+}
+*/
+
+void PanelVolume::UpdateLayerList( Layer* layer )
+{
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+	int nIndex = lc->GetLayerIndex( layer );
+	std::vector<Layer*> layers = lc->GetLayers();
+	if ( nIndex != -1 )
+	{
+		m_listBoxLayers->Clear();
+		int nSel = 0;
+		for ( size_t i = 0; i < layers.size(); i++ )
+		{ 
+			m_listBoxLayers->Append( layers[i]->GetName(), layers[i] );
+			m_listBoxLayers->Check( i, layers[i]->IsVisible() );
+			if ( lc->GetActiveLayer() == layers[i] )
+				nSel = i;
+		}	
+		m_listBoxLayers->SetSelection( nSel );
+		
+		UpdateUI();
 	}	
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/30 18:53:27 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/11/06 22:26:49 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -208,32 +208,11 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
 	return false;
 }
 
-/*
 bool LayerCollection::CycleLayer()
 {
 	if ( (int)m_layers.size() > 1 )
 	{
-		Layer* layer0 = m_layers[0];
-		for ( size_t i = 1; i < m_layers.size(); i++ )
-		{
-			m_layers[i-1] = m_layers[i];
-		}
-		m_layers[m_layers.size()-1] = layer0;
-		
-		this->SendBroadcast( "LayerCycled", layer0 );
-		this->SendBroadcast( "LayerMoved", layer0 );
-		
-		return true;
-	}
-	else
-		return false;
-}
-*/
-
-bool LayerCollection::CycleLayer()
-{
-	if ( (int)m_layers.size() > 1 )
-	{
+		int nActive = GetLayerIndex( m_layerActive ); 
 		std::vector<Layer*>	unlocked_layers;
 		unlocked_layers.clear();
 		for ( size_t i = 0; i < m_layers.size(); i++ )
@@ -248,6 +227,12 @@ bool LayerCollection::CycleLayer()
 			bVisibility[i] = m_layers[i]->IsVisible();
 		}
 		
+		if ( unlocked_layers.size() == 0 )
+		{
+			delete[] bVisibility;
+			return false;
+		}
+
 		Layer* layer0 = unlocked_layers[0];
 		for ( size_t i = 1; i < unlocked_layers.size(); i++ )
 		{
@@ -274,6 +259,9 @@ bool LayerCollection::CycleLayer()
 		
 		delete[] bVisibility;
 		
+		if ( nActive >= 0 )
+			SetActiveLayer( m_layers[nActive] ); 
+					
 		this->SendBroadcast( "LayerCycled", layer0 );
 		this->SendBroadcast( "LayerMoved", layer0 );
 		

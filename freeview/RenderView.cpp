@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/23 16:27:04 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/11/06 22:26:49 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -231,8 +231,8 @@ void RenderView::OnButtonUp( wxMouseEvent& event )
 
 void RenderView::OnMouseMove( wxMouseEvent& event )
 {
-	if ( FindFocus() != this )
-		this->SetFocus();
+//	if ( FindFocus() != this )
+//		this->SetFocus();
 	
 	if ( m_interactor->ProcessMouseMoveEvent( event, this ) )
 		wxVTKRenderWindowInteractor::OnMotion( event );
@@ -250,6 +250,11 @@ void RenderView::OnMouseWheel( wxMouseEvent& event )
 
 void RenderView::OnMouseEnter( wxMouseEvent& event )
 {
+	if ( FindFocus() != this )
+	{
+		this->SetFocus();
+	}
+
 	if ( m_interactor->ProcessMouseEnterEvent( event, this ) )
 		wxVTKRenderWindowInteractor::OnEnter( event );
 }

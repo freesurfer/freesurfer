@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/30 18:53:27 $
- *    $Revision: 1.28 $
+ *    $Date: 2008/11/06 22:26:49 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -211,6 +211,7 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
 	EVT_CHECKBOX	( XRCID( "ID_CHECK_TEMPLATE" ), 		MainWindow::OnCheckBrushTemplate )
 	EVT_CHOICE		( XRCID( "ID_CHOICE_TEMPLATE" ), 		MainWindow::OnChoiceBrushTemplate )
 			
+	EVT_ENTER_WINDOW( MainWindow::OnMouseEnterWindow )
     EVT_ACTIVATE	( MainWindow::OnActivate )
     EVT_CLOSE		( MainWindow::OnClose )   
 	EVT_KEY_DOWN    ( MainWindow::OnKeyDown )
@@ -2562,4 +2563,13 @@ void MainWindow::EnableControls( bool bEnable )
 	m_controlPanel->Enable( bEnable );
 	if ( m_dlgRotateVolume )
 		m_dlgRotateVolume->Enable( bEnable );
+}
+
+void MainWindow::OnMouseEnterWindow( wxMouseEvent& event )
+{
+	if ( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate && FindFocus() == m_toolWindowEdit )
+	{
+		this->Raise();
+		SetFocus();
+	}
 }

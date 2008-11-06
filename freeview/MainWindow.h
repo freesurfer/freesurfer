@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/22 19:28:00 $
- *    $Revision: 1.19 $
+ *    $Date: 2008/11/06 22:26:49 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,7 @@ class wxPanel;
 class wxSplitterWindow;
 class wxFileHistory;
 class wxSpinEvent;
+class wxMouseEvent;
 class RenderView;
 class RenderView2D;
 class RenderView3D;
@@ -190,6 +191,8 @@ public:
 	void OnToolCreateOptimalVolume( wxCommandEvent& event );
 	void OnToolCreateOptimalVolumeUpdateUI( wxUpdateUIEvent& event );
 		
+	void OnMouseEnterWindow( wxMouseEvent& event );
+
 	void OnWorkerThreadResponse( wxCommandEvent& event );
 	
 	void OnSpinBrushSize( wxSpinEvent& event );
