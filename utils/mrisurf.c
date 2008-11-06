@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/09/29 19:00:08 $
- *    $Revision: 1.619 $
+ *    $Author: rudolph $
+ *    $Date: 2008/11/06 21:30:04 $
+ *    $Revision: 1.620 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.619 2008/09/29 19:00:08 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.620 2008/11/06 21:30:04 rudolph Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62660,6 +62660,15 @@ FACES_aroundVertex_reorder(
     nfaces		= pVERTEX->num;
     pFaceIndex		= pVERTEX->f;
 
+    DebugEnterFunction(( pch_function ));
+
+    if(!nfaces) {
+	fprintf(stderr, 
+	  "\n\nFATAL ERROR encountered in function ''%s'.\nMesh structural error. Vertex %d has no faces.\n\n",
+ 		pch_function, avertex);
+	exit(1);
+    }
+
     for(i=1; i<=nfaces; i++) {
 	VECTOR_ELT(pv_geometricOrder, i)= -1;
 	pFACE_I	= &apmris->faces[pFaceIndex[i-1]];
@@ -62689,6 +62698,7 @@ FACES_aroundVertex_reorder(
 	ErrorExit(-4, "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
  			pch_function, avertex, nfaces, packedCount);
     VectorFree(&pv_commonVertices);
+    xDbg_PopStack();
     return 1;	
 }
 
