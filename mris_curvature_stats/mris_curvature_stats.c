@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/10/10 16:26:43 $
- *    $Revision: 1.53 $
+ *    $Date: 2008/11/06 21:20:15 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,7 @@
 #include "macros.h"
 #include "version.h"
 #include "xDebug.h"
+#include "label.h"
 
 #define  STRBUF  	65536
 #define  MAX_FILES  	1000
@@ -121,7 +122,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.53 2008/10/10 16:26:43 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.54 2008/11/06 21:20:15 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -293,7 +294,9 @@ static float	Gf_highPassFilter		= 0.;
 static int	Gb_highPassFilterGaussian	= 0;
 static float	Gf_highPassFilterGaussian	= 0.;
 
-static int	Gb_signedPrincipals		= 0;
+static short	Gb_signedPrincipals		= 0;
+static char	Gpch_filterLabel[STRBUF];
+static short	Gb_filterLabel			= 0;
 
 static float	Gf_foldingIndex			= 0.;
 static float	Gf_intrinsicCurvaturePos	= 0.;
@@ -408,10 +411,51 @@ stats_update(
   //
 
   Gpf_means[ai-START_i]  	 = Gf_mean;
-  Gf_total    		+= Gf_mean;
+  Gf_total    			+= Gf_mean;
   Gf_total_sq   		+= Gf_mean*Gf_mean ;
   Gf_n   			+= 1.0;
   return 1;
+}
+
+int
+LABEL_RipSurface(
+	MRI_SURFACE*	apmris,
+	LABEL*		aplbl
+) {
+  // 
+  // PRECONDITIONS
+  // 	o Initialized surface <apmris>
+  // 	o Initialized label <aplbl>
+  //
+  // POSTCONDITIONS
+  // 	o Surface vertices that correspond to label positions
+  // 	  will have their "ripflag" set false.
+  // 	o This function is a simplified version of LabelRipRestOfSurface(...)
+  // 	  and specifically does not have any surface side effects other than
+  // 	  setting the ripflag value.
+  // 	  
+
+  int    vno, n ;
+  VERTEX *v ;
+
+  LabelToFlat(aplbl, apmris) ;
+  for (vno = 0 ; vno < apmris->nvertices ; vno++)
+  {
+    v = &apmris->vertices[vno] ;
+    v->ripflag = 1 ;
+  }
+
+  for (n = 0 ; n < aplbl->n_points ; n++)
+  {
+    vno = aplbl->lv[n].vno ;
+    if (vno < 0 || vno >= apmris->nvertices)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v = &apmris->vertices[vno] ;
+    v->ripflag = 0 ;
+  }
+  return(NO_ERROR) ;
 }
 
 int
@@ -428,7 +472,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.53 2008/10/10 16:26:43 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.54 2008/11/06 21:20:15 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -480,16 +524,17 @@ main(int argc, char *argv[]) {
 
 
   if (label_name) {
+    cprints("Reading label...", "");
     LABEL *area ;
     area = LabelRead(subject_name, label_name) ;
+    cprints("", "ok");
     if (!area)
       ErrorExit(ERROR_NOFILE, "%s: could not read label file %s",
                 Progname, label_name) ;
-    LabelRipRestOfSurface(area, mris) ;
+    LABEL_RipSurface(mris, area);
+//     LabelRipRestOfSurface(area, mris) ;
     LabelFree(&area) ;
   }
-  if (label_name)
-    fprintf(GpSTDOUT,"%s: ", label_name) ;
 
   outputFiles_close();
   outputFileNames_create();
@@ -717,7 +762,7 @@ MRIS_minMaxCurvature_analyze(
   //	  is set by the <s_MINMAX> boolean control flags.
   //
 
-  int		vmin		= 0;
+  int	vmin		= 0;
   int 	vmax		= 0;
   float	f_minExplicit	= 0.;
   float	f_maxExplicit	= 0.;
@@ -945,9 +990,9 @@ MRIS_surfaceIntegrals_report(
   float f_SIpos		= 0.0;
   float f_SIneg		= 0.0;
   float f_SInaturalMean	= 0.0;	int SInaturalVertices	= 0;
-  float f_SIabsMean		= 0.0; 	int SIabsVertices	= 0;
-  float f_SIposMean		= 0.0;	int SIposVertices	= 0;
-  float f_SInegMean		= 0.0;  int SInegVertices	= 0;
+  float f_SIabsMean	= 0.0; 	int SIabsVertices	= 0;
+  float f_SIposMean	= 0.0;	int SIposVertices	= 0;
+  float f_SInegMean	= 0.0;  int SInegVertices	= 0;
   
   float f_SInaturalAreaNorm	= 0.0;	float f_SInaturalArea	= 0.0;
   float f_SIabsAreaNorm	= 0.0; 	float f_SIabsArea	= 0.0;
@@ -1183,14 +1228,14 @@ MRISvertexCurvature_set(
   //   the "raw", gaussian, and mean curvatures.
   //
 
-  VERTEX* pvertex;
-  int  vno;
-  float f_maxCurv = 0.;
-  float  f_minCurv = 0.;
-  float  f_maxCurvK = 0.;
-  float  f_minCurvK = 0.;
-  float  f_maxCurvH = 0.;
-  float  f_minCurvH = 0.;
+  VERTEX* 	pvertex;
+  int  		vno;
+  float 	f_maxCurv = 0.;
+  float  	f_minCurv = 0.;
+  float  	f_maxCurvK = 0.;
+  float  	f_minCurvK = 0.;
+  float  	f_maxCurvH = 0.;
+  float  	f_minCurvH = 0.;
 
   if (aindex > apmris->nvertices)
     ErrorExit(ERROR_SIZE, "%s: target vertex is out of range.", Progname);
@@ -1454,6 +1499,60 @@ MRISvertexAreaPostProcess(
   return(NO_ERROR) ;
 }
 
+void *
+xmalloc (size_t size)
+{
+  register void *value = malloc (size);
+  if (value == 0)
+    ErrorExit(10, "%s: virtual memory exhausted.", Progname);
+  return value;
+}
+
+short
+LABEL_save(
+	MRI_SURFACE*	apmris,
+	int		a_labelSize,
+	int*		ap_labelMark,
+	char*		apch_filename
+) {
+  //
+  // DESCRIPTION
+  //	This function saves a FreeSurfer format 'LABEL' file
+  //	to the file <apch_filename>. The integer array <ap_labelMark>
+  //	has length <aprmis->nvertices> and denotes the vertices to
+  //	label by a non-zero element value.
+  //
+  // PRECONDITIONS
+  //	o ap_labelMark denotes the vertices to label -- marked
+  //	  vertices are indicated by a non-zero element value and
+  //	  index counter corresponds to vertex number.
+  //	  
+  // POSTCONDITIONS
+  //   	o The file <apch_filename> contains the marked vertices, saved
+  //   	  as a FreeSurfer label file.
+  //
+  // RETURN
+  //	o TRUE, i.e. 1.
+  //
+
+    LABEL*	pLBL			= NULL;
+    int		vno			= 0;
+
+    pLBL = LabelAlloc(a_labelSize, "", apch_filename);
+    for(vno=0; vno<apmris->nvertices; vno++) {
+	if(ap_labelMark[vno]) {
+	    pLBL->lv[pLBL->n_points].vno 	= vno;
+	    pLBL->lv[pLBL->n_points].x 		= apmris->vertices[vno].x;
+	    pLBL->lv[pLBL->n_points].y 		= apmris->vertices[vno].y;
+	    pLBL->lv[pLBL->n_points].z 		= apmris->vertices[vno].z;
+	    pLBL->n_points++;
+	}
+    }
+    LabelWrite(pLBL, apch_filename);
+    LabelFree(&pLBL);
+    return 1;
+}
+
 short
 MRIS_surfaceIntegral_compute(
 	MRI_SURFACE* 	pmris, 
@@ -1512,8 +1611,13 @@ MRIS_surfaceIntegral_compute(
   double    	f_total, f_n, f_totalArea ;
   short		b_canCount		= 1;
   short		b_ret			= 0;
+  int*		p_labelMark		= NULL;
+  static short	b_labelFileCreated	= 0;
 
-  *p_verticesCounted = 0;
+  *p_verticesCounted 	= 0;
+  p_labelMark		= (int*) xmalloc(pmris->nvertices * sizeof(int));
+  if(Gb_filterLabel && !b_labelFileCreated)
+    for(vno=0; vno<pmris->nvertices; vno++) p_labelMark[vno] = 0;
   for (f_n = f_total =f_totalArea = 0.0, vno = 0 ; vno < pmris->nvertices ; vno++) {
     b_canCount = 1;
     pv = &pmris->vertices[vno] ;
@@ -1549,6 +1653,7 @@ MRIS_surfaceIntegral_compute(
       f_n 			+= 1.0 ;
       (*pf_areaCounted) 	+= pv->area;
       (*p_verticesCounted)++;
+      if(Gb_filterLabel) p_labelMark[vno] = 1;
     }
   }
   if(f_n > 1) {
@@ -1561,6 +1666,12 @@ MRIS_surfaceIntegral_compute(
     *pf_areaNormalizedIntegral	*= Gf_postScale;
   }
   *pf_surfaceIntegral		= f_total;
+  if(Gb_filterLabel && !b_labelFileCreated) {
+    LABEL_save(pmris, *p_verticesCounted, p_labelMark, Gpch_filterLabel);
+    cprintd("Lable size", *p_verticesCounted);
+    free(p_labelMark);
+    b_labelFileCreated	= 1;
+  }
   return(b_ret);
 }
 
@@ -1932,6 +2043,12 @@ get_option(int argc, char *argv[]) {
     Gf_postScale		= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting post scale factor", Gf_postScale);
+  } else if (!stricmp(option, "-filterLabel")) {
+    Gb_filterLabel		= 1;
+    pch_text			= argv[2];
+    strcpy(Gpch_filterLabel, pch_text);
+    nargs			= 1;
+    cprints("Filter hits saved to ", Gpch_filterLabel);
   } else if (!stricmp(option, "-discrete")) {
     Gb_discreteCurvaturesUse	= 1;
     cprints("Using discrete curvature calculations", "ok");
@@ -2325,6 +2442,38 @@ print_help(void) {
 	  is 2*pi*Euler_number. For topologically correct surfaces, the \n\
 	  Euler number is 2; thus the Gaussian integral is 4*pi and the ICIt \n\
 	  is (in the ideal case) 1. \n\
+ \n\
+	FILTERING SURFACE DOMAINS \n\
+ \n\
+	  There are two main mechanisms for restricting the domain (or regions \n\
+	  on the surface) where calculations occur. The simplest technique is \n\
+	  by passing a label file with [-l <labelFileName>]. This \n\
+	  <labelFileName> defines a surface region of interest, and all \n\
+	  calculations will be constrained to this region. \n\
+	 \n\
+	  A second method is by specifying upper and lower filter bounds on the \n\
+	  command line. Two techniques are available. The first filters accord- \n\
+	  ing to the current curvature function value at a vertex of interest, \n\
+	  and the second filters according to the Gaussian curvature value at \n\
+	  a vertex of interest. \n\
+ \n\
+	  Filtering by the current curvature function is controlled by the \n\
+	  [--lowPassFilter <value>] and [--highPassFilter <value>] flags, while \n\
+	  filtering by vertex Gaussian curvature value is similarly specified \n\
+	  with [--lowPassFilterGaussian <value>] and \n\
+	  [--highPassFilterGaussian <value>]. \n\
+ \n\
+	  Note that the [-l <labelFileName>] and the high/low pass filters \n\
+	  can be specified concurrently. If a <labelFileName> is given, then \n\
+	  the low/high pass filters will operate only on the surface defined \n\
+	  by the <labelFileName>. \n\
+ \n\
+	  Finally, note that there are some minor differences between using \n\
+	  a <labelFileName> and specifying filter limits. If a <labelFileName> \n\
+	  is specified, the 'Average Vertex Separation' and 'mean/std' are \n\
+	  constrained to only operate on the region defined by the label. \n\
+	  If command line filters are used, these same fields are taken over \n\
+	  the whole surface. \n\
  	 \n\
 	SURFACE INTEGRALS \n\
  \n\
@@ -2519,6 +2668,25 @@ print_help(void) {
     [-l <labelFileName>] \n\
  \n\
           Constrain statistics to the region defined in <labelFileName>. \n\
+ \n\
+    [--highPassFilter <HPvalue>] [--lowPassFilter <LPvalue>] \n\
+ \n\
+	  When computing surface properties, only consider vertices where \n\
+	  the current curvature function map satisfies the filter constraints, \n\
+	  i.e. if [--highPassFilter <HPvalue>], then only process vertex if \n\
+	  f_curv >= HPvalue. Similarly, if [--lowPassFilter <LPvalue] is passed \n\
+	  then only process vertex if f_curv <= LPvalue. \n\
+ \n\
+    [--highPassFilterGaussian <HPvalue>] [--lowPassFilterGaussian <LPvalue>] \n\
+ \n\
+	  Same as above, but filter vertices according to their Gaussian \n\
+	  curvature values. \n\
+	 \n\
+    [--filterLabel <labelFile>] \n\
+ \n\
+	  If any command line filters are specified, adding a [--filterLabel] \n\
+	  argument will store the surface vertices that were processed in \n\
+	  the FreeSurfer label file, <labelFile>. \n\
  \n\
     [-m] \n\
  \n\

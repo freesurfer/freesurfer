@@ -97,6 +97,38 @@
 	  is 2*pi*Euler_number. For topologically correct surfaces, the 
 	  Euler number is 2; thus the Gaussian integral is 4*pi and the ICIt
 	  is (in the ideal case) 1.
+
+	FILTERING SURFACE DOMAINS
+
+	  There are two main mechanisms for restricting the domain (or regions
+	  on the surface) where calculations occur. The simplest technique is
+	  by passing a label file with [-l <labelFileName>]. This 
+	  <labelFileName> defines a surface region of interest, and all 
+	  calculations will be constrained to this region.
+	  
+	  A second method is by specifying upper and lower filter bounds on the
+	  command line. Two techniques are available. The first filters accord-
+	  ing to the current curvature function value at a vertex of interest,
+	  and the second filters according to the Gaussian curvature value at
+	  a vertex of interest.
+
+	  Filtering by the current curvature function is controlled by the
+	  [--lowPassFilter <value>] and [--highPassFilter <value>] flags, while
+	  filtering by vertex Gaussian curvature value is similarly specified
+	  with [--lowPassFilterGaussian <value>] and 
+	  [--highPassFilterGaussian <value>].
+
+	  Note that the [-l <labelFileName>] and the high/low pass filters
+	  can be specified concurrently. If a <labelFileName> is given, then
+	  the low/high pass filters will operate only on the surface defined
+	  by the <labelFileName>. 
+
+	  Finally, note that there are some minor differences between using
+	  a <labelFileName> and specifying filter limits. If a <labelFileName>
+	  is specified, the 'Average Vertex Separation' and 'mean/std' are
+	  constrained to only operate on the region defined by the label.
+	  If command line filters are used, these same fields are taken over
+	  the whole surface. 
  	  
 	SURFACE INTEGRALS
 
@@ -291,6 +323,25 @@
     [-l <labelFileName>]      
 
           Constrain statistics to the region defined in <labelFileName>. 
+
+    [--highPassFilter <HPvalue>] [--lowPassFilter <LPvalue>]
+
+	  When computing surface properties, only consider vertices where
+	  the current curvature function map satisfies the filter constraints,
+	  i.e. if [--highPassFilter <HPvalue>], then only process vertex if
+	  f_curv >= HPvalue. Similarly, if [--lowPassFilter <LPvalue] is passed
+	  then only process vertex if f_curv <= LPvalue.
+
+    [--highPassFilterGaussian <HPvalue>] [--lowPassFilterGaussian <LPvalue>]
+
+	  Same as above, but filter vertices according to their Gaussian
+	  curvature values.
+	  
+    [--filterLabel <labelFile>]
+    
+	  If any command line filters are specified, adding a [--filterLabel]
+	  argument will store the surface vertices that were processed in
+	  the FreeSurfer label file, <labelFile>.
 
     [-m]        
 
