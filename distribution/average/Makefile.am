@@ -29,13 +29,16 @@ foo_DATA=$(wildcard *.gcs) \
  mni152.register.dat 
 endif
 
-EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz
+EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz V1_average.tar.gz
 
 install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	gunzip -c fsaverage.tar.gz | tar xvf -
 	mv fsaverage $(DESTDIR)$(prefix)/subjects
+	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
+	gunzip -c V1_average.tar.gz | tar xvf -
+	mv V1_average $(DESTDIR)$(prefix)/subjects
 	cd surf; make install
 
 # Our release target. Include files to be excluded here. They will be
