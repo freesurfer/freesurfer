@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/26 19:43:47 $
- *    $Revision: 1.54.2.2 $
+ *    $Date: 2008/11/11 23:15:33 $
+ *    $Revision: 1.54.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.54.2.2 2008/03/26 19:43:47 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.54.2.3 2008/11/11 23:15:33 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1575,15 +1575,16 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
     {
       for (z = 0 ; z < mri_seg->depth ; z++)
       {
+		int proper_label;
         /*
          * rules:
          * - no label should have a voxel coord < 6 or > 249
-         * - no left or right hippo labels with z tal coord > 13
+         * - no left or right hippo labels with z tal coord > 15
          * - no left hippo, caudate, amydala, putamen or pallidum 
          *   labels with x tal coord > 5 (or right, with x tal coord < -5)
          */
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
-        int proper_label = label; // used for making corrections
+        proper_label = label; // used for making corrections
 
         if (label != Unknown)
         {
@@ -1621,11 +1622,11 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
           switch (label)
           {
           case Left_Hippocampus:
-            if (zt > 13)
+            if (zt > 15)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 13 ***\n", 
+                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 15 ***\n", 
                  cma_label_to_name(label),x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
@@ -1657,11 +1658,11 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
             break;
 
           case Right_Hippocampus:
-            if (zt > 13)
+            if (zt > 15)
             {
               printf
                 ("ERROR: %s: "
-                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 13 ***\n", 
+                 "%d %d %d, tal x=%f, y=%f, *** z=%f > 15 ***\n", 
                  cma_label_to_name(label),x,y,z,xt,yt,zt);
               fflush(stdout) ;
               errors++;
