@@ -38,6 +38,8 @@ install: install-fooDATA
 	mv fsaverage $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	gunzip -c V1_average.tar.gz | tar xvf -
+  cp -f $(top_builddir)/distribution/average/V1_average/scripts/predict_v1.sh \
+		$(DESTDIR)$(prefix)/bin
 	mv V1_average $(DESTDIR)$(prefix)/subjects
 	cd surf; make install
 
