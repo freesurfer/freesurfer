@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/10/29 21:02:44 $
-#    $Revision: 1.189 $
+#    $Date: 2008/11/11 22:20:26 $
+#    $Revision: 1.190 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.189 2008/10/29 21:02:44 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.190 2008/11/11 22:20:26 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -140,6 +140,7 @@ set MakefileTarget = () # argument to recon-all -make
 set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
 set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
 set diffsubj = (); # the subject used by asegstatsdiff and aparcstatsdiff
+set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -2318,6 +2319,23 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/aparcstatsdiff.touch
   endif
 
+  # ---------- Label V1 ----------------
+  if($DoLabelV1) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Label V1 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/label > /dev/null
+    $PWD |& tee -a $LF
+    set cmd=(predict_v1.sh)
+    if( ! $RunIt) set cmd=($cmd -p)
+    set cmd = ($cmd -h $hemi $subjid);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.label_v1.touch
+  endif
+
 end # Loop over hemilist
 
 #-------------- ASeg Stats --------------#
@@ -3867,6 +3885,10 @@ while( $#argv != 0 )
       set DoSurfVolume = 1;
       breaksw;
 
+    case "-label_v1":
+      set DoLabelV1 = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -4180,7 +4202,7 @@ check_params:
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
-     ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats) then
+     ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -4737,6 +4759,10 @@ without excuting them.
 
 Computes local measurements of pial-surface gyrification at thousands of 
 points over the cortical surface. See reference [13] for details.
+
+-label_v1
+
+Create a label of V1, based on Hinds et al., NeuroImage 39 (2008) 1585-1599.
 
 
 EXPERT OPTIONS FILE
