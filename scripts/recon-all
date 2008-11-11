@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/10/29 21:03:19 $
-#    $Revision: 1.133.2.36 $
+#    $Date: 2008/11/11 22:23:11 $
+#    $Revision: 1.133.2.37 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.36 2008/10/29 21:03:19 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.37 2008/11/11 22:23:11 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -140,6 +140,7 @@ set MakefileTarget = () # argument to recon-all -make
 set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
 set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
 set diffsubj = (); # the subject used by asegstatsdiff and aparcstatsdiff
+set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -227,6 +228,7 @@ set DoCortParc       = 0;
 set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
+set DoCurvStats      = 0;
 set DoCortRibbonVolMask = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
@@ -426,6 +428,8 @@ mris_make_surfaces -all-info >> $LF
 mris_register -all-info >> $LF
 mris_anatomical_stats -all-info >> $LF
 mrisp_paint -all-info >> $LF
+mris_curvature_stats -all-info >> $LF
+
 echo "#######################################" >> $LF
 echo "GCA $GCA" >> $LF
 echo "GCASkull $GCASkull" >> $LF
@@ -2023,6 +2027,26 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.inflate2.touch
   endif
 
+  # ---------- Curvature Anatomical Stats ---------------------------
+  if($DoCurvStats) then
+    echo "\n#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Curvature Stats $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    set stats = ../stats/$hemi.curv.stats
+    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile`;
+    set cmd = (mris_curvature_stats -m --writeCurvatureFiles -G \
+            -o $stats -F smoothwm \
+            $xopts $subjid $hemi curv sulc);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.curvstats.touch
+  endif
+
+
   #---------------Begin Morph --------------------------------#
   #---------------- Sphere --------------------------#
   if($DoSphere) then
@@ -2293,6 +2317,23 @@ foreach hemi ($hemilist)
       end
     end
     echo $cmd > $touchdir/aparcstatsdiff.touch
+  endif
+
+  # ---------- Label V1 ----------------
+  if($DoLabelV1) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Label V1 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/label > /dev/null
+    $PWD |& tee -a $LF
+    set cmd=(predict_v1.sh)
+    if( ! $RunIt) set cmd=($cmd -p)
+    set cmd = ($cmd -h $hemi $subjid);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.label_v1.touch
   endif
 
 end # Loop over hemilist
@@ -3229,6 +3270,13 @@ while( $#argv != 0 )
       set DoSegStats = 0;
       breaksw
 
+    case "-curvstats":
+      set DoCurvStats = 1;
+      breaksw
+    case "-nocurvstats":
+      set DoCurvStats = 0;
+      breaksw
+
     case "-aparc2aseg":
       set DoAParc2ASeg = 1;
       breaksw
@@ -3366,6 +3414,7 @@ while( $#argv != 0 )
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
+      set DoCurvStats      = 0;
       breaksw
 
     case "-autorecon1":
@@ -3427,6 +3476,7 @@ while( $#argv != 0 )
       set DoFinalSurfs     = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 0;
       breaksw
 
     case "-autorecon2-inflate1":
@@ -3462,6 +3512,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 0;
       breaksw
 
     case "-autorecon2-wm":
@@ -3477,6 +3528,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 0;
       breaksw
 
     case "-autorecon2-pial":
@@ -3486,6 +3538,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
+      set DoCurvStats      = 0;
       breaksw
 
     case "-autorecon3":
@@ -3532,6 +3585,8 @@ while( $#argv != 0 )
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
+      set DoSegStats       = 1;
+      set DoCurvStats      = 0;
       breaksw
 
     case "-waitfor":
@@ -3828,6 +3883,10 @@ while( $#argv != 0 )
 
     case "-surfvolume":
       set DoSurfVolume = 1;
+      breaksw;
+
+    case "-label_v1":
+      set DoLabelV1 = 1;
       breaksw;
 
     default:
@@ -4143,7 +4202,7 @@ check_params:
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
-     ! $DoSurfVolume && ! $DoASegMerge) then
+     ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -4701,6 +4760,10 @@ without excuting them.
 Computes local measurements of pial-surface gyrification at thousands of 
 points over the cortical surface. See reference [13] for details.
 
+-label_v1
+
+Create a label of V1, based on Hinds et al., NeuroImage 39 (2008) 1585-1599.
+
 
 EXPERT OPTIONS FILE
 
@@ -5072,6 +5135,10 @@ curvature 8. integrated rectified Gaussian curvature 9. folding index
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.a2005s.stats.
 
+Curvature Statistics  (-<no>curvstats)
+
+Runs mris_curvature_stats to create a summary file (stats/?h.curv.stats)
+of cortical curvature statistics.
 
 LONGITUDINAL PROCESSING
 
