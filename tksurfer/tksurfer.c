@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/09/29 14:10:09 $
- *    $Revision: 1.315 $
+ *    $Author: krish $
+ *    $Date: 2008/11/11 22:24:23 $
+ *    $Revision: 1.316 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -9462,7 +9462,7 @@ int sclv_new_from_label (int field, int label)
 
   /* Set up some initial stuff here. */
   sclv_field_info[field].min_value = min;
-  sclv_field_info[field].max_value = max;
+  sclv_field_info[field].max_value = max + epsilon;
   sclv_field_info[field].cur_timepoint = 0;
   sclv_field_info[field].cur_condition = 0;
   sclv_field_info[field].num_timepoints = 1;
@@ -20689,7 +20689,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.315 2008/09/29 14:10:09 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.316 2008/11/11 22:24:23 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
