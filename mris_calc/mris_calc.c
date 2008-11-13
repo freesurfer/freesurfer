@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/09/24 20:34:54 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/11/13 21:29:16 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
+#define _ISOC99_SOURCE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +52,7 @@
 #include "version.h"
 #include "fio.h"
 #include "xDebug.h"
+#include "mri_identify.h"
 
 #define  STRBUF   65536
 #define  MAX_FILES    1000
@@ -59,7 +61,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.8 2008/09/24 20:34:54 rudolph Exp $";
+"$Id: mris_calc.c,v 1.9 2008/11/13 21:29:16 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -68,12 +70,42 @@ static const char vcid[] =
 // ------------------
 // typedefs and enums
 // ------------------
+
+typedef enum _FILETYPE {
+	e_Unknown, e_VolumeFile, e_CurvatureFile, e_SurfaceFile, e_FloatArg
+} e_FILETYPE;
+
+char* 	Gppch_filetype[] = {
+	"Unknown",
+	"Volume",
+	"Curvature",
+	"Surface",
+	"FloatArg"
+};
+
+char*	Gppch_fileExt[] = {
+	".null",
+	".mgz",
+	".crv",
+	".surf",
+	".dummy"
+};
+
+typedef enum _FILEACCESS {
+	e_UNSPECIFIED		= -10,
+	e_WRONGMAGICNUMBER	= -1, 
+	e_OK			=  0, 
+	e_READACCESSERROR	=  1, 
+	e_WRITEACCESSERROR	=  2
+} e_FILEACCESS;
+
 typedef enum _operation {
   e_mul,
   e_div,
   e_add,
   e_sub,
-  e_set
+  e_set,
+  e_abs
 } e_operation;
 
 const char* Gppch_operation[] = {
@@ -82,6 +114,7 @@ const char* Gppch_operation[] = {
   "add",
   "subtract",
   "set",
+  "abs",
   "min",
   "max",
   "size",
@@ -98,32 +131,43 @@ const char* Gppch_operation[] = {
 // Global "class" member variables
 //--------------------------------
 
-char*           G_pch_progname ;
-char*           Progname ;
+char*           	G_pch_progname ;
+char*           	Progname ;
 
-static int      G_verbosity             = 0;
-static FILE*    G_FP                    = NULL;
+static int      	G_verbosity             = 0;
+static FILE*    	G_FP                    = NULL;
 
-// Curvature 1
-static int      G_sizeCurv1             = 0;
-static char*    G_pch_curvFile1         = NULL;
-static float*   G_pf_arrayCurv1         = NULL;
-static int      G_nfaces                = 0;
-static int      G_valsPerVertex         = 0;
+// Input 1
+static int      	G_sizeCurv1             = 0;
+static char*    	G_pch_curvFile1         = NULL;
+static float*   	G_pf_arrayCurv1         = NULL;
+static int      	G_nfaces                = 0;
+static int      	G_valsPerVertex         = 0;
+static e_FILETYPE	G_eFILETYPE1		= e_Unknown;
 
-// Curvature 2
-static int      Gb_curvFile2            = 0;            //  The second curvature file
-static char*    G_pch_curvFile2         = NULL;         //+ is optional.
-static int      G_sizeCurv2             = 0;
-static float*   G_pf_arrayCurv2         = NULL;
+// Input 2
+static int      	Gb_curvFile2            = 0;	//  The second input 
+static char*    	G_pch_curvFile2         = NULL; //+ file is optional.
+static int      	G_sizeCurv2             = 0;
+static float*   	G_pf_arrayCurv2         = NULL;
+static e_FILETYPE	G_eFILETYPE2		= e_Unknown;
 
-// Operation to perform on Curvature1 and Curvature2
-static char*    G_pch_operator          = NULL;
+// "Helper" pointers
+static MRI*		Gp_MRI			= NULL; // Pointer to most
+							//+ recently read 
+							//+ MRI_VOLUME struct
+							//+ and used in volume
+							//+ handling... mostly
+							//+ for volume size.
 
-// Output curvature file
-static int      G_sizeCurv3             = 0;
-static char*    G_pch_curvFile3         = "out.crv";
-static float*   G_pf_arrayCurv3         = NULL;
+// Operation to perform on input1 and input2
+static char*    	G_pch_operator          = NULL;
+
+// Output file
+static int      	G_sizeCurv3             = 0;
+static char    		G_pch_curvFile3[STRBUF];
+static float*   	G_pf_arrayCurv3         = NULL;
+static short		Gb_file3		= 0;
 
 //----------------
 // "class" methods
@@ -148,6 +192,8 @@ double fn_sub(float af_A, float af_B)   {return (af_A - af_B);}
 double fn_set(float af_A, float af_B)   {return (af_B);}
 
 // Simple functions on one argument
+double fn_abs(float af_A)		{return fabs(af_A);}
+
 double fn_min(float af_A) {
     static float        f_min  = 0;
     static int          count  = 0;
@@ -234,23 +280,45 @@ double fn_dev(float af_A) {
     return f_dev;
 }
 
+// Info functions
+e_FILETYPE
+fileType_find(
+  char*		apch_inputFile
+  );
+
 // I/O functions
 short CURV_arrayProgress_print(
-  int   asize,
-  int   acurrent,
-  char* apch_message
+  int   	asize,
+  int   	acurrent,
+  char* 	apch_message
   );
 
-short   CURV_fileRead(
-  char* apch_curvFileName,
-  int*  ap_vectorSize,
-  float*  apf_curv[]
+e_FILEACCESS
+VOL_fileRead(
+  char* 	apch_VolFileName,
+  int*  	ap_vectorSize,
+  float*  	apf_volData[]
   );
 
-short   CURV_fileWrite(
-  char* apch_curvFileName,
-  int*  ap_vectorSize,
-  float*  apf_curv
+e_FILEACCESS
+VOL_fileWrite(
+  char* 	apch_VolFileName,
+  int  		a_vectorSize,
+  float*  	apf_volData
+  );
+
+e_FILEACCESS
+CURV_fileRead(
+  char* 	apch_curvFileName,
+  int*  	ap_vectorSize,
+  float*  	apf_curv[]
+  );
+
+e_FILEACCESS
+CURV_fileWrite(
+  char* 	apch_curvFileName,
+  int  		a_vectorSize,
+  float*  	apf_curv
   );
 
 short   b_outCurvFile_write(char* apch_operator);
@@ -268,41 +336,42 @@ static void
 synopsis_show(void) {
   char  pch_synopsis[STRBUF];
 
-  sprintf(pch_synopsis, " \n\
+  sprintf(pch_synopsis, "    \n\
     NAME \n\
  \n\
           mris_calc \n\
  \n\
     SYNOPSIS \n\
  \n\
-          mris_calc [OPTIONS]					\\ \n\
-          	<curvFile1> <ACTION> [<curvFile2> | <floatNumber>] \n\
+          mris_calc [OPTIONS] <file1> <ACTION> [<file2> | <floatNumber>] \n\
  \n\
     DESCRIPTION \n\
  \n\
 	'mris_calc' is a simple calculator that operates on FreeSurfer \n\
-	curvature files. \n\
+	curvatures and volumes. \n\
  \n\
 	In most cases, the calculator functions with three arguments: \n\
         two inputs and an <ACTION> linking them. Some actions, however, \n\
-        operate with only one input <curvFile1>. \n\
+        operate with only one input <file1>. \n\
  \n\
-        In all cases, the first input <curvFile1> is the name of a FreeSurfer \n\
-        curvature file. \n\
+        In all cases, the first input <file1> is the name of a FreeSurfer \n\
+        curvature overlay (e.g. rh.curv) or volume file (e.g. orig.mgz). \n\
  \n\
         For two inputs, the calculator first assumes that the second input \n\
-        is the name of a second curvature file. If, however, this second input \n\
-        is not found on the filesystem, the calculator attempts to parse this \n\
-        input as a float number, which is then processed according to <ACTION>. \n\
+        is a file. If, however, this second input file doesn't exist, the \n\
+        calculator assumes it refers to a float number, which is then \n\
+        processed according to <ACTION>. \n\
  \n\
     OPTIONS \n\
  \n\
     	--output <outputCurvFile> \n\
    	 -o <outputCurvFile> \n\
  \n\
-    	By default, 'mris_calc' will save the output curvature to a file \n\
-    	in the current working directory called 'out.crv'. This name can be \n\
-	set to something more meaningful with the '--output' option. \n\
+    	By default, 'mris_calc' will save the output of the calculation to a \n\
+    	file in the current working directory with filestem 'out'. The file \n\
+    	extension is automatically set to the appropriate filetype based on \n\
+    	the input. For any volume type, the output defaults to '.mgz' and for \n\
+    	curvature inputs, the output defaults to '.crv'. \n\
  \n\
     	--version \n\
     	-v \n\
@@ -320,36 +389,40 @@ synopsis_show(void) {
 	The action to be perfomed on the two curvature files. This is a \n\
 	text string that defines the mathematical operation to execute. For two \n\
 	inputs, this action is applied in an indexed element-by-element fashion, \n\
-	i.e. <curvFile1>[n] <ACTION> <curvFile2>[n] where 'n' is an index \n\
-	counter. \n\
+	i.e. <file1>[n] <ACTION> <file2>[n] where 'n' is an index counter into \n\
+	the data space. \n\
  \n\
 	ACTION  INPUTS OUTPUTS	                EFFECT \n\
-	  mul	   2      1     <outputCurvFile> = <curvFile1> * <curvFile2> \n\
-	  div	   2	  1     <outputCurvFile> = <curvFile1> / <curvFile2> \n\
-	  add      2	  1	<outputCurvFile> = <curvFile1> + <curvFile2> \n\
-	  sub	   2	  1     <outputCurvFile> = <curvFile1> - <curvFile2> \n\
-	  set	   2	  1     <outputCurvFile> = <curvFile2> \n\
+	  mul	   2      1     <outputFile> = <file1> * <file2> \n\
+	  div	   2	  1     <outputFile> = <file1> / <file2> \n\
+	  add      2	  1     <outputFile> = <file1> + <file2> \n\
+	  sub	   2	  1     <outputFile> = <file1> - <file2> \n\
+	  set	   2	  1     <outputFile> = <file1> \n\
  \n\
-          ascii    1      1     <outputCurvFile> = ascii <curvFile1> \n\
+          ascii    1      1     <outputFile> = ascii <file1> \n\
+	  abs	   1      1     <outputFile> = abs(<file1>) \n\
  \n\
-          size     1      0     print the size of <curvFile1> \n\
-          min      1      0     print the min value (and index) of <curvFile1> \n\
-          max      1      0     print the max value (and index) of <curvFile1> \n\
-          mean     1      0     print the mean value of <curvFile1> \n\
-          std      1      0     print the standard deviation of <curvFile1> \n\
+          size     1      0     print the size (number of elements) of <file1> \n\
+          min      1      0     print the min value (and index) of <file1> \n\
+          max      1      0     print the max value (and index) of <file1> \n\
+          mean     1      0     print the mean value of <file1> \n\
+          std      1      0     print the standard deviation of <file1> \n\
           stats    1      0     process 'size', 'min', 'max', 'mean', 'std' \n\
  \n\
 	The 'set' command is somewhat different in that for practical purposes \n\
-	the contents of <curvFile1> are ignored. It is still important to \n\
-	specifiy a valid <curvFile1> since it is parsed by 'mris_calc' \n\
-	to determine the size of output curvature file to create. In most \n\
-	instances, <curvFile2> will denote a float value, and not an actual \n\
-	curvature file, i.e. 'mris_calc set rh.area 0.005' will create \n\
+	the contents of <file1> are ignored. It is still important to \n\
+	specifiy a valid <file1> since it is parsed by 'mris_calc' \n\
+	to determine the size and output filetype file to create. In most \n\
+	instances, <file2> will denote a float value, and not an actual \n\
+	curvature file, i.e. 'mris_calc rh.area set 0.005' will create \n\
 	an output curvature, 'out.crv' of the same size as rh.area, and with \n\
-	each element set to 0.005. \n\
+	each element set to 0.005. Similarly for volumes, \n\
+	'mris_calc orig.mgz set 127' will create a volume file, out.mgz with \n\
+	all voxel intensities set to 127. \n\
  \n\
-        The 'ascii' command converts <curvFile1> to a text format file, \n\
-        suitable for reading into MatLAB, for example. \n\
+        The 'ascii' command converts <file1> to a text format file, \n\
+        suitable for reading into MatLAB, for example. Note that volumes \n\
+        are written out as a 1D linear array. \n\
  \n\
         Note also that the standard deviation can suffer from float rounding \n\
         errors and is only accurate to 4 digits of precision. \n\
@@ -358,15 +431,15 @@ synopsis_show(void) {
  \n\
 	If a second input argument is specified, 'mris_calc' will attempt to \n\
         open the argument following <ACTION> as if it were a curvature file. \n\
-        Should this file not exist, 'mricurc_calc' will attempt to parse the \n\
+        Should this file not exist, 'mris_calc' will attempt to parse the \n\
         argument as if it were a float value. \n\
  \n\
 	In such a case, 'mris_calc' will create a dummy internal \n\
-	curvature file and set all its elements to this float value. \n\
+	array structure and set all its elements to this float value. \n\
  \n\
     NOTES \n\
  \n\
-	<curvFile1> and <curvFile2> should typically be generated on the \n\
+	<file1> and <file2> should typically be generated on the \n\
 	same subject. \n\
  \n\
     EXAMPLES \n\
@@ -391,6 +464,11 @@ synopsis_show(void) {
         $>mris_calc rh.area stats \n\
  \n\
         Determine the size, min, max, mean, and std of 'rh.area'. \n\
+ \n\
+	$>mris_calc orig.mgz sub brainmask.mgz \n\
+ \n\
+	Subtract the brainmask.mgz volume from the orig.mgz volume. Result is \n\
+	saved by default to out.mgz. \n\
  \n\
     ADVANCED EXAMPLES \n\
  \n\
@@ -428,7 +506,7 @@ simpleSynopsis_show(void) {
 
   sprintf(pch_errorMessage, "Insufficient number of arguments.");
   sprintf(pch_errorMessage,
-          "%s\nYou should specify '<curvFile1> <ACTION> [<curvFile2> | <floatNumber>]'",
+          "%s\nYou should specify '<input1> <ACTION> [<input2> | <floatNumber>]'",
           pch_errorMessage);
   sprintf(pch_errorMessage,
           "%s\nUse a '-u' for full usage instructions.",
@@ -464,17 +542,69 @@ init(void) {
   DiagInit(NULL, NULL, NULL) ;
 }
 
+void 
+error_exit(
+	char* 	apch_action, 
+	char* 	apch_error, 
+	int 	exitCode) {
+
+  char	pch_errorMessage[STRBUF];
+  strcpy(pch_errorMessage, "");
+
+  sprintf(pch_errorMessage, "\n%s:", G_pch_progname);
+  sprintf(pch_errorMessage, 
+	"%s\n\tSorry, but I seem to have encountered an error.",
+	pch_errorMessage);
+  sprintf(pch_errorMessage, 
+	"%s\n\tWhile %s,", pch_errorMessage, apch_action);
+  sprintf(pch_errorMessage,
+	"%s\n\t%s\n", pch_errorMessage, apch_error);
+
+  fprintf(stderr, pch_errorMessage);
+  exit(exitCode);
+
+}
+
 void
 error_unmatchedSizes(void) {
-  char  pch_errorMessage[STRBUF];
-  strcpy(pch_errorMessage, "");
-  sprintf(pch_errorMessage,
-          "%s\nlength(<curvFile1>) != length(<curvFile2>)",
-          pch_errorMessage);
-  sprintf(pch_errorMessage,
-          "%s\nCurvature files should have the same size.",
-          pch_errorMessage);
-  ErrorExit(10, "%s: %s", G_pch_progname, pch_errorMessage);
+  error_exit(	"checking on input filetype sizes",
+		"I found a size mismatch, i.e. len(input1)!=len(input2)",
+		10);
+}
+
+void
+error_noVolumeStruct(void) {
+  error_exit(	"checking on output volume",
+		"it seems that internal volume structure is invalid.",
+		10);
+}
+
+void
+error_volumeWriteSizeMismatch(void) {
+  error_exit(	"checking on output volume",
+		"I found a size mismatch, internal data does not fit into vol.",
+		10);
+}
+
+void
+error_incompatibleFileTypes(void) {
+  error_exit(	"checking on input filetypes",
+		"it seems that you specified incompatible types.",
+		10);
+}
+
+void
+error_zeroLengthInput(void) {
+  error_exit(	"checking input 1",
+		"it seems that the input file has no contents.",
+		10);
+}
+
+void
+error_surfacesNotHandled(void) {
+  error_exit(	"checking inputs",
+		"FreeSurfer surface files are not handled yet.",
+		10);
 }
 
 void
@@ -484,22 +614,126 @@ output_init(void) {
   G_pf_arrayCurv3 = (float*) xmalloc(G_sizeCurv1 * sizeof(float));
   for(i=0; i<G_sizeCurv3; i++)
     G_pf_arrayCurv3[i] = 0.0;
+  if(!Gb_file3) strcat(G_pch_curvFile3, Gppch_fileExt[G_eFILETYPE1]);
+}
+
+e_FILETYPE
+fileType_find(
+  char*		apch_inputFile) {
+
+  int		type, len;
+  float		f			= -1.0;
+  char**	ppch_end		= &apch_inputFile;
+
+  // First, check if we have a valid float arg conversion
+  errno = 0;
+  f 	= strtof(apch_inputFile, ppch_end);
+  len	= (int) strlen(apch_inputFile);
+  if(!len) {
+	return(e_FloatArg);
+  }
+
+  // Check if input is a volume file...
+  type = mri_identify(apch_inputFile);
+  if(type != MRI_VOLUME_TYPE_UNKNOWN && type != MRI_CURV_FILE) 
+	return(e_VolumeFile);
+  
+  // Check if input is a curvature file...
+  if(type == MRI_CURV_FILE) return(e_CurvatureFile);
+
+  // Assume that the input is a surface file...
+  return(e_SurfaceFile);
 }
 
 void
-curv2_fileRead() {
-  float f_curv2 = 0.0;
-  int   i;
-  if(!CURV_fileRead(G_pch_curvFile2, &G_sizeCurv2, &G_pf_arrayCurv2)) {
-    f_curv2   = atof(G_pch_curvFile2);
-    G_sizeCurv2 = G_sizeCurv1;
-    G_pf_arrayCurv2 = (float*) malloc(G_sizeCurv1 * sizeof(float));
-    for(i=0; i<G_sizeCurv2; i++)
-      G_pf_arrayCurv2[i] = f_curv2;
+fileIO_errorHander(
+  char* 	pch_filename, 
+  e_FILEACCESS eERROR) {
+  switch(eERROR) {
+	case e_UNSPECIFIED:
+	break;
+	case e_OK:
+	break;
+	case e_READACCESSERROR:
+    	  ErrorExit(ERROR_BADPARM,
+              "\n%s: could not establish read access to '%s'.\n",
+              G_pch_progname, pch_filename);  
+	break;
+	case e_WRONGMAGICNUMBER:
+    	  ErrorExit(ERROR_BADPARM,
+              "\n%s: curvature file '%s' has wrong magic number.\n",
+              G_pch_progname, pch_filename);  
+	break;
+	case e_WRITEACCESSERROR:
+    	  ErrorExit(ERROR_BADPARM,
+              "\n%s: could not establish write access to '%s'.\n",
+              G_pch_progname, pch_filename);  
+	break;
   }
-  if(G_verbosity) cprintd("Size of curvFile1: ", G_sizeCurv1);
-  if(G_verbosity) cprintd("Size of curvFile2: ", G_sizeCurv2);
-  if(G_sizeCurv1 != G_sizeCurv2) error_unmatchedSizes();
+}
+
+e_FILEACCESS
+fileRead(
+  char* 	apch_fileName,
+  int*  	ap_vectorSize,
+  float*  	apf_curv[],
+  e_FILETYPE*	aeFILETYPE) {
+
+  e_FILEACCESS	eACCESS		= e_UNSPECIFIED;
+
+  *aeFILETYPE	= fileType_find(apch_fileName);
+  switch(*aeFILETYPE) {
+	case e_Unknown:
+	break;
+	case e_FloatArg:
+	break;
+	case e_VolumeFile:
+	eACCESS	= VOL_fileRead( apch_fileName, ap_vectorSize, apf_curv);
+	break;
+	case e_CurvatureFile:
+	eACCESS	= CURV_fileRead(apch_fileName, ap_vectorSize, apf_curv);
+	break;
+	case e_SurfaceFile:
+	error_surfacesNotHandled();
+	break;
+  }
+  return eACCESS;
+}
+
+e_FILEACCESS
+fileWrite(
+  char* 	apch_fileName,
+  int  		a_vectorSize,
+  float*  	apf_curv
+) {
+
+  e_FILEACCESS	eACCESS		= e_UNSPECIFIED;
+
+  switch(G_eFILETYPE1) {
+	case e_Unknown:
+	break;
+	case e_FloatArg:
+	break;
+	case e_VolumeFile:
+	eACCESS	= VOL_fileWrite( apch_fileName, a_vectorSize, apf_curv);
+	break;
+	case e_CurvatureFile:
+	eACCESS	= CURV_fileWrite(apch_fileName, a_vectorSize, apf_curv);
+	break;
+	case e_SurfaceFile:
+	error_surfacesNotHandled();
+	break;
+  }
+  return eACCESS;
+}
+
+void
+debuggingInfo_display() {
+  cprintd("Size of input1: ", 	G_sizeCurv1);
+  cprints("Type of input1: ", 	Gppch_filetype[G_eFILETYPE1]);
+  cprints("ACTION:", 		G_pch_operator);
+  cprintd("Size of input2: ", 	G_sizeCurv2);
+  cprints("Type of input2: ", 	Gppch_filetype[G_eFILETYPE2]);
 }
 
 int
@@ -508,19 +742,22 @@ main(
   char  *argv[]
   ) {
 
-  int   nargs;
-  short ret       = 0;
+  int   	nargs, i;
+  short 	ret		= 0;
+  float		f_curv2;
+  e_FILEACCESS	eACCESS;
 
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.8 2008/09/24 20:34:54 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.9 2008/11/13 21:29:16 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   G_pch_progname = argv[0] ;
+  strcpy(G_pch_curvFile3, "out");
 
   for (; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = options_parse(argc, argv) ;
@@ -536,22 +773,50 @@ main(
   if(Gb_curvFile2) G_pch_curvFile2      = argv[3];
   verbosity_set();
 
-  //    Read in relevant curvature files -
-  //+   the second curvature file is optional.
-  ret     = CURV_fileRead(G_pch_curvFile1, &G_sizeCurv1, &G_pf_arrayCurv1);
-  if(Gb_curvFile2) curv2_fileRead();
+  // Read in relevant input files -
+  eACCESS	= fileRead(G_pch_curvFile1, 
+				&G_sizeCurv1, 
+				&G_pf_arrayCurv1, 
+				&G_eFILETYPE1);  
+  if(eACCESS != e_OK) fileIO_errorHander(G_pch_curvFile1, eACCESS);
+
+  // Second input file is optional, and, if specified could in fact
+  //+ denote a float value and not an actual file per se.
+  if(Gb_curvFile2) {
+      eACCESS 	= fileRead(G_pch_curvFile2, 
+				&G_sizeCurv2, 
+				&G_pf_arrayCurv2,
+				&G_eFILETYPE2);
+      if(G_eFILETYPE2 == e_FloatArg) {
+    	f_curv2   	= atof(G_pch_curvFile2);
+    	G_sizeCurv2 	= G_sizeCurv1;
+    	G_pf_arrayCurv2 = (float*) malloc(G_sizeCurv1 * sizeof(float));
+    	for(i=0; i<G_sizeCurv2; i++)
+      	    G_pf_arrayCurv2[i] = f_curv2;
+  	}
+  }
+  if(G_verbosity) debuggingInfo_display();
+  if(!G_sizeCurv1)
+	error_zeroLengthInput();
+  if(G_sizeCurv1 != G_sizeCurv2 && argc==4) 
+	error_unmatchedSizes();
+  if(G_eFILETYPE1 != G_eFILETYPE2 && G_eFILETYPE2 != e_FloatArg && argc==4)
+	error_incompatibleFileTypes();
+
   output_init();
   ret     = CURV_process();
-
+  if(G_verbosity) printf("\n");
   return(0);
 }
 
 static int
 options_print(void) {
-  cprints("Curvature file 1:", G_pch_curvFile1);
+  cprints("Input file 1:", G_pch_curvFile1);
   cprints("ACTION:", G_pch_operator);
-  if(G_pch_curvFile2) cprints("Curvature file 2:", G_pch_curvFile2);
-  cprints("Output curvature file:", G_pch_curvFile3);
+  if(G_pch_curvFile2) {
+	cprints("Input file 2:", G_pch_curvFile2);
+  }
+  cprints("Output file:", G_pch_curvFile3);
 
   return 1;
 }
@@ -564,13 +829,14 @@ options_parse(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-output") || (toupper(*option) == 'O')) {
-    G_pch_curvFile3   = (argv[2]);
-    nargs     = 1;
+    strcpy(G_pch_curvFile3, (argv[2]));
+    Gb_file3		= 1;
+    nargs     		= 1;
   } else if (!stricmp(option, "-version") || (toupper(*option) == 'V')) {
     version_print();
   } else if (!stricmp(option, "-verbosity")) {
-    G_verbosity     = atoi(argv[2]);
-    nargs     = 1;
+    G_verbosity		= atoi(argv[2]);
+    nargs     		= 1;
   } else switch (toupper(*option)) {
   case 'T':
     pch_text  = "void";
@@ -599,29 +865,113 @@ version_print(void) {
   exit(1) ;
 }
 
+
+/*!
+  \fn VOL_fileRead(char* apch_volFileName, int* ap_vectorSize, float* apf_data)
+  \brief Read a FreeSurfer volume file into a float array
+  \param apch_curvFileName The name of a FreeSurfer volume file.
+  \param ap_vectorSize Pointer to the size (i.e. number of elements) in volume.
+  \param apf_curv 1D Array containing the volume values.
+  \return If volume file is successfully read, return e_OK. If file could not be opened, return e_READACCESSERROR.
+*/
+e_FILEACCESS
+VOL_fileRead(
+  char* 	apch_volFileName,
+  int*  	ap_vectorSize,
+  float*  	apf_data[]
+  ) {
+
+  char  	pch_readMessage[STRBUF];
+  int		i, j, k;
+  int		I 				= 0; 
+  MRI*		pMRI				= NULL;
+  float*  	pf_data				= NULL;
+
+  if(G_verbosity) cprints("Reading...", "");
+  if( (pMRI = MRIread(apch_volFileName)) == NULL)
+    return e_READACCESSERROR;
+  if(G_verbosity) cprints("", "ok");
+  Gp_MRI		= pMRI;		// Global pointer.
+  *ap_vectorSize	= pMRI->width * pMRI->height * pMRI->depth;
+  pf_data   		= (float*) xmalloc(*ap_vectorSize * sizeof(float));
+  sprintf(pch_readMessage, "Packing %s", apch_volFileName);
+  for(i=0; i<pMRI->width; i++)		// 'x', i.e. columns in slice
+    for(j=0; j<pMRI->height; j++)	// 'y', i.e. rows in slice
+      for(k=0; k<pMRI->depth; k++) {	// 'z', i.e. # of slices
+	CURV_arrayProgress_print(*ap_vectorSize, I, pch_readMessage);
+	pf_data[I++]	= MRIgetVoxVal(pMRI, i, j, k, 0);
+      }
+  *apf_data = pf_data;
+  return(e_OK);
+}
+
+/*!
+  \fn VOL_fileWrite(char* apch_volFileName, int a_vectorSize, float* apf_data)
+  \brief Write the 1D array data to a FreeSurfer volume
+  \param apch_volFileName The name of a FreeSurfer volume file.
+  \param a_vectorSize Size (i.e. number of elements) of array.
+  \param apf_data Array containing the data values.
+  \return If volume file is successfully written, return e_OK, else return e_WRITEACCESSERROR.
+*/
+e_FILEACCESS
+VOL_fileWrite(
+  char* 	apch_volFileName,
+  int  		a_vectorSize,
+  float*  	apf_data
+) {
+  //
+  // PRECONDITIONS
+  // o The Gp_MRI *must* have been set with a previous call to VOL_fileRead.
+  //
+  // POSTCONDITIONS
+  // o Gp_MRI will have its voxel data set element-by-element to apf_data.
+  // o Gp_MRI saved to <apch_volFileName>.
+  //
+  
+  int		volSize;
+  int		i, j, k;
+  int		I				= 0;
+  char  	pch_readMessage[STRBUF];
+
+  if(!Gp_MRI) 			error_noVolumeStruct();
+  volSize	= Gp_MRI->width * Gp_MRI->height * Gp_MRI->depth;
+  if(volSize != a_vectorSize)	error_volumeWriteSizeMismatch();
+  sprintf(pch_readMessage, "Packing %s", apch_volFileName);
+  for(i=0; i<Gp_MRI->width; i++)		// 'x', i.e. columns in slice
+    for(j=0; j<Gp_MRI->height; j++)		// 'y', i.e. rows in slice
+      for(k=0; k<Gp_MRI->depth; k++) {		// 'z', i.e. # of slices
+	CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
+	MRIsetVoxVal(Gp_MRI, i, j, k, 0, apf_data[I++]);
+      }
+  if(G_verbosity) cprints("Saving", "");
+  return(MRIwrite(Gp_MRI, apch_volFileName));
+  if(G_verbosity) cprints("", "ok");
+}
+
 /*!
   \fn CURV_fileRead(char* apch_curvFileName, int* ap_vectorSize, float* apf_curv)
   \brief Read a FreeSurfer curvature file into a float array
   \param apch_curvFileName The name of a FreeSurfer curvature file.
   \param ap_vectorSize Pointer to the size (i.e. number of elements) in file.
   \param apf_curv Array containing the curvature values.
-  \return If curvature file is successfully read, return a 1, else return 0.
+  \return If curvature file is successfully read, return e_OK. If file could not be opened, return e_READACCESSERROR. If file not a curvature format file, return e_WRONGMAGICNUMBER.
 */
 #define   NEW_VERSION_MAGIC_NUMBER  16777215
-short
+e_FILEACCESS
 CURV_fileRead(
   char* apch_curvFileName,
   int*  ap_vectorSize,
   float*  apf_curv[]
   ) {
-  FILE* FP_curv;
-  int   vnum;
-  int   nvertices;
-  int   i;
-  char  pch_readMessage[STRBUF];
-  float*  pf_data=NULL;
 
-  if((FP_curv = fopen(apch_curvFileName, "r")) == NULL) return(0);
+  FILE* 	FP_curv;
+  int   	vnum;
+  int   	nvertices;
+  int   	i;
+  char  	pch_readMessage[STRBUF];
+  float*  	pf_data				= NULL;
+
+  if((FP_curv = fopen(apch_curvFileName, "r")) == NULL) return(e_READACCESSERROR);
   fread3(&vnum, FP_curv);
   if(vnum == NEW_VERSION_MAGIC_NUMBER) {
     nvertices = freadInt(FP_curv);
@@ -634,40 +984,40 @@ CURV_fileRead(
       CURV_arrayProgress_print(nvertices, i, pch_readMessage);
       pf_data[i]  = freadFloat(FP_curv);
     }
-  } else
-    ErrorExit(ERROR_BADPARM,
+  } else return(e_WRONGMAGICNUMBER);
+/*    ErrorExit(ERROR_BADPARM,
               "\n%s: curvature file '%s' has wrong magic number.\n",
-              G_pch_progname, apch_curvFileName);
+              G_pch_progname, apch_curvFileName);*/
   *apf_curv   = pf_data;
   fclose(FP_curv);
-  return(1);
+  return(e_OK);
 }
 
 /*!
-  \fn ascii_fileWrite(char* apch_curvFileName, float* apf_curv)
-  \brief Write a FreeSurfer curvature array to an ascii text file
-  \param apch_curvFileName The name of a FreeSurfer curvature file.
-  \param apf_curv Array containing the curvature values.
-  \return If curvature file is successfully written, return a 1, else return 0.
+  \fn ascii_fileWrite(char* apch_fileName, float* apf_data)
+  \brief Write internal data array to an ascii text file
+  \param apch_fileName Output filename.
+  \param apf_data Array data to output.
+  \return If output file is successfully written, return e_OK, else return e_WRITEACCESSERROR.
 */
-short
+e_FILEACCESS
 ascii_fileWrite(
-  char* apch_curvFileName,
-  float*  apf_curv
+  char* 	apch_fileName,
+  float*  	apf_data
   ) {
   FILE* FP_curv;
   int   i;
   char  pch_readMessage[STRBUF];
 
-  if((FP_curv = fopen(apch_curvFileName, "w")) == NULL)
-    return(0);
-  sprintf(pch_readMessage, "Writing %s", apch_curvFileName);
+  if((FP_curv = fopen(apch_fileName, "w")) == NULL)
+    return(e_WRITEACCESSERROR);
+  sprintf(pch_readMessage, "Writing %s", apch_fileName);
   for(i=0; i<G_sizeCurv1; i++) {
     CURV_arrayProgress_print(G_sizeCurv1, i, pch_readMessage);
-    fprintf(FP_curv, "%f\n", apf_curv[i]);
+    fprintf(FP_curv, "%f\n", apf_data[i]);
   }
   fclose(FP_curv);
-  return(1);
+  return(e_OK);
 }
 
 
@@ -675,33 +1025,33 @@ ascii_fileWrite(
   \fn CURV_fileWrite(char* apch_curvFileName, int* ap_vectorSize, float* apf_curv)
   \brief Write a FreeSurfer curvature array to a file
   \param apch_curvFileName The name of a FreeSurfer curvature file.
-  \param ap_vectorSize Pointer to the size (i.e. number of elements) in file.
+  \param a_vectorSize Size (i.e. number of elements) of data array.
   \param apf_curv Array containing the curvature values.
-  \return If curvature file is successfully written, return a 1, else return 0.
+  \return If curvature file is successfully written, return e_OK, else return e_WRITEACCESSERROR.
 */
-short
+e_FILEACCESS
 CURV_fileWrite(
-  char* apch_curvFileName,
-  int*  ap_vectorSize,
-  float*  apf_curv
+  char* 	apch_curvFileName,
+  int  		a_vectorSize,
+  float*  	apf_curv
   ) {
   FILE* FP_curv;
   int   i;
   char  pch_readMessage[STRBUF];
 
   if((FP_curv = fopen(apch_curvFileName, "w")) == NULL)
-    return(0);
+    return(e_WRITEACCESSERROR);
   fwrite3(NEW_VERSION_MAGIC_NUMBER, FP_curv);
-  fwriteInt(G_sizeCurv1, FP_curv);
+  fwriteInt(a_vectorSize, FP_curv);
   fwriteInt(G_nfaces, FP_curv);
   fwriteInt(G_valsPerVertex, FP_curv);
   sprintf(pch_readMessage, "Writing %s", apch_curvFileName);
-  for(i=0; i<G_sizeCurv1; i++) {
-    CURV_arrayProgress_print(G_sizeCurv1, i, pch_readMessage);
+  for(i=0; i<a_vectorSize; i++) {
+    CURV_arrayProgress_print(a_vectorSize, i, pch_readMessage);
     fwriteFloat(apf_curv[i], FP_curv);
   }
   fclose(FP_curv);
-  return(1);
+  return(e_OK);
 }
 
 short
@@ -729,7 +1079,10 @@ CURV_arrayProgress_print(
     fprintf(G_FP, " [");
     fflush(G_FP);
   }
-  if(acurrent%fivePerc == fivePerc-1) fprintf(G_FP, "#");
+  if(acurrent%fivePerc == fivePerc-1) {
+    fprintf(G_FP, "#");
+    fflush(G_FP);
+  }
   if(acurrent == asize-1) {
     fprintf(G_FP, "] ");
     if(apch_message != NULL)
@@ -766,7 +1119,7 @@ b_outCurvFile_write(char* apch_operator)
     	(!strcmp(apch_operator, "add")) 	||	
     	(!strcmp(apch_operator, "sub")) 	||
     	(!strcmp(apch_operator, "set")) 	||
-    	(!strcmp(apch_operator, "ascii")) )
+    	(!strcmp(apch_operator, "abs")) )
 	b_ret = 1;
 
     return b_ret;	
@@ -809,9 +1162,15 @@ CURV_process(void)
   else if(!strcmp(G_pch_operator, "add")) {CURV_functionRunABC(fn_add);}
   else if(!strcmp(G_pch_operator, "sub")) {CURV_functionRunABC(fn_sub);}
   else if(!strcmp(G_pch_operator, "set")) {CURV_functionRunABC(fn_set);}
+  else if(!strcmp(G_pch_operator, "abs")) {CURV_functionRunAC( fn_abs);}
 
-  if(!strcmp(G_pch_operator, "ascii"))
-    ascii_fileWrite(G_pch_curvFile3, G_pf_arrayCurv1);
+  if(!strcmp(G_pch_operator, "ascii")) {
+    if(!Gb_file3) strcat(G_pch_curvFile3, ".ascii");
+	printf("Write : %s", G_pch_curvFile3);
+
+    if((ascii_fileWrite(G_pch_curvFile3, G_pf_arrayCurv1))==e_WRITEACCESSERROR)
+	printf("Write error: %s", G_pch_curvFile3);
+  }
 
   if(!strcmp(G_pch_operator, "size") || !strcmp(G_pch_operator, "stats")) {
     cprintd("Size", G_sizeCurv1);
@@ -838,7 +1197,7 @@ CURV_process(void)
     cprintf("Std", f_std);
   }
 
-  if(b_canWrite) CURV_fileWrite(G_pch_curvFile3, &G_sizeCurv3, G_pf_arrayCurv3);
+  if(b_canWrite) fileWrite(G_pch_curvFile3, G_sizeCurv3, G_pf_arrayCurv3);
 
   return 1;
 }
