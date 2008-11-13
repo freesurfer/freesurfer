@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/13 17:08:12 $
- *    $Revision: 1.27 $
+ *    $Date: 2008/11/13 18:49:41 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.27 2008/11/13 17:08:12 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,7 +71,7 @@ static int normalize_param = 0 ;
 static int ratio_flag = 0 ;
 static int contrast_flag = 0 ;
 
-#define MAX_NBHD_SIZE 1000
+#define MAX_NBHD_SIZE 5000
 static int nbhd_size = 0 ;
 static int nbrs_per_distance = 0 ;
 static float max_mm = 0 ;
@@ -89,7 +89,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.27 2008/11/13 17:08:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
