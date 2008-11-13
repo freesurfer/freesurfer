@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/17 00:40:30 $
- *    $Revision: 1.26 $
+ *    $Date: 2008/11/13 17:08:12 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.26 2007/09/17 00:40:30 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.27 2008/11/13 17:08:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,11 +71,14 @@ static int normalize_param = 0 ;
 static int ratio_flag = 0 ;
 static int contrast_flag = 0 ;
 
-#define MAX_NBHD_SIZE 100
+#define MAX_NBHD_SIZE 1000
 static int nbhd_size = 0 ;
 static int nbrs_per_distance = 0 ;
+static float max_mm = 0 ;
 
 static int which_norm = NORM_MEAN;
+
+int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)  ;
 
 int
 main(int argc, char *argv[]) {
@@ -86,7 +89,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.26 2007/09/17 00:40:30 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.27 2008/11/13 17:08:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -142,6 +145,25 @@ main(int argc, char *argv[]) {
 
   if (nbhd_size > 0)
     MRISsampleAtEachDistance(mris, nbhd_size, nbrs_per_distance) ;
+  if (max_mm > 0)
+  {
+    float ratio ;
+
+    MRISstoreMetricProperties(mris) ;
+    if (MRISreadCanonicalCoordinates(mris, "sphere") != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read canonical coordinates from ?h.sphere",Progname);
+
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+    ratio = mris->orig_area / M_PI * mris->radius * mris->radius * 4.0 ;
+    ratio = mris->orig_area / mris->total_area ;
+    MRISscaleBrain(mris, mris, sqrt(ratio)) ;
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+    MRIScomputeNeighbors(mris, max_mm) ;
+  }
 
   if (param_file) {
     MRI_SP *mrisp ;
@@ -316,6 +338,11 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr, "sampling %d neighbors out to a distance of %d mm\n",
             nbrs_per_distance, nbhd_size) ;
     nargs = 2 ;
+  }
+  else if (!stricmp(option, "distance")){
+    max_mm = atof(argv[2]) ;
+    fprintf(stderr, "sampling neighbors out to %f mm\n", max_mm) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "diff"))
     diff_flag = 1 ;
   else if (!stricmp(option, "ratio") || !stricmp(option, "defect"))
@@ -433,3 +460,73 @@ print_version(void) {
   exit(1) ;
 }
 
+
+int
+MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
+{
+  int    vno, n, vlist[MAX_NBHD_SIZE], nbrs, done, found, m, nbhd, first =1 ;
+  VERTEX *v, *vn, *vn2 ;
+  float  dist, dx, dy, dz ;
+
+  
+  MRISresetNeighborhoodSize(mris, -1) ;  /* back to max */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    for (n = 0 ; n < v->vtotal ; n++)
+    {
+      mris->vertices[v->v[n]].marked = 1 ;
+      vlist[n] = v->v[n] ;
+    }
+
+    nbhd = v->nsize+1 ;
+    nbrs = v->vtotal ;
+    do
+    {
+      found = 0 ;
+      for (n = 0 ; n < nbrs ; n++)
+      {
+        vn = &mris->vertices[vlist[n]] ;
+        for (m = 0 ; m < vn->vnum ; m++)
+        {
+          vn2 = &mris->vertices[vn->v[m]] ;
+          if (vn2->marked)  // already in the nbhd list
+            continue ;
+          dx = vn2->cx - v->cx ; dy = vn2->cy - v->cy ; dz = vn2->cz - v->cz ;
+          dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+          if (dist < max_mm)
+          {
+            vlist[nbrs] = vn->v[m] ;
+            nbrs++ ;
+            found++ ;
+            vn2->marked = 1 ;
+            if (nbrs >= MAX_NBHD_SIZE)
+            {
+              if (first)
+                printf("max nbrs %d exceeded at vertex %d\n", nbrs, vno) ;
+              first = 0 ;
+              break ;
+            }
+          }
+        }
+      }
+      done = ((found == 0) || (nbrs >= MAX_NBHD_SIZE)) ;
+    } while (!done) ;
+    free(v->v) ;
+    v->v = (int *)calloc(nbrs, sizeof(int)) ;
+    if (v->v == NULL)
+      ErrorExit(ERROR_NOMEMORY, "%s: vno %d could not allocate %d vertex array", 
+                Progname, vno, nbrs) ;
+    memmove(v->v, vlist, sizeof(vlist[0])*nbrs) ;
+    v->vtotal = nbrs ;
+    for (n = 0 ; n < nbrs ; n++)
+      mris->vertices[vlist[n]].marked = 0 ;
+  }
+
+  return(NO_ERROR) ;
+}
