@@ -115,21 +115,23 @@
 	  Filtering by the current curvature function is controlled by the
 	  [--lowPassFilter <value>] and [--highPassFilter <value>] flags, while
 	  filtering by vertex Gaussian curvature value is similarly specified
-	  with [--lowPassFilterGaussian <value>] and 
-	  [--highPassFilterGaussian <value>].
+	  by [--lowPassFilterGaussian <value>] and 
+	  [--highPassFilterGaussian <value>]. If an additional argument,
+	  [--filterLabel <labelFileName>] is also given, the vertices tagged
+	  by the filter pattern will be saved to the <labelFileName>.
 
 	  Note that the [-l <labelFileName>] and the high/low pass filters
 	  can be specified concurrently. If a <labelFileName> is given, then
 	  the low/high pass filters will operate only on the surface defined
-	  by the <labelFileName>. 
+	  by the <labelFileName>. If a '--filterLabel <filename>' is also
+	  given, the filter <filename> will only contain vertices that lie 
+	  within the original <labelFileName> *and* satisfy the filter pattern.
 
-	  Finally, note that there are some minor differences between using
-	  a <labelFileName> and specifying filter limits. If a <labelFileName>
-	  is specified, the 'Average Vertex Separation' and 'mean/std' are
-	  constrained to only operate on the region defined by the label.
-	  If command line filters are used, these same fields are taken over
-	  the whole surface. 
- 	  
+	  Specifying either a '-l <labelFileName>' or adding a filter pattern
+	  will result in some additional information being presented with the
+	  curvature report, specifically the ROI surface area, the ROI number
+	  number of vertices, and the ROI surface area percentage.
+		 	  
 	SURFACE INTEGRALS
 
 	  The surface integrals for a given curvature map are filtered/modified

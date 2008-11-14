@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/11/14 17:29:27 $
- *    $Revision: 1.55 $
+ *    $Date: 2008/11/14 19:01:50 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -122,7 +122,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.55 2008/11/14 17:29:27 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.56 2008/11/14 19:01:50 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -478,7 +478,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.55 2008/11/14 17:29:27 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.56 2008/11/14 19:01:50 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2585,21 +2585,23 @@ print_help(void) {
 	  Filtering by the current curvature function is controlled by the \n\
 	  [--lowPassFilter <value>] and [--highPassFilter <value>] flags, while \n\
 	  filtering by vertex Gaussian curvature value is similarly specified \n\
-	  with [--lowPassFilterGaussian <value>] and \n\
-	  [--highPassFilterGaussian <value>]. \n\
+	  by [--lowPassFilterGaussian <value>] and \n\
+	  [--highPassFilterGaussian <value>]. If an additional argument, \n\
+	  [--filterLabel <labelFileName>] is also given, the vertices tagged \n\
+	  by the filter pattern will be saved to the <labelFileName>. \n\
  \n\
 	  Note that the [-l <labelFileName>] and the high/low pass filters \n\
 	  can be specified concurrently. If a <labelFileName> is given, then \n\
 	  the low/high pass filters will operate only on the surface defined \n\
-	  by the <labelFileName>. \n\
+	  by the <labelFileName>. If a '--filterLabel <filename>' is also \n\
+	  given, the filter <filename> will only contain vertices that lie \n\
+	  within the original <labelFileName> *and* satisfy the filter pattern. \n\
  \n\
-	  Finally, note that there are some minor differences between using \n\
-	  a <labelFileName> and specifying filter limits. If a <labelFileName> \n\
-	  is specified, the 'Average Vertex Separation' and 'mean/std' are \n\
-	  constrained to only operate on the region defined by the label. \n\
-	  If command line filters are used, these same fields are taken over \n\
-	  the whole surface. \n\
- 	 \n\
+	  Specifying either a '-l <labelFileName>' or adding a filter pattern \n\
+	  will result in some additional information being presented with the \n\
+	  curvature report, specifically the ROI surface area, the ROI number \n\
+	  number of vertices, and the ROI surface area percentage. \n\
+		 	 \n\
 	SURFACE INTEGRALS \n\
  \n\
 	  The surface integrals for a given curvature map are filtered/modified \n\
