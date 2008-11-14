@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/11/06 21:20:15 $
- *    $Revision: 1.54 $
+ *    $Date: 2008/11/14 17:29:27 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -122,7 +122,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.54 2008/11/06 21:20:15 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.55 2008/11/14 17:29:27 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -234,6 +234,10 @@ int	MRISvertexAreaPostProcess(
 	MRI_SURFACE*		pmris
 );
 
+int	MRIS_surfaceRipFlags_filter(
+	MRI_SURFACE*	apmris
+);
+
 
 //----------------------------//
 // Function Prototypes: END   //
@@ -285,6 +289,7 @@ static int      Gb_vertexAreaNormalizeFrac      = 0;
 static int      Gb_vertexAreaWeighFrac          = 0;
 static int	Gb_postScale			= 0;
 static float	Gf_postScale			= 0.;
+static int	Gb_filter			= 0;
 static int	Gb_lowPassFilter		= 0;
 static float	Gf_lowPassFilter		= 0.;
 static int	Gb_lowPassFilterGaussian	= 0;
@@ -465,14 +470,15 @@ main(int argc, char *argv[]) {
   char		pch_surface[16384];
   char		pch_tmp[1024];
   int           ac, nargs;
-  int		i = START_i;
+  int		i 		= START_i;
+  int		notRipped 	= 0;
   MRI_SURFACE   *mris ;
 
   GpSTDOUT	= stdout;
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.54 2008/11/06 21:20:15 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.55 2008/11/14 17:29:27 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -532,7 +538,6 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read label file %s",
                 Progname, label_name) ;
     LABEL_RipSurface(mris, area);
-//     LabelRipRestOfSurface(area, mris) ;
     LabelFree(&area) ;
   }
 
@@ -581,6 +586,13 @@ main(int argc, char *argv[]) {
         if (Gpch_scaledCurv[0] && Gb_writeCurvatureFiles) 
           MRISwriteCurvature(mris, Gpch_scaledCurv);
     	}
+
+      if(Gb_filter) {
+    	cprints("Pre-filtering surface...", "");
+    	notRipped = MRIS_surfaceRipFlags_filter(mris);
+    	cprints("", "ok");
+    	cprintd("Filtered vertices", notRipped);
+      }
 
       if (Gb_scaleMin && Gb_scaleMax) {
         MRISscaleCurvatures(mris, Gf_scaleMin, Gf_scaleMax);
@@ -984,6 +996,8 @@ MRIS_surfaceIntegrals_report(
   //	o The report itself is returned in the apch_report string.
   //
 
+  char	pch_processedArea[65536];
+  char 	pch_misc[65536];
   // Surface integral variables
   float f_SInatural		= 0.0;
   float f_SIabs		= 0.0;
@@ -1034,27 +1048,57 @@ MRIS_surfaceIntegrals_report(
   if(aesot == e_FI)
 	Gf_foldingIndex		 = f_SInatural / 4 / M_PI;
 
+  if(Gb_filter) {
+    // Recompute metric properties since filtering might change
+    // vertices that satisfy filter...
+    MRIScomputeMetricProperties(apmris);
+  }
+
+  if(Gb_filter || label_name) strcpy(pch_processedArea, "ROI Surface");
+  else strcpy(pch_processedArea, "Whole Surface"); 
+
+  sprintf(pch_misc, " Mean Vertex Separation (%s):", pch_processedArea);
+
   sprintf(apch_report, "%s%10s%-40s", apch_report,
           pch_curveName, " Curvature Calculation Type:");
   sprintf(apch_report, "%s%12s\n", apch_report,
           Gpch_calc);
   sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Average Vertex Separation:");
+          pch_curveName, pch_misc);
   sprintf(apch_report, "%s%12.5f +- %2.5f mm\n", apch_report,
           apmris->avg_vertex_dist, apmris->std_vertex_dist);
 
   sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Total number of vertices:");
-  sprintf(apch_report, "%s%12.5d\n", apch_report,
-          apmris->nvertices);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Total surface area:");
+          pch_curveName, " Total Surface Area:");
   sprintf(apch_report, "%s%12.5f mm^2\n", 	apch_report, 
           apmris->total_area);
   sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Average Vertex Area:");
+          pch_curveName, " Total Number of Vertices:");
+  sprintf(apch_report, "%s%12.5d\n", apch_report,
+          apmris->nvertices);
+  sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Average Vertex Area (Whole Surface):");
   sprintf(apch_report, "%s%12.5f mm^2\n",	apch_report, 
           apmris->avg_vertex_area);
+
+  if(Gb_filter || label_name) {
+      sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " ROI Surface Area:");
+      sprintf(apch_report, "%s%12.5f mm^2\n", 	apch_report, 
+          f_SInaturalArea);
+      sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " ROI Number of Vertices:");
+      sprintf(apch_report, "%s%12.5d\n", apch_report,
+          SInaturalVertices);
+      sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " ROI Surface Area Percentage:");
+      sprintf(apch_report, "%s%12.2f%s\n",	apch_report, 
+          100 * (float)SInaturalVertices / apmris->nvertices, "%");
+      sprintf(apch_report, "%s%10s%-40s", apch_report,
+          pch_curveName, " Average Vertex Area (ROI Surface):");
+      sprintf(apch_report, "%s%12.5f mm^2\n",	apch_report, 
+          f_SInaturalArea / SInaturalVertices);
+  }
 
   sprintf(apch_report, "%s%10s%-40s", apch_report,
           pch_curveName, " Natural Surface Integral:");
@@ -1553,6 +1597,110 @@ LABEL_save(
     return 1;
 }
 
+int
+MRIS_surfaceRipFlags_filterVertex(
+	MRI_SURFACE*	apmris,
+	int		avno
+) {
+    //
+    // DESCRIPTION
+    // 	Depending on a user-specified filter pattern, this
+    // 	function examines the passed vertex, and sets its
+    // 	ripflag accordingly.
+    //
+    // 	This "ripping" is performed according to the pattern
+    // 	of 'filter' variables that might have been set at the
+    // 	command line.
+    // 	
+    // PRECONDITIONS
+    // 	o A valid surface.
+    //  o The 'curv' value at each vertex MUST be set for current
+    //    processing regime.
+    // 	
+    // POSTCONDITIONS
+    // 	o If passed vertex index <vno> does not satisfy
+    // 	  filter contraints, it is "ripped"!
+    // 	  
+    // RETURN
+    // 	o If vertex is ripped, return 1; else return 0.
+    // 	  
+    VERTEX*	pv ;
+    short	b_canProcess	= 1;
+
+    pv = &apmris->vertices[avno] ; 
+    // Check if vertex might have been ripped by a label load...
+    if(pv->ripflag) return pv->ripflag; 
+    // Process filter patterns...
+    if(Gb_lowPassFilter) {
+    	if(fabs(pv->curv)<fabs(Gf_lowPassFilter))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess 	&= 0;
+    }
+    if(Gb_highPassFilter) {
+        if(fabs(pv->curv)>=fabs(Gf_highPassFilter))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess 	&= 0;
+    }
+    if(Gb_lowPassFilterGaussian) {
+    	if(fabs(pv->K)<fabs(Gf_lowPassFilterGaussian))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess 	&= 0;
+    }
+    if(Gb_highPassFilterGaussian) {
+        if(fabs(pv->K)>=fabs(Gf_highPassFilterGaussian))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess	&= 0;
+    }
+    if(b_canProcess) 	pv->ripflag	= 0;
+    else		pv->ripflag	= 1;
+    return pv->ripflag;
+}
+
+int
+MRIS_surfaceRipFlags_filter(
+	MRI_SURFACE*	apmris
+) {
+    //
+    // DESCRIPTION
+    // 	This function "rips" a surface (i.e. sets the 'ripgflag'
+    // 	field at each vertex) to indicate whether a vertex is a
+    // 	candidate for further processing. A "ripped" vertex
+    // 	should not be processed.
+    // 	
+    // 	This "ripping" is performed according to the pattern
+    // 	of 'filter' variables that might have been set at the
+    // 	command line.
+    // 	
+    // PRECONDITIONS
+    // 	o A valid surface.
+    // 	
+    // POSTCONDITIONS
+    // 	o All vertices that satisfy the command line specified
+    // 	  filter constraints have their ripflags set to 0, those
+    // 	  that do not satisfy filter constraints have their
+    // 	  ripflags set to 1.
+    // 	o Any existing rip pattern is overwritten!
+    // 	  
+    // RETURN
+    // 	o Returns the number of vertices that can be processed, 
+    // 	  i.e. number of vertices that were *not* ripped.
+    // 	  
+
+    int       	vno ;
+    int		ripped		= 0;
+    int		notRipped	= 0;
+
+    for (vno = 0 ; vno < apmris->nvertices ; vno++) {
+	ripped = MRIS_surfaceRipFlags_filterVertex(apmris, vno);
+	if(!ripped) notRipped++;
+    }
+    return notRipped;
+}
+
 short
 MRIS_surfaceIntegral_compute(
 	MRI_SURFACE* 	pmris, 
@@ -1609,7 +1757,6 @@ MRIS_surfaceIntegral_compute(
   VERTEX*	pv ;
   int       	vno ;
   double    	f_total, f_n, f_totalArea ;
-  short		b_canCount		= 1;
   short		b_ret			= 0;
   int*		p_labelMark		= NULL;
   static short	b_labelFileCreated	= 0;
@@ -1619,36 +1766,10 @@ MRIS_surfaceIntegral_compute(
   if(Gb_filterLabel && !b_labelFileCreated)
     for(vno=0; vno<pmris->nvertices; vno++) p_labelMark[vno] = 0;
   for (f_n = f_total =f_totalArea = 0.0, vno = 0 ; vno < pmris->nvertices ; vno++) {
-    b_canCount = 1;
     pv = &pmris->vertices[vno] ;
-    if (pv->ripflag)
-      continue ;
- 
-    if(Gb_lowPassFilter) {
-      if(fabs(pv->curv)<fabs(Gf_lowPassFilter))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(Gb_highPassFilter) {
-      if(fabs(pv->curv)>=fabs(Gf_highPassFilter))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(Gb_lowPassFilterGaussian) {
-      if(fabs(pv->K)<fabs(Gf_lowPassFilterGaussian))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(Gb_highPassFilterGaussian) {
-      if(fabs(pv->K)>=fabs(Gf_highPassFilterGaussian))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(b_canCount && (*fcond)(pv)) {
+    if(Gb_filter)   MRIS_surfaceRipFlags_filterVertex(pmris, vno);
+    if(pv->ripflag) continue ;
+    if( (*fcond)(pv)) {
       f_total 			+= ((*fv)(pv) * pv->area) ;
       f_n 			+= 1.0 ;
       (*pf_areaCounted) 	+= pv->area;
@@ -1668,7 +1789,7 @@ MRIS_surfaceIntegral_compute(
   *pf_surfaceIntegral		= f_total;
   if(Gb_filterLabel && !b_labelFileCreated) {
     LABEL_save(pmris, *p_verticesCounted, p_labelMark, Gpch_filterLabel);
-    cprintd("Lable size", *p_verticesCounted);
+    cprintd("Label size", *p_verticesCounted);
     free(p_labelMark);
     b_labelFileCreated	= 1;
   }
@@ -2002,6 +2123,7 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-lowPassFilter")) {
+    Gb_filter			= 1;
     Gb_lowPassFilter		= 1;
     Gf_lowPassFilter		= atof(argv[2]);
     nargs			= 1;
@@ -2022,18 +2144,21 @@ get_option(int argc, char *argv[]) {
     Gb_vertexAreaWeighFrac       = 1;
     cprints("Toggling fractional vertex area weighing on", "ok");
   } else if (!stricmp(option, "-lowPassFilterGaussian")) {
+    Gb_filter			= 1;
     Gb_lowPassFilterGaussian	= 1;
     Gf_lowPassFilterGaussian	= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting rectified low pass Gaussian filter", 
             Gf_lowPassFilterGaussian);
   } else if (!stricmp(option, "-highPassFilterGaussian")) {
+    Gb_filter			= 1;
     Gb_highPassFilterGaussian	= 1;
     Gf_highPassFilterGaussian	= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting rectified high pass Gaussian filter", 
             Gf_highPassFilterGaussian);
   } else if (!stricmp(option, "-highPassFilter")) {
+    Gb_filter			= 1;
     Gb_highPassFilter		= 1;
     Gf_highPassFilter		= atof(argv[2]);
     nargs			= 1;
