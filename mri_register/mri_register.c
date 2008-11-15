@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 15:56:18 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/11/15 02:42:49 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,6 +88,8 @@ static int use_pvals = 0 ;
 static char *long_reg_fname = NULL ;
 //static int inverted_xform = 0 ;
 
+static int max_rounds = 5 ;
+static int max_reductions = 3 ;
 static char *write_gca_fname = NULL ;
 static float regularize = 0 ;
 static float regularize_mean = 0 ;
@@ -99,6 +101,12 @@ static double TR = -1 ;
 static double alpha = -1 ;
 static double TE = -1 ;
 static char *tl_fname = NULL ;
+
+static int ninsertions = 0 ;
+static int insert_labels[MAX_INSERTIONS] ;
+static int insert_intensities[MAX_INSERTIONS] ;
+static int insert_coords[MAX_INSERTIONS][3] ;
+static int insert_whalf[MAX_INSERTIONS] ;
 
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
@@ -147,24 +155,17 @@ static int do_secondpass_renorm = 0;
 #define DEFAULT_CTL_POINT_PCT   .25
 static double ctl_point_pct = DEFAULT_CTL_POINT_PCT ;
 
-//static double sigmas[] = { 0.5, 1.0, 1.5, 2.0, 4.0, 6.0, 10.0, 14.0, 20.0, 25.0} ;
-//static double sigmas[] = { 0.5, 1.0, 1.5, 2.0, 4.0, 6.0, 10.0, 14.0, 17.0, 20.0} ;
-static double sigmas[] = { 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 17.0, 20.0, 25.0, 30.0} ;
-//static double sigmas[] = { 1.0,  2.0, 4.0, 6.0, 10.0} ;
-//static double sigmas[] = { 0.5, 1.0, 1.5, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0; 24.0} ;
-//static double sigmas[] = { 0.5, 1.0, 2.0, 4.0, 8.0 };
+//static double sigmas[] = { 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 17.0, 20.0, 25.0, 30.0} ;
+static double sigmas[] = { 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 16.0, 20.0, 25.0 } ;
 #define NSIGMAS (sizeof(sigmas)/sizeof(sigmas[0]))
 static int nsigmas = NSIGMAS ;
 
-static MRI *replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels, 
-                           int combine_labels[8][2], int ncombine_labels, 
-                           GCA_MORPH_PARMS *parms) ;
-GCAM_MULTISCALE *GCAMMSalloc(GCA_MORPH *gcam, GCA *gca, double *sigmas, int) ;
+GCAM_MULTISCALE *GCAMMSalloc(GCA_MORPH *gcam, GCA *gca, double *sigmas, int nsigmas, char *write_ms_name) ;
 GCAM_MULTISCALE *GCAMMSread(char *base_fname, GCA_MORPH *gcam, int nsigmas);
 int GCAMMSwrite(GCAM_MULTISCALE *gcam_ms, char *base_fname);
  
 GCAM_MULTISCALE *
-GCAMMSalloc(GCA_MORPH *gcam, GCA *gca, double *sigmas, int nsigmas)
+GCAMMSalloc(GCA_MORPH *gcam, GCA *gca, double *sigmas, int nsigmas, char *write_ms_name)
 {
   GCAM_MULTISCALE *gcam_ms ;
   int             s ;
@@ -195,6 +196,11 @@ GCAMMSalloc(GCA_MORPH *gcam, GCA *gca, double *sigmas, int nsigmas)
     }
     else
       gcam_ms->gcas[s+1] = gca_tmp ;
+    if (write_ms_name)
+    {
+      gcam_ms->nsigmas = s+2 ;
+      GCAMMSwrite(gcam_ms, write_ms_name) ;
+    }
   }
   printf("multi-scale atlas generation complete\n") ;
   gcam->vgcam_ms = gcam_ms ;
@@ -216,7 +222,7 @@ GCAMMSwrite(GCAM_MULTISCALE *gcam_ms, char *base_fname)
   fprintf(fp, "nlevels=%d\n", gcam_ms->nsigmas) ;
   for (s = 0 ; s < gcam_ms->nsigmas ; s++)
   {
-    sprintf(fname, "%s_level%d.gca", base_fname, s) ;
+    sprintf(fname, "%s_sigma%.2f.gca", base_fname, gcam_ms->sigmas[s]) ;
     GCAwrite(gcam_ms->gcas[s], fname) ;
     fprintf(fp, "sigma=%f\n",gcam_ms->sigmas[s]) ;
   }
@@ -236,7 +242,7 @@ GCAMMSread(char *base_fname, GCA_MORPH *gcam, int nsigmas)
   sprintf(fname, "%s_ms.dat", base_fname) ;
   fp = fopen(fname, "r") ;
   if (fp == NULL)
-    ErrorExit(ERROR_NOFILE, "GCAMMSwrite(%s): could not open %s",
+    ErrorExit(ERROR_NOFILE, "GCAMMSread(%s): could not open %s",
               base_fname, fname) ;
   fscanf(fp, "nlevels=%d\n", &n) ;
   if (nsigmas <= 0)
@@ -253,8 +259,8 @@ GCAMMSread(char *base_fname, GCA_MORPH *gcam, int nsigmas)
   gcam_ms->gcas = (GCA **)calloc(nsigmas, sizeof(GCA*)) ;
   for (s = 0 ; s < nsigmas ; s++)
   {
-    sprintf(fname, "%s_level%d.gca", base_fname, s) ;
-    printf("reading atlas at smoothness level s=%2.3f\n", sigmas[s]) ;
+    sprintf(fname, "%s_sigma%.2f.gca", base_fname, sigmas[s]) ;
+    printf("reading atlas at smoothness level s=%2.2f\n", sigmas[s]) ;
     gcam_ms->sigmas[s] = sigmas[s] ;
     gcam_ms->gcas[s] = GCAread(fname) ;
   }
@@ -276,12 +282,13 @@ main(int argc, char *argv[]) {
   MRI          *mri_inputs, *mri_tmp, *mri_atlas_dist_map, *mri_atlas_labels ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
   int          ac, nargs, ninputs, input, extra = 0 ;
-  int          msec, hours, minutes, seconds, round, done, nvox ;
+  int          msec, hours, minutes, seconds, round, done, nvox, reductions ;
   struct timeb start ;
   GCA_MORPH    *gcam ;
   GCAM_MS      *gcam_ms ;
   double       log_posterior, last_log_posterior, mean_scale, last_mean_scale,
                gca_log_posterior, last_gca_log_posterior, min_scale ;
+  float        label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS];
 
   parms.l_log_likelihood = 0.0 ;
   parms.l_multiscale = 1.0 ;
@@ -324,7 +331,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_register.c,v 1.22 2008/08/06 15:56:18 fischl Exp $", 
+     "$Id: mri_register.c,v 1.23 2008/11/15 02:42:49 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -835,14 +842,14 @@ main(int argc, char *argv[]) {
                  "intensity distributions\n");
         }
 
-        GCAmapRenormalizeWithAlignment
+        GCAcomputeRenormalizationWithAlignment
         (gcam->gca,
          mri_morphed,
          transform,
          parms.log_fp,
          parms.base_name,
          &lta,
-         handle_expanded_ventricles) ;
+         handle_expanded_ventricles, label_scales, label_offsets) ;
 
         Gdiag = old_diag ;
         if (write_gca_fname) {
@@ -960,11 +967,6 @@ main(int argc, char *argv[]) {
     GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
     GCAMstoreMetricProperties(gcam) ;
   }
-  if (renormalize_align_after) // 1st morph should be smooth
-  {
-    //    parms.tol *= 5 ;
-    parms.l_smoothness *= 5 ;
-  }
   mri_atlas_labels = MRIcloneDifferentType(mri_inputs, MRI_FLOAT) ;
   GCAMbuildLabelVolume(gcam, mri_atlas_labels) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -981,11 +983,70 @@ main(int argc, char *argv[]) {
     MRIwrite(mri_morphed, fname) ; MRIfree(&mri_morphed) ;
   }
 
+  if (renormalize_align_after) // 1st morph should be smooth
+  {
+    int old_diag ;
+    TRANSFORM  _transform, *transform = &_transform ;
+    GCA_MORPH_PARMS  saved_parms ;
+    int       start_t ;
+
+    *(&saved_parms) = *(&parms) ;
+
+    printf("performing initial intensity-based alignment for atlas renormalization\n");
+    parms.l_dtrans = 0 ;
+    parms.tol *= 5 ;
+    parms.l_smoothness *= 5 ;
+    parms.levels = 4 ;
+    parms.l_log_likelihood = 0.2f ;
+    parms.l_label = 1.0 ;
+    GCAMregister(gcam, mri_inputs, &parms) ;
+    transform->type = MORPH_3D_TYPE ;
+    transform->xform = (void *)gcam ;
+    old_diag = Gdiag ;
+    if (parms.write_iterations == 0)
+      Gdiag &= ~DIAG_WRITE ;
+    TransformInvert(transform, mri_inputs) ;
+    
+    Gdiag = old_diag ;
+    if (Gdiag & DIAG_WRITE) {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s.log", parms.base_name) ;
+      parms.log_fp = fopen(fname, "a") ;
+    }
+    GCAcomputeRenormalizationWithAlignment
+      (gcam->gca,
+       mri_inputs,
+       transform,
+       parms.log_fp,
+       parms.base_name,
+       NULL,
+       handle_expanded_ventricles,
+       label_scales,
+       label_offsets) ;
+    
+    Gdiag = old_diag ;
+    if (write_gca_fname) {
+      printf("writing normalized gca to %s...\n", write_gca_fname) ;
+      GCAwrite(gcam->gca, write_gca_fname) ;
+    }
+    start_t = parms.start_t ;
+    *(&parms) = *(&saved_parms) ;
+    parms.start_t = start_t ;
+#if 0
+    parms.l_dtrans = l_dtrans ;
+    parms.tol /= 5 ;  // reset parameters to previous level
+    parms.l_log_likelihood = 0.0f ;
+    parms.l_smoothness /= 5 ;
+#endif
+  }
+  
   // build multi-scale atlases
   FileNameOnly(out_fname, fname) ;
   dot = strrchr(fname, '.') ;
   if (dot)
     *dot = 0 ;
+  GCAinsertLabels(gca, mri_inputs, transform, ninsertions, 
+                  insert_labels, insert_intensities, insert_coords, insert_whalf) ;
   if (read_ms_name)
   {
     gcam_ms = GCAMMSread(read_ms_name, gcam, nsigmas != NSIGMAS? nsigmas : -1) ;
@@ -1005,9 +1066,19 @@ main(int argc, char *argv[]) {
     }
   }
   else
-    gcam_ms = GCAMMSalloc(gcam, gca, sigmas, nsigmas) ;
+    gcam_ms = GCAMMSalloc(gcam, gca, sigmas, nsigmas, write_ms_name) ;
+  if (renormalize_align_after) // renormalize gcamms
+  {
+    int i ;
+    for (i = 0 ; i < gcam_ms->nsigmas ; i++)
+      GCAapplyRenormalization(gcam_ms->gcas[i], label_scales, label_offsets, 0) ;
+  }
+
   if (write_ms_name)
+  {
     GCAMMSwrite(gcam_ms, write_ms_name) ;
+    exit(0) ;
+  }
 
   //////////////////////////////////////////////////////////////
   // -renorm fname option
@@ -1049,14 +1120,57 @@ main(int argc, char *argv[]) {
     free(intensities) ;
   }
 
+  parms.ndtrans = NDTRANS_LABELS ;
+  parms.dtrans_labels = dtrans_labels ;
+  if (ninsertions > 0)
+  {
+    int i, found, l  ;
+
+#if 0
+    for (i = 0 ; i < gcam_ms->nsigmas ; i++)
+      GCAinsertLabels(gcam_ms->gcas[i], mri_inputs, transform, ninsertions, 
+                      insert_labels, insert_intensities, insert_coords, insert_whalf) ;
+#endif
+
+    // now add label to dtrans list if it's not already in there
+    for (found = i = 0 ; i < parms.ndtrans ; i++)
+    {
+      for (l = 0 ; l < ninsertions ; l++)
+        if (insert_labels[l] == parms.dtrans_labels[i])
+          found++ ;
+    }
+    if (found < ninsertions)
+    {
+      int *dtrans_labels ;
+      dtrans_labels = (int *)calloc(parms.ndtrans+(ninsertions-found), sizeof(int)) ;
+      for (i = 0 ; i < parms.ndtrans ; i++)
+        dtrans_labels[i] = parms.dtrans_labels[i] ;
+
+      for (l = 0 ; l < ninsertions ; l++)
+      {
+        found = 0 ; // see if it's already in the list
+        for (i = 0 ; i < parms.ndtrans ; i++)
+          if (insert_labels[l] == parms.dtrans_labels[i])
+          {
+            found = 1 ;
+            break ;
+          }
+        if (found == 0)
+        {
+          dtrans_labels[parms.ndtrans] = insert_labels[l] ;
+          parms.ndtrans++ ;
+        }
+      }
+      parms.dtrans_labels = dtrans_labels ; // new expanded list
+    }
+  }
+  
   //////////////////////////////////////////////////////////////////
   // here is the main work force
   //  log_posterior = GCAMlogPosterior(gcam, mri_inputs)/(gcam->width*gcam->height*gcam->depth) ;
   parms.mri_diag = mri_inputs ;
-  parms.ndtrans = NDTRANS_LABELS ;
-  parms.dtrans_labels = dtrans_labels ;
   min_scale = mean_scale = gcam_ms->sigmas[gcam_ms->nsigmas-1] ;
-  round = 0 ;
+  round = reductions = 0 ;
   replace_labels(mri_atlas_labels, mri_atlas_labels, combine_labels, NCOMBINE_LABELS, &parms) ;
   mri_atlas_dist_map = MRIcreateDistanceTransforms(mri_atlas_labels, NULL,
                                                    2*sigmas[nsigmas-1],
@@ -1098,25 +1212,25 @@ main(int argc, char *argv[]) {
         GCAimagePosteriorLogProbability(gcam_ms->gcas[0], mri_aseg_orig, 
                                         mri_inputs, gcam_transform)/nvox ;
 #endif
-      sprintf(fname, "%s_aseg%d.mgz", parms.base_name, round) ; 
+      sprintf(fname, "%s_aseg%d.mgh", parms.base_name, round) ; 
       MRIwriteFrame(mri_aseg, fname, 0) ;
       if (mri_aseg->nframes > 1)
       {
-        sprintf(fname, "%s_aseg%d_p1.mgz", parms.base_name, round) ; 
+        sprintf(fname, "%s_aseg%d_p1.mgh", parms.base_name, round) ; 
         MRIwriteFrame(mri_aseg, fname, 1) ;
-        sprintf(fname, "%s_aseg%d_label2.mgz", parms.base_name, round) ; 
+        sprintf(fname, "%s_aseg%d_label2.mgh", parms.base_name, round) ; 
         MRIwriteFrame(mri_aseg, fname, 2) ;
-        sprintf(fname, "%s_aseg%d_p2.mgz", parms.base_name, round) ; 
+        sprintf(fname, "%s_aseg%d_p2.mgh", parms.base_name, round) ; 
         MRIwriteFrame(mri_aseg, fname, 3) ;
       }
 
-      sprintf(fname, "%s_sigma%d.mgz", parms.base_name, round) ; 
+      sprintf(fname, "%s_sigma%d.mgh", parms.base_name, round) ; 
       MRIwrite(mri_sigma, fname) ;
-      sprintf(fname, "%s_pvals%d.mgz", parms.base_name, round) ; 
+      sprintf(fname, "%s_pvals%d.mgh", parms.base_name, round) ; 
       MRIwrite(mri_pvals, fname) ;
       maxp = MRImaxNorm(mri_pvals) ;
       MRIscalarMul(mri_pvals, mri_pvals, 1.0/maxp) ;
-      sprintf(fname, "%s_norm_pvals%d.mgz", parms.base_name, round) ; 
+      sprintf(fname, "%s_norm_pvals%d.mgh", parms.base_name, round) ; 
       MRIwrite(mri_pvals, fname) ;
     }
     else
@@ -1133,10 +1247,10 @@ main(int argc, char *argv[]) {
     mean_scale = MRImeanFrameNonzeroMask(mri_sigma, 0, mri_aseg) ;
     printf("round %d, log posterior = %f, mean_scale = %2.2f (min %2.2f)\n", 
            round, log_posterior, mean_scale, min_scale) ;
-    if (mean_scale > min_scale)
+    if (min_scale > mean_scale)
       mean_scale = min_scale ;
     parms.sigma = mean_scale ;
-    min_scale = .99*mean_scale ; // ensure it decreases
+    min_scale = .95*mean_scale ; // ensure it decreases
 
     last_log_posterior = log_posterior ;
     last_gca_log_posterior = gca_log_posterior ;
@@ -1222,10 +1336,13 @@ main(int argc, char *argv[]) {
       parms.log_fp = NULL ;
     }
     round++ ;
-    if (log_posterior <= last_log_posterior+(last_log_posterior*2*parms.tol))
+    if (round > max_rounds)
+      done = 1 ;
+    else if (log_posterior <= last_log_posterior+(last_log_posterior*2*parms.tol))
     {
       min_scale *= .9 ;
-      if (min_scale < 1)
+      reductions++ ;
+      if (min_scale < 1 || reductions > max_reductions)
         done = 1;
       if (Gdiag & DIAG_WRITE)
       {
@@ -1239,76 +1356,10 @@ main(int argc, char *argv[]) {
         parms.log_fp = NULL ;
       }
     }
-    else 
+    else
       done = 0 ;
     //    done = 1 ;  
   } while (!done) ;
-
-  if (renormalize_align_after) {
-    int old_diag ;
-    TRANSFORM  _transform, *transform = &_transform ;
-
-    transform->type = MORPH_3D_TYPE ;
-    transform->xform = (void *)gcam ;
-    old_diag = Gdiag ;
-    if (parms.write_iterations == 0)
-      Gdiag &= ~DIAG_WRITE ;
-    TransformInvert(transform, mri_inputs) ;
-
-    if (Gdiag & DIAG_WRITE) {
-      char fname[STRLEN] ;
-      sprintf(fname, "%s.log", parms.base_name) ;
-      parms.log_fp = fopen(fname, "a") ;
-    }
-    GCAmapRenormalizeWithAlignment
-    (gcam->gca,
-     mri_inputs,
-     transform,
-     parms.log_fp,
-     parms.base_name,
-     NULL,
-     handle_expanded_ventricles) ;
-
-    Gdiag = old_diag ;
-    if (write_gca_fname) {
-      printf("writing normalized gca to %s...\n", write_gca_fname) ;
-      GCAwrite(gcam->gca, write_gca_fname) ;
-    }
-    parms.tol /= 5 ;  // reset parameters to previous level
-    parms.l_smoothness /= 5 ;
-    GCAMregister(gcam, mri_inputs, &parms) ;
-  }
-
-  if (parms.l_label > 0) {
-    GCAMcomputeMaxPriorLabels(gcam) ;  /* start out with max
-                                                          prior labels again */
-    if (reset) {
-      GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
-      GCAMstoreMetricProperties(gcam) ;
-    }
-    parms.l_label = 0 ;
-    printf("***************** morphing with label term set to 0 "
-           "*******************************\n") ;
-    GCAMregister(gcam, mri_inputs, &parms) ;
-  }
-
-#if 0
-  for (iter = 0 ; iter < 3 ; iter++) {
-    parms.relabel_avgs = 1 ;
-    GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
-    GCAMstoreMetricProperties(gcam) ;
-    parms.levels = 2 ;
-    parms.navgs = 1 ;
-    GCAMregister(gcam, mri_inputs, &parms) ;
-  }
-#endif
-
-#if 0
-  parms.l_distance = 0 ;
-  parms.relabel = 1 ;
-  GCAMcomputeLabels(mri_inputs, gcam) ;
-  GCAMregister(gcam, mri_inputs, &parms) ;
-#endif
 
   //record GCA filename to gcam
   strcpy(gcam->atlas.fname, gca_fname);
@@ -1386,6 +1437,14 @@ get_option(int argc, char *argv[]) {
     read_ms_name = argv[2] ;
     printf("reading previously constructed multiscale GCA from %s\n", read_ms_name) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "MAX_ROUNDS")) {
+    max_rounds = atoi(argv[2]) ;
+    printf("setting max number of rounds to %d\n", max_rounds) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "MAX_REDUCTIONS")) {
+    max_reductions = atoi(argv[2]) ;
+    printf("setting max number of rounds to %d\n", max_rounds) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "DEMONS")) {
     demons = 1 ;
     printf("using demons algorithm\n") ;
@@ -1394,6 +1453,8 @@ get_option(int argc, char *argv[]) {
     printf("using pvals in demons algorithm\n") ;
   } else if (!stricmp(option, "NSIGMAS")) {
     nsigmas = atoi(argv[2]) ;
+    if (nsigmas > NSIGMAS)
+      nsigmas = NSIGMAS ;
     printf("cropping sigmas to %d of %d\n", nsigmas, (int)NSIGMAS) ;
     nargs = 1 ;
   } else if (!stricmp(option, "WRITE_MS")) {
@@ -1492,6 +1553,27 @@ get_option(int argc, char *argv[]) {
     vf_fname = argv[2] ;
     nargs = 1 ;
     printf("writing vector field to %s...\n", vf_fname) ;
+  } else if (!stricmp(option, "INSERT")) {
+    if (ninsertions >= MAX_INSERTIONS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many insertions (%d) specified\n", Progname, ninsertions) ;
+
+    insert_labels[ninsertions] = atoi(argv[2]) ;
+    insert_intensities[ninsertions] = atoi(argv[3]) ;
+    insert_coords[ninsertions][0] = atoi(argv[4]) ;
+    insert_coords[ninsertions][1] = atoi(argv[5]) ;
+    insert_coords[ninsertions][2] = atoi(argv[6]) ;
+    insert_whalf[ninsertions] = atoi(argv[7]) ;
+    printf("inserting label %d (%s) at (%d, %d, %d) with intensity = %d, in %d voxel nbhd\n",
+           insert_labels[ninsertions],
+           cma_label_to_name(insert_labels[ninsertions]),
+           insert_coords[ninsertions][0],
+           insert_coords[ninsertions][1],
+           insert_coords[ninsertions][2],
+           insert_intensities[ninsertions],
+           insert_whalf[ninsertions]) ;
+           
+    ninsertions++ ;
+    nargs = 6 ;
   } else if (!stricmp(option, "MASK")) {
     mask_fname = argv[2] ;
     nargs = 1 ;
@@ -1956,45 +2038,4 @@ remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform) {
   return(NO_ERROR) ;
 }
 
-static MRI *
-replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels, 
-               int combine_labels[8][2], int ncombine_labels, 
-               GCA_MORPH_PARMS *parms)
-{
-  int n, *dtrans_labels, ndtrans, n2 ;
-
-  mri_dst_labels = MRIcopy(mri_src_labels, mri_dst_labels) ;
-  if (parms)
-    ndtrans = parms->ndtrans ;
-  else
-    ndtrans = 0 ;
-  for (n = 0 ; n < ncombine_labels ; n++)
-  {
-    printf("replacing label %s with %s\n", 
-           cma_label_to_name(combine_labels[n][0]),
-           cma_label_to_name(combine_labels[n][1])) ;
-    MRIreplaceValuesOnly(mri_src_labels, mri_dst_labels, combine_labels[n][0], combine_labels[n][1]) ;
-    if (parms)
-    {
-      for (n2 = 0 ; n2 < parms->ndtrans ; n2++)
-        if (parms->dtrans_labels[n2] == combine_labels[n][0])
-        {
-          parms->dtrans_labels[n2] = -1 ;  // remove it
-          ndtrans-- ;
-          break ;
-        }
-    }
-  }
-
-  if (parms)
-  {
-    dtrans_labels = (int *)calloc(ndtrans, sizeof(int)) ;
-    for (n = n2 = 0 ; n < parms->ndtrans ; n++)
-      if (parms->dtrans_labels[n] >= 0)
-        dtrans_labels[n2++] = parms->dtrans_labels[n] ;
-    parms->ndtrans = ndtrans ;
-    parms->dtrans_labels = dtrans_labels ;
-  }
-  return(mri_dst_labels) ;
-}
 
