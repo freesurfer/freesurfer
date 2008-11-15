@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/10/20 19:17:01 $
- *    $Revision: 1.372 $
+ *    $Date: 2008/11/15 02:41:21 $
+ *    $Revision: 1.373 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1221,5 +1221,8 @@ MRI *MRIapplyMorph(MRI *mri_source, MRI *mri_morph, MRI *mri_dst, int sample_typ
 int MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, short *z_indices) ;
 int MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
                                short *z_indices);
+MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist, MRI *mri_ref_dist, 
+                                           MRI *mri_dst_dist);
+
 
 #endif
