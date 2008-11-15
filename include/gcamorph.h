@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/06 13:39:00 $
- *    $Revision: 1.49 $
+ *    $Date: 2008/11/15 02:40:58 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,15 @@
  *
  */
 
+/*
+  The morph is a dense vector field uniformly distributed in the atlas 
+  coordinate system. A "forward" morph is a retraction into the atlas coords, 
+  and an "inverse" morph is a numerical mapping back to the image or source 
+  coords.
+
+  When the morph is image to image, the "atlas" is the target image and 
+  the vectors move through the source image.
+*/
 
 #ifndef GCA_MORPH_H
 #define GCA_MORPH_H
@@ -101,7 +110,6 @@ typedef struct
   int        ninputs ;
   int     type ;
   int     status ;
-  VOL_GEOM src;
   MATRIX   *m_affine ;         // affine transform to initialize with
   double   det ;               // determinant of affine transform
   void    *vgcam_ms ;
@@ -203,13 +211,15 @@ typedef struct
   char   *write_fname ;   // for writing intermiediate results (NULL otherwise)
   int    *dtrans_labels ;
   int    ndtrans ;
+  MRI    *mri_diag2 ;
+  double last_sse;
 }
 GCA_MORPH_PARMS, GMP ;
 
 
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
-int       GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, 
+int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
                    TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
 int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
@@ -304,12 +314,13 @@ int GCAMsetTargetDistancesForLabel(GCA_MORPH *gcam, MRI *mri_labels, MRI *mri_di
 GCA_MORPH *GCAMcreateFromIntensityImage(MRI *mri_source, 
                                         MRI *mri_target, 
                                         TRANSFORM *transform);
+int GCAMaddIntensitiesFromImage(GCA_MORPH *gcam,MRI *mri_source);
 int GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh) ;
 double GCAMlogPosterior(GCA_MORPH *gcam, MRI *mri) ;
 int GCAMreinitWithLTA(GCA_MORPH *gcam, 
                       LTA *lta, MRI *mri, GCA_MORPH_PARMS *parms) ;
 MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
-int GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_source, MRI *mri_target) ;
+int GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_target) ;
 int GCAMmatchVentricles(GCA_MORPH *gcam, MRI *mri_inputs) ;
 int GCAMdeformVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mr_target) ;
@@ -403,4 +414,8 @@ double GCAMMSgibbsImageLogPosterior(GCAM_MS *gcam_ms,MRI *mri_labels,
 int GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
 extern int combine_labels[8][2] ;
 extern int NCOMBINE_LABELS ;
+MRI *replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels, 
+                    int combine_labels[8][2], int ncombine_labels, 
+                    GCA_MORPH_PARMS *parms) ;
+double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 #endif
