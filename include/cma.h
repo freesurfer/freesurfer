@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/12 19:49:44 $
- *    $Revision: 1.47 $
+ *    $Date: 2008/11/15 02:41:39 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -262,6 +262,7 @@
 #define left_subiculum 557  //                          0   119 86  0
 #define left_fornix 558  //                             20  100 201 0
 
+#define Tumor       600 //                              253 253 253 0
 #define SUSPICIOUS 999 //                               255 100 100 0
 
 // be sure to update MAX_LABEL if additional labels are added!
