@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/12 16:12:54 $
- *    $Revision: 1.92 $
+ *    $Date: 2008/11/15 02:40:28 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -220,6 +220,10 @@ double GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform,
                              int penalize_zero_brain, MRI *mri_orig) ;
 float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                                     TRANSFORM *transform) ;
+float GCAcomputeNumberOfGoodFittingSamples(GCA *gca, GCA_SAMPLE *gcas,
+                                      MRI *mri_inputs,
+                                      TRANSFORM *transform,int nsamples);
+
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
                                       MRI *mri_inputs,
                                       TRANSFORM *transform,int nsamples);
@@ -479,5 +483,13 @@ double GCAvoxelGibbsLogPosterior(GCA *gca,
 GCA *GCAnodeDownsample2(GCA *gca) ;
 int GCAapplyRenormalization(GCA *gca, 
                             float *label_scales, float *label_offsets, int frame) ;
+
+#define MAX_INSERTIONS 20
+int GCAinsertLabels(GCA *gca, MRI *mri, TRANSFORM *transform, int ninsertions,
+                    int *insert_labels, int *insert_intensities, 
+                    int insert_coords[MAX_INSERTIONS][3], int *insert_wsize) ;
+GCA *gcaAllocMax(int ninputs, float prior_spacing, float node_spacing, 
+                 int width, int height, int depth,
+                 int max_labels, int flags) ;
 
 #endif
