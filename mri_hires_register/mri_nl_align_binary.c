@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 13:46:04 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/11/15 02:38:46 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,8 +39,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/08/26 13:46:04 $
-// Revision       : $Revision: 1.13 $
+// Revision Date  : $Date: 2008/11/15 02:38:46 $
+// Revision       : $Revision: 1.14 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -67,6 +67,7 @@
 
 #define NONMAX 0
 #define PAD      10
+#define MAX_DISTANCE 100
 
 static int PADVOX = 1 ;
 
@@ -76,18 +77,22 @@ static int find_gcam_node(GCA_MORPH *gcam, int label,
 
 static int surf_flag = 0 ;
 static float smooth_intensities = -1.0 ;
-static int morph_to = 0 ;
 static int find_label = -1 ;
 static float x_ras = 0.0 ;
 static float y_ras = 0.0 ;
 static float z_ras = 0.0 ;
 static int mode_filters = 0 ;
+static int aseg = 0 ;
+
+static double min_sigma = 1.0 ;
 
 static int upsample = 0 ;
 static int apply_transform = 1 ;
 
 int MRImapRegionToTargetMRI(MRI *mri_src, MRI *mri_dst, MRI_REGION *box) ;
+#if 0
 static MRI *estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensity, MRI *mri_src) ;
+#endif
 static int write_snapshot(MRI *mri_target, MRI *mri_source, 
 													MATRIX *m_vox_xform, GCA_MORPH_PARMS *parms, 
 													int fno, int conform, char *fname) ;
@@ -168,6 +173,7 @@ static GCA_MORPH_PARMS mp ;
 #define HIPPO 2
 #define WM    3
 #define LABEL 4
+#define ASEG  5
 
 static int which = ANGIO ;
 
@@ -239,6 +245,7 @@ main(int argc, char *argv[])
 	source_fname = argv[1] ;
 	target_fname = argv[2] ;
 	out_fname = argv[3] ;
+  mp.write_fname = out_fname ;
 	printf("source = %s\ntarget = %s\noutput = %s\n", source_fname, target_fname,out_fname);
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
@@ -266,6 +273,7 @@ main(int argc, char *argv[])
   }
 	mri_orig_target = MRIcopy(mri_target, NULL) ;
 
+
 	// crop input volumes
 	if (which == WM)
 	{
@@ -286,14 +294,17 @@ main(int argc, char *argv[])
 		MRIcopyLabel(mri_source, mri_tmp, target_aseg_label) ;
 		MRIfree(&mri_source) ; mri_source = mri_tmp ;
 	}
-	MRIboundingBox(mri_source, 0, &box) ;
-	pad = PADVOX ;
-	printf("padding source with %d voxels...\n", pad) ;
-	mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
-	MRIfree(&mri_source) ;
-	mri_source = mri_tmp ;
-	//	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  if (aseg == 0)
+  {
+    MRIboundingBox(mri_source, 0, &box) ;
+    pad = PADVOX ;
+    printf("padding source with %d voxels...\n", pad) ;
+    mri_tmp = MRIextractRegionAndPad(mri_source, NULL, &box, pad) ;
+    MRIfree(&mri_source) ;
+    mri_source = mri_tmp ;
+    //	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 		MRIwrite(mri_source, "s.mgz") ;
+  }
 	mri_orig_source = MRIcopy(mri_source, NULL) ;
 
 	if (which == HIPPO || which == LABEL) // just copy label out of the target 
@@ -321,55 +332,57 @@ main(int argc, char *argv[])
 		MRIfree(&mri_target) ; mri_target = mri_tmp ;
 		MRIeraseBorders(mri_target, 1) ;
 	}
-	MRIboundingBox(mri_target, 0, &box) ;
-	pad = 0 ; // don't need to pad target volume
-	if (!FZERO(mp.l_area_intensity) || !FZERO(mp.l_log_likelihood)  || !FZERO(mp.l_likelihood))
-	{
-		// need to provide some context for area-intensity case
+  if (aseg == 0)
+  {
+    MRIboundingBox(mri_target, 0, &box) ;
+    pad = 0 ; // don't need to pad target volume
+    if (!FZERO(mp.l_area_intensity) || !FZERO(mp.l_log_likelihood)  || !FZERO(mp.l_likelihood))
+    {
+      // need to provide some context for area-intensity case
 #define EXTRA 5
-		MRIcopy(mri_orig_target, mri_target) ;  // restore labels
-		box.x -= EXTRA ; box.y -= EXTRA ; box.z -= EXTRA ; 
-		box.dx += EXTRA*2 ; box.dy += EXTRA*2 ; box.dz += EXTRA*2 ; 
-		MRIcropBoundingBox(mri_target, &box) ;
-	}
-
+      MRIcopy(mri_orig_target, mri_target) ;  // restore labels
+      box.x -= EXTRA ; box.y -= EXTRA ; box.z -= EXTRA ; 
+      box.dx += EXTRA*2 ; box.dy += EXTRA*2 ; box.dz += EXTRA*2 ; 
+      MRIcropBoundingBox(mri_target, &box) ;
+    }
+    
 #if 1
-	if (mri_norm)  // won't work if the norm and aseg aren't in the same voxel coords
-	{
-		MRI_REGION box_norm ;
-
-		*(&box_norm) = *(&box) ;
-		MRImapRegionToTargetMRI(mri_orig_target, mri_norm, &box_norm) ;
-		mri_tmp = MRIextractRegionAndPad(mri_norm, NULL, &box_norm, pad) ;
-		MRIfree(&mri_norm) ;
-		mri_norm = mri_tmp ;
-		//		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    if (mri_norm)  // won't work if the norm and aseg aren't in the same voxel coords
+    {
+      MRI_REGION box_norm ;
+      
+      *(&box_norm) = *(&box) ;
+      MRImapRegionToTargetMRI(mri_orig_target, mri_norm, &box_norm) ;
+      mri_tmp = MRIextractRegionAndPad(mri_norm, NULL, &box_norm, pad) ;
+      MRIfree(&mri_norm) ;
+      mri_norm = mri_tmp ;
+      //		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			MRIwrite(mri_norm, "n.mgz") ;
-	}
+    }
 #endif
-	mri_tmp = MRIextractRegionAndPad(mri_target, NULL, &box, pad) ;
-	MRIfree(&mri_target) ;mri_target = mri_tmp ;
-	mri_tmp = MRIextractRegionAndPad(mri_orig_target, NULL, &box, pad) ;
-	MRIfree(&mri_orig_target) ;
-	mri_orig_target = mri_tmp ;
-	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-		MRIwrite(mri_target, "t.mgz") ;
-
+    mri_tmp = MRIextractRegionAndPad(mri_target, NULL, &box, pad) ;
+    MRIfree(&mri_target) ;mri_target = mri_tmp ;
+    mri_tmp = MRIextractRegionAndPad(mri_orig_target, NULL, &box, pad) ;
+    MRIfree(&mri_orig_target) ;
+    mri_orig_target = mri_tmp ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_target, "t.mgz") ;
+    
 #if NONMAX
-	printf("creating distance transforms...\n") ;
-	
-	mri_dist_source = MRIdistanceTransform(mri_source, NULL, target_label, -1, DTRANS_MODE_SIGNED, NULL);
-	mri_dist_target = MRIdistanceTransform(mri_target, NULL, target_label, -1, DTRANS_MODE_SIGNED, NULL);
-	MRIscalarMul(mri_dist_source, mri_dist_source, -1) ;
-	MRIscalarMul(mri_dist_target, mri_dist_target, -1) ;
-	MRIwrite(mri_dist_source, "dist_source.mgz") ;
-	MRIwrite(mri_dist_target, "dist_target.mgz") ;
-	mri_dist_source_sup = MRInonMaxSuppress(mri_dist_source, NULL, 0, 1) ;
-	mri_dist_target_sup = MRInonMaxSuppress(mri_dist_target, NULL, 0, 1) ;
-	MRIwrite(mri_dist_source_sup, "dist_source_sup.mgz") ;
+    printf("creating distance transforms...\n") ;
+    
+    mri_dist_source = MRIdistanceTransform(mri_source, NULL, target_label, -1, DTRANS_MODE_SIGNED, NULL);
+    mri_dist_target = MRIdistanceTransform(mri_target, NULL, target_label, -1, DTRANS_MODE_SIGNED, NULL);
+    MRIscalarMul(mri_dist_source, mri_dist_source, -1) ;
+    MRIscalarMul(mri_dist_target, mri_dist_target, -1) ;
+    MRIwrite(mri_dist_source, "dist_source.mgz") ;
+    MRIwrite(mri_dist_target, "dist_target.mgz") ;
+    mri_dist_source_sup = MRInonMaxSuppress(mri_dist_source, NULL, 0, 1) ;
+    mri_dist_target_sup = MRInonMaxSuppress(mri_dist_target, NULL, 0, 1) ;
+    MRIwrite(mri_dist_source_sup, "dist_source_sup.mgz") ;
 #else
 #endif
-	
+	}
 	if (which == ANGIO)
 	{
 		for (i = 0 ; i < NUM_NON_ARTERY_LABELS ; i++)
@@ -434,31 +447,14 @@ main(int argc, char *argv[])
     det = MatrixDeterminant( lta->xforms[0].m_L) ;
 		printf("initializing GCAM with vox->vox matrix:\n") ;
 		MatrixPrint(stdout, m_L) ;
-#if 1
-		gcam = GCAMalloc(mri_source->width, mri_source->height, mri_source->depth) ;
-		GCAMinit(gcam, mri_target, NULL, transform, 0) ;
-		GCAMinitVolGeom(gcam, mri_target, mri_source) ;
-#else
-		if (mp.l_area_intensity > 0 || mp.l_log_likelihood > 0  || mp.l_likelihood > 0) 
-		{ // will fill in densities later
-			gcam = GCAMalloc(mri_source->width, mri_source->height, mri_source->depth) ;
-			GCAMinit(gcam, mri_target, NULL, transform, 0) ;
-			GCAMinitVolGeom(gcam, mri_target, mri_source) ;
-		}
-		else
-		{
-#if NONMAX
-			gcam = GCAMcreateFromIntensityImage(mri_dist_source_sup, mri_target, transform) ;
-#else
-			gcam = GCAMcreateFromIntensityImage(mri_source, mri_target, transform) ;
-#endif
-		}
-#endif
-		GCAMinitLabels(gcam, mri_orig_source) ;
-#if 0
-			GCAMvoxToRas(gcam) ;
-			GCAMrasToVox(gcam, mri_target) ;
-#endif
+		gcam = GCAMalloc(mri_target->width, mri_target->height, mri_target->depth);
+		GCAMinit(gcam, mri_source, NULL, transform, 0) ;
+		GCAMinitLabels(gcam, mri_orig_target) ;
+    gcam->gca = gcaAllocMax(1, 1, 1, 
+                            mri_target->width, mri_target->height, 
+                            mri_target->depth,
+                            0, 0) ;
+    GCAMinitVolGeom(gcam, mri_source, mri_target) ;
 	}
 	else  /* use a previously create morph and integrate it some more */
 	{
@@ -471,47 +467,13 @@ main(int argc, char *argv[])
 		find_gcam_node(gcam, find_label, x_ras, y_ras, z_ras) ;
 	}
 
-	GCAMrasToVox(gcam, mri_target) ;
-	if (!FZERO(mp.l_area_intensity) || !FZERO(mp.l_log_likelihood)  || !FZERO(mp.l_likelihood))
-	{
-		mp.mri_binary = estimate_densities(gcam, mri_orig_target, mri_norm, mri_orig_source) ;
-    if (smooth_intensities > 0)
-    {
-      printf("smoothing conditional densities with sigma=%2.2f\n", 
-             smooth_intensities) ;
-      GCAMsmoothConditionalDensities(gcam, smooth_intensities) ;
-    }
-      
-		switch (which)
-		{
-		case ANGIO:
-			for (i = 0 ; i < NUM_NON_ARTERY_LABELS ; i++)
-			{
-				label = non_artery_labels[i] ;
-				MRIreplaceValues(mp.mri_binary, mp.mri_binary, label, 0) ;
-			}
-			break ;
-	case HIPPO:
-		{
-			float fmin, fmax ;
-
-			MRInonzeroValRange(mp.mri_binary, &fmin, &fmax) ;
-			for (i = (int)floor(fmin) ; i < (int)ceil(fmax) ; i++)
-				if (!IS_HIPPO(i))
-					MRIreplaceValues(mp.mri_binary, mp.mri_binary, i, 0) ;
-			break ;
-		}
-	default:
-		break ;
-	}
-		mri_target = mri_norm ;   // make the input volume to GCAMregister the intensity volume
-	}
-	if (gcam->width != mri_source->width ||
-			gcam->height != mri_source->height ||
-			gcam->depth != mri_source->depth)
+	GCAMrasToVox(gcam, mri_source) ;
+	if (gcam->width != mri_target->width ||
+			gcam->height != mri_target->height ||
+			gcam->depth != mri_target->depth)
 		ErrorPrintf(ERROR_BADPARM, "%s: warning gcam (%d, %d, %d), doesn't match source vol (%d, %d, %d)",
 							Progname, gcam->width, gcam->height, gcam->depth,
-							mri_source->width, mri_source->height, mri_source->depth) ;
+							mri_target->width, mri_target->height, mri_target->depth) ;
 
 	if (mp.mri_binary == NULL)
 		mp.mri_binary = MRIcopy(mri_target, NULL) ;
@@ -536,21 +498,18 @@ main(int argc, char *argv[])
 		}
 		// no break!!
 	default:
-		mp.mri_diag = mri_target ;
-		mp.diag_morph_from_atlas = 1 ;
+    //		mp.mri_diag = mri_target ;
 		mp.diag_volume = GCAM_LABEL ;
 		break ;
 	}
 
-	if (morph_to)
-		mp.diag_morph_from_atlas = 0 ;
 	if (mp.write_iterations != 0)
 	{
 		char fname[STRLEN] ;
 		MRI  *mri_gca ;
 
 		sprintf(fname, "%s_target.mgz", mp.base_name) ;
-		if (mp.diag_morph_from_atlas)
+		if (mp.diag_morph_from_atlas == 0)
 		{
 			printf("writing target volume to %s...\n", fname) ;
 			MRIwrite(mri_orig_target, fname) ;
@@ -579,15 +538,58 @@ main(int argc, char *argv[])
 		MRIwrite(mri_morphed, fname) ;
 	}
 		
-	for (i = 0 ; i < upsample ; i++)
-		GCAMupsample2(gcam) ;
+  if (aseg)
+  {
+    MRI *mri_target_dist, *mri_warp ;
+    double old_sse, sse, pct_change ;
+    int    done ;
+
+    mri_warp = MRIallocSequence(mri_target->width, 
+                                mri_target->height, mri_target->depth, 
+                                MRI_FLOAT, 3) ;
+    mp.ndtrans = NDTRANS_LABELS ;
+    mp.dtrans_labels = dtrans_labels ;
+    replace_labels(mri_source, mri_source, combine_labels, NCOMBINE_LABELS, &mp) ;
+    replace_labels(mri_target, mri_target, combine_labels, NCOMBINE_LABELS, &mp) ;
+    mri_target_dist = MRIcreateDistanceTransforms(mri_target, NULL,
+                                                  MAX_DISTANCE,
+                                                  mp.dtrans_labels,
+                                                  mp.ndtrans) ;
+    GCAMwriteWarpToMRI(gcam, mri_warp) ;
+    sse = MRIlabelMorphSSE(mri_source, mri_target, mri_warp) ;
+    do
+    {
+      int start_t = mp.start_t, steps ;
+      old_sse = sse ;
+      printf("calling demons registration with sigma = %2.1f\n", mp.sigma) ;
+      GCAMdemonsRegister(gcam, mri_source, mri_target, &mp,
+                         MAX_DISTANCE, NULL, mri_target_dist) ;
+      sse = mp.last_sse ;
+      pct_change = 100*(old_sse - sse) / (old_sse) ;
+      done = pct_change < mp.tol ;
+      printf("old sse %f, new sse %f, pct_change = %2.3f%%, done = %d\n",
+             old_sse, sse, pct_change, done) ;
+      steps = mp.start_t - start_t ;
+      if (steps <= 1)  // couldn't make any progress at this scale - reduce it
+        mp.sigma *= .75 ;
+
+      done = (mp.sigma < min_sigma);
+    } while (!done) ;
+
+    MRIfree(&mri_warp) ;
+  }
+  else
+  {
+    for (i = 0 ; i < upsample ; i++)
+      GCAMupsample2(gcam) ;
 #if NONMAX
-	GCAMregister(gcam, mri_dist_target, &mp) ; // atlas is source, morph target into register with it
+    GCAMregister(gcam, mri_dist_source, &mp) ; // atlas is source, morph target into register with it
 #else
-	GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
-  GCAMstoreMetricProperties(gcam) ;
-	GCAMregister(gcam, mri_target, &mp) ; // atlas is source, morph target into register with it
+    GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+    GCAMstoreMetricProperties(gcam) ;
+    GCAMregister(gcam, mri_source, &mp) ; // atlas is target, morph source into register with it
 #endif
+  }
 	if (apply_transform)
 	{
 		MRI *mri_aligned ;
@@ -602,7 +604,7 @@ main(int argc, char *argv[])
 	}
 	GCAMvoxToRas(gcam) ;
 	GCAMwrite(gcam, out_fname) ;
-	GCAMrasToVox(gcam, mri_target) ;
+	GCAMrasToVox(gcam, mri_source) ;
 	if (find_label >= 0)
 		find_gcam_node(gcam, find_label, x_ras, y_ras, z_ras) ;
 
@@ -650,14 +652,24 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "morph_to"))
   {
-		morph_to = 1 ;
-    printf("morphing to atlas...\n") ;
+    mp.diag_morph_from_atlas = atoi(argv[2]) ;
+    printf("morphing %s atlas...\n", mp.diag_morph_from_atlas ? "from" : "to") ;
   }
   else if (!stricmp(option, "spring"))
   {
 		mp.l_spring = atof(argv[2]) ;
 		nargs = 1;
     printf("setting l_spring = %2.2f\n", mp.l_spring) ;
+  }
+  else if (!stricmp(option, "aseg"))
+  {
+    aseg = 1 ;
+    mp.tol = .25 ;
+    mp.sigma = 14 ;
+    mp.l_smoothness = 0.1 ;
+    which = ASEG ;
+    printf("assuming input volumes are aseg labelings (setting tol=%2.1f, l_smooth=%2.2f)\n",
+           mp.tol, mp.l_smoothness) ;
   }
   else if (!stricmp(option, "uncompress"))
   {
@@ -692,6 +704,13 @@ get_option(int argc, char *argv[])
   {
     mp.integration_type = GCAM_INTEGRATE_FIXED ;
     printf("using optimal time-step integration\n") ;
+  }
+  else if (!stricmp(option, "diag"))  {
+    mp.mri_diag = MRIread(argv[2]) ;
+    if (mp.mri_diag == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read diag volume from %s", Progname, argv[2]) ;
+    nargs = 1 ;
+    printf("writing diagnostics for input volume %s\n", argv[2]) ;
   }
   else if (!stricmp(option, "distance"))
   {
@@ -779,6 +798,12 @@ get_option(int argc, char *argv[])
     mp.sigma = atof(argv[2]) ;
     nargs = 1 ;
     printf("using sigma=%2.3f\n", mp.sigma) ;
+  }
+  else if (!stricmp(option, "min_sigma"))
+  {
+    min_sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using min sigma=%2.3f\n", min_sigma) ;
   }
 	else if (!stricmp(option, "rthresh"))
   {
@@ -931,7 +956,7 @@ static void
 usage_exit(int ecode)
 {
 	printf(
-				 "usage: %s <source> <destination> <output xform>\n",
+				 "usage: %s <source> <target> <warp>\n",
 				 Progname) ;
 	exit(ecode) ;
 }
@@ -1013,6 +1038,7 @@ write_snapshot(MRI *mri_target, MRI *mri_source, MATRIX *m_vox_xform,
 	return(NO_ERROR) ;
 }
 
+#if 0
 static MRI *
 estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensities, MRI *mri_src)
 {
@@ -1321,6 +1347,7 @@ estimate_densities(GCA_MORPH *gcam, MRI *mri_target, MRI *mri_intensities, MRI *
 			gcam_ltt.scales[i] = 1 ;
 	return(GCAMinitDensities(gcam, mri_target, mri_intensities, &gcam_ltt)) ;
 }
+#endif
 
 static int
 find_gcam_node(GCA_MORPH *gcam, int label, float x0, float y0, float z0)
