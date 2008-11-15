@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/08/13 18:06:46 $
- *    $Revision: 1.131 $
+ *    $Author: fischl $
+ *    $Date: 2008/11/15 02:39:56 $
+ *    $Revision: 1.132 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -2445,16 +2445,16 @@ TransformApplyType(TRANSFORM *transform,
   {
   case MORPH_3D_TYPE:
     mri_dst =
-      GCAMmorphToAtlasType(mri_src,
+      GCAMmorphToAtlas(mri_src,
                            (GCA_MORPH*)transform->xform,
-                           NULL, -1, interp_type) ;
+                           mri_dst, -1, interp_type) ;
     break ;
   default:
     // this does not work for RAS-to-RAS
     // mri_dst = MRIlinearTransformInterp(mri_src, NULL,
     //          ((LTA *)transform->xform)->xforms[0].m_L, interp_type);
     lta = (LTA *) transform->xform;
-    mri_dst = LTAtransformInterp(mri_src, NULL, lta, interp_type);
+    mri_dst = LTAtransformInterp(mri_src, mri_dst, lta, interp_type);
     break ;
   }
   return(mri_dst) ;
@@ -3964,7 +3964,7 @@ int
 TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 {
   if (transform->type == MORPH_3D_TYPE)
-    return(GCAMrasToVox((GCA_MORPH *)(transform->xform), mri_dst)) ;
+    return(GCAMrasToVox((GCA_MORPH *)(transform->xform), mri_src)) ;
   else
   {
     transform->type = LINEAR_VOX_TO_VOX ;
@@ -4228,4 +4228,60 @@ MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R)
   return(disp);
 }
 
+int
+TransformGetSrcVolGeom(TRANSFORM *transform, VOL_GEOM *vg)
+{
+  GCAM *gcam ;
+  LTA  *lta ;
+
+  switch (transform->type)
+  {
+  case MORPH_3D_TYPE:
+    gcam = (GCA_MORPH *)transform->xform ;
+    *vg = *(&gcam->image) ;
+    break ;
+  default: // linear tranforms
+    lta = (LTA *)transform->xform ;
+    *vg = *(&lta->xforms[0].src) ;
+    break ;
+  }
+  return(NO_ERROR) ;
+}
+int
+TransformGetDstVolGeom(TRANSFORM *transform, VOL_GEOM *vg) 
+{
+  GCAM *gcam ;
+  LTA  *lta ;
+
+  switch (transform->type)
+  {
+  case MORPH_3D_TYPE:
+    gcam = (GCA_MORPH *)transform->xform ;
+    *vg = *(&gcam->atlas) ;
+    break ;
+  default: // linear tranforms
+    lta = (LTA *)transform->xform ;
+    *vg = *(&lta->xforms[0].dst) ;
+    break ;
+  }
+  return(NO_ERROR) ;
+}
+int
+TransformSetMRIVolGeomToSrc(TRANSFORM *transform, MRI *mri) 
+{
+  VOL_GEOM vg ;
+
+  TransformGetSrcVolGeom(transform, &vg) ;
+  MRIcopyVolGeomToMRI(mri, &vg) ;
+  return(NO_ERROR) ;
+}
+int
+TransformSetMRIVolGeomToDst(TRANSFORM *transform, MRI *mri)
+{
+  VOL_GEOM vg ;
+
+  TransformGetDstVolGeom(transform, &vg) ;
+  MRIcopyVolGeomToMRI(mri, &vg) ;
+  return(NO_ERROR) ;
+}
 
