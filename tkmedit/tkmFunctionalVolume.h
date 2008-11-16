@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/18 18:27:04 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2008/11/16 21:11:14 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -183,6 +183,11 @@ struct tkmFunctionalVolume {
   void       (*mpOverlayChangedFunction)(void);
   void       (*mpSendTkmeditTclCmdFunction)(tkm_tTclCommand,char*);
   char*      (*mpSendTclCommandFunction)(char*);
+
+  int nRawPlot;
+  char *RawPlotFiles[10];
+  MRI *RawPlotVols[10];
+
 };
 typedef struct tkmFunctionalVolume tkmFunctionalVolume;
 typedef tkmFunctionalVolume *tkmFunctionalVolumeRef;
