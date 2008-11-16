@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/02/19 18:57:42 $
- *    $Revision: 1.32 $
+ *    $Date: 2008/11/16 21:06:36 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,5 +96,8 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 /* Necessary when Intel C/C++ compiler is used... */
 void __ltoq(void);
 void __qtol(void);
+
+char *GetNthItemFromString(char *str, int nth) ;
+int CountItemsInString(char *str) ;
 
 #endif

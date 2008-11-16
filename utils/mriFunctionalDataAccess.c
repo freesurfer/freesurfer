@@ -6,9 +6,9 @@
 /*
  * Original Author: inverse
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/12 02:46:07 $
- *    $Revision: 1.49 $
+ *    $Author: greve $
+ *    $Date: 2008/11/16 21:06:38 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -336,6 +336,7 @@ FunD_tErr FunD_ReshapeIfScalar_ ( mriFunctionalDataRef this,
   return eResult;
 }
 
+
 FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
 {
 
@@ -356,6 +357,13 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   int       nCovMtxRow     = 0;
   int       nValue         = 0;
   int       nValuesRead    = 0;
+
+  
+  if(getenv("USEDNGDRAW")){
+    this->mNumConditions = CountItemsInString(getenv("USEDNGDRAW")) + 1;
+    printf("Using dng draw %d\n",this->mNumConditions-1);
+    return(0);
+  }
 
   DebugEnterFunction( ("FunD_FindAndParseStemHeader_( this=%p )", this) );
 

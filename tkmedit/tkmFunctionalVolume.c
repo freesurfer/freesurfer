@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/01 17:58:16 $
- *    $Revision: 1.61 $
+ *    $Author: greve $
+ *    $Date: 2008/11/16 21:06:38 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,7 @@
 #include "mri_transform.h"
 #include "xUtilities.h"
 #include "mri.h"
+#include "utils.h"
 #include "error.h"
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
@@ -2664,6 +2665,7 @@ cleanup:
 
   return eResult;
 }
+double round(double);
 
 // DNG's attempt to circumvent the normal tkmedit plotter
 // Plan:
@@ -2671,11 +2673,15 @@ cleanup:
 //   2. Add plot info file/struct to tkmFunctionalVolumeRef struct
 //   3. Hijack FunD_FindAndParseStemHeader_() in utils/mriFunctionalDataAccess.c
 //   4. Hijack FunV_DrawGraph
+//   5. Something with FunV_tErr FunV_InitGraphWindow?
+//   6. Or maybe FunV_SendGraphData_?
 FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this ) ;
 FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this ) 
 {
   static float afValues[1000];
+  static char sTclArguments[10000];
   int n = 0, m = 0;
+
   xVoxelRef pVoxel  = NULL;
   FunV_tErr eResult = FunV_tErr_NoError;
 
@@ -2685,6 +2691,18 @@ FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this )
     return(eResult);
   }
 
+  this->nRawPlot = CountItemsInString(getenv("USEDNGDRAW"));
+  for(n=0; n < this->nRawPlot; n++){
+    this->RawPlotFiles[n] = GetNthItemFromString(getenv("USEDNGDRAW"),n);
+    if(this->RawPlotFiles[n]){
+      if(this->RawPlotVols[n] == NULL){
+	printf("Reading %s\n",this->RawPlotFiles[n]);
+	this->RawPlotVols[n] = MRIread(this->RawPlotFiles[n]);
+	if(this->RawPlotVols[n] == NULL) exit(1);
+      }
+    }
+  }
+
   void* pvoid = (void*) &pVoxel;
   xList_GetNextItemFromPosition( this->mpSelectedVoxels, (void**)pvoid );
   printf("%f %f %f\n",pVoxel->mfX,pVoxel->mfY,pVoxel->mfZ);
@@ -2692,9 +2710,19 @@ FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this )
   /* send the command for starting to draw the graph */
   FunV_SendTclCommand_( this, FunV_tTclCommand_TC_BeginDrawingGraph, "" );
 
-  for(n=0; n < 4; n++){
-    for(m=0; m < 10+n; m++) afValues[m] = drand48() + 2*n;
-    FunV_SendGraphData_( this, n, 10+n, afValues );
+  for(n=0; n < this->nRawPlot; n++){
+    memset(sTclArguments,'\0',strlen(sTclArguments));
+    sprintf( sTclArguments, "%d {", n+1);
+    for(m=0; m < this->RawPlotVols[n]->nframes; m++){ 
+      afValues[m] = MRIgetVoxVal(this->RawPlotVols[n],
+	 round(pVoxel->mfX),round(pVoxel->mfY),round(pVoxel->mfZ),m);
+      sprintf(sTclArguments, "%s %1.1f %2.5f", 
+	      sTclArguments, (m-1)*this->RawPlotVols[n]->tr/1000.0, afValues[m] );
+    }
+    sprintf( sTclArguments, "%s}", sTclArguments );
+    FunV_SendTclCommand_(this, FunV_tTclCommand_TC_UpdateGraphData,sTclArguments );
+    //FunV_SendGraphData_( this, n, 10+n, afValues );
+    //FunV_SendGraphData_( this, nCondition, nNumTimePoints, afValues );
   }
 
   /* finish drawing */
@@ -2714,6 +2742,12 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
   int                   nNumConditions  = 0;
   int                   nCondition      = 0;
   int                   nNumGoodValues  = 0;
+
+  if(getenv("USEDNGDRAW")){
+    printf("Using dng\n");
+    eResult = DNGFunV_DrawGraph(this);
+    return(eResult);
+  }
 
   DebugEnterFunction( ("FunV_DrawGraph( this=%p )", this ) );
 
