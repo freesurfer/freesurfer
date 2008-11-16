@@ -86,6 +86,7 @@ install: install-fooDATA
 uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
+	rm -f $(DESTDIR)$(prefix)/bin/predict_v1.sh
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
