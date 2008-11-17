@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/16 21:06:36 $
- *    $Revision: 1.70 $
+ *    $Date: 2008/11/17 22:10:19 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1343,21 +1343,16 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique)
 int CountItemsInString(char *str) 
 {
   int len, n, nhits;
-
   len = strlen(str);
-
   nhits = 0;
   n = 0;
-  while (n < len) {
-    while (isblank(str[n])) n++;
-    if (n >= len) break;
-    if (str[n] == '\0' || str[n] == '\n' || str[n] == '\r') break;
-    while (!isblank(str[n])) n++;
+  while(n < len) {
+    while(n < len && isblank(str[n]) ) n++;
+    if(n >= len) break;
+    if(str[n] == '\0' || str[n] == '\n' || str[n] == '\r') break;
+    while(n < len && !isblank(str[n])) n++;
     nhits++;
   }
-
-  //printf("nhits %d\n",nhits);
-
   return(nhits);
 }
 
