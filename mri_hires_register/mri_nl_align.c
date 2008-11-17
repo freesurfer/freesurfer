@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/15 02:38:46 $
- *    $Revision: 1.21 $
+ *    $Date: 2008/11/17 19:20:24 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,8 +34,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/11/15 02:38:46 $
-// Revision       : $Revision: 1.21 $
+// Revision Date  : $Date: 2008/11/17 19:20:24 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -119,6 +119,7 @@ main(int argc, char *argv[])
 	memset(&mp, 0, sizeof(GCA_MORPH_PARMS));
 	/* for nonlinear morph */
 	mp.l_jacobian = 1 ;
+  mp.min_sigma = 0.4 ;
 	mp.l_distance = 0 ;
 	mp.l_log_likelihood = .025 ;
 	mp.dt = 0.005 ;
@@ -440,7 +441,7 @@ main(int argc, char *argv[])
 		
 		FileNameRemoveExtension(out_fname, fname) ;
 		strcat(fname, ".mgz") ;
-		mri_aligned = GCAMmorphFieldFromAtlas(gcam, mp.mri, GCAM_MEANS,0, 1) ;
+    mri_aligned = GCAMmorphToAtlas(mp.mri, gcam, NULL, -1, mp.diag_sample_type) ;
 		printf("writing transformed output volume to %s...\n", fname) ;
 		MRIwrite(mri_aligned, fname) ;
 		MRIfree(&mri_aligned) ;
@@ -620,6 +621,12 @@ get_option(int argc, char *argv[])
     mp.sigma = atof(argv[2]) ;
     nargs = 1 ;
     printf("using sigma=%2.3f\n", mp.sigma) ;
+  }
+  else if (!stricmp(option, "min_sigma"))
+  {
+    mp.min_sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using min sigma=%2.3f\n", mp.min_sigma) ;
   }
   else if (!stricmp(option, "ribbon"))
   {

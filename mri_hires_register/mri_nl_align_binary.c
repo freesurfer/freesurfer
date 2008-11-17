@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/15 02:38:46 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/11/17 19:20:24 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,8 +39,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/11/15 02:38:46 $
-// Revision       : $Revision: 1.14 $
+// Revision Date  : $Date: 2008/11/17 19:20:24 $
+// Revision       : $Revision: 1.15 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -597,7 +597,7 @@ main(int argc, char *argv[])
 			
 		FileNameRemoveExtension(out_fname, fname) ;
 		strcat(fname, ".mgz") ;
-		mri_aligned = GCAMmorphFieldFromAtlas(gcam, mp.mri, GCAM_LABEL,0, mp.diag_mode_filter) ;
+    mri_aligned = GCAMmorphToAtlas(mp.mri, gcam, NULL, -1, mp.diag_sample_type) ;
 		printf("writing transformed output volume to %s...\n", fname) ;
 		MRIwrite(mri_aligned, fname) ;
 		MRIfree(&mri_aligned) ;
