@@ -13,8 +13,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/16 21:06:38 $
- *    $Revision: 1.62 $
+ *    $Date: 2008/11/17 22:12:57 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2717,7 +2717,7 @@ FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this )
       afValues[m] = MRIgetVoxVal(this->RawPlotVols[n],
 	 round(pVoxel->mfX),round(pVoxel->mfY),round(pVoxel->mfZ),m);
       sprintf(sTclArguments, "%s %1.1f %2.5f", 
-	      sTclArguments, (m-1)*this->RawPlotVols[n]->tr/1000.0, afValues[m] );
+	      sTclArguments, m*this->RawPlotVols[n]->tr/1000.0, afValues[m] );
     }
     sprintf( sTclArguments, "%s}", sTclArguments );
     FunV_SendTclCommand_(this, FunV_tTclCommand_TC_UpdateGraphData,sTclArguments );
