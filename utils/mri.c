@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/10/24 17:19:55 $
- *    $Revision: 1.420 $
+ *    $Author: fischl $
+ *    $Date: 2008/11/17 19:15:18 $
+ *    $Revision: 1.421 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.420 $";
+const char *MRI_C_VERSION = "$Revision: 1.421 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -7037,7 +7037,7 @@ ImageToMRI(IMAGE *I)
     type = MRI_UCHAR;
     break;
   case PFSHORT:
-    type = MRI_SHORT;
+    type = MRI_INT;
     break;
   case PFINT:
     type = MRI_INT;
@@ -7105,8 +7105,18 @@ ImageToMRI(IMAGE *I)
           MRISseq_vox(mri, x, y, 0, frames) = *IMAGESpix(I, x, yp);
           break;
         case MRI_INT:
-          MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
-          break ;
+          {
+            int val ;
+
+            if (*IMAGESpix(I, x, yp) < 0)
+              DiagBreak() ;
+            if (I->pixel_format == PFSHORT)
+              MRIIseq_vox(mri, x, y, 0, frames) = (int)((unsigned short)(*IMAGESpix(I, x, yp)));
+            else
+              MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
+            val = MRIIseq_vox(mri, x, y, 0, frames);
+            break ;
+          }
         case MRI_FLOAT:
           MRIFseq_vox(mri, x, y, 0, frames) = *IMAGEFpix(I, x, yp);
           break ;
