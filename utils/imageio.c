@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/28 13:50:46 $
- *    $Revision: 1.44 $
+ *    $Date: 2008/11/18 20:23:05 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1217,6 +1217,10 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
     samples_per_pixel = 1;
     bits_per_sample = sizeof(short)*8;
     break;
+  case PFINT:
+    samples_per_pixel = 1 ;
+    bits_per_sample = sizeof(int)*8 ;
+    break ;
   case PFFLOAT:
     samples_per_pixel = 1 ;
     bits_per_sample = sizeof(float)*8 ;
@@ -1253,11 +1257,15 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
     {
       switch (I->pixel_format)
       {
+      case PFINT:
+        buf = (tdata_t *)IMAGEIpix(I,0,row);
+        break;
       case PFBYTE:
         buf = (tdata_t *)IMAGEpix(I,0,row);
         break;
       case PFSHORT:
         buf = (tdata_t *)IMAGESpix(I,0,row);
+        break ;
       case PFFLOAT:
         buf = (tdata_t *)IMAGEFpix(I,0,row);
         break;
