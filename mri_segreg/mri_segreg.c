@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/18 00:14:24 $
- *    $Revision: 1.69 $
+ *    $Date: 2008/11/18 23:07:54 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.69 2008/11/18 00:14:24 greve Exp $";
+"$Id: mri_segreg.c,v 1.70 2008/11/18 23:07:54 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -311,6 +311,7 @@ char *RMSDiffFile = NULL;
 int DoSmooth = 0;
 double fwhm = 0, gstd = 0;
 int nsubsamp = 1;
+int nsubsampbrute = 100;
 
 int  DoGMProjFrac = 1;   // default
 double GMProjFrac = 0.5; // default
@@ -359,13 +360,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.69 2008/11/18 00:14:24 greve Exp $",
+     "$Id: mri_segreg.c,v 1.70 2008/11/18 23:07:54 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.69 2008/11/18 00:14:24 greve Exp $",
+     "$Id: mri_segreg.c,v 1.70 2008/11/18 23:07:54 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -715,7 +716,7 @@ int main(int argc, char **argv) {
     printf("\n");
     printf("------------------------------------\n");
     nsubsampsave = nsubsamp;
-    nsubsamp = 50;
+    nsubsamp = nsubsampbrute;
     printf("Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
     fprintf(fp,"\n");
     fprintf(fp,"Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
@@ -1164,6 +1165,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&nsubsamp);
       nargsused = 1;
     } 
+    else if(istringnmatch(option, "--subsamp-brute",0)){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nsubsampbrute);
+      nargsused = 1;
+    } 
     else if (istringnmatch(option, "--nmax",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nMaxItersPowell);
@@ -1470,6 +1476,7 @@ printf("\n");
 printf("  --fwhm fwhm : smooth input by fwhm mm\n");
 printf("  --abs       : compute abs of mov\n");
 printf("  --subsamp nsub : only sample every nsub vertices\n");
+printf("  --subsamp-brute nsub : only sample every nsub vertices during brute-force search (%d)\n",nsubsampbrute);
 printf("\n");
 printf("  --preopt-file file : save preopt results in file\n");
 printf("  --preopt-dim dim : 0-5 (def 2) (0=TrLR,1=TrSI,2=TrAP,3=RotLR,4=RotSI,5=RotAP)\n");
