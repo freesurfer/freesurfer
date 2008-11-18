@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/15 02:40:58 $
- *    $Revision: 1.50 $
+ *    $Date: 2008/11/18 12:26:24 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -213,6 +213,7 @@ typedef struct
   int    ndtrans ;
   MRI    *mri_diag2 ;
   double last_sse;
+  double min_sigma;
 }
 GCA_MORPH_PARMS, GMP ;
 
