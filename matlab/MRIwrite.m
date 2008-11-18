@@ -1,5 +1,5 @@
-function err = MRIwrite(mri,fstring)
-% err = MRIwrite(mri,fstring)
+function err = MRIwrite(mri,fstring,datatype)
+% err = MRIwrite(mri,fstring,datatype)
 %
 % Writes an MRI volume based on the fstring. fstring can be:
 %  1. MGH file. Eg, f.mgh or f.mgz
@@ -18,7 +18,8 @@ function err = MRIwrite(mri,fstring)
 % keep the same precision set mri.outbext = mri.srcbext.  This only
 % applies to bhdr format.
 % 
-
+% datatype can be uchar, short, int, float, double, ushort,
+% uint. Only applies to nifti.
 
 %
 % MRIwrite.m
@@ -26,8 +27,8 @@ function err = MRIwrite(mri,fstring)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/11/01 17:47:34 $
-%    $Revision: 1.10 $
+%    $Date: 2008/11/18 20:49:52 $
+%    $Revision: 1.11 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -45,10 +46,12 @@ function err = MRIwrite(mri,fstring)
 
 err = 1;
 
-if(nargin ~= 2)
-  fprintf('err = MRIwrite(mri,fstring)\n');
+if(nargin < 2 | nargin > 3)
+  fprintf('err = MRIwrite(mri,fstring,<datatype>)\n');
   return;
 end
+
+if(nargin == 2) datatype = 'float'; end
 
 [fspec fstem fmt] = MRIfspec(fstring,0); % 0 = turn off checkdisk
 if(isempty(fspec))
@@ -97,10 +100,20 @@ switch(fmt)
   hdr.intent_p3       = 0;
   hdr.intent_code     = 0;
   
-  hdr.datatype        = 16; % 16=DT_FLOAT
-  hdr.bitpix          = 4;
+  switch(datatype)
+   case 'uchar',  hdr.datatype = 2;   hdr.bitpix = 8*1;
+   case 'short',  hdr.datatype = 4;   hdr.bitpix = 8*2;
+   case 'int',    hdr.datatype = 8;   hdr.bitpix = 8*4;
+   case 'float',  hdr.datatype = 16;  hdr.bitpix = 8*4;
+   case 'double', hdr.datatype = 64;  hdr.bitpix = 8*8;
+   case 'ushort', hdr.datatype = 512; hdr.bitpix = 8*2;
+   case 'uint',   hdr.datatype = 768; hdr.bitpix = 8*4;
+   otherwise,
+    fprintf('ERROR: unrecognized data type %s\n',datatype);
+    return;
+  end
   hdr.slice_start     = 0;
-  
+
   % volres is not permuted in MRIread()
   %hdr.pixdim          = [0 mri.volres([2 1 3]) mri.tr]; % physical units
   hdr.pixdim          = [0 mri.volres mri.tr]; % physical units
