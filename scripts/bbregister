@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/11/18 21:27:54 $
-#    $Revision: 1.13 $
+#    $Date: 2008/11/18 23:08:23 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.13 2008/11/18 21:27:54 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.14 2008/11/18 23:08:23 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -165,7 +165,7 @@ endif
 # Pass 1
 set Pass1Reg = $tmpdir/bbr.pass1.dat
 set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
-  --nsub 100 --tol 1e-4 --tol1d 1e-4 --brute -$Brute1Max $Brute1Max $Brute1Delta );
+  --subsamp-brute 100 --subsamp 100 --tol 1e-4 --tol1d 1e-4 --brute -$Brute1Max $Brute1Max $Brute1Delta );
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
 if($LHOnly) set cmd = ($cmd --lh-only);
