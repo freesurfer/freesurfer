@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/28 22:07:41 $
-#    $Revision: 1.12 $
+#    $Date: 2008/11/18 21:27:54 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.12 2008/10/28 22:07:41 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.13 2008/11/18 21:27:54 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -37,6 +37,8 @@ set InitSPM = 0;
 set InitHeader = 0;
 set InitReg = ();
 set VSM = ();
+set Brute1Max = 4;
+set Brute1Delta = 4;
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -163,7 +165,7 @@ endif
 # Pass 1
 set Pass1Reg = $tmpdir/bbr.pass1.dat
 set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
-  --nsub 100 --tol 1e-4 --tol1d 1e-4 --brute -4 4 4);
+  --nsub 100 --tol 1e-4 --tol1d 1e-4 --brute -$Brute1Max $Brute1Max $Brute1Delta );
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
 if($LHOnly) set cmd = ($cmd --lh-only);
@@ -404,6 +406,16 @@ while( $#argv != 0 )
       set OutVol = $argv[1]; shift;
       breaksw
 
+    case "--brute1max":
+      if ( $#argv < 1) goto arg1err;
+      set Brute1Max = $argv[1]; shift;
+      breaksw
+
+    case "--brute1delta":
+      if ( $#argv < 1) goto arg1err;
+      set Brute1Delta = $argv[1]; shift;
+      breaksw
+
     case "--surf-cost":
       if ( $#argv < 1) goto arg1err;
       set surfcost = $argv[1]; shift;
@@ -579,6 +591,8 @@ usage_exit:
   echo "   --subsamp nsub : 2nd stage vertex subsampling, default is 1"
   echo "   --nearest  : 2nd stage, use nearest neighbor interp (defalt is trilinear)"
   echo "   --epi-mask : mask out brain edge and B0 regions (1st and 2nd stages)"
+  echo "   --brute1max max     : pass 1 search -max to +max (default $Brute1Max)"
+  echo "   --brute1delta delta : pass 1 search -max to +max step delta (default $Brute1Delta)" 
   echo ""
   echo "   --surf-cost basename : saves final cost as basename.?h.mgh"
   echo "   --surf-con  basename : saves final contrast as basename.?h.mgh"
