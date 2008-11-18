@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/04 16:10:27 $
- *    $Revision: 1.68 $
+ *    $Date: 2008/11/18 00:14:24 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.68 2008/11/04 16:10:27 greve Exp $";
+"$Id: mri_segreg.c,v 1.69 2008/11/18 00:14:24 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -331,6 +331,7 @@ MRI *lhcostdiff=NULL, *rhcostdiff=NULL;
 MRI *lhcon=NULL, *rhcon=NULL;
 
 MRI *lhCortexLabel=NULL, *rhCortexLabel=NULL;
+int UseCortexLabel = 1;
 int nCostEvaluations=0;
 MRI *vsm=NULL;
 char *vsmfile = NULL;
@@ -358,13 +359,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.68 2008/11/04 16:10:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.69 2008/11/18 00:14:24 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.68 2008/11/04 16:10:27 greve Exp $",
+     "$Id: mri_segreg.c,v 1.69 2008/11/18 00:14:24 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -465,19 +466,29 @@ int main(int argc, char **argv) {
     mritmp = MRIchangeType(segreg,MRI_FLOAT,0,0,0);
     MRIfree(&segreg);
     segreg = mritmp;
-    if(UseLH){
+    if(UseLH && UseCortexLabel){
       // Load the LH cortex label
       label = LabelRead(subject, "lh.cortex.label");
-      if(label == NULL) exit(1);
-      lhCortexLabel = MRISlabel2Mask(lhwm, label, NULL);
-      LabelFree(&label);
+      if(label == NULL){
+	printf("Warning cannot find lh.cortex.label ... continuing\n");
+	lhCortexLabel = NULL;
+      }
+      else{
+	lhCortexLabel = MRISlabel2Mask(lhwm, label, NULL);
+	LabelFree(&label);
+      }
     }
-    if(UseRH){
+    if(UseRH && UseCortexLabel){
       // Load the RH cortex label
       label = LabelRead(subject, "rh.cortex.label");
-      if(label == NULL) exit(1);
-      rhCortexLabel = MRISlabel2Mask(rhwm, label, NULL);
-      LabelFree(&label);
+      if(label == NULL){
+	printf("Warning cannot find rh.cortex.label ... continuing\n");
+	rhCortexLabel = NULL;
+      }
+      else{
+	rhCortexLabel = MRISlabel2Mask(rhwm, label, NULL);
+	LabelFree(&label);
+      }
     }
 
   } else {
@@ -2245,10 +2256,11 @@ int MRISsegReg(char *subject, int ForceReRun)
   // the wm and ctx masks as well as in the cortex label
   lhsegmask = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
   for(n = 0; n < lhwm->nvertices; n++){
-    if(MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5 ||
-       MRIgetVoxVal(lhwmmask,n,0,0,0) < 0.5 ||
-       MRIgetVoxVal(lhctxmask,n,0,0,0) < 0.5)
-      MRIsetVoxVal(lhsegmask,n,0,0,0,  0);
+    if(lhCortexLabel != NULL && 
+       (MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5 ||
+	MRIgetVoxVal(lhwmmask,n,0,0,0) < 0.5 ||
+	MRIgetVoxVal(lhctxmask,n,0,0,0) < 0.5))
+       MRIsetVoxVal(lhsegmask,n,0,0,0,  0);
     else
       MRIsetVoxVal(lhsegmask,n,0,0,0,  1);
   }
@@ -2267,9 +2279,10 @@ int MRISsegReg(char *subject, int ForceReRun)
 
   rhsegmask = MRIalloc(rhwm->nvertices,1,1,MRI_FLOAT);
   for(n = 0; n < rhwm->nvertices; n++){
-    if(MRIgetVoxVal(rhCortexLabel,n,0,0,0) < 0.5 ||
-       MRIgetVoxVal(rhwmmask,n,0,0,0) < 0.5 ||
-       MRIgetVoxVal(rhctxmask,n,0,0,0) < 0.5)
+    if(rhCortexLabel != NULL && 
+       (MRIgetVoxVal(rhCortexLabel,n,0,0,0) < 0.5 ||
+	MRIgetVoxVal(rhwmmask,n,0,0,0) < 0.5 ||
+	MRIgetVoxVal(rhctxmask,n,0,0,0) < 0.5))
       MRIsetVoxVal(rhsegmask,n,0,0,0,  0);
     else
       MRIsetVoxVal(rhsegmask,n,0,0,0,  1);
