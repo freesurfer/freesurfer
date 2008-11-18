@@ -7,7 +7,7 @@ function err = save_nifti(hdr,niftifile)
 % setting hdr.dim(2) = -1 and hdr.glmin = ncols. This
 % is FreeSurfer specific, for handling surfaces.
 %
-% $Id: save_nifti.m,v 1.8 2007/05/22 05:24:11 greve Exp $
+% $Id: save_nifti.m,v 1.9 2008/11/18 20:50:03 greve Exp $
 
 %
 % save_nifti.m
@@ -15,8 +15,8 @@ function err = save_nifti(hdr,niftifile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/22 05:24:11 $
-%    $Revision: 1.8 $
+%    $Date: 2008/11/18 20:50:03 $
+%    $Revision: 1.9 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -146,7 +146,7 @@ fwrite(fp,0,'char');
 
 npix = prod(size(hdr.vol));
 switch(hdr.datatype)
- case   2, nitemswritten = fwrite(fp,hdr.vol,'char');
+ case   2, nitemswritten = fwrite(fp,hdr.vol,'uchar'); % dont use char
  case   4, nitemswritten = fwrite(fp,hdr.vol,'short');
  case   8, nitemswritten = fwrite(fp,hdr.vol,'int');
  case  16, nitemswritten = fwrite(fp,hdr.vol,'float');
