@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/10/09 20:46:42 $
- *    $Revision: 1.348 $
+ *    $Author: fischl $
+ *    $Date: 2008/11/18 20:22:11 $
+ *    $Revision: 1.349 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1057,6 +1057,15 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   if (type == MRI_MINC_FILE)
   {
     error = mincWrite(mri, fname);
+  }
+  else if (type == IMAGE_FILE)
+  {
+    IMAGE *image ;
+    if (mri->depth != 1)
+      ErrorExit(ERROR_BADPARM, "MRIwriteType(%s): image files cannnot have depth > 1\n",fname);
+    image = MRItoImage(mri, NULL, 0) ;
+    ImageWrite(image, fname) ;
+    ImageFree(&image) ;
   }
   else if (type == BHDR)
   {
