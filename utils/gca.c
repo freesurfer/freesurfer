@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/15 02:39:56 $
- *    $Revision: 1.251 $
+ *    $Date: 2008/11/20 23:48:12 $
+ *    $Revision: 1.252 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1563,7 +1563,7 @@ gcaAllocMax(int ninputs,
   gca->prior_depth = (int)(((float)depth/prior_spacing)+.99) ;
   gca->flags = flags ;
 
-  if (max_labels > 0)
+  if (max_labels >= 0)
   {
     gca->nodes = (GCA_NODE ***)calloc(gca->node_width, sizeof(GCA_NODE **)) ;
     if (!gca->nodes)
