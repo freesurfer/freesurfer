@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/15 16:25:32 $
- *    $Revision: 1.331 $
+ *    $Date: 2008/11/21 22:58:42 $
+ *    $Revision: 1.332 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.331 $";
+char *VERSION = "$Revision: 1.332 $";
 
 #define TCL
 #define TKMEDIT
@@ -1161,6 +1161,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   char          sAnnotationColorTable[tkm_knPathLen] = "";
 
   tBoolean      bMIP = FALSE;
+  char tmpstr[2000];
 
   DebugEnterFunction( ("ParseCmdLineArgs( argc=%d, argv=%s )",
                        argc, argv[0]) );
@@ -1187,7 +1188,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.331 2008/08/15 16:25:32 greve Exp $",
+     "$Id: tkmedit.c,v 1.332 2008/11/21 22:58:42 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2514,6 +2515,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
             /* read in subject and image name. */
             DebugNote( ("Parsing subject name") );
             xUtil_strncpy( sSubject, argv[nCurrentArg], sizeof(sSubject) );
+
+	    printf("Setting subject to %s\n",sSubject);
+	    sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
+	    if(!fio_FileExistsReadable(tmpstr)){
+	      printf("ERROR: cannot find subject %s in %s\n",sSubject,getenv("SUBJECTS_DIR"));
+	      exit(1);
+	    }
 
             DebugNote( ("Parsing image type") );
             xUtil_strncpy( sImageDir, argv[nCurrentArg+1],
@@ -5856,7 +5864,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.331 2008/08/15 16:25:32 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.332 2008/11/21 22:58:42 greve Exp $ $Name:  $\n"
         )
       );
 
