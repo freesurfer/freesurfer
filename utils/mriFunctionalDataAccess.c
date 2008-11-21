@@ -7,8 +7,8 @@
  * Original Author: inverse
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/16 21:06:38 $
- *    $Revision: 1.50 $
+ *    $Date: 2008/11/21 22:47:04 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -360,9 +360,17 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
 
   
   if(getenv("USEDNGDRAW")){
+    printf("FunD_FindAndParseStemHeader_ msFileName %s\n",this->msFileName);
+    printf("Using dng draw %s\n",getenv("USEDNGDRAW"));
+    fflush(stdout);
     this->mNumConditions = CountItemsInString(getenv("USEDNGDRAW")) + 1;
-    printf("Using dng draw %d\n",this->mNumConditions-1);
-    return(0);
+    printf("Using dng draw nc=%d\n",this->mNumConditions-1);
+    fflush(stdout);
+    bFoundFile = FALSE;
+    eResult = FunD_tErr_NoError;
+    //DebugAssertQuietThrowX( (bFoundFile), eResult, FunD_tErr_HeaderNotFound );
+    //Cant have overlay and plot at the same time!
+    return(FunD_tErr_NoError);
   }
 
   DebugEnterFunction( ("FunD_FindAndParseStemHeader_( this=%p )", this) );
