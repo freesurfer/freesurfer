@@ -1,0 +1,53 @@
+#!/bin/tcsh -f
+# The sole purpose of this script is to create the
+# $DEV/distribution/DefectLUT.txt file. It does not
+# need to be distrubted.
+
+set VERSION = '$Id: mkdefectlut,v 1.1 2008/11/25 23:20:37 greve Exp $';
+
+set lut = $DEV/distribution/DefectLUT.txt
+
+rm -f $lut
+
+echo "# Created by mkdefectlut" >> $lut
+echo "# $VERSION" >> $lut
+echo "" >> $lut
+
+echo "0   Unknown  0   0   0   0" >> $lut
+echo "" >> $lut
+
+@ n = 1;
+while ($n <= 500)
+  set tmp = `printf %03d $n`
+  echo "$n Defect-$tmp 255 0 255   0" >> $lut
+  @ n = $n + 1;
+end
+echo "" >> $lut
+
+@ n = 1;
+while ($n <= 500)
+  set tmp = `printf %03d $n`
+  @ m = $n + 1000
+  echo "$m LH-Defect-$tmp 255 0 255   0" >> $lut
+  @ n = $n + 1;
+end
+echo "" >> $lut
+
+@ n = 1;
+while ($n <= 500)
+  set tmp = `printf %03d $n`
+  @ m = $n + 2000
+  echo "$m RH-Defect-$tmp 255 0 255   0" >> $lut
+  @ n = $n + 1;
+end
+
+
+
+exit 0
+###################################################
+
+
+
+
+
+
