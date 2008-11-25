@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/20 03:40:39 $
- *    $Revision: 1.22 $
+ *    $Date: 2008/11/25 23:09:42 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.22 2007/07/20 03:40:39 greve Exp $
+  $Id: mri_surf2vol.c,v 1.23 2008/11/25 23:09:42 greve Exp $
 */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.22 2007/07/20 03:40:39 greve Exp $";
+  "$Id: mri_surf2vol.c,v 1.23 2008/11/25 23:09:42 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -127,6 +127,9 @@ int fstalres;
 char tmpstr[2000];
 float ProjFracStart=0.0, ProjFracDelta=0.05, ProjFracStop=1.0;
 
+int DoAddVal = 0;
+double AddVal = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   float ipr, bpr, intensity, v;
@@ -138,7 +141,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.22 2007/07/20 03:40:39 greve Exp $",
+           "$Id: mri_surf2vol.c,v 1.23 2008/11/25 23:09:42 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -315,6 +318,21 @@ int main(int argc, char **argv) {
     MRIcopyHeader(OutVol,VtxVol); // should fix MRIsurf2vol()
   }
 
+  if(DoAddVal){
+    printf("Adding %lf to non-zero voxels\n",AddVal);
+    for (c=0; c < OutVol->width; c++) {
+      for (r=0; r < OutVol->height; r++) {
+        for (s=0; s < OutVol->depth; s++) {
+	  for (f=0; f < OutVol->nframes; f++) {
+	    v = MRIgetVoxVal(OutVol,c,r,s,f);
+	    if (v == 0) continue;
+	    MRIsetVoxVal(OutVol,c,r,s,f, v + AddVal);
+	  }
+	}
+      }
+    }
+  }
+
   /* count the number of hits */
 
   //if(mksurfmask){ // This may not be necessary
@@ -426,14 +444,22 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 0) argnerr(option,1);
       nargsused = 0;
       fillribbon = 1 ;
-    } else if ( !strcmp(option, "--fill-projfrac") ) {
+    } 
+    else if ( !strcmp(option, "--fill-projfrac") ) {
       if (nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%f",&ProjFracStart);
       sscanf(pargv[1],"%f",&ProjFracStop);
       sscanf(pargv[2],"%f",&ProjFracDelta);
       fillribbon = 1 ;
       nargsused = 3;
-    } else if (istringnmatch(option, "--volregidentity",16) ||
+    } 
+    else if ( !strcmp(option, "--add") ) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&AddVal);
+      DoAddVal = 1;
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--volregidentity",16) ||
 	       istringnmatch(option, "--identity",16)) {
       if (nargc < 1) argnerr(option,1);
       srcsubject = pargv[0];
@@ -557,6 +583,7 @@ static void print_usage(void) {
   printf("  --o outfile      : output volume path id\n");
   printf("  --vtxvol vtxfile : vertex map volume path id\n");
   printf("  \n");
+  printf("  --add const : add constant value to each non-zore output voxel\n");
   printf("  --sd subjectsdir : FreeSurfer subjects' directory\n");
   printf("  --help    : hidden secrets of success\n");
   printf("  --gdiagno number : set diag level\n");
