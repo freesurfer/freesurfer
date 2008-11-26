@@ -1,0 +1,223 @@
+#!/bin/csh -f
+# defect-seg
+
+# Creates segmentations and annotations for defect visualization
+
+set VERSION = '$Id: defect-seg,v 1.1 2008/11/26 00:16:30 greve Exp $';
+
+set subject = ();
+set PrintHelp = 0;
+set DoLH = 1;
+set DoRH = 1;
+
+set cmdargs = ($argv);
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+cd $SUBJECTS_DIR/$subject
+
+set LF = $SUBJECTS_DIR/$subject/scripts/defect-seg.log
+if(-e $LF) mv $LF $LF.bak
+echo "Logfile is $LF"
+
+echo $0 | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+date | tee -a $LF
+uname -a | tee -a $LF
+pwd | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
+#-----------------------------------------
+set HemiList = ();
+if($DoLH) set HemiList = ($HemiList lh);
+if($DoRH) set HemiList = ($HemiList rh);
+
+foreach hemi ($HemiList)
+
+  # Create a text summary of the defects
+  set tmpsum = /tmp/defect-seg.$$.$hemi.sum
+  set cmd = (mri_surfcluster \
+    --in surf/$hemi.defect_labels --thmin .5 --hemi $hemi \
+    --surf orig.nofix --subject $subject --sum $tmpsum)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+
+  set sum = scripts/$hemi.defect.summary
+  rm -f $sum
+  echo "# List of defects corrected by automatic topology fixer" >> $sum
+  echo "# $VERSION" >> $sum
+  echo "# subject $subject" >> $sum
+  echo "# hemi    $hemi" >> $sum
+  echo "# $SUBJECTS_DIR" >> $sum
+  echo "# DefectNo Vertex      NVertices" >> $sum
+  grep -v \# $tmpsum | awk '{print sprintf("   %3d \t %8d \t %4d",$1,$3,$8)}'  >> $sum
+
+  # Create a volume segmentation of the defects
+  # Load with $FREESURFER_HOME/DefectLUT.txt
+  set cmd = (mri_surf2vol --identity $subject --surf orig.nofix \
+   --template mri/orig.mgz --surfval surf/$hemi.defect_labels \
+   --hemi $hemi --o mri/surface.defects.mgz)
+  if($hemi == lh)  set cmd = ($cmd --add 1000)
+  if($hemi == rh) then
+    set cmd = ($cmd --add 2000)
+    if($DoLH && $DoRH) set cmd = ($cmd --merge mri/surface.defects.mgz)
+  endif
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+
+  # Create an annotation on the nofix (unfixed) surface
+  set cmd = (mris_seg2annot --seg surf/$hemi.defect_labels \
+   --ctab $FREESURFER_HOME/DefectLUT.txt --s $subject --h $hemi \
+   --o $hemi.defects.nofix.annot --surf orig.nofix)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+
+  # Map the defect labels to the fixed surface  
+  set cmd = (mri_surf2surf --s $subject --sval surf/$hemi.defect_labels \
+    --tval surf/$hemi.defect_labels.fix.mgz --hemi $hemi \
+    --srcsurfreg orig.nofix --trgsurfreg orig --mapmethod nnf)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+
+  # Create an annotation on the fixed surface
+  set cmd = (mris_seg2annot --seg surf/$hemi.defect_labels.fix.mgz \
+   --ctab $FREESURFER_HOME/DefectLUT.txt --s $subject --h $hemi \
+   --o $hemi.defects.fix.annot)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+
+end
+
+
+
+#-----------------------------------------
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+echo "defect-seg done"  | tee -a $LF
+
+exit 0
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--lh-only":
+      set DoLH = 1;
+      set DoRH = 0;
+      breaksw
+
+    case "--rh-only":
+      set DoLH = 0;
+      set DoRH = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec a subject id"
+  exit 1;
+endif
+
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "defect-seg"
+  echo "   --s subject"
+  echo "   --lh-only"
+  echo "   --rh-only"
+  echo ""
+  echo "   --version : print version and exit"
+  echo "   --help    : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program creates some files that allows the user to visualize
+and evaluate the surface defects that were automatically detected
+and fixed by the topology correction program.
+
+Creates:
+  scripts/?h.defects.summary
+  mri/surface.defects.mgz
+  surf/?h.defect_labels.fix.mgz
+  label/?h.defects.nofix.annot
+  label/?h.defects.fix.annot
+
+tkmedit subject orig.mgz -defects
+tksurfer 001_1 lh smoothwm.nofix -annot defects.nofix.annot
+tksurfer 001_1 lh white -annot defects.fix.annot
+
