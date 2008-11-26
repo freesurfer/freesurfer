@@ -3,7 +3,7 @@
 
 # Creates segmentations and annotations for defect visualization
 
-set VERSION = '$Id: defect-seg,v 1.1 2008/11/26 00:16:30 greve Exp $';
+set VERSION = '$Id: defect-seg,v 1.2 2008/11/26 00:26:24 greve Exp $';
 
 set subject = ();
 set PrintHelp = 0;
@@ -217,7 +217,33 @@ Creates:
   label/?h.defects.nofix.annot
   label/?h.defects.fix.annot
 
+# ----------------------------------------------------------
+# List of defects, their numberic ID, and number of vertices,
+# something like below
+less scripts/lh.defects.summary
+
+# List of defects corrected by automatic topology fixer
+# subject 001_2
+# hemi    lh
+# /space/sleep/2/users/cephalon/subjects/
+# DefectNo Vertex      NVertices
+     1     133379          36
+     2     130681          32
+     3     125634          65
+
+# ----------------------------------------------------------
+# Visualize defects as a segmentation
 tkmedit subject orig.mgz -defects
+# The ?h.orig.nofix is yellow 
+# The ?h.white is green (aux surface)
+# Defects show up as purple segmentations 
+#   (defect number in segmentation name)
+# wm.mgz automatically loaded as aux volume
+
+# ----------------------------------------------------------
+# Visualize defects as an annotation
 tksurfer 001_1 lh smoothwm.nofix -annot defects.nofix.annot
 tksurfer 001_1 lh white -annot defects.fix.annot
+# Defects show up as purple annotation
+#   (defect number in segmentation name)
 
