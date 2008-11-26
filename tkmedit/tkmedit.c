@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/21 22:58:42 $
- *    $Revision: 1.332 $
+ *    $Date: 2008/11/26 00:15:58 $
+ *    $Revision: 1.333 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.332 $";
+char *VERSION = "$Revision: 1.333 $";
 
 #define TCL
 #define TKMEDIT
@@ -967,6 +967,7 @@ char gsCachedScriptNames[tkm_knMaxNumCachedScripts][tkm_knPathLen];
 int gnNumCachedScripts = 0;
 
 int LoadOrigSurf = 1;
+int LoadPialSurf = 1;
 
 // ===========================================================================
 
@@ -1188,7 +1189,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.332 2008/11/21 22:58:42 greve Exp $",
+     "$Id: tkmedit.c,v 1.333 2008/11/26 00:15:58 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1494,6 +1495,24 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	xUtil_strncpy( sAuxSurface, "rh.white", sizeof(sAuxSurface) );
 	bAuxSurfaceDeclared = TRUE;
 	LoadOrigSurf = 0;
+	nCurrentArg ++;
+      }
+      else if ( MATCH( sArg, "-defects" ) ) {
+	xUtil_strncpy( sSurface, "lh.orig", sizeof(sSurface) );//green
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "lh.orig.nofix", sizeof(sAuxSurface) );//yellow
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 1;
+	LoadPialSurf = 0;
+        xUtil_strncpy( sSegmentationPath, "surface.defects.mgz",
+                       sizeof(sSegmentationPath) );
+        pEnvVar = getenv("FREESURFER_HOME");
+        sprintf( sSegmentationColorFile,"%s/DefectLUT.txt", pEnvVar );
+        bLoadingSegmentation = TRUE;
+	fSegmentationAlpha = 0.8;
+	bSegmentationAlpha = TRUE;
+	xUtil_strncpy( sAuxVolume,"wm.mgz",sizeof(sAuxVolume) );
+	bLoadingAuxVolume = TRUE;
 	nCurrentArg ++;
       }
       else if ( MATCH( sArg, "-aux-surface" ) ) {
@@ -3706,8 +3725,10 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     DebugNote( ("Loading orig set") );
     LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
   }
-  DebugNote( ("Loading pial set") );
-  LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, "pial" );
+  if(LoadPialSurf){
+    DebugNote( ("Loading pial set") );
+    LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, "pial" );
+  }
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -5864,7 +5885,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.332 2008/11/21 22:58:42 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.333 2008/11/26 00:15:58 greve Exp $ $Name:  $\n"
         )
       );
 
