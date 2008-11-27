@@ -58,15 +58,33 @@
 	where 'n' is an index counter into the data space.
 
 	ACTION  INPUTS OUTPUTS	                EFFECT
+     MATHEMATICAL
 	  mul	   2      1     <outputFile> = <file1> * <file2>
 	  div	   2	  1     <outputFile> = <file1> / <file2>
 	  add      2	  1	<outputFile> = <file1> + <file2>
 	  sub	   2	  1     <outputFile> = <file1> - <file2>
-	  set	   2	  1     <file1>	     = <file2> | <floatNum>
+	  set	   2	  1     <file1>	     = <file2> 
+          abs      1      1     <outputFile> = abs(<file1>)
 
+      RELATIONAL
+          lt       2      1     <outputFile> = <file1> <  <file2>
+          lte      2      1     <outputFile> = <file1> <= <file2>
+          gt       2      1     <outputFile> = <file1> >  <file2>
+          gte      2      1     <outputFile> = <file1> >= <file2>
+          upl      2      1     <outputFile> = <file1> upperlimit <file2>
+          lrl      2      1     <outputFile> = <file1> lowerlimit <file2>
+
+        LOGICAL
+          and      2      1     <outputFile> = <file1> && <file2>
+           or      2      1     <outputFile> = <file1> || <file2>
+         andbw     2      1     <outputFile> = (int)<file1> & (int)<file2>
+          orbw     2      1     <outputFile> = (int)<file1> | (int)<file2>
+         masked    2      1     <outputFile> = <file1> maskedby <file2>
+
+     DATA CONVERSION
           ascii    1      1     <outputFile> = ascii <file1>
-	  abs	   1      1     <outputFile> = abs(<file1>)
 
+      STATISTICAL
           size     1      0     print the size (number of elements) of <file1>
           min      1      0     print the min value (and index) of <file1>
           max      1      0     print the max value (and index) of <file1>
@@ -76,6 +94,7 @@
 
     NOTES ON ACTIONS
 
+      MATHEMATICAL
 	The 'set' command overwrites its input data. It still requires a valid
 	<file1> -- since in most instances the 'set' command is used to set
 	input data values to a single float constant, i.e. 
@@ -96,11 +115,46 @@
 	will result in the 'black.mgz' volume having all its intensity values
 	set to 0.
 
+    RELATIONAL
+        The relational operations apply the relevant evaluation at each
+        index in the input data sets.
+
+              'lt'      -- less than
+              'gt'      -- greater than
+              'lte'     -- less than or equal to
+              'gte'     -- greater than or equal to
+
+        If the comparison is valid for a point in <file1> compared to
+        corresponding point in <file2>, the <file1> value is retained;
+        otherwise the <file1> value is set to zero. Thus, if we run
+        'mris_calc input1.mgz lte input2.mgz', the output volume 'out.mgz'
+        will have all input1.mgz values that are not less than or equal to
+        to input2.mgz set to zero.
+
+        The 'upl' and 'lrl' are hardlimiting filters. In the case of 'upl',
+        any values in <file1> that are greater or equal to corresponding data
+        points in <file2> are limited to the values in <file2>. Similarly, for
+        'lpl', any <file1> values that are less than corresponding <file2>
+        values are set to these <file2> values.
+
+        Essentially, 'upl' guarantees that all values in <file1> are less than
+        or at most equal to corresponding values in <file2>; 'lpl' guarantees
+        that all values in <file1> are greater than or at least equal to
+        corresponding values in <file2>.
+
+    LOGICAL
+        The logical operations follow C convention, i.e. and is a logical 'and'
+        equivalent to the C '&&' operator, similarly for 'or' which is
+        evaluated with the C '||'. The 'andbw' and 'orbw' are bit-wise
+        operators, evaluted with the C operators '&' and '|' respectively.
+
+    DATA CONVERSION
         The 'ascii' command converts <file1> to a text format file, 
         suitable for reading into MatLAB, for example. Note that for volumes
 	data values are written out as a 1D linear array with looping order
 	(slice, height, width).
 
+    STATISTICAL
         Note also that the standard deviation can suffer from float rounding
         errors and is only accurate to 4 digits of precision.
 
@@ -122,30 +176,30 @@
     EXAMPLES        
 
     	$>mris_calc rh.area mul rh.thickness    
-
 	Multiply each value in <rh.area> with the corresponding value
 	in <rh.thickness>, creating a new file called 'out.crv' that
 	contains the result.
 
     	$>mris_calc --output rh.weightedCortex rh.area mul rh.thickness    
-
 	Same as above, but give the ouput file the more meaningful name
 	of 'rh.weightedCortex'.
 
         $>mris_calc rh.area max
-       
         Determine the maximum value in 'rh.area' and print to stdout. In
         addition to the max value, the index offset in 'rh.area' containing
         this value is also printed.
 
         $>mris_calc rh.area stats
-
         Determine the size, min, max, mean, and std of 'rh.area'.
 
 	$>mris_calc orig.mgz sub brainmask.mgz
-
 	Subtract the brainmask.mgz volume from the orig.mgz volume. Result is
 	saved by default to out.mgz.
+
+        $>mris_calc -o ADC_masked.nii ADC.nii masked B0_mask.img
+        Mask a volume 'ADC.nii' with 'B0_mask.img', saving the output in
+        'ADC_masked.nii'. Note that the input volumes are different formats,
+        but the same logical size.
 
     ADVANCED EXAMPLES
 

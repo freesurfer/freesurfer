@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/11/14 16:09:31 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/11/27 02:00:43 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.10 2008/11/14 16:09:31 rudolph Exp $";
+"$Id: mris_calc.c,v 1.11 2008/11/27 02:00:43 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -105,7 +105,27 @@ typedef enum _operation {
   e_add,
   e_sub,
   e_set,
-  e_abs
+  e_abs,
+  e_lt,
+  e_lte,
+  e_gt,
+  e_gte,
+  e_masked,
+  e_and,
+  e_or,
+  e_andbw,
+  e_orbw,
+  e_upperlimit,
+  e_lowerlimit,
+  e_ascii,
+  e_stats,
+  e_min,
+  e_max,
+  e_size,
+  e_mini,
+  e_maxi,
+  e_mean,
+  e_std
 } e_operation;
 
 const char* Gppch_operation[] = {
@@ -115,6 +135,19 @@ const char* Gppch_operation[] = {
   "subtract",
   "set",
   "abs",
+  "less than",
+  "less than or equal to",
+  "greated than",
+  "greater than or equal to",
+  "masked by",
+  "logical and",
+  "logical or",
+  "bitwise and",
+  "bitwise or",
+  "upper limit",
+  "lower limit",
+  "ascii",
+  "stats",
   "min",
   "max",
   "size",
@@ -122,10 +155,7 @@ const char* Gppch_operation[] = {
   "maxi",
   "mean",
   "std",
-  "stats",
-  "ascii"
 };
-
 
 // -------------------------------
 // Global "class" member variables
@@ -162,6 +192,7 @@ static MRI*		Gp_MRI			= NULL; // Pointer to most
 
 // Operation to perform on input1 and input2
 static char*    	G_pch_operator          = NULL;
+static e_operation      Ge_operation            = e_stats;
 
 // Output file
 static int      	G_sizeCurv3             = 0;
@@ -183,13 +214,34 @@ static int  options_parse(
   char* apchv[]
   );
 static int  options_print(void);
+static e_operation operation_lookup(char* apch_operation);
 
 // Simple functions on two float arguments
 double fn_mul(float af_A, float af_B)   {return (af_A * af_B);}
-double fn_div(float af_A, float af_B)   {return (af_B != 0 ? (af_A / af_B) : 0.0);}
+double fn_div(float af_A, float af_B)   {return (af_B != 0 ?
+                                        (af_A / af_B) : 0.0);}
 double fn_add(float af_A, float af_B)   {return (af_A + af_B);}
 double fn_sub(float af_A, float af_B)   {return (af_A - af_B);}
 double fn_set(float af_A, float af_B)   {return (af_B);}
+
+// Simple relational functions on two float arguments
+double  fn_lt(float af_A,  float af_B)  {return (af_A < af_B ? af_A : 0.0);}
+double  fn_lte(float af_A, float af_B)  {return (af_A <= af_B? af_A : 0.0);}
+double  fn_gt(float af_A,  float af_B)  {return (af_A > af_B ? af_A : 0.0);}
+double  fn_gte(float af_A, float af_B)  {return (af_A >= af_B? af_A : 0.0);}
+double  fn_upl(float af_A, float af_B)  {return (af_A >= af_B ? af_B : af_A);}
+double  fn_lrl(float af_A, float af_B)  {return (af_A <= af_B ? af_B : af_A);}
+  
+// Simple logical functions on two float arguments
+double  fn_and(float af_A,    float af_B)       {return (af_A && af_B);}
+double  fn_or(float af_A,     float af_B)       {return (af_A || af_B);}
+double  fn_andbw(float af_A,  float af_B)       {return (
+                                                  (int) af_A & (int) af_B);}
+double  fn_orbw(float af_A,   float af_B)       {return (
+                                                  (int) af_A | (int) af_B);}
+double  fn_masked(float af_A, float af_B)       {return(af_B ? af_A : af_B);}
+
+                
 
 // Simple functions on one argument
 double fn_abs(float af_A)		{return fabs(af_A);}
@@ -321,7 +373,7 @@ CURV_fileWrite(
   float*  	apf_curv
   );
 
-short   b_outCurvFile_write(char* apch_operator);
+short   b_outCurvFile_write(e_operation e_op);
 short   CURV_process(void);
 short   CURV_functionRunABC( double (*F)(float f_A, float f_B) );
 double  CURV_functionRunAC( double (*F)(float f_A) );
@@ -348,10 +400,10 @@ synopsis_show(void) {
  \n\
     DESCRIPTION \n\
  \n\
-	'mris_calc' is a simple calculator that operates on FreeSurfer \n\
-	curvatures and volumes. \n\
+        'mris_calc' is a simple calculator that operates on FreeSurfer \n\
+        curvatures and volumes. \n\
  \n\
-	In most cases, the calculator functions with three arguments: \n\
+        In most cases, the calculator functions with three arguments: \n\
         two inputs and an <ACTION> linking them. Some actions, however, \n\
         operate with only one input <file1>. \n\
  \n\
@@ -365,47 +417,65 @@ synopsis_show(void) {
  \n\
     OPTIONS \n\
  \n\
-    	--output <outputCurvFile> \n\
-   	 -o <outputCurvFile> \n\
+        --output <outputCurvFile> \n\
+         -o <outputCurvFile> \n\
  \n\
-    	By default, 'mris_calc' will save the output of the calculation to a \n\
-    	file in the current working directory with filestem 'out'. The file \n\
-    	extension is automatically set to the appropriate filetype based on \n\
-    	the input. For any volume type, the output defaults to '.mgz' and for \n\
-    	curvature inputs, the output defaults to '.crv'. \n\
+        By default, 'mris_calc' will save the output of the calculation to a \n\
+        file in the current working directory with filestem 'out'. The file \n\
+        extension is automatically set to the appropriate filetype based on \n\
+        the input. For any volume type, the output defaults to '.mgz' and for \n\
+        curvature inputs, the output defaults to '.crv'. \n\
  \n\
-    	--version \n\
-    	-v \n\
+        --version \n\
+        -v \n\
  \n\
-	Print out version number. \n\
+        Print out version number. \n\
  \n\
-    	--verbosity <value> \n\
+        --verbosity <value> \n\
  \n\
-	Set the verbosity of the program. Any positive value will trigger \n\
-	verbose output, displaying intermediate results. The <value> can be \n\
-	set arbitrarily. Useful mostly for debugging. \n\
+        Set the verbosity of the program. Any positive value will trigger \n\
+        verbose output, displaying intermediate results. The <value> can be \n\
+        set arbitrarily. Useful mostly for debugging. \n\
  \n\
     ACTION \n\
  \n\
-	The action to be perfomed on the two input files. This is a \n\
-	text string that defines the mathematical operation to execute. For \n\
-	two inputs, this action is applied in an indexed element-by-element \n\
-	fashion, i.e. \n\
-	 \n\
-			<file3>[n] = <file1>[n] <ACTION> <file2>[n] \n\
+        The action to be perfomed on the two input files. This is a \n\
+        text string that defines the mathematical operation to execute. For \n\
+        two inputs, this action is applied in an indexed element-by-element \n\
+        fashion, i.e. \n\
+         \n\
+                        <file3>[n] = <file1>[n] <ACTION> <file2>[n] \n\
  \n\
-	where 'n' is an index counter into the data space. \n\
+        where 'n' is an index counter into the data space. \n\
  \n\
-	ACTION  INPUTS OUTPUTS	                EFFECT \n\
-	  mul	   2      1     <outputFile> = <file1> * <file2> \n\
-	  div	   2	  1     <outputFile> = <file1> / <file2> \n\
-	  add      2	  1	<outputFile> = <file1> + <file2> \n\
-	  sub	   2	  1     <outputFile> = <file1> - <file2> \n\
-	  set	   2	  1     <file1>      = <file2> | <floatNum> \n\
+        ACTION  INPUTS OUTPUTS                  EFFECT \n\
+     MATHEMATICAL \n\
+          mul      2      1     <outputFile> = <file1> * <file2> \n\
+          div      2      1     <outputFile> = <file1> / <file2> \n\
+          add      2      1     <outputFile> = <file1> + <file2> \n\
+          sub      2      1     <outputFile> = <file1> - <file2> \n\
+          set      2      1     <file1>      = <file2> \n\
+          abs      1      1     <outputFile> = abs(<file1>) \n\
  \n\
+      RELATIONAL \n\
+          lt       2      1     <outputFile> = <file1> <  <file2> \n\
+          lte      2      1     <outputFile> = <file1> <= <file2> \n\
+          gt       2      1     <outputFile> = <file1> >  <file2> \n\
+          gte      2      1     <outputFile> = <file1> >= <file2> \n\
+          upl      2      1     <outputFile> = <file1> upperlimit <file2> \n\
+          lrl      2      1     <outputFile> = <file1> lowerlimit <file2> \n\
+ \n\
+        LOGICAL \n\
+          and      2      1     <outputFile> = <file1> && <file2> \n\
+           or      2      1     <outputFile> = <file1> || <file2> \n\
+         andbw     2      1     <outputFile> = (int)<file1> & (int)<file2> \n\
+          orbw     2      1     <outputFile> = (int)<file1> | (int)<file2> \n\
+         masked    2      1     <outputFile> = <file1> maskedby <file2> \n\
+ \n\
+     DATA CONVERSION \n\
           ascii    1      1     <outputFile> = ascii <file1> \n\
-	  abs	   1      1     <outputFile> = abs(<file1>) \n\
  \n\
+      STATISTICAL \n\
           size     1      0     print the size (number of elements) of <file1> \n\
           min      1      0     print the min value (and index) of <file1> \n\
           max      1      0     print the max value (and index) of <file1> \n\
@@ -415,102 +485,138 @@ synopsis_show(void) {
  \n\
     NOTES ON ACTIONS \n\
  \n\
-	The 'set' command overwrites its input data. It still requires a valid \n\
-	<file1> -- since in most instances the 'set' command is used to set \n\
-	input data values to a single float constant, i.e. \n\
+      MATHEMATICAL \n\
+        The 'set' command overwrites its input data. It still requires a valid \n\
+        <file1> -- since in most instances the 'set' command is used to set \n\
+        input data values to a single float constant, i.e. \n\
  \n\
-		$>mris_calc rh.area set 0.005 \n\
+                $>mris_calc rh.area set 0.005 \n\
  \n\
-	will set all values of rh.area to 0.005. It might be more meaningful \n\
-	to first make a copy of the input file, and set this \n\
+        will set all values of rh.area to 0.005. It might be more meaningful \n\
+        to first make a copy of the input file, and set this \n\
  \n\
-		$>cp rh.area rh-0.005 \n\
-		$>mris_calc rh-0.005 set 0.005 \n\
+                $>cp rh.area rh-0.005 \n\
+                $>mris_calc rh-0.005 set 0.005 \n\
  \n\
-	Similarly for volumes \n\
+        Similarly for volumes \n\
  \n\
-		$>cp orig.mgz black.mgz \n\
-		$>mris_calc black.mgz set 0 \n\
+                $>cp orig.mgz black.mgz \n\
+                $>mris_calc black.mgz set 0 \n\
  \n\
-	will result in the 'black.mgz' volume having all its intensity values \n\
-	set to 0. \n\
+        will result in the 'black.mgz' volume having all its intensity values \n\
+        set to 0. \n\
  \n\
+    RELATIONAL \n\
+        The relational operations apply the relevant evaluation at each \n\
+        index in the input data sets. \n\
+ \n\
+              'lt'      -- less than \n\
+              'gt'      -- greater than \n\
+              'lte'     -- less than or equal to \n\
+              'gte'     -- greater than or equal to \n\
+ \n\
+        If the comparison is valid for a point in <file1> compared to \n\
+        corresponding point in <file2>, the <file1> value is retained; \n\
+        otherwise the <file1> value is set to zero. Thus, if we run \n\
+        'mris_calc input1.mgz lte input2.mgz', the output volume 'out.mgz' \n\
+        will have all input1.mgz values that are not less than or equal to \n\
+        to input2.mgz set to zero. \n\
+ \n\
+        The 'upl' and 'lrl' are hardlimiting filters. In the case of 'upl', \n\
+        any values in <file1> that are greater or equal to corresponding data \n\
+        points in <file2> are limited to the values in <file2>. Similarly, for \n\
+        'lpl', any <file1> values that are less than corresponding <file2> \n\
+        values are set to these <file2> values. \n\
+ \n\
+        Essentially, 'upl' guarantees that all values in <file1> are less than \n\
+        or at most equal to corresponding values in <file2>; 'lpl' guarantees \n\
+        that all values in <file1> are greater than or at least equal to \n\
+        corresponding values in <file2>. \n\
+ \n\
+    LOGICAL \n\
+        The logical operations follow C convention, i.e. and is a logical 'and' \n\
+        equivalent to the C '&&' operator, similarly for 'or' which is \n\
+        evaluated with the C '||'. The 'andbw' and 'orbw' are bit-wise \n\
+        operators, evaluted with the C operators '&' and '|' respectively. \n\
+ \n\
+    DATA CONVERSION \n\
         The 'ascii' command converts <file1> to a text format file, \n\
         suitable for reading into MatLAB, for example. Note that for volumes \n\
-	data values are written out as a 1D linear array with looping order \n\
-	(slice, height, width). \n\
+        data values are written out as a 1D linear array with looping order \n\
+        (slice, height, width). \n\
  \n\
+    STATISTICAL \n\
         Note also that the standard deviation can suffer from float rounding \n\
         errors and is only accurate to 4 digits of precision. \n\
  \n\
     ARBITRARY FLOATS AS SECOND INPUT ARGUMENT \n\
  \n\
-	If a second input argument is specified, 'mris_calc' will attempt to \n\
+        If a second input argument is specified, 'mris_calc' will attempt to \n\
         open the argument following <ACTION> as if it were a curvature file. \n\
         Should this file not exist, 'mris_calc' will attempt to parse the \n\
         argument as if it were a float value. \n\
  \n\
-	In such a case, 'mris_calc' will create a dummy internal \n\
-	array structure and set all its elements to this float value. \n\
+        In such a case, 'mris_calc' will create a dummy internal \n\
+        array structure and set all its elements to this float value. \n\
  \n\
     NOTES \n\
  \n\
-	<file1> and <file2> should typically be generated on the \n\
-	same subject. \n\
+        <file1> and <file2> should typically be generated on the \n\
+        same subject. \n\
  \n\
     EXAMPLES \n\
  \n\
-    	$>mris_calc rh.area mul rh.thickness \n\
+        $>mris_calc rh.area mul rh.thickness \n\
+        Multiply each value in <rh.area> with the corresponding value \n\
+        in <rh.thickness>, creating a new file called 'out.crv' that \n\
+        contains the result. \n\
  \n\
-	Multiply each value in <rh.area> with the corresponding value \n\
-	in <rh.thickness>, creating a new file called 'out.crv' that \n\
-	contains the result. \n\
- \n\
-    	$>mris_calc --output rh.weightedCortex rh.area mul rh.thickness \n\
- \n\
-	Same as above, but give the ouput file the more meaningful name \n\
-	of 'rh.weightedCortex'. \n\
+        $>mris_calc --output rh.weightedCortex rh.area mul rh.thickness \n\
+        Same as above, but give the ouput file the more meaningful name \n\
+        of 'rh.weightedCortex'. \n\
  \n\
         $>mris_calc rh.area max \n\
- \n\
         Determine the maximum value in 'rh.area' and print to stdout. In \n\
         addition to the max value, the index offset in 'rh.area' containing \n\
         this value is also printed. \n\
  \n\
         $>mris_calc rh.area stats \n\
- \n\
         Determine the size, min, max, mean, and std of 'rh.area'. \n\
  \n\
-	$>mris_calc orig.mgz sub brainmask.mgz \n\
+        $>mris_calc orig.mgz sub brainmask.mgz \n\
+        Subtract the brainmask.mgz volume from the orig.mgz volume. Result is \n\
+        saved by default to out.mgz. \n\
  \n\
-	Subtract the brainmask.mgz volume from the orig.mgz volume. Result is \n\
-	saved by default to out.mgz. \n\
+        $>mris_calc -o ADC_masked.nii ADC.nii masked B0_mask.img \n\
+        Mask a volume 'ADC.nii' with 'B0_mask.img', saving the output in \n\
+        'ADC_masked.nii'. Note that the input volumes are different formats, \n\
+        but the same logical size. \n\
  \n\
     ADVANCED EXAMPLES \n\
  \n\
-	Consider the case when calculating the right hemisphere pseudo volume \n\
-	formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
-	file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
-	be expressed as a percentage of intercranial volume. \n\
+        Consider the case when calculating the right hemisphere pseudo volume \n\
+        formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
+        file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
+        be expressed as a percentage of intercranial volume. \n\
  \n\
-	First, calculate the volume and store in a curvature format: \n\
+        First, calculate the volume and store in a curvature format: \n\
  \n\
-		$>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
+                $>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
  \n\
-	Now, find the intercranial volume (ICV) in the corresponding output \n\
-	file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
+        Now, find the intercranial volume (ICV) in the corresponding output \n\
+        file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
  \n\
-		$>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
-	 \n\
-	Here the second <ACTION> argument is a number and not a curvature file. \n\
+                $>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
+         \n\
+        Here the second <ACTION> argument is a number and not a curvature file. \n\
  \n\
-	We could have achieved the same effect by first creating an \n\
-	intermediate curvature file, 'rh.ICV' with each element set to \n\
-	the ICV, and then divided by this curvature: \n\
-	 \n\
-		$>cp rh.area rh.ICV \n\
-		$>mris_calc rh.ICV set 100000 \n\
-		$>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
+        We could have achieved the same effect by first creating an \n\
+        intermediate curvature file, 'rh.ICV' with each element set to \n\
+        the ICV, and then divided by this curvature: \n\
+         \n\
+                $>cp rh.area rh.ICV \n\
+                $>mris_calc rh.ICV set 100000 \n\
+                $>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
  \n\
 \n");
 
@@ -579,8 +685,8 @@ error_exit(
 	"%s\n\t%s\n", pch_errorMessage, apch_error);
 
   fprintf(stderr, pch_errorMessage);
+  fprintf(stderr, "\n");
   exit(exitCode);
-
 }
 
 void
@@ -626,6 +732,15 @@ error_surfacesNotHandled(void) {
 }
 
 void
+error_unknownFileType(char* apch_inputFile) {
+  char  pch_action[65536];
+  sprintf(pch_action, "accessing file '%s'", apch_inputFile);
+  error_exit(   pch_action,
+                "I was unable to identify this file type. Does it exist?",
+                10);
+}
+
+void
 output_init(void) {
   int i;
   G_sizeCurv3   = G_sizeCurv1;
@@ -658,6 +773,9 @@ fileType_find(
   
   // Check if input is a curvature file...
   if(type == MRI_CURV_FILE) return(e_CurvatureFile);
+
+  if(type == -1)
+    error_unknownFileType(apch_inputFile);
 
   // Assume that the input is a surface file...
   return(e_SurfaceFile);
@@ -768,7 +886,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.10 2008/11/14 16:09:31 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.11 2008/11/27 02:00:43 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -883,6 +1001,48 @@ version_print(void) {
   exit(1) ;
 }
 
+/*!
+  \fn static e_operation operation_lookup(char* apch_operation)
+  \brief Convert a string 'operation' to an enumerated e_operation
+  \param apch_operation The mathematical operation to perform..
+  \return The internal lookup enumerated e_operation type is returned.
+*/static e_operation
+operation_lookup(
+  char* apch_operation
+) {
+
+  e_operation   e_op = e_stats;
+
+  if(     !strcmp(apch_operation, "mul"))       e_op    = e_mul;
+  else if(!strcmp(apch_operation, "div"))       e_op    = e_div;
+  else if(!strcmp(apch_operation, "add"))       e_op    = e_add;
+  else if(!strcmp(apch_operation, "sub"))       e_op    = e_sub;
+  else if(!strcmp(apch_operation, "set"))       e_op    = e_set;
+  else if(!strcmp(apch_operation, "abs"))       e_op    = e_abs;
+
+  else if(!strcmp(apch_operation, "lt"))        e_op    = e_lt;
+  else if(!strcmp(apch_operation, "lte"))       e_op    = e_lte;
+  else if(!strcmp(apch_operation, "gt"))        e_op    = e_gt;
+  else if(!strcmp(apch_operation, "gte"))       e_op    = e_gte;
+  else if(!strcmp(apch_operation, "masked"))    e_op    = e_masked;
+  else if(!strcmp(apch_operation, "and"))       e_op    = e_and;
+  else if(!strcmp(apch_operation, "or"))        e_op    = e_or;
+  else if(!strcmp(apch_operation, "andbw"))     e_op    = e_andbw;
+  else if(!strcmp(apch_operation, "orbw"))      e_op    = e_orbw;
+  else if(!strcmp(apch_operation, "upperlimit"))e_op    = e_upperlimit;
+  else if(!strcmp(apch_operation, "lowerlimit"))e_op    = e_lowerlimit;
+
+  else if(!strcmp(apch_operation, "stats"))     e_op    = e_stats;
+  else if(!strcmp(apch_operation, "size"))      e_op    = e_size;
+  else if(!strcmp(apch_operation, "min"))       e_op    = e_min;
+  else if(!strcmp(apch_operation, "max"))       e_op    = e_max;
+  else if(!strcmp(apch_operation, "mean"))      e_op    = e_mean;
+  else if(!strcmp(apch_operation, "std"))       e_op    = e_std;
+
+  else if(!strcmp(apch_operation, "ascii"))     e_op    = e_ascii;
+
+  return e_op;
+}
 
 /*!
   \fn VOL_fileRead(char* apch_volFileName, int* ap_vectorSize, float* apf_data)
@@ -1110,17 +1270,17 @@ CURV_arrayProgress_print(
 }
 
 /*!
-  \fn b_outCurvFile_write(char* apch_operator)
+  \fn b_outCurvFile_write(e_operation e_op)
   \brief A simple function that determines if an output file should be saved.
-  \param void
+  \param e_op The enumerated operation to perform.
   \see
-  \return Internal "class" global variables are set by this process.
+  \return A simple TRUE or FALSE indicating if for the passed operation an output file is generated.
 */
 short
-b_outCurvFile_write(char* apch_operator)
+b_outCurvFile_write(e_operation e_op)
 {
     // PRECONDITIONS
-    //	pch_operator		in		Action to perform
+    //	e_op		in		Action to perform
     //
     // POSTCONDITIONS
     //	Internally an output curvature data structure is always generated.
@@ -1132,15 +1292,27 @@ b_outCurvFile_write(char* apch_operator)
 
     short	b_ret	= 0;
 
-    if( (!strcmp(apch_operator, "mul"))		|| 	
-    	(!strcmp(apch_operator, "div")) 	||	
-    	(!strcmp(apch_operator, "add")) 	||	
-    	(!strcmp(apch_operator, "sub")) 	||
-    	(!strcmp(apch_operator, "set")) 	||
-    	(!strcmp(apch_operator, "abs")) )
-	b_ret = 1;
+    if(
+        e_op == e_mul           ||
+        e_op == e_div           ||
+        e_op == e_add           ||
+        e_op == e_sub           ||
+        e_op == e_set           ||
+        e_op == e_abs           ||
+        e_op == e_lt            ||
+        e_op == e_lte           ||
+        e_op == e_gt            ||
+        e_op == e_gte           ||
+        e_op == e_masked        ||
+        e_op == e_and           ||
+        e_op == e_or            ||
+        e_op == e_andbw         ||
+        e_op == e_orbw          ||
+        e_op == e_upperlimit    ||
+        e_op == e_lowerlimit
+  ) b_ret = 1;
 
-    return b_ret;	
+    return b_ret;
 }
 
 /*!
@@ -1174,18 +1346,40 @@ CURV_process(void)
   float f_dev   = 0.;
   char	pch_text[STRBUF];
 
-  b_canWrite	= b_outCurvFile_write(G_pch_operator);
+  Ge_operation  = operation_lookup(G_pch_operator);
+  b_canWrite    = b_outCurvFile_write(Ge_operation);
+  switch(Ge_operation) {
+    case  e_mul:        CURV_functionRunABC(fn_mul);    break;
+    case  e_div:        CURV_functionRunABC(fn_div);    break;
+    case  e_add:        CURV_functionRunABC(fn_add);    break;
+    case  e_sub:        CURV_functionRunABC(fn_sub);    break;
+    case  e_set:        CURV_functionRunABC(fn_set);    break;
+    case  e_abs:        CURV_functionRunAC( fn_abs);    break;
+    case  e_lt:         CURV_functionRunABC(fn_lt);     break;
+    case  e_lte:        CURV_functionRunABC(fn_lte);    break;
+    case  e_gt:         CURV_functionRunABC(fn_gt);     break;
+    case  e_gte:        CURV_functionRunABC(fn_gte);    break;
+    case  e_masked:     CURV_functionRunABC(fn_masked); break;
+    case  e_and:        CURV_functionRunABC(fn_and);    break;
+    case  e_or:         CURV_functionRunABC(fn_or);     break;
+    case  e_andbw:      CURV_functionRunABC(fn_andbw);  break;
+    case  e_orbw:       CURV_functionRunABC(fn_orbw);   break;
+    case  e_upperlimit: CURV_functionRunABC(fn_upl);    break;
+    case  e_lowerlimit: CURV_functionRunABC(fn_lrl);    break;
+    case  e_ascii:                                      break;
+    case  e_stats:                                      break;
+    case  e_size:                                       break;
+    case  e_min:                                        break;
+    case  e_mini:                                       break;
+    case  e_maxi:                                       break;
+    case  e_max:                                        break;
+    case  e_mean:                                       break;
+    case  e_std:                                        break;
+  }
 
-  if(     !strcmp(G_pch_operator, "mul")) {CURV_functionRunABC(fn_mul);}
-  else if(!strcmp(G_pch_operator, "div")) {CURV_functionRunABC(fn_div);}
-  else if(!strcmp(G_pch_operator, "add")) {CURV_functionRunABC(fn_add);}
-  else if(!strcmp(G_pch_operator, "sub")) {CURV_functionRunABC(fn_sub);}
-  else if(!strcmp(G_pch_operator, "set")) {CURV_functionRunABC(fn_set);}
-  else if(!strcmp(G_pch_operator, "abs")) {CURV_functionRunAC( fn_abs);}
+  if(Ge_operation == e_set) strcpy(G_pch_curvFile3, G_pch_curvFile1);
 
-  if(!strcmp(G_pch_operator, "set")) strcpy(G_pch_curvFile3, G_pch_curvFile1);
-
-  if(!strcmp(G_pch_operator, "ascii")) {
+  if(Ge_operation == e_ascii) {
     if(!Gb_file3) strcat(G_pch_curvFile3, ".ascii");
 	printf("Write : %s", G_pch_curvFile3);
 
@@ -1193,26 +1387,27 @@ CURV_process(void)
 	printf("Write error: %s", G_pch_curvFile3);
   }
 
-  if(!strcmp(G_pch_operator, "size") || !strcmp(G_pch_operator, "stats")) {
+  if(Ge_operation == e_size || Ge_operation == e_stats) {
     cprintd("Size", G_sizeCurv1);
   }
-  if(!strcmp(G_pch_operator, "min") || !strcmp(G_pch_operator, "stats")) {
+
+  if(Ge_operation == e_min || Ge_operation == e_stats) {
     f_min       = CURV_functionRunAC(fn_min);
     mini        = (int) CURV_functionRunAC(fn_mini);
     sprintf(pch_text, "%f (%d)", f_min, mini);    
     cprints("Min@(index)", pch_text);
   }
-  if(!strcmp(G_pch_operator, "max") || !strcmp(G_pch_operator, "stats")) {
+  if(Ge_operation == e_max || Ge_operation == e_stats) {
     f_max       = CURV_functionRunAC(fn_max);
     maxi        = (int) CURV_functionRunAC(fn_maxi);
     sprintf(pch_text, "%f (%d)", f_max, maxi);    
     cprints("Max@(index)", pch_text);
   }
-  if(!strcmp(G_pch_operator, "mean") || !strcmp(G_pch_operator, "stats")) {
+  if(Ge_operation == e_mean || Ge_operation == e_stats) {
     f_mean      = CURV_functionRunAC(fn_mean);
     cprintf("Mean", f_mean);
   }
-  if(!strcmp(G_pch_operator, "std") || !strcmp(G_pch_operator, "stats")) {
+  if(Ge_operation == e_std || Ge_operation == e_stats) {
     f_dev       = CURV_functionRunAC(fn_dev);
     f_std       = sqrt(f_dev/(G_sizeCurv1-1));
     cprintf("Std", f_std);
