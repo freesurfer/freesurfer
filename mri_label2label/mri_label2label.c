@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/01 18:04:49 $
- *    $Revision: 1.36 $
+ *    $Date: 2008/12/01 20:02:01 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.36 2008/08/01 18:04:49 greve Exp $
+  $Id: mri_label2label.c,v 1.37 2008/12/01 20:02:01 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -98,7 +98,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.36 2008/08/01 18:04:49 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.37 2008/12/01 20:02:01 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -152,6 +152,7 @@ float projabs = 0.0, projfrac = 0.0;
 int reversemap = 1;
 int usepathfiles = 0;
 char *XFMFile = NULL;
+char *RegFile = NULL;
 int InvertXFM=0;
 LTA *lta_transform;
 
@@ -181,7 +182,7 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.36 2008/08/01 18:04:49 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.37 2008/12/01 20:02:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -265,26 +266,43 @@ int main(int argc, char **argv) {
 
     printf("Starting volumetric mapping\n");
 
-    if (XFMFile) {
-      printf("Reading in xmf file %s",XFMFile);
-      lta_transform = LTAreadEx(XFMFile);
-      Src2TrgVolReg = lta_transform->xforms[0].m_L;
+    if(RegFile == NULL){
+      if(XFMFile) {
+	printf("Reading in xmf file %s",XFMFile);
+	lta_transform = LTAreadEx(XFMFile);
+	Src2TrgVolReg = lta_transform->xforms[0].m_L;
+      } else {
+	/*** Load the Src2Tal registration ***/
+	SrcVolReg = DevolveXFM(srcsubject, NULL, NULL);
+	if (SrcVolReg == NULL) exit(1);
+	
+	/*** Load the Trg2Tal registration ***/
+	TrgVolReg = DevolveXFM(trgsubject, NULL, NULL);
+	if (TrgVolReg == NULL) exit(1);
+	
+	/* Compte the Src-to-Trg Registration */
+	InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
+	Src2TrgVolReg = MatrixMultiply(InvTrgVolReg,SrcVolReg,NULL);
+      }
     } else {
-      /*** Load the Src2Tal registration ***/
-      SrcVolReg = DevolveXFM(srcsubject, NULL, NULL);
-      if (SrcVolReg == NULL) exit(1);
-
-      /*** Load the Trg2Tal registration ***/
-      TrgVolReg = DevolveXFM(trgsubject, NULL, NULL);
-      if (TrgVolReg == NULL) exit(1);
-
-      /* Compte the Src-to-Trg Registration */
-      InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
-      Src2TrgVolReg = MatrixMultiply(InvTrgVolReg,SrcVolReg,NULL);
+      char *pc;
+      float ipr,bpr, fscale;
+      int float2int;
+      printf("Reading reg file %s\n",RegFile);
+      err = regio_read_register(RegFile, &pc, &ipr, &bpr,
+				&fscale, &Src2TrgVolReg, &float2int);
+      if(err) {
+	printf("ERROR: reading registration %s\n",RegFile);
+	exit(1);
+      }
+      printf("Inverting reg to make it Src2Trg\n");
+      MatrixInverse(Src2TrgVolReg,Src2TrgVolReg);
     }
+
     printf("Src2TrgVolReg: -----------------\n");
     MatrixPrint(stdout,Src2TrgVolReg);
-    if (InvertXFM) {
+
+    if(InvertXFM) {
       printf("Inverting \n");
       MatrixInverse(Src2TrgVolReg,Src2TrgVolReg);
       printf("Inverted Src2TrgVolReg: -----------------\n");
@@ -829,6 +847,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       XFMFile = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--reg")) {
+      if (nargc < 1) argnerr(option,1);
+      RegFile = pargv[0];
+      regmethod = "volume";
+      nargsused = 1;
     } else if (!strcmp(option, "--outmask")) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
@@ -884,7 +907,8 @@ static void print_usage(void) {
   printf("   --srcmaskframe 0-based frame number <0>\n");
   printf("\n");
   printf("   --xfm xfmfile : use xfm instead of computing tal xfm\n");
-  printf("   --xfm-invert : invert xfm \n");
+  printf("   --reg regfile : use register.dat file instead of computing tal xfm\n");
+  printf("   --xfm-invert : invert xfm, or reg \n");
   printf("\n");
   printf("   --projabs  dist project dist mm along surf normal\n");
   printf("   --projfrac frac project frac of thickness along surf normal\n");
@@ -1133,6 +1157,10 @@ static void check_options(void) {
   if (srcsurfreg == NULL) srcsurfreg = surfreg;
   if (trgsurfreg == NULL) trgsurfreg = surfreg;
 
+  if(XFMFile && RegFile){
+    printf("ERROR: cannot --xfm and --reg\n");
+    exit(1);
+  }
 
   return;
 }
