@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/08/27 13:33:05 $
- *    $Revision: 1.138.2.3 $
+ *    $Date: 2008/12/02 16:34:42 $
+ *    $Revision: 1.138.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -530,7 +530,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.3 2008/08/27 13:33:05 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.4 2008/12/02 16:34:42 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -922,6 +922,11 @@ int main(int argc, char **argv) {
     mriglm->mask = MRIread(maskFile);
     if (mriglm->mask  == NULL) {
       printf("ERROR: reading mask file %s\n",maskFile);
+      exit(1);
+    }
+    err = MRIdimMismatch(mriglm->mask,mriglm->y,0);
+    if(err){
+      printf("ERROR: dimension mismatch %d between y and mask\n",err);
       exit(1);
     }
   }
