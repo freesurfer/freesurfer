@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/11/06 22:26:49 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/12/02 21:53:36 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -351,12 +351,14 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
 	if ( bRoundToGrid )
 	{
 		dPos = ((int)( ( dPos - m_dWorldOrigin[nPlane]) / m_dWorldVoxelSize[nPlane] ) ) * m_dWorldVoxelSize[nPlane] 
-				+ m_dWorldOrigin[nPlane];		
+				+ m_dWorldOrigin[nPlane];	
+		if ( m_dSlicePosition[nPlane] <= m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] &&
+				   m_dSlicePosition[nPlane] >= m_dWorldOrigin[nPlane] &&
+			( dPos >  m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] || dPos < m_dWorldOrigin[nPlane] ) )
+			return false;	
 	}
 	
-	if ( dPos > m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] || 
-			dPos < m_dWorldOrigin[nPlane] ||
-			fabs( dPos - m_dSlicePosition[nPlane] ) < 1e-8 )
+	if ( fabs( dPos - m_dSlicePosition[nPlane] ) < 1e-8 )
 		return false;
 	
 	m_dSlicePosition[nPlane] = dPos;

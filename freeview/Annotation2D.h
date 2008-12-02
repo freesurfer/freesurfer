@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/12/02 21:53:35 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@ public:
 private:
 	void UpdateScaleActors( double length, int nNumOfTicks, const char* title );
 	
-	vtkSmartPointer<vtkTextActor>	m_actorCoordinates[5];
+	vtkSmartPointer<vtkTextActor>	m_actorCoordinates[6];
 	vtkSmartPointer<vtkActor2D>		m_actorScaleLine;
 	vtkSmartPointer<vtkTextActor>	m_actorScaleTitle;
 	vtkSmartPointer<vtkPropCollection>	m_actorsAll;

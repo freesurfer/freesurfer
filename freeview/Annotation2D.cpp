@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2008/12/02 21:53:35 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,13 +42,13 @@
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
 
-#define NUMBER_OF_ANNOTATIONS	5
+#define NUMBER_OF_COORD_ANNOTATIONS	6
 
 
 Annotation2D::Annotation2D()
 {
 	m_actorsAll = vtkSmartPointer<vtkPropCollection>::New();
-	for ( int i = 0; i < NUMBER_OF_ANNOTATIONS; i++ )
+	for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
 	{
 		m_actorCoordinates[i] = vtkSmartPointer<vtkTextActor>::New();
 		m_actorCoordinates[i]->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
@@ -75,6 +75,11 @@ Annotation2D::Annotation2D()
 	m_actorCoordinates[4]->SetPosition( 0.99, 0.01 );
 	m_actorCoordinates[4]->GetTextProperty()->SetJustificationToRight();
 	m_actorCoordinates[4]->GetTextProperty()->SetVerticalJustificationToBottom();
+	
+	// indicate slice number
+	m_actorCoordinates[5]->SetPosition( 0.99, 0.99 );
+	m_actorCoordinates[5]->GetTextProperty()->SetJustificationToRight();
+	m_actorCoordinates[5]->GetTextProperty()->SetVerticalJustificationToTop();
 	
 	// scale actors
 	m_actorScaleLine = vtkSmartPointer<vtkActor2D>::New();
@@ -111,11 +116,23 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
 	}
 	
 	LayerMRI* mri = ( LayerMRI* )lc->GetLayer( 0 );
+	int nSliceNumber[3];
+/*	double ras[3];
+	if ( mri )
+	{
+		mri->RemapPositionToRealRAS( slicePos, ras );
+		mri->RASToOriginalIndex( ras, nSliceNumber );
+	}
+*/
 	double centPos[3];
 	double* worigin = mri->GetWorldOrigin();
 	double* wsize = mri->GetWorldSize();
+	double* wvoxel = mri->GetWorldVoxelSize();
 	for ( int i = 0; i < 3; i++ )
+	{
 		centPos[i] = worigin[i] + wsize[i]/2;
+		nSliceNumber[i] = (int)( ( slicePos[i] - worigin[i] ) / wvoxel[i] );
+	}
 	
 	double pos[4] = { 0, 1, 1, 0 }, tpos = 0;
 	
@@ -238,7 +255,9 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
 			
 			break;
 	}
-	
+			
+	// update slice number
+	m_actorCoordinates[5]->SetInput( mri ? wxString::Format( "%d", nSliceNumber[nPlane] ).c_str() : "" );
 		
 	// update scale line
 	double* xy_pos = m_actorScaleLine->GetPosition();
@@ -340,7 +359,7 @@ void Annotation2D::UpdateScaleActors( double length, int nNumOfTicks, const char
 
 void Annotation2D::AppendAnnotations( vtkRenderer* renderer )
 {
-	for ( int i = 0; i < NUMBER_OF_ANNOTATIONS; i++ )
+	for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
 		renderer->AddViewProp( m_actorCoordinates[i] );
 	
 	renderer->AddViewProp( m_actorScaleLine );

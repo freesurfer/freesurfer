@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/30 18:53:27 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/12/02 21:53:36 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -225,6 +225,7 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
 	RenderView2D* view = ( RenderView2D* )renderview;
 		
 	LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+	LayerCollection* lc_mri = lcm->GetLayerCollection( "MRI" );
 	if ( !lcm->HasAnyLayer() )
 	{
 		return Interactor::ProcessKeyDownEvent( event, renderview );
@@ -233,15 +234,17 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
 	int nKeyCode = event.GetKeyCode();
 	if ( nKeyCode == WXK_PAGEUP )
 	{
-		double* voxelSize = lcm->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
+		double* voxelSize = lc_mri->GetWorldVoxelSize();
 		int nPlane = view->GetViewPlane();
 		lcm->OffsetSlicePosition( nPlane, voxelSize[nPlane] );
+		lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
 	}
 	else if ( nKeyCode == WXK_PAGEDOWN)
 	{
-		double* voxelSize = lcm->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
+		double* voxelSize = lc_mri->GetWorldVoxelSize();
 		int nPlane = view->GetViewPlane();
 		lcm->OffsetSlicePosition( nPlane, -voxelSize[nPlane] );
+		lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
 	}
 	else if ( nKeyCode == WXK_UP )
 	{
