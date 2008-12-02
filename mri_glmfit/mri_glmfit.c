@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/17 22:12:10 $
- *    $Revision: 1.157 $
+ *    $Date: 2008/12/02 16:33:27 $
+ *    $Revision: 1.158 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -547,7 +547,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.157 2008/10/17 22:12:10 greve Exp $";
+"$Id: mri_glmfit.c,v 1.158 2008/12/02 16:33:27 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -652,7 +652,7 @@ DTI *dti;
 int usedti = 0;
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
 MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
-MRI  *ivc;
+MRI  *ivc, *k;
 char *bvalfile=NULL, *bvecfile=NULL;
 
 int useasl = 0;
@@ -965,6 +965,11 @@ int main(int argc, char **argv) {
     mriglm->mask = MRIread(maskFile);
     if (mriglm->mask  == NULL) {
       printf("ERROR: reading mask file %s\n",maskFile);
+      exit(1);
+    }
+    err = MRIdimMismatch(mriglm->mask,mriglm->y,0);
+    if(err){
+      printf("ERROR: dimension mismatch %d between y and mask\n",err);
       exit(1);
     }
   }
@@ -1755,6 +1760,12 @@ int main(int argc, char **argv) {
     fprintf(fp,"SynthSeed        %d\n",SynthSeed);
     fclose(fp);
   }
+
+  // Compute and save kurtosis
+  printf("Computing kurtosis of residuals\n");
+  k = fMRIkurtosis(mriglm->eres,NULL);
+  sprintf(tmpstr,"%s/kurtosis.%s",GLMDir,format);
+  MRIwrite(k,tmpstr);
 
   // Compute and save PCA
   if (pcaSave) {
