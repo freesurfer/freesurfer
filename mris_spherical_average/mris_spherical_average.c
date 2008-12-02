@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/29 19:00:31 $
- *    $Revision: 1.23 $
+ *    $Date: 2008/12/02 14:01:25 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.23 2008/09/29 19:00:31 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.24 2008/12/02 14:01:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -68,6 +68,7 @@ static int navgs = 0 ;
 static char *ohemi = NULL ;
 static char *osurf = NULL ;
 static char *orig_name = "orig" ;
+static int segment = 0 ;  // not implemented yet
 
 static int which_ic = 7 ;
 static char *sdir = NULL ;
@@ -88,10 +89,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.23 2008/09/29 19:00:31 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.24 2008/12/02 14:01:25 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.23 2008/09/29 19:00:31 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.24 2008/12/02 14:01:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -270,6 +271,8 @@ main(int argc, char *argv[]) {
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
+    if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
+      ErrorExit(ERROR_BADPARM, "could not read surface positions from %s", orig_name) ;
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   }
 
@@ -326,6 +329,7 @@ main(int argc, char *argv[]) {
       fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
     switch (which) {
     case VERTEX_LABEL:
+      LabelToOriginal(area, mris) ;  // use orig coords in output surface
       printf("writing label with %d points to %s...\n", area->n_points,
              out_fname) ;
       if (normalize_flag)
@@ -394,6 +398,9 @@ get_option(int argc, char *argv[]) {
     spatial_prior_fname = argv[3] ;
     nargs = 2 ;
     printf("blurring label priors and writing output to %s\n", spatial_prior_fname) ;
+  } else if (!stricmp(option, "segment")) {
+    segment = 1 ;
+    printf("segmenting input labels and only using largest connected component\n") ;
   } else if (!stricmp(option, "osdir")) {
     osdir = argv[2] ;
     nargs = 1 ;
@@ -477,6 +484,8 @@ print_help(void) {
   fprintf(stderr,
           "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "-segment        only use largest connected component of label\n");
+  fprintf(stderr, "-orig  <name>   use <name> as original surface position default=orig\n");
   fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
           "                them into sigavg<cond #>-<hemi>.w and\n"
           "                sigvar<cond #>-<hemi>.w.\n") ;
