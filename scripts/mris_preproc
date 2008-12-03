@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/09/18 15:26:56 $
-#    $Revision: 1.50 $
+#    $Author: nicks $
+#    $Date: 2008/12/03 18:13:48 $
+#    $Revision: 1.51 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.50 2008/09/18 15:26:56 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.51 2008/12/03 18:13:48 nicks Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -40,6 +40,7 @@ set ivplist = ();
 set irplist = ();
 set srcfmt  = ();
 set target = fsaverage
+set surfdir = surf
 set fwhmsrc  = ();
 set fwhmtarg = ();
 set niterssrc = ();
@@ -183,16 +184,16 @@ foreach subj ($subjlist)
 
   if($CacheOutOnly && $CacheOutUpdate) then
     if($trghemi == $srchemi) then
-      set tcache = $subjpath/surf/$trghemi.$CacheOutFile
+      set tcache = $subjpath/$surfdir/$trghemi.$CacheOutFile
     else
-      set tcache = $subjpath/surf/$trghemi.$srchemi.$CacheOutFile
+      set tcache = $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile
     endif
     if(-e $tcache) continue;
   endif
 
   if($CacheIn) then
     # Input has been cached
-    set tval = $subjpath/surf/$srchemi.$meas.mgh
+    set tval = $subjpath/$surfdir/$srchemi.$meas.mgh
     if(! -e $tval) then
       echo "ERROR: cannot find cahed file $tval"
       exit 1;
@@ -217,7 +218,7 @@ foreach subj ($subjlist)
     else
       # Source is already a surface
       if($#meas || $#sval) then
-        set srcsurfpath = $subjpath/surf/$srchemi.$meas
+        set srcsurfpath = $subjpath/$surfdir/$srchemi.$meas
       else
         set srcsurfpath = $isplist[$nthsubj];
       endif
@@ -253,9 +254,9 @@ foreach subj ($subjlist)
   # Copy/smooth resampled data to CacheOutFile
   if($#CacheOutFile) then
     if($trghemi == $srchemi) then
-      set tcache = $subjpath/surf/$trghemi.$CacheOutFile
+      set tcache = $subjpath/$surfdir/$trghemi.$CacheOutFile
     else
-      set tcache = $subjpath/surf/$trghemi.$srchemi.$CacheOutFile
+      set tcache = $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile
     endif
     # Smooth in the target space
     if($#fwhmtarg || $#niterstarg) then
@@ -276,9 +277,9 @@ foreach subj ($subjlist)
     else
       # Does this work?
       if($trghemi == $srchemi) then
-        set cmd = (cp $tval $subjpath/surf/$trghemi.$CacheOutFile.mgh)
+        set cmd = (cp $tval $subjpath/$surfdir/$trghemi.$CacheOutFile.mgh)
       else
-        set cmd = (cp $tval $subjpath/surf/$trghemi.$srchemi.$CacheOutFile.mgh)
+        set cmd = (cp $tval $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile.mgh)
       endif
       echo "-----------------------"| tee -a $LF
       echo $cmd | tee -a $LF
@@ -423,6 +424,11 @@ while( $#argv != 0 )
     case "--srcfmt":
       if($#argv < 1) goto arg1err;
       set srcfmt = $argv[1]; shift;
+      breaksw
+
+    case "--surfdir":
+      if($#argv < 1) goto arg1err;
+      set surfdir = $argv[1]; shift;
       breaksw
 
     case "--isp": # Input surface path
@@ -836,8 +842,8 @@ foreach subj ($subjlist)
     exit 1;
   endif
   if($#meas) then
-    if(! $CacheIn) set measpath = $subjpath/surf/$srchemi.$meas
-    if($CacheIn) set measpath = $subjpath/surf/$srchemi.$meas.mgh
+    if(! $CacheIn) set measpath = $subjpath/$surfdir/$srchemi.$meas
+    if($CacheIn) set measpath = $subjpath/$surfdir/$srchemi.$meas.mgh
     if(! -e $measpath) then
       echo "ERROR: cannot find $measpath"
       exit 1;
@@ -896,6 +902,7 @@ usage_exit:
   echo ""
   echo "  --is surfmeasfile <--is surfmeasfile> "
   echo "  --srcfmt fmt : source format"
+  echo "  --surfdir dirname    : alternative directory (instead of surf)"
   echo ""
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
@@ -1008,6 +1015,11 @@ alternative to using an fsgd file. For use with --meas.
 
 Specify full path to input surface measure file. This is an alternative to
 using --meas. This still requires that a subject list be supplied.
+
+--surfdir dirname
+
+Specify a directory other than the default <subjid>/surf. Path must be at the same
+level as surf.  Ex. --surfdir dtrans 
 
 --srcfmt fmt
 
