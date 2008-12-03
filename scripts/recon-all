@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/11/13 21:43:48 $
-#    $Revision: 1.191 $
+#    $Date: 2008/12/03 18:15:35 $
+#    $Revision: 1.192 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.191 2008/11/13 21:43:48 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.192 2008/12/03 18:15:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -130,9 +130,10 @@ set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
 set measurelist = ( thickness area area.pial volume curv sulc white.K white.H jacobian_white  )
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
+set measuredir = (); # for specifying an alternate path to measure files
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache
-set SmoothCortexOnly = 0; # For -qcache. At some point, this should be the default
+set SmoothCortexOnly = 1; # For -qcache. smooths only within ?h.cortex.label
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
@@ -2523,7 +2524,11 @@ end # hemi
 # ---------------------------------------------------------------
 # Create the smoothed surfaces to fsaverage target needed by Qdec.
 if ($DoQdecCache) then
-  cd $subjdir/surf
+  if ("${measuredir}" != "") then
+    cd ${measuredir}
+  else
+    cd $subjdir/surf
+  endif
   $PWD |& tee -a $LF
   foreach hemi ($hemilist)
     foreach measure ($measurelist)
@@ -2545,6 +2550,7 @@ if ($DoQdecCache) then
             --meas ${measure} \
             --target ${target} \
             --out ${MeasFile}.mgh)
+        if ("${measuredir}" != "") set cmd = ($cmd --surfdir ${measuredir})
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
@@ -2568,6 +2574,11 @@ if ($DoQdecCache) then
           if($RunIt) $fs_time $cmd |& tee -a $LF
           if($status) goto error_exit;
           if($RunIt) rm -Rf tmp.mris_preproc.*
+          if($RunIt) then
+            if ("${measuredir}" != "") then
+              mv -v ${OutFile}.mgh $subjdir/surf
+            endif
+          endif
           echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
         end # fwhm
       endif # if ( ! -e ${hemi}.${measure} )
@@ -3841,6 +3852,11 @@ while( $#argv != 0 )
       set measurelist = $argv[1]; shift;
       breaksw
 
+    case "-measuredir":
+      if ( $#argv < 1) goto arg1err;
+      set measuredir = $argv[1]; shift;
+      breaksw
+
     case "-fwhm":
       if ( $#argv < 1) goto arg1err;
       set fwhmlist = $argv[1]; shift;
@@ -4714,7 +4730,8 @@ common-space surface. By default, the surface data for thickness, curv, sulc,
 area and jacobian_white are smoothed at 0, 5, 10, 15, 20, and 25 mm FWHM.
 If just one set of surface data needs to be processed, then the option
 -measure <surfmeas> can follow -qcache, where <surfmeas> is one of: thickness,
-curv, sulc, area, jacobian_white or any surface measure. Another option is
+curv, sulc, area, jacobian_white or any surface measure. -measuredir allows
+specifying a directory other than the default of surf. Another option is
 -fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
 specifying a common-space target other than fsaverage (the default).
 See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
@@ -4723,9 +4740,8 @@ See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
 
 Only applies with -qcache. Only smooth data if it is part of the ?h.cortex.label.
 This prevents values in the medial wall (which are meaningless) from being smoothed
-into cortical areas. At some point in the future, this will be the default and
-you will have to turn it off with -no-smooth-cortex-only. This documentation will
-reflect this change.
+into cortical areas. This is the default and you will have to turn it off with 
+-no-smooth-cortex-only.
 
 -no-smooth-cortex-only
 
