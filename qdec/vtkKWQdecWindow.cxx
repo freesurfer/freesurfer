@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/09/05 23:15:50 $
- *    $Revision: 1.30 $
+ *    $Date: 2008/12/04 00:43:06 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,9 @@
 #include <vector>
 #include <stdexcept>
 #include <sstream>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "vtkKWQdecWindow.h"
 #include "IconLoader.h"
@@ -101,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.30 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.31 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -1272,8 +1275,20 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep.mgz" );
-    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial.mgz" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial.mgz");
     mMenuMorphMeasure->SetValue( "thickness" );
+
+    for (int i=1; i<=100; i++)
+    {
+      char cBuf[100];
+      sprintf( cBuf, "MEASURE%d", i );
+      const char* sUserMeasure = QdecUtilities::GetResourceString( cBuf );
+      if (sUserMeasure)
+      {
+        mMenuMorphMeasure->GetMenu()->AddRadioButton( sUserMeasure );
+      }
+    }
+
     this->Script( "grid %s -column 1 -row %d -sticky nw",
                   mMenuMorphMeasure->GetWidgetName(), nRow );
     nRow++;
