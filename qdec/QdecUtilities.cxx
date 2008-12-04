@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/04 00:43:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/12/04 15:30:54 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,14 +76,40 @@ QdecUtilities::FileNamePath(const char *fname, const char *pathName)
 
 
 const char *
-QdecUtilities::GetResourceString(const char *key)
+QdecUtilities::GetQdecrcResourceString(const char *key)
 {
-  // resource file ~/.Qdecrc contains key/value pairs
-  if ( NULL == getenv("HOME") ) return NULL;
-  string rcFile = getenv("HOME");
-  rcFile += "/.Qdecrc";
+  // resource file .Qdecrc contains key = value pairs
+  // the file can located in either or both of two directories:
+  // $SUBJECTS_DIR/qdec or
+  // ~  ($HOME)
+  // the first key found is returned
+  const char* value = NULL;
+  if ( NULL != getenv("SUBJECTS_DIR") )
+  {
+    string rcFile = getenv("SUBJECTS_DIR");
+    rcFile += "/qdec/.Qdecrc";
+    value = QdecUtilities::GetResourceString( key, rcFile.c_str() );
+  }
+  if ( NULL == value ) // did not find key in $SUBJECTS_DIR/qdec/.Qdecrc ...
+  {
+    // ...so look for it in $HOME/.Qdecrc
+    if ( NULL != getenv("HOME") )
+    {
+      string rcFile = getenv("HOME");
+      rcFile += "/.Qdecrc";
+      value = QdecUtilities::GetResourceString( key, rcFile.c_str() );
+    }
+  }  
+  return value;
+}
+
+const char *
+QdecUtilities::GetResourceString(const char *key, const char *filename)
+{
+  // resource file contains key = value pairs
+  if ( NULL == filename ) return NULL;
   ifstream ifsFile;
-  ifsFile.open(rcFile.c_str());
+  ifsFile.open(filename);
   if ( ifsFile.is_open())
   {
     size_t tmpstrMaxSize = 200000; // maximum size of one line in the file

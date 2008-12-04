@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/04 00:43:06 $
- *    $Revision: 1.31 $
+ *    $Date: 2008/12/04 15:30:54 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.31 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.32 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -1278,11 +1278,17 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial.mgz");
     mMenuMorphMeasure->SetValue( "thickness" );
 
+    // read .Qdecrc resource file (which can located in either ~ or in
+    // $SUBJECTS_DIR/qdec, or both locations), for key = value pairs
+    // consisting of MEASURE# = measure, where # is 1 to 100, and 
+    // 'measure' is some user specified measure to insert in the menu.
+    // user must have created this measure with 
+    // recon-all -qcache -measure measure
     for (int i=1; i<=100; i++)
     {
       char cBuf[100];
       sprintf( cBuf, "MEASURE%d", i );
-      const char* sUserMeasure = QdecUtilities::GetResourceString( cBuf );
+      const char* sUserMeasure = QdecUtilities::GetQdecrcResourceString( cBuf );
       if (sUserMeasure)
       {
         mMenuMorphMeasure->GetMenu()->AddRadioButton( sUserMeasure );
