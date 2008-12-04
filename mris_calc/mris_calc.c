@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2008/11/27 02:00:43 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/12/04 20:27:57 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.11 2008/11/27 02:00:43 rudolph Exp $";
+"$Id: mris_calc.c,v 1.12 2008/12/04 20:27:57 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -125,7 +125,8 @@ typedef enum _operation {
   e_mini,
   e_maxi,
   e_mean,
-  e_std
+  e_std,
+  e_norm
 } e_operation;
 
 const char* Gppch_operation[] = {
@@ -155,6 +156,7 @@ const char* Gppch_operation[] = {
   "maxi",
   "mean",
   "std",
+  "normalize"
 };
 
 // -------------------------------
@@ -390,6 +392,7 @@ synopsis_show(void) {
 
   sprintf(pch_synopsis, "    \n\
  \n\
+ \n\
     NAME \n\
  \n\
           mris_calc \n\
@@ -456,6 +459,7 @@ synopsis_show(void) {
           sub      2      1     <outputFile> = <file1> - <file2> \n\
           set      2      1     <file1>      = <file2> \n\
           abs      1      1     <outputFile> = abs(<file1>) \n\
+         norm      1      1     <outputFile> = norm(<file1>) \n\
  \n\
       RELATIONAL \n\
           lt       2      1     <outputFile> = <file1> <  <file2> \n\
@@ -486,6 +490,28 @@ synopsis_show(void) {
     NOTES ON ACTIONS \n\
  \n\
       MATHEMATICAL \n\
+        The 'add', 'sub', 'div', 'mul' operations all function as one would \n\
+        expect. The 'norm' creates an output file such that all values are \n\
+        constrained (normalized) between 0.0 and 1.0. \n\
+ \n\
+        NOTE: For volume files, be very careful about data types! If the input \n\
+        volume is has data of type UCHAR (i.e. integers between zero and 255), \n\
+        the output will be constrained to this range and type as well! That \n\
+        means, simply, that if type UCHAR vols are multiplied together, the \n\
+        resultant output will itself be a UCHAR volume. This is probably not \n\
+        what you want. In order for calculations to evaluate correctly, \n\
+        especially 'mul', 'div', and 'norm', convert the input volumes to \n\
+        float format, i.e.: \n\
+ \n\
+                $>mri_convert -odt float input.mgz input.f.mgz \n\
+                $>mris_calc -o input_norm.mgz input.f.mgz norm \n\
+ \n\
+        will give correct results, while \n\
+ \n\
+                $>mris_calc -o input_norm.mgz input.mgz norm \n\
+ \n\
+        most likely be *not* what you are looking for. \n\
+ \n\
         The 'set' command overwrites its input data. It still requires a valid \n\
         <file1> -- since in most instances the 'set' command is used to set \n\
         input data values to a single float constant, i.e. \n\
@@ -617,6 +643,7 @@ synopsis_show(void) {
                 $>cp rh.area rh.ICV \n\
                 $>mris_calc rh.ICV set 100000 \n\
                 $>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
+ \n\
  \n\
 \n");
 
@@ -872,13 +899,58 @@ debuggingInfo_display() {
   cprints("Type of input2: ", 	Gppch_filetype[G_eFILETYPE2]);
 }
 
+short
+CURV_set(
+  float*        apf_array[], 
+  int           a_size, 
+  float         af_val) {
+  //
+  // PRECONDITIONS
+  // o apf_array does not need to have been allocated... if non-NULL will
+  //   first free.
+  //   
+  // POSTCONDITIONS
+  // o apf_array is set to have all values set to <af_val>.
+  // 
+  int           i;
+  float*        pf_array        = NULL;
+
+//   if(*apf_array) free(*apf_array);
+  pf_array = (float*) malloc(a_size * sizeof(float));
+  for(i=0; i<a_size; i++)
+    pf_array[i] = af_val;
+  *apf_array    = pf_array;
+  return 1;
+}
+
+short
+CURV_copy(
+  float         apf_arraySrc[],
+  float         apf_arrayDst[],
+  int           a_size
+) {
+  //
+  // PRECONDITIONS
+  // o <a_size> must be correct for both array inputs.
+  // 
+  // POSTCONDITIONS
+  // o contents of <apf_arrayDst> are copied to <apf_arraySrc>, i.e.
+  //   <apf_arraySrc> = <apf_arrayDst>
+  // 
+  int   i;
+  for(i=0; i<a_size; i++)
+    apf_arraySrc[i]     = apf_arrayDst[i];
+  return 1;
+}
+
+
 int
 main(
   int   argc,
   char  *argv[]
   ) {
 
-  int   	nargs, i;
+  int   	nargs;
   short 	ret		= 0;
   float		f_curv2;
   e_FILEACCESS	eACCESS;
@@ -886,7 +958,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.11 2008/11/27 02:00:43 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.12 2008/12/04 20:27:57 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -926,9 +998,10 @@ main(
       if(G_eFILETYPE2 == e_FloatArg) {
     	f_curv2   	= atof(G_pch_curvFile2);
     	G_sizeCurv2 	= G_sizeCurv1;
-    	G_pf_arrayCurv2 = (float*) malloc(G_sizeCurv1 * sizeof(float));
+        CURV_set(&G_pf_arrayCurv2, G_sizeCurv2, f_curv2);
+/*    	G_pf_arrayCurv2 = (float*) malloc(G_sizeCurv1 * sizeof(float));
     	for(i=0; i<G_sizeCurv2; i++)
-      	    G_pf_arrayCurv2[i] = f_curv2;
+      	    G_pf_arrayCurv2[i] = f_curv2;*/
   	}
   }
   if(G_verbosity) debuggingInfo_display();
@@ -1038,6 +1111,7 @@ operation_lookup(
   else if(!strcmp(apch_operation, "max"))       e_op    = e_max;
   else if(!strcmp(apch_operation, "mean"))      e_op    = e_mean;
   else if(!strcmp(apch_operation, "std"))       e_op    = e_std;
+  else if(!strcmp(apch_operation, "norm"))      e_op    = e_norm;
 
   else if(!strcmp(apch_operation, "ascii"))     e_op    = e_ascii;
 
@@ -1077,7 +1151,7 @@ VOL_fileRead(
     for(j=0; j<pMRI->height; j++)	// 'y', i.e. rows in slice
       for(k=0; k<pMRI->depth; k++) {	// 'z', i.e. # of slices
 	CURV_arrayProgress_print(*ap_vectorSize, I, pch_readMessage);
-	pf_data[I++]	= MRIgetVoxVal(pMRI, i, j, k, 0);
+	pf_data[I++]	= (float) MRIgetVoxVal(pMRI, i, j, k, 0);
       }
   *apf_data = pf_data;
   return(e_OK);
@@ -1103,7 +1177,7 @@ VOL_fileWrite(
   //
   // POSTCONDITIONS
   // o Gp_MRI will have its voxel data set element-by-element to apf_data.
-  // o Gp_MRI saved to <apch_volFileName>.
+  // o Gp_MRI saved to <apchq_volFileName>.
   //
   
   int		volSize;
@@ -1119,7 +1193,7 @@ VOL_fileWrite(
     for(j=0; j<Gp_MRI->height; j++)		// 'y', i.e. rows in slice
       for(k=0; k<Gp_MRI->depth; k++) {		// 'z', i.e. # of slices
 	CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
-	MRIsetVoxVal(Gp_MRI, i, j, k, 0, apf_data[I++]);
+	MRIsetVoxVal(Gp_MRI, i, j, k, 0, (float) apf_data[I++]);
       }
   if(G_verbosity) cprints("Saving", "");
   return(MRIwrite(Gp_MRI, apch_volFileName));
@@ -1309,7 +1383,8 @@ b_outCurvFile_write(e_operation e_op)
         e_op == e_andbw         ||
         e_op == e_orbw          ||
         e_op == e_upperlimit    ||
-        e_op == e_lowerlimit
+        e_op == e_lowerlimit    ||
+        e_op == e_norm
   ) b_ret = 1;
 
     return b_ret;
@@ -1338,6 +1413,7 @@ CURV_process(void)
 
   float f_min           = 0.;
   float f_max           = 0.;
+  float f_range         = 0.;
   int   mini            = -1;
   int   maxi            = -1;
   int   b_canWrite      = 0;
@@ -1375,6 +1451,21 @@ CURV_process(void)
     case  e_max:                                        break;
     case  e_mean:                                       break;
     case  e_std:                                        break;
+    case  e_norm:
+                f_min   = CURV_functionRunAC(fn_min);
+                f_max   = CURV_functionRunAC(fn_max);
+                f_range = f_max - f_min;
+                // v2   = f_min
+                CURV_set(&G_pf_arrayCurv2, G_sizeCurv1, f_min);
+                // v3 = v1 - v2
+                CURV_functionRunABC(fn_sub);
+                // v1 = v3
+                CURV_copy(G_pf_arrayCurv1, G_pf_arrayCurv3, G_sizeCurv1);
+                // v2 = f_range
+                CURV_set(&G_pf_arrayCurv2, G_sizeCurv1, f_range);
+                // v3 = v1 / v2
+                CURV_functionRunABC(fn_div);
+                break;
   }
 
   if(Ge_operation == e_set) strcpy(G_pch_curvFile3, G_pch_curvFile1);

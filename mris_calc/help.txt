@@ -65,6 +65,7 @@
 	  sub	   2	  1     <outputFile> = <file1> - <file2>
 	  set	   2	  1     <file1>	     = <file2> 
           abs      1      1     <outputFile> = abs(<file1>)
+         norm      1      1     <outputFile> = norm(<file1>)
 
       RELATIONAL
           lt       2      1     <outputFile> = <file1> <  <file2>
@@ -95,6 +96,28 @@
     NOTES ON ACTIONS
 
       MATHEMATICAL
+        The 'add', 'sub', 'div', 'mul' operations all function as one would
+        expect. The 'norm' creates an output file such that all values are
+        constrained (normalized) between 0.0 and 1.0.
+
+        NOTE: For volume files, be very careful about data types! If the input
+        volume is has data of type UCHAR (i.e. integers between zero and 255),
+        the output will be constrained to this range and type as well! That
+        means, simply, that if type UCHAR vols are multiplied together, the
+        resultant output will itself be a UCHAR volume. This is probably not
+        what you want. In order for calculations to evaluate correctly,
+        especially 'mul', 'div', and 'norm', convert the input volumes to 
+        float format, i.e.:
+
+                $>mri_convert -odt float input.mgz input.f.mgz
+                $>mris_calc -o input_norm.mgz input.f.mgz norm
+
+        will give correct results, while
+        
+                $>mris_calc -o input_norm.mgz input.mgz norm 
+                
+        most likely be *not* what you are looking for.
+
 	The 'set' command overwrites its input data. It still requires a valid
 	<file1> -- since in most instances the 'set' command is used to set
 	input data values to a single float constant, i.e. 
