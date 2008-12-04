@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/20 23:48:12 $
- *    $Revision: 1.252 $
+ *    $Date: 2008/12/04 20:34:36 $
+ *    $Revision: 1.253 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -20108,6 +20108,77 @@ MRI *GCAbuildMostLikelyLabelVolume(GCA *gca)
         {
           MRIsetVoxVal(mri, x, y, z, 0, 0) ;
 
+        }
+      }
+    }
+  }
+
+  return(mri) ;
+}
+
+MRI *GCAbuildMostLikelyLabelProbabilityVolume(GCA *gca)
+{
+  /* this function creates a label volume and will be used to register
+     a subject's manual label to it, as a way to get linear registration
+     from the subject to the gca for gca training */
+  int       x,  y, z, xn, yn, zn, width, depth, height, n, xp, yp, zp;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  MRI *mri;
+  double    max_prior ;
+  int       max_label ;
+
+  mri = MRIallocSequence(gca->prior_width, gca->prior_height,
+                         gca->prior_depth, MRI_FLOAT, gca->ninputs) ;
+  // hey create gca volume and thus copies gca prior values
+  mri->xsize = gca->xsize*gca->prior_spacing ;
+  mri->ysize = gca->ysize*gca->prior_spacing ;
+  mri->zsize = gca->zsize*gca->prior_spacing ;
+  // most likely volume should agree with direction cosines
+  GCAcopyDCToMRI(gca, mri);
+
+  width = mri->width ; depth = mri->depth ;height = mri->height ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        // get node value
+        if (GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn) == NO_ERROR)
+        {
+          // get prior value
+          if (GCAvoxelToPrior(gca, mri, x, y, z,
+                              &xp, &yp, &zp) == NO_ERROR)
+          {
+            gcan = &gca->nodes[xn][yn][zn] ;
+            gcap = &gca->priors[xp][yp][zp] ;
+            if (gcap==NULL || gcap->nlabels <= 0)
+              continue;
+            // initialize
+            max_prior = gcap->priors[0] ;
+            max_label = gcap->labels[0] ;
+            // prior labels
+            for (n = 1 ; n < gcap->nlabels ; n++)
+            {
+              if (gcap->priors[n] >= max_prior)
+              {
+                max_prior = gcap->priors[n] ;
+                max_label = gcap->labels[n] ;
+              }
+            }
+            MRIsetVoxVal(mri, x, y, z, 0, max_prior) ;
+          }
+          else
+          {
+            MRIsetVoxVal(mri, x, y, z, 0, max_prior) ;
+          }
+        }
+        else
+        {
+          MRIsetVoxVal(mri, x, y, z, 0, 0) ;
         }
       }
     }

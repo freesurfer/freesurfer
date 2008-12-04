@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/18 20:22:11 $
- *    $Revision: 1.349 $
+ *    $Date: 2008/12/04 20:34:35 $
+ *    $Revision: 1.350 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -14640,10 +14640,16 @@ readGCA(char *fname, int start_frame, int end_frame)
   gca = GCAread(fname) ;
   if (!gca)
     return(NULL) ;
+  printf("reading frame %d of gca\n", start_frame) ;
   if (start_frame < 1)
     mri = GCAbuildMostLikelyVolume(gca, NULL) ;
-  else
+  else if (start_frame < 2)
     mri = GCAbuildMostLikelyLabelVolume(gca) ;
+  else 
+  {
+    printf("interpreting as probability volume\n") ;
+    mri = GCAbuildMostLikelyLabelProbabilityVolume(gca) ;
+  }
   GCAfree(&gca) ;
   return(mri) ;
 }
