@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/02 14:01:25 $
- *    $Revision: 1.24 $
+ *    $Date: 2008/12/04 16:00:19 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.24 2008/12/02 14:01:25 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.25 2008/12/04 16:00:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,6 +58,8 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int erode = 0 ;
+static int dilate = 0 ;
 static float threshold = 0 ;
 static int reassign = 0 ;
 static int normalize_flag = 0 ;
@@ -89,10 +91,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.24 2008/12/02 14:01:25 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.25 2008/12/04 16:00:19 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.24 2008/12/02 14:01:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.25 2008/12/04 16:00:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -344,6 +346,10 @@ main(int argc, char *argv[]) {
       }
       if (threshold > 0)
         LabelThreshold(area, threshold) ;
+      if (dilate > 0)
+        LabelDilate(area, mris, dilate) ;
+      if (erode > 0)
+        LabelErode(area, mris, erode) ;
       LabelWrite(area, out_fname) ;
       break ;
     case VERTEX_VALS:
@@ -407,6 +413,14 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "orig")) {
     orig_name = argv[2] ;
     nargs = 1 ;
+  } else if (!stricmp(option, "erode")) {
+    erode = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("eroding label %d times before writing\n", erode) ;
+  } else if (!stricmp(option, "dilate")) {
+    dilate = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("eroding label %d times before writing\n", erode) ;
   } else if (!stricmp(option, "reassign")) {
     reassign = 1 ;
     printf("recomputing label vertex assignments\n") ;
