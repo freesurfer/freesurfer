@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/12/05 21:07:46 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -214,7 +214,7 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* const iData
 	{
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
 		m_cursor2D->SetPosition( lc->GetCursorRASPosition() );
-		if ( EnsureCursor2DVisible() )
+	//	if ( EnsureCursor2DVisible() )
 			UpdateCursor2D();
 	}
 	else if ( iMsg == "Zooming" )
