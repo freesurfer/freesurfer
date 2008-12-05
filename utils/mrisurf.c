@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2008/11/06 21:30:04 $
- *    $Revision: 1.620 $
+ *    $Author: nicks $
+ *    $Date: 2008/12/05 20:59:28 $
+ *    $Revision: 1.621 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.620 2008/11/06 21:30:04 rudolph Exp $");
+  return("$Id: mrisurf.c,v 1.621 2008/12/05 20:59:28 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3867,9 +3867,11 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
           || !FZERO(lt->src.c_s - mris->vg.c_s))
       {
         fprintf(stderr, "WARNING: the source volume info "
-                "is not consistent between \n");
-        fprintf(stderr, "WARNING: the info contained "
-                "in the surface data and that of the transform.\n");
+                "is not consistent between the info contained\n");
+        fprintf(stderr, "WARNING: in the surface data (%f,%f,%f) and "
+                "that of the transform (%f,%f,%f).\n",
+                mris->vg.c_r,mris->vg.c_a,mris->vg.c_s,
+                lt->src.c_r,lt->src.c_a,lt->src.c_s);
       }
     }
   }
