@@ -1,5 +1,5 @@
-function [dat] = load_csd(csdfile)
-% dat = load_csd(csdfile)
+function [dat thresh fwhm searchspace anattype] = load_csd(csdfile)
+% [dat thresh fwhm searchspace anattype] = load_csd(csdfile)
 % 
 % reads in Cluster Simulation Data (CSD) as produced by mri_glmfit.
 % dat has 5 columes:
@@ -9,9 +9,12 @@ function [dat] = load_csd(csdfile)
 %  4. MaxSig    
 %  5. MaxStat
 % 
-% Currently does not read in the CSD header.
+% thresh is -log10(p)
+% fwhm in mm^D
+% searchspace in mm^D
+% anattype is volume or surface
 %
-% $Id: load_csd.m,v 1.1 2007/04/02 22:56:02 greve Exp $
+% $Id: load_csd.m,v 1.2 2008/12/05 21:20:04 greve Exp $
 
 %
 % load_csd.m
@@ -19,8 +22,8 @@ function [dat] = load_csd(csdfile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/04/02 22:56:02 $
-%    $Revision: 1.1 $
+%    $Date: 2008/12/05 21:20:04 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -62,7 +65,22 @@ while(1)
   % scroll through any blank lines or comments %
   while(1)
     tline = fgetl(fid);
-    if(~isempty(tline) & tline(1) ~= '#') break; end
+    if(~isempty(tline))
+      if(tline(1) ~= '#') break; end
+      key = sscanf(tline,'%*s %s');
+      if(strcmp(key,'thresh'))
+	thresh = sscanf(tline,'%*s %*s %f');
+      end
+      if(strcmp(key,'nullfwhm'))
+	fwhm = sscanf(tline,'%*s %*s %f');
+      end
+      if(strcmp(key,'searchspace'))
+	searchspace = sscanf(tline,'%*s %*s %f');
+      end
+      if(strcmp(key,'anattype'))
+	anattype = sscanf(tline,'%*s %*s %s');
+      end
+    end
   end
   if(tline(1) == -1) break; end
 
