@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/04 20:34:36 $
- *    $Revision: 1.253 $
+ *    $Date: 2008/12/05 12:25:17 $
+ *    $Revision: 1.254 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -20173,7 +20173,7 @@ MRI *GCAbuildMostLikelyLabelProbabilityVolume(GCA *gca)
           }
           else
           {
-            MRIsetVoxVal(mri, x, y, z, 0, max_prior) ;
+            MRIsetVoxVal(mri, x, y, z, 0, 0) ;
           }
         }
         else
