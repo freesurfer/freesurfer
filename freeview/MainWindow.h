@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/11/06 22:26:49 $
- *    $Revision: 1.20 $
+ *    $Date: 2008/12/05 20:37:23 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -280,6 +280,13 @@ public:
 		{ return m_strLastDir; }
 	
 protected:
+	void CommandLoadVolume( const wxArrayString& cmd ); 
+	void CommandLoadDTI( const wxArrayString& cmd ); 
+	void CommandLoadROI( const wxArrayString& cmd ); 
+	void CommandLoadSurface( const wxArrayString& cmd ); 
+	void CommandLoadWayPoints( const wxArrayString& cmd );
+	void CommandScreenCapture( const wxArrayString& cmd ); 
+	
 	void OnInternalIdle(); 
 	virtual void DoListenToMessage ( std::string const iMsg, void* const iData );
 	

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 17:26:46 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/12/05 20:37:23 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -104,6 +104,10 @@ public:
 																	// ras is not native ras!
 	void NativeRASToRAS( const double* pos_in, double* pos_out );
 	
+	void TkRegToNativeRAS( const double* pos_in, double* pos_out );
+	
+	void NativeRASToTkReg( const double* pos_in, double* pos_out );
+	
 	void SetMRITarget( MRI* mri );
 	
 	void SetMRI( MRI*& mri_out, MRI* mri_in );
@@ -146,6 +150,7 @@ protected:
 	double			m_VoxelToRASMatrix[16];
 	double			m_VoxelToVoxelMatrix[16];
 	double			m_RASToRASMatrix[16];
+	double			m_RASToTkRegMatrix[16];
 	
 	float			m_fMinValue;
 	float			m_fMaxValue;

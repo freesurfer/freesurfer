@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/22 15:25:40 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/12/05 20:37:24 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -104,6 +104,12 @@ private:
 	void OnSliderFrameChanged( wxScrollEvent& event );
 	void OnTextFrameChanged( wxCommandEvent& event );
 	
+	void OnCheckContour( wxCommandEvent& event );
+	void OnSliderContourMin( wxScrollEvent& event );
+	void OnSliderContourMax( wxScrollEvent& event );
+	void OnTextContourMin( wxCommandEvent& event );
+	void OnTextContourMax( wxCommandEvent& event );
+	
 	void DoUpdateUI();
 	void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
 	void PopulateColorTable( COLOR_TABLE* ct );
@@ -151,12 +157,19 @@ private:
 	wxTextCtrl*		m_textFrame;
 	wxSlider*		m_sliderFrame;
 	
+	wxCheckBox*		m_checkContour;
+	wxSlider*		m_sliderContourMin;
+	wxSlider*		m_sliderContourMax;
+	wxTextCtrl*		m_textContourMin;
+	wxTextCtrl*		m_textContourMax;
+	
 	std::vector<wxWindow*>	m_widgetlistGrayScale;
 	std::vector<wxWindow*>	m_widgetlistHeatScale;
 	std::vector<wxWindow*>	m_widgetlistJetScale;
 	std::vector<wxWindow*>	m_widgetlistLUT;
 	std::vector<wxWindow*>	m_widgetlistDirectionCode;
 	std::vector<wxWindow*>	m_widgetlistFrame;
+	std::vector<wxWindow*>	m_widgetlistContour;
 	
 	LUTDataHolder*	m_luts;
 	

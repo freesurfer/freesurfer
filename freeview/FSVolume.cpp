@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/30 17:29:49 $
- *    $Revision: 1.13 $
+ *    $Date: 2008/12/05 20:37:23 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -292,6 +292,7 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData )
 	memcpy( m_MRIToImageMatrix, src_vol->m_MRIToImageMatrix, 16 * sizeof( double ) );
 	memcpy( m_VoxelToVoxelMatrix, src_vol->m_VoxelToVoxelMatrix, 16 * sizeof( double ) );
 	memcpy( m_RASToRASMatrix, src_vol->m_RASToRASMatrix, 16 * sizeof( double ) );
+	memcpy( m_RASToTkRegMatrix, src_vol->m_RASToTkRegMatrix, 16 * sizeof( double ) );
 	
 	m_matReg = MatrixCopy( src_vol->m_matReg, NULL );
 	
@@ -1239,7 +1240,16 @@ void FSVolume::CopyMatricesFromMRI ()
 	{
 		m_RASToVoxelMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
 	}
+	
+	MATRIX* tkreg = MRIxfmCRS2XYZtkreg( m_MRI );
+	MATRIX* m1 = MatrixMultiply( tkreg, m, NULL );
+	for ( int i = 0; i < 16; i++ ) 
+	{
+		m_RASToTkRegMatrix[i] = (double) *MATRIX_RELT((m1),(i/4)+1,(i%4)+1);
+	}	
+	MatrixFree( &tkreg );
 	MatrixFree( &m );
+	MatrixFree( &m1 );
 }
 
 void FSVolume::GetBounds ( float oRASBounds[6] ) 
@@ -1539,4 +1549,24 @@ void FSVolume::NativeRASToRAS( const double* pos_in, double* pos_out )
 	pos_out[2] = p[2];
 	
 //	memcpy( pos_out, pos_in, sizeof(double)*3 );
+}
+
+void FSVolume::NativeRASToTkReg( const double* pos_in, double* pos_out )
+{
+	double p[4] = { pos_in[0], pos_in[1], pos_in[2], 1 };
+	vtkMatrix4x4::MultiplyPoint( m_RASToTkRegMatrix, p, p );
+	pos_out[0] = p[0];
+	pos_out[1] = p[1];
+	pos_out[2] = p[2];	
+}
+
+void FSVolume::TkRegToNativeRAS( const double* pos_in, double* pos_out )
+{
+	double p[4] = { pos_in[0], pos_in[1], pos_in[2], 1 };
+	double m[16];
+	vtkMatrix4x4::Invert( m_RASToTkRegMatrix, m ); 
+	vtkMatrix4x4::MultiplyPoint( m, p, p );
+	pos_out[0] = p[0];
+	pos_out[1] = p[1];
+	pos_out[2] = p[2];	
 }

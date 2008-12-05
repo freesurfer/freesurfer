@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/11/06 22:26:49 $
- *    $Revision: 1.29 $
+ *    $Date: 2008/12/05 20:37:23 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -898,12 +898,6 @@ void MainWindow::LoadWayPointsFile( const wxString& fn )
 		col_wp->AddLayer( wp );
 		
 		m_controlPanel->RaisePage( "Way Points" );
-
-		wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-		event.SetInt( -1 );
-		event.SetString( "Load" );
-		event.SetClientData( (void*)wp );
-		wxPostEvent( this, event );
 	}
 	else
 	{
@@ -2105,7 +2099,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 		m_statusBar->m_gaugeBar->Hide();
 			
 		Layer* layer = ( Layer* )(void*)event.GetClientData();
-		wxASSERT( layer != NULL || strg == "Rotate" );		
+		wxASSERT( layer != NULL || strg != "Load" || strg != "Save" );		
 		LayerCollection* lc_mri = GetLayerCollection( "MRI" );
 		LayerCollection* lc_surface = GetLayerCollection( "Surface" );
 		
@@ -2202,6 +2196,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 			m_bResampleToRAS = false;
 			m_layerCollectionManager->RefreshSlices();
 		}
+		
 		m_controlPanel->UpdateUI();	
 			
 		RunScript();		
@@ -2282,7 +2277,10 @@ void MainWindow::OnFileLoadDTI( wxCommandEvent& event )
 	this->LoadDTIFile( dlg.GetVectorFileName(), dlg.GetFAFileName(), dlg.GetRegFileName(), dlg.IsToResample() );
 }
 
-void MainWindow::LoadDTIFile( const wxString& fn_vector, const wxString& fn_fa, const wxString& reg_filename, bool bResample )
+void MainWindow::LoadDTIFile( const wxString& fn_vector, 
+							  const wxString& fn_fa, 
+							  const wxString& reg_filename, 
+							  bool bResample )
 {	
 	m_strLastDir = MyUtils::GetNormalizedPath( fn_fa );
 	m_bResampleToRAS = bResample;
@@ -2326,65 +2324,124 @@ void MainWindow::RunScript()
 	m_scripts.erase( m_scripts.begin() );
 	if ( sa[0] == "loadvolume" )
 	{
-		int nColorMap = LayerPropertiesMRI::Grayscale;
-		wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
-		wxString fn = sa_vol[0];
-		wxString reg_fn;
-		for ( unsigned int i = 1; i < sa_vol.GetCount(); i++ )
-		{
-			wxString strg = sa_vol[i];
-			int n;	
-			if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
-			{
-				strg = strg.Mid( n + 1 ).Lower();
-				if ( strg == "heat" || strg == "heatscale" )
-					nColorMap = LayerPropertiesMRI::Heat;
-				else if ( strg == "jet" || strg == "jetscale" )
-					nColorMap = LayerPropertiesMRI::Jet;
-				else if ( strg == "lut" )
-					nColorMap = LayerPropertiesMRI::LUT;
-			}
-			else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
-			{
-				reg_fn = strg.Mid( n + 1 );
-			}
-		}
-		bool bResample = true;
-		if ( sa[ sa.GetCount()-1 ] == "nr" )
-			bResample = false;
-		
-		LoadVolumeFile( fn, reg_fn, bResample, nColorMap );
+		CommandLoadVolume( sa );
 	} 
 	else if ( sa[0] == "loaddti" )
 	{
-		bool bResample = true;
-		if ( sa.GetCount() > 3 && sa[3] == "nr" )
-			bResample = false;
-		if ( sa.GetCount() > 2 )
-		{
-			wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
-			wxString fn = sa_vol[0];
-			wxString strg, reg_fn;
-			if ( sa_vol.Count() > 0 )
-				strg = sa_vol[1];
-			int n;	
-			if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
-			{
-				reg_fn = strg.Mid( n + 1 );
-			}
-		//	cout << reg_fn.c_str() << endl;
-			this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
-		}
+		CommandLoadDTI( sa );
 	}
 	else if ( sa[0] == "loadsurface" )
 	{
-		LoadSurfaceFile( sa[1] );
+		CommandLoadSurface( sa );
+	}
+	else if ( sa[0] == "loadroi" || sa[0] == "loadlabel" )
+	{
+		CommandLoadROI( sa );
 	}
 	else if ( sa[0] == "loadwaypoints" )
 	{
-		LoadWayPointsFile( sa[1] );
+		CommandLoadWayPoints( sa );
+	}
+	else if ( sa[0] == "screencapture" )
+	{
+		CommandScreenCapture( sa );
+	}
+	else if ( sa[0] == "quit" || sa[0] == "exit" )
+	{
+		Close();
 	}
 }
+
+void MainWindow::CommandLoadVolume( const wxArrayString& sa )
+{
+	int nColorMap = LayerPropertiesMRI::Grayscale;
+	wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
+	wxString fn = sa_vol[0];
+	wxString reg_fn;
+	for ( unsigned int i = 1; i < sa_vol.GetCount(); i++ )
+	{
+		wxString strg = sa_vol[i];
+		int n;	
+		if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
+		{
+			strg = strg.Mid( n + 1 ).Lower();
+			if ( strg == "heat" || strg == "heatscale" )
+				nColorMap = LayerPropertiesMRI::Heat;
+			else if ( strg == "jet" || strg == "jetscale" )
+				nColorMap = LayerPropertiesMRI::Jet;
+			else if ( strg == "lut" )
+				nColorMap = LayerPropertiesMRI::LUT;
+		}
+		else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
+		{
+			reg_fn = strg.Mid( n + 1 );
+		}
+	}
+	bool bResample = true;
+	if ( sa[ sa.GetCount()-1 ] == "nr" )
+		bResample = false;
+		
+	LoadVolumeFile( fn, reg_fn, bResample, nColorMap );
+}
+	
+void MainWindow::CommandLoadDTI( const wxArrayString& sa )
+{
+	bool bResample = true;
+	if ( sa.GetCount() > 3 && sa[3] == "nr" )
+		bResample = false;
+	if ( sa.GetCount() > 2 )
+	{
+		wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
+		wxString fn = sa_vol[0];
+		wxString strg, reg_fn;
+		if ( sa_vol.Count() > 0 )
+			strg = sa_vol[1];
+		int n;	
+		if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
+		{
+			reg_fn = strg.Mid( n + 1 );
+		}
+		//	cout << reg_fn.c_str() << endl;
+		this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
+	}
+}
+	
+void MainWindow::CommandLoadROI( const wxArrayString& cmd )
+{
+	LoadROIFile( cmd[1] );
+	
+	// create a fake worker event to notify end of operation
+	wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+	event.SetInt( -1 );
+	event.SetString( "ByPass" );
+//	event.SetClientData( (void*)roi );
+	wxPostEvent( this, event );
+}
+	
+void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
+{
+	LoadSurfaceFile( cmd[1] );
+}
+	
+void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
+{
+	LoadWayPointsFile( cmd[1] );
+	
+	wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+	event.SetInt( -1 );
+	event.SetString( "ByPass" );
+	wxPostEvent( this, event );
+}
+	
+void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
+{
+	m_viewRender[m_nMainView]->SaveScreenshot( cmd[1].c_str(), m_settingsScreenshot.Magnification );	
+	
+	wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+	event.SetInt( -1 );
+	event.SetString( "ByPass" );
+	wxPostEvent( this, event );
+} 
 
 void MainWindow::OnSpinBrushSize( wxSpinEvent& event )
 {

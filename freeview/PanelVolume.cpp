@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/11/06 22:26:49 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/12/05 20:37:24 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -100,6 +100,12 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_JETSCALE_MAX" ) ),		PanelVolume::OnSliderMaxJetScaleChanged )		
 	EVT_TEXT			( XRCID( wxT( "ID_TEXT_FRAME" ) ),				PanelVolume::OnTextFrameChanged )
 	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_FRAME" ) ),			PanelVolume::OnSliderFrameChanged )	
+	
+	EVT_CHECKBOX		( XRCID( wxT( "ID_CHECKBOX_CONTOUR" ) ),		PanelVolume::OnCheckContour )
+	EVT_TEXT			( XRCID( wxT( "ID_TEXT_CONTOUR_MIN" ) ),		PanelVolume::OnTextContourMin )
+	EVT_TEXT			( XRCID( wxT( "ID_TEXT_CONTOUR_MAX" ) ),		PanelVolume::OnTextContourMax )
+	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_CONTOUR_MIN" ) ),		PanelVolume::OnSliderContourMin )	
+	EVT_COMMAND_SCROLL	( XRCID( wxT( "ID_SLIDER_CONTOUR_MAX" ) ),		PanelVolume::OnSliderContourMax )	
 END_EVENT_TABLE()
 
 
@@ -110,41 +116,52 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 	m_layerCopied = NULL;
 	
 	wxXmlResource::Get()->LoadPanel( this, parent, wxT("ID_PANEL_VOLUME") );
-	m_btnNew = XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
-	m_btnDelete = XRCCTRL( *this, "ID_BUTTON_DELETE", wxButton );
-	m_btnMoveUp = XRCCTRL( *this, "ID_BUTTON_MOVE_UP", wxButton );
-	m_btnMoveDown = XRCCTRL( *this, "ID_BUTTON_MOVE_DOWN", wxButton );
-	m_btnSave = XRCCTRL( *this, "ID_BUTTON_SAVE", wxButton );
-	m_listBoxLayers = XRCCTRL( *this, "ID_LISTBOX_VOLUMES", wxCheckListBox );
-	m_sliderOpacity = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
-	m_textOpacity = XRCCTRL( *this, "ID_TEXT_OPACITY", wxTextCtrl );
-	m_checkClearBackground = XRCCTRL( *this, "ID_CHECKBOX_CLEAR_BACKGROUND", wxCheckBox );
-	m_checkSmooth = XRCCTRL( *this, "ID_CHECKBOX_SMOOTH", wxCheckBox );
-	m_listColorTable = XRCCTRL( *this, "ID_LISTBOX_COLORTABLE", wxListBox );
-	m_choiceColorMap = XRCCTRL( *this, "ID_CHOICE_COLORMAP", wxChoice );
-	m_choiceLUT = XRCCTRL( *this, "ID_CHOICE_LUT", wxChoice );
-	m_textDrawValue = XRCCTRL( *this, "ID_TEXT_DRAW_VALUE", wxTextCtrl );
-	m_sliderWindow = XRCCTRL( *this, "ID_SLIDER_WINDOW", wxSlider );
-	m_sliderLevel = XRCCTRL( *this, "ID_SLIDER_LEVEL", wxSlider );
-	m_textWindow = XRCCTRL( *this, "ID_TEXT_WINDOW", wxTextCtrl );
-	m_textLevel = XRCCTRL( *this, "ID_TEXT_LEVEL", wxTextCtrl );
-	m_textFileName = XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
-	m_textHeatScaleMin = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MIN", wxTextCtrl );
-	m_textHeatScaleMid = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MID", wxTextCtrl );
-	m_textHeatScaleMax = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MAX", wxTextCtrl );
+	m_btnNew = 			XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
+	m_btnDelete = 		XRCCTRL( *this, "ID_BUTTON_DELETE", wxButton );
+	m_btnMoveUp = 		XRCCTRL( *this, "ID_BUTTON_MOVE_UP", wxButton );
+	m_btnMoveDown = 	XRCCTRL( *this, "ID_BUTTON_MOVE_DOWN", wxButton );
+	m_btnSave = 		XRCCTRL( *this, "ID_BUTTON_SAVE", wxButton );
+	m_listBoxLayers = 	XRCCTRL( *this, "ID_LISTBOX_VOLUMES", wxCheckListBox );
+	m_sliderOpacity = 	XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
+	m_textOpacity = 	XRCCTRL( *this, "ID_TEXT_OPACITY", wxTextCtrl );
+	m_checkClearBackground = 	XRCCTRL( *this, "ID_CHECKBOX_CLEAR_BACKGROUND", wxCheckBox );
+	m_checkSmooth = 	XRCCTRL( *this, "ID_CHECKBOX_SMOOTH", wxCheckBox );
+	m_listColorTable = 	XRCCTRL( *this, "ID_LISTBOX_COLORTABLE", wxListBox );
+	m_choiceColorMap = 	XRCCTRL( *this, "ID_CHOICE_COLORMAP", wxChoice );
+	m_choiceLUT = 		XRCCTRL( *this, "ID_CHOICE_LUT", wxChoice );
+	m_textDrawValue = 	XRCCTRL( *this, "ID_TEXT_DRAW_VALUE", wxTextCtrl );
+	m_sliderWindow = 	XRCCTRL( *this, "ID_SLIDER_WINDOW", wxSlider );
+	m_sliderLevel = 	XRCCTRL( *this, "ID_SLIDER_LEVEL", wxSlider );
+	m_textWindow = 		XRCCTRL( *this, "ID_TEXT_WINDOW", wxTextCtrl );
+	m_textLevel = 		XRCCTRL( *this, "ID_TEXT_LEVEL", wxTextCtrl );
+	m_textFileName = 	XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
+	m_textHeatScaleMin = 	XRCCTRL( *this, "ID_TEXT_HEATSCALE_MIN", wxTextCtrl );
+	m_textHeatScaleMid = 	XRCCTRL( *this, "ID_TEXT_HEATSCALE_MID", wxTextCtrl );
+	m_textHeatScaleMax = 	XRCCTRL( *this, "ID_TEXT_HEATSCALE_MAX", wxTextCtrl );
 	m_textHeatScaleOffset = XRCCTRL( *this, "ID_TEXT_HEATSCALE_OFFSET", wxTextCtrl );
-	m_sliderHeatScaleMin = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MIN", wxSlider );
-	m_sliderHeatScaleMid = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MID", wxSlider );
-	m_sliderHeatScaleMax = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MAX", wxSlider );
-	m_sliderHeatScaleOffset = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_OFFSET", wxSlider );
-	m_textJetScaleMin = XRCCTRL( *this, "ID_TEXT_JETSCALE_MIN", wxTextCtrl );
-	m_textJetScaleMax = XRCCTRL( *this, "ID_TEXT_JETSCALE_MAX", wxTextCtrl );
-	m_sliderJetScaleMin = XRCCTRL( *this, "ID_SLIDER_JETSCALE_MIN", wxSlider );
-	m_sliderJetScaleMax = XRCCTRL( *this, "ID_SLIDER_JETSCALE_MAX", wxSlider );
+	m_sliderHeatScaleMin = 	XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MIN", wxSlider );
+	m_sliderHeatScaleMid = 	XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MID", wxSlider );
+	m_sliderHeatScaleMax = 	XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MAX", wxSlider );
+	m_sliderHeatScaleOffset = 	XRCCTRL( *this, "ID_SLIDER_HEATSCALE_OFFSET", wxSlider );
+	m_textJetScaleMin = 	XRCCTRL( *this, "ID_TEXT_JETSCALE_MIN", wxTextCtrl );
+	m_textJetScaleMax = 	XRCCTRL( *this, "ID_TEXT_JETSCALE_MAX", wxTextCtrl );
+	m_sliderJetScaleMin = 	XRCCTRL( *this, "ID_SLIDER_JETSCALE_MIN", wxSlider );
+	m_sliderJetScaleMax = 	XRCCTRL( *this, "ID_SLIDER_JETSCALE_MAX", wxSlider );
 	m_choiceDirectionCode = XRCCTRL( *this, "ID_CHOICE_DIRECTION_CODE", wxChoice );
-	m_colorIndicator = XRCCTRL( *this, "ID_COLOR_INDICATOR", wxColorIndicator );
-	m_textFrame = XRCCTRL( *this, "ID_TEXT_FRAME", wxTextCtrl );
-	m_sliderFrame = XRCCTRL( *this, "ID_SLIDER_FRAME", wxSlider );
+	m_colorIndicator = 		XRCCTRL( *this, "ID_COLOR_INDICATOR", wxColorIndicator );
+	m_textFrame = 			XRCCTRL( *this, "ID_TEXT_FRAME", wxTextCtrl );
+	m_sliderFrame = 		XRCCTRL( *this, "ID_SLIDER_FRAME", wxSlider );
+	
+	// workaround for wxformbuilder bug
+	m_colorIndicator->SetSize( 40, wxDefaultCoord );
+	
+	m_checkContour = 		XRCCTRL( *this, "ID_CHECKBOX_CONTOUR", wxCheckBox );
+	m_sliderContourMin = 	XRCCTRL( *this, "ID_SLIDER_CONTOUR_MIN", wxSlider );
+	m_sliderContourMax = 	XRCCTRL( *this, "ID_SLIDER_CONTOUR_MAX", wxSlider );
+	m_textContourMin = 		XRCCTRL( *this, "ID_TEXT_CONTOUR_MIN", wxTextCtrl );
+	m_textContourMax = 		XRCCTRL( *this, "ID_TEXT_CONTOUR_MAX", wxTextCtrl );
+	
+	m_checkContour->Hide();
 	
 	m_luts = MainWindow::GetMainWindowPointer()->GetLUTData();
 	for ( int i = 0; i < m_luts->GetCount(); i++ )
@@ -200,6 +217,13 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 	m_widgetlistFrame.push_back( m_textFrame );
 	m_widgetlistFrame.push_back( XRCCTRL( *this, "ID_STATIC_FRAME", wxStaticText ) );
 	
+	m_widgetlistContour.push_back( m_sliderContourMin );
+	m_widgetlistContour.push_back( m_sliderContourMax );
+	m_widgetlistContour.push_back( m_textContourMin );
+	m_widgetlistContour.push_back( m_textContourMax );	
+	m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MIN", wxStaticText ) );
+	m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MAX", wxStaticText ) );
+	
 	MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->AddListener( this );
 	UpdateUI();
 }
@@ -232,7 +256,8 @@ void PanelVolume::DoListenToMessage( std::string const iMsg, void* iData )
 		//	UpdateUI();
 		}
 	}
-	else if ( iMsg == "LayerModified" || iMsg == /*"WindowLevelChanged"*/ "LayerActorUpdated" )
+	else if ( iMsg == "LayerModified" || iMsg == /*"WindowLevelChanged"*/ "LayerActorUpdated" ||
+			iMsg == "LayerContourShown" )
 	{
 		UpdateUI();
 	}
@@ -618,6 +643,12 @@ void PanelVolume::DoUpdateUI()
 				m_sliderFrame->SetRange( 1, nFrames );
 			m_sliderFrame->SetValue( layer->GetActiveFrame() + 1 );
 			UpdateTextValue( m_textFrame, layer->GetActiveFrame() + 1 );
+			
+			m_checkContour->SetValue( layer->GetProperties()->GetShowAsContour() );
+			m_sliderContourMin->SetValue( (int)( ( layer->GetProperties()->GetContourMinThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
+			m_sliderContourMax->SetValue( (int)( ( layer->GetProperties()->GetContourMaxThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
+			UpdateTextValue( m_textContourMin, layer->GetProperties()->GetContourMinThreshold() );
+			UpdateTextValue( m_textContourMax, layer->GetProperties()->GetContourMaxThreshold() );
 		}
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -633,6 +664,7 @@ void PanelVolume::DoUpdateUI()
 	ShowWidgets( m_widgetlistLUT, bHasVolume && nColorMap == LayerPropertiesMRI::LUT );
 	ShowWidgets( m_widgetlistDirectionCode, bHasVolume && nColorMap == LayerPropertiesMRI::DirectionCoded );
 	ShowWidgets( m_widgetlistFrame, bHasVolume && layer && layer->GetNumberOfFrames() > 1 );
+	ShowWidgets( m_widgetlistContour, m_checkContour->IsChecked() );
 	
 	Layout();
 	if ( layer && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
@@ -1027,3 +1059,58 @@ void PanelVolume::OnVolumePasteSettingAllUpdateUI( wxUpdateUIEvent& event )
 	event.Enable( lc->Contains( m_layerCopied ) );
 }
 
+void PanelVolume::OnCheckContour( wxCommandEvent& event )
+{
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	layer->GetProperties()->SetShowAsContour( event.IsChecked() );	
+}
+
+
+void PanelVolume::OnTextContourMin( wxCommandEvent& event )
+{
+	double dvalue;
+	if ( m_textContourMin->GetValue().ToDouble( &dvalue ) )
+	{
+		LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+		if ( layer && layer->GetProperties()->GetContourMinThreshold() != dvalue )
+		{
+			layer->GetProperties()->SetContourMinThreshold( dvalue );
+		}		
+	}
+}
+
+void PanelVolume::OnTextContourMax( wxCommandEvent& event )
+{
+	double dvalue;
+	if ( m_textContourMax->GetValue().ToDouble( &dvalue ) )
+	{
+		LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+		if ( layer && layer->GetProperties()->GetContourMaxThreshold() != dvalue )
+		{
+			layer->GetProperties()->SetContourMaxThreshold( dvalue );
+		}		
+	}
+}
+
+
+void PanelVolume::OnSliderContourMin( wxScrollEvent& event )
+{
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	if ( layer )
+	{
+		double fMin = layer->GetProperties()->GetMinValue();
+		double fMax = layer->GetProperties()->GetMaxValue();
+		layer->GetProperties()->SetContourMinThreshold( (double)m_sliderContourMin->GetValue() / 100.0 * ( fMax - fMin ) + fMin ); 
+	}	
+}
+
+void PanelVolume::OnSliderContourMax( wxScrollEvent& event )
+{
+	LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+	if ( layer )
+	{
+		double fMin = layer->GetProperties()->GetMinValue();
+		double fMax = layer->GetProperties()->GetMaxValue();
+		layer->GetProperties()->SetContourMaxThreshold( (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin ); 
+	}	
+}

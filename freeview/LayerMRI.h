@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 17:26:46 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/12/05 20:37:23 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@ class vtkActor;
 class vtkImageActor;
 class vtkImageData;
 class vtkProp;
+class vtkVolume;
 class LayerPropertiesMRI;
 class FSVolume;
 class wxWindow;
@@ -116,6 +117,8 @@ class LayerMRI : public LayerVolumeBase
 		void UpdateOpacity();
 		void UpdateResliceInterpolation();
 		void UpdateTextureSmoothing();
+		void UpdateContour();
+		void UpdateVolumeRendering();
 		virtual void UpdateColorMap();
 		
 		virtual void OnSlicePositionChanged( int nPlane );	
@@ -131,6 +134,8 @@ class LayerMRI : public LayerVolumeBase
 		
 		vtkImageActor*		m_sliceActor2D[3];
 		vtkImageActor*		m_sliceActor3D[3];
+		vtkActor*			m_actorContour;
+		vtkVolume*			m_propVolume;
 };
 
 #endif 

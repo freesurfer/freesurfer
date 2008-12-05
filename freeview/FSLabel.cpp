@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/20 20:54:14 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/12/05 20:37:23 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,6 +26,7 @@
 
 
 #include <wx/wx.h>
+#include <wx/ffile.h>
 #include "FSLabel.h"
 #include <stdexcept>
 #include "vtkImageData.h"
@@ -35,7 +36,8 @@
 using namespace std;
 
 FSLabel::FSLabel() :
-	m_label( NULL )
+	m_label( NULL ),
+	m_bTkReg( true )
 {
 }
 	
@@ -58,6 +60,14 @@ bool FSLabel::LabelRead( const char* filename )
 	{
 		cerr << "LabelRead failed";
 		return false;
+	}
+	
+	wxFFile file( filename );
+	wxString strg;
+	if ( file.ReadAll( &strg ) )
+	{
+		if ( strg.Find( "vox2ras=" ) >= 0 && strg.Find( "vox2ras=TkReg" ) < 0 )
+			m_bTkReg = false;
 	}
 	
 	return true;
@@ -153,6 +163,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
 						ref_vol->TargetToRAS( pos, pos );
 						ref_vol->RASToNativeRAS( pos, pos );
+						ref_vol->NativeRASToTkReg( pos, pos );
 						values.push_back( pos[0] ); 
 						values.push_back( pos[1] ); 
 						values.push_back( pos[2] ); 
@@ -175,6 +186,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
 						ref_vol->TargetToRAS( pos, pos );
 						ref_vol->RASToNativeRAS( pos, pos );
+						ref_vol->NativeRASToTkReg( pos, pos );
 						values.push_back( pos[0] ); 
 						values.push_back( pos[1] ); 
 						values.push_back( pos[2] ); 
@@ -197,6 +209,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
 						ref_vol->TargetToRAS( pos, pos );
 						ref_vol->RASToNativeRAS( pos, pos );
+						ref_vol->NativeRASToTkReg( pos, pos );
 						values.push_back( pos[0] ); 
 						values.push_back( pos[1] ); 
 						values.push_back( pos[2] ); 
@@ -219,6 +232,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
 						ref_vol->TargetToRAS( pos, pos );
 						ref_vol->RASToNativeRAS( pos, pos );
+						ref_vol->NativeRASToTkReg( pos, pos );
 						values.push_back( pos[0] ); 
 						values.push_back( pos[1] ); 
 						values.push_back( pos[2] ); 
@@ -241,6 +255,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 						pos[2] = ( i/(dim[0]*dim[1]) ) * vs[2] + orig[2];
 						ref_vol->TargetToRAS( pos, pos );
 						ref_vol->RASToNativeRAS( pos, pos );
+						ref_vol->NativeRASToTkReg( pos, pos );
 						values.push_back( pos[0] ); 
 						values.push_back( pos[1] ); 
 						values.push_back( pos[2] ); 
@@ -311,6 +326,8 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 		pos[0] = m_label->lv[i].x;
 		pos[1] = m_label->lv[i].y;
 		pos[2] = m_label->lv[i].z;
+		if ( m_bTkReg )
+			ref_vol->TkRegToNativeRAS( pos, pos );
 		ref_vol->NativeRASToRAS( pos, pos );
 		ref_vol->RASToTargetIndex( pos, n );
 	//	cout << n[0] << " " << n[1] << " " << n[2] << endl;

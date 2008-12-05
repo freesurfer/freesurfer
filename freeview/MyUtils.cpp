@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/30 17:29:49 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/12/05 20:37:24 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,7 @@
 #include <math.h>
 #include <wx/filename.h>
 #include <stddef.h>
+#include <vtkSmartPointer.h>
 #include <vtkRenderer.h>
 #include <vtkRenderWindow.h>
 #include <vtkImageWriter.h>
@@ -39,6 +40,38 @@
 #include <vtkPostScriptWriter.h>
 #include <vtkRenderLargeImage.h>
 #include <vtkVRMLExporter.h>
+#include <vtkActor.h>
+#include <vtkImageData.h>
+#include <vtkImageDilateErode3D.h>
+#include <vtkContourFilter.h>
+#include <vtkPolyData.h>
+#include <vtkSmoothPolyDataFilter.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkStripper.h>
+#include <vtkPolyDataNormals.h>
+#include <vtkCamera.h>
+#include <vtkCubeSource.h>
+#include <vtkLineSource.h>
+#include <vtkSphereSource.h>
+#include <vtkTubeFilter.h>
+#include <vtkProperty.h>
+#include <vtkVectorText.h>
+#include <vtkFollower.h>
+#include <vtkAppendPolyData.h>
+#include <vtkConeSource.h>
+#include <vtkImageThreshold.h>
+#include <vtkDecimatePro.h>
+#include <vtkTriangleFilter.h>
+#include <vtkPiecewiseFunction.h>
+#include <vtkColorTransferFunction.h>
+#include <vtkVolumeRayCastMapper.h>
+#include <vtkVolumeProperty.h>
+#include <vtkVolume.h>
+#include <vtkVolumeRayCastCompositeFunction.h>
+#include <vtkVolumeTextureMapper2D.h>
+#include <vtkFixedPointVolumeRayCastMapper.h>
+#include <vtkImageCast.h>
+
 
 extern "C" {
 #include "matrix.h"
@@ -331,5 +364,111 @@ bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, int* vox2, int nsiz
 									  std::vector<void*> input_volumes, long* output_volume, int vol_size )
 {
 	return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, input_volumes, output_volume, vol_size );
+}
+
+
+bool MyUtils::BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out )
+{
+	vtkImageData* imagedata = data_in;
+
+//	int nValue = nThreshold;
+	int nSwell = 3;
+	vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
+	dilate->SetInput( imagedata );
+	dilate->SetKernelSize( nSwell, nSwell, nSwell );
+	dilate->SetDilateValue( dTh1 );
+	dilate->SetErodeValue( 0 );
+	vtkSmartPointer<vtkImageDilateErode3D> erode = vtkSmartPointer<vtkImageDilateErode3D>::New();
+	erode->SetInput( dilate->GetOutput() );
+	erode->SetKernelSize( 1, 1, 1 );
+	erode->SetDilateValue( 0 );
+	erode->SetErodeValue( dTh1 );
+
+	vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+	threshold->SetOutputScalarTypeToShort();
+	threshold->SetInput( dilate->GetOutput() );
+	threshold->ThresholdBetween( dTh1, dTh2+0.0001 );
+	threshold->ReplaceOutOn();
+	threshold->SetOutValue( 0 );
+	vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
+	contour->SetInput( threshold->GetOutput() );
+	contour->SetValue( 0, dTh1 );
+	vtkSmartPointer<vtkTriangleFilter> tri = vtkSmartPointer<vtkTriangleFilter>::New();
+	tri->SetInput( contour->GetOutput() );
+	vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();
+	decimate->SetTargetReduction( 0.9 );
+	decimate->SetInput( tri->GetOutput() );
+	
+	vtkPolyData* polydata = contour->GetOutput();
+	polydata->Update();
+
+	if ( polydata->GetNumberOfPoints() <= 0 )
+	{
+		return false;
+	}
+	else
+	{
+		vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
+		smoother->SetInput( contour->GetOutput() );
+		smoother->SetNumberOfIterations( 30 );
+		vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
+		normals->SetInput( smoother->GetOutput()) ;
+		normals->SetFeatureAngle( 90.0 );
+		vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+		stripper->SetInput( normals->GetOutput() );
+		vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		mapper->SetInput( decimate->GetOutput() );
+	//	mapper->ScalarVisibilityOff();
+		actor_out->SetMapper( mapper );
+		return true;
+	}
+}
+
+	
+bool MyUtils::BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkVolume* vol_out )
+{
+	vtkSmartPointer<vtkPiecewiseFunction> tfun = vtkSmartPointer<vtkPiecewiseFunction>::New();
+	tfun->AddPoint(dTh1-0.001, 0.0);
+	tfun->AddPoint(dTh1, 0.8);
+	tfun->AddPoint(dTh2, 1.0);
+
+	vtkSmartPointer<vtkColorTransferFunction> ctfun = vtkSmartPointer<vtkColorTransferFunction>::New();
+	ctfun->AddRGBPoint( 0.0, 0.0, 0.0, 0.0 );
+	ctfun->AddRGBPoint( dTh1, 0.25, 0.25, 0.25 );
+	ctfun->AddRGBPoint( (dTh1+dTh2) / 2, 0.4, 0.4, 0.4 );
+	ctfun->AddRGBPoint( dTh2, 1, 1, 1 );
+
+/*	vtkSmartPointer<vtkVolumeRayCastCompositeFunction> compositeFunction = 
+			vtkSmartPointer<vtkVolumeRayCastCompositeFunction>::New(); 
+
+	vtkSmartPointer<vtkVolumeRayCastMapper> volumeMapper = vtkSmartPointer<vtkVolumeRayCastMapper>::New();
+	volumeMapper->SetVolumeRayCastFunction(compositeFunction);
+//	vtkOpenGLVolumeShearWarpMapper* volumeMapper = vtkOpenGLVolumeShearWarpMapper::New();
+//	vtkOpenGLVolumeTextureMapper3D* volumeMapper = vtkOpenGLVolumeTextureMapper3D::New();
+	//	vtkVolumeTextureMapper2D* volumeMapper = vtkVolumeTextureMapper2D::New();*/
+	vtkSmartPointer<vtkFixedPointVolumeRayCastMapper> volumeMapper = 
+				vtkSmartPointer<vtkFixedPointVolumeRayCastMapper>::New();
+	
+	vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+	cast->SetInput( data_in );
+	cast->SetOutputScalarTypeToUnsignedShort();
+		
+//	qDebug() << volumeMapper->GetIntermixIntersectingGeometry();
+	volumeMapper->SetInput( cast->GetOutput() );
+	volumeMapper->SetSampleDistance(0.25);
+	volumeMapper->SetMaximumImageSampleDistance(5);
+//	volumeMapper->SetCroppingRegionPlanes(0, dim[0]*2, 0, dim[1]*2, 0, dim[2]*2-16*2);
+//	volumeMapper->CroppingOn();
+
+	vtkSmartPointer<vtkVolumeProperty> volumeProperty = vtkSmartPointer<vtkVolumeProperty>::New();
+	volumeProperty->SetColor(ctfun);
+	volumeProperty->SetScalarOpacity(tfun);
+	volumeProperty->SetInterpolationTypeToLinear();
+	volumeProperty->ShadeOff();
+
+	vol_out->SetMapper( volumeMapper );
+	vol_out->SetProperty( volumeProperty );
+	
+	return true;
 }
 

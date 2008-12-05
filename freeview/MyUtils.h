@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:25 $
- *    $Revision: 1.9 $
+ *    $Date: 2008/12/05 20:37:24 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,9 @@
 
 class vtkRenderer;
 class vtkRenderWindow;
+class vtkImageData;
+class vtkActor;
+class vtkVolume;
 
 class MyUtils 
 {
@@ -76,6 +79,10 @@ public:
 										std::vector<void*> input_volumes, unsigned char* output_volume, int vol_size );
 	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
 										std::vector<void*> input_volumes, long* output_volume, int vol_size );
+	
+	static bool BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out );
+	
+	static bool BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkVolume* vol_out );
 };
 
 template <class T>

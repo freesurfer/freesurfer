@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/22 15:25:40 $
- *    $Revision: 1.12 $
+ *    $Date: 2008/12/05 20:37:23 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@
 #include "vtkImageReslice.h"
 #include "vtkFreesurferLookupTable.h"
 #include "vtkCubeSource.h"
+#include "vtkVolume.h"
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
@@ -66,6 +67,9 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
 	}
 	mProperties = new LayerPropertiesMRI();
 	mProperties->AddListener( this );
+	
+	m_actorContour = vtkActor::New();
+	m_propVolume = vtkVolume::New();
 }
 
 LayerMRI::~LayerMRI()
@@ -75,6 +79,8 @@ LayerMRI::~LayerMRI()
 		m_sliceActor2D[i]->Delete();
 		m_sliceActor3D[i]->Delete();
 	}
+	m_actorContour->Delete();
+	m_propVolume->Delete();
 	
 	delete mProperties;
 	
@@ -339,6 +345,30 @@ void LayerMRI::UpdateTextureSmoothing ()
 	}
 }
 
+void LayerMRI::UpdateContour()
+{
+	if ( GetProperties()->GetShowAsContour() )
+	{
+		MyUtils::BuildContourActor( GetImageData(), 
+									GetProperties()->GetContourMinThreshold(), 
+									GetProperties()->GetContourMaxThreshold(),
+									m_actorContour );
+	}
+
+//	UpdateVolumeRendering();
+}
+
+void LayerMRI::UpdateVolumeRendering()
+{
+	if ( GetProperties()->GetShowAsContour() )
+	{
+		MyUtils::BuildVolume( GetImageData(), 
+									GetProperties()->GetContourMinThreshold(), 
+									GetProperties()->GetContourMaxThreshold(),
+									m_propVolume );
+	}	
+}
+
 void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
 	wxASSERT ( nPlane >= 0 && nPlane <= 2 );
@@ -348,10 +378,16 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
 
 void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
+	bool bContour = GetProperties()->GetShowAsContour();
 	for ( int i = 0; i < 3; i++ )
 	{
-		if ( bSliceVisibility == NULL || bSliceVisibility[i] )
+		if ( !bContour && ( bSliceVisibility == NULL || bSliceVisibility[i] ) )
 			renderer->AddViewProp( m_sliceActor3D[i] ); 
+	}
+	
+	if ( bContour )
+	{
+		renderer->AddViewProp( m_actorContour );
 	}
 }
 
@@ -473,8 +509,14 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* const iData 
 		this->UpdateTextureSmoothing();
 		this->SendBroadcast( "LayerActorUpdated", this );
 	}
-	else if ( iMessage == "WindowLevelChanged" )
+	else if ( iMessage == "LayerContourChanged" )
 	{
+		this->UpdateContour();
+		this->SendBroadcast( "LayerActorUpdated", this );
+	}
+	else if ( iMessage == "LayerContourShown" )
+	{
+		this->UpdateContour();
 		this->SendBroadcast( iMessage, this );
 	}
 }
@@ -486,6 +528,7 @@ void LayerMRI::SetVisible( bool bVisible )
 		m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
 		m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
 	}
+	m_actorContour->SetVisibility( bVisible ? 1 : 0 );
 	this->SendBroadcast( "LayerActorUpdated", this );
 }
 
