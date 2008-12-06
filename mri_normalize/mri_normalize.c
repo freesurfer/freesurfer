@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/11/05 14:59:37 $
- *    $Revision: 1.55 $
+ *    $Date: 2008/12/06 18:22:09 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,8 @@ static void  usage_exit(int code) ;
 static MRI *compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) ;
 static MRI *add_interior_points(MRI *mri_src, MRI *mri_vals, 
                                 float intensity_above, float intensity_below,
-                                MRI_SURFACE *mris_interior, 
+                                MRI_SURFACE *mris_interior1, 
+                                MRI_SURFACE *mris_interior2, 
                                 MRI *mri_aseg, MRI *mri_dst) ;
 static int conform = 1 ;
 static int gentle_flag = 0 ;
@@ -66,7 +67,9 @@ static int nosnr = 1 ;
 static float bias_sigma = 8.0 ;
 
 static char *mask_fname ;
-static char *interior_fname = NULL ;
+static char *interior_fname1 = NULL ;
+static char *interior_fname2 = NULL ;
+
 char *Progname ;
 
 static int scan_type = MRI_UNKNOWN ;
@@ -110,14 +113,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.55 2008/11/05 14:59:37 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.56 2008/12/06 18:22:09 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.55 2008/11/05 14:59:37 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.56 2008/12/06 18:22:09 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -260,15 +263,22 @@ main(int argc, char *argv[]) {
     MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
     MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
 
-    if (interior_fname)
+    if (interior_fname1)
     {
-      MRIS *mris_interior = MRISread(interior_fname) ;
-      if (mris_interior == NULL)
+      MRIS *mris_interior1, *mris_interior2 ;
+      mris_interior1 = MRISread(interior_fname1) ;
+      if (mris_interior1 == NULL)
         ErrorExit(ERROR_NOFILE, 
                   "%s: could not read white matter surface from %s\n", 
-                  Progname, interior_fname) ;
-      add_interior_points(mri_ctrl, mri_dst, intensity_above, intensity_below, mris_interior, mri_aseg, mri_ctrl) ;
-      MRISfree(&mris_interior) ;
+                  Progname, interior_fname1) ;
+      mris_interior2 = MRISread(interior_fname2) ;
+      if (mris_interior2 == NULL)
+        ErrorExit(ERROR_NOFILE, 
+                  "%s: could not read white matter surface from %s\n", 
+                  Progname, interior_fname2) ;
+      add_interior_points(mri_ctrl, mri_dst, intensity_above, 1.25*intensity_below, mris_interior1, mris_interior2, mri_aseg, mri_ctrl) ;
+      MRISfree(&mris_interior1) ;
+      MRISfree(&mris_interior2) ;
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_ctrl, "norm_ctrl.mgz") ;
@@ -375,9 +385,11 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   } else if (!stricmp(option, "INTERIOR")) {
-    interior_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using MR volume %s to as wm interior", interior_fname) ;
+    interior_fname1 = argv[2] ;
+    interior_fname2 = argv[3] ;
+    nargs = 2 ;
+    printf("using surfaces %s and %s to compute wm interior", 
+           interior_fname1, interior_fname2) ;
   } else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE")) {
     scan_type = MRI_MGH_MPRAGE;
     printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
@@ -705,17 +717,23 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
 
 static MRI *
 add_interior_points(MRI *mri_src, MRI *mri_vals, float intensity_above,
-                    float intensity_below, MRI_SURFACE *mris_white, 
+                    float intensity_below, MRI_SURFACE *mris_white1, 
+                    MRI_SURFACE *mris_white2,
                     MRI *mri_aseg, MRI *mri_dst)
 {
   int   x, y, z, ctrl, label ;
   float val ;
   MRI   *mri_core ;
-  MRI   *mri_interior ;
+  MRI   *mri_interior, *mri_tmp ;
 
   mri_interior = MRIclone(mri_aseg, NULL) ;
-  MRISfillInterior(mris_white, mri_aseg->xsize, mri_interior) ;
-  MRIwrite(mri_interior, "i.mgz") ;
+  MRISfillInterior(mris_white1, mri_aseg->xsize, mri_interior) ;
+  mri_tmp = MRIclone(mri_aseg, NULL) ;
+  MRISfillInterior(mris_white2, mri_aseg->xsize, mri_tmp) ;
+  MRIcopyLabel(mri_tmp, mri_interior, 1) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_interior, "i.mgz") ;
+  MRIfree(&mri_tmp) ;
   mri_core = MRIerode(mri_interior, NULL) ;
 
   for (x = 0 ; x < mri_src->width ; x++)
@@ -732,7 +750,7 @@ add_interior_points(MRI *mri_src, MRI *mri_vals, float intensity_above,
           if (IS_GM(label) || IS_WM(label))
           {
             val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;
-            if ((val >= 110-intensity_below && val <= 110 + intensity_above)||
+            if ((val >= 110-intensity_below && val <= 110 + intensity_above)&&
                 MRIgetVoxVal(mri_core, x, y, z, 0) > 0)
               ctrl = 1 ;
           }
