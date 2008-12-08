@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/10/31 00:22:20 $
-#    $Revision: 1.424 $
+#    $Author: fischl $
+#    $Date: 2008/12/08 16:42:58 $
+#    $Revision: 1.425 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2774,6 +2774,7 @@ AC_OUTPUT([Makefile
            mri_head/Makefile
            mri_hires_register/Makefile
            mri_histo_eq/Makefile
+           histo_fix_topology/Makefile
            mri_info/Makefile
            mri_hausdorff_dist/Makefile
            mri_joint_density/Makefile
@@ -2783,6 +2784,7 @@ AC_OUTPUT([Makefile
            mri_label_vals/Makefile
            mri_label_volume/Makefile
            mri_linear_register/Makefile
+           mri_compute_structure_transforms/Makefile
            mri_make_bem_surfaces/Makefile
            mri_make_density_map/Makefile
            mri_make_register/Makefile
