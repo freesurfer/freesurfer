@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/23 04:38:32 $
- *    $Revision: 1.46 $
+ *    $Date: 2008/12/08 18:41:35 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -86,7 +86,7 @@ more accurate volumes. Usually, this is only done when computing
 anatomical statistics. Usually, the mri/norm.mgz volume is used.
 Not with --annot.
 
---in invol
+--i invol
 
 Input volume from which to compute more statistics, including min,
 max, range, average, and standard deviation as measured spatially
@@ -285,14 +285,14 @@ bert.aseg.sum.
 2. mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg 
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt 
     --nonempty --excludeid 0 --sum bert.aseg.sum 
-    --in $SUBJECTS_DIR/bert/mri/orig
+    --i $SUBJECTS_DIR/bert/mri/orig
 
 Same as above but intensity statistics from the orig volume
 will also be reported for each segmentation.
 
 3. mri_segstats --seg aseg-in-func.img 
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt 
-    --nonempty --excludeid 0 --in func.img 
+    --nonempty --excludeid 0 --i func.img 
     --mask spmT.img --maskthresh 2.3 
     --sum bert.aseg-in-func.sum 
     --avgwf bert.avgwf.dat --avgwfvol bert.avgwf.img
@@ -324,7 +324,7 @@ This uses mri_label2vol to resample the automatic cortical
 segmentation to the functional space. For more information
 see mri_label2vol --help.
 
-6. mri_segstats --annot bert lh aparc --in lh.thickness --sum lh.thickness.sum 
+6. mri_segstats --annot bert lh aparc --i lh.thickness --sum lh.thickness.sum 
 
 Produce a summary of the thickness in each parcellation of aparc. This 
 will give the same mean thicknesses as that created by mris_anatomical_stats
@@ -419,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.46 2008/10/23 04:38:32 greve Exp $";
+"$Id: mri_segstats.c,v 1.47 2008/12/08 18:41:35 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1378,7 +1378,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%d",&Vox[2]);
       DoVox = 1;
       nargsused = 3;
-    } else if ( !strcmp(option, "--in") ) {
+    } else if ( !strcmp(option, "--in") || !strcmp(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       InVolFile = pargv[0];
       nargsused = 1;
@@ -1527,7 +1527,7 @@ static void print_usage(void) {
   printf("\n");
   printf(" Other Options\n");
   printf("   --pv pvvol : use pvvol to compensate for partial voluming\n");
-  printf("   --in invol : report more stats on the input volume\n");
+  printf("   --i invol : report more stats on the input volume\n");
   printf("   --frame frame : report stats on nth frame of input volume\n");
   printf("   --sqr  : compute the square of the input\n");
   printf("   --sqrt : compute the square root of the input\n");
@@ -1626,7 +1626,7 @@ printf("more accurate volumes. Usually, this is only done when computing \n");
 printf("anatomical statistics. Usually, the mri/norm.mgz volume is used.\n");
 printf("Not with --annot.\n");
 printf("\n");
-printf("--in invol\n");
+printf("--i invol\n");
 printf("\n");
 printf("Input volume from which to compute more statistics, including min,\n");
 printf("max, range, average, and standard deviation as measured spatially\n");
