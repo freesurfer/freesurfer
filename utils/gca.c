@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/05 12:25:17 $
- *    $Revision: 1.254 $
+ *    $Date: 2008/12/08 16:33:18 $
+ *    $Revision: 1.255 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,8 +195,8 @@ static GCA_SAMPLE *gcaExtractThresholdedRegionLabelAsSamples
  int zn,
  int wsize,
  float pthresh);
-/*static double gcaComputeSampleConditionalDensity(GCA_SAMPLE *gcas,
-  float *vals, int ninputs, int label) ;*/
+static double gcaComputeSampleConditionalDensity(GCA_SAMPLE *gcas,
+  float *vals, int ninputs, int label) ;
 static double gcaComputeLogDensity(GC1D *gc, float *vals, \
                                    int ninputs, float prior, int label) ;
 static double gcaComputeSampleLogDensity(GCA_SAMPLE *gcas,
@@ -6145,10 +6145,13 @@ GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri,
                                 GCA_SAMPLE *gcas,int nsamples,
                                 char *fname,TRANSFORM *transform)
 {
-  int    n, xv, yv, zv ;
-  MRI    *mri_dst ;
+  int       i, n, xv, yv, zv ;
+  MRI       *mri_dst ;
+  float     vals[MAX_GCA_INPUTS];
+  double    pval, pval_total, p ;
+  GCA_PRIOR *gcap ;
 
-  mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
+  mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
   MRIcopyHeader(mri, mri_dst);
 
   TransformInvert(transform, mri) ;
@@ -6160,14 +6163,27 @@ GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri,
                                gcas[n].xp, gcas[n].yp, gcas[n].zp,
                                &xv, &yv, &zv))
     {
-      mriFillRegion(mri_dst, xv, yv, zv, -gcas[n].log_p, 1) ;
+      gcap = &gca->priors[gcas[n].xp][gcas[n].yp][gcas[n].zp];
+      load_vals(mri, xv, yv, zv, vals, gca->ninputs) ;
+      pval = gcaComputeSampleConditionalDensity(&gcas[n],
+                                                vals, gca->ninputs, gcas[n].label) ;
+      pval *= getPrior(gcap,gcas[n].label) ;
+      pval_total = 0.0 ;
+      for (i = 0 ; i < gcap->nlabels ; i++)
+      {
+        p = gcaComputeSampleConditionalDensity(&gcas[n],
+                                               vals, gca->ninputs, gcap->labels[i]) ;
+        p *= gcap->priors[i] ;
+        pval_total += p ;
+      }
+      if (!DZERO(pval_total))
+        pval /= pval_total ;
+      mriFillRegion(mri_dst, xv, yv, zv, pval, 0) ;
 
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
         DiagBreak() ;
 
-      gcas[n].x = xv ;
-      gcas[n].y = yv ;
-      gcas[n].z = zv ;
+      gcas[n].x = xv ; gcas[n].y = yv ; gcas[n].z = zv ;
 
       //////////// diag /////////////////////////
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
@@ -10798,6 +10814,20 @@ cma_label_to_name(int label)
     return("left_subiculum") ;
 
 
+  if (label == CC_Posterior)
+    return("CC_Posterior") ;
+  if (label == CC_Mid_Posterior)
+    return("CC_Mid_Posterior") ;
+  if (label == CC_Central)
+    return("CC_Central") ;
+  if (label == CC_Mid_Anterior)
+    return("CC_Mid_Anterior") ;
+  if (label == CC_Anterior)
+    return("CC_Anterior") ;
+  if (label == Corpus_Callosum)
+    return("Corpus_Callosum") ;
+
+
   if (label == left_fornix)
     return("left_fornix") ;
   if (label == right_fornix)
@@ -14149,7 +14179,7 @@ GCAsampleMahDist(GCA_SAMPLE *gcas, float *vals, int ninputs)
 
   return(dsq);
 }
-#if 0
+#if 1
 static double
 gcaComputeSampleConditionalDensity(GCA_SAMPLE *gcas,
                                    float *vals, int ninputs, int label)
