@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/11/25 22:39:22 $
- *    $Revision: 1.75 $
+ *    $Author: fischl $
+ *    $Date: 2008/12/08 14:34:22 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.75 2008/11/25 22:39:22 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.76 2008/12/08 14:34:22 fischl Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -457,7 +457,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.75 2008/11/25 22:39:22 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.76 2008/12/08 14:34:22 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -859,7 +859,7 @@ int main(int argc, char **argv) {
       printf("INFO: saving target distance to %s\n",TrgDistFile);
       err = MRIwrite(TrgDist,TrgDistFile);
       if(err){
-	printf("ERROR: wrting %s\n",TrgDistFile);
+	printf("ERROR: writing %s\n",TrgDistFile);
 	exit(1);
       }
     }
@@ -949,7 +949,7 @@ int main(int argc, char **argv) {
     if(DoNormVar) NormVar(TrgVals, NULL);
     err = MRIwriteType(TrgVals,trgvalfile,trgtype);
     if(err){
-      printf("ERROR: wrting %s\n",trgvalfile);
+      printf("ERROR: writing %s\n",trgvalfile);
       exit(1);
     }
     if (is_sxa_volume(srcvalfile)) sv_sxadat_by_stem(sxa,trgvalfile);
@@ -1006,6 +1006,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--sd")) {
       if (nargc < 1) argnerr(option,1);
       FSENVsetSUBJECTS_DIR(pargv[0]);
+      SUBJECTS_DIR = pargv[0] ;
       nargsused = 1;
     } else if (!strcmp(option, "--s")) {
       if (nargc < 1) argnerr(option,1);
