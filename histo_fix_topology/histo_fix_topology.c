@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/08 17:09:24 $
- *    $Revision: 1.1 $
+ *    $Date: 2008/12/09 03:42:41 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #define RGB_SIZE 500
 
 static char vcid[] =
-  "$Id: histo_fix_topology.c,v 1.1 2008/12/08 17:09:24 fischl Exp $";
+  "$Id: histo_fix_topology.c,v 1.2 2008/12/09 03:42:41 fischl Exp $";
 
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -70,7 +70,7 @@ main(int argc, char *argv[]) {
   MRI_SEGMENT_VOXEL *msv ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: histo_fix_topology.c,v 1.1 2008/12/08 17:09:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: histo_fix_topology.c,v 1.2 2008/12/09 03:42:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -336,12 +336,11 @@ write_snapshot(MRI *mri, MRI *mri1, MRI *mri2, MATRIX *m, char *base, int n, int
   }
   return(NO_ERROR) ;
 }
-#endif
 
 static MRI *
 expand_tears(MRI *mri_histo, MRI *mri_src, MRI *mri_dst, int niter, double thresh)
 {
-  int  x, y, i, yi, yi, xk, yk ;
+  int  x, y, i, xi, yi, xk, yk ;
   MRI  *mri_tmp ;
 
   mri_dst = MRIcopy(mri_src, mri_dst);
@@ -361,6 +360,7 @@ expand_tears(MRI *mri_histo, MRI *mri_src, MRI *mri_dst, int niter, double thres
             {
               yi = mri_src->yi[y+yk] ;
             }
+          }
         }
       }
     }
@@ -368,4 +368,5 @@ expand_tears(MRI *mri_histo, MRI *mri_src, MRI *mri_dst, int niter, double thres
   return(mri_dst) ;
 }
 
+#endif
 
