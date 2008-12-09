@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.2 $
+ *    $Date: 2008/12/09 20:50:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@ class wxToolBar;
 class wxSpinEvent;
 class wxSpinCtrl;
 
-class ToolWindowEdit : public wxDialog
+class ToolWindowEdit : public wxFrame
 {
 public:
 	ToolWindowEdit( wxWindow* parent );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:23 $
- *    $Revision: 1.10 $
+ *    $Date: 2008/12/09 20:50:48 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -147,9 +147,9 @@ protected:
 	FSVolume*		m_volumeRef;
 	
 	double			m_RASToVoxelMatrix[16];
-	double			m_VoxelToRASMatrix[16];
-	double			m_VoxelToVoxelMatrix[16];
-	double			m_RASToRASMatrix[16];
+	double			m_VoxelToRASMatrix[16];	
+	double			m_VoxelToVoxelMatrix[16];	// native to target
+	double			m_RASToRASMatrix[16];		// native to target 
 	double			m_RASToTkRegMatrix[16];
 	
 	float			m_fMinValue;

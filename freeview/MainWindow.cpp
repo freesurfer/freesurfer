@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:23 $
- *    $Revision: 1.30 $
+ *    $Date: 2008/12/09 20:50:48 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -1054,8 +1054,6 @@ void MainWindow::DoUpdateToolbars()
 			m_toolWindowEdit->Hide();
 		
 		m_toolWindowEdit->UpdateTools();	
-		//	if ( bNeedReposition)
-	//		m_toolWindowEdit->ResetPosition();
 	}
 	/*		
 	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_SIZE", wxStaticText )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );

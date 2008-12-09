@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.6 $
+ *    $Date: 2008/12/09 20:50:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "LayerROI.h"
 #include "LayerDTI.h"
 
-BEGIN_EVENT_TABLE( ToolWindowEdit, wxDialog )
+BEGIN_EVENT_TABLE( ToolWindowEdit, wxFrame )
 //	EVT_BUTTON			( wxID_OK,			 						ToolWindowEdit::OnOK )
 //	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_VECTOR_FILE" ) ),	ToolWindowEdit::OnButtonVector )
 //	EVT_BUTTON			( XRCID( wxT( "ID_BUTTON_FA_FILE" ) ),		ToolWindowEdit::OnButtonFA )
@@ -83,7 +83,7 @@ END_EVENT_TABLE()
 ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) :
 	m_bToUpdateTools( false )
 {
-	wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_TOOLWINDOW_EDIT") );	
+	wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_EDIT") );	
 	m_toolbarVoxelEdit 		= XRCCTRL( *this, "ID_TOOLBAR_VOXEL_EDIT", wxToolBar );	
 	m_toolbarROIEdit 		= XRCCTRL( *this, "ID_TOOLBAR_ROI_EDIT", wxToolBar );
 	m_spinBrushSize 		= XRCCTRL( *this, "ID_SPIN_BRUSH_SIZE", wxSpinCtrl );
@@ -109,10 +109,9 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
 		wxConfigBase* config = wxConfigBase::Get();
 		if ( config )
 		{
-		//	int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
-		//	int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
-		//	Move( x, y );
-		//	cout << "in OnShow show:" << x << " " << y << endl;
+			int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
+			int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
+			Move( x, y );
 		}
 	}
 	else
@@ -124,7 +123,6 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
 			GetPosition( &x, &y );
 			config->Write( _T("/ToolWindowEdit/PosX"), (long) x );
 			config->Write( _T("/ToolWindowEdit/PosY"), (long) y );
-		//	cout << "in OnShow hide:" << x << " " << y << endl;
 		}
 	}
 }
@@ -139,7 +137,6 @@ void ToolWindowEdit::ResetPosition()
 			int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
 			int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
 			Move( x, y );
-		//	cout << x << " " << y << endl;
 		}	
 	}
 }
@@ -152,7 +149,7 @@ void ToolWindowEdit::UpdateTools()
 void ToolWindowEdit::DoUpdateTools()
 {
 	RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-		
+
 	bool bVoxelEditVisible = m_toolbarVoxelEdit->IsShown();
 	bool bROIEditVisible = m_toolbarROIEdit->IsShown();
 	if ( bVoxelEditVisible != (view->GetInteractionMode() == RenderView2D::IM_VoxelEdit) ||
@@ -160,7 +157,8 @@ void ToolWindowEdit::DoUpdateTools()
 	{
 		m_toolbarVoxelEdit	->Show( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit );
 		m_toolbarROIEdit	->Show( view->GetInteractionMode() == RenderView2D::IM_ROIEdit );
-		Layout();
+	
+		XRCCTRL( *this, "ID_PANEL_HOLDER", wxPanel )->Layout();
 	}
 				
 //	XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_SIZE", wxStaticText )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
@@ -223,7 +221,7 @@ void ToolWindowEdit::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
 
 void ToolWindowEdit::OnInternalIdle()
 {
-	wxDialog::OnInternalIdle();
+	wxFrame::OnInternalIdle();
 	
 	if ( m_bToUpdateTools )
 		DoUpdateTools();

@@ -139,6 +139,12 @@ freeview_SOURCES=\
 	string_fixed.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
+	vtkImageLiveWire.cxx \
+	vtkImageLiveWire.h \
+	vtkImageLiveWireEdgeWeights.cxx \
+	vtkImageLiveWireEdgeWeights.h \
+	vtkImageLiveWireScale.cxx \
+	vtkImageLiveWireScale.h \
 	WindowQuickReference.cpp \
 	WindowQuickReference.h \
 	WorkerThread.cpp \

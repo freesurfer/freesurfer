@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:23 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/12/09 20:50:48 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -1537,7 +1537,6 @@ void FSVolume::RASToNativeRAS( const double* pos_in, double* pos_out )
 	pos_out[0] = p[0];
 	pos_out[1] = p[1];
 	pos_out[2] = p[2];
-//	memcpy( pos_out, pos_in, sizeof(double)*3 );
 }
 
 void FSVolume::NativeRASToRAS( const double* pos_in, double* pos_out )
@@ -1547,8 +1546,6 @@ void FSVolume::NativeRASToRAS( const double* pos_in, double* pos_out )
 	pos_out[0] = p[0];
 	pos_out[1] = p[1];
 	pos_out[2] = p[2];
-	
-//	memcpy( pos_out, pos_in, sizeof(double)*3 );
 }
 
 void FSVolume::NativeRASToTkReg( const double* pos_in, double* pos_out )
