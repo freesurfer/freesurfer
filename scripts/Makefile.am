@@ -19,6 +19,7 @@ cor_to_minc \
 cp-dicom \
 dcmdir-info-mgh \
 deface_subject \
+defect-seg \
 dicom-rename \
 dt_recon \
 epidewarp.fsl\
