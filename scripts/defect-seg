@@ -3,12 +3,13 @@
 
 # Creates segmentations and annotations for defect visualization
 
-set VERSION = '$Id: defect-seg,v 1.2 2008/11/26 00:26:24 greve Exp $';
+set VERSION = '$Id: defect-seg,v 1.3 2008/12/10 20:48:26 greve Exp $';
 
 set subject = ();
 set PrintHelp = 0;
 set DoLH = 1;
 set DoRH = 1;
+set DoMapToFsaverage = 0;
 
 set cmdargs = ($argv);
 if($#argv == 0) goto usage_exit;
@@ -83,7 +84,7 @@ foreach hemi ($HemiList)
 
   # Create an annotation on the nofix (unfixed) surface
   set cmd = (mris_seg2annot --seg surf/$hemi.defect_labels \
-   --ctab $FREESURFER_HOME/DefectLUT.txt --s $subject --h $hemi \
+   --ctab $DefectLUT --s $subject --h $hemi \
    --o $hemi.defects.nofix.annot --surf orig.nofix)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
@@ -97,17 +98,34 @@ foreach hemi ($HemiList)
   $cmd | tee -a $LF
   if($status) exit 1
 
+  # Binarize
+  set cmd = (mri_binarize --i surf/$hemi.defect_labels.fix.mgz \
+   --o surf/$hemi.defect_labels.fix.bin.mgz --min 0.5)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1
+
   # Create an annotation on the fixed surface
   set cmd = (mris_seg2annot --seg surf/$hemi.defect_labels.fix.mgz \
-   --ctab $FREESURFER_HOME/DefectLUT.txt --s $subject --h $hemi \
+   --ctab $DefectLUT --s $subject --h $hemi \
    --o $hemi.defects.fix.annot)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1
 
+  # Map to fsaverage space
+  if($DoMapToFsaverage) then
+    set cmd = (mri_surf2surf --hemi $hemi\
+     --srcsubject $subject \
+     --sval surf/$hemi.defect_labels.fix.mgz \
+     --trgsubject fsaverage \
+     --sval surf/$hemi.defect_labels.fix.fsaverage.mgz )
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1
+  endif
+
 end
-
-
 
 #-----------------------------------------
 echo "" | tee -a $LF
@@ -171,6 +189,12 @@ if(! -e $SUBJECTS_DIR/$subject) then
   exit 1;
 endif
 
+set DefectLUT = $FREESURFER_HOME/DefectLUT.txt
+if(! -e $DefectLUT) then
+  echo "ERROR: cannot find $DefectLUT"
+  exit 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -214,6 +238,7 @@ Creates:
   scripts/?h.defects.summary
   mri/surface.defects.mgz
   surf/?h.defect_labels.fix.mgz
+  surf/?h.defect_labels.fix.bin.mgz
   label/?h.defects.nofix.annot
   label/?h.defects.fix.annot
 
@@ -246,4 +271,13 @@ tksurfer 001_1 lh smoothwm.nofix -annot defects.nofix.annot
 tksurfer 001_1 lh white -annot defects.fix.annot
 # Defects show up as purple annotation
 #   (defect number in segmentation name)
+
+# ----------------------------------------------------------
+# Analyze defects across subjects
+mris_preproc --out lh.defects.mgh --target fsaverage --hemi lh \
+  --meas defect_labels.fix.bin.mgz --fsgd your.fsgd
+mri_glmfit --y lh.defects.mgh --surf fsaverage lh --no-prune \
+  --glmdir glm.lh.sm05 --fwhm 5 --fsgd your.fsgd
+tksurfer fsaverage lh inflated -annot aparc.annot \
+  -ov glm.lh.sm05/osgm/sig.mgh -t lh.defects.mgh
 
