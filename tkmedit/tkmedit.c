@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 14:02:35 $
- *    $Revision: 1.320.2.5 $
+ *    $Author: greve $
+ *    $Date: 2008/12/10 21:01:36 $
+ *    $Revision: 1.320.2.6 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.320.2.5 $";
+char *VERSION = "$Revision: 1.320.2.6 $";
 
 #define TCL
 #define TKMEDIT
@@ -968,6 +968,9 @@ tkm_tErr ExecuteQueuedScripts ();
 char gsCachedScriptNames[tkm_knMaxNumCachedScripts][tkm_knPathLen];
 int gnNumCachedScripts = 0;
 
+int LoadOrigSurf = 1;
+int LoadPialSurf = 1;
+
 // ===========================================================================
 
 #ifdef Linux
@@ -1193,7 +1196,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.320.2.5 2008/03/10 14:02:35 nicks Exp $",
+     "$Id: tkmedit.c,v 1.320.2.6 2008/12/10 21:01:36 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1232,6 +1235,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
            "relative to\n");
     printf("                       : in $SUBJECTS_DIR/subject/surf or "
            "specify absolute path\n");
+    printf("-surfs : load lh.white and rh.white\n");
     printf("-annotation <annotation> <color table> : import a "
            "surface annotation and color\n");
     printf("                                         table to "
@@ -1489,7 +1493,34 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg += 1;
         }
 
-      } else if ( MATCH( sArg, "-aux-surface" ) ) {
+      } 
+      else if ( MATCH( sArg, "-surfs" ) ) {
+	xUtil_strncpy( sSurface, "lh.white", sizeof(sSurface) );
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "rh.white", sizeof(sAuxSurface) );
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 0;
+	nCurrentArg ++;
+      }
+      else if ( MATCH( sArg, "-defects" ) ) {
+	xUtil_strncpy( sSurface, "lh.orig", sizeof(sSurface) );//green
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "lh.orig.nofix", sizeof(sAuxSurface) );//yellow
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 1;
+	LoadPialSurf = 0;
+        xUtil_strncpy( sSegmentationPath, "surface.defects.mgz",
+                       sizeof(sSegmentationPath) );
+        pEnvVar = getenv("FREESURFER_HOME");
+        sprintf( sSegmentationColorFile,"%s/DefectLUT.txt", pEnvVar );
+        bLoadingSegmentation = TRUE;
+	fSegmentationAlpha = 0.8;
+	bSegmentationAlpha = TRUE;
+	xUtil_strncpy( sAuxVolume,"wm.mgz",sizeof(sAuxVolume) );
+	bLoadingAuxVolume = TRUE;
+	nCurrentArg ++;
+      }
+      else if ( MATCH( sArg, "-aux-surface" ) ) {
 
         /* make sure there are enough args */
         if ( argc > nCurrentArg + 1 &&
@@ -5904,7 +5935,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.320.2.5 2008/03/10 14:02:35 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.320.2.6 2008/12/10 21:01:36 greve Exp $ $Name:  $\n"
         )
       );
 
