@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.7 $
+ *    $Author: greve $
+ *    $Date: 2008/12/10 18:08:39 $
+ *    $Revision: 1.7.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mris_seg2annot.c,v 1.7 2006/12/29 02:09:11 nicks Exp $
+// $Id: mris_seg2annot.c,v 1.7.2.1 2008/12/10 18:08:39 greve Exp $
 
 /*
   BEGINHELP
@@ -116,7 +116,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.7 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.7.2.1 2008/12/10 18:08:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -131,6 +131,7 @@ char  *SUBJECTS_DIR;
 COLOR_TABLE *ctab = NULL;
 MRI_SURFACE *mris;
 MRI *surfseg, *mritmp;
+char *surfname = "white";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -184,7 +185,7 @@ int main(int argc, char *argv[]) {
     printf("ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
   }
-  sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
   printf("Reading surface %s\n",tmpstr);
   mris = MRISread(tmpstr);
   if (mris==NULL) exit(1);
@@ -240,6 +241,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       hemi = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--surf")){
+      if (nargc < 1) CMDargNErr(option,1);
+      surfname = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--ctab")) {
       if (nargc < 1) CMDargNErr(option,1);
       ctabfile = pargv[0];
@@ -274,6 +279,7 @@ static void print_usage(void) {
   printf("   --h hemi      : surface hemifield\n");
   printf("   --o annot     : output annotation file\n");
   printf("\n");
+  printf("   --surf surfname : default is white\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
