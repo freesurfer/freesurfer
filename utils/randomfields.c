@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/04 21:07:37 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/12/11 02:33:07 $
+ *    $Revision: 1.11.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@
 // Return the CVS version of this file.
 const char *RFSrcVersion(void)
 {
-  return("$Id: randomfields.c,v 1.11 2007/05/04 21:07:37 greve Exp $");
+  return("$Id: randomfields.c,v 1.11.2.1 2008/12/11 02:33:07 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -614,11 +614,70 @@ double RFar1ToFWHM(double ar1, double d)
  \param fwhm - of the z field in physical units
  \param searchsize - in physical units
  \param dim - dimension of the z field
- Roughly based on Friston, et al, 1995.
+
+  Friston, Worsley, Frackowiak, Mazziotta, Evans. Assessing the
+  significance of focal activations using their spatial extent. HBM
+  1994, 1:214-220. 
+
+  By design, this gives the same results as rft_zcluster_cdf.m in 
+  the FSFAST toolbox.  
+
  */
 double RFprobZCluster(double clustersize, double vzthresh,
                       double fwhm, double searchsize, int dim)
 {
+  double u, phiu,k,S,W,Em,beta,Pnk,pcluster,D,pi;
+
+  pi = M_PI;
+  D = dim;
+  u = vzthresh; 
+
+  // Equivalent p-value threshold. Note that the paper uses phi(-u),
+  // but the results dont work out that way. Note that phi(-u) can be
+  // used if (1-phiu) is used instead of phiu in the equation for beta
+  // below. See Hayasaka and Nichols 2003, App A, equation 4.
+  phiu = sc_cdf_gaussian_Q(u,1);
+
+  k = clustersize;   // cluster size to test (actual units, not resels)
+  S = searchsize;   // search space (actual units, not resels)
+
+  W = fwhm/sqrt(4*log(2));
+
+  // Expected number of clusters (Eq 2)
+  // This form appears to go back to Hasofer 1978
+  Em = exp(-(u*u)/2) * pow(u,(D-1)) * pow(2*pi,-(D+1)/2) * S / pow(W,D);
+  // There is another form with (pow(u,(D-1))-1) for D=3 found in
+  // Worsley, et al, 1996, HBM 4:58-73, Table II. This is what 
+  // FSL and KJW's stat_threshold.m seem to use. In simulations, it seems
+  // less accurate.
+
+  // Equation 3
+  beta = pow(gamma(D/2+1)*Em/(S*phiu),2/D);
+
+  // Prob that number of voxels in a cluster (n) exceeds k (Bet Eq 2 and 3)
+  Pnk = exp( -beta * pow(k,2.0/D) );
+
+  // Prob of cluster of size k
+  pcluster = 1 - exp(-Em*Pnk);
+
+#if 0
+  printf("csize = %lf\n",clustersize);
+  printf("vzthresh = %lf\n",vzthresh);
+  printf("fwhm = %lf\n",fwhm);
+  printf("searchsize = %lf\n",searchsize);
+  printf("dim = %d\n",dim);
+  printf("W = %lf\n",W);
+  printf("Em = %lf\n",Em);
+  printf("phiu = %lf\n",phiu);
+  printf("beta = %lf\n",beta);
+  printf("Pnk = %lf\n",Pnk);
+  printf("pcluster = %lf\n",pcluster);
+#endif
+
+  return(pcluster);
+
+#if 0
+  // This is an older version that did not seem to work
   double pcluster,W,dLh,Em,beta,pvzthresh,Pnk;
 
   W = fwhm/sqrt(4.0*log(2.0));
@@ -634,22 +693,8 @@ double RFprobZCluster(double clustersize, double vzthresh,
   // Prob than n >= k, ie, the number of voxels in a cluster >= csize
   Pnk = exp(-beta * pow(clustersize,2.0/dim));
   pcluster = 1 - exp(-Em*Pnk);
-
-#if 0
-  printf("csize = %lf\n",clustersize);
-  printf("vzthresh = %lf\n",vzthresh);
-  printf("fwhm = %lf\n",fwhm);
-  printf("searchsize = %lf\n",searchsize);
-  printf("dim = %d\n",dim);
-  printf("W = %lf dLh %lf\n",W,dLh);
-  printf("Em = %lf\n",Em);
-  printf("pvzthresh = %lf\n",pvzthresh);
-  printf("beta = %lf\n",beta);
-  printf("Pnk = %lf\n",Pnk);
-  printf("pcluster = %lf\n",pcluster);
 #endif
 
-  return(pcluster);
 }
 
 /*!
