@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/14 17:56:06 $
- *    $Revision: 1.39 $
+ *    $Date: 2008/12/11 02:30:18 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.39 2008/03/14 17:56:06 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.40 2008/12/11 02:30:18 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.39 2008/03/14 17:56:06 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.40 2008/12/11 02:30:18 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -570,7 +570,7 @@ int main(int argc, char **argv) {
             x,y,z, ClusterList[n]->maxval);
     if (debug) fprintf(fpsum,"  %3d %3d %3d \n",col,row,slc);
     if (csd != NULL)
-      fprintf(fpsum,"  %7.5lf  %7.5lf  %7.5lf\n",
+      fprintf(fpsum,"  %7.5lf  %7.5lf  %7.5lf",
               ClusterList[n]->pval_clusterwise,
               ClusterList[n]->pval_clusterwise_low,
               ClusterList[n]->pval_clusterwise_hi);
