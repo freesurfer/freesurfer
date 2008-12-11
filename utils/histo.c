@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:26 $
- *    $Revision: 1.58 $
+ *    $Author: fischl $
+ *    $Date: 2008/12/11 22:02:07 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1303,6 +1303,8 @@ HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)
       return(b) ;
   }
 
+  if (h->nbins >= b)
+    b = h->nbins-1 ;
   return(b) ;
 }
 
