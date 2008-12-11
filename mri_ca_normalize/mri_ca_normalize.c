@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/11/04 22:38:27 $
- *    $Revision: 1.42 $
+ *    $Author: fischl $
+ *    $Date: 2008/12/11 22:01:41 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -137,13 +137,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.42 2008/11/04 22:38:27 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.43 2008/12/11 22:01:41 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.42 2008/11/04 22:38:27 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.43 2008/12/11 22:01:41 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1109,6 +1109,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 
   for (num = n = 0 ; n < gca->ninputs ; n++)
   {
+    int niter = 0 ;
     MRIvalRangeFrame(mri_in, &fmin, &fmax, n) ;
     h = HISTOalloc(nint(fmax-fmin)+1) ;
     h->bin_size = (fmax-fmin)/(float)h->nbins ;
@@ -1145,6 +1146,10 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       mean_ratio /= (Real)nsamples ;
       HISTOclearBins
         (hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
+      if (niter++ > 5)
+        break ;
+      if (niter > 1)
+        DiagBreak() ;
     } while  (mean_ratio  < 0.5 || mean_ratio > 2.0) ;
 
     printf("%s: limiting intensities to %2.1f --> %2.1f\n",
