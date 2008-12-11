@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/30 23:10:56 $
- *    $Revision: 1.38 $
+ *    $Date: 2008/12/11 02:31:20 $
+ *    $Revision: 1.38.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.38 2007/07/30 23:10:56 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.38.2.1 2008/12/11 02:31:20 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.38 2007/07/30 23:10:56 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.38.2.1 2008/12/11 02:31:20 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -570,7 +570,7 @@ int main(int argc, char **argv) {
             x,y,z, ClusterList[n]->maxval);
     if (debug) fprintf(fpsum,"  %3d %3d %3d \n",col,row,slc);
     if (csd != NULL)
-      fprintf(fpsum,"  %7.5lf  %7.5lf  %7.5lf\n",
+      fprintf(fpsum,"  %7.5lf  %7.5lf  %7.5lf",
               ClusterList[n]->pval_clusterwise,
               ClusterList[n]->pval_clusterwise_low,
               ClusterList[n]->pval_clusterwise_hi);
@@ -908,7 +908,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--fwhm")) {
+    } else if (!strcmp(option, "--mni152reg")) {
+      sprintf(tmpstr,"%s/average/mni152.register.dat",getenv("FREESURFER_HOME"));
+      regfile = strcpyalloc(tmpstr);
+      nargsused = 0;
+    }
+    else if (!strcmp(option, "--fwhm")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       nargsused = 1;
@@ -958,6 +963,7 @@ static void print_usage(void) {
   printf("      with --fwhm or --csd\n");
   printf("\n");
   printf("   --reg     register.dat : for reporting talairach coords\n");
+  printf("   --mni152reg : input is in mni152 space\n");
   printf("   --fsaverage : assume input is in fsaverage space\n");
   printf("   --frame   frameno <0>\n");
   printf("\n");
