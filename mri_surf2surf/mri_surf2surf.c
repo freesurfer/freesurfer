@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/12/08 14:34:22 $
- *    $Revision: 1.76 $
+ *    $Author: greve $
+ *    $Date: 2008/12/12 21:50:10 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.76 2008/12/08 14:34:22 fischl Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.77 2008/12/12 21:50:10 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -457,7 +457,7 @@ int main(int argc, char **argv) {
   MRI *mask = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.76 2008/12/08 14:34:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.77 2008/12/12 21:50:10 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -643,7 +643,9 @@ int main(int argc, char **argv) {
       MRIcopyMRIS(SrcVals, SurfSrc, 0, "nx");
       MRIcopyMRIS(SrcVals, SurfSrc, 1, "ny");
     }
-    if (UseSurfSrc == SURF_SRC_AREA) {
+    if(UseSurfSrc == SURF_SRC_AREA) {
+      // Not affected by loading ?h.white.avg.area.mgh because
+      // this uses area and not group_avg_area.
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "area");
       if (SurfSrc->group_avg_surface_area > 0) {
         if (getenv("FIX_VERTEX_AREA") != NULL) {
@@ -661,7 +663,7 @@ int main(int argc, char **argv) {
     }
     if (UseSurfSrc == SURF_SRC_RIP) {
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "ripflag");
-    } else printf("INFO: surfcluster: NOT fixing group surface area\n");
+    }
     MRISfree(&SurfSrc);
   } else { /* Use MRIreadType */
     SrcVals =  MRIreadType(srcvalfile,srctype);
