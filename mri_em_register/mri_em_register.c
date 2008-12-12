@@ -9,8 +9,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/02 00:01:21 $
- *    $Revision: 1.59 $
+ *    $Date: 2008/12/12 01:50:56 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,8 +35,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/03/02 00:01:21 $
-// Revision       : $Revision: 1.59 $
+// Revision Date  : $Date: 2008/12/12 01:50:56 $
+// Revision       : $Revision: 1.60 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -68,6 +68,7 @@ static double TEs[MAX_GCA_INPUTS] ;
 static int skull = 0 ;  /* if 1, aligning to image with skull */
 static int rigid = 0 ;
 
+static int robust = 0 ;
 /*
   allowable distance from an unknown sample to one in brain. Default
   is 1 implying just a ring of unknowns alloowed outside brain. If aligning
@@ -149,6 +150,12 @@ static int num_xforms = 1 ;
 static int transform_loaded = 0 ;
 static char *gca_mean_fname = NULL ;
 
+static int ninsertions = 0 ;
+static int insert_labels[MAX_INSERTIONS] ;
+static int insert_intensities[MAX_INSERTIONS] ;
+static int insert_coords[MAX_INSERTIONS][3] ;
+static int insert_whalf[MAX_INSERTIONS] ;
+
 static MATRIX *find_optimal_transform
 (MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas,
  int nsamples, MATRIX *m_L, int passno,
@@ -191,7 +198,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.59 2008/03/02 00:01:21 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.60 2008/12/12 01:50:56 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -440,19 +447,6 @@ main(int argc, char *argv[]) {
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
   //////// debugging code /////////////////////////////////////////////
-  if (parms.write_iterations != 0) {
-    char fname[STRLEN] ;
-    MRI  *mri_gca ;
-    mri_gca = MRIclone(mri_in, NULL) ;
-    GCAbuildMostLikelyVolume(gca, mri_gca) ;
-    sprintf(fname, "%s_target", parms.base_name) ;
-    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_target.mgz", parms.base_name) ;
-    printf("writing target volume to %s...\n", fname) ;
-    fflush(stdout);
-    MRIwrite(mri_gca, fname) ;
-    MRIfree(&mri_gca) ;
-  }
   ////////////////////////// -fsample option //////////////////////////
   if (sample_fname) {
     GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
@@ -528,6 +522,24 @@ main(int argc, char *argv[]) {
     mri_tmp = MRIconvolveGaussian(mri_in, NULL, mri_kernel) ;
     MRIfree(&mri_in) ;
     mri_in = mri_tmp ;
+  }
+  if (ninsertions > 0)
+    GCAinsertLabels(gca, mri_in, transform, ninsertions, 
+                    insert_labels, insert_intensities, insert_coords,
+                    insert_whalf) ;
+
+  if (parms.write_iterations != 0) {
+    char fname[STRLEN] ;
+    MRI  *mri_gca ;
+    mri_gca = MRIclone(mri_in, NULL) ;
+    GCAbuildMostLikelyVolume(gca, mri_gca) ;
+    sprintf(fname, "%s_target", parms.base_name) ;
+    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s_target.mgz", parms.base_name) ;
+    printf("writing target volume to %s...\n", fname) ;
+    fflush(stdout);
+    MRIwrite(mri_gca, fname) ;
+    MRIfree(&mri_gca) ;
   }
   i = 0 ;
   ////////////////////////////////////////////////////////////////
@@ -659,13 +671,17 @@ main(int argc, char *argv[]) {
   MRIfree(&mri_dst);
   //////////////////////////////////////////////////////////////////////
   if (transformed_sample_fname) {
-    printf("writing transformed samples to %s...\n",
-           transformed_sample_fname) ;
+    char fname[STRLEN] ;
+    sprintf(fname, "%s.pvals.mgz",parms.base_name) ;
+    printf("writing transformed samples to %s and pvals to %s...\n",
+           transformed_sample_fname, fname) ;
     fflush(stdout);
     GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples,
                                 transformed_sample_fname, transform) ;
     printf("samples written\n") ;
     fflush(stdout);
+    GCAtransformAndWriteSamplePvals
+    (gca, mri_in, parms.gcas, nsamples, fname, transform) ;
   }
   ///////////////////////////////////////////////////////////////////////
   if (norm_fname) {
@@ -886,6 +902,7 @@ register_mri
     printf("global search transform:\n") ;
     MatrixPrint(stdout, m_L) ;
   }
+
 
   /*    parms->start_t++ ;*/
   printf("***********************************************\n");
@@ -1205,11 +1222,11 @@ find_optimal_transform
     max_log_p = find_optimal_linear_xform
                 (gca, gcas, mri, nsamples,
                  m_L, m_origin,
-                 -(max_angle/scale),
-                 (max_angle/scale),
+                 -(max_angle*scale),
+                 (max_angle*scale),
                  1-.25*(spacing/16.0)*scale, 1+.25*(spacing/16.0)*scale,
                  -scale*(spacing/16.0)*MAX_TRANS, scale*(spacing/16.0)*MAX_TRANS,
-                 scale_samples, 3, 3, 2);
+                 max_angles, scale_samples, 3, 2);
     fflush(stdout);
 
     if (write_iterations != 0) {
@@ -1221,6 +1238,8 @@ find_optimal_transform
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
       sprintf(fname, "%s%03d.mgz",
               parms.base_name, parms.start_t+niter+1) ;
+      printf("writing %s\n", fname) ;
+      MRIwrite(mri_aligned, fname) ;
 #if 0
       MRIwrite(mri_aligned, fname) ;
 #else
@@ -1437,6 +1456,8 @@ get_option(int argc, char *argv[]) {
   } else if (!strcmp(option, "NOMAP")) {
     // seems not used
     nomap = 1 ;
+  } else if (!strcmp(option, "ROBUST")) {
+    robust = 1 ;
   } else if (!stricmp(option, "FLASH")) {
     map_to_flash = 1 ;
     printf("using FLASH forward model to predict intensity values...\n") ;
@@ -1448,6 +1469,26 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "BABY")) {
     baby = 1 ;
     printf("using baby brain intensity model\n") ;
+  } else if (!stricmp(option, "INSERT")) {
+    if (ninsertions >= MAX_INSERTIONS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many insertions (%d) specified\n", Progname, ninsertions) ;
+
+    insert_labels[ninsertions] = atoi(argv[2]) ;
+    insert_intensities[ninsertions] = atoi(argv[3]) ;
+    insert_coords[ninsertions][0] = atoi(argv[4]) ;
+    insert_coords[ninsertions][1] = atoi(argv[5]) ;
+    insert_coords[ninsertions][2] = atoi(argv[6]) ;
+    insert_whalf[ninsertions] = atoi(argv[7]) ;
+    printf("inserting label %d (%s) at (%d, %d, %d) with intensity = %d\n",
+           insert_labels[ninsertions],
+           cma_label_to_name(insert_labels[ninsertions]),
+           insert_coords[ninsertions][0],
+           insert_coords[ninsertions][1],
+           insert_coords[ninsertions][2],
+           insert_intensities[ninsertions]) ;
+           
+    ninsertions++ ;
+    nargs = 6 ;
   } else if (!strcmp(option, "MASK")) {
     mask_fname = argv[2] ;
     nargs = 1 ;
@@ -1761,7 +1802,10 @@ local_GCAcomputeLogSampleProbability
   if (!transform)
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   ((LTA *)transform->xform)->xforms[0].m_L = m_L ;
-  return(GCAcomputeLogSampleProbability(gca, gcas, mri, transform, nsamples)) ;
+  if (robust)
+    return(GCAcomputeNumberOfGoodFittingSamples(gca, gcas, mri, transform, nsamples)) ;
+  else
+    return(GCAcomputeLogSampleProbability(gca, gcas, mri, transform, nsamples)) ;
 }
 
 
