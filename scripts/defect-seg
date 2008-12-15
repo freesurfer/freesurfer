@@ -3,7 +3,7 @@
 
 # Creates segmentations and annotations for defect visualization
 
-set VERSION = '$Id: defect-seg,v 1.3.2.2 2008/12/10 20:49:14 greve Exp $';
+set VERSION = '$Id: defect-seg,v 1.3.2.3 2008/12/15 22:57:58 greve Exp $';
 
 set subject = ();
 set PrintHelp = 0;
@@ -257,13 +257,16 @@ less scripts/lh.defects.summary
      3     125634          65
 
 # ----------------------------------------------------------
-# Visualize defects as a segmentation
-tkmedit subject orig.mgz -defects
-# The ?h.orig.nofix is yellow 
-# The ?h.white is green (aux surface)
+# Visualize defects as a segmentation with left hemi surfaces
+tkmedit subject orig.mgz -lh-defects
+# The lh.orig.nofix is yellow 
+# The lh.white is green (aux surface)
 # Defects show up as purple segmentations 
 #   (defect number in segmentation name)
 # wm.mgz automatically loaded as aux volume
+
+# Visualize defects as a segmentation with right hemi surfaces
+tkmedit subject orig.mgz -rh-defects
 
 # ----------------------------------------------------------
 # Visualize defects as an annotation
