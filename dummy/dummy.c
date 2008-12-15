@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:57 $
- *    $Revision: 1.7 $
+ *    $Date: 2008/12/15 18:24:02 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: dummy.c,v 1.7 2006/12/29 02:08:57 nicks Exp $
+// $Id: dummy.c,v 1.8 2008/12/15 18:24:02 nicks Exp $
 
 /*
   BEGINHELP
@@ -52,35 +52,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-double round(double x);
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/utsname.h>
 #include <unistd.h>
 
 #include "macros.h"
 #include "utils.h"
-#include "mrisurf.h"
-#include "mrisutils.h"
-#include "error.h"
-#include "diag.h"
-#include "mri.h"
-#include "mri2.h"
 #include "fio.h"
 #include "version.h"
-#include "label.h"
-#include "matrix.h"
-#include "annotation.h"
-#include "fmriutils.h"
 #include "cmdargs.h"
-#include "fsglm.h"
-#include "pdf.h"
-#include "fsgdf.h"
-#include "timer.h"
-#include "matfile.h"
-#include "volcluster.h"
-#include "surfcluster.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -91,7 +69,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: dummy.c,v 1.7 2006/12/29 02:08:57 nicks Exp $";
+static char vcid[] = "$Id: dummy.c,v 1.8 2008/12/15 18:24:02 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
