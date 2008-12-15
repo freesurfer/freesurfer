@@ -14,6 +14,7 @@ foo_DATA=surface_labels.txt \
 	SetUpFreeSurfer.csh \
 	FreeSurferEnv.sh \
 	SetUpFreeSurfer.sh \
+	DefectLUT.txt \
 	FreeSurferColorLUT.txt \
 	numaris4-protocols.unpackcfg \
 	ASegStatsLUT.txt
