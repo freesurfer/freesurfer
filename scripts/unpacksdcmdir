@@ -21,7 +21,8 @@ proc PrintUsage { } {
   puts ""
   puts "For FBIRN Image Processing System (FIPS)"
   puts "  -fips Project Site BIRNID VisitNo"
-  puts "  -fips-run RunNo Paradigm FIPSRun"
+  puts "  -fips-run RunNo Paradigm"
+  puts "     subdir=Paradigm, format=dicom, name irrelevant, fips run auto"
   puts ""
   puts "  -help : print out information about how to run this program"
   puts ""
@@ -356,7 +357,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.22 2008/12/15 21:00:50 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.23 2008/12/15 21:42:16 greve Exp $}
 
 exit 1;
 
@@ -392,10 +393,11 @@ proc ParseCommandLine { argc argv } {
 
       -run {
         if { $nargrem < 4 } { ArgNError $option 4 }
-	if { $DoFIPS } {
+	if { $DoFIPS == 1 } {
 	  puts "ERROR: cannot use -run with -fips-run"
           exit 1;
         }
+        set DoFIPS -1;
         set runno      [lindex $argv $ntharg]; incr ntharg 1
         set dirid      [lindex $argv $ntharg]; incr ntharg 1
         set unpackfmt  [lindex $argv $ntharg]; incr ntharg 1
@@ -405,20 +407,37 @@ proc ParseCommandLine { argc argv } {
       }
 
       -fips-run {
-        if { $nargrem < 3 } { ArgNError $option 3 }
+        if { $nargrem < 2 } { ArgNError $option 2 }
+	if { $DoFIPS == -1 } {
+	  puts "ERROR: cannot use -run with -fips-run"
+          exit 1;
+        }
         set DoFIPS  1;
         set runno      [lindex $argv $ntharg]; incr ntharg 1
         set unpackfmt  "dicom";
-        set unpackname "blah";
         set fipsPar    [lindex $argv $ntharg]; incr ntharg 1
-        set fipsRun    [lindex $argv $ntharg]; incr ntharg 1
         set dirid      $fipsPar
+        # The fips run is set to the nth run for the paradigm
+        set fipsRun 1;
+        if { [info exists unpackcfg] } {
+          foreach runcfg $unpackcfg {
+            set fipsParTmp [lindex $runcfg 4];
+            if { [string compare $fipsPar $fipsParTmp ] } { continue };
+	    incr fipsRun;
+          }
+        }
+        set unpackname [format "%s-%02d-%02d" $fipsPar $runno $fipsRun];
         set cfg [list $runno $dirid $unpackfmt $unpackname $fipsPar $fipsRun]
+        puts $cfg
         lappend unpackcfg $cfg;
       }
 
       -fips {
         if { $nargrem < 4 } { ArgNError $option 4 }
+	if { $DoFIPS == -1 } {
+	  puts "ERROR: cannot use -run with -fips-run"
+          exit 1;
+        }
         set DoFIPS 1;
         set fipsProj    [lindex $argv $ntharg]; incr ntharg 1
         set fipsSite    [lindex $argv $ntharg]; incr ntharg 1
@@ -525,7 +544,7 @@ proc CheckArgs { } {
     }
   }; 
 
-  if { $DoFIPS } {
+  if { $DoFIPS == 1} {
     if {! [info exists fipsProj]} {
       puts stdout "ERROR: must spec fips project"
       exit 1;
@@ -828,7 +847,7 @@ proc CheckFIPS {  } {
 
   global DoFIPS unpackcfg;
 
-  if { ! $DoFIPS } {return 0;}
+  if { $DoFIPS != 1} {return 0;}
 
   puts "Checking fips args"
 
@@ -837,24 +856,9 @@ proc CheckFIPS {  } {
     set RunNo   [lindex $runcfg 0];
     set fipsPar [lindex $runcfg 4];
     set fipsRun [lindex $runcfg 5];
-    set mth 1;
-    foreach runcfg2 $unpackcfg {
-      if { $nth == $mth } { continue };
-      set RunNo2   [lindex $runcfg2 0];
-      set fipsPar2 [lindex $runcfg2 4];
-      set fipsRun2 [lindex $runcfg2 5];
-      #puts "$nth $mth $fipsPar $fipsRun $fipsPar2 $fipsRun2 "
-      if { ! [string compare $fipsPar $fipsPar2 ] } {      
-        if { $fipsRun == $fipsRun2 } {
-	  puts "ERROR: FIPS paradigm $fipsPar, run $fipsRun is replicated" 
-          exit 1;
-        }
-      }
-      incr mth;
-    }
+    puts "$nth $RunNo $fipsPar $fipsRun"
     incr nth;
   }
-
   return 0;
 }
 
@@ -879,13 +883,13 @@ if { $argc == 0 } { PrintUsage; exit 1;}
 
 ParseCommandLine $argc $argv;
 CheckArgs;
-if { $DoFIPS } { CheckFIPS; }
+if { $DoFIPS == 1 } { CheckFIPS; }
 
 set mriconvert mri_convert
 
 # Dump some info to the screen
 puts "";
-puts {$Id: unpacksdcmdir,v 1.22 2008/12/15 21:00:50 greve Exp $};
+puts {$Id: unpacksdcmdir,v 1.23 2008/12/15 21:42:16 greve Exp $};
 puts "";
 puts [pwd];
 puts "$argv"
@@ -934,7 +938,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.22 2008/12/15 21:00:50 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.23 2008/12/15 21:42:16 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1380,7 +1384,7 @@ foreach runcfg $unpackcfg {
   flush stdout
   flush $LF
 
-  if { $DoFIPS } {
+  if { $DoFIPS == 1} {
     puts $LF "Processing fips commands"
     set fipsPar [lindex $runcfg 4];
     set fipsRun [lindex $runcfg 5];
