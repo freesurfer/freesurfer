@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/10 21:01:36 $
- *    $Revision: 1.320.2.6 $
+ *    $Date: 2008/12/15 22:55:46 $
+ *    $Revision: 1.320.2.7 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.320.2.6 $";
+char *VERSION = "$Revision: 1.320.2.7 $";
 
 #define TCL
 #define TKMEDIT
@@ -1196,7 +1196,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.320.2.6 2008/12/10 21:01:36 greve Exp $",
+     "$Id: tkmedit.c,v 1.320.2.7 2008/12/15 22:55:46 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1502,10 +1502,29 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	LoadOrigSurf = 0;
 	nCurrentArg ++;
       }
-      else if ( MATCH( sArg, "-defects" ) ) {
+
+      else if ( MATCH( sArg, "-defects" ) || MATCH( sArg, "-lh-defects" ) ) {
 	xUtil_strncpy( sSurface, "lh.orig", sizeof(sSurface) );//green
 	bSurfaceDeclared = TRUE;
 	xUtil_strncpy( sAuxSurface, "lh.orig.nofix", sizeof(sAuxSurface) );//yellow
+	bAuxSurfaceDeclared = TRUE;
+	LoadOrigSurf = 1;
+	LoadPialSurf = 0;
+        xUtil_strncpy( sSegmentationPath, "surface.defects.mgz",
+                       sizeof(sSegmentationPath) );
+        pEnvVar = getenv("FREESURFER_HOME");
+        sprintf( sSegmentationColorFile,"%s/DefectLUT.txt", pEnvVar );
+        bLoadingSegmentation = TRUE;
+	fSegmentationAlpha = 0.8;
+	bSegmentationAlpha = TRUE;
+	xUtil_strncpy( sAuxVolume,"wm.mgz",sizeof(sAuxVolume) );
+	bLoadingAuxVolume = TRUE;
+	nCurrentArg ++;
+      }
+      else if ( MATCH( sArg, "-rh-defects" ) ) {
+	xUtil_strncpy( sSurface, "rh.orig", sizeof(sSurface) );//green
+	bSurfaceDeclared = TRUE;
+	xUtil_strncpy( sAuxSurface, "rh.orig.nofix", sizeof(sAuxSurface) );//yellow
 	bAuxSurfaceDeclared = TRUE;
 	LoadOrigSurf = 1;
 	LoadPialSurf = 0;
@@ -5935,7 +5954,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.320.2.6 2008/12/10 21:01:36 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.320.2.7 2008/12/15 22:55:46 greve Exp $ $Name:  $\n"
         )
       );
 
