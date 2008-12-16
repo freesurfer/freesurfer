@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/13 14:43:43 $
- *    $Revision: 1.60 $
+ *    $Date: 2008/12/16 19:15:44 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.60 2008/12/13 14:43:43 fischl Exp $",
+           "$Id: mri_ca_train.c,v 1.61 2008/12/16 19:15:44 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -806,13 +806,6 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
         // change the transform to vox-to-vox
-        if (transform->type == LINEAR_RAS_TO_RAS)
-        {
-          // takes care of average_305 or transform dst c_(ras) value.
-          modify_transform(transform, mri_inputs, gca);
-          // we modified GCA global mri_node_ and mri_prior_ c_(ras) values
-          // after this  transform->type = LINEAR_VOX_TO_VOX
-        }
         modify_transform(transform, mri_inputs, gca);
         TransformInvert(transform, mri_inputs) ;
         if ((transform->type != MORPH_3D_TYPE) &&
