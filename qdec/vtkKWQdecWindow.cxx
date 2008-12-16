@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/16 23:07:14 $
- *    $Revision: 1.33 $
+ *    $Date: 2008/12/16 23:36:15 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.33 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.34 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3931,7 +3931,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
     // report the number of vertices
     int nVerticesBelowThreshold = 0;
     for( int nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
-      if ( mris->vertices[nVertex].val < threshold ) {
+      if ( fabs( mris->vertices[nVertex].val ) < threshold ) {
         nVerticesBelowThreshold++; // found a vertex below FDR threshold
       }
     }
