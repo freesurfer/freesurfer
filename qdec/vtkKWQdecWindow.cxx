@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/04 15:30:54 $
- *    $Revision: 1.32 $
+ *    $Date: 2008/12/16 23:07:14 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.32 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.33 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3927,6 +3927,17 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
       throw runtime_error( "Error from MRISfdr2vwth" );
     else
       this->SetStatusText( "Completed FDR threshold set" );
+
+    // report the number of vertices
+    int nVerticesBelowThreshold = 0;
+    for( int nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
+      if ( mris->vertices[nVertex].val < threshold ) {
+        nVerticesBelowThreshold++; // found a vertex below FDR threshold
+      }
+    }
+    cout << "Found " << nVerticesBelowThreshold << " of " << 
+      mris->nvertices <<  " vertices " <<
+      "below FDR threshold (of " << threshold << ")\n";
 
     // Set our min to the threshold, and calculate good values for mid
     // and max.
