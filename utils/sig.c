@@ -1,15 +1,15 @@
 /**
  * @file  sig.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief stats routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * such things as FDR and beta and gamma incomplete functions
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl and Doug Greve 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/03/29 04:19:56 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2008/12/16 22:23:10 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -146,17 +146,6 @@ double sigt(double t,int df)
 
   return sig;
 }
-
-
-/*
-  float sigt(float t, int df)
-  {
-  float sig;
-
-  sig = betai(0.5*df,0.5,df/(df+t*t));
-  return sig;
-  }
-*/
 
 
 float
