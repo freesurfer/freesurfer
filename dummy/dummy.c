@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/15 18:24:02 $
- *    $Revision: 1.8 $
+ *    $Date: 2008/12/16 20:36:48 $
+ *    $Revision: 1.9 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: dummy.c,v 1.8 2008/12/15 18:24:02 nicks Exp $
+// $Id: dummy.c,v 1.9 2008/12/16 20:36:48 nicks Exp $
 
 /*
   BEGINHELP
@@ -53,12 +53,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/utsname.h>
 
 #include "macros.h"
 #include "utils.h"
 #include "fio.h"
 #include "version.h"
 #include "cmdargs.h"
+#include "error.h"
+#include "diag.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -69,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: dummy.c,v 1.8 2008/12/15 18:24:02 nicks Exp $";
+static char vcid[] = "$Id: dummy.c,v 1.9 2008/12/16 20:36:48 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
