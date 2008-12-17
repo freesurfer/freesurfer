@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/11/11 23:15:33 $
- *    $Revision: 1.54.2.3 $
+ *    $Date: 2008/12/17 22:15:30 $
+ *    $Revision: 1.54.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.54.2.3 2008/11/11 23:15:33 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.54.2.4 2008/12/17 22:15:30 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -806,13 +806,7 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
         // change the transform to vox-to-vox
-        if (transform->type == LINEAR_RAS_TO_RAS)
-        {
-          // takes care of average_305 or transform dst c_(ras) value.
-          modify_transform(transform, mri_inputs, gca);
-          // we modified GCA global mri_node_ and mri_prior_ c_(ras) values
-          // after this  transform->type = LINEAR_VOX_TO_VOX
-        }
+        modify_transform(transform, mri_inputs, gca);
         TransformInvert(transform, mri_inputs) ;
         if ((transform->type != MORPH_3D_TYPE) &&
             ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON))
@@ -1575,7 +1569,6 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
     {
       for (z = 0 ; z < mri_seg->depth ; z++)
       {
-		int proper_label;
         /*
          * rules:
          * - no label should have a voxel coord < 6 or > 249
@@ -1584,7 +1577,7 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
          *   labels with x tal coord > 5 (or right, with x tal coord < -5)
          */
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
-        proper_label = label; // used for making corrections
+        int proper_label = label; // used for making corrections
 
         if (label != Unknown)
         {
