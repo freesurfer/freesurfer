@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/08 18:41:35 $
- *    $Revision: 1.47 $
+ *    $Date: 2008/12/19 22:34:35 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -419,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.47 2008/12/08 18:41:35 greve Exp $";
+"$Id: mri_segstats.c,v 1.48 2008/12/19 22:34:35 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1480,11 +1480,14 @@ static int parse_commandline(int argc, char **argv) {
       annot   = pargv[2];
       nargsused = 3;
     } 
-    else if (!strcmp(option, "--label")) {
+    else if (!strcmp(option, "--slabel")) {
       if (nargc < 3) argnerr(option,1);
       subject = pargv[0];
       hemi    = pargv[1];
       LabelFile = pargv[2];
+      LabelFile = pargv[2];
+      ExclSegId = 0;
+      DoExclSegId = 1;
       nargsused = 3;
     } 
     else if (!strcmp(option, "--segbase")) {
@@ -1522,6 +1525,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --seg segvol : segmentation volume path \n");
   printf("   --annot subject hemi parc : use surface parcellation\n");
+  printf("   --slabel subject hemi parc : use surface label\n");
   printf("\n");
   printf("   --sum file   : stats summary table file \n");
   printf("\n");
