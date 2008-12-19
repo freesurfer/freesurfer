@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/30 17:54:19 $
- *    $Revision: 1.557.2.15 $
+ *    $Date: 2008/12/19 22:08:37 $
+ *    $Revision: 1.557.2.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.15 2008/07/30 17:54:19 greve Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.16 2008/12/19 22:08:37 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10197,6 +10197,10 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
     if (!cp)
       strcat(fname, ".annot") ;
   }
+
+  // As a last resort, just assume the sname is the path
+  if(! fio_FileExistsReadable(fname) && fio_FileExistsReadable(sname)) 
+    sprintf(fname,"%s",sname);
 
   /* Try to read it into an array. */
   return_code = MRISreadAnnotationIntoArray (fname, mris->nvertices, &array);
