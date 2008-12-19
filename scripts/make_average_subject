@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/21 20:39:49 $
-#    $Revision: 1.17 $
+#    $Date: 2008/12/19 22:03:39 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_subject,v 1.17 2008/02/21 20:39:49 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.18 2008/12/19 22:03:39 greve Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -54,6 +54,22 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+if($DoLink) then
+  echo "Creating link"
+  pushd $sdout > /dev/null
+  set sdoutfulldir = `pwd`;
+  pushd $SUBJECTS_DIR > /dev/null
+  set cmd = (ln -s $sdoutfulldir/$average_subject $average_subject)
+  echo $cmd
+  $cmd
+  if($status) then
+    echo "ERROR: make_average_subject"
+    exit 1;
+  endif
+  popd > /dev/null
+  popd > /dev/null
+endif
+
 if($DoSurfaces) then
   set cmd = (make_average_surface $cmdargs)
   echo $cmd
@@ -73,15 +89,6 @@ if($DoVolumes) then
     echo "ERROR: make_average_volume"
     exit 1;
   endif
-endif
-
-if($DoLink) then
-  pushd $sdout > /dev/null
-  set sdoutfulldir = `pwd`;
-  pushd $SUBJECTS_DIR > /dev/null
-  ln -s $sdoutfulldir/$average_subject $average_subject
-  popd > /dev/null
-  popd > /dev/null
 endif
 
 exit 0
@@ -126,6 +133,7 @@ while( $#argv != 0 )
     case "--sd-out":
       if ( $#argv == 0) goto arg1err;
       set sdout = $argv[1]; shift;
+      set DoLink = 1;
       breaksw
 
     case "--surf_reg":
@@ -234,7 +242,7 @@ usage_exit:
   echo "Optional Arguments"
   echo "   --out <average subject name>    : default name is 'average'"
   echo "   --sd-out sdout : put output under sdout instead of SUBJECTS_DIR"
-  echo "   --link : link back to the original SUBJECTS_DIR with --sd-out"
+  echo "   --no-link : do not link back to the original SUBJECTS_DIR with --sd-out"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
   echo "   --xform <transform_fname>   : filename of transform file"
