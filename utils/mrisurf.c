@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/12/05 20:59:28 $
- *    $Revision: 1.621 $
+ *    $Author: greve $
+ *    $Date: 2008/12/19 22:07:17 $
+ *    $Revision: 1.622 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -627,7 +627,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.621 2008/12/05 20:59:28 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.622 2008/12/19 22:07:17 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10290,13 +10290,17 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
       (fname, "%s/../label/%s.%s", path,
        mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
   }
-  else
-  {
+  else {
     strcpy(fname, sname) ;  /* full path specified */
     cp = strstr(fname, ".annot") ;
     if (!cp)
       strcat(fname, ".annot") ;
   }
+
+  // As a last resort, just assume the sname is the path
+  if(! fio_FileExistsReadable(fname) && fio_FileExistsReadable(sname)) 
+    sprintf(fname,"%s",sname);
+
 
   /* Try to read it into an array. */
   return_code = MRISreadAnnotationIntoArray (fname, mris->nvertices, &array);
