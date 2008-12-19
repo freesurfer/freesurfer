@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/19 01:22:05 $
- *    $Revision: 1.54.2.1 $
+ *    $Author: greve $
+ *    $Date: 2008/12/19 20:20:17 $
+ *    $Revision: 1.54.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.54.2.1 2007/12/19 01:22:05 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.54.2.2 2008/12/19 20:20:17 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.54.2.1 2007/12/19 01:22:05 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.54.2.2 2008/12/19 20:20:17 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -300,6 +300,8 @@ main(int argc, char *argv[])
     char   fname[STRLEN] ;
 
     sprintf(fname, "%s/%s/label/%s", sdir, sname, label_name) ;
+    // If that does not exist, use label_name as absolute path.
+    if(! fio_FileExistsReadable(fname))  sprintf(fname, "%s", label_name) ;
 
     area = LabelRead(NULL, fname) ;
     if (!area)
@@ -616,7 +618,7 @@ main(int argc, char *argv[])
       if (tablefile != NULL)
       {
         fp = fopen(tablefile,"a");
-        fprintf(fp, "%-40s", names[i]) ;
+        fprintf(fp, "%-40s", fio_basename(names[i],NULL)) ;
         fprintf(fp, "%5d", dofs[i]);
         fprintf(fp, "  %5.0f", areas[i]) ;
         fprintf(fp, "  %5.0f", volumes[i]) ;
