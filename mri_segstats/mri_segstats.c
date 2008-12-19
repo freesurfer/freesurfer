@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/29 18:03:30 $
- *    $Revision: 1.33.2.2 $
+ *    $Date: 2008/12/19 22:35:19 $
+ *    $Revision: 1.33.2.3 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,13 +61,18 @@ bfloat).
 
 --annot subject hemi parc
 
-Create a segmentation from hemi.parc.annot. If parc is aparc or aparc.a2005s,
-then the segmentation numbers will match those in 
+Create a segmentation from hemi.parc.annot. If parc is aparc or
+aparc.a2005s, then the segmentation numbers will match those in
 $FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The
-numbering can also be altered with --segbase. If an input is used,
-it must be a surface ovelay with the same dimension as the parcellation.
-This functionality makes mri_segstats partially redundant with 
+numbering can also be altered with --segbase. If an input is used, it
+must be a surface ovelay with the same dimension as the parcellation.
+This functionality makes mri_segstats partially redundant with
 mris_anatomical_stats.
+
+--label subject hemi labelfile
+
+Create a segmentation from the given surface label. The points in 
+the label are given a value of 1; 0 for outside.
 
 --sum summaryfile
 
@@ -81,7 +86,7 @@ more accurate volumes. Usually, this is only done when computing
 anatomical statistics. Usually, the mri/norm.mgz volume is used.
 Not with --annot.
 
---in invol
+--i invol
 
 Input volume from which to compute more statistics, including min,
 max, range, average, and standard deviation as measured spatially
@@ -280,14 +285,14 @@ bert.aseg.sum.
 2. mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg 
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt 
     --nonempty --excludeid 0 --sum bert.aseg.sum 
-    --in $SUBJECTS_DIR/bert/mri/orig
+    --i $SUBJECTS_DIR/bert/mri/orig
 
 Same as above but intensity statistics from the orig volume
 will also be reported for each segmentation.
 
 3. mri_segstats --seg aseg-in-func.img 
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt 
-    --nonempty --excludeid 0 --in func.img 
+    --nonempty --excludeid 0 --i func.img 
     --mask spmT.img --maskthresh 2.3 
     --sum bert.aseg-in-func.sum 
     --avgwf bert.avgwf.dat --avgwfvol bert.avgwf.img
@@ -319,7 +324,7 @@ This uses mri_label2vol to resample the automatic cortical
 segmentation to the functional space. For more information
 see mri_label2vol --help.
 
-6. mri_segstats --annot bert lh aparc --in lh.thickness --sum lh.thickness.sum 
+6. mri_segstats --annot bert lh aparc --i lh.thickness --sum lh.thickness.sum 
 
 Produce a summary of the thickness in each parcellation of aparc. This 
 will give the same mean thicknesses as that created by mris_anatomical_stats
@@ -398,7 +403,7 @@ typedef struct {
   char name[1000];
   int nhits;
   float vol;
-  float min, max, range, mean, std;
+  float min, max, range, mean, std, snr;
 }
 STATSUMENTRY;
 
@@ -414,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.33.2.2 2008/07/29 18:03:30 greve Exp $";
+"$Id: mri_segstats.c,v 1.33.2.3 2008/12/19 22:35:19 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -479,13 +484,19 @@ int  segbase = -1000;
 
 int DoSquare = 0;
 int DoSquareRoot = 0;
+char *LabelFile = NULL;
+
+int DoMultiply = 0;
+double MultVal = 0;
+
+int DoSNR = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, n, n0, skip, nhits, f, nsegidrep, id, ind, nthsegid;
   int c,r,s,err;
   float voxelvolume,vol;
-  float min, max, range, mean, std;
+  float min, max, range, mean, std, snr;
   FILE *fp;
   double  **favg, *favgmn;
   struct utsname uts;
@@ -495,6 +506,7 @@ int main(int argc, char **argv) {
   int ntotalsegid=0;
   int valid;
   int usersegid=0;
+  LABEL *label;
   nhits = 0;
   vol = 0;
 
@@ -577,7 +589,8 @@ int main(int argc, char **argv) {
 	}
       }
     }
-  } else {
+  } 
+  else if(annot) {
     printf("Constructing seg from annotation\n");
     sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
     mris = MRISread(tmpstr);
@@ -608,6 +621,18 @@ int main(int argc, char **argv) {
       CTABwriteFileASCII(mris->ct,ctabfile);
     }
   }
+  else {
+    printf("Constructing seg from label\n");
+    label = LabelRead(NULL, LabelFile);
+    if(label == NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+    mris = MRISread(tmpstr);
+    if (mris==NULL) exit(1);
+    seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
+    for (n = 0; n < label->n_points; n++)
+      MRIsetVoxVal(seg,label->lv[n].vno,0,0,0, 1);
+  }
+
   if (ctabfile != NULL) {
     /* Load the color table file */
     ctab = CTABreadASCII(ctabfile);
@@ -705,6 +730,10 @@ int main(int argc, char **argv) {
     if(MRIdimMismatch(invol,seg,0)) {
       printf("ERROR: dimension mismatch between input volume and seg\n");
       exit(1); 
+    }
+    if(DoMultiply) {
+      printf("Multiplying input by %lf\n",MultVal);
+      MRImultiplyConst(invol,MultVal,invol);
     }
     if(DoSquare){
       printf("Computing square of input\n");
@@ -946,18 +975,21 @@ int main(int argc, char **argv) {
       if (nhits > 0) {
         MRIsegStats(seg, StatSumTable[n].id, invol, frame,
                     &min, &max, &range, &mean, &std);
+	snr = mean/std;
       } else {
         min=0;
         max=0;
         range=0;
         mean=0;
         std=0;
+        snr=0;
       }
       StatSumTable[n].min   = min;
       StatSumTable[n].max   = max;
       StatSumTable[n].range = range;
       StatSumTable[n].mean  = mean;
       StatSumTable[n].std   = std;
+      StatSumTable[n].snr   = snr;
     }
   }
   printf("\n");
@@ -993,6 +1025,7 @@ int main(int argc, char **argv) {
       StatSumTable2[nthsegid].range = StatSumTable[n].range;
       StatSumTable2[nthsegid].mean  = StatSumTable[n].mean;
       StatSumTable2[nthsegid].std   = StatSumTable[n].std;
+      StatSumTable2[nthsegid].snr   = StatSumTable[n].snr;
       strcpy(StatSumTable2[nthsegid].name,StatSumTable[n].name);
       nthsegid++;
     }
@@ -1018,11 +1051,13 @@ int main(int argc, char **argv) {
       printf("%3d  %8d %10.1f  ", StatSumTable[n].id,StatSumTable[n].nhits,
              StatSumTable[n].vol);
       if (ctab != NULL) printf("%-30s ",StatSumTable[n].name);
-      if (InVolFile != NULL)
+      if (InVolFile != NULL){
         printf("%10.4f %10.4f %10.4f %10.4f %10.4f ",
                StatSumTable[n].min, StatSumTable[n].max,
                StatSumTable[n].range, StatSumTable[n].mean,
                StatSumTable[n].std);
+	if(DoSNR) printf("%10.4f ",StatSumTable[n].snr);
+      }
       printf("\n");
     }
   }
@@ -1076,6 +1111,7 @@ int main(int argc, char **argv) {
       fprintf(fp,"# SegVolFileTimeStamp  %s \n",VERfileTimeStamp(SegVolFile));
     }
     if (annot) fprintf(fp,"# Annot %s %s %s\n",subject,hemi,annot);
+    if (LabelFile) fprintf(fp,"# Label %s %s %s\n",subject,hemi,LabelFile);
     if (ctabfile) {
       fprintf(fp,"# ColorTable %s \n",ctabfile);
       fprintf(fp,"# ColorTableTimeStamp %s \n",VERfileTimeStamp(ctabfile));
@@ -1190,23 +1226,26 @@ int main(int argc, char **argv) {
     if (!mris) fprintf(fp,"NVoxels Volume_mm3 ");
     else      fprintf(fp,"NVertices Area_mm2 ");
     if (ctab) fprintf(fp,"StructName ");
-    if (InVolFile) fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
-                           InIntensityName,
-                           InIntensityName,
-                           InIntensityName,
-                           InIntensityName,
+    if(InVolFile){
+      fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
+                           InIntensityName, InIntensityName,
+                           InIntensityName,InIntensityName,
                            InIntensityName);
+      if(DoSNR) fprintf(fp,"%sSNR ",InIntensityName);
+    }
     fprintf(fp,"\n");
 
     for (n=0; n < nsegid; n++) {
       fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
               StatSumTable[n].nhits, StatSumTable[n].vol);
       if (ctab != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
-      if (InVolFile != NULL)
+      if (InVolFile != NULL){
         fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
                 StatSumTable[n].mean, StatSumTable[n].std,
                 StatSumTable[n].min, StatSumTable[n].max,
                 StatSumTable[n].range);
+	if(DoSNR) fprintf(fp,"%10.4f ",StatSumTable[n].snr);
+      }
       fprintf(fp,"\n");
     }
     fclose(fp);
@@ -1247,11 +1286,11 @@ int main(int argc, char **argv) {
     if(FrameAvgFile) {
       printf("Writing to %s\n",FrameAvgFile);
       fp = fopen(FrameAvgFile,"w");
-      fprintf(fp,"-1 -1 ");
-      for (n=0; n < nsegid; n++) fprintf(fp,"%4d ", StatSumTable[n].id);
-      fprintf(fp,"\n");
+      //fprintf(fp,"-1 -1 ");
+      //for (n=0; n < nsegid; n++) fprintf(fp,"%4d ", StatSumTable[n].id);
+      //fprintf(fp,"\n");
       for (f=0; f < invol->nframes; f++) {
-        fprintf(fp,"%3d %7.3f ",f,f*invol->tr/1000);
+        //fprintf(fp,"%3d %7.3f ",f,f*invol->tr/1000);
         for (n=0; n < nsegid; n++) fprintf(fp,"%g ",favg[n][f]);
         fprintf(fp,"\n");
       }
@@ -1306,7 +1345,14 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--surf-wm-vol") )  DoSurfWMVol = 1;
     else if ( !strcmp(option, "--sqr") )  DoSquare = 1;
     else if ( !strcmp(option, "--sqrt") )  DoSquareRoot = 1;
+    else if ( !strcmp(option, "--snr") )  DoSNR = 1;
 
+    else if ( !strcmp(option, "--mul") ){
+      if(nargc < 1) argnerr(option,1);
+      DoMultiply = 1;
+      sscanf(pargv[0],"%lf",&MultVal);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--sd") ) {
       if(nargc < 1) argnerr(option,1);
       FSENVsetSUBJECTS_DIR(pargv[0]);
@@ -1332,7 +1378,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%d",&Vox[2]);
       DoVox = 1;
       nargsused = 3;
-    } else if ( !strcmp(option, "--in") ) {
+    } else if ( !strcmp(option, "--in") || !strcmp(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       InVolFile = pargv[0];
       nargsused = 1;
@@ -1426,13 +1472,25 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--annot")) {
+    } 
+    else if (!strcmp(option, "--annot")) {
       if (nargc < 3) argnerr(option,1);
       subject = pargv[0];
       hemi    = pargv[1];
       annot   = pargv[2];
       nargsused = 3;
-    } else if (!strcmp(option, "--segbase")) {
+    } 
+    else if (!strcmp(option, "--slabel")) {
+      if (nargc < 3) argnerr(option,1);
+      subject = pargv[0];
+      hemi    = pargv[1];
+      LabelFile = pargv[2];
+      LabelFile = pargv[2];
+      ExclSegId = 0;
+      DoExclSegId = 1;
+      nargsused = 3;
+    } 
+    else if (!strcmp(option, "--segbase")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&segbase);
       nargsused = 1;
@@ -1467,15 +1525,18 @@ static void print_usage(void) {
   printf("\n");
   printf("   --seg segvol : segmentation volume path \n");
   printf("   --annot subject hemi parc : use surface parcellation\n");
+  printf("   --slabel subject hemi parc : use surface label\n");
   printf("\n");
   printf("   --sum file   : stats summary table file \n");
   printf("\n");
   printf(" Other Options\n");
   printf("   --pv pvvol : use pvvol to compensate for partial voluming\n");
-  printf("   --in invol : report more stats on the input volume\n");
+  printf("   --i invol : report more stats on the input volume\n");
   printf("   --frame frame : report stats on nth frame of input volume\n");
   printf("   --sqr  : compute the square of the input\n");
   printf("   --sqrt : compute the square root of the input\n");
+  printf("   --mul val : multiply input by val\n");
+  printf("   --snr : save mean/std as extra column in output table\n");
   printf("\n");
   printf("   --ctab ctabfile : color table file with seg id names\n");
   printf("   --ctab-default: use $FREESURFER_HOME/FreeSurferColorLUT.txt\n");
@@ -1569,7 +1630,7 @@ printf("more accurate volumes. Usually, this is only done when computing \n");
 printf("anatomical statistics. Usually, the mri/norm.mgz volume is used.\n");
 printf("Not with --annot.\n");
 printf("\n");
-printf("--in invol\n");
+printf("--i invol\n");
 printf("\n");
 printf("Input volume from which to compute more statistics, including min,\n");
 printf("max, range, average, and standard deviation as measured spatially\n");
@@ -1834,7 +1895,7 @@ static void argnerr(char *option, int n) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (SegVolFile == NULL && annot == NULL) {
+  if (SegVolFile == NULL && annot == NULL && LabelFile == NULL) {
     printf("ERROR: must specify a segmentation volume\n");
     exit(1);
   }
