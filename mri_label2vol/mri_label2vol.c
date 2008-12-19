@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/09/12 16:15:01 $
- *    $Revision: 1.26 $
+ *    $Author: greve $
+ *    $Date: 2008/12/19 23:18:09 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $
+  $Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -145,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.26 2008/09/12 16:15:01 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -551,11 +551,11 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: mri_label2vol\n") ;
   printf("\n");
+  printf("     Possible inputs:\n");
   printf("   --label labelid <--label labelid>  \n");
   printf("   --annot annotfile : surface annotation file  \n");
   printf("   --seg   segpath : segmentation\n");
-  printf("   --surf surface  : use surface instead of white\n") ;
-  printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir\n");
+  printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir as seg\n");
   printf("\n");
   printf("   --temp tempvolid : template volume\n");
   printf("   --reg regmat : VolXYZ = R*LabelXYZ\n");
@@ -567,6 +567,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --subject subjectid : needed with --proj or --annot\n");
   printf("   --hemi hemi : needed with --proj or --annot\n");
+  printf("   --surf surface  : use surface instead of white\n") ;
   printf("\n");
   printf("   --o volid : output volume\n");
   printf("   --hits hitvolid : each frame is nhits for a label\n");
@@ -632,11 +633,11 @@ static void print_help(void) {
     "\n"
     "--seg segpath\n"
     "\n"
-    "Path to a segmentation. A segmentation is a volume in which each voxel\n"
+    "Path to input segmentation. A segmentation is a volume in which each voxel\n"
     "is assigned a number indicating it's class. The output volume will keep\n"
-    "the same numbering. The registration in this\n"
-    "case goes from the seg to the template volume. Not with --label or \n"
-    "--annot.\n"
+    "the same numbering. Voting is used to resolve multiple segs mapping to\n"
+    "a single output voxel. The registration in this case goes from the seg to\n"
+    "the template volume. Not with --label or --annot.\n"
     "\n"
     "--temp tempvolid\n"
     "\n"
