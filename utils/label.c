@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/10/08 18:08:07 $
- *    $Revision: 1.87 $
+ *    $Author: greve $
+ *    $Date: 2008/12/19 23:51:09 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,7 @@
 #include "label.h"
 #include "mri.h"
 #include "mrishash.h"
+#include "fio.h"
 
 extern const char* Progname;
 
@@ -52,17 +53,12 @@ static Transform *labelLoadTransform(char *subject_name, char *sdir,
 
 #define MAX_VERTICES 500000
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
-LABEL *
-LabelRead(char *subject_name, char *label_name)
+LABEL *LabelRead(char *subject_name, char *label_name)
 {
   LABEL  *area ;
   char   fname[STRLEN], *cp, line[STRLEN], subjects_dir[STRLEN], lname[STRLEN];
+  char   label_name0[STRLEN];
   FILE   *fp ;
   int    vno, nlines ;
   float  x, y, z, stat ;
@@ -71,8 +67,11 @@ LabelRead(char *subject_name, char *label_name)
   if (!area)
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
 
-  if (subject_name && !strchr(label_name, '/'))
-  {
+  sprintf(label_name0,"%s",label_name); // keep a copy
+
+  if (subject_name && !strchr(label_name, '/')) {
+    // subject name passed and label name does not have /
+    // so assume it is in subject/label
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
       ErrorExit(ERROR_BADPARM,
@@ -81,32 +80,30 @@ LabelRead(char *subject_name, char *label_name)
     strcpy(subjects_dir, cp) ;
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
-    if (cp)
-      *cp = 0 ;
+    if(cp) *cp = 0 ;
     cp = strrchr(lname, '/') ;
-    if (cp)
-      label_name = cp+1 ;
-    else
-      label_name = lname ;
+    if(cp) label_name = cp+1 ;
+    else   label_name = lname ;
     sprintf(fname, "%s/%s/label/%s.label", subjects_dir,subject_name,
             label_name);
     strcpy(area->subject_name, subject_name) ;
   }
-  else
-  {
+  else  {
     strcpy(fname, label_name) ;
     cp = getenv("SUBJECTS_DIR") ;
-    if (!cp)
-      strcpy(subjects_dir, ".") ;
-    else
-      strcpy(subjects_dir, cp) ;
+    if(!cp) strcpy(subjects_dir, ".") ;
+    else    strcpy(subjects_dir, cp) ;
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
-    if (cp == NULL)
-      sprintf(fname, "%s.label", lname);
-    else
-      strcpy(fname, label_name) ;
+    if (cp == NULL)  sprintf(fname, "%s.label", lname);
+    else             strcpy(fname, label_name) ;
   }
+
+  // As a last resort, treat label_name0 as a full path name
+  if(!fio_FileExistsReadable(fname) && fio_FileExistsReadable(label_name0))
+    sprintf(fname,"%s",label_name0);
+
+  printf("%s %s\n",label_name0,fname);
 
   strcpy(area->name, label_name) ;
 
