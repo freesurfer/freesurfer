@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/19 20:20:04 $
- *    $Revision: 1.56 $
+ *    $Date: 2008/12/19 20:56:51 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.56 2008/12/19 20:20:04 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.57 2008/12/19 20:56:51 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.56 2008/12/19 20:20:04 greve Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.57 2008/12/19 20:56:51 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -294,8 +294,7 @@ main(int argc, char *argv[])
     set the v->marked field to tell whether the vertex should be
     included in one of the summary stats.
   */
-  if (label_name)
-  {
+  if(label_name) {
     LABEL  *area ;
     char   fname[STRLEN] ;
 
@@ -312,19 +311,18 @@ main(int argc, char *argv[])
     MRIScomputeMetricProperties(mris) ;
     names[1] = label_name ;
     names[0] = NULL ;
-    if ((label_name[0] == '/') ||
-        !strncmp(label_name, "./", 2))// a full path
+    if((label_name[0] == '/') || !strncmp(label_name, "./", 2))// a full path
       strcpy(full_name, label_name) ;
-    else  // build the full path string
-    {
+    else{
+      // build the full path string
       if (strstr(label_name, ".label") == NULL)
         sprintf(full_name, "%s/%s/label/%s.label", sdir, sname, label_name) ;
       else
         sprintf(full_name, "%s/%s/label/%s", sdir, sname, label_name) ;
     }
+    if(! fio_FileExistsReadable(full_name))  sprintf(full_name, "%s", label_name) ;
   }
-  else if (annotation_name)
-  {
+  else if (annotation_name)  {
     int vno, index ;
     VERTEX *v ;
 
