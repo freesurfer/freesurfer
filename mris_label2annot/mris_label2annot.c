@@ -7,9 +7,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/01/21 21:09:54 $
- *    $Revision: 1.12 $
+ *    $Author: greve $
+ *    $Date: 2008/12/20 00:01:12 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -153,7 +153,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.12 2008/01/21 21:09:54 nicks Exp $";
+"$Id: mris_label2annot.c,v 1.13 2008/12/20 00:01:12 greve Exp $";
 
 char *Progname = NULL;
 char *cmdline, cwd[2000];
@@ -166,7 +166,7 @@ char *subject, *hemi, *SUBJECTS_DIR;
 char *LabelFiles[1000];
 int nlabels = 0;
 char *CTabFile;
-char *AnnotName, *AnnotPath;
+char *AnnotName=NULL, *AnnotPath=NULL;
 MRIS *mris;
 LABEL *label;
 COLOR_TABLE *ctab = NULL;
@@ -205,14 +205,16 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // Get path to annot, make sure it does not exist
-  sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
-          SUBJECTS_DIR,subject,hemi,AnnotName);
-  if (fio_FileExistsReadable(tmpstr)) {
-    printf("ERROR: %s already exists\n",tmpstr);
-    exit(1);
+  if(AnnotPath == NULL){
+    // Get path to annot, make sure it does not exist
+    sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
+	    SUBJECTS_DIR,subject,hemi,AnnotName);
+    if (fio_FileExistsReadable(tmpstr)) {
+      printf("ERROR: %s already exists\n",tmpstr);
+      exit(1);
+    }
+    AnnotPath = strcpyalloc(tmpstr);
   }
-  AnnotPath = strcpyalloc(tmpstr);
 
   // Read the surf
   sprintf(tmpstr,"%s/%s/surf/%s.orig",SUBJECTS_DIR,subject,hemi);
@@ -339,6 +341,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       AnnotName = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--annot-path")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      AnnotPath = pargv[0];
+      nargsused = 1;
     } else if (!strcmp(option, "--nhits")) {
       if (nargc < 1) CMDargNErr(option,1);
       NHitsFile = pargv[0];
@@ -372,6 +378,7 @@ static void print_usage(void) {
   printf("   --ctab ctabfile : colortable (like FreeSurferColorLUT.txt)\n");
   printf("   --l label1 <--l label 2 ...> : label file(s)\n");
   printf("   --a annotname : output annotation file (hemi.annotname.annot)\n");
+  printf("   --annot-path annotpath : full name/path of annotation file\n");
   printf("   --ldir labeldir : when not using --l\n");
   printf("   --ldir-default : use subject/labels as labeldir\n");
   printf("   --no-unknown : do not map unhit labels to index 0\n");
@@ -489,7 +496,11 @@ static void check_options(void) {
     printf("ERROR: need to specify color table file\n");
     exit(1);
   }
-  if (AnnotName == NULL) {
+  if(AnnotName && AnnotPath) {
+    printf("ERROR: cannot spec both --annot and --annot-path\n");
+    exit(1);
+  }
+  if(AnnotName == NULL && AnnotPath == NULL) {
     printf("ERROR: need to specify annotation name\n");
     exit(1);
   }
@@ -541,7 +552,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hemi    %s\n",hemi);
   fprintf(fp,"SUBJECTS_DIR %s\n",SUBJECTS_DIR);
   fprintf(fp,"ColorTable %s\n",CTabFile);
-  fprintf(fp,"AnnotName  %s\n",AnnotName);
+  if(AnnotName) fprintf(fp,"AnnotName  %s\n",AnnotName);
+  if(AnnotPath) fprintf(fp,"AnnotPath  %s\n",AnnotPath);
   if (NHitsFile) fprintf(fp,"NHitsFile %s\n",NHitsFile);
   fprintf(fp,"nlables %d\n",nlabels);
 
