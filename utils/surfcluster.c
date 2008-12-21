@@ -9,9 +9,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:36 $
- *    $Revision: 1.21 $
+ *    $Author: greve $
+ *    $Date: 2008/12/21 19:15:33 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,10 +38,23 @@
 #include "resample.h"
 #include "matrix.h"
 
-#include "volcluster.h"
+// This must be included prior to volcluster.c (I think)
+#define SURFCLUSTER_SRC
 #include "surfcluster.h"
+#undef SURFCLUSTER_SRC
+
+#include "volcluster.h"
+
 
 static int sclustCompare(const void *a, const void *b);
+
+/*---------------------------------------------------------------
+  sculstSrcVersion(void) - returns CVS version of this file.
+  ---------------------------------------------------------------*/
+const char *sculstSrcVersion(void)
+{
+  return("$Id: surfcluster.c,v 1.22 2008/12/21 19:15:33 greve Exp $");
+}
 
 /* ------------------------------------------------------------
    sclustMapSurfClusters() - grows a clusters on the surface.  The
@@ -170,15 +183,40 @@ float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs)
   for (vtx = 0; vtx < Surf->nvertices; vtx++)
   {
     vtx_clusterno = Surf->vertices[vtx].undefval;
-    if (vtx_clusterno != ClusterNo) continue;
-    if (! Surf->group_avg_vtxarea_loaded)
+    if(vtx_clusterno != ClusterNo) continue;
+    if(! Surf->group_avg_vtxarea_loaded)
       ClusterArea += Surf->vertices[vtx].area;
     else
       ClusterArea += Surf->vertices[vtx].group_avg_area;
     (*nvtxs) ++;
   }
 
-  if (Surf->group_avg_surface_area > 0)  {
+  if(Surf->group_avg_surface_area > 0 && 
+     ! Surf->group_avg_vtxarea_loaded) {
+    // In Dec 2008, a bug was found in this section of code.  The
+    // above line read only: if(Surf->group_avg_surface_area > 0) This
+    // caused the group vertex area ajustment to be applied twice
+    // because the section of code immediately above has already
+    // applied it if the group vertex area was already loaded (which
+    // it always was). This caused the surface area to be too big (by
+    // about 20-25% for fsaverage). This was fixed by adding: 
+    //   && !Surf->group_avg_vtxarea_loaded
+
+    // This function is called by both mri_glmfit and mri_surfcluster.
+    // To indicate this fix, a new global variable was created called
+    // FixSurfClusterArea, which is set to 1. The mere presence of
+    // this variable implies that this bug was fixed.  The variable
+    // exists so that the CSD created by mri_glmfit can record the
+    // fact that the cluster area is correct. When mri_surfcluster
+    // reads in the CSD, the presense of this flag in the CSD file
+    // will indicate that the area is correct. If it is not correct,
+    // then mri_surfcluster will exit with error. This assures that an
+    // old CSD file will not be used with the new mri_surfcluster.
+
+    // This will not prevent new CSD files from being used with an old
+    // version of mri_surfcluster. However, the CSD format was also
+    // changed to be incompatible with the old CSD reader.
+
     if (getenv("FIX_VERTEX_AREA") != NULL)
       ClusterArea *= (Surf->group_avg_surface_area/Surf->total_area);
   }

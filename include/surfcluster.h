@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/08 23:04:59 $
- *    $Revision: 1.11 $
+ *    $Date: 2008/12/21 19:15:33 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,8 +25,6 @@
  *
  */
 
-
-
 #ifndef _SURFCLUSTER_H
 #define _SURFCLUSTER_H
 
@@ -36,6 +34,13 @@
 
 #undef SIGN
 #define SIGN(x) (((x)>0)? 1.0 : -1.0 )
+
+
+#ifdef SURFCLUSTER_SRC
+int FixSurfClusterArea = 1;
+#else
+extern int FixSurfClusterArea;
+#endif
 
 /* Surface Cluster Summary */
 typedef struct
@@ -76,4 +81,6 @@ SCS *sclustPruneByCWPval(SCS *ClusterList, int nclusters,
 int sclustAnnot(MRIS *surf, int NClusters);
 int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, 
 		     int shape, int vtxno, int *vtxlist);
+const char *sculstSrcVersion(void);
+
 #endif
