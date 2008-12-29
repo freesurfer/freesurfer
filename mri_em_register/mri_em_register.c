@@ -6,14 +6,14 @@
  * maximizes the likelihood of the image given the atlas and the transform
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/12/12 01:50:56 $
- *    $Revision: 1.60 $
+ *    $Author: nicks $
+ *    $Date: 2008/12/29 16:52:31 $
+ *    $Revision: 1.61 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2008,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -25,20 +25,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_em_register.c
-//
-// written by Bruce Fischl
-// Nov. 9th ,2000
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/12/12 01:50:56 $
-// Revision       : $Revision: 1.60 $
-//
-////////////////////////////////////////////////////////////////////
 
 #include <math.h>
 #include <stdlib.h>
@@ -198,7 +184,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.60 2008/12/12 01:50:56 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.61 2008/12/29 16:52:31 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -352,7 +338,8 @@ main(int argc, char *argv[]) {
            mri_in->nframes) ;
     // that means gca->ninputs = nframes
     gca_tmp = GCAcreateFlashGCAfromParameterGCA
-              (gca, TRs, fas, TEs, mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
+              (gca, TRs, fas, TEs,
+               mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     // now the type is set gca->type = GCA_FLASH
     GCAfree(&gca) ;
     gca = gca_tmp ;
@@ -446,7 +433,7 @@ main(int argc, char *argv[]) {
 
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
-  //////// debugging code /////////////////////////////////////////////
+
   ////////////////////////// -fsample option //////////////////////////
   if (sample_fname) {
     GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
@@ -524,7 +511,7 @@ main(int argc, char *argv[]) {
     mri_in = mri_tmp ;
   }
   if (ninsertions > 0)
-    GCAinsertLabels(gca, mri_in, transform, ninsertions, 
+    GCAinsertLabels(gca, mri_in, transform, ninsertions,
                     insert_labels, insert_intensities, insert_coords,
                     insert_whalf) ;
 
@@ -552,7 +539,8 @@ main(int argc, char *argv[]) {
       parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
     else
       parms.gcas = GCAfindStableSamples
-                   (gca, &nsamples,spacing,min_prior,exclude_list,unknown_nbr_spacing) ;
+                   (gca, &nsamples,spacing,
+                    min_prior,exclude_list,unknown_nbr_spacing) ;
     printf("************************************************\n");
     printf("spacing=%d, using %d sample points, tol=%2.2e...\n",
            spacing, nsamples, parms.tol) ;
@@ -1071,7 +1059,7 @@ find_optimal_transform
     min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
     min_real_val = h_smooth->bins[min_real_bin] ;
     printf("using real data threshold=%2.1f\n", min_real_val) ;
-    
+
     MRIfindApproximateSkullBoundingBox(mri, min_real_val, &box) ;
     HISTOfree(&h_mri) ;
     HISTOfree(&h_smooth) ;
@@ -1140,7 +1128,7 @@ find_optimal_transform
       mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;
       min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
       min_real_val = 2*h_smooth->bins[min_real_bin] ;
-      
+
       if (mriConformed(mri) && min_real_val > fmax/2)
         min_real_val = fmax/2 ;
       printf("using real data threshold=%2.1f\n", min_real_val) ;
@@ -1224,8 +1212,10 @@ find_optimal_transform
                  m_L, m_origin,
                  -(max_angle*scale),
                  (max_angle*scale),
-                 1-.25*(spacing/16.0)*scale, 1+.25*(spacing/16.0)*scale,
-                 -scale*(spacing/16.0)*MAX_TRANS, scale*(spacing/16.0)*MAX_TRANS,
+                 1-.25*(spacing/16.0)*scale,
+                 1+.25*(spacing/16.0)*scale,
+                 -scale*(spacing/16.0)*MAX_TRANS,
+                 scale*(spacing/16.0)*MAX_TRANS,
                  max_angles, scale_samples, 3, 2);
     fflush(stdout);
 
@@ -1471,7 +1461,8 @@ get_option(int argc, char *argv[]) {
     printf("using baby brain intensity model\n") ;
   } else if (!stricmp(option, "INSERT")) {
     if (ninsertions >= MAX_INSERTIONS)
-      ErrorExit(ERROR_NOMEMORY, "%s: too many insertions (%d) specified\n", Progname, ninsertions) ;
+      ErrorExit(ERROR_NOMEMORY, "%s: too many insertions (%d) specified\n",
+                Progname, ninsertions) ;
 
     insert_labels[ninsertions] = atoi(argv[2]) ;
     insert_intensities[ninsertions] = atoi(argv[3]) ;
@@ -1486,7 +1477,7 @@ get_option(int argc, char *argv[]) {
            insert_coords[ninsertions][1],
            insert_coords[ninsertions][2],
            insert_intensities[ninsertions]) ;
-           
+
     ninsertions++ ;
     nargs = 6 ;
   } else if (!strcmp(option, "MASK")) {
@@ -1803,9 +1794,11 @@ local_GCAcomputeLogSampleProbability
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   ((LTA *)transform->xform)->xforms[0].m_L = m_L ;
   if (robust)
-    return(GCAcomputeNumberOfGoodFittingSamples(gca, gcas, mri, transform, nsamples)) ;
+    return(GCAcomputeNumberOfGoodFittingSamples
+           (gca, gcas, mri, transform, nsamples)) ;
   else
-    return(GCAcomputeLogSampleProbability(gca, gcas, mri, transform, nsamples)) ;
+    return(GCAcomputeLogSampleProbability
+           (gca, gcas, mri, transform, nsamples)) ;
 }
 
 
@@ -1950,7 +1943,6 @@ find_optimal_linear_xform
           }
         }
       }
-
     }
 
     if (Gdiag & DIAG_SHOW) {
