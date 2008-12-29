@@ -11,10 +11,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/26 19:43:44 $
- *    $Revision: 1.84.2.2 $
+ *    $Date: 2008/12/29 17:22:01 $
+ *    $Revision: 1.84.2.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -218,6 +218,9 @@ double GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform,
                              int penalize_zero_brain, MRI *mri_orig) ;
 float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                                     TRANSFORM *transform) ;
+float GCAcomputeNumberOfGoodFittingSamples(GCA *gca, GCA_SAMPLE *gcas,
+                                      MRI *mri_inputs,
+                                      TRANSFORM *transform,int nsamples);
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
                                       MRI *mri_inputs,
                                       TRANSFORM *transform,int nsamples);
@@ -444,5 +447,10 @@ GCAreclassifyVoxelsAtOptimalScale(GCA *gca, TRANSFORM *transform,
                                   MRI *mri_inputs, 
                                   MRI *mri_aseg, MRI *mri_aseg_changed, 
                                   MRI *mri_sigma, int wsize);
+
+#define MAX_INSERTIONS 20
+int GCAinsertLabels(GCA *gca, MRI *mri, TRANSFORM *transform, int ninsertions,
+                    int *insert_labels, int *insert_intensities,
+                    int insert_coords[MAX_INSERTIONS][3], int *insert_wsize) ;
 
 #endif

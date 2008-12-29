@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/26 19:43:45 $
- *    $Revision: 1.231.2.8 $
+ *    $Date: 2008/12/29 17:22:01 $
+ *    $Revision: 1.231.2.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -22374,7 +22374,8 @@ GCAcheck(GCA *gca)
           label = gcap->labels[n] ;
           gc = GCAfindGC(gca, xn, yn, zn, label) ;
           if (gc == NULL)
-            printf("gcap(%d, %d, %d), labels[%d] = %s (%d) --> node (%d, %d, %d), no gc!\n",
+            printf("gcap(%d, %d, %d), labels[%d] = %s (%d) "
+                   "--> node (%d, %d, %d), no gc!\n",
                    xp, yp, zp, n, cma_label_to_name(label),
                    label, xn, yn, zn) ;
           error = ERROR_BADPARM ;
@@ -22383,3 +22384,225 @@ GCAcheck(GCA *gca)
 
   return(error) ;
 }
+
+int
+GCAinsertLabels(GCA *gca, MRI *mri, TRANSFORM *transform, int ninsertions,
+                    int *insert_labels, int *insert_intensities, 
+                    int insert_coords[MAX_INSERTIONS][3], int *insert_whalf)
+{
+  int xn, yn, zn,  xp, yp, zp, i, l, label;
+  int x, y, z, found, n, whalf, xk, yk, zk, xi, yi, zi ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+
+  for (l = 0 ; l < ninsertions ; l++)
+  {
+    whalf = insert_whalf[l] ;
+    label = insert_labels[l] ; 
+    x = insert_coords[l][0] ; 
+    y = insert_coords[l][1] ; 
+    z = insert_coords[l][2] ;
+    printf("inserting label %d (%s) at (%d, %d, %d) with intensity = %d\n",
+           label, cma_label_to_name(label), x, y, z, insert_intensities[l]) ;
+
+    for (xk = -whalf ; xk <= whalf ; xk++)
+      for (yk = -whalf ; yk <= whalf ; yk++)
+        for (zk = -whalf ; zk <= whalf ; zk++)
+        {
+          xi = mri->xi[x+xk] ; yi = mri->yi[y+yk] ; zi = mri->zi[z+zk] ;
+
+          found = 0 ;
+          if (!GCAsourceVoxelToNode(gca, mri, transform,
+                              xi, yi, zi, &xn, &yn, &zn))
+          {
+            gcan = &gca->nodes[xn][yn][zn] ;
+            for (i = 0 ; i < gcan->nlabels ; i++)
+              if (gcan->labels[i] == label)
+              {
+                found = 1 ;
+                break ;
+              }
+            if (found == 0)  // insert it
+            {
+              GC1D *gc, *gcs ;
+              
+              gcs = alloc_gcs(gcan->nlabels+1, gca->flags, gca->ninputs) ;
+              gc = &gcs[gcan->nlabels] ;
+              printf("inserting label %s at node (%d, %d, %d)\n", 
+                     cma_label_to_name(label),xn,yn,zn);
+              gc->means[0] = insert_intensities[l] ;
+              gc->covars[0] = MIN_VAR ;
+              if ((gca->flags & GCA_NO_MRF) == 0)
+              {
+                for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+                {
+                  gc->nlabels[i] = gcan->nlabels+1 ;  /* assume any of 
+                                                         existing labels 
+                                                         can occur plus 
+                                                         this one */
+                  gc->labels[i] =
+                    (unsigned short *)calloc(gc->nlabels[i], 
+                                             sizeof(unsigned short)) ;
+                  if (!gc->labels)
+                    ErrorExit(ERROR_NOMEMORY,
+                              "GCAinsertLabels: couldn't expand labels to %d",
+                              gc->nlabels[i]) ;
+                  gc->label_priors[i] =
+                    (float *)calloc(gc->nlabels[i],sizeof(float));
+                  if (!gc->label_priors[i])
+                    ErrorExit(ERROR_NOMEMORY, 
+                              "GCAinsertLabel: couldn't expand gcs to %d",
+                              gc->nlabels) ;
+                  for (n = 0 ; n < gcan->nlabels ; n++)
+                  {
+                    gc->labels[i][n] = gcan->labels[n] ;
+                    gc->label_priors[i][n] = 1.0 / gc->nlabels[i] ;
+                  }
+                  gc->labels[i][n] = label ;
+                  gc->label_priors[i][n] = 1.0 / gc->nlabels[i] ;
+                }
+              }
+              copy_gcs(gcan->nlabels, gcan->gcs, gcs, gca->ninputs) ;
+              free_gcs(gcan->gcs, gcan->nlabels, gca->ninputs) ;
+              gc->ntraining = gcan->total_training ;  // arbitrary
+              gcan->total_training *= 2 ;
+              gcan->gcs = gcs ;
+              gcan->labels[gcan->nlabels++] = label ;
+            }
+          }
+          if (!GCAsourceVoxelToPrior(gca, mri,
+                                     transform, xi, yi, zi,
+                                     &xp, &yp, &zp))
+          {
+            found = 0 ;
+            gcap = &gca->priors[xp][yp][zp] ;
+            for (i = 0 ; i < gcap->nlabels ; i++)
+              if (gcap->labels[i] == label)
+              {
+                found = 1 ;
+                break ;
+              }
+            if (found == 0)
+            {
+              gcap = &gca->priors[xp][yp][zp] ;
+              printf("inserting label %s at prior (%d, %d, %d)\n", 
+                     cma_label_to_name(label),xp,yp,zp);
+              gcap->nlabels = 1 ;
+              gcap->priors[0] = 1.0 ;
+              gcap->labels[0] = label ;
+            }
+          }
+        }
+  }
+  return(NO_ERROR) ;
+}
+
+
+float
+GCAcomputeNumberOfGoodFittingSamples(GCA *gca, GCA_SAMPLE *gcas,
+                                     MRI *mri_inputs,
+                                     TRANSFORM *transform,int nsamples)
+
+{
+  int        x, y, z, width, height, depth, i, xp, yp, zp ;
+  float      vals[MAX_GCA_INPUTS] ;
+  double     total_log_p, log_p, dist ;
+  int        countOutside = 0;
+  double     outside_log_p = 0.;
+  /* go through each GC in the sample and compute the probability of
+     the image at that point.
+  */
+  width = mri_inputs->width ;
+  height = mri_inputs->height;
+  depth = mri_inputs->depth ;
+  // store inverse transformation .. forward:input->gca template,
+  // inv: gca template->input
+  TransformInvert(transform, mri_inputs) ;
+
+  // go through all sample points
+  for (total_log_p = 0.0, i = 0 ; i < nsamples ; i++)
+  {
+    /////////////////// diag code /////////////////////////////
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
+    if (i == Gdiag_no ||
+        (gcas[i].xp == Gxp && gcas[i].yp == Gyp && gcas[i].zp == Gzp))
+      DiagBreak() ;
+    ///////////////////////////////////////////////////////////
+
+    // get prior coordinates
+    xp = gcas[i].xp ;
+    yp = gcas[i].yp ;
+    zp = gcas[i].zp ;
+    // if it is inside the source voxel
+    if (!GCApriorToSourceVoxel(gca, mri_inputs, transform,
+                               xp, yp, zp, &x, &y, &z))
+    {
+      if (x == Gx && y == Gy && z == Gz)
+        DiagBreak() ;
+
+      // (x,y,z) is the source voxel position
+      gcas[i].x = x ;
+      gcas[i].y = y ;
+      gcas[i].z = z ;
+      // get values from all inputs
+      load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+      log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
+      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
+      {
+        if (fabs(log_p) < 5)
+          DiagBreak() ;
+        DiagBreak() ;
+      }
+
+      if (!FZERO(vals[0]))
+        DiagBreak() ;
+      if (gcas[i].label != Unknown)
+        DiagBreak() ;
+      if (i == Gdiag_no)
+        DiagBreak() ;
+      dist = sqrt(GCAsampleMahDist(&gcas[i], vals, gca->ninputs)) ;
+      if (dist > 1)
+        total_log_p -= 1.0 ;
+      if (dist > 2)
+        total_log_p -= 1.0 ;
+      if (dist > 3)
+        total_log_p -= 1.0 ;
+      if (dist > 4)
+        total_log_p -= 1.0 ;
+      gcas[i].log_p = log_p ;
+
+      if (!check_finite("2", total_log_p))
+      {
+        fprintf(stdout,
+                "total log p not finite at (%d, %d, %d)\n",
+                x, y, z) ;
+        DiagBreak() ;
+      }
+    }
+    else  // outside the volume
+    {
+      log_p = -1000000; // BIG_AND_NEGATIVE;
+      // log(VERY_UNLIKELY); // BIG_AND_NEGATIVE;
+      total_log_p-- ;
+      gcas[i].log_p = log_p;
+      outside_log_p += log_p;
+      countOutside++;
+    }
+  }
+
+#ifndef __OPTIMIZE__
+#if 0
+  if (nsamples > 3000)
+    fprintf(stdout, "good samples %d (outside %d) log_p = %.1f "
+            "(outside %.1f)\n",
+            nsamples-countOutside, countOutside, total_log_p, outside_log_p);
+#endif
+#endif
+  fflush(stdout) ;
+
+  return((float)total_log_p) ;
+}
+
