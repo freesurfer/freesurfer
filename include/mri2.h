@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:52 $
- *    $Revision: 1.21.2.1 $
+ *    $Author: greve $
+ *    $Date: 2008/12/31 17:02:18 $
+ *    $Revision: 1.21.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,7 @@
 #define MRI2_H
 
 #include "mri.h"
+#include "mrisurf.h"
 #include "mriTransform.h"
 
 MRI *mri_load_bvolume(char *bfstem);
@@ -82,5 +83,12 @@ int *MRIsegIdList(MRI *seg, int *nlist, int frame);
 double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
+int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
+		  int InterpCode, float param, MRI *vsm);
+int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
+		       int InterpCode, float param, MRI *vsm);
+MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
+		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
+		    float ProjFrac, int ProjType, int nskip);
 
 #endif

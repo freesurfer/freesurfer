@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/23 18:19:55 $
- *    $Revision: 1.14 $
+ *    $Date: 2008/12/31 17:02:18 $
+ *    $Revision: 1.14.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -116,7 +116,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
                      MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc,
                      MRI_SURFACE *TrgSurf, float ProjFrac,
                      int InterpMethod, int float2int, MRI *SrcHitVol,
-                     int ProjDistFlag);
+                     int ProjDistFlag, int nskip);
 
 MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
                     MRI_SURFACE *TrgSurfReg, MRI **SrcHits,

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/24 20:52:22 $
- *    $Revision: 1.26.2.1 $
+ *    $Date: 2008/12/31 17:02:19 $
+ *    $Revision: 1.26.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.26.2.1 2008/01/24 20:52:22 greve Exp $
+  $Id: resample.c,v 1.26.2.2 2008/12/31 17:02:19 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -715,13 +715,14 @@ int ProjNormDistNbr(float *x, float *y, float *z, MRI_SURFACE *surf,
   it will project along the surface normal a distance equal to
   a fraction ProjFrac of the surface thickness at that point.
   If ProjDistFlag is set then ProjFrac is interpreted as an
-  absolute distance.
+  absolute distance. Qsrc is the tkreg ras2vox (can be NULL),
+  Dsrc is the register.dat, just set Fsrc and Wsrc to NULL.
   ------------------------------------------------------------*/
 MRI *vol2surf_linear(MRI *SrcVol,
                      MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc,
                      MRI_SURFACE *TrgSurf, float ProjFrac,
                      int InterpMethod, int float2int, MRI *SrcHitVol,
-                     int ProjDistFlag)
+                     int ProjDistFlag, int nskip)
 {
   MATRIX *QFWDsrc;
   MATRIX *Scrs, *Txyz;
@@ -729,14 +730,20 @@ MRI *vol2surf_linear(MRI *SrcVol,
   int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
   float frow_src, fcol_src, fslc_src; /* float row, col, slc in source */
   float srcval, Tx, Ty, Tz;
-  int frm;
+  int frm, FreeQsrc=0;
   int vtx,nhits;
   float *valvect;
   Real rval;
 
+  if(Qsrc == NULL){
+    Qsrc = MRIxfmCRS2XYZtkreg(SrcVol);
+    Qsrc = MatrixInverse(Qsrc,Qsrc);
+    FreeQsrc = 1;
+  }
+
   /* compute the transforms */
   QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
-  if (Gdiag_no > 0)
+  if (Gdiag_no >= 0)
   {
     printf("QFWDsrc: vol2surf: ------------------------------\n");
     MatrixPrint(stdout,QFWDsrc);
@@ -764,7 +771,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
   valvect = (float *) calloc(sizeof(float),SrcVol->nframes);
   nhits = 0;
   /*--- loop through each vertex ---*/
-  for (vtx = 0; vtx < TrgSurf->nvertices; vtx++)
+  for (vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip)
   {
 
     if (ProjFrac != 0.0)
@@ -821,7 +828,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
         icol_src < 0 || icol_src >= SrcVol->width  ||
         islc_src < 0 || islc_src >= SrcVol->depth ) continue;
 
-    if (Gdiag_no > 0 && vtx == 30756)
+    if (Gdiag_no == vtx)
     {
       printf("diag -----------------------------\n");
       printf("vtx = %d  %g %g %g\n",vtx,Tx,Ty,Tz);
@@ -839,6 +846,8 @@ MRI *vol2surf_linear(MRI *SrcVol,
     {
       MRIsampleSeqVolume(SrcVol, fcol_src, frow_src, fslc_src,
                          valvect, 0, SrcVol->nframes-1) ;
+      if (Gdiag_no == vtx)
+        printf("val = %f\n", valvect[0]) ;
       for (frm = 0; frm < SrcVol->nframes; frm++)
         MRIFseq_vox(TrgVol,vtx,0,0,frm) = valvect[frm];
     }
@@ -859,6 +868,8 @@ MRI *vol2surf_linear(MRI *SrcVol,
           break ;
         } //switch
         MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
+        if (Gdiag_no == vtx)
+          printf("val[%d] = %f\n", frm, srcval) ;
       } // for
     }// else
     if (SrcHitVol != NULL)
@@ -869,8 +880,9 @@ MRI *vol2surf_linear(MRI *SrcVol,
   MatrixFree(&Scrs);
   MatrixFree(&Txyz);
   free(valvect);
+  if(FreeQsrc) MatrixFree(&Qsrc);
 
-  printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
+  //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
 
   return(TrgVol);
 }
