@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/15 16:43:12 $
- *    $Revision: 1.39.2.1 $
+ *    $Date: 2008/12/31 16:06:00 $
+ *    $Revision: 1.39.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.39.2.1 2008/07/15 16:43:12 greve Exp $
+  $Id: mri_surfcluster.c,v 1.39.2.2 2008/12/31 16:06:00 greve Exp $
 */
 
 #include <stdio.h>
@@ -80,14 +80,14 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.39.2.1 2008/07/15 16:43:12 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.39.2.2 2008/12/31 16:06:00 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
 char *hemi = NULL;
 
 char *srcid = NULL;
-char *srcfmt  = "paint";
+char *srcfmt  = "";
 int   srcfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *srcsurfid = "white";
 char *srcsubjid = NULL;
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.39.2.1 2008/07/15 16:43:12 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.39.2.2 2008/12/31 16:06:00 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -497,7 +497,8 @@ int main(int argc, char **argv) {
     fprintf(fp,"# sysname  %s\n",uts.sysname);
     fprintf(fp,"# hostname %s\n",uts.nodename);
     fprintf(fp,"# machine  %s\n",uts.machine);
-    fprintf(fp,"# FixVertexAreaFlag = %d\n",MRISgetFixVertexAreaValue());
+    fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
+    fprintf(fp,"# FixSurfClusterArea %d\n",FixSurfClusterArea);
     fprintf(fp,"# \n");
     fprintf(fp,"# Input      %s\n",srcid);
     fprintf(fp,"# Frame Number      %d\n",srcframe);
@@ -1170,7 +1171,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.39.2.1 2008/07/15 16:43:12 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.39.2.2 2008/12/31 16:06:00 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"

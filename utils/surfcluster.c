@@ -1,15 +1,17 @@
 /**
  * @file  surfcluster.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief routines for growing clusters on the surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * routines for growing clusters on the surface
+ * based on intensity thresholds and area threshold. Note: this
+ * makes use of the undefval in the MRI_SURFACE structure.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:52 $
- *    $Revision: 1.19.2.1 $
+ *    $Author: greve $
+ *    $Date: 2008/12/31 16:06:00 $
+ *    $Revision: 1.19.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,13 +27,6 @@
  *
  */
 
-
-/*----------------------------------------------------------------
-  surfcluster.c - routines for growing clusters on the surface
-  based on intensity thresholds and area threshold. Note: this
-  makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.19.2.1 2008/03/10 13:59:52 nicks Exp $
-  ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -43,10 +38,23 @@
 #include "resample.h"
 #include "matrix.h"
 
-#include "volcluster.h"
+// This must be included prior to volcluster.c (I think)
+#define SURFCLUSTER_SRC
 #include "surfcluster.h"
+#undef SURFCLUSTER_SRC
+
+#include "volcluster.h"
+
 
 static int sclustCompare(const void *a, const void *b);
+
+/*---------------------------------------------------------------
+  sculstSrcVersion(void) - returns CVS version of this file.
+  ---------------------------------------------------------------*/
+const char *sculstSrcVersion(void)
+{
+  return("$Id: surfcluster.c,v 1.19.2.2 2008/12/31 16:06:00 greve Exp $");
+}
 
 /* ------------------------------------------------------------
    sclustMapSurfClusters() - grows a clusters on the surface.  The
@@ -175,15 +183,40 @@ float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs)
   for (vtx = 0; vtx < Surf->nvertices; vtx++)
   {
     vtx_clusterno = Surf->vertices[vtx].undefval;
-    if (vtx_clusterno != ClusterNo) continue;
-    if (! Surf->group_avg_vtxarea_loaded)
+    if(vtx_clusterno != ClusterNo) continue;
+    if(! Surf->group_avg_vtxarea_loaded)
       ClusterArea += Surf->vertices[vtx].area;
     else
       ClusterArea += Surf->vertices[vtx].group_avg_area;
     (*nvtxs) ++;
   }
 
-  if (Surf->group_avg_surface_area > 0)  {
+  if(Surf->group_avg_surface_area > 0 && 
+     ! Surf->group_avg_vtxarea_loaded) {
+    // In Dec 2008, a bug was found in this section of code.  The
+    // above line read only: if(Surf->group_avg_surface_area > 0) This
+    // caused the group vertex area ajustment to be applied twice
+    // because the section of code immediately above has already
+    // applied it if the group vertex area was already loaded (which
+    // it always was). This caused the surface area to be too big (by
+    // about 20-25% for fsaverage). This was fixed by adding: 
+    //   && !Surf->group_avg_vtxarea_loaded
+
+    // This function is called by both mri_glmfit and mri_surfcluster.
+    // To indicate this fix, a new global variable was created called
+    // FixSurfClusterArea, which is set to 1. The mere presence of
+    // this variable implies that this bug was fixed.  The variable
+    // exists so that the CSD created by mri_glmfit can record the
+    // fact that the cluster area is correct. When mri_surfcluster
+    // reads in the CSD, the presense of this flag in the CSD file
+    // will indicate that the area is correct. If it is not correct,
+    // then mri_surfcluster will exit with error. This assures that an
+    // old CSD file will not be used with the new mri_surfcluster.
+
+    // This will not prevent new CSD files from being used with an old
+    // version of mri_surfcluster. However, the CSD format was also
+    // changed to be incompatible with the old CSD reader.
+
     if (getenv("FIX_VERTEX_AREA") != NULL)
       ClusterArea *= (Surf->group_avg_surface_area/Surf->total_area);
   }
@@ -535,3 +568,85 @@ int sclustAnnot(MRIS *surf, int NClusters)
   return(0);
 }
 
+/* --------------------------------------------------------------*/
+/*!
+  \fn int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, 
+        int shape, int vtxno, int init, int *vtxlist)
+  \brief Grow a cluster from the seed vertex out to a given distance.
+  The undefval of the surf will be zeroed and all vertices in
+  within distance are set to 1. vtxlist is filled with the vertex 
+  numbers, and the return value is the number of vertices in the
+  cluster. If shape is SPHERICAL_COORDS, then distance is computed
+  along the arc of a sphere, otherwise 2d flat is assumed. This
+  is a recursive function. Recursive calls will have the
+  the vtxno >= 0, so set vtxno = -1 when you call this function.
+*/
+int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, 
+		   int shape, int vtxno, int *vtxlist)
+{
+  static double radius=0, radius2=0;
+  static int nhits=0, ncalls=0;
+  static VERTEX *v1 = NULL;
+  VERTEX *v2;
+  double theta=0, costheta=0, d=0;
+  int nthnbr,nbrvtxno;
+
+  if(vtxlist == NULL){
+    printf("ERROR: vtxlist is NULL\n");
+    return(-1);
+  }
+
+  // This is just a check to make sure that the caller has done the right thing.
+  // Note: this check does not work after the first call.
+  if(ncalls == 0 && vtxno >= 0){
+    printf("ERROR: set vtxno to a negative value when calling this function!\n");
+    return(-1);
+  }
+
+  // A negative vtxno indicates a non-recursive call, Init required
+  if(vtxno < 0){
+    v1 = &(surf->vertices[seedvtxno]);
+    ncalls = 0;
+    nhits = 0;
+    if(shape == SPHERICAL_COORDS){
+      radius2 = (v1->x*v1->x + v1->y*v1->y + v1->z*v1->z);
+      radius = sqrt(radius2);
+    }
+    for(vtxno = 0; vtxno < surf->nvertices; vtxno++)
+      surf->vertices[vtxno].undefval = 0;
+    vtxno = seedvtxno;
+  }
+  v2 = &(surf->vertices[vtxno]);
+  ncalls++;
+
+  if(v2->undefval) return(0);
+
+  if(shape == SPHERICAL_COORDS) {
+    costheta = ((v1->x*v2->x) + (v1->y*v2->y) + (v1->z*v2->z))/radius2;
+    theta = acos(costheta);
+    d = radius*theta;
+    //printf("%g %g %g %g\n",costheta,theta,radius,radius2);
+  } else {
+    d = sqrt((v1->x-v2->x)*(v1->x-v2->x) + (v1->y-v2->y)*(v1->y-v2->y));
+  }
+
+  // Check distance against threshold
+  if(d > dthresh) return(0);
+
+  // Add to the list
+  vtxlist[nhits] = vtxno;
+  nhits ++;
+  
+  //printf("%3d %3d %6d %6d   %g %g %g   %g %g %g   %g\n",
+  // ncalls,nhits,seedvtxno,vtxno,
+  // v1->x,v1->y,v1->z,v2->x,v2->y,v2->z, d);
+
+  // Go throught the neighbors ...
+  v2->undefval = 1;
+  for(nthnbr=0; nthnbr < v2->vnum; nthnbr++){
+    nbrvtxno = v2->v[nthnbr];
+    sclustGrowByDist(surf, seedvtxno, dthresh, shape, nbrvtxno, vtxlist);
+  }
+  
+  return(nhits);
+}
