@@ -101,6 +101,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_seg_diff \
 	mri_segment \
 	mri_seghead \
+	mri_segreg \
 	mri_surfacemask \
 	mri_strip_skull \
 	mri_strip_subject_info \
