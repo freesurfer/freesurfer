@@ -10,6 +10,7 @@ aparcstatsdiff \
 asegstatsdiff \
 batchjobs \
 bblabel \
+bbregister \
 browse-minc-header.tcl \
 bugr \
 build_desikan_killiany_gcs.csh \
