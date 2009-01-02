@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/12/18 22:28:01 $
-#    $Revision: 1.10 $
+#    $Date: 2009/01/02 22:01:54 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -67,18 +67,18 @@ if ( $?FS_VTK_HOME ) then
     endif
 
     # if vtk python wrappers were built...
-    if ( -e $VTKLIBPATH/python3.0/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python3.0/site-packages
-    else if ( -e $VTKLIBPATH/python2.6/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python2.6/site-packages
-    else if ( -e $VTKLIBPATH/python2.5/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python2.5/site-packages
-    else if ( -e $VTKLIBPATH/python2.4/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python2.4/site-packages
-    else if ( -e $VTKLIBPATH/python2.3/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python2.3/site-packages
-    else if ( -e $VTKLIBPATH/python2.2/site-packages) then
-      setenv VTKPYPATH $VTKLIBPATH/python2.2/site-packages
+    if ( -e $FS_VTK_HOME/lib/python3.0/site-packages) then
+      setenv VTKPYPATH $FS_VTK_HOME/lib/python3.0/site-packages
+    else if ( -e $FS_VTK_HOME/lib/python2.6/site-packages) then
+      setenv VTKPYPATH $FS_VTK_HOME/lib/python2.6/site-packages
+    else if ( -e $FS_VTK_HOME/lib/python2.5/site-packages) then
+      setenv VTKPYPATH $FS_VTK_HOME/lib/python2.5/site-packages
+    else if ( -e $FS_VTK_HOME/lib/python2.4/site-packages) then
+      setenv VTKPYPATH $FS_VTK_HOME/lib/python2.4/site-packages
+    else if ( -e $FS_VTK_HOME/lib/python2.3/site-packages) then
+      setenv VTKPYPATH $FS_VTK_HOME/lib/python2.3/site-packages
+    else if ( -e $FS_VTK_HOME/lib/python2.2/site-packages) then
+      setenv VTKPYPATH $FS_VTK_HOME/lib/python2.2/site-packages
     endif
     if ( $?VTKPYPATH ) then
       if(! $?PYTHONPATH ) then
