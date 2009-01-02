@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/18 19:55:14 $
- *    $Revision: 1.1.2.5 $
+ *    $Date: 2009/01/02 17:52:53 $
+ *    $Revision: 1.1.2.6 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -32,6 +32,9 @@
 #include <vector>
 #include <stdexcept>
 #include <sstream>
+
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "vtkKWQdecWindow.h"
 #include "IconLoader.h"
@@ -101,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.5 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.6 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -1273,7 +1276,26 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep.mgz" );
-    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial.mgz" );
+    mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial.mgz");
+
+    // read .Qdecrc resource file (which can located in either ~ or in
+    // $SUBJECTS_DIR/qdec, or both locations), for key = value pairs
+    // consisting of MEASURE# = measure, where # is 1 to 100, and 
+    // 'measure' is some user specified measure to insert in the menu.
+    // user must have created this measure with 
+    // recon-all -qcache -measure measure
+    for (int i=1; i<=100; i++)
+    {
+      char cBuf[100];
+      sprintf( cBuf, "MEASURE%d", i );
+      const char* sUserMeasure = 
+        QdecUtilities::GetQdecrcResourceString( cBuf );
+      if (sUserMeasure)
+      {
+        mMenuMorphMeasure->GetMenu()->AddRadioButton( sUserMeasure );
+      }
+    }
+    
     mMenuMorphMeasure->SetValue( "thickness" );
     this->Script( "grid %s -column 1 -row %d -sticky nw",
                   mMenuMorphMeasure->GetWidgetName(), nRow );
@@ -3885,6 +3907,17 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
       throw runtime_error( "Error from MRISfdr2vwth" );
     else
       this->SetStatusText( "Completed FDR threshold set" );
+
+    // report the number of vertices above threshold
+    int nVerticesBelowThreshold = 0;
+    for( int nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
+      if ( fabs( mris->vertices[nVertex].val ) > threshold ) {
+        nVerticesBelowThreshold++; // found a vertex above FDR threshold
+      }
+    }
+    cout << "Found " << nVerticesBelowThreshold << " of " << 
+      mris->nvertices <<  " vertices " <<
+      "above FDR threshold (of " << threshold << ")\n";
 
     // Set our min to the threshold, and calculate good values for mid
     // and max.

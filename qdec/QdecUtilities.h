@@ -8,10 +8,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:27 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2009/01/02 17:52:53 $
+ *    $Revision: 1.1.2.3 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -52,6 +52,13 @@ public:
   // extract the path name from a file name and return a pointer to it
   static const char *FileNamePath(const char *fname, const char *pathName);
 
+  // read the value of specified key from resource file .Qdecrc
+  static const char *GetQdecrcResourceString(const char *key);
+
+ private:
+
+  static const char *GetResourceString(const char *key, 
+                                       const char *filename);
 };
 
 #endif
