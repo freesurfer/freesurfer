@@ -586,6 +586,10 @@ BSplineDataPointSetToImageFilter<TInputPointSet, TOutputImage>
     PointType point;
     PointDataType dataOut;
 
+    for ( unsigned int i = 0; i < ImageDimension; i++)
+    {
+      point[i] = 0;
+    }
     this->GetInput()->GetPoint( ItIn.Index(), &point );
     this->EvaluateAtPoint( point, dataOut );
     this->m_OutputPointData->InsertElement( ItIn.Index(), dataOut );
