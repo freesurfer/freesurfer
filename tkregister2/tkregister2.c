@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/09 17:01:44 $
- *    $Revision: 1.86.2.4 $
+ *    $Date: 2009/01/04 00:12:54 $
+ *    $Revision: 1.86.2.5 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.86.2.4 2008/10/09 17:01:44 greve Exp $";
+"$Id: tkregister2.c,v 1.86.2.5 2009/01/04 00:12:54 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1022,15 +1022,27 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mgz"))  ; // for backwards compat
     else if (stringmatch(option, "--fsl-targ")) {
       sprintf(tmpstr,"%s/etc/standard/avg152T1",getenv("FSLDIR"));
-      if(! fio_FileExistsReadable(tmpstr))
+      printf("Trying %s\n",tmpstr);
+      targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
+      if(! fio_FileExistsReadable(targ_vol_id)){
 	sprintf(tmpstr,"%s/data/standard/avg152T1",getenv("FSLDIR"));
-      targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
-    } else if (stringmatch(option, "--fsl-targ-lr")) {
+	printf("Trying %s\n",tmpstr);
+	targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
+	if(targ_vol_id == NULL) exit(1);
+      }
+    } 
+    else if (stringmatch(option, "--fsl-targ-lr")) {
       sprintf(tmpstr,"%s/etc/standard/avg152T1_LR-marked",getenv("FSLDIR"));
-      if(! fio_FileExistsReadable(tmpstr))
-	sprintf(tmpstr,"%s/data/standard/avg152T1_LR-marked",getenv("FSLDIR"));
+      printf("Trying %s\n",tmpstr);
       targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
-    } else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
+      if(! fio_FileExistsReadable(targ_vol_id)){
+	sprintf(tmpstr,"%s/data/standard/avg152T1_LR-marked",getenv("FSLDIR"));
+	printf("Trying %s\n",tmpstr);
+	targ_vol_id = IDnameFromStem(tmpstr); // For FSL 4.0
+	if(targ_vol_id == NULL) exit(1);
+      } 
+    }
+    else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
     else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ;
     else if (!strcasecmp(option, "--check-reg")){
       sprintf(tmpstr,"/tmp/reg.tmp.%ld.dat",PDFtodSeed());
@@ -4538,7 +4550,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.86.2.4 2008/10/09 17:01:44 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.86.2.5 2009/01/04 00:12:54 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
