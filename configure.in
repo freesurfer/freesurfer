@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2008/12/08 16:42:58 $
-#    $Revision: 1.425 $
+#    $Author: mreuter $
+#    $Date: 2009/01/05 18:42:55 $
+#    $Revision: 1.426 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2819,6 +2819,7 @@ AC_OUTPUT([Makefile
            mri_remove_neck/Makefile
            mri_ribbon/Makefile
            mri_rigid_register/Makefile
+	   mri_robust_register/Makefile
            mri_seg_diff/Makefile
            mri_seghead/Makefile
            mri_segment/Makefile
