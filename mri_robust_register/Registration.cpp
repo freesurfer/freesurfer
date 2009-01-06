@@ -895,7 +895,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
       assert(zp1 < mriS->depth);
       
       
-      if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(isnan(MRIFvox(fy, x, y, z))) < eps &&  fabs(isnan(MRIFvox(fz, x, y, z))) < eps )
+      if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
       {
          //cout << " found a zero row!!!" << endl;
          MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
