@@ -184,7 +184,7 @@ inline std::vector < double > Quaternion::getRotAxis() const
    v[0] *= l;
    v[1] *= l;
    v[2] *= l;
-   if (isnan(v[0]) || isnan(v[1]) || isnan(v[2]) )
+   if (std::isnan(v[0]) || std::isnan(v[1]) || std::isnan(v[2]) )
    { v[0] = v[1] = v[2] = 0;}
    return v;
 }
