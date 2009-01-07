@@ -1,15 +1,16 @@
 /**
  * @file  tkmDisplayArea.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Graphics and UI interaction for data display.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Manages a single pane of display in the window. Has slots for
+ * viewing different kinds of data. Handles UI events in the panel.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:16 $
- *    $Revision: 1.63 $
+ *    $Date: 2009/01/07 22:04:43 $
+ *    $Revision: 1.63.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -30,11 +31,7 @@
 #define tkmDisplayArea_h
 
 #include "xTypes.h"
-#ifdef HAVE_APPLE_GLUT_FRAMEWORK
-#  include <GLUT/glut.h>
-#else
-#  include <GL/glut.h>
-#endif
+#include "glut.h"
 #include "xVoxel.h"
 #include "tkmedit.h"
 #include "xGLutWindow.h"

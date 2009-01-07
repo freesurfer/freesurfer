@@ -1,15 +1,16 @@
 /**
  * @file  tkmMeditWindow.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Manages tkmDisplayAreas and receives Tcl commands
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Manages the position and selection of tkmDisplayAreas. Passes calls
+ * from tkmedit.c to the current Area, as well as routes Tcl commands.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: msh $
- *    $Date: 2007/04/28 14:03:27 $
- *    $Revision: 1.40 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/07 22:04:44 $
+ *    $Revision: 1.40.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 

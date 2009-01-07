@@ -1,14 +1,16 @@
 /**
  * @file  tkmMeditWindow.c
- * @brief core windowing functions
+ * @brief Manages tkmDisplayAreas and receives Tcl commands
  *
+ * Manages the position and selection of tkmDisplayAreas. Passes calls
+ * from tkmedit.c to the current Area, as well as routes Tcl commands.
  */
 /*
- * Original Author: Bruce Fischl
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/15 19:07:58 $
- *    $Revision: 1.63.2.1 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/07 22:04:43 $
+ *    $Revision: 1.63.2.2 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2653,8 +2655,8 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
     /* force 1x1 aspect ratio (unless env var is set) */
     if (getenv("TKMEDIT_DONT_FORCE_SQUARE_ASPECT_RATIO") == NULL) {
-      
-      /* If not square, make it so. */
+
+      /* resize the window using our width as both dimensions */
       if( this->mnWidth != this->mnHeight ) {
 	glutReshapeWindow ( this->mnWidth, this->mnWidth );
       }
@@ -2672,13 +2674,6 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
   case xGWin_tEventType_Draw:
 
-#if 0
-    gettimeofday( &curTime1, NULL );
-    msec1 = curTime1.tv_sec * 1000  +  (curTime1.tv_usec/1000);
-    fprintf( stderr, "waited %lu\n", (msec1 - msec2) );
-    fprintf( stderr, "draw at %lu ", msec1 );
-#endif
-
     /* all display areas get and draw events. */
     for ( nDispIndex = 0;
           nDispIndex < MWin_knMaxNumAreas;
@@ -2694,12 +2689,6 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
     /* call our draw handler. */
     MWin_HandleDraw_( this );
-
-#if 0
-    gettimeofday( &curTime2, NULL );
-    msec2 = curTime2.tv_sec * 1000  +  (curTime2.tv_usec/1000);
-    fprintf( stderr, " done at %lu (%lu)\n", msec2, msec2 - msec1 );
-#endif
 
     break;
 

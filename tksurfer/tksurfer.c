@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/12 02:54:13 $
- *    $Revision: 1.276.2.9 $
+ *    $Date: 2009/01/07 22:05:36 $
+ *    $Revision: 1.276.2.10 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -86,6 +86,7 @@ static void grabPixels(unsigned int width, unsigned int height,
 
 static int  is_val_file(char *fname) ;
 void show_flat_regions(char *surf_name, double thresh) ;
+void set_area_thresh(float area) ;
 void val_to_mark(void) ;
 void transform_brain(void) ;
 void curv_to_val(void) ;
@@ -145,7 +146,7 @@ int stricmp(const char* const str1, const char* const  str2)
 #endif // Windows_NT
 #include <unistd.h>
 #include <GL/gl.h>
-#include "GL/glut.h"
+#include "glut.h"
 #include "typedefs.h"
 #include "mgh_matrix.h"
 #include "label.h"
@@ -696,7 +697,7 @@ double decay = 0.9;
 float cweight = 0.33;
 float aweight = 0.33;
 float dweight = 0.33;
-float epsilon = 0.0001;
+float epsilon = 0.000001;
 
 double dip_spacing = 1.0;
 
@@ -706,6 +707,7 @@ float maxstress = 1e10;
 float avgstress = 0;
 int senstype = 0;
 double fthresh = 2.0;
+double fthreshmax = 5.0;
 double tksfmax;
 double wt = 0.5;
 double wa = 0.5;
@@ -1511,16 +1513,6 @@ int func_convert_error (FunD_tErr error);
 
 /* --------------------------------------------------- scalar value mgmnt */
 
-#define SCLV_VAL          0
-#define SCLV_VAL2         1
-#define SCLV_VALBAK       2
-#define SCLV_VAL2BAK      3
-#define SCLV_VALSTAT      4
-#define SCLV_IMAG_VAL     5
-#define SCLV_MEAN         6
-#define SCLV_MEAN_IMAG    7
-#define SCLV_STD_ERROR    8
-#define NUM_SCALAR_VALUES 9
 
 #if 0
 #define SCLV_FIELDSIGN    6
@@ -1814,6 +1806,9 @@ int labl_remove_marked_vertices_from_label (int index);
 /* marks all the vertices in a label. */
 int labl_mark_vertices (int index);
 
+/* marks thresholded vertices in a label. */
+int labl_mark_threshold_vertices (int index, float threshold);
+
 /* selects a label, drawing it with apn outline and hilighting it in
    the label list tcl window. */
 int labl_select (int index);
@@ -1848,6 +1843,9 @@ int labl_all_changed ();
 /* removes and deletes the label and bumps down all other labels in
    the list. */
 int labl_remove (int index);
+
+/* Thresholds a label according to a user entered scalar value */
+int labl_threshold (int index, float threshold);
 
 /* removes and deletes all labels. */
 int labl_remove_all ();
@@ -9437,12 +9435,17 @@ int sclv_new_from_label (int field, int label)
      set our overlay value. Also check for min/max values. */
   area = labl_labels[label].label ;
   min = max = 0.0 ;
+  for (n = 0  ; n < mris->nvertices ; n++)
+  {
+    v = &mris->vertices[n] ;
+    sclv_set_value(v, field, 0) ;
+  }
   for (n = 0  ; n < area->n_points ; n++)
   {
     if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
     {
-      v = &mris->vertices[area->lv[n].vno] ;
       f = area->lv[n].stat ;
+      v = &mris->vertices[area->lv[n].vno] ;
 
       /* Set the value. */
       sclv_set_value(v, field, f) ;
@@ -9459,7 +9462,7 @@ int sclv_new_from_label (int field, int label)
 
   /* Set up some initial stuff here. */
   sclv_field_info[field].min_value = min;
-  sclv_field_info[field].max_value = max;
+  sclv_field_info[field].max_value = max + epsilon;
   sclv_field_info[field].cur_timepoint = 0;
   sclv_field_info[field].cur_condition = 0;
   sclv_field_info[field].num_timepoints = 1;
@@ -9500,7 +9503,7 @@ sclv_new_empty (int field, char* name)
   if (field < 0 || field > NUM_SCALAR_VALUES)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
-                 "sclv_new_from_label: field was out of bounds: %d)",
+                 "sclv_new_empty: field was out of bounds: %d)",
                  field));
 
 
@@ -15446,12 +15449,9 @@ draw_colscalebar(void)
 {
   int i, j;
   float v[3], tmpzf, stat, maxval;
-  int NSEGMENTS = 100 ;
+  int NSEGMENTS = 10000 ;
   void *glut_font;
-  float abs_func_value;
   float func_per_segment;
-  int num_decimals;
-  char format[256];
   char label[256];
   int cur_char;
   float bar_min_value;
@@ -15467,7 +15467,7 @@ draw_colscalebar(void)
   v[2] = 1.0;
   n3f(v);
 
-  /* This is an array of segement indices at which we will draw
+  /* This is an array of segment indices at which we will draw
      labels. Init them to -1 for now. */
   for (i=0; i<4; i++)
   {
@@ -15572,7 +15572,7 @@ draw_colscalebar(void)
     }
     endpolygon();
 
-    /* Check our list of segements at which to draw labels, and see if
+    /* Check our list of segments at which to draw labels, and see if
        this is one of them. */
     if (colscalebartextflag || colscalebartickflag)
       for (j=0; j <4; j++)
@@ -15602,23 +15602,8 @@ draw_colscalebar(void)
             }
             else
             {
-              /* Calc how many decimals our label should have. */
-              abs_func_value = fabs(stat);
-              if (abs_func_value > 1 || abs_func_value == 0) num_decimals = 2;
-              else if (abs_func_value > 0.1) num_decimals = 3;
-              else if (abs_func_value > 0.01) num_decimals = 4;
-              else if (abs_func_value > 0.001) num_decimals = 5;
-              else if (abs_func_value > 0.0001) num_decimals = 6;
-              else if (abs_func_value > 0.00001) num_decimals = 7;
-              else if (abs_func_value > 0.000001) num_decimals = 8;
-              else if (abs_func_value > 0.0000001) num_decimals = 9;
-              else num_decimals = 10;
-
-              /* Make a format string with that many decimals. */
-              sprintf (format, "%%2.%df", num_decimals);
-
-              /* Copy the value to the label using that format string. */
-              sprintf (label, format, stat);
+              /* Force label to have 3 decimal places*/
+              sprintf (label, "%2.3f", stat);
             }
 
             /* Figure out a good label position based. Here,
@@ -18742,9 +18727,11 @@ int W_dump_vertex  PARM;
 int W_show_flat_regions  PARM;
 int W_transform_brain  PARM;
 int W_resize_brain  PARM;
+int W_set_area_thresh  PARM;
 int W_val_to_mark  PARM;
 int W_val_to_curv  PARM;
 int W_val_to_stat  PARM;
+int W_set_vals  PARM;
 int W_stat_to_val  PARM;
 
 int W_read_imag_vals  PARM;
@@ -18949,6 +18936,7 @@ int W_sclv_read_from_volume  PARM;
 int W_sclv_write_dotw PARM;
 int W_sclv_smooth  PARM;
 int W_sclv_set_overlay_alpha  PARM;
+int W_sclv_unload_field  PARM;
 int W_sclv_set_current_field  PARM;
 int W_sclv_set_current_timepoint  PARM;
 int W_sclv_copy_view_settings_from_current_field PARM;
@@ -19844,6 +19832,12 @@ ERR(1,"Wrong # args: val_to_mark ")
 val_to_mark();
 WEND
 
+int                  W_set_area_thresh  WBEGIN
+ERR(2,"Wrong # args: set_area_thresh ")
+set_area_thresh(atof(argv[1]));
+WEND
+
+
 int                  W_scale_brain  WBEGIN
 ERR(2,"Wrong # args: scale_brain ")
 scale_brain(atof(argv[1]));
@@ -19867,6 +19861,11 @@ WEND
 int                  W_val_to_stat  WBEGIN
 ERR(1,"Wrong # args: val_to_stat ")
 val_to_stat();
+WEND
+
+int                  W_set_vals  WBEGIN
+ERR(2,"Wrong # args: set_vals ")
+MRISsetVals(mris,atof(argv[2]));
 WEND
 
 int                  W_stat_to_val  WBEGIN
@@ -20202,6 +20201,10 @@ int W_sclv_set_current_field  WBEGIN
 ERR(2,"Wrong # args: sclv_set_current_field field")
 sclv_set_current_field(atoi(argv[1]));
 WEND
+int W_sclv_unload_field  WBEGIN
+ERR(2,"Wrong # args: sclv_unload_field field")
+sclv_unload_field(atoi(argv[1]));
+WEND
 int W_sclv_set_current_timepoint  WBEGIN
 ERR(3,"Wrong # args: sclv_set_current_timepoint timepoint condition")
 sclv_set_timepoint_of_field(sclv_current_field,
@@ -20350,6 +20353,10 @@ WEND
 int W_labl_remove WBEGIN
 ERR(2,"Wrong # args: labl_remove index")
 labl_remove (atoi(argv[1]));
+WEND
+int W_labl_threshold WBEGIN
+ERR(3,"Wrong # args: labl_threshold index threshold")
+labl_threshold (atoi(argv[1]), atof(argv[2]));
 WEND
 int W_labl_remove_all WBEGIN
 ERR(1,"Wrong # args: labl_remove_all")
@@ -20682,7 +20689,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.276.2.9 2008/04/12 02:54:13 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276.2.10 2009/01/07 22:05:36 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21271,6 +21278,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_dump_vertex, REND);
   Tcl_CreateCommand(interp, "val_to_mark",
                     (Tcl_CmdProc*) W_val_to_mark, REND);
+  Tcl_CreateCommand(interp, "set_area_thresh",
+                    (Tcl_CmdProc*) W_set_area_thresh, REND);
   Tcl_CreateCommand(interp, "resize_brain",
                     (Tcl_CmdProc*) W_resize_brain, REND);
   Tcl_CreateCommand(interp, "transform_brain",
@@ -21279,6 +21288,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_show_flat_regions, REND);
   Tcl_CreateCommand(interp, "val_to_stat",
                     (Tcl_CmdProc*) W_val_to_stat, REND);
+  Tcl_CreateCommand(interp, "set_vals",
+                    (Tcl_CmdProc*) W_set_vals, REND);
   Tcl_CreateCommand(interp, "stat_to_val",
                     (Tcl_CmdProc*) W_stat_to_val, REND);
   Tcl_CreateCommand(interp, "read_soltimecourse",
@@ -21392,6 +21403,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_sclv_set_overlay_alpha, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_field",
                     (Tcl_CmdProc*) W_sclv_set_current_field, REND);
+  Tcl_CreateCommand(interp, "sclv_unload_field",
+                    (Tcl_CmdProc*) W_sclv_unload_field, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_timepoint",
                     (Tcl_CmdProc*) W_sclv_set_current_timepoint, REND);
   Tcl_CreateCommand(interp, "sclv_copy_view_settings_from_current_field",
@@ -21463,6 +21476,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_labl_set_color, REND);
   Tcl_CreateCommand(interp, "labl_remove",
                     (Tcl_CmdProc*) W_labl_remove, REND);
+  Tcl_CreateCommand(interp, "labl_threshold",
+                    (Tcl_CmdProc*) W_labl_threshold, REND);
   Tcl_CreateCommand(interp, "labl_remove_all",
                     (Tcl_CmdProc*) W_labl_remove_all, REND);
   Tcl_CreateCommand(interp, "labl_erode",
@@ -21669,6 +21684,7 @@ int main(int argc, char *argv[])   /* new main */
   /*=======================================================================*/
   /***** link global surfer DOUBLE variables to tcl equivalents (were float) */
   Tcl_LinkVar(interp,"decay",(char *)&decay, TCL_LINK_DOUBLE);
+  Tcl_LinkVar(interp,"fthreshmax",(char *)&fthreshmax, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fthresh",(char *)&fthresh, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fslope",(char *)&fslope, TCL_LINK_DOUBLE);
   Tcl_LinkVar(interp,"fcurv",(char *)&fcurv, TCL_LINK_DOUBLE);
@@ -25324,6 +25340,8 @@ int sclv_send_current_field_info ()
   /* Send the current histogram info here as well. */
   sclv_send_histogram (sclv_current_field);
 
+  sprintf(cmd, "set gaLinkedVar(fslope) %f", fslope);
+  sprintf(cmd, "set gaLinkedVar(fthreshmax) %f", fthreshmax);
   sprintf (cmd, "UpdateLinkedVarGroup overlay");
   send_tcl_command (cmd);
   sprintf (cmd, "OverlayLayerChanged");
@@ -25517,10 +25535,56 @@ int sclv_get_values_for_field_and_timepoint (int field, int timepoint,
 int sclv_set_current_threshold_from_percentile (float thresh, float mid,
     float max)
 {
+  HISTOGRAM *h ;
+  int       bthresh, bmid, bmax ;
+  float     thresh_value, mid_value, max_value, slope ;
+
+  h = MRISgetHistogram(mris, 1000, sclv_current_field);
+  if (ignorezeroesinhistogramflag)
+    HISTOclearZeroBin(h) ;
+  HISTOmakeCDF(h, h) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h, "h.plt") ;
+  bthresh = HISTOfindBinWithCount(h, thresh) ;
+  bmid = HISTOfindBinWithCount(h, mid) ;
+  bmax = HISTOfindBinWithCount(h, max) ;
+  thresh_value = h->bins[bthresh] ; mid_value = h->bins[bmid] ; max_value = h->bins[bmax] ;
+  if (FEQUAL(max_value, thresh_value))
+    slope = 1.0 ;
+  else
+    slope = .5 / (max_value - mid_value) ;
+  if (thresh_value < 0)
+  {
+    sclv_field_info[sclv_current_field].foffset = foffset = thresh_value - (mid_value-thresh_value) ;
+    printf("setting foffset to %f\n", foffset) ;
+    thresh_value -= foffset ;
+    mid_value -= foffset ;
+    max_value -= foffset ;
+    printf("HISTO vals should be %f, %f, %f (slope = .5/(mx-md) =  %2.2f)\n", 
+         thresh_value, mid_value, max_value, slope) ;
+  }
+  else
+  {
+
+    sclv_field_info[sclv_current_field].foffset = foffset = 0;
+    printf("HISTO vals should be %f, %f, %f (slope = .5/(mx-md) =  %2.2f)\n", 
+           thresh_value, mid_value, max_value, slope) ;
+  }
+
+    
+  HISTOfree(&h) ;
+  fthresh = sclv_field_info[sclv_current_field].fthresh = thresh_value;
+  fmid = sclv_field_info[sclv_current_field].fmid = mid_value;
+  fslope = sclv_field_info[sclv_current_field].fslope = slope ;
+  fthreshmax = sclv_field_info[sclv_current_field].max_value = max_value ;
+  vertex_array_dirty = 1;
+#if 0
   sclv_set_threshold_from_percentile(sclv_current_field,
                                      thresh, mid, max);
+#endif
 
   sclv_send_current_field_info();
+  redraw() ;
 
   return (ERROR_NONE);
 }
@@ -27561,6 +27625,50 @@ int labl_remove (int index)
   /* find all the borders again. */
   labl_find_and_set_all_borders ();
 
+  return (ERROR_NONE);
+}
+
+int labl_mark_threshold_vertices (int index, float threshold)
+{
+  int    n, vno ;
+  VERTEX* v;
+  LABEL* area = labl_labels[index].label ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    /* for the nth vertex in the label */
+    vno = area->lv[n].vno ;
+    if (vno < 0 || vno >= mris->nvertices)
+      return (ERROR_BADPARM) ;
+
+    /* mark the vertex if it's less than threshold */
+    if ( area->lv[n].stat < threshold )
+    {
+      v = &mris->vertices[vno] ;
+      v->marked = 1 ;
+    }
+  }
+  return (ERROR_NONE) ;
+}
+
+int labl_threshold (int index, float threshold)
+{
+  if (index < 0 || index >= labl_num_labels)
+    return (ERROR_BADPARM);
+
+  /* mark all the vertices below the threshold */
+  labl_mark_threshold_vertices(index, threshold);
+
+  /* remove the marked vertices from the label */
+  labl_remove_marked_vertices_from_label(index);
+
+  labl_update_cache (TRUE);
+  
+  labl_find_and_set_border (index);
+  
+  /* clear the marked vertices */
+  clear_all_vertex_marks();
+  
   return (ERROR_NONE);
 }
 
@@ -30124,3 +30232,98 @@ int dngcolorwheel(float f, float *r, float *g, float *b)
   return(0);
 
 }
+#define MAX_STEPS 100
+void 
+set_area_thresh(float target_area)
+{
+  char                  cmd[STRLEN];
+  int   vno ;
+  float thresh_min, thresh, thresh_max, val, area, best_thresh, thresh_step, best_area ;
+
+  val = 0 ;
+  thresh_min = 1e10 ; thresh_max = -thresh_min ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+    if (val < thresh_min)
+      thresh_min = val ;
+    if (val > thresh_max)
+      thresh_max = val ;
+  }
+
+  thresh_step = (thresh_max - thresh_min) / MAX_STEPS ;
+  best_thresh = thresh_min ;
+  best_area = -1 ;
+  for (thresh = thresh_min ; thresh <= thresh_max ; thresh += thresh_step)
+  {
+    area = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+      if (val > thresh)
+        area += mris->vertices[vno].area ;
+    }
+    if (best_area < 0 || fabs(area-target_area) < best_area)
+    {
+      best_area = area ;
+      best_thresh = thresh ;
+    }
+  }
+  fthresh = best_thresh ;
+  fslope = 1/best_thresh ;
+  fmid = 2*fthresh ;
+  printf("best threshold at %2.5f (%2.5f), %2.2fmm\n", fthresh, fslope, best_area) ;
+  sclv_field_info[sclv_current_field].fslope = fslope ;
+  sclv_field_info[sclv_current_field].fthresh = fthresh;
+  vertex_array_dirty = 1 ;
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+}
+
+void 
+set_thresh(float target_area)
+{
+  char                  cmd[STRLEN];
+  int   vno ;
+  float thresh_min, thresh, thresh_max, val, area, best_thresh, thresh_step, best_area ;
+
+  val = 0 ;
+  thresh_min = 1e10 ; thresh_max = -thresh_min ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+    if (val < thresh_min)
+      thresh_min = val ;
+    if (val > thresh_max)
+      thresh_max = val ;
+  }
+
+  thresh_step = (thresh_max - thresh_min) / MAX_STEPS ;
+  best_thresh = thresh_min ;
+  best_area = -1 ;
+  for (thresh = thresh_min ; thresh <= thresh_max ; thresh += thresh_step)
+  {
+    area = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      sclv_get_value( &mris->vertices[vno],sclv_current_field, &val);
+      if (val > thresh)
+        area += mris->vertices[vno].area ;
+    }
+    if (best_area < 0 || fabs(area-target_area) < best_area)
+    {
+      best_area = area ;
+      best_thresh = thresh ;
+    }
+  }
+  fthresh = best_thresh ;
+  fslope = 1/best_thresh ;
+  fmid = 2*fthresh ;
+  printf("best threshold at %2.5f (%2.5f), %2.2fmm\n", fthresh, fslope, best_area) ;
+  sclv_field_info[sclv_current_field].fslope = fslope ;
+  sclv_field_info[sclv_current_field].fthresh = fthresh;
+  vertex_array_dirty = 1 ;
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+}
+

@@ -1,15 +1,20 @@
 /**
  * @file  tkmFunctionalVolume.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Manages functional volume overlay and timecourse plotting
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Provides an interface for functional volumes as an overlay or
+ * timecourse plot. The same volume can be both, or you can have
+ * different volumes for each purpose. Handles loading via the
+ * mriFunctionaDataAccess code. Keeps track of the current time point
+ * and condition, and sends the Tcl commands to interface with
+ * tkm_functional.tcl to draw the graph.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/18 16:18:30 $
- *    $Revision: 1.58 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/07 22:04:43 $
+ *    $Revision: 1.58.2.1 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +37,7 @@
 #include "mri_transform.h"
 #include "xUtilities.h"
 #include "mri.h"
+#include "utils.h"
 #include "error.h"
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
@@ -553,23 +559,6 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
   }
-
-  /* Set the client bounds here. Now this would be the anatomical
-     bounds, but since the rest of the anatomical code really uses
-     'screen coords' which are 256^3, we use those here. */
-  //  eVolume = FunD_SetClientCoordBounds( pVolume, 0, 0, 0, 256, 256, 256 );
-
-  /* rkt - commented out because the functional volume should no
-     longer set the conversion method explicitly. it should only be
-     set when parsing the register.dat file. */
-#if 0
-  /* set the conversion method */
-  eVolume = FunD_SetConversionMethod( pVolume, this->mDefaultConvMethod );
-  if ( FunD_tErr_NoError != eVolume ) {
-    eResult = FunV_tErr_ErrorAccessingInternalVolume;
-    goto error;
-  }
-#endif
 
   /* return the volume */
   *ioppVolume = pVolume;
@@ -2165,32 +2154,6 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   bg = iBaseColor->mfGreen;
   bb = iBaseColor->mfBlue;
 
-#if 0
-  /* if we're opaque, use no background color */
-  if ( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_Opaque] ) {
-    br = 0;
-    bg = 0;
-    bb = 0;
-  }
-#endif
-
-  /*
-    if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_IgnoreThreshold] ) {
-    FunD_GetValueRange( this->mpOverlayVolume, &min, &max );
-    if( f < min ) {
-    oColor->mfRed   = 0;
-    oColor->mfGreen = 0;
-    oColor->mfBlue  = 0;
-    goto cleanup;
-    }
-    r = (f-min) / (max-min);
-    oColor->mfRed   = MAX(r,iBaseColor->mfGreen);
-    oColor->mfGreen = iBaseColor->mfGreen;
-    oColor->mfBlue  = iBaseColor->mfBlue;
-    goto cleanup;
-    }
-  */
-
   /* if we're ignoreing the threshold,use the max and min values, else
      use the threshold */
   if ( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_IgnoreThreshold] ) {
@@ -2198,8 +2161,14 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
     mid = (max-min) / 2.0;
   } else {
     min = (float)(this->mThresholdMin);
-    mid = (float)(this->mThresholdMid);
-    max = 0.5 / (float)(this->mThresholdSlope) + mid;
+    if( bOpaque ) {
+      mid = 1.001*min;
+      max = 1 / (float)(this->mThresholdSlope) + min;
+    }
+    else {
+      mid = (float)(this->mThresholdMid);
+      max = 0.5 / (float)(this->mThresholdSlope) + mid;
+    }
   }
 
   /* if we're truncating values, modify approriatly */
@@ -2237,45 +2206,25 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   /* calc the color */
   if ( f >= 0 ) {
 
-    if( bOpaque ) {
-
-      /* If opaque, don't use blending at all. Min->mid is all
-	 red, and mid->max gets yellower. */
-      r = ((f<min) ? br : 1.0);
-      g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      b = ((f<min) ? bb : 0);
- 
-    } else {
-
-      /* the offset is a portion of the color that is 'blended' into
-	 the functional color. the rest is a standard interpolated
-	 color scale. */
-      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      b = ob;
-    }
-
+    /* the offset is a portion of the color that is 'blended' into
+       the functional color. the rest is a standard interpolated
+       color scale. */
+    or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    r = or + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+    g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+    b = ob;
+    
   } else {
     f = -f;
 
-    if( bOpaque ) {
-
-      b = ((f<min) ? bb : 1.0);
-      g = ((f<min) ? bg : (f<mid) ? 0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      r = ((f<min) ? br : 0);
-
-    } else {
-
-      or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
-      b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
-      g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
-      r = or;
-    }
+    or = br * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    og = bg * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    ob = bb * ( (f<min) ? 1.0 : (f<mid) ? 1.0 - (f-min)/(mid-min) : 0.0 );
+    b = ob + ((f<min) ? 0.0 : (f<mid) ? (f-min)/(mid-min) : 1.0);
+    g = og + ((f<mid) ? 0.0 : (f<max) ? (f-mid)/(max-mid) : 1.0);
+    r = or;
   }
 
   /* cap values at 1 just in case */
@@ -2336,8 +2285,9 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
   while ( xList_tErr_NoErr == eList ) {
 
     /* try to get a voxel */
+    void* pvoid = (void*) &pVoxel;
     eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                           (void**)&pVoxel );
+                                           (void**)pvoid );
 
     /* if we got one */
     if ( NULL != pVoxel ) {
@@ -2373,7 +2323,8 @@ FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
        NULL != oFuncRAS ) {
 
     /* get the first voxel in the selection */
-    eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+    void* pvoid = (void*) &pVoxel;
+    eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)pvoid );
     if ( NULL != pVoxel ) {
 
       /* convert to functional index */
@@ -2581,8 +2532,9 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
   while ( xList_tErr_NoErr == eList ) {
 
     /* try to get a voxel */
+    void* pvoid = (void*) &pVoxel;
     eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                           (void**)&pVoxel );
+                                           (void**)pvoid );
 
     /* if we got one */
     if ( NULL != pVoxel ) {
@@ -2676,7 +2628,8 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
     if ( 0 == nNumValues ) {
       /* Keep last update */
     } else if ( 1 == nNumValues ) {
-      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+      void* pvoid = (void*) &pVoxel;
+      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)pvoid );
       if ( NULL != pVoxel ) {
         FunD_ConvertClientToFuncRAS_( this->mpTimeCourseVolume,
                                       pVoxel, &funcRAS );
@@ -2712,6 +2665,7 @@ cleanup:
 
   return eResult;
 }
+double round(double);
 
 // DNG's attempt to circumvent the normal tkmedit plotter
 // Plan:
@@ -2719,11 +2673,15 @@ cleanup:
 //   2. Add plot info file/struct to tkmFunctionalVolumeRef struct
 //   3. Hijack FunD_FindAndParseStemHeader_() in utils/mriFunctionalDataAccess.c
 //   4. Hijack FunV_DrawGraph
+//   5. Something with FunV_tErr FunV_InitGraphWindow?
+//   6. Or maybe FunV_SendGraphData_?
 FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this ) ;
 FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this ) 
 {
   static float afValues[1000];
+  static char sTclArguments[10000];
   int n = 0, m = 0;
+
   xVoxelRef pVoxel  = NULL;
   FunV_tErr eResult = FunV_tErr_NoError;
 
@@ -2733,15 +2691,38 @@ FunV_tErr DNGFunV_DrawGraph(tkmFunctionalVolumeRef this )
     return(eResult);
   }
 
-  xList_GetNextItemFromPosition( this->mpSelectedVoxels, (void**)&pVoxel );
+  this->nRawPlot = CountItemsInString(getenv("USEDNGDRAW"));
+  for(n=0; n < this->nRawPlot; n++){
+    this->RawPlotFiles[n] = GetNthItemFromString(getenv("USEDNGDRAW"),n);
+    if(this->RawPlotFiles[n]){
+      if(this->RawPlotVols[n] == NULL){
+	printf("Reading %s\n",this->RawPlotFiles[n]);
+	this->RawPlotVols[n] = MRIread(this->RawPlotFiles[n]);
+	if(this->RawPlotVols[n] == NULL) exit(1);
+      }
+    }
+  }
+
+  void* pvoid = (void*) &pVoxel;
+  xList_GetNextItemFromPosition( this->mpSelectedVoxels, (void**)pvoid );
   printf("%f %f %f\n",pVoxel->mfX,pVoxel->mfY,pVoxel->mfZ);
 
   /* send the command for starting to draw the graph */
   FunV_SendTclCommand_( this, FunV_tTclCommand_TC_BeginDrawingGraph, "" );
 
-  for(n=0; n < 4; n++){
-    for(m=0; m < 10+n; m++) afValues[m] = drand48() + 2*n;
-    FunV_SendGraphData_( this, n, 10+n, afValues );
+  for(n=0; n < this->nRawPlot; n++){
+    memset(sTclArguments,'\0',strlen(sTclArguments));
+    sprintf( sTclArguments, "%d {", n+1);
+    for(m=0; m < this->RawPlotVols[n]->nframes; m++){ 
+      afValues[m] = MRIgetVoxVal(this->RawPlotVols[n],
+	 round(pVoxel->mfX),round(pVoxel->mfY),round(pVoxel->mfZ),m);
+      sprintf(sTclArguments, "%s %1.1f %2.5f", 
+	      sTclArguments, m*this->RawPlotVols[n]->tr/1000.0, afValues[m] );
+    }
+    sprintf( sTclArguments, "%s}", sTclArguments );
+    FunV_SendTclCommand_(this, FunV_tTclCommand_TC_UpdateGraphData,sTclArguments );
+    //FunV_SendGraphData_( this, n, 10+n, afValues );
+    //FunV_SendGraphData_( this, nCondition, nNumTimePoints, afValues );
   }
 
   /* finish drawing */
@@ -2761,6 +2742,12 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
   int                   nNumConditions  = 0;
   int                   nCondition      = 0;
   int                   nNumGoodValues  = 0;
+
+  if(getenv("USEDNGDRAW")){
+    printf("Using dng\n");
+    eResult = DNGFunV_DrawGraph(this);
+    return(eResult);
+  }
 
   DebugEnterFunction( ("FunV_DrawGraph( this=%p )", this ) );
 
@@ -3033,8 +3020,9 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
   while ( xList_tErr_NoErr == eList ) {
 
     /* try to get a voxel */
+    void* pvoid = (void*) &pVoxel;
     eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                           (void**)&pVoxel );
+                                           (void**)pvoid );
 
     /* if we got one */
     if ( NULL != pVoxel ) {
@@ -3145,8 +3133,9 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
     while ( xList_tErr_NoErr == eList ) {
 
       /* try to get a voxel */
+      void* pvoid = (void*) &pVoxel;
       eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels,
-                                             (void**)&pVoxel );
+                                             (void**)pvoid );
 
       /* if we got one */
       if ( NULL != pVoxel ) {
@@ -4502,7 +4491,8 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
        name accordingly. */
     xList_GetCount( this->mpSelectedVoxels, &nValue );
     if ( nValue <= 1 ) {
-      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+      void* pvoid = (void*) &pVoxel;
+      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)pvoid );
       if ( NULL != pVoxel ) {
         FunD_ConvertClientToFuncRAS_( this->mpTimeCourseVolume,
                                       pVoxel, &funcIdx );
@@ -4686,7 +4676,8 @@ FunV_tErr FunV_OverlayChanged_ ( tkmFunctionalVolumeRef this ) {
   char                   sTclArguments[256] = "";
 
   /* try to get the first selected voxel */
-  eList = xList_GetFirstItem ( this->mpSelectedVoxels, (void**)&pVoxel );
+  void* pvoid = (void*) &pVoxel;
+  eList = xList_GetFirstItem ( this->mpSelectedVoxels, (void**)pvoid );
   if ( xList_tErr_NoErr == eList ) {
 
     /* try to get a value for it */
