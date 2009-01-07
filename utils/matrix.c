@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:27 $
- *    $Revision: 1.113 $
+ *    $Author: mreuter $
+ *    $Date: 2009/01/07 21:59:14 $
+ *    $Revision: 1.114 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3369,6 +3369,8 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
     m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
     m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
     m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
+    MatrixFree(&m_U);
+    MatrixFree(&m_V);
     MatrixFree(&m_tmp) ;
     MatrixFree(&m_Ur) ;
     MatrixFree(&m_Sr) ;
