@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/07 22:05:36 $
- *    $Revision: 1.276.2.10 $
+ *    $Date: 2009/01/08 17:15:12 $
+ *    $Revision: 1.276.2.11 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -146,7 +146,7 @@ int stricmp(const char* const str1, const char* const  str2)
 #endif // Windows_NT
 #include <unistd.h>
 #include <GL/gl.h>
-#include "glut.h"
+#include "GL/glut.h"
 #include "typedefs.h"
 #include "mgh_matrix.h"
 #include "label.h"
@@ -20689,7 +20689,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.276.2.10 2009/01/07 22:05:36 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276.2.11 2009/01/08 17:15:12 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
