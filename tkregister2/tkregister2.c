@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/04 00:11:21 $
- *    $Revision: 1.101 $
+ *    $Date: 2009/01/08 17:56:16 $
+ *    $Revision: 1.102 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.101 2009/01/04 00:11:21 greve Exp $";
+"$Id: tkregister2.c,v 1.102 2009/01/08 17:56:16 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1263,7 +1263,8 @@ static int parse_commandline(int argc, char **argv) {
       fslregfname = pargv[0];
       read_fslreg(fslregfname);
       nargsused = 1;
-    } else if (!strcmp(option, "--lta")) {
+    } 
+    else if (!strcmp(option, "--lta")) {
       if (nargc < 1) argnerr(option,1);
       ltafname = pargv[0];
       FSXform = TransformRead(ltafname);
@@ -1283,12 +1284,14 @@ static int parse_commandline(int argc, char **argv) {
       XFM = lta->xforms[0].m_L;
       mkheaderreg = 1;
       nargsused = 1;
-    } else if (!strcmp(option, "--gca-skull")) {
+    } 
+    else if (!strcmp(option, "--gca-skull")) {
       if(nargc < 1) argnerr(option,1);
       sprintf(subjectid,"%s",pargv[0]);
       sprintf(tmpstr,"%s/%s/mri/transforms/talairach_with_skull.lta",subjectsdir,subjectid);
       FSXform = TransformRead(tmpstr);
       if(FSXform == NULL) exit(1);
+      ltaoutfname = strcpyalloc(tmpstr);
       lta = (LTA*) FSXform->xform;
       if(lta->type != LINEAR_RAS_TO_RAS){
         printf("INFO: LTA input is not RAS to RAS...converting...\n");
@@ -1302,12 +1305,23 @@ static int parse_commandline(int argc, char **argv) {
       // Assume RAS2RAS and uses vox2ras from input volumes:
       // Note: This ignores the volume geometry in the LTA file.
       XFM = MatrixInverse(lta->xforms[0].m_L,NULL);
-      sprintf(tmpstr,"%s/%s/mri/T1.mgz",subjectsdir,subjectid);
+      sprintf(tmpstr,"%s/%s/mri/nu_noneck.mgz",subjectsdir,subjectid);
       targ_vol_id = strcpyalloc(tmpstr);
       mov_vol_id = strcpyalloc(lta->xforms->dst.fname);
+      if(! fio_FileExistsReadable(mov_vol_id)){
+	sprintf(tmpstr,"%s/average/RB_all_withskull_2008-03-26.gca",
+		getenv("FREESURFER_HOME"));
+	free(mov_vol_id);
+	mov_vol_id = strcpyalloc(tmpstr);
+      }
+      if(regfname == NULL){
+	sprintf(tmpstr,"/tmp/tkregister2.%s.junk",subjectid);
+	regfname = strcpyalloc(tmpstr);
+      }
       mkheaderreg = 1;
       nargsused = 1;
-    } else if (!strcmp(option, "--gca")) {
+    } 
+    else if (!strcmp(option, "--gca")) {
       if(nargc < 1) argnerr(option,1);
       sprintf(subjectid,"%s",pargv[0]);
       sprintf(tmpstr,"%s/%s/mri/transforms/talairach.lta",subjectsdir,subjectid);
@@ -1331,7 +1345,8 @@ static int parse_commandline(int argc, char **argv) {
       mov_vol_id = strcpyalloc(lta->xforms->dst.fname);
       mkheaderreg = 1;
       nargsused = 1;
-    } else if (!strcmp(option, "--vox2vox")){
+    } 
+    else if (!strcmp(option, "--vox2vox")){
       if (nargc < 1) argnerr(option,1);
       Vox2VoxFName = pargv[0];
       Vox2Vox = Load4x4(Vox2VoxFName);
@@ -1455,6 +1470,7 @@ static void print_usage(void) {
   printf("   --freeview file : FreeView registration output matrix\n");
   printf("   --vox2vox file : vox2vox matrix in ascii\n");
   printf("   --lta ltafile : Linear Transform Array\n");
+  printf("   --ltaout ltaoutfile : Output a Linear Transform Array\n");
   printf("   --feat featdir : check example_func2standard registration\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
@@ -4743,7 +4759,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.101 2009/01/04 00:11:21 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.102 2009/01/08 17:56:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
