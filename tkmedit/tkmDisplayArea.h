@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/07 22:04:43 $
- *    $Revision: 1.63.2.1 $
+ *    $Date: 2009/01/08 16:46:56 $
+ *    $Revision: 1.63.2.2 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,6 @@
 #define tkmDisplayArea_h
 
 #include "xTypes.h"
-#include "glut.h"
 #include "xVoxel.h"
 #include "tkmedit.h"
 #include "xGLutWindow.h"
