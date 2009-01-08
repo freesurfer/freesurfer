@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/12/17 18:08:40 $
-#    $Revision: 1.193 $
+#    $Date: 2009/01/08 19:47:39 $
+#    $Revision: 1.194 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.193 2008/12/17 18:08:40 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.194 2009/01/08 19:47:39 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1983,6 +1983,7 @@ foreach hemi ($hemilist)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
+    if($RunIt) rm -f .xdebug_mris_calc
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   endif
 
