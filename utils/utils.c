@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:52 $
- *    $Revision: 1.62.2.2 $
+ *    $Date: 2009/01/08 16:47:39 $
+ *    $Revision: 1.62.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,13 @@
 #include <unistd.h>
 
 #include <time.h> /* msvc (dng) */
+
+/* This should be in ctype.h, but the compiler complains */
+#ifndef Darwin
+#ifndef isblank
+int isblank (int c);
+#endif
+#endif
 
 #include "const.h"
 #include "utils.h"
@@ -1327,3 +1334,57 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique)
   return(ulist);
 }
 
+/*--------------------------------------------------
+  CountItemsInString() returns the number of items
+  in the given string, where an item is defined as
+  one or more contiguous non-blank characters. Same
+  as gdfCountItemsInString().
+  --------------------------------------------------*/
+int CountItemsInString(char *str) 
+{
+  int len, n, nhits;
+  len = strlen(str);
+  nhits = 0;
+  n = 0;
+  while(n < len) {
+    while(n < len && isblank(str[n]) ) n++;
+    if(n >= len) break;
+    if(str[n] == '\0' || str[n] == '\n' || str[n] == '\r') break;
+    while(n < len && !isblank(str[n])) n++;
+    nhits++;
+  }
+  return(nhits);
+}
+
+
+/*-------------------------------------------------------------------
+  GetNthItemFromString() - extracts the nth item from a string.
+  An item is defined as one or more non-white space chars. If nth
+  is -1, then it returns the last item. item is a string that
+  must be freed by the caller. Same as gdfGetNthItemFromString().
+  ------------------------------------------------------------------*/
+char *GetNthItemFromString(char *str, int nth) 
+{
+  char *item;
+  int nitems,n;
+  static char fmt[2000], tmpstr[2000];
+
+  memset(fmt,'\0',2000);
+  memset(tmpstr,'\0',2000);
+
+  nitems = CountItemsInString(str);
+  if (nth < 0) nth = nitems-1;
+  if (nth >= nitems) {
+    printf("ERROR: asking for item %d, only %d items in string\n",nth,nitems);
+    printf("%s\n",str);
+    return(NULL);
+  }
+
+  for (n=0; n < nth; n++) sprintf(fmt,"%s %%*s",fmt);
+  sprintf(fmt,"%s %%s",fmt);
+  //printf("fmt %s\n",fmt);
+  sscanf(str,fmt,tmpstr);
+
+  item = strcpyalloc(tmpstr);
+  return(item);
+}

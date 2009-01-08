@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/10 16:00:58 $
- *    $Revision: 1.27.2.5 $
+ *    $Date: 2009/01/08 16:47:24 $
+ *    $Revision: 1.27.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,6 +80,9 @@ char *FileNamePath(char *fname, char *pathName) ;
 char *FileNameRemoveExtension(char *in_fname, char *out_fname) ;
 char *FileNameExtension(char *fname, char *ext) ;
 char *AppendString(char *src, char *app);
+
+char *GetNthItemFromString(char *str, int nth) ;
+int CountItemsInString(char *str) ;
 
 int devIsinf(float value);
 int devIsnan(float value);
