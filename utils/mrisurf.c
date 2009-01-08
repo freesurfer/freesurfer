@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/19 22:08:37 $
- *    $Revision: 1.557.2.16 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/08 17:16:51 $
+ *    $Revision: 1.557.2.17 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -626,7 +626,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.557.2.16 2008/12/19 22:08:37 greve Exp $");
+  return("$Id: mrisurf.c,v 1.557.2.17 2009/01/08 17:16:51 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62745,3 +62745,78 @@ void UpdateMRIS(MRI_SURFACE *mris, char *fname)
   MRIScomputeMetricProperties(mris);
   MRISstoreCurrentPositions(mris);
 }
+
+#include "histo.h"
+HISTOGRAM *
+MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
+{
+  int       vno, bin ;
+  VERTEX    *v ;
+  double    fmin, fmax, bin_size, val ;
+  HISTOGRAM *h ;
+
+  fmin = 1e10;
+  fmax = -fmin ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    switch (field)
+    {
+    default: ErrorExit(ERROR_BADPARM, 
+                       "MRISgetHistogram: unknown field %d", 
+                       field) ;
+    case SCLV_VAL: val = (v)->val; break; 
+    case SCLV_VAL2: val = v->val2 ; break ;
+    case SCLV_VALBAK: val = v->valbak ; break ;
+    case SCLV_VAL2BAK: val = v->val2bak ; break ;
+    case SCLV_VALSTAT: val = v->stat ; break ;
+    case SCLV_IMAG_VAL: val = v->imag_val ; break ;
+    case SCLV_MEAN: val = v->mean ; break ;
+    case SCLV_MEAN_IMAG: val = v->mean_imag ; break ;
+    case SCLV_STD_ERROR: val = v->std_error ; break ;
+    }
+    if (val < fmin)
+      fmin = val ;
+    if (val > fmax)
+      fmax = val ;
+  }
+  if (nbins < 0)
+    nbins = 1000;
+  h = HISTOalloc(nbins) ;
+  if (fmax == fmin)
+    bin_size = 1 ;
+  else
+    bin_size = (fmax - fmin) / ((float)h->nbins-1) ;
+  h->bin_size = bin_size ;
+  h->min = fmin ; h->max = fmax ;
+  for (bin = 0 ; bin < h->nbins ; bin++)
+    h->bins[bin] = bin*h->bin_size + h->min ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    switch (field)
+    {
+    default: ErrorExit(ERROR_BADPARM, 
+                       "MRISgetHistogram: unknown field %d", 
+                       field) ;
+    case SCLV_VAL: val = (v)->val; break; 
+    case SCLV_VAL2: val = v->val2 ; break ;
+    case SCLV_VALBAK: val = v->valbak ; break ;
+    case SCLV_VAL2BAK: val = v->val2bak ; break ;
+    case SCLV_VALSTAT: val = v->stat ; break ;
+    case SCLV_IMAG_VAL: val = v->imag_val ; break ;
+    case SCLV_MEAN: val = v->mean ; break ;
+    case SCLV_MEAN_IMAG: val = v->mean_imag ; break ;
+    case SCLV_STD_ERROR: val = v->std_error ; break ;
+    }
+    bin = HISTOvalToBinDirect(h, val) ;
+    h->counts[bin]++ ;
+  }
+  return(h) ;
+}
+
+
