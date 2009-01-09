@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:24 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@ class vtkRenderWindow;
 class vtkImageData;
 class vtkActor;
 class vtkVolume;
+class vtkPoints;
 
 class MyUtils 
 {
@@ -66,6 +67,9 @@ public:
 								 double& world_x, double& world_y, double& world_z );
 	static void NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y, 
 										   double& world_x, double& world_y, double& world_z );
+	
+	static void WorldToViewport( vtkRenderer* renderer, double world_x, double world_y, 
+								 double world_z, double& x, double& y, double& z );
 	
 	static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
 										std::vector<void*> input_volumes, float* output_volume, int vol_size );

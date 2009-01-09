@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/09 20:50:48 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,8 @@ BEGIN_EVENT_TABLE( ToolWindowEdit, wxFrame )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_FILL" ),		ToolWindowEdit::OnActionVoxelFillUpdateUI )
     EVT_MENU		( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),	ToolWindowEdit::OnActionVoxelPolyline )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),	ToolWindowEdit::OnActionVoxelPolylineUpdateUI )
+    EVT_MENU		( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ),	ToolWindowEdit::OnActionVoxelLivewire )
+    EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ),	ToolWindowEdit::OnActionVoxelLivewireUpdateUI )
     
     EVT_MENU		( XRCID( "ID_ACTION_ROI_FREEHAND" ),	ToolWindowEdit::OnActionROIFreehand )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_FREEHAND" ),	ToolWindowEdit::OnActionROIFreehandUpdateUI )
@@ -254,6 +256,23 @@ void ToolWindowEdit::OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event)
 	RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
 	event.Check( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
 			&& view->GetAction() == Interactor2DVoxelEdit::EM_Polyline );
+	
+	event.Enable( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
+}
+
+
+void ToolWindowEdit::OnActionVoxelLivewire( wxCommandEvent& event )
+{
+	MainWindow::GetMainWindowPointer()->SetAction( Interactor2DVoxelEdit::EM_Livewire );
+	UpdateTools();
+}
+
+void ToolWindowEdit::OnActionVoxelLivewireUpdateUI( wxUpdateUIEvent& event)
+{
+	RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
+	event.Check( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
+			&& view->GetAction() == Interactor2DVoxelEdit::EM_Livewire );
 	
 	event.Enable( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
 			&& !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );

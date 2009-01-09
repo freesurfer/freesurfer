@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/09 20:50:48 $
- *    $Revision: 1.31 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2418,7 +2418,16 @@ void MainWindow::CommandLoadROI( const wxArrayString& cmd )
 	
 void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 {
-	LoadSurfaceFile( cmd[1] );
+	wxArrayString sa_fn = MyUtils::SplitString( cmd[1], ":" );
+	wxString fn = sa_fn[0];
+	wxString fn_vector = "";
+	if ( sa_fn.size() > 1 )
+	{
+		wxArrayString sa = MyUtils::SplitString( sa_fn[1], "=" );
+		if ( sa.size() > 1 )
+			fn_vector = sa[1];
+	}
+	LoadSurfaceFile( fn, fn_vector );
 }
 	
 void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
@@ -2553,7 +2562,7 @@ void MainWindow::LoadSurface()
 	}
 }
 
-void MainWindow::LoadSurfaceFile( const wxString& filename )
+void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_vector )
 {
 	m_strLastDir = MyUtils::GetNormalizedPath( filename );
 
@@ -2564,6 +2573,7 @@ void MainWindow::LoadSurfaceFile( const wxString& filename )
 //		layerName = wxFileName( layerName ).GetName();
 	layer->SetName( layerName.c_str() );
 	layer->SetFileName( fn.GetFullPath().c_str() );
+	layer->SetVectorFileName( fn_vector.c_str() );
 	
 	WorkerThread* thread = new WorkerThread( this );
 	thread->LoadSurface( layer );

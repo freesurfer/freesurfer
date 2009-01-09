@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@ class Interactor2DVoxelEdit : public Interactor2D
 		Interactor2DVoxelEdit();
 		virtual ~Interactor2DVoxelEdit();
 	
-		enum EditMode { EM_Freehand = 0, EM_Fill, EM_Polyline };
+		enum EditMode { EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire };
 	
 	// return true if to have parent Interactor2DROIEdit continue processing the event
 	// return false to stop event from further processing

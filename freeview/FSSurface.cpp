@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 17:26:46 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@
 #include "vtkTransform.h"
 #include "vtkImageChangeInformation.h"
 #include "vtkPolyData.h"
+#include "vtkTubeFilter.h"
 #include "FSVolume.h"
 
 using namespace std;
@@ -54,6 +55,7 @@ FSSurface::FSSurface( FSVolume* ref ) :
 	m_volumeRef( ref )
 {
 	m_polydata = vtkPolyData::New();
+	m_polydataVector = vtkPolyData::New();
 	
 	for ( int i = 0; i < NUM_OF_VSETS; i++ )
 	{
@@ -62,6 +64,7 @@ FSSurface::FSSurface( FSVolume* ref ) :
 		m_bSurfaceLoaded[i] = false;
 		m_HashTable[i] = NULL;
 	}
+	m_fVertexVector = NULL;
 }
 	
 FSSurface::~FSSurface()
@@ -78,11 +81,14 @@ FSSurface::~FSSurface()
 		if ( m_HashTable[i] )
 			MHTfree( &m_HashTable[i] );
 	}
+	if ( m_fVertexVector )
+		delete[] m_fVertexVector;
 		
 	m_polydata->Delete();
+	m_polydataVector->Delete();
 }
 		
-bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event  )
+bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, const char* vector_filename  )
 {
 	if ( m_MRIS )
 		::MRISfree( &m_MRIS );
@@ -163,8 +169,12 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 	LoadSurface	( "white", 		SurfaceWhite );
 	LoadSurface	( "pial", 		SurfacePial );
 	LoadSurface	( "orig", 		SurfaceOriginal );
+	
+	if ( vector_filename != NULL )
+		LoadVectors	( vector_filename );
 	LoadCurvature();
 	
+	UpdateVectors();
 //	cout << "MRISread finished" << endl;
 		
 	return true;
@@ -219,11 +229,25 @@ bool FSSurface::LoadCurvature( const char* filename )
 	}
 }
 
+bool FSSurface::LoadVectors( const char* filename )
+{
+	if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) == 0 )
+	{
+		cout << "vector data loaded for surface from " << filename << endl;
+		
+		SaveVertices( m_MRIS, m_fVertexVector );
+		return true;
+	}	
+	else
+		return false;
+}
+
 void FSSurface::SaveVertices( MRIS* mris, int nSet )
 {
 	if ( !mris || nSet >= NUM_OF_VSETS )
 		return;
 	
+	/*
 	int nvertices = mris->nvertices;
 	VERTEX *v;
 	
@@ -242,6 +266,31 @@ void FSSurface::SaveVertices( MRIS* mris, int nSet )
 		m_fVertexSets[nSet][vno].x = v->x;
 		m_fVertexSets[nSet][vno].y = v->y;
 		m_fVertexSets[nSet][vno].z = v->z;
+	}
+	*/
+	SaveVertices( mris, m_fVertexSets[nSet] );
+}
+
+void FSSurface::SaveVertices( MRIS* mris, VertexItem*& buffer )
+{
+	int nvertices = mris->nvertices;
+	VERTEX *v;
+	
+	if ( buffer == NULL )
+	{
+		buffer = new VertexItem[nvertices];
+		if ( !buffer )
+		{
+			cerr << "Can not allocate memory for vertex sets." << endl;
+			return;
+		}
+	}
+	for ( int vno = 0; vno < nvertices; vno++ )
+	{
+		v = &mris->vertices[vno];
+		buffer[vno].x = v->x;
+		buffer[vno].y = v->y;
+		buffer[vno].z = v->z;
 	}
 }
 	
@@ -328,11 +377,11 @@ void FSSurface::UpdatePolyData()
 	newNormals->SetName( "Normals" );
 
   // Go through the surface and copy the vertex and normal for each
-  // vertex. We have to transform them from surface RAS into normal
+  // vertex. We need to transform them from surface RAS into standard
   // RAS.
 	float point[3], normal[3], surfaceRAS[3];
-	for ( int vno = 0; vno < cVertices; vno++ ) {
-
+	for ( int vno = 0; vno < cVertices; vno++ ) 
+	{
 		surfaceRAS[0] = m_MRIS->vertices[vno].x;
 		surfaceRAS[1] = m_MRIS->vertices[vno].y;
 		surfaceRAS[2] = m_MRIS->vertices[vno].z;
@@ -349,8 +398,8 @@ void FSSurface::UpdatePolyData()
 
   // Go through and add the face indices.
 	vtkIdType face[VERTICES_PER_FACE];
-	for ( int fno = 0; fno < cFaces; fno++ ) {
-
+	for ( int fno = 0; fno < cFaces; fno++ ) 
+	{
 		face[0] = m_MRIS->faces[fno].v[0];
 		face[1] = m_MRIS->faces[fno].v[1];
 		face[2] = m_MRIS->faces[fno].v[2];
@@ -402,6 +451,39 @@ void FSSurface::UpdateVerticesAndNormals()
 	m_polydata->SetPoints( newPoints );
 	m_polydata->GetPointData()->SetNormals( newNormals );
 //	m_polydata->Update();
+	
+	// if vector data exist
+	UpdateVectors();
+}
+
+void FSSurface::UpdateVectors()
+{
+	if ( HasVectorData() )
+	{
+		int cVertices = m_MRIS->nvertices;
+		vtkPoints* oldPoints = m_polydata->GetPoints();
+		float point[3], surfaceRAS[3];
+		int n = 0;
+		vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+		for ( int vno = 0; vno < cVertices; vno++ ) 
+		{
+			surfaceRAS[0] = m_fVertexVector[vno].x;
+			surfaceRAS[1] = m_fVertexVector[vno].y;
+			surfaceRAS[2] = m_fVertexVector[vno].z;
+			this->ConvertSurfaceToRAS( surfaceRAS, point );
+			if ( m_volumeRef )
+				m_volumeRef->RASToTarget( point, point );
+			
+			lines->InsertNextCell( 2 );
+			points->InsertNextPoint( point );
+			points->InsertNextPoint( oldPoints->GetPoint( vno ) );
+			lines->InsertCellPoint( n++ );
+			lines->InsertCellPoint( n++ );
+		}
+		m_polydataVector->SetPoints( points );
+		m_polydataVector->SetLines( lines );
+	}
 }
 
 bool FSSurface::SetActiveSurface( int nIndex )

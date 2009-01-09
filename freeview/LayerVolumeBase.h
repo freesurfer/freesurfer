@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:54 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,7 @@
 
 class vtkImageData;
 class BrushProperty;
+class LivewireTool;
 
 class LayerVolumeBase : public LayerEditable
 {
@@ -43,8 +44,11 @@ class LayerVolumeBase : public LayerEditable
 		virtual ~LayerVolumeBase();
 
 		void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
-		void SetVoxelByRAS( double* ras1, double*ras2, int nPlane, bool bAdd = true );	
+		void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true );	
 		void FloodFillByRAS( double* ras, int nPlane, bool bAdd = true );	
+		
+		void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
+		std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
 			
 		bool HasUndo();
 		bool HasRedo();
@@ -89,11 +93,11 @@ class LayerVolumeBase : public LayerEditable
 		
 		bool IsValidToPaste( int nPlane );
 							
-	protected:
-		
+	protected:		
 		bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true );	// true is to add, false is to remove
 		bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
 		bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true );
+		bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
 		
 		bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );
 		
@@ -120,6 +124,8 @@ class LayerVolumeBase : public LayerEditable
 		int			m_nBrushRadius;
 		
 		BrushProperty*		m_propertyBrush;
+		
+		LivewireTool*		m_livewire;
 		
 		int					m_nActiveFrame;
 };

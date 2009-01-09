@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,7 @@
 #include "RenderView.h"
 #include "vtkSmartPointer.h"
 #include <wx/colour.h>
+#include <vector>
 
 class vtkActor2D;
 class vtkRenderer;
@@ -47,6 +48,14 @@ public:
 	
 	double* GetPosition();
 	void GetPosition( double* pos );
+	
+	void SetInterpolationPoints( std::vector<double> pts );
+	
+	std::vector<double> GetInterpolationPoints()
+		{ return m_dInterpolationPoints; }
+	
+	void ClearInterpolationPoints()
+		{ m_dInterpolationPoints.clear(); } 
 	
 	void GetColor( double* rgb );
 	void SetColor( double r, double g, double b );
@@ -72,6 +81,7 @@ private:
 	
 	double		m_dPosition[3];
 	double		m_dPosition2[3];
+	std::vector<double>	m_dInterpolationPoints;
 	
 	int			m_nRadius;
 };

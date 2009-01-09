@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:24 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,7 @@
 #include <vtkCamera.h>
 #include <vtkMath.h>
 #include <vtkScalarBarActor.h>
+#include <vtkScalarBarWidget.h>
 #include <vtkLookupTable.h>
 #include "MyUtils.h"
 
@@ -165,6 +166,11 @@ void RenderView::InitializeRenderView()
 	vtkLookupTable* lut = vtkLookupTable::New();
 	m_actorScalarBar->SetLookupTable(lut);
 	lut->Delete();
+	
+	vtkSmartPointer<vtkScalarBarWidget> barWidget = vtkSmartPointer<vtkScalarBarWidget>::New();
+	barWidget->SetScalarBarActor( m_actorScalarBar );
+	barWidget->RepositionableOn();
+	barWidget->SetInteractor( this );
 	
 	UseCaptureMouseOn();
 }
@@ -491,4 +497,10 @@ void RenderView::NormalizedViewportToWorld( double x, double y, double& world_x,
 {
 	MyUtils::NormalizedViewportToWorld( m_renderer, x, y, world_x, world_y, world_z );
 }
+
+void RenderView::WorldToViewport( double world_x, double world_y, double world_z, double& x, double& y, double& z )
+{
+	MyUtils::WorldToViewport( m_renderer, world_x, world_y, world_z, x, y, z );
+}
+
 

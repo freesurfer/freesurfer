@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 21:21:33 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,6 +44,7 @@
 #include "vtkCutter.h"
 #include "vtkDecimatePro.h"
 #include "vtkMapperCollection.h"
+#include "vtkTubeFilter.h"
 #include "LayerPropertiesSurface.h"
 #include "MyUtils.h"
 #include "FSSurface.h"
@@ -64,12 +65,16 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
 	}
 	mProperties = new LayerPropertiesSurface();
 	mProperties->AddListener( this );
+	
 //	m_mainActor = vtkLODActor::New();
 	m_mainActor = vtkActor::New();
 	mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
 	mLowResFilter->SetTargetReduction( 0.9 );
 //	mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
 //	mMediumResFilter->SetTargetReduction( 0.9 );
+	
+	m_vectorActor = vtkActor::New();
+	m_vectorActor->GetProperty()->SetColor( 1, 0.75, 0 );
 }
 
 LayerSurface::~LayerSurface()
@@ -80,6 +85,7 @@ LayerSurface::~LayerSurface()
 		m_sliceActor3D[i]->Delete();
 	}
 	m_mainActor->Delete();
+	m_vectorActor->Delete();
 	
 	delete mProperties;
 	
@@ -92,9 +98,10 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
 	if ( m_surfaceSource )
 		delete m_surfaceSource;
 	
-	m_surfaceSource = new FSSurface( m_volumeRef->GetSourceVolume() );
+	m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
 //	m_surfaceSource->SetResampleToRAS( m_bResampleToRAS );
-	if ( !m_surfaceSource->MRISRead( m_sFilename.c_str(), wnd, event ) )
+	if ( !m_surfaceSource->MRISRead( m_sFilename.c_str(), wnd, event, 
+		  m_sVectorFilename.size() > 0 ? m_sVectorFilename.c_str() : NULL ) )
 		return false;
 	
 	InitializeSurface();
@@ -132,9 +139,20 @@ void LayerSurface::InitializeActors()
 	if ( m_surfaceSource == NULL )
 		return;
 
+	// main surface actor
 	vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	mapper->SetInput( m_surfaceSource->GetPolyData() );
 	m_mainActor->SetMapper( mapper );
+	mapper->Update();
+	
+	// vector actor
+	mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+/*	vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+	tube->SetInput( m_surfaceSource->GetVectorPolyData() );
+	tube->SetNumberOfSides( 6 );
+	tube->SetRadius(0.05 );*/
+	mapper->SetInput(  m_surfaceSource->GetVectorPolyData() );
+	m_vectorActor->SetMapper( mapper );
 	mapper->Update();
 /*	mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
 	mLowResFilter->SetInput( m_surfaceSource->GetPolyData() );
@@ -248,6 +266,7 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
 void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
 	renderer->AddViewProp( m_mainActor ); 
+	renderer->AddViewProp( m_vectorActor );
 	
 	for ( int i = 0; i < 3; i++ )
 		renderer->AddViewProp( m_sliceActor3D[i] );

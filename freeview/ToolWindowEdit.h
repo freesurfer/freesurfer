@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/09 20:50:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,8 @@ public:
 	void OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event );
 	void OnActionVoxelPolyline( wxCommandEvent& event );
 	void OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event );
+	void OnActionVoxelLivewire( wxCommandEvent& event );
+	void OnActionVoxelLivewireUpdateUI( wxUpdateUIEvent& event );
 	
 	void OnActionROIFreehand( wxCommandEvent& event );
 	void OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 21:21:33 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,6 +87,9 @@ class LayerSurface : public Layer
 		void SetFileName( const char* fn )
 			{ m_sFilename = fn; } 
 		
+		void SetVectorFileName( const char* fn )
+			{ m_sVectorFilename = fn; }
+		
 		int GetActiveSurface();
 		
 		void SetActiveSurface( int nSurfaceType );
@@ -113,11 +116,13 @@ class LayerSurface : public Layer
 		LayerMRI*			m_volumeRef;
 		
 		std::string			m_sFilename;
+		std::string			m_sVectorFilename;
 				
 		vtkActor*			m_sliceActor2D[3];
 		vtkActor*			m_sliceActor3D[3];
 	//	vtkLODActor*		m_mainActor;
 		vtkActor*			m_mainActor;
+		vtkActor*			m_vectorActor;
 };
 
 #endif 

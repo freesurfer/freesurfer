@@ -104,6 +104,8 @@ freeview_SOURCES=\
 	LayerWayPoints.h \
 	Listener.cpp \
 	Listener.h \
+	LivewireTool.cpp \
+	LivewireTool.h \
 	LUTDataHolder.cpp \
 	LUTDataHolder.h \
 	MainApp.cpp \
@@ -139,12 +141,12 @@ freeview_SOURCES=\
 	string_fixed.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
-	vtkImageLiveWire.cxx \
-	vtkImageLiveWire.h \
-	vtkImageLiveWireEdgeWeights.cxx \
-	vtkImageLiveWireEdgeWeights.h \
-	vtkImageLiveWireScale.cxx \
-	vtkImageLiveWireScale.h \
+	vtkDijkstraGraphGeodesicPath.cxx \
+	vtkDijkstraGraphGeodesicPath.h \
+	vtkDijkstraImageContourLineInterpolator.cxx \
+	vtkDijkstraImageContourLineInterpolator.h \
+	vtkDijkstraImageGeodesicPath.cxx \
+	vtkDijkstraImageGeodesicPath.h \
 	WindowQuickReference.cpp \
 	WindowQuickReference.h \
 	WorkerThread.cpp \

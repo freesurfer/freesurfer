@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -77,29 +77,41 @@ void Cursor2D::SetPosition( double* pos, bool bConnectPrevious  )
 
 void Cursor2D::Update( bool bConnectPrevious )
 {
-	vtkRenderer* renderer = m_view->GetRenderer();
+//	vtkRenderer* renderer = m_view->GetRenderer();
 
 	double dLen = m_nRadius;
-	double pos[3] = { m_dPosition[0], m_dPosition[1], m_dPosition[2] };
-	double prev_pos[3] = { m_dPosition2[0], m_dPosition2[1], m_dPosition2[2] };	
-	renderer->WorldToView( prev_pos[0], prev_pos[1], prev_pos[2] );
-	renderer->WorldToView( pos[0], pos[1], pos[2] );
-	renderer->ViewToNormalizedViewport( prev_pos[0], prev_pos[1], prev_pos[2] );
-	renderer->ViewToNormalizedViewport( pos[0], pos[1], pos[2] );
-	renderer->NormalizedViewportToViewport( prev_pos[0], prev_pos[1] );
-	renderer->NormalizedViewportToViewport( pos[0], pos[1] );
 
 	int n = 0;
 	vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 	vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+	double pos[3];
 	if ( bConnectPrevious )
 	{
-		points->InsertNextPoint( prev_pos );
+		m_view->WorldToViewport( m_dPosition2[0], m_dPosition2[1], m_dPosition2[2], pos[0], pos[1], pos[2] );		
 		points->InsertNextPoint( pos );
-		lines->InsertNextCell( 2 );
+		lines->InsertNextCell( 2 + m_dInterpolationPoints.size() / 3 );
 		lines->InsertCellPoint( n++ );
+		for ( size_t i = 0; i < m_dInterpolationPoints.size(); i+=3 )
+		{
+			m_view->WorldToViewport( m_dInterpolationPoints[i], 
+									  m_dInterpolationPoints[i+1],
+									  m_dInterpolationPoints[i+2],
+									  pos[0],
+									  pos[1],
+									  pos[2] );
+			points->InsertNextPoint( pos[0], 
+									 pos[1], 
+									 pos[2] );
+			lines->InsertCellPoint( n++ );
+		}
+		m_view->WorldToViewport( m_dPosition[0], m_dPosition[1], m_dPosition[2], pos[0], pos[1], pos[2] );		
+		points->InsertNextPoint( pos );
 		lines->InsertCellPoint( n++ );
 	}
+	else
+		m_view->WorldToViewport( m_dPosition[0], m_dPosition[1], m_dPosition[2], pos[0], pos[1], pos[2] );
+	
 	points->InsertNextPoint( pos[0] + dLen, pos[1], pos[2] );
 	points->InsertNextPoint( pos[0] - dLen, pos[1], pos[2] );
 	lines->InsertNextCell( 2 );
@@ -172,6 +184,12 @@ void Cursor2D::GetPosition( double* pos )
 {
 	for ( int i = 0; i < 3; i++ )
 		pos[i] = m_dPosition[i];
+}
+
+void Cursor2D::SetInterpolationPoints( std::vector<double> pts )
+{
+	m_dInterpolationPoints = pts;
+//	Update( true );
 }
 
 void Cursor2D::Show( bool bShow )

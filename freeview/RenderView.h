@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/23 16:27:04 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -73,6 +73,8 @@ public:
 	
 	void ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
 	void NormalizedViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
+	
+	void WorldToViewport( double world_x, double world_y, double world_z, double& x, double& y, double& z );
 	
 	int	GetInteractionMode();
 	virtual void SetInteractionMode( int nMode );

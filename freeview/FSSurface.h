@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/28 17:26:46 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@ public:
 	
 	enum ACTIVE_SURFACE { SurfaceMain = 0, SurfaceInflated, SurfaceWhite, SurfacePial, SurfaceOriginal };
 	
-	bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event );	
+	bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, const char* vector_filename = NULL );	
 
 	void GetBounds ( float oRASBounds[6] );
 	
@@ -101,8 +101,14 @@ public:
 	int GetActiveSurface()
 		{ return m_nActiveSurface; }
 	
+	bool HasVectorData()
+		{ return m_fVertexVector != NULL; }
+	
 	vtkPolyData* GetPolyData()
 		{ return m_polydata; }
+	
+	vtkPolyData* GetVectorPolyData()
+		{ return m_polydataVector; }
 	
 	MRIS* GetMRIS() { return m_MRIS; }
 	
@@ -113,6 +119,9 @@ protected:
 	void NormalFace(int fac, int n, float *norm );
 	float TriangleArea( int fac, int n );
 	void Normalize( float v[3] );
+	
+	bool LoadVectors( const char* filename );
+	void UpdateVectors();
 	
 	void SaveNormals	( MRIS* mris, int nSet );
 	void RestoreNormals	( MRIS* mris, int nSet );
@@ -130,6 +139,7 @@ protected:
 	float	m_RASCenter[3];
 	
 	vtkPolyData*	m_polydata;
+	vtkPolyData*	m_polydataVector;
 
 	// Hash table so we can look up vertices. Uses v->x,y,z.
 	MRIS_HASH_TABLE* m_HashTable[5];
@@ -148,8 +158,12 @@ protected:
 		float z;
 	};
 
+	void SaveVertices( MRIS* mris, VertexItem*& pVertex );
+	
 	VertexItem*		m_fVertexSets[NUM_OF_VSETS];
 	VertexItem*		m_fNormalSets[NUM_OF_VSETS];
+	
+	VertexItem*		m_fVertexVector;
 };
 
 #endif 

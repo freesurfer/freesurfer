@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/17 00:31:24 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/01/09 20:11:07 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -93,23 +93,29 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 				mri->SaveForUndo( view->GetViewPlane() );
 				mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
 			}
-			else if ( m_nAction == EM_Polyline )
+			else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
 			{
 				m_bEditing = true;
 				double ras2[3];
+				view->GetCursor2D()->ClearInterpolationPoints();
 				view->GetCursor2D()->GetPosition( ras2 );
 				view->GetCursor2D()->SetPosition( ras );
-				view->GetCursor2D()->SetPosition2( ras );			
+				view->GetCursor2D()->SetPosition2( ras );		
+				mri->SaveForUndo( view->GetViewPlane() );		
 				if ( m_dPolylinePoints.size() > 0 )	
-				{
-					mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );	
+				{	
+					if ( m_nAction == EM_Polyline )	
+						mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );	
+					else
+						mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
 				}			
 				else
 				{
-					mri->SaveForUndo( view->GetViewPlane() );
+				//	mri->SaveForUndo( view->GetViewPlane() );
 					m_dPolylinePoints.push_back( ras[0] );
 					m_dPolylinePoints.push_back( ras[1] );
 					m_dPolylinePoints.push_back( ras[2] );
+					view->GetCursor2D()->SetPosition( ras );
 				}	
 				
 				view->ReleaseMouse();
@@ -124,7 +130,7 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 	else if ( m_bEditing )
 	{		
 		m_bEditing = false;
-		if ( m_nAction == EM_Polyline )
+		if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
 		{
 			if ( event.MiddleDown() )
 			{
@@ -143,7 +149,10 @@ bool Interactor2DVoxelEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderVi
 					view->GetCursor2D()->GetPosition( ras2 );
 					view->GetCursor2D()->SetPosition2( ras2 );
 					view->GetCursor2D()->SetPosition( ras1 );
-					mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );	
+					if ( m_nAction == EM_Polyline )
+						mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() );	
+					else
+						mri->SetLiveWireByRAS( ras1, ras2, view->GetViewPlane() );	
 				}
 			}
 		}
@@ -166,7 +175,7 @@ bool Interactor2DVoxelEdit::ProcessMouseUpEvent( wxMouseEvent& event, RenderView
 		m_nMousePosX = event.GetX();
 		m_nMousePosY = event.GetY();
 		
-		if ( !event.LeftUp() || m_nAction != EM_Polyline || m_dPolylinePoints.size() == 0 )
+		if ( !event.LeftUp() || (m_nAction != EM_Polyline && m_nAction != EM_Livewire )|| m_dPolylinePoints.size() == 0 )
 			m_bEditing = false;		
 		
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
@@ -191,22 +200,29 @@ bool Interactor2DVoxelEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderVi
 		int posX = event.GetX();
 		int posY = event.GetY();
 		
+		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+		LayerMRI* mri = ( LayerMRI* )lc->GetActiveLayer();
+
 		if ( m_nAction == EM_Freehand )
-		{
-			LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
-			LayerMRI* mri = ( LayerMRI* )lc->GetActiveLayer();
-					
+		{				
 			double ras1[3], ras2[3];
 			view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
 			view->MousePositionToRAS( posX, posY, ras2 );
 			
 			mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
 		}
-		else if ( m_nAction == EM_Polyline )
+		else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
 		{
 			double ras[3];
 			view->MousePositionToRAS( posX, posY, ras );
 			view->GetCursor2D()->SetPosition2( ras );
+			if ( m_nAction == EM_Livewire )
+			{
+				view->GetCursor2D()->SetInterpolationPoints( 
+						mri->GetLiveWirePointsByRAS( ras,
+													 view->GetCursor2D()->GetPosition(),
+													 view->GetViewPlane() ) );
+			}
 			view->GetCursor2D()->SetPosition( view->GetCursor2D()->GetPosition(), true );
 			view->NeedRedraw();
 		}
@@ -254,7 +270,7 @@ void Interactor2DVoxelEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
 			}
 		}
 		
-		if ( m_nAction == EM_Freehand || m_nAction == EM_Polyline )
+		if ( m_nAction != EM_Fill )
 		{
 			if ( event.IsKindOf( CLASSINFO( wxKeyEvent ) ) )
 			{	
