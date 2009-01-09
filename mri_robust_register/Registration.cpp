@@ -100,6 +100,9 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
      pw.second = NULL;
       // transform weights vector back to 3d (mri real)
       pw.second = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
+      MRIcopyHeader(mriS, pw.second) ;
+      pw.second->type = MRI_FLOAT;
+      
       MRIsetResolution(pw.second, mriS->xsize, mriS->ysize, mriS->zsize);
       int x,y,z;
       long int count = 1, val;
@@ -119,7 +122,7 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
  	    count++;
 	 }
       }
-      cout << endl;
+      //cout << endl;
       //cout << " count-1: " << count-1 << " rows: " << pwm.second->rows << endl;
       assert(count-1 == pwm.second->rows);
      if (pwm.second != NULL) MatrixFree(&pwm.second);
@@ -129,6 +132,9 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
      pw.first = R.getLSEst();
      pw.second = NULL; // no weights in this case
   }
+
+  MatrixFree(&Ab.first);
+  MatrixFree(&Ab.second);
   
   return pw;
 }
@@ -233,10 +239,10 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI 
        p = NULL;
 
 //   DEBUG
-     MRIwrite(mri_Swarp,"mriSwarp.mgz");
-     MRIwrite(mri_Twarp,"mriTwarp.mgz");
+     MRIwrite(mri_Swarp,"mriS-warp.mgz");
+     MRIwrite(mri_Twarp,"mriT-warp.mgz");
      MRI* salign = MRIlinearTransform(mri_Swarp, NULL,cmd.first);
-     MRIwrite(salign,"mriSalign.mgz");
+     MRIwrite(salign,"mriS-align.mgz");
      MRIfree(&salign);
        
        // store M and d
@@ -629,10 +635,11 @@ void Registration::testRobust(const std::string& fname, int testno)
     mriTs = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTs, a, SAMPLE_TRILINEAR);
     mriTt = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTt, ai, SAMPLE_TRILINEAR);
     
+    //double nn = (mriTs->depth/3) +(mriTs->height/3) +(mriTs->width/3)+1;
     for (int dd = 0;dd<mriTs->depth/3;dd++)
     for (int cc = 0;cc<mriTs->height/3;cc++)
     for (int rr = 0;rr<mriTs->width/3;rr++)
-      MRIvox(mriTs, rr, cc, dd) = (rr)+(cc)+(dd)+1; 
+      MRIvox(mriTs, rr, cc, dd) = ((rr)+(cc)+(dd)+1) ; 
     
     MRIwrite(mriTs,"junkrotS.mgz");
     MRIwrite(mriTt,"junkrotT.mgz");
@@ -826,10 +833,10 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   MRIfree(&Tfx);MRIfree(&Tfy);MRIfree(&Tfz);
   
   cout << " done!" << endl;
-      MRIwrite(fx1,"fx.mgz");
-      MRIwrite(fy1,"fy.mgz");
-      MRIwrite(fz1,"fz.mgz");
-      MRIwrite(ft1,"ft.mgz");
+      //MRIwrite(fx1,"fx.mgz");
+      //MRIwrite(fy1,"fy.mgz");
+      //MRIwrite(fz1,"fz.mgz");
+      //MRIwrite(ft1,"ft.mgz");
 
   MRI * fx,* fy,* fz,* ft;
   if (dosubsample)
@@ -1185,6 +1192,7 @@ MRI * Registration::getBlur(MRI* mriS)
   MRI *tmp3 = convolute(tmp2,mri_prefilter,3);
   MRIfree(&tmp1);
   MRIfree(&tmp2);
+  MRIfree(&mri_prefilter);
   return tmp3;
 }
 
@@ -1796,9 +1804,9 @@ MATRIX * Registration::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
         sum += fabs(*MATRIX_RELT(ms2, r, c)) ;
       if (sum > 0.0001)
       {
-         cout << " Error : " << sum << endl;
-         MatrixPrintFmt(stdout,"% 2.8f",ms2);
-         cout << endl;
+         cerr << " Error : " << sum << endl;
+         //MatrixPrintFmt(stdout,"% 2.8f",ms2);
+         cerr << endl;
 	 assert(1==2);
       }
       MatrixFree(&ms2);

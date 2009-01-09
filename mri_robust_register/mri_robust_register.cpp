@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/01/05 18:45:12 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/01/09 19:10:08 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -64,6 +64,10 @@ extern "C" {
 
 using namespace std;
 
+//#define SAT 4.685 // this is suggested for gaussian noise
+#define SAT 20
+#define SSAMPLE -1
+
 struct Parameters
 {
   string mov;
@@ -82,14 +86,14 @@ struct Parameters
   MRI*   mri_src;
   MRI*   mri_dst;
 };
-static struct Parameters P = { "","","",false,false,false,"",false,-1,4.685,false,"",100,NULL,NULL};
+static struct Parameters P = { "","","",false,false,false,"",false,-1,SAT,false,"",SSAMPLE,NULL,NULL};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.1 2009/01/05 18:45:12 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.2 2009/01/09 19:10:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -451,11 +455,13 @@ static void printUsage(void) {
   cout << "  -I, --iscale               allow also intensity scaling" << endl;
   cout << "      --transonly            find 3 parameter translation" << endl;
   cout << "  -T, --transform lta        use transform lta on source, type 'id' for identity" << endl;
-  cout << "      --leastsquares         use least squares instead of robust M-estimator" << endl;
+  cout << "                                default is RAS-mov to VOX to RAS-dst" << endl;
+  cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
   cout << "  -N, --iterate <#>          iterate # times on highest res. (no multiscale)" << endl;
-  cout << "  -S, --sat <float>          set saturation for robust estimator (default 4.685)" << endl;
-  cout << "      --subsample <#>        subsample if dim > # on all axes (default 100)" << endl;
-  cout << "                             set to -1 to avoid subsampling on all scales" << endl;
+  cout << "      --sat <float>          set saturation for robust estimator (default "<<SAT<<")" << endl;
+  cout << "      --subsample <#>        subsample if dim > # on all axes" << endl;
+  cout << "                                (default never subsample)" << endl;
+//  cout << "                                set to -1 to avoid subsampling on all scales" << endl;
   cout << "  -W, --warp outvol.mgz      apply final xform on source, write to outvol.mgz" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
@@ -523,6 +529,37 @@ static void printUsage(void) {
  cout << endl;
 
 }
+
+// /*!
+// \fn void initRegistration(Registration & R, const Parameters & P)
+// \brief Converts uchar MRI to float 0..1
+// \param mri_uchar MRI volume of type uchar (0..255)
+// \returns convered float MRI volume (0..1)
+// */
+// static MRI* convertFloat01(MRI * mri_uchar)
+// {
+//   int x,y,z;
+//   if (mri_uchar->type != MRI_UCHAR)
+//   {
+//   	cerr << " convertFloat01 failed: input must be of type UCHAR" << endl;
+// 	assert(mri_uchar->type == MRI_UCHAR);
+//   }
+//   
+//   MRI* mri_float = MRIalloc( mri_uchar->width,  mri_uchar->height, mri_uchar->depth,MRI_FLOAT) ;
+//   MRIcopyHeader(mri_uchar, mri_float) ;
+//   mri_float->type = MRI_FLOAT;
+//   
+//   for (z = 0 ; z < mri_uchar->depth ; z++)
+//   for (y = 0 ; y < mri_uchar->height; y++)
+//   for (x = 0 ; x < mri_uchar->width ; x++)
+//   {
+//      MRIsetVoxVal(mri_float, x,y,z,0, MRIgetVoxVal(mri_uchar,x,y,z,0)/255.0);
+//      //if (MRIgetVoxVal(mri_uchar,x,y,z,0) > 150)
+//      //cout << " uchar: " << MRIgetVoxVal(mri_uchar,x,y,z,0) << "   float: " << MRIgetVoxVal(mri_float,x,y,z,0) << endl;
+// 
+//   }
+//   return mri_float;
+// }
 
 /*!
 \fn void initRegistration(Registration & R, const Parameters & P)
@@ -658,6 +695,13 @@ static void initRegistration(Registration & R, Parameters & P)
     MRIcopyFrame(mri_tmp, mri_src, 0, i) ;
     MRIfree(&mri_tmp) ;
   }
+//   if (mri_src->type == MRI_UCHAR) 
+//   {
+//      mri_tmp = mri_src;
+//      mri_src = convertFloat01(mri_tmp);
+//      MRIfree(&mri_tmp);
+//   }
+//   assert (mri_src->type == MRI_FLOAT);
   R.setSource(mri_src);
   P.mri_src = mri_src;
 
@@ -674,6 +718,13 @@ static void initRegistration(Registration & R, Parameters & P)
      exit(1);
   }
   cout << endl;
+//   if (mri_dst->type == MRI_UCHAR) 
+//   {
+//      mri_tmp = mri_dst;
+//      mri_dst = convertFloat01(mri_tmp);
+//      MRIfree(&mri_tmp);
+//   }
+//   assert (mri_dst->type == MRI_FLOAT);
   R.setTarget(mri_dst);
   P.mri_dst = mri_dst;
 }
@@ -733,7 +784,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      nargs = 1;
      cout << "Using previously computed initial transform: "<< argv[1] << endl;
   }
-  else if (!strcmp(option, "LEASTSQUARES") )
+  else if (!strcmp(option, "LEASTSQUARES") || *option =='L'  )
   {
      P.leastsquares = true;
      cout << "Using standard least squares (non-robust)!" << endl;
@@ -754,7 +805,8 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
      P.subsamplesize = atoi(argv[1]);
      nargs = 1 ;
-     cout << "Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
+     if (P.subsamplesize >= 0) cout << "Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
+     else cout << "Will not subsample on any scale!" << endl;
   }
   else if (!strcmp(option, "WARP") || *option =='W' )
   {

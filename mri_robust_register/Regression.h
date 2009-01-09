@@ -18,8 +18,7 @@ extern "C" {
 }
 #endif
 
-//#define SAT 4.685  // this is suggested for gaussian noise
-#define SAT 8.685
+#define SAT 4.685  // this is suggested for gaussian noise
 
 #include <utility>
 class Regression 

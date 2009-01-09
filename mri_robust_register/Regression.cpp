@@ -14,6 +14,32 @@ MATRIX * Regression::getRobustEst(double sat, double sig)
    return pw.first;
 }
 
+// void printusage ()
+// {
+//  char buf[30];
+//         snprintf(buf, 30, "/proc/%u/statm", (unsigned)getpid());
+//         FILE* pf = fopen(buf, "r");
+//         if (pf) {
+//             unsigned size; //       total program size
+//             //unsigned resident;//   resident set size
+//             //unsigned share;//      shared pages
+//             //unsigned text;//       text (code)
+//             //unsigned lib;//        library
+//             //unsigned data;//       data/stack
+//             //unsigned dt;//         dirty pages (unused in Linux 2.6)
+//             //fscanf(pf, "%u" /* %u %u %u %u %u"*/, &size/*, &resident, &share, &text, &lib, &data*/);
+//             fscanf(pf, "%u" , &size);
+//             //DOMSGCAT(MSTATS, std::setprecision(4) << size / (1024.0) << "MB mem used");
+// 	    cout <<  size / (1024.0) << " MB mem used" << endl;
+//         }
+//         fclose(pf);
+// while (1)
+// {
+//     if ('n' == getchar())
+//        break;
+// }	
+// }
+
 pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
 // solves overconstrained system A p = b using
 // M estimators (Beaton and Tukey's biweigt function)
@@ -21,7 +47,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
 // where p is the robust solution and w the used weights
 // Method: iterative reweighted least squares
 {
-//   cout << "  Regression::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
+   cout << "  Regression::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
 
   // constants
   int MAXIT = 100;
@@ -32,24 +58,25 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
   vector < double > err(MAXIT);
   err[0] = numeric_limits<double>::infinity();
   err[1] = 1e20;
+  int count = 1, rr, cc;
+  double sigma;
+  
   MATRIX * w = MatrixConstVal(1.0,A->rows,1,NULL);
   MATRIX * r = MatrixConstVal(1.0,A->rows,1,NULL);
   MATRIX * p = MatrixZero(A->cols, 1, NULL);
   
   MATRIX * lastp = MatrixCopy(p,NULL);
   MATRIX * lastw = MatrixCopy(w,NULL);
-  MATRIX * lastr = MatrixCopy(r,NULL);
-  int count = 1, rr, cc;
-  double sigma;
+  MATRIX * lastr = MatrixCopy(B,NULL);  // error lastr = b-A*p = b  , since p = 0 initially
+
   MATRIX * wAi = NULL, *v = NULL;
   MATRIX * wA = MatrixAlloc(A->rows, A->cols, MATRIX_REAL);
   MATRIX * wr = MatrixAlloc(A->rows, 1, MATRIX_REAL);
 
   // compute error (lastr = b-A*p)
-  v     = MatrixMultiply(A,p,NULL);
-  lastr = MatrixSubtract(B,v,lastr);
-  MatrixFree(&v);
-  v = NULL;
+  //v     = MatrixMultiply(A,p,NULL);
+  //lastr = MatrixSubtract(B,v,lastr);
+  //MatrixFree(&v); v = NULL;
   
   // iteration until we increase the error, we reach maxit or we have no error
   while ( err[count-1] > err[count] && count < MAXIT && err[count] > EPS )
@@ -57,13 +84,15 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     // save previous values     
     count++;
     
+    //cout << " count: "<< count << endl;
+        
     // recompute weights
     if (count > 2)
     {
       sigma = getSigmaMAD(lastr);
       //cout << " sigma: " << sigma << endl;
       MatrixScalarMul(lastr,(float)1.0/sigma,r); // use r temporarily here
-      getSqrtTukeyDiaWeights(r, sat, w); // here we get sqrt of weights
+      getSqrtTukeyDiaWeights(r, sat, w); // here we get sqrt of weights into w
     }
     
     
@@ -76,13 +105,15 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     // compute wr  = ((b-A*p).*w);
     for (rr = 1;rr<=wr->rows;rr++)
   	wr->rptr[rr][1] = lastr->rptr[rr][1] * w->rptr[rr][1];
-    
+
     // compute new p = lastp + pinv(wA)*wr
     //wAi = MatrixPseudoInverse(wA,wAi);
-    wAi = MatrixSVDPseudoInverse(wA,wAi);
+    if (wAi != NULL) MatrixFree(&wAi);
+    wAi = MatrixSVDPseudoInverse(wA,NULL);
+    
    if (wAi == NULL)
   {
-     cerr << " could not compute pseudo inverse!" << endl;
+     cerr << "    could not compute pseudo inverse!" << endl;
      //cerr << " wa: " << endl ;
       //   MatrixPrintFmt(stdout,"% 2.8f",wAi);
 	//cerr << endl;
@@ -97,6 +128,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     v   = MatrixMultiply(wAi,wr,v);
    // cout << " asdf" << endl;
     MatrixAdd(lastp,v,p);
+    
         
     // compute new residual and total errors (using new p)    
     // r = b - (A*p)
@@ -110,7 +142,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     {
       float t1 = w->rptr[rr][1];
       float t2 = r->rptr[rr][1];
-      t1 *= t1;
+      t1 *= t1; // remember w is the sqrt of the weights
       t2 *= t2;
       sw  += t1;
       swr += t1*t2;
@@ -136,13 +168,13 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     MatrixFree(&w);
     p = lastp;
     w = lastw;
-    cout << " Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
+    cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
   }
   else
   {
     MatrixFree(&lastp);
     MatrixFree(&lastw);
-    cout << " Step: " << count-1 << " ERR: "<< err[count]<< endl;
+    cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
   } 
   
   MatrixFree(&lastr);
@@ -163,10 +195,10 @@ MATRIX* Regression::getLSEst(MATRIX* outX)
   MATRIX* Ai = MatrixSVDPseudoInverse(A,NULL);
   if (Ai == NULL)
   {
-     cerr << " could not compute pseudo inverse!" << endl;
-     cerr << " A: " << endl ;
-     MatrixPrintFmt(stdout,"% 2.8f",A);
-     cerr << endl;
+     cerr << "    could not compute pseudo inverse!" << endl;
+     //cerr << "    A: " << endl ;
+     //MatrixPrintFmt(stdout,"% 2.8f",A);
+     //cerr << endl;
      assert(Ai != NULL);
   }
   outX   = MatrixMultiply(Ai,B,outX);
@@ -183,7 +215,7 @@ MATRIX* Regression::getLSEst(MATRIX* outX)
       serror += R->rptr[rr][cc] * R->rptr[rr][cc];
     }
   MatrixFree(&R);
-  cout << " squared error: " << serror << endl;
+  cout << "     squared error: " << serror << endl;
   
   
   return outX;
@@ -227,11 +259,16 @@ MATRIX * Regression::getSqrtTukeyDiaWeights(MATRIX * r, double sat, MATRIX * w)
 	double t1, t2;
 	int rr,cc;
 	int count = 1;
+	int ocount = 0;
 	for (rr = 1;rr<=r->rows;rr++)
 	for (cc = 1;cc<=r->cols;cc++)
 	{
 	   // cout << " fabs: " << fabs(r->rptr[rr][cc]) << " sat: " << sat << endl;
-		if (fabs(r->rptr[rr][cc]) > sat) w->rptr[count][1] = 0;
+		if (fabs(r->rptr[rr][cc]) > sat)
+		{
+		   w->rptr[count][1] = 0;
+		   ocount++;
+		}
 		else
 		{
 			t1 = r->rptr[rr][cc]/sat;
@@ -241,6 +278,7 @@ MATRIX * Regression::getSqrtTukeyDiaWeights(MATRIX * r, double sat, MATRIX * w)
 		}
 		count++;
 	}
+	//cout << " over threshold: " << ocount << " times ! " << endl;
 	return w;
 }
 
