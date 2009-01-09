@@ -2,9 +2,9 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: nicks $
-##    $Date: 2009/01/07 22:09:20 $
-##    $Revision: 1.150.2.1 $
+##    $Author: krish $
+##    $Date: 2009/01/09 17:13:14 $
+##    $Revision: 1.150.2.2 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1645,7 +1645,7 @@ proc SetOverlayField { inField } {
 		$gaHistogramData(zoomedmin) $gaHistogramData(zoomedmax) }
 	} else {
 	      if {[info exists gaHistoWidget(graph)]} {
-		Histo_Unzoom $gaHistoWidget(graph) }
+		catch { Histo_Unzoom $gaHistoWidget(graph) } }
 	}
     } else {
 	# No saved zoom settings, just zoom out.
