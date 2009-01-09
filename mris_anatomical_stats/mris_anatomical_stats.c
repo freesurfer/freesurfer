@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/19 20:57:08 $
- *    $Revision: 1.54.2.3 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/09 22:23:40 $
+ *    $Revision: 1.54.2.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.54.2.3 2008/12/19 20:57:08 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.54.2.4 2009/01/09 22:23:40 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.54.2.3 2008/12/19 20:57:08 greve Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.54.2.4 2009/01/09 22:23:40 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -598,6 +598,10 @@ main(int argc, char *argv[])
     {
       if (dofs[i] == 0 || names[i] == NULL)
         continue ;
+
+      // don't bother printing corpuscallosum stats: its not cortex
+      if (0 == strcmp(names[i],"corpuscallosum"))
+        continue;
 
       MRISuseMeanCurvature(mris) ;
       mean_abs_mean_curvature = MRIScomputeAbsoluteCurvatureMarked(mris,i) ;
