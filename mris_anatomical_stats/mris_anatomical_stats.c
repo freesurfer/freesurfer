@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/19 20:56:51 $
- *    $Revision: 1.57 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/09 19:57:03 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.57 2008/12/19 20:56:51 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.58 2009/01/09 19:57:03 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.57 2008/12/19 20:56:51 greve Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.58 2009/01/09 19:57:03 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -320,7 +320,8 @@ main(int argc, char *argv[])
       else
         sprintf(full_name, "%s/%s/label/%s", sdir, sname, label_name) ;
     }
-    if(! fio_FileExistsReadable(full_name))  sprintf(full_name, "%s", label_name) ;
+    if(! fio_FileExistsReadable(full_name))
+      sprintf(full_name, "%s", label_name) ;
   }
   else if (annotation_name)  {
     int vno, index ;
@@ -598,6 +599,10 @@ main(int argc, char *argv[])
     {
       if (dofs[i] == 0 || names[i] == NULL)
         continue ;
+
+      // don't bother printing corpuscallosum stats: its not cortex
+      if (0 == strcmp(names[i],"corpuscallosum"))
+        continue;
 
       MRISuseMeanCurvature(mris) ;
       mean_abs_mean_curvature = MRIScomputeAbsoluteCurvatureMarked(mris,i) ;
