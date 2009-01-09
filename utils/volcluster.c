@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/21 19:15:33 $
- *    $Revision: 1.42 $
+ *    $Date: 2009/01/09 07:15:39 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1432,7 +1432,7 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
   FILE *fp;
   CLUSTER_SIM_DATA *csd;
   char tag[1000], tmpstr[1000], c;
-  int r,nthrep;
+  int r,nthrep,nrepstmp;
   double d;
 
   fp = fopen(csdfile,"r");
@@ -1471,15 +1471,18 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       else if (!strcmp(tag,"varfwhm"))    fscanf(fp,"%lf",&csd->varfwhm);
       else if (!strcmp(tag,"searchspace")) fscanf(fp,"%lf",&csd->searchspace);
       else if (!strcmp(tag,"nreps")){
-        fscanf(fp,"%d",&(csd->nreps));
-        if( !strcmp(csd->anattype,"surface") && csd->nreps != -1){
+        fscanf(fp,"%d",&(nrepstmp));
+        if( !strcmp(csd->anattype,"surface") && nrepstmp != -1){
 	  printf("ERROR: this CSD file (%s) is an older version and\n",csdfile);
 	  printf("is incompatible with post-Dec08 versions of FreeSurfer\n");
-	  // Post-Dec08 versions set nreps=0 and save the "nrepetitions"
+	  // Post-Dec08 versions set nreps=-1 and save the "nrepetitions"
 	  // tag to store the number of repetitions for surface data.
 	  exit(1);
 	}
-        if( !strcmp(csd->anattype,"volume") ) CSDallocData(csd);
+        if( !strcmp(csd->anattype,"volume") ){
+	  csd->nreps = nrepstmp;
+	  CSDallocData(csd);
+	}
       }
       else if (!strcmp(tag,"nrepetitions")){
         fscanf(fp,"%d",&(csd->nreps));
@@ -1844,7 +1847,7 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
   for (nthrep = 0; nthrep < csd->nreps; nthrep++)
     if (csd->MaxClusterSize[nthrep] > ClusterSize) nover++;
 
-  // If none is over, then set nover = 1 so that things don't beak
+  // If none is over, then set nover = 1 so that things don't break
   if (nover == 0) nover = 1;
 
   // Compute the nomial pvalue
@@ -1867,7 +1870,6 @@ double CSDpvalClustSize(CLUSTER_SIM_DATA *csd, double ClusterSize,
     psum += sc_ran_binomial_pdf(k,pval,csd->nreps);
   }
   nhi = k;
-
   // Compute the pvalues at the lower and upper confidence intervals
   *pvalLow = (double)nlow/csd->nreps;
   *pvalHi  = (double)nhi/csd->nreps;
