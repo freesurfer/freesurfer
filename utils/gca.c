@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/12/08 16:33:18 $
- *    $Revision: 1.255 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/10 01:42:35 $
+ *    $Revision: 1.256 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -5300,15 +5300,16 @@ GCAfindStableSamples(GCA *gca,
                      int unknown_nbr_spacing)
 {
   GCA_SAMPLE *gcas ;
-  int        xi, yi, zi, width, height, depth, label, nfound,
-  label_counts[MAX_DIFFERENT_LABELS], best_label, nzeros, r ;
-  float      max_prior, total_means[MAX_GCA_INPUTS],
-  /*mean_dist,*/ best_mean_dist,
-  priors[MAX_DIFFERENT_LABELS], means[MAX_DIFFERENT_LABELS][MAX_GCA_INPUTS],
-  vars[MAX_DIFFERENT_LABELS], max_priors[MAX_DIFFERENT_LABELS],
-  prior_stride, x, y, z, min_unknown[MAX_GCA_INPUTS],\
-  max_unknown[MAX_GCA_INPUTS], prior_factor ;
-  MRI        *mri_filled ;
+  int   xi, yi, zi, width, height, depth, label, nfound;
+  int   label_counts[MAX_DIFFERENT_LABELS], best_label, nzeros, r ;
+  float max_prior, total_means[MAX_GCA_INPUTS];
+  float best_mean_dist;
+  float priors[MAX_DIFFERENT_LABELS];
+  float means[MAX_DIFFERENT_LABELS][MAX_GCA_INPUTS];
+  float vars[MAX_DIFFERENT_LABELS], max_priors[MAX_DIFFERENT_LABELS];
+  float prior_stride, x, y, z, min_unknown[MAX_GCA_INPUTS];
+  float max_unknown[MAX_GCA_INPUTS], prior_factor ;
+  MRI   *mri_filled ;
 
 #define MIN_UNKNOWN_DIST  2
 
@@ -12845,7 +12846,17 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
     else
       mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
-    mri_peak = h_mri->bins[mri_peak] ;
+    if ((h_mri->nbins <= mri_peak) || (mri_peak < 0))
+    {
+      printf("WARNING: gca.c::GCAhistoScaleImageIntensities: "
+             "h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
+      mri_peak = 0;
+    }
+    else
+    {
+      printf("h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
+      mri_peak = h_mri->bins[mri_peak] ;
+    }
     printf("before smoothing, mri peak at %d\n", mri_peak) ;
     h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -12859,7 +12870,17 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
         HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
     else
       mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
-    mri_peak = h_smooth->bins[mri_peak] ;
+    if ((h_mri->nbins <= mri_peak) || (mri_peak < 0))
+    {
+      printf("WARNING2: gca.c::GCAhistoScaleImageIntensities: "
+             "h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
+      mri_peak = 0;
+    }
+    else
+    {
+      printf("h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
+      mri_peak = h_smooth->bins[mri_peak] ;
+    }
     printf("after smoothing, mri peak at %d, scaling input intensities "
            "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
 #if 0
