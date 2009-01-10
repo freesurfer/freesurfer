@@ -13,11 +13,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/01/10 22:36:28 $
- *    $Revision: 1.257 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/10 22:49:50 $
+ *    $Revision: 1.258 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -12856,7 +12856,6 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
     else
     {
-      printf("h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
       mri_peak = h_mri->bins[mri_peak] ;
     }
     printf("before smoothing, mri peak at %d\n", mri_peak) ;
@@ -12880,7 +12879,6 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
     else
     {
-      printf("h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
       mri_peak = h_smooth->bins[mri_peak] ;
     }
     printf("after smoothing, mri peak at %d, scaling input intensities "
