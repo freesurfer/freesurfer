@@ -24,6 +24,10 @@ TESTS=test_mris_anatomical_stats
 EXTRA_DIST=test_mris_anatomical_stats test1.expected test2.expected \
 test2_logfile.expected test3.expected test4.expected
 
+clean:
+	rm -f mris_anatomical_stats *.o
+	rm -Rf testdata2 *.observed *.table *.out
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

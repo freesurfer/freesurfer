@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/07/08 17:33:14 $
-#    $Revision: 1.7 $
+#    $Date: 2009/01/10 15:55:36 $
+#    $Revision: 1.8 $
 #
-# Copyright (C) 2007,
+# Copyright (C) 2007-2009,
 # The General Hospital Corporation (Boston, MA). 
 # All rights reserved.
 #
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_anatomical_stats,v 1.7 2008/07/08 17:33:14 nicks Exp $'
+set VERSION='$Id: test_mris_anatomical_stats,v 1.8 2009/01/10 15:55:36 nicks Exp $'
 
 umask 002
 
