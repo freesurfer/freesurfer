@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/29 17:22:01 $
- *    $Revision: 1.231.2.9 $
+ *    $Date: 2009/01/10 22:46:38 $
+ *    $Revision: 1.231.2.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12856,6 +12856,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
   printf("using real data threshold=%2.1f\n", min_real_val) ;
 
   MRIfindApproximateSkullBoundingBox(mri_frame, min_real_val, &box) ;
+  printf("skull bounding box = (%d, %d, %d) --> (%d, %d, %d)\n",
+         box.x, box.y, box.z, box.x+box.dx-1, box.y+box.dy-1,box.z+box.dz-1);
   mri_mask = MRIbinarize(mri_frame, NULL, min_real_val, 0, 1) ;
   MRIfree(&mri_frame) ;
   HISTOfree(&h_mri) ;
@@ -17041,7 +17043,12 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           lower_thresh = 75 ;
           upper_thresh = 120 ;
           break ;
-        case Left_Cerebral_White_Matter:
+        case Left_Amygdala:
+        case Right_Amygdala:
+          lower_thresh = 50 ;
+          upper_thresh = 90 ;
+          break ;
+       case Left_Cerebral_White_Matter:
         case Right_Cerebral_White_Matter:
           lower_thresh = 90 ;
           upper_thresh = 130 ;
@@ -17057,7 +17064,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         case Fourth_Ventricle:
         case CSF:
           lower_thresh = 0 ;
-          upper_thresh = 45 ;
+          upper_thresh = 55 ;
           break ;
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
