@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/07/25 18:38:47 $
- *    $Revision: 1.395.2.5 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/10 22:45:50 $
+ *    $Revision: 1.395.2.6 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.5 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.6 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -2316,6 +2316,74 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   if (max_dark < MIN_DARK)
     z1 = mri->depth-1 ;
   box->dz = z1 - box->z + 1 ;
+
+  if (box->dz < 5) // have to avoid being right on the midline
+  {
+    nlight = ndark = max_dark = 0 ;
+    x -= 15 ;
+    y = nint(means[1]) ;
+    for (z1 = start = z = nint(means[2]) ; z >= 0 ; z--)
+    {
+      MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+      if (val < thresh)
+      {
+        if (!ndark)
+          start = z ;
+        ndark++ ;
+        nlight = 0 ;
+      }
+      else
+      {
+        if (++nlight > MAX_LIGHT)
+          max_dark = 0 ;
+        if (ndark >= max_dark)
+        {
+          max_dark = ndark ;
+          z1 = start ;
+        }
+        ndark = 0 ;
+      }
+    }
+    if (ndark > max_dark)
+    {
+      max_dark = ndark ;
+      z1 = start ;
+    }
+    if (max_dark < MIN_DARK)
+      z1 = 0 ;
+    box->z = z1 ;
+    nlight = ndark = max_dark = 0 ;
+    for (start = z = nint(means[2]) ; z < depth ; z++)
+    {
+      MRIsampleVolumeType(mri, x,  y, z, &val, SAMPLE_NEAREST) ;
+      if (val < thresh)
+      {
+        if (!ndark)
+          start = z ;
+        ndark++ ;
+        nlight = 0 ;
+      }
+      else
+      {
+        if (++nlight > MAX_LIGHT)
+          max_dark = 0 ;
+        if (ndark >= max_dark)
+        {
+          max_dark = ndark ;
+          z1 = start ;
+        }
+        ndark = 0 ;
+      }
+    }
+    if (ndark > max_dark)
+    {
+      max_dark = ndark ;
+      z1 = start ;
+    }
+    if (max_dark < MIN_DARK)
+      z1 = mri->depth-1 ;
+    box->dz = z1 - box->z + 1 ;
+  }
 
   return(NO_ERROR) ;
 }
