@@ -1,17 +1,16 @@
 /**
  * @file  mrihisto.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for MRI data structure histograms
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.37 $
+ *    $Date: 2009/01/10 01:41:43 $
+ *    $Revision: 1.38 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -22,17 +21,6 @@
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/*
- *       FILE NAME:   mrihisto.c
- *
- *       DESCRIPTION: utilities for MRI  data structure histograms
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
  *
  */
 
@@ -800,7 +788,11 @@ MRIhistogram(MRI *mri, int nbins)
   return(histo) ;
 }
 HISTOGRAM  *
-MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int label, int nbins)
+MRIhistogramLabelRegion(MRI *mri, 
+                        MRI *mri_labeled, 
+                        MRI_REGION *region, 
+                        int label, 
+                        int nbins)
 {
   int        width, height, depth, x, y, z, bin_no, x0, x1, y0, y1, z0, z1 ;
   HISTOGRAM  *histo ;
@@ -862,8 +854,10 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
           break;
 
         default:
-          ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                             "MRIhistogramLabelRegion: unsupported type %d",mri->type));
+          ErrorReturn(NULL, 
+                      (ERROR_UNSUPPORTED,
+                       "MRIhistogramLabelRegion: unsupported type %d",
+                       mri->type));
           break ;
         }
       }
@@ -902,7 +896,8 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   height = mri->height ;
   depth = mri->depth ;
 
-  // note that I think this is correct, but other routines have off-by-1/2 type errors in them (BRF)!
+  // note that I think this is correct, 
+  // but other routines have off-by-1/2 type errors in them (BRF)!
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
     histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
@@ -949,8 +944,10 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           break;
 
         default:
-          ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                             "MRIhistogramLabel: unsupported type %d",mri->type));
+          ErrorReturn(NULL, 
+                      (ERROR_UNSUPPORTED,
+                       "MRIhistogramLabel: unsupported type %d",
+                       mri->type));
           break ;
         }
       }
@@ -1054,24 +1051,28 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
                                     wm_low/*GRAY_LOW*/,
                                     wm_hi-PEAK_SEPARATION/2-2);
         if (wm_peak >= 0)
-          wm_peak = hsmooth->bins[wm_peak] ;  // convert it to an image intensity
+          wm_peak = 
+            hsmooth->bins[wm_peak] ;  // convert it to an image intensity
         gray_peak =
           HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
                                     GRAY_LOW+PEAK_SEPARATION/2+2,
                                     wm_peak-PEAK_SEPARATION+1) ;
         if (gray_peak >= 0)
-          gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
+          gray_peak = 
+            hsmooth->bins[gray_peak] ;  // convert it to an image intensity
         if (gray_peak >= 0 && wm_peak >= 0)
         {
           while (gray_peak > gray_hi)  /* white matter is bimodal */
           {
             wm_peak = gray_peak ;
             gray_peak =
-              HISTOfindLastPeakInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT,
+              HISTOfindLastPeakInRegion(hsmooth, 
+                                        PEAK_SEPARATION, MIN_VOXELS_PCT,
                                         GRAY_LOW+PEAK_SEPARATION/2+2,
                                         wm_peak-PEAK_SEPARATION+1) ;
             if (gray_peak >= 0)
-              gray_peak = hsmooth->bins[gray_peak] ;  // convert it to an image intensity
+              gray_peak = 
+                hsmooth->bins[gray_peak] ;  // convert it to an image intensity
           }
         }
 
