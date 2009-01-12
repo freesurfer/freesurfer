@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.8 2007/01/26 21:22:54 greve Exp $
+# $Id: asegstats2table,v 1.8.2.1 2009/01/12 19:18:30 greve Exp $
 import sys;
 import os;
 import string;
@@ -18,15 +18,28 @@ import tempfile;
 # of the segmentation in mm3 or the mean intensity over the structure.
 # The first row is a list of the segmentation names. The first column
 # is the subject name. If the measure is volume, then the estimated
-# intracranial volume (eTIV) is printed as the last column.
+# intracranial volume (eTIV) is printed as the 2nd to last column 
+# (if present in the input), and BrainSegVol is the last column.
 
-# The subjects list can be specified in either of two ways:
+# The subjects list can be specified in one of four ways:
 #   1. Specify each subject with --s:
 #             --s subject1 --s subject2 ...
 #   2. Specify all subjects after --subjects. --subjects does not have
 #      to be the last argument. Eg:
 #             --subject subject1 subject2 ... 
-#
+
+#   3. Specify each input file with --i:
+#        --i subject1/stats/aseg.stats
+#        --i subject2/stats/aseg.stats  ...
+#   4. Specify all input files after --inputs. --inputs does not have
+#      to be the last argument. Eg:
+#        --inputs subject1/stats/aseg.stats subject2/stats/aseg.stats ...
+
+# The first two methods assume the freesurfer directory structure. The
+# last two are general and can be used with any file produced by
+# mri_segstats regardless of whether it was created with recon-all or not,
+# however, the subject name is not printed in the file (just the row
+# number).
 
 # By default, the volume (mm3) of each segmentation is reported. This
 # can be changed with '--meas measure', where measure can be 
@@ -38,8 +51,9 @@ import tempfile;
 # number with --maxsegno. This can be convenient for removing
 # segmentations that are always empty.
 
-# By default, uses stats/aseg.stats. This can be changed to
-# subdir/statsfile with --subdir subdir --statsfile statsfile.
+# With methods 1 and 2 above uses stats/aseg.stats by default. 
+# This can be changed to subdir/statsfile with --subdir subdir
+# --statsfile statsfile.
 
 # ENDHELP
 # -------------------------------------------------------------------
@@ -47,10 +61,21 @@ import tempfile;
 #---------------------------------------------------------
 def print_usage():
   print "USAGE: asegstats2table";
+  print "";
   print "  --subjects  subject1 <subject2 ...>";
   print "  --s subject1 <--s subject2 ...>";
-  print "  --meas measure : default is vol (alt: mean)";
+  print "";
+  print "  --inputs  input1 <input2 ...>";
+  print "  --i input1 <--i input2 ...>";
+  print "";
+  print "  --meas measure : default is vol (alt: mean, std)";
+  print ""  
   print "  --maxsegno maxno : maximum segmentation no to report"  
+  print "  --segno segno1 <segno2 ...> : only include given segnos"  
+  print "  --no-segno segno1 <segno2 ...> : exclude given segnos"  
+  print ""  
+  print "  --stats fname : use fname instead of aseg.stats"  
+  print "  --subdir subdir : use subdir instead of stats"  
   print ""  
   print "  --t tablefile";
   print ""
@@ -90,9 +115,9 @@ def argnerr(narg,flag):
 
 #---------------------------------------------------------
 def parse_args(argv):
-  global Version,debug;
+  global Version,debug,OKToSkip,DoDirect;
   global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
-  global subdir, statsname;
+  global subdir, statsname, ExcludeSegNo, IncludeSegNo;
 
   del argv[0]; # get past program name (del is like shift)
 
@@ -113,6 +138,21 @@ def parse_args(argv):
         del argv[0];
         if(len(argv) < 1): break;
       #endwhile
+      DoDirect = 0;
+    elif(flag == "--i"):
+      if(len(argv) < 1): argnerr(1,flag);
+      SUBJECTS.insert(nsubjects,argv[0]); del argv[0];
+      nsubjects = nsubjects + 1;
+      DoDirect = 1;
+    elif(flag == "--inputs"):
+      if(len(argv) < 1): argnerr(1,flag);
+      while(not isflag(argv[0])):
+        SUBJECTS.insert(nsubjects,argv[0]); 
+        nsubjects = nsubjects + 1;
+        del argv[0];
+        if(len(argv) < 1): break;
+      #endwhile
+      DoDirect = 1;
     elif(flag == "--t"):
       if(len(argv) < 1): argnerr(1,flag);
       tablefile = argv[0];  del argv[0];
@@ -122,13 +162,37 @@ def parse_args(argv):
     elif(flag == "--maxsegno"):
       if(len(argv) < 1): argnerr(1,flag);
       maxsegno = string.atof(argv[0]);  del argv[0];
-    elif(flag == "--statsfile"):
+    elif(flag == "--statsfile" or flag == "--stats"):
       if(len(argv) < 1): argnerr(1,flag);
       statsname = argv[0];  del argv[0];
     elif(flag == "--subdir"):
       if(len(argv) < 1): argnerr(1,flag);
       subdir = argv[0];  del argv[0];
       print "%s" % (subdir);
+    elif(flag == "--segno"):
+      if(len(argv) < 1): argnerr(1,flag);
+      while(not isflag(argv[0])):
+        segno = string.atoi(argv[0]); 
+        IncludeSegNo.append(segno);
+        del argv[0];
+        if(len(argv) < 1): break;
+      #endwhile
+    elif(flag == "--no-segno"):
+      if(len(argv) < 1): argnerr(1,flag);
+      while(not isflag(argv[0])):
+        segno = string.atoi(argv[0]); 
+        ExcludeSegNo.append(segno);
+        del argv[0];
+        if(len(argv) < 1): break;
+      #endwhile
+    elif(flag == "--skip"):
+      OKToSkip = 1;
+    elif(flag == "--no-choroid"):
+      ExcludeSegNo.append(31);
+      ExcludeSegNo.append(63);
+    elif(flag == "--no-vessel"):
+      ExcludeSegNo.append(30);      
+      ExcludeSegNo.append(62);      
     elif(flag == "--help"):
       print_usage();
       print_help();
@@ -164,11 +228,11 @@ def check_args():
     print "ERROR: no tablefile specified";
     sys.exit(1);
   #endif    
-  if(meas != 'volume' and meas != 'vol' and meas != 'mean'):
-    print "ERROR: meas = %s, must be volume or mean" % (meas);
+  if(meas == 'vol'): meas = 'volume';
+  if(meas != 'volume' and meas != 'mean' and meas != 'std'):
+    print "ERROR: meas = %s, must be volume, mean, or std" % (meas);
     sys.exit(1);
   #endif
-  if(meas == 'vol'): meas = 'volume';
   if(len(SUBJECTS) == 0):
     # Does not work to look in env
     if(os.environ.get('SUBJECTS',0) == 0):
@@ -182,20 +246,32 @@ def check_args():
   return 0;
 #end check_args()
 
+#----------------------------------------------------
+def IsMember(list,item,default):
+  if(len(list) == 0): return default;
+  try: index = list.index(item)+1;
+  except: index = 0;
+  return index;
+#end def  
+
 #-----------------------------------------------------------
 # ----- main -----------------------------------------------
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.8 2007/01/26 21:22:54 greve Exp $';
+Version = '$Id: asegstats2table,v 1.8.2.1 2009/01/12 19:18:30 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
 meas = 'volume';
 maxsegno = -1;
+OKToSkip = 0;
+DoDirect = 0;
 debug = 0;
 statsname = 'aseg.stats';
 subdir = 'stats';
+ExcludeSegNo = []; 
+IncludeSegNo = []; 
 
 nargs = len(sys.argv) - 1;
 if(nargs == 0):
@@ -219,10 +295,19 @@ fptbl = open(tablefile,'w');
 
 # Loop thru each subject
 nthsubj = 1;
-for subject in SUBJECTS:
+list = SUBJECTS;
+for subject in list:
 
-  statsfile = SUBJECTS_DIR + '/' + subject + '/' + subdir + '/' + statsname;
+  if(not DoDirect):
+    statsfile = SUBJECTS_DIR + '/' + subject + '/' + subdir + '/' + statsname;
+  else:
+    statsfile = subject;
+  #endif
   if(not os.path.exists(statsfile)):
+    if(OKToSkip):
+      #sys.stdout.write('Cannot find %s, skipping\n' % (statsfile) );
+      continue;
+    #endif
     sys.stdout.write('ERROR: cannot find %s\n' % (statsfile) );
     sys.exit(1);
   #endif
@@ -233,6 +318,7 @@ for subject in SUBJECTS:
     # First Col, First Row is the name of the measure
     fptbl.write('%s' % (meas));
     fp = open(statsfile,'r');
+    setidlist = [];
     segid = [];
     for line in fp:
       ind = line.rfind('#');
@@ -241,32 +327,65 @@ for subject in SUBJECTS:
       else:
         tmp = string.split(line);
         segno = string.atoi(tmp[1]);
+        if(not IsMember(IncludeSegNo,segno,1)): continue;
+        if(IsMember(ExcludeSegNo,segno,0)): continue;
         if(maxsegno > 0 and segno > maxsegno): continue
         segid = tmp[4];
         fptbl.write(' %s' % (segid) );
+        setidlist.append(segid);
       #endif
     #end # line
     fp.close();
-    if(meas == 'volume'):
+    if(meas == 'volume' and not DoDirect):
       fptbl.write(' %s' % ('IntraCranialVol'));
+      fptbl.write(' %s' % ('BrainSegVol'));
     #endif
     fptbl.write('\n');
+  else:
+    fp = open(statsfile,'r');
+    nthseg = 0;
+    for line in fp:
+      ind = line.rfind('#');
+      if(ind != -1):
+        continue;
+      else:
+        tmp = string.split(line);
+        segno = string.atoi(tmp[1]);
+        if(not IsMember(IncludeSegNo,segno,1)): continue;
+        if(IsMember(ExcludeSegNo,segno,0)): continue;
+        if(maxsegno > 0 and segno > maxsegno): continue
+        segid = tmp[4];
+        nthseg = nthseg + 1;
+      #endif
+    #end # line
+    fp.close();
   #endif
 
   # Print subjectid as first col
-  fptbl.write('%s' % (subject) );
-
+  if(not DoDirect):
+    fptbl.write('%s' % (subject) );
+  else:
+    fptbl.write('%d' % (nthsubj) );
+  #endif
+  
   # Now go thru each line and print the measure
   fp = open(statsfile,'r');
   nthseg = 0;
   ICV = -1;
+  BrainSegVol = -1;
+  nthline = 0;
   for line in fp:
-
-    if(meas == 'volume'):
+    nthline = nthline + 1;
+    if(meas == 'volume' and not DoDirect):
       ind = line.rfind('IntraCranialVol');
       if(ind != -1):
         tmp = string.split(line,',');
         ICV = string.atof(tmp[3]);
+      #endif
+      ind = line.rfind('BrainSegVol');
+      if(ind != -1):
+        tmp = string.split(line,',');
+        BrainSegVol = string.atof(tmp[3]);
       #endif
     #endif
 
@@ -276,24 +395,50 @@ for subject in SUBJECTS:
     else:
       if(debug): print "%s" % line;
       tmp = string.split(line);
+      if(len(tmp) != 10):
+        print "ERROR: %s, line %d has only %d items" % (statsfile,nthline,len(tmp));
+        sys.exit(1);
+      #endif
       segno = string.atoi(tmp[1]);
+      if(not IsMember(IncludeSegNo,segno,1)): continue;
+      if(IsMember(ExcludeSegNo,segno,0)): continue;      
       if(maxsegno > 0 and segno > maxsegno): continue
       if(meas == 'volume'):  val = string.atof(tmp[3]);
       if(meas == 'mean'):    val = string.atof(tmp[5]);
+      if(meas == 'std'):     val = string.atof(tmp[6]);
       if(debug): print "%d %s %g %g" % (nthseg,segid,val)
       fptbl.write(' %g' % (val) );
       nthseg = nthseg + 1;
     #endif
   #end  for line
   fp.close();
-  if(meas == 'volume'):
+  if(meas == 'volume' and not DoDirect):
     if(ICV == -1):
-      sys.stdout.write('ERROR: subjects %s does not have ICV\n' % subject);
-      sys.exit(1);
+      if(not DoDirect):
+        sys.stdout.write('ERROR: subject %s does not have ICV\n' % subject);
+        sys.exit(1);
+      #endif
+    else:
+      fptbl.write(' %f' % (ICV));
     #endif
-    fptbl.write(' %f' % (ICV));
+    if(BrainSegVol == -1):
+      if(not DoDirect):
+        sys.stdout.write('ERROR: subject %s does not have BrainSegVol\n' % subject);
+        sys.exit(1);
+      #endif
+    else:
+      fptbl.write(' %f' % (BrainSegVol));
+    #endif
   #endif
   fptbl.write('\n');
+  if(nthsubj == 1):
+    nsegs = nthseg;
+  else:
+    if(nsegs != nthseg):
+      sys.stdout.write('ERROR: subject %s has %d segs, expecting %d\n' % (subject,nthseg,nsegs));
+      sys.exit(1);
+    #endif
+  #endif
   nthsubj = nthsubj + 1;
 #end  for subject
 
