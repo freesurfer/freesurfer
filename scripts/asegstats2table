@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.17 2008/03/03 06:23:43 greve Exp $
+# $Id: asegstats2table,v 1.18 2009/01/12 19:17:51 greve Exp $
 import sys;
 import os;
 import string;
@@ -259,7 +259,7 @@ def IsMember(list,item,default):
 #-----------------------------------------------------------
 
 ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.17 2008/03/03 06:23:43 greve Exp $';
+Version = '$Id: asegstats2table,v 1.18 2009/01/12 19:17:51 greve Exp $';
 tablefile = ();
 SUBJECTS  = [];
 nsubjects = 0;
@@ -336,7 +336,7 @@ for subject in list:
       #endif
     #end # line
     fp.close();
-    if(meas == 'volume'):
+    if(meas == 'volume' and not DoDirect):
       fptbl.write(' %s' % ('IntraCranialVol'));
       fptbl.write(' %s' % ('BrainSegVol'));
     #endif
@@ -376,7 +376,7 @@ for subject in list:
   nthline = 0;
   for line in fp:
     nthline = nthline + 1;
-    if(meas == 'volume'):
+    if(meas == 'volume' and not DoDirect):
       ind = line.rfind('IntraCranialVol');
       if(ind != -1):
         tmp = string.split(line,',');
@@ -412,7 +412,7 @@ for subject in list:
     #endif
   #end  for line
   fp.close();
-  if(meas == 'volume'):
+  if(meas == 'volume' and not DoDirect):
     if(ICV == -1):
       if(not DoDirect):
         sys.stdout.write('ERROR: subject %s does not have ICV\n' % subject);
