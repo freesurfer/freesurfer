@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/02 17:52:53 $
- *    $Revision: 1.1.2.6 $
+ *    $Date: 2009/01/13 02:40:11 $
+ *    $Revision: 1.1.2.7 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.6 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.7 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -161,8 +161,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbSurfaceScalarsColorShowNegative( true ),
   mbDrawCurvatureGreenRedIfNoScalars( false ),
   mSurfaceScalarsColorsFDRRate( 0.05 ),
-  msOverlayDescription( "" ),
-  mbViewInitialized( false ) {
+  msOverlayDescription( "" ) {
 
   maDiscreteFactorSelection[0] = -1;
   maDiscreteFactorSelection[1] = -1;
@@ -420,11 +419,11 @@ vtkKWQdecWindow::CreateWidget () {
 
   // These menu items are for loading pieces of data individually, and
   // can be enabled for debugging.
-#if 0
+#if 1
   this->GetFileMenu()->InsertCommand( nItem++, "Load Surface...",
                                       this, "LoadSurfaceFromDlog" );
-  this->GetFileMenu()->InsertCommand( nItem++, "Load GDF...",
-                                      this, "LoadGDFFromDlog" );
+//  this->GetFileMenu()->InsertCommand( nItem++, "Load GDF...",
+//                                      this, "LoadGDFFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load Scalars...",
                                       this, "LoadSurfaceScalarsFromDlog" );
   this->GetFileMenu()->InsertCommand( nItem++, "Load Curvature...",
@@ -1277,6 +1276,7 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.deep.mgz" );
     mMenuMorphMeasure->GetMenu()->AddRadioButton( "intensity.superficial.mgz");
+    mMenuMorphMeasure->SetValue( "thickness" );
 
     // read .Qdecrc resource file (which can located in either ~ or in
     // $SUBJECTS_DIR/qdec, or both locations), for key = value pairs
@@ -1288,15 +1288,13 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
     {
       char cBuf[100];
       sprintf( cBuf, "MEASURE%d", i );
-      const char* sUserMeasure = 
-        QdecUtilities::GetQdecrcResourceString( cBuf );
+      const char* sUserMeasure = QdecUtilities::GetQdecrcResourceString( cBuf );
       if (sUserMeasure)
       {
         mMenuMorphMeasure->GetMenu()->AddRadioButton( sUserMeasure );
       }
     }
-    
-    mMenuMorphMeasure->SetValue( "thickness" );
+
     this->Script( "grid %s -column 1 -row %d -sticky nw",
                   mMenuMorphMeasure->GetWidgetName(), nRow );
     nRow++;
@@ -1415,7 +1413,11 @@ vtkKWQdecWindow::LoadDataTableFromDlog () {
   }
   if( dialog->Invoke() ) {
     string fnDataTable( dialog->GetFileName() );
-    this->LoadDataTable( fnDataTable.c_str() );
+    try {
+      this->LoadDataTable( fnDataTable.c_str() );
+    } catch ( exception& e ) {
+      this->GetApplication()->ErrorMessage( e.what() );
+    }
   }
 }
 
@@ -1468,6 +1470,13 @@ vtkKWQdecWindow::LoadSurfaceFromDlog () {
   dialog->SetTitle( "Load Surface" );
   dialog->SetFileTypes( "{{Surface} {lh.* rh.*}} {{All} {*}}" );
   dialog->RetrieveLastPathFromRegistry( "LoadSurface" );
+
+  // Set the default dir to the fsaverage subject surf dir,
+  // because more often than not the fsaverage inflated surf is desired
+  string sQdecDir = this->mQdecProject->GetSubjectsDir() + 
+    + "/" + this->mQdecProject->GetAverageSubject() + "/surf";
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadSurface" );
     string fn( dialog->GetFileName() );
@@ -1502,7 +1511,11 @@ vtkKWQdecWindow::LoadSurfaceScalarsFromDlog () {
   dialog->SetTitle( "Load Scalars" );
   dialog->SetFileTypes( 
     "{{Volume encoded scalars} {*.mgh *.mgz}} {{All} {*}}" );
-  dialog->RetrieveLastPathFromRegistry( "LoadSurfaceScalars" );
+
+  // Set the default dir to the subjects dir / qdec.
+  string sQdecDir = this->mQdecProject->GetSubjectsDir() + "/qdec";
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadSurfaceScalars" );
     string fn( dialog->GetFileName() );
@@ -1519,7 +1532,11 @@ vtkKWQdecWindow::LoadCurvatureFromDlog () {
   dialog->Create();
   dialog->SetTitle( "Load Curvature" );
   dialog->SetFileTypes( "{{Curvature} {*.curv}} {{All} {*}}" );
-  dialog->RetrieveLastPathFromRegistry( "LoadCurvature" );
+
+  // Set the default dir to the subjects dir.
+  string sQdecDir = this->mQdecProject->GetSubjectsDir();
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadCurvature" );
     string fn( dialog->GetFileName() );
@@ -1536,7 +1553,11 @@ vtkKWQdecWindow::LoadAnnotationFromDlog () {
   dialog->Create();
   dialog->SetTitle( "Load Annotation" );
   dialog->SetFileTypes( "{{Annotation} {*.annot}} {{All} {*}}" );
-  dialog->RetrieveLastPathFromRegistry( "LoadAnnotation" );
+
+  // Set the default dir to the subjects dir
+  string sQdecDir = this->mQdecProject->GetSubjectsDir();
+  dialog->SetLastPath( sQdecDir.c_str() );
+
   if( dialog->Invoke() ) {
     dialog->SaveLastPathToRegistry( "LoadAnnotation" );
     string fn( dialog->GetFileName() );
@@ -2080,9 +2101,8 @@ vtkKWQdecWindow::LoadSurface ( const char* ifnSurface, const char* isLabel ) {
       // Select this one.
       this->SetCurrentSurface( sLabel.c_str() );
 
-      // reset the view to initialize it.
+      // reset the view to initialized it
       mView->ResetView();
-      mbViewInitialized = true;
 
       this->SetStatusText( "Surface loaded." );
       this->AddRecentFile( ifnSurface, this, "LoadSurface" );
@@ -2609,13 +2629,13 @@ vtkKWQdecWindow::ZoomBy ( float iFactor ) {
 void
 vtkKWQdecWindow::ZoomIn () {
 
-  this->ZoomBy( 2.0 );
+  this->ZoomBy( 1.1 );
 }
 
 void
 vtkKWQdecWindow::ZoomOut () {
 
-  this->ZoomBy( 0.5 );
+  this->ZoomBy( 0.9090 );
 }
 
 void
@@ -3908,11 +3928,11 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
     else
       this->SetStatusText( "Completed FDR threshold set" );
 
-    // report the number of vertices above threshold
+    // report the number of vertices
     int nVerticesBelowThreshold = 0;
     for( int nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
       if ( fabs( mris->vertices[nVertex].val ) > threshold ) {
-        nVerticesBelowThreshold++; // found a vertex above FDR threshold
+        nVerticesBelowThreshold++; // found a vertex below FDR threshold
       }
     }
     cout << "Found " << nVerticesBelowThreshold << " of " << 

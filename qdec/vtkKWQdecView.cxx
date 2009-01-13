@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/17 23:54:38 $
- *    $Revision: 1.1.2.5 $
+ *    $Date: 2009/01/13 02:40:10 $
+ *    $Revision: 1.1.2.6 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -33,6 +33,7 @@
 #include "vtkKWQdecView.h"
 
 #include "QdecEvents.h"
+#include "QdecUtilities.h"
 #include "QdecVertexAnnotationLookup.h"
 #include "vtkAbstractPicker.h"
 #include "vtkActor.h"
@@ -70,7 +71,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.5 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.6 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -145,6 +146,12 @@ vtkKWQdecView::ViewInteractor::OnLeftButtonDown () {
 
   mnButtonDown = 1;
 
+  // whether button-1 or ctrl-button-1 selects the vertex is configurable
+  // in the .Qdecrc file.  if GDF_BUTTON=BUTTON_1 is in the .Qdecrc file,
+  // then button-1 selects the vertex, else ctrl-button-1 does that
+  const char* sGdfButton = 
+    QdecUtilities::GetQdecrcResourceString( "GDF_BUTTON" );
+
   if( this->GetInteractor()->GetShiftKey() ) {
     
     // If we're drawing paths, mark this as the first and last
@@ -161,13 +168,21 @@ vtkKWQdecView::ViewInteractor::OnLeftButtonDown () {
     mView->ResetPath();
 
   } else if( this->GetInteractor()->GetControlKey() ) {
-    
-    // just let it rotate camera
-    // (need this else if so that it doesnt select vertex)
+
+    if (sGdfButton && (0 == strcmp(sGdfButton,"BUTTON_1"))) {
+      // just let it rotate camera
+      // (need this else if so that it doesnt select vertex)
+    } else {
+      // Select vertex
+      mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
+    }
   } else { 
-    
-    // Select vertex
-    mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
+    if (sGdfButton && (0 == strcmp(sGdfButton,"BUTTON_1"))) {
+      // Select vertex
+      mView->SelectSurfaceVertex( this->GetVertexAtPicker() ); 
+    } else {
+      // just let it rotate camera      
+    }
   }
 }
 

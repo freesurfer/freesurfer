@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/14 00:59:07 $
- *    $Revision: 1.1.2.6 $
+ *    $Date: 2009/01/13 02:40:10 $
+ *    $Revision: 1.1.2.7 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -49,7 +49,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.6 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.7 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -82,8 +82,8 @@ vtkKWQdecApp::vtkKWQdecApp () :
 
   // Set some application stuff.
   this->SetName( "Qdec" );
-  this->SetMajorVersion( 1 ); // v1.1
-  this->SetMinorVersion( 1 );
+  this->SetMajorVersion( 1 ); // v1.2
+  this->SetMinorVersion( 2 );
   this->SetHelpDialogStartingPage
     ("https://surfer.nmr.mgh.harvard.edu/fswiki/Qdec");
   this->SupportSplashScreenOn ( );
@@ -279,7 +279,7 @@ vtkKWQdecApp::AddAboutText( ostream &os) {
   buildStamp += __DATE__ ;
   buildStamp += " " ;
   buildStamp += __TIME__ ;
-  buildStamp += "\n  - Copyright (c) 2007-2008\n";
+  buildStamp += "\n  - Copyright (c) 2007-2009\n";
   buildStamp += "    The General Hospital Corporation (Boston, MA),\n";
   buildStamp += "    Martinos Center for Biomedical Imaging,\n";
   buildStamp += "    http://www.nmr.mgh.harvard.edu\n";
@@ -399,10 +399,23 @@ vtkKWQdecApp::DisplayHelpDialog ( vtkKWTopLevel* iTop ) {
     text->QuickFormattingOn();
     text->AppendText( "__Mouse Commands in Display View:__\n" );
     text->AppendText( "\n" );
-    text->AppendText( "**Button 1:** Select vertex (and graph GDF)\n" );
+
+    const char* sGdfButton = 
+      QdecUtilities::GetQdecrcResourceString( "GDF_BUTTON" );
+    if (sGdfButton && (0 == strcmp(sGdfButton,"BUTTON_1"))) {
+      text->AppendText( "**Button 1:** Select vertex (and graph GDF)\n" );
+    }
+    else {
+      text->AppendText( "**Button 1:**                Rotate camera\n" );
+    }
     text->AppendText( "**Button 2:**                Pan camera\n" );
     text->AppendText( "**Button 3:**                Zoom camera\n" );
-    text->AppendText( "**Ctrl-Button 1:**           Rotate camera\n" );
+    if (sGdfButton && (0 == strcmp(sGdfButton,"BUTTON_1"))) {
+      text->AppendText( "**Ctrl-Button 1:**           Rotate camera\n" );
+    }
+    else {
+      text->AppendText( "**Ctrl-Button 1:** Select vertex (and graph GDF)\n" );
+    }
     text->AppendText( "**Shift-Button 1, drag:**    Draw a path\n" );
     text->AppendText( "**Shift-Button 1, no drag:** Clear path\n" );
     text->AppendText( "\n" );
