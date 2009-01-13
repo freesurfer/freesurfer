@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/07/08 21:27:59 $
- *    $Revision: 1.13.2.4 $
+ *    $Date: 2009/01/13 01:57:23 $
+ *    $Revision: 1.13.2.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -556,7 +556,16 @@ int QdecProject::LoadDataTable ( const char* isFileName )
   char subjectsDir[3000];
   if ( this->mDataTable ) delete this->mDataTable;
   this->mDataTable = new QdecDataTable();
-  int ret = this->mDataTable->Load ( isFileName, subjectsDir );
+  int ret = 0;
+  try
+  {
+    ret = this->mDataTable->Load ( isFileName, subjectsDir );
+  }
+  catch ( exception& e ) 
+  {
+    cerr << e.what() << endl;
+    exit(1); // shutdown the whole shootin' match
+  }
   if ( ret ) return ret;
   if ( strlen(subjectsDir) > 0 ) ret = this->SetSubjectsDir ( subjectsDir );
   if ( ret ) return ret;
@@ -567,7 +576,7 @@ int QdecProject::LoadDataTable ( const char* isFileName )
   //{
   //  delete this->mDataTable;
   //  this->mDataTable = new QdecDataTable(); // on err, return empty table
-  // }
+  //}
   return ret;
 }
 
@@ -806,6 +815,81 @@ int QdecProject::CreateGlmDesign ( const char* isName,
   }
 
   if( mGlmDesign->WriteYdataFile() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
+	     "create y.mgh file\n");
+    return(-4);
+  }
+
+  if( iProgressUpdateGUI )
+  {
+    iProgressUpdateGUI->EndActionWithProgress();
+  }
+
+  return 0;
+}
+
+
+/**
+ * From the given design parameters, this creates the input data required by
+ * mri_glmfit:
+ *  - the 'y' data (data points stuffed into a volume)
+ *  - the FSGD file
+ *  - the contrast vectors, as .mat files
+ * and writes this data to the specified working directory.
+ * @return int
+ * @param  isName
+ * @param  isFirstDiscreteFactor
+ * @param  isSecondDiscreteFactor
+ * @param  isFirstContinuousFactor
+ * @param  isSecondContinuousFactor
+ * @param  isMeasure
+ * @param  iProgressUpdateGUI
+ */
+int QdecProject::CreateGlmDesign ( const char* isName,
+                                   const char* isFirstDiscreteFactor,
+                                   const char* isSecondDiscreteFactor,
+                                   const char* isFirstContinuousFactor,
+                                   const char* isSecondContinuousFactor,
+                                   const char* isMeasure,
+                                   ProgressUpdateGUI* iProgressUpdateGUI )
+{
+
+  int errorCode;
+  errorCode = this->mGlmDesign->Create ( this->mDataTable,
+					 isName,
+					 isFirstDiscreteFactor,
+					 isSecondDiscreteFactor,
+					 isFirstContinuousFactor,
+					 isSecondContinuousFactor,
+					 isMeasure,
+					 NULL,
+					 0,
+					 iProgressUpdateGUI );
+  if( errorCode )
+    return errorCode;
+
+  if( iProgressUpdateGUI )
+  {
+    iProgressUpdateGUI->BeginActionWithProgress("Writing input files..." );
+  }
+
+
+  if( mGlmDesign->WriteFsgdFile() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: "
+	     "could not create fsgd file\n");
+    return(-3);
+  }
+
+  if( mGlmDesign->WriteContrastMatrices() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
+	     "generate contrasts\n");
+    return(-4);
+  }
+
+  if( mGlmDesign->WriteYdataFile( isMeasure ) )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
 	     "create y.mgh file\n");
@@ -1067,9 +1151,11 @@ vector< string > QdecProject::CreateStatsDataTables ()
         int rRun = system( sCommand );
         free( sCommand );
 
-        // dont exit on error, just continue (an error will be printed)
-        // some aseg/aparc tables dont exist, so just skip it
-        if ( 0 == rRun )
+        // don't exit on error, just keep trying to create tables.
+        // aseg/aparcstats2table can fail if it is missing the raw data, in
+        // which case the user needs to create that data.  error messages
+        // will appear in the terminal showing the failures
+        if ( 0 == rRun ) 
         {
           // save the name of this data (now that we know it was successfully
           // created
@@ -1078,6 +1164,8 @@ vector< string > QdecProject::CreateStatsDataTables ()
       }
     }
   }
+
+  cout << "Completed creation of aseg and aparc stats data tables." << endl;
 
   return statsDataNames;
 }

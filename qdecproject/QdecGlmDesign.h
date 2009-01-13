@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:27 $
- *    $Revision: 1.3.2.2 $
+ *    $Date: 2009/01/13 01:57:23 $
+ *    $Revision: 1.3.2.3 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -323,6 +323,14 @@ public:
    * @return int
    */
   int WriteYdataFile ( );
+
+  /**
+   * Creates the 'y' input data to mri_glmfit for a volume-based analysis, 
+   * by creating a multi-frame 'volume' of 1x1x1 size, sticking the single
+   * dat point for each subject in the 'volume'.  One frame per subject.
+   * @return int
+   */
+  int WriteYdataFile ( const char* isMeasureName );
 
   /** 
    * Access the discrete and continuous factor names.

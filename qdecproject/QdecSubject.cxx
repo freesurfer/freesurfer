@@ -8,10 +8,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:27 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2009/01/13 01:57:23 $
+ *    $Revision: 1.1.2.3 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -25,8 +25,10 @@
  *
  */
 
+#include <string.h>
 #include <stdexcept>
 #include <sstream>
+#include <iostream>
 
 #include "QdecSubject.h"
 
@@ -68,7 +70,8 @@ string QdecSubject::GetDiscreteFactorValue (const char* isFactorName )
 
   stringstream ssErr;
   ssErr << "ERROR: QdecSubject::GetDiscreteFactor failure: could not find "
-    "factor name: " << isFactorName;
+    "factor name: " << isFactorName << " for subject " << this->GetId();
+  //cerr << ssErr.str() << endl;
   throw runtime_error( ssErr.str().c_str() );
   return NULL;
 }
@@ -90,7 +93,8 @@ double QdecSubject::GetContinuousFactorValue (const char* isFactorName )
 
   stringstream ssErr;
   ssErr << "ERROR: QdecSubject::GetContinuousFactor failure: could not find "
-    "factor name: " << isFactorName;
+    "factor name: " << isFactorName << " for subject " << this->GetId();
+  //cerr << ssErr.str() << endl;
   throw runtime_error( ssErr.str().c_str() );
   return 0.0;
 }
@@ -129,7 +133,8 @@ QdecFactor* QdecSubject::GetFactor ( const char* isFactorName )
 
   stringstream ssErr;
   ssErr << "ERROR: QdecSubject::GetFactor failure: could not find "
-    "factor name: " << isFactorName;
+    "factor name: " << isFactorName << " for subject " << this->GetId();
+  //cerr << ssErr.str() << endl;
   throw runtime_error( ssErr.str().c_str() );
   return NULL;
 }

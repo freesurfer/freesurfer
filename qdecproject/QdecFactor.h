@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/13 00:24:27 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/01/13 01:57:23 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -116,6 +116,11 @@ public:
    */
   bool ValidLevelName ( const char* iLevelName );
 
+
+  /**
+   * @return int   Number of levels in this factor (assume its discrete)
+   */
+  int GetNumberOfLevels ( ) { return this->mLevelNames.size(); }
 
   /**
    * Returns the value of the discrete factor stored in this instance
