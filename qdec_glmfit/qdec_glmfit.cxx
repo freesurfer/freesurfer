@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:40:41 $
- *    $Revision: 1.6.2.1 $
+ *    $Date: 2009/01/13 15:50:29 $
+ *    $Revision: 1.6.2.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -298,7 +298,7 @@ void PrintUsage () {
        << endl << endl;
   cout << "  --measurement, -m <string>       Measurement name (reqd)"
        << endl << endl;
-  cout << "  --hemisphere, -h lh|rh           Hemipshere to use (reqd)"
+  cout << "  --hemisphere, -h lh|rh           Hemisphere to use (reqd)"
        << endl << endl;
   cout << "  --smoothness, -t <integer>       Smoothness to use (reqd)"
        << endl << endl;
