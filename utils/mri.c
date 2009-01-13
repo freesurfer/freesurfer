@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/01/10 19:58:46 $
- *    $Revision: 1.422 $
+ *    $Author: lzollei $
+ *    $Date: 2009/01/13 15:24:43 $
+ *    $Revision: 1.423 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,8 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.422 $";
+const char *MRI_C_VERSION = "$Revision: 1.423 $";
+
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2404,6 +2405,7 @@ MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
   box->x = width-1 ;
   box->y = height-1 ;
   box->z = depth-1 ;
+
   switch (mri->type)
   {
   case MRI_UCHAR:
@@ -4227,7 +4229,7 @@ MRIthresholdRangeInto(MRI *mri_src,MRI *mri_dst,BUFTYPE low_val,BUFTYPE hi_val)
   Returns value:
 
   Description
-  threshold an MRI.
+  threshold an MRI -- only 1st frame!
   ------------------------------------------------------*/
 MRI *
 MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
@@ -4241,7 +4243,7 @@ MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
-
+  
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -4258,6 +4260,239 @@ MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
 
   return(mri_dst) ;
 }
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  threshold an MRI considering all the frames
+  ------------------------------------------------------*/
+MRI *
+MRIthresholdAllFrames(MRI *mri_src, MRI *mri_dst, float threshold)
+{
+  int     frame, width, height, depth, x, y, z, f, n ;
+  float   val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  frame = mri_src->nframes ;
+
+  for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+	{
+	  for (x = 0 ; x < width ; x++)
+	    {
+	      n = 0;
+	      for (f = 0 ; f < frame ; f++) 
+		{
+		  val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+		  if (val < threshold) n++;
+		}
+	      if(n > 0) 
+		{ 
+		  val = 0;
+		  for (f = 0 ; f < frame ; f++) 
+		    MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+		}
+	      else
+		{ 
+		  for (f = 0 ; f < frame ; f++) 
+		    {
+		      val = MRIgetVoxVal(mri_src, x, y, z, f);
+		      MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+		    }
+		}
+	    }
+	}
+    }
+  
+  return(mri_dst) ;
+}
+MRI *
+MRIupperthresholdAllFrames(MRI *mri_src, MRI *mri_dst, float threshold)
+{
+  int     frame, width, height, depth, x, y, z, f, n ;
+  float   val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  frame = mri_src->nframes ;
+
+  for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+	{
+	  for (x = 0 ; x < width ; x++)
+	    {
+	      n = 0;
+	      for (f = 0 ; f < frame ; f++) 
+		{
+		  val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+		  if (val > threshold) n++;
+		}
+	      if(n > 0) 
+		{ 
+		  val = threshold;
+		  for (f = 0 ; f < frame ; f++) 
+		    MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+		}
+	      else
+		{ 
+		  for (f = 0 ; f < frame ; f++) 
+		    {
+		      val = MRIgetVoxVal(mri_src, x, y, z, f);
+		      MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+		    }
+		}
+	    }
+	}
+    }
+  
+  return(mri_dst) ;
+}
+// Only threshold the specified frame
+MRI *
+MRIthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
+{
+  int     f, width, height, depth, x, y, z, w ;
+  float   val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  f = mri_src->nframes ;
+
+  if (frame > f+1) 
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,"MRIthreshold: invalid frame number"));
+  
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+	for ( w = 0; w < f ; w++)
+	  {
+	    val = MRIgetVoxVal(mri_src, x, y, z, w) ;
+	    if (w == frame-1)
+	      {	    
+		if (val < threshold)
+		  val = 0 ;
+		MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+	      }
+	    else 
+	      MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
+	  }
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+MRI *
+MRIupperthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
+{
+  int     f, width, height, depth, x, y, z, w ;
+  float   val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  f = mri_src->nframes ;
+
+  if (frame > f+1) 
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,"MRIthreshold: invalid frame number"));
+  
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+	for ( w = 0; w < f ; w++)
+	  {
+	    val = MRIgetVoxVal(mri_src, x, y, z, w) ;
+	    if (w == frame-1)
+	      {	    
+		if (val > threshold)
+		  val = threshold ;
+		MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+	      }
+	    else 
+	      MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
+	  }
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+
+// Threshold all frames using one frame
+MRI *
+MRIthresholdByFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
+{
+  int     f, width, height, depth, x, y, z, w ;
+  float   val ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  f = mri_src->nframes ;
+
+  if (frame > f+1) 
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,"MRIthreshold: invalid frame number"));
+  
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+	for ( w = 0; w < f ; w++)
+	  {
+	    //	    val = MRIgetVoxVal(mri_src, x, y, z, w) ;
+	    val = MRIgetVoxVal(mri_src, x, y, z, frame-1) ;
+	    if (val < threshold)
+	      val = 0 ;
+	    if (w == frame-1)
+	      {	    
+		
+		MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+	      }
+	    else 
+	      MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
+	  }
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -9057,14 +9292,14 @@ MRIsampleVolumeFrameType
     break ;
   case SAMPLE_TRILINEAR:
     return(MRIsampleVolumeFrame(mri, x, y, z, frame, pval)) ;
-  default:
-    /*E* add SAMPLE_CUBIC here? */
   case SAMPLE_SINC:
     ErrorReturn
     (ERROR_UNSUPPORTED,
      (ERROR_UNSUPPORTED,
       "MRIsampleVolumeFrameType(%d): unsupported interpolation type",
       type));
+  default: break;
+    /*E* add SAMPLE_CUBIC here? */
     /*    return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;*/
   }
 
@@ -14852,7 +15087,16 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
     mode = outside;
   }
 
-  mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode, mri_mask);
+  // Not to get an error within MRIextractDistanceMap
+  if (mri_src->type != MRI_FLOAT)
+    {
+      MRI *mri_tmp = MRIchangeType(mri_src, MRI_FLOAT, 0, 1, 1) ;
+      mri_dist = MRIextractDistanceMap( mri_tmp, mri_dist, label, max_dist, mode, mri_mask);
+      MRIfree(&mri_tmp); 
+    }
+  else
+    mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode, mri_mask);
+
   mri_dist->outside_val = max_dist ;  
   MRIscalarMul(mri_dist, mri_dist, mri_src->xsize) ;
   return mri_dist;  
