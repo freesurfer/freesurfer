@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.33 $
+ *    $Date: 2009/01/13 21:48:48 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2332,6 +2332,10 @@ void MainWindow::RunScript()
 	{
 		CommandLoadSurface( sa );
 	}
+	else if ( sa[0] == "loadsurfacevector" )
+	{
+		CommandLoadSurfaceVector( sa );
+	}
 	else if ( sa[0] == "loadroi" || sa[0] == "loadlabel" )
 	{
 		CommandLoadROI( sa );
@@ -2425,9 +2429,25 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 	{
 		wxArrayString sa = MyUtils::SplitString( sa_fn[1], "=" );
 		if ( sa.size() > 1 )
-			fn_vector = sa[1];
+		{
+			// add script to load surface vector files
+			wxArrayString vector_fns = MyUtils::SplitString( sa[1], "," );
+			for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+			{			
+				wxArrayString script;
+				script.Add( "loadsurfacevector" );
+				script.Add( vector_fns[i] );
+				m_scripts.insert( m_scripts.begin(), script ); 
+			}
+		}
 	}
-	LoadSurfaceFile( fn, fn_vector );
+	LoadSurfaceFile( fn );
+}
+
+	
+void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
+{
+	LoadSurfaceVectorFile( cmd[1] );
 }
 	
 void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
