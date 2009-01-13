@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:24 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -742,7 +742,8 @@ void PanelVolume::OnTextFillValueChanged( wxCommandEvent& event )
 		UpdateColorIndicator();
 				
 		LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-		layer->SetFillValue( (float)nvalue );
+		if ( layer )
+			layer->SetFillValue( (float)nvalue );
 	}
 }
 

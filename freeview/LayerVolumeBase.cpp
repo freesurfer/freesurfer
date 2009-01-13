@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -518,14 +518,15 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
 	m_livewire->SetImagePlane( nPlane );
 	m_livewire->SetImageSlice( n1[nPlane] );
 	m_livewire->GetLivewirePoints( pt1, pt2, pts );
+	cout << n1[nPlane];
 
 	int n[3];
 	for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
 	{
 		double* p = pts->GetPoint( i );
-		n[0] = (int)p[0];
-		n[1] = (int)p[1];
-		n[2] = (int)p[2];
+		n[0] = (int)( ( p[0] - orig[0] ) / vxlsize[0] + 0.5 );
+		n[1] = (int)( ( p[1] - orig[1] ) / vxlsize[1] + 0.5);
+		n[2] = (int)( ( p[2] - orig[2] ) / vxlsize[2] + 0.5 );
 			
 		SetVoxelByIndex( n, nPlane, true );
 	}
@@ -563,9 +564,9 @@ std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double
 	for ( int i = 1; i < pts->GetNumberOfPoints()-1; i++ )
 	{
 		double* p = pts->GetPoint( i );	
-		pts_out.push_back( p[0]*vxlsize[0] + orig[0] );
-		pts_out.push_back( p[1]*vxlsize[1] + orig[1] );
-		pts_out.push_back( p[2]*vxlsize[2] + orig[2] );
+		pts_out.push_back( p[0] ); //*vxlsize[0] + orig[0] );
+		pts_out.push_back( p[1] ); //*vxlsize[1] + orig[1] );
+		pts_out.push_back( p[2] ); //*vxlsize[2] + orig[2] );
 	}
 	return pts_out;
 }

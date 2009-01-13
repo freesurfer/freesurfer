@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/27 21:50:56 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,7 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER" ) ), 	PanelSurface::OnColorChanged )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER_EDGE" ) ), 	PanelSurface::OnEdgeColorChanged )
 	EVT_SPINCTRL		( XRCID( wxT( "ID_SPIN_EDGE_THICKNESS" ) ),		PanelSurface::OnSpinEdgeThickness )
+	EVT_CHOICE			( XRCID( wxT( "ID_CHOICE_VECTORS" ) ), 			PanelSurface::OnChoiceVector )
 END_EVENT_TABLE()
 
 
@@ -79,6 +80,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
 	m_colorPickerEdge 		= XRCCTRL( *this, "ID_COLOR_PICKER_EDGE", wxColourPickerCtrl );
 	m_textFileName 			= XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
 	m_spinEdgeThickness		= XRCCTRL( *this, "ID_SPIN_EDGE_THICKNESS", wxSpinCtrl );
+	
+	m_choiceVector			= XRCCTRL( *this, "ID_CHOICE_VECTORS", wxChoice );
 	
 	MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 	
@@ -182,6 +185,19 @@ void PanelSurface::DoUpdateUI()
 	m_btnSurfaceOriginal->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) );
 	m_colorPicker->Enable( layer );
 	m_colorPickerEdge->Enable( layer );
+	m_choiceVector->Enable( layer );
+	
+	m_choiceVector->Clear();
+	m_choiceVector->Append( "None" );
+	if ( surf )
+	{
+		for ( int i = 0; i < surf->GetNumberOfVectorSets(); i++ )
+		{
+			m_choiceVector->Append( surf->GetVectorSetName( i ) );
+		}
+	}
+	m_choiceVector->Append( "Load vector data..." );
+	m_choiceVector->SetSelection( surf ? 1 + surf->GetActiveVector() : 0 );
 }
 
 void PanelSurface::OnLayerVisibilityChanged( wxCommandEvent& event )
@@ -369,5 +385,22 @@ void PanelSurface::OnSpinEdgeThickness( wxSpinEvent& event )
 	if ( surf )
 	{
 		surf->GetProperties()->SetEdgeThickness( event.GetInt() );
+	}
+}
+
+void PanelSurface::OnChoiceVector( wxCommandEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		int nVector = event.GetSelection() - 1;
+		if ( nVector < surf->GetNumberOfVectorSets() )
+			surf->SetActiveVector( nVector );
+		else
+		{
+			// load new
+			MainWindow::GetMainWindowPointer()->LoadSurfaceVector();
+			UpdateUI();
+		}
 	}
 }

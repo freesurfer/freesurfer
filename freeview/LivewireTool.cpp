@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,7 @@ void LivewireTool::SetImagePlane( int nPlane )
 		int n[3] = { 0, 0, 0 };
 		n[m_nPlane] = -1*m_nSlice;
 		m_info->SetExtentTranslation( n );
+		m_info->SetOutputOrigin( 0, 0, 0 );
 		m_path->Update();
 	}
 }
@@ -79,9 +80,16 @@ void LivewireTool::SetImageSlice( int nSlice )
 		int n[3] = { 0, 0, 0 };
 		n[m_nPlane] = -1*m_nSlice;
 		m_info->SetExtentTranslation( n );
+		m_info->SetOutputOrigin( 0, 0, 0 );
 		m_path->Update();
 	//	m_imageSlice->GetExtent( ext );
 	//	cout << ext[0] << " " << ext[1] <<  " " << ext[2] << " " << ext[3] << " " << ext[4] << " " << ext[5] << endl;
+		double* orig = m_info->GetOutput()->GetOrigin();
+		cout << "orig " << orig[0] << " " << orig[1] << " " << orig[2] << endl;
+		orig = m_imageData->GetOrigin();
+		cout << "orig " << orig[0] << " " << orig[1] << " " << orig[2] << endl;
+		m_imageSlice->GetExtent( ext );
+		cout << "ext " << ext[0] << " " << ext[1] << " " << ext[2] << " " << ext[3] << " " << ext[4] << " " << ext[5] << endl;	
 	}
 }
 
@@ -130,7 +138,6 @@ void LivewireTool::SetImageData( vtkImageData* image_in )
 		m_info->Update();
 
 		m_imageSlice = scale->GetOutput();
-		m_imageSlice->GetExtent( ext );
 		m_path->SetInput( m_info->GetOutput() );
 	//	m_path->Update();
 	}
@@ -143,7 +150,7 @@ void LivewireTool::GetLivewirePoints( double* pt1_in, double* pt2_in, vtkPoints*
 	
 	vtkIdType beginVertId = m_imageSlice->FindPoint( pt1_in );
 	vtkIdType endVertId = m_imageSlice->FindPoint( pt2_in );
-//	cout << beginVertId << "  " << endVertId << endl;
+	cout << beginVertId << "  " << endVertId << endl;
 
 	if ( beginVertId == -1 || endVertId == -1 ) 
 	{
@@ -155,18 +162,22 @@ void LivewireTool::GetLivewirePoints( double* pt1_in, double* pt2_in, vtkPoints*
 	m_path->SetStartVertex( endVertId );
 	m_path->SetEndVertex( beginVertId );
 	m_path->Update();
+	double* pt = m_info->GetOutput()->GetPoint( beginVertId );
+	cout << pt[0] << " " << pt[1] << " " << pt[2] << endl;
 
 	vtkPolyData *pd = m_path->GetOutput();
 	vtkIdType npts = 0, *pts = NULL;
 	pd->GetLines()->InitTraversal();
 	pd->GetLines()->GetNextCell( npts, pts );
-//	cout << npts << endl;
-	int n[3] = { 0, 0, 0 };
-	n[m_nPlane] = m_nSlice;
+	cout << npts << endl;
+	double offset[3] = { 0, 0, 0 };
+	double* vs = m_imageData->GetSpacing();
+	offset[m_nPlane] = m_nSlice*vs[m_nPlane];
 	for ( int i = 0; i < npts; i++ )
 	{
 		double* p = pd->GetPoint( pts[i] );
-		pts_out->InsertNextPoint( p[0] + n[0], p[1] + n[1], p[2] + n[2] );
+	//	cout << p[0] << " " << p[1] << " " << p[2] << endl;
+		pts_out->InsertNextPoint( p[0] + offset[0], p[1] + offset[1], p[2] + offset[2] );
 	}
 }
 

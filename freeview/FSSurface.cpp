@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,7 +52,8 @@ FSSurface::FSSurface( FSVolume* ref ) :
 	m_bBoundsCacheDirty( true ),
 	m_bCurvatureLoaded( false ),
 	m_nActiveSurface( SurfaceMain ), 
-	m_volumeRef( ref )
+	m_volumeRef( ref ),
+	m_nActiveVector( -1 )
 {
 	m_polydata = vtkPolyData::New();
 	m_polydataVector = vtkPolyData::New();
@@ -64,7 +65,6 @@ FSSurface::FSSurface( FSVolume* ref ) :
 		m_bSurfaceLoaded[i] = false;
 		m_HashTable[i] = NULL;
 	}
-	m_fVertexVector = NULL;
 }
 	
 FSSurface::~FSSurface()
@@ -81,8 +81,11 @@ FSSurface::~FSSurface()
 		if ( m_HashTable[i] )
 			MHTfree( &m_HashTable[i] );
 	}
-	if ( m_fVertexVector )
-		delete[] m_fVertexVector;
+	for ( size_t i = 0; i <  m_vertexVectors.size(); i++ )
+	{
+		delete[] m_vertexVectors[i].data;
+	}
+	m_vertexVectors.clear();
 		
 	m_polydata->Delete();
 	m_polydataVector->Delete();
@@ -172,13 +175,22 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 	
 	if ( vector_filename != NULL )
 		LoadVectors	( vector_filename );
-	LoadCurvature();
 	
-	UpdateVectors();
+	LoadCurvature();
 //	cout << "MRISread finished" << endl;
 		
 	return true;
 }
+
+	
+bool FSSurface::MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event )
+{
+	event.SetInt( event.GetInt() + 1 );
+	wxPostEvent( wnd, event );
+	
+	return LoadVectors( filename );
+}
+
 
 bool FSSurface::LoadSurface( const char* filename, int nSet )
 {
@@ -233,13 +245,21 @@ bool FSSurface::LoadVectors( const char* filename )
 {
 	if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) == 0 )
 	{
-		cout << "vector data loaded for surface from " << filename << endl;
+		VertexVectorItem vector;
+		std::string fn = filename;
+		vector.name = fn.substr( fn.find_last_of("/\\")+1);
+		if ( SaveVertices( m_MRIS, vector.data ) )
+		{
+			m_vertexVectors.push_back( vector );
+			m_nActiveVector = m_vertexVectors.size() - 1;
+			UpdateVectors();
 		
-		SaveVertices( m_MRIS, m_fVertexVector );
-		return true;
+			cout << "vector data loaded for surface from " << filename << endl;
+			return true;
+		}
 	}	
-	else
-		return false;
+	
+	return false;
 }
 
 void FSSurface::SaveVertices( MRIS* mris, int nSet )
@@ -271,7 +291,7 @@ void FSSurface::SaveVertices( MRIS* mris, int nSet )
 	SaveVertices( mris, m_fVertexSets[nSet] );
 }
 
-void FSSurface::SaveVertices( MRIS* mris, VertexItem*& buffer )
+bool FSSurface::SaveVertices( MRIS* mris, VertexItem*& buffer )
 {
 	int nvertices = mris->nvertices;
 	VERTEX *v;
@@ -282,7 +302,7 @@ void FSSurface::SaveVertices( MRIS* mris, VertexItem*& buffer )
 		if ( !buffer )
 		{
 			cerr << "Can not allocate memory for vertex sets." << endl;
-			return;
+			return false;
 		}
 	}
 	for ( int vno = 0; vno < nvertices; vno++ )
@@ -292,6 +312,7 @@ void FSSurface::SaveVertices( MRIS* mris, VertexItem*& buffer )
 		buffer[vno].y = v->y;
 		buffer[vno].z = v->z;
 	}
+	return true;
 }
 	
 void FSSurface::RestoreVertices( MRIS* mris, int nSet )
@@ -458,8 +479,9 @@ void FSSurface::UpdateVerticesAndNormals()
 
 void FSSurface::UpdateVectors()
 {
-	if ( HasVectorData() )
+	if ( HasVectorSet() && m_nActiveVector >= 0 )
 	{
+		VertexItem* vectors = m_vertexVectors[m_nActiveVector].data;
 		int cVertices = m_MRIS->nvertices;
 		vtkPoints* oldPoints = m_polydata->GetPoints();
 		float point[3], surfaceRAS[3];
@@ -468,9 +490,9 @@ void FSSurface::UpdateVectors()
 		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
 		for ( int vno = 0; vno < cVertices; vno++ ) 
 		{
-			surfaceRAS[0] = m_fVertexVector[vno].x;
-			surfaceRAS[1] = m_fVertexVector[vno].y;
-			surfaceRAS[2] = m_fVertexVector[vno].z;
+			surfaceRAS[0] = vectors[vno].x;
+			surfaceRAS[1] = vectors[vno].y;
+			surfaceRAS[2] = vectors[vno].z;
 			this->ConvertSurfaceToRAS( surfaceRAS, point );
 			if ( m_volumeRef )
 				m_volumeRef->RASToTarget( point, point );
@@ -507,6 +529,17 @@ bool FSSurface::SetActiveSurface( int nIndex )
 	
 	UpdateVerticesAndNormals();
 	
+	return true;
+}
+
+bool FSSurface::SetActiveVector( int nIndex )
+{
+	if ( nIndex == m_nActiveVector )
+		return false;
+	
+	m_nActiveVector = nIndex;
+	
+	UpdateVectors();
 	return true;
 }
 
@@ -895,4 +928,12 @@ bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] )
 	}
 	
 	return true;
+}
+
+const char* FSSurface::GetVectorSetName( int nSet )
+{
+	if ( nSet >= 0 )
+		return m_vertexVectors[nSet].name.c_str();
+	else
+		return NULL;
 }

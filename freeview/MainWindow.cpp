@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.32 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2577,6 +2577,33 @@ void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_v
 	
 	WorkerThread* thread = new WorkerThread( this );
 	thread->LoadSurface( layer );
+}
+
+
+void MainWindow::LoadSurfaceVector()
+{
+	wxFileDialog dlg( this, _("Open surface file as vector"), m_strLastDir, _(""), 
+					  _T("Surface files (*.*)|*.*"), 
+					  wxFD_OPEN );
+	if ( dlg.ShowModal() == wxID_OK )
+	{
+		this->LoadSurfaceVectorFile( dlg.GetPath() );
+	}
+}
+
+
+void MainWindow::LoadSurfaceVectorFile( const wxString& filename )
+{
+	m_strLastDir = MyUtils::GetNormalizedPath( filename );
+
+	LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( layer )
+	{
+		layer->SetVectorFileName( filename.c_str() );
+	
+		WorkerThread* thread = new WorkerThread( this );
+		thread->LoadSurfaceVector( layer );
+	}
 }
 
 void MainWindow::OnToolRotateVolume( wxCommandEvent& event )

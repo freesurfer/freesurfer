@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,9 @@
 #include "vtkImageData.h"
 #include "vtkMatrix4x4.h"
 
+#include <vector>
+#include <string>
+
 extern "C" {
 #include "mrisurf.h"
 }
@@ -52,6 +55,8 @@ public:
 	enum ACTIVE_SURFACE { SurfaceMain = 0, SurfaceInflated, SurfaceWhite, SurfacePial, SurfaceOriginal };
 	
 	bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, const char* vector_filename = NULL );	
+	
+	bool MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event );
 
 	void GetBounds ( float oRASBounds[6] );
 	
@@ -101,8 +106,18 @@ public:
 	int GetActiveSurface()
 		{ return m_nActiveSurface; }
 	
-	bool HasVectorData()
-		{ return m_fVertexVector != NULL; }
+	bool HasVectorSet()
+		{ return m_vertexVectors.size() > 0; }
+	
+	int GetNumberOfVectorSets()
+		{ return m_vertexVectors.size(); }
+	
+	const char* GetVectorSetName( int nSet );
+	
+	int GetActiveVector()
+		{ return m_nActiveVector; }
+	
+	bool SetActiveVector( int nIndex );
 	
 	vtkPolyData* GetPolyData()
 		{ return m_polydata; }
@@ -158,12 +173,21 @@ protected:
 		float z;
 	};
 
-	void SaveVertices( MRIS* mris, VertexItem*& pVertex );
+	bool SaveVertices( MRIS* mris, VertexItem*& pVertex );
 	
 	VertexItem*		m_fVertexSets[NUM_OF_VSETS];
 	VertexItem*		m_fNormalSets[NUM_OF_VSETS];
 	
-	VertexItem*		m_fVertexVector;
+	struct VertexVectorItem
+	{
+		std::string		name;
+		VertexItem*		data;
+		
+		VertexVectorItem() { data = NULL; }
+	};
+	
+	std::vector<VertexVectorItem>		m_vertexVectors;
+	int						m_nActiveVector;
 };
 
 #endif 

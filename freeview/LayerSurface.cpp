@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,6 +113,20 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
 	wxPostEvent( wnd, event );
 	
 	return true;	
+}
+
+
+bool LayerSurface::LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event )
+{
+	if ( m_sVectorFilename.size() == 0 || !m_surfaceSource->MRISReadVectors( m_sVectorFilename.c_str(), wnd, event ) )
+		return false;
+	
+	event.SetInt( 100 );
+	wxPostEvent( wnd, event );
+	
+	this->SendBroadcast( "LayerModified", this );
+	
+	return true;
 }
 
 void LayerSurface::InitializeSurface()
@@ -357,6 +371,7 @@ void LayerSurface::SetVisible( bool bVisible )
 		m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
 	}
 	m_mainActor->SetVisibility( bVisible ? 1 : 0 );
+	m_vectorActor->SetVisibility( ( bVisible && m_surfaceSource && m_surfaceSource->GetActiveVector() >= 0 )? 1 : 0 );
 	this->SendBroadcast( "LayerActorUpdated", this );
 }
 
@@ -431,4 +446,22 @@ void LayerSurface::SetActiveSurface( int nSurface )
 int LayerSurface::GetActiveSurface()
 {
 	return ( m_surfaceSource ? m_surfaceSource->GetActiveSurface() : -1 );
+}
+
+void LayerSurface::SetActiveVector( int nVector )
+{
+	if ( m_surfaceSource && m_surfaceSource->SetActiveVector( nVector ) )
+	{
+		SetVisible( IsVisible() );		// refresh visibility
+	}
+}
+
+int LayerSurface::GetActiveVector()
+{
+	return ( m_surfaceSource ? m_surfaceSource->GetActiveSurface() : -1 );
+}
+
+int LayerSurface::GetNumberOfVectorSets()
+{
+	return ( m_surfaceSource ? m_surfaceSource->GetNumberOfVectorSets() : 0 );
 }

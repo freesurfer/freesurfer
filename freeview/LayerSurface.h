@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/01/13 21:19:34 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,7 @@ class LayerSurface : public Layer
 		virtual ~LayerSurface();
 					
 		bool LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event );
+		bool LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event );
 		
 		void Append2DProps( vtkRenderer* renderer, int nPlane );
 		void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
@@ -93,6 +94,12 @@ class LayerSurface : public Layer
 		int GetActiveSurface();
 		
 		void SetActiveSurface( int nSurfaceType );
+		
+		int GetNumberOfVectorSets();
+		
+		int GetActiveVector();
+		
+		void SetActiveVector( int nVector );
 		
 	protected:
 		void InitializeSurface();
