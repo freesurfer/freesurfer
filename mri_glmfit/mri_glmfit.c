@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/02 16:34:42 $
- *    $Revision: 1.138.2.4 $
+ *    $Date: 2009/01/14 21:15:02 $
+ *    $Revision: 1.138.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -530,7 +530,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.4 2008/12/02 16:34:42 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.5 2009/01/14 21:15:02 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1077,6 +1077,9 @@ int main(int argc, char **argv) {
       if (! useasl && ! useqa) {
         // Get its name
         mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
+        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".mtx"); //strip .mtx
+        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".dat"); //strip .dat
+        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".con"); //strip .con
         // Read it in
         mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
         if (mriglm->glm->C[n] == NULL) {
