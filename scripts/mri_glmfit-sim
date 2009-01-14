@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1 2009/01/14 01:15:36 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.2 2009/01/14 01:33:37 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -15,35 +15,20 @@ set tmpdir = ();
 set CleanUp = 1;
 set PrintHelp = 0;
 
-set ARGS_EXPECTATION = _ARGS_EXPECTED_
-if($#argv == 0 && $ARGS_EXPECTATION != _ARGS_EXPECTED_) then
-  # If invoked without args, assume current dir and
-  # these parameters, which must be set by a creation
-  # program (eg, qdec)
-  set glmdir   = .
-  set nulltype = _NULLTYPE_
-  set nsim     = _NSIM_
-  set thresh   = _THRESH_
-  set csdbase  = _CSDBASE_
-  set simsign  = _SIMSIGN_
-  set Overwrite = 1;
-else
-  if($#argv == 0) goto usage_exit;
-  set n = `echo $argv | grep -e --help | wc -l` 
-  if($n != 0) then
-    set PrintHelp = 1;
-    goto usage_exit;
-  endif
-  set n = `echo $argv | grep -e --version | wc -l` 
-  if($n != 0) then
-    echo $VERSION
-    exit 0;
-  endif
-
-  goto parse_args;
-  parse_args_return:
-
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
 endif
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
 
 goto check_params;
 check_params_return:
@@ -332,6 +317,7 @@ usage_exit:
   echo " --sim-sign sign : <abs>,pos,neg"
   echo ""
   echo " --overwrite : delete previous CSDs"
+  echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
   echo ""
   echo " --help"
   echo ""
