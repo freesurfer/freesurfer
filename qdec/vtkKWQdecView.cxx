@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/13 02:40:10 $
- *    $Revision: 1.1.2.6 $
+ *    $Date: 2009/01/14 02:27:39 $
+ *    $Revision: 1.1.2.7 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -71,7 +71,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.6 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.1.2.7 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous

@@ -946,6 +946,38 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("GenerateSimulationScript",argv[1]))&&(argc == 2))
+    {
+    op->GenerateSimulationScript();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("SetSimulationIterations",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetSimulationIterations(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetSimulationThreshold",argv[1]))&&(argc == 3))
+    {
+    char    *temp0;
+    error = 0;
+
+    temp0 = argv[2];
+    if (!error)
+    {
+    op->SetSimulationThreshold(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
   if ((!strcmp("SelectSurfaceVertex",argv[1]))&&(argc == 3))
     {
     int      temp0;
@@ -1322,6 +1354,9 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorOffset\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorsUsingFDR\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorsFDRRate\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  GenerateSimulationScript\n",NULL);
+    Tcl_AppendResult(interp,"  SetSimulationIterations\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetSimulationThreshold\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SelectSurfaceVertex\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  AddSelectionToROI\n",NULL);
     Tcl_AppendResult(interp,"  RemoveSelectionFromROI\n",NULL);
@@ -1450,6 +1485,9 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorOffset" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorsUsingFDR" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorsFDRRate" );
+    Tcl_DStringAppendElement ( &dString, "GenerateSimulationScript" );
+    Tcl_DStringAppendElement ( &dString, "SetSimulationIterations" );
+    Tcl_DStringAppendElement ( &dString, "SetSimulationThreshold" );
     Tcl_DStringAppendElement ( &dString, "SelectSurfaceVertex" );
     Tcl_DStringAppendElement ( &dString, "AddSelectionToROI" );
     Tcl_DStringAppendElement ( &dString, "RemoveSelectionFromROI" );
@@ -2947,6 +2985,59 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "void SetSurfaceScalarsColorsFDRRate (const char *isValue);" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
     /* Closing for SetSurfaceScalarsColorsFDRRate */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: GenerateSimulationScript */
+    if ( strcmp ( argv[2], "GenerateSimulationScript" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "GenerateSimulationScript" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for GenerateSimulationScript */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void GenerateSimulationScript ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for GenerateSimulationScript */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: SetSimulationIterations */
+    if ( strcmp ( argv[2], "SetSimulationIterations" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "SetSimulationIterations" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringAppendElement ( &dString, "string" );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for SetSimulationIterations */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void SetSimulationIterations (const char *isValue);" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for SetSimulationIterations */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: SetSimulationThreshold */
+    if ( strcmp ( argv[2], "SetSimulationThreshold" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "SetSimulationThreshold" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringAppendElement ( &dString, "string" );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for SetSimulationThreshold */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void SetSimulationThreshold (const char *isValue);" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for SetSimulationThreshold */
 
     Tcl_DStringResult ( interp, &dString );
     Tcl_DStringFree ( &dString );

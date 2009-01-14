@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/13 02:40:11 $
- *    $Revision: 1.1.2.3 $
+ *    $Date: 2009/01/14 02:27:39 $
+ *    $Revision: 1.1.2.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -278,6 +278,12 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // Callback from the FDR rate entry, just sets our value.
   void SetSurfaceScalarsColorsFDRRate ( const char* isValue );
+
+  // Creates a script to run mri_glmfit/mris_surfcluster for multiple-
+  // comparisons correction
+  void GenerateSimulationScript ();
+  void SetSimulationIterations ( const char* isValue );
+  void SetSimulationThreshold( const char* isValue );
 
   // Calls the view's function.
   void SelectSurfaceVertex ( int inVertex );
@@ -582,6 +588,9 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>           mEntrySurfaceScalarsColorMax;
   vtkSmartPointer<vtkKWEntry>           mEntrySurfaceScalarsColorOffset;
 
+  vtkSmartPointer<vtkKWMenuButton>      mMenuButtonSimulationType;
+  vtkSmartPointer<vtkKWMenuButton>      mMenuButtonSimulationSign;
+
   // Use these variables to see if we've packed the mFrame*
   // placeholder frames declared above. This lets us dynamically fill
   // stuff in the Display pane.
@@ -646,6 +655,10 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // For calculating the FDR rate.
   double mSurfaceScalarsColorsFDRRate;
+
+  // simulation iterations and threshold
+  int    mSimulationIterations;
+  double mSimulationThreshold;
 
   // A label for the overlay scale bar.
   std::string msOverlayDescription;

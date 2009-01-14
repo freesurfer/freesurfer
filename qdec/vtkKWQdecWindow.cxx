@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/13 02:40:11 $
- *    $Revision: 1.1.2.7 $
+ *    $Date: 2009/01/14 02:27:39 $
+ *    $Revision: 1.1.2.8 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.7 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.8 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -138,6 +138,8 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mMenuSmoothCurvatureScalars( NULL ),
   mMenuSmoothSurfaceScalars( NULL ),
   mMenuGraphAverageROI( NULL ),
+  mMenuButtonSimulationType( NULL ),
+  mMenuButtonSimulationSign( NULL ),
   mbFrameSurfaceInited( false ),
   mbFrameCurvatureInited( false ),
   mbFrameOverlayInited( false ),
@@ -153,7 +155,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mAnnotationTable( NULL ),
   mbShowCurvature( true ),
   mSurfaceScalarsColorMin( 2.0 ),
-  mSurfaceScalarsColorMid( 4.0 ),
+  mSurfaceScalarsColorMid( 2.0001 ),
   mSurfaceScalarsColorMax( 5.0 ),
   mSurfaceScalarsColorOffset( 0.0 ),
   mbSurfaceScalarsColorReverse( false ),
@@ -161,6 +163,8 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbSurfaceScalarsColorShowNegative( true ),
   mbDrawCurvatureGreenRedIfNoScalars( false ),
   mSurfaceScalarsColorsFDRRate( 0.05 ),
+  mSimulationIterations( 10000 ),
+  mSimulationThreshold( 2 ), 
   msOverlayDescription( "" ) {
 
   maDiscreteFactorSelection[0] = -1;
@@ -929,6 +933,7 @@ vtkKWQdecWindow::CreateWidget () {
   // call the radio-button handler once to set it up
   this->SetCurrentMeasure( "Surface-based" );
 
+#if 0 // HACK disable for now, until DOSS is handled properly downstream
   //
   // Create the Design Matrix Type frame.
   vtkSmartPointer<vtkKWFrameWithLabel> designMatrixTypeFrame =
@@ -959,6 +964,7 @@ vtkKWQdecWindow::CreateWidget () {
   radBtn2->SelectedStateOff();
   sCmd = string( "SetDesignMatrixType " ) + radBtn2->GetText();
   radBtn2->SetCommand( this, sCmd.c_str() );
+#endif
 
   // show degrees of freedom, inside its own frame
   vtkSmartPointer<vtkKWFrameWithLabel> dofFrame =
@@ -3280,7 +3286,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mCheckSurfaceScalarsColorReverse->
       SetCommand( this, "SetSurfaceScalarsColorReverse" );
 
-    // Checkboxes for positve and negative values (inside an inner
+    // Checkboxes for positive and negative values (inside an inner
     // frame).
     vtkSmartPointer<vtkKWFrame> framePosNeg = 
       vtkSmartPointer<vtkKWFrame>::New();
@@ -3359,7 +3365,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       mEditorSurfaceScalarColors->ExpandCanvasWidthOn();
       //  mEditorSurfaceScalarColors->SetCanvasWidth( 450 );
       mEditorSurfaceScalarColors->SetCanvasHeight( 150 );
-      mEditorSurfaceScalarColors->SetLabelText("Colors");
+      mEditorSurfaceScalarColors->SetLabelText("Threshold (colors)");
       mEditorSurfaceScalarColors->SetRangeLabelPositionToTop();
       mEditorSurfaceScalarColors->SetPointPositionInValueRangeToTop();
       mEditorSurfaceScalarColors->SetPointStyleToCursorDown();
@@ -3407,7 +3413,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     frameEntries->SetParent( editorUserFrame );
     frameEntries->Create();
 
-    // First do three entries with our min/mid/max values. These can
+    // First do three entries with our min/mid/max/offset values. These can
     // be used to set the values directly, and will also show the
     // values in the editor.
     vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryMin =
@@ -3416,7 +3422,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     labeledEntryMin->SetLabelText( "Min: " );
     labeledEntryMin->Create();
     mEntrySurfaceScalarsColorMin = labeledEntryMin->GetWidget();
-    mEntrySurfaceScalarsColorMin->SetWidth( 6 );
+    mEntrySurfaceScalarsColorMin->SetWidth( 5 );
     mEntrySurfaceScalarsColorMin->SetRestrictValueToDouble();
     mEntrySurfaceScalarsColorMin->
       SetCommand( this, "SetSurfaceScalarsColorMin");
@@ -3428,7 +3434,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     labeledEntryMid->SetLabelText( "Mid: " );
     labeledEntryMid->Create();
     mEntrySurfaceScalarsColorMid = labeledEntryMid->GetWidget();
-    mEntrySurfaceScalarsColorMid->SetWidth( 6 );
+    mEntrySurfaceScalarsColorMid->SetWidth( 5 );
     mEntrySurfaceScalarsColorMid->SetRestrictValueToDouble();
     mEntrySurfaceScalarsColorMid->
       SetCommand( this, "SetSurfaceScalarsColorMid");
@@ -3440,65 +3446,173 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     labeledEntryMax->SetLabelText( "Max: " );
     labeledEntryMax->Create();
     mEntrySurfaceScalarsColorMax = labeledEntryMax->GetWidget();
-    mEntrySurfaceScalarsColorMax->SetWidth( 6 );
+    mEntrySurfaceScalarsColorMax->SetWidth( 5 );
     mEntrySurfaceScalarsColorMax->SetRestrictValueToDouble();
     mEntrySurfaceScalarsColorMax->
       SetCommand( this, "SetSurfaceScalarsColorMax");
     mEntrySurfaceScalarsColorMax->SetValueAsDouble( mSurfaceScalarsColorMax );
-    this->Script( "pack %s %s %s -side left -padx 5 -fill x",
-                  labeledEntryMin->GetWidgetName(),
-                  labeledEntryMid->GetWidgetName(),
-                  labeledEntryMax->GetWidgetName() );
 
-    // Now a frame for the button to set the color scale using FDR,
-    // and its rate entry.
-    vtkSmartPointer<vtkKWFrame> frameFDR =
-      vtkSmartPointer<vtkKWFrame>::New();
-    frameFDR->SetParent( editorUserFrame );
-    frameFDR->Create();
-
-    vtkSmartPointer<vtkKWPushButton> buttonFDR = 
-      vtkSmartPointer<vtkKWPushButton>::New();
-    buttonFDR->SetParent( frameFDR );
-    buttonFDR->Create();
-    buttonFDR->SetText( "Set Using FDR" );
-    buttonFDR->SetCommand( this, "SetSurfaceScalarsColorsUsingFDR" );
-
-    vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryFDR =
-      vtkSmartPointer<vtkKWEntryWithLabel>::New();
-    labeledEntryFDR->SetParent( frameFDR );
-    labeledEntryFDR->SetLabelText( "Rate: " );
-    labeledEntryFDR->Create();
-    labeledEntryFDR->GetWidget()->SetWidth( 6 );
-    labeledEntryFDR->GetWidget()->SetRestrictValueToDouble();
-    labeledEntryFDR->GetWidget()->
-      SetCommand( this, "SetSurfaceScalarsColorsFDRRate" );
-    labeledEntryFDR->GetWidget()->
-      SetValueAsDouble( mSurfaceScalarsColorsFDRRate );
-    this->Script( "pack %s -side left -expand y -fill x -padx 5",
-                  buttonFDR->GetWidgetName() );
-    this->Script( "pack %s -side left -fill x -padx 5",
-                  labeledEntryFDR->GetWidgetName() );
-    
-    // Single entry for the offet.
     vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryOffset =
       vtkSmartPointer<vtkKWEntryWithLabel>::New();
-    labeledEntryOffset->SetParent( editorUserFrame );
-    labeledEntryOffset->SetLabelText( "Value offset: " );
+    labeledEntryOffset->SetParent( frameEntries );
+    labeledEntryOffset->SetLabelText( "Offset: " );
     labeledEntryOffset->Create();
     mEntrySurfaceScalarsColorOffset = labeledEntryOffset->GetWidget();
-    mEntrySurfaceScalarsColorOffset->SetWidth( 6 );
+    mEntrySurfaceScalarsColorOffset->SetWidth( 4 );
     mEntrySurfaceScalarsColorOffset->SetRestrictValueToDouble();
     mEntrySurfaceScalarsColorOffset->
       SetCommand( this, "SetSurfaceScalarsColorOffset");
     mEntrySurfaceScalarsColorOffset->
       SetValueAsDouble( mSurfaceScalarsColorOffset );
 
-    // Pack the three items in the user frame.
-    this->Script( "pack %s %s %s -side top -fill x -pady 2",
-                  frameEntries->GetWidgetName(), 
-                  frameFDR->GetWidgetName(),
-                  labeledEntryOffset->GetWidgetName() );
+    this->Script( "pack %s %s %s %s -side left -padx 5 -fill x",
+                  labeledEntryMin->GetWidgetName(),
+                  labeledEntryMid->GetWidgetName(),
+                  labeledEntryMax->GetWidgetName(),
+                  labeledEntryOffset->GetWidgetName());
+    this->Script( "pack %s -side top -fill x",
+                  frameEntries->GetWidgetName() );
+
+    // Correction for Multiple-Comparisons stuff, inside its own frame
+    vtkSmartPointer<vtkKWFrameWithLabel> cmcFrame =
+      vtkSmartPointer<vtkKWFrameWithLabel>::New();
+    cmcFrame->SetParent(  editorUserFrame );
+    cmcFrame->SetLabelText( "Correction for Multiple Comparisons" );
+    cmcFrame->Create();
+
+    // Now a frame for the button to set the color scale using FDR,
+    // and its rate entry.
+    vtkSmartPointer<vtkKWFrameWithLabel> frameFDR =
+      vtkSmartPointer<vtkKWFrameWithLabel>::New();
+    frameFDR->SetParent( cmcFrame->GetFrame() );
+    frameFDR->SetLabelText( "False Discovery Rate" );
+    frameFDR->Create();
+    this->Script( "pack %s -side top -fill x",
+                  frameFDR->GetWidgetName() );
+
+    vtkSmartPointer<vtkKWPushButton> buttonFDR = 
+      vtkSmartPointer<vtkKWPushButton>::New();
+    buttonFDR->SetParent( frameFDR->GetFrame() );
+    buttonFDR->Create();
+    buttonFDR->SetText( "Set Using FDR" );
+    buttonFDR->SetCommand( this, "SetSurfaceScalarsColorsUsingFDR" );
+
+    vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryFDR =
+      vtkSmartPointer<vtkKWEntryWithLabel>::New();
+    labeledEntryFDR->SetParent( frameFDR->GetFrame() );
+    labeledEntryFDR->SetLabelText( "Rate: " );
+    labeledEntryFDR->Create();
+    labeledEntryFDR->GetWidget()->SetWidth( 5 );
+    labeledEntryFDR->GetWidget()->SetRestrictValueToDouble();
+    labeledEntryFDR->GetWidget()->
+      SetCommand( this, "SetSurfaceScalarsColorsFDRRate" );
+    labeledEntryFDR->GetWidget()->
+      SetValueAsDouble( mSurfaceScalarsColorsFDRRate );
+    this->Script( "pack %s %s -side left -padx 5 -fill x",
+                  buttonFDR->GetWidgetName(),
+                  labeledEntryFDR->GetWidgetName() );
+
+    //
+    //
+    // Now a frame for simulation script generator
+    //
+    vtkSmartPointer<vtkKWFrameWithLabel> frameSimulation =
+      vtkSmartPointer<vtkKWFrameWithLabel>::New();
+    frameSimulation->SetParent( cmcFrame->GetFrame() );
+    frameSimulation->SetLabelText( "Simulation" );
+    frameSimulation->Create();
+    this->Script( "pack %s -side top -fill x",
+                  frameSimulation->GetWidgetName() );
+
+    // sub-frames to allow clean arrangement of the stuff
+    vtkSmartPointer<vtkKWFrame> frameSim1 = 
+      vtkSmartPointer<vtkKWFrame>::New();
+    frameSim1->SetParent( frameSimulation->GetFrame() );
+    frameSim1->Create();
+    vtkSmartPointer<vtkKWFrame> frameSim2 = 
+      vtkSmartPointer<vtkKWFrame>::New();
+    frameSim2->SetParent( frameSimulation->GetFrame() );
+    frameSim2->Create();
+    this->Script( "pack %s %s -side top -fill x",
+                  frameSim1->GetWidgetName(),
+                  frameSim2->GetWidgetName() );
+
+    // simulation type menu selection
+    vtkSmartPointer<vtkKWLabel> label1 = vtkSmartPointer<vtkKWLabel>::New();
+    label1->SetParent( frameSim1 );
+    label1->Create();
+    label1->SetText( "Type: " );
+    label1->SetJustificationToRight();
+    mMenuButtonSimulationType = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuButtonSimulationType->SetParent( frameSim1 );
+    mMenuButtonSimulationType->Create();
+    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "mc-z" );
+    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "mc-t" );
+    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "mc-full" );
+    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "perm" );
+    mMenuButtonSimulationType->SetValue( "mc-z" );
+
+    // simulation iterations entry
+    vtkSmartPointer<vtkKWEntryWithLabel> labeledEntrySimIter =
+      vtkSmartPointer<vtkKWEntryWithLabel>::New();
+    labeledEntrySimIter->SetParent( frameSim1 );
+    labeledEntrySimIter->SetLabelText( "Iterations: " );
+    labeledEntrySimIter->Create();
+    labeledEntrySimIter->GetWidget()->SetWidth( 5 );
+    labeledEntrySimIter->GetWidget()->
+      SetCommand( this, "SetSimulationIterations" );
+    labeledEntrySimIter->GetWidget()->
+      SetValueAsDouble( mSimulationIterations );
+    this->Script( "pack %s %s %s -side left -expand y -fill x -padx 5",
+                  label1->GetWidgetName(),
+                  mMenuButtonSimulationType->GetWidgetName(),
+                  labeledEntrySimIter->GetWidgetName() );
+
+    // simulation threshold entry
+    vtkSmartPointer<vtkKWEntryWithLabel> labeledEntrySimThresh =
+      vtkSmartPointer<vtkKWEntryWithLabel>::New();
+    labeledEntrySimThresh->SetParent( frameSim2 );
+    labeledEntrySimThresh->SetLabelText( "Threshold: " );
+    labeledEntrySimThresh->Create();
+    labeledEntrySimThresh->GetWidget()->SetWidth( 5 );
+    labeledEntrySimThresh->GetWidget()->SetRestrictValueToDouble();
+    labeledEntrySimThresh->GetWidget()->
+      SetCommand( this, "SetSimulationThreshold" );
+    labeledEntrySimThresh->GetWidget()->
+      SetValueAsDouble( mSimulationThreshold );
+
+     // simulation sign menu selection
+    vtkSmartPointer<vtkKWLabel> label2 = vtkSmartPointer<vtkKWLabel>::New();
+    label2->SetParent( frameSim2 );
+    label2->Create();
+    label2->SetText( "Sign: " );
+    label2->SetJustificationToRight();
+    mMenuButtonSimulationSign = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuButtonSimulationSign->SetParent( frameSim2 );
+    mMenuButtonSimulationSign->Create();
+    mMenuButtonSimulationSign->GetMenu()->AddRadioButton( "abs" );
+    mMenuButtonSimulationSign->GetMenu()->AddRadioButton( "pos" );
+    mMenuButtonSimulationSign->GetMenu()->AddRadioButton( "neg" );
+    mMenuButtonSimulationSign->SetValue( "abs" );
+    this->Script( "pack %s %s %s -side left -expand y -fill x -padx 5",
+                  label2->GetWidgetName(),
+                  mMenuButtonSimulationSign->GetWidgetName(),
+                  labeledEntrySimThresh->GetWidgetName() );
+
+    // button to generate script (using parameters appearing to its right)
+    vtkSmartPointer<vtkKWPushButton> buttonSimulation = 
+      vtkSmartPointer<vtkKWPushButton>::New();
+    buttonSimulation->SetParent( frameSimulation->GetFrame() );
+    buttonSimulation->Create();
+    buttonSimulation->SetText( "Generate Script" );
+    buttonSimulation->SetCommand( this, "GenerateSimulationScript" );
+    this->Script( "pack %s",
+                  buttonSimulation->GetWidgetName() );
+
+   // Pack the multiple comparisons items in the user frame.
+    this->Script( "pack %s %s -side top -fill x -pady 2",
+                  editorUserFrame->GetWidgetName(),
+                  cmcFrame->GetWidgetName());
 
     // Update the editors with the current min/mid/max values and a
     // dummy histogram.
@@ -3942,7 +4056,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
     // Set our min to the threshold, and calculate good values for mid
     // and max.
     this->SetSurfaceScalarsColors( threshold,
-                                   threshold + 1.5,
+                                   threshold + 0.001,
                                    threshold + 2.25 );
 
   } catch (exception& e) {
@@ -3959,6 +4073,62 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsFDRRate ( const char* isValue ) {
   stringstream ssValue( isValue );
   ssValue >> mSurfaceScalarsColorsFDRRate;
 }
+
+
+void
+vtkKWQdecWindow::SetSimulationIterations ( const char* isValue ) {
+
+  stringstream ssValue( isValue );
+  ssValue >> mSimulationIterations;
+}
+void
+vtkKWQdecWindow::SetSimulationThreshold( const char* isValue ) {
+
+  stringstream ssValue( isValue );
+  ssValue >> mSimulationThreshold;
+}
+
+
+// Creates a script to run mri_glmfit/mris_surfcluster for multiple-
+// comparisons correction
+void
+vtkKWQdecWindow::GenerateSimulationScript () {
+
+  this->SetStatusText( "Generating Simulation Script..." );
+  try {
+    stringstream ssCsdBaseName;
+    ssCsdBaseName << 
+      mMenuButtonSimulationType->GetValue() << "." <<
+      mMenuButtonSimulationSign->GetValue() << "." <<
+      mSimulationThreshold;
+   
+    stringstream ssScriptName;
+    ssScriptName << "mri_glmfit-sim-" << ssCsdBaseName;
+
+    assert( this->mQdecProject );
+    stringstream ssCommand;
+    ssCommand << "mri_glmfit-sim \\" << endl <<
+      " --glmdir " << 
+      this->mQdecProject->GetWorkingDir() << " \\" << endl <<
+      " --sim " << mMenuButtonSimulationType->GetValue() << " " << 
+      mSimulationIterations << " " <<
+      mSimulationThreshold << " " <<
+      ssCsdBaseName.str() << " \\" << endl <<
+      " --sim-sign " << mMenuButtonSimulationSign->GetValue() <<
+      "\\" << endl << " --overwrite" << endl;
+
+    cout << ssCommand.str() << endl;
+
+    this->SetStatusText( "Generated Simulation Script" );
+
+  } catch (exception& e) {
+    stringstream ssError;
+    ssError << "Error in simulation script generation " << e.what();
+    this->GetApplication()->ErrorMessage( ssError.str().c_str() );
+    this->SetStatusText( "Error during simulation script generation" );
+  }
+}
+
 
 void
 vtkKWQdecWindow::UpdateScatterPlot () {

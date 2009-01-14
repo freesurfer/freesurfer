@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/13 02:40:10 $
- *    $Revision: 1.1.2.7 $
+ *    $Date: 2009/01/14 02:27:39 $
+ *    $Revision: 1.1.2.8 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.7 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.1.2.8 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
