@@ -1,0 +1,441 @@
+#!/bin/tcsh -f
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.2 2009/01/14 01:16:57 greve Exp $';
+
+set inputargs = ($argv);
+
+set glmdir = ()
+set nulltype = ();
+set nsim = ()
+set thresh = ()
+set csdbase = ()
+set simsign = ()
+set Overwrite = 0;
+set LF = ();
+set tmpdir = ();
+set CleanUp = 1;
+set PrintHelp = 0;
+
+set ARGS_EXPECTATION = _ARGS_EXPECTED_
+if($#argv == 0 && $ARGS_EXPECTATION != _ARGS_EXPECTED_) then
+  # If invoked without args, assume current dir and
+  # these parameters, which must be set by a creation
+  # program (eg, qdec)
+  set glmdir   = .
+  set nulltype = _NULLTYPE_
+  set nsim     = _NSIM_
+  set thresh   = _THRESH_
+  set csdbase  = _CSDBASE_
+  set simsign  = _SIMSIGN_
+  set Overwrite = 1;
+else
+  if($#argv == 0) goto usage_exit;
+  set n = `echo $argv | grep -e --help | wc -l` 
+  if($n != 0) then
+    set PrintHelp = 1;
+    goto usage_exit;
+  endif
+  set n = `echo $argv | grep -e --version | wc -l` 
+  if($n != 0) then
+    echo $VERSION
+    exit 0;
+  endif
+
+  goto parse_args;
+  parse_args_return:
+
+endif
+
+goto check_params;
+check_params_return:
+
+if(! -e $glmdir) then
+  echo "ERROR: cannot find $glmdir"
+  exit 1;
+endif
+
+set glmfitlog = $glmdir/mri_glmfit.log
+if(! -e $glmfitlog) then
+  echo "ERROR: cannot find $glmfitlog"
+  exit 1;
+endif
+
+set mask = `stem2fname $glmdir/mask`
+if($status) then
+  echo "$mask"
+  exit 1;
+endif
+
+set fwhmfile = $glmdir/fwhm.dat
+if(! -e $fwhmfile) then
+  echo "ERROR: cannot find $fwhm"
+  exit 1;
+endif
+set fwhm = `cat $fwhmfile`;
+
+set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
+if(! -e $glmfitcwd) then
+  echo "ERROR: cannot find $glmfitcwd"
+  exit 1;
+endif
+
+set anattype = volume;
+set subject = ();
+set hemi = ();
+set y = ();
+
+# Go through the original mri_glmfit command-line
+set glmfitcmd = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
+#set glmfitcmd = (`grep cmdline $glmfitlog`)
+while($#glmfitcmd)
+  set flag = $glmfitcmd[1]; shift glmfitcmd;
+  switch($flag)
+  case "--surf"
+    set subject = $glmfitcmd[1]; shift glmfitcmd;
+    set hemi    = $glmfitcmd[1]; shift glmfitcmd;
+    set anattype = surface;
+    breaksw
+  case "--y"
+    set y = $glmfitcmd[1]; shift glmfitcmd;
+    set y = $glmfitcwd/$y
+    if(! -e $y) then
+      echo "ERROR: cannot find $y"
+      exit 1;
+    endif
+    breaksw
+  default
+    breaksw 
+  endsw
+end
+
+if($anattype == volume) then
+  echo "ERROR: does not work for volumes yet"
+  exit 1;
+endif
+
+# Make sure the subject exists
+if($#subject != 0) then
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+  echo "SURFACE: $subject $hemi"
+endif
+
+# Get a list of contrasts, etc
+if($#tmpdir == 0) set tmpdir = /tmp/mri_glmfit-sim-$$
+mkdir -p $tmpdir
+set clist = ($glmdir/*/C.dat)
+if($status) then
+  echo "ERROR: cannot find any contrasts"
+  exit 1;
+endif
+set clist2 = ();
+set conlist = ();
+foreach c ($clist)
+  set tmp = `dirname $c`
+  set conname = `basename $tmp`
+  set conlist = ($conlist $conname);
+  set confile = $tmpdir/$conname.mtx
+  cp $c $confile
+  set clist2 = ($clist2 --C $confile);
+
+  # Make sure sig is there
+  set sig = `stem2fname $glmdir/$conname/sig`
+  if($status) then
+    echo "$sig"
+    exit 1;
+  endif
+
+  # Make sure that csd is not there
+  set csd = $glmdir/$csdbase-$conname.csd
+  if(-e $csd && ! $Overwrite) then
+    echo "ERROR: $csd already exists"
+    echo "Delete it or run with --overwrite"
+    exit 1;
+  endif
+  rm -f $csd
+
+end
+
+# Use fsgd if there, if not use X
+set fsgd = ();
+set X = ();
+if(-e $glmdir/y.fsgd) then
+  set fsgd = $glmdir/y.fsgd
+else
+  set X = $glmdir/Xg.dat
+endif
+
+set StartDate = `date`
+
+# Create log file
+if($#LF == 0) set LF = $glmdir/$csdbase.mri_glmfit-sim.log
+rm -f $LF
+pwd | tee -a $LF
+echo $0 | tee -a $LF
+echo $inputargs | tee -a $LF
+echo $VERSION  | tee -a $LF
+date | tee -a $LF
+uname -a | tee -a $LF
+echo $user | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
+
+# ----------------- Run glmfit simulation ----------------------
+# This may take a while
+date | tee -a $LF
+set cmd = (mri_glmfit --y $y $clist2)
+set cmd = ($cmd --sim $nulltype $nsim $thresh $glmdir/$csdbase)
+set cmd = ($cmd --sim-sign $simsign)
+if($#fsgd) set cmd = ($cmd --fsgd $fsgd)
+if($#X)    set cmd = ($cmd --X $X)
+if($nulltype != perm) set cmd = ($cmd --fwhm $fwhm)
+if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
+
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+date | tee -a $LF
+
+# -------------- now run mri_surfcluster -------------------- #
+foreach conname ($conlist)
+  set csd = $glmdir/$csdbase-$conname.csd
+  set sig = `stem2fname $glmdir/$conname/sig`
+  set vwsig = $glmdir/$conname/$csdbase.sig.voxel.mgh
+  set cwsig = $glmdir/$conname/$csdbase.sig.cluster.mgh
+  set ocn   = $glmdir/$conname/$csdbase.sig.ocn.mgh
+  set annot = $glmdir/$conname/$csdbase.sig.ocn.annot
+  set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
+
+  if($anattype == surface) then
+    set cmd = (mri_surfcluster --in $sig --csd $csd --mask $mask \
+      --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
+      --oannot $annot)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # For some reason cwsig has 4 frames, just take 1st
+  set cmd = (mri_convert $cwsig $cwsig --frame 0)
+  echo $cmd | tee -a $LF
+  $cmd  | tee -a $LF
+  if($status) exit 1;
+  
+  #set cmd = (mri_concat $sig $vwsig $cwsig --o $glmdir/$conname/tmp.mgh)
+  #echo $cmd | tee -a $LF
+  #$cmd  | tee -a $LF
+  #if($status) exit 1;
+
+end
+
+if($CleanUp) rm -r $tmpdir
+
+echo $StartDate
+date
+echo "mri_glmfit-sim done"
+
+exit 0
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--glmdir":
+      if( $#argv < 0) goto arg1err;
+      set glmdir = $argv[1]; shift;
+      breaksw
+
+    case "--sim":
+      if( $#argv < 4) goto arg4err;
+      set nulltype = $argv[1]; shift;
+      set nsim = $argv[1]; shift;
+      set thresh = $argv[1]; shift;
+      set csdbase = $argv[1]; shift;
+      breaksw
+
+    case "--sim-sign":
+      if( $#argv < 1) goto arg1err;
+      set simsign = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if( $#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--overwrite":
+      set Overwrite = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+if($#glmdir == 0) then
+  echo "ERROR: must spec --glmdir"
+  exit 1;
+endif
+if($#nulltype == 0) then
+  echo "ERROR: must spec --sim"
+  exit 1;
+endif
+if($#simsign == 0) then
+  echo "ERROR: must spec --sim-sign"
+  exit 1;
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg4err:
+  echo "ERROR: flag $flag requires four arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "mri_glmfit-sim"
+  echo ""
+  echo " --glmdir glmdir"
+  echo " --sim nulltype nsim threshhold csdbase"
+  echo " --sim-sign sign : <abs>,pos,neg"
+  echo ""
+  echo " --overwrite : delete previous CSDs"
+  echo ""
+  echo " --help"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program is a script to run GLM-based simulations for corrections
+for multiple comparisons on the volume or the surface. Actually, it
+does not work for volumes yet. It is a front-end for both the
+mri_glmfit and mri_surfcluster programs.
+
+To use this program:
+
+1. Run mri_glmfit on your data, giving it the glm directory
+   (--glmdir), and all the other arguments.
+
+2. Choose the type of simulation (nulltype) you want to run. The
+   choices are:
+
+mc-z - synthesized, smoothed z-field (fast)
+mc-t - synthesized, smoothed t-field (next fasted)
+mc-full - fully synthesized, smoothed gaussian field (slow)
+perm - permutation on original data (probably fasted one)
+
+3. Choose the voxel/vertex-wise threshhold used to define clusters. This
+   will be -log10(p), where p is the p-value. Eg, to use all voxels/vertices
+   with p < .01, then set the threshhold = 2.
+
+4. Choose the number of iterations (nsim). This is usually 10,000
+   (which can take quite a while).
+
+5. Select the CSD base name (csdbase). CSD stands for "Cluster
+   Simulation Data". There will be a text file for each contrast with
+   the information about the null distribution. This file will be
+   called csdbase-contrast.csd, so the csdbase should be something
+   descriptive. Eg, if you have mc-z, with threshold=2, and sign=pos,
+   then setting csdbase to mc-z.pos.2 would be appropriate. If the 
+   CSD file exists, then you must delete it or run with --overwrite.
+
+6. Select the threshold sign (--sim-sign). This is the sign of the
+   threshold used to create the clusters for cluster-wise correction
+   of multiple comparisons. Options are abs (unsigned), pos
+   (positive), and neg (negative).
+
+Now run the command:
+
+mri_glmfit-sim --glmdir glmdir \
+  --sim nulltype nsim threshold csdbase \
+  --sim-sign sign
+
+Example,
+
+mri_glmfit-sim --glmdir lh.thickness.sm05 \
+  --sim mc-z 10000 3 mc-z.pos.3 --sim-sign pos
+
+This will run mri_glmfit in simulation mode. It will find all the
+contrasts that you ran in the original invocation of mri_glmfit and
+create CSD files for them. It will use the mask and, for mc
+simulations, the FWHM found in the glmdir.
+
+For surfaces, it will then run mri_surfcluster or mri_volcluster for
+each contrast, using the sig volume as input and creating the
+following files in each contrast directory:
+
+csdbase.sig.voxel.mgh 
+csdbase.sig.cluster.mgh 
+csdbase.sig.cluster.summary
+csdbase.sig.ocn.mgh
+csdbase.sig.ocn.annot (for surfaces only)
+
+csdbase.sig.voxel.mgh - the sig volume corrected for multiple
+comparisons on a voxel-wise basis. The threshhold and sign are
+irrelevant. The value at each voxel is the corrected -log10(p-value)
+for that voxel.
+
+csdbase.sig.cluster.mgh - the sig volume corrected for multiple
+comparisons on a cluster-wise basis. The value at each voxel
+is the -log10(p), where p is the pvalue of the cluster at 
+that voxel. If that voxel does not belong to a cluster, its
+value will be 0. 
+
+csdbase.sig.cluster.summary - this is the cluster summary table 
+(a simple text file).
+
+csdbase.sig.ocn.mgh - output cluster number volume. The value of the
+voxel is the integer cluster number that that voxel belongs to. This
+can be used like a segmentation (eg, to load into tkmedit or
+use for running mri_segstats).
+
+csdbase.sig.ocn.annot (for surfaces only) - this is an annotation
+with the annotation name being the cluster number. This can be
+used like any other annotation (eg, to load into tksurfer or 
+as input for mri_segstats or mris_anatomical_stats).
+
+
+
+
+
