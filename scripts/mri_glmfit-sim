@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.5 2009/01/14 03:23:06 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.6 2009/01/14 21:33:39 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -10,7 +10,16 @@ set thresh = ()
 set csdbase = ()
 set simsign = ()
 set Overwrite = 0;
+set DoSim = 1;
 set LF = ();
+set AllDoneFile = ();
+
+set nJobs = 1;
+set DoBackground = 0;
+set DoPBSubmit = 0;
+set DoPoll = 0;
+set tSleepSec = 10;
+
 set tmpdir = ();
 set CleanUp = 1;
 set PrintHelp = 0;
@@ -134,24 +143,20 @@ foreach c ($clist)
   endif
 
   # Make sure that csd is not there
-  set csd = $glmdir/$csdbase-$conname.csd
-  if(-e $csd && ! $Overwrite) then
-    echo "ERROR: $csd already exists"
-    echo "Delete it or run with --overwrite"
-    exit 1;
+  if($DoSim) then
+    ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
+    set csdexists = (! $status)
+    if($csdexists) then
+      set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
+      if(! $Overwrite) then
+        echo "ERROR: $csdfiles already exists"
+        echo "Delete it or run with --overwrite"
+        exit 1;
+      endif
+      rm -f $csdfiles
+    endif
   endif
-  rm -f $csd
-
 end
-
-# Use fsgd if there, if not use X
-set fsgd = ();
-set X = ();
-if(-e $glmdir/y.fsgd) then
-  set fsgd = $glmdir/y.fsgd
-else
-  set X = $glmdir/Xg.dat
-endif
 
 set StartDate = `date`
 
@@ -167,26 +172,116 @@ uname -a | tee -a $LF
 echo $user | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
+echo "DoPoll = $DoPoll"| tee -a $LF
 
-# ----------------- Run glmfit simulation ----------------------
-# This may take a while
-date | tee -a $LF
-set cmd = (mri_glmfit --y $y $clist2)
-set cmd = ($cmd --sim $nulltype $nsim $thresh $glmdir/$csdbase)
-set cmd = ($cmd --sim-sign $simsign)
-if($#fsgd) set cmd = ($cmd --fsgd $fsgd)
-if($#X)    set cmd = ($cmd --X $X)
-if($nulltype != perm) set cmd = ($cmd --fwhm $fwhm)
-if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
+if($DoSim) then
+  # Use fsgd if there, if not use X
+  set fsgd = ();
+  set X = ();
+  if(-e $glmdir/y.fsgd) then
+    set fsgd = $glmdir/y.fsgd
+  else
+    set X = $glmdir/Xg.dat
+  endif
 
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
-date | tee -a $LF
+
+  # Number of sim iterations per job
+  set nSimPerJob = `echo "$nsim/$nJobs" | bc`;
+  echo "nSimPerJob = $nSimPerJob"| tee -a $LF
+
+  # ----------------- Run glmfit simulation ----------------------
+  # This may take a while
+  mkdir -p $glmdir/csd
+  @ nthJob = 1
+  while($nthJob <= $nJobs)
+    set jpad = `printf j%03d $nthJob`
+    echo "$nthJob/$nJobs `date`" | tee -a $LF
+
+    set cmd = (mri_glmfit --y $y $clist2)
+    set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $glmdir/csd/$csdbase.$jpad)
+    set cmd = ($cmd --sim-sign $simsign)
+    if($#fsgd) set cmd = ($cmd --fsgd $fsgd)
+    if($#X)    set cmd = ($cmd --X $X)
+    if($nulltype != perm) set cmd = ($cmd --fwhm $fwhm)
+    if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
+
+    set DoneFile = $glmdir/csd/$csdbase.$jpad.done
+    rm -f $DoneFile
+    set cmd = ($cmd --sim-done $DoneFile)
+
+    echo $cmd | tee -a $LF
+    if(! $DoPoll) then
+      # Run directly in shell
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      date | tee -a $LF
+    else
+      if($DoBackground) then
+        # Run in background
+        $cmd >>& $LF &
+      endif
+      if($DoPBSubmit) then
+        # pbsubmit
+        pbsubmit -l nodes=1:opteron -c "$cmd >>& $LF"
+        sleep 10;
+      endif
+    endif
+    @ nthJob = $nthJob + 1
+  end
+
+  if($DoPoll) then
+    # Possible bug: if job above dies without creating done file
+    echo "Polling" | tee -a $LF
+    @ nthPoll = 0;
+    set Done = 0;
+    while(! $Done)
+      @ nthPoll = $nthPoll + 1;
+      echo "Poll $nthPoll `date`" | tee -a $LF
+      set Done = 1;
+      @ nthJob = 1
+      while($nthJob <= $nJobs)
+        set jpad = `printf j%03d $nthJob`
+        set DoneFile = $glmdir/csd/$csdbase.$jpad.done
+        if(! -e $DoneFile) then
+          set Done = 0;
+          break;
+        endif
+      @ nthJob = $nthJob + 1
+      end
+      sleep $tSleepSec 
+    end
+  endif
+
+endif #DoSim
+
+
+if($DoPBSubmit) then
+  # pbsubmit the surfcluster part
+  set cmd = (mri_glmfit-sim 
+  set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $csdbase)
+  set cmd = ($cmd --sim-sign $simsign --no-sim)
+  pbsubmit -l nodes=1:opteron -c "$cmd"
+  sleep 5;
+  # Could wait until it is done by polling for AllDoneFile
+  exit 0;
+endif
+
 
 # -------------- now run mri_surfcluster -------------------- #
 foreach conname ($conlist)
-  set csd = $glmdir/$csdbase-$conname.csd
+
+  ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
+  if($status) then
+    echo "ERROR: cannot find any csd files"| tee -a $LF
+    exit 1; 
+  endif
+
+  set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
+  set csdlist = ();
+  foreach csd ($csdfiles)
+    set csdlist = ($csdlist --csd $csd);
+  end
+
   set sig = `stem2fname $glmdir/$conname/sig`
   set vwsig = $glmdir/$conname/$csdbase.sig.voxel.mgh
   set cwsig = $glmdir/$conname/$csdbase.sig.cluster.mgh
@@ -195,7 +290,7 @@ foreach conname ($conlist)
   set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
 
   if($anattype == surface) then
-    set cmd = (mri_surfcluster --in $sig --csd $csd --mask $mask \
+    set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
       --oannot $annot)
     echo $cmd | tee -a $LF
@@ -217,6 +312,8 @@ foreach conname ($conlist)
 end
 
 if($CleanUp) rm -r $tmpdir
+
+if($#AllDoneFile) touch $AllDoneFile
 
 echo $StartDate
 date
@@ -259,6 +356,40 @@ while( $#argv != 0 )
 
     case "--overwrite":
       set Overwrite = 1;
+      breaksw
+
+    case "--pbsubmit":
+      if($#argv < 1) goto arg1err;
+      set nJobs = $argv[1]; shift;
+      set DoPBSubmit = 1;
+      set DoPoll = 1;
+      set DoBackground = 0;
+      if(`hostname` != seychelles) then
+        echo "ERROR: must be on seychelles to pbsubmit"
+        exit 1;
+      endif
+      breaksw
+
+    case "--bg":
+      if($#argv < 1) goto arg1err;
+      set nJobs = $argv[1]; shift;
+      set DoBackground = 1;
+      set DoPoll = 1;
+      set DoPBSubmit = 0;
+      breaksw
+
+    case "--no-bg":
+      set DoBackground = 0;
+      set DoPoll = 0;
+      breaksw
+
+    case "--sleep":
+      if($#argv < 1) goto arg1err;
+      set tSleepSec = $argv[1]; shift;
+      breaksw
+
+    case "--no-sim":
+      set DoSim = 0;
       breaksw
 
     case "--debug":
@@ -320,6 +451,9 @@ usage_exit:
   echo ""
   echo " --overwrite : delete previous CSDs"
   echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
+  echo " --no-sim : do not simulate, only run cluster"
+  echo " --bg njobs : divide sim into njobs and put in background"
+  echo " --sleep tSleepSec : number of seconds to sleep between background polls "
   echo ""
   echo " --help"
   echo ""
