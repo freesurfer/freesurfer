@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/02 16:33:27 $
- *    $Revision: 1.158 $
+ *    $Date: 2009/01/14 19:35:11 $
+ *    $Revision: 1.159 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -104,6 +104,7 @@ USAGE: ./mri_glmfit
    --allowsubjrep allow subject names to repeat in the fsgd file (must appear
                   before --fsgd)
    --illcond : allow ill-conditioned design matrices
+   --sim-done SimDoneFile : create DoneFile when simulation finished 
 
 ENDUSAGE --------------------------------------------------------------
 
@@ -547,7 +548,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.158 2008/12/02 16:33:27 greve Exp $";
+"$Id: mri_glmfit.c,v 1.159 2009/01/14 19:35:11 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -680,6 +681,8 @@ int ComputeFWHM = 1;
 int UseStatTable = 0;
 STAT_TABLE *StatTable=NULL, *OutStatTable=NULL;
 int  UseCortexLabel = 0;
+
+char *SimDoneFile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1467,6 +1470,11 @@ int main(int argc, char **argv) {
         free(SurfClustList);
       }
     }// simulation loop
+    if(SimDoneFile){
+      fp = fopen(SimDoneFile,"w");
+      fclose(fp);
+    }
+      
     exit(0);
   }
   //--------------------------------------------------------------------------
@@ -2138,7 +2146,13 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%d",&SubSampDelta);
       SubSample = 1;
       nargsused = 2;
-    } else {
+    } 
+    else if (!strcmp(option, "--sim-done")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      SimDoneFile = pargv[0];
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -2223,6 +2237,7 @@ printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comap
 printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must appear\n");
 printf("                  before --fsgd)\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
+printf("   --sim-done SimDoneFile : create SimDoneFile when simulation finished\n");
 printf("\n");
 
 }
