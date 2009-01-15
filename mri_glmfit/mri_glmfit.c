@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 19:03:25 $
- *    $Revision: 1.138.2.7 $
+ *    $Date: 2009/01/15 23:36:39 $
+ *    $Revision: 1.138.2.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -531,7 +531,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.7 2009/01/15 19:03:25 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.8 2009/01/15 23:36:39 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -1255,11 +1255,11 @@ int main(int argc, char **argv) {
     }
     printf("thresh = %g, threshadj = %g \n",csd->thresh,threshadj);
 
-    printf("Starting simulation sim over %d trials\n",nsim);
+    printf("\n\nStarting simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
     for (nthsim=0; nthsim < nsim; nthsim++) {
       msecFitTime = TimerStop(&mytimer) ;
-      printf("%d/%d t=%g ------------------------------------------------\n",
+      if(debug) printf("%d/%d t=%g ------------------------------------------------\n",
              nthsim+1,nsim,msecFitTime/(1000*60.0));
 
       if (!strcmp(csd->simtype,"mc-full")) {
@@ -1285,14 +1285,14 @@ int main(int argc, char **argv) {
       if (!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")) {
         // If variance smoothing, then need to test and fit separately
         if (VarFWHM > 0) {
-          printf("Starting fit\n");
+          if(!DoSim) printf("Starting fit\n");
           MRIglmFit(mriglm);
-          printf("Variance smoothing\n");
+          if(!DoSim) printf("Variance smoothing\n");
           SmoothSurfOrVol(surf, mriglm->rvar, mriglm->mask, VarSmoothLevel);
-          printf("Starting test\n");
+          if(!DoSim) printf("Starting test\n");
           MRIglmTest(mriglm);
         } else {
-          printf("Starting fit and test\n");
+          if(!DoSim) printf("Starting fit and test\n");
           MRIglmFitAndTest(mriglm);
         }
       }
@@ -1353,7 +1353,7 @@ int main(int argc, char **argv) {
           if (Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
           clustFreeClusterList(&VolClustList,nClusters);
         }
-        printf("%s %d nc=%d  maxcsize=%g  sigmax=%g  Fmax=%g\n",
+        if(debug) printf("%s %d nc=%d  maxcsize=%g  sigmax=%g  Fmax=%g\n",
                mriglm->glm->Cname[n],nthsim,nClusters,csize,sigmax,Fmax);
 
         // Re-write the full CSD file each time. Should not take that
@@ -1407,6 +1407,7 @@ int main(int argc, char **argv) {
       fp = fopen(SimDoneFile,"w");
       fclose(fp);
     }
+    printf("mri_glmfit simulation done\n\n\n");
     exit(0);
   }
   //--------------------------------------------------------------------------
