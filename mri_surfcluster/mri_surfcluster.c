@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/21 19:15:33 $
- *    $Revision: 1.42 $
+ *    $Date: 2009/01/15 01:03:05 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.42 2008/12/21 19:15:33 greve Exp $
+  $Id: mri_surfcluster.c,v 1.43 2009/01/15 01:03:05 greve Exp $
 */
 
 #include <stdio.h>
@@ -80,7 +80,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.42 2008/12/21 19:15:33 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.43 2009/01/15 01:03:05 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.42 2008/12/21 19:15:33 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.43 2009/01/15 01:03:05 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1171,7 +1171,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.42 2008/12/21 19:15:33 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.43 2009/01/15 01:03:05 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1249,6 +1249,10 @@ static void check_options(void) {
       printf("ERROR: you cannot specify a minarea with --csd\n");
       exit(1);
     }
+    printf("csd->threshsign = %g\n",csd->threshsign);
+    if(csd->threshsign >  0.5)      thsign = "pos";
+    else if(csd->threshsign < -0.5) thsign = "neg";
+    else                            thsign = "abs";
     minarea = 0;
   } // end csd != NULL
   if (voxwisesigfile != NULL && csd == NULL) {
@@ -1256,10 +1260,10 @@ static void check_options(void) {
     exit(1);
   }
 
-  if (thsign == NULL) thsign = "abs";
-  if (stringmatch(thsign,"pos")) thsignid = +1;
-  if (stringmatch(thsign,"abs")) thsignid =  0;
-  if (stringmatch(thsign,"neg")) thsignid = -1;
+  if(thsign == NULL) thsign = "abs";
+  if(stringmatch(thsign,"pos")) thsignid = +1;
+  if(stringmatch(thsign,"abs")) thsignid =  0;
+  if(stringmatch(thsign,"neg")) thsignid = -1;
   printf("thsign = %s, id = %d\n",thsign,thsignid);
 
   if (hemi == NULL) {
