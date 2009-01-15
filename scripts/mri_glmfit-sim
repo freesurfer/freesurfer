@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.8 2009/01/15 02:10:45 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.9 2009/01/15 21:35:10 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -108,11 +108,6 @@ while($#glmfitcmd)
   endsw
 end
 
-if($anattype == volume) then
-  echo "ERROR: does not work for volumes yet"
-  exit 1;
-endif
-
 # Make sure the subject exists
 if($#subject != 0) then
   if(! -e $SUBJECTS_DIR/$subject) then
@@ -204,7 +199,7 @@ if($DoSim) then
     set jpad = `printf j%03d $nthJob`
     echo "$nthJob/$nJobs `date`" | tee -a $LF
 
-    set cmd = (mri_glmfit --y $y $clist2)
+    set cmd = (mri_glmfit --y $y $clist2 --mask $mask)
     set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $glmdir/csd/$csdbase.$jpad)
     set cmd = ($cmd --sim-sign $simsign)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
@@ -212,9 +207,11 @@ if($DoSim) then
     if($nulltype != perm) set cmd = ($cmd --fwhm $fwhm)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
 
-    set DoneFile = $glmdir/csd/$csdbase.$jpad.done
-    rm -f $DoneFile
-    set cmd = ($cmd --sim-done $DoneFile)
+    if($DoPoll) then
+      set DoneFile = $glmdir/csd/done.$csdbase.$jpad
+      rm -f $DoneFile
+      set cmd = ($cmd --sim-done $DoneFile)
+    endif
 
     echo $cmd | tee -a $LF
     if(! $DoPoll) then
@@ -249,7 +246,7 @@ if($DoSim) then
       @ nthJob = 1
       while($nthJob <= $nJobs)
         set jpad = `printf j%03d $nthJob`
-        set DoneFile = $glmdir/csd/$csdbase.$jpad.done
+        set DoneFile = $glmdir/csd/done.$csdbase.$jpad
         if(! -e $DoneFile) then
           echo "Poll $nthPoll job $nthJob `date`" | tee -a $LF
           set Done = 0;
@@ -263,12 +260,10 @@ if($DoSim) then
 
 endif #DoSim
 
-
 if($DoPBSubmit) then
   # pbsubmit the surfcluster part
-  set cmd = (mri_glmfit-sim --glmdir $glmdir)
-  set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $csdbase)
-  set cmd = ($cmd --sim-sign $simsign --no-sim  --tmp $tmpdir)
+  set cmd = (mri_glmfit-sim --glmdir $glmdir  --tmp $tmpdir)
+  set cmd = ($cmd --sim-sign $simsign --no-sim $csdbase)
   set cmd = ($cmd --log $LF)
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
@@ -281,8 +276,7 @@ if($DoPBSubmit) then
   exit 0;
 endif
 
-
-# -------------- now run mri_surfcluster -------------------- #
+# -------------- now run clustering -------------------- #
 foreach conname ($conlist)
 
   ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
@@ -313,17 +307,20 @@ foreach conname ($conlist)
     if($status) exit 1;
   endif
 
+  if($anattype == volume) then
+    set cmd = (mri_volcluster --in $sig $csdlist --mask $mask \
+      --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
   # For some reason cwsig has 4 frames, just take 1st
   set cmd = (mri_convert $cwsig $cwsig --frame 0)
   echo $cmd | tee -a $LF
   $cmd  | tee -a $LF
   if($status) exit 1;
   
-  #set cmd = (mri_concat $sig $vwsig $cwsig --o $glmdir/$conname/tmp.mgh)
-  #echo $cmd | tee -a $LF
-  #$cmd  | tee -a $LF
-  #if($status) exit 1;
-
 end
 
 if($CleanUp) rm -r $tmpdir
@@ -409,6 +406,8 @@ while( $#argv != 0 )
       breaksw
 
     case "--no-sim":
+      if($#argv < 1) goto arg1err;
+      set csdbase = $argv[1]; shift;
       set DoSim = 0;
       breaksw
 
@@ -435,13 +434,15 @@ if($#glmdir == 0) then
   echo "ERROR: must spec --glmdir"
   exit 1;
 endif
-if($#nulltype == 0) then
-  echo "ERROR: must spec --sim"
-  exit 1;
-endif
-if($#simsign == 0) then
-  echo "ERROR: must spec --sim-sign"
-  exit 1;
+if($DoSim) then
+  if($#nulltype == 0) then
+    echo "ERROR: must spec --sim"
+    exit 1;
+  endif
+  if($#simsign == 0) then
+    echo "ERROR: must spec --sim-sign"
+    exit 1;
+  endif
 endif
 
 
@@ -469,11 +470,13 @@ usage_exit:
   echo " --sim nulltype nsim threshhold csdbase"
   echo " --sim-sign sign : <abs>,pos,neg"
   echo ""
+  echo " --no-sim csdbase : do not simulate, only run cluster"
   echo " --overwrite : delete previous CSDs"
-  echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
-  echo " --no-sim : do not simulate, only run cluster"
+  echo ""
   echo " --bg njobs : divide sim into njobs and put in background"
   echo " --sleep tSleepSec : number of seconds to sleep between background polls "
+  echo ""
+  echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
   echo ""
   echo " --help"
   echo ""
@@ -490,9 +493,8 @@ exit 1;
 BEGINHELP
 
 This program is a script to run GLM-based simulations for corrections
-for multiple comparisons on the volume or the surface. Actually, it
-does not work for volumes yet. It is a front-end for both the
-mri_glmfit and mri_surfcluster programs.
+for multiple comparisons on the volume or the surface. It is a
+front-end for both the mri_glmfit and mri_surfcluster programs.
 
 To use this program:
 
@@ -503,8 +505,7 @@ To use this program:
    choices are:
 
 mc-z - synthesized, smoothed z-field (fast)
-mc-t - synthesized, smoothed t-field (next fasted)
-mc-full - fully synthesized, smoothed gaussian field (slow)
+mc-full - fully synthesized, smoothed gaussian field (slowest)
 perm - permutation on original data (probably fasted one)
 
 3. Choose the voxel/vertex-wise threshhold used to define clusters. This
@@ -543,7 +544,7 @@ contrasts that you ran in the original invocation of mri_glmfit and
 create CSD files for them. It will use the mask and, for mc
 simulations, the FWHM found in the glmdir.
 
-For surfaces, it will then run mri_surfcluster or mri_volcluster for
+It will then run mri_surfcluster or mri_volcluster for
 each contrast, using the sig volume as input and creating the
 following files in each contrast directory:
 
@@ -576,6 +577,30 @@ csdbase.sig.ocn.annot (for surfaces only) - this is an annotation
 with the annotation name being the cluster number. This can be
 used like any other annotation (eg, to load into tksurfer or 
 as input for mri_segstats or mris_anatomical_stats).
+
+OTHER OPTIONS
+
+--no-sim csdbase
+
+Run this if you have already run the stimulation but just want to 
+run the correction for multiple comparisons again. This is mostly
+used for debugging.
+
+--overwrite
+
+Overwrite existing CSD files when performing simulation. Default 
+is to not overwrite so that you do not clobber CSD files that you
+spent a weekend creating.
+
+--bg njobs
+
+Divide the number of simulation interations into njobs background
+jobs. CAREFUL!!!! WARNING!!! If the simulation jobs die uncleanly for
+some reason, this will never quit because it looks for a file created
+by the simulation job before continuing. If this file is not created,
+then it will keep polling for this file forever. ALSO: if you are
+not running on a computer with multiple nodes, then this will not
+make it run any faster (in fact, it will run slower).
 
 
 
