@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/09 07:15:39 $
- *    $Revision: 1.43 $
+ *    $Date: 2009/01/15 23:12:49 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -242,7 +242,7 @@ MRI *clustInitHitMap(MRI *vol, int frame,
       }
     }
   }
-  printf("INFO: clustInitHitMap: found %d hits\n", nh );
+  //printf("INFO: clustInitHitMap: found %d hits\n", nh );
 
   /* check that there are hits */
   if (nh == 0 )
@@ -320,7 +320,7 @@ MRI *clustInitHitMap(MRI *vol, int frame,
       }
     }
   }
-  if (Gdiag_no > 1) printf("INFO: clustInitHitMap: found %d hits\n", nh );
+  if(Gdiag_no > 1) printf("INFO: clustInitHitMap: found %d hits\n", nh );
 
   *hitcol = hcol;
   *hitrow = hrow;
