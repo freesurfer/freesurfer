@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/09 22:23:40 $
- *    $Revision: 1.54.2.4 $
+ *    $Author: greve $
+ *    $Date: 2009/01/15 01:36:52 $
+ *    $Revision: 1.54.2.5 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.54.2.4 2009/01/09 22:23:40 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.54.2.5 2009/01/15 01:36:52 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.54.2.4 2009/01/09 22:23:40 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.54.2.5 2009/01/15 01:36:52 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -193,6 +193,15 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+
+  if(mris->group_avg_vtxarea_loaded){
+    printf("\n");
+    printf("ERROR: subject %s is an average subject. mris_anatomical_stats\n",sname);
+    printf("cannot currently be used with an average subject. \n");
+    printf("\n");
+    exit(1);
+  }
+
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   // read in white and pial surfaces
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -320,7 +329,8 @@ main(int argc, char *argv[])
       else
         sprintf(full_name, "%s/%s/label/%s", sdir, sname, label_name) ;
     }
-    if(! fio_FileExistsReadable(full_name))  sprintf(full_name, "%s", label_name) ;
+    if(! fio_FileExistsReadable(full_name))
+      sprintf(full_name, "%s", label_name) ;
   }
   else if (annotation_name)  {
     int vno, index ;
