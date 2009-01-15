@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/14 19:35:11 $
- *    $Revision: 1.159 $
+ *    $Date: 2009/01/15 18:49:07 $
+ *    $Revision: 1.160 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -548,7 +548,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.159 2009/01/14 19:35:11 greve Exp $";
+"$Id: mri_glmfit.c,v 1.160 2009/01/15 18:49:07 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1503,12 +1503,10 @@ int main(int argc, char **argv) {
       sprintf(tmpstr,"%s/sar1.%s",GLMDir,format);
       MRIwrite(ar1,tmpstr);
       RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
-      eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
-      eresfwhm = eresgstd*sqrt(log(256.0));
+      eresfwhm = MRISfwhmFromAR1(surf, ar1mn);
+      eresgstd = eresfwhm/sqrt(log(256.0));
       printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
              ar1mn,ar1std,eresgstd,eresfwhm);
-      //printf("Residual: ar1mn=%lf, ar1std=%lf, ar1max=%lf, gstd=%lf, fwhm=%lf\n",
-      //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);e
       MRIfree(&ar1);
     } else {
       printf("Computing spatial AR1 in volume.\n");
