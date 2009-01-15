@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/14 02:27:39 $
- *    $Revision: 1.1.2.8 $
+ *    $Date: 2009/01/15 00:22:58 $
+ *    $Revision: 1.1.2.9 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.8 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.1.2.9 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3140,7 +3140,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     labeledCheck->Create();
     labeledCheck->SetLabelText( "Show Curvature" );
     labeledCheck->SetLabelPositionToRight();
-    this->Script( "pack %s -side top",
+    this->Script( "pack %s -side left",
                   labeledCheck->GetWidgetName() );
 
     mCheckShowCurvature = labeledCheck->GetWidget();
@@ -3153,7 +3153,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     labeledCheck->
       SetLabelText( "Draw Curvature in green/red\nif no scalars loaded" );
     labeledCheck->SetLabelPositionToRight();
-    this->Script( "pack %s -side top",
+    this->Script( "pack %s -side left",
                   labeledCheck->GetWidgetName() );
 
     mCheckDrawCurvatureGreenRed = labeledCheck->GetWidget();
@@ -3490,16 +3490,25 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     this->Script( "pack %s -side top -fill x",
                   frameFDR->GetWidgetName() );
 
+    // sub-frame to allow clean arrangement of the stuff
+    vtkSmartPointer<vtkKWFrame> subframeFDR = 
+      vtkSmartPointer<vtkKWFrame>::New();
+    subframeFDR->SetParent( frameFDR->GetFrame() );
+    subframeFDR->Create();
+    this->Script( "pack %s -side top -anchor center", 
+                  subframeFDR->GetWidgetName() );
+
     vtkSmartPointer<vtkKWPushButton> buttonFDR = 
       vtkSmartPointer<vtkKWPushButton>::New();
-    buttonFDR->SetParent( frameFDR->GetFrame() );
+    buttonFDR->SetParent( subframeFDR );
     buttonFDR->Create();
     buttonFDR->SetText( "Set Using FDR" );
     buttonFDR->SetCommand( this, "SetSurfaceScalarsColorsUsingFDR" );
+    this->Script( "pack %s -side left", buttonFDR->GetWidgetName() );
 
     vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryFDR =
       vtkSmartPointer<vtkKWEntryWithLabel>::New();
-    labeledEntryFDR->SetParent( frameFDR->GetFrame() );
+    labeledEntryFDR->SetParent( subframeFDR );
     labeledEntryFDR->SetLabelText( "Rate: " );
     labeledEntryFDR->Create();
     labeledEntryFDR->GetWidget()->SetWidth( 5 );
@@ -3508,9 +3517,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       SetCommand( this, "SetSurfaceScalarsColorsFDRRate" );
     labeledEntryFDR->GetWidget()->
       SetValueAsDouble( mSurfaceScalarsColorsFDRRate );
-    this->Script( "pack %s %s -side left -padx 5 -fill x",
-                  buttonFDR->GetWidgetName(),
-                  labeledEntryFDR->GetWidgetName() );
+    this->Script( "pack %s -side left", labeledEntryFDR->GetWidgetName() );
 
     //
     //
@@ -4103,7 +4110,17 @@ vtkKWQdecWindow::GenerateSimulationScript () {
       mSimulationThreshold;
    
     stringstream ssScriptName;
-    ssScriptName << "mri_glmfit-sim-" << ssCsdBaseName;
+    ssScriptName << this->mQdecProject->GetWorkingDir() << "/" <<
+      "mri_glmfit-sim-" << ssCsdBaseName.str();
+    FILE *fp = fopen(ssScriptName.str().c_str(),"w");
+    if (fp == NULL)
+    {
+      fprintf( stderr, "ERROR: vtkKWQdecWindow::GenerateSimulationScript: "
+               "could not open %s for writing\n",
+               ssScriptName.str().c_str() );
+      this->SetStatusText( "Error during simulation script generation" );
+      return;
+    }
 
     assert( this->mQdecProject );
     stringstream ssCommand;
@@ -4115,12 +4132,47 @@ vtkKWQdecWindow::GenerateSimulationScript () {
       mSimulationThreshold << " " <<
       ssCsdBaseName.str() << " \\" << endl <<
       " --sim-sign " << mMenuButtonSimulationSign->GetValue() <<
-      "\\" << endl << " --overwrite" << endl;
+      " \\" << endl << " --overwrite" << endl;
 
-    cout << ssCommand.str() << endl;
+    // write the command to the file
+    fprintf(fp,"%s",ssCommand.str().c_str());
+    fclose(fp);
 
+    // set the executable bit
+    stringstream ssCommand2;
+    ssCommand2 << "chmod u+x " << ssScriptName.str();
+    int rRun = system( ssCommand2.str().c_str() );
+    if ( -1 == rRun )
+      throw runtime_error( "system call failed: " + ssCommand2.str() );
+    if ( rRun > 0 )
+      throw runtime_error( "command failed: " + ssCommand2.str() );
+
+    cout << 
+      "\n\n============================================================\n" <<
+      "A script to execute correction for multiple comparisons\n" <<
+      "by simulation with the parameters you selected is here:\n\n" <<
+      ssScriptName.str() << "\n\n" <<
+      "This script may be run from any directory.\n" <<
+      "Be aware that it may take several hours to complete.\n" <<
+      "Upon completion, the 'sig.clusters.mgh' file is the one\n" <<
+      "to load as an overlay in either qdec or tksurfer.\n" <<
+      "The 'sig.cluster.mgh' file will be found in the contrast\n"
+      "results directories under this directory:\n\n" <<
+      this->mQdecProject->GetWorkingDir() << "\n\n" <<
+      "Note: you should rename this directory, to prevent qdec from\n" <<
+      "deleting or overwriting it if the Design name is unchanged and\n" <<
+      "another analysis is performed.\n"
+      "============================================================\n";
+      
+    // pop-up box stating the same
+    string sPopUpMsg = "A script to execute correction\n" 
+      "for multiple comparisons by simulation\n" 
+      "has been generated.  See the terminal for details.";
+    vtkKWMessageDialog::PopupMessage ( this->GetApplication(),
+                                       this, "", sPopUpMsg.c_str() );
+      
     this->SetStatusText( "Generated Simulation Script" );
-
+    
   } catch (exception& e) {
     stringstream ssError;
     ssError << "Error in simulation script generation " << e.what();
