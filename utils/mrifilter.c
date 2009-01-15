@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/04 18:40:44 $
- *    $Revision: 1.60.2.3 $
+ *    $Author: greve $
+ *    $Date: 2009/01/15 23:13:45 $
+ *    $Revision: 1.60.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2661,8 +2661,8 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
         }
       }
     }
-    printf("MRIguassianSmooth(): scale = %g\n",scale);
-    printf("MRIguassianSmooth(): VMF = %g, VRF = %g\n",vmf,1.0/vmf);
+    //printf("MRIguassianSmooth(): scale = %g\n",scale);
+    //printf("MRIguassianSmooth(): VMF = %g, VRF = %g\n",vmf,1.0/vmf);
 
     // Divide by the sum of the kernel so that a smoothed delta function
     // will sum to one and so that a constant input yields const output.
