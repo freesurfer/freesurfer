@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/11 02:30:18 $
- *    $Revision: 1.40 $
+ *    $Date: 2009/01/15 21:03:04 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.40 2008/12/11 02:30:18 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.41 2009/01/15 21:03:04 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.40 2008/12/11 02:30:18 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.41 2009/01/15 21:03:04 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
   if (debug) dump_options(stdout);
 
   /* Load the input volume */
-  vol = MRIreadType(volid,intype);
+  vol = MRIread(volid);
   if (vol == NULL) {
     fprintf(stderr,"ERROR: reading %s\n",volid);
     exit(1);
@@ -259,7 +259,7 @@ int main(int argc, char **argv) {
   /* Load the mask volume */
   if (maskid != NULL) {
     printf("INFO: loading mask volume: %s\n",maskid);
-    maskvol = MRIreadType(maskid,masktype);
+    maskvol = MRIread(maskid);
     if (maskvol == NULL) {
       fprintf(stderr,"ERROR: reading %s\n",maskid);
       exit(1);
@@ -1346,7 +1346,7 @@ static void check_options(void) {
   }
 
   if (outid != 0) {
-    if (outtype == MRI_VOLUME_TYPE_UNKNOWN) outtype = mri_identify(volid);
+    if (outtype == MRI_VOLUME_TYPE_UNKNOWN) outtype = mri_identify(outid);
     if (outtype == MRI_VOLUME_TYPE_UNKNOWN) {
       fprintf(stderr,"ERROR: could not determine type of %s\n",outid);
       exit(1);
@@ -1354,7 +1354,7 @@ static void check_options(void) {
   }
 
   if (maskid != 0) {
-    if (masktype == MRI_VOLUME_TYPE_UNKNOWN) masktype = mri_identify(volid);
+    if (masktype == MRI_VOLUME_TYPE_UNKNOWN) masktype = mri_identify(maskid);
     if (masktype == MRI_VOLUME_TYPE_UNKNOWN) {
       fprintf(stderr,"ERROR: could not determine type of %s\n",maskid);
       exit(1);
@@ -1363,7 +1363,7 @@ static void check_options(void) {
 
   if (outmaskid != 0) {
     if (outmasktype == MRI_VOLUME_TYPE_UNKNOWN)
-      outmasktype = mri_identify(volid);
+      outmasktype = mri_identify(outmaskid);
     if (outmasktype == MRI_VOLUME_TYPE_UNKNOWN) {
       fprintf(stderr,"ERROR: could not determine type of %s\n",outmaskid);
       exit(1);
@@ -1372,7 +1372,7 @@ static void check_options(void) {
 
   if (outcnid != 0) {
     if (outcntype == MRI_VOLUME_TYPE_UNKNOWN)
-      outcntype = mri_identify(volid);
+      outcntype = mri_identify(outcnid);
     if (outcntype == MRI_VOLUME_TYPE_UNKNOWN) {
       fprintf(stderr,"ERROR: could not determine type of %s\n",outcnid);
       exit(1);
