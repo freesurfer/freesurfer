@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/14 21:15:02 $
- *    $Revision: 1.138.2.5 $
+ *    $Date: 2009/01/15 00:03:27 $
+ *    $Revision: 1.138.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,6 +76,7 @@ USAGE: ./mri_glmfit
 
    --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z
    --sim-sign signstring : abs, pos, or neg. Default is abs.
+   --sim-done SimDoneFile : create DoneFile when simulation finished 
 
    --pca : perform pca/svd analysis on residual
    --tar1 : compute and save temporal AR1 of residual 
@@ -530,7 +531,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.5 2009/01/14 21:15:02 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.6 2009/01/15 00:03:27 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -655,6 +656,8 @@ int DoDistance = 0;
 int DoTemporalAR1 = 0;
 int DoFFx = 0;
 IMAGE *I;
+
+char *SimDoneFile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1396,6 +1399,10 @@ int main(int argc, char **argv) {
         free(SurfClustList);
       }
     }// simulation loop
+    if(SimDoneFile){
+      fp = fopen(SimDoneFile,"w");
+      fclose(fp);
+    }
     exit(0);
   }
   //--------------------------------------------------------------------------
@@ -1982,7 +1989,13 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%d",&SubSampDelta);
       SubSample = 1;
       nargsused = 2;
-    } else {
+    } 
+    else if (!strcmp(option, "--sim-done")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      SimDoneFile = pargv[0];
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -2036,6 +2049,7 @@ printf("   --surf subject hemi <surfname> : needed for some flags (uses white by
 printf("\n");
 printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z\n");
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
+printf("   --sim-done SimDoneFile : create SimDoneFile when simulation finished\n");
 printf("\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --tar1 : compute and save temporal AR1 of residual \n");
