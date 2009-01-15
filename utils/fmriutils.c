@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 20:43:10 $
- *    $Revision: 1.55 $
+ *    $Date: 2009/01/15 23:35:10 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.55 2009/01/15 20:43:10 greve Exp $
+  $Id: fmriutils.c,v 1.56 2009/01/15 23:35:10 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -49,6 +49,7 @@ double round(double x);
 #include "fmriutils.h"
 #include "fsglm.h"
 #include "numerics.h"
+#include "diag.h"
 
 #ifdef X
 #undef X
@@ -58,7 +59,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.55 2009/01/15 20:43:10 greve Exp $");
+  return("$Id: fmriutils.c,v 1.56 2009/01/15 23:35:10 greve Exp $");
 }
 
 
@@ -1074,8 +1075,10 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
         nthvox ++;
         if (nthvox == (long) floor(.1*nvoxtot) )  {
           pctdone += 10;
-          printf("%2d%% ",pctdone);
-          fflush(stdout);
+          if(Gdiag_no > 0) {
+	    printf("%2d%% ",pctdone);
+	    fflush(stdout);
+	  }
           nthvox = 0;
         }
 
@@ -1124,7 +1127,7 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
       }
     }
   }
-  printf("\n");
+  if(Gdiag_no > 0) printf("\n");
 
   //printf("n_ill_cond = %d\n",mriglm->n_ill_cond);
   return(0);
