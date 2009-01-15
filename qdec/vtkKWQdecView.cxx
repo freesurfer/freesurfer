@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/14 02:27:00 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/01/15 00:22:24 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -71,7 +71,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.9 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -604,7 +604,8 @@ vtkKWQdecView::SetSurfaceScalars ( vtkFloatArray* iScalars ) {
 
   // Set the scalars in the source.
   if( mCurrentSurfaceSource.GetPointer() )
-    mCurrentSurfaceSource->GetOutput()->GetPointData()->SetScalars( mCurrentScalars );
+    mCurrentSurfaceSource->GetOutput()->GetPointData()->
+      SetScalars( mCurrentScalars );
 
 }
 
@@ -627,8 +628,9 @@ vtkKWQdecView::SetSurfaceLookupScalars ( vtkFloatArray* iScalars ) {
 }
 
 void
-vtkKWQdecView::SetSurfaceOverlayScalarsAndColors ( vtkFloatArray* iScalars,
-                                                   vtkScalarsToColors* iColors ) {
+vtkKWQdecView::SetSurfaceOverlayScalarsAndColors 
+( vtkFloatArray* iScalars,
+  vtkScalarsToColors* iColors ) {
 
   // Save the pointers.
   mCurrentOverlayScalars = iScalars;
@@ -762,14 +764,15 @@ vtkKWQdecView::SelectSurfaceVertex ( int inVertex ) {
     mCurrentSurfaceSource->GetSurfaceRASAtVertex( inVertex, surfaceRAS );
     ssLabel << "(" << fixed << setprecision(2)
             << surfaceRAS[0] << ", "
-            << surfaceRAS[1] << ", " << surfaceRAS[2] << ")";
+            << surfaceRAS[1] << ", " 
+            << surfaceRAS[2] << ")";
     
     // Add the info to the label.
     ssLabel << " Vertex #" << inVertex;
     
     // If we have lookup scalars, print the value.
     if( mCurrentLookupScalars ) {
-      ssLabel << " p-value " << mCurrentLookupScalars->GetTuple1( inVertex );
+      ssLabel << " value " << mCurrentLookupScalars->GetTuple1( inVertex );
     }
     
     // If we have an annotatoin lookup, get the string and add it to
@@ -834,7 +837,6 @@ vtkKWQdecView::InitializeScalarBar () {
   mScalarBar->SetWidth( 0.3 );
 #endif
   mScalarBar->PickableOff();
-  mScalarBar->SetTitle( "p-value" );
 
   // Add it to the view.
   this->GetRenderer()->AddActor( mScalarBar );
