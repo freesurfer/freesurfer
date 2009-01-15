@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/01/15 19:28:58 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,6 +107,7 @@ class LayerSurface : public Layer
 		void UpdateOpacity();
 		void UpdateColorMap();
 		void UpdateEdgeThickness();
+		void UpdateVectorPointSize();
 		
 		virtual void OnSlicePositionChanged( int nPlane );	
 		

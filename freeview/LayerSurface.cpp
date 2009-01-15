@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/01/15 19:28:58 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,8 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
 //	mMediumResFilter->SetTargetReduction( 0.9 );
 	
 	m_vectorActor = vtkActor::New();
-	m_vectorActor->GetProperty()->SetColor( 1, 0.75, 0 );
+	m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
+	m_vectorActor->GetProperty()->SetPointSize( mProperties->GetVectorPointSize() );
 }
 
 LayerSurface::~LayerSurface()
@@ -125,6 +126,7 @@ bool LayerSurface::LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event )
 	wxPostEvent( wnd, event );
 	
 	this->SendBroadcast( "LayerModified", this );
+	this->SendBroadcast( "LayerActorUpdated", this );
 	
 	return true;
 }
@@ -243,6 +245,14 @@ void LayerSurface::UpdateEdgeThickness()
 	}
 }
 
+void LayerSurface::UpdateVectorPointSize()
+{
+	for ( int i = 0; i < 3; i++ )
+	{
+		m_vectorActor->GetProperty()->SetPointSize( mProperties->GetVectorPointSize() );
+	}
+}
+
 void LayerSurface::UpdateColorMap() 
 {
 	if ( m_surfaceSource == NULL )
@@ -257,6 +267,7 @@ void LayerSurface::UpdateColorMap()
 	}
 	
 	m_mainActor->GetProperty()->SetColor( mProperties->GetColor() );
+	m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
 	if ( m_surfaceSource->IsCurvatureLoaded() )
 	{
 		m_mainActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
@@ -359,6 +370,11 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* const iD
 	else if ( iMessage == "EdgeThicknessChanged" )
 	{
 		this->UpdateEdgeThickness();
+		this->SendBroadcast( "LayerActorUpdated", this );
+	}
+	else if ( iMessage == "VectorPointSizeChanged" )
+	{
+		this->UpdateVectorPointSize();
 		this->SendBroadcast( "LayerActorUpdated", this );
 	}
 }

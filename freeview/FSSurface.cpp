@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/01/15 19:28:58 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -488,6 +488,7 @@ void FSSurface::UpdateVectors()
 		int n = 0;
 		vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+		vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
 		for ( int vno = 0; vno < cVertices; vno++ ) 
 		{
 			surfaceRAS[0] = vectors[vno].x;
@@ -496,15 +497,19 @@ void FSSurface::UpdateVectors()
 			this->ConvertSurfaceToRAS( surfaceRAS, point );
 			if ( m_volumeRef )
 				m_volumeRef->RASToTarget( point, point );
+
+			points->InsertNextPoint( oldPoints->GetPoint( vno ) );	
+			points->InsertNextPoint( point );	
+			
+			verts->InsertNextCell( 1, &n );				
 			
 			lines->InsertNextCell( 2 );
-			points->InsertNextPoint( point );
-			points->InsertNextPoint( oldPoints->GetPoint( vno ) );
 			lines->InsertCellPoint( n++ );
 			lines->InsertCellPoint( n++ );
 		}
 		m_polydataVector->SetPoints( points );
 		m_polydataVector->SetLines( lines );
+		m_polydataVector->SetVerts( verts );
 	}
 }
 

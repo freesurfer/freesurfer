@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/01/15 19:28:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,8 @@ private:
 	void OnButtonSurfacePial	( wxCommandEvent& event );
 	void OnButtonSurfaceOriginal( wxCommandEvent& event );
 	void OnChoiceVector			( wxCommandEvent& event );
+	void OnVectorColorChanged	( wxColourPickerEvent& event );
+	void OnSpinVectorPointSize	( wxSpinEvent& event );
 	
 	void DoUpdateUI();
 	
@@ -91,6 +93,8 @@ private:
 	wxTextCtrl*		m_textFileName;
 	wxSpinCtrl*		m_spinEdgeThickness;
 	wxChoice*		m_choiceVector;
+	wxColourPickerCtrl*		m_colorPickerVector;
+	wxSpinCtrl*		m_spinVectorPointSize;
 
 	bool			m_bUINeedUpdate;
     

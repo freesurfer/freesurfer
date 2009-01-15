@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/01/15 19:28:58 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,8 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER_EDGE" ) ), 	PanelSurface::OnEdgeColorChanged )
 	EVT_SPINCTRL		( XRCID( wxT( "ID_SPIN_EDGE_THICKNESS" ) ),		PanelSurface::OnSpinEdgeThickness )
 	EVT_CHOICE			( XRCID( wxT( "ID_CHOICE_VECTORS" ) ), 			PanelSurface::OnChoiceVector )
+	EVT_SPINCTRL		( XRCID( wxT( "ID_SPIN_VECTOR_POINT_SIZE" ) ),	PanelSurface::OnSpinVectorPointSize )
+	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER_VECTOR" ) ), 	PanelSurface::OnVectorColorChanged )
 END_EVENT_TABLE()
 
 
@@ -82,6 +84,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
 	m_spinEdgeThickness		= XRCCTRL( *this, "ID_SPIN_EDGE_THICKNESS", wxSpinCtrl );
 	
 	m_choiceVector			= XRCCTRL( *this, "ID_CHOICE_VECTORS", wxChoice );
+	m_colorPickerVector		= XRCCTRL( *this, "ID_COLOR_PICKER_VECTOR", wxColourPickerCtrl );
+	m_spinVectorPointSize	= XRCCTRL( *this, "ID_SPIN_VECTOR_POINT_SIZE", wxSpinCtrl );
 	
 	MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 	
@@ -166,10 +170,13 @@ void PanelSurface::DoUpdateUI()
 			m_colorPicker->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
 			rgb = layer->GetProperties()->GetEdgeColor();
 			m_colorPickerEdge->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+			rgb = layer->GetProperties()->GetVectorColor();
+			m_colorPickerVector->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
 			m_textFileName->ChangeValue( layer->GetFileName() );
 			m_textFileName->SetInsertionPointEnd();
 			m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
 			m_spinEdgeThickness->SetValue( layer->GetProperties()->GetEdgeThickness() );
+			m_spinVectorPointSize->SetValue( layer->GetProperties()->GetVectorPointSize() );
 			surf = layer->GetSourceSurface();
 		}
 		
@@ -238,6 +245,7 @@ void PanelSurface::OnButtonMoveDown( wxCommandEvent& event )
 }
 */
 
+/*
 void PanelSurface::UpdateLayerList( Layer* layer )
 {
 	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
@@ -267,6 +275,29 @@ void PanelSurface::UpdateLayerList( Layer* layer )
 			
 			UpdateUI();
 		}
+	}	
+}
+*/
+
+void PanelSurface::UpdateLayerList( Layer* layer )
+{
+	LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
+	int nIndex = lc->GetLayerIndex( layer );
+	std::vector<Layer*> layers = lc->GetLayers();
+	if ( nIndex != -1 )
+	{
+		m_listBoxLayers->Clear();
+		int nSel = 0;
+		for ( size_t i = 0; i < layers.size(); i++ )
+		{ 
+			m_listBoxLayers->Append( layers[i]->GetName(), layers[i] );
+			m_listBoxLayers->Check( i, layers[i]->IsVisible() );
+			if ( lc->GetActiveLayer() == layers[i] )
+				nSel = i;
+		}	
+		m_listBoxLayers->SetSelection( nSel );
+		
+		UpdateUI();
 	}	
 }
 
@@ -403,4 +434,23 @@ void PanelSurface::OnChoiceVector( wxCommandEvent& event )
 			UpdateUI();
 		}
 	}
+}
+
+void PanelSurface::OnSpinVectorPointSize( wxSpinEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->GetProperties()->SetVectorPointSize( event.GetInt() );
+	}
+}
+
+void PanelSurface::OnVectorColorChanged( wxColourPickerEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		wxColour c = event.GetColour();
+		surf->GetProperties()->SetVectorColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
+	}	
 }
