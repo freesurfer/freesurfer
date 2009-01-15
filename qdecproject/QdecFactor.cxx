@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 03:17:06 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/01/15 00:24:16 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,7 @@
  *
  */
 
+#include <string.h>
 #include <iostream>
 #include <stdexcept>
 #include "QdecFactor.h"

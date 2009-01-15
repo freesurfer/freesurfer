@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/12 17:33:17 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/01/15 00:24:16 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -258,6 +258,9 @@ public:
 
 
   /**
+   *
+   * For Surface-based analysis:
+   * 
    * From the given design parameters, this creates the input data required by
    * mri_glmfit:
    *  - the 'y' data (concatenated subject volumes)
@@ -284,6 +287,34 @@ public:
                         const char* isHemi,
                         int iSmoothnessLevel,
                         ProgressUpdateGUI* iProgressUpdateGUI=NULL );
+
+
+  /**
+   *
+   * For Volume-based analysis:
+   * 
+   * From the given design parameters, this creates the input data required by
+   * mri_glmfit:
+   *  - the 'y' data (data points stuffed into a volume)
+   *  - the FSGD file
+   *  - the contrast vectors, as .mat files
+   * and writes this data to the specified working directory.
+   * @return int
+   * @param  isName
+   * @param  isFirstDiscreteFactor
+   * @param  isSecondDiscreteFactor
+   * @param  isFirstContinuousFactor
+   * @param  isSecondContinuousFactor
+   * @param  isMeasure
+   * @param  iProgressUpdateGUI
+   */
+  int CreateGlmDesign ( const char* isName,
+                        const char* isFirstDiscreteFactor,
+                        const char* isSecondDiscreteFactor,
+                        const char* isFirstContinuousFactor,
+                        const char* isSecondContinuousFactor,
+                        const char* isMeasure,
+                        ProgressUpdateGUI* iProgressUpdateGUI );
 
 
   /**

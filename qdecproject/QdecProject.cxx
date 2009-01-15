@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/15 23:23:36 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/01/15 00:24:16 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -556,18 +556,27 @@ int QdecProject::LoadDataTable ( const char* isFileName )
   char subjectsDir[3000];
   if ( this->mDataTable ) delete this->mDataTable;
   this->mDataTable = new QdecDataTable();
-  int ret = this->mDataTable->Load ( isFileName, subjectsDir );
+  int ret = 0;
+  try
+  {
+    ret = this->mDataTable->Load ( isFileName, subjectsDir );
+  }
+  catch ( exception& e ) 
+  {
+    cerr << e.what() << endl;
+    exit(1); // shutdown the whole shootin' match
+  }
   if ( ret ) return ret;
   if ( strlen(subjectsDir) > 0 ) ret = this->SetSubjectsDir ( subjectsDir );
   if ( ret ) return ret;
   delete this->mGlmDesign;
   this->mGlmDesign = new QdecGlmDesign( this->mDataTable );
-  ret = this->VerifySubjects();
-  if ( ret ) 
-  {
-    delete this->mDataTable;
-    this->mDataTable = new QdecDataTable(); // on err, return empty table
-  }
+  this->VerifySubjects();
+  //if ( ret ) 
+  //{
+  //  delete this->mDataTable;
+  //  this->mDataTable = new QdecDataTable(); // on err, return empty table
+  //}
   return ret;
 }
 
@@ -806,6 +815,81 @@ int QdecProject::CreateGlmDesign ( const char* isName,
   }
 
   if( mGlmDesign->WriteYdataFile() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
+	     "create y.mgh file\n");
+    return(-4);
+  }
+
+  if( iProgressUpdateGUI )
+  {
+    iProgressUpdateGUI->EndActionWithProgress();
+  }
+
+  return 0;
+}
+
+
+/**
+ * From the given design parameters, this creates the input data required by
+ * mri_glmfit:
+ *  - the 'y' data (data points stuffed into a volume)
+ *  - the FSGD file
+ *  - the contrast vectors, as .mat files
+ * and writes this data to the specified working directory.
+ * @return int
+ * @param  isName
+ * @param  isFirstDiscreteFactor
+ * @param  isSecondDiscreteFactor
+ * @param  isFirstContinuousFactor
+ * @param  isSecondContinuousFactor
+ * @param  isMeasure
+ * @param  iProgressUpdateGUI
+ */
+int QdecProject::CreateGlmDesign ( const char* isName,
+                                   const char* isFirstDiscreteFactor,
+                                   const char* isSecondDiscreteFactor,
+                                   const char* isFirstContinuousFactor,
+                                   const char* isSecondContinuousFactor,
+                                   const char* isMeasure,
+                                   ProgressUpdateGUI* iProgressUpdateGUI )
+{
+
+  int errorCode;
+  errorCode = this->mGlmDesign->Create ( this->mDataTable,
+					 isName,
+					 isFirstDiscreteFactor,
+					 isSecondDiscreteFactor,
+					 isFirstContinuousFactor,
+					 isSecondContinuousFactor,
+					 isMeasure,
+					 NULL,
+					 0,
+					 iProgressUpdateGUI );
+  if( errorCode )
+    return errorCode;
+
+  if( iProgressUpdateGUI )
+  {
+    iProgressUpdateGUI->BeginActionWithProgress("Writing input files..." );
+  }
+
+
+  if( mGlmDesign->WriteFsgdFile() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: "
+	     "could not create fsgd file\n");
+    return(-3);
+  }
+
+  if( mGlmDesign->WriteContrastMatrices() )
+  {
+    fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
+	     "generate contrasts\n");
+    return(-4);
+  }
+
+  if( mGlmDesign->WriteYdataFile( isMeasure ) )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
 	     "create y.mgh file\n");
@@ -1065,15 +1149,18 @@ vector< string > QdecProject::CreateStatsDataTables ()
         printf( "%s\n", sCommand );
         fflush(stdout);fflush(stderr);
         int rRun = system( sCommand );
-        if ( -1 == rRun )
-          throw runtime_error( "system call failed: " + ssCommand.str() );
-        if ( rRun > 0 )
-          throw runtime_error( "command failed: " + ssCommand.str() );
         free( sCommand );
 
-        // save the name of this data (now that we know it was successfully
-        // created
-        statsDataNames.push_back( ssFname.str() );
+        // don't exit on error, just keep trying to create tables.
+        // aseg/aparcstats2table can fail if it is missing the raw data, in
+        // which case the user needs to create that data.  error messages
+        // will appear in the terminal showing the failures
+        if ( 0 == rRun ) 
+        {
+          // save the name of this data (now that we know it was successfully
+          // created
+          statsDataNames.push_back( ssFname.str() );
+        }
       }
     }
   }
