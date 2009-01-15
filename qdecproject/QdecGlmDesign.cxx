@@ -12,10 +12,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/13 01:57:23 $
- *    $Revision: 1.7.2.3 $
+ *    $Date: 2009/01/15 00:27:27 $
+ *    $Revision: 1.7.2.4 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -236,7 +236,14 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
     this->mProgressUpdateGUI->UpdateProgressPercent( 20 );
   }
 
-  int err = mkdir( this->mfnWorkingDir.c_str(), 0777);
+  // delete all the files currently in the working dir
+  // ignore any errors, as the directory and/or files may not exist
+  stringstream ssWorkingDir;
+  ssWorkingDir <<  this->mfnWorkingDir.c_str() << "/*";
+  remove( ssWorkingDir.str().c_str() );
+
+  // create the directory (which may or may not exist already)
+  int err =  mkdir( this->mfnWorkingDir.c_str(), 0777 );
   if( err != 0 && errno != EEXIST )
   {
     fprintf( stderr,
