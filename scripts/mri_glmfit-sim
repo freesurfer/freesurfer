@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.7 2009/01/15 00:16:02 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.8 2009/01/15 02:10:57 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -96,7 +96,7 @@ while($#glmfitcmd)
   case "--y"
     set y = $glmfitcmd[1]; shift glmfitcmd;
     if(! -e $y) then
-      set y = $glmfitcwd/$y
+      set y = $glmdir/`basename $y`
       if(! -e $y) then
         echo "ERROR: cannot find $y"
         exit 1;
