@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.6 2009/01/14 21:33:39 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.7 2009/01/15 00:16:02 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -79,7 +79,7 @@ set y = ();
 
 # Go through the original mri_glmfit command-line
 set glmfitcmd = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
-#set glmfitcmd = (`grep cmdline $glmfitlog`)
+set gd2mtx = dods
 while($#glmfitcmd)
   set flag = $glmfitcmd[1]; shift glmfitcmd;
   switch($flag)
@@ -87,6 +87,11 @@ while($#glmfitcmd)
     set subject = $glmfitcmd[1]; shift glmfitcmd;
     set hemi    = $glmfitcmd[1]; shift glmfitcmd;
     set anattype = surface;
+    breaksw
+  case "--fsgd"
+    shift glmfitcmd;
+    if($#glmfitcmd > 0) then
+      if($glmfitcmd[1] == doss) set gd2mtx = doss
     breaksw
   case "--y"
     set y = $glmfitcmd[1]; shift glmfitcmd;
@@ -118,7 +123,7 @@ if($#subject != 0) then
 endif
 
 # Get a list of contrasts, etc
-if($#tmpdir == 0) set tmpdir = /tmp/mri_glmfit-sim-$$
+if($#tmpdir == 0) set tmpdir = $glmdir/tmp.mri_glmfit-sim-$$
 mkdir -p $tmpdir
 set clist = ($glmdir/*/C.dat)
 if($status) then
@@ -161,8 +166,10 @@ end
 set StartDate = `date`
 
 # Create log file
-if($#LF == 0) set LF = $glmdir/$csdbase.mri_glmfit-sim.log
-rm -f $LF
+if($#LF == 0) then
+  set LF = $glmdir/$csdbase.mri_glmfit-sim.log
+  rm -f $LF
+endif
 pwd | tee -a $LF
 echo $0 | tee -a $LF
 echo $inputargs | tee -a $LF
@@ -172,7 +179,8 @@ uname -a | tee -a $LF
 echo $user | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
-echo "DoPoll = $DoPoll"| tee -a $LF
+echo "DoPoll = $DoPoll" | tee -a $LF
+echo "gd2mtx = $gd2mtx" | tee -a $LF
 
 if($DoSim) then
   # Use fsgd if there, if not use X
@@ -183,7 +191,6 @@ if($DoSim) then
   else
     set X = $glmdir/Xg.dat
   endif
-
 
   # Number of sim iterations per job
   set nSimPerJob = `echo "$nsim/$nJobs" | bc`;
@@ -200,7 +207,7 @@ if($DoSim) then
     set cmd = (mri_glmfit --y $y $clist2)
     set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $glmdir/csd/$csdbase.$jpad)
     set cmd = ($cmd --sim-sign $simsign)
-    if($#fsgd) set cmd = ($cmd --fsgd $fsgd)
+    if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
     if($nulltype != perm) set cmd = ($cmd --fwhm $fwhm)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
@@ -222,8 +229,10 @@ if($DoSim) then
       endif
       if($DoPBSubmit) then
         # pbsubmit
-        pbsubmit -l nodes=1:opteron -c "$cmd >>& $LF"
+        echo "---------------------------------"
+        pbsubmit -l nodes=1:opteron -c "$cmd >> $LF"
         sleep 10;
+        echo ""
       endif
     endif
     @ nthJob = $nthJob + 1
@@ -236,13 +245,13 @@ if($DoSim) then
     set Done = 0;
     while(! $Done)
       @ nthPoll = $nthPoll + 1;
-      echo "Poll $nthPoll `date`" | tee -a $LF
       set Done = 1;
       @ nthJob = 1
       while($nthJob <= $nJobs)
         set jpad = `printf j%03d $nthJob`
         set DoneFile = $glmdir/csd/$csdbase.$jpad.done
         if(! -e $DoneFile) then
+          echo "Poll $nthPoll job $nthJob `date`" | tee -a $LF
           set Done = 0;
           break;
         endif
@@ -257,11 +266,17 @@ endif #DoSim
 
 if($DoPBSubmit) then
   # pbsubmit the surfcluster part
-  set cmd = (mri_glmfit-sim 
+  set cmd = (mri_glmfit-sim --glmdir $glmdir)
   set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $csdbase)
-  set cmd = ($cmd --sim-sign $simsign --no-sim)
+  set cmd = ($cmd --sim-sign $simsign --no-sim  --tmp $tmpdir)
+  set cmd = ($cmd --log $LF)
+  echo "------------------------------------------------" | tee -a $LF
+  echo $cmd  | tee -a $LF
   pbsubmit -l nodes=1:opteron -c "$cmd"
   sleep 5;
+  echo ""
+  echo "Just submitted this as a job, and exiting now."
+  echo ""
   # Could wait until it is done by polling for AllDoneFile
   exit 0;
 endif
@@ -386,6 +401,11 @@ while( $#argv != 0 )
     case "--sleep":
       if($#argv < 1) goto arg1err;
       set tSleepSec = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
       breaksw
 
     case "--no-sim":
