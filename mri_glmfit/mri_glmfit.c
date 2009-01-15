@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 00:03:27 $
- *    $Revision: 1.138.2.6 $
+ *    $Date: 2009/01/15 19:03:25 $
+ *    $Revision: 1.138.2.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -531,7 +531,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.6 2009/01/15 00:03:27 greve Exp $";
+static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.7 2009/01/15 19:03:25 greve Exp $";
 char *Progname = NULL;
 
 int SynthSeed = -1;
@@ -657,6 +657,10 @@ int DoTemporalAR1 = 0;
 int DoFFx = 0;
 IMAGE *I;
 
+int NoContrastsOK = 0;
+int ComputeFWHM = 1;
+
+int  UseCortexLabel = 0;
 char *SimDoneFile = NULL;
 
 /*--------------------------------------------------*/
@@ -1423,7 +1427,7 @@ int main(int argc, char **argv) {
 
   if (DontSave) exit(0);
 
-  if (!usedti) {
+  if (ComputeFWHM) {
     // Compute fwhm of residual
     if (surf != NULL) {
       printf("Computing spatial AR1 on surface\n");
@@ -1431,12 +1435,10 @@ int main(int argc, char **argv) {
       sprintf(tmpstr,"%s/ar1.%s",GLMDir,format);
       MRIwrite(ar1,tmpstr);
       RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
-      eresgstd = InterVertexDistAvg/sqrt(-4*log(ar1mn));
-      eresfwhm = eresgstd*sqrt(log(256.0));
+      eresfwhm = MRISfwhmFromAR1(surf, ar1mn);
+      eresgstd = eresfwhm/sqrt(log(256.0));
       printf("Residual: ar1mn=%lf, ar1std=%lf, gstd=%lf, fwhm=%lf\n",
              ar1mn,ar1std,eresgstd,eresfwhm);
-      //printf("Residual: ar1mn=%lf, ar1std=%lf, ar1max=%lf, gstd=%lf, fwhm=%lf\n",
-      //   ar1mn,ar1std,ar1max,eresgstd,eresfwhm);e
       MRIfree(&ar1);
     } else {
       printf("Computing spatial AR1 in volume.\n");
@@ -1717,6 +1719,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
+    else if (!strcasecmp(option, "--eres-save")) eresSave = 1;
+    else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
@@ -1745,6 +1749,7 @@ static int parse_commandline(int argc, char **argv) {
       asl1val = 0;
       asl2val = 1;
     }
+    else if (!strcasecmp(option, "--no-contrasts-ok")) NoContrastsOK = 1;
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -1825,7 +1830,9 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&FWHM);
       csd->nullfwhm = FWHM;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--var-smooth") || !strcasecmp(option, "--var-fwhm")) {
+    } 
+    else if (!strcasecmp(option, "--no-fwhm-est")) ComputeFWHM = 0;
+    else if (!strcasecmp(option, "--var-smooth") || !strcasecmp(option, "--var-fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&VarFWHM);
       csd->varfwhm = VarFWHM;
@@ -1902,7 +1909,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       labelFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--w")) {
+    } 
+    else if (!strcmp(option, "--cortex")) {
+      UseCortexLabel = 1;
+    } 
+    else if (!strcmp(option, "--w")) {
       if (nargc < 1) CMDargNErr(option,1);
       wFile = pargv[0];
       nargsused = 1;
@@ -1930,6 +1941,7 @@ static int parse_commandline(int argc, char **argv) {
       usedti=1;
       logflag = 1;
       format = "nii";
+      ComputeFWHM = 0;
     } else if (!strcmp(option, "--pvr")) {
       if (nargc < 1) CMDargNErr(option,1);
       pvrFiles[npvr] = pargv[0];
@@ -2445,18 +2457,25 @@ static void check_options(void) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
-  if (XFile && fsgdfile ) {
+  if(XFile && fsgdfile ) {
     printf("ERROR: cannot specify both X file and fsgd file\n");
     exit(1);
   }
-  if (XFile && OneSampleGroupMean) {
+  if(XFile && OneSampleGroupMean) {
     printf("ERROR: cannot specify both X file and --osgm\n");
     exit(1);
   }
-  if (nContrasts > 0 && OneSampleGroupMean) {
+  if(nContrasts > 0 && OneSampleGroupMean) {
     printf("ERROR: cannot specify --C with --osgm\n");
     exit(1);
   }
+  if(OneSampleGroupMean || usedti || useasl || useqa) NoContrastsOK = 1;
+
+  if(nContrasts == 0 && ! NoContrastsOK) {
+    printf("ERROR: no contrasts specified.\n");
+    exit(1);
+  }
+
   if (nContrasts == 0 && !OneSampleGroupMean && !usedti && !useasl && !useqa) {
     printf("ERROR: no contrasts specified\n");
     exit(1);
@@ -2489,6 +2508,15 @@ static void check_options(void) {
       fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
       exit(1);
     }
+  }
+
+  if(UseCortexLabel && labelFile != NULL){
+    printf("ERROR: cannot use --label and --cortex\n");
+    exit(1);
+  }
+  if(UseCortexLabel){
+    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);
+    labelFile = strcpyalloc(tmpstr);
   }
 
   if (labelFile != NULL && surf==NULL) {
