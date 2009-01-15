@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/03 02:06:04 $
- *    $Revision: 1.54 $
+ *    $Date: 2009/01/15 20:43:10 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.54 2008/11/03 02:06:04 greve Exp $
+  $Id: fmriutils.c,v 1.55 2009/01/15 20:43:10 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.54 2008/11/03 02:06:04 greve Exp $");
+  return("$Id: fmriutils.c,v 1.55 2009/01/15 20:43:10 greve Exp $");
 }
 
 
@@ -1724,20 +1724,21 @@ MRI *fMRIdetrend(MRI *y, MATRIX *X)
 }
 
 
-/*-------------------------------------------------------
-  fMRIspatialAR1() - computes spatial AR1, ie, the
-  correlation between the time course at one voxel
-  and that at an adjacent voxel. There will be six
-  frame, 2 for each dim. If a mask is used, then
-  a voxel and all it's neighbors must be in the mask
-  in order to compute the AR1 at that point.
-  -------------------------------------------------------*/
+/*---------------------------------------------------------------------
+  fMRIspatialAR1() - computes spatial AR1, ie, the correlation between
+  the time course at one voxel and that at an adjacent voxel. There
+  will be six frame, 2 for each dim. If a mask is used, then a voxel
+  and all it's neighbors must be in the mask in order to compute the
+  AR1 at that point. This function assumess that the mean and any
+  other trends have been removed. It works regardless of the DOF of
+  the time series.
+  --------------------------------------------------------------------*/
 MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
 {
-  int c,r,s,f,nframes, dc,dr,ds,skip,nhits;
-  MRI *srcvar, *srctmp;
+  int c,r,s,f,dc,dr,ds,skip,nhits;
+  MRI *srcsumsq, *srctmp;
   double m, c1sum,c2sum, r1sum,r2sum, s1sum,s2sum;
-  double v0, vc1,vc2, vr1,vr2, vs1,vs2;
+  double v0, vc1,vc2, vr1,vr2, vs1,vs2, sumsq0;
   double car1,rar1,sar1;
   int freetmp;
 
@@ -1751,8 +1752,8 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
     freetmp=0;
   }
 
-  // alloc vol with 3 frames
-  if (ar1 == NULL){
+  // alloc vol with 6 frames
+  if(ar1 == NULL){
     ar1 = MRIcloneBySpace(src, MRI_FLOAT, 6);
     if (ar1 == NULL){
       printf("ERROR: could not alloc\n");
@@ -1760,12 +1761,10 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
     }
   }
 
-  // pre-compute the variance
-  //srcvar = fMRIvariance(srctmp, -1, 0, NULL);
-  srcvar = fMRIcovariance(srctmp, 0, -1, mask, NULL);
+  // pre-compute the sum of squares
+  srcsumsq = fMRIsumSquare(srctmp,0,NULL);
 
   // Loop thru all voxels
-  nframes = srctmp->nframes;
   nhits = 0;
   for (c=0; c < srctmp->width; c++)  {
     for (r=0; r < srctmp->height; r++)    {
@@ -1778,9 +1777,9 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
 	  for(f = 0; f < 6; f++) MRIsetVoxVal(ar1,c,r,s,f,0);
           continue;
         }
-        // variance at center voxel
-        v0  = MRIgetVoxVal(srcvar,c,r,s,0);
-	if(v0 < 1e-6) continue; 
+        // sum-of-sqares at center voxel
+        sumsq0  = MRIgetVoxVal(srcsumsq,c,r,s,0);
+	if(sumsq0 < 1e-6) continue; 
         // skip if BOTH voxel and all it's neighbors are
         // not in the mask
         if(mask){
@@ -1835,39 +1834,39 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
           s2sum += (v0*vs2);
         }
 
-        // variance at center voxel
-        v0  = MRIgetVoxVal(srcvar,c,r,s,0);
+        // sum-of-squares at center voxel
+        sumsq0  = MRIgetVoxVal(srcsumsq,c,r,s,0);
 
         // column AR1
-        vc1 = MRIgetVoxVal(srcvar,c-1,r,s,0); //variance
-	if(vc1 > 1e-6) car1 = c1sum/(nframes*sqrt(v0*vc1)); 
+        vc1 = MRIgetVoxVal(srcsumsq,c-1,r,s,0); //variance
+	if(vc1 > 1e-6) car1 = c1sum/(sqrt(sumsq0*vc1)); 
         else           car1 = 0;
         MRIsetVoxVal(ar1,c,r,s,0,car1); // frame 0
 
-        vc2 = MRIgetVoxVal(srcvar,c+1,r,s,0);
-	if(vc2 > 1e-6) car1 = c2sum/(nframes*sqrt(v0*vc2));
+        vc2 = MRIgetVoxVal(srcsumsq,c+1,r,s,0);
+	if(vc2 > 1e-6) car1 = c2sum/(sqrt(sumsq0*vc2));
         else           car1 = 0;
         MRIsetVoxVal(ar1,c,r,s,1,car1); // frame 1
 
         // rows
-        vr1 = MRIgetVoxVal(srcvar,c,r-1,s,0);
-	if(vr1 > 1e-6) rar1 = r1sum/(nframes*sqrt(v0*vr1)); 
+        vr1 = MRIgetVoxVal(srcsumsq,c,r-1,s,0);
+	if(vr1 > 1e-6) rar1 = r1sum/(sqrt(sumsq0*vr1)); 
         else           rar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,2,rar1); // frame 2
 
-        vr2 = MRIgetVoxVal(srcvar,c,r+1,s,0);
-        if(vr2 > 1e-6) rar1 = r2sum/(nframes*sqrt(v0*vr2));
+        vr2 = MRIgetVoxVal(srcsumsq,c,r+1,s,0);
+        if(vr2 > 1e-6) rar1 = r2sum/(sqrt(sumsq0*vr2));
 	else           rar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,3,rar1); // frame 3
 
         // slices
-        vs1 = MRIgetVoxVal(srcvar,c,r,s-1,0);
-        if(vs1 > 1e-6) sar1 = s1sum/(nframes*sqrt(v0*vs1));
+        vs1 = MRIgetVoxVal(srcsumsq,c,r,s-1,0);
+        if(vs1 > 1e-6) sar1 = s1sum/(sqrt(sumsq0*vs1));
 	else           sar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,4,sar1); // frame 4
 
-        vs2 = MRIgetVoxVal(srcvar,c,r,s+1,0);
-        if(vs2 > 1e-6) sar1 = s2sum/(nframes*sqrt(v0*vs2));
+        vs2 = MRIgetVoxVal(srcsumsq,c,r,s+1,0);
+        if(vs2 > 1e-6) sar1 = s2sum/(sqrt(sumsq0*vs2));
 	else           sar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,5,sar1); // frame 5
 
@@ -1879,20 +1878,20 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
   if(nhits == 0)
     printf("WARNING: no voxels in AR1 computation\n");
 
-  MRIfree(&srcvar);
+  MRIfree(&srcsumsq);
   if (freetmp) MRIfree(&srctmp);
   return(ar1);
 }
 
 
-/*-------------------------------------------------------
-  fMRIspatialAR2() - computes spatial AR2, ie, the
-  correlation between the time course at one voxel
-  and that at a voxel two voxels over. There will be six
-  frame, 2 for each dim. If a mask is used, then
-  a voxel and all it's neighbors must be in the mask
-  in order to compute the AR2 at that point.
-  -------------------------------------------------------*/
+/*---------------------------------------------------------------
+  fMRIspatialAR2() - computes spatial AR2, ie, the correlation between
+  the time course at one voxel and that at a voxel two voxels
+  over. There will be six frame, 2 for each dim. If a mask is used,
+  then a voxel and all it's neighbors must be in the mask in order to
+  compute the AR2 at that point. BUG: this function is sensitive 
+  to the time series DOF (assumes it is nframes-1).
+  --------------------------------------------------------------*/
 MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2)
 {
   int c,r,s,f,nframes, dc,dr,ds,skip;
@@ -1925,8 +1924,9 @@ MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2)
   //srcvar = fMRIvariance(srctmp, -1, 0, NULL);
   srcvar = fMRIcovariance(srctmp, 0, -1, mask, NULL);
 
+  nframes = srctmp->nframes-1; // assume DOF = nframes - 1
+
   // Loop thru all voxels
-  nframes = srctmp->nframes;
   for (c=0; c < srctmp->width; c++)  {
     for (r=0; r < srctmp->height; r++)    {
       for (s=0; s < srctmp->depth; s++)      {
