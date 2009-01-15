@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/22 00:48:24 $
- *    $Revision: 1.28.2.1 $
+ *    $Date: 2009/01/15 20:47:30 $
+ *    $Revision: 1.28.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,6 +103,7 @@ int MRIglmNRegTot(MRIGLM *mriglm);
 VECTOR *MRItoVector(MRI *mri, int c, int r, int s, VECTOR *v);
 int MRIsetSign(MRI *invol, MRI *signvol, int frame);
 MRI *MRIvolMax(MRI *invol, MRI *out);
+MRI *MRIvolMaxIndex(MRI *invol, int base, MRI *mask, MRI *out);
 double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
                    int *cmax, int *rmax, int *smax);
 MRI *MRIframeMean(MRI *vol, MRI *volmn);
@@ -116,6 +117,8 @@ int fMRIspatialAR2Mean(MRI *src, MRI *mask, double *car2mn,
                        double *rar2mn,double *sar2mn);
 MRI *fMRIaddOffset(MRI *in, MRI *offset, MRI *mask, MRI *out);
 MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub);
-MRI *MRIvolMaxIndex(MRI *invol, int base, MRI *mask, MRI *out);
 MRI *MRIframeSum(MRI *vol, MRI *volsum);
+MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ);
+MRI *fMRIkurtosis(MRI *y, MRI *mask);
+
 #endif

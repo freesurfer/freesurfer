@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/22 00:48:25 $
- *    $Revision: 1.47.2.2 $
+ *    $Date: 2009/01/15 20:47:30 $
+ *    $Revision: 1.47.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.47.2.2 2008/04/22 00:48:25 greve Exp $
+  $Id: fmriutils.c,v 1.47.2.3 2009/01/15 20:47:30 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -58,7 +58,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.47.2.2 2008/04/22 00:48:25 greve Exp $");
+  return("$Id: fmriutils.c,v 1.47.2.3 2009/01/15 20:47:30 greve Exp $");
 }
 
 
@@ -1473,32 +1473,71 @@ MRI *MRIvolMax(MRI *invol, MRI *out)
   int c, r, s, f;
   double v, max;
 
-  if (out==NULL)
-  {
+  if(out==NULL){
     out = MRIalloc(invol->width,invol->height,invol->depth,invol->type);
-    if (out == NULL) return(NULL);
+    if(out == NULL) return(NULL);
     MRIcopyHeader(invol,out);
   }
   if (out->width != invol->width || out->height != invol->height ||
-      out->depth != invol->depth)
-  {
+      out->depth != invol->depth){
     printf("ERROR: MRIvolMax: dimension mismatch\n");
     return(NULL);
   }
 
-  for (c=0; c < invol->width; c++)
-  {
-    for (r=0; r < invol->height; r++)
-    {
-      for (s=0; s < invol->depth; s++)
-      {
+  for (c=0; c < invol->width; c++)  {
+    for (r=0; r < invol->height; r++) {
+      for (s=0; s < invol->depth; s++) {
         max = MRIgetVoxVal(invol,c,r,s,0);
-        for (f=1; f < invol->nframes; f++)
-        {
+        for (f=1; f < invol->nframes; f++) {
           v = MRIgetVoxVal(invol,c,r,s,f);
           if (max < v) max = v;
         }
         MRIsetVoxVal(out,c,r,s,0,max);
+      }
+    }
+  }
+  return(out);
+}
+
+/*----------------------------------------------------------------
+  MRI *MRIvolMaxIndex(MRI *vol, MRI *out) - the value at each voxel
+  is the frame index of the maximum over the frames at that voxel.
+  base is added to the index.
+  --------------------------------------------------------------*/
+MRI *MRIvolMaxIndex(MRI *invol, int base, MRI *mask, MRI *out)
+{
+  int c, r, s, f, index;
+  double v, max, m;
+
+  if(out==NULL){
+    out = MRIalloc(invol->width,invol->height,invol->depth,MRI_INT);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(invol,out);
+  }
+  if (out->width != invol->width || out->height != invol->height ||
+      out->depth != invol->depth){
+    printf("ERROR: MRIvolMax: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for (c=0; c < invol->width; c++)  {
+    for (r=0; r < invol->height; r++) {
+      for (s=0; s < invol->depth; s++) {
+        MRIsetVoxVal(out,c,r,s,0,0);
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+        max = MRIgetVoxVal(invol,c,r,s,0);
+	index = 0;
+        for (f=1; f < invol->nframes; f++) {
+          v = MRIgetVoxVal(invol,c,r,s,f);
+          if(max < v){
+	    max = v;
+	    index = f;
+	  }
+        }
+        MRIsetVoxVal(out,c,r,s,0,index+base);
       }
     }
   }
@@ -1620,6 +1659,33 @@ MRI *MRIframeMean(MRI *vol, MRI *volmn)
 
 
 /*---------------------------------------------------------------
+  MRIframeSum() - computes sum over frames of each voxel.
+  --------------------------------------------------------------*/
+MRI *MRIframeSum(MRI *vol, MRI *volsum)
+{
+  int c, r, s,f;
+  double v;
+
+  if (volsum == NULL){
+    volsum = MRIallocSequence(vol->width,vol->height,vol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(vol,volsum);
+  }
+
+  for (c=0; c < vol->width; c++)  {
+    for (r=0; r < vol->height; r++)    {
+      for (s=0; s < vol->depth; s++)      {
+        v = 0;
+        for (f=0; f < vol->nframes; f++)
+          v += MRIgetVoxVal(vol,c,r,s,f);
+        MRIsetVoxVal(volsum,c,r,s,0,v);
+      }//s
+    }//r
+  }//s
+  return(volsum);
+}
+
+
+/*---------------------------------------------------------------
   fMRIdetrend() - returns (I-inv(X'*X)*X')*y
   ---------------------------------------------------------------*/
 MRI *fMRIdetrend(MRI *y, MATRIX *X)
@@ -1658,20 +1724,21 @@ MRI *fMRIdetrend(MRI *y, MATRIX *X)
 }
 
 
-/*-------------------------------------------------------
-  fMRIspatialAR1() - computes spatial AR1, ie, the
-  correlation between the time course at one voxel
-  and that at an adjacent voxel. There will be six
-  frame, 2 for each dim. If a mask is used, then
-  a voxel and all it's neighbors must be in the mask
-  in order to compute the AR1 at that point.
-  -------------------------------------------------------*/
+/*---------------------------------------------------------------------
+  fMRIspatialAR1() - computes spatial AR1, ie, the correlation between
+  the time course at one voxel and that at an adjacent voxel. There
+  will be six frame, 2 for each dim. If a mask is used, then a voxel
+  and all it's neighbors must be in the mask in order to compute the
+  AR1 at that point. This function assumess that the mean and any
+  other trends have been removed. It works regardless of the DOF of
+  the time series.
+  --------------------------------------------------------------------*/
 MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
 {
-  int c,r,s,f,nframes, dc,dr,ds,skip,nhits;
-  MRI *srcvar, *srctmp;
+  int c,r,s,f,dc,dr,ds,skip,nhits;
+  MRI *srcsumsq, *srctmp;
   double m, c1sum,c2sum, r1sum,r2sum, s1sum,s2sum;
-  double v0, vc1,vc2, vr1,vr2, vs1,vs2;
+  double v0, vc1,vc2, vr1,vr2, vs1,vs2, sumsq0;
   double car1,rar1,sar1;
   int freetmp;
 
@@ -1685,8 +1752,8 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
     freetmp=0;
   }
 
-  // alloc vol with 3 frames
-  if (ar1 == NULL){
+  // alloc vol with 6 frames
+  if(ar1 == NULL){
     ar1 = MRIcloneBySpace(src, MRI_FLOAT, 6);
     if (ar1 == NULL){
       printf("ERROR: could not alloc\n");
@@ -1694,12 +1761,10 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
     }
   }
 
-  // pre-compute the variance
-  //srcvar = fMRIvariance(srctmp, -1, 0, NULL);
-  srcvar = fMRIcovariance(srctmp, 0, -1, mask, NULL);
+  // pre-compute the sum of squares
+  srcsumsq = fMRIsumSquare(srctmp,0,NULL);
 
   // Loop thru all voxels
-  nframes = srctmp->nframes;
   nhits = 0;
   for (c=0; c < srctmp->width; c++)  {
     for (r=0; r < srctmp->height; r++)    {
@@ -1712,9 +1777,9 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
 	  for(f = 0; f < 6; f++) MRIsetVoxVal(ar1,c,r,s,f,0);
           continue;
         }
-        // variance at center voxel
-        v0  = MRIgetVoxVal(srcvar,c,r,s,0);
-	if(v0 < 1e-6) continue; 
+        // sum-of-sqares at center voxel
+        sumsq0  = MRIgetVoxVal(srcsumsq,c,r,s,0);
+	if(sumsq0 < 1e-6) continue; 
         // skip if BOTH voxel and all it's neighbors are
         // not in the mask
         if(mask){
@@ -1769,39 +1834,39 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
           s2sum += (v0*vs2);
         }
 
-        // variance at center voxel
-        v0  = MRIgetVoxVal(srcvar,c,r,s,0);
+        // sum-of-squares at center voxel
+        sumsq0  = MRIgetVoxVal(srcsumsq,c,r,s,0);
 
         // column AR1
-        vc1 = MRIgetVoxVal(srcvar,c-1,r,s,0); //variance
-	if(vc1 > 1e-6) car1 = c1sum/(nframes*sqrt(v0*vc1)); 
+        vc1 = MRIgetVoxVal(srcsumsq,c-1,r,s,0); //variance
+	if(vc1 > 1e-6) car1 = c1sum/(sqrt(sumsq0*vc1)); 
         else           car1 = 0;
         MRIsetVoxVal(ar1,c,r,s,0,car1); // frame 0
 
-        vc2 = MRIgetVoxVal(srcvar,c+1,r,s,0);
-	if(vc2 > 1e-6) car1 = c2sum/(nframes*sqrt(v0*vc2));
+        vc2 = MRIgetVoxVal(srcsumsq,c+1,r,s,0);
+	if(vc2 > 1e-6) car1 = c2sum/(sqrt(sumsq0*vc2));
         else           car1 = 0;
         MRIsetVoxVal(ar1,c,r,s,1,car1); // frame 1
 
         // rows
-        vr1 = MRIgetVoxVal(srcvar,c,r-1,s,0);
-	if(vr1 > 1e-6) rar1 = r1sum/(nframes*sqrt(v0*vr1)); 
+        vr1 = MRIgetVoxVal(srcsumsq,c,r-1,s,0);
+	if(vr1 > 1e-6) rar1 = r1sum/(sqrt(sumsq0*vr1)); 
         else           rar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,2,rar1); // frame 2
 
-        vr2 = MRIgetVoxVal(srcvar,c,r+1,s,0);
-        if(vr2 > 1e-6) rar1 = r2sum/(nframes*sqrt(v0*vr2));
+        vr2 = MRIgetVoxVal(srcsumsq,c,r+1,s,0);
+        if(vr2 > 1e-6) rar1 = r2sum/(sqrt(sumsq0*vr2));
 	else           rar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,3,rar1); // frame 3
 
         // slices
-        vs1 = MRIgetVoxVal(srcvar,c,r,s-1,0);
-        if(vs1 > 1e-6) sar1 = s1sum/(nframes*sqrt(v0*vs1));
+        vs1 = MRIgetVoxVal(srcsumsq,c,r,s-1,0);
+        if(vs1 > 1e-6) sar1 = s1sum/(sqrt(sumsq0*vs1));
 	else           sar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,4,sar1); // frame 4
 
-        vs2 = MRIgetVoxVal(srcvar,c,r,s+1,0);
-        if(vs2 > 1e-6) sar1 = s2sum/(nframes*sqrt(v0*vs2));
+        vs2 = MRIgetVoxVal(srcsumsq,c,r,s+1,0);
+        if(vs2 > 1e-6) sar1 = s2sum/(sqrt(sumsq0*vs2));
 	else           sar1 = 0;
         MRIsetVoxVal(ar1,c,r,s,5,sar1); // frame 5
 
@@ -1813,20 +1878,20 @@ MRI *fMRIspatialAR1(MRI *src, MRI *mask, MRI *ar1)
   if(nhits == 0)
     printf("WARNING: no voxels in AR1 computation\n");
 
-  MRIfree(&srcvar);
+  MRIfree(&srcsumsq);
   if (freetmp) MRIfree(&srctmp);
   return(ar1);
 }
 
 
-/*-------------------------------------------------------
-  fMRIspatialAR2() - computes spatial AR2, ie, the
-  correlation between the time course at one voxel
-  and that at a voxel two voxels over. There will be six
-  frame, 2 for each dim. If a mask is used, then
-  a voxel and all it's neighbors must be in the mask
-  in order to compute the AR2 at that point.
-  -------------------------------------------------------*/
+/*---------------------------------------------------------------
+  fMRIspatialAR2() - computes spatial AR2, ie, the correlation between
+  the time course at one voxel and that at a voxel two voxels
+  over. There will be six frame, 2 for each dim. If a mask is used,
+  then a voxel and all it's neighbors must be in the mask in order to
+  compute the AR2 at that point. BUG: this function is sensitive 
+  to the time series DOF (assumes it is nframes-1).
+  --------------------------------------------------------------*/
 MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2)
 {
   int c,r,s,f,nframes, dc,dr,ds,skip;
@@ -1859,8 +1924,9 @@ MRI *fMRIspatialAR2(MRI *src, MRI *mask, MRI *ar2)
   //srcvar = fMRIvariance(srctmp, -1, 0, NULL);
   srcvar = fMRIcovariance(srctmp, 0, -1, mask, NULL);
 
+  nframes = srctmp->nframes-1; // assume DOF = nframes - 1
+
   // Loop thru all voxels
-  nframes = srctmp->nframes;
   for (c=0; c < srctmp->width; c++)  {
     for (r=0; r < srctmp->height; r++)    {
       for (s=0; s < srctmp->depth; s++)      {
@@ -2169,75 +2235,112 @@ MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub)
 
   return(fsub);
 }
-
-/*---------------------------------------------------------------
-  MRIframeSum() - computes sum over frames of each voxel.
-  --------------------------------------------------------------*/
-MRI *MRIframeSum(MRI *vol, MRI *volsum)
+/*!
+  \fn MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
+  \brief Temporal gaussian smoothing.
+  \param src - source volume
+  \param gstdmsec - gaussian stddev in milisec (divided by src->tr)
+  \param targ - output
+*/
+MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
 {
-  int c, r, s,f;
-  double v;
+  MATRIX *G, *v;
+  int c,r,s,f;
+  double sum;
 
-  if (volsum == NULL){
-    volsum = MRIallocSequence(vol->width,vol->height,vol->depth,MRI_FLOAT,1);
-    MRIcopyHeader(vol,volsum);
+  if (targ == NULL){
+    targ = MRIallocSequence(src->width,src->height,src->depth,
+                            MRI_FLOAT,src->nframes);
+    if (targ == NULL){
+      printf("ERROR: MRItemporalGaussian: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopy(src,targ);
+  }
+  else {
+    if(src->width != targ->width) {
+      printf("ERROR: MRItemporalGaussian: width dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->height != targ->height)    {
+      printf("ERROR: MRItemporalGaussian: height dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->depth != targ->depth)    {
+      printf("ERROR: MRItemporalGaussian: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->nframes != targ->nframes)    {
+      printf("ERROR: MRItemporalGaussian: frames dimension mismatch\n");
+      return(NULL);
+    }
+    if (src != targ) MRIcopy(src,targ);
   }
 
-  for (c=0; c < vol->width; c++)  {
-    for (r=0; r < vol->height; r++)    {
-      for (s=0; s < vol->depth; s++)      {
-        v = 0;
-        for (f=0; f < vol->nframes; f++)
-          v += MRIgetVoxVal(vol,c,r,s,f);
-        MRIsetVoxVal(volsum,c,r,s,0,v);
-      }//s
-    }//r
-  }//s
-  return(volsum);
-}
-
-/*----------------------------------------------------------------
-  MRI *MRIvolMaxIndex(MRI *vol, MRI *out) - the value at each voxel
-  is the frame index of the maximum over the frames at that voxel.
-  base is added to the index.
-  --------------------------------------------------------------*/
-MRI *MRIvolMaxIndex(MRI *invol, int base, MRI *mask, MRI *out)
-{
-  int c, r, s, f, index;
-  double v, max, m;
-
-  if(out==NULL){
-    out = MRIalloc(invol->width,invol->height,invol->depth,MRI_INT);
-    if(out == NULL) return(NULL);
-    MRIcopyHeader(invol,out);
+  // Normalized at the edges
+  G = GaussianMatrix(src->nframes, gstdmsec/src->tr, 1, NULL);
+  for(r=0; r < src->nframes; r++){
+    sum = 0.0;
+    for(c=0; c < src->nframes; c++) sum += G->rptr[r+1][c+1];
+    for(c=0; c < src->nframes; c++) G->rptr[r+1][c+1] /= sum;
   }
-  if (out->width != invol->width || out->height != invol->height ||
-      out->depth != invol->depth){
-    printf("ERROR: MRIvolMax: dimension mismatch\n");
-    return(NULL);
-  }
+  //MatrixWriteTxt("g.txt",G);
 
-  for (c=0; c < invol->width; c++)  {
-    for (r=0; r < invol->height; r++) {
-      for (s=0; s < invol->depth; s++) {
-        MRIsetVoxVal(out,c,r,s,0,0);
-	if(mask){
-	  m = MRIgetVoxVal(mask,c,r,s,0);
-	  if(m < 0.5) continue;
-	}
-        max = MRIgetVoxVal(invol,c,r,s,0);
-	index = 0;
-        for (f=1; f < invol->nframes; f++) {
-          v = MRIgetVoxVal(invol,c,r,s,f);
-          if(max < v){
-	    max = v;
-	    index = f;
-	  }
-        }
-        MRIsetVoxVal(out,c,r,s,0,index+base);
+  v = MatrixAlloc(src->nframes,1,MATRIX_REAL);
+  for(c=0; c < src->width; c++){
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+	for(f=0; f < src->nframes; f++) 
+	  v->rptr[f+1][1] = MRIgetVoxVal(src,c,r,s,f);
+	MatrixMultiply(G,v,v);
+	for(f=0; f < src->nframes; f++) 
+	  MRIsetVoxVal(targ,c,r,s,f,v->rptr[f+1][1]);
       }
     }
   }
-  return(out);
+
+  MatrixFree(&G);
+  MatrixFree(&v);
+
+  return(targ);
 }
 
+MRI *fMRIkurtosis(MRI *y, MRI *mask)
+{
+  MRI *k;
+  int c, r, s, f;
+  double v,mn,m4=0,m2=0,g2,delta,b1,b2,n;
+  k = MRIallocSequence(y->width,y->height,y->depth,MRI_FLOAT,1);
+  MRIcopyHeader(y,k);
+
+  n = y->nframes;
+  b1 = (n+1)*(n-1)/((n-2)*(n-3));
+  b2 = ((n-1)*(n-1))/((n-2)*(n-3));
+
+  for (c=0; c < y->width; c++){
+    for (r=0; r < y->height; r++){
+      for (s=0; s < y->depth; s++){
+	if(mask){
+	  v = MRIgetVoxVal(mask,c,r,s,0);
+	  if(v < 0.5) continue;
+	}
+	mn = 0;
+	for(f=0; f < y->nframes; f++) mn += MRIgetVoxVal(y,c,r,s,f);
+	mn /= y->nframes;
+	m2 = 0;
+	m4 = 0;
+	for(f=0; f < y->nframes; f++){
+	  delta = mn-MRIgetVoxVal(y,c,r,s,f);
+	  m2 += pow(delta,2.0); // sum of squares
+	  m4 += pow(delta,4.0); // sum of quads
+	}
+	m4 *= y->nframes;
+	if(m2 != 0) g2 = b1*(m4/(m2*m2)) - 3*b2; // 0 mean
+	else        g2 = 0;
+	MRIsetVoxVal(k,c,r,s,0,g2);
+      }
+    }
+  }
+
+  return(k);
+}
