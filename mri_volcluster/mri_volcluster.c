@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 21:03:04 $
- *    $Revision: 1.41 $
+ *    $Date: 2009/01/16 02:25:40 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.41 2009/01/15 21:03:04 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.42 2009/01/16 02:25:40 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.41 2009/01/15 21:03:04 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.42 2009/01/16 02:25:40 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -478,75 +478,75 @@ int main(int argc, char **argv) {
   } else fpsum = stdout;
 
   /* Dump summary to file or stdout */
-  fprintf(fpsum,"Cluster Growing Summary (mri_volcluster)\n");
-  fprintf(fpsum,"%s\n",vcid);
-  fprintf(fpsum,"cwd %s\n",cwd);
-  fprintf(fpsum,"cmdline %s\n",cmdline);
-  if(SUBJECTS_DIR) fprintf(fpsum,"SUBJECTS_DIR  %s\n",SUBJECTS_DIR);
-  fprintf(fpsum,"sysname  %s\n",uts.sysname);
-  fprintf(fpsum,"hostname %s\n",uts.nodename);
-  fprintf(fpsum,"machine  %s\n",uts.machine);
-  fprintf(fpsum,"user     %s\n",VERuser());
+  fprintf(fpsum,"# Cluster Growing Summary (mri_volcluster)\n");
+  fprintf(fpsum,"# %s\n",vcid);
+  fprintf(fpsum,"# cwd %s\n",cwd);
+  fprintf(fpsum,"# cmdline %s\n",cmdline);
+  if(SUBJECTS_DIR) fprintf(fpsum,"# SUBJECTS_DIR  %s\n",SUBJECTS_DIR);
+  fprintf(fpsum,"# sysname  %s\n",uts.sysname);
+  fprintf(fpsum,"# hostname %s\n",uts.nodename);
+  fprintf(fpsum,"# machine  %s\n",uts.machine);
+  fprintf(fpsum,"# user     %s\n",VERuser());
 
-  fprintf(fpsum,"Input Volume:      %s\n",volid);
-  fprintf(fpsum,"Frame Number:      %d\n",frame);
-  fprintf(fpsum,"Minimum Threshold: %g\n",threshmin);
+  fprintf(fpsum,"# Input Volume:      %s\n",volid);
+  fprintf(fpsum,"# Frame Number:      %d\n",frame);
+  fprintf(fpsum,"# Minimum Threshold: %g\n",threshmin);
   if (threshmax < 0)
-    fprintf(fpsum,"Maximum Threshold: inifinity\n");
+    fprintf(fpsum,"# Maximum Threshold: inifinity\n");
   else
-    fprintf(fpsum,"Maximum Threshold: %g\n",threshmax);
-  fprintf(fpsum,"Threshold Sign:    %s\n",signstring);
-  fprintf(fpsum,"AdjustThreshWhenOneTail %d\n",AdjustThreshWhenOneTail);
+    fprintf(fpsum,"# Maximum Threshold: %g\n",threshmax);
+  fprintf(fpsum,"# Threshold Sign:    %s\n",signstring);
+  fprintf(fpsum,"# AdjustThreshWhenOneTail %d\n",AdjustThreshWhenOneTail);
 
   if (distthresh > 0)
-    fprintf(fpsum,"Distance Threshold: %g (mm)\n",distthresh);
+    fprintf(fpsum,"# Distance Threshold: %g (mm)\n",distthresh);
 
   if(cwpvalthresh > 0)
-    fprintf(fpsum,"CW PValue Threshold: %g \n",cwpvalthresh);
+    fprintf(fpsum,"# CW PValue Threshold: %g \n",cwpvalthresh);
 
-  fprintf(fpsum,"Size Threshold:    %g mm^3\n",sizethresh);
-  fprintf(fpsum,"Size Threshold:    %g voxels\n",sizethresh/voxsize);
-  fprintf(fpsum,"Voxel Size:        %g mm^3\n",voxsize);
-  if (regfile) fprintf(fpsum,"Registration:      %s\n",regfile);
-  else fprintf(fpsum,"Registration:      None : Tal Coords invalid\n");
+  fprintf(fpsum,"# Size Threshold:    %g mm^3\n",sizethresh);
+  fprintf(fpsum,"# Size Threshold:    %g voxels\n",sizethresh/voxsize);
+  fprintf(fpsum,"# Voxel Size:        %g mm^3\n",voxsize);
+  if (regfile) fprintf(fpsum,"# Registration:      %s\n",regfile);
+  else fprintf(fpsum,"# Registration:      None : Tal Coords invalid\n");
   if (synthfunction != NULL)
-    fprintf(fpsum,"Synthesize:        %s\n",synthfunction);
+    fprintf(fpsum,"# Synthesize:        %s\n",synthfunction);
   if (maskid != NULL) {
-    fprintf(fpsum,"Mask Vol:          %s\n",maskid);
-    fprintf(fpsum,"Mask Thresh:       %f\n",maskthresh);
-    fprintf(fpsum,"Mask Sign:         %s\n",masksignstring);
-    fprintf(fpsum,"Mask Invert:       %d\n",maskinvert);
+    fprintf(fpsum,"# Mask Vol:          %s\n",maskid);
+    fprintf(fpsum,"# Mask Thresh:       %f\n",maskthresh);
+    fprintf(fpsum,"# Mask Sign:         %s\n",masksignstring);
+    fprintf(fpsum,"# Mask Invert:       %d\n",maskinvert);
   }
-  fprintf(fpsum,"AllowDiag:         %d\n",allowdiag);
-  fprintf(fpsum,"NClusters          %d\n",nclusters);
+  fprintf(fpsum,"# AllowDiag:         %d\n",allowdiag);
+  fprintf(fpsum,"# NClusters          %d\n",nclusters);
   if (csd != NULL) {
-    fprintf(fpsum,"CSD thresh  %lf\n",csd->thresh);
-    fprintf(fpsum,"CSD nreps    %d\n",csd->nreps);
-    fprintf(fpsum,"CSD simtype  %s\n",csd->simtype);
-    fprintf(fpsum,"CSD contrast %s\n",csd->contrast);
-    fprintf(fpsum,"CSD confint  %lf\n",ciPct);
+    fprintf(fpsum,"# CSD thresh  %lf\n",csd->thresh);
+    fprintf(fpsum,"# CSD nreps    %d\n",csd->nreps);
+    fprintf(fpsum,"# CSD simtype  %s\n",csd->simtype);
+    fprintf(fpsum,"# CSD contrast %s\n",csd->contrast);
+    fprintf(fpsum,"# CSD confint  %lf\n",ciPct);
   }
-  if (fwhm > 0) fprintf(fpsum,"FWHM        %lf\n",fwhm);
+  if (fwhm > 0) fprintf(fpsum,"# FWHM        %lf\n",fwhm);
 
-  fprintf(fpsum,"\n");
+  fprintf(fpsum,"# \n");
   if (regfile) {
     if (FixMNI) {
-      fprintf(fpsum,"Reporting Coordinates in Talairach Space\n");
-      fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     "
+      fprintf(fpsum,"# Reporting Coordinates in Talairach Space\n");
+      fprintf(fpsum,"# Cluster   Size(n)   Size(mm^3)     "
               "TalX   TalY    TalZ              Max");
     } else {
-      fprintf(fpsum,"Reporting Coordinates in MNI305 Space\n");
-      fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)     "
+      fprintf(fpsum,"# Reporting Coordinates in MNI305 Space\n");
+      fprintf(fpsum,"# Cluster   Size(n)   Size(mm^3)     "
               "MNIX   MNIY    MNIZ              Max");
     }
   } else {
-    fprintf(fpsum,"Reporting Coordinates in Voxel Indices\n");
-    fprintf(fpsum,"Cluster   Size(n)   Size(mm^3)       "
+    fprintf(fpsum,"# Reporting Coordinates in Voxel Indices\n");
+    fprintf(fpsum,"# Cluster   Size(n)   Size(mm^3)       "
             "VoxX   VoxY    VoxZ              Max");
   }
 
-  if (csd != NULL)  fprintf(fpsum,"   CWP    CWPLow    CWPHi\n");
-  else if (fwhm > 0) fprintf(fpsum,"  GRFCWP\n");
+  if (csd != NULL)  fprintf(fpsum,"#    CWP    CWPLow    CWPHi\n");
+  else if (fwhm > 0) fprintf(fpsum,"#   GRFCWP\n");
   else fprintf(fpsum,"\n");
 
   for (n = 0; n < nclusters; n++) {
