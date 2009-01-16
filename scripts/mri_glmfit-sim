@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.9 2009/01/15 21:35:42 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.10 2009/01/16 01:03:35 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -13,6 +13,11 @@ set Overwrite = 0;
 set DoSim = 1;
 set LF = ();
 set AllDoneFile = ();
+set Seed = ();
+set fwhmOverride = ();
+set UseUniformPDF = 0;
+set UniformPDFMin = ();
+set UniformPDFMax = ();
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -64,6 +69,7 @@ if(! -e $fwhmfile) then
   echo "ERROR: cannot find $fwhm"
   exit 1;
 endif
+# This may be overridden
 set fwhm = `cat $fwhmfile`;
 
 set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
@@ -176,6 +182,13 @@ echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
 echo "DoPoll = $DoPoll" | tee -a $LF
 echo "gd2mtx = $gd2mtx" | tee -a $LF
+if($#Seed) echo "Seed = $Seed" | tee -a $LF
+echo "fwhm = $fwhm" | tee -a $LF
+if($#fwhmOverride) then 
+  # Change fwhm from value in glmdir to override value
+  echo "fwhmOverride = $fwhmOverride" | tee -a $LF
+  set fwhm = $fwhmOverride
+endif
 
 if($DoSim) then
   # Use fsgd if there, if not use X
@@ -206,6 +219,8 @@ if($DoSim) then
     if($#X)    set cmd = ($cmd --X $X)
     if($nulltype != perm) set cmd = ($cmd --fwhm $fwhm)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
+    if($#Seed) set cmd = ($cmd --seed $Seed);
+    if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
 
     if($DoPoll) then
       set DoneFile = $glmdir/csd/done.$csdbase.$jpad
@@ -400,9 +415,26 @@ while( $#argv != 0 )
       set tSleepSec = $argv[1]; shift;
       breaksw
 
+    case "--seed":
+      if($#argv < 1) goto arg1err;
+      set Seed = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm-override":
+      if($#argv < 1) goto arg1err;
+      set fwhmOverride = $argv[1]; shift;
+      breaksw
+
     case "--tmp":
       if($#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      breaksw
+
+    case "--uniform":
+      if($#argv < 2) goto arg2err;
+      set UniformPDFMin = $argv[1]; shift;
+      set UniformPDFMax = $argv[1]; shift;
+      set UseUniformPDF = 1;
       breaksw
 
     case "--no-sim":
@@ -456,6 +488,12 @@ arg1err:
 ############--------------##################
 
 ############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
 arg4err:
   echo "ERROR: flag $flag requires four arguments"
   exit 1
@@ -470,13 +508,17 @@ usage_exit:
   echo " --sim nulltype nsim threshhold csdbase"
   echo " --sim-sign sign : <abs>,pos,neg"
   echo ""
-  echo " --no-sim csdbase : do not simulate, only run cluster"
   echo " --overwrite : delete previous CSDs"
   echo ""
   echo " --bg njobs : divide sim into njobs and put in background"
   echo " --sleep tSleepSec : number of seconds to sleep between background polls "
   echo ""
   echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
+  echo ""
+  echo " --no-sim csdbase : do not simulate, only run cluster"
+  echo " --seed seed : set simluation seed"
+  echo " --fwhm-override fwhm : override fwhm in glmdir":
+  echo " --uniform min max : use uniform PDF instead of gaussian":
   echo ""
   echo " --help"
   echo ""
@@ -580,12 +622,6 @@ as input for mri_segstats or mris_anatomical_stats).
 
 OTHER OPTIONS
 
---no-sim csdbase
-
-Run this if you have already run the stimulation but just want to 
-run the correction for multiple comparisons again. This is mostly
-used for debugging.
-
 --overwrite
 
 Overwrite existing CSD files when performing simulation. Default 
@@ -594,15 +630,27 @@ spent a weekend creating.
 
 --bg njobs
 
-Divide the number of simulation interations into njobs background
-jobs. CAREFUL!!!! WARNING!!! If the simulation jobs die uncleanly for
+CAREFUL!!!! WARNING!!! Divide the number of simulation interations
+into njobs background jobs. If the simulation jobs die uncleanly for
 some reason, this will never quit because it looks for a file created
 by the simulation job before continuing. If this file is not created,
-then it will keep polling for this file forever. ALSO: if you are
-not running on a computer with multiple nodes, then this will not
-make it run any faster (in fact, it will run slower).
+then it will keep polling for this file forever. ALSO: if you are not
+running on a computer with multiple nodes, then this will not make it
+run any faster (in fact, it will run slower).
 
+--no-sim csdbase
 
+Run this if you have already run the stimulation but just want to 
+run the correction for multiple comparisons again. This is mostly
+used for debugging.
 
+--seed seed
 
+Set the seed for simulation random number generator. This is mostly
+used for debugging.
+
+--fwhm-override fwhm 
+
+Override fwhm in glmdir with given value. This is mostly
+used for debugging.
 
