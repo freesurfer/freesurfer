@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:23 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/01/16 22:13:07 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -137,7 +137,8 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
 	
 	m_bResampleToRAS = mri->m_bResampleToRAS;
 	m_imageDataRef = mri->GetImageData();
-	if ( m_imageDataRef.GetPointer() )
+//	if ( m_imageDataRef.GetPointer() )
+	if ( m_imageDataRef != NULL )
 	{
 		SetWorldOrigin( mri->GetWorldOrigin() );
 		SetWorldVoxelSize( mri->GetWorldVoxelSize() );
@@ -181,7 +182,8 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
 
 bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 {
-	if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
+//	if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
+	if ( m_sFilename.size() == 0 || m_imageData == NULL )
 		return false;
 		
 	m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
@@ -539,7 +541,8 @@ bool LayerMRI::IsVisible()
 
 double LayerMRI::GetVoxelValue( double* pos )
 {
-	if ( m_imageData.GetPointer() == NULL )
+//	if ( m_imageData.GetPointer() == NULL )
+	if ( m_imageData == NULL )
 		return 0;
 	
 	double* orig = m_imageData->GetOrigin();

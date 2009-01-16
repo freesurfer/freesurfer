@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/01/16 22:13:07 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,31 +27,14 @@
 #ifndef Interactor2DROIEdit_h
 #define Interactor2DROIEdit_h
 
-#include "Interactor2D.h"
+#include "Interactor2DVolumeEdit.h"
 #include <vector>
 
-class Interactor2DROIEdit : public Interactor2D
+class Interactor2DROIEdit : public Interactor2DVolumeEdit
 {
 public:
 	Interactor2DROIEdit();
-	virtual ~Interactor2DROIEdit();
-	
-	enum EditMode { EM_Freehand = 0, EM_Fill, EM_Polyline };
-	
-	// return true if to have parent Interactor2DROIEdit continue processing the event
-	// return false to stop event from further processing
-	virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
-	virtual bool ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view );
-		
-protected:	
-	void UpdateCursor( wxEvent& event, wxWindow* wnd );
-		
-	bool	m_bEditing;
-	
-	std::vector<double>		m_dPolylinePoints;
+	virtual ~Interactor2DROIEdit() {}
 };
 
 #endif 

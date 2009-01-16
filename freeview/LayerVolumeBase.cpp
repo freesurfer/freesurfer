@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/01/16 22:13:07 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,6 +48,8 @@ LayerVolumeBase::LayerVolumeBase() : LayerEditable()
 	m_nActiveFrame = 0;
 	m_propertyBrush = MainWindow::GetMainWindowPointer()->GetBrushProperty();
 	m_livewire = new LivewireTool();
+	m_imageData = NULL;
+	m_imageDataRef = NULL;
 }
 
 LayerVolumeBase::~LayerVolumeBase()
@@ -460,40 +462,6 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd )
 	
 	return true;
 }
-	
-/*
-void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
-{
-	int n1[3], n2[3];
-	double* orig = m_imageData->GetOrigin();
-	double* vxlsize = m_imageData->GetSpacing();
-	for ( int i = 0; i < 3; i++ )
-	{
-		n1[i] = ( int )( ( pt1[i] - orig[i] ) / vxlsize[i] );
-		n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
-	}
-	
-	vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
-	if ( m_imageDataRef.GetPointer() != NULL )
-		MyUtils::GetLivewirePoints( m_imageDataRef, nPlane, n1[nPlane], pt1, pt2, pts );
-	else
-		MyUtils::GetLivewirePoints( m_imageData, nPlane, n1[nPlane], pt1, pt2, pts );
-	
-	int n[3];
-	for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
-	{
-		double* p = pts->GetPoint( i );
-		n[0] = (int)p[0];
-		n[1] = (int)p[1];
-		n[2] = (int)p[2];
-	
-		SetVoxelByIndex( n, nPlane, true );
-	}
-	
-	SetModified();
-	this->SendBroadcast( "LayerActorUpdated", this );
-}
-*/
 
 void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
 {
@@ -511,15 +479,11 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
 	LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
 	if ( ref_layer != NULL )
 		image = ref_layer->GetImageData();
-	else if ( m_imageDataRef.GetPointer() != NULL )
+//	else if ( m_imageDataRef.GetPointer() != NULL )
+	else if ( m_imageDataRef != NULL )
 		image = m_imageDataRef;
 	
-	m_livewire->SetImageData( image );
-	m_livewire->SetImagePlane( nPlane );
-	m_livewire->SetImageSlice( n1[nPlane] );
-	m_livewire->GetLivewirePoints( pt1, pt2, pts );
-	cout << n1[nPlane];
-
+	m_livewire->GetLivewirePoints( image, nPlane, n1[nPlane], pt1, pt2, pts );
 	int n[3];
 	for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
 	{
@@ -541,7 +505,8 @@ std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double
 	LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
 	if ( ref_layer != NULL )
 		image = ref_layer->GetImageData();
-	else if ( m_imageDataRef.GetPointer() != NULL )
+//	else if ( m_imageDataRef.GetPointer() != NULL )
+	else if ( m_imageDataRef != NULL )
 		image = m_imageDataRef;
 	
 	int n1[3], n2[3];
@@ -555,11 +520,7 @@ std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double
 	
 	vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
 	
-	m_livewire->SetImageData( image );
-	m_livewire->SetImagePlane( nPlane );
-	m_livewire->SetImageSlice( n1[nPlane] );
-	m_livewire->GetLivewirePoints( pt1, pt2, pts );
-	
+	m_livewire->GetLivewirePoints( image, nPlane, n1[nPlane], pt1, pt2, pts );	
 	std::vector<double> pts_out;
 	for ( int i = 1; i < pts->GetNumberOfPoints()-1; i++ )
 	{

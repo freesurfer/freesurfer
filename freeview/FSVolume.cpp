@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/12/09 20:50:48 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/01/16 22:13:07 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,6 +64,7 @@ FSVolume::FSVolume( FSVolume* ref ) :
 	m_bResampleToRAS( true ),
 	m_bBoundsCacheDirty( true )
 {
+	m_imageData = NULL;
 	if ( ref )
 	{
 		SetMRI( m_MRIRef, ref->m_MRI );
@@ -331,7 +332,8 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData )
 	if ( !bCopyVoxelData )
 		MRIcopyHeader( src_vol->m_MRI, m_MRI );
 	
-	if ( !m_imageData.GetPointer() )
+//	if ( !m_imageData.GetPointer() )
+	if ( m_imageData == NULL )
 	{
 		m_imageData = vtkSmartPointer<vtkImageData>::New();
 	}
@@ -1264,7 +1266,8 @@ void FSVolume::GetBounds ( float oRASBounds[6] )
 	 
 	if ( !m_bResampleToRAS )
 	{
-		if ( m_imageData.GetPointer() )
+//		if ( m_imageData.GetPointer() )
+		if ( m_imageData != NULL )
 		{
 			double* origin = m_imageData->GetOrigin();
 			int* dim = m_imageData->GetDimensions();

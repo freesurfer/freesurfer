@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/01/16 22:13:07 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,6 +87,9 @@ public:
 	static bool BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out );
 	
 	static bool BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkVolume* vol_out );
+	
+	static void GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSlice_in, 
+									 double* pt1_in, double* pt2_in, vtkPoints* pts_out );
 };
 
 template <class T>

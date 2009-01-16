@@ -62,6 +62,8 @@ freeview_SOURCES=\
 	Interactor2DRegionEdit.h \
 	Interactor2DROIEdit.cpp \
 	Interactor2DROIEdit.h \
+	Interactor2DVolumeEdit.cpp \
+	Interactor2DVolumeEdit.h \
 	Interactor2DVoxelEdit.cpp \
 	Interactor2DVoxelEdit.h \
 	Interactor2DWayPointsEdit.cpp \

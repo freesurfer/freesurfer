@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/01/16 22:13:07 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,6 +59,8 @@ public:
 	void OnActionROIFillUpdateUI( wxUpdateUIEvent& event );
 	void OnActionROIPolyline( wxCommandEvent& event );
 	void OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event );
+	void OnActionROILivewire( wxCommandEvent& event );
+	void OnActionROILivewireUpdateUI( wxUpdateUIEvent& event );
 		
 	void OnSpinBrushSize( wxSpinEvent& event );
 	void OnSpinBrushTolerance( wxSpinEvent& event );

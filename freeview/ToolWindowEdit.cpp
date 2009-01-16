@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/09 20:11:07 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/01/16 22:13:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,6 +65,8 @@ BEGIN_EVENT_TABLE( ToolWindowEdit, wxFrame )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_FILL" ),		ToolWindowEdit::OnActionROIFillUpdateUI )
     EVT_MENU		( XRCID( "ID_ACTION_ROI_POLYLINE" ),	ToolWindowEdit::OnActionROIPolyline )
     EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_POLYLINE" ),	ToolWindowEdit::OnActionROIPolylineUpdateUI )
+    EVT_MENU		( XRCID( "ID_ACTION_ROI_LIVEWIRE" ),	ToolWindowEdit::OnActionROILivewire )
+    EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_LIVEWIRE" ),	ToolWindowEdit::OnActionROILivewireUpdateUI )
     
 	EVT_SPINCTRL	( XRCID( "ID_SPIN_BRUSH_SIZE" ),		ToolWindowEdit::OnSpinBrushSize )
 	EVT_SPINCTRL	( XRCID( "ID_SPIN_BRUSH_TOLERANCE" ),	ToolWindowEdit::OnSpinBrushTolerance )
@@ -322,6 +324,23 @@ void ToolWindowEdit::OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event)
 	RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
 	event.Check( view->GetInteractionMode() == RenderView2D::IM_ROIEdit 
 			&& view->GetAction() == Interactor2DROIEdit::EM_Polyline );
+	
+	event.Enable( view->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+			&& !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
+}
+
+
+void ToolWindowEdit::OnActionROILivewire( wxCommandEvent& event )
+{
+	MainWindow::GetMainWindowPointer()->SetAction( Interactor2DROIEdit::EM_Livewire );
+	UpdateTools();
+}
+
+void ToolWindowEdit::OnActionROILivewireUpdateUI( wxUpdateUIEvent& event)
+{
+	RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
+	event.Check( view->GetInteractionMode() == RenderView2D::IM_ROIEdit 
+			&& view->GetAction() == Interactor2DROIEdit::EM_Livewire );
 	
 	event.Enable( view->GetInteractionMode() == RenderView2D::IM_ROIEdit 
 			&& !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
