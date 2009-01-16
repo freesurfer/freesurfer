@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/12/29 16:52:31 $
- *    $Revision: 1.61 $
+ *    $Author: fischl $
+ *    $Date: 2009/01/16 02:20:38 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -54,6 +54,7 @@ static double TEs[MAX_GCA_INPUTS] ;
 static int skull = 0 ;  /* if 1, aligning to image with skull */
 static int rigid = 0 ;
 
+static int Gscale_samples = 0 ;
 static int robust = 0 ;
 /*
   allowable distance from an unknown sample to one in brain. Default
@@ -184,7 +185,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.61 2008/12/29 16:52:31 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.62 2009/01/16 02:20:38 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -960,11 +961,16 @@ find_optimal_transform
   min_search_scale = MIN_SEARCH_SCALE ;
 
   // used by various spacing value
-  if (spacing >= 16)
-    scale_samples = 5 ;
-  else
-    scale_samples = 3 ;
 
+  if (Gscale_samples)
+    scale_samples = Gscale_samples ;
+  else
+  {
+    if (spacing >= 16)
+      scale_samples = 5 ;
+    else
+      scale_samples = 3 ;
+  }
   if (spacing >= 8)
     min_search_scale /= 4;
 
@@ -1591,6 +1597,10 @@ get_option(int argc, char *argv[]) {
     nscales = atoi(argv[2]) ;
     nargs = 1 ;
     printf("finding optimal linear transform over %d scales...\n", nscales);
+  } else if (!stricmp(option, "NSCALES")){
+    Gscale_samples = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("sampling scaling %d times at each scale\n", Gscale_samples) ;
   } else if (!stricmp(option, "NOVAR")) {
     novar = 1 ;
     printf("not using variance estimates\n") ;
