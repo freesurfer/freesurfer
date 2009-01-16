@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 23:19:13 $
- *    $Revision: 1.161 $
+ *    $Date: 2009/01/16 04:04:09 $
+ *    $Revision: 1.162 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -548,7 +548,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.161 2009/01/15 23:19:13 greve Exp $";
+"$Id: mri_glmfit.c,v 1.162 2009/01/16 04:04:09 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -683,15 +683,16 @@ STAT_TABLE *StatTable=NULL, *OutStatTable=NULL;
 int  UseCortexLabel = 0;
 
 char *SimDoneFile = NULL;
+int tSimSign = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs,n, m, absflag;
+  int nargs,n, m;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
   MATRIX *Ct, *CCt;
   FILE *fp;
-  double threshadj, Ccond, dtmp;
+  double Ccond, dtmp, threshadj;
 
   eresfwhm = -1;
   csd = CSDalloc();
@@ -1130,8 +1131,8 @@ int main(int argc, char **argv) {
 
   // Load the contrast matrices ---------------------------------
   mriglm->glm->ncontrasts = nContrasts;
-  if (nContrasts > 0) {
-    for (n=0; n < nContrasts; n++) {
+  if(nContrasts > 0) {
+    for(n=0; n < nContrasts; n++) {
       if (! useasl && ! useqa) {
         // Get its name
         mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat"); //strip .mat
@@ -1164,19 +1165,9 @@ int main(int argc, char **argv) {
       }
       MatrixFree(&Ct);
       MatrixFree(&CCt);
-      // Should check to make sure no two are the same
-      // Check that a one-tailed test is not being done with a F contrast
-      if (DoSim) {
-        if (mriglm->glm->C[n]->rows > 1 && csd->threshsign != 0) {
-          printf("ERROR: contrast %s has multiple rows, but you have \n"
-                 "specified that the simulation be run with a one-tailed \n"
-                 "test (--sim-sign). These are mutually exclusive. \n"
-                 "Run without --sim-sign or change the conrast.\n",
-                 mriglm->glm->Cname[n]);
-        }
-      }
     }
   }
+
   if(OneSampleGroupMean) {
     nContrasts = 1;
     mriglm->glm->ncontrasts = nContrasts;
@@ -1195,7 +1186,7 @@ int main(int argc, char **argv) {
         }
       }
     } else OneSamplePerm=0;
-    if (OneSamplePerm)
+    if(OneSamplePerm)
       printf("Design detected as one-sample group mean, "
              "adjusting permutation simulation\n");
   }
@@ -1283,9 +1274,8 @@ int main(int argc, char **argv) {
       strcpy(csd->anattype,"surface");
       strcpy(csd->subject,subject);
       strcpy(csd->hemi,hemi);
-    } else {
-      strcpy(csd->anattype,"volume");
-    }
+    } 
+    else  strcpy(csd->anattype,"volume");
     csd->searchspace = searchspace;
     csd->nreps = nsim;
     CSDallocData(csd);
@@ -1305,15 +1295,7 @@ int main(int argc, char **argv) {
       z = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
       zabs = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
     }
-    if (csd->threshsign == 0) {
-      absflag = 1;
-      threshadj = csd->thresh;
-    } else {
-      absflag = 0;
-      // adjust threhsold for one-sided test
-      threshadj = csd->thresh - log10(2.0);
-    }
-    printf("thresh = %g, threshadj = %g \n",csd->thresh,threshadj);
+    printf("thresh = %g, threshadj = %g \n",csd->thresh,csd->thresh-log10(2.0));
 
     printf("\n\nStarting simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
@@ -1363,10 +1345,18 @@ int main(int argc, char **argv) {
 
       // Go through each contrast
       for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	// Change sign to abs for F-tests
+	csd->threshsign = tSimSign;
+	if(mriglm->glm->C[n]->rows > 1) csd->threshsign = 0;
+
+	// Adjust threshold for one- or two-sided
+	if(csd->threshsign == 0) threshadj = csd->thresh;
+	else threshadj = csd->thresh - log10(2.0); // one-sided test
+
         if (!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")) {
           sig  = MRIlog10(mriglm->p[n],NULL,sig,1);
           // If it is t-test (ie, one row) then apply the sign
-          if (mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
+          if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
           sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
                                &cmax,&rmax,&smax);
           Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
@@ -1902,10 +1892,11 @@ static int parse_commandline(int argc, char **argv) {
       UseUniform = 1;
       nargsused = 2;
     } else if (!strcasecmp(option, "--sim-sign")) {
+      // this applies only to t-tests
       if (nargc < 1) CMDargNErr(option,1);
-      if (!strcmp(pargv[0],"abs")) csd->threshsign = 0;
-      else if (!strcmp(pargv[0],"pos")) csd->threshsign = +1;
-      else if (!strcmp(pargv[0],"neg")) csd->threshsign = -1;
+      if (!strcmp(pargv[0],"abs"))      tSimSign = 0;
+      else if (!strcmp(pargv[0],"pos")) tSimSign = +1;
+      else if (!strcmp(pargv[0],"neg")) tSimSign = -1;
       else {
         printf("ERROR: --sim-sign argument %s unrecognized\n",pargv[0]);
         exit(1);
