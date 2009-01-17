@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/17 01:40:32 $
- *    $Revision: 1.163 $
+ *    $Date: 2009/01/17 03:09:34 $
+ *    $Revision: 1.164 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -548,7 +548,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.163 2009/01/17 01:40:32 greve Exp $";
+"$Id: mri_glmfit.c,v 1.164 2009/01/17 03:09:34 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1372,8 +1372,20 @@ int main(int argc, char **argv) {
           RFsynth(z,rfs,mriglm->mask); // z or t, as needed
           if (SmoothLevel > 0) {
             SmoothSurfOrVol(surf, z, mriglm->mask, SmoothLevel);
+	    if(DiagCluster) {
+	      sprintf(tmpstr,"./%s-zsm0.%s",mriglm->glm->Cname[n],format);
+	      printf("Saving z into %s\n",tmpstr);
+	      MRIwrite(z,tmpstr);
+	      // Exits below
+	    }
             RFrescale(z,rfs,mriglm->mask,z);
           }
+	  if(DiagCluster) {
+	    sprintf(tmpstr,"./%s-zsm1.%s",mriglm->glm->Cname[n],format);
+	    printf("Saving z into %s\n",tmpstr);
+	    MRIwrite(z,tmpstr);
+	    // Exits below
+	  }
           // Slightly tortured way to get the right p-values because
           //   RFstat2P() computes one-sided, but I handle sidedness
           //   during thresholding.
@@ -1446,7 +1458,7 @@ int main(int argc, char **argv) {
 
         fclose(fp);
 
-        if (DiagCluster) {
+        if(DiagCluster) {
           sprintf(tmpstr,"./%s-sig.%s",mriglm->glm->Cname[n],format);
           printf("Saving sig into %s and exiting ... \n",tmpstr);
           MRIwrite(sig,tmpstr);
