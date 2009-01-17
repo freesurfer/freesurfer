@@ -14,7 +14,7 @@ function [dat thresh fwhm searchspace anattype] = load_csd(csdfile)
 % searchspace in mm^D
 % anattype is volume or surface
 %
-% $Id: load_csd.m,v 1.2 2008/12/05 21:20:04 greve Exp $
+% $Id: load_csd.m,v 1.3 2009/01/17 01:19:51 greve Exp $
 
 %
 % load_csd.m
@@ -22,8 +22,8 @@ function [dat thresh fwhm searchspace anattype] = load_csd(csdfile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/12/05 21:20:04 $
-%    $Revision: 1.2 $
+%    $Date: 2009/01/17 01:19:51 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -38,13 +38,15 @@ function [dat thresh fwhm searchspace anattype] = load_csd(csdfile)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-
 if(nargin ~= 1)
+  nargin
   fprintf('dat = load_csd(csdfile)\n');
   return;
 end
 
-fid = fopen(csdfile);
+
+%'synth-glm-surf/n0001/csd/mc-z.pos.j001-osgm.csd'
+fid = fopen(csdfile,'r');
 if(fid == -1)
   fprintf('ERROR: opening %s\n',csdfile);
   return;
@@ -67,7 +69,7 @@ while(1)
     tline = fgetl(fid);
     if(~isempty(tline))
       if(tline(1) ~= '#') break; end
-      key = sscanf(tline,'%*s %s');
+      key = sscanf(tline,'%*s %s',1);
       if(strcmp(key,'thresh'))
 	thresh = sscanf(tline,'%*s %*s %f');
       end
@@ -83,12 +85,16 @@ while(1)
     end
   end
   if(tline(1) == -1) break; end
-
   dat(nthrow,:) = sscanf(tline,'%f',5);
+
   nthrow = nthrow + 1;
 end % while (1)
 
 fclose(fid);
+
+return;
+
+
 
 
 
