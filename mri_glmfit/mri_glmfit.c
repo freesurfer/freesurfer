@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/16 04:04:09 $
- *    $Revision: 1.162 $
+ *    $Date: 2009/01/17 01:40:32 $
+ *    $Revision: 1.163 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -548,7 +548,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.162 2009/01/16 04:04:09 greve Exp $";
+"$Id: mri_glmfit.c,v 1.163 2009/01/17 01:40:32 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1354,12 +1354,14 @@ int main(int argc, char **argv) {
 	else threshadj = csd->thresh - log10(2.0); // one-sided test
 
         if (!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")) {
-          sig  = MRIlog10(mriglm->p[n],NULL,sig,1);
-          // If it is t-test (ie, one row) then apply the sign
-          if(mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
+          sig = MRIlog10(mriglm->p[n],NULL,sig,1);
+          // If test is not ABS then apply the sign
+          if(csd->threshsign != 0) MRIsetSign(sig,mriglm->gamma[n],0);
           sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
                                &cmax,&rmax,&smax);
+	  // Get Fmax at sig max 
           Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+	  if(csd->threshsign != 0) Fmax = Fmax*SIGN(sigmax);
         } else {
           // mc-z or mc-t: synth z-field, smooth, rescale,
           // compute p, compute sig
@@ -1382,34 +1384,29 @@ int main(int argc, char **argv) {
           MRIscalarMul(mriglm->p[n],mriglm->p[n],2);
           // sig = -log10(p)
           sig = MRIlog10(mriglm->p[n],NULL,sig,1);
-          // Now sign the sigs
-          if (mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
+          // If test is not ABS then apply the sign
+          if(csd->threshsign != 0) MRIsetSign(sig,z,0);
 
           sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
                                &cmax,&rmax,&smax);
           Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
+	  if(csd->threshsign == 0) Fmax = abs(Fmax);
         }
-        if (mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
+        if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 
-        if (surf) {
+        if(surf) {
           // surface clustering -------------
           MRIScopyMRI(surf, sig, 0, "val");
-          if (debug || Gdiag_no > 0)
-            printf("Clustering on surface %lf\n",
-                   TimerStop(&mytimer)/1000.0);
-          SurfClustList = sclustMapSurfClusters
-            (surf,threshadj,-1,csd->threshsign,
-             0,&nClusters,NULL);
-          if (debug || Gdiag_no > 0)
-            printf("Done Clustering %lf\n",
-                   TimerStop(&mytimer)/1000.0);
+          if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
+					   TimerStop(&mytimer)/1000.0);
+          SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
+						0,&nClusters,NULL);
           csize = sclustMaxClusterArea(SurfClustList, nClusters);
         } else {
           // volume clustering -------------
-          if (debug) printf("Clustering on surface\n");
-          VolClustList =
-            clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
-                             mriglm->mask, &nClusters, NULL);
+          if (debug) printf("Clustering on volume\n");
+          VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
+					  mriglm->mask, &nClusters, NULL);
           csize = voxelsize*clustMaxClusterCount(VolClustList,nClusters);
           if (Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
           clustFreeClusterList(&VolClustList,nClusters);
@@ -1444,7 +1441,7 @@ int main(int argc, char **argv) {
         csd->nClusters[nthsim] = nClusters;
         csd->MaxClusterSize[nthsim] = csize;
         csd->MaxSig[nthsim] = sigmax;
-        csd->MaxStat[nthsim] = Fmax * SIGN(sigmax);
+        csd->MaxStat[nthsim] = Fmax;
         CSDprint(fp, csd);
 
         fclose(fp);
