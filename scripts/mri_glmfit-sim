@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.11 2009/01/16 02:27:58 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.12 2009/01/17 21:16:10 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -172,7 +172,7 @@ if($#LF == 0) then
   set LF = $glmdir/$csdbase.mri_glmfit-sim.log
   rm -f $LF
 endif
-pwd | tee -a $LF
+#pwd | tee -a $LF
 echo $0 | tee -a $LF
 echo $inputargs | tee -a $LF
 echo $VERSION  | tee -a $LF
@@ -182,6 +182,9 @@ echo $user | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
 echo "DoPoll = $DoPoll" | tee -a $LF
+echo "DoPBSubmit = $DoPBSubmit" | tee -a $LF
+echo "DoBackground = $DoBackground" | tee -a $LF
+echo "DiagCluster = $DiagCluster" | tee -a $LF
 echo "gd2mtx = $gd2mtx" | tee -a $LF
 if($#Seed) echo "Seed = $Seed" | tee -a $LF
 echo "fwhm = $fwhm" | tee -a $LF
@@ -237,7 +240,7 @@ if($DoSim) then
       date | tee -a $LF
 
       # ----------------------------------------------------
-      if($DiagCluster)then
+      if($DiagCluster) then
         set conname = $conlist[1];
         set sig = ./$conname-sig.mgh
         set csd = $glmdir/csd/$csdbase.$jpad-$conname.csd
@@ -263,6 +266,7 @@ if($DoSim) then
         echo "MaxClusterSizeB $maxclustB"| tee -a $LF
         exit 1;
       endif
+
       # ----------------------------------------------------
     else
       if($DoBackground) then
@@ -271,10 +275,10 @@ if($DoSim) then
       endif
       if($DoPBSubmit) then
         # pbsubmit
-        echo "---------------------------------"
-        pbsubmit -l nodes=1:opteron -c "$cmd >> $LF"
+        echo "PBSUBMIT ---------------------------------" | tee -a $LF
+        pbsubmit -l nodes=1:opteron -c "$cmd >> $LF" | tee -a $LF
         sleep 10;
-        echo ""
+        echo "" | tee -a $LF
       endif
     endif
     @ nthJob = $nthJob + 1
