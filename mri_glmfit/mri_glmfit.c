@@ -14,11 +14,11 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 23:36:39 $
- *    $Revision: 1.138.2.8 $
+ *    $Date: 2009/01/17 02:08:58 $
+ *    $Revision: 1.138.2.9 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2008,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -43,8 +43,9 @@ USAGE: ./mri_glmfit
    --y inputfile
    --fsgd FSGDF <gd2mtx> : freesurfer descriptor file
    --X design matrix file
-   --C contrast1.mat <--C contrast2.mat ...>
+   --C contrast1.mtx <--C contrast2.mtx ...>
    --osgm : construct X and C as a one-sample group mean
+   --no-contrasts-ok : do not fail if no contrasts specified
 
    --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors
    --selfreg col row slice   : self-regressor from index col row slice
@@ -61,9 +62,11 @@ USAGE: ./mri_glmfit
    --fwhm fwhm : smooth input by fwhm
    --var-fwhm fwhm : smooth variance by fwhm
    --no-mask-smooth : do not mask when smoothing
+   --no-est-fwhm : turn off FWHM output estimation
 
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
+   --cortex : use subjects ?h.cortex.label as --label
    --mask-inv : invert mask
    --prune : remove voxels that do not have a non-zero value at each frame (def)
    --no-prune : do not prune
@@ -76,10 +79,10 @@ USAGE: ./mri_glmfit
 
    --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z
    --sim-sign signstring : abs, pos, or neg. Default is abs.
-   --sim-done SimDoneFile : create DoneFile when simulation finished 
+   --uniform min max : use uniform distribution instead of gaussian
 
    --pca : perform pca/svd analysis on residual
-   --tar1 : compute and save temporal AR1 of residual 
+   --tar1 : compute and save temporal AR1 of residual
    --save-yhat : flag to save signal estimate
    --save-cond  : flag to save design matrix condition at each voxel
    --voxdump col row slice  : dump voxel GLM and exit
@@ -100,6 +103,8 @@ USAGE: ./mri_glmfit
    --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)
    --allowsubjrep allow subject names to repeat in the fsgd file (must appear
                   before --fsgd)
+   --illcond : allow ill-conditioned design matrices
+   --sim-done SimDoneFile : create DoneFile when simulation finished 
 
 ENDUSAGE --------------------------------------------------------------
 
@@ -226,13 +231,15 @@ you, you will have to specify the design matrix manually (with --X).
 Explicitly specify the design matrix. Can be in simple text or in matlab4
 format. If matlab4, you can save a matrix with save('X.mat','X','-v4');
 
---C contrast1.mat <--C contrast2.mat ...>
+--C contrast1.mtx <--C contrast2.mtx ...>
 
-Specify one or more contrasts to test. The contrast.mat file is an
+Specify one or more contrasts to test. The contrast.mtx file is an
 ASCII text file with the contrast matrix in it (make sure the last
-line is blank). The output will be saved in glmdir/contrast1,
-glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput
-will be glmdir/norm-v-cont.
+line is blank). The name can be (almost) anything. If the extension is
+.mtx, .mat, .dat, or .con, the extension will be stripped of to form
+the directory output name.  The output will be saved in
+glmdir/contrast1, glmdir/contrast2, etc. Eg, if --C norm-v-cont.mtx,
+then the ouput will be glmdir/norm-v-cont.
 
 --osgm
 
@@ -273,7 +280,7 @@ voxel. Same as --w yffxvar --w-inv --w-sqrt (see --w below).
 Perform fixed-effect analysis. This requires that the lower-level variances
 be available.  This is often the case with fMRI analysis but not with
 an anatomical analysis. Note: this should not be confused with weighted
-random effects analysis (wls). The dof is the sum of the DOFs from the 
+random effects analysis (wls). The dof is the sum of the DOFs from the
 lower levels.
 
 --w weightfile
@@ -315,6 +322,10 @@ If using surface, then labelfile will be converted to a binary mask
 only where mask=0. If performing a simulation (--sim), map maximums
 and clusters will only be searched for in the mask. The final binary
 mask will automatically be saved in glmdir/mask.mgh
+
+--cortex 
+
+use subjects ?h.cortex.label as --label
 
 --prune
 --no-prune
@@ -449,6 +460,11 @@ sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to
 perform a one-tailed test. In this case, the contrast matrix can
 only have one row.
 
+--uniform min max
+
+For mc-full, synthesize input as a uniform distribution between min
+and max. 
+
 ENDHELP --------------------------------------------------------------
 
 */
@@ -472,11 +488,7 @@ ENDHELP --------------------------------------------------------------
 double round(double x);
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifdef WIN32
-#include <direct.h>
-#else
-#include <sys/utsname.h>   
-#endif
+#include <sys/utsname.h>
 #include <unistd.h>
 #include <float.h>
 
@@ -512,10 +524,14 @@ typedef struct {
   char **colnames;
   char **rownames;
   double **data;
+  char *filename;
+  MRI *mri;
 }
 STAT_TABLE;
 STAT_TABLE *LoadStatTable(char *statfile);
-
+STAT_TABLE *AllocStatTable(int nrows, int ncols);
+int PrintStatTable(FILE *fp, STAT_TABLE *st);
+int WriteStatTable(char *fname, STAT_TABLE *st);
 
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag);
 
@@ -531,8 +547,9 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_glmfit.c,v 1.138.2.8 2009/01/15 23:36:39 greve Exp $";
-char *Progname = NULL;
+static char vcid[] =
+"$Id: mri_glmfit.c,v 1.138.2.9 2009/01/17 02:08:58 greve Exp $";
+const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
 
@@ -553,7 +570,7 @@ int   nmask, nvoxels;
 float maskfraction, voxelsize;
 int   prunemask = 1;
 
-MRI *mritmp=NULL, *sig=NULL, *rstd;
+MRI *mritmp=NULL, *sig=NULL, *rstd, *fsnr;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
@@ -570,7 +587,7 @@ double FWHM=0;
 double SmoothLevel=0;
 double VarFWHM=0;
 double VarSmoothLevel=0;
-int UseMaskWithSmoothing = 1; 
+int UseMaskWithSmoothing = 1;
 double ResFWHM;
 
 char voxdumpdir[1000];
@@ -592,11 +609,7 @@ int npca = -1;
 MATRIX *Upca=NULL,*Spca=NULL;
 MRI *Vpca=NULL;
 
-#ifdef WIN32
-
-#else
 struct utsname uts;
-#endif
 char *cmdline, cwd[2000];
 
 char *MaxVoxBase = NULL;
@@ -605,6 +618,9 @@ int DontSave = 0;
 int DoSim=0;
 int synth = 0;
 int PermForce = 0;
+int UseUniform = 0;
+double UniformMin = 0;
+double UniformMax = 0;
 
 SURFCLUSTERSUM *SurfClustList;
 int nClusters;
@@ -617,7 +633,8 @@ VOLCLUSTER **VolClustList;
 
 int DiagCluster=0;
 
-double  InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea, ar1mn, ar1std, ar1max;
+double InterVertexDistAvg, InterVertexDistStdDev, avgvtxarea;
+double ar1mn, ar1std, ar1max;
 double eresgstd, eresfwhm, searchspace;
 double car1mn, rar1mn,sar1mn,cfwhm,rfwhm,sfwhm;
 MRI *ar1=NULL, *tar1=NULL, *z=NULL, *zabs=NULL, *cnr=NULL;
@@ -636,7 +653,7 @@ DTI *dti;
 int usedti = 0;
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
 MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
-MRI  *ivc;
+MRI  *ivc, *k;
 char *bvalfile=NULL, *bvecfile=NULL;
 
 int useasl = 0;
@@ -657,20 +674,25 @@ int DoTemporalAR1 = 0;
 int DoFFx = 0;
 IMAGE *I;
 
+int IllCondOK = 0;
 int NoContrastsOK = 0;
 int ComputeFWHM = 1;
 
+int UseStatTable = 0;
+STAT_TABLE *StatTable=NULL, *OutStatTable=NULL;
 int  UseCortexLabel = 0;
+
 char *SimDoneFile = NULL;
+int tSimSign = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs,n, m, absflag;
+  int nargs,n, m;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
   MATRIX *Ct, *CCt;
   FILE *fp;
-  double threshadj, Ccond, dtmp;
+  double Ccond, dtmp, threshadj;
 
   eresfwhm = -1;
   csd = CSDalloc();
@@ -680,14 +702,8 @@ int main(int argc, char **argv) {
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
-
-#ifdef WIN32
-
-#else
   cmdline = argv2cmdline(argc,argv);
   uname(&uts);
-#endif
-
   getcwd(cwd,2000);
 
   Progname = argv[0] ;
@@ -730,7 +746,8 @@ int main(int argc, char **argv) {
 
   if (VarFWHM > 0 && surf != NULL) {
     VarSmoothLevel = MRISfwhm2nitersSubj(VarFWHM, subject, hemi, "white");
-    printf("Variance surface smoothing by fwhm=%lf, niters=%lf\n",VarFWHM,VarSmoothLevel);
+    printf("Variance surface smoothing by fwhm=%lf, niters=%lf\n",
+           VarFWHM,VarSmoothLevel);
   } else VarSmoothLevel = VarFWHM;
 
   dump_options(stdout);
@@ -758,10 +775,20 @@ int main(int argc, char **argv) {
 
   // Load input--------------------------------------
   printf("Loading y from %s\n",yFile);
-  mriglm->y = MRIread(yFile);
-  if (mriglm->y == NULL) {
-    printf("ERROR: loading y %s\n",yFile);
-    exit(1);
+  if(! UseStatTable){
+    mriglm->y = MRIread(yFile);
+    if (mriglm->y == NULL) {
+      printf("ERROR: loading y %s\n",yFile);
+      exit(1);
+    }
+  }
+  else {
+    StatTable = LoadStatTable(yFile);
+    if(StatTable == NULL) {
+      printf("ERROR: loading y %s as a stat table\n",yFile);
+      exit(1);
+    }
+    mriglm->y = StatTable->mri;
   }
   if (mriglm->y->type != MRI_FLOAT) {
     printf("INFO: changing y type to float\n");
@@ -785,8 +812,9 @@ int main(int argc, char **argv) {
   }
 
   if(SubSample){
-    printf("Subsampling start=%d delta = %d, nframes = %d \n",SubSampStart, SubSampDelta,
-	   mriglm->y->nframes);
+    printf("Subsampling start=%d delta = %d, nframes = %d \n",
+           SubSampStart, SubSampDelta,
+           mriglm->y->nframes);
     if( (mriglm->y->nframes % SubSampDelta) != 0){
       printf("ERROR: delta is not an interger divisor of the frames\n");
       exit(1);
@@ -822,7 +850,7 @@ int main(int argc, char **argv) {
       }
     } else {
       printf("Using DTI\n");
-      if(XFile != NULL)	dti = DTIstructFromSiemensAscii(XFile);
+      if(XFile != NULL) dti = DTIstructFromSiemensAscii(XFile);
       else dti = DTIstructFromBFiles(bvalfile,bvecfile);
       if (dti==NULL) exit(1);
       sprintf(tmpstr,"%s/bvals.dat",GLMDir);
@@ -835,23 +863,26 @@ int main(int argc, char **argv) {
     }
   }
   if (useasl) {
-    mriglm->Xg = MatrixConstVal(1.0, mriglm->y->nframes, 2, NULL);
+    mriglm->Xg = MatrixConstVal(1.0, mriglm->y->nframes, 3, NULL);
     for (n=0; n < mriglm->y->nframes; n += 2) {
       mriglm->Xg->rptr[n+1][2] = asl1val;
+      if(n+2 >= mriglm->y->nframes) break;
       mriglm->Xg->rptr[n+2][2] = asl2val;
     }
+    for(n=0; n < mriglm->y->nframes; n ++)
+      mriglm->Xg->rptr[n+1][3] = n - mriglm->y->nframes/2.0;
     nContrasts = 3;
     mriglm->glm->ncontrasts = nContrasts;
     mriglm->glm->Cname[0] = "perfusion";
-    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[0] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[0]->rptr[1][1] = 0;
     mriglm->glm->C[0]->rptr[1][2] = 1;
     mriglm->glm->Cname[1] = "control";
-    mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[1] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[1]->rptr[1][1] = 1;
     mriglm->glm->C[1]->rptr[1][2] = 0;
     mriglm->glm->Cname[2] = "label";
-    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 2, NULL);
+    mriglm->glm->C[2] = MatrixConstVal(0.0, 1, 3, NULL);
     mriglm->glm->C[2]->rptr[1][1] = 1;
     mriglm->glm->C[2]->rptr[1][2] = 1;
   }
@@ -888,6 +919,7 @@ int main(int argc, char **argv) {
     mriglm->glm->C[2]->rptr[1][3] = 1;
   }
   if (fsgd != NULL) {
+    printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
     mriglm->Xg = gdfMatrix(fsgd,gd2mtx_method,NULL);
     if (mriglm->Xg==NULL) exit(1);
   }
@@ -895,11 +927,19 @@ int main(int argc, char **argv) {
     mriglm->Xg = MatrixConstVal(1.0,mriglm->y->nframes,1,NULL);
   }
 
+  if (! DontSave) {
+    if (GLMDir != NULL) {
+      sprintf(tmpstr,"%s/Xg.dat",GLMDir);
+      printf("Saving design matrix to %s\n",tmpstr);
+      MatrixWriteTxt(tmpstr, mriglm->Xg);
+    }
+  }
+
   // Check the condition of the global matrix -----------------
   Xnorm = MatrixNormalizeCol(mriglm->Xg,NULL);
   Xcond = MatrixNSConditionNumber(Xnorm);
   printf("Matrix condition is %g\n",Xcond);
-  if (Xcond > 10000) {
+  if(Xcond > 10000 && ! IllCondOK) {
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
            Xcond);
     printf("Possible problem with experimental design:\n");
@@ -955,8 +995,10 @@ int main(int argc, char **argv) {
     printf("Pruning voxels by frame.\n");
     mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
   }
-  if (mriglm->mask && maskinv) MRImaskInvert(mriglm->mask,mriglm->mask);
-  if (surf && mriglm->mask) MRISremoveRippedFromMask(surf, mriglm->mask, mriglm->mask);
+  if (mriglm->mask && maskinv)
+    MRImaskInvert(mriglm->mask,mriglm->mask);
+  if (surf && mriglm->mask)
+    MRISremoveRippedFromMask(surf, mriglm->mask, mriglm->mask);
 
   if (mriglm->mask) {
     nmask = MRInMask(mriglm->mask);
@@ -1010,10 +1052,17 @@ int main(int argc, char **argv) {
     }
   } else mriglm->w = NULL;
 
-  if (synth) {
-    printf("Replacing input data with synthetic white noise\n");
-    MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,mriglm->y->nframes,
-             0,1,mriglm->y);
+  if(synth) {
+    if(! UseUniform){
+      printf("Replacing input data with synthetic white gaussian noise\n");
+      MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
+	       mriglm->y->nframes,0,1,mriglm->y);
+    }
+    else {
+      printf("Replacing input data with synthetic white uniform noise\n");
+      MRIdrand48(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
+	       mriglm->y->nframes,UniformMin,UniformMax,mriglm->y);
+    }
   }
   if (logflag) {
     printf("Computing natural log of input\n");
@@ -1068,10 +1117,13 @@ int main(int argc, char **argv) {
 
   if (DoSim && !strcmp(csd->simtype,"perm")) {
     if (MatrixColsAreNotOrthog(mriglm->Xg)) {
-      if (PermForce) printf("INFO: design matrix is not orthogonal, but perm forced\n");
+      if (PermForce)
+        printf("INFO: design matrix is not orthogonal, but perm forced\n");
       else {
-        printf("ERROR: design matrix is not orthogonal, cannot be used with permutation.\n");
-        printf("If this something you really want to do, run with --perm-force\n");
+        printf("ERROR: design matrix is not orthogonal, "
+               "cannot be used with permutation.\n");
+        printf("If this something you really want to do, "
+               "run with --perm-force\n");
         exit(1);
       }
     }
@@ -1079,11 +1131,11 @@ int main(int argc, char **argv) {
 
   // Load the contrast matrices ---------------------------------
   mriglm->glm->ncontrasts = nContrasts;
-  if (nContrasts > 0) {
-    for (n=0; n < nContrasts; n++) {
+  if(nContrasts > 0) {
+    for(n=0; n < nContrasts; n++) {
       if (! useasl && ! useqa) {
         // Get its name
-        mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat");
+        mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat"); //strip .mat
         mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".mtx"); //strip .mtx
         mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".dat"); //strip .dat
         mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".con"); //strip .con
@@ -1113,20 +1165,10 @@ int main(int argc, char **argv) {
       }
       MatrixFree(&Ct);
       MatrixFree(&CCt);
-      // Should check to make sure no two are the same
-      // Check that a one-tailed test is not being done with a F contrast
-      if (DoSim) {
-        if (mriglm->glm->C[n]->rows > 1 && csd->threshsign != 0) {
-          printf("ERROR: contrast %s has multiple rows, but you have \n"
-                 "specified that the simulation be run with a one-tailed \n"
-                 "test (--sim-sign). These are mutually exclusive. \n"
-                 "Run without --sim-sign or change the conrast.\n",
-                 mriglm->glm->Cname[n]);
-        }
-      }
     }
   }
-  if (OneSampleGroupMean) {
+
+  if(OneSampleGroupMean) {
     nContrasts = 1;
     mriglm->glm->ncontrasts = nContrasts;
     mriglm->glm->Cname[0] = strcpyalloc("osgm");
@@ -1144,8 +1186,9 @@ int main(int argc, char **argv) {
         }
       }
     } else OneSamplePerm=0;
-    if (OneSamplePerm)
-      printf("Design detected as one-sample group mean, adjusting permutation simulation\n");
+    if(OneSamplePerm)
+      printf("Design detected as one-sample group mean, "
+             "adjusting permutation simulation\n");
   }
 
   // At this point, y, X, and C have been loaded, now pre-alloc
@@ -1159,7 +1202,7 @@ int main(int argc, char **argv) {
     if(!usedti || mriglm->glm->dof < 0){
       printf("ERROR: DOF = %g\n",mriglm->glm->dof);
       exit(1);
-    } else 
+    } else
       printf("WARNING: DOF = %g\n",mriglm->glm->dof);
   }
 
@@ -1193,6 +1236,14 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+  if(UseStatTable){
+    OutStatTable = AllocStatTable(StatTable->ncols,nContrasts);
+    OutStatTable->measure = strcpyalloc(StatTable->measure);
+    for(n=0; n < StatTable->ncols; n++)
+      OutStatTable->rownames[n] = strcpyalloc(StatTable->colnames[n]);
+    for(n=0; n < nContrasts; n++)
+      OutStatTable->colnames[n] = strcpyalloc(mriglm->glm->Cname[n]);
+  }
 
   // Don't do sim --------------------------------------------------------
   if (!DoSim) {
@@ -1223,9 +1274,8 @@ int main(int argc, char **argv) {
       strcpy(csd->anattype,"surface");
       strcpy(csd->subject,subject);
       strcpy(csd->hemi,hemi);
-    } else {
-      strcpy(csd->anattype,"volume");
-    }
+    } 
+    else  strcpy(csd->anattype,"volume");
     csd->searchspace = searchspace;
     csd->nreps = nsim;
     CSDallocData(csd);
@@ -1245,28 +1295,24 @@ int main(int argc, char **argv) {
       z = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
       zabs = MRIcloneBySpace(mriglm->y,MRI_FLOAT,1);
     }
-    if (csd->threshsign == 0) {
-      absflag = 1;
-      threshadj = csd->thresh;
-    } else {
-      absflag = 0;
-      // adjust threhsold for one-sided test
-      threshadj = csd->thresh - log10(2.0);
-    }
-    printf("thresh = %g, threshadj = %g \n",csd->thresh,threshadj);
+    printf("thresh = %g, threshadj = %g \n",csd->thresh,csd->thresh-log10(2.0));
 
     printf("\n\nStarting simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
     for (nthsim=0; nthsim < nsim; nthsim++) {
       msecFitTime = TimerStop(&mytimer) ;
-      if(debug) printf("%d/%d t=%g ------------------------------------------------\n",
+      if(debug) printf("%d/%d t=%g ---------------------------------\n",
              nthsim+1,nsim,msecFitTime/(1000*60.0));
 
       if (!strcmp(csd->simtype,"mc-full")) {
-        MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
-                 mriglm->y->nframes,0,1,mriglm->y);
-        if (logflag) MRIlog(mriglm->y,mriglm->mask,-1,1,mriglm->y);
-        if (FWHM > 0)
+	if(! UseUniform)
+	  MRIrandn(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
+		   mriglm->y->nframes,0,1,mriglm->y);
+	else
+	  MRIdrand48(mriglm->y->width,mriglm->y->height,mriglm->y->depth,
+		  mriglm->y->nframes,UniformMin,UniformMax,mriglm->y);
+        if(logflag) MRIlog(mriglm->y,mriglm->mask,-1,1,mriglm->y);
+        if(FWHM > 0)
           SmoothSurfOrVol(surf, mriglm->y, mriglm->mask, SmoothLevel);
       }
       if (!strcmp(csd->simtype,"perm")) {
@@ -1299,14 +1345,26 @@ int main(int argc, char **argv) {
 
       // Go through each contrast
       for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	// Change sign to abs for F-tests
+	csd->threshsign = tSimSign;
+	if(mriglm->glm->C[n]->rows > 1) csd->threshsign = 0;
+
+	// Adjust threshold for one- or two-sided
+	if(csd->threshsign == 0) threshadj = csd->thresh;
+	else threshadj = csd->thresh - log10(2.0); // one-sided test
+
         if (!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")) {
-          sig  = MRIlog10(mriglm->p[n],NULL,sig,1);
-          // If it is t-test (ie, one row) then apply the sign
-          if (mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,mriglm->gamma[n],0);
-          sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
+          sig = MRIlog10(mriglm->p[n],NULL,sig,1);
+          // If test is not ABS then apply the sign
+          if(csd->threshsign != 0) MRIsetSign(sig,mriglm->gamma[n],0);
+          sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
+                               &cmax,&rmax,&smax);
+	  // Get Fmax at sig max 
           Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+	  if(csd->threshsign != 0) Fmax = Fmax*SIGN(sigmax);
         } else {
-          // mc-z or mc-t: synth z-field, smooth, rescale, compute p, compute sig
+          // mc-z or mc-t: synth z-field, smooth, rescale,
+          // compute p, compute sig
           // This should do the same thing as AFNI's AlphaSim
           // Synth and rescale without the mask, otherwise smoothing
           // smears the 0s into the mask area. Also, the stuff outisde
@@ -1326,29 +1384,29 @@ int main(int argc, char **argv) {
           MRIscalarMul(mriglm->p[n],mriglm->p[n],2);
           // sig = -log10(p)
           sig = MRIlog10(mriglm->p[n],NULL,sig,1);
-          // Now sign the sigs
-          if (mriglm->glm->C[n]->rows == 1) MRIsetSign(sig,z,0);
+          // If test is not ABS then apply the sign
+          if(csd->threshsign != 0) MRIsetSign(sig,z,0);
 
-          sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,&cmax,&rmax,&smax);
+          sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
+                               &cmax,&rmax,&smax);
           Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
+	  if(csd->threshsign == 0) Fmax = abs(Fmax);
         }
-        if (mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
+        if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 
-        if (surf) {
+        if(surf) {
           // surface clustering -------------
           MRIScopyMRI(surf, sig, 0, "val");
-          if (debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
-                                              TimerStop(&mytimer)/1000.0);
+          if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
+					   TimerStop(&mytimer)/1000.0);
           SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
-                                                0,&nClusters,NULL);
-          if (debug || Gdiag_no > 0) printf("Done Clustering %lf\n",
-                                              TimerStop(&mytimer)/1000.0);
+						0,&nClusters,NULL);
           csize = sclustMaxClusterArea(SurfClustList, nClusters);
         } else {
           // volume clustering -------------
-          if (debug) printf("Clustering on surface\n");
+          if (debug) printf("Clustering on volume\n");
           VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
-                                          mriglm->mask, &nClusters, NULL);
+					  mriglm->mask, &nClusters, NULL);
           csize = voxelsize*clustMaxClusterCount(VolClustList,nClusters);
           if (Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
           clustFreeClusterList(&VolClustList,nClusters);
@@ -1370,12 +1428,8 @@ int main(int argc, char **argv) {
         }
         fprintf(fp,"# ClusterSimulationData 2\n");
         fprintf(fp,"# mri_glmfit simulation sim\n");
-#ifdef WIN32
-
-#else
         fprintf(fp,"# hostname %s\n",uts.nodename);
         fprintf(fp,"# machine  %s\n",uts.machine);
-#endif
         fprintf(fp,"# runtime_min %g\n",msecFitTime/(1000*60.0));
         fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
         if (mriglm->mask) fprintf(fp,"# masking 1\n");
@@ -1387,7 +1441,7 @@ int main(int argc, char **argv) {
         csd->nClusters[nthsim] = nClusters;
         csd->MaxClusterSize[nthsim] = csize;
         csd->MaxSig[nthsim] = sigmax;
-        csd->MaxStat[nthsim] = Fmax * SIGN(sigmax);
+        csd->MaxStat[nthsim] = Fmax;
         CSDprint(fp, csd);
 
         fclose(fp);
@@ -1428,12 +1482,12 @@ int main(int argc, char **argv) {
 
   if (DontSave) exit(0);
 
-  if (ComputeFWHM) {
+  if(ComputeFWHM) {
     // Compute fwhm of residual
     if (surf != NULL) {
       printf("Computing spatial AR1 on surface\n");
       ar1 = MRISar1(surf, mriglm->eres, mriglm->mask, NULL);
-      sprintf(tmpstr,"%s/ar1.%s",GLMDir,format);
+      sprintf(tmpstr,"%s/sar1.%s",GLMDir,format);
       MRIwrite(ar1,tmpstr);
       RFglobalStats(ar1, mriglm->mask, &ar1mn, &ar1std, &ar1max);
       eresfwhm = MRISfwhmFromAR1(surf, ar1mn);
@@ -1445,6 +1499,8 @@ int main(int argc, char **argv) {
       printf("Computing spatial AR1 in volume.\n");
       ar1 = fMRIspatialAR1(mriglm->eres, mriglm->mask, NULL);
       if (ar1 == NULL) exit(1);
+      sprintf(tmpstr,"%s/sar1.%s",GLMDir,format);
+      MRIwrite(ar1,tmpstr);
       fMRIspatialAR1Mean(ar1, mriglm->mask, &car1mn, &rar1mn, &sar1mn);
       cfwhm = RFar1ToFWHM(car1mn, mriglm->eres->xsize);
       rfwhm = RFar1ToFWHM(rar1mn, mriglm->eres->ysize);
@@ -1462,8 +1518,11 @@ int main(int argc, char **argv) {
 
   if(DoTemporalAR1){
     printf("Computing temporal AR1\n");
-    tar1 = fMRItemporalAR1(mriglm->eres, mriglm->beta->nframes, mriglm->mask,NULL);
-    sprintf(tmpstr,"%s/tar1.%s",GLMDir,format);    
+    tar1 = fMRItemporalAR1(mriglm->eres,
+                           mriglm->beta->nframes,
+                           mriglm->mask,
+                           NULL);
+    sprintf(tmpstr,"%s/tar1.%s",GLMDir,format);
     MRIwrite(tar1,tmpstr);
   }
 
@@ -1482,6 +1541,22 @@ int main(int argc, char **argv) {
 
   sprintf(tmpstr,"%s/Xg.dat",GLMDir);
   MatrixWriteTxt(tmpstr, mriglm->Xg);
+
+  sprintf(tmpstr,"%s/dof.dat",GLMDir);
+  fp = fopen(tmpstr,"w");  
+  if(DoFFx) fprintf(fp,"%d\n",(int)mriglm->ffxdof);
+  else      fprintf(fp,"%d\n",(int)mriglm->glm->dof);
+
+  if(useqa){
+    // Compute FSNR
+    printf("Computing FSNR\n");
+    fsnr = MRIdivide(mriglm->gamma[0],rstd,NULL);
+    sprintf(tmpstr,"%s/fsnr.%s",GLMDir,format);
+    MRIwrite(fsnr,tmpstr);
+    // Write out mean
+    sprintf(tmpstr,"%s/mean.%s",GLMDir,format);
+    MRIwrite(mriglm->gamma[0],tmpstr);
+  }
 
   // Save the contrast results
   for (n=0; n < mriglm->glm->ncontrasts; n++) {
@@ -1512,6 +1587,15 @@ int main(int argc, char **argv) {
     sig=MRIlog10(mriglm->p[n],NULL,sig,1);
     if (mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
 
+    if(UseStatTable){
+      for(m=0; m < OutStatTable->nrows; m++){
+	//OutStatTable->data[m][n] = MRIgetVoxVal(mriglm->p[n],m,0,0,0);
+	OutStatTable->data[m][n] = MRIgetVoxVal(sig,m,0,0,0);
+	if(mriglm->glm->C[n]->rows == 1)
+	  OutStatTable->data[m][n] *= SIGN(MRIgetVoxVal(mriglm->gamma[n],m,0,0,0));
+      }
+    }
+
     // Compute and Save CNR
     if(mriglm->glm->C[n]->rows == 1){
       cnr = MRIdivide(mriglm->gamma[n], rstd, NULL) ;
@@ -1540,6 +1624,14 @@ int main(int argc, char **argv) {
     fclose(fp);
 
     MRIfree(&sig);
+  }
+  
+  if(UseStatTable){
+    PrintStatTable(stdout, OutStatTable);
+    sprintf(tmpstr,"%s/sig.table.dat",GLMDir);
+    WriteStatTable(tmpstr, OutStatTable);
+    sprintf(tmpstr,"%s/input.table.dat",GLMDir);
+    WriteStatTable(tmpstr, StatTable);
   }
 
   if (usedti) {
@@ -1581,6 +1673,11 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/vr.%s",GLMDir,format);
     MRIwrite(vr,tmpstr);
 
+    printf("Computing radial diffusivity\n");
+    vr = DTIradialDiffusivity(evals, mriglm->mask, NULL);
+    sprintf(tmpstr,"%s/radialdiff.%s",GLMDir,format);
+    MRIwrite(vr,tmpstr);
+
     printf("Computing adc\n");
     adc = DTItensor2ADC(tensor, mriglm->mask, NULL);
     sprintf(tmpstr,"%s/adc.%s",GLMDir,format);
@@ -1596,12 +1693,12 @@ int main(int argc, char **argv) {
       dwisynth = DTIsynthDWI(dti->B, mriglm->beta, mriglm->mask, NULL);
       //sprintf(tmpstr,"%s/dwisynth.%s",GLMDir,format);
       //MRIwrite(dwisynth,tmpstr);
-      
+
       printf("Computing dwires\n");
       dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
       //sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
       //MRIwrite(dwires,tmpstr);
-      
+
       printf("Computing dwi rvar\n");
       dwirvar = fMRIcovariance(dwires, 0, mriglm->beta->nframes, 0, NULL);
       sprintf(tmpstr,"%s/dwirvar.%s",GLMDir,format);
@@ -1656,6 +1753,12 @@ int main(int argc, char **argv) {
     fprintf(fp,"SynthSeed        %d\n",SynthSeed);
     fclose(fp);
   }
+
+  // Compute and save kurtosis
+  printf("Computing kurtosis of residuals\n");
+  k = fMRIkurtosis(mriglm->eres,NULL);
+  sprintf(tmpstr,"%s/kurtosis.%s",GLMDir,format);
+  MRIwrite(k,tmpstr);
 
   // Compute and save PCA
   if (pcaSave) {
@@ -1719,9 +1822,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-yhat")) yhatSave = 1;
+    else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
     else if (!strcasecmp(option, "--eres-save")) eresSave = 1;
-    else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
@@ -1741,9 +1844,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
-    else if (!strcasecmp(option, "--qa")) useqa = 1;
+    else if (!strcasecmp(option, "--qa")) {
+      useqa = 1;
+      DoTemporalAR1 = 1;
+    }
     else if (!strcasecmp(option, "--no-mask-smooth")) UseMaskWithSmoothing = 0;
     else if (!strcasecmp(option, "--distance")) DoDistance = 1;
+    else if (!strcasecmp(option, "--illcond")) IllCondOK = 1;
+    else if (!strcasecmp(option, "--no-illcond")) IllCondOK = 0;
     else if (!strcasecmp(option, "--asl")) useasl = 1;
     else if (!strcasecmp(option, "--asl-rev")){
       useasl = 1;
@@ -1774,11 +1882,18 @@ static int parse_commandline(int argc, char **argv) {
       DontSave = 1;
       prunemask = 0;
       nargsused = 4;
+    } else if (!strcasecmp(option, "--uniform")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&UniformMin);
+      sscanf(pargv[1],"%lf",&UniformMax);
+      UseUniform = 1;
+      nargsused = 2;
     } else if (!strcasecmp(option, "--sim-sign")) {
+      // this applies only to t-tests
       if (nargc < 1) CMDargNErr(option,1);
-      if (!strcmp(pargv[0],"abs")) csd->threshsign = 0;
-      else if (!strcmp(pargv[0],"pos")) csd->threshsign = +1;
-      else if (!strcmp(pargv[0],"neg")) csd->threshsign = -1;
+      if (!strcmp(pargv[0],"abs"))      tSimSign = 0;
+      else if (!strcmp(pargv[0],"pos")) tSimSign = +1;
+      else if (!strcmp(pargv[0],"neg")) tSimSign = -1;
       else {
         printf("ERROR: --sim-sign argument %s unrecognized\n",pargv[0]);
         exit(1);
@@ -1814,26 +1929,30 @@ static int parse_commandline(int argc, char **argv) {
       hemi = pargv[1];
       nargsused = 2;
       if(nargc > 2 && !CMDisFlag(pargv[2])){
-	surfname = pargv[2];
-	nargsused++;
+        surfname = pargv[2];
+        nargsused++;
       }
       sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
       printf("Reading source surface %s\n",tmpstr);
       surf = MRISread(tmpstr) ;
       if (!surf)
-        ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, tmpstr) ;
+        ErrorExit(ERROR_NOFILE,
+                  "%s: could not read surface %s", Progname, tmpstr) ;
     } else if (!strcasecmp(option, "--seed")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--smooth") || !strcasecmp(option, "--fwhm")) {
+    } 
+    else if (!strcasecmp(option, "--smooth") ||
+               !strcasecmp(option, "--fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&FWHM);
       csd->nullfwhm = FWHM;
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--no-fwhm-est")) ComputeFWHM = 0;
-    else if (!strcasecmp(option, "--var-smooth") || !strcasecmp(option, "--var-fwhm")) {
+    else if (!strcasecmp(option, "--var-smooth") ||
+               !strcasecmp(option, "--var-fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&VarFWHM);
       csd->varfwhm = VarFWHM;
@@ -1877,11 +1996,21 @@ static int parse_commandline(int argc, char **argv) {
       printf("Passed. rvarmax = %g\n",rvartmp);
       exit(0);
       nargsused = 1;
-    } else if (!strcmp(option, "--y")) {
+    } 
+    else if (!strcmp(option, "--y")) {
       if (nargc < 1) CMDargNErr(option,1);
       yFile = fio_fullpath(pargv[0]);
       nargsused = 1;
-    } else if (!strcmp(option, "--yffxvar")) {
+    } 
+    else if (!strcmp(option, "--table")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      yFile = fio_fullpath(pargv[0]);
+      UseStatTable = 1;
+      ComputeFWHM = 0;
+      prunemask = 0;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--yffxvar")) {
       if(nargc < 1) CMDargNErr(option,1);
       yffxvarFile = fio_fullpath(pargv[0]);
       DoFFx = 1;
@@ -1895,8 +2024,8 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       fp = fopen(pargv[0],"r");
       if(fp == NULL){
-	printf("ERROR: opening %s\n",pargv[0]);
-	exit(1);
+        printf("ERROR: opening %s\n",pargv[0]);
+        exit(1);
       }
       fscanf(fp,"%d",&mriglm->ffxdof);
       fclose(fp);
@@ -1906,7 +2035,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       maskFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--label")) {
+    } 
+    else if (!strcmp(option, "--label")) {
       if (nargc < 1) CMDargNErr(option,1);
       labelFile = pargv[0];
       nargsused = 1;
@@ -1931,13 +2061,13 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--dti")) {
       if(nargc < 1) CMDargNErr(option,1);
       if(CMDnthIsArg(nargc, pargv, 1)){
-	bvalfile = pargv[0];
-	bvecfile = pargv[1];
-	nargsused = 2;
+        bvalfile = pargv[0];
+        bvecfile = pargv[1];
+        nargsused = 2;
       }
       else{
-	XFile = pargv[0];
-	nargsused = 1;
+        XFile = pargv[0];
+        nargsused = 1;
       }
       usedti=1;
       logflag = 1;
@@ -2019,8 +2149,11 @@ static int parse_commandline(int argc, char **argv) {
   }
   return(0);
 }
+
+
 /* --------------------------------------------- */
-static void print_usage(void) {
+static void print_usage(void) 
+{
 printf("\n");
 printf("USAGE: ./mri_glmfit\n");
 printf("\n");
@@ -2029,8 +2162,9 @@ printf("\n");
 printf("   --y inputfile\n");
 printf("   --fsgd FSGDF <gd2mtx> : freesurfer descriptor file\n");
 printf("   --X design matrix file\n");
-printf("   --C contrast1.mat <--C contrast2.mat ...>\n");
+printf("   --C contrast1.mtx <--C contrast2.mtx ...>\n");
 printf("   --osgm : construct X and C as a one-sample group mean\n");
+printf("   --no-contrasts-ok : do not fail if no contrasts specified\n");
 printf("\n");
 printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
@@ -2047,9 +2181,11 @@ printf("\n");
 printf("   --fwhm fwhm : smooth input by fwhm\n");
 printf("   --var-fwhm fwhm : smooth variance by fwhm\n");
 printf("   --no-mask-smooth : do not mask when smoothing\n");
+printf("   --no-est-fwhm : turn off FWHM output estimation\n");
 printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
+printf("   --cortex use subjects ?h.cortex.label as --label\n");
 printf("   --mask-inv : invert mask\n");
 printf("   --prune : remove voxels that do not have a non-zero value at each frame (def)\n");
 printf("   --no-prune : do not prune\n");
@@ -2062,10 +2198,10 @@ printf("   --surf subject hemi <surfname> : needed for some flags (uses white by
 printf("\n");
 printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z\n");
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
-printf("   --sim-done SimDoneFile : create SimDoneFile when simulation finished\n");
+printf("   --uniform min max : use uniform distribution instead of gaussian\n");
 printf("\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
-printf("   --tar1 : compute and save temporal AR1 of residual \n");
+printf("   --tar1 : compute and save temporal AR1 of residual\n");
 printf("   --save-yhat : flag to save signal estimate\n");
 printf("   --save-cond  : flag to save design matrix condition at each voxel\n");
 printf("   --voxdump col row slice  : dump voxel GLM and exit\n");
@@ -2086,8 +2222,13 @@ printf("   --version   print out version and exit\n");
 printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
 printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must appear\n");
 printf("                  before --fsgd)\n");
+printf("   --illcond : allow ill-conditioned design matrices\n");
+printf("   --sim-done SimDoneFile : create SimDoneFile when simulation finished\n");
 printf("\n");
+
 }
+
+
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
@@ -2213,13 +2354,15 @@ printf("\n");
 printf("Explicitly specify the design matrix. Can be in simple text or in matlab4\n");
 printf("format. If matlab4, you can save a matrix with save('X.mat','X','-v4');\n");
 printf("\n");
-printf("--C contrast1.mat <--C contrast2.mat ...>\n");
+printf("--C contrast1.mtx <--C contrast2.mtx ...>\n");
 printf("\n");
-printf("Specify one or more contrasts to test. The contrast.mat file is an\n");
+printf("Specify one or more contrasts to test. The contrast.mtx file is an\n");
 printf("ASCII text file with the contrast matrix in it (make sure the last\n");
-printf("line is blank). The output will be saved in glmdir/contrast1,\n");
-printf("glmdir/contrast2, etc. Eg, if --C norm-v-cont.mat, then the ouput\n");
-printf("will be glmdir/norm-v-cont.\n");
+printf("line is blank). The name can be (almost) anything. If the extension is\n");
+printf(".mtx, .mat, .dat, or .con, the extension will be stripped of to form\n");
+printf("the directory output name.  The output will be saved in\n");
+printf("glmdir/contrast1, glmdir/contrast2, etc. Eg, if --C norm-v-cont.mtx,\n");
+printf("then the ouput will be glmdir/norm-v-cont.\n");
 printf("\n");
 printf("--osgm\n");
 printf("\n");
@@ -2260,7 +2403,7 @@ printf("\n");
 printf("Perform fixed-effect analysis. This requires that the lower-level variances\n");
 printf("be available.  This is often the case with fMRI analysis but not with\n");
 printf("an anatomical analysis. Note: this should not be confused with weighted\n");
-printf("random effects analysis (wls). The dof is the sum of the DOFs from the \n");
+printf("random effects analysis (wls). The dof is the sum of the DOFs from the\n");
 printf("lower levels.\n");
 printf("\n");
 printf("--w weightfile\n");
@@ -2354,7 +2497,7 @@ printf("useless if not using weights or PVRs.\n");
 printf("\n");
 printf("--nii\n");
 printf("\n");
-printf("Use nifti as output format instead of mgh. This might not work with \n");
+printf("Use nifti as output format instead of mgh. This might not work with\n");
 printf("surfaces.\n");
 printf("\n");
 printf("--seed seed\n");
@@ -2435,8 +2578,14 @@ printf("sign is either abs (default), pos, or neg. pos/neg tell mri_glmfit to\n"
 printf("perform a one-tailed test. In this case, the contrast matrix can\n");
 printf("only have one row.\n");
 printf("\n");
+printf("--uniform min max\n");
+printf("\n");
+printf("For mc-full, synthesize input as a uniform distribution between min\n");
+printf("and max. \n");
+printf("\n");
   exit(1) ;
 }
+
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
   print_usage() ;
@@ -2453,32 +2602,28 @@ static void check_options(void) {
     printf("ERROR: must specify input y file\n");
     exit(1);
   }
-  if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL && 
+  if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL &&
      ! OneSampleGroupMean && ! useasl && !useqa) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
     exit(1);
   }
-  if(XFile && fsgdfile ) {
+  if (XFile && fsgdfile ) {
     printf("ERROR: cannot specify both X file and fsgd file\n");
     exit(1);
   }
-  if(XFile && OneSampleGroupMean) {
+  if (XFile && OneSampleGroupMean) {
     printf("ERROR: cannot specify both X file and --osgm\n");
     exit(1);
   }
-  if(nContrasts > 0 && OneSampleGroupMean) {
+  if (nContrasts > 0 && OneSampleGroupMean) {
     printf("ERROR: cannot specify --C with --osgm\n");
     exit(1);
   }
+
   if(OneSampleGroupMean || usedti || useasl || useqa) NoContrastsOK = 1;
 
   if(nContrasts == 0 && ! NoContrastsOK) {
     printf("ERROR: no contrasts specified.\n");
-    exit(1);
-  }
-
-  if (nContrasts == 0 && !OneSampleGroupMean && !usedti && !useasl && !useqa) {
-    printf("ERROR: no contrasts specified\n");
     exit(1);
   }
   if (GLMDir == NULL && !DontSave) {
@@ -2520,7 +2665,7 @@ static void check_options(void) {
     labelFile = strcpyalloc(tmpstr);
   }
 
-  if (labelFile != NULL && surf==NULL) {
+  if(labelFile != NULL && surf==NULL) {
     printf("ERROR: need --surf with --label\n");
     exit(1);
   }
@@ -2530,9 +2675,10 @@ static void check_options(void) {
     exit(1);
   }
 
-  if (DoSim && VarFWHM > 0 &&
+  if(DoSim && VarFWHM > 0 &&
       (!strcmp(csd->simtype,"mc-z") || !strcmp(csd->simtype,"mc-t"))) {
-    printf("ERROR: cannot use variance smoothing with mc-z or mc-t simulation\n");
+    printf("ERROR: cannot use variance smoothing with mc-z or "
+           "mc-t simulation\n");
     exit(1);
   }
   if(DoFFx){
@@ -2545,9 +2691,23 @@ static void check_options(void) {
       exit(1);
     }
   }
-
+  if(UseUniform){
+    if(DoSim == 0 && synth == 0){
+      printf("ERROR: need --sim or --synth with --uniform\n");
+      exit(1);
+    }
+    if(DoSim && strcmp(csd->simtype,"mc-full") != 0){
+      printf("ERROR: must use mc-full with --uniform\n");
+      exit(1);
+    }
+    if(UniformMax <= UniformMin){
+      printf("ERROR: uniform max (%lf) <= min (%lf)\n",UniformMax,UniformMin);
+      exit(1);
+    }
+  }
   return;
 }
+
 
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
@@ -2557,13 +2717,9 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"cwd %s\n",cwd);
   fprintf(fp,"cmdline %s\n",cmdline);
-#ifdef WIN32
-
-#else
   fprintf(fp,"sysname  %s\n",uts.sysname);
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
-#endif
   fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"FixVertexAreaFlag = %d\n",MRISgetFixVertexAreaValue());
 
@@ -2590,6 +2746,7 @@ static void dump_options(FILE *fp) {
   if (labelFile || maskFile) fprintf(fp,"maskinv %d\n",maskinv);
 
   fprintf(fp,"glmdir %s\n",GLMDir);
+  fprintf(fp,"IllCondOK %d\n",IllCondOK);
 
   for (n=0; n < nSelfReg; n++) {
     fprintf(fp,"SelfRegressor %d  %4d %4d %4d\n",n+1,
@@ -2610,8 +2767,12 @@ static void dump_options(FILE *fp) {
     fprintf(fp,"weightinv  %d\n",weightinv);
     fprintf(fp,"weightsqrt %d\n",weightsqrt);
   }
+  if(UseUniform)
+    fprintf(fp,"Uniform %lf %lf\n",UniformMin,UniformMax);
+
   return;
 }
+
 
 /*--------------------------------------------------------------------*/
 static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel) {
@@ -2624,18 +2785,18 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel) {
     gstd = SmthLevel/sqrt(log(256.0));
     if (!DoSim || debug || Gdiag_no > 0)
       printf("  Volume Smoothing by FWHM=%lf, Gstd=%lf, t=%lf\n",
-	     SmthLevel,gstd,TimerStop(&mytimer)/1000.0);
+             SmthLevel,gstd,TimerStop(&mytimer)/1000.0);
     if(UseMaskWithSmoothing)
       MRImaskedGaussianSmooth(mri, mask, gstd, mri);
     else
       MRImaskedGaussianSmooth(mri, NULL, gstd, mri);
     if (!DoSim || debug || Gdiag_no > 0)
       printf("  Done Volume Smoothing t=%lf\n",TimerStop(&mytimer)/1000.0);
-  } 
+  }
   else {
     if (!DoSim || debug || Gdiag_no > 0)
       printf("  Surface Smoothing by %d iterations, t=%lf\n",
-	     (int)SmthLevel,TimerStop(&mytimer)/1000.0);
+             (int)SmthLevel,TimerStop(&mytimer)/1000.0);
     if(UseMaskWithSmoothing)
       MRISsmoothMRI(surf, mri, SmthLevel, mask, mri);
     else
@@ -2645,6 +2806,8 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel) {
   }
   return(0);
 }
+
+
 /*--------------------------------------------------------------------*/
 int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag) {
   int **crslut, *lbmask, vtxno, n, c, r, s, f;
@@ -2671,8 +2834,53 @@ int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag) {
   MRIScrsLUTFree(crslut);
   return(0);
 }
+// Treats each frame triple as an xyz to compute distance
+MRI *fMRIdistance(MRI *mri, MRI *mask)
+{
+  MRI *d;
+  double dx,dy,dz,v;
+  int c,r,s,f,fd;
+
+  d = MRIallocSequence(mri->width, mri->height, mri->depth,
+                       MRI_FLOAT, mri->nframes/3);
+  if(d==NULL) {
+    printf("ERROR: fMRIdistance: could not alloc\n");
+    return(NULL);
+  }
+  MRIcopyHeader(mri,d);
+
+  printf("Computing Distance\n");
+
+  for (c=0; c < mri->width; c++)  {
+    for (r=0; r < mri->height; r++) {
+      for (s=0; s < mri->depth; s++) {
+        if(mask){
+          if(MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
+            MRIFseq_vox(d,c,r,s,0) = 0;
+            continue;
+          }
+        }
+        fd = 0;
+        for(f = 0; f < mri->nframes; f+=3){
+          dx = MRIgetVoxVal(mri, c, r, s, f+0);
+          dy = MRIgetVoxVal(mri, c, r, s, f+1);
+          dz = MRIgetVoxVal(mri, c, r, s, f+2);
+          v = sqrt(dx*dx + dy*dy + dz*dz);
+          //printf("%5d %2d %2d %3d   %3d   %g %g %g  %g\n",c,r,s,f,fd,dx,dy,dz,v);
+          MRIsetVoxVal(d, c, r, s, fd, v);
+          fd++;
+        }
+      }
+    }
+  }
+  //MRIwrite(d,"dist.mgh");
+  return(d);
+}
+
+
 /*--------------------------------------------------------------------*/
-STAT_TABLE *LoadStatTable(char *statfile) {
+STAT_TABLE *LoadStatTable(char *statfile) 
+{
   STAT_TABLE *st;
   FILE *fp;
   char tmpstr[100000];
@@ -2685,6 +2893,7 @@ STAT_TABLE *LoadStatTable(char *statfile) {
   }
 
   st = (STAT_TABLE *) calloc(sizeof(STAT_TABLE),1);
+  st->filename = strcpyalloc(statfile);
 
   // Read in the first line
   fgets(tmpstr,100000,fp);
@@ -2717,71 +2926,86 @@ STAT_TABLE *LoadStatTable(char *statfile) {
     st->colnames[c] = strcpyalloc(tmpstr);
   }
 
+  // Alloc the data
   st->data = (double **) calloc(st->nrows,sizeof(double *));
   for (r=0; r < st->nrows; r++)
     st->data[r] = (double *) calloc(st->ncols,sizeof(double));
 
   // Read each row
-  for (r=0; r < st->nrows; r++) {
+  for(r=0; r < st->nrows; r++) {
     fscanf(fp,"%s",tmpstr);
     st->rownames[r] = strcpyalloc(tmpstr);
-    for (c=0; c < st->ncols; c++) {
+    for(c=0; c < st->ncols; c++) {
       n = fscanf(fp,"%lf", &(st->data[r][c]) );
-      if (n != 1) {
+      if(n != 1) {
         printf("ERROR: format: %s at row %d, col %d\n",
                statfile,r,c);
         return(NULL);
       }
     }
-    printf("%s %lf\n",st->rownames[r],st->data[r][st->ncols-1]);
+    //printf("%s %lf\n",st->rownames[r],st->data[r][st->ncols-1]);
   }
   fclose(fp);
+
+  st->mri = MRIallocSequence(st->ncols,1,1,MRI_FLOAT,st->nrows);
+  st->mri->xsize = 1; st->mri->ysize = 1; st->mri->zsize = 1;
+  st->mri->x_r = 1; st->mri->x_a = 0; st->mri->x_s = 0;
+  st->mri->y_r = 0; st->mri->y_a = 1; st->mri->y_s = 0;
+  st->mri->z_r = 0; st->mri->z_a = 0; st->mri->z_s = 1;
+
+  for(r=0; r < st->nrows; r++)
+    for(c=0; c < st->ncols; c++)
+      MRIsetVoxVal(st->mri,c,0,0,r,st->data[r][c]);
 
   return(st);
 }
 
-
-
-// Treats each frame triple as an xyz to compute distance
-MRI *fMRIdistance(MRI *mri, MRI *mask)
+STAT_TABLE *AllocStatTable(int nrows, int ncols)
 {
-  MRI *d;
-  double dx,dy,dz,v;
-  int c,r,s,f,fd;
+  STAT_TABLE * st;
 
-  d = MRIallocSequence(mri->width, mri->height, mri->depth,
-		       MRI_FLOAT, mri->nframes/3);
-  if(d==NULL) {
-    printf("ERROR: fMRIdistance: could not alloc\n");
-    return(NULL);
+  st = (STAT_TABLE *) calloc(sizeof(STAT_TABLE),1);
+  st->nrows = nrows;
+  st->ncols = ncols;
+  st->colnames = (char **) calloc(st->ncols,sizeof(char*));
+  st->rownames = (char **) calloc(st->nrows,sizeof(char*));
+
+  st->data = (double **) calloc(st->nrows,sizeof(double *));
+  for (r=0; r < st->nrows; r++)
+    st->data[r] = (double *) calloc(st->ncols,sizeof(double));
+
+  return(st);
+}
+
+int WriteStatTable(char *fname, STAT_TABLE *st)
+{
+  FILE *fp;
+  int err;
+
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",fname);
+    exit(1);
   }
-  MRIcopyHeader(mri,d);
+  err = PrintStatTable(fp, st);
+  return(err);
+}
 
-  printf("Computing Distance\n");
 
-  for (c=0; c < mri->width; c++)  {
-    for (r=0; r < mri->height; r++) {
-      for (s=0; s < mri->depth; s++) {
-	if(mask){
-	  if(MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
-	    MRIFseq_vox(d,c,r,s,0) = 0;
-	    continue;
-	  }
-	}
-	fd = 0;
-	for(f = 0; f < mri->nframes; f+=3){
-	  dx = MRIgetVoxVal(mri, c, r, s, f+0);
-	  dy = MRIgetVoxVal(mri, c, r, s, f+1);
-	  dz = MRIgetVoxVal(mri, c, r, s, f+2);
-	  v = sqrt(dx*dx + dy*dy + dz*dz);
-	  //printf("%5d %2d %2d %3d   %3d   %g %g %g  %g\n",c,r,s,f,fd,dx,dy,dz,v);
-	  MRIsetVoxVal(d, c, r, s, fd, v);
-	  fd++;
-	}
-      }
-    }
+int PrintStatTable(FILE *fp, STAT_TABLE *st)
+{
+  int r, c;
+
+  fprintf(fp,"%-33s ",st->measure);
+  for(c=0; c < st->ncols; c++)   
+    fprintf(fp,"%s ",st->colnames[c]);
+  fprintf(fp,"\n");
+  for(r=0; r < st->nrows; r++){
+    fprintf(fp,"%-33s ",st->rownames[r]);
+    for(c=0; c < st->ncols; c++)   
+      fprintf(fp,"%7.3lf ",st->data[r][c]);
+    fprintf(fp,"\n");
   }
-  //MRIwrite(d,"dist.mgh");
-  return(d);
+  return(0);
 }
 
