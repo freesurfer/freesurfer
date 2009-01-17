@@ -6,9 +6,9 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/08/09 21:35:26 $
- *    $Revision: 1.25.2.1 $
+ *    $Author: greve $
+ *    $Date: 2009/01/17 02:08:32 $
+ *    $Revision: 1.25.2.2 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -45,20 +45,11 @@
 #define DCM_NODICOMFILES 1
 #define DCM_MULTIPLESTUDIES 2
 
-#ifdef WIN32
-#ifndef BOOL
-typedef int BOOL;
-#define true 1
-#define false 0
-#endif 
-#else
-#ifndef BOOL
 typedef unsigned short int BOOL;
 // typedef unsigned short int bool;
+
 #define true 1
 #define false 0
-#endif   
-#endif
 
 #ifdef _DICOMRead_SRC
 char *SDCMStatusFile = 0;
@@ -153,6 +144,7 @@ typedef struct
   InversionTime,
   FlipAngle;
   short EchoNumber;
+  char *PhEncDir;
 
   // pixels
   void *PixelData;
@@ -273,7 +265,7 @@ int FreeElementData(DCM_ELEMENT *e);
 DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
 DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options);
 int IsSiemensDICOM(char *dcmfile);
-char *SiemensAsciiTag(char *dcmfile, char *TagString);
+char *SiemensAsciiTag(char *dcmfile, char *TagString, int flag);
 char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup);
 int dcmGetNCols(char *dcmfile);
 int dcmGetNRows(char *dcmfile);

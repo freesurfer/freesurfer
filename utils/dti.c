@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/18 03:40:02 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/01/17 02:08:32 $
+ *    $Revision: 1.22.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.22 2007/07/18 03:40:02 greve Exp $
+// $Id: dti.c,v 1.22.2.1 2009/01/17 02:08:32 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.22 2007/07/18 03:40:02 greve Exp $");
+  return("$Id: dti.c,v 1.22.2.1 2009/01/17 02:08:32 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -88,7 +88,7 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
   }
 
   tag = "sDiffusion.alBValue[1]";
-  pc = SiemensAsciiTag(fname,tag);
+  pc = SiemensAsciiTag(fname,tag,0);
   if (pc == NULL) {
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
     return(1);
@@ -98,7 +98,7 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
   free(pc);
 
   tag = "sWiPMemBlock.alFree[8]";
-  pc = SiemensAsciiTag(fname,tag);
+  pc = SiemensAsciiTag(fname,tag,0);
   if (pc == NULL)
   {
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
@@ -109,7 +109,7 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
   free(pc);
 
   tag = "sDiffusion.lDiffDirections";
-  pc = SiemensAsciiTag(fname,tag);
+  pc = SiemensAsciiTag(fname,tag,0);
   if (pc == NULL)
   {
     printf("ERROR: cannot extract %s from %s\n",tag,fname);
@@ -1158,3 +1158,42 @@ int DTIisFSLBVec(char *fname)
   if(nread == 3) return(0);
   return(1);
 }
+/*-----------------------------------------------------------*/
+/*!/
+  \fn MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD)
+  \brief Computes radial diffusivity, which is the average
+  of the 2nd and 3rd eigenvalues.
+*/
+MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD)
+{
+  int c,r,s;
+  double m,v2,v3,vmean;
+
+  if (evals->nframes != 3)  {
+    printf("ERROR: evals must have 3 frames\n");
+    return(NULL);
+  }
+  if (RD == NULL)  {
+    RD = MRIcloneBySpace(evals, MRI_FLOAT, 1);
+    if (!RD) return(NULL);
+  }
+  // should check consistency with spatial
+
+  for (c=0; c < evals->width; c++)  {
+    for (r=0; r < evals->height; r++) {
+      for (s=0; s < evals->depth; s++) {
+        if (mask){
+          m = MRIgetVoxVal(mask,c,r,s,0);
+          if (m < 0.5) continue;
+        }
+        v2 = MRIgetVoxVal(evals,c,r,s,1);
+        v3 = MRIgetVoxVal(evals,c,r,s,2);
+        vmean = (v2+v3)/2.0;
+        MRIsetVoxVal(RD,c,r,s,0,vmean);
+      }
+    }
+  }
+
+  return(RD);
+}
+

@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/10 19:43:13 $
- *    $Revision: 1.111.2.8 $
+ *    $Date: 2009/01/17 02:08:32 $
+ *    $Revision: 1.111.2.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,7 +105,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   char **SeriesList;
   char *tmpstring,*pc=NULL,*pc2=NULL;
   int Maj, Min, MinMin;
-  double xs,ys,zs,xe,ye,ze,d,bval;
+  double xs,ys,zs,xe,ye,ze,d;
   int nnlist, nthdir;
   DTI *dti;
   int TryDTI = 1, DoDTI = 1;
@@ -152,7 +152,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   sdfiAssignRunNo2(sdfi_list, nlist);
 
   /* First File in the Run */
-  if (nthonly < 0) sdfi = sdfi_list[0];
+  if(nthonly < 0) sdfi = sdfi_list[0];
   else            sdfi = sdfi_list[nthonly];
 
   /* There are some Siemens files don't have the slice dircos
@@ -282,13 +282,22 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
     if(tmpstring != NULL) free(tmpstring);
   }
 
+  // Phase Enc Direction
+  if(sdfi->PhEncDir == NULL) vol->pedir = strcpyalloc("UNKNOWN");
+  else {
+    vol->pedir = strcpyalloc(sdfi->PhEncDir);
+    str_toupper(vol->pedir);
+  }
+  printf("PE Dir %s %s\n",sdfi->PhEncDir,vol->pedir);
+  fflush(stdout);
+
   // Load the AutoAlign Matrix, if one is there
   vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
 
   // Load DTI bvecs/bvals, if you can. If the procedure fails for some reason
   // you can setenv UNPACK_MGH_DTI 0.
-  pc  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections");
-  pc2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]");
+  pc  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections",0);
+  pc2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]",0);
   if(pc != NULL && pc2 != NULL){
     printf("This looks like an MGH DTI volume\n");
     if(getenv("UNPACK_MGH_DTI") != NULL) sscanf(getenv("UNPACK_MGH_DTI"),"%d",&TryDTI);
@@ -303,16 +312,16 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   }
   if(DoDTI){
     printf("MGH DTI SeqPack Info\n");
-    // Get b Values from header, based on sequence name
+    // Get b Values from header, based on sequence name. 
+    // Problem: nthfile = nthvolume when mosaics are used, but not for non-mosaics. 
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     for (nthfile = 0; nthfile < nlist; nthfile ++){
       // Go thru all the files in order to get all the directions
       sdfi = sdfi_list[nthfile];
       DTIparsePulseSeqName(sdfi->PulseSequence, 
 			   &sdfi->bValue, &sdfi->nthDirection);
-      bval   = sdfi->bValue;
       nthdir = sdfi->nthDirection;
-      vol->bvals->rptr[nthfile+1][1] = bval;
+      vol->bvals->rptr[nthfile+1][1] = sdfi->bValue;
       printf("%d %s %lf %d\n",nthfile,sdfi->PulseSequence,
 	     sdfi->bValue, sdfi->nthDirection);
     }
@@ -867,6 +876,9 @@ char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
   int newSize;
   char **newlists=0;
 
+  //Use this when debugging (gdb) because it will not fork
+  //return(SiemensAsciiTag(dcmfile, TagString, cleanup));
+
   // cleanup section.  Make sure to set cleanup =1 at the final call
   // don't rely on TagString but the last flag only
   if (cleanup == 1)
@@ -908,8 +920,8 @@ char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
     startOfAscii = 0;
     strcpy(command, "strings ");
     strcat(command, filename);
-    if ((fp = popen(command, "r")) == NULL)
-    {
+    // Note: popen creates a fork, which can be a problem in gdb
+    if ((fp = popen(command, "r")) == NULL){
       fprintf(stderr, "could not open pipe for %s\n", filename);
       return 0;
     }
@@ -999,9 +1011,12 @@ char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
   2. The begining of the ASCII block cannot be found
   3. There is no match with the TagString
 
+  Note: flag does not do anything. Just there to make compatible 
+  with SiemensAsciiTagEx(). If flag=1, returns NULL;
+
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------*/
-char *SiemensAsciiTag(char *dcmfile, char *TagString)
+char *SiemensAsciiTag(char *dcmfile, char *TagString, int flag)
 {
   char linestr[1000];
   char tmpstr2[500];
@@ -1014,6 +1029,8 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
   int nTest;
   char VariableName[500];
   char *VariableValue;
+
+  if(flag) return(NULL);
 
   //printf("Entering SiemensAsciiTag() \n");fflush(stdout);fflush(stderr);
   //printf("dcmfile = %s, tagstr = %s\n",dcmfile,TagString);
@@ -1442,7 +1459,7 @@ int sdcmIsMosaic(char *dcmfile,
                  int *pNframes)
 {
   DCM_ELEMENT *e;
-  char PhEncDir[4];
+  char *PhEncDir;
   int Nrows, Ncols;
   float ColRes, RowRes, SliceRes;
   int NrowsExp, NcolsExp;
@@ -1460,14 +1477,13 @@ int sdcmIsMosaic(char *dcmfile,
     return(IsMosaic);
   }
 
-
   IsMosaic = 0;
 
   /* Get the phase encode direction: should be COL or ROW */
-  /* COL means that each row is a different phase encode */
+  /* COL means that each row is a different phase encode (??)*/
   e = GetElementFromFile(dcmfile, 0x18, 0x1312);
   if (e == NULL) return(0);
-  memmove(PhEncDir,e->d.string,3);
+  PhEncDir = deblank((char*)e->d.string);
   FreeElementData(e);
   free(e);
 
@@ -1533,6 +1549,7 @@ int sdcmIsMosaic(char *dcmfile,
       free(tmpstr);
     }
   }
+  free(PhEncDir);
 
   return(IsMosaic);
 }
@@ -1646,12 +1663,17 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   if (cond == DCM_NORMAL)  sdcmfi->InversionTime = (float) dtmp;
   else                    sdcmfi->InversionTime = -1;
 
+  /* Get the phase encode direction: should be COL or ROW */
+  /* COL means that each row is a different phase encode (??)*/
+  // Phase Enc Dir (DNG)
+  tag=DCM_MAKETAG(0x18, 0x1312);
+  cond=GetString(&object, tag, &strtmp);
+  sdcmfi->PhEncDir = deblank(strtmp);
+  free(strtmp);
+
   tag=DCM_MAKETAG(0x18, 0x80);
   cond=GetDoubleFromString(&object, tag, &dtmp);
   sdcmfi->RepetitionTime = (float) dtmp;
-
-  tag=DCM_MAKETAG(0x18, 0x1312);
-  cond=GetString(&object, tag, &sdcmfi->PhEncDir);
 
   strtmp = SiemensAsciiTagEx(dcmfile, "lRepetitions", 0);
   if(strtmp != NULL){
@@ -1660,8 +1682,8 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
     free(strtmp);
   }
   else{
-    strtmp  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections");
-    strtmp2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]");
+    strtmp  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections",0);
+    strtmp2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]",0);
     if(strtmp != NULL && strtmp2 != NULL){
       sscanf(strtmp, "%d", &nDiffDirections);
       sscanf(strtmp, "%d", &nB0);
@@ -2893,21 +2915,21 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
   crs_c = MatrixAlloc(3,1,MATRIX_REAL);
 
   dcmfile = sdfi->FileName;
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&(ras_c->rptr[1][1]));
     ras_c->rptr[1][1] *= -1.0;
     free(strtmp);
   }
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&(ras_c->rptr[2][1]));
     ras_c->rptr[2][1] *= -1.0;
     free(strtmp);
   }
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&(ras_c->rptr[3][1]));
@@ -3037,19 +3059,19 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi)
      (ie, it is not reversed in Sag, which would be a left-right
      flip).
   */
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.ucImageNumbSag");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.ucImageNumbSag",0);
   if (strtmp != NULL)
   {
     sagrev = 1;
     free(strtmp);
   }
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.ucImageNumbCor");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.ucImageNumbCor",0);
   if (strtmp != NULL)
   {
     correv = 1;
     free(strtmp);
   }
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.ucImageNumbTra");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.ucImageNumbTra",0);
   if (strtmp != NULL)
   {
     trarev = 1;
@@ -3526,6 +3548,7 @@ CONDITION GetDICOMInfo(char *fname,
   double *tmp=(double*)calloc(10, sizeof(double));
   short *itmp=(short*)calloc(3, sizeof(short));
   int i;
+  char *strtmp=NULL;
 
   // Transfer Syntax UIDs
   // see http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
@@ -3916,8 +3939,18 @@ CONDITION GetDICOMInfo(char *fname,
     dcminfo->Vs[2] = 0;
   }
 
+  // Phase Enc Dir.
+  tag=DCM_MAKETAG(0x18, 0x1312);
+  cond=GetString(object, tag, &strtmp);
+  if(cond != DCM_NORMAL) dcminfo->PhEncDir = NULL;
+  else {
+    dcminfo->PhEncDir = deblank(strtmp);
+    free(strtmp);
+  }
+  //printf("PE Dir %s\n",dcminfo->PhEncDir);
+
   // pixel data
-  if (ReadImage)
+  if(ReadImage)
   {
     tag=DCM_MAKETAG(0x7FE0, 0x10);
     cond=GetPixelData(object, tag, &dcminfo->PixelData);
@@ -4645,6 +4678,14 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
   mri->z_r     = -RefDCMInfo.Vs[0];
   mri->z_a     = -RefDCMInfo.Vs[1];
   mri->z_s     = +RefDCMInfo.Vs[2];
+
+  // Phase Enc Direction
+  if(RefDCMInfo.PhEncDir == NULL) mri->pedir = strcpyalloc("UNKNOWN");
+  else {
+    mri->pedir = strcpyalloc(RefDCMInfo.PhEncDir);
+    str_toupper(mri->pedir);
+  }
+  printf("PE Dir = %s (dicom read)\n",mri->pedir);
 
   // RAS of "first" voxel (ie, at col,row,slice=0)
   r0 = -dcminfo[0]->ImagePosition[0];
@@ -5726,7 +5767,7 @@ float sdcmMosaicSliceRes(char *dcmfile)
   float thickness;
 
   /* --- First Slice ---- */
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&x0);
@@ -5734,7 +5775,7 @@ float sdcmMosaicSliceRes(char *dcmfile)
   }
   else x0 = 0;
 
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&y0);
@@ -5742,7 +5783,7 @@ float sdcmMosaicSliceRes(char *dcmfile)
   }
   else y0 = 0;
 
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&z0);
@@ -5751,7 +5792,7 @@ float sdcmMosaicSliceRes(char *dcmfile)
   else z0 = 0;
 
   /* --- Second Slice ---- */
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dSag");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dSag",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&x1);
@@ -5759,7 +5800,7 @@ float sdcmMosaicSliceRes(char *dcmfile)
   }
   else x1 = 0;
 
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dCor");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dCor",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&y1);
@@ -5767,7 +5808,7 @@ float sdcmMosaicSliceRes(char *dcmfile)
   }
   else y1 = 0;
 
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dTra");
+  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dTra",0);
   if (strtmp != NULL)
   {
     sscanf(strtmp,"%f",&z1);
