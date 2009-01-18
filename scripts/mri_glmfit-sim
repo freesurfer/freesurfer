@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.12 2009/01/17 21:16:10 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.13 2009/01/18 01:26:30 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -350,7 +350,7 @@ foreach conname ($conlist)
   if($anattype == surface) then
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --oannot $annot)
+      --oannot $annot --annot aparc)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
