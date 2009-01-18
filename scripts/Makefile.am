@@ -156,6 +156,7 @@ unpack_ima.tcl \
 unpackmincdir \
 unpack_mnc.tcl \
 unpacksdcmdir \
+usbtree \
 vno_match_check \
 vtk_setup \
 wfilemask \
