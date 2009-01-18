@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/01/12 20:00:13 $
- *    $Revision: 1.317 $
+ *    $Author: fischl $
+ *    $Date: 2009/01/18 16:08:31 $
+ *    $Revision: 1.318 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -999,6 +999,7 @@ void compute_all_pointspread(void) ;
 void recompute_select_inverse(void) ;
 void compute_pval_inv(void) ;
 void normalize_vals(void);
+void scale_vals(float scale) ;
 void normalize_time_courses(int normtype) ;
 void normalize_inverse(void) ;
 void setsize_window(int pix);
@@ -1718,7 +1719,7 @@ typedef struct
 LABL_LABEL;
 
 /* a fixed array of labels. */
-#define LABL_MAX_LABELS 300
+#define LABL_MAX_LABELS 30000
 LABL_LABEL labl_labels[LABL_MAX_LABELS];
 int labl_num_labels;
 
@@ -8766,6 +8767,21 @@ read_labeled_vertices(char *fname)
     LabelUnassign(area) ;
   LabelFillUnassignedVertices(mris, area, WHITE_VERTICES);
   LabelMark(area, mris) ;
+  {
+    int n, nonzero = 0 ;
+
+    for (n = 0 ; n < area->n_points ; n++)
+      if (!FZERO(area->lv[n].stat))
+        nonzero++ ;
+    printf("********************      %d nonzero vertices found ********************\n", nonzero) ;
+    if (nonzero== 0)
+    {
+      printf("label stat field identically zero - setting to 1\n") ;
+      for (n = 0 ; n < area->n_points ; n++)
+        area->lv[n].stat = 1 ;
+    }
+  }
+
   surface_compiled = 0 ;
   redraw() ;
 }
@@ -18748,6 +18764,7 @@ int W_f_to_t  PARM;
 int W_t_to_p  PARM;
 int W_f_to_p  PARM;
 
+int W_scale_vals  PARM;
 int W_curv_to_val  PARM;
 int W_read_curv_to_val  PARM;
 int W_read_parcellation  PARM;
@@ -19957,6 +19974,11 @@ ERR(1,"Wrong # args: curv_to_val ")
 curv_to_val();
 WEND
 
+int                  W_scale_vals  WBEGIN
+ERR(2,"Wrong # args: scale_vals ")
+     scale_vals(atof(argv[1]));
+WEND
+
 int                  W_mask_label  WBEGIN
 ERR(2,"Wrong # args: mask_label ")
 mask_label(argv[1]);
@@ -20690,7 +20712,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.317 2009/01/12 20:00:13 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.318 2009/01/18 16:08:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21293,6 +21315,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_set_vals, REND);
   Tcl_CreateCommand(interp, "stat_to_val",
                     (Tcl_CmdProc*) W_stat_to_val, REND);
+  Tcl_CreateCommand(interp, "scale_vals",
+                    (Tcl_CmdProc*) W_scale_vals, REND);
   Tcl_CreateCommand(interp, "read_soltimecourse",
                     (Tcl_CmdProc*) W_read_soltimecourse, REND);
   Tcl_CreateCommand(interp, "read_imag_vals",
@@ -22112,6 +22136,43 @@ curv_to_val(void)
       min = v->curv;
     if (v->curv > max)
       max = v->curv;
+  }
+
+  /* Set the min and max. */
+  sclv_field_info[SCLV_VAL].min_value = min;
+  sclv_field_info[SCLV_VAL].max_value = max;
+
+  /* Calc the frquencies */
+  sclv_calc_frequencies (SCLV_VAL);
+
+  /* Request a redraw. Turn on the overlay flag and select this value
+     set. */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  sclv_set_current_field (SCLV_VAL);
+}
+void
+scale_vals(float scale)
+{
+  int    vno ;
+  VERTEX *v ;
+  float  min, max ;
+
+  min = 1e10 ; max = -min ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    sclv_get_value (v, SCLV_VAL, &(v->val));
+    v->val *= scale ;
+    sclv_set_value (v, SCLV_VAL, v->val);
+
+    /* Update the min and max. */
+    if (v->val < min)
+      min = v->val;
+    if (v->val > max)
+      max = v->val;
   }
 
   /* Set the min and max. */
@@ -26488,6 +26549,21 @@ int labl_load (char* fname)
   {
     return (ERROR_NO_FILE);
   }
+  {
+    int n, nonzero = 0 ;
+
+    for (n = 0 ; n < label->n_points ; n++)
+      if (!FZERO(label->lv[n].stat))
+        nonzero++ ;
+    printf("********************      %d nonzero vertices found ********************\n", nonzero) ;
+    if (nonzero== 0)
+    {
+      printf("label stat field identically zero - setting to 1\n") ;
+      for (n = 0 ; n < label->n_points ; n++)
+        label->lv[n].stat = 1 ;
+    }
+  }
+
   if (reassign)
     LabelUnassign(label) ;
 
@@ -27468,7 +27544,10 @@ int labl_add (LABEL* label, int* new_index)
 
   /* make sure we can add one. */
   if (labl_num_labels >= LABL_MAX_LABELS)
+  {
+    printf("max labels exceeded!\n") ;
     return (ERROR_NO_MEMORY);
+  }
 
   /* add a new node at the end of the list. */
   index = labl_num_labels;
