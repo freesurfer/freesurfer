@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/08 18:00:06 $
- *    $Revision: 1.86.2.6 $
+ *    $Date: 2009/01/18 19:41:35 $
+ *    $Revision: 1.86.2.7 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.86.2.6 2009/01/08 18:00:06 greve Exp $";
+"$Id: tkregister2.c,v 1.86.2.7 2009/01/18 19:41:35 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -81,6 +81,7 @@ static char vcid[] =
 #  define frontbuffer(X)   glDrawBuffer(GL_FRONT)
 #  define backbuffer(X)    glDrawBuffer(GL_BACK)
 #  define clear()          glClear(GL_COLOR_BUFFER_BIT)
+//#  define getorigin(X,Y)   *(X) = w.x; *(Y) = 1024 - w.y - w.h
 #  define getorigin(X,Y)   *(X) = w.x; *(Y) = 1024 - w.y - w.h
 /*WINDOW_REC w;*/
 #  define getsize(X,Y)     *(X) = w.w; *(Y) = w.h
@@ -135,6 +136,7 @@ void write_reg(char fname[]);
 void write_fslreg(char *fname);
 void write_xfmreg(char *fname);
 void write_lta(char *fname);
+void write_freeviewreg(char *fname);
 void make_backup(char fname[]);
 void save_rgb(char fname[]);
 void scrsave_to_rgb(char fname[]);
@@ -250,8 +252,8 @@ MATRIX *Vox2Vox = NULL;
 #define TARGET   1
 #define MOVEABLE 2
 
-#define WINDOW_ROWS 512
-#define WINDOW_COLS 512
+int WINDOW_ROWS = 512;
+int WINDOW_COLS = 512;
 
 float FOV = 256;
 float mov_scale = 1;
@@ -283,8 +285,8 @@ int updateflag = FALSE;
 int blinkflag = FALSE;
 int blinkdelay = BLINK_DELAY;
 int blinktime = BLINK_TIME;
-int overlay_mode = TARGET;
-int overlay_mode_init = TARGET;
+int overlay_mode = MOVEABLE;
+int overlay_mode_init = MOVEABLE;
 int visible_mode = 0;
 int last_visible_mode = 0;
 int visible_plane = 0;
@@ -333,7 +335,7 @@ char *xfmfname=NULL; /* something.xfm (minc reg mat) */
 char *afname;        /* analyse.dat */
 char *targpref;      /* abs single image structural stem name */
 char *movformat;     /* abs single image epi structural stem name */
-char *tfname;        /* (dir!) subjectsdir/name/tmp/ */
+char *tfname;        /* (dir!) SUBJECTS_DIR/name/tmp/ */
 char *sgfname;       /* (dir!) set: get from cwd: $session/rgb/ */
 char *tkrtitle=NULL; /* window title */
 
@@ -368,9 +370,11 @@ int tagmov = 0;
 MRI *mov_vol, *targ_vol,*targ_vol0, *mritmp, *mrisurf;
 MRI_SURFACE *surf;
 
-float movimg[WINDOW_ROWS][WINDOW_COLS];
-float targimg[WINDOW_ROWS][WINDOW_COLS];
-int surfimg[WINDOW_ROWS][WINDOW_COLS];
+//float movimg[WINDOW_ROWS][WINDOW_COLS];
+//float targimg[WINDOW_ROWS][WINDOW_COLS];
+//int surfimg[WINDOW_ROWS][WINDOW_COLS];
+float **movimg, **targimg;
+int **surfimg;
 
 int debug;
 
@@ -379,6 +383,7 @@ MATRIX *Tscreen, *Qtarg, *Qmov;
 
 char *fslregfname;
 char *fslregoutfname;
+char *freeviewfname;
 char *xfmoutfname=NULL;
 MATRIX *invDmov, *FSLRegMat, *invFSLRegMat;
 MATRIX *Mtc, *invMtc, *Vt2s,*Ttargcor, *invTtargcor;
@@ -418,11 +423,25 @@ int checkreg = 0;
 int ZeroCRAS = 0;
 MATRIX *Ctarg, *invCtarg, *Starg, *Mcras0, *invMcras0;
 
+int DoFMovTarg = 0;
+
+char *DetFile = NULL;
+int AllocBuffs(void);
+
+char *seg_vol_id = NULL;
+MRI *seg_vol = NULL;
+COLOR_TABLE *ctab = NULL;
+char *ctabfile = NULL;
+int DoASeg=0, DoAParcASeg=0, DoWMParc=0;
+int ShowSeg=0;
+char *FREESURFER_HOME=NULL;
+
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
              Tcl_Interp *interp,
              int argc, char *argv[]) {
   int i,j;
+  FILE *fp;
 #ifdef HAVE_TCL_TK_GL
   int n,c,r,s;
   MATRIX *Vxyz=NULL, *Vcrs=NULL;
@@ -437,7 +456,17 @@ int Register(ClientData clientData,
   if (argc == 0) usage_exit();
 
   memmove(subjectid,"subject-unknown",strlen("subject-unknown"));
-  if (subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
+
+  subjectsdir = getenv("SUBJECTS_DIR");
+  if (subjectsdir==NULL) {
+    printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
+    exit(1);
+  }
+  freesurferhome = getenv("FREESURFER_HOME");
+  if (freesurferhome==NULL) {
+    printf("ERROR: FREESURFER_HOME undefined. \n");
+    exit(1);
+  }
 
   parse_commandline(argc, argv);
   check_options();
@@ -445,11 +474,8 @@ int Register(ClientData clientData,
   printf("%s\n",vcid);
   printf("Diagnostic Level %d\n",Gdiag_no);
 
-  freesurferhome = getenv("FREESURFER_HOME");
-  if (freesurferhome==NULL) {
-    printf("ERROR: FREESURFER_HOME undefined. \n");
-    exit(1);
-  }
+  AllocBuffs();
+
 
   /* read the registration here to get subjectid */
   if (!mkheaderreg && fslregfname == NULL && !fstal &&
@@ -458,7 +484,32 @@ int Register(ClientData clientData,
   // Just use identity
   if (identityreg) RegMat = MatrixIdentity(4,NULL);
 
+  if(DoASeg){
+    sprintf(tmpstr,"%s/%s/mri/aseg.mgz",subjectsdir,subjectid);
+    seg_vol_id = strcpyalloc(tmpstr);
+  }
+  if(DoAParcASeg){
+    sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",subjectsdir,subjectid);
+    seg_vol_id = strcpyalloc(tmpstr);
+  }
+  if(DoWMParc){
+    sprintf(tmpstr,"%s/%s/mri/wmparc.mgz",subjectsdir,subjectid);
+    seg_vol_id = strcpyalloc(tmpstr);
+  }
+  if(seg_vol_id){
+    FREESURFER_HOME = getenv("FREESURFER_HOME");
+    if(ctabfile == NULL){
+      ctabfile = (char *) calloc(sizeof(char),1000);
+      sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
+      ctab = CTABreadASCII(ctabfile);
+    }
+    seg_vol = MRIread(seg_vol_id);
+    if(seg_vol == NULL) exit(1);
+    fscale_2 = 1.0;
+  }
+
   if(fstal) {
+    if (subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
     if (subjectsdir==NULL) {
       printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
       exit(1);
@@ -713,6 +764,7 @@ int Register(ClientData clientData,
     }
     Int2MovRegMat = MRItkRegMtx(int_vol,mov_vol,NULL);
     RegMat = MatrixMultiply(Int2MovRegMat,IntRegMat,NULL);
+    if(fscale_2 == 0.0) fscale_2 = int_fscale;
     MRIfree(&int_vol);
     MatrixFree(&IntRegMat);
     MatrixFree(&Int2MovRegMat);
@@ -740,6 +792,7 @@ int Register(ClientData clientData,
     }
   }
 
+
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++) {
       tm[i][j] = RegMat->rptr[i+1][j+1];
@@ -757,6 +810,12 @@ int Register(ClientData clientData,
 
   printf("---- Input registration matrix --------\n");
   MatrixPrint(stdout,RegMat);
+  printf("Determinant %g\n",MatrixDeterminant(RegMat));
+  if(DetFile){
+    fp = fopen(DetFile,"w");
+    fprintf(fp,"%lf\n",MatrixDeterminant(RegMat));
+    fclose(fp);
+  }
 
   pname = subjectid;
   printf("subject = %s\n",subjectid);
@@ -775,11 +834,6 @@ int Register(ClientData clientData,
 
   /*------------------------------------------------------*/
   if (LoadSurf) {
-    if (subjectsdir == NULL) subjectsdir = getenv("SUBJECTS_DIR");
-    if (subjectsdir==NULL) {
-      printf("ERROR: SUBJECTS_DIR undefined. Use setenv or -sd\n");
-      exit(1);
-    }
     /* alloc a volume data struct for the surface */
     mrisurf = MRIallocSequence(256,256,256, MRI_UCHAR, 1) ;
     if (mrisurf == NULL) {
@@ -903,8 +957,13 @@ int Register(ClientData clientData,
   zf = (int)nint((float)xdim/xnum); /* zoom factor */
   ozf = zf;
   fsf = (float)zf;
-  printf("Zoom Factor = %g\n",(float)zf);
+  printf("Zoom Factor = %g, SQR() = %g\n",(float)zf,(float)SQR(zf));
   printf("FOV = %g\n",FOV);
+
+  vidbuf    = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
+  blinkbuft = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
+  blinkbufm = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
+
 
   ps = targ_vol->xsize;
   st = targ_vol->zsize;
@@ -914,10 +973,6 @@ int Register(ClientData clientData,
   yy1 = +128.0;
   zz0 = -128.0;
   zz1 = +128.0;
-
-  vidbuf = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
-  blinkbuft = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
-  blinkbufm = (GLubyte *)lcalloc(3*bufsize*SQR(zf),sizeof(GLubyte));
 
   binbuff = (unsigned char *)calloc(3*xdim*ydim,sizeof(char));
 
@@ -1009,6 +1064,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--noedit"))    noedit = 1;
     else if (!strcasecmp(option, "--zero-cras"))     ZeroCRAS = 1;
     else if (!strcasecmp(option, "--no-zero-cras"))  ZeroCRAS = 0;
+    else if (!strcasecmp(option, "--fmov-targ"))  DoFMovTarg = 1;
     else if (!strcasecmp(option, "--fstal")) {
       fstal = 1;
       LoadSurf = 0;
@@ -1044,10 +1100,23 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
     else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ;
-    else if (!strcasecmp(option, "--check-reg")){
+    else if (!strcasecmp(option, "--check-reg") ||
+	     !strcasecmp(option, "--check") ||
+	     !strcasecmp(option, "--junk")){
       sprintf(tmpstr,"/tmp/reg.tmp.%ld.dat",PDFtodSeed());
       regfname = strcpyalloc(tmpstr);
       checkreg = 1;
+    }
+    else if (!strcasecmp(option, "--2")){
+      WINDOW_ROWS = 2*512;
+      WINDOW_COLS = 2*512;
+    }
+    else if (!strcasecmp(option, "--size")){
+      double size;
+      sscanf(pargv[0],"%lf",&size);
+      WINDOW_ROWS = nint(size*512);
+      WINDOW_COLS = nint(size*512);
+      nargsused = 1;
     }
     else if (stringmatch(option, "--targ")) {
       if (nargc < 1) argnerr(option,1);
@@ -1058,7 +1127,15 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         targ_vol_fmt = checkfmt(fmt);
       }
-    } else if (!strcmp(option, "--targ-orientation")) {
+    } else if (!strcmp(option, "--seg")) {
+      if (nargc < 1) argnerr(option,1);
+      seg_vol_id = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--aseg")) DoASeg = 1;
+    else if (!strcmp(option, "--aparc+aseg")) DoAParcASeg = 1;
+    else if (!strcmp(option, "--wmparc")) DoWMParc = 1;
+    else if (!strcmp(option, "--targ-orientation")) {
       if (nargc < 1) argnerr(option,1);
       targ_ostr = pargv[0];
       errstr = MRIcheckOrientationString(targ_ostr);
@@ -1092,7 +1169,7 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--movbright")) {
+    } else if (!strcmp(option, "--movbright") || !strcmp(option, "--fmov")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fscale_2);
       use_inorm = 0;
@@ -1160,6 +1237,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       regfname = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--det")) {
+      if (nargc < 1) argnerr(option,1);
+      DetFile = pargv[0];
+      nargsused = 1;
     } else if (stringmatch(option, "--feat")) {
       if (nargc < 1) argnerr(option,1);
       //pargv[0] is featdir
@@ -1182,7 +1263,8 @@ static int parse_commandline(int argc, char **argv) {
       fslregfname = pargv[0];
       read_fslreg(fslregfname);
       nargsused = 1;
-    } else if (!strcmp(option, "--lta")) {
+    } 
+    else if (!strcmp(option, "--lta")) {
       if (nargc < 1) argnerr(option,1);
       ltafname = pargv[0];
       FSXform = TransformRead(ltafname);
@@ -1277,11 +1359,18 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) argnerr(option,1);
       ltaoutfname = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--fslregout")) {
+    } 
+    else if (!strcmp(option, "--fslregout")) {
       if (nargc < 1) argnerr(option,1);
       fslregoutfname = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--xfmout")) {
+    } 
+    else if (!strcmp(option, "--freeview")) {
+      if (nargc < 1) argnerr(option,1);
+      freeviewfname = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--xfmout")) {
       if (nargc < 1) argnerr(option,1);
       xfmoutfname = pargv[0];
       nargsused = 1;
@@ -1301,7 +1390,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if ( !strcmp(option, "--sd") ) {
       if (nargc < 1) argnerr(option,1);
-      subjectsdir = pargv[0];
+      setenv("SUBJECTS_DIR", pargv[0], 1);
       nargsused = 1;
     } else if ( !strcmp(option, "--title") ) {
       if (nargc < 1) argnerr(option,1);
@@ -1356,14 +1445,16 @@ static void print_usage(void) {
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --check-reg : only check, no --reg needed\n");
   printf("   --regheader : compute regstration from headers\n");
-  printf("   --fsl-targ : use FSLDIR/etc/standard/avg152T1.img\n");
-  printf("   --fsl-targ-lr : use FSLDIR/etc/standard/avg152T1_LR-marked.img\n");
+  printf("   --fsl-targ : use FSLDIR/data/standard/avg152T1.nii.gz\n");
+  printf("   --fsl-targ-lr : use FSLDIR/data/standard/avg152T1_LR-marked.nii.gz\n");
   printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --gca subject : check linear GCA registration  \n");
   printf("   --gca-skull subject : check linear 'with skull' GCA registration  \n");
   printf("   --no-zero-cras : do not zero target cras (done with --fstal)\n");
   printf("   --movbright  f : brightness of movable volume\n");
   printf("   --no-inorm  : turn off intensity normalization\n");
+  printf("   --fmov fmov : set mov brightness \n");
+  printf("   --fmov-targ : apply fmov brightness to the target\n");
   printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
   printf("   --slice  sliceno : startup slice number\n");
   printf("   --volview volid  : startup with targ or mov\n");
@@ -1376,9 +1467,10 @@ static void print_usage(void) {
   printf("   --xfmout file : MNI-style registration output matrix\n");
   printf("   --fsl file : FSL-style registration input matrix\n");
   printf("   --fslregout file : FSL-Style registration output matrix\n");
+  printf("   --freeview file : FreeView registration output matrix\n");
   printf("   --vox2vox file : vox2vox matrix in ascii\n");
   printf("   --lta ltafile : Linear Transform Array\n");
-  printf("   --ltaout ltaoutfile : Output Linear Transform Array\n");
+  printf("   --ltaout ltaoutfile : Output a Linear Transform Array\n");
   printf("   --feat featdir : check example_func2standard registration\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
@@ -1389,10 +1481,14 @@ static void print_usage(void) {
   printf("   --title title : set window title\n");
   printf("   --tag : tag mov vol near the col/row origin\n");
   printf("   --mov-orientation ostring : supply orientation string for mov\n");
-  printf("   --targ-orientation ostring : "
-         "supply orientation string for targ\n");
-  printf("   --int intvol intreg : "
-         "use registration from intermediate volume \n");
+  printf("   --targ-orientation ostring : supply orientation string for targ\n");
+  printf("   --int intvol intreg : use registration from intermediate volume \n");
+  printf("   --2 : double window size \n");
+  printf("   --size scale : scale window by scale (eg, 0.5, 1.5) \n");
+  printf("   --det  detfile : save determinant of reg mat here\n");
+  printf("   --aseg : load aseg (hit 'c' to toggle)\n");
+  printf("   --aparc+aseg : load aparc+aseg (hit 'c' to toggle)\n");
+  printf("   --wmparc : load wmparc (hit 'c' to toggle)\n");
   printf("   --gdiagno n : set debug level\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
@@ -2037,9 +2133,9 @@ void draw_image2(int imc,int ic,int jc) {
   extern int overlay_mode;
   extern double ps_2, st_2, fscale_2;
   extern int xdim_2, ydim_2, imnr1_2; /* func Nc, Ns, Nr */
-  extern float movimg[WINDOW_ROWS][WINDOW_COLS];
-  extern float targimg[WINDOW_ROWS][WINDOW_COLS];
-  extern int surfimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern float movimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern float targimg[WINDOW_ROWS][WINDOW_COLS];
+  //extern int surfimg[WINDOW_ROWS][WINDOW_COLS];
   extern MATRIX *Qmov, *Qtarg;
   static int firstpass = 1;
   static int PrevPlane, PrevImc, PrevIc, PrevJc, PrevOverlayMode;
@@ -2049,6 +2145,7 @@ void draw_image2(int imc,int ic,int jc) {
   int r,c,k;
   char *planestring = NULL;
   unsigned char voxval;
+  int ivoxval;
   int cor, ax, sag, toob=0;
   unsigned char* lvidbuf;
   float f=0;
@@ -2062,6 +2159,7 @@ void draw_image2(int imc,int ic,int jc) {
   float fcMov,frMov,fsMov;
   int icTarg,irTarg,isTarg;
   int icMov,irMov,isMov;
+  int valid;
 
   if (firstpass)    update_needed = 1;
   else {
@@ -2175,13 +2273,17 @@ void draw_image2(int imc,int ic,int jc) {
             irTarg < 0 || irTarg >= targ_vol->height ||
             isTarg < 0 || isTarg >= targ_vol->depth)  continue;
 
-        /* Could interp here, but why bother? */
-        //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
-        /* This implements the trilinear interp - makes it so that
-           when the same volume is loaded as targ and mov, the
-           registration is perfect */
-        MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
-        targimg[r][c] = rVoxVal;
+	if(! ShowSeg){
+	  /* Could interp here, but why bother? */
+	  //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
+	  /* This implements the trilinear interp - makes it so that
+	     when the same volume is loaded as targ and mov, the
+	     registration is perfect */
+	  MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
+	  targimg[r][c] = rVoxVal;
+	}
+	else
+	  targimg[r][c] = MRIgetVoxVal(seg_vol,icTarg,irTarg,isTarg,0);
 
         if (UseSurf) surfimg[r][c] = MRIvox(mrisurf,icTarg,irTarg,isTarg);
 
@@ -2267,12 +2369,18 @@ void draw_image2(int imc,int ic,int jc) {
     if (movimgrange == 0) movimgrange = 1;
     for (r = 0; r < ydim; r++) {
       for (c = 0; c < xdim; c++) {
-        if (use_inorm) {
-          targimg[r][c] = 255*(targimg[r][c] - targimgmin)/targimgrange;
-          if (targimg[r][c] < 0) targimg[r][c] = 0;
+        if(use_inorm) {
+	  if(! ShowSeg){
+	    targimg[r][c] = 255*(targimg[r][c] - targimgmin)/targimgrange;
+	    if (targimg[r][c] < 0) targimg[r][c] = 0;
+	  }
           movimg[r][c]  = 255*(movimg[r][c]  - movimgmin)/movimgrange;
           if (movimg[r][c] < 0) movimg[r][c] = 0;
-        } else movimg[r][c] *= fscale_2;
+        } 
+	else {
+	  movimg[r][c] *= fscale_2;
+	  if(DoFMovTarg) targimg[r][c] *= fscale_2;
+	}
       }
     }
 
@@ -2310,6 +2418,17 @@ void draw_image2(int imc,int ic,int jc) {
           lvidbuf[3*k+1] = voxval;
           lvidbuf[3*k+2] = voxval;
         }
+	if(overlay_mode == TARGET && ShowSeg) {
+	  ivoxval = targimg[r][c];
+          CTABisEntryValid(ctab,ivoxval,&valid);
+          if(!valid) {
+            printf("ERROR: cannot find seg id %d (%d,%d)\n",ivoxval,r,c);
+            exit(1);
+          }
+          lvidbuf[3*k]   = ctab->entries[ivoxval]->ri;
+          lvidbuf[3*k+1] = ctab->entries[ivoxval]->gi;
+          lvidbuf[3*k+2] = ctab->entries[ivoxval]->bi;
+	}
       }
       k++;
     }
@@ -2594,24 +2713,28 @@ int draw_cross_hair(int rScreen, int cScreen) {
   int r,c,k;
   unsigned char *lvidbuf;
 
-  if (overlay_mode==TARGET) lvidbuf = blinkbuft;
+  //printf("Drawing crosshair at row = %d, col = %d\n",rScreen,cScreen);
+
+  if(overlay_mode==TARGET) lvidbuf = blinkbuft;
   else                     lvidbuf = blinkbufm;
 
   if (lvidbuf == NULL) return(1);
 
   for (r = rScreen - 4; r < rScreen + 4; r++) {
     if (r < 0 || r >= WINDOW_ROWS) continue;
-    k = 3 * ((r*WINDOW_COLS)+cScreen);
-    lvidbuf[k]   = 255;
-    lvidbuf[k+1] = 0;
-    lvidbuf[k+2] = 0;
+    k =  ((r*WINDOW_COLS)+cScreen);
+    lvidbuf[3*k]   = 255;
+    lvidbuf[3*k+1] = 0;
+    lvidbuf[3*k+2] = 0;
+    //printf("r = %d, c = %d, k = %d\n",r,cScreen,k);
   }
   for (c = cScreen - 4; c < cScreen + 4; c++) {
     if (c < 0 || c >= WINDOW_COLS) continue;
-    k = 3 * ((rScreen*WINDOW_COLS)+c);
-    lvidbuf[k]   = 255;
-    lvidbuf[k+1] = 0;
-    lvidbuf[k+2] = 0;
+    k = ((rScreen*WINDOW_COLS)+c);
+    lvidbuf[3*k]   = 255;
+    lvidbuf[3*k+1] = 0;
+    lvidbuf[3*k+2] = 0;
+    //printf("r = %d, c = %d, k = %d\n",rScreen,c,k);
   }
 
   return(0);
@@ -2688,11 +2811,12 @@ void select_pixel(short sx, short sy) {
 
   getorigin(&ox,&oy);
   getsize(&lx,&ly);
+  //printf("select_pix: sx = %d, sy = %d, ox = %d, oy = %d, lx=%d, ly = %d\n",
+  // sx,sy,ox,oy,lx,ly);
 
   if (overlay_mode==TARGET) lvidbuf = blinkbuft;
   else                     lvidbuf = blinkbufm;
-  //printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld,
-  //ly=%ld, dx = %ld, dy = %ld\n",
+  //printf("sx=%d, sy=%d, ox=%ld, oy=%ld, lx=%ld, ly=%ld, dx = %ld, dy = %ld\n",
   // sx,sy,ox,oy,lx,ly,sx-ox,sy-oy);
 
   /* hack: x-y of click on tk win caught by qread when clicks buffered! */
@@ -2713,7 +2837,8 @@ void select_pixel(short sx, short sy) {
       }
   xc = xx1-ps*jc/fsf;
   yc = yy0+st*imc/fsf;
-  zc = zz1-ps*(255.0-ic/fsf);
+  //zc = zz1-ps*(255.0-ic/fsf);
+  zc = zz1-ps*(((WINDOW_ROWS/2.0)-1)-ic/fsf);
   //printf("select_pixel: xc=%g, yc=%g,  zc=%g\n",xc,yc,zc);
   //printf("select_pixel: jc=%d, imc=%d, ic=%d\n",jc,imc,ic);
   //printf("xx1 = %g, ps = %g, fsf = %g, st=%g, yy0 = %g, zz1 = %g\n",
@@ -2865,12 +2990,18 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         record_swapbuffers();
         updateflag = TRUE;
         break;
-      case XK_c:
-        if (altkeypressed) {
+      case 'c':
+        if(altkeypressed) {
           if (overlay_mode == TARGET) overlay_mode = MOVEABLE;
           else if (overlay_mode == MOVEABLE) overlay_mode = TARGET;
           updateflag = TRUE;
         }
+	else{
+	  if(seg_vol != NULL){
+	    ShowSeg = ~ShowSeg;
+	    updateflag = TRUE;
+	  }
+	}
         break;
 
       case XK_1:
@@ -3142,7 +3273,10 @@ void  open_window(char *name) {
     exit(1);
   }
 
-  hin.max_width = hin.max_height = 3*xnum + xnum/2;  /* maxsize */
+  printf("Opening %s, xnum = %d, xdim = %d\n",name,xnum,xdim);
+
+  //hin.max_width = hin.max_height = 3*xnum + xnum/2;  /* maxsize */
+  hin.max_width = hin.max_height = xdim;
   hin.min_aspect.x = hin.max_aspect.x = xdim;        /* keepaspect */
   hin.min_aspect.y = hin.max_aspect.y = ydim;
   hin.flags = PMaxSize|PAspect;
@@ -3349,6 +3483,7 @@ void  read_fslreg(char *fname) {
 /*-----------------------------------------------------*/
 void write_reg(char *fname) {
   extern char *fslregoutfname, *subjectsdir, *pname;
+  extern char *freeviewfname;
   extern int fstal;
   extern char talxfmfile[2000];
   extern MATRIX *RegMat, *Mtc;
@@ -3390,6 +3525,7 @@ void write_reg(char *fname) {
   fprintf(fp,"%s\n",pname);
   fprintf(fp,"%f\n",ps_2);
   fprintf(fp,"%f\n",st_2);
+  if(fscale_2 == 0.0) fscale_2 = .1;
   fprintf(fp,"%f\n",fscale_2);
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++)
@@ -3401,9 +3537,10 @@ void write_reg(char *fname) {
   printf("register: file %s written\n",fname);
   fclose(fp);
 
-  if (fslregoutfname != NULL) write_fslreg(fslregoutfname);
-  if (xfmoutfname != NULL) write_xfmreg(xfmoutfname);
-  if (ltaoutfname != NULL) write_lta(ltaoutfname);
+  if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
+  if(freeviewfname != NULL) write_freeviewreg(freeviewfname);
+  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  if(ltaoutfname != NULL) write_lta(ltaoutfname);
 
   return;
 }
@@ -3433,6 +3570,66 @@ void write_fslreg(char *fname) {
     fprintf(fp,"\n");
   }
   fclose(fp);
+
+  return;
+}
+
+
+/*-----------------------------------------------------*/
+void write_freeviewreg(char *fname) {
+  extern MRI *mov_vol, *targ_vol0;
+  extern MATRIX *RegMat, *Mtc;
+  static MATRIX *RegMatTmp=NULL;
+  int i,j;
+  FILE *fp;
+  MATRIX *Mfv=NULL,*Ttarg, *Tmov, *Starg, *Smov,*InvTmov,*InvStarg;
+
+  RegMatTmp = MatrixMultiply(RegMat,Mtc,RegMatTmp);
+
+  Tmov  = MRIxfmCRS2XYZtkreg(mov_vol);
+  Ttarg = MRIxfmCRS2XYZtkreg(targ_vol0);
+  Smov  = MRIxfmCRS2XYZ(mov_vol,0);
+  Starg = MRIxfmCRS2XYZ(targ_vol0,0);
+
+  InvStarg = MatrixInverse(Starg,NULL);
+  InvTmov = MatrixInverse(Tmov,NULL);
+
+  Mfv = MatrixMultiply(Ttarg,InvStarg,NULL);
+  Mfv = MatrixMultiply(Mfv,Smov,Mfv);
+  Mfv = MatrixMultiply(Mfv,InvTmov,Mfv);
+  Mfv = MatrixMultiply(Mfv,RegMatTmp,Mfv);
+
+  printf("FreeView Matrix ---------------------------\n");
+  MatrixPrint(stdout,Mfv);
+
+  fp = fopen(fname,"w");
+  if (fp==NULL) {
+    printf("register: ### can't create file %s\n",fname);
+    return;
+  }
+  fprintf(fp,"%s\n",pname);
+  fprintf(fp,"%f\n",ps_2);
+  fprintf(fp,"%f\n",st_2);
+  if(fscale_2 == 0.0) fscale_2 = .1;
+  fprintf(fp,"%f\n",fscale_2);
+  for (i=0;i<4;i++) {
+    for (j=0;j<4;j++)
+      //fprintf(fp,"%e ",tm[i][j]);
+      fprintf(fp,"%e ",Mfv->rptr[i+1][j+1]);
+    fprintf(fp,"\n");
+  }
+  fprintf(fp,"round\n");
+  printf("register: file %s written\n",fname);
+  fclose(fp);
+
+  MatrixFree(&Mfv);
+  MatrixFree(&Ttarg);
+  MatrixFree(&Tmov);
+  MatrixFree(&InvTmov);
+  MatrixFree(&Starg);
+  MatrixFree(&InvStarg);
+  MatrixFree(&Smov);
+  MatrixFree(&RegMatTmp);
 
   return;
 }
@@ -4562,7 +4759,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.86.2.6 2009/01/08 18:00:06 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.86.2.7 2009/01/18 19:41:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4953,4 +5150,23 @@ MATRIX *Load4x4(char *fname)
   }
   fclose(fp);
   return(mat);
+}
+
+/*-----------------------------------------------------------*/
+int AllocBuffs(void)
+{
+  extern float **movimg, **targimg;
+  extern int **surfimg;
+  int n;
+
+  movimg = (float **) calloc(WINDOW_ROWS,sizeof(float*));
+  targimg = (float **) calloc(WINDOW_ROWS,sizeof(float*));
+  surfimg = (int **) calloc(WINDOW_ROWS,sizeof(int*));
+
+  for(n=0; n < WINDOW_ROWS; n++){
+    movimg[n] = (float *) calloc(WINDOW_COLS,sizeof(float));
+    targimg[n] = (float *) calloc(WINDOW_COLS,sizeof(float));
+    surfimg[n] = (int *) calloc(WINDOW_COLS,sizeof(int));
+  }
+  return(0);
 }
