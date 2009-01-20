@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/15 19:28:58 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/01/20 19:54:56 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -157,7 +157,14 @@ void PanelSurface::UpdateUI( bool bForce )
 void PanelSurface::DoUpdateUI()
 {
 	bool bHasSurface = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-//	bool bHasVolume = !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty();
+	wxWindowList children = GetChildren();
+	wxWindowList::iterator it = children.begin(), end = children.end();
+	for (; it != end; it++) 
+	{
+		if ( !(*it)->IsKindOf(CLASSINFO(wxToolBar) ) && *it != m_listBoxLayers ) 
+			(*it)->Enable( bHasSurface );
+	} 
+	
 	LayerSurface* layer = NULL;
 	FSSurface* surf = NULL;
 	if ( bHasSurface )

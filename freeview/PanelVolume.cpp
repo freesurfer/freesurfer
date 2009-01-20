@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:19:34 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/01/20 19:54:56 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -562,6 +562,14 @@ void PanelVolume::UpdateUI( bool bForce )
 void PanelVolume::DoUpdateUI()
 {
 	bool bHasVolume = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+	wxWindowList children = GetChildren();
+	wxWindowList::iterator it = children.begin(), end = children.end();
+	for (; it != end; it++) 
+	{
+		if ( !(*it)->IsKindOf(CLASSINFO(wxToolBar) ) && *it != m_listBoxLayers ) 
+			(*it)->Enable( bHasVolume );
+	} 
+	
 	LayerMRI* layer = NULL;
 	LayerPropertiesMRI::ColorMapType nColorMap = LayerPropertiesMRI::NoColorMap;
 	if ( bHasVolume )

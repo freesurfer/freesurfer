@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2008/10/27 21:50:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/01/20 19:54:56 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -142,6 +142,14 @@ void PanelROI::DoUpdateUI()
 {
 	bool bHasROI = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
 	bool bHasVolume = !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty();
+	wxWindowList children = GetChildren();
+	wxWindowList::iterator it = children.begin(), end = children.end();
+	for (; it != end; it++) 
+	{
+		if ( !(*it)->IsKindOf(CLASSINFO(wxToolBar) ) && *it != m_listBoxLayers ) 
+			(*it)->Enable( bHasROI );
+	} 
+	
 	LayerROI* layer = NULL;
 	if ( bHasROI )
 	{

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/15 19:28:58 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/01/20 19:54:56 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -485,7 +485,7 @@ void FSSurface::UpdateVectors()
 		int cVertices = m_MRIS->nvertices;
 		vtkPoints* oldPoints = m_polydata->GetPoints();
 		float point[3], surfaceRAS[3];
-		int n = 0;
+		vtkIdType n = 0;
 		vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
 		vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
 		vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/16 22:13:07 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/01/20 19:54:56 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@ class Interactor2DVolumeEdit : public Interactor2D
 	
 		enum EditMode { EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire };
 	
-	// return true if to have parent Interactor2DROIEdit continue processing the event
+	// return true if to have parent Interactor2D continue processing the event
 	// return false to stop event from further processing
 		virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
 		virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
