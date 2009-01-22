@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/09/29 19:00:17 $
- *    $Revision: 1.322 $
+ *    $Date: 2009/01/22 02:48:32 $
+ *    $Revision: 1.323 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -436,6 +436,8 @@ typedef struct
   float   l_tsmooth ;         /* thickness smoothness term */
   float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
   float   l_external ;        /* external (user-defined) coefficient */
+  float   l_thick_parallel ;  // term that encourages thickness vectors to be parallel
+  float   l_thick_min ;       // term that encourages thickness vectors to be minimal
   float   l_shrinkwrap ;      /* move in if MRI=0 and out otherwise */
   float   l_expandwrap ;      /* move out */
   float   l_unfold ;          /* move inwards along normal */
@@ -534,6 +536,8 @@ typedef struct
   int     nlabels ;
   void       **mht_array;
   MRI_SURFACE **mris_array ;
+  MRI_SURFACE *mris_ico ;     // for sampling from a spherical template
+  void         *mht_ico ;      // hash table for previous surface
 }
 INTEGRATION_PARMS ;
 
@@ -1857,3 +1861,11 @@ void UpdateMRIS(MRI_SURFACE *mris, char *fname);
 int  MRISreadTransform(MRIS *mris, char *fname);
 int MRISsetValues(MRI_SURFACE *mris, float val) ;
 LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index) ;
+
+
+// thickness stuff
+int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick, MRI_SURFACE *mris_ico);
+int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist) ;
+int MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertices);
+int MRISvertexCoord2XYZ_float (VERTEX * v, int which, float  *x, float  *y, float  *z);
+int MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, int which, float *px, float *py, float *pz);
