@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/22 02:46:33 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/01/22 14:01:39 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.1 2009/01/22 02:46:33 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.2 2009/01/22 14:01:39 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,13 +73,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.1 2009/01/22 02:46:33 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.2 2009/01/22 14:01:39 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_face_parcellation.c,v 1.1 2009/01/22 02:46:33 fischl Exp $",
+           "$Id: mris_make_face_parcellation.c,v 1.2 2009/01/22 14:01:39 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -115,7 +115,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, ico_fname) ;
   if (mris_ico->nfaces < 256)
-    scale = 128.0 / mris_ico->nfaces ;
+    scale = 256 / mris_ico->nfaces ;
   else
     scale = 1 ;
 
@@ -127,13 +127,15 @@ main(int argc, char *argv[]) {
   printf("parcellating hemisphere into %d units\n", mris_ico->nfaces) ;
   for (fno = 0 ; fno < mris_ico->nfaces ; fno++)
   {
-    int f = scale * fno + 128, m ;
+    int f = nint(scale * fno), m ;
 
+    // don't let the color be too close to 0 by scaling them
     r = (nint(scale*f) / (256*256)) ;
     g = (nint(scale*f) / 256) ;
     b = (nint(scale*f) % 256) ;
-    m = fno % 8 ;
-#if 1
+    m = fno % 10 ;
+
+    // try to avoid having adjacent triangles with similar colors
     switch (m)
     {
     default:
@@ -145,6 +147,8 @@ main(int argc, char *argv[]) {
     case 5: b = 255-b ; break ;
     case 6: b += 128 ; r = 255-r ; break ;
     case 7: g += 128 ; b = 255-b ;break ;
+    case 8: g += 128 ; b = 255-b ;break ; r += 128 ;
+    case 9: g += 128 ; b = 255-b ;break ; r = 255-r ;
     }
 
     if (r < 0)
@@ -156,7 +160,6 @@ main(int argc, char *argv[]) {
     r = r % 256 ; g = g % 256 ; b = b %256 ;
     if (r > 255 || g > 255 || b > 255)
       DiagBreak() ;
-#endif
     sprintf (mris->ct->entries[fno]->name, "%s face %d", ico_name, fno);
     mris->ct->entries[fno]->ri = r ;
     mris->ct->entries[fno]->gi = g ;
@@ -197,9 +200,6 @@ main(int argc, char *argv[]) {
         continue ;
       }
     }
-    r = (nint(scale*fno) / (256*256)) ;
-    g = (nint(scale*fno) / 256) ;
-    b = (nint(scale*fno) % 256) ;
     CTABannotationAtIndex(mris->ct, fno, &annot);
     v->annotation = annot ;
   }
