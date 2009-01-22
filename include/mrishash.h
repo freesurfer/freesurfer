@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/02 18:17:13 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/01/22 02:44:43 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -209,3 +209,23 @@ int    MHTfree(MRIS_HASH_TABLE **pmht) ;
 int MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
 int MHTcheckSurface(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht);
 
+
+//------------------------------------------------
+// utilities for finding closest face
+//------------------------------------------------
+int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht, 
+                              MRI_SURFACE *mris,
+                              //---------- inputs --------------
+                              double probex, double probey, double probez,
+                              // How far to search: set one or both
+                              double in_max_distance_mm, /* Use large number 
+                                                            to ignore */
+                              int    in_max_mhts,  /* Use -1 to ignore */
+                              //---------- outputs -------------
+                              FACE **pface, 
+                              int *pfno, 
+                              double *pface_distance);
+int mhtBruteForceClosestFace(MRI_SURFACE *mris, 
+                             float x, float y, float z, 
+                             int which,                  // which surface within mris to search
+                             float *dmin);

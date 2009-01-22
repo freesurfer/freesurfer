@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/17 14:02:06 $
- *    $Revision: 1.45 $
+ *    $Date: 2009/01/22 02:44:58 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -124,6 +124,10 @@ Ptdbl_t;
 // Note: Exposed API functions start with uppercase MHT prefix.
 // Static (private) functions start with lowercase mht prefix.
 
+static void mhtFaceCentroid2xyz_float (MRI_SURFACE *mris,
+                                       FACE * face,
+                                       int which,
+                                       float  *x, float  *y, float  *z);
 static void mhtVertex2xyz_float (VERTEX * vtx,
                                  int which,
                                  float  *x, float  *y, float  *z);
@@ -1298,6 +1302,77 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
   return rslt;
 }
 
+/*----------------------------------------------------------------
+  mhtfindClosestFaceCentroidGenericInBucket
+
+  find the face whose centroid is closest to the specified coordinate
+  -----------------------------------------------------------------*/
+int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht, 
+                                              MRI_SURFACE *mris,
+                                              //---------- inputs --------------
+                                              int xv, int yv, int zv,
+                                              double probex, 
+                                              double probey, 
+                                              double probez,
+                                      //---------- in/outs -------------
+                                              FACE **MinDistFace, 
+                                              int *MinDistFaceNum, 
+                                              double *MinDistSq)
+{
+  int    faceix, rslt;
+  FACE  *face ;
+  int    fno;
+  double ADistSq;
+  MHB    *bin ;
+  MHBT   *bucket ;
+  float   tryx=0.0, tryy=0.0, tryz=0.0; 
+  
+  //----------------------------------
+  rslt = NO_ERROR;
+
+  FindBucketsChecked_Count++;
+
+  bucket = MHTgetBucketAtVoxIx(mht, xv, yv, zv);
+  if (!bucket)
+    goto done;
+
+  FindBucketsPresent_Count++;
+
+  if (bucket == NULL && bucket->nused == 0)
+    return(ERROR_BADPARM) ;
+
+  //-----------------------------------------
+  // Iterate through vertices in this bucket
+  //-----------------------------------------
+  bin = bucket->bins ;
+  for (faceix = 0 ; faceix < bucket->nused ; faceix++, bin++)
+  {
+    fno = bin->fno;
+
+    face = &mris->faces[fno];
+
+    if (fno == Gdiag_no)
+      DiagBreak() ;
+
+    mhtFaceCentroid2xyz_float(mris, face, mht->which_vertices, 
+                        &tryx, &tryy, &tryz);  // Added [2007-07-27 GW]
+
+    ADistSq = SQR(tryx - probex) 
+            + SQR(tryy - probey)
+            + SQR(tryz - probez) ;
+    //----- end new -----
+
+    if (ADistSq < *MinDistSq)
+    {
+      *MinDistSq     = ADistSq ;
+      *MinDistFaceNum = fno;
+      *MinDistFace    = face;
+    } // if
+  } // for faceix
+ done:
+  return rslt;
+}
+
 
 /*
  ----------------------------------------------------------------
@@ -1619,6 +1694,321 @@ int MHTfindClosestVertexGeneric(MRIS_HASH_TABLE *mht,
 
   return NO_ERROR;
 }
+/*
+ ----------------------------------------------------------------
+ MHTfindClosestFaceGeneric
+ Generic find routine satisfying all other finds
+ Inputs:
+ -------
+ probex, probey, probez: The point relative to which to search
+
+ n_max_distance_mm: Furthest vertex distance to accept. Set to a large
+ number to ignore, use only in_max_mhts.
+ in_max_mhts       : Furthest voxels to search
+ 0 : One half mht, so    2 x 2 x 2
+ 1 : One mht, so         3 x 3 x 3
+ 2 : Two mht             5 x 5 x 5
+ -1 : ignore, use only n_max_distance_mm
+ (If both the above are used, the tigher one prevails.)
+ Outputs:
+ --------
+ VERTEX **pface,            Closest face
+ int *facenum,              Closest face number
+ double *face_distance      Distance to closest face
+
+ Design Notes:
+ -------------
+ 1. I've incorporated ability to search near voxels first, and bail early if
+ remaining voxels are further away.
+
+ 2. Elaborateness of calcs for measuring whether other voxels are still useful
+ to search could be increased, but the tradeoffs for that are quite different
+ depending on whether voxel size (mht->vres) is large or small.
+
+ 3. Will not return a vertex that has been found, but which is outside the
+ distance that the inspected voxels cover exhaustively.
+ Eg: If in_max_mhts = 0 that means inspect 2 x 2 x 2, and covers all vertices
+ within 0.5 mhtres. If closest vertex found is at say 0.75 then function
+ returns no result because there could be a closer vertex in the 3 x 3 x 3 box.
+
+ 4. Version to return *list* of voxels within range is not implemented,
+ because I could find no code that used that.
+ -----------------------------------------------------------------
+*/
+
+int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht, 
+                              MRI_SURFACE *mris,
+                              //---------- inputs --------------
+                              double probex, double probey, double probez,
+                              // How far to search: set one or both
+                              double in_max_distance_mm, /* Use large number 
+                                                            to ignore */
+                              int    in_max_mhts,  /* Use -1 to ignore */
+                              //---------- outputs -------------
+                              FACE **pface, 
+                              int *pfno, 
+                              double *pface_distance)
+{
+  //  const int max_mhts_MAX = 5;
+  double mhtres, max_distance_mm, tempdbl;
+  int    max_mhts;
+  double probex_vol,
+  probey_vol, probez_vol;// probex etc translated to volume space
+  int    probex_vox,
+  probey_vox, probez_vox;// probex_vol etc to voxel index
+  double probex_mod,
+  probey_mod, probez_mod;// probex_vol remainder (posn of probe within voxel)
+  int    near8offsetx, near8offsety, near8offsetz; // probe?_mod to -1..0
+  int   xv, yv, zv, xvi, yvi, zvi;                         // voxel indices
+  FACE  *MinDistFace;
+  int    MinDistFaceNum;
+  double MinDistSq, MinDistTemp;
+  double RemainingVoxelDistance;
+  int    RVox, WallJump;
+  bool   isWall;
+  unsigned char  central27[3][3][3]; // Indexes 0..2 stand for -1..+1
+  //----------------------------------
+
+  //  mhtFindCommonSanityCheck(mht, mris);
+  mhtres     = mht->vres;
+
+  //--------------------------------------------------
+  // Initialize instrumentation
+  //--------------------------------------------------
+  FindBucketsChecked_Count =  0;
+  FindBucketsPresent_Count =  0;
+  VertexNumFoundByMHT      = -1;  // -1 = "none found"  2007-07-30 GW
+
+  //--------------------------------------------------
+  // Figure how far afield to search
+  //--------------------------------------------------
+  if (-1 == in_max_mhts)
+  { // use in_max_distance_mm
+    max_distance_mm = in_max_distance_mm;
+    if ((max_distance_mm * 2) <= mhtres)
+    {
+      max_mhts = 0;
+    }
+    else
+    {
+      max_mhts        = ceil(max_distance_mm/mhtres);
+    }
+  }
+  else
+  {
+    max_mhts        = in_max_mhts;
+    max_distance_mm = in_max_distance_mm;
+
+    // How far does max_mhts cover in mm?
+    if (max_mhts >= 1)
+    {
+      tempdbl         = max_mhts * mhtres;
+    }
+    else
+    {
+      tempdbl         = 0.5 * mhtres;
+    }
+    // Must not include points beyond the exhaustive coverage distance
+    // of the chosen max_mhts....
+    if (max_distance_mm > tempdbl) max_distance_mm = tempdbl;
+  }
+#if 0 // disabled by BRF
+  // Safety limit
+  if (max_mhts > max_mhts_MAX)
+    max_mhts = max_mhts_MAX;
+#endif
+
+  //printf("\nmax_distance_mm=%f\n",max_distance_mm);
+
+  //--------------------------------------------------
+  // Initialize mins
+  //--------------------------------------------------
+  MinDistSq     = 1e6;
+  MinDistFace    = NULL;
+  MinDistFaceNum = -1;
+
+  //--------------------------------------------------
+  // Translate probe point to voxel-space coord and indexes
+  //--------------------------------------------------
+  probex_vol = WORLD_TO_VOLUME(mht, probex);
+  probey_vol = WORLD_TO_VOLUME(mht, probey);
+  probez_vol = WORLD_TO_VOLUME(mht, probez);
+
+  // (Note: In following (int) truncs toward zero, but that's OK because
+  // range of probex_vol is all positive, centered at FIELD_OF_VIEW/2)
+  probex_vox = (int) probex_vol;
+  probey_vox = (int) probey_vol;
+  probez_vox = (int) probez_vol;
+
+  probex_mod = probex_vol - (double) probex_vox;
+  probey_mod = probey_vol - (double) probey_vox;
+  probez_mod = probez_vol - (double) probez_vox;
+
+  near8offsetx = (probex_mod <= 0.5) ? -1 : 0;
+  near8offsety = (probey_mod <= 0.5) ? -1 : 0;
+  near8offsetz = (probez_mod <= 0.5) ? -1 : 0;
+
+  //--------------------------------------------------
+  // Initialize checklist for central 27 voxels
+  //--------------------------------------------------
+  memset(central27, 0, sizeof(central27));
+
+  //--------------------------------------------------
+  // Look in home vertex and closest 7 voxels. Without measuring
+  // exact probe?_mod position, these "closest 7" could have vertices as close
+  // as zero mm, and they completely cover the region out to 0.5 mht voxels.
+  // Note: Could possibly recode to abort early based on exact measurements,
+  // which might be worthwhile for large voxel.
+  //--------------------------------------------------
+  for (    xvi = 0; xvi <= 1; xvi++)
+  {
+    xv = xvi + near8offsetx;
+    for (  yvi = 0; yvi <= 1; yvi++)
+    {
+      yv = yvi + near8offsety;
+      for (zvi = 0; zvi <= 1; zvi++)
+      {
+        zv = zvi + near8offsetz;
+
+        mhtfindClosestFaceCentroidGenericInBucket(mht, mris,
+                                                  probex_vox + xv,
+                                                  probey_vox + yv,
+                                                  probez_vox + zv,
+                                                  probex, probey, probez,
+                                                  &MinDistFace,
+                                                  &MinDistFaceNum,
+                                                  &MinDistSq) ;
+
+        central27[xv+1][yv+1][zv+1] = 1;
+      }
+    }
+  }
+
+  if (max_mhts == 0) 
+    goto done; // stop if caller restricts us to "nearest 8", regardless of whether face was found
+
+  RemainingVoxelDistance = 0.5 *  mhtres;        // all other voxels contain space at least this far away
+  if (max_distance_mm <= RemainingVoxelDistance)  goto done;  // Stop if caller restricts us to less than this
+
+  //---------------------------------------------------------------------------
+  // We can stop now if found vertex's distance is < 0.5 mhtres, because all
+  // other voxels are at at least that far away
+  //---------------------------------------------------------------------------
+
+  if (MinDistFace)                                 // if a face was found...
+  { // not NULL if one has been found)           
+    MinDistTemp = sqrt(MinDistSq);                // take sqrt
+    if (MinDistTemp <= RemainingVoxelDistance)    // if less than all remaining space, we can stop 
+      goto done;
+  }
+
+  //--------------------------------------------------
+  // Continue with rest of central 27
+  //--------------------------------------------------
+  for (    xv = -1; xv <= 1; xv++)
+  {
+    for (  yv = -1; yv <= 1; yv++)
+    {
+      for (zv = -1; zv <= 1; zv++)
+      {
+
+        if (!central27[xv+1][yv+1][zv+1]) // skip ones already done
+        {
+          mhtfindClosestFaceCentroidGenericInBucket(mht, mris,
+                                                    probex_vox + xv,
+                                                    probey_vox + yv,
+                                                    probez_vox + zv,
+                                                    probex, probey, probez,
+                                                    &MinDistFace,
+                                                    &MinDistFaceNum,
+                                                    &MinDistSq) ;
+
+          central27[xv+1][yv+1][zv+1] = 1;
+        }
+      }
+    }
+  }
+
+  //--------------------------------------------------
+  // Continue with further-away voxels
+  // "RVox" roughly "radius in voxel units"
+  //  max_mhts     RVox      box dims
+  //      0        prev      2 x 2 x 2
+  //      1        prev      3 x 3 x 3
+  //      2         2        5 x 5 x 5
+  //      3         3        7 x 7 x 7
+  //      4         4        9 x 9 x 9 etc -- obviously getting slow!
+  //--------------------------------------------------
+
+  for (RVox = 2; RVox <= max_mhts; RVox++)
+  {
+    //----------------------------------------------------------------------
+    // We can stop now if found vertex's distance is<(1.0 x (RVox-1) x mhtres),
+    // because all other voxels are at at least that far away
+    //----------------------------------------------------------------------
+    RemainingVoxelDistance = (mhtres * (RVox-1));
+
+    if (MinDistFace)
+    { // not NULL if one has been found)
+      MinDistTemp = sqrt(MinDistSq);
+      if (MinDistTemp <= RemainingVoxelDistance)
+        goto done;
+    }
+    if (max_distance_mm <= RemainingVoxelDistance)
+      goto done;
+
+    //-------------------------------------------------
+    // Inspect "shell" of voxels
+    //-------------------------------------------------
+    WallJump =
+    RVox + RVox; // jump from one side to the other across the empty middle
+    for     (xv  = -RVox; xv <= RVox; xv++)
+    {
+      for   (yv  = -RVox; yv <= RVox; yv++)
+      {
+        isWall =  ( (xv == -RVox) || (xv == RVox) )
+          || ( (yv == -RVox) || (yv == RVox) );
+        for (zv  = -RVox; zv <= RVox; zv = isWall ? zv+1 : zv + WallJump)
+        {
+
+          mhtfindClosestFaceCentroidGenericInBucket(mht, mris,
+                                                    probex_vox + xv,
+                                                    probey_vox + yv,
+                                                    probez_vox + zv,
+                                                    probex, probey, probez,
+                                                    &MinDistFace,
+                                                    &MinDistFaceNum,
+                                                    &MinDistSq) ;
+        } // zv
+      } // yv
+    } // xv
+  } // RVox
+
+  done:
+  MinDistTemp = 1e3;
+
+  //--------------------------------------------
+  // Enforce not returning a vertex if it's outside
+  // max_distance_mm.
+  //--------------------------------------------
+  if (MinDistFace)
+  {
+    MinDistTemp = sqrt(MinDistSq);
+    if (MinDistTemp > max_distance_mm)
+    { // Legit vertex not found, so set "not-found" values
+      MinDistFace     = NULL;
+      MinDistFaceNum  = -1;
+      MinDistTemp     = 1e3;
+    }
+  }
+
+  // Copy to output
+  if (pface)           *pface         = MinDistFace;
+  if (pfno)            *pfno          = MinDistFaceNum;
+  if (pface_distance)  *pface_distance = MinDistTemp;
+
+  return NO_ERROR;
+}
 
 /*----------------------------------------------------------------
   MHTfindClosestVertex
@@ -1647,6 +2037,35 @@ VERTEX * MHTfindClosestVertex(MRIS_HASH_TABLE *mht,
                                      &vtx, NULL, NULL);
 
   return vtx;
+}
+
+/*----------------------------------------------------------------
+  MHTfindClosestVertex
+  Returns index of face whose centroid is closest to the specified vertex
+  -----------------------------------------------------------------*/
+FACE *MHTfindClosestFaceToVertex(MRIS_HASH_TABLE *mht, 
+                                 MRI_SURFACE *mris, 
+                                 VERTEX *v)
+{
+//------------------------------------------------------
+  FACE  *face ;
+  int   rslt;
+  float x=0.0, y=0.0, z=0.0;
+
+  mhtFindCommonSanityCheck(mht, mris);
+
+  //---------------------------------
+  // Generic find
+  //---------------------------------
+  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);
+
+  rslt = MHTfindClosestFaceGeneric(mht, mris,
+                                   x, y, z,
+                                   1000,
+                                   1,  // max_mhts: search out to 3 x 3 x 3
+                                   &face, NULL, NULL);
+
+  return face;
 }
 
 /*---------------------------------------------------------------------
@@ -1915,6 +2334,46 @@ int mhtBruteForceClosestVertex(MRI_SURFACE *mris,
 
   return(min_v) ;
 }
+/*------------------------------------------------------------
+  mhtBruteForceClosestFace
+  Finds closest vertex by exhaustive search of surface. This is
+  useful as a fallback for other functions. (As of 2007-07-30,
+  it's being introduced only to MHTfindClosestVertexSet so far.)  
+  ------------------------------------------------------------*/
+int mhtBruteForceClosestFace(MRI_SURFACE *mris, 
+                             float x, float y, float z, 
+                             int which,                  // which surface within mris to search
+                             float *dmin)
+{
+  int    fno, min_f = -1 ;
+  FACE   *face ;
+  float  dsq, min_dsq;   //  Work with squares, avoid square root operation
+  float tryx=0.0, tryy=0.0, tryz=0.0, dx, dy, dz ;
+
+  min_dsq = 1e8;
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    mhtFaceCentroid2xyz_float(mris, face, which, &tryx, &tryy, &tryz);  
+
+
+    dx = tryx - x ;
+    dy = tryy - y ;
+    dz = tryz - z ;
+    
+    dsq = dx*dx + dy*dy + dz*dz ;  // squared distance is fine for detecting min
+    if (dsq < min_dsq)
+    {
+      min_dsq = dsq ;
+      min_f = fno ;
+    }
+  }
+  if (dmin != NULL)
+    *dmin = sqrt(min_dsq);
+
+  return(min_f) ;
+}
 
 
 //=================================================================
@@ -1958,6 +2417,23 @@ int MHTfree(MRIS_HASH_TABLE **pmht)
   }
   free(mht) ;
   return(NO_ERROR) ;
+}
+
+static void mhtFaceCentroid2xyz_float (MRI_SURFACE *mris,
+                                       FACE * face,
+                                       int which,
+                                       float  *px, float  *py, float  *pz)
+{
+  float    x, y, z, xt, yt, zt ;
+  int      n ;
+
+  for (xt = yt = zt = 0.0, n = 0 ; n < VERTICES_PER_FACE ; n++)
+  {
+    mhtVertex2xyz_float(&mris->vertices[face->v[n]], which, &x, &y, &z);
+    xt += x; yt += y ; zt += z ;
+  }
+  xt /= VERTICES_PER_FACE ;  yt /= VERTICES_PER_FACE ;  zt /= VERTICES_PER_FACE ; 
+  *px = xt ; *py = yt ; *pz = zt ;
 }
 
 //---------------------------------------------
