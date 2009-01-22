@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2009/01/05 18:42:55 $
-#    $Revision: 1.426 $
+#    $Author: fischl $
+#    $Date: 2009/01/22 02:45:43 $
+#    $Revision: 1.427 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2923,6 +2923,7 @@ AC_OUTPUT([Makefile
            mris_shrinkwrap/Makefile
            mris_show/Makefile
            mris_smooth/Makefile
+           mris_make_face_parcellation/Makefile
            mris_sphere/Makefile
            mris_spherical_average/Makefile
            mris_average_parcellation/Makefile

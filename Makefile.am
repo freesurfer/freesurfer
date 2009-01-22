@@ -233,6 +233,7 @@ MRISSUBDIRS=\
 	mris_segment_vals \
 	mris_seg2annot \
 	mris_smooth \
+	mris_make_face_parcellation \
 	mris_sphere \
 	mris_spherical_average \
 	mris_average_parcellation \
