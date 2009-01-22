@@ -1,15 +1,16 @@
 /**
  * @file  mris_thickness.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program for computing thickness of the cerebral cortex from 
+ *  previously generated surfaces
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * See (Fischl and Dale, 2000, PNAS)
  */
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/09/17 00:44:24 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/01/22 02:47:49 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,8 +42,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "version.h"
+#include "icosahedron.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.14 2007/09/17 00:44:24 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.15 2009/01/22 02:47:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,8 +63,11 @@ static int write_vertices = 0 ;
 static int nbhd_size = 2 ;
 static float max_thick = 5.0 ;
 static char *osurf_fname = NULL ;
+static char *sphere_name = "sphere" ;
 static int signed_dist = 0 ;
 static char sdir[STRLEN] = "" ;
+static int new_thick = 0 ;
+static INTEGRATION_PARMS parms ;
 
 int
 main(int argc, char *argv[]) {
@@ -71,7 +76,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.14 2007/09/17 00:44:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.15 2009/01/22 02:47:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -79,6 +84,14 @@ main(int argc, char *argv[]) {
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+
+  // for variational thickness estimation
+  parms.dt = 0.2 ;
+  parms.momentum = .5;
+  parms.l_nlarea = 1 ;
+  parms.l_thick_min = 1 ;
+  parms.l_thick_parallel = 1;
+  parms.tol = 1e-1 ;
 
   ac = argc ;
   av = argv ;
@@ -132,7 +145,74 @@ main(int argc, char *argv[]) {
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
   fprintf(stderr, "measuring gray matter thickness...\n") ;
 
-  if (write_vertices) {
+  if (new_thick)
+  {
+    char              *cp, surf_fname[STRLEN], fname[STRLEN] ; ;
+    MRI_SURFACE       *mris_ico ;
+    
+    if (parms.base_name[0] == 0) {
+      
+      FileNameOnly(out_fname, fname) ;
+      cp = strchr(fname, '.') ;
+      if (cp)
+        strcpy(parms.base_name, cp+1) ;
+      else
+        strcpy(parms.base_name, "sphere") ;
+      cp = strrchr(parms.base_name, '.') ;
+      if (cp)
+        *cp = 0 ;
+    }
+
+    MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+    if (MRISreadVertexPositions(mris, sphere_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, sphere_name) ;
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+
+    // read in icosahedron data (highly tessellated one)
+    cp = getenv("FREESURFER_HOME");
+    if (cp == NULL)
+      ErrorExit(ERROR_BADPARM, "%s: FREESURFER_HOME not defined in environment", cp) ;
+    sprintf(surf_fname,"%s/lib/bem/ic7.tri",cp);
+    mris_ico = MRISread(surf_fname) ;
+    if (!mris_ico)
+      ErrorExit(ERROR_NOFILE, "%s: could not open surface file %s",Progname, surf_fname) ;
+    MRISscaleBrain(mris_ico, mris_ico, mris->radius/mris_ico->radius) ;
+    MRISsaveVertexPositions(mris_ico, CANONICAL_VERTICES) ;
+
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char tmp[STRLEN] ;
+      FileNameRemoveExtension(out_fname, tmp) ;
+      
+      sprintf(fname, "%s.correspondence.init", tmp) ;
+      printf("writing initial correspondences to %s\n", fname) ;
+      MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+      MRIScomputeMetricProperties(mris) ;
+      MRISwrite(mris, fname) ;
+
+      MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+      MRIScomputeMetricProperties(mris) ;
+    }
+    MRISminimizeThicknessFunctional(mris, &parms, max_thick, mris_ico) ;
+
+    if (Gdiag & DIAG_WRITE)
+    {
+      char tmp[STRLEN] ;
+      FileNameRemoveExtension(out_fname, tmp) ;
+      
+      sprintf(fname, "%s.correspondence.final", tmp) ;
+      printf("writing final correspondences to %s\n", fname) ;
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+      MRIScomputeMetricProperties(mris) ;
+      MRISwrite(mris, fname) ;
+    }
+      
+  }
+  else if (write_vertices) {
     MRISfindClosestOrigVertices(mris, nbhd_size) ;
   } else {
     MRISmeasureCorticalThickness(mris, nbhd_size, max_thick) ;
@@ -173,6 +253,22 @@ get_option(int argc, char *argv[]) {
     strcpy(sdir, argv[2]) ;
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "THICK_PARALLEL")) {
+    parms.l_thick_parallel = atof(argv[2]) ;
+    printf("using parallel thickness coefficient %2.3f\n", parms.l_thick_parallel);
+    nargs = 1 ;
+  } else if (!stricmp(option, "THICK_MIN")) {
+    parms.l_thick_min = atof(argv[2]) ;
+    printf("using min length thickness coefficient %2.3f\n", parms.l_thick_min);
+    nargs = 1 ;
+  } else if (!stricmp(option, "DT")) {
+    parms.dt = atof(argv[2]) ;
+    printf("using time step %2.3f\n", parms.dt);
+    nargs = 1 ;
+  } else if (!stricmp(option, "tol")) {
+    parms.tol = atof(argv[2]) ;
+    printf("using tol %e\n", parms.tol);
+    nargs = 1 ;
   } else if (!stricmp(option, "white")) {
     strcpy(white_name, argv[2]) ;
     fprintf(stderr,  "reading white matter surface from file named %s\n", white_name) ;
@@ -187,12 +283,25 @@ get_option(int argc, char *argv[]) {
     signed_dist = 0 ;
     fprintf(stderr,  "measuring distance between input surface and %s\n", osurf_fname) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "new")) {
+    new_thick = 1 ;
+    fprintf(stderr,  "using variational thickness measurement\n") ;
   } else if (!stricmp(option, "nsurf")) {
     osurf_fname = argv[2] ;
     signed_dist = 1 ;
     fprintf(stderr,  "measuring signed distance between input surface and %s\n", osurf_fname) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "vno")) {
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,  "debugging vertex %d\n", Gdiag_no) ;
   } else switch (toupper(*option)) {
+  case 'W':
+    parms.write_iterations = atoi(argv[2]) ;
+    nargs = 1 ;
+    Gdiag |= DIAG_WRITE ;
+    printf("setting write iterations to %d\n", parms.write_iterations) ;
+    break ;
     case 'V':
       write_vertices = 1 ;
       printf("writing vertex correspondences instead of thickness\n") ;
@@ -201,6 +310,11 @@ get_option(int argc, char *argv[]) {
     case 'N':
       nbhd_size = atoi(argv[2]) ;
       fprintf(stderr, "using neighborhood size=%d\n", nbhd_size) ;
+      nargs = 1 ;
+      break ;
+    case 'M':
+      parms.momentum = atof(argv[2]) ;
+      fprintf(stderr, "using momentum %2.3f\n", parms.momentum) ;
       nargs = 1 ;
       break ;
     case '?':
@@ -246,42 +360,5 @@ static void
 print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
-}
-
-#include "mrishash.h"
-#define MAX_DIST 10
-int
-MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist) {
-  int    vno ;
-  VERTEX *v1, *v2 ;
-  MRIS_HASH_TABLE *mht ;
-  double           dx, dy, dz ;
-
-  mht = MHTfillVertexTableRes(mris2, NULL, CURRENT_VERTICES, MAX_DIST) ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    v1 = &mris->vertices[vno] ;
-    if (v1->ripflag)
-      continue ;
-    v2 = MHTfindClosestVertex(mht, mris2, v1) ;
-    if (v2 == NULL) {
-      v1->curv = MAX_DIST ;
-      continue ;
-    }
-    dx = v1->x-v2->x ;
-    dy = v1->y-v2->y ;
-    dz = v1->z-v2->z ;
-    v1->curv = sqrt(dx*dx + dy*dy + dz*dz) ;
-    if (signed_dist) {
-      double dot ;
-
-      dot = dx*v1->nx + dy*v1->ny + dz*v1->nz ;
-      if (dot < 0)
-        v1->curv *= -1 ;
-    }
-  }
-
-  MHTfree(&mht) ;
-  return(NO_ERROR) ;
 }
 
