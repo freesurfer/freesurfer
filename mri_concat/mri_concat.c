@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/15 15:51:35 $
- *    $Revision: 1.20.2.5 $
+ *    $Date: 2009/01/22 15:58:32 $
+ *    $Revision: 1.20.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.20.2.5 2008/07/15 15:51:35 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.20.2.6 2009/01/22 15:58:32 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -91,6 +91,13 @@ int DoAdd=0;
 double AddVal=0;
 int DoBonfCor=0;
 int DoAbs = 0;
+int DoPos = 0;
+int DoNeg = 0;
+
+char *matfile = NULL;
+MATRIX *M = NULL;
+int ngroups = 0;
+MATRIX *GroupedMeanMatrix(int ngroups, int ntotal);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -150,9 +157,23 @@ int main(int argc, char **argv) {
     MRIfree(&mritmp);
   }
 
-  if (DoCombine) nframestot = 1; // combine creates a single-frame volume
-
+  if(DoCombine) nframestot = 1; // combine creates a single-frame volume
   printf("nframestot = %d\n",nframestot);
+
+  if(ngroups != 0){
+    printf("Creating grouped mean matrix ngroups=%d, nper=%d\n",ngroups,nframestot/ngroups);
+    M = GroupedMeanMatrix(ngroups,nframestot);
+    if(M==NULL) exit(1);
+    if(debug) MatrixPrint(stdout,M);
+  }
+
+  if(M != NULL){
+    if(nframestot != M->cols){
+      printf("ERROR: dimension mismatch between inputs (%d) and matrix (%d)\n",
+	     nframestot,M->rows);
+      exit(1);
+    }
+  }
 
   if (DoPaired) {
     if (remainder(nframestot,2) != 0) {
@@ -182,6 +203,14 @@ int main(int argc, char **argv) {
       if(Gdiag_no > 0 || debug) printf("Removing sign from input\n");
       MRIabs(mritmp,mritmp);
     }
+    if(DoPos) {
+      if(Gdiag_no > 0 || debug) printf("Setting input negatives to 0.\n");
+      MRIpos(mritmp,mritmp);
+    }
+    if(DoNeg) {
+      if(Gdiag_no > 0 || debug) printf("Setting input positives to 0.\n");
+      MRIneg(mritmp,mritmp);
+    }
     for(f=0; f < mritmp->nframes; f++) {
       for(c=0; c < nc; c++) {
         for(r=0; r < nr; r++) {
@@ -197,6 +226,14 @@ int main(int argc, char **argv) {
       fout++;
     }
     MRIfree(&mritmp);
+  }
+
+  if(M != NULL){
+    printf("Multiplying by matrix\n");
+    mritmp = fMRImatrixMultiply(mriout, M, NULL);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&mriout);
+    mriout = mritmp;
   }
 
 
@@ -321,7 +358,6 @@ int main(int argc, char **argv) {
   err = MRIwrite(mriout,out);
   if(err) exit(err);
 
-
   return(0);
 }
 /*-----------------------------------------------------------------*/
@@ -355,6 +391,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
     else if (!strcasecmp(option, "--var"))    DoVar = 1;
     else if (!strcasecmp(option, "--abs"))    DoAbs = 1;
+    else if (!strcasecmp(option, "--pos"))    DoPos = 1;
+    else if (!strcasecmp(option, "--neg"))    DoNeg = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--max-index")) DoMaxIndex = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
@@ -398,11 +436,25 @@ static int parse_commandline(int argc, char **argv) {
       inlist[ninputs] = pargv[0];
       ninputs ++;
       nargsused = 1;
-    } else if ( !strcmp(option, "--o") ) {
+    } 
+    else if ( !strcmp(option, "--mtx") ) {
+      if (nargc < 1) argnerr(option,1);
+      matfile = pargv[0];
+      M = MatrixReadTxt(matfile, NULL);
+      if(M==NULL) exit(1);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--gmean") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&ngroups);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--o") ) {
       if (nargc < 1) argnerr(option,1);
       out = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--mask") ) {
+    } 
+    else if ( !strcmp(option, "--mask") ) {
       if (nargc < 1) argnerr(option,1);
       maskfile = pargv[0];
       nargsused = 1;
@@ -447,11 +499,15 @@ static void print_usage(void) {
   printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
   printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
   printf("   --paired-diff-norm2 : same as paired-diff but scale by TP2 \n");
+  printf("   --mtx matrix.asc    : multiply by matrix in ascii file\n");
+  printf("   --gmean Ng          : create matrix to average Ng groups, Nper=Ntot/Ng\n");
   printf("\n");
   printf("   --combine : combine non-zero values into a one-frame volume\n");
   printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
   printf("\n");
   printf("   --abs  : take abs of input\n");
+  printf("   --pos  : set input negatives to 0\n");
+  printf("   --neg  : set input postives to 0\n");
   printf("   --mean : compute mean of concatenated volumes\n");
   printf("   --mean2 : compute sum/(nframes.^2) \n");
   printf("   --sum  : compute sum of concatenated volumes\n");
@@ -540,6 +596,11 @@ static void check_options(void) {
     printf("ERROR: cannot compute std and var, you bonehead.\n");
     exit(1);
   }
+  if(DoAbs + DoPos + DoNeg > 1){
+    printf("ERROR: do not use more than one of --abs, --pos, --neg\n");
+    exit(1);
+  }
+
 
   return;
 }
@@ -548,14 +609,23 @@ static void check_options(void) {
 static void dump_options(FILE *fp) {
   return;
 }
-/*---------------------------------------------------------------*/
-#if 0
-static int singledash(char *flag) {
-  int len;
-  len = strlen(flag);
-  if (len < 2) return(0);
 
-  if (flag[0] == '-' && flag[1] != '-') return(1);
-  return(0);
+MATRIX *GroupedMeanMatrix(int ngroups, int ntotal)
+{
+  int nper,r,c;
+  MATRIX *M;
+
+  nper = ntotal/ngroups;
+  if(nper*ngroups != ntotal){
+    printf("ERROR: --gmean, Ng must be integer divisor of Ntotal\n");
+    return(NULL);
+  }
+
+  M = MatrixAlloc(nper,ntotal,MATRIX_REAL);
+  for(r=1; r <= nper; r++){
+    for(c=r; c <= ntotal; c += nper)
+      M->rptr[r][c] = 1.0/ngroups;
+  }
+  return(M);
 }
-#endif
+
