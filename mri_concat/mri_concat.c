@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/09/09 16:50:33 $
- *    $Revision: 1.31 $
+ *    $Date: 2009/01/22 16:02:38 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.31 2008/09/09 16:50:33 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.32 2009/01/22 16:02:38 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -67,7 +67,7 @@ char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
 char *maskfile = NULL;
 int DoMean=0;
-int DoMean2=0;
+int DoMeanDivN=0;
 int DoSum=0;
 int DoVar=0;
 int DoStd=0;
@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
     MRIfree(&mriout);
     mriout = mritmp;
   }
-  if(DoMean2) {
+  if(DoMeanDivN) {
     printf("Computing mean2 = sum/(nframes^2)\n");
     mritmp = MRIframeSum(mriout,NULL);
     MRIfree(&mriout);
@@ -386,7 +386,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
-    else if (!strcasecmp(option, "--mean2"))  DoMean2 = 1;
+    else if (!strcasecmp(option, "--mean-div-n")) DoMeanDivN = 1;
+    else if (!strcasecmp(option, "--mean2"))      DoMeanDivN = 1;
     else if (!strcasecmp(option, "--sum"))    DoSum = 1;
     else if (!strcasecmp(option, "--std"))    DoStd = 1;
     else if (!strcasecmp(option, "--var"))    DoVar = 1;
@@ -509,7 +510,7 @@ static void print_usage(void) {
   printf("   --pos  : set input negatives to 0\n");
   printf("   --neg  : set input postives to 0\n");
   printf("   --mean : compute mean of concatenated volumes\n");
-  printf("   --mean2 : compute sum/(nframes.^2) \n");
+  printf("   --mean-div-n : compute mean/nframes (good for var) \n");
   printf("   --sum  : compute sum of concatenated volumes\n");
   printf("   --var  : compute var  of concatenated volumes\n");
   printf("   --std  : compute std  of concatenated volumes\n");
