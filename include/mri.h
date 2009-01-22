@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/21 21:46:17 $
- *    $Revision: 1.347.2.3 $
+ *    $Author: greve $
+ *    $Date: 2009/01/22 15:56:42 $
+ *    $Revision: 1.347.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -317,6 +317,8 @@ int   MRIdumpBuffer(MRI *mri, FILE *fp) ;
 /* arithmetic operations */
 MRI   *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+MRI   *MRIpos(MRI *mri_src, MRI *mri_dst);
+MRI   *MRIneg(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIaddScalar(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIaverage(MRI *mri_src, int dof, MRI *mri_dst) ;
