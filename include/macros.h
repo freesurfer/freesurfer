@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/01/24 22:24:52 $
- *    $Revision: 1.35 $
+ *    $Author: fischl $
+ *    $Date: 2009/01/22 12:20:57 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -135,4 +135,19 @@
 #define GCC_VERSION (__GNUC__ * 10000 \
                      + __GNUC_MINOR__ * 100 \
                      + __GNUC_PATCHLEVEL__)
+// from Graham Wideman:
+// __func__ in gcc appears not to be a predefined macro that can be
+// tested and also glued to string literals. Instead we have to use
+// printf-style
+#define __MYFUNCTION__ __func__
+
+#ifdef  __FUNCTION__
+#undef  __MYFUNCTION__
+#define __MYFUNCTION__  __FUNCTION__
+#endif
+
+#ifdef  __FUNC__
+#undef  __MYFUNCTION__
+#define __MYFUNCTION__  __FUNC__
+#endif
 #endif
