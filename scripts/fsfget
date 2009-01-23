@@ -1,5 +1,5 @@
 #!/bin/sh
-# $Id: fsfget,v 1.2.2.1 2008/03/11 19:56:37 nicks Exp $
+# $Id: fsfget,v 1.2.2.2 2009/01/23 04:58:25 greve Exp $
 # fsfget - extract params from fsl/feat design.fsf file
 # 
 # Elements of the fmri() struct
@@ -25,9 +25,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/03/11 19:56:37 $
-#    $Revision: 1.2.2.1 $
+#    $Author: greve $
+#    $Date: 2009/01/23 04:58:25 $
+#    $Revision: 1.2.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -62,8 +62,19 @@ source $fsf
 
 # Extract params for those not in the fmri() struct 
 if { ! [ string compare $param "feat_files" ] } {
- puts "$feat_files(1)";
- exit 0;
+  # Print out all feat files
+  set nfiles [array size feat_files ]
+  set n 0;
+  while {$n < $nfiles} {
+    incr n;
+    puts $feat_files($n)
+  }
+  exit 0;
+}
+if { ! [ string compare $param "feat_file1" ] } {
+  # Print out first feat file
+  puts "$feat_files(1)";
+  exit 0;
 }
 
 # If it gets here, then param must be in the fmri() struct.
