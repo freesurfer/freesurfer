@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/20 19:54:56 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/01/23 23:00:35 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -237,6 +237,7 @@ bool FSSurface::LoadCurvature( const char* filename )
 		}
 		m_polydata->GetPointData()->SetScalars( curvs );
 		m_bCurvatureLoaded = true;
+		
 		return true;
 	}
 }

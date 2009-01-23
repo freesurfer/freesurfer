@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/15 19:28:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/01/23 23:00:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 #include <wx/wx.h>
 #include "Listener.h"
 #include "Broadcaster.h"
-
+#include <vector>
 
 class wxAuiNotebook;
 class wxListBox;
@@ -38,6 +38,7 @@ class wxColourPickerCtrl;
 class wxColourPickerEvent;
 class wxSpinCtrl;
 class wxSpinEvent;
+class wxTextCtrl;
 class Layer;
 
 class PanelSurface : public wxPanel, public Listener, public Broadcaster
@@ -70,9 +71,19 @@ private:
 	void OnChoiceVector			( wxCommandEvent& event );
 	void OnVectorColorChanged	( wxColourPickerEvent& event );
 	void OnSpinVectorPointSize	( wxSpinEvent& event );
+
+	void OnChoiceCurvatureMap	( wxCommandEvent& evet );
+	void OnSliderMidPoint		( wxScrollEvent& event );
+	void OnSliderSlope			( wxScrollEvent& event );
+	void OnSliderMidPointChanging		( wxScrollEvent& event );
+	void OnSliderSlopeChanging			( wxScrollEvent& event );
+	void OnTextMidPoint			( wxCommandEvent& event );
+	void OnTextSlope			( wxCommandEvent& event );
 	
 	void DoUpdateUI();
 	
+	void UpdateTextValue( wxTextCtrl* ctrl, double dvalue );
+			
 	void UpdateLayerList( Layer* layer );
 				
 	virtual void DoListenToMessage( std::string const iMsg, void* iData );
@@ -95,6 +106,16 @@ private:
 	wxChoice*		m_choiceVector;
 	wxColourPickerCtrl*		m_colorPickerVector;
 	wxSpinCtrl*		m_spinVectorPointSize;
+
+	wxChoice*		m_choiceCurvatureMap;
+	wxSlider*		m_sliderMidPoint;
+	wxTextCtrl*		m_textMidPoint;
+	wxSlider*		m_sliderSlope;
+	wxTextCtrl*			m_textSlope;
+
+	std::vector<wxWindow*>	m_widgetsMidPoint;
+	std::vector<wxWindow*>	m_widgetsSlope;
+	std::vector<wxWindow*>	m_widgetsVector;
 
 	bool			m_bUINeedUpdate;
     

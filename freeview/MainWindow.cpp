@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/15 19:28:58 $
- *    $Revision: 1.35 $
+ *    $Date: 2009/01/23 23:00:35 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -122,18 +122,6 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     EVT_UPDATE_UI	( XRCID( "ID_MODE_ROI_EDIT" ),			MainWindow::OnModeROIEditUpdateUI )  
     EVT_MENU		( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),	MainWindow::OnModeWayPointsEdit )  
     EVT_UPDATE_UI	( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),	MainWindow::OnModeWayPointsEditUpdateUI ) 
-    EVT_MENU		( XRCID( "ID_ACTION_ROI_FREEHAND" ),	MainWindow::OnActionROIFreehand )
-    EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_FREEHAND" ),	MainWindow::OnActionROIFreehandUpdateUI )
-    EVT_MENU		( XRCID( "ID_ACTION_ROI_FILL" ),		MainWindow::OnActionROIFill )
-    EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_FILL" ),		MainWindow::OnActionROIFillUpdateUI )
-    EVT_MENU		( XRCID( "ID_ACTION_ROI_POLYLINE" ),	MainWindow::OnActionROIPolyline )
-    EVT_UPDATE_UI	( XRCID( "ID_ACTION_ROI_POLYLINE" ),	MainWindow::OnActionROIPolylineUpdateUI )
-    EVT_MENU		( XRCID( "ID_ACTION_VOXEL_FREEHAND" ),	MainWindow::OnActionVoxelFreehand )
-    EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_FREEHAND" ),	MainWindow::OnActionVoxelFreehandUpdateUI )
-    EVT_MENU		( XRCID( "ID_ACTION_VOXEL_FILL" ),		MainWindow::OnActionVoxelFill )
-    EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_FILL" ),		MainWindow::OnActionVoxelFillUpdateUI )
-    EVT_MENU		( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),	MainWindow::OnActionVoxelPolyline )
-    EVT_UPDATE_UI	( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),	MainWindow::OnActionVoxelPolylineUpdateUI )
     EVT_MENU		( XRCID( "ID_EDIT_COPY" ),				MainWindow::OnEditCopy )
     EVT_UPDATE_UI	( XRCID( "ID_EDIT_COPY" ),				MainWindow::OnEditCopyUpdateUI )
     EVT_MENU		( XRCID( "ID_EDIT_PASTE" ),				MainWindow::OnEditPaste )
@@ -200,10 +188,12 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     
     EVT_MENU		( XRCID( "ID_HELP_QUICK_REF" ),			MainWindow::OnHelpQuickReference )
     EVT_MENU		( XRCID( "ID_HELP_ABOUT" ),				MainWindow::OnHelpAbout )
-/*    EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
+/*
+	EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
 	EVT_IDLE		(MainWindow::OnIdle)
 	EVT_MENU		(XRCID("ID_EVENT_LOAD_DATA"),	MainWindow::OnWorkerEventLoadData)
-	EVT_MENU		(XRCID("ID_EVENT_CALCULATE_MATRIX"),	MainWindow::OnWorkerEventCalculateMatrix)*/	
+	EVT_MENU		(XRCID("ID_EVENT_CALCULATE_MATRIX"),	MainWindow::OnWorkerEventCalculateMatrix)
+*/
 
 	EVT_MENU		( ID_WORKER_THREAD,						MainWindow::OnWorkerThreadResponse )
 	EVT_SPINCTRL	( XRCID( "ID_SPIN_BRUSH_SIZE" ),		MainWindow::OnSpinBrushSize )
@@ -1172,88 +1162,6 @@ void MainWindow::SetAction( int nAction )
 	m_viewCoronal->SetAction( nAction );
 	m_viewSagittal->SetAction( nAction );
 	UpdateToolbars();
-}
-
-void MainWindow::OnActionROIFreehand( wxCommandEvent& event )
-{
-	SetAction( Interactor2DROIEdit::EM_Freehand );
-}
-
-void MainWindow::OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event)
-{
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
-			&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Freehand );
-	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
-					&& m_layerCollectionManager->HasLayer( "ROI" ) );
-}
-
-void MainWindow::OnActionROIFill( wxCommandEvent& event )
-{
-	SetAction( Interactor2DROIEdit::EM_Fill );
-}
-
-void MainWindow::OnActionROIFillUpdateUI( wxUpdateUIEvent& event)
-{
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
-			&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-	
-	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
-			&& m_layerCollectionManager->HasLayer( "ROI" ) );
-}
-
-void MainWindow::OnActionROIPolyline( wxCommandEvent& event )
-{
-	SetAction( Interactor2DROIEdit::EM_Polyline );
-}
-
-void MainWindow::OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event)
-{
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
-			&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Polyline );
-	
-	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit 
-			&& m_layerCollectionManager->HasLayer( "ROI" ) );
-}
-
-void MainWindow::OnActionVoxelFreehand( wxCommandEvent& event )
-{
-	SetAction( Interactor2DVoxelEdit::EM_Freehand );
-}
-
-void MainWindow::OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event)
-{
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
-			&& m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Freehand );
-	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
-			&& m_layerCollectionManager->HasLayer( "MRI" ) );
-}
-
-void MainWindow::OnActionVoxelFill( wxCommandEvent& event )
-{
-	SetAction( Interactor2DVoxelEdit::EM_Fill );
-}
-
-void MainWindow::OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event)
-{
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
-			&& m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Fill );
-	
-	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
-			&& m_layerCollectionManager->HasLayer( "MRI" ) );
-}
-
-void MainWindow::OnActionVoxelPolyline( wxCommandEvent& event )
-{
-	SetAction( Interactor2DVoxelEdit::EM_Polyline );
-}
-
-void MainWindow::OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event)
-{
-	event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
-			&& m_viewAxial->GetAction() == Interactor2DVoxelEdit::EM_Polyline );
-	
-	event.Enable( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit 
-			&& m_layerCollectionManager->HasLayer( "MRI" ) );
 }
 
 void MainWindow::OnEditUndo( wxCommandEvent& event )

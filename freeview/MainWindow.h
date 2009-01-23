@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/13 21:48:48 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/01/23 23:00:35 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -159,20 +159,7 @@ public:
 	void OnModeROIEditUpdateUI	( wxUpdateUIEvent& event);
 	void OnModeWayPointsEdit			( wxCommandEvent& event );
 	void OnModeWayPointsEditUpdateUI	( wxUpdateUIEvent& event);
-	
-	void OnActionVoxelFreehand	( wxCommandEvent& event );
-	void OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event );
-	void OnActionVoxelFill		( wxCommandEvent& event );
-	void OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event );
-	void OnActionVoxelPolyline	( wxCommandEvent& event );
-	void OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event );
-	void OnActionROIFreehand	( wxCommandEvent& event );
-	void OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event );
-	void OnActionROIFill		( wxCommandEvent& event );
-	void OnActionROIFillUpdateUI( wxUpdateUIEvent& event );
-	void OnActionROIPolyline	( wxCommandEvent& event );
-	void OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event );
-	
+
 	void OnEditCopy( wxCommandEvent& event );
 	void OnEditCopyUpdateUI( wxUpdateUIEvent& event );
 	void OnEditPaste( wxCommandEvent& event );

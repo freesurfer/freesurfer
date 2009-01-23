@@ -157,6 +157,10 @@ freeview_SOURCES=\
 	wxColorIndicator.h \
 	wxColorIndicatorXmlHandler.cpp \
 	wxColorIndicatorXmlHandler.h \
+	wxHistogramWidget.cpp \
+	wxHistogramWidget.h \
+	wxHistogramWidgetXmlHandler.cpp \
+	wxHistogramWidgetXmlHandler.h \
 	wxVTKRenderWindowInteractor.cpp \
 	wxVTKRenderWindowInteractor.h \
 	res/resource.cpp \

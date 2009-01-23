@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/15 19:28:58 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/01/23 23:00:35 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -266,7 +266,7 @@ void LayerSurface::UpdateColorMap()
 		m_sliceActor3D[i]->GetMapper()->ScalarVisibilityOff();
 	}
 	
-	m_mainActor->GetProperty()->SetColor( mProperties->GetColor() );
+	m_mainActor->GetProperty()->SetColor( mProperties->GetBinaryColor() );
 	m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
 	if ( m_surfaceSource->IsCurvatureLoaded() )
 	{

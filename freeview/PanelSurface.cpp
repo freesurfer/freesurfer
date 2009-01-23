@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/20 19:54:56 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/01/23 23:00:35 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,18 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
 	EVT_CHOICE			( XRCID( wxT( "ID_CHOICE_VECTORS" ) ), 			PanelSurface::OnChoiceVector )
 	EVT_SPINCTRL		( XRCID( wxT( "ID_SPIN_VECTOR_POINT_SIZE" ) ),	PanelSurface::OnSpinVectorPointSize )
 	EVT_COLOURPICKER_CHANGED	( XRCID( wxT( "ID_COLOR_PICKER_VECTOR" ) ), 	PanelSurface::OnVectorColorChanged )
+
+	EVT_CHOICE			( XRCID( wxT( "ID_CHOICE_CURVATURE_MAP" ) ),			PanelSurface::OnChoiceCurvatureMap )
+	EVT_COMMAND_SCROLL_THUMBTRACK	( XRCID( wxT( "ID_SLIDER_MID_POINT" ) ),	PanelSurface::OnSliderMidPointChanging )
+	EVT_COMMAND_SCROLL_THUMBTRACK	( XRCID( wxT( "ID_SLIDER_SLOPE" ) ),		PanelSurface::OnSliderSlopeChanging )
+	EVT_COMMAND_SCROLL_PAGEDOWN		( XRCID( wxT( "ID_SLIDER_MID_POINT" ) ),		PanelSurface::OnSliderMidPoint )
+	EVT_COMMAND_SCROLL_PAGEDOWN		( XRCID( wxT( "ID_SLIDER_SLOPE" ) ),			PanelSurface::OnSliderSlope )
+	EVT_COMMAND_SCROLL_PAGEUP		( XRCID( wxT( "ID_SLIDER_MID_POINT" ) ),		PanelSurface::OnSliderMidPoint )
+	EVT_COMMAND_SCROLL_PAGEUP		( XRCID( wxT( "ID_SLIDER_SLOPE" ) ),			PanelSurface::OnSliderSlope )
+	EVT_COMMAND_SCROLL_THUMBRELEASE	( XRCID( wxT( "ID_SLIDER_MID_POINT" ) ),	PanelSurface::OnSliderMidPoint )
+	EVT_COMMAND_SCROLL_THUMBRELEASE	( XRCID( wxT( "ID_SLIDER_SLOPE" ) ),		PanelSurface::OnSliderSlope )
+	EVT_TEXT_ENTER		( XRCID( wxT( "ID_TEXT_SLOPE" ) ),				PanelSurface::OnTextSlope )
+	EVT_TEXT_ENTER		( XRCID( wxT( "ID_TEXT_MID_POINT" ) ),			PanelSurface::OnTextMidPoint )
 END_EVENT_TABLE()
 
 
@@ -86,6 +98,27 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
 	m_choiceVector			= XRCCTRL( *this, "ID_CHOICE_VECTORS", wxChoice );
 	m_colorPickerVector		= XRCCTRL( *this, "ID_COLOR_PICKER_VECTOR", wxColourPickerCtrl );
 	m_spinVectorPointSize	= XRCCTRL( *this, "ID_SPIN_VECTOR_POINT_SIZE", wxSpinCtrl );
+
+	m_sliderOpacity = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
+	
+	m_choiceCurvatureMap	= XRCCTRL( *this, "ID_CHOICE_CURVATURE_MAP", wxChoice );
+	m_sliderMidPoint		= XRCCTRL( *this, "ID_SLIDER_MID_POINT", wxSlider );
+	m_sliderSlope			= XRCCTRL( *this, "ID_SLIDER_SLOPE", wxSlider );	
+	m_textMidPoint			= XRCCTRL( *this, "ID_TEXT_MID_POINT", wxTextCtrl );	
+	m_textSlope				= XRCCTRL( *this, "ID_TEXT_SLOPE", wxTextCtrl );
+	
+	m_widgetsSlope.push_back( m_sliderSlope );
+	m_widgetsSlope.push_back( m_textSlope );
+	m_widgetsSlope.push_back( XRCCTRL( *this, "ID_STATIC_SLOPE", wxStaticText ) ); 
+	
+	m_widgetsMidPoint.push_back( m_sliderMidPoint );
+	m_widgetsMidPoint.push_back( m_textMidPoint );
+	m_widgetsMidPoint.push_back( XRCCTRL( *this, "ID_STATIC_MID_POINT", wxStaticText ) ); 
+	
+	m_widgetsVector.push_back( m_colorPickerVector );
+	m_widgetsVector.push_back( m_spinVectorPointSize );
+	m_widgetsVector.push_back( XRCCTRL( *this, "ID_STATIC_VECTOR_COLOR", wxStaticText ) ); 
+	m_widgetsVector.push_back( XRCCTRL( *this, "ID_STATIC_VECTOR_POINT_SIZE", wxStaticText ) ); 
 	
 	MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 	
@@ -120,7 +153,7 @@ void PanelSurface::DoListenToMessage( std::string const iMsg, void* iData )
 			UpdateLayerList( layer );
 		}
 	}
-	else if ( iMsg == "LayerModified" )
+	else if ( iMsg == "LayerModified" || iMsg == "LayerActorUpdated" )
 	{
 		UpdateUI();
 	}
@@ -173,7 +206,7 @@ void PanelSurface::DoUpdateUI()
 		if ( layer )
 		{
 			m_sliderOpacity->SetValue( (int)( layer->GetProperties()->GetOpacity() * 100 ) );
-			double* rgb = layer->GetProperties()->GetColor();
+			double* rgb = layer->GetProperties()->GetBinaryColor();
 			m_colorPicker->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
 			rgb = layer->GetProperties()->GetEdgeColor();
 			m_colorPickerEdge->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
@@ -184,6 +217,14 @@ void PanelSurface::DoUpdateUI()
 			m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
 			m_spinEdgeThickness->SetValue( layer->GetProperties()->GetEdgeThickness() );
 			m_spinVectorPointSize->SetValue( layer->GetProperties()->GetVectorPointSize() );
+			
+			m_choiceCurvatureMap->SetSelection( layer->GetProperties()->GetCurvatureMap() );
+			
+			UpdateTextValue( m_textMidPoint, 	layer->GetProperties()->GetThresholdMidPoint() 	);
+			UpdateTextValue( m_textSlope, 		layer->GetProperties()->GetThresholdSlope() 	);
+			m_sliderMidPoint->SetValue( (int) ( ( layer->GetProperties()->GetThresholdMidPoint() + 1 ) / 2.0 * 100 ) );
+			m_sliderSlope->SetValue( (int) ( layer->GetProperties()->GetThresholdSlope() ) );
+			
 			surf = layer->GetSourceSurface();
 		}
 		
@@ -197,12 +238,12 @@ void PanelSurface::DoUpdateUI()
 	m_btnSurfaceWhite->Enable	( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) );
 	m_btnSurfacePial->Enable	( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
 	m_btnSurfaceOriginal->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) );
-	m_colorPicker->Enable( layer );
-	m_colorPickerEdge->Enable( layer );
-	m_choiceVector->Enable( layer );
+//	m_colorPicker->Enable( layer );
+//	m_colorPickerEdge->Enable( layer );
+//	m_choiceVector->Enable( layer );
 	
 	m_choiceVector->Clear();
-	m_choiceVector->Append( "None" );
+	m_choiceVector->Append( "Off" );
 	if ( surf )
 	{
 		for ( int i = 0; i < surf->GetNumberOfVectorSets(); i++ )
@@ -212,6 +253,30 @@ void PanelSurface::DoUpdateUI()
 	}
 	m_choiceVector->Append( "Load vector data..." );
 	m_choiceVector->SetSelection( surf ? 1 + surf->GetActiveVector() : 0 );
+	
+	int nCurvatureMap = layer ? layer->GetProperties()->GetCurvatureMap() : 0;
+	for ( size_t i = 0; i < m_widgetsMidPoint.size(); i++ )
+	{
+		m_widgetsMidPoint[i]->Show( nCurvatureMap != LayerPropertiesSurface::CM_Off );
+	}
+	for ( size_t i = 0; i < m_widgetsSlope.size(); i++ )
+	{
+		m_widgetsSlope[i]->Show( nCurvatureMap == LayerPropertiesSurface::CM_Threshold );
+	}
+	for ( size_t i = 0; i < m_widgetsVector.size(); i++ )
+	{
+		m_widgetsVector[i]->Show( m_choiceVector->GetSelection() > 0 );
+	}
+	m_colorPicker->Enable( layer && nCurvatureMap != LayerPropertiesSurface::CM_Threshold );
+	
+	Layout();
+}
+
+void PanelSurface::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
+{
+	wxString value_strg = ( (wxString)"" << dvalue );
+	if ( value_strg != ctrl->GetValue() && (value_strg + ".") != ctrl->GetValue() )
+		ctrl->ChangeValue( value_strg );
 }
 
 void PanelSurface::OnLayerVisibilityChanged( wxCommandEvent& event )
@@ -351,7 +416,7 @@ void PanelSurface::OnColorChanged( wxColourPickerEvent& event )
 	if ( surf )
 	{
 		wxColour c = event.GetColour();
-		surf->GetProperties()->SetColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
+		surf->GetProperties()->SetBinaryColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
 	}	
 }
 
@@ -461,3 +526,76 @@ void PanelSurface::OnVectorColorChanged( wxColourPickerEvent& event )
 		surf->GetProperties()->SetVectorColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 ); 
 	}	
 }
+
+void PanelSurface::OnChoiceCurvatureMap( wxCommandEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		surf->GetProperties()->SetCurvatureMap( event.GetSelection() );
+		UpdateUI();
+	}	
+}
+
+void PanelSurface::OnSliderMidPoint( wxScrollEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		double fMin = -0.5;
+		double fMax = 0.5;
+		surf->GetProperties()->SetThresholdMidPoint( (double)m_sliderMidPoint->GetValue() / 100.0 * ( fMax - fMin ) + fMin ); 
+	}
+}
+
+void PanelSurface::OnTextMidPoint( wxCommandEvent& event )
+{
+	double dvalue;
+	if ( m_textMidPoint->GetValue().ToDouble( &dvalue ) )
+	{
+		LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+		if ( layer && layer->GetProperties()->GetThresholdMidPoint() != dvalue )
+		{
+			layer->GetProperties()->SetThresholdMidPoint( dvalue );
+		}		
+	}
+}
+
+void PanelSurface::OnSliderSlope( wxScrollEvent& event )
+{
+	LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+	if ( surf )
+	{
+		double fMin = 0;
+		double fMax = 100;
+		surf->GetProperties()->SetThresholdSlope( (double)m_sliderSlope->GetValue() / 100.0 * ( fMax - fMin ) + fMin ); 
+	}
+}
+
+void PanelSurface::OnTextSlope( wxCommandEvent& event )
+{
+	double dvalue;
+	if ( m_textSlope->GetValue().ToDouble( &dvalue ) )
+	{
+		LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+		if ( layer && layer->GetProperties()->GetThresholdSlope() != dvalue )
+		{
+			layer->GetProperties()->SetThresholdSlope( dvalue );
+		}		
+	}
+}
+
+void PanelSurface::OnSliderMidPointChanging( wxScrollEvent& event )
+{
+	double fMin = -0.5;
+	double fMax = 0.5;
+	UpdateTextValue( m_textMidPoint, (double)m_sliderMidPoint->GetValue() / 100.0 * ( fMax - fMin ) + fMin ); 
+}
+
+void PanelSurface::OnSliderSlopeChanging( wxScrollEvent& event )
+{
+	double fMin = 0;
+	double fMax = 100;
+	UpdateTextValue( m_textSlope, (double)m_sliderSlope->GetValue() / 100.0 * ( fMax - fMin ) + fMin ); 
+}
+
