@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/20 15:55:44 $
-#    $Revision: 1.25.2.5 $
+#    $Date: 2009/01/26 19:47:54 $
+#    $Revision: 1.25.2.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.25.2.5 2008/05/20 15:55:44 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.25.2.6 2009/01/26 19:47:54 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -56,7 +56,7 @@ set DoMorph = 0;
 
 # for surface-based only
 set hemilist = ();
-set projfrac = ();
+set projfrac = (); # The default will be 0.5, set below
 set DoProjFracAvg = 0;
 set trgsubject = fsaverage; 
 set fsgd = ();
@@ -285,7 +285,7 @@ foreach hemi ($hemilist)
     if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
     if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
     # What about paired diff for these?
-    if($paireddiff) then
+    if($paireddiff && $mapname != h) then
       if($mapname == rvar) then
         set cmd = ($cmd -paired-sum)
       else
@@ -307,6 +307,17 @@ foreach hemi ($hemilist)
     echo $cmd       |& tee -a $LF
     $cmd            |& tee -a $LF
     if($status) exit 1;
+
+    if($mapname == h) then
+      set cmd = (mri_concat $outvol --gmean $#SessList --o $outvol)
+      echo "cd `pwd`" |& tee -a $LF
+      echo $cmd       |& tee -a $LF
+      $cmd            |& tee -a $LF
+      if($status) exit 1;
+      if($ToVol)  cp $analysis/h.dat $outdir/tal.h.dat
+      if($ToSurf) cp $analysis/h.dat $outdir/$hemi.h.dat
+    endif
+
   end
 
 end # Loop over hemi
@@ -467,6 +478,10 @@ while( $#argv != 0 )
       set anamaplist = ();
       breaksw
 
+    case "-hrf"
+      set anamaplist = (h $anamaplist);
+      breaksw
+
     case "-osgm"
       set DoOSGM = 1;
       breaksw
@@ -605,6 +620,11 @@ check_params:
     exit 1
   endif
 
+  # default proj frac
+  if($#projfrac == 0 && $DoProjFracAvg == 0) then
+    set projfrac = 0.5;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -626,6 +646,7 @@ usage_exit:
   echo "   -all-contrasts  : contrast "
   echo "   -percent        : use voxel-wise percent signal change"
   echo "   -m mapname      : contrast-level maps stem (def is ces and cesvar)"
+  echo "   -hrf            : create hrf maps (saved as space.h.nii)"
   echo ""
   echo "   -reg regfile    : instead of register.dat"
   echo "   -interp method  : trilinear (def) or nearest"
@@ -643,7 +664,7 @@ usage_exit:
   echo "  Surface-based options:"
   echo "   -hemis           : surface-based, both lh and rh";
   echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
-  echo "   -projfrac frac   : sample frac into surface bet white and gray"
+  echo "   -projfrac frac   : sample frac into surface bet white and gray (0.5 def)"
   echo "   -projfrac-avg    : average across cortical depth"
   echo "   -trgsubject subject : sample to subject's surface (def fsaverage)"
   echo ""
