@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/10 18:01:31 $
- *    $Revision: 1.22.2.1 $
+ *    $Date: 2009/01/26 21:35:43 $
+ *    $Revision: 1.22.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.22.2.1 2008/12/10 18:01:31 greve Exp $
+  $Id: mri_surf2vol.c,v 1.22.2.2 2009/01/26 21:35:43 greve Exp $
 */
 
 #include <stdio.h>
@@ -73,7 +73,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.22.2.1 2008/12/10 18:01:31 greve Exp $";
+  "$Id: mri_surf2vol.c,v 1.22.2.2 2009/01/26 21:35:43 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.22.2.1 2008/12/10 18:01:31 greve Exp $",
+           "$Id: mri_surf2vol.c,v 1.22.2.2 2009/01/26 21:35:43 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -444,7 +444,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 0) argnerr(option,1);
       nargsused = 0;
       fillribbon = 1 ;
-    } else if ( !strcmp(option, "--fill-projfrac") ) {
+    } 
+    else if ( !strcmp(option, "--fill-projfrac") ) {
       if (nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%f",&ProjFracStart);
       sscanf(pargv[1],"%f",&ProjFracStop);
