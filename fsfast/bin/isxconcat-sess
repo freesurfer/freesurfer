@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/09/09 19:24:22 $
-#    $Revision: 1.34 $
+#    $Date: 2009/01/26 19:46:58 $
+#    $Revision: 1.35 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.34 2008/09/09 19:24:22 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.35 2009/01/26 19:46:58 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -56,7 +56,7 @@ set DoMorph = 0;
 
 # for surface-based only
 set hemilist = ();
-set projfrac = ();
+set projfrac = (); # The default will be 0.5, set below
 set DoProjFracAvg = 0;
 set trgsubject = fsaverage; 
 set fsgd = ();
@@ -620,6 +620,11 @@ check_params:
     exit 1
   endif
 
+  # default proj frac
+  if($#projfrac == 0 && $DoProjFracAvg == 0) then
+    set projfrac = 0.5;
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -659,7 +664,7 @@ usage_exit:
   echo "  Surface-based options:"
   echo "   -hemis           : surface-based, both lh and rh";
   echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
-  echo "   -projfrac frac   : sample frac into surface bet white and gray"
+  echo "   -projfrac frac   : sample frac into surface bet white and gray (0.5 def)"
   echo "   -projfrac-avg    : average across cortical depth"
   echo "   -trgsubject subject : sample to subject's surface (def fsaverage)"
   echo ""
