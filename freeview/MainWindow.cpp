@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/23 23:00:35 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/01/26 22:20:04 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,6 +75,7 @@
 #include "ToolWindowEdit.h"
 #include "DialogRotateVolume.h"
 #include "DialogOptimalVolume.h"
+#include "WindowHistogram.h"
 
 #define	CTRL_PANEL_WIDTH	240
 
@@ -180,6 +181,9 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
     
     EVT_MENU		( XRCID( "ID_VIEW_CONTROL_PANEL" ),		MainWindow::OnViewControlPanel )
     EVT_UPDATE_UI	( XRCID( "ID_VIEW_CONTROL_PANEL" ),		MainWindow::OnViewControlPanelUpdateUI )
+    
+    EVT_MENU		( XRCID( "ID_VIEW_HISTOGRAM" ),			MainWindow::OnViewHistogram )
+    EVT_UPDATE_UI	( XRCID( "ID_VIEW_HISTOGRAM" ),			MainWindow::OnViewHistogramUpdateUI )
     
     EVT_MENU		( XRCID( "ID_TOOL_ROTATE_VOLUME" ),		MainWindow::OnToolRotateVolume )
     EVT_UPDATE_UI	( XRCID( "ID_TOOL_ROTATE_VOLUME" ),		MainWindow::OnToolRotateVolumeUpdateUI )    
@@ -305,6 +309,9 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 	
 	m_toolWindowEdit = NULL;
 	m_dlgRotateVolume = NULL;
+	
+	m_wndHistogram = new WindowHistogram( this );
+	m_wndHistogram->Hide();
 	
 	UpdateToolbars();
 	
@@ -2306,7 +2313,7 @@ void MainWindow::CommandLoadDTI( const wxArrayString& sa )
 		wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
 		wxString fn = sa_vol[0];
 		wxString strg, reg_fn;
-		if ( sa_vol.Count() > 0 )
+		if ( sa_vol.Count() > 1 )
 			strg = sa_vol[1];
 		int n;	
 		if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
@@ -2595,3 +2602,16 @@ void MainWindow::OnMouseEnterWindow( wxMouseEvent& event )
 		SetFocus();
 	}
 }
+
+void MainWindow::OnViewHistogram( wxCommandEvent& event )
+{
+	m_wndHistogram->Show( !m_wndHistogram->IsVisible() );
+}
+
+void MainWindow::OnViewHistogramUpdateUI( wxUpdateUIEvent& event )
+{
+	event.Check( m_wndHistogram->IsVisible() );
+	event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
+}
+
+

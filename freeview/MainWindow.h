@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/01/23 23:00:35 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/01/26 22:20:04 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,7 @@ class BrushProperty;
 class ToolWindowEdit;
 class DialogRotateVolume;
 class LayerMRI;
+class WindowHistogram;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -125,6 +126,9 @@ public:
 	void OnViewScalarBarUpdateUI	( wxUpdateUIEvent& event );
 	void OnViewCoordinate			( wxCommandEvent& event );
 	void OnViewCoordinateUpdateUI	( wxUpdateUIEvent& event );
+	
+	void OnViewHistogram			( wxCommandEvent& event );
+	void OnViewHistogramUpdateUI	( wxUpdateUIEvent& event );
 	
 	void OnViewCycleLayer					( wxCommandEvent& event );
 	void OnViewCycleLayerUpdateUI			( wxUpdateUIEvent& event );
@@ -300,6 +304,7 @@ private:
 	wxPanel*			m_panelToolbarHolder;
 	ToolWindowEdit*		m_toolWindowEdit;
 	DialogRotateVolume*	m_dlgRotateVolume;
+	WindowHistogram*	m_wndHistogram;
 	
 	RenderView2D*		m_viewAxial;
 	RenderView2D*		m_viewSagittal;
