@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/22 02:44:58 $
- *    $Revision: 1.46 $
+ *    $Date: 2009/01/26 19:15:39 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -2427,6 +2427,7 @@ static void mhtFaceCentroid2xyz_float (MRI_SURFACE *mris,
   float    x, y, z, xt, yt, zt ;
   int      n ;
 
+  x = y = z = 0.0 ;  // for compiler warnings
   for (xt = yt = zt = 0.0, n = 0 ; n < VERTICES_PER_FACE ; n++)
   {
     mhtVertex2xyz_float(&mris->vertices[face->v[n]], which, &x, &y, &z);
