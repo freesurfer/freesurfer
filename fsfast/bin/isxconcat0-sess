@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/03/11 20:48:54 $
-#    $Revision: 1.12 $
+#    $Date: 2009/01/26 19:19:32 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.12 2008/03/11 20:48:54 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.13 2009/01/26 19:19:32 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -178,7 +178,7 @@ foreach sess ($SessList)
     set cmd = (mri_vol2surf --mov $map --reg $reg --trgsubject $trgsubject)
     set cmd = ($cmd --hemi $hemi --interp $interp --noreshape)
     if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
-    if($#DoProjFracAvg) set cmd = ($cmd --projfrac-avg 0 1 .2)
+    if($DoProjFracAvg) set cmd = ($cmd --projfrac-avg 0 1 .2)
     set cmd = ($cmd --o $mapout)
   else
     set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
