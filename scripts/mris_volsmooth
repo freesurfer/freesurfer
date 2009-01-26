@@ -7,9 +7,9 @@
 #
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:14 $
-#    $Revision: 1.6 $
+#    $Author: greve $
+#    $Date: 2009/01/26 21:43:28 $
+#    $Revision: 1.6.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,17 +25,19 @@
 #
 
 
-set VERSION = '$Id: mris_volsmooth,v 1.6 2007/01/06 00:01:14 nicks Exp $'
+set VERSION = '$Id: mris_volsmooth,v 1.6.2.1 2009/01/26 21:43:28 greve Exp $'
 set invol  = ();
 set reg = ();
 set outvol = ();
 set fwhm   = ();
 set niters = ();
+set volfwhm = ();
 set projfrac = ();
 set pfa_min   = ();
 set pfa_max   = ();
 set pfa_delta = ();
 set cleanup = 1;
+set LF = ();
 
 set PrintHelp = 0;
 set cmdargs = ($argv);
@@ -67,50 +69,134 @@ if(! -d $SUBJECTS_DIR/$subj) then
   exit 1;
 endif
 
+set cid = ();
+if($cleanup) set cid = .$$
+
 set outdir = `dirname $outvol`;
 mkdir -p $outdir
 
 rm -f $outvol
 
+if($#LF == 0) then
+  set stem = `fname2stem $invol`
+  set LF = $stem.mris_volsmooth.log
+endif
+rm -f $LF
+
+echo "mris_volsmooth" | tee -a $LF
+date | tee -a $LF
+pwd | tee -a $LF
+echo $0 | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+echo setenv FREESURFER_HOME $FREESURFER_HOME | tee -a $LF
+echo setenv SUBJECTS_DIR $SUBJECTS_DIR | tee -a $LF
+uname -a | tee -a $LF
+
+set mergevol = $invol;
+set smvol = ();
+if($#volfwhm) then
+  # First, create a surface mask
+  foreach hemi (lh rh)
+    set surfmask = $outdir/tmp.$hemi.surfmask$cid.mgh
+    set vtxvol = $outdir/tmp.$hemi.vtxvol$cid.mgh
+    set cmd = (mri_surf2vol --hemi $hemi --mkmask --vtxvol $vtxvol\
+      --template $invol --volreg $reg --outvol $surfmask);
+    if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+    if($#pfa_min)  set cmd = ($cmd --projfrac 0.5) # Not really sure what to do here
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+    date  | tee -a $LF
+    pwd | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end
+
+  # Merge the lh and rh masks
+  set surfmasklh = $outdir/tmp.lh.surfmask$cid.mgh
+  set surfmaskrh = $outdir/tmp.rh.surfmask$cid.mgh
+  set surfmask = $outdir/tmp.surfmask$cid.mgh
+  set cmd = (mri_concat $surfmasklh $surfmaskrh --o $surfmask --sum)
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date  | tee -a $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Now smooth outside of the mask
+  set smvol = $outdir/tmp.volsmooth$cid.mgh
+  set cmd = (mri_fwhm --i $invol --o $smvol --fwhm $volfwhm \
+    --smooth-only --mask $surfmask --mask-inv)
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date  | tee -a $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  set vtxvollh = $outdir/tmp.lh.vtxvol$cid.mgh
+  set vtxvolrh = $outdir/tmp.lh.vtxvol$cid.mgh
+  if($cleanup) rm -f $surfmasklh $surfmaskrh $surfmask $vtxvollh $vtxvolrh
+
+  set mergevol = $smvol;
+endif
+
+# Now smooth on the surface
 foreach hemi (lh rh)
-  set surfval = $outdir/tmp.$hemi.mris_volsmooth.$$.mgh
+  set surfval = $outdir/tmp.$hemi.mris_volsmooth$cid.mgh
 
   # sample volume to the surface
   set cmd = (mri_vol2surf --src $invol --srcreg $reg --hemi $hemi \
     --out $surfval --noreshape)
   if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
   if($#pfa_min)  set cmd = ($cmd --projfrac-avg $pfa_min $pfa_max $pfa_delta)
-  echo $cmd
-  $cmd
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date  | tee -a $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
   if($status) exit 1;
 
-  # smooth on the surface
-  set cmd = (mri_surf2surf --s $subj --sval $surfval --tval $surfval --hemi $hemi)
+  # smooth on the surface (but only in cortex)
+  set cmd = (mri_surf2surf --s $subj --sval $surfval \
+    --tval $surfval --hemi $hemi --cortex)
   if($#fwhm)   set cmd = ($cmd  --fwhm $fwhm)
   if($#niters) set cmd = ($cmd  --nsmooth-in $niters)
-  echo $cmd
-  $cmd
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date  | tee -a $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
   if($status) exit 1;
 
   # stuff it back into the volume
-  set cmd = (mri_surf2vol \
-    --surfval $surfval --hemi $hemi \
+  set cmd = (mri_surf2vol  --surfval $surfval --hemi $hemi \
     --template $invol --volreg $reg --outvol $outvol);
   if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
-  if($#pfa_min)  set cmd = ($cmd --projfrac 0) # Not really sure what to do here
-  if(! -e $outvol) set cmd = ($cmd --merge $invol);
+  if($#pfa_min)  set cmd = ($cmd --projfrac 0.5) # Not really sure what to do here
+  if(! -e $outvol) set cmd = ($cmd --merge $mergevol);
   if(-e $outvol)   set cmd = ($cmd --merge $outvol);
-  echo $cmd
-  $cmd
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date  | tee -a $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
   if($status) exit 1;
 
   if($cleanup) rm -f $surfval
-
 end
 
+if($#smvol && $cleanup) rm -f $smvol
 
-date
-echo "mris_volsmooth done"
+date | tee -a $LF
+echo "mris_volsmooth done" | tee -a $LF
 
 exit 0;
 ###############################################
@@ -151,6 +237,11 @@ while( $#argv != 0 )
       set niters = $argv[1]; shift;
       breaksw
 
+    case "--vol-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set volfwhm = $argv[1]; shift;
+      breaksw
+
     case "--projfrac":
       if ( $#argv == 0) goto arg1err;
       set projfrac = $argv[1]; shift;
@@ -163,12 +254,18 @@ while( $#argv != 0 )
       set pfa_delta = $argv[1]; shift;
       breaksw
 
+    case "--log":
+      if ( $#argv == 0) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
     case "--tmpdir":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
       set cleanup = 0;
       breaksw
 
+    case "--no-cleanup":
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -225,6 +322,7 @@ if($#projfrac && $#pfa_min) then
   echo "ERROR: cannot specify both --projfrac and --projfrac-avg"
   exit 1;
 endif
+if($#projfrac == 0 && $#pfa_min == 0) set projfrac = 0.5;
 
 goto check_params_return;
 ############--------------##################
@@ -255,6 +353,9 @@ usage_exit:
   echo " --fwhm fwhm     : suface FWHM in mm"
   echo " --niters niters  : specify smoothing with niters instead of fwhm"
   echo " "
+  echo " --vol-fwhm volfwm : volume smoothing outside of surface"
+  echo " "
+  echo " --log logfile    : explicity set log file"
   echo " --nocleanup      : do not delete temporary files"
   echo " --version        : print version and exit"
   echo " --help           : print help and exit"
@@ -273,16 +374,18 @@ exit 1;
 BEGINHELP
 
 Performs surface-based smoothing inside a volume. This is just a
-frontend for a series of programs which will sample a volume to a
+front-end for a series of programs which will sample a volume to a
 surface, smooth on the surface, then replace the surface voxels in the
 volume with values that were smoothed on the surface. This can make it
 convenient for interfacing volume-based functional analysis tools with
 surface-based smoothing. When complete, values not on the surface will
-be the same as in the input volume. Both hemispheres are done.
+be the same as in the input volume. Both hemispheres are
+smoothed. Areas outside of the ?h.cortex.label are not smoothed.  One
+can optionally smooth non-surface voxels in the volume with
 
 --i invol
 
-Input volume with values that will be smoothed on the surface
+Input volume with values that will be smoothed on the surface.
 
 --o outvol
 
@@ -297,6 +400,7 @@ volumes and the FreeSurfer surface anatomical. See tkregister2.
 
 When sampling to/from the surface, project along the surface normal
 an amount equal to frac*thickeness at each vertex. See mri_vol2surf.
+Default is 0.5 (ie, half way into the ribbon).
 
 --projfrac-avg min max delta
 
@@ -306,7 +410,7 @@ together. The idea here is to average along the normal. Eg,
 --projfrac-avg 0 1 .1 will sample along the normal between the white
 (0) and pial (1) every 10% for a total of 11 samples. These will then
 be averaged together. The values are then projected back into the
-surface with --projfrac 0.
+surface with --projfrac 0.5.
 
 --fwhm fwhm
 
@@ -317,3 +421,9 @@ Smooth on the surface by full-width/half-max in mm. See also --niters.
 Specify surface smoothing by number of nearest neighbor smoothing
 iterations instead of fwhm.
 
+--vol-fwhm volfwhm
+
+Smooth in the volume. In this case, the surface voxels and non-surface 
+voxels are smoothed entirely seprately (ie, surface voxels are only 
+smoothed with other surface voxels and non-surface voxels are only 
+smoothed with other non-surface voxels).
