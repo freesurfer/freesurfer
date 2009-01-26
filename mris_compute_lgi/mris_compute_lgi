@@ -14,8 +14,8 @@
 # Original Author: Marie Schaer
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/05/07 16:05:02 $
-#    $Revision: 1.19.2.4 $
+#    $Date: 2009/01/26 22:14:36 $
+#    $Revision: 1.19.2.5 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mris_compute_lgi,v 1.19.2.4 2008/05/07 16:05:02 nicks Exp $'
+set VERSION = '$Id: mris_compute_lgi,v 1.19.2.5 2009/01/26 22:14:36 nicks Exp $'
 set PrintHelp = 0;
 set RunIt = 1;
 set cmdargs = ($argv);
@@ -63,9 +63,8 @@ if($status) then
   exit 1;
 endif
 
-
 # temporary work files go here...
-set tmpdir = (tmp-mris_compute_lgi-${input})
+set tmpdir = ($PWD/tmp-mris_compute_lgi-${input})
 set cmd=(rm -Rf $tmpdir)
 echo "================="
 echo "$cmd"
