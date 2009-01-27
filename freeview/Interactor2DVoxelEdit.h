@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/01/16 22:13:07 $
- *    $Revision: 1.8 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.9 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Interactor2DVoxelEdit_h
 #define Interactor2DVoxelEdit_h
 
@@ -33,11 +33,12 @@ class wxWindow;
 
 class Interactor2DVoxelEdit : public Interactor2DVolumeEdit
 {
-	public:
-		Interactor2DVoxelEdit();
-		virtual ~Interactor2DVoxelEdit() {}
+public:
+  Interactor2DVoxelEdit();
+  virtual ~Interactor2DVoxelEdit()
+  {}
 };
 
-#endif 
+#endif
 
 

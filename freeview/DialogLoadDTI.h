@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/17 20:43:58 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:24 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -35,44 +35,46 @@ class wxComboBox;
 class DialogLoadDTI : public wxDialog
 {
 public:
-	DialogLoadDTI( wxWindow* parent );
-	virtual ~DialogLoadDTI();
-	
-	wxString GetVectorFileName();
-	wxString GetFAFileName();
-	wxString GetRegFileName();
-	
-	bool IsToResample();
-	
-	void OnOK( wxCommandEvent& event );
-	
-	void SetLastDir( const wxString& dir )
-		{ m_strLastDir = dir; }
-	
-	void Initialize( bool bResample, bool bEnableCheckBox );
-	
-	void SetRecentFiles( const wxArrayString& list );
-	
+  DialogLoadDTI( wxWindow* parent );
+  virtual ~DialogLoadDTI();
+
+  wxString GetVectorFileName();
+  wxString GetFAFileName();
+  wxString GetRegFileName();
+
+  bool IsToResample();
+
+  void OnOK( wxCommandEvent& event );
+
+  void SetLastDir( const wxString& dir )
+  {
+    m_strLastDir = dir;
+  }
+
+  void Initialize( bool bResample, bool bEnableCheckBox );
+
+  void SetRecentFiles( const wxArrayString& list );
+
 protected:
-	void OnButtonVector( wxCommandEvent& event );
-	void OnButtonFA( wxCommandEvent& event );
-	void OnComboFASelectionChanged( wxCommandEvent& event );
-	void OnButtonReg( wxCommandEvent& event );
-	void OnCheckApplyReg( wxCommandEvent& event );
-	
-	wxButton*		m_btnVector;
-	wxButton*		m_btnFA;
-	wxButton*		m_btnReg;
-	wxTextCtrl*		m_textVector;
-	wxTextCtrl*		m_textReg;
-	wxComboBox*		m_comboFA;
-	wxCheckBox*		m_checkNoResample;
-	wxCheckBox*		m_checkReg;
-	
-	wxString		m_strLastDir;
-	
-	DECLARE_EVENT_TABLE()
+  void OnButtonVector( wxCommandEvent& event );
+  void OnButtonFA( wxCommandEvent& event );
+  void OnComboFASelectionChanged( wxCommandEvent& event );
+  void OnButtonReg( wxCommandEvent& event );
+  void OnCheckApplyReg( wxCommandEvent& event );
+
+  wxButton*  m_btnVector;
+  wxButton*  m_btnFA;
+  wxButton*  m_btnReg;
+  wxTextCtrl*  m_textVector;
+  wxTextCtrl*  m_textReg;
+  wxComboBox*  m_comboFA;
+  wxCheckBox*  m_checkNoResample;
+  wxCheckBox*  m_checkReg;
+
+  wxString  m_strLastDir;
+
+  DECLARE_EVENT_TABLE()
 };
 
-#endif 
+#endif
 

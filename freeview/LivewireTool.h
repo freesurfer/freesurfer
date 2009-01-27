@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/01/16 22:13:07 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef LivewireTool_h
 #define LivewireTool_h
 
@@ -38,27 +38,27 @@ class vtkDijkstraImageGeodesicPath;
 class vtkPoints;
 class vtkImageChangeInformation;
 
-class LivewireTool 
+class LivewireTool
 {
-	public:
-		LivewireTool( );
-		virtual ~LivewireTool();	
-		
-		void UpdateImageDataInfo( vtkImageData* image, int nPlane, int nSlice );
-		
-		void GetLivewirePoints( double* pt1_in, double* pt2_in, vtkPoints* pts_out );
-		
-		void GetLivewirePoints( vtkImageData* image, int nPlane, int nSlice, 
-								double* pt1_in, double* pt2_in, vtkPoints* pts_out );
-		
-	protected:
-		int		m_nPlane;
-		int		m_nSlice;
-		vtkSmartPointer<vtkDijkstraImageGeodesicPath> 	m_path;
-		vtkImageData*									m_imageData;
-		vtkImageData*									m_imageSlice;
+public:
+  LivewireTool( );
+  virtual ~LivewireTool();
+
+  void UpdateImageDataInfo( vtkImageData* image, int nPlane, int nSlice );
+
+  void GetLivewirePoints( double* pt1_in, double* pt2_in, vtkPoints* pts_out );
+
+  void GetLivewirePoints( vtkImageData* image, int nPlane, int nSlice,
+                          double* pt1_in, double* pt2_in, vtkPoints* pts_out );
+
+protected:
+  int  m_nPlane;
+  int  m_nSlice;
+  vtkSmartPointer<vtkDijkstraImageGeodesicPath>  m_path;
+  vtkImageData*         m_imageData;
+  vtkImageData*         m_imageSlice;
 };
 
-#endif 
+#endif
 
 

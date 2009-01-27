@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -31,39 +31,41 @@
 class DialogLoadVolume : public wxDialog
 {
 public:
-	DialogLoadVolume( wxWindow* parent, bool bEnableResample = true );
-	virtual ~DialogLoadVolume();
-	
-	wxString GetVolumeFileName();
-	
-	wxString GetRegFileName();
-	
-	bool IsToResample();
-	
-	void OnOK( wxCommandEvent& event );
-	
-	void SetLastDir( const wxString& dir )
-		{ m_strLastDir = dir; }
-	
-	void SetRecentFiles( const wxArrayString& list );
-	
+  DialogLoadVolume( wxWindow* parent, bool bEnableResample = true );
+  virtual ~DialogLoadVolume();
+
+  wxString GetVolumeFileName();
+
+  wxString GetRegFileName();
+
+  bool IsToResample();
+
+  void OnOK( wxCommandEvent& event );
+
+  void SetLastDir( const wxString& dir )
+  {
+    m_strLastDir = dir;
+  }
+
+  void SetRecentFiles( const wxArrayString& list );
+
 protected:
-	void OnButtonOpen( wxCommandEvent& event );
-	void OnFileSelectionChanged( wxCommandEvent& event );
-	void OnButtonRegFile( wxCommandEvent& event );
-	void OnCheckApplyReg( wxCommandEvent& event );
-	
-	wxButton*		m_btnOpen;
-	wxComboBox*		m_comboFileName;
-	wxCheckBox*		m_checkNoResample;
-	wxCheckBox*		m_checkApplyReg;
-	wxTextCtrl*		m_textRegFile;
-	wxButton*		m_btnRegFile;
-	
-	wxString		m_strLastDir;
-	
-	DECLARE_EVENT_TABLE()
+  void OnButtonOpen( wxCommandEvent& event );
+  void OnFileSelectionChanged( wxCommandEvent& event );
+  void OnButtonRegFile( wxCommandEvent& event );
+  void OnCheckApplyReg( wxCommandEvent& event );
+
+  wxButton*  m_btnOpen;
+  wxComboBox*  m_comboFileName;
+  wxCheckBox*  m_checkNoResample;
+  wxCheckBox*  m_checkApplyReg;
+  wxTextCtrl*  m_textRegFile;
+  wxButton*  m_btnRegFile;
+
+  wxString  m_strLastDir;
+
+  DECLARE_EVENT_TABLE()
 };
 
-#endif 
+#endif
 

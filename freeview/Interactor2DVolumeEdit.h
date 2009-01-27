@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/01/20 19:54:56 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Interactor2DVolumeEdit_h
 #define Interactor2DVolumeEdit_h
 
@@ -35,30 +35,33 @@ class wxWindow;
 
 class Interactor2DVolumeEdit : public Interactor2D
 {
-	public:
-		Interactor2DVolumeEdit( const char* layerTypeName );
-		virtual ~Interactor2DVolumeEdit();
-	
-		enum EditMode { EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire };
-	
-	// return true if to have parent Interactor2D continue processing the event
-	// return false to stop event from further processing
-		virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-		virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-		virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-		virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
-		virtual bool ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view );
-		
-	protected:	
-		void UpdateCursor( wxEvent& event, wxWindow* wnd );
-		
-		bool	m_bEditing;
-		
-		std::string	m_strLayerTypeName;
-	
-		std::vector<double>		m_dPolylinePoints;
+public:
+  Interactor2DVolumeEdit( const char* layerTypeName );
+  virtual ~Interactor2DVolumeEdit();
+
+  enum EditMode
+  {
+    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire
+  };
+
+  // return true if to have parent Interactor2D continue processing the event
+  // return false to stop event from further processing
+  virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
+  virtual bool ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view );
+
+protected:
+  void UpdateCursor( wxEvent& event, wxWindow* wnd );
+
+  bool m_bEditing;
+
+  std::string m_strLayerTypeName;
+
+  std::vector<double>  m_dPolylinePoints;
 };
 
-#endif 
+#endif
 
 

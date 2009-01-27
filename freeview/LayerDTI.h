@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/17 20:43:58 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef LayerDTI_h
 #define LayerDTI_h
 
@@ -38,32 +38,36 @@ class LayerPropertiesDTI;
 
 class LayerDTI : public LayerMRI
 {
-	public:
-		LayerDTI( LayerMRI* ref );
-		virtual ~LayerDTI();
-					
-		bool LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event );
-		
-		void SetVectorFileName( std::string filename )
-			{ m_sVectorFileName = filename; }
-		
-		const char* GetVectorFileName()
-			{ return m_sVectorFileName.c_str(); }
-		
-		LayerPropertiesDTI*	GetProperties();
-		
-		bool GetVectorValue( double* pos_in, double* v_out );
-		
-		bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+public:
+  LayerDTI( LayerMRI* ref );
+  virtual ~LayerDTI();
 
-	protected:
-		void UpdateColorMap();
-		void InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event );
-		
-		FSVolume*		m_vectorSource;		
-		std::string		m_sVectorFileName;
+  bool LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event );
+
+  void SetVectorFileName( std::string filename )
+  {
+    m_sVectorFileName = filename;
+  }
+
+  const char* GetVectorFileName()
+  {
+    return m_sVectorFileName.c_str();
+  }
+
+  LayerPropertiesDTI* GetProperties();
+
+  bool GetVectorValue( double* pos_in, double* v_out );
+
+  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+
+protected:
+  void UpdateColorMap();
+  void InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event );
+
+  FSVolume*  m_vectorSource;
+  std::string  m_sVectorFileName;
 };
 
-#endif 
+#endif
 
 

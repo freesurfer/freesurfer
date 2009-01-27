@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -38,24 +38,24 @@ class LayerCollection;
 class DialogNewROI : public wxDialog
 {
 public:
-	DialogNewROI( wxWindow* parent, LayerCollection* col );
-	virtual ~DialogNewROI();
-	
-	wxString GetROIName();
-	void SetROIName( const wxString& name );
-	
-	LayerMRI* GetTemplate();
-	
-	void OnOK( wxCommandEvent& event );
-	
-	void OnTextEnter( wxCommandEvent& event );
-	
+  DialogNewROI( wxWindow* parent, LayerCollection* col );
+  virtual ~DialogNewROI();
+
+  wxString GetROIName();
+  void SetROIName( const wxString& name );
+
+  LayerMRI* GetTemplate();
+
+  void OnOK( wxCommandEvent& event );
+
+  void OnTextEnter( wxCommandEvent& event );
+
 private:
-	wxChoice*		m_choiceTemplate;
-	wxTextCtrl*		m_textName;
-	
-	DECLARE_EVENT_TABLE()
+  wxChoice*  m_choiceTemplate;
+  wxTextCtrl*  m_textName;
+
+  DECLARE_EVENT_TABLE()
 };
 
-#endif 
+#endif
 

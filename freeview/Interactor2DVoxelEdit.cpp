@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/01/16 22:13:07 $
- *    $Revision: 1.15 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.16 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -25,7 +25,6 @@
  */
 
 #include "Interactor2DVoxelEdit.h"
-Interactor2DVoxelEdit::Interactor2DVoxelEdit() : 
-		Interactor2DVolumeEdit( "MRI")
-{
-}
+Interactor2DVoxelEdit::Interactor2DVoxelEdit() :
+    Interactor2DVolumeEdit( "MRI")
+{}

@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -38,28 +38,28 @@ class LayerCollection;
 class DialogNewVolume : public wxDialog
 {
 public:
-	DialogNewVolume( wxWindow* parent, LayerCollection* col );
-	virtual ~DialogNewVolume();
-	
-	wxString GetVolumeName();
-	void SetVolumeName( const wxString& name );
-	
-	bool GetCopyVoxel();
-	void SetCopyVoxel( bool bVoxel );
-	
-	LayerMRI* GetTemplate();
-	
-	void OnOK( wxCommandEvent& event );
-	
-	void OnTextEnter( wxCommandEvent& event ); 
-	
+  DialogNewVolume( wxWindow* parent, LayerCollection* col );
+  virtual ~DialogNewVolume();
+
+  wxString GetVolumeName();
+  void SetVolumeName( const wxString& name );
+
+  bool GetCopyVoxel();
+  void SetCopyVoxel( bool bVoxel );
+
+  LayerMRI* GetTemplate();
+
+  void OnOK( wxCommandEvent& event );
+
+  void OnTextEnter( wxCommandEvent& event );
+
 private:
-	wxCheckBox*		m_checkCopyVoxel;
-	wxChoice*		m_choiceTemplate;
-	wxTextCtrl*		m_textName;
-	
-	DECLARE_EVENT_TABLE()
+  wxCheckBox*  m_checkCopyVoxel;
+  wxChoice*  m_choiceTemplate;
+  wxTextCtrl*  m_textName;
+
+  DECLARE_EVENT_TABLE()
 };
 
-#endif 
+#endif
 

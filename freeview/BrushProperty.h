@@ -8,12 +8,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:24 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -32,49 +32,49 @@
 
 class LayerVolumeBase;
 
-class BrushProperty 
+class BrushProperty
 {
 public:
 
-  	BrushProperty ();
-	virtual ~BrushProperty (); 
+  BrushProperty ();
+  virtual ~BrushProperty ();
 
-	int 	GetBrushSize();
-	void	SetBrushSize( int nSize );
-	
-	int 	GetBrushTolerance();
-	void 	SetBrushTolerance( int nTolerance );
-	
-	LayerVolumeBase* 	GetReferenceLayer();
-	void 				SetReferenceLayer( LayerVolumeBase* layer );
-	
-	double* GetDrawRange();
-	void 	SetDrawRange( double* range );
-	void 	SetDrawRange( double low, double high );
-	
-	bool	GetDrawRangeEnabled();
-	void	SetDrawRangeEnabled( bool bEnable ); 
-	 
-	double* GetExcludeRange();
-	void	SetExcludeRange( double* range );
-	void 	SetExcludeRange( double low, double high );
-	
-	bool	GetExcludeRangeEnabled();
-	void	SetExcludeRangeEnabled( bool bEnable );
-	 
-	bool	GetDrawConnectedOnly();
-	void	SetDrawConnectedOnly( bool bEnable );
-	
+  int  GetBrushSize();
+  void SetBrushSize( int nSize );
+
+  int  GetBrushTolerance();
+  void  SetBrushTolerance( int nTolerance );
+
+  LayerVolumeBase*  GetReferenceLayer();
+  void     SetReferenceLayer( LayerVolumeBase* layer );
+
+  double* GetDrawRange();
+  void  SetDrawRange( double* range );
+  void  SetDrawRange( double low, double high );
+
+  bool GetDrawRangeEnabled();
+  void SetDrawRangeEnabled( bool bEnable );
+
+  double* GetExcludeRange();
+  void SetExcludeRange( double* range );
+  void  SetExcludeRange( double low, double high );
+
+  bool GetExcludeRangeEnabled();
+  void SetExcludeRangeEnabled( bool bEnable );
+
+  bool GetDrawConnectedOnly();
+  void SetDrawConnectedOnly( bool bEnable );
+
 protected:
-  	int		m_nBrushSize;
-  	int		m_nBrushTolerance;
-	double	m_dDrawRange[2];
-	bool	m_bEnableDrawRange;
-	double	m_dExcludeRange[2];
-	bool	m_bEnableExcludeRange;
-	bool	m_bDrawConnectedOnly;
-	
-	LayerVolumeBase*	m_layerRef;
+  int  m_nBrushSize;
+  int  m_nBrushTolerance;
+  double m_dDrawRange[2];
+  bool m_bEnableDrawRange;
+  double m_dExcludeRange[2];
+  bool m_bEnableExcludeRange;
+  bool m_bDrawConnectedOnly;
+
+  LayerVolumeBase* m_layerRef;
 };
 
 

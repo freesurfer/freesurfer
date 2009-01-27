@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/12/05 20:37:23 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,14 +23,15 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef FSLabel_h
 #define FSLabel_h
 
 #include "vtkImageData.h"
 #include "vtkMatrix4x4.h"
 
-extern "C" {
+extern "C"
+{
 #include "label.h"
 }
 
@@ -38,23 +39,23 @@ class FSVolume;
 class wxWindow;
 class wxCommandEvent;
 
-class FSLabel 
+class FSLabel
 {
 public:
-	FSLabel();
-	virtual ~FSLabel();
-	
-	bool LabelRead( const char* filename );	
-	bool LabelWrite( const char* filename );
-		
-	void UpdateLabelFromImage( vtkImageData* rasImage_in, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event );
-	void UpdateRASImage( vtkImageData* rasImage_out, FSVolume* ref_vol );
-	
-protected:	
-	LABEL*			m_label;
-	bool			m_bTkReg;
+  FSLabel();
+  virtual ~FSLabel();
+
+  bool LabelRead( const char* filename );
+  bool LabelWrite( const char* filename );
+
+  void UpdateLabelFromImage( vtkImageData* rasImage_in, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event );
+  void UpdateRASImage( vtkImageData* rasImage_out, FSVolume* ref_vol );
+
+protected:
+  LABEL*   m_label;
+  bool   m_bTkReg;
 };
 
-#endif 
+#endif
 
 

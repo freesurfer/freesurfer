@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,41 +23,42 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef LUTDataHolder_h
 #define LUTDataHolder_h
 
 #include <string>
 #include <vector>
 
-extern "C" {
+extern "C"
+{
 #include "colortab.h"
 }
 
 class LUTDataHolder
 {
-	public:
-		LUTDataHolder();
-		virtual ~LUTDataHolder();	
-		
-		const char* GetName( int i );
-		
-		COLOR_TABLE* GetColorTable( int i );
-		
-		int GetIndex( COLOR_TABLE* ct );
-		
-		int GetCount();
-		
-	protected:
-		struct ColorTableData
-		{
-			COLOR_TABLE*	table;
-			std::string		name;
-		};
-		
-		std::vector<ColorTableData>	m_tables;
+public:
+  LUTDataHolder();
+  virtual ~LUTDataHolder();
+
+  const char* GetName( int i );
+
+  COLOR_TABLE* GetColorTable( int i );
+
+  int GetIndex( COLOR_TABLE* ct );
+
+  int GetCount();
+
+protected:
+  struct ColorTableData
+  {
+    COLOR_TABLE* table;
+    std::string  name;
+  };
+
+  std::vector<ColorTableData> m_tables;
 };
 
-#endif 
+#endif
 
 

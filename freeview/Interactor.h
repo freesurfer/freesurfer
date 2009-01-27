@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Interactor_h
 #define Interactor_h
 
@@ -36,34 +36,36 @@ class RenderView;
 class Interactor : public Broadcaster
 {
 public:
-	Interactor();
-	virtual ~Interactor();
-		
-	int GetAction();
-	void SetAction( int nAction );
-	
-	// return true if to have parent interactor continue processing the event
-	// return false to stop event from further processing
-	virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseWheelEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseEnterEvent(	wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseLeaveEvent( wxMouseEvent& event, RenderView* view ); 
-	virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
-	virtual bool ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view );
-	virtual void ProcessPostMouseMoveEvent( wxMouseEvent& event, RenderView* view ) {}	
-	virtual void ProcessPostMouseWheelEvent( wxMouseEvent& event, RenderView* view ) {}
-		
-protected:	
-	virtual void UpdateCursor( wxEvent& event, wxWindow* wnd );
-	
-	int		m_nDownPosX;
-	int		m_nDownPosY;
-	
-	int		m_nAction;
+  Interactor();
+  virtual ~Interactor();
+
+  int GetAction();
+  void SetAction( int nAction );
+
+  // return true if to have parent interactor continue processing the event
+  // return false to stop event from further processing
+  virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseWheelEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseEnterEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseLeaveEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
+  virtual bool ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view );
+  virtual void ProcessPostMouseMoveEvent( wxMouseEvent& event, RenderView* view )
+  {}
+  virtual void ProcessPostMouseWheelEvent( wxMouseEvent& event, RenderView* view )
+  {}
+
+protected:
+  virtual void UpdateCursor( wxEvent& event, wxWindow* wnd );
+
+  int  m_nDownPosX;
+  int  m_nDownPosY;
+
+  int  m_nAction;
 };
 
-#endif 
+#endif
 
 

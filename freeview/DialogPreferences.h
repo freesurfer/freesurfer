@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -38,34 +38,34 @@ struct SettingsScreenshot;
 class DialogPreferences : public wxDialog
 {
 public:
-	DialogPreferences(wxWindow* parent);
-	virtual ~DialogPreferences();
-	
-	wxColour GetBackgroundColor() const;
-	void SetBackgroundColor( const wxColour& color );
-	
-	wxColour GetCursorColor() const;
-	void SetCursorColor( const wxColour& color );
-	
-	Settings2D Get2DSettings();
-	void Set2DSettings( const Settings2D& s );
-	
-	SettingsScreenshot GetScreenshotSettings();
-	void SetScreenshotSettings( const SettingsScreenshot& s );
-			
-	void OnOK( wxCommandEvent& event ); 
-	
+  DialogPreferences(wxWindow* parent);
+  virtual ~DialogPreferences();
+
+  wxColour GetBackgroundColor() const;
+  void SetBackgroundColor( const wxColour& color );
+
+  wxColour GetCursorColor() const;
+  void SetCursorColor( const wxColour& color );
+
+  Settings2D Get2DSettings();
+  void Set2DSettings( const Settings2D& s );
+
+  SettingsScreenshot GetScreenshotSettings();
+  void SetScreenshotSettings( const SettingsScreenshot& s );
+
+  void OnOK( wxCommandEvent& event );
+
 private:
-	wxColourPickerCtrl*		m_colorPickerBackground;
-	wxColourPickerCtrl*		m_colorPickerCursor;
-	wxCheckBox*				m_checkSyncZoomFactor;
-	
-	wxCheckBox*				m_checkHideCursor;
-	wxCheckBox*				m_checkHideCoords;
-	wxSpinCtrl*				m_spinMagnification;
-	
-	DECLARE_EVENT_TABLE()
+  wxColourPickerCtrl*  m_colorPickerBackground;
+  wxColourPickerCtrl*  m_colorPickerCursor;
+  wxCheckBox*    m_checkSyncZoomFactor;
+
+  wxCheckBox*    m_checkHideCursor;
+  wxCheckBox*    m_checkHideCoords;
+  wxSpinCtrl*    m_spinMagnification;
+
+  DECLARE_EVENT_TABLE()
 };
 
-#endif 
+#endif
 

@@ -8,12 +8,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:24 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -34,139 +34,139 @@
 using namespace std;
 
 BrushProperty::BrushProperty () :
-		m_nBrushSize( 1 ), 
-		m_nBrushTolerance( 0 ), 
-		m_bEnableDrawRange( false ),
-		m_bEnableExcludeRange( false ),
-		m_bDrawConnectedOnly( false ),
-		m_layerRef( NULL )
+    m_nBrushSize( 1 ),
+    m_nBrushTolerance( 0 ),
+    m_bEnableDrawRange( false ),
+    m_bEnableExcludeRange( false ),
+    m_bDrawConnectedOnly( false ),
+    m_layerRef( NULL )
 {
-	m_dDrawRange[0] = 0;
-	m_dDrawRange[1] = 1000000;
-	m_dExcludeRange[0] = 0;
-	m_dExcludeRange[1] = 0;
-	wxConfigBase* config = wxConfigBase::Get();
-	if ( config )
-	{
-		config->Read( _T("/BrushProperty/Size"), &m_nBrushSize, 1L );
-	//	config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
-		m_nBrushTolerance = 0;		
-		config->Read( _T("/BrushProperty/EnableDrawRange"), &m_bEnableDrawRange, false );
-		config->Read( _T("/BrushProperty/EnableExcludeRange"), &m_bEnableExcludeRange, false );
-		config->Read( _T("/BrushProperty/DrawConnected"), &m_bDrawConnectedOnly, false );
-		config->Read( _T("/BrushProperty/DrawRangeLow"), m_dDrawRange, 0 );
-		config->Read( _T("/BrushProperty/DrawRangeHigh"), m_dDrawRange+1, 1000000 );
-		config->Read( _T("/BrushProperty/ExcludeRangeLow"), m_dExcludeRange, 0 );
-		config->Read( _T("/BrushProperty/ExcludeRangeHigh"), m_dExcludeRange+1, 0 );
-	}
+  m_dDrawRange[0] = 0;
+  m_dDrawRange[1] = 1000000;
+  m_dExcludeRange[0] = 0;
+  m_dExcludeRange[1] = 0;
+  wxConfigBase* config = wxConfigBase::Get();
+  if ( config )
+  {
+    config->Read( _T("/BrushProperty/Size"), &m_nBrushSize, 1L );
+    // config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
+    m_nBrushTolerance = 0;
+    config->Read( _T("/BrushProperty/EnableDrawRange"), &m_bEnableDrawRange, false );
+    config->Read( _T("/BrushProperty/EnableExcludeRange"), &m_bEnableExcludeRange, false );
+    config->Read( _T("/BrushProperty/DrawConnected"), &m_bDrawConnectedOnly, false );
+    config->Read( _T("/BrushProperty/DrawRangeLow"), m_dDrawRange, 0 );
+    config->Read( _T("/BrushProperty/DrawRangeHigh"), m_dDrawRange+1, 1000000 );
+    config->Read( _T("/BrushProperty/ExcludeRangeLow"), m_dExcludeRange, 0 );
+    config->Read( _T("/BrushProperty/ExcludeRangeHigh"), m_dExcludeRange+1, 0 );
+  }
 }
-	
+
 BrushProperty::~BrushProperty()
 {
-	wxConfigBase* config = wxConfigBase::Get();
-	if ( config )
-	{
-		config->Write( _T("/BrushProperty/Size"), m_nBrushSize );
-		config->Write( _T("/BrushProperty/Tolerance"), m_nBrushTolerance );
-		config->Write( _T("/BrushProperty/EnableDrawRange"), m_bEnableDrawRange );
-		config->Write( _T("/BrushProperty/EnableExcludeRange"), m_bEnableExcludeRange );
-		config->Write( _T("/BrushProperty/DrawConnected"), m_bDrawConnectedOnly );
-		config->Write( _T("/BrushProperty/DrawRangeLow"), m_dDrawRange[0] );
-		config->Write( _T("/BrushProperty/DrawRangeHigh"), m_dDrawRange[1] );
-		config->Write( _T("/BrushProperty/ExcludeRangeLow"), m_dExcludeRange[0] );
-		config->Write( _T("/BrushProperty/ExcludeRangeHigh"), m_dExcludeRange[1] );
-	}	
+  wxConfigBase* config = wxConfigBase::Get();
+  if ( config )
+  {
+    config->Write( _T("/BrushProperty/Size"), m_nBrushSize );
+    config->Write( _T("/BrushProperty/Tolerance"), m_nBrushTolerance );
+    config->Write( _T("/BrushProperty/EnableDrawRange"), m_bEnableDrawRange );
+    config->Write( _T("/BrushProperty/EnableExcludeRange"), m_bEnableExcludeRange );
+    config->Write( _T("/BrushProperty/DrawConnected"), m_bDrawConnectedOnly );
+    config->Write( _T("/BrushProperty/DrawRangeLow"), m_dDrawRange[0] );
+    config->Write( _T("/BrushProperty/DrawRangeHigh"), m_dDrawRange[1] );
+    config->Write( _T("/BrushProperty/ExcludeRangeLow"), m_dExcludeRange[0] );
+    config->Write( _T("/BrushProperty/ExcludeRangeHigh"), m_dExcludeRange[1] );
+  }
 }
-	
+
 int BrushProperty::GetBrushSize()
 {
-	return m_nBrushSize;
+  return m_nBrushSize;
 }
 
 void BrushProperty::SetBrushSize( int nSize )
 {
-	m_nBrushSize = nSize;
+  m_nBrushSize = nSize;
 }
-	
+
 int BrushProperty::GetBrushTolerance()
 {
-	return m_nBrushTolerance;
+  return m_nBrushTolerance;
 }
 
 void BrushProperty::SetBrushTolerance( int nTolerance )
 {
-	m_nBrushTolerance = nTolerance;
+  m_nBrushTolerance = nTolerance;
 }
 
 LayerVolumeBase* BrushProperty::GetReferenceLayer()
 {
-	return m_layerRef;
+  return m_layerRef;
 }
-	
+
 void BrushProperty::SetReferenceLayer( LayerVolumeBase* layer )
 {
-	m_layerRef = layer;
+  m_layerRef = layer;
 }
 
 double* BrushProperty::GetDrawRange()
 {
-	return m_dDrawRange;
+  return m_dDrawRange;
 }
-	
+
 void BrushProperty::SetDrawRange( double* range )
 {
-	SetDrawRange( range[0], range[1] );
+  SetDrawRange( range[0], range[1] );
 }
-	
+
 void BrushProperty::SetDrawRange( double low, double high )
 {
-	m_dDrawRange[0] = low;
-	m_dDrawRange[1] = high;
+  m_dDrawRange[0] = low;
+  m_dDrawRange[1] = high;
 }
-	
-	
+
+
 bool BrushProperty::GetDrawRangeEnabled()
 {
-	return m_bEnableDrawRange;
+  return m_bEnableDrawRange;
 }
-	
+
 void BrushProperty::SetDrawRangeEnabled( bool bEnable )
 {
-	m_bEnableDrawRange = bEnable;
-} 
-	 
+  m_bEnableDrawRange = bEnable;
+}
+
 double* BrushProperty::GetExcludeRange()
 {
-	return m_dExcludeRange;
+  return m_dExcludeRange;
 }
 
 void BrushProperty::SetExcludeRange( double* range )
 {
-	SetExcludeRange( range[0], range[1] );
+  SetExcludeRange( range[0], range[1] );
 }
 
 void BrushProperty::SetExcludeRange( double low, double high )
 {
-	m_dExcludeRange[0] = low;
-	m_dExcludeRange[1] = high;
+  m_dExcludeRange[0] = low;
+  m_dExcludeRange[1] = high;
 }
-	
+
 bool BrushProperty::GetExcludeRangeEnabled()
 {
-	return m_bEnableExcludeRange;
+  return m_bEnableExcludeRange;
 }
 
 void BrushProperty::SetExcludeRangeEnabled( bool bEnable )
 {
-	m_bEnableExcludeRange = bEnable;
-} 
+  m_bEnableExcludeRange = bEnable;
+}
 
 bool BrushProperty::GetDrawConnectedOnly()
 {
-	return m_bDrawConnectedOnly;
+  return m_bDrawConnectedOnly;
 }
 
 void BrushProperty::SetDrawConnectedOnly( bool bEnable )
 {
-	m_bDrawConnectedOnly = bEnable;
+  m_bDrawConnectedOnly = bEnable;
 }

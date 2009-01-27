@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:24 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Cursor3D_h
 #define Cursor3D_h
 
@@ -38,38 +38,38 @@ class RenderView3D;
 class Cursor3D
 {
 public:
-	Cursor3D( RenderView3D* view );
-    virtual ~Cursor3D();	
+  Cursor3D( RenderView3D* view );
+  virtual ~Cursor3D();
 
-	void SetPosition( double* pos );
-	
-	double* GetPosition();
-	void GetPosition( double* pos );
-	
-	void GetColor( double* rgb );
-	void SetColor( double r, double g, double b );
-	
-	wxColour GetColor();
-	void SetColor( const wxColour& color );
-	
-	void Update();  
-	
-	void AppendActor( vtkRenderer* renderer );
-	
-	void Show( bool bShow = true );
-	
-	bool IsShown();
-	
+  void SetPosition( double* pos );
+
+  double* GetPosition();
+  void GetPosition( double* pos );
+
+  void GetColor( double* rgb );
+  void SetColor( double r, double g, double b );
+
+  wxColour GetColor();
+  void SetColor( const wxColour& color );
+
+  void Update();
+
+  void AppendActor( vtkRenderer* renderer );
+
+  void Show( bool bShow = true );
+
+  bool IsShown();
+
 private:
-	void RebuildActor();
-	
-	vtkSmartPointer<vtkActor>	m_actorCursor;
-	
-	RenderView3D*	m_view;
-	
-	double		m_dPosition[3];
+  void RebuildActor();
+
+  vtkSmartPointer<vtkActor> m_actorCursor;
+
+  RenderView3D* m_view;
+
+  double  m_dPosition[3];
 };
 
-#endif 
+#endif
 
 

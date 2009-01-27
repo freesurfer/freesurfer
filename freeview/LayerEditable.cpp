@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/08 19:14:35 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -27,19 +27,18 @@
 #include "LayerEditable.h"
 
 LayerEditable::LayerEditable() : Layer(),
-		m_nMaxUndoSteps( 100 ),
-		m_bModified( false ),
-		m_bEditable( true )
+    m_nMaxUndoSteps( 100 ),
+    m_bModified( false ),
+    m_bEditable( true )
 {
-	m_strTypeNames.push_back( "Editable" );
+  m_strTypeNames.push_back( "Editable" );
 }
 
 LayerEditable::~LayerEditable()
-{	
-}
- 		
+{}
+
 void LayerEditable::SetModified()
 {
-	m_bModified = true;
-	this->SendBroadcast( "LayerModified", this );
+  m_bModified = true;
+  this->SendBroadcast( "LayerModified", this );
 }

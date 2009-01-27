@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/01/16 22:13:07 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:25 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Interactor2DROIEdit_h
 #define Interactor2DROIEdit_h
 
@@ -33,10 +33,11 @@
 class Interactor2DROIEdit : public Interactor2DVolumeEdit
 {
 public:
-	Interactor2DROIEdit();
-	virtual ~Interactor2DROIEdit() {}
+  Interactor2DROIEdit();
+  virtual ~Interactor2DROIEdit()
+  {}
 };
 
-#endif 
+#endif
 
 

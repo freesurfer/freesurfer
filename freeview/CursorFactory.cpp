@@ -6,12 +6,12 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2008/10/09 17:01:53 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:27:24 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,8 +23,8 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
-#include <wx/xrc/xmlres.h> 
+
+#include <wx/xrc/xmlres.h>
 #include <wx/image.h>
 #include <wx/mstream.h>
 #include "CursorFactory.h"
@@ -35,46 +35,46 @@
 #include "res/CursorPan_png.h"
 #include "res/CursorZoom_png.h"
 
-wxCursor CursorFactory::CursorPencil 	= wxCursor();
-wxCursor CursorFactory::CursorFill 		= wxCursor();
-wxCursor CursorFactory::CursorPolyline	= wxCursor();
-wxCursor CursorFactory::CursorPan 		= wxCursor();
-wxCursor CursorFactory::CursorZoom		= wxCursor();
+wxCursor CursorFactory::CursorPencil  = wxCursor();
+wxCursor CursorFactory::CursorFill   = wxCursor();
+wxCursor CursorFactory::CursorPolyline = wxCursor();
+wxCursor CursorFactory::CursorPan   = wxCursor();
+wxCursor CursorFactory::CursorZoom  = wxCursor();
 
 CursorFactory::CursorFactory()
 {
-	Initialize();
+  Initialize();
 }
 
 void CursorFactory::Initialize()
 {
-	wxMemoryInputStream s1( CursorPencil_png, CursorPencil_png_LEN );
-	wxImage img( s1, wxBITMAP_TYPE_PNG );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-	CursorPencil = wxCursor( img );
-	
-	wxMemoryInputStream s2( CursorFill_png, CursorFill_png_LEN );
-	img = wxImage( s2, wxBITMAP_TYPE_PNG );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 2 );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 23 );
-	CursorFill = wxCursor( img );	
-	
-	wxMemoryInputStream s3( CursorPolyline_png, CursorPolyline_png_LEN );
-	img = wxImage( s3, wxBITMAP_TYPE_PNG );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-	CursorPolyline = wxCursor( img );
-		
-	wxMemoryInputStream s4( CursorPan_png, CursorPan_png_LEN );
-	img = wxImage( s4, wxBITMAP_TYPE_PNG );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
-	CursorPan = wxCursor( img );
-		
-	wxMemoryInputStream s5( CursorZoom_png, CursorZoom_png_LEN );
-	img = wxImage( s5, wxBITMAP_TYPE_PNG );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
-	img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
-	CursorZoom = wxCursor( img );
+  wxMemoryInputStream s1( CursorPencil_png, CursorPencil_png_LEN );
+  wxImage img( s1, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
+  CursorPencil = wxCursor( img );
+
+  wxMemoryInputStream s2( CursorFill_png, CursorFill_png_LEN );
+  img = wxImage( s2, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 2 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 23 );
+  CursorFill = wxCursor( img );
+
+  wxMemoryInputStream s3( CursorPolyline_png, CursorPolyline_png_LEN );
+  img = wxImage( s3, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
+  CursorPolyline = wxCursor( img );
+
+  wxMemoryInputStream s4( CursorPan_png, CursorPan_png_LEN );
+  img = wxImage( s4, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
+  CursorPan = wxCursor( img );
+
+  wxMemoryInputStream s5( CursorZoom_png, CursorZoom_png_LEN );
+  img = wxImage( s5, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
+  CursorZoom = wxCursor( img );
 }
