@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/04/04 00:33:24 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/01/27 20:27:00 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_sample_parc.c,v 1.27 2008/04/04 00:33:24 fischl Exp $";
+  "$Id: mris_sample_parc.c,v 1.28 2009/01/27 20:27:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -104,7 +104,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_sample_parc.c,v 1.27 2008/04/04 00:33:24 fischl Exp $", "$Name:  $");
+                                 "$Id: mris_sample_parc.c,v 1.28 2009/01/27 20:27:00 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -219,6 +219,8 @@ main(int argc, char *argv[]) {
       MRIsurfaceRASToVoxel(mri_parc, x, y, z, &xw, &yw, &zw) ;
       v->annotation = v->val =
                         MRIfindNearestNonzero(mri_parc, wsize, xw, yw, zw, ((float)wsize-1)/2) ;
+      if (v->val == 0xffffffff)
+        DiagBreak() ;
     }
   }
   if (replace_label)
@@ -636,6 +638,8 @@ translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname) {
     if (v->ripflag)
       continue ;
     v->annotation = index_to_annotation((int)v->val) ;
+    if (v->annotation == -1)
+      v->annotation = (unknown_label > 0) ? unknown_label : 0 ;
   }
   return(NO_ERROR) ;
 }
