@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:24 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:47 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Interactor3D_h
 #define Interactor3D_h
 
@@ -32,23 +32,23 @@
 class Interactor3D : public Interactor
 {
 public:
-	Interactor3D();
-	virtual ~Interactor3D();
-		
-	// return true if to have parent Interactor3D continue processing the event
-	// return false to stop event from further processing
-	virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-	virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
-		
-protected:	
-	int		m_nMousePosX;
-	int		m_nMousePosY;
-	
-	bool	m_bWindowLevel;
+  Interactor3D();
+  virtual ~Interactor3D();
+
+  // return true if to have parent Interactor3D continue processing the event
+  // return false to stop event from further processing
+  virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
+
+protected:
+  int  m_nMousePosX;
+  int  m_nMousePosY;
+
+  bool m_bWindowLevel;
 };
 
-#endif 
+#endif
 
 

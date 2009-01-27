@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:24 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:48 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,11 +23,11 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef LayerROI_h
 #define LayerROI_h
 
-#include "LayerEditable.h"
+#include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
 #include <string>
 #include <vector>
@@ -41,52 +41,59 @@ class vtkPolyDataMapper;
 class vtkActor;
 class vtkImageActor;
 class vtkImageData;
+class vtkProp;
 class LayerMRI;
 class LayerPropertiesROI;
 class wxWindow;
 class wxCommandEvent;
 
-class LayerROI : public LayerEditable
+class LayerROI : public LayerVolumeBase
 {
-	public:
-		LayerROI( LayerMRI* layerMRI );
-		virtual ~LayerROI();
-					
-		bool LoadROIFromFile( std::string filename );
-		
-		void Append2DProps( vtkRenderer* renderer, int nPlane );
-		void Append3DProps( vtkRenderer* renderer );
-		
-		virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
-				
-		void SetVisible( bool bVisible = true );
-		bool IsVisible();
-		
-		LayerPropertiesROI*	GetProperties();
-		
-		bool SaveROI( wxWindow* wnd, wxCommandEvent& event );
-		
-	protected:
-		void InitializeActors();		
-		void UpdateOpacity();
-		void UpdateColorMap();
-		virtual void SetModified();
-		
-		virtual void OnSlicePositionChanged( int nPlane );	
-		
-		LayerPropertiesROI* 					mROIProperties;
+public:
+  LayerROI( LayerMRI* layerMRI );
+  virtual ~LayerROI();
 
-		  // Pipeline ------------------------------------------------------------
-		vtkSmartPointer<vtkImageReslice> 		mReslice[3];
-		vtkSmartPointer<vtkImageMapToColors> 	mColorMap[3];
-		
-		LayerMRI*			m_layerSource;
-		FSLabel*			m_label;
-		
-		vtkImageActor*		m_sliceActor2D[3];
-		vtkImageActor*		m_sliceActor3D[3];		
+  bool LoadROIFromFile( std::string filename );
+
+  virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
+  virtual void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
+
+  bool HasProp( vtkProp* prop );
+
+  virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
+
+  void SetVisible( bool bVisible = true );
+  bool IsVisible();
+
+  LayerPropertiesROI* GetProperties();
+
+  bool SaveROI( wxWindow* wnd, wxCommandEvent& event );
+
+  void UpdateLabelData( wxWindow* wnd, wxCommandEvent& event );
+
+  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+
+protected:
+  void InitializeActors();
+  void UpdateOpacity();
+  void UpdateColorMap();
+  virtual void SetModified();
+
+  virtual void OnSlicePositionChanged( int nPlane );
+
+  LayerPropertiesROI*      mROIProperties;
+
+  // Pipeline ------------------------------------------------------------
+  vtkSmartPointer<vtkImageReslice>   mReslice[3];
+  vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
+
+  LayerMRI*   m_layerSource;
+  FSLabel*   m_label;
+
+  vtkImageActor*  m_sliceActor2D[3];
+  vtkImageActor*  m_sliceActor3D[3];
 };
 
-#endif 
+#endif
 
 

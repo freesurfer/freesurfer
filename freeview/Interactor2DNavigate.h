@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:24 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:47 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Interactor2DNavigate_h
 #define Interactor2DNavigate_h
 
@@ -32,11 +32,11 @@
 class Interactor2DNavigate : public Interactor2D
 {
 public:
-	Interactor2DNavigate() : Interactor2D()
-	{}
-		
+  Interactor2DNavigate() : Interactor2D()
+  {}
+
 };
 
-#endif 
+#endif
 
 

@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:23 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:47 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Annotation2D_h
 #define Annotation2D_h
 
@@ -32,21 +32,35 @@
 
 class vtkTextActor;
 class vtkRenderer;
+class vtkAxisActor2D;
+class vtkPropCollection;
 
 class Annotation2D
 {
 public:
-	Annotation2D();
-    virtual ~Annotation2D();	
+  Annotation2D();
+  virtual ~Annotation2D();
 
-	void Update( vtkRenderer* renderer, int nPlane );   
-	
-	void AppendAnnotations( vtkRenderer* renderer );
-	
+  void Update( vtkRenderer* renderer, int nPlane );
+
+  void AppendAnnotations( vtkRenderer* renderer );
+
+  void ShowScaleLine( bool bShow );
+
+  bool GetShowScaleLine();
+
+  void Show( bool bShow );
+  bool IsVisible();
+
 private:
-	vtkSmartPointer<vtkTextActor>	m_actorCoordinates[5];
+  void UpdateScaleActors( double length, int nNumOfTicks, const char* title );
+
+  vtkSmartPointer<vtkTextActor> m_actorCoordinates[6];
+  vtkSmartPointer<vtkActor2D>  m_actorScaleLine;
+  vtkSmartPointer<vtkTextActor> m_actorScaleTitle;
+  vtkSmartPointer<vtkPropCollection> m_actorsAll;
 };
 
-#endif 
+#endif
 
 

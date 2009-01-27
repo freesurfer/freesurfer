@@ -17,10 +17,15 @@ freeview_SOURCES=\
 	Broadcaster.h \
 	BrushProperty.cpp \
 	BrushProperty.h \
+	CommonDataStruct.h \
 	ControlPanel.cpp \
 	ControlPanel.h \
 	Cursor2D.cpp \
 	Cursor2D.h \
+	Cursor3D.cpp \
+	Cursor3D.h \
+	CursorFactory.cpp \
+	CursorFactory.h \
 	DialogEditLookupTable.cpp \
 	DialogEditLookupTable.h \
 	DialogLoadDTI.cpp \
@@ -31,24 +36,38 @@ freeview_SOURCES=\
 	DialogNewROI.h \
 	DialogNewVolume.cpp \
 	DialogNewVolume.h \
+	DialogNewWayPoints.cpp \
+	DialogNewWayPoints.h \
+	DialogOptimalVolume.cpp \
+	DialogOptimalVolume.h \
 	DialogPreferences.cpp \
 	DialogPreferences.h \
+	DialogRotateVolume.cpp \
+	DialogRotateVolume.h \
 	FSLabel.cpp \
 	FSLabel.h \
 	FSSurface.cpp \
 	FSSurface.h \
 	FSVolume.cpp \
 	FSVolume.h \
+	FSWayPoints.cpp \
+	FSWayPoints.h \
 	Interactor.cpp \
 	Interactor.h \
 	Interactor2D.cpp \
 	Interactor2D.h \
 	Interactor2DNavigate.cpp \
 	Interactor2DNavigate.h \
+	Interactor2DRegionEdit.cpp \
+	Interactor2DRegionEdit.h \
 	Interactor2DROIEdit.cpp \
 	Interactor2DROIEdit.h \
+	Interactor2DVolumeEdit.cpp \
+	Interactor2DVolumeEdit.h \
 	Interactor2DVoxelEdit.cpp \
 	Interactor2DVoxelEdit.h \
+	Interactor2DWayPointsEdit.cpp \
+	Interactor2DWayPointsEdit.h \
 	Interactor3D.cpp \
 	Interactor3D.h \
 	Interactor3DNavigate.cpp \
@@ -65,6 +84,8 @@ freeview_SOURCES=\
 	LayerEditable.h \
 	LayerMRI.cpp \
 	LayerMRI.h \
+	LayerOptimal.cpp \
+	LayerOptimal.h \
 	LayerPropertiesDTI.cpp \
 	LayerPropertiesDTI.h \
 	LayerPropertiesMRI.cpp \
@@ -73,12 +94,20 @@ freeview_SOURCES=\
 	LayerPropertiesROI.h \
 	LayerPropertiesSurface.cpp \
 	LayerPropertiesSurface.h \
+	LayerPropertiesWayPoints.cpp \
+	LayerPropertiesWayPoints.h \
 	LayerROI.cpp \
 	LayerROI.h \
 	LayerSurface.cpp \
 	LayerSurface.h \
+	LayerVolumeBase.cpp \
+	LayerVolumeBase.h \
+	LayerWayPoints.cpp \
+	LayerWayPoints.h \
 	Listener.cpp \
 	Listener.h \
+	LivewireTool.cpp \
+	LivewireTool.h \
 	LUTDataHolder.cpp \
 	LUTDataHolder.h \
 	MainApp.cpp \
@@ -91,10 +120,18 @@ freeview_SOURCES=\
 	MyCmdLineParser.h \
 	PanelROI.cpp \
 	PanelROI.h \
+	PanelSceneSetting.cpp \
+	PanelSceneSetting.h \
+	PanelSurface.cpp \
+	PanelSurface.h \
 	PanelVolume.cpp \
 	PanelVolume.h \
+	PanelWayPoints.cpp \
+	PanelWayPoints.h \
 	PixelInfoPanel.cpp \
 	PixelInfoPanel.h \
+	Region.cpp \
+	Region.h \
 	RenderView2D.cpp \
 	RenderView2D.h \
 	RenderView3D.cpp \
@@ -104,6 +141,16 @@ freeview_SOURCES=\
 	StatusBar.cpp \
 	StatusBar.h \
 	string_fixed.h \
+	ToolWindowEdit.cpp \
+	ToolWindowEdit.h \
+	vtkDijkstraGraphGeodesicPath.cxx \
+	vtkDijkstraGraphGeodesicPath.h \
+	vtkDijkstraImageContourLineInterpolator.cxx \
+	vtkDijkstraImageContourLineInterpolator.h \
+	vtkDijkstraImageGeodesicPath.cxx \
+	vtkDijkstraImageGeodesicPath.h \
+	WindowHistogram.cpp \
+	WindowHistogram.h \
 	WindowQuickReference.cpp \
 	WindowQuickReference.h \
 	WorkerThread.cpp \
@@ -112,11 +159,20 @@ freeview_SOURCES=\
 	wxColorIndicator.h \
 	wxColorIndicatorXmlHandler.cpp \
 	wxColorIndicatorXmlHandler.h \
+	wxHistogramWidget.cpp \
+	wxHistogramWidget.h \
+	wxHistogramWidgetXmlHandler.cpp \
+	wxHistogramWidgetXmlHandler.h \
 	wxVTKRenderWindowInteractor.cpp \
 	wxVTKRenderWindowInteractor.h \
 	res/resource.cpp \
 	res/resource.h \
-	res/QuickRef.h
+	res/QuickRef.h \
+	res/CursorFill_png.h \
+	res/CursorPencil_png.h \
+	res/CursorPolyline_png.h \
+	res/CursorPan_png.h \
+	res/CursorZoom_png.h
 
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 

@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:24 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:47 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -30,23 +30,42 @@
 
 
 class wxColourPickerCtrl;
+class wxCheckBox;
+class wxSpinCtrl;
+struct Settings2D;
+struct SettingsScreenshot;
 
 class DialogPreferences : public wxDialog
 {
 public:
-	DialogPreferences(wxWindow* parent);
-	virtual ~DialogPreferences();
-	
-	wxColour GetBackgroundColor() const;
-	void SetBackgroundColor( const wxColour& color );
-	
-	void OnOK( wxCommandEvent& event ); 
-	
+  DialogPreferences(wxWindow* parent);
+  virtual ~DialogPreferences();
+
+  wxColour GetBackgroundColor() const;
+  void SetBackgroundColor( const wxColour& color );
+
+  wxColour GetCursorColor() const;
+  void SetCursorColor( const wxColour& color );
+
+  Settings2D Get2DSettings();
+  void Set2DSettings( const Settings2D& s );
+
+  SettingsScreenshot GetScreenshotSettings();
+  void SetScreenshotSettings( const SettingsScreenshot& s );
+
+  void OnOK( wxCommandEvent& event );
+
 private:
-	wxColourPickerCtrl*		m_colorPicker;
-	
-	DECLARE_EVENT_TABLE()
+  wxColourPickerCtrl*  m_colorPickerBackground;
+  wxColourPickerCtrl*  m_colorPickerCursor;
+  wxCheckBox*    m_checkSyncZoomFactor;
+
+  wxCheckBox*    m_checkHideCursor;
+  wxCheckBox*    m_checkHideCoords;
+  wxSpinCtrl*    m_spinMagnification;
+
+  DECLARE_EVENT_TABLE()
 };
 
-#endif 
+#endif
 

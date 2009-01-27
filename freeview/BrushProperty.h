@@ -9,11 +9,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:23 $
- *    $Revision: 1.1.2.1 $
+ *    $Date: 2009/01/27 18:43:47 $
+ *    $Revision: 1.1.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -30,28 +30,51 @@
 #ifndef BrushProperty_h
 #define BrushProperty_h
 
-class LayerEditable;
+class LayerVolumeBase;
 
-class BrushProperty 
+class BrushProperty
 {
 public:
 
-  	BrushProperty ();
-  	virtual ~BrushProperty () {}
+  BrushProperty ();
+  virtual ~BrushProperty ();
 
-	int GetBrushSize();
-	void SetBrushSize( int nSize );
-	
-	int GetBrushTolerance();
-	void SetBrushTolerance( int nTolerance );
-	
-	LayerEditable* GetReferenceLayer();
-	void SetReferenceLayer( LayerEditable* layer );
-	
+  int  GetBrushSize();
+  void SetBrushSize( int nSize );
+
+  int  GetBrushTolerance();
+  void  SetBrushTolerance( int nTolerance );
+
+  LayerVolumeBase*  GetReferenceLayer();
+  void     SetReferenceLayer( LayerVolumeBase* layer );
+
+  double* GetDrawRange();
+  void  SetDrawRange( double* range );
+  void  SetDrawRange( double low, double high );
+
+  bool GetDrawRangeEnabled();
+  void SetDrawRangeEnabled( bool bEnable );
+
+  double* GetExcludeRange();
+  void SetExcludeRange( double* range );
+  void  SetExcludeRange( double low, double high );
+
+  bool GetExcludeRangeEnabled();
+  void SetExcludeRangeEnabled( bool bEnable );
+
+  bool GetDrawConnectedOnly();
+  void SetDrawConnectedOnly( bool bEnable );
+
 protected:
-  	int	m_nBrushSize;
-  	int	m_nBrushTolerance;
-	LayerEditable*	m_layerRef;
+  int  m_nBrushSize;
+  int  m_nBrushTolerance;
+  double m_dDrawRange[2];
+  bool m_bEnableDrawRange;
+  double m_dExcludeRange[2];
+  bool m_bEnableExcludeRange;
+  bool m_bDrawConnectedOnly;
+
+  LayerVolumeBase* m_layerRef;
 };
 
 

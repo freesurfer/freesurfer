@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:24 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:48 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,7 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #include <wx/wx.h>
 #include "LayerROI.h"
 #include "vtkFSVolumeSource.h"
@@ -52,272 +52,300 @@
 #include "FSLabel.h"
 #include <stdlib.h>
 
-LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerEditable()
+LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerVolumeBase()
 {
-	m_strTypeNames.push_back( "ROI" );
-	
-	m_label = new FSLabel();
-	for ( int i = 0; i < 3; i++ )
-	{
-		m_dSlicePosition[i] = 0;
-		m_sliceActor2D[i] = vtkImageActor::New();
-		m_sliceActor3D[i] = vtkImageActor::New();
-	/*	m_sliceActor2D[i]->GetProperty()->SetAmbient( 1 );
-		m_sliceActor2D[i]->GetProperty()->SetDiffuse( 0 );
-		m_sliceActor3D[i]->GetProperty()->SetAmbient( 1 );
-		m_sliceActor3D[i]->GetProperty()->SetDiffuse( 0 );*/
-		m_sliceActor2D[i]->InterpolateOff();
-		m_sliceActor3D[i]->InterpolateOff();
-	}
-	mROIProperties = new LayerPropertiesROI();
-	mROIProperties->AddListener( this );
-	
-	m_layerSource = layerMRI;
-	m_volumeRef = layerMRI->GetRASVolume();
-	if ( m_layerSource )
-	{
-		SetWorldOrigin( m_layerSource->GetWorldOrigin() );
-		SetWorldVoxelSize( m_layerSource->GetWorldVoxelSize() );
-		SetWorldSize( m_layerSource->GetWorldSize() );
-		
-		m_volumeRAS = vtkSmartPointer<vtkImageData>::New();
-	//	m_volumeRAS->DeepCopy( m_layerSource->GetRASVolume() );
-		
-		m_volumeRAS->SetNumberOfScalarComponents( 1 );
-		m_volumeRAS->SetScalarTypeToFloat();
-		m_volumeRAS->SetOrigin( GetWorldOrigin() );
-		m_volumeRAS->SetSpacing( GetWorldVoxelSize() );	
-		m_volumeRAS->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
-									( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
-									( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
-		m_volumeRAS->AllocateScalars();
-		float* ptr = ( float* )m_volumeRAS->GetScalarPointer();
-		int* nDim = m_volumeRAS->GetDimensions();
-	//	cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
-		memset( ptr, 0, sizeof( float ) * nDim[0] * nDim[1] * nDim[2] );
-		InitializeActors();
-	}
+  m_strTypeNames.push_back( "ROI" );
+
+  m_label = new FSLabel();
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_dSlicePosition[i] = 0;
+    m_sliceActor2D[i] = vtkImageActor::New();
+    m_sliceActor3D[i] = vtkImageActor::New();
+    /* m_sliceActor2D[i]->GetProperty()->SetAmbient( 1 );
+     m_sliceActor2D[i]->GetProperty()->SetDiffuse( 0 );
+     m_sliceActor3D[i]->GetProperty()->SetAmbient( 1 );
+     m_sliceActor3D[i]->GetProperty()->SetDiffuse( 0 );*/
+    m_sliceActor2D[i]->InterpolateOff();
+    m_sliceActor3D[i]->InterpolateOff();
+  }
+  mROIProperties = new LayerPropertiesROI();
+  mROIProperties->AddListener( this );
+
+  m_layerSource = layerMRI;
+  m_imageDataRef = layerMRI->GetImageData();
+  if ( m_layerSource )
+  {
+    SetWorldOrigin( m_layerSource->GetWorldOrigin() );
+    SetWorldVoxelSize( m_layerSource->GetWorldVoxelSize() );
+    SetWorldSize( m_layerSource->GetWorldSize() );
+
+    m_imageData = vtkSmartPointer<vtkImageData>::New();
+    // m_imageData->DeepCopy( m_layerSource->GetRASVolume() );
+
+    m_imageData->SetNumberOfScalarComponents( 1 );
+    m_imageData->SetScalarTypeToUnsignedChar();
+    m_imageData->SetOrigin( GetWorldOrigin() );
+    m_imageData->SetSpacing( GetWorldVoxelSize() );
+    m_imageData->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
+                                ( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
+                                ( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
+    m_imageData->AllocateScalars();
+    void* ptr = m_imageData->GetScalarPointer();
+    int* nDim = m_imageData->GetDimensions();
+    // cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
+    memset( ptr, 0, m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
+    InitializeActors();
+  }
 }
 
 LayerROI::~LayerROI()
 {
-	for ( int i = 0; i < 3; i++ )
-	{
-		m_sliceActor2D[i]->Delete();
-		m_sliceActor3D[i]->Delete();
-	}
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_sliceActor2D[i]->Delete();
+    m_sliceActor3D[i]->Delete();
+  }
 
-	delete mROIProperties;
-	
-	if ( m_label )
-		delete m_label;
+  delete mROIProperties;
+
+  if ( m_label )
+    delete m_label;
 }
 
 bool LayerROI::LoadROIFromFile( std::string filename )
 {
-	if ( !m_label->LabelRead( filename.c_str() ) )
-		return false;
-	
-	m_label->UpdateRASImage( m_volumeRAS, m_layerSource->GetSourceVolume() );
-	
-	m_sFilename = filename;
-	
-	return true;
+  if ( !m_label->LabelRead( filename.c_str() ) )
+    return false;
+
+  m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+
+  m_sFilename = filename;
+
+  return true;
 }
 
 void LayerROI::InitializeActors()
 {
-	if ( m_layerSource == NULL )
-		return;
-	
-	for ( int i = 0; i < 3; i++ )
-	{
-  // The reslice object just takes a slice out of the volume.
-		//
-		mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
-		mReslice[i]->SetInput( m_volumeRAS );
-//		mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
-		mReslice[i]->BorderOff();
+  if ( m_layerSource == NULL )
+    return;
 
-  // This sets us to extract slices.
-		mReslice[i]->SetOutputDimensionality( 2 );
+  for ( int i = 0; i < 3; i++ )
+  {
+    // The reslice object just takes a slice out of the volume.
+    //
+    mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
+    mReslice[i]->SetInput( m_imageData );
+//  mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
+    mReslice[i]->BorderOff();
 
-  // This will change depending what orienation we're in.
-		mReslice[i]->SetResliceAxesDirectionCosines( 1, 0, 0,
-				0, 1, 0,
-				0, 0, 1 );
+    // This sets us to extract slices.
+    mReslice[i]->SetOutputDimensionality( 2 );
 
-  // This will change to select a different slice.
-		mReslice[i]->SetResliceAxesOrigin( 0, 0, 0 );
-		//
-  // Image to colors using color table.
-		//
-		mColorMap[i] = vtkSmartPointer<vtkImageMapToColors>::New();
-		mColorMap[i]->SetLookupTable( mROIProperties->GetLookupTable() );
-		mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
-		mColorMap[i]->SetOutputFormatToRGBA();
-		mColorMap[i]->PassAlphaToOutputOn();
+    // This will change depending what orienation we're in.
+    mReslice[i]->SetResliceAxesDirectionCosines( 1, 0, 0,
+        0, 1, 0,
+        0, 0, 1 );
 
-		//
-  // Prop in scene with plane mesh and texture.
-		//
-		m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
-		m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
+    // This will change to select a different slice.
+    mReslice[i]->SetResliceAxesOrigin( 0, 0, 0 );
+    //
+    // Image to colors using color table.
+    //
+    mColorMap[i] = vtkSmartPointer<vtkImageMapToColors>::New();
+    mColorMap[i]->SetLookupTable( mROIProperties->GetLookupTable() );
+    mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+    mColorMap[i]->SetOutputFormatToRGBA();
+    mColorMap[i]->PassAlphaToOutputOn();
 
-  // Set ourselves up.
-		this->OnSlicePositionChanged( i );		
-	}
-		
-	this->UpdateOpacity();
-	this->UpdateColorMap();
+    //
+    // Prop in scene with plane mesh and texture.
+    //
+    m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
+    m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
+
+    // Set ourselves up.
+    this->OnSlicePositionChanged( i );
+  }
+
+  this->UpdateOpacity();
+  this->UpdateColorMap();
 }
 
 
 void LayerROI::UpdateOpacity()
 {
-	for ( int i = 0; i < 3; i++ )
-	{
-		m_sliceActor2D[i]->SetOpacity( mROIProperties->GetOpacity() );
-		m_sliceActor3D[i]->SetOpacity( mROIProperties->GetOpacity() );
-	}	
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_sliceActor2D[i]->SetOpacity( mROIProperties->GetOpacity() );
+    m_sliceActor3D[i]->SetOpacity( mROIProperties->GetOpacity() );
+  }
 }
 
-void LayerROI::UpdateColorMap () 
+void LayerROI::UpdateColorMap ()
 {
-	assert( mROIProperties );
+  assert( mROIProperties );
 
-	for ( int i = 0; i < 3; i++ )
-		mColorMap[i]->SetLookupTable( mROIProperties->GetLookupTable() );
-	//	m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
+  for ( int i = 0; i < 3; i++ )
+    mColorMap[i]->SetLookupTable( mROIProperties->GetLookupTable() );
+  // m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
 }
 
 void LayerROI::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
-	wxASSERT ( nPlane >= 0 && nPlane <= 2 );
-	
-	renderer->AddViewProp( m_sliceActor2D[nPlane] );
+  wxASSERT ( nPlane >= 0 && nPlane <= 2 );
+
+  renderer->AddViewProp( m_sliceActor2D[nPlane] );
 }
 
-void LayerROI::Append3DProps( vtkRenderer* renderer )
+void LayerROI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
-	for ( int i = 0; i < 3; i++ )
-		renderer->AddViewProp( m_sliceActor3D[i] ); 
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( bSliceVisibility == NULL || bSliceVisibility[i] )
+      renderer->AddViewProp( m_sliceActor3D[i] );
+  }
 }
 
-void LayerROI::OnSlicePositionChanged( int nPlane ) 
-{  
-	if ( !m_layerSource )
-		return;
-	
-	assert( mROIProperties );
-	
-	vtkSmartPointer<vtkMatrix4x4> matrix = 
-			vtkSmartPointer<vtkMatrix4x4>::New();
-	matrix->Identity();
-	switch ( nPlane ) 
-	{
-		case 0:		
-			m_sliceActor2D[0]->PokeMatrix( matrix );
-			m_sliceActor2D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
-			m_sliceActor2D[0]->RotateX( 90 );
-			m_sliceActor2D[0]->RotateY( -90 );
-			m_sliceActor3D[0]->PokeMatrix( matrix );
-			m_sliceActor3D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
-			m_sliceActor3D[0]->RotateX( 90 );
-			m_sliceActor3D[0]->RotateY( -90 );
-    
+void LayerROI::OnSlicePositionChanged( int nPlane )
+{
+  if ( !m_layerSource )
+    return;
+
+  assert( mROIProperties );
+
+  vtkSmartPointer<vtkMatrix4x4> matrix =
+    vtkSmartPointer<vtkMatrix4x4>::New();
+  matrix->Identity();
+  switch ( nPlane )
+  {
+  case 0:
+    m_sliceActor2D[0]->PokeMatrix( matrix );
+    m_sliceActor2D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
+    m_sliceActor2D[0]->RotateX( 90 );
+    m_sliceActor2D[0]->RotateY( -90 );
+    m_sliceActor3D[0]->PokeMatrix( matrix );
+    m_sliceActor3D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
+    m_sliceActor3D[0]->RotateX( 90 );
+    m_sliceActor3D[0]->RotateY( -90 );
+
     // Putting negatives in the reslice axes cosines will flip the
     // image on that axis.
-			mReslice[0]->SetResliceAxesDirectionCosines( 0, -1, 0,
-					0, 0, 1,
-					1, 0, 0 );
-			mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
-			
-			break;
-		case 1:
-			m_sliceActor2D[1]->PokeMatrix( matrix );
-			m_sliceActor2D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
-			m_sliceActor2D[1]->RotateX( 90 );
-		//	m_sliceActor2D[1]->RotateY( 180 );
-			m_sliceActor3D[1]->PokeMatrix( matrix );
-			m_sliceActor3D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
-			m_sliceActor3D[1]->RotateX( 90 );
-		//	m_sliceActor3D[1]->RotateY( 180 );
-    
+    mReslice[0]->SetResliceAxesDirectionCosines( 0, -1, 0,
+        0, 0, 1,
+        1, 0, 0 );
+    mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
+    mReslice[0]->Modified();
+    break;
+  case 1:
+    m_sliceActor2D[1]->PokeMatrix( matrix );
+    m_sliceActor2D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
+    m_sliceActor2D[1]->RotateX( 90 );
+    // m_sliceActor2D[1]->RotateY( 180 );
+    m_sliceActor3D[1]->PokeMatrix( matrix );
+    m_sliceActor3D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
+    m_sliceActor3D[1]->RotateX( 90 );
+    // m_sliceActor3D[1]->RotateY( 180 );
+
     // Putting negatives in the reslice axes cosines will flip the
-      // image on that axis.
-			mReslice[1]->SetResliceAxesDirectionCosines( 1, 0, 0,
-					0, 0, 1,
-					0, 1, 0 );
-			mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
-			break;
-		case 2:
-			m_sliceActor2D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
-		//	m_sliceActor2D[2]->RotateY( 180 );
-			m_sliceActor3D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
-		//	m_sliceActor3D[2]->RotateY( 180 );
-			
-			mReslice[2]->SetResliceAxesDirectionCosines( 1, 0, 0,
-					0, 1, 0,
-					0, 0, 1 );
-			mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
-			break;
-	}
+    // image on that axis.
+    mReslice[1]->SetResliceAxesDirectionCosines( 1, 0, 0,
+        0, 0, 1,
+        0, 1, 0 );
+    mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
+    mReslice[1]->Modified();
+    break;
+  case 2:
+    m_sliceActor2D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
+    // m_sliceActor2D[2]->RotateY( 180 );
+    m_sliceActor3D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
+    // m_sliceActor3D[2]->RotateY( 180 );
+
+    mReslice[2]->SetResliceAxesDirectionCosines( 1, 0, 0,
+        0, 1, 0,
+        0, 0, 1 );
+    mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
+    mReslice[2]->Modified();
+    break;
+  }
 }
 
 LayerPropertiesROI* LayerROI::GetProperties()
 {
-	return mROIProperties;
+  return mROIProperties;
 }
 
 void LayerROI::DoListenToMessage( std::string const iMessage, void* const iData )
 {
-	if ( iMessage == "ColorMapChanged" )
-	{
-		this->UpdateColorMap();
-		this->SendBroadcast( "LayerActorUpdated", this );
-	}
-	else if ( iMessage == "OpacityChanged" )
-	{
-		this->UpdateOpacity();
-		this->SendBroadcast( "LayerActorUpdated", this );
-	}
+  if ( iMessage == "ColorMapChanged" )
+  {
+    this->UpdateColorMap();
+    this->SendBroadcast( "LayerActorUpdated", this );
+  }
+  else if ( iMessage == "OpacityChanged" )
+  {
+    this->UpdateOpacity();
+    this->SendBroadcast( "LayerActorUpdated", this );
+  }
 }
 
 void LayerROI::SetVisible( bool bVisible )
 {
-	for ( int i = 0; i < 3; i++ )
-	{
-		m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
-		m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
-	}
-	this->SendBroadcast( "LayerActorUpdated", this );
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
+    m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
+  }
+  this->SendBroadcast( "LayerActorUpdated", this );
 }
 
 bool LayerROI::IsVisible()
 {
-	return m_sliceActor2D[0]->GetVisibility() > 0;
+  return m_sliceActor2D[0]->GetVisibility() > 0;
 }
 
 void LayerROI::SetModified()
 {
-	mReslice[0]->Modified();
-	mReslice[1]->Modified();
-	mReslice[2]->Modified();	
-	
-	LayerEditable::SetModified();
+  mReslice[0]->Modified();
+  mReslice[1]->Modified();
+  mReslice[2]->Modified();
+
+  LayerVolumeBase::SetModified();
 }
 
 bool LayerROI::SaveROI( wxWindow* wnd, wxCommandEvent& event )
 {
-	if ( m_sFilename.size() == 0 || m_volumeRAS.GetPointer() == NULL )
-		return false;
-		
-	m_label->UpdateLabelFromImage( m_volumeRAS, m_layerSource->GetSourceVolume(), wnd, event );
-	
-	bool bSaved = m_label->LabelWrite( m_sFilename.c_str() );
-	if ( !bSaved )
-		m_bModified = true;
-	
-	return bSaved;
+  if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
+    return false;
+
+  m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume(), wnd, event );
+
+  bool bSaved = m_label->LabelWrite( m_sFilename.c_str() );
+  if ( !bSaved )
+    m_bModified = true;
+
+  return bSaved;
+}
+
+bool LayerROI::HasProp( vtkProp* prop )
+{
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( m_sliceActor2D[i] == prop || m_sliceActor3D[i] == prop )
+      return true;
+  }
+  return false;
+}
+
+bool LayerROI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+{
+  m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+
+  return true;
+}
+
+void LayerROI::UpdateLabelData( wxWindow* wnd, wxCommandEvent& event )
+{
+  if ( IsModified() )
+    m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume(), wnd, event );
 }

@@ -1,0 +1,194 @@
+/**
+ * @file  LivewireTool.cpp
+ * @brief LivewireTool.
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2009/01/27 18:43:48 $
+ *    $Revision: 1.5.2.1 $
+ *
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+#include "LivewireTool.h"
+#include <vtkPoints.h>
+#include <vtkImageClip.h>
+#include <vtkImageData.h>
+#include <vtkImageGradientMagnitude.h>
+#include <vtkImageShiftScale.h>
+#include <vtkImageChangeInformation.h>
+#include <vtkImageAnisotropicDiffusion2D.h>
+#include <vtkImageGaussianSmooth.h>
+#include <vtkCellArray.h>
+#include "vtkDijkstraImageGeodesicPath.h"
+
+LivewireTool::LivewireTool( ) :
+    m_nPlane( 0 ),
+    m_nSlice( 0 ),
+    m_imageData( NULL ),
+    m_imageSlice( NULL )
+{
+  m_path = vtkSmartPointer<vtkDijkstraImageGeodesicPath>::New();
+}
+
+LivewireTool::~LivewireTool()
+{}
+
+/*
+void LivewireTool::SetImagePlane( int nPlane )
+{
+ if ( m_imageData && m_nPlane != nPlane )
+ {
+  m_nPlane = nPlane;
+  int ext[6];
+  m_imageData->GetExtent( ext );
+  ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;
+  m_imageClip->SetOutputWholeExtent( ext );
+  int n[3] = { 0, 0, 0 };
+  n[m_nPlane] = -1*m_nSlice;
+  m_info->SetExtentTranslation( n );
+  m_path->Update();
+  m_info->Update();
+  m_imageSlice = ( vtkImageData* )m_info->GetInput();
+ }
+}
+
+void LivewireTool::SetImageSlice( int nSlice )
+{
+ if ( m_imageData && m_nSlice != nSlice )
+ {
+  m_nSlice = nSlice;
+  int ext[6];
+  m_imageData->GetExtent( ext );
+  ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;
+  m_imageClip->SetOutputWholeExtent( ext );
+  int n[3] = { 0, 0, 0 };
+  n[m_nPlane] = -1*m_nSlice;
+  m_info->SetExtentTranslation( n );
+  m_path->Update();
+  m_info->Update();
+  m_imageSlice = ( vtkImageData* )m_info->GetInput();
+ // m_imageSlice->GetExtent( ext );
+ // cout << ext[0] << " " << ext[1] <<  " " << ext[2] << " " << ext[3] << " " << ext[4] << " " << ext[5] << endl;
+  double* orig = m_info->GetOutput()->GetOrigin();
+ // cout << "orig " << orig[0] << " " << orig[1] << " " << orig[2] << endl;
+  orig = m_imageData->GetOrigin();
+ // cout << "orig " << orig[0] << " " << orig[1] << " " << orig[2] << endl;
+  m_info->GetOutput()->GetExtent( ext );
+  cout << "ext " << ext[0] << " " << ext[1] << " " << ext[2] << " " << ext[3] << " " << ext[4] << " " << ext[5] << endl;
+ }
+}
+*/
+
+void LivewireTool::GetLivewirePoints( vtkImageData* image, int nPlane, int nSlice,
+                                      double* pt1_in, double* pt2_in, vtkPoints* pts_out )
+{
+  UpdateImageDataInfo( image, nPlane, nSlice );
+  GetLivewirePoints( pt1_in, pt2_in, pts_out );
+}
+
+void LivewireTool::UpdateImageDataInfo( vtkImageData* image_in, int nPlane, int nSlice )
+{
+  if ( m_imageData != image_in || m_nPlane != nPlane || m_nSlice != nSlice )
+  {
+    m_imageData = image_in;
+    m_nPlane = nPlane;
+    m_nSlice = nSlice;
+    vtkSmartPointer<vtkImageClip> clip = vtkSmartPointer<vtkImageClip>::New();
+    clip->SetInput( image_in );
+    int ext[6];
+    image_in->GetExtent( ext );
+    ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;
+    clip->SetOutputWholeExtent( ext );
+    clip->ClipDataOn();
+    clip->ReleaseDataFlagOff();
+
+    vtkSmartPointer<vtkImageAnisotropicDiffusion2D> smooth = vtkSmartPointer<vtkImageAnisotropicDiffusion2D>::New();
+    smooth->SetInputConnection( clip->GetOutputPort() );
+    smooth->SetDiffusionFactor( 0.75 );
+    smooth->SetDiffusionThreshold( 50.0 );
+    smooth->SetNumberOfIterations( 5 );
+
+    /*  vtkSmartPointer<vtkImageGaussianSmooth> smooth = vtkSmartPointer<vtkImageGaussianSmooth>::New();
+      smooth->SetInputConnection( clip->GetOutputPort() );
+      smooth->SetStandardDeviations( 1, 1, 1 );*/
+
+    vtkSmartPointer<vtkImageGradientMagnitude> grad = vtkSmartPointer<vtkImageGradientMagnitude>::New();
+    grad->SetDimensionality( 2 );
+    grad->HandleBoundariesOn();
+    grad->SetInputConnection( smooth->GetOutputPort() );
+    grad->Update();
+
+    double* range = grad->GetOutput()->GetScalarRange();
+    vtkSmartPointer<vtkImageShiftScale> scale = vtkSmartPointer<vtkImageShiftScale>::New();
+    scale->SetShift( -1.0*range[1] );
+    scale->SetScale( 255.0 /( range[0] - range[1] ) );
+    scale->SetOutputScalarTypeToShort();
+    scale->SetInputConnection( grad->GetOutputPort() );
+    scale->ReleaseDataFlagOff();
+
+    vtkSmartPointer<vtkImageChangeInformation> info = vtkSmartPointer<vtkImageChangeInformation>::New();
+    info->SetInput( scale->GetOutput() );
+    int n[3] = { 0, 0, 0 };
+    n[m_nPlane] = -1*m_nSlice;
+    info->SetExtentTranslation( n );
+    info->Update();
+
+    m_imageSlice = scale->GetOutput();
+    m_path->SetInput( info->GetOutput() );
+  }
+}
+
+void LivewireTool::GetLivewirePoints( double* pt1_in, double* pt2_in, vtkPoints* pts_out )
+{
+  if ( !m_imageSlice )
+    return;
+
+  vtkIdType beginVertId = m_imageSlice->FindPoint( pt1_in );
+  vtkIdType endVertId = m_imageSlice->FindPoint( pt2_in );
+// cout << beginVertId << "  " << endVertId << endl;
+
+  if ( beginVertId == -1 || endVertId == -1 )
+  {
+    // cout << "can not find point: " << pt1_in[0] << " " << pt1_in[1] << " " << pt1_in[2] << ", "
+    //   << pt2_in[0] << " " << pt2_in[1] << " " << pt2_in[2] << endl;
+    return;
+  }
+
+  m_path->SetStartVertex( endVertId );
+  m_path->SetEndVertex( beginVertId );
+  m_path->Update();
+// double* pt = m_info->GetOutput()->GetPoint( beginVertId );
+// cout << pt[0] << " " << pt[1] << " " << pt[2] << endl;
+
+  vtkPolyData *pd = m_path->GetOutput();
+  vtkIdType npts = 0, *pts = NULL;
+  pd->GetLines()->InitTraversal();
+  pd->GetLines()->GetNextCell( npts, pts );
+// cout << npts << endl;
+  double offset[3] = { 0, 0, 0 };
+  double* vs = m_imageData->GetSpacing();
+  offset[m_nPlane] = m_nSlice*vs[m_nPlane];
+  for ( int i = 0; i < npts; i++ )
+  {
+    double* p = pd->GetPoint( pts[i] );
+    // cout << p[0] << " " << p[1] << " " << p[2] << endl;
+    pts_out->InsertNextPoint( p[0] + offset[0], p[1] + offset[1], p[2] + offset[2] );
+  }
+}
+
+

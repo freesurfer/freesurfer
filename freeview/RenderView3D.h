@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:25 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:48 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,35 +23,69 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef RenderView3D_h
 #define RenderView3D_h
 
 #include "RenderView.h"
+
+class Cursor3D;
 
 class VTK_RENDERING_EXPORT RenderView3D : public RenderView
 {
   DECLARE_DYNAMIC_CLASS(RenderView3D)
 
 public:
-	RenderView3D();
-    RenderView3D(wxWindow *parent, int id);
-    virtual ~RenderView3D();	
-    
-    static RenderView3D * New();
-    void PrintSelf(ostream& os, vtkIndent indent);
-	
-	virtual void RefreshAllActors();
-	
-	void UpdateViewByWorldCoordinate();
-	
-private:
+  RenderView3D();
+  RenderView3D(wxWindow *parent, int id);
+  virtual ~RenderView3D();
 
-    // any class wishing to process wxWindows events must use this macro
-    DECLARE_EVENT_TABLE()
+  static RenderView3D * New();
+  void PrintSelf(ostream& os, vtkIndent indent);
+
+  virtual void RefreshAllActors();
+
+  void UpdateMouseRASPosition( int posX, int posY );
+  void CancelUpdateMouseRASPosition();
+
+  void UpdateCursorRASPosition( int posX, int posY );
+
+  void UpdateViewByWorldCoordinate();
+
+  Cursor3D* GetCursor3D()
+  {
+    return m_cursor3D;
+  }
+
+  void ShowVolumeSlice( int nPlane, bool bShow = true );
+
+  bool GetShowVolumeSlice( int nPlane );
+
+protected:
+  void OnInternalIdle();
+  void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
+  virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
+
+  void PreScreenshot();
+  void PostScreenshot();
+
+private:
+  void InitializeRenderView3D();
+
+  int  m_nPickCoord[2];
+  int  m_nCursorCoord[2];
+  bool m_bToUpdateRASPosition;
+  bool m_bToUpdateCursorPosition;
+
+  Cursor3D* m_cursor3D;
+
+  bool m_bSliceVisibility[3];
+
+  // any class wishing to process wxWindows events must use this macro
+  DECLARE_EVENT_TABLE()
 
 };
 
-#endif 
+#endif
 
 

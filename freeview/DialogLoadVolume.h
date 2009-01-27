@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:24 $
- *    $Revision: 1.2.2.1 $
+ *    $Date: 2009/01/27 18:43:47 $
+ *    $Revision: 1.2.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -31,32 +31,41 @@
 class DialogLoadVolume : public wxDialog
 {
 public:
-	DialogLoadVolume( wxWindow* parent );
-	virtual ~DialogLoadVolume();
-	
-	wxString GetVolumeFileName();
-	
-	bool IsToResample();
-	
-	void OnOK( wxCommandEvent& event );
-	
-	void SetLastDir( const wxString& dir )
-		{ m_strLastDir = dir; }
-	
-	void SetRecentFiles( const wxArrayString& list );
-	
+  DialogLoadVolume( wxWindow* parent, bool bEnableResample = true );
+  virtual ~DialogLoadVolume();
+
+  wxString GetVolumeFileName();
+
+  wxString GetRegFileName();
+
+  bool IsToResample();
+
+  void OnOK( wxCommandEvent& event );
+
+  void SetLastDir( const wxString& dir )
+  {
+    m_strLastDir = dir;
+  }
+
+  void SetRecentFiles( const wxArrayString& list );
+
 protected:
-	void OnButtonOpen( wxCommandEvent& event );
-	void OnFileSelectionChanged( wxCommandEvent& event );
-	
-	wxButton*		m_btnOpen;
-	wxComboBox*		m_comboFileName;
-	wxCheckBox*		m_checkNoResample;
-	
-	wxString		m_strLastDir;
-	
-	DECLARE_EVENT_TABLE()
+  void OnButtonOpen( wxCommandEvent& event );
+  void OnFileSelectionChanged( wxCommandEvent& event );
+  void OnButtonRegFile( wxCommandEvent& event );
+  void OnCheckApplyReg( wxCommandEvent& event );
+
+  wxButton*  m_btnOpen;
+  wxComboBox*  m_comboFileName;
+  wxCheckBox*  m_checkNoResample;
+  wxCheckBox*  m_checkApplyReg;
+  wxTextCtrl*  m_textRegFile;
+  wxButton*  m_btnRegFile;
+
+  wxString  m_strLastDir;
+
+  DECLARE_EVENT_TABLE()
 };
 
-#endif 
+#endif
 

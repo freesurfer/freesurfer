@@ -7,11 +7,11 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/04 20:43:24 $
- *    $Revision: 1.3.2.1 $
+ *    $Date: 2009/01/27 18:43:47 $
+ *    $Revision: 1.3.2.2 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,38 +23,22 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
- 
+
 #ifndef Interactor2DVoxelEdit_h
 #define Interactor2DVoxelEdit_h
 
-#include "Interactor2D.h"
-#include <vector>
+#include "Interactor2DVolumeEdit.h"
 
 class wxWindow;
 
-class Interactor2DVoxelEdit : public Interactor2D
+class Interactor2DVoxelEdit : public Interactor2DVolumeEdit
 {
-	public:
-		Interactor2DVoxelEdit();
-		virtual ~Interactor2DVoxelEdit();
-	
-		enum EditMode { EM_Freehand = 0, EM_Fill, EM_Polyline };
-	
-	// return true if to have parent Interactor2DROIEdit continue processing the event
-	// return false to stop event from further processing
-		virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-		virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-		virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-		virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
-		
-	protected:	
-		void UpdateCursor( wxWindow* wnd );
-		
-		bool	m_bEditing;
-	
-		std::vector<double>		m_dPolylinePoints;
+public:
+  Interactor2DVoxelEdit();
+  virtual ~Interactor2DVoxelEdit()
+  {}
 };
 
-#endif 
+#endif
 
 
