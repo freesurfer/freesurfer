@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/15 22:51:43 $
- *    $Revision: 1.334 $
+ *    $Date: 2009/01/27 20:40:17 $
+ *    $Revision: 1.335 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.334 $";
+char *VERSION = "$Revision: 1.335 $";
 
 #define TCL
 #define TKMEDIT
@@ -1189,7 +1189,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.334 2008/12/15 22:51:43 greve Exp $",
+     "$Id: tkmedit.c,v 1.335 2009/01/27 20:40:17 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2258,6 +2258,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
         }
 
       } else if ( MATCH( sArg, "-segmentation-opacity" ) ||
+		  MATCH( sArg, "-opacity" ) ||
                   MATCH( sArg, "-roialpha" ) ) {
 
         /* check for the value following the switch */
@@ -5903,7 +5904,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.334 2008/12/15 22:51:43 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.335 2009/01/27 20:40:17 greve Exp $ $Name:  $\n"
         )
       );
 
