@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/01/17 03:09:34 $
- *    $Revision: 1.164 $
+ *    $Author: lzollei $
+ *    $Date: 2009/01/27 16:24:04 $
+ *    $Revision: 1.165 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -548,7 +548,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.164 2009/01/17 03:09:34 greve Exp $";
+"$Id: mri_glmfit.c,v 1.165 2009/01/27 16:24:04 lzollei Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -648,6 +648,7 @@ int OneSampleGroupMean=0;
 struct timeb  mytimer;
 int ReallyUseAverage7 = 0;
 int logflag = 0; // natural log
+float prune_thr = FLT_MIN;
 
 DTI *dti;
 int usedti = 0;
@@ -992,8 +993,13 @@ int main(int argc, char **argv) {
     mriglm->mask = mritmp;
   }
   if (prunemask) {
-    printf("Pruning voxels by frame.\n");
-    mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
+    printf("Pruning voxels by thr: %f\n", prune_thr);
+    // NOTE: for DWI volumes
+    MRI* firstFrameVol;
+    firstFrameVol = MRIcopyFrame(mriglm->y,NULL, 0, 0);
+    mriglm->mask = MRIframeBinarize(firstFrameVol,prune_thr,mriglm->mask);
+    MRIfree(&firstFrameVol);
+    //mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
   }
   if (mriglm->mask && maskinv)
     MRImaskInvert(mriglm->mask,mriglm->mask);
@@ -1006,7 +1012,7 @@ int main(int argc, char **argv) {
     if (!DontSave) {
       sprintf(tmpstr,"%s/mask.%s",GLMDir,format);
       printf("Saving mask to %s\n",tmpstr);
-      MRIwrite(mriglm->mask,tmpstr);
+      MRIwrite(mriglm->mask,tmpstr); 
     }
   } else nmask = nvoxels;
   maskfraction = (double)nmask/nvoxels;
@@ -1851,6 +1857,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
+    else if (!strcasecmp(option, "--prune_thr")) 
+      {
+	if (nargc < 1) CMDargNErr(option,1);
+	sscanf(pargv[0],"%f",&prune_thr); nargsused = 1;
+      }
     else if (!strcasecmp(option, "--nii")) format = "nii";
     else if (!strcasecmp(option, "--nii.gz")) format = "nii.gz";
     else if (!strcasecmp(option, "--allowsubjrep"))
