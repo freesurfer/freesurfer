@@ -17,7 +17,8 @@ foo_DATA=surface_labels.txt \
 	DefectLUT.txt \
 	FreeSurferColorLUT.txt \
 	numaris4-protocols.unpackcfg \
-	ASegStatsLUT.txt
+	ASegStatsLUT.txt \
+	SegmentNoLUT.txt
 
 EXTRA_DIST=$(foo_DATA) \
 	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
