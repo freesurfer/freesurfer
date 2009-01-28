@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/18 16:30:38 $
- *    $Revision: 1.276.2.13 $
+ *    $Author: greve $
+ *    $Date: 2009/01/28 17:37:36 $
+ *    $Revision: 1.276.2.14 $
  *
  * Copyright (C) 2002-2009, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2250,6 +2250,18 @@ int  main(int argc,char *argv[])
         printf("ERROR: cannot find %s\n",overlay_reg);
         exit(1);
       }
+    }
+    else if (!stricmp(argv[i], "-reg"))
+    {
+      nargs = 2 ;
+      strncpy (overlay_reg, argv[i+1], sizeof(overlay_reg) );
+      overlay_reg_type = FunD_tRegistration_File;
+      if (!fio_FileExistsReadable(overlay_reg)){
+        printf("ERROR: cannot find %s\n",overlay_reg);
+        exit(1);
+      }
+      strncpy (timecourse_reg, argv[i+1], sizeof(timecourse_reg));
+      timecourse_reg_type = FunD_tRegistration_File;
     }
     else if (!stricmp(argv[i], "-overlay-reg-find"))
     {
@@ -20712,7 +20724,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.276.2.13 2009/01/18 16:30:38 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.276.2.14 2009/01/28 17:37:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
