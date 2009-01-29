@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2009/01/13 15:24:43 $
- *    $Revision: 1.423 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/29 03:13:21 $
+ *    $Revision: 1.424 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.423 $";
+const char *MRI_C_VERSION = "$Revision: 1.424 $";
 
 
 /*-----------------------------------------------------
@@ -15375,7 +15375,11 @@ MRIlabelsInPlanarNbhd(MRI *mri, int x, int y, int z, int whalf, int label, int w
     }
     break ;
   default:
-    ErrorReturn(0, (ERROR_UNSUPPORTED, "MRIlabelsInPlanarNbhd: which=%d not supported yet", which)) ;
+    ErrorReturn
+      (0, 
+       (ERROR_UNSUPPORTED, 
+        "MRIlabelsInPlanarNbhd: which=%d not supported yet", 
+        which)) ;
     break ;
   }
   return(count) ;
@@ -15398,8 +15402,8 @@ MRImatchMeanIntensity(MRI *mri_source, MRI *mri_target, MRI *mri_source_scaled)
 }
 
 /*-----------------------------------------------------
-  Parameters:    LTA filename of atlas transform,
-                 optional ptrs to place to put scale factor and determinant
+  Parameters:    LTA or XFM filename of atlas transform, and scale factor
+                 optional ptrs to determinant
 
   Returns value: estimated total intracranial volume, per Buckner et al. 2004
                  also, if supplied with ptrs, the scale factor and
@@ -15409,28 +15413,31 @@ MRImatchMeanIntensity(MRI *mri_source, MRI *mri_target, MRI *mri_source_scaled)
   ------------------------------------------------------*/
 // Buckner version: eTIV_scale_factor = 1755;
 // old version with talairach_with_skull.lta: eTIV_scale_factor = 2889.2;
-// NJS calculated scale factor, with newest talairach_with_skull.lta:
-static double eTIV_scale_factor = 2150;
+// NJS calculated scale factor, with newest talairach_with_skull.lta: 2150
+// NJS: scale factor must be passed by caller, since it depends on which
+// transform is being passed-in
 double MRIestimateTIV(char* theLtaFile,
-                      double* theScaleFactor,
+                      double theScaleFactor,
                       double* theAtlasDet)
 {
   LTA *atlas_lta ;
   double atlas_det=0, atlas_icv=0 ;
 
   atlas_lta = LTAreadEx(theLtaFile);
+
   if (atlas_lta == NULL)
     ErrorExit
     (ERROR_NOFILE,
      "%s: could not open atlas transform file %s",
      Progname, theLtaFile) ;
-  atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
-  LTAfree(&atlas_lta) ;
-  atlas_icv =
-    eTIV_scale_factor*(10*10*10) / atlas_det ;
 
-  // if given ptrs, return these vals, for debug purposes
-  if (theScaleFactor) *theScaleFactor = eTIV_scale_factor;
+  atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
+
+  LTAfree(&atlas_lta) ;
+
+  atlas_icv = (theScaleFactor*(10*10*10)) / atlas_det ;
+
+  // if given ptr, return determinant, for debug purposes
   if (theAtlasDet) *theAtlasDet = atlas_det;
 
   return atlas_icv;

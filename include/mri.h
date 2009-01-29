@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/11/15 02:41:21 $
- *    $Revision: 1.373 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/29 03:13:21 $
+ *    $Revision: 1.374 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1178,7 +1178,7 @@ double MRImaxInLabelInRegion(MRI *mri_src,
                              int whalf) ;
 
 double MRIestimateTIV(char* theLtaFile,
-                      double* theScaleFactor,
+                      double theScaleFactor,
                       double* theAtlasDet);
 
 int MRInormalizeFrames(MRI *mri);
