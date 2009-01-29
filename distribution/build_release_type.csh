@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.124 2008/10/08 17:31:29 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.125 2009/01/29 20:37:29 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,20 +13,28 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.1.0"
-set STABLE_PUB_VER_NUM="v4.1.0"
+set STABLE_VER_NUM="v4.2.0"
+set STABLE_PUB_VER_NUM="v4.2.0"
 
 set HOSTNAME=`hostname -s`
 
 # note: Mac's need full email addr
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu \
+set FAILURE_MAIL_LIST=(\
+    nicks@nmr.mgh.harvard.edu \
     fischl@nmr.mgh.harvard.edu \
     greve@nmr.mgh.harvard.edu \
-    krish@nmr.mgh.harvard.edu )
+    krish@nmr.mgh.harvard.edu \
+    rpwang@nmr.mgh.harvard.edu)
 #set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 if ("$HOSTNAME" == "blade") then
   set FAILURE_MAIL_LIST=(nicks)
+endif
+if ("$HOSTNAME" == "hima") then
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish.nmr.mgh.harvard.edu)
+endif
+if ("$HOSTNAME" == "sleet") then
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish.nmr.mgh.harvard.edu)
 endif
 
 setenv OSTYPE `uname -s`
@@ -355,6 +363,15 @@ if ($status == 0) then
   rm -f $CVSUPDATEF-nosuchfiles
 endif
 
+echo "CMD: grep -e "cvs [update aborted]" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "cvs [update aborted]" $CVSUPDATEF >& /dev/null
+if ($status == 0) then
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update aborted"
+  echo "$msg" >>& $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
+  exit 1  
+endif
+
 # assume failure (file removed only after successful build)
 rm -f ${FAILED_FILE}
 touch ${FAILED_FILE}
@@ -627,6 +644,8 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 # runs make, then make check, make install, and make uninstall.
 #goto make_distcheck_done
 if ("$RELEASE_TYPE" == "dev") then
+# HACK: just run on minerva
+if ("$HOSTNAME" == "minerva") then
 # just do this once a week, as it takes a few hours to run
 date | grep "Sat " >& /dev/null
 if ( ! $status ) then
@@ -639,12 +658,10 @@ if ( ! $status ) then
   make distcheck >>& $OUTPUTF
   if ($status != 0) then
     set msg="$HOSTNAME $RELEASE_TYPE build FAILED make distcheck"
-
 #
-# HACK : mail to nicks for now, until it passes regularly
+# HACK: mail to nicks for now, until it passes regularly
 #
-
-    tail -n 20 $OUTPUTF | mail -s "$msg" $SUCCESS_MAIL_LIST
+    tail -n 20 $OUTPUTF | mail -s "$msg" nicks@nmr.mgh.harvard.edu
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
@@ -654,8 +671,10 @@ if ( ! $status ) then
     chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
     chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
     chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
-    exit 1  
+# HACK: dont exit:
+#    exit 1  
   endif
+endif
 endif
 endif
 make_distcheck_done:
