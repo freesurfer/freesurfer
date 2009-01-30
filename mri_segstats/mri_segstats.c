@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/29 23:31:45 $
- *    $Revision: 1.51 $
+ *    $Date: 2009/01/30 20:42:33 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -419,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.51 2009/01/29 23:31:45 nicks Exp $";
+"$Id: mri_segstats.c,v 1.52 2009/01/30 20:42:33 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -562,8 +562,10 @@ int main(int argc, char **argv) {
          subject);
       etiv_scale_factor = 2150;
     }
-    atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,NULL);
-    printf("atlas_icv (eTIV) = %d mm^3\n",(int)atlas_icv);
+    double determinant = 0;
+    atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
+    printf("atlas_icv (eTIV) = %d mm^3    (det: %3f )\n",
+           (int)atlas_icv,determinant);
     if (DoETIVonly || DoOldETIVonly) exit(0);
   }
 
