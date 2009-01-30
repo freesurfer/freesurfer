@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/31 17:02:18 $
- *    $Revision: 1.21.2.2 $
+ *    $Author: nicks $
+ *    $Date: 2009/01/30 02:24:41 $
+ *    $Revision: 1.21.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,8 +30,8 @@
 #define MRI2_H
 
 #include "mri.h"
-#include "mrisurf.h"
 #include "mriTransform.h"
+#include "mrisurf.h"
 
 MRI *mri_load_bvolume(char *bfstem);
 int  mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype);
@@ -77,12 +77,15 @@ double MRIsum2All(MRI *mri);
 MRI *MRIchecker(MRI *mri, MRI *checker);
 MRI *MRIcrop(MRI *mri,int c1, int r1, int s1, int c2, int r2, int s2);
 MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2);
+MRI *MRIreverseSlices(MRI *in, MRI *out);
+MRI *MRIcutEndSlices(MRI *mri, int ncut);
 MRI *MRIsquare(MRI *in, MRI *mask, MRI *out);
 MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out);
 int *MRIsegIdList(MRI *seg, int *nlist, int frame);
 double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
+MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out);
 int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
 		  int InterpCode, float param, MRI *vsm);
 int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
