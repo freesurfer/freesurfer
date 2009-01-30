@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/29 03:13:21 $
- *    $Revision: 1.374 $
+ *    $Author: fischl $
+ *    $Date: 2009/01/30 18:22:35 $
+ *    $Revision: 1.375 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -484,6 +484,8 @@ MRI   *MRInormalizeFrameVectorLength(MRI *mri_src, MRI *mri_dst) ;
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
+                      MRI *mri_dst) ;
 MRI   *MRIerodeZero(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerode2D(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
