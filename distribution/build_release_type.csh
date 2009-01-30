@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.125 2009/01/29 20:37:29 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.126 2009/01/30 05:20:28 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -363,8 +363,8 @@ if ($status == 0) then
   rm -f $CVSUPDATEF-nosuchfiles
 endif
 
-echo "CMD: grep -e "cvs [update aborted]" $CVSUPDATEF" >>& $OUTPUTF
-grep -e "cvs [update aborted]" $CVSUPDATEF >& /dev/null
+echo "CMD: grep -e "update aborted" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "update aborted" $CVSUPDATEF >& /dev/null
 if ($status == 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update aborted"
   echo "$msg" >>& $OUTPUTF
