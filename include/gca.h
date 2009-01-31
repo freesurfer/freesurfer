@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/04 20:34:46 $
- *    $Revision: 1.94 $
+ *    $Date: 2009/01/31 04:01:51 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -274,6 +274,8 @@ GCA_SAMPLE *GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list,
                               int unknown_nbr_spacing) ;
 GCA_SAMPLE *GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,
                                  float min_prior, int *exclude_list, int unknown_nbr_spacing) ;
+GCA_SAMPLE *GCAfindExteriorSamples(GCA *gca, int *pnsamples, int min_spacing,
+                                   float min_prior, int unknown_nbr_spacing, int use_ventricles) ;
 GCA_SAMPLE *GCAfindStableSamplesByLabel(GCA *gca, int nsamples,
                                         float min_prior) ;
 int       GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas,
@@ -283,6 +285,9 @@ int        GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
 int        GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
                                        int nsamples,char *fname,TRANSFORM *transform) ;
 int        GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri, 
+                                           GCA_SAMPLE *gcas,int nsamples,
+                                           char *fname,TRANSFORM *transform) ;
+int        GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri, 
                                            GCA_SAMPLE *gcas,int nsamples,
                                            char *fname,TRANSFORM *transform) ;
 int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
@@ -349,6 +354,7 @@ int GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1) ;
 
 int     GCAlabelMode(GCA *gca, int label, float *modes) ;
 int     GCAlabelMean(GCA *gca, int label, float *means) ;
+int     GCAlabelVar(GCA *gca, int label, float *means) ;
 int     GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, float *means) ;
 MATRIX  *GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total) ;
 int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
