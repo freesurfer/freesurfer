@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/10 22:49:50 $
- *    $Revision: 1.258 $
+ *    $Author: fischl $
+ *    $Date: 2009/01/31 04:01:14 $
+ *    $Revision: 1.259 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -5518,6 +5518,161 @@ GCAfindStableSamples(GCA *gca,
   MRIfree(&mri_filled) ;
   return(gcas) ;
 }
+GCA_SAMPLE *
+GCAfindExteriorSamples(GCA *gca,
+                       int *pnsamples, int min_spacing,
+                       float min_prior, 
+                       int unknown_nbr_spacing, int use_ventricles)
+{
+  GCA_SAMPLE *gcas ;
+  int   xi, yi, zi, width, height, depth, nfound;
+  int   nzeros, r, best_label, label ;
+  float prior_stride, x, y, z, tmp[MAX_GCA_INPUTS], max_prior ;
+  float min_unknown[MAX_GCA_INPUTS], max_unknown[MAX_GCA_INPUTS], 
+        priors[MAX_DIFFERENT_LABELS], var[MAX_GCA_INPUTS],
+        means[MAX_DIFFERENT_LABELS][MAX_GCA_INPUTS], vars[MAX_DIFFERENT_LABELS] ;
+  MRI   *mri_filled ;
+
+  memset(priors, 0, sizeof(priors)) ;
+
+  // make sure the unknowns we are selecting are outside the range of normal tissue
+  // intensities (i.e. > min_unknown || < max_unknown)
+  GCAlabelMean(gca, Left_Lateral_Ventricle, max_unknown) ;
+  GCAlabelMean(gca, Right_Lateral_Ventricle, tmp) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+    max_unknown[r] = (max_unknown[r] + tmp[r])/2;
+
+  GCAlabelVar(gca, Left_Lateral_Ventricle, var) ;
+  GCAlabelVar(gca, Right_Lateral_Ventricle, tmp) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+    var[r] = (var[r] + tmp[r])/2;
+  printf("bounding unknown intensity as < ") ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+  {
+    max_unknown[r] = max_unknown[r] ;
+    if (max_unknown[r] < 10)
+      max_unknown[r] = 10 ;
+    printf("%2.1f ", max_unknown[r]) ;
+  }
+  printf("or > ") ;
+  GCAlabelMean(gca, Left_Cerebral_White_Matter, min_unknown) ;
+  GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
+  GCAlabelMean(gca, Left_Cerebral_Cortex, min_unknown) ;
+  GCAlabelMean(gca, Left_Cerebral_Cortex, tmp) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+    min_unknown[r] = (min_unknown[r] + tmp[r])/2;
+  GCAlabelVar(gca, Left_Cerebral_White_Matter, var) ;
+  GCAlabelVar(gca, Left_Cerebral_White_Matter, tmp) ;
+  GCAlabelVar(gca, Left_Cerebral_Cortex, var) ;
+  GCAlabelVar(gca, Left_Cerebral_Cortex, tmp) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+    var[r] = (var[r] + tmp[r])/2;
+
+  for (r = 0 ; r < gca->ninputs ; r++)
+  {
+    min_unknown[r] = min_unknown[r] + sqrt(var[r]) ;
+    printf("%2.1f ", min_unknown[r]) ;
+  }
+  printf("\n") ;
+
+  width = gca->prior_width ; height = gca->prior_height ; depth = gca->prior_depth ;
+
+  // samples size allocated is prior voxel points
+  gcas = calloc(width*height*depth, sizeof(GCA_SAMPLE)) ;
+  if (!gcas)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %dK x %d samples\n",
+              "GCAfindStableSamples",
+              width*height*depth/1024, sizeof(GCA_SAMPLE)) ;
+
+  // create a full size volume prior_width*prior_spacing = image width
+  mri_filled = MRIalloc(width*gca->prior_spacing,height*gca->prior_spacing,
+                        depth*gca->prior_spacing,MRI_UCHAR);
+  // use the mri_prior_ header
+
+  mri_filled->xsize = gca->xsize; mri_filled->ysize = gca->ysize; mri_filled->zsize = gca->zsize;
+
+  GCAcopyDCToMRI(gca, mri_filled);
+
+  prior_stride = (float)min_spacing / (float)gca->prior_spacing ;
+
+  prior_stride = 1.0 ;
+  /* compute the max priors and min variances for each class */
+  for (nzeros = nfound = x = 0 ; x < width ; x += prior_stride)
+  {
+    fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC
+                   //when -O2 optimization is used w/ gcc 3.3.3
+
+    xi = nint(x) ;
+    for (y = 0 ; y < height ; y += prior_stride)
+    {
+      fflush(stdout);//nicknote: this prevents a segfault on Linux PowerPC
+                     //when -O2 optimization is used w/ gcc 3.3.3
+      yi = nint(y) ;
+      for (z = 0 ; z < depth ; z += prior_stride)
+      {
+        zi = nint(z) ;
+        if (xi == Gx && yi == Gy && zi == Gz)
+          DiagBreak() ;
+        gcaRegionStats(gca, x, y, z,
+                       prior_stride/2, priors, vars, means) ;
+
+        max_prior = 0 ; best_label = 0 ;
+        for (label = 0 ; label < MAX_DIFFERENT_LABELS ; label++)
+        {
+          if (priors[label] > max_prior)
+          {
+            best_label = label ;
+            max_prior = priors[label] ;
+          }
+        }
+        if (best_label != Unknown &&
+            (!use_ventricles || !IS_LAT_VENT(best_label)))
+          continue ;
+        if (priors[best_label] < min_prior)
+          continue ;
+        if (best_label == 0 &&
+            (different_nbr_max_labels(gca, x, y, z,
+                                      unknown_nbr_spacing, 0) == 0))
+          continue ;
+
+        if (gcaFindBestSample(gca, x, y, z,
+                              best_label, prior_stride/2,
+                              &gcas[nfound]) == NO_ERROR)
+        {
+          int  xv, yv, zv ;
+          
+          if (best_label != 0 ||
+              ((means[0][0] <= max_unknown[0]) ||
+               (means[0][0] >= min_unknown[0])))
+          {
+            if (!GCApriorToVoxel(gca, mri_filled,
+                                 x, y, z, &xv, &yv, &zv))
+            {
+              //              if (MRIvox(mri_filled, xv, yv, zv) == 0)
+              {
+                mriFillRegion(mri_filled,
+                              xv, yv, zv, 1,
+                              MIN_UNKNOWN_DIST) ;
+                /* MRIvox(mri_filled, xv, yv, zv) = 1 ;*/
+                nzeros++ ;
+                nfound++ ;
+              }
+            }
+            else
+              DiagBreak() ;
+          }
+        }
+      }
+    }
+  }
+
+
+  *pnsamples = nfound ;
+  fflush(stdout) ;
+
+  MRIfree(&mri_filled) ;
+  return(gcas) ;
+}
 
 //////////////////////////////////////////////////////////////////
 // write segmented volume for sampled points
@@ -6180,6 +6335,54 @@ GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri,
       if (!DZERO(pval_total))
         pval /= pval_total ;
       mriFillRegion(mri_dst, xv, yv, zv, pval, 0) ;
+
+      if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+        DiagBreak() ;
+
+      gcas[n].x = xv ; gcas[n].y = yv ; gcas[n].z = zv ;
+
+      //////////// diag /////////////////////////
+      if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+        DiagBreak() ;
+      if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
+        printf("label %d: (%d, %d, %d) <-- (%d, %d, %d)\n",
+               gcas[n].label,gcas[n].xp,gcas[n].yp,gcas[n].zp,
+               xv, yv, zv) ;
+      //////////////////////////////////////////////
+    }
+  }
+  fprintf(stdout, "writing sample pvals to %s...\n", fname) ;
+  MRIwrite(mri_dst, fname) ;
+  MRIfree(&mri_dst) ;
+  fflush(stdout) ;
+
+  return(NO_ERROR) ;
+}
+// same as GCAtransformAndWriteSamples except here we write
+// the mean into the volume instead of the seg label
+int
+GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri, 
+                                GCA_SAMPLE *gcas,int nsamples,
+                                char *fname,TRANSFORM *transform)
+{
+  int       n, xv, yv, zv ;
+  MRI       *mri_dst ;
+  GCA_PRIOR *gcap ;
+
+  mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri, mri_dst);
+
+  TransformInvert(transform, mri) ;
+  for (n = 0 ; n < nsamples ; n++)
+  {
+    if (gcas[n].label == Gdiag_no)
+      DiagBreak() ;
+    if (!GCApriorToSourceVoxel(gca, mri_dst, transform,
+                               gcas[n].xp, gcas[n].yp, gcas[n].zp,
+                               &xv, &yv, &zv))
+    {
+      gcap = &gca->priors[gcas[n].xp][gcas[n].yp][gcas[n].zp];
+      mriFillRegion(mri_dst, xv, yv, zv, gcas[n].means[0], 0) ;
 
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
         DiagBreak() ;
@@ -12345,6 +12548,52 @@ GCAlabelMean(GCA *gca, int label, float *means)
   return(NO_ERROR) ;
 }
 int
+GCAlabelVar(GCA *gca, int label, float *vars)
+{
+  int       xn, yn, zn, n, c, r, v ;
+  GCA_NODE  *gcan ;
+  GC1D      *gc ;
+  double    wt ;
+  float     prior ;
+
+  /* compute overall white matter mean to use as anchor for rescaling */
+  memset(vars, 0, gca->ninputs*sizeof(float)) ;
+  for (wt = 0.0, zn = 0 ; zn < gca->node_depth ; zn++)
+  {
+    for (yn = 0 ; yn < gca->node_height ; yn++)
+    {
+      for (xn = 0 ; xn < gca->node_width ; xn++)
+      {
+        gcan = &gca->nodes[xn][yn][zn] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          /* find index in lookup table for this label */
+          if (gcan->labels[n] != label)
+            continue ;
+          gc = &gcan->gcs[n] ;
+          prior = get_node_prior(gca, label, xn, yn, zn) ;
+          if (prior != 0)
+          {
+            wt += prior ;
+            for (r = v = 0 ; r < gca->ninputs ; r++)
+              for (c = r ; c < gca->ninputs ; c++, v++)
+              {
+                vars[r] += gc->covars[v]*prior ;
+                if (!finite(vars[r]))
+                  DiagBreak() ;
+              }
+          }
+        }
+      }
+    }
+  }
+  if (FZERO(wt))
+    return(NO_ERROR) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+    vars[r] /= wt ;
+  return(NO_ERROR) ;
+}
+int
 GCAclassMean(GCA *gca, int class, float *means)
 {
   int       xn, yn, zn, n, r, label ;
@@ -12777,6 +13026,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
   mri_peak = HISTOfindFirstPeak(h_smooth, 5, .1) ;
 #endif
   min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+#define MAX_PEAK_BINS 40
+  if (min_real_bin - mri_peak > MAX_PEAK_BINS)
+    min_real_bin = HISTOfindNextValley(h_smooth, mri_peak) ;
+  if (min_real_bin - mri_peak > MAX_PEAK_BINS)
+    min_real_bin = mri_peak + MAX_PEAK_BINS-1;
   min_real_val = h_smooth->bins[min_real_bin] ;
   if (noskull)
   {
