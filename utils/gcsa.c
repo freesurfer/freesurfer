@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:31 $
- *    $Revision: 1.29 $
+ *    $Date: 2009/02/01 01:33:54 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2452,7 +2452,7 @@ GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
         changed++ ;
       }
     }
-    else if (old_index >= 0 &&
+    else if (old_index >= 0 && mris->ct &&
              !stricmp(mris->ct->entries[old_index]->name, "corpuscallosum"))
     {
       // find 2nd most likely label that isn't callosum
