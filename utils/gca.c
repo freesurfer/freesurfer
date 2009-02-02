@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/10 22:46:38 $
- *    $Revision: 1.231.2.10 $
+ *    $Date: 2009/02/02 21:27:00 $
+ *    $Revision: 1.231.2.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -12842,6 +12842,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
   mri_peak = HISTOfindFirstPeak(h_smooth, 5, .1) ;
 #endif
   min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+#define MAX_PEAK_BINS 40
+  if (min_real_bin - mri_peak > MAX_PEAK_BINS)
+    min_real_bin = HISTOfindNextValley(h_smooth, mri_peak) ;
+  if (min_real_bin - mri_peak > MAX_PEAK_BINS)
+    min_real_bin = mri_peak + MAX_PEAK_BINS-1;
   min_real_val = h_smooth->bins[min_real_bin] ;
   if (noskull)
   {
