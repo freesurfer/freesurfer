@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.54 2008/10/29 13:02:46 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.55 2009/02/02 23:17:00 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -344,6 +344,7 @@
 1032    ctx-lh-frontalpole                  100 0   100 0
 1033    ctx-lh-temporalpole                 70  70  70  0
 1034    ctx-lh-transversetemporal           150 150 200 0
+1035    ctx-lh-insula                       255 192 32  0
 
 2000    ctx-rh-unknown                      25  5   25  0
 2001    ctx-rh-bankssts                     25  100 40  0
@@ -380,6 +381,7 @@
 2032    ctx-rh-frontalpole                  100 0   100 0
 2033    ctx-rh-temporalpole                 70  70  70  0
 2034    ctx-rh-transversetemporal           150 150 200 0
+2035    ctx-rh-insula                       255 192 32  0
 
 3000    wm-lh-unknown                       230 250 230 0
 3001    wm-lh-bankssts                      230 155 215 0
@@ -416,6 +418,8 @@
 3032    wm-lh-frontalpole                   155 255 155 0
 3033    wm-lh-temporalpole                  185 185 185 0
 3034    wm-lh-transversetemporal            105 105 55  0
+3035    wm-lh-insula                        254 191 31  0
+
 4000    wm-rh-unknown                       230 250 230 0
 4001    wm-rh-bankssts                      230 155 215 0
 4002    wm-rh-caudalanteriorcingulate       130 155 95  0
@@ -451,6 +455,7 @@
 4032    wm-rh-frontalpole                   155 255 155 0
 4033    wm-rh-temporalpole                  185 185 185 0
 4034    wm-rh-transversetemporal            105 105 55  0
+4035    wm-rh-insula                        254 191 31  0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005 flag) in which the aseg
