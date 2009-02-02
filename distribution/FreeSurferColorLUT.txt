@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.38.2.2 2008/04/22 16:17:15 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.38.2.3 2009/02/02 23:43:41 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -185,7 +185,7 @@
 221 Inf_Lat_Vent                            197 58  250 0
 222 Perirhinal                              33  150 250 0
 223 Cerebral_White_Matter_Edge              226 0   0   0
-224 fMRI_Background                         10  10  10  0
+224 Background                              100 100 100 0
 225 Ectorhinal                              197 150 250 0
 
 250 Fornix                                  255 0   0   0
@@ -291,6 +291,7 @@
 557 left_subiculum                          0   119 86  0
 558 left_fornix                             20  100 201 0
 
+600 Tumor                                   254 254 254 0
 999 SUSPICIOUS                              255 100 100 0
 
 # Below is the color table for the cortical labels of the seg volume
@@ -343,6 +344,7 @@
 1032    ctx-lh-frontalpole                  100 0   100 0
 1033    ctx-lh-temporalpole                 70  70  70  0
 1034    ctx-lh-transversetemporal           150 150 200 0
+1035    ctx-lh-insula                       255 192 32  0
 
 2000    ctx-rh-unknown                      25  5   25  0
 2001    ctx-rh-bankssts                     25  100 40  0
@@ -379,6 +381,7 @@
 2032    ctx-rh-frontalpole                  100 0   100 0
 2033    ctx-rh-temporalpole                 70  70  70  0
 2034    ctx-rh-transversetemporal           150 150 200 0
+2035    ctx-rh-insula                       255 192 32  0
 
 3000    wm-lh-unknown                       230 250 230 0
 3001    wm-lh-bankssts                      230 155 215 0
@@ -415,6 +418,8 @@
 3032    wm-lh-frontalpole                   155 255 155 0
 3033    wm-lh-temporalpole                  185 185 185 0
 3034    wm-lh-transversetemporal            105 105 55  0
+3035    wm-lh-insula                        254 191 31  0
+
 4000    wm-rh-unknown                       230 250 230 0
 4001    wm-rh-bankssts                      230 155 215 0
 4002    wm-rh-caudalanteriorcingulate       130 155 95  0
@@ -450,9 +455,7 @@
 4032    wm-rh-frontalpole                   155 255 155 0
 4033    wm-rh-temporalpole                  185 185 185 0
 4034    wm-rh-transversetemporal            105 105 55  0
-
-5001    Left-UnsegmentedWhiteMatter         20  30  40  0
-5002    Right-UnsegmentedWhiteMatter        20  30  40  0
+4035    wm-rh-insula                        254 191 31  0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005 flag) in which the aseg
@@ -795,15 +798,19 @@
 4180    wm-rh-S_temporal_superior                       223 220 60  0
 4181    wm-rh-S_temporal_transverse                     221 60  60  0
 
+5001    Left-UnsegmentedWhiteMatter                     20  30  40  0
+5002    Right-UnsegmentedWhiteMatter                    20  30  40  0
 
+# Below is the color table for creating DTI tract waypoints. Each tract has
+# a different color for its start point, its end point, and its waypoints.
+
+#No.   Label Name:                                      R   G   B   A
 5050   Left-SLF1_waypoint                               120 19  134 0
 5051   Left-SLF1-Start                                  197 58  250 0
 5052   Left-SLF1-End                                    198 58  250 0
 5053   Right-SLF1_waypoint                              120 20  134 0
 5054   Right-SLF1-Start                                 199 58  250 0
 5055   Right-SLF1-End                                   200 58  250 0
-6010   Left-SLF1                                        236 16  231 0
-6020   Right-SLF1                                       237 18  232 0
 
 5056   Left-SLF2_waypoint                               236 14  176 0
 5057   Left-SLF2-Start                                  206 62  78  0
@@ -811,8 +818,6 @@
 5059   Right-SLF2_waypoint                              236 15  176 0
 5060   Right-SLF2-Start                                 208 62  78  0
 5061   Right-SLF2-End                                   209 62  78  0
-6070   Left-SLF2                                        236 14  230 0
-6080   Right-SLF2                                       237 14  230 0
 
 5062   Left-SLF3_waypoint                               12  49  255 0
 5063   Left-SLF3-Start                                  123 186 220 0
@@ -820,8 +825,6 @@
 5065   Right-SLF3_waypoint                              12  50  255 0
 5066   Right-SLF3-Start                                 125 186 220 0
 5067   Right-SLF3-End                                   126 186 220 0
-6030   Left-SLF3                                        236 13  227 0
-6040   Right-SLF3                                       236 17  228 0
 
 5068   Left-CST_waypoint                                255 166 0   0
 5069   Left-CST-Start                                   221 216 20  0
@@ -829,13 +832,68 @@
 5071   Right-CST_waypoint                               255 167 0   0
 5072   Right-CST-Start                                  223 216 20  0
 5073   Right-CST-End                                    224 216 20  0
-6050   Left-CST                                         1   255 1   0
-6060   Right-CST                                        2   255 1   0
+
+5074   Left-Cingulum_Body_waypoint                      232 147 33  0
+5075   Left-Cingulum_Body-Start                         243 241 240 0
+5076   Left-Cingulum_Body-End                           244 241 240 0
+5077   Right-Cingulum_Body_waypoint                     232 148 33  0
+5078   Right-Cingulum_Body-Start                        245 241 240 0
+5079   Right-Cingulum_Body-End                          246 241 240 0
+5080   Left-Uncinate_Fasciculus_waypoint                121 185 220 0
+5081   Left-Uncinate_Fasciculus-Start                   13  46  250 0
+5082   Left-Uncinate_Fasciculus-End                     14  46  250 0
+5083   Right-Uncinate_Fasciculus_waypoint               121 186 220 0
+5084   Right-Uncinate_Fasciculus-Start                  15  46  250 0
+5085   Right-Uncinate_Fasciculus-End                    16  46  250 0
+5086   Left-Inf-Fronto-occ-Fasc_waypoint                220 252 163 0
+5087   Left-Inf-Fronto-occ-Fasc-Start                   5   114 14  0
+5088   Left-Inf-Fronto-occ-Fasc-End                     6   114 14  0
+5089   Right-Inf-Fronto-occ-Fasc_waypoint               220 253 163 0
+5090   Right-Inf-Fronto-occ-Fasc-Start                  7   114 14  0
+5091   Right-Inf-Fronto-occ-Fasc-End                    8   114 14  0
+5092   Left-Sup-Fronto-occ-Fasc_waypoint                3   148 6   0
+5093   Left-Sup-Fronto-occ-Fasc-Start                   75  130 181 0
+5094   Left-Sup-Fronto-occ-Fasc-End                     76  130 181 0
+5095   Right-Sup-Fronto-occ-Fasc_waypoint               3   149 6   0
+5096   Right-Sup-Fronto-occ-Fasc-Start                  77  130 181 0
+5097   Right-Sup-Fronto-occ-Fasc-End                    78  130 181 0
+5098   Left-Inf-Longitudinal-Fasc_waypoint              42  205 167 0
+5099   Left-Inf-Longitudinal-Fasc-Start                 236 11  175 0
+5100   Left-Inf-Longitudinal-Fasc-End                   237 11  175 0
+5101   Right-Inf-Longitudinal-Fasc_waypoint             42  206 167 0
+5102   Right-Inf-Longitudinal-Fasc-Start                238 11  175 0
+5103   Right-Inf-Longitudinal-Fasc-End                  239 11  175 0
+
+5104   Right-Occipital-optic-radiation-Start            70  130 180 0
+5105   Right-Occipital-optic-radiation-waypoint         245 245 245 0
+5106   Right-Occipital-optic-radiation-End              232 147 33  0
+5107   Left-Occipital-optic-radiation-Start             72  130 180 0
+5108   Left-Occipital-optic-radiation-waypoint          244 245 245 0
+5109   Left-Occipital-optic-radiation-End               233 147 33  0
+5110   Right-Temporal-optic-radiation-start             15  46  250 0
+5111   Right-Temporal-optic-radiation-waypoint          238 10  175 0
+5112   Right-Temporal-optic-radiation-end               41  295 167 0
+5113   Left-Temporal-optic-radiation-start              16  46  250 0
+5114   Left-Temporal-optic-radiation-waypoint           239 10  75  0
+5115   Left-Temporal-optic-radiation-end                40  295 167 0
+
 
 6000   CST-orig                                         0   255 0   0
 6001   CST-hammer                                       255 255 0   0
 6002   CST-CVS                                          0   255 255 0
 6003   CST-flirt                                        0   0   255 0
+
+6010   Left-SLF1                                        236 16  231 0
+6020   Right-SLF1                                       237 18  232 0
+
+6030   Left-SLF3                                        236 13  227 0
+6040   Right-SLF3                                       236 17  228 0
+
+6050   Left-CST                                         1   255 1   0
+6060   Right-CST                                        2   255 1   0
+
+6070   Left-SLF2                                        236 14  230 0
+6080   Right-SLF2                                       237 14  230 0
 
 #No.  Label Name:                                       R   G   B   A
 
@@ -860,6 +918,9 @@
 7019  extra2                                            79  195 99  0
 7020  extra3                                            61  57  211 0
 
+7100  Brainstem-inferior-colliculus                     42  201 168 0
+7101  Brainstem-cochlear-nucleus                        168 104 162 0
+
 8001  Thalamus-Anterior                                 74  130 181 0
 8002  Thalamus-Ventral-anterior                         242 241 240 0
 8003  Thalamus-Lateral-dorsal                           206 65  78  0
@@ -874,4 +935,5 @@
 8012  Thalamus-pulvinar                                 12  46  250 0
 8013  Thalamus-lateral-geniculate                       203 182 143 0
 8014  Thalamus-medial-geniculate                        42  204 167 0
+
 
