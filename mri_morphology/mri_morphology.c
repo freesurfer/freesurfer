@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/30 18:23:01 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/02/02 19:56:45 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,7 @@ char *Progname ;
 #define DILATE_LABEL   5
 #define MODE_FILTER    6
 #define ERODE_THRESH   7
+#define DILATE_THRESH  8
 
 
 static void usage_exit(int code) ;
@@ -74,7 +75,7 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.9 2009/01/30 18:23:01 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.10 2009/02/02 19:56:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -112,6 +113,8 @@ main(int argc, char *argv[]) {
     operation = ERODE ;
   else  if (!stricmp(argv[2], "erode_thresh"))
     operation = ERODE_THRESH ;
+  else  if (!stricmp(argv[2], "dilate_thresh"))
+    operation = DILATE_THRESH ;
   else  if (!stricmp(argv[2], "open"))
     operation = OPEN ;
   else  if (!stricmp(argv[2], "mode"))
@@ -198,6 +201,27 @@ main(int argc, char *argv[]) {
              argv[1], thresh, intensity_fname) ;
       for (i = 0 ; i < niter ; i++) {
         mri_dst = MRIerodeThresh(mri_src, mri_intensity, thresh, mri_dst) ;
+        MRIcopy(mri_dst, mri_src) ;
+      }
+    }
+    break ;
+  case DILATE_THRESH:
+    {
+      double thresh = atof(argv[5]) ;
+      char   *intensity_fname = argv[6] ;
+      MRI    *mri_intensity ;
+
+      if (argc < 7)
+        ErrorExit(ERROR_BADPARM, "%s: for erode_thresh must specify <thresh> <intensity vol> on cmdline", Progname) ;
+      mri_intensity = MRIread(intensity_fname) ;
+      if (mri_intensity == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not read intensity volume %s",
+                  Progname, intensity_fname) ;
+      mri_dst = NULL ;
+      printf("dilating %s with threshold %2.1f from volume %s\n",
+             argv[1], thresh, intensity_fname) ;
+      for (i = 0 ; i < niter ; i++) {
+        mri_dst = MRIdilateThresh(mri_src, mri_intensity, thresh, mri_dst) ;
         MRIcopy(mri_dst, mri_src) ;
       }
     }
