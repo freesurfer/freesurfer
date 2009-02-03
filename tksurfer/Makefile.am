@@ -5,6 +5,7 @@
 AM_CPPFLAGS=\
 	$(TCL_CFLAGS) \
 	$(X_CFLAGS) \
+	$(GL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/dicom \
 	-I$(top_srcdir)/glut \

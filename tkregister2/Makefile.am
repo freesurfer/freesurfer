@@ -10,7 +10,7 @@ if ENABLE_TCLTK_APPS
 AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/unix \
-	$(X_CFLAGS)
+	$(X_CFLAGS) $(GL_CFLAGS) 
 AM_LDFLAGS= $(LDFLAGS_TCL)
 bin_PROGRAMS = tkregister2
 tkregister2_SOURCES=tkregister2.c

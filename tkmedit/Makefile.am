@@ -3,6 +3,7 @@
 ##
 
 AM_CPPFLAGS=\
+	$(GL_CFLAGS) \
 	$(TCL_CFLAGS) \
 	$(tcl_includes) \
 	-I$(top_srcdir)/include \
