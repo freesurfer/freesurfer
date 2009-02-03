@@ -2,10 +2,11 @@
 # Makefile.am
 ##
 
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
+AM_CPPFLAGS=\
 	$(TCL_CFLAGS) \
 	$(tcl_includes) \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/glut \
 	-fno-strict-aliasing
 AM_LDFLAGS=$(LDFLAGS_TCL)
 
@@ -23,7 +24,7 @@ tkmedit_SOURCES=tkmedit.c \
 tkmedit_LDADD= $(top_srcdir)/fsgdf/libfsgdf.a \
 	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
-	$(X_LIBS) $(GLUT_LIBS)
+	$(X_LIBS) $(top_builddir)/glut/libglut.a
 tkmedit_LDFLAGS=$(LDFLAGS_TCL)
 else
 bin_PROGRAMS=

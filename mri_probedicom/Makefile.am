@@ -2,14 +2,16 @@
 # Makefile.am
 ##
 
-AM_CFLAGS=$(GLUT_CFLAGS) -I$(top_srcdir)/include \
+AM_CFLAGS=-I$(top_srcdir)/glut $(GL_CFLAGS) \
+	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
-if HAVE_GLUT_LIBS
+if HAVE_OPENGL_LIBS
 bin_PROGRAMS = mri_probedicom
 mri_probedicom_SOURCES=mri_probedicom.c
-mri_probedicom_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(GLUT_LIBS)
+mri_probedicom_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(X_LIBS) $(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
 mri_probedicom_LDFLAGS=
 else
 bin_PROGRAMS=

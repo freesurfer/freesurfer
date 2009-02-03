@@ -2,15 +2,17 @@
 # Makefile.am
 ##
 
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
+AM_CPPFLAGS=\
+	-I$(top_srcdir)/glut \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/unix
+	-I$(top_srcdir)/unix $(GL_CFLAGS)
 AM_LDFLAGS=
 
-if HAVE_GLUT_LIBS
+if HAVE_OPENGL_LIBS
 bin_PROGRAMS = mris_show
 mris_show_SOURCES=mris_show.c
-mris_show_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(GLUT_LIBS)
+mris_show_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
+	$(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
 mris_show_LDFLAGS=$(X_LIBS)
 else
 bin_PROGRAMS=

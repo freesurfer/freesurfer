@@ -3,26 +3,30 @@
 ##
 
 if ENABLE_XAWPLUS_APPS
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
+AM_CPPFLAGS=\
 	-DHAVE_XAWPLUS $(XAWPLUS_CFLAGS) \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/unix 
+	-I$(top_srcdir)/unix \
+	-I$(top_srcdir)/glut
 else
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
+AM_CPPFLAGS=\
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/unix 
+	-I$(top_srcdir)/unix \
+	-I$(top_srcdir)/glut
 endif
 AM_LDFLAGS= 
 
-if HAVE_GLUT_LIBS
+if HAVE_OPENGL_LIBS
 bin_PROGRAMS = nmovie
 nmovie_SOURCES=nmovie.c
 if ENABLE_XAWPLUS_APPS
-nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(LIBS_OPENGL) $(GLUT_LIBS) $(XAWPLUS_LIBS) -lXawPlus -lXpm -lXt -lXext
+nmovie_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
+	$(LIBS_OPENGL) $(XAWPLUS_LIBS) -lXawPlus -lXpm -lXt -lXext \
+	$(top_builddir)/glut/libglut.a
 else
-nmovie_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(LIBS_OPENGL) $(GLUT_LIBS) -lXt -lXext -lXaw
+nmovie_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
+	$(LIBS_OPENGL) -lXt -lXext -lXaw \
+	$(top_builddir)/glut/libglut.a
 endif
 nmovie_LDFLAGS=$(X_LIBS)
 else

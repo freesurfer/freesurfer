@@ -2,19 +2,24 @@
 # Makefile.am
 ##
 
-AM_CPPFLAGS=$(GLUT_CFLAGS) \
-	$(X_CFLAGS) \
+TIFFCFLAGS=$(TIFF_CFLAGS)
+LIBTIFF=$(LIB_TIFF)
+
+AM_CPPFLAGS=\
+	-I$(top_srcdir)/glut \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/dicom \
-	-I$(top_srcdir)/unix
-AM_LDFLAGS= \
-	$(X_LIBS)
+	-I$(top_srcdir)/unix \
+	$(GL_CFLAGS) $(TIFFCFLAGS)
 
-if HAVE_GLUT_LIBS
+AM_LDFLAGS=$(X_LIBS) $(TIFF_LIBS)
+
+if HAVE_OPENGL_LIBS
 bin_PROGRAMS = mris2rgb
 mris2rgb_SOURCES=mris2rgb.c
-mris2rgb_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
-	$(LIBS_OPENGL) $(GLUT_LIBS) -lGL
+mris2rgb_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
+	$(LIBS_OPENGL) -lGL $(LIBTIFF) \
+	$(top_builddir)/glut/libglut.a
 mris2rgb_LDFLAGS=
 else
 bin_PROGRAMS=

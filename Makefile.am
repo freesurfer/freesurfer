@@ -8,7 +8,9 @@ foo_DATA=README COPYING NEWS AUTHORS
 DMRISUBDIRS=dmri_poistats \
   dmri_tensoreig  
 
-GLSUBDIRS=mris2rgb \
+GLSUBDIRS=\
+	glut \
+	mris2rgb \
 	nmovie \
 	mris_show \
 	tkmedit \
