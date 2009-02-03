@@ -13,6 +13,8 @@ GLSUBDIRS=\
 	mris2rgb \
 	nmovie \
 	mris_show \
+	stim \
+	stim_polar \
 	tkmedit \
 	tkregister2 \
 	tksurfer \
@@ -153,8 +155,6 @@ MRISSUBDIRS=label_area \
 	label2patch \
 	label2flat \
 	spherical_stats \
-	stim \
-	stim_polar \
 	tridec \
 	mris_shrinkwrap \
 	mris_density \
