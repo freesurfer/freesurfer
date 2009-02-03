@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:14 $
- *    $Revision: 1.41 $
+ *    $Date: 2009/02/03 23:23:06 $
+ *    $Revision: 1.41.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ extern "C" {
 #ifdef HAVE_APPLE_OPENGL_FRAMEWORK
 #  include "GLUT/glut.h"
 #else
-#  include "GL/glut.h"
+#  include "glut.h"
 #endif
 #include "rgb_image.h"
 #include "tiffio.h"

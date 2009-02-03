@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/02 19:56:50 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/02/03 23:16:46 $
+ *    $Revision: 1.36.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #ifdef HAVE_APPLE_GLUT_FRAMEWORK
 #  include <GLUT/glut.h>
 #else
-#  include <GL/glut.h>
+#  include <glut.h>
 #endif
 #include <GL/glx.h>
 
@@ -69,7 +69,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.36 2007/01/02 19:56:50 nicks Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.36.2.1 2009/02/03 23:16:46 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -221,7 +221,7 @@ main(int argc, char *argv[]) {
   unsigned char   *rgb=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.36 2007/01/02 19:56:50 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.36.2.1 2009/02/03 23:16:46 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

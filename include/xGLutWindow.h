@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:15 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/02/03 23:24:20 $
+ *    $Revision: 1.8.2.1 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2009, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -32,7 +32,7 @@
 #ifdef HAVE_APPLE_OPENGL_FRAMEWORK
 #  include <GLUT/glut.h>
 #else
-#  include <GL/glut.h>
+#  include <glut.h>
 #endif
 #include "xTypes.h"
 

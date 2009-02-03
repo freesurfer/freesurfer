@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/02 20:05:40 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/02/03 23:17:22 $
+ *    $Revision: 1.38.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@
 #  include <GLUT/glut.h>
 #  include <OpenGL/gl.h>
 #else
-#  include <GL/glut.h>
+#  include <glut.h>
 #  include <GL/gl.h>
 #endif
 
@@ -50,7 +50,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.38 2007/01/02 20:05:40 nicks Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.38.2.1 2009/02/03 23:17:22 nicks Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -176,7 +176,7 @@ main(int argc, char *argv[]) {
   float        angle ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.38 2007/01/02 20:05:40 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_show.c,v 1.38.2.1 2009/02/03 23:17:22 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

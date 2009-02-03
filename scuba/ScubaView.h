@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/07/05 22:19:28 $
- *    $Revision: 1.49 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/03 23:23:06 $
+ *    $Revision: 1.49.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 #  include "GLUT/glut.h"
 #else
 #  include "GL/gl.h"
-#  include "GL/glut.h"
+#  include "glut.h"
 #endif
 #include "View.h"
 #include "DataCollection.h"
