@@ -80,6 +80,7 @@ mfiles_DATA=\
 	read_moviebyu.m \
 	read_patch.m \
 	readrec.m \
+	ReadSiemensPhysio.m\
 	read_siemens_header.m \
 	read_siemens_image.m \
 	read_smooth_eccen.m \
