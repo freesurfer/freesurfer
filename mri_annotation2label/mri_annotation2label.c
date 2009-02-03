@@ -1,17 +1,16 @@
 /**
  * @file  mri_annotation2label.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Converts an annotation to labels files
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/04/03 17:10:51 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/03 17:17:12 $
+ *    $Revision: 1.18 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -26,13 +25,6 @@
  */
 
 
-/*----------------------------------------------------------
-  Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.17 2008/04/03 17:10:51 fischl Exp $
-  Author: Douglas Greve
-  Purpose: Converts an annotation to a labels.
-
-  -----------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -65,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.17 2008/04/03 17:10:51 fischl Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.18 2009/02/03 17:17:12 nicks Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -107,7 +99,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.17 2008/04/03 17:10:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.18 2009/02/03 17:17:12 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -240,9 +232,10 @@ int main(int argc, char **argv) {
     LabelFree(&label);
   }
 
-
   return(0);
 }
+
+
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
