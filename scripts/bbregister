@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/01/12 19:50:57 $
-#    $Revision: 1.15 $
+#    $Date: 2009/02/04 20:09:06 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.15 2009/01/12 19:50:57 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.16 2009/02/04 20:09:06 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -586,6 +586,7 @@ usage_exit:
   echo ""
   echo "Optional Arguments"
   echo ""
+  echo "   --int intvol : intermediate volume"
   echo "   --mid-frame : reg to middle frame (not with --frame)"
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --template-out template : save template (good with --frame)"
@@ -625,4 +626,78 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+This program performs within-subject, cross-modal registration using a
+boundary-based cost function. The registration is constrained to be 6
+DOF (rigid). It is required that you have an anatomical scan of the
+subject that has been analyzed in freesurfer.
+
+INPUTS (all required)
+
+--s subject 
+
+Subject name as found in $SUBJECTS_DIR.
+
+--mov movvol
+
+"Moveable" volume. This is the template for the cross-modal volume. Eg,
+for fMRI, it is the volume used for motion correction. 
+
+--reg register.dat
+
+Output FreeSurfer (tkregister-style) registration file (simple text).
+
+INITIALIZATION METHODS (Choose One)
+
+--init-fsl
+
+Initialize using FSL FLIRT (requires that FSL be installed)
+
+--init-spm
+
+Initialize using SPM spm_coreg (requires that SPM and matlab be installed)
+
+--init-header
+
+Assume that the geometry information in the cross-modal and anatomical
+are sufficient to get a close voxel-to-voxel registration. This
+usually is only the case if they were acquired in the same session.
+
+--init-reg register.init.dat
+
+Supply an initial registration matrix.
+
+CONTRAST (Choose One)
+
+There are only two types of contrast that bbregister understands:
+  1. Gray matter brighter than white matter (--t2, --bold, --dti)
+  2. White matter brighter than gray matter (--t1)
+
+OTHER ARGUMENTS
+
+--int intvol
+
+Supply a volume to use an an intermediate volume when performing
+registration. This is useful for when the cross-modal is volume is a
+partial field-of-view (FoV). If you acquire in the same session a
+whole-head FoV, then pass the whole-head as the intermediate and the
+partial as the moveable.
+
+EXAMPLES:
+
+1. Intialize with FLIRT, view result with tkregister2:
+
+     bbregister --s bert --mov func.nii --init-fsl --reg register.dat
+     tkregister2 --mov func.nii --reg register.dat --surf
+
+2. Intialize with SPM, view result with tkregister2:
+
+     bbregister --s bert --mov func.nii --init-spm --reg register.dat
+     tkregister2 --mov func.nii --reg register.dat --surf
+
+3. Register a partial FoV using whole FoV as intermdediate:
+
+     bbregister --s bert --mov partial.nii --init-fsl \
+       --int whole.nii --reg register.partial.dat
+     tkregister2 --mov partial.nii --reg register.partial.dat --surf
 
