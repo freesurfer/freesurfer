@@ -12,10 +12,10 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/10/02 21:42:03 $
- *    $Revision: 1.28.2.4 $
+ *    $Date: 2009/02/04 21:12:59 $
+ *    $Revision: 1.28.2.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -50,6 +50,7 @@
 #include "macros.h"
 #include "version.h"
 #include "xDebug.h"
+#include "label.h"
 
 #define  STRBUF  	65536
 #define  MAX_FILES  	1000
@@ -121,7 +122,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.28.2.4 2008/10/02 21:42:03 nicks Exp $";
+  "$Id: mris_curvature_stats.c,v 1.28.2.5 2009/02/04 21:12:59 nicks Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -233,6 +234,10 @@ int	MRISvertexAreaPostProcess(
 	MRI_SURFACE*		pmris
 );
 
+int	MRIS_surfaceRipFlags_filter(
+	MRI_SURFACE*	apmris
+);
+
 
 //----------------------------//
 // Function Prototypes: END   //
@@ -284,6 +289,7 @@ static int      Gb_vertexAreaNormalizeFrac      = 0;
 static int      Gb_vertexAreaWeighFrac          = 0;
 static int	Gb_postScale			= 0;
 static float	Gf_postScale			= 0.;
+static int	Gb_filter			= 0;
 static int	Gb_lowPassFilter		= 0;
 static float	Gf_lowPassFilter		= 0.;
 static int	Gb_lowPassFilterGaussian	= 0;
@@ -293,7 +299,9 @@ static float	Gf_highPassFilter		= 0.;
 static int	Gb_highPassFilterGaussian	= 0;
 static float	Gf_highPassFilterGaussian	= 0.;
 
-static int	Gb_signedPrincipals		= 0;
+static short	Gb_signedPrincipals		= 0;
+static char	Gpch_filterLabel[STRBUF];
+static short	Gb_filterLabel			= 0;
 
 static float	Gf_foldingIndex			= 0.;
 static float	Gf_intrinsicCurvaturePos	= 0.;
@@ -301,6 +309,7 @@ static float	Gf_intrinsicCurvatureNeg	= 0.;
 static float	Gf_intrinsicCurvatureNat	= 0.;
 
 // All possible output file name and suffixes
+static 	FILE*	GpSTDOUT			= NULL;
 static	short	Gb_writeCurvatureFiles		= 0;
 static 	char 	Gpch_log[STRBUF];
 static 	char 	Gpch_logS[]  			= "log";
@@ -389,6 +398,8 @@ static double 	Gf_scaleMax  			= 0.;
 
 static int which_norm = NORM_MEAN;
 
+char		Gpch_calc[1024];
+
 int 
 stats_update(
 	int	ai
@@ -405,10 +416,51 @@ stats_update(
   //
 
   Gpf_means[ai-START_i]  	 = Gf_mean;
-  Gf_total    		+= Gf_mean;
+  Gf_total    			+= Gf_mean;
   Gf_total_sq   		+= Gf_mean*Gf_mean ;
   Gf_n   			+= 1.0;
   return 1;
+}
+
+int
+LABEL_RipSurface(
+	MRI_SURFACE*	apmris,
+	LABEL*		aplbl
+) {
+  // 
+  // PRECONDITIONS
+  // 	o Initialized surface <apmris>
+  // 	o Initialized label <aplbl>
+  //
+  // POSTCONDITIONS
+  // 	o Surface vertices that correspond to label positions
+  // 	  will have their "ripflag" set false.
+  // 	o This function is a simplified version of LabelRipRestOfSurface(...)
+  // 	  and specifically does not have any surface side effects other than
+  // 	  setting the ripflag value.
+  // 	  
+
+  int    vno, n ;
+  VERTEX *v ;
+
+  LabelToFlat(aplbl, apmris) ;
+  for (vno = 0 ; vno < apmris->nvertices ; vno++)
+  {
+    v = &apmris->vertices[vno] ;
+    v->ripflag = 1 ;
+  }
+
+  for (n = 0 ; n < aplbl->n_points ; n++)
+  {
+    vno = aplbl->lv[n].vno ;
+    if (vno < 0 || vno >= apmris->nvertices)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v = &apmris->vertices[vno] ;
+    v->ripflag = 0 ;
+  }
+  return(NO_ERROR) ;
 }
 
 int
@@ -416,14 +468,17 @@ main(int argc, char *argv[]) {
   char          **av, fname[STRBUF], *sdir ;
   char          *subject_name;
   char		pch_surface[16384];
+  char		pch_tmp[1024];
   int           ac, nargs;
-  int		i = START_i;
+  int		i 		= START_i;
+  int		notRipped 	= 0;
   MRI_SURFACE   *mris ;
 
+  GpSTDOUT	= stdout;
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.28.2.4 2008/10/02 21:42:03 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.28.2.5 2009/02/04 21:12:59 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -443,6 +498,10 @@ main(int argc, char *argv[]) {
     argc -= nargs ;
     argv += nargs ;
   }
+  if(Gb_discreteCurvaturesUse)
+  	strcpy(Gpch_calc, "discrete");
+  else
+	strcpy(Gpch_calc, "2nd order form");
 
   if (!strcmp(surf_name, "-x"))
     strcpy(surf_name, "smoothwm") ;
@@ -471,16 +530,16 @@ main(int argc, char *argv[]) {
 
 
   if (label_name) {
+    cprints("Reading label...", "");
     LABEL *area ;
     area = LabelRead(subject_name, label_name) ;
+    cprints("", "ok");
     if (!area)
       ErrorExit(ERROR_NOFILE, "%s: could not read label file %s",
                 Progname, label_name) ;
-    LabelRipRestOfSurface(area, mris) ;
+    LABEL_RipSurface(mris, area);
     LabelFree(&area) ;
   }
-  if (label_name)
-    fprintf(stdout,"%s: ", label_name) ;
 
   outputFiles_close();
   outputFileNames_create();
@@ -527,6 +586,13 @@ main(int argc, char *argv[]) {
         if (Gpch_scaledCurv[0] && Gb_writeCurvatureFiles) 
           MRISwriteCurvature(mris, Gpch_scaledCurv);
     	}
+
+      if(Gb_filter) {
+    	cprints("Pre-filtering surface...", "");
+    	notRipped = MRIS_surfaceRipFlags_filter(mris);
+    	cprints("", "ok");
+    	cprintd("Filtered vertices", notRipped);
+      }
 
       if (Gb_scaleMin && Gb_scaleMax) {
         MRISscaleCurvatures(mris, Gf_scaleMin, Gf_scaleMax);
@@ -593,24 +659,28 @@ main(int argc, char *argv[]) {
         MRISwriteCurvature(mris, 	Gpch_SICurv);
     }
 
-    printf("\n");
-    printf("%-50s%12.5f\n", "Folding Index (FI):", Gf_foldingIndex);
-    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - positive (ICIp):", Gf_intrinsicCurvaturePos);
-    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - negative (ICIn):", Gf_intrinsicCurvatureNeg);    
-    printf("%-50s%12.5f\n", "Intrinsic Curvature Index - natural  (ICIt):", Gf_intrinsicCurvatureNat);
+    strcpy(pch_tmp, "");
+    fprintf(GpSTDOUT, "\n");
+    fprintf(GpSTDOUT, "%-55s%10s\n", "curv -- calculation type:", Gpch_calc);
+    sprintf(pch_tmp, "curv -- Folding Index (FI):");
+    fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp , Gf_foldingIndex);
+    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - positive (ICIp):");
+    fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvaturePos);
+    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - negative (ICIn):");
+    fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvatureNeg);    
+    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - natural (ICIn):");
+    fprintf(GpSTDOUT, "%-55s%10.5f\n",pch_tmp, Gf_intrinsicCurvatureNat);
   }
 
   if (Gf_n> 1.8) {
     Gf_mean 	= Gf_total / Gf_n;
     Gf_sigma 	= sqrt(Gf_total_sq/Gf_n- Gf_mean*Gf_mean) ;
-    fprintf(stdout, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
+    fprintf(GpSTDOUT, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
             (int) Gf_n, Gf_mean, Gf_sigma) ;
-    if(GpFILE_log) 
-      fprintf(GpFILE_log, "\nMean across %d curvatures: %8.4e +- %8.4e\n",
-              (int) Gf_n, Gf_mean, Gf_sigma) ;
   }
 
   MRISfree(&mris) ;
+  fprintf(GpSTDOUT, "\n\n");
   outputFiles_close();
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -704,7 +774,7 @@ MRIS_minMaxCurvature_analyze(
   //	  is set by the <s_MINMAX> boolean control flags.
   //
 
-  int		vmin		= 0;
+  int	  vmin		= 0;
   int 	vmax		= 0;
   float	f_minExplicit	= 0.;
   float	f_maxExplicit	= 0.;
@@ -721,7 +791,7 @@ MRIS_minMaxCurvature_analyze(
   if (aps_minMax->b_minTest && aps_minMax->f_min != f_minExplicit) {
     fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
             " lookup   min:", aps_minMax->f_min);
-    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
+    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d\n", Gppch[aesot],
             " explicit min:", f_minExplicit, vmin);
     aps_minMax->b_minViolation	= 1;
     aps_minMax->f_min 		= f_minExplicit;
@@ -729,7 +799,7 @@ MRIS_minMaxCurvature_analyze(
   if (aps_minMax->b_maxTest && aps_minMax->f_max != f_maxExplicit) {
     fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
             " lookup   max:", aps_minMax->f_max);
-    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
+    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d\n", Gppch[aesot],
             " explicit max:", f_maxExplicit, vmax);
     aps_minMax->b_maxViolation	= 1;
     aps_minMax->f_max 		= f_maxExplicit;
@@ -850,6 +920,7 @@ MRIS_minMaxCurve_report(
 
   s_MINMAX	s_minMax;
   char*	pch_function	= "MRIS_minMaxCurve_report";
+  char  tmp[1024];
 
   DebugEnterFunction (( pch_function ));
 
@@ -884,13 +955,14 @@ MRIS_minMaxCurve_report(
   strcpy(apch_report, "");
   sprintf(apch_report, "%*s%-*s", 	G_leftCols, 	Gppch[aesot], 
 					G_rightCols, 	" Min:");
-  sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report,
-          s_minMax.f_min, s_minMax.vertexMin);
-  sprintf(apch_report, "%s%*s%-*s",	apch_report,
-					G_leftCols, 	Gppch[aesot], 
+  sprintf(tmp, "%12.5f at vertex %-8d\n", s_minMax.f_min, s_minMax.vertexMin);
+  strcat(apch_report,tmp);
+  sprintf(tmp, "%*s%-*s",	
+          G_leftCols, 	Gppch[aesot], 
 					G_rightCols, 	" Max:");
-  sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report, 
-          s_minMax.f_max, s_minMax.vertexMax);
+  strcat(apch_report,tmp);
+  sprintf(tmp, "%12.5f at vertex %-8d\n", s_minMax.f_max, s_minMax.vertexMax);
+  strcat(apch_report,tmp);
 
   xDbg_PopStack();
   return 1;
@@ -926,25 +998,28 @@ MRIS_surfaceIntegrals_report(
   //	o The report itself is returned in the apch_report string.
   //
 
+  char	pch_processedArea[65536];
+  char 	pch_misc[65536];
   // Surface integral variables
   float f_SInatural		= 0.0;
   float f_SIabs		= 0.0;
   float f_SIpos		= 0.0;
   float f_SIneg		= 0.0;
   float f_SInaturalMean	= 0.0;	int SInaturalVertices	= 0;
-  float f_SIabsMean		= 0.0; 	int SIabsVertices	= 0;
-  float f_SIposMean		= 0.0;	int SIposVertices	= 0;
-  float f_SInegMean		= 0.0;  int SInegVertices	= 0;
+  float f_SIabsMean	= 0.0; 	int SIabsVertices	= 0;
+  float f_SIposMean	= 0.0;	int SIposVertices	= 0;
+  float f_SInegMean	= 0.0;  int SInegVertices	= 0;
   
   float f_SInaturalAreaNorm	= 0.0;	float f_SInaturalArea	= 0.0;
   float f_SIabsAreaNorm	= 0.0; 	float f_SIabsArea	= 0.0;
   float f_SIposAreaNorm	= 0.0;	float f_SIposArea	= 0.0;
   float f_SInegAreaNorm	= 0.0;  float f_SInegArea	= 0.0;
-  char* pch_curveName;
+  char 	pch_curveName[1024];
   char* pch_function		= "MRIS_surfaceIntegrals_report";
+  char  tmp[1024];
 
   DebugEnterFunction (( pch_function ));
-  pch_curveName		= Gppch[aesot];
+  sprintf(pch_curveName, "%s", Gppch[aesot]);
 
   surfaceIntegrals_compute(apmris, e_natural,
                            &f_SInatural, 		 	
@@ -976,91 +1051,184 @@ MRIS_surfaceIntegrals_report(
   if(aesot == e_FI)
 	Gf_foldingIndex		 = f_SInatural / 4 / M_PI;
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Average Vertex Separation:");
-  sprintf(apch_report, "%s%12.5f +- %2.5f mm\n", apch_report,
+  if(Gb_filter) {
+    // Recompute metric properties since filtering might change
+    // vertices that satisfy filter...
+    MRIScomputeMetricProperties(apmris);
+  }
+
+  if(Gb_filter || label_name) strcpy(pch_processedArea, "ROI Surface");
+  else strcpy(pch_processedArea, "Whole Surface"); 
+
+  sprintf(pch_misc, " Mean Vertex Separation (%s):", pch_processedArea);
+
+  sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Curvature Calculation Type:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12s\n", Gpch_calc);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s", pch_curveName, pch_misc);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f +- %2.5f mm\n",
           apmris->avg_vertex_dist, apmris->std_vertex_dist);
+  strcat(apch_report,tmp);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Total number of vertices:");
-  sprintf(apch_report, "%s%12.5d\n", apch_report,
-          apmris->nvertices);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Total surface area:");
-  sprintf(apch_report, "%s%12.5f mm^2\n", 	apch_report, 
-          apmris->total_area);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Average Vertex Area:");
-  sprintf(apch_report, "%s%12.5f mm^2\n",	apch_report, 
-          apmris->avg_vertex_area);
+  sprintf(tmp, "%10s%-40s", pch_curveName, " Total Surface Area:");
+  strcat(apch_report,tmp);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%12.5f mm^2\n", apmris->total_area);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s", pch_curveName, " Total Number of Vertices:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5d\n", apmris->nvertices);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s", 
+          pch_curveName, " Average Vertex Area (Whole Surface):");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f mm^2\n",	apmris->avg_vertex_area);
+  strcat(apch_report,tmp);
+
+  if(Gb_filter || label_name) {
+      sprintf(tmp, "%10s%-40s", pch_curveName, " ROI Surface Area:");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.5f mm^2\n", f_SInaturalArea);
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%10s%-40s", pch_curveName, " ROI Number of Vertices:");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.5d\n", SInaturalVertices);
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%10s%-40s", 
+              pch_curveName, " ROI Surface Area Percentage:");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.2f%s\n", 
+              100 * (float)SInaturalVertices / apmris->nvertices, "%");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Average Vertex Area (ROI Surface):");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.5f mm^2\n",	f_SInaturalArea / SInaturalVertices);
+      strcat(apch_report,tmp);
+  }
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Natural Surface Integral:");
-  sprintf(apch_report, "%s%12.5f\n", 	apch_report,
-          f_SInatural);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Rectified Surface Integral:");
-  sprintf(apch_report, "%s%12.5f\n",	apch_report, 
-          f_SIabs);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Positive Surface Integral:");
-  sprintf(apch_report, "%s%12.5f\n", 	apch_report,
-          f_SIpos);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Negative Surface Integral:");
-  sprintf(apch_report,"%s%12.5f\n", 	apch_report,
-          f_SIneg);
+  strcat(apch_report,tmp);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%12.5f\n", 
+          f_SInatural);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Rectified Surface Integral:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f\n",	
+          f_SIabs);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Positive Surface Integral:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f\n", 
+          f_SIpos);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Negative Surface Integral:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp,"%12.5f\n",  
+          f_SIneg);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Natural Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n",
-          apch_report, 
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SInaturalMean, SInaturalVertices, 
           100 * (float)SInaturalVertices / apmris->nvertices, 
           "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Rectified Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-          apch_report,
+          strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SIabsMean, SIabsVertices, 
           100 * (float)SIabsVertices / apmris->nvertices, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Positive Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-          apch_report,
+          strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SIposMean, SIposVertices, 
           100 * (float)SIposVertices / apmris->nvertices, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Negative Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SInegMean, SInegVertices, 
           100 * (float)SInegVertices / apmris->nvertices, "%");
+  strcat(apch_report,tmp);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Natural Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SInaturalAreaNorm, f_SInaturalArea, 
           100 * f_SInaturalArea / apmris->total_area, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Rectified Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SIabsAreaNorm, f_SIabsArea, 
           100 * f_SIabsArea / apmris->total_area, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Positive Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SIposAreaNorm, f_SIposArea, 
           100 * f_SIposArea / apmris->total_area, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Negative Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SInegAreaNorm, f_SInegArea, 
           100 * f_SInegArea / apmris->total_area, "%");
+  strcat(apch_report,tmp);
+
   xDbg_PopStack();
   return 1;
 }
@@ -1106,17 +1274,6 @@ MRIS_curvatureStats_analyze(
   if(Gb_minMaxShow) MRIS_minMaxCurve_report(apmris, aesot, pch_minMaxReport);
   MRIS_surfaceIntegrals_report(apmris, aesot, pch_surfaceIntegralReport);
 
-  // Now, dump the reports to stdout
-  //	First the mean/sigma results
-  Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
-  if(aesot == e_Raw)
-    sprintf(pch_text, 
-            "\n%s <mean> +- <std> (using '%s.%s'):",
-            Gppch[aesot], hemi, curv_fname);
-  else
-    sprintf(pch_text, 
-            "\n%s <mean> +- <std> (using '%s.%s'):",
-            Gppch[aesot], hemi, surf_name);
   strcpy(pch_units, "");
   switch(aesot) {
 	case e_K1:
@@ -1128,18 +1285,27 @@ MRIS_curvatureStats_analyze(
 	    strcpy(pch_units, pch_unitsmm2);
 	    break;
   }
-  fprintf(stdout, "%-50s", pch_text);
-  fprintf(stdout, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
-  if(GpFILE_log) {
-    fprintf(GpFILE_log, "%-50s", pch_text);
-    fprintf(GpFILE_log, " %12.5f +- %2.4f %s", Gf_mean, Gf_sigma, pch_units);
-  }
+
+  // Now, dump the reports to stdout
+  //	First the mean/sigma results
+  Gf_mean = MRIScomputeAverageCurvature(apmris, &Gf_sigma);
+  if(aesot == e_Raw) {
+    sprintf(pch_text, 
+            "\n%s <mean> +- <std> (using '%s.%s'):",
+            Gppch[aesot], hemi, curv_fname);
+    strcpy(pch_units, "");
+  } else
+    sprintf(pch_text, 
+            "\n%s <mean> +- <std> (using '%s.%s'):",
+            Gppch[aesot], hemi, surf_name);
+  fprintf(GpSTDOUT, "%-50s", pch_text);
+  fprintf(GpSTDOUT, " %12.5f +- %2.4f %s\n", Gf_mean, Gf_sigma, pch_units);
 
   // Now the min/max report
-  if(Gb_minMaxShow) fprintf(stdout, "%s", pch_minMaxReport);
+  if(Gb_minMaxShow) fprintf(GpSTDOUT, "%s", pch_minMaxReport);
 
   // The surface integral report
-  fprintf(stdout, "%s", pch_surfaceIntegralReport);
+  fprintf(GpSTDOUT, "%s", pch_surfaceIntegralReport);
 
   // and any histograms...
   if(Gb_histogram) histogram_wrapper(apmris, aesot);
@@ -1168,14 +1334,14 @@ MRISvertexCurvature_set(
   //   the "raw", gaussian, and mean curvatures.
   //
 
-  VERTEX* pvertex;
-  int  vno;
-  float f_maxCurv = 0.;
-  float  f_minCurv = 0.;
-  float  f_maxCurvK = 0.;
-  float  f_minCurvK = 0.;
-  float  f_maxCurvH = 0.;
-  float  f_minCurvH = 0.;
+  VERTEX* 	pvertex;
+  int  		vno;
+  float 	f_maxCurv = 0.;
+  float  	f_minCurv = 0.;
+  float  	f_maxCurvK = 0.;
+  float  	f_minCurvK = 0.;
+  float  	f_maxCurvH = 0.;
+  float  	f_minCurvH = 0.;
 
   if (aindex > apmris->nvertices)
     ErrorExit(ERROR_SIZE, "%s: target vertex is out of range.", Progname);
@@ -1439,6 +1605,164 @@ MRISvertexAreaPostProcess(
   return(NO_ERROR) ;
 }
 
+void *
+xmalloc (size_t size)
+{
+  register void *value = malloc (size);
+  if (value == 0)
+    ErrorExit(10, "%s: virtual memory exhausted.", Progname);
+  return value;
+}
+
+short
+LABEL_save(
+	MRI_SURFACE*	apmris,
+	int		a_labelSize,
+	int*		ap_labelMark,
+	char*		apch_filename
+) {
+  //
+  // DESCRIPTION
+  //	This function saves a FreeSurfer format 'LABEL' file
+  //	to the file <apch_filename>. The integer array <ap_labelMark>
+  //	has length <aprmis->nvertices> and denotes the vertices to
+  //	label by a non-zero element value.
+  //
+  // PRECONDITIONS
+  //	o ap_labelMark denotes the vertices to label -- marked
+  //	  vertices are indicated by a non-zero element value and
+  //	  index counter corresponds to vertex number.
+  //	  
+  // POSTCONDITIONS
+  //   	o The file <apch_filename> contains the marked vertices, saved
+  //   	  as a FreeSurfer label file.
+  //
+  // RETURN
+  //	o TRUE, i.e. 1.
+  //
+
+    LABEL*	pLBL			= NULL;
+    int		vno			= 0;
+
+    pLBL = LabelAlloc(a_labelSize, "", apch_filename);
+    for(vno=0; vno<apmris->nvertices; vno++) {
+	if(ap_labelMark[vno]) {
+	    pLBL->lv[pLBL->n_points].vno 	= vno;
+	    pLBL->lv[pLBL->n_points].x 		= apmris->vertices[vno].x;
+	    pLBL->lv[pLBL->n_points].y 		= apmris->vertices[vno].y;
+	    pLBL->lv[pLBL->n_points].z 		= apmris->vertices[vno].z;
+	    pLBL->n_points++;
+	}
+    }
+    LabelWrite(pLBL, apch_filename);
+    LabelFree(&pLBL);
+    return 1;
+}
+
+int
+MRIS_surfaceRipFlags_filterVertex(
+	MRI_SURFACE*	apmris,
+	int		avno
+) {
+    //
+    // DESCRIPTION
+    // 	Depending on a user-specified filter pattern, this
+    // 	function examines the passed vertex, and sets its
+    // 	ripflag accordingly.
+    //
+    // 	This "ripping" is performed according to the pattern
+    // 	of 'filter' variables that might have been set at the
+    // 	command line.
+    // 	
+    // PRECONDITIONS
+    // 	o A valid surface.
+    //  o The 'curv' value at each vertex MUST be set for current
+    //    processing regime.
+    // 	
+    // POSTCONDITIONS
+    // 	o If passed vertex index <vno> does not satisfy
+    // 	  filter contraints, it is "ripped"!
+    // 	  
+    // RETURN
+    // 	o If vertex is ripped, return 1; else return 0.
+    // 	  
+    VERTEX*	pv ;
+    short	b_canProcess	= 1;
+
+    pv = &apmris->vertices[avno] ; 
+    // Check if vertex might have been ripped by a label load...
+    if(pv->ripflag) return pv->ripflag; 
+    // Process filter patterns...
+    if(Gb_lowPassFilter) {
+    	if(fabs(pv->curv)<fabs(Gf_lowPassFilter))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess 	&= 0;
+    }
+    if(Gb_highPassFilter) {
+        if(fabs(pv->curv)>=fabs(Gf_highPassFilter))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess 	&= 0;
+    }
+    if(Gb_lowPassFilterGaussian) {
+    	if(fabs(pv->K)<fabs(Gf_lowPassFilterGaussian))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess 	&= 0;
+    }
+    if(Gb_highPassFilterGaussian) {
+        if(fabs(pv->K)>=fabs(Gf_highPassFilterGaussian))
+            b_canProcess 	&= 1;
+      	else
+            b_canProcess	&= 0;
+    }
+    if(b_canProcess) 	pv->ripflag	= 0;
+    else		pv->ripflag	= 1;
+    return pv->ripflag;
+}
+
+int
+MRIS_surfaceRipFlags_filter(
+	MRI_SURFACE*	apmris
+) {
+    //
+    // DESCRIPTION
+    // 	This function "rips" a surface (i.e. sets the 'ripgflag'
+    // 	field at each vertex) to indicate whether a vertex is a
+    // 	candidate for further processing. A "ripped" vertex
+    // 	should not be processed.
+    // 	
+    // 	This "ripping" is performed according to the pattern
+    // 	of 'filter' variables that might have been set at the
+    // 	command line.
+    // 	
+    // PRECONDITIONS
+    // 	o A valid surface.
+    // 	
+    // POSTCONDITIONS
+    // 	o All vertices that satisfy the command line specified
+    // 	  filter constraints have their ripflags set to 0, those
+    // 	  that do not satisfy filter constraints have their
+    // 	  ripflags set to 1.
+    // 	o Any existing rip pattern is overwritten!
+    // 	  
+    // RETURN
+    // 	o Returns the number of vertices that can be processed, 
+    // 	  i.e. number of vertices that were *not* ripped.
+    // 	  
+
+    int       	vno ;
+    int		ripped		= 0;
+    int		notRipped	= 0;
+
+    for (vno = 0 ; vno < apmris->nvertices ; vno++) {
+	ripped = MRIS_surfaceRipFlags_filterVertex(apmris, vno);
+	if(!ripped) notRipped++;
+    }
+    return notRipped;
+}
+
 short
 MRIS_surfaceIntegral_compute(
 	MRI_SURFACE* 	pmris, 
@@ -1495,45 +1819,24 @@ MRIS_surfaceIntegral_compute(
   VERTEX*	pv ;
   int       	vno ;
   double    	f_total, f_n, f_totalArea ;
-  short		b_canCount		= 1;
   short		b_ret			= 0;
+  int*		p_labelMark		= NULL;
+  static short	b_labelFileCreated	= 0;
 
-  *p_verticesCounted = 0;
+  *p_verticesCounted 	= 0;
+  p_labelMark		= (int*) xmalloc(pmris->nvertices * sizeof(int));
+  if(Gb_filterLabel && !b_labelFileCreated)
+    for(vno=0; vno<pmris->nvertices; vno++) p_labelMark[vno] = 0;
   for (f_n = f_total =f_totalArea = 0.0, vno = 0 ; vno < pmris->nvertices ; vno++) {
-    b_canCount = 1;
     pv = &pmris->vertices[vno] ;
-    if (pv->ripflag)
-      continue ;
- 
-    if(Gb_lowPassFilter) {
-      if(fabs(pv->curv)<fabs(Gf_lowPassFilter))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(Gb_highPassFilter) {
-      if(fabs(pv->curv)>=fabs(Gf_highPassFilter))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(Gb_lowPassFilterGaussian) {
-      if(fabs(pv->K)<fabs(Gf_lowPassFilterGaussian))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(Gb_highPassFilterGaussian) {
-      if(fabs(pv->K)>=fabs(Gf_highPassFilterGaussian))
-        b_canCount &= 1;
-      else
-        b_canCount &= 0;
-    }
-    if(b_canCount && (*fcond)(pv)) {
+    if(Gb_filter)   MRIS_surfaceRipFlags_filterVertex(pmris, vno);
+    if(pv->ripflag) continue ;
+    if( (*fcond)(pv)) {
       f_total 			+= ((*fv)(pv) * pv->area) ;
       f_n 			+= 1.0 ;
       (*pf_areaCounted) 	+= pv->area;
       (*p_verticesCounted)++;
+      if(Gb_filterLabel) p_labelMark[vno] = 1;
     }
   }
   if(f_n > 1) {
@@ -1546,6 +1849,12 @@ MRIS_surfaceIntegral_compute(
     *pf_areaNormalizedIntegral	*= Gf_postScale;
   }
   *pf_surfaceIntegral		= f_total;
+  if(Gb_filterLabel && !b_labelFileCreated) {
+    LABEL_save(pmris, *p_verticesCounted, p_labelMark, Gpch_filterLabel);
+    cprintd("Label size", *p_verticesCounted);
+    free(p_labelMark);
+    b_labelFileCreated	= 1;
+  }
   return(b_ret);
 }
 
@@ -1821,9 +2130,9 @@ histogram_create(
   strcpy(pch_sot, Gppch[aesot]);
 
   nvertices  = amris_curvature->nvertices;
-  fprintf(stdout, "\n%*s%s = %f\n",
+  fprintf(GpSTDOUT, "\n%*s%s = %f\n",
           G_leftCols, pch_sot, " bin size", af_binSize);
-  fprintf(stdout, "%*s%s = %d\n",
+  fprintf(GpSTDOUT, "%*s%s = %d\n",
           G_leftCols, pch_sot, " surface vertices", nvertices);
   pf_curvature = calloc(nvertices, sizeof(float));
 
@@ -1861,9 +2170,9 @@ histogram_create(
     if (totalCount == nvertices)
       break;
   }
-  fprintf(stdout, "%*s%s = %d\n",
+  fprintf(GpSTDOUT, "%*s%s = %d\n",
           G_leftCols, pch_sot, " sorted vertices", totalCount);
-  fprintf(stdout, "%*s%s = %f\n",
+  fprintf(GpSTDOUT, "%*s%s = %f\n",
           G_leftCols, pch_sot, " ratio", (float)totalCount / (float)nvertices);
   free(pf_curvature);
 }
@@ -1876,6 +2185,7 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-lowPassFilter")) {
+    Gb_filter			= 1;
     Gb_lowPassFilter		= 1;
     Gf_lowPassFilter		= atof(argv[2]);
     nargs			= 1;
@@ -1896,18 +2206,21 @@ get_option(int argc, char *argv[]) {
     Gb_vertexAreaWeighFrac       = 1;
     cprints("Toggling fractional vertex area weighing on", "ok");
   } else if (!stricmp(option, "-lowPassFilterGaussian")) {
+    Gb_filter			= 1;
     Gb_lowPassFilterGaussian	= 1;
     Gf_lowPassFilterGaussian	= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting rectified low pass Gaussian filter", 
             Gf_lowPassFilterGaussian);
   } else if (!stricmp(option, "-highPassFilterGaussian")) {
+    Gb_filter			= 1;
     Gb_highPassFilterGaussian	= 1;
     Gf_highPassFilterGaussian	= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting rectified high pass Gaussian filter", 
             Gf_highPassFilterGaussian);
   } else if (!stricmp(option, "-highPassFilter")) {
+    Gb_filter			= 1;
     Gb_highPassFilter		= 1;
     Gf_highPassFilter		= atof(argv[2]);
     nargs			= 1;
@@ -1917,6 +2230,12 @@ get_option(int argc, char *argv[]) {
     Gf_postScale		= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting post scale factor", Gf_postScale);
+  } else if (!stricmp(option, "-filterLabel")) {
+    Gb_filterLabel		= 1;
+    pch_text			= argv[2];
+    strcpy(Gpch_filterLabel, pch_text);
+    nargs			= 1;
+    cprints("Filter hits saved to ", Gpch_filterLabel);
   } else if (!stricmp(option, "-discrete")) {
     Gb_discreteCurvaturesUse	= 1;
     cprints("Using discrete curvature calculations", "ok");
@@ -2099,6 +2418,7 @@ outputFiles_open(void) {
     if ((GpFILE_log=fopen(Gpch_log, "a"))==NULL)
       ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for appending.\n",
                 Progname, Gpch_log);
+    GpSTDOUT	= GpFILE_log;
     if (Gb_histogram && curv_fname) {
       if ((GpFILE_rawHist=fopen(Gpch_rawHist, "w"))==NULL)
         ErrorExit(ERROR_NOFILE, "%s: Could not open file '%s' for writing.\n",
@@ -2309,7 +2629,41 @@ print_help(void) {
 	  is 2*pi*Euler_number. For topologically correct surfaces, the \n\
 	  Euler number is 2; thus the Gaussian integral is 4*pi and the ICIt \n\
 	  is (in the ideal case) 1. \n\
- 	 \n\
+ \n\
+	FILTERING SURFACE DOMAINS \n\
+ \n\
+	  There are two main mechanisms for restricting the domain (or regions \n\
+	  on the surface) where calculations occur. The simplest technique is \n\
+	  by passing a label file with [-l <labelFileName>]. This \n\
+	  <labelFileName> defines a surface region of interest, and all \n\
+	  calculations will be constrained to this region. \n\
+	 \n\
+	  A second method is by specifying upper and lower filter bounds on the \n\
+	  command line. Two techniques are available. The first filters accord- \n\
+	  ing to the current curvature function value at a vertex of interest, \n\
+	  and the second filters according to the Gaussian curvature value at \n\
+	  a vertex of interest. \n\
+ \n\
+	  Filtering by the current curvature function is controlled by the \n\
+	  [--lowPassFilter <value>] and [--highPassFilter <value>] flags, while \n\
+	  filtering by vertex Gaussian curvature value is similarly specified \n\
+	  by [--lowPassFilterGaussian <value>] and \n\
+	  [--highPassFilterGaussian <value>]. If an additional argument, \n\
+	  [--filterLabel <labelFileName>] is also given, the vertices tagged \n\
+	  by the filter pattern will be saved to the <labelFileName>. \n\
+ \n\
+	  Note that the [-l <labelFileName>] and the high/low pass filters \n\
+	  can be specified concurrently. If a <labelFileName> is given, then \n\
+	  the low/high pass filters will operate only on the surface defined \n\
+	  by the <labelFileName>. If a '--filterLabel <filename>' is also \n\
+	  given, the filter <filename> will only contain vertices that lie \n\
+	  within the original <labelFileName> *and* satisfy the filter pattern. \n\
+ \n\
+	  Specifying either a '-l <labelFileName>' or adding a filter pattern \n\
+	  will result in some additional information being presented with the \n\
+	  curvature report, specifically the ROI surface area, the ROI number \n\
+	  number of vertices, and the ROI surface area percentage. \n\
+		 	 \n\
 	SURFACE INTEGRALS \n\
  \n\
 	  The surface integrals for a given curvature map are filtered/modified \n\
@@ -2503,6 +2857,25 @@ print_help(void) {
     [-l <labelFileName>] \n\
  \n\
           Constrain statistics to the region defined in <labelFileName>. \n\
+ \n\
+    [--highPassFilter <HPvalue>] [--lowPassFilter <LPvalue>] \n\
+ \n\
+	  When computing surface properties, only consider vertices where \n\
+	  the current curvature function map satisfies the filter constraints, \n\
+	  i.e. if [--highPassFilter <HPvalue>], then only process vertex if \n\
+	  f_curv >= HPvalue. Similarly, if [--lowPassFilter <LPvalue] is passed \n\
+	  then only process vertex if f_curv <= LPvalue. \n\
+ \n\
+    [--highPassFilterGaussian <HPvalue>] [--lowPassFilterGaussian <LPvalue>] \n\
+ \n\
+	  Same as above, but filter vertices according to their Gaussian \n\
+	  curvature values. \n\
+	 \n\
+    [--filterLabel <labelFile>] \n\
+ \n\
+	  If any command line filters are specified, adding a [--filterLabel] \n\
+	  argument will store the surface vertices that were processed in \n\
+	  the FreeSurfer label file, <labelFile>. \n\
  \n\
     [-m] \n\
  \n\
@@ -2701,7 +3074,7 @@ print_help(void) {
  \n\
 \n");
 
-  fprintf(stdout,pch_synopsis);
+  fprintf(stdout, pch_synopsis);
   exit(1) ;
 }
 
