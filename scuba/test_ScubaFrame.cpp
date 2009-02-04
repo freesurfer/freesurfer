@@ -7,10 +7,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/11 00:06:03 $
- *    $Revision: 1.10.2.1 $
+ *    $Date: 2009/02/04 19:28:53 $
+ *    $Revision: 1.10.2.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -29,7 +29,7 @@
 #include <sstream>
 #include "ScubaFrame.h"
 extern "C" {
-#include "GL/glut.h"
+#include "glut.h"
 }
 #include "Scuba-impl.h"
 
