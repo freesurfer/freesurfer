@@ -1,17 +1,16 @@
 /**
  * @file  test_window_env.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test OpenGL stuff
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:17 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/02/04 19:22:40 $
+ *    $Revision: 1.6.2.1 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,16 +24,10 @@
  *
  */
 
-
 #include <stdlib.h>
 #include <stdio.h>
-#ifdef HAVE_APPLE_OPENGL_FRAMEWORK
-#  include <GLUT/glut.h>
-#  include <OpenGL/glu.h>
-#else
-#  include <GL/gl.h>
-#  include <GL/glu.h>
-#endif
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <GL/glx.h>
@@ -46,18 +39,29 @@ Window gRoot = 0;
 
 void InitDisplay ();
 void FindVisual ();
-void PrintAttributeList ( FILE* iOutput, char* isPrefix, int iaAttributes[] );
-
+void PrintAttributeList ( FILE* iOutput, 
+                          char* isPrefix, 
+                          int iaAttributes[] );
 
 int main ( int argc, char** argv ) {
 
   int nargs;
+  char *env;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: test_window_env.c,v 1.6 2006/12/29 02:09:17 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: test_window_env.c,v 1.6.2.1 2009/02/04 19:22:40 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
+
+  env = getenv("DISPLAY");
+  if ( NULL == env ) {
+    printf("DISPLAY env var not set.  Skipping test.\n");
+    exit (77);
+  }
 
 #if 0
   GLenum bSuccess;
@@ -113,6 +117,7 @@ void InitDisplay () {
     XFree( pVisualInfo ); \
   } else { \
     printf( "\tXX Didn't get a visual\n" ); \
+    exit( 1 ); \
   }
 
 void FindVisual () {
@@ -155,7 +160,7 @@ void FindVisual () {
   SET_ATTRIBUTE_VALUE( GLX_STENCIL_SIZE, 1 );
   RUN_TEST();
 
-
+#if 0
   /* indexed screen */
   CLEAR_ATTRIBUTES();
   SET_ATTRIBUTE_VALUE( GLX_LEVEL, 0 );
@@ -173,7 +178,7 @@ void FindVisual () {
   /* try with and without stencil buffer. */
   SET_ATTRIBUTE_VALUE( GLX_STENCIL_SIZE, 1 );
   RUN_TEST();
-
+#endif
 }
 
 #define PRINT_ATTRIBUTE_VALUE_CASE(a) \
@@ -212,5 +217,4 @@ void PrintAttributeList ( FILE* iOutput, char* isPrefix, int iaAttributes[] ) {
                iaAttributes[nAttribute] );
     }
   }
-
 }
