@@ -11,11 +11,11 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2008/11/14 19:01:50 $
- *    $Revision: 1.56 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/04 20:58:28 $
+ *    $Revision: 1.57 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -122,7 +122,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.56 2008/11/14 19:01:50 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.57 2009/02/04 20:58:28 nicks Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -478,7 +478,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.56 2008/11/14 19:01:50 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.57 2009/02/04 20:58:28 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -680,8 +680,8 @@ main(int argc, char *argv[]) {
   }
 
   MRISfree(&mris) ;
-  outputFiles_close();
   fprintf(GpSTDOUT, "\n\n");
+  outputFiles_close();
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -774,7 +774,7 @@ MRIS_minMaxCurvature_analyze(
   //	  is set by the <s_MINMAX> boolean control flags.
   //
 
-  int	vmin		= 0;
+  int	  vmin		= 0;
   int 	vmax		= 0;
   float	f_minExplicit	= 0.;
   float	f_maxExplicit	= 0.;
@@ -791,7 +791,7 @@ MRIS_minMaxCurvature_analyze(
   if (aps_minMax->b_minTest && aps_minMax->f_min != f_minExplicit) {
     fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
             " lookup   min:", aps_minMax->f_min);
-    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
+    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d\n", Gppch[aesot],
             " explicit min:", f_minExplicit, vmin);
     aps_minMax->b_minViolation	= 1;
     aps_minMax->f_min 		= f_minExplicit;
@@ -799,7 +799,7 @@ MRIS_minMaxCurvature_analyze(
   if (aps_minMax->b_maxTest && aps_minMax->f_max != f_maxExplicit) {
     fprintf(stderr, "\nWARN:%5s%-40s%f\n", Gppch[aesot], 
             " lookup   max:", aps_minMax->f_max);
-    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d", Gppch[aesot],
+    fprintf(stderr, "WARN:%5s%-40s%f\tvertex = %d\n", Gppch[aesot],
             " explicit max:", f_maxExplicit, vmax);
     aps_minMax->b_maxViolation	= 1;
     aps_minMax->f_max 		= f_maxExplicit;
@@ -920,6 +920,7 @@ MRIS_minMaxCurve_report(
 
   s_MINMAX	s_minMax;
   char*	pch_function	= "MRIS_minMaxCurve_report";
+  char  tmp[1024];
 
   DebugEnterFunction (( pch_function ));
 
@@ -954,13 +955,14 @@ MRIS_minMaxCurve_report(
   strcpy(apch_report, "");
   sprintf(apch_report, "%*s%-*s", 	G_leftCols, 	Gppch[aesot], 
 					G_rightCols, 	" Min:");
-  sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report,
-          s_minMax.f_min, s_minMax.vertexMin);
-  sprintf(apch_report, "%s%*s%-*s",	apch_report,
-					G_leftCols, 	Gppch[aesot], 
+  sprintf(tmp, "%12.5f at vertex %-8d\n", s_minMax.f_min, s_minMax.vertexMin);
+  strcat(apch_report,tmp);
+  sprintf(tmp, "%*s%-*s",	
+          G_leftCols, 	Gppch[aesot], 
 					G_rightCols, 	" Max:");
-  sprintf(apch_report, "%s%12.5f at vertex %-8d\n", 	apch_report, 
-          s_minMax.f_max, s_minMax.vertexMax);
+  strcat(apch_report,tmp);
+  sprintf(tmp, "%12.5f at vertex %-8d\n", s_minMax.f_max, s_minMax.vertexMax);
+  strcat(apch_report,tmp);
 
   xDbg_PopStack();
   return 1;
@@ -1014,6 +1016,7 @@ MRIS_surfaceIntegrals_report(
   float f_SInegAreaNorm	= 0.0;  float f_SInegArea	= 0.0;
   char 	pch_curveName[1024];
   char* pch_function		= "MRIS_surfaceIntegrals_report";
+  char  tmp[1024];
 
   DebugEnterFunction (( pch_function ));
   sprintf(pch_curveName, "%s", Gppch[aesot]);
@@ -1059,114 +1062,173 @@ MRIS_surfaceIntegrals_report(
 
   sprintf(pch_misc, " Mean Vertex Separation (%s):", pch_processedArea);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Curvature Calculation Type:");
-  sprintf(apch_report, "%s%12s\n", apch_report,
-          Gpch_calc);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, pch_misc);
-  sprintf(apch_report, "%s%12.5f +- %2.5f mm\n", apch_report,
-          apmris->avg_vertex_dist, apmris->std_vertex_dist);
+  strcat(apch_report,tmp);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Total Surface Area:");
-  sprintf(apch_report, "%s%12.5f mm^2\n", 	apch_report, 
-          apmris->total_area);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Total Number of Vertices:");
-  sprintf(apch_report, "%s%12.5d\n", apch_report,
-          apmris->nvertices);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%12s\n", Gpch_calc);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s", pch_curveName, pch_misc);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f +- %2.5f mm\n",
+          apmris->avg_vertex_dist, apmris->std_vertex_dist);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s", pch_curveName, " Total Surface Area:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f mm^2\n", apmris->total_area);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s", pch_curveName, " Total Number of Vertices:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5d\n", apmris->nvertices);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s", 
           pch_curveName, " Average Vertex Area (Whole Surface):");
-  sprintf(apch_report, "%s%12.5f mm^2\n",	apch_report, 
-          apmris->avg_vertex_area);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f mm^2\n",	apmris->avg_vertex_area);
+  strcat(apch_report,tmp);
 
   if(Gb_filter || label_name) {
-      sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " ROI Surface Area:");
-      sprintf(apch_report, "%s%12.5f mm^2\n", 	apch_report, 
-          f_SInaturalArea);
-      sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " ROI Number of Vertices:");
-      sprintf(apch_report, "%s%12.5d\n", apch_report,
-          SInaturalVertices);
-      sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " ROI Surface Area Percentage:");
-      sprintf(apch_report, "%s%12.2f%s\n",	apch_report, 
-          100 * (float)SInaturalVertices / apmris->nvertices, "%");
-      sprintf(apch_report, "%s%10s%-40s", apch_report,
+      sprintf(tmp, "%10s%-40s", pch_curveName, " ROI Surface Area:");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.5f mm^2\n", f_SInaturalArea);
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%10s%-40s", pch_curveName, " ROI Number of Vertices:");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.5d\n", SInaturalVertices);
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%10s%-40s", 
+              pch_curveName, " ROI Surface Area Percentage:");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.2f%s\n", 
+              100 * (float)SInaturalVertices / apmris->nvertices, "%");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%10s%-40s",
           pch_curveName, " Average Vertex Area (ROI Surface):");
-      sprintf(apch_report, "%s%12.5f mm^2\n",	apch_report, 
-          f_SInaturalArea / SInaturalVertices);
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.5f mm^2\n",	f_SInaturalArea / SInaturalVertices);
+      strcat(apch_report,tmp);
   }
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Natural Surface Integral:");
-  sprintf(apch_report, "%s%12.5f\n", 	apch_report,
-          f_SInatural);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Rectified Surface Integral:");
-  sprintf(apch_report, "%s%12.5f\n",	apch_report, 
-          f_SIabs);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Positive Surface Integral:");
-  sprintf(apch_report, "%s%12.5f\n", 	apch_report,
-          f_SIpos);
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
-          pch_curveName, " Negative Surface Integral:");
-  sprintf(apch_report,"%s%12.5f\n", 	apch_report,
-          f_SIneg);
+  strcat(apch_report,tmp);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%12.5f\n", 
+          f_SInatural);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Rectified Surface Integral:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f\n",	
+          f_SIabs);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Positive Surface Integral:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f\n", 
+          f_SIpos);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
+          pch_curveName, " Negative Surface Integral:");
+  strcat(apch_report,tmp);
+
+  sprintf(tmp,"%12.5f\n",  
+          f_SIneg);
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Natural Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n",
-          apch_report, 
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SInaturalMean, SInaturalVertices, 
           100 * (float)SInaturalVertices / apmris->nvertices, 
           "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Rectified Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-          apch_report,
+          strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SIabsMean, SIabsVertices, 
           100 * (float)SIabsVertices / apmris->nvertices, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Positive Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-          apch_report,
+          strcat(apch_report,tmp);
+
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SIposMean, SIposVertices, 
           100 * (float)SIposVertices / apmris->nvertices, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " Mean Negative Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %d (%05.2f%s) vertices\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SInegMean, SInegVertices, 
           100 * (float)SInegVertices / apmris->nvertices, "%");
+  strcat(apch_report,tmp);
 
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Natural Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SInaturalAreaNorm, f_SInaturalArea, 
           100 * f_SInaturalArea / apmris->total_area, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Rectified Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SIabsAreaNorm, f_SIabsArea, 
           100 * f_SIabsArea / apmris->total_area, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Positive Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SIposAreaNorm, f_SIposArea, 
           100 * f_SIposArea / apmris->total_area, "%");
-  sprintf(apch_report, "%s%10s%-40s", apch_report,
+  strcat(apch_report,tmp);
+
+  sprintf(tmp, "%10s%-40s",
           pch_curveName, " AreaNorm Negative Surface Integral:");
-  sprintf(apch_report, "%s%12.5f across %f (%05.2f%s) mm^2\n", 
-          apch_report,
+  strcat(apch_report,tmp);
+  
+  sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SInegAreaNorm, f_SInegArea, 
           100 * f_SInegArea / apmris->total_area, "%");
+  strcat(apch_report,tmp);
+
   xDbg_PopStack();
   return 1;
 }
