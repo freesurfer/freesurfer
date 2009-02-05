@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/01/08 19:49:55 $
-#    $Revision: 1.133.2.38 $
+#    $Date: 2009/02/05 21:44:55 $
+#    $Revision: 1.133.2.39 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.38 2009/01/08 19:49:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.39 2009/02/05 21:44:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -767,7 +767,7 @@ if($DoMotionCor) then
   if ($FOV_gt_256) then
     echo "\n****************************************" |& tee -a $LF
     echo "ERROR! FOV=${FOV} > 256" |& tee -a $LF
-    echo "Include the flag --cw256 with recon-all!" |& tee -a $LF
+    echo "Include the flag -cw256 with recon-all!" |& tee -a $LF
     echo "****************************************\n" |& tee -a $LF
     goto error_exit;
   endif
