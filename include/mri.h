@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/02/02 19:57:09 $
- *    $Revision: 1.376 $
+ *    $Date: 2009/02/05 13:44:38 $
+ *    $Revision: 1.377 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -486,6 +486,8 @@ MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
                       MRI *mri_dst) ;
+MRI * MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
+                       MRI *mri_dst) ;
 MRI   *MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
                       MRI *mri_dst) ;
 MRI   *MRIerodeZero(MRI *mri_src, MRI *mri_dst) ;
