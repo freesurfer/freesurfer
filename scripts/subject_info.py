@@ -1,7 +1,7 @@
 # Original author - Krish Subramaniam
-# $Id: subject_info.py,v 1.1 2009/02/05 21:49:02 krish Exp $
+# $Id: subject_info.py,v 1.2 2009/02/05 22:02:51 krish Exp $
 
-import os
+import os, sys
 
 __all__ = ['check_subjdirs']
 
