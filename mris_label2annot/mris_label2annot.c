@@ -7,9 +7,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/20 00:01:12 $
- *    $Revision: 1.13 $
+ *    $Author: fischl $
+ *    $Date: 2009/02/05 13:45:23 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -56,6 +56,10 @@ table file. The next label will be mapped to index 2, etc. Verticies
 that are not mapped to a label are assigned index 0. If --no-unknown
 is specified, then the first label is mapped to index 0, etc, and
 unhit vertices are not mapped.
+
+--dilate_into_unknown label
+
+dilates <label> into bordering vertices labeled unknown 
 
 --ldir labeldir
 
@@ -153,8 +157,13 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.13 2008/12/20 00:01:12 greve Exp $";
+"$Id: mris_label2annot.c,v 1.14 2009/02/05 13:45:23 fischl Exp $";
 
+
+static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
+static char *dilate_label_name = NULL ;
+static int dilate_label_index = -1 ;
+static int dilate_label_annot = 0 ;
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -273,6 +282,10 @@ int main(int argc, char *argv[]) {
     printf("Found %d unhit vertices\n",nunhit);
   }
 
+  if (dilate_label_name)
+  {
+    dilate_label_into_unknown(mris, dilate_label_annot) ;
+  }
   printf("Writing annot to %s\n",AnnotPath);
   MRISwriteAnnotation(mris, AnnotPath);
 
@@ -307,7 +320,13 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcmp(option, "--no-unknown")) MapUnhitToUnknown = 0;
     else if (!strcmp(option, "--ldir-default")) labeldirdefault = 1;
-
+    else if (!strcmp(option, "--dilate-into-unknown")) 
+    {
+      dilate_label_name = pargv[0] ;
+      printf("dilating label %s into bordering unknown vertices\n", 
+             dilate_label_name) ;
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--s") || !strcmp(option, "--subject")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
@@ -518,6 +537,13 @@ static void check_options(void) {
     printf("ERROR: reading %s\n",CTabFile);
     exit(1);
   }
+  if (dilate_label_name)
+  {
+    CTABfindName(ctab, dilate_label_name, &dilate_label_index) ;
+    CTABannotationAtIndex(ctab, dilate_label_index, &dilate_label_annot);
+    printf("label %s maps to index %d, annot %x\n",
+           dilate_label_name, dilate_label_index, dilate_label_annot) ;
+  }
   printf("Number of ctab entries %d\n",ctab->nentries);
   if (nlabels == 0) {
     printf("INFO: no labels specified, generating from ctab\n");
@@ -559,3 +585,34 @@ static void dump_options(FILE *fp) {
 
   return;
 }
+static int
+dilate_label_into_unknown(MRI_SURFACE *mris, int annot) 
+{
+  int    vno, n, nchanged, iter ;
+  VERTEX *v, *vn ;
+
+  iter = 0 ;
+  do
+  {
+    nchanged = 0 ;
+
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->annotation != annot)
+        continue ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (vn->ripflag || vn->annotation != 0)
+          continue ;
+
+        nchanged++ ;
+        vn->annotation = annot ;
+      }
+    }
+    printf("iter %d: %d annots changed\n", iter+1, nchanged) ;
+  } while (nchanged > 0 && iter++ < 1000) ;
+  return(NO_ERROR) ;
+}
+
