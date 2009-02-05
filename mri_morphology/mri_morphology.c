@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/02/02 19:56:45 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/02/05 13:44:12 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,7 +75,7 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.10 2009/02/02 19:56:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.11 2009/02/05 13:44:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -221,7 +221,7 @@ main(int argc, char *argv[]) {
       printf("dilating %s with threshold %2.1f from volume %s\n",
              argv[1], thresh, intensity_fname) ;
       for (i = 0 ; i < niter ; i++) {
-        mri_dst = MRIdilateThresh(mri_src, mri_intensity, thresh, mri_dst) ;
+        mri_dst = MRIdilate6Thresh(mri_src, mri_intensity, thresh, mri_dst) ;
         MRIcopy(mri_dst, mri_src) ;
       }
     }
