@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/16 02:20:38 $
- *    $Revision: 1.62 $
+ *    $Date: 2009/02/05 15:22:59 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -54,6 +54,8 @@ static double TEs[MAX_GCA_INPUTS] ;
 static int skull = 0 ;  /* if 1, aligning to image with skull */
 static int rigid = 0 ;
 
+#define MAX_SCALE_PCT 0.15
+static float max_scale_pct = MAX_SCALE_PCT ;
 static int Gscale_samples = 0 ;
 static int robust = 0 ;
 /*
@@ -185,7 +187,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.62 2009/01/16 02:20:38 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.63 2009/02/05 15:22:59 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -234,6 +236,14 @@ main(int argc, char *argv[]) {
   printf("logging results to %s.log\n", parms.base_name) ;
   parms.rigid = rigid ;
 
+  if (skull)
+  {
+    int l ;
+
+    for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+      if (IS_BRAIN(l))
+        exclude_list[l] = 1 ;
+  }
   TimerStart(&start) ;
   ///////////  read GCA //////////////////////////////////////////////////
   printf("reading '%s'...\n", gca_fname) ;
@@ -530,13 +540,17 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_gca) ;
   }
   i = 0 ;
+
   ////////////////////////////////////////////////////////////////
   // change scale up to nscales (spacing is halved)
   // default nscales = 1
   for (spacing = max_spacing, scale = 0 ;
        scale < nscales ;
        scale++, spacing /= 2) {
-    if (use_contrast) // -contrast option
+    if (skull && 0)
+      parms.gcas = GCAfindExteriorSamples(gca, &nsamples,spacing,
+                                          min_prior,unknown_nbr_spacing, 0) ;
+    else if (use_contrast) // -contrast option
       parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
     else
       parms.gcas = GCAfindStableSamples
@@ -567,9 +581,14 @@ main(int argc, char *argv[]) {
   }
 
   // change nsamples to all samples
-  parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL, unknown_nbr_spacing) ;
+  if (skull && 0)
+    parms.gcas = GCAfindExteriorSamples(gca, &nsamples,spacing/2,
+                                        min_prior,unknown_nbr_spacing, 0) ;
+  else
+    parms.gcas = GCAfindAllSamples(gca, &nsamples, exclude_list, unknown_nbr_spacing) ;
   parms.nsamples = nsamples ;
   parms.tol = 1e-7 ;
+  parms.start_t++ ;
 
   //////////////////// diagnostics //////////////////////////////////////////
   if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0)) {
@@ -585,15 +604,20 @@ main(int argc, char *argv[]) {
 
     /*                Glta->xforms[0].m_L = m_L ;*/
     sprintf(fname, "%s%3.3d_fsamples.mgz",
-            parms.base_name, parms.start_t++) ;
+            parms.base_name, parms.start_t) ;
     GCAtransformAndWriteSamples
     (gca, mri_in, parms.gcas, nsamples, fname, transform) ;
     sprintf(fname, "%s%3.3d_pvals.mgz",
-            parms.base_name, parms.start_t++) ;
+            parms.base_name, parms.start_t) ;
     GCAtransformAndWriteSamplePvals
+    (gca, mri_in, parms.gcas, nsamples, fname, transform) ;
+    sprintf(fname, "%s%3.3d_means.mgz",
+            parms.base_name, parms.start_t) ;
+    GCAtransformAndWriteSampleMeans
     (gca, mri_in, parms.gcas, nsamples, fname, transform) ;
   }
   /////////////////////////////////////////////////////////////////////////
+  parms.start_t++ ;
   printf("transform before final EM align:\n") ;
   MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
   printf("\n") ;
@@ -618,6 +642,7 @@ main(int argc, char *argv[]) {
       MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
     mri_in->nframes = gca->ninputs ;
     sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
+    sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
     MRIfree(&mri_aligned) ;
   }
@@ -893,7 +918,7 @@ register_mri
   }
 
 
-  /*    parms->start_t++ ;*/
+  parms->start_t++ ;
   printf("***********************************************\n");
   printf("Computing MAP estimate using %d samples...\n", parms->nsamples) ;
   printf("***********************************************\n");
@@ -925,13 +950,11 @@ register_mri
 
 #define DEFAULT_MAX_STEPS 5
 static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
-static double MAX_ANGLE  = RADIANS(15);
+static double MAX_ANGLE  = RADIANS(30);
 //static double MIN_ANGLE  = RADIANS(2) ;
 
-#define MAX_SCALE       2.0
-#define MIN_SCALE       0.5
-
 static int max_angles = DEFAULT_MAX_STEPS ;
+static int max_scales = DEFAULT_MAX_STEPS ;
 static int MAX_TRANS_STEPS = DEFAULT_MAX_STEPS ;
 static double MAX_TRANS = 30 ;
 
@@ -1005,7 +1028,7 @@ find_optimal_transform
       printf("writing snapshot to %s...\n", fname) ;
       fflush(stdout);
       MRIwrite(mri_aligned, fname) ;
-      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+      //      MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
       MRIfree(&mri_aligned) ;
     }
   }
@@ -1026,6 +1049,7 @@ find_optimal_transform
     if (!noiscale)
       GCAhistoScaleImageIntensities(gca, mri, skull==0) ;
 
+
     //////////////// diagnostics ////////////////////////////////
     if (Gdiag & DIAG_WRITE && write_iterations > 0) {
       char fname[STRLEN] ;
@@ -1034,15 +1058,19 @@ find_optimal_transform
       sprintf(fname, "%s_after_intensity.mgz", parms.base_name) ;
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri, fname) ;
-      sprintf(fname, "%s_centering0", parms.base_name) ;
+      sprintf(fname, "%s000", parms.base_name) ;
       MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_fsamples_centering0.mgz", parms.base_name) ;
+      sprintf(fname, "%s000_fsamples.mgz", parms.base_name) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples,
                                   fname, transform) ;
-      sprintf(fname, "%s_pvals_centering0.mgz", parms.base_name) ;
+      sprintf(fname, "%s000_pvals.mgz", parms.base_name) ;
       GCAtransformAndWriteSamplePvals(gca, mri, gcas, nsamples,
                                       fname, transform) ;
+      sprintf(fname, "%s000_means.mgz", parms.base_name) ;
+      GCAtransformAndWriteSampleMeans
+        (gca, mri, parms.gcas, nsamples, fname, transform) ;
     }
+
     /////////////////////////////////////////////////////////////
     /* first align centroids */
     if (gca_mean_fname) {
@@ -1168,27 +1196,27 @@ find_optimal_transform
 #endif
     /////////////////////////////////////////////////////////////////////////
 
+    parms.start_t++ ;   // translation counts as one timestep
     if (write_iterations != 0) {
       char fname[STRLEN] ;
       MRI *mri_aligned ;
 
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      sprintf(fname, "%s_centering1", parms.base_name) ;
+      sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_after_centering.mgz", parms.base_name) ;
+      sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
       printf("writing image after centering to %s...\n", fname) ;
       fflush(stdout);
-#if 0
-      MRIwrite(mri_aligned, fname) ;
-#else
       Glta->xforms[0].m_L = m_L ;
-      sprintf(fname, "%s_fsamples_centering1.mgz", parms.base_name) ;
+      sprintf(fname, "%s%03d_fsamples.mgz", parms.base_name, parms.start_t) ;
       GCAtransformAndWriteSamples(gca, mri, gcas, nsamples,
                                   fname, transform) ;
-      sprintf(fname, "%s_pvals_centering1.mgz", parms.base_name) ;
+      sprintf(fname, "%s%03d_pvals.mgz", parms.base_name, parms.start_t) ;
       GCAtransformAndWriteSamplePvals(gca, mri, gcas, nsamples,
                                       fname, transform) ;
-#endif
+      sprintf(fname, "%s%03d_means.mgz", parms.base_name, parms.start_t) ;
+      GCAtransformAndWriteSampleMeans(gca, mri, gcas, nsamples,
+                                      fname, transform) ;
       MRIfree(&mri_aligned) ;
     }
     MRIfree(&mri_gca) ;
@@ -1196,9 +1224,9 @@ find_optimal_transform
 
   max_angle = MAX_ANGLE ;
   angle_steps = max_angles ;
-  max_scale = MAX_SCALE ;
-  min_scale = MIN_SCALE ;
-  scale_steps = max_angles ;
+  max_scale = 1+max_scale_pct ;
+  min_scale = 1-max_scale_pct ;
+  scale_steps = max_scales ;
 
 #define MIN_SCALES 3
   //////////////// loop here ////////////////////////////////////////////
@@ -1218,13 +1246,14 @@ find_optimal_transform
                  m_L, m_origin,
                  -(max_angle*scale),
                  (max_angle*scale),
-                 1-.25*(spacing/16.0)*scale,
-                 1+.25*(spacing/16.0)*scale,
+                 min_scale,
+                 max_scale,
                  -scale*(spacing/16.0)*MAX_TRANS,
                  scale*(spacing/16.0)*MAX_TRANS,
                  max_angles, scale_samples, 3, 2);
     fflush(stdout);
 
+    
     if (write_iterations != 0) {
       char fname[STRLEN] ;
       MRI *mri_aligned ;
@@ -1244,6 +1273,10 @@ find_optimal_transform
               parms.base_name, parms.start_t+niter+1) ;
       GCAtransformAndWriteSamples
       (gca, mri, gcas, nsamples, fname, transform) ;
+      sprintf(fname, "%s%3.3d_means.mgz",
+              parms.base_name, parms.start_t+niter+1) ;
+      GCAtransformAndWriteSampleMeans
+        (gca, mri, parms.gcas, nsamples, fname, transform) ;
 #endif
 
       MRIfree(&mri_aligned) ;
@@ -1365,10 +1398,10 @@ find_optimal_translation
     min_trans = mean_trans - delta ;
     max_trans = mean_trans + delta ;
   }
-
   printf("\n") ;
 
   MatrixFree(&m_trans) ;
+
   return(max_log_p) ;
 }
 
@@ -1462,6 +1495,11 @@ get_option(int argc, char *argv[]) {
     printf("using %2.2f deg as max angle for rotational search\n",
            DEGREES(MAX_ANGLE)) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "MAX_SCALE")) {
+    max_scale_pct = atof(argv[2]) ;
+    printf("using %2.2f%% as max scaling delta ([%2.3f %2.3f])\n",
+           100*max_scale_pct, 1-max_scale_pct, 1+max_scale_pct) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "BABY")) {
     baby = 1 ;
     printf("using baby brain intensity model\n") ;
@@ -1495,7 +1533,6 @@ get_option(int argc, char *argv[]) {
     printf("aligning to atlas containing skull, "
            "setting unknown_nbr_spacing = %d\n",
            unknown_nbr_spacing) ;
-    skull = 1 ;
   } else if (!strcmp(option, "RIGID")) {
     rigid = 1 ;
     printf("constraining transform to be rigid\n") ;
@@ -1714,6 +1751,8 @@ get_option(int argc, char *argv[]) {
       break ;
     case 'T':
       parms.transform = transform = TransformRead(argv[2]) ;
+      if (transform == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not read xform from %s", Progname, argv[2]) ;
       Glta = parms.lta = (LTA *)transform->xform ;
 #if 0
       parms.lta = LTAreadEx(argv[2]) ; // used to be LTAread()
@@ -1856,7 +1895,13 @@ find_optimal_linear_xform
     if (FZERO(delta_scale) || rigid)
       delta_scale = max_scale ;
 
-    delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
+    if (angle_steps == 1)
+    {
+      min_angle = max_angle = 0.0 ;
+      delta_rot = 1 ;
+    }
+    else
+      delta_rot = (max_angle-min_angle) / (angle_steps-1) ;
     if (Gdiag & DIAG_SHOW) {
       printf("  scanning %2.2f degree nbhd (%2.1f)\n"
              "  scale %2.3f->%2.3f (step %2.3f), "
