@@ -20,6 +20,7 @@ check_subject \
 clear_fs_env.csh \
 cor_to_minc \
 cp-dicom \
+datastruct_utils.py \
 dcmdir-info-mgh \
 deface_subject \
 defect-seg \
@@ -42,6 +43,7 @@ flip4fsl \
 fname2stem \
 fscalc.fsl \
 fsl_sub_seychelles \
+fsutils.py \
 stem2fname \
 freesurfer \
 fs_lib_check \
@@ -78,6 +80,7 @@ map_all_labels \
 map_all_labels-lh \
 map_central_sulcus \
 minc2seqinfo \
+misc.py \
 mkfsdist \
 mkheadsurf \
 mkima_index.tcl \
@@ -152,6 +155,7 @@ spmmat2register \
 spm_t_to_b \
 spmregister \
 sratio \
+subject_info.py \
 pctsurfcon\
 talairach \
 talairach2 \
