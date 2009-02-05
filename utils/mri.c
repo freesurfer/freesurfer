@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/29 03:13:21 $
- *    $Revision: 1.424 $
+ *    $Author: fischl $
+ *    $Date: 2009/02/05 13:45:02 $
+ *    $Revision: 1.425 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.424 $";
+const char *MRI_C_VERSION = "$Revision: 1.425 $";
 
 
 /*-----------------------------------------------------
@@ -11825,7 +11825,8 @@ MRI *MRIresampleFill
     {
       for (dk = 0;dk < template_vol->depth;dk++)
       {
-
+        if (di == Gx && dj == Gy && dk == Gz)
+          DiagBreak() ;
         *MATRIX_RELT(dp, 1, 1) = (float)di;
         *MATRIX_RELT(dp, 2, 1) = (float)dj;
         *MATRIX_RELT(dp, 3, 1) = (float)dk;
