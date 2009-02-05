@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/20 18:33:01 $
- *    $Revision: 1.108 $
+ *    $Date: 2009/02/05 13:46:04 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.108 2008/08/20 18:33:01 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.109 2009/02/05 13:46:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -78,7 +78,7 @@ static MRI *compute_T2star_map(MRI **mri_echos, int nvolumes) ;
 #endif
 static double  compute_brain_thresh(MRI_SURFACE *mris,
                                     MRI *mri_ratio,
-                                    int nstd) ;
+                                    float nstd) ;
 static int fix_midline(MRI_SURFACE *mris,
                        MRI *mri_aseg,
                        MRI *mri_brain,
@@ -107,6 +107,8 @@ static int fix_mtl = 0 ;
 static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
+static float nsigma = 2.0 ;
+static int remove_contra = 1 ;
 static char *write_aseg_fname = NULL ;
 static char *white_fname = NULL ;
 static int use_mode = 1 ;
@@ -137,6 +139,8 @@ static int nbhd_size = 20 ;
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
 static float base_dt_scale = BASE_DT_SCALE ;
+static float pial_target_offset = 0 ;
+static float white_target_offset = 0 ;
 
 static char *aseg_name = "aseg.mgz" ;
 static char *aparc_name = "aparc" ;  // for midline and cortex label
@@ -237,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.108 2008/08/20 18:33:01 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.109 2009/02/05 13:46:04 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.108 2008/08/20 18:33:01 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.109 2009/02/05 13:46:04 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -404,30 +408,33 @@ main(int argc, char *argv[]) {
       MRIwrite(mri_T1, fname) ;
     }
   }
+  if (remove_contra)
+  {
 #if 1
-  /* remove other hemi */
-  MRIreplaceValues(mri_filled, mri_filled, RH_LABEL2, rh_label) ;
-  smooth_contra_hemi(mri_filled, mri_T1, mri_T1, label_val, replace_val) ;
-  if (mri_T1_white)
-    smooth_contra_hemi
-    (mri_filled, mri_T1_white, mri_T1_white, label_val, replace_val) ;
-#else
-  /* remove other hemi */
-  MRIdilateLabel(mri_filled, mri_filled, replace_val, 1) ;
-  if (replace_val == RH_LABEL) {
-    MRIdilateLabel(mri_filled, mri_filled, RH_LABEL2, 1) ;
-    MRImask(mri_T1, mri_filled, mri_T1, RH_LABEL2,0) ;
+    /* remove other hemi */
+    MRIreplaceValues(mri_filled, mri_filled, RH_LABEL2, rh_label) ;
+    smooth_contra_hemi(mri_filled, mri_T1, mri_T1, label_val, replace_val) ;
     if (mri_T1_white)
+      smooth_contra_hemi
+        (mri_filled, mri_T1_white, mri_T1_white, label_val, replace_val) ;
+#else
+    /* remove other hemi */
+    MRIdilateLabel(mri_filled, mri_filled, replace_val, 1) ;
+    if (replace_val == RH_LABEL) {
+      MRIdilateLabel(mri_filled, mri_filled, RH_LABEL2, 1) ;
+      MRImask(mri_T1, mri_filled, mri_T1, RH_LABEL2,0) ;
+      if (mri_T1_white)
       MRImask(mri_T1_white, mri_filled, mri_T1_white, RH_LABEL2,0) ;
-  }
+    }
 
-  if (mri_T1_white)
-    MRImask(mri_T1_white, mri_filled, mri_T1_white, replace_val,0) ;
-  MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
+    if (mri_T1_white)
+      MRImask(mri_T1_white, mri_filled, mri_T1_white, replace_val,0) ;
+    MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
 #endif
-  MRIfree(&mri_filled) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_T1, "r.mgz") ;
+    MRIfree(&mri_filled) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_T1, "r.mgz") ;
+  }
 
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
   if (MGZ) strcat(fname, ".mgz");
@@ -573,6 +580,8 @@ main(int argc, char *argv[]) {
 
     sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
     for (e = 0 ; e < nechos ; e++) {
+      if (e != 0 && e != nechos-1)
+        continue ; // only read 1st and last echo (they are the only ones used)
       sprintf(fmt, "%s/%s/mri/%s", sdir, sname, dura_echo_name) ;
       sprintf(fname, fmt, e) ;
       mri_echos[e] = MRIread(fname) ;
@@ -676,6 +685,7 @@ main(int argc, char *argv[]) {
        min_csf,(max_csf+max_gray_at_csf_border)/2,
        current_sigma, 2*max_thickness, parms.fp,
        GRAY_CSF, mri_ratio, thresh) ;
+      MRISaddToValues(mris, white_target_offset) ;
       {
         int i, vno ;
         for (i = 0; i < pial_num ; i++)
@@ -947,10 +957,13 @@ main(int argc, char *argv[]) {
     }
   } else   /* read in previously generated white matter surface */
   {
-    sprintf(fname, "%s%s", white_matter_name, suffix) ;
-    if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
-      ErrorExit(Gerror, "%s: could not read white matter surfaces.",
-                Progname) ;
+    if (orig_white)
+    {
+      sprintf(fname, "%s%s", orig_white, suffix) ;
+      if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
+        ErrorExit(Gerror, "%s: could not read white matter surfaces.",
+                  Progname) ;
+    }
     MRIScomputeMetricProperties(mris) ;
   }
 
@@ -990,6 +1003,11 @@ main(int argc, char *argv[]) {
     printf("masking dura from pial surface locations\n") ;
     sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
     for (e = 0 ; e < nechos ; e++) {
+      if (e != 0 && e != nechos-1)
+      {
+        mri_echos[e] = NULL ;
+        continue ;
+      }
       sprintf(fmt, "%s/%s/mri/%s", sdir, sname, dura_echo_name) ;
       sprintf(fname, fmt, e) ;
       mri_echos[e] = MRIread(fname) ;
@@ -1001,7 +1019,7 @@ main(int argc, char *argv[]) {
     }
 
     mri_ratio = MRIdivide(mri_echos[0], mri_echos[nechos-1], NULL) ;
-    thresh = compute_brain_thresh(mris, mri_ratio, 2) ;
+    thresh = compute_brain_thresh(mris, mri_ratio, nsigma) ;
     mri_mask = mri_ratio ;
     if (Gdiag & DIAG_WRITE) {
       char fname[STRLEN] ;
@@ -1015,7 +1033,8 @@ main(int argc, char *argv[]) {
     printf("setting dura threshold to %2.3f\n", thresh) ;
 
     for (e = 0 ; e < nechos ; e++)
-      MRIfree(&mri_echos[e]) ;
+      if (mri_echos[e])
+        MRIfree(&mri_echos[e]) ;
   } else
     mri_mask = NULL ;
 #endif
@@ -1089,6 +1108,7 @@ main(int argc, char *argv[]) {
        min_csf,(max_csf+max_gray_at_csf_border)/2,
        current_sigma, 2*max_thickness, parms.fp,
        GRAY_CSF, mri_mask, thresh) ;
+      MRISaddToValues(mris, white_target_offset) ;
       {
         int i, vno ;
         for (i = 0; i < pial_num ; i++)
@@ -1283,6 +1303,21 @@ get_option(int argc, char *argv[]) {
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "pial_offset")) {
+    pial_target_offset = atof(argv[2]) ;
+    fprintf(stderr,  "offseting pial target vals by %2.0f\n", pial_target_offset) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "white_offset")) {
+    white_target_offset = atof(argv[2]) ;
+    fprintf(stderr,  "offseting white target vals by %2.0f\n", white_target_offset) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "both")) {
+    remove_contra = 0 ;
+    fprintf(stderr,  "not removing contralateral hemi\n") ;
+  } else if (!stricmp(option, "nsigma")) {
+    nsigma = atof(argv[2]) ;
+    fprintf(stderr,  "using dura threshold of %2.2f sigmas from mean (default=2)\n", nsigma) ;
+    nargs = 1; 
   } else if (!stricmp(option, "dura")) {
     dura_echo_name = argv[2] ;
     nechos = atoi(argv[3]) ;
@@ -2110,6 +2145,9 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       label = nint(val) ;
       if (label == contra_wm_label ||
           label == Left_Lateral_Ventricle ||
+          label == Left_vessel ||
+          label == Right_vessel ||
+          label == Optic_Chiasm ||
           label == Left_choroid_plexus ||
           label == Right_choroid_plexus ||
           label == Third_Ventricle ||
@@ -2197,6 +2235,9 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         break ;   // found real white matter next to surface
 
       if ((label == contra_wm_label ||
+           label == Left_vessel ||
+           label == Right_vessel ||
+           label == Optic_Chiasm ||
            label == Left_choroid_plexus ||
            label == Right_choroid_plexus ||
            label == Left_Lateral_Ventricle ||
@@ -2497,7 +2538,7 @@ compute_T2star_map(MRI **mri_echos, int nvolumes) {
 #endif
 
 static double
-compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, int nstd) {
+compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd) {
   Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
   int       vno, num ;
   VERTEX    *v ;
