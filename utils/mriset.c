@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/02 19:56:58 $
- *    $Revision: 1.66 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/06 05:15:20 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -539,6 +539,70 @@ MRI * MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
   }
   return(mri_dst) ;
 }
+MRI * MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
+                       MRI *mri_dst)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
+  Real    max_val, val ;
+
+  MRIcheckVolDims(mri_src, mri_dst);
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  if (mri_dst == mri_src)
+  {
+    same = 1 ;
+    mri_dst = MRIcopy(mri_src, NULL) ;
+  }
+  else
+    same = 0 ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        val = MRIgetVoxVal(mri_intensity, x,y,z, 0) ;
+        if (val < thresh)
+          continue ;
+        max_val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        for (z0 = -1 ; z0 <= 1 ; z0++)
+        {
+          zi = mri_src->zi[z+z0] ;
+          for (y0 = -1 ; y0 <= 1 ; y0++)
+          {
+            yi = mri_src->yi[y+y0] ;
+            for (x0 = -1 ; x0 <= 1 ; x0++)
+            {
+              if (fabs(x0) + fabs(y0) + fabs(z0) != 1)
+                continue ;
+              xi = mri_src->xi[x+x0] ;
+              val = MRIgetVoxVal(mri_src, xi,yi,zi, 0) ;
+              if (val > max_val)
+                max_val = val ;
+              }
+          }
+        }
+        MRIsetVoxVal(mri_dst, x, y, z, 0, max_val) ;
+      }
+    }
+  }
+  if (same)
+  {
+    MRIcopy(mri_dst, mri_src) ;
+    MRIfree(&mri_dst) ;
+    mri_dst = mri_src ;
+  }
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------*/
 MRI *MRIerodeZero(MRI *mri_src, MRI *mri_dst)
 {
@@ -685,6 +749,125 @@ MRI * MRIerode2D(MRI *mri_src, MRI *mri_dst)
 MRI *
 MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
                      int niter, int thresh)
+{
+  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
+  xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
+  BUFTYPE *psrc, out_val, val ;
+  MRI     *mri_tmp = NULL ;
+
+  MRIcheckVolDims(mri_src, mri_val);
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  /* get everything outside of bounding box */
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    nadded = 0 ;
+    mri_tmp = MRIcopy(mri_dst, mri_tmp) ; /* will allocate first time */
+    xmax = 0 ;
+    xmin = width-1 ;
+    ymax = 0 ;
+    ymin = height-1 ;
+    zmax = 0 ;
+    zmin = depth-1 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        psrc = &MRIvox(mri_src, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          if (*psrc++ == label)
+          {
+            if (x-1 < xmin)
+              xmin = x-1 ;
+            if (x+1 > xmax)
+              xmax = x+1 ;
+            if (y-1 < ymin)
+              ymin = y-1 ;
+            if (y+1 > ymax)
+              ymax = y+1 ;
+            if (z-1 < zmin)
+              zmin = z-1 ;
+            if (z+1 > zmax)
+              zmax = z+1 ;
+          }
+        }
+      }
+    }
+    xmin = MAX(0, xmin) ;
+    xmax = MIN(width-1, xmax) ;
+    ymin = MAX(0, ymin) ;
+    ymax = MIN(height-1, ymax) ;
+    zmin = MAX(0, zmin) ;
+    zmax = MIN(depth-1, zmax) ;
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        for (x = xmin ; x <= xmax ; x++)
+        {
+          out_val = MRIvox(mri_tmp, x, y, z) ;
+          if (MRIvox(mri_val, x, y, z) >= thresh)
+          {
+            for (z0 = -1 ; z0 <= 1 ; z0++)
+            {
+              zi = mri_tmp->zi[z+z0] ;
+              for (y0 = -1 ; y0 <= 1 ; y0++)
+              {
+                yi = mri_tmp->yi[y+y0] ;
+                for (x0 = -1 ; x0 <= 1 ; x0++)
+                {
+                  xi = mri_tmp->xi[x+x0] ;
+                  val = MRIvox(mri_tmp, xi,yi,zi) ;
+                  if (val == label)
+                    out_val = label ;
+                }
+              }
+            }
+            if (out_val == label)
+            {
+              if (xi < xmin)
+                xmin = xi ;
+              if (xi > xmax)
+                xmax = xi ;
+              if (yi < ymin)
+                ymin = yi ;
+              if (yi > ymax)
+                ymax = yi ;
+              if (zi < zmin)
+                zmin = zi ;
+              if (zi > zmax)
+                zmax = zi ;
+              if (MRIvox(mri_dst, x,y,z) != label)
+                nadded++ ;
+            }
+          }
+          MRIvox(mri_dst, x,y,z) = out_val ;
+        }
+      }
+    }
+    if (nadded == 0)
+      break ;
+  }
+  MRIfree(&mri_tmp) ;
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+MRI *
+MRIdilate6ThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
+                      int niter, int thresh)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
   xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
