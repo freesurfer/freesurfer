@@ -71,7 +71,7 @@ endif
 
 test_glut_SOURCES=test_glut.c
 test_glut_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_VXL) -lz \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB)	$(X_LIBS) $(LIBS_OPENGL) \
+	$(VTK_LIBS) $(VTK_TIFF_LIB) $(VTK_JPEG_LIB) $(X_LIBS) $(LIBS_OPENGL) \
 	$(top_builddir)/glut/libglut.a
 
 # test_glut app cannot run as auto-test. it requires manual intervention.
