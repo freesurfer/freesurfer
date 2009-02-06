@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.9 2009/02/05 21:51:44 krish Exp $
+# $Id: aparcstats2table,v 1.10 2009/02/06 16:11:30 krish Exp $
 
 # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
 measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'meancurv':6 }
@@ -78,7 +78,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.9 2009/02/05 21:51:44 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.10 2009/02/06 16:11:30 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -105,7 +105,6 @@ def options_parse():
     parser.add_option('-t', '--tablefile', dest='outputfile',
                       help=h_t)
     parser.add_option('-p', '--parc', dest='parc',
-                      choices=('aparc', 'aparc.a2005s'),
                       default='aparc', help=h_parc)
     parser.add_option('-m', '--measure', dest='meas',
                       choices=('area','volume','thickness','meancurv'),
