@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/02/07 03:12:42 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,7 +51,8 @@ Annotation2D::Annotation2D()
   for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
   {
     m_actorCoordinates[i] = vtkSmartPointer<vtkTextActor>::New();
-    m_actorCoordinates[i]->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+    m_actorCoordinates[i]->GetPositionCoordinate()->
+      SetCoordinateSystemToNormalizedViewport();
     m_actorCoordinates[i]->GetTextProperty()->ShadowOff();
     m_actorCoordinates[i]->GetTextProperty()->SetFontSize(11);
     m_actorCoordinates[i]->GetTextProperty()->ItalicOff();
@@ -60,13 +61,15 @@ Annotation2D::Annotation2D()
   }
   m_actorCoordinates[0]->SetPosition( 0.01, 0.5 );
   m_actorCoordinates[0]->GetTextProperty()->SetJustificationToLeft();
-  m_actorCoordinates[0]->GetTextProperty()->SetVerticalJustificationToCentered();
+  m_actorCoordinates[0]->GetTextProperty()->
+    SetVerticalJustificationToCentered();
   m_actorCoordinates[1]->SetPosition( 0.5, 0.99 );
   m_actorCoordinates[1]->GetTextProperty()->SetJustificationToCentered();
   m_actorCoordinates[1]->GetTextProperty()->SetVerticalJustificationToTop();
   m_actorCoordinates[2]->SetPosition( 0.99, 0.5 );
   m_actorCoordinates[2]->GetTextProperty()->SetJustificationToRight();
-  m_actorCoordinates[2]->GetTextProperty()->SetVerticalJustificationToCentered();
+  m_actorCoordinates[2]->GetTextProperty()->
+    SetVerticalJustificationToCentered();
   m_actorCoordinates[3]->SetPosition( 0.5, 0.01 );
   m_actorCoordinates[3]->GetTextProperty()->SetJustificationToCentered();
   m_actorCoordinates[3]->GetTextProperty()->SetVerticalJustificationToBottom();
@@ -83,12 +86,14 @@ Annotation2D::Annotation2D()
 
   // scale actors
   m_actorScaleLine = vtkSmartPointer<vtkActor2D>::New();
-  m_actorScaleLine->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+  m_actorScaleLine->GetPositionCoordinate()->
+    SetCoordinateSystemToNormalizedViewport();
   m_actorScaleLine->SetPosition( 0.05, 0.05 );
   m_actorsAll->AddItem( m_actorScaleLine );
 
   m_actorScaleTitle = vtkSmartPointer<vtkTextActor>::New();
-  m_actorScaleTitle->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+  m_actorScaleTitle->GetPositionCoordinate()->
+    SetCoordinateSystemToNormalizedViewport();
   m_actorScaleTitle->GetTextProperty()->ShadowOff();
   m_actorScaleTitle->GetTextProperty()->SetFontSize(11);
   m_actorScaleTitle->GetTextProperty()->ItalicOff();
@@ -103,7 +108,8 @@ Annotation2D::~Annotation2D()
 void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
 {
   double slicePos[3] = { 0, 0, 0 };
-  LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+  LayerCollection* lc = 
+    MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
   lc->GetSlicePosition( slicePos );
   bool bHasLayer = ( lc->GetNumberOfLayers() > 0 );
 // for ( int i = 0; i < NUMBER_OF_ANNOTATIONS; i++ )
@@ -148,33 +154,56 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     pos[3] = tpos;
 
     tpos = slicePos[0];
-    mri->RemapPositionToRealRAS( tpos, pos[0], pos[1], slicePos[0], pos[0], pos[1] );
+    mri->RemapPositionToRealRAS( tpos, pos[0], pos[1], 
+				 slicePos[0], pos[0], pos[1] );
     if ( pos[0] >= 0 )
-      m_actorCoordinates[0]->SetInput( wxString::Format( "A %.2f", pos[0]).c_str() );
+      m_actorCoordinates[0]->SetInput
+	((const char*)wxString::Format
+	  ( _("A %.2f"), pos[0]).c_str() );
     else
-      m_actorCoordinates[0]->SetInput( wxString::Format( "P %.2f", -pos[0]).c_str() );
+      m_actorCoordinates[0]->SetInput
+	( (const char*)wxString::Format
+	  ( _("P %.2f"), -pos[0]).c_str() );
 
     if ( pos[1] >= 0 )
-      m_actorCoordinates[1]->SetInput( wxString::Format( "S %.2f", pos[1]).c_str() );
+      m_actorCoordinates[1]->SetInput
+	( (const char*)wxString::Format
+	  ( _("S %.2f"), pos[1]).c_str() );
     else
-      m_actorCoordinates[1]->SetInput( wxString::Format( "I  %.2f", -pos[1]).c_str() );
+      m_actorCoordinates[1]->SetInput
+	( (const char*)wxString::Format
+	  ( _("I  %.2f"), -pos[1]).c_str() );
 
-    mri->RemapPositionToRealRAS( tpos, pos[2], pos[3], slicePos[0], pos[2], pos[3] );
+    mri->RemapPositionToRealRAS( tpos, pos[2], pos[3], 
+				 slicePos[0], pos[2], pos[3] );
     if ( pos[2] >= 0 )
-      m_actorCoordinates[2]->SetInput( wxString::Format( "A %.2f", pos[2]).c_str() );
+      m_actorCoordinates[2]->SetInput
+	( (const char*)wxString::Format
+	  ( _("A %.2f"), pos[2]).c_str() );
     else
-      m_actorCoordinates[2]->SetInput( wxString::Format( "P %.2f", -pos[2]).c_str() );
+      m_actorCoordinates[2]->SetInput
+	( (const char*)wxString::Format
+	  ( _("P %.2f"), -pos[2]).c_str() );
 
     if ( pos[3] >= 0 )
-      m_actorCoordinates[3]->SetInput( wxString::Format( "S %.2f", pos[3]).c_str() );
+      m_actorCoordinates[3]->SetInput
+	( (const char*)wxString::Format
+	  ( _("S %.2f"), pos[3]).c_str() );
     else
-      m_actorCoordinates[3]->SetInput( wxString::Format( "I  %.2f", -pos[3]).c_str() );
+      m_actorCoordinates[3]->SetInput
+	( (const char*)wxString::Format
+	  ( _("I  %.2f"), -pos[3]).c_str() );
 
-    mri->RemapPositionToRealRAS( tpos, centPos[1], centPos[2], slicePos[0], centPos[1], centPos[2] );
+    mri->RemapPositionToRealRAS( tpos, centPos[1], centPos[2], 
+				 slicePos[0], centPos[1], centPos[2] );
     if ( slicePos[0] >= 0 )
-      m_actorCoordinates[4]->SetInput( wxString::Format( "R %.2f", slicePos[0]).c_str() );
+      m_actorCoordinates[4]->SetInput
+	( (const char*)wxString::Format
+	  ( _("R %.2f"), slicePos[0]).c_str() );
     else
-      m_actorCoordinates[4]->SetInput( wxString::Format( "L %.2f", -slicePos[0]).c_str() );
+      m_actorCoordinates[4]->SetInput
+	( (const char*)wxString::Format
+	  ( _("L %.2f"), -slicePos[0]).c_str() );
 
     break;
   case 1:
@@ -186,34 +215,57 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     pos[3] = tpos;
 
     tpos = slicePos[1];
-    mri->RemapPositionToRealRAS( pos[0], tpos, pos[1], pos[0], slicePos[1], pos[1] );
+    mri->RemapPositionToRealRAS( pos[0], tpos, pos[1], pos[0], 
+				 slicePos[1], pos[1] );
     if ( pos[0] >= 0 )
-      m_actorCoordinates[0]->SetInput( wxString::Format( "R %.2f", pos[0]).c_str() );
+      m_actorCoordinates[0]->SetInput
+	( (const char*)wxString::Format
+	  ( _("R %.2f"), pos[0]).c_str() );
     else
-      m_actorCoordinates[0]->SetInput( wxString::Format( "L %.2f", -pos[0]).c_str() );
+      m_actorCoordinates[0]->SetInput
+	( (const char*)wxString::Format
+	  ( _("L %.2f"), -pos[0]).c_str() );
 
     if ( pos[1] >= 0 )
-      m_actorCoordinates[1]->SetInput( wxString::Format( "S %.2f", pos[1]).c_str() );
+      m_actorCoordinates[1]->SetInput
+	( (const char*)wxString::Format
+	  ( _("S %.2f"), pos[1]).c_str() );
     else
-      m_actorCoordinates[1]->SetInput( wxString::Format( "I  %.2f", -pos[1]).c_str() );
+      m_actorCoordinates[1]->SetInput
+	( (const char*)wxString::Format
+	  ( _("I  %.2f"), -pos[1]).c_str() );
 
-    mri->RemapPositionToRealRAS( pos[2], tpos, pos[3], pos[2], slicePos[1], pos[3] );
+    mri->RemapPositionToRealRAS( pos[2], tpos, pos[3], pos[2], 
+				 slicePos[1], pos[3] );
 
     if ( pos[2] >= 0 )
-      m_actorCoordinates[2]->SetInput( wxString::Format( "R %.2f", pos[2]).c_str() );
+      m_actorCoordinates[2]->SetInput
+	( (const char*)wxString::Format
+	  ( _("R %.2f"), pos[2]).c_str() );
     else
-      m_actorCoordinates[2]->SetInput( wxString::Format( "L %.2f", -pos[2]).c_str() );
+      m_actorCoordinates[2]->SetInput
+	( (const char*)wxString::Format
+	  ( _("L %.2f"), -pos[2]).c_str() );
 
     if ( pos[3] >= 0 )
-      m_actorCoordinates[3]->SetInput( wxString::Format( "S %.2f", pos[3]).c_str() );
+      m_actorCoordinates[3]->SetInput
+	( (const char*)wxString::Format
+	  ( _("S %.2f"), pos[3]).c_str() );
     else
-      m_actorCoordinates[3]->SetInput( wxString::Format( "I  %.2f", -pos[3]).c_str() );
+      m_actorCoordinates[3]->SetInput
+	( (const char*)wxString::Format
+	  ( _("I  %.2f"), -pos[3]).c_str() );
 
-    mri->RemapPositionToRealRAS( centPos[0], tpos, centPos[2], centPos[0], slicePos[1], centPos[2] );
+    mri->RemapPositionToRealRAS( centPos[0], tpos, centPos[2], centPos[0], 
+				 slicePos[1], centPos[2] );
     if ( slicePos[1] >= 0 )
-      m_actorCoordinates[4]->SetInput( wxString::Format( "A %.2f", slicePos[1]).c_str() );
+      m_actorCoordinates[4]->SetInput
+	( (const char*)wxString::Format
+	  ( _("A %.2f"), slicePos[1]).c_str() );
     else
-      m_actorCoordinates[4]->SetInput( wxString::Format( "P %.2f", -slicePos[1]).c_str() );
+      m_actorCoordinates[4]->SetInput
+	( (const char*)wxString::Format
+	  ( _("P %.2f"), -slicePos[1]).c_str() );
 
     break;
   case 2:
@@ -224,79 +276,115 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     renderer->ViewToWorld( pos[2], pos[3], tpos );
 
     tpos = slicePos[2];
-    mri->RemapPositionToRealRAS( pos[0], pos[1], tpos, pos[0], pos[1], slicePos[2] );
+    mri->RemapPositionToRealRAS( pos[0], pos[1], tpos, 
+				 pos[0], pos[1], slicePos[2] );
 
     if ( pos[0] >= 0 )
-      m_actorCoordinates[0]->SetInput( wxString::Format( "R %.2f", pos[0]).c_str() );
+      m_actorCoordinates[0]->SetInput
+	( (const char*)wxString::Format
+	  ( _("R %.2f"), pos[0]).c_str() );
     else
-      m_actorCoordinates[0]->SetInput( wxString::Format( "L %.2f", -pos[0]).c_str() );
+      m_actorCoordinates[0]->SetInput
+	( (const char*)wxString::Format
+	  ( _("L %.2f"), -pos[0]).c_str() );
 
     if ( pos[1] >= 0 )
-      m_actorCoordinates[1]->SetInput( wxString::Format( "A %.2f", pos[1]).c_str() );
+      m_actorCoordinates[1]->SetInput
+	( (const char*)wxString::Format
+	  ( _("A %.2f"), pos[1]).c_str() );
     else
-      m_actorCoordinates[1]->SetInput( wxString::Format( "P %.2f", -pos[1]).c_str() );
+      m_actorCoordinates[1]->SetInput
+	( (const char*)wxString::Format
+	  ( _("P %.2f"), -pos[1]).c_str() );
 
-    mri->RemapPositionToRealRAS( pos[2], pos[3], tpos, pos[2], pos[3], slicePos[2] );
+    mri->RemapPositionToRealRAS( pos[2], pos[3], tpos, 
+				 pos[2], pos[3], slicePos[2] );
 
     if ( pos[2] >= 0 )
-      m_actorCoordinates[2]->SetInput( wxString::Format( "R %.2f", pos[2]).c_str() );
+      m_actorCoordinates[2]->SetInput
+	( (const char*)wxString::Format
+	  ( _("R %.2f"), pos[2]).c_str() );
     else
-      m_actorCoordinates[2]->SetInput( wxString::Format( "L %.2f", -pos[2]).c_str() );
+      m_actorCoordinates[2]->SetInput
+	( (const char*)wxString::Format
+	  ( _("L %.2f"), -pos[2]).c_str() );
 
     if ( pos[3] >= 0 )
-      m_actorCoordinates[3]->SetInput( wxString::Format( "A %.2f", pos[3]).c_str() );
+      m_actorCoordinates[3]->SetInput
+	( (const char*)wxString::Format
+	  ( _("A %.2f"), pos[3]).c_str() );
     else
-      m_actorCoordinates[3]->SetInput( wxString::Format( "P %.2f", -pos[3]).c_str() );
+      m_actorCoordinates[3]->SetInput
+	( (const char*)wxString::Format
+	  ( _("P %.2f"), -pos[3]).c_str() );
 
-    mri->RemapPositionToRealRAS( centPos[0], centPos[1], tpos, centPos[0], centPos[1], slicePos[2] );
+    mri->RemapPositionToRealRAS( centPos[0], centPos[1], tpos, 
+				 centPos[0], centPos[1], slicePos[2] );
     if ( slicePos[2] >= 0 )
-      m_actorCoordinates[4]->SetInput( wxString::Format( "S %.2f", slicePos[2]).c_str() );
+      m_actorCoordinates[4]->SetInput
+	( (const char*)wxString::Format
+	  ( _("S %.2f"), slicePos[2]).c_str() );
     else
-      m_actorCoordinates[4]->SetInput( wxString::Format( "I  %.2f", -slicePos[2]).c_str() );
+      m_actorCoordinates[4]->SetInput
+	( (const char*)wxString::Format
+	  ( _("I  %.2f"), -slicePos[2]).c_str() );
 
     break;
   }
 
   // update slice number
-  m_actorCoordinates[5]->SetInput( mri ? wxString::Format( "%d", nSliceNumber[nPlane] ).c_str() : "" );
+  m_actorCoordinates[5]->SetInput
+    ( mri ? (const char*)wxString::Format
+      ( _("%d"), nSliceNumber[nPlane] ).c_str() : "" );
 
   // update scale line
   double* xy_pos = m_actorScaleLine->GetPosition();
   double w_pos[3], w_pos2[3];
   int nNumOfTicks = 5;
-  MyUtils::NormalizedViewportToWorld( renderer, xy_pos[0], xy_pos[1], w_pos[0], w_pos[1], w_pos[2] );
-  MyUtils::NormalizedViewportToWorld( renderer, xy_pos[0] + 0.5, xy_pos[1], w_pos2[0], w_pos2[1], w_pos2[2] );
+  MyUtils::NormalizedViewportToWorld( renderer, 
+				      xy_pos[0], 
+				      xy_pos[1], 
+				      w_pos[0], 
+				      w_pos[1], 
+				      w_pos[2] );
+  MyUtils::NormalizedViewportToWorld( renderer, 
+				      xy_pos[0] + 0.5, 
+				      xy_pos[1], 
+				      w_pos2[0], 
+				      w_pos2[1], 
+				      w_pos2[2] );
   w_pos[ nPlane ] = w_pos2[ nPlane ] = 0;
-  double d = 0.5 / sqrt( vtkMath::Distance2BetweenPoints( w_pos, w_pos2 ) ) * 10;
-  wxString title = "1 cm";
+  double d = 0.5 / 
+    sqrt( vtkMath::Distance2BetweenPoints( w_pos, w_pos2 ) ) * 10;
+  wxString title = _("1 cm");
   if ( d >= 0.5 - xy_pos[0] )
   {
     d /= 2;
-    title = "5 mm";
+    title = _("5 mm");
     if ( d >= 0.5 - xy_pos[0] )
     {
       d *= 0.4;
-      title = "2 mm";
+      title = _("2 mm");
       nNumOfTicks = 2;
       if ( d >= 0.5 - xy_pos[0] )
       {
         d /= 2;
-        title = "1 mm";
+        title = _("1 mm");
         nNumOfTicks = 1;
         if ( d >= 0.5 - xy_pos[0] )
         {
           d /= 2;
-          title = "500 um";
+          title = _("500 um");
           nNumOfTicks = 5;
           if ( d >= 0.5 - xy_pos[0] )
           {
             d *= 0.4;
-            title = "200 um";
+            title = _("200 um");
             nNumOfTicks = 2;
             if ( d >= 0.5 - xy_pos[0] )
             {
               d /= 2;
-              title = "100 um";
+              title = _("100 um");
               nNumOfTicks = 1;
             }
           }
@@ -305,10 +393,12 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     }
   }
 
-  UpdateScaleActors( d, nNumOfTicks, title.c_str() );
+  UpdateScaleActors( d, nNumOfTicks,  (const char*)title.c_str() );
 }
 
-void Annotation2D::UpdateScaleActors( double length, int nNumOfTicks, const char* title )
+void Annotation2D::UpdateScaleActors( double length, 
+				      int nNumOfTicks, 
+				      const char* title )
 {
   // scale line
   double* pos = m_actorScaleLine->GetPosition();

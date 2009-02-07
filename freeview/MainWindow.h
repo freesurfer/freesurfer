@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/02/07 03:12:42 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -216,10 +216,17 @@ public:
   void LoadSurface();
   void LoadSurfaceVector();
 
-  void LoadVolumeFile( const wxString& fn, const wxString& reg_fn, bool bResample = true, int nColorMap = 0 );
-  void LoadDTIFile( const wxString& fn_vector, const wxString& fn_fa, const wxString& reg_fn, bool Resample = true );
+  void LoadVolumeFile( const wxString& fn, 
+		       const wxString& reg_fn, 
+		       bool bResample = true, 
+		       int nColorMap = 0 );
+  void LoadDTIFile( const wxString& fn_vector, 
+		    const wxString& fn_fa, 
+		    const wxString& reg_fn, 
+		    bool Resample = true );
   void LoadROIFile( const wxString& fn );
-  void LoadSurfaceFile( const wxString& fn, const wxString& fn_vector = "" );
+  void LoadSurfaceFile( const wxString& fn, 
+			const wxString& fn_vector = _("") );
   void LoadSurfaceVectorFile( const wxString& fn );
   void LoadWayPointsFile( const wxString& fn );
 

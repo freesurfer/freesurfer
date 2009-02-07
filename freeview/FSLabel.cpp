@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/02/07 03:12:42 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,11 +61,12 @@ bool FSLabel::LabelRead( const char* filename )
     return false;
   }
 
-  wxFFile file( filename );
+  wxFFile file( wxString::FromAscii(filename) );
   wxString strg;
   if ( file.ReadAll( &strg ) )
   {
-    if ( strg.Find( "vox2ras=" ) >= 0 && strg.Find( "vox2ras=TkReg" ) < 0 )
+    if ( strg.Find( _("vox2ras=") ) >= 0 && 
+	 strg.Find( _("vox2ras=TkReg") ) < 0 )
       m_bTkReg = false;
   }
 
@@ -73,7 +74,10 @@ bool FSLabel::LabelRead( const char* filename )
 }
 
 /*
-void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event )
+void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, 
+                                    FSVolume* ref_vol, 
+				    wxWindow* wnd, 
+				    wxCommandEvent& event )
 {
  if ( m_label )
   ::LabelFree( &m_label );
@@ -131,7 +135,10 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 */
 
 
-void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, wxWindow* wnd, wxCommandEvent& event )
+void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, 
+				    FSVolume* ref_vol, 
+				    wxWindow* wnd, 
+				    wxCommandEvent& event )
 {
   if ( m_label )
     ::LabelFree( &m_label );
@@ -145,7 +152,8 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, FSVolume* ref_vol, w
 // int nProgressStep = ( 90 - event.GetInt() ) / 5;
   double pos[3];
 
-  // ok. the following part looks tedious but it's 100 times faster than doing i, j, k 3d iterations!
+  // ok. the following part looks tedious,
+  // but it's 100 times faster than doing i, j, k 3d iterations!
   int nsize = dim[0] * dim[1] * dim[2];
   switch ( rasImage->GetScalarType() )
   {
@@ -318,7 +326,9 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
   double pos[3];
   int* dim = rasImage->GetDimensions();
 // cout << "dim: " << dim[0] << " " <<  dim[1] << " " << dim[2] << endl;
-  memset( rasImage->GetScalarPointer(), 0, dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
+  memset( rasImage->GetScalarPointer(), 
+	  0, 
+	  dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
 // cout << "to update ras image" << endl;
   for ( int i = 0; i < m_label->n_points; i++ )
   {

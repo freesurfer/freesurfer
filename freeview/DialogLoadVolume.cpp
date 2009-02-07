@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/02/07 03:12:42 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,17 +32,18 @@
 #include <wx/filename.h>
 
 BEGIN_EVENT_TABLE( DialogLoadVolume, wxDialog )
-EVT_BUTTON   ( wxID_OK,          DialogLoadVolume::OnOK )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_FILE" ) ),   DialogLoadVolume::OnButtonOpen )
-EVT_COMBOBOX  ( XRCID( wxT( "ID_COMBO_FILENAME" ) ),  DialogLoadVolume::OnFileSelectionChanged )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_REG_FILE" ) ),  DialogLoadVolume::OnButtonRegFile )
-EVT_CHECKBOX  ( XRCID( wxT( "ID_CHECK_APPLY_REG" ) ),  DialogLoadVolume::OnCheckApplyReg )
+EVT_BUTTON ( wxID_OK,          DialogLoadVolume::OnOK )
+EVT_BUTTON ( XRCID( "ID_BUTTON_FILE" ), DialogLoadVolume::OnButtonOpen )
+EVT_COMBOBOX ( XRCID( "ID_COMBO_FILENAME" ), DialogLoadVolume::OnFileSelectionChanged )
+EVT_BUTTON ( XRCID( "ID_BUTTON_REG_FILE" ),  DialogLoadVolume::OnButtonRegFile )
+EVT_CHECKBOX ( XRCID( "ID_CHECK_APPLY_REG" ),  DialogLoadVolume::OnCheckApplyReg )
 END_EVENT_TABLE()
 
 
 DialogLoadVolume::DialogLoadVolume( wxWindow* parent, bool bEnableResample )
 {
-  wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_LOAD_VOLUME") );
+  wxXmlResource::Get()->LoadDialog( this, parent, 
+				    wxT("ID_DIALOG_LOAD_VOLUME") );
   m_checkNoResample = XRCCTRL( *this, "ID_CHECK_NO_RESAMPLE", wxCheckBox );
   m_checkNoResample->Show( bEnableResample );
   m_btnOpen = XRCCTRL( *this, "ID_BUTTON_FILE", wxButton );
@@ -66,20 +67,27 @@ wxString DialogLoadVolume::GetRegFileName()
   if ( m_checkApplyReg->IsChecked() )
     return m_textRegFile->GetValue().Trim( true ).Trim( false );
   else
-    return "";
+    return _("");
 }
 
 void DialogLoadVolume::OnOK( wxCommandEvent& event )
 {
   if ( GetVolumeFileName().IsEmpty() )
   {
-    wxMessageDialog dlg( this, "Volume file name can not be empty.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg( this, 
+			 _("Volume file name cannot be empty."), 
+			 _("Error"), 
+			 wxOK | wxICON_ERROR );
     dlg.ShowModal();
     return;
   }
-  else if ( m_checkApplyReg->IsChecked() && m_textRegFile->GetValue().Trim( true ).Trim( false ).IsEmpty() )
+  else if ( m_checkApplyReg->IsChecked() && 
+	    m_textRegFile->GetValue().Trim( true ).Trim( false ).IsEmpty() )
   {
-    wxMessageDialog dlg( this, "Registration file name can not be empty.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg( this, 
+			 _("Registration file name cannot be empty."), 
+			 _("Error"), 
+			 wxOK | wxICON_ERROR );
     dlg.ShowModal();
     return;
   }
@@ -108,9 +116,12 @@ void DialogLoadVolume::SetRecentFiles( const wxArrayString& list )
 
 void DialogLoadVolume::OnButtonOpen( wxCommandEvent& event )
 {
-  wxFileDialog dlg( this, _("Open volume file"), m_strLastDir, _(""),
-                    _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
-                    wxFD_OPEN );
+  wxFileDialog dlg
+    ( this, 
+      _("Open volume file"), 
+      m_strLastDir, _(""),
+      _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+      wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
     m_comboFileName->SetValue( dlg.GetPath() );
@@ -123,9 +134,12 @@ void DialogLoadVolume::OnButtonOpen( wxCommandEvent& event )
 void DialogLoadVolume::OnButtonRegFile( wxCommandEvent& event )
 {
   m_strLastDir = wxFileName( GetVolumeFileName() ).GetPath();
-  wxFileDialog dlg( this, _("Open registration file"), m_strLastDir, _(""),
-                    _T("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"),
-                    wxFD_OPEN );
+  wxFileDialog dlg
+    ( this, 
+      _("Open registration file"), 
+      m_strLastDir, _(""),
+      _T("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"),
+      wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
     m_textRegFile->SetValue( dlg.GetPath() );

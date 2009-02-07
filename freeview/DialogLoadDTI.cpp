@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/02/07 03:12:42 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,12 +32,12 @@
 #include <wx/filename.h>
 
 BEGIN_EVENT_TABLE( DialogLoadDTI, wxDialog )
-EVT_BUTTON   ( wxID_OK,          DialogLoadDTI::OnOK )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_VECTOR_FILE" ) ), DialogLoadDTI::OnButtonVector )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_FA_FILE" ) ),  DialogLoadDTI::OnButtonFA )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_REG_FILE" ) ),  DialogLoadDTI::OnButtonReg )
-EVT_COMBOBOX  ( XRCID( wxT( "ID_COMBO_FA_FILE" ) ),   DialogLoadDTI::OnComboFASelectionChanged )
-EVT_CHECKBOX  ( XRCID( wxT( "ID_CHECK_REG" ) ),   DialogLoadDTI::OnCheckApplyReg )
+EVT_BUTTON ( wxID_OK, DialogLoadDTI::OnOK )
+EVT_BUTTON ( XRCID( "ID_BUTTON_VECTOR_FILE" ), DialogLoadDTI::OnButtonVector )
+EVT_BUTTON ( XRCID( "ID_BUTTON_FA_FILE" ), DialogLoadDTI::OnButtonFA )
+EVT_BUTTON ( XRCID( "ID_BUTTON_REG_FILE" ), DialogLoadDTI::OnButtonReg )
+EVT_COMBOBOX ( XRCID( "ID_COMBO_FA_FILE" ), DialogLoadDTI::OnComboFASelectionChanged )
+EVT_CHECKBOX ( XRCID( "ID_CHECK_REG" ), DialogLoadDTI::OnCheckApplyReg )
 END_EVENT_TABLE()
 
 
@@ -72,26 +72,40 @@ wxString DialogLoadDTI::GetFAFileName()
 
 wxString DialogLoadDTI::GetRegFileName()
 {
-  return ( m_checkReg->IsChecked() ? m_textReg->GetValue().Trim( true ).Trim( false ) : "" );
+  if ( m_checkReg->IsChecked() )
+    return m_textReg->GetValue().Trim( true ).Trim( false );
+  else
+    return _("");
 }
 
 void DialogLoadDTI::OnOK( wxCommandEvent& event )
 {
   if ( GetVectorFileName().IsEmpty() )
   {
-    wxMessageDialog dlg( this, "Vector file name can not be empty.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg
+      ( this, 
+	_("Vector file name can not be empty."), 
+	_("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
     return;
   }
   else if ( GetFAFileName().IsEmpty() )
   {
-    wxMessageDialog dlg( this, "FA file name can not be empty.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg
+      ( this, 
+	_("FA file name can not be empty."), 
+	_("Error"), 
+	wxOK | wxICON_ERROR );
     dlg.ShowModal();
     return;
   }
   else if ( m_checkReg->IsChecked() && GetRegFileName().IsEmpty() )
   {
-    wxMessageDialog dlg( this, "Registration file name can not be empty.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg
+      ( this, 
+	_("Registration file name can not be empty."), 
+	_("Error"), 
+	wxOK | wxICON_ERROR );
     dlg.ShowModal();
     return;
   }
@@ -101,9 +115,13 @@ void DialogLoadDTI::OnOK( wxCommandEvent& event )
 
 void DialogLoadDTI::OnButtonVector( wxCommandEvent& event )
 {
-  wxFileDialog dlg( this, _("Select vector file"), m_strLastDir, _(""),
-                    _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
-                    wxFD_OPEN );
+  wxFileDialog dlg
+    ( this, 
+      _("Select vector file"), 
+      m_strLastDir, 
+      _(""),
+      _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+      wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
     m_textVector->ChangeValue( dlg.GetPath() );

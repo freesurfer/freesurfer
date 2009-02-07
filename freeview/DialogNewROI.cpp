@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/02/07 03:12:42 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 BEGIN_EVENT_TABLE( DialogNewROI, wxDialog )
 EVT_BUTTON     ( wxID_OK,         DialogNewROI::OnOK )
-EVT_TEXT_ENTER    ( XRCID( wxT( "ID_TEXT_NAME" ) ),  DialogNewROI::OnTextEnter )
+EVT_TEXT_ENTER ( XRCID( "ID_TEXT_NAME" ),  DialogNewROI::OnTextEnter )
 END_EVENT_TABLE()
 
 
@@ -49,7 +49,8 @@ DialogNewROI::DialogNewROI( wxWindow* parent, LayerCollection* col_mri )
   int nSel = 0;
   for ( size_t i = 0; i < layers.size(); i++ )
   {
-    m_choiceTemplate->Insert( layers[i]->GetName(), 0, (void*)layers[i] );
+    m_choiceTemplate->Insert( wxString::FromAscii(layers[i]->GetName()), 
+			      0, (void*)layers[i] );
     if ( layers[i] == col_mri->GetActiveLayer() )
       nSel = i;
   }
@@ -72,14 +73,18 @@ void DialogNewROI::SetROIName( const wxString& name )
 
 LayerMRI* DialogNewROI::GetTemplate()
 {
-  return ( LayerMRI* )( void* )m_choiceTemplate->GetClientData( m_choiceTemplate->GetSelection() );
+  return ( LayerMRI* )( void* )m_choiceTemplate->
+    GetClientData( m_choiceTemplate->GetSelection() );
 }
 
 void DialogNewROI::OnOK( wxCommandEvent& event )
 {
   if ( GetROIName().IsEmpty() )
   {
-    wxMessageDialog dlg( this, "ROI name can not be empty.", "Error", wxOK );
+    wxMessageDialog dlg( this, 
+			 _("ROI name cannot be empty."), 
+			 _("Error"), 
+			 wxOK );
     dlg.ShowModal();
     return;
   }
@@ -92,7 +97,9 @@ void DialogNewROI::OnTextEnter( wxCommandEvent& event )
 {
   if ( GetROIName().IsEmpty() )
   {
-    wxMessageDialog dlg( this, "ROI name can not be empty.", "Error", wxOK );
+    wxMessageDialog dlg( this, 
+			 _("ROI name cannot be empty."), 
+			 _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
