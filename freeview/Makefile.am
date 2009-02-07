@@ -145,6 +145,7 @@ freeview_SOURCES=\
 	ToolWindowEdit.h \
 	vtkDijkstraGraphGeodesicPath.cxx \
 	vtkDijkstraGraphGeodesicPath.h \
+	vtkDijkstraGraphInternals.h \
 	vtkDijkstraImageContourLineInterpolator.cxx \
 	vtkDijkstraImageContourLineInterpolator.h \
 	vtkDijkstraImageGeodesicPath.cxx \
