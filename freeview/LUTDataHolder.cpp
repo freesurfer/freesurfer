@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/02/07 21:21:18 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,21 +31,24 @@
 LUTDataHolder::LUTDataHolder()
 {
   ColorTableData ctd;
-  wxFileName fn = wxFileName::FileName( "$FREESURFER_HOME/FreeSurferColorLUT.txt" );
+  wxFileName fn = wxFileName::FileName
+    ( _("$FREESURFER_HOME/FreeSurferColorLUT.txt") );
   fn.Normalize();
   ctd.table = CTABreadASCII( fn.GetFullPath().char_str() );
   ctd.name = "FreeSurferColorLUT";
   if ( ctd.table )
     m_tables.push_back( ctd );
 
-  fn = wxFileName::FileName( "$FREESURFER_HOME/tkmeditParcColorsCMA" );
+  fn = wxFileName::FileName
+    ( _("$FREESURFER_HOME/tkmeditParcColorsCMA") );
   fn.Normalize();
   ctd.table = CTABreadASCII( fn.GetFullPath().char_str() );
   ctd.name = "tkmeditParcColorsCMA";
   if ( ctd.table )
     m_tables.push_back( ctd );
 
-  fn = wxFileName::FileName( "$FREESURFER_HOME/surface_labels.txt" );
+  fn = wxFileName::FileName
+    ( _("$FREESURFER_HOME/surface_labels.txt") );
   fn.Normalize();
   ctd.table = CTABreadASCII( fn.GetFullPath().char_str() );
   ctd.name = "surface_labels";
