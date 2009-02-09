@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/10 19:30:58 $
- *    $Revision: 1.122 $
+ *    $Date: 2009/02/09 23:33:32 $
+ *    $Revision: 1.123 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -4627,11 +4627,11 @@ MRI *DICOMRead2(char *dcmfile, int LoadVolume)
   }
   printf("Counting frames\n");
   nframes = DCMCountFrames(dcminfo, ndcmfiles);
-  printf("nframes = %d\n",nframes);
   nslices = ndcmfiles/nframes;
+  printf("nframes = %d\n",nframes);
   printf("nslices = %d\n",nslices);
-  if (nslices*nframes != ndcmfiles)
-  {
+  printf("ndcmfiles = %d\n",ndcmfiles);
+  if (nslices*nframes != ndcmfiles) {
     printf("ERROR: the number of frames * number of slices does\n"
            "not equal the number of dicom files.\n");
     return(NULL);
