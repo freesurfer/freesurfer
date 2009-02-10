@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/18 19:41:35 $
- *    $Revision: 1.86.2.7 $
+ *    $Date: 2009/02/10 23:21:21 $
+ *    $Revision: 1.86.2.8 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.86.2.7 2009/01/18 19:41:35 greve Exp $";
+"$Id: tkregister2.c,v 1.86.2.8 2009/02/10 23:21:21 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -435,6 +435,7 @@ char *ctabfile = NULL;
 int DoASeg=0, DoAParcASeg=0, DoWMParc=0;
 int ShowSeg=0;
 char *FREESURFER_HOME=NULL;
+char *tkregister_tcl = NULL;
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -1396,7 +1397,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       tkrtitle = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--gdiagno") ) {
+    } 
+    else if ( !strcmp(option, "--tcl") ) {
+      if(nargc < 1) argnerr(option,1);
+      tkregister_tcl = pargv[0];
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--gdiagno") ) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
@@ -4749,7 +4756,6 @@ int main(argc, argv)   /* new main */
   int argc;
   char **argv;
 {
-  char tkregister_tcl[NAME_LENGTH];
   /* char str[NAME_LENGTH]; */
   char *envptr;
   FILE *fp ;
@@ -4759,7 +4765,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.86.2.7 2009/01/18 19:41:35 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.86.2.8 2009/02/10 23:21:21 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4775,7 +4781,11 @@ int main(argc, argv)   /* new main */
     printf("    [dir containing mri distribution]\n");
     exit(1);
   }
-  sprintf(tkregister_tcl,"%s/lib/tcl/%s",envptr,"tkregister2.tcl");
+  if(tkregister_tcl == NULL){
+    sprintf(tmpstr,"%s/lib/tcl/%s",envptr,"tkregister2.tcl");
+    tkregister_tcl = strcpyalloc(tmpstr);
+  }
+  printf("tkregister_tcl %s\n",tkregister_tcl);
   if ((fp=fopen(tkregister_tcl,"r"))==NULL) {
     printf("tkregister2: startup script %s not found\n",tkregister_tcl);
     exit(1);
