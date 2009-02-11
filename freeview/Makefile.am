@@ -3,6 +3,7 @@ AM_CXXFLAGS=\
 	-Wno-deprecated \
 	-I$(top_srcdir)/include \
 	$(TCL_CFLAGS) \
+	$(GL_CFLAGS) \
 	$(VTK_CXXFLAGS) \
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
