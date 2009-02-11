@@ -2,7 +2,7 @@
  * @file  mri_segstats.c
  * @brief Computes statistics from a segmentation.
  *
- * This program will comute statistics on segmented volumes. In its
+ * This program will compute statistics on segmented volumes. In its
  * simplist invocation, it will report on the number of voxels and
  * volume in each segmentation. However, it can also compute statistics
  * on the segmentation based on the values from another volume. This
@@ -11,11 +11,11 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/21 18:04:48 $
- *    $Revision: 1.33.2.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/11 22:38:51 $
+ *    $Revision: 1.33.2.5 $
  *
- * Copyright (C) 2006-2007,
+ * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -419,7 +419,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.33.2.4 2008/12/21 18:04:48 greve Exp $";
+"$Id: mri_segstats.c,v 1.33.2.5 2009/02/11 22:38:51 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -468,6 +468,8 @@ int   nbrainmaskvoxels = 0;
 double brainmaskvolume = 0;
 int   BrainVolFromSeg = 0;
 int   DoETIV = 0;
+int   DoETIVonly = 0;
+int   DoOldETIVonly = 0;
 
 char *ctabfile = NULL;
 COLOR_TABLE *ctab = NULL;
@@ -538,15 +540,33 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (DoETIV) {
+  if (DoETIV || DoETIVonly || DoOldETIVonly) {
     // calc total intracranial volume estimation
+    // see this page:
+    // http://surfer.nmr.mgh.harvard.edu/fswiki/eTIV
+    // for info on determining the scaling factor.
+    // a factor of 1948 was found to be best when using talairach.xfm
+    // however when using talairach_with_skull.lta, 2150 was used
+    double etiv_scale_factor = 1948.106;
     sprintf
       (tmpstr,
-       "%s/%s/mri/transforms/talairach_with_skull.lta",
+       "%s/%s/mri/transforms/talairach.xfm",
        SUBJECTS_DIR,
        subject);
-    atlas_icv = MRIestimateTIV(tmpstr,NULL,NULL);
-    printf("atlas_icv = %g\n",atlas_icv);
+    if (DoOldETIVonly) {
+      // back-door way to get the old way of calculating etiv, for debug
+      sprintf
+        (tmpstr,
+         "%s/%s/mri/transforms/talairach_with_skull.lta",
+         SUBJECTS_DIR,
+         subject);
+      etiv_scale_factor = 2150;
+    }
+    double determinant = 0;
+    atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
+    printf("atlas_icv (eTIV) = %d mm^3    (det: %3f )\n",
+           (int)atlas_icv,determinant);
+    if (DoETIVonly || DoOldETIVonly) exit(0);
   }
 
   /* Make sure we can open the output summary table file*/
@@ -1344,6 +1364,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nonempty")) NonEmptyOnly = 1;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
+    else if ( !strcmp(option, "--etiv-only") ) DoETIVonly = 1;
+    else if ( !strcmp(option, "--old-etiv-only") ) DoOldETIVonly = 1;
     else if ( !strcmp(option, "--excl-ctxgmwm") ) DoExclCtxGMWM = 1;
     else if ( !strcmp(option, "--surf-ctx-vol") ) DoSurfCtxVol = 1;
     else if ( !strcmp(option, "--surf-wm-vol") )  DoSurfWMVol = 1;
@@ -1565,7 +1587,11 @@ static void print_usage(void) {
   printf("   --brainmask brainmask: "
          "compute volume from non-zero vox in brain mask\n");
   printf("   --etiv : compute intracranial volume "
-         "from subject/mri/transfomrs/talairach_with_skull.lta\n");
+         "from subject/mri/transforms/talairach.xfm\n");
+  printf("   --etiv-only : compute intracranial volume "
+         "from subject/mri/transforms/talairach.xfm and exit\n");
+  printf("   --old-etiv-only : compute intracranial volume "
+         "from subject/mri/transforms/talairach_with_skull.lta and exit\n");
   printf("\n");
   printf("Average waveform options\n");
   printf("   --avgwf textfile  : save into an ascii file\n");
@@ -1898,11 +1924,12 @@ static void argnerr(char *option, int n) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (SegVolFile == NULL && annot == NULL && LabelFile == NULL) {
+  if (SegVolFile == NULL && annot == NULL && LabelFile == NULL && 
+      DoETIVonly == 0 && DoOldETIVonly == 0) {
     printf("ERROR: must specify a segmentation volume\n");
     exit(1);
   }
-  if (StatTableFile == NULL) {
+  if (StatTableFile == NULL && DoETIVonly == 0 && DoOldETIVonly == 0) {
     printf("ERROR: must specify an output table file\n");
     exit(1);
   }

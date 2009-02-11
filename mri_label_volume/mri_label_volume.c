@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/06 18:36:57 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/11 22:38:51 $
+ *    $Revision: 1.26.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_label_volume.c,v 1.26 2007/01/06 18:36:57 fischl Exp $",
+     "$Id: mri_label_volume.c,v 1.26.2.1 2009/02/11 22:38:51 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -316,12 +316,12 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "atlas_icv") ||
              !stricmp(option, "eTIV") ||
              !stricmp(option, "eTIV_matdat")) {
-    double atlas_det, eTIV_scale_factor; // filled-in by MRIestimateTIV
-
-    atlas_icv = MRIestimateTIV(argv[2],&eTIV_scale_factor,&atlas_det);
+    double atlas_det; // filled-in by MRIestimateTIV
+    double eTIV_scale_factor = (double)atoi(argv[3]);
+    atlas_icv = MRIestimateTIV(argv[2],eTIV_scale_factor,&atlas_det);
     printf("using eTIV from atlas transform of %2.0f cm^3\n",
            atlas_icv/(10*10*10)) ;
-    nargs = 1 ;
+    nargs = 2 ;
 
     if (!stricmp(option, "eTIV_matdat")) {
       /* create matlab-readable data file (append to
@@ -335,10 +335,10 @@ get_option(int argc, char *argv[]) {
         fprintf(dat_fp,
                 "det_eTIV(length(det_eTIV)).eTIV = %f;\n", atlas_icv);
         fprintf(dat_fp,
-                "det_eTIV(length(det_eTIV)).id = '%s';\n\n\n", argv[3]);
+                "det_eTIV(length(det_eTIV)).id = '%s';\n\n\n", argv[4]);
         fclose(dat_fp);
       }
-      nargs = 2 ;
+      nargs = 3 ;
     }
   } else switch (toupper(*option)) {
   case 'C':
@@ -418,10 +418,11 @@ usage_exit(int code) {
          "<brain vol> and normalize by it\n") ;
   printf("  -p            - compute volume as a %% of all non-zero labels\n") ;
   printf("  -l <fname>    - log results to <fname>\n") ;
-  printf("  -atlas_icv <fname> - specify LTA atlas transform file to use "
-         "for ICV correction (c.f. Buckner et al. 2004)\n");
-  printf("  -eTIV <fname> - same as -atlas_icv\n");
-  printf("  -eTIV_matdat <fname> <subject> - same as -eTIV, and generate \n");
-  printf("                  matlab data appending <subject> to structure\n");
+  printf("  -atlas_icv <fname> <scalefactor> - specify LTA or XFM atlas "
+         "transform file\n  and scale factor to "
+         "use for ICV correction (c.f. Buckner et al. 2004)\n");
+  printf("  -eTIV <fname> <scalefactor> - same as -atlas_icv\n");
+  printf("  -eTIV_matdat <fname> <scalefactor> <subject> - same as -eTIV,\n"
+         "  and generate matlab data appending <subject> to structure\n");
   exit(code) ;
 }
