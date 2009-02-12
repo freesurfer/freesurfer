@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/07 17:03:34 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/02/12 14:54:55 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/08/07 17:03:34 $
-// Revision       : $Revision: 1.19 $
+// Revision Date  : $Date: 2009/02/12 14:54:55 $
+// Revision       : $Revision: 1.20 $
 //
 
 #include <stdio.h>
@@ -113,10 +113,10 @@ main(int argc, char *argv[]) {
   int    msec, nargs ;
   char cmdline[CMD_LINE_LEN], *output_file_name,*input_file_name, *edits_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.19 2008/08/07 17:03:34 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.20 2009/02/12 14:54:55 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.19 2008/08/07 17:03:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.20 2009/02/12 14:54:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
 
   TimerStart(&then) ;
@@ -141,6 +141,8 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read wm volume from %s",
               Progname, input_file_name) ;
 
+  if (mri_wm->type != MRI_UCHAR)
+    ErrorExit(ERROR_UNSUPPORTED, "%s: volume %s must be MRI_UCHAR", Progname, argv[1]) ;
 
   MRIaddCommandLine(mri_wm, cmdline) ;
   mri_T1 = MRIread(argv[2]) ;
@@ -148,6 +150,8 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read T1/brain volume from %s",
               Progname, argv[2]) ;
 
+  if (mri_T1->type != MRI_UCHAR)
+    ErrorExit(ERROR_UNSUPPORTED, "%s: volume %s must be MRI_UCHAR", Progname, argv[2]) ;
 
   mri_aseg = MRIread(argv[3]) ;
   if (!mri_aseg)
@@ -270,7 +274,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
       for (x = 1 ; x < width-1 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
 
         left = 0 ;
         switch (label) {
@@ -307,18 +311,28 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
           break ;
 
           /* fill these */
-        case Left_Lesion:
-        case Right_Lesion:
         case Left_choroid_plexus:
         case Right_choroid_plexus:
+          if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
+              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)) {
+            if (x == Gx && y == Gy && z == Gz)
+              DiagBreak2() ;
+            MRIvox(mri_wm, x, y, z) = AUTO_FILL ;
+            MRIvox(mri_filled, x, y, z) = AUTO_FILL ;
+            non++ ;
+          }
+          break ;
+        case Left_Lesion:
+        case Right_Lesion:
         case WM_hypointensities:
         case Left_WM_hypointensities:
         case Right_WM_hypointensities:
         case non_WM_hypointensities:
         case Left_non_WM_hypointensities:
         case Right_non_WM_hypointensities:
-          if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
-              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
+          if (((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) ||
+              (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0)) &&
               (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)) {
             if (x == Gx && y == Gy && z == Gz)
               DiagBreak2() ;
@@ -376,7 +390,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
         case Left_Cerebral_White_Matter:
         case Right_Cerebral_White_Matter:
           yi = mri_wm->yi[y-1] ;
-          slabel = MRIvox(mri_seg, x, yi, z) ;
+          slabel = MRIgetVoxVal(mri_seg, x, yi, z, 0) ;
           if (IS_INF_LAT_VENT(slabel) && MRIvox(mri_wm, x, y, z) < WM_MIN_VAL) {
             if (x == Gx && y == Gy && z == Gz)
               printf("changing voxel (%d, %d, %d) to WM, due to superior inf-lat-vent\n",
@@ -404,7 +418,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
       for (x = 0 ; x < width ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Unknown:
@@ -462,7 +476,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
       for (x = 1 ; x < width-1 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
 
         left = 0 ;
         switch (label) {
@@ -560,7 +574,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
         case Left_Inf_Lat_Vent:
         case Right_Inf_Lat_Vent:
           xi = (label ==  Left_Inf_Lat_Vent) ?  mri_wm->xi[x+1] :  mri_wm->xi[x-1] ; // lateral
-          olabel = MRIvox(mri_seg, xi, y, z) ;
+          olabel = MRIgetVoxVal(mri_seg, xi, y, z, 0) ;
 
           /* don't allow cortex to be directly lateral to inf-lat-vent - should be some wm there
           also don't allow it to be diagonally connected */
@@ -573,7 +587,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
           }
 
           yi = mri_wm->yi[y+1] ; // inferior
-          olabel = MRIvox(mri_seg, xi, yi, z) ;
+          olabel = MRIgetVoxVal(mri_seg, xi, yi, z, 0) ;
           if (IS_CORTEX(olabel) && (MRIvox(mri_wm, xi, yi, z) < WM_MIN_VAL)) {
             if (xi == Gx && yi == Gy && z == Gz)
               printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", xi, yi, z);
@@ -588,7 +602,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
 
           // check diagonally anterior/posterior and inferior
           zi = mri_wm->zi[z-1] ; // posterior
-          olabel = MRIvox(mri_seg, x, yi, zi) ;
+          olabel = MRIgetVoxVal(mri_seg , x, yi, zi, 0) ;
           if (IS_CORTEX(olabel) && (MRIvox(mri_wm, x, yi, zi) < WM_MIN_VAL)) {
             if (x == Gx && yi == Gy && zi == Gz)
               printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", x, yi, zi);
@@ -597,7 +611,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
             non++ ;
           }
           zi = mri_wm->zi[z+1] ; // anterior
-          olabel = MRIvox(mri_seg, x, yi, zi) ;
+          olabel = MRIgetVoxVal(mri_seg, x, yi, zi, 0) ;
           if (IS_CORTEX(olabel) && (MRIvox(mri_wm, x, yi, zi) < WM_MIN_VAL)) {
             if (x == Gx && yi == Gy && zi == Gz)
               printf("changing label (%d, %d, %d) to wm (gm lateral to inf-lat-vent)\n", x, yi, zi);
@@ -619,7 +633,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
             non++ ;
           }
           yi = mri_wm->yi[y+1] ;
-          label = MRIvox(mri_seg, x,yi, z) ;
+          label = MRIgetVoxVal(mri_seg, x,yi, z, 0) ;
           if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
                (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter) ||
                (label == Unknown))
@@ -635,7 +649,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
             int xi ;
 
             xi = label ==  Left_Inf_Lat_Vent ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
-            olabel = MRIvox(mri_seg, xi, y, z) ;
+            olabel = MRIgetVoxVal(mri_seg, xi, y, z, 0) ;
 #if 0  // no longer needed with path stuff
             /* voxel lateral to this one is not hippocampus   */
             if ((olabel != label) && (MRIvox(mri_wm, xi, y, z) < WM_MIN_VAL) && !IS_AMYGDALA(olabel) &&
@@ -652,7 +666,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg) {
             }
 #endif
             yi = mri_wm->yi[y+1] ;
-            label = MRIvox(mri_seg, x,yi, z) ;
+            label = MRIgetVoxVal(mri_seg, x,yi, z, 0) ;
             if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
                  (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
                 && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)) {
@@ -706,7 +720,7 @@ continue ;
 
           xi = label == Right_Hippocampus ?  mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
           yi = mri_wm->yi[y+1] ;
-          olabel = MRIvox(mri_seg, xi, y, z) ;
+          olabel = MRIgetVoxVal(mri_seg, xi, y, z, 0) ;
           /* voxel lateral to this one is not hippocampus, and not
           superior to hippocampus, and not far from wm or gm */
 #if 0  // not needed anymore with path stuff in place
@@ -724,7 +738,7 @@ continue ;
 #endif
 
           yi = mri_wm->yi[y+1] ;
-          olabel = MRIvox(mri_seg, xi, yi, z) ;  // diagonally lateral and inferior
+          olabel = MRIgetVoxVal(mri_seg, xi, yi, z, 0) ;  // diagonally lateral and inferior
           if (IS_CORTEX(olabel) && (MRIvox(mri_wm, xi, yi, z) < WM_MIN_VAL)) {
             if (xi == Gx && yi == Gy && z == Gz)
               DiagBreak2() ;
@@ -734,7 +748,7 @@ continue ;
           }
 
 
-          label = MRIvox(mri_seg, x,yi, z) ;
+          label = MRIgetVoxVal(mri_seg, x,yi, z, 0) ;
 
           if (((label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex) ||
                (label == Left_Cerebral_White_Matter || label == Right_Cerebral_White_Matter))
@@ -783,7 +797,7 @@ continue ;
         case Left_Cerebral_White_Matter:
         case Right_Cerebral_White_Matter:
           yi = mri_wm->yi[y-1] ;
-          slabel = MRIvox(mri_seg, x, yi, z) ;
+          slabel = MRIgetVoxVal(mri_seg, x, yi, z, 0) ;
           if (IS_INF_LAT_VENT(slabel) && MRIvox(mri_wm, x, y, z) < WM_MIN_VAL) {
             if (x == Gx && y == Gy && z == Gz) {
               DiagBreak2() ;
@@ -811,7 +825,7 @@ continue ;
       for (x = 0 ; x < width ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Unknown:
@@ -865,7 +879,7 @@ continue ;
               yi = mri_filled->yi[y+yk] ;
               for (zk = -1 ; zk <= 1 ; zk++) {
                 zi = mri_filled->zi[z+zk] ;
-                label = MRIvox(mri_seg, xi, yi, zi) ;
+                label = MRIgetVoxVal(mri_seg, xi, yi, zi, 0) ;
                 if (IS_WM(label) &&  (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL)) {
                   if (xi == Gx && yi == Gy && zi == Gz)
                     DiagBreak2() ;
@@ -894,7 +908,7 @@ continue ;
           DiagBreak() ;
         if (MRIvox(mri_wm, x, y, z) >= MIN_WM_VAL)
           continue ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Left_Cerebral_Cortex:
@@ -906,7 +920,7 @@ continue ;
             continue ;
           xi = left ? x-1 : x+1 ;  // lateral
           olabel = left ? Left_Amygdala : Right_Amygdala ;
-          if (MRIvox(mri_seg, xi, y, z) != olabel)
+          if (MRIgetVoxVal(mri_seg, xi, y, z, 0) != olabel)
             continue ;
           if (distance_to_label(mri_seg, olabel, x, y, z, 0, 1, 0, 8) < 8)
             continue ;
@@ -924,17 +938,17 @@ continue ;
         case Right_Inf_Lat_Vent:
         case Right_Hippocampus:
 #if 0  // no longer needed with path stuff
-          if (MRIvox(mri_seg, x, y+1, z) == label)  // not at inferior border
+          if (MRIgetVoxVal(mri_seg, x, y+1, z, 0) == label)  // not at inferior border
             continue ;
           if (IS_INF_LAT_VENT(label))  // check to make sure it's not all hippo inferior
           {
-            olabel = MRIvox(mri_seg, x, y+1, z) ;
+            olabel = MRIgetVoxVal(mri_seg, x, y+1, z, 0) ;
             if (IS_HIPPO(olabel) || IS_AMYGDALA(olabel))
               continue ;
           }
           if (IS_HIPPO(label))  // check to make sure it's not all hippo inferior
           {
-            olabel = MRIvox(mri_seg, x, y+1, z) ;
+            olabel = MRIgetVoxVal(mri_seg, x, y+1, z, 0) ;
             if (IS_INF_LAT_VENT(olabel))
               continue ;
             if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
@@ -943,7 +957,7 @@ continue ;
           }
           if (IS_AMYGDALA(label))  // check to make sure it's not all hippo inferior
           {
-            olabel = MRIvox(mri_seg, x, y+1, z) ;
+            olabel = MRIgetVoxVal(mri_seg, x, y+1, z, 0) ;
             if (IS_INF_LAT_VENT(olabel) || IS_HIPPO(olabel))
               continue ;
           }
@@ -996,7 +1010,7 @@ continue ;
             DiagBreak() ;
           if (MRIvox(mri_wm, x, y, z) >= MIN_WM_VAL)
             continue ;
-          label = MRIvox(mri_seg, x, y, z) ;
+          label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
           left = 0 ;
           switch (label) {
           case Left_Inf_Lat_Vent:
@@ -1007,7 +1021,7 @@ continue ;
           case Right_Hippocampus:
           case Right_Amygdala:
 #if 0  // don't need because of next line
-            if (MRIvox(mri_seg, x, y+1, z) == label)  // not at inferior border
+            if (MRIgetVoxVal(mri_seg, x, y+1, z, 0) == label)  // not at inferior border
               continue ;
 #endif
             if (MRIvox(mri_wm, x, y+1, z) < MIN_WM_VAL)
@@ -1039,19 +1053,19 @@ continue ;
 #if 0  // don't need to do this check, because wm is inferior
             if (IS_INF_LAT_VENT(label))  // check to make sure it's not all hippo inferior
             {
-              olabel = MRIvox(mri_seg, x, y+1, z) ;
+              olabel = MRIgetVoxVal(mri_seg, x, y+1, z, 0) ;
               if (IS_HIPPO(olabel) || IS_AMYGDALA(olabel))
                 continue ;
             }
             if (IS_HIPPO(label))  // check to make sure it's not all ventricle inferior
             {
-              olabel = MRIvox(mri_seg, x, y+1, z) ;
+              olabel = MRIgetVoxVal(mri_seg, x, y+1, z, 0) ;
               if (IS_INF_LAT_VENT(olabel))
                 continue ;
             }
             if (IS_AMYGDALA(label))  // check to make sure it's not all hippo inferior
             {
-              olabel = MRIvox(mri_seg, x, y+1, z) ;
+              olabel = MRIgetVoxVal(mri_seg, x, y+1, z, 0) ;
               if (IS_INF_LAT_VENT(olabel) || IS_HIPPO(olabel))
                 continue ;
             }
@@ -1148,7 +1162,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
       for (x = 2 ; x < width-2 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Left_Cerebral_Cortex:
@@ -1174,7 +1188,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
             continue ;
           xi = left ? x-1 : x+1 ;  // lateral
           olabel = left ? Left_Amygdala : Right_Amygdala ;
-          if (MRIvox(mri_seg, xi, y, z) != olabel)
+          if (MRIgetVoxVal(mri_seg, xi, y, z, 0) != olabel)
             continue ;
           if (distance_to_label(mri_seg, olabel, x, y, z, 0, 1, 0, 8) < 8)
             continue ;
@@ -1196,7 +1210,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
       for (x = 2 ; x < width-2 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Unknown:
@@ -1206,10 +1220,10 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
             continue ;
           if ((MRIvox(mri_wm, x, y-1, z-1) >= MIN_WM_VAL) && (MRIvox(mri_wm, x, y-1, z+1) >= MIN_WM_VAL))
             continue ;
-          if (!IS_HIPPO(MRIvox(mri_seg, x, y-1, z-1)) && !IS_AMYGDALA(MRIvox(mri_seg, x, y-1, z-1)) &&
-              !IS_INF_LAT_VENT(MRIvox(mri_seg, x, y-1, z-1)) &&
-              !IS_HIPPO(MRIvox(mri_seg, x, y-1, z+1)) && !IS_AMYGDALA(MRIvox(mri_seg, x, y-1, z+1)) &&
-              !IS_INF_LAT_VENT(MRIvox(mri_seg, x, y-1, z+1)))
+          if (!IS_HIPPO(MRIgetVoxVal(mri_seg, x, y-1, z-1, 0)) && !IS_AMYGDALA(MRIgetVoxVal(mri_seg, x, y-1, z-1, 0)) &&
+              !IS_INF_LAT_VENT(MRIgetVoxVal(mri_seg, x, y-1, z-1, 0)) &&
+              !IS_HIPPO(MRIgetVoxVal(mri_seg, x, y-1, z+1, 0)) && !IS_AMYGDALA(MRIgetVoxVal(mri_seg, x, y-1, z+1, 0)) &&
+              !IS_INF_LAT_VENT(MRIgetVoxVal(mri_seg, x, y-1, z+1, 0)))
             continue ;
 
           if (distance_to_label(mri_seg, Left_Inf_Lat_Vent, x, y, z, 0, 1, 0, 6) < 5)
@@ -1267,7 +1281,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
             continue ;   // only if diagonal voxel isn't on
           alabel = left ? Left_Amygdala : Right_Amygdala ;
           hlabel = left ? Left_Hippocampus : Right_Hippocampus ;
-          if ((MRIvox(mri_seg, xi, y-1, z) != alabel) && (MRIvox(mri_seg, xi, y-1, z) != hlabel))
+          if ((MRIgetVoxVal(mri_seg, xi, y-1, z, 0) != alabel) && (MRIgetVoxVal(mri_seg, xi, y-1, z, 0) != hlabel))
             continue ;
           // check to make sure we are at inferior border of hippo or amygdala
           if ((distance_to_label(mri_seg, alabel, x, y, z, 0, 1, 0, 8) < 8) ||
@@ -1291,7 +1305,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
       for (x = 2 ; x < width-2 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Left_Cerebral_Cortex:
@@ -1320,7 +1334,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
             continue ;   // only if diagonal voxel isn't on
           alabel = left ? Left_Amygdala : Right_Amygdala ;
           hlabel = left ? Left_Hippocampus : Right_Hippocampus ;
-          if ((MRIvox(mri_seg, x, y-1, z+1) != alabel) && (MRIvox(mri_seg, x, y-1, z+1) != hlabel))
+          if ((MRIgetVoxVal(mri_seg, x, y-1, z+1, 0) != alabel) && (MRIgetVoxVal(mri_seg, x, y-1, z+1, 0) != hlabel))
             continue ;
           // check to make sure we are at inferior border of hippo or amygdala
           if ((distance_to_label(mri_seg, alabel, x, y, z, 0, 1, 0, 8) < 8) ||
@@ -1343,7 +1357,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
       for (x = 2 ; x < width-2 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Left_Cerebral_Cortex:
@@ -1371,9 +1385,9 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
             continue ;   // only if diagonal voxel isn't on
           alabel = left ? Left_Amygdala : Right_Amygdala ;
           hlabel = left ? Left_Hippocampus : Right_Hippocampus ;
-          if ((MRIvox(mri_seg, x, y-1, z-1) != alabel) && (MRIvox(mri_seg, x, y-1, z-1) != hlabel))
+          if ((MRIgetVoxVal(mri_seg, x, y-1, z-1, 0) != alabel) && (MRIgetVoxVal(mri_seg, x, y-1, z-1, 0) != hlabel))
             continue ;
-          if ((MRIvox(mri_seg, x, y-1, z-1) == alabel) &&
+          if ((MRIgetVoxVal(mri_seg, x, y-1, z-1, 0) == alabel) &&
               (anterior_edge_of_amygdala(mri_seg, x, y-1, z-1)))
             continue ;
           // check to make sure we are at inferior border of hippo or amygdala
@@ -1400,15 +1414,15 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
       for (x = 2 ; x < width-2 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Unknown:
-          if (MRIvox(mri_seg, x-1, y-1, z) == Left_Hippocampus) {
+          if (MRIgetVoxVal(mri_seg, x-1, y-1, z, 0) == Left_Hippocampus) {
             xi = x-1 ;
             left = 1 ;
             hlabel = Left_Hippocampus ;
-          } else if (MRIvox(mri_seg, x+1, y-1, z) != Right_Hippocampus)
+          } else if (MRIgetVoxVal(mri_seg, x+1, y-1, z, 0) != Right_Hippocampus)
             continue ;
           else {
             xi = x+1 ;
@@ -1458,9 +1472,9 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
             continue ;   // only if diagonal voxel isn't on
           alabel = left ? Left_Amygdala : Right_Amygdala ;
           hlabel = left ? Left_Hippocampus : Right_Hippocampus ;
-          if ((MRIvox(mri_seg, x, y-1, z+1) != alabel) && (MRIvox(mri_seg, x, y-1, z+1) != hlabel))
+          if ((MRIgetVoxVal(mri_seg, x, y-1, z+1, 0) != alabel) && (MRIgetVoxVal(mri_seg, x, y-1, z+1, 0) != hlabel))
             continue ;
-          if ((MRIvox(mri_seg, x, y-1, z+1) == alabel) &&
+          if ((MRIgetVoxVal(mri_seg, x, y-1, z+1, 0) == alabel) &&
               (anterior_edge_of_amygdala(mri_seg, x, y-1, z+1)))
             continue ;
           // check to make sure we are at inferior border of hippo or amygdala
@@ -1489,7 +1503,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
           DiagBreak() ;
         if (MRIvox(mri_wm, x, y, z) != AUTO_FILL)
           continue ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Left_Amygdala:
@@ -1538,9 +1552,9 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         if ((MRIvox(mri_wm, x, y, z) >= MIN_WM_VAL) ||
-            (!IS_WHITE_CLASS(MRIvox(mri_seg, x, y, z))))
+            (!IS_WHITE_CLASS(MRIgetVoxVal(mri_seg, x, y, z, 0))))
           continue ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Left_Cerebral_White_Matter:
@@ -1553,7 +1567,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
           done = 0 ;
           for (xi = x-1 ; !done && xi <= x+1 ; xi++) {
             for (zi = z-1 ; !done && zi <= z+1 ; zi++) {
-              if (MRIvox(mri_seg, xi, yi, zi) == hlabel) {
+              if (MRIgetVoxVal(mri_seg, xi, yi, zi, 0) == hlabel) {
                 done = 1 ;
                 if (x == Gx && y == Gy && z == Gz)
                   DiagBreak2() ;
@@ -1575,7 +1589,7 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
       for (x = 2 ; x < width-2 ; x++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_seg, x, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         left = 0 ;
         switch (label) {
         case Left_Inf_Lat_Vent:
@@ -1599,9 +1613,9 @@ if (medial_edge_of_hippocampus(mri_seg, x, y, z, left ? -1 : 1))
             xi = x-1 ;
           if (MRIvox(mri_wm, xi, y, z) >= WM_MIN_VAL)
             continue ;   // lateral voxel already on
-          if ((IS_CORTEX(MRIvox(mri_seg, xi, y, z)) == 0) &&
-              (IS_UNKNOWN(MRIvox(mri_seg, xi, y, z)) == 0) &&
-              (IS_WHITE_CLASS(MRIvox(mri_seg, xi, y, z)) == 0))
+          if ((IS_CORTEX(MRIgetVoxVal(mri_seg, xi, y, z, 0)) == 0) &&
+              (IS_UNKNOWN(MRIgetVoxVal(mri_seg, xi, y, z, 0)) == 0) &&
+              (IS_WHITE_CLASS(MRIgetVoxVal(mri_seg, xi, y, z, 0)) == 0))
             continue ;
 
 #if 0  // no longer needed with path stuff
@@ -1799,7 +1813,7 @@ medial_edge_of_hippocampus(MRI *mri_seg, int x, int y, int z, int dx) {
       (distance_to_label(mri_seg, vdc, x, y, z, dx, 0, 0, 10) < 10)) {
     for (xk = 5 ; xk <= 10 ; xk++) {
       xi = mri_seg->xi[x+xk*dx] ;
-      label = MRIvox(mri_seg, xi, y, z) ;
+      label = MRIgetVoxVal(mri_seg, xi, y, z, 0) ;
       if (IS_HIPPO(label) || IS_AMYGDALA(label))
         return(0) ;
     }
@@ -1856,7 +1870,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) {
             DiagBreak() ;
           if (MRIvox(mri_wm, x, y, z) > WM_MIN_VAL)  // on in wm
             continue ;
-          label = MRIvox(mri_aseg, x, y, z) ;
+          label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
           switch (label) {
           default:
             break ;
@@ -1911,7 +1925,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) {
                     continue ;
                   if (MRIvox(mri_wm, xi, yi, zi) > WM_MIN_VAL)  // wm barrier there
                     continue ;
-                  if (IS_CORTEX(MRIvox(mri_aseg, xi, yi, zi))) // found a path to cortex
+                  if (IS_CORTEX(MRIgetVoxVal(mri_aseg, xi, yi, zi, 0))) // found a path to cortex
                   {
                     path_to_cortex = 1 ;
                     xgm = xi ;
@@ -1919,7 +1933,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) {
                     zgm = zi ;
                   } else if (xi > xmedial+10)  // don't fill medially to avoid going "around bend"
                   {
-                    label = MRIvox(mri_aseg, xi, yi, zi) ;
+                    label = MRIgetVoxVal(mri_aseg, xi, yi, zi, 0) ;
                     switch (label) {
                     default:
                       break ;
@@ -2029,7 +2043,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) {
             DiagBreak() ;
           if (MRIvox(mri_wm, x, y, z) > WM_MIN_VAL)  // on in wm
             continue ;
-          label = MRIvox(mri_aseg, x, y, z) ;
+          label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
           switch (label) {
           default:
             break ;
@@ -2080,7 +2094,7 @@ remove_paths_to_cortex(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) {
                     continue ;
                   if (MRIvox(mri_wm, xi, yi, zi) > WM_MIN_VAL)  // wm barrier there
                     continue ;
-                  if (IS_CORTEX(MRIvox(mri_aseg, xi, yi, zi))) // found a path to cortex
+                  if (IS_CORTEX(MRIgetVoxVal(mri_aseg, xi, yi, zi, 0))) // found a path to cortex
                   {
                     path_to_cortex = 1 ;
                     xgm = xi ;
@@ -2159,7 +2173,7 @@ remove_anterior_and_superior_amygdala(MRI *mri_roi, MRI *mri_aseg) {
       for (z = 0 ; z < mri_roi->depth-1 ; z++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if (!IS_AMYGDALA(label))
           continue ;
         left = (label == Left_Amygdala) ;
@@ -2194,7 +2208,7 @@ remove_lateral_and_anterior_hippocampus(MRI *mri_roi, MRI *mri_aseg, int left) {
       xl = 0 ;
       for (y = 1 ; y < mri_roi->height ; y++) {
         for (z = 0 ; z < mri_roi->depth-1 ; z++) {
-          label = MRIvox(mri_aseg, x, y, z) ;
+          label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
           if ((label == Left_Hippocampus) && (x > xl))
             xl = x ;
 
@@ -2204,7 +2218,7 @@ remove_lateral_and_anterior_hippocampus(MRI *mri_roi, MRI *mri_aseg, int left) {
       xl =  mri_roi->width-1 ;
       for (y = 1 ; y < mri_roi->height ; y++) {
         for (z = 0 ; z < mri_roi->depth-1 ; z++) {
-          label = MRIvox(mri_aseg, x, y, z) ;
+          label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
           if ((label == Right_Hippocampus) && (x < xl))
             xl = x ;
 
@@ -2213,7 +2227,7 @@ remove_lateral_and_anterior_hippocampus(MRI *mri_roi, MRI *mri_aseg, int left) {
     }
     for (y = 1 ; y < mri_roi->height ; y++) {
       for (z = 0 ; z < mri_roi->depth-1 ; z++) {
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if (!IS_HIPPO(label))
           continue ;
         if (left && x > xl-5)
@@ -2234,7 +2248,7 @@ remove_lateral_and_anterior_hippocampus(MRI *mri_roi, MRI *mri_aseg, int left) {
 static int
 anterior_edge_of_amygdala(MRI *mri_aseg, int x, int y, int z) {
   int label ;
-  label = MRIvox(mri_aseg,x,y,z) ;
+  label = MRIgetVoxVal(mri_aseg,x,y,z, 0) ;
   if (IS_AMYGDALA(label) == 0)
     return(0) ;
   if (distance_to_label(mri_aseg, label, x, y, z, 0, 0, 1, 10) < 10)
@@ -2304,7 +2318,7 @@ remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left) {
     xmax = 0 ;
     for (x = 0 ; x < mri_roi->width ; x++) {
       for (y = 0 ; y < mri_roi->height ; y++) {
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if ((left && (label == Left_Hippocampus ||
                       label == Left_Amygdala)) ||
             ((left == 0) &&
@@ -2325,7 +2339,7 @@ remove_medial_voxels(MRI *mri_roi, MRI *mri_aseg, int left) {
       for (y = 0 ; y < mri_roi->height ; y++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if (left) {
           if (((label == Left_Amygdala) ||
                (label == Left_Hippocampus) ||
@@ -2359,7 +2373,7 @@ remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg, int left) {
     xmax = 0 ;
     for (x = 0 ; x < mri_roi->width ; x++) {
       for (y = 0 ; y < mri_roi->height ; y++) {
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if ((label == (left ? Left_Hippocampus : Right_Hippocampus)) ||
             (label == (left ? Left_Amygdala : Right_Amygdala))) {
           if (x < xmin)
@@ -2381,7 +2395,7 @@ remove_unknown_voxels(MRI *mri_roi, MRI *mri_aseg, int left) {
           DiagBreak() ;
         if (MRIvox(mri_roi, x, y, z) == 0)
           continue ;
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if (label != Unknown)
           continue ;
         if (distance_to_nonzero(mri_aseg, x, y, z, 0, 1, 0, 6) >= 6) {
@@ -2405,7 +2419,7 @@ remove_gray_matter_voxels(MRI *mri_roi, MRI *mri_aseg) {
           DiagBreak() ;
         if (MRIvox(mri_roi, x, y, z) == 0)
           continue ;
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if (IS_CORTEX(label) == 0)
           continue ;
         alabel = (label == Left_Cerebral_Cortex ? Left_Amygdala : Right_Amygdala) ;
@@ -2430,7 +2444,7 @@ spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) {
       for (z = 0 ; z < mri_wm->depth ; z++) {
         if (x == Gx && y  == Gy && z == Gz)
           DiagBreak() ;
-        label = MRIvox(mri_aseg, x, y, z) ;
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
         if (!IS_HIPPO(label) && !IS_AMYGDALA(label))
           continue ;
         left = (label == Left_Amygdala || label == Left_Hippocampus) ;
@@ -2440,21 +2454,21 @@ spackle_wm_superior_to_mtl(MRI *mri_wm, MRI *mri_T1, MRI *mri_aseg) {
             (distance_to_anterior_edge(mri_aseg, label, x, y+1, z) < 2))
           continue ;
         yi = mri_aseg->yi[y-1] ;
-        slabel = MRIvox(mri_aseg, x, yi, z) ;
+        slabel = MRIgetVoxVal(mri_aseg, x, yi, z, 0) ;
         if (IS_CORTEX(slabel) && (MRIvox(mri_wm, x, yi, z) < MIN_WM_VAL)) {
           if (x == Gx && yi == Gy && z == Gz)
             DiagBreak2() ;
           MRIvox(mri_wm, x, yi, z) = AUTO_FILL ;
         }
         xi = left ? x+1 : x-1 ;
-        if (IS_AMYGDALA(label) && IS_CORTEX(MRIvox(mri_aseg, xi, y, z)) &&
+        if (IS_AMYGDALA(label) && IS_CORTEX(MRIgetVoxVal(mri_aseg, xi, y, z, 0)) &&
             (MRIvox(mri_wm, xi, y, z) < MIN_WM_VAL)) {
           if (xi == Gx && y == Gy && z == Gz)
             DiagBreak2() ;
           MRIvox(mri_wm, xi, y, z) = AUTO_FILL ;
         }
 
-        if (IS_AMYGDALA(label) && IS_CORTEX(MRIvox(mri_aseg, xi, yi, z)) &&
+        if (IS_AMYGDALA(label) && IS_CORTEX(MRIgetVoxVal(mri_aseg, xi, yi, z, 0)) &&
             (MRIvox(mri_wm, xi, yi, z) < MIN_WM_VAL)) {
           if (xi == Gx && yi == Gy && z == Gz)
             DiagBreak2() ;
