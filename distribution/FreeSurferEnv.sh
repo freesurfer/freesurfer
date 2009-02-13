@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.44 2008/03/21 21:00:38 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.45 2009/02/13 22:17:35 krish Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.44 2008/03/21 21:00:38 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.45 2009/02/13 22:17:35 krish Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -368,6 +368,10 @@ if [[ $output == 1 && -n "$MISC_LIB" ]]; then
     echo "MISC_LIB        $MISC_LIB"
 fi
 
+### - Freeview directory should be in the path - MacOS only - ### 
+if [ -d $FREESURFER_HOME/bin/freeview.app ]; then
+    PATH=$FREESURFER_HOME/bin/freeview.app/Contents/MacOS/:$PATH
+fi
 
 ### ----------- VXL (shared lib support) ------------ ####
 if [ -n "$VXL_LIB" ]; then

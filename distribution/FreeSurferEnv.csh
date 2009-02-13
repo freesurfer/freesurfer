@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.75 2008/01/14 21:55:17 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.76 2009/02/13 22:17:35 krish Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.75 2008/01/14 21:55:17 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.76 2009/02/13 22:17:35 krish Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -361,6 +361,12 @@ if( $output && $?MISC_LIB ) then
     echo "MISC_LIB        $MISC_LIB"
 endif
 
+### - freeview binary should be in the path - Mac OS only - ### 
+if ( -e $FREESURFER_HOME/bin/freeview.app ) then
+    set path = ( $FREESURFER_HOME/bin/freeview.app/Contents/MacOS/ \
+                 $path \
+                )
+endif
 
 ### ----------- VXL (shared lib support)  ------------ ####
 if ( $?VXL_LIB ) then
