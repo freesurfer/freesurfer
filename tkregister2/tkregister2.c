@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/02/10 23:20:50 $
- *    $Revision: 1.103 $
+ *    $Date: 2009/02/13 21:36:16 $
+ *    $Revision: 1.104 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.103 2009/02/10 23:20:50 greve Exp $";
+"$Id: tkregister2.c,v 1.104 2009/02/13 21:36:16 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -436,6 +436,8 @@ int DoASeg=0, DoAParcASeg=0, DoWMParc=0;
 int ShowSeg=0;
 char *FREESURFER_HOME=NULL;
 char *tkregister_tcl = NULL;
+char *fstaltarg = "mni305.cor.mgz";
+int SurfRGB[3] = {0,255,0};
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -539,7 +541,7 @@ int Register(ClientData clientData,
       }
     }
     mov_vol_id = (char *) calloc(sizeof(char),2000);
-    sprintf(mov_vol_id,"%s/average/mni305.cor.mgz",freesurferhome);
+    sprintf(mov_vol_id,"%s/average/%s",freesurferhome,fstaltarg);
 
     ps_2 = 1.0;
     st_2 = 1.0;
@@ -1072,7 +1074,26 @@ static int parse_commandline(int argc, char **argv) {
       UseSurf = 0;
       fscale_2 = 1;
       ZeroCRAS = 1;
-    } else if (!strcasecmp(option, "--fixxfm"))    fixxfm = 1;
+    } 
+    else if (!strcasecmp(option, "--fstal-targ")) {
+      if (nargc < 1) argnerr(option,1);
+      fstaltarg = pargv[0];
+      nargsused = 1;
+      fstal = 1;
+      LoadSurf = 0;
+      UseSurf = 0;
+      fscale_2 = 1;
+      ZeroCRAS = 1;
+    } 
+    else if (!strcasecmp(option, "--fstal-avi")) {
+      fstaltarg = "711-2C_as_mni_average_305.4dfp.img";
+      fstal = 1;
+      LoadSurf = 0;
+      UseSurf = 0;
+      fscale_2 = 1;
+      ZeroCRAS = 1;
+    } 
+    else if (!strcasecmp(option, "--fixxfm"))    fixxfm = 1;
     else if (!strcasecmp(option, "--nofixxfm"))  fixxfm = 0;
     else if (!strcasecmp(option, "--tag"))    tagmov = 1;
     else if (!strcasecmp(option, "--notag"))  tagmov = 0;
@@ -1209,7 +1230,8 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--surf")) {
+    } 
+    else if (!strcmp(option, "--surf") || !strcmp(option, "--surfs")) {
       LoadSurf = 1;
       UseSurf  = 1;
       nargsused = 0;
@@ -1218,7 +1240,15 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         printf("surfname set to %s\n",surfname);
       }
-    } else if (!strcmp(option, "--talxfmname")) {
+    } 
+    else if (!strcmp(option, "--surf-rgb")) {
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%d",&SurfRGB[0]);
+      sscanf(pargv[1],"%d",&SurfRGB[1]);
+      sscanf(pargv[2],"%d",&SurfRGB[2]);
+      nargsused = 3;
+    }
+    else if (!strcmp(option, "--talxfmname")) {
       if (nargc < 1) argnerr(option,1);
       talxfmname = pargv[0];
       fstal = 1;
@@ -1468,6 +1498,7 @@ static void print_usage(void) {
   printf("   --fov FOV  : window FOV in mm (default is 256)\n");
   printf("   --movscale scale : scale size of mov by scale\n");
   printf("   --surf surfname : display surface as an overlay \n");
+  printf("   --surf-rgb R G B : set surface color (0-255) \n");
   printf("   --lh-only : only load/display left hemi \n");
   printf("   --rh-only : only load/display right hemi \n");
   printf("   --xfm file : MNI-style registration input matrix\n");
@@ -2401,9 +2432,9 @@ void draw_image2(int imc,int ic,int jc) {
   for (r = 0; r < ydim; r++) {
     for (c = 0; c < xdim; c++) {
       if (UseSurf && surfimg[r][c]) {
-        lvidbuf[3*k]   = 0;
-        lvidbuf[3*k+1] = 255;
-        lvidbuf[3*k+2] = 0;
+        lvidbuf[3*k]   = SurfRGB[0];
+        lvidbuf[3*k+1] = SurfRGB[1];
+        lvidbuf[3*k+2] = SurfRGB[2];
       } else {
         switch (overlay_mode) {
         case TARGET:
@@ -4765,7 +4796,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.103 2009/02/10 23:20:50 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.104 2009/02/13 21:36:16 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4896,6 +4927,7 @@ int main(argc, argv)   /* new main */
               TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinkdelay",(char *)&blinkdelay, TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinktime",(char *)&blinktime, TCL_LINK_INT);
+  Tcl_LinkVar(interp,"mov_frame",(char *)&mov_frame, TCL_LINK_INT);
   /*=======================================================================*/
   /***** link global DOUBLE variables to tcl equivalents (were float) */
   Tcl_LinkVar(interp,"fsquash",(char *)&fsquash, TCL_LINK_DOUBLE);
