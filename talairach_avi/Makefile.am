@@ -24,6 +24,7 @@ foo_DATA= \
 	711-2C_as_mni_average_305.4dfp.hdr \
 	711-2B_as_mni_average_305_mask.4dfp.hdr \
 	711-2C_as_mni_average_305.4dfp.ifh \
+	711-2C_as_mni_average_305.4dfp.mat \
 	mni_average_305.4dfp.hdr \
 	mni_average_305.4dfp.ifh \
 	mni_average_305.4dfp.img \
