@@ -195,36 +195,6 @@ freeview_LDADD=\
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(WXWIDGETS_LIBS)
 
-if HAVE_MAC_OSX
-# MacOSX freeview is different because we need to install a bundle ( an application 
-# directory ) as opposed to just a binary. So we take care of a few things
-
-# put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
-install-exec-hook:freeview
-	mkdir -p $(DESTDIR)$(bindir)/freeview.app
-	mkdir -p $(DESTDIR)$(bindir)/freeview.app/Contents
-	mkdir -p $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS
-	mkdir -p $(DESTDIR)$(bindir)/freeview.app/Contents/Resources
-	mkdir -p $(DESTDIR)$(bindir)/freeview.app/Contents/Resources/English.lproj
-	cp $(top_builddir)/freeview/res/Info.plist $(DESTDIR)$(bindir)/freeview.app/Contents
-	echo -n 'APPL????' > $(DESTDIR)$(bindir)/freeview.app/Contents/PkgInfo
-	
-	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS/freeview.bin
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS/freeview
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS/freeview
-	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
-		>> $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS/freeview
-	echo "\$$FREESURFER_HOME/bin/freeview.app/Contents/MacOS/freeview.bin \$$argv" >> $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS/freeview
-	chmod a+x $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS/freeview
-	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/freeview.app/Contents/MacOS/freeview.bin; fi
-
-uninstall-hook:
-	rm -rf $(DESTDIR)$(bindir)/freeview.app
-
-
-else
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 install-exec-hook:freeview
 	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/freeview.bin
@@ -240,8 +210,6 @@ install-exec-hook:freeview
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview.bin
-
-endif
 
 else
 bin_PROGRAMS =
