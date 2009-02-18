@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/09 18:33:43 $
- *    $Revision: 1.29 $
+ *    $Author: greve $
+ *    $Date: 2009/02/18 23:23:37 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -972,7 +972,46 @@ int CTABcopyName(COLOR_TABLE *ct, int index, char *name, size_t name_len)
   return(NO_ERROR);
 }
 
+/*-------------------------------------------------------------------
+  CTABrgb2Annotation(int r, int g, int b) 
+  Converts an rgb triplet into an annotation value.
+  ----------------------------------------------------------------*/
+int CTABrgb2Annotation(int r, int g, int b)
+{
+  int annotation;
+  annotation = (b << 16) + (g << 8) + r;
+  return(annotation);
+}
 
+/*-------------------------------------------------------------------
+  CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct)
+  Return the color table index given the name of the entry.
+  ----------------------------------------------------------------*/
+int CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct)
+{
+  CTE *cte;
+  int i;
+
+  for(i = 0; i < ct->nentries; i++){
+    cte = ct->entries[i];
+    if(!strcmp(cte->name,EntryName)) return(i);
+  }
+  return(-1); // error
+}
+/*-------------------------------------------------------------------
+  CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct)
+  Return the color table annotation given the name of the entry.
+  ----------------------------------------------------------------*/
+int CTABentryNameToAnnotation(char *EntryName, COLOR_TABLE *ct)
+{
+  CTE *cte;
+  int index, annotation;
+  index = CTABentryNameToIndex(EntryName, ct);
+  if(index == -1) return(-1); // error
+  cte = ct->entries[index];
+  annotation = CTABrgb2Annotation(cte->ri, cte->gi, cte->bi);
+  return(annotation);
+}
 /*-------------------------------------------------------------------
   CTABannotationAtIndex() - given the index into the ctab, compute
   the annotation from the rgb values.
@@ -1000,6 +1039,8 @@ int CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot)
   if (NULL == ct->entries[index])
     return (ERROR_BADPARM);
 
+  // This should give the same, but have not tested it
+  //annotation = CTABrgb2Annotation(e->ri, e->gi, e->bi);
   annotation = (e->bi << 16) + (e->gi << 8) + e->ri;
   *annot = annotation;
 

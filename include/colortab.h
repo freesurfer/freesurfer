@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/09 18:33:42 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2009/02/18 23:23:37 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,6 +86,15 @@ int         CTABfree(COLOR_TABLE **pct) ;
 
 /* Returns a deep copy of the table. */
 COLOR_TABLE *CTABdeepCopy(COLOR_TABLE *ct);
+
+/* Converts an RGB triplet into an annotaion value */
+int CTABrgb2Annotation(int r, int g, int b);
+
+/* Return the color table index given the name of the entry*/
+int CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct);
+
+/* Return the color table annotation given the name of the entry.*/
+int CTABentryNameToAnnotation(char *EntryName, COLOR_TABLE *ct);
 
 /* Copy the file name. */
 int CTABcopyFileName(COLOR_TABLE *ct, char *name, size_t name_len);
