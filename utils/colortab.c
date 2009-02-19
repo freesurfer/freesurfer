@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:43 $
- *    $Revision: 1.26.2.1 $
+ *    $Author: greve $
+ *    $Date: 2009/02/19 19:57:55 $
+ *    $Revision: 1.26.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,7 @@ static int         CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp);
 static COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries);
 static COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp);
 
+int ctabDuplicates;
 
 /*-------------------------------------------------------------------
   ----------------------------------------------------------------*/
@@ -120,6 +121,7 @@ COLOR_TABLE *CTABreadASCII(char *fname)
      allocate a CTE. This will leave the items in the array for which
      we don't have entries NULL. */
   line_num = 1;
+  ctabDuplicates = 0;
   rewind(fp);
   while ((cp = fgets(line, STRLEN, fp)) != NULL)
   {
@@ -139,6 +141,7 @@ COLOR_TABLE *CTABreadASCII(char *fname)
                 ct->entries[structure]->gi,
                 ct->entries[structure]->bi,
                 ct->entries[structure]->ai);
+        ctabDuplicates++;
       }
       else
       {
@@ -426,6 +429,7 @@ COLOR_TABLE *CTABalloc(int nentries)
     /* Make a fake name. */
     sprintf (ct->entries[structure]->name, "cluster%d", structure);
   }
+  ct->idbase = 0;
 
   return(ct);
 }
@@ -968,7 +972,46 @@ int CTABcopyName(COLOR_TABLE *ct, int index, char *name, size_t name_len)
   return(NO_ERROR);
 }
 
+/*-------------------------------------------------------------------
+  CTABrgb2Annotation(int r, int g, int b) 
+  Converts an rgb triplet into an annotation value.
+  ----------------------------------------------------------------*/
+int CTABrgb2Annotation(int r, int g, int b)
+{
+  int annotation;
+  annotation = (b << 16) + (g << 8) + r;
+  return(annotation);
+}
 
+/*-------------------------------------------------------------------
+  CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct)
+  Return the color table index given the name of the entry.
+  ----------------------------------------------------------------*/
+int CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct)
+{
+  CTE *cte;
+  int i;
+
+  for(i = 0; i < ct->nentries; i++){
+    cte = ct->entries[i];
+    if(!strcmp(cte->name,EntryName)) return(i);
+  }
+  return(-1); // error
+}
+/*-------------------------------------------------------------------
+  CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct)
+  Return the color table annotation given the name of the entry.
+  ----------------------------------------------------------------*/
+int CTABentryNameToAnnotation(char *EntryName, COLOR_TABLE *ct)
+{
+  CTE *cte;
+  int index, annotation;
+  index = CTABentryNameToIndex(EntryName, ct);
+  if(index == -1) return(-1); // error
+  cte = ct->entries[index];
+  annotation = CTABrgb2Annotation(cte->ri, cte->gi, cte->bi);
+  return(annotation);
+}
 /*-------------------------------------------------------------------
   CTABannotationAtIndex() - given the index into the ctab, compute
   the annotation from the rgb values.
@@ -996,6 +1039,8 @@ int CTABannotationAtIndex(COLOR_TABLE *ct, int index, int *annot)
   if (NULL == ct->entries[index])
     return (ERROR_BADPARM);
 
+  // This should give the same, but have not tested it
+  //annotation = CTABrgb2Annotation(e->ri, e->gi, e->bi);
   annotation = (e->bi << 16) + (e->gi << 8) + e->ri;
   *annot = annotation;
 
@@ -1208,12 +1253,10 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
                 (ERROR_BADPARM, 
                  "CTABprintASCII: fp was NULL"));
 
-  for (structure = 0; structure < ct->nentries; structure++)
-  {
-    if (NULL != ct->entries[structure])
-    {
+  for (structure = 0; structure < ct->nentries; structure++)  {
+    if (NULL != ct->entries[structure])    {
       fprintf (fp, "%3d  %-30s  %3d %3d %3d  %3d\n",
-               structure, ct->entries[structure]->name,
+               structure + ct->idbase, ct->entries[structure]->name,
                ct->entries[structure]->ri,
                ct->entries[structure]->gi,
                ct->entries[structure]->bi,

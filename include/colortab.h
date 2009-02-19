@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:52 $
- *    $Revision: 1.18.2.1 $
+ *    $Author: greve $
+ *    $Date: 2009/02/19 19:57:54 $
+ *    $Revision: 1.18.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,8 +64,12 @@ COLOR_TABLE, CT ;
 /* Reads a color table from an ASCII file. In this format, each line
    contains a structure index, an rgb triple in 0-255 format, and then
    a transparency integer, which is 255-alpha. Allocates the entire
-   table. */
+   table. 
+   Upon exit, ctabDuplicates contains a count of the number duplicate 
+   structures found in fname (duplicates are skipped with a warning).
+*/
 COLOR_TABLE *CTABreadASCII(char *fname);
+extern int ctabDuplicates;
 
 /* Reads and writes a table to and from a binary stream. In this
    format, a negative version number is written (see special case in
@@ -82,6 +86,15 @@ int         CTABfree(COLOR_TABLE **pct) ;
 
 /* Returns a deep copy of the table. */
 COLOR_TABLE *CTABdeepCopy(COLOR_TABLE *ct);
+
+/* Converts an RGB triplet into an annotaion value */
+int CTABrgb2Annotation(int r, int g, int b);
+
+/* Return the color table index given the name of the entry*/
+int CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct);
+
+/* Return the color table annotation given the name of the entry.*/
+int CTABentryNameToAnnotation(char *EntryName, COLOR_TABLE *ct);
 
 /* Copy the file name. */
 int CTABcopyFileName(COLOR_TABLE *ct, char *name, size_t name_len);
