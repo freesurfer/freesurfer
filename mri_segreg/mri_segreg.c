@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/31 17:02:59 $
- *    $Revision: 1.70.2.2 $
+ *    $Date: 2009/02/19 19:58:09 $
+ *    $Revision: 1.70.2.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,7 @@
   --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter
   --cf cfile  : save cost function values (pct,cost)
 
-  --mask : mask out regions edge and B0 regions
+  --mask : mask out expected B0 regions
   --no-mask : do not mask out (default)
 
   --lh-only : only use left hemisphere
@@ -171,6 +171,7 @@
 #include "timer.h"
 #include "fmriutils.h"
 #include "numerics.h"
+#include "annotation.h"
 
 #ifdef X
 #undef X
@@ -216,7 +217,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.70.2.2 2008/12/31 17:02:59 greve Exp $";
+"$Id: mri_segreg.c,v 1.70.2.3 2009/02/19 19:58:09 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -360,13 +361,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.70.2.2 2008/12/31 17:02:59 greve Exp $",
+     "$Id: mri_segreg.c,v 1.70.2.3 2009/02/19 19:58:09 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.70.2.2 2008/12/31 17:02:59 greve Exp $",
+     "$Id: mri_segreg.c,v 1.70.2.3 2009/02/19 19:58:09 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -492,34 +493,35 @@ int main(int argc, char **argv) {
       }
     }
 
-  } else {
-  if(!UseASeg){
-    if(!MkSegReg){
-      printf("Loading segreg\n");
-      sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
-      if(!fio_FileExistsReadable(tmpstr)){
-	printf("\n");
-	printf("WARNING: cannot find %s\n",tmpstr);
-	printf("So, I'm going to create it on-the-fly.\n");
-	MkSegReg = 1;
+  } 
+  else {
+    if(!UseASeg){
+      if(!MkSegReg){
+	printf("Loading segreg\n");
+	sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
+	if(!fio_FileExistsReadable(tmpstr)){
+	  printf("\n");
+	  printf("WARNING: cannot find %s\n",tmpstr);
+	  printf("So, I'm going to create it on-the-fly.\n");
+	  MkSegReg = 1;
+	}
       }
-    }
-    if(MkSegReg){
-      printf("Creating segreg\n");
-      err = MRIsegReg(subject);
+      if(MkSegReg){
+	printf("Creating segreg\n");
+	err = MRIsegReg(subject);
       if(err) exit(err);
+      }
+      segreg = MRIread(tmpstr);
+      if(segreg == NULL) exit(1);
+      free(fspec);
+    } else {
+      printf("Loading aseg\n");
+      sprintf(tmpstr,"%s/%s/mri/aseg",SUBJECTS_DIR,subject);
+      fspec = IDnameFromStem(tmpstr);
+      segreg = MRIread(fspec);
+      if(segreg == NULL) exit(1);
+      free(fspec);
     }
-    segreg = MRIread(tmpstr);
-    if(segreg == NULL) exit(1);
-    free(fspec);
-  } else {
-    printf("Loading aseg\n");
-    sprintf(tmpstr,"%s/%s/mri/aseg",SUBJECTS_DIR,subject);
-    fspec = IDnameFromStem(tmpstr);
-    segreg = MRIread(fspec);
-    if(segreg == NULL) exit(1);
-    free(fspec);
-  }
   }
   segreg0 = segreg;
 
@@ -1490,7 +1492,7 @@ printf("  --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter\n
 printf("  --c0 offset : cost offset (pct)\n");
 printf("  --cf cfile  : save cost function values (pct,cost)\n");
 printf("\n");
-printf("  --mask : mask out regions edge and B0 regions\n");
+printf("  --mask : mask out expected B0 regions\n");
 printf("  --no-mask : do not mask out (default)\n");
 printf("\n");
 printf("  --lh-only : only use left hemisphere\n");
@@ -2126,6 +2128,7 @@ int MRISsegReg(char *subject, int ForceReRun)
   MRI *lhwmmask, *rhwmmask, *lhctxmask, *rhctxmask;
   float  fx, fy, fz;
   int ReRun=0;
+  int annot,B0Annots[10], nB0Annots=10;
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
@@ -2158,6 +2161,35 @@ int MRISsegReg(char *subject, int ForceReRun)
       lhctx->vertices[n].y = fy;
       lhctx->vertices[n].z = fz;
     }
+    if(UseMask){
+      sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
+      printf("Reading %s\n",tmpstr);
+      err = MRISreadAnnotation(lhwm, tmpstr);
+      if(err) exit(1);
+      B0Annots[0] = CTABentryNameToAnnotation("middletemporal",lhwm->ct);
+      B0Annots[1] = CTABentryNameToAnnotation("inferiortemporal",lhwm->ct);
+      B0Annots[2] = CTABentryNameToAnnotation("temporalpole",lhwm->ct);
+      B0Annots[3] = CTABentryNameToAnnotation("fusiform",lhwm->ct);
+      B0Annots[4] = CTABentryNameToAnnotation("entorhinal",lhwm->ct);
+      B0Annots[5] = CTABentryNameToAnnotation("medialorbitofrontal",lhwm->ct);
+      B0Annots[6] = CTABentryNameToAnnotation("caudalanteriorcingulate",lhwm->ct);
+      B0Annots[7] = CTABentryNameToAnnotation("rostralanteriorcingulate",lhwm->ct);
+      B0Annots[8] = CTABentryNameToAnnotation("unknown",lhwm->ct);
+      B0Annots[9] = CTABentryNameToAnnotation("corpuscallosum",lhwm->ct);
+      lhsegmask = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
+      for(n = 0; n < lhwm->nvertices; n++){
+	annot = lhwm->vertices[n].annotation;
+	v = 1;
+	for(c=0; c < nB0Annots; c++){
+	  if(annot == B0Annots[c]){
+	    v = 0; 
+	    break;
+	  }
+	}
+	MRIsetVoxVal(lhsegmask,n,0,0,0, v);
+      }
+      //MRIwrite(lhsegmask,"lh.segmask.mgh");
+    }
   }
 
   printf("Projecting RH Surfs\n");
@@ -2188,7 +2220,39 @@ int MRISsegReg(char *subject, int ForceReRun)
       rhctx->vertices[n].y = fy;
       rhctx->vertices[n].z = fz;
     }
+    if(UseMask){
+      sprintf(tmpstr,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
+      printf("Reading %s\n",tmpstr);
+      err = MRISreadAnnotation(rhwm, tmpstr);
+      if(err) exit(1);
+      B0Annots[0] = CTABentryNameToAnnotation("middletemporal",lhwm->ct);
+      B0Annots[1] = CTABentryNameToAnnotation("inferiortemporal",lhwm->ct);
+      B0Annots[2] = CTABentryNameToAnnotation("temporalpole",lhwm->ct);
+      B0Annots[3] = CTABentryNameToAnnotation("fusiform",lhwm->ct);
+      B0Annots[4] = CTABentryNameToAnnotation("entorhinal",lhwm->ct);
+      B0Annots[5] = CTABentryNameToAnnotation("medialorbitofrontal",lhwm->ct);
+      B0Annots[6] = CTABentryNameToAnnotation("caudalanteriorcingulate",lhwm->ct);
+      B0Annots[7] = CTABentryNameToAnnotation("rostralanteriorcingulate",lhwm->ct);
+      B0Annots[8] = CTABentryNameToAnnotation("unknown",lhwm->ct);
+      B0Annots[9] = CTABentryNameToAnnotation("corpuscallosum",lhwm->ct);
+      rhsegmask = MRIalloc(rhwm->nvertices,1,1,MRI_INT);
+      for(n = 0; n < rhwm->nvertices; n++){
+	annot = rhwm->vertices[n].annotation;
+	v = 1;
+	for(c=0; c < nB0Annots; c++){
+	  if(annot == B0Annots[c]){
+	    v = 0; 
+	    break;
+	  }
+	}
+	MRIsetVoxVal(rhsegmask,n,0,0,0, v);
+      }
+      //MRIwrite(rhsegmask,"rh.segmask.mgh");
+    }
   }
+
+  return(0);
+  // Now using a different mask algorithm, ignore below
 
   if(!UseMask) return(0);
 
