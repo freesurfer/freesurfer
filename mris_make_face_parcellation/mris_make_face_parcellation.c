@@ -1,18 +1,19 @@
 /**
  * @file  mris_make_face_parcellation.c
- * @brief make a parcellation where each unit is assigned based on the face it maps to in a specified spherical surface
- *        (usually an icosahedral one)
+ * @brief create a parcellation of equal areas
  *
+ * make a parcellation where each unit is assigned based on the face 
+ * it maps to in a specified spherical surface (usually an icosahedral one)
  * 
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/01/22 14:01:39 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/20 23:17:28 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -46,7 +47,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.2 2009/01/22 14:01:39 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.3 2009/02/20 23:17:28 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,14 +74,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.2 2009/01/22 14:01:39 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.3 2009/02/20 23:17:28 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mris_make_face_parcellation.c,v 1.2 2009/01/22 14:01:39 fischl Exp $",
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mris_make_face_parcellation.c,v 1.3 2009/02/20 23:17:28 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -112,7 +113,7 @@ main(int argc, char *argv[]) {
               Progname, in_fname) ;
   mris_ico = MRISread(ico_fname) ;
   if (!mris_ico)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+    ErrorExit(ERROR_NOFILE, "%s: could not read ico file %s",
               Progname, ico_fname) ;
   if (mris_ico->nfaces < 256)
     scale = 256 / mris_ico->nfaces ;
@@ -188,8 +189,11 @@ main(int argc, char *argv[]) {
     if (((vno % (mris->nvertices/10))) == 0)
       printf("%2.1f%% done\n", 100.0*(float)vno / mris->nvertices) ;
     v = &mris->vertices[vno] ;
-    MHTfindClosestFaceGeneric(mht, mris, v->x, v->y, v->z, mris_ico->avg_vertex_dist/10, 
-                              mris_ico->avg_vertex_dist/10, &face, &fno, &fdist) ;
+    MHTfindClosestFaceGeneric(mht, mris, 
+                              v->x, v->y, v->z, 
+                              mris_ico->avg_vertex_dist/10, 
+                              mris_ico->avg_vertex_dist/10, 
+                              &face, &fno, &fdist) ;
     if (fno < 0)
     {
       fno = mhtBruteForceClosestFace(mris_ico, v->x, v->y, v->z, 
@@ -253,15 +257,17 @@ get_option(int argc, char *argv[]) {
 static void
 print_usage(void) {
   fprintf(stderr,
-          "usage: %s [options] <input surface> <output surface>\n",
-          Progname) ;
+          "usage: %s [options] <input surface> <ico file> <output annot>\n"
+          "example: %s lh.inflated $FREESURFER_HOME/lib/bem/ic3.tri "
+          "./lh.ic3.annot",
+          Progname, Progname) ;
 }
 
 static void
 print_help(void) {
   print_usage() ;
   fprintf(stderr,
-    "\nThis generates a parcellation based on which icosahedral face each vertex maps to\n");
+    "\nThis generates a parcellation based on which icosahedral face each vertex maps to.\n");
   exit(1) ;
 }
 
