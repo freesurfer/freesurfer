@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/03/13 18:41:48 $
- *    $Revision: 1.8.2.1 $
+ *    $Date: 2009/02/20 16:37:50 $
+ *    $Revision: 1.8.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.8.2.1 2008/03/13 18:41:48 greve Exp $
+  $Id: mri_cor2label.c,v 1.8.2.2 2009/02/20 16:37:50 greve Exp $
   Author: Douglas Greve
   Purpose: Converts values in any volume file (not just cor) 
   to a label.
@@ -112,7 +112,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.8.2.1 2008/03/13 18:41:48 greve Exp $";
+static char vcid[] = "$Id: mri_cor2label.c,v 1.8.2.2 2009/02/20 16:37:50 greve Exp $";
 char *Progname ;
 int main(int argc, char *argv[]) ;
 
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
   MATRIX *vox2rastkr=NULL, *crs=NULL, *xyz=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.8.2.1 2008/03/13 18:41:48 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.8.2.2 2009/02/20 16:37:50 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
 	  x = xyz->rptr[1][1];
 	  y = xyz->rptr[2][1];
 	  z = xyz->rptr[3][1];
-	  lb->lv[nlabel].vno = 0;
+	  lb->lv[nlabel].vno = -1;
 	}
 	else {
 	  x = surf->vertices[nth].x;
@@ -326,6 +326,13 @@ static int parse_commandline(int argc, char **argv) {
       }
     }
 
+    /* ---- label id ---------- */
+    else if (!strcmp(option, "--sd")) {
+      if(nargc < 2) argnerr(option,1);
+      setenv("SUBJECTS_DIR",pargv[1],1);
+      nargs = 2;
+    }
+
     /* ---- synthesize the label ---------- */
     else if (!strcmp(option, "--synthlabel")) {
       synthlabel = 1;
@@ -359,6 +366,7 @@ printf("   --id labelid   : value to match in the input\n");
 printf("   --l  labelfile : name of output file\n");
 printf("   --v  volfile   : write label volume in file\n");
 printf("   --surf subject hemi <surf> : interpret input as surface overlay\n");
+printf("   --sd subjectsdir : override $SUBJECTS_DIR\n");
 printf("   --help         :print out help information\n");
 printf("\n");
 }
