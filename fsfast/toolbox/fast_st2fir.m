@@ -21,7 +21,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
 %     but it is a good idea.
 %  6. If two stimuli fall within the sam TR bin, the Xfir
 %     matrix will have a 2 instead of a 1.
-% $Id: fast_st2fir.m,v 1.16 2008/07/10 21:00:09 greve Exp $
+% $Id: fast_st2fir.m,v 1.17 2009/02/21 21:12:25 greve Exp $
 
 
 %
@@ -30,8 +30,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/07/10 21:00:09 $
-%    $Revision: 1.16 $
+%    $Date: 2009/02/21 21:12:25 $
+%    $Revision: 1.17 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -72,14 +72,7 @@ if(isempty(st))
   return;
 end
 
-nstim      = size(st,1);
-
-% SubSampling
-ssr = round(TR/dpsd); % Rate
-nrows = ntp*ssr; % Number of rows after subsampling
-
-% Presentation onset times
-stimonset  = st(:,1); 
+nstim = size(st,1);
 
 % Presentation duration - use dpsd if not specified
 if(size(st,2) < 2)
@@ -107,14 +100,34 @@ if(~isempty(ind))
   return;
 end
 
+% Presentation onset times
+stimonset = st(:,1); 
+
+% SubSampling
+ssr = round(TR/dpsd); % Rate
+
+% Handle case where stimuli come before acquisition starts
+if(stimonset(1) < 0)
+  npre = round((-stimonset(1)+psdmin)/dpsd);
+  stimonset = stimonset-stimonset(1);
+else
+  npre = 0;
+end
+
+% Total Number of rows, including subsampling
+nrows = ntp*ssr + npre;
+
 % Build the first teoplitz vector
 a = zeros(nrows,1);
 for nthstim = 1:nstim
   ionset = round((stimonset(nthstim)+psdmin)/dpsd) + 1; % start row
-  if(ionset <= 0) continue; end
-  if(ionset > nrows) continue; end
   ndur = round(stimdur(nthstim)/dpsd);
   ioffset = ionset+ndur-1; % end row
+  % If ionset:ioffset are both out of range
+  if(ioffset <= 0 | ionset > nrows ) continue; end
+  % If window onset is before start of acq
+  if(ionset <= 0) ionset = 1; end
+  % If window offset is after end of acq
   if(ioffset > nrows) ioffset = nrows; end
   a(ionset:ioffset) = stimweight(nthstim);
 end
@@ -125,6 +138,9 @@ b(1) = a(1);
 
 % Construct the matrix
 Xfirss = toeplitz(a,b);
+if(npre>0) 
+  Xfirss = Xfirss(npre+1:end,:); 
+end
 
 % Subsample 
 %Xfir = Xfirss(1:ssr:end,:);
