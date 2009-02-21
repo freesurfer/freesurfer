@@ -1,5 +1,5 @@
-function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
-% Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>)
+function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
+% Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_v3>)
 %
 % Computes the FIR design matrix for the given schedule of one
 % event type.
@@ -9,6 +9,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % TR = time between time points
 % psdwin = [psdmin psdmax dpsd];
 % usew:  0, [], not spec = dont use weight, 1 = use weight
+% use_v3 - make (more) consistent with version 3
 %
 % Notes:
 %  1. Number of rows in st is the number of presentations.
@@ -20,7 +21,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %     but it is a good idea.
 %  6. If two stimuli fall within the sam TR bin, the Xfir
 %     matrix will have a 2 instead of a 1.
-% $Id: fast_st2fir.m,v 1.15 2007/07/08 20:58:28 greve Exp $
+% $Id: fast_st2fir.m,v 1.15.2.1 2009/02/21 21:13:34 greve Exp $
 
 
 %
@@ -29,8 +30,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/07/08 20:58:28 $
-%    $Revision: 1.15 $
+%    $Date: 2009/02/21 21:13:34 $
+%    $Revision: 1.15.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -49,12 +50,14 @@ Xfir = [];
 a = [];
 Xfirss = [];
 
-if(nargin < 4 | nargin > 5)
-  fprintf('Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>)\n');
+if(nargin < 4 | nargin > 6)
+  fprintf('Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_v3>)\n');
   return;
 end
 if(~exist('usew','var')) usew = []; end
 if(isempty(usew)) usew = 0; end
+if(~exist('use_v3','var')) use_v3 = []; end
+if(isempty(use_v3)) use_v3 = 0; end
 
 psdmin  = psdwin(1);  % start of PSD window
 psdmax  = psdwin(2);  % end of PSD window
@@ -69,14 +72,7 @@ if(isempty(st))
   return;
 end
 
-nstim      = size(st,1);
-
-% SubSampling
-ssr = round(TR/dpsd); % Rate
-nrows = ntp*ssr; % Number of rows after subsampling
-
-% Presentation onset times
-stimonset  = st(:,1); 
+nstim = size(st,1);
 
 % Presentation duration - use dpsd if not specified
 if(size(st,2) < 2)
@@ -104,14 +100,34 @@ if(~isempty(ind))
   return;
 end
 
+% Presentation onset times
+stimonset = st(:,1); 
+
+% SubSampling
+ssr = round(TR/dpsd); % Rate
+
+% Handle case where stimuli come before acquisition starts
+if(stimonset(1) < 0)
+  npre = round((-stimonset(1)+psdmin)/dpsd);
+  stimonset = stimonset-stimonset(1);
+else
+  npre = 0;
+end
+
+% Total Number of rows, including subsampling
+nrows = ntp*ssr + npre;
+
 % Build the first teoplitz vector
 a = zeros(nrows,1);
 for nthstim = 1:nstim
   ionset = round((stimonset(nthstim)+psdmin)/dpsd) + 1; % start row
-  if(ionset <= 0) continue; end
-  if(ionset > nrows) continue; end
   ndur = round(stimdur(nthstim)/dpsd);
   ioffset = ionset+ndur-1; % end row
+  % If ionset:ioffset are both out of range
+  if(ioffset <= 0 | ionset > nrows ) continue; end
+  % If window onset is before start of acq
+  if(ionset <= 0) ionset = 1; end
+  % If window offset is after end of acq
   if(ioffset > nrows) ioffset = nrows; end
   a(ionset:ioffset) = stimweight(nthstim);
 end
@@ -122,15 +138,21 @@ b(1) = a(1);
 
 % Construct the matrix
 Xfirss = toeplitz(a,b);
+if(npre>0) 
+  Xfirss = Xfirss(npre+1:end,:); 
+end
 
 % Subsample 
 %Xfir = Xfirss(1:ssr:end,:);
 if(ssr > 1)
-  tmp = reshape(Xfirss,[ssr ntp npsdwin]);
-  Xfir = squeeze(sum(tmp));
+  if(use_v3)
+    Xfir = Xfirss(1:ssr:end,:);
+  else
+    tmp = reshape(Xfirss,[ssr ntp npsdwin]);
+    Xfir = squeeze(sum(tmp));
+  end
 else
   Xfir = Xfirss;
 end
-
 
 return;
