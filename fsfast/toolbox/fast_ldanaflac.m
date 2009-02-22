@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/11/13 17:08:52 $
-%    $Revision: 1.32 $
+%    $Date: 2009/02/22 21:41:42 $
+%    $Revision: 1.33 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -158,6 +158,8 @@ while(1)
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
    case '-fix-acf',    flac.fixacf = 1;
    case '-no-fix-acf', flac.fixacf = 0;
+   case '-fsv3-st2fir',    flac.fsv3_st2fir = 1;
+   case '-no-fsv3-st2fir', flac.fsv3_st2fir = 0;
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
