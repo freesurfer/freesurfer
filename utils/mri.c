@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/05 13:45:02 $
- *    $Revision: 1.425 $
+ *    $Author: greve $
+ *    $Date: 2009/02/23 21:53:20 $
+ *    $Revision: 1.426 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.425 $";
+const char *MRI_C_VERSION = "$Revision: 1.426 $";
 
 
 /*-----------------------------------------------------
@@ -14761,6 +14761,31 @@ MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst)
   MatrixFree(&m_vox2ras_src) ;
   MatrixFree(&m_ras2vox_dst) ;
   return(m_vox2vox) ;
+}
+
+/*--------------------------------------------------------------
+  MRIvoxToVoxTkRXform(MRI *mov, MRI *targ, MATRIX *tkR)
+  xform to convert a target CRS voxel to a mov CRS voxel thru
+  a tkregister R matrix. NOT-CORTECHS.
+  THIS HAS NOT BEEN TESTED YET! THUS THE return(NULL)
+  -------------------------------------------------------------*/
+MATRIX *MRIvoxToVoxTkRXform(MRI *mov, MRI *targ, MATRIX *tkR)
+{
+  MATRIX *ras2vox_mov, *vox2ras_mov, *vox2ras_targ, *vox2vox ;
+  return(NULL); // this function has not been tested yet.
+  vox2ras_mov  = MRIxfmCRS2XYZtkreg(mov);
+  ras2vox_mov  = MatrixInverse(ras2vox_mov,NULL);
+  vox2ras_targ = MRIxfmCRS2XYZtkreg(targ);
+  if(tkR){
+    vox2vox = MatrixMultiply(ras2vox_mov, tkR, NULL) ;
+    MatrixMultiply(vox2vox,vox2ras_targ,vox2vox);
+  }
+  else 
+    vox2vox = MatrixMultiply(ras2vox_mov, vox2ras_targ, NULL) ;
+  MatrixFree(&vox2ras_mov);
+  MatrixFree(&ras2vox_mov);
+  MatrixFree(&vox2ras_targ);
+  return(vox2vox) ;
 }
 
 /*--------------------------------------------------------------

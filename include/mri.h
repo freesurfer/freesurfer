@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/05 13:44:38 $
- *    $Revision: 1.377 $
+ *    $Author: greve $
+ *    $Date: 2009/02/23 21:53:20 $
+ *    $Revision: 1.378 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1132,6 +1132,7 @@ MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias,
                                         MRI *mri_out, float target_val) ;
 MATRIX *MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst) ;
+MATRIX *MRIvoxToVoxTkRXform(MRI *mov, MRI *targ, MATRIX *tkR);
 
 /* extract the RASToVoxeMatrix from an MRI */
 MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
