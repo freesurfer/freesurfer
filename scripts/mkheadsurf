@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/02/12 17:50:43 $
-#    $Revision: 1.2.2.1 $
+#    $Date: 2009/02/23 18:20:39 $
+#    $Revision: 1.2.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 
 # mkheadsurf
 
-set VERSION = '$Id: mkheadsurf,v 1.2.2.1 2009/02/12 17:50:43 greve Exp $';
+set VERSION = '$Id: mkheadsurf,v 1.2.2.2 2009/02/23 18:20:39 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -126,7 +126,7 @@ if($status) then
 endif
 
 #----- Smooth the tessellation ---------#
-set cmd = (mris_smooth $subjdir/surf/$hemi.$headsurf \
+set cmd = (mris_smooth -nw $subjdir/surf/$hemi.$headsurf \
    $subjdir/surf/$hemi.$headsurf)
 echo "--------------------------------" |& tee -a $LF
 date |& tee -a $LF
