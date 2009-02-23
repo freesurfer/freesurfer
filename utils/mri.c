@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/02/23 21:53:20 $
- *    $Revision: 1.426 $
+ *    $Date: 2009/02/23 22:27:30 $
+ *    $Revision: 1.427 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.426 $";
+const char *MRI_C_VERSION = "$Revision: 1.427 $";
 
 
 /*-----------------------------------------------------
@@ -421,7 +421,7 @@ MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
   vox2vox matrix. It is assumed that vox2vox maps the indices from the
   ref/target volume to that of the mov volume. If vox2vox is NULL, it
   is assumed to be the identity (which will return the same thing as
-  MRItkRegMtx()). 
+  MRItkRegMtx()). See also MRIvoxToVoxFromTkRegMtx().
 */
 MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox)
 {
@@ -446,6 +446,35 @@ MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox)
 
   return(R);
 }
+/*!
+  \fn MATRIX *MRIvoxToVoxFromTkRegMtx(MRI *mov, MRI *targ, MATRIX *tkR)
+  \brief Creates a vox2vox from a tkregsiter-compatible ras2ras matrix
+  The vox2vox maps the indices from the target volume to that of the
+  mov volume. If tkR is NULL, it is assumed to be the identity.
+  See also MRItkRegMtxFromVox2Vox().
+*/
+MATRIX *MRIvoxToVoxFromTkRegMtx(MRI *mov, MRI *targ, MATRIX *tkR)
+{
+  MATRIX *ras2vox_mov, *vox2ras_mov, *vox2ras_targ, *vox2vox ;
+  vox2ras_mov  = MRIxfmCRS2XYZtkreg(mov);
+  MatrixPrint(stdout,vox2ras_mov);
+  ras2vox_mov  = MatrixInverse(vox2ras_mov,NULL);
+  MatrixPrint(stdout,ras2vox_mov);
+  vox2ras_targ = MRIxfmCRS2XYZtkreg(targ);
+  MatrixPrint(stdout,vox2ras_targ);
+  if(tkR){
+    vox2vox = MatrixMultiply(ras2vox_mov, tkR, NULL) ;
+    MatrixMultiply(vox2vox,vox2ras_targ,vox2vox);
+  }
+  else 
+    vox2vox = MatrixMultiply(ras2vox_mov, vox2ras_targ, NULL) ;
+  MatrixPrint(stdout,vox2vox);
+  MatrixFree(&vox2ras_mov);
+  MatrixFree(&ras2vox_mov);
+  MatrixFree(&vox2ras_targ);
+  return(vox2vox) ;
+}
+
 /*-------------------------------------------------------------
   MRIfixTkReg() - this routine will adjust a matrix created by the
   "old" tkregister program. The old program had a problem in the way
@@ -14761,31 +14790,6 @@ MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst)
   MatrixFree(&m_vox2ras_src) ;
   MatrixFree(&m_ras2vox_dst) ;
   return(m_vox2vox) ;
-}
-
-/*--------------------------------------------------------------
-  MRIvoxToVoxTkRXform(MRI *mov, MRI *targ, MATRIX *tkR)
-  xform to convert a target CRS voxel to a mov CRS voxel thru
-  a tkregister R matrix. NOT-CORTECHS.
-  THIS HAS NOT BEEN TESTED YET! THUS THE return(NULL)
-  -------------------------------------------------------------*/
-MATRIX *MRIvoxToVoxTkRXform(MRI *mov, MRI *targ, MATRIX *tkR)
-{
-  MATRIX *ras2vox_mov, *vox2ras_mov, *vox2ras_targ, *vox2vox ;
-  return(NULL); // this function has not been tested yet.
-  vox2ras_mov  = MRIxfmCRS2XYZtkreg(mov);
-  ras2vox_mov  = MatrixInverse(ras2vox_mov,NULL);
-  vox2ras_targ = MRIxfmCRS2XYZtkreg(targ);
-  if(tkR){
-    vox2vox = MatrixMultiply(ras2vox_mov, tkR, NULL) ;
-    MatrixMultiply(vox2vox,vox2ras_targ,vox2vox);
-  }
-  else 
-    vox2vox = MatrixMultiply(ras2vox_mov, vox2ras_targ, NULL) ;
-  MatrixFree(&vox2ras_mov);
-  MatrixFree(&ras2vox_mov);
-  MatrixFree(&vox2ras_targ);
-  return(vox2vox) ;
 }
 
 /*--------------------------------------------------------------
