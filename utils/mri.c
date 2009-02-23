@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/02/23 22:27:30 $
- *    $Revision: 1.427 $
+ *    $Date: 2009/02/23 22:30:37 $
+ *    $Revision: 1.428 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.427 $";
+const char *MRI_C_VERSION = "$Revision: 1.428 $";
 
 
 /*-----------------------------------------------------
@@ -457,18 +457,14 @@ MATRIX *MRIvoxToVoxFromTkRegMtx(MRI *mov, MRI *targ, MATRIX *tkR)
 {
   MATRIX *ras2vox_mov, *vox2ras_mov, *vox2ras_targ, *vox2vox ;
   vox2ras_mov  = MRIxfmCRS2XYZtkreg(mov);
-  MatrixPrint(stdout,vox2ras_mov);
   ras2vox_mov  = MatrixInverse(vox2ras_mov,NULL);
-  MatrixPrint(stdout,ras2vox_mov);
   vox2ras_targ = MRIxfmCRS2XYZtkreg(targ);
-  MatrixPrint(stdout,vox2ras_targ);
   if(tkR){
     vox2vox = MatrixMultiply(ras2vox_mov, tkR, NULL) ;
     MatrixMultiply(vox2vox,vox2ras_targ,vox2vox);
   }
   else 
     vox2vox = MatrixMultiply(ras2vox_mov, vox2ras_targ, NULL) ;
-  MatrixPrint(stdout,vox2vox);
   MatrixFree(&vox2ras_mov);
   MatrixFree(&ras2vox_mov);
   MatrixFree(&vox2ras_targ);
