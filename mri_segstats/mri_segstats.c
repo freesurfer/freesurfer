@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/30 20:42:33 $
- *    $Revision: 1.52 $
+ *    $Author: greve $
+ *    $Date: 2009/02/23 22:30:07 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -387,6 +387,8 @@ SEE ALSO:
 #include "gca.h"
 #include "fsenv.h"
 #include "annotation.h"
+#include "registerio.h"
+#include "cmdargs.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -419,10 +421,13 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.52 2009/01/30 20:42:33 nicks Exp $";
+"$Id: mri_segstats.c,v 1.53 2009/02/23 22:30:07 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
+char *InVolRegFile = NULL;
+MATRIX *InVolReg = NULL;
+int InVolRegHeader = 0;
 char *InIntensityName = "";
 char *InIntensityUnits = "unknown";
 char *MaskVolFile = NULL;
@@ -509,6 +514,8 @@ int main(int argc, char **argv) {
   int valid;
   int usersegid=0;
   LABEL *label;
+  MRI *tmp;
+  MATRIX *vox2vox = NULL;
   nhits = 0;
   vol = 0;
 
@@ -738,14 +745,30 @@ int main(int argc, char **argv) {
     printf("Loading %s\n",InVolFile);
     fflush(stdout);
     invol = MRIread(InVolFile);
-    if (invol == NULL) {
+    if(invol == NULL) {
       printf("ERROR: loading %s\n",InVolFile);
       exit(1);
     }
-    if (frame >= invol->nframes) {
+    if(frame >= invol->nframes) {
       printf("ERROR: input frame = %d, input volume only has %d frames\n",
              frame,invol->nframes);
       exit(1);
+    }
+    if(InVolReg || InVolRegHeader){
+      if(InVolReg){
+	printf("Input Volume Registration:\n");
+	MatrixPrint(stdout,InVolReg);
+      }
+      vox2vox = MRIvoxToVoxFromTkRegMtx(invol, seg, InVolReg);
+      printf("Input Volume vox2vox:\n");
+      MatrixPrint(stdout,vox2vox);
+      printf("Allocating %d frames\n",invol->nframes);
+      tmp = MRIcloneBySpace(seg,-1,invol->nframes);
+      printf("Vol2Vol\n");
+      err = MRIvol2VolVSM(invol,tmp,vox2vox,SAMPLE_NEAREST,-1,NULL);
+      if(err) exit(1);
+      MRIfree(&invol);
+      invol = tmp;
     }
     if(MRIdimMismatch(invol,seg,0)) {
       printf("ERROR: dimension mismatch between input volume and seg\n");
@@ -1404,11 +1427,23 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%d",&Vox[2]);
       DoVox = 1;
       nargsused = 3;
-    } else if ( !strcmp(option, "--in") || !strcmp(option, "--i") ) {
+    } 
+    else if ( !strcmp(option, "--in") || !strcmp(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       InVolFile = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--in-intensity-name") ) {
+    } 
+    else if(!strcmp(option, "--reg")) {
+      if(nargc < 1) argnerr(option,1);
+      InVolRegFile = pargv[0];
+      InVolReg = regio_read_registermat(InVolRegFile);
+      if(InVolReg == NULL) exit(1);
+      nargsused = 1;
+    } 
+    else if(!strcmp(option, "--regheader")) {
+      InVolRegHeader = 1;
+    } 
+    else if ( !strcmp(option, "--in-intensity-name") ) {
       if (nargc < 1) argnerr(option,1);
       InIntensityName = pargv[0];
       nargsused = 1;
