@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2009/02/23 21:17:13 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,5 +56,6 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo);
 int regio_read_xfm4(char *xfmfile, MATRIX **R);
 int regio_read_xfm(char *xfmfile, MATRIX **R);
 
+MATRIX *regio_read_registermat(char *regfile);
 
 #endif /*BF_H_INC*/

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 06:01:14 $
- *    $Revision: 1.16.2.1 $
+ *    $Author: greve $
+ *    $Date: 2009/02/23 21:17:13 $
+ *    $Revision: 1.16.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -443,3 +443,21 @@ int regio_read_xfm(char *xfmfile, MATRIX **R)
 
   return(err);
 }
+/*
+  MATRIX *regio_read_registermat(char *regfile)
+  Just reads in the matrix and leaves the rest of the
+  crap in the file.
+*/
+MATRIX *regio_read_registermat(char *regfile)
+{
+  char *subject;
+  float inplaneres, betplaneres, intensity;
+  int float2int, err;
+  MATRIX *R;
+  err = regio_read_register(regfile, &subject, &inplaneres,
+                        &betplaneres, &intensity, &R, &float2int);
+  if(err) return(NULL);
+  free(subject);
+  return(R);
+}
+
