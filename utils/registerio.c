@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/12/10 15:15:15 $
- *    $Revision: 1.18 $
+ *    $Author: greve $
+ *    $Date: 2009/02/23 21:15:00 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -516,3 +516,22 @@ regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris,
   MRIfree(&mri_surf) ;
   return(R) ;
 }
+
+/*
+  MATRIX *regio_read_registermat(char *regfile)
+  Just reads in the matrix and leaves the rest of the
+  crap in the file.
+*/
+MATRIX *regio_read_registermat(char *regfile)
+{
+  char *subject;
+  float inplaneres, betplaneres, intensity;
+  int float2int, err;
+  MATRIX *R;
+  err = regio_read_register(regfile, &subject, &inplaneres,
+                        &betplaneres, &intensity, &R, &float2int);
+  if(err) return(NULL);
+  free(subject);
+  return(R);
+}
+

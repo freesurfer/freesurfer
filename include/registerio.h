@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/12/21 14:31:46 $
- *    $Revision: 1.7 $
+ *    $Author: greve $
+ *    $Date: 2009/02/23 21:15:00 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,8 @@ Routines for handling register.dat files
 
 #include <stdio.h>
 #include "matrix.h"
+#include "mri.h"
+#include "mrisurf.h"
 
 int regio_read_register(char *regfile, char **subject, float *inplaneres,
                         float *betplaneres, float *intensity,  MATRIX **R,
@@ -55,8 +57,6 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R, char *fileinfo);
 
 int regio_read_xfm4(char *xfmfile, MATRIX **R);
 int regio_read_xfm(char *xfmfile, MATRIX **R);
-#include "mri.h"
-#include "mrisurf.h"
 int regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname, 
                                              MRI_SURFACE *mris, MRI *mri, 
                                              char *subject, int float2int);
@@ -64,8 +64,6 @@ MATRIX *regio_read_surfacexform_from_register_dat(char *fname,
                                                   MRI_SURFACE *mris, 
                                                   MRI *mri, char **subject);
 
-#include "mri.h"
-#include "mrisurf.h"
 int
 regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname, 
                                          MRI_SURFACE *mris, MRI *mri, 
@@ -74,5 +72,6 @@ MATRIX *
 regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris, 
                                           MRI *mri, char **subject);
 
+MATRIX *regio_read_registermat(char *regfile);
 
 #endif /*BF_H_INC*/
