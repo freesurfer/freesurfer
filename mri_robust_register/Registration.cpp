@@ -90,19 +90,23 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
   
   pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
   pair < MATRIX*, MRI* > pw(NULL,NULL);
-
   Regression R(Ab.first,Ab.second);
   if (robust)
   {
+     cout << "   - compute robust estimate ..." << flush;
      if (sat < 0) pwm = R.getRobustEstW();
      else pwm = R.getRobustEstW(sat);
+     cout << "  DONE" << endl;
      pw.first  = pwm.first;
      pw.second = NULL;
+
+//    cout << " pw-final  : "<< endl;
+//    MatrixPrintFmt(stdout,"% 2.8f",pw.first);
+
       // transform weights vector back to 3d (mri real)
       pw.second = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
       MRIcopyHeader(mriS, pw.second) ;
-      pw.second->type = MRI_FLOAT;
-      
+      pw.second->type = MRI_FLOAT;      
       MRIsetResolution(pw.second, mriS->xsize, mriS->ysize, mriS->zsize);
       int x,y,z;
       long int count = 1, val;
@@ -125,16 +129,22 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
       //cout << endl;
       //cout << " count-1: " << count-1 << " rows: " << pwm.second->rows << endl;
       assert(count-1 == pwm.second->rows);
+      
      if (pwm.second != NULL) MatrixFree(&pwm.second);
   }
   else
   {
+     cout << "   - compute least squares estimate ..." << flush;
      pw.first = R.getLSEst();
+     cout << "  DONE" << endl;
      pw.second = NULL; // no weights in this case
   }
 
   MatrixFree(&Ab.first);
   MatrixFree(&Ab.second);
+
+//    cout << " pw-final  : "<< endl;
+//    MatrixPrintFmt(stdout,"% 2.8f",pw.first);
   
   return pw;
 }
@@ -147,7 +157,13 @@ MATRIX* Registration::computeRegistrationStepP(MRI * mriS, MRI* mriT)
    if (pw.second)
    {
      //cout << "mrisweight widht " << pw.second->width << endl; 
-     MRIwrite(pw.second,"mriS-weights.mgz");      
+     if (debug > 0)
+     {
+        string n = name+string("mriS-weights.mgz");
+        assert(n.length() < 50);
+        char nn[50]; strcpy(nn, n.c_str());
+        MRIwrite(pw.second,nn);      
+     }
      MRIfree(&pw.second);
    }
    return pw.first;
@@ -158,12 +174,120 @@ pair <MATRIX*,double> Registration::computeRegistrationStep(MRI * mriS, MRI* mri
 // computes Registration single step
 // retruns 4x4 matrix and iscale value
 {
+//cout << "  Registration::computeRegistrationStep " << endl;
    MATRIX* p = computeRegistrationStepP(mriS,mriT);
+//   cout << " prows: " << p->rows << endl;
    pair <MATRIX*, double> pd = convertP2Md(p);
    MatrixFree(&p);
    return pd;
 }
 
+
+// pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
+// // computes iterative registration (recomputing A and b in each step)
+// // retruns 4x4 matrix and iscale value
+// {
+//  //  if (!mriS) mriS = mri_source;
+//  //  if (!mriT) mriT = mri_target;
+//    
+//    assert (mriS && mriT);
+// 
+//    int MAX = n;
+//    int i;
+//    pair < MATRIX*, double > cmd(NULL,1.0);
+//    pair < MATRIX*, double > fmd(NULL,scaleinit);
+//    if (m) fmd.first = MatrixCopy(m,NULL);
+//    else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
+//    else fmd.first = MatrixIdentity(4,NULL);
+//    
+//   cout << "   - initial transform:\n" ;
+//   MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+//    
+//    //cout << "mris widht " << mriS->width << endl; 
+//    MRI* mri_Swarp   = NULL;
+//    MRI* mri_Twarp   = NULL;
+//    MATRIX* p;
+//    
+//    lastp = NULL;
+//    
+//    for (i=1;i<=MAX;i++)
+//    {
+//       cout << " Iteration: " << i << endl;
+//       
+// 
+//        // warp source to target
+// //       cout << "   - warping source" << endl;
+// //       mri_Swarp = MRIlinearTransform(mriS, mri_Swarp, fmd.first);
+// //       mri_Twarp = MRIcopy(mriT,mri_Twarp);
+//        
+// 	// here maybe better to symmetrically warp both images SQRT(M)
+// 	// this keeps the problem symmetric
+//          cout << "   - warping source and target (sqrt)" << endl;
+//          MATRIX * mh  = MatrixSqrt(fmd.first);
+// 	 // do not just assume m = mh*mh, instead compute B = mh^-1 m
+// 	 //  (in fact we need B^-1= m^-1 mh for transforming target):
+// 	 MATRIX * mi  = MatrixInverse(fmd.first,NULL);	 	  
+// 	 MATRIX * mhi = MatrixMultiply(mi,mh,NULL);
+// 	 
+//          if (mri_Swarp) MRIfree(&mri_Swarp);
+//          mri_Swarp =  MRIlinearTransform(mriS,NULL, mh);
+//          if (mri_Twarp) MRIfree(&mri_Twarp);
+//          mri_Twarp =  MRIlinearTransform(mriT,NULL, mhi);	  
+// 	 MatrixFree(&mh);
+// 	 MatrixFree(&mi);
+// 	 MatrixFree(&mhi);
+//        
+//        // adjust intensity      
+//        if (iscale)
+//        {
+//           cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
+//           //MRIvalscale(mri_Swarp,mri_Swarp,fmd.second);
+//           MRIvalscale(mri_Swarp,mri_Swarp,(1.0+fmd.second)*0.5);
+//           MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/fmd.second)*0.5);
+//        }
+// 
+//        
+//        // compute Registration
+//        cout << "   - compute new registration" << endl;
+//  //cout << "mriswarp widht " << mri_Swarp->width << endl; 
+//        p = computeRegistrationStepP(mri_Swarp,mri_Twarp);
+//        cmd = convertP2Md(p);
+//        if (lastp) MatrixFree(&lastp);
+//        lastp = p;
+//        p = NULL;
+// 
+// //   DEBUG
+//      MRIwrite(mri_Swarp,"mriS-warp.mgz");
+//      MRIwrite(mri_Twarp,"mriT-warp.mgz");
+//      MRI* salign = MRIlinearTransform(mri_Swarp, NULL,cmd.first);
+//      MRIwrite(salign,"mriS-align.mgz");
+//      MRIfree(&salign);
+//        
+//        // store M and d
+//        cout << "   - store transform" << endl;
+//      //cout << endl << " current : Matrix: " << endl;
+//      //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
+//      //cout << " intens: " << cmd.second << endl;
+//      MATRIX* fmdtmp = MatrixCopy(fmd.first,NULL);
+//        fmd.first = MatrixMultiply(cmd.first,fmd.first,fmd.first);
+//        fmd.second *= cmd.second;
+//        if (cmd.first != NULL) MatrixFree(&cmd.first);
+//      //cout << endl << " Matrix: " << endl;
+//      //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+//      cout << "       difference to prev. transform: " << getFrobeniusDiff(fmd.first, fmdtmp) << endl;
+//      MatrixFree(&fmdtmp);
+//      //cout << " intens: " << fmd.second << endl;
+//       
+//    }
+// 
+//   MRIfree(&mri_Twarp);
+//   MRIfree(&mri_Swarp);
+// 
+//   Mfinal = MatrixCopy(fmd.first, Mfinal);
+//   iscalefinal = fmd.second;
+// 
+//    return fmd;
+// }
 
 pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
 // computes iterative registration (recomputing A and b in each step)
@@ -182,8 +306,11 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI 
    else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
    else fmd.first = MatrixIdentity(4,NULL);
    
-  cout << "   - initial transform:\n" ;
-  MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+   if (debug > 0)
+   {
+      cout << "   - initial transform:\n" ;
+      MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+   }
    
    //cout << "mris widht " << mriS->width << endl; 
    MRI* mri_Swarp   = NULL;
@@ -191,10 +318,14 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI 
    MATRIX* p;
    
    lastp = NULL;
-   
-   for (i=1;i<=MAX;i++)
+   double diff = 100;
+   i = 1;
+//   MAX = 10;
+   double EPS = 0.01;
+   while (diff > EPS && i<=MAX)
    {
       cout << " Iteration: " << i << endl;
+      i++;
       
 
        // warp source to target
@@ -231,7 +362,6 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI 
        
        // compute Registration
        cout << "   - compute new registration" << endl;
- //cout << "mriswarp widht " << mri_Swarp->width << endl; 
        p = computeRegistrationStepP(mri_Swarp,mri_Twarp);
        cmd = convertP2Md(p);
        if (lastp) MatrixFree(&lastp);
@@ -239,23 +369,34 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI 
        p = NULL;
 
 //   DEBUG
-     MRIwrite(mri_Swarp,"mriS-warp.mgz");
-     MRIwrite(mri_Twarp,"mriT-warp.mgz");
-     MRI* salign = MRIlinearTransform(mri_Swarp, NULL,cmd.first);
-     MRIwrite(salign,"mriS-align.mgz");
-     MRIfree(&salign);
-       
+     if (debug > 0)
+     {
+        char nn[50];
+        assert(name.length() < 45);
+        strcpy(nn, (name+"-mriS-warp.mgz").c_str());
+        MRIwrite(mri_Swarp,nn);
+        strcpy(nn, (name+"-mriT-warp.mgz").c_str());
+        MRIwrite(mri_Twarp,nn);
+        MRI* salign = MRIlinearTransform(mri_Swarp, NULL,cmd.first);
+        strcpy(nn, (name+"-mriS-align.mgz").c_str());
+        MRIwrite(salign,nn);
+        MRIfree(&salign);
+     } 
        // store M and d
        cout << "   - store transform" << endl;
      //cout << endl << " current : Matrix: " << endl;
      //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
      //cout << " intens: " << cmd.second << endl;
+     MATRIX* fmdtmp = MatrixCopy(fmd.first,NULL);
        fmd.first = MatrixMultiply(cmd.first,fmd.first,fmd.first);
        fmd.second *= cmd.second;
        if (cmd.first != NULL) MatrixFree(&cmd.first);
-    // cout << endl << " Matrix: " << endl;
-    //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
-    // cout << " intens: " << fmd.second << endl;
+     //cout << endl << " Matrix: " << endl;
+     //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+     diff = getFrobeniusDiff(fmd.first, fmdtmp);
+     cout << "     -- difference to prev. transform: " << diff << endl;
+     MatrixFree(&fmdtmp);
+     //cout << " intens: " << fmd.second << endl;
       
    }
 
@@ -265,6 +406,46 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI 
   Mfinal = MatrixCopy(fmd.first, Mfinal);
   iscalefinal = fmd.second;
 
+   return fmd;
+}
+
+pair < MATRIX*, double > Registration::computeIterativeRegSat( int n, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
+// tests trough many saturations:
+{
+ //  if (!mriS) mriS = mri_source;
+ //  if (!mriT) mriT = mri_target;
+   
+   assert (mriS && mriT);
+
+   pair < MATRIX*, double > cmd(NULL,1.0);
+   pair < MATRIX*, double > fmd(NULL,scaleinit);
+   if (m) fmd.first = MatrixCopy(m,NULL);
+   else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
+   else fmd.first = MatrixIdentity(4,NULL);
+   
+   if (debug > 0)
+   {
+      cout << "   - initial transform:\n" ;
+      MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+   }
+  
+   double satval[6] = {20,12,8,6,4,2};
+   vector < double > diffs (6);
+  
+   for (int si = 0;si<6;si++)
+   {
+   	sat = satval[si];
+	
+	cmd = computeIterativeRegistration(n,mriS,mriT,fmd.first,fmd.second);
+	
+	diffs[si] = getFrobeniusDiff(fmd.first, cmd.first);
+        cout << "       difference on sat " << sat << " to prev. transform: " << diffs[si] << endl;
+   
+        fmd.second = cmd.second;
+	MatrixFree(&fmd.first);
+	fmd.first = cmd.first;
+   }
+  
    return fmd;
 }
 
@@ -289,8 +470,12 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (MRI * mriS, M
 //  }
 
   MATRIX *m  = MatrixIdentity(4,NULL);
+  
+  // variables to store matrix m and scaling factor d:
   pair < MATRIX* , double > cmd;
   pair < MATRIX* , double > md(NULL,scaleinit);
+  
+  // check if mi (inital transform) is passed
   if (mi)
   {
       md.first = MatrixCopy(mi,NULL);      
@@ -299,37 +484,43 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (MRI * mriS, M
       md.first = MatrixCopy(Minit,NULL);      
   else
   {
-   //  md.first = MatrixIdentity(4,NULL);
-  //   md.first = initialize_transform(mriS,mriT);     
+    //  md.first = MatrixIdentity(4,NULL);
+    //   md.first = initialize_transform(mriS,mriT);    
+    // use voxtovox as init: 
     md.first = MRIgetVoxelToVoxelXform(mriS,mriT) ;
   }
   
-  cout << "   - initial transform:\n" ;
-  MatrixPrintFmt(stdout,"% 2.8f",md.first);
+  if (debug > 0)
+  {
+     cout << "   - initial transform:\n" ;
+     MatrixPrintFmt(stdout,"% 2.8f",md.first);
+  }
 
-  // adjust to current (lowest) resolution:
-  int rstart = 4;
+  // adjust minit to current (lowest) resolution:
+  int rstart = 2;
   for (int r = 1; r<=resolution-rstart; r++)
   for (int rr = 1;rr<=3;rr++)
      md.first->rptr[rr][4]  = 0.5 *  md.first->rptr[rr][4];      
 
-  cout << "   - initial adjusted:\n" ;
-  MatrixPrintFmt(stdout,"% 2.8f",md.first);
+   if(debug >0)
+   {
+      cout << "   - initial adjusted:\n" ;
+      MatrixPrintFmt(stdout,"% 2.8f",md.first);
+   }
+  
+  
 //     MRI* falign = MRIlinearTransform(gpS[resolution-rstart], NULL,md.first);
 //     MRIwrite(falign,"mriS-lowres-initaligned.mgz");
 //     MRIfree(&falign);
 //     MRIwrite(gpT[resolution-rstart],"mriT-lowres.mgz");
 
 
-  md.second = 1;
-  MRI* mri_Swarp   = NULL;
-  MRI* mri_Twarp   = NULL;
+//  md.second = 1; //??
+//  MRI* mri_Swarp   = NULL;
+//  MRI* mri_Twarp   = NULL;
 
  
-//  for (int r = resolution-rstart;r>=1;r--)
   for (int r = resolution-rstart;r>=0;r--)
- // int r = 1 +resolution-resolution;
- // int r = resolution-1;
   {
  //    MRIwrite(gpS[r],"mriS-smooth.mgz");
  //    MRIwrite(gpT[r],"mriT-smooth.mgz");
@@ -398,19 +589,21 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (MRI * mriS, M
 // 	  MatrixFree(&mi);
  //      }
        
-       // adjust intensity      
-       if (iscale)
-       {
-          cout << "   - adjusting intensity ( "<< md.second << " ) " << endl;
-          MRIvalscale(mri_Swarp,mri_Swarp,(1.0+md.second)*0.5);
-          MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/md.second)*0.5);
-       }
+//        // adjust intensity      
+//        if (iscale)
+//        {
+//           cout << "   - adjusting intensity ( "<< md.second << " ) " << endl;
+//           MRIvalscale(mri_Swarp,mri_Swarp,(1.0+md.second)*0.5);
+//           MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/md.second)*0.5);
+//        }
        
        // compute Registration
        cout << "   - compute new registration" << endl;
        if (cmd.first) MatrixFree(&cmd.first);
- //      cmd = computeIterativeRegistration(r,mri_Swarp,mri_Twarp);
        cmd = computeIterativeRegistration(3,gpS[r],gpT[r],md.first,md.second);
+//       cmd = computeIterativeRegSat(3,gpS[r],gpT[r],md.first,md.second);
+    if(debug > 0)
+    {
      cout << endl << " current : Matrix: " << endl;
      MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
      cout << " intens: " << cmd.second << endl;
@@ -421,14 +614,14 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (MRI * mriS, M
      double tz = cmd.first->rptr[3][4];
      for (int ll = r; ll > 0; ll--)
      { tx *= 2; ty*=2; tz*=2;}
-     cout << " equiv trans on highres: " << tx << " " << ty << " " << tz << endl;
+      cout << " equiv trans on highres: " << tx << " " << ty << " " << tz << endl;
      
      // save resampled version on this level:
  //    MRI* salign = MRIlinearTransform(gpS[r], NULL,cmd.first);
  //    MRIwrite(salign,"mriS-lowres-aligned.mgz");
 //     MRIwrite(gpT[r],"mriT-lowres.mgz");
 //     MRIfree(&salign);
-     
+     }
      
       if (r !=0) // adjust matrix to higher resolution level
       {
@@ -441,11 +634,13 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (MRI * mriS, M
 //       m  = MatrixMultiply(cmd.first,md.first,m);
 //       MatrixCopy(m,md.first);
        MatrixCopy(cmd.first,md.first);
-       md.second *= cmd.second;
-     cout << endl << " Matrix: " << endl;
-     MatrixPrintFmt(stdout,"% 2.8f",md.first);
-     cout << " intens (needs to be checked if mult is necessary!!!): " << md.second << endl;
-     
+       md.second = cmd.second;
+     if (debug > 0)
+     {
+        cout << endl << " Matrix: " << endl;
+        MatrixPrintFmt(stdout,"% 2.8f",md.first);
+        cout << " intens: " << md.second << endl;
+     }
   }
   // cleanup  
   freeGaussianPyramid(gpS);
@@ -604,6 +799,8 @@ void Registration::testRobust(const std::string& fname, int testno)
   
     mriTs = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTs, a, SAMPLE_TRILINEAR);
     mriTt = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTt, ai, SAMPLE_TRILINEAR);
+    iscaleval = 0.8;
+    mriTt = MRIvalscale(mriTt, NULL, iscaleval);
     MRIwrite(mriTs,"rottransS.mgz");
     MRIwrite(mriTt,"rottransT.mgz");
   break;
@@ -669,11 +866,12 @@ void Registration::testRobust(const std::string& fname, int testno)
    rigid     = true;
    iscale    = false;   
    robust = true;
-//   pair <MATRIX*, double> pwit    = computeIterativeRegistration(steps,mriTs,mriTt); 
+    iscale = true;
+ //  pair <MATRIX*, double> pwit    = computeIterativeRegistration(steps,mriTs,mriTt); 
    pair <MATRIX*, double> pw    = computeMultiresRegistration(mriTs,mriTt); 
    robust = false;
 //   pair <MATRIX*, double> pwls  = computeIterativeRegistration(steps,mriTs,mriTt);
-   pair <MATRIX*, double> pwls  = computeMultiresRegistration(mriTs,mriTt);
+//   pair <MATRIX*, double> pwls  = computeMultiresRegistration(mriTs,mriTt);
     iscale = true;
     robust = true;
 //   pair <MATRIX*, double> pwi    = computeIterativeRegistration(steps,mriTs,mriTt); 
@@ -706,16 +904,17 @@ void Registration::testRobust(const std::string& fname, int testno)
 //   cout << " iscale: " << pwi.second << endl << endl;
 //   MatrixFree(&pwit.first);
 
-  cout << endl << " Rigid - Least Square: " << endl;
-  MatrixPrintFmt(stdout,"% 2.8f",pwls.first);
-  MatrixFree(&pwls.first);
+//  cout << endl << " Rigid - Least Square: " << endl;
+//  MatrixPrintFmt(stdout,"% 2.8f",pwls.first);
+//  MatrixFree(&pwls.first);
   
   cout << endl << " Rigid - Robust M-Est: " << endl;
   MatrixPrintFmt(stdout,"% 2.8f",pw.first);
   MatrixFree(&pw.first);
+  
 //  cout << endl << " Rigid - Robust M-Est (iterations only): " << endl;
 //  MatrixPrintFmt(stdout,"% 2.8f",pwit.first);
- // MatrixFree(&pwit.first);
+//  MatrixFree(&pwit.first);
 
 //   cout << endl << " Rigid - Robust M-Est - iscale: " << endl;
 //   MatrixPrintFmt(stdout,"% 2.8f",pwi.first);
@@ -755,6 +954,44 @@ bool Registration::warpSource( const string &fname, MATRIX* M, double is)
        mri_aligned = MRIvalscale(mri_aligned, mri_aligned, iscalefinal);
     
     mri_source->nframes = nframes ;
+
+//    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
+//    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+//    sprintf(fname, "%s_target", parms.base_name) ;
+//    MRIwriteImageViews(mri_dst, fname, IMAGE_SIZE) ;
+
+    char cfname[STRLEN];
+    strcpy(cfname, fname.c_str()) ;
+    
+    MRIwrite(mri_aligned, cfname) ;
+    MRIfree(&mri_aligned) ;
+    
+    return true; // no error treatment so far
+}
+
+bool Registration::warpSource(MRI* orig, MRI* target, const string &fname, MATRIX* M, double is)
+// warps the mri orig to target
+{
+   assert(orig);
+
+    int nframes = orig->nframes;
+    orig->nframes = 1 ;
+
+    MATRIX* m_Lvox;
+    if (M) m_Lvox = MatrixClone(M);
+    else m_Lvox   = MatrixClone(Mfinal);
+    
+    /* convert it to RAS mm coordinates */
+    MATRIX* m_L = MRIvoxelXformToRasXform(mri_source, mri_target, m_Lvox, NULL) ;
+
+    MRI *mri_aligned = MRIapplyRASlinearTransform(orig, target, m_L) ;
+ 
+    // here also do scaling of intensity values
+    if (is <0) is = iscalefinal;
+    if (iscalefinal >0)
+       mri_aligned = MRIvalscale(mri_aligned, mri_aligned, iscalefinal);
+    
+    orig->nframes = nframes ;
 
 //    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
 //    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
@@ -870,7 +1107,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   MATRIX* A = MatrixAlloc(n,pnum,MATRIX_REAL);
   VECTOR* b = MatrixAlloc(n,1,MATRIX_REAL);
 
-  cout << "     -- size " << fx->width << " " << fx->height << " " << fx->depth << endl;
+  cout << "     -- size " << fx->width << " " << fx->height << " " << fx->depth << flush;
   
   long int count = 0;
   int xp1,yp1,zp1;
@@ -974,7 +1211,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
      assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
   }
     
-  cout << "     -- considering: " << count << " non-zero voxels"<< endl;
+  cout << " ( " << count << " non-zero voxels )"<< endl;
   
   MatrixFree(&A); MatrixFree(&b);
   MRIfree(&fx);MRIfree(&fy);MRIfree(&fz);MRIfree(&ft);
@@ -1336,21 +1573,34 @@ MRI * Registration::convolute(MRI * mri, MRI * filter, int dir)
 	    MRIFvox(result, a, b, dd) += MRIFvox(filter, frev, 0, 0) * MRIFvox(mri, a, b, ip);
 	 else assert(dir > 0 && dir < 4);
 	}
-	else if (mri->type == MRI_UCHAR || mri->type == MRI_INT)
+	else if (mri->type == MRI_UCHAR || mri->type == MRI_INT || mri->type == MRI_SHORT || mri->type == MRI_LONG)
 	{
-	 // cout << " working on MRI_UCHAR or INT " << endl;
+//          if (dir == 1)
+// 	 {
+// 	    //cout << " reslt( " << dd << " " << a << " " << b << " )   frev= " << frev << " ip: " << ip << endl;
+// 	    MRIFvox(result, dd, a, b) += MRIFvox(filter, frev, 0, 0) * (int)MRIvox(mri, ip, a, b);
+// 	 }
+// 	 else if (dir ==2)
+// 	    MRIFvox(result, b, dd, a) += MRIFvox(filter, frev, 0, 0) * (int)MRIvox(mri, b, ip, a); 
+// 	 else if (dir == 3)
+// 	    MRIFvox(result, a, b, dd) += MRIFvox(filter, frev, 0, 0) * (int)MRIvox(mri, a, b, ip);
+// 	 else assert(dir > 0 && dir < 4);
+
+	 //cout << " reslt( " << dd << " " << a << " " << b << " )   frev= " << frev << " ip: " << ip << endl;
          if (dir == 1)
 	 {
-	    //cout << " reslt( " << dd << " " << a << " " << b << " )   frev= " << frev << " ip: " << ip << endl;
-	    MRIFvox(result, dd, a, b) += MRIFvox(filter, frev, 0, 0) * (int)MRIvox(mri, ip, a, b);
+	    //cout << " mri " <<  MRIgetVoxVal(mri, ip, a, b,0) << endl;
+	    MRIFvox(result, dd, a, b) += MRIFvox(filter, frev, 0, 0) * MRIgetVoxVal(mri, ip, a, b,0);
 	 }
 	 else if (dir ==2)
-	    MRIFvox(result, b, dd, a) += MRIFvox(filter, frev, 0, 0) * (int)MRIvox(mri, b, ip, a); 
+	    MRIFvox(result, b, dd, a) += MRIFvox(filter, frev, 0, 0) * MRIgetVoxVal(mri, b, ip, a,0); 
 	 else if (dir == 3)
-	    MRIFvox(result, a, b, dd) += MRIFvox(filter, frev, 0, 0) * (int)MRIvox(mri, a, b, ip);
+	    MRIFvox(result, a, b, dd) += MRIFvox(filter, frev, 0, 0) * MRIgetVoxVal(mri, a, b, ip,0);
 	 else assert(dir > 0 && dir < 4);
 	
-	} 
+	}
+	else // cannot deal with type
+	   assert(1==2); 
       }
    }
    
@@ -1627,13 +1877,13 @@ pair < MATRIX*, double > Registration::convertP2Md(MATRIX* p)
 // rtype : use restriction (if 2) or rigid from robust paper
 // returns registration as 4x4 matrix M, and iscale
 {
-   
+//   cout << " Registration::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << flush;
    pair < MATRIX*, double> ret(NULL,1.0);
    MATRIX* pt;
    
    if (p->rows == 4 ||p->rows == 7 || p->rows == 13) // iscale
    {
-      //cout << " has intensity: " << 1.0-*MATRIX_RELT(p, p->rows, 1)<< endl;
+      //cout << " has intensity " << endl;
       // cut off intensity scale
       ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);
       pt=  MatrixAlloc(p->rows -1, 1,MATRIX_REAL);
@@ -1656,12 +1906,12 @@ pair < MATRIX*, double > Registration::convertP2Md(MATRIX* p)
    }
    else
    {
-      cerr << " parameter neither 3,6 nor 12??" << endl;
+      cerr << " parameter neither 3,6 nor 12 : " << pt->rows <<" ??" << endl;
       assert(1==2);
    }
 
    MatrixFree(&pt);
-   
+//   cout << " -- DONE " << endl;
    return ret;
 }
 
@@ -1819,7 +2069,11 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int n)
 {
   vector <MRI* > p (n);
   MRI * mri_tmp;
-
+// if (mri_in->type == MRI_UCHAR) cout << " MRI_UCHAR" << endl;
+// else cout << " type: " << mri_in->type << endl;
+ 
+ 
+ 
   MRI *mri_kernel ;
   mri_kernel = MRIgaussian1d(1.08, 5) ;
   //mri_kernel = MRIalloc(5,1,1, MRI_FLOAT);
@@ -2169,4 +2423,191 @@ MATRIX * Registration::pca_matrix(MATRIX *m_in_evectors, double in_means[3],
   MatrixFree(&mRot) ;
   VectorFree(&mOrigin) ;
   return(m_L) ;
+}
+   
+double Registration::getFrobeniusDiff(MATRIX *m1, MATRIX *m2)
+{
+
+	double s,ss = 0.0;
+	assert(m1->rows == m2->rows);
+	assert(m1->cols == m2->cols);
+	
+	for (int r = 1;r<=m1->rows;r++)
+	for (int c = 1;c<=m2->cols;c++)
+	{
+	   s = *MATRIX_RELT(m1, r, c) - *MATRIX_RELT(m2, r, c);
+           ss += s * s;
+	}
+	ss = sqrt(ss);
+	return ss;
+}
+
+// mainly extraced from mri_convert
+MRI* Registration::makeConform(MRI *mri, MRI *out)
+{
+
+   out = MRIcopy(mri,out);
+
+   if (mri->type == MRI_UCHAR && mri->xsize == 1 && mri->ysize == 1 && mri->zsize ==1
+          && mri->thick == 1 && mri->ps == 1) return out;
+
+   cout << "Making input confrom to 1mm voxels" << endl;
+   
+   double conform_size = 1;
+   int conform_width = findRightSize(mri, conform_size);
+   
+   MRI * temp = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+   MRIcopyHeader(mri, temp);
+   temp->width = temp->height = temp->depth = conform_width;
+   temp->imnr0 = 1;
+   temp->imnr1 = conform_width;
+   temp->type = MRI_UCHAR;
+   temp->thick = conform_size;
+   temp->ps = conform_size;
+   temp->xsize = temp->ysize = temp->zsize = conform_size;
+      
+   printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+             mri->xsize, mri->ysize, mri->zsize,
+             mri->width, mri->height, mri->depth);
+   printf("Data is conformed to %g mm size and %d voxels for all directions\n", 
+             conform_size, conform_width);
+   
+   temp->xstart = temp->ystart = temp->zstart = - conform_width/2;
+   temp->xend = temp->yend = temp->zend = conform_width/2;
+   temp->x_r = -1.0;
+   temp->x_a =  0.0;
+   temp->x_s =  0.0;
+   temp->y_r =  0.0;
+   temp->y_a =  0.0;
+   temp->y_s = -1.0;
+   temp->z_r =  0.0;
+   temp->z_a =  1.0;
+   temp->z_s =  0.0;
+   
+  /* ----- change type if necessary ----- */
+  int no_scale_flag = FALSE;
+  if(mri->type != temp->type) {
+    printf("changing data type from %d to %d (noscale = %d)...\n",
+           mri->type,temp->type,no_scale_flag);
+    MRI * mri2  = MRISeqchangeType(out, temp->type, 0.0, 0.999, no_scale_flag);
+    if (mri2 == NULL) {
+      printf("ERROR: MRISeqchangeType\n");
+      exit(1);
+    }
+    MRIfree(&out);
+    out = mri2;
+  }
+
+  /* ----- reslice if necessary ----- */
+  if (mri->xsize != temp->xsize ||
+      mri->ysize != temp->ysize ||
+      mri->zsize != temp->zsize ||
+      mri->width != temp->width ||
+      mri->height != temp->height ||
+      mri->depth != temp->depth ||
+      mri->x_r != temp->x_r ||
+      mri->x_a != temp->x_a ||
+      mri->x_s != temp->x_s ||
+      mri->y_r != temp->y_r ||
+      mri->y_a != temp->y_a ||
+      mri->y_s != temp->y_s ||
+      mri->z_r != temp->z_r ||
+      mri->z_a != temp->z_a ||
+      mri->z_s != temp->z_s ||
+      mri->c_r != temp->c_r ||
+      mri->c_a != temp->c_a ||
+      mri->c_s != temp->c_s) {
+    printf("Reslicing using ");
+
+    int resample_type_val = SAMPLE_TRILINEAR;
+
+    switch (resample_type_val) {
+    case SAMPLE_TRILINEAR:
+        printf("trilinear interpolation \n");
+      break;
+    case SAMPLE_NEAREST:
+      printf("nearest \n");
+      break;
+    case SAMPLE_SINC:
+      printf("sinc \n");
+      break;
+    case SAMPLE_CUBIC:
+      printf("cubic \n");
+      break;
+    case SAMPLE_WEIGHTED:
+      printf("weighted \n");
+      break;
+    }
+    MRI * mri2 = MRIresample(out, temp, resample_type_val);
+    if(mri2 == NULL) exit(1);
+    MRIfree(&out);
+    out = mri2;
+    }
+    
+    MRIfree(&temp);
+    return out;
+   
+   
+}  
+// this function is called when conform is done
+// copied from mri_convert
+int Registration::findRightSize(MRI *mri, float conform_size) {
+  // user gave the conform_size
+  double xsize, ysize, zsize;
+  double fwidth, fheight, fdepth, fmax;
+  int conform_width;
+
+  xsize = mri->xsize;
+  ysize = mri->ysize;
+  zsize = mri->zsize;
+
+  // now decide the conformed_width
+  // calculate the size in mm for all three directions
+  fwidth = mri->xsize*mri->width;
+  fheight = mri->ysize*mri->height;
+  fdepth = mri->zsize*mri->depth;
+  // pick the largest
+  if (fwidth> fheight)
+    fmax = (fwidth > fdepth) ? fwidth : fdepth;
+  else
+    fmax = (fdepth > fheight) ? fdepth : fheight;
+  // get the width with conform_size
+  conform_width = (int) ceil(fmax/conform_size);
+
+  // just to make sure that if smaller than 256, use 256 anyway
+  if (conform_width < 256)
+    conform_width = 256;
+  // conform_width >= 256.   allow 10% leeway
+  else if ((conform_width -256.)/256. < 0.1)
+    conform_width = 256;
+
+  // if more than 256, warn users
+  if (conform_width > 256) {
+    fprintf(stderr, "WARNING =================="
+            "++++++++++++++++++++++++"
+            "=======================================\n");
+    fprintf(stderr, "The physical sizes are "
+            "(%.2f mm, %.2f mm, %.2f mm), "
+            "which cannot fit in 256^3 mm^3 volume.\n",
+            fwidth, fheight, fdepth);
+    fprintf(stderr, "The resulting volume will have %d slices.\n",
+            conform_width);
+    fprintf(stderr, "If you find problems, please let us know "
+            "(freesurfer@nmr.mgh.harvard.edu).\n");
+    fprintf(stderr, "=================================================="
+            "++++++++++++++++++++++++"
+            "===============\n\n");
+  }
+  return conform_width;
+}
+
+void Registration::setSource (MRI * s)
+{
+   
+   mri_source = makeConform(s,NULL);
+}
+
+void Registration::setTarget (MRI * t)
+{
+   mri_target = makeConform(t,NULL);
 }

@@ -24,9 +24,9 @@ extern "C" {
 class Registration
 {
   public:
-    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),
+    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
                   mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),lastp(NULL), mri_indexing(NULL) {};
-    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),
+    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
                    mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),Minit(NULL),Mfinal(NULL),lastp(NULL),mri_indexing(NULL) {};
   
     ~Registration()
@@ -45,20 +45,25 @@ class Registration
     void setRigid(bool r)  {rigid = r;};
     void setRobust(bool r) {robust = r;};
     void setSaturation(double d) {sat = d;};
+    void setDebug(int d) {debug = d;};
     void setIscale(bool i) {iscale = i;};
     void setRtype(int r)   {rtype = r;};
     //void setAllParams(bool probust=true, bool ptrans=false, bool prigid=true, bool piscale=false, int prtype = 1){robust = probust; transonly = ptrans; rigid = prigid; iscale = piscale; rtype = prtype;};
-    bool isIscale()        {return iscale;};
     void setMinit(MATRIX* m){Minit = MatrixCopy(m,Minit);};
-    void setSource (MRI * s){mri_source = s;};
-    void setTarget (MRI * t){mri_target = t;};
+    void setSource (MRI * s);
+    void setTarget (MRI * t);
     void setSubsamplesize (int sss){subsamplesize = sss;};
+    void setName(const std::string &n) { name = n;};
+
+    bool isIscale()        {return iscale;};
   
     // compute registration
     std::pair <MATRIX*, double> computeIterativeRegistration( int n=10,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeIterativeRegSat( int n=10,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
     std::pair <MATRIX*, double> computeMultiresRegistration (MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
  
     bool warpSource(const std::string & fname, MATRIX* M = NULL, double is = -1);
+    bool warpSource(MRI* orig, MRI* target, const std::string &fname, MATRIX* M = NULL, double is = -1);
  
     // testing
     void testRobust(const std::string & fname, int testno);
@@ -91,6 +96,9 @@ class Registration
    MRI * getBlur2(MRI* mri);
    bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
    
+   MRI* makeConform(MRI *mri, MRI *out);
+   int findRightSize(MRI *mri, float conform_size);
+   
    MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
    MATRIX* MRIgetZslice(MRI * mri, int slice);
    
@@ -107,13 +115,17 @@ class Registration
    std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);
    void freeGaussianPyramid(std::vector< MRI* >& p);
 
-   // initial registration using pca
+   // tools
+   double getFrobeniusDiff(MATRIX *m1, MATRIX *m2);
+
+   // initial registration using pca DOES NOT WORK!
    MATRIX * initialize_transform(MRI *mri_in, MRI *mri_ref);
    int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L);
    int order_eigenvectors(MATRIX *m_src_evectors, MATRIX *m_dst_evectors);
    MATRIX * compute_pca(MRI *mri_in, MRI *mri_ref);
-   MATRIX * pca_matrix(MATRIX *m_in_evectors, double in_means[3],
-   MATRIX *m_ref_evectors, double ref_means[3]);
+   MATRIX * pca_matrix(MATRIX *m_in_evectors, double in_means[3], MATRIX *m_ref_evectors, double ref_means[3]);
+   
+   
     bool transonly;
     bool rigid;
     bool robust;
@@ -121,6 +133,8 @@ class Registration
     bool iscale;
     int rtype;
     int subsamplesize;
+    std::string name;
+    int debug;
     
     MRI * mri_source;
     MRI * mri_target;

@@ -47,7 +47,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
 // where p is the robust solution and w the used weights
 // Method: iterative reweighted least squares
 {
-   cout << "  Regression::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
+//   cout << "  Regression::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
 
   // constants
   int MAXIT = 100;
@@ -81,7 +81,11 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
   // iteration until we increase the error, we reach maxit or we have no error
   while ( err[count-1] > err[count] && count < MAXIT && err[count] > EPS )
   {
-    // save previous values     
+    // save previous values   (not necessary for first step)  
+    MatrixCopy(p, lastp);
+    MatrixCopy(w, lastw);
+    MatrixCopy(r, lastr);
+
     count++;
     
     //cout << " count: "<< count << endl;
@@ -113,7 +117,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     
    if (wAi == NULL)
   {
-     cerr << "    could not compute pseudo inverse!" << endl;
+     cerr << "    Regression::getRobustEstW  could not compute pseudo inverse!" << endl;
      //cerr << " wa: " << endl ;
       //   MatrixPrintFmt(stdout,"% 2.8f",wAi);
 	//cerr << endl;
@@ -149,14 +153,15 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     }
     err[count] = swr/sw;
     
-    //cout << " Step: " << count-1 << " ERR: "<< err[count]<< endl;
-    //cout << " p  : "<< endl;
-    //MatrixPrintFmt(stdout,"% 2.8f",p);
-    //cout << endl;
+//    cout << " Step: " << count-1 << " ERR: "<< err[count]<< endl;
+//    cout << " p  : "<< endl;
+//    MatrixPrintFmt(stdout,"% 2.8f",p);
+//    cout << endl;
        
-    MatrixCopy(p, lastp);
-    MatrixCopy(w, lastw);
-    MatrixCopy(r, lastr);
+   // do not save values here, to be able to use lastp when exiting earlier due to increasing error
+   // MatrixCopy(p, lastp);
+   // MatrixCopy(w, lastw);
+   // MatrixCopy(r, lastr);
     
   }
   
@@ -168,13 +173,13 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     MatrixFree(&w);
     p = lastp;
     w = lastw;
-    cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
+//    cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
   }
   else
   {
     MatrixFree(&lastp);
     MatrixFree(&lastw);
-    cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
+//    cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
   } 
   
   MatrixFree(&lastr);
@@ -183,6 +188,9 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
   MatrixFree(&wr);
   MatrixFree(&wAi);
   MatrixFree(&v);
+
+//    cout << " p-final  : "<< endl;
+//    MatrixPrintFmt(stdout,"% 2.8f",p);
   
   return pair < MATRIX*, MATRIX*> (p,w);
 
@@ -195,7 +203,7 @@ MATRIX* Regression::getLSEst(MATRIX* outX)
   MATRIX* Ai = MatrixSVDPseudoInverse(A,NULL);
   if (Ai == NULL)
   {
-     cerr << "    could not compute pseudo inverse!" << endl;
+     cerr << "    Regression::getLSEst   could not compute pseudo inverse!" << endl;
      //cerr << "    A: " << endl ;
      //MatrixPrintFmt(stdout,"% 2.8f",A);
      //cerr << endl;
@@ -215,7 +223,7 @@ MATRIX* Regression::getLSEst(MATRIX* outX)
       serror += R->rptr[rr][cc] * R->rptr[rr][cc];
     }
   MatrixFree(&R);
-  cout << "     squared error: " << serror << endl;
+//  cout << "     squared error: " << serror << endl;
   
   
   return outX;

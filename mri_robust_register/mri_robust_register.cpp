@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/01/09 19:10:08 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/02/24 18:48:42 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -83,17 +83,18 @@ struct Parameters
   bool   warp;
   string warpout;
   int    subsamplesize;
+  int    debug;
   MRI*   mri_src;
   MRI*   mri_dst;
 };
-static struct Parameters P = { "","","",false,false,false,"",false,-1,SAT,false,"",SSAMPLE,NULL,NULL};
+static struct Parameters P = { "","","",false,false,false,"",false,-1,SAT,false,"",SSAMPLE,0,NULL,NULL};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.2 2009/01/09 19:10:08 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.3 2009/02/24 18:48:42 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -152,7 +153,7 @@ int main(int argc, char *argv[])
 //      FileNameRemoveExtension(foutbase, foutbase) ;
 //       string outfn (foutbase);
 //       outfn += ".mgz";
-      R.warpSource(P.warpout);
+      R.warpSource(P.mri_src,P.mri_dst,P.warpout);
       cout << "To check results, run:" << endl;
       cout << "  tkmedit -f "<< P.dst <<" -aux " << P.warpout << endl;
    }
@@ -461,7 +462,7 @@ static void printUsage(void) {
   cout << "      --sat <float>          set saturation for robust estimator (default "<<SAT<<")" << endl;
   cout << "      --subsample <#>        subsample if dim > # on all axes" << endl;
   cout << "                                (default never subsample)" << endl;
-//  cout << "                                set to -1 to avoid subsampling on all scales" << endl;
+  cout << "      --debug                show debug output (default no debug output)" << endl;
   cout << "  -W, --warp outvol.mgz      apply final xform on source, write to outvol.mgz" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
@@ -574,6 +575,11 @@ static void initRegistration(Registration & R, Parameters & P)
    R.setTransonly(P.transonly);
    R.setRobust(!P.leastsquares);
    R.setSaturation(P.sat);
+   R.setDebug(P.debug);
+   
+   int pos = P.lta.rfind(".");
+   if (pos > 0) R.setName(P.lta.substr(0,pos));
+   else  R.setName(P.lta);
    
    if (P.subsamplesize > 0) R.setSubsamplesize(P.subsamplesize);
 
@@ -702,8 +708,8 @@ static void initRegistration(Registration & R, Parameters & P)
 //      MRIfree(&mri_tmp);
 //   }
 //   assert (mri_src->type == MRI_FLOAT);
-  R.setSource(mri_src);
   P.mri_src = mri_src;
+  R.setSource(mri_src);
 
 
   ///////////  read MRI Target //////////////////////////////////////////////////
@@ -743,15 +749,18 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   char *option ;
 
   option = argv[0] + 1 ;                     // remove '-' 
-  if (option[0] == '-') option = option +1;  // remove '-' 
+  if (option[0] == '-') option = option +1;  // remove second '-' 
   StrUpper(option) ;
-  if (!strcmp(option, "MOV") || *option =='M' )
+  
+  //cout << " option: " << option << endl;
+  
+  if (!strcmp(option, "MOV") ||  !strcmp(option, "M") )
   {
      P.mov = string(argv[1]);
      nargs = 1;
      cout << "Using "<< P.mov << " as movable/source volume." << endl;
   }
-  else if (!strcmp(option, "DST") || *option =='D' )
+  else if (!strcmp(option, "DST") || !strcmp(option, "D") )
   {
      P.dst = string(argv[1]);
      nargs = 1;
@@ -763,12 +772,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      nargs = 1;
      cout << "Output transform as "<< P.lta << " . " << endl;
   }
-  else if (!strcmp(option, "AFFINE") || *option =='A' )
+  else if (!strcmp(option, "AFFINE") || !strcmp(option, "A") )
   {
      P.affine = true;
      cout << "Enableing affine transform!" << endl;
   }
-  else if (!strcmp(option, "ISCALE") || *option =='I' )
+  else if (!strcmp(option, "ISCALE") || !strcmp(option, "I") )
   {
      P.iscale = true;
      cout << "Enableing intensity scaling!" << endl;
@@ -778,18 +787,18 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      P.transonly = true;
      cout << "Using only translation!" << endl;
   }
-  else if (!strcmp(option, "TRANSFORM") || *option =='T' )
+  else if (!strcmp(option, "TRANSFORM") || !strcmp(option, "T") )
   {
      P.transform = string(argv[1]);
      nargs = 1;
      cout << "Using previously computed initial transform: "<< argv[1] << endl;
   }
-  else if (!strcmp(option, "LEASTSQUARES") || *option =='L'  )
+  else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L")  )
   {
      P.leastsquares = true;
      cout << "Using standard least squares (non-robust)!" << endl;
   }
-  else if (!strcmp(option, "ITERATE") || *option =='N' )
+  else if (!strcmp(option, "ITERATE") || !strcmp(option, "N") )
   {
        P.iterate = atoi(argv[1]);
        nargs = 1 ;
@@ -808,7 +817,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      if (P.subsamplesize >= 0) cout << "Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
      else cout << "Will not subsample on any scale!" << endl;
   }
-  else if (!strcmp(option, "WARP") || *option =='W' )
+  else if (!strcmp(option, "DEBUG") )
+  {
+     P.debug = 1;
+     nargs = 0 ;
+     cout << "Will output debug info and files!" << endl;
+  }
+  else if (!strcmp(option, "WARP") || !strcmp(option, "W") )
   {
      P.warp = true;
      P.warpout = string(argv[1]);
@@ -817,6 +832,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "TEST"))
   {
+     cout << " TEST-MODE " << endl;
      Registration R;
      R.testRobust(argv[2], atoi(argv[1]));
      nargs = 2 ;
