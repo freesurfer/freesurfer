@@ -22,6 +22,7 @@ cor_to_minc \
 cp-dicom \
 datastruct_utils.py \
 dcmdir-info-mgh \
+dcmunpack \
 deface_subject \
 defect-seg \
 dicom-rename \
