@@ -1,0 +1,682 @@
+#!/bin/tcsh -f
+# dcmunpack
+# 
+
+set VERSION = '$Id: dcmunpack,v 1.1 2009/02/26 21:51:16 greve Exp $';
+
+set SeriesInfo = ();
+
+set DoUnpack = 0;
+set TargetDir = ();
+set SrcDirList = ();
+set SrcPre = ();
+set SrcPat = ();
+set SrcExt = ();
+set FSFAST = 1;
+set DoInfoDump = 1;
+set DoConvert = 1;
+set DoCopy = 0;
+set OnePerDir = 0;
+set MGHDCM = 0;
+
+set RunNos = ();
+set SubDirs = ();
+set Formats = ();
+set FNames = ();
+set NSkips = ();
+
+set DoFIPS = 0;
+set Project = ();
+set Site = ();
+set BIRNID = ();
+set VisitNo = ();
+set RunPars = ();
+
+set inputargs = ("$argv");
+set PrintHelp = 0;
+set LF = ();
+
+if($#argv == 0) goto usage_exit;
+set n = `echo "$argv" | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo "$argv" | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# Create target dir, if necessary
+if($#TargetDir) mkdir -p $TargetDir
+
+# Create the log file
+if($#LF == 0) then
+  if($#TargetDir) then
+    set LF = $TargetDir/dcmunpack.log
+    rm -f $LF
+  else
+    set LF = /dev/null
+  endif
+endif
+
+# Start populating the log file
+echo $0 >> $LF
+ls -l $0 >> $LF
+echo "$inputargs" >> $LF
+echo $VERSION >> $LF
+uname -a >> $LF
+date >> $LF
+
+if($OnePerDir) then
+  # This creates a list of all the subdirs in the tree 
+  set SrcDirList2 = (`find $d -type d`);
+else
+  set SrcDirList2 = ($SrcDirList)
+endif
+
+echo "Searching for matching files" | tee -a $LF
+date | tee -a $LF
+set flist = ();
+foreach d ($SrcDirList2)
+  echo "Searching $d" >> $LF
+  if($#SrcPre || $#SrcPat || $#SrcExt) then
+    set flist0 = (`find $d -name "$SrcPre*$SrcPat*$SrcExt"`)
+  else
+    set flist0 = (`find $d`)
+  endif
+  if($OnePerDir && $#flist0 > 0) then
+    set flist0 = ($flist0[1]);
+  endif
+  set flist = ($flist $flist0);
+end
+
+date | tee -a $LF
+
+echo "Found $#flist total files." | tee -a $LF
+if($#flist == 0) then
+  echo "ERROR: did not find any files"| tee -a $LF
+  exit 1;
+endif
+if($#flist > 100) then
+  echo "  Interrogating each and every one of them."
+  echo "  Be patient." 
+endif
+
+# Go through each file, create an info dump, extract params. 
+# This can be slow, esp for GE. In that case, try using the
+# -one-per-dir functionality with -ext, -pat, and/or -pre.
+if($#TargetDir) then
+  set infofile = $TargetDir/imagelist.dat
+else
+  set infofile = /tmp/dcmdir-all.$$
+endif
+set dumpfile = /tmp/dcmunpack.dump.$$
+rm -f $dumpfile $infofile
+@ nth = 0;
+foreach f ($flist)
+  @ nth = $nth + 1;
+  set filetype = `mri_probedicom --i $f --d filetype`
+  if($filetype == notdicom) continue;
+  echo "#@# $nth/$#flist `date`" >>& $LF
+
+  mri_probedicom --i $f >& $dumpfile
+  if($status) then
+    cat $dumpfile | tee -a $LF
+    exit 1;
+  endif
+
+  set SeriesNo  = `cat $dumpfile | awk '{if($1 == "SeriesNo") print $2}'`
+  if($status) then
+    echo "ERROR: cannot find series number in $dumpfile" | tee -a $LF
+    exit 1;
+  endif
+
+  set Patient = (`cat $dumpfile | awk '{if($1 == "PatientName") print $2}'`)
+  if($#Patient == 0) set Patient = 'unknown'
+  set Date  = (`cat $dumpfile | awk '{if($1 == "StudyDate") print $2}'`)
+  if($#Date == 0) set Date = 'unknown';
+  set Time  = (`cat $dumpfile | awk '{if($1 == "StudyTime") print $2}'`)
+  if($#Time == 0) set Time = 'unknown';
+
+  set EchoTime = (`cat $dumpfile | awk '{if($1 == "EchoTime") print $2}'`)
+  if($#EchoTime == 0) set EchoTime = 'unknown';
+  set TR  = (`cat $dumpfile | awk '{if($1 == "RepetitionTime") print $2}'`)
+  if($#TR == 0) set TR= 'unknown';
+  set FlipAngle  = (`cat $dumpfile | awk '{if($1 == "FlipAngle") print $2}'`)
+  if($#FlipAngle == 0) set FlipAngle = 'unknown';
+  #------------------------------------------------------------------------#
+  # Special case for PixSpace. Found a file where pixel spacing had some funny
+  # binary character in it, and it messed everything up
+  set PixSpace  = (`cat $dumpfile | awk '{if($1 == "PixelSpacing") print $2}' | strings`)
+  echo $PixSpace > /tmp/ps.$$.dat
+  set PixSpace = (`cat /tmp/ps.$$.dat`)
+  rm /tmp/ps.$$.dat
+  if($#PixSpace == 0) set PixSpace = 'unknown';
+  #------------------------------------------------------------------------#
+  set PhaseEncDir  = (`cat $dumpfile | awk '{if($1 == "PhaseEncDir") print $2}'`)
+  if($#PhaseEncDir == 0) set PhaseEncDir = 'unknown';
+  set PixFreq  = (`cat $dumpfile | awk '{if($1 == "PixelFrequency") print $2}'`)
+  if($#PixFreq == 0) set PixFreq = 'unknown';
+
+  echo "$Patient $SeriesNo $Date $Time $EchoTime $TR $FlipAngle $PixSpace $PhaseEncDir $PixFreq $f" >> $infofile
+
+end
+rm -f $dumpfile
+
+set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
+echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
+
+# Print out one line for each series:
+if($#SeriesInfo == 0) then
+  if($#TargetDir) then
+    set SeriesInfo = $TargetDir/series-info.dat
+  else
+    set SeriesInfo = /tmp/series-info.dat
+  endif
+endif
+rm -f $SeriesInfo
+foreach series ($SeriesNos)
+  set r = `cat $infofile | awk -v s=$series '{if($2 == s) print $0;if($2 == s) exit;}'`;
+  if($#r != 11) then
+    echo $r
+    continue;
+  endif
+  set f = $r[$#r];
+  set descr = (`mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'`)
+  echo $r[2] $descr $r[5-11] | tee -a $SeriesInfo
+end
+
+# If no runs have been specified, then just exit
+if($#RunNos == 0) then
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+  date | tee -a $LF
+  echo "dcmunpack done" | tee -a $LF
+  exit 0;
+endif
+
+# Unpack ---------------------------------------------------------
+
+# Make sure all runs are represented
+foreach run ($RunNos)
+  set ok = 0;
+  foreach series ($SeriesNos)
+    if($run == $series) then
+      set ok = 1;
+      break;
+    endif
+  end
+  if(! $ok) then
+    echo "ERROR: could not find run $run in data" | tee -a $LF
+    exit 1;
+  endif
+end
+
+# ------------------ Unpack --------------------------
+@ nth = 0;
+foreach run ($RunNos)
+  @ nth = $nth + 1;
+
+  if($DoFIPS == 0) then
+    set SubDir = $SubDirs[$nth];
+    set Format = $Formats[$nth];
+    set FName  = $FNames[$nth];
+  else
+    set fipsPar = $RunPars[$nth];
+    set fipsRun = $RunParNos[$nth];
+    set SubDir = $fipsPar;
+    set Format = "nii.gz"
+    set FName = f;
+  endif
+  set NSkip = $NSkips[$nth];
+
+  if($FSFAST) then
+    set rundir = `printf %03d $run`
+  else
+    set rundir = ();
+  endif
+
+  set outdir = $TargetDir/$SubDir/$rundir
+  mkdir -p $outdir
+
+  if($DoConvert) then
+    set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
+    set outfname = $outdir/$FName.$Format
+    mri_convert $f $outfname --nskip $NSkip |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  if($DoCopy) then
+    set flist = (`cat $infofile | awk -v r=$run '{if($2 == r) print $11}'`);
+    foreach f ($flist)
+      cp $f $outdir |& tee -a $LF
+      if($status) exit 1;
+    end
+  endif
+
+  if($DoInfoDump) then
+    set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
+    set dumpfile = $outdir/$FName-infodump.dat
+    mri_probedicom --i $f > $dumpfile |& tee -a $LF
+    if($status) then
+      cat $dumpfile | tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  if($DoFIPS) then
+    set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
+    # Get full path 
+    set fd = `dirname $f`;
+    pushd $fd > /dev/null
+    set fd = `pwd`
+    popd > /dev/null
+    set f = $fd/`basename $f`;
+    # Create XML File
+    set cmd = (fips-set --def-template --project $Project --site $Site \
+      --birnid $BIRNID  --visit $VisitNo  --studyname MRI --studyid 001 \
+      --disacqs $NSkip --datafile $f --run $fipsRun --paradigm $fipsPar \
+      --dicom-date --o $outdir/fips-process.xml)
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+end
+
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+date | tee -a $LF
+echo "dcmunpack done" | tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-targ":
+      if($#argv < 1) goto arg1err;
+      set TargetDir = "$argv[1]"; shift;
+      set DoUnpack = 1;
+      breaksw
+
+    case "-pre":
+      if($#argv < 1) goto arg1err;
+      set SrcPre = "$argv[1]"; shift;
+      breaksw
+
+    case "-pat":
+      if($#argv < 1) goto arg1err;
+      set SrcPat = "$argv[1]"; shift;
+      breaksw
+
+    case "-ext":
+      if($#argv < 1) goto arg1err;
+      set SrcExt = "$argv[1]"; shift;
+      breaksw
+
+    case "-src":
+    case "-d":
+      if($#argv < 1) goto arg1err;
+      set d = "$argv[1]"; shift;
+      if(! -e $d) then
+        echo "ERROR: cannot find $d"
+        exit 1;
+      endif
+      if(! -r $d) then
+        echo "ERROR: $d exists but is not readable"
+        exit 1;
+      endif
+      set SrcDirList = ($SrcDirList $d);
+      breaksw
+
+    case "-run":
+      if($#argv < 4) goto arg4err;
+      set RunNo = "$argv[1]"; shift;
+      set RunNos = ($RunNos $RunNo); 
+      set SubDir = "$argv[1]"; shift;
+      set SubDirs = ($SubDirs $SubDir);
+      set Format = "$argv[1]"; shift;
+      if($Format != nii && $Format != nii.gz &&\
+         $Format != img &&\
+         $Format != mgh && $Format != mgz) then
+        echo "ERROR: format $Format not recoginzed"
+        echo "Valid values are nii, nii.gz, mgh, and mgz"
+        exit 1;
+      endif
+      set Formats = ($Formats $Format);
+      set FName = "$argv[1]"; shift;
+      # Strip extension from FName, if there
+      fname2stem $FName >& /dev/null
+      if($status == 0) set FName = `fname2stem $FName`;
+      set FNames = ($FNames $FName);
+      # Optional last argument is nskip
+      set NSkip = 0;
+      if($#argv != 0) then
+        set tmp = $argv[1];
+        set c = `echo $tmp | cut -c 1`
+        if("$c" != "-") then
+          set NSkip = $argv[1]; shift;
+        endif
+      endif
+      set NSkips = ($NSkips $NSkip)
+      set DoUnpack = 1;
+      breaksw
+
+    case "-fips":
+      if($#argv < 4) goto arg4err;
+      set Project = "$argv[1]"; shift;
+      set Site = "$argv[1]"; shift;
+      set BIRNID = "$argv[1]"; shift;
+      set VisitNo = "$argv[1]"; shift;
+      set DoUnpack = 1;
+      set DoFIPS = 1;
+      breaksw
+
+    case "-fips-run":
+      if($#argv < 2) goto arg2err;
+      set RunNo = "$argv[1]"; shift;
+      set RunNos = ($RunNos $RunNo); 
+      set RunPar = "$argv[1]"; shift;
+      set RunPars = ($RunPars $RunPar); 
+      # Optional last argument is nskip
+      set NSkip = 0;
+      if($#argv != 0) then
+        set tmp = $argv[1];
+        set c = `echo $tmp | cut -c 1`
+        if("$c" != "-") then
+          set NSkip = $argv[1]; shift;
+        endif
+      endif
+      set NSkips = ($NSkips $NSkip)
+      set DoUnpack = 1;
+      set DoFIPS = 1;
+      breaksw
+
+    case "-no-convert":
+    case "-xml-only":
+      set DoConvert = 0;
+      breaksw
+
+    case "-copy-only":
+      set DoConvert = 0;
+      set DoCopy = 1;
+      breaksw
+
+    case "-generic":
+      set FSFAST = 0;
+      breaksw
+
+    case "-fsfast":
+      set FSFAST = 1;
+      breaksw
+
+    case "-noinfodump":
+    case "-no-infodump":
+      set DoInfoDump = 0;
+      breaksw
+
+    case "-log":
+      if($#argv < 1) goto arg1err;
+      set LF = "$argv[1]"; shift;
+      breaksw
+
+    case "-series":
+      if($#argv < 1) goto arg1err;
+      set SeriesInfo = "$argv[1]"; shift;
+      breaksw
+
+    case "-one-per-dir":
+      set OnePerDir = 1;
+      breaksw
+
+    case "-bourget":
+      set SrcExt = "1.dcm"
+      breaksw
+
+    case "-one":
+      set SrcExt = ".dcm";
+      set OnePerDir = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#SrcDirList == 0) then
+  echo "ERROR: must specify an list of input directories"
+  exit 1;
+endif
+
+if($OnePerDir && $#SrcPre == 0 && $#SrcPat == 0 && $#SrcExt == 0) then
+  echo "ERROR: must spec -pre, -pat, and/or -ext with -one-per-dir"
+  exit 1;
+endif
+
+if($DoUnpack) then
+  if($#TargetDir == 0) then
+    echo "ERROR: need target directory"
+    exit 1;
+  endif
+  if($#RunNos == 0) then
+    echo "ERROR: need input runs"
+    exit 1;
+  endif
+  if($DoFIPS) then
+    if($#Project == 0) then
+      echo "ERROR: need project, etc, with FIPS"
+      exit 1;
+    endif
+    if($#SubDirs != 0) then
+      echo "ERROR: cannot spec -fips-run and -run"
+      exit 1;
+    endif
+    # Sort the list of run numbers in ascending order and get
+    # the run-within-paraidgm number
+    set tmp = /tmp/dcmdir.$$.tmp
+    set tmp = /tmp/dcmdir.tmp
+    rm -f $tmp
+    @ nth = 0;
+    foreach run ($RunNos)  
+      @ nth = $nth + 1;
+      echo "$run $RunPars[$nth]" >> $tmp
+    end
+    set Pars = `cat $tmp | sort -k 2 | awk '{print $2}' | uniq`
+    echo "Pars $Pars"
+    set tmp2 = $tmp.2
+    rm -f $tmp2
+    foreach p ($Pars)
+      set tmpRunNos  = `cat $tmp | awk -v p=$p '{if($2 == p) print $1}' | sort -n`
+      @ nth = 0;
+      foreach run ($tmpRunNos)  
+        @ nth = $nth + 1;
+        echo "$run $p $nth" >> $tmp2
+      end
+    end
+    set RunNos  = `cat $tmp2 | awk '{print $1}'`
+    set RunPars = `cat $tmp2 | awk '{print $2}'`
+    set RunParNos = `cat $tmp2 | awk '{print $3}'`
+    rm -f $tmp $tmp2
+  endif
+  # Make sure no runs specified twice
+  foreach run1 ($RunNos)
+    @ n = 0;
+    foreach run2 ($RunNos)
+      if($run1 == $run2) @ n = $n + 1;
+    end
+    if($n > 1) then
+      echo "ERROR: run $run1 is specified multiple times"
+      exit 1;
+    endif
+  end
+
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg4err:
+  echo "ERROR: flag $flag requires four arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "dcmunpack"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -src dcmdir <-src dcmdir>"
+  echo ""
+  echo "Other Arguments"
+  echo "   -targ targetdir"
+  echo "   -run run subdir format stemname <nskip>"
+  echo "   -one-per-dir : assume that there is only one dicom series in each subdir"
+  echo "   -bourget : assume mgh-bourget file anmes (same as -ext 1.dcm"
+  echo "   -ext extension : input extension (eg, dcm)"
+  echo "   -pre prefix : input prefix (ie, input file name init string)"
+  echo "   -pat pattern : input pattern (ie, string that occurs in the middle of file name)"
+  echo "   -no-infodump : do not create infodump.dat"
+  echo "   -generic : do not use fs-fast hierarchy"
+  echo "   -copy-only"
+  echo "   -no-convert : do not convert to output format"
+  echo ""
+  echo "   -fips project site birnid visit"
+  echo "   -fips-run run paradigm <nskip>"
+  echo "   -xml-only : for fips, only create xml file, do not convert to output"
+  echo ""
+  echo "   -log logfile"
+  echo "   -debug"
+  echo "   -help"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Sorts and converts a directory of Siemens or GE DICOM files into an
+output hierarchy with nifti (nii), mgh, mgz, or analyze output formats
+(will not create a series of 3D SPM files). This will recursively
+search through all the subdirectories of the source directory. To a
+large extent, this replaces unpacksdcmdir (the Siemens-only unpacker)
+and will take most of its command-line arguments.
+
+-src dcmdir <-src dcmdir>
+
+Dicom source directory. You can specify more than one. If you just specify
+a source directory, it will give a summary of what it finds (like -scanonly 
+did for unpacksdcmdir). You should still give it -one-per-dir or -bourget
+if applicable.
+
+-targ targetdir
+
+Output directory.
+
+-run run subdir format stemname <nskip>
+
+Specify unpacking rules for a given run (series), subdir is the
+subdirectory under the target dir, format is the format extension
+(nii, mgh, mgz, img), stemname is the base file name, and nskip is the
+number of time points to skip (optional, good for some fMRI). The
+output file will be targetdir/subdir/RRR/fname.format if using the
+FSFAST output hierarchy (the default) or targetdir/subdir/fname.format
+with -generic, where RRR is the 3-digit, zero-padded run number. Eg,
+"-run 3 bold nii f" would become targetdir/bold/003/f.nii in fsfast or
+targetdir/bold/f.nii in generic. If the stemname has an extension, 
+that extension is ignored.
+
+-one-per-dir
+
+Assume that the source directory (or subdirctory) contains only one
+series.  This is usually the case for GE, and this can speed things up
+tremendously.
+
+-bourget
+
+Assume that the DICOM file names have the form produced at MGH when
+you "push something to bourget" from the scanner, namely that each
+series will have one file that ends in "1.dcm", eg
+397000-000007-000001.dcm.  This can speed things up considerably.
+
+-no-infodump
+
+Do not create the fname-infodump.dat file
+
+-generic
+
+Do not use FSFAST higherarcy.
+
+-no-convert
+
+Do not actually run mri_convert
+
+-copy-only
+
+Only copy dicom files to output directory (implies -no-convert)
+
+RELATIONSHIP TO UNPACKSDCMDIR
+
+unpacksdcmdir is the Siemens-only unpacker. dcmunpack will take the
+same command-line arguments except: -cfg, -seqcfg, -nspmzeropad,
+-no-unpackerr (it unpacks everything), and -scanonly (you can still
+get a scanonly-like summary of the data). dcmunpack does not accept
+SPM as an output format. The seq.info file is not created (it is not
+needed for newer versions of FSFAST).  These features can be
+programmed, I just have not gotten around to it. Unlike unpacksdcmdir,
+dcmunpack searches subdirectories and can unpack GE data.
+
+
+
+
+
+
+
+
+
