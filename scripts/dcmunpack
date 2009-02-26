@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.3 2009/02/26 22:46:41 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.4 2009/02/26 23:45:51 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -75,6 +75,13 @@ echo "$inputargs" >> $LF
 echo $VERSION >> $LF
 uname -a >> $LF
 date >> $LF
+
+# Print out a summary
+@ nth = 0;
+foreach run ($RunNos)  
+  @ nth = $nth + 1;
+  echo "$run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]" | tee -a $LF
+end
 
 if($OnePerDir) then
   # This creates a list of all the subdirs in the tree 
@@ -528,7 +535,6 @@ if($DoUnpack) then
     # Sort the list of run numbers in ascending order and get
     # the run-within-paraidgm number
     set tmp = /tmp/dcmdir.$$.tmp
-    set tmp = dcmdir.tmp
     rm -f $tmp
     @ nth = 0;
     foreach run ($RunNos)  
@@ -557,13 +563,6 @@ if($DoUnpack) then
       echo "ERROR: run $run1 is specified multiple times"
       exit 1;
     endif
-  end
-
-  # Print out a summary
-  @ nth = 0;
-  foreach run ($RunNos)  
-    @ nth = $nth + 1;
-    echo "$run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]"
   end
 
 endif
