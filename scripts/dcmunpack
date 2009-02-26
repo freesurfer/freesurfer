@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.1 2009/02/26 21:51:16 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.2 2009/02/26 22:45:47 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -24,6 +24,7 @@ set SubDirs = ();
 set Formats = ();
 set FNames = ();
 set NSkips = ();
+set NDrops = ();
 
 set DoFIPS = 0;
 set Project = ();
@@ -237,6 +238,7 @@ foreach run ($RunNos)
     set FName = f;
   endif
   set NSkip = $NSkips[$nth];
+  set NDrop = $NDrops[$nth];
 
   if($FSFAST) then
     set rundir = `printf %03d $run`
@@ -250,7 +252,7 @@ foreach run ($RunNos)
   if($DoConvert) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set outfname = $outdir/$FName.$Format
-    mri_convert $f $outfname --nskip $NSkip |& tee -a $LF
+    mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop |& tee -a $LF
     if($status) exit 1;
   endif
 
@@ -283,8 +285,9 @@ foreach run ($RunNos)
     # Create XML File
     set cmd = (fips-set --def-template --project $Project --site $Site \
       --birnid $BIRNID  --visit $VisitNo  --studyname MRI --studyid 001 \
-      --disacqs $NSkip --datafile $f --run $fipsRun --paradigm $fipsPar \
+      --datafile $f --run $fipsRun --paradigm $fipsPar \
       --dicom-date --o $outdir/fips-process.xml)
+    # Note: dont put --disacqs because they have been deleted above
     $cmd | tee -a $LF
     if($status) exit 1;
   endif
@@ -365,7 +368,7 @@ while( $#argv != 0 )
       fname2stem $FName >& /dev/null
       if($status == 0) set FName = `fname2stem $FName`;
       set FNames = ($FNames $FName);
-      # Optional last argument is nskip
+      # Optional next argument is nskip
       set NSkip = 0;
       if($#argv != 0) then
         set tmp = $argv[1];
@@ -375,6 +378,16 @@ while( $#argv != 0 )
         endif
       endif
       set NSkips = ($NSkips $NSkip)
+      # Optional next argument is ndrop
+      set NDrop = 0;
+      if($#argv != 0) then
+        set tmp = $argv[1];
+        set c = `echo $tmp | cut -c 1`
+        if("$c" != "-") then
+          set NDrop = $argv[1]; shift;
+        endif
+      endif
+      set NDrops = ($NDrops $NDrop)
       set DoUnpack = 1;
       breaksw
 
@@ -394,7 +407,7 @@ while( $#argv != 0 )
       set RunNos = ($RunNos $RunNo); 
       set RunPar = "$argv[1]"; shift;
       set RunPars = ($RunPars $RunPar); 
-      # Optional last argument is nskip
+      # Optional next argument is nskip
       set NSkip = 0;
       if($#argv != 0) then
         set tmp = $argv[1];
@@ -404,6 +417,16 @@ while( $#argv != 0 )
         endif
       endif
       set NSkips = ($NSkips $NSkip)
+      # Optional next argument is ndrop
+      set NDrop = 0;
+      if($#argv != 0) then
+        set tmp = $argv[1];
+        set c = `echo $tmp | cut -c 1`
+        if("$c" != "-") then
+          set NDrop = $argv[1]; shift;
+        endif
+      endif
+      set NDrops = ($NDrops $NDrop)
       set DoUnpack = 1;
       set DoFIPS = 1;
       breaksw
@@ -505,30 +528,25 @@ if($DoUnpack) then
     # Sort the list of run numbers in ascending order and get
     # the run-within-paraidgm number
     set tmp = /tmp/dcmdir.$$.tmp
-    set tmp = /tmp/dcmdir.tmp
+    set tmp = dcmdir.tmp
     rm -f $tmp
     @ nth = 0;
     foreach run ($RunNos)  
       @ nth = $nth + 1;
-      echo "$run $RunPars[$nth]" >> $tmp
+      echo "    $run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]" >> $tmp
     end
-    set Pars = `cat $tmp | sort -k 2 | awk '{print $2}' | uniq`
-    echo "Pars $Pars"
     set tmp2 = $tmp.2
     rm -f $tmp2
-    foreach p ($Pars)
-      set tmpRunNos  = `cat $tmp | awk -v p=$p '{if($2 == p) print $1}' | sort -n`
-      @ nth = 0;
-      foreach run ($tmpRunNos)  
-        @ nth = $nth + 1;
-        echo "$run $p $nth" >> $tmp2
-      end
-    end
+    cat $tmp | sort -k 2 | \
+       awk 'BEGIN{p=0;n=0}{if($2==p)n++;if($2!=p) n=1; print $0" "n; p=$2}' > $tmp2
     set RunNos  = `cat $tmp2 | awk '{print $1}'`
     set RunPars = `cat $tmp2 | awk '{print $2}'`
-    set RunParNos = `cat $tmp2 | awk '{print $3}'`
+    set NSkips  = `cat $tmp2 | awk '{print $3}'`
+    set NDrops  = `cat $tmp2 | awk '{print $4}'`
+    set RunParNos = `cat $tmp2 | awk '{print $5}'`
     rm -f $tmp $tmp2
   endif
+
   # Make sure no runs specified twice
   foreach run1 ($RunNos)
     @ n = 0;
@@ -540,6 +558,15 @@ if($DoUnpack) then
       exit 1;
     endif
   end
+
+  # Print out a summary
+  @ nth = 0;
+  foreach run ($RunNos)  
+    @ nth = $nth + 1;
+    echo "$run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]"
+  end
+
+exit
 
 endif
 
@@ -569,7 +596,7 @@ usage_exit:
   echo ""
   echo "Other Arguments"
   echo "   -targ targetdir"
-  echo "   -run run subdir format stemname <nskip>"
+  echo "   -run run subdir format stemname <<nskip> ndrop>"
   echo "   -one-per-dir : assume that there is only one dicom series in each subdir"
   echo "   -bourget : assume mgh-bourget file anmes (same as -ext 1.dcm"
   echo "   -ext extension : input extension (eg, dcm)"
@@ -581,7 +608,7 @@ usage_exit:
   echo "   -no-convert : do not convert to output format"
   echo ""
   echo "   -fips project site birnid visit"
-  echo "   -fips-run run paradigm <nskip>"
+  echo "   -fips-run run paradigm <<nskip> ndrop>"
   echo "   -xml-only : for fips, only create xml file, do not convert to output"
   echo ""
   echo "   -log logfile"
@@ -619,22 +646,23 @@ if applicable.
 
 Output directory.
 
--run run subdir format stemname <nskip>
+-run run subdir format stemname <<nskip> ndrop>
 
 Specify unpacking rules for a given run (series), subdir is the
 subdirectory under the target dir, format is the format extension
-(nii, mgh, mgz, img), stemname is the base file name, and nskip is the
-number of time points to skip (optional, good for some fMRI). The
-output file will be targetdir/subdir/RRR/fname.format if using the
-FSFAST output hierarchy (the default) or targetdir/subdir/fname.format
-with -generic, where RRR is the 3-digit, zero-padded run number. Eg,
-"-run 3 bold nii f" would become targetdir/bold/003/f.nii in fsfast or
-targetdir/bold/f.nii in generic. If the stemname has an extension, 
+(nii, mgh, mgz, img), stemname is the base file name, nskip is the
+number of time points to skip (optional, good for some fMRI), and
+ndrop is the number of time points to drop from the end. The output
+file will be targetdir/subdir/RRR/fname.format if using the FSFAST
+output hierarchy (the default) or targetdir/subdir/fname.format with
+-generic, where RRR is the 3-digit, zero-padded run number. Eg, "-run
+3 bold nii f" would become targetdir/bold/003/f.nii in fsfast or
+targetdir/bold/f.nii in generic. If the stemname has an extension,
 that extension is ignored.
 
 -one-per-dir
 
-Assume that the source directory (or subdirctory) contains only one
+Assume that the source directory (or subdirectory) contains only one
 series.  This is usually the case for GE, and this can speed things up
 tremendously.
 
@@ -651,7 +679,7 @@ Do not create the fname-infodump.dat file
 
 -generic
 
-Do not use FSFAST higherarcy.
+Do not use FSFAST hierarchy.
 
 -no-convert
 
