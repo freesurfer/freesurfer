@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 01:36:06 $
- *    $Revision: 1.59 $
+ *    $Date: 2009/02/26 17:59:12 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.59 2009/01/15 01:36:06 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.60 2009/02/26 17:59:12 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -94,7 +94,7 @@ static int nsmooth = 0;
 static char *white_name = "white" ;
 static char *pial_name = "pial" ;
 
-#define MAX_INDICES 1000
+#define MAX_INDICES 50000
 int
 main(int argc, char *argv[])
 {
@@ -115,7 +115,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.59 2009/01/15 01:36:06 greve Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.60 2009/02/26 17:59:12 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -368,6 +368,10 @@ main(int argc, char *argv[])
       v = &mris->vertices[vno] ;
       CTABfindAnnotation(mris->ct, v->annotation,&index);
       v->marked = index ;
+      if(index >= MAX_INDICES){
+	printf("ERROR: index = %d > MAX_INDICES = %d\n",index,MAX_INDICES);
+	exit(1);
+      }
       names[index] = mris->ct->entries[index]->name ;
     }
   }
