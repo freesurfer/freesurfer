@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.2 2009/02/26 22:45:47 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.3 2009/02/26 22:46:41 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -565,8 +565,6 @@ if($DoUnpack) then
     @ nth = $nth + 1;
     echo "$run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]"
   end
-
-exit
 
 endif
 
