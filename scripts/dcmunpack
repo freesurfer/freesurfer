@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.4 2009/02/26 23:45:51 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.5 2009/02/27 00:14:51 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -77,11 +77,17 @@ uname -a >> $LF
 date >> $LF
 
 # Print out a summary
+echo "---------------------------------------" | tee -a $LF
 @ nth = 0;
 foreach run ($RunNos)  
   @ nth = $nth + 1;
-  echo "$run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]" | tee -a $LF
+  if(! $DoFIPS) then
+    echo "  $nth $run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]" | tee -a $LF
+  else
+    echo "  $nth $run $RunPars[$nth] $RunParNos[$nth] $NSkips[$nth] $NDrops[$nth]" | tee -a $LF
+  endif
 end
+echo "---------------------------------------" | tee -a $LF
 
 if($OnePerDir) then
   # This creates a list of all the subdirs in the tree 
@@ -535,22 +541,30 @@ if($DoUnpack) then
     # Sort the list of run numbers in ascending order and get
     # the run-within-paraidgm number
     set tmp = /tmp/dcmdir.$$.tmp
+    #set tmp = dcmdir.tmp
     rm -f $tmp
     @ nth = 0;
     foreach run ($RunNos)  
       @ nth = $nth + 1;
       echo "    $run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]" >> $tmp
     end
+    # Sort by paradigm
     set tmp2 = $tmp.2
-    rm -f $tmp2
-    cat $tmp | sort -k 2 | \
-       awk 'BEGIN{p=0;n=0}{if($2==p)n++;if($2!=p) n=1; print $0" "n; p=$2}' > $tmp2
-    set RunNos  = `cat $tmp2 | awk '{print $1}'`
-    set RunPars = `cat $tmp2 | awk '{print $2}'`
-    set NSkips  = `cat $tmp2 | awk '{print $3}'`
-    set NDrops  = `cat $tmp2 | awk '{print $4}'`
-    set RunParNos = `cat $tmp2 | awk '{print $5}'`
-    rm -f $tmp $tmp2
+    cat $tmp | sort -k 2 > $tmp2
+    # Sort each paradigm by run     
+    set tmp3 = $tmp.3
+    rm -f $tmp3
+    set ParList = (`cat $tmp | awk '{print $2}' | sort | uniq`)
+    foreach par ($ParList)
+      cat $tmp2 | sort -n -k 1 | \
+        awk -v p=$par 'BEGIN{n=1}{if($2 == p) print $0" "n; if($2 == p)n++}'  >> $tmp3
+    end
+    set RunNos  = `cat $tmp3 | awk '{print $1}'`
+    set RunPars = `cat $tmp3 | awk '{print $2}'`
+    set NSkips  = `cat $tmp3 | awk '{print $3}'`
+    set NDrops  = `cat $tmp3 | awk '{print $4}'`
+    set RunParNos = `cat $tmp3 | awk '{print $5}'`
+    rm -f $tmp $tmp2 $tmp3
   endif
 
   # Make sure no runs specified twice
