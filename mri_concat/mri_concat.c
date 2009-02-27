@@ -14,11 +14,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/01/22 16:03:07 $
- *    $Revision: 1.20.2.7 $
+ *    $Author: nicks $
+ *    $Date: 2009/02/27 21:37:15 $
+ *    $Revision: 1.20.2.8 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -58,7 +58,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.20.2.7 2009/01/22 16:03:07 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.20.2.8 2009/02/27 21:37:15 nicks Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -83,6 +83,7 @@ int DoPairedDiffNorm2=0;
 int DoVote=0;
 int DoSort=0;
 int DoCombine=0;
+int DoKeepDatatype=0;
 
 int DoMultiply=0;
 double MultiplyVal=0;
@@ -104,6 +105,7 @@ int main(int argc, char **argv) {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
   int r,c,s,f,nframes,err;
   double v, v1, v2, vavg;
+  int inputDatatype=MRI_UCHAR;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -154,6 +156,7 @@ int main(int argc, char **argv) {
     }
 
     nframestot += mritmp->nframes;
+    inputDatatype = mritmp->type; // used by DoKeepDatatype option
     MRIfree(&mritmp);
   }
 
@@ -185,7 +188,11 @@ int main(int argc, char **argv) {
 
   printf("Allocing output\n");
   fflush(stdout);
-  mriout = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nframestot);
+  int datatype=MRI_FLOAT;
+  if (DoKeepDatatype) {
+    datatype = inputDatatype;
+  }
+  mriout = MRIallocSequence(nc,nr,ns,datatype,nframestot);
   if (mriout == NULL) exit(1);
 
   fout = 0;
@@ -432,6 +439,8 @@ static int parse_commandline(int argc, char **argv) {
       DoPaired = 1;
     } else if (!strcasecmp(option, "--combine")) {
       DoCombine = 1;
+    } else if (!strcasecmp(option, "--keep-datatype")) {
+      DoKeepDatatype = 1;
     } else if ( !strcmp(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       inlist[ninputs] = pargv[0];
@@ -505,6 +514,8 @@ static void print_usage(void) {
   printf("\n");
   printf("   --combine : combine non-zero values into a one-frame volume\n");
   printf("             (useful to combine lh.ribbon.mgz and rh.ribbon.mgz)\n");
+  printf("   --keep-datatype : write output in same datatype as input\n");
+  printf("                    (default is to write output in Float format)\n");
   printf("\n");
   printf("   --abs  : take abs of input\n");
   printf("   --pos  : set input negatives to 0\n");
