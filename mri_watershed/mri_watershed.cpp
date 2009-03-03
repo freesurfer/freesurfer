@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/03 15:17:26 $
- *    $Revision: 1.73 $
+ *    $Date: 2009/03/03 18:49:25 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.73 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.74 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.73 2009/03/03 15:17:26 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.74 2009/03/03 18:49:25 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.73 2009/03/03 15:17:26 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.74 2009/03/03 18:49:25 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1084,7 +1084,7 @@ int main(int argc, char *argv[])
   mri_mask = mri_without_skull ;
 
   //-------------------------------------------------------------------
-  fprintf(stdout,"\n\n******************************\nSave...");
+  fprintf(stdout,"\n\n******************************\nSaving %s\n", out_fname);
   fflush(stdout);
 
   MRIwrite(mri_without_skull,out_fname);
