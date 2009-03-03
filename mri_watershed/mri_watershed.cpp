@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 22:40:49 $
- *    $Revision: 1.72 $
+ *    $Author: fischl $
+ *    $Date: 2009/03/03 15:17:26 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.72 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.73 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.72 2007/11/18 22:40:49 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.73 2009/03/03 15:17:26 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.72 2007/11/18 22:40:49 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.73 2009/03/03 15:17:26 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -951,7 +951,57 @@ int main(int argc, char *argv[])
       parms->hpf=10;
   
   
-    
+
+    if (parms->transform->type != LINEAR_VOX_TO_VOX)
+    {
+      MATRIX *i_to_r=0, *r_to_i=0, *tmpmat=0, *vox2vox;
+      MRI *mri_buf = MRIallocHeader(mri_with_skull->width,
+                                    mri_with_skull->height,
+                                    mri_with_skull->depth,
+                                    mri_with_skull->type);
+      LTA *lta = (LTA *) (parms->transform->xform);
+
+      // modify using the xform dst
+      if (lta->xforms[0].dst.valid)
+      {
+        mri_buf->c_r = lta->xforms[0].dst.c_r;
+        mri_buf->c_a = lta->xforms[0].dst.c_a;
+        mri_buf->c_s = lta->xforms[0].dst.c_s;
+        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+          fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst\n");
+      }
+      // dst invalid
+      else if (getenv("USE_AVERAGE305"))// use average_305 value
+        // (usually ras-to-ras comes from MNI transform)
+      {
+        mri_buf->c_r = -0.095;
+        mri_buf->c_a = -16.51;
+        mri_buf->c_s =   9.75;
+      }
+      MRIcopyHeader(mri_with_skull, mri_buf);
+      
+      /////////////////////////////////////////////////////////////////
+      printf("INFO: original RAS-to-RAS transform\n");
+      MatrixPrint(stdout, lta->xforms[0].m_L);
+      // going from vox->RAS->TalRAS
+      i_to_r = extract_i_to_r(mri_with_skull);
+      tmpmat = MatrixMultiply(lta->xforms[0].m_L, i_to_r, NULL);
+      r_to_i = extract_r_to_i(mri_buf);
+      // going from TalRAS -> voxel
+      vox2vox = MatrixMultiply(r_to_i, tmpmat,NULL );
+      printf("INFO: modified VOX-to-VOX transform\n");
+      MatrixPrint(stdout, vox2vox);
+      // store it
+      MatrixCopy(vox2vox, lta->xforms[0].m_L);
+      // now mark it as vox-to-vox
+      parms->transform->type = LINEAR_VOX_TO_VOX;
+      // free up memory
+      MatrixFree(&r_to_i);
+      MatrixFree(&i_to_r);
+      MatrixFree(&tmpmat);
+      MatrixFree(&vox2vox);
+      GCAreinit(mri_buf, parms->gca);
+    }
     parms->mri_atlas_brain = MRIalloc((parms->gca)->prior_width, 
                                       (parms->gca)->prior_height, 
                                       (parms->gca)->prior_depth, 
