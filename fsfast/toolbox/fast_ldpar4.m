@@ -1,5 +1,5 @@
-function par4 = fast_ldpar4(par4file)
-% par4 = fast_ldpar4(par4file)
+function [par4 strlist] = fast_ldpar4(par4file)
+% [par4 strlist] = fast_ldpar4(par4file)
 %
 % Load par4-formatted paradigm file
 %
@@ -28,8 +28,8 @@ function par4 = fast_ldpar4(par4file)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/24 19:07:04 $
-%    $Revision: 1.5 $
+%    $Date: 2009/03/04 17:56:08 $
+%    $Revision: 1.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -59,6 +59,7 @@ if(fp == -1)
   return;
 end
 
+strlist = '';
 nthrow = 0;
 while(1)
   % scroll through any blank lines or comments 
@@ -107,7 +108,11 @@ while(1)
   % Third column
   item = sscanfitem(tline,3);
   duration = sscanf(item,'%f');
-  if(isempty(duration)) continue; end % 3rd col is a string
+  if(isempty(duration)) 
+    % 3rd col is a string
+    strlist = strvcat(strlist,item);
+    continue; 
+  end 
   par4(nthrow,3) = duration;
   
   if(count < 4) continue; end % Only three cols
@@ -115,7 +120,11 @@ while(1)
   % Fourth column
   item = sscanfitem(tline,4);
   weight = sscanf(item,'%f');
-  if(isempty(weight)) continue; end % 4th col is a string
+  if(isempty(weight)) 
+    % 4th col is a string
+    strlist = strvcat(strlist,item);
+    continue; 
+  end 
   % If it gets here, assume it is the weight
   par4(nthrow,4) = weight;
 
