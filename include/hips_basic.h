@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.3 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,7 +86,7 @@ typedef unsigned short h_ushort;
 typedef unsigned int h_uint;
 typedef float  h_complex[2];
 typedef double  h_dblcom[2];
-typedef char *  Filename;
+typedef const char *  Filename;
 
 union pixelval {
   byte v_byte;

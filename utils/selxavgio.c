@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/25 23:37:58 $
- *    $Revision: 1.8 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:55 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /***************************************************************
   Name:    selxavgio.c
-  $Id: selxavgio.c,v 1.8 2007/05/25 23:37:58 nicks Exp $
+  $Id: selxavgio.c,v 1.9 2009/03/04 19:20:55 mreuter Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -50,7 +50,7 @@ extern int errno;
    sv_sxadat_by_stem() - save selxavg.dat structure using
    volid as base. volid can be either a stem or stem.ext
    ---------------------------------------------------- */
-int sv_sxadat_by_stem(SXADAT *sxadat ,char *volid)
+int sv_sxadat_by_stem(SXADAT *sxadat ,const char *volid)
 {
   char tmpstr[1000];
   int err;
@@ -66,7 +66,7 @@ int sv_sxadat_by_stem(SXADAT *sxadat ,char *volid)
   return(err);
 }
 /* ---------------------------------------------------- */
-SXADAT * ld_sxadat_from_stem(char *volid)
+SXADAT * ld_sxadat_from_stem(const char *volid)
 {
   char tmpstr[1000];
   char *stem;
@@ -113,7 +113,7 @@ float *sxa_framepower(SXADAT *sxa, int *nframes)
 }
 
 /* ---------------------------------------------------- */
-int is_sxa_volume(char *volid)
+int is_sxa_volume(const char *volid)
 {
   char tmpstr[1000];
   FILE *fp;
@@ -135,7 +135,7 @@ int is_sxa_volume(char *volid)
 }
 
 /* ---------------------------------------------------- */
-SXADAT * ld_sxadat(char *sxadatfile)
+SXADAT * ld_sxadat(const char *sxadatfile)
 {
   FILE *fp;
   SXADAT *sxa;
@@ -237,7 +237,7 @@ SXADAT * ld_sxadat(char *sxadatfile)
 }
 
 /* ---------------------------------------------------- */
-int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
+int sv_sxadat(  SXADAT *sxa, const char *sxadatfile )
 {
   FILE *fp;
   int n, r, c, Nch;

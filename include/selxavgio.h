@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.4 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:37 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /***************************************************************
   Name:    selxavgio.h
-  $Id: selxavgio.h,v 1.4 2006/12/29 02:09:00 nicks Exp $
+  $Id: selxavgio.h,v 1.5 2009/03/04 19:20:37 mreuter Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -67,11 +67,11 @@ typedef struct
 }
 SXADAT;
 
-SXADAT * ld_sxadat(char *sxadatfile);
-SXADAT * ld_sxadat_from_stem(char *volstem);
-int      sv_sxadat(SXADAT *sxadat ,char *sxadatfile);
-int      sv_sxadat_by_stem(SXADAT *sxadat ,char *volstem);
-int    dump_sxadat(FILE *fp, SXADAT *sxadat ,char *sxadatfile);
+SXADAT * ld_sxadat(const char *sxadatfile);
+SXADAT * ld_sxadat_from_stem(const char *volstem);
+int      sv_sxadat(SXADAT *sxadat ,const char *sxadatfile);
+int      sv_sxadat_by_stem(SXADAT *sxadat ,const char *volstem);
+int    dump_sxadat(FILE *fp, SXADAT *sxadat ,const char *sxadatfile);
 int    free_sxadat(SXADAT **sxadat);
-int is_sxa_volume(char *volstem);
+int is_sxa_volume(const char *volstem);
 float *sxa_framepower(SXADAT *sxa, int *nframes);

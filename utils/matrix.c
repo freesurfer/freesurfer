@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/01/07 21:59:14 $
- *    $Revision: 1.114 $
+ *    $Date: 2009/03/04 19:20:52 $
+ *    $Revision: 1.115 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -576,7 +576,7 @@ int MatrixPrint(FILE *fp, MATRIX *mat)
 }
 
 
-int MatrixPrintFmt(FILE *fp, char *fmt, MATRIX *mat)
+int MatrixPrintFmt(FILE *fp, const char *fmt, MATRIX *mat)
 {
   int  row, col, rows, cols ;
 
@@ -700,7 +700,7 @@ MatrixPrintTranspose(FILE *fp, MATRIX *mat)
 
 
 MATRIX *
-MatrixReadTxt(char *fname, MATRIX *mat)
+MatrixReadTxt(const char *fname, MATRIX *mat)
 {
   FILE   *fp ;
   int     rows, cols, row, col, nlinemax, nread;
@@ -785,17 +785,17 @@ MatrixReadTxt(char *fname, MATRIX *mat)
 #undef const
 #endif
 MATRIX *
-MatrixRead(char *fname)
+MatrixRead(const char *fname)
 {
   return(MatlabRead(fname)) ;
 }
 
 
 int
-MatrixWrite(MATRIX *mat, char *fname, char *name)
+MatrixWrite(MATRIX *mat, const char *fname,const char *name)
 {
   if (!name)
-    name = fname ;  /* name of matrix in .mat file */
+    return(MatlabWrite(mat,fname,fname)) ;  /* name of matrix in .mat file */
   return(MatlabWrite(mat, fname, name)) ;
 }
 
@@ -2014,7 +2014,7 @@ MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs)
 
 
 int
-MatrixAsciiWrite(char *fname, MATRIX *m)
+MatrixAsciiWrite(const char *fname, MATRIX *m)
 {
   FILE  *fp ;
   int   ret ;
@@ -2031,7 +2031,7 @@ MatrixAsciiWrite(char *fname, MATRIX *m)
 
 
 MATRIX *
-MatrixAsciiRead(char *fname, MATRIX *m)
+MatrixAsciiRead(const char *fname, MATRIX *m)
 {
   FILE  *fp ;
 
@@ -2516,7 +2516,7 @@ Vector3Angle(VECTOR *v1, VECTOR *v2)
 
 
 int
-MatrixWriteTxt(char *fname, MATRIX *mat)
+MatrixWriteTxt(const char *fname, MATRIX *mat)
 {
   FILE   *fp ;
   int     row, col ;
@@ -3535,7 +3535,7 @@ MatrixOrthonormalizeTransform(MATRIX *m_L)
 }
 
 MATRIX *
-MatrixAsciiReadRaw(char *fname, MATRIX *m)
+MatrixAsciiReadRaw(const char *fname, MATRIX *m)
 {
   FILE   *fp ;
   int    rows, cols, row, col ;

@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/01/31 04:01:51 $
- *    $Revision: 1.95 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.96 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -202,8 +202,8 @@ int  GCANfree(GCA_NODE *gcan, int ninputs) ;
 int  GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform,
               GCA *gca_prune, int noint) ;
 int  GCAtrainCovariances(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform) ;
-int  GCAwrite(GCA *gca, char *fname) ;
-GCA  *GCAread(char *fname) ;
+int  GCAwrite(GCA *gca,const char *fname) ;
+GCA  *GCAread(const char *fname) ;
 int  GCAcompleteMeanTraining(GCA *gca) ;
 int  GCAcompleteCovarianceTraining(GCA *gca) ;
 MRI  *GCAlabel(MRI *mri_src, GCA *gca, MRI *mri_dst, TRANSFORM *transform) ;
@@ -281,15 +281,15 @@ GCA_SAMPLE *GCAfindStableSamplesByLabel(GCA *gca, int nsamples,
 int       GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas,
                               int nsamples) ;
 int        GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
-                           char *fname) ;
+                           const char *fname) ;
 int        GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
-                                       int nsamples,char *fname,TRANSFORM *transform) ;
+                                       int nsamples,const char *fname,TRANSFORM *transform) ;
 int        GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri, 
                                            GCA_SAMPLE *gcas,int nsamples,
-                                           char *fname,TRANSFORM *transform) ;
+                                           const char *fname,TRANSFORM *transform) ;
 int        GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri, 
                                            GCA_SAMPLE *gcas,int nsamples,
-                                           char *fname,TRANSFORM *transform) ;
+                                           const char *fname,TRANSFORM *transform) ;
 int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
                                   int nsamples,TRANSFORM *transform) ;
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
@@ -317,7 +317,7 @@ MRI   *GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
 MRI   *GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                        MRI *mri_dst, TRANSFORM *transform) ;
 MRI   *GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas,
-                           int nsamples, TRANSFORM *transform, char *ctl_point_fname) ;
+                           int nsamples, TRANSFORM *transform,const  char *ctl_point_fname) ;
 MRI *
 GCAnormalizeSamplesAllChannels(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                                TRANSFORM *transform, char *ctl_point_fname);
@@ -329,14 +329,14 @@ MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
 int   GCAaccumulateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
                                     MRI *mri_parc, TRANSFORM *transform) ;
 int   GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
-                                   MRI *mri_parc, TRANSFORM *transform, char *fname) ;
+                                   MRI *mri_parc, TRANSFORM *transform,const  char *fname) ;
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 int   GCArenormalizeWithEntropyMinimization(GCA *gca_affine, MRI *mri, TRANSFORM *transform, FILE *logfp) ;
 double GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
-int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles);
-int  GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, char *base_name, LTA **plta, int handle_expanded_ventricles,
+int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp,const  char *base_name, LTA **plta, int handle_expanded_ventricles);
+int  GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp,const  char *base_name, LTA **plta, int handle_expanded_ventricles,
                                             float *plabel_scales, float *plabel_offsets);
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;

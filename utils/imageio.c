@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/11/18 20:23:05 $
- *    $Revision: 1.45 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:51 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -73,19 +73,19 @@
 -------------------------------------------------------*/
 
 
-static IMAGE  *TiffReadImage(char *fname, int frame)  ;
-static IMAGE  *TiffReadHeader(char *fname, IMAGE *I)  ;
-static int    TiffWriteImage(IMAGE *I, char *fname, int frame) ;
-static IMAGE *JPEGReadImage(char *fname);
+static IMAGE  *TiffReadImage(const char *fname, int frame)  ;
+static IMAGE  *TiffReadHeader(const char *fname, IMAGE *I)  ;
+static int    TiffWriteImage(IMAGE *I,const  char *fname, int frame) ;
+static IMAGE *JPEGReadImage(const char *fname);
 static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *) ;
-static int JPEGWriteImage(IMAGE *I, char *fname, int frame) ;
-static IMAGE *PGMReadImage(char *fname) ;
+static int JPEGWriteImage(IMAGE *I,const  char *fname, int frame) ;
+static IMAGE *PGMReadImage(const char *fname) ;
 static IMAGE *PGMReadHeader(FILE *fp, IMAGE *) ;
-static int PGMWriteImage(IMAGE *I, char *fname, int frame) ;
-static int PPMWriteImage(IMAGE *I, char *fname, int frame) ;
-static IMAGE *PPMReadImage(char *fname) ;
+static int PGMWriteImage(IMAGE *I,const  char *fname, int frame) ;
+static int PPMWriteImage(IMAGE *I,const  char *fname, int frame) ;
+static IMAGE *PPMReadImage(const char *fname) ;
 static IMAGE *PPMReadHeader(FILE *fp, IMAGE *) ;
-static IMAGE *PBMReadImage(char *fname) ;
+static IMAGE *PBMReadImage(const char *fname) ;
 static IMAGE *PBMReadHeader(FILE *fp, IMAGE *) ;
 static byte FindMachineEndian(void);
 static void ImageSwapEndian(IMAGE *I);
@@ -103,7 +103,7 @@ static byte endian = END_UNDEF;
         Description
 ------------------------------------------------------*/
 int
-ImageWrite(IMAGE *I, char *fname)
+ImageWrite(IMAGE *I, const char*fname)
 {
   FILE  *fp ;
   int   ecode ;
@@ -132,7 +132,7 @@ static byte FindMachineEndian(void)
         Description
 ------------------------------------------------------*/
 int
-ImageFWrite(IMAGE *I, FILE *fp, char *fname)
+ImageFWrite(IMAGE *I, FILE *fp, const char*fname)
 {
   byte    *image ;
   int     ecode, type, frame;
@@ -142,26 +142,26 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
     fname = "ImageFWrite" ;
 
   strcpy(buf, fname) ;   /* don't destroy callers string */
-  fname = buf ;
-  ImageUnpackFileName(fname, &frame, &type, fname) ;
+ 
+  ImageUnpackFileName(buf, &frame, &type, buf) ;
 
   switch (type)
   {
   case RGBI_IMAGE:
-    RGBwrite(I, fname, frame) ;
+    RGBwrite(I, buf, frame) ;
     break ;
   case TIFF_IMAGE:
-    TiffWriteImage(I, fname, frame) ;
+    TiffWriteImage(I, buf, frame) ;
     break ;
   default:
   case JPEG_IMAGE:
-    JPEGWriteImage(I, fname, frame);
+    JPEGWriteImage(I, buf, frame);
     break;
   case PGM_IMAGE:
-    PGMWriteImage(I, fname, frame);
+    PGMWriteImage(I, buf, frame);
     break;
   case PPM_IMAGE:
-    PPMWriteImage(I, fname, frame);
+    PPMWriteImage(I, buf, frame);
     break;
   case HIPS_IMAGE:
     if (endian == END_UNDEF)
@@ -252,7 +252,7 @@ static void ImageSwapEndian(IMAGE *I)
         Description
 ------------------------------------------------------*/
 IMAGE *
-ImageFRead(FILE *fp, char *fname, int start, int nframes)
+ImageFRead(FILE *fp, const char*fname, int start, int nframes)
 {
   int    ecode, end_frame, frame, count = 1;
   IMAGE  *I ;
@@ -341,7 +341,7 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
         Description
 ------------------------------------------------------*/
 IMAGE *
-ImageReadFrames(char *fname, int start, int nframes)
+ImageReadFrames(const char*fname, int start, int nframes)
 {
   IMAGE *I ;
   FILE  *fp ;
@@ -363,7 +363,7 @@ ImageReadFrames(char *fname, int start, int nframes)
         Description
 ------------------------------------------------------*/
 IMAGE *
-ImageReadHeader(char *fname)
+ImageReadHeader(const char*fname)
 {
   IMAGE   *I = NULL ;
   FILE    *fp ;
@@ -371,15 +371,15 @@ ImageReadHeader(char *fname)
   char    buf[100] ;
 
   strcpy(buf, fname) ;   /* don't destroy callers string */
-  fname = buf ;
-  ImageUnpackFileName(fname, &frame, &type, fname) ;
 
-  fp = fopen(fname, "rb") ;
+  ImageUnpackFileName(buf, &frame, &type, buf) ;
+
+  fp = fopen(buf, "rb") ;
   if (!fp)
     ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadHeader(%s, %d) failed\n",
-                       fname, frame)) ;
+                       buf, frame)) ;
 
-  I = ImageFReadHeader(fp, fname) ;
+  I = ImageFReadHeader(fp, buf) ;
   fclose(fp) ;
 
   return(I) ;
@@ -392,7 +392,7 @@ ImageReadHeader(char *fname)
         Description
 ------------------------------------------------------*/
 IMAGE *
-ImageFReadHeader(FILE *fp, char *fname)
+ImageFReadHeader(FILE *fp, const char*fname)
 {
   IMAGE   *I = NULL ;
   int     ecode ;
@@ -400,8 +400,8 @@ ImageFReadHeader(FILE *fp, char *fname)
   char    buf[100] ;
 
   strcpy(buf, fname) ;   /* don't destroy callers string */
-  fname = buf ;
-  ImageUnpackFileName(fname, &frame, &type, fname) ;
+
+  ImageUnpackFileName(buf, &frame, &type, buf) ;
 
   I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
   if (!I)
@@ -410,10 +410,10 @@ ImageFReadHeader(FILE *fp, char *fname)
   switch (type)
   {
   case TIFF_IMAGE:
-    TiffReadHeader(fname, I) ;
+    TiffReadHeader(buf, I) ;
     break ;
   case RGBI_IMAGE:
-    RGBReadHeader(fname, I);
+    RGBReadHeader(buf, I);
     break;
   case MATLAB_IMAGE:
   {
@@ -438,13 +438,13 @@ ImageFReadHeader(FILE *fp, char *fname)
     break;
   case HIPS_IMAGE:
   default:
-    ecode = fread_header(fp, I, fname) ;
+    ecode = fread_header(fp, I, buf) ;
     if (ecode != HIPS_OK)
     {
       fclose(fp) ;
       ErrorReturn(NULL, (ERROR_NO_FILE,
                          "ImageReadHeader(%s): fread_header failed (%d)\n",
-                         fname, ecode)) ;
+                         buf, ecode)) ;
     }
     break ;
   }
@@ -461,7 +461,7 @@ ImageFReadHeader(FILE *fp, char *fname)
           format.
 ------------------------------------------------------*/
 IMAGE *
-ImageReadType(char *fname, int pixel_format)
+ImageReadType(const char*fname, int pixel_format)
 {
   IMAGE *Itmp, *I ;
 
@@ -489,7 +489,7 @@ ImageReadType(char *fname, int pixel_format)
         Description
 ------------------------------------------------------*/
 IMAGE *
-ImageRead(char *fname)
+ImageRead(const char*fname)
 {
   IMAGE   *I = NULL ;
   MATRIX  *mat ;
@@ -498,47 +498,47 @@ ImageRead(char *fname)
   char    buf[STRLEN] ;
 
   strcpy(buf, fname) ;   /* don't destroy callers string */
-  fname = buf ;
-  ImageUnpackFileName(fname, &frame, &type, fname) ;
+
+  ImageUnpackFileName(buf, &frame, &type, buf) ;
 
   switch (type)
   {
   case TIFF_IMAGE:
-    I = TiffReadImage(fname, frame) ;
+    I = TiffReadImage(buf, frame) ;
     break ;
   case MATLAB_IMAGE:
     DiagPrintf(DIAG_WRITE,
-               "ImageRead: fname=%s, frame=%d, type=%d (M=%d,H=%d)\n",
-               fname, frame, type , MATLAB_IMAGE, HIPS_IMAGE);
-    mat = MatlabRead(fname) ;
+               "ImageRead: buf=%s, frame=%d, type=%d (M=%d,H=%d)\n",
+               buf, frame, type , MATLAB_IMAGE, HIPS_IMAGE);
+    mat = MatlabRead(buf) ;
     if (!mat)
-      ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s) failed\n", fname)) ;
+      ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s) failed\n", buf)) ;
     I = ImageFromMatrix(mat, NULL) ;
     ImageInvert(I, I) ;
     MatrixFree(&mat) ;
     break ;
   case HIPS_IMAGE:
-    fp = fopen(fname, "rb") ;
+    fp = fopen(buf, "rb") ;
     if (!fp)
       ErrorReturn(NULL, (ERROR_NO_FILE, "ImageRead(%s, %d) failed\n",
-                         fname, frame)) ;
-    I = ImageFRead(fp, fname, frame, 1) ;
+                         buf, frame)) ;
+    I = ImageFRead(fp, buf, frame, 1) ;
     fclose(fp) ;
     break ;
   case JPEG_IMAGE:
-    I = JPEGReadImage(fname);
+    I = JPEGReadImage(buf);
     break ;
   case PGM_IMAGE:
-    I = PGMReadImage(fname);
+    I = PGMReadImage(buf);
     break;
   case PPM_IMAGE:
-    I = PPMReadImage(fname);
+    I = PPMReadImage(buf);
     break;
   case PBM_IMAGE:
-    I = PBMReadImage(fname);
+    I = PBMReadImage(buf);
     break;
   case RGBI_IMAGE:
-    I= RGBReadImage(fname);
+    I= RGBReadImage(buf);
   default:
     break ;
   }
@@ -552,7 +552,7 @@ ImageRead(char *fname)
         Description
 ------------------------------------------------------*/
 int
-ImageType(char *fname)
+ImageType(const char*fname)
 {
   char *dot, buf[200] ;
 
@@ -576,7 +576,7 @@ ImageType(char *fname)
         Description
 ------------------------------------------------------*/
 int
-ImageFrame(char *fname)
+ImageFrame(const char*fname)
 {
   char *number, buf[200] ;
   int   frame ;
@@ -604,7 +604,7 @@ ImageFrame(char *fname)
               allocated image.
 ----------------------------------------------------------------------*/
 int
-ImageReadInto(char *fname, IMAGE *I, int image_no)
+ImageReadInto(const char*fname, IMAGE *I, int image_no)
 {
   FILE   *fp ;
   int    ecode ;
@@ -635,7 +635,7 @@ ImageReadInto(char *fname, IMAGE *I, int image_no)
               write a hips image to file 'fname'
 ----------------------------------------------------------------------*/
 int
-ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes)
+ImageWriteFrames(IMAGE *image, const char*fname, int start, int nframes)
 {
   IMAGE  *tmp_image ;
 
@@ -652,7 +652,7 @@ ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes)
               decompose a file name, extracting the type and the frame #.
 ----------------------------------------------------------------------*/
 int
-ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
+ImageUnpackFileName(const char*inFname, int *pframe, int *ptype, char *outFname)
 {
   char *number, *dot, buf[STRLEN] ;
 
@@ -702,7 +702,7 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
               return the number of frames stored in the file 'fname'
 ----------------------------------------------------------------------*/
 int
-ImageNumFrames(char *fname)
+ImageNumFrames(const char*fname)
 {
   IMAGE  I ;
   FILE   *fp ;
@@ -739,7 +739,7 @@ ImageNumFrames(char *fname)
               the number of frames recorded in the header.
 ----------------------------------------------------------------------*/
 int
-ImageAppend(IMAGE *I, char *fname)
+ImageAppend(IMAGE *I, const char*fname)
 {
   FILE   *fp ;
   int    ecode, frame = 0, nframes ;
@@ -826,7 +826,7 @@ ImageAppend(IMAGE *I, char *fname)
 #define IMAGERGBpix(im, x, y)           ((im->image) + (((int) y) * im->ocols * 3) + (x))
 
 static IMAGE *
-TiffReadImage(char *fname, int frame0)
+TiffReadImage(const char*fname, int frame0)
 {
   IMAGE    *I ;
   TIFF     *tif = TIFFOpen(fname, "r");
@@ -1137,7 +1137,7 @@ __eprintf(void)
              Read the header info from a tiff image.
 ----------------------------------------------------------------------*/
 static IMAGE *
-TiffReadHeader(char *fname, IMAGE *I)
+TiffReadHeader(const char*fname, IMAGE *I)
 {
   TIFF  *tif = TIFFOpen(fname, "r");
   int   ret, width, height, bits_per_sample ;
@@ -1195,7 +1195,7 @@ TiffReadHeader(char *fname, IMAGE *I)
              Write an image to disk in TIFF format.
 ----------------------------------------------------------------------*/
 static int
-TiffWriteImage(IMAGE *I, char *fname, int frame)
+TiffWriteImage(IMAGE *I, const char*fname, int frame)
 {
   TIFF    *out ;
   short   bits_per_sample, samples_per_pixel;
@@ -1292,7 +1292,7 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
 }
 
 #if 0
-static IMAGE *JPEGReadImage(char *fname)
+static IMAGE *JPEGReadImage(const char*fname)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ;
 }
@@ -1300,7 +1300,7 @@ static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "jpeg not supported on IRIX")) ;
 }
-static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
+static int JPEGWriteImage(IMAGE *I, const char*fname, int frame)
 {
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED,
                                   "jpeg not supported on IRIX")) ;
@@ -1308,7 +1308,7 @@ static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
 #endif
 
 #ifdef IRIX
-static IMAGE *JPEGReadImage(char *fname)
+static IMAGE *JPEGReadImage(const char*fname)
 {
   return(NULL);
 }
@@ -1316,11 +1316,11 @@ static IMAGE *JPEGReadHeader(FILE *fp, IMAGE *I)
 {
   return(NULL);
 }
-static int JPEGWriteImage(IMAGE *I, char *fname, int frame)
+static int JPEGWriteImage(IMAGE *I, const char*fname, int frame)
 {
   return(0);
 }
-static IMAGE *PGMReadImage(char *fname)
+static IMAGE *PGMReadImage(const char*fname)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ;
 }
@@ -1328,11 +1328,11 @@ static IMAGE *PGMReadHeader(FILE *fp, IMAGE *I)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ;
 }
-static int PGMWriteImage(IMAGE *I, char *fname, int frame)
+static int PGMWriteImage(IMAGE *I, const char*fname, int frame)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pgm not supported on IRIX")) ;
 }
-static IMAGE *PPMReadImage(char *fname)
+static IMAGE *PPMReadImage(const char*fname)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ;
 }
@@ -1340,7 +1340,7 @@ static IMAGE *PPMReadHeader(FILE *fp, IMAGE *I)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ;
 }
-static IMAGE *PBMReadImage(char *fname)
+static IMAGE *PBMReadImage(const char*fname)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ;
 }
@@ -1349,7 +1349,7 @@ static IMAGE *PBMReadHeader(FILE *fp, IMAGE *I)
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ;
 }
 static int
-PPMWriteImage(IMAGE *I, char *fname, int frame)
+PPMWriteImage(IMAGE *I, const char*fname, int frame)
 {
   ErrorReturn(ERROR_UNSUPPORTED,
               (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ;
@@ -1372,7 +1372,7 @@ PGMReadHeader(FILE *fp, IMAGE *I)
 }
 
 static IMAGE *
-PGMReadImage(char *fname)
+PGMReadImage(const char*fname)
 {
   FILE *infile;
   IMAGE *I;
@@ -1394,7 +1394,7 @@ PGMReadImage(char *fname)
 }
 
 static int
-PPMWriteImage(IMAGE *I, char *fname, int frame)
+PPMWriteImage(IMAGE *I, const char*fname, int frame)
 {
   FILE *outf;
   int i,j;
@@ -1435,7 +1435,7 @@ PPMWriteImage(IMAGE *I, char *fname, int frame)
 }
 
 static int
-PGMWriteImage(IMAGE *I, char *fname, int frame)
+PGMWriteImage(IMAGE *I, const char*fname, int frame)
 {
   FILE *outf;
   int i;
@@ -1460,7 +1460,7 @@ PGMWriteImage(IMAGE *I, char *fname, int frame)
 }
 
 static IMAGE *
-PBMReadImage(char *fname)
+PBMReadImage(const char*fname)
 {
   FILE *infile;
   IMAGE *I;
@@ -1486,7 +1486,7 @@ PBMReadImage(char *fname)
 }
 
 static IMAGE *
-PPMReadImage(char *fname)
+PPMReadImage(const char*fname)
 {
   FILE *infile;
   IMAGE *I;
@@ -1550,7 +1550,7 @@ PPMReadHeader(FILE *fp, IMAGE *I)
 }
 
 static IMAGE *
-JPEGReadImage(char *fname)
+JPEGReadImage(const char*fname)
 {
   FILE *infile;
   IMAGE *I;
@@ -1610,7 +1610,7 @@ JPEGReadHeader(FILE *fp, IMAGE *I)
 }
 
 static int
-JPEGWriteImage(IMAGE *I, char *fname, int frame)
+JPEGWriteImage(IMAGE *I, const char*fname, int frame)
 {
   FILE *outf;
   struct jpeg_compress_struct cinfo;

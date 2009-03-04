@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/18 23:23:37 $
- *    $Revision: 1.21 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,7 +68,7 @@ COLOR_TABLE, CT ;
    Upon exit, ctabDuplicates contains a count of the number duplicate 
    structures found in fname (duplicates are skipped with a warning).
 */
-COLOR_TABLE *CTABreadASCII(char *fname);
+COLOR_TABLE *CTABreadASCII(const char *fname);
 extern int ctabDuplicates;
 
 /* Reads and writes a table to and from a binary stream. In this
@@ -139,7 +139,7 @@ int CTABfindDuplicateNames(COLOR_TABLE *ct);
    information. Sets index to the found index. Sets it to -1 if the
    color wasn't found. */
 int CTABfindRGBi(COLOR_TABLE *ct, int r, int g, int b, int*index);
-int CTABfindName(COLOR_TABLE *ct, char *name, int*index);
+int CTABfindName(COLOR_TABLE *ct, const char *name, int*index);
 
 /* Print the color table to a file stream. This is a valid format for
    the ASCII file, but is not guaranteed to be the same as the
@@ -147,9 +147,9 @@ int CTABfindName(COLOR_TABLE *ct, char *name, int*index);
 int CTABprintASCII(COLOR_TABLE *ct, FILE *fp);
 
 /* Print the color table to a file. */
-int CTABwriteFileASCII(COLOR_TABLE *ct, char *fname);
+int CTABwriteFileASCII(COLOR_TABLE *ct,const char *fname);
 
 // Creates a new color table with name added
-COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
+COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold,const char *name);
 
 #endif

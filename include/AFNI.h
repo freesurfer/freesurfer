@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:58 $
- *    $Revision: 1.2 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:34 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,8 +54,8 @@ typedef struct
 }
 AFNI_HEADER, AF;
 
-MRI *afniRead(char *fname, int read_volume);
-int afniWrite(MRI *mri, char *fname);
+MRI *afniRead(const char *fname, int read_volume);
+int afniWrite(MRI *mri,const char *fname);
 int readAFNIHeader(FILE *fp, AF *paf);
 void AFinit(AF *pAF);
 void AFclean(AF *pAF);

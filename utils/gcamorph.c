@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/11/15 02:39:15 $
- *    $Revision: 1.142 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:50 $
+ *    $Revision: 1.143 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -395,7 +395,7 @@ void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
 static int (*myclose)(FILE *stream);
 
 int
-GCAMwrite(GCA_MORPH *gcam, char *fname)
+GCAMwrite(GCA_MORPH *gcam, const char *fname)
 {
   FILE            *fp=0 ;
   int             x, y, z ;
@@ -512,7 +512,7 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
   If the inverse must be computed, then it reads in the header for
   mri/orig.mgz. See also GCAMreadAndInvert().
   -----------------------------------------------------------------*/
-int GCAMwriteInverse(char *gcamfname, GCA_MORPH *gcam)
+int GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam)
 {
   char *gcamdir, *mridir, tmpstr[2000];
   MRI *mri;
@@ -569,7 +569,7 @@ int GCAMwriteInverse(char *gcamfname, GCA_MORPH *gcam)
   if the morph must be explicitly inverted, it will read in the header
   for mri/orig.mgz (or die trying).
   ----------------------------------------------------------------------*/
-GCA_MORPH *GCAMreadAndInvert(char *gcamfname)
+GCA_MORPH *GCAMreadAndInvert(const char *gcamfname)
 {
   GCA_MORPH *gcam;
   char tmpstr[2000], *gcamdir, *mridir;
@@ -1004,7 +1004,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 }
 
 GCA_MORPH *
-GCAMread(char *fname)
+GCAMread(const char *fname)
 {
   GCA_MORPH       *gcam ;
   FILE            *fp ;
@@ -14171,7 +14171,7 @@ GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
 
 int
 GCAMwriteDistanceTransforms(GCA_MORPH *gcam,  MRI *mri_source_dist_map, MRI *mri_atlas_dist_map, 
-                            char *dist_name)
+                            const char *dist_name)
 {
   char   fname[STRLEN] ;
   int    i, label ;
@@ -14188,7 +14188,7 @@ GCAMwriteDistanceTransforms(GCA_MORPH *gcam,  MRI *mri_source_dist_map, MRI *mri
 }
 MRI *
 GCAMreadDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans, 
-                           MRI **pmri_atlas_dtrans, char *dist_name, double max_dist)
+                           MRI **pmri_atlas_dtrans, const char *dist_name, double max_dist)
 {
   MRI   *mri_tmp ;
   int    i, label ;

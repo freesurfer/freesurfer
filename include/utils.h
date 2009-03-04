@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/11/16 21:06:36 $
- *    $Revision: 1.33 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:37 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,23 +58,23 @@ char *StrRemoveSpaces(char *str) ;
 char *StrUpper(char *str) ;
 char *StrLower(char *str) ;
 char *StrSkipNumber(char *str) ;
-char *StrReplace(char *src, char *dst, char csrc, int cdst) ;
+char *StrReplace(const char *src, char *dst, char csrc, int cdst) ;
 
-char *FileNameOnly(char *str, char *fname) ;
-char *FileNameFromWildcard(char *inStr, char *outStr) ;
-int  FileExists(char *fname) ;
-int  FileType(char *fname) ;
-int  FileNumber(char *fname) ;
-int  FileNumberOfEntries(char *fname) ;
+char *FileNameOnly(const char *str, char *fname) ;
+char *FileNameFromWildcard(const char *inStr, char *outStr) ;
+int  FileExists(const char *fname) ;
+int  FileType(const char *fname) ;
+int  FileNumber(const char *fname) ;
+int  FileNumberOfEntries(const char *fname) ;
 char *FileName(char *full_name) ;
 char *FileFullName(char *full_name) ;
 char *FileTmpName(char *base) ;
 char *FileTmpName(char *basename) ;
-void FileRename(char *inName, char *outName) ;
-char *FileNameAbsolute(char *fname, char *absFname) ;
-char *FileNamePath(char *fname, char *pathName) ;
-char *FileNameRemoveExtension(char *in_fname, char *out_fname) ;
-char *FileNameExtension(char *fname, char *ext) ;
+void FileRename(const char *inName,const char *outName) ;
+char *FileNameAbsolute(const char *fname, char *absFname) ;
+char *FileNamePath(const char *fname, char *pathName) ;
+char *FileNameRemoveExtension(const char *in_fname, char *out_fname) ;
+char *FileNameExtension(const char *fname, char *ext) ;
 char *AppendString(char *src, char *app);
 
 int devIsinf(float value);
@@ -84,9 +84,9 @@ int devFinite(float value);
 int getMemoryUsed(void); // return total virtual memory used by Progname 
                      // in Kbytes. works only under Linux /proc system
 void printMemoryUsed(void); // print function of the above.
-char *strcpyalloc(char *str);
-int  ItemsInString(char *str);
-char *deblank(char *str);
+char *strcpyalloc(const char *str);
+int  ItemsInString(const char *str);
+char *deblank(const char *str);
 char *str_toupper(char *str);
 double sum2stddev(double xsum, double xsum2, int nx);
 int compare_ints(const void *v1,const void *v2);
@@ -97,7 +97,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique);
 void __ltoq(void);
 void __qtol(void);
 
-char *GetNthItemFromString(char *str, int nth) ;
-int CountItemsInString(char *str) ;
+char *GetNthItemFromString(const char *str, int nth) ;
+int CountItemsInString(const char *str) ;
 
 #endif

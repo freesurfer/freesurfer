@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.13 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,24 +74,24 @@ IMAGE   *ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols) ;
 /* file I/O */
 
 /* reading */
-IMAGE   *ImageRead(char *fname) ;
-IMAGE   *ImageReadType(char *fname, int pixel_format) ;
-IMAGE    *ImageReadFrames(char *fname, int start, int nframes) ;
-int      ImageReadInto(char *fname, IMAGE *image, int image_no) ;
-IMAGE   *ImageFRead(FILE *fp, char *fname, int start, int nframes) ;
-IMAGE   *ImageReadHeader(char *fname) ;
-IMAGE   *ImageFReadHeader(FILE *fp, char *fname) ;
+IMAGE   *ImageRead(const char *fname) ;
+IMAGE   *ImageReadType(const char *fname, int pixel_format) ;
+IMAGE    *ImageReadFrames(const char *fname, int start, int nframes) ;
+int      ImageReadInto(const char *fname, IMAGE *image, int image_no) ;
+IMAGE   *ImageFRead(FILE *fp,const  char *fname, int start, int nframes) ;
+IMAGE   *ImageReadHeader(const char *fname) ;
+IMAGE   *ImageFReadHeader(FILE *fp,const  char *fname) ;
 IMAGE   *ImageInvert(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE   *ImageCombine(IMAGE *Ireal, IMAGE *Iimag, IMAGE *Idst) ;
 IMAGE   *ImageSplit(IMAGE *Icomp, IMAGE *Ireal, IMAGE *Iimag) ;
 IMAGE   *ImageShrink(IMAGE *Isrc, IMAGE *Idst) ;
 
 /* writing */
-int     ImageWrite(IMAGE *image, char *fname) ;
-int     ImageFWrite(IMAGE *image, FILE *fp, char *fname) ;
-int      ImageWriteFrames(IMAGE *image, char *fname, int start, int nframes) ;
-int      ImageAppend(IMAGE *image, char *fname) ;
-int      ImageUpdateHeader(IMAGE *image, char *fname) ;
+int     ImageWrite(IMAGE *image,const char *fname) ;
+int     ImageFWrite(IMAGE *image, FILE *fp,const  char *fname) ;
+int      ImageWriteFrames(IMAGE *image,const  char *fname, int start, int nframes) ;
+int      ImageAppend(IMAGE *image,const  char *fname) ;
+int      ImageUpdateHeader(IMAGE *image,const  char *fname) ;
 
 /* morphology */
 IMAGE   *ImageDilate(IMAGE *Isrc, IMAGE *Idst, int which) ;
@@ -120,14 +120,14 @@ IMAGE   *ImageConjugate(IMAGE *Isrc, IMAGE *Idst) ;
 Pixelval ImageAccum(IMAGE *Isrc) ;
 MATRIX  *ImageToMatrix(IMAGE *image) ;
 IMAGE   *ImageFromMatrix(MATRIX *matrix, IMAGE *Idst) ;
-int     ImageType(char *fname) ;
+int     ImageType(const char *fname) ;
 #define ImageSize(image)   ((image)->orows * (image)->ocols)
 #define ImageBytes(image)  ((image)->sizeimage)
 IMAGE   *ImageScale(IMAGE *Isrc, IMAGE *Idst, float fmin, float fmax) ;
 int     ImageCheckSize(IMAGE *inImage,IMAGE *outImage, int rows,
                        int cols, int nframes) ;
-int     ImageFrame(char *fname) ;
-int     ImageUnpackFileName(char *inFname, int *pframe, int *ptype,
+int     ImageFrame(const char *fname) ;
+int     ImageUnpackFileName(const char *inFname, int *pframe, int *ptype,
                             char *outFname) ;
 int      ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start,
                          int nframes, int dst_frame);
@@ -147,7 +147,7 @@ IMAGE    *ImageAdd(IMAGE *Is1, IMAGE *Is2, IMAGE *Idst) ;
 IMAGE    *ImageSubtract(IMAGE *Is1, IMAGE *Is2, IMAGE *Idst) ;
 IMAGE    *ImageReplace(IMAGE *Isrc, IMAGE *Idst, float inpix, float outpix) ;
 int      ImageCmp(IMAGE *Isrc, IMAGE *Idst) ;
-int      ImageNumFrames(char *fname) ;
+int      ImageNumFrames(const char *fname) ;
 float    ImageRMSDifference(IMAGE *I1, IMAGE *I2) ;
 
 /* offset stuff */

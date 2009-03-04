@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/21 21:45:02 $
- *    $Revision: 1.6 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,11 +33,11 @@
 #include "gifti_io.h"
 #include "mrisurf.h"
 
-MRI_SURFACE * mrisReadGIFTIfile(char *fname);
-int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname);
-MRI * MRISreadGiftiAsMRI(char *fname, int read_volume);
-int MRISwriteGIFTI(MRIS* mris, char *fname);
-int MRISwriteScalarGIFTI(MRIS* mris, char *fname, char *scalar_fname);
-int mriWriteGifti(MRI* mri, char *fname);
+MRI_SURFACE * mrisReadGIFTIfile(const char *fname);
+int mrisReadScalarGIFTIfile(MRI_SURFACE *mris,const  char *fname);
+MRI * MRISreadGiftiAsMRI(const char *fname, int read_volume);
+int MRISwriteGIFTI(MRIS* mris,const  char *fname);
+int MRISwriteScalarGIFTI(MRIS* mris,const  char *fname,const  char *scalar_fname);
+int mriWriteGifti(MRI* mri,const  char *fname);
 
 #endif

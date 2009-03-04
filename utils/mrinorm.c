@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/09/26 23:13:06 $
- *    $Revision: 1.88 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:52 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1818,7 +1818,7 @@ MRInormFindControlPointsInWindow(MRI *mri_src,
                                  float intensity_below,
                                  MRI *mri_ctrl,
                                  float whalf_mm,
-                                 char *debug_str,
+                                 const char *debug_str,
                                  int *pnctrl,
                                  int  scan_type)
 {
@@ -3717,7 +3717,7 @@ mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst)
 
 
 int
-MRI3dUseFileControlPoints(MRI *mri, char *fname)
+MRI3dUseFileControlPoints(MRI *mri,const char *fname)
 {
   int  i = 0 ;
   Real xr, yr, zr;

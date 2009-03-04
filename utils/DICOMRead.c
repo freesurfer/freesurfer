@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/09 23:33:32 $
- *    $Revision: 1.123 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:49 $
+ *    $Revision: 1.124 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,7 +88,7 @@ static  const char *rllEncoded_UID     = "1.2.840.10008.1.2.5";
   be unpacked as one run. If using mri_convert, it can be passed
   with the --sdcmlist.
   -----------------------------------------------------------------*/
-MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
+MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 {
   SDCMFILEINFO *sdfi;
   DCM_ELEMENT *element;
@@ -522,10 +522,10 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   return(vol);
 }
 /*!/
-  \fn MATRIX *sdcmAutoAlignMatrix(char *dcmfile)
+  \fn MATRIX *sdcmAutoAlignMatrix(const char *dcmfile)
   \brief Extracts the Auto Align Matrix from the Siemens ascii header.
 */
-MATRIX *sdcmAutoAlignMatrix(char *dcmfile)
+MATRIX *sdcmAutoAlignMatrix(const char *dcmfile)
 {
   char *tmpstr;
   char sdcmtag[1000];
@@ -574,7 +574,7 @@ MATRIX *sdcmAutoAlignMatrix(char *dcmfile)
   a pointer to the object (or NULL upon failure).
   Author: Douglas Greve 9/6/2001
   ---------------------------------------------------------------*/
-DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid)
+DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid)
 {
   DCM_OBJECT *object=0;
   CONDITION cond;
@@ -617,7 +617,7 @@ DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid)
   a pointer to the object (or NULL upon failure).
   Author: Douglas Greve
   ---------------------------------------------------------------*/
-DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options)
+DCM_OBJECT *GetObjectFromFile(const char *fname, unsigned long options)
 {
   CONDITION cond;
   DCM_OBJECT *object=0;
@@ -807,7 +807,7 @@ int FreeElementData(DCM_ELEMENT *e)
   Checks DICOM tag (8,70).
   Author: Douglas N. Greve, 9/6/2001
   -------------------------------------------------------------------*/
-int IsSiemensDICOM(char *dcmfile)
+int IsSiemensDICOM(const char *dcmfile)
 {
   DCM_ELEMENT *e;
 
@@ -856,7 +856,7 @@ int IsSiemensDICOM(char *dcmfile)
 
 /* The original SiemensQsciiTag() is too slow         */
 /* make sure that returned value be freed if non-null */
-char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
+char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
 {
   static char filename[1024] = "";
   static char **lists = 0;
@@ -1016,7 +1016,7 @@ char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
 
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------*/
-char *SiemensAsciiTag(char *dcmfile, char *TagString, int flag)
+char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag)
 {
   char linestr[1000];
   char tmpstr2[500];
@@ -1119,7 +1119,7 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString, int flag)
   See sdcmMosaicSliceRes().
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
+int dcmGetVolRes(const char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
 {
   DCM_ELEMENT *e;
   char *s;
@@ -1201,7 +1201,7 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
   Returns -1 if error.
   Author: Douglas N. Greve, 9/25/2001
   -----------------------------------------------------------------------*/
-int dcmGetSeriesNo(char *dcmfile)
+int dcmGetSeriesNo(const char *dcmfile)
 {
   DCM_ELEMENT *e;
   int SeriesNo;
@@ -1223,7 +1223,7 @@ int dcmGetSeriesNo(char *dcmfile)
   Returns -1 if error.
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int dcmGetNRows(char *dcmfile)
+int dcmGetNRows(const char *dcmfile)
 {
   DCM_ELEMENT *e;
   int NRows;
@@ -1248,7 +1248,7 @@ int dcmGetNRows(char *dcmfile)
   Returns -1 if error.
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int dcmGetNCols(char *dcmfile)
+int dcmGetNCols(const char *dcmfile)
 {
   DCM_ELEMENT *e;
   int NCols;
@@ -1272,7 +1272,7 @@ int dcmGetNCols(char *dcmfile)
   Returns 1 if error.
   Author: Douglas N. Greve, 9/10/2001
   -----------------------------------------------------------------------*/
-int dcmImageDirCos(char *dcmfile,
+int dcmImageDirCos(const char *dcmfile,
                    float *Vcx, float *Vcy, float *Vcz,
                    float *Vrx, float *Vry, float *Vrz)
 {
@@ -1335,7 +1335,7 @@ int dcmImageDirCos(char *dcmfile,
   Returns 1 if error.
   Author: Douglas N. Greve, 9/10/2001
   -----------------------------------------------------------------------*/
-int dcmImagePosition(char *dcmfile, float *x, float *y, float *z)
+int dcmImagePosition(const char *dcmfile, float *x, float *y, float *z)
 {
   DCM_ELEMENT *e;
   char *s;
@@ -1386,7 +1386,7 @@ int dcmImagePosition(char *dcmfile, float *x, float *y, float *z)
   Returns 1 if error.
   Author: Douglas N. Greve, 9/10/2001
   -----------------------------------------------------------------------*/
-int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz)
+int sdcmSliceDirCos(const char *dcmfile, float *Vsx, float *Vsy, float *Vsz)
 {
   char *tmpstr;
   float rms;
@@ -1452,7 +1452,7 @@ int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz)
 
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int sdcmIsMosaic(char *dcmfile,
+int sdcmIsMosaic(const char *dcmfile,
                  int *pNcols,
                  int *pNrows,
                  int *pNslices,
@@ -1559,7 +1559,7 @@ int sdcmIsMosaic(char *dcmfile,
   the DICOM header and some from the Siemens ASCII header. The
   pixel data are not loaded.
   ----------------------------------------------------------------*/
-SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
+SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
 {
   DCM_OBJECT *object=0;
   SDCMFILEINFO *sdcmfi;
@@ -1903,7 +1903,7 @@ int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi)
   Minor number is the number after VA.  The MinorMinor number is the
   number the Minor.
   -------------------------------------------------------------------*/
-char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
+char *sdcmExtractNumarisVer(const char *e_18_1020, int *Maj, int *Min, int *MinMin)
 {
   int l,n,m;
   char *ver;
@@ -1967,7 +1967,7 @@ char *sdcmExtractNumarisVer(char *e_18_1020, int *Maj, int *Min, int *MinMin)
   Author: Douglas Greve.
   Date: 09/10/2001
   *------------------------------------------------------------------*/
-SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
+SDCMFILEINFO **ScanSiemensDCMDir(const char *PathName, int *NSDCMFiles)
 {
   struct dirent **NameList;
   int i, pathlength;
@@ -1977,43 +1977,51 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
   int pct, sumpct;
   FILE *fp;
 
-  /* Remove all trailing forward slashes from PathName */
-  pathlength=strlen(PathName);
-  if (PathName[pathlength-1] == '/')
+  char* pname = (char *)calloc(strlen(PathName)+1, sizeof(char)) ;
+  strcpy(pname, PathName) ;
+
+  /* Remove all trailing forward slashes from pname */
+  pathlength=strlen(pname);
+  if (pname[pathlength-1] == '/')
   {
     for (i = pathlength-1; i >= 0; i--)
     {
-      if (PathName[i] == '/')
+      if (pname[i] == '/')
       {
-        PathName[i] = ' ';
+        pname[i] = ' ';
         break;
       }
     }
   }
-  pathlength=strlen(PathName);
+  pathlength=strlen(pname);
 
   /* select all directory entries, and sort them by name */
-  NFiles = scandir(PathName, &NameList, 0, alphasort);
+  NFiles = scandir(pname, &NameList, 0, alphasort);
 
   if ( NFiles < 0 )
   {
-    fprintf(stderr,"WARNING: No files found in %s\n",PathName);
+    fprintf(stderr,"WARNING: No files found in %s\n",pname);
+    free(pname);
     return(NULL);
   }
-  fprintf(stderr,"INFO: Found %d files in %s\n",NFiles,PathName);
+  fprintf(stderr,"INFO: Found %d files in %s\n",NFiles,pname);
 
   /* Count the number of Siemens DICOM Files */
   fprintf(stderr,"INFO: counting Siemens Files\n");
   (*NSDCMFiles) = 0;
   for (i = 0; i < NFiles; i++)
   {
-    sprintf(tmpstr,"%s/%s", PathName, NameList[i]->d_name);
+    sprintf(tmpstr,"%s/%s", pname, NameList[i]->d_name);
     if (IsSiemensDICOM(tmpstr)) (*NSDCMFiles)++;
   }
 
   fprintf(stderr,"INFO: found %d Siemens Files\n",*NSDCMFiles);
 
-  if (*NSDCMFiles == 0) return(NULL);
+  if (*NSDCMFiles == 0)
+  {
+     free(pname);
+     return(NULL);
+  }
 
   sdcmfi_list = (SDCMFILEINFO **)calloc(*NSDCMFiles, sizeof(SDCMFILEINFO *));
 
@@ -2046,7 +2054,7 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
       }
     }
 
-    sprintf(tmpstr,"%s/%s", PathName, NameList[i]->d_name);
+    sprintf(tmpstr,"%s/%s", pname, NameList[i]->d_name);
     if (IsSiemensDICOM(tmpstr))
     {
       sdcmfi_list[*NSDCMFiles] = GetSDCMFileInfo(tmpstr);
@@ -2062,6 +2070,8 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
     free(NameList[NFiles]);
   }
   free(NameList);
+     
+  free(pname);
 
   return( sdcmfi_list );
 }
@@ -2126,7 +2136,7 @@ SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList)
   Author: Douglas Greve.
   Date: 09/25/2001
   *------------------------------------------------------------------*/
-char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile)
+char **ReadSiemensSeries(const char *ListFile, int *nList, const char *dcmfile)
 {
   FILE *fp;
   char **SeriesList;
@@ -2213,7 +2223,7 @@ char **ReadSiemensSeries(char *ListFile, int *nList, char *dcmfile)
   Author: Douglas Greve.
   Date: 09/25/2001
   *------------------------------------------------------------------*/
-char **ScanSiemensSeries(char *dcmfile, int *nList)
+char **ScanSiemensSeries(const char *dcmfile, int *nList)
 {
   int SeriesNo, SeriesNoTest;
   char *PathName;
@@ -2801,7 +2811,7 @@ int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles)
   dcmfile. The RunNo member is then returned. The sdfi_list must
   have been sorted into runs with sdfiAssignRunNo().
   ------------------------------------------------------------------*/
-int sdfiRunNo(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
+int sdfiRunNo(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
 {
   int nthfile;
   SDCMFILEINFO *sdfi;
@@ -2821,7 +2831,7 @@ int sdfiRunNo(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
   with dcmfile. The Run Number for dcmfile is obtained using sdfiRunNo().
   The list is searched for all the files with the same Run Number.
   ------------------------------------------------------------------*/
-int sdfiNFilesInRun(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
+int sdfiNFilesInRun(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
 {
   int nthfile;
   int RunNo;
@@ -2845,7 +2855,7 @@ int sdfiNFilesInRun(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
   share the same Run Number. The number in the list is passed as
   NRunList.
   ------------------------------------------------------------------*/
-int *sdfiRunFileList(char *dcmfile, SDCMFILEINFO **sdfi_list,
+int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list,
                      int nlist, int *NRunList)
 {
   int nthfile, nthfileinrun;
@@ -3537,7 +3547,7 @@ CONDITION GetMultiShortFromString(DCM_OBJECT** object,
    output: fills in structure DICOMInfo with DICOM meta-header fields
 *******************************************************/
 
-CONDITION GetDICOMInfo(char *fname,
+CONDITION GetDICOMInfo(const char *fname,
                        DICOMInfo *dcminfo,
                        BOOL ReadImage,
                        int ImageNumber)
@@ -4303,7 +4313,7 @@ void SortFiles(char *fNames[],
    output: true if file is DICOM part 10 (version 3.0) compliant
 *******************************************************/
 
-int IsDICOM(char *fname)
+int IsDICOM(const char *fname)
 {
   int d;
   FILE *fp;
@@ -4436,7 +4446,7 @@ static int DCMPrintCond(CONDITION cond)
    output: array of files listed in directory, and number of files
 *******************************************************/
 
-int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
+int ScanDir(const char *PathName, char ***FileNames, int *NumberOfFiles)
 {
   char **pfn;
   struct dirent **NameList;
@@ -4526,7 +4536,7 @@ int alphasort(const void *a, const void *b)
   DICOMRead2() - generic dicom reader. It should be possible to
   use this for everything but siemens mosaics.
   --------------------------------------------------------------*/
-MRI *DICOMRead2(char *dcmfile, int LoadVolume)
+MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 {
   char **FileNames, *dcmdir;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
@@ -5311,7 +5321,7 @@ int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri)
    This routine is used for non-Siemens DICOM files
 *******************************************************/
 
-int DICOMRead(char *FileName, MRI **mri, int ReadImage)
+int DICOMRead(const char *FileName, MRI **mri, int ReadImage)
 {
   MRI *pmri=NULL;
   char **CleanedFileNames, **FileNames, *c, PathName[256];
@@ -5540,7 +5550,7 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 
 #if 0
 /* 9/25/01 This version does not assume that the series number is good */
-MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
+MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume)
 {
   char *dcmpath;
   SDCMFILEINFO *sdfi;
@@ -5759,7 +5769,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   the Siemens ASCII header. One can get the slice thickness from tag
   (18,50), but this will not include a skip. See also dcmGetVolRes().
   -----------------------------------------------------------------------*/
-float sdcmMosaicSliceRes(char *dcmfile)
+float sdcmMosaicSliceRes(const char *dcmfile)
 {
   char * strtmp;
   float x0, y0, z0;
@@ -5844,7 +5854,7 @@ float sdcmMosaicSliceRes(char *dcmfile)
   anatomical order.
   4. It handles multiple frames for mosaics and non-mosaics.
   -----------------------------------------------------------------*/
-MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
+MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume)
 {
   char *dcmpath;
   SDCMFILEINFO *sdfi;

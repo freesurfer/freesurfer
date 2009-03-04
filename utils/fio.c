@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:25 $
- *    $Revision: 1.32 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:49 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@ int  fio_npushes = -1;
 char fio_dirstack[FIO_NPUSHES_MAX][1000];
 
 
-FILE *MGHopen_file(char *fname, char *rwmode)
+FILE *MGHopen_file(const char *fname,const  char *rwmode)
 {
   FILE *f1;
 
@@ -351,40 +351,43 @@ fwriteDouble(double d, FILE *fp)
   of the unix dirname.
   Author: Douglas Greve, 9/10/2001
   ------------------------------------------------------*/
-char *fio_dirname(char *pathname)
+char *fio_dirname(const char *pathname)
 {
   int l,n;
   char *dirname;
 
   if (pathname == NULL) return(NULL);
 
-  l = strlen(pathname);
+  char *pname = strcpyalloc(pathname);
+  l = strlen(pname);
 
   /* strip off leading forward slashes */
-  while (l > 0 && pathname[l-1] == '/')
+  while (l > 0 && pname[l-1] == '/')
   {
-    pathname[l-1] = '\0';
-    l = strlen(pathname);
+    pname[l-1] = '\0';
+    l = strlen(pname);
   }
 
   if (l < 2)
   {
-    /* pathname is / or . or single character */
+    /* pname is / or . or single character */
+    free(pname);
     dirname = (char *) calloc(2,sizeof(char));
-    if (l==0 || pathname[0] == '/') dirname[0] = '/';
+    if (l==0 || pname[0] == '/') dirname[0] = '/';
     else                           dirname[0] = '.';
     return(dirname);
   }
 
   /* Start at the end of the path name and step back
      until a forward slash is found */
-  for (n=l; n >= 0; n--)if (pathname[n] == '/') break;
+  for (n=l; n >= 0; n--)if (pname[n] == '/') break;
 
   if (n < 0)
   {
     /* no forward slash found */
     dirname = (char *) calloc(2,sizeof(char));
     dirname[0] = '.';
+    free(pname);
     return(dirname);
   }
 
@@ -393,11 +396,13 @@ char *fio_dirname(char *pathname)
     /* first forward slash is the first character */
     dirname = (char *) calloc(2,sizeof(char));
     dirname[0] = '/';
+    free(pname);
     return(dirname);
   }
 
   dirname = (char *) calloc(n+1,sizeof(char));
-  memmove(dirname,pathname,n);
+  memmove(dirname,pname,n);
+  free(pname);
   return(dirname);
 }
 /*------------------------------------------------------
@@ -405,7 +410,7 @@ char *fio_dirname(char *pathname)
   of the unix basename.
   Author: Douglas Greve, 9/10/2001
   ------------------------------------------------------*/
-char *fio_basename(char *pathname, char *ext)
+char *fio_basename(const char *pathname, const char *ext)
 {
   int l,n,lext;
   char *basename, *tmp;
@@ -421,19 +426,19 @@ char *fio_basename(char *pathname, char *ext)
     lext = strlen(ext);
     if (lext < (l + 2))
     {
-      if ( strcmp(ext,&(pathname[l-lext]) ) == 0)
+      if ( strcmp(ext,&(tmp[l-lext]) ) == 0)
       {
-        memset(&(pathname[l-lext]),'\0',lext+1);
-        l = strlen(pathname);
+        memset(&(tmp[l-lext]),'\0',lext+1);
+        l = strlen(tmp);
       }
     }
   }
 
   /* strip off leading forward slashes */
-  while (l > 0 && pathname[l-1] == '/')
+  while (l > 0 && tmp[l-1] == '/')
   {
-    pathname[l-1] = '\0';
-    l = strlen(pathname);
+    tmp[l-1] = '\0';
+    l = strlen(tmp);
   }
 
   if (l < 2)
@@ -441,21 +446,18 @@ char *fio_basename(char *pathname, char *ext)
     /* basename is / or . or single character */
     basename = (char *) calloc(2,sizeof(char));
     if (l==0) basename[0] = '/';
-    else     basename[0] = pathname[0];
-    memmove(pathname,tmp,strlen(tmp));
+    else     basename[0] = tmp[0];
     free(tmp);
     return(basename);
   }
 
   /* Start at the end of the path name and step back
      until a forward slash is found */
-  for (n=l; n >= 0; n--) if (pathname[n] == '/') break;
+  for (n=l; n >= 0; n--) if (tmp[n] == '/') break;
 
   basename = (char *) calloc(l-n,sizeof(char));
-  memmove(basename,&(pathname[n+1]),l-n);
+  memmove(basename,&(tmp[n+1]),l-n);
 
-  // Make sure that pathname does not change
-  memmove(pathname,tmp,strlen(tmp));
   free(tmp);
 
   return(basename);
@@ -464,7 +466,7 @@ char *fio_basename(char *pathname, char *ext)
   fio_extension() - returns the extension of the given filename.
   Author: Douglas Greve, 1/30/2002
   -------------------------------------------------------------*/
-char *fio_extension(char *pathname)
+char *fio_extension(const char *pathname)
 {
   int lpathname,n, lext;
   char *ext;
@@ -493,13 +495,13 @@ char *fio_extension(char *pathname)
   return(ext);
 }
 /* -----------------------------------------------------
-  fio_DirIsWritable(char *dirname, int fname) -- tests
+  fio_DirIsWritable(const char *dirname, int fname) -- tests
   whether the given directory is writable by creating
   and deleting a junk file there. If fname != 0, then
   dirname is treated as path to a filename. It will
   return 0 if the directory does not exist.
   ----------------------------------------------------- */
-int fio_DirIsWritable(char *dirname, int fname)
+int fio_DirIsWritable(const char *dirname, int fname)
 {
   FILE *fp;
   char tmpstr[2000];
@@ -520,7 +522,7 @@ int fio_DirIsWritable(char *dirname, int fname)
 /*-----------------------------------------------------
   fio_FileExistsReadable() - file exists and is readable
   -----------------------------------------------------*/
-int fio_FileExistsReadable(char *fname)
+int fio_FileExistsReadable(const char *fname)
 {
   FILE *fp;
 
@@ -535,7 +537,7 @@ int fio_FileExistsReadable(char *fname)
 /*-----------------------------------------------------
   fio_IsDirectory(fname) - fname exists and is a directory
   -----------------------------------------------------*/
-int fio_IsDirectory(char *fname)
+int fio_IsDirectory(const char *fname)
 {
   FILE *fp;
   struct stat buf;
@@ -552,7 +554,7 @@ int fio_IsDirectory(char *fname)
   fio_NLines() - get the number of lines. The line length
   should not exceed 4000 characters.
   ------------------------------------------------------------*/
-int fio_NLines(char *fname)
+int fio_NLines(const char *fname)
 {
   FILE *fp;
   int nrows;
@@ -574,7 +576,7 @@ int fio_NLines(char *fname)
 
 
 /*------------------------------------------------------------------------*/
-int fio_pushd(char *dir)
+int fio_pushd(const char *dir)
 {
   extern int fio_npushes;
   extern char fio_dirstack[FIO_NPUSHES_MAX][1000];
@@ -630,7 +632,7 @@ int fio_popd(void)
   by pushing into the file dir, getting the cwd, appending the file
   basename to the cwd to get the full path, then popping the stack.
   -------------------------------------------------------------------*/
-char *fio_fullpath(char *fname)
+char *fio_fullpath(const char *fname)
 {
   static char cwd[1000];
   char *dirname, *basename;

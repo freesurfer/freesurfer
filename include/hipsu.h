@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.3 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -338,7 +338,7 @@ int reflecti(struct IIMAGEtag image,int border,int rtype);
 int read_frame(FILE *fp,char *buf,int buf_limit,int *flags,double *shift_vector,double (*rot_matrix)[3],int fr,char *fname);
 /******************* read_hea.c ***********************/
 int read_header(struct header *hd);
-int fread_header(FILE *fp,struct header *hd,char *fname);
+int fread_header(FILE *fp,struct header *hd,const char *fname);
 /******************* read_his.c ***********************/
 int read_histo(struct hips_histo *histo,int fr);
 int fread_histo(FILE *fp,struct hips_histo *histo,int fr,char *fname);
@@ -358,10 +358,10 @@ int fread_hdr_cca(FILE *fp,struct header *hd,struct header *chd,int mask,char *f
 int fread_hdr_ccac(FILE *fp,struct header *hd,struct header *chd,int mask,char *fname,int flaga);
 /******************* read_ima.c ***********************/
 int read_image(struct header *hd,int fr);
-int fread_image(FILE *fp,struct header *hd,int fr,char *fname);
+int fread_image(FILE *fp,struct header *hd,int fr,const char *fname);
 /******************* read_roi.c ***********************/
 int read_roi(struct header *hd,int fr);
-int fread_roi(FILE *fp,struct header *hd,int fr,char *fname);
+int fread_roi(FILE *fp,struct header *hd,int fr,const char *fname);
 /******************* rgb.c ***********************/
 int h_btorgb(struct header *hdr,struct header *hdg,struct header *hdb,struct header *hdo);
 int h_btorgbz(struct header *hdr,struct header *hdg,struct header *hdb,struct header *hdo);
@@ -467,14 +467,14 @@ int write_headeru(struct header *hd,int argc,char **argv );
 int write_headeru2(struct header *hd,struct header *hdp,int argc,char **argv ,int flag);
 int write_headerun(struct header *hd,int argc,char **argv );
 int write_header(struct header *hd);
-int fwrite_header(FILE *fp,struct header *hd,char *fname);
+int fwrite_header(FILE *fp,struct header *hd,const char *fname);
 /******************* write_hi.c ***********************/
 int write_histo(struct hips_histo *histo,int fr);
 int fwrite_histo(FILE *fp,struct hips_histo *histo,int fr,char *fname);
 int histo_to_hdr(struct header *hd,struct hips_histo *histo);
 /******************* write_im.c ***********************/
 int write_image(struct header *hd,int fr);
-int fwrite_image(FILE *fp,struct header *hd,int fr,char *fname);
+int fwrite_image(FILE *fp,struct header *hd,int fr,const char *fname);
 /******************* write_ro.c ***********************/
 int write_roi(struct header *hd,int fr);
 int fwrite_roi(FILE *fp,struct header *hd,int fr,char *fname);

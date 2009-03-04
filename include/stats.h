@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/05/16 17:20:17 $
- *    $Revision: 1.16 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:37 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,18 +113,18 @@ extern int  statnorm_float2int;
 extern int  stats_fixxfm;
 #endif
 
-SV        *StatReadVolume(char *prefix);
-SV        *StatReadVolume2(char *prefix);
-SV        *StatReadTalairachVolume(char *prefix,
-                                   char *xform_fname,
-                                   char *subject_name) ;
-fMRI_REG  *StatReadRegistration(char *fname) ;
-fMRI_REG  *StatReadTalairachRegistration(char *fname,
+SV        *StatReadVolume(const char *prefix);
+SV        *StatReadVolume2(const char *prefix);
+SV        *StatReadTalairachVolume(const char *prefix,
+                                   const char *xform_fname,
+                                   const char *subject_name) ;
+fMRI_REG  *StatReadRegistration(const char *fname) ;
+fMRI_REG  *StatReadTalairachRegistration(const char *fname,
     char *subject_name) ;
 int       StatWriteVolume(SV *sv,
-                          char *prefix) ;
+                          const char *prefix) ;
 int       StatWriteRegistration(fMRI_REG *reg,
-                                char *fname) ;
+                                const char *fname) ;
 int       StatFreeRegistration(fMRI_REG **preg) ;
 int       StatFree(SV **psv) ;
 SV        *StatAllocVolume(SV *sv,
@@ -137,14 +137,14 @@ SV        *StatAllocVolume(SV *sv,
 SV        *StatAllocStructuralVolume(SV *sv,
                                      float fov,
                                      float resolution,
-                                     char *name) ;
+                                     const char *name) ;
 int       StatAccumulateTalairachVolume(SV *sv_tal,
                                         SV *sv) ;
 int       StatAccumulateSurfaceVolume(SV *sv_tal,
                                       SV *sv,
                                       MRI_SURFACE *mris) ;
 int       StatReadTransform(STAT_VOLUME *sv,
-                            char *name) ;
-int       StatVolumeExists(char *prefix) ;
+                            const char *name) ;
+int       StatVolumeExists(const char *prefix) ;
 
 #endif

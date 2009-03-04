@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/18 23:23:37 $
- *    $Revision: 1.30 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:49 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,7 +51,7 @@ int ctabDuplicates;
 
 /*-------------------------------------------------------------------
   ----------------------------------------------------------------*/
-COLOR_TABLE *CTABreadASCII(char *fname)
+COLOR_TABLE *CTABreadASCII(const char *fname)
 {
   COLOR_TABLE *ct;
   char        line[STRLEN], *cp;
@@ -1203,7 +1203,7 @@ int CTABfindRGBi(COLOR_TABLE *ct, int r, int g, int b, int *index)
   index into the color table that matches the name (yes, this function
   is named incorrectly -- it should be something like CTABname2Index).
   -----------------------------------------------------------------*/
-int CTABfindName(COLOR_TABLE *ct, char *name, int *index)
+int CTABfindName(COLOR_TABLE *ct,const char *name, int *index)
 {
   int structure;
 
@@ -1269,7 +1269,7 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
 
 
 /*--------------------------------------------------------------*/
-int CTABwriteFileASCII(COLOR_TABLE *ct, char *fname)
+int CTABwriteFileASCII(COLOR_TABLE *ct,const char *fname)
 {
   FILE *fp;
   int result;
@@ -1304,7 +1304,7 @@ int CTABwriteFileASCII(COLOR_TABLE *ct, char *fname)
   Creates a new color table by adding name to input table.
   Colors are assigned randomly.
   -------------------------------------------------------*/
-COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name)
+COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold,const char *name)
 {
   COLOR_TABLE *ct ;
   COLOR_TABLE_ENTRY *cte;

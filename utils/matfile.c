@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:26 $
- *    $Revision: 1.29 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:52 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@ static int    znzreadMatFile(char *unbuff,MATFILE *mf, double **real_matrix,
 static void   swapBytes(MATFILE *mf) ;
 static char *MatProgname = "matfile" ;
 
-int MatFileWrite(const char *fname, float *data, int rows, int cols, char *name);
+int MatFileWrite(const char *fname, float *data, int rows, int cols, const char *name);
 char    *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) ;
 char    *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data) ;
 MLFC *ReadMatlabFileContents(const char *fname);
@@ -70,11 +70,12 @@ int Matlab_Install_printf( int (*new_printf)(const char *szFormat, ...) )
 
 
 int
-MatlabWrite(MATRIX *mat, const char *fname, char *name)
+MatlabWrite(MATRIX *mat, const char *fname,const char *name)
 {
+  
   if (!name)
-    name = "matrix" ;
-
+    return(MatFileWrite(fname, mat->data, mat->rows, mat->cols, "matrix")) ;
+  
   return(MatFileWrite(fname, mat->data, mat->rows, mat->cols, name)) ;
 }
 
@@ -236,7 +237,7 @@ MatFileRead(const char *fname, int type)
 
 
 int
-MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
+MatFileWrite(const char *fname, float *data, int rows, int cols, const char *name)
 {
   int     row, col, nitems, mtype ;
   float   *fptr ;
@@ -767,7 +768,7 @@ swapBytes(MATFILE *mf)
   variables from a matlab file and return the matrix associated
   with the given variable name.
   -------------------------------------------------------------*/
-MATRIX *ReadMatlabFileVariable(char *fname, char *varname)
+MATRIX *ReadMatlabFileVariable(const char *fname,const char *varname)
 {
   MLFC *mlfc;
   int n;

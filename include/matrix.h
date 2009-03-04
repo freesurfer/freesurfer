@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/04/01 03:04:22 $
- *    $Revision: 1.64 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:36 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,13 +85,13 @@ MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
 int     MatrixFree(MATRIX **pmat) ;
 MATRIX  *MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3) ;
 MATRIX  *MatrixCopy(MATRIX *mIn, MATRIX *mOut) ;
-int     MatrixWriteTxt(char *fname, MATRIX *mat) ;
-MATRIX  *MatrixReadTxt(char *fname, MATRIX *mat) ;
-MATRIX  *MatrixRead(char *fname) ;
-int     MatrixWrite(MATRIX *mIn, char *fname, char *name) ;
+int     MatrixWriteTxt(const char *fname, MATRIX *mat) ;
+MATRIX  *MatrixReadTxt(const char *fname, MATRIX *mat) ;
+MATRIX  *MatrixRead(const char *fname) ;
+int     MatrixWrite(MATRIX *mIn,const char *fname, const char *name) ;
 MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
 int     MatrixPrint(FILE *fp, MATRIX *mat) ;
-int MatrixPrintFmt(FILE *fp, char *fmt, MATRIX *mat);
+int MatrixPrintFmt(FILE *fp,const char *fmt, MATRIX *mat);
 int     MatrixPrintOneLine(FILE *fp, MATRIX *mat) ;
 int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
@@ -141,9 +141,9 @@ MATRIX *MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs);
 /* misc. I/O functions */
 int    MatrixAsciiWriteInto(FILE *fp, MATRIX *m) ;
 MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
-int    MatrixAsciiWrite(char *fname, MATRIX *m) ;
-MATRIX *MatrixAsciiRead(char *fname, MATRIX *m) ;
-MATRIX *MatrixAsciiReadRaw(char *fname, MATRIX *m) ;
+int    MatrixAsciiWrite(const char *fname, MATRIX *m) ;
+MATRIX *MatrixAsciiRead(const char *fname, MATRIX *m) ;
+MATRIX *MatrixAsciiReadRaw(const char *fname, MATRIX *m) ;
 
 #define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
 #define RVectorAlloc(n, type)      MatrixAlloc(1, n, type)

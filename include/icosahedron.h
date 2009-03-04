@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/02/15 18:19:42 $
- *    $Revision: 1.9 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,10 +61,10 @@ MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic162_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) ;
 MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces) ;
-MRI_SURFACE *ICOread(char *fname) ;
-MRI_SURFACE *ICOreadOverAlloc(char *fname, double pct_over) ;
+MRI_SURFACE *ICOread(const char *fname) ;
+MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over) ;
 int          ICOreadVertexPositions(MRI_SURFACE *mris, 
-                                    char *fname, 
+                                    const char *fname, 
                                     int which) ;
 MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor);
 MRI_SURFACE *ReadIcoByNVtxs(int nIcoVtxs, float RescaleFactor);
@@ -85,7 +85,7 @@ extern IC_FACE ic0_faces[20] ;
 MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1,
                                   float x2, float y2, float z2, float r2 );
 
-ICOSAHEDRON *read_icosahedron(char *fname) ;
+ICOSAHEDRON *read_icosahedron(const char *fname) ;
 ICOSAHEDRON *read_icosahedron_by_order(int order) ;
 int IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz) ;
 int IcoFindNClosestVertices(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz, int num, int *pv) ;

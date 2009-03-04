@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/21 21:45:14 $
- *    $Revision: 1.10 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:51 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -334,7 +334,7 @@ static void gifti_set_DA_value_2D (giiDataArray* da,
   Description:   reads a GIFTI file, putting vertices, 
                  and faces into an MRIS_SURFACE structure.
   ------------------------------------------------------*/
-MRI_SURFACE * mrisReadGIFTIfile(char *fname)
+MRI_SURFACE * mrisReadGIFTIfile(const char *fname)
 {
   /* Attempt to read the file. */
   gifti_image* image = gifti_read_image (fname, 1);
@@ -516,7 +516,7 @@ MRI_SURFACE * mrisReadGIFTIfile(char *fname)
 /*
  *
  */
-int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname)
+int mrisReadScalarGIFTIfile(MRI_SURFACE *mris,const  char *fname)
 {
   /* Attempt to read the file. */
   gifti_image* image = gifti_read_image (fname, 1);
@@ -590,7 +590,7 @@ int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, char *fname)
   multiple frames of data (where in this case, a frame is one
   complete vector of vertices).
   -----------------------------------------------------------*/
-MRI *MRISreadGiftiAsMRI(char *fname, int read_volume)
+MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
 {
   /* Attempt to read the file. */
   gifti_image* image = gifti_read_image (fname, 1);
@@ -803,7 +803,7 @@ static void insertMetaData(MRIS* mris, giiDataArray* dataArray)
   Description:   writes a GIFTI file, putting vertices, 
                  and faces from input MRIS_SURFACE structure.
   ------------------------------------------------------*/
-int MRISwriteGIFTI(MRIS* mris, char *fname)
+int MRISwriteGIFTI(MRIS* mris,const  char *fname)
 {
   if (NULL == mris || NULL == fname)
   {
@@ -974,7 +974,7 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
   Description:   writes a GIFTI file containing 'shape'
                  data, ie. thickness, curv, sulc...
   ------------------------------------------------------*/
-int MRISwriteScalarGIFTI(MRIS* mris, char *fname, char *scalar_fname)
+int MRISwriteScalarGIFTI(MRIS* mris,const  char *fname,const  char *scalar_fname)
 {
   if (NULL == mris || NULL == fname)
   {
@@ -1091,7 +1091,7 @@ int MRISwriteScalarGIFTI(MRIS* mris, char *fname, char *scalar_fname)
   Description:   writes a GIFTI file containing functional or
                  timeseries data
   -----------------------------------------------------------*/
-int mriWriteGifti(MRI* mri, char *fname)
+int mriWriteGifti(MRI* mri,const  char *fname)
 {
   if (NULL == mri || NULL == fname)
   {

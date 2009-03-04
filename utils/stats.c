@@ -6,9 +6,9 @@
 /*
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/05/16 17:20:17 $
- *    $Revision: 1.30 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:55 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,12 +51,12 @@ extern const char* Progname;
 #define REG_COLS      4
 #define STRUCT_DIM    256
 
-MATRIX *StatLoadTalairachXFM(char *subjid, char *xfmfile);
+MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile);
 
 /*------------------------------------------------------------------------
 ------------------------------------------------------------------------*/
 fMRI_REG *
-StatReadRegistration(char *fname)
+StatReadRegistration(const char *fname)
 {
   int        row, col ;
   FILE       *fp ;
@@ -126,7 +126,7 @@ StatFreeRegistration(fMRI_REG **preg)
 
 /*------------------------------------------------------------------------
 ------------------------------------------------------------------------*/
-SV *StatReadVolume(char *prefix)
+SV *StatReadVolume(const char *prefix)
 {
   char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN], *cp ;
   STAT_VOLUME  *sv ;
@@ -414,7 +414,7 @@ SV *StatReadVolume(char *prefix)
 
 /*------------------------------------------------------------------------
 ------------------------------------------------------------------------*/
-SV *StatReadVolume2(char *prefix)
+SV *StatReadVolume2(const char *prefix)
 {
   char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN];
   STAT_VOLUME  *sv ;
@@ -648,7 +648,7 @@ StatAllocVolume(SV *sv, int nevents, int width, int height,
 /*------------------------------------------------------------------------
 ------------------------------------------------------------------------*/
 SV *
-StatAllocStructuralVolume(SV *sv, float fov, float resolution, char *name)
+StatAllocStructuralVolume(SV *sv, float fov, float resolution, const char *name)
 {
   SV     *sv_tal ;
   int    width, height, depth, event ;
@@ -1093,7 +1093,7 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
 /*--------------------------------------------------------------
   ----------------------------------------------------------------*/
 int
-StatWriteVolume(SV *sv, char *prefix)
+StatWriteVolume(SV *sv, const char *prefix)
 {
   char         path[STRLEN], fname[STRLEN] ;
   FILE         *fp ;
@@ -1284,7 +1284,7 @@ StatWriteVolume(SV *sv, char *prefix)
 /*------------------------------------------------------------------
   -------------------------------------------------------------------*/
 int
-StatWriteRegistration(fMRI_REG *reg, char *fname)
+StatWriteRegistration(fMRI_REG *reg, const char *fname)
 {
   FILE  *fp ;
   int   row, col ;
@@ -1311,7 +1311,7 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
 /*-------------------------------------------------------------------
   -------------------------------------------------------------------*/
 int
-StatReadTransform(STAT_VOLUME *sv, char *name)
+StatReadTransform(STAT_VOLUME *sv, const char *name)
 {
   char  *sd, subjects[STRLEN], fname[STRLEN] ;
   int   event ;
@@ -1344,7 +1344,7 @@ StatReadTransform(STAT_VOLUME *sv, char *name)
 /*------------------------------------------------------------------------
 ------------------------------------------------------------------------*/
 int
-StatVolumeExists(char *prefix)
+StatVolumeExists(const char *prefix)
 {
   char   fname[STRLEN] ;
   FILE   *fp ;
@@ -1361,7 +1361,7 @@ StatVolumeExists(char *prefix)
   If the transform is Vox2Vox, converts it to RAS2RAS. The file is
   assumed to exist in SUBJECTS_DIR/subjid/mri/transforms/xfmfile.
   ------------------------------------------------------------------------*/
-MATRIX *StatLoadTalairachXFM(char *subjid, char *xfmfile)
+MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile)
 {
   char subjects[STRLEN], fname[STRLEN] ;
   MATRIX *Mcor2tal;

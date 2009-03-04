@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/05 13:44:39 $
- *    $Revision: 1.324 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:36 $
+ *    $Revision: 1.325 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -613,49 +613,49 @@ double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris,
     MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
-MRI_SURFACE  *MRISread(char *fname) ;
-MRI_SURFACE  *MRISreadOverAlloc(char *fname, double pct_over) ;
-MRI_SURFACE  *MRISfastRead(char *fname) ;
-int          MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname) ;
-int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname) ;
-int          MRISreadInflatedCoordinates(MRI_SURFACE *mris, char *sname) ;
-int          MRISreadFlattenedCoordinates(MRI_SURFACE *mris, char *sname) ;
-int          MRISreadWhiteCoordinates(MRI_SURFACE *mris, char *sname) ;
+MRI_SURFACE  *MRISread(const char *fname) ;
+MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double pct_over) ;
+MRI_SURFACE  *MRISfastRead(const char *fname) ;
+int          MRISreadOriginalProperties(MRI_SURFACE *mris,const  char *sname) ;
+int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris,const  char *sname) ;
+int          MRISreadInflatedCoordinates(MRI_SURFACE *mris,const  char *sname) ;
+int          MRISreadFlattenedCoordinates(MRI_SURFACE *mris,const  char *sname) ;
+int          MRISreadWhiteCoordinates(MRI_SURFACE *mris,const  char *sname) ;
 int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
 int          MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
                                   Real *pxw, Real *pyw, Real *pzw) ;
-int          MRISreadPatch(MRI_SURFACE *mris, char *pname) ;
-int          MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname) ;
-int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
-int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
-int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
-float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris, char *sname) ;
+int          MRISreadPatch(MRI_SURFACE *mris,const  char *pname) ;
+int          MRISreadPatchNoRemove(MRI_SURFACE *mris,const  char *pname) ;
+int          MRISreadTriangleProperties(MRI_SURFACE *mris,const  char *mris_fname) ;
+int          MRISreadBinaryCurvature(MRI_SURFACE *mris,const  char *mris_fname) ;
+int          MRISreadCurvatureFile(MRI_SURFACE *mris,const char *fname) ;
+float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISreadNewCurvatureIntoArray(const char *fname,
                                            int in_array_size,
                                            float** out_array) ;
-float        *MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname) ;
+float        *MRISreadCurvatureVector(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISreadCurvatureIntoArray(const char *fname,
                                         int in_array_size,
                                         float** out_array) ;
-int          MRISreadFloatFile(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadFloatFile(MRI_SURFACE *mris,const char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
-MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
-                      char *subject, char *hemi, char *subjectsdir);
-int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
+MRI *MRISloadSurfVals(const char *srcvalfile,const  char *typestring, MRI_SURFACE *Surf,
+                     const  char *subject,const  char *hemi,const  char *subjectsdir);
+int          MRISreadValues(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadValuesIntoArray(const char *fname,
                                      int in_array_size,
                                      float** out_array) ;
-int          MRISreadAnnotation(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteAnnotation(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadAnnotation(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadAnnotationIntoArray(const char *fname,
                                          int in_array_size,
                                          int** out_array);
 int          MRISreadCTABFromAnnotationIfPresent(const char *fname,
                                                  COLOR_TABLE** out_table);
 int          MRISisCTABPresentInAnnotation(const char *fname, int* present);
-int          MRISreadValuesBak(MRI_SURFACE *mris, char *fname) ;
-int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadValuesBak(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISreadImagValues(MRI_SURFACE *mris,const  char *fname) ;
 int          MRIScopyImagValuesToValues(MRI_SURFACE *mris) ;
 int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
@@ -667,17 +667,17 @@ int          MRIScopyValToValBak(MRI_SURFACE *mris) ;
 int          MRISsqrtVal(MRI_SURFACE *mris) ;
 int          MRISmulVal(MRI_SURFACE *mris, float mul) ;
 
-int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteNormalsAscii(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteVTK(MRI_SURFACE *mris, char *fname);
-int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteICO(MRI_SURFACE *mris, char *fname) ;
+int          MRISwrite(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteAscii(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteNormalsAscii(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteVTK(MRI_SURFACE *mris,const  char *fname);
+int          MRISwriteGeo(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteICO(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteSTL(MRI_SURFACE *mris, char *fname) ;
-int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
-int          MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+int          MRISwritePatchAscii(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteDists(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteCurvature(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISreadNewCurvatureFile(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISrectifyCurvature(MRI_SURFACE *mris) ;
 #define NORM_NONE  -1
 #define NORM_MEAN   0
@@ -690,12 +690,12 @@ int          MRISzeroMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISnonmaxSuppress(MRI_SURFACE *mris) ;
 int          MRISscaleCurvatures(MRI_SURFACE *mris,
                                  float min_curv, float max_curv) ;
-int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
-int          MRISwritePatch(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteCurvatureToWFile(MRI_SURFACE *mris, char *fname) ;
-int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
+int          MRISwriteAreaError(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteAngleError(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwritePatch(MRI_SURFACE *mris, const char *fname) ;
+int          MRISwriteValues(MRI_SURFACE *mris, const char *fname) ;
+int          MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname) ;
+int          MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname);
 int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
 int          MRISminFilterCurvatures(MRI_SURFACE *mris, int niter) ;
 int          MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter) ;
@@ -865,8 +865,8 @@ double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
-int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
-int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadTetherFile(MRI_SURFACE *mris,const  char *fname, float radius) ;
+int          MRISreadVertexPositions(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
                                                  double gaussian_norm,
                                                  double l_spring) ;
@@ -924,8 +924,8 @@ int          MRISPfree(MRI_SP **pmrisp) ;
 MRI_SP       *MRISPread(char *fname) ;
 int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
 
-int          MRISwriteArea(MRI_SURFACE *mris, char *sname) ;
-int          MRISwriteMarked(MRI_SURFACE *mris, char *sname) ;
+int          MRISwriteArea(MRI_SURFACE *mris,const  char *sname) ;
+int          MRISwriteMarked(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISmarkedToCurv(MRI_SURFACE *mris) ;
 
 double       MRISParea(MRI_SP *mrisp) ;
@@ -1128,17 +1128,17 @@ int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
 int  MRISsetAllMarks(MRI_SURFACE *mris, int mark) ;
 int  MRISscaleCurvature(MRI_SURFACE *mris, float scale) ;
-int  MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname) ;
+int  MRISwriteTriangularSurface(MRI_SURFACE *mris,const char *fname) ;
 int  MRISripFaces(MRI_SURFACE *mris) ;
 int  MRISremoveRipped(MRI_SURFACE *mris) ;
-int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
+int  MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterVals(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterZeroVals(MRI_SURFACE *mris) ;
-int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
-int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
+int  MRISreadBinaryAreas(MRI_SURFACE *mris,const  char *mris_fname) ;
+int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris,const  char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri,
                    TRANSFORM *transform, MRI *mri_dst) ;
 int  MRISmatrixMultiply(MRIS *mris, MATRIX *M);
@@ -1298,7 +1298,7 @@ int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
-int MRISsetSulcFileName(char *sulc_name) ;
+int MRISsetSulcFileName(const char *sulc_name) ;
 int MRISsetInflatedFileName(char *inflated_name) ;
 int MRISsetRegistrationSigmas(float *sigmas, int nsigmas) ;
 
@@ -1502,7 +1502,7 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians);
-int MRISfileNameType(char *fname) ;
+int MRISfileNameType(const char *fname) ;
 unsigned long MRISeraseOutsideOfSurface(float h,
                                         MRI* mri_dst,
                                         MRIS *mris,
@@ -1857,8 +1857,8 @@ int	MRISuseK2Curvature(
 
 // end Discrete Principal Curvature and Related ^^^^^^^^^^^^^^^^^^
 
-void UpdateMRIS(MRI_SURFACE *mris, char *fname);
-int  MRISreadTransform(MRIS *mris, char *fname);
+void UpdateMRIS(MRI_SURFACE *mris,const char *fname);
+int  MRISreadTransform(MRIS *mris,const char *fname);
 int MRISaddToValues(MRI_SURFACE *mris, float val) ;
 int MRISsetValues(MRI_SURFACE *mris, float val) ;
 LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index) ;

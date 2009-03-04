@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:26 $
- *    $Revision: 1.14 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:52 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,9 +40,9 @@ char *imaTypeString[6] = {"short","int","long","float","double","string"};
 int imaTypeSize[6] = {sizeof(short),sizeof(int),sizeof(long),
                       sizeof(float),sizeof(double),sizeof(char)};
 
-static int imaSetDictEntry(int nthEntry, char *key, int offset,
+static int imaSetDictEntry(int nthEntry,char *key, int offset,
                            char *typestring, int nitems);
-static int imaGetKeyEntryNo(char *key);
+static int imaGetKeyEntryNo(const char *key);
 
 /*--------------------------------------------------------------------
   imaLoadVal() - loads a value of length nbytes*nitems from the file
@@ -229,7 +229,7 @@ void DumpImaDictionary(FILE *fp)
   DumpImaDictionaryVal() - dumps the dictionary to a file stream,
   including the corresponding values from a given ima file.
   ---------------------------------------------------------------*/
-int DumpImaDictionaryVal(FILE *fp, char *imafile)
+int DumpImaDictionaryVal(FILE *fp,const  char *imafile)
 {
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int nImaDictionary, ImaDictionaryGood;
@@ -332,7 +332,7 @@ int imaPrintVal(FILE *fp, int type, void *pval)
   imaLoadValFromKey() - loads a value from a file stream given the key
   in the IMA dictionary.
   --------------------------------------------------------------------*/
-void *imaLoadValFromKey(FILE *imafp, char *key, void *pval)
+void *imaLoadValFromKey(FILE *imafp,const  char *key, void *pval)
 {
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int ImaDictionaryGood;
@@ -372,7 +372,7 @@ void *imaLoadValFromKey(FILE *imafp, char *key, void *pval)
   imaTypeFromKey() - returns the interger code of the data type
   (IMA_TYPE_XXX) of an entry in the IMA dictionary given the key.
   --------------------------------------------------------------------*/
-int imaTypeFromKey(char *key)
+int imaTypeFromKey(const char *key)
 {
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int  ImaDictionaryGood;
@@ -388,7 +388,7 @@ int imaTypeFromKey(char *key)
 /*--------------------------------------------------------------------
   imaGetKeyEntryNo() - return the entry number of the key.
   --------------------------------------------------------------------*/
-static int imaGetKeyEntryNo(char *key)
+static int imaGetKeyEntryNo(const char *key)
 {
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int nImaDictionary, ImaDictionaryGood;
@@ -406,7 +406,7 @@ static int imaGetKeyEntryNo(char *key)
   imaTypeFromString() - returns the interger type code (IMA_TYPE_XXX)
   given the string name of the type.
   --------------------------------------------------------------------*/
-int imaTypeFromString(char *typestring)
+int imaTypeFromString(const char *typestring)
 {
   int i;
   for (i=0;i<6;i++)
@@ -426,7 +426,7 @@ int imaTypeFromString(char *typestring)
   distance between slices is computed from the slice thickness and
   the distance factor.
   --------------------------------------------------------------------*/
-IMAFILEINFO *imaLoadFileInfo(char *imafile)
+IMAFILEINFO *imaLoadFileInfo(const char *imafile)
 {
   IMAFILEINFO *ifi;
   FILE *fp;
@@ -716,7 +716,7 @@ int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi)
 /*--------------------------------------------------------------------
   imaParseName() - studyno-seriesno-imageno.ima
   --------------------------------------------------------------------*/
-int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
+int imaParseName(const char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
                  char *Separator)
 {
   char *imabase;
@@ -809,7 +809,7 @@ int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
   imaHasIMAExtension() - returns 1 if the given file name ends in a
   .ima (or .IMA) extension.
   --------------------------------------------------------------------*/
-int imaHasIMAExtension(char *filename)
+int imaHasIMAExtension(const char *filename)
 {
   char *ext;
 
@@ -825,7 +825,7 @@ int imaHasIMAExtension(char *filename)
   file. Returns 0 if it is not a Siemens IMA file or if the file does
   not exist.
   --------------------------------------------------------------------*/
-int imaIsSiemensIMA(char *imafile)
+int imaIsSiemensIMA(const char *imafile)
 {
   FILE *fp;
   char *Manufacturer;
@@ -856,7 +856,7 @@ int imaIsSiemensIMA(char *imafile)
   file in the series, and up to determine the last. The number
   in the series is then last-first+1.
   --------------------------------------------------------------------*/
-int imaCountFilesInSeries(char *imafile, int *FirstImageNo)
+int imaCountFilesInSeries(const char *imafile, int *FirstImageNo)
 {
   int StudyNo, SeriesNo, ImageNo, LastImageNo;
   char *imadir= NULL, *imaext;
@@ -957,7 +957,7 @@ int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi)
   return(0);
 }
 /*---------------------------------------------------------*/
-IMAFILEINFO *imaLoadDefaultFileInfo(char *imafile)
+IMAFILEINFO *imaLoadDefaultFileInfo(const char *imafile)
 {
   FILE *fp;
   IMAFILEINFO *ifi;
@@ -1182,7 +1182,7 @@ int imaFreeElement(IMAELEMENT **ppe)
   return(0);
 }
 /*--------------------------------------------------------------------*/
-IMAELEMENT *imaMakeElement(char *descr, int offset, int type, int nitems)
+IMAELEMENT *imaMakeElement(const char *descr, int offset, int type, int nitems)
 {
   IMAELEMENT *e;
   int descrlen;
@@ -1280,7 +1280,7 @@ IMAELEMENT *imaCopyElement(IMAELEMENT *esrc)
   return(edest);
 }
 /*--------------------------------------------------------------------*/
-IMAELEMENT *imaLoadElement(FILE *imafp, int offset, int type, char *descr,
+IMAELEMENT *imaLoadElement(FILE *imafp, int offset, int type,const char *descr,
                            int nitems)
 {
   IMAELEMENT *e;

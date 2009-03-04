@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:30 $
- *    $Revision: 1.8 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:49 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +30,9 @@
 // afni.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:30 $
-// Revision       : $Revision: 1.8 $
+// Revision Author: $Author: mreuter $
+// Revision Date  : $Date: 2009/03/04 19:20:49 $
+// Revision       : $Revision: 1.9 $
 //
 // moved out from mriio.c
 //
@@ -650,7 +650,7 @@ int findMinMaxFloat(float *pF, size_t count, float *fMin, float *fMax)
 }
 
 /*------------------------------------------------------*/
-MRI *afniRead(char *fname, int read_volume)
+MRI *afniRead(const char *fname, int read_volume)
 {
 
   FILE *fp;
@@ -1032,7 +1032,7 @@ MRI *afniRead(char *fname, int read_volume)
 } /* end afniRead() */
 
 
-int afniWrite(MRI *mri, char *fname)
+int afniWrite(MRI *mri,const char *fname)
 {
 
   char header_fname[STRLEN];

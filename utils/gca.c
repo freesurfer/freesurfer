@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/01/31 04:01:14 $
- *    $Revision: 1.259 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:49 $
+ *    $Revision: 1.260 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2195,7 +2195,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 static int (*myclose)(FILE *stream);
 
 int
-GCAwrite(GCA *gca, char *fname)
+GCAwrite(GCA *gca, const char *fname)
 {
   FILE      *fp ;
   int       x, y, z, n, i, j ;
@@ -2357,7 +2357,7 @@ GCAwrite(GCA *gca, char *fname)
 }
 
 GCA *
-GCAread(char *fname)
+GCAread(const char *fname)
 {
   FILE      *fp ;
   int       x, y, z, n, i, j ;
@@ -5679,7 +5679,7 @@ GCAfindExteriorSamples(GCA *gca,
 // the values are set only at prior_spacing/size
 int
 GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
-                char *fname)
+                const char *fname)
 {
   int    n, xv, yv, zv ;
   MRI    *mri_dst ;
@@ -6299,7 +6299,7 @@ gcaFindClosestMeanSample(GCA *gca,
 int
 GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri, 
                                 GCA_SAMPLE *gcas,int nsamples,
-                                char *fname,TRANSFORM *transform)
+                                const char *fname,TRANSFORM *transform)
 {
   int       i, n, xv, yv, zv ;
   MRI       *mri_dst ;
@@ -6363,7 +6363,7 @@ GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri,
 int
 GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri, 
                                 GCA_SAMPLE *gcas,int nsamples,
-                                char *fname,TRANSFORM *transform)
+                                const char *fname,TRANSFORM *transform)
 {
   int       n, xv, yv, zv ;
   MRI       *mri_dst ;
@@ -6409,7 +6409,7 @@ GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri,
 // create a volume mapped to the current mri volume
 int
 GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
-                            int nsamples,char *fname,TRANSFORM *transform)
+                            int nsamples,const char *fname,TRANSFORM *transform)
 {
   int    n, xv, yv, zv, label ;
   MRI    *mri_dst ;
@@ -9314,7 +9314,7 @@ GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples, int *ordered_indices)
 #include "mrinorm.h"
 MRI *
 GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                    TRANSFORM *transform, char *ctl_point_fname)
+                    TRANSFORM *transform,const char *ctl_point_fname)
 {
   MRI    *mri_dst, *mri_ctrl, *mri_bias ;
   int    xv, yv, zv, n, x, y, z,
@@ -10529,7 +10529,7 @@ GCAcomputeLabelStats(GCA *gca, int target_label, float *pvar, float *means)
 int
 GCAhistogramTissueStatistics(GCA *gca, MRI *mri_T1,MRI *mri_PD,
                              MRI *mri_labeled,
-                             TRANSFORM *transform, char *fname)
+                             TRANSFORM *transform,const char *fname)
 {
   int              x, y, z, n, label, biggest_label, T1, PD, xp, yp, zp ;
   GCA_NODE         *gcan ;
@@ -16793,7 +16793,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                                MRI *mri,
                                TRANSFORM *transform,
                                FILE *logfp,
-                               char *base_name,
+                               const char *base_name,
                                LTA **plta,
                                int handle_expanded_ventricles)
 {
@@ -16805,7 +16805,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
 }
 int
 GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, 
-                                       FILE *logfp, char *base_name, LTA **plta, 
+                                       FILE *logfp,const char *base_name, LTA **plta, 
                                        int handle_expanded_ventricles,
                                        float *plabel_scales, float *plabel_offsets)
 {

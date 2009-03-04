@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/11/15 02:39:56 $
- *    $Revision: 1.132 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:55 $
+ *    $Revision: 1.133 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,11 +51,11 @@ extern const char* Progname;
 
 #define MAX_TRANSFORMS (1024*4)
 
-static LTA  *ltaReadRegisterDat(char *fname) ;
-static LTA  *ltaMNIread(char *fname) ;
+static LTA  *ltaReadRegisterDat(const char *fname) ;
+static LTA  *ltaMNIread(const char *fname) ;
 static LTA  *ltaFSLread(const char *fname) ;
-static int  ltaMNIwrite(LTA *lta, char *fname) ;
-static LTA  *ltaReadFile(char *fname) ;
+static int  ltaMNIwrite(LTA *lta,const char *fname) ;
+static LTA  *ltaReadFile(const char *fname) ;
 
 static LTA *ltaMNIreadEx(const char *fname);
 static LTA *ltaReadFileEx(const char *fname);
@@ -428,7 +428,7 @@ LTAalloc(int nxforms, MRI *mri)
   Description
   ------------------------------------------------------*/
 int
-LTAwrite(LTA *lta, char *fname)
+LTAwrite(LTA *lta, const char *fname)
 {
   FILE             *fp;
   time_t           tt ;
@@ -476,7 +476,7 @@ LTAwrite(LTA *lta, char *fname)
   ------------------------------------------------------*/
 
 LTA *
-LTAread(char *fname)
+LTAread(const char *fname)
 {
   int       type ;
   LTA       *lta ;
@@ -571,7 +571,7 @@ LTAread(char *fname)
   Description
   ------------------------------------------------------*/
 static LTA *
-ltaReadFile(char *fname)
+ltaReadFile(const char *fname)
 {
   FILE             *fp;
   LINEAR_TRANSFORM *lt ;
@@ -1377,7 +1377,7 @@ LTAtransformPointAndGetWtotal(LTA *lta, VECTOR *v_X, VECTOR *v_Y)
   return(wtotal) ;
 }
 /*-----------------------------------------------------*/
-int TransformFileNameType(char *fname)
+int TransformFileNameType(const char *fname)
 {
   int file_type = TRANSFORM_ARRAY_TYPE ;
   char *dot, buf[500], *number ;
@@ -1415,7 +1415,7 @@ int TransformFileNameType(char *fname)
 #include "volume_io.h"
 
 static int
-ltaMNIwrite(LTA *lta, char *fname)
+ltaMNIwrite(LTA *lta, const char *fname)
 {
   FILE             *fp ;
   int              row ;
@@ -1492,7 +1492,7 @@ ltaMNIwrite(LTA *lta, char *fname)
   return(NO_ERROR);
 }
 static LTA  *
-ltaMNIread(char *fname)
+ltaMNIread(const char *fname)
 {
   LTA              *lta ;
   LINEAR_TRANSFORM *lt ;
@@ -1839,18 +1839,19 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
 
   Note: uses LTAvoxelTransformToCoronalRasTransform().
   -----------------------------------------------------------------*/
-MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
+MATRIX *DevolveXFM(const char *subjid, MATRIX *XFM, const char *xfmname)
 {
   return(DevolveXFMWithSubjectsDir(subjid,  XFM, xfmname, NULL)) ;
 }
 
-MATRIX *DevolveXFMWithSubjectsDir(char *subjid, 
+MATRIX *DevolveXFMWithSubjectsDir(const char *subjid, 
                                   MATRIX *XFM, 
-                                  char *xfmname, 
-                                  char *sdir)
+                                  const char *xfmname, 
+                                  const char *sdir)
 {
   MATRIX *Torig_tkreg, *invTorig_tkreg, *Torig_native, *Mfix;
-  char dirname[2000], xfmpath[2000], *sd;
+  char dirname[2000], xfmpath[2000];
+  const char *sd;
   MRI *mriorig;
   FILE *fp;
   LTA    *lta;
@@ -1952,7 +1953,7 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid,
 }
 /*----------------------------------------------------------------*/
 TRANSFORM *
-TransformRead(char *fname)
+TransformRead(const char *fname)
 {
   TRANSFORM *trans ;
   GCA_MORPH *gcam = NULL ;
@@ -2528,7 +2529,7 @@ TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int 
 
 #include "stats.h"
 static LTA *
-ltaReadRegisterDat(char *fname)
+ltaReadRegisterDat(const char *fname)
 {
   LTA        *lta ;
   fMRI_REG   *reg ;
@@ -2765,8 +2766,8 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
   return;
 }
 
-void mincGetVolInfo(char *infoline,
-                    char *infoline2,
+void mincGetVolInfo(const char *infoline,
+                    const char *infoline2,
                     VOL_GEOM *vgSrc,
                     VOL_GEOM *vgDst)
 {
@@ -3595,7 +3596,7 @@ TransformCreateDensityMap(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 }
 
 int
-TransformWrite(TRANSFORM *transform, char *fname)
+TransformWrite(TRANSFORM *transform, const char *fname)
 {
   switch (transform->type)
   {

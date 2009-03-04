@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/23 22:27:30 $
- *    $Revision: 1.379 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:36 $
+ *    $Revision: 1.380 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -243,8 +243,8 @@ double MRImeanFrameThresh(MRI *mri, int frame, float thresh);
 /*
   int    MRIwrite(MRI *mri, char *fpref) ;
 */
-int    MRIappend(MRI *mri, char *fpref) ;
-int    MRIwriteInfo(MRI *mri, char *fpref) ;
+int    MRIappend(MRI *mri,const char *fpref) ;
+int    MRIwriteInfo(MRI *mri,const char *fpref) ;
 /* ch ov */
 /*
   MRI   *MRIread(char *fpref) ;
@@ -785,7 +785,7 @@ MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
 HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
                                       MRI_REGION *region, int norm) ;
 int        MRIfileType(char *fname) ;
-int        MRIunpackFileName(char *inFname, int *pframe, int *ptype,
+int        MRIunpackFileName(const char *inFname, int *pframe, int *ptype,
                              char *outFname) ;
 Volume     MRItoVolume(MRI *mri) ;
 MRI        *MRIfromVolume(Volume volume, int start_frame, int end_frame) ;
@@ -1035,18 +1035,18 @@ int MRIstats(MRI *mri, float *min, float *max, int *n_voxels,
 float MRIvolumeDeterminant(MRI *mri);
 
 int mriio_command_line(int argc, char *argv[]);
-int mriio_set_subject_name(char *name);
+int mriio_set_subject_name(const char *name);
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);
-int MRIgetVolumeName(char *string, char *name_only);
-MRI *MRIread(char *fname);
-MRI *MRIreadEx(char *fname, int nthframe);
-MRI *MRIreadType(char *fname, int type);
-MRI *MRIreadInfo(char *fname);
-MRI *MRIreadHeader(char *fname, int type);
+int MRIgetVolumeName(const char *string, char *name_only);
+MRI *MRIread(const char *fname);
+MRI *MRIreadEx(const char *fname, int nthframe);
+MRI *MRIreadType(const char *fname, int type);
+MRI *MRIreadInfo(const char *fname);
+MRI *MRIreadHeader(const char *fname, int type);
 int GetSPMStartFrame(void);
-int MRIwrite(MRI *mri, char *fname);
-int MRIwriteFrame(MRI *mri, char *fname, int frame) ;
-int MRIwriteType(MRI *mri, char *fname, int type);
+int MRIwrite(MRI *mri,const  char *fname);
+int MRIwriteFrame(MRI *mri,const  char *fname, int frame) ;
+int MRIwriteType(MRI *mri,const  char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
@@ -1055,16 +1055,16 @@ MRI *MRIsmoothLabel(MRI *mri_intensity,
                     MRI *mri_smooth,
                     int niter,
                     int label) ;
-MRI *MRIreadGeRoi(char *fname, int n_slices);
+MRI *MRIreadGeRoi(const char *fname, int n_slices);
 
-int decompose_b_fname(char *fname_passed, char *directory, char *stem);
+int decompose_b_fname(const char *fname_passed, char *directory, char *stem);
 
 #define READ_OTL_READ_VOLUME_FLAG       0x01
 #define READ_OTL_FILL_FLAG              0x02
 #define READ_OTL_TRANSLATE_LABELS_FLAG  0x04
 #define READ_OTL_ZERO_OUTLINES_FLAG     0x08
-MRI *MRIreadOtl(char *fname, int width, int height, int slices,
-                char *color_file_name, int flags);
+MRI *MRIreadOtl(const char *fname, int width, int height, int slices,
+                const char *color_file_name, int flags);
 
 MATRIX *extract_i_to_r(MRI *mri);
 int apply_i_to_r(MRI *mri, MATRIX *m);

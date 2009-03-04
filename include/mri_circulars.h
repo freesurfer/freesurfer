@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.2 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:36 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,8 +48,8 @@ IMAGE *MRItoImageView(MRI *mri,
 
 #include "mrisurf.h" // MRIS
 int MRIwriteAnyFormat(MRI *mri,
-                      char *fileid,
-                      char *fmt,
+                      const char *fileid,
+                      const char *fmt,
                       int mriframe,
                       MRIS *surf);
 

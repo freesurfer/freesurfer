@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/03/20 18:16:01 $
- *    $Revision: 1.45 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:21:01 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,7 +107,7 @@ char *hemi;
 MRI *fMRIvariance2(MRI *fmri, float DOF, int RmMean, MRI *var);
 void printrgb(void);
 
-COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, char *name);
+COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, const char *name);
 int MRISmercator(MRIS *surf);
 IMAGE *I;
 MHT *lhwhite_hash;

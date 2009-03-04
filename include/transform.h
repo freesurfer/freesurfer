@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/07/24 21:11:02 $
- *    $Revision: 1.60 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:37 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,14 +86,14 @@ typedef struct
 }
 TRANSFORM ;
 
-void mincGetVolInfo(char *infoline, char *infoline2,
+void mincGetVolInfo(const char *infoline, const char *infoline2,
                     VOL_GEOM *vgSrc, VOL_GEOM *vgDst);
 
 int      LTAfree(LTA **plta) ;
-LTA      *LTAreadInVoxelCoords(char *fname, MRI *mri) ;
-LTA      *LTAread(char *fname) ;
-LTA      *LTAreadTal(char *fname) ;
-int      LTAwrite(LTA *lta, char *fname) ;
+LTA      *LTAreadInVoxelCoords(const char *fname, MRI *mri) ;
+LTA      *LTAread(const char *fname) ;
+LTA      *LTAreadTal(const char *fname) ;
+int      LTAwrite(LTA *lta, const char *fname) ;
 LTA      *LTAalloc(int nxforms, MRI *mri) ;
 int      LTAdivide(LTA *lta, MRI *mri) ;
 MRI      *LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta) ;
@@ -149,23 +149,23 @@ int      LTAprint(FILE *fp, const LTA *lta);
 #define FSLREG_TYPE             15
 
 
-int      TransformFileNameType(char *fname) ;
+int      TransformFileNameType(const char *fname) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 int      LTArasToVoxelXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 int      LTAvoxelTransformToCoronalRasTransform(LTA *lta) ;
 
 int FixMNITal(float  xmni, float  ymni, float  zmni,
               float *xtal, float *ytal, float *ztal);
-MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname);
-MATRIX *DevolveXFMWithSubjectsDir(char *subjid,
+MATRIX *DevolveXFM(const char *subjid, MATRIX *XFM, const char *xfmname);
+MATRIX *DevolveXFMWithSubjectsDir(const char *subjid,
                                   MATRIX *XFM,
-                                  char *xfmname,
-                                  char *sdir);
+                                  const char *xfmname,
+                                  const char *sdir);
 
 int       TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 int       TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
-TRANSFORM *TransformRead(char *fname) ;
-int       TransformWrite(TRANSFORM *transform, char *fname) ;
+TRANSFORM *TransformRead(const char *fname) ;
+int       TransformWrite(TRANSFORM *transform, const char *fname) ;
 TRANSFORM *TransformIdentity(void) ;
 int       TransformFree(TRANSFORM **ptrans) ;
 int       TransformSample(TRANSFORM *transform,

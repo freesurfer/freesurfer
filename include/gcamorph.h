@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/11/18 12:26:24 $
- *    $Revision: 1.51 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -223,10 +223,10 @@ GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
                    TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
-int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
-int       GCAMwriteInverse(char *gcamfname, GCA_MORPH *gcam);
-GCA_MORPH *GCAMread(char *fname) ;
-GCA_MORPH *GCAMreadAndInvert(char *gcamfname);
+int       GCAMwrite(GCA_MORPH *gcam, const char *fname) ;
+int       GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam);
+GCA_MORPH *GCAMread(const char *fname) ;
+GCA_MORPH *GCAMreadAndInvert(const char *gcamfname);
 int       GCAMfree(GCA_MORPH **pgcam) ;
 int       GCAMfreeContents(GCA_MORPH *gcam) ;
 MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int sample_type) ;
@@ -393,10 +393,10 @@ extern int dtrans_labels[] ;
 extern int NDTRANS_LABELS ;
 
 MRI *GCAMreadDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans, 
-                                MRI **pmri_atlas_dtrans, char *dist_name, double max_dist);
+                                MRI **pmri_atlas_dtrans, const char *dist_name, double max_dist);
 int GCAMwriteDistanceTransforms(GCA_MORPH *gcam,  MRI *mri_source_dist_map, 
                                 MRI *mri_atlas_dist_map, 
-                                char *write_dist_name) ;
+                                const char *write_dist_name) ;
 int GCAMreadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
 MRI *GCAMwriteWarpToMRI(GCA_MORPH *gcam, MRI *mri_warp);
 int GCAMreadInverseWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;

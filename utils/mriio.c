@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/01/30 14:44:06 $
- *    $Revision: 1.351 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:52 $
+ *    $Revision: 1.352 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -97,10 +97,10 @@ extern void swab(const void *from, void *to, size_t n);
 
 #if 0
 static int NormalizeVector(float *v, int n);
-static MRI *mincRead2(char *fname, int read_volume);
-static int mincWrite2(MRI *mri, char *fname);
+static MRI *mincRead2(const char *fname, int read_volume);
+static int mincWrite2(MRI *mri, const char *fname);
 static int GetMINCInfo(MRI *mri,
-                       char *dim_names[4],
+                       const char *dim_names[4],
                        int   dim_sizes[4],
                        Real separations[4],
                        Real dircos[3][3],
@@ -109,37 +109,37 @@ static int GetMINCInfo(MRI *mri,
 #endif
 
 static MRI *mri_read
-(char *fname, int type, int volume_flag, int start_frame, int end_frame);
-static MRI *corRead(char *fname, int read_volume);
-static int corWrite(MRI *mri, char *fname);
-static MRI *siemensRead(char *fname, int read_volume);
-static MRI *readGCA(char *fname, int start_frame, int end_frame) ;
+(const char *fname, int type, int volume_flag, int start_frame, int end_frame);
+static MRI *corRead(const char *fname, int read_volume);
+static int corWrite(MRI *mri,const char *fname);
+static MRI *siemensRead(const char *fname, int read_volume);
+static MRI *readGCA(const char *fname, int start_frame, int end_frame) ;
 
-static MRI *mincRead(char *fname, int read_volume);
-static int mincWrite(MRI *mri, char *fname);
-static int bvolumeWrite(MRI *vol, char *fname_passed, int type);
-//static int bshortWrite(MRI *mri, char *fname_passed);
-//static int bfloatWrite(MRI *mri, char *stem);
+static MRI *mincRead(const char *fname, int read_volume);
+static int mincWrite(MRI *mri, const char *fname);
+static int bvolumeWrite(MRI *vol, const char *fname_passed, int type);
+//static int bshortWrite(MRI *mri, const char *fname_passed);
+//static int bfloatWrite(MRI *mri, const char *stem);
 static int write_bhdr(MRI *mri, FILE *fp);
 static int read_bhdr(MRI *mri, FILE *fp);
 
-static MRI *bvolumeRead(char *fname_passed, int read_volume, int type);
-//static MRI *bshortRead(char *fname_passed, int read_volume);
-//static MRI *bfloatRead(char *fname_passed, int read_volume);
-static MRI *genesisRead(char *stem, int read_volume);
-static MRI *gelxRead(char *stem, int read_volume);
+static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type);
+//static MRI *bshortRead(const char *fname_passed, int read_volume);
+//static MRI *bfloatRead(const char *fname_passed, int read_volume);
+static MRI *genesisRead(const char *stem, int read_volume);
+static MRI *gelxRead(const char *stem, int read_volume);
 
-static int CountAnalyzeFiles(char *analyzefname, int nzpad, char **ppstem);
-static MRI *analyzeRead(char *fname, int read_volume);
-static dsr *ReadAnalyzeHeader(char *hdrfile, int *swap,
+static int CountAnalyzeFiles(const char *analyzefname, int nzpad, char **ppstem);
+static MRI *analyzeRead(const char *fname, int read_volume);
+static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap,
                               int *mritype, int *bytes_per_voxel);
 static int DumpAnalyzeHeader(FILE *fp, dsr *hdr);
 
 
-static int analyzeWrite(MRI *mri, char *fname);
-static int analyzeWriteFrame(MRI *mri, char *fname, int frame);
-static int analyzeWriteSeries(MRI *mri, char *fname);
-static int analyzeWrite4D(MRI *mri, char *fname);
+static int analyzeWrite(MRI *mri,const  char *fname);
+static int analyzeWriteFrame(MRI *mri,const  char *fname, int frame);
+static int analyzeWriteSeries(MRI *mri,const  char *fname);
+static int analyzeWrite4D(MRI *mri,const  char *fname);
 
 static void swap_analyze_header(dsr *hdr);
 
@@ -151,24 +151,24 @@ static int nan_inf_check(MRI *mri);
 static int voxel_center_to_center_voxel
 (MRI *mri, float *x, float *y, float *z);
 #endif
-static MRI *gdfRead(char *fname, int read_volume);
-static int gdfWrite(MRI *mri, char *fname);
+static MRI *gdfRead(const char *fname, int read_volume);
+static int gdfWrite(MRI *mri,const  char *fname);
 
-static MRI *ximgRead(char *fname, int read_volume);
+static MRI *ximgRead(const char *fname, int read_volume);
 
-static MRI *nifti1Read(char *fname, int read_volume);
-static int nifti1Write(MRI *mri, char *fname);
-static MRI *niiRead(char *fname, int read_volume);
-static int niiWrite(MRI *mri, char *fname);
+static MRI *nifti1Read(const char *fname, int read_volume);
+static int nifti1Write(MRI *mri,const  char *fname);
+static MRI *niiRead(const char *fname, int read_volume);
+static int niiWrite(MRI *mri,const  char *fname);
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr);
 static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr);
 static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr);
 static void swap_nifti_1_header(struct nifti_1_header *hdr);
-static MRI *MRISreadCurvAsMRI(char *curvfile, int read_volume);
+static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume);
 
-extern MRI *mriNrrdRead(char *fname, int read_volume);
-extern int mriNrrdWrite(MRI *mri, char *fname);
+extern MRI *mriNrrdRead(const char *fname, int read_volume);
+extern int mriNrrdWrite(MRI *mri,const  char *fname);
 
 /********************************************/
 
@@ -187,10 +187,10 @@ static void float_local_buffer_to_image
 static void local_buffer_to_image
 (BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 
-static MRI *sdtRead(char *fname, int read_volume);
-static MRI *mghRead(char *fname, int read_volume, int frame) ;
-static int mghWrite(MRI *mri, char *fname, int frame) ;
-static int mghAppend(MRI *mri, char *fname, int frame) ;
+static MRI *sdtRead(const char *fname, int read_volume);
+static MRI *mghRead(const char *fname, int read_volume, int frame) ;
+static int mghWrite(MRI *mri,const  char *fname, int frame) ;
+static int mghAppend(MRI *mri,const  char *fname, int frame) ;
 
 /********************************************/
 
@@ -379,7 +379,7 @@ int mriio_command_line(int argc, char *argv[])
 
 } /* end mriio_command_line() */
 
-int mriio_set_subject_name(char *name)
+int mriio_set_subject_name(const char *name)
 {
 
   if (subject_name == NULL)
@@ -414,7 +414,7 @@ void mriio_set_gdf_crop_flag(int new_gdf_crop_flag)
 
 } /* end mriio_set_gdf_crop_flag() */
 
-int MRIgetVolumeName(char *string, char *name_only)
+int MRIgetVolumeName(const char *string, char *name_only)
 {
 
   char *at, *pound;
@@ -432,7 +432,7 @@ int MRIgetVolumeName(char *string, char *name_only)
 } /* end MRIgetVolumeName() */
 
 static MRI *mri_read
-(char *fname, int type, int volume_flag, int start_frame, int end_frame)
+(const const char *fname, int type, int volume_flag, int start_frame, int end_frame)
 {
   MRI *mri, *mri2;
   IMAGE *I;
@@ -898,7 +898,7 @@ static int nan_inf_check(MRI *mri)
 
 } /* end nan_inf_check() */
 
-MRI *MRIreadType(char *fname, int type)
+MRI *MRIreadType(const char *fname, int type)
 {
 
   MRI *mri;
@@ -911,7 +911,7 @@ MRI *MRIreadType(char *fname, int type)
 
 } /* end MRIreadType() */
 
-MRI *MRIread(char *fname)
+MRI *MRIread(const char *fname)
 {
   char  buf[STRLEN] ;
   MRI *mri = NULL;
@@ -935,7 +935,7 @@ MRI *MRIread(char *fname)
 
 // allow picking one frame out of many frame
 // currently implemented only for Siemens dicom file
-MRI *MRIreadEx(char *fname, int nthframe)
+MRI *MRIreadEx(const char *fname, int nthframe)
 {
   char  buf[STRLEN] ;
   MRI *mri = NULL;
@@ -957,7 +957,7 @@ MRI *MRIreadEx(char *fname, int nthframe)
 
 } /* end MRIread() */
 
-MRI *MRIreadInfo(char *fname)
+MRI *MRIreadInfo(const char *fname)
 {
 
   MRI *mri = NULL;
@@ -973,7 +973,7 @@ MRI *MRIreadInfo(char *fname)
   If type is MRI_VOLUME_TYPE_UNKNOWN, then the type will be
   inferred from the file name.
   ---------------------------------------------------------------*/
-MRI *MRIreadHeader(char *fname, int type)
+MRI *MRIreadHeader(const char *fname, int type)
 {
   int usetype;
   MRI *mri = NULL;
@@ -1018,7 +1018,7 @@ MRI *MRIreadHeader(char *fname, int type)
 
 } /* end MRIreadInfo() */
 
-int MRIwriteType(MRI *mri, char *fname, int type)
+int MRIwriteType(MRI *mri, const char *fname, int type)
 {
   struct stat stat_buf;
   int error=0;
@@ -1242,7 +1242,7 @@ int MRIwriteType(MRI *mri, char *fname, int type)
 } /* end MRIwriteType() */
 
 int
-MRIwriteFrame(MRI *mri, char *fname, int frame)
+MRIwriteFrame(MRI *mri, const char *fname, int frame)
 {
   MRI *mri_tmp ;
 
@@ -1252,7 +1252,7 @@ MRIwriteFrame(MRI *mri, char *fname, int frame)
   return(NO_ERROR) ;
 }
 
-int MRIwrite(MRI *mri, char *fname)
+int MRIwrite(MRI *mri, const char *fname)
 {
 
   int int_type = -1;
@@ -1292,7 +1292,7 @@ int MRIwrite(MRI *mri, char *fname)
 #define ENDZ_FLAG    0x00001000
 
 /* trivially time course clean */
-static MRI *corRead(char *fname, int read_volume)
+static MRI *corRead(const char *fname, int read_volume)
 {
 
   MRI *mri;
@@ -1743,7 +1743,7 @@ static MRI *corRead(char *fname, int read_volume)
 
 } /* end corRead() */
 
-static int corWrite(MRI *mri, char *fname)
+static int corWrite(MRI *mri, const char *fname)
 {
 
   struct stat stat_buf;
@@ -1918,7 +1918,7 @@ static int corWrite(MRI *mri, char *fname)
 
 } /* end corWrite() */
 
-static MRI *siemensRead(char *fname, int read_volume_flag)
+static MRI *siemensRead(const char *fname, int read_volume_flag)
 {
   int file_n, n_low, n_high;
   char fname_use[STRLEN];
@@ -2381,7 +2381,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
 } /* end siemensRead() */
 /*-----------------------------------------------------------*/
-static MRI *mincRead(char *fname, int read_volume)
+static MRI *mincRead(const char *fname, int read_volume)
 {
   // Real wx, wy, wz;
   MRI *mri;
@@ -2426,8 +2426,10 @@ static MRI *mincRead(char *fname, int read_volume)
                        "mincRead(): can't find file %s", fname));
   }
 
-  status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0,
+  char * tmp = strcpyalloc(fname);
+  status = start_volume_input(tmp, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0,
                               TRUE, &vol, NULL, &input_info);
+  free(tmp);			      
 
   if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW)
   {
@@ -2616,7 +2618,7 @@ static MRI *mincRead(char *fname, int read_volume)
 } /* end mincRead() */
 #if 0
 /*-----------------------------------------------------------*/
-static MRI *mincRead2(char *fname, int read_volume)
+static MRI *mincRead2(const char *fname, int read_volume)
 {
 
   MRI *mri;
@@ -2654,8 +2656,10 @@ static MRI *mincRead2(char *fname, int read_volume)
   dim_names[3] = MItime;   /* time */
 
   /* Read the header info into vol. input_info needed for further reads */
-  status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0,
+  char * tmp = strcpyalloc(fname);
+  status = start_volume_input(tmp, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0,
                               TRUE, &vol, NULL, &input_info);
+  free(tmp);
 
   if (Gdiag & DIAG_VERBOSE_ON && DIAG_SHOW)
   {
@@ -3034,7 +3038,7 @@ static int GetMINCInfo(MRI *mri,
 }
 
 /*-----------------------------------------------------------*/
-static int mincWrite2(MRI *mri, char *fname)
+static int mincWrite2(MRI *mri, const char *fname)
 {
   Volume minc_volume;
   nc_type nc_data_type = NC_BYTE;
@@ -3203,7 +3207,7 @@ static int NormalizeVector(float *v, int n)
 #endif
 /*----------------------------------------------------------*/
 /* time course clean */
-static int mincWrite(MRI *mri, char *fname)
+static int mincWrite(MRI *mri, const char *fname)
 {
 
   Volume minc_volume;
@@ -3489,7 +3493,7 @@ static int mincWrite(MRI *mri, char *fname)
   bvolumeWrite() - replaces bshortWrite and bfloatWrite.
   Bug: fname_passed must the the stem, not the full file name.
   -----------------------------------------------------------------*/
-static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
+static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
 {
 
   int i, j, t;
@@ -3513,7 +3517,7 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
   int bad_flag;
   int l;
   char stem[STRLEN];
-  char *c1, *c2, *c3;
+  const char *c1, *c2, *c3;
   struct stat stat_buf;
   char subject_dir[STRLEN];
   int dealloc, nslices, nframes;
@@ -4144,7 +4148,7 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
 } /* end bvolumeWrite() */
 
 static MRI *get_b_info
-(char *fname_passed, int read_volume, char *directory, char *stem, int type)
+(const char *fname_passed, int read_volume, char *directory, char *stem, int type)
 {
 
   MRI *mri, *mri2;
@@ -4375,7 +4379,7 @@ static MRI *get_b_info
 /*-------------------------------------------------------------------
   bvolumeRead() - this replaces bshortRead and bfloatRead.
   -------------------------------------------------------------------*/
-static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
+static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
 {
 
   MRI *mri;
@@ -4702,7 +4706,7 @@ static int orient_with_register(MRI *mri)
 } /* end orient_with_register() */
 #endif
 
-int decompose_b_fname(char *fname, char *dir, char *stem)
+int decompose_b_fname(const char *fname, char *dir, char *stem)
 {
 
   char *slash, *dot, *stem_start, *underscore;
@@ -5093,7 +5097,7 @@ int read_bhdr(MRI *mri, FILE *fp)
 } /* end read_bhdr() */
 
 
-static MRI *genesisRead(char *fname, int read_volume)
+static MRI *genesisRead(const char *fname, int read_volume)
 {
   char fname_format[STRLEN];
   char fname_format2[STRLEN];
@@ -5535,7 +5539,7 @@ static MRI *genesisRead(char *fname, int read_volume)
 
 } /* end genesisRead() */
 
-static MRI *gelxRead(char *fname, int read_volume)
+static MRI *gelxRead(const char *fname, int read_volume)
 {
 
   char fname_format[STRLEN];
@@ -5845,7 +5849,7 @@ int GetSPMStartFrame(void)
   ppstem == NULL).
   Note: the files must actually exist.
   -------------------------------------------------------------------------*/
-int CountAnalyzeFiles(char *analyzefname, int nzpad, char **ppstem)
+int CountAnalyzeFiles(const char *analyzefname, int nzpad, char **ppstem)
 {
   int len, ncopy;
   char *stem, fmt[1000], fname[1000];
@@ -5941,7 +5945,7 @@ static int DumpAnalyzeHeader(FILE *fp, dsr *hdr)
 
 }
 /*-------------------------------------------------------------------------*/
-static dsr *ReadAnalyzeHeader(char *hdrfile, int *swap,
+static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap,
                               int *mritype, int *bytes_per_voxel)
 {
   FILE *fp;
@@ -6016,7 +6020,7 @@ static dsr *ReadAnalyzeHeader(char *hdrfile, int *swap,
   analyzeRead() - see the end of file for the old (pre-10/11/01) analyzeRead().
   The fname can take one of several forms.
   -------------------------------------------------------------------------*/
-static MRI *analyzeRead(char *fname, int read_volume)
+static MRI *analyzeRead(const char *fname, int read_volume)
 {
   extern int N_Zero_Pad_Input;
   int nfiles, k, nread;
@@ -6468,7 +6472,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   series can be saved from mri_convert by specifying the basename and
   adding "--out_type spm". See also analyzeWrite4D(). DNG
   ---------------------------------------------------------------*/
-static int analyzeWrite(MRI *mri, char *fname)
+static int analyzeWrite(MRI *mri, const char *fname)
 {
   int len;
   int error_value;
@@ -6505,7 +6509,7 @@ static void printDirCos(MRI *mri)
           mri->x_s, mri->y_s, mri->z_s, mri->c_s);
 }
 
-static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
+static int analyzeWriteFrame(MRI *mri, const char *fname, int frame)
 {
   dsr hdr;
   float max, min, det;
@@ -6788,7 +6792,7 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
 } /* end analyzeWriteFrame() */
 
 /*-------------------------------------------------------------*/
-static int analyzeWriteSeries(MRI *mri, char *fname)
+static int analyzeWriteSeries(MRI *mri, const char *fname)
 {
   extern int N_Zero_Pad_Output;
   int frame;
@@ -6823,7 +6827,7 @@ static int analyzeWriteSeries(MRI *mri, char *fname)
 /*---------------------------------------------------------------
   analyzeWrite4D() - saves data in analyze 4D format.
   ---------------------------------------------------------------*/
-static int analyzeWrite4D(MRI *mri, char *fname)
+static int analyzeWrite4D(MRI *mri, const char *fname)
 {
   dsr hdr;
   float max, min, det;
@@ -7279,7 +7283,7 @@ static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z)
 } /* end center_voxel_to_voxel_center() */
 #endif // if 0
 
-static MRI *gdfRead(char *fname, int read_volume)
+static MRI *gdfRead(const char *fname, int read_volume)
 {
 
   MRI *mri;
@@ -7870,7 +7874,7 @@ static MRI *gdfRead(char *fname, int read_volume)
 
 } /* end gdfRead() */
 
-static int gdfWrite(MRI *mri, char *fname)
+static int gdfWrite(MRI *mri, const char *fname)
 {
 
   FILE *fp;
@@ -8025,7 +8029,7 @@ static int parc_fill(short label_value, short seed_x, short seed_y)
 
 } /* end parc_fill() */
 
-static int register_unknown_label(char *label)
+static int register_unknown_label(const char *label)
 {
 
   int i;
@@ -8055,7 +8059,7 @@ static int clear_unknown_labels(void)
 
 } /* end clear_unknown_labels() */
 
-static int print_unknown_labels(char *prefix)
+static int print_unknown_labels(const char *prefix)
 {
 
   int i;
@@ -8959,8 +8963,8 @@ static int read_otl_file(FILE *fp,
 } /* end read_otl_file() */
 
 MRI *MRIreadOtl
-(char *fname, int width, int height, int slices,
- char *color_file_name, int flags)
+(const char *fname, int width, int height, int slices,
+ const char *color_file_name, int flags)
 {
 
   char stem[STRLEN];
@@ -9130,7 +9134,7 @@ MRI *MRIreadOtl
 #define XIMG_PIXEL_DATA_OFFSET    8432
 #define XIMG_IMAGE_HEADER_OFFSET  2308
 
-static MRI *ximgRead(char *fname, int read_volume)
+static MRI *ximgRead(const char *fname, int read_volume)
 {
 
   char fname_format[STRLEN];
@@ -9474,7 +9478,7 @@ static MRI *ximgRead(char *fname, int read_volume)
   MRISreadCurvAsMRI() - reads freesurfer surface curv format
   as an MRI.
   -----------------------------------------------------------*/
-static MRI *MRISreadCurvAsMRI(char *curvfile, int read_volume)
+static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
 {
   int    magno,k,vnum,fnum, vals_per_vertex ;
   float  curv;
@@ -9520,7 +9524,7 @@ static MRI *MRISreadCurvAsMRI(char *curvfile, int read_volume)
   edit both. NIFTI1 is defined to be the two-file NIFTI standard, ie,
   there must be a .img and .hdr file. (see is_nifti1(char *fname))
   -----------------------------------------------------------------*/
-static MRI *nifti1Read(char *fname, int read_volume)
+static MRI *nifti1Read(const char *fname, int read_volume)
 {
 
   char hdr_fname[STRLEN];
@@ -10111,7 +10115,7 @@ static MRI *nifti1Read(char *fname, int read_volume)
   nifti1Write() - note: there is also an niiWrite(). Make sure to
   edit both.
   -----------------------------------------------------------------*/
-static int nifti1Write(MRI *mri, char *fname)
+static int nifti1Write(MRI *mri, const char *fname)
 {
 
   FILE *fp;
@@ -10297,7 +10301,7 @@ static int nifti1Write(MRI *mri, char *fname)
   niiRead() - note: there is also an nifti1Read(). Make sure to
   edit both.
   -----------------------------------------------------------------*/
-static MRI *niiRead(char *fname, int read_volume)
+static MRI *niiRead(const char *fname, int read_volume)
 {
 
   znzFile fp;
@@ -10871,7 +10875,7 @@ static MRI *niiRead(char *fname, int read_volume)
   niiWrite() - note: there is also an nifti1Write(). Make sure to
   edit both.
   -----------------------------------------------------------------*/
-static int niiWrite(MRI *mri, char *fname)
+static int niiWrite(MRI *mri, const char *fname)
 {
 
   znzFile fp;
@@ -11458,7 +11462,7 @@ static void swap_nifti_1_header(struct nifti_1_header *hdr)
 
 } /* end swap_nifti_1_header */
 
-MRI *MRIreadGeRoi(char *fname, int n_slices)
+MRI *MRIreadGeRoi(const char *fname, int n_slices)
 {
 
   MRI *mri;
@@ -11586,7 +11590,7 @@ static int data_size[] =
     1, 4, 4, 4, 2
   };
 
-static MRI *sdtRead(char *fname, int read_volume)
+static MRI *sdtRead(const char *fname, int read_volume)
 {
 
   char header_fname[STR_LEN];
@@ -12084,7 +12088,7 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 static int (*myclose)(FILE *stream);
 
 static MRI *
-mghRead(char *fname, int read_volume, int frame)
+mghRead(const char *fname, int read_volume, int frame)
 {
   MRI  *mri ;
   FILE  *fp = 0;
@@ -12503,7 +12507,7 @@ mghRead(char *fname, int read_volume, int frame)
 }
 
 static int
-mghWrite(MRI *mri, char *fname, int frame)
+mghWrite(MRI *mri, const char *fname, int frame)
 {
   FILE  *fp =0;
   int   ival, start_frame, end_frame, x, y, z, width, height, depth,
@@ -12951,7 +12955,7 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   COR-.info in the directory specified by 'fpref'
   ------------------------------------------------------*/
 int
-MRIwriteInfo(MRI *mri, char *fpref)
+MRIwriteInfo(MRI *mri, const char *fpref)
 {
   FILE    *fp;
   char    fname[STRLEN];
@@ -13031,7 +13035,7 @@ MRIwriteInfo(MRI *mri, char *fpref)
   the directory specified by 'fpref'
   ------------------------------------------------------*/
 int
-MRIappend(MRI *mri, char *fpref)
+MRIappend(MRI *mri, const char *fpref)
 {
   int      type, frame ;
   char     fname[STRLEN] ;
@@ -13051,7 +13055,7 @@ MRIappend(MRI *mri, char *fpref)
 }
 
 static int
-mghAppend(MRI *mri, char *fname, int frame)
+mghAppend(MRI *mri, const char *fname, int frame)
 {
   FILE  *fp ;
   int   start_frame, end_frame, x, y, z, width, height, depth, nframes ;
@@ -13137,7 +13141,7 @@ mghAppend(MRI *mri, char *fname, int frame)
   Description
   ------------------------------------------------------*/
 int
-MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
+MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFname)
 {
   char *number = NULL, *at = NULL, buf[STRLEN] ;
   struct stat stat_buf;
@@ -13254,7 +13258,7 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
   formats include: wfile, paint, w, bshort, bfloat, COR, analyze,
   analyze4d, spm.
   ---------------------------------------------------------------*/
-int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
+int MRIwriteAnyFormat(MRI *mri, const char *fileid, const char *fmt,
                       int mriframe, MRIS *surf)
 {
   int fmtid, err, n, r, c, s;
@@ -13381,7 +13385,7 @@ int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt,
 /*-------------------------------------------------------------------
   bfloatWrite() - obsolete. Use bvolumeWrite.
   -------------------------------------------------------------------*/
-static int bfloatWrite(MRI *vol, char *stem)
+static int bfloatWrite(MRI *vol, const char *stem)
 {
 
   int i, j, t;
@@ -13508,7 +13512,7 @@ static int bfloatWrite(MRI *vol, char *stem)
 /*-------------------------------------------------------------------
   bshortWrite() - obsolete. Use bvolumeWrite.
   -------------------------------------------------------------------*/
-static int bshortWrite(MRI *vol, char *fname_passed)
+static int bshortWrite(MRI *vol, const char *fname_passed)
 {
 
   int i, j, t;
@@ -14148,7 +14152,7 @@ static int bshortWrite(MRI *vol, char *fname_passed)
 /*-------------------------------------------------------------------
   bshortRead() - obsolete. Use bvolumeRead.
   -------------------------------------------------------------------*/
-static MRI *bshortRead(char *fname_passed, int read_volume)
+static MRI *bshortRead(const char *fname_passed, int read_volume)
 {
 
   MRI *mri;
@@ -14232,7 +14236,7 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
 /*-------------------------------------------------------------------
   bfloatRead() - obsolete. Use bvolumeRead.
   -------------------------------------------------------------------*/
-static MRI *bfloatRead(char *fname_passed, int read_volume)
+static MRI *bfloatRead(const char *fname_passed, int read_volume)
 {
 
   MRI *mri;
@@ -14317,7 +14321,7 @@ static MRI *bfloatRead(char *fname_passed, int read_volume)
 
 
 /*-------------------------------------------------------------------------*/
-static MRI *analyzeReadOld(char *fname, int read_volume)
+static MRI *analyzeReadOld(const char *fname, int read_volume)
 {
 
   MRI *mri = NULL;
@@ -14632,7 +14636,7 @@ static void nflip(unsigned char *buf, int b, int n)
 #endif
 #include "gca.h"
 static MRI *
-readGCA(char *fname, int start_frame, int end_frame)
+readGCA(const char *fname, int start_frame, int end_frame)
 {
   GCA *gca ;
   MRI *mri ;

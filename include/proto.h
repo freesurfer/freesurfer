@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:41 $
- *    $Revision: 1.35 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:37 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 
 /*----------------- ALL PLATFORMS *--------------------*/
 #ifndef Windows_NT
-int stricmp(char *str1, char *str2) ;
+int stricmp(const char *str1, const char *str2) ;
 #endif
 
 /*----------- SunOS -----------------------*/

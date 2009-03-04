@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/12/11 08:20:05 $
- *    $Revision: 1.24 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:49 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.24 2007/12/11 08:20:05 greve Exp $
+// $Id: dti.c,v 1.25 2009/03/04 19:20:49 mreuter Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.24 2007/12/11 08:20:05 greve Exp $");
+  return("$Id: dti.c,v 1.25 2009/03/04 19:20:49 mreuter Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -77,7 +77,7 @@ int DTIfree(DTI **pdti)
   file or an infodump file as produced by mri_probedicom run on a
   siemens dicom file.
   -----------------------------------------------------------------*/
-int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
+int DTIparamsFromSiemensAscii(const char *fname, float *bValue,int *nDir, int *nB0)
                               
 {
   char *tag, *pc;
@@ -122,7 +122,7 @@ int DTIparamsFromSiemensAscii(char *fname, float *bValue,int *nDir, int *nB0)
   return(0);
 }
 /*------------------------------------------------------------*/
-int DTIloadGradients(DTI *dti, char *GradFile)
+int DTIloadGradients(DTI *dti, const char *GradFile)
 {
   static char tmpstr[2000];
   FILE *fp;
@@ -180,7 +180,7 @@ int DTIloadGradients(DTI *dti, char *GradFile)
 }
 
 /*--------------------------------------------------------*/
-DTI *DTIstructFromSiemensAscii(char *fname)
+DTI *DTIstructFromSiemensAscii(const char *fname)
 {
   int err;
   float bval;
@@ -761,7 +761,7 @@ MRI *DTIeigvals2VR(MRI *evals, MRI *mask, MRI *VR)
   read in by FSL's dtifit with -b option. They put all the bvalues
   on one line.
   ----------------------------------------------------------------*/
-int DTIfslBValFile(DTI *dti, char *bvalfname)
+int DTIfslBValFile(DTI *dti, const char *bvalfname)
 {
   FILE *fp;
   int n;
@@ -785,7 +785,7 @@ int DTIfslBValFile(DTI *dti, char *bvalfname)
   by FSL's dtifit with -r option. They put all the gradients on three
   lines (ie, there are 3 rows and nsamples columns).
   ----------------------------------------------------------------*/
-int DTIfslBVecFile(DTI *dti, char *bvecfname)
+int DTIfslBVecFile(DTI *dti, const char *bvecfname)
 {
   FILE *fp;
   int n,c;
@@ -908,11 +908,11 @@ MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
   return(ivc);
 }
 /*!/
-  \fn MRI *DTIloadBValues(char *bvalfile)
+  \fn MRI *DTIloadBValues(const char *bvalfile)
   \brief Loads in bvalues from text file. It does not matter
     whether they are all on the same line or not.
 */
-MATRIX *DTIloadBValues(char *bvalfile)
+MATRIX *DTIloadBValues(const char *bvalfile)
 {
   FILE *fp;
   double b;
@@ -959,7 +959,7 @@ MATRIX *DTIloadBValues(char *bvalfile)
   return(bvals);
 }
 /*---------------------------------------------------------------------*/
-int DTIwriteBValues(MATRIX *bvals, char *bvalfile)
+int DTIwriteBValues(MATRIX *bvals, const char *bvalfile)
 {
   FILE *fp;
   int n;
@@ -975,11 +975,11 @@ int DTIwriteBValues(MATRIX *bvals, char *bvalfile)
 }
 
 /*!/
-  \fn MRI *DTIloadBVectors(char *bvecfile)
+  \fn MRI *DTIloadBVectors(const char *bvecfile)
   \brief Loads in gradient directions from text file. Each line
     has a different 3-component vector (not the same as FSL).
 */
-MATRIX *DTIloadBVectors(char *bvecfile)
+MATRIX *DTIloadBVectors(const char *bvecfile)
 {
   FILE *fp;
   double gx, gy, gz;
@@ -1044,7 +1044,7 @@ MATRIX *DTIloadBVectors(char *bvecfile)
   return(bvecs);
 }
 /*---------------------------------------------------------------------*/
-int DTIwriteBVectors(MATRIX *bvecs,char *bvecfile)
+int DTIwriteBVectors(MATRIX *bvecs,const char *bvecfile)
 {
   FILE *fp;
   int n;
@@ -1061,7 +1061,7 @@ int DTIwriteBVectors(MATRIX *bvecs,char *bvecfile)
 }
 
 /*--------------------------------------------------------*/
-DTI *DTIstructFromBFiles(char *bvalfile, char *bvecfile)
+DTI *DTIstructFromBFiles(const char *bvalfile, const char *bvecfile)
 {
   MATRIX *bvals, *bvecs;
   DTI *dti;
@@ -1094,10 +1094,10 @@ DTI *DTIstructFromBFiles(char *bvalfile, char *bvecfile)
 
 /*-------------------------------------------------------------------------*/
 //  ep_bX#N    X = bvalue     N = nth acq for that bvalue
-int DTIparsePulseSeqName(char *pulseseq, double *bValue, int *nthDirection)
+int DTIparsePulseSeqName(const char *pulseseq, double *bValue, int *nthDirection)
 {
   int n;
-  char *pc;
+  const char *pc;
   char tmpstr[100];
 
   if(strlen(pulseseq) < 7) return(1);
@@ -1131,14 +1131,14 @@ int DTIparsePulseSeqName(char *pulseseq, double *bValue, int *nthDirection)
 
 /*-----------------------------------------------------------*/
 /*!/
-  \fn int DTIisFSLBVec(char *fname)
+  \fn int DTIisFSLBVec(const char *fname)
   \brief Detects whether a bvec file is FSL format. The FSL 
   format is to have three rows, and each col is a different
   direction. Works by determining whether the first line
   has more than 3 elements. Returns -1 if error, 1 if FSL, 
   0 if not FSL.
 */
-int DTIisFSLBVec(char *fname)
+int DTIisFSLBVec(const char *fname)
 {
   FILE *fp;
   char tmpstr[10000], *s;

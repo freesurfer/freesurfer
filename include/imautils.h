@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.8 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:36 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -100,23 +100,23 @@ extern int   nImaDictionary, ImaDictionaryGood;
 extern char *imaTypeString[6];
 extern int   imaTypeSize[6];
 
-int imaTypeFromString(char *typestring);
+int imaTypeFromString(const char *typestring);
 void *imaLoadVal(FILE *imafp, int offset, int nbytes, int nitems, void *pval);
 
 void MkImaDictionary(void);
 void DumpImaDictionary(FILE *fp);
-int  DumpImaDictionaryVal(FILE *fp, char *imafile);
-void *imaLoadValFromKey(FILE *imafp, char *key, void *pval);
+int  DumpImaDictionaryVal(FILE *fp,const  char *imafile);
+void *imaLoadValFromKey(FILE *imafp,const  char *key, void *pval);
 int imaPrintVal(FILE *fp, int type, void *pval);
-int imaTypeFromKey(char *key);
+int imaTypeFromKey(const char *key);
 
-int imaIsSiemensIMA(char *imafile);
-int imaParseName(char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
+int imaIsSiemensIMA(const char *imafile);
+int imaParseName(const char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
                  char *Separator);
-int imaHasIMAExtension(char *filename);
-int imaCountFilesInSeries(char *imafile, int *FirstImageNo);
+int imaHasIMAExtension(const char *filename);
+int imaCountFilesInSeries(const char *imafile, int *FirstImageNo);
 
-IMAFILEINFO *imaLoadFileInfo(char *imafile);
+IMAFILEINFO *imaLoadFileInfo(const char *imafile);
 int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi);
 short *imaReadPixelData(IMAFILEINFO *ifi, short *PixelData);
 

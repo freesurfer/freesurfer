@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/14 15:11:13 $
- *    $Revision: 1.16 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:51 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -7773,7 +7773,7 @@ IC_FACE ic4_faces[5120] =
 
 
 MRI_SURFACE *
-ICOreadOverAlloc(char *fname, double pct_over)
+ICOreadOverAlloc(const char *fname, double pct_over)
 {
   ICOSAHEDRON *ico ;
   int         fno, vno, n1, n2, n, vn ;
@@ -7937,7 +7937,7 @@ ICOreadOverAlloc(char *fname, double pct_over)
   return(mris) ;
 }
 MRI_SURFACE *
-ICOread(char *fname)
+ICOread(const char *fname)
 {
   ICOSAHEDRON *ico ;
   int         fno, vno, n1, n2, n, vn ;
@@ -8121,7 +8121,7 @@ read_icosahedron_by_order(int order)
 
 
 ICOSAHEDRON *
-read_icosahedron(char *fname)
+read_icosahedron(const char *fname)
 {
   FILE        *fp ;
   char        line[200], *cp ;
@@ -8207,7 +8207,7 @@ read_icosahedron(char *fname)
 
 
 int
-ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which)
+ICOreadVertexPositions(MRI_SURFACE *mris, const char *fname, int which)
 {
   ICOSAHEDRON *ico ;
   int         vno ;

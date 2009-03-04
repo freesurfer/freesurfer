@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:26 $
- *    $Revision: 1.107 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:51 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,7 +172,7 @@ ImageFree(IMAGE **pI)
         Description
 ------------------------------------------------------*/
 int
-ImageUpdateHeader(IMAGE *I, char *fname)
+ImageUpdateHeader(IMAGE *I,const  char *fname)
 {
   FILE  *fp ;
   int   ecode ;

@@ -5,9 +5,9 @@
  */
 /*
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/27 02:23:41 $
- *    $Revision: 1.5 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:36 $
+ *    $Revision: 1.6 $
  *
 ** Copyright (C) 1988, 1989, 1991 by Jef Poskanzer.
 **
@@ -201,8 +201,8 @@ void pm_usage ARGS(( char* usage ));      /* doesn't return */
 
 /* File open/close that handles "-" as stdin and checks errors. */
 
-FILE* pm_openr ARGS(( char* name ));
-FILE* pm_openw ARGS(( char* name ));
+FILE* pm_openr ARGS((const char* name ));
+FILE* pm_openw ARGS((const char* name ));
 void pm_close ARGS(( FILE* f ));
 
 

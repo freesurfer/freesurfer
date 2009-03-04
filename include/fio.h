@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.18 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:35 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,7 @@
 #ifndef FIO_H
 #define FIO_H
 
-FILE  *MGHopen_file(char *fname, char *rwmode) ;
+FILE  *MGHopen_file(const char *fname,const char *rwmode) ;
 int   putf(float f, FILE *fp) ;
 float getf(FILE *fp) ;
 
@@ -59,17 +59,17 @@ int   fwrite2(int v, FILE *fp) ;
 int   fwrite3(int v, FILE *fp) ;
 int   fwrite4(int v, FILE *fp) ;
 
-char *fio_basename(char *pathname, char *ext);
-char *fio_dirname(char *pathname);
-char *fio_extension(char *pathname);
-int fio_DirIsWritable(char *dirname, int fname);
-int fio_FileExistsReadable(char *fname);
-int fio_IsDirectory(char *fname);
-int fio_NLines(char *fname);
+char *fio_basename(const char *pathname,const char *ext);
+char *fio_dirname(const char *pathname);
+char *fio_extension(const char *pathname);
+int fio_DirIsWritable(const char *dirname, int fname);
+int fio_FileExistsReadable(const char *fname);
+int fio_IsDirectory(const char *fname);
+int fio_NLines(const char *fname);
 
-int fio_pushd(char *dir);
+int fio_pushd(const char *dir);
 int fio_popd(void);
-char *fio_fullpath(char *fname);
+char *fio_fullpath(const char *fname);
 
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 

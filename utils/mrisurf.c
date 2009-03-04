@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/05 13:45:01 $
- *    $Revision: 1.625 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:53 $
+ *    $Revision: 1.626 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -222,7 +222,7 @@ static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris,
 static int enforce_links(MRI_SURFACE *mris) ;
 static int enforce_link_positions(MRI_SURFACE *mris) ;
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev);
-static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname) ;
 static double mrisComputeSSE_MEF(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, MRI *mri30, MRI *mri5, 
                                  double weight30, double weight5, MHT *mht) ;
 static int mrisMarkIntersections(MRI_SURFACE *mris) ;
@@ -317,18 +317,18 @@ static int   mrisComputePialNormal(MRIS *mris, int vno, float norm[]) ;
 static int   mrisOrigNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisPialNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisWhiteNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
-static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
-static MRI_SURFACE *mrisReadAsciiFile(char *fname) ;
-static MRI_SURFACE *mrisReadGeoFile(char *fname) ;
-static MRI_SURFACE *mrisReadSTLfile(char *fname) ;
-static int         mrisReadGeoFilePositions(MRI_SURFACE *mris,char *fname) ;
-static MRI_SURFACE *mrisReadTriangleFile(char *fname, double pct_over) ;
+static int   mrisReadTransform(MRIS *mris, const char *mris_fname) ;
+static MRI_SURFACE *mrisReadAsciiFile(const char *fname) ;
+static MRI_SURFACE *mrisReadGeoFile(const char *fname) ;
+static MRI_SURFACE *mrisReadSTLfile(const char *fname) ;
+static int         mrisReadGeoFilePositions(MRI_SURFACE *mris,const char *fname) ;
+static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over) ;
 static int         mrisReadTriangleFilePositions(MRI_SURFACE*mris,
-    char *fname) ;
+    const char *fname) ;
 
-static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(char *fname) ;
+static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname) ;
 
-/*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
+/*static int   mrisReadFieldsign(MRI_SURFACE *mris, const char *fname) ;*/
 static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) ;
 static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris) ;
 static double mrisComputeSpringEnergy(MRI_SURFACE *mris) ;
@@ -636,12 +636,12 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.625 2009/02/05 13:45:01 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.626 2009/03/04 19:20:53 mreuter Exp $");
 }
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
+MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
 {
   MRI_SURFACE *mris = NULL ;
   int         nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m;
@@ -925,7 +925,7 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   /* find out if this surface is lh or rh from fname */
   strcpy(mris->fname, fname) ;
   {
-    char *surf_name ;
+    const char *surf_name ;
 
     surf_name = strrchr(fname, '/') ;
     if (surf_name == NULL)
@@ -1086,7 +1086,7 @@ MRI_SURFACE *MRISreadOverAlloc(char *fname, double pct_over)
   Returns value:
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISfastRead(char *fname)
+MRI_SURFACE *MRISfastRead(const char *fname)
 {
   /********* why you keep the rest ? ******************/
 #if 1
@@ -1378,7 +1378,7 @@ MRI_SURFACE *MRISfastRead(char *fname)
   Description
   ------------------------------------------------------*/
 MRI_SURFACE *
-MRISread(char *fname)
+MRISread(const char *fname)
 {
   MRI_SURFACE  *mris ;
 
@@ -1399,7 +1399,7 @@ MRISread(char *fname)
   ------------------------------------------------------*/
 #define USE_NEW_QUAD_FILE 1  // new style stores float instead of int
 int
-MRISwrite(MRI_SURFACE *mris, char *name)
+MRISwrite(MRI_SURFACE *mris, const char *name)
 {
   int   k, type ;
   float x,y,z;
@@ -3773,7 +3773,7 @@ mrisNormalFace(MRIS *mris, int fac,int n,float norm[])
   ------------------------------------------------------*/
 // here reads mri/transforms/talairach.xfm (MNI style transform)
 static int
-mrisReadTransform(MRIS *mris, char *mris_fname)
+mrisReadTransform(MRIS *mris, const char *mris_fname)
 {
   char transform_fname[STRLEN], fpref[300] ;
   LT *lt = 0;
@@ -3931,7 +3931,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
 }
 
 // public
-int MRISreadTransform(MRIS *mris, char *fname)
+int MRISreadTransform(MRIS *mris, const char *fname)
 {
   return mrisReadTransform(mris, fname);
 }
@@ -3946,7 +3946,7 @@ int MRISreadTransform(MRIS *mris, char *fname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname)
+MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname)
 {
   char   fname[STRLEN], fpref[STRLEN], hemi[20] ;
 
@@ -3965,7 +3965,7 @@ MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
+MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
 {
   int    k,i,vnum,fnum;
   float  curv = 0, curvmin, curvmax;
@@ -4096,7 +4096,7 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 float *
-MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname)
+MRISreadCurvatureVector(MRI_SURFACE *mris, const char *sname)
 {
   char   *cp, path[STRLEN], fname[STRLEN] ;
   float* cvec = NULL;
@@ -4127,7 +4127,7 @@ MRISreadCurvatureVector(MRI_SURFACE *mris, char *sname)
 }
 
 int
-MRISreadCurvatureIntoArray(const char *sname,
+MRISreadCurvatureIntoArray(const const char *sname,
 			   int in_array_size,
 			   float** out_array)
 {
@@ -4193,7 +4193,7 @@ MRISreadCurvatureIntoArray(const char *sname,
   Description
   ------------------------------------------------------*/
 int
-MRISreadFloatFile(MRI_SURFACE *mris, char *sname)
+MRISreadFloatFile(MRI_SURFACE *mris, const char *sname)
 {
   int    k,vnum,fnum;
   float  f, fmin, fmax;
@@ -4261,7 +4261,7 @@ MRISreadFloatFile(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
+MRISreadBinaryAreas(MRI_SURFACE *mris, const char *mris_fname)
 {
   int   k,vnum,fnum;
   float f;
@@ -4312,7 +4312,7 @@ MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
 
 
 int
-MRISwriteMarked(MRI_SURFACE *mris, char *sname)
+MRISwriteMarked(MRI_SURFACE *mris, const char *sname)
 {
   float  *curv_save ;
 
@@ -4339,7 +4339,7 @@ MRISwriteMarked(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteArea(MRI_SURFACE *mris, char *sname)
+MRISwriteArea(MRI_SURFACE *mris, const char *sname)
 {
   float  *curv_save ;
 
@@ -4367,7 +4367,7 @@ MRISwriteArea(MRI_SURFACE *mris, char *sname)
   ------------------------------------------------------*/
 #if 0
 static int
-mrisReadFieldsign(MRI_SURFACE *mris, char *mris_fname)
+mrisReadFieldsign(MRI_SURFACE *mris, const char *mris_fname)
 {
   int k,i,vnum;
   float f;
@@ -5386,7 +5386,7 @@ MRISsetInflatedFileName(char *inflated_name)
 }
 
 int
-MRISsetSulcFileName(char *sulc_name)
+MRISsetSulcFileName(const char *sulc_name)
 {
   curvature_names[1] = (char *)calloc(strlen(sulc_name)+1, sizeof(char)) ;
   strcpy(curvature_names[1], sulc_name) ;
@@ -8288,7 +8288,7 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
   Description
   ------------------------------------------------------*/
 int
-MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
+MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
 {
   int     ano, vnum,fnum, fno, vno ;
   FACE    *face ;
@@ -8420,7 +8420,7 @@ MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
+MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
 {
   int     fno, ano, vno ;
   FACE    *face ;
@@ -9596,7 +9596,7 @@ MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
+MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
 {
   int    k, mritype ;
   float  curv;
@@ -9680,7 +9680,7 @@ MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteDists(MRI_SURFACE *mris, char *sname)
+MRISwriteDists(MRI_SURFACE *mris, const char *sname)
 {
   int    k,i ;
   float  dist ;
@@ -9850,7 +9850,7 @@ MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
   Description
   ------------------------------------------------------*/
 int
-MRISwriteAreaError(MRI_SURFACE *mris, char *name)
+MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
 {
   int    vno, fno, i ;
   float  area, orig_area ;
@@ -9903,7 +9903,7 @@ MRISwriteAreaError(MRI_SURFACE *mris, char *name)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name)
+MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, const char *name)
 {
   int    vno, fno ;
   float  area, orig_area ;
@@ -9942,7 +9942,7 @@ MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteAngleError(MRI_SURFACE *mris, char *fname)
+MRISwriteAngleError(MRI_SURFACE *mris, const char *fname)
 {
   int    vno, fno, ano, i ;
   float  error ;
@@ -10135,7 +10135,7 @@ MRISsampleStatVolume(MRI_SURFACE *mris, void *vsv,int time_point,
   Description
   ------------------------------------------------------*/
 int
-MRISwriteCurvatureToWFile(MRI_SURFACE *mris, char *fname)
+MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname)
 {
   int k,num;                   /* loop counters */
   float f;
@@ -10183,7 +10183,7 @@ MRISwriteCurvatureToWFile(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteValues(MRI_SURFACE *mris, char *sname)
+MRISwriteValues(MRI_SURFACE *mris, const char *sname)
 {
   int k,num;                   /* loop counters */
   float f;
@@ -10276,7 +10276,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
+MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
 {
   int vno, need_hemi;
   int return_code;
@@ -10635,11 +10635,12 @@ int MRISisCTABPresentInAnnotation(const char *fname, int* present) {
   Description
   ------------------------------------------------------*/
 int
-MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
+MRISwriteAnnotation(MRI_SURFACE *mris,const char *sname)
 {
   int   i,vno, need_hemi ;
   FILE  *fp;
-  char  *cp, fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
+  const char  *cp;
+  char fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
 
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
@@ -10702,7 +10703,7 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadValues(MRI_SURFACE *mris, char *sname)
+MRISreadValues(MRI_SURFACE *mris,const char *sname)
 {
   float* array = NULL;
   int return_code = 0;
@@ -10911,7 +10912,7 @@ MRISreadValuesIntoArray(const char* sname,
   Description
   ------------------------------------------------------*/
 int
-MRISreadValuesBak(MRI_SURFACE *mris, char *fname)
+MRISreadValuesBak(MRI_SURFACE *mris,const char *fname)
 {
   int i,k,num,ilat;
   float f;
@@ -10951,7 +10952,7 @@ MRISreadValuesBak(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadImagValues(MRI_SURFACE *mris, char *fname)
+MRISreadImagValues(MRI_SURFACE *mris,const char *fname)
 {
   int i,k,num,ilat;
   float f;
@@ -11074,7 +11075,7 @@ MRIScopyImagValuesToValues(MRI_SURFACE *mris)
   Description
   ------------------------------------------------------*/
 int
-MRISreadInflatedCoordinates(MRI_SURFACE *mris, char *sname)
+MRISreadInflatedCoordinates(MRI_SURFACE *mris,const char *sname)
 {
   if (!sname)
     sname = "inflated" ;
@@ -11093,7 +11094,7 @@ MRISreadInflatedCoordinates(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadFlattenedCoordinates(MRI_SURFACE *mris, char *sname)
+MRISreadFlattenedCoordinates(MRI_SURFACE *mris,const char *sname)
 {
   int    vno, fno ;
   VERTEX *v ;
@@ -11135,7 +11136,7 @@ MRISreadFlattenedCoordinates(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadWhiteCoordinates(MRI_SURFACE *mris, char *sname)
+MRISreadWhiteCoordinates(MRI_SURFACE *mris, const char *sname)
 {
   if (!sname)
     sname = "inflated" ;
@@ -11154,7 +11155,7 @@ MRISreadWhiteCoordinates(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
+MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname)
 {
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
@@ -11172,7 +11173,7 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
+MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 {
   int         ix, iy, iz, k, i, j, npts ;
   double        rx, ry, rz;
@@ -11459,7 +11460,7 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
   Description
   ------------------------------------------------------*/
 int
-MRISreadPatch(MRI_SURFACE *mris, char *pname)
+MRISreadPatch(MRI_SURFACE *mris, const char *pname)
 {
   int ret  ;
 
@@ -11545,7 +11546,7 @@ mrisRipVertices(MRI_SURFACE *mris)
   Description
   ------------------------------------------------------*/
 int
-MRISwritePatch(MRI_SURFACE *mris, char *fname)
+MRISwritePatch(MRI_SURFACE *mris, const char *fname)
 {
   int    k,i,npts, type ;
   float  x,y,z;
@@ -15114,7 +15115,7 @@ mrisValidFaces(MRI_SURFACE *mris)
   name x y z
   ------------------------------------------------------*/
 int
-MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius)
+MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius)
 {
   int    l ;
   float  cx, cy, cz ;
@@ -19674,7 +19675,7 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt, flo
   Description
   ------------------------------------------------------*/
 int
-MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
+MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
 {
   char    fname[STRLEN] ;
   int     vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type ;
@@ -20003,7 +20004,7 @@ mrisFlipPatch(MRI_SURFACE *mris)
   original surface has no externally defined orientation.
   ------------------------------------------------------*/
 int
-MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname)
+MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname)
 {
   int  old_status ;
 
@@ -20439,15 +20440,15 @@ MRISpercentDistanceError(MRI_SURFACE *mris)
   default is MRIS_BINARY_QUADRANGLE_FILE
   ------------------------------------------------------*/
 int
-MRISfileNameType(char *fname)
+MRISfileNameType(const char *fname)
 {
   int   type ;
   char  *dot, ext[STRLEN], str[STRLEN] ;
 
-  FileNameOnly(fname, str) ;
-  fname = str ; /* remove path */
+  FileNameOnly(fname, str) ;/* remove path */
+
   ext[0] = 0 ;
-  dot = strrchr(fname, '@') ;   /* forces the type of the file */
+  dot = strrchr(str, '@') ;   /* forces the type of the file */
   if (dot)
   {
     *dot = 0 ;   /* remove it from file name so that fopen will work */
@@ -20455,7 +20456,7 @@ MRISfileNameType(char *fname)
   }
   else     /* no explicit type - check extension */
   {
-    dot = strrchr(fname, '.') ;
+    dot = strrchr(str, '.') ;
     if (dot)
       strcpy(ext, dot+1) ;
   }
@@ -20489,7 +20490,7 @@ MRISfileNameType(char *fname)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteAscii(MRI_SURFACE *mris, char *fname)
+MRISwriteAscii(MRI_SURFACE *mris, const char *fname)
 {
   int     vno, fno, n ;
   VERTEX  *v ;
@@ -20528,7 +20529,7 @@ MRISwriteAscii(MRI_SURFACE *mris, char *fname)
   normals instead of 
   ------------------------------------------------------*/
 int
-MRISwriteNormalsAscii(MRI_SURFACE *mris, char *fname)
+MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname)
 {
   int     vno, fno, n ;
   VERTEX  *v ;
@@ -20570,7 +20571,7 @@ MRISwriteNormalsAscii(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteVTK(MRI_SURFACE *mris, char *fname)
+MRISwriteVTK(MRI_SURFACE *mris, const char *fname)
 {
   int     vno, fno, n ;
   VERTEX  *v ;
@@ -20616,7 +20617,7 @@ MRISwriteVTK(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteGeo(MRI_SURFACE *mris, char *fname)
+MRISwriteGeo(MRI_SURFACE *mris, const char *fname)
 {
   int     vno, fno, n, actual_vno, toggle, nfaces, nvertices, vnos[300000] ;
   VERTEX  *v ;
@@ -20688,7 +20689,7 @@ MRISwriteGeo(MRI_SURFACE *mris, char *fname)
   ------------------------------------------------------*/
 /* note that .tri or .ico file.  numbering is 1-based output.*/
 int
-MRISwriteICO(MRI_SURFACE *mris, char *fname)
+MRISwriteICO(MRI_SURFACE *mris, const char *fname)
 {
   int     vno, fno, nfaces, nvertices;
   int     actual_fno, actual_vno;
@@ -20744,7 +20745,7 @@ MRISwriteICO(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 int
-MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
+MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
 {
   FILE    *fp ;
   int     vno, fno, n, nvertices, nfaces, type ;
@@ -20871,7 +20872,7 @@ int MRISwriteSTL(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 static MRI_SURFACE *
-mrisReadAsciiFile(char *fname)
+mrisReadAsciiFile(const char *fname)
 {
   MRI_SURFACE   *mris ;
   char    line[STRLEN], *cp ;
@@ -20931,7 +20932,7 @@ mrisReadAsciiFile(char *fname)
   Description
   ------------------------------------------------------*/
 static MRI_SURFACE *
-mrisReadGeoFile(char *fname)
+mrisReadGeoFile(const char *fname)
 {
   MRI_SURFACE   *mris ;
   char    line[202], *cp ;
@@ -21009,7 +21010,7 @@ mrisReadGeoFile(char *fname)
   Description
   ------------------------------------------------------*/
 static int
-mrisReadGeoFilePositions(MRI_SURFACE *mris, char *fname)
+mrisReadGeoFilePositions(MRI_SURFACE *mris, const char *fname)
 {
   char    line[202], *cp ;
   int     vno, nvertices, nfaces, patch, vertices_per_face, nedges ;
@@ -21114,7 +21115,7 @@ mrisReadAsciiPatchFile(char *fname)
                  and face normals into an MRIS_SURFACE
                  structure.
   ------------------------------------------------------*/
-static MRI_SURFACE * mrisReadSTLfile(char *fname)
+static MRI_SURFACE * mrisReadSTLfile(const char *fname)
 {
   MRI_SURFACE   *mris;
   char    line[STRLEN], *cp ;
@@ -30972,7 +30973,7 @@ MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
   Description
   ------------------------------------------------------*/
 int
-MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
+MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
 {
   int      k, n ;
   FILE     *fp;
@@ -31044,7 +31045,7 @@ MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 static SMALL_SURFACE *
-mrisReadTriangleFileVertexPositionsOnly(char *fname)
+mrisReadTriangleFileVertexPositionsOnly(const char *fname)
 {
   SMALL_VERTEX   *v ;
   int            nvertices, nfaces, magic, vno ;
@@ -31115,7 +31116,7 @@ mrisReadTriangleFileVertexPositionsOnly(char *fname)
   Description
   ------------------------------------------------------*/
 static int
-mrisReadTriangleFilePositions(MRI_SURFACE *mris, char *fname)
+mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
 {
   VERTEX      *v ;
   int         nvertices, nfaces, magic, vno ;
@@ -31164,7 +31165,7 @@ mrisReadTriangleFilePositions(MRI_SURFACE *mris, char *fname)
   Description
   ------------------------------------------------------*/
 static MRI_SURFACE *
-mrisReadTriangleFile(char *fname, double pct_over)
+mrisReadTriangleFile(const char *fname, double pct_over)
 {
   VERTEX      *v ;
   FACE        *f ;
@@ -31361,7 +31362,7 @@ mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
   Description
   ------------------------------------------------------*/
 int
-MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
+MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 {
   char   path[STRLEN], *slash, *dot ;
 
@@ -57670,7 +57671,7 @@ static int mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri)
 }
 
 int
-MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *sname)
+MRISreadNewCurvatureFile(MRI_SURFACE *mris, const char *sname)
 {
   int    k,vnum,fnum, vals_per_vertex ;
   float  curv, curvmin, curvmax;
@@ -57745,7 +57746,7 @@ MRISreadNewCurvatureFile(MRI_SURFACE *mris, char *sname)
   return(NO_ERROR) ;
 }
 float *
-MRISreadNewCurvatureVector(MRI_SURFACE *mris, char *sname)
+MRISreadNewCurvatureVector(MRI_SURFACE *mris, const char *sname)
 {
   char   *cp, path[STRLEN], fname[STRLEN] ;
   float  *cvec  = NULL;
@@ -58020,8 +58021,8 @@ MRISclearDistances(MRI_SURFACE *mris)
   If the subjectsdir string is NULL, then it reads SUBJECTS_DIR
   from the environment.
   -----------------------------------------------------------------*/
-MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf,
-                      char *subject, char *hemi, char *subjectsdir)
+MRI *MRISloadSurfVals(const char *srcvalfile, const char *typestring, MRI_SURFACE *Surf,
+                      const char *subject, const char *hemi, const char *subjectsdir)
 {
   MRI *SrcVals, *mritmp;
   char fname[2000];
@@ -59265,7 +59266,7 @@ MRISclearFlags(MRI_SURFACE *mris, int flags)
 }
 
 static int
-mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
+mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
 {
   FILE   *fp ;
   int    vno ;
@@ -63623,7 +63624,7 @@ MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs)
 }
 
 
-void UpdateMRIS(MRI_SURFACE *mris, char *fname)
+void UpdateMRIS(MRI_SURFACE *mris, const char *fname)
 {
   mrisFindNeighbors(mris);
   mrisComputeVertexDistances(mris);

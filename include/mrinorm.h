@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.29 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:36 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -131,7 +131,7 @@ MRI *MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target,
 MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst);
 MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
 MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
-int MRI3dUseFileControlPoints(MRI *mri, char *fname) ;
+int MRI3dUseFileControlPoints(MRI *mri,const char *fname) ;
 int MRI3dWriteControlPoints(char *control_volume_fname) ;
 int MRI3dWriteBias(char *bias_volume_fname) ;
 MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter) ;
@@ -139,7 +139,7 @@ int MRInormAddFileControlPoints(MRI *mri_ctrl, int value) ;
 MRI *MRInormFindControlPointsInWindow(MRI *mri_src, int wm_target,
                                       float intensity_above,
                                       float intensity_below, MRI *mri_ctrl,
-                                      float whalf_mm, char *debug_str,
+                                      float whalf_mm,const char *debug_str,
                                       int *pnctrl, int scan_type);
 MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 

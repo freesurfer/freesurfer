@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/11/17 22:10:19 $
- *    $Revision: 1.71 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:20:56 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -414,9 +414,10 @@ StrLower(char *str)
 
   ------------------------------------------------------------------------*/
 char *
-StrReplace(char *src, char *dst, char csrc, int cdst)
+StrReplace(const char *src, char *dst, char csrc, int cdst)
 {
-  char *cp_src, *cp_dst ;
+  const char *cp_src;
+  char *cp_dst ;
 
   for (cp_src = src, cp_dst = dst ; *cp_src ; cp_src++, cp_dst++)
   {
@@ -439,7 +440,7 @@ StrReplace(char *src, char *dst, char csrc, int cdst)
   nothing.
   ------------------------------------------------------------------------*/
 char *
-FileNameOnly(char *full_name, char *fname)
+FileNameOnly(const char *full_name, char *fname)
 {
   char *slash, *number, *at ;
 
@@ -452,9 +453,13 @@ FileNameOnly(char *full_name, char *fname)
     else
       strcpy(fname, slash+1) ;
   }
-  else   /* process it in place */
+  else  
   {
-    fname = full_name ;
+    // cannot process in place due to con
+    // 
+    // best solution: copy full_name to fname
+    //
+    fname = strcpyalloc(full_name);
     *slash = 0 ;
   }
 
@@ -478,7 +483,7 @@ FileNameOnly(char *full_name, char *fname)
   1 if the file exists, 0 otherwise
   ------------------------------------------------------------------------*/
 int
-FileExists(char *fname)
+FileExists(const char *fname)
 {
   FILE *fp ;
   int old_errno;
@@ -537,7 +542,7 @@ FileName(char *full_name)
 
   ------------------------------------------------------------------------*/
 int
-FileType(char *fname)
+FileType(const char *fname)
 {
   char *dot, buf[STR_LEN], *number ;
 
@@ -578,7 +583,7 @@ FileType(char *fname)
 
   ------------------------------------------------------------------------*/
 int
-FileNumber(char *fname)
+FileNumber(const char *fname)
 {
   char buf[STR_LEN], *number ;
   int  num ;
@@ -602,27 +607,26 @@ FileNumber(char *fname)
 
   ------------------------------------------------------------------------*/
 int
-FileNumberOfEntries(char *fname)
+FileNumberOfEntries(const char *fname)
 {
   int  type, num, nentries ;
   FILE *fp ;
   char buf[STR_LEN], line[2*STR_LEN], *cp ;
 
   strcpy(buf, fname) ;   /* we will modify fname, don't ruin callers copy */
-  fname = buf ;
 
-  num = FileNumber(fname) ;
+  num = FileNumber(buf) ;
   if (num == -1)
   {
-    type = FileType(fname) ;
+    type = FileType(buf) ;
     switch (type)
     {
     case LIST_FILE:
-      fp = fopen(FileName(fname), "rb") ;
+      fp = fopen(FileName(buf), "rb") ;
       if (!fp)
         ErrorReturn(-1, (ERROR_NO_FILE,
                          "FileNumberOfEntries: could not open %s",
-                         FileName(fname))) ;
+                         FileName(buf))) ;
       cp = fgetl(line, 199, fp) ;
       nentries = 0 ;
       while (cp)
@@ -636,7 +640,7 @@ FileNumberOfEntries(char *fname)
 
       break ;
     case HIPS_FILE:
-      nentries = ImageNumFrames(fname) ;
+      nentries = ImageNumFrames(buf) ;
       break ;
     case MATLAB_FILE:
     default:
@@ -721,7 +725,7 @@ FileTmpName(char *basename)
   pointer to the filename
   ------------------------------------------------------------------------*/
 void
-FileRename(char *inName, char *outName)
+FileRename(const char *inName,const  char *outName)
 {
 #ifndef _MSDOS
   char  cmd_string[200] ;
@@ -755,7 +759,7 @@ angleDistance(float theta1, float theta2)
 /*#ifndef SunOS*/
 #ifndef Windows_NT
 int
-stricmp(char *str1, char *str2)
+stricmp(const char *str1,const  char *str2)
 {
   char buf1[STR_LEN], buf2[STR_LEN] ;
 
@@ -798,7 +802,7 @@ extern char *getcwd(char *pathname, size_t size) ;
 #endif
 
 char *
-FileNameAbsolute(char *fname, char *absFname)
+FileNameAbsolute(const char *fname, char *absFname)
 {
   char pathname[MAXPATHLEN] ;
   int  len ;
@@ -811,8 +815,9 @@ FileNameAbsolute(char *fname, char *absFname)
   else   /* not already absolute */
   {
     len = strlen(fname) ;
-    if (fname[len-1] == '/')
-      fname[len-1] = 0 ;
+    char * fn = strcpyalloc(fname);
+    if (fn[len-1] == '/')
+      fn[len-1] = 0 ;
 #ifndef Linux
     getcwd(pathname,MAXPATHLEN-1) ;
 #else
@@ -822,7 +827,8 @@ FileNameAbsolute(char *fname, char *absFname)
     sprintf(pathname, ".") ;
 #endif
 #endif
-    sprintf(absFname, "%s/%s", pathname, fname) ;
+    sprintf(absFname, "%s/%s", pathname, fn) ;
+    free(fn);
   }
   return(absFname) ;
 }
@@ -837,7 +843,7 @@ FileNameAbsolute(char *fname, char *absFname)
   Return Values:
   ------------------------------------------------------------------------*/
 char *
-FileNamePath(char *fname, char *pathName)
+FileNamePath(const char *fname, char *pathName)
 {
   char *slash ;
 
@@ -1042,7 +1048,7 @@ int devFinite(float value)
 } /* end devFinite() */
 
 char *
-FileNameRemoveExtension(char *in_fname, char *out_fname)
+FileNameRemoveExtension(const char *in_fname, char *out_fname)
 {
   char *dot ;
 
@@ -1054,7 +1060,7 @@ FileNameRemoveExtension(char *in_fname, char *out_fname)
   return(out_fname) ;
 }
 char *
-FileNameExtension(char *fname, char *ext)
+FileNameExtension(const char *fname, char *ext)
 {
   char *dot, buf[STR_LEN] ;
 
@@ -1070,7 +1076,7 @@ FileNameExtension(char *fname, char *ext)
 #include <glob.h>
 
 char *
-FileNameFromWildcard(char *inStr, char *outStr)
+FileNameFromWildcard(const char *inStr, char *outStr)
 {
   char *cp ;
   glob_t  gbuf ;
@@ -1148,7 +1154,7 @@ void printMemoryUsed()
 }
 
 // String copy will allocation.
-char *strcpyalloc(char *str)
+char *strcpyalloc(const char *str)
 {
   char *cpstr;
   cpstr = (char *) calloc(strlen(str)+1,sizeof(char));
@@ -1163,7 +1169,7 @@ char *strcpyalloc(char *str)
   are separated by white space as determined by isspace(). These
   include \f, \n, \r, \t and \v as well as the simple space.
   *-----------------------------------------------------------*/
-int ItemsInString(char *str)
+int ItemsInString(const char *str)
 {
   int items, nthchar, len;
 
@@ -1206,7 +1212,7 @@ int ItemsInString(char *str)
   \fn char *deblank(char *str)
   \brief removes blanks from a string.
 */
-char *deblank(char *str)
+char *deblank(const char *str)
 {
   char *dbstr;
   int n,m;
@@ -1340,7 +1346,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique)
   one or more contiguous non-blank characters. Same
   as gdfCountItemsInString().
   --------------------------------------------------*/
-int CountItemsInString(char *str) 
+int CountItemsInString(const char *str) 
 {
   int len, n, nhits;
   len = strlen(str);
@@ -1363,7 +1369,7 @@ int CountItemsInString(char *str)
   is -1, then it returns the last item. item is a string that
   must be freed by the caller. Same as gdfGetNthItemFromString().
   ------------------------------------------------------------------*/
-char *GetNthItemFromString(char *str, int nth) 
+char *GetNthItemFromString(const char *str, int nth) 
 {
   char *item;
   int nitems,n;
