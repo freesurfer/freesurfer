@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.7 $
+ *    $Author: mreuter $
+ *    $Date: 2009/03/04 19:25:48 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_reverse.c,v 1.7 2006/12/29 02:09:11 nicks Exp $";
+static char vcid[] = "$Id: mris_reverse.c,v 1.8 2009/03/04 19:25:48 mreuter Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -60,12 +60,12 @@ static int which = REVERSE_X ;
 int
 main(int argc, char *argv[]) {
   char               **av, *in_fname, *out_fname, path[STRLEN], fname[STRLEN],
-  hemi[10], *cp ;
+  hemi[STRLEN], *cp ;
   int                ac, nargs ;
   MRI_SURFACE        *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.7 2006/12/29 02:09:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.8 2009/03/04 19:25:48 mreuter Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
