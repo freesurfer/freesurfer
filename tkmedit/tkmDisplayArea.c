@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/05/01 17:58:16 $
- *    $Revision: 1.142 $
+ *    $Author: fischl $
+ *    $Date: 2009/03/05 00:09:23 $
+ *    $Revision: 1.143 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -5987,8 +5987,10 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
                           (float)pFrame[DspA_knBluePixelCompIndex] /
                           (float)DspA_knMaxPixelValue );
 
+          // LABEL drawing code - make it red instead of green (BRF)
           /* make it greener */
           xColr_HilightComponent( &color, xColr_tComponent_Green );
+          xColr_HilightComponent( &color, xColr_tComponent_Red );
 
           /* put it back */
           pFrame[DspA_knRedPixelCompIndex]   =
