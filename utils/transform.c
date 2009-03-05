@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:55 $
- *    $Revision: 1.133 $
+ *    $Date: 2009/03/05 20:35:58 $
+ *    $Revision: 1.134 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -786,21 +786,14 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
       mri_dst = MRIclone(mri_src, NULL);
       if (tran->dst.valid == 1) // transform dst is valid
       {
-        // modify dst c_(r,a,s) using the transform dst value
+        // modify dst geometry using the transform dst value
         // to make the better positioning (i.e. put the
         // head in the same position in
         // the volume as the dst was)
         if (DIAG_VERBOSE_ON)
-          fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
+          fprintf(stderr, "INFO: Modifying dst geometry, "
                   "using the transform dst\n");
-        mri_dst->c_r = tran->dst.c_r;
-        mri_dst->c_a = tran->dst.c_a;
-        mri_dst->c_s = tran->dst.c_s;
-        mri_dst->ras_good_flag = 1;
-        // now we cache transform and thus we have to do
-        // the following whenever
-        // we change direction cosines
-        MRIreInitCache(mri_dst);
+        useVolGeomToMRI(&tran->dst,mri_dst);
       }
       else if (getenv("USE_AVERAGE305"))
       {
@@ -812,6 +805,9 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         mri_dst->c_a = -16.5100;
         mri_dst->c_s = 9.7500;
         mri_dst->ras_good_flag = 1;
+	// maye one should set also the other geometry entries
+	// from the average ???
+	//
         // now we cache transform and thus we have to
         // do the following whenever
         // we change direction cosines
