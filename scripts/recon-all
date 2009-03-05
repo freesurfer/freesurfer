@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/02/05 21:44:55 $
-#    $Revision: 1.133.2.39 $
+#    $Date: 2009/03/05 18:51:56 $
+#    $Revision: 1.133.2.40 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.39 2009/02/05 21:44:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.40 2009/03/05 18:51:56 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -170,8 +170,10 @@ set AvgCurvTif = average.curvature.filled.buckner40.tif
 
 # For cortical parcellation atlas, as found in:
 # $FREESURFER_HOME/average/$hemi.$GCS
-set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
-set GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
+# The 2009-03-04 atlas contains the insula edits.
+set OLD_OLD_GCS = curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
+set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
+set GCS = curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
@@ -4656,7 +4658,7 @@ FREESURFER_HOME/average.
 Specify the name of the gaussian classifier surface atlas (GCS) file
 to be used for the cortical parcellation stage. It must be found in the
 FREESURFER_HOME/average directory. The default is named
-curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs and is located in
+curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs and is located in
 FREESURFER_HOME/average.
 
 -nuiterations
