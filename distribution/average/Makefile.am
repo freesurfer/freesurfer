@@ -13,11 +13,11 @@ GCA=\
 GCS=\
 	lh.atlas2002_simple.gcs \
 	lh.atlas2005_simple.gcs \
-	lh.curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs \
+	lh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs \
 	lh_trans_toSulc.gcs \
 	rh.atlas2002_simple.gcs \
 	rh.atlas2005_simple.gcs \
-	rh.curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs \
+	rh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs \
 	rh_trans_toSulc.gcs
 
 TIF=\
