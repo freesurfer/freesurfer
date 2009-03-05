@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/02/05 21:44:18 $
-#    $Revision: 1.195 $
+#    $Date: 2009/03/05 00:29:59 $
+#    $Revision: 1.196 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.195 2009/02/05 21:44:18 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.196 2009/03/05 00:29:59 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -147,6 +147,7 @@ set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
 set tp1id = ();
 set tp2id = ();
+set UseConcatLtaTal = 0; # if 1, use mri_concatenate_lta during tal creation
 set UseTP1CtrlVol = 0;   # if 1, use ctrl volume of tp1 in normalization step
 set no_orig_pial = 0;    # if 1, mris_make_surfaces won't use orig pial
 set tp1totp2_regfile = ();   # registration file to align tp1 to current subj
@@ -171,8 +172,10 @@ set AvgCurvTif = average.curvature.filled.buckner40.tif
 
 # For cortical parcellation atlas, as found in:
 # $FREESURFER_HOME/average/$hemi.$GCS
-set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
-set GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
+# The 2009-03-04 atlas contains the insula label.
+set OLD_OLD_GCS = curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
+set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
+set GCS = curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
@@ -839,8 +842,11 @@ if($DoTalairach) then
   cd $subjdir/mri > /dev/null
   set xfm = transforms/talairach.xfm
   set xfma = transforms/talairach.auto.xfm
-  if ( $longitudinal ) then
+  if ( $longitudinal && $UseConcatLtaTal) then
     # longitudinal processing stream:
+    # NJS NOTE: using mri_concatenate_lta is no longer the default method
+    # of creating the talairach.xfm file in the longitudinal stream.
+    # the -use-concat-lta-tal flag is used to revert to its usage
     set tal_targ = ${FREESURFER_HOME}/average/mni305.cor.mgz
     if( ! -e $tal_targ ) then
       echo "ERROR: template file $tal_targ for talairach reg doesn't exist" \
@@ -3906,6 +3912,10 @@ while( $#argv != 0 )
 
     case "-label_v1":
       set DoLabelV1 = 1;
+      breaksw;
+
+    case "-use-concat-lta-tal":
+      set UseConcatLtaTal = 1;
       breaksw;
 
     default:
