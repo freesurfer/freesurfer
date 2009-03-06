@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/07 03:12:42 $
- *    $Revision: 1.28 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/06 23:08:39 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,6 +58,7 @@ class ToolWindowEdit;
 class DialogRotateVolume;
 class LayerMRI;
 class WindowHistogram;
+class WindowOverlayConfiguration;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -215,6 +216,8 @@ public:
 
   void LoadSurface();
   void LoadSurfaceVector();
+  void LoadSurfaceCurvature();
+  void LoadSurfaceOverlay();
 
   void LoadVolumeFile( const wxString& fn, 
 		       const wxString& reg_fn, 
@@ -229,6 +232,8 @@ public:
 			const wxString& fn_vector = _("") );
   void LoadSurfaceVectorFile( const wxString& fn );
   void LoadWayPointsFile( const wxString& fn );
+  void LoadSurfaceCurvatureFile( const wxString& fn );
+  void LoadSurfaceOverlayFile( const wxString& fn );
 
 // bool IsSaving()
 //  { return m_bSaving; }
@@ -292,6 +297,8 @@ public:
   {
     return m_strLastDir;
   }
+  
+  void ConfigureOverlay();
 
 protected:
   void CommandLoadVolume( const wxArrayString& cmd );
@@ -299,6 +306,8 @@ protected:
   void CommandLoadROI( const wxArrayString& cmd );
   void CommandLoadSurface( const wxArrayString& cmd );
   void CommandLoadSurfaceVector( const wxArrayString& cmd );
+  void CommandLoadSurfaceCurvature( const wxArrayString& cmd );
+  void CommandLoadSurfaceOverlay( const wxArrayString& cmd );
   void CommandLoadWayPoints( const wxArrayString& cmd );
   void CommandScreenCapture( const wxArrayString& cmd );
 
@@ -312,20 +321,21 @@ private:
   void UpdateToolbars();
   void DoUpdateToolbars();
 
-  ControlPanel*  m_controlPanel;
-  PixelInfoPanel*  m_pixelInfoPanel;
+  ControlPanel*     m_controlPanel;
+  PixelInfoPanel*   m_pixelInfoPanel;
   wxSplitterWindow* m_splitterMain;
   wxSplitterWindow* m_splitterSub;
-  wxPanel*   m_renderViewHolder;
+  wxPanel*          m_renderViewHolder;
   WindowQuickReference* m_wndQuickReference;
-  StatusBar*   m_statusBar;
-  wxToolBar*   m_toolbarVoxelEdit;
-  wxToolBar*   m_toolbarROIEdit;
-  wxToolBar*   m_toolbarBrush;
-  wxPanel*   m_panelToolbarHolder;
-  ToolWindowEdit*  m_toolWindowEdit;
+  StatusBar*    m_statusBar;
+  wxToolBar*    m_toolbarVoxelEdit;
+  wxToolBar*    m_toolbarROIEdit;
+  wxToolBar*    m_toolbarBrush;
+  wxPanel*      m_panelToolbarHolder;
+  ToolWindowEdit*     m_toolWindowEdit;
   DialogRotateVolume* m_dlgRotateVolume;
-  WindowHistogram* m_wndHistogram;
+  WindowHistogram*    m_wndHistogram;
+  WindowOverlayConfiguration* m_wndOverlayConfiguration;
 
   RenderView2D*  m_viewAxial;
   RenderView2D*  m_viewSagittal;

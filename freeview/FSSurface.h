@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/06 23:08:39 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -95,6 +95,7 @@ public:
 
   bool LoadSurface  ( const char* filename, int nSet );
   bool LoadCurvature  ( const char* filename = NULL );
+  bool LoadOverlay  ( const char* filename );
 
   bool IsSurfaceLoaded( int nSet )
   {

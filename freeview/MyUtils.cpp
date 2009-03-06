@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/12 00:19:07 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/06 23:08:39 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -168,7 +168,8 @@ wxString MyUtils::GetNormalizedPath( const wxString& filename )
   wxFileName fn( filename );
   fn.Normalize( wxPATH_NORM_ENV_VARS | 
                 wxPATH_NORM_DOTS | 
-                wxPATH_NORM_ABSOLUTE );
+                wxPATH_NORM_ABSOLUTE | 
+                wxPATH_NORM_TILDE  );
   return fn.GetPath();
 }
 
@@ -178,7 +179,8 @@ wxString MyUtils::GetNormalizedFullPath( const wxString& filename )
   wxFileName fn( filename );
   fn.Normalize( wxPATH_NORM_ENV_VARS | 
                 wxPATH_NORM_DOTS | 
-                wxPATH_NORM_ABSOLUTE );
+                wxPATH_NORM_ABSOLUTE | 
+                wxPATH_NORM_TILDE );
   return fn.GetFullPath();
 }
 

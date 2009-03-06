@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.12 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/06 23:08:40 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -130,7 +130,7 @@ void RenderView3D::UpdateViewByWorldCoordinate()
     wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
   }
   cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0]+m_dWorldSize[0]*2.5, wcenter[1] + m_dWorldSize[1]*.25, wcenter[2]+m_dWorldSize[2]*.25 );
+  cam->SetPosition( wcenter[0] - m_dWorldSize[0]*2.5, wcenter[1] + m_dWorldSize[1]*.25, wcenter[2]+m_dWorldSize[2]*.25 );
   cam->SetViewUp( 0, 0, 1 );
   m_renderer->ResetCameraClippingRange();
 }

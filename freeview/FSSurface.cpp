@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.15 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/06 23:08:39 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,11 +76,14 @@ FSSurface::~FSSurface()
   {
     if ( m_fNormalSets[i] )
       delete[] m_fNormalSets[i];
+
     if ( m_fVertexSets[i] )
       delete[] m_fVertexSets[i];
+
     if ( m_HashTable[i] )
       MHTfree( &m_HashTable[i] );
   }
+
   for ( size_t i = 0; i <  m_vertexVectors.size(); i++ )
   {
     delete[] m_vertexVectors[i].data;
@@ -214,6 +217,7 @@ bool FSSurface::LoadSurface( const char* filename, int nSet )
   }
 }
 
+
 bool FSSurface::LoadCurvature( const char* filename )
 {
   if ( ::MRISreadCurvatureFile( m_MRIS, (char*)(filename ? filename : "curv" ) ) != 0 )
@@ -226,19 +230,65 @@ bool FSSurface::LoadCurvature( const char* filename )
   {
     int cVertices = m_MRIS->nvertices;
 
-    vtkSmartPointer<vtkFloatArray> curvs =
-      vtkSmartPointer<vtkFloatArray>::New();
+    vtkSmartPointer<vtkFloatArray> curvs = vtkSmartPointer<vtkFloatArray>::New();
     curvs->Allocate( cVertices );
     curvs->SetNumberOfComponents( 1 );
     curvs->SetName( "Curvature" );
 
-    for ( int vno = 0; vno < cVertices; vno++ )
+   for ( int vno = 0; vno < cVertices; vno++ )
     {
       curvs->InsertNextValue( m_MRIS->vertices[vno].curv );
     }
     m_polydata->GetPointData()->SetScalars( curvs );
     m_bCurvatureLoaded = true;
 
+    return true;
+  }
+}
+
+/*
+bool FSSurface::LoadOverlay( const char* filename )
+{
+  if ( ::MRISreadValues( m_MRIS, (char*)( filename ) ) != 0 )
+  {
+    cerr << "could not read overlay data from " << filename << endl;
+    return false;
+  }
+  else
+  {
+    return true;
+  }
+}
+*/
+
+
+bool FSSurface::LoadOverlay( const char* filename )
+{
+  // user read curvature routine because read values does not handle filename properly
+  int nCount = m_MRIS->nvertices;
+  for ( int i = 0; i < nCount; i++ )
+    m_MRIS->vertices[i].val = m_MRIS->vertices[i].curv;
+  float fMin = m_MRIS->min_curv;
+  float fMax = m_MRIS->max_curv;
+  
+  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)( filename ) ) != 0 )
+  {
+    cerr << "could not read overlay data from " << filename << endl;
+    return false;
+  }
+  else
+  {
+    // move curv to val and restore real curv
+    float ftemp;
+    for ( int i = 0; i < nCount; i++ )
+    {
+      ftemp = m_MRIS->vertices[i].curv;
+      m_MRIS->vertices[i].curv = m_MRIS->vertices[i].val;
+      m_MRIS->vertices[i].val = ftemp;
+    }
+    m_MRIS->min_curv = fMin;
+    m_MRIS->max_curv = fMax;
+    
     return true;
   }
 }
@@ -333,7 +383,6 @@ void FSSurface::RestoreVertices( MRIS* mris, int nSet )
     v->z = m_fVertexSets[nSet][vno].z;
   }
 }
-
 
 void FSSurface::SaveNormals( MRIS* mris, int nSet )
 {

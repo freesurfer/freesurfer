@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.38 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/06 23:08:39 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,6 +76,7 @@
 #include "DialogRotateVolume.h"
 #include "DialogOptimalVolume.h"
 #include "WindowHistogram.h"
+#include "WindowOverlayConfiguration.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -275,8 +276,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_viewSagittal->SetViewPlane( 0 );
   m_viewCoronal->SetViewPlane( 1 );
   m_viewAxial->SetViewPlane( 2 );
-  m_viewSagittal->SetFocusFrameColor( 0.9, 0, 0 );
-  m_viewCoronal->SetFocusFrameColor( 0, 0.8, 0 );
+  m_viewSagittal->SetFocusFrameColor( 1, 0, 0 );
+  m_viewCoronal->SetFocusFrameColor( 0, 1, 0 );
   m_viewAxial->SetFocusFrameColor( 0, 0, 1 );
   m_viewRender[0] = m_viewSagittal;
   m_viewRender[1] = m_viewCoronal;
@@ -312,9 +313,12 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 
   m_wndHistogram = new WindowHistogram( this );
   m_wndHistogram->Hide();
+  
+  m_wndOverlayConfiguration = new WindowOverlayConfiguration( this );
+  m_wndOverlayConfiguration->Hide();
 
   UpdateToolbars();
-
+  
   m_nViewLayout = VL_2X2;
   m_nMainView = MV_Sagittal;
   m_nMaxRecentFiles = 10;
@@ -2251,6 +2255,14 @@ void MainWindow::RunScript()
   {
     CommandLoadSurfaceVector( sa );
   }
+  else if ( sa[0] == "loadsurfacecurvature" )
+  {
+    CommandLoadSurfaceCurvature( sa );
+  }
+  else if ( sa[0] == "loadsurfaceoverlay" )
+  {
+    CommandLoadSurfaceOverlay( sa );
+  }
   else if ( sa[0] == "loadroi" || sa[0] == "loadlabel" )
   {
     CommandLoadROI( sa );
@@ -2275,7 +2287,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
   wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
   wxString fn = sa_vol[0];
   wxString reg_fn;
-  for ( unsigned int i = 1; i < sa_vol.GetCount(); i++ )
+  for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
     int n;
@@ -2339,20 +2351,43 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 {
   wxArrayString sa_fn = MyUtils::SplitString( cmd[1], ":" );
   wxString fn = sa_fn[0];
-  wxString fn_vector = "";
-  if ( sa_fn.size() > 1 )
+//  wxString fn_vector = "";
+  for ( size_t i = 1; i < sa_fn.size(); i++ )
   {
-    wxArrayString sa = MyUtils::SplitString( sa_fn[1], "=" );
+    wxArrayString sa = MyUtils::SplitString( sa_fn[i], "=" );
     if ( sa.size() > 1 )
     {
-      // add script to load surface vector files
-      wxArrayString vector_fns = MyUtils::SplitString( sa[1], "," );
-      for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+      if ( sa[0].Lower() == "curv" || sa[0].Lower() == "curvature" )
       {
+        // add script to load surface curvature file
         wxArrayString script;
-        script.Add( "loadsurfacevector" );
-        script.Add( vector_fns[i] );
+        script.Add( "loadsurfacecurvature" );
+        script.Add( sa[1] );
         m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( sa[0].Lower() == "overlay" )
+      {
+        // add script to load surface overlay files
+        wxArrayString vector_fns = MyUtils::SplitString( sa[1], "," );
+        for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+        {
+          wxArrayString script;
+          script.Add( "loadsurfaceoverlay" );
+          script.Add( vector_fns[i] );
+          m_scripts.insert( m_scripts.begin(), script );
+        }
+      }
+      else if ( sa[0].Lower() == "vector" )
+      {
+        // add script to load surface vector files
+        wxArrayString vector_fns = MyUtils::SplitString( sa[1], "," );
+        for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+        {
+          wxArrayString script;
+          script.Add( "loadsurfacevector" );
+          script.Add( vector_fns[i] );
+          m_scripts.insert( m_scripts.begin(), script );
+        }
       }
     }
   }
@@ -2363,6 +2398,28 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 {
   LoadSurfaceVectorFile( cmd[1] );
+}
+
+void MainWindow::CommandLoadSurfaceCurvature( const wxArrayString& cmd )
+{
+  LoadSurfaceCurvatureFile( cmd[1] );
+  
+  // create a fake worker event to notify end of operation because this routine is not threaded
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( "ByPass" );
+  wxPostEvent( this, event );
+}
+
+void MainWindow::CommandLoadSurfaceOverlay( const wxArrayString& cmd )
+{
+  LoadSurfaceOverlayFile( cmd[1] );
+  
+  // create a fake worker event to notify end of operation because this routine is not threaded
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( "ByPass" );
+  wxPostEvent( this, event );
 }
 
 void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
@@ -2529,15 +2586,68 @@ void MainWindow::LoadSurfaceVector()
 
 void MainWindow::LoadSurfaceVectorFile( const wxString& filename )
 {
-  m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  wxString fn = filename;
+  if ( fn.Contains( "/" ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
 
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    layer->SetVectorFileName( filename.c_str() );
+    layer->SetVectorFileName( fn.c_str() );
 
     WorkerThread* thread = new WorkerThread( this );
     thread->LoadSurfaceVector( layer );
+    
+    m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  }
+}
+
+void MainWindow::LoadSurfaceCurvature()
+{
+  wxFileDialog dlg( this, _("Open curvature file"), m_strLastDir, _(""),
+                    _T("Curvature files (*.*)|*.*"),
+                    wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    this->LoadSurfaceCurvatureFile( dlg.GetPath() );
+  }
+}
+
+void MainWindow::LoadSurfaceCurvatureFile( const wxString& filename )
+{
+  wxString fn = filename;
+  if ( fn.Contains( "/" ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
+  LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( layer )
+  {
+    if ( layer->LoadCurvatureFromFile( fn.c_str() ) )
+      m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  }
+}
+
+
+void MainWindow::LoadSurfaceOverlay()
+{
+  wxFileDialog dlg( this, _("Open overlay file"), m_strLastDir, _(""),
+                    _T("Overlay files (*.*)|*.*"),
+                    wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    this->LoadSurfaceOverlayFile( dlg.GetPath() );
+  }
+}
+
+void MainWindow::LoadSurfaceOverlayFile( const wxString& filename )
+{
+  wxString fn = filename;
+  if ( fn.Contains( "/" ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
+  LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( layer )
+  {
+    if ( layer->LoadOverlayFromFile( fn.c_str() ) )
+      m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 
@@ -2603,13 +2713,21 @@ void MainWindow::OnMouseEnterWindow( wxMouseEvent& event )
 
 void MainWindow::OnViewHistogram( wxCommandEvent& event )
 {
-  m_wndHistogram->Show( !m_wndHistogram->IsVisible() );
+  if ( m_wndHistogram->IsVisible() )
+    m_wndHistogram->Hide();
+  else
+	 m_wndHistogram->Show( !m_wndHistogram->IsVisible() );
 }
 
 void MainWindow::OnViewHistogramUpdateUI( wxUpdateUIEvent& event )
 {
   event.Check( m_wndHistogram->IsVisible() );
   event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
+}
+
+void MainWindow::ConfigureOverlay()
+{
+  m_wndOverlayConfiguration->ShowWindow( (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer() );
 }
 
 

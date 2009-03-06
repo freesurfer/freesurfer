@@ -142,6 +142,10 @@ freeview_SOURCES=\
 	StatusBar.cpp \
 	StatusBar.h \
 	string_fixed.h \
+	SurfaceOverlay.cpp \
+	SurfaceOverlay.h \
+	SurfaceOverlayProperties.cpp \
+	SurfaceOverlayProperties.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
 	vtkDijkstraGraphGeodesicPath.cxx \
@@ -155,6 +159,8 @@ freeview_SOURCES=\
 	WindowHistogram.h \
 	WindowQuickReference.cpp \
 	WindowQuickReference.h \
+	WindowOverlayConfiguration.cpp \
+	WindowOverlayConfiguration.h \
 	WorkerThread.cpp \
 	WorkerThread.h \
 	wxColorIndicator.cpp \

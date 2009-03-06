@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.15 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/06 23:08:39 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,9 @@
 #include "vtkFreesurferLookupTable.h"
 #include "vtkCubeSource.h"
 #include "vtkVolume.h"
+#include "vtkImageThreshold.h"
+#include "vtkPointData.h"
+#include "vtkContourFilter.h"
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
@@ -73,19 +76,24 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
 }
 
 LayerMRI::~LayerMRI()
-{
-  for ( int i = 0; i < 3; i++ )
+{	
+	for ( int i = 0; i < 3; i++ )
+	{
+		m_sliceActor2D[i]->Delete();
+		m_sliceActor3D[i]->Delete();
+	}
+	m_actorContour->Delete();
+	m_propVolume->Delete();
+	
+	delete mProperties;
+	
+	if ( m_volumeSource )
+		delete m_volumeSource;
+    
+  for ( size_t i = 0; i < m_segActors.size(); i++ )
   {
-    m_sliceActor2D[i]->Delete();
-    m_sliceActor3D[i]->Delete();
+    m_segActors[i].actor->Delete();
   }
-  m_actorContour->Delete();
-  m_propVolume->Delete();
-
-  delete mProperties;
-
-  if ( m_volumeSource )
-    delete m_volumeSource;
 }
 
 /*
@@ -347,8 +355,90 @@ void LayerMRI::UpdateTextureSmoothing ()
   }
 }
 
-void LayerMRI::UpdateContour()
+void LayerMRI::UpdateContour( int nSegValue )
 {
+    /*
+	if ( GetProperties()->GetShowAsContour() )
+	{
+		MyUtils::BuildContourActor( GetImageData(), 
+									GetProperties()->GetContourMinThreshold(), 
+									GetProperties()->GetContourMaxThreshold(),
+									m_actorContour );
+  }
+    */
+    
+    /*
+    if ( GetProperties()->GetShowAsContour() && GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
+    {
+        if ( nSegValue >= 0 )   // only update the given index
+        {
+            UpdateContourActor( nSegValue );
+        }
+        else    // update all
+        {
+            double overall_range[2];
+            m_imageData->GetPointData()->GetScalars()->GetRange( overall_range );
+            cout << overall_range[0] << " " << overall_range[1] << endl;
+            for ( size_t i = 0; i < m_segActors.size(); i++ )
+            {
+                m_segActors[i].actor->Delete();
+            }
+            m_segActors.clear();
+            vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+            threshold->SetOutputScalarTypeToShort();
+            threshold->SetInput( GetImageData() );            
+            int range[2];
+            for ( int i = (int)overall_range[0]; i <= overall_range[1]; i++ )
+            {
+                threshold->ThresholdBetween( i-0.5, i+0.5 );
+                threshold->ReplaceOutOn();
+                threshold->SetOutValue( 0 );
+                threshold->Update();
+                threshold->GetOutput()->GetPointData()->GetScalars()->GetRange( range[2] );
+                if ( range[1] > 0 )
+                {
+                    SegmentationActor sa;
+                    sa.id = i;
+                    MyUtils::BuildContourActor( GetImageData(), nSegValue - 0.5, nSegValue + 0.5, sa.actor );
+                    m_segActors.push_back( sa );
+                } 
+            }
+        }
+    }
+    */
+    
+  if ( GetProperties()->GetShowAsContour() && GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
+  {
+    double overall_range[2];
+    m_imageData->GetPointData()->GetScalars()->GetRange( overall_range );
+    //   cout << overall_range[0] << " " << overall_range[1] << endl;
+    vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+    threshold->SetOutputScalarTypeToShort();
+    threshold->SetInput( m_imageData );
+    threshold->ThresholdBetween( overall_range[0], overall_range[1] );
+    threshold->ReplaceOutOn();
+    threshold->SetOutValue( 0 );
+    vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
+    contour->SetInput( threshold->GetOutput() );
+    int n = 0;
+    if ( overall_range[0] == 0 )
+      overall_range[0] = 1;
+    for ( int i = (int)overall_range[0]; i <= overall_range[1]; i++ )
+    {
+      contour->SetValue( n++, i );
+    }
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInput( contour->GetOutput() );
+    mapper->SetLookupTable( mProperties->GetLUTTable() );
+    mapper->SetScalarRange( overall_range );
+    mapper->ScalarVisibilityOn();
+    m_actorContour->SetMapper( mapper );
+  }
+    
+//	UpdateVolumeRendering();
+}
+
+/*
   if ( GetProperties()->GetShowAsContour() )
   {
     MyUtils::BuildContourActor( GetImageData(),
@@ -356,8 +446,27 @@ void LayerMRI::UpdateContour()
                                 GetProperties()->GetContourMaxThreshold(),
                                 m_actorContour );
   }
+*/
 
-// UpdateVolumeRendering();
+void LayerMRI::UpdateContourActor( int nSegValue )
+{
+  SegmentationActor sa;
+  sa.id = -1;
+  for ( size_t i = 0; i < m_segActors.size(); i++ )
+  {
+    if ( m_segActors[i].id == nSegValue )
+    {
+      sa = m_segActors[i];
+      break;
+    }
+  }
+  if ( sa.id < 0 )
+  {
+    sa.id = nSegValue;
+    sa.actor = vtkActor::New();
+    m_segActors.push_back( sa );
+  }
+  MyUtils::BuildContourActor( GetImageData(), nSegValue - 0.5, nSegValue + 0.5, sa.actor );
 }
 
 void LayerMRI::UpdateVolumeRendering()
@@ -380,17 +489,19 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
 
 void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
-  bool bContour = GetProperties()->GetShowAsContour();
-  for ( int i = 0; i < 3; i++ )
-  {
-    if ( !bContour && ( bSliceVisibility == NULL || bSliceVisibility[i] ) )
-      renderer->AddViewProp( m_sliceActor3D[i] );
-  }
-
-  if ( bContour )
-  {
+	bool bContour = GetProperties()->GetShowAsContour();
+	for ( int i = 0; i < 3; i++ )
+	{
+		if ( !bContour && ( bSliceVisibility == NULL || bSliceVisibility[i] ) )
+			renderer->AddViewProp( m_sliceActor3D[i] ); 
+	}
+	
+	if ( bContour )
+	{
+   // for ( size_t i = 0; i < m_segActors.size(); i ++ )
+	 // renderer->AddViewProp( m_segActors[i].actor );
     renderer->AddViewProp( m_actorContour );
-  }
+	}
 }
 
 /*
