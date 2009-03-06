@@ -1,0 +1,197 @@
+#!/bin/csh -f
+
+set VERSION = '$Id: fsl2par,v 1.1 2009/03/06 21:41:27 greve Exp $';
+
+set inputargs = ($argv);
+
+set par  = ();
+set SchFiles = ();
+set EvNames = ();
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set tmp = /tmp/fsl2par.$$
+rm -f $tmp
+
+@ nth = 0;
+foreach sch ($SchFiles)
+  @ nth = $nth + 1;
+  set EvName = $EvNames[$nth];
+  cat $sch | awk -v c=$nth -v n=$EvName '{print sprintf("%7.3f %2d %7.3f %7.4f %s",$1,c,$2,$3,n)}' >> $tmp
+end
+
+cat $tmp | sort -n > $par
+
+rm -f $tmp
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--p":
+    case "--par":
+      if ( $#argv == 0) goto arg1err;
+      set par = $argv[1]; shift;
+      breaksw
+
+    case "--fsl":
+    case "--sch":
+      if ( $#argv == 0) goto arg1err;
+      set SchFile = $argv[1]; shift;
+      if(! -e $SchFile) then
+        pwd
+        echo "ERROR: cannot find $SchFile"
+        exit 1;
+      endif
+      set SchFiles = ($SchFiles $SchFile);
+      set EvName = `basename $SchFile`
+      if($#argv > 0) then
+        set tmp = `echo $argv[1] | cut -c 1-2`
+        if("$tmp" != "--") then
+          set EvName = $argv[1]; shift;
+        endif
+      endif
+      set EvNames = ($EvNames $EvName);
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      set SchFile = $flag;
+      if(! -e $SchFile) then
+        pwd
+        echo "ERROR: cannot find $SchFile"
+        exit 1;
+      endif
+      set SchFiles = ($SchFiles $SchFile);
+      set EvName = `basename $SchFile`
+      set EvNames = ($EvNames $EvName);
+      #echo ERROR: Flag $flag unrecognized. 
+      #echo $cmdline
+      #exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#par == 0) then
+    echo "ERROR: must specify output par file"
+    exit 1;
+  endif
+  if($#SchFiles == 0) then
+    echo "ERROR: need at least one sch file"
+    exit 1;
+  endif
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fsl2par"
+  echo ""
+  echo "  --p parfile  : output"
+  echo "  --sch schfile <evname> : FSL 3-col file"
+  echo "  --sch schfile <evname> : FSL 3-col file"
+  echo ""
+  echo "Other options"
+  echo "  --debug"
+  echo "  --help"
+  echo ""
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Convert a series of FSL 3-column custom timing files (schedule files)
+into an FS-FAST 5 column paradigm file. 
+
+The 3 columns of the FSL file are 
+(1) onset, 
+(2) duration, and 
+(3) weight. 
+
+The 5 columns of the FS-FAST paradigm file are: 
+(1) onset, 
+(2) event numeric id, 
+(3) duration, 
+(4) weight, 
+(5) event name
+
+The event name is either the name passed immediately after
+the schedule file or, if no name is passed, the name of the 
+schedule file.
+
+fsl2par --p workmem.par \
+  --sch sch_encode.txt Encode \
+  --sch sch_distractor_neutral.txt DNeutral \
+  --sch sch_retrieval_neutral.txt RNeutral \
+  --sch sch_distractor_emotional.txt DEmotional \
+  --sch sch_retrieval_emotional.txt REmotional
+
+You do not have to prepend --sch before the schedule file name,
+but you do net get to chose the EV name:
+
+fsl2par --p workmem.par \
+  sch_encode.txt \
+  sch_distractor_neutral.txt  \
+  sch_retrieval_neutral.txt  \
+  sch_distractor_emotional.txt \ 
+  sch_retrieval_emotional.txt 
+
+NOTES:
+
+The event numeric ids are based on the order that the schedule files
+are passed. 
+
+Do not pass a schedule file for the Null stimulus/Fixation.
+
+When creating the analysis, make sure to use -no-autostimdur
+
