@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/02/24 18:48:42 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/03/06 04:03:56 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -73,28 +73,36 @@ struct Parameters
   string mov;
   string dst;
   string lta;
+  string maskmov;
+  string maskdst;
+  bool   outweights;
+  bool   nomulti;
+  bool   fixvoxel;
+  bool   fixtype;
+  bool   lta_vox2vox;
   bool   affine;
   bool   iscale; 
   bool   transonly;
   string transform;
   bool   leastsquares;
   int    iterate;
+  double epsit;
   double sat;
   bool   warp;
   string warpout;
   int    subsamplesize;
   int    debug;
-  MRI*   mri_src;
+  MRI*   mri_mov;
   MRI*   mri_dst;
 };
-static struct Parameters P = { "","","",false,false,false,"",false,-1,SAT,false,"",SSAMPLE,0,NULL,NULL};
+static struct Parameters P = { "","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.3 2009/02/24 18:48:42 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.4 2009/03/06 04:03:56 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -133,64 +141,88 @@ int main(int argc, char *argv[])
   
   // compute Alignment
   std::pair <MATRIX*, double> Md;
-  if (P.iterate > 0)  Md = R.computeIterativeRegistration(P.iterate);
-  else Md = R.computeMultiresRegistration();
+  if (P.nomulti )  Md = R.computeIterativeRegistration(P.iterate,P.epsit);
+  else Md = R.computeMultiresRegistration(P.iterate,P.epsit);
+
+   //Md.first = MatrixReadTxt("xform.txt",NULL);
+   //Md.second = 1;
 
   // Print results:
-  cout << "final transform:\n" ;
+  cout << endl << "Final Transform:" << endl; ;
   MatrixPrintFmt(stdout,"% 2.8f",Md.first);
-  if (R.isIscale()) cout << " iscale: " << Md.second << endl;
+  if (R.isIscale()) cout << "Intenstiy Scale Factor: " << Md.second << endl;
   cout << endl ;
 
-  // maybe warp source to target:
+
+   // writing transform section here
+   cout << "writing output transformation to "<<P.lta <<" ..." << endl;
    char reg[STRLEN];
    strcpy(reg, P.lta.c_str());
+   LTA * lta = LTAalloc(1,P.mri_mov); 
+   if (!P.lta_vox2vox) // do ras to ras
+   {
+      cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
+      //cout << "VOX2VOX:" << endl ;  
+      //MatrixPrint(stdout, Md.first) ;
+      lta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, P.mri_dst, Md.first, lta->xforms[0].m_L) ;
+      //cout << "RAS2RAS:" << endl ;
+      //MatrixPrint(stdout,lta->xforms[0].m_L) ;
+      lta->type = LINEAR_RAS_TO_RAS ;
+   } 
+   else // vox to vox
+   {
+      cout << "saving VOX2VOX..." << endl ;
+      lta->xforms[0].m_L = MatrixCopy(Md.first, lta->xforms[0].m_L) ;
+      lta->type = LINEAR_VOX_TO_VOX ;
+   }
+   // add src and dst info
+   getVolGeom(P.mri_mov, &lta->xforms[0].src);
+   getVolGeom(P.mri_dst, &lta->xforms[0].dst);
+   LTAwriteEx(lta, reg) ;
+
+   //  MatrixWriteTxt("xform.txt",Md.first);
+   // end of writing transform
+
+  
+
+   // maybe warp source to target:
    if (P.warp)
    {
-//   // construct base name of P.reg
-//      char foutbase[STRLEN];
-//      FileNameOnly(reg, foutbase) ;
-//      FileNameRemoveExtension(foutbase, foutbase) ;
-//       string outfn (foutbase);
-//       outfn += ".mgz";
-      R.warpSource(P.mri_src,P.mri_dst,P.warpout);
+      //R.warpSource("simple-"+P.warpout,Md.first,Md.second); // can be used if mov and dst are copied to R
+      //R.warpSource(P.mri_mov,P.mri_dst,"better-"+P.warpout,Md.first,Md.second); // uses original mov and dst
+
+      //cout << "using lta" << endl;
+      int nframes = P.mri_mov->nframes;
+      P.mri_mov->nframes = 1 ; // only map frame 1
+      MRI *mri_aligned = MRIclone(P.mri_dst,NULL);
+      mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);    
+      // here also do scaling of intensity values
+      if (R.isIscale() && Md.second >0)
+         mri_aligned = R.MRIvalscale(mri_aligned, mri_aligned, Md.second);
+      P.mri_mov->nframes = nframes ;
+//    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
+//    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+//    sprintf(fname, "%s_target", parms.base_name) ;
+//    MRIwriteImageViews(mri_dst, fname, IMAGE_SIZE) ;
+  
+      MRIwrite(mri_aligned, P.warpout.c_str()) ;
+      MRIfree(&mri_aligned) ;
+    
       cout << "To check results, run:" << endl;
       cout << "  tkmedit -f "<< P.dst <<" -aux " << P.warpout << endl;
    }
-
-
-  // writing transform section here
-  cout << "writing output transformation to "<<P.lta <<" ..." << endl;
-  LTA * lta = LTAalloc(1,P.mri_src);
-  
-//  if (!stricmp(fname_out+strlen(fname_out)-3, "XFM"))
-  if ( (P.lta.substr(P.lta.length() - 3) == "XFM"))
-  {
-    cout << "converting xform to RAS..." << endl ;
-    cout << "initial:" << endl ;
+   
+   if (P.debug >0)
+   {
+      cout << "To check weights, run:" << endl;
+      std::string name = R.getName();
+      cout << "  tkmedit -f " << name << "-mriS-warp.mgz -aux " << name << "-mriT-warp.mgz -overlay " << name << "-mriS-weights.mgz" << endl;
+    }
     
-    MatrixPrint(stdout, Md.first) ;
-    lta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_src, P.mri_dst, Md.first, lta->xforms[0].m_L) ;
-    cout << "final:" << endl ;
-    MatrixPrint(stdout,lta->xforms[0].m_L) ;
-    lta->type = LINEAR_RAS_TO_RAS ;
-  } 
-  else
-  {
-    lta->xforms[0].m_L = MatrixCopy(Md.first, lta->xforms[0].m_L) ;
-    lta->type = LINEAR_VOX_TO_VOX ;
-  }
-
-  // add src and dst info
-    getVolGeom(P.mri_src, &lta->xforms[0].src);
-    getVolGeom(P.mri_dst, &lta->xforms[0].dst);
-    LTAwriteEx(lta, reg) ;
-
-  ///////////////////////////////////////////// end of writing transform
-
-   if (Md.first)
-    MatrixFree(&Md.first) ;
-
+   // cleanup 
+   if (Md.first) MatrixFree(&Md.first) ;
+   if (P.mri_mov) MRIfree(&P.mri_mov);
+   if (P.mri_dst) MRIfree(&P.mri_dst);
 
   ///////////////////////////////////////////////////////////////
   msec = TimerStop(&start) ;
@@ -452,18 +484,25 @@ static void printUsage(void) {
   cout << "      --lta regfile.lta      output registration file" << endl << endl;
 
   cout << "Optional arguments" << endl << endl;
+  cout << "  -W, --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
+  cout << "      --weights              output weights transformed to target space" << endl;
   cout << "  -A, --affine               find 12 parameter affine xform (default is 6-rigid)" << endl;
-  cout << "  -I, --iscale               allow also intensity scaling" << endl;
-  cout << "      --transonly            find 3 parameter translation" << endl;
-  cout << "  -T, --transform lta        use transform lta on source, type 'id' for identity" << endl;
-  cout << "                                default is RAS-mov to VOX to RAS-dst" << endl;
+  cout << "  -I, --iscale               allow also intensity scaling (default no I-scaling)" << endl;
+  cout << "      --transonly            find 3 parameter translation only" << endl;
+  cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
+  cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
+  cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
-  cout << "  -N, --iterate <#>          iterate # times on highest res. (no multiscale)" << endl;
+  cout << "  -N, --iterate <#>          iterate # times on each resolution (default "<<P.iterate<<")"  << endl;
+  cout << "      --epsit <float>        stop iterations when below <float> (default "<<P.epsit <<")" << endl;  
+  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;  
   cout << "      --sat <float>          set saturation for robust estimator (default "<<SAT<<")" << endl;
-  cout << "      --subsample <#>        subsample if dim > # on all axes" << endl;
-  cout << "                                (default never subsample)" << endl;
+  cout << "      --subsample <#>        subsample if dim > # on all axes (default no subs.)" << endl;
+  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
+  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
+  cout << "      --uchar                set volumes type to UCHAR (with intens. scaling)" << endl;
+  cout << "      --conform              conform volumes to 1mm vox (265^3)" << endl;
   cout << "      --debug                show debug output (default no debug output)" << endl;
-  cout << "  -W, --warp outvol.mgz      apply final xform on source, write to outvol.mgz" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
@@ -531,37 +570,6 @@ static void printUsage(void) {
 
 }
 
-// /*!
-// \fn void initRegistration(Registration & R, const Parameters & P)
-// \brief Converts uchar MRI to float 0..1
-// \param mri_uchar MRI volume of type uchar (0..255)
-// \returns convered float MRI volume (0..1)
-// */
-// static MRI* convertFloat01(MRI * mri_uchar)
-// {
-//   int x,y,z;
-//   if (mri_uchar->type != MRI_UCHAR)
-//   {
-//   	cerr << " convertFloat01 failed: input must be of type UCHAR" << endl;
-// 	assert(mri_uchar->type == MRI_UCHAR);
-//   }
-//   
-//   MRI* mri_float = MRIalloc( mri_uchar->width,  mri_uchar->height, mri_uchar->depth,MRI_FLOAT) ;
-//   MRIcopyHeader(mri_uchar, mri_float) ;
-//   mri_float->type = MRI_FLOAT;
-//   
-//   for (z = 0 ; z < mri_uchar->depth ; z++)
-//   for (y = 0 ; y < mri_uchar->height; y++)
-//   for (x = 0 ; x < mri_uchar->width ; x++)
-//   {
-//      MRIsetVoxVal(mri_float, x,y,z,0, MRIgetVoxVal(mri_uchar,x,y,z,0)/255.0);
-//      //if (MRIgetVoxVal(mri_uchar,x,y,z,0) > 150)
-//      //cout << " uchar: " << MRIgetVoxVal(mri_uchar,x,y,z,0) << "   float: " << MRIgetVoxVal(mri_float,x,y,z,0) << endl;
-// 
-//   }
-//   return mri_float;
-// }
-
 /*!
 \fn void initRegistration(Registration & R, const Parameters & P)
 \brief Initializes a Registration with Parameters (affine, iscale, transonly, leastsquares, sat and trans)
@@ -576,6 +584,8 @@ static void initRegistration(Registration & R, Parameters & P)
    R.setRobust(!P.leastsquares);
    R.setSaturation(P.sat);
    R.setDebug(P.debug);
+   R.setOutputWeights(P.outweights);
+   
    
    int pos = P.lta.rfind(".");
    if (pos > 0) R.setName(P.lta.substr(0,pos));
@@ -586,7 +596,7 @@ static void initRegistration(Registration & R, Parameters & P)
    // Set initial transform
    if (P.transform != "")
    {
-     cout << endl << "reading initial transform '"<<P.transform<<"'..."<< endl;;
+       cout << endl << "reading initial transform '"<<P.transform<<"'..."<< endl;;
        // try to read simple text 
        bool st = true;
        MATRIX* mi = MatrixAlloc(4,4,MATRIX_REAL);
@@ -637,36 +647,37 @@ static void initRegistration(Registration & R, Parameters & P)
        
        
        if (!st)
-       {
-       
+       {       
          // try to read other transform
          char ctrans[STRLEN];
          strcpy(ctrans, P.transform.c_str());
          TRANSFORM * trans = TransformRead(ctrans);
          LTA* lta =  (LTA *)trans->xform ;
          if (!lta)
-         ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, ctrans) ;
-          if (lta->type!=LINEAR_VOX_TO_VOX)
-          {
+            ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, ctrans) ;
+         lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+	 if (lta->type!=LINEAR_VOX_TO_VOX)
+         {
             ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, ctrans, lta->type) ;
 	    exit(1);
-	  }
-        R.setMinit(lta->xforms[0].m_L);
+	 }
+         R.setMinit(lta->xforms[0].m_L);
        }  
     } 
     
-   //////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////
   // create a list of MRI volumes
   //cout << "reading "<<ninputs<<" source (movable) volumes..."<< endl;
   int ninputs = 1; // later we might want to load several frames
   MRI* mri_src = NULL;
   MRI* mri_tmp = NULL;
+  if (P.mri_mov) MRIfree(&P.mri_mov);
   for (int i = 0 ; i < ninputs ; i++)
   {
     cout << "reading source '"<<P.mov<<"'..." << endl;
     fflush(stdout) ;
-   char mov[STRLEN];
-   strcpy(mov, P.mov.c_str());
+    char mov[STRLEN];
+    strcpy(mov, P.mov.c_str());
     
     mri_tmp = MRIread(mov) ;
     if (!mri_tmp)
@@ -675,20 +686,6 @@ static void initRegistration(Registration & R, Parameters & P)
       exit(1);
     }
 
-//    TRs[i] = mri_tmp->tr ;
-//    fas[i] = mri_tmp->flip_angle ;
-//    TEs[i] = mri_tmp->te ;
-
-//    if (mask_fname) {
-//      MRI *mri_mask ;
-//
-//      mri_mask = MRIread(mask_fname) ;
-//      if (!mri_mask)
-//        ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-//                  Progname, mask_fname) ;
-//      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-//      MRIfree(&mri_mask) ;
-//    }
     if (i == 0)
     {
       mri_src = MRIallocSequence(mri_tmp->width,
@@ -697,42 +694,58 @@ static void initRegistration(Registration & R, Parameters & P)
                                 mri_tmp->type,
                                 ninputs) ;
       MRIcopyHeader(mri_tmp, mri_src) ;
+      P.mri_mov = MRIallocSequence(mri_tmp->width,
+                                mri_tmp->height,
+                                mri_tmp->depth,
+                                mri_tmp->type,
+                                ninputs) ;
+      MRIcopyHeader(mri_tmp, P.mri_mov) ;
     }
+    MRIcopyFrame(mri_tmp, P.mri_mov, 0, i) ; // store input in P.mri_mov
+
+    if (P.maskmov != "") // work only on mri_src to init registration (not P.mri_mov)
+    {
+       MRI *mri_mask = MRIread(P.maskmov.c_str());
+       if (!mri_mask)
+         ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                 Progname, P.maskmov.c_str()) ;
+       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+       MRIfree(&mri_mask) ;
+    }
+
+
     MRIcopyFrame(mri_tmp, mri_src, 0, i) ;
     MRIfree(&mri_tmp) ;
   }
-//   if (mri_src->type == MRI_UCHAR) 
-//   {
-//      mri_tmp = mri_src;
-//      mri_src = convertFloat01(mri_tmp);
-//      MRIfree(&mri_tmp);
-//   }
-//   assert (mri_src->type == MRI_FLOAT);
-  P.mri_src = mri_src;
-  R.setSource(mri_src);
+  R.setSource(mri_src,P.fixvoxel,P.fixtype);
 
 
-  ///////////  read MRI Target //////////////////////////////////////////////////
-  cout <<  "reading target '"<<P.dst<<"'..."<< endl ;
-  fflush(stdout) ;
+   ///////////  read MRI Target //////////////////////////////////////////////////
+   cout <<  "reading target '"<<P.dst<<"'..."<< endl ;
+   fflush(stdout) ;
    char dst[STRLEN];
    strcpy(dst, P.dst.c_str());
-  MRI* mri_dst = MRIread(dst) ;
-  if (mri_dst == NULL)
-  {
-     cerr << Progname << " could not open MRI Target " << P.dst << endl;
-     exit(1);
-  }
-  cout << endl;
-//   if (mri_dst->type == MRI_UCHAR) 
-//   {
-//      mri_tmp = mri_dst;
-//      mri_dst = convertFloat01(mri_tmp);
-//      MRIfree(&mri_tmp);
-//   }
-//   assert (mri_dst->type == MRI_FLOAT);
-  R.setTarget(mri_dst);
-  P.mri_dst = mri_dst;
+   MRI* mri_dst = MRIread(dst) ;
+   if (mri_dst == NULL)
+   {
+      cerr << Progname << " could not open MRI Target " << P.dst << endl;
+      exit(1);
+   }
+   P.mri_dst = MRIcopy(mri_dst,P.mri_dst); // save dst mri
+
+   if (P.maskdst != "") 
+   {
+      MRI *mri_mask = MRIread(P.maskdst.c_str());
+      if (!mri_mask)
+         ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                Progname, P.maskdst.c_str()) ;
+      MRImask(mri_dst, mri_mask, mri_dst, 0, 0) ;
+      MRIfree(&mri_mask) ;
+   }
+   R.setTarget(mri_dst,P.fixvoxel,P.fixtype);
+   MRIfree(&mri_dst);
+   
+//   cout << endl;
 }
 
 /*!
@@ -772,6 +785,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      nargs = 1;
      cout << "Output transform as "<< P.lta << " . " << endl;
   }
+  else if (!strcmp(option, "VOX2VOX")   )
+  {
+     P.lta_vox2vox = true;
+     cout << "Output transform as VOX2VOX. " << endl;
+  }
   else if (!strcmp(option, "AFFINE") || !strcmp(option, "A") )
   {
      P.affine = true;
@@ -802,7 +820,19 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
        P.iterate = atoi(argv[1]);
        nargs = 1 ;
-       cout << "Performing " << P.iterate << " iterations on highest resolutin (no multires)" << endl;
+       cout << "Performing maximal " << P.iterate << " iterations on each resolution" << endl;
+  }
+  else if (!strcmp(option, "EPSIT") )
+  {
+       P.epsit = atof(argv[1]);
+       nargs = 1 ;
+       cout << "Stop iterations when change is less than " << P.epsit << " . " << endl;
+  }
+  else if (!strcmp(option, "NOMULTI") )
+  {
+     P.nomulti = true;
+     nargs = 0 ;
+     cout << "Will work on highest resolution only (nomulti)!" << endl;
   }
   else if (!strcmp(option, "SAT")  )
   {
@@ -823,12 +853,30 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      nargs = 0 ;
      cout << "Will output debug info and files!" << endl;
   }
+  else if (!strcmp(option, "WEIGHTS") )
+  {
+     P.outweights = true;
+     nargs = 0 ;
+     cout << "Will output weights transformed to target space!" << endl;
+  }
   else if (!strcmp(option, "WARP") || !strcmp(option, "W") )
   {
      P.warp = true;
      P.warpout = string(argv[1]);
      nargs = 1 ;
      cout << "Will save warped source as "<<P.warpout <<"!" << endl;
+  }
+  else if (!strcmp(option, "MASKMOV") )
+  {
+     P.maskmov = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will apply "<<P.maskmov <<" to mask mov/src !" << endl;
+  }
+  else if (!strcmp(option, "MASKDST") )
+  {
+     P.maskdst = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will apply "<<P.maskdst <<" to mask dst/target !" << endl;
   }
   else if (!strcmp(option, "TEST"))
   {
@@ -837,6 +885,18 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      R.testRobust(argv[2], atoi(argv[1]));
      nargs = 2 ;
      exit(0);
+  }
+  else if (!strcmp(option, "CONFORM") )
+  {
+     P.fixvoxel = true;
+     nargs = 0 ;
+     cout << "Will confrom images to 256^3 and voxels to 1mm!" << endl;
+  }
+  else if (!strcmp(option, "UCHAR") )
+  {
+     P.fixtype = true;
+     nargs = 0 ;
+     cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
   }
   else
     cout << "Option: " << argv[0] << " unknown !! " << endl;

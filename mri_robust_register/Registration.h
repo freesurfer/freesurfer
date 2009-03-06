@@ -24,9 +24,9 @@ extern "C" {
 class Registration
 {
   public:
-    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
+    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),outweights(false),
                   mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),lastp(NULL), mri_indexing(NULL) {};
-    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
+    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),outweights(false),
                    mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),Minit(NULL),Mfinal(NULL),lastp(NULL),mri_indexing(NULL) {};
   
     ~Registration()
@@ -50,23 +50,28 @@ class Registration
     void setRtype(int r)   {rtype = r;};
     //void setAllParams(bool probust=true, bool ptrans=false, bool prigid=true, bool piscale=false, int prtype = 1){robust = probust; transonly = ptrans; rigid = prigid; iscale = piscale; rtype = prtype;};
     void setMinit(MATRIX* m){Minit = MatrixCopy(m,Minit);};
-    void setSource (MRI * s);
-    void setTarget (MRI * t);
+    void setSource (MRI * s, bool fixvoxel = false, bool fixtype = false);
+    void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
     void setSubsamplesize (int sss){subsamplesize = sss;};
     void setName(const std::string &n) { name = n;};
+    void setOutputWeights(bool r) { outweights = r;};
 
     bool isIscale()        {return iscale;};
+    std::string  getName() {return name;};
   
     // compute registration
-    std::pair <MATRIX*, double> computeIterativeRegistration( int n=10,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
-    std::pair <MATRIX*, double> computeIterativeRegSat( int n=10,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
-    std::pair <MATRIX*, double> computeMultiresRegistration (MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeIterativeRegistration( int n=10,double epsit= 0.01,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeIterativeRegSat( int n=10,double epsit= 0.01,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeMultiresRegistration (int n=10,double epsit= 0.01, MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
  
     bool warpSource(const std::string & fname, MATRIX* M = NULL, double is = -1);
     bool warpSource(MRI* orig, MRI* target, const std::string &fname, MATRIX* M = NULL, double is = -1);
  
     // testing
     void testRobust(const std::string & fname, int testno);
+
+
+   MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
   
   protected:
 
@@ -96,10 +101,9 @@ class Registration
    MRI * getBlur2(MRI* mri);
    bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
    
-   MRI* makeConform(MRI *mri, MRI *out);
+   MRI* makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
    int findRightSize(MRI *mri, float conform_size);
    
-   MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
    MATRIX* MRIgetZslice(MRI * mri, int slice);
    
    // conversions
@@ -135,6 +139,7 @@ class Registration
     int subsamplesize;
     std::string name;
     int debug;
+    bool outweights;
     
     MRI * mri_source;
     MRI * mri_target;
