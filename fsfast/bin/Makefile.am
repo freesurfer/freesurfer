@@ -71,6 +71,7 @@ FSF_FILES=\
 	fsf-kmnacf \
 	fsf-kmracf \
 	fslregister-sess \
+        fsl2par \
 	func2acf \
 	func2label \
 	func2roi-sess \
