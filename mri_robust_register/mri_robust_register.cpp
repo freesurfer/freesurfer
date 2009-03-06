@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/06 04:03:56 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/03/06 04:41:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -102,7 +102,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.4 2009/03/06 04:03:56 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.5 2009/03/06 04:41:04 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -183,7 +183,6 @@ int main(int argc, char *argv[])
    //  MatrixWriteTxt("xform.txt",Md.first);
    // end of writing transform
 
-  
 
    // maybe warp source to target:
    if (P.warp)
@@ -208,16 +207,27 @@ int main(int argc, char *argv[])
       MRIwrite(mri_aligned, P.warpout.c_str()) ;
       MRIfree(&mri_aligned) ;
     
-      cout << "To check results, run:" << endl;
+      cout << "To check aligned result, run:" << endl;
       cout << "  tkmedit -f "<< P.dst <<" -aux " << P.warpout << endl;
+   }
+   
+   if (P.outweights)
+   {
+      cout << "or even overlay the weights:" <<endl;
+      cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << R.getName() << "-weights.mgz" <<endl;
    }
    
    if (P.debug >0)
    {
-      cout << "To check weights, run:" << endl;
+      cout << "To check debug output, run:" << endl;
       std::string name = R.getName();
       cout << "  tkmedit -f " << name << "-mriS-warp.mgz -aux " << name << "-mriT-warp.mgz -overlay " << name << "-mriS-weights.mgz" << endl;
     }
+
+      cout << "To check transform, run:" << endl;
+      cout << "  tkregister2 --mov "<< P.mov <<" --targ " << P.dst <<" --lta " << P.lta << " --reg " << R.getName() << ".reg" << endl; 
+  
+
     
    // cleanup 
    if (Md.first) MatrixFree(&Md.first) ;
@@ -493,7 +503,7 @@ static void printUsage(void) {
   cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
   cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
-  cout << "  -N, --iterate <#>          iterate # times on each resolution (default "<<P.iterate<<")"  << endl;
+  cout << "      --maxit <#>            iterate max # times on each resolution (default "<<P.iterate<<")"  << endl;
   cout << "      --epsit <float>        stop iterations when below <float> (default "<<P.epsit <<")" << endl;  
   cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;  
   cout << "      --sat <float>          set saturation for robust estimator (default "<<SAT<<")" << endl;
@@ -816,7 +826,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      P.leastsquares = true;
      cout << "Using standard least squares (non-robust)!" << endl;
   }
-  else if (!strcmp(option, "ITERATE") || !strcmp(option, "N") )
+  else if (!strcmp(option, "MAXIT")  )
   {
        P.iterate = atoi(argv[1]);
        nargs = 1 ;
