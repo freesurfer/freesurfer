@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/03/05 00:29:59 $
-#    $Revision: 1.196 $
+#    $Date: 2009/03/07 18:54:05 $
+#    $Revision: 1.197 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.196 2009/03/05 00:29:59 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.197 2009/03/07 18:54:05 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -978,6 +978,7 @@ if($DoNormalization) then
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
     if($IsMPRAGE)         set cmd = ($cmd -mprage)
     if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
+    if($#HiRes)           set cmd = ($cmd -noconform)
     set cmd = ($cmd $xopts nu.mgz T1.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1578,6 +1579,7 @@ if($DoNormalization2) then
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   if($IsMPRAGE)           set cmd = ($cmd -mprage)
   if($IsWashuMPRAGE)      set cmd = ($cmd -washu_mprage)
+  if($#HiRes)             set cmd = ($cmd -noconform)
   if($UseAseg && ! $NoAsegInorm2) set cmd = ($cmd -aseg aseg.mgz)
   if($NoNormMGZ) then
     # norm.mgz doesnt exist with -noaseg or -nosubcortseg, so use brainmask.mgz
@@ -3707,7 +3709,7 @@ while( $#argv != 0 )
 
     case "-cm":
       set HiRes = ('-cm')
-      echo "INFO: all COR volumes are conformed to the min voxel size"
+      echo "INFO: all volumes are conformed to the min voxel size"
       breaksw
 
     case "-noneg":
@@ -4400,7 +4402,7 @@ usage_exit:
   echo "                    correction (default is $NuIterations)"
   echo "  -norm3diters niters : number of 3d iterations for mri_normalize"
   echo "  -normmaxgrad maxgrad : max grad (-g) for mri_normalize. Default is 1."
-  echo "  -cm           : conform COR volumes to the min voxel size "
+  echo "  -cm           : conform volumes to the min voxel size "
   echo "  -no-fix-with-ga : do not use genetic algorithm when fixing topology"
   echo "  -fix-diag-only  : topology fixer runs until ?h.defect_labels files"
   echo "                    are created, then stops"
