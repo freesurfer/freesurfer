@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/07/24 23:40:53 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/03/09 19:48:19 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.23 2008/07/24 23:40:53 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.24 2009/03/09 19:48:19 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.23 2008/07/24 23:40:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.24 2009/03/09 19:48:19 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1387,13 +1387,15 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
   for(nth = 0; nth < n; nth++){
     e1 = GetElementFromFile(dcmfile1, tag1[nth], tag2[nth]);
     if(e1 == NULL) {
-      printf("ERROR: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile1);
-      return(1);
+      printf("WARNING: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile1);
+      printf("Continuing\n");
+      continue;
     }
     e2 = GetElementFromFile(dcmfile2, tag1[nth], tag2[nth]);
     if(e2 == NULL) {
-      printf("ERROR: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile2);
-      return(1);
+      printf("WARNING: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile2);
+      printf("Continuing\n");
+      continue;
     }
     if(type[nth] == 0){
       // Compare strings
