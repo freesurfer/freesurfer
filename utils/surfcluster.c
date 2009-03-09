@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/31 16:06:00 $
- *    $Revision: 1.19.2.2 $
+ *    $Date: 2009/03/09 21:34:06 $
+ *    $Revision: 1.19.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.19.2.2 2008/12/31 16:06:00 greve Exp $");
+  return("$Id: surfcluster.c,v 1.19.2.3 2009/03/09 21:34:06 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -556,12 +556,15 @@ int sclustAnnot(MRIS *surf, int NClusters)
   ct = CTABalloc(NClusters+1);
   surf->ct = ct;
 
-  for(n=0; n < NClusters; n++)
+  for(n=1; n < NClusters; n++) // no cluster 0
     sprintf(surf->ct->entries[n]->name, "%s-%03d","cluster",n);
 
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++)  {
     vtx_clusterno = surf->vertices[vtxno].undefval;
-    if(vtx_clusterno == 0 || vtx_clusterno > NClusters) continue;
+    if(vtx_clusterno == 0 || vtx_clusterno > NClusters){
+      surf->vertices[vtxno].annotation = 0;
+      continue;
+    }
     CTABannotationAtIndex(surf->ct, vtx_clusterno, &annot);
     surf->vertices[vtxno].annotation = annot;
   }
