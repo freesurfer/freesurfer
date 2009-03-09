@@ -1,15 +1,23 @@
 /**
  * @file  mri_probedicom.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief program allows the user to query a dicom file
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * In its most basic usage, the user supplies the DICOM group and
+ * element IDs of the data item to be queried along with the path to a
+ * DICOM file, and  mri_probedicom prints the value of the data item to
+ * stdout. If the file is not a DICOM file it will exit with a non-zero
+ * status. It is also possible to view the image, dump the pixel
+ * data to a file, and print out a basic set of information.
+ *
+ * This uses the DICOM CTN libraries from Mallinckrodt Institute of
+ * Radiology (http://dicomctn.wustl.edu/DICOM/ctn-docs/doc_index.html).
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/03 23:20:57 $
- *    $Revision: 1.15.2.3 $
+ *    $Author: greve $
+ *    $Date: 2009/03/09 19:50:57 $
+ *    $Revision: 1.15.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,11 +52,7 @@
 #ifndef Darwin
 #include <malloc.h>
 #endif
-#ifdef HAVE_APPLE_GLUT_FRAMEWORK
-#  include <GLUT/glut.h>
-#else
-#  include <glut.h>
-#endif
+#include "glut.h"
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -61,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.15.2.3 2009/02/03 23:20:57 nicks Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.15.2.4 2009/03/09 19:50:57 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -108,6 +112,7 @@ int DumpSiemensASCII(char *dicomfile, FILE *fpout);
 
 /*size_t RepSize(int RepCode);*/
 char *ElementValueFormat(DCM_ELEMENT *e);
+int DCMCompare(char *dcmfile1, char *dcmfile2);
 
 #define TMPSTRLEN 10000
 static char tmpstr[TMPSTRLEN];
@@ -118,6 +123,9 @@ int ImageHeight;
 GLubyte *ImageBuff;
 
 int DoPatientName = 1;
+
+char *title = NULL;
+int DoBackslash = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -131,7 +139,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.15.2.3 2009/02/03 23:20:57 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.15.2.4 2009/03/09 19:50:57 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -279,7 +287,7 @@ int main(int argc, char **argv) {
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
-  char **pargv, *option ;
+  char **pargv, *option, *dicomfile1, *dicomfile2 ;
   int rt;
 
   if (argc < 1) usage_exit();
@@ -306,6 +314,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       dicomfile = pargv[0];
       nargsused = 1;
+    } else if (!strcmp(option, "--compare")) {
+      if(nargc < 2) argnerr(option,2);
+      dicomfile1 = pargv[0];
+      dicomfile2 = pargv[1];
+      if(DCMCompare(dicomfile1,dicomfile2)) exit(1);
+      exit(0);
+      nargsused = 2;
     } else if (!strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
       outputfile = pargv[0];
@@ -336,13 +351,19 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%lx",&elementtag);
       nargsused = 2;
       DoPartialDump = 0;
-    } else if (!strcmp(option, "--g")) {
+    } 
+    else if (!strcmp(option, "--backslash")) DoBackslash = 1;
+    else if (!strcmp(option, "--g")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lx",&grouptag);
       nargsused = 1;
     } else if (!strcmp(option, "--e")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lx",&elementtag);
+      nargsused = 1;
+    } else if (!strcmp(option, "--title")) {
+      if (nargc < 1) argnerr(option,1);
+      title = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--view")) {
       DisplayImage = 1;
@@ -384,9 +405,12 @@ static void print_usage(void) {
   fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep \n");
   fprintf(stdout, "   --no-name         : do not print patient name (10,10) with dump \n");
   fprintf(stdout, "   --view            : view the image  \n");
+  fprintf(stdout, "   --title title     : set window title when viewing the image \n");
   fprintf(stdout, "   --o file          : dump binary pixel data into file  \n");
   fprintf(stdout, "   --ob stem         : dump binary pixel data into bshort  \n");
   fprintf(stdout, "   --dictionary      : dump dicom dictionary and exit\n");
+  fprintf(stdout, "   --compare dcm1 dcm2 : compare on key parameters\n");
+  fprintf(stdout, "   --backslash       : replace backslashes with spaces\n");
   fprintf(stdout, "   --help            : how to use this program \n");
   fprintf(stdout, "\n");
 }
@@ -487,7 +511,14 @@ static void print_help(void) {
     "     dcm_print_dictionary (which must be in your path). Ignores all\n"
     "     other options.\n"
     "\n"
-    "AUTHOR\n"
+    "  --compare dcm1 dcm2\n"
+    "\n"
+    "     Compare two dicom files on some key parameters: Manufacturer,\n"
+    "     Model, Software Version, Institution, Pixel Frequency, Field\n"
+    "     Strength, Pulse Sequence, Transmitting Coil, Flip Angle, Echo Time\n"
+    "     Repetition Time, Phase Encode Direction, Slice Distance, Slice Thickness, \n"
+    "     Pixel Spacing, Rows, and Cols. If they are the same, exits 0, otherwise\n"
+    "     exits 1.\n"
     "\n"
     "     Written by Douglas N. Greve.\n"
     "\n"
@@ -688,7 +719,7 @@ char *RepString(int RepCode) {
 char *ElementValueString(DCM_ELEMENT *e) {
   // declared at top of file:  extern char tmpstr[TMPSTRLEN];
   char* evstring;
-  int len;
+  int n,len;
 
   memset(&tmpstr[0],0,TMPSTRLEN);
 
@@ -734,7 +765,12 @@ char *ElementValueString(DCM_ELEMENT *e) {
 
   len = strlen(tmpstr);
   evstring = (char *) calloc(len+1,sizeof(char));
-  memcpy(evstring,tmpstr,len+1);
+  memmove(evstring,tmpstr,len+1);
+
+  if(DoBackslash){
+    // replace backslashes with spaces
+    for(n=0; n < len; n++) if(evstring[n] == '\\') evstring[n] = ' ';
+  }
 
   return(evstring);
 }
@@ -915,7 +951,10 @@ int PartialDump(char *dicomfile, FILE *fp) {
 
   e = GetElementFromFile(dicomfile, 0x18, 0x1030);
   if (e != NULL) {
-    fprintf(fp,"ProtocolName %s\n",e->d.string);
+    if(strlen(e->d.string) != 0)
+      fprintf(fp,"ProtocolName %s\n",e->d.string);
+    else
+      fprintf(fp,"ProtocolName PROTOTCOL_UKNOWN\n");
     FreeElementData(e);
     free(e);
   }
@@ -1230,6 +1269,7 @@ void reshape(int w, int h) {
 }
 
 int RenderImage(int argc, char **argv) {
+  extern char *title;
   int nrows, ncols, row, col, n,m;
   char c;
   DCM_OBJECT *object;
@@ -1294,7 +1334,11 @@ int RenderImage(int argc, char **argv) {
   glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
   glutInitWindowSize(ncols,nrows);
   glutInitWindowPosition(100, 100);
-  sprintf(tmpstr,"mri_probedicom: %s",dicomfile);
+  if(title == NULL)
+    sprintf(tmpstr,"mri_probedicom: %s",dicomfile);
+  else
+    sprintf(tmpstr,"%s",title);
+
   glutCreateWindow(tmpstr);
   init();
   glutDisplayFunc(display);
@@ -1310,5 +1354,71 @@ int RenderImage(int argc, char **argv) {
   return(0);
 }
 
+
+
+int DCMCompare(char *dcmfile1, char *dcmfile2)
+{
+  DCM_ELEMENT *e1, *e2;
+  int tag1[100], tag2[100], type[100];
+  char *tagname[100];
+  int n, nth, isdiff;
+
+  n = 0;
+  tagname[n] = "Manufacturer";     tag1[n] = 0x8;  tag2[n] = 0x0070; type[n] = 0; n++;
+  tagname[n] = "Model";            tag1[n] = 0x8;  tag2[n] = 0x1090; type[n] = 0; n++;
+  tagname[n] = "Software Version"; tag1[n] = 0x8;  tag2[n] = 0x1090; type[n] = 0; n++;
+  tagname[n] = "Institution";      tag1[n] = 0x8;  tag2[n] = 0x0080; type[n] = 0; n++;
+  //tagname[n] = "Imaging Frequency";tag1[n] = 0x18; tag2[n] = 0x0084; type[n] = 0; n++;
+  tagname[n] = "Pixel Frequency";  tag1[n] = 0x18; tag2[n] = 0x0095; type[n] = 0; n++;
+  tagname[n] = "Field Strength";   tag1[n] = 0x18; tag2[n] = 0x0087; type[n] = 0; n++;
+  tagname[n] = "Pulse Sequence";   tag1[n] = 0x18; tag2[n] = 0x0024; type[n] = 0; n++;
+  tagname[n] = "Transmitting Coil";tag1[n] = 0x18; tag2[n] = 0x1251; type[n] = 0; n++;
+  tagname[n] = "Flip Angle";       tag1[n] = 0x18; tag2[n] = 0x1314; type[n] = 0; n++;
+  tagname[n] = "Echo Time";        tag1[n] = 0x18; tag2[n] = 0x0081; type[n] = 0; n++;
+  tagname[n] = "Repetition Time";  tag1[n] = 0x18; tag2[n] = 0x0080; type[n] = 0; n++;
+  tagname[n] = "Phase Encode Direction"; tag1[n] = 0x18; tag2[n] = 0x1312; type[n] = 0; n++;
+  tagname[n] = "Pixel Spacing";    tag1[n] = 0x28; tag2[n] = 0x0030; type[n] = 0; n++;
+  tagname[n] = "Rows";             tag1[n] = 0x28; tag2[n] = 0x0010; type[n] = 1; n++;
+  tagname[n] = "Cols";             tag1[n] = 0x28; tag2[n] = 0x0011; type[n] = 1; n++;
+  tagname[n] = "Slice Thickness";  tag1[n] = 0x18; tag2[n] = 0x0050; type[n] = 0; n++;
+  tagname[n] = "Slice Distance";   tag1[n] = 0x18; tag2[n] = 0x0088; type[n] = 0; n++;
+
+  isdiff = 0;
+  for(nth = 0; nth < n; nth++){
+    e1 = GetElementFromFile(dcmfile1, tag1[nth], tag2[nth]);
+    if(e1 == NULL) {
+      printf("WARNING: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile1);
+      printf("Continuing\n");
+      continue;
+    }
+    e2 = GetElementFromFile(dcmfile2, tag1[nth], tag2[nth]);
+    if(e2 == NULL) {
+      printf("WARNING: %s (%x,%x) not found in %s\n",tagname[nth],tag1[nth],tag2[nth],dcmfile2);
+      printf("Continuing\n");
+      continue;
+    }
+    if(type[nth] == 0){
+      // Compare strings
+      printf("%2d %s (%x,%x) %s %s ",nth,tagname[nth],tag1[nth],tag2[nth],e1->d.string,e2->d.string);
+      if(strcmp(e1->d.string,e2->d.string) != 0){
+	printf("  -------- Files differ\n");
+	isdiff = 1;
+      }
+      else printf("\n");
+    }
+    if(type[nth] == 1){
+      // Compare us
+      printf("%2d %s (%x,%x) %d %d  ",nth,tagname[nth],tag1[nth],tag2[nth],
+	     *(e1->d.us),*(e2->d.us));
+      if(*(e1->d.us) != *(e2->d.us)){
+	printf("  -------- Files differ\n");
+	isdiff = 1;
+	isdiff = 1;
+      }
+      else printf("\n");
+    }
+  }
+  return(isdiff);
+}
 
 
