@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.5 2009/02/27 00:14:51 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.6 2009/03/09 16:46:43 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -163,7 +163,7 @@ foreach f ($flist)
   set EchoTime = (`cat $dumpfile | awk '{if($1 == "EchoTime") print $2}'`)
   if($#EchoTime == 0) set EchoTime = 'unknown';
   set TR  = (`cat $dumpfile | awk '{if($1 == "RepetitionTime") print $2}'`)
-  if($#TR == 0) set TR= 'unknown';
+  if($#TR == 0) set TR = 'unknown';
   set FlipAngle  = (`cat $dumpfile | awk '{if($1 == "FlipAngle") print $2}'`)
   if($#FlipAngle == 0) set FlipAngle = 'unknown';
   #------------------------------------------------------------------------#
