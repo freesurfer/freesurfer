@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.6 2009/03/09 16:46:43 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.7 2009/03/09 20:08:55 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -82,7 +82,7 @@ echo "---------------------------------------" | tee -a $LF
 foreach run ($RunNos)  
   @ nth = $nth + 1;
   if(! $DoFIPS) then
-    echo "  $nth $run $RunPars[$nth] $NSkips[$nth] $NDrops[$nth]" | tee -a $LF
+    echo "  $nth $run $SubDirs[$nth] $FNames[$nth] $NSkips[$nth] $NDrops[$nth]" | tee -a $LF
   else
     echo "  $nth $run $RunPars[$nth] $RunParNos[$nth] $NSkips[$nth] $NDrops[$nth]" | tee -a $LF
   endif
