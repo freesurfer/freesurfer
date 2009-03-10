@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/01/28 17:36:21 $
- *    $Revision: 1.319 $
+ *    $Author: krish $
+ *    $Date: 2009/03/10 20:38:09 $
+ *    $Revision: 1.320 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -6921,10 +6921,12 @@ read_image_info(char *fpref)
 
   /* RKT: Check for fov == 0, which is incorrect. If it is, set it to
      0.256, which is a reasonable default.  */
+  /* Krish: For older brains, 256 seems to work than 0.256 
+     Also, the fovs of standard brains like bert and fsaverage are 256 */
   if (fabs(fov) < 0.00001)
   {
-    print ("surfer: WARNING: fov was ~0, setting to 0.256\n");
-    fov = 0.256;
+    print ("surfer: WARNING: fov was ~0, setting to 256\n");
+    fov = 256;
   }
 
   numimg = imnr1-imnr0+1;
@@ -20724,7 +20726,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.319 2009/01/28 17:36:21 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.320 2009/03/10 20:38:09 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
