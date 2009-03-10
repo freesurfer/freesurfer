@@ -4,6 +4,8 @@
 #include "Regression.h"
 
 #include <cassert>
+#include <fstream>
+#include <sstream>
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,7 +82,7 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
   {
      for (int cc = 1; cc <= Ab.first->cols; cc++)
      {
-     assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
+     	assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
      }
      assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
   }
@@ -93,7 +95,7 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
   Regression R(Ab.first,Ab.second);
   if (robust)
   {
-     cout << "   - compute robust estimate ..." << flush;
+     cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
      if (sat < 0) pwm = R.getRobustEstW();
      else pwm = R.getRobustEstW(sat);
      cout << "  DONE" << endl;
@@ -287,7 +289,7 @@ pair <MATRIX*,double> Registration::computeRegistrationStep(MRI * mriS, MRI* mri
 //    return fmd;
 // }
 
-pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,double epsit, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
+pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
 // computes iterative registration (recomputing A and b in each step)
 // retruns 4x4 matrix and iscale value
 {
@@ -296,12 +298,14 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,doubl
    
    assert (mriS && mriT);
 
-   int i;
+
    pair < MATRIX*, double > cmd(NULL,1.0);
    pair < MATRIX*, double > fmd(NULL,scaleinit);
-   if (m) fmd.first = MatrixCopy(m,NULL);
-   else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
-   else fmd.first = MatrixIdentity(4,NULL);
+   
+  // check if mi (inital transform) is passed
+  if (m) fmd.first = MatrixCopy(m,NULL);      
+  else if (Minit) fmd.first = MatrixCopy(Minit,NULL);      
+  else fmd.first = MRIgetVoxelToVoxelXform(mriS,mriT) ;
    
    if (debug > 0)
    {
@@ -317,11 +321,9 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,doubl
       
    lastp = NULL;
    double diff = 100;
-   i = 1;
-   int MAX = n;
-//   MAX = 10;
-//   double EPS = 0.01;
-   while (diff > epsit && i<=MAX)
+   int i = 1;
+
+   while (diff > epsit && i<=nmax)
    {
       cout << " Iteration: " << i << endl;
       i++;
@@ -364,25 +366,6 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,doubl
        //p = computeRegistrationStepP(mri_Swarp,mri_Twarp);
        if (pw.second) MRIfree(&pw.second);
        pw = computeRegistrationStepW(mri_Swarp,mri_Twarp);
-//        if (pw.second)
-//        {
-//          //cout << "mrisweight widht " << pw.second->width << endl; 
-//          if (debug > 0)
-//          {
-// 	    // in the half-way space:
-//             string n = name+string("-mriS-weights.mgz");
-//             MRIwrite(pw.second,n.c_str()); 
-// 	    
-// 	    // also map back to src space:
-// 	    n = name+string("-weights.mgz");
-// 	    MATRIX * mh1i = MatrixInverse(mh,NULL);
-// 	    MRI * mtmp = MRIclone(mriS,NULL);
-// 	    mtmp = MRIlinearTransform(pw.second,mtmp,mh1i);
-//             MRIwrite(mtmp,n.c_str()); 	         
-// 	    MRIfree(&mtmp);
-//          }
-//          MRIfree(&pw.second);
-//        }
    
        if (cmd.first != NULL) MatrixFree(&cmd.first);
        cmd = convertP2Md(pw.first);
@@ -390,29 +373,14 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,doubl
        lastp = pw.first;
        pw.first = NULL;
 
-// //   DEBUG
-//      if (debug > 0)
-//      {
-//         char nn[50];
-//         assert(name.length() < 45);
-//         strcpy(nn, (name+"-mriS-warp.mgz").c_str());
-//         MRIwrite(mri_Swarp,nn);
-//         strcpy(nn, (name+"-mriT-warp.mgz").c_str());
-//         MRIwrite(mri_Twarp,nn);
-//         MRI* salign = MRIclone(mriS,NULL);
-// 	salign = MRIlinearTransform(mri_Swarp, salign,cmd.first);
-//         strcpy(nn, (name+"-mriS-align.mgz").c_str());
-//         MRIwrite(salign,nn);
-//         MRIfree(&salign);
-//      } 
 
        // store M and d
        cout << "   - store transform" << endl;
-     //cout << endl << " current : Matrix: " << endl;
-     //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
-     //cout << " intens: " << cmd.second << endl;
-     MATRIX* fmdtmp = MatrixCopy(fmd.first,NULL);
-//       fmd.first = MatrixMultiply(cmd.first,fmd.first,fmd.first); //old
+       //cout << endl << " current : Matrix: " << endl;
+       //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
+       //cout << " intens: " << cmd.second << endl;
+       MATRIX* fmdtmp = MatrixCopy(fmd.first,NULL);
+       //fmd.first = MatrixMultiply(cmd.first,fmd.first,fmd.first); //old
        if(mh2) MatrixFree(&mh2);
        mh2 = MatrixInverse(mhi,NULL); // M = mh2 * mh
        // new M = mh2 * cm * mh
@@ -420,17 +388,18 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,doubl
        fmd.first = MatrixMultiply(fmd.first,mh,fmd.first);
 
        fmd.second *= cmd.second;
-      //cout << endl << " Matrix: " << endl;
-      //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
-      diff = getFrobeniusDiff(fmd.first, fmdtmp);
-      cout << "     -- difference to prev. transform: " << diff << endl;
-      //cout << " intens: " << fmd.second << endl;
+       //cout << endl << " Matrix: " << endl;
+       //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+       if (!rigid) diff = getFrobeniusDiff(fmd.first, fmdtmp);
+       else        diff = sqrt(RigidTransDistSq(fmd.first, fmdtmp));
+       cout << "     -- difference to prev. transform: " << diff << endl;
+       //cout << " intens: " << fmd.second << endl;
 
-      MatrixFree(&fmdtmp);
-      MatrixFree(&mh);
-      MatrixFree(&mi);
-      MatrixFree(&mhi);
-      //MatrixFree(&mh2);
+       MatrixFree(&fmdtmp);
+       MatrixFree(&mh);
+       MatrixFree(&mi);
+       MatrixFree(&mhi);
+       //MatrixFree(&mh2);
       
    }
 
@@ -455,7 +424,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,doubl
 
     // warp weights to target:
     if (pw.second && outweights)
-      {
+    {
 	 cout << " mapping weights to target !!!" << endl;
          int x,y,z;
          for (z = 0 ; z < pw.second->depth  ; z++)
@@ -470,17 +439,17 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int n,doubl
             MRIwrite(mtmp,n.c_str()); 	         
 	    MRIfree(&mtmp);
             MRIfree(&pw.second);
-       }
+     }
        
-  MatrixFree(&mh2);
-  if (cmd.first != NULL) MatrixFree(&cmd.first);
-  if (pw.second) MRIfree(&pw.second);
+   MatrixFree(&mh2);
+   if (cmd.first != NULL) MatrixFree(&cmd.first);
+   if (pw.second) MRIfree(&pw.second);
        
-  MRIfree(&mri_Twarp);
-  MRIfree(&mri_Swarp);
+   MRIfree(&mri_Twarp);
+   MRIfree(&mri_Swarp);
 
-  Mfinal = MatrixCopy(fmd.first, Mfinal);
-  iscalefinal = fmd.second;
+   Mfinal = MatrixCopy(fmd.first, Mfinal);
+   iscalefinal = fmd.second;
 
    return fmd;
 }
@@ -495,9 +464,12 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
 
    pair < MATRIX*, double > cmd(NULL,1.0);
    pair < MATRIX*, double > fmd(NULL,scaleinit);
-   if (m) fmd.first = MatrixCopy(m,NULL);
-   else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
-   else fmd.first = MatrixIdentity(4,NULL);
+   
+   // check if mi (inital transform) is passed
+   if (m)          fmd.first = MatrixCopy(m,NULL);      
+   else if (Minit) fmd.first = MatrixCopy(Minit,NULL);      
+   else            fmd.first = MRIgetVoxelToVoxelXform(mriS,mriT) ;
+   //else fmd.first = MatrixIdentity(4,NULL);
    
    if (debug > 0)
    {
@@ -505,22 +477,61 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
       MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
    }
   
-   double satval[6] = {20,12,8,6,4,2};
-   vector < double > diffs (6);
-  
-   for (int si = 0;si<6;si++)
+   double satval[20] = {20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1};
+   vector < double > diffs (20);
+   
+   string nametmp = name;
+   std::stringstream sout;
+
+   for (int si = 0;si<(int)diffs.size();si++)
    {
    	sat = satval[si];
+        
+        std::stringstream out;
+        out << sat;
+        name = nametmp+"-sat"+out.str();
 	
 	cmd = computeIterativeRegistration(n,epsit,mriS,mriT,fmd.first,fmd.second);
 	
-	diffs[si] = getFrobeniusDiff(fmd.first, cmd.first);
+	if (!rigid) diffs[si] = getFrobeniusDiff(fmd.first, cmd.first);
+	else        diffs[si] = sqrt(RigidTransDistSq(fmd.first, cmd.first));
         cout << "       difference on sat " << sat << " to prev. transform: " << diffs[si] << endl;
    
         fmd.second = cmd.second;
 	MatrixFree(&fmd.first);
 	fmd.first = cmd.first;
+	
+	// store transform
+        LTA * lta = LTAalloc(1,mriS); 
+        lta->xforms[0].m_L = MRIvoxelXformToRasXform (mriS, mriT, fmd.first, lta->xforms[0].m_L) ;
+        lta->type = LINEAR_RAS_TO_RAS ;
+        getVolGeom(mriS, &lta->xforms[0].src);
+        getVolGeom(mriT, &lta->xforms[0].dst);
+        LTAwriteEx(lta, (name+".lta").c_str()) ;
+	LTAfree(&lta);
+	
+	
    }
+  
+   name = nametmp;
+  
+   // plot diffs
+   string fbase = name+"-sat";
+   ofstream ofile((fbase+".plot").c_str(),ios::out);
+   bool png = false;
+   if (png) ofile << "set terminal png medium size 800,600" << endl;
+   else ofile << "set terminal postscript eps color" << endl;
+   if (png) ofile << "set output \""<< fbase <<".png\"" << endl;
+   else ofile << "set output \""<< fbase <<".eps\"" << endl;
+   ofile << "plot ";
+   ofile << " \"-\" notitle with lines 1" << endl;
+   for (int j = 0;j<(int)diffs.size(); j++)
+   {
+      ofile << -satval[j] << " " << diffs[j] << endl;
+   }
+   ofile << "e" << endl;
+   ofile.close();
+  
   
    return fmd;
 }
@@ -2153,6 +2164,103 @@ MATRIX * Registration::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
    }
     
    return msqrt;
+}
+
+double  Registration::RotMatrixLogNorm(MATRIX * m)
+// computes Frobenius norm of log of rot matrix
+// this is equivalent to geodesic distance on rot matrices
+// will look only at first three rows and colums and
+// expects a rotation matrix there
+{
+   // assert we have no stretching only rot (and trans)
+   float det = MatrixDeterminant(m);
+   //cout << " det: " << det << endl;
+   assert(fabs(det-1.0) < 0.00001);
+
+   double trace = 0.0;
+   for (int n=1; n <= 3; n++) trace += m->rptr[n][n];
+   //cout << " trace : " << trace << endl;
+   trace = 0.5*(trace-1.0);
+   if (trace > 1.0) trace = 1.0;
+   if (trace < -1.0) trace = -1.0;
+   //cout << "  0.5*(trace-1): " << trace << endl;
+   double theta = acos(trace); // gives [0..pi]
+   
+   return sqrt(2.0) * theta;
+
+}
+
+double Registration::RotMatrixGeoDist(MATRIX * a, MATRIX *b)
+{
+
+   if (!b) return RotMatrixLogNorm(a);
+
+   // if not 3x3, fetch first 3x3
+   // and construct a^T b
+   MATRIX *at =  MatrixAlloc(3,3,MATRIX_REAL);
+   MATRIX *blocal =  MatrixAlloc(3,3,MATRIX_REAL);
+   assert (a->rows >= 3 && a->cols >= 3);
+   assert (b->rows >= 3 && b->cols >= 3);
+   for (int r=1; r <= 3; r++)
+   for (int c=1; c <= 3; c++)
+   {
+      at->rptr[r][c] = a->rptr[c][r];
+      blocal->rptr[r][c] = b->rptr[r][c];
+   }
+
+   blocal = MatrixMultiply(at,blocal,blocal);
+   
+   double dist = RotMatrixLogNorm(blocal);
+   
+   MatrixFree(&at);
+   MatrixFree(&blocal);
+   
+   return dist;
+
+}
+
+double Registration::RigidTransDistSq(MATRIX * a, MATRIX * b)
+// computes squared distance between a and b (4x4 rigid transformations)
+// D^2 = ||T_d||^2 + |log R_d|^2
+// where T_d is the translation and R_d the rotation
+// of the matrix d that rigidly transforms a to b
+{
+
+   MATRIX* drigid;
+   if (!b) drigid = MatrixCopy(a,NULL);
+   else
+   {
+      drigid = MatrixInverse(a,NULL);
+      drigid = MatrixMultiply(b,drigid,drigid);
+   }
+
+   double EPS = 0.000001;
+   assert(drigid->rows ==4 && drigid->cols == 4);
+   assert(fabs(drigid->rptr[4][1]) < EPS);
+   assert(fabs(drigid->rptr[4][2]) < EPS);
+   assert(fabs(drigid->rptr[4][3]) < EPS);
+   assert(fabs(drigid->rptr[4][4]-1) < EPS);
+
+   //cout << " drigid: " << endl;
+   //MatrixPrintFmt(stdout,"% 2.8f",drigid);
+
+   // translation norm quadrat:
+   double tdq = 0;
+   for (int r=1; r <= 3; r++)
+   {
+      tdq += drigid->rptr[r][4] * drigid->rptr[r][4];
+   }
+   
+   //cout << " trans dist2: " << tdq << endl;
+   
+   // rotation norm:
+   double rd = RotMatrixLogNorm(drigid);
+   //cout << " rd: " << rd << endl;
+   
+   MatrixFree(&drigid);
+   
+   return rd*rd + tdq;
+
 }
 
 vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int n)

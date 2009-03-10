@@ -48,7 +48,6 @@ class Registration
     void setDebug(int d) {debug = d;};
     void setIscale(bool i) {iscale = i;};
     void setRtype(int r)   {rtype = r;};
-    //void setAllParams(bool probust=true, bool ptrans=false, bool prigid=true, bool piscale=false, int prtype = 1){robust = probust; transonly = ptrans; rigid = prigid; iscale = piscale; rtype = prtype;};
     void setMinit(MATRIX* m){Minit = MatrixCopy(m,Minit);};
     void setSource (MRI * s, bool fixvoxel = false, bool fixtype = false);
     void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
@@ -114,6 +113,9 @@ class Registration
    std::pair < MATRIX*, double > convertP2Md(MATRIX* p);
    MATRIX * getHalfRT (MATRIX * m, MATRIX * mhalf=NULL);
    MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
+   double RotMatrixLogNorm(MATRIX * m);
+   double RotMatrixGeoDist(MATRIX * a, MATRIX *b = NULL);
+   double RigidTransDistSq(MATRIX *  a, MATRIX *b = NULL);
    
    // gaussian pyramid:
    std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);

@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/06 04:41:04 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/03/10 17:30:08 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -75,6 +75,7 @@ struct Parameters
   string lta;
   string maskmov;
   string maskdst;
+  bool   satit;
   bool   outweights;
   bool   nomulti;
   bool   fixvoxel;
@@ -95,14 +96,14 @@ struct Parameters
   MRI*   mri_mov;
   MRI*   mri_dst;
 };
-static struct Parameters P = { "","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
+static struct Parameters P = { "","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.5 2009/03/06 04:41:04 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.6 2009/03/10 17:30:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -141,8 +142,18 @@ int main(int argc, char *argv[])
   
   // compute Alignment
   std::pair <MATRIX*, double> Md;
-  if (P.nomulti )  Md = R.computeIterativeRegistration(P.iterate,P.epsit);
+  if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
+  else if (P.nomulti)  Md = R.computeIterativeRegistration(P.iterate,P.epsit);
   else Md = R.computeMultiresRegistration(P.iterate,P.epsit);
+
+  if (P.satit)
+  {
+    cout << "run:" << endl;
+    cout << " gnuplot " << R.getName() << "-sat.plot ; \\ " << endl;
+    cout << " eps2pdf " << R.getName() << "-sat.eps " << endl;
+    cout << " and view the pdf " << endl;
+    exit(1);
+  }
 
    //Md.first = MatrixReadTxt("xform.txt",NULL);
    //Md.second = 1;
@@ -512,6 +523,7 @@ static void printUsage(void) {
   cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
   cout << "      --uchar                set volumes type to UCHAR (with intens. scaling)" << endl;
   cout << "      --conform              conform volumes to 1mm vox (265^3)" << endl;
+  cout << "      --satit                iterate on highest res with different sat" << endl;
   cout << "      --debug                show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
@@ -857,6 +869,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      if (P.subsamplesize >= 0) cout << "Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
      else cout << "Will not subsample on any scale!" << endl;
   }
+  else if (!strcmp(option, "SATIT") )
+  {
+     P.satit = true;
+     nargs = 0 ;
+     cout << "Will iterate with different SAT and output plot!" << endl;
+  }
   else if (!strcmp(option, "DEBUG") )
   {
      P.debug = 1;
@@ -900,7 +918,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
      P.fixvoxel = true;
      nargs = 0 ;
-     cout << "Will confrom images to 256^3 and voxels to 1mm!" << endl;
+     cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
   }
   else if (!strcmp(option, "UCHAR") )
   {
@@ -909,7 +927,10 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
   }
   else
-    cout << "Option: " << argv[0] << " unknown !! " << endl;
+  {
+    cerr << "Option: " << argv[0] << " unknown !! " << endl;
+    exit(1);
+  }
 
   
 /*  if (!strcmp(option, "DIST") || !strcmp(option, "DISTANCE")) {
