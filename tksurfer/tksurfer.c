@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2009/03/10 20:41:45 $
- *    $Revision: 1.276.2.16 $
+ *    $Date: 2009/03/10 20:44:57 $
+ *    $Revision: 1.276.2.17 $
  *
  * Copyright (C) 2002-2009, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20726,11 +20726,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-<<<<<<< tksurfer.c
-     "$Id: tksurfer.c,v 1.276.2.16 2009/03/10 20:41:45 krish Exp $", "$Name:  $");
-=======
-     "$Id: tksurfer.c,v 1.276.2.16 2009/03/10 20:41:45 krish Exp $", "$Name:  $");
->>>>>>> 1.276.2.15
+     "$Id: tksurfer.c,v 1.276.2.17 2009/03/10 20:44:57 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
