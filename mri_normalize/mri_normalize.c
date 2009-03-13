@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/06 18:22:09 $
- *    $Revision: 1.56 $
+ *    $Date: 2009/03/13 14:00:09 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,14 +113,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.56 2008/12/06 18:22:09 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.57 2009/03/13 14:00:09 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.56 2008/12/06 18:22:09 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.57 2009/03/13 14:00:09 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -282,7 +282,13 @@ main(int argc, char *argv[]) {
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_ctrl, "norm_ctrl.mgz") ;
-    mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, bias_sigma) ;
+    mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, 0.0) ;
+    if (bias_sigma> 0)
+    {
+      MRI *mri_kernel = MRIgaussian1d(bias_sigma, -1) ;
+      MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
+      MRIfree(&mri_kernel);
+    }
     MRIfree(&mri_ctrl) ;
     MRIfree(&mri_aseg) ;
     mri_dst = MRIapplyBiasCorrectionSameGeometry
@@ -596,18 +602,76 @@ compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) {
   return(mri_bias) ;
 }
 
+#if 1
+static MRI *
+MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
+                    int intensity_below) 
+{
+  MRI       *mri_bin, *mri_dist, *mri_dist_sup ;
+  float     max, thresh, val;
+  HISTOGRAM *histo, *hsmooth ;
+  int       wm_peak, x, y, z, nremoved, whalf = 5 ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_src_ctrl, "sc.mgz") ;
+
+  mri_bin = MRIbinarize(mri_dst_ctrl, NULL, 1, 0, 1) ;
+  mri_dist = MRIdistanceTransform(mri_bin, NULL, 1, -1, DTRANS_MODE_SIGNED, NULL);
+  MRIscalarMul(mri_dist, mri_dist, -1) ;
+  mri_dist_sup = MRInonMaxSuppress(mri_dist, NULL, 0, 1) ;
+  mri_dst_ctrl = MRIbinarize(mri_dist_sup, mri_dst_ctrl, 1, 0, 1) ;
+  histo = MRIhistogramLabel(mri_src, mri_src_ctrl, 1, 256) ;
+  hsmooth = HISTOcopy(histo, NULL) ;
+  HISTOsmooth(histo, hsmooth, 2) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+    HISTOplot(histo, "h.plt") ;
+    HISTOplot(hsmooth, "hs.plt") ;
+  }
+  wm_peak = HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins-1) ;
+  wm_peak = hsmooth->bins[wm_peak] ;
+  thresh = wm_peak-intensity_below ;
+
+  HISTOfree(&histo) ;
+  HISTOfree(&hsmooth) ;
+  for (x = 0 ; x < mri_src->width ; x++) {
+    for (y = 0 ; y < mri_src->height ; y++) {
+      for (z = 0 ; z < mri_src->depth ; z++) {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (nint(MRIgetVoxVal(mri_dst_ctrl, x, y, z, 0)) == 0)
+          continue ;
+        max = MRImaxInLabelInRegion(mri_src, mri_dst_ctrl, 1, x, y, z, whalf);
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        if (val+intensity_below < max && val < thresh) {
+          MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+          nremoved++ ;
+        }
+      }
+    }
+  }
+
+  fprintf(stderr, "%d control points removed\n", nremoved) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_dst_ctrl, "dc.mgz") ;
+  MRIfree(&mri_bin) ;
+  MRIfree(&mri_dist);
+  MRIfree(&mri_dist_sup);
+  return(mri_dst_ctrl);
+}
+#else
 static MRI *
 MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
                     int intensity_below) {
   MRI  *mri_inside, *mri_bin ;
   HISTOGRAM *histo, *hsmooth ;
   int   wm_peak, x, y, z, nremoved ;
-  float thresh ;
+  float thresh, hi_thresh ;
   double val, lmean, max ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_src_ctrl, "sc.mgz") ;
-  mri_dst_ctrl = MRIerode(mri_src_ctrl, mri_dst_ctrl) ;
+  if (mri_dst_ctrl != mri_src_ctrl)
+    mri_dst_ctrl = MRIcopy(mri_src_ctrl, mri_dst_ctrl) ;
   mri_inside = MRIerode(mri_dst_ctrl, NULL) ;
   MRIbinarize(mri_inside, mri_inside, 1, 0, 1) ;
 
@@ -618,9 +682,12 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
     HISTOplot(histo, "h.plt") ;
     HISTOplot(hsmooth, "hs.plt") ;
   }
+  printf("using wm (%d) threshold %2.1f for removing exterior voxels\n",
+         wm_peak, thresh) ;
   wm_peak = HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins-1) ;
   wm_peak = hsmooth->bins[wm_peak] ;
   thresh = wm_peak-intensity_below ;
+  hi_thresh = wm_peak-.5*intensity_below ;
   printf("using wm (%d) threshold %2.1f for removing exterior voxels\n",
          wm_peak, thresh) ;
 
@@ -697,13 +764,14 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
           continue ;  // not a  control point
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         max = MRImaxInLabelInRegion(mri_src, mri_bin, 1, x, y, z, 3);
-        if (val+7 < max) {
+        if (val+7 < max && val < hi_thresh) {
           MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
           nremoved++ ;
         }
       }
     }
   }
+  MRIfree(&mri_bin) ;
 
   fprintf(stderr, "%d control points removed\n", nremoved) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -711,9 +779,9 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
   HISTOfree(&histo) ;
   HISTOfree(&hsmooth) ;
   MRIfree(&mri_inside) ;
-  MRIfree(&mri_bin) ;
   return(mri_dst_ctrl) ;
 }
+#endif
 
 static MRI *
 add_interior_points(MRI *mri_src, MRI *mri_vals, float intensity_above,
