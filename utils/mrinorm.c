@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:52 $
- *    $Revision: 1.89 $
+ *    $Author: fischl $
+ *    $Date: 2009/03/13 13:59:27 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -4472,7 +4472,7 @@ find_tissue_intensities(MRI *mri_src,
   if (mri_src->type == MRI_UCHAR)
   {
     HISTOclearBins(h, h, 0, 5) ;
-    hsmooth = HISTOsmooth(h, NULL, 2) ;
+    hsmooth = HISTOsmooth(h, NULL, 2); ;
   }
   else
   {
@@ -4487,7 +4487,9 @@ find_tissue_intensities(MRI *mri_src,
     HISTOplot(h, "h.plt") ;
     HISTOplot(hsmooth, "hs.plt");
   }
-  wm_peak = HISTOfindBin(hsmooth, wm_val) ;
+  wm_peak = HISTOfindHighestPeakInRegion(hsmooth, wm_val-20, wm_val+20) ;
+  wm_val = hsmooth->bins[wm_peak] ;
+  printf("white matter peak found at %2.0f\n", wm_val) ;
 #define MIN_PEAK_HALF_WIDTH  10
   wm_valley = HISTOfindPreviousValley
               (hsmooth, nint(wm_peak-5*hsmooth->bin_size)) ;
@@ -4505,9 +4507,12 @@ find_tissue_intensities(MRI *mri_src,
     gm_peak = wm_peak*.8 ;
   if (csf_peak > gm_peak*.75)
     csf_peak = gm_peak*.75 ;
-  if (hsmooth->bins[gm_peak] < MIN_GM || csf_peak <= 0 || gm_valley <= 0)
+  if (hsmooth->bins[gm_peak] < MIN_GM)
   {
     gm_peak = .7*wm_peak ;
+  }
+  if (csf_peak <= 0 || gm_valley <= 0)
+  {
     csf_peak = gm_peak*.5 ;
   }
 
