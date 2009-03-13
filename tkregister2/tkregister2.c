@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/02/13 21:37:03 $
- *    $Revision: 1.86.2.9 $
+ *    $Date: 2009/03/13 22:10:42 $
+ *    $Revision: 1.86.2.10 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.86.2.9 2009/02/13 21:37:03 greve Exp $";
+"$Id: tkregister2.c,v 1.86.2.10 2009/03/13 22:10:42 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -353,6 +353,7 @@ char colormap[512];
 int use_draw_image2 = 1;
 int interpmethod = SAMPLE_TRILINEAR;
 int use_inorm = 1;
+int use_colornorm = 0;
 int DoSlicePrescription = 0;
 
 char subjectid[1000];
@@ -1524,7 +1525,7 @@ static void print_usage(void) {
   printf("   --2 : double window size \n");
   printf("   --size scale : scale window by scale (eg, 0.5, 1.5) \n");
   printf("   --det  detfile : save determinant of reg mat here\n");
-  printf("   --aseg : load aseg (hit 'c' to toggle)\n");
+  printf("   --aseg : load aseg (hit 'd' to toggle)\n");
   printf("   --aparc+aseg : load aparc+aseg (hit 'c' to toggle)\n");
   printf("   --wmparc : load wmparc (hit 'c' to toggle)\n");
   printf("   --gdiagno n : set debug level\n");
@@ -1902,6 +1903,8 @@ static void print_help(void) {
     "2 dispaly moveable\n"
     "a increase moveable frame by 1\n"
     "b decrease moveable frame by 1\n"
+    "c toggle colorization (inorm only)\n"
+    "d toggle segmentation visibility\n"
     "e toggle slice prescription indicator\n"
     "i intensity normalize images\n"
     "n use nearest neighbor interpolation\n"
@@ -2447,10 +2450,21 @@ void draw_image2(int imc,int ic,int jc) {
         if (f < 0)        f = 0;
         else if (f > 255) f = 255;
         voxval = (unsigned char)(nint(f));
-        if (!use_inorm) {
+        if(!use_inorm) {
           lvidbuf[3*k]   = colormap[voxval];
           lvidbuf[3*k+1] = colormap[voxval];
           lvidbuf[3*k+2] = colormap[voxval];
+	  if(use_colornorm){
+	    if(voxval > 128){
+	      lvidbuf[3*k]   = 0;
+	      lvidbuf[3*k+1] = colormap[voxval];
+	      lvidbuf[3*k+2] = 0;
+	    } else {
+	      lvidbuf[3*k]   = 0;
+	      lvidbuf[3*k+1] = 0;
+	      lvidbuf[3*k+2] = colormap[voxval];
+	    }
+	  }
         } else {
           lvidbuf[3*k]   = voxval;
           lvidbuf[3*k+1] = voxval;
@@ -3028,7 +3042,7 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         record_swapbuffers();
         updateflag = TRUE;
         break;
-      case 'c':
+      case 'd':
         if(altkeypressed) {
           if (overlay_mode == TARGET) overlay_mode = MOVEABLE;
           else if (overlay_mode == MOVEABLE) overlay_mode = TARGET;
@@ -3057,6 +3071,13 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         break;
 
         /* lower case */
+      case XK_c:
+	use_colornorm = !use_colornorm;
+	SurfRGB[0] = 255;
+	SurfRGB[1] = 0;
+	SurfRGB[2] = 0;
+        updateflag = TRUE;
+        break;
       case XK_i:
         use_inorm = !use_inorm;
         updateflag = TRUE;
@@ -4062,7 +4083,8 @@ void set_cursor(float xpt,float ypt,float zpt) {
 #ifdef HAVE_TCL_TK_GL
 
 /*-----------------------------------------------------*/
-void set_scale() {
+void set_scale() 
+{
   Colorindex i;
   float f;
   short v;
@@ -4796,7 +4818,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.86.2.9 2009/02/13 21:37:03 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.86.2.10 2009/03/13 22:10:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4985,12 +5007,11 @@ void usecnap(int usec) {
 }
 
 #ifdef HAVE_TCL_TK_GL
-void initcolormap() {
+void initcolormap() 
+{
   int i;
-  for (i=0; i<256; i++)
-    colormap[i]=i;
-  for (i=256; i<512; i++)
-    colormap[i]=255;
+  for (i=0; i<256; i++)    colormap[i]=i;
+  for (i=256; i<512; i++)  colormap[i]=255;
 }
 
 void pseudo_swapbuffers() {
