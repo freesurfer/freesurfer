@@ -8,9 +8,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:13 $
-#    $Revision: 1.2 $
+#    $Author: greve $
+#    $Date: 2009/03/13 19:34:15 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: bugr,v 1.2 2007/01/06 00:01:13 nicks Exp $';
+set VERSION = '$Id: bugr,v 1.3 2009/03/13 19:34:15 greve Exp $';
 
 echo ""
 echo "Cut-and-paste the following info into your FreeSurfer problem report:"
@@ -78,6 +78,9 @@ if ( -e /space/freesurfer) then
 
   echo "  PWD: $PWD"
   echo ""
+  echo "  ssh `uname -n`"
+  echo "  setenv SUBJECTS_DIR $SUBJECTS_DIR"
+  echo "  cd $PWD"
 
 endif
 
