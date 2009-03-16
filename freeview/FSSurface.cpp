@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/03/16 20:55:40 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -172,10 +172,10 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   SaveNormals ( m_MRIS, SurfaceMain );
   m_bSurfaceLoaded[SurfaceMain] = true;
 
-  LoadSurface ( "inflated",  SurfaceInflated );
   LoadSurface ( "white",   SurfaceWhite );
   LoadSurface ( "pial",   SurfacePial );
   LoadSurface ( "orig",   SurfaceOriginal );
+  LoadSurface ( "inflated",  SurfaceInflated );
 
   if ( vector_filename != NULL )
     LoadVectors ( vector_filename );
@@ -815,9 +815,9 @@ void FSSurface::GetBounds ( float oRASBounds[6] )
 
       // Translate to actual RAS coords.
       float rasX, rasY, rasZ;
-      this->ConvertSurfaceToRAS( m_MRIS->vertices[vno].x,
-                                 m_MRIS->vertices[vno].y,
-                                 m_MRIS->vertices[vno].z,
+      this->ConvertSurfaceToRAS( m_fVertexSets[SurfaceMain][vno].x,
+                                 m_fVertexSets[SurfaceMain][vno].y,
+                                 m_fVertexSets[SurfaceMain][vno].z,
                                  rasX, rasY, rasZ );
 
       if ( rasX < m_RASBounds[0] ) m_RASBounds[0] = rasX;

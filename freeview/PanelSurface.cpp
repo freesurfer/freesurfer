@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/03/16 20:55:40 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,10 +36,9 @@
 #include "LayerPropertiesSurface.h"
 #include "FSSurface.h"
 
-BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
-  EVT_MENU            ( XRCID( wxT( "ID_SURFACE_CLOSE" ) ),         PanelSurface::OnSurfaceClose )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_SURFACE_CLOSE" ) ),         PanelSurface::OnSurfaceCloseUpdateUI )
-  
+BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
+  EVT_MENU            ( XRCID( wxT( "ID_SURFACE_CLOSE" ) ),         PanelSurface::OnSurfaceClose )
+  EVT_UPDATE_UI       ( XRCID( wxT( "ID_SURFACE_CLOSE" ) ),         PanelSurface::OnSurfaceCloseUpdateUI )  
   EVT_LISTBOX         ( XRCID( wxT( "ID_LISTBOX_SURFACE" ) ),       PanelSurface::OnLayerSelectionChanged )
   EVT_CHECKLISTBOX    ( XRCID( wxT( "ID_LISTBOX_SURFACE" ) ),       PanelSurface::OnLayerVisibilityChanged )
 
@@ -336,32 +335,33 @@ void PanelSurface::OnButtonMoveDown( wxCommandEvent& event )
 }
 */
 
-
-void PanelSurface::OnSurfaceClose( wxCommandEvent& event )
-{
-  LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
-  int nSel = m_listBoxLayers->GetSelection();
-  if ( lc && nSel != wxNOT_FOUND )
-  {
-    Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
-    
-    m_listBoxLayers->Delete( nSel );
-    
-    if ( (int)m_listBoxLayers->GetCount() > nSel )
-      m_listBoxLayers->SetSelection( nSel );
-    else if ( nSel - 1 >= 0 )
-      m_listBoxLayers->SetSelection( nSel - 1 );
-        
-    if ( layer )
-      lc->RemoveLayer( layer );
-
-    UpdateUI();
-  }
+
+
+void PanelSurface::OnSurfaceClose( wxCommandEvent& event )
+{
+  LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
+  int nSel = m_listBoxLayers->GetSelection();
+  if ( lc && nSel != wxNOT_FOUND )
+  {
+    Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );    
+
+    m_listBoxLayers->Delete( nSel );   
+
+    if ( (int)m_listBoxLayers->GetCount() > nSel )
+      m_listBoxLayers->SetSelection( nSel );
+    else if ( nSel - 1 >= 0 )
+      m_listBoxLayers->SetSelection( nSel - 1 );        
+
+    if ( layer )
+      lc->RemoveLayer( layer );
+
+    UpdateUI();
+  }
 }
 
-void PanelSurface::OnSurfaceCloseUpdateUI( wxUpdateUIEvent& event )
-{
-  event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+void PanelSurface::OnSurfaceCloseUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
 }
 
 void PanelSurface::UpdateLayerList( Layer* layer )
@@ -587,7 +587,9 @@ void PanelSurface::OnChoiceOverlay( wxCommandEvent& event )
   {
     int nSel = event.GetSelection() - 1;
     if ( nSel < surf->GetNumberOfOverlays() )
+    {
       surf->SetActiveOverlay( nSel );
+    }
     else
     {
       // load new overlay map

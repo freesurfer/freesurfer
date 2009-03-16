@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/03/16 20:55:40 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -146,6 +146,7 @@ bool LayerSurface::LoadCurvatureFromFile( const char* filename )
     return false;
   
   this->SendBroadcast( "LayerModified", this );
+  this->SendBroadcast( "LayerCurvatureLoaded", this );
   return true;
 }
 
@@ -163,6 +164,7 @@ bool LayerSurface::LoadOverlayFromFile( const char* filename )
   SetActiveOverlay( m_overlays.size() - 1 );
   
   this->SendBroadcast( "LayerModified", this );
+  this->SendBroadcast( "LayerOverlayAdded", this );
   return true; 
 }
 
@@ -558,6 +560,12 @@ void LayerSurface::SetActiveOverlay( int nOverlay )
 {
   if ( nOverlay < (int)m_overlays.size() )
   {
+    if ( m_nActiveOverlay < 0 && nOverlay >= 0 )
+    {
+      this->BlockListen( true );
+      this->GetProperties()->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
+      this->BlockListen( false );
+    }
     m_nActiveOverlay = nOverlay;
     UpdateOverlay();
     this->SendBroadcast( "ActiveOverlayChanged", this );
@@ -570,8 +578,7 @@ void LayerSurface::SetActiveOverlay( const char* name )
   {
     if ( strcmp( m_overlays[i]->GetName(), name ) == 0 )
     {
-      m_nActiveOverlay = i;
-      UpdateOverlay();
+      SetActiveOverlay( i );
       return;
     }
   }
@@ -626,8 +633,8 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
     {
       int nCount = polydata->GetPoints()->GetNumberOfPoints();
       this->BlockListen( true );
-      if ( mProperties->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
-        mProperties->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
+//      if ( mProperties->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
+//        mProperties->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
       this->BlockListen( false );
       vtkSmartPointer<vtkUnsignedCharArray> array = vtkUnsignedCharArray::SafeDownCast( polydata->GetPointData()->GetArray( "Overlay" ) );
       if ( array.GetPointer() == NULL )

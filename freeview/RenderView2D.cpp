@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.15 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/16 20:55:40 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -193,7 +193,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     break;
   }
   cam->SetParallelScale( max( max(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) / 2 );
-  m_renderer->ResetCameraClippingRange();
+//  m_renderer->ResetCameraClippingRange();
 }
 
 void RenderView2D::UpdateAnnotation()

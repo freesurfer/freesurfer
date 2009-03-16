@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.39 $
+ *    $Date: 2009/03/16 20:55:40 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1545,7 +1545,7 @@ void MainWindow::OnViewReset( wxCommandEvent& event )
 
 void MainWindow::OnViewResetUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
 }
 
 void MainWindow::ShowControlPanel( bool bShow )
