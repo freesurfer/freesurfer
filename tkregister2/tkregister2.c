@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/03/13 22:09:52 $
- *    $Revision: 1.105 $
+ *    $Date: 2009/03/17 19:04:39 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.105 2009/03/13 22:09:52 greve Exp $";
+"$Id: tkregister2.c,v 1.106 2009/03/17 19:04:39 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1273,7 +1273,21 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       DetFile = pargv[0];
       nargsused = 1;
-    } else if (stringmatch(option, "--feat")) {
+    } 
+    else if (stringmatch(option, "--fsfeat")) {
+      if (nargc < 1) argnerr(option,1);
+      //pargv[0] is featdir
+      sprintf(tmpstr,"%s/reg/freesurfer/register.dat",pargv[0]);
+      if(! fio_FileExistsReadable(tmpstr)){
+	printf("ERROR: cannot find %s\n",tmpstr);
+	exit(1);
+      }
+      regfname = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/example_func",pargv[0]);
+      mov_vol_id = IDnameFromStem(tmpstr);
+      nargsused = 1;
+    } 
+    else if (stringmatch(option, "--feat")) {
       if (nargc < 1) argnerr(option,1);
       //pargv[0] is featdir
       sprintf(tmpstr,"%s/etc/standard/avg152T1",getenv("FSLDIR"));
@@ -1290,7 +1304,8 @@ static int parse_commandline(int argc, char **argv) {
       regfname = strcpyalloc(tmpstr);
       tagmov = 1;
       nargsused = 1;
-    } else if (!strcmp(option, "--fslreg") || !strcmp(option, "--fsl")) {
+    } 
+    else if (!strcmp(option, "--fslreg") || !strcmp(option, "--fsl")) {
       if (nargc < 1) argnerr(option,1);
       fslregfname = pargv[0];
       read_fslreg(fslregfname);
@@ -1511,6 +1526,7 @@ static void print_usage(void) {
   printf("   --lta ltafile : Linear Transform Array\n");
   printf("   --ltaout ltaoutfile : Output a Linear Transform Array\n");
   printf("   --feat featdir : check example_func2standard registration\n");
+  printf("   --fsfeat featdir : check reg/freesurfer/register.dat registration\n");
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
   printf("   --sd dir : use dir as SUBJECTS_DIR\n");
@@ -4818,7 +4834,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.105 2009/03/13 22:09:52 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.106 2009/03/17 19:04:39 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
