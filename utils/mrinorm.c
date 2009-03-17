@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/13 13:59:27 $
- *    $Revision: 1.90 $
+ *    $Date: 2009/03/17 15:20:04 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2443,6 +2443,8 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   MRI     *mri_marked ;
   float   scale ;
 
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
   if (mri_src->type != MRI_FLOAT || 
       mri_ctrl->type != MRI_UCHAR || 
       mri_dst->type != MRI_FLOAT)
@@ -2452,8 +2454,6 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
 
   scale = mri_src->width / mri_dst->width ;
   pxi = mri_src->xi ;
