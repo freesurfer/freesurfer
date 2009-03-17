@@ -19,6 +19,7 @@ extern "C" {
 #include "diag.h"
 #include "mrimorph.h"
 #include "version.h"
+#include "transform.h"
 
 #ifdef __cplusplus
 }
@@ -26,28 +27,28 @@ extern "C" {
 
 using namespace std;
 
-static char vcid[] = "$Id: lta_diff.cpp,v 1.1 2009/03/17 19:06:45 mreuter Exp $";
+static char vcid[] = "$Id: lta_diff.cpp,v 1.2 2009/03/17 19:24:59 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta)
 {
-// make vox2vox
-
+  // get vox2vox using lta geometry info
+  LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  return -1;
 }
 
 double interpolationError(LTA* lta)
 {
   // get vox2vox using lta geometry info
-  MATRIX *m_L = lta->xforms[0].m_L;
-  LTAgetV2V(m_L, &lta->xforms[0]->src, &lta->xforms[0]->dst); // m_L gets modified
+  LTAchangeType(lta,LINEAR_VOX_TO_VOX);
 
   // sample from dst back to src
-  MATRIX *mAinv = MatrixInverse(m_L, NULL) ;
+  MATRIX *mAinv = MatrixInverse(lta->xforms[0].m_L, NULL) ;
   if (!mAinv)
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIlinearTransform: xform is singular")) ;
-  int width  = lta->xforms[0]->dst->width ;
-  int height = lta->xforms[0]->dst->height ;
-  int depth  = lta->xforms[0]->dst->depth ;
+    ErrorExit(ERROR_BADPARM, "interpolationError: xform is singular") ;
+  int width  = lta->xforms[0].dst.width ;
+  int height = lta->xforms[0].dst.height ;
+  int depth  = lta->xforms[0].dst.depth ;
   VECTOR * v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   VECTOR * v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
   int y3,y2,y1;
@@ -70,11 +71,12 @@ double interpolationError(LTA* lta)
         x2 = V3_Y(v_X) ;
         x3 = V3_Z(v_X) ;
 	
-	
+	errorsum += 1; //wrong
       }
     }
   }
 
+  return errorsum;
 
 }
 
