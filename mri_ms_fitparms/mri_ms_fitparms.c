@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/05/16 01:05:09 $
- *    $Revision: 1.56 $
+ *    $Date: 2009/03/17 15:23:19 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2008/05/16 01:05:09 $
-// Revision       : $Revision: 1.56 $
+// Revision Date  : $Date: 2009/03/17 15:23:19 $
+// Revision       : $Revision: 1.57 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -215,12 +215,12 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.56 2008/05/16 01:05:09 fischl Exp $", "$Name:  $",
+   "$Id: mri_ms_fitparms.c,v 1.57 2009/03/17 15:23:19 fischl Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_ms_fitparms.c,v 1.56 2008/05/16 01:05:09 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_ms_fitparms.c,v 1.57 2009/03/17 15:23:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -872,6 +872,7 @@ get_option(int argc, char *argv[]) {
     if (!mri_ctrl)
       ErrorExit(ERROR_NOFILE, "%s: could not read flip control "
                 "point field from %s\n", argv[3]) ;
+    MRIbinarize(mri_ctrl, mri_ctrl, 1, 0, 1) ;
     if (mri_ctrl->type != MRI_UCHAR) {
       MRI *mri_tmp = MRIchangeType(mri_ctrl, MRI_UCHAR, 0, 255, 1) ;
       MRIfree(&mri_ctrl) ;
