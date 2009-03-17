@@ -2176,7 +2176,11 @@ double  Registration::RotMatrixLogNorm(MATRIX * m)
    // assert we have no stretching only rot (and trans)
    float det = MatrixDeterminant(m);
    //cout << " det: " << det << endl;
-   assert(fabs(det-1.0) < 0.00001);
+   if(fabs(det-1.0) > 0.001)
+   {
+      cerr << "There is streching! det: " << det << endl;
+      assert (fabs(det-1.0) < 0.001);
+   }
 
    double trace = 0.0;
    for (int n=1; n <= 3; n++) trace += m->rptr[n][n];
@@ -2742,7 +2746,11 @@ MRI* Registration::makeConform(MRI *mri, MRI *out, bool fixvoxel, bool fixtype)
          break;
       }
       MRI * mri2 = MRIresample(out, temp, resample_type_val);
-      if(mri2 == NULL) exit(1);
+      if(mri2 == NULL)
+      {
+         cerr << "makeConform: MRIresample did not return MRI" << endl;
+         exit(1);
+      }
       MRIfree(&out);
       out = mri2;
     }
