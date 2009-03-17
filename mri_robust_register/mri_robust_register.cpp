@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/10 17:30:08 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/03/17 19:05:59 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -103,7 +103,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.6 2009/03/10 17:30:08 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.7 2009/03/17 19:05:59 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -151,8 +151,13 @@ int main(int argc, char *argv[])
     cout << "run:" << endl;
     cout << " gnuplot " << R.getName() << "-sat.plot ; \\ " << endl;
     cout << " eps2pdf " << R.getName() << "-sat.eps " << endl;
-    cout << " and view the pdf " << endl;
-    exit(1);
+    cout << " and view the pdf " << endl << endl;
+    msec = TimerStop(&start) ;
+    seconds = nint((float)msec/1000.0f) ;
+    minutes = seconds / 60 ;
+    seconds = seconds % 60 ;
+    cout << "registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
+    exit(0);
   }
 
    //Md.first = MatrixReadTxt("xform.txt",NULL);
@@ -681,7 +686,6 @@ static void initRegistration(Registration & R, Parameters & P)
 	 if (lta->type!=LINEAR_VOX_TO_VOX)
          {
             ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, ctrans, lta->type) ;
-	    exit(1);
 	 }
          R.setMinit(lta->xforms[0].m_L);
        }  
@@ -704,8 +708,10 @@ static void initRegistration(Registration & R, Parameters & P)
     mri_tmp = MRIread(mov) ;
     if (!mri_tmp)
     {
-      cerr << Progname << " could not open input volume " << P.mov << endl;
-      exit(1);
+         ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
+                 Progname, P.mov.c_str()) ;
+      //cerr << Progname << " could not open input volume " << P.mov << endl;
+      //exit(1);
     }
 
     if (i == 0)
@@ -750,8 +756,10 @@ static void initRegistration(Registration & R, Parameters & P)
    MRI* mri_dst = MRIread(dst) ;
    if (mri_dst == NULL)
    {
-      cerr << Progname << " could not open MRI Target " << P.dst << endl;
-      exit(1);
+         ErrorExit(ERROR_NOFILE, "%s: could not open MRI target %s.\n",
+                 Progname, P.dst.c_str()) ;
+      //cerr << Progname << " could not open MRI Target " << P.dst << endl;
+      //exit(1);
    }
    P.mri_dst = MRIcopy(mri_dst,P.mri_dst); // save dst mri
 

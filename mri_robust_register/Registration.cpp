@@ -1753,6 +1753,7 @@ MRI * Registration::subSample(MRI * mri)
 }
 
 MRI * Registration::MRIvalscale(MRI *mri_src, MRI *mri_dst, double s)
+// recently found also: MRIscalarMul in mri.h (but has no clipping for short?)
 {
 
    if (!mri_dst) mri_dst = MRIclone(mri_src, NULL);

@@ -71,7 +71,8 @@ class Registration
 
 
    MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
-  
+   double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
+
   protected:
 
     //   returns weights:
@@ -115,7 +116,6 @@ class Registration
    MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
    double RotMatrixLogNorm(MATRIX * m);
    double RotMatrixGeoDist(MATRIX * a, MATRIX *b = NULL);
-   double RigidTransDistSq(MATRIX *  a, MATRIX *b = NULL);
    
    // gaussian pyramid:
    std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);
