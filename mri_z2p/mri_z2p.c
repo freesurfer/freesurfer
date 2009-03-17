@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/18 20:48:16 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/03/17 19:32:51 $
+ *    $Revision: 1.10.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -77,7 +77,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_z2p.c,v 1.10 2007/07/18 20:48:16 greve Exp $";
+static char vcid[] = "$Id: mri_z2p.c,v 1.10.2.1 2009/03/17 19:32:51 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
   }
-  printf("Using %s as FSL/FEAT format extension",fmt);
+  printf("Using %s as FSL/FEAT format extension\n",fmt);
 
   sprintf(tmpstr,"%s/mask",featdir);
   printf("Mask from %s\n",tmpstr);
@@ -266,11 +266,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       featdir = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--featfmt")) {
+    } 
+    else if (!strcasecmp(option, "--featfmt")) {
       if (nargc < 1) CMDargNErr(option,1);
       fmt = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcasecmp(option, "--nii")) fmt = "nii";
+    else if (!strcasecmp(option, "--nii.gz")) fmt = "nii.gz";
+    else if (!strcasecmp(option, "--mgh")) fmt = "mgh";
+    else if (!strcasecmp(option, "--mgz")) fmt = "mgz";
+    else if (!strcasecmp(option, "--img")) fmt = "img";
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -310,6 +317,12 @@ static void print_usage(void) {
   printf("   --signed : two-sided/signed pvalue (p = 2*(1-p))\n");
   printf("\n");
   printf("   --feat featdir : convert all zstats and zfstats to sigs\n");
+  printf("   --featfmt extension : use given format (eg, nii, nii.gz, mgh, etc)\n");
+  printf("   --nii : use nii output format\n");
+  printf("   --nii.gz : use nii.gz output format\n");
+  printf("   --mgh : use mgh output format\n");
+  printf("   --mgz : use mgz output format\n");
+  printf("   --img : use img output format (analyze)\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
