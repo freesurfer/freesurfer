@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/23 04:28:41 $
- *    $Revision: 1.30 $
+ *    $Date: 2009/03/19 22:00:24 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -93,5 +93,7 @@ int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
 MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
 		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
 		    float ProjFrac, int ProjType, int nskip);
+MRI *MRIsegBoundary(MRI *seg);
+
 
 #endif
