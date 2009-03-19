@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/23 22:30:07 $
- *    $Revision: 1.53 $
+ *    $Author: nicks $
+ *    $Date: 2009/03/19 21:03:45 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -421,7 +421,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.53 2009/02/23 22:30:07 greve Exp $";
+"$Id: mri_segstats.c,v 1.54 2009/03/19 21:03:45 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -475,6 +475,7 @@ int   BrainVolFromSeg = 0;
 int   DoETIV = 0;
 int   DoETIVonly = 0;
 int   DoOldETIVonly = 0;
+char *talxfmfile = NULL;
 
 char *ctabfile = NULL;
 COLOR_TABLE *ctab = NULL;
@@ -555,11 +556,16 @@ int main(int argc, char **argv) {
     // a factor of 1948 was found to be best when using talairach.xfm
     // however when using talairach_with_skull.lta, 2150 was used
     double etiv_scale_factor = 1948.106;
-    sprintf
+    if (talxfmfile) {
+      // path to talairach.xfm file spec'd on the command line
+      sprintf(tmpstr,"%s",talxfmfile);
+    } else {
+      sprintf
       (tmpstr,
        "%s/%s/mri/transforms/talairach.xfm",
        SUBJECTS_DIR,
        subject);
+    }
     if (DoOldETIVonly) {
       // back-door way to get the old way of calculating etiv, for debug
       sprintf
@@ -1401,13 +1407,15 @@ static int parse_commandline(int argc, char **argv) {
       DoMultiply = 1;
       sscanf(pargv[0],"%lf",&MultVal);
       nargsused = 1;
-    }
-    else if ( !strcmp(option, "--sd") ) {
+    } else if ( !strcmp(option, "--talxfm") ) {
+      if (nargc < 1) argnerr(option,1);
+      talxfmfile = pargv[0];
+      nargsused = 1;
+    } else if ( !strcmp(option, "--sd") ) {
       if(nargc < 1) argnerr(option,1);
       FSENVsetSUBJECTS_DIR(pargv[0]);
       nargsused = 1;
-    }
-    else if ( !strcmp(option, "--ctab-default") ) {
+    } else if ( !strcmp(option, "--ctab-default") ) {
       FREESURFER_HOME = getenv("FREESURFER_HOME");
       ctabfile = (char *) calloc(sizeof(char),1000);
       sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
@@ -1627,6 +1635,7 @@ static void print_usage(void) {
          "from subject/mri/transforms/talairach.xfm and exit\n");
   printf("   --old-etiv-only : compute intracranial volume "
          "from subject/mri/transforms/talairach_with_skull.lta and exit\n");
+  printf("   --talxfm fname : specify path to talairach.xfm file for etiv\n");
   printf("\n");
   printf("Average waveform options\n");
   printf("   --avgwf textfile  : save into an ascii file\n");
