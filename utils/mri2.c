@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/30 02:24:41 $
- *    $Revision: 1.39.2.4 $
+ *    $Author: greve $
+ *    $Date: 2009/03/19 22:04:01 $
+ *    $Revision: 1.39.2.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3026,5 +3026,48 @@ int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
   }
 
   return(err);
+}
+
+/* ----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIsegBoundary(MRI *seg)
+  \brief Creates a segmentation boundary volume in which voxels
+  whose neighbors are the same seg are set to 0.
+*/
+MRI *MRIsegBoundary(MRI *seg)
+{
+  MRI *boundary;
+  int c,r,s,dc,dr,ds;
+  int cseg, nseg, b;
+
+  boundary = MRIclone(seg,NULL);
+
+  for(c=1; c < seg->width-1; c++){
+    for(r=1; r < seg->height-1; r++){
+      for(s=1; s < seg->depth-1; s++){
+	cseg = (int) MRIgetVoxVal(seg,c,r,s,0);
+	if(cseg == 0) {
+	  MRIsetVoxVal(boundary,c,r,s,0, 0);
+	  continue;
+	}
+	b = 0;
+	for(dc = -1; dc < 2; dc++){
+	  for(dr = -1; dr < 2; dr++){
+	    for(ds = -1; ds < 2; ds++){
+	      nseg = (int) MRIgetVoxVal(seg,c+dc,r+dr,s+ds,0);
+	      if(cseg != nseg){
+		b=1; // It is a boundary voxel
+		dc=2;dr=2;ds=2; // break from all three loops
+	      }
+	    }
+	  }
+	}
+	if(b==0) MRIsetVoxVal(boundary,c,r,s,0, 0);
+	else     MRIsetVoxVal(boundary,c,r,s,0, cseg);
+      }
+    }
+  }
+
+  return(boundary);
 }
 

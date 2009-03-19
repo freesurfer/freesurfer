@@ -1,17 +1,18 @@
 /**
  * @file  mri2.h
- * @brief more routines for loading, saving, and operating on MRI structures
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: Douglas N. Greve
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/30 02:27:19 $
- *    $Revision: 1.21.2.4 $
+ *    $Author: greve $
+ *    $Date: 2009/03/19 22:04:01 $
+ *    $Revision: 1.21.2.5 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA).
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -59,7 +60,7 @@ MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out);
 MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst);
 MRI *MRIaddConst(MRI *src, double vconst, MRI *dst);
 int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg,
-                    int InterpCode, float param);
+		    int InterpCode, float param);
 MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s);
 MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s);
 MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out);
@@ -74,12 +75,8 @@ int MRImakeVox2VoxReg(MRI* targ, MRI* mov,
                       mriTransformRef* transform);
 double MRIsum2All(MRI *mri);
 MRI *MRIchecker(MRI *mri, MRI *checker);
-MRI *MRIcrop(MRI *mri,
-             int c1, int r1, int s1,
-             int c2, int r2, int s2);
-MRI *MRIuncrop(MRI *mri, MRI *crop,
-               int c1, int r1, int s1,
-               int c2, int r2, int s2);
+MRI *MRIcrop(MRI *mri,int c1, int r1, int s1, int c2, int r2, int s2);
+MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2);
 MRI *MRIreverseSlices(MRI *in, MRI *out);
 MRI *MRIcutEndSlices(MRI *mri, int ncut);
 MRI *MRIsquare(MRI *in, MRI *mask, MRI *out);
@@ -90,11 +87,13 @@ MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
 MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out);
 int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
-                  int InterpCode, float param, MRI *vsm);
+		  int InterpCode, float param, MRI *vsm);
 int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
-                       int InterpCode, float param, MRI *vsm);
-MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
-                    MRI *vsm, int InterpMethod, MRI *SrcHitVol,
-                    float ProjFrac, int ProjType, int nskip);
+		       int InterpCode, float param, MRI *vsm);
+MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
+		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
+		    float ProjFrac, int ProjType, int nskip);
+MRI *MRIsegBoundary(MRI *seg);
+
 
 #endif
