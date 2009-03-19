@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/03/17 19:04:39 $
- *    $Revision: 1.106 $
+ *    $Date: 2009/03/19 22:00:53 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.106 2009/03/17 19:04:39 greve Exp $";
+"$Id: tkregister2.c,v 1.107 2009/03/19 22:00:53 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -112,6 +112,7 @@ static char vcid[] =
 #include "machine.h"
 #include "MRIio_old.h"
 #include "mri.h"
+#include "mri2.h"
 #include "mrisurf.h"
 #include "mri_identify.h"
 #include "registerio.h"
@@ -509,6 +510,17 @@ int Register(ClientData clientData,
     }
     seg_vol = MRIread(seg_vol_id);
     if(seg_vol == NULL) exit(1);
+    printf(" \n");
+    printf(" \n");
+    printf(" \n");
+    printf("Computing seg boundary  ... ");
+    mritmp = MRIsegBoundary(seg_vol);
+    printf(" done\n");
+    printf(" \n");
+    printf(" \n");
+    printf(" \n");
+    MRIfree(&seg_vol);
+    seg_vol = mritmp;
     fscale_2 = 1.0;
   }
 
@@ -2218,6 +2230,8 @@ void draw_image2(int imc,int ic,int jc) {
   int icMov,irMov,isMov;
   int valid;
 
+  int segval = 0;
+
   if (firstpass)    update_needed = 1;
   else {
     update_needed = 0;
@@ -2330,7 +2344,7 @@ void draw_image2(int imc,int ic,int jc) {
             irTarg < 0 || irTarg >= targ_vol->height ||
             isTarg < 0 || isTarg >= targ_vol->depth)  continue;
 
-	if(! ShowSeg){
+	if(! ShowSeg ){
 	  /* Could interp here, but why bother? */
 	  //targimg[r][c] = MRIFseq_vox(targ_vol,icTarg,irTarg,isTarg,0);
 	  /* This implements the trilinear interp - makes it so that
@@ -2339,8 +2353,10 @@ void draw_image2(int imc,int ic,int jc) {
 	  MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
 	  targimg[r][c] = rVoxVal;
 	}
-	else
-	  targimg[r][c] = MRIgetVoxVal(seg_vol,icTarg,irTarg,isTarg,0);
+	else {
+	  segval = MRIgetVoxVal(seg_vol,icTarg,irTarg,isTarg,0);
+	  targimg[r][c] = segval;
+	}
 
         if (UseSurf) surfimg[r][c] = MRIvox(mrisurf,icTarg,irTarg,isTarg);
 
@@ -4834,7 +4850,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.106 2009/03/17 19:04:39 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.107 2009/03/19 22:00:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
