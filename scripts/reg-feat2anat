@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/08/27 19:13:37 $
-#    $Revision: 1.26.2.2 $
+#    $Date: 2009/03/20 20:16:58 $
+#    $Revision: 1.26.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.26.2.2 2008/08/27 19:13:37 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.26.2.3 2009/03/20 20:16:58 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -41,6 +41,8 @@ set manual_use_surf = 1;
 set manxfm = func2anat;
 set DoBETFunc = 0; # Not with FSL 4.0
 set title = ();
+set UseSPM = 0;
+set DoBBR = 1; # On by default
 
 set PrintHelp = 0;
 
@@ -111,6 +113,7 @@ set std2anat_fslmat = $FeatDir/reg/freesurfer/std2anat.fsl.mat
 set exf2anat_init_fslmat = $FeatDir/reg/freesurfer/exf2anat.init.fsl.mat
 set exf2anat_fslmat = $FeatDir/reg/freesurfer/exf2anat.fsl.mat
 set std2exf_regdat  = $FeatDir/reg/freesurfer/std2exf.register.dat
+set segregdat  = $FeatDir/reg/freesurfer/reg.bbr.dat
 set stdbrain = `stem2fname $FSLDIR/etc/standard/avg152T1_brain`; # For FSL 4.0
 if($status) then
   set stdbrain = `stem2fname $FSLDIR/data/standard/avg152T1_brain`; # For FSL 4.0
@@ -255,16 +258,59 @@ else
 endif
 set outvol = $FeatDir/reg/freesurfer/tmp/exf-in-anat
 
-# Now run the fslregister cmd
-set cmd = (fslregister --s $subject --reg $anat2exf_regdat \
-  --mov $tempvol --dof $dof --bins $bins --cost $cost \
-  --fslmat $exf2anat_fslmat --fsvol $anatvol \
-  --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
-  --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
-if($DoBETFunc) set cmd = ($cmd --betfunc) # Not with FSL 4.0
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
+if(! $UseSPM) then
+  # Now run the fslregister cmd
+  set cmd = (fslregister --s $subject --reg $anat2exf_regdat \
+    --mov $tempvol --dof $dof --bins $bins --cost $cost \
+    --fslmat $exf2anat_fslmat --fsvol $anatvol \
+    --maxangle $maxangle  --initfslmat $exf2anat_init_fslmat \
+    --tmp $FeatDir/reg/freesurfer/tmp --out $outvol.$fslext)
+  if($DoBETFunc) set cmd = ($cmd --betfunc) # Not with FSL 4.0
+  echo "" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  if($DoBBR) then
+    cp $anat2exf_regdat $anat2exf_regdat.bbr.init
+    set cmd = (bbregister --mov $tempvol --bold \
+      --init-reg $anat2exf_regdat --reg $anat2exf_regdat)
+    echo "" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+else
+  # Or use SPM2 or SPM5 (but don't tell Steve)
+  # This will probably only work on x32 machines
+  set cmd = (spmregister --s $subject --reg $anat2exf_regdat \
+    --mov $tempvol  --fsvol $anatvol \
+    --tmp $FeatDir/reg/freesurfer/tmp )
+  echo "" | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  if($DoBBR) then
+    cp $anat2exf_regdat $anat2exf_regdat.bbr.init
+    set cmd = (bbregister --mov $tempvol --bold \
+      --init-reg $anat2exf_regdat --reg $anat2exf_regdat)
+    echo "" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Now create the fsl matrix
+  set cmd = ($TKR --reg $anat2exf_regdat --mov $tempvol\
+     --fslregout $FeatDir/reg/freesurfer/exf2anat.fsl.mat \
+     --noedit)
+  echo $cmd
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
 cp $anat2exf_regdat $FeatDir/reg/freesurfer/register.dat
 
 # Just for fun, create a matrix to map exf to talairach:
@@ -272,6 +318,7 @@ set cmd = ($TKR --targ $stdbrain \
             --mov $FeatDir/example_func.$fslext \
             --fslreg $FeatDir/reg/example_func2standard.mat \
             --reg $std2exf_regdat --noedit)
+echo "" | tee -a $LF
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) then
@@ -284,10 +331,11 @@ set cmd = ($MM -fsl \
   -im $FeatDir/reg/freesurfer/exf2anat.fsl.mat \
   -iim $FeatDir/reg/example_func2standard.mat \
   -om $FeatDir/reg/freesurfer/std2anat.fsl.mat)
+echo "" | tee -a $LF
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: tkregister2" | tee -a $LF
+  echo "ERROR: mri_matrix_multiply" | tee -a $LF
   exit 1;
 endif
 
@@ -304,14 +352,14 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
-
 set cmd = ($TKR --s $subject --mov $tempvol)
 set cmd = ($cmd --reg $anat2exf_regdat)
 set cmd = ($cmd --fslreg $exf2anat_fslmat)
 set cmd = ($cmd --surf orig);  # for visual inspection
 echo ""
 echo "To visually check your results, run:" | tee -a $LF
-echo $cmd --tag | tee -a $LF
+echo $cmd --tag | sed 's/_cmdl//g' | tee -a $LF
+# note: the sed will remove the _cmdl from the tkregister2 cmd
 echo ""
 echo ""
 
@@ -406,6 +454,19 @@ while( $#argv != 0 )
       set DoBETFunc = 1;
       breaksw
 
+    case "--spm":
+      set UseSPM = 1;
+      breaksw
+
+    case "--bbr":
+    case "--segreg":
+      set DoBBR = 1;
+      breaksw
+
+    case "--no-bbr":
+      set DoBBR = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
@@ -447,6 +508,20 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
+
+if($DoBBR) then
+  which bbregister > /dev/null
+  if($status) then
+    echo ""
+    echo "ERROR: reg-feat2anat is currently configured to run bbregister."
+    echo "However, it cannot be found in your path. Make sure it is"
+    echo "in your path and then rerun reg-feat2anat. Alternatively, you"
+    echo "can run reg-feat2anat with --no-bbr, but the results might not"
+    echo "be as accurate"
+    echo ""
+    exit 1;
+  endif
+endif
 
 if($#FeatDir == 0) then
   echo "ERROR: must specify feat dir"
@@ -516,6 +591,8 @@ usage_exit:
   echo " --bet            : run betfunc on example_func (not with FSL 4.0)"
   echo " "
   echo " --title        : title for tkregister window"
+  echo " --no-bbr       : do not use boundary-based registration"
+  echo " --spm          : use SPM instead of flirt, 6 dof only"
   echo " --version      : print version and exit"
   echo " --help         : print help and exit"
   echo " --debug        : turn on debugging"
