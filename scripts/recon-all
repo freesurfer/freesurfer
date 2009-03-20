@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/03/07 18:54:05 $
-#    $Revision: 1.197 $
+#    $Date: 2009/03/20 19:21:17 $
+#    $Revision: 1.198 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.197 2009/03/07 18:54:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.198 2009/03/20 19:21:17 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2403,7 +2403,7 @@ if ($DoAsegStatsDiff) then
 endif
 
 #---------------- Cortical Ribbon -------------------------#
-if($DoCortRibbonVolMask) then
+if($DoCortRibbonVolMask && $UseAseg) then
   echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
   echo "#@# Cortical ribbon mask `date`" \
