@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/02/04 20:09:06 $
-#    $Revision: 1.16 $
+#    $Date: 2009/03/20 20:14:56 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.16 2009/02/04 20:09:06 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.17 2009/03/20 20:14:56 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -183,10 +183,11 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 # Pass 2
+set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
-  --c0 $Offset2)
+  --c0 $Offset2 --mincost $MinCostFile)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
@@ -198,6 +199,7 @@ if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
 if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
 if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
+
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
