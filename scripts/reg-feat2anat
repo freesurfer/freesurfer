@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/12/17 21:26:59 $
-#    $Revision: 1.32 $
+#    $Date: 2009/03/20 20:15:36 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.32 2008/12/17 21:26:59 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.33 2009/03/20 20:15:36 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -291,6 +291,17 @@ else
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
+
+  if($DoBBR) then
+    cp $anat2exf_regdat $anat2exf_regdat.bbr.init
+    set cmd = (bbregister --mov $tempvol --bold \
+      --init-reg $anat2exf_regdat --reg $anat2exf_regdat)
+    echo "" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
   # Now create the fsl matrix
   set cmd = ($TKR --reg $anat2exf_regdat --mov $tempvol\
      --fslregout $FeatDir/reg/freesurfer/exf2anat.fsl.mat \
