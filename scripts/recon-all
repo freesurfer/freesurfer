@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/03/05 18:51:56 $
-#    $Revision: 1.133.2.40 $
+#    $Date: 2009/03/20 19:25:49 $
+#    $Revision: 1.133.2.41 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.40 2009/03/05 18:51:56 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.41 2009/03/20 19:25:49 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2953,6 +2953,7 @@ while( $#argv != 0 )
       set NoNormMGZ        = 1;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
+      set DoCortRibbonVolMask = 0;
       breaksw
 
     case "-noaseg-inorm2":
