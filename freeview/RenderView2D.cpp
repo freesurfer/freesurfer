@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/16 20:55:40 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -201,7 +201,7 @@ void RenderView2D::UpdateAnnotation()
   m_annotation2D->Update( m_renderer, m_nViewPlane );
 }
 
-void RenderView2D::DoListenToMessage ( std::string const iMsg, void* const iData )
+void RenderView2D::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "LayerActorUpdated" ||
        iMsg == "LayerAdded" ||
@@ -230,7 +230,7 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* const iData
     }
   }
 
-  RenderView::DoListenToMessage( iMsg, iData );
+  RenderView::DoListenToMessage( iMsg, iData, sender );
 }
 
 void RenderView2D::SyncZoomTo( RenderView2D* view )

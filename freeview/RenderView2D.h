@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -95,7 +95,7 @@ public:
 protected:
   void Initialize2D();
   void UpdateAnnotation();
-  virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
+  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
   int  m_nViewPlane;
 

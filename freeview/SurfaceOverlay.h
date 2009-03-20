@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:40 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -67,8 +67,19 @@ public:
     return m_fData;
   }
   
+  int GetDataSize()
+  {
+    return m_nDataSize;
+  }
+  
+  void GetRange( double* range )
+  {
+    range[0] = m_dMinValue;
+    range[1] = m_dMaxValue;
+  }
+  
 protected:
-  virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
+  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   
 private:
   float*        m_fData;

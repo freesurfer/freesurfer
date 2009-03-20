@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/20 19:03:53 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -60,7 +60,7 @@ public:
 
   bool HasProp( vtkProp* prop );
 
-  virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
+  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
   void SetVisible( bool bVisible = true );
   bool IsVisible();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -231,7 +231,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 PanelVolume::~PanelVolume()
 {}
 
-void PanelVolume::DoListenToMessage( std::string const iMsg, void* iData )
+void PanelVolume::DoListenToMessage( std::string const iMsg, void* iData, void* sender )
 {
 // MainWindow* mainwnd = MainWindow::GetMainWindow();
 // LayerCollection* lc = mainwnd->GetLayerCollection();

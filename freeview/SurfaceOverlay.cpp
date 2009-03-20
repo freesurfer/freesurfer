@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:40 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ SurfaceOverlay::~SurfaceOverlay ()
   delete m_properties;
 }
 
-void SurfaceOverlay::DoListenToMessage ( std::string const iMessage, void* const iData )
+void SurfaceOverlay::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
   {

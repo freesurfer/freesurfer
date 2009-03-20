@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,21 +59,21 @@
 IMPLEMENT_DYNAMIC_CLASS(RenderView, wxVTKRenderWindowInteractor)
 
 BEGIN_EVENT_TABLE(RenderView, wxVTKRenderWindowInteractor)
-EVT_SET_FOCUS ( RenderView::OnSetFocus )
-EVT_KILL_FOCUS ( RenderView::OnKillFocus )
-EVT_LEFT_DOWN ( RenderView::OnButtonDown )
-EVT_MIDDLE_DOWN ( RenderView::OnButtonDown )
-EVT_RIGHT_DOWN ( RenderView::OnButtonDown )
-EVT_LEFT_UP  ( RenderView::OnButtonUp )
-EVT_MIDDLE_UP ( RenderView::OnButtonUp )
-EVT_RIGHT_UP ( RenderView::OnButtonUp )
-EVT_MOTION  ( RenderView::OnMouseMove )
-EVT_MOUSEWHEEL ( RenderView::OnMouseWheel )
-EVT_ENTER_WINDOW( RenderView::OnMouseEnter )
-EVT_LEAVE_WINDOW( RenderView::OnMouseLeave )
-EVT_KEY_DOWN ( RenderView::OnKeyDown )
-EVT_KEY_UP  ( RenderView::OnKeyUp )
-EVT_SIZE        ( RenderView::OnSize )
+  EVT_SET_FOCUS   ( RenderView::OnSetFocus )
+  EVT_KILL_FOCUS  ( RenderView::OnKillFocus )
+  EVT_LEFT_DOWN   ( RenderView::OnButtonDown )
+  EVT_MIDDLE_DOWN ( RenderView::OnButtonDown )
+  EVT_RIGHT_DOWN  ( RenderView::OnButtonDown )
+  EVT_LEFT_UP     ( RenderView::OnButtonUp )
+  EVT_MIDDLE_UP   ( RenderView::OnButtonUp )
+  EVT_RIGHT_UP    ( RenderView::OnButtonUp )
+  EVT_MOTION      ( RenderView::OnMouseMove )
+  EVT_MOUSEWHEEL  ( RenderView::OnMouseWheel )
+  EVT_ENTER_WINDOW( RenderView::OnMouseEnter )
+  EVT_LEAVE_WINDOW( RenderView::OnMouseLeave )
+  EVT_KEY_DOWN    ( RenderView::OnKeyDown )
+  EVT_KEY_UP      ( RenderView::OnKeyUp )
+  EVT_SIZE        ( RenderView::OnSize )
 END_EVENT_TABLE()
 
 RenderView::RenderView() : wxVTKRenderWindowInteractor(),
@@ -304,7 +304,7 @@ void RenderView::ResetView()
   NeedRedraw();
 }
 
-void RenderView::DoListenToMessage ( std::string const iMsg, void* const iData )
+void RenderView::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "LayerActorUpdated" )
   {

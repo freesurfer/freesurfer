@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -72,7 +72,7 @@ public:
   virtual void TriggerContextMenu( const wxPoint& pos )
   {}
 
-  virtual void DoListenToMessage( std::string const iMessage, void* const iData );
+  virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );
 
   void ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
   void NormalizedViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );

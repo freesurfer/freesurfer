@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/03/20 19:03:53 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -600,37 +600,37 @@ LayerPropertiesMRI* LayerMRI::GetProperties()
   return mProperties;
 }
 
-void LayerMRI::DoListenToMessage( std::string const iMessage, void* const iData )
+void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
   {
     this->UpdateColorMap();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   else if ( iMessage == "ResliceInterpolationChanged" )
   {
     this->UpdateResliceInterpolation();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   else if ( iMessage == "OpacityChanged" )
   {
     this->UpdateOpacity();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   else if ( iMessage == "TextureSmoothingChanged" )
   {
     this->UpdateTextureSmoothing();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   else if ( iMessage == "LayerContourChanged" )
   {
     this->UpdateContour();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   else if ( iMessage == "LayerContourShown" )
   {
     this->UpdateContour();
-    this->SendBroadcast( iMessage, this );
+    this->SendBroadcast( iMessage, this, this );
   }
 }
 
@@ -735,8 +735,8 @@ void LayerMRI::SetActiveFrame( int nFrame )
   if ( nFrame != m_nActiveFrame && nFrame >= 0 && nFrame < this->GetNumberOfFrames() )
   {
     m_nActiveFrame = nFrame;
-    this->DoListenToMessage( "ColorMapChanged", this );
-    this->SendBroadcast( "LayerActiveFrameChanged", this );
+    this->DoListenToMessage( "ColorMapChanged", this, this );
+    this->SendBroadcast( "LayerActiveFrameChanged", this, this );
   }
 }
 

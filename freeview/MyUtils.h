@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,6 +52,8 @@ public:
   template <class T> static T** AllocateMatrix(int ny, int nx);
   template <class T> static void FreeMatrix(T** p, int ny);
   template <class T> static double Dot( T* v1, T* v2 );
+  
+  static double RoundToGrid( double dvalue );
 
   static bool HasExtension( const wxString& filename, const wxString& ext );
 

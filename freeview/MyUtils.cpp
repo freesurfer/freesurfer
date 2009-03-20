@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/03/20 19:03:53 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -768,3 +768,32 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSli
 }
 */
 
+double MyUtils::RoundToGrid(double x)
+{
+  int n = 0;
+  if (x < 1)
+  {
+    do {
+      x *= 10;
+      n++;
+    }
+    while (x < 1 || x > 10);    
+  }
+  else if (x > 10)
+  {
+    do {
+      x /= 10;
+      n--;
+    }
+    while (x < 1 || x > 10);
+  }
+  
+  if (x > 5)
+    x = 10;
+  else if (x > 2)
+    x = 5;
+  else if (x > 1)
+    x = 2;
+    
+  return x/pow(10, n);
+}

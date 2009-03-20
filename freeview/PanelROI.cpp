@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -79,7 +79,7 @@ PanelROI::PanelROI( wxWindow* parent ) :
 PanelROI::~PanelROI()
 {}
 
-void PanelROI::DoListenToMessage( std::string const iMsg, void* iData )
+void PanelROI::DoListenToMessage( std::string const iMsg, void* iData, void* sender )
 {
 // MainWindow* mainwnd = MainWindow::GetMainWindow();
 // LayerCollection* lc = mainwnd->GetLayerCollection();

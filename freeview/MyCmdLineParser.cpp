@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/20 19:03:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -350,12 +350,16 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   }
   entries.clear();
 
+  /*
   if ( bSucceed && (int)pureArgs.size() > m_nNumberOfPureArguments )
   {
     bSucceed = false;
     error_msg += "Option '" + pureArgs[0] + "' not recognized.";
   }
+  */
 
+  m_cmdLineFloatingArguments = pureArgs;
+  
   if ( !bSucceed )
   {
     PrintErrorMessage( error_msg );
@@ -369,4 +373,8 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   return bSucceed;
 }
 
+string_array MyCmdLineParser::GetFloatingArguments()
+{
+  return m_cmdLineFloatingArguments;
+}
 

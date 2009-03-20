@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -87,7 +87,7 @@ private:
 
   void UpdateLayerList( Layer* layer );
 
-  virtual void DoListenToMessage( std::string const iMsg, void* iData );
+  virtual void DoListenToMessage( std::string const iMsg, void* iData, void* sender );
 
   wxCheckListBox* m_listBoxLayers;
   wxButton*     m_btnConfigureOverlay;

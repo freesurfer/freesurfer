@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/16 20:55:40 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/03/20 19:03:54 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -131,8 +131,8 @@ void RenderView3D::UpdateViewByWorldCoordinate()
   }
   cam->SetFocalPoint( wcenter );
   cam->SetPosition( wcenter[0] - ( m_dWorldSize[1] > m_dWorldSize[2] ? m_dWorldSize[1] : m_dWorldSize[2] ) *2.5,
-                    wcenter[1]/* + m_dWorldSize[1]*.25*/, 
-                    wcenter[2]/* + m_dWorldSize[2]*.25*/ );
+                    wcenter[1], 
+                    wcenter[2]);
   cam->SetViewUp( 0, 0, 1 );
   m_renderer->ResetCameraClippingRange();
 }
@@ -203,7 +203,7 @@ void RenderView3D::OnInternalIdle()
   }
 }
 
-void RenderView3D::DoListenToMessage ( std::string const iMsg, void* const iData )
+void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "CursorRASPositionChanged" )
   {
@@ -211,7 +211,7 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* const iData
     m_cursor3D->SetPosition( lc->GetCursorRASPosition() );
   }
 
-  RenderView::DoListenToMessage( iMsg, iData );
+  RenderView::DoListenToMessage( iMsg, iData, sender );
 }
 
 void RenderView3D::ShowVolumeSlice( int nPlane, bool bShow )
