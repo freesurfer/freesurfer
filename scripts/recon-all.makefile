@@ -45,6 +45,7 @@ ASEG_STATS=$(subj)/stats/aseg.stats
 SUBCORTICAL=$(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) $(TAL_SKULL_LTA) \
 	$(ASEG) $(ASEG_STATS)
 BRAIN=$(subj)/mri/brain.mgz
+BRAINFINALSURFS=$(subj)/mri/brain.finalsurfs.mgz
 WM=$(subj)/mri/wm.mgz
 SEED_PONS=$(wildcard $(subj)/scripts/seed-pons.crs.man.dat)
 SEED_CC=$(wildcard $(subj)/scripts/seed-cc.crs.man.dat)
@@ -77,8 +78,10 @@ $(ASEG): $(NORM) $(TAL_M3Z)
 
 $(CP):
 
-$(BRAIN): $(BRAINMASK) $(NORM) $(CP)
+$(BRAIN): $(BRAINMASK) $(NORM) $(ASEG) $(CP)
 	recon-all -s $(subj) -normalization2
+
+$(BRAINFINALSURFS): $(BRAIN) $(BRAINMASK)
 	recon-all -s $(subj) -maskbfs
 
 $(WM): $(BRAIN) $(ASEG) $(NORM)
@@ -183,34 +186,34 @@ $(ORIG_LH): $(ORIG_NOFIX_LH) $(INFLATED_NOFIX_LH) $(QSPHERE_NOFIX_LH)
 $(ORIG_RH): $(ORIG_NOFIX_RH) $(INFLATED_NOFIX_RH) $(QSPHERE_NOFIX_RH)
 	recon-all -s $(subj) -hemi rh -fix
 
-$(WHITE_LH): $(BRAIN) $(ORIG_LH)
+$(WHITE_LH): $(BRAINFINALSURFS) $(ORIG_LH)
 	recon-all -s $(subj) -hemi lh -finalsurfs
 
-$(WHITE_RH): $(BRAIN) $(ORIG_RH)
+$(WHITE_RH): $(BRAINFINALSURFS) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -finalsurfs
 
-$(PIAL_LH): $(BRAIN) $(ORIG_LH)
+$(PIAL_LH): $(BRAINFINALSURFS) $(ORIG_LH)
 	recon-all -s $(subj) -hemi lh -finalsurfs
 
-$(PIAL_RH): $(BRAIN) $(ORIG_RH)
+$(PIAL_RH): $(BRAINFINALSURFS) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -finalsurfs
 
-$(THICKNESS_LH): $(BRAIN) $(ORIG_LH)
+$(THICKNESS_LH): $(BRAINFINALSURFS) $(ORIG_LH)
 	recon-all -s $(subj) -hemi lh -finalsurfs
 
-$(THICKNESS_RH): $(BRAIN) $(ORIG_RH)
+$(THICKNESS_RH): $(BRAINFINALSURFS) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -finalsurfs
 
-$(CURV_LH): $(BRAIN) $(ORIG_LH)
+$(CURV_LH): $(BRAINFINALSURFS) $(ORIG_LH)
 	recon-all -s $(subj) -hemi lh -finalsurfs
 
-$(CURV_RH): $(BRAIN) $(ORIG_RH)
+$(CURV_RH): $(BRAINFINALSURFS) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -finalsurfs
 
-$(AREA_LH): $(BRAIN) $(ORIG_LH)
+$(AREA_LH): $(BRAINFINALSURFS) $(ORIG_LH)
 	recon-all -s $(subj) -hemi lh -finalsurfs
 
-$(AREA_RH): $(BRAIN) $(ORIG_RH)
+$(AREA_RH): $(BRAINFINALSURFS) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -finalsurfs
 
 $(SMOOTHWM_LH): $(WHITE_LH)
