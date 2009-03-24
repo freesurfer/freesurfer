@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/13 01:57:23 $
- *    $Revision: 1.13.2.5 $
+ *    $Date: 2009/03/24 22:11:38 $
+ *    $Revision: 1.13.2.6 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1038,9 +1038,9 @@ QdecProject::FormatCommandString ( const char* ifnProject,
 /**
  * run asegstats2table and aparcstats2table to generate fresurfer stats data
  * on each subject, for later optional inclusion into the main mDataTable.
- * creates files aseg_vol.dat, lh_aparc_thickness.dat...
+ * creates files aseg_volume.dat, lh_aparc_thickness.dat...
  *
- * returns the names of the data that were created (aseg_vol, 
+ * returns the names of the data that were created (aseg_volume, 
  * lh_aparc_thickness...)
  *
  * @return vector< string >
@@ -1074,9 +1074,9 @@ vector< string > QdecProject::CreateStatsDataTables ()
    */
 
   // build a command line
-  string name = "aseg.vol";
+  string name = "aseg.volume";
   stringstream ssCommand;
-  ssCommand << "asegstats2table --meas vol --t "
+  ssCommand << "asegstats2table --meas volume --tablefile "
             << this->msStatsDataTablesDir 
             << name << ".stats.dat"
             << " --subjects"; 
@@ -1132,10 +1132,10 @@ vector< string > QdecProject::CreateStatsDataTables ()
         // build a command line
         stringstream ssCommand;
         ssCommand << "aparcstats2table"
-                  << " --h " << hemi[h]
+                  << " --hemi " << hemi[h]
                   << " --parc " << parc[p]
                   << " --meas " << meas[m]
-                  << " --t " << this->msStatsDataTablesDir 
+                  << " --tablefile " << this->msStatsDataTablesDir 
                   << "/" << ssFname.str() << ".stats.dat"
                   << " --subjects"; 
         for( int i=0; i < numSubjects; i++ )
