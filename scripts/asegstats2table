@@ -1,457 +1,327 @@
 #!/usr/bin/python
-# $Id: asegstats2table,v 1.8.2.1 2009/01/12 19:18:30 greve Exp $
-import sys;
-import os;
-import string;
-import tempfile;
+import warnings
+warnings.filterwarnings('ignore', '.*negative int.*')
+import os, sys, optparse
+from sets import Set
+import fsutils
 
-# -------------------------------------------------------------------
-# Everything between BGINHELP and EDHELP will be printed when the
-# program is called with --help.
-#
+# Original Version - Douglas Greve, MGH
+# Rewrite - Krish Subramaniam, MGH
+# $Id: asegstats2table,v 1.8.2.2 2009/03/25 19:54:33 krish Exp $
 
-# BEGINHELP
+# map of measures and their appropriate columns in .stats file
+seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
+# map of delimeter choices and string literals
+delimiter2char = {'comma':',', 'tab':'\t', 'space':' ', 'semicolon':';'}
 
-# Converts a subcortical stats file created by recon-all and/or
-# mri_segstats (eg, aseg.stats) into a table in which each line is a
-# subject and each column is a segmentation. The values are the volume
-# of the segmentation in mm3 or the mean intensity over the structure.
-# The first row is a list of the segmentation names. The first column
-# is the subject name. If the measure is volume, then the estimated
-# intracranial volume (eTIV) is printed as the 2nd to last column 
-# (if present in the input), and BrainSegVol is the last column.
+helptext = """
+Converts a subcortical stats file created by recon-all and/or
+mri_segstats (eg, aseg.stats) into a table in which each line is a
+subject and each column is a segmentation ( there is an option to transpose that). 
+The values are the volume of the segmentation in mm3 or the mean intensity over the structure.
+The first row is a list of the segmentation names. The first column
+is the subject name. If the measure is volume, then the estimated
+intracranial volume (eTIV) is printed as the 2nd to last column 
+(if present in the input), and BrainSegVol is the last column.
 
-# The subjects list can be specified in one of four ways:
-#   1. Specify each subject with --s:
-#             --s subject1 --s subject2 ...
-#   2. Specify all subjects after --subjects. --subjects does not have
-#      to be the last argument. Eg:
-#             --subject subject1 subject2 ... 
-
-#   3. Specify each input file with --i:
-#        --i subject1/stats/aseg.stats
-#        --i subject2/stats/aseg.stats  ...
-#   4. Specify all input files after --inputs. --inputs does not have
-#      to be the last argument. Eg:
-#        --inputs subject1/stats/aseg.stats subject2/stats/aseg.stats ...
-
-# The first two methods assume the freesurfer directory structure. The
-# last two are general and can be used with any file produced by
-# mri_segstats regardless of whether it was created with recon-all or not,
-# however, the subject name is not printed in the file (just the row
-# number).
-
-# By default, the volume (mm3) of each segmentation is reported. This
-# can be changed with '--meas measure', where measure can be 
-# volume or mean. If mean, it reports the mean intensity value from
-# the 6th column.
-
-# By default, all segmentations found in the input stats file are
-# reported. This can be changed by specifying the maximum segmentation
-# number with --maxsegno. This can be convenient for removing
-# segmentations that are always empty.
-
-# With methods 1 and 2 above uses stats/aseg.stats by default. 
-# This can be changed to subdir/statsfile with --subdir subdir
-# --statsfile statsfile.
-
-# ENDHELP
-# -------------------------------------------------------------------
-
-#---------------------------------------------------------
-def print_usage():
-  print "USAGE: asegstats2table";
-  print "";
-  print "  --subjects  subject1 <subject2 ...>";
-  print "  --s subject1 <--s subject2 ...>";
-  print "";
-  print "  --inputs  input1 <input2 ...>";
-  print "  --i input1 <--i input2 ...>";
-  print "";
-  print "  --meas measure : default is vol (alt: mean, std)";
-  print ""  
-  print "  --maxsegno maxno : maximum segmentation no to report"  
-  print "  --segno segno1 <segno2 ...> : only include given segnos"  
-  print "  --no-segno segno1 <segno2 ...> : exclude given segnos"  
-  print ""  
-  print "  --stats fname : use fname instead of aseg.stats"  
-  print "  --subdir subdir : use subdir instead of stats"  
-  print ""  
-  print "  --t tablefile";
-  print ""
-  print "  --help : help";
-  print "  --debug ";
-  return 0;
-#end def print_usage:
-
-#---------------------------------------------------------
-def print_help():
-  global ProgName;
-  printon = 0;
-  fp = open(ProgName,'r');
-  for line in fp:
-    if(printon):
-      ind = line.rfind('ENDHELP');
-      if(ind == -1):
-        sys.stdout.write("%s" % line.replace('# ','',1));
-      else:
-        sys.exit(1);
-      #endif
-    else:
-      ind = line.rfind('BEGINHELP');
-      if(ind != -1):
-        printon = 1;
-      #endif
-    #endif
-  #end # while
-  return 0;
-#end def print_help:
-
-#---------------------------------------------------------
-def argnerr(narg,flag):
-  print "ERROR: flag %s requires %d arguments" % (flag,narg);
-  sys.exit(1);
-#end def parse_args(argv)
-
-#---------------------------------------------------------
-def parse_args(argv):
-  global Version,debug,OKToSkip,DoDirect;
-  global tablefile, SUBJECTS, nsubjects, meas, maxsegno;
-  global subdir, statsname, ExcludeSegNo, IncludeSegNo;
-
-  del argv[0]; # get past program name (del is like shift)
-
-  while(len(argv) != 0):
-    flag = argv[0];
-    del argv[0];
-    if(debug): print "flag = %s" % flag;
-
-    if(flag == "--s"):
-      if(len(argv) < 1): argnerr(1,flag);
-      SUBJECTS.insert(nsubjects,argv[0]); del argv[0];
-      nsubjects = nsubjects + 1;
-    elif(flag == "--subjects"):
-      if(len(argv) < 1): argnerr(1,flag);
-      while(not isflag(argv[0])):
-        SUBJECTS.insert(nsubjects,argv[0]); 
-        nsubjects = nsubjects + 1;
-        del argv[0];
-        if(len(argv) < 1): break;
-      #endwhile
-      DoDirect = 0;
-    elif(flag == "--i"):
-      if(len(argv) < 1): argnerr(1,flag);
-      SUBJECTS.insert(nsubjects,argv[0]); del argv[0];
-      nsubjects = nsubjects + 1;
-      DoDirect = 1;
-    elif(flag == "--inputs"):
-      if(len(argv) < 1): argnerr(1,flag);
-      while(not isflag(argv[0])):
-        SUBJECTS.insert(nsubjects,argv[0]); 
-        nsubjects = nsubjects + 1;
-        del argv[0];
-        if(len(argv) < 1): break;
-      #endwhile
-      DoDirect = 1;
-    elif(flag == "--t"):
-      if(len(argv) < 1): argnerr(1,flag);
-      tablefile = argv[0];  del argv[0];
-    elif(flag == "--meas"):
-      if(len(argv) < 1): argnerr(1,flag);
-      meas = argv[0];  del argv[0];
-    elif(flag == "--maxsegno"):
-      if(len(argv) < 1): argnerr(1,flag);
-      maxsegno = string.atof(argv[0]);  del argv[0];
-    elif(flag == "--statsfile" or flag == "--stats"):
-      if(len(argv) < 1): argnerr(1,flag);
-      statsname = argv[0];  del argv[0];
-    elif(flag == "--subdir"):
-      if(len(argv) < 1): argnerr(1,flag);
-      subdir = argv[0];  del argv[0];
-      print "%s" % (subdir);
-    elif(flag == "--segno"):
-      if(len(argv) < 1): argnerr(1,flag);
-      while(not isflag(argv[0])):
-        segno = string.atoi(argv[0]); 
-        IncludeSegNo.append(segno);
-        del argv[0];
-        if(len(argv) < 1): break;
-      #endwhile
-    elif(flag == "--no-segno"):
-      if(len(argv) < 1): argnerr(1,flag);
-      while(not isflag(argv[0])):
-        segno = string.atoi(argv[0]); 
-        ExcludeSegNo.append(segno);
-        del argv[0];
-        if(len(argv) < 1): break;
-      #endwhile
-    elif(flag == "--skip"):
-      OKToSkip = 1;
-    elif(flag == "--no-choroid"):
-      ExcludeSegNo.append(31);
-      ExcludeSegNo.append(63);
-    elif(flag == "--no-vessel"):
-      ExcludeSegNo.append(30);      
-      ExcludeSegNo.append(62);      
-    elif(flag == "--help"):
-      print_usage();
-      print_help();
-      sys.exit(1);
-    elif(flag == "--version"):
-      print "%s" % (Version)
-      sys.exit(1);
-    elif(flag == "--debug"):
-      debug = 1;
-    else:
-      print "ERROR: flag %s not recognized" % flag; 
-      sys.exit(1);
-    #endif
-  #endwhile
-  return 0;
-
-#end def parse_args(argv)
-
-#--------------------------------------------------
-def isflag(arg):
-  if(arg[0] == '-' and arg[1] == '-'):
-    return 1;
-  #end
-  return 0;
-#end def isflag(arg):
-
-
-#---------------------------------------------------------
-def check_args():
-  global tablefile, meas, SUBJECTS;
-
-  if(len(tablefile) == 0):
-    print "ERROR: no tablefile specified";
-    sys.exit(1);
-  #endif    
-  if(meas == 'vol'): meas = 'volume';
-  if(meas != 'volume' and meas != 'mean' and meas != 'std'):
-    print "ERROR: meas = %s, must be volume, mean, or std" % (meas);
-    sys.exit(1);
-  #endif
-  if(len(SUBJECTS) == 0):
-    # Does not work to look in env
-    if(os.environ.get('SUBJECTS',0) == 0):
-      print "ERROR: SUBJECTS not spec on cmd line and not in env";
-      sys.exit(1);
-    #endif  
-    SUBJECTS = os.environ['SUBJECTS'];
-  #endif    
-  print "There are %d subjects" %(len(SUBJECTS));
-  if(debug): print "%s" % (SUBJECTS);
-  return 0;
-#end check_args()
-
-#----------------------------------------------------
-def IsMember(list,item,default):
-  if(len(list) == 0): return default;
-  try: index = list.index(item)+1;
-  except: index = 0;
-  return index;
-#end def  
-
-#-----------------------------------------------------------
-# ----- main -----------------------------------------------
-#-----------------------------------------------------------
-
-ProgName = sys.argv[0];
-Version = '$Id: asegstats2table,v 1.8.2.1 2009/01/12 19:18:30 greve Exp $';
-tablefile = ();
-SUBJECTS  = [];
-nsubjects = 0;
-meas = 'volume';
-maxsegno = -1;
-OKToSkip = 0;
-DoDirect = 0;
-debug = 0;
-statsname = 'aseg.stats';
-subdir = 'stats';
-ExcludeSegNo = []; 
-IncludeSegNo = []; 
-
-nargs = len(sys.argv) - 1;
-if(nargs == 0):
-  print_usage();
-  sys.exit(0);
-#end
-parse_args(sys.argv);
-check_args();
-
-print "tablefile  is %s" % (tablefile);
-
-# Get SUBJECTSD_DIR 
-if(os.environ.get('SUBJECTS_DIR',0) == 0):
-  print "ERROR: SUBJECTS_DIR not defined";
-  sys.exit(1);
-#endif  
-SUBJECTS_DIR = os.environ['SUBJECTS_DIR'];
-
-fptbl = open(tablefile,'w');
-# How to check whether this failed or not?
-
-# Loop thru each subject
-nthsubj = 1;
-list = SUBJECTS;
-for subject in list:
-
-  if(not DoDirect):
-    statsfile = SUBJECTS_DIR + '/' + subject + '/' + subdir + '/' + statsname;
-  else:
-    statsfile = subject;
-  #endif
-  if(not os.path.exists(statsfile)):
-    if(OKToSkip):
-      #sys.stdout.write('Cannot find %s, skipping\n' % (statsfile) );
-      continue;
-    #endif
-    sys.stdout.write('ERROR: cannot find %s\n' % (statsfile) );
-    sys.exit(1);
-  #endif
-  if(debug): print "%s" % (statsfile);
-
-  # print first line as list of anat structures 
-  if(nthsubj == 1):
-    # First Col, First Row is the name of the measure
-    fptbl.write('%s' % (meas));
-    fp = open(statsfile,'r');
-    setidlist = [];
-    segid = [];
-    for line in fp:
-      ind = line.rfind('#');
-      if(ind != -1):
-        continue;
-      else:
-        tmp = string.split(line);
-        segno = string.atoi(tmp[1]);
-        if(not IsMember(IncludeSegNo,segno,1)): continue;
-        if(IsMember(ExcludeSegNo,segno,0)): continue;
-        if(maxsegno > 0 and segno > maxsegno): continue
-        segid = tmp[4];
-        fptbl.write(' %s' % (segid) );
-        setidlist.append(segid);
-      #endif
-    #end # line
-    fp.close();
-    if(meas == 'volume' and not DoDirect):
-      fptbl.write(' %s' % ('IntraCranialVol'));
-      fptbl.write(' %s' % ('BrainSegVol'));
-    #endif
-    fptbl.write('\n');
-  else:
-    fp = open(statsfile,'r');
-    nthseg = 0;
-    for line in fp:
-      ind = line.rfind('#');
-      if(ind != -1):
-        continue;
-      else:
-        tmp = string.split(line);
-        segno = string.atoi(tmp[1]);
-        if(not IsMember(IncludeSegNo,segno,1)): continue;
-        if(IsMember(ExcludeSegNo,segno,0)): continue;
-        if(maxsegno > 0 and segno > maxsegno): continue
-        segid = tmp[4];
-        nthseg = nthseg + 1;
-      #endif
-    #end # line
-    fp.close();
-  #endif
-
-  # Print subjectid as first col
-  if(not DoDirect):
-    fptbl.write('%s' % (subject) );
-  else:
-    fptbl.write('%d' % (nthsubj) );
-  #endif
+The subjects list can be specified in one of four ways:
+  1. Specify each subject after -s 
   
-  # Now go thru each line and print the measure
-  fp = open(statsfile,'r');
-  nthseg = 0;
-  ICV = -1;
-  BrainSegVol = -1;
-  nthline = 0;
-  for line in fp:
-    nthline = nthline + 1;
-    if(meas == 'volume' and not DoDirect):
-      ind = line.rfind('IntraCranialVol');
-      if(ind != -1):
-        tmp = string.split(line,',');
-        ICV = string.atof(tmp[3]);
-      #endif
-      ind = line.rfind('BrainSegVol');
-      if(ind != -1):
-        tmp = string.split(line,',');
-        BrainSegVol = string.atof(tmp[3]);
-      #endif
-    #endif
+          -s subject1 -s subject2 ..
+  
+  2. specify all subjects after --subjects.  
+     --subjects does not have
+     to be the last argument. Eg:
+     
+          --subjects subject1 subject2 ... 
 
-    ind = line.rfind('#');
-    if(ind != -1):
-      continue;
+  3. Specify each input file after -i 
+
+          -i subject1/stats/aseg.stats -i subject2/stat/aseg.stats ..
+  
+  4. Specify all the input stat files after --inputs. --inputs does not have
+     to be the last argument. Eg:
+       
+          --inputs subject1/stats/aseg.stats subject2/stats/aseg.stats ...
+
+The first two methods assume the freesurfer directory structure. The
+last two are general and can be used with any file produced by
+mri_segstats regardless of whether it was created with recon-all or not,
+however, the subject name is not printed in the file (just the row
+number). Note that the first two and last two are mutually exclusive. i.e
+don't specify --subjects when you are providing --inputs and vice versa.
+
+By default, the volume (mm3) of each segmentation is reported. This
+can be changed with '--meas measure', where measure can be 
+volume or mean. If mean, it reports the mean intensity value from
+the 6th column.
+
+By default, all segmentations found in the input stats file are
+reported. This can be changed by specifying the maximum segmentation
+number with --maxsegno. This can be convenient for removing
+segmentations that are always empty.
+
+With methods 1 and 2 above uses stats/aseg.stats by default. 
+This can be changed to subdir/statsfile with --subdir subdir
+--statsfile statsfile.
+
+The --segno option outputs only the segmentations requested.
+This is useful because if the number of segmentations is large,
+the table becomes huge.
+
+The --no-segno options doesn't output the segmentations. 
+This can be convenient for removing segs that are always empty.
+
+The --transpose flag writes the transpose of the table. 
+This might be a useful way to see the table when the number of subjects is
+relatively less than the number of segmentations.
+
+The --delimiter option controls what character comes between the measures
+in the table.
+
+The --skip option skips if it can't find a .stats file. Default behavior is
+exit the program.
+"""
+
+def options_parse():
+    """
+    Command Line Options Parser for aparcstats2table
+    initiate the option parser and return the parsed object
+    """
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.8.2.2 2009/03/25 19:54:33 krish Exp $', usage=helptext)
+    
+    # help text
+    h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
+    h_s = ' subjectname'
+    h_inp = ' input1 <input2 input3..>'
+    h_i = ' inputname'
+    h_meas = 'measure: default is vol ( alt: mean, std)'
+    h_max = ' maximum segmentation number to report'
+    h_seg = 'segno1 <segno2 segno3..> : only include given segmentation numbers'
+    h_noseg = 'segno1 <segno2 segno3..> : exclude given segmentation numbers'
+    h_stats = 'use `fname` instead of "aseg.stats"'
+    h_subdir = 'use `subdir` instead of "stats/"'
+    h_tr = 'transpose the table ( default is subjects in rows and segmentations in cols)' 
+    h_t = '(REQUIRED) the output tablefile'
+    h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
+    h_skip = 'if a subject does not have stats file, skip it'
+    h_v = 'increase verbosity'
+
+    # Add options 
+    parser.add_option('--subjects', dest='subjects' ,action='callback',
+                      callback=fsutils.callback_var,  help=h_sub)
+    parser.add_option('-s', dest='subjects' ,action='append',
+                      help=h_s)
+    parser.add_option('--inputs', dest='inputs' ,action='callback',
+                      callback=fsutils.callback_var,  help=h_inp)
+    parser.add_option('-i', dest='inputs' ,action='append',
+                      help=h_i)
+    parser.add_option('-t', '--tablefile', dest='outputfile',
+                      help=h_t)
+    parser.add_option('-m', '--meas', dest='meas',
+                      choices=('volume','mean','std'),  default='volume', help=h_meas)
+    parser.add_option('--maxsegno', dest='maxsegno',
+                       help=h_inp)
+    parser.add_option('--segno', dest='segnos' ,action='callback',
+                      callback=fsutils.callback_var,  help=h_seg)
+    parser.add_option('--no-segno', dest='no_segnos' ,action='callback',
+                      callback=fsutils.callback_var,  help=h_noseg)
+    parser.add_option('--stats', dest='statsfname',
+                       help=h_stats)
+    parser.add_option('--subdir', dest='subdir',
+                       help=h_subdir)
+    parser.add_option('-d', '--delimiter', dest='delimiter',
+                      choices=('comma','tab','space','semicolon'),
+                      default='tab', help=h_deli)
+    parser.add_option('', '--transpose', action='store_true', dest='transposeflag',
+                      default=False, help=h_tr)
+    parser.add_option('--skip', action='store_true', dest='skipflag',
+                      default=False, help=h_skip)
+    parser.add_option('-v', '--debug', action='store_true', dest='verboseflag',
+                      default=False, help=h_v)
+
+    (options, args) = parser.parse_args()
+    
+    # extensive error checks
+    if options.subjects is not None:
+        if len(options.subjects) < 1:
+            print 'ERROR: subjects are not specified'
+            sys.exit()
+        else:
+            options.dodirect = False
+    
+    if options.inputs is not None:
+        if len(options.inputs) < 1:
+            print 'ERROR: inputs are not specified'
+            sys.exit()
+        else:
+            options.dodirect = True
+    
+    if options.subjects is None and options.inputs is None: 
+        print 'ERROR: Both number of subjects and number of inputs are empty'
+        sys.exit()
+    
+    if options.subjects is not None and options.inputs is not None:
+        print 'ERROR: Both subjects and inputs are specified. Please specify just one '
+        sys.exit()
+
+    if not options.outputfile:
+        print 'ERROR: output table name should be specified'
+        sys.exit()
+
+    if options.maxsegno and int(options.maxsegno) < 1:
+        print 'ERROR: maximum number of segs reported shouldnt be less than 1'
+        sys.exit()
+    
+    if options.segnos is not None  and len(options.segnos) < 1 :
+        print 'ERROR: segmentation numbers should be specified with that option'
+        sys.exit()
+    
+    if options.no_segnos is not None and len(options.no_segnos) < 1:
+        print 'ERROR: to be excluded segmentation numbers should be specified with that option'
+        sys.exit()
+    
+    return options
+
+def is_valid_segno(options, seg):
+    """
+    check whether the segmentation is what the user asked for
+    """
+    # invalid if doesn't belong to segnos ( only if segnos exists in the first
+    # place)
+    if options.segnos is not None:
+        if seg not in options.segnos:
+            return False
+    # invalid if it belongs to no_segnos
+    if options.no_segnos is not None:
+        if seg in options.no_segnos:
+            return False
+    # invalid if it exceeds max segno 
+    if options.maxsegno is not None:
+        if int(seg) > int(options.maxsegno):
+            return False
+    # else
+    return True
+    
+def sanity_check_segs(table, rows):
+    """
+    primarily, if all the segs in all the subjects are the same (they should
+    be! ), the union ( segs ) should be equal to intersection(segs)
+    return False otherwise.. the program quits
+    """
+    union = Set([])
+    intersection = Set(table[rows[0]].keys())
+    for row in rows:
+        union = union | Set(table[row].keys())
+        intersection = intersection &  Set(table[row].keys())
+    
+    if union == intersection:
+        return True
     else:
-      if(debug): print "%s" % line;
-      tmp = string.split(line);
-      if(len(tmp) != 10):
-        print "ERROR: %s, line %d has only %d items" % (statsfile,nthline,len(tmp));
-        sys.exit(1);
-      #endif
-      segno = string.atoi(tmp[1]);
-      if(not IsMember(IncludeSegNo,segno,1)): continue;
-      if(IsMember(ExcludeSegNo,segno,0)): continue;      
-      if(maxsegno > 0 and segno > maxsegno): continue
-      if(meas == 'volume'):  val = string.atof(tmp[3]);
-      if(meas == 'mean'):    val = string.atof(tmp[5]);
-      if(meas == 'std'):     val = string.atof(tmp[6]);
-      if(debug): print "%d %s %g %g" % (nthseg,segid,val)
-      fptbl.write(' %g' % (val) );
-      nthseg = nthseg + 1;
-    #endif
-  #end  for line
-  fp.close();
-  if(meas == 'volume' and not DoDirect):
-    if(ICV == -1):
-      if(not DoDirect):
-        sys.stdout.write('ERROR: subject %s does not have ICV\n' % subject);
-        sys.exit(1);
-      #endif
+        return False
+
+def build_table(options):
+    """
+    This function builds the 2d table (spreadsheet )
+    of subjects vs segs. The values are given by what the user chose in 
+    measure option.
+    """
+    o = options
+    # a devious trick in which all the subject files take the form
+    # (subjectnumber, subjectname, subjectpath)
+    # the table's first column will have subjectnumber+subjectname ( concat) 
+    # since --subjects and --inputs are mut-ex, so are subjectnumber and
+    # subjectname
+    stats = []
+    if options.dodirect:
+        for count, inp in enumerate(o.inputs):
+            stats.append( (str(count), '', inp) )
     else:
-      fptbl.write(' %f' % (ICV));
-    #endif
-    if(BrainSegVol == -1):
-      if(not DoDirect):
-        sys.stdout.write('ERROR: subject %s does not have BrainSegVol\n' % subject);
-        sys.exit(1);
-      #endif
+        # check the subjects dir
+        subjdir = fsutils.check_subjdirs()
+        print 'SUBJECTS_DIR : %s' %subjdir
+        if o.subdir is None:
+            o.subdir = 'stats'
+        if o.statsfname is None:
+            o.statsfname = 'aseg.stats'
+        for sub in o.subjects:
+            stats.append( ('', sub,  os.path.join(subjdir, sub, o.subdir, o.statsfname)) )
+    
+    rows = []
+    # init the table
+    table = fsutils.Ddict(dict)
+    for statno, subname, statfile in stats:
+        if os.path.exists( statfile):
+            if o.verboseflag:
+                print 'Processing file %s' %statfile
+            rows.append(statno+subname)
+            fp = open(statfile, 'r')
+            cols = []
+            for line in fp:
+                # valid line
+                if line.rfind('#') == -1:
+                    strlst = line.split()
+                    seg = strlst[1]
+                    if is_valid_segno(options, seg):
+                        segid = strlst[4]
+                        cols.append(segid)
+                        table[statno+subname][segid] = float(strlst[seg2statcol_map[o.meas]])
+            # unfortunately we do it again because we necessarily put these
+            # volumes at the end of the table ( last 2 columns). Since we aren't
+            # processing a lot of files, this wouldn't hamper the speed. Also
+            # more volume measures can be added easily.
+            fp.seek(0)
+            for line in fp:
+                # if measure is volume, also output ICV and BSV
+                if not o.dodirect and o.meas == 'volume':
+                    if line.startswith('# Measure IntraCranialVol, ICV,') :
+                        strlst = line.split(',')
+                        cols.append('IntraCranialVol')
+                        table[statno+subname]['IntraCranialVol'] = float(strlst[3])
+                    if line.startswith('# Measure BrainSeg, BrainSegVol,') :
+                        strlst = line.split(',')
+                        cols.append('BrainSegVol')
+                        table[statno+subname]['BrainSegVol'] = float(strlst[3])
+        else:
+            if not o.skipflag:
+                print 'ERROR: cannot find %s' %statfile
+                print 'Use --skip flag if you want to continue in such cases'
+                sys.exit()
+            else:
+                print 'WARNING: cannot find %s. proceeding to next file' %statfile
+    
+    # check sanity
+    if not sanity_check_segs(table, rows):
+        print 'ERROR: All stat files should have the same segmentations'
+        sys.exit()
+
+    # if verbose
+    if o.verboseflag:
+        for row in rows:
+            print table[row]
+            print '-'*40
+    return rows, cols, table
+
+def write_table(options, rows, cols, table):
+    """
+    Write the table from memory to disk. Initialize the writer class.
+    """
+    tw = fsutils.TableWriter(rows, cols, table)
+    r1c1 = 'Measure:%s' %( options.meas)
+    tw.assign_attributes(filename=options.outputfile, row1col1=r1c1,
+                         delimiter=delimiter2char[options.delimiter] )
+    if options.transposeflag:
+        tw.write_transpose()
     else:
-      fptbl.write(' %f' % (BrainSegVol));
-    #endif
-  #endif
-  fptbl.write('\n');
-  if(nthsubj == 1):
-    nsegs = nthseg;
-  else:
-    if(nsegs != nthseg):
-      sys.stdout.write('ERROR: subject %s has %d segs, expecting %d\n' % (subject,nthseg,nsegs));
-      sys.exit(1);
-    #endif
-  #endif
-  nthsubj = nthsubj + 1;
-#end  for subject
+        tw.write()
+    
 
-fptbl.close();
-
-sys.stdout.write('asegstat2table done\n');
-
-sys.exit(0);
-#-------------------------------------------------#
-
-
-
-
-
-
+if __name__=="__main__":
+    options = options_parse()
+    if options.verboseflag:
+        print options
+    print 'Building the table..'
+    (rows, cols, table) = build_table(options)
+    print 'Writing the table to %s' %options.outputfile
+    write_table(options, rows, cols, table)
 
