@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.41 $
+ *    $Date: 2009/03/26 21:13:38 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1589,7 +1589,9 @@ void MainWindow::OnViewScalarBar( wxCommandEvent& event )
 
 void MainWindow::OnViewScalarBarUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer() );
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  event.Enable( mri || ( m_nMainView == 3 && surf && surf->GetActiveOverlay() ) );
   if ( m_nMainView >= 0 && m_nMainView < 4 )
     event.Check( m_viewRender[m_nMainView]->GetShowScalarBar() );
 }
@@ -2003,7 +2005,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
     m_controlPanel->UpdateUI();
     strg = strg.Mid( 6 );
     if ( strg.IsEmpty() )
-      strg = "Operation failed.";
+      strg = "Operation failed. See console for more information.";
     wxMessageDialog dlg( this, strg, "Error", wxOK | wxICON_ERROR );
     dlg.ShowModal();
     return;
@@ -2279,6 +2281,18 @@ void MainWindow::RunScript()
   {
     Close();
   }
+  else if ( sa[0] == "setviewport" )
+  {
+    CommandSetViewport( sa );
+  }
+  else if ( sa[0] == "zoom" )
+  {
+    CommandZoom( sa );
+  }
+  else if ( sa[0] == "ras" )
+  {
+    CommandSetRAS( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2436,6 +2450,57 @@ void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
 {
   m_viewRender[m_nMainView]->SaveScreenshot( cmd[1].c_str(), m_settingsScreenshot.Magnification );
 
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( "ByPass" );
+  wxPostEvent( this, event );
+}
+
+void MainWindow::CommandSetViewport( const wxArrayString& cmd )
+{
+  if ( cmd[1] == "x" )
+    SetMainView( MV_Sagittal );
+  else if ( cmd[1] == "y" )
+    SetMainView( MV_Coronal );
+  else if ( cmd[1] == "z" )
+    SetMainView( MV_Axial );
+  else if ( cmd[1] == "3d" )
+    SetMainView( MV_3D );
+
+  // create a fake worker event to notify end of operation
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( "ByPass" );
+  wxPostEvent( this, event );
+}
+
+void MainWindow::CommandZoom( const wxArrayString& cmd )
+{
+  double dValue;
+  cmd[1].ToDouble( &dValue );
+  if ( m_nMainView >= 0 )
+  {
+    m_viewRender[m_nMainView]->Zoom( dValue );
+  }
+
+  // create a fake worker event to notify end of operation
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( "ByPass" );
+  wxPostEvent( this, event );
+}
+
+void MainWindow::CommandSetRAS( const wxArrayString& cmd )
+{
+  double ras[3];
+  cmd[1].ToDouble( &(ras[0]) );
+  cmd[2].ToDouble( &(ras[1]) );
+  cmd[3].ToDouble( &(ras[2]) );
+  
+  GetLayerCollection( "MRI" )->SetCursorRASPosition( ras );
+  m_layerCollectionManager->SetSlicePosition( ras );
+
+  // create a fake worker event to notify end of operation
   wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
   event.SetInt( -1 );
   event.SetString( "ByPass" );
@@ -2647,7 +2712,7 @@ void MainWindow::LoadSurfaceOverlayFile( const wxString& filename )
   if ( layer )
   {
     if ( layer->LoadOverlayFromFile( fn.c_str() ) )
-      m_strLastDir = MyUtils::GetNormalizedPath( filename );
+       m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 
@@ -2662,7 +2727,6 @@ void MainWindow::OnToolRotateVolume( wxCommandEvent& event )
     dlg.ShowModal();
     m_dlgRotateVolume->Show();
   }
-
 }
 
 void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )

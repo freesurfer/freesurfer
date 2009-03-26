@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/03/26 21:13:38 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -468,6 +468,14 @@ void RenderView::MoveDown()
   cam->SetPosition( cam_pos );
 
   NeedRedraw();
+}
+
+void RenderView::Zoom( double dFactor )
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->Zoom( dFactor );
+  
+  Render();
 }
 
 void RenderView::ShowScalarBar( bool bShow )

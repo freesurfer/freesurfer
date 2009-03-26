@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/03/26 21:13:38 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,10 @@
 #include "vtkProp3DCollection.h"
 #include "vtkScalarBarActor.h"
 #include "Interactor3DNavigate.h"
+#include "LayerSurface.h"
+#include "SurfaceOverlayProperties.h"
+#include "SurfaceOverlay.h"
+#include "vtkRGBATransferFunction.h"
 #include "Cursor3D.h"
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView3D, RenderView)
@@ -82,6 +86,8 @@ void RenderView3D::InitializeRenderView3D()
     m_bSliceVisibility[i] = true;
 
   m_cursor3D = new Cursor3D( this );
+  
+  m_actorScalarBar->SetNumberOfLabels( 4 );
 }
 
 RenderView3D* RenderView3D::New()
@@ -241,3 +247,13 @@ void RenderView3D::PostScreenshot()
   RefreshAllActors();
 }
 
+void RenderView3D::UpdateScalarBar()
+{
+  LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && surf->GetActiveOverlay() )
+  {
+    m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperties()->GetLookupTable() );
+  }
+  else
+    RenderView::UpdateScalarBar();
+}

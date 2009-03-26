@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/03/26 21:13:38 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -65,6 +65,8 @@ protected:
   void OnInternalIdle();
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
+  
+  void UpdateScalarBar();
 
   void PreScreenshot();
   void PostScreenshot();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/03/26 21:13:38 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -92,6 +92,8 @@ public:
   virtual void MoveDown();
   virtual void MoveLeft();
   virtual void MoveRight();
+  
+  void Zoom( double dFactor );
 
   void NeedRedraw();
 
@@ -118,7 +120,7 @@ protected:
   void InitializeRenderView();
   virtual void OnInternalIdle();
 
-  void UpdateScalarBar();
+  virtual void UpdateScalarBar();
 
 protected:
   vtkRenderer*  m_renderer;

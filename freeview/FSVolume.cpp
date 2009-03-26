@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/07 03:12:42 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/26 21:13:38 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -114,6 +114,12 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
     return false;
   }
 
+  if ( reg_filename && !m_MRIRef )
+  {
+    cerr << "Error: A target volume must be loaded first to apply registration matrix." << endl;
+    return false;
+  }
+  
   // read registration matrix
   if ( reg_filename && !LoadRegistrationMatrix( reg_filename ) )
   {
@@ -286,12 +292,12 @@ bool FSVolume::LoadRegistrationMatrix( const char* filename )
       TransformFree( &FSXform );
       return false;
     }
+    
     // Assume RAS2RAS and uses vox2ras from input volumes:
     // Note: This ignores the volume geometry in the LTA file.
     m_matReg = MRItkRegMtx( m_MRIRef, m_MRI, lta->xforms[0].m_L );
     TransformFree( &FSXform );
   }
-
 
   return true;
 }
