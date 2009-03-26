@@ -174,12 +174,14 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     p = lastp;
     w = lastw;
 //    cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
+    lasterror = err[count-1];
   }
   else
   {
     MatrixFree(&lastp);
     MatrixFree(&lastw);
 //    cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
+    lasterror = err[count];
   } 
   
   MatrixFree(&lastr);
@@ -191,6 +193,22 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
 
 //    cout << " p-final  : "<< endl;
 //    MatrixPrintFmt(stdout,"% 2.8f",p);
+
+   double d=0.0;
+   double dd=0.0;
+   double ddcount = 0;
+   for (int i = 1;i<=w->rows;i++)
+   {
+      d +=*MATRIX_RELT(w, i, 1) ;
+      if (fabs(*MATRIX_RELT(B, i, 1)) > 0.00001)
+      {
+         dd+= *MATRIX_RELT(w, i, 1) ;
+	 ddcount++;
+      }
+   }
+   d /= w->rows;
+   dd /= ddcount;
+   cout << " weights average: " << d << "  on significant b vals ( " << ddcount << " ): " << dd <<endl;
   
   return pair < MATRIX*, MATRIX*> (p,w);
 
@@ -224,7 +242,7 @@ MATRIX* Regression::getLSEst(MATRIX* outX)
     }
   MatrixFree(&R);
 //  cout << "     squared error: " << serror << endl;
-  
+  lasterror = serror;
   
   return outX;
 }

@@ -70,8 +70,9 @@ class Registration
     void testRobust(const std::string & fname, int testno);
 
 
-   MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
+   MRI *  MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
    double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
+   double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
 
   protected:
 

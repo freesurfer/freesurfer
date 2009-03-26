@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/17 19:05:59 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/03/26 01:14:10 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -44,6 +44,7 @@
 #include <cassert>
 
 #include "Registration.h"
+#include "CostFunctions.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -103,7 +104,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.7 2009/03/17 19:05:59 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.8 2009/03/26 01:14:10 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -115,6 +116,10 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
+  // force the environment variable
+  // to store mri as chunk in memory:
+  setenv("FS_USE_MRI_CHUNK","",1) ;
+
   // Default initialization
   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -136,9 +141,14 @@ int main(int argc, char *argv[])
   int    msec,minutes,seconds;
   TimerStart(&start) ;
   
+  
   // init registration from Parameters
   Registration R;
   initRegistration(R,P);
+
+  CostFunctions CF;
+  cout << " LS difference before: " << CF.leastSquares(P.mri_mov,P.mri_dst) << endl;
+  cout << " NC difference before: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
   // compute Alignment
   std::pair <MATRIX*, double> Md;
@@ -196,6 +206,15 @@ int main(int argc, char *argv[])
    getVolGeom(P.mri_dst, &lta->xforms[0].dst);
    LTAwriteEx(lta, reg) ;
 
+   if (R.isIscale() && Md.second >0)
+   {
+      string fn = R.getName() + "intensity.txt";
+         ofstream f(fn.c_str(),ios::out);
+      f << Md.second;
+      f.close();
+   
+   }
+
    //  MatrixWriteTxt("xform.txt",Md.first);
    // end of writing transform
 
@@ -219,6 +238,9 @@ int main(int argc, char *argv[])
 //    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
 //    sprintf(fname, "%s_target", parms.base_name) ;
 //    MRIwriteImageViews(mri_dst, fname, IMAGE_SIZE) ;
+
+      cout << " LS difference after: " << CF.leastSquares(mri_aligned,P.mri_dst) << endl;
+      cout << " NC difference after: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
       MRIwrite(mri_aligned, P.warpout.c_str()) ;
       MRIfree(&mri_aligned) ;
@@ -512,7 +534,7 @@ static void printUsage(void) {
   cout << "Optional arguments" << endl << endl;
   cout << "  -W, --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
   cout << "      --weights              output weights transformed to target space" << endl;
-  cout << "  -A, --affine               find 12 parameter affine xform (default is 6-rigid)" << endl;
+//  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  -I, --iscale               allow also intensity scaling (default no I-scaling)" << endl;
   cout << "      --transonly            find 3 parameter translation only" << endl;
   cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;

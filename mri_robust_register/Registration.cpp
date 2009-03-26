@@ -929,7 +929,119 @@ void Registration::testRobust(const std::string& fname, int testno)
     MRIwrite(mriTt,"junkrotT.mgz");
   
     break;
-   assert(1==2);
+   case 20:
+   {
+     int steps = 50;
+     double div = 4.0;
+     vector < double > theta(steps);
+     vector < double > err(steps);
+     vector < double > mls(steps);
+     vector < double > mls2(steps);
+     //level--;
+     for (int i=0; i<steps; i++)
+     {
+        // 0.. PI/div in 20 steps
+	// -PI/div ..0 is symmetric
+        theta[i] = M_PI * i / ((steps-1)*div);
+	
+        a  = MatrixAllocRotation(4,0.5*theta[i],Z_ROTATION);
+	a  = MatrixMultiply(a, extract_i_to_r(gpS[gpS.size()-level]), a);
+	a  = MatrixMultiply(extract_r_to_i(gpS[gpS.size()-level]) , a, a);
+        ai = MatrixInverse(a,ai);
+
+        mriTs = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTs, a, SAMPLE_TRILINEAR);
+        mriTt = MRIlinearTransformInterp(gpS[gpS.size()-level],mriTt, ai, SAMPLE_TRILINEAR);
+	//MRIwrite(mriTs,"test20-s.mgz");
+	//MRIwrite(mriTt,"test20-t.mgz");
+	MatrixFree(&a);
+	MatrixFree(&ai); ai = NULL;
+        pair < MATRIX*, VECTOR*> Ab;
+        transonly = false;
+        robust    = true;
+        rigid     = true;
+        iscale    = false;   
+   
+        Ab = constructAb(mriTs, mriTt);
+        pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
+        Regression R(Ab.first,Ab.second);
+	sat = 5;
+	
+        cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
+        pwm = R.getRobustEstW(sat);
+	MatrixFree(&pwm.first);
+	MatrixFree(&pwm.second);
+        err[i] = R.getLastError();        
+	cout << "angle: " << theta[i] << "  error: " << err[i] << endl;
+	MATRIX *m = R.getLSEst();
+	MatrixFree(&m);
+        mls[i] = R.getLastError();
+	cout << "angle: " << theta[i] << "  mls: " << mls[i] << endl;
+	MRI * mridiff = MRIalloc(mriTs->width, mriTs->height, mriTs->depth, MRI_FLOAT);
+	mridiff = MRIsubtract(mriTs,mriTt,mridiff);
+	double ddd = 0;
+	for (int d = 0;d<mriTs->depth;d++)
+	for (int h = 0;h<mriTs->height;h++)
+	for (int w = 0;w<mriTs->width;w++)
+	   ddd += MRIgetVoxVal(mridiff,w,h,d,1) * MRIgetVoxVal(mridiff,w,h,d,1);
+	mls2[i] = ddd;   
+	cout << "angle: " << theta[i] << "  mls: " << mls2[i] << endl;
+	MatrixFree(&Ab.first);
+	MatrixFree(&Ab.second);
+      }
+      
+      ostringstream ss;
+      ss << "r-error-rot4-l" << level;
+      string fn = ss.str()+".plot";
+      ofstream f(fn.c_str(),ios::out);
+      
+      f << "set terminal postscript eps color" << endl;
+      f << "set title \"(Robust) error when rotating on level " << level <<"\"" << endl;
+      f << "set output \""<< ss.str() << ".eps\"" << endl;
+      f << "plot  \"-\" notitle with lines 1" << endl;
+      for (int i=0; i<steps; i++)
+      {
+        cout << theta[i] << " " << err[i] << endl;
+         f << theta[i] << " " << err[i] << endl;
+      }
+      f << "e" << endl;
+
+      ostringstream ss2;
+      ss2 << "ls-error-rot4-l" << level;
+      string fn2 = ss2.str()+".plot";
+      ofstream f2(fn2.c_str(),ios::out);
+      
+      f2 << "set terminal postscript eps color" << endl;
+      f2 << "set title \"(LeastSquares) error when rotating on level " << level <<"\"" << endl;
+      f2 << "set output \""<< ss2.str() << ".eps\"" << endl;
+      f2 << "plot  \"-\" notitle with lines 1" << endl;
+      for (int i=0; i<steps; i++)
+      {
+        cout << theta[i] << " " << mls[i] << endl;
+         f2 << theta[i] << " " << mls[i] << endl;
+      }
+      f2 << "e" << endl;
+
+       ostringstream ss3;
+      ss3 << "ils-error-rot4-l" << level;
+      string fn3 = ss3.str()+".plot";
+      ofstream f3(fn3.c_str(),ios::out);
+      
+      f3 << "set terminal postscript eps color" << endl;
+      f3 << "set title \"(IntensityLeastSquares) error when rotating on level " << level <<"\"" << endl;
+      f3 << "set output \""<< ss3.str() << ".eps\"" << endl;
+      f3 << "plot  \"-\" notitle with lines 1" << endl;
+      for (int i=0; i<steps; i++)
+      {
+        cout << theta[i] << " " << mls2[i] << endl;
+         f3 << theta[i] << " " << mls2[i] << endl;
+      }
+      f3 << "e" << endl;
+     
+      exit(0);
+      break; 
+   }
+   default:
+     assert(1==2);
    }
    
    cout << " Transformed , now registering ..." << endl;
@@ -2265,6 +2377,63 @@ double Registration::RigidTransDistSq(MATRIX * a, MATRIX * b)
    MatrixFree(&drigid);
    
    return rd*rd + tdq;
+
+}
+
+double Registration::AffineTransDistSq(MATRIX * a, MATRIX * b, double r)
+// computes squared distance between a and b (4x4 affine transformations)
+// D^2 = 1/5 r^2 Tr(A^tA) +  ||T_d||^2 
+// where T_d is the translation and A the Affine
+// of the matrix d = a - b
+// r is the radius specifying the volume of interest
+// (this distance is used in Jenkinson 1999 RMS deviation - tech report
+//    www.fmrib.ox.ac.uk/analysis/techrep )
+// the center of the brain should be at the origin
+{
+
+   MATRIX* drigid = MatrixCopy(a,NULL);
+   if (b) drigid = MatrixSubtract(drigid,b,drigid);
+   else
+   {
+      MATRIX *id = MatrixIdentity(4,NULL);
+      drigid = MatrixSubtract(drigid,id,drigid);
+      MatrixFree(&id);
+   }
+
+   double EPS = 0.000001;
+   assert(drigid->rows ==4 && drigid->cols == 4);
+   assert(fabs(drigid->rptr[4][1]) < EPS);
+   assert(fabs(drigid->rptr[4][2]) < EPS);
+   assert(fabs(drigid->rptr[4][3]) < EPS);
+
+   //cout << " drigid: " << endl;
+   //MatrixPrintFmt(stdout,"% 2.8f",drigid);
+
+   // translation norm quadrat:
+   double tdq = 0;
+   for (int i=1; i <= 3; i++)
+   {
+      tdq += drigid->rptr[i][4] * drigid->rptr[i][4];
+      drigid->rptr[i][4] = 0.0;
+      drigid->rptr[4][i] = 0.0;
+   }
+   drigid->rptr[4][4] = 0.0;
+   
+   //cout << " trans dist2: " << tdq << endl;
+   MATRIX* dt = MatrixTranspose(drigid, NULL);
+   drigid = MatrixMultiply(dt,drigid,drigid);
+   MatrixFree(&dt);
+   
+   // Trace of A^t A
+   double tr = 0.0;
+   for (int i=1; i <= 3; i++)
+   {
+      tr += drigid->rptr[i][i];
+   }
+   
+   MatrixFree(&drigid);
+   
+   return (1.0/5.0) * r*r* tr + tdq;
 
 }
 

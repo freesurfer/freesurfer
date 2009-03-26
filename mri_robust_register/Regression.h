@@ -27,7 +27,7 @@ class Regression
   
      // constructor initializing A and B 
      Regression(MATRIX* Ap, MATRIX* Bp):
-           A(Ap), B(Bp) {};
+           A(Ap), B(Bp),lasterror(-1) {};
 
      // Robust solver
      MATRIX* getRobustEst(double sat =  SAT, double sig =  1.4826);
@@ -36,6 +36,8 @@ class Regression
      
      // Least Squares
      MATRIX* getLSEst    (MATRIX* outX = NULL);
+     
+     double getLastError() {return lasterror;};
 
   protected:
   
@@ -50,6 +52,7 @@ class Regression
   private:
      MATRIX* A;
      MATRIX* B;
+     double lasterror;
 };
 
 
