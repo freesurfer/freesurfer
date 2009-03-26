@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/26 15:51:22 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/03/26 17:21:42 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -76,8 +76,11 @@ struct Parameters
   string lta;
   string maskmov;
   string maskdst;
+  string halfmov;
+  string halfdst;
   bool   satit;
-  bool   outweights;
+  bool   weights;
+  string weightsout;
   bool   nomulti;
   bool   fixvoxel;
   bool   fixtype;
@@ -97,14 +100,14 @@ struct Parameters
   MRI*   mri_mov;
   MRI*   mri_dst;
 };
-static struct Parameters P = { "","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
+static struct Parameters P = { "","","","","","","",false,false,"",false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.9 2009/03/26 15:51:22 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.10 2009/03/26 17:21:42 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -146,9 +149,9 @@ int main(int argc, char *argv[])
   Registration R;
   initRegistration(R,P);
 
-//  CostFunctions CF;
-//  cout << " LS difference before: " << CF.leastSquares(P.mri_mov,P.mri_dst) << endl;
-//  cout << " NC difference before: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
+  CostFunctions CF;
+  cout << " LS difference before: " << CF.leastSquares(P.mri_mov,P.mri_dst) << endl;
+  cout << " NC difference before: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
   // compute Alignment
   std::pair <MATRIX*, double> Md;
@@ -239,8 +242,8 @@ int main(int argc, char *argv[])
 //    sprintf(fname, "%s_target", parms.base_name) ;
 //    MRIwriteImageViews(mri_dst, fname, IMAGE_SIZE) ;
 
-//      cout << " LS difference after: " << CF.leastSquares(mri_aligned,P.mri_dst) << endl;
-//      cout << " NC difference after: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
+      cout << " LS difference after: " << CF.leastSquares(mri_aligned,P.mri_dst) << endl;
+      cout << " NC difference after: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
       MRIwrite(mri_aligned, P.warpout.c_str()) ;
       MRIfree(&mri_aligned) ;
@@ -249,10 +252,35 @@ int main(int argc, char *argv[])
       cout << "  tkmedit -f "<< P.dst <<" -aux " << P.warpout << endl;
    }
    
-   if (P.outweights)
+   if (P.halfmov != "" || P.halfdst != "")
+   {
+         MATRIX * mh  = R.MatrixSqrt(Md.first);
+	 // do not just assume m = mh*mh, rather m = mh2 * mh
+	 // for transforming target we need mh2^-1 = mh * m^-1
+	 MATRIX * mi  = MatrixInverse(Md.first,NULL);	 	  
+	 //MATRIX * mhi = MatrixMultiply(mi,mh,NULL); //old
+	 MATRIX * mhi = MatrixMultiply(mh,mi,NULL);
+	 
+         if (P.halfmov != "")
+	 {
+	    MRI* mri_Swarp = MRIclone(P.mri_mov,NULL);
+            mri_Swarp = MRIlinearTransform(P.mri_mov,mri_Swarp, mh);
+	    MRIwrite(mri_Swarp,P.halfmov.c_str());
+	    MRIfree(&mri_Swarp);
+	 }
+         if (P.halfdst != "")
+	 {
+	    MRI* mri_Twarp = MRIclone(P.mri_mov,NULL); // bring them to same space (just use mov geometry)
+            mri_Twarp = MRIlinearTransform(P.mri_dst,mri_Twarp, mhi);
+	    MRIwrite(mri_Twarp,P.halfdst.c_str());	  
+	    MRIfree(&mri_Twarp);
+	 }   
+   }
+   
+   if (P.weights)
    {
       cout << "or even overlay the weights:" <<endl;
-      cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << R.getName() << "-weights.mgz" <<endl;
+      cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
    }
    
    if (P.debug >0)
@@ -533,7 +561,9 @@ static void printUsage(void) {
 
   cout << "Optional arguments" << endl << endl;
   cout << "  -W, --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
-  cout << "      --weights              output weights transformed to target space" << endl;
+  cout << "      --weights wvol.mgz     output weights transformed to target space as wvol.mgz" << endl;
+  cout << "      --halfmov halfmov.mgz  outputs half-way mov (mapped to halfway space)" << endl;
+  cout << "      --halfdst halfdst.mgz  outputs half-way dst (mapped to halfway space)" << endl;
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  -I, --iscale               allow also intensity scaling (default no I-scaling)" << endl;
   cout << "      --transonly            find 3 parameter translation only" << endl;
@@ -633,7 +663,7 @@ static void initRegistration(Registration & R, Parameters & P)
    R.setRobust(!P.leastsquares);
    R.setSaturation(P.sat);
    R.setDebug(P.debug);
-   R.setOutputWeights(P.outweights);
+   R.setOutputWeights(P.weights,P.weightsout);
    
    
    int pos = P.lta.rfind(".");
@@ -913,16 +943,29 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "WEIGHTS") )
   {
-     P.outweights = true;
-     nargs = 0 ;
-     cout << "Will output weights transformed to target space!" << endl;
+     P.weights = true;
+     P.weightsout = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will output weights transformed to target space as "<<P.weightsout<<" !" << endl;
   }
   else if (!strcmp(option, "WARP") || !strcmp(option, "W") )
   {
      P.warp = true;
      P.warpout = string(argv[1]);
      nargs = 1 ;
-     cout << "Will save warped source as "<<P.warpout <<"!" << endl;
+     cout << "Will save warped source as "<<P.warpout <<" !" << endl;
+  }
+  else if (!strcmp(option, "HALFMOV") )
+  {
+     P.halfmov = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will output final half way MOV !" << endl;
+  }
+  else if (!strcmp(option, "HALFDST") )
+  {
+     P.halfdst = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will output final half way DST !" << endl;
   }
   else if (!strcmp(option, "MASKMOV") )
   {

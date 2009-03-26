@@ -209,7 +209,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
    d /= w->rows;
    dd /= ddcount;
    cout << " weights average: " << d << "  on significant b vals ( " << ddcount << " ): " << dd <<endl;
-  
+   lastweight = dd;
   return pair < MATRIX*, MATRIX*> (p,w);
 
 }
@@ -217,7 +217,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
 MATRIX* Regression::getLSEst(MATRIX* outX)
 {
   //cout << " Regression::getLSEst " << endl;
-
+  lastweight = -1;
   MATRIX* Ai = MatrixSVDPseudoInverse(A,NULL);
   if (Ai == NULL)
   {

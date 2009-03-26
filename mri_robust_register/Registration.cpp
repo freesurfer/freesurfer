@@ -433,10 +433,9 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
          {
             if (MRIFvox(pw.second,x,y,z) < 0) MRIFvox(pw.second,x,y,z) = 1;
          }	    
-	    string n = name+string("-weights.mgz");
 	    MRI * mtmp = MRIclone(mriT,NULL);
 	    mtmp = MRIlinearTransform(pw.second,mtmp,mh2);
-            MRIwrite(mtmp,n.c_str()); 	         
+            MRIwrite(mtmp,weightsname.c_str()); 	         
 	    MRIfree(&mtmp);
             MRIfree(&pw.second);
      }

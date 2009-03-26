@@ -24,7 +24,7 @@ extern "C" {
 class Registration
 {
   public:
-    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),outweights(false),
+    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),outweights(false),weightsname(""),
                   mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),lastp(NULL), mri_indexing(NULL) {};
     Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),outweights(false),
                    mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),Minit(NULL),Mfinal(NULL),lastp(NULL),mri_indexing(NULL) {};
@@ -53,7 +53,7 @@ class Registration
     void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
     void setSubsamplesize (int sss){subsamplesize = sss;};
     void setName(const std::string &n) { name = n;};
-    void setOutputWeights(bool r) { outweights = r;};
+    void setOutputWeights(bool r,const std::string &n="") { outweights = r;weightsname = n;};
 
     bool isIscale()        {return iscale;};
     std::string  getName() {return name;};
@@ -73,6 +73,7 @@ class Registration
    MRI *  MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
    double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
    double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
+   MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
 
   protected:
 
@@ -114,7 +115,6 @@ class Registration
    MATRIX * aff2mat(MATRIX * aff, MATRIX *outM);
    std::pair < MATRIX*, double > convertP2Md(MATRIX* p);
    MATRIX * getHalfRT (MATRIX * m, MATRIX * mhalf=NULL);
-   MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
    double RotMatrixLogNorm(MATRIX * m);
    double RotMatrixGeoDist(MATRIX * a, MATRIX *b = NULL);
    
@@ -143,6 +143,7 @@ class Registration
     std::string name;
     int debug;
     bool outweights;
+    std::string weightsname;
     
     MRI * mri_source;
     MRI * mri_target;
