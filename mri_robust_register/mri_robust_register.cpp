@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/26 01:14:10 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/03/26 15:51:22 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -104,7 +104,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.8 2009/03/26 01:14:10 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.9 2009/03/26 15:51:22 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -146,9 +146,9 @@ int main(int argc, char *argv[])
   Registration R;
   initRegistration(R,P);
 
-  CostFunctions CF;
-  cout << " LS difference before: " << CF.leastSquares(P.mri_mov,P.mri_dst) << endl;
-  cout << " NC difference before: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
+//  CostFunctions CF;
+//  cout << " LS difference before: " << CF.leastSquares(P.mri_mov,P.mri_dst) << endl;
+//  cout << " NC difference before: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
   // compute Alignment
   std::pair <MATRIX*, double> Md;
@@ -239,8 +239,8 @@ int main(int argc, char *argv[])
 //    sprintf(fname, "%s_target", parms.base_name) ;
 //    MRIwriteImageViews(mri_dst, fname, IMAGE_SIZE) ;
 
-      cout << " LS difference after: " << CF.leastSquares(mri_aligned,P.mri_dst) << endl;
-      cout << " NC difference after: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
+//      cout << " LS difference after: " << CF.leastSquares(mri_aligned,P.mri_dst) << endl;
+//      cout << " NC difference after: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
       MRIwrite(mri_aligned, P.warpout.c_str()) ;
       MRIfree(&mri_aligned) ;
