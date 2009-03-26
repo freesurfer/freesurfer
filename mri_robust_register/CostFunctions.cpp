@@ -63,21 +63,14 @@ double CostFunctions::var(MRI *i)
 double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 {
    assert(i1 != NULL);
-//   assert(i2 != NULL);
-	if (!i1->ischunked || (i2!=NULL && ! i2->ischunked))
-	{
-	   cerr<< "CostFunctions::leastSquares need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
-	   exit(1);
-	}
+ 
+   assert(i1->width  == i2->width);
+   assert(i1->height == i2->height);
+   assert(i1->depth  == i2->depth);
 
-	if (i2!=NULL && i1->bytes_total != i2->bytes_total)
-	{
-	   cerr<< "CostFunctions::leastSquares byte sizes of images differ" << endl;
-	   exit(1);
-	}
-
-
-	double d = 0;
+   double d = 0;
+   if(i1->ischunked && (i2==NULL || i2->ischunked))
+   {
 	double dd;
 	if (i2 == NULL)
 	{
@@ -89,43 +82,66 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 	{
 	   MRIiterator it1(i1); 
 	   MRIiterator it2(i2); 
-	   assert(i1->type == i2->type);
+	   //assert(i1->type == i2->type);
 	   for (it1.begin();!it1.isEnd(); it1++)
 	   {
 	      //cout << "it1: " << *it1 << " it2: " << *it2 << endl;
-	      dd = (*it1) - (*it2);
+	      dd = (double)(*it1) - (double)(*it2);
 	      d += dd * dd;
 	      it2++;
 	   }
 	
 	}
-	return d;
+    }
+    else
+    {
+	double dd;
+	if (i2 == NULL)
+	{
+	   for (int z = 0;z<i1->depth;z++)
+	   for (int y = 0;y<i1->height;y++)
+	   for (int x = 0;x<i1->width;x++)
+	   {
+	      dd = (double)MRIgetVoxVal(i1,x,y,z,1) ;
+	      d += dd*dd ;
+	   }
+	   
+	}
+	else
+	{
+	   for (int z = 0;z<i1->depth;z++)
+	   for (int y = 0;y<i1->height;y++)
+	   for (int x = 0;x<i1->width;x++)
+	   {
+	      dd = (double)MRIgetVoxVal(i1,x,y,z,1) - (double)MRIgetVoxVal(i2,x,y,z,1);
+	      d += dd*dd ;
+	   }
+	   
+	
+	}
+       
+    
+    }
+    return d;
 }
 
 double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 {
-	if (!i1->ischunked || ! i2->ischunked)
-	{
-	   cerr<< "CostFunctions::leastSquares need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
-	   exit(1);
-	}
+   
+   assert(i1->width  == i2->width);
+   assert(i1->height == i2->height);
+   assert(i1->depth  == i2->depth);
 
-	if (i1->bytes_total != i2->bytes_total)
-	{
-	   cerr<< "CostFunctions::leastSquares byte sizes of images differ" << endl;
-	   exit(1);
-	}
+   double d   = 0;
+   double d1  = 0;
+   double d2  = 0;
+   double dd1 = 0;
+   double dd2 = 0;
 
-
-	double d = 0;
-	double d1 = 0;
-	double d2 = 0;
- 	double dd1 =0;
-	double dd2 = 0;
-
- 	MRIiterator it1(i1); 
- 	MRIiterator it2(i2); 
- 	assert(i1->type == i2->type);
+   if (i1->ischunked && i2->ischunked)
+   {	   
+	MRIiterator it1(i1); 
+	MRIiterator it2(i2); 
  	for (it1.begin();!it1.isEnd(); it1++)
  	{
 	   d1 = (*it1);
@@ -135,6 +151,19 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 	   dd2 += d2 *d2;
  	   it2++;
  	}
- 	
-	return d/(sqrt(d1)*sqrt(d2));
+   }
+   else
+   {
+	for (int z = 0;z<i1->depth;z++)
+	for (int y = 0;y<i1->height;y++)
+	for (int x = 0;x<i1->width;x++)
+	{
+	   d1 = MRIgetVoxVal(i1,x,y,z,1);
+	   d2 = MRIgetVoxVal(i2,x,y,z,1);
+ 	   d += d1 * d2;
+	   dd1 += d1 *d1;
+	   dd2 += d2 *d2;
+	}
+    }
+   return d/(sqrt(dd1)*sqrt(dd2));
 }
