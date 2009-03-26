@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:52 $
- *    $Revision: 1.115 $
+ *    $Date: 2009/03/26 01:05:37 $
+ *    $Revision: 1.116 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3467,6 +3467,64 @@ MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v)
   VectorFree(&v_dif) ;
   VectorFree(&v_tmp) ;
   return(dist) ;
+}
+
+/*!
+\fn double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius)
+\brief RMS distance between two affine transforms, 
+the center should be in the middle of image, and radius
+should include the head (100 in RAS coord)
+(see Jenkinson 1999 RMS deviation - tech report
+    www.fmrib.ox.ac.uk/analysis/techrep )
+\param m1     4x4 affine transformation
+\param m2     4x4 affine transformation (may be NULL)
+\param radius of the ball to be considered
+*/
+double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius)
+{
+
+   MATRIX* drigid = MatrixCopy(m1,NULL);
+   if (m2) drigid = MatrixSubtract(drigid,m2,drigid);
+   else //subtract identity
+   {
+      MATRIX *id = MatrixIdentity(4,NULL);
+      drigid = MatrixSubtract(drigid,id,drigid);
+      MatrixFree(&id);
+   }
+
+   // assert we have 4x4 affine transform
+   //double EPS = 0.000001;
+   //assert(drigid->rows ==4 && drigid->cols == 4);
+   //assert(fabs(drigid->rptr[4][1]) < EPS);
+   //assert(fabs(drigid->rptr[4][2]) < EPS);
+   //assert(fabs(drigid->rptr[4][3]) < EPS);
+
+   // translation norm quadrat:
+   double tdq = 0;
+   int i;
+   for (i=1; i <= 3; i++)
+   {
+      tdq += drigid->rptr[i][4] * drigid->rptr[i][4];
+      drigid->rptr[i][4] = 0.0; // set last row and column to zero
+      drigid->rptr[4][i] = 0.0;
+   }
+   drigid->rptr[4][4] = 0.0;
+   
+   MATRIX* dt = MatrixTranspose(drigid, NULL);
+   drigid = MatrixMultiply(dt,drigid,drigid);
+   MatrixFree(&dt);
+   
+   // Trace of A^t A (only first 3x3 submatrix)
+   double tr = 0.0;
+   for (i=1; i <= 3; i++)
+   {
+      tr += drigid->rptr[i][i];
+   }
+   
+   MatrixFree(&drigid);
+   
+   return sqrt((1.0/5.0) * radius*radius* tr + tdq);
+
 }
 
 

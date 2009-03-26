@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:36 $
- *    $Revision: 1.65 $
+ *    $Date: 2009/03/26 01:05:22 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,6 +171,7 @@ float  VectorDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
 double MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_cov, VECTOR *v);
+double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius);
 VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
 MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
 VECTOR *VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst) ;
