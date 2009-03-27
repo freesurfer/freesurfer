@@ -454,7 +454,9 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
          {
             if (MRIFvox(pw.second,x,y,z) < 0) MRIFvox(pw.second,x,y,z) = 1;
          }	    
- 	 MRI * mtmp = MRIclone(mriT,NULL);
+ 	 MRI * mtmp = MRIalloc(mriT->width,mriT->height,mriT->depth,MRI_FLOAT);
+	 MRIcopyHeader(mriT,mtmp);
+	 mtmp->type = MRI_FLOAT;	 
  	 mtmp = MRIlinearTransform(pw.second,mtmp,mh2);
          //MRIwrite(mtmp,weightsname.c_str()); 	         
          MRIfree(&pw.second);

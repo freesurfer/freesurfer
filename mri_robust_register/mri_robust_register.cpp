@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/27 00:37:49 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/03/27 04:43:33 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -108,7 +108,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.11 2009/03/27 00:37:49 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.12 2009/03/27 04:43:33 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -117,9 +117,33 @@ char *Progname = NULL;
 
 using namespace std;
 
+void conv(MRI * i)
+{
+cout << " adsf" << endl;
+Registration R;
+   MRI * fmri = MRIalloc(i->width,i->height,i->depth,MRI_FLOAT);
+   float f;
+   for (int z=0;z<i->depth;z++)
+   for (int y=0;y<i->height;y++)
+   for (int x=0;x<i->width;x++)
+   {
+      f = MRIgetVoxVal(i,x,y,z,0);
+     // cout << " f " << f << endl;
+      MRIsetVoxVal(fmri,x,y,z,0,f);
+   }
+      cout << "asdfasdf" << endl;
+   MRIwrite(fmri,"float-1.mgz");
+   MRI * sfmri;
+   sfmri = R.MRIvalscale(fmri,NULL,100);
+   MRIwrite(sfmri,"float-100.mgz");
+   sfmri = R.MRIvalscale(fmri,sfmri,1000);
+   MRIwrite(sfmri,"float-1000.mgz");
+   exit(0);
+}
 
 int main(int argc, char *argv[])
 {
+
   // force the environment variable
   // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
@@ -149,8 +173,10 @@ int main(int argc, char *argv[])
   // init registration from Parameters
   Registration R;
   initRegistration(R,P);
-
+//conv(P.mri_mov);
   CostFunctions CF;
+  cout << " mean mov : " << CF.mean(P.mri_mov) << "  mean dst: " << CF.mean(P.mri_dst) << endl;
+  cout << " sdev mov : " << CF.sdev(P.mri_mov) << "  sdev dst: " << CF.sdev(P.mri_dst) << endl; 
   cout << " LS difference before: " << CF.leastSquares(P.mri_mov,P.mri_dst) << endl;
   cout << " NC difference before: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
@@ -313,7 +339,9 @@ int main(int argc, char *argv[])
             if (mri_weights != NULL)
             {
 	       cout << " creating half-way weights ..." << endl;
-	       MRI* mri_Wwarp = MRIclone(P.mri_mov,NULL); // bring them to same space (just use mov geometry)
+	       MRI* mri_Wwarp = MRIalloc(P.mri_mov->width,P.mri_mov->height,P.mri_mov->depth,MRI_FLOAT);
+	       MRIcopyHeader(P.mri_mov,mri_Wwarp); // bring them to same space (just use mov geometry)
+	       mri_Wwarp->type = MRI_FLOAT;
                mri_Wwarp = MRIlinearTransform(mri_weights,mri_Wwarp, mhi);
 	       MRIwrite(mri_Wwarp,P.halfweights.c_str());	  
 	       MRIfree(&mri_Wwarp);
