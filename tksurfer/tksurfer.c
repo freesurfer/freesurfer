@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2009/03/10 20:38:09 $
- *    $Revision: 1.320 $
+ *    $Date: 2009/03/27 18:31:23 $
+ *    $Revision: 1.321 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20726,7 +20726,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.320 2009/03/10 20:38:09 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.321 2009/03/27 18:31:23 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -27796,7 +27796,7 @@ int labl_find_label_by_vno (int vno, int min_label, int* index_array,
 
   /* update the cache if necessary */
   if (!labl_cache_updated)
-    labl_update_cache (FALSE);
+    labl_update_cache (TRUE);
 
   /* return some points. */
   num_to_copy = MIN(array_size,labl_num_labels_at_cache_vno[vno]);
