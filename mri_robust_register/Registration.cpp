@@ -319,6 +319,8 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
    MRI* mri_Twarp   = NULL;
    pair < MATRIX*, MRI*> pw(NULL,NULL);
    MATRIX * mh2 = NULL;
+   MATRIX * mh  = NULL;
+   MATRIX * mhi = NULL;
       
    lastp = NULL;
    double diff = 100;
@@ -338,12 +340,13 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
 	// here maybe better to symmetrically warp both images SQRT(M)
 	// this keeps the problem symmetric
          cout << "   - warping source and target (sqrt)" << endl;
-         MATRIX * mh  = MatrixSqrt(fmd.first);
+	 if (mh) MatrixFree(&mh);
+         mh  = MatrixSqrt(fmd.first);
 	 // do not just assume m = mh*mh, rather m = mh2 * mh
 	 // for transforming target we need mh2^-1 = mh * m^-1
 	 MATRIX * mi  = MatrixInverse(fmd.first,NULL);	 	  
 	 //MATRIX * mhi = MatrixMultiply(mi,mh,NULL); //old
-	 MATRIX * mhi = MatrixMultiply(mh,mi,NULL);
+	 mhi = MatrixMultiply(mh,mi,mhi);
 	 
          if (mri_Swarp) MRIfree(&mri_Swarp);
 	 mri_Swarp = MRIclone(mriS,NULL);
@@ -399,9 +402,9 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
        //cout << " intens: " << fmd.second << endl;
 
        MatrixFree(&fmdtmp);
-       MatrixFree(&mh);
        MatrixFree(&mi);
-       MatrixFree(&mhi);
+       //MatrixFree(&mh);
+       //MatrixFree(&mhi);
        //MatrixFree(&mh2);
       
    }
@@ -424,24 +427,6 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
             MRIwrite(pw.second,n.c_str()); 
        }
     } 
-
-//     // warp weights to target:
-//     if (pw.second && outweights)
-//     {
-// 	 cout << " mapping weights to target !!!" << endl;
-//          int x,y,z;
-//          for (z = 0 ; z < pw.second->depth  ; z++)
-//          for (x = 0 ; x < pw.second->width  ; x++)
-//          for (y = 0 ; y < pw.second->height ; y++)
-//          {
-//             if (MRIFvox(pw.second,x,y,z) < 0) MRIFvox(pw.second,x,y,z) = 1;
-//          }	    
-// 	    MRI * mtmp = MRIclone(mriT,NULL);
-// 	    mtmp = MRIlinearTransform(pw.second,mtmp,mh2);
-//             MRIwrite(mtmp,weightsname.c_str()); 	         
-// 	    MRIfree(&mtmp);
-//             MRIfree(&pw.second);
-//      }
        
    // store weights (mapped to target space):
    if (pw.second)
@@ -464,6 +449,25 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
    }   
    if (mri_weights) MRIfree(&mri_weights);
    mri_weights = pw.second;
+   if (mov2weights) MatrixFree(&mov2weights);
+   if (dst2weights) MatrixFree(&dst2weights);
+   mov2weights = mh; // no freeing needed
+   dst2weights = mhi;
+   
+   if (diff > epsit) // adjust mh and mhi to new midpoint
+   {
+      cout << "     -- adjusting half-way maps " << endl;
+      MATRIX * ch = MatrixSqrt(fmd.first);
+      // do not just assume c = ch*ch, rather c = ch2 * ch
+      // for transforming target we need ch2^-1 = ch * c^-1
+      MATRIX * ci  = MatrixInverse(cmd.first,NULL);	 	  
+      MATRIX * chi = MatrixMultiply(ch,ci,NULL);
+      // append ch or chi to mh mhi
+      mov2weights = MatrixMultiply(ch,mh,NULL);
+      dst2weights = MatrixMultiply(chi,mhi,NULL);
+      MatrixFree(&mh);
+      MatrixFree(&mhi);
+   }
        
    MRIfree(&mri_Twarp);
    MRIfree(&mri_Swarp);

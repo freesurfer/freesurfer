@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/27 04:43:33 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/03/27 21:24:06 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -79,6 +79,8 @@ struct Parameters
   string halfmov;
   string halfdst;
   string halfweights;
+  string halfmovlta;
+  string halfdstlta;
   string weightsout;
   bool   satit;
   bool   satest;
@@ -101,14 +103,14 @@ struct Parameters
   MRI*   mri_mov;
   MRI*   mri_dst;
 };
-static struct Parameters P = { "","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
+static struct Parameters P = { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.12 2009/03/27 04:43:33 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.13 2009/03/27 21:24:06 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -122,6 +124,8 @@ void conv(MRI * i)
 cout << " adsf" << endl;
 Registration R;
    MRI * fmri = MRIalloc(i->width,i->height,i->depth,MRI_FLOAT);
+   MRIcopyHeader(i,fmri);
+   fmri->type = MRI_FLOAT;
    float f;
    for (int z=0;z<i->depth;z++)
    for (int y=0;y<i->height;y++)
@@ -143,10 +147,15 @@ Registration R;
 
 int main(int argc, char *argv[])
 {
-
-  // force the environment variable
+   cout << vcid << endl;
+  // set the environment variable
   // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
+  if (getenv("FS_USE_MRI_CHUNK") != NULL)
+  {
+     cerr << "Error: do not set FS_USE_MRI_CHUNK while it is still buggy!" << endl;
+     exit(1);
+  }
 
   // Default initialization
   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -173,7 +182,7 @@ int main(int argc, char *argv[])
   // init registration from Parameters
   Registration R;
   initRegistration(R,P);
-//conv(P.mri_mov);
+//conv(P.mri_dst);
   CostFunctions CF;
   cout << " mean mov : " << CF.mean(P.mri_mov) << "  mean dst: " << CF.mean(P.mri_dst) << endl;
   cout << " sdev mov : " << CF.sdev(P.mri_mov) << "  sdev dst: " << CF.sdev(P.mri_dst) << endl; 
@@ -283,13 +292,19 @@ int main(int argc, char *argv[])
    if (P.weightsout!="")
    {
    
-      MRI * mri_weights = R.getWeights();
+      MRI * mri_weights = R.getWeights(); // in original half way space
       if (mri_weights != NULL)
       {
-         
-	 
-         MRIwrite(mri_weights, P.weightsout.c_str()) ;
-	 
+         // map to target and use target geometry (RAS)
+         std::pair <MATRIX*, MATRIX*> map2weights = R.getHalfWayMaps();
+         MATRIX * hinv = MatrixInverse(map2weights.second,NULL);
+	 MRI * wtarg = MRIalloc(P.mri_dst->width,P.mri_dst->height,P.mri_dst->depth,MRI_FLOAT);
+	 MRIcopyHeader(P.mri_dst,wtarg);
+	 wtarg->type = MRI_FLOAT;
+         wtarg = MRIlinearTransform(mri_weights,wtarg, hinv);
+         MRIwrite(wtarg, P.weightsout.c_str()) ;
+	 MRIfree(&wtarg);
+	 MatrixFree(&hinv);
          cout << "or even overlay the weights:" <<endl;
          cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
       }
@@ -298,20 +313,44 @@ int main(int argc, char *argv[])
    }
  
    // write out images in half way space
-   if (P.halfmov != "" || P.halfdst != "" || P.halfweights != "")
+   if (P.halfmov != "" || P.halfdst != "" || P.halfweights != "" || P.halfdstlta != "" || P.halfmovlta != "")
    {
-         MATRIX * mh  = R.MatrixSqrt(Md.first);
-	 // do not just assume m = mh*mh, rather m = mh2 * mh
-	 // for transforming target we need mh2^-1 = mh * m^-1
-	 MATRIX * mi  = MatrixInverse(Md.first,NULL);	 	  
-	 //MATRIX * mhi = MatrixMultiply(mi,mh,NULL); //old
-	 MATRIX * mhi = MatrixMultiply(mh,mi,NULL);
+      cout << "creating half way data ..." << endl;
+      std::pair < MATRIX*, MATRIX*> maps2weights = R.getHalfWayMaps();
+      LTA * m2hwlta = LTAalloc(1,P.mri_mov); 
+      LTA * d2hwlta = LTAalloc(1,P.mri_dst);
+      if (!P.lta_vox2vox) // do ras to ras
+      {
+        // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
+	// (use geometry of destination space for half-way)
+         m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, P.mri_dst, maps2weights.first, m2hwlta->xforms[0].m_L) ;
+         m2hwlta->type = LINEAR_RAS_TO_RAS ;
+         d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_dst, P.mri_dst, maps2weights.second, d2hwlta->xforms[0].m_L) ;
+         d2hwlta->type = LINEAR_RAS_TO_RAS ;
+      } 
+      else // vox to vox
+      {
+        // cout << "saving VOX2VOX..." << endl ;
+         m2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.first, m2hwlta->xforms[0].m_L) ;
+         m2hwlta->type = LINEAR_VOX_TO_VOX ;
+         d2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.second, m2hwlta->xforms[0].m_L) ;
+         d2hwlta->type = LINEAR_VOX_TO_VOX ;
+      }
+      // add src and dst info (use dst as target geometry in both cases)
+      getVolGeom(P.mri_mov, &m2hwlta->xforms[0].src);
+      getVolGeom(P.mri_dst, &m2hwlta->xforms[0].dst);
+      getVolGeom(P.mri_dst, &d2hwlta->xforms[0].src);
+      getVolGeom(P.mri_dst, &d2hwlta->xforms[0].dst);
+
+      // write lta to half way
+      if (P.halfmovlta != "") LTAwriteEx(m2hwlta, P.halfmovlta.c_str()) ;
+      if (P.halfdstlta != "") LTAwriteEx(d2hwlta, P.halfdstlta.c_str()) ;
 	 
          if (P.halfmov != "")
 	 {
 	    cout << " creating half-way movable ..." << endl;
-	    MRI* mri_Swarp = MRIclone(P.mri_mov,NULL);
-            mri_Swarp = MRIlinearTransform(P.mri_mov,mri_Swarp, mh);
+	    // take dst info from lta:
+            MRI* mri_Swarp = LTAtransform(P.mri_mov,NULL, m2hwlta);
 	    MRIwrite(mri_Swarp,P.halfmov.c_str());
 	    MRIfree(&mri_Swarp);
 	    
@@ -328,8 +367,7 @@ int main(int argc, char *argv[])
          if (P.halfdst != "")
 	 {
 	    cout << " creating half-way destination ..." << endl;
-	    MRI* mri_Twarp = MRIclone(P.mri_mov,NULL); // bring them to same space (just use mov geometry)
-            mri_Twarp = MRIlinearTransform(P.mri_dst,mri_Twarp, mhi);
+            MRI* mri_Twarp = LTAtransform(P.mri_dst,NULL, d2hwlta);
 	    MRIwrite(mri_Twarp,P.halfdst.c_str());	  
 	    MRIfree(&mri_Twarp);
 	 }   
@@ -338,13 +376,14 @@ int main(int argc, char *argv[])
             MRI * mri_weights = R.getWeights();
             if (mri_weights != NULL)
             {
-	       cout << " creating half-way weights ..." << endl;
-	       MRI* mri_Wwarp = MRIalloc(P.mri_mov->width,P.mri_mov->height,P.mri_mov->depth,MRI_FLOAT);
-	       MRIcopyHeader(P.mri_mov,mri_Wwarp); // bring them to same space (just use mov geometry)
-	       mri_Wwarp->type = MRI_FLOAT;
-               mri_Wwarp = MRIlinearTransform(mri_weights,mri_Wwarp, mhi);
-	       MRIwrite(mri_Wwarp,P.halfweights.c_str());	  
-	       MRIfree(&mri_Wwarp);
+	       cout << " saving half-way weights ..." << endl;
+	       MRIwrite(mri_weights,P.halfweights.c_str());
+// 	       MRI* mri_Wwarp = MRIalloc(P.mri_mov->width,P.mri_mov->height,P.mri_mov->depth,MRI_FLOAT);
+// 	       MRIcopyHeader(P.mri_mov,mri_Wwarp); // bring them to same space (just use mov geometry)
+// 	       mri_Wwarp->type = MRI_FLOAT;
+//                mri_Wwarp = MRIlinearTransform(mri_weights,mri_Wwarp, mhi);
+// 	       MRIwrite(mri_Wwarp,P.halfweights.c_str());	  
+// 	       MRIfree(&mri_Wwarp);
             }
             else 
                cout << "Warning: no weights have been computed! Maybe you ran with --leastsquares??" << endl;
@@ -630,9 +669,13 @@ static void printUsage(void) {
   cout << "Optional arguments" << endl << endl;
   cout << "  -W, --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
   cout << "      --weights wvol.mgz     output weights transformed to target space as wvol.mgz" << endl;
+  
   cout << "      --halfmov hm.mgz       outputs half-way mov (mapped to halfway space)" << endl;
   cout << "      --halfdst hd.mgz       outputs half-way dst (mapped to halfway space)" << endl;
   cout << "      --halfweights hw.mgz   outputs half-way weights (mapped to halfway space)" << endl;
+  cout << "      --halfmovlta hm.lta    outputs transform from mov to half-way space" << endl;
+  cout << "      --halfdstlta hd.lta    outputs transform from dst to half-way space" << endl;
+
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  -I, --iscale               allow also intensity scaling (default no I-scaling)" << endl;
   cout << "      --transonly            find 3 parameter translation only" << endl;
@@ -1044,7 +1087,19 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
      P.halfweights = string(argv[1]);
      nargs = 1 ;
-     cout << "Will output half way WEIGHTS from last step!" << endl;
+     cout << "Will output half way WEIGHTS from last step to " <<P.halfweights<<" !" << endl;
+  }
+  else if (!strcmp(option, "HALFMOVLTA") )
+  {
+     P.halfmovlta = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will output half way transform (mov) " <<P.halfmovlta << " !" << endl;
+  }
+  else if (!strcmp(option, "HALFDSTLTA") )
+  {
+     P.halfdstlta = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will output half way transform (dst) " <<P.halfdstlta << " !" << endl;
   }
   else if (!strcmp(option, "MASKMOV") )
   {

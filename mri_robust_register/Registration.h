@@ -24,10 +24,17 @@ extern "C" {
 class Registration
 {
   public:
-    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
-                  mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),mri_weights(NULL),lastp(NULL), mri_indexing(NULL) {};
-    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
-                   mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),Minit(NULL),Mfinal(NULL),mri_weights(NULL),lastp(NULL),mri_indexing(NULL) {};
+    Registration():transonly(false),rigid(true),robust(true), sat(-1),
+                   iscale(false),rtype(1),subsamplesize(-1),debug(0),
+                   mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),
+		   mri_weights(NULL), mov2weights(NULL),dst2weights(NULL),
+		   lastp(NULL), mri_indexing(NULL) {};
+    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true),
+                   sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
+                   mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
+		   Minit(NULL),Mfinal(NULL),mri_weights(NULL),
+		   mov2weights(NULL),dst2weights(NULL),lastp(NULL),
+		   mri_indexing(NULL) {};
   
     ~Registration()
     { // we cleanup our private variables
@@ -53,11 +60,11 @@ class Registration
     void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
     void setSubsamplesize (int sss){subsamplesize = sss;};
     void setName(const std::string &n) { name = n;};
-    //void setOutputWeights(bool r,const std::string &n="") { outweights = r;weightsname = n;};
 
     bool isIscale()        {return iscale;};
     std::string  getName() {return name;};
     MRI * getWeights() {return mri_weights;};
+    std::pair <MATRIX*, MATRIX*> getHalfWayMaps() {std::pair <MATRIX*, MATRIX*> md2w(mov2weights,dst2weights); return md2w;};
   
     // compute registration
     std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
@@ -152,6 +159,8 @@ class Registration
     MATRIX * Mfinal;
     double iscalefinal;
     MRI * mri_weights;
+    MATRIX * mov2weights;
+    MATRIX * dst2weights;
     
     // help vars
     MATRIX* lastp;
