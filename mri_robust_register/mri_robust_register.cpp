@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/26 17:21:42 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/03/27 00:37:49 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -78,9 +78,10 @@ struct Parameters
   string maskdst;
   string halfmov;
   string halfdst;
-  bool   satit;
-  bool   weights;
+  string halfweights;
   string weightsout;
+  bool   satit;
+  bool   satest;
   bool   nomulti;
   bool   fixvoxel;
   bool   fixtype;
@@ -100,14 +101,14 @@ struct Parameters
   MRI*   mri_mov;
   MRI*   mri_dst;
 };
-static struct Parameters P = { "","","","","","","",false,false,"",false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
+static struct Parameters P = { "","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.10 2009/03/26 17:21:42 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.11 2009/03/27 00:37:49 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -121,7 +122,7 @@ int main(int argc, char *argv[])
 {
   // force the environment variable
   // to store mri as chunk in memory:
-  setenv("FS_USE_MRI_CHUNK","",1) ;
+//  setenv("FS_USE_MRI_CHUNK","",1) ;
 
   // Default initialization
   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -211,7 +212,7 @@ int main(int argc, char *argv[])
 
    if (R.isIscale() && Md.second >0)
    {
-      string fn = R.getName() + "intensity.txt";
+      string fn = R.getName() + "-intensity.txt";
          ofstream f(fn.c_str(),ios::out);
       f << Md.second;
       f.close();
@@ -221,9 +222,12 @@ int main(int argc, char *argv[])
    //  MatrixWriteTxt("xform.txt",Md.first);
    // end of writing transform
 
+   // here do scaling of intensity values
+   if (R.isIscale() && Md.second >0)
+         P.mri_mov = R.MRIvalscale(P.mri_mov, P.mri_mov, Md.second);
 
    // maybe warp source to target:
-   if (P.warp)
+   if (P.warpout != "")
    {
       //R.warpSource("simple-"+P.warpout,Md.first,Md.second); // can be used if mov and dst are copied to R
       //R.warpSource(P.mri_mov,P.mri_dst,"better-"+P.warpout,Md.first,Md.second); // uses original mov and dst
@@ -233,9 +237,6 @@ int main(int argc, char *argv[])
       P.mri_mov->nframes = 1 ; // only map frame 1
       MRI *mri_aligned = MRIclone(P.mri_dst,NULL);
       mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);    
-      // here also do scaling of intensity values
-      if (R.isIscale() && Md.second >0)
-         mri_aligned = R.MRIvalscale(mri_aligned, mri_aligned, Md.second);
       P.mri_mov->nframes = nframes ;
 //    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
 //    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
@@ -243,7 +244,7 @@ int main(int argc, char *argv[])
 //    MRIwriteImageViews(mri_dst, fname, IMAGE_SIZE) ;
 
       cout << " LS difference after: " << CF.leastSquares(mri_aligned,P.mri_dst) << endl;
-      cout << " NC difference after: " << CF.normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
+      cout << " NC difference after: " << CF.normalizedCorrelation(mri_aligned,P.mri_dst) << endl;
   
       MRIwrite(mri_aligned, P.warpout.c_str()) ;
       MRIfree(&mri_aligned) ;
@@ -251,8 +252,27 @@ int main(int argc, char *argv[])
       cout << "To check aligned result, run:" << endl;
       cout << "  tkmedit -f "<< P.dst <<" -aux " << P.warpout << endl;
    }
+     
+   // maybe write out weights in target space:
+   if (P.weightsout!="")
+   {
    
-   if (P.halfmov != "" || P.halfdst != "")
+      MRI * mri_weights = R.getWeights();
+      if (mri_weights != NULL)
+      {
+         
+	 
+         MRIwrite(mri_weights, P.weightsout.c_str()) ;
+	 
+         cout << "or even overlay the weights:" <<endl;
+         cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
+      }
+      else 
+         cout << "Warning: no weights have been computed! Maybe you ran with --leastsquares??" << endl;
+   }
+ 
+   // write out images in half way space
+   if (P.halfmov != "" || P.halfdst != "" || P.halfweights != "")
    {
          MATRIX * mh  = R.MatrixSqrt(Md.first);
 	 // do not just assume m = mh*mh, rather m = mh2 * mh
@@ -263,26 +283,46 @@ int main(int argc, char *argv[])
 	 
          if (P.halfmov != "")
 	 {
+	    cout << " creating half-way movable ..." << endl;
 	    MRI* mri_Swarp = MRIclone(P.mri_mov,NULL);
             mri_Swarp = MRIlinearTransform(P.mri_mov,mri_Swarp, mh);
 	    MRIwrite(mri_Swarp,P.halfmov.c_str());
 	    MRIfree(&mri_Swarp);
+	    
+	    //MRIwrite(P.mri_mov,"movable-original.mgz");
+	    //mri_Swarp = R.makeConform(P.mri_mov,NULL,false,true);
+	    //MRIwrite(mri_Swarp,"movable-uhar.mgz");
+	    //MRI * tttemp = MRIclone(mri_Swarp,NULL);
+	    //tttemp =  MRIlinearTransform(mri_Swarp,tttemp, mh);
+	    //MRIwrite(tttemp,"movable-uhar-half.mgz");
+	    //MRIfree(&mri_Swarp);
+	    //MRIfree(&tttemp);
+	    
 	 }
          if (P.halfdst != "")
 	 {
+	    cout << " creating half-way destination ..." << endl;
 	    MRI* mri_Twarp = MRIclone(P.mri_mov,NULL); // bring them to same space (just use mov geometry)
             mri_Twarp = MRIlinearTransform(P.mri_dst,mri_Twarp, mhi);
 	    MRIwrite(mri_Twarp,P.halfdst.c_str());	  
 	    MRIfree(&mri_Twarp);
 	 }   
+         if (P.halfweights != "")
+	 {
+            MRI * mri_weights = R.getWeights();
+            if (mri_weights != NULL)
+            {
+	       cout << " creating half-way weights ..." << endl;
+	       MRI* mri_Wwarp = MRIclone(P.mri_mov,NULL); // bring them to same space (just use mov geometry)
+               mri_Wwarp = MRIlinearTransform(mri_weights,mri_Wwarp, mhi);
+	       MRIwrite(mri_Wwarp,P.halfweights.c_str());	  
+	       MRIfree(&mri_Wwarp);
+            }
+            else 
+               cout << "Warning: no weights have been computed! Maybe you ran with --leastsquares??" << endl;
+	 }   
    }
-   
-   if (P.weights)
-   {
-      cout << "or even overlay the weights:" <<endl;
-      cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
-   }
-   
+    
    if (P.debug >0)
    {
       cout << "To check debug output, run:" << endl;
@@ -562,8 +602,9 @@ static void printUsage(void) {
   cout << "Optional arguments" << endl << endl;
   cout << "  -W, --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
   cout << "      --weights wvol.mgz     output weights transformed to target space as wvol.mgz" << endl;
-  cout << "      --halfmov halfmov.mgz  outputs half-way mov (mapped to halfway space)" << endl;
-  cout << "      --halfdst halfdst.mgz  outputs half-way dst (mapped to halfway space)" << endl;
+  cout << "      --halfmov hm.mgz       outputs half-way mov (mapped to halfway space)" << endl;
+  cout << "      --halfdst hd.mgz       outputs half-way dst (mapped to halfway space)" << endl;
+  cout << "      --halfweights hw.mgz   outputs half-way weights (mapped to halfway space)" << endl;
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  -I, --iscale               allow also intensity scaling (default no I-scaling)" << endl;
   cout << "      --transonly            find 3 parameter translation only" << endl;
@@ -663,7 +704,7 @@ static void initRegistration(Registration & R, Parameters & P)
    R.setRobust(!P.leastsquares);
    R.setSaturation(P.sat);
    R.setDebug(P.debug);
-   R.setOutputWeights(P.weights,P.weightsout);
+   //R.setOutputWeights(P.weights,P.weightsout);
    
    
    int pos = P.lta.rfind(".");
@@ -792,7 +833,6 @@ static void initRegistration(Registration & R, Parameters & P)
        MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
        MRIfree(&mri_mask) ;
     }
-
 
     MRIcopyFrame(mri_tmp, mri_src, 0, i) ;
     MRIfree(&mri_tmp) ;
@@ -935,6 +975,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      nargs = 0 ;
      cout << "Will iterate with different SAT and output plot!" << endl;
   }
+  else if (!strcmp(option, "SATEST") )
+  {
+     P.satest = true;
+     nargs = 0 ;
+     cout << "Will estimate SAT!" << endl;
+  }
   else if (!strcmp(option, "DEBUG") )
   {
      P.debug = 1;
@@ -943,7 +989,6 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "WEIGHTS") )
   {
-     P.weights = true;
      P.weightsout = string(argv[1]);
      nargs = 1 ;
      cout << "Will output weights transformed to target space as "<<P.weightsout<<" !" << endl;
@@ -966,6 +1011,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      P.halfdst = string(argv[1]);
      nargs = 1 ;
      cout << "Will output final half way DST !" << endl;
+  }
+  else if (!strcmp(option, "HALFWEIGHTS") )
+  {
+     P.halfweights = string(argv[1]);
+     nargs = 1 ;
+     cout << "Will output half way WEIGHTS from last step!" << endl;
   }
   else if (!strcmp(option, "MASKMOV") )
   {

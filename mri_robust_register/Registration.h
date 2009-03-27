@@ -24,10 +24,10 @@ extern "C" {
 class Registration
 {
   public:
-    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),outweights(false),weightsname(""),
-                  mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),lastp(NULL), mri_indexing(NULL) {};
-    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),outweights(false),
-                   mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),Minit(NULL),Mfinal(NULL),lastp(NULL),mri_indexing(NULL) {};
+    Registration():transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
+                  mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),mri_weights(NULL),lastp(NULL), mri_indexing(NULL) {};
+    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true), sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
+                   mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),Minit(NULL),Mfinal(NULL),mri_weights(NULL),lastp(NULL),mri_indexing(NULL) {};
   
     ~Registration()
     { // we cleanup our private variables
@@ -53,15 +53,16 @@ class Registration
     void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
     void setSubsamplesize (int sss){subsamplesize = sss;};
     void setName(const std::string &n) { name = n;};
-    void setOutputWeights(bool r,const std::string &n="") { outweights = r;weightsname = n;};
+    //void setOutputWeights(bool r,const std::string &n="") { outweights = r;weightsname = n;};
 
     bool isIscale()        {return iscale;};
     std::string  getName() {return name;};
+    MRI * getWeights() {return mri_weights;};
   
     // compute registration
-    std::pair <MATRIX*, double> computeIterativeRegistration( int n=10,double epsit= 0.01,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
-    std::pair <MATRIX*, double> computeIterativeRegSat( int n=10,double epsit= 0.01,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
-    std::pair <MATRIX*, double> computeMultiresRegistration (int n=10,double epsit= 0.01, MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeMultiresRegistration (int n,double epsit, MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
  
     bool warpSource(const std::string & fname, MATRIX* M = NULL, double is = -1);
     bool warpSource(MRI* orig, MRI* target, const std::string &fname, MATRIX* M = NULL, double is = -1);
@@ -74,6 +75,7 @@ class Registration
    double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
    double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
    MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
+   MRI* makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
 
   protected:
 
@@ -103,7 +105,6 @@ class Registration
    MRI * getBlur2(MRI* mri);
    bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
    
-   MRI* makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
    int findRightSize(MRI *mri, float conform_size);
    
    MATRIX* MRIgetZslice(MRI * mri, int slice);
@@ -142,17 +143,19 @@ class Registration
     int subsamplesize;
     std::string name;
     int debug;
-    bool outweights;
-    std::string weightsname;
+    //bool outweights;
+    //std::string weightsname;
     
     MRI * mri_source;
     MRI * mri_target;
     MATRIX * Minit;
     MATRIX * Mfinal;
     double iscalefinal;
+    MRI * mri_weights;
     
     // help vars
     MATRIX* lastp;
+    double zeroweights;
     
     MRI * mri_indexing;
 };

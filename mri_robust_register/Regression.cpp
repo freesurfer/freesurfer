@@ -173,14 +173,14 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     MatrixFree(&w);
     p = lastp;
     w = lastw;
-//    cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
+    cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
     lasterror = err[count-1];
   }
   else
   {
     MatrixFree(&lastp);
     MatrixFree(&lastw);
-//    cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
+    cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
     lasterror = err[count];
   } 
   
@@ -197,19 +197,25 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
    double d=0.0;
    double dd=0.0;
    double ddcount = 0;
+   int zcount =  0;
+   double val;
    for (int i = 1;i<=w->rows;i++)
    {
-      d +=*MATRIX_RELT(w, i, 1) ;
+      val = (double) *MATRIX_RELT(w, i, 1);
+      d +=val ;
       if (fabs(*MATRIX_RELT(B, i, 1)) > 0.00001)
       {
-         dd+= *MATRIX_RELT(w, i, 1) ;
+         dd+= val ;
 	 ddcount++;
+         if (val < 0.1) zcount++;
       }
    }
    d /= w->rows;
    dd /= ddcount;
-   cout << " weights average: " << d << "  on significant b vals ( " << ddcount << " ): " << dd <<endl;
+   cout << "          weights average: " << dd << "  zero: " << (double)zcount/ddcount << flush;
+   //"  on significant b vals ( " << ddcount << " ): " << dd <<endl;
    lastweight = dd;
+   lastzero   = (double)zcount/ddcount;
   return pair < MATRIX*, MATRIX*> (p,w);
 
 }
@@ -218,6 +224,7 @@ MATRIX* Regression::getLSEst(MATRIX* outX)
 {
   //cout << " Regression::getLSEst " << endl;
   lastweight = -1;
+  lastzero   = -1;
   MATRIX* Ai = MatrixSVDPseudoInverse(A,NULL);
   if (Ai == NULL)
   {
