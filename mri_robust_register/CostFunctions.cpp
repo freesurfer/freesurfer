@@ -20,11 +20,11 @@ using namespace std;
 
 double CostFunctions::mean(MRI *i)
 {
-	if (!i->ischunked)
-	{
-	   cerr<< "CostFunctions::mean need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
-	   exit(1);
-	}
+//	if (!i->ischunked)
+//	{
+//	   cerr<< "CostFunctions::mean need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
+//	   exit(1);
+//	}
 
 	int count = 0;
 	double d= 0.0;
@@ -39,11 +39,11 @@ double CostFunctions::mean(MRI *i)
 
 double CostFunctions::var(MRI *i)
 {
-	if (!i->ischunked)
-	{
-	   cerr<< "CostFunctions::mean need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
-	   exit(1);
-	}
+//	if (!i->ischunked)
+//	{
+//	   cerr<< "CostFunctions::mean need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
+//	   exit(1);
+//	}
 
 	double m = mean(i);
 	double d= 0.0;
@@ -53,7 +53,7 @@ double CostFunctions::var(MRI *i)
 	for (it1.begin();!it1.isEnd(); it1++)
 	{
 	   dd = (*it1)-m;
-	   d += dd;
+	   d += dd * dd;
 	   count++;
 	}
        return d/count;
@@ -83,6 +83,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 	{
 	   MRIiterator it1(i1); 
 	   MRIiterator it2(i2); 
+	   it2.begin();
 	   //assert(i1->type == i2->type);
 	   for (it1.begin();!it1.isEnd(); it1++)
 	   {
@@ -111,11 +112,24 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 	}
 	else
 	{
+
+           MRIiterator it1(i1);
+	   MRIiterator it2(i2);
+	   double dd2;
 	   for (int z = 0;z<i1->depth;z++)
 	   for (int y = 0;y<i1->height;y++)
 	   for (int x = 0;x<i1->width;x++)
 	   {
 	      dd = (double)MRIgetVoxVal(i1,x,y,z,0) - (double)MRIgetVoxVal(i2,x,y,z,0);
+	      dd2 = (double)(*it1) - (double)(*it2);
+	      //cout << " ddd" << dd2 << endl;
+	      it1++;
+	      //cout << " asfd" << endl;
+	      it2++;
+	      if (dd != dd2)
+	      {
+	         cout << "dd: " << dd << " dd2: "<< dd2 << endl;
+	      }
 	      d += dd*dd ;
 	   }
 	   
@@ -124,7 +138,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
        
     
     }
-    cout << " d: " << d << endl;
+    //cout << " d: " << d << endl;
     return d;
 }
 
