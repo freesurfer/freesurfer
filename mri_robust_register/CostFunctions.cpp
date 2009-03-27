@@ -71,6 +71,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
    double d = 0;
    if(i1->ischunked && (i2==NULL || i2->ischunked))
    {
+      //cout << "CostFunctions::leastSquares chunk data" <<endl;
 	double dd;
 	if (i2 == NULL)
 	{
@@ -95,6 +96,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
     }
     else
     {
+       //cout << "CostFunctions::LeastSquares standart data" << endl;
 	double dd;
 	if (i2 == NULL)
 	{
@@ -102,7 +104,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 	   for (int y = 0;y<i1->height;y++)
 	   for (int x = 0;x<i1->width;x++)
 	   {
-	      dd = (double)MRIgetVoxVal(i1,x,y,z,1) ;
+	      dd = (double)MRIgetVoxVal(i1,x,y,z,0) ;
 	      d += dd*dd ;
 	   }
 	   
@@ -113,7 +115,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 	   for (int y = 0;y<i1->height;y++)
 	   for (int x = 0;x<i1->width;x++)
 	   {
-	      dd = (double)MRIgetVoxVal(i1,x,y,z,1) - (double)MRIgetVoxVal(i2,x,y,z,1);
+	      dd = (double)MRIgetVoxVal(i1,x,y,z,0) - (double)MRIgetVoxVal(i2,x,y,z,0);
 	      d += dd*dd ;
 	   }
 	   
@@ -122,6 +124,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
        
     
     }
+    cout << " d: " << d << endl;
     return d;
 }
 
@@ -158,8 +161,8 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 	for (int y = 0;y<i1->height;y++)
 	for (int x = 0;x<i1->width;x++)
 	{
-	   d1 = MRIgetVoxVal(i1,x,y,z,1);
-	   d2 = MRIgetVoxVal(i2,x,y,z,1);
+	   d1 = MRIgetVoxVal(i1,x,y,z,0);
+	   d2 = MRIgetVoxVal(i2,x,y,z,0);
  	   d += d1 * d2;
 	   dd1 += d1 *d1;
 	   dd2 += d2 *d2;
