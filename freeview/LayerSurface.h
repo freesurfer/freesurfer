@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -111,7 +111,11 @@ public:
 
   void SetActiveVector( int nVector );
   
+  bool HasCurvature();
+  
   void GetCurvatureRange( double* range );
+  
+  double GetCurvatureValue( int nVertex );
   
   bool HasOverlay();
   

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/26 21:13:38 $
- *    $Revision: 1.42 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -356,11 +356,16 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 
     m_nScreenshotFilterIndex = config->Read( _T("/MainWindow/ScreenshotFilterIndex"), 0L );
 
+    bool bScalarBar;
+    config->Read( _T("/RenderWindow/ShowScalarBar"), &bScalarBar, false );
+    if ( bScalarBar )
+      ShowScalarBar( bScalarBar );
+    
     config->Read( _T("/RenderWindow/SyncZoomFactor"), &m_settings2D.SyncZoomFactor, true );
-
     config->Read( _T("/Screenshot/Magnification" ), &m_settingsScreenshot.Magnification, 1 );
     config->Read( _T("/Screenshot/HideCursor" ), &m_settingsScreenshot.HideCursor, false );
     config->Read( _T("/Screenshot/HideCoords" ), &m_settingsScreenshot.HideCoords, false );
+    config->Read( _T("/Screenshot/AntiAliasing" ), &m_settingsScreenshot.AntiAliasing, false );
 
     bool bShow = true;
     config->Read( _T("/MainWindow/ShowControlPanel" ), &bShow, true );
@@ -456,10 +461,14 @@ void MainWindow::OnClose( wxCloseEvent &event )
     config->Write( _T("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
     config->Write( _T("RenderWindow/CursorColor"), m_viewAxial->GetCursor2D()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
     config->Write( _T("/RenderWindow/SyncZoomFactor"), m_settings2D.SyncZoomFactor );
+    
+    config->Write( _T("/RenderWindow/ShowScalarBar"), 
+                   ( m_nMainView >= 0 ? m_viewRender[m_nMainView]->GetShowScalarBar() : false ) );
 
     config->Write( _T("/Screenshot/Magnification" ),  m_settingsScreenshot.Magnification );
     config->Write( _T("/Screenshot/HideCursor" ),  m_settingsScreenshot.HideCursor );
     config->Write( _T("/Screenshot/HideCoords" ),  m_settingsScreenshot.HideCoords );
+    config->Write( _T("/Screenshot/AntiAliasing" ),  m_settingsScreenshot.AntiAliasing );
 
     config->Write( _T("/MainWindow/ShowControlPanel" ), m_controlPanel->IsShown() );
 
@@ -1576,22 +1585,27 @@ void MainWindow::OnViewControlPanelUpdateUI( wxUpdateUIEvent& event )
 
 void MainWindow::OnViewScalarBar( wxCommandEvent& event )
 {
+  ShowScalarBar( event.IsChecked() );
+}
+
+void MainWindow::ShowScalarBar( bool bShow )
+{
   for ( int i = 0; i < 4; i++ )
   {
     if ( i != m_nMainView )
       m_viewRender[i]->ShowScalarBar( false );
   }
   if ( m_nMainView >= 0 && m_nMainView < 4 )
-    m_viewRender[m_nMainView]->ShowScalarBar( event.IsChecked() );
+    m_viewRender[m_nMainView]->ShowScalarBar( bShow );
 
   NeedRedraw( 1 );
 }
 
 void MainWindow::OnViewScalarBarUpdateUI( wxUpdateUIEvent& event )
 {
-  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
-  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  event.Enable( mri || ( m_nMainView == 3 && surf && surf->GetActiveOverlay() ) );
+//  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
+//  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+//  event.Enable( mri || ( m_nMainView == 3 && surf && surf->GetActiveOverlay() ) );
   if ( m_nMainView >= 0 && m_nMainView < 4 )
     event.Check( m_viewRender[m_nMainView]->GetShowScalarBar() );
 }
@@ -2293,6 +2307,10 @@ void MainWindow::RunScript()
   {
     CommandSetRAS( sa );
   }
+  else if ( sa[0] == "slice" )
+  {
+    CommandSetSlice( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2448,7 +2466,9 @@ void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
 
 void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
 {
-  m_viewRender[m_nMainView]->SaveScreenshot( cmd[1].c_str(), m_settingsScreenshot.Magnification );
+  m_viewRender[m_nMainView]->SaveScreenshot( cmd[1].c_str(), 
+                                             m_settingsScreenshot.Magnification, 
+                                             m_settingsScreenshot.AntiAliasing );
 
   wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
   event.SetInt( -1 );
@@ -2506,6 +2526,39 @@ void MainWindow::CommandSetRAS( const wxArrayString& cmd )
   event.SetString( "ByPass" );
   wxPostEvent( this, event );
 }
+
+
+void MainWindow::CommandSetSlice( const wxArrayString& cmd )
+{
+  LayerCollection* lc_mri = GetLayerCollection( "MRI" );
+  if ( !lc_mri->IsEmpty() )
+  {
+    LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );;
+    long x, y, z;
+    cmd[1].ToLong( &x );
+    cmd[2].ToLong( &y );
+    cmd[3].ToLong( &z );
+    
+    int slice[3] = { x, y, z };
+    double ras[3];
+    mri->OriginalIndexToRAS( slice, ras );
+    mri->RASToTarget( ras, ras );
+    
+    lc_mri->SetCursorRASPosition( ras );
+    m_layerCollectionManager->SetSlicePosition( ras );
+  }
+  else
+  {
+    cerr << "No volume was loaded. Set slice failed." << endl;
+  }
+
+  // create a fake worker event to notify end of operation
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( "ByPass" );
+  wxPostEvent( this, event );
+}
+
 
 void MainWindow::OnSpinBrushSize( wxSpinEvent& event )
 {
@@ -2591,7 +2644,9 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
   {
     m_strLastDir = MyUtils::GetNormalizedPath( fn );
     m_nScreenshotFilterIndex = dlg.GetFilterIndex();
-    m_viewRender[nId]->SaveScreenshot( fn.c_str(), m_settingsScreenshot.Magnification );
+    m_viewRender[nId]->SaveScreenshot( fn.c_str(), 
+                                       m_settingsScreenshot.Magnification,
+                                       m_settingsScreenshot.AntiAliasing );
   }
 }
 

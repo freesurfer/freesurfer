@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -71,6 +71,8 @@ public:
   {
     return m_nDataSize;
   }
+  
+  double GetDataAtVertex( int nVertex );
   
   void GetRange( double* range )
   {

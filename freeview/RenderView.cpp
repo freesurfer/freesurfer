@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/26 21:13:38 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -376,10 +376,10 @@ void RenderView::OnInternalIdle()
   }
 }
 
-bool RenderView::SaveScreenshot( const wxString& fn, int nMagnification )
+bool RenderView::SaveScreenshot( const wxString& fn, int nMagnification, bool bAntiAliasing )
 {
   PreScreenshot();
-  bool ret = MyUtils::VTKScreenCapture( GetRenderWindow(), m_renderer, fn.c_str(), false, nMagnification );
+  bool ret = MyUtils::VTKScreenCapture( GetRenderWindow(), m_renderer, fn.c_str(), bAntiAliasing, nMagnification );
   PostScreenshot();
 
   return ret;

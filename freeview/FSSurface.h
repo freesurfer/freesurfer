@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/06 23:08:39 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -93,9 +93,9 @@ public:
 
   int GetNumberOfVertices () const;
 
-  bool LoadSurface  ( const char* filename, int nSet );
+  bool LoadSurface    ( const char* filename, int nSet );
   bool LoadCurvature  ( const char* filename = NULL );
-  bool LoadOverlay  ( const char* filename );
+  bool LoadOverlay    ( const char* filename );
 
   bool IsSurfaceLoaded( int nSet )
   {
@@ -107,6 +107,8 @@ public:
     return m_bCurvatureLoaded;
   }
 
+  double GetCurvatureValue( int nVertex );
+  
   bool SetActiveSurface( int nIndex );
 
   int GetActiveSurface()
@@ -166,13 +168,13 @@ protected:
 
   MRIS*   m_MRIS;
 
-  double   m_SurfaceToRASMatrix[16];
+  double  m_SurfaceToRASMatrix[16];
   vtkSmartPointer<vtkTransform> m_SurfaceToRASTransform;
 
   // RAS bounds.
-  bool   m_bBoundsCacheDirty;
-  float  m_RASBounds[6];
-  float m_RASCenter[3];
+  bool    m_bBoundsCacheDirty;
+  float   m_RASBounds[6];
+  float   m_RASCenter[3];
 
   vtkPolyData* m_polydata;
   vtkPolyData* m_polydataVector;

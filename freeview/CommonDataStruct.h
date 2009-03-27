@@ -8,9 +8,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,6 +43,7 @@ struct SettingsScreenshot
   bool HideCursor;
   bool HideCoords;
   int  Magnification;
+  bool AntiAliasing;
 };
 
 struct RotationElement

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/26 21:13:38 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ public:
     return m_renderer;
   }
 
-  bool SaveScreenshot( const wxString& fn, int nMagnification = 1 );
+  bool SaveScreenshot( const wxString& fn, int nMagnification = 1, bool bAntiAliasing = false );
 
   virtual void PreScreenshot()
   {}
@@ -123,18 +123,18 @@ protected:
   virtual void UpdateScalarBar();
 
 protected:
-  vtkRenderer*  m_renderer;
-  vtkRenderWindow* m_renderWindow;
-  vtkActor2D*   m_actorFocusFrame;
-  vtkScalarBarActor* m_actorScalarBar;
+  vtkRenderer*        m_renderer;
+  vtkRenderWindow*    m_renderWindow;
+  vtkActor2D*         m_actorFocusFrame;
+  vtkScalarBarActor*  m_actorScalarBar;
 
-  double    m_dWorldOrigin[3];
-  double    m_dWorldSize[3];
+  double        m_dWorldOrigin[3];
+  double        m_dWorldSize[3];
 
   Interactor*   m_interactor;
-  int     m_nInteractionMode;
+  int           m_nInteractionMode;
 
-  int     m_nRedrawCount;
+  int           m_nRedrawCount;
 
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()

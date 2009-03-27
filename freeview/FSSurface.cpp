@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/16 20:55:40 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -172,10 +172,12 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   SaveNormals ( m_MRIS, SurfaceMain );
   m_bSurfaceLoaded[SurfaceMain] = true;
 
-  LoadSurface ( "white",   SurfaceWhite );
-  LoadSurface ( "pial",   SurfacePial );
-  LoadSurface ( "orig",   SurfaceOriginal );
-  LoadSurface ( "inflated",  SurfaceInflated );
+  LoadSurface ( "white",    SurfaceWhite );
+  LoadSurface ( "pial",     SurfacePial );
+  LoadSurface ( "orig",     SurfaceOriginal );
+  LoadSurface ( "inflated", SurfaceInflated );
+  
+  RestoreVertices( m_MRIS, SurfaceMain );
 
   if ( vector_filename != NULL )
     LoadVectors ( vector_filename );
@@ -995,4 +997,9 @@ const char* FSSurface::GetVectorSetName( int nSet )
     return m_vertexVectors[nSet].name.c_str();
   else
     return NULL;
+}
+
+double FSSurface::GetCurvatureValue( int nVertex )
+{
+  return m_MRIS->vertices[nVertex].curv;
 }

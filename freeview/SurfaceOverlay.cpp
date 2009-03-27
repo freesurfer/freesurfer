@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -108,5 +108,9 @@ void SurfaceOverlay::MapOverlay( unsigned char* colordata )
   m_properties->MapOverlayColor( colordata, m_nDataSize );
 }
 
+double SurfaceOverlay::GetDataAtVertex( int nVertex )
+{
+  return m_fData[nVertex];
+}
 
 

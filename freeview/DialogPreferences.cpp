@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.7 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -50,6 +50,7 @@ DialogPreferences::DialogPreferences( wxWindow* parent )
 
   m_checkHideCursor = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR", wxCheckBox );
   m_checkHideCoords = XRCCTRL( *this, "ID_CHECK_HIDE_COORDS", wxCheckBox );
+  m_checkAntiAliasing = XRCCTRL( *this, "ID_CHECK_ANTIALIASING", wxCheckBox );  
   m_spinMagnification = XRCCTRL( *this, "ID_SPIN_MAGNIFICATION", wxSpinCtrl );
 }
 
@@ -101,6 +102,7 @@ void DialogPreferences::SetScreenshotSettings( const SettingsScreenshot& s )
   m_spinMagnification->SetValue( s.Magnification );
   m_checkHideCursor->SetValue( s.HideCursor );
   m_checkHideCoords->SetValue( s.HideCoords );
+  m_checkAntiAliasing->SetValue( s.AntiAliasing );
 }
 
 SettingsScreenshot DialogPreferences::GetScreenshotSettings()
@@ -109,6 +111,7 @@ SettingsScreenshot DialogPreferences::GetScreenshotSettings()
   s.HideCursor = m_checkHideCursor->IsChecked();
   s.HideCoords = m_checkHideCoords->IsChecked();
   s.Magnification = m_spinMagnification->GetValue();
+  s.AntiAliasing = m_checkAntiAliasing->IsChecked();
 
   return s;
 }

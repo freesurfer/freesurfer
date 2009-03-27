@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -549,6 +549,16 @@ void LayerSurface::GetCurvatureRange( double* range )
     range[0] = m_surfaceSource->GetMRIS()->min_curv;
     range[1] = m_surfaceSource->GetMRIS()->max_curv;
   } 
+}
+
+double LayerSurface::GetCurvatureValue( int nVertex )
+{
+  return m_surfaceSource->GetCurvatureValue( nVertex );
+}
+
+bool LayerSurface::HasCurvature()
+{
+  return m_surfaceSource->IsCurvatureLoaded();
 }
 
 bool LayerSurface::HasOverlay()

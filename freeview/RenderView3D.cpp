@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/26 21:13:38 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/03/27 21:25:11 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -119,7 +119,8 @@ void RenderView3D::RefreshAllActors()
   // add focus frame
   m_renderer->AddViewProp( m_actorFocusFrame );
 
-  m_renderer->AddViewProp( m_actorScalarBar );
+  if ( lcm->HasLayer( "MRI" ) || lcm->HasLayer( "Surface" ) )
+    m_renderer->AddViewProp( m_actorScalarBar );
 
   m_renderer->ResetCameraClippingRange();
 
