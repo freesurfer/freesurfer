@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/10/23 04:28:41 $
- *    $Revision: 1.52 $
+ *    $Date: 2009/03/30 20:36:43 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -396,6 +396,8 @@ ENDHELP --------------------------------------------------------------
 #include <math.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "macros.h"
 #include "error.h"
@@ -442,7 +444,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.52 2008/10/23 04:28:41 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.53 2009/03/30 20:36:43 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -450,7 +452,7 @@ int debug = 0, gdiagno = -1;
 char *movvolfile=NULL;
 char *targvolfile=NULL;
 int  fstarg = 0;
-char *outvolfile=NULL;
+char *outvolfile=NULL, *outdir=NULL;
 char *regfile=NULL;
 char *xfmfile=NULL;
 char *fslregfile=NULL;
@@ -547,12 +549,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.52 2008/10/23 04:28:41 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.53 2009/03/30 20:36:43 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.52 2008/10/23 04:28:41 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.53 2009/03/30 20:36:43 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -795,7 +797,11 @@ int main(int argc, char **argv) {
       printf("Applying Half-Cosine Slice Bias, Alpha = %g\n",SliceBiasAlpha);
       MRIhalfCosBias(in, SliceBiasAlpha, in);
     }
-    MRIwrite(in,outvolfile);
+    err = MRIwrite(in,outvolfile);
+    if(err){
+      printf("ERROR: writing %s\n",outvolfile);
+      exit(1);
+    }
     printf("To check registration, run:\n");
     printf("\n");
     printf("  tkregister2 --mov %s --targ %s --regheader --reg /tmp/reg \n",
@@ -913,7 +919,11 @@ int main(int argc, char **argv) {
     MRIfree(&out);
     out = crop;
   }
-  MRIwrite(out,outvolfile);
+  err = MRIwrite(out,outvolfile);
+  if(err){
+    printf("ERROR: writing %s\n",outvolfile);
+    exit(1);
+  }
 
   sprintf(regfile,"%s.reg",outvolfile);
   printf("INFO: writing registration matrix to %s\n",regfile);
@@ -1551,6 +1561,15 @@ static void check_options(void) {
     printf("ERROR: No output volume supplied.\n");
     exit(1);
   }
+  if(outvolfile){
+    outdir = fio_dirname(outvolfile);
+    err = mkdir(outdir,0777);
+    if (err != 0 && errno != EEXIST) {
+      printf("ERROR: creating directory %s\n",outdir);
+      exit(1);
+    }
+  }
+
   if(!fstal && !DoCrop && !fstarg && targvolfile == NULL) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
