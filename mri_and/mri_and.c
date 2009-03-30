@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/30 13:41:20 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/03/30 16:22:51 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.1 $";
+char *MRI_INFO_VERSION = "$Revision: 1.2 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -49,7 +49,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int get_option(int argc, char *argv[]) ;
-static char vcid[] = "$Id: mri_and.c,v 1.1 2009/03/30 13:41:20 fischl Exp $";
+static char vcid[] = "$Id: mri_and.c,v 1.2 2009/03/30 16:22:51 fischl Exp $";
 
 char *Progname ;
 
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 {
   int  nargs, index, ac, nvolumes;
   char **av ;
-  MRI  *mri_and, *mri ;
+  MRI  *mri_and = NULL, *mri ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
