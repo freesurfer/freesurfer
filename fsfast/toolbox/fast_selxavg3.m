@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.66 2009/02/22 21:42:05 greve Exp $
+% $Id: fast_selxavg3.m,v 1.67 2009/03/30 18:54:32 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/02/22 21:42:05 $
-%    $Revision: 1.66 $
+%    $Date: 2009/03/30 18:54:32 $
+%    $Revision: 1.67 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.66 2009/02/22 21:42:05 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.67 2009/03/30 18:54:32 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -565,7 +565,7 @@ if(DoGLMFit)
 	acfsegrun = nrho1segmn(nthseg).^(nnrun-1);
 	Srun = toeplitz(acfsegrun);
 	Sruninv = inv(Srun);
-	Wrun = inv(chol(Sruninv)');
+	Wrun = inv(chol(Srun)');
 	S(indrun,indrun,nthseg) = Srun;
 	Sinv(indrun,indrun,nthseg) = Sruninv;
 	W(indrun,indrun,nthseg) = Wrun;
