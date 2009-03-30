@@ -1,0 +1,484 @@
+/**
+ * @file  mri_compute_change_map.c
+ * @brief computes longitudinal change map for a pair of (registered) images
+ *
+ * Program for computing a change map for a pair of registered images by
+ * using a robust estimate of the noise.
+ */
+/*
+ * Original Author: Bruce Fischl
+ * CVS Revision Info:
+ *    $Author: fischl $
+ *    $Date: 2009/03/30 13:40:25 $
+ *    $Revision: 1.1 $
+ *
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <ctype.h>
+
+#include "mri.h"
+#include "macros.h"
+#include "error.h"
+#include "diag.h"
+#include "proto.h"
+#include "mrimorph.h"
+#include "mri_conform.h"
+#include "utils.h"
+#include "timer.h"
+#include "version.h"
+#include "cma.h"
+
+int main(int argc, char *argv[]) ;
+static int get_option(int argc, char *argv[]) ;
+
+
+char *Progname ;
+
+
+#define MAX_LOGP 1000
+#define MAX_SIMS 1000
+
+static void usage_exit(int code) ;
+
+static float smooth_sigma = 0.0 ;
+static int nbhd_size = 0 ;
+static int bonferroni = 0 ;
+
+MRI *MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change, float *pstd) ;
+MRI *MRIcomputeNbhdPvalues(MRI *mri_src, int nbhd_size, MRI *mri_dst) ;
+MRI *MRIbonferroniCorrect(MRI *mri_src, MRI *mri_dst, int is_log) ; 
+
+int MRImaskRegisteredPair(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_mask) ;
+
+static MRI *mri_mask = NULL ;
+int
+main(int argc, char *argv[]) {
+  char   *out_fname, **av ;
+  int    ac, nargs ;
+  MRI    *mri1, *mri2, *mri_change ;
+  int     msec, minutes, seconds ;
+  struct timeb start ;
+  TRANSFORM     *transform ;
+  float         std ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_change_map.c,v 1.1 2009/03/30 13:40:25 fischl Exp $", "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
+
+  Progname = argv[0] ;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+
+  TimerStart(&start) ;
+
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+  if (argc < 4)
+    usage_exit(1) ;
+
+  mri1 = MRIread(argv[1]) ;
+  if (mri1 == NULL)
+    ErrorExit(ERROR_BADPARM, "%s: could not read input volume %s\n",
+              Progname,argv[1]);
+  mri2 = MRIread(argv[2]) ;
+  if (mri2 == NULL)
+    ErrorExit(ERROR_BADPARM, "%s: could not read input volume %s\n",
+              Progname,argv[2]);
+  transform = TransformRead(argv[3]) ;
+  if (transform == NULL)
+    ErrorExit(ERROR_BADPARM, "%s: could not read transform %s\n",
+              Progname,argv[3]);
+
+  if (smooth_sigma > 0)
+  {
+    MRI *mri_smooth, *mri_kernel = MRIgaussian1d(smooth_sigma, 100) ;
+    
+    mri_smooth = MRIconvolveGaussian(mri1, NULL, mri_kernel) ;
+    MRIfree(&mri1) ; mri1 = mri_smooth ;
+    mri_smooth = MRIconvolveGaussian(mri2, NULL, mri_kernel) ;
+    MRIfree(&mri2) ; mri2 = mri_smooth ;
+
+    MRIfree(&mri_kernel) ;
+  }
+
+  if (mri_mask)
+    MRImaskRegisteredPair(mri1, mri2, transform, mri_mask) ;
+
+  mri_change = MRIcomputeChangeMap(mri1, mri2, transform, NULL, &std) ;
+
+  if (smooth_sigma > 0)  // correct for multiple comparisons using GRF and monte carlo sims
+  {
+    MRI          *mri_kernel = MRIgaussian1d(smooth_sigma, 100), *mri_n1, *mri_n2, 
+                 *mri_n1_smoothed, *mri_n2_smoothed, *mri_noise_change;
+    int          nsim, b ;
+    HISTOGRAM    *h = NULL ;
+    float        min_val, max_val ;
+    
+    mri_n1 = MRIcloneDifferentType(mri1, MRI_FLOAT) ;
+    mri_n2 = MRIcloneDifferentType(mri2, MRI_FLOAT) ;
+    mri_n1_smoothed = MRIclone(mri_n1, NULL) ;
+    mri_n2_smoothed = MRIclone(mri_n2, NULL) ;
+    h = HISTOalloc(MAX_LOGP) ; HISTOinit(h, MAX_LOGP, 0, MAX_LOGP) ;
+    mri_noise_change = MRIclone(mri_change, NULL) ;
+    for (nsim = 0 ; nsim < MAX_SIMS ; nsim++)
+    {
+      if (!(nsim % 10))
+        printf("\rsimulation %d", nsim) ;
+      MRIrandn(mri_n1->width, mri_n1->height, mri_n1->depth, mri_n1->nframes, 0.0, std, mri_n1) ;
+      MRIrandn(mri_n2->width, mri_n2->height, mri_n2->depth, mri_n2->nframes, 0.0, std, mri_n2) ;
+      MRIconvolveGaussian(mri_n1, mri_n1_smoothed, mri_kernel) ;
+      MRIconvolveGaussian(mri_n2, mri_n2_smoothed, mri_kernel) ;
+      MRIcomputeChangeMap(mri_n1_smoothed, mri_n2_smoothed, transform, mri_noise_change, NULL) ;
+      MRIvalRange(mri_noise_change, &min_val, &max_val) ;
+      for (b = 0 ; b <= max_val ; b++)
+        h->counts[b]++ ;
+    }
+    printf("\n") ;
+    HISTOplot(h, "h.plt") ;
+
+    MRIfree(&mri_kernel) ; MRIfree(&mri_n1) ; MRIfree(&mri_n2) ; MRIfree(&mri_noise_change) ;
+    HISTOfree(&h) ;
+  }
+
+#if 0
+  if (smooth_sigma > 0)
+  {
+    MRI *mri_smooth, *mri_kernel = MRIgaussian1d(smooth_sigma, 100) ;
+    
+    mri_smooth = MRIconvolveGaussian(mri_change, NULL, mri_kernel) ;
+    MRIfree(&mri_change) ; mri_change = mri_smooth ;
+
+    MRIfree(&mri_kernel) ;
+  }
+#endif
+  if (bonferroni)
+    MRIbonferroniCorrect(mri_change, mri_change, 1) ;
+
+  if (nbhd_size > 0)
+  {
+    MRI *mri_tmp ;
+    mri_tmp = MRIcomputeNbhdPvalues(mri_change, nbhd_size, NULL) ;
+    MRIfree(&mri_change) ; mri_change = mri_tmp ;
+  }
+
+  out_fname = argv[4] ;
+  fprintf(stderr, "writing to %s...\n", out_fname) ;
+  MRIwrite(mri_change, out_fname) ;
+  MRIfree(&mri_change) ;
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ;
+  seconds = seconds % 60 ;
+  fprintf(stderr, "morphological processing took %d minutes and %d seconds.\n",
+          minutes, seconds) ;
+  exit(0) ;
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+get_option(int argc, char *argv[]) {
+  int  nargs = 0 ;
+  char *option ;
+
+  option = argv[1] + 1 ;            /* past '-' */
+  if (!stricmp(option, "mask")) 
+  {
+    mri_mask = MRIread(argv[2]) ;
+    if (mri_mask == NULL)
+      exit(Gerror) ;
+    MRIbinarize(mri_mask, mri_mask, 1, 0, 1) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "DEBUG_VOXEL")) {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  } else switch (toupper(*option)) {
+  case 'S':
+    smooth_sigma = atof(argv[2]) ;
+    printf("smoothing difference image with Gaussian w/sigma=%2.2f\n", smooth_sigma) ;
+    nargs = 1 ;
+    break ;
+  case 'B':
+    bonferroni = 1 ;
+    printf("performing Bonferroni correction\n") ;
+    break ;
+  case 'N':
+    nbhd_size = atoi(argv[2]) ;
+    printf("computing joint p-value in %d voxel neighborhood\n", nbhd_size) ;
+    nargs = 1 ;
+    break ;
+  case '?':
+  case 'U':
+    usage_exit(0) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
+
+  return(nargs) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static void
+usage_exit(int code) {
+  printf("usage: %s [options] <volume1> <volume2> <transform> <out volume>\n", Progname) ;
+  printf("\twhere <transform> should take volume2 coords into volume1 space\n") ;
+  printf("\tvalid options are:\n") ;
+  exit(code) ;
+}
+
+int
+MRImaskRegisteredPair(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_mask)
+{
+  int       x1, y1, z1, x2, y2, z2 ;
+  float     xf, yf, zf;
+  Real      val ;
+
+  for (x1 = 0 ; x1 < mri1->width ; x1++)
+    for (y1 = 0 ; y1 < mri1->height ; y1++)
+      for (z1 = 0 ; z1 < mri1->depth ; z1++)
+      {
+        if (x1 == Gx && y1 == Gy && z1 == Gz)
+          DiagBreak() ;
+        val = MRIgetVoxVal(mri_mask, x1, y1, z1, 0) ;
+        if (FZERO(val) == 0)
+          continue ;
+        MRIsetVoxVal(mri1, x1, y1, z1, 0, 0) ;
+      }
+
+  for (x2 = 0 ; x2 < mri2->width ; x2++)
+    for (y2 = 0 ; y2 < mri2->height ; y2++)
+      for (z2 = 0 ; z2 < mri2->depth ; z2++)
+      {
+        TransformSampleInverse(transform, (float)x2, (float)y2, (float)z2, &xf, &yf, &zf) ;
+        MRIsampleVolume(mri_mask, xf, yf, zf, &val) ;
+        if (FZERO(val) == 0)
+          continue ;
+        MRIsetVoxVal(mri2, x2, y2, z2, 0, 0) ;
+      }
+  return(NO_ERROR) ;
+}
+MRI *
+MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change, float *pstd)
+{
+  int       x1, y1, z1, nvox ;
+  float     x2, y2, z2, val1, min1, max1, min2, max2, min_change, 
+    max_change, dif, mask1 ;
+  Real      val2, p, logp, mask2, sigma, offset ;
+  MRI       *mri_dif, *mri_mean, *mri_used, *mri_mask1, *mri_mask2, *mri_big ;
+  HISTOGRAM *h, *hs ;
+
+  MRIvalRange(mri1, &min1, &max1) ;
+  MRIvalRange(mri2, &min2, &max2) ;
+  TransformInvert(transform,mri1) ;
+  mri_change = MRIcloneDifferentType(mri1, MRI_FLOAT) ;
+  mri_dif = MRIcloneDifferentType(mri1, MRI_FLOAT) ;
+  mri_mean = MRIcloneDifferentType(mri1, MRI_FLOAT) ;
+  mri_used = MRIcloneDifferentType(mri1, MRI_UCHAR) ;
+  mri_big = MRIcloneDifferentType(mri1, MRI_UCHAR) ; // for keeping track of underflow values
+
+  mri_mask1 = MRIerodeZero(mri1, NULL) ;
+  mri_mask2 = MRIerodeZero(mri2, NULL) ;
+  nvox = 0 ;
+
+  // compute mode of distribution and use it for centering
+  for (x1 = 0 ; x1 < mri1->width ; x1++)
+    for (y1 = 0 ; y1 < mri1->height ; y1++)
+      for (z1 = 0 ; z1 < mri1->depth ; z1++)
+      {
+        if (x1 == Gx && y1 == Gy && z1 == Gz)
+          DiagBreak() ;
+        TransformSampleInverse(transform, (float)x1, (float)y1, (float)z1, &x2, &y2, &z2) ;
+        val1 = MRIgetVoxVal(mri1, x1, y1, z1, 0) ;
+        MRIsampleVolume(mri2, x2, y2, z2, &val2) ;
+        mask1 = MRIgetVoxVal(mri_mask1, x1, y1, z1, 0) ;
+        MRIsampleVolume(mri_mask2, x2, y2, z2, &mask2) ;
+        if (!FZERO(mask1) && !FZERO(mask2))
+        {
+          dif = val2-val1 ;
+          MRIsetVoxVal(mri_dif, x1, y1, z1, 0, dif) ;
+          MRIsetVoxVal(mri_used, x1, y1, z1, 0, 1) ;
+        }
+      }
+
+  MRIvalRange(mri_dif, &min_change, &max_change) ;
+  if (max_change-min_change <= 0)
+    ErrorExit(ERROR_BADPARM, "%s: input volumes are identical", Progname) ;
+  h = MRIhistogramLabel(mri_dif, mri_used, 1, (max_change-min_change)) ;
+  HISTOfillHoles(h) ;
+  hs = HISTOsmooth(h, NULL, 20) ;
+  HISTOrobustGaussianFit(hs, 0.5, &offset, &sigma) ;
+  hs = HISTOsmooth(h, NULL, 10) ;
+  HISTOrobustGaussianFit(hs, 0.5, &offset, &sigma) ;
+  hs = HISTOsmooth(h, NULL, 5) ;
+  HISTOrobustGaussianFit(hs, 0.5, &offset, &sigma) ;
+  HISTOrobustGaussianFit(h, 0.5, &offset, &sigma) ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    HISTOplot(h, "h.plt") ; 
+    HISTOplot(hs, "hs.plt") ; 
+  }
+  HISTOfree(&h) ; HISTOfree(&hs) ;
+  printf("offsetting vol1 by %2.2f\n", offset) ;
+
+  if (pstd)
+  {
+    *pstd = sigma ;
+    printf("setting std = %2.2f\n", sigma) ;
+  }
+
+  for (x1 = 0 ; x1 < mri1->width ; x1++)
+    for (y1 = 0 ; y1 < mri1->height ; y1++)
+      for (z1 = 0 ; z1 < mri1->depth ; z1++)
+      {
+        if (x1 == Gx && y1 == Gy && z1 == Gz)
+          DiagBreak() ;
+        TransformSampleInverse(transform, (float)x1, (float)y1, (float)z1, &x2, &y2, &z2) ;
+        val1 = MRIgetVoxVal(mri1, x1, y1, z1, 0) ;
+        MRIsampleVolume(mri2, x2, y2, z2, &val2) ;
+        mask1 = MRIgetVoxVal(mri_mask1, x1, y1, z1, 0) ;
+        MRIsampleVolume(mri_mask2, x2, y2, z2, &mask2) ;
+        if (!FZERO(mask1) && !FZERO(mask2))
+        {
+          dif = (val2-val1+offset)  ;
+          p = (1.0 / (sqrt(2*M_PI)*sigma)) * exp(-0.5 * (dif*dif) / (2*sigma*sigma)) ;
+          logp = -log10(p) ;
+          if (finite(logp) == 0 || (DZERO(logp) && p < .1))
+            MRIsetVoxVal(mri_big, x1, y1, z1, 0, 1) ;
+          else
+            MRIsetVoxVal(mri_change, x1, y1, z1, 0, logp) ;
+        }
+      }
+  MRIvalRange(mri_dif, &min_change, &max_change) ;
+  
+  if (pstd)
+    printf("setting underflow voxels to %2.1f\n", 2*max_change) ;
+  for (x1 = 0 ; x1 < mri1->width ; x1++)
+    for (y1 = 0 ; y1 < mri1->height ; y1++)
+      for (z1 = 0 ; z1 < mri1->depth ; z1++)
+      {
+        if (MRIgetVoxVal(mri_big, x1, y1, z1, 0) == 0)
+          continue ;
+        MRIsetVoxVal(mri_change, x1, y1, z1, 0, 2*max_change) ;
+      }
+
+  HISTOfree(&hs) ; HISTOfree(&h) ; MRIfree(&mri_dif) ; MRIfree(&mri_mean) ; 
+  MRIfree(&mri_mask1) ; MRIfree(&mri_mask2) ;
+  return(mri_change) ;
+}
+
+MRI *
+MRIcomputeNbhdPvalues(MRI *mri_src, int nbhd_size, MRI *mri_dst)
+{
+  int    x, y, z, xk, yk, zk, xi, yi, zi ;
+  double pval, log_pnbhd, logp ;
+
+  mri_dst = MRIclone(mri_src, mri_dst) ;
+
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        log_pnbhd = 0 ;
+        for (xk = -nbhd_size ; xk <= nbhd_size ; xk++)
+        {
+          xi = mri_src->xi[x+xk] ;
+          for (yk = -nbhd_size ; yk <= nbhd_size ; yk++)
+          {
+            yi = mri_src->yi[y+yk] ;
+            for (zk = -nbhd_size ; zk <= nbhd_size ; zk++)
+            {
+              zi = mri_src->zi[z+zk] ;
+              logp = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+              pval = pow(10.0, -logp) ;
+              logp = -log10(1.0-pval) ;
+              
+              log_pnbhd += logp ;
+            }
+          }
+        }
+        pval = pow(10.0, -log_pnbhd) ;
+        logp = -log10(1.0-pval) ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, logp) ;
+      }
+
+  return(mri_dst) ;
+}
+MRI *
+MRIbonferroniCorrect(MRI *mri_src, MRI *mri_dst, int is_log) 
+{
+  int    x, y, z, nvox ;
+  double logp, pval ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+
+  for (nvox = x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        logp = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        if (FZERO(logp) != 0)
+          nvox++ ;
+      }
+
+  printf("using %d voxels for Bonferroni correction\n", nvox) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (is_log)
+        {
+          logp = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          pval = 1-pow(10.0, -logp) ;
+          logp = -log10(pval) ;
+          logp *= (float)nvox ;
+          pval = 1-pow(10.0, -logp) ;
+          logp = -log10(pval) ;
+          MRIsetVoxVal(mri_src, x, y, z, 0, logp) ;
+        }
+      }
+
+  return(mri_dst) ;
+}
+
