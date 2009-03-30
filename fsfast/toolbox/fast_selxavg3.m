@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.55.2.6 2008/05/14 20:01:35 greve Exp $
+% $Id: fast_selxavg3.m,v 1.55.2.7 2009/03/30 19:15:00 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/05/14 20:01:35 $
-%    $Revision: 1.55.2.6 $
+%    $Date: 2009/03/30 19:15:00 $
+%    $Revision: 1.55.2.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,6 @@
 % How to check that analyses are not being mixed?
 % RFx, FFx, MFx 2nd level analysis
 % Func2ROI
-
 
 if(0)
   monly       = 1;
@@ -61,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.55.2.6 2008/05/14 20:01:35 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.55.2.7 2009/03/30 19:15:00 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -91,6 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.55.2.7 2009/03/30 19:15:00 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -204,6 +204,10 @@ for nthouter = outer_runlist
     % in which the data and design matrices are concatenated.
     Xrun = flac.X;
     for nthcon = 1:ncontrasts
+      if(~isempty(ConList))
+	ind = strmatch(flac0.con(nthcon).name,ConList);
+	if(isempty(ind)) continue; end
+      end
       C = flac.con(nthcon).C;
       M = C*inv(Xrun'*Xrun)*C';
       if(nthrun == 1) conffx(nthcon).Msum = 0; end
@@ -236,10 +240,12 @@ for nthouter = outer_runlist
   Xsss = sqrt(sum(X.^2));
   Xn = X ./ repmat(Xsss,[ntptot 1]);
   XtX = Xn'*Xn;
-  XCond = cond(XtX);
+
   tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
   fprintf('Saving X matrix to %s\n',tmpxfile);
   save(tmpxfile,'X','flac','Xsss','Xn','XtX');
+
+  XCond = cond(XtX);
   fprintf('XCond = %g (normalized)\n',XCond);
   if(XCond > 1e4)
     fprintf('ERROR: design is ill-conditioned\n');
@@ -251,7 +257,7 @@ for nthouter = outer_runlist
   nn = [1:ntptot]';
   R = eye(ntptot) - X*inv(X'*X)*X';
   
-  if(flac0.acfbins ~= 0)
+  if(flac0.fixacf & flac0.acfbins > 0 )
     fprintf('Computing compensation for resdual AR1 bias\n');
     [rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
     fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
@@ -266,6 +272,10 @@ for nthouter = outer_runlist
   fprintf('Computing contrast matrices\n');
   flacC = flac0;
   for nthcon = 1:ncontrasts
+    if(~isempty(ConList))
+      ind = strmatch(flac0.con(nthcon).name,ConList);
+      if(isempty(ind)) continue; end
+    end
     indtask = flac_taskregind(flac0);
     C = flacC.con(nthcon).C;
     C = C(:,indtask);
@@ -315,10 +325,13 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
-      if(abs(yrun.tr/1000 - flac.TR) > .001)
+      if(abs(yrun.tr/1000 - flac.TR) > .01)
+	fprintf('\n\n');
 	fprintf('ERROR: TR mismatch between analysis and data\n');
 	fprintf('analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
-	return;
+	if(flac.OverrideTR == 0) return; end
+	fprintf('BUT you have specified to continue anyway with TR = %g.\n',flac.TR);
+	fprintf('\n\n');
       end
       if(UseFloat) yrun.vol = single(yrun.vol); end
       if(yrun.volsize(1) ~= mask.volsize(1) | ...
@@ -363,7 +376,7 @@ if(DoGLMFit)
   % baseline0 = mri;
   % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
   % Compute Rescale Factor
-  if(~isempty(flac0.inorm))
+  if(flac0.inorm ~= 0)
     gmean = mean(betamn0(indmask));
     RescaleFactor = flac0.inorm/gmean;
     fprintf('Global In-Mask Mean = %g\n',gmean);
@@ -422,6 +435,21 @@ if(DoGLMFit)
     rsse = rsse + rsserun;
     rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
     rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize); %bug was here
+    if(SaveResUnwhitened)
+      fprintf('Saving unwhitened residuals\n');
+      fname = sprintf('%s/res-uw-%03d.%s',outresdir,nthrun,ext);
+      rrunmri = mri;
+      rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+      MRIwrite(rrunmri,fname);
+      fprintf('Computing ACF\n');
+      acfmat = fast_acorr(rrun);
+      acfmat = acfmat(1:30,:);
+      acf = mri;
+      acf.vol = fast_mat2vol(acfmat,acf.volsize);
+      fprintf('Saving ACF\n');
+      fname = sprintf('%s/acf-uw-%03d.%s',outresdir,nthrun,ext);      
+      MRIwrite(acf,fname);
+    end
     %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun;
     %rho2.vol(:,:,:,end+1) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
@@ -540,7 +568,7 @@ if(DoGLMFit)
 	acfsegrun = nrho1segmn(nthseg).^(nnrun-1);
 	Srun = toeplitz(acfsegrun);
 	Sruninv = inv(Srun);
-	Wrun = inv(chol(Sruninv)');
+	Wrun = inv(chol(Srun)');
 	S(indrun,indrun,nthseg) = Srun;
 	Sinv(indrun,indrun,nthseg) = Sruninv;
 	W(indrun,indrun,nthseg) = Wrun;
@@ -750,6 +778,10 @@ if(DoContrasts)
   %---------------------------------------------------------------%
   fprintf('Starting contrasts\n');
   for nthcon = 1:ncontrasts
+    if(~isempty(ConList))
+      ind = strmatch(flac0.con(nthcon).name,ConList);
+      if(isempty(ind)) continue; end
+    end
     C = flacC.con(nthcon).C;
     [J K] = size(C);
     fprintf('%s J=%d -------------\n',flacC.con(nthcon).name,J);
