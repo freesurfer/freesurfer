@@ -79,6 +79,7 @@ MRISUBDIRS=\
 	mri_histo_eq \
 	mri_compute_structure_transforms \
 	mri_info \
+	mri_and \
 	mri_hausdorff_dist \
 	mri_joint_density \
 	mri_label_histo \
@@ -159,6 +160,7 @@ MRISUBDIRS=\
 	mri_ms_LDA \
 	mri_transform_to_COR \
 	mri_log_likelihood \
+	mri_compute_change_map \
 	mri_apply_inu_correction
 
 MRISSUBDIRS=\

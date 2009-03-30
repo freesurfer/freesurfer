@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2009/01/22 02:45:43 $
-#    $Revision: 1.427 $
+#    $Date: 2009/03/30 13:40:41 $
+#    $Revision: 1.428 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2776,6 +2776,7 @@ AC_OUTPUT([Makefile
            mri_histo_eq/Makefile
            histo_fix_topology/Makefile
            mri_info/Makefile
+           mri_and/Makefile
            mri_hausdorff_dist/Makefile
            mri_joint_density/Makefile
            mri_label2label/Makefile
@@ -2855,6 +2856,7 @@ AC_OUTPUT([Makefile
            mri_z2p/Makefile
            mri_label_accuracy/Makefile
            mri_multispectral_segment/Makefile
+           mri_compute_change_map/Makefile
            mris2rgb/Makefile
            mris_hausdorff_dist/Makefile
            mris_distance_transform/Makefile
