@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.67 2009/03/30 18:54:32 greve Exp $
+% $Id: fast_selxavg3.m,v 1.68 2009/03/30 19:12:14 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/03/30 18:54:32 $
-%    $Revision: 1.67 $
+%    $Date: 2009/03/30 19:12:14 $
+%    $Revision: 1.68 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.67 2009/03/30 18:54:32 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.68 2009/03/30 19:12:14 greve Exp $\n');
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -90,6 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.68 2009/03/30 19:12:14 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -239,10 +240,12 @@ for nthouter = outer_runlist
   Xsss = sqrt(sum(X.^2));
   Xn = X ./ repmat(Xsss,[ntptot 1]);
   XtX = Xn'*Xn;
-  XCond = cond(XtX);
+
   tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
   fprintf('Saving X matrix to %s\n',tmpxfile);
   save(tmpxfile,'X','flac','Xsss','Xn','XtX');
+
+  XCond = cond(XtX);
   fprintf('XCond = %g (normalized)\n',XCond);
   if(XCond > 1e4)
     fprintf('ERROR: design is ill-conditioned\n');
