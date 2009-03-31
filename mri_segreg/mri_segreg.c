@@ -6,11 +6,11 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/18 23:34:02 $
- *    $Revision: 1.71 $
+ *    $Author: nicks $
+ *    $Date: 2009/03/31 23:14:04 $
+ *    $Revision: 1.72 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -217,7 +217,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.71 2009/02/18 23:34:02 greve Exp $";
+"$Id: mri_segreg.c,v 1.72 2009/03/31 23:14:04 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -361,13 +361,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.71 2009/02/18 23:34:02 greve Exp $",
+     "$Id: mri_segreg.c,v 1.72 2009/03/31 23:14:04 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.71 2009/02/18 23:34:02 greve Exp $",
+     "$Id: mri_segreg.c,v 1.72 2009/03/31 23:14:04 nicks Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -800,12 +800,12 @@ int main(int argc, char **argv) {
 
   TimerStart(&mytimer) ;
   if(DoPowell) {
-    printf("Staring Powell Minimization\n");
+    printf("Starting Powell Minimization\n");
     MinPowell(mov, segreg, R, p, TolPowell, LinMinTolPowell,
 	      nMaxItersPowell,SegRegCostFile, costs, &nth);
   }
   else{
-    printf("Staring 1D Minimization\n");
+    printf("Starting 1D Minimization\n");
     // 1D minimization
     nth = 0;
     for(n=0; n < n1dmin; n++){
