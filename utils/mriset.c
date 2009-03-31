@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/06 05:15:20 $
- *    $Revision: 1.67 $
+ *    $Author: fischl $
+ *    $Date: 2009/03/31 14:04:51 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -637,6 +637,8 @@ MRI *MRIerodeZero(MRI *mri_src, MRI *mri_dst)
         for (x = 0 ; x < width ; x++)
         {
           fmin_val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
           for (z0 = -1 ; z0 <= 1 ; z0++)
           {
             zi = mri_src->zi[z+z0] ;
@@ -2205,7 +2207,7 @@ MRI   *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
 /*--------------------------------------------------------------------------
   MRImask() - applies mask to an mri data set. If mri_mask == mask at a voxel,
   then that voxel is set to out_val. Eg, if your mask is binary (0 and 1),
-  and you want to set voxels outside the mask to (ie, maskmri=0) 0, then
+  and you want to set voxels outside the mask to 0 (ie, maskmri=0), then
   MRImask(src,mask,dst,0,0). Handles multiple frames.
   --------------------------------------------------------------------------*/
 MRI *
