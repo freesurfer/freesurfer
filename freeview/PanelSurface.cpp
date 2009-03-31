@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/03/31 22:00:13 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -349,7 +349,7 @@ void PanelSurface::OnSurfaceClose( wxCommandEvent& event )
 
     if ( (int)m_listBoxLayers->GetCount() > nSel )
       m_listBoxLayers->SetSelection( nSel );
-    else if ( nSel - 1 >= 0 )
+    else if ( nSel >= 1 )
       m_listBoxLayers->SetSelection( nSel - 1 );        
 
     if ( layer )

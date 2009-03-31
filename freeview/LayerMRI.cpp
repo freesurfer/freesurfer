@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/03/31 22:00:12 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -651,8 +651,7 @@ bool LayerMRI::IsVisible()
 }
 
 double LayerMRI::GetVoxelValue( double* pos )
-{
-// if ( m_imageData.GetPointer() == NULL )
+{ 
   if ( m_imageData == NULL )
     return 0;
 
@@ -672,6 +671,11 @@ double LayerMRI::GetVoxelValue( double* pos )
     return 0;
   else
     return m_imageData->GetScalarComponentAsDouble( n[0], n[1], n[2], m_nActiveFrame );
+}
+
+double LayerMRI::GetVoxelValueByOriginalIndex( int i, int j, int k )
+{
+  return m_volumeSource->GetVoxelValue( i, j, k, m_nActiveFrame );
 }
 
 void LayerMRI::SetModified()

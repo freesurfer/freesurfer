@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.43 $
+ *    $Date: 2009/03/31 22:00:13 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -614,7 +614,9 @@ void MainWindow::LoadVolume()
   } */
 }
 
-void MainWindow::LoadVolumeFile( const wxString& filename, const wxString& reg_filename, bool bResample, int nColorMap )
+void MainWindow::LoadVolumeFile( const wxString& filename, 
+                                 const wxString& reg_filename, 
+                                 bool bResample )
 {
 // cout << bResample << endl;
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
@@ -623,7 +625,6 @@ void MainWindow::LoadVolumeFile( const wxString& filename, const wxString& reg_f
   LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
   layer->GetProperties()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
-  layer->GetProperties()->SetColorMap( ( LayerPropertiesMRI::ColorMapType )nColorMap );
   wxFileName fn( filename );
   fn.Normalize();
   wxString layerName = fn.GetName();
@@ -2311,38 +2312,165 @@ void MainWindow::RunScript()
   {
     CommandSetSlice( sa );
   }
+  else if ( sa[0] == "setcolormap" )
+  {
+    CommandSetColorMap( sa );
+  }
+  else if ( sa[0] == "setlut" )
+  {
+    CommandSetLUT( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
 {
-  int nColorMap = LayerPropertiesMRI::Grayscale;
   wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
   wxString fn = sa_vol[0];
   wxString reg_fn;
+  wxArrayString scales;
+  wxString colormap = "grayscale";
+  wxString colormap_scale = "grayscale";
+  wxString lut_name;
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
     int n;
     if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
     {
-      strg = strg.Mid( n + 1 ).Lower();
-      if ( strg == "heat" || strg == "heatscale" )
-        nColorMap = LayerPropertiesMRI::Heat;
-      else if ( strg == "jet" || strg == "jetscale" )
-        nColorMap = LayerPropertiesMRI::Jet;
-      else if ( strg == "lut" )
-        nColorMap = LayerPropertiesMRI::LUT;
+      colormap = strg.Mid( n + 1 ).Lower();
+    }
+    else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && 
+                ( strg.Left( n ).Lower() == "grayscale" || 
+                  strg.Left( n ).Lower() == "heatscale" || 
+                  strg.Left( n ).Lower() == "jetscale" ) )
+    {
+      colormap_scale = strg.Left( n ).Lower();    // colormap scale might be different from colormap!
+      scales = MyUtils::SplitString( strg.Mid(n+1), "," );
+    }
+    else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && 
+                strg.Left( n ).Lower() == "lut" )
+    {
+      lut_name = strg.Mid( n + 1 );
+      if ( lut_name.IsEmpty() )
+      {
+        cerr << "Missing lut name." << endl;
+      }
     }
     else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
     {
       reg_fn = strg.Mid( n + 1 );
+    }
+    else
+    {
+      cerr << "Unrecognized flag '" << strg << "'." << endl;
+      return;
     }
   }
   bool bResample = true;
   if ( sa[ sa.GetCount()-1 ] == "nr" )
     bResample = false;
 
-  LoadVolumeFile( fn, reg_fn, bResample, nColorMap );
+  if ( scales.size() > 0 || colormap != "grayscale" )
+  {
+    wxArrayString script;
+    script.Add( "setcolormap" );
+    script.Add( colormap );
+    script.Add( colormap_scale ); 
+    for ( size_t i = 0; i < scales.size(); i++ )
+      script.Add( scales[i] );
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  if ( !lut_name.IsEmpty() )
+  {
+    wxArrayString script;
+    script.Add( "setlut" );
+    script.Add( lut_name );
+        
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  LoadVolumeFile( fn, reg_fn, bResample );
+}
+
+void MainWindow::CommandSetColorMap( const wxArrayString& sa )
+{
+  int nColorMap;
+  wxString strg = sa[1];
+  if ( strg == "heat" || strg == "heatscale" )
+    nColorMap = LayerPropertiesMRI::Heat;
+  else if ( strg == "jet" || strg == "jetscale" )
+    nColorMap = LayerPropertiesMRI::Jet;
+  else if ( strg == "lut" )
+    nColorMap = LayerPropertiesMRI::LUT;
+  else if ( strg == "grayscale" )
+    nColorMap = LayerPropertiesMRI::Grayscale;
+  else
+  {
+    cerr << "Unrecognized colormap name '" << strg << "'." << endl;
+    return;
+  }
+  
+  int nColorMapScale = 0;
+  strg = sa[2];
+  if ( strg == "heatscale" )
+    nColorMapScale = LayerPropertiesMRI::Heat;
+  else if ( strg == "jetscale" )
+    nColorMapScale = LayerPropertiesMRI::Jet;
+  else if ( strg == "lut" )
+    nColorMapScale = LayerPropertiesMRI::LUT;
+  else if ( strg == "grayscale" )
+    nColorMapScale = LayerPropertiesMRI::Grayscale;
+  
+  std::vector<double> pars;
+  for ( size_t i = 3; i < sa.size(); i++ )
+  {
+    double dValue;
+    if ( !sa[i].ToDouble( &dValue ) )
+    {
+      cerr << "Invalid color scale value(s). " << endl;
+      break;
+    }
+    else
+    {
+      pars.push_back( dValue );
+    }
+  }
+  
+  SetVolumeColorMap( nColorMap, nColorMapScale, pars );
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetLUT( const wxArrayString& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {  
+    COLOR_TABLE* ct = m_luts->GetColorTable( sa[1].c_str() );
+    if ( !ct )
+    {
+      ct = m_luts->LoadColorTable( sa[1].c_str() );
+    }
+    
+    if ( ct )
+    {
+      mri->GetProperties()->SetLUTCTAB( ct );
+    }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::ContinueScripts()
+{
+  // create a fake worker event to notify end of operation 
+  // so scripts in queue will continue on
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( "ByPass" );
+  wxPostEvent( this, event );
 }
 
 void MainWindow::CommandLoadDTI( const wxArrayString& sa )
@@ -2371,12 +2499,7 @@ void MainWindow::CommandLoadROI( const wxArrayString& cmd )
 {
   LoadROIFile( cmd[1] );
 
-  // create a fake worker event to notify end of operation
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-// event.SetClientData( (void*)roi );
-  wxPostEvent( this, event );
+  ContinueScripts();
 }
 
 void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
@@ -2435,33 +2558,22 @@ void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 void MainWindow::CommandLoadSurfaceCurvature( const wxArrayString& cmd )
 {
   LoadSurfaceCurvatureFile( cmd[1] );
-  
-  // create a fake worker event to notify end of operation because this routine is not threaded
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+ 
+  ContinueScripts();
 }
 
 void MainWindow::CommandLoadSurfaceOverlay( const wxArrayString& cmd )
 {
   LoadSurfaceOverlayFile( cmd[1] );
-  
-  // create a fake worker event to notify end of operation because this routine is not threaded
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+
+  ContinueScripts();
 }
 
 void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
 {
   LoadWayPointsFile( cmd[1] );
 
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  ContinueScripts();
 }
 
 void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
@@ -2470,10 +2582,7 @@ void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
                                              m_settingsScreenshot.Magnification, 
                                              m_settingsScreenshot.AntiAliasing );
 
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  ContinueScripts();
 }
 
 void MainWindow::CommandSetViewport( const wxArrayString& cmd )
@@ -2487,11 +2596,7 @@ void MainWindow::CommandSetViewport( const wxArrayString& cmd )
   else if ( cmd[1] == "3d" )
     SetMainView( MV_3D );
 
-  // create a fake worker event to notify end of operation
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  ContinueScripts();
 }
 
 void MainWindow::CommandZoom( const wxArrayString& cmd )
@@ -2502,12 +2607,8 @@ void MainWindow::CommandZoom( const wxArrayString& cmd )
   {
     m_viewRender[m_nMainView]->Zoom( dValue );
   }
-
-  // create a fake worker event to notify end of operation
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  
+  ContinueScripts();
 }
 
 void MainWindow::CommandSetRAS( const wxArrayString& cmd )
@@ -2520,11 +2621,7 @@ void MainWindow::CommandSetRAS( const wxArrayString& cmd )
   GetLayerCollection( "MRI" )->SetCursorRASPosition( ras );
   m_layerCollectionManager->SetSlicePosition( ras );
 
-  // create a fake worker event to notify end of operation
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  ContinueScripts();
 }
 
 
@@ -2552,11 +2649,7 @@ void MainWindow::CommandSetSlice( const wxArrayString& cmd )
     cerr << "No volume was loaded. Set slice failed." << endl;
   }
 
-  // create a fake worker event to notify end of operation
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  ContinueScripts();
 }
 
 
@@ -2849,4 +2942,62 @@ void MainWindow::ConfigureOverlay()
   m_wndOverlayConfiguration->ShowWindow( (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer() );
 }
 
+void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, std::vector<double>& scales )
+{
+  if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
+  {
+    LayerPropertiesMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperties();
+    p->SetColorMap( (LayerPropertiesMRI::ColorMapType) nColorMap );
+    switch ( nColorMapScale )
+    {
+      case LayerPropertiesMRI::Grayscale:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+          cerr << "Need 2 values for grayscale." << endl;
+        break;
+      case LayerPropertiesMRI::Heat:
+        if ( scales.size() >= 3 )
+        {
+          p->SetHeatScaleMinThreshold( scales[0] );
+          p->SetHeatScaleMidThreshold( scales[1] );
+          p->SetHeatScaleMaxThreshold( scales[2] );
+        }
+        else if ( !scales.empty() )
+          cerr << "Need 3 values for heatscale." << endl;
+        break;
+      case LayerPropertiesMRI::Jet:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxJetScaleWindow( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+          cerr << "Need 2 values for jetscale." << endl;
+        break;
+      case LayerPropertiesMRI::LUT:
+        if ( scales.size() >= 1 )
+        {
+        }
+        else if ( !scales.empty() )
+          cerr << "Need a value for lut." << endl;
+        break;
+    }
+  }
+}
 
+void MainWindow::LoadLUT()
+{
+  wxFileDialog dlg( this, _("Load lookup table file"), m_strLastDir, _(""),
+                  _T("LUT files (*.*)|*.*"),
+                  wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    m_scripts.clear();
+    wxArrayString sa;
+    sa.Add( "setlut" );
+    sa.Add( dlg.GetPath().c_str() );
+    CommandSetLUT( sa );
+  }
+}

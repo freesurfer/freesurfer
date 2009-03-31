@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.32 $
+ *    $Date: 2009/03/31 22:00:13 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -204,6 +204,8 @@ public:
 
   void RotateVolume( std::vector<RotationElement>& rotations );
 
+  void LoadLUT();
+  
   void LoadROI();
   void NewROI();
   void SaveROI();
@@ -221,8 +223,7 @@ public:
 
   void LoadVolumeFile( const wxString& fn, 
 		       const wxString& reg_fn, 
-		       bool bResample = true, 
-		       int nColorMap = 0 );
+		       bool bResample = true);
   void LoadDTIFile( const wxString& fn_vector, 
 		    const wxString& fn_fa, 
 		    const wxString& reg_fn, 
@@ -301,26 +302,31 @@ public:
   }
   
   void ConfigureOverlay();
+  
+  void SetVolumeColorMap( int nColorMap, int nColorMapScale, std::vector<double>& scales );
 
 protected:
-  void CommandLoadVolume( const wxArrayString& cmd );
-  void CommandLoadDTI( const wxArrayString& cmd );
-  void CommandLoadROI( const wxArrayString& cmd );
-  void CommandLoadSurface( const wxArrayString& cmd );
-  void CommandLoadSurfaceVector( const wxArrayString& cmd );
+  void CommandLoadVolume        ( const wxArrayString& cmd );
+  void CommandLoadDTI           ( const wxArrayString& cmd );
+  void CommandLoadROI           ( const wxArrayString& cmd );
+  void CommandLoadSurface       ( const wxArrayString& cmd );
+  void CommandLoadSurfaceVector ( const wxArrayString& cmd );
   void CommandLoadSurfaceCurvature( const wxArrayString& cmd );
   void CommandLoadSurfaceOverlay( const wxArrayString& cmd );
-  void CommandLoadWayPoints( const wxArrayString& cmd );
-  void CommandScreenCapture( const wxArrayString& cmd );
-  void CommandSetViewport( const wxArrayString& cmd );
-  void CommandZoom( const wxArrayString& cmd );
-  void CommandSetRAS( const wxArrayString& cmd );
-  void CommandSetSlice( const wxArrayString& cmd );
+  void CommandLoadWayPoints     ( const wxArrayString& cmd );
+  void CommandScreenCapture     ( const wxArrayString& cmd );
+  void CommandSetViewport       ( const wxArrayString& cmd );
+  void CommandZoom              ( const wxArrayString& cmd );
+  void CommandSetRAS            ( const wxArrayString& cmd );
+  void CommandSetSlice          ( const wxArrayString& cmd );
+  void CommandSetColorMap       ( const wxArrayString& cmd );
+  void CommandSetLUT            ( const wxArrayString& cmd );
 
   void OnInternalIdle();
   virtual void DoListenToMessage ( std::string const iMsg, void* iData, void* sender );
 
 private:
+  void ContinueScripts();
   void SetViewLayout( int nLayout );
   void SetMainView( int nView );
   void ShowControlPanel( bool bShow );

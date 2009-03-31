@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/26 21:13:38 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/03/31 22:00:12 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -601,6 +601,15 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
 }
 
+double FSVolume::GetVoxelValue( int i, int j, int k, int frame )
+{
+  if ( i < 0 || i >= m_MRI->width ||
+       j < 0 || j >= m_MRI->height ||
+       k < 0 || k >= m_MRI->depth )
+    return 0;
+  else
+    return MRIgetVoxVal( m_MRI, i, j, k, frame );
+}
 
 int FSVolume::OriginalIndexToRAS( float iIdxX, float iIdxY, float iIdxZ,
                                   float& oRASX, float& oRASY, float& oRASZ )

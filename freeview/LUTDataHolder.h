@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2009/03/31 22:00:12 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,16 +44,21 @@ public:
   const char* GetName( int i );
 
   COLOR_TABLE* GetColorTable( int i );
+  
+  COLOR_TABLE* GetColorTable( const char* name );
 
   int GetIndex( COLOR_TABLE* ct );
 
   int GetCount();
+  
+  COLOR_TABLE* LoadColorTable( const char* fn );
 
 protected:
   struct ColorTableData
   {
     COLOR_TABLE* table;
     std::string  name;
+    std::string  filename;
   };
 
   std::vector<ColorTableData> m_tables;

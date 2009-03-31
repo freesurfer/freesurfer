@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/03/31 22:00:13 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,8 @@ MyCmdLineParser::MyCmdLineParser( const char* ProgramName, CmdLineEntry* entries
   m_nNumberOfPureArguments = 0;
   if ( entries )
     SetValidCmdLineEntries( entries );
+  
+  m_bNewLineStyle = true;
 }
 
 
@@ -221,7 +223,7 @@ string_array MyCmdLineParser::GetArguments( const char* ch )
 
 void MyCmdLineParser::PrintHelp()
 {
-  cout << endl << "Usage: " << m_strProgramName.c_str() << " [OPTION]..." << endl;
+  cout << endl << "Usage: " << m_strProgramName.c_str() << " [OPTION <ARGUMENT:SUB-OPTION>]..." << endl;
 
   string desc = m_strProgramDescription;
   while ( desc.length() > CONSOLE_WIDTH )
@@ -244,24 +246,45 @@ void MyCmdLineParser::PrintHelp()
       nLen = strg.length();
   }
   nLen += 7;
+  if ( m_bNewLineStyle )
+    nLen = 7;
   for ( size_t i = 0; i < m_cmdLineEntriesValid.size(); i++ )
   {
     CmdLineEntry e = m_cmdLineEntriesValid[i];
     string strg( "-" );
     strg = strg + e.shortName + ", --" + e.longName + " " + e.arguName;
-    int nCnt = nLen - strg.length();
     cout << strg.c_str();
-    for ( int j = 0; j < nCnt; j++ )
-      cout << " ";
-    desc = e.description;
-    while ( desc.length() > CONSOLE_WIDTH - nLen )
+    if ( m_bNewLineStyle )
     {
-      int n = desc.rfind( " ", CONSOLE_WIDTH - nLen );
-      if ( n >= 0 )
-        cout << desc.substr( 0, n ).c_str() << endl;
-      desc = desc.substr( n+1 );
-      for ( unsigned int j = 0; j < nLen; j++ )
+      cout << endl;
+      for ( size_t j = 0; j < nLen; j++ )
         cout << " ";
+    }
+    else
+    {
+      int nCnt = nLen - strg.length();
+      for ( int j = 0; j < nCnt; j++ )
+        cout << " ";
+    }
+    desc = e.description;
+    while ( desc.length() > CONSOLE_WIDTH - nLen || desc.find( "\n" ) != string::npos )
+    {
+      size_t n = desc.rfind( " ", CONSOLE_WIDTH - nLen );
+      size_t m = desc.substr( 0, CONSOLE_WIDTH - nLen ).find( "\n" );
+      if ( m != string::npos )
+        n = m;
+      if ( n != string::npos )
+      {
+        cout << desc.substr( 0, n ).c_str() << endl;
+        desc = desc.substr( n+1 );
+      }
+      if ( desc.size() > 0 )
+      {
+        for ( size_t j = 0; j < nLen; j++ )
+          cout << " ";
+      }
+      else
+        cout << endl;
     }
     if ( desc.length() > 0 )
       cout << desc.c_str() << endl;

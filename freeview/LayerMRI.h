@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/03/31 22:00:12 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -67,6 +67,8 @@ public:
   void SetSlicePositionToWorldCenter();
 
   virtual double GetVoxelValue( double* pos );
+  double GetVoxelValueByOriginalIndex( int i, int j, int k );
+  
   virtual std::string GetLabelName( double value );
 
   void RASToOriginalIndex( const double* pos, int* n );

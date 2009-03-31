@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/03/31 22:00:13 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -121,9 +121,11 @@ protected:
   vector<CmdLineEntry> m_cmdLineEntries;
   vector<CmdLineEntry> m_cmdLineEntriesValid;
   string_array         m_cmdLineFloatingArguments;
-  int        m_nNumberOfPureArguments;
-  string     m_strProgramName;
-  string     m_strProgramDescription;
+  int       m_nNumberOfPureArguments;
+  string    m_strProgramName;
+  string    m_strProgramDescription;
+  
+  bool      m_bNewLineStyle;
 };
 
 #endif
