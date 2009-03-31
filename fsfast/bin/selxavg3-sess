@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/03/31 18:23:12 $
-#    $Revision: 1.37 $
+#    $Date: 2009/03/31 19:00:14 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.37 2009/03/31 18:23:12 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.38 2009/03/31 19:00:14 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -332,10 +332,38 @@ if($DoFWHM && ! $monly) then
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
-      if(! $SaveRes) rm -r $resdir
 
     end # loop over anadir
 
+  end # End Loop over session
+
+endif
+
+
+# Delete Res
+if(! $SaveRes && ! $monly) then
+  foreach sess ($SessList)
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname  $sess`;
+    if($#OutParent == 0) then
+      set anadir0 = $sess/$fsd/$analysisname
+    else
+      set anadir0 = $OutParent/$sessbase/$fsd/$analysisname
+    endif
+    if($perrun) then
+      set anadirlist = (`ls -d $anadir0/pr[0-9][0-9][0-9]`)
+    else if ($jkrun) then
+      set anadirlist = (`ls -d $anadir0/jk[0-9][0-9][0-9]`)
+    else
+      set anadirlist = ($anadir0);
+    endif
+
+    foreach anadir ($anadirlist)
+      set resdir = $anadir/res
+      if(! -e $resdir) continue
+      echo "Deleting Residual $resdir"
+      rm -r $resdir
+    end # loop over anadir
   end # End Loop over session
 
 endif
