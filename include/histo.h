@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/11/29 15:02:45 $
- *    $Revision: 1.33 $
+ *    $Date: 2009/03/31 12:30:26 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -123,5 +123,11 @@ float HISTOvalToCount(HISTOGRAM *histo, float val) ;
 int  HISTOwriteInto(HISTOGRAM *h, FILE *fp) ;
 HISTOGRAM* HISTOreadFrom(FILE *fp) ;
 double HISTOfindMedian(HISTOGRAM *h) ;
+int    HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile, 
+                              double *poffset, double *psigma) ;
+HISTOGRAM *HISTOabs(HISTOGRAM *h, HISTOGRAM *habs) ;
+HISTOGRAM *HISTOgaussianPDF(HISTOGRAM *h, double mean, double sigma, int nbins) ;
+HISTOGRAM *HISTOgaussianCDF(HISTOGRAM *h, double mean, double sigma, int nbins) ;
+double    HISTOgetCount(HISTOGRAM *h, float bin_val);
 
 #endif
