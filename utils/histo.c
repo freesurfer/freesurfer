@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/11 22:02:07 $
- *    $Revision: 1.59 $
+ *    $Date: 2009/03/31 12:30:41 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -109,6 +109,9 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
 HISTOGRAM *
 HISTOrealloc(HISTOGRAM *histo, int nbins)
 {
+  if (histo == NULL)
+    return(HISTOalloc(nbins)) ;
+
   if (histo->bins)
     free(histo->bins) ;
   if (histo->counts)
@@ -1410,18 +1413,51 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
 int
 HISTOfillHoles(HISTO *h)
 {
-  int b ;
+  int     b, min_b, max_b, *filled, niter ;
+  double  max_change, new_val, change ;
 
+  filled = (int *)calloc(h->nbins, sizeof(int)) ;
+  if (filled == NULL)
+    ErrorExit(ERROR_NOMEMORY, "HISTOfillHoles: couldn't allocate %d-len buffer\n", h->nbins) ;
+
+  min_b = h->nbins ; max_b = 0 ;
   for (b = 1 ; b < h->nbins-1 ; b++)
   {
-    if (h->counts[b] == 0)
-      h->counts[b] = (h->counts[b-1] + h->counts[b+1]) / 2 ;
+    if (h->counts[b] > 0)
+    {
+      filled[b] = 1 ;
+      if (b > max_b)
+        max_b = b ;
+      if (b < min_b)
+        min_b = b ;
+    }
   }
+  niter = 0 ;
+  do
+  {
+    max_change = 0 ;
+    for (b = min_b ; b <= max_b ; b++)
+    {
+      if (filled[b] == 0)   // was a hole
+      {
+        new_val = (h->counts[b-1] + h->counts[b+1]) / 2 ;
+        if (h->counts[b] == 0)
+          change = 1 ;
+        else
+          change = fabs(new_val-h->counts[b]) / fabs(h->counts[b]) ;
+        h->counts[b] = new_val ;
+        if (change > max_change)
+          max_change = change ;
+      }
+    }
+  } while (max_change > 0.01 && niter++ < 100) ;
+
   if (h->counts[0] == 0)
     h->counts[0] = h->counts[1] ;
   if (h->counts[h->nbins-1] == 0)
     h->counts[h->nbins-1] = h->counts[h->nbins-2] ;
 
+  free(filled) ;
   return(NO_ERROR) ;
 }
 
@@ -1488,6 +1524,14 @@ HISTOfindBin(HISTOGRAM *h, float val)
       return(b) ;
 
   return(0) ;
+}
+double
+HISTOgetCount(HISTOGRAM *h, float bin_val)
+{
+  int b ;
+
+  b = HISTOfindBin(h, bin_val);
+  return(h->counts[b]);
 }
 
 
@@ -1844,24 +1888,198 @@ HISTOfindMedian(HISTOGRAM *h)
 HISTOGRAM *
 HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
 {
-  int    b ;
+  int    b, b2 ;
   double total = 0 ;
 
   if (hdst == NULL)
     hdst = HISTOcopy(hsrc, NULL) ;
-  for (b = 0 ; b < hsrc->nbins ; b++)
+  for (b = 0 ; b < hdst->nbins ; b++)
   {
-    total += hsrc->counts[b] ;
-    hdst->counts[b] = total ;
+    if (hdst->bins[b] >= 0)
+    {
+      for (total = 0.0, b2 = 0 ; b2 < hsrc->nbins ; b2++)
+        if (fabs(hsrc->bins[b2]) <= hdst->bins[b])
+          total += hsrc->counts[b2] ;
+      hdst->counts[b] = total ;
+    }
+    else
+      hdst->counts[b] = 0 ;
   }
-  if (!FZERO(total))
-  {
-    for (b = 0 ; b < hdst->nbins ; b++)
-      hdst->counts[b] /= total ;
-  }
+  for (b = 0 ; b < hdst->nbins ; b++)
+    hdst->counts[b] /= total ;
+
   return(hdst) ;
 }
 
 
+int
+HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile, 
+                       double *poffset, double *psigma)
+{
+  int       peak, bin, min_bin, max_bin, zbin, n ;
+  HISTOGRAM *habs, *hcdf, *hz ;
+  double    thresh, sigma, delta_sigma, max_sigma, predicted_val, val,
+    sqrt_2pi, sse, best_sigma, best_sse, error, scale, mean ;
+
+  sqrt_2pi = sqrt(2*M_PI) ;
+  peak = HISTOfindHighestPeakInRegion(h, 0, h->nbins) ;
+  mean = *poffset = h->bins[peak] ;
+  hz = HISTOlinearScale(h, NULL, 1.0, -mean) ;
+  habs = HISTOabs(hz, NULL) ;
+  hcdf = HISTOmakeCDF(hz, NULL) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    HISTOplot(habs, "ha.plt") ;
+    HISTOplot(hcdf, "hc.plt") ;
+    HISTOplot(h, "h.plt") ;
+    HISTOplot(hz, "hz.plt") ;
+  }
+
+  bin = HISTOfindBinWithCount(hcdf, max_percentile) ;
+  thresh = hcdf->bins[bin] ;  // threshold for computing variance
+  min_bin = HISTOfindBin(hz, -thresh) ;
+  max_bin = HISTOfindBin(hz, thresh) ;
+  if (min_bin >= max_bin)
+  {
+    min_bin = MAX(0, min_bin-1) ;
+    max_bin = MIN(hz->nbins-1, max_bin-1) ;
+  }
+  zbin = HISTOfindBin(hz, 0) ;
+  delta_sigma = h->bin_size/10 ; max_sigma = habs->nbins*habs->bin_size/10;
+  best_sse = -1 ; best_sigma = 0 ;
+  for (sigma = delta_sigma ; sigma <= max_sigma ; sigma += delta_sigma)
+  {
+    scale = hz->counts[zbin] * sigma * sqrt_2pi ;
+    predicted_val = scale / (sigma * sqrt_2pi) * exp(0 / (2*sigma*sigma));
+
+    scale = 0 ;
+    for (n = 0, bin = min_bin ; bin <= max_bin ; bin++)
+    {
+      val = hz->bins[bin] ;
+      predicted_val = 1/(sigma*sqrt_2pi) * exp(-val*val / (2*sigma*sigma));
+      if (predicted_val > 1e-3)
+      {
+        scale +=  hz->counts[bin] / predicted_val ;
+        n++ ;
+      }
+    }
+    scale /= n ;
+    sse = 0 ; 
+    for (bin = min_bin ; bin <= max_bin ; bin++)
+    {
+      val = hz->bins[bin] ;
+      predicted_val = scale/(sigma*sqrt_2pi) * exp(-val*val / (2*sigma*sigma));
+      error = predicted_val - hz->counts[bin] ;
+
+      sse += error*error ;
+    }
+    
+    if (sse < best_sse || best_sse < 0)
+    {
+      best_sse = sse ;
+      best_sigma = sigma ;
+    }
+  }
+  *psigma = best_sigma ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    HISTOGRAM *hp ;
+
+    hp = HISTOcopy(hz, NULL) ;
+
+    sigma = best_sigma ;
+    scale = hz->counts[zbin] * best_sigma * sqrt_2pi ;
+    scale = 0 ;
+    for (n = 0, bin = min_bin ; bin <= max_bin ; bin++)
+    {
+      val = hz->bins[bin]-mean ;
+      predicted_val = 1/(sigma*sqrt_2pi) * exp(-val*val / (2*sigma*sigma));
+      if (predicted_val > 1e-3)
+      {
+        scale +=  hz->counts[bin] / predicted_val ;
+        n++ ;
+      }
+    }
+    scale /= n ;
+    for (bin = 0 ; bin < hp->nbins ; bin++)
+    {
+      val = hp->bins[bin]-mean ;
+      predicted_val = scale/(best_sigma*sqrt_2pi) * exp(-val*val / (2*best_sigma*best_sigma));
+      hp->counts[bin] = predicted_val ;
+    }
+    HISTOplot(hp, "hp.plt") ;
+    HISTOfree(&hp) ;
+  }
+
+  HISTOfree(&habs) ;
+  HISTOfree(&hcdf) ;
+  HISTOfree(&hz) ;
+  return(NO_ERROR) ;
+}
+
+HISTOGRAM *
+HISTOgaussianCDF(HISTOGRAM *h, double mean, double sigma, int nbins)
+{
+  HISTOGRAM *hpdf ;
+
+  hpdf = HISTOgaussianPDF(h, mean, sigma, nbins) ;
+  h = HISTOmakeCDF(hpdf, h);
+  HISTOfree(&hpdf);
+  return(h);
+}
 
 
+HISTOGRAM *
+HISTOgaussianPDF(HISTOGRAM *h, double mean, double sigma, int nbins)
+{
+  int     bin ;
+  double  val, sqrt_2pi ;
+
+  sqrt_2pi = sqrt(2*M_PI) ;
+  if (h == NULL)
+    h = HISTOalloc(nbins);
+
+#define NSIGMAS 10
+  h->bin_size = (2*NSIGMAS)*sigma/nbins ;
+  h->min = mean - NSIGMAS*sigma ;
+
+  for (bin = 0 ; bin < h->nbins ; bin++)
+  {
+    h->bins[bin] = h->min + h->bin_size*bin ;
+    val = h->bins[bin]-mean ;
+    val = 1/(sigma*sqrt_2pi) * exp(-val*val / (2*sigma*sigma));
+    h->counts[bin] = val ;
+  }
+
+  HISTOmakePDF(h, h) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h, "h.plt") ;
+  return(h);
+}
+HISTOGRAM *
+HISTOabs(HISTOGRAM *h, HISTOGRAM *habs)
+{
+  int    b, pbins, pbin ;
+  double mx ;
+
+  mx = 0 ;
+  for (b = pbins = 0 ; b < h->nbins ; b++)
+  {
+    if (fabs(h->bins[b]) > mx)
+      mx = fabs(h->bins[b]) ;
+  }
+
+  habs = HISTOrealloc(habs, nint(ceil(mx/h->bin_size)+1)) ;
+  habs->bin_size = h->bin_size ;
+  habs->min = 0 ; habs->max = mx ;
+  for (b = 0 ; b < habs->nbins ; b++)
+    habs->bins[b] = b*habs->bin_size ;
+
+  for (b = 0 ; b < h->nbins ; b++)
+  {
+    pbin = HISTOfindBin(habs, fabs(h->bins[b])) ;
+    habs->counts[pbin] += h->counts[b] ;
+  }
+  return(habs) ;
+}
