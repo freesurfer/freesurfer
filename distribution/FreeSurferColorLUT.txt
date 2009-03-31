@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.38.2.3 2009/02/02 23:43:41 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.38.2.4 2009/03/31 22:34:03 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -292,6 +292,11 @@
 558 left_fornix                             20  100 201 0
 
 600 Tumor                                   254 254 254 0
+
+701 CSF-FSL-FAST                            120 18  134 0
+702 GrayMatter-FSL-FAST                     205 62  78  0
+703 WhiteMatter-FSL-FAST                    0   225 0   0
+
 999 SUSPICIOUS                              255 100 100 0
 
 # Below is the color table for the cortical labels of the seg volume
