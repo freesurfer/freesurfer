@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/28 23:00:46 $
-#    $Revision: 1.32.2.1 $
+#    $Date: 2009/03/31 16:46:02 $
+#    $Revision: 1.32.2.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.32.2.1 2007/11/28 23:00:46 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.32.2.2 2009/03/31 16:46:02 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -44,8 +44,10 @@ set LF = ();
 
 set DoGLMFit = 1;
 set DoContrasts = 1;
+set ConList = ();
 set DoFWHM = 1;
 set SaveRes = 0;
+set SaveResUnwhitened = 0;
 set UseFloat = 0;
 
 set Skip  = 0;
@@ -92,7 +94,8 @@ if($#analysis) then
   set fsd  = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
   set analysisname = $analysis
 else
-  set analysisname = `cat $flacfile | awk '{if($1 == "flacname") print $2}'`
+  #set analysisname = `cat $flacfile | awk '{if($1 == "flacname") print $2}'`
+  set analysisname = `basename $flacfile .flac`
   set inherit = $flacfile
   while(1)
     set tmp = `cat $inherit | awk '{if($1 == "INHERIT") print $2}'`
@@ -149,7 +152,6 @@ echo "% $flacfile $analysis  " >> $MLF
 echo "  " >> $MLF
 echo "  " >> $MLF
 
-
 set okfile = /tmp/selxavg3-sess-$$.ok
 rm -f $okfile
 
@@ -196,7 +198,7 @@ foreach sess ($SessList)
       echo " ... skipping" | tee -a $LF
       continue;
     endif
-    if( ! $monly && ! $perrun && ! $jkrun) then
+    if(! $monly && ! $perrun && ! $jkrun) then
       echo " ... reanalyzing (deleting old analysis)" | tee -a $LF
       rm -f $anadir/* $anadir/*/*sig* $anadir/*/*cnr* $anadir/*/*ces* >& /dev/null
     endif
@@ -212,6 +214,7 @@ foreach sess ($SessList)
   echo "jkrun          = $jkrun;"          >> $MLF
   echo "DoGLMFit       = $DoGLMFit;"       >> $MLF
   echo "DoContrasts    = $DoContrasts;"    >> $MLF
+  echo "ConList        = splitstring('$ConList');" >> $MLF
   echo "DoSynth        = $DoSynth;"        >> $MLF
   echo "UseFloat       = $UseFloat;"       >> $MLF
   echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
@@ -221,6 +224,7 @@ foreach sess ($SessList)
   echo "analysis = '$analysis';" >> $MLF
   echo "flacname = '$flacfile';" >> $MLF
   echo "outtop = '$OutParent';" >> $MLF
+  echo "SaveResUnwhitened = '$SaveResUnwhitened';" >> $MLF
   echo "fast_selxavg3;" >> $MLF
   echo "if(~fast_fileexists(okfile) && ~monly); quit; end" >> $MLF
   if($#SessList > 1 && ! $monly)  then
@@ -231,6 +235,7 @@ foreach sess ($SessList)
   echo "  " >> $MLF
 
 end # Loop over sessions #
+if(! $monly ) echo "quit;" >> $MLF
 
 echo "------------------------------------------" >> $LF
 cat $MLF >> $LF
@@ -415,6 +420,12 @@ while( $#argv != 0 )
       set DoContrasts = 1;
       breaksw
 
+    case "-c"
+      if( $#argv < 1) goto arg1err;
+      set DoContrasts = 1;
+      set ConList = ($ConList $argv[1]); shift
+      breaksw
+
     case "-perrun":
       set perrun = 1;
       breaksw
@@ -425,6 +436,11 @@ while( $#argv != 0 )
 
     case "-svres":
       set SaveRes = 1;
+      breaksw
+
+    case "-svres-unwhitened":
+    case "-svres-uw":
+      set SaveResUnwhitened = 1;
       breaksw
 
     case "-no-fwhm":
@@ -538,8 +554,10 @@ usage_exit:
   echo ""
   echo "   -skip           : skip session of already analyzed"
   echo "   -overwrite      : delete analysis if session of already analyzed"
-  echo "   -contrasts-only : only compute contrasts (estimation done) <-co>"
+  echo "   -contrasts-only : only compute contrasts (estimation already done) <-co>"
+  echo "   -c c1 <-c c2 ...> : compute contrasts c1, c2, ... (default is to compute all)"
   echo "   -svres          : save residuals (usually not needed)"
+  echo "   -svres-unwhitened : save unwhitened residuals (usually not needed)"
   echo "   -hemi hemi      : assume raw data is on a the surface of the given hemi"
   echo "   -subject subject : override subject name"
   echo "   -perrun        : analyze each run separately"
