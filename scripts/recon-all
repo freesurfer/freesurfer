@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/03/20 19:25:49 $
-#    $Revision: 1.133.2.41 $
+#    $Date: 2009/04/01 15:53:05 $
+#    $Revision: 1.133.2.42 $
 #
-# Copyright (C) 2002-2008,
+# Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.41 2009/03/20 19:25:49 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.42 2009/04/01 15:53:05 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -84,7 +84,8 @@ set WSSeedPoint = ();   # C R S
 set WSAtlas     = 0;    # 0=don't use atlas, 1=use atlas (for skull strip)
 set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
 set NuIterations = 2;   # Number of iterations for nu intensity correction
-set HiRes = ();         # hires option (currently only conformed to min)
+set ConformMin = 0;     # 1=conformed to min dimension
+set HiRes = 0;          # 1=hires option (conformed to min dimension)
 set Norm3dIters = ();   # passed as -n to mri_normalize
 set NormMaxGrad = 1;    # passed as -g to mri_normalize (input: -normmaxgrad)
 set WMSeg_wlo = ();
@@ -720,8 +721,8 @@ if($DoMotionCor) then
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
   # conform to COR FOV but keep mgz format.
   set cmd = (mri_convert $rawavg $origvol)
-  if($#HiRes) then
-    set cmd = ($cmd $HiRes)
+  if($ConformMin) then
+    set cmd = ($cmd --conform_min)
   else
     set cmd = ($cmd --conform)
     if($DoConformWidth256) then
@@ -971,6 +972,7 @@ if($DoNormalization) then
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
     if($IsMPRAGE)         set cmd = ($cmd -mprage)
     if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
+    if($ConformMin)       set cmd = ($cmd -noconform)
     set cmd = ($cmd $xopts nu.mgz T1.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1571,6 +1573,7 @@ if($DoNormalization2) then
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   if($IsMPRAGE)           set cmd = ($cmd -mprage)
   if($IsWashuMPRAGE)      set cmd = ($cmd -washu_mprage)
+  if($ConformMin)         set cmd = ($cmd -noconform)
   if($UseAseg && ! $NoAsegInorm2) set cmd = ($cmd -aseg aseg.mgz)
   if($NoNormMGZ) then
     # norm.mgz doesnt exist with -noaseg or -nosubcortseg, so use brainmask.mgz
@@ -3690,8 +3693,31 @@ while( $#argv != 0 )
       breaksw
 
     case "-cm":
-      set HiRes = ('-cm')
-      echo "INFO: all COR volumes are conformed to the min voxel size"
+      set ConformMin = 1;
+      echo "INFO: all volumes are conformed to the min voxel size"
+      breaksw
+
+    case "-hires":
+      set HiRes = 1;
+      set ConformMin = 1;
+      echo "INFO: hi-res volumes are conformed to the min voxel size"
+      # dont use atlas for skull strip:
+      set WSAtlas = 0;
+      set WSGcaAtlas = 0;
+      # -noaseg flags: 
+      set UseAseg          = 0;
+      set DoGCAReg         = 0;
+      set DoCARegInv       = 0;
+      set DoRemoveNeck     = 0;
+      set DoSkullLTA       = 0;
+      set DoCANormalize    = 0;
+      set DoCAReg          = 0;
+      set DoCALabel        = 0;
+      set DoSegStats       = 0;
+      set NoNormMGZ        = 1;
+      set DoAParc2ASeg     = 0;
+      set DoWMParc         = 0;
+      set DoCortRibbonVolMask = 0;
       breaksw
 
     case "-noneg":
