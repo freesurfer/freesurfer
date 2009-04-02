@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/03/19 22:00:53 $
- *    $Revision: 1.107 $
+ *    $Author: mreuter $
+ *    $Date: 2009/04/02 17:14:46 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.107 2009/03/19 22:00:53 greve Exp $";
+"$Id: tkregister2.c,v 1.108 2009/04/02 17:14:46 mreuter Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -364,7 +364,15 @@ char *targ_vol_id;
 int   targ_vol_fmt = MRI_VOLUME_TYPE_UNKNOWN;
 char targ_vol_path[1000];
 int  fstarg = 0;
-int mkheaderreg = 0, noedit = 0, fixtkreg = 1, fixonly = 0;
+int mkheaderreg = 0;
+#ifdef  HAVE_TCL_TK_GL
+int noedit = 0;  // false by default, if gui
+#endif // HAVE_TCL_TK_GL
+#ifndef HAVE_TCL_TK_GL
+int noedit = 1; // true by default, if without gui
+#endif // HAVE_TCL_TK_GL
+
+int fixtkreg = 1, fixonly = 0;
 int identityreg = 0;
 int LoadVol = 1;
 int tagmov = 0;
@@ -844,7 +852,7 @@ int Register(ClientData clientData,
   printf("\nERROR: This tkregister2 was built without the GUI "
          "(Tcl/Tk/OpenGL excluded).\n");
   printf("       Functionality is limited to the following flags:\n"
-         "         --targ --mov --reg --fslregout --regheader --noedit\n");
+         "         --targ --mov --reg --fslregout --regheader ...\n");
   exit(1);
 #else
 
@@ -1542,7 +1550,9 @@ static void print_usage(void) {
   printf("   --identity : use identity as registration matrix\n");
   printf("   --s subjectid : set subject id \n");
   printf("   --sd dir : use dir as SUBJECTS_DIR\n");
+#ifdef HAVE_TCL_TK_GL  
   printf("   --noedit : do not open edit window (exit) - for conversions\n");
+#endif // HAVE_TCL_TK_GL
   printf("   --nofix : don't fix old tkregister matrices\n");
   printf("   --float2int code : spec old tkregister float2int\n");
   printf("   --title title : set window title\n");
@@ -4850,7 +4860,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.107 2009/03/19 22:00:53 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.108 2009/04/02 17:14:46 mreuter Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
