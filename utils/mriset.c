@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/31 14:04:51 $
- *    $Revision: 1.68 $
+ *    $Date: 2009/04/02 15:21:59 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -668,7 +668,7 @@ MRI *MRIerodeZero(MRI *mri_src, MRI *mri_dst)
         pdst = &MRIvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
-          min_val = 255 ;
+          min_val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
           for (z0 = -1 ; z0 <= 1 ; z0++)
           {
             zi = mri_src->zi[z+z0] ;
