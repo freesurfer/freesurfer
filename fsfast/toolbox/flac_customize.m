@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/07/11 19:42:30 $
-%    $Revision: 1.38 $
+%    $Date: 2009/04/02 18:57:35 $
+%    $Revision: 1.39 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -160,20 +160,35 @@ for nthev = 1:nev
     nonparpath = sprintf('%s/%s',runpath,ev.nonparname);
     [fspec fstem fmt] = MRIfspec(nonparpath);
     if(~isempty(fspec))
+      % Read in as a non-bfloat MRI
       npmri = MRIread(nonparpath);
       extreg = npmri.vol;
+      X = fast_vol2mat(extreg);
     else
-      %fprintf(' ... nonpar trying as a bhdr ...\n');
-      extreg = fmri_ldbvolume(nonparpath);
-      if(isempty(extreg))
-	fprintf('ERROR: loading nonpar reg %s\n',nonparpath);
-	flacnew = [];
-	return;
+      if(~fast_fileexists(nonparpath))
+	% Read in as a bfloat MRI
+	%fprintf(' ... nonpar trying as a bhdr ...\n');
+	extreg = fmri_ldbvolume(nonparpath);
+	if(isempty(extreg))
+	  fprintf('ERROR: loading nonpar reg %s\n',nonparpath);
+	  flacnew = [];
+	  return;
+	end
+	X = fast_vol2mat(extreg);
+      else
+	% Read in as a simple ascii table
+	extreg = load(nonparpath,'-ascii');
+	if(isempty(extreg))
+	  fprintf('ERROR: loading nonpar reg %s as ascii\n',nonparpath);
+	  flacnew = [];
+	  return;
+	end
+	X = extreg;
       end
     end
-    X = fast_vol2mat(extreg);
     if(size(X,1) ~= flacnew.ntp)
       fprintf('ERROR: nonpar time point mismatch %s\n',nonparpath);
+      fprintf('X = %d, ntp = %d\n',size(X,1),flacnew.ntp);
       flacnew = [];
       return;
     end
