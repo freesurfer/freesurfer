@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/01 20:18:40 $
-#    $Revision: 1.8 $
+#    $Date: 2009/04/02 19:00:00 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.8 2008/04/01 20:18:40 greve Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.9 2009/04/02 19:00:00 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -206,6 +206,11 @@ tee $MLF > /dev/null <<EOF
     fclose(fp);    
   end
 
+  if(~monly) 
+    fprintf('Quiting matlab\n');
+    quit; 
+    fprintf('should not be here\n');
+  end
 
 EOF
 #------------------------------------------#
