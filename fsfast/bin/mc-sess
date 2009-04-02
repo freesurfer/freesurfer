@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/02/29 22:13:19 $
-#    $Revision: 1.18 $
+#    $Date: 2009/04/02 18:59:07 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.18 2008/02/29 22:13:19 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.19 2009/04/02 18:59:07 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -204,7 +204,7 @@ foreach sess ($SessList)
       set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
     else
       test $outstem.$outfmt -nt $instem.$infmtuse
-      if($status || ! $UpdateOnly) then
+      if($status || ! $UpdateOnly || ! -e $outstem.$outfmt) then
         set cmd = (mc-afni2 --i $instem.$infmtuse --t $targstem.$infmtuse \
            --frame $targoff --o $outstem.$outfmt  --mcdat $outstem.mcdat)
       else
