@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/02/22 21:41:42 $
-#    $Revision: 1.17 $
+#    $Date: 2009/04/02 23:32:37 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.17 2009/02/22 21:41:42 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.18 2009/04/02 23:32:37 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -77,6 +77,7 @@ set PrintHelp = 0;
 set UseGUI = 0;
 set FixACF = 1;
 set FSV3st2fir = 0;
+set FSV3whiten = 0;
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -159,10 +160,14 @@ if($designtype == "event-related" || $designtype == "blocked") then
     if($#gAlpha != 0) echo "-gammaexp $gAlpha" >> $sxacfg
   endif
   if($spmhrf > -1) echo "-spmhrf $spmhrf" >> $sxacfg
+
+  if($FSV3whiten) set FixACF = 0; # Explicitly set to 0
   if($FixACF) echo "-fix-acf" >> $sxacfg
   if(! $FixACF) echo "-no-fix-acf" >> $sxacfg
   if($FSV3st2fir) echo "-fsv3-st2fir" >> $sxacfg
   if(! $FSV3st2fir) echo "-no-fsv3-st2fir" >> $sxacfg
+  if($FSV3whiten)   echo "-fsv3-whiten" >> $sxacfg
+  if(! $FSV3whiten) echo "-no-fsv3-whiten" >> $sxacfg
 
   echo "-timewindow $TW" >> $sxacfg
   echo "-prestim $PreStim" >> $sxacfg
@@ -183,6 +188,8 @@ else if($designtype == "retinotopy" || $designtype == "abblocked") then
   if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
   echo "-delay   0" >> $sxacfg
 endif
+
+if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
 if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
 
 echo "-nskip $nskip" >> $sxacfg
@@ -453,6 +460,11 @@ while( $#argv != 0 )
   if($#FSV3st2fir) set FSV3st2fir = 1; # default is not to use FSV3
   set FSV3st2fir = `cat $cacfg | awk '{if($1 == "-no-fsv3-st2fir") print $2}'`;
   if($#FSV3st2fir == 0) set FSV3st2fir = 0; 
+
+  set FSV3whiten = `cat $cacfg | awk '{if($1 == "-fsv3-whiten") print $2}'`;
+  if($#FSV3whiten) set FSV3whiten = 1; # default is not to use FSV3
+  set FSV3whiten = `cat $cacfg | awk '{if($1 == "-no-fsv3-whiten") print $2}'`;
+  if($#FSV3whiten == 0) set FSV3whiten = 0; 
 
   set IdealTW = `cat $cacfg | awk '{if($1 == "-timewindow") print $2}'`;
   set PreStim = `cat $cacfg | awk '{if($1 == "-prestim") print $2}'`;
@@ -817,8 +829,22 @@ while( $#argv != 0 )
       set FixACF = 1;
       breaksw
 
+    case "-fsv3":
+      set FSV3st2fir = 1;
+      set FSV3whiten = 1;
+      breaksw
+
+    case "-no-fsv3":
+      set FSV3st2fir = 0;
+      set FSV3whiten = 0;
+      breaksw
+
     case "-fsv3-st2fir":
       set FSV3st2fir = 1;
+      breaksw
+
+    case "-fsv3-whiten":
+      set FSV3whiten = 1;
       breaksw
 
     case "-no-fsv3-st2fir":
@@ -1011,7 +1037,9 @@ usage_exit:
   echo "   -fix-acf       : DO compensate for resdualized ACF (default)"
   echo "   -autostimdur         : automatically compute stimulus duration"
   echo "   -noautostimdur       : do not automatically compute stimulus duration (default)"
-  echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3"
+  echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3 (and -no-)"
+  echo "   -fsv3-whiten : perform whitening like FreeSurfer Version 3 (and -no-)"
+  echo "   -fsv3 : set all fsv3 flags (FreeSurfer Version 3) (and -no-)"
   echo ""
   echo "Retinotopy and AB Blocked Arguments (Required)"
   echo "   -ncycles     N       : number of cycles in each run"

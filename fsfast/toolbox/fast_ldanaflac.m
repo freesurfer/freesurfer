@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/02/22 21:41:42 $
-%    $Revision: 1.33 $
+%    $Date: 2009/04/02 23:32:37 $
+%    $Revision: 1.34 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -160,13 +160,14 @@ while(1)
    case '-no-fix-acf', flac.fixacf = 0;
    case '-fsv3-st2fir',    flac.fsv3_st2fir = 1;
    case '-no-fsv3-st2fir', flac.fsv3_st2fir = 0;
+   case '-fsv3-whiten',     flac.fsv3_whiten = 1;
+   case '-no-fsv3-whiten',  flac.fsv3_whiten = 0;
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
   nthline = nthline + 1;
 end % while (1)
 fclose(fp);
-
 
 if(isempty(flac.funcstem)) 
   fprintf('ERROR: no funcstem specified in %s\n',flacfile);
