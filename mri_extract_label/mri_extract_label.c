@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/07/30 21:57:39 $
- *    $Revision: 1.11 $
+ *    $Author: fischl $
+ *    $Date: 2009/04/02 18:36:38 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #define UNIT_VOLUME 128
 
 static char vcid[] =
-  "$Id: mri_extract_label.c,v 1.11 2007/07/30 21:57:39 nicks Exp $";
+  "$Id: mri_extract_label.c,v 1.12 2009/04/02 18:36:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -64,6 +64,8 @@ static char *xform_fname = NULL ;
 static LTA  *lta = NULL;
 static TRANSFORM *transform = NULL ;
 static float sigma = 0 ;
+static int dilate = 0 ;
+static int erode = 0 ;
 static int exit_none_found = 0;
 static int nvoxels = 0; // track the number of label voxels found
 
@@ -77,7 +79,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_extract_label.c,v 1.11 2007/07/30 21:57:39 nicks Exp $",
+           "$Id: mri_extract_label.c,v 1.12 2009/04/02 18:36:38 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -142,6 +144,20 @@ main(int argc, char *argv[])
   /* removed for gcc3.3
    * vsprintf(out_fname, out_fname, (va_list) &label) ;
    */
+  if (dilate > 0)
+  {
+    int i ;
+    printf("dilating output volume %d times...\n", dilate) ;
+    for (i = 0 ; i < dilate ; i++)
+      MRIdilate(mri_out, mri_out) ;
+  }
+  if (erode > 0)
+  {
+    int i ;
+    printf("eroding output volume %d times...\n", erode) ;
+    for (i = 0 ; i < erode ; i++)
+      MRIerode(mri_out, mri_out) ;
+  }
   printf("writing output to %s.\n", out_fname) ;
   MRIwrite(mri_out, out_fname) ;
 
@@ -184,6 +200,18 @@ get_option(int argc, char *argv[])
     out_like_fname = argv[2] ;
     nargs = 1 ;
     printf("shaping output to be like %s...\n", out_like_fname) ;
+  }
+  else if (!stricmp(option, "dilate"))
+  {
+    dilate = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("dilating output volume %d times before writing\n", dilate) ;
+  }
+  else if (!stricmp(option, "erode"))
+  {
+    erode = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("dilating output volume %d times before writing\n", erode) ;
   }
   else if (!stricmp(option, "exit_none_found"))
   {
@@ -250,7 +278,9 @@ print_usage(void)
    "\t-s <sigma>\tapply a Gaussian smoothing kernel\n"
    "\t-t <xform file>\tapply the transform in <xform file> to "
    "extracted volume\n"
-   "\t-exit_none_found\texit 1 if label(s) not found\n");
+   "\t-exit_none_found\texit 1 if label(s) not found\n"
+   "\t-dilate <n>\tdilate output volume <n> times\n"
+   "\t-erode <n>\terode output volume <n> times\n");
 }
 
 static void
