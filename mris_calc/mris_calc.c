@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2009/04/03 14:27:42 $
- *    $Revision: 1.14 $
+ *    $Author: nicks $
+ *    $Date: 2009/04/03 17:32:10 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.14 2009/04/03 14:27:42 rudolph Exp $";
+"$Id: mris_calc.c,v 1.15 2009/04/03 17:32:10 nicks Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -264,7 +264,7 @@ double fn_sqr(float af_A)		{return (af_A*af_A);}
 double fn_sqrt(float af_A)		{return sqrt(af_A);}
 
 double fn_sign(float af_A) {
-    float f_ret;
+    float f_ret=0.0;
     if(af_A < 0.0)	f_ret 	= -1.0;
     if(af_A == 0.0)	f_ret	= 0.0;
     if(af_A > 0.0)	f_ret	= 1.0;
@@ -1010,7 +1010,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.14 2009/04/03 14:27:42 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.15 2009/04/03 17:32:10 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
