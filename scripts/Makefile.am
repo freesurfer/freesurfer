@@ -18,6 +18,7 @@ check_subject \
 clear_fs_env.csh \
 cor_to_minc \
 cp-dicom \
+datastruct_utils.py \
 dcmdir-info-mgh \
 deface_subject \
 defect-seg \
@@ -44,6 +45,7 @@ fs_time \
 fsl_rigid_register \
 fslregister \
 fsfget \
+fsutils.py \
 getfullpath \
 grad_unwarp \
 inflate_subject \
@@ -71,6 +73,7 @@ map_all_labels \
 map_all_labels-lh \
 map_central_sulcus \
 minc2seqinfo \
+misc.py \
 mkfsdist \
 mkheadsurf \
 mkima_index.tcl \
@@ -142,6 +145,7 @@ sphere_subject-rh \
 spmmat2register \
 spm_t_to_b \
 spmregister \
+subject_info.py \
 talairach \
 talairach2 \
 talairach_mgh \
