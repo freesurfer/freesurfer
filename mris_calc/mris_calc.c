@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2009/04/03 14:09:08 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/04/03 14:27:42 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.13 2009/04/03 14:09:08 rudolph Exp $";
+"$Id: mris_calc.c,v 1.14 2009/04/03 14:27:42 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -109,6 +109,7 @@ typedef enum _operation {
   e_sqrt,
   e_set,
   e_abs,
+  e_sign,
   e_lt,
   e_lte,
   e_gt,
@@ -144,6 +145,7 @@ const char* Gppch_operation[] = {
   "square root"
   "set",
   "abs",
+  "sign",
   "less than",
   "less than or equal to",
   "greated than",
@@ -260,6 +262,14 @@ double  fn_masked(float af_A, float af_B)       {return(af_B ? af_A : af_B);}
 double fn_abs(float af_A)		{return fabs(af_A);}
 double fn_sqr(float af_A)		{return (af_A*af_A);}
 double fn_sqrt(float af_A)		{return sqrt(af_A);}
+
+double fn_sign(float af_A) {
+    float f_ret;
+    if(af_A < 0.0)	f_ret 	= -1.0;
+    if(af_A == 0.0)	f_ret	= 0.0;
+    if(af_A > 0.0)	f_ret	= 1.0;
+    return f_ret;
+}
 
 double fn_min(float af_A) {
     static float        f_min  = 0;
@@ -488,7 +498,8 @@ synopsis_show(void) {
 	  sqr	   1      1	<outputFile> = <file1> * <file1> \n\
 	  sqrt	   1      1     <outputFile> = sqrt(<file1>) \n\
           abs      1      1     <outputFile> = abs(<file1>) \n\
-         norm      1      1     <outputFile> = norm(<file1>) \n\
+	  sign	   1	  1	<outputFile> = sign(<file1>) \n\
+          norm     1      1     <outputFile> = norm(<file1>) \n\
  \n\
       RELATIONAL \n\
           lt       2      1     <outputFile> = <file1> <  <file2> \n\
@@ -528,6 +539,12 @@ synopsis_show(void) {
  \n\
         The 'sqr' and 'sqrt' return the square and square-root of an input \n\
         file. \n\
+	 \n\
+	The 'sign' function returns at each index of an input file: \n\
+ \n\
+		-1 if <file1>[n] <  0 \n\
+		 0 if <file1>[n] == 0 \n\
+		 1 if <file1>[n] >  0 \n\
  \n\
         NOTE: For volume files, be very careful about data types! If the input \n\
         volume is has data of type UCHAR (i.e. integers between zero and 255), \n\
@@ -678,7 +695,6 @@ synopsis_show(void) {
 		$>cp rh.area rh.ICV \n\
 		$>mris_calc rh.ICV set 100000 \n\
 		$>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
- \n\
  \n\
  \n\
 \n");
@@ -994,7 +1010,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.13 2009/04/03 14:09:08 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.14 2009/04/03 14:27:42 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1131,6 +1147,7 @@ operation_lookup(
   else if(!strcmp(apch_operation, "sqrt"))	e_op    = e_sqrt;
   else if(!strcmp(apch_operation, "set"))       e_op    = e_set;
   else if(!strcmp(apch_operation, "abs"))       e_op    = e_abs;
+  else if(!strcmp(apch_operation, "sign"))      e_op    = e_sign;
 
   else if(!strcmp(apch_operation, "lt"))        e_op    = e_lt;
   else if(!strcmp(apch_operation, "lte"))       e_op    = e_lte;
@@ -1417,6 +1434,7 @@ b_outCurvFile_write(e_operation e_op)
         e_op == e_sqrt          ||
         e_op == e_set           ||
         e_op == e_abs           ||
+	e_op == e_sign		||
         e_op == e_lt            ||
         e_op == e_lte           ||
         e_op == e_gt            ||
@@ -1476,6 +1494,7 @@ CURV_process(void)
     case  e_set:        CURV_functionRunABC(fn_set);    break;
     case  e_sqd:        CURV_functionRunABC(fn_sqd);    break;
     case  e_abs:        CURV_functionRunAC( fn_abs);    break;
+    case  e_sign:	CURV_functionRunAC( fn_sign);	break;
     case  e_sqr:        CURV_functionRunAC( fn_sqr);    break;
     case  e_sqrt:       CURV_functionRunAC( fn_sqrt);   break;
     case  e_lt:         CURV_functionRunABC(fn_lt);     break;

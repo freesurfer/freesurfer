@@ -68,7 +68,8 @@
 	  sqr	   1      1	<outputFile> = <file1> * <file1>
 	  sqrt	   1      1     <outputFile> = sqrt(<file1>)
           abs      1      1     <outputFile> = abs(<file1>)
-         norm      1      1     <outputFile> = norm(<file1>)
+	  sign	   1	  1	<outputFile> = sign(<file1>)
+          norm     1      1     <outputFile> = norm(<file1>)
 
       RELATIONAL
           lt       2      1     <outputFile> = <file1> <  <file2>
@@ -108,6 +109,12 @@
         
         The 'sqr' and 'sqrt' return the square and square-root of an input
         file.
+	
+	The 'sign' function returns at each index of an input file:
+
+		-1 if <file1>[n] <  0
+		 0 if <file1>[n] == 0
+		 1 if <file1>[n] >  0
 
         NOTE: For volume files, be very careful about data types! If the input
         volume is has data of type UCHAR (i.e. integers between zero and 255),
