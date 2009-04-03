@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/07/07 13:53:10 $
-#    $Revision: 1.35 $
+#    $Date: 2009/04/03 17:25:47 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.35 2008/07/07 13:53:10 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.36 2009/04/03 17:25:47 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -171,8 +171,8 @@ if($#MLF == 0) set MLF = $tmpdir/spmregister.$$.m
 rm -f $MLF
 echo "Matlab file is $MLF" |& tee -a $LF
 
-set okfile = $tmpdir/spmregister.$$.ok
-rm -f $okfile
+set errfile = $tmpdir/spmregister.$$.err
+rm -f $errfile
 
 if(-e $regfile) mv $regfile $regfile.$DateString
 
@@ -188,11 +188,15 @@ tee $MLF <<EOF
 monly   = $monly;
 targvol = '$refvolimg';
 srcvol  = '$movvolimg';
-okfile  = '$okfile';
+errfile  = '$errfile';
 
 if(exist('spm_coreg') ~= 2)
   fprintf('ERROR: cannot find spm_coreg.m. Make sure that the SPM\n');
   fprintf('   package is in your matlab path (check ~/matlab/startup)\n');
+  fp = fopen(errfile,'w');
+  fprintf(fp,'ERROR: cannot find spm_coreg.m. Make sure that the SPM\n');
+  fprintf(fp,'   package is in your matlab path (check ~/matlab/startup)\n');
+  fclose(fp);
   return; quit;
 end
 
@@ -231,6 +235,9 @@ tmp = sprintf('%s/%s%s',pth1,nam1,ext1);
 VG	= spm_vol(tmp);	% target image
 if(isempty(VG))
   fprintf('ERROR: loading target %s\n',targvol);
+  fp = fopen(errfile,'a');
+  fprintf(fp,'ERROR: loading target %s\n',targvol);
+  fclose(fp);
   return; quit;
 end
 % tmp = spm_get('Files',pth2,[nam2 ext2])
@@ -238,6 +245,9 @@ tmp = sprintf('%s/%s%s',pth2,nam2,ext2);
 VF	= spm_vol(tmp);	% source image
 if(isempty(VF))
   fprintf('ERROR: loading source %s\n',srcvol);
+  fp = fopen(errfile,'a');
+  fprintf(fp,'ERROR: loading source %s\n',srcvol);
+  fclose(fp);
   return; quit;
 end
 
@@ -246,10 +256,24 @@ fprintf('\n\nINFO: ignore warnings about scalefactor\n\n');
 disp('determining coregistration parameters...')
 
 tic;
-x  = spm_coreg$DNG(VG.fname,VF.fname,defaults.coreg.estimate);
+try
+  x  = spm_coreg$DNG(VG.fname,VF.fname,defaults.coreg.estimate);
+catch
+  fprintf('ERROR: spm_coreg\n');
+  fp = fopen(errfile,'a');
+  fprintf(fp,'ERROR: spm_coreg\n');
+  fprintf(fp,'%s\n',which('spm_coreg'));
+  fclose(fp);
+  return; quit;
+end
 if(isempty(x))
   fprintf('ERROR: spm_coreg\n');
-  if(~monly) quit; end
+  if(~monly) 
+    fp = fopen(errfile,'a');
+    fprintf(fp,'ERROR: spm_coreg\n');
+    fclose(fp);
+    return; quit; 
+  end
 end
 fprintf('Finished after %g sec\n',toc);
 
@@ -276,10 +300,6 @@ else
   MRIwrite(ff,deblank(VF.fname));
 end
 
-
-fp = fopen(okfile,'w');
-fclose(fp);
-
 return;
 if(~monly) quit; end
 
@@ -298,8 +318,9 @@ endif
 cat $MLF | $matlab -nosplash -display iconic -nodesktop |& tee -a $LF
 rm $MLF
 
-if(! -e $okfile) then
+if(-e $errfile) then
   echo "ERROR: matlab exited with errors" |& tee -a $LF
+  cat $errfile |& tee -a $LF
   exit 1;
 endif
 
@@ -690,7 +711,7 @@ to path-to-matlab-binary. Eg:
 
 NOTES:
 
-Uses normalize mutual information.
+Uses normalized mutual information.
 
 BUGS
 
@@ -702,6 +723,12 @@ The movable volume needs to have "valid" geometry (eg, SPM-style .mat
 file). "Valid" means that the direction cosines roughly identify
 Right, Anterior, and Superior (though they do not need to be perfectly
 correct).
+
+This script executes matlab, and errors inside matlab are often hard
+to catch and report properly. If matlab fails with an error that is
+not caught, and registration file will still be created based on the
+header geometry information. This may look like a correct registration
+if the anatomical and functional were acquired during the same session.
 
 SEE ALSO: tkregister2, mri_vol2surf, mri_convert, mri_rigid_register,
 fsl_rigid_register, spm_coreg.m.
