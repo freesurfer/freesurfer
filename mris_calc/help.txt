@@ -27,7 +27,7 @@
     OPTIONS         
 
     	--output <outputCurvFile>
-   	 -o <outputCurvFile>
+   	-o <outputCurvFile>
 
     	By default, 'mris_calc' will save the output of the calculation to a 
     	file in the current working directory with filestem 'out'. The file
@@ -63,7 +63,10 @@
 	  div	   2	  1     <outputFile> = <file1> / <file2>
 	  add      2	  1	<outputFile> = <file1> + <file2>
 	  sub	   2	  1     <outputFile> = <file1> - <file2>
+	  sqd	   2	  1     <outputFile> = (<file1> - <file2>)^2
 	  set	   2	  1     <file1>	     = <file2> 
+	  sqr	   1      1	<outputFile> = <file1> * <file1>
+	  sqrt	   1      1     <outputFile> = sqrt(<file1>)
           abs      1      1     <outputFile> = abs(<file1>)
          norm      1      1     <outputFile> = norm(<file1>)
 
@@ -91,6 +94,8 @@
           max      1      0     print the max value (and index) of <file1>
           mean     1      0     print the mean value of <file1>
           std      1      0     print the standard deviation of <file1>
+	  sum	   1      0	print the sum across all values of <file1>
+	  prod	   1      0     print the inner product across <file1>
           stats    1      0     process 'size', 'min', 'max', 'mean', 'std'
 
     NOTES ON ACTIONS
@@ -98,7 +103,11 @@
       MATHEMATICAL
         The 'add', 'sub', 'div', 'mul' operations all function as one would
         expect. The 'norm' creates an output file such that all values are
-        constrained (normalized) between 0.0 and 1.0.
+        constrained (normalized) between 0.0 and 1.0. The 'sqd' stores the
+        square difference between two inputs.
+        
+        The 'sqr' and 'sqrt' return the square and square-root of an input
+        file.
 
         NOTE: For volume files, be very careful about data types! If the input
         volume is has data of type UCHAR (i.e. integers between zero and 255),
