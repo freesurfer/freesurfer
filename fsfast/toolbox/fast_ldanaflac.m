@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/05 23:45:56 $
-%    $Revision: 1.35 $
+%    $Date: 2009/04/05 23:53:55 $
+%    $Revision: 1.36 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -357,9 +357,11 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     cspec = load(tmpstr);
     bug = fast_gui_bug(cspec);
     if(bug)
+      fprintf('\n\n');
       fprintf('ERROR: detected the FS-FAST GUI Bug in ');
       fprintf('contrast %s\n', clist(nthcon).name);
       fprintf('Please see https://surfer.nmr.mgh.harvard.edu/fswiki/FsFastGuiBug\n');
+      fprintf('\n\n');
       ProcAnyway = getenv('FSF_PROC_GUI_BUG');
       if(isempty(ProcAnyway)) ProcAnyway = '0'; end
       ProcAnyway = sscanf(ProcAnyway,'%d');
@@ -369,6 +371,7 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
 	return;
       end
       fprintf(' ... but FSF_PROC_GUI_BUG is set to 1, so continuing\n');
+      fprintf('\n\n');
     end
     if(~isfield(cspec,'setwcond')) cspec.setwcond = 1; end
     if(~isfield(cspec,'sumconds')) cspec.sumconds = 1; end
