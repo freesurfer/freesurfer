@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/02 23:32:37 $
-%    $Revision: 1.34 $
+%    $Date: 2009/04/05 23:45:56 $
+%    $Revision: 1.35 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -355,6 +355,21 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     fprintf('%2d %s\n',nthcon,clist(nthcon).name);
     tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
     cspec = load(tmpstr);
+    bug = fast_gui_bug(cspec);
+    if(bug)
+      fprintf('ERROR: detected the FS-FAST GUI Bug in ');
+      fprintf('contrast %s\n', clist(nthcon).name);
+      fprintf('Please see https://surfer.nmr.mgh.harvard.edu/fswiki/FsFastGuiBug\n');
+      ProcAnyway = getenv('FSF_PROC_GUI_BUG');
+      if(isempty(ProcAnyway)) ProcAnyway = '0'; end
+      ProcAnyway = sscanf(ProcAnyway,'%d');
+      if(ProcAnyway ~= 1)
+	fprintf('FSF_PROC_GUI_BUG not set to 1, so exiting\n');
+	flac = [];
+	return;
+      end
+      fprintf(' ... but FSF_PROC_GUI_BUG is set to 1, so continuing\n');
+    end
     if(~isfield(cspec,'setwcond')) cspec.setwcond = 1; end
     if(~isfield(cspec,'sumconds')) cspec.sumconds = 1; end
     if(~isfield(cspec,'sumdelays')) cspec.sumdelays = 0; end
@@ -373,7 +388,9 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     flac.con(nthcon).sumev    = cspec.sumconds;
     flac.con(nthcon).sumevreg = cspec.sumdelays;
     flac.con(nthcon).sumevrw  = [];
+    flac.con(nthcon).ContrastMtx_0 = cspec.ContrastMtx_0; % 4/3/09
     con_nthev = 0;
+    % Actual contrast matrix is computed below
     for nthcondition = 1:cspec.NCond
       if(cspec.WCond(nthcondition)==0) continue; end
       con_nthev = con_nthev + 1;
