@@ -3,7 +3,7 @@ function hfig = mkcontrast_gui(varargin)
 % mkcontrast_gui(cbstring);
 % Creates a cspec field in the hparent UserData struct
 %  If Cancel is hit, this field is there but empty
-% $Id: mkcontrast_gui.m,v 1.7 2007/06/25 05:08:20 greve Exp $
+% $Id: mkcontrast_gui.m,v 1.8 2009/04/05 23:33:40 greve Exp $
 
 msg = [];
 ud = [];
@@ -267,8 +267,10 @@ switch (cbflag)
       get(ud.cbRmPreStim,'value');
   ud = setstate(ud);
  case 'cbManConWeights', 
-  ud.flac.ana.con(ud.connumber).cspec.setwcond = ...
-      get(ud.cbManConWeights,'value');
+  v = get(ud.cbManConWeights,'value');
+  ud.flac.ana.con(ud.connumber).cspec.setwcond = v;
+  % If manual, turn off normalization
+  if(v==1) ud.flac.ana.con(ud.connumber).cspec.CNorm = 0; end
   ud = setstate(ud);
  case 'cbManRegWeights', 
   ud.flac.ana.con(ud.connumber).cspec.setwdelay = ...
@@ -410,6 +412,7 @@ cspec.nircorr = 0;
 cspec.rdelta = [0 0];
 cspec.rtau   = [0 0];
 cspec.ContrastMtx_0 = fast_contrastmtx(cspec);
+cspec.creator = '$Id: mkcontrast_gui.m,v 1.8 2009/04/05 23:33:40 greve Exp $';
 
 return;
 
@@ -465,6 +468,12 @@ for c = 1:ana.nconditions
       cspec.WCond(c) = -1;
     end
   end
+end
+if(cspec.CNorm)
+  % This line fixes the FSFAST GUI bug
+  cspec.WCond = fast_norm_con(cspec.WCond);
+end
+for c = 1:ana.nconditions
   set(ud.ebConditionW(c),'string',sprintf('%6.4f',cspec.WCond(c)));
 end
 
