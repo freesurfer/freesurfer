@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.5 2007/06/25 04:16:17 greve Exp $
+% $Id: fast_svana.m,v 1.6 2009/04/05 23:32:39 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -14,6 +14,11 @@ if(err)
   fprtinf('%s\n',msg);
   return;
 end
+
+% Save the full flac.
+flac.CreationDate = date;
+flacmat = sprintf('%s/fsfast.flac',ananame);
+save(flacmat,'flac');
 
 anacfg = sprintf('%s/analysis.cfg',ananame);
 [fp msg] = fopen(anacfg,'w');
@@ -118,11 +123,13 @@ if(~IsERBlock) return; end
 ncon = length(ana.con);
 for nthcon = 1:ncon
   cmtxfile = sprintf('%s/%s.mat',ananame,flac.ana.con(nthcon).cspec.name);
+  CNorm = ana.con(nthcon).cspec.CNorm;
   ContrastMtx_0 = ana.con(nthcon).cspec.ContrastMtx_0;
   NCond = ana.con(nthcon).cspec.NCond;
   WCond = ana.con(nthcon).cspec.WCond;
+  % This line fixes the FSFAST GUI bug
+  if(CNorm) WCond = fast_norm_con(WCond); end
   WDelay = ana.con(nthcon).cspec.WDelay;
-  CNorm = ana.con(nthcon).cspec.CNorm;
   TER = ana.con(nthcon).cspec.TER;
   TimeWindow = ana.con(nthcon).cspec.TimeWindow;
   TPreStim = ana.con(nthcon).cspec.TPreStim;
@@ -137,7 +144,7 @@ for nthcon = 1:ncon
   CondState = ana.con(nthcon).cspec.CondState;
   save(cmtxfile,'ContrastMtx_0','NCond','WCond','WDelay','CNorm','TER',...
     'TimeWindow','TPreStim','RmPreStim','sumconds','sumdelays',...
-    'nircorr','rdelta','rtau','setwcond','setwdelay','CondState','-V4');
+    'nircorr','rdelta','rtau','setwdelay','setwcond','CondState','-V4');
 end
 
 err = 0;
