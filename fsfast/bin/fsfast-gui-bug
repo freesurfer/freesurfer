@@ -1,0 +1,437 @@
+#!/bin/tcsh -f
+# recon-all
+
+set VERSION = '$Id: fsfast-gui-bug,v 1.1 2009/04/06 00:55:50 greve Exp $';
+
+set DoFix = 0;
+set DoFind = 0;
+set analyses = ();
+set CheckSessions = 0;
+set mfile = ();
+set monly = 0;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  set CheckSessions = 0;
+else
+  set CheckSessions = 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set a = $FSFAST_HOME/toolbox/fast_norm_con.m
+if(! -e $a) then
+  echo "ERROR: this script requires fast_norm_con.m"
+  exit 1;
+endif
+set a = $FSFAST_HOME/toolbox/fast_gui_bug.m
+if(! -e $a) then
+  echo "ERROR: this script requires fast_gui_bug.m"
+  exit 1;
+endif
+
+# Look in the current directory for analysisnaame/analysis.info
+if($DoFind) then
+  set alist = (`find . -maxdepth 2 -name analysis.info `);
+  if($#alist == 0) then
+    echo "Cannot find any analyses in current directory"
+    exit 0;
+  endif
+  foreach a ($alist)
+    set analysis = `dirname $a`;
+    set analysis = `basename $analysis`; # strip trailing slash
+    set analyses = ($analyses $analysis);
+  end
+endif
+
+# Only take analyses with contrasts
+set tmp = ();
+foreach analysis ($analyses)
+  set clist = `find $analysis -maxdepth 2 -name "*.mat" `
+  if($#clist) then
+    set tmp = ($tmp $analysis);
+  else
+    echo "Analysis $analysis has no contrasts"
+  endif
+end
+
+# Matlab file 
+if($#mfile == 0) set mfile = /tmp/fsfastguibug.$$.m
+rm -f $mfile
+
+set outfile = /tmp/fsfastguibug.$$.out
+if($monly) set outfile = $mfile.out
+rm -f $outfile
+
+if(! $CheckSessions) then
+#--------------------------------
+tee $mfile > /dev/null <<EOF
+DoFix = $DoFix;
+analyses = splitstring('$analyses');
+nanalyses = size(analyses,1);
+outfile = '$outfile';
+fp = fopen(outfile,'a');
+fprintf(fp,'\n\n\n');
+analist = [];
+conlist =  [];
+bugtypelist =  [];
+nbugs = 0;
+for nthana = 1:nanalyses
+  analysis = deblank(analyses(nthana,:));
+  cstring = sprintf('%s/*.mat',analysis);
+  cmatlist = dir(cstring);
+  ncons = length(cmatlist);
+  bugged = 0;
+  for nthcon = 1:ncons
+    conname = basename(cmatlist(nthcon).name);
+    cmtxfile = sprintf('%s/%s',analysis,cmatlist(nthcon).name);
+    cspec = load(cmtxfile);
+    bug = fast_gui_bug(cspec);
+    if(bug == 0) continue; end
+    if(bugged == 0) 
+      nbugs = nbugs + 1; 
+      bugged = 1;
+    end
+    if(bug == 1)  bugtype = 'balanced'; end
+    if(bug == 2)  bugtype = 'unbalanced'; end
+    analist = strvcat(analist,analysis);
+    conlist = strvcat(conlist,cmatlist(nthcon).name);
+    bugtypelist = strvcat(bugtypelist,bugtype);
+
+    if(~DoFix) continue; end
+    fprintf('  Should not be here.\n');
+    return;
+
+    cspec.WCond = fast_norm_con(cspec.WCond);
+    cmtxfile = 'blah2';
+    save(cmtxfile,'-struct','cspec','ContrastMtx_0','NCond',...
+         'WCond','WDelay','CNorm','TER','TimeWindow','TPreStim',...
+         'RmPreStim','sumconds','sumdelays','nircorr','rdelta',...
+         'rtau','setwcond','setwdelay','CondState','-V4');
+  end
+end
+
+fprintf(fp,'\n\n\n');
+if(nbugs > 0)
+  fprintf(fp,'Found %d analysis configurations with a contrast bug.\n',nbugs);
+  for n = 1:size(analist,1)
+    analysis = analist(n,:);
+    contrast = conlist(n,:);
+    bugtype  = bugtypelist(n,:);
+    fprintf(fp,'%s %s %s\n',analysis,contrast,bugtype);
+  end
+end
+if(nbugs == 0)
+  fprintf(fp,'Did not find any analysis configurations with bugs.\n');
+end
+fprintf('\n');
+fclose(fp);
+
+EOF
+#--------------------------------
+endif
+
+if(! $monly) then
+  set tmpfile = /tmp/fsfast-gui-bug.$$.tmp
+else
+  echo "clear all" >> $mfile
+  set tmpfile = $mfile.tmp
+endif
+rm -f $tmpfile
+
+if($CheckSessions) then
+  touch $tmpfile
+
+  # This constructs a list of X.mat paths
+  @ nthsess = 0;
+  @ nhits = 0;
+  foreach sess ($SessList)
+    @ nthsess = $nthsess + 1;
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname  $sess`;
+    echo $sessbase
+    foreach analysis ($analyses)
+      set infofile = $analysis/analysis.info
+      set fsd  = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+      set anadir = $sess/$fsd/$analysis
+      echo $anadir
+      if(! -e $anadir) continue;
+      set xmatfile = $anadir/X.mat
+      if(! -e $xmatfile) continue;
+      echo $xmatfile >> $tmpfile
+      @ nhits = $nhits + 1;
+    end
+    echo $tmpfile
+  end
+
+#-------------------------------
+tee -a $mfile > /dev/null <<EOF
+tmpfile = '$tmpfile';
+xmatlist = textread(tmpfile,'%s');
+nxmat = length(xmatlist);
+sessidlist = '';
+analist = '';
+bugtypelist = '';
+outfile = '$outfile';
+fp = fopen(outfile,'a');
+fprintf(fp,'\n\n\n');
+for nthxmat = 1:nxmat
+  xmatfile = char(xmatlist(nthxmat));
+  tmp = dirname(xmatfile);
+  analysis = basename(tmp);
+  tmp = dirname(tmp); % fsd
+  tmp = dirname(tmp); % sess
+  sessid = basename(tmp);
+  x = load(xmatfile);
+  analysis = x.flac0.ana.analysis;
+  cons = x.flac0.ana.con;
+  ncons = length(cons);
+  for nthcon = 1:ncons
+    cspec = cons(nthcon).cspec;
+    bug = fast_gui_bug(cspec);
+    if(bug == 0) continue; end
+    if(bug == 1)  bugtype = 'balanced'; end
+    if(bug == 2)  bugtype = 'unbalanced'; end
+    sessidlist = strvcat(sessidlist,sessid);
+    analist = strvcat(analist,analysis);
+    bugtypelist = strvcat(bugtypelist,bugtype);
+  end
+end
+
+nbugs = size(sessidlist,1);
+
+fprintf('\n');
+if(nbugs > 0)
+  fprintf(fp,'Found %d individual data sets with a bug.\n',nbugs);
+  for n = 1:size(analist,1)
+    sessid = sessidlist(n,:);
+    analysis = analist(n,:);
+    bugtype  = bugtypelist(n,:);
+    fprintf(fp,'%s %s %s\n',sessid,analysis,bugtype);
+  end
+  %fprintf('Re-run selxavg3-sess on these session to fix them\n');
+end
+if(nbugs == 0)
+  fprintf(fp,'Did not find any session data sets with bugs.\n');
+end
+fprintf('\n');
+fprintf(fp,'\n\n\n');
+
+EOF
+#-------------------------------
+endif
+
+if(! $monly) then
+  cat $mfile | matlab  -display iconic
+  cat $outfile
+  rm -f $mfile $tmpfile $outfile
+endif
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if($#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      if(! -e $analysis) then
+        echo "ERROR: cannot find $analysis"
+        exit 1
+      endif
+      set analyses = ($analyses $analysis);
+      breaksw
+
+    case "-monly":
+      if($#argv < 1) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-find-analysis":
+    case "-find-analyses":
+      set DoFind = 1;
+      breaksw
+
+    case "-fix-analyses":
+      set DoFix = 1;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      if(! $CheckSessions) then
+        echo "ERROR: no sessions found"
+        exit 1;
+      endif
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      if(! $CheckSessions) then
+        echo "ERROR: no  sessions found"
+        exit 1;
+      endif
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#analyses == 0 && ! $DoFind) then
+    echo "ERROR: must spec -a or -find-analyses"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fsfast-gui-bug"
+  echo ""
+  echo "   -a analysisname : name of functional analysis"
+  echo "       You can specify multiple -a options"
+  echo "   -find-analyses : find all analyses in current directory"
+  echo ""
+#  echo "   -fix-analyses   : fix contrast configuration"
+#  echo "      NOTE: this does not fix individual subject data\!"
+#  echo ""
+  echo "To check individual subject data, specify Session Arguments"
+  echo "     NOTE: This does not fix individual subject data\!"
+  echo "           It just tells you whether your subjects have a problem\!"
+  echo "           You must fix the analyses, then re-run selxavg3-sess"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a program to help find and fix the FSFAST GUI bug. 
+See https://surfer.nmr.mgh.harvard.edu/fswiki/FsFastGuiBug for more 
+infomation.
+
+It can be run in two modes: 
+  1. To find analysis configurations that are affected. 
+  2. To find data that have been analyzed with affected configurations. 
+
+
+CHECKING ANALYSIS CONFIGURATIONS
+
+To run in the first mode to check analysis "main", just cd to your 
+Study directory and run: 
+
+  fsfast-gui-bug -analysis main
+
+If all is well with "main", it will print out 
+
+  Did not find any analysis configurations with bugs.
+
+If there is a problem, it will print out something like a list of 
+each contrast in each affected analysis and the type of bug (balanced 
+or unbalanced), something like:
+
+  Found 1 analysis configurations with a contrast bug.
+  main ALL_0.mat     balanced  
+  main P_Neutral.mat unbalanced
+
+Alternatively, you can have it check all the analyses in your Study 
+directory with:
+
+  fsfast-gui-bug -find-analyses
+
+It will print out all analyses 
+
+  Found 3 analysis configurations with a contrast bug.
+  ORpn-gamma-Ntest ALL_0.mat     balanced  
+  ORpn-gamma       ALL_0.mat     balanced  
+  ORpn-gamma       P_Neutral.mat unbalanced
+  gui4             ALL_0.mat     balanced  
+  gui4             P_Neutral.mat unbalanced
+
+
+
+FINDING AFFECTED SESSIONS
+
+To run in the second mode, supply session arguments as you would to
+other FSFAST commands (like selxvg3-sess), eg,
+
+  fsfast-gui-bug -a main -s SMOR008
+
+It will print out a list of affected sessions, something like:
+
+  Found 2 individual data sets with a bug.
+  SMOR008 main balanced  
+  SMOR008 main unbalanced
+
+If no sessions are affect, it will print out:
+
+  Did not find any session data sets with bugs.
+
