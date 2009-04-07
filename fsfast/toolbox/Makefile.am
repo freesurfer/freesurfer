@@ -130,6 +130,7 @@ MFILES=\
 	fast_gammaderiv.m \
 	fast_gamma.m \
 	fast_gaussian.m \
+	fast_gui_bug.m \
 	fast_getvolformat.m \
 	fast_ghostdet.m \
 	fast_ghostmask.m \
@@ -198,6 +199,7 @@ MFILES=\
 	fast_mrivolstruct.m \
 	fast_mshift.m \
 	fast_normcovmtx.m \
+	fast_norm_con.m \
 	fast_npernull.m \
 	fast_nswfflac_sess.m \
 	fast_omnibusmtx.m \
