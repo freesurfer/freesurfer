@@ -64,6 +64,7 @@ FSF_FILES=\
 	fmreigen \
 	fmreigen-jk \
 	fsfast-version \
+	fsfast-gui-bug \
 	fsfeat \
 	fsfeatffx \
 	fsfeat-sess \
