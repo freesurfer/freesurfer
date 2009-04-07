@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.19 2009/02/05 21:51:36 krish Exp $
+# $Id: asegstats2table,v 1.20 2009/04/07 18:18:09 krish Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -77,7 +77,7 @@ This might be a useful way to see the table when the number of subjects is
 relatively less than the number of segmentations.
 
 The --delimiter option controls what character comes between the measures
-in the table.
+in the table. Valid options are 'tab' ( default), 'space', 'comma' and  'semicolon'.
 
 The --skip option skips if it can't find a .stats file. Default behavior is
 exit the program.
@@ -88,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.19 2009/02/05 21:51:36 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.20 2009/04/07 18:18:09 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
