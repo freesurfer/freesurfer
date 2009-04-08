@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/05 23:53:55 $
-%    $Revision: 1.36 $
+%    $Date: 2009/04/08 16:46:07 $
+%    $Revision: 1.37 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ fclose(fp);
 %----------- Read in the analysis.cfg -------------------
 TER = flac.TR;
 PolyOrder = 0;
-extreg = [];
+extreg = '';
 nextreg = 0;
 nskip = 0;
 ncycles = [];
