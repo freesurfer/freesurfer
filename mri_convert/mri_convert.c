@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/30 02:30:42 $
- *    $Revision: 1.146.2.4 $
+ *    $Date: 2009/04/08 18:40:23 $
+ *    $Revision: 1.146.2.5 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.146.2.4 2009/01/30 02:30:42 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.146.2.5 2009/04/08 18:40:23 nicks Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -293,7 +293,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.146.2.4 2009/01/30 02:30:42 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.146.2.5 2009/04/08 18:40:23 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[i], "--like")==0) {
       get_string(argc, argv, &i, out_like_name);
       out_like_flag = TRUE;
-      printf("WARNING: --like does not work on multi-frame data\n");
+      //printf("WARNING: --like does not work on multi-frame data\n");
     }
     else if (strcmp(argv[i], "--crop")==0) {
       crop_flag = TRUE ;
@@ -1303,7 +1303,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.146.2.4 2009/01/30 02:30:42 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.146.2.5 2009/04/08 18:40:23 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
