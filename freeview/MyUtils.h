@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/04/08 19:23:38 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -62,7 +62,7 @@ public:
 
   static wxString GetDateAndTime();
 
-  static wxArrayString SplitString( const wxString& strg, const wxString& divider );
+  static wxArrayString SplitString( const wxString& strg, const wxString& divider, int nIgnoreStart = 0, int nIgnoreLength = 0 );
 
   static bool VTKScreenCapture( vtkRenderWindow* renderWindow, vtkRenderer* renderer,
                                 const char* filename, bool bAntiAliasing = false, int nMag = 1 );

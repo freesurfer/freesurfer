@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/04/08 19:23:38 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -185,27 +185,56 @@ wxString MyUtils::GetNormalizedFullPath( const wxString& filename )
 }
 
 wxArrayString MyUtils::SplitString( const wxString& strg_to_split, 
-                                    const wxString& divider )
+                                    const wxString& divider,
+                                    int nIgnoreStart,
+                                    int nIgnoreLength )
 {
   wxArrayString sa;
   wxString strg = strg_to_split;
   strg.Trim( true );
   strg.Trim( false );
   int n = strg.Find( divider );
+  int nMark = n + divider.Length();
   while ( n != wxNOT_FOUND )
   {
-    wxString substr = strg.Left( n );
-    substr.Trim( true );
-    substr.Trim( false );
-    if ( substr.Length() > 0 )
-      sa.Add( substr );
-    strg = strg.Mid( n + divider.Length() );
-    strg.Trim( true );
-    strg.Trim( false );
-    n = strg.Find( divider );
+    if ( nMark < nIgnoreStart || nMark >= nIgnoreStart + nIgnoreLength )
+    { 
+      wxString substr = strg.Left( n );
+      substr.Trim( true );
+      substr.Trim( false );
+      if ( !substr.IsEmpty() )
+        sa.Add( substr );
+      strg = strg.Mid( n + divider.Length() );
+    //  strg.Trim( true );
+    //  strg.Trim( false );
+      n = strg.Find( divider );
+      if ( n != wxNOT_FOUND )
+        nMark += n + divider.Length();
+    }
+    else
+    {
+      nMark -= ( n + divider.Length() );
+      int nStart = 0;
+      n = strg.find( divider, nStart );
+      while ( n != wxNOT_FOUND && 
+              (nMark + n + (int)divider.Length()) >= nIgnoreStart && 
+              (nMark + n + (int)divider.Length()) < (nIgnoreStart + nIgnoreLength) )
+      {
+        nStart = n + divider.Length();
+        n = strg.find( divider, nStart );
+      }
+      
+      if ( n != wxNOT_FOUND )
+        nMark += n + divider.Length();
+    }
   }
   if ( strg.Length() > 0 )
-    sa.Add( strg );
+  {
+    strg.Trim( true );
+    strg.Trim( false );
+    if ( !strg.IsEmpty() )
+      sa.Add( strg );
+  }
 
   return sa;
 }

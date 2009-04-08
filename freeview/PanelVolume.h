@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:13 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/04/08 19:23:38 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -103,6 +103,8 @@ private:
   void OnChoiceDirectionCode          ( wxCommandEvent& event );
   void OnSliderFrameChanged           ( wxScrollEvent& event );
   void OnTextFrameChanged             ( wxCommandEvent& event );
+  void OnCheckDisplayVector           ( wxCommandEvent& event );
+  void OnChoiceVectorInversion        ( wxCommandEvent& event );
 
   void OnTextGrayScaleMin       ( wxCommandEvent& event );
   void OnTextGrayScaleMax       ( wxCommandEvent& event );
@@ -165,6 +167,8 @@ private:
   wxColorIndicator* m_colorIndicator;
   wxTextCtrl*     m_textFrame;
   wxSlider*       m_sliderFrame;
+  wxCheckBox*     m_checkDisplayVector;
+  wxChoice*       m_choiceVectorInversion;
 
   wxCheckBox*     m_checkContour;
   wxSlider*       m_sliderContourMin;
@@ -178,7 +182,10 @@ private:
   std::vector<wxWindow*> m_widgetlistLUT;
   std::vector<wxWindow*> m_widgetlistDirectionCode;
   std::vector<wxWindow*> m_widgetlistFrame;
+  std::vector<wxWindow*> m_widgetlistVectorInversion;
   std::vector<wxWindow*> m_widgetlistContour;
+  std::vector<wxWindow*> m_widgetlistNormalDisplay;
+  std::vector<wxWindow*> m_widgetlistEditable;
 
   LUTDataHolder* m_luts;
 

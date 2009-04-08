@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:12 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/04/08 19:23:37 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,11 +43,21 @@
 #include "vtkVolume.h"
 #include "vtkImageThreshold.h"
 #include "vtkPointData.h"
+#include "vtkCellArray.h"
 #include "vtkContourFilter.h"
+#include "vtkTubeFilter.h"
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
 #include "MainWindow.h"
+#include "vtkMath.h"
+
+#ifndef max
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
 
 LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     m_volumeSource( NULL),
@@ -67,6 +77,16 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
      m_sliceActor3D[i]->GetProperty()->SetDiffuse( 0 );*/
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
+    
+    m_vectorActor2D[i] = vtkActor::New();
+    m_vectorActor3D[i] = vtkActor::New();
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+    mapper->SetInput( polydata );
+    m_vectorActor2D[i]->SetMapper( mapper );
+    m_vectorActor3D[i]->SetMapper( mapper );
+    m_vectorActor2D[i]->GetProperty()->SetInterpolationToFlat();
+    m_vectorActor3D[i]->GetProperty()->SetInterpolationToFlat();
   }
   mProperties = new LayerPropertiesMRI();
   mProperties->AddListener( this );
@@ -81,6 +101,8 @@ LayerMRI::~LayerMRI()
 	{
 		m_sliceActor2D[i]->Delete();
 		m_sliceActor3D[i]->Delete();
+    m_vectorActor2D[i]->Delete();
+    m_vectorActor3D[i]->Delete();
 	}
 	m_actorContour->Delete();
 	m_propVolume->Delete();
@@ -484,7 +506,10 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
   wxASSERT ( nPlane >= 0 && nPlane <= 2 );
 
-  renderer->AddViewProp( m_sliceActor2D[nPlane] );
+  if ( mProperties->GetDisplayVector() )
+    renderer->AddViewProp( m_vectorActor2D[nPlane] );
+  else
+    renderer->AddViewProp( m_sliceActor2D[nPlane] );
 }
 
 void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
@@ -493,7 +518,12 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 	for ( int i = 0; i < 3; i++ )
 	{
 		if ( !bContour && ( bSliceVisibility == NULL || bSliceVisibility[i] ) )
-			renderer->AddViewProp( m_sliceActor3D[i] ); 
+    {
+      if ( mProperties->GetDisplayVector() )
+        renderer->AddViewProp( m_vectorActor3D[i] );
+			else
+        renderer->AddViewProp( m_sliceActor3D[i] );
+    } 
 	}
 	
 	if ( bContour )
@@ -539,59 +569,66 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
 
   assert( mProperties );
 
+ 
+  // display slice image
   vtkSmartPointer<vtkMatrix4x4> matrix =
-    vtkSmartPointer<vtkMatrix4x4>::New();
+      vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
   switch ( nPlane )
   {
-  case 0:
-    m_sliceActor2D[0]->PokeMatrix( matrix );
-    m_sliceActor2D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
-    m_sliceActor2D[0]->RotateX( 90 );
-    m_sliceActor2D[0]->RotateY( -90 );
-    m_sliceActor3D[0]->PokeMatrix( matrix );
-    m_sliceActor3D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
-    m_sliceActor3D[0]->RotateX( 90 );
-    m_sliceActor3D[0]->RotateY( -90 );
-
-    // Putting negatives in the reslice axes cosines will flip the
-    // image on that axis.
-    mReslice[0]->SetResliceAxesDirectionCosines( 0, -1, 0,
-        0, 0, 1,
-        1, 0, 0 );
-    mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
-    mReslice[0]->Modified();
-    break;
-  case 1:
-    m_sliceActor2D[1]->PokeMatrix( matrix );
-    m_sliceActor2D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
-    m_sliceActor2D[1]->RotateX( 90 );
-    // m_sliceActor2D[1]->RotateY( 180 );
-    m_sliceActor3D[1]->PokeMatrix( matrix );
-    m_sliceActor3D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
-    m_sliceActor3D[1]->RotateX( 90 );
-    // m_sliceActor3D[1]->RotateY( 180 );
-
-    // Putting negatives in the reslice axes cosines will flip the
-    // image on that axis.
-    mReslice[1]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 0, 1,
-        0, 1, 0 );
-    mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
-    mReslice[1]->Modified();
-    break;
-  case 2:
-    m_sliceActor2D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
-    // m_sliceActor2D[2]->RotateY( 180 );
-    m_sliceActor3D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
-    // m_sliceActor3D[2]->RotateY( 180 );
-
-    mReslice[2]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 1, 0,
-        0, 0, 1 );
-    mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
-    mReslice[2]->Modified();
-    break;
+    case 0:
+      m_sliceActor2D[0]->PokeMatrix( matrix );
+      m_sliceActor2D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
+      m_sliceActor2D[0]->RotateX( 90 );
+      m_sliceActor2D[0]->RotateY( -90 );
+      m_sliceActor3D[0]->PokeMatrix( matrix );
+      m_sliceActor3D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
+      m_sliceActor3D[0]->RotateX( 90 );
+      m_sliceActor3D[0]->RotateY( -90 );
+  
+      // Putting negatives in the reslice axes cosines will flip the
+      // image on that axis.
+      mReslice[0]->SetResliceAxesDirectionCosines( 0, -1, 0,
+          0, 0, 1,
+          1, 0, 0 );
+      mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
+      mReslice[0]->Modified();
+      break;
+    case 1:
+      m_sliceActor2D[1]->PokeMatrix( matrix );
+      m_sliceActor2D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
+      m_sliceActor2D[1]->RotateX( 90 );
+      // m_sliceActor2D[1]->RotateY( 180 );
+      m_sliceActor3D[1]->PokeMatrix( matrix );
+      m_sliceActor3D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
+      m_sliceActor3D[1]->RotateX( 90 );
+      // m_sliceActor3D[1]->RotateY( 180 );
+  
+      // Putting negatives in the reslice axes cosines will flip the
+      // image on that axis.
+      mReslice[1]->SetResliceAxesDirectionCosines( 1, 0, 0,
+          0, 0, 1,
+          0, 1, 0 );
+      mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
+      mReslice[1]->Modified();
+      break;
+    case 2:
+      m_sliceActor2D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
+      // m_sliceActor2D[2]->RotateY( 180 );
+      m_sliceActor3D[2]->SetPosition( 0, 0, m_dSlicePosition[2] );
+      // m_sliceActor3D[2]->RotateY( 180 );
+  
+      mReslice[2]->SetResliceAxesDirectionCosines( 1, 0, 0,
+          0, 1, 0,
+          0, 0, 1 );
+      mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
+      mReslice[2]->Modified();
+      break;
+  }
+  // display 4D data as vector
+  if ( mProperties->GetDisplayVector() )
+  {
+    UpdateVectorActor( nPlane );
   }
 }
 
@@ -632,6 +669,11 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void*
     this->UpdateContour();
     this->SendBroadcast( iMessage, this, this );
   }
+  else if ( iMessage == "DisplayModeChanged" )
+  {
+    this->UpdateVectorActor();
+    this->SendBroadcast( iMessage, this, this );
+  }
 }
 
 void LayerMRI::SetVisible( bool bVisible )
@@ -640,8 +682,10 @@ void LayerMRI::SetVisible( bool bVisible )
   {
     m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
+    m_vectorActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
+    m_vectorActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
   }
-  m_actorContour->SetVisibility( bVisible ? 1 : 0 );
+//  m_actorContour->SetVisibility( bVisible ? 1 : 0 );
   this->SendBroadcast( "LayerActorUpdated", this );
 }
 
@@ -768,3 +812,174 @@ void LayerMRI::OriginalIndexToRAS( const int* n, double* pos )
   pos[1] = y;
   pos[2] = z;
 }
+
+void LayerMRI::UpdateVectorActor()
+{
+  for ( int i = 0; i < 3; i++ )
+  {
+    UpdateVectorActor( i );
+  }
+}
+
+void LayerMRI::UpdateVectorActor( int nPlane )
+{
+  UpdateVectorActor( nPlane, m_imageData );
+}
+
+void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
+{
+  double* pos = GetSlicePosition();
+  double* orig = imagedata->GetOrigin();
+  double* voxel_size = imagedata->GetSpacing();
+  int* dim = imagedata->GetDimensions();
+  int n[3];
+  for ( int i = 0; i < 3; i++ )
+    n[i] = (int)( ( pos[i] - orig[i] ) / voxel_size[i] + 0.5 );
+
+//  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->GetInput();
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  vtkSmartPointer<vtkUnsignedCharArray> scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
+  scalars->SetNumberOfComponents( 4 );  
+  polydata->SetPoints( points );
+  polydata->SetLines( lines );
+  polydata->GetPointData()->SetScalars( scalars );
+  if ( n[0] < 0 || n[0] >= dim[0] ||
+       n[1] < 0 || n[1] >= dim[1] ||
+       n[2] < 0 || n[2] >= dim[2] )
+  {
+    vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->SetInput( polydata );
+    return;
+  }
+  
+  int nCnt = 0;
+  double scale = min( min( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 2;
+  vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+  tube->SetInput( polydata );
+  tube->SetNumberOfSides( 4 );
+  tube->SetRadius( scale / 5 );
+  tube->CappingOn();
+  vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->SetInput( polydata );
+  unsigned char c[4] = { 0, 0, 0, 255 };
+  switch ( nPlane )
+  {
+    case 0:
+      for ( int i = 0; i < dim[1]; i++ )
+      {
+        for ( int j = 0; j < dim[2]; j++ )
+        {
+          double v[3];
+          double pt[3];
+          v[0] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 0 );
+          v[1] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 1 );
+          v[2] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 2 );
+          vtkMath::Normalize( v );
+          v[1] = -v[1];         // by default invert Y !!
+          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
+            v[0] = -v[0];
+          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
+            v[1] = -v[1];
+          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
+            v[2] = -v[2];
+          pt[0] = orig[0] + voxel_size[0] * n[0];
+          pt[1] = orig[1] + voxel_size[1] * i;
+          pt[2] = orig[2] + voxel_size[2] * j;
+          lines->InsertNextCell( 2 );
+          points->InsertNextPoint( pt[0] + scale * v[0], 
+                                   pt[1] + scale * v[1], 
+                                   pt[2] + scale * v[2] );
+          points->InsertNextPoint( pt[0] - scale * v[0], 
+                                   pt[1] - scale * v[1], 
+                                   pt[2] - scale * v[2] );
+          lines->InsertCellPoint( nCnt++ );
+          lines->InsertCellPoint( nCnt++ );
+          c[0] = (int)(fabs( v[0] *255 ) );
+          c[1] = (int)(fabs( v[1] *255 ) );
+          c[2] = (int)(fabs( v[2] *255 ) );
+          scalars->InsertNextTupleValue( c );
+          scalars->InsertNextTupleValue( c );
+        }
+      }
+      break;
+    case 1:
+      for ( int i = 0; i < dim[0]; i++ )
+      {
+        for ( int j = 0; j < dim[2]; j++ )
+        {
+          double v[3];
+          double pt[3];
+          v[0] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 0 );
+          v[1] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 1 );
+          v[2] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 2 );
+          vtkMath::Normalize( v );
+          v[1] = -v[1];         // by default invert Y !!
+          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
+            v[0] = -v[0];
+          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
+            v[1] = -v[1];
+          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
+            v[2] = -v[2];
+          pt[0] = orig[0] + voxel_size[0] * i;
+          pt[1] = orig[1] + voxel_size[1] * n[1];
+          pt[2] = orig[2] + voxel_size[2] * j;
+          lines->InsertNextCell( 2 );
+          points->InsertNextPoint( pt[0] + scale * v[0], 
+                                   pt[1] + scale * v[1], 
+                                   pt[2] + scale * v[2] );
+          points->InsertNextPoint( pt[0] - scale * v[0], 
+                                   pt[1] - scale * v[1], 
+                                   pt[2] - scale * v[2] );
+          lines->InsertCellPoint( nCnt++ );
+          lines->InsertCellPoint( nCnt++ );
+          c[0] = (int)(fabs( v[0] *255 ) );
+          c[1] = (int)(fabs( v[1] *255 ) );
+          c[2] = (int)(fabs( v[2] *255 ) );
+          scalars->InsertNextTupleValue( c );
+          scalars->InsertNextTupleValue( c );
+        }
+      }
+      break;
+    case 2:
+      for ( int i = 0; i < dim[0]; i++ )
+      {
+        for ( int j = 0; j < dim[1]; j++ )
+        {
+          double v[3];
+          double pt[3];
+          v[0] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 0 );
+          v[1] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 1 );
+          v[2] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 2 );
+          vtkMath::Normalize( v );
+          v[1] = -v[1];         // by default invert Y !!
+          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
+            v[0] = -v[0];
+          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
+            v[1] = -v[1];
+          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
+            v[2] = -v[2];
+          pt[0] = orig[0] + voxel_size[0] * i;
+          pt[1] = orig[1] + voxel_size[1] * j;
+          pt[2] = orig[2] + voxel_size[2] * n[2];
+          lines->InsertNextCell( 2 );
+          points->InsertNextPoint( pt[0] + scale * v[0], 
+                                   pt[1] + scale * v[1], 
+                                   pt[2] + scale * v[2] );
+          points->InsertNextPoint( pt[0] - scale * v[0], 
+                                   pt[1] - scale * v[1], 
+                                   pt[2] - scale * v[2] );
+          lines->InsertCellPoint( nCnt++ );
+          lines->InsertCellPoint( nCnt++ );
+          c[0] = (int)(fabs( v[0] *255 ) );
+          c[1] = (int)(fabs( v[1] *255 ) );
+          c[2] = (int)(fabs( v[2] *255 ) );
+          scalars->InsertNextTupleValue( c );
+          scalars->InsertNextTupleValue( c );
+        }
+      }
+      break;
+    default:
+      break;
+  }
+}
+

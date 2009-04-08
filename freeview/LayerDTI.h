@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2009/04/08 19:23:37 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -63,6 +63,8 @@ public:
 protected:
   void UpdateColorMap();
   void InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event );
+  
+  virtual void UpdateVectorActor( int nPlane );
 
   FSVolume*  m_vectorSource;
   std::string  m_sVectorFileName;

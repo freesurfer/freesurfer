@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/04/08 19:23:38 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -115,12 +115,12 @@ public:
   bool GetShowScalarBar();
 
   void SetFocusFrameColor( double r, double g, double b );
+  
+  virtual void UpdateScalarBar();
 
 protected:
   void InitializeRenderView();
   virtual void OnInternalIdle();
-
-  virtual void UpdateScalarBar();
 
 protected:
   vtkRenderer*        m_renderer;

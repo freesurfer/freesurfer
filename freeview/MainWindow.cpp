@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:13 $
- *    $Revision: 1.44 $
+ *    $Date: 2009/04/08 19:23:37 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -50,6 +50,7 @@
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
+#include "LayerPropertiesWayPoints.h"
 #include "LayerROI.h"
 #include "LayerDTI.h"
 #include "LayerSurface.h"
@@ -77,6 +78,8 @@
 #include "DialogOptimalVolume.h"
 #include "WindowHistogram.h"
 #include "WindowOverlayConfiguration.h"
+#include "SurfaceOverlay.h"
+#include "SurfaceOverlayProperties.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -1597,7 +1600,10 @@ void MainWindow::ShowScalarBar( bool bShow )
       m_viewRender[i]->ShowScalarBar( false );
   }
   if ( m_nMainView >= 0 && m_nMainView < 4 )
+  {
     m_viewRender[m_nMainView]->ShowScalarBar( bShow );
+    m_viewRender[m_nMainView]->UpdateScalarBar();
+  }
 
   NeedRedraw( 1 );
 }
@@ -2320,6 +2326,22 @@ void MainWindow::RunScript()
   {
     CommandSetLUT( sa );
   }
+  else if ( sa[0] == "setsurfaceoverlaymethod" )
+  {
+    CommandSetSurfaceOverlayMethod( sa );
+  }
+  else if ( sa[0] == "setwaypointscolor" )
+  {
+    CommandSetWayPointsColor( sa );
+  }
+  else if ( sa[0] == "setwaypointsradius" )
+  {
+    CommandSetWayPointsRadius( sa );
+  }
+  else if ( sa[0] == "setdisplayvector" )
+  {
+    CommandSetDisplayVector( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2331,38 +2353,62 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
   wxString colormap = "grayscale";
   wxString colormap_scale = "grayscale";
   wxString lut_name;
+  wxString vector_display = "no", vector_inversion = "none";
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
-    int n;
-    if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
+    int n = strg.Find( "=" );
+    if ( n != wxNOT_FOUND )
     {
-      colormap = strg.Mid( n + 1 ).Lower();
-    }
-    else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && 
-                ( strg.Left( n ).Lower() == "grayscale" || 
-                  strg.Left( n ).Lower() == "heatscale" || 
-                  strg.Left( n ).Lower() == "jetscale" ) )
-    {
-      colormap_scale = strg.Left( n ).Lower();    // colormap scale might be different from colormap!
-      scales = MyUtils::SplitString( strg.Mid(n+1), "," );
-    }
-    else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && 
-                strg.Left( n ).Lower() == "lut" )
-    {
-      lut_name = strg.Mid( n + 1 );
-      if ( lut_name.IsEmpty() )
+      if ( strg.Left( n ).Lower() == "colormap" )
       {
-        cerr << "Missing lut name." << endl;
+        colormap = strg.Mid( n + 1 ).Lower();
       }
-    }
-    else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
-    {
-      reg_fn = strg.Mid( n + 1 );
+      else if ( strg.Left( n ).Lower() == "grayscale" || 
+                strg.Left( n ).Lower() == "heatscale" || 
+                strg.Left( n ).Lower() == "jetscale" ) 
+      {
+        colormap_scale = strg.Left( n ).Lower();    // colormap scale might be different from colormap!
+        scales = MyUtils::SplitString( strg.Mid(n+1), "," );
+      }
+      else if ( strg.Left( n ).Lower() == "lut" )
+      {
+        lut_name = strg.Mid( n + 1 );
+        if ( lut_name.IsEmpty() )
+        {
+          cerr << "Missing lut name." << endl;
+        }
+      }
+      else if ( strg.Left( n ).Lower() == "vector" )
+      {
+        vector_display = strg.Mid( n + 1 ).Lower();
+        if ( vector_display.IsEmpty() )
+        {
+          cerr << "Missing vector display argument." << endl;
+        }
+      }
+      else if ( strg.Left( n ).Lower() == "inversion" || strg.Left( n ).Lower() == "invert" )
+      {
+        vector_inversion = strg.Mid( n + 1 ).Lower();
+        if ( vector_inversion.IsEmpty() )
+        {
+          cerr << "Missing vector inversion argument." << endl;
+          vector_inversion = "none";
+        }
+      }
+      else if ( strg.Left( n ).Lower() == "reg" )
+      {
+        reg_fn = strg.Mid( n + 1 );
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
+        return;
+      }
     }
     else
     {
-      cerr << "Unrecognized flag '" << strg << "'." << endl;
+      cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
       return;
     }
   }
@@ -2391,12 +2437,22 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     m_scripts.insert( m_scripts.begin(), script );
   }
   
+  if ( !vector_display.IsEmpty() && vector_display != "no" )
+  {
+    wxArrayString script;
+    script.Add( "setdisplayvector" );
+    script.Add( vector_display );
+    script.Add( vector_inversion );
+  
+    m_scripts.insert( m_scripts.begin(), script );  
+  }
+  
   LoadVolumeFile( fn, reg_fn, bResample );
 }
 
 void MainWindow::CommandSetColorMap( const wxArrayString& sa )
 {
-  int nColorMap;
+  int nColorMap = LayerPropertiesMRI::Grayscale;;
   wxString strg = sa[1];
   if ( strg == "heat" || strg == "heatscale" )
     nColorMap = LayerPropertiesMRI::Heat;
@@ -2404,15 +2460,10 @@ void MainWindow::CommandSetColorMap( const wxArrayString& sa )
     nColorMap = LayerPropertiesMRI::Jet;
   else if ( strg == "lut" )
     nColorMap = LayerPropertiesMRI::LUT;
-  else if ( strg == "grayscale" )
-    nColorMap = LayerPropertiesMRI::Grayscale;
-  else
-  {
+  else if ( strg != "grayscale" )
     cerr << "Unrecognized colormap name '" << strg << "'." << endl;
-    return;
-  }
   
-  int nColorMapScale = 0;
+  int nColorMapScale = LayerPropertiesMRI::Grayscale;
   strg = sa[2];
   if ( strg == "heatscale" )
     nColorMapScale = LayerPropertiesMRI::Heat;
@@ -2420,8 +2471,6 @@ void MainWindow::CommandSetColorMap( const wxArrayString& sa )
     nColorMapScale = LayerPropertiesMRI::Jet;
   else if ( strg == "lut" )
     nColorMapScale = LayerPropertiesMRI::LUT;
-  else if ( strg == "grayscale" )
-    nColorMapScale = LayerPropertiesMRI::Grayscale;
   
   std::vector<double> pars;
   for ( size_t i = 3; i < sa.size(); i++ )
@@ -2439,6 +2488,40 @@ void MainWindow::CommandSetColorMap( const wxArrayString& sa )
   }
   
   SetVolumeColorMap( nColorMap, nColorMapScale, pars );
+  
+  ContinueScripts();
+}
+
+
+void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
+{
+  if ( cmd[1].Lower() == "yes" || cmd[1].Lower() == "true" || cmd[1].Lower() == "1" )
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
+    {
+      if ( mri->GetNumberOfFrames() < 3 )
+      {
+        cerr << "Volume has less than 3 frames. Can not display as vectors." << endl;
+      }
+      else
+      {
+        mri->GetProperties()->SetDisplayVector( true );  
+      
+        if ( cmd[2].Lower() != "none" )
+        {
+          if ( cmd[2].Lower() == "x" )
+            mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_X );
+          else if ( cmd[2].Lower() == "y" )
+            mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_Y );
+          else if ( cmd[2].Lower() == "z" )
+            mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_Z );
+          else
+            cerr << "Unknown inversion flag '" << cmd[2].c_str() << "'." << endl;
+        }
+      }
+    }
+  }
   
   ContinueScripts();
 }
@@ -2504,38 +2587,86 @@ void MainWindow::CommandLoadROI( const wxArrayString& cmd )
 
 void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 {
-  wxArrayString sa_fn = MyUtils::SplitString( cmd[1], ":" );
+  wxString fullfn = cmd[1];
+  int nIgnoreStart = fullfn.find( "#" );
+  int nIgnoreEnd = fullfn.find( "#", nIgnoreStart+1 );
+  wxArrayString sa_fn = MyUtils::SplitString( fullfn, ":", nIgnoreStart, nIgnoreEnd - nIgnoreStart + 1 );
   wxString fn = sa_fn[0];
 //  wxString fn_vector = "";
-  for ( size_t i = 1; i < sa_fn.size(); i++ )
+  for ( size_t k = 1; k < sa_fn.size(); k++ )
   {
-    wxArrayString sa = MyUtils::SplitString( sa_fn[i], "=" );
-    if ( sa.size() > 1 )
+    int n = sa_fn[k].Find( "=" );
+    if ( n != wxNOT_FOUND  )
     {
-      if ( sa[0].Lower() == "curv" || sa[0].Lower() == "curvature" )
+      wxString subOption = sa_fn[k].Left( n ).Lower(); 
+      wxString subArgu = sa_fn[k].Mid( n+1 );
+      if ( subOption == "curv" || subOption == "curvature" )
       {
         // add script to load surface curvature file
         wxArrayString script;
         script.Add( "loadsurfacecurvature" );
-        script.Add( sa[1] );
+        script.Add( subArgu );
         m_scripts.insert( m_scripts.begin(), script );
       }
-      else if ( sa[0].Lower() == "overlay" )
+      else if ( subOption == "overlay" )
       {
         // add script to load surface overlay files
-        wxArrayString vector_fns = MyUtils::SplitString( sa[1], "," );
-        for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+        nIgnoreStart = subArgu.find( "#" );
+        nIgnoreEnd = subArgu.find( "#", nIgnoreStart+1 );
+        wxArrayString overlay_fns = MyUtils::SplitString( subArgu, ",", nIgnoreStart, nIgnoreEnd - nIgnoreStart + 1 );
+        for ( int i = overlay_fns.size() - 1 ; i >= 0 ; i-- )
         {
           wxArrayString script;
-          script.Add( "loadsurfaceoverlay" );
-          script.Add( vector_fns[i] );
+          script.Add( "loadsurfaceoverlay" );          
+          int nSubStart = overlay_fns[i].find( "#" );      
+          int nSubEnd = overlay_fns[i].find( "#", nSubStart+1 );
+          if ( nSubEnd == wxNOT_FOUND )
+            nSubEnd = overlay_fns[i].Length() - 1;
+          if ( nSubStart != wxNOT_FOUND )
+            script.Add( overlay_fns[i].Left( nSubStart ) );
+          else
+            script.Add( overlay_fns[i] );
           m_scripts.insert( m_scripts.begin(), script );
+          
+          // if there are sub-options attached with overlay file, parse them
+          wxString opt_strg;
+          if ( nSubStart != wxNOT_FOUND )
+            opt_strg = overlay_fns[i].Mid( nSubStart+1, nSubEnd - nSubStart - 1 ); 
+
+          wxArrayString overlay_opts = MyUtils::SplitString( opt_strg, ":" );
+          
+          wxString method = "linearopaque";
+          wxArrayString thresholds;
+          for ( size_t j = 0; j < overlay_opts.GetCount(); j++ )
+          {
+            wxString strg = overlay_opts[j];
+            if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "method" )
+            {
+              method = strg.Mid( n+1 ).Lower();
+            }
+            else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "threshold" )
+            {
+              thresholds = MyUtils::SplitString( strg.Mid( n+1 ), "," );
+            }
+          }
+          
+          if ( method != "linearopaque" || !thresholds.IsEmpty() )
+          {
+            script.Clear();
+            script.Add( "setsurfaceoverlaymethod" );
+            script.Add( method );
+            for ( size_t j = 0; j < thresholds.GetCount(); j++ )
+              script.Add( thresholds[j] );
+            
+            // insert right AFTER loadsurfaceoverlay command
+            m_scripts.insert( m_scripts.begin()+1, script );
+          }
         }
       }
-      else if ( sa[0].Lower() == "vector" )
+      else if ( subOption == "vector" )
       {
         // add script to load surface vector files
-        wxArrayString vector_fns = MyUtils::SplitString( sa[1], "," );
+        wxArrayString vector_fns = MyUtils::SplitString( subArgu, "," );
         for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
         {
           wxArrayString script;
@@ -2544,11 +2675,74 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
           m_scripts.insert( m_scripts.begin(), script );
         }
       }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << subOption << "'." << endl;
+        return;
+      }
     }
   }
   LoadSurfaceFile( fn );
 }
 
+void MainWindow::CommandSetSurfaceOverlayMethod( const wxArrayString& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
+    {
+      int nMethod = SurfaceOverlayProperties::CM_LinearOpaque;
+      if ( cmd[1] == "linear" )
+        nMethod = SurfaceOverlayProperties::CM_Linear;
+      else if ( cmd[1] == "piecewise" )
+        nMethod = SurfaceOverlayProperties::CM_Piecewise;
+      else if ( cmd[1] != "linearopaque" )
+      {
+        cerr << "Unrecognized overlay method name '" << cmd[1] << "'." << endl;
+        ContinueScripts();
+        return;
+      }
+      
+      overlay->GetProperties()->SetColorMethod( nMethod );
+      
+      double values[3];
+      if ( cmd.GetCount() - 2 >= 3 )   // 3 values
+      {
+        if ( cmd[2].ToDouble( &(values[0]) ) &&
+             cmd[3].ToDouble( &(values[1]) ) &&
+             cmd[4].ToDouble( &(values[2]) ) )
+        {
+          overlay->GetProperties()->SetMinPoint( values[0] );
+          overlay->GetProperties()->SetMidPoint( values[1] );
+          overlay->GetProperties()->SetMaxPoint( values[2] );
+        }
+        else
+        {
+          cerr << "Invalid input for overlay threshold." << endl;
+        }
+      }   
+      else if ( cmd.GetCount() - 2 == 2 )   // 2 values
+      {
+        if ( cmd[2].ToDouble( &(values[0]) ) &&
+             cmd[3].ToDouble( &(values[1]) ) )
+        {
+          overlay->GetProperties()->SetMinPoint( values[0] );
+          overlay->GetProperties()->SetMaxPoint( values[1] );
+          overlay->GetProperties()->SetMidPoint( ( values[0] + values[1] ) / 2 );
+        }
+        else
+        {
+          cerr << "Invalid input for overlay threshold." << endl;
+        }
+      }  
+      surf->UpdateOverlay();    
+    }
+  }
+  
+  ContinueScripts();
+}
 
 void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 {
@@ -2571,8 +2765,152 @@ void MainWindow::CommandLoadSurfaceOverlay( const wxArrayString& cmd )
 
 void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
 {
-  LoadWayPointsFile( cmd[1] );
+  wxArrayString options = MyUtils::SplitString( cmd[1], ":" );
+  wxString fn = options[0];
+  wxString color = "null";
+  wxString spline_color = "null";
+  wxString radius = "0";
+  wxString spline_radius = "0";
+  for ( size_t i = 1; i < options.GetCount(); i++ )
+  {
+    wxString strg = options[i];
+    int n = strg.Find( "=" );
+    if ( n != wxNOT_FOUND )
+    {
+      wxString option = strg.Left( n ).Lower();
+      if ( option == "color" )
+      {
+        color = strg.Mid( n+1 );
+      }
+      else if ( option == "splinecolor" )
+      {
+        spline_color = strg.Mid( n+1 );
+      }
+      else if ( option == "radius" )
+      {
+        radius = strg.Mid( n+1 );
+      }
+      else if ( option == "splineradius" )
+      {
+        spline_radius = strg.Mid( n+1 );
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
+      }
+    }
+  }
+  
+  if ( color != "null" || spline_color != "null" )
+  {
+    wxArrayString script;
+    script.Add( "setwaypointscolor" );
+    script.Add( color );
+    script.Add( spline_color ); 
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  if ( radius != "0" || spline_radius != "0" )
+  {
+    wxArrayString script;
+    script.Add( "setwaypointsradius" );
+    script.Add( radius );
+    script.Add( spline_radius ); 
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  LoadWayPointsFile( fn );
 
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
+{
+  LayerWayPoints* wp = (LayerWayPoints*)GetLayerCollection( "WayPoints" )->GetActiveLayer();
+  if ( wp )
+  {
+    if ( cmd[1] != "null" )
+    {
+      wxColour color( cmd[1] );
+      if ( !color.IsOk() )      
+      {
+        double rgb[3];
+        wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], "," );
+        if ( rgb_strs.GetCount() < 3 || 
+             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
+             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
+             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+        {
+          cerr << cerr << "Invalid color name or value " << cmd[1].c_str() << endl;
+        }
+        else
+        {
+          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+        }
+      }
+      
+      if ( color.IsOk() )
+        wp->GetProperties()->SetColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+      else
+        cerr << "Invalid color name or value " << cmd[1].c_str() << endl;
+    }
+    
+    if ( cmd[2] != "null" )
+    {
+      wxColour color( cmd[2] );
+      if ( !color.IsOk() )      
+      {
+        double rgb[3];
+        wxArrayString rgb_strs = MyUtils::SplitString( cmd[2], "," );
+        if ( rgb_strs.GetCount() < 3 || 
+             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
+             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
+             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+        {
+          cerr << cerr << "Invalid color name or value " << cmd[2].c_str() << endl;
+        }
+        else
+        {
+          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+        }
+      }
+      
+      if ( color.IsOk() )
+        wp->GetProperties()->SetSplineColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+      else
+        cerr << "Invalid color name or value " << cmd[1].c_str() << endl;
+    }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetWayPointsRadius( const wxArrayString& cmd )
+{
+  LayerWayPoints* wp = (LayerWayPoints*)GetLayerCollection( "WayPoints" )->GetActiveLayer();
+  if ( wp )
+  {
+    if ( cmd[1] != "0" )
+    {
+      double dvalue;
+      if ( cmd[1].ToDouble( &dvalue ) ) 
+        wp->GetProperties()->SetRadius( dvalue );
+      else
+        cerr << "Invalid way points radius." << endl;
+    }
+    
+    if ( cmd[2] != "0" )
+    {
+      double dvalue;
+      if ( cmd[2].ToDouble( &dvalue ) )
+        wp->GetProperties()->SetSplineRadius( dvalue );
+      else
+        cerr << "Invalid spline radius." << endl;
+    }
+  }
+  
   ContinueScripts();
 }
 
@@ -2614,12 +2952,17 @@ void MainWindow::CommandZoom( const wxArrayString& cmd )
 void MainWindow::CommandSetRAS( const wxArrayString& cmd )
 {
   double ras[3];
-  cmd[1].ToDouble( &(ras[0]) );
-  cmd[2].ToDouble( &(ras[1]) );
-  cmd[3].ToDouble( &(ras[2]) );
-  
-  GetLayerCollection( "MRI" )->SetCursorRASPosition( ras );
-  m_layerCollectionManager->SetSlicePosition( ras );
+  if ( cmd[1].ToDouble( &(ras[0]) ) &&
+       cmd[2].ToDouble( &(ras[1]) ) &&
+       cmd[3].ToDouble( &(ras[2]) ) )
+  {
+    GetLayerCollection( "MRI" )->SetCursorRASPosition( ras );
+    m_layerCollectionManager->SetSlicePosition( ras );
+  }
+  else
+  {
+    cerr << "Invalid input values for RAS coordinates. " << endl;
+  }
 
   ContinueScripts();
 }
@@ -2632,17 +2975,20 @@ void MainWindow::CommandSetSlice( const wxArrayString& cmd )
   {
     LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );;
     long x, y, z;
-    cmd[1].ToLong( &x );
-    cmd[2].ToLong( &y );
-    cmd[3].ToLong( &z );
-    
-    int slice[3] = { x, y, z };
-    double ras[3];
-    mri->OriginalIndexToRAS( slice, ras );
-    mri->RASToTarget( ras, ras );
-    
-    lc_mri->SetCursorRASPosition( ras );
-    m_layerCollectionManager->SetSlicePosition( ras );
+    if ( cmd[1].ToLong( &x ) && cmd[2].ToLong( &y ) && cmd[3].ToLong( &z ) )
+    {
+      int slice[3] = { x, y, z };
+      double ras[3];
+      mri->OriginalIndexToRAS( slice, ras );
+      mri->RASToTarget( ras, ras );
+      
+      lc_mri->SetCursorRASPosition( ras );
+      m_layerCollectionManager->SetSlicePosition( ras );
+    }
+    else
+    {
+      cerr << "Invalide slice number(s). " << endl;
+    }
   }
   else
   {
@@ -2651,7 +2997,6 @@ void MainWindow::CommandSetSlice( const wxArrayString& cmd )
 
   ContinueScripts();
 }
-
 
 void MainWindow::OnSpinBrushSize( wxSpinEvent& event )
 {

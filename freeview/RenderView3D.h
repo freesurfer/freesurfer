@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/26 21:13:38 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/04/08 19:23:38 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,12 +61,13 @@ public:
 
   bool GetShowVolumeSlice( int nPlane );
 
+  void UpdateScalarBar();
+  
 protected:
   void OnInternalIdle();
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   
-  void UpdateScalarBar();
 
   void PreScreenshot();
   void PostScreenshot();

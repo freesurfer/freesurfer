@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:12 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/04/08 19:23:37 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,8 +59,8 @@ public:
   bool LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event );
   bool Create( LayerMRI* mri, bool bCopyVoxel );
 
-  void Append2DProps( vtkRenderer* renderer, int nPlane );
-  void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
+  virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
+  virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
   bool HasProp( vtkProp* prop );
 
 //  void SetSliceNumber( int* sliceNumber );
@@ -133,6 +133,9 @@ protected:
   void UpdateContour( int nSegIndex = -1 );
   void UpdateContourActor( int nSegIndex );
   void UpdateVolumeRendering();
+  void UpdateVectorActor();
+  void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
+  virtual void UpdateVectorActor( int nPlane );
   virtual void UpdateColorMap();
 
   virtual void OnSlicePositionChanged( int nPlane );
@@ -149,14 +152,16 @@ protected:
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
   
+  vtkActor*       m_vectorActor2D[3];
+  vtkActor*       m_vectorActor3D[3];
+  
   struct SegmentationActor
   {
     int id;
     vtkActor* actor;
   };
         
-  std::vector<SegmentationActor>   m_segActors;
-                
+  std::vector<SegmentationActor>   m_segActors;              
   
   vtkActor*   m_actorContour;
   vtkVolume*   m_propVolume;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:13 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/04/08 19:23:38 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,6 +104,8 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_GRAYSCALE_MAX" ) ),  PanelVolume::OnSliderGrayScaleMax )
   EVT_TEXT            ( XRCID( wxT( "ID_TEXT_FRAME" ) ),            PanelVolume::OnTextFrameChanged )
   EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_FRAME" ) ),          PanelVolume::OnSliderFrameChanged )
+  EVT_CHECKBOX        ( XRCID( wxT( "ID_CHECKBOX_DISPLAY_VECTOR" ) ), PanelVolume::OnCheckDisplayVector )
+  EVT_CHOICE          ( XRCID( wxT( "ID_CHOICE_INVERSION" ) ),      PanelVolume::OnChoiceVectorInversion )
   
   EVT_CHECKBOX        ( XRCID( wxT( "ID_CHECKBOX_CONTOUR" ) ),    PanelVolume::OnCheckContour )
   EVT_TEXT            ( XRCID( wxT( "ID_TEXT_CONTOUR_MIN" ) ),    PanelVolume::OnTextContourMin )
@@ -146,7 +148,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_sliderHeatScaleMin =  XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MIN", wxSlider );
   m_sliderHeatScaleMid =  XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MID", wxSlider );
   m_sliderHeatScaleMax =  XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MAX", wxSlider );
-  m_sliderHeatScaleOffset =  XRCCTRL( *this, "ID_SLIDER_HEATSCALE_OFFSET", wxSlider );
+  m_sliderHeatScaleOffset = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_OFFSET", wxSlider );
   m_textJetScaleMin =     XRCCTRL( *this, "ID_TEXT_JETSCALE_MIN", wxTextCtrl );
   m_textJetScaleMax =     XRCCTRL( *this, "ID_TEXT_JETSCALE_MAX", wxTextCtrl );
   m_sliderJetScaleMin =   XRCCTRL( *this, "ID_SLIDER_JETSCALE_MIN", wxSlider );
@@ -155,6 +157,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_colorIndicator =      XRCCTRL( *this, "ID_COLOR_INDICATOR", wxColorIndicator );
   m_textFrame =           XRCCTRL( *this, "ID_TEXT_FRAME", wxTextCtrl );
   m_sliderFrame =         XRCCTRL( *this, "ID_SLIDER_FRAME", wxSlider );
+  m_checkDisplayVector =  XRCCTRL( *this, "ID_CHECKBOX_DISPLAY_VECTOR", wxCheckBox );
+  m_choiceVectorInversion = XRCCTRL( *this, "ID_CHOICE_INVERSION", wxChoice );
   m_sliderGrayScaleMin =  XRCCTRL( *this, "ID_SLIDER_GRAYSCALE_MIN", wxSlider );
   m_sliderGrayScaleMax =  XRCCTRL( *this, "ID_SLIDER_GRAYSCALE_MAX", wxSlider );
   m_textGrayScaleMin =    XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MIN", wxTextCtrl );
@@ -225,13 +229,41 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistFrame.push_back( m_sliderFrame );
   m_widgetlistFrame.push_back( m_textFrame );
   m_widgetlistFrame.push_back( XRCCTRL( *this, "ID_STATIC_FRAME", wxStaticText ) );
-
+  m_widgetlistFrame.push_back( m_checkDisplayVector );
+  
+  m_widgetlistVectorInversion.push_back( XRCCTRL( *this, "ID_STATIC_INVERSION", wxStaticText ) );
+  m_widgetlistVectorInversion.push_back( m_choiceVectorInversion );
+      
   m_widgetlistContour.push_back( m_sliderContourMin );
   m_widgetlistContour.push_back( m_sliderContourMax );
   m_widgetlistContour.push_back( m_textContourMin );
   m_widgetlistContour.push_back( m_textContourMax );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MIN", wxStaticText ) );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MAX", wxStaticText ) );
+  
+  m_widgetlistEditable.push_back( XRCCTRL( *this, "ID_STATIC_BRUSH_VALUE", wxStaticText ) );
+  m_widgetlistEditable.push_back( m_textDrawValue );  
+  
+  m_widgetlistNormalDisplay.push_back( XRCCTRL( *this, "ID_STATIC_OPACITY", wxStaticText ) );
+  m_widgetlistNormalDisplay.push_back( m_sliderOpacity );
+  m_widgetlistNormalDisplay.push_back( m_textOpacity );
+  m_widgetlistNormalDisplay.push_back( m_checkSmooth );
+  m_widgetlistNormalDisplay.push_back( XRCCTRL( *this, "ID_STATIC_COLORMAP", wxStaticText ) );
+  m_widgetlistNormalDisplay.push_back( m_choiceColorMap );
+  for ( size_t i = 0; i < m_widgetlistGrayScale.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistGrayScale[i] ); 
+  for ( size_t i = 0; i < m_widgetlistHeatScale.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistHeatScale[i] );
+  for ( size_t i = 0; i < m_widgetlistJetScale.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistJetScale[i] );
+  for ( size_t i = 0; i < m_widgetlistLUT.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistLUT[i] );
+  for ( size_t i = 0; i < m_widgetlistContour.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistContour[i] );
+  for ( size_t i = 0; i < m_widgetlistDirectionCode.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistDirectionCode[i] );
+  for ( size_t i = 0; i < m_widgetlistEditable.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistEditable[i] );
 
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->AddListener( this );
   UpdateUI();
@@ -643,6 +675,8 @@ void PanelVolume::DoUpdateUI()
 			m_sliderContourMax->SetValue( (int)( ( layer->GetProperties()->GetContourMaxThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
 			UpdateTextValue( m_textContourMin, layer->GetProperties()->GetContourMinThreshold() );
 			UpdateTextValue( m_textContourMax, layer->GetProperties()->GetContourMaxThreshold() );
+      
+      m_choiceVectorInversion->SetSelection( layer->GetProperties()->GetVectorInversion() );
 		}
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -652,15 +686,28 @@ void PanelVolume::DoUpdateUI()
 	m_btnMoveDown->Enable( bHasVolume && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
 	m_btnSave->Enable( bHasVolume && layer && layer->IsModified() && !mainWnd->IsProcessing() );	
 	
-	ShowWidgets( m_widgetlistGrayScale, bHasVolume && nColorMap == LayerPropertiesMRI::Grayscale );
-	ShowWidgets( m_widgetlistHeatScale, bHasVolume && nColorMap == LayerPropertiesMRI::Heat );
-	ShowWidgets( m_widgetlistJetScale, bHasVolume && nColorMap == LayerPropertiesMRI::Jet );
-	ShowWidgets( m_widgetlistLUT, bHasVolume && nColorMap == LayerPropertiesMRI::LUT );
-	ShowWidgets( m_widgetlistDirectionCode, bHasVolume && nColorMap == LayerPropertiesMRI::DirectionCoded );
-	ShowWidgets( m_widgetlistFrame, bHasVolume && layer && layer->GetNumberOfFrames() > 1 );
+  ShowWidgets( m_widgetlistNormalDisplay, layer && !layer->GetProperties()->GetDisplayVector() );
+  if ( !layer || ( layer && !layer->GetProperties()->GetDisplayVector() ) )
+  {
+    ShowWidgets( m_widgetlistGrayScale, layer && nColorMap == LayerPropertiesMRI::Grayscale );
+    ShowWidgets( m_widgetlistHeatScale, layer && nColorMap == LayerPropertiesMRI::Heat );
+    ShowWidgets( m_widgetlistJetScale, layer && nColorMap == LayerPropertiesMRI::Jet );
+    ShowWidgets( m_widgetlistLUT, layer && nColorMap == LayerPropertiesMRI::LUT );
+    ShowWidgets( m_widgetlistDirectionCode, layer && nColorMap == LayerPropertiesMRI::DirectionCoded );
+    ShowWidgets( m_widgetlistEditable, layer && layer->IsEditable() );
+  }
+  ShowWidgets( m_widgetlistFrame, layer && 
+                                  !layer->IsTypeOf( "DTI" ) && 
+                                  layer->GetNumberOfFrames() > 1 );
+  m_sliderFrame->Enable( layer && !layer->GetProperties()->GetDisplayVector() );
+  m_textFrame->Enable( layer && !layer->GetProperties()->GetDisplayVector() );
+  m_checkDisplayVector->Show( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() >= 3 ) );
+  m_checkDisplayVector->SetValue( layer && layer->GetProperties()->GetDisplayVector() );
+  ShowWidgets( m_widgetlistVectorInversion, m_checkDisplayVector->IsChecked() );
+  
 //	ShowWidgets( m_widgetlistContour, m_checkContour->IsChecked() );
-    ShowWidgets( m_widgetlistContour, false );
-    m_checkContour->Show( false /*nColorMap == LayerPropertiesMRI::LUT*/ );
+  ShowWidgets( m_widgetlistContour, false );
+  m_checkContour->Show( false /*nColorMap == LayerPropertiesMRI::LUT*/ );
 	
 	Layout();
 	if ( layer && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
@@ -1163,3 +1210,24 @@ void PanelVolume::OnTextGrayScaleMax( wxCommandEvent& event )
     }
   }
 }
+
+void PanelVolume::OnCheckDisplayVector( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetDisplayVector( event.IsChecked() );
+    UpdateUI();
+  } 
+}
+
+void PanelVolume::OnChoiceVectorInversion( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetVectorInversion( event.GetSelection() );
+    UpdateUI();
+  }   
+}
+

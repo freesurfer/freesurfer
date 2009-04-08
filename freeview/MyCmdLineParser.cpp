@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:13 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/04/08 19:23:38 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -387,7 +387,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   {
     PrintErrorMessage( error_msg );
   }
-  else if ( Found( "h" ) )
+  else if ( Found( "h" ) || Found( "help" ) )
   {
     PrintHelp();
     bSucceed = false;
