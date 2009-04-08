@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/19 16:16:02 $
-#    $Revision: 1.9 $
+#    $Date: 2009/04/08 18:34:37 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.9 2008/05/19 16:16:02 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.10 2009/04/08 18:34:37 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -47,6 +47,7 @@ set rmprestim = ();
 set CNorm = 1;
 set UseSXADat = 0;
 set PrintHelp = 0;
+set mfile = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -142,8 +143,16 @@ foreach c ($actcond $ctrlcond)
 end
 
 ## Set the weight of the active and control conditions ##
-set wact  = `echo 1/$#actcond  | bc -l`;
-set wctrl = `echo -1/$#ctrlcond | bc -l`;
+if($CNorm) then
+  set wact  = `echo 1/$#actcond  | bc -l`;
+  set wctrl = `echo -1/$#ctrlcond | bc -l`;
+else
+  # Added this on 4/8/09. It really only affects things when 
+  # not summing conditions. It has no effect on sig. It has an 
+  # effect on ces, but that is probably not important.
+  set wact  = +1.0;
+  set wctrl = -1.0;
+endif
 
 if($#wcond == 0) then
   ## Preset the condition weights to zero ##
@@ -210,6 +219,8 @@ if($CNorm == 0) set cmd = ($cmd -nocnorm);
 # These are just flags to indicate that they were set manually
 if($setwcond)  set cmd = ($cmd -setwcond);
 if($setwdelay) set cmd = ($cmd -setwdelay);
+
+if($#mfile) set cmd = ($cmd -monly $mfile);
 
 ## Prepare the script, if need be ##
 if($ScriptOnly) then
@@ -287,6 +298,7 @@ while( $#argv != 0 )
 
     case "-nosumconds":
       set sumconds = ();
+      set CNorm = 0; 
       breaksw
 
     case "-sumdelays":
@@ -358,6 +370,11 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set umaskarg = "-umask $argv[1]";
       umask $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if($#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
       breaksw
 
     case "-sxadat":
