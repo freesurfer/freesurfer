@@ -3,7 +3,7 @@ function hfig = mkcontrast_gui(varargin)
 % mkcontrast_gui(cbstring);
 % Creates a cspec field in the hparent UserData struct
 %  If Cancel is hit, this field is there but empty
-% $Id: mkcontrast_gui.m,v 1.8 2009/04/05 23:33:40 greve Exp $
+% $Id: mkcontrast_gui.m,v 1.9 2009/04/08 16:51:31 greve Exp $
 
 msg = [];
 ud = [];
@@ -255,8 +255,15 @@ switch (cbflag)
   ud.flac.ana.con(ud.connumber).cspec.name = tmp;
   ud = setstate(ud);
  case 'cbSumConditions', 
-  ud.flac.ana.con(ud.connumber).cspec.sumconds = ...
-      get(ud.cbSumConditions,'value');
+  v = get(ud.cbSumConditions,'value');
+  ud.flac.ana.con(ud.connumber).cspec.sumconds = v;
+  if(v==0) 
+    ud.flac.ana.con(ud.connumber).cspec.CNorm = 0; 
+    set(ud.cbCNorm,'enable','off');
+  else
+    ud.flac.ana.con(ud.connumber).cspec.CNorm = 1; 
+    set(ud.cbCNorm,'enable','on');
+  end
   ud = setstate(ud);
  case 'cbSumRegressors', 
   ud.flac.ana.con(ud.connumber).cspec.sumdelays = ...
@@ -266,19 +273,35 @@ switch (cbflag)
   ud.flac.ana.con(ud.connumber).cspec.RmPreStim = ...
       get(ud.cbRmPreStim,'value');
   ud = setstate(ud);
+ 
+ % Manually setting contrasts weights is mutually exclusive
+ % with normalizing.
  case 'cbManConWeights', 
   v = get(ud.cbManConWeights,'value');
   ud.flac.ana.con(ud.connumber).cspec.setwcond = v;
-  % If manual, turn off normalization
-  if(v==1) ud.flac.ana.con(ud.connumber).cspec.CNorm = 0; end
+  if(v) 
+    ud.flac.ana.con(ud.connumber).cspec.CNorm = 0; 
+    set(ud.cbCNorm,'enable','off');
+  else
+    ud.flac.ana.con(ud.connumber).cspec.CNorm = 1; 
+    set(ud.cbCNorm,'enable','on');
+  end
   ud = setstate(ud);
+ case 'cbCNorm', 
+  v = get(ud.cbCNorm,'value');
+  ud.flac.ana.con(ud.connumber).cspec.CNorm = v;
+  if(v) 
+    ud.flac.ana.con(ud.connumber).cspec.setwcond = 0;
+    set(ud.cbManConWeights,'enable','off');
+  else
+    set(ud.cbManConWeights,'enable','on');
+    ud.flac.ana.con(ud.connumber).cspec.setwcond = 1;    
+  end
+  ud = setstate(ud);
+ 
  case 'cbManRegWeights', 
   ud.flac.ana.con(ud.connumber).cspec.setwdelay = ...
       get(ud.cbManRegWeights,'value');
-  ud = setstate(ud);
- case 'cbCNorm', 
-  ud.flac.ana.con(ud.connumber).cspec.CNorm = ...
-      get(ud.cbCNorm,'value');
   ud = setstate(ud);
  case 'rbConditionAct',
   c = varargin{1}{2};
@@ -412,7 +435,7 @@ cspec.nircorr = 0;
 cspec.rdelta = [0 0];
 cspec.rtau   = [0 0];
 cspec.ContrastMtx_0 = fast_contrastmtx(cspec);
-cspec.creator = '$Id: mkcontrast_gui.m,v 1.8 2009/04/05 23:33:40 greve Exp $';
+cspec.creator = '$Id: mkcontrast_gui.m,v 1.9 2009/04/08 16:51:31 greve Exp $';
 
 return;
 
@@ -436,6 +459,17 @@ if(~cspec.sumdelays)
 else
   set(ud.cbManRegWeights,'enable','on');
 end
+
+if(ud.flac.ana.con(ud.connumber).cspec.setwcond)
+  % If manually setting wcond, turn off and disable normalization
+  set(ud.cbCNorm,'enable','off');
+else
+  % If automatically setting wcond, enable normalization and 
+  % disable manual
+  set(ud.cbCNorm,'enable','on');
+  set(ud.cbManConWeights,'enable','off');
+end
+
 
 set(ud.cbManConWeights,'value',cspec.setwcond);
 set(ud.cbManRegWeights,'value',cspec.setwdelay);
