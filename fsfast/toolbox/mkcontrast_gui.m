@@ -3,7 +3,7 @@ function hfig = mkcontrast_gui(varargin)
 % mkcontrast_gui(cbstring);
 % Creates a cspec field in the hparent UserData struct
 %  If Cancel is hit, this field is there but empty
-% $Id: mkcontrast_gui.m,v 1.9 2009/04/08 16:51:31 greve Exp $
+% $Id: mkcontrast_gui.m,v 1.10 2009/04/08 21:37:22 greve Exp $
 
 msg = [];
 ud = [];
@@ -257,13 +257,6 @@ switch (cbflag)
  case 'cbSumConditions', 
   v = get(ud.cbSumConditions,'value');
   ud.flac.ana.con(ud.connumber).cspec.sumconds = v;
-  if(v==0) 
-    ud.flac.ana.con(ud.connumber).cspec.CNorm = 0; 
-    set(ud.cbCNorm,'enable','off');
-  else
-    ud.flac.ana.con(ud.connumber).cspec.CNorm = 1; 
-    set(ud.cbCNorm,'enable','on');
-  end
   ud = setstate(ud);
  case 'cbSumRegressors', 
   ud.flac.ana.con(ud.connumber).cspec.sumdelays = ...
@@ -435,7 +428,7 @@ cspec.nircorr = 0;
 cspec.rdelta = [0 0];
 cspec.rtau   = [0 0];
 cspec.ContrastMtx_0 = fast_contrastmtx(cspec);
-cspec.creator = '$Id: mkcontrast_gui.m,v 1.9 2009/04/08 16:51:31 greve Exp $';
+cspec.creator = '$Id: mkcontrast_gui.m,v 1.10 2009/04/08 21:37:22 greve Exp $';
 
 return;
 
