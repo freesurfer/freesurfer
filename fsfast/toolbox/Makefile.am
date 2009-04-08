@@ -83,6 +83,7 @@ MFILES=\
 	fast_dirname.m \
 	fast_dlh.m \
 	fast_ecm2invlambda.m \
+	fast_ecvm2wmtx.m \
 	fast_erm2Xtask.m \
 	fast_estdimsvd.m \
 	fast_esttrans.m \
