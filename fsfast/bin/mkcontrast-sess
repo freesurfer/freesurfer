@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/08 18:34:37 $
-#    $Revision: 1.10 $
+#    $Date: 2009/04/08 18:48:32 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.10 2009/04/08 18:34:37 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.11 2009/04/08 18:48:32 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -143,16 +143,11 @@ foreach c ($actcond $ctrlcond)
 end
 
 ## Set the weight of the active and control conditions ##
-if($CNorm) then
-  set wact  = `echo 1/$#actcond  | bc -l`;
-  set wctrl = `echo -1/$#ctrlcond | bc -l`;
-else
-  # Added this on 4/8/09. It really only affects things when 
-  # not summing conditions. It has no effect on sig. It has an 
-  # effect on ces, but that is probably not important.
-  set wact  = +1.0;
-  set wctrl = -1.0;
-endif
+set wact  = `echo 1/$#actcond  | bc -l`;
+set wctrl = `echo -1/$#ctrlcond | bc -l`;
+# Note: could/should set weights to 1 when not summing 
+# conditions. I don't think it will affect anything
+# one way or another, so I'm leaving it the way it is.
 
 if($#wcond == 0) then
   ## Preset the condition weights to zero ##
@@ -298,7 +293,6 @@ while( $#argv != 0 )
 
     case "-nosumconds":
       set sumconds = ();
-      set CNorm = 0; 
       breaksw
 
     case "-sumdelays":
