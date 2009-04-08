@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.20 2009/04/07 18:18:09 krish Exp $
+# $Id: asegstats2table,v 1.21 2009/04/08 18:47:27 krish Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -88,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.20 2009/04/07 18:18:09 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.21 2009/04/08 18:47:27 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -127,6 +127,8 @@ def options_parse():
     parser.add_option('--no-segno', dest='no_segnos' ,action='callback',
                       callback=fsutils.callback_var,  help=h_noseg)
     parser.add_option('--stats', dest='statsfname',
+                       help=h_stats)
+    parser.add_option('--statsfile', dest='statsfname',
                        help=h_stats)
     parser.add_option('--subdir', dest='subdir',
                        help=h_subdir)
