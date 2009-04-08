@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.12 2007/12/04 18:03:57 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.13 2009/04/08 16:46:52 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -803,11 +803,12 @@ if(ishandle(handles.hrfplot))
 end
 
 handles.saveneeded = SaveNeeded(handles);
+%fprintf('Returned from SaveNeeded = %d\n',handles.saveneeded);
 if(handles.saveneeded)
   set(handles.pbSave,'enable','on');
   set(handles.pbRestore,'enable','on');
 else
-  set(handles.pbSave,'enable','off');
+  %set(handles.pbSave,'enable','off');
   set(handles.pbRestore,'enable','off');
 end
 
@@ -1012,7 +1013,6 @@ a = handles.originalflac;
 b = handles.flac;
 
 if(isempty(a)) return; end
-
 if(~strcmp(a.name,b.name)) return; end
 if(~strcmp(a.fsd,b.fsd)) return; end
 if(~strcmp(a.runlistfile,b.runlistfile)) return; end
@@ -1063,7 +1063,6 @@ for nth = 1:ncontrasts
   if(size(Ca,2) ~= size(Cb,2)) return; end
   if(Ca ~= Cb) return; end
 end
-
 needed = 0;
 
 return;
