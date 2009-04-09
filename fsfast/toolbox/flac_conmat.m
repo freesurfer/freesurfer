@@ -12,9 +12,9 @@ function flacnew = flac_conmat(flac,nthcon)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2009/04/09 21:25:31 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,51 @@ end
 
 con = flac.con(nthcon);
 nevs = length(flac.ev);
+
+if(con.rmprestim)
+  % Remove the prestimulus baseline, added on 4/8/09
+  % Handles both sumdelays and nosumdelays (sumevreg)
+  % Use params from first EV to compute C for a single condition
+  evind = flac_evindex(flac,con.ev(1).name);
+  evA = flac.ev(evind);
+  if(~strcmp('fir',evA.model))
+    fprintf('ERROR: need FIR EV to remove PreStim\n');
+    return;
+  end
+  psdmin = evA.psdwin(1);
+  psdmax = evA.psdwin(2);
+  dpsd   = evA.psdwin(3);
+  taxis = fast_psdwin([psdmin dpsd psdmax],'irftaxis');
+  WDelay = ones(1,length(taxis));
+  TW = psdmax-psdmin;
+  % R is matrix for a single condition
+  R = fast_condctrstmtx(dpsd,TW,-psdmin,con.sumevreg,WDelay,1);
+  % Number of rows in final C
+  J = size(R,1);
+  % Now determine C
+  C = [];
+  for nthev = 1:nevs
+    [evw evrw hit] = flac_evconw(flac,nthev,nthcon);    
+    if(hit) 
+      if(~strcmp('fir',flac.ev(nthev).model))
+	fprintf('ERROR: need FIR EV to remove PreStim\n');
+	return;
+      end
+      if(max(abs(flac.ev(nthev).psdwin-evA.psdwin)) > .001)
+	fprintf('ERROR: all FIR EVs must have same PSDWin to remove PreStim\n');
+	return;
+      end
+      Cev = evw*R;
+    else    
+      Cev = zeros(J,flac.ev(nthev).nreg);
+    end
+    C = [C Cev];
+  end
+  flacnew = flac;
+  flacnew.con(nthcon).C = C;
+  return
+end
+
 
 if(con.sumev == 1 & con.sumevreg == 1)
   % t-test, C has only one row
@@ -133,8 +178,6 @@ end
 
 flacnew = flac;
 flacnew.con(nthcon).C = C;
-
-
 return
 
 
