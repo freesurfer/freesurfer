@@ -1,5 +1,5 @@
-function [K, phmat] = fast_dftmtx(N_or_Phase)
-% [K phmat] = fast_dftmtx(N_or_Phase)
+function [K, phmat, ph0] = fast_dftmtx(N_or_Phase)
+% [K phmat kvec] = fast_dftmtx(N_or_Phase)
 % 
 % Computes the matrix that implements an N-point 1D DFT.
 %
@@ -20,9 +20,9 @@ function [K, phmat] = fast_dftmtx(N_or_Phase)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2009/04/09 21:20:05 $
+%    $Revision: 1.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
