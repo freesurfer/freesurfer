@@ -7,11 +7,17 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % in non-resel units. csize, fwhm, and ssize are measured in the
 % same units.
 %
-% Based on Friston, Holmes, Pline, Price, and Frith. Detecting
+% Based on:
+% Friston, Worsley, Frackowiak, Mazziotta, Evans. Assessing the
+% significance of focal activations using their spatial extent. HBM
+% 1994, 1:214-220. 
+%
+% Also in:
+% Based on Friston, Holmes, Poline, Price, and Frith. Detecting
 % Activations in PET and fMRI: Levels of Inference and Power.
 % Neuroimage 40, 223-235 (1996).
 % 
-% $Id: rft_zcluster_cdf.m,v 1.4 2008/12/05 20:37:16 greve Exp $
+% $Id: rft_zcluster_cdf.m,v 1.5 2009/04/09 21:20:47 greve Exp $
 
 %
 % rft_zcluster_cdf.m
@@ -19,8 +25,8 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/12/05 20:37:16 $
-%    $Revision: 1.4 $
+%    $Date: 2009/04/09 21:20:47 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -47,8 +53,10 @@ end
 u = zthresh; 
 
 % Equivalent p-value threshold. Note that the paper uses phi(-u),
-% but the results dont work out that way.
-phiu = fast_z2p(u); 
+% but the results dont work out that way. Note that phi(-u) can be
+% used if (1-phiu) is used instead of phiu in the equation for beta
+% below. See Hayasaka and Nichols 2003, App A, equation 4.
+phiu = fast_z2p(u);
 
 k = csize; % cluster size to test (actual units, not resels)
 S = ssize; % search space (actual units, not resels)
@@ -56,17 +64,28 @@ S = ssize; % search space (actual units, not resels)
 W = fwhm/sqrt(4*log(2));
 
 % Expected number of clusters (Eq 2)
+% This form appears to go back to Hasofer 1978
 Em = exp(-(u.^2)/2) .* u.^(D-1) * (2*pi).^(-(D+1)/2) .* S ./ (W.^D);
+%if(D==3)
+% The only difference here is (u.^(D-1)-1), which appears to come
+% from Worsely 1996.
+%  Em = exp(-(u.^2)/2) .* (u.^(D-1)-1) * (2*pi).^(-(D+1)/2) .* S ./ (W.^D);
+%end
+
+%rhoDng = exp(-(u.^2)/2) .* (u.^(D-1) - 1) * (2*pi).^(-(D+1)/2);
+%fprintf('Em = %g\n',Em);
+%fprintf('rhoDng = %g\n',rhoDng);
+%keyboard
 
 % Equation 3
 beta = (gamma(D/2+1).*Em./(S.*phiu)).^(2/D);
 
 % Prob that number of voxels in a cluster (n) exceeds k (Bet Eq 2 and 3)
 Pnk = exp(-beta.*(k.^(2/D)));
+%fprintf('Pnk = %g\n',Pnk);
 
 % Prob of cluster of size k
 cdf = 1 - exp(-Em.*Pnk);
-
 
 return;
 
