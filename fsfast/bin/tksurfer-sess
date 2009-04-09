@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/05/19 15:43:34 $
-#    $Revision: 1.7 $
+#    $Date: 2009/04/09 21:23:03 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.7 2008/05/19 15:43:34 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.8 2009/04/09 21:23:03 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -37,6 +37,7 @@ set PrintHelp = 0;
 set fthresh = 2;
 set fmax    = 4;
 set DoAllContrasts = 0;
+set Delink = 0;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -174,6 +175,7 @@ foreach sess ($SessList)
   set fmid   = `echo "($fmax+$fthresh)/2.0" | bc -l`
   set fslope = `echo "1.0/($fmax-$fthresh)" | bc -l`
   set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope)
+  if($Delink) set cmd = ($cmd -delink);
 
   echo " cd `pwd`"
   echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
@@ -258,6 +260,10 @@ while( $#argv != 0 )
 
     case "-nohdr":
       set ShowHDR = 0;
+      breaksw
+
+    case "-delink":
+      set Delink = 1;
       breaksw
 
     case "-debug":
