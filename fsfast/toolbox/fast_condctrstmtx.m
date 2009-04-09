@@ -32,9 +32,9 @@ function R = fast_condctrstmtx(TER,TW,TPS,SumDelays,WDelays,RmPrestim)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2009/04/09 20:05:51 $
+%    $Revision: 1.3.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -51,9 +51,20 @@ function R = fast_condctrstmtx(TER,TW,TPS,SumDelays,WDelays,RmPrestim)
 
 R = [];
 
-if(nargin ~= 6)
-  fprintf('USAGE: R = fast_condctrstmtx(TER,TW,TPS,SumDelays,WDelays,RmPrestim)');
+if(nargin ~= 6 & nargin ~= 1)
+  fprintf('R = fast_condctrstmtx(TER,TW,TPS,SumDelays,WDelays,RmPrestim)\n');
+  fprintf('R = fast_condctrstmtx(cspec)\n');
   return;
+end
+
+if(nargin == 1)
+  cspec = TER;
+  TER = cspec.TER;
+  TW = cspec.TimeWindow;
+  TPS = cspec.TPreStim;
+  SumDelays = cspec.sumdelays;
+  WDelays = cspec.WDelay;
+  RmPrestim = cspec.RmPreStim;
 end
 
 nDelays = round(TW/TER);
