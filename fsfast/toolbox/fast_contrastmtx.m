@@ -29,8 +29,8 @@ function R = fast_contrastmtx(TER,TW,TPS,nConds,SumConds,WConds,SumDelays,WDelay
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/12 18:48:51 $
-%    $Revision: 1.5 $
+%    $Date: 2009/04/09 20:06:26 $
+%    $Revision: 1.5.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -106,6 +106,7 @@ if(CNorm==1)
   % also assures that each row sums to zero if there
   % are positives and negatives in the row.
   fprintf('Normalizing contrast matrix\n');
+  % This code is replicated in fast_norm_con.m
   for nthrow = 1:size(R,1);
     % positives %
     ind = find(R(nthrow,:)>0);
