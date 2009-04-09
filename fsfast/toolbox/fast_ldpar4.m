@@ -1,5 +1,5 @@
-function [par4 strlist] = fast_ldpar4(par4file)
-% [par4 strlist] = fast_ldpar4(par4file)
+function [par4 partype strlist] = fast_ldpar4(par4file)
+% [par4 partype strlist] = fast_ldpar4(par4file)
 %
 % Load par4-formatted paradigm file
 %
@@ -28,8 +28,8 @@ function [par4 strlist] = fast_ldpar4(par4file)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/03/04 17:56:43 $
-%    $Revision: 1.5.2.1 $
+%    $Date: 2009/04/09 19:45:00 $
+%    $Revision: 1.5.2.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -128,6 +128,13 @@ while(1)
   % If it gets here, assume it is the weight
   par4(nthrow,4) = weight;
 
+  % Fifth column only for string
+  item = sscanfitem(tline,5);
+  if(~isempty(item)) 
+    strlist = strvcat(strlist,item);
+    continue; 
+  end 
+
 end % while (1)
 
 fclose(fp);
@@ -151,11 +158,14 @@ if(size(par4,2) > 2 )
 end
 
 if(size(par4,2) == 2 )
-  fprintf('Loaded %s as a par2 file.\n',par4file);
+  partype = 2;
+  %fprintf('Loaded %s as a par2 file.\n',par4file);
 elseif(size(par4,2) == 3 )
-  fprintf('Loaded %s as a par3 file.\n',par4file);
+  partype = 3;
+  %fprintf('Loaded %s as a par3 file.\n',par4file);
 else  
-  fprintf('Loaded %s as a par4 file.\n',par4file);
+  partype = 4;
+  %fprintf('Loaded %s as a par4 file.\n',par4file);
 end
 
 return;
