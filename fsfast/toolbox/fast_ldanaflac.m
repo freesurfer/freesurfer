@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/09 05:20:17 $
-%    $Revision: 1.38 $
+%    $Date: 2009/04/09 21:24:11 $
+%    $Revision: 1.39 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -415,6 +415,7 @@ if(ncontrasts == 0)
     flac.con(nthcon).sumevreg = 0;
     flac.con(nthcon).evrw     = [];
     flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).rmprestim = 0;
     for n=1:nconditions
       flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
       flac.con(nthcon).ev(n).evw  = 1;
@@ -426,6 +427,7 @@ if(ncontrasts == 0)
     flac.con(nthcon).sumevreg = 1;
     flac.con(nthcon).evrw     = [];
     flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).rmprestim = 0;
     for n=1:nconditions
       flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
       flac.con(nthcon).ev(n).evw  = 1;
