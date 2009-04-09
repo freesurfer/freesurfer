@@ -1,6 +1,6 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.40.2.1 2007/10/05 21:10:30 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.40.2.2 2009/04/09 20:01:57 greve Exp $'
 
 
 %
@@ -9,8 +9,8 @@ function r = fast_selxavg(varargin)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/10/05 21:10:30 $
-%    $Revision: 1.40.2.1 $
+%    $Date: 2009/04/09 20:01:57 $
+%    $Revision: 1.40.2.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@ function r = fast_selxavg(varargin)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_selxavg.m,v 1.40.2.1 2007/10/05 21:10:30 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.40.2.2 2009/04/09 20:01:57 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -957,7 +957,11 @@ end
 if(s.AutoWhiten)
 
   fprintf('Computing Whitening Matrix\n');
-
+  % Note that this can be done with the following function:
+  %W2 = fast_ecvm2wmtx(ErrCovMtx);
+  % Also note that TauMax and PctWhiten are not used:).
+  % Also note that this produces a non-causal whitening matrix.
+  
   s.NMaxWhiten = round(s.TauMaxWhiten/s.TR);
   fprintf('TauMax = %g, NMax = %d, Pct = %g\n',s.TauMaxWhiten,...
           s.NMaxWhiten,s.PctWhiten);
@@ -977,20 +981,6 @@ if(s.AutoWhiten)
     [utmp stmp vtmp] = svd(S);
     W = utmp * inv(sqrt(stmp)) * vtmp';
   end
-  
-  if(0)
-    [W AutoCor] = fast_cvm2whtn(ErrCovMtx,s.NMaxWhiten,s.PctWhiten);
-  end
-
-  if(0)
-    [W AutoCor] = fast_cvm2whtn(ErrCovMtx,s.NMaxWhiten);
-    nf = length(AutoCor);
-    acf = AutoCor .* (.95.^[0:nf-1]');
-    fprintf('Toeplitz, nmax = %d\n',s.NMaxWhiten);
-    L = toeplitz(acf);
-    fprintf('InvChol\n');
-    W = inv(chol(L));
-  end
 
   whtnmtxfile = sprintf('%s-whtnmtx.bfloat',s.hvol);
   fmri_svbfile(W,whtnmtxfile);
@@ -999,6 +989,7 @@ if(s.AutoWhiten)
   fprintf(fid,'%8.4f\n',AutoCor);
   fclose(fid);
 
+  
   fprintf('Starting Whitening Stage\n');
   nvarargin = length(varargin);
   varargin{nvarargin+1} = '-noautowhiten';
