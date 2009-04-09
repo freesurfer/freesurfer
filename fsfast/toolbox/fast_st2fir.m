@@ -1,5 +1,5 @@
-function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
-% Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_v3>)
+function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_fsv3)
+% Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_fsv3>)
 %
 % Computes the FIR design matrix for the given schedule of one
 % event type.
@@ -9,7 +9,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
 % TR = time between time points
 % psdwin = [psdmin psdmax dpsd];
 % usew:  0, [], not spec = dont use weight, 1 = use weight
-% use_v3 - make (more) consistent with version 3
+% use_fsv3 - make (more) consistent with V3 FreeSurfer
 %
 % Notes:
 %  1. Number of rows in st is the number of presentations.
@@ -21,7 +21,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
 %     but it is a good idea.
 %  6. If two stimuli fall within the sam TR bin, the Xfir
 %     matrix will have a 2 instead of a 1.
-% $Id: fast_st2fir.m,v 1.15.2.1 2009/02/21 21:13:34 greve Exp $
+% $Id: fast_st2fir.m,v 1.15.2.2 2009/04/09 19:46:56 greve Exp $
 
 
 %
@@ -30,8 +30,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_v3)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/02/21 21:13:34 $
-%    $Revision: 1.15.2.1 $
+%    $Date: 2009/04/09 19:46:56 $
+%    $Revision: 1.15.2.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -51,13 +51,19 @@ a = [];
 Xfirss = [];
 
 if(nargin < 4 | nargin > 6)
-  fprintf('Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_v3>)\n');
+  fprintf('Xfir = fast_st2fir(st,ntp,TR,psdwin,<usew>,<use_fsv3>)\n');
   return;
 end
 if(~exist('usew','var')) usew = []; end
 if(isempty(usew)) usew = 0; end
-if(~exist('use_v3','var')) use_v3 = []; end
-if(isempty(use_v3)) use_v3 = 0; end
+if(~exist('use_fsv3','var')) 
+  use_fsv3 = []; % getenv('FSF_ST2FIR_USE_FSV3');
+end
+if(isempty(use_fsv3)) use_fsv3 = 0; end
+
+if(use_fsv3)
+  fprintf('fast_st2fir.m: using FS version 3 style\n');
+end
 
 psdmin  = psdwin(1);  % start of PSD window
 psdmax  = psdwin(2);  % end of PSD window
@@ -145,7 +151,7 @@ end
 % Subsample 
 %Xfir = Xfirss(1:ssr:end,:);
 if(ssr > 1)
-  if(use_v3)
+  if(use_fsv3)
     Xfir = Xfirss(1:ssr:end,:);
   else
     tmp = reshape(Xfirss,[ssr ntp npsdwin]);
