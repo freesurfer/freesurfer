@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/08 16:46:07 $
-%    $Revision: 1.37 $
+%    $Date: 2009/04/09 05:20:17 $
+%    $Revision: 1.38 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -37,7 +37,8 @@ flac.name = basename(anadir);
 flac.AllowMissingCond = 1;
 flac.autostimdur = [];
 flac.acfbins = [];  
-flac.fixacf = 1; % Default is to fix
+% Default in mkanalysis is to fix
+flac.fixacf = 1; 
   
 flac.mask = '';
 flac.con = [];
@@ -156,7 +157,7 @@ while(1)
    case '-delay',      delay       = sscanf(tline,'%*s %f',1);
    case '-timeoffset', timeoffset  = sscanf(tline,'%*s %f',1);
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
-   case '-fix-acf',    flac.fixacf = 1;
+   case '-fix-acf',    flac.fixacf = 1; 
    case '-no-fix-acf', flac.fixacf = 0;
    case '-fsv3-st2fir',    flac.fsv3_st2fir = 1;
    case '-no-fsv3-st2fir', flac.fsv3_st2fir = 0;
@@ -391,6 +392,7 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     flac.con(nthcon).sumev    = cspec.sumconds;
     flac.con(nthcon).sumevreg = cspec.sumdelays;
     flac.con(nthcon).sumevrw  = [];
+    flac.con(nthcon).rmprestim = cspec.RmPreStim; % 4/8/09
     flac.con(nthcon).ContrastMtx_0 = cspec.ContrastMtx_0; % 4/3/09
     con_nthev = 0;
     % Actual contrast matrix is computed below

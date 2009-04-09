@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/02 23:32:37 $
-%    $Revision: 1.39 $
+%    $Date: 2009/04/09 05:20:17 $
+%    $Revision: 1.40 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -48,8 +48,7 @@ if(isempty(flac))
   flac.inorm = 0;
   flac.stimulusdelay = 0;
   flac.whiten = 0;
-  flac.fixacf = 0;
-  flac.fsv3_st2fir = 0;
+  flac.fixacf = 1;
   flac.acfsegstem = '';
   flac.format = '';
   flac.formatext = '';
@@ -289,6 +288,7 @@ function flac = load_contrast(fp,flac)
   flac.con(ncon).sumev    = 0;
   flac.con(ncon).sumevreg = 0;
   flac.con(ncon).sumevrw  = [];
+  flac.con(ncon).rmprestim  = 0; % 4/8/09
   
   nthev = 1;
   while(1)
