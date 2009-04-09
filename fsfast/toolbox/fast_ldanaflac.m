@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/08/14 20:16:08 $
-%    $Revision: 1.25.2.4 $
+%    $Date: 2009/04/09 02:22:48 $
+%    $Revision: 1.25.2.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,7 @@ flac.name = basename(anadir);
 flac.AllowMissingCond = 1;
 flac.autostimdur = [];
 flac.acfbins = [];  
+flac.fixacf = 0; % Default in mkanalysis is to fix
 
 flac.mask = '';
 flac.con = [];
@@ -154,6 +155,8 @@ while(1)
    case '-delay',      delay       = sscanf(tline,'%*s %f',1);
    case '-timeoffset', timeoffset  = sscanf(tline,'%*s %f',1);
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
+   case '-fix-acf',    flac.fixacf = 1; 
+   case '-no-fix-acf', flac.fixacf = 0;
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
