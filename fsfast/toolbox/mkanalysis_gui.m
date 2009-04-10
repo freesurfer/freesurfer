@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.15 2009/04/10 01:55:34 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.16 2009/04/10 17:00:12 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -686,6 +686,8 @@ set(handles.ebFIRPreStim,'string',flac.ana.prestim);
 if(flac.TR > 0 & flac.ana.TER < 0) flac.ana.TER = flac.TR; end
 set(handles.ebFIRTER,'string',flac.ana.TER);
 
+set(handles.cbAutoStimDur,'value',flac.autostimdur);
+
 if(strcmp(ana.designtype,'event-related') | ...
    strcmp(ana.designtype,'blocked'))
   EnableERBlock = 1;
@@ -1064,6 +1066,7 @@ end
 % Only gets here if event-related or blocked
 
 if(~strcmp(a.parfile,b.parfile)) return; end
+if(a.autostimdur ~= b.autostimdur) return; end
 if(a.ana.nconditions ~= b.ana.nconditions) return; end
 if(a.ana.firfit ~= b.ana.firfit) return; end
 if(a.ana.firfit)
@@ -1268,5 +1271,16 @@ fprintf('WBD\n');
 return;
 
 
+% --- Executes on button press in cbAutoStimDur.
+function cbAutoStimDur_Callback(hObject, eventdata, handles)
+% hObject    handle to cbAutoStimDur (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of cbAutoStimDur
+newval = get(handles.cbAutoStimDur,'value');
+handles.flac.autostimdur = newval;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
 
