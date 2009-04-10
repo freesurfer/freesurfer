@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/03/31 19:00:14 $
-#    $Revision: 1.38 $
+#    $Date: 2009/04/10 17:19:51 $
+#    $Revision: 1.39 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.38 2009/03/31 19:00:14 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.39 2009/04/10 17:19:51 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -264,6 +264,7 @@ if(! $monly) then
     else
       set anadir = $OutParent/$sessbase/$fsd/$analysisname
     endif
+    cp $FREESURFER_HOME/build-stamp.txt $anadir/fs.build-stamp.txt
     if($#flacfile) then
       cp $flacfile $anadir 
     else
