@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/10 01:53:27 $
-%    $Revision: 1.40 $
+%    $Date: 2009/04/10 19:29:22 $
+%    $Revision: 1.41 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -195,7 +195,6 @@ ana.designtype   = designtype;
 ana.PolyOrder    = PolyOrder;
 ana.extreg       = extreg;
 ana.nextreg      = nextreg;
-
 ana.ncycles      = ncycles ;
 ana.nconditions  = nconditions;
 if(~isempty(ConditionNames))
@@ -283,6 +282,10 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [1 1 1 1];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec = [];
+  %flac.ana.con(nthcon) = flac.con(nthcon);
+  flac.ana.con = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'fund';
@@ -293,6 +296,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [1 1 0 0];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec = [];
+  flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'fund-sin';
@@ -303,6 +309,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [1 0 0 0];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec = [];
+  flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'fund-cos';
@@ -313,6 +322,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [0 1 0 0];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec = [];
+  flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'harm';
@@ -323,6 +335,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [0 0 1 1];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec = [];
+  flac.ana.con(nthcon) = flac.con(nthcon);
   
   ncontrasts = length(flac.con);
 end
