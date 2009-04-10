@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/02 19:00:00 $
-#    $Revision: 1.9 $
+#    $Date: 2009/04/10 21:13:00 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: mcparams2extreg,v 1.9 2009/04/02 19:00:00 greve Exp $';
+set VERSION = '$Id: mcparams2extreg,v 1.10 2009/04/10 21:13:00 greve Exp $';
 
 set PrintHelp = 0;
 
@@ -52,7 +52,8 @@ set ascpoly    = ();
 set nkeep      = ();
 set northog    = ();
 set pctorthog  = ();
-set DoGradient   = 0;
+set DoGradient = 0;
+set DoDemean   = 0;
 set mfile      = ();
 set monly      =  0;
 set MergeFileList = ();
@@ -107,6 +108,7 @@ tee $MLF > /dev/null <<EOF
   pctorthog = [$pctorthog];
   monly     = $monly;
   DoGradient  = [$DoGradient];
+  DoDemean    = [$DoDemean];
   MergeFileList = splitstring('$MergeFileList');
   monly = [$monly];
 
@@ -146,9 +148,11 @@ tee $MLF > /dev/null <<EOF
   end
   if(isempty(nkeep)) nkeep = size(mc,2); end
 
-  % Demean (new as of Mar 5, 2008)
-  mcmn = mean(mc);
-  mc = mc - repmat(mcmn, [ntrs 1]);
+  if(DoDemean)
+    % Demean (new as of Mar 5, 2008)
+    mcmn = mean(mc);
+    mc = mc - repmat(mcmn, [ntrs 1]);
+  end
 
   x = mc;
   if(~isempty(northog))
@@ -299,6 +303,18 @@ while( $#argv != 0 )
       set DoGradient = 1; 
       breaksw
 
+    case "-no-gradient":
+      set DoGradient = 0; 
+      breaksw
+
+    case "-demean":
+      set DoDemean = 1; 
+      breaksw
+
+    case "-no-demean":
+      set DoDemean = 0; 
+      breaksw
+
     case "-monly":
       if ( $#argv == 0) goto arg1err;
       set mfile = $argv[1]; shift;
@@ -375,6 +391,7 @@ usage_exit:
   echo "  -asc ascfile       : save in ascii file (demeaned)"
   echo "  -ascpoly order     : add polnomial to ascii file"
   echo "  -gradient          : compute temporal gradient of mc params"
+  echo "  -demean            : remove temporal mean of mc params"
   echo "  -umask umask      : set unix file permission mask"
   echo "  -version          : print version and exit"
   echo "  -monly mfile      : only create matlab file"
