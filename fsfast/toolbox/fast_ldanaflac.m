@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/09 21:24:11 $
-%    $Revision: 1.39 $
+%    $Date: 2009/04/10 01:53:27 $
+%    $Revision: 1.40 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -386,6 +386,9 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     if(~isfield(cspec,'CondState'))
       cspec.CondState = zeros(1,nconditions);
     end
+    % This assures that weights are either +1, -1, or 0 when the
+    % conditions are not summed. 4/9/09
+    if(cspec.sumconds == 0) cspec.WCond = sign(cspec.WCond); end
     flac.ana.con(nthcon).cspec = cspec;
     flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
     flac.con(nthcon).varsm    = 0;
@@ -406,7 +409,7 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   end
 end
 
-if(ncontrasts == 0)
+if(0 & ncontrasts == 0)
   % No contrasts specified, so use omnibus and allvres
   if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     nthcon = 1;
