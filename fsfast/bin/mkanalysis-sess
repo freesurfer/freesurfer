@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/10 17:02:17 $
-#    $Revision: 1.22 $
+#    $Date: 2009/04/10 17:09:21 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.22 2009/04/10 17:02:17 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.23 2009/04/10 17:09:21 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -141,6 +141,7 @@ endif
 mkdir -p $analysis
 
 echo "CMD-01" > $analysis/creator.txt
+cp $FREESURFER_HOME/build-stamp.txt $analysis/fs.build-stamp.txt
 
 if($#TER == 0) then
   if($gammafit || $spmhrf != -1) then
