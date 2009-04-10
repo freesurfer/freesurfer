@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/09 21:21:55 $
-#    $Revision: 1.3 $
+#    $Date: 2009/04/10 20:16:56 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,8 @@ else
   set showdiff = 0;
 endif
 
+set D = '$';
+
 # Check each file in fs1 toolbox against that in fs2
 foreach m1 ($fs1/toolbox/*.m)
   set b = `basename $m1`;
@@ -44,14 +46,13 @@ foreach m1 ($fs1/toolbox/*.m)
     echo "----------------------------------------"
     echo "$b exists in $fs1 but not in $fs2"
   else
-    set cmd = (diff -b -B -I '$Id: difffsfast,v 1.3 2009/04/09 21:21:55 greve Exp $Date:' \
-       -I '$Author: greve $Revision: 1.3 $m1 $m2)
+    # Can't use $ before Id because cvs substitutes it
+    set cmd = (diff -b -B -I 'Id: ' -I 'Date:' -I 'Author:' \
+      -I 'Revision:' -I '^#' -I '^%' $m1 $m2)
     set n = `$cmd | wc -l` 
-    #set n = `diff -b -B  $m1 $m2 | wc -l` 
     if($n != 0) then
       echo "----------------------------------------"
       echo "$b differs"
-      #if($showdiff) diff -b -B  $m1 $m2 
       if($showdiff) $cmd
     endif
   endif
@@ -77,13 +78,12 @@ foreach m1 ($fs1/bin/*)
     echo "----------------------------------------"
     echo "$b exists in $fs1 but not in $fs2"
   else
-    set cmd = (diff -b -B -I '$Id: difffsfast,v 1.3 2009/04/09 21:21:55 greve Exp $Date:' \
-       -I '$Author: greve $Revision: 1.3 $m1 $m2)
+    set cmd = (diff -b -B -I 'Id: ' -I 'Date:' -I 'Author:' \
+      -I 'Revision:' -I '^#' -I '^%' $m1 $m2)
     set n = `$cmd | wc -l` 
     if($n != 0) then
       echo "----------------------------------------"
       echo "$b differs"
-      #if($showdiff) diff -b -B -I '$Id: difffsfast,v 1.3 2009/04/09 21:21:55 greve Exp $m1 $m2 
       if($showdiff) $cmd
     endif
   endif
