@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/10 01:55:34 $
-#    $Revision: 1.21 $
+#    $Date: 2009/04/10 17:02:17 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.21 2009/04/10 01:55:34 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.22 2009/04/10 17:02:17 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -1198,13 +1198,13 @@ if no TPEF is found, no time points are excluded.
 Drift removal. Fit and remove polynomial of order N. Default is 1
 (ie, 0=mean, 1=linear, and 2=quadradic). 
 
--autostimdur (-no-autostimdur)
+-autostimdur (-noautostimdur)
 
 Automatically compute the duration of each stimulus based on the time
 between stimuli in the paradigm file. This allows for stimuli to be of
 different lengths. It requires that all stimuli be accounted for in
 the paradigm file (eg, fixation). It also requires that no stimuli
-overlap.  -no-autostimdur tells the program NOT to compute the
+overlap.  -noautostimdur tells the program NOT to compute the
 stimulus duration from the paradigm file, in which case it assumes
 that the stimuli duration has a length equal to the TR (or TER). This
 used to be the default (pre 12/4/06). Now you must specify what you
