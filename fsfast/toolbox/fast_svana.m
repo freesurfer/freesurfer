@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.6 2009/04/05 23:32:39 greve Exp $
+% $Id: fast_svana.m,v 1.7 2009/04/10 01:55:34 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -15,35 +15,32 @@ if(err)
   return;
 end
 
+flac.ana.inorm = flac.inorm;
+flac.ana.delay = flac.stimulusdelay;
+ana = flac.ana;
+
+if(strcmp(ana.designtype,'event-related') | ...
+   strcmp(ana.designtype,'blocked')) IsERBlock = 1;
+else                                 IsERBlock = 0;
+end
+
 % Save the full flac.
 flac.CreationDate = date;
 flacmat = sprintf('%s/fsfast.flac',ananame);
 save(flacmat,'flac');
 
+% Create creator.txt
+tmpfile = sprintf('%s/creator.txt',ananame);
+fp = fopen(tmpfile,'w');
+fprintf(fp,'%s',flac.creator);
+fclose(fp);
+
+%------------- analysis.cfg ---------------------
 anacfg = sprintf('%s/analysis.cfg',ananame);
 [fp msg] = fopen(anacfg,'w');
 if(fp == -1)
   fprtinf('%s\n',msg);
   return;
-end
-
-flac.ana.inorm = flac.inorm;
-flac.ana.delay = flac.stimulusdelay;
-ana = flac.ana;
-
-if(~isempty(ana.extreg))
-  fprintf(fp,'-extreg %s\n',ana.extreg);
-  fprintf(fp,'-nextreg %d\n',ana.nextreg);
-end  
-if(~isempty(ana.delay))
-  fprintf(fp,'-delay %f\n',ana.delay);
-end  
-fprintf(fp,'-TER %f\n',ana.TER);
-fprintf(fp,'-polyfit %d\n',ana.PolyOrder);
-
-if(strcmp(ana.designtype,'event-related') | ...
-   strcmp(ana.designtype,'blocked')) IsERBlock = 1;
-else                                 IsERBlock = 0;
 end
 
 if(IsERBlock)
@@ -56,6 +53,10 @@ if(IsERBlock)
   end
   fprintf(fp,'-timewindow %f\n',ana.timewindow);
   fprintf(fp,'-prestim %f\n',ana.prestim);
+  fprintf(fp,'-acf-bins %d\n',flac.acfbins);
+  if(flac.fixacf)
+    fprintf(fp,'-fix-acf\n');
+  end
   if(flac.autostimdur) fprintf(fp,'-autostimdur\n');
   else fprintf(fp,'-noautostimdur\n');
   end  
@@ -64,8 +65,24 @@ else
     fprintf(fp,'-ncycles %d\n',ana.ncycles);
   end  
 end
+
+if(ana.inorm)
+  fprintf(fp,'-rescale %g\n',ana.inorm);
+end  
+  
+if(~isempty(ana.extreg))
+  fprintf(fp,'-extreg %s\n',ana.extreg);
+  fprintf(fp,'-nextreg %d\n',ana.nextreg);
+end  
+if(~isempty(ana.delay))
+  fprintf(fp,'-delay %f\n',ana.delay);
+end  
+fprintf(fp,'-TER %f\n',ana.TER);
+fprintf(fp,'-polyfit %d\n',ana.PolyOrder);
+
 fclose(fp);
 
+%------------- analysis.info ---------------------
 anainfo = sprintf('%s/analysis.info',ananame);
 [fp msg] = fopen(anainfo,'w');
 if(fp == -1)
@@ -77,9 +94,6 @@ fprintf(fp,'analysis %s\n',ana.analysis);
 fprintf(fp,'TR %f\n',flac.TR);
 fprintf(fp,'fsd %s\n',flac.fsd);
 fprintf(fp,'funcstem %s\n',flac.funcstem);
-if(ana.inorm)
-  fprintf(fp,'inorm %f\n',flac.inorm);
-end  
 fprintf(fp,'runlistfile %s\n',flac.runlistfile);
 fprintf(fp,'tpexclude %s\n',flac.tpexcfile);
 if(~isempty(flac.parfile))

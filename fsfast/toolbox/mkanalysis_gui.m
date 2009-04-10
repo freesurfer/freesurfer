@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.14 2009/04/09 21:24:45 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.15 2009/04/10 01:55:34 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -69,6 +69,7 @@ if(isempty(MkAnalysisName))
 end
 
 set(handles.ebAnalysisName,'string',MkAnalysisName);
+AnaLoaded = '';
 if(isempty(MkAnalysisClone))
   if(exist(MkAnalysisName,'dir'))
     fprintf('Loading %s\n',MkAnalysisName);
@@ -81,6 +82,7 @@ if(isempty(MkAnalysisClone))
     end
     handles.originalflac = handles.flac;
     handles = setstate(handles);
+    AnaLoaded = MkAnalysisName;
   end
 else
   if(exist(MkAnalysisClone,'dir'))
@@ -98,6 +100,26 @@ else
     handles.clone = MkAnalysisClone;
     handles = setstate(handles);
   end
+  AnaLoaded = MkAnalysisClone;
+end
+
+% Determine whether this is from an old GUI so we know whether 
+% to change rescaling target.
+if(~isempty(AnaLoaded))
+  tmpfile = sprintf('%s/fsfast.flac',AnaLoaded);
+  if(~exist(tmpfile,'file'))
+    % fsfast.flac does not exist, could be from an old gui or from a
+    % cmd-line call to mkanalysis-sess
+    if(~isempty(handles.flac.con))
+      if(isfield(handles.flac.ana.con(1).cspec,'CondState'))
+	if(handles.flac.inorm == 100)
+	  fprintf(['This analysis from an old GUI, setting rescale' ...
+		   ' target to 1000\n']);
+	  handles.flac.inorm = 1000;
+	end
+      end
+    end
+  end
 end
 
 if(isempty(handles.flac))
@@ -108,7 +130,7 @@ if(isempty(handles.flac))
   handles.originalflac = [];
   handles = setstate(handles);
 end
-  
+handles.flac.creator = 'GUI-01';
 
 % Fill contrast list box
 ncontrasts = length(handles.flac.ana.con);
@@ -480,6 +502,14 @@ return;
 function pbSave_Callback(hObject, eventdata, handles)
 ok = OKToSave(handles);
 if(~ok) return; end
+if(handles.flac.ana.gammafit | handles.flac.ana.spmhrffit)
+  % These match the default values for mkanalysis-sess cmd line
+  % Added on 4/9/09
+  handles.flac.ana.prestim = 0;
+  TER = handles.flac.TR/20;
+  handles.flac.ana.TER = TER;
+  handles.flac.ana.timewindow = TER*floor(40/TER);
+end
 fast_svana(handles.flac.name,handles.flac);
 handles.originalflac = handles.flac;
 handles.clone = '';

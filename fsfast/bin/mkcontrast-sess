@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/08 18:48:32 $
-#    $Revision: 1.11 $
+#    $Date: 2009/04/10 01:55:35 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.11 2009/04/08 18:48:32 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.12 2009/04/10 01:55:35 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -143,11 +143,13 @@ foreach c ($actcond $ctrlcond)
 end
 
 ## Set the weight of the active and control conditions ##
-set wact  = `echo 1/$#actcond  | bc -l`;
-set wctrl = `echo -1/$#ctrlcond | bc -l`;
-# Note: could/should set weights to 1 when not summing 
-# conditions. I don't think it will affect anything
-# one way or another, so I'm leaving it the way it is.
+if($#sumconds) then
+  set wact  = `echo 1/$#actcond  | bc -l`;
+  set wctrl = `echo -1/$#ctrlcond | bc -l`;
+else
+  set wact  = +1;
+  set wctrl = -1;
+endif
 
 if($#wcond == 0) then
   ## Preset the condition weights to zero ##

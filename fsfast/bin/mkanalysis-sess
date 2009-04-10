@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/09 05:21:49 $
-#    $Revision: 1.20 $
+#    $Date: 2009/04/10 01:55:34 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.20 2009/04/09 05:21:49 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.21 2009/04/10 01:55:34 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -140,11 +140,7 @@ endif
 
 mkdir -p $analysis
 
-
-##---- Create the analysis config file ------#
-set sxacfg = $analysis/$sxacfg
-rm -f $sxacfg
-touch $sxacfg
+echo "CMD-01" > $analysis/creator.txt
 
 if($#TER == 0) then
   if($gammafit || $spmhrf != -1) then
@@ -154,6 +150,11 @@ if($#TER == 0) then
   endif
 endif
 echo "Setting TER to $TER"
+
+##---- Create the analysis config file ------#
+set sxacfg = $analysis/$sxacfg
+rm -f $sxacfg
+touch $sxacfg
 
 if($designtype == "event-related" || $designtype == "blocked") then
   set Nh  = `echo "($IdealTW/$TER)" | bc`;
@@ -169,23 +170,21 @@ if($designtype == "event-related" || $designtype == "blocked") then
   endif
   if($spmhrf > -1) echo "-spmhrf $spmhrf" >> $sxacfg
 
+  echo "-timewindow $TW" >> $sxacfg
+  echo "-prestim $PreStim" >> $sxacfg
+
+  if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
+  if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
   if($FSV3whiten) set FixACF = 0; # Explicitly set to 0
   if($FixACF) echo "-fix-acf" >> $sxacfg
   if(! $FixACF) echo "-no-fix-acf" >> $sxacfg
+  if($autostimdur)   echo "-autostimdur" >> $sxacfg
+  if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
   if($FSV3st2fir) echo "-fsv3-st2fir" >> $sxacfg
   if(! $FSV3st2fir) echo "-no-fsv3-st2fir" >> $sxacfg
   if($FSV3whiten)   echo "-fsv3-whiten" >> $sxacfg
   if(! $FSV3whiten) echo "-no-fsv3-whiten" >> $sxacfg
 
-  echo "-timewindow $TW" >> $sxacfg
-  echo "-prestim $PreStim" >> $sxacfg
-  #if(! $meanfit) then
-  #  echo "-nobaseline" >> $sxacfg
-  #else
-  #  echo "-baseline" >> $sxacfg
-  #endif
-  #if($trendfit)  echo "-detrend" >> $sxacfg
-  #if($qtrendfit) echo "-qtrendfit" >> $sxacfg
   if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
   if($nyqreg) echo "-nyqreg" >> $sxacfg
   echo "-TER $TER" >> $sxacfg
@@ -197,8 +196,6 @@ else if($designtype == "retinotopy" || $designtype == "abblocked") then
   echo "-delay   0" >> $sxacfg
 endif
 
-if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
-if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
 
 echo "-nskip $nskip" >> $sxacfg
 if($hanrad != 0) then
@@ -214,14 +211,10 @@ if($#extreg != 0) then
 endif
 
 if($inorm) echo "-rescale $RescaleTarget" >> $sxacfg
-echo "" >> $sxacfg
-echo $sveres >> $sxacfg
-echo $svsignal >> $sxacfg
-
-if($autostimdur)   echo "-autostimdur" >> $sxacfg
-if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
 
 if($#stimdur) echo "-stimdur $stimdur" >> $sxacfg
+echo $sveres >> $sxacfg
+echo $svsignal >> $sxacfg
 
 ##---- Create the analysis info file ------#
 set infofile = $analysis/analysis.info
@@ -229,15 +222,20 @@ rm -f $infofile
 touch $infofile
 echo "analysis   $analysis"   >> $infofile
 echo "TR         $TR"         >> $infofile
-echo "designtype $designtype" >> $infofile
-if($eventrelated || $blocked) then
-  echo "nconditions $nconditions"  >> $infofile 
-endif
-if($#parname)  echo "parname    $parname"    >> $infofile
 echo "fsd        $fsd"        >> $infofile
 echo "funcstem   $funcstem"   >> $infofile
 if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
 echo "tpexclude  $tpexclude"  >> $infofile
+if($#parname)  echo "parname    $parname"    >> $infofile
+echo "designtype $designtype" >> $infofile
+if($eventrelated || $blocked) then
+  echo "nconditions $nconditions"  >> $infofile 
+  @ nthc = 1
+  while($nthc <= $nconditions)
+    printf "Condition $nthc Condition%02d\n" $nthc >> $infofile 
+    @ nthc = $nthc + 1
+  end
+endif
 if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
 
 if($#SessList == 0) then
@@ -395,7 +393,6 @@ endif
 
 # Delete the h.dat file if it exists
 rm -f  $analysis/h.dat
-
 
 echo "Completed successfully"
 exit 0;
