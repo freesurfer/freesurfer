@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.7 2009/04/10 01:55:34 greve Exp $
+% $Id: fast_svana.m,v 1.8 2009/04/10 20:06:16 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -60,6 +60,8 @@ if(IsERBlock)
   if(flac.autostimdur) fprintf(fp,'-autostimdur\n');
   else fprintf(fp,'-noautostimdur\n');
   end  
+  fprintf(fp,'-TER %f\n',ana.TER);
+  fprintf(fp,'-polyfit %d\n',ana.PolyOrder);
 else
   if(~isempty(ana.ncycles))
     fprintf(fp,'-ncycles %d\n',ana.ncycles);
@@ -77,8 +79,6 @@ end
 if(~isempty(ana.delay))
   fprintf(fp,'-delay %f\n',ana.delay);
 end  
-fprintf(fp,'-TER %f\n',ana.TER);
-fprintf(fp,'-polyfit %d\n',ana.PolyOrder);
 
 fclose(fp);
 
@@ -104,16 +104,18 @@ if(~isempty(ana.nconditions))
   fprintf(fp,'nconditions %d\n',ana.nconditions);
 end
 
-% Write out the condition names
-if(~isfield(ana,'ConditionNames'))ana.ConditionNames = '';end
-if(isempty(ana.ConditionNames))
-  for n = 1:ana.nconditions
-    tmp = sprintf('Condition%02d',n);
-    ana.ConditionNames = strvcat(ana.ConditionNames,tmp);
+if(IsERBlock)
+  % Write out the condition names
+  if(~isfield(ana,'ConditionNames'))ana.ConditionNames = '';end
+  if(isempty(ana.ConditionNames))
+    for n = 1:ana.nconditions
+      tmp = sprintf('Condition%02d',n);
+      ana.ConditionNames = strvcat(ana.ConditionNames,tmp);
+    end
   end
-end
-for n = 1:ana.nconditions
-  fprintf(fp,'Condition %d %s\n',n,deblank(ana.ConditionNames(n,:)));
+  for n = 1:ana.nconditions
+    fprintf(fp,'Condition %d %s\n',n,deblank(ana.ConditionNames(n,:)));
+  end
 end
 fclose(fp);
 

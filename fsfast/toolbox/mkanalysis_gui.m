@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.17 2009/04/10 18:10:03 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.18 2009/04/10 20:06:38 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -510,7 +510,9 @@ if(handles.flac.ana.gammafit | handles.flac.ana.spmhrffit)
   handles.flac.ana.TER = TER;
   handles.flac.ana.timewindow = TER*floor(40/TER);
 end
+fprintf('Saving %s ... ',handles.flac.name);
 fast_svana(handles.flac.name,handles.flac);
+fprintf(' done\n');
 handles.originalflac = handles.flac;
 handles.clone = '';
 handles = setstate(handles);
@@ -687,6 +689,8 @@ if(flac.TR > 0 & flac.ana.TER < 0) flac.ana.TER = flac.TR; end
 set(handles.ebFIRTER,'string',flac.ana.TER);
 
 set(handles.cbAutoStimDur,'value',flac.autostimdur);
+set(handles.txParFile,'enable','on');
+set(handles.ebParFile,'enable','on');
 
 if(strcmp(ana.designtype,'event-related') | ...
    strcmp(ana.designtype,'blocked'))
@@ -696,11 +700,11 @@ if(strcmp(ana.designtype,'event-related') | ...
   set(handles.cbERBlock,'value',1);
   set(handles.txNConditions,'enable','on');
   set(handles.slNConditions,'enable','on');
-  set(handles.txParFile,'enable','on');
-  set(handles.ebParFile,'enable','on');
   set(handles.cbHRFFIR,'enable','on');
   set(handles.cbHRFGamma,'enable','on');
   set(handles.cbHRFSPMHRF,'enable','on');
+  set(handles.lbContrast,'enable','on');  
+  set(handles.cbAutoStimDur,'enable','on');
   % Disable ABBlocked ------------------
   set(handles.cbPeriodicDesign,'value',0);
   set(handles.ebNCycles,'enable','off');
@@ -712,16 +716,17 @@ else
   set(handles.cbERBlock,'value',0);
   set(handles.txNConditions,'enable','off');
   set(handles.slNConditions,'enable','off');
-  set(handles.txParFile,'enable','off');
-  set(handles.ebParFile,'enable','off');
   set(handles.cbHRFFIR,'enable','off');
   set(handles.cbHRFGamma,'enable','off');
   set(handles.cbHRFSPMHRF,'enable','off');
+  set(handles.lbContrast,'enable','off');  
+  set(handles.cbAutoStimDur,'enable','off');
   % Enable ABBlocked ------------------
   set(handles.cbPeriodicDesign,'value',1);
   set(handles.ebNCycles,'enable','on');
   set(handles.txNCycles,'enable','on');
 end
+set(handles.ebNCycles,'string',handles.flac.ana.ncycles);
 
 set(handles.cbHRFFIR,'value',ana.firfit);
 set(handles.cbHRFGamma,'value',ana.gammafit);
