@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.18 2009/04/10 20:06:38 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.19 2009/04/10 22:01:59 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -1053,6 +1053,7 @@ if(isempty(a)) return; end
 if(~strcmp(a.name,b.name)) return; end
 if(~strcmp(a.fsd,b.fsd)) return; end
 if(~strcmp(a.runlistfile,b.runlistfile)) return; end
+if(~strcmp(a.funcstem,b.funcstem)) return; end
 if(a.inorm ~= b.inorm) return; end
 if(a.TR ~= b.TR) return; end
 if(~strcmp(a.ana.extreg,b.ana.extreg)) return; end
