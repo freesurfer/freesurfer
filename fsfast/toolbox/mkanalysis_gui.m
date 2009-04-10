@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.16 2009/04/10 17:00:12 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.17 2009/04/10 18:10:03 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -867,7 +867,7 @@ flac.TR = '';
 flac.parfile = '';
 flac.acfbins = 10; % set to 0 to turn off whitening
 flac.stimulusdelay = 0;
-flac.autostimdur = 1;
+flac.autostimdur = 0;
 flac.ana.designtype = 'event-related';
 flac.ana.nconditions = 1;
 flac.ana.PolyOrder = 2;
