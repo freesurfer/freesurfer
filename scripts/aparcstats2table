@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.6.2.3 2009/04/07 18:16:51 krish Exp $
+# $Id: aparcstats2table,v 1.6.2.4 2009/04/11 19:40:58 krish Exp $
 
 # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
 measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'meancurv':6 }
@@ -64,7 +64,8 @@ This might be a useful way to see the table when the number of subjects is
 relatively less than the number of ROIs.
 
 The --delimiter option controls what character comes between the measures
-in the table.Valid options are 'tab' ( default), 'space', 'comma' and  'semicolon'.
+in the table. Valid options are 'tab' ( default), 'space', 'comma' and
+'semicolon'.
 
 The --skip option skips if it can't find a .stats file. Default behavior is
 exit the program.
@@ -78,7 +79,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.6.2.3 2009/04/07 18:16:51 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.6.2.4 2009/04/11 19:40:58 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -130,17 +131,17 @@ def options_parse():
     if options.subjects is not None:
         if len(options.subjects) < 1:
             print 'ERROR: atleast 1 subject must be provided'
-            sys.exit()
+            sys.exit(1)
     else:
         print 'ERROR: --subjects sub1 .. is mandatory'
-        sys.exit()
+        sys.exit(1)
 
     if not options.outputfile:
         print 'ERROR: output table name should be specified'
-        sys.exit()
+        sys.exit(1)
     if not options.hemi:
         print 'ERROR: hemisphere should be provided (lh or rh)'
-        sys.exit()
+        sys.exit(1)
 
     return options
 
@@ -196,7 +197,7 @@ def build_table(options):
             if not o.skipflag:
                 print 'ERROR: cannot find %s' %statsfile
                 print 'Use --skip flag if you want to continue in such cases'
-                sys.exit()
+                sys.exit(1)
             else:
                 print 'WARNING: cannot find %s' %statsfile
                 print 'skipping the subject %s' %subject
@@ -281,4 +282,4 @@ if __name__=="__main__":
     (rows, cols, table) = build_table(options)
     print '\nWriting the table to %s' %options.outputfile
     write_table(options, rows, cols, table)
-    
+    sys.exit(0) 
