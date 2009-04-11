@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.8 2009/04/10 20:06:16 greve Exp $
+% $Id: fast_svana.m,v 1.9 2009/04/11 22:51:09 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -53,7 +53,7 @@ if(IsERBlock)
   end
   fprintf(fp,'-timewindow %f\n',ana.timewindow);
   fprintf(fp,'-prestim %f\n',ana.prestim);
-  fprintf(fp,'-acf-bins %d\n',flac.acfbins);
+  fprintf(fp,'-acfbins %d\n',flac.acfbins);
   if(flac.fixacf)
     fprintf(fp,'-fix-acf\n');
   end
