@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: subject_info.py,v 1.2 2009/02/05 22:02:51 krish Exp $
+# $Id: subject_info.py,v 1.3 2009/04/11 19:39:14 krish Exp $
 
 import os, sys
 
@@ -13,6 +13,6 @@ def check_subjdirs():
     """
     if 'SUBJECTS_DIR' not in os.environ:
         print 'ERROR: SUBJECTS_DIR environment variable not defined!'
-        sys.exit()
+        sys.exit(1)
     return os.environ['SUBJECTS_DIR']
         

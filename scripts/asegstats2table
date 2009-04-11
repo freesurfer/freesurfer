@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.21 2009/04/08 18:47:27 krish Exp $
+# $Id: asegstats2table,v 1.22 2009/04/11 19:39:14 krish Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -88,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.21 2009/04/08 18:47:27 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.22 2009/04/11 19:39:14 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -148,40 +148,40 @@ def options_parse():
     if options.subjects is not None:
         if len(options.subjects) < 1:
             print 'ERROR: subjects are not specified'
-            sys.exit()
+            sys.exit(1)
         else:
             options.dodirect = False
     
     if options.inputs is not None:
         if len(options.inputs) < 1:
             print 'ERROR: inputs are not specified'
-            sys.exit()
+            sys.exit(1)
         else:
             options.dodirect = True
     
     if options.subjects is None and options.inputs is None: 
         print 'ERROR: Both number of subjects and number of inputs are empty'
-        sys.exit()
+        sys.exit(1)
     
     if options.subjects is not None and options.inputs is not None:
         print 'ERROR: Both subjects and inputs are specified. Please specify just one '
-        sys.exit()
+        sys.exit(1)
 
     if not options.outputfile:
         print 'ERROR: output table name should be specified'
-        sys.exit()
+        sys.exit(1)
 
     if options.maxsegno and int(options.maxsegno) < 1:
         print 'ERROR: maximum number of segs reported shouldnt be less than 1'
-        sys.exit()
+        sys.exit(1)
     
     if options.segnos is not None  and len(options.segnos) < 1 :
         print 'ERROR: segmentation numbers should be specified with that option'
-        sys.exit()
+        sys.exit(1)
     
     if options.no_segnos is not None and len(options.no_segnos) < 1:
         print 'ERROR: to be excluded segmentation numbers should be specified with that option'
-        sys.exit()
+        sys.exit(1)
     
     return options
 
@@ -288,14 +288,14 @@ def build_table(options):
             if not o.skipflag:
                 print 'ERROR: cannot find %s' %statfile
                 print 'Use --skip flag if you want to continue in such cases'
-                sys.exit()
+                sys.exit(1)
             else:
                 print 'WARNING: cannot find %s. proceeding to next file' %statfile
     
     # check sanity
     if not sanity_check_segs(table, rows):
         print 'ERROR: All stat files should have the same segmentations'
-        sys.exit()
+        sys.exit(1)
 
     # if verbose
     if o.verboseflag:
@@ -326,4 +326,4 @@ if __name__=="__main__":
     (rows, cols, table) = build_table(options)
     print 'Writing the table to %s' %options.outputfile
     write_table(options, rows, cols, table)
-
+    sys.exit(0)
