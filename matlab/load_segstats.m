@@ -39,9 +39,9 @@ function [segname, segindex, segstats] = load_segstats(segstatsfile,subject)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2009/04/12 23:19:28 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,7 @@ function [segname, segindex, segstats] = load_segstats(segstatsfile,subject)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-segname=[];
+segname='';
 segindex=[];
 segstats=[];
 
@@ -101,7 +101,8 @@ while(1)
   segid  = sscanf(tline,'%*d %d',1);
   nvox   = sscanf(tline,'%*d %*d %d',1);
   vol    = sscanf(tline,'%*d %*d %*d %f',1);
-  segnm  = sscanf(tline,'%*d %*d %*d %*f %s',1);
+  %segnm  = sscanf(tline,'%*d %*d %*d %*f %s',1);
+  segnm  = sscanfitem(tline,5);
   segmn  = sscanf(tline,'%*d %*d %*d %*f %*s %f',1);
   segstd = sscanf(tline,'%*d %*d %*d %*f %*s %*f %f',1);
   segmin = sscanf(tline,'%*d %*d %*d %*f %*s %*f %*f %f',1);
@@ -109,9 +110,8 @@ while(1)
   segrng = sscanf(tline,'%*d %*d %*d %*f %*s %*f %*f %*f %*f %f',1);
 
   segname = strvcat(segname,segnm);
-  segindex = [segindex; indx];
+  segindex = [segindex; segid];
   segstats(nthrow,:) = [nvox vol segmn segstd segmin segmax segrng];
-  
   nthrow = nthrow + 1;
 end % while (1)
 
