@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:37 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/04/13 21:31:32 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -80,11 +80,13 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     
     m_vectorActor2D[i] = vtkActor::New();
     m_vectorActor3D[i] = vtkActor::New();
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInput( polydata );
+    mapper2->SetInput( polydata );
     m_vectorActor2D[i]->SetMapper( mapper );
-    m_vectorActor3D[i]->SetMapper( mapper );
+    m_vectorActor3D[i]->SetMapper( mapper2 );
     m_vectorActor2D[i]->GetProperty()->SetInterpolationToFlat();
     m_vectorActor3D[i]->GetProperty()->SetInterpolationToFlat();
   }
@@ -836,8 +838,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
   for ( int i = 0; i < 3; i++ )
     n[i] = (int)( ( pos[i] - orig[i] ) / voxel_size[i] + 0.5 );
 
-//  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->GetInput();
-  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->GetInput();
+//  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
   vtkSmartPointer<vtkUnsignedCharArray> scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
@@ -855,12 +857,14 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
   
   int nCnt = 0;
   double scale = min( min( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 2;
+/*  
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
   tube->SetInput( polydata );
   tube->SetNumberOfSides( 4 );
   tube->SetRadius( scale / 5 );
   tube->CappingOn();
   vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->SetInput( polydata );
+*/  
   unsigned char c[4] = { 0, 0, 0, 255 };
   switch ( nPlane )
   {
@@ -876,7 +880,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
           v[2] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 2 );
           vtkMath::Normalize( v );
           v[1] = -v[1];         // by default invert Y !!
-          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
+          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )
             v[0] = -v[0];
           else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
             v[1] = -v[1];

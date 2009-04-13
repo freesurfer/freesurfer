@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:37 $
- *    $Revision: 1.45 $
+ *    $Date: 2009/04/13 21:31:32 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2531,12 +2531,13 @@ void MainWindow::CommandSetLUT( const wxArrayString& sa )
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
   {  
-    COLOR_TABLE* ct = m_luts->GetColorTable( sa[1].c_str() );
+    COLOR_TABLE* ct = m_luts->LoadColorTable( sa[1].c_str() );
+    /*
     if ( !ct )
     {
       ct = m_luts->LoadColorTable( sa[1].c_str() );
     }
-    
+    */
     if ( ct )
     {
       mri->GetProperties()->SetLUTCTAB( ct );

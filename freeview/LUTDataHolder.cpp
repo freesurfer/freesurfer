@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:12 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/04/13 21:31:32 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -103,43 +103,78 @@ COLOR_TABLE* LUTDataHolder::GetColorTable( const char* name )
   return NULL;
 }
 
-
 COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
 {
-  if ( GetColorTable( filename ) )
-    return GetColorTable( filename );
-  
-  ColorTableData ctd;
-  wxFileName fn = wxFileName::FileName( filename );
-  if ( !fn.FileExists() )
-    fn = wxFileName::FileName( wxString("$FREESURFER_HOME/") + filename );
-  fn.Normalize();
-  ctd.filename = fn.GetFullPath().char_str();
-  // if the same file already loaded, return the table
-  for ( int i = 0; i < GetCount(); i++ )
+  // first trying to see if we've already loaded the lut from the same file
+  COLOR_TABLE* ct = GetColorTable( filename );
+  std::string filename_full = filename;
+  if ( !ct )
   {
-    if ( m_tables[i].filename == ctd.filename )
-      return m_tables[i].table;
+    wxFileName fn = wxFileName::FileName( filename );
+    if ( !fn.FileExists() )
+      fn = wxFileName::FileName( wxString("$FREESURFER_HOME/") + filename );
+    fn.Normalize();
+    filename_full = fn.GetFullPath().char_str();
+    // if the same file already loaded, return the table
+    for ( int i = 0; i < GetCount(); i++ )
+    {
+      if ( m_tables[i].filename == filename_full )
+      {
+        ct = m_tables[i].table;
+        break;
+      }
+    }
   }
   
-  ctd.table = CTABreadASCII( ctd.filename.c_str() );
-  if ( ctd.table )
+  // if so, reload the lut file, but don't create new entry in the lut list
+  if ( ct )
   {
-    ctd.name = fn.GetName().c_str();
-    int n = 2;
-    while ( GetColorTable( ctd.name.c_str() ) )
+    int nId = -1;
+    for ( int i = 0; i < GetCount(); i++ )
     {
-      ctd.name = (fn.GetName() << "_" << n).c_str();
-      n++;
+      if ( m_tables[i].table == ct )
+      {
+        nId = i;
+        break;
+      }
     }
-    m_tables.push_back( ctd );
+    
+    ct = CTABreadASCII( m_tables[nId].filename.c_str() );
+    if ( ct )
+    {
+      CTABfree( &m_tables[nId].table );
+      m_tables[nId].table = ct;
+    }
+    else
+    {
+      std::cerr << "Can not load color table from '" << filename << "'." << std::endl;
+    }
   }
   else
-  {
-    std::cerr << "Can not load color table from '" << ctd.filename.c_str() << "'." << std::endl;
+  {  
+    ct = CTABreadASCII( filename_full.c_str() );
+    if ( ct )
+    {
+      ColorTableData ctd;
+      ctd.table = ct;
+      ctd.filename = filename_full;
+      wxFileName fn = wxFileName::FileName( filename_full.c_str() );
+      ctd.name = fn.GetName().c_str();
+      int n = 2;
+      while ( GetColorTable( ctd.name.c_str() ) )
+      {
+        ctd.name = (fn.GetName() << "_" << n).c_str();
+        n++;
+      }
+      m_tables.push_back( ctd );
+    }
+    else
+    {
+      std::cerr << "Can not load color table from '" << filename << "'." << std::endl;
+    }
   }
   
-  return ctd.table;
+  return ct;
 }
 
 int LUTDataHolder::GetCount()
