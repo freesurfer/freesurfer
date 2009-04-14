@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/04/14 20:03:31 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,22 +35,22 @@
 #include "LayerPropertiesROI.h"
 
 BEGIN_EVENT_TABLE( PanelROI, wxPanel )
-EVT_LISTBOX   ( XRCID( wxT( "ID_LISTBOX_ROIS" ) ),   PanelROI::OnLayerSelectionChanged )
-EVT_CHECKLISTBOX ( XRCID( wxT( "ID_LISTBOX_ROIS" ) ),   PanelROI::OnLayerVisibilityChanged )
-EVT_COMMAND_SCROLL ( XRCID( wxT( "ID_SLIDER_OPACITY" ) ),   PanelROI::OnSliderOpacity )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_MOVE_UP" ) ),   PanelROI::OnButtonMoveUp )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_MOVE_DOWN" ) ),  PanelROI::OnButtonMoveDown )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_DELETE" ) ),   PanelROI::OnButtonDelete )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_NEW" ) ),    PanelROI::OnButtonNew )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_LOAD" ) ),    PanelROI::OnButtonLoad )
-EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_SAVE" ) ),    PanelROI::OnButtonSave )
-EVT_MENU   ( XRCID( wxT( "ID_ROI_CLOSE" ) ),    PanelROI::OnButtonDelete )
-EVT_UPDATE_UI  ( XRCID( wxT( "ID_ROI_CLOSE" ) ),    PanelROI::OnROICloseUpdateUI )
-EVT_MENU   ( XRCID( wxT( "ID_ROI_MOVE_UP" ) ),    PanelROI::OnButtonMoveUp )
-EVT_UPDATE_UI  ( XRCID( wxT( "ID_ROI_MOVE_UP" ) ),    PanelROI::OnMoveUpUpdateUI )
-EVT_MENU   ( XRCID( wxT( "ID_ROI_MOVE_DOWN" ) ),   PanelROI::OnButtonMoveDown )
-EVT_UPDATE_UI  ( XRCID( wxT( "ID_ROI_MOVE_DOWN" ) ),   PanelROI::OnMoveDownUpdateUI )
-EVT_COLOURPICKER_CHANGED ( XRCID( wxT( "ID_COLOR_PICKER" ) ),  PanelROI::OnColorChanged )
+  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_ROIS" ),     PanelROI::OnLayerSelectionChanged )
+  EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_ROIS" ),     PanelROI::OnLayerVisibilityChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_OPACITY" ),   PanelROI::OnSliderOpacity )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_MOVE_UP" ),   PanelROI::OnButtonMoveUp )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_MOVE_DOWN" ), PanelROI::OnButtonMoveDown )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_DELETE" ),    PanelROI::OnButtonDelete )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_NEW" ),       PanelROI::OnButtonNew )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_LOAD" ),      PanelROI::OnButtonLoad )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_SAVE" ),      PanelROI::OnButtonSave )
+  EVT_MENU            ( XRCID( "ID_ROI_CLOSE" ),        PanelROI::OnButtonDelete )
+  EVT_UPDATE_UI       ( XRCID( "ID_ROI_CLOSE" ),        PanelROI::OnROICloseUpdateUI )
+  EVT_MENU            ( XRCID( "ID_ROI_MOVE_UP" ),      PanelROI::OnButtonMoveUp )
+  EVT_UPDATE_UI       ( XRCID( "ID_ROI_MOVE_UP" ),      PanelROI::OnMoveUpUpdateUI )
+  EVT_MENU            ( XRCID( "ID_ROI_MOVE_DOWN" ),    PanelROI::OnButtonMoveDown )
+  EVT_UPDATE_UI       ( XRCID( "ID_ROI_MOVE_DOWN" ),    PanelROI::OnMoveDownUpdateUI )
+  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER" ),  PanelROI::OnColorChanged )
 END_EVENT_TABLE()
 
 
@@ -88,7 +88,7 @@ void PanelROI::DoListenToMessage( std::string const iMsg, void* iData, void* sen
     Layer* layer = ( Layer* )iData;
     if ( layer && layer->IsTypeOf( "ROI" ) )
     {
-      m_listBoxLayers->Insert( layer->GetName(), 0, (void*)layer );
+      m_listBoxLayers->Insert( wxString::FromAscii( layer->GetName() ), 0, (void*)layer );
       m_listBoxLayers->Check( 0 );
       m_listBoxLayers->SetSelection( 0 );
     }
@@ -158,7 +158,7 @@ void PanelROI::DoUpdateUI()
       m_sliderOpacity->SetValue( (int)( layer->GetProperties()->GetOpacity() * 100 ) );
       double* rgb = layer->GetProperties()->GetColor();
       m_colorPicker->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-      m_textFileName->ChangeValue( layer->GetFileName() );
+      m_textFileName->ChangeValue( wxString::FromAscii( layer->GetFileName() ) );
       m_textFileName->SetInsertionPointEnd();
       m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
     }
@@ -253,8 +253,8 @@ void PanelROI::OnButtonDelete( wxCommandEvent& event )
     Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
     if ( ((LayerROI*)layer)->IsModified() )
     {
-      wxString msg = "ROI has been modified. Do you want to close it without saving?";
-      wxMessageDialog dlg( this, msg, "Close", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
+      wxString msg = _("ROI has been modified. Do you want to close it without saving?");
+      wxMessageDialog dlg( this, msg, _("Close"), wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
       if ( dlg.ShowModal() != wxID_YES )
         return;
     }

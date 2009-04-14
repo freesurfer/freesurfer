@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/13 21:31:32 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/04/14 20:03:30 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -95,7 +95,7 @@ COLOR_TABLE* LUTDataHolder::GetColorTable( const char* name )
   }
   
   // if input is an index number instead of name, may still be valid
-  wxString str = name;
+  wxString str = wxString::FromAscii(name);
   long n;
   if ( str.ToLong( &n ) && n < GetCount() )
     return m_tables[n].table;
@@ -110,12 +110,12 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
   std::string filename_full = filename;
   if ( !ct )
   {
-    wxFileName fn = wxFileName::FileName( filename );
+    wxFileName fn = wxFileName::FileName( wxString::FromAscii(filename) );
     if ( !fn.FileExists() )
-      fn = wxFileName::FileName( wxString("$FREESURFER_HOME/") + filename );
+      fn = wxFileName::FileName( wxString( _("$FREESURFER_HOME/") ) + wxString::FromAscii(filename) );
     fn.Normalize();
     filename_full = fn.GetFullPath().char_str();
-    // if the same file already loaded, return the table
+    
     for ( int i = 0; i < GetCount(); i++ )
     {
       if ( m_tables[i].filename == filename_full )
@@ -126,7 +126,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
     }
   }
   
-  // if so, reload the lut file, but don't create new entry in the lut list
+  // if so, reload the lut file and update the lut data. do not create new entry in the lut list
   if ( ct )
   {
     int nId = -1;
@@ -150,6 +150,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
       std::cerr << "Can not load color table from '" << filename << "'." << std::endl;
     }
   }
+  // otherwise, load and create a new lut entry
   else
   {  
     ct = CTABreadASCII( filename_full.c_str() );
@@ -158,12 +159,12 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
       ColorTableData ctd;
       ctd.table = ct;
       ctd.filename = filename_full;
-      wxFileName fn = wxFileName::FileName( filename_full.c_str() );
-      ctd.name = fn.GetName().c_str();
+      wxFileName fn = wxFileName::FileName( wxString::FromAscii( filename_full.c_str() ) );
+      ctd.name = fn.GetName().char_str();
       int n = 2;
       while ( GetColorTable( ctd.name.c_str() ) )
       {
-        ctd.name = (fn.GetName() << "_" << n).c_str();
+        ctd.name = (fn.GetName() << _("_") << n).char_str();
         n++;
       }
       m_tables.push_back( ctd );

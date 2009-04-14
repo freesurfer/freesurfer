@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:37 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/04/14 20:03:30 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,7 +44,7 @@ public:
 
   bool LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event );
 
-  void SetVectorFileName( std::string filename )
+  void SetVectorFileName( const char* filename )
   {
     m_sVectorFileName = filename;
   }

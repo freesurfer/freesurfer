@@ -27,8 +27,6 @@ freeview_SOURCES=\
 	Cursor3D.h \
 	CursorFactory.cpp \
 	CursorFactory.h \
-	DialogEditLookupTable.cpp \
-	DialogEditLookupTable.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
 	DialogLoadVolume.cpp \

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:38 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/04/14 20:03:31 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,79 +39,71 @@
 #include "DialogEditLookupTable.h"
 
 BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
-  /* EVT_IDLE(PanelVolume::OnIdle)
-  EVT_CHECKBOX  (XRCID(wxT("ID_CHECKBOX_SLICE_Y")),   PanelVolume::OnCheckBoxSlice)
-  EVT_CHECKBOX  (XRCID(wxT("ID_CHECKBOX_SLICE_Z")),   PanelVolume::OnCheckBoxSlice)
-  EVT_TEXT   (XRCID(wxT("ID_TEXTCTRL_SLICE_X")),   PanelVolume::OnEditSlice)
-  EVT_TEXT   (XRCID(wxT("ID_TEXTCTRL_SLICE_Y")),   PanelVolume::OnEditSlice)
-  EVT_TEXT   (XRCID(wxT("ID_TEXTCTRL_SLICE_Z")),   PanelVolume::OnEditSlice)
-  EVT_COMMAND_SCROLL (XRCID(wxT("ID_SLIDER_SLICE_X")),   PanelVolume::OnSliderSlice)
-  EVT_COMMAND_SCROLL (XRCID(wxT("ID_SLIDER_SLICE_Y")),   PanelVolume::OnSliderSlice)*/
-  EVT_LISTBOX         ( XRCID( wxT( "ID_LISTBOX_VOLUMES" ) ),       PanelVolume::OnLayerSelectionChanged )
-  EVT_CHECKLISTBOX    ( XRCID( wxT( "ID_LISTBOX_VOLUMES" ) ),       PanelVolume::OnLayerVisibilityChanged )
-  // EVT_LISTBOX_DCLICK  ( XRCID( wxT( "ID_LISTBOX_VOLUMES" ) ),   PanelVolume::OnListDoubleClicked )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_OPACITY" ) ),        PanelVolume::OnSliderOpacityChanged )
-  EVT_BUTTON          ( XRCID( wxT( "ID_BUTTON_LOAD" ) ),           PanelVolume::OnButtonLoad )
-  EVT_BUTTON          ( XRCID( wxT( "ID_BUTTON_MOVE_UP" ) ),        PanelVolume::OnButtonMoveUp )
-  EVT_BUTTON          ( XRCID( wxT( "ID_BUTTON_MOVE_DOWN" ) ),      PanelVolume::OnButtonMoveDown )
-  EVT_BUTTON          ( XRCID( wxT( "ID_BUTTON_DELETE" ) ),         PanelVolume::OnButtonDelete )
-  EVT_BUTTON          ( XRCID( wxT( "ID_BUTTON_NEW" ) ),            PanelVolume::OnButtonNew )
-  EVT_BUTTON          ( XRCID( wxT( "ID_BUTTON_LOAD" ) ),           PanelVolume::OnButtonLoad )
-  EVT_BUTTON          ( XRCID( wxT( "ID_BUTTON_SAVE" ) ),           PanelVolume::OnButtonSave )
-  EVT_MENU            ( XRCID( wxT( "ID_VOLUME_CLOSE" ) ),          PanelVolume::OnButtonDelete )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_VOLUME_CLOSE" ) ),          PanelVolume::OnVolumeCloseUpdateUI )
-  EVT_MENU            ( XRCID( wxT( "ID_VOLUME_MOVE_UP" ) ),        PanelVolume::OnButtonMoveUp )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_VOLUME_MOVE_UP" ) ),        PanelVolume::OnMoveUpUpdateUI )
-  EVT_MENU            ( XRCID( wxT( "ID_VOLUME_MOVE_DOWN" ) ),      PanelVolume::OnButtonMoveDown )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_VOLUME_MOVE_DOWN" ) ),      PanelVolume::OnMoveDownUpdateUI )
-  EVT_MENU            ( XRCID( wxT( "ID_VOLUME_LOCK" ) ),           PanelVolume::OnVolumeLock )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_VOLUME_LOCK" ) ),           PanelVolume::OnVolumeLockUpdateUI )
-  EVT_MENU            ( XRCID( wxT( "ID_VOLUME_COPY_SETTING" ) ),   PanelVolume::OnVolumeCopySetting )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_VOLUME_COPY_SETTING" ) ),   PanelVolume::OnVolumeCopySettingUpdateUI )
-  EVT_MENU            ( XRCID( wxT( "ID_VOLUME_PASTE_SETTING" ) ),  PanelVolume::OnVolumePasteSetting )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_VOLUME_PASTE_SETTING" ) ),  PanelVolume::OnVolumePasteSettingUpdateUI )
-  EVT_MENU            ( XRCID( wxT( "ID_VOLUME_PASTE_SETTING_ALL" ) ), PanelVolume::OnVolumePasteSettingAll )
-  EVT_UPDATE_UI       ( XRCID( wxT( "ID_VOLUME_PASTE_SETTING_ALL" ) ), PanelVolume::OnVolumePasteSettingAllUpdateUI )
+  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_VOLUMES" ),       PanelVolume::OnLayerSelectionChanged )
+  EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_VOLUMES" ),       PanelVolume::OnLayerVisibilityChanged )
+  // EVT_LISTBOX_DCLICK  ( XRCID( "ID_LISTBOX_VOLUMES" ) ),   PanelVolume::OnListDoubleClicked )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_OPACITY" ),        PanelVolume::OnSliderOpacityChanged )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_LOAD" ),           PanelVolume::OnButtonLoad )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_MOVE_UP" ),        PanelVolume::OnButtonMoveUp )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_MOVE_DOWN" ),      PanelVolume::OnButtonMoveDown )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_DELETE" ),         PanelVolume::OnButtonDelete )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_NEW" ),            PanelVolume::OnButtonNew )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_LOAD" ),           PanelVolume::OnButtonLoad )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_SAVE" ),           PanelVolume::OnButtonSave )
+  EVT_MENU            ( XRCID( "ID_VOLUME_CLOSE" ),          PanelVolume::OnButtonDelete )
+  EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_CLOSE" ),          PanelVolume::OnVolumeCloseUpdateUI )
+  EVT_MENU            ( XRCID( "ID_VOLUME_MOVE_UP" ),        PanelVolume::OnButtonMoveUp )
+  EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_MOVE_UP" ),        PanelVolume::OnMoveUpUpdateUI )
+  EVT_MENU            ( XRCID( "ID_VOLUME_MOVE_DOWN" ),      PanelVolume::OnButtonMoveDown )
+  EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_MOVE_DOWN" ),      PanelVolume::OnMoveDownUpdateUI )
+  EVT_MENU            ( XRCID( "ID_VOLUME_LOCK" ),           PanelVolume::OnVolumeLock )
+  EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_LOCK" ),           PanelVolume::OnVolumeLockUpdateUI )
+  EVT_MENU            ( XRCID( "ID_VOLUME_COPY_SETTING" ),   PanelVolume::OnVolumeCopySetting )
+  EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_COPY_SETTING" ),   PanelVolume::OnVolumeCopySettingUpdateUI )
+  EVT_MENU            ( XRCID( "ID_VOLUME_PASTE_SETTING" ),  PanelVolume::OnVolumePasteSetting )
+  EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_PASTE_SETTING" ),  PanelVolume::OnVolumePasteSettingUpdateUI )
+  EVT_MENU            ( XRCID( "ID_VOLUME_PASTE_SETTING_ALL" ), PanelVolume::OnVolumePasteSettingAll )
+  EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_PASTE_SETTING_ALL" ), PanelVolume::OnVolumePasteSettingAllUpdateUI )
   
-  EVT_CHECKBOX        ( XRCID( wxT( "ID_CHECKBOX_CLEAR_BACKGROUND" ) ), PanelVolume::OnCheckClearBackground )
-  EVT_CHECKBOX        ( XRCID( wxT( "ID_CHECKBOX_SMOOTH" ) ),       PanelVolume::OnCheckSmooth )
-  EVT_CHOICE          ( XRCID( wxT( "ID_CHOICE_COLORMAP" ) ),       PanelVolume::OnChoiceColorMap )
-  EVT_CHOICE          ( XRCID( wxT( "ID_CHOICE_LUT" ) ),            PanelVolume::OnChoiceLUT )
-  EVT_CHOICE          ( XRCID( wxT( "ID_CHOICE_DIRECTION_CODE" ) ), PanelVolume::OnChoiceDirectionCode )
-  EVT_LISTBOX         ( XRCID( wxT( "ID_LISTBOX_COLORTABLE" ) ),    PanelVolume::OnColorSelectionChanged )
-  EVT_LISTBOX_DCLICK  ( XRCID( wxT( "ID_LISTBOX_COLORTABLE" ) ),    PanelVolume::OnColorSelectionChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_DRAW_VALUE" ) ),       PanelVolume::OnTextFillValueChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_WINDOW" ) ),           PanelVolume::OnTextWindowChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_LEVEL" ) ),            PanelVolume::OnTextLevelChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_HEATSCALE_MIN" ) ),    PanelVolume::OnTextHeatScaleMinChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_HEATSCALE_MID" ) ),    PanelVolume::OnTextHeatScaleMidChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_HEATSCALE_MAX" ) ),    PanelVolume::OnTextHeatScaleMaxChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_HEATSCALE_OFFSET" ) ), PanelVolume::OnTextHeatScaleOffsetChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_JETSCALE_MIN" ) ),     PanelVolume::OnTextMinJetScaleChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_JETSCALE_MAX" ) ),     PanelVolume::OnTextMaxJetScaleChanged )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_GRAYSCALE_MIN" ) ),    PanelVolume::OnTextGrayScaleMin )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_GRAYSCALE_MAX" ) ),    PanelVolume::OnTextGrayScaleMax )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_OPACITY" ) ),          PanelVolume::OnTextOpacityChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_WINDOW" ) ),         PanelVolume::OnSliderWindowChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_LEVEL" ) ),          PanelVolume::OnSliderLevelChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_HEATSCALE_MIN" ) ),  PanelVolume::OnSliderHeatScaleMinChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_HEATSCALE_MID" ) ),  PanelVolume::OnSliderHeatScaleMidChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_HEATSCALE_MAX" ) ),  PanelVolume::OnSliderHeatScaleMaxChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_HEATSCALE_OFFSET" ) ), PanelVolume::OnSliderHeatScaleOffsetChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_JETSCALE_MIN" ) ),   PanelVolume::OnSliderMinJetScaleChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_JETSCALE_MAX" ) ),   PanelVolume::OnSliderMaxJetScaleChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_GRAYSCALE_MIN" ) ),  PanelVolume::OnSliderGrayScaleMin )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_GRAYSCALE_MAX" ) ),  PanelVolume::OnSliderGrayScaleMax )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_FRAME" ) ),            PanelVolume::OnTextFrameChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_FRAME" ) ),          PanelVolume::OnSliderFrameChanged )
-  EVT_CHECKBOX        ( XRCID( wxT( "ID_CHECKBOX_DISPLAY_VECTOR" ) ), PanelVolume::OnCheckDisplayVector )
-  EVT_CHOICE          ( XRCID( wxT( "ID_CHOICE_INVERSION" ) ),      PanelVolume::OnChoiceVectorInversion )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CLEAR_BACKGROUND" ), PanelVolume::OnCheckClearBackground )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_SMOOTH" ),       PanelVolume::OnCheckSmooth )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_COLORMAP" ),       PanelVolume::OnChoiceColorMap )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_LUT" ),            PanelVolume::OnChoiceLUT )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_DIRECTION_CODE" ), PanelVolume::OnChoiceDirectionCode )
+  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_COLORTABLE" ),    PanelVolume::OnColorSelectionChanged )
+  EVT_LISTBOX_DCLICK  ( XRCID( "ID_LISTBOX_COLORTABLE" ),    PanelVolume::OnColorSelectionChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_DRAW_VALUE" ),       PanelVolume::OnTextFillValueChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_WINDOW" ),           PanelVolume::OnTextWindowChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_LEVEL" ),            PanelVolume::OnTextLevelChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MIN" ),    PanelVolume::OnTextHeatScaleMinChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MID" ),    PanelVolume::OnTextHeatScaleMidChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MAX" ),    PanelVolume::OnTextHeatScaleMaxChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_OFFSET" ), PanelVolume::OnTextHeatScaleOffsetChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MIN" ),     PanelVolume::OnTextMinJetScaleChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MAX" ),     PanelVolume::OnTextMaxJetScaleChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_GRAYSCALE_MIN" ),    PanelVolume::OnTextGrayScaleMin )
+  EVT_TEXT            ( XRCID( "ID_TEXT_GRAYSCALE_MAX" ),    PanelVolume::OnTextGrayScaleMax )
+  EVT_TEXT            ( XRCID( "ID_TEXT_OPACITY" ),          PanelVolume::OnTextOpacityChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_WINDOW" ),         PanelVolume::OnSliderWindowChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_LEVEL" ),          PanelVolume::OnSliderLevelChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_MIN" ),  PanelVolume::OnSliderHeatScaleMinChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_MID" ),  PanelVolume::OnSliderHeatScaleMidChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_MAX" ),  PanelVolume::OnSliderHeatScaleMaxChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_OFFSET" ), PanelVolume::OnSliderHeatScaleOffsetChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_JETSCALE_MIN" ),   PanelVolume::OnSliderMinJetScaleChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_JETSCALE_MAX" ),   PanelVolume::OnSliderMaxJetScaleChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_GRAYSCALE_MIN" ),  PanelVolume::OnSliderGrayScaleMin )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_GRAYSCALE_MAX" ),  PanelVolume::OnSliderGrayScaleMax )
+  EVT_TEXT            ( XRCID( "ID_TEXT_FRAME" ),            PanelVolume::OnTextFrameChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_FRAME" ),          PanelVolume::OnSliderFrameChanged )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_DISPLAY_VECTOR" ), PanelVolume::OnCheckDisplayVector )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_INVERSION" ),      PanelVolume::OnChoiceVectorInversion )
   
-  EVT_CHECKBOX        ( XRCID( wxT( "ID_CHECKBOX_CONTOUR" ) ),    PanelVolume::OnCheckContour )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_CONTOUR_MIN" ) ),    PanelVolume::OnTextContourMin )
-  EVT_TEXT            ( XRCID( wxT( "ID_TEXT_CONTOUR_MAX" ) ),    PanelVolume::OnTextContourMax )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_CONTOUR_MIN" ) ),  PanelVolume::OnSliderContourMin )
-  EVT_COMMAND_SCROLL  ( XRCID( wxT( "ID_SLIDER_CONTOUR_MAX" ) ),  PanelVolume::OnSliderContourMax )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CONTOUR" ),    PanelVolume::OnCheckContour )
+  EVT_TEXT            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),    PanelVolume::OnTextContourMin )
+  EVT_TEXT            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),    PanelVolume::OnTextContourMax )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMax )
 END_EVENT_TABLE()
 
 
@@ -121,7 +113,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_bUINeedUpdate = false;
   m_layerCopied = NULL;
 
-  wxXmlResource::Get()->LoadPanel( this, parent, wxT("ID_PANEL_VOLUME") );
+  wxXmlResource::Get()->LoadPanel( this, parent, _("ID_PANEL_VOLUME") );
   m_btnNew =              XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
   m_btnDelete =           XRCCTRL( *this, "ID_BUTTON_DELETE", wxButton );
   m_btnMoveUp =           XRCCTRL( *this, "ID_BUTTON_MOVE_UP", wxButton );
@@ -177,12 +169,12 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 
   m_luts = MainWindow::GetMainWindowPointer()->GetLUTData();
 
-  m_choiceDirectionCode->Append( "RAS -> RGB" );
-  m_choiceDirectionCode->Append( "RAS -> RBG" );
-  m_choiceDirectionCode->Append( "RAS -> GRB" );
-  m_choiceDirectionCode->Append( "RAS -> GBR" );
-  m_choiceDirectionCode->Append( "RAS -> BRG" );
-  m_choiceDirectionCode->Append( "RAS -> BGR" );
+  m_choiceDirectionCode->Append( _("RAS -> RGB") );
+  m_choiceDirectionCode->Append( _("RAS -> RBG") );
+  m_choiceDirectionCode->Append( _("RAS -> GRB") );
+  m_choiceDirectionCode->Append( _("RAS -> GBR") );
+  m_choiceDirectionCode->Append( _("RAS -> BRG") );
+  m_choiceDirectionCode->Append( _("RAS -> BGR") );
 
   m_widgetlistGrayScale.push_back( m_checkClearBackground );
   m_widgetlistGrayScale.push_back( XRCCTRL( *this, "ID_STATIC_WINDOW",        wxStaticText ) );
@@ -281,7 +273,7 @@ void PanelVolume::DoListenToMessage( std::string const iMsg, void* iData, void* 
     Layer* layer = ( Layer* )iData;
     if ( layer && layer->IsTypeOf( "MRI" ) )
     {
-      m_listBoxLayers->Insert( layer->GetName(), 0, (void*)layer );
+      m_listBoxLayers->Insert( wxString::FromAscii( layer->GetName() ), 0, (void*)layer );
       m_listBoxLayers->Check( 0 );
       m_listBoxLayers->SetSelection( 0 );
       UpdateUI();
@@ -383,7 +375,7 @@ void PanelVolume::UpdateLayerList( Layer* layer )
     int nSel = 0;
     for ( size_t i = 0; i < layers.size(); i++ )
     {
-      m_listBoxLayers->Append( layers[i]->GetName(), layers[i] );
+      m_listBoxLayers->Append( wxString::FromAscii( layers[i]->GetName() ), layers[i] );
       m_listBoxLayers->Check( i, layers[i]->IsVisible() );
       if ( lc->GetActiveLayer() == layers[i] )
         nSel = i;
@@ -403,8 +395,8 @@ void PanelVolume::OnButtonDelete( wxCommandEvent& event )
     Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
     if ( ((LayerMRI*)layer)->IsModified() )
     {
-      wxString msg = "Volume has been modified. Do you want to close it without saving?";
-      wxMessageDialog dlg( this, msg, "Close", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
+      wxString msg = _("Volume has been modified. Do you want to close it without saving?");
+      wxMessageDialog dlg( this, msg, _("Close"), wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
       if ( dlg.ShowModal() != wxID_YES )
         return;
     }
@@ -464,12 +456,14 @@ void PanelVolume::OnListDoubleClicked( wxCommandEvent& event )
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
     {
-      wxTextEntryDialog dlg( this, "Enter the name of the volume:", "Volume", layer->GetName() );
+      wxTextEntryDialog dlg( this, _("Enter the name of the volume:"), 
+                             _("Volume"), 
+                             wxString::FromAscii( layer->GetName() ) );
       if ( dlg.ShowModal() == wxID_OK )
       {
-        layer->SetName( dlg.GetValue().Trim( true ).Trim( false ).c_str() );
+        layer->SetName( dlg.GetValue().Trim( true ).Trim( false ).char_str() );
         bool bChecked = m_listBoxLayers->IsChecked( event.GetInt() );
-        m_listBoxLayers->SetString( event.GetInt(), layer->GetName() );
+        m_listBoxLayers->SetString( event.GetInt(), wxString::FromAscii( layer->GetName() ) );
         m_listBoxLayers->Check( event.GetInt(), bChecked );
       }
     }
@@ -534,7 +528,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       if ( nValid )
       {
         CTABcopyName( ct, i, name, 1000 );
-        m_listColorTable->Append( wxString::Format( "%d: %s", i, name ) );
+        m_listColorTable->Append( wxString::Format( _("%d: %s"), i, name ) );
         if ( nValidCount == nValue )
           nSel = nValidCount;
         nValidCount++;
@@ -592,9 +586,9 @@ void PanelVolume::DoUpdateUI()
       m_choiceLUT->Clear();
       for ( int i = 0; i < m_luts->GetCount(); i++ )
       {
-        m_choiceLUT->Append( m_luts->GetName( i ) );
+        m_choiceLUT->Append( wxString::FromAscii( m_luts->GetName( i ) ) );
       }
-      m_choiceLUT->Append( "Load lookup table..." );
+      m_choiceLUT->Append( _("Load lookup table...") );
 			m_choiceLUT->SetSelection( m_luts->GetIndex( layer->GetProperties()->GetLUTCTAB() ) );
 	
 			UpdateTextValue( m_textDrawValue, (double)layer->GetFillValue() );
@@ -616,9 +610,9 @@ void PanelVolume::DoUpdateUI()
       m_sliderGrayScaleMax->SetValue( (int)( ( dlevel + dwindow/2 - range_min ) / ( range_max - range_min ) * 100 ) );
       
 			if ( layer->IsTypeOf( "DTI" ) )
-				m_textFileName->ChangeValue( ((LayerDTI*)layer)->GetVectorFileName() );
+        m_textFileName->ChangeValue( wxString::FromAscii( ((LayerDTI*)layer)->GetVectorFileName() ) );
 			else
-				m_textFileName->ChangeValue( layer->GetFileName() );
+        m_textFileName->ChangeValue( wxString::FromAscii( layer->GetFileName() ) );
 			m_textFileName->SetInsertionPointEnd();
 			m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
 			
@@ -641,17 +635,17 @@ void PanelVolume::DoUpdateUI()
 			UpdateTextValue( m_textJetScaleMax, layer->GetProperties()->GetMaxJetScaleWindow() );
 					
 			m_choiceColorMap->Clear();
-			m_choiceColorMap->Append( "Grayscale", (void*)LayerPropertiesMRI::Grayscale );
-			m_choiceColorMap->Append( "Heat", (void*)LayerPropertiesMRI::Heat );
-			m_choiceColorMap->Append( "Jet", (void*)LayerPropertiesMRI::Jet );
+      m_choiceColorMap->Append( _("Grayscale"), (void*)LayerPropertiesMRI::Grayscale );
+      m_choiceColorMap->Append( _("Heat"), (void*)LayerPropertiesMRI::Heat );
+      m_choiceColorMap->Append( _("Jet"), (void*)LayerPropertiesMRI::Jet );
 			if ( layer->IsTypeOf( "DTI" ) )
 			{
-				m_choiceColorMap->Append( "Direction-coded", (void*)LayerPropertiesMRI::DirectionCoded );
+        m_choiceColorMap->Append( _("Direction-coded"), (void*)LayerPropertiesMRI::DirectionCoded );
 				m_choiceDirectionCode->SetSelection( ((LayerDTI*)layer)->GetProperties()->GetDirectionCode() );
 			}
 			else
 			{
-				m_choiceColorMap->Append( "Lookup Table", (void*)LayerPropertiesMRI::LUT );		
+        m_choiceColorMap->Append( _("Lookup Table"), (void*)LayerPropertiesMRI::LUT );		
 			}
 
 			nColorMap = layer->GetProperties()->GetColorMap();
@@ -719,8 +713,8 @@ void PanelVolume::DoUpdateUI()
 
 void PanelVolume::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
 {
-  wxString value_strg = ( (wxString)"" << dvalue );
-  if ( value_strg != ctrl->GetValue() && (value_strg + ".") != ctrl->GetValue() )
+  wxString value_strg = ( wxString() << dvalue );
+  if ( value_strg != ctrl->GetValue() && (value_strg + _(".")) != ctrl->GetValue() )
     ctrl->ChangeValue( value_strg );
 }
 
@@ -753,7 +747,7 @@ void PanelVolume::OnColorSelectionChanged( wxCommandEvent& event )
 
   wxString strg = m_listColorTable->GetString( m_listColorTable->GetSelection() );
   double dValue;
-  if ( strg.Left( strg.Find( ":" ) ).ToDouble( &dValue ) )
+  if ( strg.Left( strg.Find( _(":") ) ).ToDouble( &dValue ) )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     layer->SetFillValue( (float)dValue );
@@ -773,7 +767,7 @@ void PanelVolume::OnTextFillValueChanged( wxCommandEvent& event )
     for ( int i = 0; i < (int)m_listColorTable->GetCount(); i++ )
     {
       wxString strg = m_listColorTable->GetString( i );
-      if ( strg.Left( strg.Find( ":" ) ).ToDouble( &dvalue ) && dvalue == (double)nvalue )
+      if ( strg.Left( strg.Find( _(":") ) ).ToDouble( &dvalue ) && dvalue == (double)nvalue )
       {
         m_listColorTable->SetFirstItem( i );
         m_listColorTable->SetSelection( i );
