@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/07 03:12:42 $
- *    $Revision: 1.7 $
+ *    $Author: rpwang $
+ *    $Date: 2009/04/14 20:11:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,26 +32,26 @@
 #include <wx/filename.h>
 
 BEGIN_EVENT_TABLE( DialogLoadDTI, wxDialog )
-EVT_BUTTON ( wxID_OK, DialogLoadDTI::OnOK )
-EVT_BUTTON ( XRCID( "ID_BUTTON_VECTOR_FILE" ), DialogLoadDTI::OnButtonVector )
-EVT_BUTTON ( XRCID( "ID_BUTTON_FA_FILE" ), DialogLoadDTI::OnButtonFA )
-EVT_BUTTON ( XRCID( "ID_BUTTON_REG_FILE" ), DialogLoadDTI::OnButtonReg )
-EVT_COMBOBOX ( XRCID( "ID_COMBO_FA_FILE" ), DialogLoadDTI::OnComboFASelectionChanged )
-EVT_CHECKBOX ( XRCID( "ID_CHECK_REG" ), DialogLoadDTI::OnCheckApplyReg )
+  EVT_BUTTON    ( wxID_OK, DialogLoadDTI::OnOK )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_VECTOR_FILE" ), DialogLoadDTI::OnButtonVector )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_FA_FILE" ),     DialogLoadDTI::OnButtonFA )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_REG_FILE" ),    DialogLoadDTI::OnButtonReg )
+  EVT_COMBOBOX  ( XRCID( "ID_COMBO_FA_FILE" ),      DialogLoadDTI::OnComboFASelectionChanged )
+  EVT_CHECKBOX  ( XRCID( "ID_CHECK_REG" ),          DialogLoadDTI::OnCheckApplyReg )
 END_EVENT_TABLE()
 
 
 DialogLoadDTI::DialogLoadDTI( wxWindow* parent )
 {
   wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_LOAD_DTI") );
-  m_textVector = XRCCTRL( *this, "ID_TEXT_VECTOR_FILE", wxTextCtrl );
-  m_textReg = XRCCTRL( *this, "ID_TEXT_REG_FILE", wxTextCtrl );
-  m_comboFA = XRCCTRL( *this, "ID_COMBO_FA_FILE", wxComboBox );
-  m_btnVector = XRCCTRL( *this, "ID_BUTTON_VECTOR_FILE", wxButton );
-  m_btnFA = XRCCTRL( *this, "ID_BUTTON_FA_FILE", wxButton );
-  m_btnReg = XRCCTRL( *this, "ID_BUTTON_REG_FILE", wxButton );
+  m_textVector  = XRCCTRL( *this, "ID_TEXT_VECTOR_FILE", wxTextCtrl );
+  m_textReg     = XRCCTRL( *this, "ID_TEXT_REG_FILE", wxTextCtrl );
+  m_comboFA     = XRCCTRL( *this, "ID_COMBO_FA_FILE", wxComboBox );
+  m_btnVector   = XRCCTRL( *this, "ID_BUTTON_VECTOR_FILE", wxButton );
+  m_btnFA       = XRCCTRL( *this, "ID_BUTTON_FA_FILE", wxButton );
+  m_btnReg      = XRCCTRL( *this, "ID_BUTTON_REG_FILE", wxButton );
   m_checkNoResample = XRCCTRL( *this, "ID_CHECK_NO_RESAMPLE", wxCheckBox );
-  m_checkReg = XRCCTRL( *this, "ID_CHECK_REG", wxCheckBox );
+  m_checkReg    = XRCCTRL( *this, "ID_CHECK_REG", wxCheckBox );
   m_textVector->SetFocus();
   m_btnReg->Enable( false );
   m_textReg->Enable( false );
@@ -120,7 +120,7 @@ void DialogLoadDTI::OnButtonVector( wxCommandEvent& event )
       _("Select vector file"), 
       m_strLastDir, 
       _(""),
-      _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+      _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
       wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
@@ -134,7 +134,7 @@ void DialogLoadDTI::OnButtonVector( wxCommandEvent& event )
 void DialogLoadDTI::OnButtonFA( wxCommandEvent& event )
 {
   wxFileDialog dlg( this, _("Select FA file"), m_strLastDir, _(""),
-                    _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+                    _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
@@ -147,7 +147,7 @@ void DialogLoadDTI::OnButtonFA( wxCommandEvent& event )
 void DialogLoadDTI::OnButtonReg( wxCommandEvent& event )
 {
   wxFileDialog dlg( this, _("Select Registration file"), m_strLastDir, _(""),
-                    _T("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"),
+                    _("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {

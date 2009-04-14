@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:03:30 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/04/14 20:11:35 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -265,7 +265,7 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     else
       m_actorCoordinates[4]->SetInput
 	( wxString::Format
-	  ( _("P %.2f"), -slicePos[1]).c_str() );
+	  ( _("P %.2f"), -slicePos[1]).char_str() );
 
     break;
   case 2:

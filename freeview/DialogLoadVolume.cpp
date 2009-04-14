@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/07 03:12:42 $
- *    $Revision: 1.9 $
+ *    $Author: rpwang $
+ *    $Date: 2009/04/14 20:11:35 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,11 +32,11 @@
 #include <wx/filename.h>
 
 BEGIN_EVENT_TABLE( DialogLoadVolume, wxDialog )
-EVT_BUTTON ( wxID_OK,          DialogLoadVolume::OnOK )
-EVT_BUTTON ( XRCID( "ID_BUTTON_FILE" ), DialogLoadVolume::OnButtonOpen )
-EVT_COMBOBOX ( XRCID( "ID_COMBO_FILENAME" ), DialogLoadVolume::OnFileSelectionChanged )
-EVT_BUTTON ( XRCID( "ID_BUTTON_REG_FILE" ),  DialogLoadVolume::OnButtonRegFile )
-EVT_CHECKBOX ( XRCID( "ID_CHECK_APPLY_REG" ),  DialogLoadVolume::OnCheckApplyReg )
+  EVT_BUTTON    ( wxID_OK,                        DialogLoadVolume::OnOK )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_FILE" ),      DialogLoadVolume::OnButtonOpen )
+  EVT_COMBOBOX  ( XRCID( "ID_COMBO_FILENAME" ),   DialogLoadVolume::OnFileSelectionChanged )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_REG_FILE" ),  DialogLoadVolume::OnButtonRegFile )
+  EVT_CHECKBOX  ( XRCID( "ID_CHECK_APPLY_REG" ),  DialogLoadVolume::OnCheckApplyReg )
 END_EVENT_TABLE()
 
 
@@ -46,12 +46,12 @@ DialogLoadVolume::DialogLoadVolume( wxWindow* parent, bool bEnableResample )
 				    wxT("ID_DIALOG_LOAD_VOLUME") );
   m_checkNoResample = XRCCTRL( *this, "ID_CHECK_NO_RESAMPLE", wxCheckBox );
   m_checkNoResample->Show( bEnableResample );
-  m_btnOpen = XRCCTRL( *this, "ID_BUTTON_FILE", wxButton );
+  m_btnOpen       = XRCCTRL( *this, "ID_BUTTON_FILE", wxButton );
   m_comboFileName = XRCCTRL( *this, "ID_COMBO_FILENAME", wxComboBox );
   m_comboFileName->SetFocus();
   m_checkApplyReg = XRCCTRL( *this, "ID_CHECK_APPLY_REG", wxCheckBox );
-  m_textRegFile = XRCCTRL( *this, "ID_TEXT_REG_FILE", wxTextCtrl );
-  m_btnRegFile = XRCCTRL( *this, "ID_BUTTON_REG_FILE", wxButton );
+  m_textRegFile   = XRCCTRL( *this, "ID_TEXT_REG_FILE", wxTextCtrl );
+  m_btnRegFile    = XRCCTRL( *this, "ID_BUTTON_REG_FILE", wxButton );
 }
 
 DialogLoadVolume::~DialogLoadVolume()
@@ -120,7 +120,7 @@ void DialogLoadVolume::OnButtonOpen( wxCommandEvent& event )
     ( this, 
       _("Open volume file"), 
       m_strLastDir, _(""),
-      _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+      _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
       wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
@@ -138,7 +138,7 @@ void DialogLoadVolume::OnButtonRegFile( wxCommandEvent& event )
     ( this, 
       _("Open registration file"), 
       m_strLastDir, _(""),
-      _T("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"),
+      _("Registration files (*.dat;*.xfm;*.lta;*.mat)|*.dat;*.xfm;*.lta;*.mat|All files (*.*)|*.*"),
       wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {

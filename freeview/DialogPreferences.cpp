@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/04/14 20:11:35 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,13 +43,13 @@ END_EVENT_TABLE()
 DialogPreferences::DialogPreferences( wxWindow* parent )
 {
   wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_PREFERENCES") );
-  m_colorPickerBackground = XRCCTRL( *this, "ID_COLORPICKER_BACKGROUND", wxColourPickerCtrl );
+  m_colorPickerBackground   = XRCCTRL( *this, "ID_COLORPICKER_BACKGROUND", wxColourPickerCtrl );
   m_colorPickerBackground->SetFocus();
-  m_colorPickerCursor = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
-  m_checkSyncZoomFactor = XRCCTRL( *this, "ID_CHECK_SYNC_ZOOM", wxCheckBox );
+  m_colorPickerCursor       = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
+  m_checkSyncZoomFactor     = XRCCTRL( *this, "ID_CHECK_SYNC_ZOOM", wxCheckBox );
 
-  m_checkHideCursor = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR", wxCheckBox );
-  m_checkHideCoords = XRCCTRL( *this, "ID_CHECK_HIDE_COORDS", wxCheckBox );
+  m_checkHideCursor   = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR", wxCheckBox );
+  m_checkHideCoords   = XRCCTRL( *this, "ID_CHECK_HIDE_COORDS", wxCheckBox );
   m_checkAntiAliasing = XRCCTRL( *this, "ID_CHECK_ANTIALIASING", wxCheckBox );  
   m_spinMagnification = XRCCTRL( *this, "ID_SPIN_MAGNIFICATION", wxSpinCtrl );
 }

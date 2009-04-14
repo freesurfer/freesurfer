@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/07 03:12:42 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2009/04/14 20:11:35 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,16 +34,16 @@
 #include "LayerCollection.h"
 
 BEGIN_EVENT_TABLE( DialogNewROI, wxDialog )
-EVT_BUTTON     ( wxID_OK,         DialogNewROI::OnOK )
-EVT_TEXT_ENTER ( XRCID( "ID_TEXT_NAME" ),  DialogNewROI::OnTextEnter )
+  EVT_BUTTON     ( wxID_OK,         DialogNewROI::OnOK )
+  EVT_TEXT_ENTER ( XRCID( "ID_TEXT_NAME" ),  DialogNewROI::OnTextEnter )
 END_EVENT_TABLE()
 
 
 DialogNewROI::DialogNewROI( wxWindow* parent, LayerCollection* col_mri )
 {
   wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_NEW_ROI") );
-  m_textName = XRCCTRL( *this, "ID_TEXT_NAME", wxTextCtrl );
-  m_choiceTemplate = XRCCTRL( *this, "ID_CHOICE_TEMPLATE", wxChoice );
+  m_textName        = XRCCTRL( *this, "ID_TEXT_NAME", wxTextCtrl );
+  m_choiceTemplate  = XRCCTRL( *this, "ID_CHOICE_TEMPLATE", wxChoice );
 
   std::vector<Layer*> layers = col_mri->GetLayers();
   int nSel = 0;
