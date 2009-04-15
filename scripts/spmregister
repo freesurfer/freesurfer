@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/03 17:31:19 $
-#    $Revision: 1.21.2.4 $
+#    $Date: 2009/04/15 18:10:23 $
+#    $Revision: 1.21.2.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.21.2.4 2009/04/03 17:31:19 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.21.2.5 2009/04/15 18:10:23 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -47,7 +47,7 @@ set DoSegReg = 0;
 set segregfile = ();
 set OutVol = ();
 set BBRMask = 1;
-set fmt = nii # Format for temporary volumes
+set fmt = img # Format for temporary volumes
 set UseSPMGetSpace = 1;
 set DNG = (); # For testing
 set DOF = 6;
