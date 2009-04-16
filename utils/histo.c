@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/31 12:30:41 $
- *    $Revision: 1.60 $
+ *    $Date: 2009/04/16 19:13:40 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1890,6 +1890,9 @@ HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
 {
   int    b, b2 ;
   double total = 0 ;
+  HISTOGRAM *habs ;
+
+  habs = HISTOabs(hsrc, NULL) ;
 
   if (hdst == NULL)
     hdst = HISTOcopy(hsrc, NULL) ;
@@ -1897,17 +1900,19 @@ HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
   {
     if (hdst->bins[b] >= 0)
     {
-      for (total = 0.0, b2 = 0 ; b2 < hsrc->nbins ; b2++)
-        if (fabs(hsrc->bins[b2]) <= hdst->bins[b])
-          total += hsrc->counts[b2] ;
+      for (total = 0.0, b2 = 0 ; b2 < habs->nbins ; b2++)
+        if (fabs(habs->bins[b2]) <= hdst->bins[b])
+          total += habs->counts[b2] ;
       hdst->counts[b] = total ;
     }
     else
       hdst->counts[b] = 0 ;
   }
+
   for (b = 0 ; b < hdst->nbins ; b++)
     hdst->counts[b] /= total ;
 
+  HISTOfree(&habs) ;
   return(hdst) ;
 }
 
