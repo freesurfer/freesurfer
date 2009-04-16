@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:11:35 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/04/16 21:25:51 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@ DialogLoadDTI::DialogLoadDTI( wxWindow* parent )
   m_btnVector   = XRCCTRL( *this, "ID_BUTTON_VECTOR_FILE", wxButton );
   m_btnFA       = XRCCTRL( *this, "ID_BUTTON_FA_FILE", wxButton );
   m_btnReg      = XRCCTRL( *this, "ID_BUTTON_REG_FILE", wxButton );
-  m_checkNoResample = XRCCTRL( *this, "ID_CHECK_NO_RESAMPLE", wxCheckBox );
+  m_checkResample = XRCCTRL( *this, "ID_CHECK_RESAMPLE", wxCheckBox );
   m_checkReg    = XRCCTRL( *this, "ID_CHECK_REG", wxCheckBox );
   m_textVector->SetFocus();
   m_btnReg->Enable( false );
@@ -161,14 +161,14 @@ void DialogLoadDTI::OnButtonReg( wxCommandEvent& event )
 
 bool DialogLoadDTI::IsToResample()
 {
-  return !m_checkNoResample->IsChecked();
+  return m_checkResample->IsChecked();
 }
 
 
 void DialogLoadDTI::Initialize( bool bResample, bool bEnableCheckBox )
 {
-  m_checkNoResample->SetValue( !bResample );
-  m_checkNoResample->Enable( bEnableCheckBox );
+  m_checkResample->SetValue( bResample );
+  m_checkResample->Enable( bEnableCheckBox );
 }
 
 void DialogLoadDTI::SetRecentFiles( const wxArrayString& list )

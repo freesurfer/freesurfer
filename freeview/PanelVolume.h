@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:38 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/04/16 21:25:52 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -105,6 +105,7 @@ private:
   void OnTextFrameChanged             ( wxCommandEvent& event );
   void OnCheckDisplayVector           ( wxCommandEvent& event );
   void OnChoiceVectorInversion        ( wxCommandEvent& event );
+  void OnChoiceVectorRepresentation   ( wxCommandEvent& event );
 
   void OnTextGrayScaleMin       ( wxCommandEvent& event );
   void OnTextGrayScaleMax       ( wxCommandEvent& event );
@@ -169,6 +170,7 @@ private:
   wxSlider*       m_sliderFrame;
   wxCheckBox*     m_checkDisplayVector;
   wxChoice*       m_choiceVectorInversion;
+  wxChoice*       m_choiceVectorRepresentation;
 
   wxCheckBox*     m_checkContour;
   wxSlider*       m_sliderContourMin;
@@ -182,7 +184,7 @@ private:
   std::vector<wxWindow*> m_widgetlistLUT;
   std::vector<wxWindow*> m_widgetlistDirectionCode;
   std::vector<wxWindow*> m_widgetlistFrame;
-  std::vector<wxWindow*> m_widgetlistVectorInversion;
+  std::vector<wxWindow*> m_widgetlistVector;
   std::vector<wxWindow*> m_widgetlistContour;
   std::vector<wxWindow*> m_widgetlistNormalDisplay;
   std::vector<wxWindow*> m_widgetlistEditable;

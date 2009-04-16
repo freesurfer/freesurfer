@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/13 21:31:32 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/04/16 21:25:51 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -80,11 +80,8 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     
     m_vectorActor2D[i] = vtkActor::New();
     m_vectorActor3D[i] = vtkActor::New();
-    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInput( polydata );
-    mapper2->SetInput( polydata );
     m_vectorActor2D[i]->SetMapper( mapper );
     m_vectorActor3D[i]->SetMapper( mapper2 );
     m_vectorActor2D[i]->GetProperty()->SetInterpolationToFlat();
@@ -838,8 +835,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
   for ( int i = 0; i < 3; i++ )
     n[i] = (int)( ( pos[i] - orig[i] ) / voxel_size[i] + 0.5 );
 
-  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->GetInput();
-//  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+//  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->GetInput();
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
   vtkSmartPointer<vtkUnsignedCharArray> scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
@@ -852,19 +849,29 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
        n[2] < 0 || n[2] >= dim[2] )
   {
     vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->SetInput( polydata );
+    vtkPolyDataMapper::SafeDownCast( m_vectorActor3D[nPlane]->GetMapper() )->SetInput( polydata );
     return;
   }
   
   int nCnt = 0;
   double scale = min( min( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 2;
-/*  
-  vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
-  tube->SetInput( polydata );
-  tube->SetNumberOfSides( 4 );
-  tube->SetRadius( scale / 5 );
-  tube->CappingOn();
-  vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->SetInput( polydata );
-*/  
+  
+  if ( GetProperties()->GetVectorRepresentation() == LayerPropertiesMRI::VR_Bar )
+  {
+    vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
+    tube->SetInput( polydata );
+    tube->SetNumberOfSides( 4 );
+    tube->SetRadius( scale * 0.3 );
+    tube->CappingOn();
+    vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
+    vtkPolyDataMapper::SafeDownCast( m_vectorActor3D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
+  }
+  else
+  {
+    vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->SetInput( polydata );
+    vtkPolyDataMapper::SafeDownCast( m_vectorActor3D[nPlane]->GetMapper() )->SetInput( polydata );
+  }
+  
   unsigned char c[4] = { 0, 0, 0, 255 };
   switch ( nPlane )
   {
@@ -878,31 +885,34 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
           v[0] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 0 );
           v[1] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 1 );
           v[2] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 2 );
-          vtkMath::Normalize( v );
-          v[1] = -v[1];         // by default invert Y !!
-          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )
-            v[0] = -v[0];
-          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
-            v[1] = -v[1];
-          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
-            v[2] = -v[2];
-          pt[0] = orig[0] + voxel_size[0] * n[0];
-          pt[1] = orig[1] + voxel_size[1] * i;
-          pt[2] = orig[2] + voxel_size[2] * j;
-          lines->InsertNextCell( 2 );
-          points->InsertNextPoint( pt[0] + scale * v[0], 
-                                   pt[1] + scale * v[1], 
-                                   pt[2] + scale * v[2] );
-          points->InsertNextPoint( pt[0] - scale * v[0], 
-                                   pt[1] - scale * v[1], 
-                                   pt[2] - scale * v[2] );
-          lines->InsertCellPoint( nCnt++ );
-          lines->InsertCellPoint( nCnt++ );
-          c[0] = (int)(fabs( v[0] *255 ) );
-          c[1] = (int)(fabs( v[1] *255 ) );
-          c[2] = (int)(fabs( v[2] *255 ) );
-          scalars->InsertNextTupleValue( c );
-          scalars->InsertNextTupleValue( c );
+          if ( vtkMath::Normalize( v ) != 0 )
+          {
+            v[1] = -v[1];         // by default invert Y !!
+            if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )
+              v[0] = -v[0];
+            else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
+              v[1] = -v[1];
+            else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
+              v[2] = -v[2];
+        
+            pt[0] = orig[0] + voxel_size[0] * n[0];
+            pt[1] = orig[1] + voxel_size[1] * i;
+            pt[2] = orig[2] + voxel_size[2] * j;
+            lines->InsertNextCell( 2 );
+            points->InsertNextPoint( pt[0] + scale * v[0], 
+                                    pt[1] + scale * v[1], 
+                                    pt[2] + scale * v[2] );
+            points->InsertNextPoint( pt[0] - scale * v[0], 
+                                    pt[1] - scale * v[1], 
+                                    pt[2] - scale * v[2] );
+            lines->InsertCellPoint( nCnt++ );
+            lines->InsertCellPoint( nCnt++ );
+            c[0] = (int)(fabs( v[0] *255 ) );
+            c[1] = (int)(fabs( v[1] *255 ) );
+            c[2] = (int)(fabs( v[2] *255 ) );
+            scalars->InsertNextTupleValue( c );
+            scalars->InsertNextTupleValue( c );
+          }
         }
       }
       break;
@@ -916,31 +926,34 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
           v[0] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 0 );
           v[1] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 1 );
           v[2] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 2 );
-          vtkMath::Normalize( v );
-          v[1] = -v[1];         // by default invert Y !!
-          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
-            v[0] = -v[0];
-          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
-            v[1] = -v[1];
-          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
-            v[2] = -v[2];
-          pt[0] = orig[0] + voxel_size[0] * i;
-          pt[1] = orig[1] + voxel_size[1] * n[1];
-          pt[2] = orig[2] + voxel_size[2] * j;
-          lines->InsertNextCell( 2 );
-          points->InsertNextPoint( pt[0] + scale * v[0], 
-                                   pt[1] + scale * v[1], 
-                                   pt[2] + scale * v[2] );
-          points->InsertNextPoint( pt[0] - scale * v[0], 
-                                   pt[1] - scale * v[1], 
-                                   pt[2] - scale * v[2] );
-          lines->InsertCellPoint( nCnt++ );
-          lines->InsertCellPoint( nCnt++ );
-          c[0] = (int)(fabs( v[0] *255 ) );
-          c[1] = (int)(fabs( v[1] *255 ) );
-          c[2] = (int)(fabs( v[2] *255 ) );
-          scalars->InsertNextTupleValue( c );
-          scalars->InsertNextTupleValue( c );
+          if ( vtkMath::Normalize( v ) != 0 )
+          {
+            v[1] = -v[1];         // by default invert Y !!
+            if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
+              v[0] = -v[0];
+            else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
+              v[1] = -v[1];
+            else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
+              v[2] = -v[2];
+            
+            pt[0] = orig[0] + voxel_size[0] * i;
+            pt[1] = orig[1] + voxel_size[1] * n[1];
+            pt[2] = orig[2] + voxel_size[2] * j;
+            lines->InsertNextCell( 2 );
+            points->InsertNextPoint( pt[0] + scale * v[0], 
+                                    pt[1] + scale * v[1], 
+                                    pt[2] + scale * v[2] );
+            points->InsertNextPoint( pt[0] - scale * v[0], 
+                                    pt[1] - scale * v[1], 
+                                    pt[2] - scale * v[2] );
+            lines->InsertCellPoint( nCnt++ );
+            lines->InsertCellPoint( nCnt++ );
+            c[0] = (int)(fabs( v[0] *255 ) );
+            c[1] = (int)(fabs( v[1] *255 ) );
+            c[2] = (int)(fabs( v[2] *255 ) );
+            scalars->InsertNextTupleValue( c );
+            scalars->InsertNextTupleValue( c );
+          }
         }
       }
       break;
@@ -954,31 +967,34 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata )
           v[0] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 0 );
           v[1] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 1 );
           v[2] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 2 );
-          vtkMath::Normalize( v );
-          v[1] = -v[1];         // by default invert Y !!
-          if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
-            v[0] = -v[0];
-          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
-            v[1] = -v[1];
-          else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
-            v[2] = -v[2];
-          pt[0] = orig[0] + voxel_size[0] * i;
-          pt[1] = orig[1] + voxel_size[1] * j;
-          pt[2] = orig[2] + voxel_size[2] * n[2];
-          lines->InsertNextCell( 2 );
-          points->InsertNextPoint( pt[0] + scale * v[0], 
-                                   pt[1] + scale * v[1], 
-                                   pt[2] + scale * v[2] );
-          points->InsertNextPoint( pt[0] - scale * v[0], 
-                                   pt[1] - scale * v[1], 
-                                   pt[2] - scale * v[2] );
-          lines->InsertCellPoint( nCnt++ );
-          lines->InsertCellPoint( nCnt++ );
-          c[0] = (int)(fabs( v[0] *255 ) );
-          c[1] = (int)(fabs( v[1] *255 ) );
-          c[2] = (int)(fabs( v[2] *255 ) );
-          scalars->InsertNextTupleValue( c );
-          scalars->InsertNextTupleValue( c );
+          if ( vtkMath::Normalize( v ) != 0 )
+          {
+            v[1] = -v[1];         // by default invert Y !!
+            if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_X )   
+              v[0] = -v[0];
+            else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Y )
+              v[1] = -v[1];
+            else if ( GetProperties()->GetVectorInversion() == LayerPropertiesMRI::VI_Z )
+              v[2] = -v[2];
+            
+            pt[0] = orig[0] + voxel_size[0] * i;
+            pt[1] = orig[1] + voxel_size[1] * j;
+            pt[2] = orig[2] + voxel_size[2] * n[2];
+            lines->InsertNextCell( 2 );
+            points->InsertNextPoint( pt[0] + scale * v[0], 
+                                    pt[1] + scale * v[1], 
+                                    pt[2] + scale * v[2] );
+            points->InsertNextPoint( pt[0] - scale * v[0], 
+                                    pt[1] - scale * v[1], 
+                                    pt[2] - scale * v[2] );
+            lines->InsertCellPoint( nCnt++ );
+            lines->InsertCellPoint( nCnt++ );
+            c[0] = (int)(fabs( v[0] *255 ) );
+            c[1] = (int)(fabs( v[1] *255 ) );
+            c[2] = (int)(fabs( v[2] *255 ) );
+            scalars->InsertNextTupleValue( c );
+            scalars->InsertNextTupleValue( c );
+          }
         }
       }
       break;

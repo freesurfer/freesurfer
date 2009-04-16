@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:03:31 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/04/16 21:25:52 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -48,6 +48,7 @@
 #include <vtkScalarBarActor.h>
 #include <vtkScalarBarWidget.h>
 #include <vtkLookupTable.h>
+#include <vtkLightKit.h>
 #include "MyUtils.h"
 
 
@@ -173,6 +174,13 @@ void RenderView::InitializeRenderView()
   barWidget->SetInteractor( this );
 
   UseCaptureMouseOn();
+  
+  // light kit
+  vtkSmartPointer<vtkLightKit> lights = vtkSmartPointer<vtkLightKit>::New();
+  lights->AddLightsToRenderer( m_renderer );
+//  lights->SetKeyLightIntensity( lights->GetKeyLightIntensity() * 1.1 );
+  lights->SetKeyLightAngle( 35, 10 );
+  lights->SetKeyLightWarmth( 0.5 );
 }
 
 RenderView* RenderView::New()

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.7 $
+ *    $Author: rpwang $
+ *    $Date: 2009/04/16 21:25:51 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,7 +57,7 @@ protected:
 
   wxButton*  m_btnOpen;
   wxComboBox*  m_comboFileName;
-  wxCheckBox*  m_checkNoResample;
+  wxCheckBox*  m_checkResample;
   wxCheckBox*  m_checkApplyReg;
   wxTextCtrl*  m_textRegFile;
   wxButton*  m_btnRegFile;

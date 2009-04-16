@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:38 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/04/16 21:25:52 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -333,7 +333,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   {
     string_array strgs = *entries[i];
 
-    if ( !IsValid( strgs[0].c_str(), &e ) && !IsValid( strgs[0].c_str() + 1, &e ) )
+    if ( !IsValid( strgs[0].c_str(), &e ) ) // && !IsValid( strgs[0].c_str() + 1, &e ) )
     {
       bSucceed = false;
       error_msg += "Option '" + strgs[0] + "' not recognized.";

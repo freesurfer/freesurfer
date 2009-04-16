@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:03:30 $
- *    $Revision: 1.47 $
+ *    $Date: 2009/04/16 21:25:52 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -226,7 +226,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 // m_bLoading = false;
 // m_bSaving = false;
   m_bProcessing = false;
-  m_bResampleToRAS = true;
+  m_bResampleToRAS = false;
   m_bToUpdateToolbars = false;
   m_layerVolumeRef = NULL;
   m_nPrevActiveViewId = -1;
@@ -2356,9 +2356,9 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
       return;
     }
   }
-  bool bResample = true;
-  if ( sa[ sa.GetCount()-1 ] == _("nr") )
-    bResample = false;
+  bool bResample = false;
+  if ( sa[ sa.GetCount()-1 ] == _("r") )
+    bResample = true;
 
   if ( scales.size() > 0 || colormap != _("grayscale") )
   {
@@ -2503,9 +2503,9 @@ void MainWindow::ContinueScripts()
 
 void MainWindow::CommandLoadDTI( const wxArrayString& sa )
 {
-  bool bResample = true;
-  if ( sa.GetCount() > 3 && sa[3] == _("nr") )
-    bResample = false;
+  bool bResample = false;
+  if ( sa.GetCount() > 3 && sa[3] == _("r") )
+    bResample = true;
   if ( sa.GetCount() > 2 )
   {
     wxArrayString sa_vol = MyUtils::SplitString( sa[1], _(":") );
