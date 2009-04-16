@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -50,7 +51,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
 //   cout << "  Regression::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
 
   // constants
-  int MAXIT = 100;
+  int MAXIT = 20;
   //double EPS = 2e-16;
   double EPS = 2e-12;
   
@@ -115,14 +116,14 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
     if (wAi != NULL) MatrixFree(&wAi);
     wAi = MatrixSVDPseudoInverse(wA,NULL);
     
-   if (wAi == NULL)
-  {
-     cerr << "    Regression::getRobustEstW  could not compute pseudo inverse!" << endl;
-     //cerr << " wa: " << endl ;
-      //   MatrixPrintFmt(stdout,"% 2.8f",wAi);
+    if (wAi == NULL)
+    {
+       cerr << "    Regression::getRobustEstW  could not compute pseudo inverse!" << endl;
+       //cerr << " wa: " << endl ;
+       //   MatrixPrintFmt(stdout,"% 2.8f",wAi);
 	//cerr << endl;
-     assert(wAi != NULL);
-  }
+       assert(wAi != NULL);
+    }
    //cout << " got inverse" << endl;
    // MatrixPrintFmt(stdout,"% 2.8f",wAi);
    // cout << endl;
@@ -276,6 +277,34 @@ MATRIX* getTukeyBiweight(MATRIX* r, double sat, MATRIX* w)
 	return w;
 }
 
+double Regression::getTukeyPartialSat(MATRIX* r, double sat)
+// computes sum of partial derivatives d_rho/d_sat(r_i)
+{
+
+   assert(r->cols ==1 );
+
+   double sum = 0;
+   double rt2;
+   double rt4;
+   double sat3 = sat *sat*sat;
+   double sat5 = sat3 *sat*sat;
+   int rr;
+   for (rr = 1;rr<=r->rows;rr++)
+   {
+      if (fabs(r->rptr[rr][1]) > sat)
+      {
+         sum += sat;
+      }
+      else
+      {
+         rt2 = r->rptr[rr][1] * r->rptr[rr][1];
+	 rt4 = rt2 *rt2;
+	 sum += 3.0 * rt4/sat3 - 2.0 * rt4 *rt2 / sat5;
+      }
+   }
+   
+   return sum;
+}
 
 MATRIX * Regression::getSqrtTukeyDiaWeights(MATRIX * r, double sat, MATRIX * w)
 // computes sqrt(weights) for a reweighted least squares approach 
@@ -307,7 +336,7 @@ MATRIX * Regression::getSqrtTukeyDiaWeights(MATRIX * r, double sat, MATRIX * w)
 			t1 = r->rptr[rr][cc]/sat;
 			t2 = 1.0 - t1 *t1;
 			//w->rptr[count][1] = t2 * t2;
-			w->rptr[count][1] = t2 ;
+			w->rptr[count][1] = t2 ; // returning sqrt
 		}
 		count++;
 	}
@@ -464,5 +493,37 @@ double Regression::getSigmaMAD(MATRIX *r, double d)
   double mm = VectorMedian(s);
   MatrixFree(&s);
   return d * mm;
+
+}
+
+
+void Regression::plotPartialSat(const std::string& fname)
+// fname is the filename without ending
+{
+
+   // residual is B (as b-Ap = b since p = 0 initially)
+   
+   // plot diffs
+   string nbase = fname;
+    int rf = nbase.rfind("/");
+	if (rf != -1)
+	{
+            nbase = nbase.substr(rf+1,nbase.length());
+	}
+   string fn = fname+".plot";
+   ofstream ofile(fn.c_str(),ios::out);
+   bool png = false;
+   if (png) ofile << "set terminal png medium size 800,600" << endl;
+   else ofile << "set terminal postscript eps color" << endl;
+   if (png) ofile << "set output \""<< nbase <<".png\"" << endl;
+   else ofile << "set output \""<< nbase <<".eps\"" << endl;
+   ofile << "plot ";
+   ofile << " \"-\" notitle with lines 1" << endl;
+   for (int j = 1;j<=30; j++)
+   {
+      ofile << j << " " << getTukeyPartialSat(B, j) << endl;
+   }
+   ofile << "e" << endl;
+   ofile.close();
 
 }

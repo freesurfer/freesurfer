@@ -21,6 +21,7 @@ extern "C" {
 #define SAT 4.685  // this is suggested for gaussian noise
 
 #include <utility>
+#include <string>
 class Regression 
 {
   public:
@@ -40,6 +41,8 @@ class Regression
      double getLastError() {return lasterror;};
      double getLastWeightPercent() {return lastweight;};
      double getLastZeroWeightPercent() {return lastzero;};
+     
+     void plotPartialSat(const std::string& fname);
 
   protected:
   
@@ -50,6 +53,7 @@ class Regression
 
      MATRIX* getSqrtTukeyDiaWeights(MATRIX * r, double sat =  SAT, MATRIX * w = NULL);
      MATRIX* getTukeyBiweight(MATRIX* r, double sat =  SAT, MATRIX* w = NULL);
+     double  getTukeyPartialSat(MATRIX* r, double sat =  SAT);
      
   private:
      MATRIX* A;
