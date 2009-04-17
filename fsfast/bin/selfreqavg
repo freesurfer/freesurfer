@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/11/28 00:01:02 $
-#    $Revision: 1.10.2.2 $
+#    $Date: 2009/04/17 18:43:59 $
+#    $Revision: 1.10.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg,v 1.10.2.2 2007/11/28 00:01:02 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.10.2.3 2009/04/17 18:43:59 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -514,6 +514,11 @@ while( $#argv != 0 )
 
     # Ignore
     case "-noautostimdur":
+    case "-autostimdur":
+    case "-no-fsv3-st2fir":
+    case "-no-fsv3-whiten":
+    case "-fix-acf":
+    case "-no-fix-acf":
       breaksw
 
     # Ignore
