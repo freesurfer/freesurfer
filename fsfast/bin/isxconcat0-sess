@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/01/26 19:19:32 $
-#    $Revision: 1.13 $
+#    $Date: 2009/04/17 21:11:34 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.13 2009/01/26 19:19:32 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.14 2009/04/17 21:11:34 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -44,6 +44,7 @@ set ToSurf = 0;
 set DoLogFile = 0;
 set DoSplit = 0;
 set fsgd = ();
+set regfile = register.dat
 
 # for volume-based only
 set talres = 2;
@@ -133,7 +134,7 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set reg = $sess/$fsd/register.dat
+  set reg = $sess/$fsd/$regfile
   if(! -e $reg) then
     echo "ERROR: cannot find $reg"|& tee -a $LF
     exit 1;
@@ -290,6 +291,11 @@ while( $#argv != 0 )
     case "-fsd":
       if ( $#argv == 0) goto arg1err;
       set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
       breaksw
 
     case "-c":
@@ -544,6 +550,7 @@ usage_exit:
   echo "   -paired-sum     : compute avg 1+2, 3+4, etc"
   echo "   -mean           : mean over all frames"
   echo "   -split          : split multivariate inputs"
+  echo "   -reg regfile    : default is register.dat"
   echo ""
   echo "  Volume-based options:"
   echo "   -talres res     : 1 or 2 mm (def is 2)"

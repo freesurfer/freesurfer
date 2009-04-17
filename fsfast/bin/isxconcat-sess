@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/01/26 19:46:58 $
-#    $Revision: 1.35 $
+#    $Date: 2009/04/17 21:11:34 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.35 2009/01/26 19:46:58 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.36 2009/04/17 21:11:34 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -155,7 +155,7 @@ foreach hemi ($hemilist)
 
   # Concat the masks
   set masksvol = $outdir/$hemi.masks.$FSF_OUTPUT_FORMAT
-  set cmd = (isxconcat0-sess)
+  set cmd = (isxconcat0-sess -reg $regfile)
   if($#flac == 0) set cmd = ($cmd -a $analysis)
   if($#flac)      set cmd = ($cmd -flac $flac)
   set cmd = ($cmd -m mask -o $masksvol -interp nearest -fsd $fsd)
@@ -206,7 +206,7 @@ foreach hemi ($hemilist)
     foreach mapname ($conmaplist)
 
       set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
-      set cmd = (isxconcat0-sess)
+      set cmd = (isxconcat0-sess -reg $regfile)
       if($#flac == 0) set cmd = ($cmd -a $analysis)
       if($#flac)      set cmd = ($cmd -flac $flac)
       set cmd = ($cmd -m $mapname -o $outvol -interp $interp);
@@ -278,7 +278,7 @@ foreach hemi ($hemilist)
   # Analysis-level maps
   foreach mapname ($anamaplist)
     set outvol = $outdir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
-    set cmd = (isxconcat0-sess)
+    set cmd = (isxconcat0-sess -reg $regfile)
     if($#flac == 0) set cmd = ($cmd -a $analysis)
     if($#flac)      set cmd = ($cmd -flac $flac)
     set cmd = ($cmd -m $mapname -o $outvol -interp $interp -fsd $fsd)
