@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/09/03 21:33:09 $
- *    $Revision: 1.27.2.7 $
+ *    $Date: 2009/04/17 18:27:30 $
+ *    $Revision: 1.27.2.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.27.2.7 2008/09/03 21:33:09 greve Exp $";
+"$Id: mri_aparc2aseg.c,v 1.27.2.8 2009/04/17 18:27:30 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -85,7 +85,7 @@ static char *OutAParcFile = NULL;
 static char *OutDistFile = NULL;
 static int debug = 0;
 static int UseRibbon = 0;
-static int UseNewRibbon = 0;
+static int UseNewRibbon = 1;
 static MRI *ASeg, *filled, *mritmp;
 static MRI *AParc;
 static MRI *Dist;
@@ -644,10 +644,11 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcasecmp(option, "--ribbon"))  UseRibbon = 1;
+    // This was --ribbon, but changed to --old-ribbon 4/17/08 DNG
+    else if (!strcasecmp(option, "--old-ribbon")) {UseRibbon = 1; UseNewRibbon = 0;}
     else if (!strcasecmp(option, "--volmask") ||
 	     !strcasecmp(option, "--new-ribbon"))  UseNewRibbon = 1;
-    else if (!strcasecmp(option, "--noribbon"))  UseRibbon = 0;
+    else if (!strcasecmp(option, "--noribbon"))  {UseRibbon = 0;UseNewRibbon = 0;}
     else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--fix-parahipwm"))  FixParaHipWM = 1;
     else if (!strcasecmp(option, "--no-fix-parahipwm"))  FixParaHipWM = 0;
@@ -733,7 +734,7 @@ static void print_usage(void) {
   printf("   --s subject \n");
   printf("   --o volfile : output aparc+aseg volume file\n");
   //printf("   --oaparc file : output aparc-only volume file\n");
-  printf("   --ribbon : use mri/hemi.ribbon.mgz as a mask for ctx.\n");
+  printf("   ---new-ribbon : use mri/ribbon.mgz as a mask for ctx (same as --volmask).\n");
   printf("\n");
   printf("   --a2005s : use aparc.a2005s instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
@@ -761,8 +762,8 @@ static void print_help(void) {
     "to the automatic segmentation volume (aseg). The result can be used as\n"
     "the aseg would. The algorithm is to find each aseg voxel labeled as\n"
     "cortex (3 and 42) and assign it the label of the closest cortical vertex.\n"
-    "If the voxel is not in the ribbon (as defined by mri/lh.ribbon and \n"
-    "rh.ribbon), then the voxel is marked as unknown (0). This can be turned\n"
+    "If the voxel is not in the ribbon (as defined by mri/ribbon.mgz, \n"
+    "then the voxel is marked as unknown (0). This can be turned\n"
     "off with --noribbon. The cortical parcellation is obtained from \n"
     "subject/label/hemi.aparc.annot which should be based on the \n"
     "curvature.buckner40.filled.desikan_killiany.gcs atlas \n"
@@ -781,9 +782,9 @@ static void print_help(void) {
     "Full path of file to save the output segmentation in. Default\n"
     "is mri/aparc+aseg.mgz\n"
     "\n"
-    "--ribbon\n"
+    "--new-ribbon\n"
     "\n"
-    "Mask cortical voxels with mri/hemi.ribbon.mgz. \n"
+    "Mask cortical voxels with mri/ribbon.mgz. Same as --volmask.\n"
     "\n"
     "--a2005s\n"
     "\n"
@@ -849,7 +850,7 @@ static void check_options(void) {
     OutASegFile = strcpyalloc(tmpstr);
   }
   if (UseRibbon && UseNewRibbon) {
-    printf("ERROR: cannot --ribbon and --new-ribbon\n");
+    printf("ERROR: cannot --old-ribbon and --new-ribbon\n");
     exit(1);
   }
   if(CtxSegFile && ! RipUnknown){
