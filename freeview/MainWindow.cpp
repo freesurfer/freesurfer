@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/16 21:25:52 $
- *    $Revision: 1.48 $
+ *    $Date: 2009/04/17 18:19:41 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2296,7 +2296,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
   wxString colormap = _("grayscale");
   wxString colormap_scale = _("grayscale");
   wxString lut_name;
-  wxString vector_display = _("no"), vector_inversion = _("none");
+  wxString vector_display = _("no"), vector_inversion = _("none"), vector_render = _("line");
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
@@ -2338,6 +2338,17 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
         {
           cerr << "Missing vector inversion argument." << endl;
           vector_inversion = _("none");
+        }
+      }
+      else if ( strg.Left( n ).Lower() == _("render") )
+      {
+        vector_render = strg.Mid( n + 1 ).Lower();
+        {
+          if ( vector_render.IsEmpty() )
+          {
+            cerr << "Missing vector render argument." << endl;
+            vector_render = _("line");
+          }
         }
       }
       else if ( strg.Left( n ).Lower() == _("reg") )
@@ -2386,6 +2397,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     wxArrayString script;
     script.Add( _("setdisplayvector") );
     script.Add( vector_display );
+    script.Add( vector_render );
     script.Add( vector_inversion );
   
     m_scripts.insert( m_scripts.begin(), script );  
@@ -2444,7 +2456,7 @@ void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
     LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
     if ( mri )
     {
-      if ( mri->GetNumberOfFrames() < 3 )
+      if ( !mri->IsTypeOf( "DTI" ) && mri->GetNumberOfFrames() < 3 )
       {
         cerr << "Volume has less than 3 frames. Can not display as vectors." << endl;
       }
@@ -2452,13 +2464,26 @@ void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
       {
         mri->GetProperties()->SetDisplayVector( true );  
       
-        if ( cmd[2].Lower() != _("none") )
+        if ( cmd[2].Lower() == _("line") )
         {
-          if ( cmd[2].Lower() == _("x") )
+          mri->GetProperties()->SetVectorRepresentation( LayerPropertiesMRI::VR_Line );
+        }
+        else if ( cmd[2].Lower() == _("bar") )
+        {
+          mri->GetProperties()->SetVectorRepresentation( LayerPropertiesMRI::VR_Bar );
+        }
+        else
+        {
+          cerr << "Unrecognized argument '" << cmd[2] << "' for vector rendering." << endl;
+        }
+        
+        if ( cmd[3].Lower() != _("none") )
+        {
+          if ( cmd[3].Lower() == _("x") )
             mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_X );
-          else if ( cmd[2].Lower() == _("y") )
+          else if ( cmd[3].Lower() == _("y") )
             mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_Y );
-          else if ( cmd[2].Lower() == _("z") )
+          else if ( cmd[3].Lower() == _("z") )
             mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_Z );
           else
             cerr << "Unknown inversion flag '" << cmd[2] << "'." << endl;
@@ -2506,18 +2531,69 @@ void MainWindow::CommandLoadDTI( const wxArrayString& sa )
   bool bResample = false;
   if ( sa.GetCount() > 3 && sa[3] == _("r") )
     bResample = true;
+  
   if ( sa.GetCount() > 2 )
   {
     wxArrayString sa_vol = MyUtils::SplitString( sa[1], _(":") );
     wxString fn = sa_vol[0];
     wxString strg, reg_fn;
-    if ( sa_vol.Count() > 1 )
-      strg = sa_vol[1];
-    int n;
-    if ( ( n = strg.Find( _("=") ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == _("reg") )
+    wxString vector_display = _("no"), 
+             vector_inversion = _("none"),
+             vector_render = _("line");
+    
+    for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
     {
-      reg_fn = strg.Mid( n + 1 );
+      wxString strg = sa_vol[i];
+      int n = strg.Find( _("=") );
+      if ( n != wxNOT_FOUND )
+      {  
+        if ( strg.Left( n ).Lower() == _("vector") )
+        {
+          vector_display = strg.Mid( n + 1 ).Lower();
+          if ( vector_display.IsEmpty() )
+          {
+            cerr << "Missing vector display argument." << endl;
+          }
+        }
+        else if ( strg.Left( n ).Lower() == _("inversion") || 
+                  strg.Left( n ).Lower() == _("invert") )
+        {
+          vector_inversion = strg.Mid( n + 1 ).Lower();
+          if ( vector_inversion.IsEmpty() )
+          {
+            cerr << "Missing vector inversion argument." << endl;
+            vector_inversion = _("none");
+          }
+        }
+        else if ( strg.Left( n ).Lower() == _("render") )
+        {
+          vector_render = strg.Mid( n + 1 ).Lower();
+          {
+            if ( vector_render.IsEmpty() )
+            {
+              cerr << "Missing vector render argument." << endl;
+              vector_render = _("line");
+            }
+          }
+        }
+        else if ( strg.Left( n ).Lower() == _("reg") )
+        {
+          reg_fn = strg.Mid( n + 1 );
+        }
+      }
     }
+    
+    if ( !vector_display.IsEmpty() && vector_display != _("no") )
+    {
+      wxArrayString script;
+      script.Add( _("setdisplayvector") );
+      script.Add( vector_display );
+      script.Add( vector_render );
+      script.Add( vector_inversion );
+  
+      m_scripts.insert( m_scripts.begin(), script );  
+    }
+    
     // cout << reg_fn.c_str() << endl;
     this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
   }

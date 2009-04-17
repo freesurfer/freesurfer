@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/16 21:25:52 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/04/17 18:19:41 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -313,7 +313,10 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
     {
       sa = new string_array;
       sa->clear();
-      sa->push_back( argv[i]+1 );
+      if ( string( argv[i] ).length() > 2 && argv[i][1] == '-' )    // long name
+        sa->push_back( argv[i]+2 );
+      else
+        sa->push_back( argv[i]+1 );
       entries.push_back( sa );
     }
     else if ( sa )
