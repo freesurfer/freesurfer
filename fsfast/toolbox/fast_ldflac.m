@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/25 04:16:17 $
-%    $Revision: 1.34 $
+%    $Date: 2009/04/17 20:09:46 $
+%    $Revision: 1.34.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -45,10 +45,10 @@ if(isempty(flac))
   flac.runlistfile = '';
   flac.TR = [];
   flac.mask = '';
-  flac.inorm = [];
+  flac.inorm = 0;
   flac.stimulusdelay = 0;
   flac.whiten = 0;
-  flac.fixacf = 0;
+  flac.fixacf = 1;
   flac.acfsegstem = '';
   flac.format = '';
   flac.formatext = '';
@@ -66,6 +66,10 @@ if(isempty(flac))
   %flac.con = []; % Leave commented for inherit
   flac.inheritlevel = 0;
   flac.acfbins = 0;  
+  % Allows flac TR and data TR to be different (will use flac TR).
+  flac.OverrideTR = 0; 
+  flac.fsv3_st2fir = 0;
+  flac.fsv3_whiten = 0;  
   inherit = 0;
   ana.analysis     = '';
   ana.designtype   = '';
@@ -105,6 +109,9 @@ if(fp == -1)
   return;
 end
 
+% Derive name from flac file without .flac extension.
+flac.name = basename(flacfile,'.flac');
+
 % Get the first line, should look like:
 % FSFAST-FLAC 1
 tline = fgetl(fp);
@@ -137,18 +144,7 @@ while(1)
   %fprintf('key = %s\n',key);
   
   switch(key)
-   case 'flacname',    
-    name  = sscanf(tline,'%*s %s',1);
-    if(~inherit) 
-      flac.name = name; % Dont inherit the name
-    else 
-      if(strcmp(flac.name,name))
-	fprintf('ERROR: flac parent and child have the same name\n');
-	flac = [];
-	return;
-      end
-    end 
-    
+   case 'flacname',    junk             = sscanf(tline,'%*s %s',1);
    case 'fsd',         flac.fsd         = sscanf(tline,'%*s %s',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
    case 'funcstem',    flac.funcstem    = sscanf(tline,'%*s %s',1);
@@ -292,6 +288,7 @@ function flac = load_contrast(fp,flac)
   flac.con(ncon).sumev    = 0;
   flac.con(ncon).sumevreg = 0;
   flac.con(ncon).sumevrw  = [];
+  flac.con(ncon).rmprestim  = 0; % 4/8/09
   
   nthev = 1;
   while(1)

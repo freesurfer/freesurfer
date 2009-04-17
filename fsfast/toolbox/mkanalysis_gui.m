@@ -55,7 +55,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.11.2.1 2007/12/10 18:51:22 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.11.2.2 2009/04/17 20:09:46 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -69,6 +69,7 @@ if(isempty(MkAnalysisName))
 end
 
 set(handles.ebAnalysisName,'string',MkAnalysisName);
+AnaLoaded = '';
 if(isempty(MkAnalysisClone))
   if(exist(MkAnalysisName,'dir'))
     fprintf('Loading %s\n',MkAnalysisName);
@@ -81,6 +82,7 @@ if(isempty(MkAnalysisClone))
     end
     handles.originalflac = handles.flac;
     handles = setstate(handles);
+    AnaLoaded = MkAnalysisName;
   end
 else
   if(exist(MkAnalysisClone,'dir'))
@@ -98,6 +100,26 @@ else
     handles.clone = MkAnalysisClone;
     handles = setstate(handles);
   end
+  AnaLoaded = MkAnalysisClone;
+end
+
+% Determine whether this is from an old GUI so we know whether 
+% to change rescaling target.
+if(~isempty(AnaLoaded))
+  tmpfile = sprintf('%s/fsfast.flac',AnaLoaded);
+  if(~exist(tmpfile,'file'))
+    % fsfast.flac does not exist, could be from an old gui or from a
+    % cmd-line call to mkanalysis-sess
+    if(~isempty(handles.flac.con))
+      if(isfield(handles.flac.ana.con(1).cspec,'CondState'))
+	if(handles.flac.inorm == 100)
+	  fprintf(['This analysis from an old GUI, setting rescale' ...
+		   ' target to 1000\n']);
+	  handles.flac.inorm = 1000;
+	end
+      end
+    end
+  end
 end
 
 if(isempty(handles.flac))
@@ -108,7 +130,7 @@ if(isempty(handles.flac))
   handles.originalflac = [];
   handles = setstate(handles);
 end
-  
+handles.flac.creator = 'GUI-01';
 
 % Fill contrast list box
 ncontrasts = length(handles.flac.ana.con);
@@ -480,7 +502,17 @@ return;
 function pbSave_Callback(hObject, eventdata, handles)
 ok = OKToSave(handles);
 if(~ok) return; end
+if(handles.flac.ana.gammafit | handles.flac.ana.spmhrffit)
+  % These match the default values for mkanalysis-sess cmd line
+  % Added on 4/9/09
+  handles.flac.ana.prestim = 0;
+  TER = handles.flac.TR/20;
+  handles.flac.ana.TER = TER;
+  handles.flac.ana.timewindow = TER*floor(40/TER);
+end
+fprintf('Saving %s ... ',handles.flac.name);
 fast_svana(handles.flac.name,handles.flac);
+fprintf(' done\n');
 handles.originalflac = handles.flac;
 handles.clone = '';
 handles = setstate(handles);
@@ -656,6 +688,10 @@ set(handles.ebFIRPreStim,'string',flac.ana.prestim);
 if(flac.TR > 0 & flac.ana.TER < 0) flac.ana.TER = flac.TR; end
 set(handles.ebFIRTER,'string',flac.ana.TER);
 
+set(handles.cbAutoStimDur,'value',flac.autostimdur);
+set(handles.txParFile,'enable','on');
+set(handles.ebParFile,'enable','on');
+
 if(strcmp(ana.designtype,'event-related') | ...
    strcmp(ana.designtype,'blocked'))
   EnableERBlock = 1;
@@ -664,11 +700,11 @@ if(strcmp(ana.designtype,'event-related') | ...
   set(handles.cbERBlock,'value',1);
   set(handles.txNConditions,'enable','on');
   set(handles.slNConditions,'enable','on');
-  set(handles.txParFile,'enable','on');
-  set(handles.ebParFile,'enable','on');
   set(handles.cbHRFFIR,'enable','on');
   set(handles.cbHRFGamma,'enable','on');
   set(handles.cbHRFSPMHRF,'enable','on');
+  set(handles.lbContrast,'enable','on');  
+  set(handles.cbAutoStimDur,'enable','on');
   % Disable ABBlocked ------------------
   set(handles.cbPeriodicDesign,'value',0);
   set(handles.ebNCycles,'enable','off');
@@ -680,16 +716,17 @@ else
   set(handles.cbERBlock,'value',0);
   set(handles.txNConditions,'enable','off');
   set(handles.slNConditions,'enable','off');
-  set(handles.txParFile,'enable','off');
-  set(handles.ebParFile,'enable','off');
   set(handles.cbHRFFIR,'enable','off');
   set(handles.cbHRFGamma,'enable','off');
   set(handles.cbHRFSPMHRF,'enable','off');
+  set(handles.lbContrast,'enable','off');  
+  set(handles.cbAutoStimDur,'enable','off');
   % Enable ABBlocked ------------------
   set(handles.cbPeriodicDesign,'value',1);
   set(handles.ebNCycles,'enable','on');
   set(handles.txNCycles,'enable','on');
 end
+set(handles.ebNCycles,'string',handles.flac.ana.ncycles);
 
 set(handles.cbHRFFIR,'value',ana.firfit);
 set(handles.cbHRFGamma,'value',ana.gammafit);
@@ -803,11 +840,12 @@ if(ishandle(handles.hrfplot))
 end
 
 handles.saveneeded = SaveNeeded(handles);
+%fprintf('Returned from SaveNeeded = %d\n',handles.saveneeded);
 if(handles.saveneeded)
   set(handles.pbSave,'enable','on');
   set(handles.pbRestore,'enable','on');
 else
-  set(handles.pbSave,'enable','off');
+  %set(handles.pbSave,'enable','off');
   set(handles.pbRestore,'enable','off');
 end
 
@@ -829,12 +867,12 @@ function flac = flacinit
 flac = fast_ldflac;
 flac.fsd = 'bold';
 flac.runlistfile = '';
-flac.inorm = 100;
+flac.inorm = 1000; % Changed from 100 to 1000 4/9/09
 flac.TR = '';
 flac.parfile = '';
 flac.acfbins = 10; % set to 0 to turn off whitening
 flac.stimulusdelay = 0;
-flac.autostimdur = 1;
+flac.autostimdur = 0;
 flac.ana.designtype = 'event-related';
 flac.ana.nconditions = 1;
 flac.ana.PolyOrder = 2;
@@ -1012,10 +1050,10 @@ a = handles.originalflac;
 b = handles.flac;
 
 if(isempty(a)) return; end
-
 if(~strcmp(a.name,b.name)) return; end
 if(~strcmp(a.fsd,b.fsd)) return; end
 if(~strcmp(a.runlistfile,b.runlistfile)) return; end
+if(~strcmp(a.funcstem,b.funcstem)) return; end
 if(a.inorm ~= b.inorm) return; end
 if(a.TR ~= b.TR) return; end
 if(~strcmp(a.ana.extreg,b.ana.extreg)) return; end
@@ -1034,6 +1072,7 @@ end
 % Only gets here if event-related or blocked
 
 if(~strcmp(a.parfile,b.parfile)) return; end
+if(a.autostimdur ~= b.autostimdur) return; end
 if(a.ana.nconditions ~= b.ana.nconditions) return; end
 if(a.ana.firfit ~= b.ana.firfit) return; end
 if(a.ana.firfit)
@@ -1063,7 +1102,6 @@ for nth = 1:ncontrasts
   if(size(Ca,2) ~= size(Cb,2)) return; end
   if(Ca ~= Cb) return; end
 end
-
 needed = 0;
 
 return;
@@ -1239,5 +1277,16 @@ fprintf('WBD\n');
 return;
 
 
+% --- Executes on button press in cbAutoStimDur.
+function cbAutoStimDur_Callback(hObject, eventdata, handles)
+% hObject    handle to cbAutoStimDur (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of cbAutoStimDur
+newval = get(handles.cbAutoStimDur,'value');
+handles.flac.autostimdur = newval;
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
 
 

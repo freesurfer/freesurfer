@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/08/15 16:29:14 $
-%    $Revision: 1.11.2.3 $
+%    $Date: 2009/04/17 20:09:46 $
+%    $Revision: 1.11.2.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,7 @@ for nthev = 1:nev
     st = ev.st; % Delay has already been added
     if(~isfield(ev,'Xfir')) ev.Xfir = []; end
     if(~IRFOnly | isempty(ev.Xfir))
-      flacnew.ev(nthev).Xfir = fast_st2fir(st,flac.ntp,flac.TR,ev.psdwin,1);
+      flacnew.ev(nthev).Xfir = fast_st2fir(st,flac.ntp,flac.TR,ev.psdwin,1,flac.fsv3_st2fir);
       if(isempty(flacnew.ev(nthev).Xfir)) 
 	fprintf('ERROR: creating FIR design matrix for %s\n',...
 		flacnew.ev(nthev).name);

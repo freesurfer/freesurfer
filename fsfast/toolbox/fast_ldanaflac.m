@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/09 02:22:48 $
-%    $Revision: 1.25.2.5 $
+%    $Date: 2009/04/17 20:09:46 $
+%    $Revision: 1.25.2.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -37,8 +37,9 @@ flac.name = basename(anadir);
 flac.AllowMissingCond = 1;
 flac.autostimdur = [];
 flac.acfbins = [];  
-flac.fixacf = 0; % Default in mkanalysis is to fix
-
+% Default in mkanalysis is to fix
+flac.fixacf = 1; 
+  
 flac.mask = '';
 flac.con = [];
 % format is handled diff than in fast_ldflac.m
@@ -74,6 +75,7 @@ while(1)
   switch(key)
    case 'analysis',    analysis         = sscanf(tline,'%*s %s',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
+   case 'OverrideTR',  flac.OverrideTR  = sscanf(tline,'%*s %d',1);
    case 'fsd',         flac.fsd         = sscanf(tline,'%*s %s',1);
    case 'funcstem',    flac.funcstem    = sscanf(tline,'%*s %s',1);
    case 'maskstem',    flac.mask        = sscanf(tline,'%*s %s',1);
@@ -97,7 +99,7 @@ fclose(fp);
 %----------- Read in the analysis.cfg -------------------
 TER = flac.TR;
 PolyOrder = 0;
-extreg = [];
+extreg = '';
 nextreg = 0;
 nskip = 0;
 ncycles = [];
@@ -157,13 +159,16 @@ while(1)
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
    case '-fix-acf',    flac.fixacf = 1; 
    case '-no-fix-acf', flac.fixacf = 0;
+   case '-fsv3-st2fir',    flac.fsv3_st2fir = 1;
+   case '-no-fsv3-st2fir', flac.fsv3_st2fir = 0;
+   case '-fsv3-whiten',     flac.fsv3_whiten = 1;
+   case '-no-fsv3-whiten',  flac.fsv3_whiten = 0;
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
   nthline = nthline + 1;
 end % while (1)
 fclose(fp);
-
 
 if(isempty(flac.funcstem)) 
   fprintf('ERROR: no funcstem specified in %s\n',flacfile);
@@ -190,7 +195,6 @@ ana.designtype   = designtype;
 ana.PolyOrder    = PolyOrder;
 ana.extreg       = extreg;
 ana.nextreg      = nextreg;
-
 ana.ncycles      = ncycles ;
 ana.nconditions  = nconditions;
 if(~isempty(ConditionNames))
@@ -278,6 +282,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [1 1 1 1];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.ana.con = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'fund';
@@ -288,6 +295,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [1 1 0 0];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'fund-sin';
@@ -298,6 +308,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [1 0 0 0];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'fund-cos';
@@ -308,6 +321,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [0 1 0 0];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
   flac.con(nthcon).name     = 'harm';
@@ -318,6 +334,9 @@ if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
   flac.con(nthcon).ev(1).evrw = [0 0 1 1];
+  flac.con(nthcon).rmprestim = 0;
+  flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.ana.con(nthcon) = flac.con(nthcon);
   
   ncontrasts = length(flac.con);
 end
@@ -351,6 +370,24 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     fprintf('%2d %s\n',nthcon,clist(nthcon).name);
     tmpstr = sprintf('%s/%s',anadir,clist(nthcon).name);
     cspec = load(tmpstr);
+    bug = fast_gui_bug(cspec);
+    if(bug)
+      fprintf('\n\n');
+      fprintf('ERROR: detected the FS-FAST GUI Bug in ');
+      fprintf('contrast %s\n', clist(nthcon).name);
+      fprintf('Please see https://surfer.nmr.mgh.harvard.edu/fswiki/FsFastGuiBug\n');
+      fprintf('\n\n');
+      ProcAnyway = getenv('FSF_PROC_GUI_BUG');
+      if(isempty(ProcAnyway)) ProcAnyway = '0'; end
+      ProcAnyway = sscanf(ProcAnyway,'%d');
+      if(ProcAnyway ~= 1)
+	fprintf('FSF_PROC_GUI_BUG not set to 1, so exiting\n');
+	flac = [];
+	return;
+      end
+      fprintf(' ... but FSF_PROC_GUI_BUG is set to 1, so continuing\n');
+      fprintf('\n\n');
+    end
     if(~isfield(cspec,'setwcond')) cspec.setwcond = 1; end
     if(~isfield(cspec,'sumconds')) cspec.sumconds = 1; end
     if(~isfield(cspec,'sumdelays')) cspec.sumdelays = 0; end
@@ -363,13 +400,19 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     if(~isfield(cspec,'CondState'))
       cspec.CondState = zeros(1,nconditions);
     end
+    % This assures that weights are either +1, -1, or 0 when the
+    % conditions are not summed. 4/9/09
+    if(cspec.sumconds == 0) cspec.WCond = sign(cspec.WCond); end
     flac.ana.con(nthcon).cspec = cspec;
     flac.con(nthcon).name     = clist(nthcon).name(1:end-4);
     flac.con(nthcon).varsm    = 0;
     flac.con(nthcon).sumev    = cspec.sumconds;
     flac.con(nthcon).sumevreg = cspec.sumdelays;
     flac.con(nthcon).sumevrw  = [];
+    flac.con(nthcon).rmprestim = cspec.RmPreStim; % 4/8/09
+    flac.con(nthcon).ContrastMtx_0 = cspec.ContrastMtx_0; % 4/3/09
     con_nthev = 0;
+    % Actual contrast matrix is computed below
     for nthcondition = 1:cspec.NCond
       if(cspec.WCond(nthcondition)==0) continue; end
       con_nthev = con_nthev + 1;
@@ -380,7 +423,7 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   end
 end
 
-if(ncontrasts == 0)
+if(0 & ncontrasts == 0)
   % No contrasts specified, so use omnibus and allvres
   if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     nthcon = 1;
@@ -389,6 +432,7 @@ if(ncontrasts == 0)
     flac.con(nthcon).sumevreg = 0;
     flac.con(nthcon).evrw     = [];
     flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).rmprestim = 0;
     for n=1:nconditions
       flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
       flac.con(nthcon).ev(n).evw  = 1;
@@ -400,6 +444,7 @@ if(ncontrasts == 0)
     flac.con(nthcon).sumevreg = 1;
     flac.con(nthcon).evrw     = [];
     flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).rmprestim = 0;
     for n=1:nconditions
       flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
       flac.con(nthcon).ev(n).evw  = 1;

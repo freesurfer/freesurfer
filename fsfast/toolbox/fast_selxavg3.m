@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.55.2.7 2009/03/30 19:15:00 greve Exp $
+% $Id: fast_selxavg3.m,v 1.55.2.8 2009/04/17 20:09:46 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/03/30 19:15:00 $
-%    $Revision: 1.55.2.7 $
+%    $Date: 2009/04/17 20:09:46 $
+%    $Revision: 1.55.2.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,8 +60,8 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.55.2.7 2009/03/30 19:15:00 greve Exp $\n');
-
+fprintf('$Id: fast_selxavg3.m,v 1.55.2.8 2009/04/17 20:09:46 greve Exp $\n');
+dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
   fprintf('SynthSeed     = %10d\n',SynthSeed);
@@ -90,7 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.55.2.7 2009/03/30 19:15:00 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.55.2.8 2009/04/17 20:09:46 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -369,7 +369,7 @@ if(DoGLMFit)
 
     clear yrun;
     %pack; % not good with matlab 7.4
-  end
+  end % loop over run
   
   % Compute baseline
   betamn0 = mean(betamat0(ind0,:),1);
@@ -395,7 +395,8 @@ if(DoGLMFit)
   tic;
   rsse = 0;
   rho1 = mri; 
-  rho2 = mri; % not really rho2
+  rho2 = mri; % not really rho2e
+  ErrCovMtx = 0;
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = flac0;
@@ -459,11 +460,38 @@ if(DoGLMFit)
       rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
       MRIwrite(rrunmri,fname);
     end
+
+    if(flac.fsv3_whiten)
+      % Compute Err Cov Mtx from unwhitened residuals
+      fprintf('Computing ErrCovMtx\n');
+      ErrCovMtxRun = rrun(:,indmask)*rrun(:,indmask)';
+      if(nthrun == 1) 
+	ErrCovMtx = ErrCovMtxRun;
+      else
+	% This should fix case where all runs dont have 
+	% same number of time points by making the 
+	% final matrix the size of the min # of tps
+	nErrCovMtx = size(ErrCovMtx,1);
+	if(flac.ntp < nErrCovMtx)
+	  ErrCovMtx = ErrCovMtx(1:flac.ntp,1:flac.ntp);
+	end
+	if(flac.ntp > nErrCovMtx)
+	  ErrCovMtxRun = ErrCovMtxRun(1:nErrCovMtx,1:nErrCovMtx);
+	end
+	ErrCovMtx = ErrCovMtx + ErrCovMtxRun;
+      end
+    end
+    
     clear yrun rrun;
     %pack;
-  end
+  end % loop over run
   % Residual variance
   rvarmat0 = rsse/DOF;
+  
+  if(flac.fsv3_whiten)
+    [fsv3W fsv3AutoCor] = fast_ecvm2wmtx(ErrCovMtx);
+    fsv3AutoCor(end:ntptot) = 0; % pad
+  end
   
   rho1mn = mri;
   rho1mn.vol = mean(rho1.vol,4);
@@ -559,21 +587,31 @@ if(DoGLMFit)
 	      round(255*rand),round(255*rand),round(255*rand),...
 	      nrho1segmn(nthseg));
       %nrho1segmn(nthseg) = 0; % No whitening
-      acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
+      if(~flac.fsv3_whiten)
+	acfsegmn(:,nthseg) = nrho1segmn(nthseg).^(nn-1);
+      else
+	acfsegmn(:,nthseg) = fsv3AutoCor;
+      end
+      
       fprintf('  seg  %2d  %5d  nrho1 = %5.3f (t=%4.1f)\n',....
 	      nthseg,nsegvox,nrho1segmn(nthseg),toc);
       for nthrun = nthrunlist
 	indrun = find(tpindrun == nthrun);
 	nnrun = 1:runflac(nthrun).flac.ntp;
-	acfsegrun = nrho1segmn(nthseg).^(nnrun-1);
+	% Have to compute acf separately for each run in case ntp changes
+	if(~flac.fsv3_whiten)
+	  acfsegrun = nrho1segmn(nthseg).^(nnrun-1);
+	else
+	  acfsegrun = fsv3AutoCor(1:runflac(nthrun).flac.ntp);
+	end
 	Srun = toeplitz(acfsegrun);
 	Sruninv = inv(Srun);
 	Wrun = inv(chol(Srun)');
 	S(indrun,indrun,nthseg) = Srun;
 	Sinv(indrun,indrun,nthseg) = Sruninv;
 	W(indrun,indrun,nthseg) = Wrun;
-      end
-    end
+      end % run
+    end % if acfbins > 1
     fclose(fp);
 
     % First pass thru the data to compute beta
@@ -610,11 +648,11 @@ if(DoGLMFit)
 	yrun = ynoise + ysignal;
       end
       yrun = RescaleFactor*yrun;  
-      for nthseg = 0:  flac0.acfbins
+      for nthseg = 0:flac0.acfbins
 	%fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
 	indseg = find(acfseg.vol==nthseg);
 	if(nthseg == 0)  B = B0;
-	else      B = inv(X'*Sinv(:,:,nthseg)*X)*X'*Sinv(:,:,nthseg);
+	else   B = inv(X'*Sinv(:,:,nthseg)*X)*X'*Sinv(:,:,nthseg);
 	end
 	Brun = B(:,indrun);
 	betamat(:,indseg) = betamat(:,indseg) + Brun*yrun(:,indseg);
@@ -665,7 +703,11 @@ if(DoGLMFit)
       rrun = yrun - yhatrun;
       for nthseg = 1:flac0.acfbins % ok to skip 0
 	indseg = find(acfseg.vol==nthseg);
-	acfrun = nrho1segmn(nthseg).^([0:flac.ntp-1]');
+	if(~flac.fsv3_whiten)
+	  acfrun = nrho1segmn(nthseg).^([0:flac.ntp-1]');
+	else
+	  acfrun = fsv3AutoCor(1:flac.ntp);
+	end
 	Wseg = inv(chol(toeplitz(acfrun))');
 	rrun(:,indseg) = Wseg*rrun(:,indseg);
       end
@@ -693,7 +735,7 @@ if(DoGLMFit)
   end % acfbins > 0
 
   save(xfile,'X','W','DOF','flac0','runflac','RescaleFactor',...
-       'rfm','acfseg','nrho1segmn','acfsegmn',...
+       'rfm','acfseg','nrho1segmn','acfsegmn','ErrCovMtx',...
        'DoSynth','SynthSeed','UseFloat','yrun_randn');
   
   % Save baseline as both h-offset and meanfunc

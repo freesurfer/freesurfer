@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/03 18:03:10 $
-#    $Revision: 1.8 $
+#    $Date: 2009/04/17 20:09:46 $
+#    $Revision: 1.8.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.8 2007/07/03 18:03:10 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.8.2.1 2009/04/17 20:09:46 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -47,6 +47,7 @@ set rmprestim = ();
 set CNorm = 1;
 set UseSXADat = 0;
 set PrintHelp = 0;
+set mfile = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -142,8 +143,13 @@ foreach c ($actcond $ctrlcond)
 end
 
 ## Set the weight of the active and control conditions ##
-set wact  = `echo 1/$#actcond  | bc -l`;
-set wctrl = `echo -1/$#ctrlcond | bc -l`;
+if($#sumconds) then
+  set wact  = `echo 1/$#actcond  | bc -l`;
+  set wctrl = `echo -1/$#ctrlcond | bc -l`;
+else
+  set wact  = +1;
+  set wctrl = -1;
+endif
 
 if($#wcond == 0) then
   ## Preset the condition weights to zero ##
@@ -187,6 +193,10 @@ endif
 
 set cmtxfile = $analname/$contrast
 
+# Make sure there is a .mat at the end
+set tmp = `basename $contrast .mat`
+if($tmp == $contrast) set cmtxfile = $cmtxfile.mat
+
 set cmd = (mkcontrast)
 if($UseSXADat) then
   set cmd = ($cmd -sxadat $datfile)
@@ -206,6 +216,8 @@ if($CNorm == 0) set cmd = ($cmd -nocnorm);
 # These are just flags to indicate that they were set manually
 if($setwcond)  set cmd = ($cmd -setwcond);
 if($setwdelay) set cmd = ($cmd -setwdelay);
+
+if($#mfile) set cmd = ($cmd -monly $mfile);
 
 ## Prepare the script, if need be ##
 if($ScriptOnly) then
@@ -354,6 +366,11 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set umaskarg = "-umask $argv[1]";
       umask $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if($#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
       breaksw
 
     case "-sxadat":

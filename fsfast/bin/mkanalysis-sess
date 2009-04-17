@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/03/30 19:15:11 $
-#    $Revision: 1.12.2.4 $
+#    $Date: 2009/04/17 20:09:46 $
+#    $Revision: 1.12.2.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.12.2.4 2009/03/30 19:15:11 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.12.2.5 2009/04/17 20:09:46 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -77,6 +77,10 @@ set PrintHelp = 0;
 set UseGUI = 0;
 set FixACF = 1;
 set FSV3st2fir = 0;
+set FSV3whiten = 0;
+set mfile = ();
+set monly = 0;
+set RescaleTarget = 1000;
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -114,28 +118,30 @@ set umaskarg = "-umask $MRI_UMASK"
 
 #-----------------------------------------
 if($UseGUI) then
-#unalias matlab
-matlab <<EOF
+setenv FSF_PROC_GUI_BUG 1
+if($#mfile == 0) set mfile = /tmp/mkanalysis-sess.gui.m
+rm -f $mfile
+tee $mfile > /dev/null <<EOF
+monly = $monly;
 global MkAnalysisName;
 global MkAnalysisClone;
 MkAnalysisName = '$analysis';
 MkAnalysisClone = '$cloneanalysis';
 h = mkanalysis_gui;
 uiwait(h);
-quit;
-
+if(~monly) quit; end
 EOF
+if(! $monly) then
+  cat $mfile | matlab
+endif
 exit 0;
 endif
 #-----------------------------------------
 
 mkdir -p $analysis
 
-
-##---- Create the analysis config file ------#
-set sxacfg = $analysis/$sxacfg
-rm -f $sxacfg
-touch $sxacfg
+echo "CMD-01" > $analysis/creator.txt
+cp $FREESURFER_HOME/build-stamp.txt $analysis/fs.build-stamp.txt
 
 if($#TER == 0) then
   if($gammafit || $spmhrf != -1) then
@@ -145,6 +151,11 @@ if($#TER == 0) then
   endif
 endif
 echo "Setting TER to $TER"
+
+##---- Create the analysis config file ------#
+set sxacfg = $analysis/$sxacfg
+rm -f $sxacfg
+touch $sxacfg
 
 if($designtype == "event-related" || $designtype == "blocked") then
   set Nh  = `echo "($IdealTW/$TER)" | bc`;
@@ -159,20 +170,22 @@ if($designtype == "event-related" || $designtype == "blocked") then
     if($#gAlpha != 0) echo "-gammaexp $gAlpha" >> $sxacfg
   endif
   if($spmhrf > -1) echo "-spmhrf $spmhrf" >> $sxacfg
-  if($FixACF) echo "-fix-acf" >> $sxacfg
-  if(! $FixACF) echo "-no-fix-acf" >> $sxacfg
-  if($FSV3st2fir) echo "-fsv3-st2fir" >> $sxacfg
-  if(! $FSV3st2fir) echo "-no-fsv3-st2fir" >> $sxacfg
 
   echo "-timewindow $TW" >> $sxacfg
   echo "-prestim $PreStim" >> $sxacfg
-  #if(! $meanfit) then
-  #  echo "-nobaseline" >> $sxacfg
-  #else
-  #  echo "-baseline" >> $sxacfg
-  #endif
-  #if($trendfit)  echo "-detrend" >> $sxacfg
-  #if($qtrendfit) echo "-qtrendfit" >> $sxacfg
+
+  if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
+  if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
+  if($FSV3whiten) set FixACF = 0; # Explicitly set to 0
+  if($FixACF) echo "-fix-acf" >> $sxacfg
+  if(! $FixACF) echo "-no-fix-acf" >> $sxacfg
+  if($autostimdur)   echo "-autostimdur" >> $sxacfg
+  if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
+  if($FSV3st2fir) echo "-fsv3-st2fir" >> $sxacfg
+  if(! $FSV3st2fir) echo "-no-fsv3-st2fir" >> $sxacfg
+  if($FSV3whiten)   echo "-fsv3-whiten" >> $sxacfg
+  if(! $FSV3whiten) echo "-no-fsv3-whiten" >> $sxacfg
+
   if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
   if($nyqreg) echo "-nyqreg" >> $sxacfg
   echo "-TER $TER" >> $sxacfg
@@ -183,7 +196,7 @@ else if($designtype == "retinotopy" || $designtype == "abblocked") then
   if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
   echo "-delay   0" >> $sxacfg
 endif
-if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
+
 
 echo "-nskip $nskip" >> $sxacfg
 if($hanrad != 0) then
@@ -198,15 +211,11 @@ if($#extreg != 0) then
   if($extregorthog)   echo "-extregorthog " >> $sxacfg
 endif
 
-if($inorm) echo "-rescale 1000" >> $sxacfg
-echo "" >> $sxacfg
-echo $sveres >> $sxacfg
-echo $svsignal >> $sxacfg
-
-if($autostimdur)   echo "-autostimdur" >> $sxacfg
-if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
+if($inorm) echo "-rescale $RescaleTarget" >> $sxacfg
 
 if($#stimdur) echo "-stimdur $stimdur" >> $sxacfg
+echo $sveres >> $sxacfg
+echo $svsignal >> $sxacfg
 
 ##---- Create the analysis info file ------#
 set infofile = $analysis/analysis.info
@@ -214,15 +223,20 @@ rm -f $infofile
 touch $infofile
 echo "analysis   $analysis"   >> $infofile
 echo "TR         $TR"         >> $infofile
-echo "designtype $designtype" >> $infofile
-if($eventrelated || $blocked) then
-  echo "nconditions $nconditions"  >> $infofile 
-endif
-if($#parname)  echo "parname    $parname"    >> $infofile
 echo "fsd        $fsd"        >> $infofile
 echo "funcstem   $funcstem"   >> $infofile
 if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
 echo "tpexclude  $tpexclude"  >> $infofile
+if($#parname)  echo "parname    $parname"    >> $infofile
+echo "designtype $designtype" >> $infofile
+if($eventrelated || $blocked) then
+  echo "nconditions $nconditions"  >> $infofile 
+  @ nthc = 1
+  while($nthc <= $nconditions)
+    printf "Condition $nthc Condition%02d\n" $nthc >> $infofile 
+    @ nthc = $nthc + 1
+  end
+endif
 if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
 
 if($#SessList == 0) then
@@ -381,7 +395,6 @@ endif
 # Delete the h.dat file if it exists
 rm -f  $analysis/h.dat
 
-
 echo "Completed successfully"
 exit 0;
 ###############################################
@@ -453,6 +466,11 @@ while( $#argv != 0 )
   if($#FSV3st2fir) set FSV3st2fir = 1; # default is not to use FSV3
   set FSV3st2fir = `cat $cacfg | awk '{if($1 == "-no-fsv3-st2fir") print $2}'`;
   if($#FSV3st2fir == 0) set FSV3st2fir = 0; 
+
+  set FSV3whiten = `cat $cacfg | awk '{if($1 == "-fsv3-whiten") print $2}'`;
+  if($#FSV3whiten) set FSV3whiten = 1; # default is not to use FSV3
+  set FSV3whiten = `cat $cacfg | awk '{if($1 == "-no-fsv3-whiten") print $2}'`;
+  if($#FSV3whiten == 0) set FSV3whiten = 0; 
 
   set IdealTW = `cat $cacfg | awk '{if($1 == "-timewindow") print $2}'`;
   set PreStim = `cat $cacfg | awk '{if($1 == "-prestim") print $2}'`;
@@ -774,14 +792,15 @@ while( $#argv != 0 )
       set inorm = 1;
       breaksw
 
+    case "-rescale-target":
+      if($#argv < 1) goto arg1err;
+      set RescaleTarget = $argv[1]; shift;
+      set inorm = 1;
+      breaksw
+
     case "-noinorm":
     case "-no-inorm":
       set inorm = 0;
-      breaksw
-
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      setenv MRI_UMASK $1; shift;
       breaksw
 
     case "-stimdur":
@@ -809,6 +828,19 @@ while( $#argv != 0 )
       set force = 1;
       breaksw
 
+    case "-monly":
+      if($#argv < 1) goto arg1err;
+      set mfile = $argv[1]; shift
+      set monly = 1;
+      set UseGUI = 1;
+      set force = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
     case "-no-fix-acf":
       set FixACF = 0;
       breaksw
@@ -817,8 +849,22 @@ while( $#argv != 0 )
       set FixACF = 1;
       breaksw
 
+    case "-fsv3":
+      set FSV3st2fir = 1;
+      set FSV3whiten = 1;
+      breaksw
+
+    case "-no-fsv3":
+      set FSV3st2fir = 0;
+      set FSV3whiten = 0;
+      breaksw
+
     case "-fsv3-st2fir":
       set FSV3st2fir = 1;
+      breaksw
+
+    case "-fsv3-whiten":
+      set FSV3whiten = 1;
       breaksw
 
     case "-no-fsv3-st2fir":
@@ -988,6 +1034,7 @@ usage_exit:
   echo "   -motioncor             : use motion corrected data (see mc-sess) "
   echo "   -runlistfile filename  : file with list of runs to include in analysis"
   echo "   -inorm                 : intensity normalize data"
+  echo "   -rescale-target value  : inorm to value"
   echo "   -fwhm        FWHM      : Full-Width/Half-Max for in-plane smoothing (mm)"
   echo "   -nskip       N         : skip the first N time points in each run"
   echo "   -tpef      filename    : time-point exclude file name"
@@ -1011,7 +1058,9 @@ usage_exit:
   echo "   -fix-acf       : DO compensate for resdualized ACF (default)"
   echo "   -autostimdur         : automatically compute stimulus duration"
   echo "   -noautostimdur       : do not automatically compute stimulus duration (default)"
-  echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3"
+  echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3 (and -no-)"
+  echo "   -fsv3-whiten : perform whitening like FreeSurfer Version 3 (and -no-)"
+  echo "   -fsv3 : set all fsv3 flags (FreeSurfer Version 3) (and -no-)"
   echo ""
   echo "Retinotopy and AB Blocked Arguments (Required)"
   echo "   -ncycles     N       : number of cycles in each run"
@@ -1150,13 +1199,13 @@ if no TPEF is found, no time points are excluded.
 Drift removal. Fit and remove polynomial of order N. Default is 1
 (ie, 0=mean, 1=linear, and 2=quadradic). 
 
--autostimdur (-no-autostimdur)
+-autostimdur (-noautostimdur)
 
 Automatically compute the duration of each stimulus based on the time
 between stimuli in the paradigm file. This allows for stimuli to be of
 different lengths. It requires that all stimuli be accounted for in
 the paradigm file (eg, fixation). It also requires that no stimuli
-overlap.  -no-autostimdur tells the program NOT to compute the
+overlap.  -noautostimdur tells the program NOT to compute the
 stimulus duration from the paradigm file, in which case it assumes
 that the stimuli duration has a length equal to the TR (or TER). This
 used to be the default (pre 12/4/06). Now you must specify what you

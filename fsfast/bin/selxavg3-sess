@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/03/31 19:00:33 $
-#    $Revision: 1.32.2.4 $
+#    $Date: 2009/04/17 20:09:46 $
+#    $Revision: 1.32.2.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.32.2.4 2009/03/31 19:00:33 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.32.2.5 2009/04/17 20:09:46 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -55,6 +55,7 @@ set Overwrite = 0;
 
 set DoSynth = 0;
 set SynthNoiseAmp = 1;
+set SynthNoiseAR1 = .3;
 set SynthSignalAmp = 0;
 set SynthSeed = -1;
 
@@ -218,6 +219,7 @@ foreach sess ($SessList)
   echo "DoSynth        = $DoSynth;"        >> $MLF
   echo "UseFloat       = $UseFloat;"       >> $MLF
   echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
+  echo "SynthNoiseAR1  = $SynthNoiseAR1;"  >> $MLF
   echo "SynthSignalAmp = $SynthSignalAmp;" >> $MLF
   echo "SynthSeed      = $SynthSeed;"      >> $MLF
   echo "sess           = '$sess';"         >> $MLF
@@ -264,6 +266,7 @@ if(! $monly) then
     else
       set anadir = $OutParent/$sessbase/$fsd/$analysisname
     endif
+    cp $FREESURFER_HOME/build-stamp.txt $anadir/fs.build-stamp.txt
     if($#flacfile) then
       cp $flacfile $anadir 
     else
@@ -501,6 +504,24 @@ while( $#argv != 0 )
       breaksw
 
     case "-synth":
+      set DoSynth = 1;
+      breaksw
+
+    case "-synth-signal-amp":
+      if($#argv < 1) goto arg1err;
+      set SynthSignalAmp = $1; shift;
+      set DoSynth = 1;
+      breaksw
+
+    case "-synth-noise-amp":
+      if($#argv < 1) goto arg1err;
+      set SynthNoiseAmp = $1; shift;
+      set DoSynth = 1;
+      breaksw
+
+    case "-synth-noise-ar1":
+      if($#argv < 1) goto arg1err;
+      set SynthNoiseAR1 = $1; shift;
       set DoSynth = 1;
       breaksw
 
