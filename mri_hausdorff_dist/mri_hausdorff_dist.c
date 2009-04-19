@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 13:49:49 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/04/19 20:54:54 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.6 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.7 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -56,8 +56,8 @@ static void print_version(void) ;
 static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
-static double compute_hdist(MRI **mri, int nvolumes, int index) ;
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.6 2008/08/26 13:49:49 fischl Exp $";
+static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists);
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.7 2009/04/19 20:54:54 fischl Exp $";
 
 char *Progname ;
 
@@ -66,6 +66,7 @@ char *Progname ;
 static int binarize = 0 ;
 static float binarize_thresh = 0 ;
 static int target_label = 1 ;
+static double blur_sigma = 0 ;
 
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[]) 
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
   int   nargs, nvolumes, n, ac ;
   char  *name, fname[STRLEN], *out_fname, **av;
   MRI   *mri[MAX_VOLUMES], *mri_tmp ;
-  double hdist ;
+  double hdist, hdists[MAX_VOLUMES] ;
   FILE   *fp  ;
 
   /* rkt: check for and handle version tag */
@@ -119,6 +120,15 @@ int main(int argc, char *argv[])
       m = MRIchangeType(mri_tmp, MRI_FLOAT, 0, 1, 1) ;
       MRIfree(&mri_tmp) ; mri_tmp = m ;
     }
+    if (blur_sigma > 0)
+    {
+      MRI *mri_kernel, *mri_smooth ; 
+      mri_kernel = MRIgaussian1d(blur_sigma, 100) ;
+      mri_smooth = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
+      MRIfree(&mri_kernel) ; MRIfree(&mri_tmp) ;
+      mri_tmp = mri_smooth ;
+    }
+
     sprintf(fname, "d%d.mgz", n) ;
 #define USE_DISTANCE_TRANSFORM 1
 #if USE_DISTANCE_TRANSFORM 
@@ -141,12 +151,21 @@ int main(int argc, char *argv[])
 
 
   fp = fopen(out_fname, "w") ;
+  if (fp == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not open %s", Progname, out_fname) ;
+
+#if 1
+  hdist = compute_hdist(mri, nvolumes, 0, hdists) ;
+  for (n = 1 ; n < nvolumes ; n++)
+    fprintf(fp, "%f\n", hdists[n]) ;
+#else
   for (n = 0 ; n < nvolumes ; n++)
   {
-    hdist = compute_hdist(mri, nvolumes, n) ;
+    hdist = compute_hdist(mri, nvolumes, n, hdists) ;
     fprintf(fp, "%f\n", hdist) ;
     fflush(fp) ;
   }
+#endif
   fclose(fp) ;
   exit(0);
 
@@ -157,6 +176,7 @@ static void print_usage(void) {
   printf("USAGE: %s <options> <vol1> <vol2> ... <output text file> \n",Progname) ;
   printf("\twhere options are:\n") ;
   printf("\t-b <thresh>        binarize input volumes with threshold <thresh>\n") ;
+  printf("\t-g <sigma>         blur the input image with Gaussian <sigma>\n");
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -176,12 +196,12 @@ static void usage_exit(void) {
 
 #if USE_DISTANCE_TRANSFORM 
 static double
-compute_hdist(MRI **mri, int nvolumes, int index)
+compute_hdist(MRI **mri, int nvolumes, int index, double *hdists)
 {
   int   x, y, z, width, depth, height, nvox, n, xk, yk, zk, xi, yi, zi ;
   float d, d2, dist, dx, dy, dz ;
   MRI   *mri_src ;
-  double hdists[MAX_VOLUMES], hdists_sigma[MAX_VOLUMES], hdist, max_vox,xf, yf, zf, zval;
+  double hdists_sigma[MAX_VOLUMES], hdist, max_vox,xf, yf, zf, zval;
   //  FILE   *fp ;
   static int i = 0 ;
   char fname[STRLEN] ;
@@ -271,6 +291,8 @@ compute_hdist(MRI **mri, int nvolumes, int index)
 
   sprintf(fname, "hdists%d.txt", i++) ;
   fp = fopen(fname, "w") ;
+  if (fp == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not open %s", Progname, fname) ;
 
   width = mri[index]->width ; height = mri[index]->height ;  depth = mri[index]->depth ; 
 
@@ -321,6 +343,11 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-version"))
     print_version() ;
   else switch (toupper(*option)) {
+  case 'G':
+    blur_sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("blurring input image with sigma = %2.2f\n", blur_sigma) ;
+    break ;
     case 'B':
       binarize = 1 ;
       binarize_thresh = atof(argv[2]) ;
