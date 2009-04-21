@@ -188,11 +188,11 @@ inline float MRIiterator::operator*()
 }
 
 // example:
-// MRIiterator it<float>(mri);
+// MRIiterator it(mri);
 // for (it.begin(); !it.isEnd(); it++) 
 // {
-//    std::cout << *it.val() << std::endl;
-//    it.val() = 0;
+//    std::cout << *it << std::endl;
+////    *it = 0;
 // }
 
 
