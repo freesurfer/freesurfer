@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/27 21:24:06 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/04/21 16:43:57 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -102,15 +102,16 @@ struct Parameters
   int    debug;
   MRI*   mri_mov;
   MRI*   mri_dst;
+  bool   dosatest;
 };
-static struct Parameters P = { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL};
+static struct Parameters P = { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.13 2009/03/27 21:24:06 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.14 2009/04/21 16:43:57 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -191,15 +192,16 @@ int main(int argc, char *argv[])
   
   // compute Alignment
   std::pair <MATRIX*, double> Md;
-  if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
+  if (P.satest) R.computeSatEstimate(2,P.iterate,P.epsit);
+  else if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
   else if (P.nomulti)  Md = R.computeIterativeRegistration(P.iterate,P.epsit);
-  else Md = R.computeMultiresRegistration(P.iterate,P.epsit);
+  else Md = R.computeMultiresRegistration(0,P.iterate,P.epsit);
 
-  if (P.satit)
+  if (P.satit || P.satest)
   {
     cout << "run:" << endl;
     cout << " gnuplot " << R.getName() << "-sat.plot ; \\ " << endl;
-    cout << " eps2pdf " << R.getName() << "-sat.eps " << endl;
+    cout << " epstopdf " << R.getName() << "-sat.eps " << endl;
     cout << " and view the pdf " << endl << endl;
     msec = TimerStop(&start) ;
     seconds = nint((float)msec/1000.0f) ;
@@ -258,8 +260,11 @@ int main(int argc, char *argv[])
    // end of writing transform
 
    // here do scaling of intensity values
-   if (R.isIscale() && Md.second >0)
-         P.mri_mov = R.MRIvalscale(P.mri_mov, P.mri_mov, Md.second);
+   if (R.isIscale() && Md.second > 0)
+   {
+         cout << "Adjusting Intensity of MOV by " << Md.second << endl;
+         P.mri_mov = R.MRIvalscale(P.mri_mov, P.mri_mov, Md.second);	 
+   }
 
    // maybe warp source to target:
    if (P.warpout != "")
@@ -352,6 +357,29 @@ int main(int argc, char *argv[])
 	    // take dst info from lta:
             MRI* mri_Swarp = LTAtransform(P.mri_mov,NULL, m2hwlta);
 	    MRIwrite(mri_Swarp,P.halfmov.c_str());
+	    
+MRI * mri_weights = R.getWeights();
+MRIiterator mw(mri_weights);
+MRIiterator ms(mri_Swarp);
+double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
+int countw1=0,countw0=0,count=0;
+ for (ms.begin(); !ms.isEnd(); ms++) 
+ {
+ 	if (fabs(*mw )>0.0001){ meanw0+= (*ms); countw0++;}
+	if (fabs(*mw-1.0) < 0.0001) {meanw1+= *ms; countw1++;}
+	
+	mean+= *ms;
+	count++;
+
+	meanw+= *ms * *mw;
+	countw+= *mw;
+ 
+	assert(! (mw.isEnd() && !ms.isEnd()));
+ 	mw++;
+ }
+ cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
+
+
 	    MRIfree(&mri_Swarp);
 	    
 	    //MRIwrite(P.mri_mov,"movable-original.mgz");
@@ -369,6 +397,26 @@ int main(int argc, char *argv[])
 	    cout << " creating half-way destination ..." << endl;
             MRI* mri_Twarp = LTAtransform(P.mri_dst,NULL, d2hwlta);
 	    MRIwrite(mri_Twarp,P.halfdst.c_str());	  
+MRI * mri_weights = R.getWeights();
+MRIiterator mw(mri_weights);
+MRIiterator ms(mri_Twarp);
+double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
+int countw1=0,countw0=0,count=0;
+ for (ms.begin(); !ms.isEnd(); ms++) 
+ {
+ 	if (fabs(*mw )>0.0001){ meanw0+= (*ms); countw0++;}
+	if (fabs(*mw-1.0) < 0.0001) {meanw1+= *ms; countw1++;}
+	
+	mean+= *ms;
+	count++;
+	
+	meanw+= *ms * *mw;
+	countw+= *mw;
+ 
+	assert(! (mw.isEnd() && !ms.isEnd()));
+ 	mw++;
+ }
+ cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
 	    MRIfree(&mri_Twarp);
 	 }   
          if (P.halfweights != "")
@@ -677,7 +725,7 @@ static void printUsage(void) {
   cout << "      --halfdstlta hd.lta    outputs transform from dst to half-way space" << endl;
 
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
-  cout << "  -I, --iscale               allow also intensity scaling (default no I-scaling)" << endl;
+  cout << "  -I, --iscale               estimate intensity scale factor (default no I-scaling)" << endl;
   cout << "      --transonly            find 3 parameter translation only" << endl;
   cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
@@ -697,7 +745,8 @@ static void printUsage(void) {
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
-  cout << "Mandatory or optional arguments to long options are also mandatory or optional for any corresponding short options." << endl;
+  cout << "Mandatory or optional arguments to long options are also mandatory or optional for any" << endl;
+  cout << " corresponding short options." << endl;
   cout << endl;
   
   cout << "Report bugs to: analysis-bugs@nmr.mgh.harvard.edu" << endl;
@@ -1132,6 +1181,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      P.fixtype = true;
      nargs = 0 ;
      cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
+  }
+  else if (!strcmp(option, "SATEST") )
+  {
+     P.dosatest = true;
+     nargs = 0 ;
+     cout << "Trying to estimate SAT value!" << endl;
   }
   else
   {

@@ -20,6 +20,7 @@ extern "C" {
 #include <utility>
 #include <string>
 #include <vector>
+//#include <iostream>
 
 class Registration
 {
@@ -44,8 +45,14 @@ class Registration
        if (Mfinal) MatrixFree(&Minit);
        if (lastp) MatrixFree(&lastp);
        if (mri_indexing) MRIfree(&mri_indexing);
+       if (mri_weights) MRIfree(&mri_weights);
+       if (gpS.size() > 0) freeGaussianPyramid(gpS);
+       if (gpT.size() > 0) freeGaussianPyramid(gpT);
+       if (mov2weights) MatrixFree(&mov2weights);
+       if (dst2weights) MatrixFree(&dst2weights);
     }
     
+    void clear(); // initialize registration (keep source and target and gauss pyramid)
   
     // Set parameters:
     void setTransonly(bool r) {transonly = r;};
@@ -59,7 +66,7 @@ class Registration
     void setSource (MRI * s, bool fixvoxel = false, bool fixtype = false);
     void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
     void setSubsamplesize (int sss){subsamplesize = sss;};
-    void setName(const std::string &n) { name = n;};
+    void setName(const std::string &n);
 
     bool isIscale()        {return iscale;};
     std::string  getName() {return name;};
@@ -69,7 +76,7 @@ class Registration
     // compute registration
     std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
     std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
-    std::pair <MATRIX*, double> computeMultiresRegistration (int n,double epsit, MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    std::pair <MATRIX*, double> computeMultiresRegistration (int stopres, int n,double epsit, MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
  
     bool warpSource(const std::string & fname, MATRIX* M = NULL, double is = -1);
     bool warpSource(MRI* orig, MRI* target, const std::string &fname, MATRIX* M = NULL, double is = -1);
@@ -77,6 +84,7 @@ class Registration
     // testing
     void testRobust(const std::string & fname, int testno);
 
+   double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
 
    MRI *  MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
    double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
@@ -149,12 +157,15 @@ class Registration
     int rtype;
     int subsamplesize;
     std::string name;
+    std::string nbase;
     int debug;
     //bool outweights;
     //std::string weightsname;
     
     MRI * mri_source;
+    std::vector < MRI* > gpS;
     MRI * mri_target;
+    std::vector < MRI* > gpT;
     MATRIX * Minit;
     MATRIX * Mfinal;
     double iscalefinal;
