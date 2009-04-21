@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/26 01:07:14 $
- *    $Revision: 1.429 $
+ *    $Date: 2009/04/21 23:19:00 $
+ *    $Revision: 1.430 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.429 $";
+const char *MRI_C_VERSION = "$Revision: 1.430 $";
 
 
 /*-----------------------------------------------------
@@ -10788,10 +10788,10 @@ MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
     (NULL,
      (ERROR_BADPARM,
       "MRIinverseLinearTransform: xform is singular!")) ;
-  fprintf
-  (stderr,
-   "applying the vox-to-vox linear transform (calculated inverse)\n");
-  MatrixPrint(stderr, m_inv);
+  //fprintf
+  //(stderr,
+ //  "applying the vox-to-vox linear transform (calculated inverse)\n");
+ // MatrixPrint(stderr, m_inv);
   mri_dst = MRIlinearTransform(mri_src, mri_dst, m_inv) ;
   MatrixFree(&m_inv) ;
   return(mri_dst) ;
@@ -10806,8 +10806,8 @@ MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform)
   MATRIX   *m_voxel_xform ;
 
   m_voxel_xform = MRIrasXformToVoxelXform(mri_src, mri_dst, m_ras_xform, NULL);
-  fprintf(stderr, "applying the vox to vox linear transform\n");
-  MatrixPrint(stderr, m_voxel_xform);
+  //fprintf(stderr, "applying the vox to vox linear transform\n");
+  //MatrixPrint(stderr, m_voxel_xform);
   mri_dst = MRIlinearTransform(mri_src, mri_dst, m_voxel_xform) ;
   MatrixFree(&m_voxel_xform) ;
   return(mri_dst) ;
@@ -10823,8 +10823,8 @@ MRIapplyRASlinearTransformInterp
   MATRIX   *m_voxel_xform ;
 
   m_voxel_xform = MRIrasXformToVoxelXform(mri_src, mri_dst, m_ras_xform, NULL);
-  fprintf(stderr, "applying the vox to vox linear transform\n");
-  MatrixPrint(stderr, m_voxel_xform);
+  //fprintf(stderr, "applying the vox to vox linear transform\n");
+  //MatrixPrint(stderr, m_voxel_xform);
   mri_dst = MRIlinearTransformInterp(mri_src, mri_dst, m_voxel_xform, interp) ;
   MatrixFree(&m_voxel_xform) ;
   return(mri_dst) ;
