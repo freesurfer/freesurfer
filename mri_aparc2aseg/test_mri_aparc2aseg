@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 16:01:48 $
-#    $Revision: 1.8 $
+#    $Date: 2009/04/22 03:41:22 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_aparc2aseg,v 1.8 2008/02/26 16:01:48 nicks Exp $'
+set VERSION='$Id: test_mri_aparc2aseg,v 1.9 2009/04/22 03:41:22 nicks Exp $'
 
 umask 002
 
@@ -44,7 +44,7 @@ endif
 echo "gunzip -c testdata.tar.gz | tar xvf -"
 gunzip -c testdata.tar.gz | tar xvf -
 
-set cmd=(./mri_aparc2aseg --s testdata --ribbon)
+set cmd=(./mri_aparc2aseg --s testdata)
 echo ""
 echo $cmd
 echo "Output is directed to file 'test_mri_aparc2aseg.log'..."
