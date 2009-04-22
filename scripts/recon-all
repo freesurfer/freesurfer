@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/04/01 15:53:05 $
-#    $Revision: 1.133.2.42 $
+#    $Date: 2009/04/22 22:34:03 $
+#    $Revision: 1.133.2.43 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.42 2009/04/01 15:53:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.43 2009/04/22 22:34:03 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -151,6 +151,7 @@ set UseTP1CtrlVol = 0;   # if 1, use ctrl volume of tp1 in normalization step
 set no_orig_pial = 0;    # if 1, mris_make_surfaces won't use orig pial
 set tp1totp2_regfile = ();   # registration file to align tp1 to current subj
                   # default settings for second registration method:
+set UserTp1toTp2RegFile = 0; # if 1, then use the .lta specd on cmd line
 set REG_METHOD    = fsl_rigid
 set REG_COST      = corratio
 set REG_DOF       = 6
@@ -789,7 +790,7 @@ if($DoMotionCor) then
 
   #--- Longitudinal: compute linear registration from tp1 to current subj ---#
   # uses orig.mgz as input
-  if ($longitudinal) then
+  if ($longitudinal && ! $UserTp1toTp2RegFile) then
     echo "---------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
     echo "#@# Longitudinal: 1st Registration (linear) `date`" \
@@ -1300,7 +1301,7 @@ if($DoCANormalize) then
 
   #--- Longitudinal: Second registration from tp1 to current subj ---#
   # default REG_FILE_TYPE is norm (output of mri_ca_normalize)
-  if ($longitudinal) then
+  if ($longitudinal && ! $UserTp1toTp2RegFile) then
     echo "---------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
     echo "#@# Longitudinal: 2nd  Registration  `date`" \
@@ -3784,6 +3785,7 @@ while( $#argv != 0 )
     case "-regfile":
       if ( $#argv < 1) goto arg1err;
       set tp1totp2_regfile = $argv[1]; shift;
+      set UserTp1toTp2RegFile = 1;
       breaksw
 
     case "-reg-method":
@@ -3969,6 +3971,9 @@ check_params:
 
       if($#tp1totp2_regfile != 1) then
         set tp1totp2_regfile = ${tp1id}_to_${tp2id}.lta
+      else
+        echo "Using $tp1totp2_regfile as 1st and 2nd registration during"
+        echo "longitudinal analysis."
       endif
 
       set tp1dir = $SUBJECTS_DIR/$tp1id
@@ -5257,7 +5262,8 @@ specify control points for tp2subjid.
 Optionally specify the registration matrix aligning the currently specified
 subject with the 'time point one' subject.  The default is
 {tp1subjid}_to_{tp2subjid}.lta, and is computed automatically when -long is
-specified.
+specified. If a regfile is specified, then the 1st and 2nd registration
+steps are not computed.
 
 -reg-method registration_method_type
 
