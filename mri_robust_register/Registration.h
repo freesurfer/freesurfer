@@ -25,13 +25,13 @@ extern "C" {
 class Registration
 {
   public:
-    Registration():transonly(false),rigid(true),robust(true), sat(-1),
-                   iscale(false),rtype(1),subsamplesize(-1),debug(0),
+    Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
+                   robust(true),rtype(1),subsamplesize(-1),debug(0),
                    mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),
 		   mri_weights(NULL), mov2weights(NULL),dst2weights(NULL),
 		   lastp(NULL), mri_indexing(NULL) {};
-    Registration(MRI * s, MRI *t):transonly(false),rigid(true),robust(true),
-                   sat(-1),iscale(false),rtype(1),subsamplesize(-1),debug(0),
+    Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
+                   robust(true),rtype(1),subsamplesize(-1),debug(0),
                    mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
 		   Minit(NULL),Mfinal(NULL),mri_weights(NULL),
 		   mov2weights(NULL),dst2weights(NULL),lastp(NULL),
@@ -86,20 +86,26 @@ class Registration
 
    double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
 
-   MRI *  MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
-   double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
-   double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
-   MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
-   MRI* makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
+   static MRI *  MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
+   static double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
+   static double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
+   static MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
+   static MRI* makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
 
   protected:
 
     //   returns weights:
     std::pair < MATRIX*, MRI* > computeRegistrationStepW(MRI * mriS = NULL, MRI* mriT=NULL);
     //   returns param vector:
-    MATRIX* computeRegistrationStepP(MRI * mriS = NULL, MRI* mriT = NULL);
+    MATRIX* computeRegistrationStepP(MRI * mriS, MRI* mriT);
     //   returns 4x4 matrix and iscale:
     std::pair <MATRIX*, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
+   
+   //conversion
+   std::pair < MATRIX*, double > convertP2Md(MATRIX* p);
+
+    double sat;
+    bool iscale;
   
   
   private:
@@ -120,7 +126,7 @@ class Registration
    MRI * getBlur2(MRI* mri);
    bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
    
-   int findRightSize(MRI *mri, float conform_size);
+   static int findRightSize(MRI *mri, float conform_size);
    
    MATRIX* MRIgetZslice(MRI * mri, int slice);
    
@@ -129,10 +135,9 @@ class Registration
    MATRIX * rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM); // uses global rtype flag
    MATRIX * p2mat(MATRIX * p6, MATRIX *outM);
    MATRIX * aff2mat(MATRIX * aff, MATRIX *outM);
-   std::pair < MATRIX*, double > convertP2Md(MATRIX* p);
    MATRIX * getHalfRT (MATRIX * m, MATRIX * mhalf=NULL);
-   double RotMatrixLogNorm(MATRIX * m);
-   double RotMatrixGeoDist(MATRIX * a, MATRIX *b = NULL);
+   static double RotMatrixLogNorm(MATRIX * m);
+   static double RotMatrixGeoDist(MATRIX * a, MATRIX *b = NULL);
    
    // gaussian pyramid:
    std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);
@@ -152,8 +157,6 @@ class Registration
     bool transonly;
     bool rigid;
     bool robust;
-    double sat;
-    bool iscale;
     int rtype;
     int subsamplesize;
     std::string name;
