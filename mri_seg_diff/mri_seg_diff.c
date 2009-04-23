@@ -9,9 +9,9 @@
 /*
  * Original Author: greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/09/03 21:59:04 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2009/04/23 20:24:26 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -106,7 +106,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seg_diff.c,v 1.3 2008/09/03 21:59:04 nicks Exp $";
+static char vcid[] = "$Id: mri_seg_diff.c,v 1.4 2009/04/23 20:24:26 fischl Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 
   // Compute diff of segs
   if(DiffFile != NULL){
-    printf("Computing difference between segmenations\n");
+    printf("Computing difference between segmentations\n");
     seg2 = MRIread(Seg2File);
     if(seg2 == NULL) exit(1);
     diff = MRIsegDiff(seg1,seg2,&DiffFlag);
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
     exit(0);
   }
 
-  printf("Merging difference segmenation\n");
+  printf("Merging difference segmentation\n");
   diff = MRIread(InDiffFile);
   if(diff == NULL) exit(1);
 
