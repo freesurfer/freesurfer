@@ -2561,14 +2561,19 @@ MATRIX * Registration::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
    
   //Denman and Beavers square root iteration
    
-      int imax = 50;
+      int imax = 100;
+      double eps = 0.0001;
+      double err = 1000;
       //cout << "using square root iteartion (" << imax << ")"<< endl;
       MATRIX * Yn  = MatrixCopy(R,NULL);
       MATRIX * Zn  = MatrixIdentity(3,NULL);
       MATRIX * Zni = NULL;
       MATRIX * Yni = NULL;
-      for (int i = 0;i<imax;i++)
+      MATRIX * Ysq = NULL;
+      int count = 0;
+      while (count<imax && err > eps)
       {
+         count++;
          Yni = MatrixInverse(Yn,Yni);
          Zni = MatrixInverse(Zn,Zni);
 	 assert(Yni && Zni);
@@ -2581,7 +2586,21 @@ MATRIX * Registration::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
 	 //cout << " matrix " << i << endl;
          //MatrixPrintFmt(stdout,"% 2.8f",Yn);
          //cout << endl;
+	 
+         Ysq = MatrixMultiply(Yn,Yn,Ysq);
+         Ysq = MatrixSubtract(Ysq,R,Ysq);
+         err = 0;
+         for (int c=1; c<=4; c++)
+         for (int r=1; r<=4; r++)
+           err += fabs(*MATRIX_RELT(Ysq, r, c)) ;
+         
+      }
       
+      if (count > imax)
+      {
+      	cerr << "Matrix Sqrt did not converge in " << imax << " steps!" << endl;
+	cerr << "   ERROR: " << err << endl;
+        assert(err <= eps);
       }
       
       MATRIX * Rh = Yn;
@@ -2591,6 +2610,7 @@ MATRIX * Registration::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
       MatrixFree(&Zni);
       MatrixFree(&Yni);
       MatrixFree(&Zn);
+      MatrixFree(&Ysq);
   
 
      // compute new T
@@ -2627,24 +2647,24 @@ MATRIX * Registration::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
    MatrixFree(&Rh);
    MatrixFree(&R);
    
-   bool test = true;
-   if (test)
-   {
-      MATRIX* ms2 = MatrixMultiply(msqrt,msqrt,NULL);
-      ms2 = MatrixSubtract(ms2,m,ms2);
-      double sum = 0;
-      for (int c=1; c<=4; c++)
-      for (int r=1; r<=4; r++)
-        sum += fabs(*MATRIX_RELT(ms2, r, c)) ;
-      if (sum > 0.0001)
-      {
-         cerr << " Error : " << sum << endl;
-         //MatrixPrintFmt(stdout,"% 2.8f",ms2);
-         cerr << endl;
-	 assert(1==2);
-      }
-      MatrixFree(&ms2);
-   }
+//    bool test = true;
+//    if (test)
+//    {
+//       MATRIX* ms2 = MatrixMultiply(msqrt,msqrt,NULL);
+//       ms2 = MatrixSubtract(ms2,m,ms2);
+//       double sum = 0;
+//       for (int c=1; c<=4; c++)
+//       for (int r=1; r<=4; r++)
+//         sum += fabs(*MATRIX_RELT(ms2, r, c)) ;
+//       if (sum > 0.0001)
+//       {
+//          cerr << " Error : " << sum << endl;
+//          //MatrixPrintFmt(stdout,"% 2.8f",ms2);
+//          cerr << endl;
+// 	 assert(1==2);
+//       }
+//       MatrixFree(&ms2);
+//    }
     
    return msqrt;
 }
