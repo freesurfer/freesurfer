@@ -48,8 +48,6 @@ class Regression
   
      double getSigmaMAD(MATRIX *r, double d = 1.4826);
      double VectorMedian(MATRIX *v);
-     double kth_smallest(double a[], int n, int k);
-     double quick_select(double arr[], int n, int k);
 
      MATRIX* getSqrtTukeyDiaWeights(MATRIX * r, double sat =  SAT, MATRIX * w = NULL);
      MATRIX* getTukeyBiweight(MATRIX* r, double sat =  SAT, MATRIX* w = NULL);
