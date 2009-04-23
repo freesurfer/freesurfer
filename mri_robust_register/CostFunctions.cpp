@@ -220,3 +220,130 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
     }
    return d/(sqrt(dd1)*sqrt(dd2));
 }
+
+double CostFunctions::moment(MRI *i, int x, int y, int z)
+{
+	double dd= 0.0;
+	for (int d = 0 ; d<i->depth; d++)
+	for (int h = 0 ; h<i->height; h++)
+	for (int w = 0 ; w<i->width; w++)
+	{
+	      dd += pow(d+1,z) * pow(h+1,y) * pow(w+1,x) * MRIgetVoxVal(i, w,h,d,0);
+	}
+       return dd;
+}
+
+std::vector <double> CostFunctions::centroid(MRI *i)
+// M_100/M_000 , M_010/M_000 , M_001 / M_000
+{
+	std::vector < double > dd(3,0.0);
+	double n = 0;
+	for (int d = 0 ; d<i->depth; d++)
+	for (int h = 0 ; h<i->height; h++)
+	for (int w = 0 ; w<i->width; w++)
+	{
+	      n += MRIgetVoxVal(i, w,h,d,0);
+	      dd[0] += (w+1) * MRIgetVoxVal(i, w,h,d,0);
+	      dd[1] += (h+1) * MRIgetVoxVal(i, w,h,d,0);
+	      dd[2] += (d+1) * MRIgetVoxVal(i, w,h,d,0);
+	}
+	dd[0] = dd[0]/n;
+	dd[1] = dd[1]/n;
+	dd[2] = dd[2]/n;
+       return dd;
+}
+
+MATRIX* CostFunctions::orientation(MRI *i)
+// M_ijk is the moment(i,j,k)
+{
+        // compute mean
+	std::vector < double > dd(3,0.0);
+	double n = 0;
+	double val;
+	int wp1, hp1, dp1;
+	
+	MATRIX* cov = MatrixAlloc(3,3,MATRIX_REAL);
+	cov = MatrixZero(3,3,cov);
+	
+	for (int d = 0 ; d<i->depth; d++)
+	{
+	   dp1 = d + 1;
+	   for (int h = 0 ; h<i->height; h++)
+	   {
+	      hp1 = h+1;
+	      for (int w = 0 ; w<i->width; w++)
+	      {
+	         wp1 = w+1;
+	         val = MRIgetVoxVal(i, w,h,d,0);
+	         
+		 n += val; // M_000
+	         dd[0] += (wp1) * val; // M_100
+	         dd[1] += (hp1) * val; // M_010
+	         dd[2] += (dp1) * val; // M_001
+		 
+	         cov->rptr[1][1] += wp1*wp1*val; // M_200
+	         cov->rptr[2][2] += hp1*hp1*val; // M_020
+	         cov->rptr[3][3] += dp1*dp1*val; // M_002
+	         cov->rptr[1][2] += wp1*hp1*val; // M_110
+	         cov->rptr[2][3] += hp1*dp1*val; // M_011
+	         cov->rptr[1][3] += wp1*dp1*val; // M_101
+		 
+		 
+	       }
+	    }
+	}
+	// compute means:
+	dd[0] = dd[0]/n;
+	dd[1] = dd[1]/n;
+	dd[2] = dd[2]/n;
+
+        // compute cov matrix
+	cov->rptr[1][1] = (cov->rptr[1][1]/n)- dd[0]*dd[0]; // M_200/M_000 - mean_x^2 
+	cov->rptr[2][2] = (cov->rptr[2][2]/n)- dd[1]*dd[1]; 
+	cov->rptr[3][3] = (cov->rptr[3][3]/n)- dd[2]*dd[2];
+	cov->rptr[1][2] = (cov->rptr[1][2]/n)- dd[0]*dd[1]; // M_110/M_000 - mean_x * mean_y
+	cov->rptr[2][3] = (cov->rptr[2][3]/n)- dd[1]*dd[2];
+	cov->rptr[1][3] = (cov->rptr[1][3]/n)- dd[0]*dd[2];
+	
+	// mirror off diagonal elements
+	cov->rptr[2][1] = cov->rptr[1][2];
+	cov->rptr[3][2] = cov->rptr[2][3];
+	cov->rptr[3][1] = cov->rptr[1][3];
+	
+	// compute Eigenvectors
+	float eval[3];
+	MATRIX* evec = MatrixEigenSystem(cov, eval ,NULL) ; 
+	// should be sorted:
+	assert(eval[0] >= eval[1]);
+	assert(eval[1] >= eval[2]);
+	
+	// make max positive:
+	for (int c=1;c<4;c++)
+	{
+	   double fmax = 0;
+	   double max = 0;
+	   for (int r=1;r<4;r++)
+	   {
+	      if (fabs(evec->rptr[r][c]) > fmax)
+	      {
+	         fmax = fabs(evec->rptr[r][c]);
+		 max  = evec->rptr[r][c];
+	      }
+	   }
+	   
+	   if (max < 0) // negate
+	      for (int r=1;r<4;r++)
+	         evec->rptr[r][c] = - evec->rptr[r][c];
+		 
+	}
+	   
+	   
+	   
+	//cout << " evals: " << eval[0] << " " << eval[1] << " " << eval[2] << endl;
+	//cout << " evecs: " << endl;
+        // MatrixPrintFmt(stdout,"% 2.8f",evec);
+	 
+	MatrixFree(&cov);
+	return evec;
+
+}

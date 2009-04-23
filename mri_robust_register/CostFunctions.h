@@ -15,13 +15,14 @@
 extern "C" {
 #endif
 #include "mri.h"
+#include "matrix.h"
 #ifdef __cplusplus
 }
 #endif
 
 //#include <utility>
 //#include <string>
-//#include <vector>
+#include <vector>
 #include <iostream>
 
 class CostFunctions
@@ -32,6 +33,10 @@ class CostFunctions
        static double sdev(MRI *i) {return sqrt(var(i));};
        static double median(MRI *i);
        static double mad(MRI *i, double d = 1.4826);
+       static double moment(MRI * i, int x, int y, int z);
+       static std::vector < double > centroid (MRI * i);
+       static MATRIX* orientation (MRI * i);
+
        static double leastSquares(MRI * i1, MRI * i2 = NULL);
        static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
        static double normalizedCorrelation(MRI * i1, MRI * i2);
@@ -39,6 +44,7 @@ class CostFunctions
        static double normalizedMutualInformation(MRI * i1, MRI * i2 = NULL);
        static double woods(MRI * i1, MRI * i2 = NULL);
        static double correlationRatio(MRI * i1, MRI * i2 = NULL);
+
 
     protected:
        inline static double rhoTukeyBiweight (double d, double  sat = 4.685);
