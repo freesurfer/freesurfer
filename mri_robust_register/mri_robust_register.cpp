@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/04/23 13:09:39 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/04/23 20:18:44 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -65,8 +65,8 @@ extern "C" {
 
 using namespace std;
 
-//#define SAT 4.685 // this is suggested for gaussian noise
-#define SAT 20
+#define SAT 4.685 // this is suggested for gaussian noise
+//#define SAT 20
 #define SSAMPLE -1
 
 struct Parameters
@@ -111,7 +111,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.15 2009/04/23 13:09:39 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.16 2009/04/23 20:18:44 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
