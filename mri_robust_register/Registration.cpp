@@ -2590,8 +2590,8 @@ MATRIX * Registration::MatrixSqrt (MATRIX * m, MATRIX *msqrt)
          Ysq = MatrixMultiply(Yn,Yn,Ysq);
          Ysq = MatrixSubtract(Ysq,R,Ysq);
          err = 0;
-         for (int c=1; c<=4; c++)
-         for (int r=1; r<=4; r++)
+         for (int c=1; c<4; c++)
+         for (int r=1; r<4; r++)
            err += fabs(*MATRIX_RELT(Ysq, r, c)) ;
          
       }
