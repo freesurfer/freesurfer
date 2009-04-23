@@ -146,13 +146,9 @@ class Registration
    // tools
    double getFrobeniusDiff(MATRIX *m1, MATRIX *m2);
 
-   // initial registration using pca DOES NOT WORK!
-   MATRIX * initialize_transform(MRI *mri_in, MRI *mri_ref);
-   int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L);
-   int order_eigenvectors(MATRIX *m_src_evectors, MATRIX *m_dst_evectors);
-   MATRIX * compute_pca(MRI *mri_in, MRI *mri_ref);
-   MATRIX * pca_matrix(MATRIX *m_in_evectors, double in_means[3], MATRIX *m_ref_evectors, double ref_means[3]);
-   
+   // initial registration using moments
+   MATRIX * initializeTransform(MRI *mri_in, MRI *mri_ref);
+   int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L); // NOT TESTED !!!!!!!  
    
     bool transonly;
     bool rigid;

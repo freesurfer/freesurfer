@@ -2,6 +2,7 @@
 #include "Registration.h"
 #include "Quaternion.h"
 #include "Regression.h"
+#include "CostFunctions.h"
 
 #include <cassert>
 #include <fstream>
@@ -223,7 +224,7 @@ pair <MATRIX*,double> Registration::computeRegistrationStep(MRI * mriS, MRI* mri
 //    pair < MATRIX*, double > fmd(NULL,scaleinit);
 //    if (m) fmd.first = MatrixCopy(m,NULL);
 //    else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
-//    else fmd.first = MatrixIdentity(4,NULL);
+//    else fmd.first = initializeTransform(mriS,mriT);
 //    
 //   cout << "   - initial transform:\n" ;
 //   MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
@@ -330,8 +331,8 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
   // check if mi (inital transform) is passed
   if (m) fmd.first = MatrixCopy(m,NULL);      
   else if (Minit) fmd.first = MatrixCopy(Minit,NULL);      
-  else fmd.first = MRIgetVoxelToVoxelXform(mriS,mriT) ;
-   
+  else fmd.first = initializeTransform(mriS,mriT);
+     
    if (debug > 0)
    {
       cout << "   - initial transform:\n" ;
@@ -519,8 +520,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
    // check if mi (inital transform) is passed
    if (m)          fmd.first = MatrixCopy(m,NULL);      
    else if (Minit) fmd.first = MatrixCopy(Minit,NULL);      
-   else            fmd.first = MRIgetVoxelToVoxelXform(mriS,mriT) ;
-   //else fmd.first = MatrixIdentity(4,NULL);
+   else            fmd.first = initializeTransform(mriS,mriT) ;
    
    if (debug > 0)
    {
@@ -628,19 +628,9 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
   pair < MATRIX* , double > md(NULL,scaleinit);
   
   // check if mi (inital transform) is passed
-  if (mi)
-  {
-      md.first = MatrixCopy(mi,NULL);      
-  }
-  else if (Minit)
-      md.first = MatrixCopy(Minit,NULL);      
-  else
-  {
-    //  md.first = MatrixIdentity(4,NULL);
-    //   md.first = initialize_transform(mriS,mriT);    
-    // use voxtovox as init: 
-    md.first = MRIgetVoxelToVoxelXform(mriS,mriT) ;
-  }
+  if (mi) md.first = MatrixCopy(mi,NULL);      
+  else if (Minit) md.first = MatrixCopy(Minit,NULL);      
+  else md.first = initializeTransform(mriS,mriT);
   
   if (debug > 0)
   {
@@ -2873,50 +2863,109 @@ void Registration::freeGaussianPyramid(vector< MRI* >& p)
 } 
 
 
-// ---------------------- Initial Transform using PCA -----------------------------
+// ---------------------- Initial Transform using Moments -----------------------------
 
- MATRIX * Registration::initialize_transform(MRI *mri_in, MRI *mri_ref)
- {
-  MATRIX *m_L = NULL ;
-  MATRIX *m_Lvox ;
+MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
+{
 
-  fprintf(stderr, "initializing alignment using PCA...\n") ;
-//  if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
-    MRIwriteImageViews(mri_ref, "ref", IMAGE_SIZE) ;
-    MRIwriteImageViews(mri_in, "before_pca", IMAGE_SIZE) ;
-//  }
+    MATRIX* Minit = MRIgetVoxelToVoxelXform(mriS,mriT) ;
+    MRI * mri_tmp = MRIlinearTransform(mriS,NULL,Minit);
+    
+    // find centroids:
+    vector < double > centroidS = CostFunctions::centroid(mri_tmp);
+    vector < double > centroidT = CostFunctions::centroid(mriT);
+    
+   
+    bool initorient = false;
+    double oS =1;
+    double oT =1;
+    if (initorient)
+    {
+       // find orientation:
+       MATRIX * evT = CostFunctions::orientation(mriT);
+       MATRIX * evS = CostFunctions::orientation(mri_tmp);
+    
+       // sanity check (orientation of basis needs to be the same)
+       VECTOR* v1 = MatrixColumn(evT,NULL,1);
+       VECTOR* v2 = MatrixColumn(evT,NULL,2);
+       VECTOR* v3 = MatrixColumn(evT,NULL,3);
+       VECTOR* vc = VectorCrossProduct(v1,v2,NULL);
+       double oT  = VectorDot(vc,v3);
+       v1 = MatrixColumn(evS,v1,1);
+       v2 = MatrixColumn(evS,v2,2);
+       v3 = MatrixColumn(evS,v3,3);
+       vc = VectorCrossProduct(v1,v2,vc);
+       double oS  = VectorDot(vc,v3);
+       MatrixFree(&v1);
+       MatrixFree(&v2);
+       MatrixFree(&v3);
+       MatrixFree(&vc);
+    
+       //cout << " ot: " << oT << "  os: " << oS << endl;
+       if (oS * oT > 0) // use orientation info for intial alignment
+       {
+          cout << "     -- using orientation info\n" ;
+          // make 4x4
+          MATRIX * evS2 = MatrixIdentity(4,NULL);
+          MATRIX * evT2 = MatrixIdentity(4,NULL);
+          for (int c=1; c<4;c++)
+          for (int r=1; r<4;r++)
+          {
+             evS2->rptr[r][c] = evS->rptr[r][c];
+	     evT2->rptr[r][c] = evT->rptr[r][c];
+          }
+              
+          // first move Src centroid to origin
+          Minit->rptr[1][4] -= centroidS[0];
+          Minit->rptr[2][4] -= centroidS[1];
+          Minit->rptr[3][4] -= centroidS[2];
+       
+          // Rotate evT * evS^-1
+          MATRIX* evS2i = MatrixInverse(evS2,NULL);
+          assert(evS2i);
+          Minit = MatrixMultiply(evS2i,Minit,Minit);
+          Minit = MatrixMultiply(evT2,Minit,Minit);
+       
+          // finally move to T centroid
+          Minit->rptr[1][4] += centroidT[0];
+          Minit->rptr[2][4] += centroidT[1];
+          Minit->rptr[3][4] += centroidT[2];
+       
+          if (debug)
+          {       
+             mri_tmp = MRIlinearTransform(mriS,mri_tmp,Minit);              
+             MRIwrite(mri_tmp,"init-align-rot.mgz");
+          }
+          MatrixFree(&evS2);
+          MatrixFree(&evS2i);
+          MatrixFree(&evT2);
+       }
+       if (evT) MatrixFree(&evT);
+       if (evS) MatrixFree(&evS);
+       
+    }
+    
+    if (!initorient || oS * oT < 0) // if orientation did not work
+    {
+       cout << "     -- using translation info\n" ;
+       Minit->rptr[1][4] += centroidT[0]-centroidS[0];
+       Minit->rptr[2][4] += centroidT[1]-centroidS[1];
+       Minit->rptr[3][4] += centroidT[2]-centroidS[2];
+       if (debug)
+       {
+          mri_tmp = MRIlinearTransform(mriS,mri_tmp,Minit);
+          MRIwrite(mri_tmp,"init-align-trans.mgz");
+       }
+    } 
 
-//  if (nopca)
-//    m_L = MatrixIdentity(3, NULL) ;
-//  else
-    m_Lvox = compute_pca(mri_in, mri_ref) ;
+    MRIfree(&mri_tmp);
 
-  if (!rigid && !transonly) init_scaling(mri_in, mri_ref, m_Lvox) ;
-  
-//#if 0
-//  init_translation(mri_in, mri_ref, m_L) ; /* in case PCA failed */
-//#endif
-
-  /* convert it to RAS mm coordinates */
-  m_L = MRIvoxelXformToRasXform(mri_in, mri_ref, m_Lvox, m_L) ;
-
-//  if (Gdiag & DIAG_SHOW) {
-    printf("initial transform:\n") ;
-    MatrixPrint(stdout, m_L) ;
-//  }
-//  if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-//  {
-    MRI *mri_aligned ;
-
-    mri_aligned = MRIapplyRASlinearTransform(mri_in, NULL, m_L) ;
-    MRIwriteImageViews(mri_aligned, "after_pca", IMAGE_SIZE) ;
-    MRIfree(&mri_aligned) ;
-//  }
-
-  return(m_Lvox) ;
+    return Minit;
 }
 
 
+
+// NOT TESTED !!!!!!!
 #define MAX_DX   1.2
 #define MAX_DY   1.2
 #define MAX_DZ   1.2
@@ -2924,7 +2973,6 @@ void Registration::freeGaussianPyramid(vector< MRI* >& p)
 #define MIN_DY   (1.0/MAX_DY)
 #define MIN_DZ   (1.0/MAX_DZ)
 #define MAX_RATIO 1.2
-
 int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
 {
   MATRIX      *m_scaling ;
@@ -2972,220 +3020,7 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 
-MATRIX * Registration::compute_pca(MRI *mri_in, MRI *mri_ref) {
-unsigned char thresh_low = 40;
-  int    row, col, i ;
-  float  dot ;
-  MATRIX *m_ref_evectors = NULL, *m_in_evectors = NULL ;
-  float  in_evalues[3], ref_evalues[3] ;
-  double  ref_means[3], in_means[3] ;
 
-  if (!m_ref_evectors)
-    m_ref_evectors = MatrixAlloc(3,3,MATRIX_REAL) ;
-  if (!m_in_evectors)
-    m_in_evectors = MatrixAlloc(3,3,MATRIX_REAL) ;
-
-//  if (binarize) {
-//    MRIbinaryPrincipleComponents(mri_ref, m_ref_evectors, ref_evalues,
-//                                 ref_means, thresh_low);
-//    MRIbinaryPrincipleComponents(mri_in,m_in_evectors,in_evalues,in_means,
-//                                 thresh_low);
-//  } else {
-    MRIprincipleComponents(mri_ref, m_ref_evectors, ref_evalues, ref_means,
-                           thresh_low);
-    MRIprincipleComponents(mri_in,m_in_evectors,in_evalues,in_means,
-                           thresh_low);
-//  }
-
-  order_eigenvectors(m_in_evectors, m_in_evectors) ;
-  order_eigenvectors(m_ref_evectors, m_ref_evectors) ;
-
-  /* check to make sure eigenvectors aren't reversed */
-  for (col = 1 ; col <= 3 ; col++) {
-#if 0
-    float theta ;
-#endif
-
-    for (dot = 0.0f, row = 1 ; row <= 3 ; row++)
-      dot += m_in_evectors->rptr[row][col] * m_ref_evectors->rptr[row][col] ;
-
-    if (dot < 0.0f) {
-      fprintf(stderr, "WARNING: mirror image detected in eigenvector #%d\n",
-              col) ;
-      dot *= -1.0f ;
-      for (row = 1 ; row <= 3 ; row++)
-        m_in_evectors->rptr[row][col] *= -1.0f ;
-    }
-#if 0
-    theta = acos(dot) ;
-    fprintf(stderr, "angle[%d] = %2.1f\n", col, DEGREES(theta)) ;
-#endif
-  }
-  fprintf(stderr, "ref_evectors = \n") ;
-  for (i = 1 ; i <= 3 ; i++)
-    fprintf(stderr, "\t\t%2.2f    %2.2f    %2.2f\n",
-            m_ref_evectors->rptr[i][1],
-            m_ref_evectors->rptr[i][2],
-            m_ref_evectors->rptr[i][3]) ;
-
-  fprintf(stderr, "\nin_evectors = \n") ;
-  for (i = 1 ; i <= 3 ; i++)
-    fprintf(stderr, "\t\t%2.2f    %2.2f    %2.2f\n",
-            m_in_evectors->rptr[i][1],
-            m_in_evectors->rptr[i][2],
-            m_in_evectors->rptr[i][3]) ;
-
-  return(pca_matrix(m_in_evectors, in_means,m_ref_evectors, ref_means)) ;
-}
-
-int Registration::order_eigenvectors(MATRIX *m_src_evectors, MATRIX *m_dst_evectors)
-{
-  int    row, col, xcol, ycol, zcol ;
-  double mx ;
-
-  if (m_src_evectors == m_dst_evectors)
-    m_src_evectors = MatrixCopy(m_src_evectors, NULL) ;
-
-  /* find columx with smallest dot product with unit x vector */
-  mx = fabs(*MATRIX_RELT(m_src_evectors, 1, 1)) ;
-  xcol = 1 ;
-  for (col = 2 ; col <= 3 ; col++)
-    if (fabs(*MATRIX_RELT(m_src_evectors, 1, col)) > mx) {
-      xcol = col ;
-      mx = fabs(*MATRIX_RELT(m_src_evectors, 1, col)) ;
-    }
-
-  mx = fabs(*MATRIX_RELT(m_src_evectors, 2, 1)) ;
-  ycol = 1 ;
-  for (col = 2 ; col <= 3 ; col++)
-    if (*MATRIX_RELT(m_src_evectors, 2, col) > mx) {
-      ycol = col ;
-      mx = fabs(*MATRIX_RELT(m_src_evectors, 2, col)) ;
-    }
-
-  mx = fabs(*MATRIX_RELT(m_src_evectors, 3, 1)) ;
-  zcol = 1 ;
-  for (col = 2 ; col <= 3 ; col++)
-    if (fabs(*MATRIX_RELT(m_src_evectors, 3, col)) > mx) {
-      zcol = col ;
-      mx = fabs(*MATRIX_RELT(m_src_evectors, 3, col)) ;
-    }
-
-  for (row = 1 ; row <= 3 ; row++) {
-    *MATRIX_RELT(m_dst_evectors,row,1) = *MATRIX_RELT(m_src_evectors,row,xcol);
-    *MATRIX_RELT(m_dst_evectors,row,2) = *MATRIX_RELT(m_src_evectors,row,ycol);
-    *MATRIX_RELT(m_dst_evectors,row,3) = *MATRIX_RELT(m_src_evectors,row,zcol);
-  }
-  return(NO_ERROR) ;
-}
-
-MATRIX * Registration::pca_matrix(MATRIX *m_in_evectors, double in_means[3],
-           MATRIX *m_ref_evectors, double ref_means[3])
-{
-  float   dx, dy, dz ;
-  MATRIX  *mRot, *m_in_T, *mOrigin, *m_L, *m_R, *m_T, *m_tmp ;
-  double  x_angle, y_angle, z_angle, r11, r21, r31, r32, r33, cosy ;
-  int     row, col ;
-
-  m_in_T = MatrixTranspose(m_in_evectors, NULL) ;
-  mRot = MatrixMultiply(m_ref_evectors, m_in_T, NULL) ;
-
-  r11 = mRot->rptr[1][1] ;
-  r21 = mRot->rptr[2][1] ;
-  r31 = mRot->rptr[3][1] ;
-  r32 = mRot->rptr[3][2] ;
-  r33 = mRot->rptr[3][3] ;
-  y_angle = atan2(-r31, sqrt(r11*r11+r21*r21)) ;
-  cosy = cos(y_angle) ;
-  z_angle = atan2(r21 / cosy, r11 / cosy) ;
-  x_angle = atan2(r32 / cosy, r33 / cosy) ;
-
-#define MAX_X_ANGLE  (RADIANS(35))
-#define MAX_Y_ANGLE  (RADIANS(15))
-#define MAX_Z_ANGLE  (RADIANS(15))
-  if (fabs(x_angle) > MAX_X_ANGLE || fabs(y_angle) > MAX_Y_ANGLE ||
-      fabs(z_angle) > MAX_Z_ANGLE) {
-    MATRIX *m_I ;
-
-    /*    MatrixFree(&m_in_T) ; MatrixFree(&mRot) ;*/
-    fprintf(stderr,
-            "eigenvector swap detected (%2.0f, %2.0f, %2.0f): ignoring rotational PCA...\n",
-            DEGREES(x_angle), DEGREES(y_angle), DEGREES(z_angle)) ;
-
-    m_I = MatrixIdentity(3, NULL) ;
-    MatrixCopy(m_I, mRot) ;
-    MatrixFree(&m_I) ;
-    x_angle = y_angle = z_angle = 0.0 ;
-  }
-
-  mOrigin = VectorAlloc(3, MATRIX_REAL) ;
-  mOrigin->rptr[1][1] = ref_means[0] ;
-  mOrigin->rptr[2][1] = ref_means[1] ;
-  mOrigin->rptr[3][1] = ref_means[2] ;
-
-  fprintf(stderr, "reference volume center of mass at (%2.1f,%2.1f,%2.1f)\n",
-          ref_means[0], ref_means[1], ref_means[2]) ;
-  fprintf(stderr, "input volume center of mass at     (%2.1f,%2.1f,%2.1f)\n",
-          in_means[0], in_means[1], in_means[2]) ;
-  dx = ref_means[0] - in_means[0] ;
-  dy = ref_means[1] - in_means[1] ;
-  dz = ref_means[2] - in_means[2] ;
-
-  fprintf(stderr, "translating volume by %2.1f, %2.1f, %2.1f\n",
-          dx, dy, dz) ;
-  fprintf(stderr, "rotating volume by (%2.2f, %2.2f, %2.2f)\n",
-          DEGREES(x_angle), DEGREES(y_angle), DEGREES(z_angle)) ;
-
-  /* build full rigid transform */
-  m_R = MatrixAlloc(4,4,MATRIX_REAL) ;
-  m_T = MatrixAlloc(4,4,MATRIX_REAL) ;
-  for (row = 1 ; row <= 3 ; row++) {
-    for (col = 1 ; col <= 3 ; col++) {
-      *MATRIX_RELT(m_R,row,col) = *MATRIX_RELT(mRot, row, col) ;
-    }
-    *MATRIX_RELT(m_T,row,row) = 1.0 ;
-  }
-  *MATRIX_RELT(m_R, 4, 4) = 1.0 ;
-
-  /* translation so that origin is at ref eigenvector origin */
-  dx = -ref_means[0] ;
-  dy = -ref_means[1] ;
-  dz = -ref_means[2] ;
-  *MATRIX_RELT(m_T, 1, 4) = dx ;
-  *MATRIX_RELT(m_T, 2, 4) = dy ;
-  *MATRIX_RELT(m_T, 3, 4) = dz ;
-  *MATRIX_RELT(m_T, 4, 4) = 1 ;
-  m_tmp = MatrixMultiply(m_R, m_T, NULL) ;
-  *MATRIX_RELT(m_T, 1, 4) = -dx ;
-  *MATRIX_RELT(m_T, 2, 4) = -dy ;
-  *MATRIX_RELT(m_T, 3, 4) = -dz ;
-  MatrixMultiply(m_T, m_tmp, m_R) ;
-
-  /* now apply translation to take in centroid to ref centroid */
-  dx = ref_means[0] - in_means[0] ;
-  dy = ref_means[1] - in_means[1] ;
-  dz = ref_means[2] - in_means[2] ;
-  *MATRIX_RELT(m_T, 1, 4) = dx ;
-  *MATRIX_RELT(m_T, 2, 4) = dy ;
-  *MATRIX_RELT(m_T, 3, 4) = dz ;
-  *MATRIX_RELT(m_T, 4, 4) = 1 ;
-
-  m_L = MatrixMultiply(m_R, m_T, NULL) ;
-//  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-//    printf("m_T:\n") ;
-//    MatrixPrint(stdout, m_T) ;
-//    printf("m_R:\n") ;
-//    MatrixPrint(stdout, m_R) ;
-//    printf("m_L:\n") ;
-//    MatrixPrint(stdout, m_L) ;
-//  }
-  MatrixFree(&m_R) ;
-  MatrixFree(&m_T) ;
-
-  MatrixFree(&mRot) ;
-  VectorFree(&mOrigin) ;
-  return(m_L) ;
-}
    
 double Registration::getFrobeniusDiff(MATRIX *m1, MATRIX *m2)
 {
