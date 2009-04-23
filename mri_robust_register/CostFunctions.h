@@ -2,6 +2,8 @@
 // CostFunctions is a class that makes available many different
 // cost functions for images
 //
+// MRIiterator iterates through MRI (readonly)
+//
 // written by Martin Reuter
 // March 20th ,2009
 //
@@ -25,17 +27,34 @@ extern "C" {
 class CostFunctions
 {
     public:
-    double mean(MRI *i);
-    double var(MRI *i);
-    double sdev(MRI *i) {return sqrt(var(i));};
-    double leastSquares(MRI * i1, MRI * i2 = NULL);
-    double normalizedCorrelation(MRI * i1, MRI * i2);
-    double mutualInformation(MRI * i1, MRI * i2 = NULL);
-    double normalizedMutualInformation(MRI * i1, MRI * i2 = NULL);
-    double woods(MRI * i1, MRI * i2 = NULL);
-    double correlationRatio(MRI * i1, MRI * i2 = NULL);
+       static double mean(MRI *i);
+       static double var(MRI *i);
+       static double sdev(MRI *i) {return sqrt(var(i));};
+       static double median(MRI *i);
+       static double mad(MRI *i, double d = 1.4826);
+       static double leastSquares(MRI * i1, MRI * i2 = NULL);
+       static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
+       static double normalizedCorrelation(MRI * i1, MRI * i2);
+       static double mutualInformation(MRI * i1, MRI * i2 = NULL);
+       static double normalizedMutualInformation(MRI * i1, MRI * i2 = NULL);
+       static double woods(MRI * i1, MRI * i2 = NULL);
+       static double correlationRatio(MRI * i1, MRI * i2 = NULL);
 
+    protected:
+       inline static double rhoTukeyBiweight (double d, double  sat = 4.685);
+       inline static double rhoSquare (double d) {return d*d;};
 };
+
+inline double CostFunctions::rhoTukeyBiweight(double d, double sat)
+{
+	if (d > sat || d < -sat) return sat*sat/2.0;
+	else
+	{
+		double a = d/sat;
+		double b = 1.0 - a * a;
+		return (sat*sat/2.0)*(1.0-b*b*b);
+	}
+}
 
 class MRIiterator
 {

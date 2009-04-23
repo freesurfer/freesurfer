@@ -3,6 +3,7 @@
 #include <cassert>
 #include <fstream>
 #include <sstream>
+#include "RobustGaussian.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,12 +21,6 @@ using namespace std;
 
 double CostFunctions::mean(MRI *i)
 {
-//	if (!i->ischunked)
-//	{
-//	   cerr<< "CostFunctions::mean need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
-//	   exit(1);
-//	}
-
 	int count = 0;
 	double d= 0.0;
 	MRIiterator it1(i); 
@@ -39,12 +34,6 @@ double CostFunctions::mean(MRI *i)
 
 double CostFunctions::var(MRI *i)
 {
-//	if (!i->ischunked)
-//	{
-//	   cerr<< "CostFunctions::mean need chunk MRI, set environment: FS_USE_MRI_CHUNK" << endl;
-//	   exit(1);
-//	}
-
 	double m = mean(i);
 	double d= 0.0;
 	double dd;
@@ -59,18 +48,57 @@ double CostFunctions::var(MRI *i)
        return d/count;
 }
 
+double CostFunctions::median(MRI *i)
+{
+  int n = i->width * i->height * i->depth;
+  double* t = (double *)calloc(n, sizeof(double)); 
+  
+  int cc = 0;
+  // copy array to t
+  MRIiterator it1(i); 
+  for (it1.begin();!it1.isEnd(); it1++)
+  {
+     t[cc] = (*it1);
+     cc++;
+  }
+    
+  double qs = RobustGaussian::median(t,n);
+  free(t);
+  return qs;
+}
+
+double CostFunctions::mad(MRI *i,double d)
+{
+  int n = i->width * i->height * i->depth;
+  double* t = (double *)calloc(n, sizeof(double)); 
+  
+  int cc = 0;
+  // copy array to t
+  MRIiterator it1(i); 
+  for (it1.begin();!it1.isEnd(); it1++)
+  {
+     t[cc] = (*it1);
+     cc++;
+  }
+    
+  double qs = RobustGaussian::mad(t,n,d);
+  free(t);
+  return qs;
+}
+
 
 double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 {
    assert(i1 != NULL);
  
-   assert(i1->width  == i2->width);
-   assert(i1->height == i2->height);
-   assert(i1->depth  == i2->depth);
+   if (i2)
+   {
+     assert(i1->width  == i2->width);
+     assert(i1->height == i2->height);
+     assert(i1->depth  == i2->depth);
+   }
 
    double d = 0;
-   if(i1->ischunked && (i2==NULL || i2->ischunked))
-   {
       //cout << "CostFunctions::leastSquares chunk data" <<endl;
 	double dd;
 	if (i2 == NULL)
@@ -94,53 +122,61 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 	   }
 	
 	}
-    }
-    else
-    {
-       //cout << "CostFunctions::LeastSquares standart data" << endl;
-	double dd;
-	if (i2 == NULL)
-	{
-	   for (int z = 0;z<i1->depth;z++)
-	   for (int y = 0;y<i1->height;y++)
-	   for (int x = 0;x<i1->width;x++)
-	   {
-	      dd = (double)MRIgetVoxVal(i1,x,y,z,0) ;
-	      d += dd*dd ;
-	   }
-	   
-	}
-	else
-	{
-
-           MRIiterator it1(i1);
-	   MRIiterator it2(i2);
-	   double dd2;
-	   for (int z = 0;z<i1->depth;z++)
-	   for (int y = 0;y<i1->height;y++)
-	   for (int x = 0;x<i1->width;x++)
-	   {
-	      dd = (double)MRIgetVoxVal(i1,x,y,z,0) - (double)MRIgetVoxVal(i2,x,y,z,0);
-	      dd2 = (double)(*it1) - (double)(*it2);
-	      //cout << " ddd" << dd2 << endl;
-	      it1++;
-	      //cout << " asfd" << endl;
-	      it2++;
-	      if (dd != dd2)
-	      {
-	         cout << "dd: " << dd << " dd2: "<< dd2 << endl;
-	      }
-	      d += dd*dd ;
-	   }
-	   
-	
-	}
-       
-    
-    }
     //cout << " d: " << d << endl;
     return d;
 }
+
+
+double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2,double sat)
+{
+   assert(i1 != NULL);
+ 
+   if (i2)
+   {
+     assert(i1->width  == i2->width);
+     assert(i1->height == i2->height);
+     assert(i1->depth  == i2->depth);
+   }
+
+   int n = i1->width * i1->height * i1->depth;
+   double* diff = (double *)calloc(n, sizeof(double)); 
+
+   int cc = 0;
+   if (i2 == NULL)
+   {
+      MRIiterator it1(i1); 
+      for (it1.begin();!it1.isEnd(); it1++)
+         diff[cc] = (*it1);
+	 cc++;
+   }
+   else
+   {
+      MRIiterator it1(i1); 
+      MRIiterator it2(i2); 
+      it2.begin();
+      //assert(i1->type == i2->type);
+      for (it1.begin();!it1.isEnd(); it1++)
+      {
+         //cout << "it1: " << *it1 << " it2: " << *it2 << endl;
+         diff[cc] = (double)(*it1) - (double)(*it2);
+	 cc++;
+         it2++;
+      }
+	
+    }
+
+
+   double sigma = RobustGaussian::mad(diff,n);
+
+   double d = 0;
+   for (int i=0;i<n;i++)
+    d += rhoTukeyBiweight(diff[i]/sigma,sat);
+    
+   free(diff);
+    //cout << " d: " << d << endl;
+    return d;
+}
+
 
 double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 {
