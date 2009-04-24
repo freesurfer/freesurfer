@@ -81,6 +81,7 @@ MRISUBDIRS=\
 	mri_info \
 	mri_and \
 	mri_hausdorff_dist \
+	mri_fuse_segmentations \
 	mri_joint_density \
 	mri_label_histo \
 	mri_label_vals \
@@ -172,6 +173,7 @@ MRISSUBDIRS=\
 	tridec \
 	mris_register_to_volume \
 	mris_hausdorff_dist \
+	mris_merge_parcellations \
 	mris_distance_transform \
 	mris_svm_classify \
 	mris_svm_train \
