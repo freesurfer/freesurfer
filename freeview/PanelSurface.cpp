@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/04/14 20:03:31 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2009/04/26 23:47:10 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -292,7 +292,7 @@ void PanelSurface::DoUpdateUI()
 
 void PanelSurface::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
 {
-  wxString value_strg = ( wxString() << dvalue );
+  wxString value_strg = ( (wxString)_("") << dvalue );
   if ( value_strg != ctrl->GetValue() && (value_strg + _(".")) != ctrl->GetValue() )
     ctrl->ChangeValue( value_strg );
 }
