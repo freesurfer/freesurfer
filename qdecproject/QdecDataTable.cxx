@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/09/05 23:17:46 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/04/27 23:32:08 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -182,6 +182,7 @@ int QdecDataTable::Load (const char* isFileName,
     else if (!strcmp(token,"subjid")) fsidcol = ncols;
     else if (!strcmp(token,"subject")) fsidcol = ncols;
     else if (!strcmp(token,"Subject")) fsidcol = ncols;
+    else if (!strcmp(token,"Measure:volume")) fsidcol = ncols;
     else if (isFsIdColName && !strcmp(token,isFsIdColName)) fsidcol = ncols;
     ncols++;
     token = strtok(NULL,WHITESPC); // get next token in this line
