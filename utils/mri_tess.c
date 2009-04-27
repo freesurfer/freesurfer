@@ -1,17 +1,16 @@
 /**
  * @file  mri_tess.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief tesselation routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: F. Segonne 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:32 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/04/27 18:50:37 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2003-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
