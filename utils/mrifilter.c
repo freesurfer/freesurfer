@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/01/15 23:12:50 $
- *    $Revision: 1.72 $
+ *    $Author: nicks $
+ *    $Date: 2009/04/27 18:51:30 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2410,7 +2410,7 @@ MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
             for (x0 = -whalf ; x0 <= whalf ; x0++)
             {
               xi = x + x0 ;
-              if (x < 0 || x > width)
+              if (xi < 0 || xi >= width)
                 continue ;
               wcubed++ ;
               f = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
