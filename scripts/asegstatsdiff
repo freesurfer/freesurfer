@@ -37,7 +37,7 @@ else
     set outfile=./asegstats.txt
 endif
 
-set cmd=(asegstats2table --s ${subject1} --s ${subject2} --t ${outfile})
+set cmd=(asegstats2table -s ${subject1} -s ${subject2} -t ${outfile})
 set tmpfile=(/tmp/asegstats2table-$$.txt)
 $cmd >& $tmpfile
 if ($status) then
@@ -47,9 +47,9 @@ if ($status) then
 endif
 rm -f $tmpfile >& /dev/null
 
-set labels=`grep "volume " ${outfile}`
-set subj1=`grep "${subject1} " ${outfile}`
-set subj2=`grep "${subject2} " ${outfile}`
+set labels=`grep ":volume" ${outfile}`
+set subj1=`grep -e "^${subject1}" ${outfile}`
+set subj2=`grep -e "^${subject2}" ${outfile}`
 
 if ( "$#labels" != "$#subj1" ) then
     echo "Label row and Subj1 row have unequal number of columns!" 
