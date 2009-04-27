@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/19 23:51:09 $
- *    $Revision: 1.88 $
+ *    $Author: nicks $
+ *    $Date: 2009/04/27 18:50:52 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2068,6 +2068,9 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
       xi = nint(xv) ;
       yi = nint(yv) ;
       zi = nint(zv) ;
+      if (xi >= mri->width)  xi = mri->width-1;
+      if (yi >= mri->height) yi = mri->height-1;
+      if (zi >= mri->depth)  zi = mri->depth-1;
       if (MRIvox(mri, xi, yi, zi) == 1)
       {
         MRISgetCoords(v, coords, &vx, &vy, &vz);
