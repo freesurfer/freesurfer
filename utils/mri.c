@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/02/11 22:38:50 $
- *    $Revision: 1.395.2.8 $
+ *    $Date: 2009/04/27 18:51:51 $
+ *    $Revision: 1.395.2.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.8 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.9 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -1043,7 +1043,12 @@ MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
 inline float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
 {
   static void *p=NULL;
-
+ 
+  // bounds checks:
+  if (c < 0) return mri->outside_val;
+  if (r < 0) return mri->outside_val;
+  if (s < 0) return mri->outside_val;
+  
   if (mri->ischunked)
   {
     p = mri->chunk + c + r*mri->bytes_per_row +

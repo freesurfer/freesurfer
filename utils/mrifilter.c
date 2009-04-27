@@ -1,17 +1,16 @@
 /**
  * @file  mrifilter.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief more mri utilities
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/01/15 23:13:45 $
- *    $Revision: 1.60.2.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/04/27 18:51:51 $
+ *    $Revision: 1.60.2.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,17 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   mri.c
- *
- *       DESCRIPTION: utilities for MRI  data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2410,7 +2398,7 @@ MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
             for (x0 = -whalf ; x0 <= whalf ; x0++)
             {
               xi = x + x0 ;
-              if (x < 0 || x > width)
+              if (xi < 0 || xi >= width)
                 continue ;
               wcubed++ ;
               f = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
