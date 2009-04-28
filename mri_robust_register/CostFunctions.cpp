@@ -317,27 +317,15 @@ MATRIX* CostFunctions::orientation(MRI *i)
 	assert(eval[0] >= eval[1]);
 	assert(eval[1] >= eval[2]);
 	
-	// make max positive:
-	for (int c=1;c<4;c++)
+	// make det positive:
+	double d = MatrixDeterminant(evec);
+	if (d<0)
 	{
-	   double fmax = 0;
-	   double max = 0;
+	   //cout << "Orientation: neg. determinant ..  fixing" << endl;
 	   for (int r=1;r<4;r++)
-	   {
-	      if (fabs(evec->rptr[r][c]) > fmax)
-	      {
-	         fmax = fabs(evec->rptr[r][c]);
-		 max  = evec->rptr[r][c];
-	      }
-	   }
-	   
-	   if (max < 0) // negate
-	      for (int r=1;r<4;r++)
-	         evec->rptr[r][c] = - evec->rptr[r][c];
-		 
+	      evec->rptr[r][1] = - evec->rptr[r][1];	
 	}
-	   
-	   
+	
 	   
 	//cout << " evals: " << eval[0] << " " << eval[1] << " " << eval[2] << endl;
 	//cout << " evecs: " << endl;
