@@ -18,7 +18,7 @@ extern "C" {
 }
 #endif
 
-#define SAT 4.685  // this is suggested for gaussian noise
+#define SATr 4.685  // this is suggested for gaussian noise
 
 #include <utility>
 #include <string>
@@ -29,11 +29,14 @@ class Regression
      // constructor initializing A and B 
      Regression(MATRIX* Ap, MATRIX* Bp):
            A(Ap), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1) {};
+     // constructor initializing B (for simple case where x is single variable and A is (...1...)^T
+     Regression(MATRIX* Bp):
+           A(NULL), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1) {};
 
      // Robust solver
-     MATRIX* getRobustEst(double sat =  SAT, double sig =  1.4826);
+     MATRIX* getRobustEst(double sat =  SATr, double sig =  1.4826);
      // Robust solver (returning also the weights)
-     std::pair < MATRIX*, MATRIX* > getRobustEstW(double sat =  SAT, double sig =  1.4826);
+     std::pair < MATRIX*, MATRIX* > getRobustEstW(double sat =  SATr, double sig =  1.4826);
      
      // Least Squares
      MATRIX* getLSEst    (MATRIX* outX = NULL);
@@ -45,13 +48,15 @@ class Regression
      void plotPartialSat(const std::string& fname);
 
   protected:
-  
+      std::pair < MATRIX*, MATRIX* > getRobustEstWAB(double sat =  SATr, double sig =  1.4826);
+      std::pair < MATRIX*, MATRIX* > getRobustEstWB(double sat =  SATr, double sig =  1.4826);
+
      double getSigmaMAD(MATRIX *r, double d = 1.4826);
      double VectorMedian(MATRIX *v);
 
-     MATRIX* getSqrtTukeyDiaWeights(MATRIX * r, double sat =  SAT, MATRIX * w = NULL);
-     MATRIX* getTukeyBiweight(MATRIX* r, double sat =  SAT, MATRIX* w = NULL);
-     double  getTukeyPartialSat(MATRIX* r, double sat =  SAT);
+     MATRIX* getSqrtTukeyDiaWeights(MATRIX * r, double sat =  SATr, MATRIX * w = NULL);
+     MATRIX* getTukeyBiweight(MATRIX* r, double sat =  SATr, MATRIX* w = NULL);
+     double  getTukeyPartialSat(MATRIX* r, double sat =  SATr);
      
   private:
      MATRIX* A;

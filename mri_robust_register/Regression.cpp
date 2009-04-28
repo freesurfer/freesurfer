@@ -43,6 +43,100 @@ MATRIX * Regression::getRobustEst(double sat, double sig)
 // }
 
 pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
+{
+   if (A) return getRobustEstWAB(sat,sig);
+   return getRobustEstWB(sat,sig);
+}
+
+pair < MATRIX *, MATRIX *> Regression::getRobustEstWB(double sat, double sig)
+{
+  // constants
+  int MAXIT = 20;
+  //double EPS = 2e-12;
+  double EPS = 2e-6;
+
+   double muold =0;
+   double mu =0;
+   
+   assert(B->cols == 1);
+   assert(A == NULL);
+   
+   // initialize with median:
+   double bb[B->rows];
+   for (int i = 1 ; i<=B->rows; i++)
+      bb[i-1] = B->rptr[i][1];
+   mu = RobustGaussian::median(bb,B->rows);
+   
+   muold = mu + 100; // set out of reach of eps
+   int count = 0;
+  MATRIX * w = MatrixConstVal(1.0,B->rows,1,NULL);
+  MATRIX * r = MatrixConstVal(1.0,B->rows,1,NULL);
+  MATRIX * rdsigma = MatrixConstVal(1.0,B->rows,1,NULL);
+  double sigma,d1,d2,d3,wi;
+   
+   //cout << endl<<endl<<" Values: " << endl; 
+   //MatrixPrintFmt(stdout,"% 2.8f",B);
+  
+   while (fabs(muold - mu) > EPS && count < MAXIT)
+   {
+      count++;
+      muold = mu;
+      //cout << endl << "count " << count << " Myold " << muold << endl;
+      for (int i = 1 ; i<=B->rows; i++)
+         r->rptr[i][1] = muold - B->rptr[i][1];
+	
+	//cout << " residuals: " << endl; 
+	//   MatrixPrintFmt(stdout,"% 2.8f",r);
+
+      sigma = getSigmaMAD(r);
+      //cout << " sigma: " << sigma << endl;
+      if (sigma < EPS) // if all r are the same (usually zero)
+      {
+         mu = muold;
+	 for (int i=1 ; i<=w->rows; i++)
+	    w->rptr[i][1] = 1;
+	 break;
+      }
+      
+      for (int i = 1 ; i<=B->rows; i++)
+         rdsigma->rptr[i][1] = r->rptr[i][1] / sigma;
+ 	//cout << " r/sigma: " << endl; 
+	//   MatrixPrintFmt(stdout,"% 2.8f",rdsigma);
+
+      getSqrtTukeyDiaWeights(rdsigma, sat, w); // here we get sqrt of weights into w
+ 	//cout << " weights: " << endl; 
+	//   MatrixPrintFmt(stdout,"% 2.8f",w);
+     
+      d1 = 0;
+      d2 = 0;
+      d3 = 0;
+      for (int i = 1 ; i<=B->rows; i++)
+      {
+         wi = w->rptr[i][1] *w->rptr[i][1];
+         d1 += wi * r->rptr[i][1];
+	 d2 += wi;
+         d3 += wi * r->rptr[i][1] * r->rptr[i][1];
+      }
+      
+      if (d2 < EPS) // weights zero
+      {
+      
+       assert(d2 >= EPS);
+      }
+      mu = muold - d1/d2;
+       
+   }
+//cout << "!!! final mu :  " << mu << endl;
+  MatrixFree(&r);
+  MatrixFree(&rdsigma);
+
+  MATRIX * p = MatrixConstVal(mu,1,1,NULL);
+   
+  return pair < MATRIX*, MATRIX*> (p,w);
+
+}
+
+pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
 // solves overconstrained system A p = b using
 // M estimators (Beaton and Tukey's biweigt function)
 // returns pair < p, w  > of vectors
@@ -227,6 +321,21 @@ MATRIX* Regression::getLSEst(MATRIX* outX)
   //cout << " Regression::getLSEst " << endl;
   lastweight = -1;
   lastzero   = -1;
+  
+  if (A==NULL) // LS solution is just the mean of B
+  {
+     if (!outX) outX = MatrixAlloc(1,1,MATRIX_REAL);
+     assert(outX->rows == 1);
+     assert(outX->cols == 1);
+     assert(B->cols ==1);
+     outX->rptr[1][1] = 0;
+     for (int r=1;r<=B->rows;r++)
+        outX->rptr[1][1] += B->rptr[r][1];
+     outX->rptr[1][1] = outX->rptr[1][1] / B->rows;
+     return outX;
+        
+  }
+  
   MATRIX* Ai = MatrixSVDPseudoInverse(A,NULL);
   if (Ai == NULL)
   {
