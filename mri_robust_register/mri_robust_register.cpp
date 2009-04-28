@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/04/23 20:18:44 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/04/28 02:21:18 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA). 
@@ -44,6 +44,7 @@
 #include <cassert>
 
 #include "Registration.h"
+#include "RegPowell.h"
 #include "CostFunctions.h"
 
 // all other software are all in "C"
@@ -103,15 +104,16 @@ struct Parameters
   MRI*   mri_mov;
   MRI*   mri_dst;
   bool   dosatest;
+  bool   initorient;
 };
-static struct Parameters P = { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false};
+static struct Parameters P = { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false};
 
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.16 2009/04/23 20:18:44 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.17 2009/04/28 02:21:18 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -181,12 +183,15 @@ int main(int argc, char *argv[])
   
   
   // init registration from Parameters
+//  RegPowell R;
   Registration R;
   initRegistration(R,P);
 //conv(P.mri_dst);
 
-  cout << " mean mov : " << CostFunctions::mean(P.mri_mov) << "  mean dst: " << CostFunctions::mean(P.mri_dst) << endl;
-  cout << " sdev mov : " << CostFunctions::sdev(P.mri_mov) << "  sdev dst: " << CostFunctions::sdev(P.mri_dst) << endl; 
+//  cout << " mean mov : " << CostFunctions::mean(P.mri_mov) << "  mean dst: " << CostFunctions::mean(P.mri_dst) << endl;
+//  cout << " sdev mov : " << CostFunctions::sdev(P.mri_mov) << "  sdev dst: " << CostFunctions::sdev(P.mri_dst) << endl; 
+//  cout << " median mov : " << CostFunctions::median(P.mri_mov) << "  median dst: " << CostFunctions::median(P.mri_dst) << endl;
+//  cout << " mad mov : " << CostFunctions::mad(P.mri_mov) << "  mad dst: " << CostFunctions::mad(P.mri_dst) << endl; 
   cout << " LS difference before: " << CostFunctions::leastSquares(P.mri_mov,P.mri_dst) << endl;
   cout << " NC difference before: " << CostFunctions::normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
   
@@ -283,6 +288,10 @@ int main(int argc, char *argv[])
 //    sprintf(fname, "%s_target", parms.base_name) ;
 //    MRIwriteImageViews(mri_dst, fname, IMAGE_SIZE) ;
 
+//      cout << " mean warp : " << CostFunctions::mean(mri_aligned) << "  mean dst: " << CostFunctions::mean(P.mri_dst) << endl;
+//      cout << " sdev warp : " << CostFunctions::sdev(mri_aligned) << "  sdev dst: " << CostFunctions::sdev(P.mri_dst) << endl; 
+//      cout << " median warp : " << CostFunctions::median(mri_aligned) << "  median dst: " << CostFunctions::median(P.mri_dst) << endl; 
+//      cout << " mad warp : " << CostFunctions::mad(mri_aligned) << "  mad dst: " << CostFunctions::mad(P.mri_dst) << endl; 
       cout << " LS difference after: " << CostFunctions::leastSquares(mri_aligned,P.mri_dst) << endl;
       cout << " NC difference after: " << CostFunctions::normalizedCorrelation(mri_aligned,P.mri_dst) << endl;
   
@@ -426,12 +435,6 @@ int countw1=0,countw0=0,count=0;
             {
 	       cout << " saving half-way weights ..." << endl;
 	       MRIwrite(mri_weights,P.halfweights.c_str());
-// 	       MRI* mri_Wwarp = MRIalloc(P.mri_mov->width,P.mri_mov->height,P.mri_mov->depth,MRI_FLOAT);
-// 	       MRIcopyHeader(P.mri_mov,mri_Wwarp); // bring them to same space (just use mov geometry)
-// 	       mri_Wwarp->type = MRI_FLOAT;
-//                mri_Wwarp = MRIlinearTransform(mri_weights,mri_Wwarp, mhi);
-// 	       MRIwrite(mri_Wwarp,P.halfweights.c_str());	  
-// 	       MRIfree(&mri_Wwarp);
             }
             else 
                cout << "Warning: no weights have been computed! Maybe you ran with --leastsquares??" << endl;
@@ -468,45 +471,6 @@ int countw1=0,countw0=0,count=0;
 
 // int main(int argc, char *argv[])
 // {
-// //   testRegression();
-// 
-// //   testRobust(argv[1],atoi(argv[2]));
-// //     MRI *mri_kernel ;
-// // 
-// //     mri_kernel = MRIgaussian1d(1.08, 5) ;
-// //     
-// //   for (int c=0; c < mri_kernel->width; c++)
-// //   for (int r=0; r < mri_kernel->height; r++)
-// //   for (int s=0; s < mri_kernel->depth; s++)
-// //   for (int f=0; f < mri_kernel->nframes ; f++)
-// //   {
-// //   	cout << " c: " << c << "  r: " << r << "  s: " << s << "  f: " << f << " = " ;
-// // 	cout << MRIgetVoxVal(mri_kernel, c, r, s, f) << endl;
-// //   }
-// //   exit(1);
-// // 
-// //   MATRIX * p = MatrixAlloc(6,1,MATRIX_REAL);
-// //   *MATRIX_RELT(p, 1, 1) = -100;
-// //   *MATRIX_RELT(p, 2, 1) = 2;
-// //   *MATRIX_RELT(p, 3, 1) = 800;
-// //   *MATRIX_RELT(p, 4, 1) = 5;
-// //   *MATRIX_RELT(p, 5, 1) = 4;
-// //   *MATRIX_RELT(p, 6, 1) = 3;
-// //   MATRIX * m = param2matrixt(p);
-// //   MatrixPrint(stdout,m);
-// //   MATRIX *m2 = param2matrix(p);
-// //   cout << endl;
-// //   MatrixPrint(stdout,m2);
-// // 
-// // //MatrixPrint(stdout, p);
-// // //cout << VectorMedian(p) << endl;
-// // //double ss = getSigmaMAD(p);
-// // //cout << endl << ss << endl;
-// //   exit(1);
-// //   
-// 
-// //  char         *in_Sfname, *in_Tfname, *out_fname,fname[STRLEN];
-// //  MRI          *mri_inS, *mri_inT, *mri_tmp, *mri_dst;
 // 
 //   char         *fname_src, *fname_dst, *fname_out, fname[STRLEN];
 //   MRI          *mri_src, *mri_dst, *mri_tmp;
@@ -729,6 +693,9 @@ static void printUsage(void) {
   cout << "      --transonly            find 3 parameter translation only" << endl;
   cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
+  cout << "      --initorient           use moments for orientation initialization (default false)" << endl;
+  cout << "                                (recommended for stripped brains, but has difficulties" << endl;
+  cout << "                                 with full head images with different cropping)"<<endl;
   cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
   cout << "      --maxit <#>            iterate max # times on each resolution (default "<<P.iterate<<")"  << endl;
@@ -824,6 +791,7 @@ static void initRegistration(Registration & R, Parameters & P)
    R.setRobust(!P.leastsquares);
    R.setSaturation(P.sat);
    R.setDebug(P.debug);
+   R.setInitOrient(P.initorient);
    //R.setOutputWeights(P.weights,P.weightsout);
    
    
@@ -1052,6 +1020,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      P.transform = string(argv[1]);
      nargs = 1;
      cout << "Using previously computed initial transform: "<< argv[1] << endl;
+  }
+  else if (!strcmp(option, "INITORIENT"))
+  {
+     P.initorient = true;
+     cout << "Using moments for initial orientation!" << endl;
   }
   else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L")  )
   {
