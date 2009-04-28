@@ -26,18 +26,18 @@ class Registration
 {
   public:
     Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
-                   robust(true),rtype(1),subsamplesize(-1),debug(0),
+                   robust(true),rtype(1),subsamplesize(-1),debug(0),initorient(false),
                    mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),
 		   mri_weights(NULL), mov2weights(NULL),dst2weights(NULL),
 		   lastp(NULL), mri_indexing(NULL) {};
     Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
-                   robust(true),rtype(1),subsamplesize(-1),debug(0),
+                   robust(true),rtype(1),subsamplesize(-1),debug(0),initorient(false),
                    mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
 		   Minit(NULL),Mfinal(NULL),mri_weights(NULL),
 		   mov2weights(NULL),dst2weights(NULL),lastp(NULL),
 		   mri_indexing(NULL) {};
   
-    ~Registration()
+    virtual ~Registration()
     { // we cleanup our private variables
        if (mri_source) MRIfree(&mri_source);
        if (mri_target) MRIfree(&mri_target);
@@ -67,6 +67,7 @@ class Registration
     void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
     void setSubsamplesize (int sss){subsamplesize = sss;};
     void setName(const std::string &n);
+    void setInitOrient(bool io){initorient = io;};
 
     bool isIscale()        {return iscale;};
     std::string  getName() {return name;};
@@ -74,7 +75,7 @@ class Registration
     std::pair <MATRIX*, MATRIX*> getHalfWayMaps() {std::pair <MATRIX*, MATRIX*> md2w(mov2weights,dst2weights); return md2w;};
   
     // compute registration
-    std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+    virtual std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
     std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
     std::pair <MATRIX*, double> computeMultiresRegistration (int stopres, int n,double epsit, MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
  
@@ -104,8 +105,32 @@ class Registration
    //conversion
    std::pair < MATRIX*, double > convertP2Md(MATRIX* p);
 
+   // initial registration using moments
+   MATRIX * initializeTransform(MRI *mri_in, MRI *mri_ref);
+   int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L); // NOT TESTED !!!!!!!  
+
     double sat;
-    bool iscale;
+    bool iscale;   
+    bool transonly;
+    bool rigid;
+    bool robust;
+    int rtype;
+    int subsamplesize;
+    std::string name;
+    std::string nbase;
+    int debug;
+    bool initorient;
+    //bool outweights;
+    //std::string weightsname;
+    
+    MRI * mri_source;
+    std::vector < MRI* > gpS;
+    MRI * mri_target;
+    std::vector < MRI* > gpT;
+    MATRIX * Minit;
+    MATRIX * Mfinal;
+    double iscalefinal;
+    
   
   
   private:
@@ -146,28 +171,6 @@ class Registration
    // tools
    double getFrobeniusDiff(MATRIX *m1, MATRIX *m2);
 
-   // initial registration using moments
-   MATRIX * initializeTransform(MRI *mri_in, MRI *mri_ref);
-   int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L); // NOT TESTED !!!!!!!  
-   
-    bool transonly;
-    bool rigid;
-    bool robust;
-    int rtype;
-    int subsamplesize;
-    std::string name;
-    std::string nbase;
-    int debug;
-    //bool outweights;
-    //std::string weightsname;
-    
-    MRI * mri_source;
-    std::vector < MRI* > gpS;
-    MRI * mri_target;
-    std::vector < MRI* > gpT;
-    MATRIX * Minit;
-    MATRIX * Mfinal;
-    double iscalefinal;
     MRI * mri_weights;
     MATRIX * mov2weights;
     MATRIX * dst2weights;

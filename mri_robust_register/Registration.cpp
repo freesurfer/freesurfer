@@ -31,6 +31,7 @@ void Registration::clear() // initialize registration (keep source and target an
        iscale = false;
        rtype = 1;
        subsamplesize = -1;
+       initorient = false;
        debug = 0;
        if (Minit) MatrixFree(&Minit);
        if (Mfinal) MatrixFree(&Mfinal); 
@@ -661,6 +662,8 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
 //  MRI* mri_Swarp   = NULL;
 //  MRI* mri_Twarp   = NULL;
 
+  bool iscaletmp = iscale;
+  iscale = false; //disable intensity scaling on low resolutions
  
   for (int r = resolution-rstart;r>=stopres;r--)
   {
@@ -668,6 +671,8 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
  //    MRIwrite(gpT[r],"mriT-smooth.mgz");
      
       cout << endl << "Resolution: " << r << endl;
+      
+      if (r==0) iscale = iscaletmp; // set iscale if set by user
       
 //        if (transonly)
 //        {
@@ -2867,6 +2872,7 @@ void Registration::freeGaussianPyramid(vector< MRI* >& p)
 
 MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
 {
+    cout << "   - computing initial Transform\n" ;
 
     MATRIX* Minit = MRIgetVoxelToVoxelXform(mriS,mriT) ;
     MRI * mri_tmp = MRIlinearTransform(mriS,NULL,Minit);
@@ -2876,33 +2882,47 @@ MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
     vector < double > centroidT = CostFunctions::centroid(mriT);
     
    
-    bool initorient = false;
-    double oS =1;
-    double oT =1;
+    //bool initorient = false; // do not use orientation (can be off due to different cropping)
+    //bool initorient = true;
     if (initorient)
     {
        // find orientation:
        MATRIX * evT = CostFunctions::orientation(mriT);
        MATRIX * evS = CostFunctions::orientation(mri_tmp);
     
-       // sanity check (orientation of basis needs to be the same)
-       VECTOR* v1 = MatrixColumn(evT,NULL,1);
-       VECTOR* v2 = MatrixColumn(evT,NULL,2);
-       VECTOR* v3 = MatrixColumn(evT,NULL,3);
-       VECTOR* vc = VectorCrossProduct(v1,v2,NULL);
-       double oT  = VectorDot(vc,v3);
-       v1 = MatrixColumn(evS,v1,1);
-       v2 = MatrixColumn(evS,v2,2);
-       v3 = MatrixColumn(evS,v3,3);
-       vc = VectorCrossProduct(v1,v2,vc);
-       double oS  = VectorDot(vc,v3);
-       MatrixFree(&v1);
-       MatrixFree(&v2);
-       MatrixFree(&v3);
-       MatrixFree(&vc);
+       // adjust orientation (flip) to target
+       int fcount = 0;
+       for (int c=1;c<4;c++)
+       {
+           double d = 0;
+	   for (int r=1;r<4;r++)
+	      d += evT->rptr[r][c] * evS->rptr[r][c];	
+	   if (fabs(d)<0.1)
+	   {
+	      cout << "        Over 84 degree difference ( " << 360*acos(fabs(d))/M_PI << " ) in column " << c << ", skipping pre-orientation" << endl;
+	      initorient =false;
+	      break;
+	   }
+	   if (d<0) // flip
+	   {
+	      fcount++;
+	      for (int r=1;r<4;r++)
+	         evS->rptr[r][c] = - evS->rptr[r][c];	
+           }
+	    
+       }
+       assert(fcount ==0 || fcount==2); // make sure det > 0 still
+	
+	if (debug)
+	{
+	   cout << endl <<" evecs S: " << endl;
+           MatrixPrintFmt(stdout,"% 2.8f",evS);
     
-       //cout << " ot: " << oT << "  os: " << oS << endl;
-       if (oS * oT > 0) // use orientation info for intial alignment
+	   cout << endl <<" evecs T: " << endl;
+           MatrixPrintFmt(stdout,"% 2.8f",evT);
+	}
+    
+       if (initorient) // use orientation info for intial alignment
        {
           cout << "     -- using orientation info\n" ;
           // make 4x4
@@ -2945,7 +2965,7 @@ MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
        
     }
     
-    if (!initorient || oS * oT < 0) // if orientation did not work
+    if (!initorient) // if orientation did not work
     {
        cout << "     -- using translation info\n" ;
        Minit->rptr[1][4] += centroidT[0]-centroidS[0];
