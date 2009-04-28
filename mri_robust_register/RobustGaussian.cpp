@@ -3,6 +3,8 @@
 #include <cmath>
 #include <iostream>
 
+using namespace std;
+
 /*
   * This Quickselect routine is based on the algorithm described in
   * "Numerical recipes in C", Second Edition,
@@ -124,13 +126,19 @@ double RobustGaussian::median(double t[],int n)
 double RobustGaussian::mad(double a[], int n, double d)
 // robust estimate for sigma (using median absolute deviation)
 // 1.4826 med_i(|r_i - med_j(r_j)|)
-// array a will be changed!
+// array a will be reordered!
 {
   double medi = median(a,n);
+  //cout << " median: " << medi << endl;
   double* t = (double *)calloc(n, sizeof(double)); 
   for (int i=0;i<n;i++)
+  {
      t[i] = fabs(a[i] -medi);
+     //cout  << t[i] << " " << flush;
+  }
+  //cout <<endl;
   double mm = median(t,n);
+  //cout << " mmedian: " << mm << endl;
   free(t);
   return d * mm;
 }
