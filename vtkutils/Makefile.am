@@ -122,7 +122,8 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	$(top_builddir)/fsgdf/libfsgdf.a \
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
 	$(top_builddir)/vtkutils/libvtkutils.a \
-	$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) $(VTK_SQLITE_LIB) \
 	-lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
@@ -144,6 +145,7 @@ vtkArrowPipelineTester_SOURCES=vtkArrowPipelineTester.cxx
 
 vtkArrowPipelineTester_LDADD=\
 	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(LDFLAGS_TCL) $(LIBS_TCL_OPENGL) \
 	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkWidgets -lvtkGraphics \
 	-lvtkImaging -lvtkFiltering \
 	-lvtkCommon -lvtksys \
