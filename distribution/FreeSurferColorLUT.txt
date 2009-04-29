@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.38.2.4 2009/03/31 22:34:03 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.38.2.5 2009/04/29 18:08:39 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -877,10 +877,10 @@
 5109   Left-Occipital-optic-radiation-End               233 147 33  0
 5110   Right-Temporal-optic-radiation-start             15  46  250 0
 5111   Right-Temporal-optic-radiation-waypoint          238 10  175 0
-5112   Right-Temporal-optic-radiation-end               41  295 167 0
+5112   Right-Temporal-optic-radiation-end               41  255 167 0
 5113   Left-Temporal-optic-radiation-start              16  46  250 0
 5114   Left-Temporal-optic-radiation-waypoint           239 10  75  0
-5115   Left-Temporal-optic-radiation-end                40  295 167 0
+5115   Left-Temporal-optic-radiation-end                40  255 167 0
 
 
 6000   CST-orig                                         0   255 0   0
