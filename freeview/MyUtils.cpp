@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.6.2.2 $
+ *    $Date: 2009/04/29 22:53:54 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -100,7 +100,10 @@ LINESEGMENT;
 #define POP(XL, XR, Y, DY) \
 { sp--; XL = sp->xl; XR = sp->xr; Y = sp->y + (DY = sp->dy); }
 
-void MyUtils::FloodFill(char** data, int x, int y, int min_x, int min_y, int max_x, int max_y, int fill_value, int border_value)
+void MyUtils::FloodFill(char** data, int x, int y, 
+                        int min_x, int min_y, 
+                        int max_x, int max_y, 
+                        int fill_value, int border_value)
 {
   int left, x1, x2, dy;
   LINESEGMENT stack[MAXDEPTH], *sp = stack;
@@ -118,7 +121,8 @@ void MyUtils::FloodFill(char** data, int x, int y, int min_x, int min_y, int max
   {
     POP(x1, x2, y, dy);
 
-    for (x = x1; x >= min_x && data[y][x] != border_value && data[y][x] != fill_value; x--)
+    for (x = x1; x >= min_x && 
+           data[y][x] != border_value && data[y][x] != fill_value; x--)
       data[y][x] = fill_value;
 
     if ( x >= x1 )
@@ -132,7 +136,8 @@ void MyUtils::FloodFill(char** data, int x, int y, int min_x, int min_y, int max
 
     do
     {
-      for (; x<=max_x && data[y][x] != border_value && data[y][x] != fill_value; x++)
+      for (; x<=max_x && 
+             data[y][x] != border_value && data[y][x] != fill_value; x++)
         data[y][x] = fill_value;
 
       PUSH(left, x-1, y, dy);
@@ -141,7 +146,8 @@ void MyUtils::FloodFill(char** data, int x, int y, int min_x, int min_y, int max
         PUSH(x2+1, x-1, y, -dy);    /* leak on right? */
 
 SKIP:
-      for (x++; x <= x2 && (data[y][x] == border_value || data[y][x] == fill_value); x++)
+      for (x++; x <= x2 && 
+             (data[y][x] == border_value || data[y][x] == fill_value); x++)
       {
         ;
       }
@@ -160,7 +166,10 @@ bool MyUtils::HasExtension( const wxString& filename, const wxString& ext )
 wxString MyUtils::GetNormalizedPath( const wxString& filename )
 {
   wxFileName fn( filename );
-  fn.Normalize( wxPATH_NORM_ENV_VARS | wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE );
+  fn.Normalize( wxPATH_NORM_ENV_VARS | 
+                wxPATH_NORM_DOTS | 
+                wxPATH_NORM_ABSOLUTE | 
+                wxPATH_NORM_TILDE  );
   return fn.GetPath();
 }
 
@@ -168,48 +177,87 @@ wxString MyUtils::GetNormalizedPath( const wxString& filename )
 wxString MyUtils::GetNormalizedFullPath( const wxString& filename )
 {
   wxFileName fn( filename );
-  fn.Normalize( wxPATH_NORM_ENV_VARS | wxPATH_NORM_DOTS | wxPATH_NORM_ABSOLUTE );
+  fn.Normalize( wxPATH_NORM_ENV_VARS | 
+                wxPATH_NORM_DOTS | 
+                wxPATH_NORM_ABSOLUTE | 
+                wxPATH_NORM_TILDE );
   return fn.GetFullPath();
 }
 
-wxArrayString MyUtils::SplitString( const wxString& strg_to_split, const wxString& divider )
+wxArrayString MyUtils::SplitString( const wxString& strg_to_split, 
+                                    const wxString& divider,
+                                    int nIgnoreStart,
+                                    int nIgnoreLength )
 {
   wxArrayString sa;
   wxString strg = strg_to_split;
   strg.Trim( true );
   strg.Trim( false );
   int n = strg.Find( divider );
+  int nMark = n + divider.Length();
   while ( n != wxNOT_FOUND )
   {
-    wxString substr = strg.Left( n );
-    substr.Trim( true );
-    substr.Trim( false );
-    if ( substr.Length() > 0 )
-      sa.Add( substr );
-    strg = strg.Mid( n + divider.Length() );
-    strg.Trim( true );
-    strg.Trim( false );
-    n = strg.Find( divider );
+    if ( nMark < nIgnoreStart || nMark >= nIgnoreStart + nIgnoreLength )
+    { 
+      wxString substr = strg.Left( n );
+      substr.Trim( true );
+      substr.Trim( false );
+      if ( !substr.IsEmpty() )
+        sa.Add( substr );
+      strg = strg.Mid( n + divider.Length() );
+    //  strg.Trim( true );
+    //  strg.Trim( false );
+      n = strg.Find( divider );
+      if ( n != wxNOT_FOUND )
+        nMark += n + divider.Length();
+    }
+    else
+    {
+      nMark -= ( n + divider.Length() );
+      int nStart = 0;
+      n = strg.find( divider, nStart );
+      while ( n != wxNOT_FOUND && 
+              (nMark + n + (int)divider.Length()) >= nIgnoreStart && 
+              (nMark + n + (int)divider.Length()) < (nIgnoreStart + nIgnoreLength) )
+      {
+        nStart = n + divider.Length();
+        n = strg.find( divider, nStart );
+      }
+      
+      if ( n != wxNOT_FOUND )
+        nMark += n + divider.Length();
+    }
   }
   if ( strg.Length() > 0 )
-    sa.Add( strg );
+  {
+    strg.Trim( true );
+    strg.Trim( false );
+    if ( !strg.IsEmpty() )
+      sa.Add( strg );
+  }
 
   return sa;
 }
 
 wxString MyUtils::GetDateAndTime()
 {
-  wxString strg = wxString( __DATE__) + " " + __TIME__;
+  wxString strg = 
+    wxString::FromAscii( __DATE__) + 
+    _(" ") + 
+    wxString::FromAscii(__TIME__);
 
   return strg;
 }
 
-bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd, vtkRenderer* renderer,
-                                const char* filename, bool bAntiAliasing, int nMag )
+bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd, 
+                                vtkRenderer* renderer,
+                                const char* filename, 
+                                bool bAntiAliasing, 
+                                int nMag )
 {
-  wxString fn = filename;
+  wxString fn = wxString::FromAscii(filename);
   vtkImageWriter* writer = 0;
-  if ( HasExtension( filename, "wrl" ) )
+  if ( HasExtension( wxString::FromAscii(filename), _("wrl") ) )
   {
     vtkVRMLExporter* exporter = vtkVRMLExporter::New();
     exporter->SetFileName( filename );
@@ -217,19 +265,21 @@ bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd, vtkRenderer* rendere
     exporter->Write();
     exporter->Delete();
   }
-  else if ( HasExtension( filename, "jpg" ) || HasExtension( filename, "jpeg" ) )
+  else if ( HasExtension( wxString::FromAscii(filename), _("jpg") ) || 
+            HasExtension( wxString::FromAscii(filename), _("jpeg") ) )
     writer = vtkJPEGWriter::New();
-  else if ( HasExtension( filename, "bmp" ) )
+  else if ( HasExtension( wxString::FromAscii(filename), _("bmp") ) )
     writer = vtkBMPWriter::New();
-  else if ( HasExtension( filename, "ps" ) )
+  else if ( HasExtension( wxString::FromAscii(filename), _("ps") ) )
     writer = vtkPostScriptWriter::New();
-  else if ( HasExtension( filename, "tif" ) || HasExtension( filename, "tiff" ) )
+  else if ( HasExtension( wxString::FromAscii(filename), _("tif") ) || 
+            HasExtension( wxString::FromAscii(filename), _("tiff") ) )
     writer = vtkTIFFWriter::New();
   else
   {
     writer = vtkPNGWriter::New();
-    if ( !HasExtension( filename, "png") )
-      fn += ".png";
+    if ( !HasExtension( wxString::FromAscii(filename), _("png")) )
+      fn += _(".png");
   }
   if (writer)
   {
@@ -239,7 +289,7 @@ bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd, vtkRenderer* rendere
     image->SetInput( renderer );
     image->SetMagnification( nMag );
     writer->SetInput( image->GetOutput() );
-    writer->SetFileName( fn.c_str() );
+    writer->SetFileName( fn.mb_str() );
     writer->Write();
     image->Delete();
     writer->Delete();
@@ -249,15 +299,24 @@ bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd, vtkRenderer* rendere
 }
 
 
-void MyUtils::ViewportToWorld( vtkRenderer* renderer, double x, double y, double& world_x, double& world_y, double& world_z )
+void MyUtils::ViewportToWorld( vtkRenderer* renderer, 
+                               double x, double y, 
+                               double& world_x, 
+                               double& world_y, 
+                               double& world_z )
 {
   world_x = x;
   world_y = y;
   renderer->ViewportToNormalizedViewport( world_x, world_y );
-  NormalizedViewportToWorld( renderer, world_x, world_y, world_x, world_y, world_z );
+  NormalizedViewportToWorld( renderer, world_x, world_y, 
+                             world_x, world_y, world_z );
 }
 
-void MyUtils::NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y, double& world_x, double& world_y, double& world_z )
+void MyUtils::NormalizedViewportToWorld( vtkRenderer* renderer, 
+                                         double x, double y, 
+                                         double& world_x, 
+                                         double& world_y, 
+                                         double& world_z )
 {
   world_x = x;
   world_y = y;
@@ -265,8 +324,9 @@ void MyUtils::NormalizedViewportToWorld( vtkRenderer* renderer, double x, double
   renderer->NormalizedViewportToView( world_x, world_y, world_z );
   renderer->ViewToWorld( world_x, world_y, world_z );
 }
-void MyUtils::WorldToViewport( vtkRenderer* renderer, double world_x, double world_y,
-                               double world_z, double& x, double& y, double& z )
+void MyUtils::WorldToViewport( vtkRenderer* renderer, 
+                               double world_x, double world_y, double world_z, 
+                               double& x, double& y, double& z )
 {
   x = world_x;
   y = world_y;
@@ -276,8 +336,13 @@ void MyUtils::WorldToViewport( vtkRenderer* renderer, double world_x, double wor
   renderer->NormalizedViewportToViewport( x, y );
 }
 
-template <class T> bool CalculateOptimalVolume_t( int* vox1, int nsize1, int* vox2, int nsize2,
-    std::vector<void*> input_volumes, T* output_volume, int vol_size )
+template <class T> bool CalculateOptimalVolume_t( int* vox1, 
+                                                  int nsize1, 
+                                                  int* vox2, 
+                                                  int nsize2,
+                                                  std::vector<void*> input_volumes, 
+                                                  T* output_volume, 
+                                                  int vol_size )
 {
   int nvars = input_volumes.size();
   MATRIX* m1 = MatrixAlloc( nsize1, nvars, MATRIX_REAL );
@@ -302,8 +367,10 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1, int nsize1, int* vo
   MATRIX* cov2 = MatrixCovariance( m2, NULL, mean2 );
   if ( cov2 == NULL )
     return false;
-  MATRIX* scov1 = MatrixScalarMul( cov1, (float)nsize1 / (nsize1 + nsize2 ), NULL );
-  MATRIX* scov2 = MatrixScalarMul( cov2, (float)nsize2 / (nsize1 + nsize2 ), NULL );
+  MATRIX* scov1 = 
+    MatrixScalarMul( cov1, (float)nsize1 / (nsize1 + nsize2 ), NULL );
+  MATRIX* scov2 = 
+    MatrixScalarMul( cov2, (float)nsize2 / (nsize1 + nsize2 ), NULL );
   MATRIX* cov = MatrixAdd( scov1, scov2, NULL );
   MATRIX* cov_inv = MatrixInverse( cov, NULL );
   if ( cov_inv == NULL )
@@ -355,72 +422,99 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1, int nsize1, int* vo
 }
 
 
-bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, int* vox2, int nsize2,
-                                      std::vector<void*> input_volumes, float* output_volume, int vol_size )
+bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, 
+                                      int* vox2, int nsize2,
+                                      std::vector<void*> input_volumes, 
+                                      float* output_volume, int vol_size )
 {
-  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, input_volumes, output_volume, vol_size );
+  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, 
+                                   input_volumes, output_volume, vol_size );
 }
 
-bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, int* vox2, int nsize2,
-                                      std::vector<void*> input_volumes, double* output_volume, int vol_size )
+bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, 
+                                      int* vox2, int nsize2,
+                                      std::vector<void*> input_volumes, 
+                                      double* output_volume, int vol_size )
 {
-  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, input_volumes, output_volume, vol_size );
+  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, 
+                                   input_volumes, output_volume, vol_size );
 }
 
-bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, int* vox2, int nsize2,
-                                      std::vector<void*> input_volumes, int* output_volume, int vol_size )
+bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, 
+                                      int* vox2, int nsize2,
+                                      std::vector<void*> input_volumes, 
+                                      int* output_volume, int vol_size )
 {
-  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, input_volumes, output_volume, vol_size );
+  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, 
+                                   input_volumes, output_volume, vol_size );
 }
 
-bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, int* vox2, int nsize2,
-                                      std::vector<void*> input_volumes, short* output_volume, int vol_size )
+bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, 
+                                      int* vox2, int nsize2,
+                                      std::vector<void*> input_volumes, 
+                                      short* output_volume, int vol_size )
 {
-  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, input_volumes, output_volume, vol_size );
+  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, 
+                                   input_volumes, output_volume, vol_size );
 }
 
-bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, int* vox2, int nsize2,
-                                      std::vector<void*> input_volumes, unsigned char* output_volume, int vol_size )
+bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, 
+                                      int* vox2, int nsize2,
+                                      std::vector<void*> input_volumes, 
+                                      unsigned char* output_volume, 
+                                      int vol_size )
 {
-  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, input_volumes, output_volume, vol_size );
+  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, 
+                                   input_volumes, output_volume, vol_size );
 }
 
-bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, int* vox2, int nsize2,
-                                      std::vector<void*> input_volumes, long* output_volume, int vol_size )
+bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1, 
+                                      int* vox2, int nsize2,
+                                      std::vector<void*> input_volumes, 
+                                      long* output_volume, int vol_size )
 {
-  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, input_volumes, output_volume, vol_size );
+  return CalculateOptimalVolume_t( vox1, nsize1, vox2, nsize2, 
+                                   input_volumes, output_volume, vol_size );
 }
 
 
-bool MyUtils::BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out )
+bool MyUtils::BuildContourActor( vtkImageData* data_in, 
+                                 double dTh1, double dTh2, 
+                                 vtkActor* actor_out )
 {
   vtkImageData* imagedata = data_in;
 
 // int nValue = nThreshold;
   int nSwell = 3;
-  vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
+  vtkSmartPointer<vtkImageDilateErode3D> dilate = 
+    vtkSmartPointer<vtkImageDilateErode3D>::New();
   dilate->SetInput( imagedata );
   dilate->SetKernelSize( nSwell, nSwell, nSwell );
   dilate->SetDilateValue( dTh1 );
   dilate->SetErodeValue( 0 );
-  vtkSmartPointer<vtkImageDilateErode3D> erode = vtkSmartPointer<vtkImageDilateErode3D>::New();
+  vtkSmartPointer<vtkImageDilateErode3D> erode = 
+    vtkSmartPointer<vtkImageDilateErode3D>::New();
   erode->SetInput( dilate->GetOutput() );
   erode->SetKernelSize( 1, 1, 1 );
   erode->SetDilateValue( 0 );
   erode->SetErodeValue( dTh1 );
 
-  vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+  vtkSmartPointer<vtkImageThreshold> threshold = 
+    vtkSmartPointer<vtkImageThreshold>::New();
   threshold->SetOutputScalarTypeToShort();
   threshold->SetInput( dilate->GetOutput() );
   threshold->ThresholdBetween( dTh1, dTh2+0.0001 );
   threshold->ReplaceOutOn();
   threshold->SetOutValue( 0 );
-  vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
+  vtkSmartPointer<vtkContourFilter> contour = 
+    vtkSmartPointer<vtkContourFilter>::New();
   contour->SetInput( threshold->GetOutput() );
   contour->SetValue( 0, dTh1 );
-  vtkSmartPointer<vtkTriangleFilter> tri = vtkSmartPointer<vtkTriangleFilter>::New();
+  vtkSmartPointer<vtkTriangleFilter> tri = 
+    vtkSmartPointer<vtkTriangleFilter>::New();
   tri->SetInput( contour->GetOutput() );
-  vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();
+  vtkSmartPointer<vtkDecimatePro> decimate = 
+    vtkSmartPointer<vtkDecimatePro>::New();
   decimate->SetTargetReduction( 0.9 );
   decimate->SetInput( tri->GetOutput() );
 
@@ -433,15 +527,19 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2
   }
   else
   {
-    vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
+    vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = 
+      vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
     smoother->SetInput( contour->GetOutput() );
     smoother->SetNumberOfIterations( 30 );
-    vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
+    vtkSmartPointer<vtkPolyDataNormals> normals = 
+      vtkSmartPointer<vtkPolyDataNormals>::New();
     normals->SetInput( smoother->GetOutput()) ;
     normals->SetFeatureAngle( 90.0 );
-    vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+    vtkSmartPointer<vtkStripper> stripper = 
+      vtkSmartPointer<vtkStripper>::New();
     stripper->SetInput( normals->GetOutput() );
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    vtkSmartPointer<vtkPolyDataMapper> mapper = 
+      vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInput( decimate->GetOutput() );
     // mapper->ScalarVisibilityOff();
     actor_out->SetMapper( mapper );
@@ -450,14 +548,18 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2
 }
 
 
-bool MyUtils::BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkVolume* vol_out )
+bool MyUtils::BuildVolume( vtkImageData* data_in, 
+                           double dTh1, double dTh2, 
+                           vtkVolume* vol_out )
 {
-  vtkSmartPointer<vtkPiecewiseFunction> tfun = vtkSmartPointer<vtkPiecewiseFunction>::New();
+  vtkSmartPointer<vtkPiecewiseFunction> tfun = 
+    vtkSmartPointer<vtkPiecewiseFunction>::New();
   tfun->AddPoint(dTh1-0.001, 0.0);
   tfun->AddPoint(dTh1, 0.8);
   tfun->AddPoint(dTh2, 1.0);
 
-  vtkSmartPointer<vtkColorTransferFunction> ctfun = vtkSmartPointer<vtkColorTransferFunction>::New();
+  vtkSmartPointer<vtkColorTransferFunction> ctfun = 
+    vtkSmartPointer<vtkColorTransferFunction>::New();
   ctfun->AddRGBPoint( 0.0, 0.0, 0.0, 0.0 );
   ctfun->AddRGBPoint( dTh1, 0.25, 0.25, 0.25 );
   ctfun->AddRGBPoint( (dTh1+dTh2) / 2, 0.4, 0.4, 0.4 );
@@ -486,7 +588,8 @@ bool MyUtils::BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkV
 // volumeMapper->SetCroppingRegionPlanes(0, dim[0]*2, 0, dim[1]*2, 0, dim[2]*2-16*2);
 // volumeMapper->CroppingOn();
 
-  vtkSmartPointer<vtkVolumeProperty> volumeProperty = vtkSmartPointer<vtkVolumeProperty>::New();
+  vtkSmartPointer<vtkVolumeProperty> volumeProperty = 
+    vtkSmartPointer<vtkVolumeProperty>::New();
   volumeProperty->SetColor(ctfun);
   volumeProperty->SetScalarOpacity(tfun);
   volumeProperty->SetInterpolationTypeToLinear();
@@ -498,12 +601,17 @@ bool MyUtils::BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkV
   return true;
 }
 
-void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSlice_in,
-                                 double* pt1_in, double* pt2_in, vtkPoints* pts_out )
+void MyUtils::GetLivewirePoints( vtkImageData* image_in, 
+                                 int nPlane_in, int nSlice_in,
+                                 double* pt1_in, double* pt2_in, 
+                                 vtkPoints* pts_out )
 {
-  vtkSmartPointer<vtkImageClip> m_imageClip = vtkSmartPointer<vtkImageClip>::New();
-  vtkSmartPointer<vtkDijkstraImageGeodesicPath> m_path = vtkSmartPointer<vtkDijkstraImageGeodesicPath>::New();
-  vtkSmartPointer<vtkImageChangeInformation> m_info = vtkSmartPointer<vtkImageChangeInformation>::New();
+  vtkSmartPointer<vtkImageClip> m_imageClip = 
+    vtkSmartPointer<vtkImageClip>::New();
+  vtkSmartPointer<vtkDijkstraImageGeodesicPath> m_path = 
+    vtkSmartPointer<vtkDijkstraImageGeodesicPath>::New();
+  vtkSmartPointer<vtkImageChangeInformation> m_info = 
+    vtkSmartPointer<vtkImageChangeInformation>::New();
   int m_nPlane = nPlane_in;
   int m_nSlice = nSlice_in;
 
@@ -516,24 +624,28 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSli
   m_imageClip->ReleaseDataFlagOff();
   m_imageClip->Update();
 
-  vtkSmartPointer<vtkImageAnisotropicDiffusion2D> smooth = vtkSmartPointer<vtkImageAnisotropicDiffusion2D>::New();
+  vtkSmartPointer<vtkImageAnisotropicDiffusion2D> smooth = 
+    vtkSmartPointer<vtkImageAnisotropicDiffusion2D>::New();
   smooth->SetInputConnection( m_imageClip->GetOutputPort() );
   smooth->SetDiffusionFactor( 0.75 );
   smooth->SetDiffusionThreshold( 50.0 );
   smooth->SetNumberOfIterations( 5 );
 
-  /* vtkSmartPointer<vtkImageGaussianSmooth> smooth = vtkSmartPointer<vtkImageGaussianSmooth>::New();
+  /* vtkSmartPointer<vtkImageGaussianSmooth> smooth = 
+     vtkSmartPointer<vtkImageGaussianSmooth>::New();
    smooth->SetInputConnection( clip->GetOutputPort() );
    smooth->SetStandardDeviations( 1, 1, 1 );*/
 
-  vtkSmartPointer<vtkImageGradientMagnitude> grad = vtkSmartPointer<vtkImageGradientMagnitude>::New();
+  vtkSmartPointer<vtkImageGradientMagnitude> grad = 
+    vtkSmartPointer<vtkImageGradientMagnitude>::New();
   grad->SetDimensionality( 2 );
   grad->HandleBoundariesOn();
   grad->SetInputConnection( smooth->GetOutputPort() );
   grad->Update();
 
   double* range = grad->GetOutput()->GetScalarRange();
-  vtkSmartPointer<vtkImageShiftScale> scale = vtkSmartPointer<vtkImageShiftScale>::New();
+  vtkSmartPointer<vtkImageShiftScale> scale = 
+    vtkSmartPointer<vtkImageShiftScale>::New();
   scale->SetShift( -1.0*range[1] );
   scale->SetScale( 255.0 /( range[0] - range[1] ) );
   scale->SetOutputScalarTypeToShort();
@@ -587,7 +699,9 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSli
   {
     double* p = pd->GetPoint( pts[i] );
     // cout << p[0] << " " << p[1] << " " << p[2] << endl;
-    pts_out->InsertNextPoint( p[0] + offset[0], p[1] + offset[1], p[2] + offset[2] );
+    pts_out->InsertNextPoint( p[0] + offset[0], 
+                              p[1] + offset[1], 
+                              p[2] + offset[2] );
   }
 
 }
@@ -611,7 +725,8 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSli
  // edge->SetOriginalImage( clip->GetOutput() );
  // edge->SetEdgeDirection( i );
  // edge->Update();
-  vtkSmartPointer<vtkImageGradientMagnitude> edge = vtkSmartPointer<vtkImageGradientMagnitude>::New();
+  vtkSmartPointer<vtkImageGradientMagnitude> edge = 
+  vtkSmartPointer<vtkImageGradientMagnitude>::New();
   edge->SetDimensionality( 2 );
   edge->HandleBoundariesOn();
   edge->SetInputConnection( clip->GetOutputPort() );
@@ -635,7 +750,8 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSli
    FILE* fp = fopen( "/homes/5/rpwang/temp2/input.img", "wb" );
    fwrite( clip->GetOutput()->GetScalarPointer(), clip->GetOutput()->GetScalarSize() * dim[0]*dim[1]*dim[2], 1, fp );
    fclose( fp );
-   vtkSmartPointer<vtkImageGradientMagnitude> grad = vtkSmartPointer<vtkImageGradientMagnitude>::New();
+   vtkSmartPointer<vtkImageGradientMagnitude> grad = 
+   vtkSmartPointer<vtkImageGradientMagnitude>::New();
    grad->SetDimensionality( 2 );
    grad->HandleBoundariesOn();
    grad->SetInputConnection( clip->GetOutputPort() );
@@ -681,3 +797,32 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSli
 }
 */
 
+double MyUtils::RoundToGrid(double x)
+{
+  int n = 0;
+  if (x < 1)
+  {
+    do {
+      x *= 10;
+      n++;
+    }
+    while (x < 1 || x > 10);    
+  }
+  else if (x > 10)
+  {
+    do {
+      x /= 10;
+      n--;
+    }
+    while (x < 1 || x > 10);
+  }
+  
+  if (x > 5)
+    x = 10;
+  else if (x > 2)
+    x = 5;
+  else if (x > 1)
+    x = 2;
+    
+  return x/pow(10, n);
+}

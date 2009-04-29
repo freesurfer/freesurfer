@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:47 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/04/29 22:53:50 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,9 @@ public:
                            float& oIdxX, float& oIdxY, float& oIdxZ );
   int RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
                            int& oIdxX, int& oIdxY, int& oIdxZ );
-
+  
+  double GetVoxelValue( int i, int j, int k, int frame );
+  
   void UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxCommandEvent& event );
 
   vtkImageData* GetImageOutput();
@@ -114,7 +116,7 @@ public:
   void RASToTargetIndex( const double* pos_in, int* index_out );
 
   void RASToNativeRAS( const double* pos_in, double* pos_out ); // when there is registration/transformation involved,
-  // ras is not native ras!
+                                                                // ras is not native ras!
   void NativeRASToRAS( const double* pos_in, double* pos_out );
 
   void TkRegToNativeRAS( const double* pos_in, double* pos_out );
@@ -159,29 +161,29 @@ protected:
 
   vtkSmartPointer<vtkImageData> m_imageData;
 
-  MRI*   m_MRI;
-  MRI*   m_MRITarget;  // target space. header only
-  MRI*   m_MRIRef;   // reference target space, can also serve as the registration target. header only
-  MRI*   m_MRIOrigTarget; // orignal target space, header only
+  MRI*      m_MRI;
+  MRI*      m_MRITarget;  // target space. header only
+  MRI*      m_MRIRef;   // reference target space, can also serve as the registration target. header only
+  MRI*      m_MRIOrigTarget; // orignal target space, header only
   MATRIX*   m_matReg;
 
-  FSVolume*  m_volumeRef;
+  FSVolume* m_volumeRef;
 
-  double   m_RASToVoxelMatrix[16];
-  double   m_VoxelToRASMatrix[16];
-  double   m_VoxelToVoxelMatrix[16]; // native to target
-  double   m_RASToRASMatrix[16];  // native to target
-  double   m_RASToTkRegMatrix[16];
+  double    m_RASToVoxelMatrix[16];
+  double    m_VoxelToRASMatrix[16];
+  double    m_VoxelToVoxelMatrix[16]; // native to target
+  double    m_RASToRASMatrix[16];  // native to target
+  double    m_RASToTkRegMatrix[16];
 
-  float   m_fMinValue;
-  float   m_fMaxValue;
+  float     m_fMinValue;
+  float     m_fMaxValue;
 
-  bool   m_bResampleToRAS;
-  double   m_MRIToImageMatrix[16];
+  bool      m_bResampleToRAS;
+  double    m_MRIToImageMatrix[16];
 
   // RAS bounds.
-  bool   m_bBoundsCacheDirty;
-  float  m_RASBounds[6];
+  bool      m_bBoundsCacheDirty;
+  float     m_RASBounds[6];
 };
 
 #endif

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.6.2.2 $
+ *    $Date: 2009/04/29 22:53:54 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,6 +52,8 @@ public:
   template <class T> static T** AllocateMatrix(int ny, int nx);
   template <class T> static void FreeMatrix(T** p, int ny);
   template <class T> static double Dot( T* v1, T* v2 );
+  
+  static double RoundToGrid( double dvalue );
 
   static bool HasExtension( const wxString& filename, const wxString& ext );
 
@@ -60,7 +62,7 @@ public:
 
   static wxString GetDateAndTime();
 
-  static wxArrayString SplitString( const wxString& strg, const wxString& divider );
+  static wxArrayString SplitString( const wxString& strg, const wxString& divider, int nIgnoreStart = 0, int nIgnoreLength = 0 );
 
   static bool VTKScreenCapture( vtkRenderWindow* renderWindow, vtkRenderer* renderer,
                                 const char* filename, bool bAntiAliasing = false, int nMag = 1 );

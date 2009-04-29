@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:49 $
- *    $Revision: 1.10.2.1 $
+ *    $Date: 2009/04/29 22:53:55 $
+ *    $Revision: 1.10.2.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -177,7 +177,7 @@ void ToolWindowEdit::DoUpdateTools()
 //  layer = ( LayerEditable* )(void*)m_choiceTemplate->GetClientData( m_choiceTemplate->GetSelection() );
 
   m_choiceTemplate->Clear();
-  m_choiceTemplate->Append( "None", (void*)NULL );
+  m_choiceTemplate->Append( _("None"), (void*)NULL );
   LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
   int nSel = 0;
   for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
@@ -188,7 +188,7 @@ void ToolWindowEdit::DoUpdateTools()
       nSel = i+1;
     }
 
-    m_choiceTemplate->Append( mri->GetName(), (void*)mri );
+    m_choiceTemplate->Append( wxString::FromAscii( mri->GetName() ), (void*)mri );
   }
 // if ( !lc->IsEmpty() )
   m_choiceTemplate->SetSelection( nSel );
@@ -217,8 +217,8 @@ void ToolWindowEdit::DoUpdateTools()
 
 void ToolWindowEdit::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
 {
-  wxString value_strg = ( (wxString)"" << dvalue );
-  if ( value_strg != ctrl->GetValue() && (value_strg + ".") != ctrl->GetValue() )
+  wxString value_strg = ( wxString() << dvalue );
+  if ( value_strg != ctrl->GetValue() && (value_strg + _(".")) != ctrl->GetValue() )
     ctrl->ChangeValue( value_strg );
 }
 

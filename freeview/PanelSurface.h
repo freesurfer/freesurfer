@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.9.2.1 $
+ *    $Date: 2009/04/29 22:53:54 $
+ *    $Revision: 1.9.2.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -53,24 +53,25 @@ protected:
   void OnInternalIdle();
 
 private:
-  void OnSliderOpacity   ( wxScrollEvent& event );
-  void OnLayerSelectionChanged ( wxCommandEvent& event );
+  void OnSurfaceClose           ( wxCommandEvent& event );
+  void OnSurfaceCloseUpdateUI   ( wxUpdateUIEvent& event );
+  
+  void OnSliderOpacityChanging  ( wxScrollEvent& event );
+  void OnSliderOpacity          ( wxScrollEvent& event );
+  void OnTextOpacity            ( wxCommandEvent& event );
+  void OnLayerSelectionChanged  ( wxCommandEvent& event );
   void OnLayerVisibilityChanged ( wxCommandEvent& event );
+  
+  void OnColorChanged           ( wxColourPickerEvent& event );
+  void OnEdgeColorChanged       ( wxColourPickerEvent& event );
+  void OnSpinEdgeThickness      ( wxSpinEvent& event );
 
-  void OnButtonLoad   ( wxCommandEvent& event );
-  void OnButtonDelete   ( wxCommandEvent& event );
-  void OnSurfaceCloseUpdateUI ( wxUpdateUIEvent& event );
-  void OnColorChanged   ( wxColourPickerEvent& event );
-  void OnEdgeColorChanged  ( wxColourPickerEvent& event );
-  void OnSpinEdgeThickness ( wxSpinEvent& event );
-  void OnButtonSurfaceMain ( wxCommandEvent& event );
-  void OnButtonSurfaceInflated( wxCommandEvent& event );
-  void OnButtonSurfaceWhite ( wxCommandEvent& event );
-  void OnButtonSurfacePial ( wxCommandEvent& event );
-  void OnButtonSurfaceOriginal( wxCommandEvent& event );
-  void OnChoiceVector   ( wxCommandEvent& event );
-  void OnVectorColorChanged ( wxColourPickerEvent& event );
-  void OnSpinVectorPointSize ( wxSpinEvent& event );
+  void OnChoiceVector           ( wxCommandEvent& event );
+  void OnVectorColorChanged     ( wxColourPickerEvent& event );
+  void OnSpinVectorPointSize    ( wxSpinEvent& event );
+  
+  void OnChoiceOverlay          ( wxCommandEvent& event );
+  void OnButtonConfigureOverlay ( wxCommandEvent& event );          
 
   void OnChoiceCurvatureMap ( wxCommandEvent& evet );
   void OnSliderMidPoint  ( wxScrollEvent& event );
@@ -86,32 +87,28 @@ private:
 
   void UpdateLayerList( Layer* layer );
 
-  virtual void DoListenToMessage( std::string const iMsg, void* iData );
+  virtual void DoListenToMessage( std::string const iMsg, void* iData, void* sender );
 
   wxCheckListBox* m_listBoxLayers;
-  wxButton*  m_btnNew;
-  wxButton*  m_btnLoad;
-  wxButton*  m_btnSave;
-  wxButton*  m_btnDelete;
-  wxButton*  m_btnSurfaceMain;
-  wxButton*  m_btnSurfaceInflated;
-  wxButton*  m_btnSurfaceWhite;
-  wxButton*  m_btnSurfacePial;
-  wxButton*  m_btnSurfaceOriginal;
-  wxSlider*  m_sliderOpacity;
+  wxButton*     m_btnConfigureOverlay;
+  wxSlider*     m_sliderOpacity;
+  wxTextCtrl*   m_textOpacity;
   wxColourPickerCtrl*  m_colorPicker;
   wxColourPickerCtrl*  m_colorPickerEdge;
-  wxTextCtrl*  m_textFileName;
-  wxSpinCtrl*  m_spinEdgeThickness;
-  wxChoice*  m_choiceVector;
+  wxTextCtrl*   m_textFileName;
+  wxSpinCtrl*   m_spinEdgeThickness;
+  wxChoice*     m_choiceVector;
   wxColourPickerCtrl*  m_colorPickerVector;
-  wxSpinCtrl*  m_spinVectorPointSize;
+  wxSpinCtrl*   m_spinVectorPointSize;
 
-  wxChoice*  m_choiceCurvatureMap;
-  wxSlider*  m_sliderMidPoint;
-  wxTextCtrl*  m_textMidPoint;
-  wxSlider*  m_sliderSlope;
+  wxChoice*     m_choiceCurvatureMap;
+  wxSlider*     m_sliderMidPoint;
+  wxTextCtrl*   m_textMidPoint;
+  wxSlider*     m_sliderSlope;
   wxTextCtrl*   m_textSlope;
+  
+  wxChoice*     m_choiceOverlay;
+  wxButton*     m_btnOverlayConfiguration;
 
   std::vector<wxWindow*> m_widgetsMidPoint;
   std::vector<wxWindow*> m_widgetsSlope;

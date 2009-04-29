@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/04/29 22:53:51 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -324,10 +324,10 @@ Layer* LayerCollection::GetLayer( int n )
     return NULL;
 }
 
-void LayerCollection::DoListenToMessage( std::string const iMsg, void* iData )
+void LayerCollection::DoListenToMessage( std::string const iMsg, void* iData, void* sender )
 {
 // if ( iMsg == "LayerActorUpdated" )
-  this->SendBroadcast( iMsg, iData );
+  this->SendBroadcast( iMsg, iData, sender );
 }
 
 void LayerCollection::SetActiveLayer( Layer* layer )

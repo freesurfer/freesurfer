@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2009/04/29 22:53:53 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,9 @@
 
 #include "Layer.h"
 #include "vtkSmartPointer.h"
+#include "SurfaceOverlay.h"
 #include <string>
+#include <vector>
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -48,6 +50,7 @@ class FSSurface;
 class wxWindow;
 class wxCommandEvent;
 class LayerMRI;
+class SurfaceOverlay;
 
 class LayerSurface : public Layer
 {
@@ -57,6 +60,8 @@ public:
 
   bool LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event );
   bool LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event );
+  bool LoadCurvatureFromFile( const char* filename );
+  bool LoadOverlayFromFile( const char* filename );
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
@@ -65,9 +70,6 @@ public:
   void SetSlicePositionToWorldCenter();
 
   LayerPropertiesSurface* GetProperties();
-
-  virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
-
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
 
@@ -108,8 +110,34 @@ public:
   int GetActiveVector();
 
   void SetActiveVector( int nVector );
+  
+  bool HasCurvature();
+  
+  void GetCurvatureRange( double* range );
+  
+  double GetCurvatureValue( int nVertex );
+  
+  bool HasOverlay();
+  
+  int GetNumberOfOverlays();
+  
+  SurfaceOverlay* GetOverlay( int n );
+  
+  SurfaceOverlay* GetOverlay( const char* name );
+  
+  int GetActiveOverlayIndex();
+  
+  SurfaceOverlay* GetActiveOverlay();
+  
+  void SetActiveOverlay( int nOverlay );
+  
+  void SetActiveOverlay( const char* name );
+  
+  void UpdateOverlay( bool bAskRedraw = false );
 
 protected:
+  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
+
   void InitializeSurface();
   void InitializeActors();
   void UpdateOpacity();
@@ -139,6 +167,9 @@ protected:
   // vtkLODActor*  m_mainActor;
   vtkActor*   m_mainActor;
   vtkActor*   m_vectorActor;
+  
+  std::vector< SurfaceOverlay* >  m_overlays;
+  int         m_nActiveOverlay;
 };
 
 #endif

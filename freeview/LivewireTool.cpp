@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2009/04/29 22:53:53 $
+ *    $Revision: 1.5.2.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,52 +47,6 @@ LivewireTool::LivewireTool( ) :
 
 LivewireTool::~LivewireTool()
 {}
-
-/*
-void LivewireTool::SetImagePlane( int nPlane )
-{
- if ( m_imageData && m_nPlane != nPlane )
- {
-  m_nPlane = nPlane;
-  int ext[6];
-  m_imageData->GetExtent( ext );
-  ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;
-  m_imageClip->SetOutputWholeExtent( ext );
-  int n[3] = { 0, 0, 0 };
-  n[m_nPlane] = -1*m_nSlice;
-  m_info->SetExtentTranslation( n );
-  m_path->Update();
-  m_info->Update();
-  m_imageSlice = ( vtkImageData* )m_info->GetInput();
- }
-}
-
-void LivewireTool::SetImageSlice( int nSlice )
-{
- if ( m_imageData && m_nSlice != nSlice )
- {
-  m_nSlice = nSlice;
-  int ext[6];
-  m_imageData->GetExtent( ext );
-  ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;
-  m_imageClip->SetOutputWholeExtent( ext );
-  int n[3] = { 0, 0, 0 };
-  n[m_nPlane] = -1*m_nSlice;
-  m_info->SetExtentTranslation( n );
-  m_path->Update();
-  m_info->Update();
-  m_imageSlice = ( vtkImageData* )m_info->GetInput();
- // m_imageSlice->GetExtent( ext );
- // cout << ext[0] << " " << ext[1] <<  " " << ext[2] << " " << ext[3] << " " << ext[4] << " " << ext[5] << endl;
-  double* orig = m_info->GetOutput()->GetOrigin();
- // cout << "orig " << orig[0] << " " << orig[1] << " " << orig[2] << endl;
-  orig = m_imageData->GetOrigin();
- // cout << "orig " << orig[0] << " " << orig[1] << " " << orig[2] << endl;
-  m_info->GetOutput()->GetExtent( ext );
-  cout << "ext " << ext[0] << " " << ext[1] << " " << ext[2] << " " << ext[3] << " " << ext[4] << " " << ext[5] << endl;
- }
-}
-*/
 
 void LivewireTool::GetLivewirePoints( vtkImageData* image, int nPlane, int nSlice,
                                       double* pt1_in, double* pt2_in, vtkPoints* pts_out )

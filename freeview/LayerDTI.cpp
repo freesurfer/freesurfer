@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.3.2.2 $
+ *    $Date: 2009/04/29 22:53:51 $
+ *    $Revision: 1.3.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -201,3 +201,7 @@ bool LayerDTI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
   return ret;
 }
 
+void LayerDTI::UpdateVectorActor( int nPlane )
+{
+  LayerMRI::UpdateVectorActor( nPlane, m_vectorSource->GetImageOutput() );
+}

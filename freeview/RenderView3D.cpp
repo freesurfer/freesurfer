@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/04/29 22:53:55 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,10 @@
 #include "vtkProp3DCollection.h"
 #include "vtkScalarBarActor.h"
 #include "Interactor3DNavigate.h"
+#include "LayerSurface.h"
+#include "SurfaceOverlayProperties.h"
+#include "SurfaceOverlay.h"
+#include "vtkRGBATransferFunction.h"
 #include "Cursor3D.h"
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView3D, RenderView)
@@ -82,6 +86,8 @@ void RenderView3D::InitializeRenderView3D()
     m_bSliceVisibility[i] = true;
 
   m_cursor3D = new Cursor3D( this );
+  
+  m_actorScalarBar->SetNumberOfLabels( 4 );
 }
 
 RenderView3D* RenderView3D::New()
@@ -113,7 +119,8 @@ void RenderView3D::RefreshAllActors()
   // add focus frame
   m_renderer->AddViewProp( m_actorFocusFrame );
 
-  m_renderer->AddViewProp( m_actorScalarBar );
+  if ( lcm->HasLayer( "MRI" ) || lcm->HasLayer( "Surface" ) )
+    m_renderer->AddViewProp( m_actorScalarBar );
 
   m_renderer->ResetCameraClippingRange();
 
@@ -130,7 +137,9 @@ void RenderView3D::UpdateViewByWorldCoordinate()
     wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
   }
   cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0]+m_dWorldSize[0]*2.5, wcenter[1] + m_dWorldSize[1]*.25, wcenter[2]+m_dWorldSize[2]*.25 );
+  cam->SetPosition( wcenter[0] - ( m_dWorldSize[1] > m_dWorldSize[2] ? m_dWorldSize[1] : m_dWorldSize[2] ) *2.5,
+                    wcenter[1], 
+                    wcenter[2]);
   cam->SetViewUp( 0, 0, 1 );
   m_renderer->ResetCameraClippingRange();
 }
@@ -201,7 +210,7 @@ void RenderView3D::OnInternalIdle()
   }
 }
 
-void RenderView3D::DoListenToMessage ( std::string const iMsg, void* const iData )
+void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "CursorRASPositionChanged" )
   {
@@ -209,7 +218,7 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* const iData
     m_cursor3D->SetPosition( lc->GetCursorRASPosition() );
   }
 
-  RenderView::DoListenToMessage( iMsg, iData );
+  RenderView::DoListenToMessage( iMsg, iData, sender );
 }
 
 void RenderView3D::ShowVolumeSlice( int nPlane, bool bShow )
@@ -239,3 +248,13 @@ void RenderView3D::PostScreenshot()
   RefreshAllActors();
 }
 
+void RenderView3D::UpdateScalarBar()
+{
+  LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && surf->GetActiveOverlay() )
+  {
+    m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperties()->GetLookupTable() );
+  }
+  else
+    RenderView::UpdateScalarBar();
+}

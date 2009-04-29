@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.3.2.2 $
+ *    $Date: 2009/04/29 22:53:52 $
+ *    $Revision: 1.3.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,7 +44,7 @@ public:
 
   bool LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event );
 
-  void SetVectorFileName( std::string filename )
+  void SetVectorFileName( const char* filename )
   {
     m_sVectorFileName = filename;
   }
@@ -63,6 +63,8 @@ public:
 protected:
   void UpdateColorMap();
   void InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event );
+  
+  virtual void UpdateVectorActor( int nPlane );
 
   FSVolume*  m_vectorSource;
   std::string  m_sVectorFileName;

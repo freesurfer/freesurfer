@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2009/04/29 22:53:53 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,15 +45,19 @@
 #include "vtkDecimatePro.h"
 #include "vtkMapperCollection.h"
 #include "vtkTubeFilter.h"
+#include "vtkPointData.h"
 #include "LayerPropertiesSurface.h"
 #include "MyUtils.h"
 #include "FSSurface.h"
 #include "LayerMRI.h"
+#include "SurfaceOverlay.h"
+#include "SurfaceOverlayProperties.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
     m_surfaceSource( NULL ),
     m_bResampleToRAS( true ),
-    m_volumeRef( ref )
+    m_volumeRef( ref ),
+    m_nActiveOverlay( -1 )
 {
   m_strTypeNames.push_back( "Surface" );
 
@@ -92,6 +96,11 @@ LayerSurface::~LayerSurface()
 
   if ( m_surfaceSource )
     delete m_surfaceSource;
+  
+  for ( size_t i = 0; i < m_overlays.size(); i++ )
+  {
+    delete m_overlays[i];
+  }
 }
 
 bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
@@ -129,6 +138,34 @@ bool LayerSurface::LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event )
   this->SendBroadcast( "LayerActorUpdated", this );
 
   return true;
+}
+
+bool LayerSurface::LoadCurvatureFromFile( const char* filename )
+{
+  if ( !m_surfaceSource->LoadCurvature( filename ) )
+    return false;
+  
+  this->SendBroadcast( "LayerModified", this );
+  this->SendBroadcast( "LayerCurvatureLoaded", this );
+  return true;
+}
+
+bool LayerSurface::LoadOverlayFromFile( const char* filename )
+{
+  if ( !m_surfaceSource->LoadOverlay( filename ) )
+    return false;
+  
+  // create overlay
+  SurfaceOverlay* overlay = new SurfaceOverlay( this ); 
+  std::string fn = filename;
+  overlay->SetName( fn.substr( fn.find_last_of("/\\")+1 ).c_str() );
+  m_overlays.push_back( overlay );
+  
+  SetActiveOverlay( m_overlays.size() - 1 );
+  
+  this->SendBroadcast( "LayerModified", this );
+  this->SendBroadcast( "LayerOverlayAdded", this );
+  return true; 
 }
 
 void LayerSurface::InitializeSurface()
@@ -243,6 +280,26 @@ void LayerSurface::UpdateEdgeThickness()
     m_sliceActor2D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
     m_sliceActor3D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
   }
+  
+  if ( mProperties->GetEdgeThickness() == 0 )
+  {
+    if ( IsVisible() )
+    {
+      for ( int i = 0; i < 3; i++ )
+      {
+        m_sliceActor2D[i]->SetVisibility( 0 );
+        m_sliceActor3D[i]->SetVisibility( 0 );
+      }
+    }
+  }
+  else if ( IsVisible() && !m_sliceActor2D[0]->GetVisibility() )
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      m_sliceActor2D[i]->SetVisibility( 1 );
+      m_sliceActor3D[i]->SetVisibility( 1 );
+    }
+  }
 }
 
 void LayerSurface::UpdateVectorPointSize()
@@ -270,7 +327,8 @@ void LayerSurface::UpdateColorMap()
   m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
   if ( m_surfaceSource->IsCurvatureLoaded() )
   {
-    m_mainActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
+    if ( mProperties->GetCurvatureLUT() != m_mainActor->GetMapper()->GetLookupTable() )
+      m_mainActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
     /*  vtkSmartPointer<vtkMapperCollection> mc = m_mainActor->GetLODMappers();
       mc->InitTraversal();
       vtkMapper* mapper = NULL;
@@ -279,6 +337,8 @@ void LayerSurface::UpdateColorMap()
        mapper->SetLookupTable( mProperties->GetCurvatureLUT() );
       } */
   }
+  
+  UpdateOverlay();
 }
 
 void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
@@ -355,7 +415,7 @@ LayerPropertiesSurface* LayerSurface::GetProperties()
   return mProperties;
 }
 
-void LayerSurface::DoListenToMessage( std::string const iMessage, void* const iData )
+void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
   {
@@ -383,8 +443,8 @@ void LayerSurface::SetVisible( bool bVisible )
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
-    m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
+    m_sliceActor2D[i]->SetVisibility( ( bVisible && mProperties->GetEdgeThickness() > 0 ) ? 1 : 0 );
+    m_sliceActor3D[i]->SetVisibility( ( bVisible && mProperties->GetEdgeThickness() > 0 ) ? 1 : 0 );
   }
   m_mainActor->SetVisibility( bVisible ? 1 : 0 );
   m_vectorActor->SetVisibility( ( bVisible && m_surfaceSource && m_surfaceSource->GetActiveVector() >= 0 )? 1 : 0 );
@@ -393,7 +453,7 @@ void LayerSurface::SetVisible( bool bVisible )
 
 bool LayerSurface::IsVisible()
 {
-  return m_sliceActor2D[0]->GetVisibility() > 0;
+  return m_mainActor->GetVisibility() > 0;
 }
 
 bool LayerSurface::HasProp( vtkProp* prop )
@@ -480,4 +540,136 @@ int LayerSurface::GetActiveVector()
 int LayerSurface::GetNumberOfVectorSets()
 {
   return ( m_surfaceSource ? m_surfaceSource->GetNumberOfVectorSets() : 0 );
+}
+
+void LayerSurface::GetCurvatureRange( double* range )
+{
+  if ( m_surfaceSource && m_surfaceSource->GetMRIS() )
+  {
+    range[0] = m_surfaceSource->GetMRIS()->min_curv;
+    range[1] = m_surfaceSource->GetMRIS()->max_curv;
+  } 
+}
+
+double LayerSurface::GetCurvatureValue( int nVertex )
+{
+  return m_surfaceSource->GetCurvatureValue( nVertex );
+}
+
+bool LayerSurface::HasCurvature()
+{
+  return m_surfaceSource->IsCurvatureLoaded();
+}
+
+bool LayerSurface::HasOverlay()
+{
+  return m_overlays.size() > 0;
+}
+
+void LayerSurface::SetActiveOverlay( int nOverlay )
+{
+  if ( nOverlay < (int)m_overlays.size() )
+  {
+    if ( m_nActiveOverlay < 0 && nOverlay >= 0 )
+    {
+      this->BlockListen( true );
+      this->GetProperties()->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
+      this->BlockListen( false );
+    }
+    m_nActiveOverlay = nOverlay;
+    UpdateOverlay();
+    this->SendBroadcast( "ActiveOverlayChanged", this );
+  }
+}
+
+void LayerSurface::SetActiveOverlay( const char* name )
+{
+  for ( size_t i = 0; i < m_overlays.size(); i++ )
+  {
+    if ( strcmp( m_overlays[i]->GetName(), name ) == 0 )
+    {
+      SetActiveOverlay( i );
+      return;
+    }
+  }
+}
+
+int LayerSurface::GetNumberOfOverlays()
+{
+  return m_overlays.size();
+}
+  
+SurfaceOverlay* LayerSurface::GetOverlay( const char* name )
+{
+  for ( size_t i = 0; i < m_overlays.size(); i++ )
+  {
+    if ( strcmp( m_overlays[i]->GetName(), name ) == 0 )
+    {
+      return m_overlays[i];
+    }
+  }  
+  
+  return NULL;
+}
+
+int LayerSurface::GetActiveOverlayIndex()
+{
+  return m_nActiveOverlay;
+}
+
+SurfaceOverlay* LayerSurface::GetActiveOverlay()
+{
+  if ( m_nActiveOverlay >= 0 )
+    return m_overlays[ m_nActiveOverlay ];
+  else
+    return NULL;
+}
+
+SurfaceOverlay* LayerSurface::GetOverlay( int n )
+{
+  if ( n >= 0 && n < (int)m_overlays.size() )
+    return m_overlays[n];
+  else
+    return NULL;
+}
+
+void LayerSurface::UpdateOverlay( bool bAskRedraw )
+{  
+  vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
+  vtkPolyData* polydata = mapper->GetInput();
+  if ( m_nActiveOverlay >= 0 )
+  {
+    if ( mapper )
+    {
+      int nCount = polydata->GetPoints()->GetNumberOfPoints();
+      this->BlockListen( true );
+//      if ( mProperties->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
+//        mProperties->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
+      this->BlockListen( false );
+      vtkSmartPointer<vtkUnsignedCharArray> array = vtkUnsignedCharArray::SafeDownCast( polydata->GetPointData()->GetArray( "Overlay" ) );
+      if ( array.GetPointer() == NULL )
+      { 
+          array = vtkSmartPointer<vtkUnsignedCharArray>::New(); 
+          array->SetNumberOfComponents( 4 );  
+          array->SetNumberOfTuples( nCount );   
+          array->SetName( "Overlay" );  
+          polydata->GetPointData()->AddArray( array );
+      }
+      unsigned char* data = new unsigned char[ nCount*4 ];
+      mProperties->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+      GetActiveOverlay()->MapOverlay( data );
+      for ( int i = 0; i < nCount; i++ )
+      {
+        array->SetTupleValue( i, data + i*4 );
+      } 
+      delete[] data;
+      polydata->GetPointData()->SetActiveScalars( "Overlay" );
+    }
+  }
+  else
+  {
+    polydata->GetPointData()->SetActiveScalars( "Curvature" );
+  }
+  if ( bAskRedraw )
+    this->SendBroadcast( "LayerActorUpdated", this );
 }

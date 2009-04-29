@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.6.2.2 $
+ *    $Date: 2009/04/29 22:53:53 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -50,6 +50,7 @@
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
+#include "LayerPropertiesWayPoints.h"
 #include "LayerROI.h"
 #include "LayerDTI.h"
 #include "LayerSurface.h"
@@ -76,6 +77,9 @@
 #include "DialogRotateVolume.h"
 #include "DialogOptimalVolume.h"
 #include "WindowHistogram.h"
+#include "WindowOverlayConfiguration.h"
+#include "SurfaceOverlay.h"
+#include "SurfaceOverlayProperties.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -86,130 +90,130 @@
 // ----------------------------------------------------------------------------
 IMPLEMENT_CLASS(MainWindow, wxFrame)
 BEGIN_EVENT_TABLE(MainWindow, wxFrame)
-EVT_MENU  ( XRCID( "ID_FILE_OPEN" ),    MainWindow::OnFileOpen )
-EVT_MENU  ( XRCID( "ID_FILE_NEW" ),    MainWindow::OnFileNew )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_NEW" ),    MainWindow::OnFileNewUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_SAVE" ),    MainWindow::OnFileSave )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_SAVE" ),    MainWindow::OnFileSaveUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_SAVE_AS" ),   MainWindow::OnFileSaveAs )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_SAVE_AS" ),   MainWindow::OnFileSaveAsUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_EXIT") ,    MainWindow::OnFileExit )
-EVT_MENU_RANGE ( wxID_FILE1, wxID_FILE1+16,   MainWindow::OnFileRecent )
-EVT_MENU  ( XRCID( "ID_FILE_NEW_ROI" ),   MainWindow::OnFileNewROI )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_NEW_ROI" ),   MainWindow::OnFileNewROIUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_LOAD_ROI" ),   MainWindow::OnFileLoadROI )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_LOAD_ROI" ),   MainWindow::OnFileLoadROIUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_SAVE_ROI" ),   MainWindow::OnFileSaveROI )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_SAVE_ROI" ),   MainWindow::OnFileSaveROIUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_SAVE_ROI_AS" ),  MainWindow::OnFileSaveROIAs )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_SAVE_ROI_AS" ),  MainWindow::OnFileSaveROIAsUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_LOAD_DTI" ),   MainWindow::OnFileLoadDTI )
-EVT_MENU  ( XRCID( "ID_FILE_NEW_WAYPOINTS" ),  MainWindow::OnFileNewWayPoints )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_NEW_WAYPOINTS" ),  MainWindow::OnFileNewWayPointsUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_LOAD_WAYPOINTS" ), MainWindow::OnFileLoadWayPoints )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_LOAD_WAYPOINTS" ), MainWindow::OnFileLoadWayPointsUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_SAVE_WAYPOINTS" ), MainWindow::OnFileSaveWayPoints )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_SAVE_WAYPOINTS" ), MainWindow::OnFileSaveWayPointsUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_SAVE_WAYPOINTS_AS" ), MainWindow::OnFileSaveWayPointsAs )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_SAVE_WAYPOINTS_AS" ), MainWindow::OnFileSaveWayPointsAsUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_SCREENSHOT" ),  MainWindow::OnFileSaveScreenshot )
-EVT_UPDATE_UI ( XRCID( "ID_FILE_SCREENSHOT" ),  MainWindow::OnFileSaveScreenshotUpdateUI )
-EVT_MENU  ( XRCID( "ID_FILE_LOAD_SURFACE" ),  MainWindow::OnFileLoadSurface )
-EVT_MENU  ( XRCID( "ID_MODE_NAVIGATE" ),   MainWindow::OnModeNavigate )
-EVT_UPDATE_UI ( XRCID( "ID_MODE_NAVIGATE" ),   MainWindow::OnModeNavigateUpdateUI )
-EVT_MENU  ( XRCID( "ID_MODE_VOXEL_EDIT" ),  MainWindow::OnModeVoxelEdit )
-EVT_UPDATE_UI ( XRCID( "ID_MODE_VOXEL_EDIT" ),  MainWindow::OnModeVoxelEditUpdateUI )
-EVT_MENU  ( XRCID( "ID_MODE_ROI_EDIT" ),   MainWindow::OnModeROIEdit )
-EVT_UPDATE_UI ( XRCID( "ID_MODE_ROI_EDIT" ),   MainWindow::OnModeROIEditUpdateUI )
-EVT_MENU  ( XRCID( "ID_MODE_WAYPOINTS_EDIT" ), MainWindow::OnModeWayPointsEdit )
-EVT_UPDATE_UI ( XRCID( "ID_MODE_WAYPOINTS_EDIT" ), MainWindow::OnModeWayPointsEditUpdateUI )
-EVT_MENU  ( XRCID( "ID_EDIT_COPY" ),    MainWindow::OnEditCopy )
-EVT_UPDATE_UI ( XRCID( "ID_EDIT_COPY" ),    MainWindow::OnEditCopyUpdateUI )
-EVT_MENU  ( XRCID( "ID_EDIT_PASTE" ),    MainWindow::OnEditPaste )
-EVT_UPDATE_UI ( XRCID( "ID_EDIT_PASTE" ),    MainWindow::OnEditPasteUpdateUI )
-EVT_MENU  ( XRCID( "ID_EDIT_UNDO" ),    MainWindow::OnEditUndo )
-EVT_UPDATE_UI ( XRCID( "ID_EDIT_UNDO" ),    MainWindow::OnEditUndoUpdateUI )
-EVT_MENU  ( XRCID( "ID_EDIT_REDO" ),    MainWindow::OnEditRedo )
-EVT_UPDATE_UI ( XRCID( "ID_EDIT_REDO" ),    MainWindow::OnEditRedoUpdateUI )
-EVT_MENU  ( XRCID( "ID_EDIT_PREFERENCES" ),  MainWindow::OnEditPreferences )
-EVT_MENU  ( XRCID( "ID_VIEW_LAYOUT_1X1" ),  MainWindow::OnViewLayout1X1 )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_LAYOUT_1X1" ),  MainWindow::OnViewLayout1X1UpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_LAYOUT_2X2" ),  MainWindow::OnViewLayout2X2 )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_LAYOUT_2X2" ),  MainWindow::OnViewLayout2X2UpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_LAYOUT_1N3" ),  MainWindow::OnViewLayout1N3 )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_LAYOUT_1N3" ),  MainWindow::OnViewLayout1N3UpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_LAYOUT_1N3_H" ),  MainWindow::OnViewLayout1N3_H )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_LAYOUT_1N3_H" ),  MainWindow::OnViewLayout1N3_HUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_SAGITTAL" ),   MainWindow::OnViewSagittal )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_SAGITTAL" ),   MainWindow::OnViewSagittalUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_CORONAL" ),   MainWindow::OnViewCoronal )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_CORONAL" ),   MainWindow::OnViewCoronalUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_AXIAL" ),    MainWindow::OnViewAxial )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_AXIAL" ),    MainWindow::OnViewAxialUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_3D" ),    MainWindow::OnView3D )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_3D" ),    MainWindow::OnView3DUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_RESET" ),    MainWindow::OnViewReset )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_RESET" ),    MainWindow::OnViewResetUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_SCALAR_BAR" ),  MainWindow::OnViewScalarBar )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_SCALAR_BAR" ),  MainWindow::OnViewScalarBarUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_COORDINATE" ),  MainWindow::OnViewCoordinate )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_COORDINATE" ),  MainWindow::OnViewCoordinateUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_CYCLE_LAYER" ),  MainWindow::OnViewCycleLayer )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_CYCLE_LAYER" ),  MainWindow::OnViewCycleLayerUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),  MainWindow::OnViewToggleVolumeVisibility )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),  MainWindow::OnViewToggleVolumeVisibilityUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_TOGGLE_ROI" ),  MainWindow::OnViewToggleROIVisibility )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_TOGGLE_ROI" ),  MainWindow::OnViewToggleROIVisibilityUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_TOGGLE_SURFACE" ),  MainWindow::OnViewToggleSurfaceVisibility )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_TOGGLE_SURFACE" ),  MainWindow::OnViewToggleSurfaceVisibilityUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_TOGGLE_WAYPOINTS" ),  MainWindow::OnViewToggleWayPointsVisibility )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_TOGGLE_WAYPOINTS" ),  MainWindow::OnViewToggleWayPointsVisibilityUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_TOGGLE_CURSOR" ),   MainWindow::OnViewToggleCursorVisibility )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_TOGGLE_CURSOR" ),   MainWindow::OnViewToggleCursorVisibilityUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_TOGGLE_VOXEL_COORDS" ), MainWindow::OnViewToggleVoxelCoordinates )
-
-EVT_MENU  ( XRCID( "ID_VIEW_SURFACE_MAIN" ),  MainWindow::OnViewSurfaceMain )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_SURFACE_MAIN" ),  MainWindow::OnViewSurfaceMainUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_SURFACE_INFLATED" ), MainWindow::OnViewSurfaceInflated )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_SURFACE_INFLATED" ), MainWindow::OnViewSurfaceInflatedUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_SURFACE_WHITE" ),  MainWindow::OnViewSurfaceWhite )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_SURFACE_WHITE" ),  MainWindow::OnViewSurfaceWhiteUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_SURFACE_PIAL" ),  MainWindow::OnViewSurfacePial )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_SURFACE_PIAL" ),  MainWindow::OnViewSurfacePialUpdateUI )
-EVT_MENU  ( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ), MainWindow::OnViewSurfaceOriginal )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ), MainWindow::OnViewSurfaceOriginalUpdateUI )
-
-EVT_MENU  ( XRCID( "ID_VIEW_CONTROL_PANEL" ),  MainWindow::OnViewControlPanel )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_CONTROL_PANEL" ),  MainWindow::OnViewControlPanelUpdateUI )
-
-EVT_MENU  ( XRCID( "ID_VIEW_HISTOGRAM" ),   MainWindow::OnViewHistogram )
-EVT_UPDATE_UI ( XRCID( "ID_VIEW_HISTOGRAM" ),   MainWindow::OnViewHistogramUpdateUI )
-
-EVT_MENU  ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),  MainWindow::OnToolRotateVolume )
-EVT_UPDATE_UI ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),  MainWindow::OnToolRotateVolumeUpdateUI )
-EVT_MENU  ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ), MainWindow::OnToolCreateOptimalVolume )
-EVT_UPDATE_UI ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ), MainWindow::OnToolCreateOptimalVolumeUpdateUI )
-
-EVT_MENU  ( XRCID( "ID_HELP_QUICK_REF" ),   MainWindow::OnHelpQuickReference )
-EVT_MENU  ( XRCID( "ID_HELP_ABOUT" ),    MainWindow::OnHelpAbout )
-/*
- EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
- EVT_IDLE  (MainWindow::OnIdle)
- EVT_MENU  (XRCID("ID_EVENT_LOAD_DATA"), MainWindow::OnWorkerEventLoadData)
- EVT_MENU  (XRCID("ID_EVENT_CALCULATE_MATRIX"), MainWindow::OnWorkerEventCalculateMatrix)
-*/
-
-EVT_MENU  ( ID_WORKER_THREAD,      MainWindow::OnWorkerThreadResponse )
-EVT_SPINCTRL ( XRCID( "ID_SPIN_BRUSH_SIZE" ),  MainWindow::OnSpinBrushSize )
-EVT_SPINCTRL ( XRCID( "ID_SPIN_BRUSH_TOLERANCE" ), MainWindow::OnSpinBrushTolerance )
-EVT_CHECKBOX ( XRCID( "ID_CHECK_TEMPLATE" ),   MainWindow::OnCheckBrushTemplate )
-EVT_CHOICE  ( XRCID( "ID_CHOICE_TEMPLATE" ),   MainWindow::OnChoiceBrushTemplate )
-
-EVT_ENTER_WINDOW( MainWindow::OnMouseEnterWindow )
-EVT_ACTIVATE ( MainWindow::OnActivate )
-EVT_CLOSE  ( MainWindow::OnClose )
-EVT_KEY_DOWN    ( MainWindow::OnKeyDown )
-EVT_ICONIZE  ( MainWindow::OnIconize )
+  EVT_MENU        ( XRCID( "ID_FILE_OPEN" ),              MainWindow::OnFileOpen )
+  EVT_MENU        ( XRCID( "ID_FILE_NEW" ),               MainWindow::OnFileNew )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_NEW" ),               MainWindow::OnFileNewUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE" ),              MainWindow::OnFileSave )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE" ),              MainWindow::OnFileSaveUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_AS" ),           MainWindow::OnFileSaveAs )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_AS" ),           MainWindow::OnFileSaveAsUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_EXIT") ,              MainWindow::OnFileExit )
+  EVT_MENU_RANGE  ( wxID_FILE1, wxID_FILE1+16,            MainWindow::OnFileRecent )
+  EVT_MENU        ( XRCID( "ID_FILE_NEW_ROI" ),           MainWindow::OnFileNewROI )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_NEW_ROI" ),           MainWindow::OnFileNewROIUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_LOAD_ROI" ),          MainWindow::OnFileLoadROI )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_LOAD_ROI" ),          MainWindow::OnFileLoadROIUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_ROI" ),          MainWindow::OnFileSaveROI )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_ROI" ),          MainWindow::OnFileSaveROIUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_ROI_AS" ),       MainWindow::OnFileSaveROIAs )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_ROI_AS" ),       MainWindow::OnFileSaveROIAsUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_LOAD_DTI" ),          MainWindow::OnFileLoadDTI )
+  EVT_MENU        ( XRCID( "ID_FILE_NEW_WAYPOINTS" ),     MainWindow::OnFileNewWayPoints )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_NEW_WAYPOINTS" ),     MainWindow::OnFileNewWayPointsUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_LOAD_WAYPOINTS" ),    MainWindow::OnFileLoadWayPoints )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_LOAD_WAYPOINTS" ),    MainWindow::OnFileLoadWayPointsUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_WAYPOINTS" ),    MainWindow::OnFileSaveWayPoints )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_WAYPOINTS" ),    MainWindow::OnFileSaveWayPointsUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_WAYPOINTS_AS" ), MainWindow::OnFileSaveWayPointsAs )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_WAYPOINTS_AS" ), MainWindow::OnFileSaveWayPointsAsUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SCREENSHOT" ),        MainWindow::OnFileSaveScreenshot )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SCREENSHOT" ),        MainWindow::OnFileSaveScreenshotUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_LOAD_SURFACE" ),      MainWindow::OnFileLoadSurface )
+  EVT_MENU        ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigate )
+  EVT_UPDATE_UI   ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigateUpdateUI )
+  EVT_MENU        ( XRCID( "ID_MODE_VOXEL_EDIT" ),        MainWindow::OnModeVoxelEdit )
+  EVT_UPDATE_UI   ( XRCID( "ID_MODE_VOXEL_EDIT" ),        MainWindow::OnModeVoxelEditUpdateUI )
+  EVT_MENU        ( XRCID( "ID_MODE_ROI_EDIT" ),          MainWindow::OnModeROIEdit )
+  EVT_UPDATE_UI   ( XRCID( "ID_MODE_ROI_EDIT" ),          MainWindow::OnModeROIEditUpdateUI )
+  EVT_MENU        ( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),    MainWindow::OnModeWayPointsEdit )
+  EVT_UPDATE_UI   ( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),    MainWindow::OnModeWayPointsEditUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_COPY" ),              MainWindow::OnEditCopy )
+  EVT_UPDATE_UI   ( XRCID( "ID_EDIT_COPY" ),              MainWindow::OnEditCopyUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_PASTE" ),             MainWindow::OnEditPaste )
+  EVT_UPDATE_UI   ( XRCID( "ID_EDIT_PASTE" ),             MainWindow::OnEditPasteUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_UNDO" ),              MainWindow::OnEditUndo )
+  EVT_UPDATE_UI   ( XRCID( "ID_EDIT_UNDO" ),              MainWindow::OnEditUndoUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_REDO" ),              MainWindow::OnEditRedo )
+  EVT_UPDATE_UI   ( XRCID( "ID_EDIT_REDO" ),              MainWindow::OnEditRedoUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_PREFERENCES" ),       MainWindow::OnEditPreferences )
+  EVT_MENU        ( XRCID( "ID_VIEW_LAYOUT_1X1" ),        MainWindow::OnViewLayout1X1 )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_LAYOUT_1X1" ),        MainWindow::OnViewLayout1X1UpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_LAYOUT_2X2" ),        MainWindow::OnViewLayout2X2 )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_LAYOUT_2X2" ),        MainWindow::OnViewLayout2X2UpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_LAYOUT_1N3" ),        MainWindow::OnViewLayout1N3 )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_LAYOUT_1N3" ),        MainWindow::OnViewLayout1N3UpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_LAYOUT_1N3_H" ),      MainWindow::OnViewLayout1N3_H )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_LAYOUT_1N3_H" ),      MainWindow::OnViewLayout1N3_HUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SAGITTAL" ),          MainWindow::OnViewSagittal )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SAGITTAL" ),          MainWindow::OnViewSagittalUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_CORONAL" ),           MainWindow::OnViewCoronal )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_CORONAL" ),           MainWindow::OnViewCoronalUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_AXIAL" ),             MainWindow::OnViewAxial )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_AXIAL" ),             MainWindow::OnViewAxialUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_3D" ),                MainWindow::OnView3D )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_3D" ),                MainWindow::OnView3DUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_RESET" ),             MainWindow::OnViewReset )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_RESET" ),             MainWindow::OnViewResetUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SCALAR_BAR" ),        MainWindow::OnViewScalarBar )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SCALAR_BAR" ),        MainWindow::OnViewScalarBarUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_COORDINATE" ),        MainWindow::OnViewCoordinate )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_COORDINATE" ),        MainWindow::OnViewCoordinateUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_CYCLE_LAYER" ),       MainWindow::OnViewCycleLayer )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_CYCLE_LAYER" ),       MainWindow::OnViewCycleLayerUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),     MainWindow::OnViewToggleVolumeVisibility )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),     MainWindow::OnViewToggleVolumeVisibilityUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_ROI" ),        MainWindow::OnViewToggleROIVisibility )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_TOGGLE_ROI" ),        MainWindow::OnViewToggleROIVisibilityUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_SURFACE" ),    MainWindow::OnViewToggleSurfaceVisibility )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_TOGGLE_SURFACE" ),    MainWindow::OnViewToggleSurfaceVisibilityUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_WAYPOINTS" ),  MainWindow::OnViewToggleWayPointsVisibility )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_TOGGLE_WAYPOINTS" ),  MainWindow::OnViewToggleWayPointsVisibilityUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_CURSOR" ),     MainWindow::OnViewToggleCursorVisibility )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_TOGGLE_CURSOR" ),     MainWindow::OnViewToggleCursorVisibilityUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_VOXEL_COORDS" ), MainWindow::OnViewToggleVoxelCoordinates )
+  
+  EVT_MENU        ( XRCID( "ID_VIEW_SURFACE_MAIN" ),      MainWindow::OnViewSurfaceMain )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SURFACE_MAIN" ),      MainWindow::OnViewSurfaceMainUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SURFACE_INFLATED" ),  MainWindow::OnViewSurfaceInflated )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SURFACE_INFLATED" ),  MainWindow::OnViewSurfaceInflatedUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SURFACE_WHITE" ),     MainWindow::OnViewSurfaceWhite )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SURFACE_WHITE" ),     MainWindow::OnViewSurfaceWhiteUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SURFACE_PIAL" ),      MainWindow::OnViewSurfacePial )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SURFACE_PIAL" ),      MainWindow::OnViewSurfacePialUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),  MainWindow::OnViewSurfaceOriginal )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SURFACE_ORIGINAL" ),  MainWindow::OnViewSurfaceOriginalUpdateUI )
+  
+  EVT_MENU        ( XRCID( "ID_VIEW_CONTROL_PANEL" ),     MainWindow::OnViewControlPanel )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_CONTROL_PANEL" ),     MainWindow::OnViewControlPanelUpdateUI )
+  
+  EVT_MENU        ( XRCID( "ID_VIEW_HISTOGRAM" ),         MainWindow::OnViewHistogram )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_HISTOGRAM" ),         MainWindow::OnViewHistogramUpdateUI )
+  
+  EVT_MENU        ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolCreateOptimalVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolCreateOptimalVolumeUpdateUI )
+  
+  EVT_MENU  ( XRCID( "ID_HELP_QUICK_REF" ),               MainWindow::OnHelpQuickReference )
+  EVT_MENU  ( XRCID( "ID_HELP_ABOUT" ),                   MainWindow::OnHelpAbout )
+  /*
+  EVT_SASH_DRAGGED_RANGE(ID_LOG_WINDOW, ID_LOG_WINDOW, MainWindow::OnSashDrag)
+  EVT_IDLE  (MainWindow::OnIdle)
+  EVT_MENU  (XRCID("ID_EVENT_LOAD_DATA"), MainWindow::OnWorkerEventLoadData)
+  EVT_MENU  (XRCID("ID_EVENT_CALCULATE_MATRIX"), MainWindow::OnWorkerEventCalculateMatrix)
+  */
+  
+  EVT_MENU      ( ID_WORKER_THREAD,                   MainWindow::OnWorkerThreadResponse )
+  EVT_SPINCTRL  ( XRCID( "ID_SPIN_BRUSH_SIZE" ),      MainWindow::OnSpinBrushSize )
+  EVT_SPINCTRL  ( XRCID( "ID_SPIN_BRUSH_TOLERANCE" ), MainWindow::OnSpinBrushTolerance )
+  EVT_CHECKBOX  ( XRCID( "ID_CHECK_TEMPLATE" ),       MainWindow::OnCheckBrushTemplate )
+  EVT_CHOICE    ( XRCID( "ID_CHOICE_TEMPLATE" ),      MainWindow::OnChoiceBrushTemplate )
+  
+  EVT_ENTER_WINDOW  ( MainWindow::OnMouseEnterWindow )
+  EVT_ACTIVATE      ( MainWindow::OnActivate )
+  EVT_CLOSE         ( MainWindow::OnClose )
+  EVT_KEY_DOWN      ( MainWindow::OnKeyDown )
+  EVT_ICONIZE       ( MainWindow::OnIconize )
 END_EVENT_TABLE()
 
 // ----------------------------------------------------------------------------
@@ -222,7 +226,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 // m_bLoading = false;
 // m_bSaving = false;
   m_bProcessing = false;
-  m_bResampleToRAS = true;
+  m_bResampleToRAS = false;
   m_bToUpdateToolbars = false;
   m_layerVolumeRef = NULL;
   m_nPrevActiveViewId = -1;
@@ -275,8 +279,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_viewSagittal->SetViewPlane( 0 );
   m_viewCoronal->SetViewPlane( 1 );
   m_viewAxial->SetViewPlane( 2 );
-  m_viewSagittal->SetFocusFrameColor( 0.9, 0, 0 );
-  m_viewCoronal->SetFocusFrameColor( 0, 0.8, 0 );
+  m_viewSagittal->SetFocusFrameColor( 1, 0, 0 );
+  m_viewCoronal->SetFocusFrameColor( 0, 1, 0 );
   m_viewAxial->SetFocusFrameColor( 0, 0, 1 );
   m_viewRender[0] = m_viewSagittal;
   m_viewRender[1] = m_viewCoronal;
@@ -312,9 +316,12 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 
   m_wndHistogram = new WindowHistogram( this );
   m_wndHistogram->Hide();
+  
+  m_wndOverlayConfiguration = new WindowOverlayConfiguration( this );
+  m_wndOverlayConfiguration->Hide();
 
   UpdateToolbars();
-
+  
   m_nViewLayout = VL_2X2;
   m_nMainView = MV_Sagittal;
   m_nMaxRecentFiles = 10;
@@ -331,35 +338,40 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
     m_splitterMain->SetSashPosition( config->Read( _T("/MainWindow/SplitterPosition"), 260L ) );
     // m_splitterSub->SetSashPosition( config->Read( _T("/MainWindow/SplitterPositionSub"), 50L ) );
     // m_splitterSub->UpdateSize();
-    m_strLastDir = config->Read( _T("/MainWindow/LastDir"), "");
+    m_strLastDir = config->Read( _("/MainWindow/LastDir"), _("") );
     m_fileHistory->Load( *config );
     m_fileHistory->UseMenu( fileMenu );
     m_fileHistory->AddFilesToMenu( fileMenu );
-    m_nViewLayout = config->Read( _T("/MainWindow/ViewLayout"), m_nViewLayout );
-    m_nMainView = config->Read( _T("/MainWindow/MainView"), m_nMainView );
+    m_nViewLayout = config->Read( _("/MainWindow/ViewLayout"), m_nViewLayout );
+    m_nMainView = config->Read( _("/MainWindow/MainView"), m_nMainView );
 
-    wxColour color = wxColour( config->Read( _T("RenderWindow/BackgroundColor"), "rgb(0,0,0)" ) );
+    wxColour color = wxColour( config->Read( _("RenderWindow/BackgroundColor"), _("rgb(0,0,0)") ) );
     m_viewAxial->SetBackgroundColor( color );
     m_viewSagittal->SetBackgroundColor( color );
     m_viewCoronal->SetBackgroundColor( color );
     m_view3D->SetBackgroundColor( color );
 
-    color = wxColour( config->Read( _T("RenderWindow/CursorColor"), "rgb(255,0,0)" ) );
+    color = wxColour( config->Read( _("RenderWindow/CursorColor"), _("rgb(255,0,0)") ) );
     m_viewAxial->GetCursor2D()->SetColor( color );
     m_viewSagittal->GetCursor2D()->SetColor( color );
     m_viewCoronal->GetCursor2D()->SetColor( color );
     m_view3D->GetCursor3D()->SetColor( color );
 
-    m_nScreenshotFilterIndex = config->Read( _T("/MainWindow/ScreenshotFilterIndex"), 0L );
+    m_nScreenshotFilterIndex = config->Read( _("/MainWindow/ScreenshotFilterIndex"), 0L );
 
-    config->Read( _T("/RenderWindow/SyncZoomFactor"), &m_settings2D.SyncZoomFactor, true );
-
-    config->Read( _T("/Screenshot/Magnification" ), &m_settingsScreenshot.Magnification, 1 );
-    config->Read( _T("/Screenshot/HideCursor" ), &m_settingsScreenshot.HideCursor, false );
-    config->Read( _T("/Screenshot/HideCoords" ), &m_settingsScreenshot.HideCoords, false );
+    bool bScalarBar;
+    config->Read( _("/RenderWindow/ShowScalarBar"), &bScalarBar, false );
+    if ( bScalarBar )
+      ShowScalarBar( bScalarBar );
+    
+    config->Read( _("/RenderWindow/SyncZoomFactor"), &m_settings2D.SyncZoomFactor, true );
+    config->Read( _("/Screenshot/Magnification" ), &m_settingsScreenshot.Magnification, 1 );
+    config->Read( _("/Screenshot/HideCursor" ), &m_settingsScreenshot.HideCursor, false );
+    config->Read( _("/Screenshot/HideCoords" ), &m_settingsScreenshot.HideCoords, false );
+    config->Read( _("/Screenshot/AntiAliasing" ), &m_settingsScreenshot.AntiAliasing, false );
 
     bool bShow = true;
-    config->Read( _T("/MainWindow/ShowControlPanel" ), &bShow, true );
+    config->Read( _("/MainWindow/ShowControlPanel" ), &bShow, true );
 
     ShowControlPanel( bShow );
   }
@@ -389,7 +401,8 @@ void MainWindow::OnClose( wxCloseEvent &event )
 {
   if ( IsProcessing() )
   {
-    wxMessageDialog dlg( this, "There is on-going data processing. Please wait till it finishes before closing.", "Quit", wxOK );
+    wxMessageDialog dlg( this, _("There is on-going data processing. Please wait till it finishes before closing."), 
+                         _("Quit"), wxOK );
     dlg.ShowModal();
     return;
   }
@@ -397,31 +410,34 @@ void MainWindow::OnClose( wxCloseEvent &event )
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_roi = GetLayerCollection( "ROI" );
   LayerCollection* lc_wp = GetLayerCollection( "WayPoints" );
-  wxString text = "";
+  wxString text = _( "" );
   for ( int i = 0; i < lc_mri->GetNumberOfLayers(); i++ )
   {
     LayerEditable* layer = ( LayerEditable* )lc_mri->GetLayer( i );
     if ( layer->IsModified() )
-      text += wxString( layer->GetName() ) + "\t(" + wxFileName( layer->GetFileName() ).GetShortPath() + ")\n";
+      text += wxString::FromAscii( layer->GetName() ) + _( "\t(" ) + 
+          wxFileName( wxString::FromAscii( layer->GetFileName() ) ).GetShortPath() + _(")\n");
   }
   for ( int i = 0; i < lc_roi->GetNumberOfLayers(); i++ )
   {
     LayerEditable* layer = ( LayerEditable* )lc_roi->GetLayer( i );
     if ( layer->IsModified() )
-      text += wxString( layer->GetName() ) + + "\t(" + wxFileName( layer->GetFileName() ).GetShortPath() + ")\n";
+      text += wxString::FromAscii( layer->GetName() ) + _( "\t(" ) + 
+          wxFileName( wxString::FromAscii( layer->GetFileName() ) ).GetShortPath() + _(")\n");
   }
   for ( int i = 0; i < lc_wp->GetNumberOfLayers(); i++ )
   {
     LayerEditable* layer = ( LayerEditable* )lc_wp->GetLayer( i );
     if ( layer->IsModified() )
-      text += wxString( layer->GetName() ) + + "\t(" + wxFileName( layer->GetFileName() ).GetShortPath() + ")\n";
+      text += wxString::FromAscii( layer->GetName() ) + _( "\t(" ) + 
+          wxFileName( wxString::FromAscii( layer->GetFileName() ) ).GetShortPath() + _(")\n");
   }
 
   if ( !text.IsEmpty() )
   {
-    wxString msg = "The following volume(s) and/or label(s) have been modified but not saved. \n\n";
-    msg += text + "\nDo you still want to quit the program?";
-    wxMessageDialog dlg( this, msg, "Quit", wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
+    wxString msg = _("The following volume(s) and/or label(s) have been modified but not saved. \n\n");
+    msg += text + _("\nDo you still want to quit the program?");
+    wxMessageDialog dlg( this, msg, _("Quit"), wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
     if ( dlg.ShowModal() != wxID_YES )
       return;
   }
@@ -435,29 +451,33 @@ void MainWindow::OnClose( wxCloseEvent &event )
     {
       GetPosition( &x, &y );
       GetSize( &w, &h );
-      config->Write( _T("/MainWindow/PosX"), (long) x );
-      config->Write( _T("/MainWindow/PosY"), (long) y );
-      config->Write( _T("/MainWindow/Width"), (long) w );
-      config->Write( _T("/MainWindow/Height"), (long) h );
+      config->Write( _("/MainWindow/PosX"), (long) x );
+      config->Write( _("/MainWindow/PosY"), (long) y );
+      config->Write( _("/MainWindow/Width"), (long) w );
+      config->Write( _("/MainWindow/Height"), (long) h );
     }
-    config->Write( _T("/MainWindow/FullScreen"), IsFullScreen() );
+    config->Write( _("/MainWindow/FullScreen"), IsFullScreen() );
     if ( m_controlPanel->IsShown() )
-      config->Write( _T("/MainWindow/SplitterPosition"), m_splitterMain->GetSashPosition() );
-    config->Write( _T("/MainWindow/SplitterPositionSub"), m_splitterSub->GetSashPosition() );
-    config->Write( _T("/MainWindow/LastDir"), m_strLastDir );
-    config->Write( _T("/MainWindow/ViewLayout"), m_nViewLayout );
-    config->Write( _T("/MainWindow/MainView"), m_nMainView );
-    config->Write( _T("MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
+      config->Write( _("/MainWindow/SplitterPosition"), m_splitterMain->GetSashPosition() );
+    config->Write( _("/MainWindow/SplitterPositionSub"), m_splitterSub->GetSashPosition() );
+    config->Write( _("/MainWindow/LastDir"), m_strLastDir );
+    config->Write( _("/MainWindow/ViewLayout"), m_nViewLayout );
+    config->Write( _("/MainWindow/MainView"), m_nMainView );
+    config->Write( _("MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
 
-    config->Write( _T("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
-    config->Write( _T("RenderWindow/CursorColor"), m_viewAxial->GetCursor2D()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
-    config->Write( _T("/RenderWindow/SyncZoomFactor"), m_settings2D.SyncZoomFactor );
+    config->Write( _("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
+    config->Write( _("RenderWindow/CursorColor"), m_viewAxial->GetCursor2D()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
+    config->Write( _("/RenderWindow/SyncZoomFactor"), m_settings2D.SyncZoomFactor );
+    
+    config->Write( _("/RenderWindow/ShowScalarBar"), 
+                   ( m_nMainView >= 0 ? m_viewRender[m_nMainView]->GetShowScalarBar() : false ) );
 
-    config->Write( _T("/Screenshot/Magnification" ),  m_settingsScreenshot.Magnification );
-    config->Write( _T("/Screenshot/HideCursor" ),  m_settingsScreenshot.HideCursor );
-    config->Write( _T("/Screenshot/HideCoords" ),  m_settingsScreenshot.HideCoords );
+    config->Write( _("/Screenshot/Magnification" ),  m_settingsScreenshot.Magnification );
+    config->Write( _("/Screenshot/HideCursor" ),  m_settingsScreenshot.HideCursor );
+    config->Write( _("/Screenshot/HideCoords" ),  m_settingsScreenshot.HideCoords );
+    config->Write( _("/Screenshot/AntiAliasing" ),  m_settingsScreenshot.AntiAliasing );
 
-    config->Write( _T("/MainWindow/ShowControlPanel" ), m_controlPanel->IsShown() );
+    config->Write( _("/MainWindow/ShowControlPanel" ), m_controlPanel->IsShown() );
 
     m_fileHistory->Save( *config );
   }
@@ -477,24 +497,25 @@ void MainWindow::NewVolume()
   LayerCollection* col_mri = m_layerCollectionManager->GetLayerCollection( "MRI" );
   if ( !col_mri->GetActiveLayer() )
   {
-    wxMessageDialog dlg( this, "Can not create new volume without visible template volume.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Can not create new volume without visible template volume."), 
+                         _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
 
   // enter the name of the new ROI
   DialogNewVolume dlg( this, col_mri );
-  dlg.SetVolumeName( "New volume" );
+  dlg.SetVolumeName( _("New volume") );
   if ( dlg.ShowModal() != wxID_OK )
     return;
 
   // finally we are about to create new volume.
   LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
   layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel() );
-  layer_new->SetName( dlg.GetVolumeName().c_str() );
+  layer_new->SetName( dlg.GetVolumeName().char_str() );
   col_mri->AddLayer( layer_new );
 
-  m_controlPanel->RaisePage( "Volumes" );
+  m_controlPanel->RaisePage( _("Volumes") );
 
 // m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
 // m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
@@ -512,15 +533,16 @@ void MainWindow::SaveVolume()
   }
   else if ( !layer_mri->IsVisible() )
   {
-    wxMessageDialog dlg( this, "Current volume layer is not visible. Please turn it on before saving.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Current volume layer is not visible. Please turn it on before saving."), 
+                         _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
-  wxString fn = layer_mri->GetFileName();
+  wxString fn = wxString::FromAscii( layer_mri->GetFileName() );
   if ( fn.IsEmpty() )
   {
     wxFileDialog dlg( this, _("Save volume file"), m_strLastDir, _(""),
-                      _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+                      _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_OK )
     {
@@ -530,13 +552,13 @@ void MainWindow::SaveVolume()
 
   if ( !fn.IsEmpty() )
   {
-    if ( !MyUtils::HasExtension( fn, "nii" ) &&
-         !MyUtils::HasExtension( fn, "nii.gz" ) &&
-         !MyUtils::HasExtension( fn, "img" ) &&
-         !MyUtils::HasExtension( fn, "mgz" )
+    if ( !MyUtils::HasExtension( fn, _("nii") ) &&
+          !MyUtils::HasExtension( fn, _("nii.gz") ) &&
+          !MyUtils::HasExtension( fn, _("img") ) &&
+          !MyUtils::HasExtension( fn, _("mgz") )
        )
     {
-      fn += ".mgz";
+      fn += _(".mgz");
     }
     layer_mri->SetFileName( fn.char_str() );
     layer_mri->ResetModified();
@@ -555,19 +577,20 @@ void MainWindow::SaveVolumeAs()
   }
   else if ( !layer_mri->IsVisible() )
   {
-    wxMessageDialog dlg( this, "Current volume layer is not visible. Please turn it on before saving.", "Error", wxOK );
+    wxMessageDialog dlg( this, _( "Current volume layer is not visible. Please turn it on before saving." ), 
+                         _( "Error" ), wxOK );
     dlg.ShowModal();
     return;
   }
 
-  wxString fn = layer_mri->GetFileName();
-  wxFileDialog dlg( this, _("Save volume file as"), m_strLastDir, "",
-                    _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+  wxString fn = wxString::FromAscii( layer_mri->GetFileName() );
+  wxFileDialog dlg( this, _("Save volume file as"), m_strLastDir, _(""),
+                    _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   if ( dlg.ShowModal() == wxID_OK )
   {
     fn = dlg.GetPath();
-    layer_mri->SetFileName( dlg.GetPath().c_str() );
+    layer_mri->SetFileName( dlg.GetPath().char_str() );
     SaveVolume();
     m_controlPanel->UpdateUI();
   }
@@ -601,7 +624,9 @@ void MainWindow::LoadVolume()
   } */
 }
 
-void MainWindow::LoadVolumeFile( const wxString& filename, const wxString& reg_filename, bool bResample, int nColorMap )
+void MainWindow::LoadVolumeFile( const wxString& filename, 
+                                 const wxString& reg_filename, 
+                                 bool bResample )
 {
 // cout << bResample << endl;
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
@@ -610,19 +635,18 @@ void MainWindow::LoadVolumeFile( const wxString& filename, const wxString& reg_f
   LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
   layer->GetProperties()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
-  layer->GetProperties()->SetColorMap( ( LayerPropertiesMRI::ColorMapType )nColorMap );
   wxFileName fn( filename );
   fn.Normalize();
   wxString layerName = fn.GetName();
-  if ( fn.GetExt().Lower() == "gz" )
+  if ( fn.GetExt().Lower() == _("gz") )
     layerName = wxFileName( layerName ).GetName();
-  layer->SetName( layerName.c_str() );
-  layer->SetFileName( fn.GetFullPath().c_str() );
+  layer->SetName( layerName.char_str() );
+  layer->SetFileName( fn.GetFullPath().char_str() );
   if ( !reg_filename.IsEmpty() )
   {
     wxFileName reg_fn( reg_filename );
     reg_fn.Normalize( wxPATH_NORM_ALL, fn.GetPath() );
-    layer->SetRegFileName( reg_fn.GetFullPath().c_str() );
+    layer->SetRegFileName( reg_fn.GetFullPath().char_str() );
   }
 
 // if ( !bResample )
@@ -673,7 +697,7 @@ void MainWindow::OnFileRecent( wxCommandEvent& event )
 {
   wxString fn( m_fileHistory->GetHistoryFile( event.GetId() - wxID_FILE1 ) );
   if ( !fn.IsEmpty() )
-    this->LoadVolumeFile( fn, "", m_bResampleToRAS );
+    this->LoadVolumeFile( fn, _(""), m_bResampleToRAS );
 }
 
 LayerCollection* MainWindow::GetLayerCollection( std::string strType )
@@ -694,7 +718,7 @@ void MainWindow::LoadROI()
     return;
   }
   wxFileDialog dlg( this, _("Open ROI file"), m_strLastDir, _(""),
-                    _T("Label files (*.label)|*.label|All files (*.*)|*.*"),
+                    _("Label files (*.label)|*.label|All files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
@@ -709,8 +733,8 @@ void MainWindow::LoadROIFile( const wxString& fn )
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
   LayerROI* roi = new LayerROI( mri );
-  roi->SetName( wxFileName( fn ).GetName().c_str() );
-  if ( roi->LoadROIFromFile( fn.c_str() ) )
+  roi->SetName( wxFileName( fn ).GetName().char_str() );
+  if ( roi->LoadROIFromFile( (const char*)fn.char_str() ) )
   {
     LayerCollection* col_roi = GetLayerCollection( "ROI" );
     if ( col_roi->IsEmpty() )
@@ -722,12 +746,12 @@ void MainWindow::LoadROIFile( const wxString& fn )
     }
     col_roi->AddLayer( roi );
 
-    m_controlPanel->RaisePage( "ROIs" );
+    m_controlPanel->RaisePage( _("ROIs") );
   }
   else
   {
     delete roi;
-    wxMessageDialog dlg( this, wxString( "Can not load ROI from " ) + fn, "Error", wxOK );
+    wxMessageDialog dlg( this, _( "Can not load ROI from " ) + fn, _( "Error" ), wxOK );
     dlg.ShowModal();
   }
 }
@@ -739,14 +763,14 @@ void MainWindow::NewROI()
   LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
   if ( !layer_mri)
   {
-    wxMessageDialog dlg( this, "Can not create new ROI without volume image.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Can not create new ROI without volume image."), _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
 
   // enter the name of the new ROI
   DialogNewROI dlg( this, col_mri );
-  dlg.SetROIName( "New ROI" );
+  dlg.SetROIName( _("New ROI") );
   if ( dlg.ShowModal() != wxID_OK )
     return;
 
@@ -760,10 +784,10 @@ void MainWindow::NewROI()
     col_roi->SetSlicePosition( col_mri->GetSlicePosition() );
   }
   LayerROI* layer_roi = new LayerROI( dlg.GetTemplate() );
-  layer_roi->SetName( dlg.GetROIName().c_str() );
+  layer_roi->SetName( dlg.GetROIName().char_str() );
   col_roi->AddLayer( layer_roi );
 
-  m_controlPanel->RaisePage( "ROIs" );
+  m_controlPanel->RaisePage( _("ROIs") );
 
   m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
   m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
@@ -780,15 +804,15 @@ void MainWindow::SaveROI()
   }
   else if ( !layer_roi->IsVisible() )
   {
-    wxMessageDialog dlg( this, "Current ROI layer is not visible. Please turn it on before saving.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Current ROI layer is not visible. Please turn it on before saving."), _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
-  wxString fn = layer_roi->GetFileName();
+  wxString fn = wxString::FromAscii( layer_roi->GetFileName() );
   if ( fn.IsEmpty() )
   {
     wxFileDialog dlg( this, _("Save ROI file"), m_strLastDir, _(""),
-                      _T("Label files (*.label)|*.label|All files (*.*)|*.*"),
+                      _("Label files (*.label)|*.label|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_OK )
     {
@@ -798,9 +822,9 @@ void MainWindow::SaveROI()
 
   if ( !fn.IsEmpty() )
   {
-    if ( !MyUtils::HasExtension( fn, "label" ) )
+    if ( !MyUtils::HasExtension( fn, _("label") ) )
     {
-      fn += ".label";
+      fn += _(".label");
     }
     layer_roi->SetFileName( fn.char_str() );
     layer_roi->ResetModified();
@@ -820,18 +844,19 @@ void MainWindow::SaveROIAs()
   }
   else if ( !layer_roi->IsVisible() )
   {
-    wxMessageDialog dlg( this, "Current ROI layer is not visible. Please turn it on before saving.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Current ROI layer is not visible. Please turn it on before saving."), 
+                         _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
 
-  wxString fn = layer_roi->GetFileName();
+  wxString fn = wxString::FromAscii( layer_roi->GetFileName() );
   wxFileDialog dlg( this, _("Save ROI file as"), m_strLastDir, fn,
-                    _T("Label files (*.label)|*.label|All files (*.*)|*.*"),
+                    _("Label files (*.label)|*.label|All files (*.*)|*.*"),
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    layer_roi->SetFileName( dlg.GetPath().c_str() );
+    layer_roi->SetFileName( dlg.GetPath().char_str() );
     SaveROI();
     m_controlPanel->UpdateUI();
   }
@@ -866,7 +891,7 @@ void MainWindow::LoadWayPoints()
     return;
   }
   wxFileDialog dlg( this, _("Open Way Points file"), m_strLastDir, _(""),
-                    _T("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
+                    _("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
@@ -881,8 +906,8 @@ void MainWindow::LoadWayPointsFile( const wxString& fn )
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
   LayerWayPoints* wp = new LayerWayPoints( mri );
-  wp->SetName( wxFileName( fn ).GetName().c_str() );
-  if ( wp->LoadFromFile( fn.c_str() ) )
+  wp->SetName( wxFileName( fn ).GetName().char_str() );
+  if ( wp->LoadFromFile( (const char*)fn.char_str() ) )
   {
     LayerCollection* col_wp = GetLayerCollection( "WayPoints" );
     if ( col_wp->IsEmpty() )
@@ -894,12 +919,12 @@ void MainWindow::LoadWayPointsFile( const wxString& fn )
     }
     col_wp->AddLayer( wp );
 
-    m_controlPanel->RaisePage( "Way Points" );
+    m_controlPanel->RaisePage( _("Way Points") );
   }
   else
   {
     delete wp;
-    wxMessageDialog dlg( this, wxString( "Can not load Way Points from " ) + fn, "Error", wxOK );
+    wxMessageDialog dlg( this, _( "Can not load Way Points from " ) + fn, _("Error"), wxOK );
     dlg.ShowModal();
   }
 
@@ -913,14 +938,14 @@ void MainWindow::NewWayPoints()
   LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
   if ( !layer_mri)
   {
-    wxMessageDialog dlg( this, "Can not create new way points without volume image.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Can not create new way points without volume image."), _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
 
   // enter the name of the new ROI
   DialogNewWayPoints dlg( this, col_mri );
-  dlg.SetWayPointsName( "New Way Points" );
+  dlg.SetWayPointsName( _("New Way Points") );
   if ( dlg.ShowModal() != wxID_OK )
     return;
 
@@ -934,10 +959,10 @@ void MainWindow::NewWayPoints()
     col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
   }
   LayerWayPoints* layer_wp = new LayerWayPoints( dlg.GetTemplate() );
-  layer_wp->SetName( dlg.GetWayPointsName().c_str() );
+  layer_wp->SetName( dlg.GetWayPointsName().char_str() );
   col_wp->AddLayer( layer_wp );
 
-  m_controlPanel->RaisePage( "Way Points" );
+  m_controlPanel->RaisePage( _("Way Points") );
 
   m_viewAxial->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
   m_viewCoronal->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
@@ -954,15 +979,16 @@ void MainWindow::SaveWayPoints()
   }
   else if ( !layer_wp->IsVisible() )
   {
-    wxMessageDialog dlg( this, "Current Way Points layer is not visible. Please turn it on before saving.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Current Way Points layer is not visible. Please turn it on before saving."), 
+                         _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
-  wxString fn = layer_wp->GetFileName();
+  wxString fn = wxString::FromAscii( layer_wp->GetFileName() );
   if ( fn.IsEmpty() )
   {
     wxFileDialog dlg( this, _("Save Way Points file"), m_strLastDir, _(""),
-                      _T("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
+                      _("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_OK )
     {
@@ -972,9 +998,9 @@ void MainWindow::SaveWayPoints()
 
   if ( !fn.IsEmpty() )
   {
-    if ( !MyUtils::HasExtension( fn, "label" ) )
+    if ( !MyUtils::HasExtension( fn, _("label") ) )
     {
-      fn += ".label";
+      fn += _(".label");
     }
     layer_wp->SetFileName( fn.char_str() );
     layer_wp->ResetModified();
@@ -994,18 +1020,19 @@ void MainWindow::SaveWayPointsAs()
   }
   else if ( !layer_wp->IsVisible() )
   {
-    wxMessageDialog dlg( this, "Current Way Points layer is not visible. Please turn it on before saving.", "Error", wxOK );
+    wxMessageDialog dlg( this, _("Current Way Points layer is not visible. Please turn it on before saving."), 
+                         _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
 
-  wxString fn = layer_wp->GetFileName();
+  wxString fn = wxString::FromAscii( layer_wp->GetFileName() );
   wxFileDialog dlg( this, _("Save Way Points file as"), m_strLastDir, fn,
-                    _T("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
+                    _("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    layer_wp->SetFileName( dlg.GetPath().c_str() );
+    layer_wp->SetFileName( dlg.GetPath().char_str() );
     SaveWayPoints();
     m_controlPanel->UpdateUI();
   }
@@ -1026,87 +1053,18 @@ void MainWindow::UpdateToolbars()
 
 void MainWindow::DoUpdateToolbars()
 {
-// bool bVoxelEditVisible = m_toolbarVoxelEdit->IsShown();
-// bool bROIEditVisible = m_toolbarROIEdit->IsShown();
-// if ( bVoxelEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit) ||
-//   bROIEditVisible != (m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit) )
-
-// bool bToolWindowVisible = m_toolWindowEdit->IsShown();
-// if ( bToolWindowVisible != (m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate ) )
+  if ( !m_toolWindowEdit )
+    m_toolWindowEdit = new ToolWindowEdit( this );
+    
+  if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
+       m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
   {
-    // m_toolbarVoxelEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit );
-    // m_toolbarROIEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
-    // m_toolbarBrush->Show( m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate );
-    // m_panelToolbarHolder->Layout();
-    // bool bNeedReposition = ( m_toolWindowEdit->IsShown() != (m_viewAxial->GetInteractionMode() != RenderView2D::IM_Navigate) );
-    if ( !m_toolWindowEdit )
-      m_toolWindowEdit = new ToolWindowEdit( this );
-
-    if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
-         m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
-    {
-      m_toolWindowEdit->Show();
-    }
-    else
-      m_toolWindowEdit->Hide();
-
-    m_toolWindowEdit->UpdateTools();
+    m_toolWindowEdit->Show();
   }
-  /*
-  XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_SIZE", wxStaticText )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
-  XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_SIZE", wxSpinCtrl )->Enable( m_viewAxial->GetAction() != Interactor2DROIEdit::EM_Fill );
-  wxCheckBox* checkTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHECK_TEMPLATE", wxCheckBox );
-  wxChoice* choiceTemplate = XRCCTRL( *m_toolbarBrush, "ID_CHOICE_TEMPLATE", wxChoice );
-  // checkTemplate->Enable( m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-  // choiceTemplate->Enable( checkTemplate->IsChecked() && m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-  XRCCTRL( *m_toolbarBrush, "ID_STATIC_BRUSH_TOLERANCE", wxStaticText )->Enable( checkTemplate->IsChecked() ); //&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-  XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->Enable( checkTemplate->IsChecked() );//&& m_viewAxial->GetAction() == Interactor2DROIEdit::EM_Fill );
-
-  LayerEditable* layer = NULL;
-  if ( choiceTemplate->GetSelection() != wxNOT_FOUND )
-   layer = ( LayerEditable* )(void*)choiceTemplate->GetClientData( choiceTemplate->GetSelection() );
-
-  choiceTemplate->Clear();
-  LayerCollection* lc = GetLayerCollection( "MRI" );
-  int nSel = 0;
-  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
-  {
-   LayerMRI* mri = (LayerMRI*)lc->GetLayer( i );
-   if ( layer == mri )
-   {
-    nSel = i;
-    m_propertyBrush->SetReferenceLayer( layer );
-   }
-   
-   choiceTemplate->Append( mri->GetName(), (void*)mri );
-  }
-  if ( !lc->IsEmpty() )
-   choiceTemplate->SetSelection( nSel );
-  if ( !checkTemplate->IsChecked() )
-   m_propertyBrush->SetReferenceLayer( NULL );
-
-  if ( checkTemplate->IsChecked() )
-   m_propertyBrush->SetBrushTolerance( XRCCTRL( *m_toolbarBrush, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl )->GetValue() );
   else
-   m_propertyBrush->SetBrushTolerance( 0 );
-  */
+    m_toolWindowEdit->Hide();
 
-  /*
-   switch ( m_viewAxial->GetInteractionMode() )
-   {
-    case RenderView2D::IM_VoxelEdit:
-     m_controlPanel->RaisePage( "Volumes" );
-     break;
-    case RenderView2D::IM_ROIEdit:
-     m_controlPanel->RaisePage( "ROIs" );
-     break;
-    case RenderView2D::IM_WayPointsEdit:
-     m_controlPanel->RaisePage( "Way Points" );
-     break;
-    default:
-    break;
-   }
-   */
+  m_toolWindowEdit->UpdateTools();
 
   m_bToUpdateToolbars = false;
 }
@@ -1541,7 +1499,7 @@ void MainWindow::OnViewReset( wxCommandEvent& event )
 
 void MainWindow::OnViewResetUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
 }
 
 void MainWindow::ShowControlPanel( bool bShow )
@@ -1555,7 +1513,7 @@ void MainWindow::ShowControlPanel( bool bShow )
   else
   {
     if ( config )
-      config->Write( _T("/MainWindow/SplitterPosition"), m_splitterMain->GetSashPosition() );
+      config->Write( _("/MainWindow/SplitterPosition"), m_splitterMain->GetSashPosition() );
     m_splitterMain->Unsplit( m_controlPanel );
   }
 }
@@ -1572,20 +1530,30 @@ void MainWindow::OnViewControlPanelUpdateUI( wxUpdateUIEvent& event )
 
 void MainWindow::OnViewScalarBar( wxCommandEvent& event )
 {
+  ShowScalarBar( event.IsChecked() );
+}
+
+void MainWindow::ShowScalarBar( bool bShow )
+{
   for ( int i = 0; i < 4; i++ )
   {
     if ( i != m_nMainView )
       m_viewRender[i]->ShowScalarBar( false );
   }
   if ( m_nMainView >= 0 && m_nMainView < 4 )
-    m_viewRender[m_nMainView]->ShowScalarBar( event.IsChecked() );
+  {
+    m_viewRender[m_nMainView]->ShowScalarBar( bShow );
+    m_viewRender[m_nMainView]->UpdateScalarBar();
+  }
 
   NeedRedraw( 1 );
 }
 
 void MainWindow::OnViewScalarBarUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer() );
+//  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
+//  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+//  event.Enable( mri || ( m_nMainView == 3 && surf && surf->GetActiveOverlay() ) );
   if ( m_nMainView >= 0 && m_nMainView < 4 )
     event.Check( m_viewRender[m_nMainView]->GetShowScalarBar() );
 }
@@ -1827,9 +1795,9 @@ void MainWindow::OnInternalIdle()
     wxConfigBase* config = wxConfigBase::Get();
     if ( config )
     {
-      if ( config->Exists( _T("/MainWindow/SplitterPositionSub") ) )
+      if ( config->Exists( _("/MainWindow/SplitterPositionSub") ) )
       {
-        m_splitterSub->SetSashPosition( config->Read( _T("/MainWindow/SplitterPositionSub"), 80L ) );
+        m_splitterSub->SetSashPosition( config->Read( _("/MainWindow/SplitterPositionSub"), 80L ) );
         m_splitterSub->UpdateSize();
       }
     }
@@ -1868,8 +1836,8 @@ void MainWindow::OnHelpQuickReference( wxCommandEvent& event )
   wxConfigBase* config = wxConfigBase::Get();
   if ( config )
   {
-    int x = config->Read( _T("/QuickRefWindow/PosX"), 280L );
-    int y = config->Read( _T("/QuickRefWindow/PosY"), 30L );
+    int x = config->Read( _("/QuickRefWindow/PosX"), 280L );
+    int y = config->Read( _("/QuickRefWindow/PosY"), 30L );
     int x1, y1;
     GetPosition( &x1, &y1 );
     m_wndQuickReference->Move( x1 + x, y1 + y );
@@ -1878,9 +1846,9 @@ void MainWindow::OnHelpQuickReference( wxCommandEvent& event )
 
 void MainWindow::OnHelpAbout( wxCommandEvent& event )
 {
-  wxString msg = wxString( "freeview 1.0 (internal) \r\nbuild ") + MyUtils::GetDateAndTime();
+  wxString msg = _( "freeview 1.0 (internal) \r\nbuild " ) + MyUtils::GetDateAndTime();
 
-  wxMessageDialog dlg( this, msg, "About freeview", wxOK | wxICON_INFORMATION );
+  wxMessageDialog dlg( this, msg, _("About freeview"), wxOK | wxICON_INFORMATION );
   dlg.ShowModal();
 }
 
@@ -1991,7 +1959,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 {
   wxString strg = event.GetString();
 
-  if ( strg.Left( 6 ) == "Failed" )
+  if ( strg.Left( 6 ) == _("Failed") )
   {
     m_statusBar->m_gaugeBar->Hide();
     m_bProcessing = false;
@@ -1999,8 +1967,8 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
     m_controlPanel->UpdateUI();
     strg = strg.Mid( 6 );
     if ( strg.IsEmpty() )
-      strg = "Operation failed.";
-    wxMessageDialog dlg( this, strg, "Error", wxOK | wxICON_ERROR );
+      strg = _("Operation failed. See console for more information.");
+    wxMessageDialog dlg( this, strg, _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
     return;
   }
@@ -2012,12 +1980,12 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
     m_statusBar->m_gaugeBar->Hide();
 
     Layer* layer = ( Layer* )(void*)event.GetClientData();
-    wxASSERT( layer != NULL || strg != "Load" || strg != "Save" );
+    wxASSERT( layer != NULL || strg != _("Load") || strg != _("Save") );
     LayerCollection* lc_mri = GetLayerCollection( "MRI" );
     LayerCollection* lc_surface = GetLayerCollection( "Surface" );
 
     // loading operation finished
-    if ( strg == "Load" )
+    if ( strg == _("Load" ) )
     {
       // volume loaded
       if ( layer->IsTypeOf( "MRI" ) )
@@ -2053,9 +2021,9 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
         else
           lc_mri->AddLayer( layer );
 
-        m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( mri->GetFileName() ) );
+        m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( wxString::FromAscii( mri->GetFileName() ) ) );
 
-        m_controlPanel->RaisePage( "Volumes" );
+        m_controlPanel->RaisePage( _("Volumes") );
       }
       // surface loaded
       else if ( layer->IsTypeOf( "Surface" ) )
@@ -2090,7 +2058,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
 
         // m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
 
-        m_controlPanel->RaisePage( "Surfaces" );
+        m_controlPanel->RaisePage( _("Surfaces") );
       }
 
       m_viewAxial->SetInteractionMode( RenderView2D::IM_Navigate );
@@ -2099,12 +2067,12 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
     }
 
     // Saving operation finished
-    else if ( strg == "Save" )
+    else if ( strg == _("Save") )
     {
       cout << ( (LayerEditable*)layer )->GetFileName() << " saved successfully." << endl;
     }
 
-    else if ( strg == "Rotate" )
+    else if ( strg == _("Rotate") )
     {
       m_bResampleToRAS = false;
       m_layerCollectionManager->RefreshSlices();
@@ -2117,7 +2085,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
   else if ( event.GetInt() == 0 )  // just started
   {
     m_bProcessing = true;
-    if ( strg == "Rotate" )
+    if ( strg == _("Rotate") )
     {
       EnableControls( false );
     }
@@ -2133,22 +2101,22 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
   }
 }
 
-void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
+void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerMoved" )
   {
     UpdateToolbars();
     if ( !GetLayerCollection( "MRI" )->IsEmpty() )
     {
-      SetTitle( wxString( GetLayerCollection( "MRI" )->GetLayer( 0 )->GetName() ) + " - freeview" );
+      SetTitle( wxString::FromAscii( GetLayerCollection( "MRI" )->GetLayer( 0 )->GetName() ) + _(" - freeview") );
     }
     else if ( !GetLayerCollection( "Surface" )->IsEmpty() )
     {
-      SetTitle( wxString( GetLayerCollection( "Surface" )->GetLayer( 0 )->GetName() ) + " - freeview" );
+      SetTitle( wxString::FromAscii( GetLayerCollection( "Surface" )->GetLayer( 0 )->GetName() ) + _(" - freeview") );
     }
     else
     {
-      SetTitle( "freeview" );
+      SetTitle( _("freeview") );
     }
   }
   else if ( iMsg == "LayerObjectDeleted" )
@@ -2158,17 +2126,19 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* const iData )
   }
   else if ( iMsg == "MRINotVisible" )
   {
-    wxMessageDialog dlg( this, "Active volume is not visible. Please turn it on before editing.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg( this, _("Active volume is not visible. Please turn it on before editing."), 
+                         _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
   }
   else if ( iMsg == "MRINotEditable" )
   {
-    wxMessageDialog dlg( this, "Active volume is not editable.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg( this, _("Active volume is not editable."), _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
   }
   else if ( iMsg == "ROINotVisible" )
   {
-    wxMessageDialog dlg( this, "Active ROI is not visible. Please turn it on before editing.", "Error", wxOK | wxICON_ERROR );
+    wxMessageDialog dlg( this, _("Active ROI is not visible. Please turn it on before editing."), 
+                         _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
   }
 }
@@ -2201,16 +2171,16 @@ void MainWindow::LoadDTIFile( const wxString& fn_vector,
   LayerDTI* layer = new LayerDTI( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
   wxString layerName = wxFileName( fn_vector ).GetName();
-  if ( wxFileName( fn_fa ).GetExt().Lower() == "gz" )
+  if ( wxFileName( fn_fa ).GetExt().Lower() == _("gz") )
     layerName = wxFileName( layerName ).GetName();
-  layer->SetName( layerName.c_str() );
-  layer->SetFileName( fn_fa.c_str() );
-  layer->SetVectorFileName( fn_vector.c_str() );
+  layer->SetName( layerName.char_str() );
+  layer->SetFileName( fn_fa.char_str() );
+  layer->SetVectorFileName( fn_vector.char_str() );
   if ( !reg_filename.IsEmpty() )
   {
     wxFileName reg_fn( reg_filename );
     reg_fn.Normalize( wxPATH_NORM_ALL, m_strLastDir );
-    layer->SetRegFileName( reg_fn.GetFullPath().c_str() );
+    layer->SetRegFileName( reg_fn.GetFullPath().char_str() );
   }
 
   /* LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
@@ -2235,89 +2205,395 @@ void MainWindow::RunScript()
 
   wxArrayString sa = m_scripts[0];
   m_scripts.erase( m_scripts.begin() );
-  if ( sa[0] == "loadvolume" )
+  if ( sa[0] == _("loadvolume") )
   {
     CommandLoadVolume( sa );
   }
-  else if ( sa[0] == "loaddti" )
+  else if ( sa[0] == _("loaddti") )
   {
     CommandLoadDTI( sa );
   }
-  else if ( sa[0] == "loadsurface" )
+  else if ( sa[0] == _("loadsurface") )
   {
     CommandLoadSurface( sa );
   }
-  else if ( sa[0] == "loadsurfacevector" )
+  else if ( sa[0] == _("loadsurfacevector") )
   {
     CommandLoadSurfaceVector( sa );
   }
-  else if ( sa[0] == "loadroi" || sa[0] == "loadlabel" )
+  else if ( sa[0] == _("loadsurfacecurvature") )
+  {
+    CommandLoadSurfaceCurvature( sa );
+  }
+  else if ( sa[0] == _("loadsurfaceoverlay") )
+  {
+    CommandLoadSurfaceOverlay( sa );
+  }
+  else if ( sa[0] == _("loadroi") || sa[0] == _("loadlabel") )
   {
     CommandLoadROI( sa );
   }
-  else if ( sa[0] == "loadwaypoints" )
+  else if ( sa[0] == _("loadwaypoints") )
   {
     CommandLoadWayPoints( sa );
   }
-  else if ( sa[0] == "screencapture" )
+  else if ( sa[0] == _("screencapture") )
   {
     CommandScreenCapture( sa );
   }
-  else if ( sa[0] == "quit" || sa[0] == "exit" )
+  else if ( sa[0] == _("quit") || sa[0] == _("exit") )
   {
     Close();
+  }
+  else if ( sa[0] == _("setviewport") )
+  {
+    CommandSetViewport( sa );
+  }
+  else if ( sa[0] == _("zoom") )
+  {
+    CommandZoom( sa );
+  }
+  else if ( sa[0] == _("ras") )
+  {
+    CommandSetRAS( sa );
+  }
+  else if ( sa[0] == _("slice") )
+  {
+    CommandSetSlice( sa );
+  }
+  else if ( sa[0] == _("setcolormap") )
+  {
+    CommandSetColorMap( sa );
+  }
+  else if ( sa[0] == _("setlut") )
+  {
+    CommandSetLUT( sa );
+  }
+  else if ( sa[0] == _("setsurfaceoverlaymethod") )
+  {
+    CommandSetSurfaceOverlayMethod( sa );
+  }
+  else if ( sa[0] == _("setwaypointscolor") )
+  {
+    CommandSetWayPointsColor( sa );
+  }
+  else if ( sa[0] == _("setwaypointsradius") )
+  {
+    CommandSetWayPointsRadius( sa );
+  }
+  else if ( sa[0] == _("setdisplayvector") )
+  {
+    CommandSetDisplayVector( sa );
   }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
 {
-  int nColorMap = LayerPropertiesMRI::Grayscale;
-  wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
+  wxArrayString sa_vol = MyUtils::SplitString( sa[1], _(":") );
   wxString fn = sa_vol[0];
   wxString reg_fn;
-  for ( unsigned int i = 1; i < sa_vol.GetCount(); i++ )
+  wxArrayString scales;
+  wxString colormap = _("grayscale");
+  wxString colormap_scale = _("grayscale");
+  wxString lut_name;
+  wxString vector_display = _("no"), vector_inversion = _("none"), vector_render = _("line");
+  for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
-    int n;
-    if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "colormap" )
+    int n = strg.Find( _("=") );
+    if ( n != wxNOT_FOUND )
     {
-      strg = strg.Mid( n + 1 ).Lower();
-      if ( strg == "heat" || strg == "heatscale" )
-        nColorMap = LayerPropertiesMRI::Heat;
-      else if ( strg == "jet" || strg == "jetscale" )
-        nColorMap = LayerPropertiesMRI::Jet;
-      else if ( strg == "lut" )
-        nColorMap = LayerPropertiesMRI::LUT;
+      if ( strg.Left( n ).Lower() == _("colormap") )
+      {
+        colormap = strg.Mid( n + 1 ).Lower();
+      }
+      else if ( strg.Left( n ).Lower() == _("grayscale") || 
+                strg.Left( n ).Lower() == _("heatscale") || 
+                strg.Left( n ).Lower() == _("jetscale") ) 
+      {
+        colormap_scale = strg.Left( n ).Lower();    // colormap scale might be different from colormap!
+        scales = MyUtils::SplitString( strg.Mid(n+1), _(",") );
+      }
+      else if ( strg.Left( n ).Lower() == _("lut") )
+      {
+        lut_name = strg.Mid( n + 1 );
+        if ( lut_name.IsEmpty() )
+        {
+          cerr << "Missing lut name." << endl;
+        }
+      }
+      else if ( strg.Left( n ).Lower() == _("vector") )
+      {
+        vector_display = strg.Mid( n + 1 ).Lower();
+        if ( vector_display.IsEmpty() )
+        {
+          cerr << "Missing vector display argument." << endl;
+        }
+      }
+      else if ( strg.Left( n ).Lower() == _("inversion") || 
+                strg.Left( n ).Lower() == _("invert") )
+      {
+        vector_inversion = strg.Mid( n + 1 ).Lower();
+        if ( vector_inversion.IsEmpty() )
+        {
+          cerr << "Missing vector inversion argument." << endl;
+          vector_inversion = _("none");
+        }
+      }
+      else if ( strg.Left( n ).Lower() == _("render") )
+      {
+        vector_render = strg.Mid( n + 1 ).Lower();
+        {
+          if ( vector_render.IsEmpty() )
+          {
+            cerr << "Missing vector render argument." << endl;
+            vector_render = _("line");
+          }
+        }
+      }
+      else if ( strg.Left( n ).Lower() == _("reg") )
+      {
+        reg_fn = strg.Mid( n + 1 );
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
+        return;
+      }
     }
-    else if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
+    else
     {
-      reg_fn = strg.Mid( n + 1 );
+      cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
+      return;
     }
   }
-  bool bResample = true;
-  if ( sa[ sa.GetCount()-1 ] == "nr" )
-    bResample = false;
+  bool bResample = false;
+  if ( sa[ sa.GetCount()-1 ] == _("r") )
+    bResample = true;
 
-  LoadVolumeFile( fn, reg_fn, bResample, nColorMap );
+  if ( scales.size() > 0 || colormap != _("grayscale") )
+  {
+    wxArrayString script;
+    script.Add( _("setcolormap") );
+    script.Add( colormap );
+    script.Add( colormap_scale ); 
+    for ( size_t i = 0; i < scales.size(); i++ )
+      script.Add( scales[i] );
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  if ( !lut_name.IsEmpty() )
+  {
+    wxArrayString script;
+    script.Add( _("setlut") );
+    script.Add( lut_name );
+        
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  if ( !vector_display.IsEmpty() && vector_display != _("no") )
+  {
+    wxArrayString script;
+    script.Add( _("setdisplayvector") );
+    script.Add( vector_display );
+    script.Add( vector_render );
+    script.Add( vector_inversion );
+  
+    m_scripts.insert( m_scripts.begin(), script );  
+  }
+  
+  LoadVolumeFile( fn, reg_fn, bResample );
+}
+
+void MainWindow::CommandSetColorMap( const wxArrayString& sa )
+{
+  int nColorMap = LayerPropertiesMRI::Grayscale;;
+  wxString strg = sa[1];
+  if ( strg == _("heat") || strg == _("heatscale") )
+    nColorMap = LayerPropertiesMRI::Heat;
+  else if ( strg == _("jet") || strg == _("jetscale") )
+    nColorMap = LayerPropertiesMRI::Jet;
+  else if ( strg == _("lut") )
+    nColorMap = LayerPropertiesMRI::LUT;
+  else if ( strg != _("grayscale") )
+    cerr << "Unrecognized colormap name '" << strg << "'." << endl;
+  
+  int nColorMapScale = LayerPropertiesMRI::Grayscale;
+  strg = sa[2];
+  if ( strg == _("heatscale") )
+    nColorMapScale = LayerPropertiesMRI::Heat;
+  else if ( strg == _("jetscale") )
+    nColorMapScale = LayerPropertiesMRI::Jet;
+  else if ( strg == _("lut") )
+    nColorMapScale = LayerPropertiesMRI::LUT;
+  
+  std::vector<double> pars;
+  for ( size_t i = 3; i < sa.size(); i++ )
+  {
+    double dValue;
+    if ( !sa[i].ToDouble( &dValue ) )
+    {
+      cerr << "Invalid color scale value(s). " << endl;
+      break;
+    }
+    else
+    {
+      pars.push_back( dValue );
+    }
+  }
+  
+  SetVolumeColorMap( nColorMap, nColorMapScale, pars );
+  
+  ContinueScripts();
+}
+
+
+void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
+{
+  if ( cmd[1].Lower() == _("yes") || cmd[1].Lower() == _("true") || cmd[1].Lower() == _("1") )
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
+    {
+      if ( !mri->IsTypeOf( "DTI" ) && mri->GetNumberOfFrames() < 3 )
+      {
+        cerr << "Volume has less than 3 frames. Can not display as vectors." << endl;
+      }
+      else
+      {
+        mri->GetProperties()->SetDisplayVector( true );  
+      
+        if ( cmd[2].Lower() == _("line") )
+        {
+          mri->GetProperties()->SetVectorRepresentation( LayerPropertiesMRI::VR_Line );
+        }
+        else if ( cmd[2].Lower() == _("bar") )
+        {
+          mri->GetProperties()->SetVectorRepresentation( LayerPropertiesMRI::VR_Bar );
+        }
+        else
+        {
+          cerr << "Unrecognized argument '" << cmd[2] << "' for vector rendering." << endl;
+        }
+        
+        if ( cmd[3].Lower() != _("none") )
+        {
+          if ( cmd[3].Lower() == _("x") )
+            mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_X );
+          else if ( cmd[3].Lower() == _("y") )
+            mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_Y );
+          else if ( cmd[3].Lower() == _("z") )
+            mri->GetProperties()->SetVectorInversion( LayerPropertiesMRI::VI_Z );
+          else
+            cerr << "Unknown inversion flag '" << cmd[2] << "'." << endl;
+        }
+      }
+    }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetLUT( const wxArrayString& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {  
+    COLOR_TABLE* ct = m_luts->LoadColorTable( sa[1].char_str() );
+    /*
+    if ( !ct )
+    {
+      ct = m_luts->LoadColorTable( sa[1].c_str() );
+    }
+    */
+    if ( ct )
+    {
+      mri->GetProperties()->SetLUTCTAB( ct );
+    }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::ContinueScripts()
+{
+  // create a fake worker event to notify end of operation 
+  // so scripts in queue will continue on
+  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
+  event.SetInt( -1 );
+  event.SetString( _("ByPass") );
+  wxPostEvent( this, event );
 }
 
 void MainWindow::CommandLoadDTI( const wxArrayString& sa )
 {
-  bool bResample = true;
-  if ( sa.GetCount() > 3 && sa[3] == "nr" )
-    bResample = false;
+  bool bResample = false;
+  if ( sa.GetCount() > 3 && sa[3] == _("r") )
+    bResample = true;
+  
   if ( sa.GetCount() > 2 )
   {
-    wxArrayString sa_vol = MyUtils::SplitString( sa[1], ":" );
+    wxArrayString sa_vol = MyUtils::SplitString( sa[1], _(":") );
     wxString fn = sa_vol[0];
     wxString strg, reg_fn;
-    if ( sa_vol.Count() > 1 )
-      strg = sa_vol[1];
-    int n;
-    if ( ( n = strg.Find( "=" ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == "reg" )
+    wxString vector_display = _("no"), 
+             vector_inversion = _("none"),
+             vector_render = _("line");
+    
+    for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
     {
-      reg_fn = strg.Mid( n + 1 );
+      wxString strg = sa_vol[i];
+      int n = strg.Find( _("=") );
+      if ( n != wxNOT_FOUND )
+      {  
+        if ( strg.Left( n ).Lower() == _("vector") )
+        {
+          vector_display = strg.Mid( n + 1 ).Lower();
+          if ( vector_display.IsEmpty() )
+          {
+            cerr << "Missing vector display argument." << endl;
+          }
+        }
+        else if ( strg.Left( n ).Lower() == _("inversion") || 
+                  strg.Left( n ).Lower() == _("invert") )
+        {
+          vector_inversion = strg.Mid( n + 1 ).Lower();
+          if ( vector_inversion.IsEmpty() )
+          {
+            cerr << "Missing vector inversion argument." << endl;
+            vector_inversion = _("none");
+          }
+        }
+        else if ( strg.Left( n ).Lower() == _("render") )
+        {
+          vector_render = strg.Mid( n + 1 ).Lower();
+          {
+            if ( vector_render.IsEmpty() )
+            {
+              cerr << "Missing vector render argument." << endl;
+              vector_render = _("line");
+            }
+          }
+        }
+        else if ( strg.Left( n ).Lower() == _("reg") )
+        {
+          reg_fn = strg.Mid( n + 1 );
+        }
+      }
     }
+    
+    if ( !vector_display.IsEmpty() && vector_display != _("no") )
+    {
+      wxArrayString script;
+      script.Add( _("setdisplayvector") );
+      script.Add( vector_display );
+      script.Add( vector_render );
+      script.Add( vector_inversion );
+  
+      m_scripts.insert( m_scripts.begin(), script );  
+    }
+    
     // cout << reg_fn.c_str() << endl;
     this->LoadDTIFile( fn, sa[2], reg_fn, bResample );
   }
@@ -2327,62 +2603,420 @@ void MainWindow::CommandLoadROI( const wxArrayString& cmd )
 {
   LoadROIFile( cmd[1] );
 
-  // create a fake worker event to notify end of operation
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-// event.SetClientData( (void*)roi );
-  wxPostEvent( this, event );
+  ContinueScripts();
 }
 
 void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 {
-  wxArrayString sa_fn = MyUtils::SplitString( cmd[1], ":" );
+  wxString fullfn = cmd[1];
+  int nIgnoreStart = fullfn.find( _("#") );
+  int nIgnoreEnd = fullfn.find( _("#"), nIgnoreStart+1 );
+  wxArrayString sa_fn = MyUtils::SplitString( fullfn, _(":"), nIgnoreStart, nIgnoreEnd - nIgnoreStart + 1 );
   wxString fn = sa_fn[0];
-  wxString fn_vector = "";
-  if ( sa_fn.size() > 1 )
+//  wxString fn_vector = "";
+  for ( size_t k = 1; k < sa_fn.size(); k++ )
   {
-    wxArrayString sa = MyUtils::SplitString( sa_fn[1], "=" );
-    if ( sa.size() > 1 )
+    int n = sa_fn[k].Find( _("=") );
+    if ( n != wxNOT_FOUND  )
     {
-      // add script to load surface vector files
-      wxArrayString vector_fns = MyUtils::SplitString( sa[1], "," );
-      for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+      wxString subOption = sa_fn[k].Left( n ).Lower(); 
+      wxString subArgu = sa_fn[k].Mid( n+1 );
+      if ( subOption == _("curv") || subOption == _("curvature") )
       {
+        // add script to load surface curvature file
         wxArrayString script;
-        script.Add( "loadsurfacevector" );
-        script.Add( vector_fns[i] );
+        script.Add( _("loadsurfacecurvature") );
+        script.Add( subArgu );
         m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _("overlay") )
+      {
+        // add script to load surface overlay files
+        nIgnoreStart = subArgu.find( _("#") );
+        nIgnoreEnd = subArgu.find( _("#"), nIgnoreStart+1 );
+        wxArrayString overlay_fns = MyUtils::SplitString( subArgu, _(","), nIgnoreStart, nIgnoreEnd - nIgnoreStart + 1 );
+        for ( int i = overlay_fns.size() - 1 ; i >= 0 ; i-- )
+        {
+          wxArrayString script;
+          script.Add( _("loadsurfaceoverlay") );          
+          int nSubStart = overlay_fns[i].find( _("#") );      
+          int nSubEnd = overlay_fns[i].find( _("#"), nSubStart+1 );
+          if ( nSubEnd == wxNOT_FOUND )
+            nSubEnd = overlay_fns[i].Length() - 1;
+          if ( nSubStart != wxNOT_FOUND )
+            script.Add( overlay_fns[i].Left( nSubStart ) );
+          else
+            script.Add( overlay_fns[i] );
+          m_scripts.insert( m_scripts.begin(), script );
+          
+          // if there are sub-options attached with overlay file, parse them
+          wxString opt_strg;
+          if ( nSubStart != wxNOT_FOUND )
+            opt_strg = overlay_fns[i].Mid( nSubStart+1, nSubEnd - nSubStart - 1 ); 
+
+          wxArrayString overlay_opts = MyUtils::SplitString( opt_strg, _(":") );
+          
+          wxString method = _("linearopaque");
+          wxArrayString thresholds;
+          for ( size_t j = 0; j < overlay_opts.GetCount(); j++ )
+          {
+            wxString strg = overlay_opts[j];
+            if ( ( n = strg.Find( _("=") ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == _("method") )
+            {
+              method = strg.Mid( n+1 ).Lower();
+            }
+            else if ( ( n = strg.Find( _("=") ) ) != wxNOT_FOUND && strg.Left( n ).Lower() == _("threshold") )
+            {
+              thresholds = MyUtils::SplitString( strg.Mid( n+1 ), _(",") );
+            }
+          }
+          
+          if ( method != _("linearopaque") || !thresholds.IsEmpty() )
+          {
+            script.Clear();
+            script.Add( _("setsurfaceoverlaymethod") );
+            script.Add( method );
+            for ( size_t j = 0; j < thresholds.GetCount(); j++ )
+              script.Add( thresholds[j] );
+            
+            // insert right AFTER loadsurfaceoverlay command
+            m_scripts.insert( m_scripts.begin()+1, script );
+          }
+        }
+      }
+      else if ( subOption == _("vector") )
+      {
+        // add script to load surface vector files
+        wxArrayString vector_fns = MyUtils::SplitString( subArgu, _(",") );
+        for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+        {
+          wxArrayString script;
+          script.Add( _("loadsurfacevector") );
+          script.Add( vector_fns[i] );
+          m_scripts.insert( m_scripts.begin(), script );
+        }
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << subOption << "'." << endl;
+        return;
       }
     }
   }
   LoadSurfaceFile( fn );
 }
 
+void MainWindow::CommandSetSurfaceOverlayMethod( const wxArrayString& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
+    {
+      int nMethod = SurfaceOverlayProperties::CM_LinearOpaque;
+      if ( cmd[1] == _("linear") )
+        nMethod = SurfaceOverlayProperties::CM_Linear;
+      else if ( cmd[1] == _("piecewise") )
+        nMethod = SurfaceOverlayProperties::CM_Piecewise;
+      else if ( cmd[1] != _("linearopaque") )
+      {
+        cerr << "Unrecognized overlay method name '" << cmd[1] << "'." << endl;
+        ContinueScripts();
+        return;
+      }
+      
+      overlay->GetProperties()->SetColorMethod( nMethod );
+      
+      double values[3];
+      if ( cmd.GetCount() - 2 >= 3 )   // 3 values
+      {
+        if ( cmd[2].ToDouble( &(values[0]) ) &&
+             cmd[3].ToDouble( &(values[1]) ) &&
+             cmd[4].ToDouble( &(values[2]) ) )
+        {
+          overlay->GetProperties()->SetMinPoint( values[0] );
+          overlay->GetProperties()->SetMidPoint( values[1] );
+          overlay->GetProperties()->SetMaxPoint( values[2] );
+        }
+        else
+        {
+          cerr << "Invalid input for overlay threshold." << endl;
+        }
+      }   
+      else if ( cmd.GetCount() - 2 == 2 )   // 2 values
+      {
+        if ( cmd[2].ToDouble( &(values[0]) ) &&
+             cmd[3].ToDouble( &(values[1]) ) )
+        {
+          overlay->GetProperties()->SetMinPoint( values[0] );
+          overlay->GetProperties()->SetMaxPoint( values[1] );
+          overlay->GetProperties()->SetMidPoint( ( values[0] + values[1] ) / 2 );
+        }
+        else
+        {
+          cerr << "Invalid input for overlay threshold." << endl;
+        }
+      }  
+      surf->UpdateOverlay();    
+    }
+  }
+  
+  ContinueScripts();
+}
 
 void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 {
   LoadSurfaceVectorFile( cmd[1] );
 }
 
+void MainWindow::CommandLoadSurfaceCurvature( const wxArrayString& cmd )
+{
+  LoadSurfaceCurvatureFile( cmd[1] );
+ 
+  ContinueScripts();
+}
+
+void MainWindow::CommandLoadSurfaceOverlay( const wxArrayString& cmd )
+{
+  LoadSurfaceOverlayFile( cmd[1] );
+
+  ContinueScripts();
+}
+
 void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
 {
-  LoadWayPointsFile( cmd[1] );
+  wxArrayString options = MyUtils::SplitString( cmd[1], _(":") );
+  wxString fn = options[0];
+  wxString color = _("null");
+  wxString spline_color = _("null");
+  wxString radius = _("0");
+  wxString spline_radius = _("0");
+  for ( size_t i = 1; i < options.GetCount(); i++ )
+  {
+    wxString strg = options[i];
+    int n = strg.Find( _("=") );
+    if ( n != wxNOT_FOUND )
+    {
+      wxString option = strg.Left( n ).Lower();
+      if ( option == _("color") )
+      {
+        color = strg.Mid( n+1 );
+      }
+      else if ( option == _("splinecolor") )
+      {
+        spline_color = strg.Mid( n+1 );
+      }
+      else if ( option == _("radius") )
+      {
+        radius = strg.Mid( n+1 );
+      }
+      else if ( option == _("splineradius") )
+      {
+        spline_radius = strg.Mid( n+1 );
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
+      }
+    }
+  }
+  
+  if ( color != _("null") || spline_color != _("null") )
+  {
+    wxArrayString script;
+    script.Add( _("setwaypointscolor") );
+    script.Add( color );
+    script.Add( spline_color ); 
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  if ( radius != _("0") || spline_radius != _("0") )
+  {
+    wxArrayString script;
+    script.Add( _("setwaypointsradius") );
+    script.Add( radius );
+    script.Add( spline_radius ); 
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  LoadWayPointsFile( fn );
 
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
+{
+  LayerWayPoints* wp = (LayerWayPoints*)GetLayerCollection( "WayPoints" )->GetActiveLayer();
+  if ( wp )
+  {
+    if ( cmd[1] != _("null") )
+    {
+      wxColour color( cmd[1] );
+      if ( !color.IsOk() )      
+      {
+        double rgb[3];
+        wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], _(",") );
+        if ( rgb_strs.GetCount() < 3 || 
+             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
+             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
+             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+        {
+          cerr << "Invalid color name or value " << cmd[1] << endl;
+        }
+        else
+        {
+          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+        }
+      }
+      
+      if ( color.IsOk() )
+        wp->GetProperties()->SetColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+      else
+        cerr << "Invalid color name or value " << cmd[1] << endl;
+    }
+    
+    if ( cmd[2] != _("null") )
+    {
+      wxColour color( cmd[2] );
+      if ( !color.IsOk() )      
+      {
+        double rgb[3];
+        wxArrayString rgb_strs = MyUtils::SplitString( cmd[2], _(",") );
+        if ( rgb_strs.GetCount() < 3 || 
+             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
+             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
+             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+        {
+          cerr << "Invalid color name or value " << cmd[2] << endl;
+        }
+        else
+        {
+          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+        }
+      }
+      
+      if ( color.IsOk() )
+        wp->GetProperties()->SetSplineColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+      else
+        cerr << "Invalid color name or value " << cmd[1] << endl;
+    }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetWayPointsRadius( const wxArrayString& cmd )
+{
+  LayerWayPoints* wp = (LayerWayPoints*)GetLayerCollection( "WayPoints" )->GetActiveLayer();
+  if ( wp )
+  {
+    if ( cmd[1] != _("0") )
+    {
+      double dvalue;
+      if ( cmd[1].ToDouble( &dvalue ) ) 
+        wp->GetProperties()->SetRadius( dvalue );
+      else
+        cerr << "Invalid way points radius." << endl;
+    }
+    
+    if ( cmd[2] != _("0") )
+    {
+      double dvalue;
+      if ( cmd[2].ToDouble( &dvalue ) )
+        wp->GetProperties()->SetSplineRadius( dvalue );
+      else
+        cerr << "Invalid spline radius." << endl;
+    }
+  }
+  
+  ContinueScripts();
 }
 
 void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
 {
-  m_viewRender[m_nMainView]->SaveScreenshot( cmd[1].c_str(), m_settingsScreenshot.Magnification );
+  m_viewRender[m_nMainView]->SaveScreenshot( cmd[1].c_str(), 
+                                             m_settingsScreenshot.Magnification, 
+                                             m_settingsScreenshot.AntiAliasing );
 
-  wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
-  event.SetInt( -1 );
-  event.SetString( "ByPass" );
-  wxPostEvent( this, event );
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetViewport( const wxArrayString& cmd )
+{
+  if ( cmd[1] == _("x") )
+    SetMainView( MV_Sagittal );
+  else if ( cmd[1] == _("y") )
+    SetMainView( MV_Coronal );
+  else if ( cmd[1] == _("z") )
+    SetMainView( MV_Axial );
+  else if ( cmd[1] == _("3d") )
+    SetMainView( MV_3D );
+
+  ContinueScripts();
+}
+
+void MainWindow::CommandZoom( const wxArrayString& cmd )
+{
+  double dValue;
+  cmd[1].ToDouble( &dValue );
+  if ( m_nMainView >= 0 )
+  {
+    m_viewRender[m_nMainView]->Zoom( dValue );
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetRAS( const wxArrayString& cmd )
+{
+  double ras[3];
+  if ( cmd[1].ToDouble( &(ras[0]) ) &&
+       cmd[2].ToDouble( &(ras[1]) ) &&
+       cmd[3].ToDouble( &(ras[2]) ) )
+  {
+    GetLayerCollection( "MRI" )->SetCursorRASPosition( ras );
+    m_layerCollectionManager->SetSlicePosition( ras );
+  }
+  else
+  {
+    cerr << "Invalid input values for RAS coordinates. " << endl;
+  }
+
+  ContinueScripts();
+}
+
+
+void MainWindow::CommandSetSlice( const wxArrayString& cmd )
+{
+  LayerCollection* lc_mri = GetLayerCollection( "MRI" );
+  if ( !lc_mri->IsEmpty() )
+  {
+    LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );;
+    long x, y, z;
+    if ( cmd[1].ToLong( &x ) && cmd[2].ToLong( &y ) && cmd[3].ToLong( &z ) )
+    {
+      int slice[3] = { x, y, z };
+      double ras[3];
+      mri->OriginalIndexToRAS( slice, ras );
+      mri->RASToTarget( ras, ras );
+      
+      lc_mri->SetCursorRASPosition( ras );
+      m_layerCollectionManager->SetSlicePosition( ras );
+    }
+    else
+    {
+      cerr << "Invalide slice number(s). " << endl;
+    }
+  }
+  else
+  {
+    cerr << "No volume was loaded. Set slice failed." << endl;
+  }
+
+  ContinueScripts();
 }
 
 void MainWindow::OnSpinBrushSize( wxSpinEvent& event )
@@ -2457,7 +3091,7 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
 
   wxString fn;
   wxFileDialog dlg( this, _("Save screenshot as"), m_strLastDir, _(""),
-                    _T("PNG files (*.png)|*.png|JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|TIFF files (*.tif;*.tiff)|*.tif;*.tiff|Bitmap files (*.bmp)|*.bmp|PostScript files (*.ps)|*.ps|VRML files (*.wrl)|*.wrl|All files (*.*)|*.*"),
+                    _("PNG files (*.png)|*.png|JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|TIFF files (*.tif;*.tiff)|*.tif;*.tiff|Bitmap files (*.bmp)|*.bmp|PostScript files (*.ps)|*.ps|VRML files (*.wrl)|*.wrl|All files (*.*)|*.*"),
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   dlg.SetFilterIndex( m_nScreenshotFilterIndex );
   if ( dlg.ShowModal() == wxID_OK )
@@ -2469,7 +3103,9 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
   {
     m_strLastDir = MyUtils::GetNormalizedPath( fn );
     m_nScreenshotFilterIndex = dlg.GetFilterIndex();
-    m_viewRender[nId]->SaveScreenshot( fn.c_str(), m_settingsScreenshot.Magnification );
+    m_viewRender[nId]->SaveScreenshot( fn, 
+                                       m_settingsScreenshot.Magnification,
+                                       m_settingsScreenshot.AntiAliasing );
   }
 }
 
@@ -2488,7 +3124,7 @@ void MainWindow::LoadSurface()
 {
   {
     wxFileDialog dlg( this, _("Open surface file"), m_strLastDir, _(""),
-                      _T("Surface files (*.*)|*.*"),
+                      _("Surface files (*.*)|*.*"),
                       wxFD_OPEN );
     if ( dlg.ShowModal() == wxID_OK )
     {
@@ -2506,9 +3142,9 @@ void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_v
   wxString layerName = fn.GetFullName();
 // if ( fn.GetExt().Lower() == "gz" )
 //  layerName = wxFileName( layerName ).GetName();
-  layer->SetName( layerName.c_str() );
-  layer->SetFileName( fn.GetFullPath().c_str() );
-  layer->SetVectorFileName( fn_vector.c_str() );
+  layer->SetName( layerName.char_str() );
+  layer->SetFileName( fn.GetFullPath().char_str() );
+  layer->SetVectorFileName( fn_vector.char_str() );
 
   WorkerThread* thread = new WorkerThread( this );
   thread->LoadSurface( layer );
@@ -2518,7 +3154,7 @@ void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_v
 void MainWindow::LoadSurfaceVector()
 {
   wxFileDialog dlg( this, _("Open surface file as vector"), m_strLastDir, _(""),
-                    _T("Surface files (*.*)|*.*"),
+                    _("Surface files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
   {
@@ -2529,15 +3165,68 @@ void MainWindow::LoadSurfaceVector()
 
 void MainWindow::LoadSurfaceVectorFile( const wxString& filename )
 {
-  m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  wxString fn = filename;
+  if ( fn.Contains( _("/") ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
 
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    layer->SetVectorFileName( filename.c_str() );
+    layer->SetVectorFileName( fn.char_str() );
 
     WorkerThread* thread = new WorkerThread( this );
     thread->LoadSurfaceVector( layer );
+    
+    m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  }
+}
+
+void MainWindow::LoadSurfaceCurvature()
+{
+  wxFileDialog dlg( this, _("Open curvature file"), m_strLastDir, _(""),
+                    _("Curvature files (*.*)|*.*"),
+                    wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    this->LoadSurfaceCurvatureFile( dlg.GetPath() );
+  }
+}
+
+void MainWindow::LoadSurfaceCurvatureFile( const wxString& filename )
+{
+  wxString fn = filename;
+  if ( fn.Contains( _("/") ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
+  LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( layer )
+  {
+    if ( layer->LoadCurvatureFromFile( fn.char_str() ) )
+      m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  }
+}
+
+
+void MainWindow::LoadSurfaceOverlay()
+{
+  wxFileDialog dlg( this, _("Open overlay file"), m_strLastDir, _(""),
+                    _("Overlay files (*.*)|*.*"),
+                    wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    this->LoadSurfaceOverlayFile( dlg.GetPath() );
+  }
+}
+
+void MainWindow::LoadSurfaceOverlayFile( const wxString& filename )
+{
+  wxString fn = filename;
+  if ( fn.Contains( _("/") ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
+  LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( layer )
+  {
+    if ( layer->LoadOverlayFromFile( fn.char_str() ) )
+       m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 
@@ -2548,11 +3237,10 @@ void MainWindow::OnToolRotateVolume( wxCommandEvent& event )
 
   if ( !m_dlgRotateVolume->IsVisible() )
   {
-    wxMessageDialog dlg( this, "Rotation can only apply to volume for now. If you data includes ROI/Surface/Way Points, please do not use this feature yet.", "Warning", wxOK );
+    wxMessageDialog dlg( this, _("Rotation can only apply to volume for now. If you data includes ROI/Surface/Way Points, please do not use this feature yet."), _("Warning"), wxOK );
     dlg.ShowModal();
     m_dlgRotateVolume->Show();
   }
-
 }
 
 void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
@@ -2571,10 +3259,10 @@ void MainWindow::OnToolCreateOptimalVolume( wxCommandEvent& event )
     LayerOptimal* layer_new = new LayerOptimal( layers[0] );
     layer_new->Create( dlg.GetLabelVolume(), layers );
 
-    layer_new->SetName( dlg.GetVolumeName().c_str() );
+    layer_new->SetName( dlg.GetVolumeName().char_str() );
     GetLayerCollection( "MRI" )->AddLayer( layer_new );
 
-    m_controlPanel->RaisePage( "Volumes" );
+    m_controlPanel->RaisePage( _("Volumes") );
   }
 }
 
@@ -2603,7 +3291,10 @@ void MainWindow::OnMouseEnterWindow( wxMouseEvent& event )
 
 void MainWindow::OnViewHistogram( wxCommandEvent& event )
 {
-  m_wndHistogram->Show( !m_wndHistogram->IsVisible() );
+  if ( m_wndHistogram->IsVisible() )
+    m_wndHistogram->Hide();
+  else
+	 m_wndHistogram->Show( !m_wndHistogram->IsVisible() );
 }
 
 void MainWindow::OnViewHistogramUpdateUI( wxUpdateUIEvent& event )
@@ -2612,4 +3303,67 @@ void MainWindow::OnViewHistogramUpdateUI( wxUpdateUIEvent& event )
   event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
 }
 
+void MainWindow::ConfigureOverlay()
+{
+  m_wndOverlayConfiguration->ShowWindow( (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer() );
+}
 
+void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, std::vector<double>& scales )
+{
+  if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
+  {
+    LayerPropertiesMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperties();
+    p->SetColorMap( (LayerPropertiesMRI::ColorMapType) nColorMap );
+    switch ( nColorMapScale )
+    {
+      case LayerPropertiesMRI::Grayscale:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+          cerr << "Need 2 values for grayscale." << endl;
+        break;
+      case LayerPropertiesMRI::Heat:
+        if ( scales.size() >= 3 )
+        {
+          p->SetHeatScaleMinThreshold( scales[0] );
+          p->SetHeatScaleMidThreshold( scales[1] );
+          p->SetHeatScaleMaxThreshold( scales[2] );
+        }
+        else if ( !scales.empty() )
+          cerr << "Need 3 values for heatscale." << endl;
+        break;
+      case LayerPropertiesMRI::Jet:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxJetScaleWindow( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+          cerr << "Need 2 values for jetscale." << endl;
+        break;
+      case LayerPropertiesMRI::LUT:
+        if ( scales.size() >= 1 )
+        {
+        }
+        else if ( !scales.empty() )
+          cerr << "Need a value for lut." << endl;
+        break;
+    }
+  }
+}
+
+void MainWindow::LoadLUT()
+{
+  wxFileDialog dlg( this, _("Load lookup table file"), m_strLastDir, _(""),
+                  _("LUT files (*.*)|*.*"),
+                  wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    m_scripts.clear();
+    wxArrayString sa;
+    sa.Add( _("setlut") );
+    sa.Add( dlg.GetPath().c_str() );
+    CommandSetLUT( sa );
+  }
+}

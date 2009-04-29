@@ -27,8 +27,6 @@ freeview_SOURCES=\
 	Cursor3D.h \
 	CursorFactory.cpp \
 	CursorFactory.h \
-	DialogEditLookupTable.cpp \
-	DialogEditLookupTable.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
 	DialogLoadVolume.cpp \
@@ -142,10 +140,15 @@ freeview_SOURCES=\
 	StatusBar.cpp \
 	StatusBar.h \
 	string_fixed.h \
+	SurfaceOverlay.cpp \
+	SurfaceOverlay.h \
+	SurfaceOverlayProperties.cpp \
+	SurfaceOverlayProperties.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
 	vtkDijkstraGraphGeodesicPath.cxx \
 	vtkDijkstraGraphGeodesicPath.h \
+	vtkDijkstraGraphInternals.h \
 	vtkDijkstraImageContourLineInterpolator.cxx \
 	vtkDijkstraImageContourLineInterpolator.h \
 	vtkDijkstraImageGeodesicPath.cxx \
@@ -154,6 +157,8 @@ freeview_SOURCES=\
 	WindowHistogram.h \
 	WindowQuickReference.cpp \
 	WindowQuickReference.h \
+	WindowOverlayConfiguration.cpp \
+	WindowOverlayConfiguration.h \
 	WorkerThread.cpp \
 	WorkerThread.h \
 	wxColorIndicator.cpp \

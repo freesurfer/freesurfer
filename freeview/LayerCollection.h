@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/04/29 22:53:51 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -96,25 +96,25 @@ public:
 
   bool HasProp( vtkProp* prop );
 
-  virtual void DoListenToMessage( std::string const iMsg, void* iData );
+  virtual void DoListenToMessage( std::string const iMsg, void* iData, void* sender );
 
   std::string GetType();
 
 protected:
   std::vector<Layer*> m_layers;
 
-  double  m_dSlicePosition[3];
-  double m_dWorldOrigin[3];
-  double m_dWorldSize[3];
-  double m_dWorldVoxelSize[3];
+  double      m_dSlicePosition[3];
+  double      m_dWorldOrigin[3];
+  double      m_dWorldSize[3];
+  double      m_dWorldVoxelSize[3];
 
-  double m_dCurrentRASPosition[3];
-  int  m_nCurrentRASIndex[3];
+  double      m_dCurrentRASPosition[3];
+  int         m_nCurrentRASIndex[3];
 
-  double m_dCursorRASPosition[3];
+  double      m_dCursorRASPosition[3];
 
-  Layer* m_layerActive;
-  std::string  m_strType;
+  Layer*      m_layerActive;
+  std::string m_strType;
 };
 
 #endif

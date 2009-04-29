@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2009/04/29 22:53:54 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,8 @@ MyCmdLineParser::MyCmdLineParser( const char* ProgramName, CmdLineEntry* entries
   m_nNumberOfPureArguments = 0;
   if ( entries )
     SetValidCmdLineEntries( entries );
+  
+  m_bNewLineStyle = true;
 }
 
 
@@ -221,7 +223,7 @@ string_array MyCmdLineParser::GetArguments( const char* ch )
 
 void MyCmdLineParser::PrintHelp()
 {
-  cout << endl << "Usage: " << m_strProgramName.c_str() << " [OPTION]..." << endl;
+  cout << endl << "Usage: " << m_strProgramName.c_str() << " [OPTION <ARGUMENT:SUB-OPTION>]..." << endl;
 
   string desc = m_strProgramDescription;
   while ( desc.length() > CONSOLE_WIDTH )
@@ -244,24 +246,45 @@ void MyCmdLineParser::PrintHelp()
       nLen = strg.length();
   }
   nLen += 7;
+  if ( m_bNewLineStyle )
+    nLen = 7;
   for ( size_t i = 0; i < m_cmdLineEntriesValid.size(); i++ )
   {
     CmdLineEntry e = m_cmdLineEntriesValid[i];
     string strg( "-" );
     strg = strg + e.shortName + ", --" + e.longName + " " + e.arguName;
-    int nCnt = nLen - strg.length();
     cout << strg.c_str();
-    for ( int j = 0; j < nCnt; j++ )
-      cout << " ";
-    desc = e.description;
-    while ( desc.length() > CONSOLE_WIDTH - nLen )
+    if ( m_bNewLineStyle )
     {
-      int n = desc.rfind( " ", CONSOLE_WIDTH - nLen );
-      if ( n >= 0 )
-        cout << desc.substr( 0, n ).c_str() << endl;
-      desc = desc.substr( n+1 );
-      for ( unsigned int j = 0; j < nLen; j++ )
+      cout << endl;
+      for ( size_t j = 0; j < nLen; j++ )
         cout << " ";
+    }
+    else
+    {
+      int nCnt = nLen - strg.length();
+      for ( int j = 0; j < nCnt; j++ )
+        cout << " ";
+    }
+    desc = e.description;
+    while ( desc.length() > CONSOLE_WIDTH - nLen || desc.find( "\n" ) != string::npos )
+    {
+      size_t n = desc.rfind( " ", CONSOLE_WIDTH - nLen );
+      size_t m = desc.substr( 0, CONSOLE_WIDTH - nLen ).find( "\n" );
+      if ( m != string::npos )
+        n = m;
+      if ( n != string::npos )
+      {
+        cout << desc.substr( 0, n ).c_str() << endl;
+        desc = desc.substr( n+1 );
+      }
+      if ( desc.size() > 0 )
+      {
+        for ( size_t j = 0; j < nLen; j++ )
+          cout << " ";
+      }
+      else
+        cout << endl;
     }
     if ( desc.length() > 0 )
       cout << desc.c_str() << endl;
@@ -290,7 +313,10 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
     {
       sa = new string_array;
       sa->clear();
-      sa->push_back( argv[i]+1 );
+      if ( string( argv[i] ).length() > 2 && argv[i][1] == '-' )    // long name
+        sa->push_back( argv[i]+2 );
+      else
+        sa->push_back( argv[i]+1 );
       entries.push_back( sa );
     }
     else if ( sa )
@@ -310,7 +336,7 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   {
     string_array strgs = *entries[i];
 
-    if ( !IsValid( strgs[0].c_str(), &e ) && !IsValid( strgs[0].c_str() + 1, &e ) )
+    if ( !IsValid( strgs[0].c_str(), &e ) ) // && !IsValid( strgs[0].c_str() + 1, &e ) )
     {
       bSucceed = false;
       error_msg += "Option '" + strgs[0] + "' not recognized.";
@@ -350,17 +376,21 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   }
   entries.clear();
 
+  /*
   if ( bSucceed && (int)pureArgs.size() > m_nNumberOfPureArguments )
   {
     bSucceed = false;
     error_msg += "Option '" + pureArgs[0] + "' not recognized.";
   }
+  */
 
+  m_cmdLineFloatingArguments = pureArgs;
+  
   if ( !bSucceed )
   {
     PrintErrorMessage( error_msg );
   }
-  else if ( Found( "h" ) )
+  else if ( Found( "h" ) || Found( "help" ) )
   {
     PrintHelp();
     bSucceed = false;
@@ -369,4 +399,8 @@ bool MyCmdLineParser::Parse( int argc, char* argv[] )
   return bSucceed;
 }
 
+string_array MyCmdLineParser::GetFloatingArguments()
+{
+  return m_cmdLineFloatingArguments;
+}
 

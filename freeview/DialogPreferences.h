@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:47 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/04/29 22:53:49 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -56,13 +56,14 @@ public:
   void OnOK( wxCommandEvent& event );
 
 private:
-  wxColourPickerCtrl*  m_colorPickerBackground;
-  wxColourPickerCtrl*  m_colorPickerCursor;
-  wxCheckBox*    m_checkSyncZoomFactor;
+  wxColourPickerCtrl* m_colorPickerBackground;
+  wxColourPickerCtrl* m_colorPickerCursor;
+  wxCheckBox*         m_checkSyncZoomFactor;
 
-  wxCheckBox*    m_checkHideCursor;
-  wxCheckBox*    m_checkHideCoords;
-  wxSpinCtrl*    m_spinMagnification;
+  wxCheckBox*         m_checkHideCursor;
+  wxCheckBox*         m_checkHideCoords;
+  wxCheckBox*         m_checkAntiAliasing;
+  wxSpinCtrl*         m_spinMagnification;
 
   DECLARE_EVENT_TABLE()
 };

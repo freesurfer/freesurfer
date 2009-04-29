@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2009/04/29 22:53:54 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -103,6 +103,8 @@ public:
   string GetArgument( const char* ch, int n, const char* chDefault = NULL );
   string_array GetArguments( const char* ch );
 
+  string_array GetFloatingArguments();
+  
   void PrintHelp();
 
   void PrintErrorMessage( string msg );
@@ -118,9 +120,12 @@ protected:
 
   vector<CmdLineEntry> m_cmdLineEntries;
   vector<CmdLineEntry> m_cmdLineEntriesValid;
-  int      m_nNumberOfPureArguments;
-  string     m_strProgramName;
-  string     m_strProgramDescription;
+  string_array         m_cmdLineFloatingArguments;
+  int       m_nNumberOfPureArguments;
+  string    m_strProgramName;
+  string    m_strProgramDescription;
+  
+  bool      m_bNewLineStyle;
 };
 
 #endif

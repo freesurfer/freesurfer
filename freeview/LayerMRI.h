@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.3.2.2 $
+ *    $Date: 2009/04/29 22:53:52 $
+ *    $Revision: 1.3.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,6 +31,7 @@
 #include "vtkSmartPointer.h"
 #include "CommonDataStruct.h"
 #include <string>
+#include <vector>
 
 class vtkFSVolumeSource;
 class vtkImageReslice;
@@ -58,14 +59,16 @@ public:
   bool LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event );
   bool Create( LayerMRI* mri, bool bCopyVoxel );
 
-  void Append2DProps( vtkRenderer* renderer, int nPlane );
-  void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
+  virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
+  virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
   bool HasProp( vtkProp* prop );
 
 //  void SetSliceNumber( int* sliceNumber );
   void SetSlicePositionToWorldCenter();
 
   virtual double GetVoxelValue( double* pos );
+  double GetVoxelValueByOriginalIndex( int i, int j, int k );
+  
   virtual std::string GetLabelName( double value );
 
   void RASToOriginalIndex( const double* pos, int* n );
@@ -73,7 +76,7 @@ public:
 
   LayerPropertiesMRI* GetProperties();
 
-  virtual void DoListenToMessage ( std::string const iMessage, void* const iData );
+  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
@@ -127,8 +130,12 @@ protected:
   void UpdateOpacity();
   void UpdateResliceInterpolation();
   void UpdateTextureSmoothing();
-  void UpdateContour();
+  void UpdateContour( int nSegIndex = -1 );
+  void UpdateContourActor( int nSegIndex );
   void UpdateVolumeRendering();
+  void UpdateVectorActor();
+  void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
+  virtual void UpdateVectorActor( int nPlane );
   virtual void UpdateColorMap();
 
   virtual void OnSlicePositionChanged( int nPlane );
@@ -144,6 +151,18 @@ protected:
 
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
+  
+  vtkActor*       m_vectorActor2D[3];
+  vtkActor*       m_vectorActor3D[3];
+  
+  struct SegmentationActor
+  {
+    int id;
+    vtkActor* actor;
+  };
+        
+  std::vector<SegmentationActor>   m_segActors;              
+  
   vtkActor*   m_actorContour;
   vtkVolume*   m_propVolume;
 };

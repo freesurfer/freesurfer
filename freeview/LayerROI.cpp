@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/04/29 22:53:52 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -275,17 +275,17 @@ LayerPropertiesROI* LayerROI::GetProperties()
   return mROIProperties;
 }
 
-void LayerROI::DoListenToMessage( std::string const iMessage, void* const iData )
+void LayerROI::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
   {
     this->UpdateColorMap();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   else if ( iMessage == "OpacityChanged" )
   {
     this->UpdateOpacity();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "LayerActorUpdated", this, this );
   }
 }
 
@@ -296,7 +296,7 @@ void LayerROI::SetVisible( bool bVisible )
     m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
   }
-  this->SendBroadcast( "LayerActorUpdated", this );
+  this->SendBroadcast( "LayerActorUpdated", this, this );
 }
 
 bool LayerROI::IsVisible()

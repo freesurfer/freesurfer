@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.6.2.2 $
+ *    $Date: 2009/04/29 22:53:55 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -48,6 +48,7 @@
 #include <vtkScalarBarActor.h>
 #include <vtkScalarBarWidget.h>
 #include <vtkLookupTable.h>
+#include <vtkLightKit.h>
 #include "MyUtils.h"
 
 
@@ -59,21 +60,21 @@
 IMPLEMENT_DYNAMIC_CLASS(RenderView, wxVTKRenderWindowInteractor)
 
 BEGIN_EVENT_TABLE(RenderView, wxVTKRenderWindowInteractor)
-EVT_SET_FOCUS ( RenderView::OnSetFocus )
-EVT_KILL_FOCUS ( RenderView::OnKillFocus )
-EVT_LEFT_DOWN ( RenderView::OnButtonDown )
-EVT_MIDDLE_DOWN ( RenderView::OnButtonDown )
-EVT_RIGHT_DOWN ( RenderView::OnButtonDown )
-EVT_LEFT_UP  ( RenderView::OnButtonUp )
-EVT_MIDDLE_UP ( RenderView::OnButtonUp )
-EVT_RIGHT_UP ( RenderView::OnButtonUp )
-EVT_MOTION  ( RenderView::OnMouseMove )
-EVT_MOUSEWHEEL ( RenderView::OnMouseWheel )
-EVT_ENTER_WINDOW( RenderView::OnMouseEnter )
-EVT_LEAVE_WINDOW( RenderView::OnMouseLeave )
-EVT_KEY_DOWN ( RenderView::OnKeyDown )
-EVT_KEY_UP  ( RenderView::OnKeyUp )
-EVT_SIZE        ( RenderView::OnSize )
+  EVT_SET_FOCUS   ( RenderView::OnSetFocus )
+  EVT_KILL_FOCUS  ( RenderView::OnKillFocus )
+  EVT_LEFT_DOWN   ( RenderView::OnButtonDown )
+  EVT_MIDDLE_DOWN ( RenderView::OnButtonDown )
+  EVT_RIGHT_DOWN  ( RenderView::OnButtonDown )
+  EVT_LEFT_UP     ( RenderView::OnButtonUp )
+  EVT_MIDDLE_UP   ( RenderView::OnButtonUp )
+  EVT_RIGHT_UP    ( RenderView::OnButtonUp )
+  EVT_MOTION      ( RenderView::OnMouseMove )
+  EVT_MOUSEWHEEL  ( RenderView::OnMouseWheel )
+  EVT_ENTER_WINDOW( RenderView::OnMouseEnter )
+  EVT_LEAVE_WINDOW( RenderView::OnMouseLeave )
+  EVT_KEY_DOWN    ( RenderView::OnKeyDown )
+  EVT_KEY_UP      ( RenderView::OnKeyUp )
+  EVT_SIZE        ( RenderView::OnSize )
 END_EVENT_TABLE()
 
 RenderView::RenderView() : wxVTKRenderWindowInteractor(),
@@ -173,6 +174,13 @@ void RenderView::InitializeRenderView()
   barWidget->SetInteractor( this );
 
   UseCaptureMouseOn();
+  
+  // light kit
+  vtkSmartPointer<vtkLightKit> lights = vtkSmartPointer<vtkLightKit>::New();
+  lights->AddLightsToRenderer( m_renderer );
+//  lights->SetKeyLightIntensity( lights->GetKeyLightIntensity() * 1.1 );
+  lights->SetKeyLightAngle( 35, 10 );
+  lights->SetKeyLightWarmth( 0.5 );
 }
 
 RenderView* RenderView::New()
@@ -304,7 +312,7 @@ void RenderView::ResetView()
   NeedRedraw();
 }
 
-void RenderView::DoListenToMessage ( std::string const iMsg, void* const iData )
+void RenderView::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "LayerActorUpdated" )
   {
@@ -313,7 +321,7 @@ void RenderView::DoListenToMessage ( std::string const iMsg, void* const iData )
   }
 
   else if ( iMsg == "LayerAdded" || iMsg == "LayerMoved" || iMsg == "LayerRemoved" || iMsg == "LayerRotated" ||
-            iMsg == "LayerContourShown" )
+            iMsg == "LayerContourShown" || iMsg == "DisplayModeChanged" )
   {
     UpdateScalarBar();
     RefreshAllActors();
@@ -376,10 +384,10 @@ void RenderView::OnInternalIdle()
   }
 }
 
-bool RenderView::SaveScreenshot( const wxString& fn, int nMagnification )
+bool RenderView::SaveScreenshot( const wxString& fn, int nMagnification, bool bAntiAliasing )
 {
   PreScreenshot();
-  bool ret = MyUtils::VTKScreenCapture( GetRenderWindow(), m_renderer, fn.c_str(), false, nMagnification );
+  bool ret = MyUtils::VTKScreenCapture( GetRenderWindow(), m_renderer, fn.char_str(), bAntiAliasing, nMagnification );
   PostScreenshot();
 
   return ret;
@@ -468,6 +476,14 @@ void RenderView::MoveDown()
   cam->SetPosition( cam_pos );
 
   NeedRedraw();
+}
+
+void RenderView::Zoom( double dFactor )
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->Zoom( dFactor );
+  
+  Render();
 }
 
 void RenderView::ShowScalarBar( bool bShow )

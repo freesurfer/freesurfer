@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.5.2.2 $
+ *    $Date: 2009/04/29 22:53:55 $
+ *    $Revision: 1.5.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -193,7 +193,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     break;
   }
   cam->SetParallelScale( max( max(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) / 2 );
-  m_renderer->ResetCameraClippingRange();
+//  m_renderer->ResetCameraClippingRange();
 }
 
 void RenderView2D::UpdateAnnotation()
@@ -201,7 +201,7 @@ void RenderView2D::UpdateAnnotation()
   m_annotation2D->Update( m_renderer, m_nViewPlane );
 }
 
-void RenderView2D::DoListenToMessage ( std::string const iMsg, void* const iData )
+void RenderView2D::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "LayerActorUpdated" ||
        iMsg == "LayerAdded" ||
@@ -230,7 +230,7 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* const iData
     }
   }
 
-  RenderView::DoListenToMessage( iMsg, iData );
+  RenderView::DoListenToMessage( iMsg, iData, sender );
 }
 
 void RenderView2D::SyncZoomTo( RenderView2D* view )

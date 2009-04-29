@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/27 18:43:48 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2009/04/29 22:53:55 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -72,7 +72,7 @@ public:
   virtual void TriggerContextMenu( const wxPoint& pos )
   {}
 
-  virtual void DoListenToMessage( std::string const iMessage, void* const iData );
+  virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );
 
   void ViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
   void NormalizedViewportToWorld( double x, double y, double& world_x, double& world_y, double& world_z );
@@ -92,6 +92,8 @@ public:
   virtual void MoveDown();
   virtual void MoveLeft();
   virtual void MoveRight();
+  
+  void Zoom( double dFactor );
 
   void NeedRedraw();
 
@@ -102,7 +104,7 @@ public:
     return m_renderer;
   }
 
-  bool SaveScreenshot( const wxString& fn, int nMagnification = 1 );
+  bool SaveScreenshot( const wxString& fn, int nMagnification = 1, bool bAntiAliasing = false );
 
   virtual void PreScreenshot()
   {}
@@ -113,26 +115,26 @@ public:
   bool GetShowScalarBar();
 
   void SetFocusFrameColor( double r, double g, double b );
+  
+  virtual void UpdateScalarBar();
 
 protected:
   void InitializeRenderView();
   virtual void OnInternalIdle();
 
-  void UpdateScalarBar();
-
 protected:
-  vtkRenderer*  m_renderer;
-  vtkRenderWindow* m_renderWindow;
-  vtkActor2D*   m_actorFocusFrame;
-  vtkScalarBarActor* m_actorScalarBar;
+  vtkRenderer*        m_renderer;
+  vtkRenderWindow*    m_renderWindow;
+  vtkActor2D*         m_actorFocusFrame;
+  vtkScalarBarActor*  m_actorScalarBar;
 
-  double    m_dWorldOrigin[3];
-  double    m_dWorldSize[3];
+  double        m_dWorldOrigin[3];
+  double        m_dWorldSize[3];
 
   Interactor*   m_interactor;
-  int     m_nInteractionMode;
+  int           m_nInteractionMode;
 
-  int     m_nRedrawCount;
+  int           m_nRedrawCount;
 
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()
