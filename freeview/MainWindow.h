@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:37 $
- *    $Revision: 1.34 $
+ *    $Date: 2009/04/30 21:31:05 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -365,8 +365,9 @@ private:
   LayerCollectionManager* m_layerCollectionManager;
   LayerMRI*       m_layerVolumeRef;
 
-  Settings2D      m_settings2D;
-  SettingsScreenshot m_settingsScreenshot;
+  SettingsGeneral     m_settingsGeneral;
+  Settings2D          m_settings2D;
+  SettingsScreenshot  m_settingsScreenshot;
 
   wxString        m_strLastDir;
   wxFileHistory*  m_fileHistory;

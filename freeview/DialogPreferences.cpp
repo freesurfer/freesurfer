@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:11:35 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/04/30 21:31:05 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,7 @@ DialogPreferences::DialogPreferences( wxWindow* parent )
   m_colorPickerBackground   = XRCCTRL( *this, "ID_COLORPICKER_BACKGROUND", wxColourPickerCtrl );
   m_colorPickerBackground->SetFocus();
   m_colorPickerCursor       = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
+  m_choiceCursorStyle       = XRCCTRL( *this, "ID_CHOICE_CURSOR_STYLE", wxChoice );
   m_checkSyncZoomFactor     = XRCCTRL( *this, "ID_CHECK_SYNC_ZOOM", wxCheckBox );
 
   m_checkHideCursor   = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR", wxCheckBox );
@@ -57,31 +58,28 @@ DialogPreferences::DialogPreferences( wxWindow* parent )
 DialogPreferences::~DialogPreferences()
 {}
 
-wxColour DialogPreferences::GetBackgroundColor() const
-{
-  return m_colorPickerBackground->GetColour();
-}
-
-void DialogPreferences::SetBackgroundColor( const wxColour& color )
-{
-  m_colorPickerBackground->SetColour( color );
-}
-
-
-wxColour DialogPreferences::GetCursorColor() const
-{
-  return m_colorPickerCursor->GetColour();
-}
-
-void DialogPreferences::SetCursorColor( const wxColour& color )
-{
-  m_colorPickerCursor->SetColour( color );
-}
-
 void DialogPreferences::OnOK( wxCommandEvent& event )
 {
   event.Skip();
 }
+
+void DialogPreferences::SetGeneralSettings( const SettingsGeneral& s )
+{
+  m_colorPickerBackground->SetColour( s.BackgroundColor );
+  m_colorPickerCursor->SetColour( s.CursorColor );
+  m_choiceCursorStyle->SetSelection( s.CursorStyle );
+}
+
+SettingsGeneral DialogPreferences::GetGeneralSettings()
+{
+  SettingsGeneral s;
+  s.BackgroundColor = m_colorPickerBackground->GetColour();
+  s.CursorColor = m_colorPickerCursor->GetColour();
+  s.CursorStyle = m_choiceCursorStyle->GetSelection();
+
+  return s;
+}
+
 
 void DialogPreferences::Set2DSettings( const Settings2D& s )
 {
@@ -96,13 +94,12 @@ Settings2D DialogPreferences::Get2DSettings()
   return s;
 }
 
-
 void DialogPreferences::SetScreenshotSettings( const SettingsScreenshot& s )
 {
-  m_spinMagnification->SetValue( s.Magnification );
-  m_checkHideCursor->SetValue( s.HideCursor );
-  m_checkHideCoords->SetValue( s.HideCoords );
-  m_checkAntiAliasing->SetValue( s.AntiAliasing );
+  m_spinMagnification ->SetValue( s.Magnification );
+  m_checkHideCursor   ->SetValue( s.HideCursor );
+  m_checkHideCoords   ->SetValue( s.HideCoords );
+  m_checkAntiAliasing ->SetValue( s.AntiAliasing );
 }
 
 SettingsScreenshot DialogPreferences::GetScreenshotSettings()

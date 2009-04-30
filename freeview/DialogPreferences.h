@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/04/30 21:31:05 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,7 @@
 class wxColourPickerCtrl;
 class wxCheckBox;
 class wxSpinCtrl;
+struct SettingsGeneral;
 struct Settings2D;
 struct SettingsScreenshot;
 
@@ -41,11 +42,8 @@ public:
   DialogPreferences(wxWindow* parent);
   virtual ~DialogPreferences();
 
-  wxColour GetBackgroundColor() const;
-  void SetBackgroundColor( const wxColour& color );
-
-  wxColour GetCursorColor() const;
-  void SetCursorColor( const wxColour& color );
+  SettingsGeneral GetGeneralSettings();
+  void SetGeneralSettings( const SettingsGeneral& s );
 
   Settings2D Get2DSettings();
   void Set2DSettings( const Settings2D& s );
@@ -58,6 +56,7 @@ public:
 private:
   wxColourPickerCtrl* m_colorPickerBackground;
   wxColourPickerCtrl* m_colorPickerCursor;
+  wxChoice*           m_choiceCursorStyle;
   wxCheckBox*         m_checkSyncZoomFactor;
 
   wxCheckBox*         m_checkHideCursor;

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2009/04/30 21:31:05 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 class vtkActor2D;
 class vtkRenderer;
 class vtkActor;
+class vtkCursor2D;
 class RenderView2D;
 
 class Cursor2D
@@ -43,6 +44,8 @@ public:
   Cursor2D( RenderView2D* view );
   virtual ~Cursor2D();
 
+  enum CursorStyle { CS_Short = 0, CS_Long };
+  
   void SetPosition( double* pos, bool bConnectPrevious = false );
   void SetPosition2( double* pos);
 
@@ -77,6 +80,13 @@ public:
   void Show( bool bShow = true );
 
   bool IsShown();
+  
+  int GetStyle()
+  {
+    return m_nStyle;
+  }
+  
+  void SetStyle( int nStyle );
 
 private:
   vtkSmartPointer<vtkActor2D> m_actorCursor;
@@ -88,6 +98,7 @@ private:
   std::vector<double> m_dInterpolationPoints;
 
   int   m_nRadius;
+  int   m_nStyle;
 };
 
 #endif

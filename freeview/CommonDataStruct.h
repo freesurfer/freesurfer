@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/04/30 21:31:05 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,11 +31,18 @@
 #define CommonDataStruct_h
 
 #include <vector>
+#include <wx/colour.h>
 
+struct SettingsGeneral
+{
+  wxColour  BackgroundColor;
+  wxColour  CursorColor;
+  int       CursorStyle;  
+};
 
 struct Settings2D
 {
-  bool SyncZoomFactor;
+  bool      SyncZoomFactor;
 };
 
 struct SettingsScreenshot
@@ -48,9 +55,9 @@ struct SettingsScreenshot
 
 struct RotationElement
 {
-  int  Plane;
+  int     Plane;
   double  Angle;
-  double Point[3];
+  double  Point[3];
 };
 
 #endif

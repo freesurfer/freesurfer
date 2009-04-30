@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2009/04/30 21:31:05 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,6 +38,7 @@
 #include "vtkCellArray.h"
 #include "vtkFloatArray.h"
 #include <vtkProperty2D.h>
+#include <vtkCursor2D.h>
 #include "MyUtils.h"
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
@@ -45,7 +46,8 @@
 
 Cursor2D::Cursor2D( RenderView2D* view ) :
     m_view( view ),
-    m_nRadius( 5 )
+    m_nRadius( 5 ),
+    m_nStyle( CS_Short )
 {
   m_actorCursor = vtkSmartPointer<vtkActor2D>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
@@ -74,11 +76,17 @@ void Cursor2D::SetPosition( double* pos, bool bConnectPrevious  )
   Update( bConnectPrevious );
 }
 
+void Cursor2D::SetStyle( int nStyle )
+{
+  m_nStyle = nStyle;
+  Update();
+}
+
 void Cursor2D::Update( bool bConnectPrevious )
 {
 // vtkRenderer* renderer = m_view->GetRenderer();
 
-  double dLen = m_nRadius;
+  double dLen = ( m_nStyle == CS_Long ? 100000 : m_nRadius );
 
   int n = 0;
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -133,6 +141,62 @@ void Cursor2D::Update( bool bConnectPrevious )
 
   m_actorCursor->SetMapper( mapper );
 }
+    
+/*
+void Cursor2D::Update( bool bConnectPrevious )
+{
+// vtkRenderer* renderer = m_view->GetRenderer();
+
+  double dLen = m_nRadius;
+
+  int n = 0;
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+
+  if ( bConnectPrevious )
+  {
+    points->InsertNextPoint( m_dPosition2 );
+    lines->InsertNextCell( 2 + m_dInterpolationPoints.size() / 3 );
+    lines->InsertCellPoint( n++ );
+    for ( size_t i = 0; i < m_dInterpolationPoints.size(); i+=3 )
+    {
+      points->InsertNextPoint( m_dInterpolationPoints[i],
+                               m_dInterpolationPoints[i+1],
+                               m_dInterpolationPoints[i+2] );
+      lines->InsertCellPoint( n++ );
+    }
+    points->InsertNextPoint( m_dPosition );
+    lines->InsertCellPoint( n++ );
+  }
+  points->InsertNextPoint( m_dPosition[0] + dLen, m_dPosition[1], m_dPosition[2] );
+  points->InsertNextPoint( m_dPosition[0] - dLen, m_dPosition[1], m_dPosition[2] );
+  lines->InsertNextCell( 2 );
+  lines->InsertCellPoint( n++ );
+  lines->InsertCellPoint( n++ );
+  points->InsertNextPoint( m_dPosition[0], m_dPosition[1] + dLen, m_dPosition[2] );
+  points->InsertNextPoint( m_dPosition[0], m_dPosition[1] - dLen, m_dPosition[2] );
+  lines->InsertNextCell( 2 );
+  lines->InsertCellPoint( n++ );
+  lines->InsertCellPoint( n++ );
+  points->InsertNextPoint( m_dPosition[0], m_dPosition[1], m_dPosition[2] + dLen );
+  points->InsertNextPoint( m_dPosition[0], m_dPosition[1], m_dPosition[2] - dLen );
+  lines->InsertNextCell( 2 );
+  lines->InsertCellPoint( n++ );
+  lines->InsertCellPoint( n++ );
+
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints( points );
+  polydata->SetLines( lines );
+  vtkSmartPointer<vtkPolyDataMapper2D> mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
+  mapper->SetInput( polydata );
+  
+  vtkSmartPointer<vtkCoordinate> coords = vtkSmartPointer<vtkCoordinate>::New();
+  coords->SetCoordinateSystemToWorld();
+  mapper->SetTransformCoordinate( coords );
+
+  m_actorCursor->SetMapper( mapper );
+}
+*/
 
 void Cursor2D::AppendActor( vtkRenderer* renderer )
 {

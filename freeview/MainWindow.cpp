@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/17 18:19:41 $
- *    $Revision: 1.49 $
+ *    $Date: 2009/04/30 21:31:05 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -345,17 +345,20 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
     m_nViewLayout = config->Read( _("/MainWindow/ViewLayout"), m_nViewLayout );
     m_nMainView = config->Read( _("/MainWindow/MainView"), m_nMainView );
 
-    wxColour color = wxColour( config->Read( _("RenderWindow/BackgroundColor"), _("rgb(0,0,0)") ) );
-    m_viewAxial->SetBackgroundColor( color );
-    m_viewSagittal->SetBackgroundColor( color );
-    m_viewCoronal->SetBackgroundColor( color );
-    m_view3D->SetBackgroundColor( color );
-
-    color = wxColour( config->Read( _("RenderWindow/CursorColor"), _("rgb(255,0,0)") ) );
-    m_viewAxial->GetCursor2D()->SetColor( color );
-    m_viewSagittal->GetCursor2D()->SetColor( color );
-    m_viewCoronal->GetCursor2D()->SetColor( color );
-    m_view3D->GetCursor3D()->SetColor( color );
+    m_settingsGeneral.BackgroundColor = wxColour( config->Read( _("/RenderWindow/BackgroundColor"), _("rgb(0,0,0)") ) );
+    m_settingsGeneral.CursorColor = wxColour( config->Read( _("/RenderWindow/CursorColor"), _("rgb(255,0,0)") ) );
+    m_settingsGeneral.CursorStyle = config->Read( _("/RenderWindow/CursorStyle"), Cursor2D::CS_Short );
+    m_viewAxial   ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewSagittal->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewCoronal ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_view3D      ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewAxial->GetCursor2D()    ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewSagittal->GetCursor2D() ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewCoronal->GetCursor2D()  ->SetColor( m_settingsGeneral.CursorColor );
+    m_view3D->GetCursor3D()       ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewAxial->GetCursor2D()    ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewSagittal->GetCursor2D() ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewCoronal->GetCursor2D()  ->SetStyle( m_settingsGeneral.CursorStyle );
 
     m_nScreenshotFilterIndex = config->Read( _("/MainWindow/ScreenshotFilterIndex"), 0L );
 
@@ -463,11 +466,12 @@ void MainWindow::OnClose( wxCloseEvent &event )
     config->Write( _("/MainWindow/LastDir"), m_strLastDir );
     config->Write( _("/MainWindow/ViewLayout"), m_nViewLayout );
     config->Write( _("/MainWindow/MainView"), m_nMainView );
-    config->Write( _("MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
+    config->Write( _("/MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
 
-    config->Write( _("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
-    config->Write( _("RenderWindow/CursorColor"), m_viewAxial->GetCursor2D()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
-    config->Write( _("/RenderWindow/SyncZoomFactor"), m_settings2D.SyncZoomFactor );
+    config->Write( _("/RenderWindow/BackgroundColor"),  m_settingsGeneral.BackgroundColor.GetAsString( wxC2S_CSS_SYNTAX ) );
+    config->Write( _("/RenderWindow/CursorColor"),      m_settingsGeneral.CursorColor.GetAsString( wxC2S_CSS_SYNTAX ) );
+    config->Write( _("/RenderWindow/CursorStyle"),      m_settingsGeneral.CursorStyle );
+    config->Write( _("/RenderWindow/SyncZoomFactor"),   m_settings2D.SyncZoomFactor );
     
     config->Write( _("/RenderWindow/ShowScalarBar"), 
                    ( m_nMainView >= 0 ? m_viewRender[m_nMainView]->GetShowScalarBar() : false ) );
@@ -1808,25 +1812,27 @@ void MainWindow::OnInternalIdle()
 void MainWindow::OnEditPreferences( wxCommandEvent& event )
 {
   DialogPreferences dlg( this );
-  dlg.SetBackgroundColor( m_viewAxial->GetBackgroundColor() );
-  dlg.SetCursorColor( m_viewAxial->GetCursor2D()->GetColor() );
+  dlg.SetGeneralSettings( m_settingsGeneral );
   dlg.Set2DSettings( m_settings2D );
   dlg.SetScreenshotSettings( m_settingsScreenshot );
 
   if ( dlg.ShowModal() == wxID_OK )
   {
-    wxColour color = dlg.GetCursorColor();
-    m_viewAxial->GetCursor2D()->SetColor( color );
-    m_viewSagittal->GetCursor2D()->SetColor( color );
-    m_viewCoronal->GetCursor2D()->SetColor( color );
-
-    color = dlg.GetBackgroundColor();
-    m_viewAxial->SetBackgroundColor( color );
-    m_viewSagittal->SetBackgroundColor( color );
-    m_viewCoronal->SetBackgroundColor( color );
-    m_view3D->SetBackgroundColor( color );
+    m_settingsGeneral = dlg.GetGeneralSettings();
     m_settings2D = dlg.Get2DSettings();
     m_settingsScreenshot = dlg.GetScreenshotSettings();
+
+    m_viewAxial   ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewSagittal->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewCoronal ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_view3D      ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewAxial->GetCursor2D()    ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewSagittal->GetCursor2D() ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewCoronal->GetCursor2D()  ->SetColor( m_settingsGeneral.CursorColor );
+    m_view3D->GetCursor3D()       ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewAxial->GetCursor2D()    ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewSagittal->GetCursor2D() ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewCoronal->GetCursor2D()  ->SetStyle( m_settingsGeneral.CursorStyle );
   }
 }
 
