@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/05 20:35:58 $
- *    $Revision: 1.134 $
+ *    $Author: fischl $
+ *    $Date: 2009/04/30 19:47:04 $
+ *    $Revision: 1.135 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -583,7 +583,7 @@ ltaReadFile(const char *fname)
   if (fp==NULL)
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   if (cp == NULL)
   {
     fclose(fp) ;
@@ -591,7 +591,7 @@ ltaReadFile(const char *fname)
                        fname));
   }
   sscanf(cp, "type      = %d\n", &type) ;
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
   lta->type = type ;
@@ -599,12 +599,12 @@ ltaReadFile(const char *fname)
   {
     lt = &lta->xforms[i] ;
     if (skip == 0)
-      cp = fgetl(line, 199, fp) ;
+      cp = fgetl(line, STRLEN-1, fp) ;
     sscanf(cp, "mean      = %f %f %f\n", &lt->x0, &lt->y0, &lt->z0) ;
-    cp = fgetl(line, 199, fp) ;
+    cp = fgetl(line, STRLEN-1, fp) ;
     sscanf(cp, "sigma     = %f\n", &lt->sigma) ;
     MatrixAsciiReadFrom(fp, lt->m_L) ;
-    cp = fgetl(line, 199, fp) ;
+    cp = fgetl(line, STRLEN-1, fp) ;
     if (strncmp(cp, "label", 5) == 0) // not all files have the label tag
     {
       sscanf(cp, "label     = %d\n", &lt->label) ;
@@ -2056,7 +2056,7 @@ TransformSample(TRANSFORM *transform,
   if (transform->type == MORPH_3D_TYPE)
   {
     gcam = (GCA_MORPH *)transform->xform ;
-    
+
     if (!gcam->mri_xind)
       ErrorReturn(ERROR_UNSUPPORTED,
                   (ERROR_UNSUPPORTED,
@@ -2924,7 +2924,7 @@ LTA *ltaReadFileEx(const char *fname)
   if (fp==NULL)
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   if (cp == NULL)
   {
     fclose(fp) ;
@@ -2932,7 +2932,7 @@ LTA *ltaReadFileEx(const char *fname)
                        "ltaReadFile(%s): can't read data",fname));
   }
   sscanf(cp, "type      = %d\n", &type) ;
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
   lta->type = type ;
@@ -2946,7 +2946,7 @@ LTA *ltaReadFileEx(const char *fname)
   // oh, well this is the added part
   for (i=0; i < lta->num_xforms; i++)
   {
-    if (fgets(line, 199, fp))
+    if (fgets(line, STRLEN-1, fp))
     {
       if (strncmp(line, "src volume info", 15)==0)
       {
@@ -2954,7 +2954,7 @@ LTA *ltaReadFileEx(const char *fname)
         if (DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: src volume info present\n");
         readVolGeom(fp, &lta->xforms[i].src);
-        p = fgets(line, 199, fp);
+        p = fgets(line, STRLEN-1, fp);
         if (strncmp(line, "dst volume info", 15)==0)
         {
           if (DIAG_VERBOSE_ON)
