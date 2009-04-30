@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.96 $
+ *    $Author: fischl $
+ *    $Date: 2009/04/30 19:48:05 $
+ *    $Revision: 1.97 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -498,5 +498,6 @@ int GCAinsertLabels(GCA *gca, MRI *mri, TRANSFORM *transform, int ninsertions,
 GCA *gcaAllocMax(int ninputs, float prior_spacing, float node_spacing, 
                  int width, int height, int depth,
                  int max_labels, int flags) ;
+int GCAreadLabelIntensities(char *fname, float *label_scales, float *label_offsets) ;
 
 #endif
