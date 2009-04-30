@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/04/24 14:35:56 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/04/30 14:52:51 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -71,7 +71,7 @@ main(int argc, char *argv[]) {
   LTA         *xforms[MAX_VOLUMES] ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fuse_segmentations.c,v 1.1 2009/04/24 14:35:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fuse_segmentations.c,v 1.2 2009/04/30 14:52:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -208,7 +208,8 @@ static MRI *
 MRIfuseSegmentations(MRI *mri_in, MRI *mri_fused, int nvols, LTA *xforms[], MRI *mri_asegs[], MRI 
                      *mri_norms[], double sigma)
 {
-  int    x, y, z, i, label, min_label, max_label ;
+  int    x, y, z, i, label, min_label, max_label, label_counts[MAX_CMA_LABELS],
+         total;
   MATRIX *m_vox2vox[MAX_VOLUMES], *m ;
   VECTOR *v1, *v2 ;
   float  xd, yd, zd ;
@@ -237,6 +238,7 @@ MRIfuseSegmentations(MRI *mri_in, MRI *mri_fused, int nvols, LTA *xforms[], MRI 
     MatrixFree(&m) ;
   }
   memset(label_pvals, 0, sizeof(label_pvals)) ;
+  memset(label_counts, 0, sizeof(label_counts)) ;
   if (mri_fused == NULL)
     mri_fused = MRIclone(mri_in, NULL) ;
 
@@ -253,6 +255,7 @@ MRIfuseSegmentations(MRI *mri_in, MRI *mri_fused, int nvols, LTA *xforms[], MRI 
         V3_Z(v1) = z ;
         val = MRIgetVoxVal(mri_in, x, y, z, 0) ;
         min_label = MAX_CMA_LABELS ; max_label = 0 ;
+        total = 0 ;
         for (i = 0 ; i < nvols ; i++)
         {
           MatrixMultiply(m_vox2vox[i], v1, v2) ;
@@ -269,16 +272,20 @@ MRIfuseSegmentations(MRI *mri_in, MRI *mri_fused, int nvols, LTA *xforms[], MRI 
           dif = oval - val ;
           p = (1.0 / (sqrt(2*M_PI)*sigma)) * exp(-0.5 * (dif*dif) / (2*sigma*sigma)) ;
           label_pvals[label] += p ;
+          label_counts[label]++ ;
+          total++ ;
         }
         p = 0 ;
         for (label = min_label ; label <= max_label ; label++)
         {
+          label_pvals[label] *= (double)label_counts[label]/(double)total ;
           if (label_pvals[label] > p)
           {
             p = label_pvals[label] ;
             MRIsetVoxVal(mri_fused, x, y, z, 0, label) ;
           }
           label_pvals[label] = 0 ; // reset for next time to avoid big memset
+          label_counts[label] = 0 ;
         }
       }
     }
