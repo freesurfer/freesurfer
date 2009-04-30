@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:49 $
- *    $Revision: 1.260 $
+ *    $Author: fischl $
+ *    $Date: 2009/04/30 19:47:38 $
+ *    $Revision: 1.261 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -16833,6 +16833,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
   float overlap_threshold = 0.001;
   int equiv_class[MAX_CMA_LABELS];
 
+  memset(label_peaks, 0, sizeof(label_peaks)) ;
   if (transform->type == MORPH_3D_TYPE)
   {
     peak_threshold = 0.01;
@@ -17818,6 +17819,26 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
     }
 
 
+    if (base_name)
+    {
+      FILE *fp ;
+      char fname[STRLEN];
+      sprintf(fname, "%s.label_intensities.txt", base_name) ;
+      printf("saving intensity scales to %s\n", fname) ;
+      fp = fopen(fname, "w") ;
+      if (fp == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not open intensity tracking file %s", Progname,fname) ;
+
+      for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+        if (computed[l] != 0)
+          fprintf(fp, "%d %s %2.2f %2.1f %2.0f\n",
+                  l, cma_label_to_name(l), label_scales[l], label_offsets[l], label_peaks[l]) ;
+          
+      fflush(fp) ;
+      fclose(fp) ;
+      if (getenv("EXIT_AFTER_INT") != NULL)
+        exit(0) ;
+    }
     gcaCheck(gca) ;
 #if 1
     GCAapplyRenormalization(gca, label_scales, label_offsets, frame) ;
@@ -23545,3 +23566,37 @@ GCAcomputeNumberOfGoodFittingSamples(GCA *gca, GCA_SAMPLE *gcas,
 
   return((float)total_log_p) ;
 }
+
+int
+GCAreadLabelIntensities(char *fname, float *label_scales, float *label_offsets)
+{
+  FILE *fp ;
+  int  l ;
+  char *cp, line[STRLEN] ;
+  float scale, offset ;
+  
+  for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+  {
+    label_scales[l] = 1.0 ;
+    label_offsets[l] = 0 ;
+  }
+  printf("reading intensity scales from %s\n", fname) ;
+  fp = fopen(fname, "r") ;
+  if (fp == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not open intensity tracking file %s", Progname,fname) ;
+
+  cp = fgetl(line, STRLEN-1, fp) ;
+  while (cp)
+  {
+    sscanf(cp, "%d %*s %f %f %*f\n", &l, &scale, &offset) ;
+    label_scales[l] = scale ;
+    label_offsets[l] = offset ;
+    printf("label %s (%d): %2.2f + %2.1f\n", cma_label_to_name(l), l, scale, offset) ;
+    cp = fgetl(line, STRLEN-1, fp) ;
+    
+  }
+  
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
