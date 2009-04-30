@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/08 16:04:08 $
- *    $Revision: 1.87 $
+ *    $Date: 2009/04/30 19:46:29 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,9 @@ static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 static char *save_gca_fname = NULL ;
 
+#define MAX_READS 100
+static int nreads = 0 ;
+static char *read_intensity_fname[MAX_READS] ;
 static float regularize = 0 ;
 static float regularize_mean = 0 ;
 static int avgs = 0 ;
@@ -177,13 +180,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.87 2008/08/08 16:04:08 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.88 2009/04/30 19:46:29 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.87 2008/08/08 16:04:08 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.88 2009/04/30 19:46:29 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -356,6 +359,36 @@ main(int argc, char *argv[]) {
     GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
     MRIfree(&mri_seg) ;
     MRIfree(&mri_T1) ;
+  }
+  if (nreads > 0)
+  {
+    float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS] ;
+    float label_scales_total[MAX_CMA_LABELS],
+          label_offsets_total[MAX_CMA_LABELS];
+    char  *fname ;
+    int   i, l ;
+
+    memset(label_scales_total, 0, sizeof(label_scales_total)) ;
+    memset(label_offsets_total, 0, sizeof(label_offsets_total)) ;
+
+    for (i = 0 ; i < nreads ; i++)
+    {
+      fname = read_intensity_fname[i] ;
+      printf("reading label scales and offsets from %s\n", fname) ;
+      GCAreadLabelIntensities(fname, label_scales, label_offsets) ;
+      for (l = 0; l < MAX_CMA_LABELS ; l++)
+      {
+        label_scales_total[l] += label_scales[l] ;
+        label_offsets_total[l] += label_offsets[l] ;
+      }
+    }
+    for (l = 0; l < MAX_CMA_LABELS ; l++)
+    {
+      label_scales_total[l] /= (float)nreads ;
+      label_offsets_total[l] /= (float)nreads ;
+    }
+
+    GCAapplyRenormalization(gca, label_scales_total, label_offsets_total, 0) ;
   }
   // -flash_parms fname option
   if (tissue_parms_fname)   /* use FLASH forward model */
@@ -546,6 +579,9 @@ main(int argc, char *argv[]) {
              Ggca_x, Ggca_y, Ggca_z,
              cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
              MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
+    GCAreclassifyUsingGibbsPriors
+      (mri_inputs, gca, mri_labeled, transform, max_iter,
+       mri_fixed, 0, NULL);
   } else  // don't read old one in - create new labeling
   {
     if (reg_fname == NULL) { //so read_fname must be NULL too
@@ -886,6 +922,13 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "nowmsa")) {
     nowmsa = 1 ;
     printf("disabling WMSA labels\n") ;
+  } else if (!stricmp(option, "read_intensities") || !stricmp(option, "ri")) {
+    read_intensity_fname[nreads] = argv[2] ;
+    nargs = 1 ;
+    printf("reading intensity scaling from %s...\n", read_intensity_fname[nreads]) ;
+    nreads++ ;
+    if (nreads > MAX_READS)
+      ErrorExit(ERROR_UNSUPPORTED, "%s: too many intensity files specified (max %d)", Progname, MAX_READS);
   } else if (!stricmp(option, "WM")) {
     wm_fname = argv[2] ;
     nargs = 1 ;
