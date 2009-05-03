@@ -34,9 +34,11 @@ EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz V1_average.tar.gz
 install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf fsaverage
 	gunzip -c fsaverage.tar.gz | tar xvf -
 	mv fsaverage $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
+	rm -Rf V1_average
 	gunzip -c V1_average.tar.gz | tar xvf -
 	cp -f $(top_builddir)/distribution/average/V1_average/scripts/predict_v1.sh \
 		$(DESTDIR)$(prefix)/bin
