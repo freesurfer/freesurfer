@@ -37,20 +37,7 @@ class Registration
 		   mov2weights(NULL),dst2weights(NULL),lastp(NULL),
 		   mri_indexing(NULL) {};
   
-    virtual ~Registration()
-    { // we cleanup our private variables
-       if (mri_source) MRIfree(&mri_source);
-       if (mri_target) MRIfree(&mri_target);
-       if (Minit) MatrixFree(&Minit);
-       if (Mfinal) MatrixFree(&Minit);
-       if (lastp) MatrixFree(&lastp);
-       if (mri_indexing) MRIfree(&mri_indexing);
-       if (mri_weights) MRIfree(&mri_weights);
-       if (gpS.size() > 0) freeGaussianPyramid(gpS);
-       if (gpT.size() > 0) freeGaussianPyramid(gpT);
-       if (mov2weights) MatrixFree(&mov2weights);
-       if (dst2weights) MatrixFree(&dst2weights);
-    }
+    virtual ~Registration();
     
     void clear(); // initialize registration (keep source and target and gauss pyramid)
   
