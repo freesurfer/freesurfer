@@ -5,13 +5,13 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include
 
-bin_PROGRAMS = mri_robust_register mri_robust_mean lta_diff 
+bin_PROGRAMS = mri_robust_register mri_robust_template lta_diff 
 mri_robust_register_SOURCES=mri_robust_register.cpp Regression.cpp Registration.cpp CostFunctions.cpp RobustGaussian.cpp RegPowell.cpp
 mri_robust_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_robust_register_LDFLAGS=$(OS_LDFLAGS)
-mri_robust_mean_SOURCES=mri_robust_mean.cpp Regression.cpp Registration.cpp CostFunctions.cpp RobustGaussian.cpp
-mri_robust_mean_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mri_robust_mean_LDFLAGS=$(OS_LDFLAGS)
+mri_robust_template_SOURCES=mri_robust_template.cpp Regression.cpp Registration.cpp CostFunctions.cpp RobustGaussian.cpp
+mri_robust_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mri_robust_template_LDFLAGS=$(OS_LDFLAGS)
 lta_diff_SOURCES=lta_diff.cpp Regression.cpp Registration.cpp CostFunctions.cpp  RobustGaussian.cpp
 lta_diff_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 lta_diff_LDFLAGS=$(OS_LDFLAGS)
