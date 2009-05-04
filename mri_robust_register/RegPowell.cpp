@@ -158,7 +158,8 @@ std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,do
        float fret, fstart, min_sse;
        float* p   = ::vector(1, pcount+1) ;
        float** xi = ::matrix(1, pcount+1, 1, pcount+1) ;
-       float tol = 1e-5;
+       float tol = 1e-5; //-8
+       int maxiter = 36;
        int iter;
        
        for (int i = 1;i<=pcount;i++)
@@ -177,7 +178,8 @@ std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,do
    min_sse = costFunction(p) ;
    cout << " min_sse: " << min_sse << endl;
    icount = 0;
-   OpenPowell(p, xi, pcount, tol, &iter, &fret, costFunction);
+   //OpenPowell(p, xi, pcount, tol, &iter, &fret, costFunction);
+   OpenPowell2(p, xi, pcount, tol,tol,maxiter, &iter, &fret, costFunction);
     cout << endl << "best alignment initial powell: " << fret << " (" << iter << " steps)" << endl;
 
    int count = 0;
