@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/07/09 21:04:14 $
-#    $Revision: 1.9 $
+#    $Date: 2009/05/04 16:15:46 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.9 2008/07/09 21:04:14 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.10 2009/05/04 16:15:46 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -102,7 +102,7 @@ while($nthIter <= $nIters)
   if($#nProtoIters)   set cmd = ($cmd -iterations $nProtoIters);
   if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
   if($#Distance)      set cmd = ($cmd -distance $Distance);
-  if($#FWHM)          set cmd = ($cmd -distance $FWHM);
+  if($#FWHM)          set cmd = ($cmd -fwhm $FWHM);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
