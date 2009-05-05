@@ -233,6 +233,7 @@ FSF_FILES=\
 	stxgrinder-sess-perrun \
 	subject-sess \
 	surf-sess \
+	surfsmooth-sess \
 	surf-sess-new \
 	svdfunctcvm \
 	svdfunctcvm-sess \
