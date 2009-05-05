@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/04/27 18:50:52 $
- *    $Revision: 1.89 $
+ *    $Author: fischl $
+ *    $Date: 2009/05/05 19:18:16 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1212,6 +1212,8 @@ LabelMark(LABEL *area, MRI_SURFACE *mris)
     vno = area->lv[n].vno ;
     if (vno < 0 || vno >= mris->nvertices)
       DiagBreak() ;
+    if (area->lv[n].deleted > 0)
+      continue ;
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
   }
@@ -1917,7 +1919,7 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
   for (n = 0; n< num_times; n++ )
   {
     MRISclearMarks(mris) ;
-    LabelMark(area, mris) ; // all vertices in label now have v->marked==1
+    LabelMarkStats(area, mris) ; // all vertices in label now have v->marked==1
 
     /* Allocate an LV array the size of the surface. */
     new_lv = (LV*) calloc( mris->nvertices, sizeof(LV) );
@@ -1961,6 +1963,7 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
         new_lv[num_new_lvs].x = v->x;
         new_lv[num_new_lvs].y = v->y;
         new_lv[num_new_lvs].z = v->z;
+        new_lv[num_new_lvs].z = v->stat;
         num_new_lvs++;
       }
     }
@@ -2011,6 +2014,8 @@ LabelMarkStats(LABEL *area, MRI_SURFACE *mris)
 
   for (n = 0 ; n < area->n_points ; n++)
   {
+    if (area->lv[n].deleted > 0)
+      continue ;
     vno = area->lv[n].vno ;
     v = &mris->vertices[vno] ;
     v->marked = 1 ;
