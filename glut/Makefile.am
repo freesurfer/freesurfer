@@ -65,9 +65,9 @@ libglut_a_SOURCES=\
 	layerutil.c \
 	layerutil.h
 
-if HAVE_OPENGL_LIBS
-check_PROGRAMS=test_glut
-endif
+#if HAVE_OPENGL_LIBS
+#check_PROGRAMS=test_glut
+#endif
 
 #test_glut_SOURCES=test_glut.c
 #test_glut_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_VXL) -lz \
