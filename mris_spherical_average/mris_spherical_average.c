@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/04 16:00:19 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/05/05 15:07:16 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.25 2008/12/04 16:00:19 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.26 2009/05/05 15:07:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -91,10 +91,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.25 2008/12/04 16:00:19 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.26 2009/05/05 15:07:16 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.25 2008/12/04 16:00:19 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.26 2009/05/05 15:07:16 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -420,7 +420,7 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "dilate")) {
     dilate = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("eroding label %d times before writing\n", erode) ;
+    printf("dilating label %d times before writing\n", dilate) ;
   } else if (!stricmp(option, "reassign")) {
     reassign = 1 ;
     printf("recomputing label vertex assignments\n") ;
