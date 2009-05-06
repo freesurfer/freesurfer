@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/06 22:27:33 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/05/06 23:01:36 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_concatenate_lta.c,v 1.4 2009/05/06 22:27:33 mreuter Exp $", 
+     "$Id: mri_concatenate_lta.c,v 1.5 2009/05/06 23:01:36 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
      else
     { 
        //change type to VOXEL_VOXEL
-       if (lta_total->type != out_type)
+       if (lta1->type != out_type)
         LTAchangeType(lta1, out_type);
 
     printf("Writing  LTA to file %s...\n", ltafn_total);
