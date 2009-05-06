@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/06 23:25:14 $
-#    $Revision: 1.1 $
+#    $Date: 2009/05/06 23:35:53 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2009
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_concatenate_lta,v 1.1 2009/05/06 23:25:14 nicks Exp $'
+set VERSION='$Id: test_mri_concatenate_lta,v 1.2 2009/05/06 23:35:53 nicks Exp $'
 
 umask 002
 
@@ -33,6 +33,7 @@ set cmd=(./mri_concatenate_lta -invert1 \
   identity.nofile \
   nickbase_to_nick13.lta)
 echo ""
+echo $cmd
 $cmd
 if ($status != 0) then
   echo "mri_concatenate_lta FAILED"
