@@ -10,9 +10,9 @@
 /*
  * Original Author: Xiao Han
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/05/17 19:56:59 $
- *    $Revision: 1.3 $
+ *    $Author: mreuter $
+ *    $Date: 2009/05/06 22:27:33 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_concatenate_lta.c,v 1.3 2007/05/17 19:56:59 nicks Exp $", 
+     "$Id: mri_concatenate_lta.c,v 1.4 2009/05/06 22:27:33 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -128,6 +128,35 @@ int main(int argc, char *argv[])
     copyVolGeom(&lt->src, &lt->dst);
     copyVolGeom(&vgtmp, &lt->src);
   }
+
+  if (strcmp(ltafn2,"identity.nofile") == 0)
+  {
+     type = TransformFileNameType(ltafn_total);
+     if (type == MNI_TRANSFORM_TYPE)
+     {
+       ltaMNIwrite(lta1, ltafn_total);
+     }
+     else
+    { 
+       //change type to VOXEL_VOXEL
+       if (lta_total->type != out_type)
+        LTAchangeType(lta1, out_type);
+
+    printf("Writing  LTA to file %s...\n", ltafn_total);
+    fo = fopen(ltafn_total,"w");
+    if (fo==NULL)
+      ErrorExit(ERROR_BADFILE, 
+                "%s: can't create file %s",Progname, ltafn_total);
+
+    LTAprint(fo, lta1);
+
+    fclose(fo);
+    }
+    LTAfree(&lta1);
+    printf("%s successful.\n", Progname);
+    return 0;
+  }
+
 
   type = TransformFileNameType(ltafn2);
   if (type == MNI_TRANSFORM_TYPE)
@@ -300,18 +329,33 @@ static void usage(int exit_val)
   fout = (exit_val ? stderr : stdout);
 
   fprintf(fout, 
-          "Usage: %s  <lta_1> <lta_2> <lta_final> \n", Progname);
+          "\nUsage: %s <options> lta_1 lta_2 lta_final \n\n", Progname);
   fprintf(fout, 
-          "This program concatenate two consecutive LTA transformations \n") ;
+          "Short description: concatenates two consecutive LTA transformations \n") ;
   fprintf(fout, 
-          "into one overall transformation.\n") ;
+          "                   into one overall transformation.\n\n") ;
+  fprintf(fout,
+          "Required arguments\n\n");
+  fprintf(fout,
+          "  lta_1              maps some src1 to dst1 \n");
   fprintf(fout, 
-          "lta_1 maps src1 to dst1, lta_2 maps dst1(src2) to dst2 \n") ;
+          "  lta_2              maps dst1(src2) to dst2 \n") ;
   fprintf(fout, 
-          "The combined LTA maps src1 to dst2.\n") ;
+          "  lta_final          the combined LTA maps: src1 to dst2.\n\n") ;
+  fprintf(fout, "Optional arguments\n\n");
   fprintf(fout, 
-          "If lta2 is talairach.xfm, use -tal file1 file2 to specify\n"
-          "src (file1) and template (file2) for the talairach xfm.\n") ;
+          "  -tal file1 file2   if lta2 is talairach.xfm specify src (file1) and\n"
+          "                        template (file2) for the talairach xfm.\n") ;
+  fprintf(fout, 
+          "  -invert1           invert lta_1 before applying it\n") ;
+  fprintf(fout, 
+          "  -invert2           invert lta_2 before applying it\n") ;
+  fprintf(fout, 
+          "  -out_type          set final LTA type: 0 VOX2VOX (default)\n") ;
+  fprintf(fout, 
+          "                                         1 RAS2RAS\n\n") ;
+  fprintf(fout, "You can use 'identity.nofile' as the filename for lta2\n") ;
+  fprintf(fout, "  e.g.: %s -invert1 lta1.lta identity.nofile inv1.lta\n\n",Progname) ;
   exit(exit_val);
 
 }  /*  end usage()  */
