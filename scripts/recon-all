@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/07 00:18:26 $
-#    $Revision: 1.202 $
+#    $Date: 2009/05/07 00:23:21 $
+#    $Revision: 1.203 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.202 2009/05/07 00:18:26 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.203 2009/05/07 00:23:21 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -687,6 +687,8 @@ if ($DoCreateBaseSubj) then
     if($status) goto error_exit;
   endif
   # now create the inverse transforms
+  cd $subjdir/mri/transforms > /dev/null
+  $PWD |& tee -a $LF
   foreach s ($BaseSubjsList)
     set cmd = (mri_concatenate_lta -invert1)
     set cmd = ($cmd ${s}_to_${subjid}.lta)
