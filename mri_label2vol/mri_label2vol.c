@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/19 23:18:09 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/05/08 17:22:56 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $
+  $Id: mri_label2vol.c,v 1.28 2009/05/08 17:22:56 greve Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.28 2009/05/08 17:22:56 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -92,6 +92,8 @@ int nlabels = 0;
 
 char *TempVolId = NULL;
 char *RegMatFile = NULL;
+int RegHeader = 0; 
+int RegIdentity = 0; 
 int InvertMtx = 0;
 double FillThresh = 0.0;
 double ProjDelta = .1;
@@ -105,6 +107,7 @@ char *hemi    = NULL;
 char *AnnotFile = NULL;
 char *ASegFSpec = NULL;
 char *SurfId  = "white";
+char *LabelVolFile = NULL;
 
 MRI_SURFACE *Surf=NULL;
 MRI *OutVol=NULL, *TempVol=NULL, *HitVol=NULL;
@@ -141,15 +144,16 @@ int main(int argc, char **argv) {
   char *regsubject;
   float x,y,z;
   int c,r,s, oob, nhits, nhitsmax, nhitsmax_label;
+  MRI *LabelVol;
 
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.28 2009/05/08 17:22:56 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.27 2008/12/19 23:18:09 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.28 2009/05/08 17:22:56 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -167,6 +171,12 @@ int main(int argc, char **argv) {
   check_options();
   dump_options(stdout);
   printf("%s\n",vcid);
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if (SUBJECTS_DIR==NULL) {
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+    exit(1);
+  }
 
   // Load the template volume
   if (TempVolId == NULL)
@@ -190,29 +200,43 @@ int main(int argc, char **argv) {
   printf("Template Voxel Volume: %g\n",TempVoxVol);
   printf("nHits Thresh: %g\n",nHitsThresh);
 
-  if (RegMatFile != NULL) {
+  if(RegMatFile != NULL) {
     // Load registration matrix
+    printf("Loading registration from %s\n",RegMatFile);
     err = regio_read_register(RegMatFile, &regsubject, &ipr, &bpr,
                               &intensity, &R, &float2int);
     if (err) exit(1);
+  } 
+  else {
+    if(RegHeader){    
+      // RegHeader
+      printf("Computing registration based on header\n");
+      LabelVol = MRIreadHeader(LabelVolFile, MRI_VOLUME_TYPE_UNKNOWN);
+      if(LabelVol == NULL){
+	printf("ERROR: reading %s\n",LabelVolFile);
+	exit(1);
+      }
+      R = MRItkRegMtx(LabelVol, TempVol, NULL);
+    }
+    if(RegIdentity){
+      printf("Using Identity Matrix\n");
+      R = MatrixIdentity(4,NULL);
+    }
+  }
+  printf("RegMat: --------\n");
+  MatrixPrint(stdout,R);
+  if (InvertMtx) {
+    printf("Inverting matrix\n");
+    MatrixInverse(R,R);
     printf("RegMat: --------\n");
     MatrixPrint(stdout,R);
-    if (InvertMtx) {
-      printf("Inverting matrix\n");
-      MatrixInverse(R,R);
-      printf("RegMat: --------\n");
-      MatrixPrint(stdout,R);
-    }
-    MatrixMultiply(Tras2vox,R,Tras2vox);
-  } else R = MatrixIdentity(4,NULL);
+  }
+
+  MatrixMultiply(Tras2vox,R,Tras2vox);
+
   printf("Label RAS-to-Vox: --------\n");
   MatrixPrint(stdout,Tras2vox);
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR==NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
   if (SurfNeeded) {
     // Load the surface used for projection
     Surf = MRISloadSurfSubject(subject,hemi,SurfId,SUBJECTS_DIR);
@@ -514,11 +538,22 @@ static int parse_commandline(int argc, char **argv) {
       }
       DoProj = 1;
       nargsused = 4;
-    } else if (!strcmp(option, "--subject")) {
+    } 
+    else if (!strcmp(option, "--subject")) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--hemi")) {
+    } 
+    else if (!strcmp(option, "--identity")){
+      RegIdentity = 1;
+    }
+    else if (!strcmp(option, "--regheader")) {
+      if (nargc < 1) argnerr(option,1);
+      LabelVolFile = pargv[0];
+      RegHeader = 1;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--hemi")) {
       if (nargc < 1) argnerr(option,1);
       hemi = pargv[0];
       checkhemi(hemi);
@@ -650,6 +685,16 @@ static void print_help(void) {
     "tkregister-style registration matrix (see tkregister2 --help) which maps\n"
     "the XYZ of the label to the XYZ of the template volume. If not specified,\n"
     "then the identity is assumed.\n"
+    "\n"
+    "--regheader labelvolume\n"
+    "\n"
+    "Construct registration based on the header info between the template volume\n"
+    "and the labelvolume. The label should have been defined on labelvolume (or\n"
+    "its equivalent).\n"
+    "\n"
+    "--identity\n"
+    "\n"
+    "Use the identity matrix as the registration.\n"
     "\n"
     "--fillthresh thresh\n"
     "\n"
@@ -890,6 +935,25 @@ static void check_options(void) {
 
   if(DoLabelStatVol && nlabels == 0){
     printf("ERROR: %s: must specify a --label with --label-stat\n",Progname);
+    exit(1);
+  }
+
+  if(!RegIdentity && !RegHeader && !RegMatFile){
+    printf("ERROR: you must specify a registration method:\n");
+    printf("  Either: --reg, --regheader, or --identity\n");
+    exit(1);
+  }
+
+  if(RegHeader && RegMatFile){
+    printf("ERROR: cannot spec --regheader and --reg\n");
+    exit(1);
+  }
+  if(RegIdentity && RegMatFile){
+    printf("ERROR: cannot spec --identity and --reg\n");
+    exit(1);
+  }
+  if(RegIdentity && RegHeader){
+    printf("ERROR: cannot spec --identity and --regheader\n");
     exit(1);
   }
 
