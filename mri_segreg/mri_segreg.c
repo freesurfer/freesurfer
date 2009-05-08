@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/08 21:55:04 $
- *    $Revision: 1.73 $
+ *    $Date: 2009/05/08 23:41:24 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -89,8 +89,6 @@
   --noise stddev : add noise with stddev to input for testing sensitivity
   --seed randseed : for use with --noise
 
-  --aseg : use aseg instead of segreg.mgz
-
   --nmax nmax   : max number of powell iterations (def 36)
   --tol   tol   : powell inter-iteration tolerance on cost. 
      This is the fraction of the cost that the difference in 
@@ -109,7 +107,6 @@
   --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh
   --surf-con basename : saves final contrast as basename.?h.mgh
 
-  --mksegreg subject : create segreg.mgz and exit
 
   ENDUSAGE ---------------------------------------------------------------
 */
@@ -177,22 +174,16 @@
 #undef X
 #endif
 
-int MRIsegReg(char *subject);
-int MRISsegReg(char *subject, int ForceReRun);
+int MRISbbrSurfs(char *subject);
 
-double *GetCosts(MRI *mov, MRI *seg,
-                 MATRIX *R0, MATRIX *R,
-                 double *p, double *costs);
 double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 		     double *p, double *costs);
-int Min1D(MRI *mov, MRI *seg,
-          MATRIX *R, double *p, char *costfile, double *costs);
 float compute_powell_cost(float *p) ;
-int MinPowell(MRI *mov, MRI *seg, MATRIX *R, double *params,
+int MinPowell(MRI *mov, MRI *notused, MATRIX *R, double *params,
 	      double ftol, double linmintol, int nmaxiters,
 	      char *costfile, double *costs, int *niters);
+
 MRI *mov_powell = NULL;
-MRI *seg_powell = NULL;
 MATRIX *R0_powell = NULL;
 char *costfile_powell = NULL;
 
@@ -217,7 +208,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.73 2009/05/08 21:55:04 greve Exp $";
+"$Id: mri_segreg.c,v 1.74 2009/05/08 23:41:24 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -245,11 +236,9 @@ char tmpstr[2000];
 
 char *SegRegCostFile = NULL;
 char  *fspec;
-MRI *segreg, *segreg0;
+MRI *anat;
 MRI *noise=NULL;
 MRI *mritmp;
-MRI *inorm=NULL;
-char *inormfile=NULL;
 char *outfile=NULL;
 
 int frame = 0;
@@ -258,8 +247,6 @@ int SynthSeed = -1;
 int AddNoise = 0;
 double NoiseStd;
 
-int UseASeg = 0;
-int DoCrop = 1;
 int DoProfile = 0;
 int n1dmin = 3;
 
@@ -268,14 +255,11 @@ int nMaxItersPowell = 36;
 double TolPowell = 1e-8;
 double LinMinTolPowell = 1e-8;
 
-int MkSegReg = 0;
-
 #define NMAX 100
 int ntx=0, nty=0, ntz=0, nax=0, nay=0, naz=0;
 double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
 double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 
-int UseSurf = 1;
 MRIS *lhwm, *rhwm, *lhctx, *rhctx;
 MRI *lhsegmask, *rhsegmask;
 int UseMask = 0;
@@ -345,13 +329,10 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
   double costs[8], mincost, p[6], pmin[6];
   double tx, ty, tz, ax, ay, az;
-  int nth, n, err,vno;
-  MATRIX *Ttemp=NULL, *invTtemp=NULL, *Stemp=NULL, *invStemp=NULL;
-  MATRIX *R=NULL, *Rcrop=NULL, *R00=NULL, *Rdiff=NULL;
-  MATRIX *Scrop=NULL, *invScrop=NULL, *invTcrop=NULL, *Tcrop=NULL;
+  int nth, n, vno;
+  MATRIX *R=NULL, *R00=NULL, *Rdiff=NULL;
   struct timeb  mytimer;
   double secCostTime;
-  MRI_REGION box;
   FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL;
   double rmsDiffSum, rmsDiffMean=0, rmsDiffMax=0, d;
   VERTEX *v;
@@ -361,13 +342,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.73 2009/05/08 21:55:04 greve Exp $",
+     "$Id: mri_segreg.c,v 1.74 2009/05/08 23:41:24 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.73 2009/05/08 21:55:04 greve Exp $",
+     "$Id: mri_segreg.c,v 1.74 2009/05/08 23:41:24 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -395,6 +376,7 @@ int main(int argc, char **argv) {
   dump_options(fp);
   fflush(fp);
 
+  // voxel shift map
   if(vsmfile){
     printf("Loading vsm\n");
     vsm = MRIread(vsmfile);
@@ -410,12 +392,17 @@ int main(int argc, char **argv) {
     MRIabs(mov,mov);
   }
 
+  // Load an anatomical for refernece
+  sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+  anat = MRIread(tmpstr); // Just need a template
+  if(anat == NULL) exit(1);
+  mritmp = MRIchangeType(anat,MRI_FLOAT,0,0,0);
+  MRIfree(&anat);
+  anat = mritmp;
+
   if(regheader) {
     printf("Computing registration based on scanner-to-scanner\n");
-    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
-    segreg = MRIread(tmpstr); // Just need a template
-    if(segreg == NULL) exit(1);
-    R0 = MRItkRegMtx(segreg,mov,NULL);
+    R0 = MRItkRegMtx(anat,mov,NULL);
   }
 
   R00 = MatrixCopy(R0,NULL);
@@ -454,140 +441,35 @@ int main(int argc, char **argv) {
     MRImaskedGaussianSmooth(mov, NULL, gstd, mov);
   }
 
-  if(inormfile){
-    printf("Loading inorm\n");
-    inorm = MRIread(inormfile);
-    if(inorm == NULL) exit(1);
-  }
+  // Loads surfaces, creates masks, does not actually reg.
+  MRISbbrSurfs(subject);
 
-  if(UseSurf){
-    MRISsegReg(subject,0);
-    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
-    segreg = MRIread(tmpstr); // Just need a template
-    if(segreg == NULL) exit(1);
-    mritmp = MRIchangeType(segreg,MRI_FLOAT,0,0,0);
-    MRIfree(&segreg);
-    segreg = mritmp;
-    if(UseLH && UseCortexLabel){
-      // Load the LH cortex label
-      label = LabelRead(subject, "lh.cortex.label");
-      if(label == NULL){
-	printf("Warning cannot find lh.cortex.label ... continuing\n");
-	lhCortexLabel = NULL;
-      }
-      else{
-	lhCortexLabel = MRISlabel2Mask(lhwm, label, NULL);
+  if(UseLH && UseCortexLabel){
+    // Load the LH cortex label
+    label = LabelRead(subject, "lh.cortex.label");
+    if(label == NULL){
+      printf("Warning cannot find lh.cortex.label ... continuing\n");
+      lhCortexLabel = NULL;
+    }
+    else{
+      lhCortexLabel = MRISlabel2Mask(lhwm, label, NULL);
+      LabelFree(&label);
+    }
+  }
+  if(UseRH && UseCortexLabel){
+    // Load the RH cortex label
+    label = LabelRead(subject, "rh.cortex.label");
+    if(label == NULL){
+      printf("Warning cannot find rh.cortex.label ... continuing\n");
+      rhCortexLabel = NULL;
+    }
+    else{
+      rhCortexLabel = MRISlabel2Mask(rhwm, label, NULL);
 	LabelFree(&label);
-      }
-    }
-    if(UseRH && UseCortexLabel){
-      // Load the RH cortex label
-      label = LabelRead(subject, "rh.cortex.label");
-      if(label == NULL){
-	printf("Warning cannot find rh.cortex.label ... continuing\n");
-	rhCortexLabel = NULL;
-      }
-      else{
-	rhCortexLabel = MRISlabel2Mask(rhwm, label, NULL);
-	LabelFree(&label);
-      }
-    }
-
-  } 
-  else {
-    if(!UseASeg){
-      if(!MkSegReg){
-	printf("Loading segreg\n");
-	sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
-	if(!fio_FileExistsReadable(tmpstr)){
-	  printf("\n");
-	  printf("WARNING: cannot find %s\n",tmpstr);
-	  printf("So, I'm going to create it on-the-fly.\n");
-	  MkSegReg = 1;
-	}
-      }
-      if(MkSegReg){
-	printf("Creating segreg\n");
-	err = MRIsegReg(subject);
-      if(err) exit(err);
-      }
-      segreg = MRIread(tmpstr);
-      if(segreg == NULL) exit(1);
-      free(fspec);
-    } else {
-      printf("Loading aseg\n");
-      sprintf(tmpstr,"%s/%s/mri/aseg",SUBJECTS_DIR,subject);
-      fspec = IDnameFromStem(tmpstr);
-      segreg = MRIread(fspec);
-      if(segreg == NULL) exit(1);
-      free(fspec);
     }
   }
-  segreg0 = segreg;
 
 
-  // Cropping reduces the size of the target volume down to the
-  // voxels that really matter. This can greatly increase the speed
-  // (factor of 2-3). Requires that the registration matrix be
-  // recomputed for the smaller volume.
-  if(DoCrop){
-    printf("Cropping\n");
-
-    // Prepare to adjust the input reg matrix
-    Ttemp    = MRIxfmCRS2XYZtkreg(segreg); // Vox-to-tkRAS Matrices
-    invTtemp = MatrixInverse(Ttemp,NULL);
-    Stemp    = MRIxfmCRS2XYZ(segreg,0); // Vox-to-ScannerRAS Matrices
-    invStemp = MatrixInverse(Stemp,NULL);
-
-    err = MRIboundingBox(segreg, 0.5, &box);
-    if(err) exit(1);
-    printf("BBbox start: %d %d %d, delta = %d %d %d\n",
-           box.x,box.y,box.z,box.dx,box.dy,box.dz);
-    // Now crop
-    segreg  = MRIcrop(segreg0,
-                      box.x, box.y, box.z,
-                      box.x+box.dx, box.y+box.dy, box.z+box.dz);
-    if(segreg == NULL) exit(1);
-    if(inorm){
-      // Crop inorm too
-      mritmp = MRIcrop(inorm,
-                       box.x, box.y, box.z,
-                       box.x+box.dx, box.y+box.dy, box.z+box.dz);
-      if(mritmp == NULL) exit(1);
-      MRIfree(&inorm);
-      inorm = mritmp;
-    }
-
-    Tcrop  = MRIxfmCRS2XYZtkreg(segreg); // Vox-to-tkRAS Matrices
-    invTcrop = MatrixInverse(Tcrop,NULL);
-    Scrop  = MRIxfmCRS2XYZ(segreg,0); // Vox-to-ScannerRAS Matrices
-    invScrop = MatrixInverse(Scrop,NULL);
-
-    // Now adjust input reg
-    // Rc = R*T*inv(S)*Sc*inv(Tc)
-    R0 = MatrixMultiply(R0,Ttemp,R0);
-    R0 = MatrixMultiply(R0,invStemp,R0);
-    R0 = MatrixMultiply(R0,Scrop,R0);
-    R0 = MatrixMultiply(R0,invTcrop,R0);
-
-    printf("Input reg after cropping\n");
-    MatrixPrint(stdout,R0);
-    printf("\n");
-
-    if(0){
-      MatrixFree(&Ttemp);
-      MatrixFree(&Stemp);
-      MatrixFree(&invStemp);
-      MatrixFree(&Tcrop);
-      MatrixFree(&invTcrop);
-      MatrixFree(&Scrop);
-    }
-
-    //MRIwrite(segreg,"segregcrop.mgz");
-    //regio_write_register("crop.reg",subject,mov->xsize,
-    //     mov->zsize,intensity,R0,FLT2INT_ROUND);
-    //exit(1);
-  }
 
   if(AddNoise){
     // Seed the random number generator just in case
@@ -600,28 +482,18 @@ int main(int argc, char **argv) {
 
   R = MatrixCopy(R0,NULL);
 
-  // Allocate the output
-  out = MRIallocSequence(segreg->width,
-                         segreg->height,
-                         segreg->depth,
-                         MRI_FLOAT, 1);
-  MRIcopyHeader(segreg,out);
-
   // Compute cost at initial
   for(nth=0; nth < 6; nth++) p[nth] = 0.0;
-  if(!UseSurf)  GetCosts(mov,     segreg, R0, R, p, costs);
-  else{
-    if(surfcost0base){
-      if(UseLH){
-	sprintf(tmpstr,"%s.lh.mgh",surfcost0base);
-	lhcost0file = strcpyalloc(tmpstr);
-      }
-      if(UseRH){
-	sprintf(tmpstr,"%s.rh.mgh",surfcost0base);
-	rhcost0file = strcpyalloc(tmpstr);
-      }
+  if(surfcost0base){
+    if(UseLH){
+      sprintf(tmpstr,"%s.lh.mgh",surfcost0base);
+      lhcost0file = strcpyalloc(tmpstr);
     }
-    GetSurfCosts(mov, segreg, R0, R, p, costs);
+    if(UseRH){
+      sprintf(tmpstr,"%s.rh.mgh",surfcost0base);
+      rhcost0file = strcpyalloc(tmpstr);
+      }
+    GetSurfCosts(mov, NULL, R0, R, p, costs);
     if(UseLH) lhcost0 = MRIcopy(lhcost,NULL);
     if(UseRH) rhcost0 = MRIcopy(rhcost,NULL);
     //if(lhcost0file)  MRIwrite(lhcost0,lhcost0file);
@@ -633,7 +505,7 @@ int main(int argc, char **argv) {
   if(DoProfile){
     printf("Profiling over 100 iterations\n");
     TimerStart(&mytimer) ;
-    for(n=0; n < 100; n++) GetSurfCosts(mov, segreg, R0, R, p, costs);
+    for(n=0; n < 100; n++) GetSurfCosts(mov, NULL, R0, R, p, costs);
     secCostTime = TimerStop(&mytimer)/1000.0;
     printf("ttot = %g\n",secCostTime);
     printf("tper = %g\n",secCostTime/100);
@@ -691,7 +563,7 @@ int main(int argc, char **argv) {
     if(PreOptFile) fpPreOpt = fopen(PreOptFile,"w");
     for(PreOpt = PreOptMin; PreOpt <= PreOptMax; PreOpt += PreOptDelta){
       p[PreOptDim] = PreOpt;
-      GetSurfCosts(mov, segreg, R0, R, p, costs);
+      GetSurfCosts(mov, NULL, R0, R, p, costs);
       if(costs[7] < mincost) {
 	mincost = costs[7];
 	PreOptAtMin = PreOpt;
@@ -707,7 +579,7 @@ int main(int argc, char **argv) {
       exit(0);
     }
     p[PreOptDim] = PreOptAtMin; // phase encode direction
-    GetSurfCosts(mov, segreg, R0, R, p, costs);
+    GetSurfCosts(mov, NULL, R0, R, p, costs);
     MatrixCopy(R0,R);
     printf("\n");
     fprintf(fp,"\n");
@@ -741,7 +613,7 @@ int main(int argc, char **argv) {
 		p[3] = ax;
 		p[4] = ay;
 		p[5] = az;
-		GetSurfCosts(mov, segreg, R0, R, p, costs);
+		GetSurfCosts(mov, NULL, R0, R, p, costs);
 		if(costs[7] < mincost) {
 		  mincost = costs[7];
 		  for(n=0; n < 6; n++) pmin[n] = p[n];
@@ -772,8 +644,9 @@ int main(int argc, char **argv) {
 	}
       }
     }
+    // Assign min found above to p vector
     for(n=0; n < 6; n++) p[n] = pmin[n];
-    GetSurfCosts(mov, segreg, R0, R, p, costs);
+    GetSurfCosts(mov, NULL, R0, R, p, costs);
     MatrixCopy(R0,R);
     printf("Brute Force --------------------------\n");
     printf("Min cost was %lf\n",mincost);
@@ -799,55 +672,39 @@ int main(int argc, char **argv) {
   }
 
   TimerStart(&mytimer) ;
-  if(DoPowell) {
-    printf("Starting Powell Minimization\n");
-    MinPowell(mov, segreg, R, p, TolPowell, LinMinTolPowell,
-	      nMaxItersPowell,SegRegCostFile, costs, &nth);
-  }
-  else{
-    printf("Starting 1D Minimization\n");
-    // 1D minimization
-    nth = 0;
-    for(n=0; n < n1dmin; n++){
-      printf("n = %d --------------------------------------\n",n);
-      R = MatrixCopy(R0,NULL);
-      nth += Min1D(mov, segreg, R, p, SegRegCostFile, costs);
-      printf("\n");
-    }
-  }
+  printf("Starting Powell Minimization\n");
+  MinPowell(mov, NULL, R, p, TolPowell, LinMinTolPowell,
+	    nMaxItersPowell,SegRegCostFile, costs, &nth);
   secCostTime = TimerStop(&mytimer)/1000.0 ;
 
   // Recompute at optimal. This forces MRI *out to be the output at best reg
-  if(!UseSurf) GetCosts(mov, segreg, R0, R, p, costs);
-  else{
-    if(surfcostbase){
-      sprintf(tmpstr,"%s.lh.mgh",surfcostbase);
-      lhcostfile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s.rh.mgh",surfcostbase);
-      rhcostfile = strcpyalloc(tmpstr);
+  if(surfcostbase){
+    sprintf(tmpstr,"%s.lh.mgh",surfcostbase);
+    lhcostfile = strcpyalloc(tmpstr);
+    sprintf(tmpstr,"%s.rh.mgh",surfcostbase);
+    rhcostfile = strcpyalloc(tmpstr);
+  }
+  if(surfconbase){
+    sprintf(tmpstr,"%s.lh.mgh",surfconbase);
+    lhconfile = strcpyalloc(tmpstr);
+    sprintf(tmpstr,"%s.rh.mgh",surfconbase);
+    rhconfile = strcpyalloc(tmpstr);
+  }
+  GetSurfCosts(mov, NULL, R0, R, p, costs);
+  if(surfcostdiffbase){
+    if(UseLH){
+      sprintf(tmpstr,"%s.lh.mgh",surfcostdiffbase);
+      printf("Writing lh diff to %s\n",tmpstr);
+      mritmp = MRIsubtract(lhcost,lhcost0,NULL);
+      MRIwrite(mritmp,tmpstr);
+      MRIfree(&mritmp);
     }
-    if(surfconbase){
-      sprintf(tmpstr,"%s.lh.mgh",surfconbase);
-      lhconfile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s.rh.mgh",surfconbase);
-      rhconfile = strcpyalloc(tmpstr);
-    }
-    GetSurfCosts(mov, segreg, R0, R, p, costs);
-    if(surfcostdiffbase){
-      if(UseLH){
-	sprintf(tmpstr,"%s.lh.mgh",surfcostdiffbase);
-	printf("Writing lh diff to %s\n",tmpstr);
-	mritmp = MRIsubtract(lhcost,lhcost0,NULL);
-	MRIwrite(mritmp,tmpstr);
-	MRIfree(&mritmp);
-      }
-      if(UseRH){
-	sprintf(tmpstr,"%s.rh.mgh",surfcostdiffbase);
-	printf("Writing rh diff to %s\n",tmpstr);
-	mritmp = MRIsubtract(rhcost,rhcost0,NULL);
-	MRIwrite(mritmp,tmpstr);
-	MRIfree(&mritmp);
-      }
+    if(UseRH){
+      sprintf(tmpstr,"%s.rh.mgh",surfcostdiffbase);
+      printf("Writing rh diff to %s\n",tmpstr);
+      mritmp = MRIsubtract(rhcost,rhcost0,NULL);
+      MRIwrite(mritmp,tmpstr);
+      MRIfree(&mritmp);
     }
   }
 
@@ -906,19 +763,6 @@ int main(int argc, char **argv) {
   MatrixPrint(fp,R);
   fprintf(fp,"\n");
   
-  if(DoCrop){
-    printf("Uncropping reg\n");
-    // R = Rc*Tc*inv(Sc)*S*inv(T)
-    Rcrop = MatrixCopy(R,NULL);
-    R = MatrixMultiply(Rcrop,Tcrop,R);
-    R = MatrixMultiply(R,invScrop,R);
-    R = MatrixMultiply(R,Stemp,R);
-    R = MatrixMultiply(R,invTtemp,R);
-    printf("Uncropped reg at min cost was \n");
-    MatrixPrint(stdout,R);
-    printf("\n");
-  }
-  
   if(outregfile){
     printf("Writing optimal reg to %s \n",outregfile);
     fflush(stdout);
@@ -927,12 +771,13 @@ int main(int argc, char **argv) {
   }
   
   if(outfile) {
-    // This changes values in segreg0
+    // Allocate the output
+    out = MRIallocSequence(anat->width,  anat->height,
+			   anat->depth,  MRI_FLOAT, 1);
+    MRIcopyHeader(anat,out);
+    MRIvol2VolTkRegVSM(mov, out, R, SAMPLE_TRILINEAR, sinchw, vsm);
     printf("Writing output volume to %s \n",outfile);
-    fflush(stdout);
-    MRIsetValues(segreg0,0.0);
-    MRIvol2VolTkRegVSM(mov, segreg0, R, SAMPLE_TRILINEAR, sinchw, vsm);
-    MRIwrite(segreg0,outfile);
+    MRIwrite(out,outfile);
   }
 
   printf("Original Reg \n");
@@ -1049,9 +894,6 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option,      "--help"))     print_help() ;
     else if (!strcasecmp(option, "--version"))  print_version() ;
     else if (!strcasecmp(option, "--debug"))    debug = 1;
-    else if (!strcasecmp(option, "--aseg"))     UseASeg = 1;
-    else if (!strcasecmp(option, "--no-crop"))  DoCrop = 0;
-    else if (!strcasecmp(option, "--crop"))     DoCrop = 1;
     else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
     else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
     else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
@@ -1180,15 +1022,12 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&TolPowell);
       nargsused = 1;
-    } else if (istringnmatch(option, "--tol1d",0)) {
+    } 
+    else if (istringnmatch(option, "--tol1d",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&LinMinTolPowell);
       nargsused = 1;
-    } else if (istringnmatch(option, "--inorm",0)) {
-      if (nargc < 1) argnerr(option,1);
-      inormfile = pargv[0];
-      nargsused = 1;
-    } 
+    }
     else if (istringnmatch(option, "--o",0)) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
@@ -1314,12 +1153,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
       nargsused = 1;
-    } else if (istringnmatch(option, "--mksegreg",0)) {
-      if (nargc < 1) argnerr(option,1);
-      subject = pargv[0];
-      MkSegReg = 1;
-      nargsused = 1;
-    } else if (istringnmatch(option, "--tx-mmd",0)) {
+    } 
+    else if (istringnmatch(option, "--tx-mmd",0)) {
       if(nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%lf",&vmin);
       sscanf(pargv[1],"%lf",&vmax);
@@ -1517,7 +1352,6 @@ printf("  --trans-rand Tmax : uniformly dist -Tmax to +Tmax (Tx,Ty,Tz)\n");
 printf("  --rot-rand   Amax : uniformly dist -Amax to +Amax (Ax,Ay,Az)\n");
 printf("\n");
 printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
-printf("  --no-crop: do not crop anat (crops by default)\n");
 printf("  --profile : print out info about exec time\n");
 printf("\n");
 printf("  --noise stddev : add noise with stddev to input for testing sensitivity\n");
@@ -1541,10 +1375,6 @@ printf("  --surf-cost basename : saves final cost as basename.?h.mgh\n");
 printf("  --init-surf-cost basename0 : saves init cost as basename0.?h.mgh\n");
 printf("  --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh\n");
 printf("  --surf-con basename : saves final contrast as basename.?h.mgh\n");
-
-printf("\n");
-printf("  --mksegreg subject : create segreg.mgz and exit\n");
-printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void) {
@@ -1590,8 +1420,6 @@ static void check_options(void)
     sumfile = strcpyalloc(tmpstr);
   }
 
-  if(UseSurf) DoCrop = 0;
-
   if(ntx == 0) {ntx=1; txlist[0] = 0;}
   if(nty == 0) {nty=1; tylist[0] = 0;}
   if(ntz == 0) {ntz=1; tzlist[0] = 0;}
@@ -1616,10 +1444,8 @@ static void dump_options(FILE *fp)
   fprintf(fp,"movvol %s\n",movvolfile);
   fprintf(fp,"regfile %s\n",regfile);
   fprintf(fp,"subject %s\n",subject);
-  if(inormfile) fprintf(fp,"inorm %s\n",inormfile);
   if(outregfile) fprintf(fp,"outregfile %s\n",outregfile);
   if(outfile) fprintf(fp,"outfile %s\n",outfile);
-  fprintf(fp,"UseSurf %d\n",UseSurf);
   fprintf(fp,"UseMask %d\n",UseMask);
   fprintf(fp,"UseLH %d\n",UseLH);
   fprintf(fp,"UseRH %d\n",UseRH);
@@ -1641,7 +1467,6 @@ static void dump_options(FILE *fp)
   fprintf(fp,"nMaxItersPowell %d\n",nMaxItersPowell);
   fprintf(fp,"n1dmin  %d\n",n1dmin);
   if(interpcode == SAMPLE_SINC) fprintf(fp,"sinc hw  %d\n",sinchw);
-  fprintf(fp,"Crop      %d\n",DoCrop);
   fprintf(fp,"Profile   %d\n",DoProfile);
   fprintf(fp,"Gdiag_no  %d\n",Gdiag_no);
   fprintf(fp,"AddNoise  %d (%g)\n",AddNoise,NoiseStd);
@@ -1721,224 +1546,10 @@ static int istringnmatch(char *str1, char *str2, int n) {
   return(0);
 }
 
-/*-------------------------------------------------------*/
-double *GetCosts(MRI *mov, MRI *seg, MATRIX *R0, MATRIX *R,
-                 double *p, double *costs)
-{
-  double angles[3];
-  MATRIX *Mrot=NULL, *Mtrans=NULL, *vox2vox = NULL;
-  MATRIX *Tin, *invTin, *Ttemp;
-  extern MRI *out, *inorm;
-  extern int interpcode, sinchw;
-
-  if(R==NULL){
-    printf("ERROR: GetCosts(): R cannot be NULL\n");
-    return(NULL);
-  }
-
-  Tin      = MRIxfmCRS2XYZtkreg(mov);
-  invTin   = MatrixInverse(Tin,NULL);
-  Ttemp    = MRIxfmCRS2XYZtkreg(seg);
-
-  Mtrans = MatrixIdentity(4,NULL);
-  Mtrans->rptr[1][4] = p[0];
-  Mtrans->rptr[2][4] = p[1];
-  Mtrans->rptr[3][4] = p[2];
-
-  angles[0] = p[3]*(M_PI/180);
-  angles[1] = p[4]*(M_PI/180);
-  angles[2] = p[5]*(M_PI/180);
-  Mrot = MRIangles2RotMat(angles);
-
-  // R = Mtrans*Mrot*R0
-  R = MatrixMultiply(Mrot,R0,R);
-  R = MatrixMultiply(Mtrans,R,R);
-
-  // vox2vox = invTin*R*Ttemp
-  vox2vox = MatrixMultiply(invTin,R,vox2vox);
-  MatrixMultiply(vox2vox,Ttemp,vox2vox);
-
-  // Zero output
-  MRIsetValues(out,0.0);
-
-  // resample
-  MRIvol2Vol(mov,out,vox2vox,interpcode,sinchw);
-
-  if(inorm)  MRImultiply(out,inorm,out);
-
-  // compute costs
-  costs = SegRegCost(segreg,out,costs);
-
-  MatrixFree(&Mrot);
-  MatrixFree(&Mtrans);
-  MatrixFree(&vox2vox);
-  MatrixFree(&Tin);
-  MatrixFree(&invTin);
-  MatrixFree(&Ttemp);
-
-  return(costs);
-}
-
-/*---------------------------------------------------------------------*/
-int Min1D(MRI *mov, MRI *seg, MATRIX *R, double *p,
-          char *costfile, double *costs)
-{
-  extern int UseSurf;
-  double q, q0, pp[6], c, copt=0, qopt=0, costsopt[8], qdelta;
-  int nthp, nth, n, hit, nthq;
-  MATRIX *R0, *Rtmp;
-  FILE *fp;
-
-  qdelta = .2;
-
-  if(R==NULL) exit(1);
-  if(p==NULL) exit(1);
-  if(costs==NULL) exit(1);
-
-  for(nthp = 0; nthp < 6; nthp++) pp[nthp] = p[nthp];
-  R0 = MatrixCopy(R,NULL);
-  Rtmp = MatrixAlloc(4,4,MATRIX_REAL);
-
-  if(!UseSurf)  GetCosts(    mov, seg, R0, Rtmp, pp, costs);
-  else          GetSurfCosts(mov, seg, R0, Rtmp, pp, costs);
-  
-  copt = costs[7];
-
-  fp = stdout;
-  fprintf(fp,"init1d ");
-  fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-  fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-  fprintf(fp,"%7d %10.4lf %8.4lf ",
-          (int)costs[0],costs[1],costs[2]); // WM  n mean std
-  fprintf(fp,"%7d %10.4lf %8.4lf ",
-          (int)costs[3],costs[4],costs[5]); // CTX n mean std
-  fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
-  printf("\n");
-  printf("\n");
-  fflush(stdout);
-
-  nth = 0;
-  for(nthp = 0; nthp < 6; nthp++){
-    qopt = 0;
-    hit = 0;
-    q0 = pp[nthp];
-
-    nthq = 0;
-    for(q = -2; q <= 2; q += qdelta){
-      nth ++;
-      nthq ++;
-      pp[nthp] = q;
-
-      GetCosts(mov, seg, R0, Rtmp, pp, costs);
-
-      if(costfile != NULL){
-        // write costs to file
-        fp = fopen(costfile,"a");
-        fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-        fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-        fprintf(fp,"%7d %10.4lf %8.4lf ",
-                (int)costs[0],costs[1],costs[2]); // WM  n mean std
-        fprintf(fp,"%7d %10.4lf %8.4lf ",
-                (int)costs[3],costs[4],costs[5]); // CTX n mean std
-        fprintf(fp,"%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-        fprintf(fp,"\n");
-        fclose(fp);
-      }
-
-      fp = stdout;
-      fprintf(fp,"%4d %2d ",nth,nthq);
-      fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-      fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-      fprintf(fp,"%7d %10.4lf %8.4lf ",
-              (int)costs[0],costs[1],costs[2]); // WM  n mean std
-      fprintf(fp,"%7d %10.4lf %8.4lf ",
-              (int)costs[3],costs[4],costs[5]); // CTX n mean std
-      fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",
-              costs[6],costs[7],copt); // t, cost=1/t
-
-      c = costs[7];
-      if(c < copt){
-        copt = c;
-        qopt = q;
-        MatrixCopy(Rtmp,R);
-        for(n=0; n<8; n++) costsopt[n] = costs[n];
-        hit = 1;
-      }
-      printf("%d\n",hit);
-      fflush(stdout);
-
-    }
-    if(hit) pp[nthp] = qopt;
-    else    pp[nthp] = q0;
-    printf("\n");
-  } // loop over params
-
-  for(nthp = 0; nthp < 6; nthp++) p[nthp] = pp[nthp];
-  for(n=0; n<8; n++) costs[n] = costsopt[n];
-
-  fp = stdout;
-  printf("\n");
-  fprintf(fp,"final1d ");
-  fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-  fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-  fprintf(fp,"%7d %10.4lf %8.4lf ",
-          (int)costs[0],costs[1],costs[2]); // WM  n mean std
-  fprintf(fp,"%7d %10.4lf %8.4lf ",
-          (int)costs[3],costs[4],costs[5]); // CTX n mean std
-  fprintf(fp,"%8.4lf %8.4lf   %8.4lf ",costs[6],costs[7],copt); // t, cost=1/t
-  printf("\n");
-  printf("\n");
-  fflush(stdout);
-
-  return(nth);
-}
-/*---------------------------------------------------------*/
-int MinPowell(MRI *mov, MRI *seg, MATRIX *R, double *params,
-	      double ftol, double linmintol, int nmaxiters,
-	      char *costfile, double *costs, int *niters)
-{
-  extern MRI *mov_powell;
-  extern MRI *seg_powell;
-  extern MATRIX *R0_powell;
-  extern char *costfile_powell;
-  MATRIX *R0;
-  float *p, **xi, fret;
-  int    r, c, n,  nparams;
-
-  nparams = 6;
-
-  p = vector(1, nparams) ;
-  for(n=0; n < nparams; n++) p[n+1] = params[n];
-
-  xi = matrix(1, nparams, 1, nparams) ;
-  for (r = 1 ; r <= nparams ; r++) {
-    for (c = 1 ; c <= nparams ; c++) {
-      xi[r][c] = r == c ? 1 : 0 ;
-    }
-  }
-
-  mov_powell = mov;
-  seg_powell = seg;
-  R0 = MatrixCopy(R,NULL);
-  R0_powell = R0;
-  costfile_powell = costfile;
-
-  OpenPowell2(p, xi, nparams, ftol, linmintol, nmaxiters, 
-	      niters, &fret, compute_powell_cost);
-  printf("Powell done niters = %d\n",*niters);
-
-  for(n=0; n < nparams; n++) params[n] = p[n+1];
-  GetCosts(mov_powell, seg_powell, R0_powell, R, params, costs);
-
-  free_matrix(xi, 1, nparams, 1, nparams);
-  free_vector(p, 1, nparams);
-  return(NO_ERROR) ;
-}
 /*---------------------------------------------------------*/
 float compute_powell_cost(float *p) 
 {
   extern MRI *mov_powell;
-  extern MRI *seg_powell;
   extern MATRIX *R0_powell;
   extern char *costfile_powell;
   extern int nCostEvaluations;
@@ -1952,8 +1563,7 @@ float compute_powell_cost(float *p)
   for(n=0; n < 6; n++) pp[n] = p[n+1];
 
   
-  if(!UseSurf)  GetCosts(mov_powell,     seg_powell, R0_powell, R, pp, costs);
-  else          GetSurfCosts(mov_powell, seg_powell, R0_powell, R, pp, costs);
+  GetSurfCosts(mov_powell, NULL, R0_powell, R, pp, costs);
 
   // This is for a fast check on convergence
   //costs[7] = 0;
@@ -1983,6 +1593,7 @@ float compute_powell_cost(float *p)
   }
 
   if(newopt){
+    // If there is a new optimum, print it out
     fp = stdout;
     fprintf(fp,"%4d ",nCostEvaluations);
     fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
@@ -1999,114 +1610,11 @@ float compute_powell_cost(float *p)
   nCostEvaluations++;
   return((float)costs[7]);
 }
-
-/*---------------------------------------------------------------*/
-int MRIsegReg(char *subject)
-{
-  char *SUBJECTS_DIR;
-  char tmpstr[2000];
-  int c,r,s,n,nwm,nctx,segid,v,z=0,nErode3d;
-  MRI *apas, *brain, *wm, *ctx, *segreg;
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-
-  printf("Reading aparc+aseg\n");
-  sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
-  apas = MRIread(tmpstr);
-  if(apas==NULL) exit(1);
-
-  printf("Reading brainmask\n");
-  sprintf(tmpstr,"%s/%s/mri/brainmask.mgz",SUBJECTS_DIR,subject);
-  brain = MRIread(tmpstr);
-  if(brain==NULL) exit(1);
-
-  printf("Zeroing B0 regions\n");
-  for(c=0; c < brain->width; c++){
-    for(r=0; r < brain->height; r++){
-      for(s=0; s < brain->depth; s++){
-	v = MRIgetVoxVal(apas,c,r,s,0);
-	z = 0;
-	if(v == 1006 || v == 2006) z = 1; // entorhinal
-	if(v == 1009 || v == 2009) z = 1; // inferiortemp
-	if(v == 1012 || v == 2012) z = 1; // lat orb front
-	if(v == 1014 || v == 2014) z = 1; // med orb front
-	if(v == 1016 || v == 2016) z = 1; // parahipp
-	if(v == 1032 || v == 2032) z = 1; // frontal pole
-	if(v == 1033 || v == 2033) z = 1; // temporal pole
-	if(z) MRIsetVoxVal(brain,c,r,s,0, 0);
-      }
-    }
-  }
-
-  nErode3d = 5;
-  printf("Eroding brain mask %d\n",nErode3d);
-  for(n=0; n<nErode3d; n++) MRIerode(brain,brain);
-
-  printf("Creating WM mask\n");
-  wm = MRIclone(apas,NULL);
-  nwm = 0;
-  for(c=0; c < brain->width; c++){
-    for(r=0; r < brain->height; r++){
-      for(s=0; s < brain->depth; s++){
-	v = MRIgetVoxVal(brain,c,r,s,0);
-	z = 0;
-	if(v != 0) {
-	  segid = MRIgetVoxVal(apas,c,r,s,0);
-	  if(segid == 2 || segid == 41) {
-	    z = 41;
-	    nwm ++;
-	  }
-	}
-	MRIsetVoxVal(wm,c,r,s,0, z);
-      }
-    }
-  }
-  printf("Found %d WM voxels\n",nwm);
-
-  nErode3d = 2;
-  printf("Eroding WM mask %d\n",nErode3d);
-  for(n=0; n<nErode3d; n++) MRIerode(wm,wm);
-
-  printf("Creating Cortex mask\n");
-  ctx = MRIclone(apas,NULL);
-  nctx = 0;
-  for(c=0; c < brain->width; c++){
-    for(r=0; r < brain->height; r++){
-      for(s=0; s < brain->depth; s++){
-	v = MRIgetVoxVal(brain,c,r,s,0);
-	z = 0;
-	if(v != 0){
-	  segid = MRIgetVoxVal(apas,c,r,s,0);
-	  if(segid == 3 || segid == 42 ||
-	     (segid >= 1000 && segid <= 1034 ) ||
-	     (segid >= 2000 && segid <= 2034 ) ){
-	    z = 3;
-	    nctx++;
-	  }
-	}
-	MRIsetVoxVal(ctx,c,r,s,0, z);
-      }
-    }
-  }
-  printf("Found %d Ctx voxels\n",nctx);
-
-  segreg = MRIadd(wm,ctx,NULL);
-
-  printf("Writing segreg.mgz\n");
-  sprintf(tmpstr,"%s/%s/mri/segreg.mgz",SUBJECTS_DIR,subject);
-  MRIwrite(segreg,tmpstr);
-
-  MRIfree(&brain);
-  MRIfree(&apas);
-  MRIfree(&wm);
-  MRIfree(&ctx);
-  MRIfree(&segreg);
-
-  return(0);
-}
-
-/*---------------------------------------------------------------*/
-int MRISsegReg(char *subject, int ForceReRun)
+/*---------------------------------------------------------------
+  MRISbbrSurfs() - creates surfaces used with BBR by projecting
+  white in and out. Can also create B0 mask.
+  ---------------------------------------------------------------*/
+int MRISbbrSurfs(char *subject)
 {
   extern MRI *lhsegmask, *rhsegmask;
   extern MRIS *lhwm, *rhwm, *lhctx, *rhctx;
@@ -2123,32 +1631,29 @@ int MRISsegReg(char *subject, int ForceReRun)
 
   char *SUBJECTS_DIR;
   char tmpstr[2000];
-  int c,r,s,n,v,z=0;
-  MRI *apas, *brain;
+  int c,n,v;
   extern MRI *lhCortexLabel, *rhCortexLabel;
-  MRI *lhwmmask, *rhwmmask, *lhctxmask, *rhctxmask;
   float  fx, fy, fz;
-  int ReRun=0;
   int annot,B0Annots[10], nB0Annots=10;
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
   if(UseLH){
     // Load the LH white surface, project it into WM and Ctx
-    printf("Loading lh.%s surf\n",surfname);
-    sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,surfname);
+    printf("Loading lh.white surf\n");
+    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
     lhwm = MRISread(tmpstr); // starts as white, projected in
     if(lhwm == NULL) exit(1);
     lhctx = MRISread(tmpstr); // starts as white, projected out
 
-    if(DoWMProjFrac){
-      printf("Loading lh.thickness\n");
+    if(DoWMProjFrac) {
+      printf("Loading lh.thickness for WM\n");
       sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
       err = MRISreadCurvatureFile(lhwm, tmpstr);
       if(err) exit(1);
     }
-    if(DoGMProjFrac){
-      printf("Loading lh.thickness\n");
+    if(DoGMProjFrac) {
+      printf("Loading lh.thickness for GM\n");
       sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
       err = MRISreadCurvatureFile(lhctx, tmpstr);
       if(err) exit(1);
@@ -2203,24 +1708,17 @@ int MRISsegReg(char *subject, int ForceReRun)
   printf("Projecting RH Surfs\n");
   if(UseRH){
     // Load the RH white surface, project it into WM and Ctx
-    printf("Loading rh.%s surf\n",surfname);
-    sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,surfname);
+    printf("Loading rh.white surf\n");
+    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
     rhwm = MRISread(tmpstr);
     if(rhwm == NULL) exit(1);
     rhctx = MRISread(tmpstr);
     
-    if(DoWMProjFrac){
-      printf("Loading rh.thickness\n");
-      sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
-      err = MRISreadCurvatureFile(rhwm, tmpstr);
-      if(err) exit(1);
-    }
-    if(DoGMProjFrac){
-      printf("Loading rh.thickness\n");
-      sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
-      err = MRISreadCurvatureFile(rhctx, tmpstr);
-      if(err) exit(1);
-    }
+    printf("Loading rh.thickness\n");
+    sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
+    err = MRISreadCurvatureFile(rhwm, tmpstr);
+    if(err) exit(1);
+    err = MRISreadCurvatureFile(rhctx, tmpstr);
     
     printf("Projecting RH Surfs\n");
     for(n = 0; n < rhwm->nvertices; n++){
@@ -2265,136 +1763,6 @@ int MRISsegReg(char *subject, int ForceReRun)
       //MRIwrite(rhsegmask,"rh.segmask.mgh");
     }
   }
-
-  return(0);
-  // Now using a different mask algorithm, ignore below
-
-  if(!UseMask) return(0);
-
-  // Determine whether segreg needs to be recomputed or not
-  ReRun = 0;
-  sprintf(tmpstr,"%s/%s/surf/lh.segreg.mgh",SUBJECTS_DIR,subject);
-  if(!fio_FileExistsReadable(tmpstr)) ReRun = 1;
-  sprintf(tmpstr,"%s/%s/surf/rh.segreg.mgh",SUBJECTS_DIR,subject);
-  if(!fio_FileExistsReadable(tmpstr)) ReRun = 1;
-
-  if(!ReRun && !ForceReRun){
-    printf("Surf segreg already exists, reading in\n");
-    sprintf(tmpstr,"%s/%s/surf/lh.segreg.mgh",SUBJECTS_DIR,subject);
-    lhsegmask = MRIread(tmpstr);
-    if(lhsegmask == NULL) exit(1);
-    sprintf(tmpstr,"%s/%s/surf/rh.segreg.mgh",SUBJECTS_DIR,subject);
-    rhsegmask = MRIread(tmpstr);
-    if(rhsegmask == NULL) exit(1);
-    return(0); // Return here
-  }
-  if(!ReRun && ForceReRun)
-    printf("Surf segreg already exists, but rerun forced\n");
-  else
-    printf("Surf segreg does not exist ... computing \n");
-
-
-  /* First, create a mask by zeroing the brainmask in dropout regions
-     then eroding that by 5 voxels. This gets rid of both the edges of
-     the brain and areas near the dropout.
-   */
-
-  printf("Reading aparc+aseg\n");
-  sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
-  apas = MRIread(tmpstr);
-  if(apas==NULL) exit(1);
-    
-  printf("Reading brainmask\n");
-  sprintf(tmpstr,"%s/%s/mri/brainmask.mgz",SUBJECTS_DIR,subject);
-  brain = MRIread(tmpstr);
-  if(brain==NULL) exit(1);
-    
-  printf("Zeroing B0 regions\n");
-  for(c=0; c < brain->width; c++){
-    for(r=0; r < brain->height; r++){
-      for(s=0; s < brain->depth; s++){
-	if(MRIgetVoxVal(brain,c,r,s,0) < 0.5) continue;
-	v = MRIgetVoxVal(apas,c,r,s,0);
-	z = 0;
-	if(v == 1006 || v == 2006) z = 1; // entorhinal
-	if(v == 1009 || v == 2009) z = 1; // inferiortemp
-	if(v == 1012 || v == 2012) z = 1; // lat orb front
-	if(v == 1014 || v == 2014) z = 1; // med orb front
-	if(v == 1016 || v == 2016) z = 1; // parahipp
-	if(v == 1032 || v == 2032) z = 1; // frontal pole
-	if(v == 1033 || v == 2033) z = 1; // temporal pole
-	if(z) MRIsetVoxVal(brain,c,r,s,0, 0);
-	else  MRIsetVoxVal(brain,c,r,s,0, 1);
-      }
-    }
-  }
-
-  printf("Eroding mask %d\n",5);
-  for(n=0; n < 5; n++) MRIerode(brain,brain);
-
-  // Now sample the new mask on the both the wm and ctx LH surfaces
-  lhwmmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			     lhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
-  lhctxmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			      lhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
-
-  // Create the final mask by forcing each vertex to be in both
-  // the wm and ctx masks as well as in the cortex label
-  lhsegmask = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
-  for(n = 0; n < lhwm->nvertices; n++){
-    if(lhCortexLabel != NULL && 
-       (MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5 ||
-	MRIgetVoxVal(lhwmmask,n,0,0,0) < 0.5 ||
-	MRIgetVoxVal(lhctxmask,n,0,0,0) < 0.5))
-       MRIsetVoxVal(lhsegmask,n,0,0,0,  0);
-    else
-      MRIsetVoxVal(lhsegmask,n,0,0,0,  1);
-  }
-
-  // Finally, Write out the mask 
-  sprintf(tmpstr,"%s/%s/surf/lh.segreg.mgh",SUBJECTS_DIR,subject);
-  MRIwrite(lhsegmask,tmpstr);
-
-  // -----------------------------------------------------
-  // Do the same thing for the RH 
-  rhwmmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			     rhwm, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
-
-  rhctxmask = vol2surf_linear(brain,NULL,NULL,NULL,NULL,
-			      rhctx, 0,SAMPLE_NEAREST, FLT2INT_ROUND, NULL, 0, 1);
-
-  rhsegmask = MRIalloc(rhwm->nvertices,1,1,MRI_FLOAT);
-  for(n = 0; n < rhwm->nvertices; n++){
-    if(rhCortexLabel != NULL && 
-       (MRIgetVoxVal(rhCortexLabel,n,0,0,0) < 0.5 ||
-	MRIgetVoxVal(rhwmmask,n,0,0,0) < 0.5 ||
-	MRIgetVoxVal(rhctxmask,n,0,0,0) < 0.5))
-      MRIsetVoxVal(rhsegmask,n,0,0,0,  0);
-    else
-      MRIsetVoxVal(rhsegmask,n,0,0,0,  1);
-  }
-  sprintf(tmpstr,"%s/%s/surf/rh.segreg.mgh",SUBJECTS_DIR,subject);
-  MRIwrite(rhsegmask,tmpstr);
-
-  //-----------------------------------------------------------------
-
-  if(0) {
-    MRIwrite(brain,"be5.mgh");
-    MRIwrite(lhwmmask,"lh.wm.b5.mgh");
-    MRIwrite(lhctxmask,"lh.ctx.b5.mgh");
-    MRIwrite(rhctxmask,"rh.ctx.b5.mgh");
-    MRIwrite(rhwmmask,"rh.wm.b5.mgh");
-    MRISwrite(rhwm,"./rh.wm");
-    MRISwrite(rhctx,"./rh.ctx");
-    MRISwrite(lhwm,"./lh.wm");
-    MRISwrite(lhctx,"./lh.ctx");
-  }
-  MRIfree(&lhwmmask);
-  MRIfree(&lhctxmask);
-  MRIfree(&rhctxmask);
-  MRIfree(&rhwmmask);
-  MRIfree(&brain);
-  MRIfree(&apas);
 
   return(0);
 }
@@ -2605,5 +1973,46 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   }
 
   return(costs);
+}
+
+/*---------------------------------------------------------*/
+int MinPowell(MRI *mov, MRI *notused, MATRIX *R, double *params,
+	      double ftol, double linmintol, int nmaxiters,
+	      char *costfile, double *costs, int *niters)
+{
+  extern MRI *mov_powell;
+  extern MATRIX *R0_powell;
+  extern char *costfile_powell;
+  MATRIX *R0;
+  float *p, **xi, fret;
+  int    r, c, n,  nparams;
+
+  nparams = 6;
+
+  p = vector(1, nparams) ;
+  for(n=0; n < nparams; n++) p[n+1] = params[n];
+
+  xi = matrix(1, nparams, 1, nparams) ;
+  for (r = 1 ; r <= nparams ; r++) {
+    for (c = 1 ; c <= nparams ; c++) {
+      xi[r][c] = r == c ? 1 : 0 ;
+    }
+  }
+
+  mov_powell = mov;
+  R0 = MatrixCopy(R,NULL);
+  R0_powell = R0;
+  costfile_powell = costfile;
+
+  OpenPowell2(p, xi, nparams, ftol, linmintol, nmaxiters, 
+	      niters, &fret, compute_powell_cost);
+  printf("Powell done niters = %d\n",*niters);
+
+  for(n=0; n < nparams; n++) params[n] = p[n+1];
+  GetSurfCosts(mov_powell, NULL, R0_powell, R, params, costs);
+
+  free_matrix(xi, 1, nparams, 1, nparams);
+  free_vector(p, 1, nparams);
+  return(NO_ERROR) ;
 }
 
