@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/03/31 23:14:04 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2009/05/08 21:55:04 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -217,7 +217,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.72 2009/03/31 23:14:04 nicks Exp $";
+"$Id: mri_segreg.c,v 1.73 2009/05/08 21:55:04 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -338,7 +338,7 @@ int nCostEvaluations=0;
 MRI *vsm=NULL;
 char *vsmfile = NULL;
 double angles[3],xyztrans[3];
-
+char *surfname = "white";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -361,13 +361,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.72 2009/03/31 23:14:04 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.73 2009/05/08 21:55:04 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.72 2009/03/31 23:14:04 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.73 2009/05/08 21:55:04 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1098,11 +1098,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mask"))    UseMask = 1;
     else if (!strcasecmp(option, "--lh-only")){ UseLH = 1; UseRH = 0;}
     else if (!strcasecmp(option, "--rh-only")){ UseLH = 0; UseRH = 1;}
-    else if (!strcasecmp(option, "--surf")){
-      UseSurf = 1;
-      DoCrop = 0;
-    }
-    else if (!strcasecmp(option, "--no-surf"))   UseSurf = 0;
+    else if (istringnmatch(option, "--surf",0)) {
+      if(nargc < 1) argnerr(option,1);
+      surfname = pargv[0];
+      nargsused = 1;
+    } 
     else if (istringnmatch(option, "--surf-cost",0)) {
       if(nargc < 1) argnerr(option,1);
       surfcostbase = pargv[0];
@@ -1627,6 +1627,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"PenaltySign  %d\n",PenaltySign);
   fprintf(fp,"PenaltySlope %lf\n",PenaltySlope);
   fprintf(fp,"PenaltyCenter %lf\n",PenaltyCenter);
+  fprintf(fp,"surfname %s\n",surfname);
   if(DoGMProjFrac) fprintf(fp,"GMProjFrac %lf\n",GMProjFrac);
   if(DoGMProjAbs)  fprintf(fp,"GMProjAbs %lf\n",GMProjAbs);
   if(DoWMProjFrac) fprintf(fp,"WMProjFrac %lf\n",WMProjFrac);
@@ -2134,17 +2135,24 @@ int MRISsegReg(char *subject, int ForceReRun)
 
   if(UseLH){
     // Load the LH white surface, project it into WM and Ctx
-    printf("Loading lh.white surf\n");
-    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+    printf("Loading lh.%s surf\n",surfname);
+    sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,surfname);
     lhwm = MRISread(tmpstr); // starts as white, projected in
     if(lhwm == NULL) exit(1);
     lhctx = MRISread(tmpstr); // starts as white, projected out
 
-    printf("Loading lh.thickness\n");
-    sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
-    err = MRISreadCurvatureFile(lhwm, tmpstr);
-    if(err) exit(1);
-    err = MRISreadCurvatureFile(lhctx, tmpstr);
+    if(DoWMProjFrac){
+      printf("Loading lh.thickness\n");
+      sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
+      err = MRISreadCurvatureFile(lhwm, tmpstr);
+      if(err) exit(1);
+    }
+    if(DoGMProjFrac){
+      printf("Loading lh.thickness\n");
+      sprintf(tmpstr,"%s/%s/surf/lh.thickness",SUBJECTS_DIR,subject);
+      err = MRISreadCurvatureFile(lhctx, tmpstr);
+      if(err) exit(1);
+    }
 
     printf("GM Proj: %d %lf %lf\n",DoGMProjFrac,GMProjFrac,GMProjAbs);
     printf("WM Proj: %d %lf %lf\n",DoWMProjFrac,WMProjFrac,WMProjAbs);
@@ -2195,17 +2203,24 @@ int MRISsegReg(char *subject, int ForceReRun)
   printf("Projecting RH Surfs\n");
   if(UseRH){
     // Load the RH white surface, project it into WM and Ctx
-    printf("Loading rh.white surf\n");
-    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+    printf("Loading rh.%s surf\n",surfname);
+    sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,surfname);
     rhwm = MRISread(tmpstr);
     if(rhwm == NULL) exit(1);
     rhctx = MRISread(tmpstr);
     
-    printf("Loading rh.thickness\n");
-    sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
-    err = MRISreadCurvatureFile(rhwm, tmpstr);
-    if(err) exit(1);
-    err = MRISreadCurvatureFile(rhctx, tmpstr);
+    if(DoWMProjFrac){
+      printf("Loading rh.thickness\n");
+      sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
+      err = MRISreadCurvatureFile(rhwm, tmpstr);
+      if(err) exit(1);
+    }
+    if(DoGMProjFrac){
+      printf("Loading rh.thickness\n");
+      sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
+      err = MRISreadCurvatureFile(rhctx, tmpstr);
+      if(err) exit(1);
+    }
     
     printf("Projecting RH Surfs\n");
     for(n = 0; n < rhwm->nvertices; n++){
