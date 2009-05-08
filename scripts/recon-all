@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/07 00:23:21 $
-#    $Revision: 1.203 $
+#    $Date: 2009/05/08 16:10:09 $
+#    $Revision: 1.204 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.203 2009/05/07 00:23:21 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.204 2009/05/08 16:10:09 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -159,10 +159,10 @@ set REG_COST      = corratio
 set REG_DOF       = 6
 set REG_FILE_TYPE = norm
 
-set DoCreateBaseSubj = 0; # if 1, create the 'longbase' subject
-set BaseSubjInvol = (T1.mgz); # -base-invol allow giving something else
-set BaseSubjsList = (); # subject set composing the longitudinal 'base' subject
-set BaseSubjsListFname = (longbase-subjs); # file containing BaseSubjsList
+set DoCreateBaseSubj = 0; # if 1, create the 'base' subject used in longitud
+set BaseSubjInvol = (T1.mgz); # -base-invol allows using some other file
+set BaseSubjsList = (); # subject set grabbed from -base-insubj args
+set BaseSubjsListFname = (base-insubjs); # file containing BaseSubjsList
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -440,6 +440,9 @@ mris_register -all-info >> $LF
 mris_anatomical_stats -all-info >> $LF
 mrisp_paint -all-info >> $LF
 mris_curvature_stats -all-info >> $LF
+mri_robust_register -all-info >> $LF
+mri_robust_template -all-info >> $LF
+mri_and -all-info >> $LF
 
 echo "#######################################" >> $LF
 echo "GCA $GCA" >> $LF
@@ -1085,13 +1088,51 @@ skullstrip:
   $PWD |& tee -a $LF
 
   if ($longitudinal) then
-    # longitudinal processing stream:
+    # longitudinal processing stream: create mask by AND'ing the brainmasks
+    # from the subjects composing the base subject
     set BM  = brainmask.mgz
     set BMA = brainmask.auto.mgz
-    set cmd = (mri_mask -keep_mask_deletion_edits \
-      -xform $subjdir/mri/transforms/$longbasetotpN_regfile \
-      T1.mgz \
-      $longbasedir/mri/$BM $BMA)
+    set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
+    set brainmaskAndList = ();
+    foreach s (${BaseSubjsList})
+      if ("${s}" == "${tpNid}") then
+        # same subject, so no transform needed
+        set bmfn = brainmask-${tpNid}.mgz
+        set brainmaskAndList = (${brainmaskAndList} ${bmfn});
+        set cmd=(cp -v ${SUBJECTS_DIR}/${tpNid}/mri/${BM} ${bmfn})
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      else
+        # create the transforms mapping base subjs to this subj
+        set baseltadir = ($longbasedir/mri/transforms)
+        set cmd=(mri_concatenate_lta)
+        set cmd=($cmd ${baseltadir}/${s}_to_${longbaseid}.lta)
+        set cmd=($cmd ${baseltadir}/${longbaseid}_to_${tpNid}.lta)
+        set ltaname = (./transforms/${s}_to_${tpNid}.lta)
+        set cmd=($cmd ${ltaname})
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+        # then create the brainmask of this base subj aligned to this subj
+        set cmd=(mri_convert -T ${ltaname})
+        set cmd=($cmd -rl ${SUBJECTS_DIR}/${tpNid}/mri/${BM})
+        set cmd=($cmd ${SUBJECTS_DIR}/${s}/mri/${BM})
+        set bmfn=(brainmask-${s}_to_${tpNid}.mgz)
+        set cmd=($cmd ${bmfn})
+        set brainmaskAndList = (${brainmaskAndList} ${bmfn});
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    end
+    # now AND these masks together
+    set cmd=(mri_and ${brainmaskAndList} brainmask-AND.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # and create the final brainmask.mgz
+    set cmd = (mri_mask T1.mgz brainmask-AND.mgz $BMA)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
