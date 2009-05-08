@@ -1,0 +1,465 @@
+#! /bin/tcsh -f
+
+#
+# lpcregister
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2009/05/08 20:44:35 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+#
+set VERSION = '$Id: lpcregister,v 1.1 2009/05/08 20:44:35 greve Exp $';
+set inputargs = ($argv);
+
+set subjid = ();
+set fsvol  = brainmask;
+set refvol = ();
+set movvol = ();
+set debug = 0;
+set tmpdir = ();
+set cleanup = 1;
+set PrintHelp = 0;
+set frame = ();
+set midframe = 0;
+set nolog = 0;
+set OutVol = ();
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+if($#frame == 0) set frame = 0;
+
+set movvoldir = `dirname $movvol`;
+if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.lpcreg.$$
+mkdir -p $tmpdir
+
+if(! $nolog) then
+  set LF = $movvoldir/lpcregister.log
+  if(-e $LF) mv $LF $LF.old
+else
+  set LF = /dev/null
+endif
+
+echo "Log file is $LF"
+
+echo "Logfile for lpcregister" >> $LF
+date |& tee -a $LF
+echo $inputargs |& tee -a $LF
+echo $VERSION |& tee -a $LF
+
+set StartTime = `date`;
+set DateString = "`date '+%y%m%d%H%M'`"
+
+# Use the rawavg as input (for testing only)
+if($fsvol == rawavg.cor) then
+  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
+  if(! -e $refvol) then
+    # Does not exist, create
+    set orig = $SUBJECTS_DIR/$subjid/mri/orig.mgz
+    set rawavg = $SUBJECTS_DIR/$subjid/mri/rawavg.mgz
+    set cmd = (mri_vol2vol --mov $rawavg --targ $orig --o $refvol \
+     --no-save-reg --regheader)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    # Now mask it
+    set brain = $SUBJECTS_DIR/$subjid/mri/brainmask.mgz
+    set cmd = (mri_mask $refvol $brain $refvol)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif
+
+# First, Convert reference to NIFTI
+set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
+set refvolnii = $tmpdir/refvol.lpcregister.nii
+set cmd = (mri_convert $refvol $refvolnii)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Now, Convert reference from NIFTI to BRIK
+set refvolbase = $tmpdir/refvol.lpcregister
+set cmd = (3dcopy $refvolnii $refvolbase)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Convert moveable to NIFTI
+set movvolnii = $tmpdir/movvol.lpcregister.nii
+set cmd = (mri_convert $movvol $movvolnii)
+if($#frame) set cmd = ($cmd --frame $frame);
+if($midframe) set cmd = ($cmd --mid-frame);
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Convert moveable to BRIK
+set movvolbase = $tmpdir/movvol.lpcregister
+set cmd = (3dcopy $movvolnii $movvolbase)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Run lpc
+pushd $tmpdir 
+set cmd = (align_epi_anat.py \
+    -anat refvol.lpcregister+orig \
+    -epi  movvol.lpcregister+orig -epi_base 0 \
+    -epi2anat -giant_move -AddEdge)
+if($fsvol == brainmask) set cmd = ($cmd -anat_has_skull no)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+popd
+
+# This is the AFNI registration matrix
+set mat = $movvolbase"_al_mat.aff12.1D"
+if(! -e $mat) then
+  echo "ERROR: cannot find $mat" |& tee -a $LF
+  exit 1;
+endif
+
+# Reshape AFNI registration matrix to 4x4
+set tmp = `cat $mat`;
+set afnireg = $tmpdir/afnireg.mtx
+rm -f $afnireg
+echo $tmp[1-4]  >> $afnireg
+echo $tmp[5-8]  >> $afnireg
+echo $tmp[9-12] >> $afnireg
+echo "0 0 0 1"  >> $afnireg
+
+# Reshape AFNI ref vox2ras matrix to 4x4
+set tmp = `grep -A 4 IJK_TO_DICOM $refvolbase+orig.HEAD | head -n 5 | tail -n 3`
+set Aref = $tmpdir/Aref.mtx
+rm -f $Aref
+echo $tmp[1-4]  >> $Aref
+echo $tmp[5-8]  >> $Aref
+echo $tmp[9-12] >> $Aref
+echo "0 0 0 1"  >> $Aref
+
+# Reshape AFNI mov vox2ras matrix to 4x4
+set tmp = `grep -A 4 IJK_TO_DICOM $movvolbase+orig.HEAD | head -n 5 | tail -n 3`
+set Amov = $tmpdir/Amov.mtx
+rm -f $Amov
+echo $tmp[1-4]  >> $Amov
+echo $tmp[5-8]  >> $Amov
+echo $tmp[9-12] >> $Amov
+echo "0 0 0 1"  >> $Amov
+
+# Compute the vox2vox matrix
+# Not really FSL matrix, just simple 4x4
+set v2vmtx = $tmpdir/v2v.mtx
+set cmd = (mri_matrix_multiply -fsl \
+  -iim $Amov -im $afnireg -im $Aref \
+  -om $v2vmtx)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Get the tkreg vox2ras matrix for ref
+set Tref = $tmpdir/Tref.mtx
+set cmd = (mri_info --o $Tref --vox2ras-tkr $refvol )
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Get the tkreg vox2ras matrix for mov
+set Tmov = $tmpdir/Tmov.mtx
+set cmd = (mri_info --o $Tmov --vox2ras-tkr $movvol )
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Compute the tkreg matrix
+# Not really FSL matrix, just simple 4x4
+set tkrmtx = $tmpdir/tkr.mtx
+set cmd = (mri_matrix_multiply -fsl \
+  -im $Tmov -im $v2vmtx -iim $Tref \
+  -om $tkrmtx)
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Create a tkreg matfile with the right format
+set tmpreg = $tmpdir/reg.header.dat
+set cmd = (tkregister2_cmdl --s $subjid --mov $movvol \
+           --regheader --noedit --reg $tmpreg \
+           --targ $refvol);
+echo "--------------------------------------" |& tee -a $LF
+pwd        |& tee -a $LF
+echo $cmd  |& tee -a $LF
+$cmd       |& tee -a $LF
+if($status) exit 1;
+
+# Finally, create the register.dat
+if(-e $regfile) mv $regfile $regfile.$DateString
+head -n 4 $tmpreg > $regfile
+cat $tkrmtx >> $regfile
+
+# Cleanup
+if($cleanup) then
+  echo "Cleaning up" |& tee -a $LF
+  rm -r $tmpdir
+endif
+
+echo " " |& tee -a $LF
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "lpcregister Done" |& tee -a $LF
+echo " "
+
+set tmp = ""
+if(-e $SUBJECTS_DIR/$subjid/surf/lh.orig) then
+  set tmp = "--surf orig"
+endif
+
+echo "To check results, run:"
+echo "tkregister2 --mov $movvol --reg $regfile $tmp"
+echo " "
+
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subjid = $argv[1]; shift;
+      breaksw
+
+    case "--fsvol":
+      if ( $#argv < 1) goto arg1err;
+      set fsvol = $argv[1]; shift;
+      breaksw
+
+    case "--rawavg":
+      set fsvol = rawavg.cor;
+      breaksw
+
+    case "--mov":
+      if ( $#argv < 1) goto arg1err;
+      set movvol = $argv[1]; shift;
+      breaksw
+
+    case "--frame":
+      if ( $#argv < 1) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "--mid-frame":
+      set midframe = 1;
+      breaksw
+
+    case "--reg":
+      if ( $#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set OutVol = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "--nolog":
+      set nolog = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subjid == 0) then
+    echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subjid) then
+    echo "ERROR: cannot find $subjid in $SUBJECTS_DIR"
+    exit 1;
+  endif
+
+  if($#movvol == 0) then
+    echo "ERROR: must spec an movput vol"
+    exit 1;
+  endif
+
+  if($#regfile == 0) then
+    echo "ERROR: must spec an output reg file"
+    exit 1;
+  endif
+
+  if($#frame && $midframe) then
+    echo "ERROR: cannot --frame AND --mid-frame"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: lpcregister"
+  echo ""
+  echo "Required Arguments:";
+  echo "   --s subjid"
+  echo "   --mov volid  : input/movable volume"
+  echo "   --reg register.dat"
+  echo ""
+  echo "Optional Arguments"
+  echo "   --frame frameno : reg to frameno (default 0=1st)"
+  echo "   --mid-frame : reg to middle frame (not with --frame)"
+  echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
+  echo "   --o outvol : resample mov and save as outvol"
+  echo ""
+  echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
+  echo "   --nocleanup  : do not delete temporary files"
+  echo "   --version : print version and exit"
+  echo "   --help    : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Not tested yet!
+
+Registers a volume to its FreeSurfer anatomical using Local Pearson
+Correlation (LPC) (the AFNI lpc_align.py program).  creates a
+FreeSurfer register.dat file. Does not resample unless --o.
+
+--s subjid
+
+Id of the subject as found in SUBJECTS_DIR. The reference volume is
+the mri/brain volume (this can be changed with --fsvol). This is
+converted to analyze using mri_convert.
+
+--mov volid
+
+Volume identifier of the movable volume. This must be specified in
+a way suitable for mri_convert. Uses first frame unless --frame
+is specified. For this to work correctly, the movable volume must
+have correct geometry information (eg, a valid SPM-style .mat file)
+otherwise the results may be unpredictable.
+
+--reg regfile
+
+Output registration file. This will map RAS in the reference to
+RAS in the movable. This file/matrix is in a format understood
+by freesurfer (see tkregister2 --help for docs). It will contain
+the subjectname.
+
+--frame frameno
+
+Use something other than the first frame. Eg, FSL uses the the middle
+frame (see --mid-frame). For SPM analyze, you should specify the file
+that corresonds to the frame you want because each file only has one
+frame.
+
+--mid-frame
+
+Use the middle frame of the mov volume as the template.
+
+SEE ALSO: tkregister2, mri_vol2surf, mri_convert, mri_rigid_register,
+fsl_rigid_register, spm_coreg.m.
+
+
