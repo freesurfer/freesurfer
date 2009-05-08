@@ -72,6 +72,7 @@ label_elderly_subject \
 label_subject \
 label_subject_flash \
 label_subject_mixed \
+lpcregister \
 make_average_surface \
 make_average_volume \
 make_average_subject \
