@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/08 16:10:09 $
-#    $Revision: 1.204 $
+#    $Date: 2009/05/09 00:39:01 $
+#    $Revision: 1.205 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.204 2009/05/08 16:10:09 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.205 2009/05/09 00:39:01 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1387,17 +1387,71 @@ if($DoCANormalize) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CA Normalize `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-
   $PWD |& tee -a $LF
-  set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile`;
-  set cmd = (mri_ca_normalize)
-  if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
-  set cmd = ($cmd -mask brainmask.mgz $xopts nu.mgz \
-      $FREESURFER_HOME/average/$GCA transforms/talairach.lta norm.mgz)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/ca_normalize.touch
+
+  # if creating the base subject, use robust_template instead of ca_normalize
+  if ($DoCreateBaseSubj) then
+    # create base subject stream:
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Longitudinal Base Subject norm.mgz Creation `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    if ($#BaseSubjsList == 0) then
+      set BaseSubjsList = (`cat ${subjdir}/${BaseSubjsListFname}`)
+    endif
+    set normVols=();
+    set ltaXforms=();
+    foreach s ($BaseSubjsList)
+      set normVols=($normVols ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
+      set ltaname = ${s}_to_${subjid}.lta
+      set ltaXforms=($ltaXforms ${subjdir}/mri/transforms/${ltaname})
+    end
+    # save the previously created lta files
+    foreach lta ($ltaXforms)
+      set cmd=(cp -fv ${lta} ${lta}_prev)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+      endif
+    end
+    # create the 'mean/median' norm volume:
+    set cmd = (mri_robust_template --mov ${normVols})
+    set cmd = ($cmd --lta ${ltaXforms})
+    set cmd = ($cmd --template ${subjdir}/mri/norm.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/ca_normalize.touch
+    # now create new inverse transforms
+    cd $subjdir/mri/transforms > /dev/null
+    $PWD |& tee -a $LF
+    foreach s ($BaseSubjsList)
+      set outLta = (${subjid}_to_${s}.lta)
+      set cmd = (cp -fv ${outLta} ${outLta}_prev;)
+      set cmd = ($cmd mri_concatenate_lta -invert1)
+      set cmd = ($cmd ${s}_to_${subjid}.lta)
+      set cmd = ($cmd identity.nofile)
+      set cmd = ($cmd ${outLta})
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    end
+  else
+    # default stream:
+    set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile`;
+    set cmd = (mri_ca_normalize)
+    if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
+    set cmd = ($cmd -mask brainmask.mgz $xopts nu.mgz \
+        $FREESURFER_HOME/average/$GCA transforms/talairach.lta norm.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/ca_normalize.touch
+  endif
 
   #--- Longitudinal: Second registration from longbase to current subj ---#
   # default REG_FILE_TYPE is norm (output of mri_ca_normalize)
@@ -1646,18 +1700,19 @@ if($DoCALabel) then
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
+  set asegbasename=(aseg.auto_noCCseg)
   if($longitudinal) then
     # longitudinal processing
-    set gca_intensity_file = $longbasedir/mri/aseg.auto_noCCseg.label_intensities.txt
-    set cmd = ($cmd -r $subjdir/mri/aseg.fused.mgz -ri ${gca_intensity_file})
+    set cmd = ($cmd -r $subjdir/mri/aseg.fused.mgz)
+    set cmd = ($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
   endif
-  set cmd = ($cmd $xopts norm.mgz \
-      transforms/talairach.m3z $FREESURFER_HOME/average/$GCA \
-      aseg.auto_noCCseg.mgz);
+  set cmd = ($cmd $xopts norm.mgz)
+  set cmd = ($cmd transforms/talairach.m3z)
+  set cmd = ($cmd $FREESURFER_HOME/average/$GCA)
+  set cmd = ($cmd ${asegbasename}.mgz))
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-
 
   #--- Corpus Callosum Segmentation ---#
   # Run mri_cc to create aseg.auto.mgz
@@ -2898,6 +2953,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-base-insubj":
+    case "-tp":
       if ( $#argv < 1) goto arg1err;
       set baseinsubjid = $argv[1]; shift;
       set baseinsubjid = `basename $baseinsubjid`; # removes trailing /
