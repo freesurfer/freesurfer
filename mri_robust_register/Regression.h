@@ -11,7 +11,8 @@
 #define Regression_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 #include "matrix.h"
 #ifdef __cplusplus
@@ -22,46 +23,57 @@ extern "C" {
 
 #include <utility>
 #include <string>
-class Regression 
+class Regression
 {
-  public:
-  
-     // constructor initializing A and B 
-     Regression(MATRIX* Ap, MATRIX* Bp):
-           A(Ap), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1) {};
-     // constructor initializing B (for simple case where x is single variable and A is (...1...)^T
-     Regression(MATRIX* Bp):
-           A(NULL), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1) {};
+public:
 
-     // Robust solver
-     MATRIX* getRobustEst(double sat =  SATr, double sig =  1.4826);
-     // Robust solver (returning also the weights)
-     std::pair < MATRIX*, MATRIX* > getRobustEstW(double sat =  SATr, double sig =  1.4826);
-     
-     // Least Squares
-     MATRIX* getLSEst    (MATRIX* outX = NULL);
-     
-     double getLastError() {return lasterror;};
-     double getLastWeightPercent() {return lastweight;};
-     double getLastZeroWeightPercent() {return lastzero;};
-     
-     void plotPartialSat(const std::string& fname);
+  // constructor initializing A and B
+  Regression(MATRIX* Ap, MATRIX* Bp):
+      A(Ap), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1)
+  {};
+  // constructor initializing B (for simple case where x is single variable and A is (...1...)^T
+  Regression(MATRIX* Bp):
+      A(NULL), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1)
+  {};
 
-  protected:
-      std::pair < MATRIX*, MATRIX* > getRobustEstWAB(double sat =  SATr, double sig =  1.4826);
-      std::pair < MATRIX*, MATRIX* > getRobustEstWB(double sat =  SATr, double sig =  1.4826);
+  // Robust solver
+  MATRIX* getRobustEst(double sat =  SATr, double sig =  1.4826);
+  // Robust solver (returning also the weights)
+  std::pair < MATRIX*, MATRIX* > getRobustEstW(double sat =  SATr, double sig =  1.4826);
 
-     double getSigmaMAD(MATRIX *r, double d = 1.4826);
-     double VectorMedian(MATRIX *v);
+  // Least Squares
+  MATRIX* getLSEst    (MATRIX* outX = NULL);
 
-     MATRIX* getSqrtTukeyDiaWeights(MATRIX * r, double sat =  SATr, MATRIX * w = NULL);
-     MATRIX* getTukeyBiweight(MATRIX* r, double sat =  SATr, MATRIX* w = NULL);
-     double  getTukeyPartialSat(MATRIX* r, double sat =  SATr);
-     
-  private:
-     MATRIX* A;
-     MATRIX* B;
-     double lasterror,lastweight,lastzero;
+  double getLastError()
+  {
+    return lasterror;
+  };
+  double getLastWeightPercent()
+  {
+    return lastweight;
+  };
+  double getLastZeroWeightPercent()
+  {
+    return lastzero;
+  };
+
+  void plotPartialSat(const std::string& fname);
+
+protected:
+  std::pair < MATRIX*, MATRIX* > getRobustEstWAB(double sat =  SATr, double sig =  1.4826);
+  std::pair < MATRIX*, MATRIX* > getRobustEstWB(double sat =  SATr, double sig =  1.4826);
+
+  double getSigmaMAD(MATRIX *r, double d = 1.4826);
+  double VectorMedian(MATRIX *v);
+
+  MATRIX* getSqrtTukeyDiaWeights(MATRIX * r, double sat =  SATr, MATRIX * w = NULL);
+  MATRIX* getTukeyBiweight(MATRIX* r, double sat =  SATr, MATRIX* w = NULL);
+  double  getTukeyPartialSat(MATRIX* r, double sat =  SATr);
+
+private:
+  MATRIX* A;
+  MATRIX* B;
+  double lasterror,lastweight,lastzero;
 };
 
 

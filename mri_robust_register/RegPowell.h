@@ -9,7 +9,8 @@
 #define RegPowell_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 #include "matrix.h"
 #include "mri.h"
@@ -25,24 +26,27 @@ extern "C" {
 
 class RegPowell : public Registration
 {
-  public:
-    RegPowell():Registration(){};
-    RegPowell(MRI * s, MRI *t):Registration(s,t){};
-    virtual ~RegPowell(){};
-    
-    virtual std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+public:
+  RegPowell():Registration()
+  {};
+  RegPowell(MRI * s, MRI *t):Registration(s,t)
+  {};
+  virtual ~RegPowell()
+  {};
 
-  protected:
-  
-    static float costFunction(float p[] );
-    static RegPowell* tocurrent;
-    static MRI * scf;
-    static MRI * tcf;
-    static int pcount;
-    static MATRIX * mh1;
-    static MATRIX * mh2;
-    static int icount;
-    
+  virtual std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+
+protected:
+
+  static float costFunction(float p[] );
+  static RegPowell* tocurrent;
+  static MRI * scf;
+  static MRI * tcf;
+  static int pcount;
+  static MATRIX * mh1;
+  static MATRIX * mh2;
+  static int icount;
+
 };
 
 
