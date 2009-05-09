@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/09 05:14:57 $
- *    $Revision: 1.78 $
+ *    $Date: 2009/05/09 16:27:15 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -206,7 +206,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.78 2009/05/09 05:14:57 greve Exp $";
+"$Id: mri_segreg.c,v 1.79 2009/05/09 16:27:15 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -341,13 +341,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.78 2009/05/09 05:14:57 greve Exp $",
+     "$Id: mri_segreg.c,v 1.79 2009/05/09 16:27:15 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.78 2009/05/09 05:14:57 greve Exp $",
+     "$Id: mri_segreg.c,v 1.79 2009/05/09 16:27:15 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1703,7 +1703,6 @@ int MRISbbrSurfs(char *subject)
   char *SUBJECTS_DIR;
   char tmpstr[2000];
   int c,n,v;
-  extern MRI *lhCortexLabel, *rhCortexLabel;
   float  fx, fy, fz;
   int annot,B0Annots[10], nB0Annots=10;
 
