@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/09 04:58:08 $
- *    $Revision: 1.77 $
+ *    $Date: 2009/05/09 05:14:57 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -206,7 +206,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.77 2009/05/09 04:58:08 greve Exp $";
+"$Id: mri_segreg.c,v 1.78 2009/05/09 05:14:57 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -321,7 +321,7 @@ MRI *vsm=NULL;
 char *vsmfile = NULL;
 double angles[3],xyztrans[3],scale[3],shear[3];
 char *surfname = "white";
-int dof = 6; // Changing this right now will cause things to break
+int dof = 6; 
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -341,13 +341,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.77 2009/05/09 04:58:08 greve Exp $",
+     "$Id: mri_segreg.c,v 1.78 2009/05/09 05:14:57 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.77 2009/05/09 04:58:08 greve Exp $",
+     "$Id: mri_segreg.c,v 1.78 2009/05/09 05:14:57 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1646,16 +1646,17 @@ float compute_powell_cost(float *p)
     // write costs to file
     fp = fopen(costfile_powell,"a");
     fprintf(fp,"%4d ",nCostEvaluations);
-    fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-    if(dof > 6) fprintf(fp,"sc: %3.1lf %3.1lf %3.1lf ",pp[6],pp[7],pp[8]);
-    if(dof > 9) fprintf(fp,"sh: %5.2lf %5.2lf %5.2lf ",pp[9],pp[10],pp[11]);
-    fprintf(fp,"%7d %10.4lf %8.4lf ",
-	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
-    fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
-	    costs[3],costs[4],costs[5]); // CTX n mean std
-    fprintf(fp,"%8.4lf %12.10lf   %12.10lf ",costs[6],costs[7],copt); // t, cost=1/t
-    fprintf(fp,"\n");
+    fprintf(fp,"tr: %6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
+    fprintf(fp,"rt: %6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    if(dof > 6) fprintf(fp,"sc: %4.3lf %4.3lf %4.3lf ",pp[6],pp[7],pp[8]);
+    if(dof > 9) fprintf(fp,"sh: %6.3lf %6.3lf %6.3lf ",pp[9],pp[10],pp[11]);
+    fprintf(fp,"  %8.5lf %8.5lf\n",costs[7],copt);
+    //fprintf(fp,"%7d %10.4lf %8.4lf ",
+	//    (int)costs[0],costs[1],costs[2]); // WM  n mean std
+    //fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
+	//    costs[3],costs[4],costs[5]); // CTX n mean std
+    //fprintf(fp,"%8.4lf %12.10lf   %12.10lf ",costs[6],costs[7],copt); // t, cost=1/t
+    //fprintf(fp,"\n");
     fclose(fp);
   }
 
@@ -1663,16 +1664,17 @@ float compute_powell_cost(float *p)
     // If there is a new optimum, print it out
     fp = stdout;
     fprintf(fp,"%4d ",nCostEvaluations);
-    fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
-    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
-    if(dof > 6) fprintf(fp,"sc: %4.2lf %4.2lf %4.2lf ",pp[6],pp[7],pp[8]);
-    if(dof > 9) fprintf(fp,"sh: %5.2lf %5.2lf %5.2lf ",pp[9],pp[10],pp[11]);
-    fprintf(fp,"%7d %10.4lf %8.4lf ",
-	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
-    fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
-	    costs[3],costs[4],costs[5]); // CTX n mean std
-    fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
-    fprintf(fp,"\n");
+    fprintf(fp,"tr: %6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
+    fprintf(fp,"rt: %6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    if(dof > 6) fprintf(fp,"sc: %4.3lf %4.3lf %4.3lf ",pp[6],pp[7],pp[8]);
+    if(dof > 9) fprintf(fp,"sh: %6.3lf %6.3lf %6.3lf ",pp[9],pp[10],pp[11]);
+    fprintf(fp,"  %8.7lf\n",costs[7]);
+    //fprintf(fp,"%7d %10.4lf %8.4lf ",
+    //    (int)costs[0],costs[1],costs[2]); // WM  n mean std
+    //fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
+    //costs[3],costs[4],costs[5]); // CTX n mean std
+    //fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
+    //fprintf(fp,"\n");
     fflush(stdout); 
   }
 
