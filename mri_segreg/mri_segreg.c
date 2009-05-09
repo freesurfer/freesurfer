@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/09 03:42:02 $
- *    $Revision: 1.75 $
+ *    $Date: 2009/05/09 04:13:32 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -206,7 +206,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.75 2009/05/09 03:42:02 greve Exp $";
+"$Id: mri_segreg.c,v 1.76 2009/05/09 04:13:32 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -341,13 +341,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.75 2009/05/09 03:42:02 greve Exp $",
+     "$Id: mri_segreg.c,v 1.76 2009/05/09 04:13:32 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.75 2009/05/09 03:42:02 greve Exp $",
+     "$Id: mri_segreg.c,v 1.76 2009/05/09 04:13:32 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -733,6 +733,10 @@ int main(int argc, char **argv) {
   printf("Parameters at optimum (transmm, rotdeg)\n");
   printf("%8.5lf %8.5lf %8.5lf %8.5lf %8.5lf %8.5lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
+  if(dof > 6){
+    fprintf(fp,"Parameters at optimum (scale)\n");
+    fprintf(fp,"%8.5lf %8.5lf %8.5lf\n",p[6],p[7],p[8]);
+  }
   printf("Costs at optimum\n");
   printf("%7d %10.4lf %8.4lf ",
 	 (int)costs[0],costs[1],costs[2]); // WM  n mean std
@@ -752,6 +756,10 @@ int main(int argc, char **argv) {
   fprintf(fp,"Parameters at optimum (transmm, rotdeg)\n");
   fprintf(fp,"%8.5lf %8.5lf %8.5lf %8.5lf %8.5lf %8.5lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
+  if(dof > 6){
+    fprintf(fp,"Parameters at optimum (scale)\n");
+    fprintf(fp,"%8.5lf %8.5lf %8.5lf\n",p[6],p[7],p[8]);
+  }
   fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
   fprintf(fp,"WM  Intensity %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
   fprintf(fp,"Ctx Intensity %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
@@ -1614,6 +1622,7 @@ float compute_powell_cost(float *p)
     fprintf(fp,"%4d ",nCostEvaluations);
     fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    if(dof > 6) fprintf(fp,"sc: %3.1lf %3.1lf %3.1lf ",pp[6],pp[7],pp[8]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
 	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
     fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
@@ -1629,6 +1638,7 @@ float compute_powell_cost(float *p)
     fprintf(fp,"%4d ",nCostEvaluations);
     fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    if(dof > 6) fprintf(fp,"sc: %4.2lf %4.2lf %4.2lf ",pp[6],pp[7],pp[8]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
 	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
     fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
@@ -2012,13 +2022,15 @@ int MinPowell(MRI *mov, MRI *notused, MATRIX *R, double *params,
 	      char *costfile, double *costs, int *niters)
 {
   MATRIX *R0;
-  float *p, **xi, fret;
+  float *pPowel, **xi, fret;
   int    r, c, n;
 
-  dof = 6;
-
-  p = vector(1, dof) ;
-  for(n=0; n < dof; n++) p[n+1] = params[n];
+  printf("Init Powel Params dof = %d\n",dof);
+  pPowel = vector(1, dof) ;
+  for(n=0; n < dof; n++) {
+    pPowel[n+1] = params[n];
+    printf("%d %g\n",n,params[n]);
+  }
 
   xi = matrix(1, dof, 1, dof) ;
   for (r = 1 ; r <= dof ; r++) {
@@ -2029,15 +2041,15 @@ int MinPowell(MRI *mov, MRI *notused, MATRIX *R, double *params,
 
   R0 = MatrixCopy(R,NULL);
 
-  OpenPowell2(p, xi, dof, ftol, linmintol, nmaxiters, 
+  OpenPowell2(pPowel, xi, dof, ftol, linmintol, nmaxiters, 
 	      niters, &fret, compute_powell_cost);
   printf("Powell done niters = %d\n",*niters);
 
-  for(n=0; n < dof; n++) params[n] = p[n+1];
+  for(n=0; n < dof; n++) params[n] = pPowel[n+1];
   GetSurfCosts(mov, NULL, R0, R, params, dof, costs);
 
   free_matrix(xi, 1, dof, 1, dof);
-  free_vector(p, 1, dof);
+  free_vector(pPowel, 1, dof);
   return(NO_ERROR) ;
 }
 
