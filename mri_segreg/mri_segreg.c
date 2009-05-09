@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/09 04:13:32 $
- *    $Revision: 1.76 $
+ *    $Date: 2009/05/09 04:58:08 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -206,7 +206,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.76 2009/05/09 04:13:32 greve Exp $";
+"$Id: mri_segreg.c,v 1.77 2009/05/09 04:58:08 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -283,7 +283,7 @@ char *surfcostdiffbase=NULL;
 int UseLH = 1;
 int UseRH = 1;
 
-MATRIX *MrotPre=NULL,*MtransPre=NULL,*MscalePre=NULL;
+MATRIX *MrotPre=NULL,*MtransPre=NULL,*MscalePre=NULL,*MshearPre=NULL;
 double TransRandMax = 0;
 double RotRandMax = 0;
 char *MinCostFile=NULL;
@@ -319,7 +319,7 @@ int UseCortexLabel = 1;
 int nCostEvaluations=0;
 MRI *vsm=NULL;
 char *vsmfile = NULL;
-double angles[3],xyztrans[3],scale[3];
+double angles[3],xyztrans[3],scale[3],shear[3];
 char *surfname = "white";
 int dof = 6; // Changing this right now will cause things to break
 
@@ -341,13 +341,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.76 2009/05/09 04:13:32 greve Exp $",
+     "$Id: mri_segreg.c,v 1.77 2009/05/09 04:58:08 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.76 2009/05/09 04:13:32 greve Exp $",
+     "$Id: mri_segreg.c,v 1.77 2009/05/09 04:58:08 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -406,7 +406,7 @@ int main(int argc, char **argv) {
 
   R00 = MatrixCopy(R0,NULL);
 
-  if(MrotPre || MtransPre || MscalePre){
+  if(MrotPre || MtransPre || MscalePre || MshearPre){
     printf("Applying Pre Transform to input reg\n");
     if(MrotPre){
       printf("Rot:\n");
@@ -416,18 +416,25 @@ int main(int argc, char **argv) {
       R0 = MatrixMultiply(MrotPre,R0,R0);
     }
     if(MtransPre){
-      printf("Trans:\n");
+      printf("Trans Mtx:\n");
       MatrixPrint(stdout,MtransPre);
-      fprintf(fp,"Trans:\n");
+      fprintf(fp,"After Trans:\n");
       MatrixPrint(fp,MtransPre);
       R0 = MatrixMultiply(MtransPre,R0,R0);
     }
     if(MscalePre){
-      printf("Scale:\n");
+      printf("Scale Mtx:\n");
       MatrixPrint(stdout,MscalePre);
-      fprintf(fp,"Scale:\n");
+      fprintf(fp,"After Scale:\n");
       MatrixPrint(fp,MscalePre);
       R0 = MatrixMultiply(MscalePre,R0,R0);
+    }
+    if(MshearPre){
+      printf("Shear Mtx:\n");
+      MatrixPrint(stdout,MshearPre);
+      fprintf(fp,"After Shear:\n");
+      MatrixPrint(fp,MshearPre);
+      R0 = MatrixMultiply(MshearPre,R0,R0);
     }
     printf("New input reg:\n");
     MatrixPrint(stdout,R0);
@@ -734,8 +741,12 @@ int main(int argc, char **argv) {
   printf("%8.5lf %8.5lf %8.5lf %8.5lf %8.5lf %8.5lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
   if(dof > 6){
-    fprintf(fp,"Parameters at optimum (scale)\n");
-    fprintf(fp,"%8.5lf %8.5lf %8.5lf\n",p[6],p[7],p[8]);
+    printf("Parameters at optimum (scale) ");
+    printf("%8.5lf %8.5lf %8.5lf\n",p[6],p[7],p[8]);
+  }
+  if(dof > 9){
+    printf("Parameters at optimum (shear) ");
+    printf("%8.5lf %8.5lf %8.5lf\n",p[9],p[10],p[11]);
   }
   printf("Costs at optimum\n");
   printf("%7d %10.4lf %8.4lf ",
@@ -757,8 +768,12 @@ int main(int argc, char **argv) {
   fprintf(fp,"%8.5lf %8.5lf %8.5lf %8.5lf %8.5lf %8.5lf \n",
 	 p[0],p[1],p[2],p[3],p[4],p[5]);
   if(dof > 6){
-    fprintf(fp,"Parameters at optimum (scale)\n");
+    fprintf(fp,"Parameters at optimum (scale)  ");
     fprintf(fp,"%8.5lf %8.5lf %8.5lf\n",p[6],p[7],p[8]);
+  }
+  if(dof > 9){
+    fprintf(fp,"Parameters at optimum (shear)  ");
+    fprintf(fp,"%8.5lf %8.5lf %8.5lf\n",p[9],p[10],p[11]);
   }
   fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
   fprintf(fp,"WM  Intensity %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
@@ -1118,6 +1133,17 @@ static int parse_commandline(int argc, char **argv) {
       MscalePre->rptr[1][1] = scale[0];
       MscalePre->rptr[2][2] = scale[1];
       MscalePre->rptr[3][3] = scale[2];
+      nargsused = 3;
+    } 
+    else if (istringnmatch(option, "--shear",0)) {
+      if (nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%lf",&shear[0]);
+      sscanf(pargv[1],"%lf",&shear[1]);
+      sscanf(pargv[2],"%lf",&shear[2]);
+      MshearPre = MatrixIdentity(4,NULL);
+      MshearPre->rptr[1][2] = shear[0];
+      MshearPre->rptr[1][3] = shear[1];
+      MshearPre->rptr[2][3] = shear[2];
       nargsused = 3;
     } 
     else if (istringnmatch(option, "--trans-rand",0)) {
@@ -1623,6 +1649,7 @@ float compute_powell_cost(float *p)
     fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     if(dof > 6) fprintf(fp,"sc: %3.1lf %3.1lf %3.1lf ",pp[6],pp[7],pp[8]);
+    if(dof > 9) fprintf(fp,"sh: %5.2lf %5.2lf %5.2lf ",pp[9],pp[10],pp[11]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
 	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
     fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
@@ -1639,6 +1666,7 @@ float compute_powell_cost(float *p)
     fprintf(fp,"%7.3lf %7.3lf %7.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     if(dof > 6) fprintf(fp,"sc: %4.2lf %4.2lf %4.2lf ",pp[6],pp[7],pp[8]);
+    if(dof > 9) fprintf(fp,"sh: %5.2lf %5.2lf %5.2lf ",pp[9],pp[10],pp[11]);
     fprintf(fp,"%7d %10.4lf %8.4lf ",
 	    (int)costs[0],costs[1],costs[2]); // WM  n mean std
     fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
@@ -1845,7 +1873,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern int nsubsamp;
   extern int interpcode;
   double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean;
-  MATRIX *Mrot=NULL, *Mtrans=NULL, *Mscale=NULL;
+  MATRIX *Mrot=NULL, *Mtrans=NULL, *Mscale=NULL, *Mshear=NULL;
   MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
   int nhits,n;
   //FILE *fp;
@@ -1877,10 +1905,18 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     Mscale->rptr[3][3] = p[8];
   }
 
-  // R = Mscale*Mtrans*Mrot*R0
+  Mshear = MatrixIdentity(4,NULL);
+  if(dof > 9){
+    Mshear->rptr[1][2] = p[9];
+    Mshear->rptr[1][3] = p[10];
+    Mshear->rptr[2][3] = p[11];
+  }
+
+  // R = Mshear*Mscale*Mtrans*Mrot*R0
   R = MatrixMultiply(Mrot,R0,R);
   R = MatrixMultiply(Mtrans,R,R);
   R = MatrixMultiply(Mscale,R,R);
+  R = MatrixMultiply(Mshear,R,R);
 
   //printf("Trans: %g %g %g\n",p[0],p[1],p[2]);
   //printf("Rot:   %g %g %g\n",p[3],p[4],p[5]);
@@ -1978,6 +2014,8 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 
   MatrixFree(&Mrot);
   MatrixFree(&Mtrans);
+  MatrixFree(&Mscale);
+  MatrixFree(&Mshear);
 
   if(UseLH){
     MRIfree(&vlhwm);
