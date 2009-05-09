@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/03/20 20:14:56 $
-#    $Revision: 1.17 $
+#    $Date: 2009/05/09 05:39:16 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.17 2009/03/20 20:14:56 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.18 2009/05/09 05:39:16 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -48,6 +48,8 @@ set Slope2 = 0.5;
 set Offset2 = 0;
 set Contrast = ()
 set Tol = 1e-8;
+set DOF = 6;
+set FSLDOF = 6;
 
 set GMProjFrac = 0.5;
 set WMProjAbs = 2;
@@ -133,14 +135,15 @@ if($#InitReg == 0) then
   endif
   if($InitFSL) then
     set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
-      --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister)
+      --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister \
+      --dof $FSLDOF)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
   if($InitSPM) then
     set cmd = (spmregister --s $subject --mov $regvol --reg $InitReg \
-      --tmp $tmpdir/fslregister)
+      --tmp $tmpdir/spmregister)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -187,7 +190,7 @@ set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
-  --c0 $Offset2 --mincost $MinCostFile)
+  --c0 $Offset2 --mincost $MinCostFile --dof $DOF)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
@@ -199,6 +202,7 @@ if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
 if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
 if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
+
 
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
@@ -451,6 +455,24 @@ while( $#argv != 0 )
     case "--subsamp":
       if($#argv < 1) goto arg1err;
       set nSubSamp = $argv[1]; shift;
+      breaksw
+
+    case "--6":
+      # Default anyway
+      set DOF = 6;
+      breaksw
+
+    case "--9":
+      set DOF = 9;
+      breaksw
+
+    case "--12":
+      set DOF = 12;
+      breaksw
+
+    case "--fsl-dof":
+      if($#argv < 1) goto arg1err;
+      set FSLDOF = $argv;
       breaksw
 
     case "--rms":
