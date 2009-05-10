@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/05/09 21:21:12 $
- *    $Revision: 1.2 $
+ *    $Author: mreuter $
+ *    $Date: 2009/05/10 21:22:21 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -109,7 +109,7 @@ void method2 (Parameters & P);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.2 2009/05/09 21:21:12 nicks Exp $";
+"$Id: mri_robust_template.cpp,v 1.3 2009/05/10 21:22:21 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -168,6 +168,7 @@ int main(int argc, char *argv[])
 //   }
 
   cout << "Writing final average image: " << P.mean << endl;
+  strncpy(P.mri_mean->fname, P.mean.c_str(),STRLEN);
   MRIwrite(P.mri_mean,P.mean.c_str());
 
   // output transforms and warps
@@ -181,6 +182,7 @@ int main(int argc, char *argv[])
         LTAchangeType(P.ltas[i], LINEAR_VOX_TO_VOX);
       }
       else assert(P.ltas[i]->type == LINEAR_RAS_TO_RAS);
+      strncpy(P.ltas[i]->xforms[0].dst.fname, P.mean.c_str(),STRLEN);
       LTAwriteEx(P.ltas[i], P.nltas[i].c_str()) ;
     }
     if (P.nwarps.size() > 0) MRIwrite(P.mri_warps[i],P.nwarps[i].c_str()) ;
@@ -245,11 +247,14 @@ void method1(Parameters & P)
 //  }
 //  MRIfree(&P.mri_mean);
   P.mri_mean = initialAverageSet(P.mri_mov,NULL,P.average,P.sat);
+  strncpy(P.mri_mean->fname,(outdir+"mean-it0.mgz").c_str(),STRLEN);
   if (P.debug)
   {
     cout << "debug: saving mean-it0.mgz" << endl;
     MRIwrite(P.mri_mean,(outdir+"mean-it0.mgz").c_str());
   }
+
+   cout << "mean fname: " << P.mri_mean->fname << endl;
 
   int itmax  = 10;
   double eps = 0.025;
@@ -420,9 +425,12 @@ void method1(Parameters & P)
       oss << outdir << "mean-it" << itcount << ".mgz";
       cout << "debug: writing mean to " << oss.str() << endl;
       MRIwrite(P.mri_mean,oss.str().c_str());
+      strncpy(P.mri_mean->fname, oss.str().c_str(),STRLEN);
     }
 
   } // end while
+
+  strncpy(P.mri_mean->fname, P.mean.c_str(),STRLEN);
 
   // copy weights if we have them (as the RV->weights will be destroyed):
   if (P.mri_weights[0])

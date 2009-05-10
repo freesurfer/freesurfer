@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/05/09 21:21:12 $
- *    $Revision: 1.18 $
+ *    $Author: mreuter $
+ *    $Date: 2009/05/10 21:22:20 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -116,7 +116,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.18 2009/05/09 21:21:12 nicks Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.19 2009/05/10 21:22:20 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 
   // Print results:
   cout << endl << "Final Transform:" << endl;
-  ;
+  
   MatrixPrintFmt(stdout,"% 2.8f",Md.first);
   if (R.isIscale()) cout << "Intenstiy Scale Factor: " << Md.second << endl;
   cout << endl ;
