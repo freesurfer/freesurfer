@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/10 05:01:46 $
-#    $Revision: 1.206 $
+#    $Date: 2009/05/10 18:56:40 $
+#    $Revision: 1.207 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.206 2009/05/10 05:01:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.207 2009/05/10 18:56:40 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1713,7 +1713,7 @@ if($DoCALabel) then
   set cmd = ($cmd $xopts norm.mgz)
   set cmd = ($cmd transforms/talairach.m3z)
   set cmd = ($cmd $FREESURFER_HOME/average/$GCA)
-  set cmd = ($cmd ${asegbasename}.mgz))
+  set cmd = ($cmd ${asegbasename}.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
