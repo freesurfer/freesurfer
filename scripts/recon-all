@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/09 00:39:01 $
-#    $Revision: 1.205 $
+#    $Date: 2009/05/10 05:01:46 $
+#    $Revision: 1.206 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.205 2009/05/09 00:39:01 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.206 2009/05/10 05:01:46 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1429,8 +1429,12 @@ if($DoCANormalize) then
     $PWD |& tee -a $LF
     foreach s ($BaseSubjsList)
       set outLta = (${subjid}_to_${s}.lta)
-      set cmd = (cp -fv ${outLta} ${outLta}_prev;)
-      set cmd = ($cmd mri_concatenate_lta -invert1)
+      set cmd = (cp -fv ${outLta} ${outLta}_prev)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) then
+        $fs_time $cmd |& tee -a $LF
+      endif
+      set cmd = (mri_concatenate_lta -invert1)
       set cmd = ($cmd ${s}_to_${subjid}.lta)
       set cmd = ($cmd identity.nofile)
       set cmd = ($cmd ${outLta})
@@ -2949,7 +2953,8 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set subjid = $argv[1]; shift;
       set subjid = `basename $subjid`; # removes trailing /
-      set DoCreateBaseSubj=1;
+      set DoCreateBaseSubj = 1;
+      set NoRandomness = 1;
       breaksw
 
     case "-base-insubj":
