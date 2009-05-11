@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/11 05:55:23 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/05/11 22:48:08 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -116,7 +116,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.20 2009/05/11 05:55:23 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.21 2009/05/11 22:48:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -727,7 +727,7 @@ static void printUsage(void)
   cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
   cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
   cout << "      --uchar                set volumes type to UCHAR (with intens. scaling)" << endl;
-  cout << "      --conform              conform volumes to 1mm vox (265^3)" << endl;
+  cout << "      --conform              conform volumes to 1mm vox (256^3)" << endl;
   cout << "      --satit                iterate on highest res with different sat" << endl;
   cout << "      --debug                show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
