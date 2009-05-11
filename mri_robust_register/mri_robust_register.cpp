@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/10 21:22:20 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/05/11 05:55:23 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -116,7 +116,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.19 2009/05/10 21:22:20 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.20 2009/05/11 05:55:23 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -826,7 +826,7 @@ static void initRegistration(Registration & R, Parameters & P)
   if (P.transform != "")
   {
     cout << endl << "reading initial transform '"<<P.transform<<"'..."<< endl;
-    ;
+    
     // try to read simple text
     bool st = true;
     MATRIX* mi = MatrixAlloc(4,4,MATRIX_REAL);
@@ -834,7 +834,7 @@ static void initRegistration(Registration & R, Parameters & P)
     while (1==1) // fake while loop (to be run once)
     {
       string sin (P.transform);
-      if (sin == "id")
+      if (sin == "id" || sin == "identity.nofile")
       {
         mi = MatrixIdentity(4,mi);
         break;

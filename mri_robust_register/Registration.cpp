@@ -347,7 +347,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
   if (!mriT) mriT = mri_target;
 
   assert (mriS && mriT);
-
+  assert (nmax>0);
 
   pair < MATRIX*, double > cmd(NULL,1.0);
   pair < MATRIX*, double > fmd(NULL,scaleinit);

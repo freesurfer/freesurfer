@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/10 21:22:21 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/05/11 05:55:23 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -109,7 +109,7 @@ void method2 (Parameters & P);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.3 2009/05/10 21:22:21 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.4 2009/05/11 05:55:23 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -141,12 +141,14 @@ int main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
 //  DiagInit(NULL, NULL, NULL) ;
 
+
   if (!parseCommandLine(argc, argv, P))
   {
     printUsage();
     exit(1);
   }
 //  if (P.outdir[P.outdir.length()-1] != '/') P.outdir += "/";
+
 
   // Timer
   struct timeb start ;
@@ -155,6 +157,12 @@ int main(int argc, char *argv[])
   ///////////////////////////////////////////////////////////////
 
   int nin = loadMovables(P);
+  if (P.ltas.size() == 0) P.ltas.resize(nin,NULL);
+  else assert (P.ltas.size() == P.mri_mov.size());
+  P.mri_warps.resize(nin,NULL);
+  P.intensities.resize(nin,1.0);
+  if (!P.leastsquares) P.mri_weights.resize(nin,NULL);
+
   assert(nin >=2);
 
   if (nin == 2) halfWayTemplate(P);
@@ -191,7 +199,7 @@ int main(int argc, char *argv[])
       size_t  pos = P.nwarps[i].rfind(".");    // position of "." in str
       if (pos!=string::npos)
       {
-        string fn = P.nwarps[i].substr(0,pos-1) + "-intensity.txt";
+        string fn = P.nwarps[i].substr(0,pos) + "-intensity.txt";
         ofstream f(fn.c_str(),ios::out);
         f << P.intensities[i];
         f.close();
@@ -246,7 +254,29 @@ void method1(Parameters & P)
 //     MRIwrite(P.mri_mean,(P.outdir+"oldmean-it0.mgz").c_str());
 //  }
 //  MRIfree(&P.mri_mean);
-  P.mri_mean = initialAverageSet(P.mri_mov,NULL,P.average,P.sat);
+  
+  bool havexforms = (P.ltas[0] != NULL);
+  if (!havexforms) 
+    P.mri_mean = initialAverageSet(P.mri_mov,NULL,P.average,P.sat);
+  else // we have initial transforms
+  {  
+
+    cout << "warping movs and creating mean..." << endl;
+    for (int i = 0;i<nin;i++)
+    {  
+      if (P.mri_warps[i]) MRIfree(&P.mri_warps[i]); // should not happen
+      P.mri_warps[i] = MRIclone(P.mri_mov[0],P.mri_warps[i]);
+      P.mri_warps[i] = LTAtransform(P.mri_mov[i],P.mri_warps[i], P.ltas[i]);
+      if (P.debug)
+      {
+        ostringstream oss;
+	oss << outdir << "tp" << i+1 << "_to_mean-it0.mgz";
+        MRIwrite(P.mri_warps[i], oss.str().c_str()) ;
+      }
+    }
+    P.mri_mean = averageSet(P.mri_warps, P.mri_mean,P.average,P.sat);
+  }
+  
   strncpy(P.mri_mean->fname,(outdir+"mean-it0.mgz").c_str(),STRLEN);
   if (P.debug)
   {
@@ -261,13 +291,22 @@ void method1(Parameters & P)
 
   int itcount = 0;
   double maxchange = 100;
-//  vector < LTA * > ltas(P.mri_mov.size(),NULL);
-//  vector < double > intensities(P.mri_mov.size(),1);
+
   vector < MATRIX * > transforms(P.mri_mov.size(),NULL);
-//  vector < MRI * > warped(P.mri_mov.size(),NULL);
+  if (havexforms) //init transforms
+  {
+     for (int i=0;i<nin;i++)
+     {
+        assert(P.ltas[i]->type==LINEAR_VOX_TO_VOX);
+        transforms[i] = MatrixCopy(P.ltas[i]->xforms[0].m_L, NULL);
+     }
+	
+  }
+  
   vector < Registration > Rv(P.mri_mov.size());
   for (int i = 0;i<nin;i++) Rv[i].setSource(P.mri_mov[i],P.fixvoxel,P.fixtype);
 
+  LTA * lastlta = NULL;
   while (itcount < itmax && maxchange > eps)
   {
     itcount++;
@@ -275,7 +314,7 @@ void method1(Parameters & P)
     cout << endl << "Working on iteration : " << itcount << endl;
 
     // register all inputs to mean
-    vector < double > dists(nin,-1);
+    vector < double > dists(nin,1000); // should be larger than maxchange!
     for (int i = 0;i<nin;i++)
     {
       Rv[i].clear();
@@ -309,19 +348,29 @@ void method1(Parameters & P)
         break;
       }
 
-      Md = Rv[i].computeMultiresRegistration(maxres,
-                                             iterate,
-                                             epsit,
-                                             NULL,
-                                             NULL,
-                                             transforms[i],
-                                             P.intensities[i]);
+      if (havexforms)
+      {
+						  //// tried high res only: (does not make sense, we need 2 iter. on high res anyway)
+								//Md= Rv[i].computeIterativeRegistration(1,epsit,NULL,NULL,transforms[i],P.intensities[i]);
+        //dists[i] = sqrt(Rv[i].AffineTransDistSq(Md.first, transforms[i]));
+						
+        maxres = 0; //go up to hig-res
+      }
+						//else dists[i] = 100; // we need to run multires...
+
+      //if (dists[i] > eps)
+        Md = Rv[i].computeMultiresRegistration(maxres,
+                                               iterate,
+                                               epsit,
+                                               NULL,
+                                               NULL,
+                                               transforms[i],
+                                               P.intensities[i]);
       if (transforms[i]) MatrixFree(&transforms[i]);
       transforms[i] = Md.first;
       P.intensities[i] = Md.second;
 
       // convert Matrix to LTA ras to ras
-      LTA * lastlta = NULL;
       if (P.ltas[i]) lastlta = P.ltas[i];
       P.ltas[i] = LTAalloc(1,P.mri_mov[i]);
       P.ltas[i]->xforms[0].m_L =
@@ -336,6 +385,7 @@ void method1(Parameters & P)
       // compute maxchange
       if (lastlta)
       {
+						  LTAchangeType(lastlta,LINEAR_RAS_TO_RAS); //measure dist in RAS coords
         dists[i] = sqrt(Rv[i].AffineTransDistSq(lastlta->xforms[0].m_L,
                                                 P.ltas[i]->xforms[0].m_L));
         LTAfree(&lastlta);
@@ -409,7 +459,7 @@ void method1(Parameters & P)
       }
     }
 
-    if (itcount > 1)
+    if (dists[0] <= maxchange) // it was computed, so print it:
     {
       cout << "Iteration " << itcount <<" Distances: " << endl;
       for (unsigned int i=0;i<dists.size();i++) cout << dists[i] <<" ";
@@ -467,9 +517,19 @@ void halfWayTemplate(Parameters & P)
 //   oss << outdir << "tp" << i+1 << "_to_mean-it" << itcount;
   R.setName(P.mean);
 
+  // use initial transform if given:
+		MATRIX *minit = NULL;
+		if (P.ltas[0])
+  {
+		  assert (P.ltas[0]->type == LINEAR_VOX_TO_VOX);
+		  assert (P.ltas[1]->type == LINEAR_VOX_TO_VOX);
+				minit = MatrixInverse(P.ltas[1]->xforms[0].m_L,NULL);
+				minit = MatrixMultiply(minit,P.ltas[0]->xforms[0].m_L,minit);
+				R.setDebug(1);
+		}		
   // compute Alignment
   std::pair <MATRIX*, double> Md;
-  Md = R.computeMultiresRegistration(0,P.iterate,P.epsit,NULL,NULL);
+  Md = R.computeMultiresRegistration(0,P.iterate,P.epsit,NULL,NULL,minit);
   P.intensities[0] = Md.second;
   P.intensities[1] = 1;
 
@@ -566,6 +626,7 @@ static void printUsage(void)
   cout << "  -I, --iscale               allow also intensity scaling on high-res. (default no)" << endl;
 //  cout << "      --transonly            find 3 parameter translation only" << endl;
 //  cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
+  cout << "  --ixforms t1.lta t2.lta .. use initial transforms (lta) on source  ('id'=identity)" << endl;
 //  cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
   cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
@@ -807,11 +868,6 @@ static int loadMovables(Parameters & P)
     }
   }
 
-  P.ltas.resize(n,NULL);
-  P.mri_warps.resize(n,NULL);
-  if (!P.leastsquares) P.mri_weights.resize(n,NULL);
-  P.intensities.resize(n,1.0);
-
   return P.mov.size();
 }
 
@@ -842,6 +898,7 @@ static void initRegistration(Registration & R, Parameters & P)
 //   R.setSource(P.mri_mov[n],P.fixvoxel,P.fixtype);
 //   R.setTarget(P.mri_mean,P.fixvoxel,P.fixtype);
 }
+
 
 /*!
   \fn int parseNextCommand(int argc, char **argv)
@@ -908,6 +965,31 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
     cout << "Will output LTA transforms" << endl;
+  }
+  else if (!strcmp(option, "IXFORMS")   )
+  {
+    nargs = 0;
+    do
+    {
+      option = argv[nargs+1];
+      if (option[0] != '-')
+      {
+        nargs++;
+	
+	
+        TRANSFORM * trans = TransformRead(argv[nargs]);
+        LTA* lta =  (LTA *)trans->xform ;
+        if (!lta)
+          ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, argv[nargs]) ;
+        lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+
+        P.ltas.push_back(lta);
+        //cout << "Using "<< P.nltas.back() << " as LTA." << endl;
+      }
+    }
+    while (nargs+1 < argc && option[0] != '-');
+    assert(nargs > 0);
+    cout << "Will use init XFORMS." << endl;
   }
   else if (!strcmp(option, "AVERAGE") )
   {
