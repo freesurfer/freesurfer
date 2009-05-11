@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/08 20:44:35 $
-#    $Revision: 1.1 $
+#    $Date: 2009/05/11 18:34:48 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,10 +23,10 @@
 #
 
 #
-set VERSION = '$Id: lpcregister,v 1.1 2009/05/08 20:44:35 greve Exp $';
+set VERSION = '$Id: lpcregister,v 1.2 2009/05/11 18:34:48 greve Exp $';
 set inputargs = ($argv);
 
-set subjid = ();
+set subject = ();
 set fsvol  = brainmask;
 set refvol = ();
 set movvol = ();
@@ -38,6 +38,8 @@ set frame = ();
 set midframe = 0;
 set nolog = 0;
 set OutVol = ();
+set DOF = 6;
+set regfile = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e -version | wc -l`
@@ -62,8 +64,13 @@ set movvoldir = `dirname $movvol`;
 if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.lpcreg.$$
 mkdir -p $tmpdir
 
+set regdir = `dirname $regfile`
+mkdir -p $regdir
+
 if(! $nolog) then
-  set LF = $movvoldir/lpcregister.log
+  pushd $regdir > /dev/null
+  set LF = `pwd`/`basename $regfile`.log
+  popd  > /dev/null
   if(-e $LF) mv $LF $LF.old
 else
   set LF = /dev/null
@@ -75,24 +82,29 @@ echo "Logfile for lpcregister" >> $LF
 date |& tee -a $LF
 echo $inputargs |& tee -a $LF
 echo $VERSION |& tee -a $LF
+which 3dcopy |& tee -a $LF
+which mri_convert |& tee -a $LF
+which align_epi_anat.py |& tee -a $LF
 
 set StartTime = `date`;
+
 set DateString = "`date '+%y%m%d%H%M'`"
+if(-e $regfile) mv $regfile $regfile.$DateString
 
 # Use the rawavg as input (for testing only)
 if($fsvol == rawavg.cor) then
-  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
+  set refvol = $SUBJECTS_DIR/$subject/mri/$fsvol.mgz
   if(! -e $refvol) then
     # Does not exist, create
-    set orig = $SUBJECTS_DIR/$subjid/mri/orig.mgz
-    set rawavg = $SUBJECTS_DIR/$subjid/mri/rawavg.mgz
+    set orig = $SUBJECTS_DIR/$subject/mri/orig.mgz
+    set rawavg = $SUBJECTS_DIR/$subject/mri/rawavg.mgz
     set cmd = (mri_vol2vol --mov $rawavg --targ $orig --o $refvol \
      --no-save-reg --regheader)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
     # Now mask it
-    set brain = $SUBJECTS_DIR/$subjid/mri/brainmask.mgz
+    set brain = $SUBJECTS_DIR/$subject/mri/brainmask.mgz
     set cmd = (mri_mask $refvol $brain $refvol)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -101,8 +113,8 @@ if($fsvol == rawavg.cor) then
 endif
 
 # First, Convert reference to NIFTI
-set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol.mgz
-set refvolnii = $tmpdir/refvol.lpcregister.nii
+set refvol = $SUBJECTS_DIR/$subject/mri/$fsvol.mgz
+set refvolnii = $tmpdir/refvol.lpcreg.nii
 set cmd = (mri_convert $refvol $refvolnii)
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
@@ -111,7 +123,7 @@ $cmd       |& tee -a $LF
 if($status) exit 1;
 
 # Now, Convert reference from NIFTI to BRIK
-set refvolbase = $tmpdir/refvol.lpcregister
+set refvolbase = $tmpdir/refvol.lpcreg
 set cmd = (3dcopy $refvolnii $refvolbase)
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
@@ -120,7 +132,7 @@ $cmd       |& tee -a $LF
 if($status) exit 1;
 
 # Convert moveable to NIFTI
-set movvolnii = $tmpdir/movvol.lpcregister.nii
+set movvolnii = $tmpdir/movvol.lpcreg.nii
 set cmd = (mri_convert $movvol $movvolnii)
 if($#frame) set cmd = ($cmd --frame $frame);
 if($midframe) set cmd = ($cmd --mid-frame);
@@ -131,7 +143,7 @@ $cmd       |& tee -a $LF
 if($status) exit 1;
 
 # Convert moveable to BRIK
-set movvolbase = $tmpdir/movvol.lpcregister
+set movvolbase = $tmpdir/movvol.lpcreg
 set cmd = (3dcopy $movvolnii $movvolbase)
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
@@ -141,11 +153,14 @@ if($status) exit 1;
 
 # Run lpc
 pushd $tmpdir 
-set cmd = (align_epi_anat.py \
-    -anat refvol.lpcregister+orig \
-    -epi  movvol.lpcregister+orig -epi_base 0 \
-    -epi2anat -giant_move -AddEdge)
+set cmd = (align_epi_anat.py -giant_move -AddEdge -epi2anat)
 if($fsvol == brainmask) set cmd = ($cmd -anat_has_skull no)
+if($DOF == 3) set cmd = ($cmd -Allineate_opts -warp shift_only)
+if($DOF == 6) set cmd = ($cmd -Allineate_opts -warp shift_rotate)
+if($DOF == 9) set cmd = ($cmd -Allineate_opts -warp shift_rotate_scale)
+# Default is 12
+set cmd = ($cmd -anat refvol.lpcreg+orig \
+    -epi  movvol.lpcreg+orig -epi_base 0 )
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
@@ -231,7 +246,7 @@ if($status) exit 1;
 
 # Create a tkreg matfile with the right format
 set tmpreg = $tmpdir/reg.header.dat
-set cmd = (tkregister2_cmdl --s $subjid --mov $movvol \
+set cmd = (tkregister2_cmdl --s $subject --mov $movvol \
            --regheader --noedit --reg $tmpreg \
            --targ $refvol);
 echo "--------------------------------------" |& tee -a $LF
@@ -241,7 +256,6 @@ $cmd       |& tee -a $LF
 if($status) exit 1;
 
 # Finally, create the register.dat
-if(-e $regfile) mv $regfile $regfile.$DateString
 head -n 4 $tmpreg > $regfile
 cat $tkrmtx >> $regfile
 
@@ -259,7 +273,7 @@ echo "lpcregister Done" |& tee -a $LF
 echo " "
 
 set tmp = ""
-if(-e $SUBJECTS_DIR/$subjid/surf/lh.orig) then
+if(-e $SUBJECTS_DIR/$subject/surf/lh.orig) then
   set tmp = "--surf orig"
 endif
 
@@ -282,12 +296,29 @@ while( $#argv != 0 )
 
     case "--s":
       if ( $#argv < 1) goto arg1err;
-      set subjid = $argv[1]; shift;
+      set subject = $argv[1]; shift;
       breaksw
 
     case "--fsvol":
       if ( $#argv < 1) goto arg1err;
       set fsvol = $argv[1]; shift;
+      breaksw
+
+    case "--3":
+      set DOF = 3;
+      breaksw
+
+    case "--6":
+      # Default
+      set DOF = 6;
+      breaksw
+
+    case "--9":
+      set DOF = 9;
+      breaksw
+
+    case "--12":
+      set DOF = 12;
       breaksw
 
     case "--rawavg":
@@ -324,6 +355,12 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "--s-from-reg":
+      if( $#argv < 1) goto arg1err;
+      set tmp = $argv[1]; shift;
+      set subject = `head -n 1 $tmp`
+      breaksw
+
     case "--nocleanup":
       set cleanup = 0;
       breaksw
@@ -352,17 +389,17 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#subjid == 0) then
+  if($#subject == 0) then
     echo "ERROR: must spec a subject id"
     exit 1;
   endif
-  if(! -e $SUBJECTS_DIR/$subjid) then
-    echo "ERROR: cannot find $subjid in $SUBJECTS_DIR"
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
     exit 1;
   endif
 
   if($#movvol == 0) then
-    echo "ERROR: must spec an movput vol"
+    echo "ERROR: must spec an mov vol"
     exit 1;
   endif
 
@@ -397,7 +434,7 @@ usage_exit:
   echo "USAGE: lpcregister"
   echo ""
   echo "Required Arguments:";
-  echo "   --s subjid"
+  echo "   --s subject"
   echo "   --mov volid  : input/movable volume"
   echo "   --reg register.dat"
   echo ""
@@ -427,7 +464,7 @@ Registers a volume to its FreeSurfer anatomical using Local Pearson
 Correlation (LPC) (the AFNI lpc_align.py program).  creates a
 FreeSurfer register.dat file. Does not resample unless --o.
 
---s subjid
+--s subject
 
 Id of the subject as found in SUBJECTS_DIR. The reference volume is
 the mri/brain volume (this can be changed with --fsvol). This is
