@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/11 18:34:48 $
-#    $Revision: 1.2 $
+#    $Date: 2009/05/12 20:05:46 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: lpcregister,v 1.2 2009/05/11 18:34:48 greve Exp $';
+set VERSION = '$Id: lpcregister,v 1.3 2009/05/12 20:05:46 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -82,9 +82,12 @@ echo "Logfile for lpcregister" >> $LF
 date |& tee -a $LF
 echo $inputargs |& tee -a $LF
 echo $VERSION |& tee -a $LF
-which 3dcopy |& tee -a $LF
 which mri_convert |& tee -a $LF
+which 3dcopy |& tee -a $LF
 which align_epi_anat.py |& tee -a $LF
+python -V |& tee -a $LF
+csh --version |& tee -a $LF
+uname -a |& tee -a $LF
 
 set StartTime = `date`;
 
@@ -153,14 +156,23 @@ if($status) exit 1;
 
 # Run lpc
 pushd $tmpdir 
-set cmd = (align_epi_anat.py -giant_move -AddEdge -epi2anat)
+set AOpts = (-weight_frac 1.0 -maxrot 45 -maxshf 40 -VERB)
+set cmd = (align_epi_anat.py -epi2anat)
 if($fsvol == brainmask) set cmd = ($cmd -anat_has_skull no)
-if($DOF == 3) set cmd = ($cmd -Allineate_opts -warp shift_only)
-if($DOF == 6) set cmd = ($cmd -Allineate_opts -warp shift_rotate)
-if($DOF == 9) set cmd = ($cmd -Allineate_opts -warp shift_rotate_scale)
+if($DOF == 3) then
+  set cmd = ($cmd -Allineate_opts $AOpts -warp shift_only)
+endif
+if($DOF == 6) then
+  set cmd = ($cmd -Allineate_opts $AOpts -warp shift_rotate)
+endif
+if($DOF == 9) then
+  set cmd = ($cmd -Allineate_opts $AOpts -warp shift_rotate_scale)
+endif
 # Default is 12
-set cmd = ($cmd -anat refvol.lpcreg+orig \
+set cmd = ($cmd -big_move -cmass cmass -AddEdge -epi2anat \
+    -anat refvol.lpcreg+orig \
     -epi  movvol.lpcreg+orig -epi_base 0 )
+
 echo "--------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
@@ -349,6 +361,7 @@ while( $#argv != 0 )
       set OutVol = $argv[1]; shift;
       breaksw
 
+    case "--tmpdir":
     case "--tmp":
       if ( $#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -439,6 +452,8 @@ usage_exit:
   echo "   --reg register.dat"
   echo ""
   echo "Optional Arguments"
+  echo "   --9  :  9 dof (default is 6)"
+  echo "   --12 : 12 dof (default is 6)"
   echo "   --frame frameno : reg to frameno (default 0=1st)"
   echo "   --mid-frame : reg to middle frame (not with --frame)"
   echo "   --fsvol volid : use FreeSurfer volid (default $fsvol)"
