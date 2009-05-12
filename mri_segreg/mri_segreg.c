@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/09 16:27:15 $
- *    $Revision: 1.79 $
+ *    $Date: 2009/05/12 22:31:35 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -182,6 +182,7 @@ int MinPowell(MRI *mov, MRI *notused, MATRIX *R, double *params,
 	      int dof, double ftol, double linmintol, int nmaxiters,
 	      char *costfile, double *costs, int *niters);
 float compute_powell_cost(float *p) ;
+double RelativeSurfCost(MRI *mov, MATRIX *R0);
 
 char *costfile_powell = NULL;
 
@@ -206,7 +207,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.79 2009/05/09 16:27:15 greve Exp $";
+"$Id: mri_segreg.c,v 1.80 2009/05/12 22:31:35 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -322,6 +323,7 @@ char *vsmfile = NULL;
 double angles[3],xyztrans[3],scale[3],shear[3];
 char *surfname = "white";
 int dof = 6; 
+char *RelCostFile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -332,8 +334,9 @@ int main(int argc, char **argv) {
   MATRIX *R=NULL, *R00=NULL, *Rdiff=NULL;
   struct timeb  mytimer;
   double secCostTime;
-  FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL;
+  FILE *fp, *fpMinCost, *fpRMSDiff, *fpPreOpt=NULL, *fpRelCost;
   double rmsDiffSum, rmsDiffMean=0, rmsDiffMax=0, d;
+  double rcost0, rcost;
   VERTEX *v;
   int nsubsampsave = 0;
   LABEL *label;
@@ -341,13 +344,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.79 2009/05/09 16:27:15 greve Exp $",
+     "$Id: mri_segreg.c,v 1.80 2009/05/12 22:31:35 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.79 2009/05/09 16:27:15 greve Exp $",
+     "$Id: mri_segreg.c,v 1.80 2009/05/12 22:31:35 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -528,12 +531,21 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+  // Compute relative initial cost 
+  rcost0 = RelativeSurfCost(mov, R0);
+  if(RelCostFile){
+    fpRelCost = fopen(RelCostFile,"w");
+    fprintf(fpRelCost,"%lf\n",rcost0);
+    exit(0);
+  }
+
   fprintf(fp,"Initial costs ----------------\n");
   fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
   fprintf(fp,"WM  Intensity0 %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
   fprintf(fp,"Ctx Intensity0 %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
   fprintf(fp,"Pct Contrast0  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
   fprintf(fp,"Cost %8.4lf\n",costs[7]); 
+  fprintf(fp,"RelCost %8.4lf\n",rcost0);
   fflush(fp);
 
   printf("Initial costs ----------------\n");
@@ -542,6 +554,7 @@ int main(int argc, char **argv) {
   printf("Ctx Intensity %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
   printf("Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
   printf("Cost %8.4lf\n",costs[7]); 
+  printf("RelCost %8.4lf\n",rcost0);
 
   if(costs[6] < 0 && PenaltySign < 0) PrintT1Warning = 1;
   if(PrintT1Warning){
@@ -693,6 +706,9 @@ int main(int argc, char **argv) {
 	    nMaxItersPowell,SegRegCostFile, costs, &nth);
   secCostTime = TimerStop(&mytimer)/1000.0 ;
 
+  // Compute relative final cost 
+  rcost = RelativeSurfCost(mov, R);
+
   // Recompute at optimal. This forces MRI *out to be the output at best reg
   if(surfcostbase){
     sprintf(tmpstr,"%s.lh.mgh",surfcostbase);
@@ -762,6 +778,7 @@ int main(int argc, char **argv) {
   
   fprintf(fp,"Number of iterations %5d\n",nth);
   fprintf(fp,"Min cost was %lf\n",costs[7]);
+  fprintf(fp,"RelMinCost %8.4lf\n",rcost);
   fprintf(fp,"Number of FunctionCalls %5d\n",nCostEvaluations);
   fprintf(fp,"OptimizationTime %lf sec\n",secCostTime);
   fprintf(fp,"Parameters at optimum (transmm, rotdeg)\n");
@@ -780,6 +797,8 @@ int main(int argc, char **argv) {
   fprintf(fp,"Ctx Intensity %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
   fprintf(fp,"Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
   fprintf(fp,"Cost at optimum %8.4lf\n",costs[7]); 
+  fprintf(fp,"RelCostOptimum %8.4lf\n",rcost);
+
   fprintf(fp,"nhits=%7d wmmn=%10.4lf wmstd=%8.4lf ",
 	 (int)costs[0],costs[1],costs[2]); 
   fprintf(fp,"constd=%10.4lf ctxmn=%10.4lf ctxstd=%8.4lf ",
@@ -1072,6 +1091,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--o",0)) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--relcost",0)) {
+      if (nargc < 1) argnerr(option,1);
+      RelCostFile = pargv[0];
       nargsused = 1;
     } 
     else if(istringnmatch(option, "--init-reg",0) ||
@@ -2092,3 +2116,44 @@ int MinPowell(MRI *mov, MRI *notused, MATRIX *R, double *params,
   return(NO_ERROR) ;
 }
 
+/*-------------------------------------------------------*/
+double RelativeSurfCost(MRI *mov, MATRIX *R0)
+{
+  double params[6], costs[7], cost0, costsum, costavg, rX, rY, rZ, rcost;
+  MATRIX *R;
+  int n;
+
+  printf("Computing relative cost\n");
+
+  // Get costs at R0 (dof=6)
+  for(n=0; n<6; n++) params[n] = 0.0;
+  R = MatrixIdentity(4,NULL);
+  GetSurfCosts(mov, NULL, R0, R, params, 6, costs);
+  cost0 = costs[7];
+
+  // Now rotate in each dimension by 25 degrees to get 
+  // an idea of what the cost is away from R0
+  costsum = 0.0;
+  n = 0;
+  for(rX = -25; rX <= 25; rX += 50){
+    for(rY = -25; rY <= 25; rY += 50){
+      for(rZ = -25; rZ <= 25; rZ += 50){
+	params[3] = rX;
+	params[4] = rY;
+	params[5] = rZ;
+	GetSurfCosts(mov, NULL, R0, R, params, 6, costs);
+	costsum += costs[7];
+	printf("%2d  %5.1f %5.1f %5.1f   %8.6f\n",n,rX,rY,rZ,costs[7]);
+	n++;
+      }
+    }
+  }
+
+  costavg = costsum/n;
+  rcost = cost0/costavg;
+
+  printf("REL: %2d  %8.6f %11.6f  %8.6f rel = %g \n",n,cost0,costsum,costavg,rcost);
+
+  MatrixFree(&R);
+  return(rcost);
+}
