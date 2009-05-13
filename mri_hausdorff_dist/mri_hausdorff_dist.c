@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/04/19 20:54:54 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/05/13 16:58:23 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.7 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.8 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -56,8 +56,8 @@ static void print_version(void) ;
 static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
-static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists);
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.7 2009/04/19 20:54:54 fischl Exp $";
+static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which);
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.8 2009/05/13 16:58:23 fischl Exp $";
 
 char *Progname ;
 
@@ -67,6 +67,11 @@ static int binarize = 0 ;
 static float binarize_thresh = 0 ;
 static int target_label = 1 ;
 static double blur_sigma = 0 ;
+
+#define MEAN_HDIST 0
+#define MAX_HDIST  1
+
+static int which = MEAN_HDIST ;
 
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[]) 
@@ -155,13 +160,13 @@ int main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open %s", Progname, out_fname) ;
 
 #if 1
-  hdist = compute_hdist(mri, nvolumes, 0, hdists) ;
+  hdist = compute_hdist(mri, nvolumes, 0, hdists, which) ;
   for (n = 1 ; n < nvolumes ; n++)
     fprintf(fp, "%f\n", hdists[n]) ;
 #else
   for (n = 0 ; n < nvolumes ; n++)
   {
-    hdist = compute_hdist(mri, nvolumes, n, hdists) ;
+    hdist = compute_hdist(mri, nvolumes, n, hdists, which) ;
     fprintf(fp, "%f\n", hdist) ;
     fflush(fp) ;
   }
@@ -177,6 +182,7 @@ static void print_usage(void) {
   printf("\twhere options are:\n") ;
   printf("\t-b <thresh>        binarize input volumes with threshold <thresh>\n") ;
   printf("\t-g <sigma>         blur the input image with Gaussian <sigma>\n");
+  printf("\t-max               compute the max of the min distances instead of the mean\n") ;
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -196,12 +202,12 @@ static void usage_exit(void) {
 
 #if USE_DISTANCE_TRANSFORM 
 static double
-compute_hdist(MRI **mri, int nvolumes, int index, double *hdists)
+compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which)
 {
   int   x, y, z, width, depth, height, nvox, n, xk, yk, zk, xi, yi, zi ;
   float d, d2, dist, dx, dy, dz ;
   MRI   *mri_src ;
-  double hdists_sigma[MAX_VOLUMES], hdist, max_vox,xf, yf, zf, zval;
+  double hdists_sigma[MAX_VOLUMES], hdist, max_vox,xf, yf, zf, zval, max_hdist, max_hdists[MAX_VOLUMES];
   //  FILE   *fp ;
   static int i = 0 ;
   char fname[STRLEN] ;
@@ -213,12 +219,13 @@ compute_hdist(MRI **mri, int nvolumes, int index, double *hdists)
 
   width = mri_src->width ; height = mri_src->height ;  depth = mri_src->depth ; 
 
+  max_hdist = 0.0 ;
   max_vox = MAX(mri_src->xsize, MAX(mri_src->ysize, mri_src->zsize)) ;
   for (hdist = 0.0, n = 0 ; n < nvolumes ; n++)
   {
     if (n == index)
       continue ;
-    for (hdists_sigma[n] = hdists[n] = 0.0, nvox = x = 0 ; x < width ; x++)
+    for (max_hdists[n] = hdists_sigma[n] = hdists[n] = 0.0, nvox = x = 0 ; x < width ; x++)
       for (y = 0 ; y < height ; y++)
         for (z = 0 ; z < depth ; z++)
         {
@@ -259,6 +266,8 @@ compute_hdist(MRI **mri, int nvolumes, int index, double *hdists)
                 //                fprintf(fp, "%d %d %d %d %2.3f\n", n, x, y, z, d) ;
                 if (zval > 40)
                   DiagBreak() ;
+                if (zval > max_hdists[n])
+                  max_hdists[n] = zval ;
                 hdists[n] += zval ;
                 hdists_sigma[n] += zval*zval ;
                 nvox++ ;
@@ -266,12 +275,18 @@ compute_hdist(MRI **mri, int nvolumes, int index, double *hdists)
             }
           }
         }
-    hdists[n] /= (double)nvox ;
+    if (which == MAX_HDIST)
+      hdists[n] = max_hdists[n] ;
+    else
+      hdists[n] /= (double)nvox ;
     hdists_sigma[n] = sqrt(hdists_sigma[n]/(double)nvox - hdists[n]*hdists[n]);
     hdist += hdists[n] ;
   }
 
-  hdist /= (nvolumes-1) ;
+  if (which == MAX_HDIST)
+    hdist = max_hdist ;
+  else
+    hdist /= (nvolumes-1) ;
   //  fclose(fp) ;
   return(hdist) ;
 }
@@ -342,7 +357,11 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else switch (toupper(*option)) {
+  else if (!stricmp(option, "max"))
+  {
+    printf("using max of min distances\n") ;
+    which = MAX_HDIST ;
+  } else switch (toupper(*option)) {
   case 'G':
     blur_sigma = atof(argv[2]) ;
     nargs = 1 ;
