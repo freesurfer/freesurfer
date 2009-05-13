@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/12 22:31:35 $
- *    $Revision: 1.80 $
+ *    $Date: 2009/05/13 18:27:20 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,6 +56,7 @@
   --T2, --t2, --bold : assume T2/BOLD gray/white contrast (default)
   --gm-gt-wm slope : set cost slope, spec gray matter brighter than WM
   --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter
+  --penalty-abs : remove sign from contrast
   --cf cfile  : save cost function values (pct,cost)
 
   --mask : mask out expected B0 regions
@@ -207,7 +208,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.80 2009/05/12 22:31:35 greve Exp $";
+"$Id: mri_segreg.c,v 1.81 2009/05/13 18:27:20 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -344,13 +345,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.80 2009/05/12 22:31:35 greve Exp $",
+     "$Id: mri_segreg.c,v 1.81 2009/05/13 18:27:20 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.80 2009/05/12 22:31:35 greve Exp $",
+     "$Id: mri_segreg.c,v 1.81 2009/05/13 18:27:20 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1223,7 +1224,7 @@ static int parse_commandline(int argc, char **argv) {
       PenaltySign = +1;
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
-    } else if (istringnmatch(option, "--abs",0)) {
+    } else if (istringnmatch(option, "--penalty-abs",0)) {
       // no direction of contrast expected
       PenaltySign = 0;
       nargsused = 1;
@@ -1413,6 +1414,7 @@ printf("  --T2, --t2, --bold : assume T2/BOLD gray/white contrast (default)\n");
 printf("  --slope slope    : set cost slope\n");
 printf("  --gm-gt-wm slope : set cost slope, spec gray matter brighter than WM\n");
 printf("  --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter\n");
+printf("  --penalty-abs : remove sign from contrast\n");
 printf("  --c0 offset : cost offset (pct)\n");
 printf("  --cf cfile  : save cost function values (pct,cost)\n");
 printf("\n");
