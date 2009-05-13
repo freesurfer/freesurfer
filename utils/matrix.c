@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/03/26 01:05:37 $
- *    $Revision: 1.116 $
+ *    $Date: 2009/05/13 22:09:11 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -832,12 +832,15 @@ MatrixTranspose(MATRIX *mIn, MATRIX *mOut)
   rows = mIn->rows ;
   cols = mIn->cols ;
 
+  int insitu = (mIn == mOut);
+  if (insitu) mIn = MatrixCopy(mOut,NULL);
+
   for (row = 1 ; row <= rows ; row++)
   {
     for (col = 1 ; col <= cols ; col++)
       mOut->rptr[col][row] = mIn->rptr[row][col] ;
   }
-
+  if (insitu) MatrixFree(&mIn);
   return(mOut) ;
 }
 
