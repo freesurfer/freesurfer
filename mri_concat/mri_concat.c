@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/27 21:37:15 $
- *    $Revision: 1.20.2.8 $
+ *    $Author: greve $
+ *    $Date: 2009/05/13 15:56:35 $
+ *    $Revision: 1.20.2.9 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,6 +43,7 @@
 #include "diag.h"
 #include "mri.h"
 #include "mri2.h"
+#include "fio.h"
 #include "fmriutils.h"
 #include "version.h"
 
@@ -58,7 +59,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.20.2.8 2009/02/27 21:37:15 nicks Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.20.2.9 2009/05/13 15:56:35 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -198,10 +199,14 @@ int main(int argc, char **argv) {
   fout = 0;
   for (nthin = 0; nthin < ninputs; nthin++) {
     if(Gdiag_no > 0 || debug) {
-      printf("Loading %dth input \n",nthin);
+      printf("Loading %dth input %s\n",nthin+1,fio_basename(inlist[nthin],NULL));
       fflush(stdout);
     }
     mritmp = MRIread(inlist[nthin]);
+    if(mritmp == NULL){
+      printf("ERROR: loading %s\n",inlist[nthin]);
+      exit(1);
+    }
     if(nthin == 0) {
       MRIcopyHeader(mritmp, mriout);
       //mriout->nframes = nframestot;
