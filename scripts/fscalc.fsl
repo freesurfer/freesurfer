@@ -8,7 +8,7 @@
 # freesurfer writes. Can convert volume-encoded surface files with
 # --surf if nvertices is not prime.
 # 
-# $Id: fscalc.fsl,v 1.3 2008/11/01 17:42:06 greve Exp $
+# $Id: fscalc.fsl,v 1.4 2009/05/14 22:02:18 greve Exp $
 #
 
 # First determine whether a surface is part of the mix
@@ -16,6 +16,7 @@ set argv0 = ($argv);
 set newargv = ();
 set subject = ();
 set hemi = ();
+set DoReshape1D = 0;
 while($#argv0)
   set flag = $argv0[1]; shift argv0;
   switch ($flag)
@@ -36,12 +37,21 @@ while($#argv0)
         exit 1;
       endif
       breaksw;
+    case "--reshape1d":
+      set DoReshape1D = 1;
+      breaksw;
+    case "--no-reshape1d":
+      set DoReshape1D = 0;
+      breaksw;
     default:
       set newargv = ($newargv $flag);
       breaksw;
   endsw
 end
-if($#subject == 0) set newargv = ($argv);
+if($#subject == 0) then
+  set newargv = ($argv);
+  set DoReshape1D = 0;  
+endif
 
 if($#newargv < 3) then
   echo ""
@@ -61,6 +71,10 @@ if($#newargv < 3) then
   echo "To use it in this way, add --surf subject hemi. This will"
   echo "run mri_surf2surf to reshape the data into a dimension that can"
   echo "fit into nifti."
+  echo ""
+  echo "By default, surfaces are reshaped to try to fit inside of nifti,"
+  echo "and the ouput is also reshaped. To convert back to 1d spatial dims,"
+  echo "add --reshape1d."
   echo ""
   echo "See fslmaths for more info."
   echo ""
@@ -179,6 +193,23 @@ echo $cmd
 echo ""
 $cmd
 if($status) exit 1;
+
+if($DoReshape1D) then 
+  set val = $out
+  if($DoConv) then 
+    set val = $tmpout.$ext
+  else
+    set val = $out
+  endif
+  set cmd = (mri_surf2surf --s $subject --hemi $hemi \
+    --sval $val --tval $out)
+  echo ""
+  echo $cmd
+  echo ""
+  $cmd
+  if($status) exit 1;
+  set DoConv = 0;
+endif
 
 # Convert output to proper format, if needed
 if($DoConv) then
