@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:53 $
- *    $Revision: 1.626 $
+ *    $Author: greve $
+ *    $Date: 2009/05/14 21:47:46 $
+ *    $Revision: 1.627 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.626 2009/03/04 19:20:53 mreuter Exp $");
+  return("$Id: mrisurf.c,v 1.627 2009/05/14 21:47:46 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -58418,6 +58418,11 @@ MRI *MRISsmoothMRI(MRIS *Surf,
       c = crslut[0][vtx];
       r = crslut[1][vtx];
       s = crslut[2][vtx];
+      if (BinMask){
+	m = MRIgetVoxVal(BinMask,crslut[0][vtx],
+			 crslut[1][vtx],crslut[2][vtx],0);
+	if (m < 0.5) continue;
+      }
       for (frame = 0; frame < Targ->nframes; frame ++)
       {
         val = MRIFseq_vox(SrcTmp,c,r,s,frame);
