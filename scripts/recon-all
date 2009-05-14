@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/12 19:45:30 $
-#    $Revision: 1.208 $
+#    $Date: 2009/05/14 20:36:08 $
+#    $Revision: 1.209 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.208 2009/05/12 19:45:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.209 2009/05/14 20:36:08 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -152,6 +152,7 @@ set longbasetotpN_regfile = ();   # reg file to align longbase to current subj
 set UseConcatLtaTal = 0; # if 1, use mri_concatenate_lta during tal creation
 set UseLongbaseCtrlVol = 0;   # if 1, use ctrl volume of longbase in norm step
 set no_orig_pial = 0;    # if 1, mris_make_surfaces won't use orig pial
+set UseAsegFusion = 1; # if 0, dont create 'fused' asegs from timepoints
 set DoCreateBaseSubj = 0; # if 1, create the 'base' subject used in longitud
 set BaseSubjInvol = (T1.mgz); # -base-invol allows using some other file
 set BaseSubjsList = (); # subject set grabbed from -base-insubj args
@@ -1570,7 +1571,7 @@ if($DoCALabel) then
 
   # ------------ longitudinal (pre)processing ----------------#
   # fuse segmentations of subjects composing this 'longbase' subject
-  if ($longitudinal) then
+  if ($longitudinal && $UseAsegFusion) then
     cd $subjdir/mri > /dev/null
     $PWD |& tee -a $LF
     set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
@@ -1605,8 +1606,8 @@ if($DoCALabel) then
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
-  if($longitudinal) then
-    # longitudinal processing
+  if($longitudinal && $UseAsegFusion) then
+    # longitudinal processing: use 'fused' aseg just created
     set cmd = ($cmd -r $subjdir/mri/aseg.fused.mgz)
     set cmd = ($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
   endif
@@ -3898,6 +3899,10 @@ while( $#argv != 0 )
 
     case "-no-orig-pial":
       set no_orig_pial = 1;
+      breaksw
+
+    case "-noasegfusion":
+      set UseAsegFusion = 0;
       breaksw
 
     case "-uselongbasectrlvol":
