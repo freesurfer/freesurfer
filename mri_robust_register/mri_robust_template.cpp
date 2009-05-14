@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/11 05:55:23 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/05/14 18:28:32 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -88,10 +88,11 @@ struct Parameters
   vector < MRI* > mri_warps;
   vector < MRI* > mri_weights;
   vector < double > intensities;
+  int    inittp;
 };
 static struct Parameters P =
 {
-  vector < string >(0),"",NULL,vector < string >(0),vector < string >(0),false,false,false,false,false,false,false,5,0.01,SAT,vector < string >(0),0,1,vector < MRI* >(0),vector < LTA* >(0),vector < MRI* >(0),vector < MRI* >(0),vector < double >(0)
+  vector < string >(0),"",NULL,vector < string >(0),vector < string >(0),false,false,false,false,false,false,false,5,0.01,SAT,vector < string >(0),0,1,vector < MRI* >(0),vector < LTA* >(0),vector < MRI* >(0),vector < MRI* >(0),vector < double >(0),1
 };
 
 
@@ -104,12 +105,12 @@ static MRI* initialAverageSet(const vector < MRI * >& set,
 static int loadMovables(Parameters & P);
 static void initRegistration(Registration & R, Parameters & P) ;
 
-void method1 (Parameters & P);
-void method2 (Parameters & P);
+void computeTemplate (Parameters & P);
+void initialXforms (Parameters & P, int tpi);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.4 2009/05/11 05:55:23 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.5 2009/05/14 18:28:32 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -166,14 +167,12 @@ int main(int argc, char *argv[])
   assert(nin >=2);
 
   if (nin == 2) halfWayTemplate(P);
-  else method1(P);
-
-//   // output mean
-//   string::size_type loc = P.mean.find( "/", 0 );
-//   if( loc == string::npos )
-//   {
-//          P.mean = P.outdir+P.mean;
-//   }
+  else
+  {
+    // if no initial xforms are given, use initialization:
+    if(P.ltas[0] == NULL && P.inittp > 0) initialXforms(P,P.inittp);
+    computeTemplate(P);
+  }
 
   cout << "Writing final average image: " << P.mean << endl;
   strncpy(P.mri_mean->fname, P.mean.c_str(),STRLEN);
@@ -235,8 +234,29 @@ int main(int argc, char *argv[])
   return(0) ;
 }
 
+LTA* VOXmatrix2LTA(MATRIX * m, MRI* src, MRI* dst)
+{
+  LTA* ret =  LTAalloc(1,src);
+  ret->xforms[0].m_L = MRIvoxelXformToRasXform (src,dst,m,NULL) ;
+  ret->type = LINEAR_RAS_TO_RAS ;
+  getVolGeom(src, &ret->xforms[0].src);
+  getVolGeom(dst, &ret->xforms[0].dst);
 
-void method1(Parameters & P)
+  return ret;
+}
+
+LTA* RASmatrix2LTA(MATRIX * m, MRI* src, MRI* dst)
+{
+  LTA* ret =  LTAalloc(1,src);
+  ret->xforms[0].m_L = MatrixCopy(m,ret->xforms[0].m_L) ;
+  ret->type = LINEAR_RAS_TO_RAS ;
+  getVolGeom(src, &ret->xforms[0].src);
+  getVolGeom(dst, &ret->xforms[0].dst);
+
+  return ret;
+}
+
+void computeTemplate(Parameters & P)
 {
   int nin = (int) P.mri_mov.size();
 
@@ -246,15 +266,8 @@ void method1(Parameters & P)
   {
     outdir = P.mean.substr(0,pos-1);
   }
-  cout << "Computing first mean" << endl;
-//  P.mri_mean = averageSet(P.mri_mov,NULL,P.average,P.sat);
-//  if (P.debug)
-//  {
-//     cout << "debug: saving oldmean-it0.mgz" << endl;
-//     MRIwrite(P.mri_mean,(P.outdir+"oldmean-it0.mgz").c_str());
-//  }
-//  MRIfree(&P.mri_mean);
   
+  cout << "Computing first mean" << endl;  
   bool havexforms = (P.ltas[0] != NULL);
   if (!havexforms) 
     P.mri_mean = initialAverageSet(P.mri_mov,NULL,P.average,P.sat);
@@ -270,7 +283,7 @@ void method1(Parameters & P)
       if (P.debug)
       {
         ostringstream oss;
-	oss << outdir << "tp" << i+1 << "_to_mean-it0.mgz";
+        oss << outdir << "tp" << i+1 << "_to_mean-it0.mgz";
         MRIwrite(P.mri_warps[i], oss.str().c_str()) ;
       }
     }
@@ -297,7 +310,7 @@ void method1(Parameters & P)
   {
      for (int i=0;i<nin;i++)
      {
-        assert(P.ltas[i]->type==LINEAR_VOX_TO_VOX);
+        LTAchangeType(P.ltas[i],LINEAR_VOX_TO_VOX); //vox2vox for registration
         transforms[i] = MatrixCopy(P.ltas[i]->xforms[0].m_L, NULL);
      }
 	
@@ -332,6 +345,7 @@ void method1(Parameters & P)
       int iterate = P.iterate;
       double epsit= P.epsit;
       int maxres = 0;
+			int subsamp = -1;
       switch (itcount) // simplify first steps:
       {
       case 1:
@@ -346,19 +360,23 @@ void method1(Parameters & P)
       case 4:
         maxres = 1;
         break;
+      case 5:
+        subsamp = 180;
+        break;
       }
 
       if (havexforms)
       {
-						  //// tried high res only: (does not make sense, we need 2 iter. on high res anyway)
-								//Md= Rv[i].computeIterativeRegistration(1,epsit,NULL,NULL,transforms[i],P.intensities[i]);
+        //// tried high res only: (does not make sense, we need 2 iter. on high res anyway)
+        //Md= Rv[i].computeIterativeRegistration(1,epsit,NULL,NULL,transforms[i],P.intensities[i]);
         //dists[i] = sqrt(Rv[i].AffineTransDistSq(Md.first, transforms[i]));
-						
+				if (itcount ==1) subsamp = 	180;	
         maxres = 0; //go up to hig-res
       }
-						//else dists[i] = 100; // we need to run multires...
+      //else dists[i] = 100; // we need to run multires...
 
       //if (dists[i] > eps)
+			Rv[i].setSubsamplesize(subsamp);
         Md = Rv[i].computeMultiresRegistration(maxres,
                                                iterate,
                                                epsit,
@@ -372,20 +390,21 @@ void method1(Parameters & P)
 
       // convert Matrix to LTA ras to ras
       if (P.ltas[i]) lastlta = P.ltas[i];
-      P.ltas[i] = LTAalloc(1,P.mri_mov[i]);
-      P.ltas[i]->xforms[0].m_L =
-        MRIvoxelXformToRasXform (P.mri_mov[i],
-                                 P.mri_mean,
-                                 Md.first,
-                                 P.ltas[i]->xforms[0].m_L) ;
-      P.ltas[i]->type = LINEAR_RAS_TO_RAS ;
-      getVolGeom(P.mri_mov[i], &P.ltas[i]->xforms[0].src);
-      getVolGeom(P.mri_mean, &P.ltas[i]->xforms[0].dst);
+      P.ltas[i] = VOXmatrix2LTA(Md.first,P.mri_mov[i],P.mri_mean);
+      //P.ltas[i] = LTAalloc(1,P.mri_mov[i]);
+      //P.ltas[i]->xforms[0].m_L =
+      //  MRIvoxelXformToRasXform (P.mri_mov[i],
+      //                           P.mri_mean,
+      //                           Md.first,
+      //                           P.ltas[i]->xforms[0].m_L) ;
+      //P.ltas[i]->type = LINEAR_RAS_TO_RAS ;
+      //getVolGeom(P.mri_mov[i], &P.ltas[i]->xforms[0].src);
+      //getVolGeom(P.mri_mean, &P.ltas[i]->xforms[0].dst);
 
       // compute maxchange
       if (lastlta)
       {
-						  LTAchangeType(lastlta,LINEAR_RAS_TO_RAS); //measure dist in RAS coords
+        LTAchangeType(lastlta,LINEAR_RAS_TO_RAS); //measure dist in RAS coords
         dists[i] = sqrt(Rv[i].AffineTransDistSq(lastlta->xforms[0].m_L,
                                                 P.ltas[i]->xforms[0].m_L));
         LTAfree(&lastlta);
@@ -406,6 +425,7 @@ void method1(Parameters & P)
       if (P.mri_warps[i]) MRIfree(&P.mri_warps[i]);
       P.mri_warps[i] = MRIclone(P.mri_mean,P.mri_warps[i]);
       P.mri_warps[i] = LTAtransform(P.mri_mov[i],P.mri_warps[i], P.ltas[i]);
+      
       //cout << " LS difference after: " <<
       //CF.leastSquares(mri_aligned,P.mri_dst) << endl;
       //cout << " NC difference after: " <<
@@ -489,15 +509,266 @@ void method1(Parameters & P)
 
 }
 
-void method2(Parameters & P)
+pair < MATRIX *, VECTOR * > getRTfromM(MATRIX * M, MATRIX * R, VECTOR * T)
 {
+   // check dimenstions:
+   assert (M->rows == 4);
+   assert (M->cols == 4);
+   if (R == NULL) R = MatrixAlloc(3,3,M->type);
+   if (T == NULL) T = VectorAlloc(3,M->type);
+   assert(R->rows ==3);
+   assert(R->cols ==3);
+   assert(T->rows ==3);
+   assert(T->cols ==1);
+   
+   // check M
+   double eps = 0.000001;
+   assert (fabs(M->rptr[4][1]) < eps);
+   assert (fabs(M->rptr[4][2]) < eps);
+   assert (fabs(M->rptr[4][3]) < eps);
+   assert (fabs(M->rptr[4][4] - 1.0) < eps);
+   
+    for (int c=1; c<4;c++)
+    {
+      for (int r=1; r<4;r++)
+      {
+        R->rptr[r][c] = M->rptr[r][c];
+      }
+      T->rptr[c][1] = M->rptr[c][4];
+   }
+   
+   return pair <MATRIX *, VECTOR *> (R,T);
+}
+
+MATRIX * getMfromRT(MATRIX * R, VECTOR * T, MATRIX * M)
+{
+   int type;
+   if (R != NULL) type = R->type;
+   else if ( T != NULL) type = T->type;
+   else assert(R != NULL || T != NULL);
+   
+   if (M == NULL ) M = MatrixAlloc(4,4,type);
+   if (R == NULL) R = MatrixIdentity(3,NULL);
+   if (T == NULL) T = MatrixZero(3,1,NULL);
+   
+   // check dimensions:
+   assert (M->rows == 4);
+   assert (M->cols == 4);
+   assert(R->rows ==3);
+   assert(R->cols ==3);
+   assert(T->rows ==3);
+   assert(T->cols ==1);
+   
+   
+    for (int c=1; c<4;c++)
+    {
+      for (int r=1; r<4;r++)
+      {
+        M->rptr[r][c] = R->rptr[r][c];
+      }
+      M->rptr[c][4] = T->rptr[c][1];
+      M->rptr[4][c] = 0;
+    }
+    M->rptr[4][4] = 1;
+   
+   return M;
+}
+
+void initialXforms(Parameters & P, int tpi)
+// will be returned in P.ltas
+// tpi 1....n
+{
+  if (tpi <= 0) return; // no init
+  cout << endl << "initializing Xforms (init " << tpi << " ) : " << endl;
+  assert(P.ltas[0] == NULL);
+  
+  int nin = (int) P.mri_mov.size();
+	
+	tpi--; // tpi 0....n-1
+	assert (tpi>=0 && tpi <nin);
+	
+	// create index set for lookup (tpi should switch places with 0)
+	vector < int > index(nin);
+	for (int i = 0;i<nin;i++)
+	   index[i] = i;
+	index[0] = tpi;
+	index[tpi] = 0;
+
+  string outdir = "./";
+  size_t  pos = P.mean.rfind("/");    // position of "." in str
+  if (pos!=string::npos)
+  {
+    outdir = P.mean.substr(0,pos-1);
+  }
 
   // Register everything to first TP (coarse)
+  vector < Registration > Rv(nin);
+  vector < std::pair <MATRIX*, double> > Md(nin);
+  Md[0].first = MatrixIdentity(4,NULL);
+  Md[0].second= 1.0;
+  for (int i = 1;i<nin;i++) 
+  {
+	  int j = index[i];
+    cout << endl << "  computing coarse registration of TP "<< j+1 <<" ( "<<P.mov[j]<<" ) wrt to TP "<<tpi+1<<" ( "<<P.mov[tpi]<<" )" << endl;
 
+    ostringstream oss;
+    oss << outdir << "tp" << j+1 << "_to_tp" << tpi;
+    
+    Registration R;
+    R.setSource(P.mri_mov[j],P.fixvoxel,P.fixtype);
+    initRegistration(R,P); //set parameter
+    R.setTarget(P.mri_mov[tpi], P.fixvoxel, P.fixtype);
+    R.setName(oss.str());
+    // compute Alignment
+    int iterate = 5;
+    double epsit= 0.05;
+    int maxres  = 1;
+    Md[i] = R.computeMultiresRegistration(maxres,iterate,epsit);
 
+//    ostringstream oss2;
+//    oss2 << "tp" << j+1;    
+//    MatrixWrite(Md[i].first,(oss2.str()+".fsmat").c_str(),oss2.str().c_str());
+//    Md[i].first = MatrixRead((oss2.str()+".fsmat").c_str());
+//    Md[i].second = 1.0;
+
+//     if (P.debug)
+//     {
+//       LTA * nlta = VOXmatrix2LTA(Md[i].first,P.mri_mov[j],P.mri_mov[tpi]);
+//       LTAwriteEx(nlta, (oss.str()+".lta").c_str()) ;
+// 
+//       MRI* warped = MRIclone(P.mri_mov[tpi],NULL);
+//       warped = LTAtransform(P.mri_mov[j],warped, nlta);
+// 
+//       if (R.isIscale() && Md[i].second >0)
+//       {
+//         string fn = oss.str() + "-intensity.txt";
+//         ofstream f(fn.c_str(),ios::out);
+//         f << Md[i].second;
+//         f.close();
+// 	
+//         warped = R.MRIvalscale(warped,warped, Md[i].second);
+//       }
+//       MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
+//       // todo: maybe output weights (not necessary so far) 
+//       LTAfree(&nlta);
+//       MRIfree(&warped);     
+//     }
+  }
+  
   // find mean center
+  vector <MATRIX* > mras(nin);
+  mras[0] = MatrixIdentity(4,NULL);
+  MATRIX* rot = MatrixIdentity(3,NULL);
+  MATRIX* roti = NULL;
+  MATRIX* trans = VectorAlloc(3,MATRIX_REAL);
+  MATRIX* meant = MatrixZero(3,1,NULL);
+  MATRIX* meanr = MatrixIdentity(3,NULL);
+  for (int i = 1;i<nin;i++) 
+  {
+	  int j = index[i];
+    cout << "  computing coord of TP "<< j+1 <<" ( "<<P.mov[j]<<" ) wrt to TP "<<tpi<<" ( "<<P.mov[tpi]<<" )" << endl;
+    mras[i] = MRIvoxelXformToRasXform (P.mri_mov[j],P.mri_mov[tpi],Md[i].first,mras[i]);
+    //MatrixPrintFmt(stdout,"% 2.8f",mras);cout << endl;
+    // split into rotation translation
+    getRTfromM(mras[i],rot,trans);
+   //MatrixPrintFmt(stdout,"% 2.8f",trans); cout << endl;
+   //cout << " Mras: " << endl;
+   //MatrixPrintFmt(stdout,"% 2.8f",mras); cout << endl;
 
-  //
+    // reverse order (first translate, then rotate)
+    // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
+    roti  = MatrixTranspose(rot,roti); // inverse
+    //cout << " roti: " << endl;MatrixPrintFmt(stdout,"% 2.8f",roti); cout << endl;
+    
+    trans = MatrixMultiply(roti,trans,trans);
+    //cout << "transi: - " << endl; MatrixPrintFmt(stdout,"% 2.8f",trans[i]); cout << endl;
+    
+//     if (P.debug) // output transonly
+//     {
+//       ostringstream oss;
+//       oss << outdir << "tp" << j+1 << "_to_tp"<<tpi<<"-transonly";
+//       MATRIX *Mtemp = getMfromRT(NULL,trans,NULL);
+//       LTA * nlta = RASmatrix2LTA(Mtemp,P.mri_mov[j],P.mri_mov[tpi]);
+//       MRI* warped = LTAtransform(P.mri_mov[j],NULL, nlta);
+//       MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
+//       LTAfree(&nlta);
+//       MRIfree(&warped);
+//       MatrixFree(&Mtemp);         
+//     }
+    meant = MatrixSubtract(meant,trans,meant);
+    meanr = MatrixAdd(meanr,roti,meanr);
+  }
+  
+  MatrixFree(&roti);
+  MatrixFree(&trans);
+  MatrixFree(&rot);
+
+  //average
+  meant = MatrixScalarMul(meant,1.0/nin,meant);
+  //cout << "meant: " << endl; MatrixPrintFmt(stdout,"% 2.8f",meant); cout << endl;
+  meanr = MatrixScalarMul(meanr,1.0/nin,meanr);
+  //cout << "meanr: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
+  
+  // project meanr back to SO(3) (using polar decomposition)
+  VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
+  MATRIX * mv = MatrixSVD(meanr,vz,NULL);
+  //MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
+  //MatrixPrintFmt(stdout,"% 2.8f",vz); cout << endl;
+  //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
+  mv = MatrixTranspose(mv,mv);
+  //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
+  meanr = MatrixMultiply(meanr,mv,meanr);
+  //cout << " meanr.proj: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
+  MatrixFree(&mv);
+  MatrixFree(&vz);
+
+  // construct maps from each image to the mean space
+  MATRIX * Mm = getMfromRT(meanr,meant,NULL);
+  MATRIX * M = NULL;
+  //cout << " Mm: " << endl; MatrixPrintFmt(stdout,"% 2.8f",Mm); cout << endl;
+  for (int i = 0;i<nin;i++) 
+  {
+	  int j = index[i];
+    cout << "  computing mean coord of TP "<< j+1 <<" ( "<<P.mov[j]<<" ) " << endl;
+    // concat transforms: meant meanr mras
+    // from right to left: mras[j] (aligns to T1)
+    //                     then do the mean rot and move to mean location
+
+    //MatrixPrintFmt(stdout,"% 2.8f",mras[i]); cout << endl;
+    M = MatrixMultiply(Mm,mras[i],M);
+    //MatrixPrintFmt(stdout,"% 2.8f",M); cout << endl;
+    
+    // make lta from M (M is RAS to RAS)
+    assert(P.ltas[j] == NULL);
+    P.ltas[j] = RASmatrix2LTA(M,P.mri_mov[j],P.mri_mov[tpi]); // use geometry of tpi
+    
+    if (P.debug)
+    {
+      ostringstream oss;
+      oss << outdir << "tp" << j+1 << "_to_mcoord";
+      LTAwriteEx(P.ltas[j], (oss.str()+".lta").c_str()) ;
+      MRI * warped = LTAtransform(P.mri_mov[j],NULL, P.ltas[j]);
+//      if (R.isIscale() && Md[i].second >0)
+//      {
+//        string fn = oss.str() + "-intensity.txt";
+//        ofstream f(fn.c_str(),ios::out);
+//        f << Md[i].second;
+//        f.close();
+//	
+//        warped = R.MRIvalscale(warped,warped, Md[i].second);
+//      }
+      MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
+      MRIfree(&warped);     
+    }
+    
+    // cleanup
+    MatrixFree(&mras[i]);
+    MatrixFree(&Md[i].first);
+  }
+  //cleanup
+  MatrixFree(&M);
+  MatrixFree(&Mm);
+  
 }
 
 void halfWayTemplate(Parameters & P)
@@ -518,15 +789,15 @@ void halfWayTemplate(Parameters & P)
   R.setName(P.mean);
 
   // use initial transform if given:
-		MATRIX *minit = NULL;
-		if (P.ltas[0])
+  MATRIX *minit = NULL;
+  if (P.ltas[0])
   {
-		  assert (P.ltas[0]->type == LINEAR_VOX_TO_VOX);
-		  assert (P.ltas[1]->type == LINEAR_VOX_TO_VOX);
-				minit = MatrixInverse(P.ltas[1]->xforms[0].m_L,NULL);
-				minit = MatrixMultiply(minit,P.ltas[0]->xforms[0].m_L,minit);
-				R.setDebug(1);
-		}		
+    assert (P.ltas[0]->type == LINEAR_VOX_TO_VOX);
+    assert (P.ltas[1]->type == LINEAR_VOX_TO_VOX);
+    minit = MatrixInverse(P.ltas[1]->xforms[0].m_L,NULL);
+    minit = MatrixMultiply(minit,P.ltas[0]->xforms[0].m_L,minit);
+    R.setDebug(1);
+  }		
   // compute Alignment
   std::pair <MATRIX*, double> Md;
   Md = R.computeMultiresRegistration(0,P.iterate,P.epsit,NULL,NULL,minit);
@@ -621,6 +892,7 @@ static void printUsage(void)
   cout << "  --warp warp1.mgz ...       map each input to template" << endl;
   cout << "  --weights weights1.mgz ... output weights in target space" << endl;
   cout << "  --average #                construct template from: 0 Mean, 1 Median (default)" << endl;
+  cout << "  --inittp #                 use TP# for spacial init (default 1), 0: no init" << endl;
 
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  -I, --iscale               allow also intensity scaling on high-res. (default no)" << endl;
@@ -692,16 +964,23 @@ static MRI* averageSet(const vector < MRI * >& set,
     assert(set.size() > 0);
     double dd[set.size()];
     if (!mean) mean = MRIclone(set[0],NULL);
+    //MRI * midx = MRIalloc(set[0]->width,set[0]->height,set[0]->depth, MRI_FLOAT);
+    //MRIcopyHeader(mean,midx);
+    //midx->type = MRI_FLOAT;
+    pair < double, double > mm;
     for (z = 0 ; z < set[0]->depth ; z++)
       for (y = 0 ; y < set[0]->height ; y++)
         for (x = 0 ; x < set[0]->width ; x++)
         {
           for (i=0; i<(int) set.size();i++)
             dd[i] = MRIgetVoxVal(set[i],x,y,z,0);
-
-          MRIsetVoxVal(mean,x,y,z,0,
-                       RobustGaussian::median(dd,(int)set.size()));
+          mm = RobustGaussian::medianI(dd,(int)set.size());
+          MRIsetVoxVal(mean,x,y,z,0,mm.first);
+	  //MRIsetVoxVal(midx,x,y,z,0,mm.second);
         }
+    //MRIwrite(midx,"midx.mgz");
+    //MRIwrite(mean,"m.mgz");
+    //assert(1==2);
   }
   else if (method ==2)
   {
@@ -1103,6 +1382,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
   }
+  else if (!strcmp(option, "INITTP") )
+  {
+    P.inittp = atoi(argv[1]);
+    nargs = 1 ;
+    if (P.inittp ==0 ) cout<< " No initialization, construct first mean from original TPs" << endl;
+    else cout << "Using TP " <<P.inittp <<" as target for initialization" << endl;
+  }
   else
   {
     cerr << "Option: " << argv[0] << " unknown !! " << endl;
@@ -1133,7 +1419,6 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     argv += nargs ;
   }
 
-//  if (P.mov.size() == 2) cout << " !!! Consider using a direct registration and mapping to halfway space with mri_robust_register !!! " << endl;
   bool ntest = true;
   if (P.nwarps.size() > 0 && P.mov.size() != P.nwarps.size())
   {
