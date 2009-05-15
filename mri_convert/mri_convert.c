@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/08 18:39:54 $
- *    $Revision: 1.157 $
+ *    $Date: 2009/05/15 18:32:34 $
+ *    $Revision: 1.158 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,7 +190,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.157 2009/04/08 18:39:54 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.158 2009/05/15 18:32:34 nicks Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -286,14 +286,16 @@ int main(int argc, char *argv[]) {
   conform_size = 1.0;
   nskip = 0;
   ndrop = 0;
-  fwhm=-1;gstd=-1;
+  fwhm = -1;
+  gstd = -1;
+  in_type_string[0] = 0;
 
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.157 2009/04/08 18:39:54 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.158 2009/05/15 18:32:34 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1305,7 +1307,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.157 2009/04/08 18:39:54 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.158 2009/05/15 18:32:34 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
