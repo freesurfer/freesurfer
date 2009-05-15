@@ -9,8 +9,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/05 00:00:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/05/15 21:44:49 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -69,7 +69,7 @@ void usage (char* program) {
 	exit (1);
 }
 
-static char rcsid[] = "$Id: gauss_4dfp.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
+static char rcsid[] = "$Id: gauss_4dfp.c,v 1.2.2.1 2009/05/15 21:44:49 nicks Exp $";
 int main (int argc, char **argv) {
 	CONC_BLOCK	conc_block;			/* conc i/o control block */
 	FILE 		*imgfp=NULL, *outfp=NULL;
@@ -130,7 +130,8 @@ int main (int argc, char **argv) {
 /***************************/
 /* compute outroot trailer */
 /***************************/
-	sprintf (trailer, "%sg%d", (diff_flag) ? "d" : "", (int) (10.0*f0 + 0.5));
+  int tmpint =  (int) (10.0*f0 + 0.5);
+	sprintf (trailer, "%sg%d", (diff_flag) ? "d" : "", tmpint);
 
 /*******************************************/
 /* get 4dfp dimensions and open read/write */
