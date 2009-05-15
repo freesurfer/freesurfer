@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2009/04/24 14:35:37 $
-#    $Revision: 1.429 $
+#    $Author: nicks $
+#    $Date: 2009/05/15 20:34:10 $
+#    $Revision: 1.430 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -127,12 +127,9 @@ AC_PROG_LIBTOOL
 AC_LIBTOOL_CXX
 AC_PROG_F77
 if test "x$F77" = "x"; then
-  AC_MSG_ERROR([FATAL: A Fortran compiler is required!])
+	AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
 fi
 
-if test "x$F77" = "x"; then
-	AC_MSG_ERROR([FATAL: A Fortran compiler is required!])
-fi
 
 ################################################################
 # Checks for header files.
