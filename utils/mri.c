@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/04/27 18:51:30 $
- *    $Revision: 1.431 $
+ *    $Author: mreuter $
+ *    $Date: 2009/05/15 20:41:00 $
+ *    $Revision: 1.432 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.431 $";
+const char *MRI_C_VERSION = "$Revision: 1.432 $";
 
 
 /*-----------------------------------------------------
@@ -6115,6 +6115,8 @@ MRIfree(MRI **pmri)
 
   if(mri->bvals) MatrixFree(&mri->bvals);
   if(mri->bvecs) MatrixFree(&mri->bvecs);
+  
+  if(mri->pedir) free(mri->pedir);
 
   free(mri) ;
   *pmri = NULL ;

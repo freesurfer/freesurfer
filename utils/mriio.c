@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/04/03 17:38:45 $
- *    $Revision: 1.353 $
+ *    $Author: mreuter $
+ *    $Date: 2009/05/15 20:41:00 $
+ *    $Revision: 1.354 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -12412,6 +12412,7 @@ mghRead(const char *fname, int read_volume, int frame)
         // First, try a path relative to fname (not the abs path)
         fnamedir = fio_dirname(fname);
         sprintf(tmpstr,"%s/transforms/talairach.xfm",fnamedir);
+	free(fnamedir); fnamedir= NULL;
         fgets(mri->transform_fname, len+1, fp);
         // If this file exists, copy it to transform_fname
         if (FileExists(tmpstr)) strcpy(mri->transform_fname,tmpstr);
