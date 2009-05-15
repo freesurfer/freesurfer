@@ -135,14 +135,14 @@ FFILES=\
 	t4_sub.f \
 	to_711-2B.f
 
-TESTS=test_libg2c
+TESTS=test_libg2c test_talairach_avi
 
 EXTRA_DIST=$(dist_bin_SCRIPTS) \
 	$(foo_DATA) \
 	$(CFILES) \
 	$(HFILES) \
 	$(FFILES) \
-	test_libg2c
+	test_libg2c test_talairach_avi nu.mgz reference-tal.xfm
 
 listfiles:
 	@echo $(EXTRA_DIST) Makefile.am

@@ -1,0 +1,54 @@
+#!/bin/tcsh -f
+
+#
+# test_talairach_avi
+#
+# execute talairach_avi and check results against expected results
+#
+# Original Author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2009/05/15 22:01:00 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2009,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION='$Id: test_talairach_avi,v 1.1 2009/05/15 22:01:00 nicks Exp $'
+
+umask 002
+
+set cmd=(./talairach_avi --i nu.mgz --xfm tal.xfm)
+echo "test_talairach_avi: output logged to test_talairach_avi.log..."
+$cmd >& test_talairach_avi.log
+if ($status != 0) then
+  echo "talairach_avi FAILED"
+  exit 1
+endif
+
+#
+# compare expected results with actual (produced) results
+#
+set cmd=(diff tal.xfm reference-tal.xfm)
+echo ""
+echo $cmd
+$cmd
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+echo ""
+echo "test_talairach_avi passed tests"
+exit 0
