@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/14 20:36:08 $
-#    $Revision: 1.209 $
+#    $Date: 2009/05/15 18:02:06 $
+#    $Revision: 1.210 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.209 2009/05/14 20:36:08 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.210 2009/05/15 18:02:06 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -155,8 +155,8 @@ set no_orig_pial = 0;    # if 1, mris_make_surfaces won't use orig pial
 set UseAsegFusion = 1; # if 0, dont create 'fused' asegs from timepoints
 set DoCreateBaseSubj = 0; # if 1, create the 'base' subject used in longitud
 set BaseSubjInvol = (T1.mgz); # -base-invol allows using some other file
-set BaseSubjsList = (); # subject set grabbed from -base-insubj args
-set BaseSubjsListFname = (base-insubjs); # file containing BaseSubjsList
+set BaseSubjsList = (); # subject set grabbed from -base-tp args
+set BaseSubjsListFname = (base-tps); # file containing BaseSubjsList
 set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median 
 
 # For defacing, as found in:
@@ -661,7 +661,7 @@ if ($DoCreateBaseSubj) then
   echo "#@# Longitudinal Base Subject Creation `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   if ($#BaseSubjsList == 0) then
-    echo "ERROR: must specify subjects for base subject using -base-insubj"
+    echo "ERROR: must specify subjects for base subject using -base-tp"
     goto error_exit;
   endif
   cd $subjdir > /dev/null
@@ -2858,12 +2858,12 @@ while( $#argv != 0 )
       set NoRandomness = 1;
       breaksw
 
-    case "-base-insubj":
+    case "-base-tp":
     case "-tp":
       if ( $#argv < 1) goto arg1err;
-      set baseinsubjid = $argv[1]; shift;
-      set baseinsubjid = `basename $baseinsubjid`; # removes trailing /
-      set BaseSubjsList = ($BaseSubjsList $baseinsubjid);
+      set basetpid = $argv[1]; shift;
+      set basetpid = `basename $basetpid`; # removes trailing /
+      set BaseSubjsList = ($BaseSubjsList $basetpid);
       breaksw
 
     case "-base-invol":
@@ -5305,7 +5305,7 @@ given to the base subject of a collection of timepoints:
   recon-all -s tp2 -i path_to_tp2_dicom -all
 
 2) create base subject and cross-sectionally process:
-  recon-all -base longbase -base-insubj tp1 -base-insubj tp2 -all
+  recon-all -base longbase -base-tp tp1 -base-tp tp2 -all
 
 3) longitudinally process tpN subjects:
   recon-all -long tp1 longbase -all
