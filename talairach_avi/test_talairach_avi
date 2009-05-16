@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/15 22:01:00 $
-#    $Revision: 1.1 $
+#    $Date: 2009/05/16 23:34:08 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2009,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,11 +24,14 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.1 2009/05/15 22:01:00 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.2 2009/05/16 23:34:08 nicks Exp $'
 
 umask 002
 
-set cmd=(./talairach_avi --i nu.mgz --xfm tal.xfm)
+set path=(. ../mri_convert ../tkregister2/cmdl $path)
+rehash
+
+set cmd=(talairach_avi --i nu.mgz --xfm tal.xfm)
 echo "test_talairach_avi: output logged to test_talairach_avi.log..."
 $cmd >& test_talairach_avi.log
 if ($status != 0) then
@@ -38,14 +41,16 @@ endif
 
 #
 # compare expected results with actual (produced) results
+# use lta_diff, since there will be small variations between platforms
 #
-set cmd=(diff tal.xfm reference-tal.xfm)
+set cmd=(../mri_robust_register/lta_diff tal.xfm reference-tal.xfm)
 echo ""
 echo $cmd
-$cmd
-set diff_status=$status
-if ($diff_status != 0) then
-  echo "$cmd FAILED (exit status=$diff_status)"
+set diffVal=(`$cmd`)  
+echo "rigid transform distance = $diffVal"
+set diffBool=(`echo "$diffVal > 0.01" | bc`)
+if ($diffBool) then
+  echo "$cmd FAILED: rigid transform distance = $diffVal > 0.01"
   exit 1
 endif
 
