@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -18,7 +19,7 @@ pair < double , int > RobustGaussian::quick_selectI(double arr[], int n, int k)
   int median;
   int middle, ll, hh;
 
-  int pos[n]; // to keep trak of original poisistion (mr)
+  vector < int > pos(n); // to keep trak of original poisistion (mr)
   for (int i = 0;i<n;i++) pos[i] = i;
 
   low = 0 ;
@@ -106,7 +107,7 @@ std::pair < double , int> RobustGaussian::kth_smallestI(double a[], int n, int k
   int kk = k-1;
   double x ;
   
-  int pos[n]; // to keep trak of original poisistion (mr)
+  vector < int > pos(n); // to keep trak of original position (mr)
   for (int i = 0;i<n;i++) pos[i] = i;
   
   l=0 ;

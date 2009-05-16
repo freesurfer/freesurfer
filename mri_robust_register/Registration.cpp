@@ -24,7 +24,7 @@ using namespace std;
 
 Registration::~Registration()
 { // we cleanup our private variables
-  // std::cout << " Destroy Registration" << std::endl;
+  //std::cout << " Destroy Registration" << std::endl;
   if (mri_source) MRIfree(&mri_source);
   if (mri_target) MRIfree(&mri_target);
   if (Minit) MatrixFree(&Minit);
@@ -371,6 +371,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
   MATRIX * mh  = NULL;
   MATRIX * mhi = NULL;
 
+  if (lastp) MatrixFree(&lastp);
   lastp = NULL;
   double diff = 100;
   int i = 1;
@@ -3282,17 +3283,21 @@ int Registration::findRightSize(MRI *mri, float conform_size)
 }
 
 void Registration::setSource (MRI * s, bool fixvoxel, bool fixtype)
+//local copy
 {
-  if (! (fixvoxel || fixtype)) mri_source = MRIcopy(s,NULL);
+  if (! (fixvoxel || fixtype)) mri_source = MRIcopy(s,mri_source);
   else mri_source = makeConform(s,NULL,fixvoxel,fixtype);
   if (gpS.size() > 0) freeGaussianPyramid(gpS);
+  //cout << "mri_source" << mri_source << endl;
 }
 
 void Registration::setTarget (MRI * t, bool fixvoxel, bool fixtype)
+//local copy
 {
-  if (! (fixvoxel || fixtype))   mri_target = MRIcopy(t,NULL);
+  if (! (fixvoxel || fixtype))   mri_target = MRIcopy(t,mri_target);
   else mri_target = makeConform(t,NULL,fixvoxel,fixtype);
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
+  //cout << "mri_target" << mri_target << endl;
 }
 
 void Registration::setName(const std::string &n)
