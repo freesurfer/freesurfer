@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/14 18:28:32 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/05/16 00:40:24 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -89,10 +89,11 @@ struct Parameters
   vector < MRI* > mri_weights;
   vector < double > intensities;
   int    inittp;
+  bool   noit;
 };
 static struct Parameters P =
 {
-  vector < string >(0),"",NULL,vector < string >(0),vector < string >(0),false,false,false,false,false,false,false,5,0.01,SAT,vector < string >(0),0,1,vector < MRI* >(0),vector < LTA* >(0),vector < MRI* >(0),vector < MRI* >(0),vector < double >(0),1
+  vector < string >(0),"",NULL,vector < string >(0),vector < string >(0),false,false,false,false,false,false,false,5,0.01,SAT,vector < string >(0),0,1,vector < MRI* >(0),vector < LTA* >(0),vector < MRI* >(0),vector < MRI* >(0),vector < double >(0),1,false
 };
 
 
@@ -110,7 +111,7 @@ void initialXforms (Parameters & P, int tpi);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.5 2009/05/14 18:28:32 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.6 2009/05/16 00:40:24 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -257,6 +258,7 @@ LTA* RASmatrix2LTA(MATRIX * m, MRI* src, MRI* dst)
 }
 
 void computeTemplate(Parameters & P)
+// returns P.mri_mean, P.ltas, P.mri_warps (P.mri_weights and P.intensities if available)
 {
   int nin = (int) P.mri_mov.size();
 
@@ -289,6 +291,13 @@ void computeTemplate(Parameters & P)
     }
     P.mri_mean = averageSet(P.mri_warps, P.mri_mean,P.average,P.sat);
   }
+  
+  if (P.noit) // no iterations necessary just return with mean (and ltas and warps);
+  {
+    strncpy(P.mri_mean->fname, P.mean.c_str(),STRLEN);
+    return;
+  }
+
   
   strncpy(P.mri_mean->fname,(outdir+"mean-it0.mgz").c_str(),STRLEN);
   if (P.debug)
@@ -370,14 +379,14 @@ void computeTemplate(Parameters & P)
         //// tried high res only: (does not make sense, we need 2 iter. on high res anyway)
         //Md= Rv[i].computeIterativeRegistration(1,epsit,NULL,NULL,transforms[i],P.intensities[i]);
         //dists[i] = sqrt(Rv[i].AffineTransDistSq(Md.first, transforms[i]));
-				if (itcount ==1) subsamp = 	180;	
+        if (itcount ==1) subsamp = 180;	
         maxres = 0; //go up to hig-res
       }
       //else dists[i] = 100; // we need to run multires...
 
       //if (dists[i] > eps)
-			Rv[i].setSubsamplesize(subsamp);
-        Md = Rv[i].computeMultiresRegistration(maxres,
+      Rv[i].setSubsamplesize(subsamp);
+      Md = Rv[i].computeMultiresRegistration(maxres,
                                                iterate,
                                                epsit,
                                                NULL,
@@ -584,15 +593,14 @@ void initialXforms(Parameters & P, int tpi)
   
   int nin = (int) P.mri_mov.size();
 	
-	tpi--; // tpi 0....n-1
-	assert (tpi>=0 && tpi <nin);
+  tpi--; // tpi 0....n-1
+  assert (tpi>=0 && tpi <nin);
 	
-	// create index set for lookup (tpi should switch places with 0)
-	vector < int > index(nin);
-	for (int i = 0;i<nin;i++)
-	   index[i] = i;
-	index[0] = tpi;
-	index[tpi] = 0;
+  // create index set for lookup (tpi should switch places with 0)
+  vector < int > index(nin);
+  for (int i = 0;i<nin;i++) index[i] = i;
+  index[0] = tpi;
+  index[tpi] = 0;
 
   string outdir = "./";
   size_t  pos = P.mean.rfind("/");    // position of "." in str
@@ -900,19 +908,20 @@ static void printUsage(void)
 //  cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "  --ixforms t1.lta t2.lta .. use initial transforms (lta) on source  ('id'=identity)" << endl;
 //  cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
-  cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
-  cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
+  cout << "  --vox2vox                  output VOX2VOX lta file (default is RAS2RAS)" << endl;
+  cout << "  --leastsquares             use least squares instead of robust M-estimator" << endl;
+  cout << "  --noit                     do not iterate, just create first template" << endl;
 //  cout << "      --maxit <#>            iterate max # times on each resolution (default "<<P.iterate<<")"  << endl;
 //  cout << "      --epsit <float>        stop iterations when below <float> (default "<<P.epsit <<")" << endl;
 //  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "      --sat <float>          set saturation for robust estimator (default "<<SAT<<")" << endl;
+  cout << "  --sat <float>              set saturation for robust estimator (default "<<SAT<<")" << endl;
 //  cout << "      --subsample <#>        subsample if dim > # on all axes (default no subs.)" << endl;
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
 //  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
-  cout << "      --uchar                set input type to UCHAR (with intensity scaling)" << endl;
-  cout << "      --conform              conform volumes to 1mm vox (256^3)" << endl;
+  cout << "  --uchar                    set input type to UCHAR (with intensity scaling)" << endl;
+  cout << "  --conform                  conform volumes to 1mm vox (256^3)" << endl;
 //  cout << "      --satit                iterate on highest res with different sat" << endl;
-  cout << "      --debug                show debug output (default no debug output)" << endl;
+  cout << "  --debug                    show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
@@ -1327,6 +1336,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.debug = 1;
     nargs = 0 ;
     cout << "Will output debug info and files!" << endl;
+  }
+  else if (!strcmp(option, "NOIT") )
+  {
+    P.noit = true;
+    nargs = 0 ;
+    cout << "Will output only first template (no iterations)!" << endl;
   }
   else if (!strcmp(option, "WEIGHTS") )
   {
