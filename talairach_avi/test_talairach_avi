@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/16 23:34:08 $
-#    $Revision: 1.2 $
+#    $Date: 2009/05/16 23:55:37 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2009,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,12 +24,22 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.2 2009/05/16 23:34:08 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.3 2009/05/16 23:55:37 nicks Exp $'
 
 umask 002
 
 set path=(. ../mri_convert ../tkregister2/cmdl $path)
 rehash
+
+# fake-out an installation:
+setenv FREESURFER_HOME .
+rm -f average
+ln -s . average
+rm -f mni305.cor.mgz
+ln -s ../distribution/average/mni305.cor.mgz
+rm -Rf lib
+mkdir -p lib/tcl
+cp ../scripts/tkregister2.tcl lib/tcl/
 
 set cmd=(talairach_avi --i nu.mgz --xfm tal.xfm)
 echo "test_talairach_avi: output logged to test_talairach_avi.log..."
