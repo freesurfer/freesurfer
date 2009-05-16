@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/11 22:48:08 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/05/16 00:41:12 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -116,7 +116,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.21 2009/05/11 22:48:08 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.22 2009/05/16 00:41:12 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -153,6 +153,7 @@ void conv(MRI * i)
 
 int main(int argc, char *argv[])
 {
+  { // for valgrind, so that everything is freed
   cout << vcid << endl;
   // set the environment variable
   // to store mri as chunk in memory:
@@ -485,6 +486,7 @@ int main(int argc, char *argv[])
   seconds = seconds % 60 ;
   cout << "registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
   //if (diag_fp) fclose(diag_fp) ;
+  } // for valgrind, so that everything is free
   exit(0) ;
   return(0) ;
 }
@@ -879,83 +881,105 @@ static void initRegistration(Registration & R, Parameters & P)
     if (!st)
     {
       // try to read other transform
-      char ctrans[STRLEN];
-      strcpy(ctrans, P.transform.c_str());
-      TRANSFORM * trans = TransformRead(ctrans);
+      TRANSFORM * trans = TransformRead(P.transform.c_str());
       LTA* lta =  (LTA *)trans->xform ;
       if (!lta)
-        ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, ctrans) ;
+        ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, P.transform.c_str()) ;
       lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
       if (lta->type!=LINEAR_VOX_TO_VOX)
       {
-        ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, ctrans, lta->type) ;
+        ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, P.transform.c_str(), lta->type) ;
       }
       R.setMinit(lta->xforms[0].m_L);
     }
   }
 
-  //////////////////////////////////////////////////////////////
-  // create a list of MRI volumes
-  //cout << "reading "<<ninputs<<" source (movable) volumes..."<< endl;
-  int ninputs = 1; // later we might want to load several frames
-  MRI* mri_src = NULL;
-  MRI* mri_tmp = NULL;
-  if (P.mri_mov) MRIfree(&P.mri_mov);
-  for (int i = 0 ; i < ninputs ; i++)
+//   //////////////////////////////////////////////////////////////
+//   // create a list of MRI volumes
+//   //cout << "reading "<<ninputs<<" source (movable) volumes..."<< endl;
+//   int ninputs = 1; // later we might want to load several frames
+//   MRI* mri_src = NULL;
+//   MRI* mri_tmp = NULL;
+//   if (P.mri_mov) MRIfree(&P.mri_mov);
+//   for (int i = 0 ; i < ninputs ; i++)
+//   {
+//     cout << "reading source '"<<P.mov<<"'..." << endl;
+//     fflush(stdout) ;
+// 
+//     mri_tmp = MRIread(P.mov.c_str()) ;
+//     if (!mri_tmp)
+//     {
+//       ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
+//                 Progname, P.mov.c_str()) ;
+//       //cerr << Progname << " could not open input volume " << P.mov << endl;
+//       //exit(1);
+//     }
+// 
+//     if (i == 0)
+//     {
+//       mri_src = MRIallocSequence(mri_tmp->width,
+//                                  mri_tmp->height,
+//                                  mri_tmp->depth,
+//                                  mri_tmp->type,
+//                                  ninputs) ;
+//       MRIcopyHeader(mri_tmp, mri_src) ;
+//       P.mri_mov = MRIallocSequence(mri_tmp->width,
+//                                    mri_tmp->height,
+//                                    mri_tmp->depth,
+//                                    mri_tmp->type,
+//                                    ninputs) ;
+//       MRIcopyHeader(mri_tmp, P.mri_mov) ;
+//     }
+//     MRIcopyFrame(mri_tmp, P.mri_mov, 0, i) ; // store input in P.mri_mov
+// 
+//     if (P.maskmov != "") // work only on mri_src to init registration (not P.mri_mov)
+//     {
+//       MRI *mri_mask = MRIread(P.maskmov.c_str());
+//       if (!mri_mask)
+//         ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+//                   Progname, P.maskmov.c_str()) ;
+//       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+//       MRIfree(&mri_mask) ;
+//     }
+// 
+//     MRIcopyFrame(mri_tmp, mri_src, 0, i) ;
+//     MRIfree(&mri_tmp) ;
+//   }
+//   R.setSource(mri_src,P.fixvoxel,P.fixtype);
+//   MRIfree(&mri_src);
+
+  ///////////  read MRI Source //////////////////////////////////////////////////
+  cout <<  "reading source '"<<P.mov<<"'..."<< endl ;
+  fflush(stdout) ;
+
+  MRI* mri_mov = MRIread(P.mov.c_str()) ;
+  if (mri_mov == NULL)
   {
-    cout << "reading source '"<<P.mov<<"'..." << endl;
-    fflush(stdout) ;
-    char mov[STRLEN];
-    strcpy(mov, P.mov.c_str());
-
-    mri_tmp = MRIread(mov) ;
-    if (!mri_tmp)
-    {
-      ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-                Progname, P.mov.c_str()) ;
-      //cerr << Progname << " could not open input volume " << P.mov << endl;
-      //exit(1);
-    }
-
-    if (i == 0)
-    {
-      mri_src = MRIallocSequence(mri_tmp->width,
-                                 mri_tmp->height,
-                                 mri_tmp->depth,
-                                 mri_tmp->type,
-                                 ninputs) ;
-      MRIcopyHeader(mri_tmp, mri_src) ;
-      P.mri_mov = MRIallocSequence(mri_tmp->width,
-                                   mri_tmp->height,
-                                   mri_tmp->depth,
-                                   mri_tmp->type,
-                                   ninputs) ;
-      MRIcopyHeader(mri_tmp, P.mri_mov) ;
-    }
-    MRIcopyFrame(mri_tmp, P.mri_mov, 0, i) ; // store input in P.mri_mov
-
-    if (P.maskmov != "") // work only on mri_src to init registration (not P.mri_mov)
-    {
-      MRI *mri_mask = MRIread(P.maskmov.c_str());
-      if (!mri_mask)
-        ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-                  Progname, P.maskmov.c_str()) ;
-      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-      MRIfree(&mri_mask) ;
-    }
-
-    MRIcopyFrame(mri_tmp, mri_src, 0, i) ;
-    MRIfree(&mri_tmp) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not open MRI source %s.\n",
+              Progname, P.mov.c_str()) ;
+    //cerr << Progname << " could not open MRI Target " << P.mov << endl;
+    //exit(1);
   }
-  R.setSource(mri_src,P.fixvoxel,P.fixtype);
+  P.mri_mov = MRIcopy(mri_mov,P.mri_mov); // save dst mri
+
+  if (P.maskmov != "")
+  {
+    MRI *mri_mask = MRIread(P.maskmov.c_str());
+    if (!mri_mask)
+      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                Progname, P.maskmov.c_str()) ;
+    MRImask(mri_mov, mri_mask, mri_mov, 0, 0) ;
+    MRIfree(&mri_mask) ;
+  }
+  R.setSource(mri_mov,P.fixvoxel,P.fixtype);
+  MRIfree(&mri_mov);
 
 
   ///////////  read MRI Target //////////////////////////////////////////////////
   cout <<  "reading target '"<<P.dst<<"'..."<< endl ;
   fflush(stdout) ;
-  char dst[STRLEN];
-  strcpy(dst, P.dst.c_str());
-  MRI* mri_dst = MRIread(dst) ;
+
+  MRI* mri_dst = MRIread(P.dst.c_str()) ;
   if (mri_dst == NULL)
   {
     ErrorExit(ERROR_NOFILE, "%s: could not open MRI target %s.\n",
