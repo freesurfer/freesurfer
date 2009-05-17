@@ -28,8 +28,6 @@ MRISUBDIRS=\
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
-	talairach_afd \
-	talairach_avi \
 	mri_interpolate \
 	mri_jacobian \
 	mri_label_accuracy \
@@ -162,7 +160,9 @@ MRISUBDIRS=\
 	mri_transform_to_COR \
 	mri_log_likelihood \
 	mri_compute_change_map \
-	mri_apply_inu_correction
+	mri_apply_inu_correction \
+	talairach_afd \
+	talairach_avi
 
 MRISSUBDIRS=\
 	label_area \
