@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/16 23:55:37 $
-#    $Revision: 1.3 $
+#    $Date: 2009/05/17 00:16:24 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2009,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.3 2009/05/16 23:55:37 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.4 2009/05/17 00:16:24 nicks Exp $'
 
 umask 002
 
@@ -57,10 +57,14 @@ set cmd=(../mri_robust_register/lta_diff tal.xfm reference-tal.xfm)
 echo ""
 echo $cmd
 set diffVal=(`$cmd`)  
+if ($status) then
+  echo "$cmd FAILED"
+  exit 1
+endif
 echo "rigid transform distance = $diffVal"
-set diffBool=(`echo "$diffVal > 0.01" | bc`)
+set diffBool=(`echo "$diffVal > 0.015" | bc`)
 if ($diffBool) then
-  echo "$cmd FAILED: rigid transform distance = $diffVal > 0.01"
+  echo "$cmd FAILED: rigid transform distance = $diffVal > 0.015"
   exit 1
 endif
 
