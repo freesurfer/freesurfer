@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/17 00:16:24 $
-#    $Revision: 1.4 $
+#    $Date: 2009/05/17 19:08:45 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2009,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.4 2009/05/17 00:16:24 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.5 2009/05/17 19:08:45 nicks Exp $'
 
 umask 002
 
@@ -32,6 +32,7 @@ set path=(. ../mri_convert ../tkregister2/cmdl $path)
 rehash
 
 # fake-out an installation:
+setenv SUBJECTS_DIR .
 setenv FREESURFER_HOME .
 rm -f average
 ln -s . average
