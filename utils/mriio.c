@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/05/15 20:41:00 $
- *    $Revision: 1.354 $
+ *    $Author: greve $
+ *    $Date: 2009/05/18 16:53:24 $
+ *    $Revision: 1.355 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -11245,7 +11245,7 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr)
   float r11, r12, r13;
   float r21, r22, r23;
   float r31, r32, r33;
-  float qfac;
+  float qfac = -100000;
   float a, b, c, d;
   float xd, yd, zd;
   float r_det;
@@ -11319,11 +11319,9 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr)
           - r12 * (r21*r33 - r31*r23)
           + r13 * (r21*r32 - r31*r22);
 
-  if (r_det == 0.0)
-  {
-    ErrorReturn(ERROR_BADFILE,
-                (ERROR_BADFILE,
-                 "bad orientation matrix (determinant = 0) in nifti1 file"));
+  if (r_det == 0.0) {
+    printf("WARNING: bad orientation matrix (determinant = 0) in nifti1 file ...\n");
+    printf(" ... continuing.\n");
   }
   else if (r_det > 0.0)
     qfac = 1.0;
