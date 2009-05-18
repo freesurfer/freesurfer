@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/17 02:08:58 $
- *    $Revision: 1.138.2.9 $
+ *    $Date: 2009/05/18 15:41:44 $
+ *    $Revision: 1.138.2.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -330,16 +330,21 @@ use subjects ?h.cortex.label as --label
 --prune
 --no-prune
 
-This now happens by default. Use --no-prune to turn it off. Remove voxels
+This happens by default. Use --no-prune to turn it off. Remove voxels
 from the analysis if the ALL the frames at that voxel
-do not have an absolute value that exceeds zero (actually FLT_MIN).
-This helps to prevent the situation where some frames are 0 and
-others are not. If no mask is supplied, a mask is created and saved.
-If a mask is supplied, it is pruned, and the final mask is saved.
-Do not use with --sim. Rather, run the non-sim analysis with --prune,
-then pass the created mask when running simulation. It is generally
-a good idea to prune (though the default is not to). --no-prune
-will turn off pruning if it had been turned on.
+do not have an absolute value that exceeds zero (actually FLT_MIN, 
+or whatever is set by --prune_thr). This helps to prevent the situation 
+where some frames are 0 and others are not. If no mask is supplied, 
+a mask is created and saved. If a mask is supplied, it is pruned, and 
+the final mask is saved. Do not use with --sim. Rather, run the non-sim 
+analysis with --prune, then pass the created mask when running simulation. 
+It is generally a good idea to prune. --no-prune will turn off pruning 
+if it had been turned on. For DTI, only the first frame is used to 
+create the mask.
+
+--prune_thr threshold
+
+Use threshold to create the mask using pruning. Default is FLT_MIN
 
 --surf subject hemi <surfname>
 
@@ -548,7 +553,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.138.2.9 2009/01/17 02:08:58 greve Exp $";
+"$Id: mri_glmfit.c,v 1.138.2.10 2009/05/18 15:41:44 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -648,6 +653,7 @@ int OneSampleGroupMean=0;
 struct timeb  mytimer;
 int ReallyUseAverage7 = 0;
 int logflag = 0; // natural log
+float prune_thr = FLT_MIN;
 
 DTI *dti;
 int usedti = 0;
@@ -684,6 +690,7 @@ int  UseCortexLabel = 0;
 
 char *SimDoneFile = NULL;
 int tSimSign = 0;
+int FWHMSet = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -991,9 +998,18 @@ int main(int argc, char **argv) {
     MRIfree(&mriglm->mask);
     mriglm->mask = mritmp;
   }
-  if (prunemask) {
-    printf("Pruning voxels by frame.\n");
-    mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
+  if(prunemask) {
+    printf("Pruning voxels by thr: %f\n", prune_thr);
+    if(usedti){
+      // NOTE: for DWI volumes
+      MRI* firstFrameVol;
+      firstFrameVol = MRIcopyFrame(mriglm->y,NULL, 0, 0);
+      mriglm->mask = MRIframeBinarize(firstFrameVol,prune_thr,mriglm->mask);
+      MRIfree(&firstFrameVol);
+    }
+    else{
+      mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
+    }
   }
   if (mriglm->mask && maskinv)
     MRImaskInvert(mriglm->mask,mriglm->mask);
@@ -1006,7 +1022,7 @@ int main(int argc, char **argv) {
     if (!DontSave) {
       sprintf(tmpstr,"%s/mask.%s",GLMDir,format);
       printf("Saving mask to %s\n",tmpstr);
-      MRIwrite(mriglm->mask,tmpstr);
+      MRIwrite(mriglm->mask,tmpstr); 
     }
   } else nmask = nvoxels;
   maskfraction = (double)nmask/nvoxels;
@@ -1372,8 +1388,20 @@ int main(int argc, char **argv) {
           RFsynth(z,rfs,mriglm->mask); // z or t, as needed
           if (SmoothLevel > 0) {
             SmoothSurfOrVol(surf, z, mriglm->mask, SmoothLevel);
+	    if(DiagCluster) {
+	      sprintf(tmpstr,"./%s-zsm0.%s",mriglm->glm->Cname[n],format);
+	      printf("Saving z into %s\n",tmpstr);
+	      MRIwrite(z,tmpstr);
+	      // Exits below
+	    }
             RFrescale(z,rfs,mriglm->mask,z);
           }
+	  if(DiagCluster) {
+	    sprintf(tmpstr,"./%s-zsm1.%s",mriglm->glm->Cname[n],format);
+	    printf("Saving z into %s\n",tmpstr);
+	    MRIwrite(z,tmpstr);
+	    // Exits below
+	  }
           // Slightly tortured way to get the right p-values because
           //   RFstat2P() computes one-sided, but I handle sidedness
           //   during thresholding.
@@ -1446,7 +1474,7 @@ int main(int argc, char **argv) {
 
         fclose(fp);
 
-        if (DiagCluster) {
+        if(DiagCluster) {
           sprintf(tmpstr,"./%s-sig.%s",mriglm->glm->Cname[n],format);
           printf("Saving sig into %s and exiting ... \n",tmpstr);
           MRIwrite(sig,tmpstr);
@@ -1696,8 +1724,10 @@ int main(int argc, char **argv) {
 
       printf("Computing dwires\n");
       dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
-      //sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
-      //MRIwrite(dwires,tmpstr);
+      if(eresSave){
+	sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
+	MRIwrite(dwires,tmpstr);
+      }
 
       printf("Computing dwi rvar\n");
       dwirvar = fMRIcovariance(dwires, 0, mriglm->beta->nframes, 0, NULL);
@@ -1839,6 +1869,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
+    else if (!strcasecmp(option, "--prune_thr")){
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&prune_thr); 
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--nii")) format = "nii";
     else if (!strcasecmp(option, "--nii.gz")) format = "nii.gz";
     else if (!strcasecmp(option, "--allowsubjrep"))
@@ -1944,10 +1979,11 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--smooth") ||
-               !strcasecmp(option, "--fwhm")) {
-      if (nargc < 1) CMDargNErr(option,1);
+             !strcasecmp(option, "--fwhm")) {
+      if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&FWHM);
       csd->nullfwhm = FWHM;
+      FWHMSet = 1;
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--no-fwhm-est")) ComputeFWHM = 0;
@@ -2446,19 +2482,28 @@ printf("only where mask=0. If performing a simulation (--sim), map maximums\n");
 printf("and clusters will only be searched for in the mask. The final binary\n");
 printf("mask will automatically be saved in glmdir/mask.mgh\n");
 printf("\n");
+printf("--cortex \n");
+printf("\n");
+printf("use subjects ?h.cortex.label as --label\n");
+printf("\n");
 printf("--prune\n");
 printf("--no-prune\n");
 printf("\n");
-printf("This now happens by default. Use --no-prune to turn it off. Remove voxels\n");
+printf("This happens by default. Use --no-prune to turn it off. Remove voxels\n");
 printf("from the analysis if the ALL the frames at that voxel\n");
-printf("do not have an absolute value that exceeds zero (actually FLT_MIN).\n");
-printf("This helps to prevent the situation where some frames are 0 and\n");
-printf("others are not. If no mask is supplied, a mask is created and saved.\n");
-printf("If a mask is supplied, it is pruned, and the final mask is saved.\n");
-printf("Do not use with --sim. Rather, run the non-sim analysis with --prune,\n");
-printf("then pass the created mask when running simulation. It is generally\n");
-printf("a good idea to prune (though the default is not to). --no-prune\n");
-printf("will turn off pruning if it had been turned on.\n");
+printf("do not have an absolute value that exceeds zero (actually FLT_MIN, \n");
+printf("or whatever is set by --prune_thr). This helps to prevent the situation \n");
+printf("where some frames are 0 and others are not. If no mask is supplied, \n");
+printf("a mask is created and saved. If a mask is supplied, it is pruned, and \n");
+printf("the final mask is saved. Do not use with --sim. Rather, run the non-sim \n");
+printf("analysis with --prune, then pass the created mask when running simulation. \n");
+printf("It is generally a good idea to prune. --no-prune will turn off pruning \n");
+printf("if it had been turned on. For DTI, only the first frame is used to \n");
+printf("create the mask.\n");
+printf("\n");
+printf("--prune_thr threshold\n");
+printf("\n");
+printf("Use threshold to create the mask using pruning. Default is FLT_MIN\n");
 printf("\n");
 printf("--surf subject hemi <surfname>\n");
 printf("\n");
@@ -2495,10 +2540,11 @@ printf("Flag to save the condition number of the design matrix at eaach voxel.\n
 printf("Normally, this is not very useful except for debugging. It is totally\n");
 printf("useless if not using weights or PVRs.\n");
 printf("\n");
-printf("--nii\n");
+printf("--nii, --nii.gz\n");
 printf("\n");
-printf("Use nifti as output format instead of mgh. This might not work with\n");
-printf("surfaces.\n");
+printf("Use nifti (or compressed nifti) as output format instead of mgh. This\n");
+printf("will work with surfaces, but you will not be able to open the output\n");
+printf("nifti files with non-freesurfer software.\n");
 printf("\n");
 printf("--seed seed\n");
 printf("\n");
@@ -2705,6 +2751,12 @@ static void check_options(void) {
       exit(1);
     }
   }
+
+  if(DoSim && FWHMSet == 0){
+    printf("ERROR: you must supply --fwhm with --sim, even if it is 0\n");
+    exit(1);
+  }
+
   return;
 }
 
