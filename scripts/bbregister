@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/09 05:39:16 $
-#    $Revision: 1.18 $
+#    $Date: 2009/05/18 18:51:42 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.18 2009/05/09 05:39:16 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.19 2009/05/18 18:51:42 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -472,7 +472,7 @@ while( $#argv != 0 )
 
     case "--fsl-dof":
       if($#argv < 1) goto arg1err;
-      set FSLDOF = $argv;
+      set FSLDOF = $argv[1]; shift;
       breaksw
 
     case "--rms":
