@@ -42,6 +42,7 @@ stem2fname \
 freesurfer \
 fs_lib_check \
 fs_time \
+fscalc.fsl \
 fsl_rigid_register \
 fslregister \
 fsfget \
