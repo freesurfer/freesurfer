@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2009/01/27 16:24:04 $
- *    $Revision: 1.165 $
+ *    $Author: greve $
+ *    $Date: 2009/05/18 15:11:58 $
+ *    $Revision: 1.166 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -548,7 +548,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.165 2009/01/27 16:24:04 lzollei Exp $";
+"$Id: mri_glmfit.c,v 1.166 2009/05/18 15:11:58 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1714,8 +1714,10 @@ int main(int argc, char **argv) {
 
       printf("Computing dwires\n");
       dwires = MRIsum(dwi, dwisynth, 1, -1, mriglm->mask, NULL);
-      //sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
-      //MRIwrite(dwires,tmpstr);
+      if(eresSave){
+	sprintf(tmpstr,"%s/dwires.%s",GLMDir,format);
+	MRIwrite(dwires,tmpstr);
+      }
 
       printf("Computing dwi rvar\n");
       dwirvar = fMRIcovariance(dwires, 0, mriglm->beta->nframes, 0, NULL);
