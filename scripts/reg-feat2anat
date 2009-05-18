@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/03/20 20:15:36 $
-#    $Revision: 1.33 $
+#    $Date: 2009/05/18 15:44:48 $
+#    $Revision: 1.34 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: reg-feat2anat,v 1.33 2009/03/20 20:15:36 greve Exp $'
+set VERSION = '$Id: reg-feat2anat,v 1.34 2009/05/18 15:44:48 greve Exp $'
 set FeatDir = ();
 set subject = ();
 set anatvol = brainmask;
@@ -43,6 +43,8 @@ set DoBETFunc = 0; # Not with FSL 4.0
 set title = ();
 set UseSPM = 0;
 set DoBBR = 1; # On by default
+set INorm = 1;
+set fmov = ();
 
 set PrintHelp = 0;
 
@@ -139,7 +141,9 @@ if($manual && $manxfm == func2anat) then
     exit 1;
   endif
   set cmd = ($TKR --s $subject --mov $tempvol --volview mov\
-              --reg $anat2exf_regdat --tag --inorm)
+              --reg $anat2exf_regdat --tag)
+  if($Inorm) set cmd = ($cmd --inorm)
+  if($#fmov) set cmd = ($cmd --fmov $fmov)
   if($manual_use_surf) set cmd = ($cmd --surf orig);
   if($#title) set cmd = ($cmd --title $title);
   if(! -e $SUBJECTS_DIR/$subject/mri/orig/COR-001) set cmd = ($cmd --mgz)
@@ -467,6 +471,19 @@ while( $#argv != 0 )
       set DoBBR = 0;
       breaksw
 
+    case "--fmov":
+      if($#argv < 1) goto arg1err;
+      set fmov = $argv[1]; shift;
+      breaksw
+
+    case "--inorm":
+      set Inorm = 1;
+      breaksw
+
+    case "--no-inorm":
+      set Inorm = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
@@ -593,6 +610,8 @@ usage_exit:
   echo " --title        : title for tkregister window"
   echo " --no-bbr       : do not use boundary-based registration"
   echo " --spm          : use SPM instead of flirt, 6 dof only"
+  echo " --no-inorm     : do not inorm when running tkregister2"
+  echo " --fmov fmov    : for tkregister2"
   echo " --version      : print version and exit"
   echo " --help         : print help and exit"
   echo " --debug        : turn on debugging"
