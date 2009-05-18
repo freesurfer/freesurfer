@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.11 2008/07/29 19:55:17 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.12 2009/05/18 15:44:01 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -15,6 +15,9 @@ set bvals = ();
 set bvecs = ();
 set DoRegistration = 1;
 set DoTalairach = 1;
+set SaveERes = 0;
+set EResPCA = 0;
+set PruneThr = ();
 
 set PrintHelp = 0;
 set LF = ();
@@ -130,6 +133,9 @@ if($#bvals == 0) then
 else
   set cmd = ($cmd --dti $bvals $bvecs)
 endif
+if($SaveERes) set cmd = ($cmd --eres-save)
+if($EResPCA)  set cmd = ($cmd --pca)
+if($#PruneThr)  set cmd = ($cmd --prune_thr $PruneThr)
 
 echo "cd `pwd`" |  tee -a $LF
 echo $cmd       |  tee -a $LF 
@@ -259,6 +265,11 @@ while( $#argv != 0 )
       set ECRefTP = $argv[1]; shift;
       breaksw
 
+    case "--prune_thr":
+      if($#argv < 1) goto arg1err;
+      set PruneThr = $argv[1]; shift;
+      breaksw
+
     case "--no-ec":
       set DoEddyCorrect = 0;
       breaksw
@@ -270,6 +281,18 @@ while( $#argv != 0 )
 
     case "--no-tal":
       set DoTalairach = 0;
+      breaksw
+
+    case "--eres-save":
+      set SaveERes = 1;
+      breaksw
+
+    case "--no-eres-save":
+      set SaveERes = 0;
+      breaksw
+
+    case "--pca":
+      set EResPCA = 1;
       breaksw
 
     case "--verbose":
@@ -394,6 +417,9 @@ usage_exit:
   echo "  --no-reg         : do not register to subject or resample to talairach"
   echo "  --no-tal         : do not resample FA to talairch space"
   echo "  --sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
+  echo "  --eres-save      : save resdidual error (dwires and eres)"
+  echo "  --pca            : run PCA/SVD analysis on eres (saves in pca-eres dir)"
+  echo "  --prune_thr thr  : set threshold for masking (default is FLT_MIN)"
   echo "  --debug          : print out lots of info"
   echo "  --version        : print version of this script and exit"
   echo "  --help           : voluminous bits of wisdom"
