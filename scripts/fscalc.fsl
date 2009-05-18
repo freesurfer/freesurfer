@@ -1,0 +1,223 @@
+#!/bin/tcsh -f
+#
+# This is a utility that extends fslmaths so that an format that can
+# be read/written by freesurfer can be used. It operates in the same
+# way as fslmaths, just use the same command line flags and arguments
+# with the exception that the input file formats can be anything that
+# freesurfer reads, and the output file format can be anything that
+# freesurfer writes. Can convert volume-encoded surface files with
+# --surf if nvertices is not prime.
+# 
+# $Id: fscalc.fsl,v 1.4.2.2 2009/05/18 15:45:34 greve Exp $
+#
+
+# First determine whether a surface is part of the mix
+set argv0 = ($argv);
+set newargv = ();
+set subject = ();
+set hemi = ();
+set DoReshape1D = 0;
+while($#argv0)
+  set flag = $argv0[1]; shift argv0;
+  switch ($flag)
+    case "--surf":
+    case "--surface":
+      if($#argv0 < 2) then
+        echo "ERROR: --surf needs two args"
+        exit 1;
+      endif
+      set subject = $argv0[1]; shift argv0;
+      set hemi  = $argv0[1]; shift argv0;
+      if(! -e $SUBJECTS_DIR/$subject) then
+        echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+        exit 1;
+      endif
+      if($hemi != lh && $hemi != rh) then
+        echo "ERROR: hemi must be either lh or rh"
+        exit 1;
+      endif
+      breaksw;
+    case "--reshape1d":
+      set DoReshape1D = 1;
+      breaksw;
+    case "--no-reshape1d":
+      set DoReshape1D = 0;
+      breaksw;
+    default:
+      set newargv = ($newargv $flag);
+      breaksw;
+  endsw
+end
+if($#subject == 0) then
+  set newargv = ($argv);
+  set DoReshape1D = 0;  
+endif
+
+if($#newargv < 3) then
+  echo ""
+  echo "fscalc.fsl - a freesurfer wrapper around fslmaths"
+  echo ""
+  echo "This is a utility that extends fslmaths so that any format that can"
+  echo "be read/written by freesurfer can be used. It operates in the same"
+  echo "way as fslmaths, just use the same command line flags and arguments"
+  echo "with the exception that the input file formats can be anything that"
+  echo "freesurfer reads, and the output file format can be anything that"
+  echo "freesurfer writes. Forces output data type to be float."
+  echo ""
+  echo "This can work on some surfaces if the number of vertices is not"
+  echo "prime. More specficially, the largest prime factor of the number"
+  echo "of vertices cannot be greater than 2^15."
+  echo ""
+  echo "To use it in this way, add --surf subject hemi. This will"
+  echo "run mri_surf2surf to reshape the data into a dimension that can"
+  echo "fit into nifti."
+  echo ""
+  echo "By default, surfaces are reshaped to try to fit inside of nifti,"
+  echo "and the ouput is also reshaped. To convert back to 1d spatial dims,"
+  echo "add --reshape1d."
+  echo ""
+  echo "See fslmaths for more info."
+  echo ""
+  exit 1
+endif
+
+set dtout = ();
+set MATHS = `which fslmaths`
+if($status) then 
+  set MATHS = `which avwmaths`
+   if($status) then 
+     echo "ERROR: cannot find either fslmats or avwmaths"
+     exit 1;
+   endif
+else
+  set dtout = (-odt float)
+endif
+
+if($FSLOUTPUTTYPE == NIFTI)    set ext = nii
+if($FSLOUTPUTTYPE == NIFTI_GZ) set ext = nii.gz
+
+set out = $newargv[$#newargv]
+set outbase = `basename $out`
+
+set outdir = `dirname $out`;
+mkdir -p $outdir
+set tmpdir = $outdir/tmp.fscalc.fsl.$$  # may not actually be created
+mkdir -p $tmpdir
+
+# Create new arg list after reshaping any surfaces
+set newargv2 = ();
+@ nth = 0;
+if($#subject) then
+  foreach arg ($newargv)
+    if(-e $arg) then
+      @ nth = $nth + 1;
+      set newarg = $tmpdir/s$nth.$ext
+      set cmd = (mri_surf2surf --s $subject --hemi $hemi \
+        --sval $arg --tval $newarg --reshape)
+      echo $cmd
+      $cmd
+      if($status) exit 1;
+      set newargv2 = ($newargv2 $newarg);
+    else
+      set newargv2 = ($newargv2 $arg);
+    endif
+  end
+else
+  set newargv2 = ($newargv);
+endif
+set newargv = ($newargv2);
+echo $newargv
+
+@ nmax = $#newargv - 1
+set args = ($newargv[1-$nmax]);
+
+# Create yet another list after converting non-nifti to nifti
+set newargs = ();
+@ ntharg = 0;
+foreach arg ($args)
+  @ ntharg = $ntharg + 1;
+  if(-e "$arg") then
+    # It is a file, chech whether it is nifti
+    isnifti $arg
+    if(! $status) then
+      # It is not a nifti file, so convert it
+      set argbase = `basename $arg`
+      if($status) then
+        echo "$argbase"
+        exit 1;
+      endif
+      set tmparg = $tmpdir/`fname2stem $argbase`.$ntharg.nii
+      if($status) then
+        echo "$tmparg"
+        exit 1;
+      endif
+      mri_convert $arg $tmparg
+      if($status) exit 1;
+      set newargs = ($newargs $tmparg)
+    else
+      # It is a nifti file
+      set newargs = ($newargs $arg)
+    endif
+  else
+    # Argument is not a file
+    set newargs = ($newargs $arg)
+  endif
+end
+
+# Check whether the output is nifti
+set outstem = `fname2stem $outbase`
+isnifti $out
+if(! $status) then
+  # Output is not nifti, will need to convert back
+  mkdir -p $tmpdir # Have to create tmpdir now
+  set tmpout = $tmpdir/$outstem
+  set DoConv = 1;
+else
+  # It is a nifti file, does flavor agree with FSLOUTPUTTYPE?
+  if($outstem.$ext != $outbase) then
+    # No, it does not
+    mkdir -p $tmpdir # Have to create tmpdir now
+    set tmpout = $tmpdir/$outstem
+    set DoConv = 1;
+  else
+    # Yes, it does
+    set tmpout = $out
+    set DoConv = 0;
+  endif
+endif
+
+# Run FSL Maths
+set cmd = ($MATHS $newargs $tmpout $dtout)
+echo ""
+echo $cmd
+echo ""
+$cmd
+if($status) exit 1;
+
+if($DoReshape1D) then 
+  set val = $out
+  if($DoConv) then 
+    set val = $tmpout.$ext
+  else
+    set val = $out
+  endif
+  set cmd = (mri_surf2surf --s $subject --hemi $hemi \
+    --sval $val --tval $out)
+  echo ""
+  echo $cmd
+  echo ""
+  $cmd
+  if($status) exit 1;
+  set DoConv = 0;
+endif
+
+# Convert output to proper format, if needed
+if($DoConv) then
+  mri_convert $tmpout.$ext $out
+  if($status) exit 1;
+endif
+
+# Clean up
+if(-e $tmpdir) rm -rf $tmpdir
+
+exit 0
