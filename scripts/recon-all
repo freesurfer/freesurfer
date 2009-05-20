@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/15 18:02:06 $
-#    $Revision: 1.210 $
+#    $Date: 2009/05/20 23:29:58 $
+#    $Revision: 1.211 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.210 2009/05/15 18:02:06 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.211 2009/05/20 23:29:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1589,6 +1589,7 @@ if($DoCALabel) then
     end
     # now create the fused aseg
     set cmd = (mri_fuse_segmentations)
+    set cmd = ($cmd -a aseg.mgz -c aseg.auto_noCCseg.mgz -n norm.mgz)
     set cmd = ($cmd ${subjid} ${BaseSubjsList} aseg.fused.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
