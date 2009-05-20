@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/06 18:53:19 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/05/20 23:28:30 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -56,6 +56,7 @@ static void usage_exit(int code) ;
 
 static char *norm_name = "norm.mgz" ;
 static char *aseg_name = "aseg.mgz" ;
+static char *aseg_noCC_name = "aseg.auto_noCCseg.mgz" ;
 static char sdir[STRLEN] = "" ;
 
 static MRI *MRIfuseSegmentations(MRI *mri_in,
@@ -63,6 +64,7 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
                                  int nvols,
                                  LTA *xforms[],
                                  MRI *mri_asegs[],
+                                 MRI *mri_asegs_noCC[],
                                  MRI *mri_norms[],
                                  double std) ;
 
@@ -74,7 +76,9 @@ main(int argc, char *argv[])
   int          ac, nargs, i, ntimepoints, msec, minutes, seconds ;
   struct timeb start ;
   MRI         *mri_in, *mri_fused;
-  MRI         *mri_norms[MAX_VOLUMES], *mri_asegs[MAX_VOLUMES] ;
+  MRI         *mri_norms[MAX_VOLUMES];
+  MRI         *mri_asegs[MAX_VOLUMES];
+  MRI         *mri_asegs_noCC[MAX_VOLUMES];
   double      std = 3.0 ;
   LTA         *xforms[MAX_VOLUMES] ;
 
@@ -82,7 +86,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_fuse_segmentations.c,v 1.3 2009/05/06 18:53:19 nicks Exp $",
+     "$Id: mri_fuse_segmentations.c,v 1.4 2009/05/20 23:28:30 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -128,10 +132,17 @@ main(int argc, char *argv[])
               "%s: could not read input volume %s", Progname, fname) ;
   for (i = 0 ; i < ntimepoints ; i++)
   {
-    printf("processing subject %s\n", argv[i+2]) ;
+    printf("loading data for subject %s ...\n", argv[i+2]) ;
+
     sprintf(fname, "%s/%s/mri/%s", sdir, argv[i+2], aseg_name) ;
     mri_asegs[i] = MRIread(fname) ;
     if (mri_asegs[i] == NULL)
+      ErrorExit(ERROR_NOFILE,
+                "%s: could not read input volume %s", Progname, fname) ;
+
+    sprintf(fname, "%s/%s/mri/%s", sdir, argv[i+2], aseg_noCC_name) ;
+    mri_asegs_noCC[i] = MRIread(fname) ;
+    if (mri_asegs_noCC[i] == NULL)
       ErrorExit(ERROR_NOFILE,
                 "%s: could not read input volume %s", Progname, fname) ;
 
@@ -149,11 +160,13 @@ main(int argc, char *argv[])
                 "%s: could not read input transform %s", Progname, fname) ;
   }
 
+  printf("fusing...\n");
   mri_fused = MRIfuseSegmentations(mri_in,
                                    NULL,
                                    ntimepoints,
                                    xforms,
                                    mri_asegs,
+                                   mri_asegs_noCC,
                                    mri_norms,
                                    std) ;
 
@@ -201,7 +214,12 @@ static int get_option(int argc, char *argv[])
       break ;
     case 'A':
       aseg_name = argv[2] ;
-      printf("using %s as aseg volume\n", norm_name) ;
+      printf("using %s as aseg volume\n", aseg_name) ;
+      nargs = 1 ;
+      break ;
+    case 'C':
+      aseg_noCC_name = argv[2] ;
+      printf("using %s as aseg no-CC-label volume\n", aseg_noCC_name) ;
       nargs = 1 ;
       break ;
     case '?':
@@ -224,10 +242,12 @@ static void usage_exit(int code)
          Progname) ;
   printf("\noptions:\n");
   printf("  -a <filename>  - name of aseg file to use (default: aseg.mgz)\n") ;
+  printf("  -c <filename>  - name of aseg file w/o CC labels "
+         "(default: aseg.auto_noCCseg.mgz)\n") ;
   printf("  -n <filename>  - name of norm file to use (default: norm.mgz)\n") ;
   printf("  -SDIR SUBJECTS_DIR  - alternate SUBJECTS_DIR\n\n");
   printf("example:\n");
-  printf("  %s tp3.long.longbase tp1 tp2 tp3 asegfused.mgz\n\n",Progname);
+  printf("  %s tp3.long.longbase tp1 tp2 tp3 aseg.fused.mgz\n\n",Progname);
   exit(code) ;
 }
 
@@ -237,6 +257,7 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
                                  int nvols,
                                  LTA *xforms[],
                                  MRI *mri_asegs[],
+                                 MRI *mri_asegs_noCC[],
                                  MRI *mri_norms[],
                                  double sigma)
 {
@@ -246,6 +267,7 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
   VECTOR *v1, *v2 ;
   float  xd, yd, zd ;
   double label_pvals[MAX_CMA_LABELS], p, val, oval, dif ;
+  int cc_relabel_count = 0;
 
   v1 = VectorAlloc(4, MATRIX_REAL) ;
   v2 = VectorAlloc(4, MATRIX_REAL) ;
@@ -306,6 +328,30 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
             continue ; // out of the FOV
           MRIsampleVolume(mri_norms[i], xd, yd, zd, &oval) ;
           label = MRIgetVoxVal(mri_asegs[i], nint(xd), nint(yd), nint(zd), 0) ;
+          switch (label)
+          {
+          case CC_Posterior:
+          case CC_Mid_Posterior:
+          case CC_Central:
+          case CC_Mid_Anterior:
+          case CC_Anterior:
+          {
+            // need to relabel these back to white matter, from noCC aseg
+            // (downstream mri_cc will re-seg the CC)
+            int label_noCC =
+              MRIgetVoxVal(mri_asegs_noCC[i],nint(xd),nint(yd),nint(zd),0);
+            if ((label_noCC == Left_Cerebral_White_Matter) ||
+                (label_noCC == Right_Cerebral_White_Matter))
+            {
+              //printf("relabeling %d to %d\n",label, label_noCC);
+              label = label_noCC;
+              cc_relabel_count++;
+            }
+            break;
+          }
+          default:
+            break;
+          }
           if (label < min_label)
             min_label = label ;
           if (label > max_label)
@@ -332,6 +378,78 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
       }
     }
   }
+
+  // confirm that no CC labels still exist in the fused volume
+  for (x = 0 ; x < mri_fused->width ; x++)
+  {
+    for (y = 0 ; y < mri_fused->height ; y++)
+    {
+      for (z = 0 ; z < mri_fused->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+
+        label = MRIgetVoxVal(mri_fused, x, y, z, 0) ;
+        switch (label)
+        {
+        case CC_Posterior:
+        case CC_Mid_Posterior:
+        case CC_Central:
+        case CC_Mid_Anterior:
+        case CC_Anterior:
+        {
+          //printf("WARNING: found CC label: %d, xyz: %d %d %d \n", 
+          //     label, x, y, z);
+          // looks like there's a CC voxel that wasnt relabeled 
+          // look at neighbors to determine who is more predominant: left or
+          // right white matter voxels; predominance determines relabeling
+          int leftwm=0;
+          int rightwm=0;
+          int xk, yk, zk, xi, yi, zi;
+          // brute force 3x3 search:
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = mri_fused->zi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_fused->yi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = mri_fused->xi[x+xk] ;
+                if (!zk && !yk && !xk)
+                  continue ;
+                int lbl = MRIgetVoxVal(mri_fused, xi, yi, zi, 0);
+                if (lbl == Left_Cerebral_White_Matter) leftwm++;
+                else if (lbl == Right_Cerebral_White_Matter) rightwm++;
+              }
+            }
+          }
+          //printf("Neighbors: leftwm=%d, rightwm=%d\n", leftwm, rightwm);
+          if (leftwm > rightwm)
+          {
+            MRIsetVoxVal(mri_fused, x, y, z, 0, Left_Cerebral_White_Matter) ;
+            cc_relabel_count++;
+          }
+          else if (rightwm > 0)
+          {
+            MRIsetVoxVal(mri_fused, x, y, z, 0, Right_Cerebral_White_Matter) ;
+            cc_relabel_count++;
+          }
+          else
+          {
+            printf("ERROR: could not determine a label for relabeling\n");
+            printf("CC label (%d) at xyz %d %d %d\n",label, x, y, z);
+          }
+          
+          break;
+        }
+        default:
+          break;
+        }
+      }
+    }
+  }
+  printf("relabeled %d CC labels\n",cc_relabel_count);
 
   for (i = 0 ; i < nvols ; i++)
     MatrixFree(&m_vox2vox[i]) ;
