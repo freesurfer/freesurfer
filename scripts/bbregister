@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/18 18:51:42 $
-#    $Revision: 1.19 $
+#    $Date: 2009/05/20 00:08:20 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.19 2009/05/18 18:51:42 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.20 2009/05/20 00:08:20 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -40,6 +40,7 @@ set VSM = ();
 set Brute1Max = 4;
 set Brute1Delta = 4;
 set SubSamp1 = 100;
+set DoAbs = 0;
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -90,6 +91,7 @@ goto check_params;
 check_params_return:
 
 set StartTime = `date`;
+set tSecStart = `date '+%s'`;
 
 set outdir = `dirname $outreg`;
 if($#tmpdir == 0) set tmpdir = $outdir/tmp.bbregister.$$
@@ -190,19 +192,20 @@ set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
-  --c0 $Offset2 --mincost $MinCostFile --dof $DOF)
+  --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
+  --cur-reg $tmpdir/reg.curopt.dat)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
 if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
-if($#OutVol) set cmd = ($cmd --o $OutVol);
 set cmd = ($cmd --tol $Tol --tol1d $Tol)
+if($#OutVol) set cmd = ($cmd --o $OutVol);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
 if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
 if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
-
+if($DoAbs) set cmd = ($cmd --penalty-abs)
 
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
@@ -239,12 +242,15 @@ if($cleanup) then
   rm -r $tmpdir
 endif
 
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+
 echo " " |& tee -a $LF
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
+echo "BBR-Run-Time-Sec $tSecRun" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "bbregister Done" |& tee -a $LF
-echo " "
 
 echo "To check results, run:"
 if($#templateout) then
@@ -353,6 +359,12 @@ while( $#argv != 0 )
     case "--offset2":
       if ( $#argv < 1) goto arg1err;
       set Offset2 = $argv[1]; shift;
+      breaksw
+
+    case "--abs":
+      # Experimental
+      set Contrast = +1;
+      set DoAbs = 1;
       breaksw
 
     case "--bold":
