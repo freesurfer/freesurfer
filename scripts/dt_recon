@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.6.2.4 2009/05/18 15:43:16 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.6.2.5 2009/05/20 17:59:50 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -18,6 +18,8 @@ set DoTalairach = 1;
 set SaveERes = 0;
 set EResPCA = 0;
 set PruneThr = ();
+set infodump = ();
+set OutDir = ();
 
 set PrintHelp = 0;
 set LF = ();
@@ -82,15 +84,17 @@ echo "" | tee -a $LF
 echo "" | tee -a $LF
 
 if($#bvals == 0) then
-  # Get info dump from dicom
-  set infodump = $OutDir/dwi-infodump.dat
-  set cmd = (mri_probedicom --i $InputVol);
-  echo "cd `pwd`" |  tee -a $LF
-  echo $cmd       |  tee -a $LF 
-  $cmd            |& tee -a $LF > $infodump
-  if($status) exit 1;
-  echo "" | tee -a $LF
-  echo "" | tee -a $LF
+  if($#infodump == 0) then
+    # Get info dump from dicom
+    set infodump = $OutDir/dwi-infodump.dat
+    set cmd = (mri_probedicom --i $InputVol);
+    echo "cd `pwd`" |  tee -a $LF
+    echo $cmd       |  tee -a $LF 
+    $cmd            |& tee -a $LF > $infodump
+    if($status) exit 1;
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+  endif
 endif
 
 # Eddy/Motion Correct (needs its own tmp dir)
@@ -150,8 +154,9 @@ if($DoRegistration) then
   echo "#@#-------------------------------" |  tee -a $LF
   echo "Registration" |  tee -a $LF
   date |  tee -a $LF
-  set cmd = (fslregister --s $subject --mov $OutDir/lowb.nii)
-  set cmd = ($cmd --reg $reg)
+  set cmd = (bbregister --s $subject --mov $OutDir/lowb.nii \
+     --init-fsl --reg $reg --bold --tol1d 1e-3)
+  if($subject == fsaverage) set cmd = ($cmd --12)
   echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
   echo "cd `pwd`" |  tee -a $LF
   echo $cmd       |  tee -a $LF 
@@ -233,6 +238,11 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $bvecs"
         exit 1;
       endif
+      breaksw
+
+    case "--info-dump":
+      if($#argv < 1) goto arg1err;
+      set infodump = $argv[1]; shift;
       breaksw
 
     case "--i"
@@ -345,7 +355,7 @@ check_params:
     echo "ERROR: cannot find $InputVol"
     exit 1;
   endif
-  if($OutDir == 0) then
+  if($#OutDir == 0) then
     echo "ERROR: must specify output dir"
     exit 1;
   endif
@@ -412,6 +422,7 @@ usage_exit:
   echo "   --o outputdir"
   echo ""
   echo " Other Arguments (Optional)"
+  echo "  --info-dump infodump.dat : use info dump created by unpacksdcmdir or dcmunpack"
   echo "  --ecref TP       : Use TP as 0-based reference time points for EC"
   echo "  --no-ec          : turn off eddy/motion correction"
   echo "  --no-reg         : do not register to subject or resample to talairach"
