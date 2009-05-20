@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/20 02:08:05 $
-#    $Revision: 1.21 $
+#    $Date: 2009/05/20 17:55:33 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.21 2009/05/20 02:08:05 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.22 2009/05/20 17:55:33 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -36,6 +36,7 @@ set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
 set InitReg = ();
+set InitRegOut = ();
 set VSM = ();
 set Brute1Max = 4;
 set Brute1Delta = 4;
@@ -159,6 +160,7 @@ if($#InitReg == 0) then
     if($status) exit 1;
   endif
   if($#intvol) then
+    # Intermediate volume
     set InitReg0 = $tmpdir/reg.init.dat
     set cmd = (tkregister2_cmdl --s $subject --mov $template \
       --int $intvol $InitReg  --noedit --reg $InitReg0)
@@ -169,10 +171,12 @@ if($#InitReg == 0) then
   endif
 endif
 
+if($#InitRegOut) cp $InitReg $InitRegOut
+
 # Pass 1
 set Pass1Reg = $tmpdir/bbr.pass1.dat
 set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
-  --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-4 \
+  --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-3 \
   --brute -$Brute1Max $Brute1Max $Brute1Delta );
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
@@ -195,12 +199,12 @@ set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
   --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
   --cur-reg $tmpdir/reg.curopt.dat)
+set cmd = ($cmd --tol $TolF --tol1d $Tol1D)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
 if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
-set cmd = ($cmd --tol $TolF --tol1d $Tol1D)
 if($#OutVol) set cmd = ($cmd --o $OutVol);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
@@ -279,6 +283,16 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
+    case "--s-from-reg":
+      if($#argv < 1) goto arg1err;
+      set tmp = $argv[1]; shift;
+      if(! -e $tmp) then
+        echo "ERROR: cannot find $tmp"
+        exit 1;
+      endif
+      set subject = `head -n 1 $tmp`
+      breaksw
+
     case "--mov":
       if ( $#argv < 1) goto arg1err;
       set movvol = $argv[1]; shift;
@@ -345,6 +359,11 @@ while( $#argv != 0 )
       set InitFSL = 0;
       set InitSPM = 0;
       set InitHeader = 0;
+      breaksw
+
+    case "--init-reg-out":
+      if( $#argv < 1) goto arg1err;
+      set InitRegOut = $argv[1]; shift;
       breaksw
 
     case "--slope1":
@@ -661,6 +680,7 @@ usage_exit:
   echo ""
   echo "   --surf-cost basename : saves final cost as basename.?h.mgh"
   echo "   --surf-con  basename : saves final contrast as basename.?h.mgh"
+  echo "   --init-reg-out outinitreg : save initial reg"
   echo ""
   echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
