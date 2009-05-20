@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/18 18:52:24 $
-#    $Revision: 1.14.2.7 $
+#    $Date: 2009/05/20 17:58:51 $
+#    $Revision: 1.14.2.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.14.2.7 2009/05/18 18:52:24 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.14.2.8 2009/05/20 17:58:51 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -36,10 +36,12 @@ set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
 set InitReg = ();
+set InitRegOut = ();
 set VSM = ();
 set Brute1Max = 4;
 set Brute1Delta = 4;
 set SubSamp1 = 100;
+set DoAbs = 0;
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -47,7 +49,8 @@ set Slope1 = 0.5;
 set Slope2 = 0.5;
 set Offset2 = 0;
 set Contrast = ()
-set Tol = 1e-8;
+set TolF = 1e-8;
+set Tol1D = 1e-8;
 set DOF = 6;
 set FSLDOF = 6;
 
@@ -90,6 +93,7 @@ goto check_params;
 check_params_return:
 
 set StartTime = `date`;
+set tSecStart = `date '+%s'`;
 
 set outdir = `dirname $outreg`;
 if($#tmpdir == 0) set tmpdir = $outdir/tmp.bbregister.$$
@@ -156,6 +160,7 @@ if($#InitReg == 0) then
     if($status) exit 1;
   endif
   if($#intvol) then
+    # Intermediate volume
     set InitReg0 = $tmpdir/reg.init.dat
     set cmd = (tkregister2_cmdl --s $subject --mov $template \
       --int $intvol $InitReg  --noedit --reg $InitReg0)
@@ -166,10 +171,12 @@ if($#InitReg == 0) then
   endif
 endif
 
+if($#InitRegOut) cp $InitReg $InitRegOut
+
 # Pass 1
 set Pass1Reg = $tmpdir/bbr.pass1.dat
 set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
-  --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-4 \
+  --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-3 \
   --brute -$Brute1Max $Brute1Max $Brute1Delta );
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
@@ -190,19 +197,20 @@ set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
-  --c0 $Offset2 --mincost $MinCostFile --dof $DOF)
+  --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
+  --cur-reg $tmpdir/reg.curopt.dat)
+set cmd = ($cmd --tol $TolF --tol1d $Tol1D)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
 if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
-set cmd = ($cmd --tol $Tol --tol1d $Tol)
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
 if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
 if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
-
+if($DoAbs) set cmd = ($cmd --penalty-abs)
 
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
@@ -239,12 +247,15 @@ if($cleanup) then
   rm -r $tmpdir
 endif
 
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+
 echo " " |& tee -a $LF
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
+echo "BBR-Run-Time-Sec $tSecRun" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "bbregister Done" |& tee -a $LF
-echo " "
 
 echo "To check results, run:"
 if($#templateout) then
@@ -270,6 +281,16 @@ while( $#argv != 0 )
     case "--s":
       if ( $#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--s-from-reg":
+      if($#argv < 1) goto arg1err;
+      set tmp = $argv[1]; shift;
+      if(! -e $tmp) then
+        echo "ERROR: cannot find $tmp"
+        exit 1;
+      endif
+      set subject = `head -n 1 $tmp`
       breaksw
 
     case "--mov":
@@ -340,6 +361,11 @@ while( $#argv != 0 )
       set InitHeader = 0;
       breaksw
 
+    case "--init-reg-out":
+      if( $#argv < 1) goto arg1err;
+      set InitRegOut = $argv[1]; shift;
+      breaksw
+
     case "--slope1":
       if ( $#argv < 1) goto arg1err;
       set Slope1 = $argv[1]; shift;
@@ -353,6 +379,12 @@ while( $#argv != 0 )
     case "--offset2":
       if ( $#argv < 1) goto arg1err;
       set Offset2 = $argv[1]; shift;
+      breaksw
+
+    case "--abs":
+      # Experimental
+      set Contrast = +1;
+      set DoAbs = 1;
       breaksw
 
     case "--bold":
@@ -439,6 +471,18 @@ while( $#argv != 0 )
     case "--tol":
       if ( $#argv < 1) goto arg1err;
       set Tol = $argv[1]; shift;
+      set TolF = $Tol
+      set Tol1D = $Tol
+      breaksw
+
+    case "--tolf":
+      if ( $#argv < 1) goto arg1err;
+      set TolF = $argv[1]; shift;
+      breaksw
+
+    case "--tol1d":
+      if ( $#argv < 1) goto arg1err;
+      set Tol1D = $argv[1]; shift;
       breaksw
 
     case "--gm-proj-frac":
@@ -636,6 +680,7 @@ usage_exit:
   echo ""
   echo "   --surf-cost basename : saves final cost as basename.?h.mgh"
   echo "   --surf-con  basename : saves final contrast as basename.?h.mgh"
+  echo "   --init-reg-out outinitreg : save initial reg"
   echo ""
   echo "   --tmp tmpdir  : temporary dir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
