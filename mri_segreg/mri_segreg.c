@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/14 23:02:32 $
- *    $Revision: 1.70.2.5 $
+ *    $Date: 2009/05/20 17:57:39 $
+ *    $Revision: 1.70.2.6 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,8 @@
 
   --cost costfile
   --sum sumfile : default is outreg.sum
+  --cur-reg curregfile : reg at current optimum
+
   --o out : save final output
 
   --brute min max delta : brute force in all directions
@@ -208,7 +210,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.70.2.5 2009/05/14 23:02:32 greve Exp $";
+"$Id: mri_segreg.c,v 1.70.2.6 2009/05/20 17:57:39 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -217,6 +219,7 @@ char *movvolfile=NULL;
 char *regfile=NULL;
 char *outregfile=NULL;
 char *sumfile=NULL;
+char *curregfile=NULL;
 
 char *interpmethod = "trilinear";
 int   interpcode = SAMPLE_TRILINEAR;
@@ -345,13 +348,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.70.2.5 2009/05/14 23:02:32 greve Exp $",
+     "$Id: mri_segreg.c,v 1.70.2.6 2009/05/20 17:57:39 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.70.2.5 2009/05/14 23:02:32 greve Exp $",
+     "$Id: mri_segreg.c,v 1.70.2.6 2009/05/20 17:57:39 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1188,7 +1191,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       outregfile = pargv[0];
       nargsused = 1;
-    } else if (istringnmatch(option, "--sum",0)) {
+    } 
+    else if (istringnmatch(option, "--cur-reg",0)) {
+      if (nargc < 1) argnerr(option,1);
+      curregfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--sum",0)) {
       if (nargc < 1) argnerr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
@@ -1395,6 +1404,7 @@ printf("  --out-reg outreg : reg at lowest cost\n");
 printf("\n");
 printf("  --cost costfile\n");
 printf("  --sum sumfile : default is outreg.sum\n");
+printf("    --cur-reg curregfile : reg at current optimum\n");
 printf("  --o out : save final output\n");
 printf("\n");
 printf("  --brute min max delta : brute force in all directions\n");
@@ -1647,7 +1657,8 @@ float compute_powell_cost(float *p)
   extern int dof;
   static MATRIX *R = NULL;
   static double copt = -1;
-  double costs[8], pp[12];
+  static double cprev = -1;
+  double costs[8], pp[12], cdelta;
   int n, newopt;
   FILE *fp;
 
@@ -1667,13 +1678,16 @@ float compute_powell_cost(float *p)
     newopt = 1;
   }
 
+  cdelta = 0;
+  if(cprev < 0) cprev = costs[7];
+  cdelta = 0.5*fabs(costs[7]-cprev)/(costs[7]+cprev);
 
   if(costfile_powell != NULL){
     // write costs to file
     fp = fopen(costfile_powell,"a");
     fprintf(fp,"%4d ",nCostEvaluations);
-    fprintf(fp,"tr: %6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
-    fprintf(fp,"rt: %6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
+    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     if(dof > 6) fprintf(fp,"sc: %4.3lf %4.3lf %4.3lf ",pp[6],pp[7],pp[8]);
     if(dof > 9) fprintf(fp,"sh: %6.3lf %6.3lf %6.3lf ",pp[9],pp[10],pp[11]);
     fprintf(fp,"  %8.5lf %8.5lf\n",costs[7],copt);
@@ -1690,21 +1704,20 @@ float compute_powell_cost(float *p)
     // If there is a new optimum, print it out
     fp = stdout;
     fprintf(fp,"%4d ",nCostEvaluations);
-    fprintf(fp,"tr: %6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
-    fprintf(fp,"rt: %6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
+    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
+    fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     if(dof > 6) fprintf(fp,"sc: %4.3lf %4.3lf %4.3lf ",pp[6],pp[7],pp[8]);
     if(dof > 9) fprintf(fp,"sh: %6.3lf %6.3lf %6.3lf ",pp[9],pp[10],pp[11]);
-    fprintf(fp,"  %8.7lf\n",costs[7]);
-    //fprintf(fp,"%7d %10.4lf %8.4lf ",
-    //    (int)costs[0],costs[1],costs[2]); // WM  n mean std
-    //fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
-    //costs[3],costs[4],costs[5]); // CTX n mean std
-    //fprintf(fp,"%8.4lf %8.5lf   %8.5lf ",costs[6],costs[7],copt); // t, cost=1/t
-    //fprintf(fp,"\n");
+    fprintf(fp,"  %12.10lf\n",costs[7]);
     fflush(stdout); 
+    // write out the reg current from the current opt (because I'm impatient)
+    if(curregfile)
+      regio_write_register(curregfile,subject,mov->xsize,
+			   mov->zsize,intensity,R,FLT2INT_ROUND);
   }
 
   nCostEvaluations++;
+  cprev = costs[7];
   return((float)costs[7]);
 }
 /*---------------------------------------------------------------
@@ -1875,7 +1888,7 @@ double VertexCost(double vctx, double vwm, double slope,
 {
   double d,a=0,c;
   d = 100*(vctx-vwm)/((vctx+vwm)/2.0); // percent contrast
-  if(sign ==  0) a = -abs(slope*(d-center)); // not sure this is useful
+  if(sign ==  0) a = -fabs(slope*(d-center)); // not sure this is useful
   if(sign == -1) a = -(slope*(d-center));
   if(sign == +1) a = +(slope*(d-center));
   c = 1+tanh(a);
