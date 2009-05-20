@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/20 00:08:20 $
-#    $Revision: 1.20 $
+#    $Date: 2009/05/20 02:08:05 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.20 2009/05/20 00:08:20 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.21 2009/05/20 02:08:05 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -48,7 +48,8 @@ set Slope1 = 0.5;
 set Slope2 = 0.5;
 set Offset2 = 0;
 set Contrast = ()
-set Tol = 1e-8;
+set TolF = 1e-8;
+set Tol1D = 1e-8;
 set DOF = 6;
 set FSLDOF = 6;
 
@@ -199,7 +200,7 @@ if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
 if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
-set cmd = ($cmd --tol $Tol --tol1d $Tol)
+set cmd = ($cmd --tol $TolF --tol1d $Tol1D)
 if($#OutVol) set cmd = ($cmd --o $OutVol);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
@@ -451,6 +452,18 @@ while( $#argv != 0 )
     case "--tol":
       if ( $#argv < 1) goto arg1err;
       set Tol = $argv[1]; shift;
+      set TolF = $Tol
+      set Tol1D = $Tol
+      breaksw
+
+    case "--tolf":
+      if ( $#argv < 1) goto arg1err;
+      set TolF = $argv[1]; shift;
+      breaksw
+
+    case "--tol1d":
+      if ( $#argv < 1) goto arg1err;
+      set Tol1D = $argv[1]; shift;
       breaksw
 
     case "--gm-proj-frac":
