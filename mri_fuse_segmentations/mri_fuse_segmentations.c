@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/20 23:28:30 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/05/21 16:32:56 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_fuse_segmentations.c,v 1.4 2009/05/20 23:28:30 nicks Exp $",
+     "$Id: mri_fuse_segmentations.c,v 1.5 2009/05/21 16:32:56 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -178,6 +178,16 @@ main(int argc, char *argv[])
   seconds = seconds % 60 ;
   fprintf(stderr,
           "fusing took %d minutes and %d seconds.\n", minutes, seconds) ;
+
+  MRIfree(&mri_in);
+  MRIfree(&mri_fused);
+  for (i = 0 ; i < ntimepoints ; i++)
+  {
+    MRIfree(&mri_asegs[i]);
+    MRIfree(&mri_asegs_noCC[i]);
+    MRIfree(&mri_norms[i]);
+    LTAfree(&xforms[i]);
+  }
 
   exit(0) ;
   return(0) ;
@@ -452,7 +462,11 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
   printf("relabeled %d CC labels\n",cc_relabel_count);
 
   for (i = 0 ; i < nvols ; i++)
+  {
     MatrixFree(&m_vox2vox[i]) ;
+  }
+  VectorFree(&v1);
+  VectorFree(&v2);
 
   return(mri_fused) ;
 }
