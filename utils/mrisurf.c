@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/05/14 21:47:46 $
- *    $Revision: 1.627 $
+ *    $Author: fischl $
+ *    $Date: 2009/05/21 16:17:51 $
+ *    $Revision: 1.628 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.627 2009/05/14 21:47:46 greve Exp $");
+  return("$Id: mrisurf.c,v 1.628 2009/05/21 16:17:51 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62013,6 +62013,48 @@ mrisCheckSurfaceNbrs(MRI_SURFACE *mris)
     }
   }
   return(1) ;
+}
+
+int
+MRISbinarizeCurvature(MRI_SURFACE *mris, float thresh, float low, float high, 
+                      int use_abs)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   val ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    val = (use_abs ? fabs(v->curv) : v->curv) ;
+    if (val < thresh)
+      v->curv = low ;
+    else
+      v->curv = v->curv < 0 ? -high : high ;
+  }
+
+  return(NO_ERROR) ;
+}
+int
+MRISthresholdCurvature(MRI_SURFACE *mris, float thresh, int use_abs)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   val ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    val = (use_abs ? fabs(v->curv) : v->curv) ;
+    if (val < thresh)
+      v->curv = 0 ;
+  }
+
+  return(NO_ERROR) ;
 }
 
 // remove outliers in the v->curv field

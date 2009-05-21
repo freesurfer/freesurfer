@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:36 $
- *    $Revision: 1.325 $
+ *    $Author: fischl $
+ *    $Date: 2009/05/21 16:18:00 $
+ *    $Revision: 1.326 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1156,10 +1156,6 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
-MRI *MRISbinarizeVolume(MRI_SURFACE *mris,
-                        MRI_REGION* region,
-                        float resolution,
-                        float distance_from_surface);
 
 ////////////////////////////////////////////////////
 /* for mris_topo_fixer */
@@ -1651,6 +1647,8 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris,
                               MRI *mri_aseg,
                               double resolution);
 int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct);
+int MRISthresholdCurvature(MRI_SURFACE *mris, float thresh, int use_abs);
+int MRISbinarizeCurvature(MRI_SURFACE *mris, float thresh, float low, float high, int use_abs);
 int MRISsetVal2(MRI_SURFACE *mris, float val);
 MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri, float resolution) ;
 int MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode) ;
