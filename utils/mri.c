@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/05/15 20:41:00 $
- *    $Revision: 1.432 $
+ *    $Author: fischl $
+ *    $Date: 2009/05/21 18:33:40 $
+ *    $Revision: 1.433 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.432 $";
+const char *MRI_C_VERSION = "$Revision: 1.433 $";
 
 
 /*-----------------------------------------------------
@@ -4986,6 +4986,8 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
             v = v1+v2;
             if (mri_dst->type == MRI_UCHAR && v > 255)
               v = 255 ;
+            if (mri_dst->type == MRI_UCHAR && v < 0)
+              v = 0 ;
             MRIsetVoxVal(mri_dst,x,y,z,f,v);
           }
         }
@@ -14097,7 +14099,7 @@ MRIsampleVolumeSlice
   return(NO_ERROR) ;
 }
 
-float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
+float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label, MRI *mri_mixing_coef)
 {
   float   volume, vox_vol ;
   int     x, y, z, nbr_label_counts[10000];
@@ -14166,12 +14168,13 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int labe
           else{    /* compute partial volume pct */
             mean_nbr = label_means[nbr_label] ;
             pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
-            if (vox_label == label)
-              volume += vox_vol * pv ;
-            else
-              volume += vox_vol * (1-pv) ;
+            if (vox_label != label)
+              pv = 1-pv ;
+            volume += vox_vol * pv ;
             if (pv < 0 || pv > 1)
               DiagBreak() ;
+            if (mri_mixing_coef)
+              MRIsetVoxVal(mri_mixing_coef, x, y, z, 0, pv);
           }
         }
       }
@@ -16093,3 +16096,23 @@ MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
   }
   return(NO_ERROR) ;
 }
+MRI *
+MRImaskZero(MRI *mri_src, MRI *mri_mask, MRI *mri_dst)
+{
+  int   x, y, z ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (MRIgetVoxVal(mri_mask, x, y, z, 0) > 0)
+          MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0)) ;
+        else
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+      }
+  return(mri_dst) ;
+}
+
