@@ -80,6 +80,7 @@ MRISUBDIRS=\
 	mri_and \
 	mri_hausdorff_dist \
 	mri_fuse_segmentations \
+	mri_simulate_atrophy \
 	mri_joint_density \
 	mri_label_histo \
 	mri_label_vals \
