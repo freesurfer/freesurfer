@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:36 $
- *    $Revision: 1.380 $
+ *    $Author: fischl $
+ *    $Date: 2009/05/21 18:33:46 $
+ *    $Revision: 1.381 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -832,6 +832,7 @@ MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst,
                              BUFTYPE in_val, BUFTYPE out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
+MRI   *MRImaskZero(MRI *mri_src, MRI *mri_mask, MRI *mri_dst) ;
 MRI   *MRImaskDifferentGeometry(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                                 int mask, float out_val) ;
 MRI *MRImaskInvert(MRI *mask, MRI *outmask);
@@ -1123,7 +1124,7 @@ int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals,
                         int *label_counts, float *label_means,
                         int whalf, int max_labels) ;
 float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
-    int label) ;
+                                               int label,MRI *mri_mixing_coef);
 MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst,
                          float orig_res) ;
 int MRIfillBox(MRI *mri, MRI_REGION *box, float fillval) ;
