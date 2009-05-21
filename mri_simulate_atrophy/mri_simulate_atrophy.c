@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/21 20:13:46 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/05/21 23:10:17 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_simulate_atrophy.c,v 1.1 2009/05/21 20:13:46 fischl Exp $",
+     "$Id: mri_simulate_atrophy.c,v 1.2 2009/05/21 23:10:17 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -234,7 +234,7 @@ MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
           // see which of the allowed border labels is most common
           MRIcomputeLabelNbhd(mri_aseg, mri_norm, x, y, z,
                               nbr_label_counts, label_means, 1, maxlabels) ;
-          max_count = 0 ;
+          max_count = 0 ; nbr_label=-1;
           for (i = 0 ; i < maxlabels ; i++)
           {
             if (i == target_label)
