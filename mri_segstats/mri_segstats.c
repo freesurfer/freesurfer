@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/03/19 21:03:45 $
- *    $Revision: 1.54 $
+ *    $Author: lzollei $
+ *    $Date: 2009/05/21 20:53:20 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -421,7 +421,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.54 2009/03/19 21:03:45 nicks Exp $";
+"$Id: mri_segstats.c,v 1.55 2009/05/21 20:53:20 lzollei Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1002,7 +1002,7 @@ int main(int argc, char **argv) {
         else
           nhits =
             MRIvoxelsInLabelWithPartialVolumeEffects
-            (seg, pvvol, StatSumTable[n].id);
+            (seg, pvvol, StatSumTable[n].id, NULL); 
         vol = nhits*voxelvolume;
       } else {
         // Compute area here
