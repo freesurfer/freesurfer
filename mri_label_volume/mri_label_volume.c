@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/29 03:03:39 $
- *    $Revision: 1.27 $
+ *    $Author: fischl $
+ *    $Date: 2009/05/21 20:22:54 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,7 +80,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_label_volume.c,v 1.27 2009/01/29 03:03:39 nicks Exp $",
+     "$Id: mri_label_volume.c,v 1.28 2009/05/21 20:22:54 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -197,7 +197,7 @@ main(int argc, char *argv[]) {
         if (!IS_BRAIN(label)) continue ;
         if (partial_volume)
           volume += MRIvoxelsInLabelWithPartialVolumeEffects
-                    (mri, mri_vals, label) ;
+            (mri, mri_vals, label, NULL) ;
         else
           volume += MRIvoxelsInLabel(mri, label) ;
       }
@@ -210,7 +210,7 @@ main(int argc, char *argv[]) {
 
       if (partial_volume)
         volume = MRIvoxelsInLabelWithPartialVolumeEffects
-                 (mri, mri_vals, label) ;
+          (mri, mri_vals, label, NULL) ;
       else
         volume = MRIvoxelsInLabel(mri, label) ;
     }
