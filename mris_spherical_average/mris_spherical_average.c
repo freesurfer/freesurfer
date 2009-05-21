@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/05 15:08:12 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/05/21 16:17:15 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.27 2009/05/05 15:08:12 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.28 2009/05/21 16:17:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -78,11 +78,12 @@ static char *osdir = NULL ;
 
 static int spatial_prior_avgs = 0 ;
 static char *spatial_prior_fname = NULL ;
+static char dir[STRLEN] = "";
 
 int
 main(int argc, char *argv[]) {
   char            **av, *out_fname, *surf_name, fname[STRLEN],
-  *hemi, *cp, *data_fname ;
+    *hemi, *cp, *data_fname ;
   int             ac, nargs, i, which, nsubjects ;
   double          max_len, mean, sigma ;
   MRI_SURFACE     *mris, *mris_avg ;
@@ -91,10 +92,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.27 2009/05/05 15:08:12 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.28 2009/05/21 16:17:15 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.27 2009/05/05 15:08:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.28 2009/05/21 16:17:15 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -128,15 +129,33 @@ main(int argc, char *argv[]) {
 
   which = -1 ;
   if (!stricmp(argv[1], "coords"))
+  {
     which = VERTEX_COORDS ;
+  }
   else if (!stricmp(argv[1], "vals"))
+  {
     which = VERTEX_VALS ;
+    if (strlen(dir) == 0)
+      strcpy(dir, "label") ;
+  }
   else if (!stricmp(argv[1], "area"))
+  {
     which = VERTEX_AREA ;
+    if (strlen(dir) == 0)
+      strcpy(dir, "surf") ;
+  }
   else if (!stricmp(argv[1], "curv"))
+  {
     which = VERTEX_CURV ;
+    if (strlen(dir) == 0)
+      strcpy(dir, "surf") ;
+  }
   else if (!stricmp(argv[1], "label"))
+  {
     which = VERTEX_LABEL ;
+    if (strlen(dir) == 0)
+      strcpy(dir, "label") ;
+  }
   else
     usage_exit() ;
 
@@ -194,13 +213,16 @@ main(int argc, char *argv[]) {
     switch (which) {
     case VERTEX_VALS: {
       char fname[STRLEN] ;
-      sprintf(fname,"%s/%s/label/%s.%s", sdir, argv[i], hemi, data_fname) ;
+      sprintf(fname,"%s/%s/%s/%s.%s", sdir, argv[i], dir, hemi, data_fname) ;
       if (MRISreadValues(mris, fname) != NO_ERROR)
         ErrorExit(ERROR_BADFILE,"%s: could not read val file %s.\n", Progname, fname);
       MRIScopyValuesToCurvature(mris) ;
+      if (threshold > 0)
+        MRISbinarizeCurvature(mris, threshold, 0, 1, 0) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize_flag)
         MRISnormalizeCurvature(mris, NORM_MEAN) ;
+      MRIScopyCurvatureToValues(mris) ; // MRIScombine will use v->val
       break ;
     }
     case VERTEX_LABEL:
@@ -209,7 +231,7 @@ main(int argc, char *argv[]) {
       if (strchr(data_fname, '/') != NULL)
         strcpy(fname, data_fname) ;
       else
-        sprintf(fname, "%s/%s/label/%s", sdir, argv[i], data_fname) ;
+        sprintf(fname, "%s/%s/%s/%s", sdir, argv[i], dir, data_fname) ;
       area = LabelRead(NULL, fname) ;
       if (!area)
         ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
@@ -398,6 +420,9 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
   } else if (!stricmp(option, "sdir")) {
     sdir = argv[2] ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "dir")) {
+    strcpy(dir, argv[2]) ;
     nargs = 1 ;
   } else if (!stricmp(option, "prior")) {
     spatial_prior_avgs = atoi(argv[2]) ;
