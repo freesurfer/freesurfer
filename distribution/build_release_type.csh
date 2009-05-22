@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.94.2.2 2008/05/03 23:24:59 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.94.2.3 2009/05/22 21:37:56 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,20 +13,28 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.0.4"
-set STABLE_PUB_VER_NUM="v4.0.4"
+set STABLE_VER_NUM="v4.3.1b"
+set STABLE_PUB_VER_NUM="v4.3.1"
 
 set HOSTNAME=`hostname -s`
 
 # note: Mac's need full email addr
 set SUCCESS_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu \
+set FAILURE_MAIL_LIST=(\
+    nicks@nmr.mgh.harvard.edu \
     fischl@nmr.mgh.harvard.edu \
     greve@nmr.mgh.harvard.edu \
-    krish@nmr.mgh.harvard.edu )
-#set FAILURE_MAIL_LIST=($SUCCESS_MAIL_LIST)
+    krish@nmr.mgh.harvard.edu \
+    rpwang@nmr.mgh.harvard.edu)
+#set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 if ("$HOSTNAME" == "blade") then
   set FAILURE_MAIL_LIST=(nicks)
+endif
+if ("$HOSTNAME" == "hima") then
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+endif
+if ("$HOSTNAME" == "sleet") then
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 
 setenv OSTYPE `uname -s`
@@ -103,13 +111,11 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
-  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/1.1
-  setenv FSLDIR /usr/pubsw/packages/fsl/4.0.2
-  if ( "x`uname -m`" == "xx86_64" ) then
-    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/4.0.2
-  endif
+  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
+  setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
+  setenv AFNIDIR /usr/pubsw/packages/AFNI/current
 else
   # dev build uses most current
   set MNIDIR=/usr/pubsw/packages/mni/current
@@ -119,11 +125,9 @@ else
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
-  if ( "x`uname -m`" == "xx86_64" ) then
-    setenv FSLDIR /usr/pubsw/packages/fsl.64bit/current
-  endif
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
+  setenv AFNIDIR /usr/pubsw/packages/AFNI/current
 endif
 
 # GSL and Qt are no longer used, so they're not defined
@@ -359,6 +363,15 @@ if ($status == 0) then
   rm -f $CVSUPDATEF-nosuchfiles
 endif
 
+echo "CMD: grep -e "update aborted" $CVSUPDATEF" >>& $OUTPUTF
+grep -e "update aborted" $CVSUPDATEF >& /dev/null
+if ($status == 0) then
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update aborted"
+  echo "$msg" >>& $OUTPUTF
+  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
+  exit 1  
+endif
+
 # assume failure (file removed only after successful build)
 rm -f ${FAILED_FILE}
 touch ${FAILED_FILE}
@@ -493,8 +506,8 @@ echo "Making $BUILD_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
 cd ${BUILD_DIR} >>& $OUTPUTF
-echo "CMD: make -j 4" >>& $OUTPUTF
-make -j 4 >>& $OUTPUTF
+echo "CMD: make -j 9 -s" >>& $OUTPUTF
+make -j 9 -s >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
@@ -585,8 +598,7 @@ if ($status != 0) then
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-if (("${RELEASE_TYPE}" == "stable") || \
-    ("${RELEASE_TYPE}" == "stable-pub")) then
+if ("${RELEASE_TYPE}" == "stable-pub") then
   echo "CMD: strip ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
   strip ${INSTALL_DIR}/bin-new/* >& /dev/null
 endif
@@ -597,10 +609,15 @@ endif
 # Move newly created bin-new/ to bin/.
 # This series of mv's minimizes the time window where the /bin directory
 # would appear empty to a machine trying to reference its contents in recon-all
-echo "CMD: rm -Rf ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
-rm -Rf ${INSTALL_DIR}/bin-old >>& $OUTPUTF
-echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
-mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+if (("${RELEASE_TYPE}" == "stable") && ("$OSTYPE" == "Linux")) then
+  echo "CMD: rm -Rf ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
+  rm -Rf ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+  echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
+  mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+else
+  echo "CMD: rm -Rf ${INSTALL_DIR}/bin" >>& $OUTPUTF
+  rm -Rf ${INSTALL_DIR}/bin >>& $OUTPUTF
+endif
 echo "CMD: mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin" >>& $OUTPUTF
 mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin >>& $OUTPUTF
 #
@@ -631,6 +648,8 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 # runs make, then make check, make install, and make uninstall.
 #goto make_distcheck_done
 if ("$RELEASE_TYPE" == "dev") then
+# HACK: just run on minerva
+if ("$HOSTNAME" == "minerva") then
 # just do this once a week, as it takes a few hours to run
 date | grep "Sat " >& /dev/null
 if ( ! $status ) then
@@ -643,12 +662,10 @@ if ( ! $status ) then
   make distcheck >>& $OUTPUTF
   if ($status != 0) then
     set msg="$HOSTNAME $RELEASE_TYPE build FAILED make distcheck"
-
 #
-# HACK : mail to nicks for now, until it passes regularly
+# HACK: mail to nicks for now, until it passes regularly
 #
-
-    tail -n 20 $OUTPUTF | mail -s "$msg" $SUCCESS_MAIL_LIST
+    tail -n 20 $OUTPUTF | mail -s "$msg" nicks@nmr.mgh.harvard.edu
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
@@ -658,8 +675,10 @@ if ( ! $status ) then
     chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
     chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
     chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
-    exit 1  
+# HACK: dont exit:
+#    exit 1  
   endif
+endif
 endif
 endif
 make_distcheck_done:
