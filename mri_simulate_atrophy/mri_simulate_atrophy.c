@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/22 11:26:00 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/05/22 14:03:36 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_simulate_atrophy.c,v 1.3 2009/05/22 11:26:00 fischl Exp $",
+     "$Id: mri_simulate_atrophy.c,v 1.4 2009/05/22 14:03:36 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -198,19 +198,19 @@ MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
 {
   float  total_volume, pv, border_volume, vox_vol, pct_border_reduction ;
   MRI    *mri_mixing = MRIcloneDifferentType(mri_aseg, MRI_FLOAT),
-         *mri_border ;
+         *mri_nbr_labels = MRIclone(mri_aseg, NULL);
   int    x, y, z ;
-  int    nbr_label_counts[10000], border;
-  int    nbr_label=0, max_count, vox_label, i ;
+  int    nbr_label, vox_label, i ;
   float  mean_label, mean_nbr, val ;
-  int    maxlabels = 10000, is_allowable_nbr;
-  float  label_means[10000] ;
 
   vox_vol = mri_norm->xsize * mri_norm->ysize * mri_norm->zsize ;
-  mri_border = MRImarkLabelBorderVoxels(mri_aseg, NULL, target_label, 1, 1) ;
   mri_norm_atrophy = MRIcopy(mri_norm, NULL) ;
 
-  total_volume = border_volume = 0 ;
+  MRIsetValues(mri_nbr_labels, Left_undetermined) ;
+  total_volume = 
+    MRIvoxelsInLabelWithPartialVolumeEffects(mri_aseg, mri_norm, target_label,
+                                             mri_mixing, mri_nbr_labels) ;
+  border_volume = 0 ;
   for (x = 0 ; x < mri_norm->width ; x++)
   {
     for (y = 0 ; y < mri_norm->height ; y++)
@@ -220,46 +220,16 @@ MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         vox_label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-        border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
-        if (border == 0)  // only simulate atrophy on border
-        {
-          if (vox_label == target_label)
-            total_volume += vox_vol ;
-          continue ;
-        }
-        if (vox_label != target_label)
-          nbr_label = vox_label ;
-        else  // voxel is in the target label
-        {
-          // see which of the allowed border labels is most common
-          MRIcomputeLabelNbhd(mri_aseg, mri_norm, x, y, z,
-                              nbr_label_counts, label_means, 1, maxlabels) ;
-          max_count = 0 ; nbr_label=-1;
-          for (i = 0 ; i < maxlabels ; i++)
-          {
-            if (i == target_label)
-              continue ;
-            if (nbr_label_counts[i] > max_count)
-            {
-              nbr_label = i ;
-              max_count = nbr_label_counts[nbr_label] ;
-            }
-          }
-        }
-        is_allowable_nbr = 0 ;
+        nbr_label = MRIgetVoxVal(mri_nbr_labels, x, y, z, 0) ;
         for (i = 0 ; i < nlabels ; i++)
+        {
           if (nbr_label == border_labels[i])
-          {
-            is_allowable_nbr = 1 ;
             break ;
-          }
-        // compute mean of this label
-        mean_label = MRImeanInLabelInRegion(mri_norm, mri_aseg, target_label,
-                                            x, y, z, 7) ;
-        mean_nbr = MRImeanInLabelInRegion(mri_norm, mri_aseg, nbr_label,
-                                          x, y, z, 7) ;
-        val = MRIgetVoxVal(mri_norm, x, y, z, 0) ;
-        pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
+        }
+        if (i >= nlabels)
+          continue ;   // not an allowable border label
+
+        pv = MRIgetVoxVal(mri_mixing,x, y, z, 0) ;
         if (pv < 0)
           continue ;
         if (pv > 1)
@@ -267,12 +237,7 @@ MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
           pv = 1 ;
           DiagBreak() ;
         }
-        if (is_allowable_nbr)
-        {
-          border_volume += pv ;
-          MRIsetVoxVal(mri_mixing, x, y, z, 0, pv) ;
-        }
-        total_volume += pv ;
+        border_volume += pv ;
       }
     }
   }
@@ -286,43 +251,27 @@ MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
     {
       for (z = 0 ; z < mri_norm->depth ; z++)
       {
-        border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
-        if (border == 0)  // only simulate atrophy on border
-          continue ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         vox_label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-        if (vox_label != target_label)
+        nbr_label = MRIgetVoxVal(mri_nbr_labels, x, y, z, 0) ;
+        for (i = 0 ; i < nlabels ; i++)
         {
-          for (i = 0 ; i < nlabels ; i++)
-            if (vox_label == border_labels[i])
-              break ;
-          if (i >= nlabels)  // not in one of the allowed nbr labels
-            continue ;  
-          nbr_label = border_labels[i] ; // same as vox_label
+          if (nbr_label == border_labels[i])
+            break ;
+        }
+        if (i >= nlabels)
+          continue ;   // not an allowable border label
 
-        }
-        else  // voxel is in the target label
-        {
-          // see which of the allowed border labels is most common
-          MRIcomputeLabelNbhd(mri_aseg, mri_norm, x, y, z,
-                              nbr_label_counts, label_means, 1, maxlabels) ;
-          max_count = 0 ;
-          for (i = 0 ; i < nlabels ; i++)
-            if (nbr_label_counts[border_labels[i]] > max_count)
-            {
-              nbr_label = border_labels[i] ;
-              max_count = nbr_label_counts[nbr_label] ;
-            }
-          if (max_count == 0) 
-            continue ;   // no allowable labels are a nbr
-        }
         // compute mean of this label
+        pv = MRIgetVoxVal(mri_mixing, x, y, z, 0) ;
         mean_label = MRImeanInLabelInRegion(mri_norm, mri_aseg, target_label,
                                             x, y, z, 7) ;
         mean_nbr = MRImeanInLabelInRegion(mri_norm, mri_aseg, nbr_label,
                                           x, y, z, 7) ;
         val = MRIgetVoxVal(mri_norm, x, y, z, 0) ;
         pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
-        if (pv < 0)
+        if (pv <= 0)
           continue ;
         if (pv > 1)
           pv = 1 ;
@@ -332,6 +281,6 @@ MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
       }
     }
   }
-  MRIfree(&mri_mixing) ;
+  MRIfree(&mri_mixing) ; MRIfree(&mri_nbr_labels) ;
   return(mri_norm_atrophy) ;
 }
