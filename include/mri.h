@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/21 18:33:46 $
- *    $Revision: 1.381 $
+ *    $Date: 2009/05/22 14:07:15 $
+ *    $Revision: 1.382 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1124,7 +1124,8 @@ int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals,
                         int *label_counts, float *label_means,
                         int whalf, int max_labels) ;
 float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
-                                               int label,MRI *mri_mixing_coef);
+                                               int label,MRI *mri_mixing_coef,
+                                               MRI *mri_nbr_labels);
 MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst,
                          float orig_res) ;
 int MRIfillBox(MRI *mri, MRI_REGION *box, float fillval) ;
