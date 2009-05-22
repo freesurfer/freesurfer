@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/21 18:33:40 $
- *    $Revision: 1.433 $
+ *    $Date: 2009/05/22 14:07:04 $
+ *    $Revision: 1.434 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.433 $";
+const char *MRI_C_VERSION = "$Revision: 1.434 $";
 
 
 /*-----------------------------------------------------
@@ -14099,7 +14099,10 @@ MRIsampleVolumeSlice
   return(NO_ERROR) ;
 }
 
-float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label, MRI *mri_mixing_coef)
+float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, 
+                                               int label, 
+                                               MRI *mri_mixing_coef, 
+                                               MRI *mri_nbr_labels)
 {
   float   volume, vox_vol ;
   int     x, y, z, nbr_label_counts[10000];
@@ -14152,8 +14155,10 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int labe
           /* look for a label that is a nbr and is
              on the other side of val from the label mean */
           for (this_label = 0 ; this_label < maxlabels;  this_label++)  {
-            if(this_label == vox_label)  continue ;
-            if(nbr_label_counts[this_label] == 0) continue ; /* not a nbr */
+            if(this_label == vox_label)  
+              continue ;
+            if(nbr_label_counts[this_label] == 0) 
+              continue ; /* not a nbr */
 
             if ((label_counts[this_label] > max_count) &&
                 ((label_means[this_label] - val) *
@@ -14162,19 +14167,52 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int labe
               nbr_label = this_label ;
             }
           }
-          if (vox_label != label && nbr_label != label)  continue ;/* this struct not in voxel */
+          if (vox_label != label && nbr_label != label)  
+            continue ; // this struct not in voxel 
 
-          if (max_count == 0) volume += vox_vol ; /* couldn't find an appropriate label */
-          else{    /* compute partial volume pct */
+          if (max_count == 0) 
+          {
+            volume += vox_vol ; // couldn't find an appropriate label
+            if (mri_nbr_labels)  // find max nbr label anyway for caller
+            {
+              for (this_label = 0 ; this_label < maxlabels;  this_label++)  {
+                if(this_label == vox_label)  
+                  continue ;
+                if(nbr_label_counts[this_label] == 0) 
+                  continue ; /* not a nbr */
+                
+                if (label_counts[this_label] > max_count)
+                {
+                  max_count = label_means[this_label] ;
+                  nbr_label = this_label ;
+                }
+              }
+              MRIsetVoxVal(mri_nbr_labels, x, y, z, 0, nbr_label) ;
+              if (mri_mixing_coef)
+                MRIsetVoxVal(mri_mixing_coef, x, y, z, 0, 1.0) ;
+            }
+          }
+          else{                 // compute partial volume pct 
             mean_nbr = label_means[nbr_label] ;
             pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
+            if (pv < 0 || pv > 1)
+              DiagBreak() ;
+            if (pv > 1)
+              pv = 1 ;
+            if (pv < 0)
+              continue ;  // shouldn't happen 
             if (vox_label != label)
               pv = 1-pv ;
             volume += vox_vol * pv ;
-            if (pv < 0 || pv > 1)
-              DiagBreak() ;
             if (mri_mixing_coef)
               MRIsetVoxVal(mri_mixing_coef, x, y, z, 0, pv);
+            if (mri_nbr_labels)  // return nbr label to caller
+            {
+              if (vox_label != label)
+                MRIsetVoxVal(mri_nbr_labels, x, y, z, 0, vox_label);
+              else
+                MRIsetVoxVal(mri_nbr_labels, x, y, z, 0, nbr_label);
+            }
           }
         }
       }
