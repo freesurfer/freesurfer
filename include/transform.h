@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 18:35:52 $
- *    $Revision: 1.57.2.1 $
+ *    $Date: 2009/05/22 00:58:18 $
+ *    $Revision: 1.57.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -164,7 +164,7 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid,
 
 int       TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 int       TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
-TRANSFORM *TransformRead(char *fname) ;
+TRANSFORM *TransformRead(const char *fname) ;
 int       TransformWrite(TRANSFORM *transform, char *fname) ;
 TRANSFORM *TransformIdentity(void) ;
 int       TransformFree(TRANSFORM **ptrans) ;

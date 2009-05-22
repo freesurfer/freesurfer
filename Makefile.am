@@ -28,6 +28,7 @@ MRISUBDIRS=check_siemens_dir \
 	rbftest \
 	talairach_afd \
 	talairach_avi \
+	mri_and \
 	mri_interpolate \
 	mri_jacobian \
 	mri_label_accuracy \
@@ -66,6 +67,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_extract_conditions \
 	mri_extract_label \
 	mri_fill \
+	mri_fuse_segmentations \
 	mri_fwhm \
 	mri_gca_ambiguous \
 	mri_head \
@@ -102,6 +104,7 @@ MRISUBDIRS=check_siemens_dir \
 	mri_remove_neck \
 	mri_ribbon \
 	mri_rigid_register \
+	mri_robust_register \
 	mri_seg_diff \
 	mri_segment \
 	mri_seghead \

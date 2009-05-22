@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/13 18:05:44 $
- *    $Revision: 1.112.2.7 $
+ *    $Date: 2009/05/22 00:58:25 $
+ *    $Revision: 1.112.2.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1739,7 +1739,7 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid,
 }
 /*----------------------------------------------------------------*/
 TRANSFORM *
-TransformRead(char *fname)
+TransformRead(const char *fname)
 {
   TRANSFORM *trans ;
   GCA_MORPH *gcam = NULL ;
@@ -1761,7 +1761,7 @@ TransformRead(char *fname)
   }
   // continue normal processing...
 
-  trans->type = TransformFileNameType(fname) ;
+  trans->type = TransformFileNameType((char *)fname) ;
   switch (trans->type)
   {
   case MNI_TRANSFORM_TYPE:
@@ -1779,7 +1779,7 @@ TransformRead(char *fname)
     trans->type = ((LTA *)trans->xform)->type ;
     break ;
   case MORPH_3D_TYPE:
-    gcam = GCAMread(fname) ;
+    gcam = GCAMread((char *)fname) ;
     if (!gcam)
     {
       free(trans) ;

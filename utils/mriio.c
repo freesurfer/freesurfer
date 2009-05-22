@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/05/18 16:55:13 $
- *    $Revision: 1.335.2.12 $
+ *    $Author: nicks $
+ *    $Date: 2009/05/22 00:58:25 $
+ *    $Revision: 1.335.2.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -911,16 +911,16 @@ MRI *MRIreadType(char *fname, int type)
 
 } /* end MRIreadType() */
 
-MRI *MRIread(char *fname)
+MRI *MRIread(const char *fname)
 {
   char  buf[STRLEN] ;
   MRI *mri = NULL;
 
   chklc() ;
 
-  FileNameFromWildcard(fname, buf) ;
+  FileNameFromWildcard((char *)fname, buf) ;
   fname = buf ;
-  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
+  mri = mri_read((char *)fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
 
   /* some volume format needs to read many
      different files for slices (GE DICOM or COR).
@@ -1243,14 +1243,14 @@ MRIwriteFrame(MRI *mri, char *fname, int frame)
   return(NO_ERROR) ;
 }
 
-int MRIwrite(MRI *mri, char *fname)
+int MRIwrite(MRI *mri, const char *fname)
 {
 
   int int_type = -1;
   int error;
 
   chklc() ;
-  if ((int_type = mri_identify(fname)) < 0)
+  if ((int_type = mri_identify((char *)fname)) < 0)
   {
     errno = 0;
     ErrorReturn
@@ -1258,7 +1258,7 @@ int MRIwrite(MRI *mri, char *fname)
      (ERROR_BADPARM, "unknown file type for file (%s)", fname));
   }
 
-  error = MRIwriteType(mri, fname, int_type);
+  error = MRIwriteType(mri, (char *)fname, int_type);
   return(error);
 
 } /* end MRIwrite() */

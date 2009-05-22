@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/29 17:22:01 $
- *    $Revision: 1.84.2.3 $
+ *    $Date: 2009/05/22 00:58:18 $
+ *    $Revision: 1.84.2.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -453,4 +453,14 @@ int GCAinsertLabels(GCA *gca, MRI *mri, TRANSFORM *transform, int ninsertions,
                     int *insert_labels, int *insert_intensities,
                     int insert_coords[MAX_INSERTIONS][3], int *insert_wsize) ;
 
+int GCAreadLabelIntensities(char *fname, 
+                            float *label_scales, 
+                            float *label_offsets);
+
+int GCAapplyRenormalization(GCA *gca, 
+                            float *label_scales, 
+                            float *label_offsets,
+                            int frame);
+
 #endif
+

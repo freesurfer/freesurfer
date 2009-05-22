@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/02/11 22:38:49 $
- *    $Revision: 1.347.2.5 $
+ *    $Date: 2009/05/22 00:58:18 $
+ *    $Revision: 1.347.2.6 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -1025,13 +1025,13 @@ int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);
 void mriio_set_gdf_crop_flag(int new_gdf_crop_flag);
 int MRIgetVolumeName(char *string, char *name_only);
-MRI *MRIread(char *fname);
+MRI *MRIread(const char *fname);
 MRI *MRIreadEx(char *fname, int nthframe);
 MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
 MRI *MRIreadHeader(char *fname, int type);
 int GetSPMStartFrame(void);
-int MRIwrite(MRI *mri, char *fname);
+int MRIwrite(MRI *mri, const char *fname);
 int MRIwriteFrame(MRI *mri, char *fname, int frame) ;
 int MRIwriteType(MRI *mri, char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);

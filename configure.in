@@ -2256,6 +2256,7 @@ AC_OUTPUT([Makefile
            mri_bias/Makefile
            mri_log_likelihood/Makefile
            mri_add_xform_to_header/Makefile
+           mri_and/Makefile
            mri_annotation2label/Makefile
            mri_aparc2aseg/Makefile
            mri_aparc2wmseg/Makefile
@@ -2297,6 +2298,7 @@ AC_OUTPUT([Makefile
            mri_extract_largest_CC/Makefile
            mri_fill/Makefile
            mri_fslmat_to_lta/Makefile
+           mri_fuse_segmentations/Makefile
            mri_fwhm/Makefile
            mri_gca_ambiguous/Makefile
            mri_gdfglm/Makefile
@@ -2346,6 +2348,7 @@ AC_OUTPUT([Makefile
            mri_remove_neck/Makefile
            mri_ribbon/Makefile
            mri_rigid_register/Makefile
+           mri_robust_register/Makefile
            mri_seg_diff/Makefile
            mri_seghead/Makefile
            mri_segment/Makefile
