@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:44 $
- *    $Revision: 1.110.2.3 $
+ *    $Date: 2009/05/23 22:21:45 $
+ *    $Revision: 1.110.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -576,7 +576,7 @@ int MatrixPrint(FILE *fp, MATRIX *mat)
 }
 
 
-int MatrixPrintFmt(FILE *fp, char *fmt, MATRIX *mat)
+int MatrixPrintFmt(FILE *fp, const char *fmt, MATRIX *mat)
 {
   int  row, col, rows, cols ;
 
@@ -700,7 +700,7 @@ MatrixPrintTranspose(FILE *fp, MATRIX *mat)
 
 
 MATRIX *
-MatrixReadTxt(char *fname, MATRIX *mat)
+MatrixReadTxt(const char *fname, MATRIX *mat)
 {
   FILE   *fp ;
   int     rows, cols, row, col, nlinemax, nread;
@@ -785,18 +785,20 @@ MatrixReadTxt(char *fname, MATRIX *mat)
 #undef const
 #endif
 MATRIX *
-MatrixRead(char *fname)
+MatrixRead(const char *fname)
 {
   return(MatlabRead(fname)) ;
 }
 
 
 int
-MatrixWrite(MATRIX *mat, char *fname, char *name)
+MatrixWrite(MATRIX *mat, const char *fname,const char *name)
 {
-  if (!name)
-    name = fname ;  /* name of matrix in .mat file */
-  return(MatlabWrite(mat, fname, name)) ;
+  if (!name) 
+  {
+    return(MatlabWrite(mat,(char *)fname,(char *)fname)) ;  /* name of matrix in .mat file */
+  }
+  return(MatlabWrite(mat, (char *)fname, (char *)name)) ;
 }
 
 
@@ -832,12 +834,15 @@ MatrixTranspose(MATRIX *mIn, MATRIX *mOut)
   rows = mIn->rows ;
   cols = mIn->cols ;
 
+  int insitu = (mIn == mOut);
+  if (insitu) mIn = MatrixCopy(mOut,NULL);
+
   for (row = 1 ; row <= rows ; row++)
   {
     for (col = 1 ; col <= cols ; col++)
       mOut->rptr[col][row] = mIn->rptr[row][col] ;
   }
-
+  if (insitu) MatrixFree(&mIn);
   return(mOut) ;
 }
 
@@ -2014,7 +2019,7 @@ MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs)
 
 
 int
-MatrixAsciiWrite(char *fname, MATRIX *m)
+MatrixAsciiWrite(const char *fname, MATRIX *m)
 {
   FILE  *fp ;
   int   ret ;
@@ -2031,7 +2036,7 @@ MatrixAsciiWrite(char *fname, MATRIX *m)
 
 
 MATRIX *
-MatrixAsciiRead(char *fname, MATRIX *m)
+MatrixAsciiRead(const char *fname, MATRIX *m)
 {
   FILE  *fp ;
 
@@ -2516,7 +2521,7 @@ Vector3Angle(VECTOR *v1, VECTOR *v2)
 
 
 int
-MatrixWriteTxt(char *fname, MATRIX *mat)
+MatrixWriteTxt(const char *fname, MATRIX *mat)
 {
   FILE   *fp ;
   int     row, col ;
@@ -3369,6 +3374,8 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
     m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
     m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
     m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
+    MatrixFree(&m_U);
+    MatrixFree(&m_V);
     MatrixFree(&m_tmp) ;
     MatrixFree(&m_Ur) ;
     MatrixFree(&m_Sr) ;
@@ -3467,6 +3474,64 @@ MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v)
   return(dist) ;
 }
 
+/*!
+\fn double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius)
+\brief RMS distance between two affine transforms, 
+the center should be in the middle of image, and radius
+should include the head (100 in RAS coord)
+(see Jenkinson 1999 RMS deviation - tech report
+    www.fmrib.ox.ac.uk/analysis/techrep )
+\param m1     4x4 affine transformation
+\param m2     4x4 affine transformation (may be NULL)
+\param radius of the ball to be considered
+*/
+double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius)
+{
+
+   MATRIX* drigid = MatrixCopy(m1,NULL);
+   if (m2) drigid = MatrixSubtract(drigid,m2,drigid);
+   else //subtract identity
+   {
+      MATRIX *id = MatrixIdentity(4,NULL);
+      drigid = MatrixSubtract(drigid,id,drigid);
+      MatrixFree(&id);
+   }
+
+   // assert we have 4x4 affine transform
+   //double EPS = 0.000001;
+   //assert(drigid->rows ==4 && drigid->cols == 4);
+   //assert(fabs(drigid->rptr[4][1]) < EPS);
+   //assert(fabs(drigid->rptr[4][2]) < EPS);
+   //assert(fabs(drigid->rptr[4][3]) < EPS);
+
+   // translation norm quadrat:
+   double tdq = 0;
+   int i;
+   for (i=1; i <= 3; i++)
+   {
+      tdq += drigid->rptr[i][4] * drigid->rptr[i][4];
+      drigid->rptr[i][4] = 0.0; // set last row and column to zero
+      drigid->rptr[4][i] = 0.0;
+   }
+   drigid->rptr[4][4] = 0.0;
+   
+   MATRIX* dt = MatrixTranspose(drigid, NULL);
+   drigid = MatrixMultiply(dt,drigid,drigid);
+   MatrixFree(&dt);
+   
+   // Trace of A^t A (only first 3x3 submatrix)
+   double tr = 0.0;
+   for (i=1; i <= 3; i++)
+   {
+      tr += drigid->rptr[i][i];
+   }
+   
+   MatrixFree(&drigid);
+   
+   return sqrt((1.0/5.0) * radius*radius* tr + tdq);
+
+}
+
 
 /* for 3d vector macros */
 #include "tritri.h"
@@ -3533,7 +3598,7 @@ MatrixOrthonormalizeTransform(MATRIX *m_L)
 }
 
 MATRIX *
-MatrixAsciiReadRaw(char *fname, MATRIX *m)
+MatrixAsciiReadRaw(const char *fname, MATRIX *m)
 {
   FILE   *fp ;
   int    rows, cols, row, col ;
