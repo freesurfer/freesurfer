@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/16 00:40:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/05/24 18:47:01 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -111,7 +111,7 @@ void initialXforms (Parameters & P, int tpi);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.6 2009/05/16 00:40:24 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.7 2009/05/24 18:47:01 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
   cout << "Writing final average image: " << P.mean << endl;
   strncpy(P.mri_mean->fname, P.mean.c_str(),STRLEN);
   MRIwrite(P.mri_mean,P.mean.c_str());
+	MRIfree(&P.mri_mean);
 
   // output transforms and warps
   cout << "Writing final transforms (warps etc.)..." << endl;
@@ -192,8 +193,13 @@ int main(int argc, char *argv[])
       else assert(P.ltas[i]->type == LINEAR_RAS_TO_RAS);
       strncpy(P.ltas[i]->xforms[0].dst.fname, P.mean.c_str(),STRLEN);
       LTAwriteEx(P.ltas[i], P.nltas[i].c_str()) ;
+			LTAfree(&P.ltas[i]);
     }
-    if (P.nwarps.size() > 0) MRIwrite(P.mri_warps[i],P.nwarps[i].c_str()) ;
+    if (P.nwarps.size() > 0)
+		{
+		  MRIwrite(P.mri_warps[i],P.nwarps[i].c_str()) ;
+			MRIfree(&P.mri_warps[i]);
+	  }
     if (P.iscale && P.intensities[i] >0 && P.nwarps.size() > 0)
     {
       size_t  pos = P.nwarps[i].rfind(".");    // position of "." in str
@@ -218,7 +224,7 @@ int main(int argc, char *argv[])
       MRIwrite(P.mri_weights[i], P.nweights[i].c_str()) ;
       MRIfree(&P.mri_weights[i]);
     }
-
+    MRIfree(&P.mri_mov[i]);
   }
 
 
@@ -809,6 +815,7 @@ void halfWayTemplate(Parameters & P)
   // compute Alignment
   std::pair <MATRIX*, double> Md;
   Md = R.computeMultiresRegistration(0,P.iterate,P.epsit,NULL,NULL,minit);
+	if (minit) MatrixFree(&minit);
   P.intensities[0] = Md.second;
   P.intensities[1] = 1;
 
@@ -876,7 +883,8 @@ void halfWayTemplate(Parameters & P)
   if (P.mri_weights[0])
     for (unsigned int i = 0;i<P.mri_weights.size();i++)
       P.mri_weights[i] = MRIcopy(P.mri_weights[i],NULL);
-
+			
+  MatrixFree(&Md.first);
 }
 
 
