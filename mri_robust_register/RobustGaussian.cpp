@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <iostream>
-#include <vector>
 
 using namespace std;
 
@@ -19,7 +18,7 @@ pair < double , int > RobustGaussian::quick_selectI(double arr[], int n, int k)
   int median;
   int middle, ll, hh;
 
-  vector < int > pos(n); // to keep trak of original poisistion (mr)
+  int* pos = (int *)calloc(n, sizeof(int));
   for (int i = 0;i<n;i++) pos[i] = i;
 
   low = 0 ;
@@ -28,7 +27,11 @@ pair < double , int > RobustGaussian::quick_selectI(double arr[], int n, int k)
   for (;;)
   {
     if (high <= low) /* One element only */
-      return pair < double , int > (arr[median],pos[median]) ;
+    {
+      int pp = pos[median];
+      free(pos);
+      return pair < double , int > (arr[median],pp) ;
+    }
     if (high == low + 1)
     { /* Two elements only */
       if (arr[low] > arr[high])
@@ -36,7 +39,9 @@ pair < double , int > RobustGaussian::quick_selectI(double arr[], int n, int k)
         ELEM_SWAPD(arr[low], arr[high]) ;
 	ELEM_SWAPI(pos[low], pos[high]) ;
       }
-      return pair < double , int > (arr[median],pos[median])  ;
+      int pp = pos[median];
+      free(pos);
+      return pair < double , int > (arr[median],pp)  ;
     }
     /* Find median of low, middle and high items; swap into position low */
     middle = (low + high) / 2;
@@ -84,6 +89,70 @@ pair < double , int > RobustGaussian::quick_selectI(double arr[], int n, int k)
   }
 }
 
+double RobustGaussian::quick_select(double arr[], int n, int k)
+{
+  int low, high ;
+  int median;
+  int middle, ll, hh;
+
+
+  low = 0 ;
+  high = n-1 ;
+  median = k-1;
+  for (;;)
+  {
+    if (high <= low) /* One element only */
+    {
+      return arr[median] ;
+    }
+    if (high == low + 1)
+    { /* Two elements only */
+      if (arr[low] > arr[high])
+      {
+        ELEM_SWAPD(arr[low], arr[high]) ;
+      }
+      return arr[median] ;
+    }
+    /* Find median of low, middle and high items; swap into position low */
+    middle = (low + high) / 2;
+    if (arr[middle] > arr[high])
+    {
+      ELEM_SWAPD(arr[middle], arr[high]) ;
+    }  
+    if (arr[low] > arr[high])
+    {
+      ELEM_SWAPD(arr[low], arr[high]) ;
+    }
+    if (arr[middle] > arr[low])
+    {
+      ELEM_SWAPD(arr[middle], arr[low]) ;
+    }
+      
+    /* Swap low item (now in position middle) into position (low+1) */
+    ELEM_SWAPD(arr[middle], arr[low+1]) ;
+    /* Nibble from each end towards middle, swapping items when stuck */
+    ll = low + 1;
+    hh = high;
+    for (;;)
+    {
+      do ll++;
+      while (arr[low] > arr[ll]) ;
+      do hh--;
+      while (arr[hh] > arr[low]) ;
+      if (hh < ll)
+        break;
+      ELEM_SWAPD(arr[ll], arr[hh]) ;
+    }
+    /* Swap middle item (in position low) back into correct position */
+    ELEM_SWAPD(arr[low], arr[hh]) ;
+    /* Re-set active partition */
+    if (hh <= median)
+      low = ll;
+    if (hh >= median)
+      high = hh - 1;
+  }
+}
+
 /*---------------------------------------------------------------------------
    Function :   kth_smallest()
    In       :   array of elements, # of elements in the array, rank k
@@ -107,7 +176,7 @@ std::pair < double , int> RobustGaussian::kth_smallestI(double a[], int n, int k
   int kk = k-1;
   double x ;
   
-  vector < int > pos(n); // to keep trak of original position (mr)
+  int* pos = (int *)calloc(n, sizeof(int));
   for (int i = 0;i<n;i++) pos[i] = i;
   
   l=0 ;
@@ -133,10 +202,47 @@ std::pair < double , int> RobustGaussian::kth_smallestI(double a[], int n, int k
     if (j<kk) l=i ;
     if (kk<i) m=j ;
   }
-  return pair < double, int > (a[kk],pos[kk]) ;
+  int pp = pos[kk];
+  free(pos);
+  return pair < double, int > (a[kk],pp) ;
 }
 
-#undef ELEM_SWAP
+double RobustGaussian::kth_smallest(double a[], int n, int k)
+// reorders a[] (of length n)
+// returns k_th smallest and original position in array
+{
+  int i,j,l,m ;
+  int kk = k-1;
+  double x ;
+    
+  l=0 ;
+  m=n-1 ;
+  while (l<m)
+  {
+    x=a[kk] ;
+    i=l ;
+    j=m ;
+    do
+    {
+      while (a[i]<x) i++ ;
+      while (x<a[j]) j-- ;
+      if (i<=j)
+      {
+        ELEM_SWAPD(a[i],a[j]) ;
+        i++ ;
+        j-- ;
+      }
+    }
+    while (i<=j) ;
+    if (j<kk) l=i ;
+    if (kk<i) m=j ;
+  }
+  return a[kk];
+}
+
+
+#undef ELEM_SWAPD
+#undef ELEM_SWAPI
 
 pair < double, double > RobustGaussian::medianI(double t[],int n)
 // compute median
@@ -164,6 +270,31 @@ pair < double, double > RobustGaussian::medianI(double t[],int n)
   return pair < double, double > (0.5 * (qs.first + qs2.first), 0.5 * (qs.second + qs2.second));
 
 }
+
+double RobustGaussian::median(double t[],int n)
+// compute median
+// in situ, t will be reordered
+{
+
+  double q;
+  if (n%2 == 1) //odd
+  {
+    q = kth_smallest(t,n,(n+1)/2);
+    return q;
+  }
+
+  //  else even:
+
+//  q = kth_smallest(t,n,n/2);
+  q = quick_select(t,n,n/2);
+// double q2 = kth_smallest(t,n,n/2 + 1);
+  double q2 = quick_select(t,n,n/2 + 1);
+  //cout << " n: " << n << "   " << q << "   " << q2 << endl;
+
+  return 0.5 * (q + q2);
+
+}
+
 
 double RobustGaussian::mad(double a[], int n, double d)
 // robust estimate for sigma (using median absolute deviation)
