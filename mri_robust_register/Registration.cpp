@@ -1647,9 +1647,16 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   //MRIclear(mask);
 
   int z,y,x;
-
+  long int ss = mriS->width * mriS->height * mriS->depth;
   if (mri_indexing) MRIfree(&mri_indexing);
-  mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
+  if (ss > std::numeric_limits<int>::max())
+  {
+     cout << "     -- using LONG for indexing ... " << flush;
+     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
+  }
+  else 
+     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
+
   for (z = 0 ; z < mriS->depth ; z++)
     for (x = 0 ; x < mriS->width ; x++)
       for (y = 0 ; y < mriS->height ; y++)
