@@ -375,7 +375,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
   lastp = NULL;
   double diff = 100;
   int i = 1;
-
+  MATRIX* mras = NULL;
   while (diff > epsit && i<=nmax)
   {
     cout << " Iteration: " << i << endl;
@@ -391,12 +391,25 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
     // this keeps the problem symmetric
     cout << "   - warping source and target (sqrt)" << endl;
     if (mh) MatrixFree(&mh);
+    // Old: half way voxelxform
     mh  = MatrixSqrt(fmd.first);
     // do not just assume m = mh*mh, rather m = mh2 * mh
     // for transforming target we need mh2^-1 = mh * m^-1
     MATRIX * mi  = MatrixInverse(fmd.first,NULL);
     //MATRIX * mhi = MatrixMultiply(mi,mh,NULL); //old
     mhi = MatrixMultiply(mh,mi,mhi);
+
+//     // get half way rasxform: (not working : low resolution?)
+//     mras = MRIvoxelXformToRasXform (mriS,mriT,fmd.first,mras);
+//     mh   = MatrixSqrt(mras);
+//     // do not just assume m = mh*mh, rather m = mh2 * mh
+//     // for transforming target we need mh2^-1 = mh * m^-1
+//     MATRIX * mi  = MatrixInverse(mras,NULL);
+//     //MATRIX * mhi = MatrixMultiply(mi,mh,NULL); //old
+//     mhi = MatrixMultiply(mh,mi,mhi);
+//     // make vox2vox
+//     mh  = MRIrasXformToVoxelXform (mriS,mriS,mh,mh);
+//     mhi = MRIrasXformToVoxelXform (mriT,mriT,mhi,mhi);
 
     if (mri_Swarp) MRIfree(&mri_Swarp);
     mri_Swarp = MRIclone(mriS,NULL);
@@ -458,7 +471,8 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
     //MatrixFree(&mh2);
 
   }
-
+  if (mras) MatrixFree(&mras);
+  
   //   DEBUG OUTPUT
   if (debug > 0)
   {
@@ -1633,9 +1647,16 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   //MRIclear(mask);
 
   int z,y,x;
-
+  long int ss = mriS->width * mriS->height * mriS->depth;
   if (mri_indexing) MRIfree(&mri_indexing);
-  mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
+  if (ss > std::numeric_limits<int>::max())
+  {
+     cout << "     -- using LONG for indexing ... " << flush;
+     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
+  }
+  else 
+     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
+
   for (z = 0 ; z < mriS->depth ; z++)
     for (x = 0 ; x < mriS->width ; x++)
       for (y = 0 ; y < mriS->height ; y++)
