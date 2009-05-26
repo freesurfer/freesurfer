@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/22 00:58:18 $
- *    $Revision: 1.84.2.4 $
+ *    $Date: 2009/05/26 23:25:42 $
+ *    $Revision: 1.84.2.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -461,6 +461,15 @@ int GCAapplyRenormalization(GCA *gca,
                             float *label_scales, 
                             float *label_offsets,
                             int frame);
+
+int GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, 
+                                           TRANSFORM *transform, 
+                                           FILE *logfp,
+                                           const char *base_name, 
+                                           LTA **plta, 
+                                           int handle_expanded_ventricles,
+                                           float *plabel_scales, 
+                                           float *plabel_offsets);
 
 #endif
 

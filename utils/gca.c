@@ -14,10 +14,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/22 00:58:20 $
- *    $Revision: 1.231.2.12 $
+ *    $Date: 2009/05/26 23:25:37 $
+ *    $Revision: 1.231.2.13 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -16577,28 +16577,48 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                                LTA **plta,
                                int handle_expanded_ventricles)
 {
+  
+  return(GCAcomputeRenormalizationWithAlignment(gca, mri, transform, 
+                                                logfp, base_name, plta, 
+                                                handle_expanded_ventricles,
+                                                NULL, NULL));
+}
+int
+GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, 
+                                       TRANSFORM *transform, 
+                                       FILE *logfp,
+                                       const char *base_name, 
+                                       LTA **plta, 
+                                       int handle_expanded_ventricles,
+                                       float *plabel_scales, 
+                                       float *plabel_offsets)
+{
   HISTOGRAM *h_mri, *h_gca ;
-  int       l, nbins, i, x, y, z, xn, yn, zn, num, frame, \
-  bin, j, n, computed[MAX_CMA_LABELS], b, label, k,
-  border = BORDER_SIZE, gca_peak, mri_peak ;
+  int       l, nbins, i, x, y, z, num, frame, bin, j, n, 
+    computed[MAX_CMA_LABELS], 
+    b, label, k, border = BORDER_SIZE, gca_peak, mri_peak ;
   float     fmin, fmax, label_scales[MAX_CMA_LABELS], overlap,
-  mean_gm_scale, mean_wm_scale, mean_csf_scale, label_peaks[MAX_CMA_LABELS],
-  label_offsets[MAX_CMA_LABELS], \
-  mean_wm_offset, mean_csf_offset, mean_gm_offset,
-  lower_thresh, upper_thresh ;
+    mean_gm_scale, mean_wm_scale, mean_csf_scale, label_peaks[MAX_CMA_LABELS],
+    label_offsets[MAX_CMA_LABELS], \
+    mean_wm_offset, mean_csf_offset, mean_gm_offset,
+    lower_thresh, upper_thresh ;
   Real      val/*, scale*/ ;
-  GCA_NODE  *gcan ;
-  GC1D      *gc ;
   MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL ;
   char      fname[STRLEN] ;
   MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
   LTA       *lta ;
+
+  if (plabel_scales == NULL)
+    plabel_scales = label_scales ;
+  if (plabel_offsets == NULL)
+    plabel_offsets = label_offsets ;
 
   double    det = -1 ;
   float peak_threshold = 0.03;
   float overlap_threshold = 0.001;
   int equiv_class[MAX_CMA_LABELS];
 
+  memset(label_peaks, 0, sizeof(label_peaks)) ;
   if (transform->type == MORPH_3D_TYPE)
   {
     peak_threshold = 0.01;
@@ -17053,7 +17073,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           lower_thresh = 50 ;
           upper_thresh = 90 ;
           break ;
-       case Left_Cerebral_White_Matter:
+        case Left_Cerebral_White_Matter:
         case Right_Cerebral_White_Matter:
           lower_thresh = 90 ;
           upper_thresh = 130 ;
@@ -17467,7 +17487,6 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       {
       case Left_Pallidum:
       case Right_Pallidum:
-#if 1
         if ((label_peaks[l] >= .95*label_peaks[Left_Cerebral_White_Matter]) ||
             (label_peaks[l] >= .95*label_peaks[Right_Cerebral_White_Matter]))
         {
@@ -17476,17 +17495,19 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  (label_peaks[Left_Cerebral_White_Matter] +
                   label_peaks[Right_Cerebral_White_Matter])/2 ;
           scale = peak / label_peaks[l] ;
+#if 1
           printf("%s too bright - rescaling by %2.3f "
                  "(from %2.3f) to %2.1f (was %2.1f)\n",
                  cma_label_to_name(l),
                  scale, label_scales[l], peak, label_peaks[l]) ;
-          label_scales[l] = scale ;
+          label_scales[l] *= scale ;
           label_peaks[l] = peak ;
-        }
 #endif
+        }
         break ;
       case Left_Putamen:
       case Right_Putamen:
+#if 1
         if ((label_peaks[l] >= .9*label_peaks[Left_Cerebral_White_Matter]) ||
             (label_peaks[l] >= .9*label_peaks[Right_Cerebral_White_Matter]))
         {
@@ -17499,9 +17520,10 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                  "(from %2.3f) to %2.1f (was %2.1f)\n",
                  cma_label_to_name(l),
                  scale, label_scales[l], peak, label_peaks[l]) ;
-          label_scales[l] = scale ;
+          label_scales[l] *= scale ;
           label_peaks[l] = peak ;
         }
+#endif
         break ;
       }
     }
@@ -17582,7 +17604,30 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
     }
 
 
+    if (base_name)
+    {
+      FILE *fp ;
+      char fname[STRLEN];
+      sprintf(fname, "%s.label_intensities.txt", base_name) ;
+      printf("saving intensity scales to %s\n", fname) ;
+      fp = fopen(fname, "w") ;
+      if (fp == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not open intensity tracking file %s", Progname,fname) ;
+
+      for (l = 0 ; l < MAX_CMA_LABELS ; l++)
+        if (computed[l] != 0)
+          fprintf(fp, "%d %s %2.2f %2.1f %2.0f\n",
+                  l, cma_label_to_name(l), label_scales[l], label_offsets[l], label_peaks[l]) ;
+          
+      fflush(fp) ;
+      fclose(fp) ;
+      if (getenv("EXIT_AFTER_INT") != NULL)
+        exit(0) ;
+    }
     gcaCheck(gca) ;
+#if 1
+    GCAapplyRenormalization(gca, label_scales, label_offsets, frame) ;
+#else
     for (xn = 0 ; xn < gca->node_width ; xn++)
     {
       double     means_before[MAX_GCA_LABELS], \
@@ -17734,9 +17779,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         }
       }
     }
+#endif
     gcaCheck(gca) ;
   }
-
   if (plta)  // return linear transform array to caller
   {
     int i ;
@@ -17764,6 +17809,11 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
     }
     printf("%d transforms computed\n", i) ;
   }
+
+  if (label_scales != plabel_scales) // copy to user-supplied space
+    memmove(plabel_scales, label_scales, MAX_CMA_LABELS*sizeof(label_scales[0]));
+  if (label_offsets != plabel_offsets) // copy to user-supplied space
+    memmove(plabel_offsets, label_offsets, MAX_CMA_LABELS*sizeof(label_offsets[0]));
 
   if (mri_seg)
     MRIfree(&mri_seg) ;
