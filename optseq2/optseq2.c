@@ -9,9 +9,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:23 $
- *    $Revision: 2.14 $
+ *    $Author: greve $
+ *    $Date: 2009/05/26 18:13:45 $
+ *    $Revision: 2.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,7 @@ Can something be done to affect the off-diagonals?
 #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.14 2008/03/10 13:35:23 nicks Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.15 2009/05/26 18:13:45 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -156,9 +156,9 @@ char *SumFile = NULL;
 char *LogFile = NULL;
 float PctDone, PctDoneLast, PctDoneSince;
 int UpdateNow;
-MATRIX *C;
+MATRIX *C=NULL;
 float EVContrast[1000];
-int ContrastSumDelays = 0, nEVContrast;
+int ContrastSumDelays = 0, nEVContrast=0;
 char *CMtxFile=NULL;
 double ar1rho = 0;
 
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.14 2008/03/10 13:35:23 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.15 2009/05/26 18:13:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -261,14 +261,20 @@ int main(int argc, char **argv) {
   }
 
   /* Create the contrast matrix */
-  if (nEVContrast > 0) {
+  if(nEVContrast > 0) {
     C = ContrastMatrix(EVContrast, nEvTypes,nPSDWindow,
                        PolyOrder+1,ContrastSumDelays);
+  }
+  if(C){
+    if(C->cols != (nEvTypes*nPSDWindow+PolyOrder+1)){
+      printf("ERROR: number of cols in C (%d) does not equal "
+	     "the number of cols in X (%d)\n",C->cols,nEvTypes*nPSDWindow);
+      exit(1);
+    }
     printf("C Contrast Matrix ----------------------\n");
     MatrixPrint(stdout,C);
     printf("================== ----------------------\n");
-
-    if (CMtxFile != NULL) MatlabWrite(C,CMtxFile,"C");
+    if(CMtxFile != NULL)  MatrixWriteTxt(CMtxFile,C);
   }
 
   /* Alloc the event list and load inputs */
@@ -715,8 +721,13 @@ static int parse_commandline(int argc, char **argv) {
         VarEvRepsPerCond = 1;
         nargsused++;
       } else VarEvRepsPerCond = 0;
-    } else if (stringmatch(option, "--evc")) {
+    } 
+    else if (stringmatch(option, "--evc")) {
       if (nargc < 1) argnerr(option,1);
+      if(C){
+	printf("ERROR: cannot --evc and --C\n");
+	exit(1);
+      }
       nEVContrast = 0;
       while (nth_is_arg(nargc,pargv,nEVContrast)) {
         sscanf(pargv[nEVContrast],"%f",&EVContrast[nEVContrast]);
@@ -727,7 +738,21 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = nEVContrast;
-    } else if (!strcmp(option, "--o")) {
+    } 
+    else if (stringmatch(option, "--C")) {
+      if(nargc < 1) argnerr(option,1);
+      if(nEVContrast != 0){
+	printf("ERROR: cannot --evc and --C\n");
+	exit(1);
+      }
+      C = MatrixReadTxt(pargv[0], NULL);
+      if (C == NULL) {
+	printf("ERROR: loading C %s\n",pargv[0]);
+	exit(1);
+      }
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
       outstem = pargv[0];
       nargsused = 1;
@@ -836,6 +861,7 @@ static void print_usage(void) {
   printf("  --ar1 rho : optimize assuming whitening with AR1\n");
   printf("  --pen alpha T dtmin: penalize for presentations being too close\n");
   printf("  --evc c1 c2 ... cN : event contrast\n");
+  printf("  --C cmtx : load contrast from ascii cmtx\n");
   printf("  --cost name <params>: eff, vrfavg, vrfavgstd\n");
   printf("\n");
   printf("  --sumdelays : sum delays when forming contrast matrix\n");
@@ -847,7 +873,7 @@ static void print_usage(void) {
   printf("  --nkeep   n : keep n schedules\n");
   printf("  --o outstem  : save schedules in outstem-RRR.par\n");
   printf("  --mtx mtxstem  : save design matrices in mtxstem_RRR.mat\n");
-  printf("  --cmtx cmtxfile  : save contrast matrix in cmtxfile\n");
+  printf("  --cmtx cmtxfile  : save contrast matrix in ascii cmtxfile\n");
   printf("  --sum file : save summary in file (outstem.sum)\n");
   printf("  --log file : save log in file (outstem.log)\n");
   printf("  --pctupdate pct : print an update after each pct done\n");
