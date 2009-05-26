@@ -1,14 +1,18 @@
-function [X C] = fast_anova_rm_oneway(Ny,Nr)
-% [X C] = fast_anova_rm_oneway(Ny,Nr)
+function [X C] = fast_anova_rm_oneway(Ny,Nr,SubjFastest)
+% [X C] = fast_anova_rm_oneway(Ny,Nr,<RepFastest>)
 %
 % Design and contrast matrices for a One-way Repeated Measures
 % ANOVA with Nr replicants 
 %
 % Ny is the number of data points which must be Ns*Nr, where Ns is the
-% number of subjects.  The data must be arranged in y such that the
-% first Nr rows are the replicants of subject 1, the next Nr rows are
-% the replicants of subject 2, etc. When Nr=1, this reduces to an
-% unsigned paired t.
+% number of subjects.  By default, it is assumed that the data are
+% arranged in y such that the first Nr rows are the replicants of
+% subject 1, the next Nr rows are the replicants of subject 2,
+% etc, ie, the replicant is "fastest". If SubjFastest=1, the
+% subject is assumed to be fastest, ie, the first Ns rows are
+% the first replicant of all subjects, the next Ns rows are
+% the second replicant of all subjects, etc.
+% Note: When Nr=1, this reduces to an unsigned paired t.
 %
 % X is the design matrix
 % C is the contrast matrix
@@ -16,14 +20,16 @@ function [X C] = fast_anova_rm_oneway(Ny,Nr)
 %    [beta, rvar, vdof, r] = fast_glmfit(y,X);
 %    [F, Fsig, con] = fast_fratio(beta,X,rvar,C);
 %
-% $Id: fast_anova_rm_oneway.m,v 1.1 2009/05/26 22:03:02 greve Exp $
+% $Id: fast_anova_rm_oneway.m,v 1.2 2009/05/26 22:27:50 greve Exp $
 
 X = [];
 C = [];
-if(nargin ~= 2)
-  fprintf('[X C] = fast_anova_rm_oneway(Ny,Nr)\n');
+if(nargin ~= 2 & nargin ~= 3)
+  fprintf('[X C] = fast_anova_rm_oneway(Ny,Nr,<SubjFastest>)\n');
   return;
 end
+
+if(nargin == 2) SubjFastest = 0; end 
 
 if(rem(Ny,Nr) ~= 0) 
   fprintf('ERROR: number of rows in y (%d) is not integer\n',Ny);
@@ -52,6 +58,18 @@ X = [Xsubj XrepDiff];
 
 % Contrast matrix tests for a difference between replicants
 C = [zeros(Nr-1,Ns) eye(Nr-1)];
+
+if(SubjFastest)
+  ind = [];
+  for nthRep = 1:Nr
+    ind = [ind nthRep:Nr:Ny];
+  end
+keyboard
+  X = X(ind,:);
+  % C stays the same
+end
+
+
 
 return;
 
