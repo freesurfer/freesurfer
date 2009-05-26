@@ -20,7 +20,7 @@ function [X C] = fast_anova_rm_oneway(Ny,Nr,SubjFastest)
 %    [beta, rvar, vdof, r] = fast_glmfit(y,X);
 %    [F, Fsig, con] = fast_fratio(beta,X,rvar,C);
 %
-% $Id: fast_anova_rm_oneway.m,v 1.2 2009/05/26 22:27:50 greve Exp $
+% $Id: fast_anova_rm_oneway.m,v 1.3 2009/05/26 22:28:27 greve Exp $
 
 X = [];
 C = [];
@@ -64,7 +64,6 @@ if(SubjFastest)
   for nthRep = 1:Nr
     ind = [ind nthRep:Nr:Ny];
   end
-keyboard
   X = X(ind,:);
   % C stays the same
 end
