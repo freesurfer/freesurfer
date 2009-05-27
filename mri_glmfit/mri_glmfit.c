@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/18 15:41:44 $
- *    $Revision: 1.138.2.10 $
+ *    $Date: 2009/05/27 18:52:37 $
+ *    $Revision: 1.138.2.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -553,7 +553,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.138.2.10 2009/05/18 15:41:44 greve Exp $";
+"$Id: mri_glmfit.c,v 1.138.2.11 2009/05/27 18:52:37 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -691,6 +691,7 @@ int  UseCortexLabel = 0;
 char *SimDoneFile = NULL;
 int tSimSign = 0;
 int FWHMSet = 0;
+int DoKurtosis = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1784,11 +1785,13 @@ int main(int argc, char **argv) {
     fclose(fp);
   }
 
-  // Compute and save kurtosis
-  printf("Computing kurtosis of residuals\n");
-  k = fMRIkurtosis(mriglm->eres,NULL);
-  sprintf(tmpstr,"%s/kurtosis.%s",GLMDir,format);
-  MRIwrite(k,tmpstr);
+  if(DoKurtosis){
+    // Compute and save kurtosis
+    printf("Computing kurtosis of residuals\n");
+    k = fMRIkurtosis(mriglm->eres,NULL);
+    sprintf(tmpstr,"%s/kurtosis.%s",GLMDir,format);
+    MRIwrite(k,tmpstr);
+  }
 
   // Compute and save PCA
   if (pcaSave) {
@@ -1869,6 +1872,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
+    else if (!strcasecmp(option, "--kurtosis")) DoKurtosis = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&prune_thr); 
