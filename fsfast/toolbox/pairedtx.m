@@ -16,9 +16,9 @@ function [X, C] = pairedtx(npairs)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:34 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2009/05/27 00:09:26 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,7 @@ end
 
 S = repmat([1 1]',[1 1 npairs]);
 S = fast_blockdiag(S);
-D = repmat([1 -1]',[npairs 1]);
+D = repmat([0.5 -0.5]',[npairs 1]);
 X = [S D];
 
 C = zeros(1,npairs+1);
