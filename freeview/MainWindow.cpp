@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/30 21:31:05 $
- *    $Revision: 1.50 $
+ *    $Date: 2009/05/28 21:03:32 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2291,6 +2291,10 @@ void MainWindow::RunScript()
   {
     CommandSetDisplayVector( sa );
   }
+  else if ( sa[0] == _("setdisplaytensor") )
+  {
+    CommandSetDisplayTensor( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2302,7 +2306,11 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
   wxString colormap = _("grayscale");
   wxString colormap_scale = _("grayscale");
   wxString lut_name;
-  wxString vector_display = _("no"), vector_inversion = _("none"), vector_render = _("line");
+  wxString vector_display = _("no"), 
+           vector_inversion = _("none"), 
+           vector_render = _("line"),
+           tensor_display = _("no"),
+           tensor_render = _("boxoid");
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
@@ -2336,25 +2344,33 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
           cerr << "Missing vector display argument." << endl;
         }
       }
+      else if ( strg.Left( n ).Lower() == _("tensor") )
+      {
+        tensor_display = strg.Mid( n + 1 ).Lower();
+        if ( tensor_display.IsEmpty() )
+        {
+          cerr << "Missing tensor display argument." << endl;
+        }
+      }
       else if ( strg.Left( n ).Lower() == _("inversion") || 
                 strg.Left( n ).Lower() == _("invert") )
       {
         vector_inversion = strg.Mid( n + 1 ).Lower();
         if ( vector_inversion.IsEmpty() )
         {
-          cerr << "Missing vector inversion argument." << endl;
+          cerr << "Missing inversion argument." << endl;
           vector_inversion = _("none");
         }
       }
       else if ( strg.Left( n ).Lower() == _("render") )
       {
         vector_render = strg.Mid( n + 1 ).Lower();
+        tensor_render = vector_render;
+        if ( vector_render.IsEmpty() )
         {
-          if ( vector_render.IsEmpty() )
-          {
-            cerr << "Missing vector render argument." << endl;
-            vector_render = _("line");
-          }
+          cerr << "Missing render argument." << endl;
+          vector_render = _("line");
+          tensor_render = _("boxoid");
         }
       }
       else if ( strg.Left( n ).Lower() == _("reg") )
@@ -2398,7 +2414,17 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     m_scripts.insert( m_scripts.begin(), script );
   }
   
-  if ( !vector_display.IsEmpty() && vector_display != _("no") )
+  if ( !tensor_display.IsEmpty() && tensor_display != _("no") )
+  {
+    wxArrayString script;
+    script.Add( _("setdisplaytensor") );
+    script.Add( tensor_display );
+    script.Add( tensor_render );
+    script.Add( vector_inversion );
+  
+    m_scripts.insert( m_scripts.begin(), script );  
+  }
+  else if ( !vector_display.IsEmpty() && vector_display != _("no") )
   {
     wxArrayString script;
     script.Add( _("setdisplayvector") );
@@ -2500,6 +2526,54 @@ void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
   
   ContinueScripts();
 }
+
+
+void MainWindow::CommandSetDisplayTensor( const wxArrayString& cmd )
+{
+  if ( cmd[1].Lower() == _("yes") || cmd[1].Lower() == _("true") || cmd[1].Lower() == _("1") )
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
+    {
+      if ( mri->GetNumberOfFrames() < 9 )
+      {
+        cerr << "Volume has less than 9 frames. Can not display as tensor." << endl;
+      }
+      else
+      {
+        mri->GetProperties()->SetDisplayTensor( true );  
+      
+        if ( cmd[2].Lower().Find( _("box") ) != wxNOT_FOUND )
+        {
+          mri->GetProperties()->SetTensorRepresentation( LayerPropertiesMRI::TR_Boxoid );
+        }
+        else if ( cmd[2].Lower().Find( _("ellips") ) != wxNOT_FOUND )
+        {
+          mri->GetProperties()->SetTensorRepresentation( LayerPropertiesMRI::TR_Ellipsoid );
+        }
+        else
+        {
+          cerr << "Unrecognized argument '" << cmd[2] << "' for tensor rendering." << endl;
+        }
+        
+        if ( cmd[3].Lower() != _("none") )
+        {
+          if ( cmd[3].Lower() == _("x") )
+            mri->GetProperties()->SetTensorInversion( LayerPropertiesMRI::VI_X );
+          else if ( cmd[3].Lower() == _("y") )
+            mri->GetProperties()->SetTensorInversion( LayerPropertiesMRI::VI_Y );
+          else if ( cmd[3].Lower() == _("z") )
+            mri->GetProperties()->SetTensorInversion( LayerPropertiesMRI::VI_Z );
+          else
+            cerr << "Unknown inversion flag '" << cmd[2] << "'." << endl;
+        }
+      }
+    }
+  }
+  
+  ContinueScripts();
+}
+
 
 void MainWindow::CommandSetLUT( const wxArrayString& sa )
 {
