@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:12 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/05/28 20:30:25 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -49,8 +49,6 @@ extern "C"
 #include "transform.h"
 }
 
-#define DEFAULT_RESAMPLE_ALGORITHM SAMPLE_NEAREST
-
 using namespace std;
 
 FSVolume::FSVolume( FSVolume* ref ) :
@@ -63,7 +61,8 @@ FSVolume::FSVolume( FSVolume* ref ) :
     m_fMinValue( 0 ),
     m_fMaxValue( 1 ),
     m_bResampleToRAS( true ),
-    m_bBoundsCacheDirty( true )
+    m_bBoundsCacheDirty( true ),
+    m_nInterpolationMethod( SAMPLE_NEAREST )
 {
   m_imageData = NULL;
   if ( ref )
@@ -593,7 +592,7 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
   }
 
 // cout << "begin vol2vol" << endl;
-  MRIvol2Vol( mri, m_MRI, vox2vox, DEFAULT_RESAMPLE_ALGORITHM, 0 );
+  MRIvol2Vol( mri, m_MRI, vox2vox, m_nInterpolationMethod, 0 );
 // cout << "end vol2vol" << endl;
 
   MRIfree( &mri );
@@ -857,7 +856,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
       MATRIX* t2r = MRIgetVoxelToVoxelXform( rasMRI, m_MRIRef );
       MatrixMultiply( vox2vox, t2r, t2r );
 
-      MRIvol2Vol( m_MRI, rasMRI, t2r, DEFAULT_RESAMPLE_ALGORITHM, 0 );
+      MRIvol2Vol( m_MRI, rasMRI, t2r, m_nInterpolationMethod, 0 );
 
       // copy vox2vox
       MatrixInverse( t2r, vox2vox );
@@ -891,7 +890,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
      MATRIX* t2r = MRIgetVoxelToVoxelXform( rasMRI, m_MRIRef );
      MatrixMultiply( vox2vox, t2r, t2r );
 
-     MRIvol2Vol( m_MRI, rasMRI, t2r, DEFAULT_RESAMPLE_ALGORITHM, 0 );
+     MRIvol2Vol( m_MRI, rasMRI, t2r, m_nInterpolationMethod, 0 );
 
      // copy vox2vox
      MatrixInverse( t2r, vox2vox );
@@ -912,7 +911,7 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
   }
   else
   {
-    MRIvol2Vol( m_MRI, rasMRI, NULL, DEFAULT_RESAMPLE_ALGORITHM, 0 );
+    MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
     for ( int i = 0; i < 16; i++ )
     {
@@ -1175,7 +1174,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   MATRIX* vox2vox = MatrixMultiply( v2v, vm, NULL );
   MatrixInverse( vox2vox, v2v );
 
-  MRIvol2Vol( m_MRI, rasMRI, v2v, DEFAULT_RESAMPLE_ALGORITHM, 0 );
+  MRIvol2Vol( m_MRI, rasMRI, v2v, m_nInterpolationMethod, 0 );
 
   // copy vox2vox
   for ( int i = 0; i < 16; i++ )
@@ -1684,4 +1683,9 @@ void FSVolume::TkRegToNativeRAS( const double* pos_in, double* pos_out )
   pos_out[0] = p[0];
   pos_out[1] = p[1];
   pos_out[2] = p[2];
+}
+
+void FSVolume::SetInterpolationMethod( int nMethod )
+{
+  m_nInterpolationMethod = nMethod;
 }

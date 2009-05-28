@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:37 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/05/28 20:30:25 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,6 +44,9 @@ class vtkImageActor;
 class vtkImageData;
 class vtkProp;
 class vtkVolume;
+class vtkPolyData;
+class vtkPolyDataAlgorithm;
+class vtkUnsignedCharArray;
 class LayerPropertiesMRI;
 class FSVolume;
 class wxWindow;
@@ -136,6 +139,17 @@ protected:
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
   virtual void UpdateVectorActor( int nPlane );
+  
+  void UpdateTensorActor();
+  void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
+  
+  void BuildTensorGlyph( vtkImageData* imagedata,
+                                 int i, int j, int k, 
+                                 double* pt, double scale, 
+                                 vtkPolyData* sourcepolydata,
+                                 vtkUnsignedCharArray* scalars,
+                                 vtkPolyDataAlgorithm* a);
+  
   virtual void UpdateColorMap();
 
   virtual void OnSlicePositionChanged( int nPlane );
@@ -152,8 +166,8 @@ protected:
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
   
-  vtkActor*       m_vectorActor2D[3];
-  vtkActor*       m_vectorActor3D[3];
+  vtkActor*       m_glyphActor2D[3];
+  vtkActor*       m_glyphActor3D[3];
   
   struct SegmentationActor
   {
@@ -164,7 +178,11 @@ protected:
   std::vector<SegmentationActor>   m_segActors;              
   
   vtkActor*   m_actorContour;
-  vtkVolume*   m_propVolume;
+  vtkVolume*  m_propVolume;
+  
+private:
+  double**    private_buf1_3x3;
+  double**    private_buf2_3x3;    
 };
 
 #endif

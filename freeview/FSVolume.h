@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:12 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/05/28 20:30:25 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -148,6 +148,13 @@ public:
   }
 
   bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+  
+  int GetInterpolationMethod()
+  {
+    return m_nInterpolationMethod;
+  }
+  
+  void SetInterpolationMethod( int nMethod );
 
 protected:
   bool LoadRegistrationMatrix( const char* filename );
@@ -184,6 +191,8 @@ protected:
   // RAS bounds.
   bool      m_bBoundsCacheDirty;
   float     m_RASBounds[6];
+  
+  int       m_nInterpolationMethod;
 };
 
 #endif

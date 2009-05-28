@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/16 21:25:52 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/05/28 20:30:25 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -103,9 +103,11 @@ private:
   void OnChoiceDirectionCode          ( wxCommandEvent& event );
   void OnSliderFrameChanged           ( wxScrollEvent& event );
   void OnTextFrameChanged             ( wxCommandEvent& event );
+  
   void OnCheckDisplayVector           ( wxCommandEvent& event );
-  void OnChoiceVectorInversion        ( wxCommandEvent& event );
-  void OnChoiceVectorRepresentation   ( wxCommandEvent& event );
+  void OnCheckDisplayTensor           ( wxCommandEvent& event );
+  void OnChoiceInversion              ( wxCommandEvent& event );
+  void OnChoiceRepresentation         ( wxCommandEvent& event );
 
   void OnTextGrayScaleMin       ( wxCommandEvent& event );
   void OnTextGrayScaleMax       ( wxCommandEvent& event );
@@ -168,9 +170,11 @@ private:
   wxColorIndicator* m_colorIndicator;
   wxTextCtrl*     m_textFrame;
   wxSlider*       m_sliderFrame;
+  
   wxCheckBox*     m_checkDisplayVector;
-  wxChoice*       m_choiceVectorInversion;
-  wxChoice*       m_choiceVectorRepresentation;
+  wxCheckBox*     m_checkDisplayTensor;
+  wxChoice*       m_choiceInversion;
+  wxChoice*       m_choiceRepresentation;
 
   wxCheckBox*     m_checkContour;
   wxSlider*       m_sliderContourMin;
