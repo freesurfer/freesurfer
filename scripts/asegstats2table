@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.8.2.5 2009/04/11 19:40:58 krish Exp $
+# $Id: asegstats2table,v 1.8.2.6 2009/05/29 17:34:45 krish Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -88,11 +88,12 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.8.2.5 2009/04/11 19:40:58 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.8.2.6 2009/05/29 17:34:45 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
     h_s = ' subjectname'
+    h_subf = 'name of the file which has the list of subjects ( one subject per line)'
     h_inp = ' input1 <input2 input3..>'
     h_i = ' inputname'
     h_meas = 'measure: default is vol ( alt: mean, std)'
@@ -112,6 +113,7 @@ def options_parse():
                       callback=fsutils.callback_var,  help=h_sub)
     parser.add_option('-s', dest='subjects' ,action='append',
                       help=h_s)
+    parser.add_option('--subjectsfile', dest='subjectsfile', help=h_subf)
     parser.add_option('--inputs', dest='inputs' ,action='callback',
                       callback=fsutils.callback_var,  help=h_inp)
     parser.add_option('-i', dest='inputs' ,action='append',
@@ -158,15 +160,26 @@ def options_parse():
             sys.exit(1)
         else:
             options.dodirect = True
-    
-    if options.subjects is None and options.inputs is None: 
-        print 'ERROR: Both number of subjects and number of inputs are empty'
+
+    if options.subjectsfile is not None:
+        options.dodirect = False
+
+    if options.subjects is None and options.inputs is None and options.subjectsfile is None: 
+        print 'ERROR: Specify one of --subjects, --inputs or --subjectsfile'
         sys.exit(1)
     
     if options.subjects is not None and options.inputs is not None:
         print 'ERROR: Both subjects and inputs are specified. Please specify just one '
         sys.exit(1)
 
+    if options.subjects is not None and options.subjectsfile is not None:
+        print 'ERROR: Both subjectsfile and subjects are specified. Please specify just one '
+        sys.exit(1)
+    
+    if options.inputs is not None and options.subjectsfile is not None:
+        print 'ERROR: Both subjectsfile and inputs are specified. Please specify just one '
+        sys.exit(1)
+    
     if not options.outputfile:
         print 'ERROR: output table name should be specified'
         sys.exit(1)
@@ -246,6 +259,15 @@ def build_table(options):
             o.subdir = 'stats'
         if o.statsfname is None:
             o.statsfname = 'aseg.stats'
+        # in case the user gave --subjectsfile argument
+        if o.subjectsfile is not None:
+            o.subjects=[]
+            try:
+                sf = open(o.subjectsfile)
+                [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
+            except IOError:
+                print 'ERROR: the file %s doesnt exist'%o.subjectsfile
+                sys.exit(1)
         for sub in o.subjects:
             stats.append( ('', sub,  os.path.join(subjdir, sub, o.subdir, o.statsfname)) )
     
