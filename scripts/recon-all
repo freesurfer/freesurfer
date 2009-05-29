@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/22 01:01:35 $
-#    $Revision: 1.133.2.45 $
+#    $Date: 2009/05/29 15:31:37 $
+#    $Revision: 1.133.2.46 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.45 2009/05/22 01:01:35 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.46 2009/05/29 15:31:37 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3539,7 +3539,7 @@ while( $#argv != 0 )
       set DoParcStats2     = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
-      set DoCurvStats      = 0;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon1":
@@ -3601,7 +3601,7 @@ while( $#argv != 0 )
       set DoFinalSurfs     = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
-      set DoCurvStats      = 0;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-inflate1":
@@ -3637,7 +3637,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
-      set DoCurvStats      = 0;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-wm":
@@ -3653,7 +3653,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
-      set DoCurvStats      = 0;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-pial":
@@ -3663,7 +3663,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
-      set DoCurvStats      = 0;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon3":
@@ -3711,7 +3711,7 @@ while( $#argv != 0 )
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
       set DoSegStats       = 1;
-      set DoCurvStats      = 0;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-waitfor":
