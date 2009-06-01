@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/04/02 17:14:06 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/06/01 22:43:45 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,7 +174,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.24 2009/04/02 17:14:06 mreuter Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.25 2009/06/01 22:43:45 mreuter Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -200,6 +200,8 @@ int CheckPixVals=1;
 int CheckGeo=1;
 int CheckOrientation=1;
 int CheckPrecision=1;
+int SegDiff = -1;
+char *SegDiffFile=NULL;
 MATRIX *vox2ras1,*vox2ras2;
 char Orient1[4], Orient2[4];
 
@@ -502,6 +504,38 @@ int main(int argc, char *argv[]) {
   }
 
   //----------------------------------------------------------
+  if (SegDiff > -1) {
+    MRI* SegDiffVol = MRIallocSequence(InVol1->width,InVol1->height,
+                                      InVol1->depth,MRI_INT,InVol1->nframes);
+    MRIcopyHeader(InVol1,SegDiffVol);
+    for (c=0; c < InVol1->width; c++) {
+      for (r=0; r < InVol1->height; r++) {
+        for (s=0; s < InVol1->depth; s++) {
+          for (f=0; f < InVol1->nframes; f++) {
+            val1 = MRIgetVoxVal(InVol1,c,r,s,f);
+            val2 = MRIgetVoxVal(InVol2,c,r,s,f);
+            if ((int)val1 == SegDiff &&(int)val2 == SegDiff )
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,3);
+            else if ((int)val1 != SegDiff &&(int)val2 != SegDiff )
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,0);
+            else if ((int)val1 == SegDiff &&(int)val2 != SegDiff )
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,1);
+            else if ((int)val1 != SegDiff &&(int)val2 == SegDiff )
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,2);
+	    else {//cannot happen 
+              printf("ERROR: this error is not possible\n");
+              exit(1);
+	    }
+	  }
+	}
+      }
+    }
+    if(SegDiffFile) MRIwrite(SegDiffVol,SegDiffFile);      
+    MRIfree(&SegDiffVol);
+  }
+  
+  
+  //----------------------------------------------------------
   if (CheckOrientation) {
     MRIdircosToOrientationString(InVol1,Orient1);
     MRIdircosToOrientationString(InVol2,Orient2);
@@ -615,6 +649,17 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffLabelVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--seg_diff")) {
+      if (nargc < 2) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&SegDiff);
+      SegDiffFile = pargv[1];
+      CheckPixVals     = 0;
+      CheckResolution  = 1;
+      CheckAcqParams   = 1;
+      CheckGeo         = 0;
+      CheckPrecision   = 1;
+      CheckOrientation = 1;
+      nargsused = 2;
     } else {
       if (InVol1File == NULL)      InVol1File = option;
       else if (InVol2File == NULL) InVol2File = option;
@@ -714,6 +759,10 @@ static void print_usage(void) {
   printf("   --diff_label_suspicious DiffVol : differing voxels replaced\n");
   printf("                                     with label SUSPICIOUS\n");
   printf("                                     (for comparing aseg.mgz's)\n");
+  printf("   --seg_diff labelIDX DiffAseg : diff on voxels with labelIDX\n");
+  printf("                                  output image: 0 not in both,\n");
+  printf("                                  1 only in 1st, 2 only in 2nd\n");
+  printf("                                  3 in both (for aseg.mgz)\n");
   printf("   --avg-diff avgdiff.txt : save average difference \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
