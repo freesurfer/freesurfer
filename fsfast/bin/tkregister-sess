@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/09/08 22:21:31 $
-#    $Revision: 1.26 $
+#    $Date: 2009/06/01 17:06:30 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.26 2008/09/08 22:21:31 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.27 2009/06/01 17:06:30 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -211,7 +211,13 @@ foreach sess ($SessList)
       set mkregopt = (--regheader)
       if(! $samesessanat) set mkregopt = ($mkregopt --subject $subject)
     else
-      set mkregopt = ();
+      if($ForceRegHeader) then
+        echo "INFO: $regfile found, but forcing header registration"
+        set mkregopt = (--regheader)
+        if(! $samesessanat) set mkregopt = ($mkregopt --subject $subject)
+      else
+        set mkregopt = ();
+      endif
     endif
 
     set fmtuse = `getformat_from_stem $funcstem $fmt`
