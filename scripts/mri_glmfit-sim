@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.13 2009/01/18 01:26:30 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.14 2009/06/01 22:20:10 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -65,13 +65,17 @@ if($status) then
   exit 1;
 endif
 
-set fwhmfile = $glmdir/fwhm.dat
-if(! -e $fwhmfile) then
-  echo "ERROR: cannot find $fwhm"
-  exit 1;
+if($nulltype != perm) then
+  set fwhmfile = $glmdir/fwhm.dat
+  if(! -e $fwhmfile) then
+    echo "ERROR: cannot find $fwhm"
+    exit 1;
+  endif
+  # This may be overridden
+  set fwhm = `cat $fwhmfile`;
+else
+  set fwhm = 0;
 endif
-# This may be overridden
-set fwhm = `cat $fwhmfile`;
 
 set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
 if(! -e $glmfitcwd) then
@@ -218,10 +222,9 @@ if($DoSim) then
 
     set cmd = (mri_glmfit --y $y $clist2 --mask $mask)
     set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $glmdir/csd/$csdbase.$jpad)
-    set cmd = ($cmd --sim-sign $simsign)
+    set cmd = ($cmd --sim-sign $simsign --fwhm $fwhm)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
-    if($nulltype != perm) set cmd = ($cmd --fwhm $fwhm)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
     if($#Seed) set cmd = ($cmd --seed $Seed);
     if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
