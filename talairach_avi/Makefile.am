@@ -28,7 +28,13 @@ foo_DATA= \
 	mni_average_305.4dfp.hdr \
 	mni_average_305.4dfp.ifh \
 	mni_average_305.4dfp.img \
-	mni_average_305.4dfp.img.rec
+	mni_average_305.4dfp.img.rec \
+	SchwartzReactN32_as_orig.4dfp.hdr \
+	SchwartzReactN32_as_orig.4dfp.img \
+	SchwartzReactN32_as_orig.4dfp.ifh \
+	SchwartzReactN32_as_orig.4dfp.img.rec \
+	SchwartzReactN32_as_orig.4dfp.mat \
+	SchwartzReactN32_as_orig.lst
 
 dist_bin_SCRIPTS = talairach_avi mpr2mni305 brec brec.awk t4img_4dfp
 
