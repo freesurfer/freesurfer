@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/27 18:52:02 $
- *    $Revision: 1.168 $
+ *    $Date: 2009/06/02 01:17:19 $
+ *    $Revision: 1.169 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -553,7 +553,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.168 2009/05/27 18:52:02 greve Exp $";
+"$Id: mri_glmfit.c,v 1.169 2009/06/02 01:17:19 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -692,6 +692,8 @@ char *SimDoneFile = NULL;
 int tSimSign = 0;
 int FWHMSet = 0;
 int DoKurtosis = 0;
+
+char *Gamma0File[GLMMAT_NCONTRASTS_MAX];
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1161,6 +1163,15 @@ int main(int argc, char **argv) {
         if (mriglm->glm->C[n] == NULL) {
           printf("ERROR: loading C %s\n",CFile[n]);
           exit(1);
+        }
+	if(Gamma0File[n]){
+	  printf("Loading gamma0 file %s\n",Gamma0File[n]);
+	  mriglm->glm->gamma0[n] = MatrixReadTxt(Gamma0File[n], NULL);
+	  if(mriglm->glm->gamma0[n] == NULL) {
+	    printf("ERROR: loading gamma0 %s\n",Gamma0File[n]);
+	    exit(1);
+	  }
+	  mriglm->glm->UseGamma0[n] = 1;
         }
       }
       // Check it's dimension
@@ -2138,12 +2149,19 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       eresFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--C")) {
+    } 
+    else if (!strcmp(option, "--C")) {
       if (nargc < 1) CMDargNErr(option,1);
       CFile[nContrasts] = pargv[0];
-      nContrasts++;
+      Gamma0File[nContrasts] = NULL;
       nargsused = 1;
-    } else if (!strcmp(option, "--pca")) {
+      if(CMDnthIsArg(nargc, pargv, 1)) {
+	Gamma0File[nContrasts] = pargv[1];
+        nargsused++;
+      }
+      nContrasts++;
+    } 
+    else if (!strcmp(option, "--pca")) {
       if (CMDnthIsArg(nargc, pargv, 0)) {
         sscanf(pargv[0],"%d",&niters);
         nargsused = 1;
