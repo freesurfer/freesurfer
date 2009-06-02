@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/17 03:31:31 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/06/02 01:03:41 $
+ *    $Revision: 1.11.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.11 2007/05/17 03:31:31 greve Exp $
+// $Id: fsglm.h,v 1.11.2.1 2009/06/02 01:03:41 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -58,6 +58,8 @@ typedef struct {
   MATRIX *C[GLMMAT_NCONTRASTS_MAX];    // Contrast matrices
   char *Cname[GLMMAT_NCONTRASTS_MAX];    // Contrast names
   double Ccond[GLMMAT_NCONTRASTS_MAX];    // C condition number
+  int UseGamma0[GLMMAT_NCONTRASTS_MAX];  // Flag
+  MATRIX *gamma0[GLMMAT_NCONTRASTS_MAX];  // Expected value of gamma
 
   int ypmfflag[GLMMAT_NCONTRASTS_MAX];    // flag to compute PMF
   MATRIX *Mpmf[GLMMAT_NCONTRASTS_MAX];    // Contrast PMF matrices

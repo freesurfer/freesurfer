@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/05/17 03:31:31 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/06/02 01:03:41 $
+ *    $Revision: 1.21.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.21 2007/05/17 03:31:31 greve Exp $
+// $Id: fsglm.c,v 1.21.2.1 2009/06/02 01:03:41 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -152,7 +152,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.21 2007/05/17 03:31:31 greve Exp $");
+  return("$Id: fsglm.c,v 1.21.2.1 2009/06/02 01:03:41 greve Exp $");
 }
 
 
@@ -205,6 +205,8 @@ GLMMAT *GLMalloc(void)
     glm->C[n] = NULL;
     glm->Cname[n] = NULL;
     glm->Ccond[n] = -1;
+    glm->gamma0[n] = NULL;
+    glm->UseGamma0[n] = 0;
 
     glm->Mpmf[n] = NULL;
     glm->ypmfflag[n] = 0;
@@ -322,6 +324,7 @@ int GLMfree(GLMMAT **pglm)
     if (glm->gCVM[n])        MatrixFree(&glm->gCVM[n]);
     if (glm->igCVM[n])       MatrixFree(&glm->igCVM[n]);
     if (glm->gamma[n])       MatrixFree(&glm->gamma[n]);
+    if (glm->gamma0[n])      MatrixFree(&glm->gamma0[n]);
     if (glm->gammat[n])      MatrixFree(&glm->gammat[n]);
     if (glm->gtigCVM[n])     MatrixFree(&glm->gtigCVM[n]);
   }
@@ -461,6 +464,8 @@ int GLMtest(GLMMAT *glm)
     else                       dtmp = glm->rvar*glm->C[n]->rows;
 
     glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
+    if(glm->UseGamma0[n]) 
+      MatrixSubtract(glm->gamma[n],glm->gamma0[n],glm->gamma[n]);
     glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
     glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
     mtmp           = MatrixInverse(glm->CiXtXCt[n],glm->igCVM[n]);
@@ -519,6 +524,8 @@ int GLMtestFFx(GLMMAT *glm)
       glm->igCVM[n] = MatrixAlloc(glm->C[n]->rows,glm->C[n]->rows,MATRIX_REAL);
 
     glm->gamma[n]  = MatrixMultiply(glm->C[n],glm->beta,glm->gamma[n]);
+    if(glm->UseGamma0[n]) 
+      MatrixSubtract(glm->gamma[n],glm->gamma0[n],glm->gamma[n]);
     glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
 
     CiXtXXs  = MatrixMultiply(glm->CiXtX[n],Xst,NULL);
@@ -742,6 +749,10 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
     sprintf(fname,"%s/gamma.dat",condir);
     MatrixWriteTxt(fname, glm->gamma[c]);
+    if(glm->UseGamma0[c]) {
+      sprintf(fname,"%s/gamma0.dat",condir);
+      MatrixWriteTxt(fname, glm->gamma0[c]);
+    }
 
     sprintf(fname,"%s/F.dat",condir);
     fp = fopen(fname,"w");
