@@ -2,9 +2,9 @@
 ## tkm_functional.tcl
 ##
 ## CVS Revision Info:
-##    $Author: kteich $
-##    $Date: 2007/07/16 16:50:09 $
-##    $Revision: 1.40 $
+##    $Author: greve $
+##    $Date: 2009/06/02 19:32:54 $
+##    $Revision: 1.40.2.1 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -83,7 +83,20 @@ foreach dataSet $glAllColors {
 	set gGraphSetting($dataSet,visible)  1
     }
     set gGraphSetting($dataSet,condition) $nCondition
-    set gGraphSetting($dataSet,label) "Condition $nCondition"
+    set UseLabelDefault 1;
+    if { [info exists ConditionNames] } {
+        if { [llength $ConditionNames] > $nCondition} {
+	    # To use ConditionNames, do something like:
+	    # set ConditionNames {none Duke BWH MGH Yale}
+	    set gGraphSetting($dataSet,label) [lindex $ConditionNames $nCondition];
+	    puts "$nCondition [lindex $ConditionNames $nCondition]";
+	    set UseLabelDefault 0;
+	}
+    } 
+    if { $UseLabelDefault } {
+	set gGraphSetting($dataSet,label) "Condition $nCondition"
+        puts "Condition $nCondition"
+    }
     incr nCondition
 }
 set glGraphColors [lrange $glAllColors 0 end]
