@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/22 01:02:20 $
-#    $Revision: 1.212 $
+#    $Date: 2009/06/02 17:43:44 $
+#    $Revision: 1.213 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.212 2009/05/22 01:02:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.213 2009/06/02 17:43:44 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1571,7 +1571,7 @@ if($DoCALabel) then
   endif
 
   # ------------ longitudinal (pre)processing ----------------#
-  # fuse segmentations of subjects composing this 'longbase' subject
+  # fuse segmentations of subjects composing the 'longbase' subject
   if ($longitudinal && $UseAsegFusion) then
     cd $subjdir/mri > /dev/null
     $PWD |& tee -a $LF
@@ -1608,10 +1608,16 @@ if($DoCALabel) then
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
-  if($longitudinal && $UseAsegFusion) then
-    # longitudinal processing: use 'fused' aseg just created
-    set cmd = ($cmd -r $subjdir/mri/aseg.fused.mgz)
-    set cmd = ($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
+  if($longitudinal) then
+    if($UseAsegFusion) then
+      # longitudinal processing: use 'fused' aseg just created
+      set cmd=($cmd -r $subjdir/mri/aseg.fused.mgz)
+      set cmd=($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
+    else
+      # longitudinal processing: use base aseg
+      set cmd = ($cmd -l $longbasedir/mri/${asegbasename}.mgz)
+      set cmd = ($cmd $subjdir/mri/transforms/$longbasetotpN_regfile)
+    endif
   endif
   set cmd = ($cmd $xopts norm.mgz)
   set cmd = ($cmd transforms/talairach.m3z)
