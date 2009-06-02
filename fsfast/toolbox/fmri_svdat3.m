@@ -10,9 +10,9 @@ function fmri_svdat3(datfile,hd)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:33 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2009/06/02 20:49:30 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -105,9 +105,11 @@ end
 
 fprintf(fid,'NullCondId %d\n',hd.NullCondId);
 fprintf(fid,'SumXtX\n');
+if(isempty(hd.SumXtX)) hd.SumXtX = eye(Nch); end
 fprintf(fid,'%g\n',hd.SumXtX);
 
 fprintf(fid,'hCovMtx\n');
+if(isempty(hd.hCovMtx)) hd.hCovMtx = eye(Nch); end
 fprintf(fid,'%g\n',hd.hCovMtx);
 
 fprintf(fid,'CondIdMap ');
