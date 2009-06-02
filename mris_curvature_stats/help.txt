@@ -154,7 +154,9 @@
 
     [-a <numberOfAverages]      
 
-          Average the curvature <numberOfAverages> times.   
+          Average the curvature <numberOfAverages> times. To save the resultant
+          curvature file, also specify '--writeCurvatureFiles -c 1', which 
+          scales the resultant curvature by 1.0 and saves to *.scaled.crv.
 
     [-G] [--discrete] [--continuous] [--signedPrincipals]
 
