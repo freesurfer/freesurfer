@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/02 17:43:44 $
-#    $Revision: 1.213 $
+#    $Date: 2009/06/02 20:57:15 $
+#    $Revision: 1.214 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.213 2009/06/02 17:43:44 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.214 2009/06/02 20:57:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4101,6 +4101,8 @@ check_params:
           exit 1
         endif
       endif
+
+      # cp base-to-thissubj transform
       set longbasetotpN_regfile = ${longbaseid}_to_${tpNid}.lta
       set cmd = (mkdir -p ${subjdir}/mri/transforms)
       echo "\n $cmd"|& tee -a $LF |& tee -a $CF
@@ -4110,6 +4112,17 @@ check_params:
       echo " $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
+
+      # cp control.dat file from the cross-sectional data for this subj
+      set cmd = (mkdir -p ${subjdir}/tmp)
+      echo "\n $cmd"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      set cmd = (cp ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat)
+      set cmd = ($cmd ${subjdir}/tmp/)
+      echo " $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+
     endif
 
     #------------ Legacy -----------------------------------#
