@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/04 20:58:28 $
- *    $Revision: 1.57 $
+ *    $Author: rudolph $
+ *    $Date: 2009/06/02 14:57:01 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -122,7 +122,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.57 2009/02/04 20:58:28 nicks Exp $";
+  "$Id: mris_curvature_stats.c,v 1.58 2009/06/02 14:57:01 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -478,7 +478,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.57 2009/02/04 20:58:28 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.58 2009/06/02 14:57:01 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -581,11 +581,13 @@ main(int argc, char *argv[]) {
       if (Gb_zeroVertex)
         MRISvertexCurvature_set(mris, G_zeroVertex, 0);
 
+      MRISaverageCurvatures(mris, navgs) ;
+
       if (Gb_scale) {
         MRISscaleCurvature(mris, Gf_scaleFactor);
         if (Gpch_scaledCurv[0] && Gb_writeCurvatureFiles) 
           MRISwriteCurvature(mris, Gpch_scaledCurv);
-    	}
+      }
 
       if(Gb_filter) {
     	cprints("Pre-filtering surface...", "");
@@ -598,15 +600,13 @@ main(int argc, char *argv[]) {
         MRISscaleCurvatures(mris, Gf_scaleMin, Gf_scaleMax);
         if (Gpch_scaledCurv[0] && Gb_writeCurvatureFiles) 
           MRISwriteCurvature(mris, Gpch_scaledCurv);
-    	}
+      }
 
-    	if (normalize_flag) {
+      if (normalize_flag) {
         MRISnormalizeCurvature(mris,which_norm);
         if (Gpch_normCurv[0] && Gb_writeCurvatureFiles) 
           MRISwriteCurvature(mris, Gpch_normCurv);
-    	}
-
-    	MRISaverageCurvatures(mris, navgs) ;
+      }
       MRIS_curvatureStats_analyze(mris, e_Raw); stats_update(i);
     }
 
@@ -2686,7 +2686,9 @@ print_help(void) {
  \n\
     [-a <numberOfAverages] \n\
  \n\
-          Average the curvature <numberOfAverages> times. \n\
+          Average the curvature <numberOfAverages> times. To save the resultant \n\
+          curvature file, also specify '--writeCurvatureFiles -c 1', which \n\
+          scales the resultant curvature by 1.0 and saves to *.scaled.crv. \n\
  \n\
     [-G] [--discrete] [--continuous] [--signedPrincipals] \n\
  \n\
