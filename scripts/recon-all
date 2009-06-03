@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/02 20:57:15 $
-#    $Revision: 1.214 $
+#    $Date: 2009/06/03 21:02:57 $
+#    $Revision: 1.215 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.214 2009/06/02 20:57:15 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.215 2009/06/03 21:02:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -870,27 +870,33 @@ if($DoTalairach) then
   cd $subjdir/mri > /dev/null
   set xfm = transforms/talairach.xfm
   set xfma = transforms/talairach.auto.xfm
-  if ( $longitudinal && $UseConcatLtaTal) then
-    # longitudinal processing stream:
-    # NJS NOTE: using mri_concatenate_lta is no longer the default method
-    # of creating the talairach.xfm file in the longitudinal stream.
-    # the -use-concat-lta-tal flag is used to revert to its usage
-    set tal_targ = ${FREESURFER_HOME}/average/mni305.cor.mgz
-    if( ! -e $tal_targ ) then
-      echo "ERROR: template file $tal_targ for talairach reg doesn't exist" \
-        |& tee -a $LF
-      goto error_exit;
-    endif
-    if( -e $longbasedir/mri/$xfm) then
-      set tal_xfm = $xfm
+  if ( $longitudinal) then
+    if ($UseConcatLtaTal) then
+      # longitudinal processing stream:
+      # NJS NOTE: using mri_concatenate_lta is no longer the default method
+      # of creating the talairach.xfm file in the longitudinal stream.
+      # the -use-concat-lta-tal flag is used to revert to its usage
+      set tal_targ = ${FREESURFER_HOME}/average/mni305.cor.mgz
+      if( ! -e $tal_targ ) then
+        echo "ERROR: template file $tal_targ for talairach reg doesn't exist" \
+          |& tee -a $LF
+        goto error_exit;
+      endif
+      if( -e $longbasedir/mri/$xfm) then
+        set tal_xfm = $xfm
+      else
+        set tal_xfm = $xfma
+      endif
+      set cmd = (mri_concatenate_lta -invert1 -tal \
+        $longbasedir/mri/orig.mgz $tal_targ \
+        $subjdir/mri/transforms/$longbasetotpN_regfile \
+        $longbasedir/mri/$tal_xfm \
+        $subjdir/mri/$xfma)
     else
-      set tal_xfm = $xfma
+      # longitudinal processing:
+      # just copy from the cross-sectionaling processed data for this subject
+      set cmd = (cp ${SUBJECTS_DIR}/${tpNid}/mri/${xfm} ${xfma})
     endif
-    set cmd = (mri_concatenate_lta -invert1 -tal \
-      $longbasedir/mri/orig.mgz $tal_targ \
-      $subjdir/mri/transforms/$longbasetotpN_regfile \
-      $longbasedir/mri/$tal_xfm \
-      $subjdir/mri/$xfma)
   else
     # default processing:
     if ($UseMincMritotal) then
@@ -1337,10 +1343,9 @@ if($DoGCAReg) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
   if ( $longitudinal ) then
     # longitudinal processing:
-    set cmd = (mri_concatenate_lta \
-                -invert1 $subjdir/mri/transforms/$longbasetotpN_regfile \
-                $longbasedir/mri/transforms/talairach.lta \
-                transforms/talairach.lta)
+    # just copy from the cross-sectionaling processed data for this subject
+    set cmd = (cp ${SUBJECTS_DIR}/${tpNid}/mri/transforms/talairach.lta)
+    set cmd = ($cmd transforms/talairach.lta)
   else
     # default processing:
     set cmd = (mri_em_register -mask brainmask.mgz \
