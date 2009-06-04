@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.9 2009/04/17 21:32:31 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.10 2009/06/04 19:07:27 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -159,6 +159,8 @@ foreach f ($flist)
   if($#Date == 0) set Date = 'unknown';
   set Time  = (`cat $dumpfile | awk '{if($1 == "StudyTime") print $2}'`)
   if($#Time == 0) set Time = 'unknown';
+  set Institution  = (`cat $dumpfile | awk '{if($1 == "Institution") print $0}'`)
+  if($#Institution == 0) set Institution = 'Institution unknown';
 
   set EchoTime = (`cat $dumpfile | awk '{if($1 == "EchoTime") print $2}'`)
   if($#EchoTime == 0) set EchoTime = 'unknown';
@@ -187,6 +189,12 @@ rm -f $dumpfile
 
 set SeriesNos = (`cat $infofile | awk '{print $2}' | sort -n | uniq`)
 echo "Found $#SeriesNos unique series: $SeriesNos" | tee -a $LF
+
+echo "Subject $Patient"
+echo "Date $Date"
+echo "Time $Time"
+echo "$Institution"
+
 
 # Print out one line for each series:
 if($#SeriesInfo == 0) then
@@ -490,6 +498,7 @@ while( $#argv != 0 )
       set SrcExt = "1.dcm"
       breaksw
 
+    case "-mgh":
     case "-martinos":
     case "-bourget":
       set SrcExt = "0001.dcm"
@@ -623,6 +632,7 @@ usage_exit:
   echo "   -gedcm : same as -one-per-dir -ext dcm"
   echo "   -martinos : assume mgh-bourget file names (same as -ext 0001.dcm)"
   echo "   -bourget : same as -martinos"
+  echo "   -mgh : same as -martinos"
   echo "   -old-bourget : assume old-style bourget file names (same as -ext 1.dcm)"
   echo "   -ext extension : input extension (eg, dcm)"
   echo "   -pre prefix : input prefix (ie, input file name init string)"
