@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/29 15:31:37 $
-#    $Revision: 1.133.2.46 $
+#    $Date: 2009/06/05 17:36:30 $
+#    $Revision: 1.133.2.47 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.46 2009/05/29 15:31:37 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.47 2009/06/05 17:36:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2145,7 +2145,7 @@ foreach hemi ($hemilist)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    #if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.curvstats.touch
   endif
 
