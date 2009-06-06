@@ -14,7 +14,7 @@ check_PROGRAMS=
 TESTS=test_mri_concatenate_lta
 
 EXTRA_DIST=test_mri_concatenate_lta nick13_to_nickbase.lta \
-	reference-nickbase_to_nick13.lta
+	nickbase_to_nick13.lta reference-nickbase_to_nick13.lta
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
