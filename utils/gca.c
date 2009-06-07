@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/26 23:25:37 $
- *    $Revision: 1.231.2.13 $
+ *    $Date: 2009/06/07 21:05:38 $
+ *    $Revision: 1.231.2.14 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -4075,7 +4075,7 @@ GCAclassify(MRI *mri_inputs,GCA *gca,MRI *mri_dst,
                                             depth = mri_inputs->depth ;
 
     mri_dst = MRIallocSequence(width, height, depth,
-                               MRI_UCHAR, 2*max_labels) ;
+                               MRI_FLOAT, 2*max_labels) ;
     if (!mri_dst)
       ErrorExit(ERROR_NOMEMORY, "GCAlabel: could not allocate dst") ;
     MRIcopyHeader(mri_inputs, mri_dst) ;
@@ -9645,9 +9645,18 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
     if (gcas[n].xp == Ggca_x && gcas[n].yp == Ggca_y && gcas[n].zp == Ggca_z)
       DiagBreak() ;
 
+#if 0
     if (!GCApriorToSourceVoxel(gca, mri_dst, transform,
                                gcas[n].xp, gcas[n].yp, gcas[n].zp,
                                &xv, &yv, &zv))
+#else
+    xv = gcas[n].x ; 
+    yv = gcas[n].y ; 
+    zv = gcas[n].z ; 
+    if (xv >= 0 && xv <= mri_dst->width-1 &&
+        yv >= 0 && yv <= mri_dst->height-1 &&
+        zv >= 0 && zv <= mri_dst->depth-1)
+#endif
     {
       if (xv == 181 && yv == 146 && zv == 128)
         DiagBreak() ;
