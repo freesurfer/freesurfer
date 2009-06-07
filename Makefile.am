@@ -280,13 +280,13 @@ MISCDIRS=\
 	test_makevol \
 	scripts \
 	images \
-	distribution \
 	dummy \
 	fem_elastic \
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register
 
+# ordering is important here for proper 'make check' function
 SUBDIRS=\
 	include \
 	unix \
@@ -306,6 +306,7 @@ SUBDIRS=\
 	tetgen \
 	qdecproject \
 	svm-lib \
+	distribution \
 	$(FSGDF) \
 	$(GLSUBDIRS) \
 	$(MRISUBDIRS) \
