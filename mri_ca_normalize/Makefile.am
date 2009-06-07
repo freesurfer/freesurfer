@@ -18,7 +18,7 @@ foo:
 		cp -v $(top_srcdir)/distribution/average/RB_all_2008-03-26.gca \
 					$(top_builddir)/distribution/average/; fi;
 
-check_PROGRAMS=
+check_PROGRAMS=foo
 
 TESTS=test_mri_ca_normalize
 
