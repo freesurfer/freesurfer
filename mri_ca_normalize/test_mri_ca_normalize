@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/06 21:55:35 $
-#    $Revision: 1.1 $
+#    $Date: 2009/06/07 15:31:56 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2009,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_normalize,v 1.1 2009/06/06 21:55:35 nicks Exp $'
+set VERSION='$Id: test_mri_ca_normalize,v 1.2 2009/06/07 15:31:56 nicks Exp $'
 
 umask 002
 
@@ -50,6 +50,7 @@ endif
 #
 set TST_VOL=norm.mgz
 set REF_VOL=reference_norm.mgz
+if ("`uname -m`" == "i686") set REF_VOL=reference_i686_norm.mgz
 set DIFF_VOL = $PWD/mri_diff-$TST_VOL
 set MRIDIFFF = $PWD/mri_diff-$TST_VOL.txt
 set THRESHOLD = 0
