@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:00:12 $
- *    $Revision: 1.38.2.1 $
+ *    $Date: 2009/06/07 21:09:32 $
+ *    $Revision: 1.38.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -70,6 +70,11 @@ static FILE *diag_fp = NULL ;
 
 static void usage_exit(int code) ;
 static int get_option(int argc, char *argv[]) ;
+static int copy_ctrl_points_to_volume(GCA_SAMPLE *gcas, int nsamples, 
+                                      MRI *mri_ctrl, int frame) ;
+static GCA_SAMPLE *copy_ctrl_points_from_volume(GCA *gca,TRANSFORM *transform,
+                                                int *pnsamples, MRI *mri_ctrl, 
+                                                int frame) ;
 
 static char *seg_fname = NULL ;
 static char *renormalization_fname = NULL ;
@@ -122,11 +127,14 @@ static int normalization_structures[] =
 
 static int nregions = 3 ;  /* divide each struct into 3x3x3 regions */
 
+static char *ctrl_point_fname = NULL ;
+static char *read_ctrl_point_fname = NULL ;
+
 int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, **av, *xform_fname ;
-  MRI          *mri_in, *mri_norm = NULL, *mri_tmp ;
+  MRI          *mri_in, *mri_norm = NULL, *mri_tmp, *mri_ctrl = NULL ;
   GCA          *gca ;
   int          ac, nargs, nsamples, msec, minutes, seconds;
   int          i, struct_samples, norm_samples = 0, n, input, ninputs ;
@@ -137,13 +145,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.38.2.1 2008/03/02 02:00:12 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.38.2.2 2009/06/07 21:09:32 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.38.2.1 2008/03/02 02:00:12 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.38.2.2 2009/06/07 21:09:32 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -178,6 +186,13 @@ main(int argc, char *argv[])
   xform_fname = argv[2+ninputs] ;
   out_fname = argv[3+ninputs] ;
 
+  if (read_ctrl_point_fname)
+  {
+    mri_ctrl = MRIread(read_ctrl_point_fname) ;
+    if (mri_ctrl == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read precomputed control points from %s", 
+                Progname, read_ctrl_point_fname) ;
+  }
   TimerStart(&start) ;
   printf("reading atlas from '%s'...\n", gca_fname) ;
   fflush(stdout) ;
@@ -248,6 +263,12 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
                 Progname, in_fname) ;
     MRImakePositive(mri_tmp, mri_tmp) ;
+    if (mri_tmp && ctrl_point_fname && !mri_ctrl)
+    {
+      mri_ctrl = MRIallocSequence(mri_tmp->width, mri_tmp->height, 
+                                  mri_tmp->depth,MRI_FLOAT, nregions*2) ; // labels and means
+      MRIcopyHeader(mri_tmp, mri_ctrl) ;
+    }
     if (alpha > 0)
       mri_tmp->flip_angle = alpha ;
     if (TR > 0)
@@ -401,36 +422,47 @@ main(int argc, char *argv[])
     {
       for (n = 1 ; n <= nregions ; n++)
       {
-        for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
+        if (read_ctrl_point_fname)
         {
-          if (normalization_structures[i] == Gdiag_no)
-            DiagBreak() ;
-          printf("finding control points in %s....\n",
-                 cma_label_to_name(normalization_structures[i])) ;
-          gcas_struct = find_control_points
-            (gca, gcas, nsamples, &struct_samples, n,
-             normalization_structures[i], mri_in, transform, min_prior,
-             ctl_point_pct) ;
-          discard_unlikely_control_points
-            (gca, gcas_struct, struct_samples, mri_in, transform,
-             cma_label_to_name(normalization_structures[i])) ;
-          if (i)
-          {
-            GCA_SAMPLE *gcas_tmp ;
-            gcas_tmp = gcas_concatenate
-              (gcas_norm, gcas_struct, norm_samples, struct_samples) ;
-            free(gcas_norm) ;
-            norm_samples += struct_samples ;
-            gcas_norm = gcas_tmp ;
-          }
-          else
-          {
-            gcas_norm = gcas_struct ; norm_samples = struct_samples ;
-          }
+          gcas_norm = 
+            copy_ctrl_points_from_volume(gca, transform, &norm_samples, 
+                                         mri_ctrl, n-1) ;
         }
-
+        else
+        {
+          for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
+          {
+            if (normalization_structures[i] == Gdiag_no)
+              DiagBreak() ;
+            printf("finding control points in %s....\n",
+                   cma_label_to_name(normalization_structures[i])) ;
+            gcas_struct = find_control_points
+              (gca, gcas, nsamples, &struct_samples, n,
+               normalization_structures[i], mri_in, transform, min_prior,
+               ctl_point_pct) ;
+            discard_unlikely_control_points
+              (gca, gcas_struct, struct_samples, mri_in, transform,
+               cma_label_to_name(normalization_structures[i])) ;
+            if (mri_ctrl && ctrl_point_fname) // store the samples
+              copy_ctrl_points_to_volume(gcas_struct, struct_samples, mri_ctrl, n-1) ;
+            if (i)
+            {
+              GCA_SAMPLE *gcas_tmp ;
+              gcas_tmp = gcas_concatenate
+                (gcas_norm, gcas_struct, norm_samples, struct_samples) ;
+              free(gcas_norm) ;
+              norm_samples += struct_samples ;
+              gcas_norm = gcas_tmp ;
+            }
+            else
+            {
+              gcas_norm = gcas_struct ; norm_samples = struct_samples ;
+            }
+          }
+          
+        }
         printf("using %d total control points "
-               "for intensity normalization...\n", norm_samples) ;
+                 "for intensity normalization...\n", norm_samples) ;
         if (normalized_transformed_sample_fname)
           GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples,
                                       normalized_transformed_sample_fname,
@@ -447,7 +479,7 @@ main(int argc, char *argv[])
           sprintf(fname, "norm_samples%d.mgz", n) ;
           GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples,
                                       fname, transform) ;
-
+          
         }
         MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
         MRIfree(&mri_norm) ;
@@ -465,6 +497,13 @@ main(int argc, char *argv[])
     if (MRIwriteFrame(mri_in, out_fname, input)  != NO_ERROR)
       ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
                 Progname, out_fname);
+  }
+
+  if (ctrl_point_fname)
+  {
+    printf("writing control points to %s\n", ctrl_point_fname) ;
+    MRIwrite(mri_ctrl, ctrl_point_fname) ;
+    MRIfree(&mri_ctrl) ;
   }
   MRIfree(&mri_in) ;
 
@@ -613,6 +652,16 @@ get_option(int argc, char *argv[])
   }
   else switch (*option)
   {
+  case 'R':
+    read_ctrl_point_fname = argv[2] ;
+    nargs = 1 ;
+    printf("reading control point volume to %s\n", read_ctrl_point_fname) ;
+    break ;
+  case 'C':
+    ctrl_point_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing control point volume to %s\n", ctrl_point_fname) ;
+    break ;
   case 'W':
     Gdiag |= DIAG_WRITE ;
     break ;
@@ -1109,6 +1158,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 
   for (num = n = 0 ; n < gca->ninputs ; n++)
   {
+    int niter = 0 ;
     MRIvalRangeFrame(mri_in, &fmin, &fmax, n) ;
     h = HISTOalloc(nint(fmax-fmin)+1) ;
     h->bin_size = (fmax-fmin)/(float)h->nbins ;
@@ -1145,6 +1195,10 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       mean_ratio /= (Real)nsamples ;
       HISTOclearBins
         (hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
+      if (niter++ > 5)
+        break ;
+      if (niter > 1)
+        DiagBreak() ;
     } while  (mean_ratio  < 0.5 || mean_ratio > 2.0) ;
 
     printf("%s: limiting intensities to %2.1f --> %2.1f\n",
@@ -1171,8 +1225,15 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 static void
 usage_exit(int code)
 {
-  printf("usage: %s <in volume> <atlas> <transform> <normalized volume>\n\n",
+  printf("usage: %s [<options>] <in volume> <atlas> <transform> "
+         "<normalized volume>\n\n",
          Progname) ;
+  printf("\t<atlas>                      path/to/some.gca file "
+         "(or 'noatlas') \n");
+  printf("\t<transform>                  ex. transforms/talairach.lta "
+         "(or 'noxform') \n");
+  printf("\noptions:\n");
+  printf("\t-seg <filename>              aseg file, to help normalization\n");
   printf("\t-fsamples <filename>         write control points to filename\n");
   printf("\t-nsamples <filename>         write transformed "
          "normalization control points to filename\n");
@@ -1622,3 +1683,91 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
   MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
   return(mri_dst) ;
 }
+static int
+copy_ctrl_points_to_volume(GCA_SAMPLE *gcas, int nsamples, MRI *mri_ctrl, int frame)
+{
+  int   i, xv, yv, zv, nregions ;
+
+  nregions = mri_ctrl->nframes/2 ;
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+    if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
+      DiagBreak() ;
+    MRIsetVoxVal(mri_ctrl, xv, yv, zv, frame, gcas[i].label) ;
+    MRIsetVoxVal(mri_ctrl, xv, yv, zv, frame+nregions, gcas[i].means[0]) ;
+  }
+
+  return(NO_ERROR) ;
+}
+
+
+static GCA_SAMPLE *
+copy_ctrl_points_from_volume(GCA *gca, TRANSFORM *transform, int *pnsamples, 
+                             MRI *mri_ctrl, int frame)
+{
+  GCA_SAMPLE *gcas ;
+  int        nsamples, x, y, z, label, xp, yp, zp, nregions ;
+
+  for (nsamples = x = 0 ; x < mri_ctrl->width ; x++)
+  {
+    for (y = 0 ; y < mri_ctrl->height ; y++)
+    {
+      for (z = 0 ; z < mri_ctrl->depth ; z++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        label = MRIgetVoxVal(mri_ctrl, x, y, z, frame) ;
+        if (label > 0)
+          nsamples++ ;
+      }
+    }
+  }
+
+  gcas = (GCA_SAMPLE *)calloc(nsamples, sizeof(GCA_SAMPLE)) ;
+  if (!gcas)
+    ErrorExit
+      (ERROR_NOMEMORY,
+       "copy_ctrl_points_from_volume: could not allocate %d samples",nsamples) ;
+  *pnsamples = nsamples ;
+  nregions = mri_ctrl->nframes/2 ;
+  for (nsamples = x = 0 ; x < mri_ctrl->width ; x++)
+  {
+    for (y = 0 ; y < mri_ctrl->height ; y++)
+    {
+      for (z = 0 ; z < mri_ctrl->depth ; z++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        label = MRIgetVoxVal(mri_ctrl, x, y, z, frame) ;
+        if (label > 0)
+        {
+          gcas[nsamples].x = x ;
+          gcas[nsamples].y = y ;
+          gcas[nsamples].z = z ;
+          gcas[nsamples].means = (float*)calloc(1, sizeof(float)) ;
+          if (gcas[nsamples].means == NULL)
+            ErrorExit(ERROR_NOMEMORY, 
+                      "%s: could not allocated %dth sample mean",
+                      Progname, nsamples) ;
+          gcas[nsamples].means[0] = 
+            MRIgetVoxVal(mri_ctrl, x, y, z, frame+nregions) ;
+          gcas[nsamples].label = label ;
+          
+          
+          if (!GCAsourceVoxelToPrior(gca, mri_ctrl,
+                                       transform,
+                                       x, y, z, &xp, &yp, &zp))
+          {
+            gcas[nsamples].xp = xp ;
+            gcas[nsamples].yp = yp ;
+            gcas[nsamples].zp = zp ;
+          }
+          nsamples++ ;
+        }
+      }
+    }
+  }
+  return(gcas) ;
+}
+
