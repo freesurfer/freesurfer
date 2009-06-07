@@ -12,9 +12,14 @@ if ( "`uname -s`" == "Darwin" ) then
 else
     set cmd3=(libtoolize --force)
 endif
-set cmd4=(autoreconf --force)
+#automake --add-missing is necessary because config.sub
+# and config.guess are links, and make not be present,
+# so if missing, --add-missing will add them for this
+# platform
+set cmd4=(automake --add-missing)
+set cmd5=(autoreconf --force)
 #automake Note: autoreconf --force runs automake
-set cmd5=(autoconf)
+set cmd6=(autoconf)
 
 echo $cmd1
 $cmd1
@@ -26,6 +31,8 @@ echo $cmd4
 $cmd4
 echo $cmd5
 $cmd5
+echo $cmd6
+$cmd6
 
 # The first three commands create the platform specific 
 # tools needed by configure (use glibtoolize on the Mac 
