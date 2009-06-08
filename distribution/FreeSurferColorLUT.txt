@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.57 2009/04/29 18:08:11 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.58 2009/06/08 16:02:16 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -476,6 +476,19 @@
 1102    ctx-lh-G_and_S_Insula_ONLY_AVERAGE              180 20  30  0
 1103    ctx-lh-G_cingulate-Isthmus                      60  25  25  0
 1104    ctx-lh-G_cingulate-Main_part                    25  60  60  0
+
+1200    ctx-lh-G_cingulate-caudal_ACC                   25  60  61  0
+1201    ctx-lh-G_cingulate-rostral_ACC                  25  90  60  0
+1202    ctx-lh-G_cingulate-posterior                    25  120  60  0
+
+1205    ctx-lh-S_cingulate-caudal_ACC                   25  150  60  0
+1206    ctx-lh-S_cingulate-rostral_ACC                   25  180  60  0
+1207    ctx-lh-S_cingulate-posterior                    25  210  60  0
+
+1210    ctx-lh-S_pericallosal-caudal                   25  150  90  0
+1211    ctx-lh-S_pericallosal-rostral                   25  180  90  0
+1212    ctx-lh-S_pericallosal-posterior                    25  210  90  0
+
 1105    ctx-lh-G_cuneus                                 180 20  20  0
 1106    ctx-lh-G_frontal_inf-Opercular_part             220 20  100 0
 1107    ctx-lh-G_frontal_inf-Orbital_part               140 60  60  0
@@ -559,6 +572,15 @@
 2102    ctx-rh-G_and_S_Insula_ONLY_AVERAGE              180 20  30  0
 2103    ctx-rh-G_cingulate-Isthmus                      60  25  25  0
 2104    ctx-rh-G_cingulate-Main_part                    25  60  60  0
+
+2200    ctx-rh-G_cingulate-caudal_ACC                   25  60  65  0
+2201    ctx-rh-G_cingulate-rostral_ACC                  25  90  65  0
+2202    ctx-rh-G_cingulate-posterior                    25  120  65  0
+
+2205    ctx-rh-S_cingulate-caudal_ACC                   25  150  65  0
+2206    ctx-rh-S_cingulate-rostral_ACC                  25  180  65  0
+2207    ctx-rh-S_cingulate-posterior                    25  210  65  0
+
 2105    ctx-rh-G_cuneus                                 180 20  20  0
 2106    ctx-rh-G_frontal_inf-Opercular_part             220 20  100 0
 2107    ctx-rh-G_frontal_inf-Orbital_part               140 60  60  0
