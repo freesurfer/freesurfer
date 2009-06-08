@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/26 17:59:36 $
- *    $Revision: 1.54.2.6 $
+ *    $Author: nicks $
+ *    $Date: 2009/06/08 23:45:06 $
+ *    $Revision: 1.54.2.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.54.2.6 2009/02/26 17:59:36 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.54.2.7 2009/06/08 23:45:06 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -95,6 +95,8 @@ static char *white_name = "white" ;
 static char *pial_name = "pial" ;
 
 #define MAX_INDICES 50000
+static char *names[MAX_INDICES];
+
 int
 main(int argc, char *argv[])
 {
@@ -110,12 +112,12 @@ main(int argc, char *argv[])
   HISTOGRAM     *histo_gray ;
   MRI           *ThicknessMap = NULL;
   struct utsname uts;
-  char *cmdline, *names[MAX_INDICES], full_name[STRLEN] ;
+  char *cmdline, full_name[STRLEN] ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.54.2.6 2009/02/26 17:59:36 greve Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.54.2.7 2009/06/08 23:45:06 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -194,9 +196,11 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-  if(mris->group_avg_vtxarea_loaded){
+  if (mris->group_avg_vtxarea_loaded)
+  {
     printf("\n");
-    printf("ERROR: subject %s is an average subject. mris_anatomical_stats\n",sname);
+    printf("ERROR: subject %s is an average subject. mris_anatomical_stats\n",
+           sname);
     printf("cannot currently be used with an average subject. \n");
     printf("\n");
     exit(1);
@@ -303,13 +307,14 @@ main(int argc, char *argv[])
     set the v->marked field to tell whether the vertex should be
     included in one of the summary stats.
   */
-  if(label_name) {
+  if (label_name)
+  {
     LABEL  *area ;
     char   fname[STRLEN] ;
 
     sprintf(fname, "%s/%s/label/%s", sdir, sname, label_name) ;
     // If that does not exist, use label_name as absolute path.
-    if(! fio_FileExistsReadable(fname))  sprintf(fname, "%s", label_name) ;
+    if (! fio_FileExistsReadable(fname))  sprintf(fname, "%s", label_name) ;
 
     area = LabelRead(NULL, fname) ;
     if (!area)
@@ -320,19 +325,21 @@ main(int argc, char *argv[])
     MRIScomputeMetricProperties(mris) ;
     names[1] = label_name ;
     names[0] = NULL ;
-    if((label_name[0] == '/') || !strncmp(label_name, "./", 2))// a full path
+    if ((label_name[0] == '/') || !strncmp(label_name, "./", 2))// a full path
       strcpy(full_name, label_name) ;
-    else{
+    else
+    {
       // build the full path string
       if (strstr(label_name, ".label") == NULL)
         sprintf(full_name, "%s/%s/label/%s.label", sdir, sname, label_name) ;
       else
         sprintf(full_name, "%s/%s/label/%s", sdir, sname, label_name) ;
     }
-    if(! fio_FileExistsReadable(full_name))
+    if (! fio_FileExistsReadable(full_name))
       sprintf(full_name, "%s", label_name) ;
   }
-  else if (annotation_name)  {
+  else if (annotation_name)
+  {
     int vno, index ;
     VERTEX *v ;
 
@@ -366,13 +373,16 @@ main(int argc, char *argv[])
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      CTABfindAnnotation(mris->ct, v->annotation,&index);
+      CTABfindAnnotation(mris->ct, v->annotation, &index);
       v->marked = index ;
-      if(index >= MAX_INDICES){
-	printf("ERROR: index = %d > MAX_INDICES = %d\n",index,MAX_INDICES);
-	exit(1);
+      if (index >= MAX_INDICES)
+      {
+        printf("ERROR: index = %d > MAX_INDICES = %d\n",index,MAX_INDICES);
+        exit(1);
       }
+      else if (index < 0) continue;
       names[index] = mris->ct->entries[index]->name ;
+      //printf("idx=%d, name=%s\n",index,names[index]);
     }
   }
   else // do all of surface
@@ -622,8 +632,8 @@ main(int argc, char *argv[])
 
       MRISuseGaussianCurvature(mris) ;
       mean_abs_gaussian_curvature = MRIScomputeAbsoluteCurvatureMarked(mris,i);
-      MRIScomputeCurvatureIndicesMarked(mris, 
-                                        &intrinsic_curvature_index, 
+      MRIScomputeCurvatureIndicesMarked(mris,
+                                        &intrinsic_curvature_index,
                                         &folding_index,i) ;
 
       volumes[i] /= 2 ;
@@ -669,7 +679,7 @@ main(int argc, char *argv[])
           (ERROR_BADFILE,
            "%s: no color table loaded - cannot translate annot  file",
            Progname);
-        
+
         fprintf(stdout,
                 "structure is \"%s\"\n", names[i]) ;
         fprintf(stdout,
@@ -753,6 +763,11 @@ main(int argc, char *argv[])
     MRIfree(&mri_orig) ;
     HISTOfree(&histo_gray) ;
   }
+
+  if (mri_wm) MRIfree(&mri_wm);
+  if (mri_kernel) MRIfree(&mri_kernel);
+  if (mri_orig) MRIfree(&mri_orig);
+  if (ThicknessMap) MRIfree(&ThicknessMap);
 
   exit(0) ;
   return(0) ;  /* for ansi */
