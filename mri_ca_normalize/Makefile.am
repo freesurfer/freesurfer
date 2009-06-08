@@ -17,13 +17,15 @@ foo:
 	then \
 		cp -v $(top_srcdir)/distribution/average/RB_all_2008-03-26.gca \
 					$(top_builddir)/distribution/average/; fi;
+	if ! test -f "$(top_builddir)/mri_ca_normalize/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mri_ca_normalize/testdata.tar.gz \
+					$(top_builddir)/mri_ca_normalize/; fi;
 
 check_PROGRAMS=foo
 
 TESTS=test_mri_ca_normalize
 
-EXTRA_DIST=brainmask.mgz nu.mgz reference_norm.mgz talairach.lta \
-	test_mri_ca_normalize
+EXTRA_DIST=testdata.tar.gz test_mri_ca_normalize
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
