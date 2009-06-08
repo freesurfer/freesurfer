@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/07 15:31:56 $
-#    $Revision: 1.2 $
+#    $Date: 2009/06/08 03:00:45 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2009,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_normalize,v 1.2 2009/06/07 15:31:56 nicks Exp $'
+set VERSION='$Id: test_mri_ca_normalize,v 1.3 2009/06/08 03:00:45 nicks Exp $'
 
 umask 002
 
@@ -33,7 +33,9 @@ umask 002
 # to produce the expected results)
 #
 
-set cmd=(./mri_ca_normalize -mask brainmask.mgz \
+set cmd=(./mri_ca_normalize \
+    -mask brainmask.mgz \
+    -c ctrl_pts.mgz \
     nu.mgz \
     ../distribution/average/RB_all_2008-03-26.gca \
     talairach.lta \
@@ -51,6 +53,21 @@ endif
 set TST_VOL=norm.mgz
 set REF_VOL=reference_norm.mgz
 if ("`uname -m`" == "i686") set REF_VOL=reference_i686_norm.mgz
+set DIFF_VOL = $PWD/mri_diff-$TST_VOL
+set MRIDIFFF = $PWD/mri_diff-$TST_VOL.txt
+set THRESHOLD = 0
+set cmd=(../mri_diff/mri_diff --debug --thresh $THRESHOLD \
+      --log $MRIDIFFF $REF_VOL $TST_VOL --diff $DIFF_VOL);
+echo $cmd
+$cmd
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+set TST_VOL=ctrl_pts.mgz
+set REF_VOL=reference_ctrl_pts.mgz
 set DIFF_VOL = $PWD/mri_diff-$TST_VOL
 set MRIDIFFF = $PWD/mri_diff-$TST_VOL.txt
 set THRESHOLD = 0
