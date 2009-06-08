@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/06 01:35:12 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/06/08 16:02:53 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -44,7 +44,7 @@
 #include "MARS_DT_Boundary.h"
 
 static char vcid[] = 
-"$Id: mris_merge_parcellations.c,v 1.2 2009/05/06 01:35:12 fischl Exp $";
+"$Id: mris_merge_parcellations.c,v 1.3 2009/06/08 16:02:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_merge_parcellations.c,v 1.2 2009/05/06 01:35:12 fischl Exp $", 
+     "$Id: mris_merge_parcellations.c,v 1.3 2009/06/08 16:02:53 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -231,9 +231,9 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
 {
   int       vno, annot, s_cingulate, g_cingulate, s_pericallosal ;
   int       caudal_acc, posterior_cingulate, rostral_acc ;
-  int       s_caudal_acc, s_posterior_cingulate, s_rostral_acc ;
-  int       g_caudal_acc, g_posterior_cingulate, g_rostral_acc ;
-  VERTEX    *v ;
+  int       s_caudal_acc, s_posterior_cingulate, s_rostral_acc, s_caudal_peri, s_rostral_peri, s_posterior_peri;
+  int       g_caudal_acc, g_posterior_cingulate, g_rostral_acc, filled, n ;
+  VERTEX    *v, *vn ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     CTABprintASCII(ct, stdout) ;
@@ -250,6 +250,9 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     g_rostral_acc = CTABentryNameToAnnotation("ctx-rh-G_cingulate-rostral_ACC", ct);
     g_posterior_cingulate = CTABentryNameToAnnotation("ctx-rh-G_cingulate-posterior", ct) ;
 
+    s_caudal_peri = CTABentryNameToAnnotation("ctx-rh-S_pericallosal-caudal", ct) ;
+    s_rostral_peri = CTABentryNameToAnnotation("ctx-rh-S_pericallosal-rostral", ct);
+    s_posterior_peri = CTABentryNameToAnnotation("ctx-rh-S_pericallosal-posterior", ct) ;
 
     s_cingulate = CTABentryNameToAnnotation("ctx-lh-S_cingulate-Main_part_and_Intracingulate", ct) ;
     g_cingulate = CTABentryNameToAnnotation("ctx-rh-G_cingulate-Main_part", ct) ;
@@ -257,6 +260,10 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
   }
   else // left hemi
   {
+    s_caudal_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-caudal", ct) ;
+    s_rostral_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-rostral", ct);
+    s_posterior_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-posterior", ct) ;
+
     caudal_acc = CTABentryNameToAnnotation("ctx-lh-caudalanteriorcingulate", ct) ;
     posterior_cingulate = CTABentryNameToAnnotation("ctx-lh-posteriorcingulate", ct) ;
     rostral_acc = CTABentryNameToAnnotation("ctx-lh-rostralanteriorcingulate", ct) ;
@@ -307,7 +314,154 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     v->annotation = annot ;
   }
 
+  // now diffuse cing sulcal labels into the rest of the cingulate sulcus in Christophe's labels
+  if (Gdiag_no >= 0)
+  {
+    int index ;
+    CTABfindAnnotation(mris1->ct, mris1->vertices[Gdiag_no].annotation, &index);
+    printf("mris1->annot[%d] = %s (%d)\n", Gdiag_no, mris1->ct->entries[index]->name, mris1->vertices[Gdiag_no].annotation) ;
+    CTABfindAnnotation(mris2->ct, mris2->vertices[Gdiag_no].annotation, &index);
+    printf("mris2->annot[%d] = %s (%d)\n", Gdiag_no, mris2->ct->entries[index]->name, mris2->vertices[Gdiag_no].annotation) ;
+  }
+
+  MRISclearMarks(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v = &mris->vertices[vno] ;
+    if (v->annotation == s_cingulate)
+      v->marked = 1 ;
+  }
+
+  do
+  {
+    filled = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->marked == 1) 
+      {
+        for (n = 0 ; n < v->vnum ; n++)
+        {
+          vn = &mris->vertices[v->v[n]] ;
+          if (vn->marked < 0)
+            continue ;
+          
+          if (vn->annotation == s_posterior_cingulate)
+            v->annotation = s_posterior_cingulate ;
+          else if (vn->annotation == s_caudal_acc)
+            v->annotation = s_caudal_acc ;
+          else if (vn->annotation == s_rostral_acc)
+            v->annotation = s_rostral_acc ;
+          else
+            continue ;
+
+          v->marked = -1 ;     // marked in this cycle - don't use it until done with this iter
+          filled++ ;
+          break ;
+        }
+      }
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->marked == -1)
+        v->marked = 0 ;
+    }
+    printf("%d vertices filled\n", filled) ;
+  } while (filled > 0) ;
   mris->ct = ct ;
+
+  // split up the pericallosal sulcus based on cingulate labels
+  MRISclearMarks(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v = &mris->vertices[vno] ;
+    if (v->annotation == s_pericallosal)
+      v->marked = 1 ;
+  }
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->marked == 1) 
+    {
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (vn->marked < 0)
+          continue ;
+        
+        if (vn->annotation == g_posterior_cingulate)
+          v->annotation = s_posterior_peri ;
+        else if (vn->annotation == g_caudal_acc)
+          v->annotation = s_caudal_peri ;
+        else if (vn->annotation == g_rostral_acc)
+          v->annotation = s_rostral_peri ;
+        else if (vn->annotation == g_cingulate)
+          v->annotation = s_pericallosal ;
+        else
+          continue ;
+        
+        v->marked = -1 ;     // marked in this cycle - don't use it until done with this iter
+        break ;
+      }
+    }
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked == -1)
+      v->marked = 0 ;
+  }
+  do
+  {
+    filled = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->marked == 1) 
+      {
+        for (n = 0 ; n < v->vnum ; n++)
+        {
+          vn = &mris->vertices[v->v[n]] ;
+          if (vn->marked < 0 || vn->marked == 1)
+            continue ;
+          
+          if (vn->annotation == s_posterior_peri)
+            v->annotation = s_posterior_peri ;
+          else if (vn->annotation == s_caudal_peri)
+            v->annotation = s_caudal_peri ;
+          else if (vn->annotation == s_rostral_peri)
+            v->annotation = s_rostral_peri ;
+          else if (vn->annotation == s_pericallosal)
+            v->annotation = s_pericallosal ;
+          else
+            continue ;
+          
+          v->marked = -1 ;     // marked in this cycle - don't use it until done with this iter
+          filled++ ;
+          break ;
+        }
+      }
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->marked == -1)
+        v->marked = 0 ;
+    }
+    printf("%d vertices filled\n", filled) ;
+  } while (filled > 0) ;
   return(NO_ERROR) ;
 }
 
