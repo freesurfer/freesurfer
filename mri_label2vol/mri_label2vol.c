@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/08 17:23:57 $
- *    $Revision: 1.25.2.2 $
+ *    $Date: 2009/06/09 16:22:30 $
+ *    $Revision: 1.25.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.25.2.2 2009/05/08 17:23:57 greve Exp $
+  $Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.25.2.2 2009/05/08 17:23:57 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -149,11 +149,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.25.2.2 2009/05/08 17:23:57 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.25.2.2 2009/05/08 17:23:57 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -592,8 +592,11 @@ static void print_usage(void) {
   printf("   --seg   segpath : segmentation\n");
   printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir as seg\n");
   printf("\n");
-  printf("   --temp tempvolid : template volume\n");
+  printf("   --temp tempvolid : output template volume\n");
+  printf("\n");
   printf("   --reg regmat : VolXYZ = R*LabelXYZ\n");
+  printf("   --regheader volid : label template volume\n");
+  printf("   --identity : set R=I\n");
   printf("   --invertmtx : Invert the registration matrix\n");
   printf("\n");
   printf("   --fillthresh thresh : between 0 and 1 (def 0)\n");
