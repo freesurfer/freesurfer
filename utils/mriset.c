@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 06:01:10 $
- *    $Revision: 1.55.2.1 $
+ *    $Date: 2009/06/09 19:52:10 $
+ *    $Revision: 1.55.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -251,6 +251,49 @@ MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
           if (val2 < thresh)
             val2 = 0 ;
           MRIsetVoxVal(mri_dst, x, y, z, f, val1 && val2) ;
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+MRI *
+MRIor(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
+{
+  int     width, height, depth, x, y, z, f ;
+  Real    val1, val2 ;
+
+  MRIcheckVolDims(mri1, mri2);
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri1, NULL) ;
+
+  for (f = 0 ; f < mri1->nframes ; f++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          MRIsampleVolumeFrame(mri1, x, y, z, f, &val1) ;
+          if (val1 < thresh)
+            val1 = 0 ;
+          MRIsampleVolumeFrame(mri2, x, y, z, f, &val2) ;
+          if (val2 < thresh)
+            val2 = 0 ;
+          MRIsetVoxVal(mri_dst, x, y, z, f, val1 || val2) ;
         }
       }
     }
