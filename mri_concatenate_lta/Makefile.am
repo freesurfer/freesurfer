@@ -12,9 +12,9 @@ mri_concatenate_lta_LDFLAGS=$(OS_LDFLAGS)
 # trick to get test data into the build directory
 foo_SOURCES=
 foo:
-	if ! test -f "$(top_builddir)/mri_concatenate/nick13_to_nickbase.lta"; then \
-		cp -v $(top_srcdir)/mri_concatenate/*.lta \
-					$(top_builddir)/mri_concatenate/; fi;
+	if ! test -f "$(top_builddir)/mri_concatenate_lta/nick13_to_nickbase.lta"; then \
+		cp -vf $(top_srcdir)/mri_concatenate_lta/*.lta \
+					$(top_builddir)/mri_concatenate_lta/; fi;
 
 check_PROGRAMS=foo
 
