@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/05/22 14:07:15 $
- *    $Revision: 1.382 $
+ *    $Author: nicks $
+ *    $Date: 2009/06/09 19:33:05 $
+ *    $Revision: 1.383 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -507,6 +507,7 @@ MRI   *MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIcomplement(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 MRI   *MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
+MRI   *MRIor(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
 MRI   *MRInot(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 
