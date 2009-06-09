@@ -16,7 +16,7 @@ MATRIX * Regression::getRobustEst(double sat, double sig)
   return pw.first;
 }
 
-// void printusage ()
+// void printmemusage ()
 // {
 //  char buf[30];
 //         snprintf(buf, 30, "/proc/%u/statm", (unsigned)getpid());
@@ -151,7 +151,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
   double EPS = 2e-12;
 
   // variables
-  vector < double > err(MAXIT);
+  vector < double > err(MAXIT+1);
   err[0] = numeric_limits<double>::infinity();
   err[1] = 1e20;
   int count = 1, rr, cc;
