@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/06/08 16:02:53 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/06/09 19:16:38 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -44,7 +44,7 @@
 #include "MARS_DT_Boundary.h"
 
 static char vcid[] = 
-"$Id: mris_merge_parcellations.c,v 1.3 2009/06/08 16:02:53 fischl Exp $";
+"$Id: mris_merge_parcellations.c,v 1.4 2009/06/09 19:16:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_merge_parcellations.c,v 1.3 2009/06/08 16:02:53 fischl Exp $", 
+     "$Id: mris_merge_parcellations.c,v 1.4 2009/06/09 19:16:38 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -240,44 +240,106 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
   if (mris2->hemisphere == RIGHT_HEMISPHERE)
   {
     caudal_acc = CTABentryNameToAnnotation("ctx-rh-caudalanteriorcingulate", ct) ;
+    if (caudal_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-caudalanteriorcingulate") ;
     posterior_cingulate = CTABentryNameToAnnotation("ctx-rh-posteriorcingulate", ct) ;
+    if (posterior_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-posteriorcingulate") ;
     rostral_acc = CTABentryNameToAnnotation("ctx-rh-rostralanteriorcingulate", ct) ;
+    if (rostral_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-rostralanteriorcingulate") ;
 
     s_caudal_acc = CTABentryNameToAnnotation("ctx-rh-S_cingulate-caudal_ACC", ct) ;
+    if (s_caudal_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_cingulate-caudal_ACC") ;
     s_rostral_acc = CTABentryNameToAnnotation("ctx-rh-S_cingulate-rostral_ACC", ct);
+    if (s_rostral_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_cingulate-rostral_ACC") ;
     s_posterior_cingulate = CTABentryNameToAnnotation("ctx-rh-S_cingulate-posterior", ct) ;
+    if (s_posterior_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_cingulate-posterior") ;
+
     g_caudal_acc = CTABentryNameToAnnotation("ctx-rh-G_cingulate-caudal_ACC", ct) ;
+    if (g_caudal_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-G_cingulate-caudal_ACC") ;
     g_rostral_acc = CTABentryNameToAnnotation("ctx-rh-G_cingulate-rostral_ACC", ct);
+    if (g_rostral_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-G_cingulate-rostral_ACC") ;
     g_posterior_cingulate = CTABentryNameToAnnotation("ctx-rh-G_cingulate-posterior", ct) ;
+    if (g_posterior_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-G_cingulate-posterior") ;
 
     s_caudal_peri = CTABentryNameToAnnotation("ctx-rh-S_pericallosal-caudal", ct) ;
+    if (s_caudal_peri < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_pericallosal-caudal") ;
     s_rostral_peri = CTABentryNameToAnnotation("ctx-rh-S_pericallosal-rostral", ct);
+    if (s_rostral_peri < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_pericallosal-rostral") ;
     s_posterior_peri = CTABentryNameToAnnotation("ctx-rh-S_pericallosal-posterior", ct) ;
+    if (s_posterior_peri < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_pericallosal-posterior") ;
 
-    s_cingulate = CTABentryNameToAnnotation("ctx-lh-S_cingulate-Main_part_and_Intracingulate", ct) ;
+    s_cingulate = CTABentryNameToAnnotation("ctx-rh-S_cingulate-Main_part_and_Intracingulate", ct) ;
+    if (s_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_cingulate-Main_part_and_Intracingulate") ;
     g_cingulate = CTABentryNameToAnnotation("ctx-rh-G_cingulate-Main_part", ct) ;
+    if (g_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-G_cingulate-Main_part") ;
     s_pericallosal = CTABentryNameToAnnotation("ctx-rh-S_pericallosal", ct) ;
+    if (s_pericallosal < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-rh-S_pericallosal") ;
   }
   else // left hemi
   {
-    s_caudal_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-caudal", ct) ;
-    s_rostral_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-rostral", ct);
-    s_posterior_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-posterior", ct) ;
-
     caudal_acc = CTABentryNameToAnnotation("ctx-lh-caudalanteriorcingulate", ct) ;
+    if (caudal_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-caudalanteriorcingulate") ;
     posterior_cingulate = CTABentryNameToAnnotation("ctx-lh-posteriorcingulate", ct) ;
+    if (posterior_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-posteriorcingulate") ;
     rostral_acc = CTABentryNameToAnnotation("ctx-lh-rostralanteriorcingulate", ct) ;
-
-    s_cingulate = CTABentryNameToAnnotation("ctx-lh-S_cingulate-Main_part_and_Intracingulate", ct) ;
-    g_cingulate = CTABentryNameToAnnotation("ctx-lh-G_cingulate-Main_part", ct) ;
-    s_pericallosal = CTABentryNameToAnnotation("ctx-lh-S_pericallosal", ct) ;
+    if (rostral_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-rostralanteriorcingulate") ;
 
     s_caudal_acc = CTABentryNameToAnnotation("ctx-lh-S_cingulate-caudal_ACC", ct) ;
+    if (s_caudal_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_cingulate-caudal_ACC") ;
     s_rostral_acc = CTABentryNameToAnnotation("ctx-lh-S_cingulate-rostral_ACC", ct);
+    if (s_rostral_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_cingulate-rostral_ACC") ;
     s_posterior_cingulate = CTABentryNameToAnnotation("ctx-lh-S_cingulate-posterior", ct) ;
+    if (s_posterior_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_cingulate-posterior") ;
+
     g_caudal_acc = CTABentryNameToAnnotation("ctx-lh-G_cingulate-caudal_ACC", ct) ;
-    g_posterior_cingulate = CTABentryNameToAnnotation("ctx-lh-G_cingulate-posterior", ct);
+    if (g_caudal_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-G_cingulate-caudal_ACC") ;
     g_rostral_acc = CTABentryNameToAnnotation("ctx-lh-G_cingulate-rostral_ACC", ct) ;
+    if (g_rostral_acc < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-G_cingulate-rostral_ACC") ;
+    g_posterior_cingulate = CTABentryNameToAnnotation("ctx-lh-G_cingulate-posterior", ct);
+    if (g_posterior_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-G_cingulate-posterior") ;
+
+    s_caudal_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-caudal", ct) ;
+    if (s_caudal_peri < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_pericallosal-caudal") ;
+    s_rostral_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-rostral", ct);
+    if (s_rostral_peri < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_pericallosal-rostral") ;
+    s_posterior_peri = CTABentryNameToAnnotation("ctx-lh-S_pericallosal-posterior", ct) ;
+    if (s_posterior_peri < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_pericallosal-posterior") ;
+
+    s_cingulate = CTABentryNameToAnnotation("ctx-lh-S_cingulate-Main_part_and_Intracingulate", ct) ;
+    if (s_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_cingulate-Main_part_and_Intracingulate") ;
+    g_cingulate = CTABentryNameToAnnotation("ctx-lh-G_cingulate-Main_part", ct) ;
+    if (g_cingulate < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-G_cingulate-Main_part") ;
+    s_pericallosal = CTABentryNameToAnnotation("ctx-lh-S_pericallosal", ct) ;
+    if (s_pericallosal < 0)
+      ErrorExit(ERROR_UNSUPPORTED, "Cannot find annotation %s in LUT", "ctx-lh-S_pericallosal") ;
   }
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
