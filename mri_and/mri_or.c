@@ -1,8 +1,8 @@
 /**
- * @file  mri_and.c
- * @brief performs a logical and at each voxel on a series of volumes
+ * @file  mri_or.c
+ * @brief performs a logical or at each voxel on a series of volumes
  *
- * performs a logical and at each voxel on a series of volumes
+ * performs a logical or at each voxel on a series of volumes
  * which must all have the same geometry/ras coords.
  */
 /*
@@ -10,7 +10,7 @@
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2009/06/09 19:32:31 $
- *    $Revision: 1.3 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.3 $";
+char *MRI_INFO_VERSION = "$Revision: 1.1 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -49,7 +49,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int get_option(int argc, char *argv[]) ;
-static char vcid[] = "$Id: mri_and.c,v 1.3 2009/06/09 19:32:31 nicks Exp $";
+static char vcid[] = "$Id: mri_or.c,v 1.1 2009/06/09 19:32:31 nicks Exp $";
 
 char *Progname ;
 
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 {
   int  nargs, index, ac, nvolumes;
   char **av ;
-  MRI  *mri_and = NULL, *mri ;
+  MRI  *mri_or = NULL, *mri ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -91,15 +91,15 @@ int main(int argc, char *argv[])
            index+1, nvolumes, fname) ;
     mri = MRIread(fname) ;
     if (index == 0)
-      mri_and = MRIcopy(mri, NULL) ;
+      mri_or = MRIcopy(mri, NULL) ;
     else
-      MRIand(mri, mri_and, mri_and, 0) ;
+      MRIor(mri, mri_or, mri_or, 0) ;
 
     MRIfree(&mri) ;
   }
 
   printf("writing output to %s\n", argv[argc-1]) ;
-  MRIwrite(mri_and, argv[argc-1]) ;
+  MRIwrite(mri_or, argv[argc-1]) ;
   exit(0);
 
 } /* end main() */
@@ -154,7 +154,7 @@ static void print_help(void)
   print_usage() ;
   printf(
     "\n"
-    "Performs a logical voxel-wise AND on a series of volumes\n"
+    "Performs a logical voxel-wise OR on a series of volumes\n"
   );
   exit(1) ;
 }
