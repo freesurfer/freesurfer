@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/20 17:55:33 $
-#    $Revision: 1.22 $
+#    $Date: 2009/06/09 00:23:56 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.22 2009/05/20 17:55:33 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.23 2009/06/09 00:23:56 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -550,7 +550,13 @@ while( $#argv != 0 )
       breaksw
 
     case "--nocleanup":
+    case "--no-cleanup":
       set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+    case "--clean-up":
+      set cleanup = 1;
       breaksw
 
     case "--debug":
