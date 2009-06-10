@@ -7,11 +7,11 @@
  *              input_volume_pref output_volume_pref
  */
 /*
- * Original Author: Bruce Fischl
+ * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/10 19:59:02 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/06/10 20:01:19 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2009, The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ribbon.c,v 1.13 2009/06/10 19:59:02 nicks Exp $", 
+     "$Id: mri_ribbon.c,v 1.14 2009/06/10 20:01:19 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
