@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/06 23:35:53 $
-#    $Revision: 1.2 $
+#    $Date: 2009/06/10 18:35:45 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2009
 # The General Hospital Corporation (Boston, MA). 
@@ -24,10 +24,18 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_concatenate_lta,v 1.2 2009/05/06 23:35:53 nicks Exp $'
+set VERSION='$Id: test_mri_concatenate_lta,v 1.3 2009/06/10 18:35:45 nicks Exp $'
 
 umask 002
 
+#
+# extract testing data
+#
+gunzip -c testdata.tar.gz | tar xvf -
+
+#
+# run command
+#
 set cmd=(./mri_concatenate_lta -invert1 \
   nick13_to_nickbase.lta \
   identity.nofile \
@@ -40,6 +48,9 @@ if ($status != 0) then
   exit 1
 endif
 
+#
+# look for differences
+#
 set cmd=(diff nickbase_to_nick13.lta reference-nickbase_to_nick13.lta)
 echo ""
 echo $cmd
