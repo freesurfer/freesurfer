@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/22 00:58:19 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2009/06/10 19:42:00 $
+ *    $Revision: 1.5.2.2 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -86,7 +86,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_fuse_segmentations.c,v 1.5.2.1 2009/05/22 00:58:19 nicks Exp $",
+     "$Id: mri_fuse_segmentations.c,v 1.5.2.2 2009/06/10 19:42:00 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -368,7 +368,7 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
             max_label = label ;
           dif = oval - val ;
           p = (1.0 / (sqrt(2*M_PI)*sigma)) *
-              exp(-0.5 * (dif*dif) / (2*sigma*sigma)) ;
+              exp(-0.5 * (dif*dif) / (sigma*sigma)) ;
           label_pvals[label] += p ;
           label_counts[label]++ ;
           total++ ;
@@ -376,7 +376,8 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
         p = 0 ;
         for (label = min_label ; label <= max_label ; label++)
         {
-          label_pvals[label] *= (double)label_counts[label]/(double)total ;
+          //          label_pvals[label] *= (double)label_counts[label]/(double)total ;
+          label_pvals[label] /= (double)total ;  // prior is already done by sum
           if (label_pvals[label] > p)
           {
             p = label_pvals[label] ;
