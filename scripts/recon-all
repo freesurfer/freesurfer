@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/09 21:04:10 $
-#    $Revision: 1.218 $
+#    $Date: 2009/06/10 22:18:16 $
+#    $Revision: 1.219 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.218 2009/06/09 21:04:10 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.219 2009/06/10 22:18:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5401,8 +5401,8 @@ given to the base subject of a collection of timepoints:
   recon-all -long tp1 longbase -all
   recon-all -long tp2 longbase -all
 
-4) do comparisons on results from 2) and 3), e.g. calculate differences 
-between tp1.long.longbase - longbase
+4) do comparisons on results from 3), e.g. calculate differences 
+between tp2.long.longbase - tp1.long.longbase
 
 Note that the longitudinal processing stream always produces output subject
 data containing  .long.  in the name (to help distinguish from the default
@@ -5422,6 +5422,12 @@ used to specify control points for tpN subjid.
 
 If the orig pial surface data is not available, then specify this flag so that
 mris_make_surfaces does not attempt to use it.
+
+-noasegfusion
+
+Do not create 'fused' aseg from the longbase timepoints, which would normally 
+be used to initialize the ca_labeling.  Instead, initialize using the longbase
+aseg.mgz.
 
 Example:
 
