@@ -10,11 +10,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/15 15:56:20 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/06/10 19:59:02 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2009, The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -62,7 +61,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ribbon.c,v 1.12 2008/05/15 15:56:20 nicks Exp $", 
+     "$Id: mri_ribbon.c,v 1.13 2009/06/10 19:59:02 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
