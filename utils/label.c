@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/05 19:18:16 $
- *    $Revision: 1.90 $
+ *    $Date: 2009/06/10 17:04:42 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,7 +103,7 @@ LABEL *LabelRead(char *subject_name, char *label_name)
   if(!fio_FileExistsReadable(fname) && fio_FileExistsReadable(label_name0))
     sprintf(fname,"%s",label_name0);
 
-  printf("%s %s\n",label_name0,fname);
+  //  printf("%s %s\n",label_name0,fname);
 
   strcpy(area->name, label_name) ;
 
