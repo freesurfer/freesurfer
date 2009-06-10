@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/22 00:58:25 $
- *    $Revision: 1.112.2.8 $
+ *    $Date: 2009/06/10 04:37:22 $
+ *    $Revision: 1.112.2.9 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -53,12 +53,12 @@ extern const char* Progname;
 
 static LTA  *ltaReadRegisterDat(char *fname) ;
 static LTA  *ltaMNIread(char *fname) ;
-static LTA  *ltaFSLread(const char *fname) ;
-static int  ltaMNIwrite(LTA *lta, char *fname) ;
+static LTA  *ltaFSLread(char *fname) ;
+static int  ltaMNIwrite(LTA *lta,char *fname) ;
 static LTA  *ltaReadFile(char *fname) ;
 
-static LTA *ltaMNIreadEx(const char *fname);
-static LTA *ltaReadFileEx(const char *fname);
+static LTA *ltaMNIreadEx(char *fname);
+static LTA *ltaReadFileEx(char *fname);
 
 void vg_print(const VOL_GEOM *vg)
 {
@@ -583,7 +583,7 @@ ltaReadFile(char *fname)
   if (fp==NULL)
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   if (cp == NULL)
   {
     fclose(fp) ;
@@ -591,7 +591,7 @@ ltaReadFile(char *fname)
                        fname));
   }
   sscanf(cp, "type      = %d\n", &type) ;
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
   lta->type = type ;
@@ -599,12 +599,12 @@ ltaReadFile(char *fname)
   {
     lt = &lta->xforms[i] ;
     if (skip == 0)
-      cp = fgetl(line, 199, fp) ;
+      cp = fgetl(line, STRLEN-1, fp) ;
     sscanf(cp, "mean      = %f %f %f\n", &lt->x0, &lt->y0, &lt->z0) ;
-    cp = fgetl(line, 199, fp) ;
+    cp = fgetl(line, STRLEN-1, fp) ;
     sscanf(cp, "sigma     = %f\n", &lt->sigma) ;
     MatrixAsciiReadFrom(fp, lt->m_L) ;
-    cp = fgetl(line, 199, fp) ;
+    cp = fgetl(line, STRLEN-1, fp) ;
     if (strncmp(cp, "label", 5) == 0) // not all files have the label tag
     {
       sscanf(cp, "label     = %d\n", &lt->label) ;
@@ -734,7 +734,7 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 MRI *
 LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
 {
-  int         y1, y2, y3, width, height, depth, xi, yi, zi ;
+  int         y1, y2, y3, width, height, depth, xi, yi, zi, f ;
   VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
   Real        x1, x2, x3 ;
   MATRIX      *m_L, *m_L_inv ;
@@ -786,21 +786,14 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
       mri_dst = MRIclone(mri_src, NULL);
       if (tran->dst.valid == 1) // transform dst is valid
       {
-        // modify dst c_(r,a,s) using the transform dst value
+        // modify dst geometry using the transform dst value
         // to make the better positioning (i.e. put the
         // head in the same position in
         // the volume as the dst was)
         if (DIAG_VERBOSE_ON)
-          fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
+          fprintf(stderr, "INFO: Modifying dst geometry, "
                   "using the transform dst\n");
-        mri_dst->c_r = tran->dst.c_r;
-        mri_dst->c_a = tran->dst.c_a;
-        mri_dst->c_s = tran->dst.c_s;
-        mri_dst->ras_good_flag = 1;
-        // now we cache transform and thus we have to do
-        // the following whenever
-        // we change direction cosines
-        MRIreInitCache(mri_dst);
+        useVolGeomToMRI(&tran->dst,mri_dst);
       }
       else if (getenv("USE_AVERAGE305"))
       {
@@ -812,6 +805,9 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         mri_dst->c_a = -16.5100;
         mri_dst->c_s = 9.7500;
         mri_dst->ras_good_flag = 1;
+	// maye one should set also the other geometry entries
+	// from the average ???
+	//
         // now we cache transform and thus we have to
         // do the following whenever
         // we change direction cosines
@@ -928,7 +924,220 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         xi = mri_dst->xi[nint(x1)] ;
         yi = mri_dst->yi[nint(x2)] ;
         zi = mri_dst->zi[nint(x3)] ;
-        MRIvox(mri_dst, y1, y2, y3) = MRIvox(mri_src, xi, yi, zi) ;
+        for (f = 0 ; f < mri_dst->nframes ; f++)
+          MRIsetVoxVal(mri_dst, y1, y2, y3, f, MRIgetVoxVal(mri_src, xi, yi, zi, f)) ;
+      }
+    }
+#if 0
+    if (y3 > 10)
+      exit(0) ;
+#endif
+  }
+
+  MatrixFree(&v_X) ;
+  MatrixFree(&v_Y) ;
+  MatrixFree(&m_L) ;
+  MatrixFree(&m_L_inv) ;
+
+  return(mri_dst) ;
+}
+MRI *
+LTAinverseTransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
+{
+  int         y1, y2, y3, width, height, depth, xi, yi, zi, f ;
+  VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
+  Real        x1, x2, x3 ;
+  MATRIX      *m_L, *m_L_inv ;
+  LT *tran = &lta->inv_xforms[0];
+  MATRIX *r2i = 0;
+  MATRIX *i2r = 0;
+  MATRIX *tmp = 0;
+  MATRIX *v2v = 0;
+  MRI *resMRI = 0;
+
+  if (lta->num_xforms == 1)
+  {
+    /////////////////////////////////////////////////////////////////////////
+    //  The transform was created using src and dst
+    //           src vox ----> RAS
+    //            |             |
+    //            V             V
+    //           dst vox ----> RAS
+    //
+    //  Note: RAS is the physical space.  vox is the way to
+    // embed voxel in physical space
+    //
+    //  You can take arbitray embedding of the dst but keeping the RAS same.
+    //
+    //           src vox ----> RAS
+    //            | v2v         | r2r
+    //            V             V
+    //           dst vox ----> RAS
+    //            |             || identity
+    //            V             ||
+    //           dst' vox ---> RAS
+    //
+    //  where dst->dst' map is given by V2V' = r2i(dst')*i2r(dst)
+    //
+    //  Note that in order to obtain src->dst' with r2r, you
+    // "don't need any info from dst"
+    //  since
+    //          src->dst'  = r2i(dst')* r2r * i2r(src)
+    //
+    //  However, using v2v, you need the information from dst
+    //  since
+    //          src->dst'  = r2i(dst')* i2r(dst) * v2v
+    //
+    ////////////////////////////////////////////////////////////////////////
+    // when the dst volume is not given
+    if (!mri_dst)
+    {
+      // use the same volume size as the src
+      mri_dst = MRIclone(mri_src, NULL);
+      if (tran->dst.valid == 1) // transform dst is valid
+      {
+        // modify dst c_(r,a,s) using the transform dst value
+        // to make the better positioning (i.e. put the
+        // head in the same position in
+        // the volume as the dst was)
+        if (DIAG_VERBOSE_ON)
+          fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
+                  "using the transform dst\n");
+        mri_dst->c_r = tran->dst.c_r;
+        mri_dst->c_a = tran->dst.c_a;
+        mri_dst->c_s = tran->dst.c_s;
+        mri_dst->ras_good_flag = 1;
+        // now we cache transform and thus we have to do
+        // the following whenever
+        // we change direction cosines
+        MRIreInitCache(mri_dst);
+      }
+      else if (getenv("USE_AVERAGE305"))
+      {
+        fprintf(stderr, "INFO: Environmental variable "
+                "USE_AVERAGE305 set\n");
+        fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
+                "using average_305 values\n");
+        mri_dst->c_r = -0.0950;
+        mri_dst->c_a = -16.5100;
+        mri_dst->c_s = 9.7500;
+        mri_dst->ras_good_flag = 1;
+        // now we cache transform and thus we have to
+        // do the following whenever
+        // we change direction cosines
+        MRIreInitCache(mri_dst);
+      }
+      else
+        fprintf(stderr, "INFO: Transform dst volume "
+                "info is not used (valid flag = 0).\n");
+    }
+    ////////////////////////////////////////////////////////////////////////
+    if (lta->type == LINEAR_RAS_TO_RAS)
+    {
+      // don't need any info from dst
+      return(MRIapplyRASlinearTransformInterp(mri_src,
+                                              mri_dst,
+                                              lta->inv_xforms[0].m_L,
+                                              interp)) ;
+    }
+    else if (lta->type == LINEAR_VOX_TO_VOX)// vox-to-vox
+    {
+      if (lta->xforms[0].dst.valid)
+      {
+        i2r = vg_i_to_r(&lta->inv_xforms[0].dst); // allocated
+        r2i = extract_r_to_i(mri_dst);
+        tmp = MatrixMultiply(i2r, lta->inv_xforms[0].m_L, NULL);
+        v2v = MatrixMultiply(r2i, tmp, NULL);
+        resMRI = MRIlinearTransformInterp(mri_src, mri_dst, v2v, interp);
+        MatrixFree(&v2v);
+        v2v = 0;
+        MatrixFree(&i2r);
+        i2r = 0;
+        MatrixFree(&r2i);
+        r2i = 0;
+        MatrixFree(&tmp);
+        tmp = 0;
+        return resMRI;
+      }
+      else
+      {
+        fprintf(stderr, "INFO: assumes that the dst volume "
+                "given is the same as the dst for the transform\n");
+        return(MRIlinearTransformInterp(mri_src, mri_dst,
+                                        lta->inv_xforms[0].m_L, interp)) ;
+      }
+    }
+    else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
+    {
+      // must have both transform src and dst geometry information
+      LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      return(MRIapplyRASlinearTransformInterp(mri_src, mri_dst,
+                                              lta->inv_xforms[0].m_L, interp)) ;
+    }
+    else
+      ErrorExit(ERROR_BADPARM, "LTAtransform: unknown linear transform\n");
+  }
+  fprintf(stderr, "applying octree transform to image...\n") ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  v_X     = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  v_Y     = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+  m_L     = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  m_L_inv = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  v_Y->rptr[4][1] = 1.0f ;
+
+  if (lta->num_xforms == 1)
+  {
+    LTAtransformAtPoint(lta, 0, 0, 0, m_L_inv) ;
+    if (m_L_inv == NULL)
+    {
+      ErrorReturn(NULL,
+                  (ERROR_BADPARM, "LTAinverseTransform: could not invert matrix")) ;
+    }
+  }
+  for (y3 = 0 ; y3 < depth ; y3++)
+  {
+    DiagHeartbeat((float)y3 / (float)(depth-1)) ;
+    V3_Z(v_Y) = y3 ;
+
+    for (y2 = 0 ; y2 < height ; y2++)
+    {
+      V3_Y(v_Y) = y2 ;
+      for (y1 = 0 ; y1 < width ; y1++)
+      {
+        V3_X(v_Y) = y1 ;
+
+        /*
+          this is not quite right. Should use the weighting at
+          the point that maps to (y1,y2,y3), not (y1,y2,y3) itself,
+          but this is much easier....
+        */
+        if (lta->num_xforms > 1)
+        {
+          LTAtransformAtPoint(lta, y1, y2, y3, m_L) ;
+#if 0
+          if (MatrixSVDInverse(m_L, m_L_inv) == NULL)
+            continue ;
+#else
+          if (MatrixInverse(m_L, m_L_inv) == NULL)
+            continue ;
+#endif
+        }
+        MatrixMultiply(m_L_inv, v_Y, v_X) ;
+        x1 = V3_X(v_X) ;
+        x2 = V3_Y(v_X) ;
+        x3 = V3_Z(v_X) ;
+
+        xi = mri_dst->xi[nint(x1)] ;
+        yi = mri_dst->yi[nint(x2)] ;
+        zi = mri_dst->zi[nint(x3)] ;
+        for (f = 0 ; f < mri_dst->nframes ; f++)
+          MRIsetVoxVal(mri_dst, y1, y2, y3, f, MRIgetVoxVal(mri_src, xi, yi, zi, f)) ;
       }
     }
 #if 0
@@ -1637,7 +1846,8 @@ MATRIX *DevolveXFMWithSubjectsDir(char *subjid,
                                   char *sdir)
 {
   MATRIX *Torig_tkreg, *invTorig_tkreg, *Torig_native, *Mfix;
-  char dirname[2000], xfmpath[2000], *sd;
+  char dirname[2000], xfmpath[2000];
+  const char *sd;
   MRI *mriorig;
   FILE *fp;
   LTA    *lta;
@@ -1745,6 +1955,8 @@ TransformRead(const char *fname)
   GCA_MORPH *gcam = NULL ;
 
   trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+  memset(trans, 0, sizeof(TRANSFORM));
+
 
   // firstly, check for filename 'identify.nofile', which does not exist
   // as a file, but instead is used to force creation of an identity
@@ -1761,7 +1973,8 @@ TransformRead(const char *fname)
   }
   // continue normal processing...
 
-  trans->type = TransformFileNameType((char *)fname) ;
+
+  trans->type = TransformFileNameType((char*)fname) ;
   switch (trans->type)
   {
   case MNI_TRANSFORM_TYPE:
@@ -1779,7 +1992,7 @@ TransformRead(const char *fname)
     trans->type = ((LTA *)trans->xform)->type ;
     break ;
   case MORPH_3D_TYPE:
-    gcam = GCAMread((char *)fname) ;
+    gcam = GCAMread((char*)fname) ;
     if (!gcam)
     {
       free(trans) ;
@@ -1804,11 +2017,17 @@ TransformFree(TRANSFORM **ptrans)
   switch (trans->type)
   {
   default:
-    errCode = LTAfree((LTA **)(&trans->xform)) ;
+  {
+    void* pvoid = (void*)&trans->xform;
+    errCode = LTAfree((LTA **)pvoid) ;
     break ;
+  }
   case MORPH_3D_TYPE:
-    errCode = GCAMfree((GCA_MORPH **)(&trans->xform)) ;
+  {
+    void *pvoid = (void*)&trans->xform;
+    errCode = GCAMfree((GCA_MORPH **)pvoid) ;
     break ;
+  }
   }
   free(trans) ;
 
@@ -1837,6 +2056,7 @@ TransformSample(TRANSFORM *transform,
   if (transform->type == MORPH_3D_TYPE)
   {
     gcam = (GCA_MORPH *)transform->xform ;
+
     if (!gcam->mri_xind)
       ErrorReturn(ERROR_UNSUPPORTED,
                   (ERROR_UNSUPPORTED,
@@ -1895,9 +2115,11 @@ TransformSample(TRANSFORM *transform,
     yt = V3_Y(v_canon) ;
     zt = V3_Z(v_canon) ;
 
+#if 0
     if (xt < 0) xt = 0;
     if (yt < 0) yt = 0;
     if (zt < 0) zt = 0;
+#endif
   }
   *px = xt ;
   *py = yt ;
@@ -2220,16 +2442,16 @@ TransformApplyType(TRANSFORM *transform,
   {
   case MORPH_3D_TYPE:
     mri_dst =
-      GCAMmorphToAtlasType(mri_src,
+      GCAMmorphToAtlas(mri_src,
                            (GCA_MORPH*)transform->xform,
-                           NULL, -1, interp_type) ;
+                           mri_dst, -1, interp_type) ;
     break ;
   default:
     // this does not work for RAS-to-RAS
     // mri_dst = MRIlinearTransformInterp(mri_src, NULL,
     //          ((LTA *)transform->xform)->xforms[0].m_L, interp_type);
     lta = (LTA *) transform->xform;
-    mri_dst = LTAtransformInterp(mri_src, NULL, lta, interp_type);
+    mri_dst = LTAtransformInterp(mri_src, mri_dst, lta, interp_type);
     break ;
   }
   return(mri_dst) ;
@@ -2267,7 +2489,9 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
-    mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL);
+    mri_dst = GCAMmorphFromAtlas(mri_src,
+                                 (GCA_MORPH*)transform->xform,
+                                 NULL);
     break ;
   default:
     // the following does not work for ras-to-ras
@@ -2277,6 +2501,27 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
     LTAinvert(lta);
     mri_dst = LTAtransform(mri_src, NULL, lta);
     LTAinvert(lta); // restore the original
+    break ;
+  }
+  return(mri_dst) ;
+}
+MRI *
+TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type)
+{
+  LTA *lta = 0;
+  switch (transform->type)
+  {
+  case MORPH_3D_TYPE:
+    mri_dst = GCAMmorphFromAtlas(mri_src,
+                                 (GCA_MORPH*)transform->xform,
+                                 NULL);
+    break ;
+  default:
+    // the following does not work for ras-to-ras
+    // mri_dst = MRIinverseLinearTransform(mri_src, NULL,
+    //      ((LTA *)transform->xform)->xforms[0].m_L);
+    lta = (LTA*) transform->xform;
+    mri_dst = LTAinverseTransformInterp(mri_src, NULL, lta, interp_type);
     break ;
   }
   return(mri_dst) ;
@@ -2307,8 +2552,8 @@ ltaReadRegisterDat(char *fname)
 // find volumes which created the transform.
 // if buffer == NULL, then it will allocate memory
 // parsing with strtok.  not thread safe.
-int mincFindVolume(const char *line,
-                   const char *line2,
+int mincFindVolume(char *line,
+                   char *line2,
                    char **srcVol,
                    char **dstVol)
 {
@@ -2447,7 +2692,7 @@ int mincFindVolume(const char *line,
 }
 
 // find the volume and get the information
-void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
+void mincGetVolumeInfo(char *srcVol, VOL_GEOM *vgSrc)
 {
   MRI *mri= 0;
   struct stat stat_buf;
@@ -2565,7 +2810,7 @@ void mincGetVolInfo(char *infoline,
   free(pdstVol);
 }
 
-LTA *ltaMNIreadEx(const char *fname)
+LTA *ltaMNIreadEx(char *fname)
 {
   LTA *lta = 0;
   LINEAR_TRANSFORM *lt ;
@@ -2671,7 +2916,7 @@ get_transform:
   return lta;
 }
 
-LTA *ltaReadFileEx(const char *fname)
+LTA *ltaReadFileEx(char *fname)
 {
   FILE             *fp;
   LINEAR_TRANSFORM *lt ;
@@ -2683,7 +2928,7 @@ LTA *ltaReadFileEx(const char *fname)
   if (fp==NULL)
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   if (cp == NULL)
   {
     fclose(fp) ;
@@ -2691,7 +2936,7 @@ LTA *ltaReadFileEx(const char *fname)
                        "ltaReadFile(%s): can't read data",fname));
   }
   sscanf(cp, "type      = %d\n", &type) ;
-  cp = fgetl(line, 199, fp) ;
+  cp = fgetl(line, STRLEN-1, fp) ;
   sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
   lta->type = type ;
@@ -2705,7 +2950,7 @@ LTA *ltaReadFileEx(const char *fname)
   // oh, well this is the added part
   for (i=0; i < lta->num_xforms; i++)
   {
-    if (fgets(line, 199, fp))
+    if (fgets(line, STRLEN-1, fp))
     {
       if (strncmp(line, "src volume info", 15)==0)
       {
@@ -2713,7 +2958,7 @@ LTA *ltaReadFileEx(const char *fname)
         if (DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: src volume info present\n");
         readVolGeom(fp, &lta->xforms[i].src);
-        p = fgets(line, 199, fp);
+        p = fgets(line, STRLEN-1, fp);
         if (strncmp(line, "dst volume info", 15)==0)
         {
           if (DIAG_VERBOSE_ON)
@@ -2755,7 +3000,7 @@ LTAreadEx(const char *fname)
   switch (type)
   {
   case FSLREG_TYPE:
-    lta = ltaFSLread(fname) ;
+    lta = ltaFSLread((char*)fname) ;
     break ;
   case REGISTER_DAT:
     printf("INFO: This REGISTER_DAT transform "
@@ -2800,7 +3045,7 @@ LTAreadEx(const char *fname)
     // so that you can use the information to modify c_(r,a,s)
     // we no longer convert the transform to vox-to-vox
     // the transform is ras-to-ras
-    lta = ltaMNIreadEx(fname) ;
+    lta = ltaMNIreadEx((char *)fname) ;
     break ;
 
   case LINEAR_VOX_TO_VOX:
@@ -2808,7 +3053,7 @@ LTAreadEx(const char *fname)
   case TRANSFORM_ARRAY_TYPE:
   default:
     // get the original src and dst information
-    lta = ltaReadFileEx(fname);
+    lta = ltaReadFileEx((char*)fname);
     break ;
   }
   return(lta) ;
@@ -2890,7 +3135,7 @@ int LTAvoxelXformToRASXform(const MRI *src,
 }
 
 static LTA  *
-ltaFSLread(const char *fname)
+ltaFSLread(char *fname)
 {
   LTA              *lta ;
   LINEAR_TRANSFORM *lt ;
@@ -3720,7 +3965,7 @@ int
 TransformRas2Vox(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 {
   if (transform->type == MORPH_3D_TYPE)
-    return(GCAMrasToVox((GCA_MORPH *)(transform->xform), mri_dst)) ;
+    return(GCAMrasToVox((GCA_MORPH *)(transform->xform), mri_src)) ;
   else
   {
     transform->type = LINEAR_VOX_TO_VOX ;
@@ -3935,67 +4180,109 @@ double *SegRegCost(MRI *regseg, MRI *f, double *costs)
   return(0);
 }
 
-#if 0
-// This is the old version that uses MRIgetVoxVal(), which is somewhat
-// slower.
-double *SegRegCost(MRI *regseg, MRI *f, double *costs)
+/*!
+  \fn MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R)
+  \brief Computes the displacment magnitude at each voxel due to
+  applying R (which is a tkreg matrix). The output is a single-frame
+  MRI with the unsigned displacment.
+*/
+MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R)
 {
-  double wmsum, wmsum2, wmmean, wmstd;
-  double ctxsum, ctxsum2, ctxmean, ctxstd;
-  double vseg, vf, t, cost;
-  int r,c,s,nwmhits,nctxhits;
+  MRI *disp;
+  int c,r,s;
+  MATRIX *Pcrs, *Pras, *Pras2, *Vox2RAS, *Vox2RAS2;
+  double dx,dy,dz,d;
 
-  if(costs == NULL) costs = (double *) calloc(sizeof(double),8);
+  disp = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_FLOAT, 1);
+  MRIcopyHeader(mri,disp);
 
-  nwmhits = 0;
-  nctxhits = 0;
-  wmsum = 0;
-  wmsum2 = 0;
-  ctxsum = 0;
-  ctxsum2 = 0;
-  for(c=0; c < f->width; c++){
-    for(r=0; r < f->height; r++){
-      for(s=0; s < f->depth; s++){
-	vf = MRIgetVoxVal(f,c,r,s,0);
-	if(vf == 0) continue;
-	vseg = MRIgetVoxVal(regseg,c,r,s,0);
-	if(vseg == 2 || vseg == 41){
-	  wmsum  += vf;
-	  wmsum2 += (vf*vf);
-	  nwmhits ++;
-	}
-	if(vseg == 3 || vseg == 42){
-	  ctxsum  += vf;
-	  ctxsum2 += (vf*vf);
-	  nctxhits ++;
-	}
+  Pcrs  = MatrixAlloc(4,1,MATRIX_REAL);
+  Pcrs->rptr[4][1] = 1;
+  Pras  = MatrixAlloc(4,1,MATRIX_REAL);
+  Pras2 = MatrixAlloc(4,1,MATRIX_REAL);
+  Vox2RAS = MRIxfmCRS2XYZtkreg(disp);
+  Vox2RAS2 = MatrixMultiply(R,Vox2RAS,NULL);
+
+  for(c=0; c < disp->width; c++){
+    for(r=0; r < disp->height; r++){
+      for(s=0; s < disp->depth; s++){
+	Pcrs->rptr[1][1] = c;
+	Pcrs->rptr[2][1] = r;
+	Pcrs->rptr[3][1] = s;
+	Pras  = MatrixMultiply(Vox2RAS,Pcrs,Pras);
+	Pras2 = MatrixMultiply(Vox2RAS2,Pcrs,Pras2);
+	dx = Pras->rptr[1][1] - Pras2->rptr[1][1];
+	dy = Pras->rptr[2][1] - Pras2->rptr[2][1];
+	dz = Pras->rptr[3][1] - Pras2->rptr[3][1];
+	d = sqrt(dx*dx + dy*dy + dz*dz);
+	MRIsetVoxVal(disp,c,r,s,0,d);
       }
     }
   }
 
-  //printf("wmsum2 = %lf ctxsum2 = %lf\n",wmsum2,ctxsum2);
+  MatrixFree(&Pcrs);
+  MatrixFree(&Pras);
+  MatrixFree(&Pras2);
+  MatrixFree(&Vox2RAS);
+  MatrixFree(&Vox2RAS2);
 
-  wmmean = wmsum/nwmhits;
-  wmstd = sqrt( (wmsum2 - 2*wmmean*wmsum + nwmhits*wmmean*wmmean)/nwmhits );
-
-  ctxmean = ctxsum/nctxhits;
-  ctxstd = sqrt( (ctxsum2 - 2*ctxmean*ctxsum + nctxhits*ctxmean*ctxmean)/nctxhits );
-
-  t = fabs(ctxmean-wmmean)/sqrt(ctxstd*ctxstd + wmstd*wmstd);
-  cost = 1/t;
-
-  //printf("WM: %6d %6.1f %6.1f   CTX: %6d %6.1f %6.1f  Cost: %g\n",
-  // nwmhits,wmmean,wmstd, nctxhits,ctxmean,ctxstd, cost);
-
-  costs[0] = nwmhits;
-  costs[1] = wmmean;
-  costs[2] = wmstd;
-  costs[3] = nctxhits;
-  costs[4] = ctxmean;
-  costs[5] = ctxstd;
-  costs[6] = t;
-  costs[7] = cost;
-
-  return(0);
+  return(disp);
 }
-#endif
+
+int
+TransformGetSrcVolGeom(TRANSFORM *transform, VOL_GEOM *vg)
+{
+  GCAM *gcam ;
+  LTA  *lta ;
+
+  switch (transform->type)
+  {
+  case MORPH_3D_TYPE:
+    gcam = (GCA_MORPH *)transform->xform ;
+    *vg = *(&gcam->image) ;
+    break ;
+  default: // linear tranforms
+    lta = (LTA *)transform->xform ;
+    *vg = *(&lta->xforms[0].src) ;
+    break ;
+  }
+  return(NO_ERROR) ;
+}
+int
+TransformGetDstVolGeom(TRANSFORM *transform, VOL_GEOM *vg) 
+{
+  GCAM *gcam ;
+  LTA  *lta ;
+
+  switch (transform->type)
+  {
+  case MORPH_3D_TYPE:
+    gcam = (GCA_MORPH *)transform->xform ;
+    *vg = *(&gcam->atlas) ;
+    break ;
+  default: // linear tranforms
+    lta = (LTA *)transform->xform ;
+    *vg = *(&lta->xforms[0].dst) ;
+    break ;
+  }
+  return(NO_ERROR) ;
+}
+int
+TransformSetMRIVolGeomToSrc(TRANSFORM *transform, MRI *mri) 
+{
+  VOL_GEOM vg ;
+
+  TransformGetSrcVolGeom(transform, &vg) ;
+  MRIcopyVolGeomToMRI(mri, &vg) ;
+  return(NO_ERROR) ;
+}
+int
+TransformSetMRIVolGeomToDst(TRANSFORM *transform, MRI *mri)
+{
+  VOL_GEOM vg ;
+
+  TransformGetDstVolGeom(transform, &vg) ;
+  MRIcopyVolGeomToMRI(mri, &vg) ;
+  return(NO_ERROR) ;
+}
+
