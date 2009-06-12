@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/10 22:18:16 $
-#    $Revision: 1.219 $
+#    $Date: 2009/06/12 00:22:52 $
+#    $Revision: 1.220 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.219 2009/06/10 22:18:16 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.220 2009/06/12 00:22:52 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -137,6 +137,7 @@ set target = fsaverage # see DoQdecCache
 set SmoothCortexOnly = 1; # For -qcache. smooths only within ?h.cortex.label
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
+set UseYa3tTalAtlas = 0; # if 1, use Schwartz young-adult 3T atlas for tal_avi
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make
 set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
@@ -943,7 +944,12 @@ if($DoTalairach) then
     else
       # Avi Snyder's registration tools
       set xopts = `fsr-getxopts talairach_avi $XOptsFile`;
-      set cmd = (talairach_avi --i nu.mgz --xfm $xfma $xopts)
+      set cmd = (talairach_avi --i nu.mgz --xfm $xfma)
+      if($UseYa3tTalAtlas) then
+        # special atlas composed of young adults scanned at 3T
+        set cmd = ($cmd --atlas SchwartzReactN32_as_orig)
+      endif
+      set cmd = ($cmd $xopts)
     endif
   endif
   $PWD |& tee -a $LF
@@ -2981,6 +2987,9 @@ while( $#argv != 0 )
     case "-use-mritotal":
       set UseMincMritotal = 1;
       breaksw
+    case "-ya3t-atlas":
+      set UseYa3tTalAtlas = 1;
+      breaksw
 
     case "-deface":
       set DoDeface = 1;
@@ -4629,6 +4638,7 @@ usage_exit:
   echo ""
   echo "  -mprage : assume scan parameters are MGH MP-RAGE protocol"
   echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol"
+  echo "  -ya3t-atlas : for tal reg, use special young adult 3T atlas"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
@@ -5131,7 +5141,7 @@ atlas using Avi Snyders 4dfp suite of image registration tools,
 through a FreeSurfer script called talairach_avi. Several of the downstream
 programs use talairach coordinates as seed points. You can/should check
 how good the talairach registration is using
-"tkregister2 --s subjid --fstal". You must have an "fsaverage" subject in
+"tkregister2 --s subjid --fstal-avi". You must have an "fsaverage" subject in
 your SUBJECTS_DIR. tkregister2 allows you to compare the orig volume
 against the talairach volume resampled into the orig space. If you modify
 the registration, it will change the talairach.xfm file. Your edits will
@@ -5141,6 +5151,8 @@ Creates the files mri/transform/talairach.auto.xfm and talairach.xfm.
 The flag -tal-check will check the registration against known-good transforms.
 Adding the flag -use-mritotal after -talairach will use the MINC program
 mritotal (see Collins, et al., 1994) to perform the transform.
+The flag "-ya3t-atlas" can be added if your subjects are young adults scanned
+at 3T, where this atlas is known to produce better results with this cohort.
 
 Normalization (-<no>normalization)
 
