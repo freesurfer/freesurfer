@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/08/09 17:46:31 $
-#    $Revision: 1.26 $
+#    $Date: 2009/06/13 15:57:23 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.26 2008/08/09 17:46:31 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.27 2009/06/13 15:57:23 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -266,6 +266,7 @@ endif
 set cmd=(recon-all)
 #if ("`uname -n`" == "hades") then
 #  set cmd=(nice +19 recon-all)
+#endif
 #if ("`uname -n`" == "mist") then
 #  set cmd=(nice +19 recon-all)
 #endif
@@ -579,18 +580,22 @@ foreach statfile ($STATS_FILES)
   set cmd1b=(grep -v "CreationTime" $SUBJECTS_DIR/ref.stats)
   set cmd1c=(grep -v "cvs_version" $SUBJECTS_DIR/ref.stats)
   set cmd1d=(grep -v "${REF_SUBJ}" $SUBJECTS_DIR/ref.stats)
+  set cmd1e=(grep -v "hostname" $SUBJECTS_DIR/ref.stats)
   echo $cmd1a
   echo $cmd1b
   echo $cmd1c
   echo $cmd1d
+  echo $cmd1e
   set cmd2a=(grep -v "TimeStamp" $TST_STAT)
   set cmd2b=(grep -v "CreationTime" $SUBJECTS_DIR/tst.stats)
   set cmd2c=(grep -v "cvs_version" $SUBJECTS_DIR/tst.stats)
   set cmd2d=(grep -v "${TEST_SUBJ}" $SUBJECTS_DIR/tst.stats)
+  set cmd2e=(grep -v "hostname" $SUBJECTS_DIR/tst.stats)
   echo $cmd2a
   echo $cmd2b
   echo $cmd2c
   echo $cmd2d
+  echo $cmd2e
   set cmd3=(diff $SUBJECTS_DIR/ref.$statfile $SUBJECTS_DIR/tst.$statfile)
   echo $cmd3
   if ($RunIt) then
@@ -600,8 +605,10 @@ foreach statfile ($STATS_FILES)
     $cmd1b >& $SUBJECTS_DIR/ref.stats.tmp
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
     $cmd1c >& $SUBJECTS_DIR/ref.stats.tmp
-    mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
+    mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats 
     $cmd1d >& $SUBJECTS_DIR/ref.stats.tmp
+    mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
+    $cmd1e >& $SUBJECTS_DIR/ref.stats.tmp
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.$statfile
     $cmd2a >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
@@ -610,6 +617,8 @@ foreach statfile ($STATS_FILES)
     $cmd2c >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
     $cmd2d >& $SUBJECTS_DIR/tst.stats.tmp
+    mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
+    $cmd2e >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.$statfile
     $cmd3 >& $STATSDIFFF
     set stats_diff_status=$status
