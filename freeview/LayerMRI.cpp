@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/05/28 20:30:25 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/06/15 17:05:06 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1090,12 +1090,13 @@ void LayerMRI::UpdateTensorActor( int nPlane, vtkImageData* imagedata_in )
 //  srcpolydata->GetPointData()->SetNormals( NULL );    // remove normals
   vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
   double pt[3];
+  int nSkip = 1;
   switch ( nPlane )
   {
     case 0:
-      for ( int i = 0; i < dim[1]; i++ )
+      for ( int i = 0; i < dim[1]; i+=nSkip )
       {
-        for ( int j = 0; j < dim[2]; j++ )
+        for ( int j = 0; j < dim[2]; j+=nSkip )
         {
           pt[0] = orig[0] + voxel_size[0] * n[0];
           pt[1] = orig[1] + voxel_size[1] * i;
@@ -1105,9 +1106,9 @@ void LayerMRI::UpdateTensorActor( int nPlane, vtkImageData* imagedata_in )
       }
       break;
     case 1:
-      for ( int i = 0; i < dim[0]; i++ )
+      for ( int i = 0; i < dim[0]; i+=nSkip )
       {
-        for ( int j = 0; j < dim[2]; j++ )
+        for ( int j = 0; j < dim[2]; j+=nSkip )
         {
           pt[0] = orig[0] + voxel_size[0] * i;
           pt[1] = orig[1] + voxel_size[1] * n[1];
@@ -1117,9 +1118,9 @@ void LayerMRI::UpdateTensorActor( int nPlane, vtkImageData* imagedata_in )
       }
       break;
     case 2:
-      for ( int i = 0; i < dim[0]; i++ )
+      for ( int i = 0; i < dim[0]; i+=nSkip )
       {
-        for ( int j = 0; j < dim[1]; j++ )
+        for ( int j = 0; j < dim[1]; j+=nSkip )
         {
           pt[0] = orig[0] + voxel_size[0] * i;
           pt[1] = orig[1] + voxel_size[1] * j;
@@ -1202,7 +1203,7 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
     double m[16];
     memset( m, 0, sizeof(double)*16 );
     m[15] = 1;
-
+    
     m[0] = v[0][0];
     m[1] = v[0][1];
     m[2] = v[0][2];
@@ -1210,17 +1211,20 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
     m[4] = v[1][0];
     m[5] = v[1][1];
     m[6] = v[1][2];
-    
+
+    
     m[8] = v[2][0];
     m[9] = v[2][1];
-    m[10]= v[2][2]; 
+    m[10]= v[2][2];
+ 
     tr->Concatenate(m);
     tr->Scale( w );
 //    tr->RotateZ( -90 );
-    unsigned char c[4] = { 0, 0, 0, 255 };
+    unsigned char c[4];
     c[0] = (int)(fabs( v[0][0] *255 ) );
     c[1] = (int)(fabs( v[1][0] *255 ) );
     c[2] = (int)(fabs( v[2][0] *255 ) );
+    c[3] = 255;
     int nPts = sourcepolydata->GetPoints()->GetNumberOfPoints();
     for ( int i = 0; i < nPts; i++ )
       scalars->InsertNextTupleValue( c );

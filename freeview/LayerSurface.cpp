@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/06/15 17:05:06 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -72,6 +72,7 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
 
 // m_mainActor = vtkLODActor::New();
   m_mainActor = vtkActor::New();
+  m_mainActor->GetProperty()->SetEdgeColor( 0.4, 0.4, 0.4 );
   mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
   mLowResFilter->SetTargetReduction( 0.9 );
 // mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
@@ -437,6 +438,11 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, v
     this->UpdateVectorPointSize();
     this->SendBroadcast( "LayerActorUpdated", this );
   }
+  else if ( iMessage == "SurfaceRenderModeChanged", this )
+  {
+    this->UpdateRenderMode();
+    this->SendBroadcast( "LayerActorUpdated", this );
+  }
 }
 
 void LayerSurface::SetVisible( bool bVisible )
@@ -672,4 +678,24 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   if ( bAskRedraw )
     this->SendBroadcast( "LayerActorUpdated", this );
+}
+
+void LayerSurface::UpdateRenderMode()
+{
+  m_mainActor->GetProperty()->EdgeVisibilityOff();
+  switch ( GetProperties()->GetSurfaceRenderMode() )
+  {
+    case LayerPropertiesSurface::SM_Surface:
+      m_mainActor->GetProperty()->SetRepresentationToSurface();
+      break;
+    case LayerPropertiesSurface::SM_Wireframe:
+      m_mainActor->GetProperty()->SetRepresentationToWireframe();
+      m_mainActor->GetProperty()->SetLineWidth( 1 );
+      break;
+    case LayerPropertiesSurface::SM_SurfaceAndWireframe:
+      m_mainActor->GetProperty()->SetRepresentationToSurface();
+      m_mainActor->GetProperty()->SetLineWidth( 2 );
+      m_mainActor->GetProperty()->EdgeVisibilityOn();
+      break;
+  }
 }

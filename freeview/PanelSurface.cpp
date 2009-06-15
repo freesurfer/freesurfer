@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/04/26 23:47:10 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/15 17:05:07 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,7 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   
   EVT_CHOICE          ( XRCID( "ID_CHOICE_OVERLAY" ),          PanelSurface::OnChoiceOverlay )
   EVT_BUTTON          ( XRCID( "ID_BUTTON_OVERLAY" ),          PanelSurface::OnButtonConfigureOverlay )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_RENDER_MODE" ),      PanelSurface::OnChoiceRenderMode )
 
   EVT_CHOICE          ( XRCID( "ID_CHOICE_CURVATURE_MAP" ),        PanelSurface::OnChoiceCurvatureMap )
   EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_MID_POINT" ),  PanelSurface::OnSliderMidPointChanging )
@@ -111,6 +112,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_sliderSlope         = XRCCTRL( *this, "ID_SLIDER_SLOPE",          wxSlider );
   m_textMidPoint        = XRCCTRL( *this, "ID_TEXT_MID_POINT",        wxTextCtrl );
   m_textSlope           = XRCCTRL( *this, "ID_TEXT_SLOPE",            wxTextCtrl );
+  
+  m_choiceRenderMode    = XRCCTRL( *this, "ID_CHOICE_RENDER_MODE",    wxChoice );
   
   m_choiceOverlay       = XRCCTRL( *this, "ID_CHOICE_OVERLAY",        wxChoice );
   m_btnOverlayConfiguration 
@@ -226,7 +229,9 @@ void PanelSurface::DoUpdateUI()
       m_sliderMidPoint->SetValue( (int) ( ( layer->GetProperties()->GetThresholdMidPoint() - range[0] ) / ( range[1] - range[0] ) * 100 ) );
       m_sliderSlope->SetValue( (int) ( layer->GetProperties()->GetThresholdSlope() ) );
 
-      surf = layer->GetSourceSurface();      
+      surf = layer->GetSourceSurface();     
+       
+      m_choiceRenderMode->SetSelection( layer->GetProperties()->GetSurfaceRenderMode() );
     }
 
     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
@@ -598,3 +603,13 @@ void PanelSurface::OnChoiceOverlay( wxCommandEvent& event )
     UpdateUI();
   }  
 }
+
+void PanelSurface::OnChoiceRenderMode( wxCommandEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    surf->GetProperties()->SetSurfaceRenderMode( event.GetSelection() );
+  }  
+}
+

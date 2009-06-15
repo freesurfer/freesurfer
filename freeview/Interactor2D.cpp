@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.15 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/15 17:05:06 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -260,7 +260,7 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   {
     view->MoveRight();
   }
-  else if ( nKeyCode == '3' || nKeyCode == 'W' || nKeyCode == 'S' || nKeyCode == 'R' || nKeyCode == 'F' )
+  else if ( nKeyCode == '3' /*|| nKeyCode == 'W' || nKeyCode == 'S'*/ || nKeyCode == 'R' || nKeyCode == 'F' )
   {
     // do nothing, just intercept these vtk default keycodes
   }

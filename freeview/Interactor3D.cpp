@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/15 17:05:06 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -163,7 +163,7 @@ bool Interactor3D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   {
     view->MoveRight();
   }
-  else if ( nKeyCode == 'R' || nKeyCode == 'F' )
+  else if ( nKeyCode == 'R' || nKeyCode == 'F' || nKeyCode == 'S' || nKeyCode == 'W' )
   {
     // do nothing, just intercept these keycodes
   }

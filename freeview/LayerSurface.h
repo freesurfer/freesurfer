@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/06/15 17:05:06 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -144,6 +144,7 @@ protected:
   void UpdateColorMap();
   void UpdateEdgeThickness();
   void UpdateVectorPointSize();
+  void UpdateRenderMode();
 
   virtual void OnSlicePositionChanged( int nPlane );
 

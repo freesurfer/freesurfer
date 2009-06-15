@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/06/15 17:05:07 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -73,13 +73,14 @@ private:
   void OnChoiceOverlay          ( wxCommandEvent& event );
   void OnButtonConfigureOverlay ( wxCommandEvent& event );          
 
-  void OnChoiceCurvatureMap ( wxCommandEvent& evet );
-  void OnSliderMidPoint  ( wxScrollEvent& event );
-  void OnSliderSlope   ( wxScrollEvent& event );
-  void OnSliderMidPointChanging  ( wxScrollEvent& event );
-  void OnSliderSlopeChanging   ( wxScrollEvent& event );
-  void OnTextMidPoint   ( wxCommandEvent& event );
-  void OnTextSlope   ( wxCommandEvent& event );
+  void OnChoiceCurvatureMap     ( wxCommandEvent& evet );
+  void OnSliderMidPoint         ( wxScrollEvent& event );
+  void OnSliderSlope            ( wxScrollEvent& event );
+  void OnSliderMidPointChanging ( wxScrollEvent& event );
+  void OnSliderSlopeChanging    ( wxScrollEvent& event );
+  void OnTextMidPoint           ( wxCommandEvent& event );
+  void OnTextSlope              ( wxCommandEvent& event );
+  void OnChoiceRenderMode       ( wxCommandEvent& event );
 
   void DoUpdateUI();
 
@@ -109,6 +110,8 @@ private:
   
   wxChoice*     m_choiceOverlay;
   wxButton*     m_btnOverlayConfiguration;
+  
+  wxChoice*     m_choiceRenderMode;
 
   std::vector<wxWindow*> m_widgetsMidPoint;
   std::vector<wxWindow*> m_widgetsSlope;
