@@ -1,14 +1,14 @@
 /**
  * @file  Annotation2D.h
- * @brief Annotation class for 2D view.
+ * @brief Annotation for 2D view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.7 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

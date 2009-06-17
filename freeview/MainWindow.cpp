@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 17:06:22 $
- *    $Revision: 1.52 $
+ *    $Date: 2009/06/17 20:41:18 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3183,9 +3183,13 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
   {
     m_strLastDir = MyUtils::GetNormalizedPath( fn );
     m_nScreenshotFilterIndex = dlg.GetFilterIndex();
-    m_viewRender[nId]->SaveScreenshot( fn, 
+    if ( !m_viewRender[nId]->SaveScreenshot( fn, 
                                        m_settingsScreenshot.Magnification,
-                                       m_settingsScreenshot.AntiAliasing );
+                                       m_settingsScreenshot.AntiAliasing ) )
+    {
+      wxMessageDialog dlg( this, _("Error occured writing to file. Please make sure you have right permission and the disk is not full."), _("Error"), wxOK );
+      dlg.ShowModal();
+    }
   }
 }
 

@@ -1,14 +1,14 @@
 /**
  * @file  Layer.h
- * @brief Layer data object.
+ * @brief Base Layer class. A layer is an independent data object with 2D and 3D graphical representations.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.9 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

@@ -1,14 +1,14 @@
 /**
  * @file  DialogNewROI.h
- * @brief Preferences dialog.
+ * @brief Dialog to create new ROI.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:11:35 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

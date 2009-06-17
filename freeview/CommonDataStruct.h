@@ -1,6 +1,6 @@
 /**
  * @file  CommonDataStruct.h
- * @brief Mix-in class for message receiving
+ * @brief A few common structures to hold settings
  *
  * Simple mix-in class for use with the Broadcaster class so text
  * messages with a pointer data can be sent to a list of listeners.
@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/30 21:31:05 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

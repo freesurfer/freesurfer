@@ -1,6 +1,6 @@
 /**
  * @file  BrushProperty.h
- * @brief class to hold brush properties
+ * @brief Class to hold brush properties for voxel editing
  *
  * Simpleclass for use with the Listener class so text
  * messages with a pointer data can be sent to a list of listeners.
@@ -8,9 +8,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.6 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

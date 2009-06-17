@@ -1,14 +1,14 @@
 /**
  * @file  Interactor2D.cpp
- * @brief Interactor2D to manage mouse and key input on render view.
+ * @brief Base Interactor class to manage mouse and key input on 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/15 17:05:06 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

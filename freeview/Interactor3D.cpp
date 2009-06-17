@@ -1,14 +1,14 @@
 /**
  * @file  Interactor3D.cpp
- * @brief Interactor3D to manage mouse and key input on render view.
+ * @brief Base Interactor class for 3D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/15 17:05:06 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

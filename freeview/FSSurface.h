@@ -1,14 +1,14 @@
 /**
  * @file  FSSurface.h
- * @brief Interactor to manage mouse and key input on render view.
+ * @brief Base surface class that takes care of I/O and data conversion.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

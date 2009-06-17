@@ -1,14 +1,14 @@
 /**
  * @file  DialogNewVolume.h
- * @brief Preferences Dialog.
+ * @brief Dialog to create new volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.5 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

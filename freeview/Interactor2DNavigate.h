@@ -1,14 +1,14 @@
 /**
  * @file  Interactor2DNavigate.h
- * @brief Interactor2DNavigate to manage mouse and key input on render view.
- *
+ * @brief Interactor for navigating (zoom, pan, etc.) in 2D render view.
+ * 
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

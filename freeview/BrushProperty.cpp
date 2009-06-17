@@ -1,6 +1,6 @@
 /**
  * @file  BrushProperty.cpp
- * @brief class to hold brush properties
+ * @brief Class to hold brush properties for voxel editing
  *
  * Simple mix-in class for use with the Listener class so text
  * messages with a pointer data can be sent to a list of listeners.
@@ -8,9 +8,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:24 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

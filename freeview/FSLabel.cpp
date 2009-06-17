@@ -1,14 +1,14 @@
 /**
  * @file  FSLabel.h
- * @brief Interactor to manage mouse and key input on render view.
+ * @brief Base label class that takes care of I/O and data conversion.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/07 03:12:42 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

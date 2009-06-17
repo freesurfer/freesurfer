@@ -1,14 +1,14 @@
 /**
  * @file  LayerCollection.cpp
- * @brief A collection of layers.
+ * @brief Collection of layers of the same type.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

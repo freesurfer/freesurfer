@@ -1,14 +1,14 @@
 /**
  * @file  DialogLoadDTI.h
- * @brief Preferences dialog.
+ * @brief Dialog to load DTI data.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/16 21:25:51 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

@@ -1,14 +1,14 @@
 /**
  * @file  LayerMRI.h
- * @brief Layer data object for MRI volume.
+ * @brief Layer class for MRI volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/05/28 20:30:25 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/06/17 20:41:18 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

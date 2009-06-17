@@ -1,14 +1,14 @@
 /**
  * @file  Cursor2D.h
- * @brief Annotation class for 2D view.
+ * @brief Cursor for 2D view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/30 21:31:05 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

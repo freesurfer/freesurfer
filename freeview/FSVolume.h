@@ -1,14 +1,14 @@
 /**
  * @file  FSVolume.h
- * @brief Interactor to manage mouse and key input on render view.
+ * @brief Base volume class that takes care of I/O and data conversion.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/05/28 20:30:25 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/06/17 20:41:17 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
