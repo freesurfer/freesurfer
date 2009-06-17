@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/05/28 21:03:32 $
- *    $Revision: 1.51 $
+ *    $Date: 2009/06/17 17:06:22 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2937,18 +2937,18 @@ void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
       wxColour color( cmd[1] );
       if ( !color.IsOk() )      
       {
-        double rgb[3];
+        long rgb[3];
         wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], _(",") );
         if ( rgb_strs.GetCount() < 3 || 
-             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
-             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
-             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+             !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+             !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+             !rgb_strs[2].ToLong( &(rgb[2]) ) )
         {
           cerr << "Invalid color name or value " << cmd[1] << endl;
         }
         else
         {
-          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+          color.Set( rgb[0], rgb[1], rgb[2] );
         }
       }
       
@@ -2963,18 +2963,18 @@ void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
       wxColour color( cmd[2] );
       if ( !color.IsOk() )      
       {
-        double rgb[3];
+        long rgb[3];
         wxArrayString rgb_strs = MyUtils::SplitString( cmd[2], _(",") );
         if ( rgb_strs.GetCount() < 3 || 
-             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
-             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
-             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+             !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+             !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+             !rgb_strs[2].ToLong( &(rgb[2]) ) )
         {
           cerr << "Invalid color name or value " << cmd[2] << endl;
         }
         else
         {
-          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+          color.Set( rgb[0], rgb[1], rgb[2] );
         }
       }
       
