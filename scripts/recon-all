@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/12 00:22:52 $
-#    $Revision: 1.220 $
+#    $Date: 2009/06/18 20:26:28 $
+#    $Revision: 1.221 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.220 2009/06/12 00:22:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.221 2009/06/18 20:26:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -108,7 +108,7 @@ set BigVentricles = 0 # if 1, add '-bigventricles' to mri_ca_label and reg.
 set DoSecondPassRenorm = 0 # if 1, add -secondpassrenorm to mri_ca_register
 set UseOldTopoFix = 1 # if 1, use mris_fix_topology instead of mris_topo_fixer
 set UseNewTopoFix = 0 # if 1, use mris_topo_fixer instead of mris_fix_topology
-set NoRandomness = 0 # if 1, seed critical binaries with identical seeds, to
+set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # ensure consistency in surface creation. otherwise, the
                      # default is to seed with current time and date,
                      # resulting in slightly different surfaces each run.
@@ -3350,6 +3350,10 @@ while( $#argv != 0 )
 
     case "-norandomness":
       set NoRandomness = 1;
+      breaksw
+
+    case "-randomness":
+      set NoRandomness = 0;
       breaksw
 
     case "-rng-seed":
