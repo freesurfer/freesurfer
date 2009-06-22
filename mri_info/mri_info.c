@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/16 19:44:36 $
- *    $Revision: 1.68 $
+ *    $Date: 2009/06/22 00:07:03 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.68 $";
+char *MRI_INFO_VERSION = "$Revision: 1.69 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.68 2008/04/16 19:44:36 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.69 2009/06/22 00:07:03 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -78,6 +78,7 @@ static int PrintNRows = 0;
 static int PrintNSlices = 0;
 static int PrintDOF = 0;
 static int PrintNFrames = 0;
+static int PrintMidFrame = 0;
 static int PrintFormat = 0;
 static int PrintColDC   = 0;
 static int PrintRowDC   = 0;
@@ -203,6 +204,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--det"))     PrintDet = 1;
 
     else if (!strcasecmp(option, "--nframes"))   PrintNFrames = 1;
+    else if (!strcasecmp(option, "--mid-frame"))   PrintMidFrame = 1;
     else if (!strcasecmp(option, "--format")) PrintFormat = 1;
     else if (!strcasecmp(option, "--orientation")) PrintOrientation = 1;
     else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
@@ -273,6 +275,7 @@ static void print_usage(void) {
   printf("   --det : print the determinant of the vox2ras matrix\n");
   printf("   --dof : print the dof stored in the header\n");
   printf("   --nframes : print number of frames to stdout\n");
+  printf("   --mid-frame : print number of middle frame to stdout\n");
   printf("   --format : file format\n");
   printf("   --orientation : orientation string (eg, LPS, RAS, RPI)\n");
   printf("   --slicedirection : primary slice direction (eg, axial)\n");
@@ -457,6 +460,10 @@ static void do_file(char *fname) {
   }
   if (PrintNFrames) {
     fprintf(fpout,"%d\n",mri->nframes);
+    return;
+  }
+  if (PrintMidFrame) {
+    fprintf(fpout,"%d\n",nint(mri->nframes/2));
     return;
   }
   if (PrintColDC) {
