@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/18 20:27:36 $
-#    $Revision: 1.133.2.52 $
+#    $Date: 2009/06/22 23:11:18 $
+#    $Revision: 1.133.2.53 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.52 2009/06/18 20:27:36 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.53 2009/06/22 23:11:18 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -391,7 +391,7 @@ uname -a | tee -a $LF
 limit >> $LF
 if (-e /usr/bin/free) then
   echo "" >> $LF
-  /usr/bin/free -o >> $LF
+  /usr/bin/free >> $LF
   echo "" >> $LF
 endif
 if ("`uname -s`" == "Darwin") then
