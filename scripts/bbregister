@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/09 00:23:56 $
-#    $Revision: 1.23 $
+#    $Date: 2009/06/22 00:48:55 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.23 2009/06/09 00:23:56 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.24 2009/06/22 00:48:55 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -54,8 +54,10 @@ set Tol1D = 1e-8;
 set DOF = 6;
 set FSLDOF = 6;
 
-set GMProjFrac = 0.5;
 set WMProjAbs = 2;
+set GMProjFrac = 0.5;
+set GMProjAbs = ();
+
 set nSubSamp = 1;
 set Interp = trilinear
 set UseEPIMask = 0;
@@ -178,6 +180,8 @@ set Pass1Reg = $tmpdir/bbr.pass1.dat
 set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
   --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-3 \
   --brute -$Brute1Max $Brute1Max $Brute1Delta );
+if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
+if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
 if($LHOnly) set cmd = ($cmd --lh-only);
@@ -196,10 +200,11 @@ if($status) exit 1;
 set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
-  --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
+  --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
   --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
   --cur-reg $tmpdir/reg.curopt.dat)
-set cmd = ($cmd --tol $TolF --tol1d $Tol1D)
+if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
+if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
@@ -488,6 +493,13 @@ while( $#argv != 0 )
     case "--gm-proj-frac":
       if($#argv < 1) goto arg1err;
       set GMProjFrac = $argv[1]; shift;
+      set GMProjAbs = ();
+      breaksw
+
+    case "--gm-proj-abs":
+      if($#argv < 1) goto arg1err;
+      set GMProjAbs = $argv[1]; shift;
+      set GMProjFrac = ();
       breaksw
 
     case "--wm-proj-abs":
@@ -637,7 +649,7 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "USAGE: bbregister"
+  echo "bbregister"
   echo ""
   echo "Required Arguments:";
   echo "   --s subject  : FreeSurfer subject name"
@@ -673,9 +685,10 @@ usage_exit:
   echo "   --slope1 slope1 : cost slope for 1st stage (default is $Slope1)"
   echo "   --slope2  slope2 : cost slope for 2nd stage (default is $Slope2)"
   echo "   --offset2 offset2 : cost offset for 2nd stage (default is $Offset2)"
-  echo "   --tol tol : 2nd stage tolerance (default is $Tol)"
+  echo "   --tol tol : 2nd stage tolerance "
   echo "   --rand-init randmax : randomly change input to 1st stage reg"
-  echo "   --gm-proj-frac frac : 2nd stage, default is 0.5"
+  echo "   --gm-proj-frac frac : default is 0.5"
+  echo "   --gm-proj-abs abs   : use absolute instead of relative"
   echo "   --wm-proj-abs  dist : 2nd stage, default is 2mm"
   echo "   --subsamp nsub : 2nd stage vertex subsampling, default is 1"
   echo "   --nearest  : 2nd stage, use nearest neighbor interp (defalt is trilinear)"
