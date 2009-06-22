@@ -1,0 +1,338 @@
+#! /bin/csh -f
+
+#
+# mc-bbr
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2009/06/22 00:51:24 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+# Sample to hemi with proj, native or fsaverage
+# Sample to anat
+# Sample to tal
+
+set VERSION = '$Id: mc-bbr,v 1.1 2009/06/22 00:51:24 greve Exp $';
+
+set invol = ();
+set outvol = ();
+set template = ();
+set frame = 0;
+set mcdat = ();
+set subject = ();
+
+set nolog = 0;
+set tmpdir = ();
+set cleanup = 0;
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 1;
+endif
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# Output directory
+set outdir = `dirname $outvol`;
+mkdir -p $outdir
+if($status) then
+  echo "ERROR: creating $outdir"
+  exit 1;
+endif
+
+# Setup the log file
+if(! $nolog) then
+  set LF = $outvol.mclog
+  rm -f $LF
+else
+  set LF = /dev/null
+endif
+echo "log file is $LF"
+pwd >> $LF
+which mc-afni2 >> $LF
+echo $cmdargs >> $LF
+date     >> $LF
+id       >> $LF
+hostname >> $LF
+uname -a >> $LF
+
+# Tmp Dir
+if($#tmpdir == 0) set tmpdir = $outdir/tmp.mc-afni2.$$
+mkdir -p $tmpdir
+echo "tmp dir is $tmpdir" |& tee -a $LF
+
+# Extract Template from template volume
+set template = $tmpdir/template.nii
+set cmd = (mri_convert $invol $template --mid-frame)
+pwd |& tee -a $LF
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Perform the initial registration
+set reg0 = $tmpdir/reg.template.dat
+set cmd = (bbregister --mov $template --s $subject --bold \
+  --init-fsl --reg $reg0 --tol1d 1e-2 \
+  --gm-proj-abs 1 --wm-proj-abs 1)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Get number of frames
+set infotxt = /tmp/mriinfo.$$
+set cmd = (mri_info --nframes --o $infotxt $invol);
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+set nframes = `cat $infotxt`;
+echo "nframes $nframes" |& tee -a $LF
+
+# Register each frame
+@ nthframe = 0
+while ($nthframe < $nframes)
+  echo "#@# $nthframe/$nframes `date`" |& tee -a $LF
+  set zp = `printf %04d $nthframe`
+
+  # Extract frame
+  set f = $tmpdir/f.$zp.nii
+  set cmd = (mri_convert $invol $f --frame $nthframe)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  # Register frame to anat
+  set regframe = $tmpdir/f.$zp.reg.dat
+  set rmsframe = $tmpdir/f.$zp.rms
+  set cmd = (mri_segreg --mov $f --init-reg $reg0 \
+    --out-reg $regframe --brute -4 4 4 --interp trilinear \
+    --gm-proj-abs 1 --wm-proj-abs 1 --dof 6 \
+    --tol 1e-6 --tol1d 1e-2 --rms $rmsframe)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  # Compute reg to template
+  set regframetemp = $tmpdir/f.$zp.reg.temp.dat
+  set cmd = (mri_matrix_multiply -im $regframe \
+    -iim $reg0 -om $regframetemp)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  # Resample to template
+  set ft = $tmpdir/f.$zp.temp.nii
+  set cmd = (mri_vol2vol --mov $f --targ $template \
+    --reg $regframetemp --o $ft)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  @ nthframe = $nthframe + 1
+end
+
+set cmd = (mri_concat $tmpdir/f.????.temp.nii --o $outvol)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+cat $tmpdir/f.????.rms > $mcdat
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+## Clean up 
+if($cleanup) then
+  echo "... cleaning up ...." |& tee -a $LF
+  rm -r $tmpdir
+endif
+
+date |& tee -a $LF
+echo "mc-bbr done" |& tee -a $LF
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = ($argv)
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if ( $#argv == 0) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if ( $#argv == 0) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--mcdat":
+      if ( $#argv == 0) goto arg1err;
+      set mcdat = $argv[1]; shift;
+      breaksw
+
+    case "--t":
+      if ( $#argv == 0) goto arg1err;
+      set template = $argv[1]; shift;
+      breaksw
+
+    case "--frame":
+      if ( $#argv == 0) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+      if ( $#argv == 0) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--nolog":
+      set nolog = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#invol == 0) then
+  echo "ERROR: must specify an input volume"
+  exit 1;
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+if($#outvol == 0) then
+  echo "ERROR: must specify an output volume"
+  exit 1;
+endif
+if($#template != 0) then
+  if(! -e $template) then 
+    echo "ERROR: cannot find template volume $template"
+    exit 1;
+  endif
+endif
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+  exit 1;
+endif
+if($#mcdat == 0) then
+  set instem = `fname2stem $invol`
+  set mcdat = $instem.mcdat
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "mc-bbr"
+  echo ""
+  echo " Required:";
+  echo "   --i invol  : input  volume "
+  echo "   --o outvol : output volume "
+  echo ""
+  echo " Options:";
+  echo "   --t templatevol   : default is to use input volume"
+  echo "   --frame frame     : 0-based frame of template "
+  echo "   --mcdat mcdatfile : text file with mc parameters"
+  echo ""
+  echo "   --tmp tmpdir   : specify template directory (implies --nocleanup)"
+  echo "   --nocleanup    : do not delete temporary files"
+  echo "   --cleanup      : force cleanup"
+  echo ""
+  echo "   --help"
+  echo "   --version : print version and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Front-end for motion correction with bbregister
+
+
