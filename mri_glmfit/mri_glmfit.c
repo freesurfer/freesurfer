@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/06/02 01:17:19 $
- *    $Revision: 1.169 $
+ *    $Date: 2009/06/22 00:48:04 $
+ *    $Revision: 1.170 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -553,7 +553,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.169 2009/06/02 01:17:19 greve Exp $";
+"$Id: mri_glmfit.c,v 1.170 2009/06/22 00:48:04 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1618,6 +1618,12 @@ int main(int argc, char **argv) {
     // Save gamma
     sprintf(tmpstr,"%s/%s/gamma.%s",GLMDir,mriglm->glm->Cname[n],format);
     MRIwrite(mriglm->gamma[n],tmpstr);
+
+    if(mriglm->glm->C[n]->rows == 1){
+      // Save gammavar
+      sprintf(tmpstr,"%s/%s/gammavar.%s",GLMDir,mriglm->glm->Cname[n],format);
+      MRIwrite(mriglm->gammaVar[n],tmpstr);
+    }
 
     // Save F
     sprintf(tmpstr,"%s/%s/F.%s",GLMDir,mriglm->glm->Cname[n],format);
