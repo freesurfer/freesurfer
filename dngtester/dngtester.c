@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:21:01 $
- *    $Revision: 1.46 $
+ *    $Author: greve $
+ *    $Date: 2009/06/24 01:52:19 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -111,7 +111,7 @@ COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold, const char *name);
 int MRISmercator(MRIS *surf);
 IMAGE *I;
 MHT *lhwhite_hash;
-MRIS *lhwhite;
+MRIS *lhwhite,*white,*sphere;
 MRIS *surfs[100], *mris;
 int *XNbrVtxNo, nXNbrs;
 double *XNbrDotProd;
@@ -133,16 +133,92 @@ int main(int argc, char **argv)
   int *nunits;
   char *parcnames[10], *annot1, *annot2;
   COLOR_TABLE *ct ;
-  VERTEX *vtx;
+  VERTEX *vtx,*vtx1w,*vtx2w,*vtx1s,*vtx2s;
   float dlhw,DotProdThresh;
   int  lhwvtx;
   double sumval;
   int nsegid1, *segidlist1;
   int nsegid2, *segidlist2;
-  int nsegs, *segidlist;
+  int nsegs, *segidlist,vtxno1,vtxno2;
   double *area1, *area2, *area12, *dice;
-  double f;
+  double f,radius,radius2,DotProd,theta,d2,d3,d3Sqr;
+  double fwhm,fwhmSqr;
   COLOR_TABLE *ctab = NULL;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  subject = argv[1];
+  hemi = argv[2];
+  fwhm = 10;
+  fwhmSqr = fwhm*fwhm;
+
+  sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+  white = MRISread(tmpstr);
+  if(!white) exit(1);
+  printf("White Total Area = %g \n",white->total_area);
+
+  sprintf(tmpstr,"%s/%s/surf/%s.sphere",SUBJECTS_DIR,subject,hemi);
+  sphere = MRISread(tmpstr);
+  if(!sphere) exit(1);
+  printf("Sphere Total Area = %g \n",sphere->total_area);
+
+  f = sqrt(white->total_area/sphere->total_area);
+  printf("f = %g \n",f);
+
+  // normalize radius to 1
+  vtx1s = &(sphere->vertices[100]);
+  for(vtxno1 = 0; vtxno1 < sphere->nvertices; vtxno1++){
+    vtx1s = &(sphere->vertices[vtxno1]);
+    radius = sqrt(vtx1s->x*vtx1s->x + vtx1s->y*vtx1s->y + vtx1s->z*vtx1s->z);
+    vtx1s->x *= f;
+    vtx1s->y *= f;
+    vtx1s->z *= f;
+  }
+  MRIScomputeMetricProperties(sphere);
+  printf("Sphere Total Area = %g \n",sphere->total_area);
+
+  radius = sqrt(vtx1s->x*vtx1s->x + vtx1s->y*vtx1s->y + vtx1s->z*vtx1s->z);
+  printf("Radius %f\n",radius);
+  radius2 = radius*radius;
+
+  printf("Alloc\n");
+  mri = MRIallocSequence(white->nvertices, 1, 1, MRI_FLOAT, 1);
+
+  printf("loop\n");
+  for(vtxno1 = 0; vtxno1 < white->nvertices-1; vtxno1++){
+    if(vtxno1%100 ==0) printf("%6d \n",vtxno1);
+    vtx1w = &(white->vertices[vtxno1]);
+    vtx1s = &(sphere->vertices[vtxno1]);
+
+    for(vtxno2 = vtxno1+1; vtxno2 < white->nvertices; vtxno2++){
+      vtx2w = &(white->vertices[vtxno2]);
+      vtx2s = &(sphere->vertices[vtxno2]);
+
+      d3Sqr = SQR(vtx1w->x-vtx2w->x)+SQR(vtx1w->y-vtx2w->y)+SQR(vtx1w->z-vtx2w->z);
+      if(d3Sqr > fwhmSqr) continue;
+      d3 = sqrt(d3Sqr);
+
+      DotProd = (vtx1s->x*vtx2s->x + vtx1s->y*vtx2s->y + vtx1s->z*vtx2s->z)/radius2;
+      if(DotProd > +1) DotProd = +1;
+      if(DotProd < -1) DotProd = -1;
+      theta = acos(DotProd);
+      d2 = f * radius * theta;
+      if(d2 < fwhm) continue;
+
+      k = MRIgetVoxVal(mri,vtxno1,0,0,0);
+      MRIsetVoxVal(mri,vtxno1,0,0,0, k+1);
+
+      //printf("%6d %6d  %4.1f %4.1f\n",vtxno1,vtxno2,d3,d2);
+
+    }
+    //if(vtxno1 > 5000 ) break;
+  }
+
+  MRIwrite(mri,"count.mgh");
+
+  exit(0);
+
+
+
 
   k = 1;
   printf("%d %s\n",k,argv[k]);
