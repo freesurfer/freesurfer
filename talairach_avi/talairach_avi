@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/03 16:01:38 $
-#    $Revision: 1.5 $
+#    $Date: 2009/06/24 22:02:02 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2007-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 
 #
-set VERSION = '$Id: talairach_avi,v 1.5 2009/06/03 16:01:38 nicks Exp $'
+set VERSION = '$Id: talairach_avi,v 1.6 2009/06/24 22:02:02 nicks Exp $'
 
 set InVol = ();
 set XFM = ();
@@ -38,7 +38,6 @@ set PrintHelp = 0;
 # default target atlas (uncommented), override with -atlas flag
 #set target = 711-2B_as_mni_average_305		# 711-2B registered to mni305
 set target = 711-2C_as_mni_average_305		# 711-2C registered to mni305
-#set target = SchwartzReactN32_as_orig
 
 set cmdargs = ($argv);
 

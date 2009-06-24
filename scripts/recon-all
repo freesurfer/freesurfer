@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/22 23:10:53 $
-#    $Revision: 1.222 $
+#    $Date: 2009/06/24 22:02:28 $
+#    $Revision: 1.223 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.222 2009/06/22 23:10:53 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.223 2009/06/24 22:02:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -137,7 +137,7 @@ set target = fsaverage # see DoQdecCache
 set SmoothCortexOnly = 1; # For -qcache. smooths only within ?h.cortex.label
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
-set UseYa3tTalAtlas = 0; # if 1, use Schwartz young-adult 3T atlas for tal_avi
+set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas for tal_avi
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make
 set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
@@ -947,7 +947,7 @@ if($DoTalairach) then
       set cmd = (talairach_avi --i nu.mgz --xfm $xfma)
       if($UseYa3tTalAtlas) then
         # special atlas composed of young adults scanned at 3T
-        set cmd = ($cmd --atlas SchwartzReactN32_as_orig)
+        set cmd = ($cmd --atlas 3T18yoSchwartzReactN32_as_orig)
       endif
       set cmd = ($cmd $xopts)
     endif
