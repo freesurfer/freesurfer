@@ -16,11 +16,10 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.7 2008/08/28 23:09:40 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.8 2009/06/25 01:42:13 greve Exp $';
 
 set subject = ();
-set srchemi = ();
-set trghemi = ();
+set srchemilist = ();
 set surfreg = xhemi.reg
 set UseNoNeg = 0
 set NoRandomness = 1;
@@ -58,86 +57,95 @@ if($#outdir == 0) set outdir = $SUBJECTS_DIR/$xsubject
 echo "outdir is $outdir" 
 mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts $outdir/stats
 
-set LF = $SUBJECTS_DIR/$xsubject/xhemireg.$srchemi.log
-if(-e $LF) mv $LF $LF.bak
-echo "Logfile is $LF"
+@ nthhemi = 0;
+foreach srchemi ($srchemilist)
+  @ nthhemi = $nthhemi + 1;
+  if($srchemi == lh) set trghemi = rh;
+  if($srchemi == rh) set trghemi = lh;
 
-echo $0 | tee -a $LF
-echo $cmdargs | tee -a $LF
-echo $VERSION | tee -a $LF
-date | tee -a $LF
-uname -a | tee -a $LF
-pwd | tee -a $LF
-echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
+  set LF = $SUBJECTS_DIR/$xsubject/xhemireg.$srchemi.log
+  if(-e $LF) mv $LF $LF.bak
+  echo "Logfile is $LF"
 
-
-#--------------------------------------------------------------
-echo "" | tee -a $LF
-echo "" | tee -a $LF
-date | tee -a $LF
-foreach vol (orig aseg aparc+aseg T1 brain brainmask nu norm )
-  set cmd = (mri_convert mri/$vol.mgz $outdir/mri/$vol.mgz --left-right-reverse)
-  echo $cmd  | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-end
-
-
-#--------------------------------------------------------------
-echo ""| tee -a $LF
-echo ""| tee -a $LF
-date| tee -a $LF
-set reg = $outdir/lrrev.register.dat
-set cmd = (tkregister2_cmdl --targ mri/orig.mgz \
-         --mov $outdir/mri/orig.mgz \
-         --reg $reg --regheader --noedit)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
-
-
-#--------------------------------------------------------------
-foreach surf (orig white pial smoothwm inflated sphere)
-  echo "" | tee -a $LF
-  echo "" | tee -a $LF
+  echo $0 | tee -a $LF
+  echo $cmdargs | tee -a $LF
+  echo $VERSION | tee -a $LF
   date | tee -a $LF
-  set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
-   --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf \
-   --reg $reg)
-  echo $cmd  | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-end
+  uname -a | tee -a $LF
+  pwd | tee -a $LF
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR "| tee -a $LF
 
-#--------------------------------------------------------------
-foreach ov (curv sulc area area.pial curv.pial avg_curv \
-     inflated.H inflated.K thickness )
-  if(! -e surf/$srchemi.$ov) continue;
-  echo "" | tee -a $LF
-  echo "" | tee -a $LF
-  date | tee -a $LF
-  set cmd = (cp surf/$srchemi.$ov $outdir/surf/$trghemi.$ov)
-  echo $cmd  | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-end
+  if($nthhemi == 1) then
+    #--------------------------------------------------------------
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+    date | tee -a $LF
+    foreach vol (orig aseg aparc+aseg T1 brain brainmask nu norm )
+      set cmd = (mri_convert mri/$vol.mgz $outdir/mri/$vol.mgz \
+        --left-right-reverse)
+      echo $cmd  | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    end
 
-if($DoReg) then
-  #------------------------------------------------------------------
-  set cmd = (recon-all -sb $xsubject -hemi $trghemi \
-              -talairach -surfreg -cortparc -cortparc2)
-  echo "" | tee -a $LF
-  echo "" | tee -a $LF
-  date | tee -a $LF
-  echo $cmd  | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
+    #--------------------------------------------------------------
+    echo ""| tee -a $LF
+    echo ""| tee -a $LF
+    date| tee -a $LF
+    set reg = $outdir/lrrev.register.dat
+    set cmd = (tkregister2_cmdl --targ mri/orig.mgz \
+           --mov $outdir/mri/orig.mgz \
+           --reg $reg --regheader --noedit)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
 
   #--------------------------------------------------------------
-  cp $outdir/surf/$trghemi.sphere.reg \
-       surf/$srchemi.$trghemi.xhemi.reg |& tee -a $LF
-  if($status) exit 1;
-endif
+  foreach surf (orig white pial smoothwm inflated sphere)
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+    date | tee -a $LF
+    set cmd = (mri_surf2surf --s $subject --sval-xyz $surf \
+     --hemi $srchemi --tval-xyz --tval $outdir/surf/$trghemi.$surf \
+     --reg $reg)
+    echo $cmd  | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end
+
+  #--------------------------------------------------------------
+  foreach ov (curv sulc area area.pial curv.pial avg_curv \
+       inflated.H inflated.K thickness )
+    if(! -e surf/$srchemi.$ov) continue;
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+    date | tee -a $LF
+    set cmd = (cp surf/$srchemi.$ov $outdir/surf/$trghemi.$ov)
+    echo $cmd  | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end
+
+  if($DoReg) then
+    #------------------------------------------------------------------
+    set cmd = (recon-all -sb $xsubject -hemi $trghemi \
+                -surfreg -cortparc -cortparc2)
+    if($nthhemi == 1) set cmd = ($cmd -talairach)
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+    date | tee -a $LF
+    echo $cmd  | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+
+    #--------------------------------------------------------------
+    cp $outdir/surf/$trghemi.sphere.reg \
+         surf/$srchemi.$trghemi.xhemi.reg |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+end # Loop over srchemi
 
 #--------------------------------------------------------------
 echo "" | tee -a $LF
@@ -163,17 +171,15 @@ while( $#argv != 0 )
 
     case "--hemi":
       if ( $#argv < 1) goto arg1err;
-      set srchemi = $argv[1]; shift;
+      set srchemilist = $argv[1]; shift;
       breaksw
 
     case "--lh":
-      set srchemi = lh;
-      set trghemi = rh;
+      set srchemilist = lh;
       breaksw
 
     case "--rh":
-      set srchemi = rh;
-      set trghemi = lh;
+      set srchemilist = rh;
       breaksw
 
     case "--reg":
@@ -220,11 +226,7 @@ if(! -e $SUBJECTS_DIR/$subject) then
   exit 1;
 endif
 
-if($#srchemi == 0) then
-  echo "ERROR: must spec a hemi"
-  exit 1;
-endif
-
+if($#srchemilist == 0) set srchemilist = (lh rh)
 
 goto check_params_return;
 ############--------------##################
