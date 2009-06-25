@@ -33,8 +33,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/07/29 22:19:33 $
- *    $Revision: 1.12.2.2 $
+ *    $Date: 2009/06/25 17:36:40 $
+ *    $Revision: 1.12.2.3 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -106,7 +106,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.12.2.2 2008/07/29 22:19:33 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.12.2.3 2009/06/25 17:36:40 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
   {
     sprintf(filename,"%s/%s/label/%s.%s.annot",
             SUBJECTS_DIR,subject,hemi,annot2);
-    printf("\nLoading rh annotations from %s\n",filename);
+    printf("\nLoading %s annotations from %s\n",hemi,filename);
     fflush(stdout);
     int err = MRISreadAnnotation(surface2, filename);
     if (err)
