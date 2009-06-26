@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/07 21:05:38 $
- *    $Revision: 1.231.2.14 $
+ *    $Date: 2009/06/26 19:49:47 $
+ *    $Revision: 1.231.2.15 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -21140,7 +21140,7 @@ compute_posterior_scale_change(GCA *gca,
             continue ;
           num[ind]++ ;
           dk[ind] += plike * prior * dist / (fabs(dist)) ;
-          if (!finite(dk[l]))
+          if (!finite(dk[ind]))
             DiagBreak() ;
         }
       }
