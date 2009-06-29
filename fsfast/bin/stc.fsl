@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.6 $
+#    $Author: greve $
+#    $Date: 2009/06/29 18:39:01 $
+#    $Revision: 1.6.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc.fsl,v 1.6 2007/01/09 22:41:18 nicks Exp $'
+set VERSION = '$Id: stc.fsl,v 1.6.2.1 2009/06/29 18:39:01 greve Exp $'
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -146,8 +146,8 @@ cat $saof | tee -a $LF
 echo "-----------------------------------------" | tee -a $LF
 
 # Convert the input to analyze
-set intmp = $tmpdir/in.img
-set cmd = (mri_convert $infunc $intmp -ot analyze4d)
+set intmp = $tmpdir/in.nii
+set cmd = (mri_convert $infunc $intmp)
 pwd |& tee -a $LF
 echo $cmd  |& tee -a $LF
 $cmd  |& tee -a $LF
@@ -155,8 +155,8 @@ if($status) exit 1;
 set intmpmat = $tmpdir/in.mat
 
 # Apply slicetimer
-setenv FSLOUTPUTTYPE ANALYZE
-set outtmp = $tmpdir/out.img
+setenv FSLOUTPUTTYPE NIFTI
+set outtmp = $tmpdir/out.nii
 set cmd = (slicetimer -i $intmp -o $outtmp --ocustom=$saof)
 pwd |& tee -a $LF
 echo $cmd  |& tee -a $LF
@@ -170,10 +170,10 @@ endif
 set outtmpmat = $tmpdir/out.mat
 
 # Copy the matfile
-cp $intmpmat $outtmpmat 
+# cp $intmpmat $outtmpmat 
 
 # Convert back to the output
-set cmd = (mri_convert -it analyze4d $outtmp $outfunc)
+set cmd = (mri_convert $outtmp $outfunc)
 if($#OutDataType) set cmd = ($cmd -odt $OutDataType)
 if($#OutScale)    set cmd = ($cmd --scale $OutScale)
 
