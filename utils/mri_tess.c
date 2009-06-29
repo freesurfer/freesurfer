@@ -7,8 +7,8 @@
  * Original Author: F. Segonne 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/27 18:50:37 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/06/29 23:34:50 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2003-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -975,11 +975,11 @@ static int computeconnectedcomponents(CNBH *tab)
 {
   int i,j,k,a,b,c,ik,jk,kk,ct;
   int nvox,label,sum;
-  int comp_table[10];
+  int comp_table[12];
   int min_val;
   int x,y,z;
 
-  memset(comp_table,0,10*sizeof(int));
+  memset(comp_table,0,sizeof(comp_table));
 
   for (i=0;i<2;i++)
     for (j=0;j<2;j++)

@@ -1,4 +1,4 @@
-#!/bin/tcsh -ef
+#!/bin/tcsh -f
 
 # For a new dev/ environment, before running configure, 
 # and anytime after a Makefile.am file has changed, 
@@ -23,16 +23,22 @@ set cmd6=(autoconf)
 
 echo $cmd1
 $cmd1
+if ($status) exit $status
 echo $cmd2
 $cmd2
+if ($status) exit $status
 echo $cmd3
 $cmd3
+if ($status) exit $status
 echo $cmd4
 $cmd4
+#if ($status) exit $status
 echo $cmd5
 $cmd5
+if ($status) exit $status
 echo $cmd6
 $cmd6
+if ($status) exit $status
 
 # The first three commands create the platform specific 
 # tools needed by configure (use glibtoolize on the Mac 
@@ -42,3 +48,6 @@ $cmd6
 # files from the Makefile.am files in each directory. 
 # Following successful execution of these commands, the 
 # configure command can be executed. 
+
+echo 
+echo "setup_configure complete.  now run ./configure"
