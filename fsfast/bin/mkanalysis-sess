@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/10 17:09:21 $
-#    $Revision: 1.23 $
+#    $Date: 2009/06/29 18:40:50 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.23 2009/04/10 17:09:21 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.24 2009/06/29 18:40:50 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -253,49 +253,6 @@ set TRAnalysis = $TR;
 set n = 1;
 foreach sess ($SessList)
   set sessbase = `basename $sess`;
-
-  set sifile = $sess/$fsd/seq.info
-  if(! -e $sifile ) then
-    echo "ERROR: cannot find $sifile"
-    exit 1;
-  endif
-
-  # get and check the conistency of the TR #
-  set ln = `grep TR $sifile`;
-  if($#ln != 2) then
-    echo "ERROR: bad format for seq.info file, $sess"
-    exit 1;
-  endif
-  set tmp = $ln[2];
-  if($n == 1) then
-    set TR = $tmp;
-  else
-    if($TR != $tmp) then
-      echo "ERROR: $sess has inconsistent TR"
-      exit 1;
-    endif
-  endif
-
-  if($TR != $TRAnalysis) then
-    echo "ERROR: TR for $sessbase = $TR, Analysis TR = $TRAnalysis"
-    exit 1;
-  endif
-
-  # get and check the conistency of the nslices #
-  set ln = `grep nslcs $sifile`;
-  if($#ln != 2) then
-    echo "ERROR: bad format for seq.info file, $sess"
-    exit 1;
-  endif
-  set tmp = $ln[2];
-  if($n == 1) then
-    set nslices = $tmp;
-  else
-    if($nslices != $tmp) then
-      echo "ERROR: $sess has inconsistent nslices"
-      exit 1;
-    endif
-  endif
 
   ## check that the runlistfile exists ##
   if($#runlistfile != 0) then
