@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/02 21:54:55 $
-#    $Revision: 1.15.2.3 $
+#    $Date: 2009/06/29 18:42:03 $
+#    $Revision: 1.15.2.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,13 +23,15 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.15.2.3 2008/10/02 21:54:55 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.15.2.4 2009/06/29 18:42:03 greve Exp $';
 
 set cmdargs = ($argv);
 
 set fsd     = "bold";
 set instem  = (); 
 set outstem = (); 
+set fwhm = ();
+set fwhm2d = ();
 set RunList0 = ();
 set RunListFile = ();
 set PrintHelp = 0;
@@ -189,7 +191,9 @@ foreach sess ($SessList)
       endif
       if($#tmpdir == 0) rm -r tmp.ipfsl
     else
-      set cmd = (mri_fwhm --i $infunc --o $outfunc --fwhm $fwhm --smooth-only) 
+      set cmd = (mri_fwhm --i $infunc --o $outfunc --smooth-only) 
+      if($#fwhm)   set cmd = ($cmd --fwhm $fwhm); # 3D smoothing
+      if($#fwhm2d) set cmd = ($cmd --fwhmc $fwhm2d --fwhmr $fwhm2d); # 2D smoothing
       echo ---------------------------------------------- |& tee -a $LF
       $PWDCMD   |& tee -a $LF
       echo $cmd |& tee -a $LF
@@ -256,6 +260,11 @@ while( $#argv != 0 )
     case "-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm2d":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm2d = $argv[1]; shift;
       breaksw
 
     case "-hpf":
@@ -385,19 +394,21 @@ check_params:
     echo "ERROR: no sessions specified"
     exit 1
   endif
-
   if($#instem == 0) then
     echo "ERROR: no input specified"
     exit 1
   endif
-
   if($#outstem == 0) then
     echo "ERROR: no output specified"
     exit 1
   endif
 
-  if($#fwhm == 0) then
+  if($#fwhm == 0 && $#fwhm2d == 0) then
     echo "ERROR: no FWHM specified"
+    exit 1
+  endif
+  if($#fwhm != 0 && $#fwhm2d != 0) then
+    echo "ERROR: cannot specify both -fwhm and -fwhm2d"
     exit 1
   endif
 
@@ -427,6 +438,7 @@ usage_exit:
   echo "   -i instem      : input  functional volume stem "
   echo "   -o outstem     : output functional volume stem "
   echo "   -fwhm          : gaussian fwhm (sigma = fwhm/2.36)"
+  echo "   -fwhm2d        : in-plane smoothing"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
