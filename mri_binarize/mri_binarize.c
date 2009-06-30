@@ -2,14 +2,16 @@
  * @file  mri_binarize.c
  * @brief binarizes an image
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Program to binarize a volume (or volume-encoded surface file). Can also
+ * be used to merge with other binarizations. Binarization can be done
+ * based on threshold or on matched values.
  */
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/12/19 21:25:23 $
- *    $Revision: 1.12.2.2 $
+ *    $Date: 2009/06/30 15:28:40 $
+ *    $Revision: 1.12.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +28,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.12.2.2 2007/12/19 21:25:23 greve Exp $
+// $Id: mri_binarize.c,v 1.12.2.3 2009/06/30 15:28:40 greve Exp $
 
 /*
   BEGINHELP
@@ -41,12 +43,16 @@ Input volume to be binarized.
 
 --min min
 --max max
+--rmin rmin
+--rmax rmax
 
 Minimum and maximum thresholds. If the value at a voxel is >= min and
-<= max, then its value in the output will be 1 (or --binval), otherwise
-it is 0 (or --binvalnot) or the value of the merge volume at that voxel.
-By default, min = -infinity and max = +infinity, but you must set one
-of the thresholds. Cannot be used with --match.
+<= max, then its value in the output will be 1 (or --binval),
+otherwise it is 0 (or --binvalnot) or the value of the merge volume at
+that voxel.  By default, min = -infinity and max = +infinity, but you
+must set one of the thresholds. Cannot be used with --match. If --rmin
+or --rmax are specified, then min (or max) is computed as rmin (or
+rmax) times the global mean of the input.
 
 --match matchvalue <--match matchvalue>
 
@@ -56,6 +62,14 @@ specified. Cannot be used with --min/--max.
 --o outvol
 
 Path to output volume.
+
+--count countfile
+
+Save number of voxels that meet match criteria in ascii
+countefile. Four numbers are saved: the number of voxels that match
+(nhits), the volume of the voxels that match, the total number of
+voxels in the volume (nvoxtot), and the percent matching
+(100*nhits/nvoxtot).
 
 --binval    binval
 --binvalnot binvalnot
@@ -91,6 +105,10 @@ makes sure that all the voxels on the edge of the imaging volume are 0.
 --zero-slice-edges
 
 Same as --zero-edges, but only for slices.
+
+--uchar
+
+Save output file in 'uchar' format.
 
   ENDHELP
 */
@@ -134,6 +152,7 @@ double round(double x);
 #include "matfile.h"
 #include "volcluster.h"
 #include "surfcluster.h"
+#include "randomfields.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -145,7 +164,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.12.2.2 2007/12/19 21:25:23 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.12.2.3 2009/06/30 15:28:40 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -158,6 +177,10 @@ char *MergeVolFile=NULL;
 char *MaskVolFile=NULL;
 double MinThresh, MaxThresh;
 int MinThreshSet=0, MaxThreshSet=0;
+double RMinThresh, RMaxThresh;
+int RMinThreshSet=0, RMaxThreshSet=0;
+char *CountFile = NULL;
+
 int BinVal=1;
 int BinValNot=0;
 int frame=0;
@@ -179,10 +202,13 @@ int nErode3d = 0;
 int nDilate3d = 0;
 int DoBinCol = 0;
 
+int mriTypeUchar = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, c, r, s, nhits, InMask, n;
-  double val,maskval,mergeval;
+  int nargs, c, r, s, nhits, InMask, n, mriType,nvox;
+  double val,maskval,mergeval,gmean,gstd,gmax,voxvol;
+  FILE *fp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -211,10 +237,27 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  if (DoAbs) {
+  if(DoAbs) {
     printf("Removing sign from input\n");
     MRIabs(InVol,InVol);
   }
+
+  if(RMinThreshSet || RMaxThreshSet){
+    printf("Computing global statistics \n");
+    RFglobalStats(InVol, NULL, &gmean, &gstd, &gmax);
+    printf("mean = %g, std = %g, max = %g\n",gmean, gstd, gmax);
+    if(RMinThreshSet)  {
+      MinThresh = gmean * RMinThresh;
+      MinThreshSet = 1;
+      printf("Setting min thresh to %g\n",MinThresh);
+    }
+    if(RMaxThreshSet) {
+      MaxThresh = gmean * RMaxThresh;
+      MaxThreshSet = 1;
+      printf("Setting max thresh to %g\n",MinThresh);
+    }
+  }
+
 
   // Load the merge volume (if needed)
   if (MergeVolFile) {
@@ -236,6 +279,7 @@ int main(int argc, char *argv[]) {
 
   // Load the mask volume (if needed)
   if (MaskVolFile) {
+    printf("Loading mask %s\n",MaskVolFile);
     MaskVol = MRIread(MaskVolFile);
     if (MaskVol==NULL) exit(1);
     if (MaskVol->width != InVol->width) {
@@ -253,7 +297,9 @@ int main(int argc, char *argv[]) {
   }
 
   // Prepare the output volume
-  OutVol = MRIalloc(InVol->width,InVol->height,InVol->depth,MRI_INT);
+  mriType = MRI_INT;
+  if (mriTypeUchar) mriType = MRI_UCHAR;
+  OutVol = MRIalloc(InVol->width,InVol->height,InVol->depth,mriType);
   if (OutVol == NULL) exit(1);
   MRIcopyHeader(InVol, OutVol);
 
@@ -279,7 +325,7 @@ int main(int argc, char *argv[]) {
           maskval = MRIgetVoxVal(MaskVol,c,r,s,0);
           if(maskval < MaskThresh){
 	    MRIsetVoxVal(OutVol,c,r,s,0,mergeval);
-	    continue;
+            continue;
 	  }
         }
 
@@ -332,6 +378,20 @@ int main(int argc, char *argv[]) {
     for(n=0; n<nErode2d; n++) MRIerode2D(OutVol,OutVol);
   }
 
+  
+  printf("Counting number of voxels\n");
+  nhits = 0;
+  for (c=0; c < OutVol->width; c++) {
+    for (r=0; r < OutVol->height; r++) {
+      for (s=0; s < OutVol->depth; s++) {
+	// Get the value at this voxel
+        val = MRIgetVoxVal(OutVol,c,r,s,frame);
+	if(fabs(val-BinVal) < .00001) nhits ++;
+      } // slice
+    } // row
+  } // col
+  printf("Found %d voxels in final mask\n",nhits);
+
   if(DoBinCol){
     printf("Filling mask with column number\n");
     MRIbinMaskToCol(OutVol, OutVol);
@@ -339,6 +399,18 @@ int main(int argc, char *argv[]) {
 
   // Save output
   MRIwrite(OutVol,OutVolFile);
+
+  if(CountFile){
+    fp = fopen(CountFile,"w");
+    if(fp == NULL){
+      printf("ERROR: could not open %s\n",CountFile);
+      exit(1);
+    }
+    nvox = OutVol->width * OutVol->height * OutVol->depth;
+    voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
+    fprintf(fp,"%d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
+    fclose(fp);
+  }
 
   printf("mri_binarize done\n");
   exit(0);
@@ -368,6 +440,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
+    else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
     else if (!strcasecmp(option, "--zero-edges")){
       ZeroColEdges = 1;
       ZeroRowEdges = 1;
@@ -375,9 +448,15 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--zero-slice-edges")) ZeroSliceEdges = 1;
     else if (!strcasecmp(option, "--wm")){
-      nMatch = 2;
       MatchValues[0] =  2;
       MatchValues[1] = 41;
+      MatchValues[2] = 82;
+      MatchValues[3] = 251;
+      MatchValues[4] = 252;
+      MatchValues[5] = 253;
+      MatchValues[6] = 254;
+      MatchValues[7] = 255;
+      nMatch = 8;
       DoMatch = 1;
     }
     else if (!strcasecmp(option, "--ventricles")){
@@ -422,6 +501,16 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&MaxThresh);
       MaxThreshSet = 1;
       nargsused = 1;
+    } else if (!strcasecmp(option, "--rmin")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&RMinThresh);
+      RMinThreshSet = 1;
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--max")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&RMaxThresh);
+      RMaxThreshSet = 1;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--binval")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinVal);
@@ -430,6 +519,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinValNot);
       nargsused = 1;
+    } else if (!strcasecmp(option, "--inv")) {
+      BinVal = 0;
+      BinValNot = 1;
     } else if (!strcasecmp(option, "--match")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&MatchValues[nMatch]);
@@ -451,6 +543,10 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--erode2d")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nErode2d);
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--count")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      CountFile = pargv[0];
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -476,14 +572,18 @@ static void print_usage(void) {
   printf("   \n");
   printf("   --min min  : min thresh (def is -inf)\n");
   printf("   --max max  : max thresh (def is +inf)\n");
+  printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
+  printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
   printf("   --match matchval <--match matchval>  : match instead of threshold\n");
   printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles (not 4th)\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
+  printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
   printf("   \n");
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
+  printf("   --inv              : set binval=0, binvalnot=1\n");
   printf("   --frame frameno    : use 0-based frame of input (default is 0) \n");
   printf("   --merge mergevol   : merge with mergevolume \n");
   printf("   --mask maskvol       : must be within mask \n");
@@ -518,12 +618,16 @@ printf("Input volume to be binarized.\n");
 printf("\n");
 printf("--min min\n");
 printf("--max max\n");
+printf("--rmin rmin\n");
+printf("--rmax rmax\n");
 printf("\n");
 printf("Minimum and maximum thresholds. If the value at a voxel is >= min and\n");
-printf("<= max, then its value in the output will be 1 (or --binval), otherwise\n");
-printf("it is 0 (or --binvalnot) or the value of the merge volume at that voxel.\n");
-printf("By default, min = -infinity and max = +infinity, but you must set one\n");
-printf("of the thresholds. Cannot be used with --match.\n");
+printf("<= max, then its value in the output will be 1 (or --binval),\n");
+printf("otherwise it is 0 (or --binvalnot) or the value of the merge volume at\n");
+printf("that voxel.  By default, min = -infinity and max = +infinity, but you\n");
+printf("must set one of the thresholds. Cannot be used with --match. If --rmin\n");
+printf("or --rmax are specified, then min (or max) is computed as rmin (or\n");
+printf("rmax) times the global mean of the input.\n");
 printf("\n");
 printf("--match matchvalue <--match matchvalue>\n");
 printf("\n");
@@ -533,6 +637,14 @@ printf("\n");
 printf("--o outvol\n");
 printf("\n");
 printf("Path to output volume.\n");
+printf("\n");
+printf("--count countfile\n");
+printf("\n");
+printf("Save number of voxels that meet match criteria in ascii\n");
+printf("countefile. Four numbers are saved: the number of voxels that match\n");
+printf("(nhits), the volume of the voxels that match, the total number of\n");
+printf("voxels in the volume (nvoxtot), and the percent matching\n");
+printf("(100*nhits/nvoxtot).\n");
 printf("\n");
 printf("--binval    binval\n");
 printf("--binvalnot binvalnot\n");
@@ -569,6 +681,10 @@ printf("--zero-slice-edges\n");
 printf("\n");
 printf("Same as --zero-edges, but only for slices.\n");
 printf("\n");
+printf("--uchar\n");
+printf("\n");
+printf("Save output file in 'uchar' format.\n");
+printf("\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -586,12 +702,22 @@ static void check_options(void) {
     printf("ERROR: must specify output volume\n");
     exit(1);
   }
-  if(MinThreshSet == 0 && MaxThreshSet == 0 && !DoMatch ) {
+  if(MinThreshSet == 0  && MaxThreshSet == 0 &&
+     RMinThreshSet == 0 && RMaxThreshSet == 0 &&
+     !DoMatch ) {
     printf("ERROR: must specify minimum and/or maximum threshold or match values\n");
     exit(1);
   }
-  if((MinThreshSet != 0 || MaxThreshSet != 0) && DoMatch ) {
+  if((MinThreshSet || MaxThreshSet || RMinThreshSet || RMaxThreshSet) && DoMatch ) {
     printf("ERROR: cannot specify threshold and match values\n");
+    exit(1);
+  }
+  if(MinThreshSet && RMinThreshSet){
+    printf("ERROR: cannot --rmin and --min \n");
+    exit(1);
+  }
+  if(MaxThreshSet && RMaxThreshSet){
+    printf("ERROR: cannot --rmax and --max \n");
     exit(1);
   }
   if(!DoMatch){
@@ -625,14 +751,12 @@ static void dump_options(FILE *fp) {
 
   if(!DoMatch){
     fprintf(fp,"Binarizing based on threshold\n");
-    if (MinThreshSet)
-      fprintf(fp,"min        %g\n",MinThresh);
-    else
-      fprintf(fp,"min        -infinity\n");
-    if (MaxThreshSet)
-      fprintf(fp,"max        %g\n",MaxThresh);
-    else
-      fprintf(fp,"max        +infinity\n");
+    if(MinThreshSet)        fprintf(fp,"min        %g\n",MinThresh);
+    else if(RMinThreshSet)  fprintf(fp,"rmin       %g\n",RMinThresh);
+    else                    fprintf(fp,"min        -infinity\n");
+    if(MaxThreshSet)        fprintf(fp,"max        %g\n",MaxThresh);
+    else if(RMaxThreshSet)  fprintf(fp,"rmax       %g\n",RMaxThresh);
+    else                    fprintf(fp,"max        +infinity\n");
   }
   else {
     fprintf(fp,"Binarizing based on matching values\n");
