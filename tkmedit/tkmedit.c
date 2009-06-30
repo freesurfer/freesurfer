@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/27 20:41:02 $
- *    $Revision: 1.320.2.9 $
+ *    $Date: 2009/06/30 15:43:13 $
+ *    $Revision: 1.320.2.10 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.320.2.9 $";
+char *VERSION = "$Revision: 1.320.2.10 $";
 
 #define TCL
 #define TKMEDIT
@@ -195,6 +195,8 @@ int __new_tcsetattr () {
 }
 #endif
 
+static char *sPialName = "pial" ;
+static char *sOrigName = "orig" ;
 
 static int zf, ozf;
 static float fsf;
@@ -1189,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.320.2.9 2009/01/27 20:41:02 greve Exp $",
+     "$Id: tkmedit.c,v 1.320.2.10 2009/06/30 15:43:13 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1220,6 +1222,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("               : in $SUBJECTS_DIR/subject/mri or "
            "specify absolute path\n");
     printf("\n");
+    printf("-pial <surface>        : load pial surface locations from  <surface>\n") ;
+    printf("-orig <surface>        : load orig surface locations from  <surface>\n") ;
     printf("-surface <surface>     : load surface as main surface. Relative to\n");
     printf("                       : in $SUBJECTS_DIR/subject/surf "
            "or specify absolute path\n");
@@ -1699,7 +1703,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
             fp = fopen(sOverlayRegistration,"r");
             fscanf(fp,"%s",sSubject);
             fclose(fp);
-            printf("Setting subject name to %s\n",sSubject);
+            //            printf("Setting subject name to %s\n",sSubject);
             DebugNote( ("Setting subject home from env") );
             eResult = SetSubjectHomeDirFromEnv( sSubject );
             DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
@@ -2257,6 +2261,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg += 1;
         }
 
+      } else if ( MATCH( sArg, "-pial" )) {
+        sPialName =  argv[nCurrentArg+1] ;
+        nCurrentArg +=2 ;
+      } else if ( MATCH( sArg, "-orig" )) {
+        sOrigName =  argv[nCurrentArg+1] ;
+        nCurrentArg +=2 ;
       } else if ( MATCH( sArg, "-segmentation-opacity" ) ||
 		  MATCH( sArg, "-opacity" ) ||
                   MATCH( sArg, "-roialpha" ) ) {
@@ -2554,13 +2564,6 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
             DebugNote( ("Parsing subject name") );
             xUtil_strncpy( sSubject, argv[nCurrentArg], sizeof(sSubject) );
 
-	    printf("Setting subject to %s\n",sSubject);
-	    sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
-	    if(!fio_FileExistsReadable(tmpstr)){
-	      printf("ERROR: cannot find subject %s in %s\n",sSubject,getenv("SUBJECTS_DIR"));
-	      exit(1);
-	    }
-
             DebugNote( ("Parsing image type") );
             xUtil_strncpy( sImageDir, argv[nCurrentArg+1],
                            sizeof(sImageDir) );
@@ -2572,6 +2575,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
               DebugNote( ("Setting subject home from env") );
               eResult = SetSubjectHomeDirFromEnv( sSubject );
               DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	      //	    printf("Setting subject to %s\n",sSubject);
+	      sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
+	      if(!fio_FileExistsReadable(tmpstr)){
+		printf("ERROR: cannot find subject %s in %s\n",sSubject,getenv("SUBJECTS_DIR"));
+		exit(1);
+	      }
             } else {
               printf("Getting subject from registration file.\n");
               bGetSubjectFromReg = TRUE;
@@ -3742,11 +3751,11 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   /* load other vertex sets. See if they exist first. */
   if(LoadOrigSurf){
     DebugNote( ("Loading orig set") );
-    LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
+    LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, sOrigName );
   }
   if(LoadPialSurf){
     DebugNote( ("Loading pial set") );
-    LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, "pial" );
+    LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, sPialName );
   }
 
   DebugCatch;
@@ -5904,7 +5913,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.320.2.9 2009/01/27 20:41:02 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.320.2.10 2009/06/30 15:43:13 greve Exp $ $Name:  $\n"
         )
       );
 
