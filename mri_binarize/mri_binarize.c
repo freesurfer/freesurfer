@@ -9,9 +9,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/11/05 23:20:36 $
- *    $Revision: 1.19 $
+ *    $Author: greve $
+ *    $Date: 2009/06/30 15:27:53 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.19 2008/11/05 23:20:36 nicks Exp $
+// $Id: mri_binarize.c,v 1.20 2009/06/30 15:27:53 greve Exp $
 
 /*
   BEGINHELP
@@ -65,7 +65,11 @@ Path to output volume.
 
 --count countfile
 
-Save number of voxels that meet match criteria in ascii countefile.
+Save number of voxels that meet match criteria in ascii
+countefile. Four numbers are saved: the number of voxels that match
+(nhits), the volume of the voxels that match, the total number of
+voxels in the volume (nvoxtot), and the percent matching
+(100*nhits/nvoxtot).
 
 --binval    binval
 --binvalnot binvalnot
@@ -160,7 +164,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.19 2008/11/05 23:20:36 nicks Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.20 2009/06/30 15:27:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -202,8 +206,8 @@ int mriTypeUchar = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, c, r, s, nhits, InMask, n, mriType;
-  double val,maskval,mergeval,gmean,gstd,gmax;
+  int nargs, c, r, s, nhits, InMask, n, mriType,nvox;
+  double val,maskval,mergeval,gmean,gstd,gmax,voxvol;
   FILE *fp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -374,6 +378,20 @@ int main(int argc, char *argv[]) {
     for(n=0; n<nErode2d; n++) MRIerode2D(OutVol,OutVol);
   }
 
+  
+  printf("Counting number of voxels\n");
+  nhits = 0;
+  for (c=0; c < OutVol->width; c++) {
+    for (r=0; r < OutVol->height; r++) {
+      for (s=0; s < OutVol->depth; s++) {
+	// Get the value at this voxel
+        val = MRIgetVoxVal(OutVol,c,r,s,frame);
+	if(fabs(val-BinVal) < .00001) nhits ++;
+      } // slice
+    } // row
+  } // col
+  printf("Found %d voxels in final mask\n",nhits);
+
   if(DoBinCol){
     printf("Filling mask with column number\n");
     MRIbinMaskToCol(OutVol, OutVol);
@@ -388,7 +406,9 @@ int main(int argc, char *argv[]) {
       printf("ERROR: could not open %s\n",CountFile);
       exit(1);
     }
-    fprintf(fp,"%d\n",nhits);
+    nvox = OutVol->width * OutVol->height * OutVol->depth;
+    voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
+    fprintf(fp,"%d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
     fclose(fp);
   }
 
@@ -559,7 +579,7 @@ static void print_usage(void) {
   printf("   --ventricles : set match vals those for aseg ventricles (not 4th)\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
-  printf("   --count countfile : save number of hits in ascii file\n");
+  printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
   printf("   \n");
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
@@ -620,7 +640,11 @@ printf("Path to output volume.\n");
 printf("\n");
 printf("--count countfile\n");
 printf("\n");
-printf("Save number of voxels that meet match criteria in ascii countefile.\n");
+printf("Save number of voxels that meet match criteria in ascii\n");
+printf("countefile. Four numbers are saved: the number of voxels that match\n");
+printf("(nhits), the volume of the voxels that match, the total number of\n");
+printf("voxels in the volume (nvoxtot), and the percent matching\n");
+printf("(100*nhits/nvoxtot).\n");
 printf("\n");
 printf("--binval    binval\n");
 printf("--binvalnot binvalnot\n");
@@ -659,7 +683,7 @@ printf("Same as --zero-edges, but only for slices.\n");
 printf("\n");
 printf("--uchar\n");
 printf("\n");
-printf("Save output in uchar format.\n");
+printf("Save output file in 'uchar' format.\n");
 printf("\n");
   exit(1) ;
 }
