@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/03 16:21:35 $
- *    $Revision: 1.336 $
+ *    $Author: greve $
+ *    $Date: 2009/06/30 15:42:38 $
+ *    $Revision: 1.337 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.336 $";
+char *VERSION = "$Revision: 1.337 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.336 2009/02/03 16:21:35 fischl Exp $",
+     "$Id: tkmedit.c,v 1.337 2009/06/30 15:42:38 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2564,13 +2564,6 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
             DebugNote( ("Parsing subject name") );
             xUtil_strncpy( sSubject, argv[nCurrentArg], sizeof(sSubject) );
 
-            //	    printf("Setting subject to %s\n",sSubject);
-	    sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
-	    if(!fio_FileExistsReadable(tmpstr)){
-	      printf("ERROR: cannot find subject %s in %s\n",sSubject,getenv("SUBJECTS_DIR"));
-	      exit(1);
-	    }
-
             DebugNote( ("Parsing image type") );
             xUtil_strncpy( sImageDir, argv[nCurrentArg+1],
                            sizeof(sImageDir) );
@@ -2582,6 +2575,12 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
               DebugNote( ("Setting subject home from env") );
               eResult = SetSubjectHomeDirFromEnv( sSubject );
               DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	      //	    printf("Setting subject to %s\n",sSubject);
+	      sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
+	      if(!fio_FileExistsReadable(tmpstr)){
+		printf("ERROR: cannot find subject %s in %s\n",sSubject,getenv("SUBJECTS_DIR"));
+		exit(1);
+	      }
             } else {
               printf("Getting subject from registration file.\n");
               bGetSubjectFromReg = TRUE;
@@ -5914,7 +5913,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.336 2009/02/03 16:21:35 fischl Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.337 2009/06/30 15:42:38 greve Exp $ $Name:  $\n"
         )
       );
 
