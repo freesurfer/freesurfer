@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: greve $
-##    $Date: 2009/06/02 19:32:54 $
-##    $Revision: 1.40.2.1 $
+##    $Date: 2009/06/30 15:47:47 $
+##    $Revision: 1.40.2.2 $
 ##
 ## Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
 ## The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ foreach dataSet $glAllColors {
     } 
     if { $UseLabelDefault } {
 	set gGraphSetting($dataSet,label) "Condition $nCondition"
-        puts "Condition $nCondition"
+        #puts "Condition $nCondition"
     }
     incr nCondition
 }
