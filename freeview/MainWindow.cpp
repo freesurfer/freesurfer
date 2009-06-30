@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:18 $
- *    $Revision: 1.53 $
+ *    $Date: 2009/06/30 22:13:28 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -654,7 +654,8 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
   }
 
 // if ( !bResample )
-  /* {
+  /* 
+  {
     LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
     if ( mri )
     {

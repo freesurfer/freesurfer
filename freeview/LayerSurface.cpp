@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/15 17:05:06 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/06/30 22:13:28 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -208,6 +208,7 @@ void LayerSurface::InitializeActors()
   mapper->SetInput(  m_surfaceSource->GetVectorPolyData() );
   m_vectorActor->SetMapper( mapper );
   mapper->Update();
+  // try LOD actors
   /* mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
    mLowResFilter->SetInput( m_surfaceSource->GetPolyData() );
    mapper->SetInput( mLowResFilter->GetOutput() );
