@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/22 00:48:55 $
-#    $Revision: 1.24 $
+#    $Date: 2009/06/30 19:04:19 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.24 2009/06/22 00:48:55 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.25 2009/06/30 19:04:19 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -507,6 +507,14 @@ while( $#argv != 0 )
       set WMProjAbs = $argv[1]; shift;
       breaksw
 
+    case "--proj-abs":
+      if($#argv < 1) goto arg1err;
+      set ProjAbs = $argv[1]; shift;
+      set WMProjAbs = $ProjAbs;
+      set GMProjAbs = $ProjAbs;
+      set GMProjFrac = ();
+      breaksw
+
     case "--nsub":
     case "--subsamp":
       if($#argv < 1) goto arg1err;
@@ -690,6 +698,7 @@ usage_exit:
   echo "   --gm-proj-frac frac : default is 0.5"
   echo "   --gm-proj-abs abs   : use absolute instead of relative"
   echo "   --wm-proj-abs  dist : 2nd stage, default is 2mm"
+  echo "   --proj-abs  dist : use wm and gm proj abs in 2nd stage"
   echo "   --subsamp nsub : 2nd stage vertex subsampling, default is 1"
   echo "   --nearest  : 2nd stage, use nearest neighbor interp (defalt is trilinear)"
   echo "   --epi-mask : mask out brain edge and B0 regions (1st and 2nd stages)"
