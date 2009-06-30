@@ -7,8 +7,8 @@
  * Original Author: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:34 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/06/30 21:37:54 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.8 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.9 $";
 
 using namespace std;
 
@@ -3708,7 +3708,7 @@ void calcForce2(
 
 static void MRISfit(MRI_variables *MRI_var,
                     void (*calcforce)
-                    (double &force,double &force1, double &force,
+                    (double &force0,double &force1, double &force2,
                      double sd,
                      const TVector &Pos,
                      const TVector &S,

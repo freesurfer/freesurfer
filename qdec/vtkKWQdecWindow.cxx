@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/15 00:22:24 $
- *    $Revision: 1.37 $
+ *    $Date: 2009/06/30 21:37:56 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
  *
  */
 
+#include <limits>
 #include <fstream>
 #include <vector>
 #include <stdexcept>
@@ -104,7 +105,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.37 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.38 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -5382,7 +5383,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
 
   if( mPanel.GetPointer() ) {
     vtkKWWidget* panelSubjects = mPanel->GetPageWidget( "Subjects" );
-    if( panelSubjects )
+    if( panelSubjects ) {
       if( this->mQdecProject->HaveDataTable() ) {
         panelSubjects->EnabledOn();
         panelSubjects->UpdateEnableState();
@@ -5390,9 +5391,10 @@ vtkKWQdecWindow::UpdateCommandStatus () {
         panelSubjects->EnabledOff();
         panelSubjects->UpdateEnableState();
       }
+    }
 
     vtkKWWidget* panelDesign = mPanel->GetPageWidget( "Design" );
-    if( panelDesign )
+    if( panelDesign ) {
       if( this->mQdecProject->HaveDataTable() ) {
         panelDesign->EnabledOn();
         panelDesign->UpdateEnableState();
@@ -5400,9 +5402,10 @@ vtkKWQdecWindow::UpdateCommandStatus () {
         panelDesign->EnabledOff();
         panelDesign->UpdateEnableState();
       }
+    }
 
     vtkKWWidget* panelDisplay = mPanel->GetPageWidget( "Display" );
-    if( panelDisplay )
+    if( panelDisplay ) {
       if( maSurfaceSource.size() > 0 ) {
         panelDisplay->EnabledOn();
         panelDisplay->UpdateEnableState();
@@ -5410,6 +5413,7 @@ vtkKWQdecWindow::UpdateCommandStatus () {
         panelDisplay->EnabledOff();
         panelDisplay->UpdateEnableState();
       }
+    }
   }
 
   assert( mMenuSaveDataTable );

@@ -1,3 +1,4 @@
+#include <limits>
 #include <stdexcept>
 #include <sstream>
 #include <assert.h>
@@ -10,7 +11,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWBltGraph );
-vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.14 $" );
+vtkCxxRevisionMacro( vtkKWBltGraph, "$Revision: 1.15 $" );
 
 unsigned long const vtkKWBltGraph::MouseoverEnterElementEvent =
 vtkCommand::UserEvent + 1;
@@ -396,7 +397,7 @@ vtkKWBltGraph::MotionCallback ( const char* isWidget, int iX, int iY ) {
 
       GraphElement& element = *tElement;
 
-      double minDist2 = numeric_limits<double>::max();
+      double minDist2 = std::numeric_limits<double>::max();
       string sMinElement = "";
       int nMinPoint = 0;
       double minX = 0, minY = 0;
@@ -428,7 +429,7 @@ vtkKWBltGraph::MotionCallback ( const char* isWidget, int iX, int iY ) {
         }
       }
 
-      if( minDist2 < numeric_limits<double>::max() ){
+      if( minDist2 < std::numeric_limits<double>::max() ){
         // Convert our min x and y back to window coords and compare
         // the distance to our mouse over distance. We convert to
         // window coords so we can do the comparison in pixels.

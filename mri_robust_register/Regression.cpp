@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <fstream>
 #include "RobustGaussian.h"
@@ -11,7 +12,9 @@
 extern "C"
 {
 #endif
-   #include "error.h"
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include "error.h"
 #ifdef __cplusplus
 }
 #endif

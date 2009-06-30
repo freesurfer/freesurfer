@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/03/03 18:49:25 $
- *    $Revision: 1.74 $
+ *    $Author: nicks $
+ *    $Date: 2009/06/30 21:37:53 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.74 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.75 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.74 2009/03/03 18:49:25 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.75 2009/06/30 21:37:53 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.74 2009/03/03 18:49:25 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.75 2009/06/30 21:37:53 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -4362,6 +4362,7 @@ void MRIScomputeCloserLabel(STRIP_PARMS *parms,MRI_variables *MRI_var)
             if (!(k<0||k>=MRI_var->depth||
                   i<0||i>=MRI_var->width||
                   j<0||j>=MRI_var->height))
+	    {
               if (!mris->vertices[kv].annotation)
               {
                 label = AtlasToRegion(i, j, k, parms, MRI_var);
@@ -4372,6 +4373,7 @@ void MRIScomputeCloserLabel(STRIP_PARMS *parms,MRI_variables *MRI_var)
               }
               else
                 continue;
+	    }
           }
     }
     if (!mris->vertices[kv].annotation)
@@ -4658,6 +4660,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
         if (!(k<0||k>=MRI_var->depth||
               i<0||i>=MRI_var->width||
               j<0||j>=MRI_var->height))
+	{
           if (parms->Tregion == 1)
           {
             if (MRIvox(MRI_var->mri_src,i,j,k) < 
@@ -4669,7 +4672,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
             if (MRIvox(MRI_var->mri_src,i,j,k) < MRI_var->CSF_HALF_MAX[0])
               break;
           }
-
+	}
       }
       // use c now
       // now we found the GM region so create a histogram

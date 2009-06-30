@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/05/20 00:07:20 $
- *    $Revision: 1.82 $
+ *    $Author: nicks $
+ *    $Date: 2009/06/30 21:37:53 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -210,7 +210,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.82 2009/05/20 00:07:20 greve Exp $";
+"$Id: mri_segreg.c,v 1.83 2009/06/30 21:37:53 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -348,13 +348,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.82 2009/05/20 00:07:20 greve Exp $",
+     "$Id: mri_segreg.c,v 1.83 2009/06/30 21:37:53 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.82 2009/05/20 00:07:20 greve Exp $",
+     "$Id: mri_segreg.c,v 1.83 2009/06/30 21:37:53 nicks Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -2134,7 +2134,7 @@ int MinPowell(MRI *mov, MRI *notused, MATRIX *R, double *params,
 /*-------------------------------------------------------*/
 double RelativeSurfCost(MRI *mov, MATRIX *R0)
 {
-  double params[6], costs[7], cost0, costsum, costavg, rX, rY, rZ, rcost;
+  double params[6], costs[8], cost0, costsum, costavg, rX, rY, rZ, rcost;
   MATRIX *R;
   int n;
 

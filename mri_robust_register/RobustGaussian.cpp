@@ -1,5 +1,7 @@
 #include "RobustGaussian.h"
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <cmath>
 #include <iostream>
 #ifdef __cplusplus

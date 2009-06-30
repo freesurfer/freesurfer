@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2009/05/21 20:13:10 $
-#    $Revision: 1.431 $
+#    $Author: nicks $
+#    $Date: 2009/06/30 21:37:49 $
+#    $Revision: 1.432 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -757,6 +757,9 @@ if test "x$x_libraries" = "x"; then
     x_libraries=/usr/X11R6/lib
   fi
   # replace with lib64 if that exists
+  if test -d "/usr/lib64" ; then
+    x_libraries=/usr/lib64
+  fi
   if test -d "/usr/X11R6/lib64" ; then
     x_libraries=/usr/X11R6/lib64
   fi
@@ -2417,10 +2420,10 @@ AC_SUBST(VTK_METAIO_LIB)
 if test ! "x$tcltk_apps" = "xNO"; then
   ################## Tcl
   # check tcl8.5
-  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
-    [LIB_TCL=-ltcl8.5],
+#  AC_CHECK_LIB([tcl8.5],[Tcl_Init],
+#    [LIB_TCL=-ltcl8.5],
   # check tcl8.4
-    [
+#    [
     AC_CHECK_LIB([tcl8.4],[Tcl_Init],
       [LIB_TCL=-ltcl8.4],
   # check tcl8.3
@@ -2444,7 +2447,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
           ])
         ])
       ])
-    ])
+#    ])
   AC_SUBST(LIB_TCL)
 
   #################### Tk needs X11 (or Aqua)
@@ -2452,10 +2455,10 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   CPPFLAGS="$GL_CFLAGS $CPPFLAGS"
   LDFLAGS="$X_LIBS $LDFLAGS"
   # check tk8.5
-  AC_CHECK_LIB([tk8.5],[Tk_Init],
-    [LIB_TK=-ltk8.5],
+#  AC_CHECK_LIB([tk8.5],[Tk_Init],
+#    [LIB_TK=-ltk8.5],
   # check tk8.4
-    [
+#    [
     AC_CHECK_LIB([tk8.4],[Tk_Init],
       [LIB_TK=-ltk8.4],
   # check tk8.3
@@ -2476,7 +2479,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
           ])
         ])
       ])
-    ])
+#    ])
   AC_SUBST(LIB_TK)
 
   ##################### Tix

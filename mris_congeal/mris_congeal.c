@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/15 02:05:13 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2009/06/30 21:37:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_congeal.c,v 1.2 2008/08/15 02:05:13 fischl Exp $";
+"$Id: mris_congeal.c,v 1.3 2009/06/30 21:37:55 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -150,14 +150,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_congeal.c,v 1.2 2008/08/15 02:05:13 fischl Exp $", 
+     "$Id: mris_congeal.c,v 1.3 2009/06/30 21:37:55 nicks Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_congeal.c,v 1.2 2008/08/15 02:05:13 fischl Exp $", 
+     "$Id: mris_congeal.c,v 1.3 2009/06/30 21:37:55 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -258,9 +258,12 @@ main(int argc, char *argv[])
   }
 
   sprintf(fname, "%s/lib/bem/ic%d.tri", fs_home, ico_order) ;
+  mris_ico = NULL;
   mris_ico = MRISread(fname) ;
-  if (!fname)
+  if (mris_ico == NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not read icosahedron from %s", fname) ;
+  }
   mrisp_template = MRIScongeal(mris_ico, mris_array, nsubjects, NULL, &parms) ;
 
   msec = TimerStop(&start) ;

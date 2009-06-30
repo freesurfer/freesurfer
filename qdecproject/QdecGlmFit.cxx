@@ -9,8 +9,8 @@
  * Original Authors: Nick Schmansky and Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/15 00:24:16 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/06/30 21:37:56 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,9 @@
  *
  */
 
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <sstream>
 #include <stdexcept>
 #include <fstream>

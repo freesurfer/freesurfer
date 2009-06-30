@@ -4,6 +4,7 @@
 #include "Regression.h"
 #include "CostFunctions.h"
 
+#include <limits>
 #include <cassert>
 #include <fstream>
 #include <sstream>
@@ -12,6 +13,7 @@
 extern "C"
 {
 #endif
+#include "limits.h"
 #include "error.h"
 #include "macros.h"
 #include "mrimorph.h"

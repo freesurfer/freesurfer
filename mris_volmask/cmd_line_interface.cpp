@@ -13,8 +13,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/13 22:00:34 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/06/30 21:37:55 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include <list>
 #include <vector>
 #include <string>
+#include <string.h>
 
 #include "cmd_line_interface.h"
 

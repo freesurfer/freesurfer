@@ -28,7 +28,7 @@ extern "C"
 
 using namespace std;
 
-static char vcid[] = "$Id: lta_diff.cpp,v 1.5 2009/05/09 21:21:12 nicks Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.6 2009/06/30 21:37:52 nicks Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
@@ -210,8 +210,8 @@ int main(int argc, char *argv[])
   Progname = argv[0] ;
 //   argc --;
 //   argv++;
-  if (vcid)
-  {};
+//  if (vcid)
+//  {};
 
   if (argc < 3)
   {

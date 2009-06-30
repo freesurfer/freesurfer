@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/10/23 20:58:17 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/06/30 21:37:56 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,7 +31,7 @@
 
 #include <stdexcept>
 #include <sstream>
-
+#include <limits>
 #include <assert.h>
 
 #include "vtkKWOrientMRIWindow.h"
@@ -69,7 +69,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWOrientMRIWindow );
-vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.18 $" );
+vtkCxxRevisionMacro( vtkKWOrientMRIWindow, "$Revision: 1.19 $" );
 
 vtkKWOrientMRIWindow::vtkKWOrientMRIWindow () :
   mbDirty( false ),

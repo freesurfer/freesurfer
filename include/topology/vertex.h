@@ -1,15 +1,14 @@
 /**
  * @file  vertex.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief topology fixer fastloop worker routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: F. Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:02 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/06/30 21:37:52 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +75,9 @@ public:
   }
   inline int ExpandFaces(int nf)
   {
-    if (fnum + nf <= maxfnum) return 1; // enough free faces are available
+    if ((unsigned int)fnum + (unsigned int)nf 
+	<= (unsigned int)maxfnum) 
+      return 1; // enough free faces are available
 
     int *f_tmp = f, *n_tmp = n;
     maxfnum = fnum + nf ;

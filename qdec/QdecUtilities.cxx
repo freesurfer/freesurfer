@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/12/04 15:30:54 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/06/30 21:37:56 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,8 @@
 
 #include "QdecUtilities.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <iostream>
 #include <fstream>

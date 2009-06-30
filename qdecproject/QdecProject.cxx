@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/02/11 23:23:29 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/06/30 21:37:56 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,9 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <stdexcept>
