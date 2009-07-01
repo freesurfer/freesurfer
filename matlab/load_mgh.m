@@ -29,9 +29,9 @@ function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/12/10 15:52:36 $
-%    $Revision: 1.16.2.1 $
+%    $Author: greve $
+%    $Date: 2009/07/01 17:13:08 $
+%    $Revision: 1.16.2.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@ if (strcmpi(fname((strlen(fname)-3):strlen(fname)), '.MGZ') | ...
 		   sum(int16(fname))) + round(cputime);
   ind = findstr(fname, '.');
   new_fname = sprintf('/tmp/tmp%d.mgh', gzipped);
-  if(strcmp(computer,'MAC') || strcmp(computer,'MACI'))
+  if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
     unix(sprintf('gunzip -c %s > %s', fname, new_fname)) ;
   else
     unix(sprintf('zcat %s > %s', fname, new_fname)) ;
