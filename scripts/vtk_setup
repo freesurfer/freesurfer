@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/01/02 22:01:54 $
-#    $Revision: 1.11 $
+#    $Date: 2009/07/01 20:16:29 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -47,11 +47,19 @@ if ( $?FS_VTK_HOME ) then
   if ( -e $FS_VTK_HOME/lib ) then
 
     setenv VTKLIBPATH $FS_VTK_HOME/lib
-    if ( -e $FS_VTK_HOME/lib/vtk-5.3 ) then
-      setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.3
+    if ( -e $FS_VTK_HOME/lib/vtk-5.5 ) then
+      setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.5
     else
-      if ( -e $FS_VTK_HOME/lib/vtk-5.2 ) then
-        setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.2
+      if ( -e $FS_VTK_HOME/lib/vtk-5.4 ) then
+        setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.4
+      else
+        if ( -e $FS_VTK_HOME/lib/vtk-5.3 ) then
+          setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.3
+        else
+          if ( -e $FS_VTK_HOME/lib/vtk-5.2 ) then
+            setenv VTKLIBPATH $FS_VTK_HOME/lib/vtk-5.2
+          endif
+        endif
       endif
     endif
 
