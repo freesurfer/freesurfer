@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/30 21:37:49 $
-#    $Revision: 1.432 $
+#    $Date: 2009/07/01 17:21:39 $
+#    $Revision: 1.433 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1927,8 +1927,13 @@ AC_ARG_WITH(itk-libraries,
      itk_apps="yes"
   ])
 
+# if --without-itk-dir was specified:
+if test "x$ITK_DIR" = "xno"; then
+   itk_apps="no"
+fi
+
 if test "x$ITK_DIR" = "x"; then
-  # if anITK root was not supplied, but one exists in the
+  # if an ITK root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
   if test -d "/usr/pubsw/packages/itk/current" ; then
     withval=/usr/pubsw/packages/itk/current
