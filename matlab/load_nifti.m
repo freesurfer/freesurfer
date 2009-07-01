@@ -25,9 +25,9 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/12/10 15:51:49 $
-%    $Revision: 1.14 $
+%    $Author: greve $
+%    $Date: 2009/07/01 17:12:55 $
+%    $Revision: 1.15 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -62,7 +62,7 @@ if(strcmpi(ext,'.gz'))
   ind = findstr(niftifile, '.');
   new_niftifile = sprintf('/tmp/tmp%d.nii', gzipped);
   %fprintf('Uncompressing %s to %s\n',niftifile,new_niftifile);
-  if(strcmp(computer,'MAC') || strcmp(computer,'MACI'))
+  if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
     unix(sprintf('gunzip -c %s > %s', niftifile, new_niftifile));
   else
     unix(sprintf('zcat %s > %s', niftifile, new_niftifile)) ;
