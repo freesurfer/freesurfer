@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/03 23:51:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/07/01 19:18:43 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -41,7 +41,7 @@
 #include "vtkRenderWindow.h"
 #include "vtkTransform.h"
 
-vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView3D, "$Revision: 1.2 $");
+vtkCxxRevisionMacro(vtkOrientMRIInteractorStyleView3D, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkOrientMRIInteractorStyleView3D);
 
 vtkOrientMRIInteractorStyleView3D::vtkOrientMRIInteractorStyleView3D () :
@@ -307,11 +307,17 @@ vtkOrientMRIInteractorStyleView3D::RotateProp () {
   if (((nxf * nxf + nyf * nyf) <= 1.0) &&
       ((oxf * oxf + oyf * oyf) <= 1.0))
     {
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 3))
+    double newXAngle = asin(nxf) * vtkMath::DegreesFromRadians(1.f);
+    double newYAngle = asin(nyf) * vtkMath::DegreesFromRadians(1.f);
+    double oldXAngle = asin(oxf) * vtkMath::DegreesFromRadians(1.f);
+    double oldYAngle = asin(oyf) * vtkMath::DegreesFromRadians(1.f);
+#else
     double newXAngle = asin(nxf) * vtkMath::RadiansToDegrees();
     double newYAngle = asin(nyf) * vtkMath::RadiansToDegrees();
     double oldXAngle = asin(oxf) * vtkMath::RadiansToDegrees();
     double oldYAngle = asin(oyf) * vtkMath::RadiansToDegrees();
-    
+#endif    
     double scale[3];
     scale[0] = scale[1] = scale[2] = 1.0;
 
@@ -397,9 +403,14 @@ vtkOrientMRIInteractorStyleView3D::SpinProp() {
   double oldAngle = 
     atan2((double)rwi->GetLastEventPosition()[1] - (double)disp_obj_center[1],
           (double)rwi->GetLastEventPosition()[0] - (double)disp_obj_center[0]);
-  
+
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 3))
+  newAngle *= vtkMath::DegreesFromRadians(1.f);
+  oldAngle *= vtkMath::DegreesFromRadians(1.f);
+#else
   newAngle *= vtkMath::RadiansToDegrees();
   oldAngle *= vtkMath::RadiansToDegrees();
+#endif
   
   double scale[3];
   scale[0] = scale[1] = scale[2] = 1.0;
@@ -492,8 +503,13 @@ vtkOrientMRIInteractorStyleView3D::SpinCamera () {
     atan2((double)rwi->GetLastEventPosition()[1] - (double)center[1],
           (double)rwi->GetLastEventPosition()[0] - (double)center[0]);
   
+#if ((VTK_MAJOR_VERSION == 5)&&(VTK_MINOR_VERSION > 3))
+  newAngle *= vtkMath::DegreesFromRadians(1.f);
+  oldAngle *= vtkMath::DegreesFromRadians(1.f);
+#else
   newAngle *= vtkMath::RadiansToDegrees();
   oldAngle *= vtkMath::RadiansToDegrees();
+#endif
 
   vtkCamera *camera = this->CurrentRenderer->GetActiveCamera();
   camera->Roll(newAngle - oldAngle);
