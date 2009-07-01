@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/05/28 20:30:25 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/07/01 22:26:53 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -159,6 +159,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_textGrayScaleMin    = XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MIN", wxTextCtrl );
   m_textGrayScaleMax    = XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MAX", wxTextCtrl );
   m_choiceRepresentation  = XRCCTRL( *this, "ID_CHOICE_REPRESENTATION", wxChoice );
+  m_choiceMask          = XRCCTRL( *this, "ID_CHOICE_MASK", wxChoice );
 
   // workaround for wxformbuilder bug
   m_colorIndicator->SetSize( 40, wxDefaultCoord );
@@ -231,6 +232,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistVector.push_back( m_choiceInversion );
   m_widgetlistVector.push_back( XRCCTRL( *this, "ID_STATIC_REPRESENTATION", wxStaticText ) );
   m_widgetlistVector.push_back( m_choiceRepresentation );
+  m_widgetlistVector.push_back( XRCCTRL( *this, "ID_STATIC_MASK", wxStaticText ) );
+  m_widgetlistVector.push_back( m_choiceMask );
       
   m_widgetlistContour.push_back( m_sliderContourMin );
   m_widgetlistContour.push_back( m_sliderContourMax );

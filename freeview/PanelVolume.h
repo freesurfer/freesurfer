@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/05/28 20:30:25 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/07/01 22:26:53 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -175,6 +175,7 @@ private:
   wxCheckBox*     m_checkDisplayTensor;
   wxChoice*       m_choiceInversion;
   wxChoice*       m_choiceRepresentation;
+  wxChoice*       m_choiceMask;
 
   wxCheckBox*     m_checkContour;
   wxSlider*       m_sliderContourMin;

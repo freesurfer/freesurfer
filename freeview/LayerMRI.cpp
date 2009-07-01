@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/07/01 22:26:53 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -118,6 +118,8 @@ LayerMRI::~LayerMRI()
 	m_actorContour->Delete();
 	m_propVolume->Delete();
 	
+  if ( m_sFilename.size() > 0 )
+    mProperties->SaveSettings( m_sFilename.c_str() );
 	delete mProperties;
 	
 	if ( m_volumeSource )
@@ -172,7 +174,8 @@ bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
   InitializeActors();
 
   mProperties->SetVolumeSource( m_volumeSource );
-
+  mProperties->RestoreSettings( m_sFilename.c_str() );
+  
   return true;
 }
 
@@ -1237,3 +1240,4 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
     a->AddInput( filter->GetOutput() );
   }
 }
+
