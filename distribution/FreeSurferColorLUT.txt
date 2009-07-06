@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.58 2009/06/08 16:02:16 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.59 2009/07/06 17:43:04 fischl Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -573,13 +573,8 @@
 2103    ctx-rh-G_cingulate-Isthmus                      60  25  25  0
 2104    ctx-rh-G_cingulate-Main_part                    25  60  60  0
 
-2200    ctx-rh-G_cingulate-caudal_ACC                   25  60  65  0
-2201    ctx-rh-G_cingulate-rostral_ACC                  25  90  65  0
-2202    ctx-rh-G_cingulate-posterior                    25  120  65  0
 
-2205    ctx-rh-S_cingulate-caudal_ACC                   25  150  65  0
-2206    ctx-rh-S_cingulate-rostral_ACC                  25  180  65  0
-2207    ctx-rh-S_cingulate-posterior                    25  210  65  0
+
 
 2105    ctx-rh-G_cuneus                                 180 20  20  0
 2106    ctx-rh-G_frontal_inf-Opercular_part             220 20  100 0
@@ -658,6 +653,19 @@
 2179    ctx-rh-S_temporal_inferior                      21  180 180 0
 2180    ctx-rh-S_temporal_superior                      223 220 60  0
 2181    ctx-rh-S_temporal_transverse                    221 60  60  0
+
+
+2200    ctx-rh-G_cingulate-caudal_ACC                   25  60  61  0
+2201    ctx-rh-G_cingulate-rostral_ACC                  25  90  60  0
+2202    ctx-rh-G_cingulate-posterior                    25  120  60  0
+
+2205    ctx-rh-S_cingulate-caudal_ACC                   25  150  60  0
+2206    ctx-rh-S_cingulate-rostral_ACC                   25  180  60  0
+2207    ctx-rh-S_cingulate-posterior                    25  210  60  0
+
+2210    ctx-rh-S_pericallosal-caudal                   25  150  90  0
+2211    ctx-rh-S_pericallosal-rostral                   25  180  90  0
+2212    ctx-rh-S_pericallosal-posterior                    25  210  90  0
 
 3100    wm-lh-Unknown                                   0   0   0   0
 3101    wm-lh-Corpus_callosum                           50  50  50  0
