@@ -297,6 +297,7 @@ SUBDIRS=\
 	tiff \
 	rgb \
 	log \
+	gpu_utils \
 	utils \
 	utilscpp \
 	vtkfsio \

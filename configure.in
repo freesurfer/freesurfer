@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/07/01 17:21:39 $
-#    $Revision: 1.433 $
+#    $Author: krish $
+#    $Date: 2009/07/06 19:08:33 $
+#    $Revision: 1.434 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2699,6 +2699,7 @@ AC_OUTPUT([Makefile
            fsgdf/Makefile
            fslutils/Makefile
            glut/Makefile
+	   gpu_utils/Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile
