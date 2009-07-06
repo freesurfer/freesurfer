@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/06/09 19:16:38 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/07/06 17:44:55 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -44,7 +44,7 @@
 #include "MARS_DT_Boundary.h"
 
 static char vcid[] = 
-"$Id: mris_merge_parcellations.c,v 1.4 2009/06/09 19:16:38 fischl Exp $";
+"$Id: mris_merge_parcellations.c,v 1.5 2009/07/06 17:44:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_merge_parcellations.c,v 1.4 2009/06/09 19:16:38 fischl Exp $", 
+     "$Id: mris_merge_parcellations.c,v 1.5 2009/07/06 17:44:55 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -524,6 +524,37 @@ merge_annotations(COLOR_TABLE *ct, MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_S
     }
     printf("%d vertices filled\n", filled) ;
   } while (filled > 0) ;
+
+  // now remove the ctx-?h- from the parcellation unit names
+  {
+    int  i, max_i = 0 ;
+    CTE  *cte ;
+    char buf[STRLEN] ;
+
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      int index ;
+      v = &mris->vertices[vno] ;
+      CTABfindAnnotation(mris->ct, mris->vertices[vno].annotation, &index);
+      if (index > max_i)
+        max_i = index ;
+    }
+      
+
+    for (i = 0 ; i < mris->ct->nentries ; i++)
+    {
+      cte = mris->ct->entries[i] ;
+      if (cte == NULL)
+        continue ;
+      if ((strncmp(cte->name, "ctx-lh-", 7) == 0) ||
+          (strncmp(cte->name, "ctx-rh-", 7) == 0))
+      {
+        strcpy(buf, cte->name) ;
+        strcpy(cte->name, buf+7) ;
+      }
+    }
+    mris->ct->nentries = max_i ;
+  }
   return(NO_ERROR) ;
 }
 
