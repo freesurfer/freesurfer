@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:54 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -82,6 +82,7 @@ public:
   void MoveRight();
   void MoveUp();
   void MoveDown();
+  void MoveSlice( int nStep );
   void ZoomAtCursor( int nX, int nY, bool ZoomIn, double factor = 2 );
   void PanToWorld( double* pos );
   void SyncZoomTo( RenderView2D* view );

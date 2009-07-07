@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/01 22:26:53 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -591,6 +591,7 @@ void PanelVolume::DoUpdateUI()
 			m_checkClearBackground->SetValue( layer->GetProperties()->GetClearZero() );
 			m_checkSmooth->SetValue( layer->GetProperties()->GetTextureSmoothing() );
 			
+      // color map settings
 			m_choiceColorMap->SetSelection( layer->GetProperties()->GetColorMap() );
       m_choiceLUT->Clear();
       for ( int i = 0; i < m_luts->GetCount(); i++ )
@@ -738,7 +739,20 @@ void PanelVolume::DoUpdateUI()
 	if ( layer && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
 	{
 		PopulateColorTable( layer->GetProperties()->GetLUTCTAB() );
-		UpdateColorIndicator();
+    
+		UpdateColorIndicator();    
+    
+    m_listColorTable->SetSelection( wxNOT_FOUND );
+    for ( int i = 0; i < (int)m_listColorTable->GetCount(); i++ )
+    {
+      wxString strg = m_listColorTable->GetString( i );
+      double dvalue;
+      if ( strg.Left( strg.Find( _(":") ) ).ToDouble( &dvalue ) && dvalue == layer->GetFillValue() )
+      {
+        m_listColorTable->SetSelection( i );
+        break;
+      }
+    }
 	}
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@ public:
 
   enum EditMode
   {
-    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire
+    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker
   };
 
   // return true if to have parent Interactor2D continue processing the event

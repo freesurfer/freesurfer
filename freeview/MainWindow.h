@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 00:40:16 $
- *    $Revision: 1.37 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -251,6 +251,7 @@ public:
   }
 
   LayerCollection* GetLayerCollection( std::string strType );
+  Layer* GetActiveLayer( std::string strType );
   LayerCollectionManager* GetLayerCollectionManager();
 
   LUTDataHolder* GetLUTData()

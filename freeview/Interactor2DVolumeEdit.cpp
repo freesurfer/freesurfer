@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,6 +31,7 @@
 #include "LayerCollection.h"
 #include "LayerCollectionManager.h"
 #include "LayerVolumeBase.h"
+#include "LayerMRI.h"
 #include "CursorFactory.h"
 #include <vtkRenderer.h>
 
@@ -119,6 +120,15 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
 
         view->ReleaseMouse();
         view->CaptureMouse();
+      }
+      else if ( m_nAction == EM_ColorPicker && mri->IsTypeOf( "MRI" ) )
+      {
+        double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
+        if ( dValue != 0 )
+        {
+          mri->SetFillValue( (float)dValue );
+          mri->SendBroadcast( "LayerActorUpdated", mri );
+        }
       }
       else
         return Interactor2D::ProcessMouseDownEvent( event, renderview );
@@ -288,6 +298,8 @@ void Interactor2DVolumeEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
       {
         wnd->SetCursor( CursorFactory::CursorFill );
       }
+      else if ( m_nAction == EM_ColorPicker )
+        wnd->SetCursor( CursorFactory::CursorColorPicker );
       else
         wnd->SetCursor( m_nAction == EM_Freehand ? CursorFactory::CursorPencil : CursorFactory::CursorPolyline );
     }

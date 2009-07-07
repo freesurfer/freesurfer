@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:03:31 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -50,36 +50,41 @@ BEGIN_EVENT_TABLE( ToolWindowEdit, wxFrame )
 // EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_VECTOR_FILE" ) ), ToolWindowEdit::OnButtonVector )
 // EVT_BUTTON   ( XRCID( wxT( "ID_BUTTON_FA_FILE" ) ),  ToolWindowEdit::OnButtonFA )
 // EVT_COMBOBOX  ( XRCID( wxT( "ID_COMBO_FA_FILE" ) ),   ToolWindowEdit::OnComboFASelectionChanged )
-EVT_MENU  ( XRCID( "ID_ACTION_VOXEL_FREEHAND" ), ToolWindowEdit::OnActionVoxelFreehand )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_FREEHAND" ), ToolWindowEdit::OnActionVoxelFreehandUpdateUI )
-EVT_MENU  ( XRCID( "ID_ACTION_VOXEL_FILL" ),  ToolWindowEdit::OnActionVoxelFill )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_FILL" ),  ToolWindowEdit::OnActionVoxelFillUpdateUI )
-EVT_MENU  ( XRCID( "ID_ACTION_VOXEL_POLYLINE" ), ToolWindowEdit::OnActionVoxelPolyline )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_POLYLINE" ), ToolWindowEdit::OnActionVoxelPolylineUpdateUI )
-EVT_MENU  ( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ), ToolWindowEdit::OnActionVoxelLivewire )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ), ToolWindowEdit::OnActionVoxelLivewireUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_VOXEL_FREEHAND" ),  ToolWindowEdit::OnActionVoxelFreehand )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_FREEHAND" ),  ToolWindowEdit::OnActionVoxelFreehandUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_VOXEL_FILL" ),      ToolWindowEdit::OnActionVoxelFill )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_FILL" ),      ToolWindowEdit::OnActionVoxelFillUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),  ToolWindowEdit::OnActionVoxelPolyline )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_POLYLINE" ),  ToolWindowEdit::OnActionVoxelPolylineUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ),  ToolWindowEdit::OnActionVoxelLivewire )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ),  ToolWindowEdit::OnActionVoxelLivewireUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_VOXEL_EYEDROP" ),   ToolWindowEdit::OnActionVoxelColorPicker )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_EYEDROP" ),   ToolWindowEdit::OnActionVoxelColorPickerUpdateUI )
 
-EVT_MENU  ( XRCID( "ID_ACTION_ROI_FREEHAND" ), ToolWindowEdit::OnActionROIFreehand )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_FREEHAND" ), ToolWindowEdit::OnActionROIFreehandUpdateUI )
-EVT_MENU  ( XRCID( "ID_ACTION_ROI_FILL" ),  ToolWindowEdit::OnActionROIFill )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_FILL" ),  ToolWindowEdit::OnActionROIFillUpdateUI )
-EVT_MENU  ( XRCID( "ID_ACTION_ROI_POLYLINE" ), ToolWindowEdit::OnActionROIPolyline )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_POLYLINE" ), ToolWindowEdit::OnActionROIPolylineUpdateUI )
-EVT_MENU  ( XRCID( "ID_ACTION_ROI_LIVEWIRE" ), ToolWindowEdit::OnActionROILivewire )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_LIVEWIRE" ), ToolWindowEdit::OnActionROILivewireUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ),  ToolWindowEdit::OnActionVoxelLivewire )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_VOXEL_LIVEWIRE" ),  ToolWindowEdit::OnActionVoxelLivewireUpdateUI )
 
-EVT_SPINCTRL ( XRCID( "ID_SPIN_BRUSH_SIZE" ),  ToolWindowEdit::OnSpinBrushSize )
-EVT_SPINCTRL ( XRCID( "ID_SPIN_BRUSH_TOLERANCE" ), ToolWindowEdit::OnSpinBrushTolerance )
-EVT_CHOICE  ( XRCID( "ID_CHOICE_REFERENCE" ),   ToolWindowEdit::OnChoiceBrushTemplate )
-EVT_CHECKBOX ( XRCID( "ID_CHECK_DRAW_CONNECTED" ),  ToolWindowEdit::OnCheckDrawConnectedOnly )
-EVT_CHECKBOX ( XRCID( "ID_CHECK_DRAW_RANGE" ),   ToolWindowEdit::OnCheckDrawRange )
-EVT_CHECKBOX ( XRCID( "ID_CHECK_EXCLUDE_RANGE" ),  ToolWindowEdit::OnCheckExcludeRange )
-EVT_TEXT  ( XRCID( "ID_EDIT_DRAW_RANGE_LOW" ), ToolWindowEdit::OnEditDrawRangeLow )
-EVT_TEXT  ( XRCID( "ID_EDIT_DRAW_RANGE_HIGH" ), ToolWindowEdit::OnEditDrawRangeHigh )
-EVT_TEXT  ( XRCID( "ID_EDIT_EXCLUDE_RANGE_LOW" ), ToolWindowEdit::OnEditExcludeRangeLow )
-EVT_TEXT  ( XRCID( "ID_EDIT_EXCLUDE_RANGE_HIGH" ), ToolWindowEdit::OnEditExcludeRangeHigh )
+EVT_MENU      ( XRCID( "ID_ACTION_ROI_FREEHAND" ),    ToolWindowEdit::OnActionROIFreehand )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_FREEHAND" ),    ToolWindowEdit::OnActionROIFreehandUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_ROI_FILL" ),        ToolWindowEdit::OnActionROIFill )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_FILL" ),        ToolWindowEdit::OnActionROIFillUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_ROI_POLYLINE" ),    ToolWindowEdit::OnActionROIPolyline )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_POLYLINE" ),    ToolWindowEdit::OnActionROIPolylineUpdateUI )
+EVT_MENU      ( XRCID( "ID_ACTION_ROI_LIVEWIRE" ),    ToolWindowEdit::OnActionROILivewire )
+EVT_UPDATE_UI ( XRCID( "ID_ACTION_ROI_LIVEWIRE" ),    ToolWindowEdit::OnActionROILivewireUpdateUI )
 
-EVT_SHOW  ( ToolWindowEdit::OnShow )
+EVT_SPINCTRL  ( XRCID( "ID_SPIN_BRUSH_SIZE" ),        ToolWindowEdit::OnSpinBrushSize )
+EVT_SPINCTRL  ( XRCID( "ID_SPIN_BRUSH_TOLERANCE" ),   ToolWindowEdit::OnSpinBrushTolerance )
+EVT_CHOICE    ( XRCID( "ID_CHOICE_REFERENCE" ),       ToolWindowEdit::OnChoiceBrushTemplate )
+EVT_CHECKBOX  ( XRCID( "ID_CHECK_DRAW_CONNECTED" ),   ToolWindowEdit::OnCheckDrawConnectedOnly )
+EVT_CHECKBOX  ( XRCID( "ID_CHECK_DRAW_RANGE" ),       ToolWindowEdit::OnCheckDrawRange )
+EVT_CHECKBOX  ( XRCID( "ID_CHECK_EXCLUDE_RANGE" ),    ToolWindowEdit::OnCheckExcludeRange )
+EVT_TEXT      ( XRCID( "ID_EDIT_DRAW_RANGE_LOW" ),    ToolWindowEdit::OnEditDrawRangeLow )
+EVT_TEXT      ( XRCID( "ID_EDIT_DRAW_RANGE_HIGH" ),   ToolWindowEdit::OnEditDrawRangeHigh )
+EVT_TEXT      ( XRCID( "ID_EDIT_EXCLUDE_RANGE_LOW" ), ToolWindowEdit::OnEditExcludeRangeLow )
+EVT_TEXT      ( XRCID( "ID_EDIT_EXCLUDE_RANGE_HIGH" ),  ToolWindowEdit::OnEditExcludeRangeHigh )
+
+EVT_SHOW      ( ToolWindowEdit::OnShow )
 
 END_EVENT_TABLE()
 
@@ -88,18 +93,18 @@ ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) :
     m_bToUpdateTools( false )
 {
   wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_EDIT") );
-  m_toolbarVoxelEdit   = XRCCTRL( *this, "ID_TOOLBAR_VOXEL_EDIT", wxToolBar );
-  m_toolbarROIEdit   = XRCCTRL( *this, "ID_TOOLBAR_ROI_EDIT", wxToolBar );
-  m_spinBrushSize   = XRCCTRL( *this, "ID_SPIN_BRUSH_SIZE", wxSpinCtrl );
-  m_spinBrushTolerance  = XRCCTRL( *this, "ID_SPIN_BRUSH_TOLERANCE", wxSpinCtrl );
-  m_choiceTemplate   = XRCCTRL( *this, "ID_CHOICE_REFERENCE", wxChoice );
-  m_checkDrawRange   = XRCCTRL( *this, "ID_CHECK_DRAW_RANGE", wxCheckBox );
-  m_checkExcludeRange  = XRCCTRL( *this, "ID_CHECK_EXCLUDE_RANGE", wxCheckBox );
-  m_editDrawRangeLow   = XRCCTRL( *this, "ID_EDIT_DRAW_RANGE_LOW", wxTextCtrl );
-  m_editDrawRangeHigh  = XRCCTRL( *this, "ID_EDIT_DRAW_RANGE_HIGH", wxTextCtrl );
-  m_editExcludeRangeLow  = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_LOW", wxTextCtrl );
-  m_editExcludeRangeHigh  = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_HIGH", wxTextCtrl );
-  m_checkDrawConnectedOnly = XRCCTRL( *this, "ID_CHECK_DRAW_CONNECTED", wxCheckBox );
+  m_toolbarVoxelEdit    = XRCCTRL( *this, "ID_TOOLBAR_VOXEL_EDIT",    wxToolBar );
+  m_toolbarROIEdit      = XRCCTRL( *this, "ID_TOOLBAR_ROI_EDIT",      wxToolBar );
+  m_spinBrushSize       = XRCCTRL( *this, "ID_SPIN_BRUSH_SIZE",       wxSpinCtrl );
+  m_spinBrushTolerance  = XRCCTRL( *this, "ID_SPIN_BRUSH_TOLERANCE",  wxSpinCtrl );
+  m_choiceTemplate      = XRCCTRL( *this, "ID_CHOICE_REFERENCE",      wxChoice );
+  m_checkDrawRange      = XRCCTRL( *this, "ID_CHECK_DRAW_RANGE",      wxCheckBox );
+  m_checkExcludeRange   = XRCCTRL( *this, "ID_CHECK_EXCLUDE_RANGE",   wxCheckBox );
+  m_editDrawRangeLow    = XRCCTRL( *this, "ID_EDIT_DRAW_RANGE_LOW",   wxTextCtrl );
+  m_editDrawRangeHigh   = XRCCTRL( *this, "ID_EDIT_DRAW_RANGE_HIGH",  wxTextCtrl );
+  m_editExcludeRangeLow     = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_LOW",  wxTextCtrl );
+  m_editExcludeRangeHigh    = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_HIGH", wxTextCtrl );
+  m_checkDrawConnectedOnly  = XRCCTRL( *this, "ID_CHECK_DRAW_CONNECTED",    wxCheckBox );
 }
 
 ToolWindowEdit::~ToolWindowEdit()
@@ -295,6 +300,23 @@ void ToolWindowEdit::OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event)
   event.Enable( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit
                 && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
 }
+
+void ToolWindowEdit::OnActionVoxelColorPicker( wxCommandEvent& event )
+{
+  MainWindow::GetMainWindowPointer()->SetAction( Interactor2DVoxelEdit::EM_ColorPicker );
+  UpdateTools();
+}
+
+void ToolWindowEdit::OnActionVoxelColorPickerUpdateUI( wxUpdateUIEvent& event)
+{
+  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
+  event.Check( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit
+      && view->GetAction() == Interactor2DVoxelEdit::EM_ColorPicker );
+
+  event.Enable( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit
+      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
+}
+
 
 void ToolWindowEdit::OnActionROIFreehand( wxCommandEvent& event )
 {

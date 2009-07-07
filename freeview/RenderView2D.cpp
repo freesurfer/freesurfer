@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/30 21:31:05 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -435,4 +435,15 @@ void RenderView2D::ShowCoordinateAnnotation( bool bShow )
 bool RenderView2D::GetShowCoordinateAnnotation()
 {
   return m_annotation2D->IsVisible();
+}
+
+void RenderView2D::MoveSlice( int nStep )
+{
+  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+  LayerCollection* lc_mri = lcm->GetLayerCollection( "MRI" );
+
+  double* voxelSize = lc_mri->GetWorldVoxelSize();
+  int nPlane = GetViewPlane();
+  lcm->OffsetSlicePosition( nPlane, voxelSize[nPlane]*nStep );
+  lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
 }

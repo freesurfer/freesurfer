@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 00:40:16 $
- *    $Revision: 1.55 $
+ *    $Date: 2009/07/07 22:05:04 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -714,6 +714,10 @@ LayerCollection* MainWindow::GetLayerCollection( std::string strType )
   return m_layerCollectionManager->GetLayerCollection( strType );
 }
 
+Layer* MainWindow::GetActiveLayer( std::string strType )
+{
+  return GetLayerCollection( strType )->GetActiveLayer();
+}
 
 LayerCollectionManager* MainWindow::GetLayerCollectionManager()
 {
