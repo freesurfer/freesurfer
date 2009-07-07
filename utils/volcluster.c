@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 23:12:49 $
- *    $Revision: 1.44 $
+ *    $Date: 2009/07/07 02:00:55 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1502,7 +1502,7 @@ CLUSTER_SIM_DATA *CSDread(char *csdfile)
       // Check for max stat on this line
       c = fgetc(fp);
       while (c == ' ') c = fgetc(fp);
-      fputc(c,fp);
+      ungetc(c,fp);
       if (c != '\n')
       {
         fscanf(fp,"%lf",&d);
