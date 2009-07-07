@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/30 22:13:28 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/07/07 00:40:16 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@ public:
   void Create( FSVolume* src, bool bCopyVoxelData );
 
   bool MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
-  bool MRIWrite( const char* filename );
+  bool MRIWrite( const char* filename, bool bSaveToOriginal = true );
   bool MRIWrite();
 
   int OriginalIndexToRAS( float iIdxX, float iIdxY, float iIdxZ,
@@ -61,7 +61,8 @@ public:
   
   double GetVoxelValue( int i, int j, int k, int frame );
   
-  void UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxCommandEvent& event );
+  void UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxCommandEvent& event, 
+                           bool resampleToOriginal = true );
 
   vtkImageData* GetImageOutput();
 
@@ -147,7 +148,7 @@ public:
     return m_MRIOrigTarget != NULL;
   }
 
-  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event, int nSampleMethod = -1 );
   
   int GetInterpolationMethod()
   {
@@ -162,8 +163,10 @@ protected:
   void CopyMRIDataToImage( MRI* mri, vtkImageData* image, wxWindow* wnd, wxCommandEvent& event );
   void CopyMatricesFromMRI();
   void CreateImage( MRI* mri, wxWindow* wnd, wxCommandEvent& event );
+  void ResizeRotatedImage( MRI* mri, MRI* refTarget, vtkImageData* refImageData, double* rasPoint,
+                    wxWindow* wnd, wxCommandEvent& event );
   void UpdateRASToRASMatrix();
-  MRI* CreateTargetMRI( FSVolume* volRef );
+  MRI* CreateTargetMRI( MRI* src, MRI* refTarget, bool AllocatePixel = true );
 
   MATRIX* GetRotationMatrix( int nPlane, double angle, double* origin );
 

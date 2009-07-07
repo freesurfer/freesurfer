@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/30 22:13:28 $
- *    $Revision: 1.54 $
+ *    $Date: 2009/07/07 00:40:16 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -80,6 +80,7 @@
 #include "WindowOverlayConfiguration.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperties.h"
+#include "DialogSaveVolumeAs.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -587,6 +588,7 @@ void MainWindow::SaveVolumeAs()
     return;
   }
 
+  /*
   wxString fn = wxString::FromAscii( layer_mri->GetFileName() );
   wxFileDialog dlg( this, _("Save volume file as"), m_strLastDir, _(""),
                     _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
@@ -595,6 +597,16 @@ void MainWindow::SaveVolumeAs()
   {
     fn = dlg.GetPath();
     layer_mri->SetFileName( dlg.GetPath().char_str() );
+    SaveVolume();
+    m_controlPanel->UpdateUI();
+  }
+  */
+  DialogSaveVolumeAs dlg( this );
+  dlg.SetFileName( layer_mri->GetFileName() );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    layer_mri->SetFileName( dlg.GetFileName().char_str() );
+    layer_mri->SetReorient( dlg.GetReorient() );
     SaveVolume();
     m_controlPanel->UpdateUI();
   }
@@ -613,24 +625,15 @@ void MainWindow::LoadVolume()
     if ( dlg.ShowModal() == wxID_OK )
     {
       this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.GetRegFileName(),
-                            ( GetLayerCollection( "MRI" )->IsEmpty() ? dlg.IsToResample() : m_bResampleToRAS ) );
+                            ( GetLayerCollection( "MRI" )->IsEmpty() ? dlg.IsToResample() : m_bResampleToRAS ),
+                            dlg.GetSampleMethod() );
     }
   }
-  /* else
-   {
-    wxFileDialog dlg( this, _("Open volume file"), m_strLastDir, _(""),
-        _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
-        wxFD_OPEN );
-    if ( dlg.ShowModal() == wxID_OK )
-    {
-     this->LoadVolumeFile( dlg.GetPath(), "", m_bResampleToRAS );
-    }
-  } */
 }
 
 void MainWindow::LoadVolumeFile( const wxString& filename, 
                                  const wxString& reg_filename, 
-                                 bool bResample )
+                                 bool bResample, int nSampleMethod )
 {
 // cout << bResample << endl;
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
@@ -638,6 +641,7 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
   m_bResampleToRAS = bResample;
   LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
+  layer->SetSampleMethod( nSampleMethod );
   layer->GetProperties()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
   wxFileName fn( filename );
   fn.Normalize();

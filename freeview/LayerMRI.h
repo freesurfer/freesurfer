@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:18 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/07/07 00:40:16 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -123,7 +123,16 @@ public:
 
   void SetActiveFrame( int nFrame );
 
+  void GetRASCenter( double* pt );
+  
   virtual bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+  
+  void SetReorient( bool bReorient );
+  
+  void SetSampleMethod( int nSampleMethod )
+  {
+    m_nSampleMethod = nSampleMethod;
+  }
 
 protected:
   virtual void SetModified();
@@ -162,6 +171,8 @@ protected:
   FSVolume*   m_volumeSource;
   FSVolume*   m_volumeRef;
   bool    m_bResampleToRAS;
+  bool    m_bReorient;
+  int     m_nSampleMethod;
 
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];

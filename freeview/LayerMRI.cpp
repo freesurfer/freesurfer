@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/01 22:26:53 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/07/07 00:40:16 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -68,7 +68,9 @@
 LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     m_volumeSource( NULL),
     m_volumeRef( ref ? ref->GetSourceVolume() : NULL ),
-    m_bResampleToRAS( true )
+    m_bResampleToRAS( false ),
+    m_bReorient( false ),
+    m_nSampleMethod( SAMPLE_NEAREST )
 {
   m_strTypeNames.push_back( "MRI" );
 
@@ -139,15 +141,6 @@ LayerMRI::~LayerMRI()
   delete[] private_buf2_3x3;
 }
 
-/*
-bool LayerMRI::LoadVolumeFromFile( std::string filename )
-{
- m_sFilename = filename;
-
- return LoadVolumeFromFile();
-}
-*/
-
 void LayerMRI::SetResampleToRAS( bool bResample )
 {
   m_bResampleToRAS = bResample;
@@ -160,6 +153,7 @@ bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
 
   m_volumeSource = new FSVolume( m_volumeRef );
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
+  m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
 
   if ( !m_volumeSource->MRIRead(  m_sFilename.c_str(),
                                   m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL,
@@ -188,6 +182,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
   m_volumeSource->Create( mri->m_volumeSource, bCopyVoxelData );
 
   m_bResampleToRAS = mri->m_bResampleToRAS;
+  m_bReorient = mri->m_bReorient;
   m_imageDataRef = mri->GetImageData();
 // if ( m_imageDataRef.GetPointer() )
   if ( m_imageDataRef != NULL )
@@ -232,16 +227,21 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
   return true;
 }
 
+void LayerMRI::SetReorient( bool bReorient )
+{
+  m_bReorient = bReorient;
+}
+
 bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 {
 // if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
   if ( m_sFilename.size() == 0 || m_imageData == NULL )
     return false;
 
-  m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
+  m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
 
 // wxPostEvent( wnd, event );
-  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.c_str() );
+  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.c_str(), !m_bReorient );
   if ( !bSaved )
     m_bModified = true;
 
@@ -258,7 +258,17 @@ bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
   if ( IsModified() )
     m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
 
-  return m_volumeSource->Rotate( rotations, wnd, event );
+  int nSampleMethod = rotations[0].SampleMethod;
+  if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
+    nSampleMethod = SAMPLE_NEAREST;
+  bool ret = m_volumeSource->Rotate( rotations, wnd, event, nSampleMethod );
+  m_imageData = m_volumeSource->GetImageOutput();
+  for ( int i = 0; i < 3; i++ )
+  {
+    mReslice[i]->SetInput( m_imageData );
+  }
+  
+  return ret;
 }
 
 void LayerMRI::InitializeVolume()
@@ -590,7 +600,6 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
     return;
 
   assert( mProperties );
-
  
   // display slice image
   vtkSmartPointer<vtkMatrix4x4> matrix =
@@ -1241,3 +1250,12 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
   }
 }
 
+void LayerMRI::GetRASCenter( double* rasPt )
+{
+  MRI* mri = m_volumeSource->GetMRITarget();
+  ::MRIvoxelToWorld( mri, 
+                     mri->width / 2,
+                     mri->height / 2,
+                     mri->depth / 2,
+                     &rasPt[0], &rasPt[1], &rasPt[2] ); 
+}

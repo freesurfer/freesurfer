@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/07/07 00:40:16 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,8 @@ public:
   wxString GetRegFileName();
 
   bool IsToResample();
+  
+  int GetSampleMethod();
 
   void OnOK( wxCommandEvent& event );
 
@@ -55,12 +57,14 @@ protected:
   void OnButtonRegFile( wxCommandEvent& event );
   void OnCheckApplyReg( wxCommandEvent& event );
 
-  wxButton*  m_btnOpen;
-  wxComboBox*  m_comboFileName;
-  wxCheckBox*  m_checkResample;
-  wxCheckBox*  m_checkApplyReg;
-  wxTextCtrl*  m_textRegFile;
-  wxButton*  m_btnRegFile;
+  wxButton*     m_btnOpen;
+  wxComboBox*   m_comboFileName;
+  wxCheckBox*   m_checkResample;
+  wxCheckBox*   m_checkApplyReg;
+  wxTextCtrl*   m_textRegFile;
+  wxButton*     m_btnRegFile;
+  wxRadioButton*  m_radioNearest;
+  wxRadioButton*  m_radioTrilinear;
 
   wxString  m_strLastDir;
 

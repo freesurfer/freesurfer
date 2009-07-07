@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/05/28 21:03:33 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/07/07 00:40:16 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -223,7 +223,8 @@ public:
 
   void LoadVolumeFile( const wxString& fn, 
 		       const wxString& reg_fn, 
-		       bool bResample = true);
+		       bool bResample = true, 
+           int nSampleMethod = 0 );
   void LoadDTIFile( const wxString& fn_vector, 
 		    const wxString& fn_fa, 
 		    const wxString& reg_fn, 

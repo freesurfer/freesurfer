@@ -45,6 +45,8 @@ freeview_SOURCES=\
 	DialogPreferences.h \
 	DialogRotateVolume.cpp \
 	DialogRotateVolume.h \
+	DialogSaveVolumeAs.cpp \
+	DialogSaveVolumeAs.h \
 	FSLabel.cpp \
 	FSLabel.h \
 	FSSurface.cpp \
