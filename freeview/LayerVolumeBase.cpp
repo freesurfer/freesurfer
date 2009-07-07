@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.9 $
+ *    $Author: rpwang $
+ *    $Date: 2009/07/07 19:04:44 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -122,7 +122,10 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
                    ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) )
               ;
             else
+            {
               m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+              UpdateVoxelValueRange( m_fFillValue );
+            }
           }
           else
           {

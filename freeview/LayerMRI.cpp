@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 00:40:16 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/07/07 19:04:44 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -191,26 +191,6 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
     SetWorldVoxelSize( mri->GetWorldVoxelSize() );
     SetWorldSize( mri->GetWorldSize() );
 
-    /* m_imageData = vtkSmartPointer<vtkImageData>::New();
-
-     if ( bCopyVoxelData )
-     {
-      m_imageData->DeepCopy( m_imageDataRef );
-     }
-     else
-     {
-      m_imageData->SetNumberOfScalarComponents( 1 );
-      m_imageData->SetScalarTypeToFloat();
-      m_imageData->SetOrigin( m_imageDataRef->GetOrigin() );
-      m_imageData->SetSpacing( m_imageDataRef->GetSpacing() );
-      m_imageData->SetDimensions( m_imageDataRef->GetDimensions() );
-      m_imageData->AllocateScalars();
-      float* ptr = ( float* )m_imageData->GetScalarPointer();
-      int* nDim = m_imageData->GetDimensions();
-     // cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
-      memset( ptr, 0, sizeof( float ) * nDim[0] * nDim[1] * nDim[2] );
-     }
-    */
     m_imageData = m_volumeSource->GetImageOutput();
 
     InitializeActors();
@@ -1258,4 +1238,10 @@ void LayerMRI::GetRASCenter( double* rasPt )
                      mri->height / 2,
                      mri->depth / 2,
                      &rasPt[0], &rasPt[1], &rasPt[2] ); 
+}
+
+
+void LayerMRI::UpdateVoxelValueRange( double dValue )
+{
+  mProperties->UpdateValueRange( dValue );
 }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/27 18:27:25 $
- *    $Revision: 1.6 $
+ *    $Author: rpwang $
+ *    $Date: 2009/07/07 19:04:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -75,6 +75,8 @@ public:
 
   virtual void SetVisible( bool bVisible = true ) = 0;
   virtual bool IsVisible() = 0;
+  
+  virtual void UpdateVoxelValueRange( double fValue ) {}
 
   virtual int GetActiveFrame()
   {

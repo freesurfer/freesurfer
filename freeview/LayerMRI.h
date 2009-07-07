@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 00:40:16 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/07/07 19:04:44 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -83,6 +83,8 @@ public:
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
+  
+  virtual void UpdateVoxelValueRange( double dValue );
 
   FSVolume* GetSourceVolume()
   {
