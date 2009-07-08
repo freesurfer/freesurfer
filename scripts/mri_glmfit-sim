@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.14 2009/06/01 22:20:10 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.15 2009/07/08 21:15:42 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -349,11 +349,12 @@ foreach conname ($conlist)
   set ocn   = $glmdir/$conname/$csdbase.sig.ocn.mgh
   set annot = $glmdir/$conname/$csdbase.sig.ocn.annot
   set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
+  set csdpdf = $glmdir/$conname/$csdbase.pdf.dat
 
   if($anattype == surface) then
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --oannot $annot --annot aparc)
+      --oannot $annot --annot aparc --csdpdf $csdpdf)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -361,7 +362,8 @@ foreach conname ($conlist)
 
   if($anattype == volume) then
     set cmd = (mri_volcluster --in $sig $csdlist --mask $mask \
-      --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn)
+      --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
+      --csdpdf $csdpdf)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
