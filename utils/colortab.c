@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/19 19:57:55 $
- *    $Revision: 1.26.2.2 $
+ *    $Author: krish $
+ *    $Date: 2009/07/08 20:20:29 $
+ *    $Revision: 1.26.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -994,7 +994,10 @@ int CTABentryNameToIndex(char *EntryName, COLOR_TABLE *ct)
 
   for(i = 0; i < ct->nentries; i++){
     cte = ct->entries[i];
-    if(!strcmp(cte->name,EntryName)) return(i);
+    // cte could be NULL, so the check is essential
+    if ( cte != NULL ){
+    	if(!strcmp(cte->name,EntryName)) return(i);
+    }
   }
   return(-1); // error
 }
