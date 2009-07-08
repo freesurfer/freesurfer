@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/06/09 16:22:30 $
- *    $Revision: 1.25.2.3 $
+ *    $Date: 2009/07/08 16:28:40 $
+ *    $Revision: 1.25.2.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $
+  $Id: mri_label2vol.c,v 1.25.2.4 2009/07/08 16:28:40 greve Exp $
 */
 
 
@@ -84,7 +84,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.25.2.4 2009/07/08 16:28:40 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -149,11 +149,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.25.2.4 2009/07/08 16:28:40 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.25.2.3 2009/06/09 16:22:30 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.25.2.4 2009/07/08 16:28:40 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -748,7 +748,7 @@ static void print_help(void) {
     "Single frame output volume in which each voxel will have the number of\n"
     "the label to which it is assigned (or 0 for no label). The label\n"
     "number is the order in which it appears on the command-line.  Takes\n"
-    "any format accepted by mri_convert (eg, spm, analyze, bshort, mgh).\n"
+    "any format accepted by mri_convert (eg, nii, mgh, spm, analyze, bshort).\n"
     "\n"
     "--hits hitvolid\n"
     "\n"
@@ -758,7 +758,7 @@ static void print_help(void) {
     "tool, but you could use it to implement your own multi-label\n"
     "arbitration routine. Or you could binarize to have each label\n"
     "represented separately. Takes any format accepted by mri_convert (eg,\n"
-    "spm, analyze, bshort, mgh). With --seg, this is a single frame volume\n"
+    "nii, spm, analyze, bshort, mgh). With --seg, this is a single frame volume\n"
     "with the number of hits from the winning seg id.\n"
     "\n"
     "--native-vox2ras\n"
@@ -802,15 +802,15 @@ static void print_help(void) {
     "\n"
     "mri_label2vol \n"
     "  --label lh-avg_central_sulcus.label \n"
-    "  --temp f_000.bshort \n"
+    "  --temp f.nii \n"
     "  --reg register.dat \n"
     "  --fillthresh .5 \n"
-    "  --o cent-lh_000.bshort\n"
+    "  --o cent-lh.nii\n"
     "\n"
     "To see how well the label is mapped into the functional volume, run\n"
     "\n"
     "tkmedit bert orig \n"
-    "  -overlay ./cent-lh_000.bshort \n"
+    "  -overlay ./cent-lh.nii \n"
     "  -overlay-reg ./register.dat -fthresh .5 -fmid 1\n"
     "\n"
     "Then load the label with File->Label->LoadLabel. The label should\n"
@@ -823,12 +823,12 @@ static void print_help(void) {
     "\n"
     "mri_label2vol \n"
     "  --label lh-avg_central_sulcus.label \n"
-    "  --temp f_000.bshort \n"
+    "  --temp f.nii \n"
     "  --reg register.dat \n"
     "  --fillthresh .3 \n"
     "  --proj frac 0 1 .1 \n"
     "  --subject bert --hemi lh\n"
-    "  --o cent-lh_000.bshort\n"
+    "  --o cent-lh.nii\n"
     "\n"
     "3. Convert a surface label into a binary mask in the functional space.\n"
     "Sample a 1mm ribbon 2mm below the gray/white surface. Do not require a \n"
@@ -836,11 +836,11 @@ static void print_help(void) {
     "\n"
     "mri_label2vol \n"
     "  --label lh-avg_central_sulcus.label \n"
-    "  --temp f_000.bshort \n"
+    "  --temp f.nii \n"
     "  --reg register.dat \n"
     "  --proj abs -3 -2 .1 \n"
     "  --subject bert --hemi lh\n"
-    "  --o cent-lh_000.bshort\n"
+    "  --o cent-lh.nii\n"
     "\n"
     "4. Convert two labels into a volume in the same space as the labels:\n"
     "\n"
@@ -856,11 +856,7 @@ static void print_help(void) {
     "\n"
     "KNOWN BUGS\n"
     "\n"
-    "1. When the output type is COR, all the voxels will be zero. The work-around\n"
-    "is to save it as some other type, then use mri_convert with --no_rescale 1\n"
-    "to convert it to COR.\n"
-    "\n"
-    "2. Cannot convert surface labels with different hemispheres.\n"
+    "1. Cannot convert surface labels with different hemispheres.\n"
     "\n"
     "\n"
     "\n"
