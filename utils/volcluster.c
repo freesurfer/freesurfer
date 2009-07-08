@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/07 02:01:54 $
- *    $Revision: 1.40.2.5 $
+ *    $Date: 2009/07/08 21:12:21 $
+ *    $Revision: 1.40.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2009,11 +2009,13 @@ int CSDpdf(CSD *csd, int nbins)
   for (n=1; n < csd->mcs_pdf->nbins; n++){
     csd->mcs_cdf->counts[n] =
       csd->mcs_cdf->counts[n-1] + csd->mcs_pdf->counts[n];
+  }
 
-    // Compute clusterwise sig with GRF
+  // Compute clusterwise sig with GRF. -log10(2.0) adjusts for one-sidedness
+  for (n=0; n < csd->mcs_pdf->nbins; n++){
     ClusterSize = csd->mcs_pdf->bins[n];
     csd->grf_cdf[n] = 
-      RFprobZClusterSigThresh(ClusterSize, csd->thresh, csd->nullfwhm, 
+      RFprobZClusterSigThresh(ClusterSize, csd->thresh-log10(2.0), csd->nullfwhm, 
 			      csd->searchspace, dim);
   }
 
