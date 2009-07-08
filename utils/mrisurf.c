@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/05/21 16:17:51 $
- *    $Revision: 1.628 $
+ *    $Author: greve $
+ *    $Date: 2009/07/08 21:29:04 $
+ *    $Revision: 1.629 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.628 2009/05/21 16:17:51 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.629 2009/07/08 21:29:04 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -58453,7 +58453,9 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   }/* end loop over smooth step */
 
   msecTime = TimerStop(&mytimer) ;
-  printf("Smoothing done, nsteps = %d, tsec = %g\n",nthstep,msecTime/1000.0);
+  if(Gdiag_no > 0){
+    printf("Smoothing done, nsteps = %d, tsec = %g\n",nthstep,msecTime/1000.0);
+  }
   fflush(stdout);
 
   MRIfree(&SrcTmp);
