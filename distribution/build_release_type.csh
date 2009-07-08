@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.126 2009/01/30 05:20:28 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.127 2009/07/08 15:49:35 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,9 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.2.0"
-set STABLE_PUB_VER_NUM="v4.2.0"
+set STABLE_VER_NUM="v4.4.0b"
+# b - norandomness is now the default
+set STABLE_PUB_VER_NUM="v4.4.0"
 
 set HOSTNAME=`hostname -s`
 
@@ -31,10 +32,10 @@ if ("$HOSTNAME" == "blade") then
   set FAILURE_MAIL_LIST=(nicks)
 endif
 if ("$HOSTNAME" == "hima") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish.nmr.mgh.harvard.edu)
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "sleet") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish.nmr.mgh.harvard.edu)
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 
 setenv OSTYPE `uname -s`
@@ -506,8 +507,8 @@ echo "Making $BUILD_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
 cd ${BUILD_DIR} >>& $OUTPUTF
-echo "CMD: make -j 4" >>& $OUTPUTF
-make -j 4 >>& $OUTPUTF
+echo "CMD: make -j 9 -s" >>& $OUTPUTF
+make -j 9 -s >>& $OUTPUTF
 if ($status != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
@@ -598,8 +599,7 @@ if ($status != 0) then
   exit 1  
 endif
 # strip symbols from binaries, greatly reducing their size
-if (("${RELEASE_TYPE}" == "stable") || \
-    ("${RELEASE_TYPE}" == "stable-pub")) then
+if ("${RELEASE_TYPE}" == "stable-pub") then
   echo "CMD: strip ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
   strip ${INSTALL_DIR}/bin-new/* >& /dev/null
 endif
@@ -610,10 +610,34 @@ endif
 # Move newly created bin-new/ to bin/.
 # This series of mv's minimizes the time window where the /bin directory
 # would appear empty to a machine trying to reference its contents in recon-all
-echo "CMD: rm -Rf ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
-rm -Rf ${INSTALL_DIR}/bin-old >>& $OUTPUTF
-echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
-mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+if (("${RELEASE_TYPE}" == "stable") && ("$OSTYPE" == "Linux")) then
+  echo "CMD: rm -Rf ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
+  rm -Rf ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+  echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
+  mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old >>& $OUTPUTF
+else
+  echo "CMD: rm -Rf ${INSTALL_DIR}/bin" >>& $OUTPUTF
+  rm -Rf ${INSTALL_DIR}/bin >>& $OUTPUTF
+  if ($status != 0) then
+    set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
+    tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
+    rm -f ${FAILED_FILE}
+    touch ${FAILED_FILE}
+    # set group write bit on files changed by make tools:
+    echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+    chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+    echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+    chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+    chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+    chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+    # and the fsaverage in the subjects dir...
+    echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
+      >>& $OUTPUTF
+    chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+    chgrp ${change_flags} fsdev ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+    exit 1  
+  endif
+endif
 echo "CMD: mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin" >>& $OUTPUTF
 mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin >>& $OUTPUTF
 #
