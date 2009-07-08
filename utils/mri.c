@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/07/01 20:05:22 $
- *    $Revision: 1.435 $
+ *    $Author: fischl $
+ *    $Date: 2009/07/08 12:02:47 $
+ *    $Revision: 1.436 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.435 $";
+const char *MRI_C_VERSION = "$Revision: 1.436 $";
 
 
 /*-----------------------------------------------------
@@ -4269,7 +4269,7 @@ MRIthresholdRangeInto(MRI *mri_src,MRI *mri_dst,BUFTYPE low_val,BUFTYPE hi_val)
 MRI *
 MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
 {
-  int     width, height, depth, x, y, z ;
+  int     width, height, depth, x, y, z, f ;
   float   val ;
 
   if (!mri_dst)
@@ -4278,17 +4278,20 @@ MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
-  
-  for (z = 0 ; z < depth ; z++)
+
+  for (f = 0 ; f < mri_src->nframes ; f++)
   {
-    for (y = 0 ; y < height ; y++)
+    for (z = 0 ; z < depth ; z++)
     {
-      for (x = 0 ; x < width ; x++)
+      for (y = 0 ; y < height ; y++)
       {
-        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-        if (val < threshold)
-          val = 0 ;
-        MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          if (val < threshold)
+            val = 0 ;
+          MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+        }
       }
     }
   }
