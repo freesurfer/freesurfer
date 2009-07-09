@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/08 21:12:02 $
- *    $Revision: 1.46 $
+ *    $Date: 2009/07/09 19:21:58 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,14 @@
 #define VOLCLUSTER_SRC
 #include "volcluster.h"
 #include "surfcluster.h"
+
+/*---------------------------------------------------------------
+  vculstSrcVersion(void) - returns CVS version of this file.
+  ---------------------------------------------------------------*/
+const char *vclustSrcVersion(void)
+{
+  return("$Id");
+}
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
                           float *x, float *y, float *z);
@@ -1779,6 +1787,7 @@ int CSDprintHeader(FILE *fp, CLUSTER_SIM_DATA *csd)
   fprintf(fp,"# NOTE: nreps and nrepetitions are both valid for volume data.\n");
   fprintf(fp,"# NOTE: nreps is invalid (-1) for surface data to assure.\n");
   fprintf(fp,"# NOTE:   backwards INcompatibility.\n");
+  fprintf(fp,"# %s\n",vclustSrcVersion());
 
   if (!strcmp(csd->anattype,"surface")){
     // In Dec 2008, a bug was found in sclustSurfaceArea() which
@@ -2011,11 +2020,11 @@ int CSDpdf(CSD *csd, int nbins)
       csd->mcs_cdf->counts[n-1] + csd->mcs_pdf->counts[n];
   }
 
-  // Compute clusterwise sig with GRF. -log10(2.0) adjusts for one-sidedness
+  // Compute clusterwise sig with GRF. Do not subtract log10(2.0) one-sidedness.
   for (n=0; n < csd->mcs_pdf->nbins; n++){
     ClusterSize = csd->mcs_pdf->bins[n];
     csd->grf_cdf[n] = 
-      RFprobZClusterSigThresh(ClusterSize, csd->thresh-log10(2.0), csd->nullfwhm, 
+      RFprobZClusterSigThresh(ClusterSize, csd->thresh, csd->nullfwhm, 
 			      csd->searchspace, dim);
   }
 

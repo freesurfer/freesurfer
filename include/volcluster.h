@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/17 00:26:45 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/07/09 19:21:58 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ int VolClustFixMNI = 0;
 extern int VolClustFixMNI;
 #endif
 
-
+const char *vclustSrcVersion(void);
 VOLCLUSTER *clustAllocCluster(int nmembers);
 int clustFreeCluster(VOLCLUSTER **ppvc);
 VOLCLUSTER *clustCopyCluster(VOLCLUSTER *vc);
