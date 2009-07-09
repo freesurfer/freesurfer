@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 00:40:16 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/07/09 20:28:58 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,13 +28,18 @@
 
 #include <wx/wx.h>
 
+class wxButton;
+class wxComboBox;
+class wxTextCtrl;
+class wxRadioButton;
+
 class DialogLoadVolume : public wxDialog
 {
 public:
   DialogLoadVolume( wxWindow* parent, bool bEnableResample = true );
   virtual ~DialogLoadVolume();
 
-  wxString GetVolumeFileName();
+  wxArrayString GetVolumeFileNames();
 
   wxString GetRegFileName();
 

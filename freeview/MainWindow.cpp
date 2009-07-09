@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.56 $
+ *    $Date: 2009/07/09 20:28:58 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -614,20 +614,36 @@ void MainWindow::SaveVolumeAs()
 
 void MainWindow::LoadVolume()
 {
-// if ( GetLayerCollection( "MRI" )->IsEmpty() )
+  DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
+  dlg.SetLastDir( m_strLastDir );
+  wxArrayString list;
+  for ( int i = 0; i < m_fileHistory->GetMaxFiles(); i++ )
+    list.Add( m_fileHistory->GetHistoryFile( i ) );
+  dlg.SetRecentFiles( list );
+  if ( dlg.ShowModal() == wxID_OK )
   {
-    DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
-    dlg.SetLastDir( m_strLastDir );
-    wxArrayString list;
-    for ( int i = 0; i < m_fileHistory->GetMaxFiles(); i++ )
-      list.Add( m_fileHistory->GetHistoryFile( i ) );
-    dlg.SetRecentFiles( list );
-    if ( dlg.ShowModal() == wxID_OK )
+//    this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.GetRegFileName(),
+//                          ( GetLayerCollection( "MRI" )->IsEmpty() ? dlg.IsToResample() : m_bResampleToRAS ),
+//                          dlg.GetSampleMethod() );
+    
+    wxArrayString fns = dlg.GetVolumeFileNames();
+    wxString reg_fn = dlg.GetRegFileName();
+    for ( size_t i = 0; i < fns.GetCount(); i++ )
     {
-      this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.GetRegFileName(),
-                            ( GetLayerCollection( "MRI" )->IsEmpty() ? dlg.IsToResample() : m_bResampleToRAS ),
-                            dlg.GetSampleMethod() );
+      wxArrayString script;
+      script.Add( _("loadvolume") );
+      wxString fn = fns[i];
+      if ( !reg_fn.IsEmpty() )
+        fn += "reg=" + reg_fn;
+      
+      script.Add( fn );
+  
+      if ( ( GetLayerCollection( "MRI" )->IsEmpty() && dlg.IsToResample() ) || m_bResampleToRAS )
+        script.Add( _("r") );
+  
+      AddScript( script );
     }
+    RunScript();
   }
 }
 

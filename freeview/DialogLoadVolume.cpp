@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 00:40:16 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/07/09 20:28:58 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -30,6 +30,7 @@
 #include <wx/xrc/xmlres.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
+#include "MyUtils.h"
 
 BEGIN_EVENT_TABLE( DialogLoadVolume, wxDialog )
   EVT_BUTTON    ( wxID_OK,                        DialogLoadVolume::OnOK )
@@ -59,9 +60,9 @@ DialogLoadVolume::DialogLoadVolume( wxWindow* parent, bool bEnableResample )
 DialogLoadVolume::~DialogLoadVolume()
 {}
 
-wxString DialogLoadVolume::GetVolumeFileName()
+wxArrayString DialogLoadVolume::GetVolumeFileNames()
 {
-  return m_comboFileName->GetValue().Trim( true ).Trim( false );
+  return MyUtils::SplitString(m_comboFileName->GetValue(), ";");
 }
 
 wxString DialogLoadVolume::GetRegFileName()
@@ -74,10 +75,10 @@ wxString DialogLoadVolume::GetRegFileName()
 
 void DialogLoadVolume::OnOK( wxCommandEvent& event )
 {
-  if ( GetVolumeFileName().IsEmpty() )
+  if ( GetVolumeFileNames().IsEmpty())
   {
     wxMessageDialog dlg( this, 
-			 _("Volume file name cannot be empty."), 
+			 _("Volume file names cannot be empty."), 
 			 _("Error"), 
 			 wxOK | wxICON_ERROR );
     dlg.ShowModal();
@@ -131,10 +132,19 @@ void DialogLoadVolume::OnButtonOpen( wxCommandEvent& event )
       _("Open volume file"), 
       m_strLastDir, _(""),
       _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
-      wxFD_OPEN );
+      wxFD_OPEN | wxFD_MULTIPLE );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    m_comboFileName->SetValue( dlg.GetPath() );
+    wxArrayString fns;
+    dlg.GetPaths( fns );
+    wxString text;
+    for ( size_t i = 0; i < fns.GetCount(); i++ )
+    {
+      text += fns[i];
+      if ( i != fns.GetCount()-1 )
+        text += ";";
+    }
+    m_comboFileName->SetValue( text );
     m_comboFileName->SetInsertionPointEnd();
     m_strLastDir = wxFileName( dlg.GetPath() ).GetPath();
   }
@@ -143,7 +153,9 @@ void DialogLoadVolume::OnButtonOpen( wxCommandEvent& event )
 
 void DialogLoadVolume::OnButtonRegFile( wxCommandEvent& event )
 {
-  m_strLastDir = wxFileName( GetVolumeFileName() ).GetPath();
+  wxArrayString fns = GetVolumeFileNames();
+  if ( !fns.IsEmpty() )
+    m_strLastDir = wxFileName( fns[0] ).GetPath();
   wxFileDialog dlg
     ( this, 
       _("Open registration file"), 
