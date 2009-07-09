@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.127 2009/07/08 15:49:35 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.128 2009/07/09 19:12:01 krish Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -616,8 +616,24 @@ if (("${RELEASE_TYPE}" == "stable") && ("$OSTYPE" == "Linux")) then
   echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
   mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old >>& $OUTPUTF
 else
-  echo "CMD: rm -Rf ${INSTALL_DIR}/bin" >>& $OUTPUTF
-  rm -Rf ${INSTALL_DIR}/bin >>& $OUTPUTF
+  # instead of trying to delete bin/ directory ( which wouldn't delete if
+  # it has NFS lock files ), we just mv the bin/ directory to bin.delete/
+  # if bin.delete/ already exists move it to bin.delete.<datestamp>..
+  # once NFS lock is removed ( once the user quits the process ), this will take care
+  # of automatically deleting the "delete" directories
+  if ( -d ${INSTALL_DIR}/bin.deleteme ) then
+    echo "CMD: rm -Rf ${INSTALL_DIR}/bin.deleteme* " >>& $OUTPUTF
+    rm -Rf ${INSTALL_DIR}/bin.deleteme*
+    # if it still exists, we have the NFS lock files inside, so just mv
+    if ( -d ${INSTALL_DIR}/bin.deleteme ) then
+	    # datestamp is yearmonthdate_hourminute
+	    set DATESTAMP=`date +%y%m%d_%H%M` 
+	    echo "CMD: mv ${INSTALL_DIR}/bin.deleteme ${INSTALL_DIR}/bin.deleteme.${DATESTAMP} " >>& $OUTPUTF
+	    mv ${INSTALL_DIR}/bin.deleteme ${INSTALL_DIR}/bin.deleteme.${DATESTAMP}
+    endif
+  endif
+  echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme " >>& $OUTPUTF
+  mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme
   if ($status != 0) then
     set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
     tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
