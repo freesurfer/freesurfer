@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/15 20:47:30 $
- *    $Revision: 1.28.2.2 $
+ *    $Date: 2009/07/09 21:37:24 $
+ *    $Revision: 1.28.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,7 @@ typedef struct
   MRI *rvar;         // rvar = sum(eres.^2)/DOF;
 
   MRI *gamma[100];   // gamma = C*beta
+  MRI *gammaVar[100]; // gamma variance (t-tests only)
   MRI *F[100];       // F = gamma'*inv(C*inv(XtX)C')*gamma/(rvar*J)
   MRI *p[100];       // p = significance of the F
   MRI *ypmf[100];    // partial model fit for each contrast
