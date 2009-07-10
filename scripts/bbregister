@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/05/20 17:58:51 $
-#    $Revision: 1.14.2.8 $
+#    $Date: 2009/07/10 23:46:04 $
+#    $Revision: 1.14.2.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.14.2.8 2009/05/20 17:58:51 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.14.2.9 2009/07/10 23:46:04 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -32,6 +32,7 @@ set intvol = (); # intermediate volume
 set frame = ();
 set midframe = 0;
 set outreg = ();
+set outfsl = ();
 set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
@@ -42,6 +43,7 @@ set Brute1Max = 4;
 set Brute1Delta = 4;
 set SubSamp1 = 100;
 set DoAbs = 0;
+set SaveCurReg = 1;
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -50,12 +52,14 @@ set Slope2 = 0.5;
 set Offset2 = 0;
 set Contrast = ()
 set TolF = 1e-8;
-set Tol1D = 1e-8;
+set Tol1D = 1e-3;
 set DOF = 6;
 set FSLDOF = 6;
 
-set GMProjFrac = 0.5;
 set WMProjAbs = 2;
+set GMProjFrac = 0.5;
+set GMProjAbs = ();
+
 set nSubSamp = 1;
 set Interp = trilinear
 set UseEPIMask = 0;
@@ -178,6 +182,8 @@ set Pass1Reg = $tmpdir/bbr.pass1.dat
 set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
   --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-3 \
   --brute -$Brute1Max $Brute1Max $Brute1Delta );
+if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
+if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
 if($LHOnly) set cmd = ($cmd --lh-only);
@@ -196,10 +202,11 @@ if($status) exit 1;
 set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
-  --gm-proj-frac $GMProjFrac --wm-proj-abs $WMProjAbs \
-  --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
-  --cur-reg $tmpdir/reg.curopt.dat)
-set cmd = ($cmd --tol $TolF --tol1d $Tol1D)
+  --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
+  --c0 $Offset2 --mincost $MinCostFile --dof $DOF)
+if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
+if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
+if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
@@ -239,6 +246,14 @@ if($#RMSFile) then
   endif
   echo $rmsdat > $RMSFile
   echo Final RMS $rmsdat | tee -a $LF
+endif
+
+if($#outfsl) then
+  set cmd = (tkregister2_cmdl --mov $movvol --reg $outreg \
+    --noedit --fslregout $outfsl);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
 endif
 
 # Cleanup
@@ -323,6 +338,11 @@ while( $#argv != 0 )
     case "--reg":
       if ( $#argv < 1) goto arg1err;
       set outreg = $argv[1]; shift;
+      breaksw
+
+    case "--fslmat":
+      if ( $#argv < 1) goto arg1err;
+      set outfsl = $argv[1]; shift;
       breaksw
 
     case "--init-fsl":
@@ -488,11 +508,26 @@ while( $#argv != 0 )
     case "--gm-proj-frac":
       if($#argv < 1) goto arg1err;
       set GMProjFrac = $argv[1]; shift;
+      set GMProjAbs = ();
+      breaksw
+
+    case "--gm-proj-abs":
+      if($#argv < 1) goto arg1err;
+      set GMProjAbs = $argv[1]; shift;
+      set GMProjFrac = ();
       breaksw
 
     case "--wm-proj-abs":
       if($#argv < 1) goto arg1err;
       set WMProjAbs = $argv[1]; shift;
+      breaksw
+
+    case "--proj-abs":
+      if($#argv < 1) goto arg1err;
+      set ProjAbs = $argv[1]; shift;
+      set WMProjAbs = $ProjAbs;
+      set GMProjAbs = $ProjAbs;
+      set GMProjFrac = ();
       breaksw
 
     case "--nsub":
@@ -542,6 +577,10 @@ while( $#argv != 0 )
       set UseEPIMask = 1;
       breaksw
 
+    case "--no-save-cur-reg":
+      set SaveCurReg = 0;
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if ( $#argv < 1) goto arg1err;
@@ -550,7 +589,13 @@ while( $#argv != 0 )
       breaksw
 
     case "--nocleanup":
+    case "--no-cleanup":
       set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+    case "--clean-up":
+      set cleanup = 1;
       breaksw
 
     case "--debug":
@@ -631,7 +676,7 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "USAGE: bbregister"
+  echo "bbregister"
   echo ""
   echo "Required Arguments:";
   echo "   --s subject  : FreeSurfer subject name"
@@ -661,16 +706,21 @@ usage_exit:
   echo "   --o outvol : resample mov and save as outvol"
   echo "   --s-from-reg reg : get subject name from regfile"
   echo "   --rms rmsfile : RMS change in cortical surface position"
+  echo "   --fsl flirt.mtx : output an FSL FLIRT matrix"
   echo ""
   echo "   --lh-only : only use left hemi"
   echo "   --rh-only : only use right hemi"
   echo "   --slope1 slope1 : cost slope for 1st stage (default is $Slope1)"
   echo "   --slope2  slope2 : cost slope for 2nd stage (default is $Slope2)"
   echo "   --offset2 offset2 : cost offset for 2nd stage (default is $Offset2)"
-  echo "   --tol tol : 2nd stage tolerance (default is $Tol)"
+  echo "   --tol tol : 2nd stage tolerance (1D and F)"
+  echo "   --tol1d tol1d : 2nd stage 1D tolerance "
+  echo "   --tolf  tolf : 2nd stage F tolerance "
   echo "   --rand-init randmax : randomly change input to 1st stage reg"
-  echo "   --gm-proj-frac frac : 2nd stage, default is 0.5"
+  echo "   --gm-proj-frac frac : default is 0.5"
+  echo "   --gm-proj-abs abs   : use absolute instead of relative"
   echo "   --wm-proj-abs  dist : 2nd stage, default is 2mm"
+  echo "   --proj-abs  dist : use wm and gm proj abs in 2nd stage"
   echo "   --subsamp nsub : 2nd stage vertex subsampling, default is 1"
   echo "   --nearest  : 2nd stage, use nearest neighbor interp (defalt is trilinear)"
   echo "   --epi-mask : mask out brain edge and B0 regions (1st and 2nd stages)"
