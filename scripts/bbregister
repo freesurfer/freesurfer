@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/30 19:04:19 $
-#    $Revision: 1.25 $
+#    $Date: 2009/07/10 23:36:54 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.25 2009/06/30 19:04:19 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.26 2009/07/10 23:36:54 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -32,6 +32,7 @@ set intvol = (); # intermediate volume
 set frame = ();
 set midframe = 0;
 set outreg = ();
+set outfsl = ();
 set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
@@ -42,6 +43,7 @@ set Brute1Max = 4;
 set Brute1Delta = 4;
 set SubSamp1 = 100;
 set DoAbs = 0;
+set SaveCurReg = 1;
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -201,8 +203,8 @@ set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
-  --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
-  --cur-reg $tmpdir/reg.curopt.dat)
+  --c0 $Offset2 --mincost $MinCostFile --dof $DOF)
+if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
 if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
 if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
@@ -244,6 +246,14 @@ if($#RMSFile) then
   endif
   echo $rmsdat > $RMSFile
   echo Final RMS $rmsdat | tee -a $LF
+endif
+
+if($#outfsl) then
+  set cmd = (tkregister2_cmdl --mov $movvol --reg $outreg \
+    --noedit --fslregout $outfsl);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
 endif
 
 # Cleanup
@@ -328,6 +338,11 @@ while( $#argv != 0 )
     case "--reg":
       if ( $#argv < 1) goto arg1err;
       set outreg = $argv[1]; shift;
+      breaksw
+
+    case "--fslmat":
+      if ( $#argv < 1) goto arg1err;
+      set outfsl = $argv[1]; shift;
       breaksw
 
     case "--init-fsl":
@@ -562,6 +577,10 @@ while( $#argv != 0 )
       set UseEPIMask = 1;
       breaksw
 
+    case "--no-save-cur-reg":
+      set SaveCurReg = 0;
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if ( $#argv < 1) goto arg1err;
@@ -687,6 +706,7 @@ usage_exit:
   echo "   --o outvol : resample mov and save as outvol"
   echo "   --s-from-reg reg : get subject name from regfile"
   echo "   --rms rmsfile : RMS change in cortical surface position"
+  echo "   --fsl flirt.mtx : output an FSL FLIRT matrix"
   echo ""
   echo "   --lh-only : only use left hemi"
   echo "   --rh-only : only use right hemi"
