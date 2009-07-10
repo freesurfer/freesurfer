@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/01/02 18:17:10 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/07/10 20:40:36 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.15 2008/01/02 18:17:10 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.16 2009/07/10 20:40:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -281,7 +281,7 @@ usage_exit(void) {
 static void
 print_usage(void) {
   fprintf(stderr,
-          "usage: %s [options] <subject name> <hemi> [<surface name>]\n",
+          "usage: %s [options] <aseg name> <surface dir> <norm volume> <output volume>\n",
           Progname) ;
 }
 
