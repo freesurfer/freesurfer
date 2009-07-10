@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/09 20:28:58 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/07/10 19:40:19 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -62,7 +62,7 @@ DialogLoadVolume::~DialogLoadVolume()
 
 wxArrayString DialogLoadVolume::GetVolumeFileNames()
 {
-  return MyUtils::SplitString(m_comboFileName->GetValue(), ";");
+  return MyUtils::SplitString(m_comboFileName->GetValue(), _(";") );
 }
 
 wxString DialogLoadVolume::GetRegFileName()
@@ -142,7 +142,7 @@ void DialogLoadVolume::OnButtonOpen( wxCommandEvent& event )
     {
       text += fns[i];
       if ( i != fns.GetCount()-1 )
-        text += ";";
+        text += _(";");
     }
     m_comboFileName->SetValue( text );
     m_comboFileName->SetInsertionPointEnd();
