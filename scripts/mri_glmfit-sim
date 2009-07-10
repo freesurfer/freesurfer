@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.15 2009/07/08 21:15:16 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.16 2009/07/10 22:01:33 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -19,6 +19,7 @@ set UseUniformPDF = 0;
 set UniformPDFMin = ();
 set UniformPDFMax = ();
 set DiagCluster = 0;
+set PBNodeType = ();
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -319,7 +320,7 @@ if($DoPBSubmit) then
   set cmd = ($cmd --log $LF)
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
-  pbsubmit -l nodes=1:opteron -c "$cmd"
+  pbsubmit -l $PBNodeType -c "$cmd"
   sleep 5;
   echo ""
   echo "Just submitted this as a job, and exiting now."
@@ -430,10 +431,11 @@ while( $#argv != 0 )
       set DoPBSubmit = 1;
       set DoPoll = 1;
       set DoBackground = 0;
-      if(`hostname` != seychelles) then
-        echo "ERROR: must be on seychelles to pbsubmit"
+      if(`hostname` != seychelles || `hostname` != launchpad) then
+        echo "ERROR: must be on seychelles or launchpad to pbsubmit"
         exit 1;
       endif
+      if(`hostname` == seychelles) set PBNodeType = "nodes=1:opteron";
       breaksw
 
     case "--bg":
