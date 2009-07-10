@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.16 2009/07/10 22:24:21 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.17 2009/07/10 23:01:16 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -213,6 +213,14 @@ if($DoSim) then
   set nSimPerJob = `echo "$nsim/$nJobs" | bc`;
   echo "nSimPerJob = $nSimPerJob"| tee -a $LF
 
+  if($DoPoll) then
+    set PollDir =  $glmdir/csd/poll
+    mkdir -p $PollDir
+    # User can create this file to stop simulation
+    set StopFile = $PollDir/StopSim
+    rm -f $StopFile
+  endif
+
   # ----------------- Run glmfit simulation ----------------------
   # This may take a while
   mkdir -p $glmdir/csd
@@ -231,7 +239,7 @@ if($DoSim) then
     if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
     if($DiagCluster) set cmd = ($cmd --diag-cluster)
     if($DoPoll) then
-      set DoneFile = $glmdir/csd/done.$csdbase.$jpad
+      set DoneFile = $PollDir/done.$csdbase.$jpad
       rm -f $DoneFile
       set cmd = ($cmd --sim-done $DoneFile)
     endif
@@ -294,12 +302,22 @@ if($DoSim) then
     @ nthPoll = 0;
     set Done = 0;
     while(! $Done)
+      if(-e $StopFile) then
+        # Something has gone wrong, maybe user deleted to halt
+        echo "WARNING: simulation aborted by user" | tee -a $LF
+        exit 1;
+      endif
+      if(! -e $PollDir) then
+        # Something has gone wrong, maybe user deleted to halt
+        echo "ERROR: cannot find $PollDir, aborting" | tee -a $LF
+        exit 1;
+      endif
       @ nthPoll = $nthPoll + 1;
       set Done = 1;
       @ nthJob = 1
       while($nthJob <= $nJobs)
         set jpad = `printf j%03d $nthJob`
-        set DoneFile = $glmdir/csd/done.$csdbase.$jpad
+        set DoneFile = $PollDir/done.$csdbase.$jpad
         if(! -e $DoneFile) then
           echo "Poll $nthPoll job $nthJob `date`" | tee -a $LF
           set Done = 0;
@@ -322,7 +340,7 @@ if($DoPBSubmit) then
   echo $cmd  | tee -a $LF
   pbsubmit $PBNodeType -c "$cmd"
   sleep 5;
-  echo ""
+  echo "" 
   echo "Just submitted this as a job, and exiting now."
   echo ""
   # Could wait until it is done by polling for AllDoneFile
@@ -694,7 +712,8 @@ some reason, this will never quit because it looks for a file created
 by the simulation job before continuing. If this file is not created,
 then it will keep polling for this file forever. ALSO: if you are not
 running on a computer with multiple nodes, then this will not make it
-run any faster (in fact, it will run slower).
+run any faster (in fact, it will run slower). You can stop backgrounded
+jobs creating a file called glmdir/csd/poll/StopSim.
 
 --no-sim csdbase
 
