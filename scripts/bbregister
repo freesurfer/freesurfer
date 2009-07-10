@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/07/10 23:36:54 $
-#    $Revision: 1.26 $
+#    $Date: 2009/07/10 23:39:03 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.26 2009/07/10 23:36:54 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.27 2009/07/10 23:39:03 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -52,7 +52,7 @@ set Slope2 = 0.5;
 set Offset2 = 0;
 set Contrast = ()
 set TolF = 1e-8;
-set Tol1D = 1e-8;
+set Tol1D = 1e-3;
 set DOF = 6;
 set FSLDOF = 6;
 
@@ -713,7 +713,9 @@ usage_exit:
   echo "   --slope1 slope1 : cost slope for 1st stage (default is $Slope1)"
   echo "   --slope2  slope2 : cost slope for 2nd stage (default is $Slope2)"
   echo "   --offset2 offset2 : cost offset for 2nd stage (default is $Offset2)"
-  echo "   --tol tol : 2nd stage tolerance "
+  echo "   --tol tol : 2nd stage tolerance (1D and F)"
+  echo "   --tol1d tol1d : 2nd stage 1D tolerance "
+  echo "   --tolf  tolf : 2nd stage F tolerance "
   echo "   --rand-init randmax : randomly change input to 1st stage reg"
   echo "   --gm-proj-frac frac : default is 0.5"
   echo "   --gm-proj-abs abs   : use absolute instead of relative"
