@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/09 19:22:41 $
- *    $Revision: 1.40.2.7 $
+ *    $Date: 2009/07/10 18:03:48 $
+ *    $Revision: 1.40.2.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id");
+  return("$Id: volcluster.c,v 1.40.2.8 2009/07/10 18:03:48 greve Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
