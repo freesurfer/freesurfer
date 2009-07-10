@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/09 20:28:58 $
- *    $Revision: 1.57 $
+ *    $Date: 2009/07/10 19:17:27 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -634,7 +634,10 @@ void MainWindow::LoadVolume()
       script.Add( _("loadvolume") );
       wxString fn = fns[i];
       if ( !reg_fn.IsEmpty() )
-        fn += "reg=" + reg_fn;
+        fn += ":reg=" + reg_fn;
+      
+      if ( dlg.GetSampleMethod() != SAMPLE_NEAREST )
+        fn += ":sample=trilinear";
       
       script.Add( fn );
   
@@ -2336,6 +2339,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
            vector_render = _("line"),
            tensor_display = _("no"),
            tensor_render = _("boxoid");
+  int nSampleMethod = SAMPLE_NEAREST;
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
@@ -2402,6 +2406,11 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
       {
         reg_fn = strg.Mid( n + 1 );
       }
+      else if ( strg.Left( n ).Lower() == _("sample") )
+      {
+        if ( strg.Mid( n + 1 ).Lower() == _("trilinear") )
+          nSampleMethod = SAMPLE_TRILINEAR;
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
@@ -2460,7 +2469,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     m_scripts.insert( m_scripts.begin(), script );  
   }
   
-  LoadVolumeFile( fn, reg_fn, bResample );
+  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod );
 }
 
 void MainWindow::CommandSetColorMap( const wxArrayString& sa )

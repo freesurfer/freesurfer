@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/30 22:13:28 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/07/10 19:17:27 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -684,6 +684,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
 void LayerSurface::UpdateRenderMode()
 {
   m_mainActor->GetProperty()->EdgeVisibilityOff();
+//  m_mainActor->GetProperty()->BackfaceCullingOn();
   switch ( GetProperties()->GetSurfaceRenderMode() )
   {
     case LayerPropertiesSurface::SM_Surface:

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 19:04:44 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/07/10 19:17:27 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -218,7 +218,8 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
   if ( m_sFilename.size() == 0 || m_imageData == NULL )
     return false;
 
-  m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
+  if ( IsModified() || m_bReorient )
+    m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
 
 // wxPostEvent( wnd, event );
   bool bSaved = m_volumeSource->MRIWrite( m_sFilename.c_str(), !m_bReorient );
