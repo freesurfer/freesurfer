@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.16 2009/07/10 22:01:33 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.17 2009/07/10 22:22:48 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -280,7 +280,7 @@ if($DoSim) then
       if($DoPBSubmit) then
         # pbsubmit
         echo "PBSUBMIT ---------------------------------" | tee -a $LF
-        pbsubmit -l nodes=1:opteron -c "$cmd >> $LF" | tee -a $LF
+        pbsubmit $PBNodeType -c "$cmd >> $LF" | tee -a $LF
         sleep 10;
         echo "" | tee -a $LF
       endif
@@ -320,7 +320,7 @@ if($DoPBSubmit) then
   set cmd = ($cmd --log $LF)
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
-  pbsubmit -l $PBNodeType -c "$cmd"
+  pbsubmit $PBNodeType -c "$cmd"
   sleep 5;
   echo ""
   echo "Just submitted this as a job, and exiting now."
@@ -431,11 +431,12 @@ while( $#argv != 0 )
       set DoPBSubmit = 1;
       set DoPoll = 1;
       set DoBackground = 0;
-      if(`hostname` != seychelles || `hostname` != launchpad) then
+      if(`hostname` != seychelles && `hostname` != launchpad) then
+        hostname
         echo "ERROR: must be on seychelles or launchpad to pbsubmit"
         exit 1;
       endif
-      if(`hostname` == seychelles) set PBNodeType = "nodes=1:opteron";
+      if(`hostname` == seychelles) set PBNodeType = "-l nodes=1:opteron";
       breaksw
 
     case "--bg":
