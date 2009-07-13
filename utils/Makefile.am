@@ -71,6 +71,7 @@ libutils_main_SOURCES=\
 	box.c \
 	Bruker.c \
 	chklc.c \
+	chronometer.c \
 	cluster.c \
 	class_array.c \
 	cma.c \
