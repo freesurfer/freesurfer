@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.18 2009/07/10 22:45:32 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.19 2009/07/13 15:24:43 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -87,6 +87,7 @@ endif
 set anattype = volume;
 set subject = ();
 set hemi = ();
+set surf = "white";
 set y = ();
 
 # Go through the original mri_glmfit command-line
@@ -99,6 +100,12 @@ while($#glmfitcmd)
     set subject = $glmfitcmd[1]; shift glmfitcmd;
     set hemi    = $glmfitcmd[1]; shift glmfitcmd;
     set anattype = surface;
+    if($#glmfitcmd != 0) then
+      set c = `echo $glmfitcmd[1] | cut -c 2`;
+      if("$c" != "--") then
+        set surf = $glmfitcmd[1]; shift glmfitcmd;
+      endif
+    endif
     breaksw
   case "--fsgd"
     shift glmfitcmd;
@@ -230,11 +237,12 @@ if($DoSim) then
     echo "$nthJob/$nJobs `date`" | tee -a $LF
 
     set cmd = (mri_glmfit --y $y $clist2 --mask $mask)
-    set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh $glmdir/csd/$csdbase.$jpad)
+    set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh \
+       $glmdir/csd/$csdbase.$jpad)
     set cmd = ($cmd --sim-sign $simsign --fwhm $fwhm)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
-    if($anattype == surface) set cmd = ($cmd --surf $subject $hemi);
+    if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
     if($#Seed) set cmd = ($cmd --seed $Seed);
     if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
     if($DiagCluster) set cmd = ($cmd --diag-cluster)
@@ -259,7 +267,8 @@ if($DoSim) then
         set sum = $glmdir/csd/$csdbase.$jpad-$conname.diag
 
         if($anattype == surface) then
-          set cmd = (mri_surfcluster --subject $subject --hemi $hemi)
+          set cmd = (mri_surfcluster --subject $subject \
+            --hemi $hemi --surf $surf)
           set c = 4;
         endif
         if($anattype == volume) then
@@ -374,6 +383,7 @@ foreach conname ($conlist)
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
       --oannot $annot --annot aparc --csdpdf $csdpdf)
+    set cmd = ($cmd --surf $surf); # bug to have to do this
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
