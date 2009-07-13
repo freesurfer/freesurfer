@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/10 19:17:27 $
- *    $Revision: 1.58 $
+ *    $Date: 2009/07/13 21:15:33 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -566,7 +566,7 @@ void MainWindow::SaveVolume()
       fn += _(".mgz");
     }
     layer_mri->SetFileName( fn.char_str() );
-    layer_mri->ResetModified();
+//    layer_mri->ResetModified();
     WorkerThread* thread = new WorkerThread( this );
     thread->SaveVolume( layer_mri );
   }
@@ -588,19 +588,6 @@ void MainWindow::SaveVolumeAs()
     return;
   }
 
-  /*
-  wxString fn = wxString::FromAscii( layer_mri->GetFileName() );
-  wxFileDialog dlg( this, _("Save volume file as"), m_strLastDir, _(""),
-                    _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
-  if ( dlg.ShowModal() == wxID_OK )
-  {
-    fn = dlg.GetPath();
-    layer_mri->SetFileName( dlg.GetPath().char_str() );
-    SaveVolume();
-    m_controlPanel->UpdateUI();
-  }
-  */
   DialogSaveVolumeAs dlg( this );
   dlg.SetFileName( layer_mri->GetFileName() );
   if ( dlg.ShowModal() == wxID_OK )

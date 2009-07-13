@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/13 18:37:01 $
- *    $Revision: 1.29 $
+ *    $Date: 2009/07/13 21:15:33 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -214,17 +214,15 @@ void LayerMRI::SetReorient( bool bReorient )
 
 bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 {
-// if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
   if ( m_sFilename.size() == 0 || m_imageData == NULL )
     return false;
 
-//  if ( IsModified() || m_bReorient )
+  if ( IsModified() || m_bReorient )
     m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
 
 // wxPostEvent( wnd, event );
   bool bSaved = m_volumeSource->MRIWrite( m_sFilename.c_str(), !m_bReorient );
-  if ( !bSaved )
-    m_bModified = true;
+  m_bModified = !bSaved;
 
   event.SetInt( 99 );
   wxPostEvent( wnd, event );

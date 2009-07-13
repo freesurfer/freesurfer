@@ -133,8 +133,8 @@ freeview_SOURCES=\
 	PanelWayPoints.h \
 	PixelInfoPanel.cpp \
 	PixelInfoPanel.h \
-	Region.cpp \
-	Region.h \
+	Rectangle2D.cpp \
+	Rectangle2D.h \
 	RenderView2D.cpp \
 	RenderView2D.h \
 	RenderView3D.cpp \

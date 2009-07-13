@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 00:40:16 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/07/13 21:15:33 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -380,9 +380,24 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
     err = ::MRIwrite( m_MRI, fn );
   else
   {
+    // save MRITarget temporarily
+    MRI* mri = MRIallocHeader( m_MRITarget->width, 
+                               m_MRITarget->height, 
+                               m_MRITarget->depth, 
+                               m_MRITarget->type );
+    MRIcopyHeader( m_MRITarget, mri );
+    
+    // if rotated save data in original target space 
+    if ( m_MRIOrigTarget) 
+      MRIcopyHeader( m_MRIOrigTarget, m_MRITarget );
+    
     err = ::MRIwrite( m_MRITarget, fn );
     // free pixel space
     MRIfreeFrames( m_MRITarget, 0 );
+    
+    // restore MRITarget saved at the beginning
+    MRIcopyHeader( mri, m_MRITarget );
+    MRIfree( &mri );
   }
   free( fn );
 
@@ -731,11 +746,6 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
       }
 
       *MATRIX_RELT( m, 4, 4 ) = 1;
-   /*   GetBounds( m_MRI, bounds );
-      *MATRIX_RELT( m, 1, 4 ) = bounds[0];
-      *MATRIX_RELT( m, 2, 4 ) = bounds[2];
-      *MATRIX_RELT( m, 3, 4 ) = bounds[4];
-   */
       rasMRI = MRIallocSequence( dim[0], dim[1], dim[2], 
 				 m_MRI->type, m_MRI->nframes );
       if ( rasMRI == NULL )
@@ -747,13 +757,6 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 
       MATRIX* m1 = MRIgetVoxelToRasXform( m_MRI );
 
-      /*
-      cout << "dim: " << dim[0] << " " << dim[1] << " " << dim[2] << endl;
-      cout << *MATRIX_RELT( m, 1, 1 ) << " " << *MATRIX_RELT( m, 1, 2 ) << " " << *MATRIX_RELT( m, 1, 3 ) << " " << *MATRIX_RELT( m, 1, 4 ) << endl
-          << *MATRIX_RELT( m, 2, 1 ) << " " << *MATRIX_RELT( m, 2, 2 ) << " " << *MATRIX_RELT( m, 2, 3 ) << " " << *MATRIX_RELT( m, 2, 4 ) << endl
-          << *MATRIX_RELT( m, 3, 1 ) << " " << *MATRIX_RELT( m, 3, 2 ) << " " << *MATRIX_RELT( m, 3, 3 ) << " " << *MATRIX_RELT( m, 3, 4 ) << endl
-          << *MATRIX_RELT( m, 4, 1 ) << " " << *MATRIX_RELT( m, 4, 2 ) << " " << *MATRIX_RELT( m, 4, 3 ) << " " << *MATRIX_RELT( m, 4, 4 ) << endl;
-      */
       MATRIX* m_inv = MatrixInverse( m, NULL );
       MATRIX* m2 = MatrixMultiply( m1, m_inv, NULL );
       
