@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/13 21:15:33 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/07/14 22:03:28 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,8 @@
 #include "vtkTransform.h"
 #include "vtkImageChangeInformation.h"
 #include "vtkMath.h"
+#include "vtkTransform.h"
+#include "vtkMatrix4x4.h"
 
 extern "C"
 {
@@ -1151,7 +1153,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
     {
       MATRIX* m_tmp = GetRotationMatrix( rotations[i].Plane, 
 					 rotations[i].Angle, 
-					 rotations[i].Point );
+           rotations[i].Point );
       MATRIX* m_tmp1 = MatrixMultiply( m_tmp, m_r, NULL );
 
       MatrixCopy( m_tmp1, m_r );
@@ -1237,7 +1239,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   return true;
 }
 
-
+/*
 MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
 {
   // calculate rotation matrix
@@ -1276,7 +1278,32 @@ MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
 
   return m;
 }
+*/
 
+MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
+{
+  // calculate rotation matrix
+  double p0[3] = { 0, 0, 0 }, p1[3] = { 0, 0, 0 };
+  p1[nPlane] = 1;
+  TargetToRAS( p0, p0 );
+  TargetToRAS( p1, p1 );
+  
+  vtkSmartPointer<vtkTransform> tr = vtkSmartPointer<vtkTransform>::New();
+  tr->Translate( origin );
+  tr->RotateWXYZ( angle, p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2] );
+  tr->Translate( -origin[0], -origin[1], -origin[2] );
+  tr->Update();
+
+  vtkSmartPointer<vtkMatrix4x4> m = vtkSmartPointer<vtkMatrix4x4>::New();
+  tr->GetTranspose( m );
+  
+  MATRIX* m_r = MatrixZero( 4, 4, NULL );
+  for ( int i = 0; i < 4; i++ )
+    for ( int j = 0; j < 4; j++ )
+      *MATRIX_RELT( m_r, i+1, j+1 ) = m->GetElement( i, j );
+  
+  return m_r;
+}
 
 void FSVolume::CopyMRIDataToImage( MRI* mri, 
 				   vtkImageData* image, 
@@ -1579,10 +1606,6 @@ void FSVolume::TargetToRAS( double x_in, double y_in, double z_in,
 void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
 {
   // if already resampled to standard RAS, no need to remap
-  /* if ( m_bResampleToRAS )
-    memcpy( pos_out, pos_in, sizeof( double ) * 3 );
-   else
-  */
   {
     double pos[4] = { 0 };
     double* vs = m_imageData->GetSpacing();
@@ -1600,6 +1623,29 @@ void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
       pos_out[i] = fpos[i];
     }
   }
+}
+
+MATRIX* FSVolume::GetTargetToRASMatrix()
+{
+  double* vs = m_imageData->GetSpacing();
+  double* origin = m_imageData->GetOrigin();
+  MATRIX* m = MatrixZero( 4, 4, NULL );
+  *MATRIX_RELT( m, 1, 1 ) = vs[0];
+  *MATRIX_RELT( m, 2, 2 ) = vs[1];
+  *MATRIX_RELT( m, 3, 3 ) = vs[2];
+  *MATRIX_RELT( m, 4, 4 ) = 1;
+  *MATRIX_RELT( m, 1, 4 ) = origin[0];
+  *MATRIX_RELT( m, 2, 4 ) = origin[1];
+  *MATRIX_RELT( m, 3, 4 ) = origin[2];
+  MATRIX* m_invert = MatrixInverse( m, NULL );
+  
+  MATRIX* v2r = MRIgetVoxelToRasXform( m_MRITarget );
+  MATRIX* t2r = MatrixMultiply( m_invert, v2r, NULL );
+  MatrixFree( &m );
+  MatrixFree( &v2r );
+  MatrixFree( &m_invert );
+  
+  return t2r;
 }
 
 void FSVolume::TargetToRAS( const float* pos_in, float* pos_out )

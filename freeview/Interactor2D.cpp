@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/07/14 22:03:28 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,7 +38,8 @@ Interactor2D::Interactor2D() : Interactor(),
     m_nMousePosY( -1 ),
     m_bWindowLevel( false ),
     m_bChangeSlice( false ),
-    m_bMovingCursor( false )
+    m_bMovingCursor( false ),
+    m_bSelecting( false )
 {}
 
 Interactor2D::~Interactor2D()
@@ -73,7 +74,10 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
     m_nDownPosY = m_nMousePosY;
 
     if ( event.ShiftDown() && !event.ControlDown() )
-      m_bWindowLevel = true;
+    {
+      m_bSelecting = true;
+      view->StartSelection( m_nMousePosX, m_nMousePosY );
+    }
     else
     {
       m_bMovingCursor = true;
@@ -97,14 +101,21 @@ bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
+  if ( m_bSelecting )
+  {
+    view->StopSelection();
+    view->NeedRedraw();
+  }
+  
   m_nMousePosX = event.GetX();
   m_nMousePosY = event.GetY();
   m_bWindowLevel = false;
   m_bChangeSlice = false;
   m_bMovingCursor = false;
+  m_bSelecting = false;
 
   view->UpdateAnnotation();
-  view->UpdateCursor2D();
+  view->Update2DOverlay();
 
   if ( event.LeftUp() )
   {
@@ -177,12 +188,17 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
     m_nMousePosX = posX;
     m_nMousePosY = posY;
   }
+  else if ( m_bSelecting )
+  {
+    view->UpdateSelection( posX, posY );   
+    view->NeedRedraw();
+  }
   else
   {
     if ( event.MiddleIsDown() || event.RightIsDown() )
     {
       view->UpdateAnnotation();
-      view->UpdateCursor2D();
+      view->Update2DOverlay();
       if ( event.RightIsDown() )
         view->SendBroadcast( "Zooming", view );
     }
@@ -199,7 +215,7 @@ void Interactor2D::ProcessPostMouseWheelEvent( wxMouseEvent& event, RenderView* 
 {
   RenderView2D* view = ( RenderView2D* )renderview;
   view->UpdateAnnotation();
-  view->UpdateCursor2D();
+  view->Update2DOverlay();
   view->NeedRedraw();
   view->SendBroadcast( "Zooming", view );
 
@@ -211,7 +227,7 @@ void Interactor2D::ProcessPostMouseMoveEvent( wxMouseEvent& event, RenderView* r
   RenderView2D* view = ( RenderView2D* )renderview;
   if ( event.RightIsDown() )
   {
-    view->UpdateCursor2D();
+    view->Update2DOverlay();
     view->NeedRedraw();
   }
 
