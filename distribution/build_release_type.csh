@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.128 2009/07/09 19:12:01 krish Exp $'
+set ID='$Id: build_release_type.csh,v 1.129 2009/07/14 19:40:53 krish Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -407,7 +407,7 @@ autoconf --version >>& $OUTPUTF
 autoconf >>& $OUTPUTF
 echo "CMD: automake" >>& $OUTPUTF
 automake --version >>& $OUTPUTF
-automake >>& $OUTPUTF
+automake -a >>& $OUTPUTF
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED after automake"
   tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
