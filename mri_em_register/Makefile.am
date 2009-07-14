@@ -13,12 +13,12 @@ mri_em_register_LDFLAGS=$(OS_LDFLAGS)
 ## ----
 ## CUDA
 ## ----
-# rules for building cuda files
-.cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
 
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
+# rules for building cuda files
+.cu.o:
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
 bin_PROGRAMS += mri_em_register_cuda
 mri_em_register_cuda_SOURCES = mri_em_register_cuda.c \
 computelogsampleprob.cu findoptimaltransform.cu findoptimaltranslation.cu
