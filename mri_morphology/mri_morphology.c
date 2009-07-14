@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/02/05 13:44:12 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/07/14 13:58:40 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,12 +58,14 @@ char *Progname ;
 #define MODE_FILTER    6
 #define ERODE_THRESH   7
 #define DILATE_THRESH  8
+#define ERODE_BOTTOM   9
 
 
 static void usage_exit(int code) ;
 
 static int label = -1 ;
 
+MRI *MRIerodeBottom(MRI *mri_src, int label, MRI *mri_dst) ;
 
 static MRI *mri_mask = NULL ;
 int
@@ -75,7 +77,7 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.11 2009/02/05 13:44:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_morphology.c,v 1.12 2009/07/14 13:58:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -119,6 +121,8 @@ main(int argc, char *argv[]) {
     operation = OPEN ;
   else  if (!stricmp(argv[2], "mode"))
     operation = OPEN ;
+  else  if (!stricmp(argv[2], "erode_bottom"))
+    operation = ERODE_BOTTOM ;
   else {
     operation = 0 ;
     ErrorExit(ERROR_UNSUPPORTED, "morphological operation '%s'  is not supported", argv[2]) ;
@@ -148,6 +152,11 @@ main(int argc, char *argv[]) {
     mri_dst = MRImodeFilter(mri_src, NULL, niter) ;
     break ;
   }
+  case ERODE_BOTTOM:
+    if (label < 0)
+      ErrorExit(ERROR_BADPARM, "%s: must specify label with -l <label>", Progname) ;
+    mri_dst = MRIerodeBottom(mri_src, label, NULL) ;
+    break ;
   case DILATE:
     mri_dst = NULL ;
     for (i = 0 ; i < niter ; i++) {
@@ -229,7 +238,7 @@ main(int argc, char *argv[]) {
   default:
     break ;
   }
-  if (label > 0)
+  if ((label > 0) && (operation != ERODE_BOTTOM))
   {
     MRIreplaceValues(mri_saved_src, mri_saved_src, label, 0) ;
     MRIcopyLabel(mri_dst, mri_saved_src, label) ;
@@ -269,7 +278,13 @@ get_option(int argc, char *argv[]) {
       exit(Gerror) ;
     nargs = 1 ;
   }
-  else switch (toupper(*option)) {
+  else if (!stricmp(option, "DEBUG_VOXEL")) {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
+  } else switch (toupper(*option)) {
   case 'L':
     label = atoi(argv[2]) ;
     nargs = 1 ;
@@ -299,5 +314,38 @@ usage_exit(int code) {
   printf("\tvalid options are:\n") ;
   printf("\t-l <label>  only apply operations to <label> instead of all nonzero voxels\n") ;
   exit(code) ;
+}
+
+MRI *
+MRIerodeBottom(MRI *mri_src, int label, MRI *mri_dst)
+{
+  int  neroded, x, y, z, olabel ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+
+  do
+  {
+    neroded = 0 ;
+    for (y = mri_dst->height-1 ; y  >= 0 ; y--)
+      for (x = 0 ; x < mri_dst->width ; x++)
+        for (z = 0 ; z < mri_dst->depth ; z++)
+        {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+          olabel = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
+          if (olabel ==  label)
+          {
+            if (MRIgetVoxVal(mri_dst, x, y-1, z, 0) == label)
+            {
+              neroded++ ;
+              MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+            }
+          }
+          else if (olabel > 0)
+            MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+        }
+  } while (neroded > 0) ;
+  return(mri_dst) ;
 }
 
