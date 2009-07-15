@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/15 17:47:38 $
- *    $Revision: 1.58 $
+ *    $Date: 2009/07/15 20:04:19 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2009/07/15 17:47:38 $
-// Revision       : $Revision: 1.58 $
+// Revision Date  : $Date: 2009/07/15 20:04:19 $
+// Revision       : $Revision: 1.59 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -217,12 +217,12 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.58 2009/07/15 17:47:38 fischl Exp $", "$Name:  $",
+   "$Id: mri_ms_fitparms.c,v 1.59 2009/07/15 20:04:19 fischl Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_ms_fitparms.c,v 1.58 2009/07/15 17:47:38 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_ms_fitparms.c,v 1.59 2009/07/15 20:04:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -476,9 +476,9 @@ main(int argc, char *argv[]) {
 
     printf("using %d FLASH volumes to estimate tissue parameters.\n",
            nvolumes) ;
-    mri_T1 = MRIclone(mri_flash[0], NULL) ;
-    mri_PD = MRIclone(mri_flash[0], NULL) ;
-    mri_sse = MRIclone(mri_flash[0], NULL) ;
+    mri_T1 = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
+    mri_PD = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
+    mri_sse = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
 
     if (use_outside_reg == 0) {
       for (j=0;j<nvolumes;j++)
@@ -1333,6 +1333,8 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         MRIsampleVolume(mri_faf, xf, yf, zf, &faf_scale) ;
+        if (FZERO(faf_scale))
+          faf_scale = .1 ;
 #if 0
         faf_scale = MRIgetVoxVal(mri_faf,  x, y, z, 0);/*faf_scale = 1 ;*/
 #endif
@@ -2385,15 +2387,24 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
             mri = mri_flash[i] ;
             K = FLASHforwardModel(faf_scale * mri->flip_angle, mri->tr, 1, T1) * exp(-mri->te/T2star) ;
             S = MRIgetVoxVal(mri, x, y, z, 0) ;
+            if (DZERO(K))
+              continue ;
             PD += S / K ;
           }
           PD /= nvolumes ;
+          if (devFinite(PD) == 0)
+            DiagBreak() ;
+          if (devIsnan(PD))
+            DiagBreak() ;
+          if (isnan(PD))
+            DiagBreak() ;
           if (mri_PD) {
             MRIsetVoxVal(mri_PD, x, y, z, 0, PD) ;
           }
         }
       }
     }
+    MRIremoveNaNs(mri_PD, mri_PD) ;
     VectorFree(&v1) ; VectorFree(&v2) ; 
     MatrixFree(&m_vox2vox) ;
   }
