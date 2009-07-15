@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/06/26 19:45:00 $
- *    $Revision: 1.263 $
+ *    $Date: 2009/07/15 18:48:21 $
+ *    $Revision: 1.264 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -18068,7 +18068,7 @@ GCAapplyRenormalization(GCA *gca, float *label_scales, float *label_offsets,int 
     {
       for (zn = 0 ; zn < gca->node_depth ; zn++)
       {
-        if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+        if (xn == Gx && yn == Gy && zn == Gz)
           DiagBreak() ;
         gcan = &gca->nodes[xn][yn][zn] ;
         if (gcan->nlabels <= 0)
