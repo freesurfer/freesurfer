@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/05/15 18:32:34 $
- *    $Revision: 1.158 $
+ *    $Author: greve $
+ *    $Date: 2009/07/15 18:52:28 $
+ *    $Revision: 1.159 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,13 +64,14 @@ int ncutends = 0, cutends_flag = 0;
 
 int slice_crop_flag = FALSE;
 int slice_crop_start, slice_crop_stop;
+int SplitFrames=0;
 
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs = 0;
   MRI *mri_unwarped;
   MRI *mri, *mri2, *template, *mri_in_like;
-  int i;
+  int i,err=0;
   int reorder_vals[3];
   float invert_val;
   int in_info_flag, out_info_flag;
@@ -103,6 +104,7 @@ int main(int argc, char *argv[]) {
   char in_orientation_string[STRLEN];
   int  out_orientation_flag = FALSE;
   char out_orientation_string[STRLEN];
+  char tmpstr[STRLEN], *stem, *ext;
   char ostr[4] = {'\0','\0','\0','\0'};
   char *errmsg = NULL;
   int in_tr_flag = 0;
@@ -190,7 +192,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.158 2009/05/15 18:32:34 nicks Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.159 2009/07/15 18:52:28 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -295,7 +297,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.158 2009/05/15 18:32:34 nicks Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.159 2009/07/15 18:52:28 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -384,6 +386,8 @@ int main(int argc, char *argv[]) {
       out_matrix_flag = TRUE;
     else if(strcmp(argv[i], "--force_ras_good") == 0)
       force_ras_good = TRUE;
+    else if(strcmp(argv[i], "--split") == 0)
+      SplitFrames = TRUE;
     // transform related things here /////////////////////
     else if(strcmp(argv[i], "-at") == 0 ||
             strcmp(argv[i], "--apply_transform") == 0 ||
@@ -1307,7 +1311,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.158 2009/05/15 18:32:34 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.159 2009/07/15 18:52:28 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2346,17 +2350,38 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
   if (!no_write_flag) {
-    printf("writing to %s...\n", out_name);
-    if (force_out_type_flag) {
-      if (MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR) {
-        printf("ERROR: failure writing %s as volume type %d\n",
-               out_name,out_volume_type);
-        exit(1);
+    if(! SplitFrames) {
+      printf("writing to %s...\n", out_name);
+      if (force_out_type_flag) {
+	err = MRIwriteType(mri, out_name, out_volume_type);
+	if (err != NO_ERROR) {
+	  printf("ERROR: failure writing %s as volume type %d\n",
+		 out_name,out_volume_type);
+	  exit(1);
+	}
+      } else {
+	err = MRIwrite(mri, out_name);
+	if (err != NO_ERROR) {
+	  printf("ERROR: failure writing %s\n",out_name);
+	  exit(1);
+	}
       }
-    } else {
-      if (MRIwrite(mri, out_name) != NO_ERROR) {
-        printf("ERROR: failure writing %s\n",out_name);
-        exit(1);
+    }
+    else {
+      stem = IDstemFromName(out_name);
+      ext = IDextensionFromName(out_name);
+
+      printf("Splitting frames, stem = %s, ext = %s\n",stem,ext);
+      mri2 = NULL;
+      for(i=0; i < mri->nframes; i++){
+	mri2 = MRIcopyFrame(mri, mri2, i, 0);
+	sprintf(tmpstr,"%s%04d.%s",stem,i,ext);
+	printf("%2d %s\n",i,tmpstr);
+	err = MRIwrite(mri2, tmpstr);
+	if (err != NO_ERROR) {
+	  printf("ERROR: failure writing %s\n",tmpstr);
+	  exit(1);
+	}
       }
     }
   }
@@ -2708,6 +2733,9 @@ void usage(FILE *stream) {
   printf("  -sn, --subject_name\n");
   printf("  -rl, --reslice_like\n");
   printf("  -tt, --template_type <type> (see above)\n");
+  printf("  --split : split output frames into separate output files.\n");
+  printf("    Example: mri_convert a.nii b.nii --split will\n");
+  printf("    create b0000.nii b0001.nii b0002.nii ...\n");
   printf("  -f,  --frame frameno : keep only 0-based frame number\n");
   printf("  --mid-frame : keep only the middle frame\n");
   printf("  --nskip n : skip the first n frames\n");
