@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/12 21:50:10 $
- *    $Revision: 1.77 $
+ *    $Date: 2009/07/15 19:02:56 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.77 2008/12/12 21:50:10 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.78 2009/07/15 19:02:56 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -439,6 +439,7 @@ int RevFaceOrder = 0;
 char *RMSDatFile = NULL;
 char *RMSMaskFile = NULL;
 MRI *RMSMask = NULL;
+int SplitFrames=0;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -454,10 +455,11 @@ int main(int argc, char **argv) {
   double area, a0, a1, a2, d, dmin, dmax, dsum;
   COLOR_TABLE *ctab=NULL;
   LABEL *MaskLabel;
-  MRI *mask = NULL;
+  MRI *mask = NULL, *mri2=NULL;
+  char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.77 2008/12/12 21:50:10 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.78 2009/07/15 19:02:56 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -949,14 +951,31 @@ int main(int argc, char **argv) {
       TrgVals = mritmp;
     }
     if(DoNormVar) NormVar(TrgVals, NULL);
-    err = MRIwriteType(TrgVals,trgvalfile,trgtype);
-    if(err){
-      printf("ERROR: writing %s\n",trgvalfile);
-      exit(1);
+    if(! SplitFrames) {
+      err = MRIwriteType(TrgVals,trgvalfile,trgtype);
+      if(err){
+	printf("ERROR: writing %s\n",trgvalfile);
+	exit(1);
+      }
+      if (is_sxa_volume(srcvalfile)) sv_sxadat_by_stem(sxa,trgvalfile);
     }
-    if (is_sxa_volume(srcvalfile)) sv_sxadat_by_stem(sxa,trgvalfile);
+    else {
+      stem = IDstemFromName(trgvalfile);
+      ext = IDextensionFromName(trgvalfile);
+      printf("Splitting frames, stem = %s, ext = %s\n",stem,ext);
+      mri2 = NULL;
+      for(f=0; f < TrgVals->nframes; f++){
+	mri2 = MRIcopyFrame(TrgVals, mri2, f, 0);
+	sprintf(tmpstr,"%s%04d.%s",stem,f,ext);
+	printf("%2d %s\n",f,tmpstr);
+	err = MRIwrite(mri2, tmpstr);
+	if (err != NO_ERROR) {
+	  printf("ERROR: failure writing %s\n",tmpstr);
+	  exit(1);
+	}
+      }
+    }
   }
-
   return(0);
 }
 /* --------------------------------------------- */
@@ -999,6 +1018,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ones"))      SynthOnes = 1;
     else if (!strcasecmp(option, "--jac"))       jac = 1;
     else if (!strcasecmp(option, "--norm-var"))  DoNormVar = 1;
+    else if (!strcasecmp(option, "--split")) SplitFrames = 1;
     else if (!strcasecmp(option, "--no-rev-face-order")) OKToRevFaceOrder = 0;
 
     else if (!strcmp(option, "--seed")) {
@@ -1330,6 +1350,7 @@ static void print_usage(void) {
 
   printf("   --reshape  reshape output to multiple 'slices'\n");
   printf("   --reshape-factor Nfactor : reshape to Nfactor 'slices'\n");
+  printf("   --split : output each frame separately\n");
   printf("   --synth : replace input with WGN\n");
   printf("   --ones  : replace input with 1s\n");
   printf("   --normvar : rescale so that stddev=1 (good with --synth)\n");
