@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/17 15:23:19 $
- *    $Revision: 1.57 $
+ *    $Date: 2009/07/15 17:47:38 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2009/03/17 15:23:19 $
-// Revision       : $Revision: 1.57 $
+// Revision Date  : $Date: 2009/07/15 17:47:38 $
+// Revision       : $Revision: 1.58 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -80,6 +80,7 @@ static double momentum = 0.9 ;
 static int debug_slice = -1 ;
 static int correct_PD = 0 ;
 static int synth_flag = 1 ;
+static double flip_angle_scale = -1 ;
 
 static double max_T2star = 1000 ;
 
@@ -91,6 +92,7 @@ char *Progname ;
 static void usage_exit(int code) ;
 
 static MRI *mri_faf = NULL ;
+static float faf_sigma = -1 ;
 
 #if 0
 static int nfaf = 0 ;        /* # of coefficients in fourier
@@ -176,7 +178,7 @@ average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash,
     MATRIX **M_reg);
 
 static MRI *estimate_T2star(MRI **mri_all_flash, int nvolumes, MRI *mri_PD,
-                            MATRIX **Mreg, LTA *lta) ;
+                            MATRIX **Mreg, LTA *lta, MRI *mri_T1) ;
 static MRI *compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
                                MATRIX **Mreg, LTA *lta) ;
 
@@ -215,12 +217,12 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.57 2009/03/17 15:23:19 fischl Exp $", "$Name:  $",
+   "$Id: mri_ms_fitparms.c,v 1.58 2009/07/15 17:47:38 fischl Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_ms_fitparms.c,v 1.57 2009/03/17 15:23:19 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_ms_fitparms.c,v 1.58 2009/07/15 17:47:38 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -243,6 +245,15 @@ main(int argc, char *argv[]) {
     usage_exit(1) ;
 
   out_dir = argv[argc-1] ;
+
+  if (faf_sigma > 0)
+  {
+    MRI *mri_kernel, *mri_tmp ;
+    mri_kernel = MRIgaussian1d(faf_sigma, 0) ;
+    mri_tmp = MRIconvolveGaussian(mri_faf, NULL, mri_kernel) ;
+    MRIfree(&mri_faf) ; mri_faf = mri_tmp ;
+    MRIfree(&mri_kernel) ;
+  }
 
   for (i = 0 ; i < MAX_IMAGES ; i++) {
     M_reg[i] = NULL;
@@ -285,6 +296,9 @@ main(int argc, char *argv[]) {
       MRIscalarMul(mri_flash[nvolumes], mri_flash[nvolumes], scale) ;
     mri_flash[nvolumes]->register_mat =
       MRIgetVoxelToRasXform(mri_flash[nvolumes]);
+
+    if (flip_angle_scale > 0)
+      mri_flash[nvolumes]->flip_angle *= flip_angle_scale ;
 
     if (tr > 0) {
       mri_flash[nvolumes]->tr = tr ;
@@ -643,7 +657,6 @@ main(int argc, char *argv[]) {
         useVolGeomToMRI(&Glta->xforms[0].dst, mri_T1) ;
       MRIaddCommandLine(mri_T1, cmdline) ;
       MRIwrite(mri_T1, fname) ;
-      MRIfree(&mri_T1) ;
 
       sprintf(fname,"%s/sse.mgz",out_dir);
       printf("writing residual sse to %s...\n", fname) ;
@@ -692,7 +705,8 @@ main(int argc, char *argv[]) {
     }
   }
   mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_PD,
-                               M_reg, Glta) ;
+                               M_reg, Glta, mri_T1) ;
+  MRIfree(&mri_T1) ;
   if (mri_T2star) {
     resetTRTEFA(mri_T2star, TR, TE, FA);
     if  (correct_PD && nvolumes > 1) {
@@ -745,6 +759,10 @@ get_option(int argc, char *argv[]) {
     synth_flag = 1 ;
     printf("disabling volume synthesis\n") ;
     niter = 0 ;
+  } else if (!stricmp(option, "fa_scale")) {
+    flip_angle_scale = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("scaling all flip angles by %2.2f\n", flip_angle_scale) ;
   } else if (!stricmp(option, "dt")) {
     base_dt = atof(argv[2]) ;
     nargs = 1 ;
@@ -856,6 +874,50 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "noconform")) {
     conform = 0 ;
     printf("inhibiting isotropic volume interpolation\n") ;
+  } else if (!stricmp(option, "fsmooth")) {
+    faf_sigma = atof(argv[2]) ;
+    printf("smoothing flip angle map with sigma=%2.3f\n", faf_sigma) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "afi")) {
+    double nominal_fa ;
+
+    nargs = 1 ;
+    nominal_fa = 60 ;
+    printf("using flip angle map %s with nominal value %2.1f degrees\n",
+           argv[2],nominal_fa) ;
+    mri_faf = MRIread(argv[2]) ;
+    if (!mri_faf)
+      ErrorExit(ERROR_NOFILE, "%s: could not read flip angle gain "
+                "field from %s\n", argv[2]) ;
+    if (mri_faf->type != MRI_FLOAT)
+    {
+      MRI *mri_tmp  ;
+      mri_tmp = MRIchangeType(mri_faf, MRI_FLOAT, 0, 1, 1) ;
+      MRIcopyHeader(mri_faf, mri_tmp) ;
+      MRIfree(&mri_faf) ;
+      mri_faf = mri_tmp ;
+    }
+    MRIscalarMul(mri_faf, mri_faf, 1.0/nominal_fa) ;
+  } else if (!stricmp(option, "fam")) {
+    double nominal_fa ;
+
+    nargs = 2 ;
+    nominal_fa = atof(argv[3]) ;
+    printf("using flip angle map %s with nominal value %2.1f degrees\n",
+           argv[2],nominal_fa) ;
+    mri_faf = MRIread(argv[2]) ;
+    if (!mri_faf)
+      ErrorExit(ERROR_NOFILE, "%s: could not read flip angle gain "
+                "field from %s\n", argv[2]) ;
+    if (mri_faf->type != MRI_FLOAT)
+    {
+      MRI *mri_tmp  ;
+      mri_tmp = MRIchangeType(mri_faf, MRI_FLOAT, 0, 1, 1) ;
+      MRIcopyHeader(mri_faf, mri_tmp) ;
+      MRIfree(&mri_faf) ;
+      mri_faf = mri_tmp ;
+    }
+    MRIscalarMul(mri_faf, mri_faf, 1.0/nominal_fa) ;
   } else if (!stricmp(option, "faf")) {
 #if 1
     MRI *mri_v, *mri_kernel, *mri_ctrl ;
@@ -1141,8 +1203,10 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
         MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
 
         PD = norm/SignalTableNorm[best_indx];
+#if 0
         if ((short)PD < 0)
           PD = (double)(0x7fff-1) ;
+#endif
         MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
         if (mri_flash_synth) {
           for (j = 0 ; j < nvolumes ; j++) {
@@ -1203,9 +1267,14 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
   int      nstep=11, step[11]={1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
   MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], *voxvec1, *voxvec2, \
-  *rasvec1, *rasvec2;
+           *rasvec1, *rasvec2, *m_vox2vox;
   double   x0, y0,  z0, w0x, w0y, w0z, faf_scale ;
+  VECTOR   *v1, *v2 ;
 
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_flash[0], mri_faf) ;
   x0 = width/2 ;
   y0 = height/2 ;
   z0 = depth/2 ;
@@ -1258,7 +1327,15 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
         center_indx = -1;
         best_se = 10000000;
         nevals = 0;
+        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xf = V3_X(v2) ; yf = V3_Y(v2) ; zf = V3_Z(v2) ; 
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        MRIsampleVolume(mri_faf, xf, yf, zf, &faf_scale) ;
+#if 0
         faf_scale = MRIgetVoxVal(mri_faf,  x, y, z, 0);/*faf_scale = 1 ;*/
+#endif
         for (stepindx=0; stepindx<nstep; stepindx++) {
           for (indx=min_indx; indx<=max_indx; indx+=step[stepindx])
             if (indx!=center_indx) {
@@ -1299,8 +1376,12 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
 
         T1 = SignalTableT1[best_indx];
         MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
-
+#define RECIPROCITY 1
+#if RECIPROCITY
         PD = (inorm/SignalTableNorm[best_indx])/faf_scale;
+#else
+        PD = (inorm/SignalTableNorm[best_indx]);
+#endif
         if ((mri_PD->type == MRI_SHORT) && ((short)PD < 0))
           PD = (double)(0x7fff-1) ;
         MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
@@ -1324,6 +1405,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
       }
   }
   total_sse = sqrt(total_sse / (double)(width*height*depth*nvolumes)) ;
+  MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
   return(total_sse) ;
 }
 
@@ -1464,8 +1546,10 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth,
     MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
 
     PD = norm/SignalTableNorm[best_indx];
+#if 0
     if ((short)PD < 0)
       PD = (double)(0x7fff-1) ;
+#endif
     MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
     for (j = 0 ; j < nvolumes ; j++) {
       mri = mri_flash_synth[j] ;
@@ -1666,8 +1750,10 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
 
           FAk = MRIFvox(mri_fa, x, y, z) = SignalTableFAk[best_FA_indx];
           PD = norm/SignalTableNorm[best_T1_indx][best_FA_indx];
+#if 0
           if ((short)PD < 0)
             PD = (double)(0x7fff-1) ;
+#endif
           MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
           for (k = 0 ; k < nvolumes ; k++) {
             mri = mri_flash_synth[k] ;
@@ -2211,11 +2297,11 @@ average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash,
 
 static MRI *
 estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
-                MATRIX **Mreg, LTA *lta) {
+                MATRIX **Mreg, LTA *lta, MRI *mri_T1) {
   int    i, j, nechoes, processed[MAX_IMAGES], nprocessed, x, y,\
   z, different_te, width, depth, height ;
   MRI    *mri_T2star = NULL ;
-  double decay, T2star ;
+  double T2star ;
   Real   PD = 10 ;
 
   /* first decide whether T2* can be estimated at all */
@@ -2253,6 +2339,17 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
 
   /* now update PD map to take out T2* component */
   if (correct_PD) {
+    VECTOR *v1, *v2 ;
+    MATRIX *m_vox2vox ;
+    double T1, faf_scale, xf, yf, zf, S, K ;
+    MRI    *mri ;
+    int    i ;
+
+    v1 = VectorAlloc(4, MATRIX_REAL) ;
+    v2 = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
+    if (mri_faf)
+      m_vox2vox = MRIgetVoxelToVoxelXform(mri_flash[0], mri_faf) ;
     width = mri_T2star->width ;
     height = mri_T2star->height ;
     depth = mri_T2star->depth ;
@@ -2269,16 +2366,36 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
           T2star = MRIgetVoxVal(mri_T2star, x, y, z, 0) ;
           if (FZERO(T2star))
             continue ;
-          for (i = 0, decay = 0.0 ; i < nvolumes ; i++)
-            decay += exp(-mri_flash[i]->te / T2star) ;
-          decay /= (float)nvolumes ;
+          
+          T1 = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
+          if (mri_faf == NULL)
+            faf_scale = 1.0 ;
+          else
+          {
+            V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+            MatrixMultiply(m_vox2vox, v1, v2) ;
+            xf = V3_X(v2) ; yf = V3_Y(v2) ; zf = V3_Z(v2) ; 
+            MRIsampleVolume(mri_faf, xf, yf, zf, &faf_scale) ;
+          }
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+          PD = 0.0 ;
+          for (i = 0 ; i < nvolumes ; i++)
+          {
+            mri = mri_flash[i] ;
+            K = FLASHforwardModel(faf_scale * mri->flip_angle, mri->tr, 1, T1) * exp(-mri->te/T2star) ;
+            S = MRIgetVoxVal(mri, x, y, z, 0) ;
+            PD += S / K ;
+          }
+          PD /= nvolumes ;
           if (mri_PD) {
-            PD /= decay ;
             MRIsetVoxVal(mri_PD, x, y, z, 0, PD) ;
           }
         }
       }
     }
+    VectorFree(&v1) ; VectorFree(&v2) ; 
+    MatrixFree(&m_vox2vox) ;
   }
 
   return(mri_T2star) ;
