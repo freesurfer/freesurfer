@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/11/26 23:25:07 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/07/15 20:15:05 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,10 +79,11 @@ Smooth by fwhm mm before estimating the fwhm. This is mainly good for
 debuggging. But with --out can also be used to smooth data on the
 surface (but might be better to use mri_surf2surf for this).
 
---niters-only
+--niters-only <nitersfile>
 
 Only report the number of iterations needed to achieve the FWHM given
-by fwhm.
+by fwhm. If nitersfile is specified, the number of iterations is 
+written to the file.
 
 --out outfile
 
@@ -144,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.15 2007/11/26 23:25:07 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.16 2009/07/15 20:15:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -183,6 +184,7 @@ char *ar1fname = NULL;
 
 int FixGroupAreaTest(MRIS *surf, char *outfile);
 char *GroupAreaTestFile = NULL;
+char *nitersfile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -253,6 +255,11 @@ int main(int argc, char *argv[]) {
   if(nitersonly && infwhm > 0) {
     niters = MRISfwhm2niters(infwhm,surf);
     printf("niters %d\n",niters);
+    if(nitersfile){
+      fp = fopen(nitersfile,"w");
+      fprintf(fp,"%d\n",niters);
+      fclose(fp);
+    }
     exit(0);
   }
 
@@ -388,8 +395,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
     else if (!strcasecmp(option, "--niters-only")){
       nitersonly = 1; synth = 1;
+      if(nargc > 0 && !CMDisFlag(pargv[0])){
+        nitersfile = pargv[0];
+        nargsused++;
+      }
     }
-
     else if (!strcasecmp(option, "--s") || !strcasecmp(option, "--subject")) {
       if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
@@ -492,7 +502,7 @@ static void print_usage(void) {
   printf("   --ar1 ar1vol : save spatial ar1 as an overlay\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
-  printf("   --niters-only : only report on niters for fwhm\n");
+  printf("   --niters-only <niters> : only report on niters for fwhm\n");
   printf("   --o output\n");
   printf("\n");
   printf("   --synth \n");
