@@ -5,9 +5,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:36 $
- *    $Revision: 1.19 $
+ *    $Author: greve $
+ *    $Date: 2009/07/15 18:47:42 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,6 +49,7 @@ int mri_identify(const char *fname);
 int   IDtypeFromStem(const char *stem);
 char *IDnameFromStem(const char *stem);
 char *IDstemFromName(const char *name);
+char *IDextensionFromName(const char *name);
 
 int is_cor(const char *fname);
 int is_genesis(const char *fname);

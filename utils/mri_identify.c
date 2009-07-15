@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:52 $
- *    $Revision: 1.67 $
+ *    $Author: greve $
+ *    $Date: 2009/07/15 18:47:42 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -487,6 +487,53 @@ char *IDstemFromName(const char *name)
 
   //Quietly return
   //printf("ERROR: cannot determine stem from %s\n",name);
+
+  return(NULL);
+}
+
+/*
+  \fn int IDextensionFromName(char *stem)
+  \brief Returns the file extension by looking for various extensions.
+*/
+char *IDextensionFromName(const char *name)
+{
+  int len;
+  char *ext;
+
+  len = strlen(name);
+  if(len < 3) return(NULL); // cant be right
+
+  ext = (char *) calloc(20,sizeof(char));
+
+  // Does not do .w
+
+  // Try extensions of length 3
+  if(len < 5) return(NULL); // cant be right
+  ext = strncpy(ext,&(name[len-3]),3);
+  if(!strcmp(ext,"nii") || !strcmp(ext,"mgz") || 
+     !strcmp(ext,"mgh") || !strcmp(ext,"img")) return(ext);
+
+  // Try extensions of length 4
+  if(len < 6) return(NULL); // cant be right
+  ext = strncpy(ext,&(name[len-4]),4);
+  if(!strcmp(ext,"bhdr")) return(ext);
+
+  // Try extensions of length 6
+  if(len < 8) return(NULL); // cant be right
+  ext = strncpy(ext,&(name[len-6]),6);
+  if(!strcmp(ext,"nii.gz")) return(ext);
+
+  // Try _000.bfloat and _000.short
+  if(len < 12) return(NULL); // cant be right
+  ext = strncpy(ext,&(name[len-11]),11);
+  if(!strcmp(ext,"_000.bfloat")){
+    sprintf(ext,"bfloat");
+    return(ext);
+  }
+  if(!strcmp(ext,"_000.bshort")){
+    sprintf(ext,"bshort");
+    return(ext);
+  }
 
   return(NULL);
 }
