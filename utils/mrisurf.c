@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/07/08 21:29:04 $
- *    $Revision: 1.629 $
+ *    $Author: fischl $
+ *    $Date: 2009/07/15 02:16:51 $
+ *    $Revision: 1.630 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.629 2009/07/08 21:29:04 greve Exp $");
+  return("$Id: mrisurf.c,v 1.630 2009/07/15 02:16:51 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -32778,9 +32778,9 @@ MRISexpandSurface(MRI_SURFACE *mris,
       mrisWriteSnapshot(mris, parms, 0) ;
     mrisClearMomentum(mris) ;
     if (use_thick)  // distance is a % of the total thickness
-      niter = 3*nint(distance*3.5 / MAX_EXP_MM) ;
+      niter = 3*nint(fabs(distance)*3.5 / MAX_EXP_MM) ;
     else
-      niter = 3*nint(distance / MAX_EXP_MM) ;
+      niter = 3*nint(fabs(distance) / MAX_EXP_MM) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     avgs = parms->n_averages ;
     if (Gdiag_no >= 0)
