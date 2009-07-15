@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/14 22:03:28 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/07/15 20:46:06 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -466,5 +466,34 @@ void RenderView2D::UpdateSelection( int nX, int nY )
 void RenderView2D::StopSelection()
 {
   m_selection2D->Show( false );
+  
+  std::vector<Layer*> layers = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetLayers();
+  LayerMRI* layer = NULL;
+  for ( size_t i = 0; i < layers.size(); i++ )
+  {
+    layer = ( LayerMRI*)layers[i];
+    if ( layer->IsVisible() && layer->GetProperties()->GetColorMap() != LayerPropertiesMRI::LUT )
+      break;
+  }
+  
+  if ( layer )
+  {
+    double range[2];
+    if ( layer->GetVoxelValueRange( m_selection2D->m_dPt0, m_selection2D->m_dPt2, m_nViewPlane, range ) )
+    {
+      switch ( layer->GetProperties()->GetColorMap() )
+      {
+        case LayerPropertiesMRI::Heat:
+          layer->GetProperties()->SetHeatScale( range[0], (range[1]-range[0])/2, range[1] );
+          break;
+        case LayerPropertiesMRI::Jet:
+          layer->GetProperties()->SetMinMaxJetScaleWindow( range[0], range[1] );
+          break;
+        default:   
+          layer->GetProperties()->SetMinMaxGrayscaleWindow( range[0], range[1] );
+          break;
+      }
+    }
+  }
 }
 

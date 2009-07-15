@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 19:04:44 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/07/15 20:46:06 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -127,7 +127,9 @@ public:
 
   void GetRASCenter( double* pt );
   
-  virtual bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+  virtual bool Rotate( std::vector<RotationElement>& rotations, 
+                       wxWindow* wnd, 
+                       wxCommandEvent& event );
   
   void SetReorient( bool bReorient );
   
@@ -136,6 +138,9 @@ public:
     m_nSampleMethod = nSampleMethod;
   }
 
+  bool GetVoxelValueRange( const double* pt0, const double* pt1, 
+                           int nPlane, double* range_out );
+  
 protected:
   virtual void SetModified();
 

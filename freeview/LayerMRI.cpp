@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/13 21:15:33 $
- *    $Revision: 1.30 $
+ *    $Date: 2009/07/15 20:46:06 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1243,4 +1243,54 @@ void LayerMRI::GetRASCenter( double* rasPt )
 void LayerMRI::UpdateVoxelValueRange( double dValue )
 {
   mProperties->UpdateValueRange( dValue );
+}
+
+// Get voxel value range of a selected rectangle region defined by pt0, pt1
+bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPlane, double* range_out )
+{
+  double* orig = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  int* dim = m_imageData->GetDimensions();
+  
+  if ( nPlane < 0 || nPlane >= dim[nPlane] )
+    return false;
+  
+  // find the index range of the selection
+  int n0[3] = { 10000000, 10000000, 10000000 }, 
+      n1[3] = { -10000000, -10000000, -10000000 };
+  n0[nPlane] = n1[nPlane] = (int)( ( pt0[nPlane] - orig[nPlane] ) / voxel_size[nPlane] + 0.5 ); 
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( i != nPlane )
+    {
+      int p0 = (int)( ( pt0[i] - orig[i] ) / voxel_size[i] + 0.5 ); 
+      int p1 = (int)( ( pt1[i] - orig[i] ) / voxel_size[i] + 0.5 ); 
+      p0 = max( 0, min( dim[i]-1, p0 ) );
+      p1 = max( 0, min( dim[i]-1, p1 ) );
+      n0[i] = min( p0, min( p1, n0[i] ) );
+      n1[i] = max( p0, max( p1, n0[i] ) );
+
+    }
+  }
+  
+  int nActiveComp = GetActiveFrame();
+  range_out[0] = m_imageData->GetScalarComponentAsDouble( n0[0], n0[1], n0[2], nActiveComp );
+  range_out[1] = range_out[0];
+  
+  for ( int i = n0[0]; i <= n1[0]; i++ )
+  {
+    for ( int j = n0[1]; j <= n1[1]; j++ )
+    {
+      for ( int k = n0[2]; k <= n1[2]; k++ )
+      {
+        double value = m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+        if ( range_out[0] > value )
+          range_out[0] = value;
+        if ( range_out[1] < value )
+          range_out[1] = value;
+      }
+    }
+  }
+  
+  return true;
 }

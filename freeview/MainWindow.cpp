@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/13 21:15:33 $
- *    $Revision: 1.59 $
+ *    $Date: 2009/07/15 20:46:06 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -566,7 +566,6 @@ void MainWindow::SaveVolume()
       fn += _(".mgz");
     }
     layer_mri->SetFileName( fn.char_str() );
-//    layer_mri->ResetModified();
     WorkerThread* thread = new WorkerThread( this );
     thread->SaveVolume( layer_mri );
   }
