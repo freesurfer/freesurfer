@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/06/09 19:33:05 $
- *    $Revision: 1.70 $
+ *    $Author: fischl $
+ *    $Date: 2009/07/16 14:21:33 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2938,9 +2938,9 @@ MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
             DiagBreak() ;
           if (x == 97 && y == 131 && z == 181 && i > 171)
             DiagBreak() ;
-          if (MRIvox(mri_label, x, y, z) == label)
+          if (nint(MRIgetVoxVal(mri_label, x, y, z, 0)) == label)
           {
-            mean = MRIvox(mri_tmp, x, y, z) ;
+            mean = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
             n = 1 ;
             for (z0 = -1 ; z0 <= 1 ; z0++)
             {
@@ -2951,12 +2951,12 @@ MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
                 for (x0 = -1 ; x0 <= 1 ; x0++)
                 {
                   xi = mri_tmp->xi[x+x0] ;
-                  mean += MRIvox(mri_tmp, xi,yi,zi) ;
+                  mean += MRIgetVoxVal(mri_tmp, xi,yi,zi,0) ;
                   n++ ;
                 }
               }
             }
-            MRIvox(mri_dst, x,y,z) = mean / n ;
+            MRIsetVoxVal(mri_dst, x,y,z, 0, mean / n) ;
           }
         }
       }
