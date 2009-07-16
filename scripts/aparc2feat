@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/06 00:01:13 $
-#    $Revision: 1.6 $
+#    $Author: greve $
+#    $Date: 2009/07/16 18:55:10 $
+#    $Revision: 1.6.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,11 +27,12 @@
 # aparc2feat
 #
 
-set VERSION = '$Id: aparc2feat,v 1.6 2007/01/06 00:01:13 nicks Exp $';
+set VERSION = '$Id: aparc2feat,v 1.6.2.1 2009/07/16 18:55:10 greve Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
 set usedev = 0;
+set annot = aparc;
 
 set PrintHelp = 0;
 
@@ -82,13 +83,13 @@ foreach FeatDir ($FeatDirList)
     if(-e $FeatDir/example_func.nii)    set fslext = .nii
     if(-e $FeatDir/example_func.nii.gz) set fslext = .nii.gz
 
-    set aparc = $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot
+    set aparc = $SUBJECTS_DIR/$subject/label/$hemi.$annot.annot
     set L2V = mri_label2vol
     if($usedev) set L2V = $DEV/$L2V/$L2V
-    set cmd = ($L2V --annot $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot \
+    set cmd = ($L2V --annot $SUBJECTS_DIR/$subject/label/$hemi.$annot.annot \
                  --temp $FeatDir/example_func$fslext  \
                  --reg  $FeatDir/reg/freesurfer/anat2exf.register.dat \
-                 --o    $FeatDir/reg/freesurfer/$hemi.aparc$fslext \
+                 --o    $FeatDir/reg/freesurfer/$hemi.$annot$fslext \
                  --hemi $hemi --subject $subject --proj frac 0 1 .1)
     date      | tee -a $LF
     pwd       | tee -a $LF
@@ -138,6 +139,15 @@ while( $#argv != 0 )
     case "--hemi":
       if ( $#argv == 0) goto arg1err;
       set HemiList = $argv[1]; shift;
+      breaksw
+
+    case "--annot":
+      if($#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift;
+      breaksw
+
+    case "--a2005s":
+      set annot = aparc.a2005s
       breaksw
 
     case "--debug":
@@ -191,7 +201,7 @@ foreach FeatDir ($FeatDirList)
   endif
 
   foreach hemi ($HemiList)
-    set aparc = $SUBJECTS_DIR/$subject/label/$hemi.aparc.annot
+    set aparc = $SUBJECTS_DIR/$subject/label/$hemi.$annot.annot
     if(! -e $aparc) then
       echo "ERROR: cannot find $aparc for subject $subject"
       exit 1;
@@ -222,6 +232,8 @@ usage_exit:
   echo "Optional flags and arguments:"
   echo ""
   echo " --hemi hemi  : resample hemi only (default is both rh and lh)"
+  echo " --annot annot : spec something other than aparc"
+  echo " --a2005s : spec annot = aparc.a2005s"
   echo " --help               : print help and exit"
   echo " --debug              : turn on debugging"
   echo " --version            : print version and exit"
