@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.18 2009/07/13 15:59:37 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.1.2.19 2009/07/16 15:40:03 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -92,16 +92,19 @@ set y = ();
 
 # Go through the original mri_glmfit command-line
 set glmfitcmd = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
+echo $glmfitcmd
 set gd2mtx = dods
+set label = ();
 while($#glmfitcmd)
   set flag = $glmfitcmd[1]; shift glmfitcmd;
+  #echo $flag
   switch($flag)
   case "--surf"
     set subject = $glmfitcmd[1]; shift glmfitcmd;
     set hemi    = $glmfitcmd[1]; shift glmfitcmd;
     set anattype = surface;
     if($#glmfitcmd != 0) then
-      set c = `echo $glmfitcmd[1] | cut -c 2`;
+      set c = `echo $glmfitcmd[1] | cut -c 1-2`;
       if("$c" != "--") then
         set surf = $glmfitcmd[1]; shift glmfitcmd;
       endif
@@ -111,6 +114,9 @@ while($#glmfitcmd)
     shift glmfitcmd;
     if($#glmfitcmd > 0) then
       if($glmfitcmd[1] == doss) set gd2mtx = doss
+    breaksw
+  case "--label"
+    set label = $glmfitcmd[1]; shift glmfitcmd;
     breaksw
   case "--y"
     set y = $glmfitcmd[1]; shift glmfitcmd;
@@ -242,6 +248,7 @@ if($DoSim) then
     set cmd = ($cmd --sim-sign $simsign --fwhm $fwhm)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
+    if($#label) set cmd = ($cmd --label $label)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
     if($#Seed) set cmd = ($cmd --seed $Seed);
     if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
