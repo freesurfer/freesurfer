@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.20 2009/07/16 15:39:46 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.21 2009/07/16 16:36:21 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -128,7 +128,41 @@ while($#glmfitcmd)
       endif
     endif
     breaksw
+  # Ignore these options that have no args
+  case "cmdline"
+  case "mri_glmfit"
+  case "--osgm"
+  case "--prune"
+  case "--no-prune"
+  case "--pca"
+  case "--synth"
+  case "--allowsubjrep"
+  case "--illcond"
+  case "--debug"
+  case "--perm-force"
+  case "--synth"
+    breaksw
+  # Ignore these options that have one args
+  case "--glmdir"
+  case "--C"
+  case "--X"
+  case "--wls"
+  case "--w"
+  case "--fwhm"
+  case "--mask"
+  case "--seed"
+  case "--var-fwhm"
+  case "--yffxvar"
+  case "--ffxdof"
+  case "--ffxdofdat"
+    shift glmfitcmd;
+    breaksw
   default
+    echo ""
+    echo "WARNING: unrecognized mri_glmfit cmd option $flag"
+    echo ""
+    sleep 10
+    #exit 1;
     breaksw 
   endsw
 end
