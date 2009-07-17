@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/07/17 16:39:24 $
- *    $Revision: 1.90 $
+ *    $Date: 2009/07/17 18:58:30 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -180,13 +180,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.90 2009/07/17 16:39:24 mreuter Exp $",
+   "$Id: mri_ca_label.c,v 1.91 2009/07/17 18:58:30 mreuter Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.90 2009/07/17 16:39:24 mreuter Exp $",
+           "$Id: mri_ca_label.c,v 1.91 2009/07/17 18:58:30 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -647,6 +647,7 @@ main(int argc, char *argv[]) {
         if (!no_old_renormalize)
           GCAmapRenormalize(gca, mri_inputs, transform) ;
 
+        // GCA Renormalization with Alignment: 
         // run it twice so that the histograms overlap on the 2nd run
         float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS],label_peaks[MAX_CMA_LABELS];
         int label_computed[MAX_CMA_LABELS];
@@ -689,7 +690,9 @@ main(int argc, char *argv[]) {
       if (fixed_flag == 0)
         MRIfree(&mri_fixed) ;
     } //if(reg_fname == NULL)
-    else  /* processing longitudinal data */ {
+    else  /* processing longitudinal data (old version) */ {
+      ErrorExit(ERROR_BADPARM, "%s ERROR: the -l option is currently not supported. Debugging and testing needed.\n",
+                Progname) ;
       // Now, both an intial seg and a transformation are given
       // suppose the seg is from tp1 and
       // transform is to align tp1 to current tp
