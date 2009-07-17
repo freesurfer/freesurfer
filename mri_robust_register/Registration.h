@@ -43,6 +43,8 @@ public:
   virtual ~Registration();
 
   void clear(); // initialize registration (keep source and target and gauss pyramid)
+  void freeGPS() {freeGaussianPyramid(gpS);};
+  void freeGPT() {freeGaussianPyramid(gpT);};
 
   // Set parameters:
   void setTransonly(bool r)
