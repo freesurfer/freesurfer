@@ -30,7 +30,7 @@ MATRIX * Regression::getRobustEst(double sat, double sig)
   return pw.first;
 }
 
-// void printmemusage ()
+// void print_mem_usage ()
 // {
 //  char buf[30];
 //         snprintf(buf, 30, "/proc/%u/statm", (unsigned)getpid());
@@ -49,11 +49,11 @@ MATRIX * Regression::getRobustEst(double sat, double sig)
 //      cout <<  size / (1024.0) << " MB mem used" << endl;
 //         }
 //         fclose(pf);
-// while (1)
-// {
-//     if ('n' == getchar())
-//        break;
-// }
+// //while (1)
+// //{
+// //   if ('n' == getchar())
+// //       break;
+// //}
 // }
 
 pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
@@ -206,7 +206,10 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
     count++;
 
     //cout << " count: "<< count << endl;
-
+    //cout << " memusage: " << endl;
+    //print_mem_usage();
+    
+    
     // recompute weights
     if (count > 2)
     {
