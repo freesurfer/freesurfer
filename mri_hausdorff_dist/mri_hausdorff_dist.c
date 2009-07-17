@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/13 16:58:23 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/07/17 13:45:45 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.8 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.9 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -36,6 +36,7 @@ char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.8 $";
 #include <time.h>
 #include "const.h"
 #include "machine.h"
+#include "cma.h"
 #include "fio.h"
 #include "utils.h"
 #include "mri.h"
@@ -57,7 +58,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which);
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.8 2009/05/13 16:58:23 fischl Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.9 2009/07/17 13:45:45 fischl Exp $";
 
 char *Progname ;
 
@@ -183,6 +184,7 @@ static void print_usage(void) {
   printf("\t-b <thresh>        binarize input volumes with threshold <thresh>\n") ;
   printf("\t-g <sigma>         blur the input image with Gaussian <sigma>\n");
   printf("\t-max               compute the max of the min distances instead of the mean\n") ;
+  printf("\t-l <label index>   use <label index> as the target label\n") ;
   printf("\n");
 }
 /* --------------------------------------------- */
@@ -367,21 +369,27 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
     printf("blurring input image with sigma = %2.2f\n", blur_sigma) ;
     break ;
-    case 'B':
-      binarize = 1 ;
-      binarize_thresh = atof(argv[2]) ;
-      printf("binarizing input data with threshold %2.2f\n", binarize_thresh) ;
-      nargs = 1 ;
-      break ;
-    case '?':
-    case 'U':
-      print_usage() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
+  case 'L':
+    target_label = atoi(argv[2]) ;
+    printf("using %d (%s) as target label\n", target_label,
+           cma_label_to_name(target_label)) ;
+    nargs = 1 ;
+    break ;
+  case 'B':
+    binarize = 1 ;
+    binarize_thresh = atof(argv[2]) ;
+    printf("binarizing input data with threshold %2.2f\n", binarize_thresh) ;
+    nargs = 1 ;
+    break ;
+  case '?':
+  case 'U':
+    print_usage() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
   }
   return(nargs) ;
 }
