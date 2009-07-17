@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/06/01 22:43:45 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/07/17 19:26:35 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,7 +174,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.25 2009/06/01 22:43:45 mreuter Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.26 2009/07/17 19:26:35 mreuter Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -504,10 +504,17 @@ int main(int argc, char *argv[]) {
   }
 
   //----------------------------------------------------------
+  // Do a diff on a specific label in aseg.mgz
   if (SegDiff > -1) {
     MRI* SegDiffVol = MRIallocSequence(InVol1->width,InVol1->height,
                                       InVol1->depth,MRI_INT,InVol1->nframes);
     MRIcopyHeader(InVol1,SegDiffVol);
+    int same = 0;
+    int n1 = 0;
+    int n2 = 0;
+    int l1 = 0;
+    int l2 = 0;
+    printf("\nComputing difference for label %d ...\n",SegDiff);
     for (c=0; c < InVol1->width; c++) {
       for (r=0; r < InVol1->height; r++) {
         for (s=0; s < InVol1->depth; s++) {
@@ -515,13 +522,26 @@ int main(int argc, char *argv[]) {
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
             if ((int)val1 == SegDiff &&(int)val2 == SegDiff )
+	    {
                 MRIsetVoxVal(SegDiffVol,c,r,s,f,3);
+		same++;
+		l1++;
+		l2++;
+	    }
             else if ((int)val1 != SegDiff &&(int)val2 != SegDiff )
                 MRIsetVoxVal(SegDiffVol,c,r,s,f,0);
             else if ((int)val1 == SegDiff &&(int)val2 != SegDiff )
+	    {
                 MRIsetVoxVal(SegDiffVol,c,r,s,f,1);
+		n1++;
+		l1++;
+	    }
             else if ((int)val1 != SegDiff &&(int)val2 == SegDiff )
+	    {
                 MRIsetVoxVal(SegDiffVol,c,r,s,f,2);
+		n2++;
+		l2++;
+	    }
 	    else {//cannot happen 
               printf("ERROR: this error is not possible\n");
               exit(1);
@@ -532,6 +552,11 @@ int main(int argc, char *argv[]) {
     }
     if(SegDiffFile) MRIwrite(SegDiffVol,SegDiffFile);      
     MRIfree(&SegDiffVol);
+    printf("\nDiff on label %d\n",SegDiff);
+    printf("%d  identical\n",same);
+    printf("%d  only in first\n",n1);
+    printf("%d  only in second\n",n2);
+    printf("%d - %d = %d difference (second-first)\n",l2,l1, l2-l1);
   }
   
   
@@ -649,7 +674,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffLabelVolFile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--seg_diff")) {
+    } else if (!strcasecmp(option, "--segdiff")) {
       if (nargc < 2) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SegDiff);
       SegDiffFile = pargv[1];
@@ -759,7 +784,7 @@ static void print_usage(void) {
   printf("   --diff_label_suspicious DiffVol : differing voxels replaced\n");
   printf("                                     with label SUSPICIOUS\n");
   printf("                                     (for comparing aseg.mgz's)\n");
-  printf("   --seg_diff labelIDX DiffAseg : diff on voxels with labelIDX\n");
+  printf("   --segdiff labelIDX DiffAseg : diff on voxels with labelIDX\n");
   printf("                                  output image: 0 not in both,\n");
   printf("                                  1 only in 1st, 2 only in 2nd\n");
   printf("                                  3 in both (for aseg.mgz)\n");
