@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/13 22:09:11 $
- *    $Revision: 1.117 $
+ *    $Date: 2009/07/17 16:37:54 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3363,23 +3363,23 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
         break ;
     r-- ; // previous one was last non-zero
     m_tmp = MatrixCopyRegion(m_U, NULL, 1, 1, m_U->rows, r, 1, 1) ;
+    MatrixFree(&m_U);
     m_Ur = MatrixTranspose(m_tmp, NULL) ;
     MatrixFree(&m_tmp) ;
     m_S = MatrixDiag(v_S, NULL) ;
+    VectorFree(&v_S) ;
     m_Sr = MatrixCopyRegion(m_S, NULL, 1, 1, r, r, 1, 1) ;
+    MatrixFree(&m_S) ;
     for (c = 1 ; c <= m_Sr->rows ; c++)
       *MATRIX_RELT(m_Sr, c, c) = 1 / *MATRIX_RELT(m_Sr, c, c) ;
     m_Vr = MatrixCopyRegion(m_V, NULL, 1, 1, m_V->rows, r, 1, 1) ;
-    m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
-    m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
-    MatrixFree(&m_U);
     MatrixFree(&m_V);
+    m_tmp = MatrixMultiply(m_Vr, m_Sr, NULL) ;
+    MatrixFree(&m_Sr) ;
+    MatrixFree(&m_Vr) ;
+    m_pseudo_inv = MatrixMultiply(m_tmp, m_Ur, NULL) ;
     MatrixFree(&m_tmp) ;
     MatrixFree(&m_Ur) ;
-    MatrixFree(&m_Sr) ;
-    MatrixFree(&m_S) ;
-    MatrixFree(&m_Vr) ;
-    VectorFree(&v_S) ;
   }
 
   return(m_pseudo_inv) ;
