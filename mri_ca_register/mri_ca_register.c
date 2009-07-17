@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/04/30 19:46:01 $
- *    $Revision: 1.66 $
+ *    $Author: mreuter $
+ *    $Date: 2009/07/17 16:40:14 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -201,7 +201,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.66 2009/04/30 19:46:01 fischl Exp $", 
+     "$Id: mri_ca_register.c,v 1.67 2009/07/17 16:40:14 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -789,28 +789,35 @@ main(int argc, char *argv[]) {
 #else
         mri_morphed = mri_inputs ;
 #endif
-
-        if (do_secondpass_renorm) {
+       
+        if (!do_secondpass_renorm) // just run it once
           GCAmapRenormalizeWithAlignment
           (gcam->gca,
            mri_morphed,
            transform,
            parms.log_fp,
            parms.base_name,
-           NULL,
+           &lta,
            handle_expanded_ventricles) ;
+        else // run it twice
+        {
+          float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS],label_peaks[MAX_CMA_LABELS];
+          int label_computed[MAX_CMA_LABELS];
+          // initial call (returning the label_* infos)
+          GCAcomputeRenormalizationWithAlignment
+          (gcam->gca, mri_morphed, transform,
+           parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles,
+           label_scales,label_offsets,label_peaks,label_computed) ;
+
+          // sequential call gets passed the results from first call
+          // will overwrite the intensity.txt file with combinded results 
           printf("2nd pass renormalization with updated "
                  "intensity distributions\n");
+          GCAseqRenormalizeWithAlignment
+          (gcam->gca, mri_morphed, transform,
+           parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles,
+           label_scales,label_offsets,label_peaks,label_computed) ;
         }
-
-        GCAmapRenormalizeWithAlignment
-        (gcam->gca,
-         mri_morphed,
-         transform,
-         parms.log_fp,
-         parms.base_name,
-         &lta,
-         handle_expanded_ventricles) ;
 
         Gdiag = old_diag ;
         if (write_gca_fname) {
@@ -831,27 +838,34 @@ main(int argc, char *argv[]) {
       inverse transform after the mapRenormalize is done -xhan? */
       TransformInvert(trans, mri_inputs);
 
-      if (do_secondpass_renorm) {
-        GCAmapRenormalizeWithAlignment
-        (gcam->gca,
-         mri_inputs,
-         trans,
-         parms.log_fp,
-         parms.base_name,
-         NULL,
-         handle_expanded_ventricles) ;
-        printf("2nd pass renormalization with updated "
-               "intensity distributions\n");
-      }
+        if (!do_secondpass_renorm) // just run it once
+          GCAmapRenormalizeWithAlignment
+          (gcam->gca,
+           mri_inputs,
+           trans,
+           parms.log_fp,
+           parms.base_name,
+           &lta,
+           handle_expanded_ventricles) ;
+        else // run it twice (ensure correct output of label intensities in sequential run)
+        {
+          float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS],label_peaks[MAX_CMA_LABELS];
+          int label_computed[MAX_CMA_LABELS];
+          // initial call (returning the label_* infos)
+          GCAcomputeRenormalizationWithAlignment
+          (gcam->gca, mri_inputs, trans,
+           parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles,
+           label_scales,label_offsets,label_peaks,label_computed) ;
 
-      GCAmapRenormalizeWithAlignment
-      (gcam->gca,
-       mri_inputs,
-       trans,
-       parms.log_fp,
-       parms.base_name,
-       &lta,
-       handle_expanded_ventricles) ;
+          // sequential call gets passed the results from first call
+          // will overwrite the intensity.txt file with combinded results 
+          printf("2nd pass renormalization with updated "
+                 "intensity distributions\n");
+          GCAseqRenormalizeWithAlignment
+          (gcam->gca, mri_inputs, trans,
+           parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles,
+           label_scales,label_offsets,label_peaks,label_computed) ;
+        }
 
       free(trans);
     }
