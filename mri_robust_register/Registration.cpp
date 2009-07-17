@@ -1655,9 +1655,19 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   {
      cout << "     -- using LONG for indexing ... " << flush;
      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
+     if (mri_indexing == NULL) 
+        ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
+     cout << " done!" << endl;
   }
   else 
+  {
+     double mu = ((double)ss) * sizeof(int) / (1024.0 * 1024.0);
+     cout << "     -- allocating " << mu << "Mb mem for indexing ... " << flush;
      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
+     if (mri_indexing == NULL) 
+        ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
+     cout << " done!" << endl;
+  }
 
   for (z = 0 ; z < mriS->depth ; z++)
     for (x = 0 ; x < mriS->width ; x++)
@@ -1689,19 +1699,21 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   getPartials(mriS,Sfx,Sfy,Sfz,Sbl);
   getPartials(mriT,Tfx,Tfy,Tfz,Tbl);
 
-  MRI * fx1  = MRIadd(Sfx,Tfx,NULL);
+  MRI * fx1  = MRIadd(Sfx,Tfx,Tfx);
   MRIscalarMul(fx1,fx1,0.5);
-  MRI * fy1  = MRIadd(Sfy,Tfy,NULL);
+  MRI * fy1  = MRIadd(Sfy,Tfy,Tfy);
   MRIscalarMul(fy1,fy1,0.5);
-  MRI * fz1  = MRIadd(Sfz,Tfz,NULL);
+  MRI * fz1  = MRIadd(Sfz,Tfz,Tfz);
   MRIscalarMul(fz1,fz1,0.5);
-  MRI * ft1  = MRIsubtract(Tbl,Sbl,NULL); //T-S = f1-f2 = - delta f from paper
+  MRI * ft1  = MRIsubtract(Tbl,Sbl,Tbl); //T-S = f1-f2 = - delta f from paper
   MRIfree(&Sfx);
   MRIfree(&Sfy);
   MRIfree(&Sfz);
-  MRIfree(&Tfx);
-  MRIfree(&Tfy);
-  MRIfree(&Tfz);
+  // Sbl will be needed below
+  //MRIfree(&Tfx);
+  //MRIfree(&Tfy);
+  //MRIfree(&Tfz);
+  //MRIfree(&Tbl);
 
   cout << " done!" << endl;
   //MRIwrite(fx1,"fx.mgz");
@@ -1743,6 +1755,8 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
 
   MATRIX* A = MatrixAlloc(n,pnum,MATRIX_REAL);
   VECTOR* b = MatrixAlloc(n,1,MATRIX_REAL);
+     if (A == NULL || b == NULL) 
+        ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A or b") ;
 
   cout << "     -- size " << fx->width << " " << fx->height << " " << fx->depth << flush;
 
@@ -1833,6 +1847,13 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
         *MATRIX_RELT(b, count, 1) = - MRIFvox(ft, x, y, z);
 
       }
+      
+  // free remaining MRI    
+  MRIfree(&fx);
+  MRIfree(&fy);
+  MRIfree(&fz);
+  MRIfree(&ft);
+  MRIfree(&Sbl);
 
   // adjust sizes
   Ab.first  = MatrixAlloc(count,pnum,MATRIX_REAL);
@@ -1852,12 +1873,6 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
 
   MatrixFree(&A);
   MatrixFree(&b);
-  MRIfree(&fx);
-  MRIfree(&fy);
-  MRIfree(&fz);
-  MRIfree(&ft);
-  MRIfree(&Sbl);
-  MRIfree(&Tbl);
 
   return Ab;
 }
@@ -2201,6 +2216,9 @@ MRI * Registration::convolute(MRI * mri, MRI * filter, int dir)
   d[dm1] = d[dm1] - filter->width + 1;
   //cout << " sizetarget: " << d[0] << " " << d[1] << " " << d[2] << endl;
   MRI * result = MRIalloc(d[0], d[1], d[2], MRI_FLOAT);
+  if (result == NULL) 
+        ErrorExit(ERROR_NO_MEMORY,"Registration::convolute could not allocate memory for result") ;
+  
   MRIclear(result);
   int dd,ff,a,b;
   int ip, frev;
