@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/15 20:04:19 $
- *    $Revision: 1.59 $
+ *    $Date: 2009/07/17 13:56:54 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2009/07/15 20:04:19 $
-// Revision       : $Revision: 1.59 $
+// Revision Date  : $Date: 2009/07/17 13:56:54 $
+// Revision       : $Revision: 1.60 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -92,7 +92,8 @@ char *Progname ;
 static void usage_exit(int code) ;
 
 static MRI *mri_faf = NULL ;
-static float faf_sigma = -1 ;
+static int faf_smooth = -1 ;
+static float faf_thresh = 0 ;
 
 #if 0
 static int nfaf = 0 ;        /* # of coefficients in fourier
@@ -217,12 +218,12 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.59 2009/07/15 20:04:19 fischl Exp $", "$Name:  $",
+   "$Id: mri_ms_fitparms.c,v 1.60 2009/07/17 13:56:54 fischl Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_ms_fitparms.c,v 1.59 2009/07/15 20:04:19 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_ms_fitparms.c,v 1.60 2009/07/17 13:56:54 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -245,15 +246,6 @@ main(int argc, char *argv[]) {
     usage_exit(1) ;
 
   out_dir = argv[argc-1] ;
-
-  if (faf_sigma > 0)
-  {
-    MRI *mri_kernel, *mri_tmp ;
-    mri_kernel = MRIgaussian1d(faf_sigma, 0) ;
-    mri_tmp = MRIconvolveGaussian(mri_faf, NULL, mri_kernel) ;
-    MRIfree(&mri_faf) ; mri_faf = mri_tmp ;
-    MRIfree(&mri_kernel) ;
-  }
 
   for (i = 0 ; i < MAX_IMAGES ; i++) {
     M_reg[i] = NULL;
@@ -397,6 +389,24 @@ main(int argc, char *argv[]) {
   }
   ///////////////////////////////////////////////////////////////////////////
   nvolumes_total = nvolumes ;   /* all volumes read in */
+
+  if (faf_smooth > 0)
+  {
+    MRI *mri_mask, *mri_tmp ;
+    if (mri_faf == NULL)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: -fsmooth only applies if FAF image is specified", 
+                Progname) ;
+    mri_mask = MRIbinarize(mri_flash[0], NULL, faf_thresh, 0, CONTROL_MARKED) ;
+    mri_tmp = MRIchangeType(mri_mask, MRI_UCHAR, 0, 255, 1) ;
+    MRIfree(&mri_mask) ; mri_mask = mri_tmp ;
+    if (Gdiag & DIAG_WRITE)
+      MRIwrite(mri_mask, "m.mgz") ;
+    mri_tmp = MRIsoapBubbleLabel(mri_faf, mri_mask, NULL, CONTROL_MARKED, faf_smooth) ;
+    MRIwrite(mri_tmp, "faf_smooth.mgz") ;
+    MRIfree(&mri_faf) ; mri_faf = mri_tmp ;
+    MRIfree(&mri_mask) ;
+  }
 
   if (use_outside_reg == 0) {
     nvolumes = average_volumes_with_different_echo_times(mri_flash,
@@ -875,9 +885,11 @@ get_option(int argc, char *argv[]) {
     conform = 0 ;
     printf("inhibiting isotropic volume interpolation\n") ;
   } else if (!stricmp(option, "fsmooth")) {
-    faf_sigma = atof(argv[2]) ;
-    printf("smoothing flip angle map with sigma=%2.3f\n", faf_sigma) ;
-    nargs = 1 ;
+    faf_smooth = atoi(argv[2]) ;
+    faf_thresh = atof(argv[3]) ;
+    printf("smoothing flip angle map for %d iterations of soap bubble smoothing (thresh=%2.1f)\n", 
+           faf_smooth, faf_thresh) ;
+    nargs = 2 ;
   } else if (!stricmp(option, "afi")) {
     double nominal_fa ;
 
@@ -1378,11 +1390,10 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
 
         T1 = SignalTableT1[best_indx];
         MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
+        PD = (inorm/SignalTableNorm[best_indx]);
 #define RECIPROCITY 1
 #if RECIPROCITY
-        PD = (inorm/SignalTableNorm[best_indx])/faf_scale;
-#else
-        PD = (inorm/SignalTableNorm[best_indx]);
+        PD *= faf_scale ;
 #endif
         if ((mri_PD->type == MRI_SHORT) && ((short)PD < 0))
           PD = (double)(0x7fff-1) ;
