@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/07/17 16:40:14 $
- *    $Revision: 1.67 $
+ *    $Date: 2009/07/17 19:01:18 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -162,6 +162,12 @@ main(int argc, char *argv[]) {
   int          msec, hours, minutes, seconds /*, iter*/ ;
   struct timeb start ;
   GCA_MORPH    *gcam ;
+	
+	// for GCA Renormalization with Alignment (if called sequentially)
+  float        label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS];
+	float        label_peaks[MAX_CMA_LABELS];
+  int          label_computed[MAX_CMA_LABELS];
+	int          got_scales =0;
 
   parms.l_log_likelihood = 0.2f ;
   parms.niterations = 500 ;
@@ -201,7 +207,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.67 2009/07/17 16:40:14 mreuter Exp $", 
+     "$Id: mri_ca_register.c,v 1.68 2009/07/17 19:01:18 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -790,20 +796,27 @@ main(int argc, char *argv[]) {
         mri_morphed = mri_inputs ;
 #endif
        
+			 
+        // GCA Renormalization with Alignment: 
         if (!do_secondpass_renorm) // just run it once
-          GCAmapRenormalizeWithAlignment
+				{
+          // initial call (returning the label_* infos)
+					// passing lta
+          GCAcomputeRenormalizationWithAlignment
           (gcam->gca,
-           mri_morphed,
-           transform,
+					 mri_morphed,
+					 transform,
            parms.log_fp,
-           parms.base_name,
-           &lta,
-           handle_expanded_ventricles) ;
+					 parms.base_name,
+					 &lta,
+					 handle_expanded_ventricles,
+           label_scales,label_offsets,label_peaks,label_computed) ;
+					 got_scales = 1;
+				}
         else // run it twice
         {
-          float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS],label_peaks[MAX_CMA_LABELS];
-          int label_computed[MAX_CMA_LABELS];
           // initial call (returning the label_* infos)
+					// not passing lta 
           GCAcomputeRenormalizationWithAlignment
           (gcam->gca, mri_morphed, transform,
            parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles,
@@ -817,6 +830,7 @@ main(int argc, char *argv[]) {
           (gcam->gca, mri_morphed, transform,
            parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles,
            label_scales,label_offsets,label_peaks,label_computed) ;
+					 got_scales = 1;
         }
 
         Gdiag = old_diag ;
@@ -838,20 +852,26 @@ main(int argc, char *argv[]) {
       inverse transform after the mapRenormalize is done -xhan? */
       TransformInvert(trans, mri_inputs);
 
+        // GCA Renormalization with Alignment: 
         if (!do_secondpass_renorm) // just run it once
-          GCAmapRenormalizeWithAlignment
+        {
+          // initial call (returning the label_* infos)
+					// passing lta
+          GCAcomputeRenormalizationWithAlignment
           (gcam->gca,
-           mri_inputs,
-           trans,
+					 mri_inputs,
+					 trans,
            parms.log_fp,
-           parms.base_name,
-           &lta,
-           handle_expanded_ventricles) ;
+					 parms.base_name,
+					 &lta,
+					 handle_expanded_ventricles,
+           label_scales,label_offsets,label_peaks,label_computed) ;
+					 got_scales = 1;
+				}
         else // run it twice (ensure correct output of label intensities in sequential run)
         {
-          float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS],label_peaks[MAX_CMA_LABELS];
-          int label_computed[MAX_CMA_LABELS];
           // initial call (returning the label_* infos)
+					// not passing lta 
           GCAcomputeRenormalizationWithAlignment
           (gcam->gca, mri_inputs, trans,
            parms.log_fp, parms.base_name, NULL, handle_expanded_ventricles,
@@ -865,6 +885,7 @@ main(int argc, char *argv[]) {
           (gcam->gca, mri_inputs, trans,
            parms.log_fp, parms.base_name, &lta, handle_expanded_ventricles,
            label_scales,label_offsets,label_peaks,label_computed) ;
+					 got_scales = 1;
         }
 
       free(trans);
@@ -949,33 +970,34 @@ main(int argc, char *argv[]) {
   }
   if (nreads > 0)
   {
-    float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS] ;
-    float label_scales_total[MAX_CMA_LABELS],
-          label_offsets_total[MAX_CMA_LABELS];
+	  // define local variables:
+    float llabel_scales[MAX_CMA_LABELS], llabel_offsets[MAX_CMA_LABELS] ;
+    float llabel_scales_total[MAX_CMA_LABELS],
+          llabel_offsets_total[MAX_CMA_LABELS];
     char  *fname ;
     int   i, l ;
 
-    memset(label_scales_total, 0, sizeof(label_scales_total)) ;
-    memset(label_offsets_total, 0, sizeof(label_offsets_total)) ;
+    memset(llabel_scales_total, 0, sizeof(llabel_scales_total)) ;
+    memset(llabel_offsets_total, 0, sizeof(llabel_offsets_total)) ;
 
     for (i = 0 ; i < nreads ; i++)
     {
       fname = read_intensity_fname[i] ;
       printf("reading label scales and offsets from %s\n", fname) ;
-      GCAreadLabelIntensities(fname, label_scales, label_offsets) ;
+      GCAreadLabelIntensities(fname, llabel_scales, llabel_offsets) ;
       for (l = 0; l < MAX_CMA_LABELS ; l++)
       {
-        label_scales_total[l] += label_scales[l] ;
-        label_offsets_total[l] += label_offsets[l] ;
+        llabel_scales_total[l]  += llabel_scales[l] ;
+        llabel_offsets_total[l] += llabel_offsets[l] ;
       }
     }
     for (l = 0; l < MAX_CMA_LABELS ; l++)
     {
-      label_scales_total[l] /= (float)nreads ;
-      label_offsets_total[l] /= (float)nreads ;
+      llabel_scales_total[l] /= (float)nreads ;
+      llabel_offsets_total[l] /= (float)nreads ;
     }
 
-    GCAapplyRenormalization(gca, label_scales_total, label_offsets_total, 0) ;
+    GCAapplyRenormalization(gca, llabel_scales_total, llabel_offsets_total, 0) ;
   }
 
   //////////////////////////////////////////////////////////////////
@@ -997,14 +1019,33 @@ main(int argc, char *argv[]) {
       sprintf(fname, "%s.log", parms.base_name) ;
       parms.log_fp = fopen(fname, "a") ;
     }
-    GCAmapRenormalizeWithAlignment
-    (gcam->gca,
-     mri_inputs,
-     transform,
-     parms.log_fp,
-     parms.base_name,
-     NULL,
-     handle_expanded_ventricles) ;
+		
+    // GCA Renormalization with Alignment: 
+		// check wether or not this is a sequential call
+		if (!got_scales)
+		// this is the first (and also last) call
+		// do not bother passing or receiving scales info
+      GCAmapRenormalizeWithAlignment
+      (gcam->gca,
+       mri_inputs,
+       transform,
+       parms.log_fp,
+       parms.base_name,
+       NULL,
+       handle_expanded_ventricles) ;
+		else // this is a sequential call, pass scales..
+      GCAseqRenormalizeWithAlignment
+      (gcam->gca,
+       mri_inputs,
+       transform,
+       parms.log_fp,
+       parms.base_name,
+       NULL,
+       handle_expanded_ventricles,
+			 label_scales,label_offsets,label_peaks,label_computed) ;
+			
+		got_scales = 1;
+		
 
     Gdiag = old_diag ;
     if (write_gca_fname) {
