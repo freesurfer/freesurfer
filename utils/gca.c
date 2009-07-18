@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/07/17 16:36:44 $
- *    $Revision: 1.265 $
+ *    $Date: 2009/07/18 01:23:06 $
+ *    $Revision: 1.266 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -16885,7 +16885,7 @@ GCAseqRenormalizeWithAlignment(GCA *gca,
     {
       FILE *fp ;
       char fname[STRLEN];
-      sprintf(fname, "%s.label_intensities-full.txt", base_name) ;
+      sprintf(fname, "%s.label_intensities.txt", base_name) ;
       printf("saving sequentially combined intensity scales to %s\n", fname) ;
       fp = fopen(fname, "w") ;
       if (fp == NULL)
