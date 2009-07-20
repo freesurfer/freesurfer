@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/20 18:50:21 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/07/20 18:55:34 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.17 2009/07/20 18:50:21 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.18 2009/07/20 18:55:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -765,6 +765,7 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
   if(outfile != NULL){
     // Iteration MeasFWHM FitFWHM MeasFWHMv FitFWHMv
     fp = fopen(outfile,"w");
+    fprintf(fp,"#DH %6d %7.4f %7.4f\n",vtxno,b,bv);
     for(k = 0; k < niters; k++){
       fprintf(fp,"%3d  %7.3f %7.3f   %7.3f %7.3f\n",
 	      k+1,
