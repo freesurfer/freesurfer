@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 19:04:44 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/07/20 19:34:09 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -171,8 +171,10 @@ bool LayerVolumeBase::GetConnectedToOld( vtkImageData* img, int nFrame, int* n_i
 void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
 {
   int n[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
   for ( int i = 0; i < 3; i++ )
-    n[i] = ( int )( ( ras[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
+    n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
 
   if ( SetVoxelByIndex( n, nPlane, bAdd ) )
   {
@@ -188,10 +190,12 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
 void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd )
 {
   int n1[3], n2[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
   for ( int i = 0; i < 3; i++ )
   {
-    n1[i] = ( int )( ( ras1[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
-    n2[i] = ( int )( ( ras2[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
+    n1[i] = ( int )( ( ras1[i] - origin[i] ) / voxel_size[i] + 0.5 );
+    n2[i] = ( int )( ( ras2[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
   if ( SetVoxelByIndex( n1, n2, nPlane, bAdd ) )
@@ -263,8 +267,10 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
 void LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd )
 {
   int n[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
   for ( int i = 0; i < 3; i++ )
-    n[i] = ( int )( ( ras[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
+    n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
 
   if ( FloodFillByIndex( n, nPlane, bAdd ) )
   {
@@ -595,7 +601,9 @@ void LayerVolumeBase::Redo()
 
 void LayerVolumeBase::SaveForUndo( int nPlane )
 {
-  int nSlice = ( int )( ( m_dSlicePosition[nPlane] - m_dWorldOrigin[nPlane] ) / m_dWorldVoxelSize[nPlane] + 0.5 );
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  int nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
 
   if ( (int)m_bufferUndo.size() >= m_nMaxUndoSteps )
   {
@@ -620,7 +628,9 @@ bool LayerVolumeBase::IsValidToPaste( int nPlane )
 
 void LayerVolumeBase::Copy( int nPlane )
 {
-  int nSlice = ( int )( ( m_dSlicePosition[nPlane] - m_dWorldOrigin[nPlane] ) / m_dWorldVoxelSize[nPlane] + 0.5 );
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  int nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
   SaveBufferItem( m_bufferClipboard, nPlane, nSlice );
 }
 
@@ -628,7 +638,9 @@ void LayerVolumeBase::Paste( int nPlane )
 {
   SaveForUndo( nPlane );
 
-  int nSlice = ( int )( ( m_dSlicePosition[nPlane] - m_dWorldOrigin[nPlane] ) / m_dWorldVoxelSize[nPlane] + 0.5 );
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  int nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
   m_bufferClipboard.slice = nSlice;
   LoadBufferItem( m_bufferClipboard );
 

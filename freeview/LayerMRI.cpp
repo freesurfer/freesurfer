@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/15 20:46:06 $
- *    $Revision: 1.31 $
+ *    $Date: 2009/07/20 19:34:09 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -201,7 +201,10 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
     m_sFilename = "";
 
     if ( bCopyVoxelData )
+    {
+      mProperties->CopySetttings( mri->mProperties ); 
       SetModified();
+    }
   }
 
   return true;
@@ -1233,9 +1236,9 @@ void LayerMRI::GetRASCenter( double* rasPt )
 {
   MRI* mri = m_volumeSource->GetMRITarget();
   ::MRIvoxelToWorld( mri, 
-                     mri->width / 2,
-                     mri->height / 2,
-                     mri->depth / 2,
+                     mri->width / 2 - 0.5,
+                     mri->height / 2 - 0.5,
+                     mri->depth / 2 - 0.5,
                      &rasPt[0], &rasPt[1], &rasPt[2] ); 
 }
 
@@ -1293,4 +1296,13 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
   }
   
   return true;
+}
+
+void LayerMRI::ResetWindowLevel()
+{
+  double range[2];
+  m_imageData->GetScalarRange( range );
+  GetProperties()->SetMinMaxGrayscaleWindow( range[0], range[1] ); 
+  GetProperties()->SetMinMaxJetScaleWindow( range[0], range[1] );
+  GetProperties()->SetHeatScale( range[0], (range[0]+range[1])/2, range[1] );
 }

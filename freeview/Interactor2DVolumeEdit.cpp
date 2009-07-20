@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/07/20 19:34:09 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -95,31 +95,38 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
       }
       else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
       {
-        m_bEditing = true;
-        double ras2[3];
-        view->GetCursor2D()->ClearInterpolationPoints();
-        view->GetCursor2D()->GetPosition( ras2 );
-        view->GetCursor2D()->SetPosition( ras );
-        view->GetCursor2D()->SetPosition2( ras );
         mri->SaveForUndo( view->GetViewPlane() );
-        if ( m_dPolylinePoints.size() > 0 )
+        if ( event.ControlDown() )
         {
-          if ( m_nAction == EM_Polyline )
-            mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
-          else
-            mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
         }
         else
         {
-          // mri->SaveForUndo( view->GetViewPlane() );
-          m_dPolylinePoints.push_back( ras[0] );
-          m_dPolylinePoints.push_back( ras[1] );
-          m_dPolylinePoints.push_back( ras[2] );
+          m_bEditing = true;
+          double ras2[3];
+          view->GetCursor2D()->ClearInterpolationPoints();
+          view->GetCursor2D()->GetPosition( ras2 );
           view->GetCursor2D()->SetPosition( ras );
+          view->GetCursor2D()->SetPosition2( ras );
+          if ( m_dPolylinePoints.size() > 0 )
+          {
+            if ( m_nAction == EM_Polyline )
+              mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
+            else
+              mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
+          }
+          else
+          {
+            // mri->SaveForUndo( view->GetViewPlane() );
+            m_dPolylinePoints.push_back( ras[0] );
+            m_dPolylinePoints.push_back( ras[1] );
+            m_dPolylinePoints.push_back( ras[2] );
+            view->GetCursor2D()->SetPosition( ras );
+          }
+  
+          view->ReleaseMouse();
+          view->CaptureMouse();
         }
-
-        view->ReleaseMouse();
-        view->CaptureMouse();
       }
       else if ( m_nAction == EM_ColorPicker && mri->IsTypeOf( "MRI" ) )
       {
@@ -300,13 +307,11 @@ void Interactor2DVolumeEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
       }
       else if ( m_nAction == EM_ColorPicker )
         wnd->SetCursor( CursorFactory::CursorColorPicker );
-      else
+      else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) )
         wnd->SetCursor( m_nAction == EM_Freehand ? CursorFactory::CursorPencil : CursorFactory::CursorPolyline );
     }
-    else if ( m_nAction == EM_Fill )
+    else 
       wnd->SetCursor( CursorFactory::CursorFill );
-    else
-      Interactor2D::UpdateCursor( event, wnd );
   }
   else
     Interactor2D::UpdateCursor( event, wnd );

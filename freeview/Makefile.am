@@ -29,6 +29,8 @@ freeview_SOURCES=\
 	CursorFactory.h \
 	DialogEditLookupTable.cpp \
 	DialogEditLookupTable.h \
+	DialogGradientVolume.cpp \
+	DialogGradientVolume.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
 	DialogLoadVolume.cpp \
@@ -150,6 +152,10 @@ freeview_SOURCES=\
 	SurfaceOverlayProperties.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
+	VolumeFilter.cpp \
+	VolumeFilter.h \
+	VolumeFilterGradient.cpp \
+	VolumeFilterGradient.h \
 	vtkDijkstraGraphGeodesicPath.cxx \
 	vtkDijkstraGraphGeodesicPath.h \
 	vtkDijkstraGraphInternals.h \

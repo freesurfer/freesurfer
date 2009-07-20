@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/14 22:03:28 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/07/20 19:34:09 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -590,9 +590,9 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
       for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ )
       {
           ::MRIvoxelToWorld( src,
-                             cornerFactor[0]*m_MRI->width-0.5,
-                             cornerFactor[1]*m_MRI->height-0.5,
-                             cornerFactor[2]*m_MRI->depth-0.5,
+                             cornerFactor[0]*src->width-0.5,
+                             cornerFactor[1]*src->height-0.5,
+                             cornerFactor[2]*src->depth-0.5,
                              &RAS[0], &RAS[1], &RAS[2] );
           ::MRIworldToVoxel( refTarget,
                              RAS[0], RAS[1], RAS[2],
@@ -608,9 +608,9 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
     }
   }
   int dim[3];
-  dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / m_MRI->xsize );
-  dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / m_MRI->ysize );
-  dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / m_MRI->zsize );
+  dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / src->xsize + 0.5 );
+  dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / src->ysize + 0.5 );
+  dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / src->zsize + 0.5 );
   
 //  cout << "dim: " << dim[0] << " " << dim[1] << " " << dim[2] << endl;
 //  cout << "indexBounds: " << indexBounds[0] << " " << indexBounds[2] << " " << indexBounds[4] << endl;
@@ -1036,18 +1036,56 @@ void FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   double origin[3] = { 0, 0, 0 };
   refImageData->GetOrigin( origin );
   
-  Real vox[3], tvox[3];
+  /*
+  float cornerFactor[3];
+  Real RAS[3], index[3];
+  Real indexBounds[6];
+  indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
+  indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
+  for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
+  {
+    for ( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ )
+    {
+      for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ )
+      {
+          ::MRIvoxelToWorld( rasMRI,
+                             cornerFactor[0]*rasMRI->width-0.5,
+                             cornerFactor[1]*rasMRI->height-0.5,
+                             cornerFactor[2]*rasMRI->depth-0.5,
+                             &RAS[0], &RAS[1], &RAS[2] );
+          ::MRIworldToVoxel( refTarget,
+                             RAS[0], RAS[1], RAS[2],
+                             &index[0], &index[1], &index[2] );
+          
+          if ( index[0] < indexBounds[0] ) indexBounds[0] = index[0];
+          if ( index[0] > indexBounds[1] ) indexBounds[1] = index[0];
+          if ( index[1] < indexBounds[2] ) indexBounds[2] = index[1];
+          if ( index[1] > indexBounds[3] ) indexBounds[3] = index[1];
+          if ( index[2] < indexBounds[4] ) indexBounds[4] = index[2];
+          if ( index[2] > indexBounds[5] ) indexBounds[5] = index[2];
+      }
+    }
+  } 
   
+  origin[0] += indexBounds[0] * refTarget->xsize;;
+  origin[1] += indexBounds[2] * refTarget->ysize;
+  origin[2] += indexBounds[4] * refTarget->zsize;  
+  */
+  
+  Real vox[3], tvox[3];
   ::MRIworldToVoxel( rasMRI,
                      rasPoint[0], rasPoint[1], rasPoint[2],
                      &vox[0], &vox[1], &vox[2] );
   ::MRIworldToVoxel( refTarget,
                      rasPoint[0], rasPoint[1], rasPoint[2],
                      &tvox[0], &tvox[1], &tvox[2] );
+//  cout << "original: " << origin[0] << " " << origin[1] << " " << origin[2] << endl;
   origin[0] -= ( vox[0] * rasMRI->xsize - tvox[0] * refTarget->xsize );
   origin[1] -= ( vox[1] * rasMRI->ysize - tvox[1] * refTarget->ysize );
   origin[2] -= ( vox[2] * rasMRI->zsize - tvox[2] * refTarget->zsize );
   
+//  cout << "new: " << origin[0] << " " << origin[1] << " " << origin[2] << endl; fflush(0);
+ 
   imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
   imageData->SetOrigin( origin[0], origin[1], origin[2] );
 
@@ -1136,11 +1174,11 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
       return false;
     }
 
-    rasMRI = MRIallocHeader( m_MRIOrigTarget->width,
+    rasMRI = MRIallocSequence( m_MRIOrigTarget->width,
                                m_MRIOrigTarget->height,
                                m_MRIOrigTarget->depth,
-                               m_MRI->type );
-                           //    m_MRI->nframes );
+                               m_MRI->type,
+                               m_MRI->nframes );
     MRIcopyHeader( m_MRIOrigTarget, rasMRI );
   }
   else    // rotate
@@ -1202,10 +1240,13 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   */
   
   // change the field of view of the new target to full coverage of the image data
-  MRI* mri = rasMRI;
-  rasMRI = CreateTargetMRI( m_MRI, mri );
-  ::MRIfree( &mri );
-  
+  if ( rotations[0].Plane != -1 )
+  {
+    MRI* mri = rasMRI;
+    rasMRI = CreateTargetMRI( m_MRI, mri );
+    ::MRIfree( &mri );
+  }
+    
   if ( nSampleMethod < 0 )
     nSampleMethod = rotations[0].SampleMethod;
   if ( rotations[0].Plane == -1 )
@@ -1221,8 +1262,11 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   }
   MatrixFree( &vox2vox );
   
-  // copy mri pixel data to vtkImage we will use for display
-  ResizeRotatedImage( rasMRI, m_MRITarget, m_imageData, rotations[0].Point, wnd, event ); 
+  if ( rotations[0].Plane == -1 )
+    CreateImage( rasMRI, wnd, event );
+  else
+    // copy mri pixel data to vtkImage we will use for display
+    ResizeRotatedImage( rasMRI, m_MRITarget, m_imageData, rotations[0].Point, wnd, event ); 
 
   CopyMRIDataToImage( rasMRI, m_imageData, wnd, event );
   
@@ -1659,27 +1703,19 @@ void FSVolume::TargetToRAS( const float* pos_in, float* pos_out )
 
 void FSVolume::RASToTarget( const double* pos_in, double* pos_out )
 {
-  /* if ( m_bResampleToRAS )
-   {
-    memcpy( pos_out, pos_in, sizeof( double ) * 3 );
-   }
-   else
-  */
-  {
-    Real pos[4] = { 0 };
-    ::MRIworldToVoxel( m_MRITarget, 
-		       (float)pos_in[0], 
+  Real pos[4] = { 0 };
+  ::MRIworldToVoxel( m_MRITarget, 
+	         (float)pos_in[0], 
 		       (float)pos_in[1], 
 		       (float)pos_in[2],
-                       &pos[0], 
+           &pos[0], 
 		       &pos[1], 
 		       &pos[2] );
-    double* vs = m_imageData->GetSpacing();
-    double* origin = m_imageData->GetOrigin();
-    for ( int i = 0; i < 3; i++ )
-    {
-      pos_out[i] = vs[i] * pos[i] + origin[i];
-    }
+  double* vs = m_imageData->GetSpacing();
+  double* origin = m_imageData->GetOrigin();
+  for ( int i = 0; i < 3; i++ )
+  {
+    pos_out[i] = vs[i] * pos[i] + origin[i];
   }
 }
 

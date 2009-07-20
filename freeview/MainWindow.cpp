@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/15 20:46:06 $
- *    $Revision: 1.60 $
+ *    $Date: 2009/07/20 19:34:09 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,6 +81,8 @@
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperties.h"
 #include "DialogSaveVolumeAs.h"
+#include "VolumeFilterGradient.h"
+#include "DialogGradientVolume.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -192,8 +194,10 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   
   EVT_MENU        ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolume )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolumeUpdateUI )
-  EVT_MENU        ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolCreateOptimalVolume )
-  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolCreateOptimalVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_GRADIENT_VOLUME" ),   MainWindow::OnToolGradientVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GRADIENT_VOLUME" ),   MainWindow::OnToolGradientVolumeUpdateUI )
   
   EVT_MENU  ( XRCID( "ID_HELP_QUICK_REF" ),               MainWindow::OnHelpQuickReference )
   EVT_MENU  ( XRCID( "ID_HELP_ABOUT" ),                   MainWindow::OnHelpAbout )
@@ -314,6 +318,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 
   m_toolWindowEdit = NULL;
   m_dlgRotateVolume = NULL;
+  m_dlgGradientVolume = NULL;
 
   m_wndHistogram = new WindowHistogram( this );
   m_wndHistogram->Hide();
@@ -677,10 +682,10 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
 }
 
 
-void MainWindow::RotateVolume( std::vector<RotationElement>& rotations )
+void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )
 {
   WorkerThread* thread = new WorkerThread( this );
-  thread->RotateVolume( rotations );
+  thread->RotateVolume( rotations, bAllVolumes );
 }
 
 
@@ -3354,7 +3359,7 @@ void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
 }
 
 
-void MainWindow::OnToolCreateOptimalVolume( wxCommandEvent& event )
+void MainWindow::OnToolOptimalVolume( wxCommandEvent& event )
 {
   DialogOptimalVolume dlg( this, GetLayerCollection( "MRI" ) );
   if ( dlg.ShowModal() == wxID_OK )
@@ -3370,10 +3375,42 @@ void MainWindow::OnToolCreateOptimalVolume( wxCommandEvent& event )
   }
 }
 
-void MainWindow::OnToolCreateOptimalVolumeUpdateUI( wxUpdateUIEvent& event )
+void MainWindow::OnToolOptimalVolumeUpdateUI( wxUpdateUIEvent& event )
 {
 // event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
   event.Enable( GetLayerCollection( "MRI" )->GetNumberOfLayers() > 1 && !IsProcessing() );
+}
+
+void MainWindow::OnToolGradientVolume( wxCommandEvent& event )
+{
+  LayerCollection* col_mri = m_layerCollectionManager->GetLayerCollection( "MRI" );  
+  LayerMRI* mri = (LayerMRI*)col_mri->GetActiveLayer();
+  if ( mri )
+  {
+    LayerMRI* layer_new = new LayerMRI( mri );
+    layer_new->Create( mri, false );
+    wxString name = mri->GetName();
+    name += _("_gradient");
+    layer_new->SetName( name.c_str() );
+    VolumeFilterGradient filter( mri, layer_new );
+    filter.Update();
+    layer_new->ResetWindowLevel();
+    col_mri->AddLayer( layer_new );
+  
+    m_controlPanel->RaisePage( _("Volumes") );
+    
+    if ( !m_dlgGradientVolume )
+      m_dlgGradientVolume = new DialogGradientVolume( mri, layer_new, this );
+    else
+      m_dlgGradientVolume->SetVolumes( mri, layer_new );
+    m_dlgGradientVolume->Show();
+  }
+}
+
+void MainWindow::OnToolGradientVolumeUpdateUI( wxUpdateUIEvent& event )
+{
+// event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
 }
 
 

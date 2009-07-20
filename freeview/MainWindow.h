@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/07/20 19:34:09 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,7 @@ class DialogRotateVolume;
 class LayerMRI;
 class WindowHistogram;
 class WindowOverlayConfiguration;
+class DialogGradientVolume;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -180,8 +181,10 @@ public:
 
   void OnToolRotateVolume           ( wxCommandEvent& event );
   void OnToolRotateVolumeUpdateUI   ( wxUpdateUIEvent& event );
-  void OnToolCreateOptimalVolume    ( wxCommandEvent& event );
-  void OnToolCreateOptimalVolumeUpdateUI( wxUpdateUIEvent& event );
+  void OnToolOptimalVolume          ( wxCommandEvent& event );
+  void OnToolOptimalVolumeUpdateUI  ( wxUpdateUIEvent& event );
+  void OnToolGradientVolume         ( wxCommandEvent& event );
+  void OnToolGradientVolumeUpdateUI ( wxUpdateUIEvent& event );
 
   void OnMouseEnterWindow           ( wxMouseEvent& event );
 
@@ -202,7 +205,7 @@ public:
   void SaveVolume();
   void SaveVolumeAs();
 
-  void RotateVolume( std::vector<RotationElement>& rotations );
+  void RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes );
 
   void LoadLUT();
   
@@ -355,6 +358,7 @@ private:
   DialogRotateVolume* m_dlgRotateVolume;
   WindowHistogram*    m_wndHistogram;
   WindowOverlayConfiguration* m_wndOverlayConfiguration;
+  DialogGradientVolume*       m_dlgGradientVolume;
 
   RenderView2D*   m_viewAxial;
   RenderView2D*   m_viewSagittal;
