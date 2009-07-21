@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/03/30 20:36:43 $
- *    $Revision: 1.53 $
+ *    $Author: fischl $
+ *    $Date: 2009/07/21 19:14:45 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -203,6 +203,11 @@ int, long, and float. Default is float.
 
 Save the trilinear interpolation kernel at each voxel instead of the
 interpolated image.
+
+--nomr
+
+Don't copy the template MR parameters, but instead preserve the input volume 
+ones
 
 --help
 
@@ -444,7 +449,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.53 2009/03/30 20:36:43 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.54 2009/07/21 19:14:45 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -495,6 +500,7 @@ int float2int,err, nargs;
 int SaveReg=1;
 
 int DoKernel = 0;
+int DoSaveInputMR = 0 ;
 int DoDelta  = 0;
 
 char tmpstr[2000];
@@ -549,12 +555,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.53 2009/03/30 20:36:43 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.54 2009/07/21 19:14:45 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.53 2009/03/30 20:36:43 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.54 2009/07/21 19:14:45 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -824,6 +830,14 @@ int main(int argc, char **argv) {
 
   // Allocate the output
   template->type = precisioncode;
+  if (DoSaveInputMR)
+  {
+    template->tr = in->tr ;
+    template->ti = in->ti ;
+    template->flip_angle = in->flip_angle ;
+    template->te = in->te ;
+
+  }
   if (!DoMorph) {
     if(DoKernel) {
       out = MRIcloneBySpace(template,MRI_FLOAT,8);
@@ -989,6 +1003,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-resample")) noresample = 1;
     else if (!strcasecmp(option, "--regheader")) regheader = 1;
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
+    else if (!strcasecmp(option, "--nomr"))      DoSaveInputMR = 1;
     else if (!strcasecmp(option, "--delta"))     DoDelta = 1;
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
     else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
