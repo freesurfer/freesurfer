@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/20 19:34:09 $
- *    $Revision: 1.61 $
+ *    $Date: 2009/07/21 02:50:03 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -83,6 +83,7 @@
 #include "DialogSaveVolumeAs.h"
 #include "VolumeFilterGradient.h"
 #include "DialogGradientVolume.h"
+#include "LayerPropertiesSurface.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -2314,6 +2315,10 @@ void MainWindow::RunScript()
   {
     CommandSetDisplayTensor( sa );
   }
+  else if ( sa[0] == _("setsurfacecolor") )
+  {
+    CommandSetSurfaceColor( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2726,7 +2731,15 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
     {
       wxString subOption = sa_fn[k].Left( n ).Lower(); 
       wxString subArgu = sa_fn[k].Mid( n+1 );
-      if ( subOption == _("curv") || subOption == _("curvature") )
+      if ( subOption == _( "color" ) )
+      {
+        wxArrayString script;
+        script.Add( _("setsurfacecolor") );
+        script.Add( subArgu );
+            
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _("curv") || subOption == _("curvature") )
       {
         // add script to load surface curvature file
         wxArrayString script;
@@ -2869,6 +2882,40 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const wxArrayString& cmd )
   
   ContinueScripts();
 }
+
+
+void MainWindow::CommandSetSurfaceColor( const wxArrayString& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && cmd[1] != _("null") )
+  {
+    wxColour color( cmd[1] );
+    if ( !color.IsOk() )      
+    {
+      long rgb[3];
+      wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], _(",") );
+      if ( rgb_strs.GetCount() < 3 || 
+           !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+           !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+           !rgb_strs[2].ToLong( &(rgb[2]) ) )
+      {
+        cerr << "Invalid color name or value " << cmd[1] << endl;
+      }
+      else
+      {
+        color.Set( rgb[0], rgb[1], rgb[2] );
+      }
+    }
+      
+    if ( color.IsOk() )
+      surf->GetProperties()->SetBinaryColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+    else
+      cerr << "Invalid color name or value " << cmd[1] << endl;
+  }
+  
+  ContinueScripts();
+}
+
 
 void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 {
