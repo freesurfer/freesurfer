@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/21 02:29:58 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/07/21 03:00:38 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.21 2009/07/21 02:29:58 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.22 2009/07/21 03:00:38 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -765,12 +765,14 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
   // Fit
   b  = Xty/XtX;
   bv = vXty/XtX;
-  printf("#DH %6d %7.4f %7.4f %lf\n",vtxno,b,bv,surf->total_area);
+  printf("#DH %6d %7.4f %7.4f %lf %lf\n",
+	 vtxno,b,bv,surf->total_area,surf->avg_vertex_dist);
 
   if(outfile != NULL){
     // Iteration   MeasFWHM FitFWHM  DNGfwhm MeasFWHMv FitFWHMv VRF
     fp = fopen(outfile,"w");
-    fprintf(fp,"#DH %6d %7.4f %7.4f %lf\n",vtxno,b,bv,surf->total_area);
+    fprintf(fp,"#DH %6d %7.4f %7.4f %lf %lf\n",
+	   vtxno,b,bv,surf->total_area,surf->avg_vertex_dist);
     fflush(fp);
     for(k = 0; k < niters; k++){
       //nitersdng = MRISfwhm2niters(fwhm[k],surf);
