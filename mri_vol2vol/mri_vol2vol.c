@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/21 19:22:54 $
- *    $Revision: 1.55 $
+ *    $Date: 2009/07/21 20:13:16 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -449,7 +449,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.55 2009/07/21 19:22:54 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.56 2009/07/21 20:13:16 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -500,7 +500,7 @@ int float2int,err, nargs;
 int SaveReg=1;
 
 int DoKernel = 0;
-int DoSaveInputMR = 0 ;
+int DoSaveInputMR = 1 ; // this is now the default behavior
 int DoDelta  = 0;
 
 char tmpstr[2000];
@@ -555,12 +555,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.55 2009/07/21 19:22:54 fischl Exp $",
+                          "$Id: mri_vol2vol.c,v 1.56 2009/07/21 20:13:16 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.55 2009/07/21 19:22:54 fischl Exp $",
+                                "$Id: mri_vol2vol.c,v 1.56 2009/07/21 20:13:16 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -830,7 +830,7 @@ int main(int argc, char **argv) {
 
   // Allocate the output
   template->type = precisioncode;
-  if (DoSaveInputMR)
+  if (DoSaveInputMR)  // it is now on by default
   {
     template->tr = in->tr ;
     template->ti = in->ti ;
@@ -1004,6 +1004,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--regheader")) regheader = 1;
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
     else if (!strcasecmp(option, "--nomr"))      DoSaveInputMR = 1;
+    else if (!strcasecmp(option, "--mr"))        DoSaveInputMR = 0;
     else if (!strcasecmp(option, "--delta"))     DoDelta = 1;
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
     else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
@@ -1244,7 +1245,8 @@ printf("  --seed seed : seed for synth (def is to set from time of day)\n");
 printf("\n");
 printf("  --no-save-reg : do not write out output volume registration matrix\n");
 printf("\n");
-printf("  --nomr : Don't copy the template MR parameters, but instead preserve\n\t   the input volume ones\n");
+printf("  --nomr : Don't copy the template MR parameters, but instead preserve\n\t   the input volume ones (this is the default)\n");
+printf("  --mr :   Copy the template MR parameters\n") ;
 printf("  --help : go ahead, make my day\n");
 printf("  --debug\n");
 printf("  --version\n");
