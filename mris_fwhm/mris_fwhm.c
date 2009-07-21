@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/20 19:43:02 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/07/21 02:15:21 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.19 2009/07/20 19:43:02 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.20 2009/07/21 02:15:21 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -728,7 +728,8 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
   int k, nhits,c, nitersdng ;
   MRI *mri;
   double XtX, Xty, vXty, b, bv;
-  double f, fn, areasum, fwhm[1000], fwhmv[1000];
+  double f, fn, areasum;
+  double fwhm[1000], fwhmv[1000], fn2sum[1000];
   FILE *fp;
 
   mri  = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
@@ -741,13 +742,16 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
     f = MRIgetVoxVal(mri,vtxno,0,0,0); // = max
     nhits = 0; // number of vertices over max/2
     areasum = 0.0; // area of vertices over max/2
+    fn2sum[k] = 0;
     for(c=0; c < surf->nvertices; c++){
       fn = MRIgetVoxVal(mri,c,0,0,0); 
+      fn2sum[k] += (fn*fn);
       if(fn > f/2.0){
 	nhits++;
 	areasum += surf->vertices[c].area;
       }
     }
+    fn2sum[k] /= (100.0*100.0);
     fwhm[k]  = 2*sqrt(areasum/M_PI); // fwhm in mm
     fwhmv[k] = 2*sqrt(nhits/M_PI);   // fwhm in vertices
     if(k > 3){
@@ -764,16 +768,17 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
   printf("#DH %6d %7.4f %7.4f %lf\n",vtxno,b,bv,surf->total_area);
 
   if(outfile != NULL){
-    // Iteration   MeasFWHM FitFWHM DNGIters  MeasFWHMv FitFWHMv
+    // Iteration   MeasFWHM FitFWHM DNGIters  MeasFWHMv FitFWHMv VRF
     fp = fopen(outfile,"w");
     fprintf(fp,"#DH %6d %7.4f %7.4f %lf\n",vtxno,b,bv,surf->total_area);
     fflush(fp);
     for(k = 0; k < niters; k++){
       nitersdng = MRISfwhm2niters(fwhm[k],surf);
-      fprintf(fp,"%3d  %7.3f %7.3f  %3d   %7.3f %7.3f\n",
+      fprintf(fp,"%3d  %7.3f %7.3f  %3d   %7.3f %7.3f %8.3f\n",
 	      k+1,
 	      fwhm[k],sqrt(k+1.0)*b,nitersdng,
-	      fwhmv[k],sqrt(k+1.0)*bv);
+	      fwhmv[k],sqrt(k+1.0)*bv,
+	      1.0/fn2sum[k]);
       fflush(fp);
     }
     fclose(fp);
