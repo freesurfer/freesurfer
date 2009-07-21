@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/21 02:15:21 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/07/21 02:29:58 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.20 2009/07/21 02:15:21 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.21 2009/07/21 02:29:58 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -725,11 +725,11 @@ int FixGroupAreaTest(MRIS *surf, char *outfile)
 */
 int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
 {
-  int k, nhits,c, nitersdng ;
+  int k, nhits,c;
   MRI *mri;
   double XtX, Xty, vXty, b, bv;
   double f, fn, areasum;
-  double fwhm[1000], fwhmv[1000], fn2sum[1000];
+  double fwhm[1000], fwhmv[1000], fn2sum[1000], fwhmdng;
   FILE *fp;
 
   mri  = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
@@ -768,15 +768,16 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
   printf("#DH %6d %7.4f %7.4f %lf\n",vtxno,b,bv,surf->total_area);
 
   if(outfile != NULL){
-    // Iteration   MeasFWHM FitFWHM DNGIters  MeasFWHMv FitFWHMv VRF
+    // Iteration   MeasFWHM FitFWHM  DNGfwhm MeasFWHMv FitFWHMv VRF
     fp = fopen(outfile,"w");
     fprintf(fp,"#DH %6d %7.4f %7.4f %lf\n",vtxno,b,bv,surf->total_area);
     fflush(fp);
     for(k = 0; k < niters; k++){
-      nitersdng = MRISfwhm2niters(fwhm[k],surf);
-      fprintf(fp,"%3d  %7.3f %7.3f  %3d   %7.3f %7.3f %8.3f\n",
+      //nitersdng = MRISfwhm2niters(fwhm[k],surf);
+      fwhmdng = MRISniters2fwhm(k+1,surf);
+      fprintf(fp,"%3d  %7.3f %7.3f  %7.3f   %7.3f %7.3f %8.3f\n",
 	      k+1,
-	      fwhm[k],sqrt(k+1.0)*b,nitersdng,
+	      fwhm[k],sqrt(k+1.0)*b,fwhmdng,
 	      fwhmv[k],sqrt(k+1.0)*bv,
 	      1.0/fn2sum[k]);
       fflush(fp);
@@ -785,3 +786,27 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
   }
   return(0);
 }
+
+#if 0
+double DHfwhm(MRIS *surf, MRI *mri)
+{
+  double fwhm,dv,dv2sum,v0,vn;
+  int vtxno, nbrvtxno, nNNbrs, nthnbr, ndv;
+
+  dv2sum = 0.0;
+  ndv = 0;
+  for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    v0 = MRIgetVoxVal(mri,vtxno,0,0,0);
+    nNNbrs = SphSurf->vertices[vtxno].vnum;
+
+    for (nthnbr = 0; nthnbr < nNNbrs; nthnbr++)    {
+      nbrvtxno = surf->vertices[vtxno].v[nthnbr];
+      if (surf->vertices[nbrvtx].ripflag) continue;
+      vn = MRIgetVoxVal(mri,nbrvtxno,0,0,0);
+      dv2sum += ((v0-vn)*(v0-vn));
+      ndv++;
+    }
+  }
+  return(0.0);
+}
+#endif
