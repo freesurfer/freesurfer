@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -62,11 +62,15 @@ bool Interactor::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view )
 bool Interactor::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view )
 {
   if ( event.RightUp() && m_nDownPosX == event.GetX() && m_nDownPosY == event.GetY() )
+  {  
     view->TriggerContextMenu( event.GetPosition() );
-
-  UpdateCursor( event, view );
-
-  return true;
+    return true;
+  }
+  else
+  {
+    UpdateCursor( event, view );
+    return true;
+  }
 }
 
 bool Interactor::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view )

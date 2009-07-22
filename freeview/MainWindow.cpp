@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/21 02:50:03 $
- *    $Revision: 1.62 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -87,7 +87,7 @@
 
 #define CTRL_PANEL_WIDTH 240
 
-#define ID_FILE_RECENT1  10001
+#define ID_FILE_RECENT1     10001
 
 // ----------------------------------------------------------------------------
 // event tables and other macros for wxWindows
@@ -133,6 +133,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),    MainWindow::OnModeWayPointsEditUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_COPY" ),              MainWindow::OnEditCopy )
   EVT_UPDATE_UI   ( XRCID( "ID_EDIT_COPY" ),              MainWindow::OnEditCopyUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_COPY_STRUCTURE" ),    MainWindow::OnEditCopyStructure )
+  EVT_UPDATE_UI   ( XRCID( "ID_EDIT_COPY_STRUCTURE" ),    MainWindow::OnEditCopyStructureUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_PASTE" ),             MainWindow::OnEditPaste )
   EVT_UPDATE_UI   ( XRCID( "ID_EDIT_PASTE" ),             MainWindow::OnEditPasteUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_UNDO" ),              MainWindow::OnEditUndo )
@@ -1274,6 +1276,40 @@ void MainWindow::OnEditCopyUpdateUI( wxUpdateUIEvent& event )
     event.Enable( false );
 }
 
+
+void MainWindow::OnEditCopyStructure( wxCommandEvent& event )
+{
+  int nWnd = GetActiveViewId();
+  if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri && nWnd >= 0 && nWnd < 3 )
+    {
+      double* pos = mri->GetSlicePosition();
+      if ( !mri->CopyStructure( nWnd, pos ) )
+      {
+        wxMessageDialog dlg( this, 
+                             _( "Please move the cursor to the structure you want to copy and try again." ), 
+                             _( "Copy Structure Failed" ),
+                             wxOK );
+        dlg.ShowModal();                            
+      }
+    }
+  }
+}
+
+void MainWindow::OnEditCopyStructureUpdateUI( wxUpdateUIEvent& event )
+{
+  int nWnd = GetActiveViewId();
+  if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+    event.Enable( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
+  }
+  else
+    event.Enable( false );
+}
+
 void MainWindow::OnEditPaste( wxCommandEvent& event )
 {
   int nWnd = GetActiveViewId();
@@ -2295,6 +2331,10 @@ void MainWindow::RunScript()
   {
     CommandSetLUT( sa );
   }
+  else if ( sa[0] == _("setopacity") )
+  {
+    CommandSetOpacity( sa );
+  }
   else if ( sa[0] == _("setsurfaceoverlaymethod") )
   {
     CommandSetSurfaceOverlayMethod( sa );
@@ -2342,54 +2382,56 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     int n = strg.Find( _("=") );
     if ( n != wxNOT_FOUND )
     {
-      if ( strg.Left( n ).Lower() == _("colormap") )
+      wxString subOption = strg.Left( n ).Lower();
+      wxString subArgu = strg.Mid( n + 1 );
+      if ( subOption == _("colormap") )
       {
-        colormap = strg.Mid( n + 1 ).Lower();
+        colormap = subArgu.Lower();
       }
-      else if ( strg.Left( n ).Lower() == _("grayscale") || 
-                strg.Left( n ).Lower() == _("heatscale") || 
-                strg.Left( n ).Lower() == _("jetscale") ) 
+      else if ( subOption == _("grayscale") || 
+                subOption == _("heatscale") || 
+                subOption == _("jetscale") ) 
       {
-        colormap_scale = strg.Left( n ).Lower();    // colormap scale might be different from colormap!
-        scales = MyUtils::SplitString( strg.Mid(n+1), _(",") );
+        colormap_scale = subOption;    // colormap scale might be different from colormap!
+        scales = MyUtils::SplitString( subArgu, _(",") );
       }
-      else if ( strg.Left( n ).Lower() == _("lut") )
+      else if ( subOption == _("lut") )
       {
-        lut_name = strg.Mid( n + 1 );
+        lut_name = subArgu;
         if ( lut_name.IsEmpty() )
         {
           cerr << "Missing lut name." << endl;
         }
       }
-      else if ( strg.Left( n ).Lower() == _("vector") )
+      else if ( subOption == _("vector") )
       {
-        vector_display = strg.Mid( n + 1 ).Lower();
+        vector_display = subArgu.Lower();
         if ( vector_display.IsEmpty() )
         {
           cerr << "Missing vector display argument." << endl;
         }
       }
-      else if ( strg.Left( n ).Lower() == _("tensor") )
+      else if ( subOption == _("tensor") )
       {
-        tensor_display = strg.Mid( n + 1 ).Lower();
+        tensor_display = subArgu.Lower();
         if ( tensor_display.IsEmpty() )
         {
           cerr << "Missing tensor display argument." << endl;
         }
       }
-      else if ( strg.Left( n ).Lower() == _("inversion") || 
-                strg.Left( n ).Lower() == _("invert") )
+      else if ( subOption == _("inversion") || 
+                subOption == _("invert") )
       {
-        vector_inversion = strg.Mid( n + 1 ).Lower();
+        vector_inversion = subArgu.Lower();
         if ( vector_inversion.IsEmpty() )
         {
           cerr << "Missing inversion argument." << endl;
           vector_inversion = _("none");
         }
       }
-      else if ( strg.Left( n ).Lower() == _("render") )
+      else if ( subOption == _("render") )
       {
-        vector_render = strg.Mid( n + 1 ).Lower();
+        vector_render = subArgu.Lower();
         tensor_render = vector_render;
         if ( vector_render.IsEmpty() )
         {
@@ -2398,14 +2440,22 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
           tensor_render = _("boxoid");
         }
       }
-      else if ( strg.Left( n ).Lower() == _("reg") )
+      else if ( subOption == _("reg") )
       {
-        reg_fn = strg.Mid( n + 1 );
+        reg_fn = subArgu;
       }
-      else if ( strg.Left( n ).Lower() == _("sample") )
+      else if ( subOption == _("sample") )
       {
-        if ( strg.Mid( n + 1 ).Lower() == _("trilinear") )
+        if ( subArgu.Lower() == _("trilinear") )
           nSampleMethod = SAMPLE_TRILINEAR;
+      }
+      else if ( subOption == _("opacity") )
+      {
+        wxArrayString script;
+        script.Add( _("setopacity") );
+        script.Add( subArgu );
+        
+        m_scripts.insert( m_scripts.begin(), script );
       }
       else
       {
@@ -2620,6 +2670,25 @@ void MainWindow::CommandSetLUT( const wxArrayString& sa )
     if ( ct )
     {
       mri->GetProperties()->SetLUTCTAB( ct );
+    }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetOpacity( const wxArrayString& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {  
+    double dValue;
+    if ( sa[1].ToDouble( &dValue ) )
+    {
+      mri->GetProperties()->SetOpacity( dValue );
+    }
+    else
+    {
+      cerr << "Opacity value is not valid." << endl;
     }
   }
   
@@ -3199,18 +3268,23 @@ void MainWindow::OnCheckBrushTemplate( wxCommandEvent& event )
 int MainWindow::GetActiveViewId()
 {
   wxWindow* wnd = FindFocus();
+  if ( !wnd )
+    return m_nPrevActiveViewId;
+  
   int nId = -1;
-  if ( wnd == m_viewSagittal )
+  if ( wnd == m_viewSagittal || wnd->GetParent() == m_viewSagittal )
     nId = 0;
-  else if ( wnd == m_viewCoronal )
+  else if ( wnd == m_viewCoronal || wnd->GetParent() == m_viewCoronal )
     nId = 1;
-  else if ( wnd == m_viewAxial )
+  else if ( wnd == m_viewAxial || wnd->GetParent() == m_viewAxial )
     nId = 2;
-  else if ( wnd == m_view3D )
+  else if ( wnd == m_view3D || wnd->GetParent() == m_view3D )
     nId = 3;
 
   if ( nId >= 0 )
     m_nPrevActiveViewId = nId;
+  if ( nId < 0 )
+    nId = m_nPrevActiveViewId;
 
   return nId;
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/14 22:03:28 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,7 +97,7 @@ public:
   void StartSelection( int nX, int nY );
   void UpdateSelection( int nX, int nY );
   void StopSelection();
-
+  
 protected:
   void Initialize2D();
   void UpdateAnnotation();

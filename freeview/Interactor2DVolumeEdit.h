@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 #define Interactor2DVolumeEdit_h
 
 #include "Interactor2D.h"
+#include <wx/wx.h>
 #include <vector>
 #include <string>
 
@@ -54,6 +55,7 @@ public:
 
 protected:
   void UpdateCursor( wxEvent& event, wxWindow* wnd );
+  void ProcessContextMenu( wxMouseEvent& event );
 
   bool m_bEditing;
 

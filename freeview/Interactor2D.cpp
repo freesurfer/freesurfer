@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/21 02:50:03 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -84,7 +84,7 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
       view->NeedRedraw();
     }
   }
-  else if ( event.MiddleDown() && event.ControlDown() )
+  else if ( event.MiddleDown() && event.ShiftDown() )
   {
       m_bSelecting = true;
       view->StartSelection( m_nMousePosX, m_nMousePosY );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/15 20:46:06 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,8 @@
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
+
+#define ID_COPY_STRUCTURE   wxID_HIGHEST + 10
 
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView2D, RenderView)
@@ -265,10 +267,20 @@ bool RenderView2D::EnsureCursor2DVisible()
 
 void RenderView2D::TriggerContextMenu( const wxPoint& pos )
 {
-  /* wxMenu menu;
-   menu.Append(XRCID("ID_FILE_EXIT"), _T("E&xit"));
-   PopupMenu(&menu, pos.x, pos.y);
-   */
+  /*
+  if ( m_interactor != m_interactorVoxelEdit )
+    return;
+  
+  double ras[3];
+  MousePositionToRAS( pos.x, pos.y, ras );
+  
+  wxMenu* menu = new wxMenu;
+  menu->Append( XRCID("ID_EDIT_COPY"),  _T("Copy") );
+  menu->Append( XRCID("ID_EDIT_PASTE"), _T("Paste") );
+  menu->Append( XRCID("ID_FILE_EXIT"), _T("Exit") );
+  this->PopupMenu( menu );
+  delete menu;
+  */
 }
 
 
@@ -496,4 +508,3 @@ void RenderView2D::StopSelection()
     }
   }
 }
-

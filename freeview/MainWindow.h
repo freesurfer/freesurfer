@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/21 02:50:03 $
- *    $Revision: 1.40 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -168,6 +168,8 @@ public:
 
   void OnEditCopy                   ( wxCommandEvent& event );
   void OnEditCopyUpdateUI           ( wxUpdateUIEvent& event );
+  void OnEditCopyStructure          ( wxCommandEvent& event );
+  void OnEditCopyStructureUpdateUI  ( wxUpdateUIEvent& event );
   void OnEditPaste                  ( wxCommandEvent& event );
   void OnEditPasteUpdateUI          ( wxUpdateUIEvent& event );
   void OnEditUndo                   ( wxCommandEvent& event );
@@ -326,6 +328,7 @@ protected:
   void CommandSetSlice          ( const wxArrayString& cmd );
   void CommandSetColorMap       ( const wxArrayString& cmd );
   void CommandSetLUT            ( const wxArrayString& cmd );
+  void CommandSetOpacity        ( const wxArrayString& cmd ); 
   void CommandSetSurfaceOverlayMethod     ( const wxArrayString& cmd );
   void CommandSetSurfaceColor   ( const wxArrayString& cmd );
   void CommandSetWayPointsColor ( const wxArrayString& cmd );

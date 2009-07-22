@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/20 19:34:09 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/07/22 21:41:49 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -130,11 +130,19 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
       }
       else if ( m_nAction == EM_ColorPicker && mri->IsTypeOf( "MRI" ) )
       {
-        double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
-        if ( dValue != 0 )
+        if ( event.ControlDown() )
         {
-          mri->SetFillValue( (float)dValue );
-          mri->SendBroadcast( "LayerActorUpdated", mri );
+          mri->SaveForUndo( view->GetViewPlane() );
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
+        }
+        else
+        {
+          double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
+          if ( dValue != 0 )
+          {
+            mri->SetFillValue( (float)dValue );
+            mri->SendBroadcast( "LayerActorUpdated", mri );
+          }
         }
       }
       else
