@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/07/15 02:16:51 $
- *    $Revision: 1.630 $
+ *    $Author: greve $
+ *    $Date: 2009/07/22 21:30:13 $
+ *    $Revision: 1.631 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.630 2009/07/15 02:16:51 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.631 2009/07/22 21:30:13 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -59841,41 +59841,36 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   float val;
   MRI *SrcTmp, *GSum, *GSum2, *nXNbrsMRI;
   VERTEX *vtx1;
-  double Radius, Radius2, dmax, GVar2, f, d, costheta, theta, g, dotprod, ga;
+  double Radius, Radius2, dmax, GVar2, f, d, costheta, theta, g, dotprod;
   int n, err, nXNbrs, *XNbrVtxNo, frame;
   double *XNbrDotProd, DotProdThresh;
   double InterVertexDistAvg,InterVertexDistStdDev;
   double VertexRadiusAvg,VertexRadiusStdDev;
 
 
-  if (Surf->nvertices != Src->width)
-  {
+  if(Surf->nvertices != Src->width) {
     printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
     return(NULL);
   }
 
-  if (Targ == NULL)
-  {
+  if(Targ == NULL) {
     Targ = MRIallocSequence(Src->width, Src->height, Src->depth,
                             MRI_FLOAT, Src->nframes);
-    if (Targ==NULL)
+    if(Targ==NULL)
     {
       printf("ERROR: MRISgaussianSmooth: could not alloc\n");
       return(NULL);
     }
   }
-  else
-  {
-    if (Src->width   != Targ->width  ||
+  else {
+    if(Src->width   != Targ->width  ||
         Src->height  != Targ->height ||
         Src->depth   != Targ->depth  ||
-        Src->nframes != Targ->nframes)
-    {
+        Src->nframes != Targ->nframes) {
       printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
       return(NULL);
     }
-    if (Targ->type != MRI_FLOAT)
-    {
+    if(Targ->type != MRI_FLOAT){
       printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
       return(NULL);
     }
@@ -59886,15 +59881,13 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
 
   /* This is for normalizing */
   GSum = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if (GSum==NULL)
-  {
+  if (GSum==NULL){
     printf("ERROR: MRISgaussianSmooth: could not alloc GSum\n");
     return(NULL);
   }
 
   GSum2 = MRIallocSequence(Src->width, Src->height, Src->depth, MRI_FLOAT, 1);
-  if (GSum2==NULL)
-  {
+  if (GSum2==NULL){
     printf("ERROR: MRISgaussianSmooth: could not alloc GSum2\n");
     return(NULL);
   }
@@ -59936,30 +59929,15 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
   XNbrVtxNo   = (int *) calloc(Surf->nvertices,sizeof(int));
   XNbrDotProd = (double *) calloc(Surf->nvertices,sizeof(double));
 
-  if (0)
-  {
-    // This will mess up future searches because it sets
-    // val2bak to 0
-    printf("Starting Search\n");
-    err = MRISextendedNeighbors(Surf,0,0,DotProdThresh, XNbrVtxNo,
-                                XNbrDotProd, &nXNbrs, Surf->nvertices, 1);
-    printf("Found %d (err=%d)\n",nXNbrs,err);
-    for (n = 0; n < nXNbrs; n++)
-    {
-      printf("%d %d %g\n",n,XNbrVtxNo[n],XNbrDotProd[n]);
-    }
-  }
-
   printf("nvertices = %d\n",Surf->nvertices);
   for (vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++)
   {
-
     nXNbrs = 0;
     err = MRISextendedNeighbors(Surf,vtxno1,vtxno1,DotProdThresh, XNbrVtxNo,
                                 XNbrDotProd, &nXNbrs, Surf->nvertices,1);
     MRIFseq_vox(nXNbrsMRI,vtxno1,0,0,0) = nXNbrs;
-    if (vtxno1%10000==0 && Gdiag_no > 0)
-    {
+
+    if(vtxno1%10000==0 && Gdiag_no > 0){
       printf("vtxno1 = %d, nXNbrs = %d\n",vtxno1,nXNbrs);
       fflush(stdout);
     }
@@ -59982,19 +59960,18 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
 
       /* Compute weighting factor for this distance */
       g = f*exp( -(d*d)/(GVar2) ); /* f not really nec */
-      ga = g * Surf->vertices[vtxno2].area;
+      //ga = g * Surf->vertices[vtxno2].area;
 
-      if (vtxno1 == 81921 && 1)
-      {
+      if(vtxno1 == 10000 && 1){
         printf("%d %d %g %g %g %g %g\n",
                vtxno1,vtxno2,dotprod,costheta,theta,d,g);
+	fflush(stdout);
       }
 
-      MRIFseq_vox(GSum,vtxno1,0,0,0)  += g;
-      MRIFseq_vox(GSum2,vtxno1,0,0,0) += (g*g);
+      //MRIFseq_vox(GSum,vtxno1,0,0,0)  += g;
+      //MRIFseq_vox(GSum2,vtxno1,0,0,0) += (g*g);
 
-      for (frame = 0; frame < Targ->nframes; frame ++)
-      {
+      for (frame = 0; frame < Targ->nframes; frame ++) {
         val = g*MRIFseq_vox(SrcTmp,vtxno2,0,0,frame);
         MRIFseq_vox(Targ,vtxno1,0,0,frame) += val;
       }
@@ -60005,10 +59982,8 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
 
 
   /* Normalize */
-  if (1)
-  {
-    for (vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++)
-    {
+  if(0){
+    for (vtxno1 = 0; vtxno1 < Surf->nvertices; vtxno1++){
       vtx1 = &Surf->vertices[vtxno1] ;
       g = MRIFseq_vox(GSum,vtxno1,0,0,0);
       MRIFseq_vox(GSum2,vtxno1,0,0,0) /= (g*g);
@@ -60021,8 +59996,8 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ,
     }
   }
 
-  //MRIwrite(GSum,"gsum_000.bfloat");
-  //MRIwrite(GSum2,"gsum2_000.bfloat");
+  //MRIwrite(GSum,"gsum.mgh");
+  //MRIwrite(GSum2,"gsum2.mgh");
   //MRIwrite(nXNbrsMRI,"nxnbrs.mgh");
 
   MRIfree(&SrcTmp);
