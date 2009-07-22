@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/10/10 20:47:55 $
- *    $Revision: 1.34 $
+ *    $Date: 2009/07/22 17:37:06 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,7 @@ static MORPH_PARMS  parms ;
 
 static void usage_exit(int code) ;
 static int pct = 0 ;
+static int use_abs = 0 ;
 
 static int sqr_images = 0 ;
 static double tx = 0.0 ;
@@ -135,7 +136,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.34 2008/10/10 20:47:55 fischl Exp $",
+           "$Id: mri_average.c,v 1.35 2009/07/22 17:37:06 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -174,6 +175,8 @@ main(int argc, char *argv[]) {
     mri_src = MRIread(in_fname) ;
     if (!mri_src)
       ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, in_fname) ;
+    if (use_abs)
+      MRIabs(mri_src, mri_src) ;
     if (binarize_thresh > 0)
       MRIbinarize(mri_src, mri_src, binarize_thresh, 0, 100) ;
     if (pct)
@@ -365,6 +368,9 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "trilinear")) {
     sinc_flag = 0;
     fprintf(stderr,"using trilinear interpolation\n");
+  } else if (!stricmp(option, "abs")) {
+    use_abs = 1 ;
+    fprintf(stderr,"taking abs value of input volumes\n");
   } else if (!stricmp(option, "window")) {
     window_flag = 1 ;
     fprintf(stderr, "applying hanning window to volumes...\n") ;
@@ -453,6 +459,8 @@ usage_exit(int code) {
   printf("\t-m <float n>    use momentum n (default=0)\n");
   printf("\t-sqr            take sum of squares instead of average\n") ;
   printf("\t-u              print usage\n");
+  printf("\t-p              compute %% \n");
+  printf("\t-abs            take abs value of volume \n");
   exit(code) ;
 }
 
