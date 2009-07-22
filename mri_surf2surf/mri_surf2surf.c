@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/15 19:02:56 $
- *    $Revision: 1.78 $
+ *    $Date: 2009/07/22 00:24:23 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.78 2009/07/15 19:02:56 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.79 2009/07/22 00:24:23 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -440,6 +440,7 @@ char *RMSDatFile = NULL;
 char *RMSMaskFile = NULL;
 MRI *RMSMask = NULL;
 int SplitFrames=0;
+int ConvGaussian = 0;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -459,7 +460,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.78 2009/07/15 19:02:56 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.79 2009/07/22 00:24:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -749,16 +750,22 @@ int main(int argc, char **argv) {
   }
 
   if(nSmoothSteps_Input > 0) {
-    printf("------Reading smoothing mask label %s\n",LabelFile_Input);
-    if(LabelFile_Input != NULL){
-      printf("Reading smoothing mask label %s\n",LabelFile_Input);
-      MaskLabel = LabelRead(srcsubject, LabelFile_Input);
-      if(MaskLabel == NULL) exit(1);
-      mask = MRISlabel2Mask(SrcSurfReg, MaskLabel, NULL);
-    } else mask = NULL;
-    printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
-    MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, mask, SrcVals);
-    if(mask) MRIfree(&mask);
+    if(! ConvGaussian){
+      printf("------Reading smoothing mask label %s\n",LabelFile_Input);
+      if(LabelFile_Input != NULL){
+	printf("Reading smoothing mask label %s\n",LabelFile_Input);
+	MaskLabel = LabelRead(srcsubject, LabelFile_Input);
+	if(MaskLabel == NULL) exit(1);
+	mask = MRISlabel2Mask(SrcSurfReg, MaskLabel, NULL);
+      } else mask = NULL;
+      printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
+      MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, mask, SrcVals);
+      if(mask) MRIfree(&mask);
+    } 
+    else {
+      printf("Convolving with gaussian\n");
+      MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
+    }
   }
 
   if(strcmp(srcsubject,trgsubject) || strcmp(srchemi,trghemi) || 
@@ -883,15 +890,20 @@ int main(int argc, char **argv) {
            fwhm,gstd,nSmoothSteps);
   }
   if(nSmoothSteps > 0){
-    if(LabelFile != NULL){
-      printf("Reading smoothing mask label %s\n",LabelFile);
-      MaskLabel = LabelRead(trgsubject, LabelFile);
-      if(MaskLabel == NULL) exit(1);
-      mask = MRISlabel2Mask(TrgSurfReg, MaskLabel, NULL);
-    } else mask = NULL;
-    printf("NN smoothing output with n = %d\n",nSmoothSteps);
-    MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, mask, TrgVals);
-    if(mask) MRIfree(&mask);
+    if(! ConvGaussian){
+      if(LabelFile != NULL){
+	printf("Reading smoothing mask label %s\n",LabelFile);
+	MaskLabel = LabelRead(trgsubject, LabelFile);
+	if(MaskLabel == NULL) exit(1);
+	mask = MRISlabel2Mask(TrgSurfReg, MaskLabel, NULL);
+      } else mask = NULL;
+      printf("NN smoothing output with n = %d\n",nSmoothSteps);
+      MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, mask, TrgVals);
+      if(mask) MRIfree(&mask);
+    } else {
+      printf("Convolving with gaussian\n");
+      MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.0);
+    }
   }
 
   /* readjust frame power if necessary */
@@ -1019,6 +1031,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--jac"))       jac = 1;
     else if (!strcasecmp(option, "--norm-var"))  DoNormVar = 1;
     else if (!strcasecmp(option, "--split")) SplitFrames = 1;
+    else if (!strcasecmp(option, "--conv")) ConvGaussian = 1;
     else if (!strcasecmp(option, "--no-rev-face-order")) OKToRevFaceOrder = 0;
 
     else if (!strcmp(option, "--seed")) {
