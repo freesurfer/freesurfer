@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/22 00:24:23 $
- *    $Revision: 1.79 $
+ *    $Date: 2009/07/22 21:37:08 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.79 2009/07/22 00:24:23 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.80 2009/07/22 21:37:08 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.79 2009/07/22 00:24:23 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.80 2009/07/22 21:37:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -764,7 +764,7 @@ int main(int argc, char **argv) {
     } 
     else {
       printf("Convolving with gaussian\n");
-      MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.0);
+      MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.5);
     }
   }
 
@@ -902,7 +902,7 @@ int main(int argc, char **argv) {
       if(mask) MRIfree(&mask);
     } else {
       printf("Convolving with gaussian\n");
-      MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.0);
+      MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.5);
     }
   }
 
