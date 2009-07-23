@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.13 2009/04/11 19:39:14 krish Exp $
+# $Id: aparcstats2table,v 1.14 2009/07/23 17:21:48 krish Exp $
 
 # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
 measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'meancurv':6 }
@@ -79,7 +79,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.13 2009/04/11 19:39:14 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.14 2009/07/23 17:21:48 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -170,7 +170,7 @@ def build_table(options):
     subjdir = fsutils.check_subjdirs()
     
     # init the table
-    table = fsutils.Ddict(dict)
+    table = fsutils.Ddict(fsutils.odict)
 
     o = options
     if o.verboseflag: print '\nParsing individual stats files\n' + '-'*40 
@@ -211,7 +211,7 @@ def build_table(options):
         # table['bert']['putamen'] doesn't exist. We
         # should make it 0 somehow. Thus we get a nice grid which we can output.
         
-        new_table = fsutils.Ddict(dict)
+        new_table = fsutils.Ddict(fsutils.odict)
         for subject in o.subjects:
             for parc in all_parcs:
                 if not parc in table[subject]:
@@ -226,7 +226,7 @@ def build_table(options):
         # Note that for union, we init'ed with an empty set.
         # Here we init the intersection with the ROIs for the first subject 
 
-        new_table = fsutils.Ddict(dict)
+        new_table = fsutils.Ddict(fsutils.odict)
         for subject in o.subjects:
             for parc in common_parcs:
                 new_table[subject][parc] = table[subject][parc]
