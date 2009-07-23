@@ -190,7 +190,7 @@ int
 nrrdCrop(Nrrd *nout, const Nrrd *nin, size_t *min, size_t *max)
 {
   char me[]="nrrdCrop", func[] = "crop", err[BIFF_STRLEN],
-                                 buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
+    buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
   unsigned int ai;
   size_t I,
   lineSize,                /* #bytes in one scanline to be copied */
@@ -199,7 +199,7 @@ nrrdCrop(Nrrd *nout, const Nrrd *nin, size_t *min, size_t *max)
   cOut[NRRD_DIM_MAX],      /* coords for line start, in output */
   szIn[NRRD_DIM_MAX],
   szOut[NRRD_DIM_MAX],
-  idxIn, idxOut,           /* linear indices for input and output */
+  idxIn=0, idxOut=0,           /* linear indices for input and output */
   numLines;                /* number of scanlines in output nrrd */
   char *dataIn, *dataOut;
 

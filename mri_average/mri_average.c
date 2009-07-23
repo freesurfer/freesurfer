@@ -5,13 +5,13 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/07/22 17:37:06 $
- *    $Revision: 1.35 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/23 19:55:36 $
+ *    $Revision: 1.36 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -136,7 +136,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.35 2009/07/22 17:37:06 fischl Exp $",
+           "$Id: mri_average.c,v 1.36 2009/07/23 19:55:36 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

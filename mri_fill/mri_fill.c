@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/07/19 20:16:38 $
- *    $Revision: 1.111 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/23 19:55:36 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.111 2007/07/19 20:16:38 fischl Exp $";
+  "$Id: mri_fill.c,v 1.112 2009/07/23 19:55:36 nicks Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -1553,7 +1553,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.111 2007/07/19 20:16:38 fischl Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.112 2009/07/23 19:55:36 nicks Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1561,7 +1561,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.111 2007/07/19 20:16:38 fischl Exp $", 
+           "$Id: mri_fill.c,v 1.112 2009/07/23 19:55:36 nicks Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2259,7 +2259,8 @@ main(int argc, char *argv[]) {
     if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
         wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
         wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM, "rh white matter seed point out of bounds (%d, %d, %d)\n",
+      ErrorExit(ERROR_BADPARM, 
+                "rh white matter seed point out of bounds (%d, %d, %d)\n",
                 wm_rh_x, wm_rh_y, wm_rh_z) ;
 
     if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||  // dark
@@ -2348,7 +2349,8 @@ main(int argc, char *argv[]) {
     if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
         wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
         wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM, "lh white matter seed point out of bounds (%d, %d, %d)\n",
+      ErrorExit(ERROR_BADPARM, 
+                "lh white matter seed point out of bounds (%d, %d, %d)\n",
                 wm_lh_x, wm_lh_y, wm_lh_z) ;
     if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
         (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS)) {
@@ -2435,12 +2437,14 @@ main(int argc, char *argv[]) {
   if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
       wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
       wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
-    ErrorExit(ERROR_BADPARM, "rh white matter seed point out of bounds (%d, %d, %d)\n",
+    ErrorExit(ERROR_BADPARM, 
+              "rh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_rh_x, wm_rh_y, wm_rh_z) ;
   if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
       wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
       wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
-    ErrorExit(ERROR_BADPARM, "lh white matter seed point out of bounds (%d, %d, %d)\n",
+    ErrorExit(ERROR_BADPARM, 
+              "lh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_lh_x, wm_lh_y, wm_lh_z) ;
   MRIfree(&mri_cc) ;
 

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:49 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/23 19:55:36 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -319,7 +319,9 @@ float freadFloat(FILE *fp)
   byteswapbuffloat(buf,1);
   //f = swapFloat(f);  // old way
 #endif
-  f = *((float*)buf);
+//error: dereferencing type-punned pointer will break strict-aliasing rules:
+//  f = *((float*)buf);
+  memcpy(&f,&buf,sizeof(float));
   return(f) ;
 }
 /*----------------------------------------*/

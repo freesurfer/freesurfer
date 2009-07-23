@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2009/07/13 21:25:48 $
-#    $Revision: 1.435 $
+#    $Author: nicks $
+#    $Date: 2009/07/23 19:55:36 $
+#    $Revision: 1.436 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1760,7 +1760,11 @@ AC_ARG_WITH(vtk-libraries,
 
 if test ! "$ac_vtk_includes" = "NO"; then
   AC_MSG_RESULT(VTK directory is $withval)
-  if test -e $ac_vtk_includes/vtk-5.3 ; then
+  if test -e $ac_vtk_includes/vtk-5.5 ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk-5.5"
+  elif test -e $ac_vtk_includes/vtk-5.4 ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk-5.4"
+  elif test -e $ac_vtk_includes/vtk-5.3 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.3"
   elif test -e $ac_vtk_includes/vtk-5.2 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.2"
@@ -1778,7 +1782,15 @@ fi
 if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIBS=-L$ac_vtk_libraries
   VTK_LIB=$ac_vtk_libraries
-  if test -e $ac_vtk_libraries/vtk-5.3 ; then
+  if test -e $ac_vtk_libraries/vtk-5.5 ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.5"
+    VTK_LIBS=-L$ac_vtk_libraries/vtk-5.5
+    VTK_LIB=$ac_vtk_libraries/vtk-5.5
+  elif test -e $ac_vtk_libraries/vtk-5.4 ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.4"
+    VTK_LIBS=-L$ac_vtk_libraries/vtk-5.4
+    VTK_LIB=$ac_vtk_libraries/vtk-5.4
+  elif test -e $ac_vtk_libraries/vtk-5.3 ; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.3"
     VTK_LIBS=-L$ac_vtk_libraries/vtk-5.3
     VTK_LIB=$ac_vtk_libraries/vtk-5.3

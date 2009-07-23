@@ -6,11 +6,11 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:49 $
- *    $Revision: 1.124 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/23 19:55:36 $
+ *    $Revision: 1.125 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -4009,6 +4009,9 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo)
   unsigned short int min16=65535, max16=0;
   unsigned short int min8=255, max8=0;
 
+  memset(firstPosition,0,sizeof(firstPosition));
+  memset(lastPosition,0,sizeof(lastPosition));
+
   npix=aDicomInfo[0]->Columns*aDicomInfo[0]->Rows;
   numberOfFrames=nfiles;
   nvox=npix*numberOfFrames;
@@ -4113,6 +4116,9 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex)
   double firstPosition[3], lastPosition[3];
   unsigned short int min16=65535, max16=0;
   unsigned short int min8=255, max8=0;
+  
+  memset(firstPosition,0,sizeof(firstPosition));
+  memset(lastPosition,0,sizeof(lastPosition));
 
   npix=aDicomInfo[startIndex]->Columns*aDicomInfo[startIndex]->Rows;
   numberOfFrames=nfiles;

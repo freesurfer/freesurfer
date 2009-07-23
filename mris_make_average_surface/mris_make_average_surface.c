@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/04/16 00:02:21 $
- *    $Revision: 1.25 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/23 19:55:36 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,7 +115,7 @@ ENDHELP
 #include "gcamorph.h"
 
 static char vcid[] = 
-"$Id: mris_make_average_surface.c,v 1.25 2008/04/16 00:02:21 fischl Exp $";
+"$Id: mris_make_average_surface.c,v 1.26 2009/07/23 19:55:36 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -144,15 +144,17 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris_ico ;
   MRI_SP       *mrisp_total ;
   LTA          *lta ;
-  VOL_GEOM      vg;
+  VOL_GEOM     vg;
   float        average_surface_area = 0.0 ;
   MATRIX *XFM=NULL;
   GCA_MORPH *gcam=NULL;
 
+  memset((void *) &vg, 0, sizeof (VOL_GEOM));
+
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_make_average_surface.c,v 1.25 2008/04/16 00:02:21 fischl Exp $",
+     "$Id: mris_make_average_surface.c,v 1.26 2009/07/23 19:55:36 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

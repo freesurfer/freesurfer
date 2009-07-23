@@ -1,4 +1,4 @@
-/* $Header: /space/repo/1/dev/dev/tiff/tif_dirread.c,v 1.3 2008/05/01 17:58:16 nicks Exp $ */
+/* $Header: /space/repo/1/dev/dev/tiff/tif_dirread.c,v 1.4 2009/07/23 19:55:36 nicks Exp $ */
 
 /*
  * Copyright (c) 1988-1997 Sam Leffler
@@ -809,9 +809,15 @@ TIFFFetchRational(TIFF* tif, TIFFDirEntry* dir)
 static float
 TIFFFetchFloat(TIFF* tif, TIFFDirEntry* dir)
 {
+#if 0
 	long l = TIFFExtractData(tif, dir->tdir_type, dir->tdir_offset);
   void *pvoid = (void*) &l;
 	float v = *(float*) pvoid;
+#else
+  float v;
+  int32 l = TIFFExtractData(tif, dir->tdir_type, dir->tdir_offset);
+  _TIFFmemcpy(&v, &l, sizeof(float));
+#endif
 	TIFFCvtIEEEFloatToNative(tif, 1, &v);
 	return (v);
 }

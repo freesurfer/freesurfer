@@ -1460,8 +1460,10 @@ do {                                           \
 */
 #define NRRD_INDEX_GEN(I, coord, size, dim)   \
 do {                                          \
-  int d;                                      \
-  for (d=(dim)-1, (I)=(coord)[d--];           \
+  int d=(dim)-1;                              \
+  if (d < 0) break;                           \
+  (I)=(coord)[d--];                           \
+  for (;                                      \
        d >= 0;                                \
        d--) {                                 \
     (I) = (coord)[d] + (size)[d]*(I);         \

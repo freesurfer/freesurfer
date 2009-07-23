@@ -177,11 +177,11 @@ int
 nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
 {
   char me[]="nrrdAxesPermute", func[]="permute", err[BIFF_STRLEN],
-                                      buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
-  size_t idxOut, idxIn,      /* indices for input and output scanlines */
+    buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
+  size_t idxOut, idxIn=0,      /* indices for input and output scanlines */
   lineSize,                /* size of block of memory which can be
-                                        moved contiguously from input to output,
-                                        thought of as a "scanline" */
+                              moved contiguously from input to output,
+                              thought of as a "scanline" */
   numLines,                /* how many "scanlines" there are to permute */
   szIn[NRRD_DIM_MAX], *lszIn,
   szOut[NRRD_DIM_MAX], *lszOut;
@@ -196,7 +196,7 @@ nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
   ldim,                    /* nin->dim - lowPax */
   ip[NRRD_DIM_MAX+1],      /* inverse of permutation in "axes" */
   laxes[NRRD_DIM_MAX+1];   /* copy of axes[], but shifted down by lowPax
-                                        elements, to remove i such that i == axes[i] */
+                              elements, to remove i such that i == axes[i] */
   airArray *mop;
 
   mop = airMopNew();
@@ -365,12 +365,12 @@ nrrdShuffle(Nrrd *nout, const Nrrd *nin, unsigned int axis,
             const size_t *perm)
 {
   char me[]="nrrdShuffle", func[]="shuffle", err[BIFF_STRLEN],
-                                  buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
+    buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
   unsigned int
   ai, ldim, len,
   cIn[NRRD_DIM_MAX+1],
   cOut[NRRD_DIM_MAX+1];
-  size_t idxIn, idxOut, lineSize, numLines, size[NRRD_DIM_MAX], *lsize;
+  size_t idxIn=0, idxOut, lineSize, numLines, size[NRRD_DIM_MAX], *lsize;
   char *dataIn, *dataOut;
 
   if (!(nin && nout && perm))

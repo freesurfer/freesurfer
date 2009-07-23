@@ -8,8 +8,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/17 03:33:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/07/23 19:55:37 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -99,7 +99,7 @@ extern "C" {
 #endif
 
 #include "itkImage.h"
-#include "itkExceptionObject.h"
+//#include "itkExceptionObject.h"
 #include "itkImageFileWriter.h"
 #include "itkImageFileReader.h"
 #include "itkMetaDataObject.h"
