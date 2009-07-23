@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/24 22:02:28 $
-#    $Revision: 1.223 $
+#    $Date: 2009/07/23 20:38:07 $
+#    $Revision: 1.224 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.223 2009/06/24 22:02:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.224 2009/07/23 20:38:07 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -131,6 +131,7 @@ set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
 set measurelist = ( thickness area area.pial volume curv sulc white.K white.H jacobian_white  )
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
+set UserMeasureList = 0; # if 1, then 'measurelist' gets additional -measure args
 set measuredir = (); # for specifying an alternate path to measure files
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache
@@ -2714,7 +2715,10 @@ if ($DoQdecCache) then
         echo "Skipping creation of smoothed data for ${hemi}.${measure}" \
             |& tee -a $LF |& tee -a $CF
       else
-        set MeasFile=(${hemi}.${measure}.${target})
+        set MeasFile=(${hemi}.${measure})
+        # strip .mgz from filename (does nothing if not .mgz extension):
+        set MeasFile=`basename ${MeasFile} .mgz`
+        set MeasFile=(${MeasFile}.${target})
         set cmd=(mris_preproc \
             --s ${subjid} \
             --hemi ${hemi} \
@@ -2728,7 +2732,10 @@ if ($DoQdecCache) then
         if($RunIt) rm -Rf tmp.mris_preproc.*
 
         foreach fwhm ($fwhmlist)
-          set OutFile=(${hemi}.${measure}.fwhm${fwhm}.${target})
+          set OutFile=(${hemi}.${measure})
+          # strip .mgz from filename (does nothing if not .mgz extension):
+          set OutFile=`basename ${OutFile} .mgz`
+          set OutFile=(${OutFile}.fwhm${fwhm}.${target})
           set cmd=(mri_surf2surf \
               --s ${target} \
               --hemi ${hemi} \
@@ -4049,7 +4056,12 @@ while( $#argv != 0 )
 
     case "-measure":
       if ( $#argv < 1) goto arg1err;
-      set measurelist = $argv[1]; shift;
+      if ( $UserMeasureList ) then
+        set measurelist = ($measurelist $argv[1]); shift;
+      else
+        set measurelist = $argv[1]; shift;
+        set UserMeasureList = 1; # allow for multiple instances of -measure
+      endif
       breaksw
 
     case "-measuredir":
@@ -4966,7 +4978,8 @@ common-space surface. By default, the surface data for thickness, curv, sulc,
 area and jacobian_white are smoothed at 0, 5, 10, 15, 20, and 25 mm FWHM.
 If just one set of surface data needs to be processed, then the option
 -measure <surfmeas> can follow -qcache, where <surfmeas> is one of: thickness,
-curv, sulc, area, jacobian_white or any surface measure. -measuredir allows
+curv, sulc, area, jacobian_white or any surface measure. Multiple instances
+of -measure <meas> is supported.  The -measuredir option allows
 specifying a directory other than the default of surf. Another option is
 -fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
 specifying a common-space target other than fsaverage (the default).
