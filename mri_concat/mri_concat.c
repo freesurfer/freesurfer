@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/05/13 15:56:35 $
- *    $Revision: 1.20.2.9 $
+ *    $Date: 2009/07/23 16:51:16 $
+ *    $Revision: 1.20.2.10 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.20.2.9 2009/05/13 15:56:35 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.20.2.10 2009/07/23 16:51:16 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -74,6 +74,7 @@ int DoVar=0;
 int DoStd=0;
 int DoMax=0;
 int DoMaxIndex=0;
+int DoMin=0;
 int DoPaired=0;
 int DoPairedAvg=0;
 int DoPairedSum=0;
@@ -342,6 +343,13 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if(DoMin) {
+    printf("Computing min across all frames \n");
+    mritmp = MRIvolMin(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   if(DoSort) {
     printf("Sorting \n");
     mritmp = MRIsort(mriout,mask,NULL);
@@ -408,6 +416,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--neg"))    DoNeg = 1;
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--max-index")) DoMaxIndex = 1;
+    else if (!strcasecmp(option, "--min"))    DoMin = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
     else if (!strcasecmp(option, "--sort"))   DoSort = 1;
     else if (!strcasecmp(option, "--max-bonfcor")){
@@ -532,6 +541,7 @@ static void print_usage(void) {
   printf("   --std  : compute std  of concatenated volumes\n");
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
+  printf("   --min  : compute min of concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("\n");

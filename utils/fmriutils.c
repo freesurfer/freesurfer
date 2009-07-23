@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/09 21:37:24 $
- *    $Revision: 1.47.2.5 $
+ *    $Date: 2009/07/23 16:51:15 $
+ *    $Revision: 1.47.2.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.47.2.5 2009/07/09 21:37:24 greve Exp $
+  $Id: fmriutils.c,v 1.47.2.6 2009/07/23 16:51:15 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -59,7 +59,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.47.2.5 2009/07/09 21:37:24 greve Exp $");
+  return("$Id: fmriutils.c,v 1.47.2.6 2009/07/23 16:51:15 greve Exp $");
 }
 
 
@@ -1508,6 +1508,43 @@ MRI *MRIvolMax(MRI *invol, MRI *out)
           if (max < v) max = v;
         }
         MRIsetVoxVal(out,c,r,s,0,max);
+      }
+    }
+  }
+  return(out);
+}
+
+/*----------------------------------------------------------------
+  MRI *MRIvolMin(MRI *vol, MRI *out) - the value at each voxel
+  is the minimum over the frames at that voxel. Note that nothing
+  special is done with the sign (ie, a negative value can be the
+  minimum).
+  --------------------------------------------------------------*/
+MRI *MRIvolMin(MRI *invol, MRI *out)
+{
+  int c, r, s, f;
+  double v, min;
+
+  if(out==NULL){
+    out = MRIalloc(invol->width,invol->height,invol->depth,invol->type);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(invol,out);
+  }
+  if (out->width != invol->width || out->height != invol->height ||
+      out->depth != invol->depth){
+    printf("ERROR: MRIvolMin: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for (c=0; c < invol->width; c++)  {
+    for (r=0; r < invol->height; r++) {
+      for (s=0; s < invol->depth; s++) {
+        min = MRIgetVoxVal(invol,c,r,s,0);
+        for (f=1; f < invol->nframes; f++) {
+          v = MRIgetVoxVal(invol,c,r,s,f);
+          if (min > v) min = v;
+        }
+        MRIsetVoxVal(out,c,r,s,0,min);
       }
     }
   }
