@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/22 21:41:49 $
- *    $Revision: 1.63 $
+ *    $Date: 2009/07/24 20:38:22 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -632,6 +632,10 @@ void MainWindow::LoadVolume()
       
       if ( dlg.GetSampleMethod() != SAMPLE_NEAREST )
         fn += ":sample=trilinear";
+      
+      fn += ":colormap=" + dlg.GetColorMap();
+      if ( dlg.GetColorMap() == "lut" )
+        fn += ":lut=" + dlg.GetLUT();
       
       script.Add( fn );
   
@@ -2661,12 +2665,7 @@ void MainWindow::CommandSetLUT( const wxArrayString& sa )
   if ( mri )
   {  
     COLOR_TABLE* ct = m_luts->LoadColorTable( sa[1].char_str() );
-    /*
-    if ( !ct )
-    {
-      ct = m_luts->LoadColorTable( sa[1].c_str() );
-    }
-    */
+
     if ( ct )
     {
       mri->GetProperties()->SetLUTCTAB( ct );

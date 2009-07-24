@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/09 20:28:58 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/07/24 20:38:22 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,12 +55,19 @@ public:
   }
 
   void SetRecentFiles( const wxArrayString& list );
+  
+  wxString GetColorMap();
+  wxString GetLUT();
 
 protected:
-  void OnButtonOpen( wxCommandEvent& event );
-  void OnFileSelectionChanged( wxCommandEvent& event );
-  void OnButtonRegFile( wxCommandEvent& event );
-  void OnCheckApplyReg( wxCommandEvent& event );
+  void OnButtonOpen           ( wxCommandEvent& event );
+  void OnFileSelectionChanged ( wxCommandEvent& event );
+  void OnButtonRegFile        ( wxCommandEvent& event );
+  void OnCheckApplyReg        ( wxCommandEvent& event );
+  void OnChoiceColorMap       ( wxCommandEvent& event );
+  void OnChoiceLUT            ( wxCommandEvent& event );
+  
+  void UpdateLUT();
 
   wxButton*     m_btnOpen;
   wxComboBox*   m_comboFileName;
@@ -70,6 +77,9 @@ protected:
   wxButton*     m_btnRegFile;
   wxRadioButton*  m_radioNearest;
   wxRadioButton*  m_radioTrilinear;
+  wxChoice*     m_choiceColorMap;
+  wxChoice*     m_choiceLUT;
+  wxStaticText* m_staticLUT;
 
   wxString  m_strLastDir;
 
