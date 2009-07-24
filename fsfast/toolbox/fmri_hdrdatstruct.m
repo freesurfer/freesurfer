@@ -8,9 +8,9 @@ function hdrdat = fmri_hdrdatstruct()
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:33 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2009/07/24 22:20:21 $
+%    $Revision: 1.3.2.1 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@ hdrdat.Ncols = 0;
 hdrdat.Nskip = 0;
 hdrdat.DTOrder = 0;
 hdrdat.RescaleFactor = 1;
-hdrdat.HanningRadiues = 0;
+hdrdat.HanningRadius = 0;
 hdrdat.BrainAirSeg = 1;
 hdrdat.GammaFit = 0;
 hdrdat.gfDelta = [];
