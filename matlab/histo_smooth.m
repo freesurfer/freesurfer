@@ -1,15 +1,24 @@
-function smooth = histo_smooth(h, niter)
-% smooth = histo_smooth(h, niter)
-
-len = length(h) ;
-b = [1:len] ;
-b1 = [2:len len] ;
-b2 = [1 1:len-1] ;
-
-for n=1:niter
-  smooth = (h(b) + h(b1) + h(b2)) / 3 ;
-  h = smooth ;
+function hs = histo_smooth(h, niters)
+% hs = histo_smooth(h, niters)
+hsave = h ;
+  
+if (size(h,1) > 1)
+  h = h(:,2); 
 end
 
-     
+nbins = length(h);
+bins = 1:nbins;
+bm1 = [1 1:nbins-1];
+bp1 = [2:nbins nbins];
+
+hs = h ;
+for n=1:niters
+  hs = (hs(bm1) + hs + hs(bp1))/ 3;
+end
+
+if (size(hsave) ~= size(h))
+  hs1 = hs ;
+  hs = hsave ;
+  hs(:,2) = hs1 ;
+end
 
