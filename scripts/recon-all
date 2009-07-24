@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/23 23:20:37 $
-#    $Revision: 1.225 $
+#    $Date: 2009/07/24 22:25:27 $
+#    $Revision: 1.226 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.225 2009/07/23 23:20:37 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.226 2009/07/24 22:25:27 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -190,7 +190,7 @@ set DoVersionsOnly = 0;
 
 #----- Volume -----------#
 set DoConvertInput   = 0;
-set DoCreateBaseInput= 0;
+set DoCreateBaseInput = 0;
 set DoMotionCor      = 0;
 set DoDeface         = 0;
 set DoNuIntensityCor = 0;
@@ -3604,7 +3604,7 @@ while( $#argv != 0 )
 
     case "-all":
     case "-autorecon-all":
-      set DoCreateBaseInput= 1;
+      set DoCreateBaseInput = 1;
       set DoMotionCor      = 1;
       set DoTalairach      = 1;
       set DoTalCheck       = 1;
@@ -3647,7 +3647,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon1":
-      set DoCreateBaseInput= 1;
+      set DoCreateBaseInput = 1;
       set DoMotionCor      = 1;
       set DoTalairach      = 1;
       set DoTalCheck       = 1;
