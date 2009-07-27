@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/22 21:37:08 $
- *    $Revision: 1.80 $
+ *    $Date: 2009/07/27 17:32:11 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.80 2009/07/22 21:37:08 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.81 2009/07/27 17:32:11 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.80 2009/07/22 21:37:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.81 2009/07/27 17:32:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -765,6 +765,7 @@ int main(int argc, char **argv) {
     else {
       printf("Convolving with gaussian\n");
       MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.5);
+      //MRIShksmooth(SrcSurfReg, SrcVals, gstd_Input, nSmoothSteps_Input, SrcVals);
     }
   }
 
@@ -903,6 +904,7 @@ int main(int argc, char **argv) {
     } else {
       printf("Convolving with gaussian\n");
       MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.5);
+      //MRIShksmooth(SrcSurfReg, SrcVals, gstd, nSmoothSteps, SrcVals);
     }
   }
 
@@ -964,6 +966,7 @@ int main(int argc, char **argv) {
     }
     if(DoNormVar) NormVar(TrgVals, NULL);
     if(! SplitFrames) {
+      printf("Saving to %s\n",trgvalfile);
       err = MRIwriteType(TrgVals,trgvalfile,trgtype);
       if(err){
 	printf("ERROR: writing %s\n",trgvalfile);
@@ -2162,6 +2165,7 @@ MRI *MRISheatkernel(MRIS *surf, double sigma) {
     if (nnbrsmax < nnbrs) nnbrsmax = nnbrs;
   }
 
+  printf("2s2 = %g,s = %g\n",two_sigma_sqr,sigma);
   printf("max no of neighbors = %d\n",nnbrsmax);
   hk = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, nnbrsmax+1);
 
@@ -2190,18 +2194,15 @@ MRI *MRISheatkernel(MRIS *surf, double sigma) {
 
   printf("Done computing heat kernel weights\n");
 
-  MRIwrite(hk,"hk.mgh");
+  //MRIwrite(hk,"hk.mgh");
   return(hk);
 }
 
 
 /*--------------------------------------------------------------------------*/
 
-MRI *MRIShksmooth(MRIS *Surf, 
-                  MRI *Src, 
-                  double sigma, 
-                  int nSmoothSteps, 
-                  MRI *Targ) 
+MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, 
+                  int nSmoothSteps, MRI *Targ) 
 {
   int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr;
   double val, w;
@@ -2234,8 +2235,9 @@ MRI *MRIShksmooth(MRIS *Surf,
   }
 
   hk = MRISheatkernel(SrcSurfReg, sigma);
-  MRIwrite(hk,"hk.mgh");
+  //MRIwrite(hk,"hk.mgh");
 
+  printf("Heat kernel smoothing with %d steps\n",nSmoothSteps);
   SrcTmp = MRIcopy(Src,NULL);
   for (nthstep = 0; nthstep < nSmoothSteps; nthstep ++) {
     //printf("Step = %d\n",nthstep); fflush(stdout);
@@ -2244,13 +2246,18 @@ MRI *MRIShksmooth(MRIS *Surf,
       nnbrs = Surf->vertices[vtx].vnum;
 
       for (frame = 0; frame < Targ->nframes; frame ++) {
-        w = MRIgetVoxVal(hk,vtx,0,0,nnbrs);
-        val = w*MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+        w   = MRIgetVoxVal(hk,vtx,0,0,nnbrs); // weight for center
+        val = MRIFseq_vox(SrcTmp,vtx,0,0,frame); // val for center
+
+	if(0 && vtx == 10000) printf("0 v = %g, w = %g\n",val,w);
+	val *= w;
 
         for (nthnbr = 0; nthnbr < nnbrs; nthnbr++) {
           nbrvtx = Surf->vertices[vtx].v[nthnbr];
           w = MRIgetVoxVal(hk,vtx,0,0,nthnbr);
           val += w*MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+	  if(0 && vtx == 10000) printf("%d v = %g, w = %g\n",nthnbr+1,val,w);
+
         }/* end loop over neighbor */
 
         MRIFseq_vox(Targ,vtx,0,0,frame) = val;
