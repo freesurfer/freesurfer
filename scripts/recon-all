@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/24 22:25:27 $
-#    $Revision: 1.226 $
+#    $Date: 2009/07/27 19:57:25 $
+#    $Revision: 1.227 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.226 2009/07/24 22:25:27 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.227 2009/07/27 19:57:25 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1397,9 +1397,10 @@ if($DoGCAReg) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
   if ( $longitudinal ) then
     # longitudinal processing:
-    # just copy from the cross-sectionaling processed data for this subject
-    set cmd = (cp ${SUBJECTS_DIR}/${tpNid}/mri/transforms/talairach.lta)
-    set cmd = ($cmd transforms/talairach.lta)
+    set cmd = (mri_concatenate_lta \
+                -invert1 $subjdir/mri/transforms/$longbasetotpN_regfile \
+                $longbasedir/mri/transforms/talairach.lta \
+                transforms/talairach.lta)
   else
     # default processing:
     set cmd = (mri_em_register -mask brainmask.mgz \
