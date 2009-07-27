@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/27 19:57:25 $
-#    $Revision: 1.227 $
+#    $Date: 2009/07/27 21:09:18 $
+#    $Revision: 1.228 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.227 2009/07/27 19:57:25 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.228 2009/07/27 21:09:18 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1491,11 +1491,12 @@ if($DoCANormalize) then
     set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile`;
     set cmd = (mri_ca_normalize)
     if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
-    set cmd = ($cmd -c ctrl_pts.mgz)
     if ($longitudinal) then
       # longitudinal processing:
       # use the aseg_base (just created) as initialization of the current TP:
-      set cmd = ($cmd -seg aseg_${longbaseid}.mgz)
+      set cmd = ($cmd -long aseg_${longbaseid}.mgz)
+    else
+      set cmd = ($cmd -c ctrl_pts.mgz)
     endif
     set cmd = ($cmd -mask brainmask.mgz $xopts)
     set cmd = ($cmd nu.mgz $FREESURFER_HOME/average/$GCA)
