@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/07/30 16:44:17 $
- *    $Revision: 1.53 $
+ *    $Author: rudolph $
+ *    $Date: 2009/07/27 20:12:44 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.53 2008/07/30 16:44:17 fischl Exp $";
+"$Id: mris_register.c,v 1.54 2009/07/27 20:12:44 rudolph Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -142,14 +142,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.53 2008/07/30 16:44:17 fischl Exp $", 
+     "$Id: mris_register.c,v 1.54 2009/07/27 20:12:44 rudolph Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.53 2008/07/30 16:44:17 fischl Exp $", 
+     "$Id: mris_register.c,v 1.54 2009/07/27 20:12:44 rudolph Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -767,6 +767,56 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     MRISsetSulcFileName(argv[2]);
   }
+
+  else if (!stricmp(option, "surf0"))
+  {
+    surface_names[0]       = argv[2];
+    fprintf(stderr, "using %s as input surface 0.\n", 
+            surface_names[0]) ;
+    nargs = 1 ;
+  }
+
+  else if (!stricmp(option, "surf1"))
+  {
+    surface_names[1]       = argv[2];
+    fprintf(stderr, "using %s as input surface 1.\n", 
+            surface_names[1]) ;
+    nargs = 1 ;
+  }
+
+  else if (!stricmp(option, "surf2"))
+  {
+    surface_names[2]       = argv[2];
+    fprintf(stderr, "using %s as input surface 2.\n", 
+            surface_names[2]) ;
+    nargs = 1 ;
+  }
+
+  else if (!stricmp(option, "curv0"))
+  {
+    curvature_names[0]  = argv[2];
+    fprintf(stderr, "using %s as curvature function for surface 0.\n", 
+            curvature_names[0]) ;
+    nargs = 1 ;
+  }
+
+  else if (!stricmp(option, "curv1"))
+  {
+    curvature_names[1]  = argv[2];
+    fprintf(stderr, "using %s as curvature function for surface 1.\n", 
+            curvature_names[1]) ;
+    nargs = 1 ;
+  }
+
+  else if (!stricmp(option, "curv2"))
+  {
+    curvature_names[2]  = argv[2];
+    fprintf(stderr, "using %s as curvature function for surface 2.\n", 
+            curvature_names[2]) ;
+    nargs = 1 ;
+  }
+
+
   else if (!stricmp(option, "lm"))
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
