@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/07/27 16:36:31 $
-#    $Revision: 1.5.2.2 $
+#    $Date: 2009/07/27 16:43:00 $
+#    $Revision: 1.5.2.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.5.2.2 2009/07/27 16:36:31 greve Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.5.2.3 2009/07/27 16:43:00 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -157,6 +157,7 @@ while( $#argv != 0 )
     case "--s":
       if ( $#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      set subject = `basename $subject`; # remove trailing "/"
       breaksw
 
     case "--fsvol":
