@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/09 21:37:24 $
- *    $Revision: 1.138.2.14 $
+ *    $Date: 2009/07/27 17:43:10 $
+ *    $Revision: 1.138.2.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -553,7 +553,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.138.2.14 2009/07/09 21:37:24 greve Exp $";
+"$Id: mri_glmfit.c,v 1.138.2.15 2009/07/27 17:43:10 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1224,14 +1224,16 @@ int main(int argc, char **argv) {
   GLMallocY(mriglm->glm);
 
   // Check DOF
-  GLMdof(mriglm->glm);
-  printf("DOF = %g\n",mriglm->glm->dof);
-  if(mriglm->glm->dof < 1) {
-    if(!usedti || mriglm->glm->dof < 0){
-      printf("ERROR: DOF = %g\n",mriglm->glm->dof);
-      exit(1);
-    } else
-      printf("WARNING: DOF = %g\n",mriglm->glm->dof);
+  if(! DoFFx){
+    GLMdof(mriglm->glm);
+    printf("DOF = %g\n",mriglm->glm->dof);
+    if(mriglm->glm->dof < 1) {
+      if(!usedti || mriglm->glm->dof < 0){
+	printf("ERROR: DOF = %g\n",mriglm->glm->dof);
+	exit(1);
+      } else
+	printf("WARNING: DOF = %g\n",mriglm->glm->dof);
+    }
   }
 
   // Compute Contrast-related matrices
