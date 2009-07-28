@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2009/07/28 15:49:04 $
-#    $Revision: 1.234 $
+#    $Date: 2009/07/28 23:23:01 $
+#    $Revision: 1.235 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.234 2009/07/28 15:49:04 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.235 2009/07/28 23:23:01 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1132,54 +1132,26 @@ skullstrip:
   $PWD |& tee -a $LF
 
   if ($longitudinal) then
-    # longitudinal processing stream: create mask by OR'ing the brainmasks
-    # from the subjects composing the base subject
+    # longitudinal processing stream:
+		#  create mask by mapping brainmask from base
+		#  (which is basically an OR of the cross sectional runs)
     set BM  = brainmask.mgz
     set BMA = brainmask.auto.mgz
-    set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
-    set brainmaskOrList = ();
-    foreach s (${BaseSubjsList})
-      if ("${s}" == "${tpNid}") then
-        # same subject, so no transform needed
-        set bmfn = brainmask-${tpNid}.mgz
-        set brainmaskOrList = (${brainmaskOrList} ${bmfn});
-        set cmd=(cp -v ${SUBJECTS_DIR}/${tpNid}/mri/${BM} ${bmfn})
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      else
-        # create the transforms mapping base subjs to this subj
-        set baseltadir = ($longbasedir/mri/transforms)
-        set cmd=(mri_concatenate_lta)
-        set cmd=($cmd ${baseltadir}/${s}_to_${longbaseid}.lta)
-        set cmd=($cmd ${baseltadir}/${longbaseid}_to_${tpNid}.lta)
-        set ltaname = (./transforms/${s}_to_${tpNid}.lta)
-        set cmd=($cmd ${ltaname})
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-        # then create the brainmask of this base subj aligned to this subj
-        set cmd=(mri_convert -T ${ltaname})
-        set cmd=($cmd -rl ${SUBJECTS_DIR}/${tpNid}/mri/${BM})
-        set cmd=($cmd ${SUBJECTS_DIR}/${s}/mri/${BM})
-        set bmfn=(brainmask-${s}_to_${tpNid}.mgz)
-        set cmd=($cmd ${bmfn})
-        set brainmaskOrList = (${brainmaskOrList} ${bmfn});
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    end
-    # now OR these masks together
-    set cmd=(mri_or ${brainmaskOrList} brainmask-OR.mgz)
+
+    set cmd=(mri_convert -T $subjdir/mri/transforms/$longbasetotpN_regfile)
+    set cmd=($cmd -rl nu.mgz)
+    set cmd=($cmd ${longbasedir}/mri/${BM})
+		set bmbase = brainmask_${longbaseid}.mgz
+		set cmd=($cmd ${bmbase})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    # and create the final brainmask.mgz
-    set cmd = (mri_mask T1.mgz brainmask-OR.mgz $BMA)
+
+		set cmd=(mri_mask T1.mgz ${bmbase} ${BMA})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
+
     goto skipped_skullstrip;
   endif
 
