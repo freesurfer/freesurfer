@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2009/07/28 12:54:26 $
-#    $Revision: 1.232 $
+#    $Date: 2009/07/28 13:32:44 $
+#    $Revision: 1.233 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.232 2009/07/28 12:54:26 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.233 2009/07/28 13:32:44 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -673,7 +673,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   $PWD |& tee -a $LF
   if($RunIt) rm -f ${BaseSubjsListFname};
   set subjInVols=();
-	set normInVols=();
+  set normInVols=();
   set ltaXforms=();
   foreach s ($BaseSubjsList)
     if($RunIt) echo "${s}" >> ${BaseSubjsListFname};
@@ -1186,6 +1186,7 @@ skullstrip:
   # base subject stream: just use the norm vol created during -base-init
   if($DoCreateBaseSubj) then
     set BMA = brainmask.auto.mgz
+    set BM  = brainmask.mgz  #used later
     set cmd = (cp -fv norm_template.mgz $BMA)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
