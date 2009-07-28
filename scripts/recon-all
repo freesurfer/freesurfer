@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2009/07/28 13:32:44 $
-#    $Revision: 1.233 $
+#    $Date: 2009/07/28 15:49:04 $
+#    $Revision: 1.234 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.233 2009/07/28 13:32:44 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.234 2009/07/28 15:49:04 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1427,7 +1427,7 @@ if($DoGCAReg) then
                 $longbasedir/mri/transforms/talairach.lta \
                 transforms/talairach.lta)
   else
-    if($CreateBaseSubj) then
+    if($DoCreateBaseSubj) then
       # base subj processing (norm_template instead of nu, and no mask needed):
       set cmd = (mri_em_register -mask brainmask.mgz $xopts \
                   norm_template.mgz $FREESURFER_HOME/average/$GCA \
@@ -1475,7 +1475,7 @@ if($DoCANormalize) then
     set cmd = ($cmd -c ctrl_pts.mgz)
   endif
   set cmd = ($cmd -mask brainmask.mgz $xopts)
-  if($CreateBaseSubj) then
+  if($DoCreateBaseSubj) then
     # base subject stream 
     # (use norm vol created during -base-init, no mask needed)
     set cmd = ($cmd norm_template.mgz)
