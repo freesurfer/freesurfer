@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2009/07/28 23:23:01 $
-#    $Revision: 1.235 $
+#    $Date: 2009/07/28 23:32:44 $
+#    $Revision: 1.236 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.235 2009/07/28 23:23:01 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.236 2009/07/28 23:32:44 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1133,21 +1133,21 @@ skullstrip:
 
   if ($longitudinal) then
     # longitudinal processing stream:
-		#  create mask by mapping brainmask from base
-		#  (which is basically an OR of the cross sectional runs)
+    #  create mask by mapping brainmask from base
+    #  (which is basically an OR of the cross sectional runs)
     set BM  = brainmask.mgz
     set BMA = brainmask.auto.mgz
 
     set cmd=(mri_convert -T $subjdir/mri/transforms/$longbasetotpN_regfile)
-    set cmd=($cmd -rl nu.mgz)
+    set cmd=($cmd -rl T1.mgz)
     set cmd=($cmd ${longbasedir}/mri/${BM})
-		set bmbase = brainmask_${longbaseid}.mgz
-		set cmd=($cmd ${bmbase})
+    set bmbase = brainmask_${longbaseid}.mgz
+    set cmd=($cmd ${bmbase})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
-		set cmd=(mri_mask T1.mgz ${bmbase} ${BMA})
+    set cmd=(mri_mask T1.mgz ${bmbase} ${BMA})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
