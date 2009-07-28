@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2009/07/28 00:50:32 $
-#    $Revision: 1.230 $
+#    $Author: nicks $
+#    $Date: 2009/07/28 03:15:11 $
+#    $Revision: 1.231 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.230 2009/07/28 00:50:32 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.231 2009/07/28 03:15:11 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1427,13 +1427,13 @@ if($DoGCAReg) then
   else
     if($CreateBaseSubj) then
       # base subj processing (norm_template instead of nu, and no mask needed):
-      set cmd = (mri_em_register $xopts \
+      set cmd = (mri_em_register -mask brainmask.mgz $xopts \
                   norm_template.mgz $FREESURFER_HOME/average/$GCA \
                   transforms/talairach.lta)
     else
       # default processing:
-      set cmd = (mri_em_register -mask brainmask.mgz \
-                  $xopts nu.mgz $FREESURFER_HOME/average/$GCA \
+      set cmd = (mri_em_register -mask brainmask.mgz $xopts \
+                  nu.mgz $FREESURFER_HOME/average/$GCA \
                   transforms/talairach.lta)
     endif
   endif
@@ -1463,7 +1463,6 @@ if($DoCANormalize) then
 
   set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile`;
   set cmd = (mri_ca_normalize)
-  set cmd = ($cmd $xopts)
   if($UseControlPoints)  set cmd = ($cmd -f $ControlPointsFile)
   if ($longitudinal) then
     # longitudinal processing:
@@ -1473,13 +1472,13 @@ if($DoCANormalize) then
     # default stream
     set cmd = ($cmd -c ctrl_pts.mgz)
   endif
+  set cmd = ($cmd -mask brainmask.mgz $xopts)
   if($CreateBaseSubj) then
     # base subject stream 
     # (use norm vol created during -base-init, no mask needed)
     set cmd = ($cmd norm_template.mgz)
   else
     # default stream
-    set cmd = ($cmd -mask brainmask.mgz)
     set cmd = ($cmd nu.mgz)
   endif
   set cmd = ($cmd $FREESURFER_HOME/average/$GCA)
