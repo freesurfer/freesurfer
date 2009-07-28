@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/07/28 00:16:17 $
-#    $Revision: 1.229 $
+#    $Author: mreuter $
+#    $Date: 2009/07/28 00:50:32 $
+#    $Revision: 1.230 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.229 2009/07/28 00:16:17 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.230 2009/07/28 00:50:32 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -156,7 +156,7 @@ set UseLongbaseCtrlVol = 0;   # if 1, use ctrl volume of longbase in norm step
 set no_orig_pial = 0;    # if 1, mris_make_surfaces won't use orig pial
 set UseAsegFusion = 1; # if 0, dont create 'fused' asegs from timepoints
 set DoCreateBaseSubj = 0; # if 1, create the 'base' subject used in longitud
-set BaseSubjInvol = (nu.mgz); # -base-invol allows using some other file
+set BaseSubjInvol = (orig.mgz); # -base-invol allows using some other file
 set BaseSubjsList = (); # subject set grabbed from -base-tp args
 set BaseSubjsListFname = (base-tps); # file containing BaseSubjsList
 set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median 
