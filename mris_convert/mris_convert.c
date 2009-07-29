@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/07/23 19:02:29 $
- *    $Revision: 1.30 $
+ *    $Date: 2009/07/29 20:10:36 $
+ *    $Revision: 1.31 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -47,7 +47,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.30 2008/07/23 19:02:29 nicks Exp $";
+"$Id: mris_convert.c,v 1.31 2009/07/29 20:10:36 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.30 2008/07/23 19:02:29 nicks Exp $",
+     "$Id: mris_convert.c,v 1.31 2009/07/29 20:10:36 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -227,8 +227,15 @@ main(int argc, char *argv[]) {
     MRIwrite(mri, out_fname);
     exit(0);
   }
-  else if (mris->patch)
-    MRISwritePatch(mris, out_fname) ;
+  else if (mris->patch) {
+    int type = MRISfileNameType(out_fname) ;
+    if (type == MRIS_GIFTI_FILE) {
+      MRISwrite(mris, out_fname);
+    }
+    else {
+      MRISwritePatch(mris, out_fname) ;
+    }
+  }
   else if (output_normals)
     MRISwriteNormalsAscii(mris, out_fname) ;
   else if (write_vertex_neighbors)
@@ -360,11 +367,17 @@ print_help(void) {
   printf( "     column is the vertex number, the 2nd col is the number of neighbors,\n");
   printf( "     the remaining cols are the vertex numbers of the neighbors.  \n");
   printf( "     Note: there can be a different number of neighbors for each vertex.\n") ;
-  printf( "  -a Print only surface xyz to ascii file\n") ;
+  printf( "  -a                Print only surface xyz to ascii file\n") ;
   printf( "\n") ;
-  printf( "Surface and scalar files can be ascii, gifti or binary.\n") ;
-  printf( "Ascii file is assumed if filename ends with .asc\n") ;
-  printf( "Gifti format is assumed if filename ends with .gii\n") ;
+  printf( "These file formats are supported:\n") ;
+  printf( "  ASCII:       .asc\n");
+  printf( "  ICO:         .ico, .tri\n");
+  printf( "  GEO:         .geo\n");
+  printf( "  STL:         .stl\n");
+  printf( "  VTK:         .vtk\n");
+  printf( "  GIFTI:       .gii\n");
+  printf( "  MGH surface-encoded 'volume': .mgh, .mgz\n");
+  printf( "Freesurfer binary format assumed for all other extensions.\n") ;
   printf( "\n") ;
   printf( "EXAMPLES:\n") ;
   printf( "\n");
