@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/07/29 21:44:23 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -116,44 +116,34 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   // surfaces. Or it can come from the source information in the
   // transform. We use it to get the RAS center offset for the
   // surface->RAS transform.
+  m_SurfaceToRASMatrix[0] = 1;
+  m_SurfaceToRASMatrix[1] = 0;
+  m_SurfaceToRASMatrix[2] = 0;
+  m_SurfaceToRASMatrix[3] = 0;
+  m_SurfaceToRASMatrix[4] = 0;
+  m_SurfaceToRASMatrix[5] = 1;
+  m_SurfaceToRASMatrix[6] = 0;
+  m_SurfaceToRASMatrix[7] = 0;
+  m_SurfaceToRASMatrix[8] = 0;
+  m_SurfaceToRASMatrix[9] = 0;
+  m_SurfaceToRASMatrix[10] = 1;
+  m_SurfaceToRASMatrix[11] = 0;
+  m_SurfaceToRASMatrix[12] = 0;
+  m_SurfaceToRASMatrix[13] = 0;
+  m_SurfaceToRASMatrix[14] = 0;
+  m_SurfaceToRASMatrix[15] = 1;
+  
   if ( m_MRIS->vg.valid )
   {
-    m_SurfaceToRASMatrix[0] = 1;
-    m_SurfaceToRASMatrix[1] = 0;
-    m_SurfaceToRASMatrix[2] = 0;
     m_SurfaceToRASMatrix[3] = m_MRIS->vg.c_r;
-    m_SurfaceToRASMatrix[4] = 0;
-    m_SurfaceToRASMatrix[5] = 1;
-    m_SurfaceToRASMatrix[6] = 0;
     m_SurfaceToRASMatrix[7] = m_MRIS->vg.c_a;
-    m_SurfaceToRASMatrix[8] = 0;
-    m_SurfaceToRASMatrix[9] = 0;
-    m_SurfaceToRASMatrix[10] = 1;
     m_SurfaceToRASMatrix[11] = m_MRIS->vg.c_s;
-    m_SurfaceToRASMatrix[12] = 0;
-    m_SurfaceToRASMatrix[13] = 0;
-    m_SurfaceToRASMatrix[14] = 0;
-    m_SurfaceToRASMatrix[15] = 1;
-
   }
   else if ( m_MRIS->lta )
   {
-    m_SurfaceToRASMatrix[0] = 1;
-    m_SurfaceToRASMatrix[1] = 0;
-    m_SurfaceToRASMatrix[2] = 0;
     m_SurfaceToRASMatrix[3] = -m_MRIS->lta->xforms[0].src.c_r;
-    m_SurfaceToRASMatrix[4] = 0;
-    m_SurfaceToRASMatrix[5] = 1;
-    m_SurfaceToRASMatrix[6] = 0;
     m_SurfaceToRASMatrix[7] = -m_MRIS->lta->xforms[0].src.c_a;
-    m_SurfaceToRASMatrix[8] = 0;
-    m_SurfaceToRASMatrix[9] = 0;
-    m_SurfaceToRASMatrix[10] = 1;
     m_SurfaceToRASMatrix[11] = -m_MRIS->lta->xforms[0].src.c_s;
-    m_SurfaceToRASMatrix[12] = 0;
-    m_SurfaceToRASMatrix[13] = 0;
-    m_SurfaceToRASMatrix[14] = 0;
-    m_SurfaceToRASMatrix[15] = 1;
   }
 
   // Make our transform object and set the matrix.
