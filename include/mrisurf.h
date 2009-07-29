@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/05/21 16:18:00 $
- *    $Revision: 1.326 $
+ *    $Author: rudolph $
+ *    $Date: 2009/07/29 18:47:39 $
+ *    $Revision: 1.327 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1683,6 +1683,10 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field);
 // Column / width for formatted output
 #define		G_LC				50
 #define		G_RC				30
+
+int		slprints(
+    char*		apch_txt
+);
 
 void	cprintf(
 	char*		apch_left,
