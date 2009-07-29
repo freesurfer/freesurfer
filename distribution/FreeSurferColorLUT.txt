@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.59 2009/07/06 17:43:04 fischl Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.60 2009/07/29 21:33:10 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -311,7 +311,7 @@
 # that left hemisphere has 3000 added to the index and the right has
 # 4000 added. The label names are also prepended with wm-lh or wm-rh.
 # Centrum semiovale is also labled with 5001 (left) and 5002 (right).
-# Even further below is the color table for aparc.a2005s.
+# Even further below are the color tables for aparc.a2005s and aparc.a2009s.
 
 #No.    Label Name:                         R   G   B   A
 1000    ctx-lh-unknown                      25  5   25  0
@@ -463,12 +463,12 @@
 4035    wm-rh-insula                        254 191 31  0
 
 # Below is the color table for the cortical labels of the seg volume
-# created by mri_aparc2aseg (with --a2005 flag) in which the aseg
-# cortex label is replaced by the labels in the aparc.a2005. The
+# created by mri_aparc2aseg (with --a2005s flag) in which the aseg
+# cortex label is replaced by the labels in the aparc.a2005s. The
 # cortical labels are the same as in Simple_surface_labels2005.txt,
 # except that left hemisphere has 1100 added to the index and the
 # right has 2100 added.  The label names are also prepended with
-# ctx-lh or ctx-rh.
+# ctx-lh or ctx-rh.  The aparc.a2009s labels are further below
 
 #No.    Label Name:                                     R   G   B   A
 1100    ctx-lh-Unknown                                  0   0   0   0
@@ -479,15 +479,15 @@
 
 1200    ctx-lh-G_cingulate-caudal_ACC                   25  60  61  0
 1201    ctx-lh-G_cingulate-rostral_ACC                  25  90  60  0
-1202    ctx-lh-G_cingulate-posterior                    25  120  60  0
+1202    ctx-lh-G_cingulate-posterior                    25  120 60  0
 
-1205    ctx-lh-S_cingulate-caudal_ACC                   25  150  60  0
-1206    ctx-lh-S_cingulate-rostral_ACC                   25  180  60  0
-1207    ctx-lh-S_cingulate-posterior                    25  210  60  0
+1205    ctx-lh-S_cingulate-caudal_ACC                   25  150 60  0
+1206    ctx-lh-S_cingulate-rostral_ACC                  25  180 60  0
+1207    ctx-lh-S_cingulate-posterior                    25  210 60  0
 
-1210    ctx-lh-S_pericallosal-caudal                   25  150  90  0
-1211    ctx-lh-S_pericallosal-rostral                   25  180  90  0
-1212    ctx-lh-S_pericallosal-posterior                    25  210  90  0
+1210    ctx-lh-S_pericallosal-caudal                    25  150 90  0
+1211    ctx-lh-S_pericallosal-rostral                   25  180 90  0
+1212    ctx-lh-S_pericallosal-posterior                 25  210 90  0
 
 1105    ctx-lh-G_cuneus                                 180 20  20  0
 1106    ctx-lh-G_frontal_inf-Opercular_part             220 20  100 0
@@ -573,9 +573,6 @@
 2103    ctx-rh-G_cingulate-Isthmus                      60  25  25  0
 2104    ctx-rh-G_cingulate-Main_part                    25  60  60  0
 
-
-
-
 2105    ctx-rh-G_cuneus                                 180 20  20  0
 2106    ctx-rh-G_frontal_inf-Opercular_part             220 20  100 0
 2107    ctx-rh-G_frontal_inf-Orbital_part               140 60  60  0
@@ -657,15 +654,15 @@
 
 2200    ctx-rh-G_cingulate-caudal_ACC                   25  60  61  0
 2201    ctx-rh-G_cingulate-rostral_ACC                  25  90  60  0
-2202    ctx-rh-G_cingulate-posterior                    25  120  60  0
+2202    ctx-rh-G_cingulate-posterior                    25  120 60  0
 
-2205    ctx-rh-S_cingulate-caudal_ACC                   25  150  60  0
-2206    ctx-rh-S_cingulate-rostral_ACC                   25  180  60  0
-2207    ctx-rh-S_cingulate-posterior                    25  210  60  0
+2205    ctx-rh-S_cingulate-caudal_ACC                   25  150 60  0
+2206    ctx-rh-S_cingulate-rostral_ACC                  25  180 60  0
+2207    ctx-rh-S_cingulate-posterior                    25  210 60  0
 
-2210    ctx-rh-S_pericallosal-caudal                   25  150  90  0
-2211    ctx-rh-S_pericallosal-rostral                   25  180  90  0
-2212    ctx-rh-S_pericallosal-posterior                    25  210  90  0
+2210    ctx-rh-S_pericallosal-caudal                    25  150 90  0
+2211    ctx-rh-S_pericallosal-rostral                   25  180 90  0
+2212    ctx-rh-S_pericallosal-posterior                 25  210 90  0
 
 3100    wm-lh-Unknown                                   0   0   0   0
 3101    wm-lh-Corpus_callosum                           50  50  50  0
@@ -971,4 +968,322 @@
 8013  Thalamus-lateral-geniculate                       203 182 143 0
 8014  Thalamus-medial-geniculate                        42  204 167 0
 
+
+# Below is the color table for the cortical labels of the seg volume
+# created by mri_aparc2aseg (with --a2009s flag) in which the aseg
+# cortex label is replaced by the labels in the aparc.a2009s. The
+# cortical labels are the same as in Simple_surface_labels2009.txt,
+# except that left hemisphere has 11100 added to the index and the
+# right has 12100 added.  The label names are also prepended with
+# ctx-lh or ctx-rh.
+
+#No.   Label Name:                              R   G   B    A
+11100  ctx-lh-Unknown                           0   0   0    0
+11101  ctx-lh-G_and_S_frontomargin             23 220  60    0
+11102  ctx-lh-G_and_S_occipital_inf            23  60 180    0
+11103  ctx-lh-G_and_S_paracentral              63 100  60    0
+11104  ctx-lh-G_and_S_subcentral               63  20 220    0
+11105  ctx-lh-G_and_S_transv_frontopol         13   0 250    0
+11106  ctx-lh-G_and_S_cingul-Ant               26  60   0    0
+11107  ctx-lh-G_and_S_cingul-Mid-Ant           26  60  75    0
+11108  ctx-lh-G_and_S_cingul-Mid-Post          26  60 150    0
+11109  ctx-lh-G_cingul-Post-dorsal             25  60 250    0
+11110  ctx-lh-G_cingul-Post-ventral            60  25  25    0
+11111  ctx-lh-G_cuneus                        180  20  20    0
+11112  ctx-lh-G_front_inf-Opercular           220  20 100    0
+11113  ctx-lh-G_front_inf-Orbital             140  60  60    0
+11114  ctx-lh-G_front_inf-Triangul            180 220 140    0
+11115  ctx-lh-G_front_middle                  140 100 180    0
+11116  ctx-lh-G_front_sup                     180  20 140    0
+11117  ctx-lh-G_Ins_lg_and_S_cent_ins          23  10  10    0
+11118  ctx-lh-G_insular_short                 225 140 140    0
+11119  ctx-lh-G_occipital_middle              180  60 180    0
+11120  ctx-lh-G_occipital_sup                  20 220  60    0
+11121  ctx-lh-G_oc-temp_lat-fusifor            60  20 140    0
+11122  ctx-lh-G_oc-temp_med-Lingual           220 180 140    0
+11123  ctx-lh-G_oc-temp_med-Parahip            65 100  20    0
+11124  ctx-lh-G_orbital                       220  60  20    0
+11125  ctx-lh-G_pariet_inf-Angular             20  60 220    0
+11126  ctx-lh-G_pariet_inf-Supramar           100 100  60    0
+11127  ctx-lh-G_parietal_sup                  220 180 220    0
+11128  ctx-lh-G_postcentral                    20 180 140    0
+11129  ctx-lh-G_precentral                     60 140 180    0
+11130  ctx-lh-G_precuneus                      25  20 140    0
+11131  ctx-lh-G_rectus                         20  60 100    0
+11132  ctx-lh-G_subcallosal                    60 220  20    0
+11133  ctx-lh-G_temp_sup-G_T_transv            60  60 220    0
+11134  ctx-lh-G_temp_sup-Lateral              220  60 220    0
+11135  ctx-lh-G_temp_sup-Plan_polar            65 220  60    0
+11136  ctx-lh-G_temp_sup-Plan_tempo            25 140  20    0
+11137  ctx-lh-G_temporal_inf                  220 220 100    0
+11138  ctx-lh-G_temporal_middle               180  60  60    0
+11139  ctx-lh-Lat_Fis-ant-Horizont             61  20 220    0
+11140  ctx-lh-Lat_Fis-ant-Vertical             61  20  60    0
+11141  ctx-lh-Lat_Fis-post                     61  60 100    0
+11142  ctx-lh-Medial_wall                      25  25  25    0
+11143  ctx-lh-Pole_occipital                  140  20  60    0
+11144  ctx-lh-Pole_temporal                   220 180  20    0
+11145  ctx-lh-S_calcarine                      63 180 180    0
+11146  ctx-lh-S_central                       221  20  10    0
+11147  ctx-lh-S_cingul-Marginalis             221  20 100    0
+11148  ctx-lh-S_circular_insula_ant           221  60 140    0
+11149  ctx-lh-S_circular_insula_inf           221  20 220    0
+11150  ctx-lh-S_circular_insula_sup            61 220 220    0
+11151  ctx-lh-S_collat_transv_ant             100 200 200    0
+11152  ctx-lh-S_collat_transv_post             10 200 200    0
+11153  ctx-lh-S_front_inf                     221 220  20    0
+11154  ctx-lh-S_front_middle                  141  20 100    0
+11155  ctx-lh-S_front_sup                      61 220 100    0
+11156  ctx-lh-S_interm_prim-Jensen            141  60  20    0
+11157  ctx-lh-S_intrapariet_and_P_trans       143  20 220    0
+11158  ctx-lh-S_oc_middle_and_Lunatus         101  60 220    0
+11159  ctx-lh-S_oc_sup_and_transversal         21  20 140    0
+11160  ctx-lh-S_occipital_ant                  61  20 180    0
+11161  ctx-lh-S_oc-temp_lat                   221 140  20    0
+11162  ctx-lh-S_oc-temp_med_and_Lingual       141 100 220    0
+11163  ctx-lh-S_orbital_lateral               221 100  20    0
+11164  ctx-lh-S_orbital_med-olfact            181 200  20    0
+11165  ctx-lh-S_orbital-H_Shaped              101  20  20    0
+11166  ctx-lh-S_parieto_occipital             101 100 180    0
+11167  ctx-lh-S_pericallosal                  181 220  20    0
+11168  ctx-lh-S_postcentral                    21 140 200    0
+11169  ctx-lh-S_precentral-inf-part            21  20 240    0
+11170  ctx-lh-S_precentral-sup-part            21  20 200    0
+11171  ctx-lh-S_suborbital                     21  20  60    0
+11172  ctx-lh-S_subparietal                   101  60  60    0
+11173  ctx-lh-S_temporal_inf                   21 180 180    0
+11174  ctx-lh-S_temporal_sup                  223 220  60    0
+11175  ctx-lh-S_temporal_transverse           221  60  60    0
+
+12100  ctx-rh-Unknown                           0   0   0    0
+12101  ctx-rh-G_and_S_frontomargin             23 220  60    0
+12102  ctx-rh-G_and_S_occipital_inf            23  60 180    0
+12103  ctx-rh-G_and_S_paracentral              63 100  60    0
+12104  ctx-rh-G_and_S_subcentral               63  20 220    0
+12105  ctx-rh-G_and_S_transv_frontopol         13   0 250    0
+12106  ctx-rh-G_and_S_cingul-Ant               26  60   0    0
+12107  ctx-rh-G_and_S_cingul-Mid-Ant           26  60  75    0
+12108  ctx-rh-G_and_S_cingul-Mid-Post          26  60 150    0
+12109  ctx-rh-G_cingul-Post-dorsal             25  60 250    0
+12110  ctx-rh-G_cingul-Post-ventral            60  25  25    0
+12111  ctx-rh-G_cuneus                        180  20  20    0
+12112  ctx-rh-G_front_inf-Opercular           220  20 100    0
+12113  ctx-rh-G_front_inf-Orbital             140  60  60    0
+12114  ctx-rh-G_front_inf-Triangul            180 220 140    0
+12115  ctx-rh-G_front_middle                  140 100 180    0
+12116  ctx-rh-G_front_sup                     180  20 140    0
+12117  ctx-rh-G_Ins_lg_and_S_cent_ins          23  10  10    0
+12118  ctx-rh-G_insular_short                 225 140 140    0
+12119  ctx-rh-G_occipital_middle              180  60 180    0
+12120  ctx-rh-G_occipital_sup                  20 220  60    0
+12121  ctx-rh-G_oc-temp_lat-fusifor            60  20 140    0
+12122  ctx-rh-G_oc-temp_med-Lingual           220 180 140    0
+12123  ctx-rh-G_oc-temp_med-Parahip            65 100  20    0
+12124  ctx-rh-G_orbital                       220  60  20    0
+12125  ctx-rh-G_pariet_inf-Angular             20  60 220    0
+12126  ctx-rh-G_pariet_inf-Supramar           100 100  60    0
+12127  ctx-rh-G_parietal_sup                  220 180 220    0
+12128  ctx-rh-G_postcentral                    20 180 140    0
+12129  ctx-rh-G_precentral                     60 140 180    0
+12130  ctx-rh-G_precuneus                      25  20 140    0
+12131  ctx-rh-G_rectus                         20  60 100    0
+12132  ctx-rh-G_subcallosal                    60 220  20    0
+12133  ctx-rh-G_temp_sup-G_T_transv            60  60 220    0
+12134  ctx-rh-G_temp_sup-Lateral              220  60 220    0
+12135  ctx-rh-G_temp_sup-Plan_polar            65 220  60    0
+12136  ctx-rh-G_temp_sup-Plan_tempo            25 140  20    0
+12137  ctx-rh-G_temporal_inf                  220 220 100    0
+12138  ctx-rh-G_temporal_middle               180  60  60    0
+12139  ctx-rh-Lat_Fis-ant-Horizont             61  20 220    0
+12140  ctx-rh-Lat_Fis-ant-Vertical             61  20  60    0
+12141  ctx-rh-Lat_Fis-post                     61  60 100    0
+12142  ctx-rh-Medial_wall                      25  25  25    0
+12143  ctx-rh-Pole_occipital                  140  20  60    0
+12144  ctx-rh-Pole_temporal                   220 180  20    0
+12145  ctx-rh-S_calcarine                      63 180 180    0
+12146  ctx-rh-S_central                       221  20  10    0
+12147  ctx-rh-S_cingul-Marginalis             221  20 100    0
+12148  ctx-rh-S_circular_insula_ant           221  60 140    0
+12149  ctx-rh-S_circular_insula_inf           221  20 220    0
+12150  ctx-rh-S_circular_insula_sup            61 220 220    0
+12151  ctx-rh-S_collat_transv_ant             100 200 200    0
+12152  ctx-rh-S_collat_transv_post             10 200 200    0
+12153  ctx-rh-S_front_inf                     221 220  20    0
+12154  ctx-rh-S_front_middle                  141  20 100    0
+12155  ctx-rh-S_front_sup                      61 220 100    0
+12156  ctx-rh-S_interm_prim-Jensen            141  60  20    0
+12157  ctx-rh-S_intrapariet_and_P_trans       143  20 220    0
+12158  ctx-rh-S_oc_middle_and_Lunatus         101  60 220    0
+12159  ctx-rh-S_oc_sup_and_transversal         21  20 140    0
+12160  ctx-rh-S_occipital_ant                  61  20 180    0
+12161  ctx-rh-S_oc-temp_lat                   221 140  20    0
+12162  ctx-rh-S_oc-temp_med_and_Lingual       141 100 220    0
+12163  ctx-rh-S_orbital_lateral               221 100  20    0
+12164  ctx-rh-S_orbital_med-olfact            181 200  20    0
+12165  ctx-rh-S_orbital-H_Shaped              101  20  20    0
+12166  ctx-rh-S_parieto_occipital             101 100 180    0
+12167  ctx-rh-S_pericallosal                  181 220  20    0
+12168  ctx-rh-S_postcentral                    21 140 200    0
+12169  ctx-rh-S_precentral-inf-part            21  20 240    0
+12170  ctx-rh-S_precentral-sup-part            21  20 200    0
+12171  ctx-rh-S_suborbital                     21  20  60    0
+12172  ctx-rh-S_subparietal                   101  60  60    0
+12173  ctx-rh-S_temporal_inf                   21 180 180    0
+12174  ctx-rh-S_temporal_sup                  223 220  60    0
+12175  ctx-rh-S_temporal_transverse           221  60  60    0
+
+#No.   Label Name:                             R   G   B    A
+13100  wm-lh-Unknown                           0   0   0    0
+13101  wm-lh-G_and_S_frontomargin             23 220  60    0
+13102  wm-lh-G_and_S_occipital_inf            23  60 180    0
+13103  wm-lh-G_and_S_paracentral              63 100  60    0
+13104  wm-lh-G_and_S_subcentral               63  20 220    0
+13105  wm-lh-G_and_S_transv_frontopol         13   0 250    0
+13106  wm-lh-G_and_S_cingul-Ant               26  60   0    0
+13107  wm-lh-G_and_S_cingul-Mid-Ant           26  60  75    0
+13108  wm-lh-G_and_S_cingul-Mid-Post          26  60 150    0
+13109  wm-lh-G_cingul-Post-dorsal             25  60 250    0
+13110  wm-lh-G_cingul-Post-ventral            60  25  25    0
+13111  wm-lh-G_cuneus                        180  20  20    0
+13112  wm-lh-G_front_inf-Opercular           220  20 100    0
+13113  wm-lh-G_front_inf-Orbital             140  60  60    0
+13114  wm-lh-G_front_inf-Triangul            180 220 140    0
+13115  wm-lh-G_front_middle                  140 100 180    0
+13116  wm-lh-G_front_sup                     180  20 140    0
+13117  wm-lh-G_Ins_lg_and_S_cent_ins          23  10  10    0
+13118  wm-lh-G_insular_short                 225 140 140    0
+13119  wm-lh-G_occipital_middle              180  60 180    0
+13120  wm-lh-G_occipital_sup                  20 220  60    0
+13121  wm-lh-G_oc-temp_lat-fusifor            60  20 140    0
+13122  wm-lh-G_oc-temp_med-Lingual           220 180 140    0
+13123  wm-lh-G_oc-temp_med-Parahip            65 100  20    0
+13124  wm-lh-G_orbital                       220  60  20    0
+13125  wm-lh-G_pariet_inf-Angular             20  60 220    0
+13126  wm-lh-G_pariet_inf-Supramar           100 100  60    0
+13127  wm-lh-G_parietal_sup                  220 180 220    0
+13128  wm-lh-G_postcentral                    20 180 140    0
+13129  wm-lh-G_precentral                     60 140 180    0
+13130  wm-lh-G_precuneus                      25  20 140    0
+13131  wm-lh-G_rectus                         20  60 100    0
+13132  wm-lh-G_subcallosal                    60 220  20    0
+13133  wm-lh-G_temp_sup-G_T_transv            60  60 220    0
+13134  wm-lh-G_temp_sup-Lateral              220  60 220    0
+13135  wm-lh-G_temp_sup-Plan_polar            65 220  60    0
+13136  wm-lh-G_temp_sup-Plan_tempo            25 140  20    0
+13137  wm-lh-G_temporal_inf                  220 220 100    0
+13138  wm-lh-G_temporal_middle               180  60  60    0
+13139  wm-lh-Lat_Fis-ant-Horizont             61  20 220    0
+13140  wm-lh-Lat_Fis-ant-Vertical             61  20  60    0
+13141  wm-lh-Lat_Fis-post                     61  60 100    0
+13142  wm-lh-Medial_wall                      25  25  25    0
+13143  wm-lh-Pole_occipital                  140  20  60    0
+13144  wm-lh-Pole_temporal                   220 180  20    0
+13145  wm-lh-S_calcarine                      63 180 180    0
+13146  wm-lh-S_central                       221  20  10    0
+13147  wm-lh-S_cingul-Marginalis             221  20 100    0
+13148  wm-lh-S_circular_insula_ant           221  60 140    0
+13149  wm-lh-S_circular_insula_inf           221  20 220    0
+13150  wm-lh-S_circular_insula_sup            61 220 220    0
+13151  wm-lh-S_collat_transv_ant             100 200 200    0
+13152  wm-lh-S_collat_transv_post             10 200 200    0
+13153  wm-lh-S_front_inf                     221 220  20    0
+13154  wm-lh-S_front_middle                  141  20 100    0
+13155  wm-lh-S_front_sup                      61 220 100    0
+13156  wm-lh-S_interm_prim-Jensen            141  60  20    0
+13157  wm-lh-S_intrapariet_and_P_trans       143  20 220    0
+13158  wm-lh-S_oc_middle_and_Lunatus         101  60 220    0
+13159  wm-lh-S_oc_sup_and_transversal         21  20 140    0
+13160  wm-lh-S_occipital_ant                  61  20 180    0
+13161  wm-lh-S_oc-temp_lat                   221 140  20    0
+13162  wm-lh-S_oc-temp_med_and_Lingual       141 100 220    0
+13163  wm-lh-S_orbital_lateral               221 100  20    0
+13164  wm-lh-S_orbital_med-olfact            181 200  20    0
+13165  wm-lh-S_orbital-H_Shaped              101  20  20    0
+13166  wm-lh-S_parieto_occipital             101 100 180    0
+13167  wm-lh-S_pericallosal                  181 220  20    0
+13168  wm-lh-S_postcentral                    21 140 200    0
+13169  wm-lh-S_precentral-inf-part            21  20 240    0
+13170  wm-lh-S_precentral-sup-part            21  20 200    0
+13171  wm-lh-S_suborbital                     21  20  60    0
+13172  wm-lh-S_subparietal                   101  60  60    0
+13173  wm-lh-S_temporal_inf                   21 180 180    0
+13174  wm-lh-S_temporal_sup                  223 220  60    0
+13175  wm-lh-S_temporal_transverse           221  60  60    0
+
+14100  wm-rh-Unknown                           0   0   0    0
+14101  wm-rh-G_and_S_frontomargin             23 220  60    0
+14102  wm-rh-G_and_S_occipital_inf            23  60 180    0
+14103  wm-rh-G_and_S_paracentral              63 100  60    0
+14104  wm-rh-G_and_S_subcentral               63  20 220    0
+14105  wm-rh-G_and_S_transv_frontopol         13   0 250    0
+14106  wm-rh-G_and_S_cingul-Ant               26  60   0    0
+14107  wm-rh-G_and_S_cingul-Mid-Ant           26  60  75    0
+14108  wm-rh-G_and_S_cingul-Mid-Post          26  60 150    0
+14109  wm-rh-G_cingul-Post-dorsal             25  60 250    0
+14110  wm-rh-G_cingul-Post-ventral            60  25  25    0
+14111  wm-rh-G_cuneus                        180  20  20    0
+14112  wm-rh-G_front_inf-Opercular           220  20 100    0
+14113  wm-rh-G_front_inf-Orbital             140  60  60    0
+14114  wm-rh-G_front_inf-Triangul            180 220 140    0
+14115  wm-rh-G_front_middle                  140 100 180    0
+14116  wm-rh-G_front_sup                     180  20 140    0
+14117  wm-rh-G_Ins_lg_and_S_cent_ins          23  10  10    0
+14118  wm-rh-G_insular_short                 225 140 140    0
+14119  wm-rh-G_occipital_middle              180  60 180    0
+14120  wm-rh-G_occipital_sup                  20 220  60    0
+14121  wm-rh-G_oc-temp_lat-fusifor            60  20 140    0
+14122  wm-rh-G_oc-temp_med-Lingual           220 180 140    0
+14123  wm-rh-G_oc-temp_med-Parahip            65 100  20    0
+14124  wm-rh-G_orbital                       220  60  20    0
+14125  wm-rh-G_pariet_inf-Angular             20  60 220    0
+14126  wm-rh-G_pariet_inf-Supramar           100 100  60    0
+14127  wm-rh-G_parietal_sup                  220 180 220    0
+14128  wm-rh-G_postcentral                    20 180 140    0
+14129  wm-rh-G_precentral                     60 140 180    0
+14130  wm-rh-G_precuneus                      25  20 140    0
+14131  wm-rh-G_rectus                         20  60 100    0
+14132  wm-rh-G_subcallosal                    60 220  20    0
+14133  wm-rh-G_temp_sup-G_T_transv            60  60 220    0
+14134  wm-rh-G_temp_sup-Lateral              220  60 220    0
+14135  wm-rh-G_temp_sup-Plan_polar            65 220  60    0
+14136  wm-rh-G_temp_sup-Plan_tempo            25 140  20    0
+14137  wm-rh-G_temporal_inf                  220 220 100    0
+14138  wm-rh-G_temporal_middle               180  60  60    0
+14139  wm-rh-Lat_Fis-ant-Horizont             61  20 220    0
+14140  wm-rh-Lat_Fis-ant-Vertical             61  20  60    0
+14141  wm-rh-Lat_Fis-post                     61  60 100    0
+14142  wm-rh-Medial_wall                      25  25  25    0
+14143  wm-rh-Pole_occipital                  140  20  60    0
+14144  wm-rh-Pole_temporal                   220 180  20    0
+14145  wm-rh-S_calcarine                      63 180 180    0
+14146  wm-rh-S_central                       221  20  10    0
+14147  wm-rh-S_cingul-Marginalis             221  20 100    0
+14148  wm-rh-S_circular_insula_ant           221  60 140    0
+14149  wm-rh-S_circular_insula_inf           221  20 220    0
+14150  wm-rh-S_circular_insula_sup            61 220 220    0
+14151  wm-rh-S_collat_transv_ant             100 200 200    0
+14152  wm-rh-S_collat_transv_post             10 200 200    0
+14153  wm-rh-S_front_inf                     221 220  20    0
+14154  wm-rh-S_front_middle                  141  20 100    0
+14155  wm-rh-S_front_sup                      61 220 100    0
+14156  wm-rh-S_interm_prim-Jensen            141  60  20    0
+14157  wm-rh-S_intrapariet_and_P_trans       143  20 220    0
+14158  wm-rh-S_oc_middle_and_Lunatus         101  60 220    0
+14159  wm-rh-S_oc_sup_and_transversal         21  20 140    0
+14160  wm-rh-S_occipital_ant                  61  20 180    0
+14161  wm-rh-S_oc-temp_lat                   221 140  20    0
+14162  wm-rh-S_oc-temp_med_and_Lingual       141 100 220    0
+14163  wm-rh-S_orbital_lateral               221 100  20    0
+14164  wm-rh-S_orbital_med-olfact            181 200  20    0
+14165  wm-rh-S_orbital-H_Shaped              101  20  20    0
+14166  wm-rh-S_parieto_occipital             101 100 180    0
+14167  wm-rh-S_pericallosal                  181 220  20    0
+14168  wm-rh-S_postcentral                    21 140 200    0
+14169  wm-rh-S_precentral-inf-part            21  20 240    0
+14170  wm-rh-S_precentral-sup-part            21  20 200    0
+14171  wm-rh-S_suborbital                     21  20  60    0
+14172  wm-rh-S_subparietal                   101  60  60    0
+14173  wm-rh-S_temporal_inf                   21 180 180    0
+14174  wm-rh-S_temporal_sup                  223 220  60    0
+14175  wm-rh-S_temporal_transverse           221  60  60    0
 
