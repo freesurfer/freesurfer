@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/07/29 22:52:39 $
+ *    $Revision: 1.11.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -534,7 +534,7 @@ int checkTn(Nbh *nbh_src,Nbh *nbh_dst,int connectivity)
 {
   int i,j,k,a,b,c,ik,jk,kk,ct;
   int con,nvox,label,sum;
-  int comp_table[MAX_COMP];
+  int comp_table[MAX_COMP+2];
   int min_val;
   int x,y,z;
 
@@ -548,7 +548,7 @@ int checkTn(Nbh *nbh_src,Nbh *nbh_dst,int connectivity)
   con=connectivityNumber(connectivity);
   Nnk(nbh_src,nbh,connectivity);
 
-  memset(comp_table,0,MAX_COMP*sizeof(int));
+  memset(comp_table,0,sizeof(comp_table));
 
   for (i=0;i<3;i++)
     for (j=0;j<3;j++)

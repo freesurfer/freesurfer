@@ -1,17 +1,16 @@
 /**
  * @file  mri_tess.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief tesselation routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: F. Segonne 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 06:01:10 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2009/07/29 22:52:39 $
+ *    $Revision: 1.5.2.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2003-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -976,11 +975,11 @@ static int computeconnectedcomponents(CNBH *tab)
 {
   int i,j,k,a,b,c,ik,jk,kk,ct;
   int nvox,label,sum;
-  int comp_table[10];
+  int comp_table[12];
   int min_val;
   int x,y,z;
 
-  memset(comp_table,0,10*sizeof(int));
+  memset(comp_table,0,sizeof(comp_table));
 
   for (i=0;i<2;i++)
     for (j=0;j<2;j++)

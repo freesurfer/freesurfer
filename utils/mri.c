@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/07/01 20:25:37 $
- *    $Revision: 1.395.2.10 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/29 22:52:38 $
+ *    $Revision: 1.395.2.11 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.10 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.11 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -13665,6 +13665,8 @@ MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst, float orig_r
     mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
     MRIcopyHeader(mri, mri_dst) ;
   }
+
+  memset(nbr_label_counts,0,sizeof(nbr_label_counts));
 
   /* first find border voxels */
   mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;

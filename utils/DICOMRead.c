@@ -6,11 +6,11 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/02/09 23:33:56 $
- *    $Revision: 1.111.2.10 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/29 22:52:38 $
+ *    $Revision: 1.111.2.11 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -4005,6 +4005,9 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo)
   aDicomInfo[0]->NumberOfFrames=numberOfFrames;
   bitsAllocated=aDicomInfo[0]->BitsAllocated;
 
+  memset(firstPosition,0,sizeof(firstPosition));
+  memset(lastPosition,0,sizeof(lastPosition));
+
   printf("reading DICOM image...\n");
 
   switch (bitsAllocated)
@@ -4110,6 +4113,9 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex)
   // filling missing info
   aDicomInfo[startIndex]->NumberOfFrames=numberOfFrames;
   bitsAllocated=aDicomInfo[startIndex]->BitsAllocated;
+
+  memset(firstPosition,0,sizeof(firstPosition));
+  memset(lastPosition,0,sizeof(lastPosition));
 
   printf("reading DICOM image...\n");
 

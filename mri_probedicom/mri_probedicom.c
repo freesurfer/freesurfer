@@ -15,9 +15,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/03/09 19:50:57 $
- *    $Revision: 1.15.2.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/29 22:52:38 $
+ *    $Revision: 1.15.2.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.15.2.4 2009/03/09 19:50:57 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.15.2.5 2009/07/29 22:52:38 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.15.2.4 2009/03/09 19:50:57 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.15.2.5 2009/07/29 22:52:38 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -612,7 +612,7 @@ int GetDirective(char *directivestring) {
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
 int DumpElement(FILE *fp, DCM_ELEMENT *e) {
-  char *s;
+  char *s=NULL;
   fprintf(fp,"tag %d\n",e->tag);
   fprintf(fp,"repcode %d\n",e->representation);
   fprintf(fp,"rep %s\n",RepString(e->representation));
@@ -621,7 +621,7 @@ int DumpElement(FILE *fp, DCM_ELEMENT *e) {
   fprintf(fp,"len %d\n",e->length);
   s = ElementValueString(e);
   fprintf(fp,"%s\n",s);
-  free(&s);
+  if (s) free(s);
 
   return(0);
 }

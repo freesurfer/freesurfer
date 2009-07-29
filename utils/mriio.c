@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/22 00:58:25 $
- *    $Revision: 1.335.2.13 $
+ *    $Date: 2009/07/29 22:52:39 $
+ *    $Revision: 1.335.2.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -7970,6 +7970,7 @@ static int gdfWrite(MRI *mri, char *fname)
 
 }
 
+#if 0
 static int parc_fill(short label_value, short seed_x, short seed_y)
 {
 
@@ -7989,6 +7990,7 @@ static int parc_fill(short label_value, short seed_x, short seed_y)
   return(NO_ERROR);
 
 } /* end parc_fill() */
+#endif
 
 static int register_unknown_label(char *label)
 {

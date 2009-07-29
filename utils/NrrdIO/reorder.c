@@ -177,11 +177,11 @@ int
 nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
 {
   char me[]="nrrdAxesPermute", func[]="permute", err[BIFF_STRLEN],
-                                      buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
-  size_t idxOut, idxIn,      /* indices for input and output scanlines */
+    buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
+  size_t idxOut, idxIn=0,      /* indices for input and output scanlines */
   lineSize,                /* size of block of memory which can be
-                                        moved contiguously from input to output,
-                                        thought of as a "scanline" */
+                              moved contiguously from input to output,
+                              thought of as a "scanline" */
   numLines,                /* how many "scanlines" there are to permute */
   szIn[NRRD_DIM_MAX], *lszIn,
   szOut[NRRD_DIM_MAX], *lszOut;
@@ -196,7 +196,7 @@ nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
   ldim,                    /* nin->dim - lowPax */
   ip[NRRD_DIM_MAX+1],      /* inverse of permutation in "axes" */
   laxes[NRRD_DIM_MAX+1];   /* copy of axes[], but shifted down by lowPax
-                                        elements, to remove i such that i == axes[i] */
+                              elements, to remove i such that i == axes[i] */
   airArray *mop;
 
   mop = airMopNew();
@@ -251,7 +251,7 @@ nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
       return 1;
     }
     airMopAdd(mop, dataIn, airFree, airMopAlways);
-    memcpy(dataIn, nin->data, nrrdElementNumber(nin)*nrrdElementSize(nin));
+    memmove(dataIn, nin->data, nrrdElementNumber(nin)*nrrdElementSize(nin));
   }
   if (lowPax < nin->dim)
   {
@@ -301,7 +301,7 @@ nrrdAxesPermute(Nrrd *nout, const Nrrd *nin, const unsigned int *axes)
         cIn[laxes[ai]] = cOut[ai];
       }
       NRRD_INDEX_GEN(idxIn, cIn, lszIn, ldim);
-      memcpy(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
+      memmove(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
       NRRD_COORD_INCR(cOut, lszOut, ldim, 0);
     }
     /* set content */
@@ -365,12 +365,12 @@ nrrdShuffle(Nrrd *nout, const Nrrd *nin, unsigned int axis,
             const size_t *perm)
 {
   char me[]="nrrdShuffle", func[]="shuffle", err[BIFF_STRLEN],
-                                  buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
+    buff1[NRRD_DIM_MAX*30], buff2[AIR_STRLEN_SMALL];
   unsigned int
   ai, ldim, len,
   cIn[NRRD_DIM_MAX+1],
   cOut[NRRD_DIM_MAX+1];
-  size_t idxIn, idxOut, lineSize, numLines, size[NRRD_DIM_MAX], *lsize;
+  size_t idxIn=0, idxOut, lineSize, numLines, size[NRRD_DIM_MAX], *lsize;
   char *dataIn, *dataOut;
 
   if (!(nin && nout && perm))
@@ -463,11 +463,11 @@ nrrdShuffle(Nrrd *nout, const Nrrd *nin, unsigned int axis,
   memset(cOut, 0, (NRRD_DIM_MAX+1)*sizeof(int));
   for (idxOut=0; idxOut<numLines; idxOut++)
   {
-    memcpy(cIn, cOut, ldim*sizeof(int));
+    memmove(cIn, cOut, ldim*sizeof(int));
     cIn[0] = perm[cOut[0]];
     NRRD_INDEX_GEN(idxIn, cIn, lsize, ldim);
     NRRD_INDEX_GEN(idxOut, cOut, lsize, ldim);
-    memcpy(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
+    memmove(dataOut + idxOut*lineSize, dataIn + idxIn*lineSize, lineSize);
     NRRD_COORD_INCR(cOut, lsize, ldim, 0);
   }
   /* content */

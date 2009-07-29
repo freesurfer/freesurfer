@@ -4,6 +4,9 @@
 
 NrrdIO_dir = NrrdIO
 cephes_dir = cephes
+test_dir = test
+
+SUBDIRS=$(NrrdIO_dir) $(cephes_dir) $(test_dir)
 
 if HAVE_ITK_LIBS
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
@@ -23,43 +26,256 @@ else
 GLUT_THINGS=
 endif
 
-# note: EXPAT_CFLAGS must precede X_CFLAGS, because on the
-# Mac Tiger OS, an old version of expat is in /usr/X11R6/include
-AM_CPPFLAGS=$(EXPAT_CFLAGS) \
-	$(X_CFLAGS) $(VXL_CFLAGS) \
+NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
+	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
+	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN)
+
+AM_CPPFLAGS=\
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	-I$(top_srcdir)/include/NrrdIO \
-	$(GL_CFLAGS) $(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) -DHAVE_ZLIB
+	$(NRRDIO_CPPFLAGS) \
+	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) \
+	$(GL_CFLAGS) $(VXL_CFLAGS) -DHAVE_ZLIB
 
 AM_LDFLAGS=
 
-noinst_LIBRARIES= libutils.a
+LIBS=
 
-libutils_a_SOURCES = $(wildcard *.c) $(wildcard *.cpp)
+noinst_LIBRARIES=libutils.a
 
-am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o) \
-	$(libutils_a_SOURCES:%.cpp=%.o) \
-	$(wildcard $(cephes_dir)/*.o) \
-	$(wildcard $(NrrdIO_dir)/*.o)
+libutils_main_SOURCES=\
+	afni.c \
+	annotation.c \
+	art1.c \
+	artmap.c \
+	backprop.c \
+	bfileio.c \
+	box.c \
+	Bruker.c \
+	chklc.c \
+	cluster.c \
+	cma.c \
+	cmdargs.c \
+	colortab.c \
+	corio.c \
+	ctrpoints.c \
+	cvector.c \
+	dcdflib.c \
+	dct.c \
+	density.c \
+	diag.c \
+	DICOMRead.c \
+	diffuse.c \
+	dti.c \
+	error.c \
+	evschutils.c \
+	fftutils.c \
+	field_code.c \
+	filter.c \
+	fio.c \
+	flash.c \
+	fmarchmesh.c \
+	fmriutils.c \
+	fsenv.c \
+	fsglm.c \
+	gca.c \
+	gcamorph.c \
+	gcarray.c \
+	gclass.c \
+	gcsa.c \
+	getdelim.c \
+	getline.c \
+	gifti_io.c \
+	gifti_local.c \
+	gifti_xml.c \
+	gw_ic2562.c \
+	gw_utils.c \
+	handle.c \
+	heap.c \
+	hippo.c \
+	histo.c \
+	ic163842.c \
+	ic2562.c \
+	ic642.c \
+	icosahedron.c \
+	image.c \
+	imageio.c \
+	imautils.c \
+	intensity_eig.c \
+	inverse.c \
+	ipmpar.c \
+	kernel.c \
+	kinput.c \
+	label.c \
+	lpafile.c \
+	machine.c \
+	matfile.c \
+	matrix.c \
+	mgh_filter.c \
+	mgh_matrix.c \
+	mincutils.c \
+	minmaxrc.c \
+	morph.c \
+	mosaic.c \
+	mri2.c \
+	mri.c \
+	mriclass.c \
+	mri_conform.c \
+	mricurv.c \
+	mrifilter.c \
+	mriflood.c \
+	mriFunctionalDataAccess.c \
+	mriHeadPointList.c \
+	mrihisto.c \
+	mri_identify.c \
+	mriio.c \
+	MRIio_old.c \
+	mri_level_set.c \
+	mrimorph.c \
+	mrinorm.c \
+	mripolv.c \
+	mriprob.c \
+	mrisegment.c \
+	mriset.c \
+	mrishash.c \
+	mrisp.c \
+	mriSurface.c \
+	mrisurf.c \
+	mrisutils.c \
+	mri_tess.c \
+	mri_topology.c \
+	mri_transform.c \
+	mriTransform.c \
+	mriVolume.c \
+	mrivoxel.c \
+	nifti1_io.c \
+	offset.c \
+	path.c \
+	pdf.c \
+	pgmstubs.c \
+	prime.c \
+	queue.c \
+	randomfields.c \
+	rbf.c \
+	rec.c \
+	region.c \
+	registerio.c \
+	resample.c \
+	rescale.c \
+	selxavgio.c \
+	sig.c \
+	signa.c \
+	stats.c \
+	stc.c \
+	surfcluster.c \
+	svm.c \
+	tags.c \
+	talairachex.c \
+	thread.c \
+	timer.c \
+	transform.c \
+	tritri.c \
+	tukey.c \
+	unwarpGradientNonlinearity.c \
+	utils.c \
+	version.c \
+	vlabels.c \
+	volcluster.c \
+	voxlist.c \
+	x3DList.c \
+	xDebug.c \
+	xGLutWindow.c \
+	xGrowableArray.c \
+	xList.c \
+	xSparseVolume.c \
+	xTypes.c \
+	xUndoList.c \
+	xUtilities.c \
+	xVoxel.c \
+	znzlib.c \
+	fs_cost_function.cpp \
+	fs_lbfgs.cpp \
+	fs_lbfgs_observer.cpp \
+	fs_lbfgs_subject.cpp \
+	fs_powell.cpp \
+	mri_fastmarching.cpp \
+	mriio_nrrd.c \
+	mriio_nrrd_itk.cpp \
+	numerics.cpp
 
-#lib_LTLIBRARIES= libutils.la
-#libutils_la_SOURCES = $(wildcard *.c) $(wildcard *.h)
+libutils_cephes_SOURCES=\
+	$(srcdir)/$(cephes_dir)/bdtr.c \
+	$(srcdir)/$(cephes_dir)/chdtr.c \
+	$(srcdir)/$(cephes_dir)/const.c \
+	$(srcdir)/$(cephes_dir)/fdtr.c \
+	$(srcdir)/$(cephes_dir)/gamma.c \
+	$(srcdir)/$(cephes_dir)/igam.c \
+	$(srcdir)/$(cephes_dir)/igami.c \
+	$(srcdir)/$(cephes_dir)/incbet.c \
+	$(srcdir)/$(cephes_dir)/incbi.c \
+	$(srcdir)/$(cephes_dir)/mtherr.c \
+	$(srcdir)/$(cephes_dir)/ndtr.c \
+	$(srcdir)/$(cephes_dir)/ndtri.c \
+	$(srcdir)/$(cephes_dir)/polevl.c \
+	$(srcdir)/$(cephes_dir)/stdtr.c
 
-.c.o:
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+libutils_nrrdio_SOURCES=\
+	$(srcdir)/$(NrrdIO_dir)/754.c \
+	$(srcdir)/$(NrrdIO_dir)/formatPNG.c \
+	$(srcdir)/$(NrrdIO_dir)/accessors.c \
+	$(srcdir)/$(NrrdIO_dir)/formatPNM.c \
+	$(srcdir)/$(NrrdIO_dir)/array.c \
+	$(srcdir)/$(NrrdIO_dir)/formatText.c \
+	$(srcdir)/$(NrrdIO_dir)/arraysNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/formatVTK.c \
+	$(srcdir)/$(NrrdIO_dir)/axis.c \
+	$(srcdir)/$(NrrdIO_dir)/gzio.c \
+	$(srcdir)/$(NrrdIO_dir)/biffbiff.c \
+	$(srcdir)/$(NrrdIO_dir)/keyvalue.c \
+	$(srcdir)/$(NrrdIO_dir)/comment.c \
+	$(srcdir)/$(NrrdIO_dir)/methodsNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/defaultsNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/miscAir.c \
+	$(srcdir)/$(NrrdIO_dir)/dio.c \
+	$(srcdir)/$(NrrdIO_dir)/mop.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingAscii.c \
+	$(srcdir)/$(NrrdIO_dir)/parseAir.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingBzip2.c \
+	$(srcdir)/$(NrrdIO_dir)/parseNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/encoding.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingGzip.c \
+	$(srcdir)/$(NrrdIO_dir)/qnanhibit.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingHex.c \
+	$(srcdir)/$(NrrdIO_dir)/read.c \
+	$(srcdir)/$(NrrdIO_dir)/encodingRaw.c \
+	$(srcdir)/$(NrrdIO_dir)/reorder.c \
+	$(srcdir)/$(NrrdIO_dir)/endianAir.c \
+	$(srcdir)/$(NrrdIO_dir)/sampleIO.c \
+	$(srcdir)/$(NrrdIO_dir)/endianNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/sane.c \
+	$(srcdir)/$(NrrdIO_dir)/enum.c \
+	$(srcdir)/$(NrrdIO_dir)/simple.c \
+	$(srcdir)/$(NrrdIO_dir)/enumsNrrd.c \
+	$(srcdir)/$(NrrdIO_dir)/string.c \
+	$(srcdir)/$(NrrdIO_dir)/format.c \
+	$(srcdir)/$(NrrdIO_dir)/subset.c \
+	$(srcdir)/$(NrrdIO_dir)/formatEPS.c \
+	$(srcdir)/$(NrrdIO_dir)/write.c \
+	$(srcdir)/$(NrrdIO_dir)/formatNRRD.c
 
-.cpp.o:
-	@echo "compiler: $(COMPILE) end_compiler"
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CCDEPMODE) $(depcomp) \
-	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
+libutils_a_SOURCES=\
+	$(libutils_main_SOURCES) \
+	$(libutils_cephes_SOURCES) \
+	$(libutils_nrrdio_SOURCES)
 
-SUBDIRS=$(NrrdIO_dir) $(cephes_dir) test
+bin_PROGRAMS=gifti_tool gifti_test
+gifti_tool_SOURCES=gifti_tool.c gifti_tool.h \
+	gifti_io.c gifti_xml.c nifti1_io.c znzlib.c
+gifti_tool_LDADD=$(LIB_EXPAT) -lz $(LIBS_NIFTI)
+gifti_test_SOURCES=gifti_test.c gifti_test.h gifti_io.c gifti_xml.c
+gifti_test_LDADD=$(LIB_EXPAT) -lz $(LIBS_NIFTI)
+
+EXTRA_DIST=$(srcdir)/$(NrrdIO_dir)/copyright.NrrdIO
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
