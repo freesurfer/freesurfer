@@ -20,12 +20,12 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/04/17 18:27:06 $
- *    $Revision: 1.35 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/29 21:42:18 $
+ *    $Revision: 1.36 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2009,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -64,19 +64,19 @@ static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int FindClosestLRWPVertexNo(int c, int r, int s,
-			    int *lhwvtx, int *lhpvtx, 
-			    int *rhwvtx, int *rhpvtx, 
-			    MATRIX *Vox2RAS,
-			    MRIS *lhwite,  MRIS *lhpial, 
-			    MRIS *rhwhite, MRIS *rhpial,
-			    MHT *lhwhite_hash, MHT *lhpial_hash, 
-			    MHT *rhwhite_hash, MHT *rhpial_hash);
+                            int *lhwvtx, int *lhpvtx,
+                            int *rhwvtx, int *rhpvtx,
+                            MATRIX *Vox2RAS,
+                            MRIS *lhwite,  MRIS *lhpial,
+                            MRIS *rhwhite, MRIS *rhpial,
+                            MHT *lhwhite_hash, MHT *lhpial_hash,
+                            MHT *rhwhite_hash, MHT *rhpial_hash);
 int CCSegment(MRI *seg, int segid, int segidunknown);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = 
-"$Id: mri_aparc2aseg.c,v 1.35 2009/04/17 18:27:06 greve Exp $";
+static char vcid[] =
+  "$Id: mri_aparc2aseg.c,v 1.36 2009/07/29 21:42:18 nicks Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -259,9 +259,9 @@ int main(int argc, char **argv) {
     for (vtxno = 0; vtxno < lhwhite->nvertices; vtxno++) {
       annot = lhwhite->vertices[vtxno].annotation;
       CTABfindAnnotation(lhwhite->ct, annot, &annotid);
-      // Sometimes the annotation will be "none" indicated by 
+      // Sometimes the annotation will be "none" indicated by
       // annotid = -1. We interpret this as "unknown".
-      if(annotid == 0 || annotid == -1) {
+      if (annotid == 0 || annotid == -1) {
         lhwhite->vertices[vtxno].ripflag = 1;
         lhpial->vertices[vtxno].ripflag = 1;
         nripped++;
@@ -272,7 +272,7 @@ int main(int argc, char **argv) {
     for (vtxno = 0; vtxno < rhwhite->nvertices; vtxno++) {
       annot = rhwhite->vertices[vtxno].annotation;
       CTABfindAnnotation(rhwhite->ct, annot, &annotid);
-      if(annotid == 0 || annotid == -1) {
+      if (annotid == 0 || annotid == -1) {
         rhwhite->vertices[vtxno].ripflag = 1;
         rhpial->vertices[vtxno].ripflag = 1;
         nripped++;
@@ -319,10 +319,10 @@ int main(int argc, char **argv) {
   MRIfree(&ASeg);
   ASeg = mritmp;
 
-  if(CtxSegFile){
+  if (CtxSegFile) {
     printf("Loading Ctx Seg File %s\n",CtxSegFile);
     CtxSeg = MRIread(CtxSegFile);
-    if(CtxSeg == NULL) exit(1);
+    if (CtxSeg == NULL) exit(1);
   }
 
   AParc = MRIclone(ASeg,NULL);
@@ -346,12 +346,15 @@ int main(int argc, char **argv) {
   RAS = MatrixAlloc(4,1,MATRIX_REAL);
   RAS->rptr[4][1] = 1;
 
-  if(crsTest){
+  if (crsTest) {
     printf("Testing point %d %d %d\n",ctest,rtest,stest);
     err = FindClosestLRWPVertexNo(ctest,rtest,stest,
-	  &lhwvtx, &lhpvtx,  &rhwvtx, &rhpvtx,   Vox2RAS,
-          lhwhite,  lhpial,   rhwhite, rhpial,
-	  lhwhite_hash, lhpial_hash, rhwhite_hash, rhpial_hash);
+                                  &lhwvtx, &lhpvtx,
+                                  &rhwvtx, &rhpvtx, Vox2RAS,
+                                  lhwhite,  lhpial,
+                                  rhwhite, rhpial,
+                                  lhwhite_hash, lhpial_hash,
+                                  rhwhite_hash, rhpial_hash);
 
     printf("Result: err = %d\n",err);
     exit(err);
@@ -381,31 +384,31 @@ int main(int argc, char **argv) {
         if (IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0))
           IsWM = 1;
 
-	// integrate surface information
-	//
-	// Only Do This for GM,WM or Unknown labels in the ASEG !!!
-	//
-	// priority is given to the ribbon computed from the surface
-	// namely
-	//  ribbon=GM => GM
-	//  aseg=GM AND ribbon=WM => WM
-	//  ribbon=UNKNOWN => UNKNOWN
-        if(UseNewRibbon && ( IsCortex || IsWM || asegid==0 ) ) {
-	  RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
-	  MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
-	  if(RibbonVal==2 || RibbonVal==41) {
-	    IsWM = 1;
-	    IsCortex = 0;
-	  }
-	  else if(RibbonVal==3 || RibbonVal==42){
-	    IsWM = 0;
-	    IsCortex = 1;
-	  } if(RibbonVal==0){
-	    IsWM = 0;
-	    IsCortex = 0;
-	  }
-	}
-	
+        // integrate surface information
+        //
+        // Only Do This for GM,WM or Unknown labels in the ASEG !!!
+        //
+        // priority is given to the ribbon computed from the surface
+        // namely
+        //  ribbon=GM => GM
+        //  aseg=GM AND ribbon=WM => WM
+        //  ribbon=UNKNOWN => UNKNOWN
+        if (UseNewRibbon && ( IsCortex || IsWM || asegid==0 ) ) {
+          RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
+          MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
+          if (RibbonVal==2 || RibbonVal==41) {
+            IsWM = 1;
+            IsCortex = 0;
+          } else if (RibbonVal==3 || RibbonVal==42) {
+            IsWM = 0;
+            IsCortex = 1;
+          }
+          if (RibbonVal==0) {
+            IsWM = 0;
+            IsCortex = 0;
+          }
+        }
+
         // If it's not labeled as cortex or wm in the aseg, skip
         if (!IsCortex && !IsWM) continue;
 
@@ -426,7 +429,7 @@ int main(int argc, char **argv) {
             }
           }
         }
-	
+
         // Convert the CRS to RAS
         CRS->rptr[1][1] = c;
         CRS->rptr[2][1] = r;
@@ -438,41 +441,40 @@ int main(int argc, char **argv) {
 
         // Get the index of the closest vertex in the
         // lh.white, lh.pial, rh.white, rh.pial
-	if (UseHash) {
-	  lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
-	  lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
-	  rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
-	  rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
-	  if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) {
-      /*
-	    printf("  Could not map to any surface with hash table:\n");
-	    printf("  crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
-		   c,r,s,vtx.x,vtx.y,vtx.z);
-	    printf("  Using brute force search %d ... \n",nbrute);
-	    fflush(stdout);
-      */
-	    lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
-	    lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
-	    rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
-	    rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
-	    nbrute ++;
-	    //exit(1);
-	  }
-	}
-	else {
-	  lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
-	  lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
-	  rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
-	  rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
-	}
+        if (UseHash) {
+          lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
+          lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
+          rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
+          rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
+          if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) {
+            /*
+            printf("  Could not map to any surface with hash table:\n");
+            printf("  crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
+            c,r,s,vtx.x,vtx.y,vtx.z);
+            printf("  Using brute force search %d ... \n",nbrute);
+            fflush(stdout);
+            */
+            lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+            lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+            rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+            rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+            nbrute ++;
+            //exit(1);
+          }
+        } else {
+          lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+          lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+          rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+          rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+        }
 
 
-        if(lhwvtx < 0) dlhw = 1000000000000000.0;
-        if(lhpvtx < 0) dlhp = 1000000000000000.0;
-        if(rhwvtx < 0) drhw = 1000000000000000.0;
-        if(rhpvtx < 0) drhp = 1000000000000000.0;
+        if (lhwvtx < 0) dlhw = 1000000000000000.0;
+        if (lhpvtx < 0) dlhp = 1000000000000000.0;
+        if (rhwvtx < 0) drhw = 1000000000000000.0;
+        if (rhpvtx < 0) drhp = 1000000000000000.0;
 
-        if(dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
+        if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
           annot = lhwhite->vertices[lhwvtx].annotation;
           hemi = 1;
           if (lhwhite->ct)
@@ -481,7 +483,7 @@ int main(int argc, char **argv) {
             annotid = annotation_to_index(annot);
           dmin = dlhw;
         }
-        if(dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
+        if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
           annot = lhwhite->vertices[lhpvtx].annotation;
           hemi = 1;
           if (lhwhite->ct)
@@ -491,7 +493,7 @@ int main(int argc, char **argv) {
           dmin = dlhp;
         }
 
-        if(drhw < dlhp && drhw < dlhw && drhw <= drhp && rhwvtx >= 0) {
+        if (drhw < dlhp && drhw < dlhw && drhw <= drhp && rhwvtx >= 0) {
           annot = rhwhite->vertices[rhwvtx].annotation;
           hemi = 2;
           if (rhwhite->ct)
@@ -510,35 +512,35 @@ int main(int argc, char **argv) {
           dmin = drhp;
         }
 
-	// Sometimes the annotation will be "none" indicated by 
-	// annotid = -1. We interpret this as "unknown".
-	if(annotid == -1) annotid = 0;
+        // Sometimes the annotation will be "none" indicated by
+        // annotid = -1. We interpret this as "unknown".
+        if (annotid == -1) annotid = 0;
 
-	// why was this here in the first place?
-	/*
-        if (annotid == 0 && 
-            lhwvtx >= 0 &&
-            lhpvtx >= 0 &&
-            rhwvtx >= 0 &&
-            rhpvtx >= 0) {
-          printf("%d %d %d %d\n",
-                 lhwhite->vertices[lhwvtx].ripflag,
-                 lhpial->vertices[lhpvtx].ripflag,
-                 rhwhite->vertices[rhwvtx].ripflag,
-                 rhpial->vertices[rhpvtx].ripflag);
-		 } */
+        // why was this here in the first place?
+        /*
+               if (annotid == 0 &&
+                   lhwvtx >= 0 &&
+                   lhpvtx >= 0 &&
+                   rhwvtx >= 0 &&
+                   rhpvtx >= 0) {
+                 printf("%d %d %d %d\n",
+                        lhwhite->vertices[lhwvtx].ripflag,
+                        lhpial->vertices[lhpvtx].ripflag,
+                        rhwhite->vertices[rhwvtx].ripflag,
+                        rhpial->vertices[rhpvtx].ripflag);
+          } */
 
-        if ( IsCortex && hemi == 1) segval = annotid+1000 + baseoffset;
-        if ( IsCortex && hemi == 2) segval = annotid+2000 + baseoffset;
-        if (!IsCortex && hemi == 1) segval = annotid+3000 + baseoffset;
-        if (!IsCortex && hemi == 2) segval = annotid+4000 + baseoffset;
+        if ( IsCortex && hemi == 1) segval = annotid+1000 + baseoffset;//ctx-lh
+        if ( IsCortex && hemi == 2) segval = annotid+2000 + baseoffset;//ctx-rh
+        if (!IsCortex && hemi == 1) segval = annotid+3000 + baseoffset;// wm-lh
+        if (!IsCortex && hemi == 2) segval = annotid+4000 + baseoffset;// wm-rh
 
         if (!IsCortex && dmin > dmaxctx && hemi == 1) segval = 5001;
         if (!IsCortex && dmin > dmaxctx && hemi == 2) segval = 5002;
 
-	// This is a hack for getting the right cortical seg with --rip-unknown
-	// The aparc+aseg should be passed as CtxSeg.
-	if(IsCortex && CtxSeg) segval = MRIgetVoxVal(CtxSeg,c,r,s,0);
+        // This is a hack for getting the right cortical seg with --rip-unknown
+        // The aparc+aseg should be passed as CtxSeg.
+        if (IsCortex && CtxSeg) segval = MRIgetVoxVal(CtxSeg,c,r,s,0);
 
         MRIsetVoxVal(ASeg,c,r,s,0,segval);
         MRIsetVoxVal(AParc,c,r,s,0,annot);
@@ -585,7 +587,7 @@ int main(int argc, char **argv) {
   printf("nctx = %d\n",nctx);
   printf("Used brute-force search on %d voxels\n",nbrute);
 
-  if(FixParaHipWM){
+  if (FixParaHipWM) {
     /* This is a bit of a hack. There are some vertices that have been
        ripped because they are "unkown". When the above alorithm finds
        these, it searches for the closest known vertex. If this is
@@ -645,11 +647,15 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     // This was --ribbon, but changed to --old-ribbon 4/17/08 DNG
-    else if (!strcasecmp(option, "--old-ribbon")) {UseRibbon = 1; UseNewRibbon = 0;}
-    else if (!strcasecmp(option, "--volmask") ||
-	     !strcasecmp(option, "--new-ribbon"))  UseNewRibbon = 1;
-    else if (!strcasecmp(option, "--noribbon"))  {UseRibbon = 0;UseNewRibbon = 0;}
-    else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
+    else if (!strcasecmp(option, "--old-ribbon")) {
+      UseRibbon = 1;
+      UseNewRibbon = 0;
+    } else if (!strcasecmp(option, "--volmask") ||
+               !strcasecmp(option, "--new-ribbon"))  UseNewRibbon = 1;
+    else if (!strcasecmp(option, "--noribbon")) {
+      UseRibbon = 0;
+      UseNewRibbon = 0;
+    } else if (!strcasecmp(option, "--labelwm"))  LabelWM = 1;
     else if (!strcasecmp(option, "--fix-parahipwm"))  FixParaHipWM = 1;
     else if (!strcasecmp(option, "--no-fix-parahipwm"))  FixParaHipWM = 0;
     else if (!strcasecmp(option, "--hypo-as-wm"))  LabelHypoAsWM = 1;
@@ -671,20 +677,20 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--a2005s")) {
       annotname = "aparc.a2005s";
       baseoffset = 100;
-    } 
-    else if (!strcmp(option, "--annot")) {
+    } else if (!strcmp(option, "--a2009s")) {
+      annotname = "aparc.a2009s";
+      baseoffset = 10100;
+    } else if (!strcmp(option, "--annot")) {
       if (nargc < 1) argnerr(option,1);
       annotname = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcmp(option, "--annot-table")) {
-      if(nargc < 1) argnerr(option,1);
+    } else if (!strcmp(option, "--annot-table")) {
+      if (nargc < 1) argnerr(option,1);
       // annotation_table_file is declared in annotation.h
       // default is $FREESURFER_HOME/Simple_surface_labels2002.txt
-      annotation_table_file = pargv[0]; 
+      annotation_table_file = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcmp(option, "--oaparc")) {
+    } else if (!strcmp(option, "--oaparc")) {
       if (nargc < 1) argnerr(option,1);
       OutAParcFile = pargv[0];
       nargsused = 1;
@@ -705,7 +711,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%f",&dmaxctx);
       nargsused = 1;
     } else if (!strcmp(option, "--crs-test")) {
-      if(nargc < 3) argnerr(option,3);
+      if (nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%d",&ctest);
       sscanf(pargv[1],"%d",&rtest);
       sscanf(pargv[2],"%d",&stest);
@@ -737,12 +743,13 @@ static void print_usage(void) {
   printf("   ---new-ribbon : use mri/ribbon.mgz as a mask for ctx (same as --volmask).\n");
   printf("\n");
   printf("   --a2005s : use aparc.a2005s instead of aparc\n");
+  printf("   --a2009s : use aparc.a2009s instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
   printf("   --annot-table annottable : default is $FREESURFER_HOME/Simple_surface_labels2002.txt\n");
   printf("\n");
   printf("   --labelwm : gyral white matter parcellation \n");
   printf("   --wmparc-dmax dmax  max dist (mm) from cortex to be labeld as gyral WM (%gmm)\n",
-	 dmaxctx);
+         dmaxctx);
   printf("   --rip-unknown : do not label WM based on 'unknown' corical label\n");
   printf("   --hypo-as-wm : label hypointensities as WM\n");
   printf("   --no-fix-parahip : do not remove unconnected regions from WM parahip\n");
@@ -791,13 +798,18 @@ static void print_help(void) {
     "Use ?h.aparc.a2005s.annot. Output will be aparc.a2005s+aseg.mgz.   \n"
     "Creates index numbers that match a2005s entries in FreeSurferColorsLUT.txt\n"
     "\n"
+    "--a2009s\n"
+    "\n"
+    "Use ?h.aparc.a2009s.annot. Output will be aparc.a2009s+aseg.mgz.   \n"
+    "Creates index numbers that match a2009s entries in FreeSurferColorsLUT.txt\n"
+    "\n"
     "--annot annotname\n"
     "\n"
     "Use annotname surface annotation. By default, uses ?h.aparc.annot. \n"
     "With this option, it will load ?h.annotname.annot. \n"
     "The output file will be set to annotname+aseg.mgz, but this can be \n"
-    "changed with --o. Note: running --annot aparc.a2005s is NOT the\n"
-    "same as running --a2005s. The index numbers will be different.\n"
+    "changed with --o. Note: running --annot aparc.a2009s is NOT the\n"
+    "same as running --a2009s. The index numbers will be different.\n"
     "\n"
     "--labelwm\n"
     "\n"
@@ -853,21 +865,21 @@ static void check_options(void) {
     printf("ERROR: cannot --old-ribbon and --new-ribbon\n");
     exit(1);
   }
-  if(CtxSegFile && ! RipUnknown){
+  if (CtxSegFile && ! RipUnknown) {
     printf("ERROR: can only use --ctxseg with --rip-unknown\n");
     exit(1);
   }
-  if(CtxSegFile) {
-    if(!fio_FileExistsReadable(CtxSegFile)){
+  if (CtxSegFile) {
+    if (!fio_FileExistsReadable(CtxSegFile)) {
       sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,CtxSegFile);
-      if(! fio_FileExistsReadable(tmpstr)){
-	printf("ERROR: cannot find %s or %s\n",CtxSegFile,tmpstr);
-	exit(1);
+      if (! fio_FileExistsReadable(tmpstr)) {
+        printf("ERROR: cannot find %s or %s\n",CtxSegFile,tmpstr);
+        exit(1);
       }
       CtxSegFile = strcpyalloc(tmpstr);
     }
   }
-  if(FixParaHipWM && ! LabelWM) FixParaHipWM  = 0;
+  if (FixParaHipWM && ! LabelWM) FixParaHipWM  = 0;
 
   return;
 }
@@ -879,13 +891,13 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"outvol %s\n",OutASegFile);
   fprintf(fp,"useribbon %d\n",UseRibbon);
   fprintf(fp,"baseoffset %d\n",baseoffset);
-  if(LabelWM) {
+  if (LabelWM) {
     printf("labeling wm\n");
     if (LabelHypoAsWM) printf("labeling hypo-intensities as wm\n");
     printf("dmaxctx %f\n",dmaxctx);
   }
   fprintf(fp,"RipUnknown %d\n",RipUnknown);
-  if(CtxSegFile) fprintf(fp,"CtxSeg %s\n",CtxSegFile);
+  if (CtxSegFile) fprintf(fp,"CtxSeg %s\n",CtxSegFile);
   return;
 }
 /*---------------------------------------------------------------*/
@@ -900,21 +912,20 @@ static int singledash(char *flag) {
 
 /*---------------------------------------------------------------*/
 int FindClosestLRWPVertexNo(int c, int r, int s,
-			    int *lhwvtx, int *lhpvtx, 
-			    int *rhwvtx, int *rhpvtx, 
-			    MATRIX *Vox2RAS,
-			    MRIS *lhwite,  MRIS *lhpial, 
-			    MRIS *rhwhite, MRIS *rhpial,
-			    MHT *lhwhite_hash, MHT *lhpial_hash, 
-			    MHT *rhwhite_hash, MHT *rhpial_hash)
-{
+                            int *lhwvtx, int *lhpvtx,
+                            int *rhwvtx, int *rhpvtx,
+                            MATRIX *Vox2RAS,
+                            MRIS *lhwite,  MRIS *lhpial,
+                            MRIS *rhwhite, MRIS *rhpial,
+                            MHT *lhwhite_hash, MHT *lhpial_hash,
+                            MHT *rhwhite_hash, MHT *rhpial_hash) {
   static MATRIX *CRS = NULL;
   static MATRIX *RAS = NULL;
   static VERTEX vtx;
   static float dlhw, dlhp, drhw, drhp,dmin;
   int annot, hemi, annotid;
 
-  if(CRS == NULL){
+  if (CRS == NULL) {
     CRS = MatrixAlloc(4,1,MATRIX_REAL);
     CRS->rptr[4][1] = 1;
     RAS = MatrixAlloc(4,1,MATRIX_REAL);
@@ -941,10 +952,10 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
 
   hemi = 0;
   dmin = -1;
-  if(*lhwvtx < 0 && *lhpvtx < 0 && *rhwvtx < 0 && *rhpvtx < 0) {
+  if (*lhwvtx < 0 && *lhpvtx < 0 && *rhwvtx < 0 && *rhpvtx < 0) {
     printf("ERROR2: could not map to any surface.\n");
     printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
-	   c,r,s,vtx.x,vtx.y,vtx.z);
+           c,r,s,vtx.x,vtx.y,vtx.z);
     printf("Using Bruce Force\n");
     *lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
     *lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
@@ -956,7 +967,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
     printf("rh pial:  %d %g\n",*rhpvtx,drhp);
     return(1);
   }
-  if(dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
+  if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
     annot = lhwhite->vertices[*lhwvtx].annotation;
     hemi = 1;
     if (lhwhite->ct)
@@ -965,7 +976,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
       annotid = annotation_to_index(annot);
     dmin = dlhw;
   }
-  if(dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
+  if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
     annot = lhwhite->vertices[*lhpvtx].annotation;
     hemi = 1;
     if (lhwhite->ct)
@@ -974,8 +985,8 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
       annotid = annotation_to_index(annot);
     dmin = dlhp;
   }
-  
-  if(drhw < dlhp && drhw < dlhw && drhw <= drhp && rhwvtx >= 0) {
+
+  if (drhw < dlhp && drhw < dlhw && drhw <= drhp && rhwvtx >= 0) {
     annot = rhwhite->vertices[*rhwvtx].annotation;
     hemi = 2;
     if (rhwhite->ct)
@@ -997,7 +1008,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
   printf("hemi = %d, annotid = %d, dist = %g\n",hemi,annotid,dmin);
 
 
-  
+
   return(0);
 }
 
@@ -1009,8 +1020,7 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
   changed. The voxels in the other clusters are set to
   segidunknown.
 */
-int CCSegment(MRI *seg, int segid, int segidunknown)
-{
+int CCSegment(MRI *seg, int segid, int segidunknown) {
   MRI_SEGMENTATION *sgmnt;
   int k,kmax,index,c,r,s;
 
@@ -1018,13 +1028,13 @@ int CCSegment(MRI *seg, int segid, int segidunknown)
   printf("  Found %d clusters\n",sgmnt->nsegments);
 
   kmax = 0;
-  for(k=0; k < sgmnt->nsegments; k++)
-    if(sgmnt->segments[k].nvoxels > sgmnt->segments[kmax].nvoxels) kmax = k;
+  for (k=0; k < sgmnt->nsegments; k++)
+    if (sgmnt->segments[k].nvoxels > sgmnt->segments[kmax].nvoxels) kmax = k;
 
-  for(k=0; k < sgmnt->nsegments; k++){
+  for (k=0; k < sgmnt->nsegments; k++) {
     printf("     %d k %f\n",k,sgmnt->segments[k].area);
-    if(k==kmax) continue;
-    for(index = 0; index < sgmnt->segments[k].nvoxels; index++){
+    if (k==kmax) continue;
+    for (index = 0; index < sgmnt->segments[k].nvoxels; index++) {
       c = sgmnt->segments[k].voxels[index].x;
       r = sgmnt->segments[k].voxels[index].y;
       s = sgmnt->segments[k].voxels[index].z;
