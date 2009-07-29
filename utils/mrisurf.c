@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2009/07/29 18:47:18 $
- *    $Revision: 1.632 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/29 19:19:25 $
+ *    $Revision: 1.633 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -320,6 +320,7 @@ static int   mrisWhiteNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisReadTransform(MRIS *mris, const char *mris_fname) ;
 static MRI_SURFACE *mrisReadAsciiFile(const char *fname) ;
 static MRI_SURFACE *mrisReadGeoFile(const char *fname) ;
+static MRI_SURFACE *MRISreadVTK(const char *fname) ;
 static MRI_SURFACE *mrisReadSTLfile(const char *fname) ;
 static int         mrisReadGeoFilePositions(MRI_SURFACE *mris,const char *fname) ;
 static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over) ;
@@ -636,7 +637,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.632 2009/07/29 18:47:18 rudolph Exp $");
+  return("$Id: mrisurf.c,v 1.633 2009/07/29 19:19:25 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -684,6 +685,13 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   else if (type == MRIS_STL_FILE)  /* .STL */
   {
     mris = mrisReadSTLfile(fname) ;
+    if (!mris)
+      return(NULL) ;
+    version = -3 ;
+  }
+  else if (type == MRIS_VTK_FILE)  /* .vtk */
+  {
+    mris = MRISreadVTK(fname) ;
     if (!mris)
       return(NULL) ;
     version = -3 ;
@@ -889,8 +897,11 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
         {
         case TAG_GROUP_AVG_SURFACE_AREA:
           mris->group_avg_surface_area = freadFloat(fp) ;
-          fprintf(stderr, "reading group avg surface area %2.0f cm^2 from file\n",
-                 mris->group_avg_surface_area/100.0) ;
+#if 0
+          fprintf(stdout, 
+                  "reading group avg surface area %2.0f cm^2 from file\n",
+                  mris->group_avg_surface_area/100.0) ;
+#endif
           break ;
         case TAG_OLD_SURF_GEOM:
           readVolGeom(fp, &mris->vg);
@@ -20616,6 +20627,168 @@ MRISwriteVTK(MRI_SURFACE *mris, const char *fname)
 
   Description
   ------------------------------------------------------*/
+MRI_SURFACE *MRISreadVTK(const char *fname)
+{
+  char line[STRLEN], *cp = NULL;
+
+  FILE *fp = fopen(fname, "r") ;
+  if (!fp)
+  {
+    ErrorReturn(NULL,
+                (ERROR_NOFILE,
+                 "MRISreadVTK: could not open file %s\n",fname));
+  }
+
+  /* a valid file must have these three lines (see MRISwriteVTK):
+vtk output
+ASCII
+DATASET POLYDATA
+  */
+  int checks=0;
+  while ((cp = fgetl(line, STRLEN, fp)))
+  {
+    if (strncmp(cp,"vtk output",10)==0) checks++;
+    if (strncmp(cp,"ASCII",5)==0) checks++;
+    if (strncmp(cp,"DATASET POLYDATA",16)==0) checks++;
+    //printf("%s\n",cp);
+    if (checks == 3) break;
+  }
+  if (!cp || (checks != 3))
+  {
+    ErrorReturn
+    (NULL,
+     (ERROR_NOFILE,
+      "MRISreadVTK: error reading file %s\n",fname));
+  }
+
+  /* now the next line should look like this (get the number of vertices):
+POINTS 142921 float
+  */
+  int nvertices = 0;
+  cp = fgetl(line, STRLEN, fp) ;
+  if (!cp)
+  {
+    ErrorReturn
+    (NULL,
+     (ERROR_NOFILE,
+      "MRISreadVTK: error parsing POINTS from file %s\n",fname));
+  }
+  sscanf(cp, "POINTS %d float\n", &nvertices) ;
+  if (nvertices <= 0)
+  {
+    ErrorReturn
+    (NULL,
+     (ERROR_NOFILE,
+      "MRISreadVTK: error reading file %s, invalid nvertices=%d\n",
+      fname,nvertices));
+  }
+
+  /* alloc MRIS structure (we'll handle faces later in the file) */
+  MRI_SURFACE *mris = MRISalloc(nvertices, 0) ;  // note: nfaces=0 for now...
+  mris->type = MRIS_TRIANGULAR_SURFACE ;
+
+  /* read vertices... */
+  int vno;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX *v = &mris->vertices[vno] ;
+    fscanf(fp, "%f  %f  %f\n", &v->x, &v->y, &v->z) ;
+  }
+
+  /* now, if we're lucky, we've read all the vertices, and the next line
+     should be something like this:
+POLYGONS 285838 1143352
+  */
+  cp = fgetl(line, STRLEN, fp) ;
+  if (!cp)
+  {
+    ErrorReturn
+    (NULL,
+     (ERROR_NOFILE,
+      "MRISreadVTK: error parsing POLYGONS in file %s",fname));
+  }
+  int nfaces = 0;
+  int somenum = 0; // should be nfaces * 4
+  sscanf(cp, "POLYGONS %d %d\n", &nfaces, &somenum) ;
+  if (nfaces <= 0)
+  {
+    ErrorReturn
+    (NULL,
+     (ERROR_NOFILE,
+      "MRISreadVTK: error reading file %s, invalid nfaces=%d\n",
+      fname,nfaces));
+  }
+  if (somenum != (nfaces*4)) // check for 3-vertex face data
+  {
+    ErrorReturn
+    (NULL,
+     (ERROR_NOFILE,
+      "MRISreadVTK: error reading file %s, invalid POLYGON data\n",fname));
+  }
+
+  /* now we can book some face space */
+  mris->nfaces = nfaces ;
+  mris->faces = (FACE *)calloc(nfaces, sizeof(FACE)) ;
+  if (!mris->faces)
+  {
+    ErrorExit(ERROR_NO_MEMORY,
+              "MRISreadVTK(%d, %d): could not allocate faces",
+              nfaces, sizeof(FACE));
+  }
+  else memset(mris->faces,0,nfaces*sizeof(FACE));
+
+  /* finally, read the face data...*/
+  int fno, facepoints=0;
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    FACE *face = &mris->faces[fno] ;
+    fscanf(fp, "%d ", &facepoints);
+    if (facepoints != 3)
+    {
+      ErrorReturn
+        (NULL,
+         (ERROR_NOFILE,
+          "MRISreadVTK: error reading file %s, facepoints != 3\n",fname));
+    }
+    int n;
+    for (n = 0 ; n < 3 ; n++)
+    {
+      vno = 0;
+      if (n == 2) fscanf(fp, "%d\n", &vno) ;
+      else fscanf(fp, "%d ", &vno) ;
+      if ((vno < 0) || (vno >= nvertices))
+      {
+        ErrorReturn
+          (NULL,
+           (ERROR_NOFILE,
+            "MRISreadVTK: invalid vertex num in %s, vno = %d\n",fname,vno));
+      }
+      face->v[n] = vno;
+      mris->vertices[vno].num++;
+    }
+  }
+  if (fno != mris->nfaces)
+  {
+    ErrorReturn
+      (NULL,
+       (ERROR_NOFILE,
+        "MRISreadVTK: failure reading %s, fno=%d != nfaces\n",
+        fname,fno,mris->nfaces));
+  }
+
+  fclose(fp) ;
+  return(mris) ;
+}
+
+
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
 int
 MRISwriteGeo(MRI_SURFACE *mris, const char *fname)
 {
@@ -31244,8 +31417,11 @@ mrisReadTriangleFile(const char *fname, double pct_over)
       {
       case TAG_GROUP_AVG_SURFACE_AREA:
         mris->group_avg_surface_area = freadFloat(fp) ;
-        fprintf(stderr, "reading group avg surface area %2.0f cm^2 from file\n",
-               mris->group_avg_surface_area/100.0) ;
+#if 0
+        fprintf(stdout, 
+                "reading group avg surface area %2.0f cm^2 from file\n",
+                mris->group_avg_surface_area/100.0) ;
+#endif
         break ;
       case TAG_OLD_SURF_GEOM:
         readVolGeom(fp, &mris->vg);
