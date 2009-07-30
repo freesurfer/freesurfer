@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/30 00:35:49 $
- *    $Revision: 1.3.2.4 $
+ *    $Date: 2009/07/30 15:47:29 $
+ *    $Revision: 1.3.2.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -920,13 +920,18 @@ void FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
                        &cindex[0], &cindex[1], &cindex[2] );
     
     m_volumeRef->GetImageOutput()->GetOrigin( origin );
+    for ( int i = 0; i < 3; i++ )
+    {
+      if ( fabs(cindex[i]) < 1e-04 )
+        cindex[i] = 0;
+    } 
     
     origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
     origin[1] += cindex[1] * m_volumeRef->m_MRITarget->ysize;
     origin[2] += cindex[2] * m_volumeRef->m_MRITarget->zsize;
   }
 
-//   << "voxelsize: " << rasMRI->xsize << "  " << rasMRI->ysize << "  " << rasMRI->zsize << endl;
+//  cout << "origin: " << origin[0] << "  " << origin[1] << "  " << origin[2] << endl; fflush(0);
   // if map to RAS
   {
     imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
