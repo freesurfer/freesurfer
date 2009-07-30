@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.6.2.5 2009/07/23 17:23:45 krish Exp $
+# $Id: aparcstats2table,v 1.6.2.6 2009/07/30 23:33:52 nicks Exp $
 
 # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
 measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'meancurv':6 }
@@ -35,7 +35,7 @@ The subjects list can be specified on either of two ways:
 By default, it looks for the ?h.aparc.stats file based on the
 Killiany/Desikan parcellation atlas. This can be changed with
 '--parc parcellation' where parcellation is the parcellation to
-use. An alternative is aparc.a2005s which was developed by
+use. An alternative is aparc.a2009s which was developed by
 Christophe Destrieux. If this file is not found, it will exit
 with an error unless --skip in which case it skips this subject
 and moves on to the next.
@@ -45,10 +45,10 @@ be changed with '--meas measure', where measure can be area, volume
 (ie, volume of gray matter), thickness, or meancurv.
 
 Example:
- aparcstats2table --hemi lh --subjects 004 008 --parc aparc.a2005s 
-    --meas meancurv -t lh.a2005s.meancurv.txt
+ aparcstats2table --hemi lh --subjects 004 008 --parc aparc.a2009s 
+    --meas meancurv -t lh.a2009s.meancurv.txt
 
-lh.a2005s.meancurv.txt will have 3 rows: (1) 'header' with the name
+lh.a2009s.meancurv.txt will have 3 rows: (1) 'header' with the name
 of each structure, (2) mean curvature for each structure for subject
 
 The --common-parcs flag writes only the ROIs which are common to all 
@@ -79,13 +79,13 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.6.2.5 2009/07/23 17:23:45 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.6.2.6 2009/07/30 23:33:52 nicks Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
     h_s = ' subjectname'
     h_hemi = '(REQUIRED) lh or rh'
-    h_parc = 'parcellation.. default is aparc ( alt aparc.a2005s)'
+    h_parc = 'parcellation.. default is aparc ( alt aparc.a2009s)'
     h_meas = 'measure: default is area ( alt volume, thickness, meancurv)'
     h_skip = 'if a subject does not have input, skip it'
     h_t = '(REQUIRED) output table file'
