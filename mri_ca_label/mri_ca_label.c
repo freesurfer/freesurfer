@@ -10,10 +10,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/22 00:58:19 $
- *    $Revision: 1.80.2.6 $
+ *    $Date: 2009/07/30 23:16:13 $
+ *    $Revision: 1.80.2.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -180,13 +180,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.80.2.6 2009/05/22 00:58:19 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.80.2.7 2009/07/30 23:16:13 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.80.2.6 2009/05/22 00:58:19 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.80.2.7 2009/07/30 23:16:13 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -360,36 +360,6 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_seg) ;
     MRIfree(&mri_T1) ;
   }
-  if (nreads > 0)
-  {
-    float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS] ;
-    float label_scales_total[MAX_CMA_LABELS],
-          label_offsets_total[MAX_CMA_LABELS];
-    char  *fname ;
-    int   i, l ;
-
-    memset(label_scales_total, 0, sizeof(label_scales_total)) ;
-    memset(label_offsets_total, 0, sizeof(label_offsets_total)) ;
-
-    for (i = 0 ; i < nreads ; i++)
-    {
-      fname = read_intensity_fname[i] ;
-      printf("reading label scales and offsets from %s\n", fname) ;
-      GCAreadLabelIntensities(fname, label_scales, label_offsets) ;
-      for (l = 0; l < MAX_CMA_LABELS ; l++)
-      {
-        label_scales_total[l] += label_scales[l] ;
-        label_offsets_total[l] += label_offsets[l] ;
-      }
-    }
-    for (l = 0; l < MAX_CMA_LABELS ; l++)
-    {
-      label_scales_total[l] /= (float)nreads ;
-      label_offsets_total[l] /= (float)nreads ;
-    }
-
-    GCAapplyRenormalization(gca, label_scales_total, label_offsets_total, 0) ;
-  }
   // -flash_parms fname option
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_inputs) ;
@@ -550,6 +520,49 @@ main(int argc, char *argv[]) {
   if (norm_PD)
     GCAnormalizePD(gca, mri_inputs, transform) ;
 
+  if (Ggca_x >= 0 && Gx < 0)
+  {
+    GCAsourceVoxelToNode(gca, 
+                         mri_inputs, 
+                         transform, 
+                         Ggca_x, Ggca_y, Ggca_z,
+                         &Gx, &Gy, &Gz) ;
+    printf("source voxel (%d, %d, %d) maps to node (%d, %d, %d)\n", 
+           Ggca_x, Ggca_y, Ggca_z, Gx, Gy, Gz) ;
+    GCAdump(gca, mri_inputs, Ggca_x, Ggca_y, Ggca_z, transform, stdout, 0) ;
+  }
+  if (nreads > 0)
+  {
+    float label_scales[MAX_CMA_LABELS], 
+      label_offsets[MAX_CMA_LABELS] ;
+    float label_scales_total[MAX_CMA_LABELS], 
+      label_offsets_total[MAX_CMA_LABELS];
+    char  *fname ;
+    int   i, l ;
+  	 
+    memset(label_scales_total, 0, sizeof(label_scales_total)) ;
+    memset(label_offsets_total, 0, sizeof(label_offsets_total)) ;
+  	 
+    for (i = 0 ; i < nreads ; i++)
+    {
+      fname = read_intensity_fname[i] ;
+      printf("reading label scales and offsets from %s\n", fname) ;
+      GCAreadLabelIntensities(fname, label_scales, label_offsets) ;
+      for (l = 0; l < MAX_CMA_LABELS ; l++)
+      {
+        label_scales_total[l] += label_scales[l] ;
+        label_offsets_total[l] += label_offsets[l] ;
+      }
+    }
+    for (l = 0; l < MAX_CMA_LABELS ; l++)
+    {
+      label_scales_total[l] /= (float)nreads ;
+      label_offsets_total[l] /= (float)nreads ;
+    }
+  	
+    GCAapplyRenormalization(gca, label_scales_total, label_offsets_total, 0) ;
+  }
+
   if (heq_fname) {
     MRI *mri_eq ;
 
@@ -575,10 +588,15 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, read_fname) ;
     if (Ggca_x >= 0)
-      printf("label(%d, %d, %d) = %s (%d)\n",
+      printf("label(%d, %d, %d) = %s (%d), norm=%2.0f\n",
              Ggca_x, Ggca_y, Ggca_z,
              cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
-             MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
+             MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z),	 
+             MRIgetVoxVal(mri_inputs, Ggca_x, Ggca_y, Ggca_z, 0)) ;
+    if (regularize_mean > 0)
+      GCAregularizeConditionalDensities(gca, regularize_mean) ;
+    if (Ggca_x >= 0)
+      GCAdump(gca, mri_inputs, Ggca_x, Ggca_y, Ggca_z, transform, stdout, 0) ;
     GCAreclassifyUsingGibbsPriors
       (mri_inputs, gca, mri_labeled, transform, max_iter,
        mri_fixed, 0, NULL);
@@ -640,9 +658,13 @@ main(int argc, char *argv[]) {
         GCAmapRenormalizeWithAlignment
         (gca, mri_inputs, transform,
          logfp, base_name, NULL, handle_expanded_ventricles) ;
+#if 0 // removed by BRF as it breaks the subsequent longitudinal stuff (since
+      // the 2nd renormalize will have almost all scales=1, and will write 
+      // those out, overwriting the output from the previous call)
         GCAmapRenormalizeWithAlignment
         (gca, mri_inputs, transform,
          logfp, base_name, NULL, handle_expanded_ventricles) ;
+#endif
 
         if (regularize_mean > 0)
           GCAregularizeConditionalDensities(gca, regularize_mean) ;
@@ -805,9 +827,18 @@ main(int argc, char *argv[]) {
       if (anneal)
         GCAanneal(mri_inputs, gca, mri_labeled, transform, max_iter) ;
       else
+      {
+        if (Ggca_x >= 0)
+          GCAdump(gca, 
+                  mri_inputs, 
+                  Ggca_x, Ggca_y, Ggca_z, 
+                  transform, 
+                  stdout, 
+                  0) ;
         GCAreclassifyUsingGibbsPriors
         (mri_inputs, gca, mri_labeled, transform, max_iter,
          mri_fixed, 0, NULL);
+      }
     }
   }
 
