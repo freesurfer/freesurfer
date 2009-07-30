@@ -8,8 +8,8 @@ SUBDIRS=average lib docs grad_unwarp_tables \
 foodir=$(prefix)
 foo_DATA=surface_labels.txt \
 	tkmeditParcColorsCMA \
-	Simple_surface_labels2002.txt \
-	Simple_surface_labels2005.txt	\
+	Simple_surface_labels2005.txt \
+	Simple_surface_labels2009.txt	\
 	FreeSurferEnv.csh \
 	SetUpFreeSurfer.csh \
 	FreeSurferEnv.sh \
