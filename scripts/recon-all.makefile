@@ -250,10 +250,10 @@ APARC_ANNOT_LH=$(subj)/label/lh.aparc.annot
 APARC_ANNOT_RH=$(subj)/label/rh.aparc.annot
 APARC_STATS_LH=$(subj)/stats/lh.aparc.stats
 APARC_STATS_RH=$(subj)/stats/rh.aparc.stats
-APARC_A2005S_ANNOT_LH=$(subj)/label/lh.aparc.a2005s.annot
-APARC_A2005S_ANNOT_RH=$(subj)/label/rh.aparc.a2005s.annot
-APARC_A2005S_STATS_LH=$(subj)/stats/lh.aparc.a2005s.stats
-APARC_A2005S_STATS_RH=$(subj)/stats/rh.aparc.a2005s.stats
+APARC_A2009S_ANNOT_LH=$(subj)/label/lh.aparc.a2009s.annot
+APARC_A2009S_ANNOT_RH=$(subj)/label/rh.aparc.a2009s.annot
+APARC_A2009S_STATS_LH=$(subj)/stats/lh.aparc.a2009s.stats
+APARC_A2009S_STATS_RH=$(subj)/stats/rh.aparc.a2009s.stats
 RIBBON_LH=$(subj)/mri/lh.ribbon.mgz
 RIBBON_RH=$(subj)/mri/rh.ribbon.mgz
 APARC_ASEG=$(subj)/mri/aparc+aseg.mgz
@@ -265,8 +265,8 @@ AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(AVG_CURV_LH) $(AVG_CURV_RH) \
 	$(APARC_ANNOT_LH) $(APARC_ANNOT_RH) \
 	$(APARC_STATS_LH) $(APARC_STATS_RH) \
-	$(APARC_A2005S_ANNOT_LH) $(APARC_A2005S_ANNOT_RH) \
-	$(APARC_A2005S_STATS_LH) $(APARC_A2005S_STATS_RH) \
+	$(APARC_A2009S_ANNOT_LH) $(APARC_A2009S_ANNOT_RH) \
+	$(APARC_A2009S_STATS_LH) $(APARC_A2009S_STATS_RH) \
 	$(RIBBON_LH) $(RIBBON_RH) \
 	$(APARC_ASEG) $(WMPARC)
 
@@ -308,16 +308,16 @@ $(APARC_STATS_LH): $(APARC_ANNOT_LH)
 $(APARC_STATS_RH): $(APARC_ANNOT_RH)
 	recon-all -s $(subj) -hemi rh -parcstats
 
-$(APARC_A2005S_ANNOT_LH): $(SPHERE_REG_LH)
+$(APARC_A2009S_ANNOT_LH): $(SPHERE_REG_LH)
 	recon-all -s $(subj) -hemi lh -cortparc2
 
-$(APARC_A2005S_ANNOT_RH): $(SPHERE_REG_RH)
+$(APARC_A2009S_ANNOT_RH): $(SPHERE_REG_RH)
 	recon-all -s $(subj) -hemi rh -cortparc2
 
-$(APARC_A2005S_STATS_LH): $(APARC_A2005S_ANNOT_LH)
+$(APARC_A2009S_STATS_LH): $(APARC_A2009S_ANNOT_LH)
 	recon-all -s $(subj) -hemi lh -parcstats2
 
-$(APARC_A2005S_STATS_RH): $(APARC_A2005S_ANNOT_RH)
+$(APARC_A2009S_STATS_RH): $(APARC_A2009S_ANNOT_RH)
 	recon-all -s $(subj) -hemi rh -parcstats2
 
 $(RIBBON_LH): $(ORIG) $(WHITE_LH) $(PIAL_LH)

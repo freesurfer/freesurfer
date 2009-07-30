@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/07/16 18:52:28 $
-#    $Revision: 1.7 $
+#    $Author: nicks $
+#    $Date: 2009/07/30 21:09:43 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # aparc2feat
 #
 
-set VERSION = '$Id: aparc2feat,v 1.7 2009/07/16 18:52:28 greve Exp $';
+set VERSION = '$Id: aparc2feat,v 1.8 2009/07/30 21:09:43 nicks Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
@@ -150,6 +150,10 @@ while( $#argv != 0 )
       set annot = aparc.a2005s
       breaksw
 
+    case "--a2009s":
+      set annot = aparc.a2009s
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1; # turns on terminal echoing
@@ -234,6 +238,7 @@ usage_exit:
   echo " --hemi hemi  : resample hemi only (default is both rh and lh)"
   echo " --annot annot : spec something other than aparc"
   echo " --a2005s : spec annot = aparc.a2005s"
+  echo " --a2009s : spec annot = aparc.a2009s"
   echo " --help               : print help and exit"
   echo " --debug              : turn on debugging"
   echo " --version            : print version and exit"

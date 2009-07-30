@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/13 15:57:23 $
-#    $Revision: 1.27 $
+#    $Date: 2009/07/30 21:09:43 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.27 2009/06/13 15:57:23 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.28 2009/07/30 21:09:43 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -486,7 +486,7 @@ end
 
 compare2:
 
-set TEST_APARCS=(aparc.a2005s aparc)
+set TEST_APARCS=(aparc.a2009s aparc)
 set TEST_HEMIS=(rh lh)
 
 foreach hemi ($TEST_HEMIS)
@@ -569,8 +569,8 @@ end # foreach hemi ($TEST_HEMIS)
 
 
 set STATS_FILES=(aseg.stats \
-lh.aparc.a2005s.stats lh.aparc.stats \
-rh.aparc.a2005s.stats rh.aparc.stats)
+lh.aparc.a2009s.stats lh.aparc.stats \
+rh.aparc.a2009s.stats rh.aparc.stats)
 
 foreach statfile ($STATS_FILES)
   set REF_STAT   = $SUBJECTS_DIR/ref_subj/stats/$statfile
@@ -653,7 +653,7 @@ else
 endif
 
 foreach hemi (rh lh)
-    foreach parc (aparc aparc.a2005s)
+    foreach parc (aparc aparc.a2009s)
         foreach meas (area volume thickness)
         set cmd=(aparcstatsdiff \
             ref_subj $TEST_SUBJ $hemi $parc $meas $LOG_DIR)

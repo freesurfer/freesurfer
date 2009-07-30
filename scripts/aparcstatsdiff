@@ -9,7 +9,7 @@ if ( "x$1" == "x" || \
     echo ""
     echo "The utility aparcstats2table is executed given the two subjects"
     echo "as input, along with hemisphere (rh or lh), parcellation scheme"
-    echo "(aparc or aparc.a2005s) and measure (area, volume, or thickness), "
+    echo "(aparc or aparc.a2009s) and measure (area, volume, or thickness), "
     echo "and an output table called aparcstats-hemi.parc.meas.txt "
     echo "is produced."
     echo "Then, another row is added to that table containing the percent"
@@ -42,8 +42,8 @@ if ( "x$3" != "xrh" && "x$3" != "xlh" ) then
     echo "Third parameter must be either rh or lh"
     exit 1
 endif
-if ( "x$4" != "xaparc" && "x$4" != "xaparc.a2005s" ) then
-    echo "Fourth parameter must be either aparc or aparc.a2005s"
+if ( "x$4" != "xaparc" && "x$4" != "xaparc.a2009s" ) then
+    echo "Fourth parameter must be either aparc or aparc.a2009s"
     exit 1
 endif
 if ( "x$5" != "xarea" && "x$5" != "xvolume" && "x$5" != "xthickness") then

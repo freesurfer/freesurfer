@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/02/21 20:39:49 $
-#    $Revision: 1.45 $
+#    $Author: nicks $
+#    $Date: 2009/07/30 21:09:43 $
+#    $Revision: 1.46 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.45 2008/02/21 20:39:49 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.46 2009/07/30 21:09:43 nicks Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -165,9 +165,9 @@ foreach hemi (lh rh)
     exit 1;
   endif
 
-  set GCS     = atlas2005_simple.gcs
+  set GCS     = destrieux.simple.2009-07-29.gcs
   set CPAtlas = $hemi.$GCS
-  set annot   = label/$hemi.aparc.a2005s.annot
+  set annot   = label/$hemi.aparc.a2009s.annot
   set cmd = (mris_ca_label -ml-annot $CPAtlas $ico_no $annot)
   echo $cmd  | tee -a $LF
   pwd | tee -a $LF
@@ -269,7 +269,7 @@ foreach hemi (lh rh)
 
   # -----------------------------------------------------
   # Create cortex label from Christophe's medial wall
-  set annot = $ddir/label/$hemi.aparc.a2005s.annot
+  set annot = $ddir/label/$hemi.aparc.a2009s.annot
   if(! -e $annot) then
     echo "ERROR: cannto find $annot" |& tee -a $LF
     exit 1;
@@ -280,7 +280,7 @@ foreach hemi (lh rh)
   mkdir -p $tmpdir
   # Unload all of Christophe's labels into tmpdir
   set cmd = (mri_annotation2label --subject $average_subject \
-    --hemi $hemi --outdir $tmpdir --annotation aparc.a2005s)
+    --hemi $hemi --outdir $tmpdir --annotation aparc.a2009s)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
