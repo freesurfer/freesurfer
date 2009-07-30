@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:54 $
- *    $Revision: 1.6.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.6.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -281,6 +281,8 @@ bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
     if ( !HasExtension( wxString::FromAscii(filename), _("png")) )
       fn += _(".png");
   }
+  
+  bool ret = true;
   if (writer)
   {
     // bool bCurrentAA = GetAntialiasing() > 0;
@@ -291,11 +293,13 @@ bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
     writer->SetInput( image->GetOutput() );
     writer->SetFileName( fn.mb_str() );
     writer->Write();
+    if ( writer->GetErrorCode() != 0 )
+      ret = false;
     image->Delete();
     writer->Delete();
     // SetAntialiasing(bCurrentAA, false);
   }
-  return true;
+  return ret;
 }
 
 

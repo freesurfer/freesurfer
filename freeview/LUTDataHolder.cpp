@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:51 $
- *    $Revision: 1.2.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.2.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -147,8 +147,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
     }
     else
     {
-      std::cerr << "Cannot load color table from '" 
-                << filename << "'." << std::endl;
+      std::cerr << "Can not load color table from '" << filename << "'." << std::endl;
     }
   }
   // otherwise, load and create a new lut entry
@@ -160,8 +159,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
       ColorTableData ctd;
       ctd.table = ct;
       ctd.filename = filename_full;
-      wxFileName fn = wxFileName::FileName
-        ( wxString::FromAscii( filename_full.c_str() ) );
+      wxFileName fn = wxFileName::FileName( wxString::FromAscii( filename_full.c_str() ) );
       ctd.name = fn.GetName().char_str();
       int n = 2;
       while ( GetColorTable( ctd.name.c_str() ) )
@@ -173,8 +171,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
     }
     else
     {
-      std::cerr << "Cannot load color table from '" 
-                << filename << "'." << std::endl;
+      std::cerr << "Can not load color table from '" << filename << "'." << std::endl;
     }
   }
   

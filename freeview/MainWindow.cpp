@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:53 $
- *    $Revision: 1.6.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.6.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -80,10 +80,14 @@
 #include "WindowOverlayConfiguration.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperties.h"
+#include "DialogSaveVolumeAs.h"
+#include "VolumeFilterGradient.h"
+#include "DialogGradientVolume.h"
+#include "LayerPropertiesSurface.h"
 
 #define CTRL_PANEL_WIDTH 240
 
-#define ID_FILE_RECENT1  10001
+#define ID_FILE_RECENT1     10001
 
 // ----------------------------------------------------------------------------
 // event tables and other macros for wxWindows
@@ -129,6 +133,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_MODE_WAYPOINTS_EDIT" ),    MainWindow::OnModeWayPointsEditUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_COPY" ),              MainWindow::OnEditCopy )
   EVT_UPDATE_UI   ( XRCID( "ID_EDIT_COPY" ),              MainWindow::OnEditCopyUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_COPY_STRUCTURE" ),    MainWindow::OnEditCopyStructure )
+  EVT_UPDATE_UI   ( XRCID( "ID_EDIT_COPY_STRUCTURE" ),    MainWindow::OnEditCopyStructureUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_PASTE" ),             MainWindow::OnEditPaste )
   EVT_UPDATE_UI   ( XRCID( "ID_EDIT_PASTE" ),             MainWindow::OnEditPasteUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_UNDO" ),              MainWindow::OnEditUndo )
@@ -191,8 +197,10 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   
   EVT_MENU        ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolume )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolumeUpdateUI )
-  EVT_MENU        ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolCreateOptimalVolume )
-  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolCreateOptimalVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_GRADIENT_VOLUME" ),   MainWindow::OnToolGradientVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GRADIENT_VOLUME" ),   MainWindow::OnToolGradientVolumeUpdateUI )
   
   EVT_MENU  ( XRCID( "ID_HELP_QUICK_REF" ),               MainWindow::OnHelpQuickReference )
   EVT_MENU  ( XRCID( "ID_HELP_ABOUT" ),                   MainWindow::OnHelpAbout )
@@ -313,6 +321,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 
   m_toolWindowEdit = NULL;
   m_dlgRotateVolume = NULL;
+  m_dlgGradientVolume = NULL;
 
   m_wndHistogram = new WindowHistogram( this );
   m_wndHistogram->Hide();
@@ -345,17 +354,20 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
     m_nViewLayout = config->Read( _("/MainWindow/ViewLayout"), m_nViewLayout );
     m_nMainView = config->Read( _("/MainWindow/MainView"), m_nMainView );
 
-    wxColour color = wxColour( config->Read( _("RenderWindow/BackgroundColor"), _("rgb(0,0,0)") ) );
-    m_viewAxial->SetBackgroundColor( color );
-    m_viewSagittal->SetBackgroundColor( color );
-    m_viewCoronal->SetBackgroundColor( color );
-    m_view3D->SetBackgroundColor( color );
-
-    color = wxColour( config->Read( _("RenderWindow/CursorColor"), _("rgb(255,0,0)") ) );
-    m_viewAxial->GetCursor2D()->SetColor( color );
-    m_viewSagittal->GetCursor2D()->SetColor( color );
-    m_viewCoronal->GetCursor2D()->SetColor( color );
-    m_view3D->GetCursor3D()->SetColor( color );
+    m_settingsGeneral.BackgroundColor = wxColour( config->Read( _("/RenderWindow/BackgroundColor"), _("rgb(0,0,0)") ) );
+    m_settingsGeneral.CursorColor = wxColour( config->Read( _("/RenderWindow/CursorColor"), _("rgb(255,0,0)") ) );
+    m_settingsGeneral.CursorStyle = config->Read( _("/RenderWindow/CursorStyle"), Cursor2D::CS_Short );
+    m_viewAxial   ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewSagittal->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewCoronal ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_view3D      ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewAxial->GetCursor2D()    ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewSagittal->GetCursor2D() ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewCoronal->GetCursor2D()  ->SetColor( m_settingsGeneral.CursorColor );
+    m_view3D->GetCursor3D()       ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewAxial->GetCursor2D()    ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewSagittal->GetCursor2D() ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewCoronal->GetCursor2D()  ->SetStyle( m_settingsGeneral.CursorStyle );
 
     m_nScreenshotFilterIndex = config->Read( _("/MainWindow/ScreenshotFilterIndex"), 0L );
 
@@ -463,11 +475,12 @@ void MainWindow::OnClose( wxCloseEvent &event )
     config->Write( _("/MainWindow/LastDir"), m_strLastDir );
     config->Write( _("/MainWindow/ViewLayout"), m_nViewLayout );
     config->Write( _("/MainWindow/MainView"), m_nMainView );
-    config->Write( _("MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
+    config->Write( _("/MainWindow/ScreenshotFilterIndex"), m_nScreenshotFilterIndex );
 
-    config->Write( _("RenderWindow/BackgroundColor"), m_viewAxial->GetBackgroundColor().GetAsString( wxC2S_CSS_SYNTAX ) );
-    config->Write( _("RenderWindow/CursorColor"), m_viewAxial->GetCursor2D()->GetColor().GetAsString( wxC2S_CSS_SYNTAX ) );
-    config->Write( _("/RenderWindow/SyncZoomFactor"), m_settings2D.SyncZoomFactor );
+    config->Write( _("/RenderWindow/BackgroundColor"),  m_settingsGeneral.BackgroundColor.GetAsString( wxC2S_CSS_SYNTAX ) );
+    config->Write( _("/RenderWindow/CursorColor"),      m_settingsGeneral.CursorColor.GetAsString( wxC2S_CSS_SYNTAX ) );
+    config->Write( _("/RenderWindow/CursorStyle"),      m_settingsGeneral.CursorStyle );
+    config->Write( _("/RenderWindow/SyncZoomFactor"),   m_settings2D.SyncZoomFactor );
     
     config->Write( _("/RenderWindow/ShowScalarBar"), 
                    ( m_nMainView >= 0 ? m_viewRender[m_nMainView]->GetShowScalarBar() : false ) );
@@ -561,7 +574,6 @@ void MainWindow::SaveVolume()
       fn += _(".mgz");
     }
     layer_mri->SetFileName( fn.char_str() );
-    layer_mri->ResetModified();
     WorkerThread* thread = new WorkerThread( this );
     thread->SaveVolume( layer_mri );
   }
@@ -583,14 +595,12 @@ void MainWindow::SaveVolumeAs()
     return;
   }
 
-  wxString fn = wxString::FromAscii( layer_mri->GetFileName() );
-  wxFileDialog dlg( this, _("Save volume file as"), m_strLastDir, _(""),
-                    _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+  DialogSaveVolumeAs dlg( this );
+  dlg.SetFileName( layer_mri->GetFileName() );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    fn = dlg.GetPath();
-    layer_mri->SetFileName( dlg.GetPath().char_str() );
+    layer_mri->SetFileName( dlg.GetFileName().char_str() );
+    layer_mri->SetReorient( dlg.GetReorient() );
     SaveVolume();
     m_controlPanel->UpdateUI();
   }
@@ -598,35 +608,49 @@ void MainWindow::SaveVolumeAs()
 
 void MainWindow::LoadVolume()
 {
-// if ( GetLayerCollection( "MRI" )->IsEmpty() )
+  DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
+  dlg.SetLastDir( m_strLastDir );
+  wxArrayString list;
+  for ( int i = 0; i < m_fileHistory->GetMaxFiles(); i++ )
+    list.Add( m_fileHistory->GetHistoryFile( i ) );
+  dlg.SetRecentFiles( list );
+  if ( dlg.ShowModal() == wxID_OK )
   {
-    DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
-    dlg.SetLastDir( m_strLastDir );
-    wxArrayString list;
-    for ( int i = 0; i < m_fileHistory->GetMaxFiles(); i++ )
-      list.Add( m_fileHistory->GetHistoryFile( i ) );
-    dlg.SetRecentFiles( list );
-    if ( dlg.ShowModal() == wxID_OK )
+//    this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.GetRegFileName(),
+//                          ( GetLayerCollection( "MRI" )->IsEmpty() ? dlg.IsToResample() : m_bResampleToRAS ),
+//                          dlg.GetSampleMethod() );
+    
+    wxArrayString fns = dlg.GetVolumeFileNames();
+    wxString reg_fn = dlg.GetRegFileName();
+    for ( size_t i = 0; i < fns.GetCount(); i++ )
     {
-      this->LoadVolumeFile( dlg.GetVolumeFileName(), dlg.GetRegFileName(),
-                            ( GetLayerCollection( "MRI" )->IsEmpty() ? dlg.IsToResample() : m_bResampleToRAS ) );
+      wxArrayString script;
+      script.Add( _("loadvolume") );
+      wxString fn = fns[i];
+      if ( !reg_fn.IsEmpty() )
+        fn += ":reg=" + reg_fn;
+      
+      if ( dlg.GetSampleMethod() != SAMPLE_NEAREST )
+        fn += ":sample=trilinear";
+      
+      fn += ":colormap=" + dlg.GetColorMap();
+      if ( dlg.GetColorMap() == "lut" )
+        fn += ":lut=" + dlg.GetLUT();
+      
+      script.Add( fn );
+  
+      if ( ( GetLayerCollection( "MRI" )->IsEmpty() && dlg.IsToResample() ) || m_bResampleToRAS )
+        script.Add( _("r") );
+  
+      AddScript( script );
     }
+    RunScript();
   }
-  /* else
-   {
-    wxFileDialog dlg( this, _("Open volume file"), m_strLastDir, _(""),
-        _T("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
-        wxFD_OPEN );
-    if ( dlg.ShowModal() == wxID_OK )
-    {
-     this->LoadVolumeFile( dlg.GetPath(), "", m_bResampleToRAS );
-    }
-  } */
 }
 
 void MainWindow::LoadVolumeFile( const wxString& filename, 
                                  const wxString& reg_filename, 
-                                 bool bResample )
+                                 bool bResample, int nSampleMethod )
 {
 // cout << bResample << endl;
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
@@ -634,6 +658,7 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
   m_bResampleToRAS = bResample;
   LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
+  layer->SetSampleMethod( nSampleMethod );
   layer->GetProperties()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
   wxFileName fn( filename );
   fn.Normalize();
@@ -650,7 +675,8 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
   }
 
 // if ( !bResample )
-  /* {
+  /* 
+  {
     LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
     if ( mri )
     {
@@ -663,10 +689,10 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
 }
 
 
-void MainWindow::RotateVolume( std::vector<RotationElement>& rotations )
+void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )
 {
   WorkerThread* thread = new WorkerThread( this );
-  thread->RotateVolume( rotations );
+  thread->RotateVolume( rotations, bAllVolumes );
 }
 
 
@@ -705,6 +731,10 @@ LayerCollection* MainWindow::GetLayerCollection( std::string strType )
   return m_layerCollectionManager->GetLayerCollection( strType );
 }
 
+Layer* MainWindow::GetActiveLayer( std::string strType )
+{
+  return GetLayerCollection( strType )->GetActiveLayer();
+}
 
 LayerCollectionManager* MainWindow::GetLayerCollectionManager()
 {
@@ -1242,6 +1272,40 @@ void MainWindow::OnEditCopyUpdateUI( wxUpdateUIEvent& event )
     event.Enable( roi && roi->IsVisible() && nWnd >= 0 && nWnd < 3 );
   }
   else if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+    event.Enable( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
+  }
+  else
+    event.Enable( false );
+}
+
+
+void MainWindow::OnEditCopyStructure( wxCommandEvent& event )
+{
+  int nWnd = GetActiveViewId();
+  if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri && nWnd >= 0 && nWnd < 3 )
+    {
+      double* pos = mri->GetSlicePosition();
+      if ( !mri->CopyStructure( nWnd, pos ) )
+      {
+        wxMessageDialog dlg( this, 
+                             _( "Please move the cursor to the structure you want to copy and try again." ), 
+                             _( "Copy Structure Failed" ),
+                             wxOK );
+        dlg.ShowModal();                            
+      }
+    }
+  }
+}
+
+void MainWindow::OnEditCopyStructureUpdateUI( wxUpdateUIEvent& event )
+{
+  int nWnd = GetActiveViewId();
+  if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit )
   {
     LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
     event.Enable( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
@@ -1808,25 +1872,27 @@ void MainWindow::OnInternalIdle()
 void MainWindow::OnEditPreferences( wxCommandEvent& event )
 {
   DialogPreferences dlg( this );
-  dlg.SetBackgroundColor( m_viewAxial->GetBackgroundColor() );
-  dlg.SetCursorColor( m_viewAxial->GetCursor2D()->GetColor() );
+  dlg.SetGeneralSettings( m_settingsGeneral );
   dlg.Set2DSettings( m_settings2D );
   dlg.SetScreenshotSettings( m_settingsScreenshot );
 
   if ( dlg.ShowModal() == wxID_OK )
   {
-    wxColour color = dlg.GetCursorColor();
-    m_viewAxial->GetCursor2D()->SetColor( color );
-    m_viewSagittal->GetCursor2D()->SetColor( color );
-    m_viewCoronal->GetCursor2D()->SetColor( color );
-
-    color = dlg.GetBackgroundColor();
-    m_viewAxial->SetBackgroundColor( color );
-    m_viewSagittal->SetBackgroundColor( color );
-    m_viewCoronal->SetBackgroundColor( color );
-    m_view3D->SetBackgroundColor( color );
+    m_settingsGeneral = dlg.GetGeneralSettings();
     m_settings2D = dlg.Get2DSettings();
     m_settingsScreenshot = dlg.GetScreenshotSettings();
+
+    m_viewAxial   ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewSagittal->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewCoronal ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_view3D      ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
+    m_viewAxial->GetCursor2D()    ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewSagittal->GetCursor2D() ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewCoronal->GetCursor2D()  ->SetColor( m_settingsGeneral.CursorColor );
+    m_view3D->GetCursor3D()       ->SetColor( m_settingsGeneral.CursorColor );
+    m_viewAxial->GetCursor2D()    ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewSagittal->GetCursor2D() ->SetStyle( m_settingsGeneral.CursorStyle );
+    m_viewCoronal->GetCursor2D()  ->SetStyle( m_settingsGeneral.CursorStyle );
   }
 }
 
@@ -2269,6 +2335,10 @@ void MainWindow::RunScript()
   {
     CommandSetLUT( sa );
   }
+  else if ( sa[0] == _("setopacity") )
+  {
+    CommandSetOpacity( sa );
+  }
   else if ( sa[0] == _("setsurfaceoverlaymethod") )
   {
     CommandSetSurfaceOverlayMethod( sa );
@@ -2285,6 +2355,14 @@ void MainWindow::RunScript()
   {
     CommandSetDisplayVector( sa );
   }
+  else if ( sa[0] == _("setdisplaytensor") )
+  {
+    CommandSetDisplayTensor( sa );
+  }
+  else if ( sa[0] == _("setsurfacecolor") )
+  {
+    CommandSetSurfaceColor( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2296,64 +2374,92 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
   wxString colormap = _("grayscale");
   wxString colormap_scale = _("grayscale");
   wxString lut_name;
-  wxString vector_display = _("no"), vector_inversion = _("none"), vector_render = _("line");
+  wxString vector_display = _("no"), 
+           vector_inversion = _("none"), 
+           vector_render = _("line"),
+           tensor_display = _("no"),
+           tensor_render = _("boxoid");
+  int nSampleMethod = SAMPLE_NEAREST;
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
     int n = strg.Find( _("=") );
     if ( n != wxNOT_FOUND )
     {
-      if ( strg.Left( n ).Lower() == _("colormap") )
+      wxString subOption = strg.Left( n ).Lower();
+      wxString subArgu = strg.Mid( n + 1 );
+      if ( subOption == _("colormap") )
       {
-        colormap = strg.Mid( n + 1 ).Lower();
+        colormap = subArgu.Lower();
       }
-      else if ( strg.Left( n ).Lower() == _("grayscale") || 
-                strg.Left( n ).Lower() == _("heatscale") || 
-                strg.Left( n ).Lower() == _("jetscale") ) 
+      else if ( subOption == _("grayscale") || 
+                subOption == _("heatscale") || 
+                subOption == _("jetscale") ) 
       {
-        colormap_scale = strg.Left( n ).Lower();    // colormap scale might be different from colormap!
-        scales = MyUtils::SplitString( strg.Mid(n+1), _(",") );
+        colormap_scale = subOption;    // colormap scale might be different from colormap!
+        scales = MyUtils::SplitString( subArgu, _(",") );
       }
-      else if ( strg.Left( n ).Lower() == _("lut") )
+      else if ( subOption == _("lut") )
       {
-        lut_name = strg.Mid( n + 1 );
+        lut_name = subArgu;
         if ( lut_name.IsEmpty() )
         {
           cerr << "Missing lut name." << endl;
         }
       }
-      else if ( strg.Left( n ).Lower() == _("vector") )
+      else if ( subOption == _("vector") )
       {
-        vector_display = strg.Mid( n + 1 ).Lower();
+        vector_display = subArgu.Lower();
         if ( vector_display.IsEmpty() )
         {
           cerr << "Missing vector display argument." << endl;
         }
       }
-      else if ( strg.Left( n ).Lower() == _("inversion") || 
-                strg.Left( n ).Lower() == _("invert") )
+      else if ( subOption == _("tensor") )
       {
-        vector_inversion = strg.Mid( n + 1 ).Lower();
+        tensor_display = subArgu.Lower();
+        if ( tensor_display.IsEmpty() )
+        {
+          cerr << "Missing tensor display argument." << endl;
+        }
+      }
+      else if ( subOption == _("inversion") || 
+                subOption == _("invert") )
+      {
+        vector_inversion = subArgu.Lower();
         if ( vector_inversion.IsEmpty() )
         {
-          cerr << "Missing vector inversion argument." << endl;
+          cerr << "Missing inversion argument." << endl;
           vector_inversion = _("none");
         }
       }
-      else if ( strg.Left( n ).Lower() == _("render") )
+      else if ( subOption == _("render") )
       {
-        vector_render = strg.Mid( n + 1 ).Lower();
+        vector_render = subArgu.Lower();
+        tensor_render = vector_render;
+        if ( vector_render.IsEmpty() )
         {
-          if ( vector_render.IsEmpty() )
-          {
-            cerr << "Missing vector render argument." << endl;
-            vector_render = _("line");
-          }
+          cerr << "Missing render argument." << endl;
+          vector_render = _("line");
+          tensor_render = _("boxoid");
         }
       }
-      else if ( strg.Left( n ).Lower() == _("reg") )
+      else if ( subOption == _("reg") )
       {
-        reg_fn = strg.Mid( n + 1 );
+        reg_fn = subArgu;
+      }
+      else if ( subOption == _("sample") )
+      {
+        if ( subArgu.Lower() == _("trilinear") )
+          nSampleMethod = SAMPLE_TRILINEAR;
+      }
+      else if ( subOption == _("opacity") )
+      {
+        wxArrayString script;
+        script.Add( _("setopacity") );
+        script.Add( subArgu );
+        
+        m_scripts.insert( m_scripts.begin(), script );
       }
       else
       {
@@ -2392,7 +2498,17 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     m_scripts.insert( m_scripts.begin(), script );
   }
   
-  if ( !vector_display.IsEmpty() && vector_display != _("no") )
+  if ( !tensor_display.IsEmpty() && tensor_display != _("no") )
+  {
+    wxArrayString script;
+    script.Add( _("setdisplaytensor") );
+    script.Add( tensor_display );
+    script.Add( tensor_render );
+    script.Add( vector_inversion );
+  
+    m_scripts.insert( m_scripts.begin(), script );  
+  }
+  else if ( !vector_display.IsEmpty() && vector_display != _("no") )
   {
     wxArrayString script;
     script.Add( _("setdisplayvector") );
@@ -2403,7 +2519,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     m_scripts.insert( m_scripts.begin(), script );  
   }
   
-  LoadVolumeFile( fn, reg_fn, bResample );
+  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod );
 }
 
 void MainWindow::CommandSetColorMap( const wxArrayString& sa )
@@ -2495,21 +2611,83 @@ void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
   ContinueScripts();
 }
 
+
+void MainWindow::CommandSetDisplayTensor( const wxArrayString& cmd )
+{
+  if ( cmd[1].Lower() == _("yes") || cmd[1].Lower() == _("true") || cmd[1].Lower() == _("1") )
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
+    {
+      if ( mri->GetNumberOfFrames() < 9 )
+      {
+        cerr << "Volume has less than 9 frames. Can not display as tensor." << endl;
+      }
+      else
+      {
+        mri->GetProperties()->SetDisplayTensor( true );  
+      
+        if ( cmd[2].Lower().Find( _("box") ) != wxNOT_FOUND )
+        {
+          mri->GetProperties()->SetTensorRepresentation( LayerPropertiesMRI::TR_Boxoid );
+        }
+        else if ( cmd[2].Lower().Find( _("ellips") ) != wxNOT_FOUND )
+        {
+          mri->GetProperties()->SetTensorRepresentation( LayerPropertiesMRI::TR_Ellipsoid );
+        }
+        else
+        {
+          cerr << "Unrecognized argument '" << cmd[2] << "' for tensor rendering." << endl;
+        }
+        
+        if ( cmd[3].Lower() != _("none") )
+        {
+          if ( cmd[3].Lower() == _("x") )
+            mri->GetProperties()->SetTensorInversion( LayerPropertiesMRI::VI_X );
+          else if ( cmd[3].Lower() == _("y") )
+            mri->GetProperties()->SetTensorInversion( LayerPropertiesMRI::VI_Y );
+          else if ( cmd[3].Lower() == _("z") )
+            mri->GetProperties()->SetTensorInversion( LayerPropertiesMRI::VI_Z );
+          else
+            cerr << "Unknown inversion flag '" << cmd[2] << "'." << endl;
+        }
+      }
+    }
+  }
+  
+  ContinueScripts();
+}
+
+
 void MainWindow::CommandSetLUT( const wxArrayString& sa )
 {
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
   {  
     COLOR_TABLE* ct = m_luts->LoadColorTable( sa[1].char_str() );
-    /*
-    if ( !ct )
-    {
-      ct = m_luts->LoadColorTable( sa[1].c_str() );
-    }
-    */
+
     if ( ct )
     {
       mri->GetProperties()->SetLUTCTAB( ct );
+    }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetOpacity( const wxArrayString& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {  
+    double dValue;
+    if ( sa[1].ToDouble( &dValue ) )
+    {
+      mri->GetProperties()->SetOpacity( dValue );
+    }
+    else
+    {
+      cerr << "Opacity value is not valid." << endl;
     }
   }
   
@@ -2621,7 +2799,15 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
     {
       wxString subOption = sa_fn[k].Left( n ).Lower(); 
       wxString subArgu = sa_fn[k].Mid( n+1 );
-      if ( subOption == _("curv") || subOption == _("curvature") )
+      if ( subOption == _( "color" ) )
+      {
+        wxArrayString script;
+        script.Add( _("setsurfacecolor") );
+        script.Add( subArgu );
+            
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _("curv") || subOption == _("curvature") )
       {
         // add script to load surface curvature file
         wxArrayString script;
@@ -2765,6 +2951,40 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const wxArrayString& cmd )
   ContinueScripts();
 }
 
+
+void MainWindow::CommandSetSurfaceColor( const wxArrayString& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && cmd[1] != _("null") )
+  {
+    wxColour color( cmd[1] );
+    if ( !color.IsOk() )      
+    {
+      long rgb[3];
+      wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], _(",") );
+      if ( rgb_strs.GetCount() < 3 || 
+           !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+           !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+           !rgb_strs[2].ToLong( &(rgb[2]) ) )
+      {
+        cerr << "Invalid color name or value " << cmd[1] << endl;
+      }
+      else
+      {
+        color.Set( rgb[0], rgb[1], rgb[2] );
+      }
+    }
+      
+    if ( color.IsOk() )
+      surf->GetProperties()->SetBinaryColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+    else
+      cerr << "Invalid color name or value " << cmd[1] << endl;
+  }
+  
+  ContinueScripts();
+}
+
+
 void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 {
   LoadSurfaceVectorFile( cmd[1] );
@@ -2857,18 +3077,18 @@ void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
       wxColour color( cmd[1] );
       if ( !color.IsOk() )      
       {
-        double rgb[3];
+        long rgb[3];
         wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], _(",") );
         if ( rgb_strs.GetCount() < 3 || 
-             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
-             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
-             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+             !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+             !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+             !rgb_strs[2].ToLong( &(rgb[2]) ) )
         {
           cerr << "Invalid color name or value " << cmd[1] << endl;
         }
         else
         {
-          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+          color.Set( rgb[0], rgb[1], rgb[2] );
         }
       }
       
@@ -2883,18 +3103,18 @@ void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
       wxColour color( cmd[2] );
       if ( !color.IsOk() )      
       {
-        double rgb[3];
+        long rgb[3];
         wxArrayString rgb_strs = MyUtils::SplitString( cmd[2], _(",") );
         if ( rgb_strs.GetCount() < 3 || 
-             !rgb_strs[0].ToDouble( &(rgb[0]) ) ||
-             !rgb_strs[1].ToDouble( &(rgb[1]) ) ||
-             !rgb_strs[2].ToDouble( &(rgb[2]) ) )
+             !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+             !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+             !rgb_strs[2].ToLong( &(rgb[2]) ) )
         {
           cerr << "Invalid color name or value " << cmd[2] << endl;
         }
         else
         {
-          color.Set( (int)( rgb[0]*255 ), (int)( rgb[1]*255 ), (int)( rgb[2]*255 ) );
+          color.Set( rgb[0], rgb[1], rgb[2] );
         }
       }
       
@@ -3047,18 +3267,23 @@ void MainWindow::OnCheckBrushTemplate( wxCommandEvent& event )
 int MainWindow::GetActiveViewId()
 {
   wxWindow* wnd = FindFocus();
+  if ( !wnd )
+    return m_nPrevActiveViewId;
+  
   int nId = -1;
-  if ( wnd == m_viewSagittal )
+  if ( wnd == m_viewSagittal || wnd->GetParent() == m_viewSagittal )
     nId = 0;
-  else if ( wnd == m_viewCoronal )
+  else if ( wnd == m_viewCoronal || wnd->GetParent() == m_viewCoronal )
     nId = 1;
-  else if ( wnd == m_viewAxial )
+  else if ( wnd == m_viewAxial || wnd->GetParent() == m_viewAxial )
     nId = 2;
-  else if ( wnd == m_view3D )
+  else if ( wnd == m_view3D || wnd->GetParent() == m_view3D )
     nId = 3;
 
   if ( nId >= 0 )
     m_nPrevActiveViewId = nId;
+  if ( nId < 0 )
+    nId = m_nPrevActiveViewId;
 
   return nId;
 }
@@ -3103,9 +3328,13 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
   {
     m_strLastDir = MyUtils::GetNormalizedPath( fn );
     m_nScreenshotFilterIndex = dlg.GetFilterIndex();
-    m_viewRender[nId]->SaveScreenshot( fn, 
+    if ( !m_viewRender[nId]->SaveScreenshot( fn, 
                                        m_settingsScreenshot.Magnification,
-                                       m_settingsScreenshot.AntiAliasing );
+                                       m_settingsScreenshot.AntiAliasing ) )
+    {
+      wxMessageDialog dlg( this, _("Error occured writing to file. Please make sure you have right permission and the disk is not full."), _("Error"), wxOK );
+      dlg.ShowModal();
+    }
   }
 }
 
@@ -3250,7 +3479,7 @@ void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
 }
 
 
-void MainWindow::OnToolCreateOptimalVolume( wxCommandEvent& event )
+void MainWindow::OnToolOptimalVolume( wxCommandEvent& event )
 {
   DialogOptimalVolume dlg( this, GetLayerCollection( "MRI" ) );
   if ( dlg.ShowModal() == wxID_OK )
@@ -3266,10 +3495,42 @@ void MainWindow::OnToolCreateOptimalVolume( wxCommandEvent& event )
   }
 }
 
-void MainWindow::OnToolCreateOptimalVolumeUpdateUI( wxUpdateUIEvent& event )
+void MainWindow::OnToolOptimalVolumeUpdateUI( wxUpdateUIEvent& event )
 {
 // event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
   event.Enable( GetLayerCollection( "MRI" )->GetNumberOfLayers() > 1 && !IsProcessing() );
+}
+
+void MainWindow::OnToolGradientVolume( wxCommandEvent& event )
+{
+  LayerCollection* col_mri = m_layerCollectionManager->GetLayerCollection( "MRI" );  
+  LayerMRI* mri = (LayerMRI*)col_mri->GetActiveLayer();
+  if ( mri )
+  {
+    LayerMRI* layer_new = new LayerMRI( mri );
+    layer_new->Create( mri, false );
+    wxString name = mri->GetName();
+    name += _("_gradient");
+    layer_new->SetName( name.c_str() );
+    VolumeFilterGradient filter( mri, layer_new );
+    filter.Update();
+    layer_new->ResetWindowLevel();
+    col_mri->AddLayer( layer_new );
+  
+    m_controlPanel->RaisePage( _("Volumes") );
+    
+    if ( !m_dlgGradientVolume )
+      m_dlgGradientVolume = new DialogGradientVolume( mri, layer_new, this );
+    else
+      m_dlgGradientVolume->SetVolumes( mri, layer_new );
+    m_dlgGradientVolume->Show();
+  }
+}
+
+void MainWindow::OnToolGradientVolumeUpdateUI( wxUpdateUIEvent& event )
+{
+// event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
 }
 
 

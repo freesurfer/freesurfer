@@ -1,14 +1,14 @@
 /**
  * @file  LayerMRI.h
- * @brief Layer data object for MRI volume.
+ * @brief Layer class for MRI volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:52 $
- *    $Revision: 1.3.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.3.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,6 +44,9 @@ class vtkImageActor;
 class vtkImageData;
 class vtkProp;
 class vtkVolume;
+class vtkPolyData;
+class vtkPolyDataAlgorithm;
+class vtkUnsignedCharArray;
 class LayerPropertiesMRI;
 class FSVolume;
 class wxWindow;
@@ -80,6 +83,8 @@ public:
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
+  
+  virtual void UpdateVoxelValueRange( double dValue );
 
   FSVolume* GetSourceVolume()
   {
@@ -120,8 +125,23 @@ public:
 
   void SetActiveFrame( int nFrame );
 
-  virtual bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+  void GetRASCenter( double* pt );
+  
+  virtual bool Rotate( std::vector<RotationElement>& rotations, 
+                       wxWindow* wnd, 
+                       wxCommandEvent& event );
+  
+  void SetReorient( bool bReorient );
+  
+  void SetSampleMethod( int nSampleMethod )
+  {
+    m_nSampleMethod = nSampleMethod;
+  }
 
+  bool GetVoxelValueRange( const double* pt0, const double* pt1, 
+                           int nPlane, double* range_out );
+  void ResetWindowLevel();
+  
 protected:
   virtual void SetModified();
 
@@ -136,6 +156,17 @@ protected:
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
   virtual void UpdateVectorActor( int nPlane );
+  
+  void UpdateTensorActor();
+  void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
+  
+  void BuildTensorGlyph( vtkImageData* imagedata,
+                                 int i, int j, int k, 
+                                 double* pt, double scale, 
+                                 vtkPolyData* sourcepolydata,
+                                 vtkUnsignedCharArray* scalars,
+                                 vtkPolyDataAlgorithm* a);
+  
   virtual void UpdateColorMap();
 
   virtual void OnSlicePositionChanged( int nPlane );
@@ -148,12 +179,14 @@ protected:
   FSVolume*   m_volumeSource;
   FSVolume*   m_volumeRef;
   bool    m_bResampleToRAS;
+  bool    m_bReorient;
+  int     m_nSampleMethod;
 
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
   
-  vtkActor*       m_vectorActor2D[3];
-  vtkActor*       m_vectorActor3D[3];
+  vtkActor*       m_glyphActor2D[3];
+  vtkActor*       m_glyphActor3D[3];
   
   struct SegmentationActor
   {
@@ -164,7 +197,11 @@ protected:
   std::vector<SegmentationActor>   m_segActors;              
   
   vtkActor*   m_actorContour;
-  vtkVolume*   m_propVolume;
+  vtkVolume*  m_propVolume;
+  
+private:
+  double**    private_buf1_3x3;
+  double**    private_buf2_3x3;    
 };
 
 #endif

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:53 $
- *    $Revision: 1.1.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.1.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -72,6 +72,7 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
 
 // m_mainActor = vtkLODActor::New();
   m_mainActor = vtkActor::New();
+  m_mainActor->GetProperty()->SetEdgeColor( 0.4, 0.4, 0.4 );
   mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
   mLowResFilter->SetTargetReduction( 0.9 );
 // mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
@@ -207,6 +208,7 @@ void LayerSurface::InitializeActors()
   mapper->SetInput(  m_surfaceSource->GetVectorPolyData() );
   m_vectorActor->SetMapper( mapper );
   mapper->Update();
+  // try LOD actors
   /* mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
    mLowResFilter->SetInput( m_surfaceSource->GetPolyData() );
    mapper->SetInput( mLowResFilter->GetOutput() );
@@ -435,6 +437,11 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, v
   else if ( iMessage == "VectorPointSizeChanged" )
   {
     this->UpdateVectorPointSize();
+    this->SendBroadcast( "LayerActorUpdated", this );
+  }
+  else if ( iMessage == "SurfaceRenderModeChanged", this )
+  {
+    this->UpdateRenderMode();
     this->SendBroadcast( "LayerActorUpdated", this );
   }
 }
@@ -672,4 +679,25 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   if ( bAskRedraw )
     this->SendBroadcast( "LayerActorUpdated", this );
+}
+
+void LayerSurface::UpdateRenderMode()
+{
+  m_mainActor->GetProperty()->EdgeVisibilityOff();
+//  m_mainActor->GetProperty()->BackfaceCullingOn();
+  switch ( GetProperties()->GetSurfaceRenderMode() )
+  {
+    case LayerPropertiesSurface::SM_Surface:
+      m_mainActor->GetProperty()->SetRepresentationToSurface();
+      break;
+    case LayerPropertiesSurface::SM_Wireframe:
+      m_mainActor->GetProperty()->SetRepresentationToWireframe();
+      m_mainActor->GetProperty()->SetLineWidth( 1 );
+      break;
+    case LayerPropertiesSurface::SM_SurfaceAndWireframe:
+      m_mainActor->GetProperty()->SetRepresentationToSurface();
+      m_mainActor->GetProperty()->SetLineWidth( 2 );
+      m_mainActor->GetProperty()->EdgeVisibilityOn();
+      break;
+  }
 }

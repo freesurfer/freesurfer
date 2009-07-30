@@ -1,14 +1,14 @@
 /**
  * @file  Interactor.h
- * @brief Interactor to manage mouse and key input on render view.
+ * @brief Base Interactor class manage mouse and key input in render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:50 $
- *    $Revision: 1.2.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.2.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

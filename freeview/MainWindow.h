@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:54 $
- *    $Revision: 1.6.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.6.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,7 @@ class DialogRotateVolume;
 class LayerMRI;
 class WindowHistogram;
 class WindowOverlayConfiguration;
+class DialogGradientVolume;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -167,6 +168,8 @@ public:
 
   void OnEditCopy                   ( wxCommandEvent& event );
   void OnEditCopyUpdateUI           ( wxUpdateUIEvent& event );
+  void OnEditCopyStructure          ( wxCommandEvent& event );
+  void OnEditCopyStructureUpdateUI  ( wxUpdateUIEvent& event );
   void OnEditPaste                  ( wxCommandEvent& event );
   void OnEditPasteUpdateUI          ( wxUpdateUIEvent& event );
   void OnEditUndo                   ( wxCommandEvent& event );
@@ -180,8 +183,10 @@ public:
 
   void OnToolRotateVolume           ( wxCommandEvent& event );
   void OnToolRotateVolumeUpdateUI   ( wxUpdateUIEvent& event );
-  void OnToolCreateOptimalVolume    ( wxCommandEvent& event );
-  void OnToolCreateOptimalVolumeUpdateUI( wxUpdateUIEvent& event );
+  void OnToolOptimalVolume          ( wxCommandEvent& event );
+  void OnToolOptimalVolumeUpdateUI  ( wxUpdateUIEvent& event );
+  void OnToolGradientVolume         ( wxCommandEvent& event );
+  void OnToolGradientVolumeUpdateUI ( wxUpdateUIEvent& event );
 
   void OnMouseEnterWindow           ( wxMouseEvent& event );
 
@@ -202,7 +207,7 @@ public:
   void SaveVolume();
   void SaveVolumeAs();
 
-  void RotateVolume( std::vector<RotationElement>& rotations );
+  void RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes );
 
   void LoadLUT();
   
@@ -223,7 +228,8 @@ public:
 
   void LoadVolumeFile( const wxString& fn, 
 		       const wxString& reg_fn, 
-		       bool bResample = true);
+		       bool bResample = true, 
+           int nSampleMethod = 0 );
   void LoadDTIFile( const wxString& fn_vector, 
 		    const wxString& fn_fa, 
 		    const wxString& reg_fn, 
@@ -250,6 +256,7 @@ public:
   }
 
   LayerCollection* GetLayerCollection( std::string strType );
+  Layer* GetActiveLayer( std::string strType );
   LayerCollectionManager* GetLayerCollectionManager();
 
   LUTDataHolder* GetLUTData()
@@ -321,10 +328,13 @@ protected:
   void CommandSetSlice          ( const wxArrayString& cmd );
   void CommandSetColorMap       ( const wxArrayString& cmd );
   void CommandSetLUT            ( const wxArrayString& cmd );
+  void CommandSetOpacity        ( const wxArrayString& cmd ); 
   void CommandSetSurfaceOverlayMethod     ( const wxArrayString& cmd );
+  void CommandSetSurfaceColor   ( const wxArrayString& cmd );
   void CommandSetWayPointsColor ( const wxArrayString& cmd );
   void CommandSetWayPointsRadius( const wxArrayString& cmd );
   void CommandSetDisplayVector  ( const wxArrayString& cmd );
+  void CommandSetDisplayTensor  ( const wxArrayString& cmd );
 
   void OnInternalIdle();
   virtual void DoListenToMessage ( std::string const iMsg, void* iData, void* sender );
@@ -352,6 +362,7 @@ private:
   DialogRotateVolume* m_dlgRotateVolume;
   WindowHistogram*    m_wndHistogram;
   WindowOverlayConfiguration* m_wndOverlayConfiguration;
+  DialogGradientVolume*       m_dlgGradientVolume;
 
   RenderView2D*   m_viewAxial;
   RenderView2D*   m_viewSagittal;
@@ -365,8 +376,9 @@ private:
   LayerCollectionManager* m_layerCollectionManager;
   LayerMRI*       m_layerVolumeRef;
 
-  Settings2D      m_settings2D;
-  SettingsScreenshot m_settingsScreenshot;
+  SettingsGeneral     m_settingsGeneral;
+  Settings2D          m_settings2D;
+  SettingsScreenshot  m_settingsScreenshot;
 
   wxString        m_strLastDir;
   wxFileHistory*  m_fileHistory;

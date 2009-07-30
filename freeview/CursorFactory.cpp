@@ -1,14 +1,14 @@
 /**
  * @file  CursorFactory.cpp
- * @brief View for rendering.
+ * @brief Cursor creator/loader for 2D view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:48 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2009/07/30 00:35:49 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,12 +34,14 @@
 #include "res/CursorPolyline_png.h"
 #include "res/CursorPan_png.h"
 #include "res/CursorZoom_png.h"
+#include "res/CursorColorPicker_png.h"
 
 wxCursor CursorFactory::CursorPencil  = wxCursor();
 wxCursor CursorFactory::CursorFill   = wxCursor();
 wxCursor CursorFactory::CursorPolyline = wxCursor();
 wxCursor CursorFactory::CursorPan   = wxCursor();
 wxCursor CursorFactory::CursorZoom  = wxCursor();
+wxCursor CursorFactory::CursorColorPicker  = wxCursor();
 
 CursorFactory::CursorFactory()
 {
@@ -77,4 +79,10 @@ void CursorFactory::Initialize()
   img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
   img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
   CursorZoom = wxCursor( img );
+  
+  wxMemoryInputStream s6( CursorColorPicker_png, CursorColorPicker_png_LEN );
+  img = wxImage( s6, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 23 );
+  CursorColorPicker = wxCursor( img );
 }

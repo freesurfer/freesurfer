@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:55 $
- *    $Revision: 1.6.2.2 $
+ *    $Date: 2009/07/30 00:35:51 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,35 +44,37 @@ public:
 
   void OnShow( wxShowEvent& event );
 
-  void OnActionVoxelFreehand( wxCommandEvent& event );
-  void OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event );
-  void OnActionVoxelFill( wxCommandEvent& event );
-  void OnActionVoxelFillUpdateUI( wxUpdateUIEvent& event );
-  void OnActionVoxelPolyline( wxCommandEvent& event );
-  void OnActionVoxelPolylineUpdateUI( wxUpdateUIEvent& event );
-  void OnActionVoxelLivewire( wxCommandEvent& event );
-  void OnActionVoxelLivewireUpdateUI( wxUpdateUIEvent& event );
+  void OnActionVoxelFreehand          ( wxCommandEvent& event );
+  void OnActionVoxelFreehandUpdateUI  ( wxUpdateUIEvent& event );
+  void OnActionVoxelFill              ( wxCommandEvent& event );
+  void OnActionVoxelFillUpdateUI      ( wxUpdateUIEvent& event );
+  void OnActionVoxelPolyline          ( wxCommandEvent& event );
+  void OnActionVoxelPolylineUpdateUI  ( wxUpdateUIEvent& event );
+  void OnActionVoxelLivewire          ( wxCommandEvent& event );
+  void OnActionVoxelLivewireUpdateUI  ( wxUpdateUIEvent& event );
+  void OnActionVoxelColorPicker       ( wxCommandEvent& event );
+  void OnActionVoxelColorPickerUpdateUI  ( wxUpdateUIEvent& event );
 
-  void OnActionROIFreehand( wxCommandEvent& event );
-  void OnActionROIFreehandUpdateUI( wxUpdateUIEvent& event );
-  void OnActionROIFill( wxCommandEvent& event );
-  void OnActionROIFillUpdateUI( wxUpdateUIEvent& event );
-  void OnActionROIPolyline( wxCommandEvent& event );
-  void OnActionROIPolylineUpdateUI( wxUpdateUIEvent& event );
-  void OnActionROILivewire( wxCommandEvent& event );
-  void OnActionROILivewireUpdateUI( wxUpdateUIEvent& event );
+  void OnActionROIFreehand            ( wxCommandEvent& event );
+  void OnActionROIFreehandUpdateUI    ( wxUpdateUIEvent& event );
+  void OnActionROIFill                ( wxCommandEvent& event );
+  void OnActionROIFillUpdateUI        ( wxUpdateUIEvent& event );
+  void OnActionROIPolyline            ( wxCommandEvent& event );
+  void OnActionROIPolylineUpdateUI    ( wxUpdateUIEvent& event );
+  void OnActionROILivewire            ( wxCommandEvent& event );
+  void OnActionROILivewireUpdateUI    ( wxUpdateUIEvent& event );
 
-  void OnSpinBrushSize( wxSpinEvent& event );
-  void OnSpinBrushTolerance( wxSpinEvent& event );
-  void OnChoiceBrushTemplate( wxCommandEvent& event );
-  void OnCheckDrawRange( wxCommandEvent& event );
-  void OnCheckExcludeRange( wxCommandEvent& event );
-  void OnEditDrawRangeLow( wxCommandEvent& event );
-  void OnEditDrawRangeHigh( wxCommandEvent& event );
-  void OnEditExcludeRangeLow( wxCommandEvent& event );
-  void OnEditExcludeRangeHigh( wxCommandEvent& event );
+  void OnSpinBrushSize          ( wxSpinEvent& event );
+  void OnSpinBrushTolerance     ( wxSpinEvent& event );
+  void OnChoiceBrushTemplate    ( wxCommandEvent& event );
+  void OnCheckDrawRange         ( wxCommandEvent& event );
+  void OnCheckExcludeRange      ( wxCommandEvent& event );
+  void OnEditDrawRangeLow       ( wxCommandEvent& event );
+  void OnEditDrawRangeHigh      ( wxCommandEvent& event );
+  void OnEditExcludeRangeLow    ( wxCommandEvent& event );
+  void OnEditExcludeRangeHigh   ( wxCommandEvent& event );
 
-  void OnCheckDrawConnectedOnly( wxCommandEvent& event );
+  void OnCheckDrawConnectedOnly ( wxCommandEvent& event );
 
   void UpdateTools();
 
@@ -84,18 +86,18 @@ protected:
 
   void OnInternalIdle();
 
-  wxToolBar*  m_toolbarVoxelEdit;
-  wxToolBar*  m_toolbarROIEdit;
-  wxSpinCtrl*  m_spinBrushSize;
-  wxSpinCtrl*  m_spinBrushTolerance;
-  wxChoice*  m_choiceTemplate;
-  wxCheckBox*  m_checkDrawRange;
-  wxCheckBox*  m_checkExcludeRange;
-  wxTextCtrl*  m_editDrawRangeLow;
-  wxTextCtrl*  m_editDrawRangeHigh;
-  wxTextCtrl*  m_editExcludeRangeLow;
-  wxTextCtrl*  m_editExcludeRangeHigh;
-  wxCheckBox*  m_checkDrawConnectedOnly;
+  wxToolBar*    m_toolbarVoxelEdit;
+  wxToolBar*    m_toolbarROIEdit;
+  wxSpinCtrl*   m_spinBrushSize;
+  wxSpinCtrl*   m_spinBrushTolerance;
+  wxChoice*     m_choiceTemplate;
+  wxCheckBox*   m_checkDrawRange;
+  wxCheckBox*   m_checkExcludeRange;
+  wxTextCtrl*   m_editDrawRangeLow;
+  wxTextCtrl*   m_editDrawRangeHigh;
+  wxTextCtrl*   m_editExcludeRangeLow;
+  wxTextCtrl*   m_editExcludeRangeHigh;
+  wxCheckBox*   m_checkDrawConnectedOnly;
 
   bool m_bToUpdateTools;
 

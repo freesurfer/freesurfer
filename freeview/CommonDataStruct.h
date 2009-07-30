@@ -1,6 +1,6 @@
 /**
  * @file  CommonDataStruct.h
- * @brief Mix-in class for message receiving
+ * @brief A few common structures to hold settings
  *
  * Simple mix-in class for use with the Broadcaster class so text
  * messages with a pointer data can be sent to a list of listeners.
@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:48 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2009/07/30 00:35:49 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,11 +31,18 @@
 #define CommonDataStruct_h
 
 #include <vector>
+#include <wx/colour.h>
 
+struct SettingsGeneral
+{
+  wxColour  BackgroundColor;
+  wxColour  CursorColor;
+  int       CursorStyle;  
+};
 
 struct Settings2D
 {
-  bool SyncZoomFactor;
+  bool      SyncZoomFactor;
 };
 
 struct SettingsScreenshot
@@ -48,9 +55,10 @@ struct SettingsScreenshot
 
 struct RotationElement
 {
-  int  Plane;
+  int     Plane;
   double  Angle;
-  double Point[3];
+  double  Point[3];
+  int     SampleMethod;
 };
 
 #endif

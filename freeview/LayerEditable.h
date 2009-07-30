@@ -1,14 +1,14 @@
 /**
  * @file  LayerEditable.h
- * @brief Layer data object for MRI volume.
+ * @brief Base Layer class for editable volume.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:52 $
- *    $Revision: 1.4.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

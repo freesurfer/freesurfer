@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:55 $
- *    $Revision: 1.5.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.5.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@ class Interactor2DNavigate;
 class Interactor2DVoxelEdit;
 class Interactor2DROIEdit;
 class Interactor2DWayPointsEdit;
+class Rectangle2D;
 
 class VTK_RENDERING_EXPORT RenderView2D : public RenderView
 {
@@ -75,13 +76,14 @@ public:
     return m_cursor2D;
   }
 
-  void UpdateCursor2D();
+  void Update2DOverlay();
   bool EnsureCursor2DVisible();
 
   void MoveLeft();
   void MoveRight();
   void MoveUp();
   void MoveDown();
+  void MoveSlice( int nStep );
   void ZoomAtCursor( int nX, int nY, bool ZoomIn, double factor = 2 );
   void PanToWorld( double* pos );
   void SyncZoomTo( RenderView2D* view );
@@ -91,7 +93,11 @@ public:
 
   void ShowCoordinateAnnotation( bool bShow );
   bool GetShowCoordinateAnnotation();
-
+  
+  void StartSelection( int nX, int nY );
+  void UpdateSelection( int nX, int nY );
+  void StopSelection();
+  
 protected:
   void Initialize2D();
   void UpdateAnnotation();
@@ -102,8 +108,9 @@ protected:
   int  m_nCursorPosX;
   int  m_nCursorPosY;
 
-  Annotation2D*  m_annotation2D;
-  Cursor2D*   m_cursor2D;
+  Annotation2D*   m_annotation2D;
+  Cursor2D*       m_cursor2D;
+  Rectangle2D*     m_selection2D;
   Interactor2DNavigate* m_interactorNavigate;
   Interactor2DVoxelEdit* m_interactorVoxelEdit;
   Interactor2DROIEdit* m_interactorROIEdit;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:53 $
- *    $Revision: 1.6.2.2 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,7 +45,7 @@ public:
 
   void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
   void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true );
-  void FloodFillByRAS( double* ras, int nPlane, bool bAdd = true );
+  bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, char* mask_out = false );
 
   void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
   std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
@@ -58,6 +58,7 @@ public:
 
   void Copy( int nPlane );
   void Paste( int nPlane );
+  bool CopyStructure( int nPlane, double* ras );
 
   void SaveForUndo( int nPlane );
 
@@ -75,6 +76,8 @@ public:
 
   virtual void SetVisible( bool bVisible = true ) = 0;
   virtual bool IsVisible() = 0;
+  
+  virtual void UpdateVoxelValueRange( double fValue ) {}
 
   virtual int GetActiveFrame()
   {
@@ -106,7 +109,7 @@ public:
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
   bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
-  bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true );
+  bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, char* mask_out = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
 
   bool GetConnectedToOld( vtkImageData* img, int nFrame, int* n, int nPlane );
@@ -118,8 +121,8 @@ protected:
     char* data;
   };
 
-  void SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice );
-  void LoadBufferItem( UndoRedoBufferItem& item );
+  void SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice, const char* mask = NULL );
+  void LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZeros = false );
 
   vtkSmartPointer<vtkImageData> m_imageData;
   vtkSmartPointer<vtkImageData> m_imageDataRef;

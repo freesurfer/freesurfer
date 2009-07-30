@@ -1,14 +1,14 @@
 /**
  * @file  Annotation2D.cpp
- * @brief View for rendering.
+ * @brief Coordinate annotation for 2D views.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:48 $
- *    $Revision: 1.2.2.3 $
+ *    $Date: 2009/07/30 00:35:49 $
+ *    $Revision: 1.2.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).

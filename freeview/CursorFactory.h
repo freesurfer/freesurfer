@@ -1,14 +1,14 @@
 /**
  * @file  Cursor2D.h
- * @brief Annotation class for 2D view.
+ * @brief Cursor creator/loader for 2D view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:48 $
- *    $Revision: 1.4.2.2 $
+ *    $Date: 2009/07/30 00:35:49 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,7 @@ public:
   static wxCursor CursorPencil;
   static wxCursor CursorFill;
   static wxCursor CursorPolyline;
+  static wxCursor CursorColorPicker;
 };
 
 #endif

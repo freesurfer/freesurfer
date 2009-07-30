@@ -27,6 +27,10 @@ freeview_SOURCES=\
 	Cursor3D.h \
 	CursorFactory.cpp \
 	CursorFactory.h \
+	DialogEditLookupTable.cpp \
+	DialogEditLookupTable.h \
+	DialogGradientVolume.cpp \
+	DialogGradientVolume.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
 	DialogLoadVolume.cpp \
@@ -43,6 +47,8 @@ freeview_SOURCES=\
 	DialogPreferences.h \
 	DialogRotateVolume.cpp \
 	DialogRotateVolume.h \
+	DialogSaveVolumeAs.cpp \
+	DialogSaveVolumeAs.h \
 	FSLabel.cpp \
 	FSLabel.h \
 	FSSurface.cpp \
@@ -129,8 +135,8 @@ freeview_SOURCES=\
 	PanelWayPoints.h \
 	PixelInfoPanel.cpp \
 	PixelInfoPanel.h \
-	Region.cpp \
-	Region.h \
+	Rectangle2D.cpp \
+	Rectangle2D.h \
 	RenderView2D.cpp \
 	RenderView2D.h \
 	RenderView3D.cpp \
@@ -146,6 +152,10 @@ freeview_SOURCES=\
 	SurfaceOverlayProperties.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
+	VolumeFilter.cpp \
+	VolumeFilter.h \
+	VolumeFilterGradient.cpp \
+	VolumeFilterGradient.h \
 	vtkDijkstraGraphGeodesicPath.cxx \
 	vtkDijkstraGraphGeodesicPath.h \
 	vtkDijkstraGraphInternals.h \

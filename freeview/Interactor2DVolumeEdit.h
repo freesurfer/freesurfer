@@ -1,14 +1,14 @@
 /**
  * @file  Interactor2DVolumeEdit.h
- * @brief Interactor2DVolumeEdit to manage mouse and key input on render view.
+ * @brief Interactor for editing volume in 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:50 $
- *    $Revision: 1.3.2.2 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.3.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 #define Interactor2DVolumeEdit_h
 
 #include "Interactor2D.h"
+#include <wx/wx.h>
 #include <vector>
 #include <string>
 
@@ -41,7 +42,7 @@ public:
 
   enum EditMode
   {
-    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire
+    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker
   };
 
   // return true if to have parent Interactor2D continue processing the event
@@ -54,6 +55,7 @@ public:
 
 protected:
   void UpdateCursor( wxEvent& event, wxWindow* wnd );
+  void ProcessContextMenu( wxMouseEvent& event );
 
   bool m_bEditing;
 

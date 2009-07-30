@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:54 $
- *    $Revision: 1.4.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.4.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,8 +97,9 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_TEXT            ( XRCID( "ID_TEXT_FRAME" ),             PanelVolume::OnTextFrameChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_FRAME" ),           PanelVolume::OnSliderFrameChanged )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_DISPLAY_VECTOR" ), PanelVolume::OnCheckDisplayVector )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_INVERSION" ),       PanelVolume::OnChoiceVectorInversion )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_REPRESENTATION" ),  PanelVolume::OnChoiceVectorRepresentation )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_DISPLAY_TENSOR" ), PanelVolume::OnCheckDisplayTensor )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_INVERSION" ),       PanelVolume::OnChoiceInversion )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_REPRESENTATION" ),  PanelVolume::OnChoiceRepresentation )
   
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CONTOUR" ),    PanelVolume::OnCheckContour )
   EVT_TEXT            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),    PanelVolume::OnTextContourMin )
@@ -151,12 +152,14 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_textFrame           = XRCCTRL( *this, "ID_TEXT_FRAME", wxTextCtrl );
   m_sliderFrame         = XRCCTRL( *this, "ID_SLIDER_FRAME", wxSlider );
   m_checkDisplayVector  = XRCCTRL( *this, "ID_CHECKBOX_DISPLAY_VECTOR", wxCheckBox );
-  m_choiceVectorInversion = XRCCTRL( *this, "ID_CHOICE_INVERSION", wxChoice );
+  m_checkDisplayTensor  = XRCCTRL( *this, "ID_CHECKBOX_DISPLAY_TENSOR", wxCheckBox );
+  m_choiceInversion     = XRCCTRL( *this, "ID_CHOICE_INVERSION", wxChoice );
   m_sliderGrayScaleMin  = XRCCTRL( *this, "ID_SLIDER_GRAYSCALE_MIN", wxSlider );
   m_sliderGrayScaleMax  = XRCCTRL( *this, "ID_SLIDER_GRAYSCALE_MAX", wxSlider );
   m_textGrayScaleMin    = XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MIN", wxTextCtrl );
   m_textGrayScaleMax    = XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MAX", wxTextCtrl );
-  m_choiceVectorRepresentation  = XRCCTRL( *this, "ID_CHOICE_REPRESENTATION", wxChoice );
+  m_choiceRepresentation  = XRCCTRL( *this, "ID_CHOICE_REPRESENTATION", wxChoice );
+  m_choiceMask          = XRCCTRL( *this, "ID_CHOICE_MASK", wxChoice );
 
   // workaround for wxformbuilder bug
   m_colorIndicator->SetSize( 40, wxDefaultCoord );
@@ -226,9 +229,11 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistFrame.push_back( m_checkDisplayVector );
   
   m_widgetlistVector.push_back( XRCCTRL( *this, "ID_STATIC_INVERSION", wxStaticText ) );
-  m_widgetlistVector.push_back( m_choiceVectorInversion );
+  m_widgetlistVector.push_back( m_choiceInversion );
   m_widgetlistVector.push_back( XRCCTRL( *this, "ID_STATIC_REPRESENTATION", wxStaticText ) );
-  m_widgetlistVector.push_back( m_choiceVectorRepresentation );
+  m_widgetlistVector.push_back( m_choiceRepresentation );
+  m_widgetlistVector.push_back( XRCCTRL( *this, "ID_STATIC_MASK", wxStaticText ) );
+  m_widgetlistVector.push_back( m_choiceMask );
       
   m_widgetlistContour.push_back( m_sliderContourMin );
   m_widgetlistContour.push_back( m_sliderContourMax );
@@ -586,6 +591,7 @@ void PanelVolume::DoUpdateUI()
 			m_checkClearBackground->SetValue( layer->GetProperties()->GetClearZero() );
 			m_checkSmooth->SetValue( layer->GetProperties()->GetTextureSmoothing() );
 			
+      // color map settings
 			m_choiceColorMap->SetSelection( layer->GetProperties()->GetColorMap() );
       m_choiceLUT->Clear();
       for ( int i = 0; i < m_luts->GetCount(); i++ )
@@ -674,8 +680,21 @@ void PanelVolume::DoUpdateUI()
 			UpdateTextValue( m_textContourMin, layer->GetProperties()->GetContourMinThreshold() );
 			UpdateTextValue( m_textContourMax, layer->GetProperties()->GetContourMaxThreshold() );
       
-      m_choiceVectorInversion->SetSelection( layer->GetProperties()->GetVectorInversion() );
-      m_choiceVectorRepresentation->SetSelection( layer && layer->GetProperties()->GetVectorRepresentation() );
+      m_choiceRepresentation->Clear();
+      if ( layer->GetProperties()->GetDisplayVector() )
+      {
+        m_choiceRepresentation->Append( _("Simple Line") );
+        m_choiceRepresentation->Append( _("3D Bar (slow!)") );
+        m_choiceRepresentation->SetSelection( layer->GetProperties()->GetVectorRepresentation() );
+        m_choiceInversion->SetSelection( layer->GetProperties()->GetVectorInversion() );
+      }
+      else if ( layer->GetProperties()->GetDisplayTensor() )
+      {
+        m_choiceRepresentation->Append( _("Boxoid") );
+        m_choiceRepresentation->Append( _("Ellipsoid (Very slow!)") );
+        m_choiceRepresentation->SetSelection( layer->GetProperties()->GetTensorRepresentation() );
+        m_choiceInversion->SetSelection( layer->GetProperties()->GetTensorInversion() );
+      }
 		}
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -685,8 +704,10 @@ void PanelVolume::DoUpdateUI()
 	m_btnMoveDown->Enable( bHasVolume && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
 	m_btnSave->Enable( bHasVolume && layer && layer->IsModified() && !mainWnd->IsProcessing() );	
 	
-  ShowWidgets( m_widgetlistNormalDisplay, layer && !layer->GetProperties()->GetDisplayVector() );
-  if ( !layer || ( layer && !layer->GetProperties()->GetDisplayVector() ) )
+  ShowWidgets( m_widgetlistNormalDisplay, layer && 
+                                          !layer->GetProperties()->GetDisplayVector() &&
+                                          !layer->GetProperties()->GetDisplayTensor());
+  if ( !layer || ( !layer->GetProperties()->GetDisplayVector() && !layer->GetProperties()->GetDisplayTensor() ) )
   {
     ShowWidgets( m_widgetlistGrayScale, layer && nColorMap == LayerPropertiesMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, layer && nColorMap == LayerPropertiesMRI::Heat );
@@ -698,11 +719,17 @@ void PanelVolume::DoUpdateUI()
   ShowWidgets( m_widgetlistFrame, layer && 
                                   !layer->IsTypeOf( "DTI" ) && 
                                   layer->GetNumberOfFrames() > 1 );
-  m_sliderFrame->Enable( layer && !layer->GetProperties()->GetDisplayVector() );
-  m_textFrame->Enable( layer && !layer->GetProperties()->GetDisplayVector() );
-  m_checkDisplayVector->Show( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() >= 3 ) );
+  m_sliderFrame->Enable( layer && 
+                         !layer->GetProperties()->GetDisplayVector() && 
+                         !layer->GetProperties()->GetDisplayTensor() );
+  m_textFrame->Enable( layer && 
+                      !layer->GetProperties()->GetDisplayVector() && 
+                      !layer->GetProperties()->GetDisplayTensor() );
+  m_checkDisplayVector->Show( layer && ( layer->IsTypeOf( "DTI" ) || layer->GetNumberOfFrames() == 3 ) );
   m_checkDisplayVector->SetValue( layer && layer->GetProperties()->GetDisplayVector() );
-  ShowWidgets( m_widgetlistVector, m_checkDisplayVector->IsChecked() );
+  m_checkDisplayTensor->Show( layer && layer->GetNumberOfFrames() == 9 );
+  m_checkDisplayTensor->SetValue( layer && layer->GetProperties()->GetDisplayTensor() );
+  ShowWidgets( m_widgetlistVector, m_checkDisplayVector->IsChecked() || m_checkDisplayTensor->IsChecked() );  
   
 //	ShowWidgets( m_widgetlistContour, m_checkContour->IsChecked() );
   ShowWidgets( m_widgetlistContour, false );
@@ -712,7 +739,20 @@ void PanelVolume::DoUpdateUI()
 	if ( layer && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
 	{
 		PopulateColorTable( layer->GetProperties()->GetLUTCTAB() );
-		UpdateColorIndicator();
+    
+		UpdateColorIndicator();    
+    
+    m_listColorTable->SetSelection( wxNOT_FOUND );
+    for ( int i = 0; i < (int)m_listColorTable->GetCount(); i++ )
+    {
+      wxString strg = m_listColorTable->GetString( i );
+      double dvalue;
+      if ( strg.Left( strg.Find( _(":") ) ).ToDouble( &dvalue ) && dvalue == layer->GetFillValue() )
+      {
+        m_listColorTable->SetSelection( i );
+        break;
+      }
+    }
 	}
 }
 
@@ -1220,22 +1260,38 @@ void PanelVolume::OnCheckDisplayVector( wxCommandEvent& event )
   } 
 }
 
-void PanelVolume::OnChoiceVectorInversion( wxCommandEvent& event )
+void PanelVolume::OnCheckDisplayTensor( wxCommandEvent& event )
 {
   LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
   if ( layer )
   {
-    layer->GetProperties()->SetVectorInversion( event.GetSelection() );
+    layer->GetProperties()->SetDisplayTensor( event.IsChecked() );
+    UpdateUI();
+  } 
+}
+
+void PanelVolume::OnChoiceInversion( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    if ( layer->GetProperties()->GetDisplayVector() )
+      layer->GetProperties()->SetVectorInversion( event.GetSelection() );
+    else if ( layer->GetProperties()->GetDisplayTensor() )
+      layer->GetProperties()->SetTensorInversion( event.GetSelection() );
     UpdateUI();
   }   
 }
 
-void PanelVolume::OnChoiceVectorRepresentation( wxCommandEvent& event )
+void PanelVolume::OnChoiceRepresentation( wxCommandEvent& event )
 {
   LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
   if ( layer )
   {
-    layer->GetProperties()->SetVectorRepresentation( event.GetSelection() );
+    if ( layer->GetProperties()->GetDisplayVector() )
+      layer->GetProperties()->SetVectorRepresentation( event.GetSelection() );
+    else if ( layer->GetProperties()->GetDisplayTensor() )
+      layer->GetProperties()->SetTensorRepresentation( event.GetSelection() );
     UpdateUI();
   } 
 }

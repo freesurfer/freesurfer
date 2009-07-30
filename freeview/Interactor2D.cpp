@@ -1,14 +1,14 @@
 /**
  * @file  Interactor2D.cpp
- * @brief Interactor2D to manage mouse and key input on render view.
+ * @brief Base Interactor class to manage mouse and key input on 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:50 $
- *    $Revision: 1.6.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.6.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,7 +38,8 @@ Interactor2D::Interactor2D() : Interactor(),
     m_nMousePosY( -1 ),
     m_bWindowLevel( false ),
     m_bChangeSlice( false ),
-    m_bMovingCursor( false )
+    m_bMovingCursor( false ),
+    m_bSelecting( false )
 {}
 
 Interactor2D::~Interactor2D()
@@ -73,7 +74,9 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
     m_nDownPosY = m_nMousePosY;
 
     if ( event.ShiftDown() && !event.ControlDown() )
+    {
       m_bWindowLevel = true;
+    }
     else
     {
       m_bMovingCursor = true;
@@ -81,9 +84,10 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
       view->NeedRedraw();
     }
   }
-  else if ( event.MiddleDown() && event.ControlDown() )
+  else if ( event.MiddleDown() && event.ShiftDown() )
   {
-    m_bWindowLevel = true;
+      m_bSelecting = true;
+      view->StartSelection( m_nMousePosX, m_nMousePosY );
   }
   else
   {
@@ -97,14 +101,21 @@ bool Interactor2D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
+  if ( m_bSelecting )
+  {
+    view->StopSelection();
+    view->NeedRedraw();
+  }
+  
   m_nMousePosX = event.GetX();
   m_nMousePosY = event.GetY();
   m_bWindowLevel = false;
   m_bChangeSlice = false;
   m_bMovingCursor = false;
+  m_bSelecting = false;
 
   view->UpdateAnnotation();
-  view->UpdateCursor2D();
+  view->Update2DOverlay();
 
   if ( event.LeftUp() )
   {
@@ -177,12 +188,17 @@ bool Interactor2D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
     m_nMousePosX = posX;
     m_nMousePosY = posY;
   }
+  else if ( m_bSelecting )
+  {
+    view->UpdateSelection( posX, posY );   
+    view->NeedRedraw();
+  }
   else
   {
     if ( event.MiddleIsDown() || event.RightIsDown() )
     {
       view->UpdateAnnotation();
-      view->UpdateCursor2D();
+      view->Update2DOverlay();
       if ( event.RightIsDown() )
         view->SendBroadcast( "Zooming", view );
     }
@@ -199,7 +215,7 @@ void Interactor2D::ProcessPostMouseWheelEvent( wxMouseEvent& event, RenderView* 
 {
   RenderView2D* view = ( RenderView2D* )renderview;
   view->UpdateAnnotation();
-  view->UpdateCursor2D();
+  view->Update2DOverlay();
   view->NeedRedraw();
   view->SendBroadcast( "Zooming", view );
 
@@ -211,7 +227,7 @@ void Interactor2D::ProcessPostMouseMoveEvent( wxMouseEvent& event, RenderView* r
   RenderView2D* view = ( RenderView2D* )renderview;
   if ( event.RightIsDown() )
   {
-    view->UpdateCursor2D();
+    view->Update2DOverlay();
     view->NeedRedraw();
   }
 
@@ -223,7 +239,6 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   RenderView2D* view = ( RenderView2D* )renderview;
 
   LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-  LayerCollection* lc_mri = lcm->GetLayerCollection( "MRI" );
   if ( !lcm->HasAnyLayer() )
   {
     return Interactor::ProcessKeyDownEvent( event, renderview );
@@ -232,17 +247,11 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   int nKeyCode = event.GetKeyCode();
   if ( nKeyCode == WXK_PAGEUP )
   {
-    double* voxelSize = lc_mri->GetWorldVoxelSize();
-    int nPlane = view->GetViewPlane();
-    lcm->OffsetSlicePosition( nPlane, voxelSize[nPlane] );
-    lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+    view->MoveSlice( 1 );
   }
   else if ( nKeyCode == WXK_PAGEDOWN)
   {
-    double* voxelSize = lc_mri->GetWorldVoxelSize();
-    int nPlane = view->GetViewPlane();
-    lcm->OffsetSlicePosition( nPlane, -voxelSize[nPlane] );
-    lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+    view->MoveSlice( -1 );
   }
   else if ( nKeyCode == WXK_UP )
   {
@@ -260,7 +269,7 @@ bool Interactor2D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   {
     view->MoveRight();
   }
-  else if ( nKeyCode == '3' || nKeyCode == 'W' || nKeyCode == 'S' || nKeyCode == 'R' || nKeyCode == 'F' )
+  else if ( nKeyCode == '3' /*|| nKeyCode == 'W' || nKeyCode == 'S'*/ || nKeyCode == 'R' || nKeyCode == 'F' )
   {
     // do nothing, just intercept these vtk default keycodes
   }

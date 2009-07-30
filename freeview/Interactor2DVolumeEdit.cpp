@@ -1,14 +1,14 @@
 /**
  * @file  Interactor2DVolumeEdit.cpp
- * @brief Interactor2DVolumeEdit to manage mouse and key input on render view.
+ * @brief Interactor for editing volume in 2D render view.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:50 $
- *    $Revision: 1.2.2.2 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.2.2.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,6 +31,7 @@
 #include "LayerCollection.h"
 #include "LayerCollectionManager.h"
 #include "LayerVolumeBase.h"
+#include "LayerMRI.h"
 #include "CursorFactory.h"
 #include <vtkRenderer.h>
 
@@ -94,31 +95,55 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
       }
       else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
       {
-        m_bEditing = true;
-        double ras2[3];
-        view->GetCursor2D()->ClearInterpolationPoints();
-        view->GetCursor2D()->GetPosition( ras2 );
-        view->GetCursor2D()->SetPosition( ras );
-        view->GetCursor2D()->SetPosition2( ras );
         mri->SaveForUndo( view->GetViewPlane() );
-        if ( m_dPolylinePoints.size() > 0 )
+        if ( event.ControlDown() )
         {
-          if ( m_nAction == EM_Polyline )
-            mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
-          else
-            mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
         }
         else
         {
-          // mri->SaveForUndo( view->GetViewPlane() );
-          m_dPolylinePoints.push_back( ras[0] );
-          m_dPolylinePoints.push_back( ras[1] );
-          m_dPolylinePoints.push_back( ras[2] );
+          m_bEditing = true;
+          double ras2[3];
+          view->GetCursor2D()->ClearInterpolationPoints();
+          view->GetCursor2D()->GetPosition( ras2 );
           view->GetCursor2D()->SetPosition( ras );
+          view->GetCursor2D()->SetPosition2( ras );
+          if ( m_dPolylinePoints.size() > 0 )
+          {
+            if ( m_nAction == EM_Polyline )
+              mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
+            else
+              mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
+          }
+          else
+          {
+            // mri->SaveForUndo( view->GetViewPlane() );
+            m_dPolylinePoints.push_back( ras[0] );
+            m_dPolylinePoints.push_back( ras[1] );
+            m_dPolylinePoints.push_back( ras[2] );
+            view->GetCursor2D()->SetPosition( ras );
+          }
+  
+          view->ReleaseMouse();
+          view->CaptureMouse();
         }
-
-        view->ReleaseMouse();
-        view->CaptureMouse();
+      }
+      else if ( m_nAction == EM_ColorPicker && mri->IsTypeOf( "MRI" ) )
+      {
+        if ( event.ControlDown() )
+        {
+          mri->SaveForUndo( view->GetViewPlane() );
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
+        }
+        else
+        {
+          double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
+          if ( dValue != 0 )
+          {
+            mri->SetFillValue( (float)dValue );
+            mri->SendBroadcast( "LayerActorUpdated", mri );
+          }
+        }
       }
       else
         return Interactor2D::ProcessMouseDownEvent( event, renderview );
@@ -288,13 +313,13 @@ void Interactor2DVolumeEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
       {
         wnd->SetCursor( CursorFactory::CursorFill );
       }
-      else
+      else if ( m_nAction == EM_ColorPicker )
+        wnd->SetCursor( CursorFactory::CursorColorPicker );
+      else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) )
         wnd->SetCursor( m_nAction == EM_Freehand ? CursorFactory::CursorPencil : CursorFactory::CursorPolyline );
     }
-    else if ( m_nAction == EM_Fill )
+    else 
       wnd->SetCursor( CursorFactory::CursorFill );
-    else
-      Interactor2D::UpdateCursor( event, wnd );
   }
   else
     Interactor2D::UpdateCursor( event, wnd );

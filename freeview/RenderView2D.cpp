@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:55 $
- *    $Revision: 1.5.2.3 $
+ *    $Date: 2009/07/30 00:35:50 $
+ *    $Revision: 1.5.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,10 +46,13 @@
 #include "Interactor2DVoxelEdit.h"
 #include "Interactor2DWayPointsEdit.h"
 #include "MyUtils.h"
+#include "Rectangle2D.h"
 
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
+
+#define ID_COPY_STRUCTURE   wxID_HIGHEST + 10
 
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView2D, RenderView)
@@ -74,6 +77,7 @@ void RenderView2D::Initialize2D()
   m_renderer->GetActiveCamera()->ParallelProjectionOn();
   m_annotation2D = new Annotation2D;
   m_cursor2D = new Cursor2D( this );
+  m_selection2D = new Rectangle2D( this );
 
   m_interactorNavigate  = new Interactor2DNavigate();
   m_interactorVoxelEdit  = new Interactor2DVoxelEdit();
@@ -145,8 +149,9 @@ void RenderView2D::RefreshAllActors()
   if ( lcm->HasLayer( "MRI" ) )
   {
     // add annotation and cursor
-    m_annotation2D->AppendAnnotations( m_renderer );
     m_cursor2D->AppendActor( m_renderer );
+    m_annotation2D->AppendAnnotations( m_renderer );
+    m_selection2D->AppendActor( m_renderer );
 
     // add scalar bar
     m_renderer->AddViewProp( m_actorScalarBar );
@@ -215,7 +220,7 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* iData, void
     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
     m_cursor2D->SetPosition( lc->GetCursorRASPosition() );
     // if ( EnsureCursor2DVisible() )
-    UpdateCursor2D();
+    Update2DOverlay();
   }
   else if ( iMsg == "Zooming" )
   {
@@ -238,7 +243,7 @@ void RenderView2D::SyncZoomTo( RenderView2D* view )
   m_renderer->GetActiveCamera()->SetParallelScale( view->m_renderer->GetActiveCamera()->GetParallelScale() );
 // PanToWorld( GetCursor2D()->GetPosition() );
   EnsureCursor2DVisible();
-  UpdateCursor2D();
+  Update2DOverlay();
   UpdateAnnotation();
   NeedRedraw();
 }
@@ -262,10 +267,20 @@ bool RenderView2D::EnsureCursor2DVisible()
 
 void RenderView2D::TriggerContextMenu( const wxPoint& pos )
 {
-  /* wxMenu menu;
-   menu.Append(XRCID("ID_FILE_EXIT"), _T("E&xit"));
-   PopupMenu(&menu, pos.x, pos.y);
-   */
+  /*
+  if ( m_interactor != m_interactorVoxelEdit )
+    return;
+  
+  double ras[3];
+  MousePositionToRAS( pos.x, pos.y, ras );
+  
+  wxMenu* menu = new wxMenu;
+  menu->Append( XRCID("ID_EDIT_COPY"),  _T("Copy") );
+  menu->Append( XRCID("ID_EDIT_PASTE"), _T("Paste") );
+  menu->Append( XRCID("ID_FILE_EXIT"), _T("Exit") );
+  this->PopupMenu( menu );
+  delete menu;
+  */
 }
 
 
@@ -329,7 +344,7 @@ void RenderView2D::ZoomAtCursor( int nX, int nY, bool ZoomIn, double factor )
 
   // then zoom
   m_renderer->GetActiveCamera()->Zoom( ZoomIn ? factor : 1.0/factor );
-  UpdateCursor2D();
+  Update2DOverlay();
   UpdateAnnotation();
   NeedRedraw();
 }
@@ -358,9 +373,10 @@ void RenderView2D::PanToWorld( double* pos )
   cam->SetPosition( camPos );
 }
 
-void RenderView2D::UpdateCursor2D()
+void RenderView2D::Update2DOverlay()
 {
   m_cursor2D->Update();
+  m_selection2D->Update();
 }
 
 void RenderView2D::MoveLeft()
@@ -368,7 +384,7 @@ void RenderView2D::MoveLeft()
   RenderView::MoveLeft();
 
   UpdateAnnotation();
-  UpdateCursor2D();
+  Update2DOverlay();
 }
 
 void RenderView2D::MoveRight()
@@ -376,7 +392,7 @@ void RenderView2D::MoveRight()
   RenderView::MoveRight();
 
   UpdateAnnotation();
-  UpdateCursor2D();
+  Update2DOverlay();
 }
 
 void RenderView2D::MoveUp()
@@ -384,7 +400,7 @@ void RenderView2D::MoveUp()
   RenderView::MoveUp();
 
   UpdateAnnotation();
-  UpdateCursor2D();
+  Update2DOverlay();
 }
 
 void RenderView2D::MoveDown()
@@ -392,12 +408,12 @@ void RenderView2D::MoveDown()
   RenderView::MoveDown();
 
   UpdateAnnotation();
-  UpdateCursor2D();
+  Update2DOverlay();
 }
 
 void RenderView2D::OnSize( wxSizeEvent& event )
 {
-  UpdateCursor2D();
+  Update2DOverlay();
   UpdateAnnotation();
 
   event.Skip();
@@ -435,4 +451,60 @@ void RenderView2D::ShowCoordinateAnnotation( bool bShow )
 bool RenderView2D::GetShowCoordinateAnnotation()
 {
   return m_annotation2D->IsVisible();
+}
+
+void RenderView2D::MoveSlice( int nStep )
+{
+  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+  LayerCollection* lc_mri = lcm->GetLayerCollection( "MRI" );
+
+  double* voxelSize = lc_mri->GetWorldVoxelSize();
+  int nPlane = GetViewPlane();
+  lcm->OffsetSlicePosition( nPlane, voxelSize[nPlane]*nStep );
+  lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+}
+
+void RenderView2D::StartSelection( int nX, int nY )
+{
+  m_selection2D->SetRect( nX, nY, 1, 1 );
+  m_selection2D->Show( true );
+}
+
+void RenderView2D::UpdateSelection( int nX, int nY )
+{
+  m_selection2D->SetBottomRight( nX, nY );
+}
+
+void RenderView2D::StopSelection()
+{
+  m_selection2D->Show( false );
+  
+  std::vector<Layer*> layers = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetLayers();
+  LayerMRI* layer = NULL;
+  for ( size_t i = 0; i < layers.size(); i++ )
+  {
+    layer = ( LayerMRI*)layers[i];
+    if ( layer->IsVisible() && layer->GetProperties()->GetColorMap() != LayerPropertiesMRI::LUT )
+      break;
+  }
+  
+  if ( layer )
+  {
+    double range[2];
+    if ( layer->GetVoxelValueRange( m_selection2D->m_dPt0, m_selection2D->m_dPt2, m_nViewPlane, range ) )
+    {
+      switch ( layer->GetProperties()->GetColorMap() )
+      {
+        case LayerPropertiesMRI::Heat:
+          layer->GetProperties()->SetHeatScale( range[0], (range[1]-range[0])/2, range[1] );
+          break;
+        case LayerPropertiesMRI::Jet:
+          layer->GetProperties()->SetMinMaxJetScaleWindow( range[0], range[1] );
+          break;
+        default:   
+          layer->GetProperties()->SetMinMaxGrayscaleWindow( range[0], range[1] );
+          break;
+      }
+    }
+  }
 }

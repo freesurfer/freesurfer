@@ -1,14 +1,14 @@
 /**
  * @file  DialogLoadVolume.h
- * @brief Preferences Dialog.
+ * @brief Dialog to load volume data.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/04/29 22:53:49 $
- *    $Revision: 1.2.2.3 $
+ *    $Date: 2009/07/30 00:35:49 $
+ *    $Revision: 1.2.2.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,17 +28,24 @@
 
 #include <wx/wx.h>
 
+class wxButton;
+class wxComboBox;
+class wxTextCtrl;
+class wxRadioButton;
+
 class DialogLoadVolume : public wxDialog
 {
 public:
   DialogLoadVolume( wxWindow* parent, bool bEnableResample = true );
   virtual ~DialogLoadVolume();
 
-  wxString GetVolumeFileName();
+  wxArrayString GetVolumeFileNames();
 
   wxString GetRegFileName();
 
   bool IsToResample();
+  
+  int GetSampleMethod();
 
   void OnOK( wxCommandEvent& event );
 
@@ -48,19 +55,31 @@ public:
   }
 
   void SetRecentFiles( const wxArrayString& list );
+  
+  wxString GetColorMap();
+  wxString GetLUT();
 
 protected:
-  void OnButtonOpen( wxCommandEvent& event );
-  void OnFileSelectionChanged( wxCommandEvent& event );
-  void OnButtonRegFile( wxCommandEvent& event );
-  void OnCheckApplyReg( wxCommandEvent& event );
+  void OnButtonOpen           ( wxCommandEvent& event );
+  void OnFileSelectionChanged ( wxCommandEvent& event );
+  void OnButtonRegFile        ( wxCommandEvent& event );
+  void OnCheckApplyReg        ( wxCommandEvent& event );
+  void OnChoiceColorMap       ( wxCommandEvent& event );
+  void OnChoiceLUT            ( wxCommandEvent& event );
+  
+  void UpdateLUT();
 
-  wxButton*  m_btnOpen;
-  wxComboBox*  m_comboFileName;
-  wxCheckBox*  m_checkResample;
-  wxCheckBox*  m_checkApplyReg;
-  wxTextCtrl*  m_textRegFile;
-  wxButton*  m_btnRegFile;
+  wxButton*     m_btnOpen;
+  wxComboBox*   m_comboFileName;
+  wxCheckBox*   m_checkResample;
+  wxCheckBox*   m_checkApplyReg;
+  wxTextCtrl*   m_textRegFile;
+  wxButton*     m_btnRegFile;
+  wxRadioButton*  m_radioNearest;
+  wxRadioButton*  m_radioTrilinear;
+  wxChoice*     m_choiceColorMap;
+  wxChoice*     m_choiceLUT;
+  wxStaticText* m_staticLUT;
 
   wxString  m_strLastDir;
 
