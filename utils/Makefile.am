@@ -30,7 +30,7 @@ NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
 	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN)
 
-AM_CPPFLAGS=\
+AM_CPPFLAGS=$(EXPAT_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
 	$(NRRDIO_CPPFLAGS) \
