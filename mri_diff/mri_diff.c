@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/07 19:33:09 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/07/30 19:40:39 $
+ *    $Revision: 1.18.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,10 +174,11 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.18 2007/08/07 19:33:09 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.18.2.1 2009/07/30 19:40:39 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
+int verbose=0;
 int checkoptsonly=0;
 struct utsname uts;
 
@@ -186,7 +187,8 @@ char *InVol2File=NULL;
 char *subject, *hemi, *SUBJECTS_DIR;
 double pixthresh=0, resthresh=0, geothresh=0;
 char *DiffFile=NULL;
-int DiffAbs=0;
+int DiffAbs=0, AbsDiff=1,DiffPct=0;
+char *AvgDiffFile=NULL;
 
 MRI *InVol1=NULL, *InVol2=NULL, *DiffVol=NULL, *DiffLabelVol=NULL;
 char *DiffVolFile=NULL;
@@ -198,18 +200,23 @@ int CheckPixVals=1;
 int CheckGeo=1;
 int CheckOrientation=1;
 int CheckPrecision=1;
+int SegDiff = -1;
+char *SegDiffFile=NULL;
 MATRIX *vox2ras1,*vox2ras2;
 char Orient1[4], Orient2[4];
 
 int ExitOnDiff = 1;
 int ExitStatus = 0;
+int DoRSS = 0; // Compute sqrt of sum squares
+int PrintSSD = 0; // Print sum of squared differences over all voxel
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, r, c, s, f;
-  int rmax, cmax, smax, fmax;
+  int rmax, cmax, smax, fmax,navg;
   double diff,maxdiff;
-  double val1, val2;
+  double val1, val2, SumSqErr;
+  double AvgDiff=0.0,SumDiff=0.0,SumSqDiff=0.0;
   FILE *fp=NULL;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -231,7 +238,7 @@ int main(int argc, char *argv[]) {
 
   if (debug) dump_options(stdout);
 
-  // njs: commente-out so that mri_diff is useful w/o SUBJECTS_DIR declared
+  // njs: commented-out so that mri_diff is useful w/o SUBJECTS_DIR declared
   //  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   //  if(SUBJECTS_DIR == NULL){
   //    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
@@ -403,9 +410,11 @@ int main(int argc, char *argv[]) {
   //------------------------------------------------------
   // Compare pixel values
   if (CheckPixVals) {
-    if (DiffVolFile) {
+    if(DiffVolFile) {
+      if(!DoRSS) f = InVol1->nframes;
+      else       f = 1;
       DiffVol = MRIallocSequence(InVol1->width,InVol1->height,
-                                 InVol1->depth,MRI_FLOAT,InVol1->nframes);
+                                 InVol1->depth,MRI_FLOAT,f);
       MRIcopyHeader(InVol1,DiffVol);
     }
     if (DiffLabelVolFile) {
@@ -413,23 +422,36 @@ int main(int argc, char *argv[]) {
                                       InVol1->depth,MRI_FLOAT,InVol1->nframes);
       MRIcopyHeader(InVol1,DiffLabelVol);
     }
+    SumDiff=0.0;
     c=r=s=f=0;
     val1 = MRIgetVoxVal(InVol1,c,r,s,f);
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
     maxdiff = fabs(val1-val2);
     cmax=rmax=smax=fmax=0;
+    SumSqDiff=0.0; // over all voxel
     for (c=0; c < InVol1->width; c++) {
       for (r=0; r < InVol1->height; r++) {
         for (s=0; s < InVol1->depth; s++) {
+          SumSqErr = 0.0; //over all frames
           for (f=0; f < InVol1->nframes; f++) {
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-            if (! DiffAbs) diff = fabs(val1-val2);
-            else diff = fabs(fabs(val1)-fabs(val2));
-            if (DiffVolFile) MRIsetVoxVal(DiffVol,c,r,s,f,val1-val2);
-            if (DiffLabelVolFile) {
+            diff = val1-val2;
+            if (diff && verbose) {
+              printf("diff %f at %d %d %d %d\n",diff,c,r,s,f);
+            }
+	    SumSqDiff += (diff*diff);
+            SumSqErr  += (diff*diff);
+            if(AbsDiff)   diff = fabs(diff);
+            if(DiffAbs)   diff = fabs(fabs(val1)-fabs(val2));
+            if(DiffPct)   diff = 100*(val1-val2)/((val1+val2)/2.0);
+            if(DiffVolFile && !DoRSS)  MRIsetVoxVal(DiffVol,c,r,s,f,diff);
+            if(AvgDiffFile && !DoRSS)  SumDiff += diff;
+            if(DiffLabelVolFile) {
               if (diff==0) MRIsetVoxVal(DiffLabelVol,c,r,s,f,val1);
-              else         MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS);
+              else {
+                MRIsetVoxVal(DiffLabelVol,c,r,s,f,SUSPICIOUS);
+              }
             }
             if (maxdiff < diff) {
               maxdiff = diff;
@@ -439,15 +461,29 @@ int main(int argc, char *argv[]) {
               fmax = f;
             }
           }
+          if(DiffVolFile && DoRSS) MRIsetVoxVal(DiffVol,c,r,s,0,sqrt(SumSqErr));
+          if(AvgDiffFile && DoRSS) SumDiff += sqrt(SumSqErr);
         }
       }
     }
-    if (debug) printf("maxdiff %f at %d %d %d %d\n",
-                        maxdiff,cmax,rmax,smax,fmax);
-    if (DiffVolFile) MRIwrite(DiffVol,DiffVolFile);
-    if (DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
+    if(debug) printf("maxdiff %f at %d %d %d %d\n",
+		     maxdiff,cmax,rmax,smax,fmax);
+		     
+    if(PrintSSD) printf("%f sum of squared differences\n",SumSqDiff);
 
-    if (maxdiff > pixthresh) {
+    if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
+    if(DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
+    if(AvgDiffFile){
+      navg = InVol1->width * InVol1->height * InVol1->depth;
+      if(! DoRSS) navg *= InVol1->nframes;
+      AvgDiff = SumDiff/navg;
+      if(debug) printf("AvgStats %d %lf %lf\n",navg,SumDiff,AvgDiff);
+      fp = fopen(AvgDiffFile,"w");
+      fprintf(fp,"%lf\n",AvgDiff);
+      fclose(fp);
+    }
+
+    if(maxdiff > pixthresh) {
       printf("Volumes differ in pixel data\n");
       printf("maxdiff %f at %d %d %d %d\n",
              maxdiff,cmax,rmax,smax,fmax);
@@ -467,6 +503,63 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  //----------------------------------------------------------
+  // Do a diff on a specific label in aseg.mgz
+  if (SegDiff > -1) {
+    MRI* SegDiffVol = MRIallocSequence(InVol1->width,InVol1->height,
+                                      InVol1->depth,MRI_INT,InVol1->nframes);
+    MRIcopyHeader(InVol1,SegDiffVol);
+    int same = 0;
+    int n1 = 0;
+    int n2 = 0;
+    int l1 = 0;
+    int l2 = 0;
+    printf("\nComputing difference for label %d ...\n",SegDiff);
+    for (c=0; c < InVol1->width; c++) {
+      for (r=0; r < InVol1->height; r++) {
+        for (s=0; s < InVol1->depth; s++) {
+          for (f=0; f < InVol1->nframes; f++) {
+            val1 = MRIgetVoxVal(InVol1,c,r,s,f);
+            val2 = MRIgetVoxVal(InVol2,c,r,s,f);
+            if ((int)val1 == SegDiff &&(int)val2 == SegDiff )
+	    {
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,3);
+		same++;
+		l1++;
+		l2++;
+	    }
+            else if ((int)val1 != SegDiff &&(int)val2 != SegDiff )
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,0);
+            else if ((int)val1 == SegDiff &&(int)val2 != SegDiff )
+	    {
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,1);
+		n1++;
+		l1++;
+	    }
+            else if ((int)val1 != SegDiff &&(int)val2 == SegDiff )
+	    {
+                MRIsetVoxVal(SegDiffVol,c,r,s,f,2);
+		n2++;
+		l2++;
+	    }
+	    else {//cannot happen 
+              printf("ERROR: this error is not possible\n");
+              exit(1);
+	    }
+	  }
+	}
+      }
+    }
+    if(SegDiffFile) MRIwrite(SegDiffVol,SegDiffFile);      
+    MRIfree(&SegDiffVol);
+    printf("\nDiff on label %d\n",SegDiff);
+    printf("%d  identical\n",same);
+    printf("%d  only in first\n",n1);
+    printf("%d  only in second\n",n2);
+    printf("%d - %d = %d difference (second-first)\n",l2,l1, l2-l1);
+  }
+  
+  
   //----------------------------------------------------------
   if (CheckOrientation) {
     MRIdircosToOrientationString(InVol1,Orient1);
@@ -514,6 +607,7 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--verbose")) verbose = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--no-exit-on-diff")) ExitOnDiff = 0;
@@ -525,7 +619,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--notallow-prec")) CheckPrecision = 0;
     else if (!strcasecmp(option, "--notallow-pix"))  CheckPixVals = 0;
     else if (!strcasecmp(option, "--notallow-ori"))  CheckOrientation = 0;
+    else if (!strcasecmp(option, "--no-absdiff"))  AbsDiff = 0;
+    else if (!strcasecmp(option, "--absdiff"))     AbsDiff = 1; //default
     else if (!strcasecmp(option, "--diffabs"))  DiffAbs = 1;
+    else if (!strcasecmp(option, "--diffpct"))  DiffPct = 1;
+    else if (!strcasecmp(option, "--rss"))  DoRSS = 1;
+    else if (!strcasecmp(option, "--ssd"))  PrintSSD = 1;
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
@@ -567,10 +666,25 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--avg-diff")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      AvgDiffFile = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--diff_label_suspicious")) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffLabelVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--segdiff")) {
+      if (nargc < 2) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&SegDiff);
+      SegDiffFile = pargv[1];
+      CheckPixVals     = 0;
+      CheckResolution  = 1;
+      CheckAcqParams   = 1;
+      CheckGeo         = 0;
+      CheckPrecision   = 1;
+      CheckOrientation = 1;
+      nargsused = 2;
     } else {
       if (InVol1File == NULL)      InVol1File = option;
       else if (InVol2File == NULL) InVol2File = option;
@@ -630,7 +744,11 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"checkgeo  %d\n",CheckGeo);
   fprintf(fp,"checkori  %d\n",CheckOrientation);
   fprintf(fp,"checkprec %d\n",CheckPrecision);
+  fprintf(fp,"absdiff   %d\n",AbsDiff);
   fprintf(fp,"diffabs   %d\n",DiffAbs);
+  fprintf(fp,"diffpct   %d\n",DiffPct);
+  fprintf(fp,"rss       %d\n",DoRSS);
+  fprintf(fp,"ssd       %d\n",PrintSSD);
   fprintf(fp,"logfile   %s\n",DiffFile);
   return;
 }
@@ -653,7 +771,12 @@ static void print_usage(void) {
   printf("   --qa         : check res, acq, precision, "
          "and orientation only\n");
   printf("   --pix-only   : only check pixel data\n");
+  printf("   --absdiff    : take abs of diff (default)\n");
+  printf("   --no-absdiff : do not take abs of diff\n");
   printf("   --diffabs    : take abs before computing diff\n");
+  printf("   --diffpct    : 100*(v1-v2)/((v1+v2)/2)\n");
+  printf("   --rss        : save sqrt sum squares with --diff\n");
+  printf("   --ssd        : print sum squared differences over all voxel\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
@@ -661,8 +784,14 @@ static void print_usage(void) {
   printf("   --diff_label_suspicious DiffVol : differing voxels replaced\n");
   printf("                                     with label SUSPICIOUS\n");
   printf("                                     (for comparing aseg.mgz's)\n");
+  printf("   --segdiff labelIDX DiffAseg : diff on voxels with labelIDX\n");
+  printf("                                  output image: 0 not in both,\n");
+  printf("                                  1 only in 1st, 2 only in 2nd\n");
+  printf("                                  3 in both (for aseg.mgz)\n");
+  printf("   --avg-diff avgdiff.txt : save average difference \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
+  printf("   --verbose   print out info on all differences found\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
