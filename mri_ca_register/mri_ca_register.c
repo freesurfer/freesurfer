@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/02 02:00:12 $
- *    $Revision: 1.63.2.1 $
+ *    $Date: 2009/07/30 22:07:16 $
+ *    $Revision: 1.63.2.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -73,6 +73,12 @@ static double TEs[MAX_GCA_INPUTS] ;
 char         *Progname ;
 static GCA_MORPH_PARMS  parms ;
 
+static int ninsertions = 0 ;
+static int insert_labels[MAX_INSERTIONS] ;
+static int insert_intensities[MAX_INSERTIONS] ;
+static int insert_coords[MAX_INSERTIONS][3] ;
+static int insert_whalf[MAX_INSERTIONS] ;
+
 static int avgs = 0 ;  /* for smoothing conditional densities */
 static int read_lta = 0 ;
 static char *mask_fname = NULL ;
@@ -96,6 +102,10 @@ static double TR = -1 ;
 static double alpha = -1 ;
 static double TE = -1 ;
 static char *tl_fname = NULL ;
+
+#define MAX_READS 100
+static int nreads = 0 ;
+static char *read_intensity_fname[MAX_READS] ;
 
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
@@ -192,7 +202,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.63.2.1 2008/03/02 02:00:12 nicks Exp $", 
+     "$Id: mri_ca_register.c,v 1.63.2.2 2009/07/30 22:07:16 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -570,6 +580,11 @@ main(int argc, char *argv[]) {
   } else // default is to create one
     gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
 
+  if (ninsertions > 0)
+    GCAinsertLabels(gca, mri_inputs, transform, ninsertions, 
+                    insert_labels, insert_intensities, 
+                    insert_coords, insert_whalf) ;
+  
   //////////////////////////////////////////////////////////
   // -TL temporal_lobe.gca option
   if (tl_fname) {
@@ -921,6 +936,37 @@ main(int argc, char *argv[]) {
     parms.tol *= 5 ;
     parms.l_smoothness *= 5 ;
   }
+  if (nreads > 0)
+  {
+    float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS] ;
+    float label_scales_total[MAX_CMA_LABELS],
+      label_offsets_total[MAX_CMA_LABELS];
+    char  *fname ;
+    int   i, l ;
+  	
+    memset(label_scales_total, 0, sizeof(label_scales_total)) ;
+    memset(label_offsets_total, 0, sizeof(label_offsets_total)) ;
+  	 
+    for (i = 0 ; i < nreads ; i++)
+    {
+      fname = read_intensity_fname[i] ;
+      printf("reading label scales and offsets from %s\n", fname) ;
+      GCAreadLabelIntensities(fname, label_scales, label_offsets) ;
+      for (l = 0; l < MAX_CMA_LABELS ; l++)
+      {
+        label_scales_total[l] += label_scales[l] ;
+        label_offsets_total[l] += label_offsets[l] ;
+      }
+    }
+    for (l = 0; l < MAX_CMA_LABELS ; l++)
+    {
+      label_scales_total[l] /= (float)nreads ;
+      label_offsets_total[l] /= (float)nreads ;
+    }
+  	
+    GCAapplyRenormalization(gca, label_scales_total, label_offsets_total, 0) ;
+  }
+
   //////////////////////////////////////////////////////////////////
   // here is the main work force
   GCAMregister(gcam, mri_inputs, &parms) ;
@@ -1139,6 +1185,30 @@ get_option(int argc, char *argv[]) {
     vf_fname = argv[2] ;
     nargs = 1 ;
     printf("writing vector field to %s...\n", vf_fname) ;
+  } else if (!stricmp(option, "INSERT")) {
+    if (ninsertions >= MAX_INSERTIONS)
+      ErrorExit(
+        ERROR_NOMEMORY, 
+        "%s: too many insertions (%d) specified\n", Progname, ninsertions) ;
+    
+    insert_labels[ninsertions] = atoi(argv[2]) ;
+    insert_intensities[ninsertions] = atoi(argv[3]) ;
+    insert_coords[ninsertions][0] = atoi(argv[4]) ;
+    insert_coords[ninsertions][1] = atoi(argv[5]) ;
+    insert_coords[ninsertions][2] = atoi(argv[6]) ;
+    insert_whalf[ninsertions] = atoi(argv[7]) ;
+    printf("inserting label %d (%s) at (%d, %d, %d) "
+           "with intensity = %d, in %d voxel nbhd\n",
+           insert_labels[ninsertions],
+           cma_label_to_name(insert_labels[ninsertions]),
+           insert_coords[ninsertions][0],
+           insert_coords[ninsertions][1],
+           insert_coords[ninsertions][2],
+           insert_intensities[ninsertions],
+           insert_whalf[ninsertions]) ;
+  	            
+    ninsertions++ ;
+    nargs = 6 ;
   } else if (!stricmp(option, "MASK")) {
     mask_fname = argv[2] ;
     nargs = 1 ;
@@ -1260,6 +1330,17 @@ get_option(int argc, char *argv[]) {
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  } else if (!stricmp(option, "read_intensities") || !stricmp(option, "ri")) {
+    read_intensity_fname[nreads] = argv[2] ;
+    nargs = 1 ;
+    printf("reading intensity scaling from %s...\n", 
+           read_intensity_fname[nreads]) ;
+    nreads++ ;
+    if (nreads > MAX_READS)
+      ErrorExit(
+        ERROR_UNSUPPORTED, 
+        "%s: too many intensity files specified (max %d)", 
+        Progname, MAX_READS);
   } else if (!stricmp(option, "DEBUG_VOXEL")) {
     Gvx = atoi(argv[2]) ;
     Gvy = atoi(argv[3]) ;
