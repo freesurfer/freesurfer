@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/05/24 22:02:07 $
- *    $Revision: 1.6.2.2 $
+ *    $Date: 2009/07/30 19:39:05 $
+ *    $Revision: 1.6.2.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -63,6 +63,33 @@ using namespace std;
 //#define SAT 20
 #define SSAMPLE -1
 
+// unsigned int printmemusage ()
+// {
+//   char buf[30];
+//   snprintf(buf, 30, "/proc/%u/statm", (unsigned)getpid());
+//   FILE* pf = fopen(buf, "r");
+//   unsigned size = 0; //       total program size
+//   if (pf) {
+//     //unsigned resident;//   resident set size
+//     //unsigned share;//      shared pages
+//     //unsigned text;//       text (code)
+//     //unsigned lib;//        library
+//     //unsigned data;//       data/stack
+//     //unsigned dt;//         dirty pages (unused in Linux 2.6)
+//     //fscanf(pf, "%u" /* %u %u %u %u %u"*/, &size/*, &resident, &share, &text, &lib, &data*/);
+//     fscanf(pf, "%u" , &size);
+//     //DOMSGCAT(MSTATS, std::setprecision(4) << size / (1024.0) << "MB mem used");
+//     cout <<  size / (1024.0) << " MB mem used" << endl;
+//     fclose(pf);
+//   }
+// // while (1)
+// // {
+// //     if ('n' == getchar())
+// //        break;
+// // }
+//   return size;
+// }
+
 struct Parameters
 {
   vector < std::string > mov;
@@ -91,6 +118,7 @@ struct Parameters
   int    inittp;
   bool   noit;
 };
+
 static struct Parameters P =
 {
   vector < string >(0),"",NULL,vector < string >(0),vector < string >(0),false,false,false,false,false,false,false,5,0.01,SAT,vector < string >(0),0,1,vector < MRI* >(0),vector < LTA* >(0),vector < MRI* >(0),vector < MRI* >(0),vector < double >(0),1,false
@@ -111,7 +139,7 @@ void initialXforms (Parameters & P, int tpi);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.6.2.2 2009/05/24 22:02:07 nicks Exp $";
+"$Id: mri_robust_template.cpp,v 1.6.2.3 2009/07/30 19:39:05 nicks Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -178,7 +206,7 @@ int main(int argc, char *argv[])
   cout << "Writing final average image: " << P.mean << endl;
   strncpy(P.mri_mean->fname, P.mean.c_str(),STRLEN);
   MRIwrite(P.mri_mean,P.mean.c_str());
-	MRIfree(&P.mri_mean);
+  MRIfree(&P.mri_mean);
 
   // output transforms and warps
   cout << "Writing final transforms (warps etc.)..." << endl;
@@ -339,8 +367,12 @@ void computeTemplate(Parameters & P)
   {
     itcount++;
     if (itcount > 1) maxchange = 0;
-    cout << endl << "Working on iteration : " << itcount << endl;
-
+    cout << endl << "Working on global iteration : " << itcount << endl;
+    cout << endl;
+    //cout << "========================================" << endl;
+    //printmemusage();
+    //cout << "========================================" << endl << endl;
+		
     // register all inputs to mean
     vector < double > dists(nin,1000); // should be larger than maxchange!
     for (int i = 0;i<nin;i++)
@@ -360,7 +392,7 @@ void computeTemplate(Parameters & P)
       int iterate = P.iterate;
       double epsit= P.epsit;
       int maxres = 0;
-			int subsamp = -1;
+      int subsamp = -1;
       switch (itcount) // simplify first steps:
       {
       case 1:
@@ -404,6 +436,7 @@ void computeTemplate(Parameters & P)
       P.intensities[i] = Md.second;
 
       // convert Matrix to LTA ras to ras
+      if (lastlta)  LTAfree(&lastlta);
       if (P.ltas[i]) lastlta = P.ltas[i];
       P.ltas[i] = VOXmatrix2LTA(Md.first,P.mri_mov[i],P.mri_mean);
       //P.ltas[i] = LTAalloc(1,P.mri_mov[i]);
@@ -492,6 +525,15 @@ void computeTemplate(Parameters & P)
           MatrixFree(&v2r);
         }
       }
+    
+      Rv[i].clear();
+      Rv[i].freeGPT();
+      cout << endl << "Finished TP : " << i+1 << endl;
+      cout << endl;
+      //cout << "========================================" << endl;
+      //printmemusage();
+      //cout << "========================================" << endl << endl;
+
     }
 
     if (dists[0] <= maxchange) // it was computed, so print it:

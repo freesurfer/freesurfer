@@ -3,9 +3,23 @@
 #include <iostream>
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <vector>
 #include <fstream>
 #include "RobustGaussian.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include "error.h"
+#ifdef __cplusplus
+}
+#endif
+
+
 
 using namespace std;
 
@@ -16,7 +30,7 @@ MATRIX * Regression::getRobustEst(double sat, double sig)
   return pw.first;
 }
 
-// void printmemusage ()
+// void print_mem_usage ()
 // {
 //  char buf[30];
 //         snprintf(buf, 30, "/proc/%u/statm", (unsigned)getpid());
@@ -35,11 +49,11 @@ MATRIX * Regression::getRobustEst(double sat, double sig)
 //      cout <<  size / (1024.0) << " MB mem used" << endl;
 //         }
 //         fclose(pf);
-// while (1)
-// {
-//     if ('n' == getchar())
-//        break;
-// }
+// //while (1)
+// //{
+// //   if ('n' == getchar())
+// //       break;
+// //}
 // }
 
 pair < MATRIX *, MATRIX *> Regression::getRobustEstW(double sat, double sig)
@@ -160,14 +174,21 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
   MATRIX * w = MatrixConstVal(1.0,A->rows,1,NULL);
   MATRIX * r = MatrixConstVal(1.0,A->rows,1,NULL);
   MATRIX * p = MatrixZero(A->cols, 1, NULL);
+    
+  if (w == NULL || r == NULL || p == NULL)
+     ErrorExit(ERROR_NO_MEMORY,"Regression::getRobustEstWAB could not allocate memory for w,r,p") ;
 
   MATRIX * lastp = MatrixCopy(p,NULL);
   MATRIX * lastw = MatrixCopy(w,NULL);
   MATRIX * lastr = MatrixCopy(B,NULL);  // error lastr = b-A*p = b  , since p = 0 initially
+  if (lastw == NULL || lastr == NULL || lastp == NULL)
+     ErrorExit(ERROR_NO_MEMORY,"Regression::getRobustEstWAB could not allocate memory for lastw,lastr,lastp") ;
 
   MATRIX * wAi = NULL, *v = NULL;
   MATRIX * wA = MatrixAlloc(A->rows, A->cols, MATRIX_REAL);
   MATRIX * wr = MatrixAlloc(A->rows, 1, MATRIX_REAL);
+  if (wA == NULL || wr == NULL )
+     ErrorExit(ERROR_NO_MEMORY,"Regression::getRobustEstWAB could not allocate memory for wA,wr") ;
 
   // compute error (lastr = b-A*p)
   //v     = MatrixMultiply(A,p,NULL);
@@ -185,7 +206,10 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
     count++;
 
     //cout << " count: "<< count << endl;
-
+    //cout << " memusage: " << endl;
+    //print_mem_usage();
+    
+    
     // recompute weights
     if (count > 2)
     {
@@ -371,6 +395,8 @@ MATRIX* getTukeyBiweight(MATRIX* r, double sat, MATRIX* w)
   if (w == NULL) w = MatrixAlloc(n,1,  MATRIX_REAL);
   else (assert (n == w->rows));
   assert(r->cols ==1 );
+  if (w == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"Regression::getTukeyBiweight could not allocate memory for w") ;
 
   double a , b;
   for (int i = 0;i<n;i++)
@@ -427,6 +453,8 @@ MATRIX * Regression::getSqrtTukeyDiaWeights(MATRIX * r, double sat, MATRIX * w)
   if (w == NULL) w = MatrixAlloc(n,1,  MATRIX_REAL);
   else (assert (r->rows == w->rows));
   assert(r->cols ==1 );
+  if (w == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"Regression::getTukeyDiaWeights could not allocate memory for w") ;
 
   double t1, t2;
   int rr,cc;
@@ -459,6 +487,8 @@ double Regression::VectorMedian(MATRIX *v)
 {
   int n = v->rows * v->cols;
   double* t = (double *)calloc(n, sizeof(double));
+  if (t == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"Regression::VectorMedian could not allocate memory for t") ;
 
   int r,c,cc;
   // copy array to t
@@ -483,6 +513,8 @@ double Regression::getSigmaMAD(MATRIX *v, double d)
 {
   int n = v->rows * v->cols;
   double* t = (double *)calloc(n, sizeof(double));
+  if (t == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"Regression::getSigmaMAD could not allocate memory for t") ;
 
   int r,c,cc;
   // copy array to t

@@ -1,7 +1,17 @@
 #include "RobustGaussian.h"
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <cmath>
 #include <iostream>
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+   #include "error.h"
+#ifdef __cplusplus
+}
+#endif
 
 using namespace std;
 
@@ -19,6 +29,8 @@ pair < double , int > RobustGaussian::quick_selectI(double arr[], int n, int k)
   int middle, ll, hh;
 
   int* pos = (int *)calloc(n, sizeof(int));
+  if (pos == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"RobustGaussian::quick_selectI could not allocate memory for pos") ;
   for (int i = 0;i<n;i++) pos[i] = i;
 
   low = 0 ;
@@ -177,6 +189,8 @@ std::pair < double , int> RobustGaussian::kth_smallestI(double a[], int n, int k
   double x ;
   
   int* pos = (int *)calloc(n, sizeof(int));
+  if (pos == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"RobustGaussian::kth_smallestI could not allocate memory for pos") ;
   for (int i = 0;i<n;i++) pos[i] = i;
   
   l=0 ;
@@ -304,6 +318,9 @@ double RobustGaussian::mad(double a[], int n, double d)
   double medi = median(a,n);
   //cout << " median: " << medi << endl;
   double* t = (double *)calloc(n, sizeof(double));
+  if (t == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"RobustGaussian::mad could not allocate memory for t") ;
+     
   for (int i=0;i<n;i++)
   {
     t[i] = fabs(a[i] -medi);
