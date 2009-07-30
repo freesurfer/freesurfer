@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/30 23:16:13 $
- *    $Revision: 1.80.2.7 $
+ *    $Date: 2009/07/30 23:22:53 $
+ *    $Revision: 1.80.2.8 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -180,13 +180,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.80.2.7 2009/07/30 23:16:13 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.80.2.8 2009/07/30 23:22:53 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.80.2.7 2009/07/30 23:16:13 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.80.2.8 2009/07/30 23:22:53 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -580,7 +580,7 @@ main(int argc, char *argv[]) {
   }
 
   GCAfixSingularCovarianceMatrices(gca) ;
-  if (read_fname != NULL && reg_fname == NULL)  /* not longitudinal */
+  if (read_fname != NULL && reg_fname == NULL)  /* use given segmentation */
   {
     //read in initial segmentation from file read_fname
     mri_labeled = MRIread(read_fname) ;
@@ -654,17 +654,39 @@ main(int argc, char *argv[]) {
         if (!no_old_renormalize)
           GCAmapRenormalize(gca, mri_inputs, transform) ;
 
+        // GCA Renormalization with Alignment: 
         // run it twice so that the histograms overlap on the 2nd run
-        GCAmapRenormalizeWithAlignment
-        (gca, mri_inputs, transform,
-         logfp, base_name, NULL, handle_expanded_ventricles) ;
-#if 0 // removed by BRF as it breaks the subsequent longitudinal stuff (since
-      // the 2nd renormalize will have almost all scales=1, and will write 
-      // those out, overwriting the output from the previous call)
-        GCAmapRenormalizeWithAlignment
-        (gca, mri_inputs, transform,
-         logfp, base_name, NULL, handle_expanded_ventricles) ;
-#endif
+        float label_scales[MAX_CMA_LABELS], 
+          label_offsets[MAX_CMA_LABELS],
+          label_peaks[MAX_CMA_LABELS];
+        int label_computed[MAX_CMA_LABELS];
+        // initial call (returning the label_* infos)
+        GCAcomputeRenormalizationWithAlignment
+        (gca, 
+         mri_inputs, 
+         transform,
+         logfp, 
+         base_name, 
+         NULL, 
+         handle_expanded_ventricles,
+         label_scales,
+         label_offsets,
+         label_peaks,
+         label_computed) ;
+        // sequential call gets passed the results from first call
+        // will overwrite the intensity.txt file with combinded results 
+        GCAseqRenormalizeWithAlignment
+        (gca, 
+         mri_inputs, 
+         transform,
+         logfp, 
+         base_name, 
+         NULL, 
+         handle_expanded_ventricles,
+         label_scales,
+         label_offsets,
+         label_peaks,
+         label_computed) ;
 
         if (regularize_mean > 0)
           GCAregularizeConditionalDensities(gca, regularize_mean) ;
@@ -695,6 +717,12 @@ main(int argc, char *argv[]) {
         MRIfree(&mri_fixed) ;
     } //if(reg_fname == NULL)
     else  /* processing longitudinal data */ {
+      ErrorExit(
+        ERROR_BADPARM, 
+        "%s ERROR: the -l option is currently not supported. "
+        "Debugging and testing needed.\n",
+        Progname) ;
+
       // Now, both an intial seg and a transformation are given
       // suppose the seg is from tp1 and
       // transform is to align tp1 to current tp
