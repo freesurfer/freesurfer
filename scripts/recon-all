@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/29 21:38:24 $
-#    $Revision: 1.237 $
+#    $Date: 2009/07/30 01:14:16 $
+#    $Revision: 1.238 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.237 2009/07/29 21:38:24 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.238 2009/07/30 01:14:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -246,10 +246,10 @@ set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
 set DoCurvStats      = 0;
-set DoCortRibbonVolMask = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
 # ----------- Surface and Volume ------------------#
+set DoCortRibbonVolMask = 0;
 set DoAParc2ASeg = 0;
 set DoWMParc = 0;
 
@@ -2549,7 +2549,7 @@ if($DoCortRibbonVolMask) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
-  echo $cmd > $touchdir/$hemi.cortical_ribbon.touch
+  echo $cmd > $touchdir/cortical_ribbon.touch
 endif
 
 # ----------------- AParc2ASeg ---------------------------------------- #
@@ -3598,7 +3598,6 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoFinalSurfs     = 1;
-      set DoCortRibbonVolMask = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoContraSurfReg  = 0;
@@ -3608,6 +3607,7 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
       set DoCurvStats      = 1;
@@ -3644,7 +3644,6 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoFinalSurfs     = 1;
-      set DoCortRibbonVolMask = 1;
       breaksw
 
     case "-autorecon2-volonly":
@@ -3671,7 +3670,6 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoFinalSurfs     = 1;
-      set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
       set DoCurvStats      = 1;
       breaksw
@@ -3707,7 +3705,6 @@ while( $#argv != 0 )
       set DoFinalSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
-      set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
       set DoCurvStats      = 1;
       breaksw
@@ -3723,7 +3720,6 @@ while( $#argv != 0 )
       set DoFinalSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
-      set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
       set DoCurvStats      = 1;
       breaksw
@@ -3733,7 +3729,6 @@ while( $#argv != 0 )
       set DoFinalSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
-      set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
       set DoCurvStats      = 1;
       breaksw
@@ -3748,6 +3743,7 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
       breaksw
@@ -3770,7 +3766,6 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoFinalSurfs     = 1;
-      set DoCortRibbonVolMask = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoContraSurfReg  = 0;
@@ -3780,6 +3775,7 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortRibbonVolMask = 0;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
       set DoSegStats       = 1;
@@ -5310,13 +5306,6 @@ adding ?h.area(.white) to ?h.area.pial, then dividing by two.  Then
 ?h.volume is created by multiplying ?.mid.area with ?h.thickness.
 This step is also run at the end of the -finalsurfs step.
 
-Cortical Ribbon Mask (-<no>cortribbon)
-
-Creates binary volume masks of the cortical ribbon, ie, each voxel is
-either a 1 or 0 depending upon whether it falls in the ribbon or not.
-Saved as ?h.ribbon.mgz.  Uses mgz regardless of whether the -mgz
-option is used.  The -autorecon2 stage ends here.
-
 Spherical Inflation (-<no>sphere)
 
 Inflates the orig surface into a sphere while minimizing metric
@@ -5380,6 +5369,13 @@ curvature 8. integrated rectified Gaussian curvature 9. folding index
 10. intrinsic curvature index.
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.${DESTRIEUX_NAME}.stats.
+
+Cortical Ribbon Mask (-<no>cortribbon)
+
+Creates binary volume masks of the cortical ribbon, ie, each voxel is
+either a 1 or 0 depending upon whether it falls in the ribbon or not.
+Saved as ?h.ribbon.mgz.  Uses mgz regardless of whether the -mgz
+option is used. 
 
 Curvature Statistics  (-<no>curvstats)
 
