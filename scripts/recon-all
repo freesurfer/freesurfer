@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/30 01:14:16 $
-#    $Revision: 1.238 $
+#    $Date: 2009/07/31 16:52:13 $
+#    $Revision: 1.239 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.238 2009/07/30 01:14:16 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.239 2009/07/31 16:52:13 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4540,17 +4540,17 @@ usage_exit:
   echo ""
   echo " Manual-Intervention Workflow Directives:"
   echo "  -autorecon1    : process stages 1-5 (see below)"
-  echo "  -autorecon2    : process stages 6-24"
+  echo "  -autorecon2    : process stages 6-23"
   echo "                   after autorecon2, check final surfaces:"
   echo "                     a. if wm edit was required, then run -autorecon2-wm"
   echo "                     b. if control points added, then run -autorecon2-cp"
   echo "                     c. if edits made to correct pial, then run -autorecon2-pial"
   echo "                     d. proceed to run -autorecon3"
-  echo "  -autorecon2-cp : process stages 12-24 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
-  echo "  -autorecon2-wm : process stages 15-24"
+  echo "  -autorecon2-cp : process stages 12-23 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
+  echo "  -autorecon2-wm : process stages 15-23"
   echo "  -autorecon2-inflate1 : 6-18"
   echo "  -autorecon2-perhemi : tess, sm1, inf1, q, fix, sm2, inf2, finalsurf, ribbon"
-  echo "  -autorecon3    : process stages 25-31"
+  echo "  -autorecon3    : process stages 24-31"
   echo "  -hemi ?h       : just do lh or rh (default is to do both)"
   echo ""
   echo "  Autorecon Processing Stages (see -autorecon# flags above):"
@@ -4579,14 +4579,14 @@ usage_exit:
   echo "    21. Final Surfs (start here for brain edits for pial surf)"
   echo "    22. Smooth2"
   echo "    23. Inflate2"
-  echo "    24. Cortical Ribbon Mask"
   echo ""
-  echo "    25. Spherical Mapping"
-  echo "    26. Spherical Registration "
-  echo "    27. Spherical Registration, Contralater hemisphere"
-  echo "    28. Map average curvature to subject"
-  echo "    29. Cortical Parcellation (Labeling)"
-  echo "    30. Cortical Parcellation Statistics"
+  echo "    24. Spherical Mapping"
+  echo "    25. Spherical Registration "
+  echo "    26. Spherical Registration, Contralater hemisphere"
+  echo "    27. Map average curvature to subject"
+  echo "    28. Cortical Parcellation (Labeling)"
+  echo "    29. Cortical Parcellation Statistics"
+  echo "    30. Cortical Ribbon Mask"
   echo "    31. Cortical Parcellation mapped to ASeg"
   echo ""
   echo " Step-wise Directives"
@@ -4759,7 +4759,7 @@ pial surface.
 
 -autorecon3
 
-Spherical morph and automatic cortical parcellation.
+Spherical morph, automatic cortical parcellation and ribbon mask.
 
 
 STEP-WISE DIRECTIVES
@@ -4804,8 +4804,8 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>parcstats        < 1 min     per hemisphere
   -<no>cortparc2          1 min     per hemisphere
   -<no>parcstats2       < 1 min     per hemisphere
-  -<no>aparc2aseg         1 min
   -<no>cortribbon        20 min     
+  -<no>aparc2aseg         1 min
   -<no>wmparc            20 min
 
   -all                20-40 hours   both hemipheres
