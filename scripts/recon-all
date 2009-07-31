@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/30 23:33:52 $
-#    $Revision: 1.133.2.54 $
+#    $Date: 2009/07/31 22:03:51 $
+#    $Revision: 1.133.2.55 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.133.2.54 2009/07/30 23:33:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.133.2.55 2009/07/31 22:03:51 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1651,16 +1651,10 @@ if($DoCALabel) then
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
-  if($longitudinal) then
-    if($UseAsegFusion) then
+  if($longitudinal && $UseAsegFusion) then
       # longitudinal processing: use 'fused' aseg just created
       set cmd=($cmd -r $subjdir/mri/aseg.fused.mgz)
       set cmd=($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
-    else
-      # longitudinal processing: use base aseg
-      set cmd = ($cmd -l $longbasedir/mri/${asegbasename}.mgz)
-      set cmd = ($cmd $subjdir/mri/transforms/$longbasetotpN_regfile)
-    endif
   endif
   set cmd = ($cmd $xopts norm.mgz)
   set cmd = ($cmd transforms/talairach.m3z)
@@ -4540,17 +4534,17 @@ usage_exit:
   echo ""
   echo " Manual-Intervention Workflow Directives:"
   echo "  -autorecon1    : process stages 1-5 (see below)"
-  echo "  -autorecon2    : process stages 6-24"
+  echo "  -autorecon2    : process stages 6-23"
   echo "                   after autorecon2, check final surfaces:"
   echo "                     a. if wm edit was required, then run -autorecon2-wm"
   echo "                     b. if control points added, then run -autorecon2-cp"
   echo "                     c. if edits made to correct pial, then run -autorecon2-pial"
   echo "                     d. proceed to run -autorecon3"
-  echo "  -autorecon2-cp : process stages 12-24 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
-  echo "  -autorecon2-wm : process stages 15-24"
+  echo "  -autorecon2-cp : process stages 12-23 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
+  echo "  -autorecon2-wm : process stages 15-23"
   echo "  -autorecon2-inflate1 : 6-18"
   echo "  -autorecon2-perhemi : tess, sm1, inf1, q, fix, sm2, inf2, finalsurf, ribbon"
-  echo "  -autorecon3    : process stages 25-31"
+  echo "  -autorecon3    : process stages 24-31"
   echo "  -hemi ?h       : just do lh or rh (default is to do both)"
   echo ""
   echo "  Autorecon Processing Stages (see -autorecon# flags above):"
@@ -4579,14 +4573,14 @@ usage_exit:
   echo "    21. Final Surfs (start here for brain edits for pial surf)"
   echo "    22. Smooth2"
   echo "    23. Inflate2"
-  echo "    24. Cortical Ribbon Mask"
   echo ""
-  echo "    25. Spherical Mapping"
-  echo "    26. Spherical Registration "
-  echo "    27. Spherical Registration, Contralater hemisphere"
-  echo "    28. Map average curvature to subject"
-  echo "    29. Cortical Parcellation (Labeling)"
-  echo "    30. Cortical Parcellation Statistics"
+  echo "    24. Spherical Mapping"
+  echo "    25. Spherical Registration "
+  echo "    26. Spherical Registration, Contralater hemisphere"
+  echo "    27. Map average curvature to subject"
+  echo "    28. Cortical Parcellation (Labeling)"
+  echo "    29. Cortical Parcellation Statistics"
+  echo "    30. Cortical Ribbon Mask"
   echo "    31. Cortical Parcellation mapped to ASeg"
   echo ""
   echo " Step-wise Directives"
@@ -4627,7 +4621,7 @@ usage_exit:
   echo ""
   echo "  -mprage : assume scan parameters are MGH MP-RAGE protocol"
   echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol"
-  echo "  -ya3t-atlas : for tal reg, use special young adult 3T atlas"
+#  echo "  -ya3t-atlas : for tal reg, use special young adult 3T atlas"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
@@ -4759,7 +4753,7 @@ pial surface.
 
 -autorecon3
 
-Spherical morph and automatic cortical parcellation.
+Spherical morph, automatic cortical parcellation and ribbon mask.
 
 
 STEP-WISE DIRECTIVES
@@ -4804,8 +4798,8 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>parcstats        < 1 min     per hemisphere
   -<no>cortparc2          1 min     per hemisphere
   -<no>parcstats2       < 1 min     per hemisphere
-  -<no>aparc2aseg         1 min
   -<no>cortribbon        20 min     
+  -<no>aparc2aseg         1 min
   -<no>wmparc            20 min
 
   -all                20-40 hours   both hemipheres
@@ -5141,8 +5135,6 @@ Creates the files mri/transform/talairach.auto.xfm and talairach.xfm.
 The flag -tal-check will check the registration against known-good transforms.
 Adding the flag -use-mritotal after -talairach will use the MINC program
 mritotal (see Collins, et al., 1994) to perform the transform.
-The flag "-ya3t-atlas" can be added if your subjects are young adults scanned
-at 3T, where this atlas is known to produce better results with this cohort.
 
 Normalization (-<no>normalization)
 
