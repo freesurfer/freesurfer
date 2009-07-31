@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/03/27 18:31:23 $
- *    $Revision: 1.321 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/31 22:23:18 $
+ *    $Revision: 1.322 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2865,6 +2865,7 @@ int  main(int argc,char *argv[])
      default color table. */
   if (!load_colortable && !load_annotation)
   {
+#if 0
     freesurfer_home_envptr = getenv( "FREESURFER_HOME" );
     if ( NULL != freesurfer_home_envptr )
     {
@@ -2873,6 +2874,10 @@ int  main(int argc,char *argv[])
       fprintf( stderr, "Loading %s\n", colortable_fname );
       labl_load_color_table( colortable_fname );
     }
+#else
+    // there is no 'default' colortable, since there are multiple parc schemes
+    fprintf( stderr, "\n\nWARNING: No colortable found!\n\n");
+#endif
   }
 
   /* end rkt */
@@ -20726,7 +20731,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.321 2009/03/27 18:31:23 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.322 2009/07/31 22:23:18 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
