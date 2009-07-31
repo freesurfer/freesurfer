@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/07/10 23:46:04 $
-#    $Revision: 1.14.2.9 $
+#    $Date: 2009/07/31 22:24:05 $
+#    $Revision: 1.14.2.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.14.2.9 2009/07/10 23:46:04 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.14.2.10 2009/07/31 22:24:05 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -145,6 +145,7 @@ if($#InitReg == 0) then
     set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
       --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister \
       --dof $FSLDOF)
+    if($nolog) set cmd = ($cmd --nolog)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -152,6 +153,7 @@ if($#InitReg == 0) then
   if($InitSPM) then
     set cmd = (spmregister --s $subject --mov $regvol --reg $InitReg \
       --tmp $tmpdir/spmregister)
+    if($nolog) set cmd = ($cmd --nolog)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
