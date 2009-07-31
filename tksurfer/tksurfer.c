@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/31 22:23:18 $
- *    $Revision: 1.322 $
+ *    $Date: 2009/07/31 22:32:26 $
+ *    $Revision: 1.323 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2196,7 +2196,6 @@ int  main(int argc,char *argv[])
   char annotation_fname[NAME_LENGTH] = "";
 
   int load_colortable = FALSE;
-  char *freesurfer_home_envptr = NULL;
   char colortable_fname[NAME_LENGTH] = "";
 
   char tcl_cmd[1024];
@@ -2866,7 +2865,7 @@ int  main(int argc,char *argv[])
   if (!load_colortable && !load_annotation)
   {
 #if 0
-    freesurfer_home_envptr = getenv( "FREESURFER_HOME" );
+    char *freesurfer_home_envptr = getenv( "FREESURFER_HOME" );
     if ( NULL != freesurfer_home_envptr )
     {
       sprintf (colortable_fname, "%s/surface_labels.txt",
@@ -20731,7 +20730,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.322 2009/07/31 22:23:18 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.323 2009/07/31 22:32:26 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
