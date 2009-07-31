@@ -7,9 +7,9 @@
 /*
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
- *    $Author: icsapo $
- *    $Date: 2008/07/01 16:35:10 $
- *    $Revision: 1.28 $
+ *    $Author: jonnyreb $
+ *    $Date: 2009/07/31 21:43:15 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.28 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.29 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -287,7 +287,7 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
         imnr=nint(fimnr);
         if (i>=0 && i<mri_dst->width && 
             j>=0 && j<mri_dst->height && 
-            imnr>=0 && imnr<depth)
+            imnr>=0 && imnr<mri_dst->depth)
           MRIsetVoxVal(mri_dst,i,j,imnr,0,255);
       }
     }
