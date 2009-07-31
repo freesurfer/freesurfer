@@ -8,12 +8,12 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/11/13 15:06:18 $
- *    $Revision: 1.4 $
+ *    $Author: jonnyreb $
+ *    $Date: 2009/07/31 23:19:42 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -43,7 +43,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fill.c,v 1.4 2007/11/13 15:06:18 fischl Exp $";
+static char vcid[] = "$Id: mris_fill.c,v 1.5 2009/07/31 23:19:42 jonnyreb Exp $";
 
 
 int main(int argc, char *argv[]) ;
@@ -58,23 +58,27 @@ char *Progname ;
 
 static double resolution = .25 ;
 static int conform = 0 ;
+static int template = 0 ;
+static int sample_factor = 1 ;
+
+static char *vol_fname ;
 
 int
 main(int argc, char *argv[]) {
   char          **av, *out_fname, *in_fname ;
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_interior ;
+  MRI           *mri_interior, *mri_template = NULL, *mri_buffer = NULL;
 
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_fill.c,v 1.4 2007/11/13 15:06:18 fischl Exp $", "$Name:  $",
+   "$Id: mris_fill.c,v 1.5 2009/07/31 23:19:42 jonnyreb Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fill.c,v 1.4 2007/11/13 15:06:18 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fill.c,v 1.5 2009/07/31 23:19:42 jonnyreb Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -99,9 +103,24 @@ main(int argc, char *argv[]) {
 
   fprintf(stderr, "reading surface from %s...\n", in_fname) ;
   mris = MRISread(in_fname) ;
+
+  if (template)
+  {
+    fprintf(stderr, "reading volume from %s...\n", vol_fname) ;
+    mri_template = MRIread(vol_fname) ;
+    MRIcopy(mri_template, mri_buffer);
+    //mri_template = MRIupsample2(mri_template, mri_buffer);
+    if (sample_factor > 1)
+    {
+      fprintf(stderr, "upsampling template by factor %d...", sample_factor) ;
+      mri_template = MRIupsampleN(mri_template, mri_buffer, sample_factor);
+      fprintf(stderr, "done.\n") ;
+    }
+  }
+
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",Progname, in_fname) ;
-  mri_interior = MRISfillInterior(mris, resolution, NULL) ;
+  mri_interior = MRISfillInterior(mris, resolution, mri_template) ;
 
   if (conform)
   {
@@ -156,6 +175,15 @@ get_option(int argc, char *argv[]) {
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
     break ;
+  case 'T':
+    template = 1 ;
+    vol_fname = argv[2];
+    nargs = 1 ;
+    break;
+  case 'S':
+    sample_factor = atoi(argv[2]) ;
+    nargs = 1;
+    break;
   case '?':
   case 'U':
     print_usage() ;
@@ -183,7 +211,7 @@ print_usage(void) {
 }
 
 static void
-print_help(void) 
+print_help(void)
 {
   print_usage() ;
   printf("\nThis program floodfills the interior of a surface and writes\n"
