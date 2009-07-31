@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/02/20 05:05:11 $
- *    $Revision: 1.25 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/31 22:01:19 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -157,7 +157,7 @@ read_annotation_table(void)
     cp = "." ;
 
   if (annotation_table_file == NULL)
-    sprintf(fname, "%s/Simple_surface_labels2002.txt", cp) ;
+    sprintf(fname, "%s/Simple_surface_labels2009.txt", cp) ;
   else
     sprintf(fname, "%s",annotation_table_file);
 
