@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/07/31 16:52:13 $
-#    $Revision: 1.239 $
+#    $Author: mreuter $
+#    $Date: 2009/07/31 21:28:35 $
+#    $Revision: 1.240 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.239 2009/07/31 16:52:13 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.240 2009/07/31 21:28:35 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1651,16 +1651,10 @@ if($DoCALabel) then
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
-  if($longitudinal) then
-    if($UseAsegFusion) then
+  if($longitudinal && $UseAsegFusion) then
       # longitudinal processing: use 'fused' aseg just created
       set cmd=($cmd -r $subjdir/mri/aseg.fused.mgz)
       set cmd=($cmd -ri $longbasedir/mri/${asegbasename}.label_intensities.txt)
-    else
-      # longitudinal processing: use base aseg
-      set cmd = ($cmd -l $longbasedir/mri/${asegbasename}.mgz)
-      set cmd = ($cmd $subjdir/mri/transforms/$longbasetotpN_regfile)
-    endif
   endif
   set cmd = ($cmd $xopts norm.mgz)
   set cmd = ($cmd transforms/talairach.m3z)
