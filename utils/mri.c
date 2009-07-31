@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:36 $
- *    $Revision: 1.437 $
+ *    $Author: jonnyreb $
+ *    $Date: 2009/07/31 23:15:35 $
+ *    $Revision: 1.438 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.437 $";
+const char *MRI_C_VERSION = "$Revision: 1.438 $";
 
 
 /*-----------------------------------------------------
@@ -7547,9 +7547,25 @@ MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, float max_val)
   Returns value:
 
   Description
+  Wrapper around MRIupsampleN for N=2
   ------------------------------------------------------*/
 MRI *
 MRIupsample2(MRI *mri_src, MRI *mri_dst)
+{
+  return(MRIupsampleN(mri_src, mri_dst, 2)) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Upsample volume by integer factor. No error checking, upsample
+  factor must be valid. (Generalization of original routine
+  'MRIupsample2'.)
+  ------------------------------------------------------*/
+MRI *
+MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
 {
   int     width, depth, height, x, y, z ;
   BUFTYPE *pdst ;
@@ -7560,11 +7576,11 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   if (mri_dst && mri_src->type != mri_dst->type)
     ErrorReturn
     (NULL,
-     (ERROR_UNSUPPORTED, "MRIupsample2: source and dst must be same type"));
+     (ERROR_UNSUPPORTED, "MRIupsampleN: source and dst must be same type"));
 
-  width = 2*mri_src->width ;
-  height = 2*mri_src->height ;
-  depth = 2*mri_src->depth ;
+  width = N*mri_src->width ;
+  height = N*mri_src->height ;
+  depth = N*mri_src->depth ;
 
   if (!mri_dst)
   {
@@ -7573,7 +7589,7 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
     mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
     MRIcopyHeader(mri_src, mri_dst) ;
     MRIsetResolution(mri_dst,
-                     mri_src->xsize/2, mri_src->ysize/2, mri_src->zsize/2) ;
+                     mri_src->xsize/N, mri_src->ysize/N, mri_src->zsize/N) ;
     mri_dst->xstart = mri_src->xstart ;
     mri_dst->ystart = mri_src->ystart ;
     mri_dst->zstart = mri_src->zstart ;
@@ -7582,9 +7598,9 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
     mri_dst->zend = mri_src->zend ;
     m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
     m_scale = MatrixIdentity(4, NULL) ;
-    *MATRIX_RELT(m_scale, 1,1) = 0.5; 
-    *MATRIX_RELT(m_scale, 2,2) = 0.5 ; 
-    *MATRIX_RELT(m_scale, 3,3) = 0.5;
+    *MATRIX_RELT(m_scale, 1,1) = 1.0/N ; 
+    *MATRIX_RELT(m_scale, 2,2) = 1.0/N ; 
+    *MATRIX_RELT(m_scale, 3,3) = 1.0/N ;
     m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
     MatrixFree(&m_vox2ras) ; MatrixFree(&m_scale) ; m_vox2ras = m_tmp ;
     MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
@@ -7608,23 +7624,23 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
       case MRI_UCHAR:
         pdst = &MRIvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
-          *pdst++ = MRIvox(mri_src, x/2, y/2, z/2) ;
+          *pdst++ = MRIvox(mri_src, x/N, y/N, z/N) ;
         break ;
       case MRI_SHORT:
         psdst = &MRISvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
-          *psdst++ = MRISvox(mri_src, x/2, y/2, z/2) ;
+          *psdst++ = MRISvox(mri_src, x/N, y/N, z/N) ;
         break ;
       case MRI_FLOAT:
         pfdst = &MRIFvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
-          *pfdst++ = MRIFvox(mri_src, x/2, y/2, z/2) ;
+          *pfdst++ = MRIFvox(mri_src, x/N, y/N, z/N) ;
         break ;
       default:
         ErrorReturn
         (NULL,
          (ERROR_UNSUPPORTED,
-          "MRIupsample2: unsupported src type %d", mri_src->type)) ;
+          "MRIupsampleN: unsupported src type %d", mri_src->type)) ;
       }
 
     }
@@ -7633,9 +7649,9 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   mri_dst->imnr0 = mri_src->imnr0 ;
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
 
-  mri_dst->xsize = mri_src->xsize/2 ;
-  mri_dst->ysize = mri_src->ysize/2 ;
-  mri_dst->zsize = mri_src->zsize/2 ;
+  mri_dst->xsize = mri_src->xsize/N ;
+  mri_dst->ysize = mri_src->ysize/N ;
+  mri_dst->zsize = mri_src->zsize/N ;
 
   MRIreInitCache(mri_dst) ;
 
