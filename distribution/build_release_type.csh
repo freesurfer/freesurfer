@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.129 2009/07/14 19:40:53 krish Exp $'
+set ID='$Id: build_release_type.csh,v 1.130 2009/07/31 17:18:39 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,9 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.4.0b"
-# b - norandomness is now the default
-set STABLE_PUB_VER_NUM="v4.4.0"
+set STABLE_VER_NUM="v4.5.0"
+set STABLE_PUB_VER_NUM="v4.5.0"
 
 set HOSTNAME=`hostname -s`
 
