@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/30 00:35:50 $
- *    $Revision: 1.2.2.4 $
+ *    $Date: 2009/07/31 22:27:49 $
+ *    $Revision: 1.2.2.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,11 +52,11 @@ LUTDataHolder::LUTDataHolder()
     m_tables.push_back( ctd );
 
   fn = wxFileName::FileName
-    ( _("$FREESURFER_HOME/surface_labels.txt") );
+    ( _("$FREESURFER_HOME/Simple_surface_labels2009.txt") );
   fn.Normalize();
   ctd.filename = fn.GetFullPath().char_str();
   ctd.table = CTABreadASCII( (char*)ctd.filename.c_str() );
-  ctd.name = "surface_labels";
+  ctd.name = "Simple_surface_labels2009";
   ctd.filename = fn.GetFullPath().char_str();
   if ( ctd.table )
     m_tables.push_back( ctd );
