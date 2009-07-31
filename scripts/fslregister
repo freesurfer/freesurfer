@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/08/19 22:27:00 $
-#    $Revision: 1.28 $
+#    $Date: 2009/07/31 22:22:46 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.28 2008/08/19 22:27:00 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.29 2009/07/31 22:22:46 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -57,6 +57,7 @@ set nIters = 1;
 set BBRMask = 1;
 set UseNewSchedule = 1;
 set sch = ();
+set nolog = 0;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -81,11 +82,15 @@ set movvoldir = `dirname $movvol`;
 if($#tmpdir == 0) set tmpdir = $movvoldir/tmp.fslregister.$$
 mkdir -p $tmpdir
 
-set LF = $regfile.fslregister.log
-if(-e $LF) mv $LF $LF.old
-echo ""
-echo "Log file is $LF"
-echo ""
+if(! $nolog) then
+  set LF = $regfile.fslregister.log
+  if(-e $LF) mv $LF $LF.old
+  echo ""
+  echo "Log file is $LF"
+  echo ""
+else
+  set LF = /dev/null
+endif
 
 echo "Logfile for fslregister" >> $LF
 date |& tee -a $LF
@@ -485,6 +490,11 @@ while( $#argv != 0 )
       set cleanup = 1;
       breaksw
 
+    case "--no-log":
+    case "--nolog":
+      set nolog = 1;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1;
@@ -585,6 +595,7 @@ usage_exit:
   echo "   --verbose N  : flirt verbosity level"
   echo "   --tmp tmpdir : use tmpdir (implies --nocleanup)"
   echo "   --nocleanup  : do not delete temporary files"
+  echo "   --nolog      : do produce a log file"
   echo "   --version    : print version and exit"
   echo "   --help       : print help and exit"
   echo ""
