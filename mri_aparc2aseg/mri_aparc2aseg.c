@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/29 21:42:18 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/07/31 22:29:28 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.36 2009/07/29 21:42:18 nicks Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.37 2009/07/31 22:29:28 nicks Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -687,7 +687,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--annot-table")) {
       if (nargc < 1) argnerr(option,1);
       // annotation_table_file is declared in annotation.h
-      // default is $FREESURFER_HOME/Simple_surface_labels2002.txt
+      // default is $FREESURFER_HOME/Simple_surface_labels2009.txt
       annotation_table_file = pargv[0];
       nargsused = 1;
     } else if (!strcmp(option, "--oaparc")) {
@@ -745,7 +745,7 @@ static void print_usage(void) {
   printf("   --a2005s : use aparc.a2005s instead of aparc\n");
   printf("   --a2009s : use aparc.a2009s instead of aparc\n");
   printf("   --annot annotname : use annotname instead of aparc\n");
-  printf("   --annot-table annottable : default is $FREESURFER_HOME/Simple_surface_labels2002.txt\n");
+  printf("   --annot-table annottable : default is $FREESURFER_HOME/Simple_surface_labels2009.txt\n");
   printf("\n");
   printf("   --labelwm : gyral white matter parcellation \n");
   printf("   --wmparc-dmax dmax  max dist (mm) from cortex to be labeld as gyral WM (%gmm)\n",
