@@ -1,17 +1,23 @@
 /**
  * @file  mri_label2vol.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Converts a label to a segmentation volume.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Converts a label or a set of labels into a volume. For a single label,
+ * the volume will be binary: 1 where the label is and 0 where it is not.
+ * For multiple labels, the volume will be 0 where no labels were found
+ * otherwise the value will the the label number. For a voxel to be
+ * declared part of a label, it must have enough hits in the voxel and
+ * it must have more hits than any other label.
+ *
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/07/08 16:28:18 $
- *    $Revision: 1.30 $
+ *    $Author: nicks $
+ *    $Date: 2009/07/31 22:13:26 $
+ *    $Revision: 1.31 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,17 +30,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
-  Name:    mri_label2vol.c
-  Author:  Douglas N. Greve
-  email:   analysis-bugs@nmr.mgh.harvard.edu
-  Date:    2/27/02
-  Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.30 2009/07/08 16:28:18 greve Exp $
-*/
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +55,6 @@
 #include "macros.h"
 #include "colortab.h"
 
-
 #define PROJ_TYPE_NONE 0
 #define PROJ_TYPE_ABS  1
 #define PROJ_TYPE_FRAC 2
@@ -84,7 +78,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.30 2009/07/08 16:28:18 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.31 2009/07/31 22:13:26 nicks Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -149,11 +143,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.30 2009/07/08 16:28:18 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.31 2009/07/31 22:13:26 nicks Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.30 2009/07/08 16:28:18 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.31 2009/07/31 22:13:26 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -666,7 +660,7 @@ static void print_help(void) {
     "separate labels using mri_annotation2label. These labels can then be\n"
     "input to mri_label2vol using --label. Or, the annotation file can be\n"
     "read in directly using --annot. The map of annotation numbers to \n"
-    "annotation names can be found at Simple_surface_labels2002.txt \n"
+    "annotation names can be found at FreeSurferColorLUT.txt \n"
     "in $FREESURFER_HOME. Not with --label or --seg.\n"
     "\n"
     "--seg segpath\n"
