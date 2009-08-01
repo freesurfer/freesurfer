@@ -1,17 +1,15 @@
 /**
  * @file  mri_histo_normalize.c
  * @brief do linear normalization of a set of histograms
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/07/29 19:32:50 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2009/08/01 17:31:38 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -43,6 +41,7 @@
 #include "transform.h"
 #include "timer.h"
 #include "version.h"
+#include "histo.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -60,7 +59,8 @@ static double tol = 0.5 ;  // avg rms change in vox intensities to terminate
 
 int
 main(int argc, char *argv[]) {
-  char         **av, *out_vol_name, *in_vol_name, *cp, fname[STRLEN], *subject;
+  char         **av, *out_vol_name, *in_vol_name, 
+    *cp, fname[STRLEN], *subject;
   int          ac, nargs, n, done, niter ;
   int          msec, minutes, seconds, nsubjects ;
   struct timeb start ;
@@ -69,7 +69,10 @@ main(int argc, char *argv[]) {
   double       rms, rms_avg ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_histo_normalize.c,v 1.1 2009/07/29 19:32:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv, 
+     "$Id: mri_histo_normalize.c,v 1.2 2009/08/01 17:31:38 nicks Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -94,16 +97,19 @@ main(int argc, char *argv[]) {
   if (!strlen(sdir)) {
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
-      ErrorExit(ERROR_BADPARM,
-                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+      ErrorExit(
+        ERROR_BADPARM,
+        "%s: SUBJECTS_DIR not defined in environment.\n", 
+        Progname) ;
     strcpy(sdir, cp) ;
   }
 
   in_vol_name = argv[1] ;
   out_vol_name = argv[argc-1] ;
   nsubjects = argc-3 ;
-  printf("argc=%d, out name %s, nsubjects = %d\n", argc, out_vol_name, 
-         nsubjects);
+  printf(
+    "argc=%d, out name %s, nsubjects = %d\n", 
+    argc, out_vol_name, nsubjects);
 
   htemplate = HISTOalloc(256) ;
   htemplate->bin_size = 1 ; htemplate->min = 0 ; htemplate->max = 255 ;
@@ -149,7 +155,8 @@ main(int argc, char *argv[]) {
     float scale, offset ;
     for (rms_avg = 0.0, n = 0 ; n < nsubjects ; n++)
     {
-      HISTOfindLinearFit(histos[n], htemplate, .5, 2, -20, 20, &scale, &offset) ;
+      HISTOfindLinearFit(histos[n], htemplate, 
+                         .5, 2, -20, 20, &scale, &offset) ;
       HISTOlinearScale(histos[n], histos[n], scale, offset) ;
       mri = MRIlinearScale(mri_inputs[n], NULL, scale, offset, 1) ;
       rms = MRIrmsDifferenceNonzero(mri, mri_inputs[n]) ;
@@ -169,7 +176,7 @@ main(int argc, char *argv[]) {
 
     if (Gdiag & DIAG_WRITE)
     {
-      char *fname ;
+      char *fname=NULL;
       HISTOplot(htemplate, "h.plt") ;
       for (n = 0 ; n < nsubjects ; n++)
       {
@@ -197,7 +204,8 @@ main(int argc, char *argv[]) {
     printf("writing output %s\n", fname) ;
     MRIwrite(mri_inputs[n], fname) ;
   }
-  fprintf(stderr, "histogram normalization took %d minutes and %d seconds.\n",
+  fprintf(stderr, 
+          "histogram normalization took %d minutes and %d seconds.\n",
           minutes, seconds) ;
 
   exit(0) ;
@@ -253,7 +261,8 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <in vol name> <subject1 <subject2>... <out vol name>\n",
+  printf("usage: %s [options] <in vol name> <subject1 <subject2>... "
+         "<out vol name>\n",
          Progname) ;
   printf(
     "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
