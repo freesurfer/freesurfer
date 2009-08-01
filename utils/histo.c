@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/04/16 19:13:40 $
- *    $Revision: 1.61 $
+ *    $Date: 2009/08/01 18:08:53 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -485,7 +485,16 @@ HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   float *pc1, *pc2, *pcdst ;
 
   if (!histo_dst)
+  {
     histo_dst = HISTOalloc(h1->nbins) ;
+    for (b = 0 ; b < h1->nbins ; b++)
+      histo_dst->bins[b] = h1->bins[b] ;
+    histo_dst->min = h1->min ;
+    histo_dst->max = h1->max ;
+    histo_dst->bin_size = h1->bin_size ;
+    if (h2 == NULL)
+      h2 = histo_dst ;
+  }
   else
     histo_dst->nbins = h1->nbins ;
 
@@ -1558,14 +1567,14 @@ HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
 
 #if 0
 static double
-histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
+histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 {
   int    b1, b2, h2_done[256] ;
   double error, sse, c1, c2;
 
   if (h2->nbins > 256)
     ErrorExit(ERROR_UNSUPPORTED, 
-              "histoComputeLinearFitError: only 256 bins allowed") ;
+              "histoComputeLinearFitCorrelation: only 256 bins allowed") ;
   memset(h2_done, 0, sizeof(h2_done)) ;
   for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
   {
@@ -1603,13 +1612,13 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 
 
 static double
-histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
+histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
 {
   //this one uses correlation instead of SSE, and should be more robust!
   int    b1, b2 ;
-  double error, sse, c1, c2;
+  double correlation, c1, c2;
 
-  for (sse = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
+  for (correlation = 0.0, b1 = 0 ; b1 < h1->nbins ; b1++)
   {
     b2 = nint(b1*a+b) ;
     if ((b2 < 0) || (b2 > h2->nbins-1))
@@ -1617,11 +1626,10 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
     else
       c2 = h2->counts[b2] ;
     c1 = h1->counts[b1] ;
-    error = c1*c2;
-    sse -= error;
+    correlation += c1*c2 ;
   }
 
-  // printf("sse = %g\n", sse);
+  // printf("correlation = %g\n", correlation);
   // inverse map
   for (b2 = 0 ; b2 < h2->nbins ; b2++)
   {
@@ -1631,12 +1639,11 @@ histoComputeLinearFitError(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
     else
       c1 = h1->counts[b1] ;
     c2 = h2->counts[b2] ;
-    error = c1*c2;
-    sse -= error;
+    correlation += c1*c2;
   }
-  // printf("a= %g, b= %g, sse = %g\n", a, b, sse);
+  // printf("a= %g, b= %g, correlation = %g\n", a, b, correlation);
 
-  return(sse) ;
+  return(correlation) ;
 }
 
 
@@ -1645,11 +1652,11 @@ int
 HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
                    double bmin, double bmax, float *pa, float *pb)
 {
-  double   a, b, sse, min_sse, min_a, min_b, astep, bstep ;
+  double   a, b, correlation, best_correlation, best_a, best_b, astep, bstep ;
 
-  min_sse = histoComputeLinearFitError(h1, h2, 1.0, 0.0) ;
-  min_a = 1.0 ;
-  min_b = 0.0 ;
+  best_correlation = histoComputeLinearFitCorrelation(h1, h2, 1.0, 0.0) ;
+  best_a = 1.0 ;
+  best_b = 0.0 ;
   astep = MIN(amin, (amax-amin)/NSTEPS) ;
   astep = MAX(astep, 0.01);
   bstep = (bmax-bmin)/NSTEPS ;
@@ -1657,17 +1664,17 @@ HISTOfindLinearFit(HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax,
   for (a = amin ; a <= amax ; a += astep)
     for (b = bmin ; b <= bmax ; b += bstep)
     {
-      sse = histoComputeLinearFitError(h1, h2, a, b) ;
-      if (sse < min_sse)
+      correlation = histoComputeLinearFitCorrelation(h1, h2, a, b) ;
+      if (correlation > best_correlation)
       {
-        min_sse = sse ;
-        min_a = a ;
-        min_b = b ;
+        best_correlation = correlation ;
+        best_a = a ;
+        best_b = b ;
       }
     }
 
-  *pa = min_a ;
-  *pb = min_b ;
+  *pa = best_a ;
+  *pb = best_b ;
 
   return(NO_ERROR) ;
 }
@@ -2088,3 +2095,19 @@ HISTOabs(HISTOGRAM *h, HISTOGRAM *habs)
   }
   return(habs) ;
 }
+HISTOGRAM *
+HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst) 
+{
+  int  b ;
+
+  if (!hdst)
+    hdst = HISTOalloc(hsrc->nbins) ;
+  else
+    hdst->nbins = hsrc->nbins ;
+
+  for (b = 0 ; b < hsrc->nbins ; b++)
+    hdst->counts[b] = hsrc->counts[b] * mul ;
+
+  return(hdst) ;
+}
+
