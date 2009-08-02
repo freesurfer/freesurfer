@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/07 21:09:32 $
- *    $Revision: 1.38.2.2 $
+ *    $Date: 2009/08/02 15:00:46 $
+ *    $Revision: 1.38.2.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,6 +47,7 @@
 
 char *Progname ;
 
+static int fill_in_sample_means(GCA_SAMPLE *gcas, GCA *gca, int nsamples);
 MRI *normalizeChannelFromLabel
 (MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas, int input_index);
 MRI *normalizeFromLabel
@@ -77,6 +78,7 @@ static GCA_SAMPLE *copy_ctrl_points_from_volume(GCA *gca,TRANSFORM *transform,
                                                 int frame) ;
 
 static char *seg_fname = NULL ;
+static char *long_seg_fname = NULL ;
 static char *renormalization_fname = NULL ;
 static double TR = 0.0, TE = 0.0, alpha = 0.0 ;
 static char *tissue_parms_fname = NULL ;
@@ -145,13 +147,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.38.2.2 2009/06/07 21:09:32 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.38.2.3 2009/08/02 15:00:46 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.38.2.2 2009/06/07 21:09:32 nicks Exp $",
+     "$Id: mri_ca_normalize.c,v 1.38.2.3 2009/08/02 15:00:46 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -196,13 +198,37 @@ main(int argc, char *argv[])
   TimerStart(&start) ;
   printf("reading atlas from '%s'...\n", gca_fname) ;
   fflush(stdout) ;
+
+  if (long_seg_fname) // read in a segmentation and turn it into a ctrl point volume
+  {
+    MRI *mri_seg, *mri_tmp2 = NULL ;
+    int i ;
+
+    mri_seg = MRIread(long_seg_fname) ;
+    if (mri_seg == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s", Progname,long_seg_fname) ;
+    mri_tmp = MRIclone(mri_seg, NULL) ;
+    mri_ctrl = MRIclone(mri_tmp, NULL) ;
+    for (i = 0 ; i < NSTRUCTURES ; i++)
+    {
+      MRIcopyLabel(mri_seg, mri_tmp, normalization_structures[i]) ;
+      MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
+      MRIerode(mri_tmp, mri_tmp) ;
+      MRIerode(mri_tmp, mri_tmp) ;
+      mri_tmp2 = MRImask(mri_seg, mri_tmp, mri_tmp2, 0, 0) ;
+
+      MRIadd(mri_tmp2 , mri_ctrl, mri_ctrl) ;
+      MRIclear(mri_tmp) ; MRIclear(mri_tmp2) ;
+    }
+    MRIfree(&mri_tmp) ; MRIfree(&mri_seg) ;
+  }
+
   if (seg_fname == NULL)
   {
     gca = GCAread(gca_fname) ;
     if (gca == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
                 Progname, gca_fname) ;
-
     printf("reading transform from '%s'...\n", xform_fname) ;
     fflush(stdout) ;
     transform = TransformRead(xform_fname) ;
@@ -253,6 +279,9 @@ main(int argc, char *argv[])
   }
   else
     gca = NULL ;  /* don't need atlas if using segmentation */
+
+  if (long_seg_fname)   // longitudinal analysis - regularize means
+    GCAregularizeConditionalDensities(gca, .5) ;
 
   for (input = 0 ; input < ninputs ; input++)
   {
@@ -398,6 +427,7 @@ main(int argc, char *argv[])
          "%s: could not read segmentation volume %s...\n",
          Progname, seg_fname);
 
+
     nstructs = 0 ;
     structs[nstructs++] = Left_Cerebral_White_Matter ;
     structs[nstructs++] = Right_Cerebral_White_Matter ;
@@ -422,7 +452,14 @@ main(int argc, char *argv[])
     {
       for (n = 1 ; n <= nregions ; n++)
       {
-        if (read_ctrl_point_fname)
+        if (long_seg_fname)
+        {
+          gcas_norm = 
+            copy_ctrl_points_from_volume(gca, transform, &norm_samples, 
+                                         mri_ctrl, 0) ;
+          fill_in_sample_means(gcas_norm, gca,norm_samples);
+        }
+        else if (read_ctrl_point_fname)
         {
           gcas_norm = 
             copy_ctrl_points_from_volume(gca, transform, &norm_samples, 
@@ -560,6 +597,13 @@ get_option(int argc, char *argv[])
     printf("using segmentation volume %s to generate control points...\n",
            seg_fname) ;
   }
+  else if (!strcmp(option, "LONG"))
+  {
+    long_seg_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using longitudinal segmentation volume %s to generate control points...\n",
+           long_seg_fname) ;
+  }
   else if (!strcmp(option, "FONLY"))
   {
     ctl_point_fname = argv[2] ;
@@ -655,7 +699,7 @@ get_option(int argc, char *argv[])
   case 'R':
     read_ctrl_point_fname = argv[2] ;
     nargs = 1 ;
-    printf("reading control point volume to %s\n", read_ctrl_point_fname) ;
+    printf("reading control point volume from %s\n", read_ctrl_point_fname) ;
     break ;
   case 'C':
     ctrl_point_fname = argv[2] ;
@@ -1769,5 +1813,38 @@ copy_ctrl_points_from_volume(GCA *gca, TRANSFORM *transform, int *pnsamples,
     }
   }
   return(gcas) ;
+}
+
+static int
+fill_in_sample_means(GCA_SAMPLE *gcas, GCA *gca, int nsamples)
+{
+  int n ;
+  GC1D  *gc ;
+  
+
+  for (n = 0 ; n < nsamples ; n++)
+    
+  {
+    gc = GCAfindPriorGC(gca,
+                        gcas[n].xp,
+                        gcas[n].yp,
+                        gcas[n].zp,
+                        gcas[n].label) ;
+    if (gc)
+    {
+      int r, c, v ;
+
+      for (v = r = 0 ; r < gca->ninputs ; r++)
+      {
+        for (c = r ; c < gca->ninputs ; c++, v++)
+        {
+          gcas[n].means[v] = gc->means[v] ;
+          //          gcas[n].covars[v] = gc->covars[v] ;
+        }
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
 }
 
