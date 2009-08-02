@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: jonnyreb $
- *    $Date: 2009/07/31 23:15:35 $
- *    $Revision: 1.438 $
+ *    $Author: fischl $
+ *    $Date: 2009/08/02 01:04:26 $
+ *    $Revision: 1.439 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.438 $";
+const char *MRI_C_VERSION = "$Revision: 1.439 $";
 
 
 /*-----------------------------------------------------
@@ -1289,6 +1289,74 @@ MRImatch(MRI *mri1, MRI *mri2)
           (mri1->depth == mri2->depth) &&
           (mri1->type == mri2->type)
         ) ;
+}
+MRI *
+MRIlinearScale(MRI *mri_src, MRI *mri_dst, float scale, float offset, 
+               int only_nonzero) 
+{
+  int     width, height, depth, x, y, z, frame ;
+  float   val ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (frame = 0 ; frame < mri_src->nframes ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < height ; x++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
+          if (!only_nonzero || !DZERO(val))
+            val = val*scale+offset ;
+          if (mri_dst->type == MRI_UCHAR)
+          {
+            if (val > 255)
+              val = 255 ;
+            else if (val < 0) 
+              val = 0 ;
+          }
+          MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+double 
+MRIrmsDifferenceNonzero(MRI *mri1, MRI *mri2) 
+{
+  int     width, height, depth, x, y, z, frame, nvox ;
+  float   val1, val2 ;
+  double  sse ;
+
+  width = mri1->width ; height = mri1->height ; depth = mri1->depth ;
+
+  for (sse = 0.0, nvox = frame = 0 ; frame < mri1->nframes ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < height ; x++)
+        {
+          val1 = MRIgetVoxVal(mri1, x, y, z, frame) ;
+          val2 = MRIgetVoxVal(mri2, x, y, z, frame) ;
+          if (!DZERO(val1) && !DZERO(val2))
+          {
+            sse += (val1-val2)*(val1-val2) ;
+            nvox++ ;
+          }
+        }
+      }
+    }
+  }
+  if (nvox == 0)
+    return(0) ;
+  return(sqrt(sse/nvox)) ;
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
