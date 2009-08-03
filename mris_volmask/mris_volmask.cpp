@@ -9,8 +9,8 @@
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/09/10 19:19:14 $
- *    $Revision: 1.10.2.5 $
+ *    $Date: 2009/08/03 21:06:28 $
+ *    $Revision: 1.10.2.6 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -760,6 +760,14 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
     MRIsetVoxVal(vol, x,y,z,0, tab[j] );
   }
 
+  // free the objects that we New'd!  they want to be free!!!!!
+  // according to vtkObject.h, the Delete() method should be used to delete.
+  obb->Delete();
+  implicit->Delete();
+  sp->Delete();
+  mesh->Delete();
+  faces->Delete();
+  points->Delete();
 }
 #endif
 
