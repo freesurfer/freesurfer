@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/07/31 22:22:46 $
-#    $Revision: 1.28 $
+#    $Date: 2009/08/03 18:13:41 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.28 2009/07/31 22:22:46 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.29 2009/08/03 18:13:41 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -128,8 +128,8 @@ else
   set template = $tmpdir/template.nii
 endif
 set cmd = (mri_convert $movvol $template)
-if($#frame != 0) set cmd = ($cmd --frame $cmd)
-if($midframe) set cmd = ($cmd --mid-frame $cmd)
+if($#frame != 0) set cmd = ($cmd --frame $frame)
+if($midframe) set cmd = ($cmd --mid-frame)
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
