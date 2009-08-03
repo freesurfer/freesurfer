@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/31 22:02:05 $
-#    $Revision: 1.241 $
+#    $Date: 2009/08/03 19:01:36 $
+#    $Revision: 1.242 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.241 2009/07/31 22:02:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.242 2009/08/03 19:01:36 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2963,7 +2963,7 @@ while( $#argv != 0 )
     case "-use-mritotal":
       set UseMincMritotal = 1;
       breaksw
-    case "-ya3t-atlas":
+    case "-schwartzya3t-atlas":
       set UseYa3tTalAtlas = 1;
       breaksw
 
@@ -4621,7 +4621,7 @@ usage_exit:
   echo ""
   echo "  -mprage : assume scan parameters are MGH MP-RAGE protocol"
   echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol"
-#  echo "  -ya3t-atlas : for tal reg, use special young adult 3T atlas"
+#  echo "  -schwartzya3t-atlas : for tal reg, use special young adult 3T atlas"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
