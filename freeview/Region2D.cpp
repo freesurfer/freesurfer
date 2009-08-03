@@ -1,6 +1,6 @@
 /**
- * @file  Cursor2D.h
- * @brief Cursor creator/loader for 2D view.
+ * @file  Region2D.cpp
+ * @brief Region2D.
  *
  */
 /*
@@ -8,7 +8,7 @@
  * CVS Revision Info:
  *    $Author: rpwang $
  *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.7 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -24,29 +24,32 @@
  *
  */
 
-#ifndef CursorFactory_h
-#define CursorFactory_h
+#include "Region2D.h"
+#include "RenderView2D.h"
+#include <vtkActor2D.h>
+#include <vtkProperty2D.h>
+#include <vtkRenderer.h>
+#include <vtkPlaneSource.h>
+#include <vtkPolyDataMapper2D.h>
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkCoordinate.h>
 
-#include <wx/cursor.h>
-
-class CursorFactory
+Region2D::Region2D( RenderView2D* view ) :
+    Broadcaster( "Region2D" ),
+    Listener( "Region2D" ),
+    m_view( view )
 {
-public:
-  CursorFactory();
+}
 
-  static void Initialize();
+Region2D::~Region2D()
+{}
 
-  static wxCursor CursorPan;
-  static wxCursor CursorZoom;
+void Region2D::Update()
+{
+}
 
-  static wxCursor CursorPencil;
-  static wxCursor CursorFill;
-  static wxCursor CursorPolyline;
-  static wxCursor CursorColorPicker;
-  static wxCursor CursorMeasure;
-  static wxCursor CursorGrab;
-};
-
-#endif
-
+void Region2D::Show( bool bShow )
+{
+}
 

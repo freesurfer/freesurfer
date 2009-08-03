@@ -63,6 +63,8 @@ freeview_SOURCES=\
 	Interactor2D.h \
 	Interactor2DNavigate.cpp \
 	Interactor2DNavigate.h \
+	Interactor2DMeasure.cpp \
+	Interactor2DMeasure.h \
 	Interactor2DRegionEdit.cpp \
 	Interactor2DRegionEdit.h \
 	Interactor2DROIEdit.cpp \
@@ -135,8 +137,12 @@ freeview_SOURCES=\
 	PanelWayPoints.h \
 	PixelInfoPanel.cpp \
 	PixelInfoPanel.h \
-	Rectangle2D.cpp \
-	Rectangle2D.h \
+	Region2D.cpp \
+	Region2D.h \
+	Region2DLine.cpp \
+	Region2DLine.h \
+	Region2DRectangle.cpp \
+	Region2DRectangle.h \
 	RenderView2D.cpp \
 	RenderView2D.h \
 	RenderView3D.cpp \

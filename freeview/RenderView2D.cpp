@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/22 21:41:49 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/08/03 20:29:27 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,8 +45,9 @@
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
 #include "Interactor2DWayPointsEdit.h"
+#include "Interactor2DMeasure.h"
 #include "MyUtils.h"
-#include "Rectangle2D.h"
+#include "Region2DRectangle.h"
 
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
@@ -77,14 +78,16 @@ void RenderView2D::Initialize2D()
   m_renderer->GetActiveCamera()->ParallelProjectionOn();
   m_annotation2D = new Annotation2D;
   m_cursor2D = new Cursor2D( this );
-  m_selection2D = new Rectangle2D( this );
+  m_selection2D = new Region2DRectangle( this );
 
   m_interactorNavigate  = new Interactor2DNavigate();
+  m_interactorMeasure  = new Interactor2DMeasure();
   m_interactorVoxelEdit  = new Interactor2DVoxelEdit();
   m_interactorROIEdit  = new Interactor2DROIEdit();
   m_interactorWayPointsEdit = new Interactor2DWayPointsEdit();
 
   m_interactorNavigate->AddListener( MainWindow::GetMainWindowPointer() );
+  m_interactorMeasure->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorVoxelEdit->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorROIEdit->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorWayPointsEdit->AddListener( MainWindow::GetMainWindowPointer() );
@@ -103,9 +106,18 @@ RenderView2D::~RenderView2D()
   m_interactor = NULL;
   delete m_annotation2D;
   delete m_cursor2D;
+  
   delete m_interactorNavigate;
+  delete m_interactorMeasure;
   delete m_interactorVoxelEdit;
   delete m_interactorROIEdit;
+  delete m_interactorWayPointsEdit;
+  
+  for ( size_t i = 0; i < m_regions.size(); i++ )
+  {
+    delete m_regions[i];
+  }
+  m_regions.clear();
 }
 
 void RenderView2D::PrintSelf(ostream& os, vtkIndent indent)
@@ -122,6 +134,9 @@ void RenderView2D::SetInteractionMode( int nMode )
 
   switch ( nMode )
   {
+  case IM_Measure:
+    m_interactor = m_interactorMeasure;
+    break;
   case IM_ROIEdit:
     m_interactor = m_interactorROIEdit;
     break;
@@ -151,12 +166,16 @@ void RenderView2D::RefreshAllActors()
     // add annotation and cursor
     m_cursor2D->AppendActor( m_renderer );
     m_annotation2D->AppendAnnotations( m_renderer );
-    m_selection2D->AppendActor( m_renderer );
+    m_selection2D->AppendProp( m_renderer );
 
     // add scalar bar
     m_renderer->AddViewProp( m_actorScalarBar );
   }
 
+  // add regions
+  for ( size_t i = 0; i < m_regions.size(); i++ )
+    m_regions[i]->AppendProp( m_renderer );
+  
   // add focus frame
   m_renderer->AddViewProp( m_actorFocusFrame );
 
@@ -377,6 +396,8 @@ void RenderView2D::Update2DOverlay()
 {
   m_cursor2D->Update();
   m_selection2D->Update();
+  for ( size_t i = 0; i < m_regions.size(); i++ )
+    m_regions[i]->Update();
 }
 
 void RenderView2D::MoveLeft()
@@ -505,6 +526,42 @@ void RenderView2D::StopSelection()
           layer->GetProperties()->SetMinMaxGrayscaleWindow( range[0], range[1] );
           break;
       }
+    }
+  }
+}
+
+Region2D* RenderView2D::GetRegion( int nX, int nY, int* index_out )
+{
+  for ( size_t i = 0; i < m_regions.size(); i++ )
+  {
+    if ( m_regions[i]->Contains( nX, nY, index_out ) )
+      return m_regions[i];
+  }
+  return NULL;
+}
+
+void RenderView2D::AddRegion( Region2D* region )
+{
+  for ( size_t i = 0; i < m_regions.size(); i++ )
+  {
+    if ( m_regions[i] == region )
+      return;
+  }
+  
+  m_regions.push_back( region );
+  RefreshAllActors();
+}
+
+void RenderView2D::DeleteRegion( Region2D* region )
+{
+  for ( size_t i = 0; i < m_regions.size(); i++ )
+  {
+    if ( m_regions[i] == region )
+    {
+      m_regions.erase( m_regions.begin() + i );
+      delete region;
+      RefreshAllActors();
+      return;
     }
   }
 }

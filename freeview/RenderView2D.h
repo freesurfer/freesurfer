@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/22 21:41:49 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/08/03 20:29:27 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,14 +28,17 @@
 #define RenderView2D_h
 
 #include "RenderView.h"
+#include <vector>
 
 class Annotation2D;
 class Cursor2D;
 class Interactor2DNavigate;
+class Interactor2DMeasure;
 class Interactor2DVoxelEdit;
 class Interactor2DROIEdit;
 class Interactor2DWayPointsEdit;
-class Rectangle2D;
+class Region2DRectangle;
+class Region2D;
 
 class VTK_RENDERING_EXPORT RenderView2D : public RenderView
 {
@@ -50,7 +53,7 @@ public:
 
   void OnSize( wxSizeEvent& event );
 
-  enum InteractionMode { IM_Navigate = 0, IM_VoxelEdit, IM_ROIEdit, IM_WayPointsEdit };
+  enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ROIEdit, IM_WayPointsEdit };
 
   static RenderView2D * New();
   void PrintSelf(ostream& os, vtkIndent indent);
@@ -98,6 +101,10 @@ public:
   void UpdateSelection( int nX, int nY );
   void StopSelection();
   
+  Region2D* GetRegion( int nX, int nY, int* index_out = NULL );
+  void AddRegion( Region2D* region );
+  void DeleteRegion( Region2D* region );
+  
 protected:
   void Initialize2D();
   void UpdateAnnotation();
@@ -110,12 +117,16 @@ protected:
 
   Annotation2D*   m_annotation2D;
   Cursor2D*       m_cursor2D;
-  Rectangle2D*     m_selection2D;
-  Interactor2DNavigate* m_interactorNavigate;
-  Interactor2DVoxelEdit* m_interactorVoxelEdit;
-  Interactor2DROIEdit* m_interactorROIEdit;
-  Interactor2DWayPointsEdit* m_interactorWayPointsEdit;
+  Region2DRectangle*     m_selection2D;
+  
+  Interactor2DNavigate*       m_interactorNavigate;
+  Interactor2DMeasure*        m_interactorMeasure;
+  Interactor2DVoxelEdit*      m_interactorVoxelEdit;
+  Interactor2DROIEdit*        m_interactorROIEdit;
+  Interactor2DWayPointsEdit*  m_interactorWayPointsEdit;
 
+  std::vector<Region2D*>      m_regions;
+  
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/22 21:41:49 $
- *    $Revision: 1.41 $
+ *    $Date: 2009/08/03 20:29:27 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -159,6 +159,8 @@ public:
 
   void OnModeNavigate               ( wxCommandEvent& event );
   void OnModeNavigateUpdateUI       ( wxUpdateUIEvent& event);
+  void OnModeMeasure                ( wxCommandEvent& event );
+  void OnModeMeasureUpdateUI        ( wxUpdateUIEvent& event);
   void OnModeVoxelEdit              ( wxCommandEvent& event );
   void OnModeVoxelEditUpdateUI      ( wxUpdateUIEvent& event);
   void OnModeROIEdit                ( wxCommandEvent& event );

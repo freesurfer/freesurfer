@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/08/03 20:29:27 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,8 @@
 #include "res/CursorPan_png.h"
 #include "res/CursorZoom_png.h"
 #include "res/CursorColorPicker_png.h"
+#include "res/CursorMeasure_png.h"
+#include "res/CursorGrab_png.h"
 
 wxCursor CursorFactory::CursorPencil  = wxCursor();
 wxCursor CursorFactory::CursorFill   = wxCursor();
@@ -42,6 +44,8 @@ wxCursor CursorFactory::CursorPolyline = wxCursor();
 wxCursor CursorFactory::CursorPan   = wxCursor();
 wxCursor CursorFactory::CursorZoom  = wxCursor();
 wxCursor CursorFactory::CursorColorPicker  = wxCursor();
+wxCursor CursorFactory::CursorGrab  = wxCursor();
+wxCursor CursorFactory::CursorMeasure  = wxCursor();
 
 CursorFactory::CursorFactory()
 {
@@ -85,4 +89,16 @@ void CursorFactory::Initialize()
   img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
   img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 23 );
   CursorColorPicker = wxCursor( img );
+  
+  wxMemoryInputStream s7( CursorMeasure_png, CursorMeasure_png_LEN );
+  img = wxImage( s7, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
+  CursorMeasure = wxCursor( img );
+  
+  wxMemoryInputStream s8( CursorGrab_png, CursorGrab_png_LEN );
+  img = wxImage( s8, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
+  CursorGrab = wxCursor( img );
 }

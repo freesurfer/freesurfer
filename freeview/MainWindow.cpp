@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/24 20:38:22 $
- *    $Revision: 1.64 $
+ *    $Date: 2009/08/03 20:29:27 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -125,6 +125,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU        ( XRCID( "ID_FILE_LOAD_SURFACE" ),      MainWindow::OnFileLoadSurface )
   EVT_MENU        ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigate )
   EVT_UPDATE_UI   ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigateUpdateUI )
+  EVT_MENU        ( XRCID( "ID_MODE_MEASURE" ),           MainWindow::OnModeMeasure )
+  EVT_UPDATE_UI   ( XRCID( "ID_MODE_MEASURE" ),           MainWindow::OnModeMeasureUpdateUI )
   EVT_MENU        ( XRCID( "ID_MODE_VOXEL_EDIT" ),        MainWindow::OnModeVoxelEdit )
   EVT_UPDATE_UI   ( XRCID( "ID_MODE_VOXEL_EDIT" ),        MainWindow::OnModeVoxelEditUpdateUI )
   EVT_MENU        ( XRCID( "ID_MODE_ROI_EDIT" ),          MainWindow::OnModeROIEdit )
@@ -1116,6 +1118,17 @@ void MainWindow::OnModeNavigate( wxCommandEvent& event )
 void MainWindow::OnModeNavigateUpdateUI( wxUpdateUIEvent& event)
 {
   event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_Navigate );
+}
+
+void MainWindow::OnModeMeasure( wxCommandEvent& event )
+{
+  SetMode( RenderView2D::IM_Measure );
+}
+
+void MainWindow::OnModeMeasureUpdateUI( wxUpdateUIEvent& event)
+{
+  event.Check( m_viewAxial->GetInteractionMode() == RenderView2D::IM_Measure );
+  event.Enable( m_layerCollectionManager->HasLayer( "MRI" ) );
 }
 
 void MainWindow::OnModeVoxelEdit( wxCommandEvent& event )
