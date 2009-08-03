@@ -2,14 +2,20 @@
 # Makefile.am
 ##
 
+if USE_LOCAL_TIFF
+TIFFCFLAGS=-I$(top_srcdir)/tiff
+LIBTIFF=$(top_builddir)/tiff/libtiff.a
+else
+TIFFCFLAGS=$(TIFF_CFLAGS)
+LIBTIFF=$(LIB_TIFF)
+endif
+
 AM_CPPFLAGS=\
-	$(GL_CFLAGS) \
-	$(TCL_CFLAGS) \
-	$(tcl_includes) \
+	$(TCL_CFLAGS) $(TIFFCFLAGS) \
+	$(tcl_includes) $(GL_CFLAGS) \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/glut \
-	-fno-strict-aliasing
-AM_LDFLAGS=$(LDFLAGS_TCL)
+	-I$(top_srcdir)/glut
+AM_LDFLAGS=$(LDFLAGS_TCL) $(TIFF_LIBS)
 
 if ENABLE_TCLTK_APPS
 bin_PROGRAMS=tkmedit
@@ -22,10 +28,11 @@ tkmedit_SOURCES=tkmedit.c \
 	tkmFunctionalVolume.h \
 	tkmMeditWindow.h \
 	$(top_srcdir)/fsgdf/fsgdf_wrap.c
-tkmedit_LDADD= $(top_srcdir)/fsgdf/libfsgdf.a \
-	$(addprefix $(top_srcdir)/,$(LIBS_MGH)) \
+tkmedit_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
+	$(addprefix $(top_builddir)/,$(LIBS_MGH)) \
 	$(LIBS_TCL_OPENGL) \
-	$(X_LIBS) $(top_builddir)/glut/libglut.a
+	$(X_LIBS) $(LIBTIFF) \
+	$(top_builddir)/glut/libglut.a
 tkmedit_LDFLAGS=$(LDFLAGS_TCL)
 else
 bin_PROGRAMS=
@@ -34,13 +41,17 @@ endif
 if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 install-exec-hook:
-	cp $(srcdir)/tkmedit $(DESTDIR)$(bindir)/tkmedit.bin
+	cp $(top_builddir)/tkmedit/tkmedit $(DESTDIR)$(bindir)/tkmedit.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkmedit
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/tkmedit
 	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit
 	chmod a+x $(DESTDIR)$(bindir)/tkmedit
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tkmedit.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/tkmedit.bin
+
 else
 all:
 	@echo "Building Tcl/Tk apps not enabled."
