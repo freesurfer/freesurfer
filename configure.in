@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2009/07/29 19:32:34 $
-#    $Revision: 1.437 $
+#    $Author: nicks $
+#    $Date: 2009/08/03 00:45:07 $
+#    $Revision: 1.438 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1595,10 +1595,14 @@ fi
 
 AM_CONDITIONAL(USE_LOCAL_JPEG, test "$ac_jpeg_libraries" = "NO")
 
+# BLT check (later in this file) needs a prebuilt libjpeg, use what we have
+# since we can't use the locally built libjpeg
+LIB_BLT_JPEG="$LIB_JPEG"
+
 AC_SUBST(JPEG_CFLAGS)
 AC_SUBST(JPEG_LIBS)
 AC_SUBST(LIB_JPEG)
-
+AC_SUBST(LIB_BLT_JPEG)
 
 ################################################################
 # Qt
@@ -2247,18 +2251,24 @@ LIBS_MGH="\
 
 # use local libjpeg if --with-jpeg-dir not used:
 if test "$ac_jpeg_libraries" = "NO"; then
+  LIB_JPEG=""
   LIBS_MGH="${LIBS_MGH} jpeg/libjpeg.a"
 fi
 # use local libtiff if --with-tiff-dir not used:
 if test "$ac_tiff_libraries" = "NO"; then
+  LIB_TIFF=""
   LIBS_MGH="${LIBS_MGH} tiff/libtiff.a"
 fi
 # use local libexpat if --with-expat-dir not used:
 if test "$ac_expat_libraries" = "NO"; then
+  LIB_EXPAT=""
   LIBS_MGH="${LIBS_MGH} expat/libexpat.a"
 fi
 
 AC_SUBST(LIBS_MGH)
+AC_SUBST(LIB_JPEG)
+AC_SUBST(LIB_TIFF)
+AC_SUBST(LIB_EXPAT)
 
 
 #####################################################
@@ -2589,18 +2599,18 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
   AC_SUBST(LIB_TIX)
 
   ######## BLT (we cannot build BLT in Aqua) must use X11
-  AC_CHECK_LIB([BltExt30 -lBltCore30 $LIB_JPEG],[Blt_Init],
+  AC_CHECK_LIB([BltExt30 -lBltCore30 $LIB_BLT_JPEG],[Blt_Init],
     [LIB_BLT="-lBltExt30 -lBltCore30"],
     [
-    AC_CHECK_LIB([BLT $LIB_JPEG],[Blt_Init],
+    AC_CHECK_LIB([BLT $LIB_BLT_JPEG],[Blt_Init],
       [LIB_BLT=-lBLT],
     # check BLT.2 (MacOSX)
       [
-        AC_CHECK_LIB([BLT.2 $LIB_JPEG],[Blt_Init],
+        AC_CHECK_LIB([BLT.2 $LIB_BLT_JPEG],[Blt_Init],
         [LIB_BLT=-lBLT.2],
         [
     # check BLT24 (Fedora)
-          AC_CHECK_LIB([BLT24 $LIB_JPEG],[Blt_Init],
+          AC_CHECK_LIB([BLT24 $LIB_BLT_JPEG],[Blt_Init],
           [LIB_BLT=-lBLT24],
               [AC_MSG_ERROR([FATAL: libBLT not found. \
 Check config.log. Set LDFLAGS or --with-BLT-dir.])
