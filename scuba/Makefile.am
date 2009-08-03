@@ -2,8 +2,13 @@
 # Makefile.am for scuba
 #
 
+if USE_LOCAL_TIFF
+TIFFCFLAGS=-I$(top_srcdir)/tiff
+LIBTIFF=$(top_builddir)/tiff/libtiff.a
+else
 TIFFCFLAGS=$(TIFF_CFLAGS)
 LIBTIFF=$(LIB_TIFF)
+endif
 
 AM_CPPFLAGS=\
 	$(GL_CFLAGS) $(TIFFCFLAGS) \

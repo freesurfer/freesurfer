@@ -1,0 +1,3 @@
+#! /bin/tcsh -ef
+./test_tiff icon_folder.tif
+

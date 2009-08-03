@@ -2,12 +2,24 @@
 # Makefile.am for libvtkutils.a
 #
 
-TIFFCFLAGS=$(TIFF_CFLAGS)
+
+if USE_LOCAL_TIFF
+TIFF_THINGS=-I$(top_srcdir)/tiff -L$(top_srcdir)/tiff
+else
+TIFF_THINGS=$(TIFF_CFLAGS)
+endif
+
+if USE_LOCAL_JPEG
+JPEG_THINGS=-I$(top_srcdir)/jpeg -L$(top_srcdir)/jpeg
+else
+JPEG_THINGS=$(JPEG_CFLAGS)
+endif
 
 AM_CPPFLAGS= -Wno-deprecated \
+	$(TIFF_THINGS) $(JPEG_THINGS) \
 	$(GL_CFLAGS) \
 	$(TCL_CFLAGS) \
-	$(VXL_CFLAGS) $(TIFFCFLAGS) \
+	$(VXL_CFLAGS) \
 	-I$(top_srcdir)/include \
 	$(VTK_CXXFLAGS) \
 	$(KWWIDGETS_CXXFLAGS)
@@ -74,7 +86,7 @@ IconLoaderTest_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
@@ -110,7 +122,7 @@ vtkKWRGBATransferFunctionEditorTester_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \
@@ -132,7 +144,7 @@ vtkArrowPipelineTester_LDADD=\
 	-lvtkHybrid -lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	-ltiff $(VTK_TIFF_LIB) -ljpeg $(VTK_JPEG_LIB) \
 	$(VTK_PNG_LIB) $(VTK_Z_LIB) $(VTK_METAIO_LIB) \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	-lvtkImagingTCL -lvtkVolumeRenderingTCL -lvtkRenderingTCL \

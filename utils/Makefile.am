@@ -26,6 +26,18 @@ else
 GLUT_THINGS=
 endif
 
+if USE_LOCAL_TIFF
+TIFF_THINGS=-I$(top_srcdir)/tiff
+else
+TIFF_THINGS=
+endif
+
+if USE_LOCAL_JPEG
+JPEG_THINGS=-I$(top_srcdir)/jpeg
+else
+JPEG_THINGS=
+endif
+
 NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 	-DTEEM_DIO=$(TEEM_DIO) -DTEEM_32BIT=$(TEEM_32BIT) \
 	-DTEEM_QNANHIBIT=$(TEEM_QNANHIBIT) -DTEEM_ENDIAN=$(TEEM_ENDIAN)
@@ -33,7 +45,7 @@ NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 AM_CPPFLAGS=$(EXPAT_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
-	$(NRRDIO_CPPFLAGS) \
+	$(NRRDIO_CPPFLAGS) $(JPEG_THINGS) $(TIFF_THINGS) \
 	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) \
 	$(GL_CFLAGS) $(VXL_CFLAGS) -DHAVE_ZLIB
 

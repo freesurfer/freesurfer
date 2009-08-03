@@ -260,12 +260,15 @@ MISCDIRS=histo_compute_joint_density \
 	hiam_make_template\
 	hiam_register
 
-SUBDIRS=include \
+SUBDIRS=\
+	include \
 	unix \
 	dicom \
 	hipsstubs \
 	rgb \
 	log \
+	jpeg \
+	tiff \
 	utils \
 	utilscpp \
 	vtkfsio \
