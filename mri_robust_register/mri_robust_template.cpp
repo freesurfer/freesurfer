@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/07/17 19:46:20 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/08/04 23:18:24 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -139,7 +139,7 @@ void initialXforms (Parameters & P, int tpi);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.8 2009/07/17 19:46:20 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.9 2009/08/04 23:18:24 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -195,15 +195,16 @@ int main(int argc, char *argv[])
 
   assert(nin >=2);
 
-  if (nin == 2) halfWayTemplate(P);
+  if (nin == 2 && ! P.noit) halfWayTemplate(P);
   else
   {
     // if no initial xforms are given, use initialization:
-    if(P.ltas[0] == NULL && P.inittp > 0) initialXforms(P,P.inittp);
+    if(P.ltas[0] == NULL && P.inittp > 0 && ! P.noit) initialXforms(P,P.inittp);
+		if (P.noit) assert(P.ltas[0] != NULL);
     computeTemplate(P);
   }
 
-  cout << "Writing final average image: " << P.mean << endl;
+  cout << "Writing final template: " << P.mean << endl;
   strncpy(P.mri_mean->fname, P.mean.c_str(),STRLEN);
   MRIwrite(P.mri_mean,P.mean.c_str());
   MRIfree(&P.mri_mean);
@@ -303,14 +304,14 @@ void computeTemplate(Parameters & P)
     outdir = P.mean.substr(0,pos-1);
   }
   
-  cout << "Computing first mean" << endl;  
+  cout << "Computing first template" << endl;  
   bool havexforms = (P.ltas[0] != NULL);
   if (!havexforms) 
     P.mri_mean = initialAverageSet(P.mri_mov,NULL,P.average,P.sat);
   else // we have initial transforms
   {  
 
-    cout << "warping movs and creating mean..." << endl;
+    cout << "warping movs and creating template..." << endl;
     for (int i = 0;i<nin;i++)
     {  
       if (P.mri_warps[i]) MRIfree(&P.mri_warps[i]); // should not happen
@@ -319,7 +320,7 @@ void computeTemplate(Parameters & P)
       if (P.debug)
       {
         ostringstream oss;
-        oss << outdir << "tp" << i+1 << "_to_mean-it0.mgz";
+        oss << outdir << "tp" << i+1 << "_to_template-it0.mgz";
         MRIwrite(P.mri_warps[i], oss.str().c_str()) ;
       }
     }
@@ -333,14 +334,14 @@ void computeTemplate(Parameters & P)
   }
 
   
-  strncpy(P.mri_mean->fname,(outdir+"mean-it0.mgz").c_str(),STRLEN);
+  strncpy(P.mri_mean->fname,(outdir+"template-it0.mgz").c_str(),STRLEN);
   if (P.debug)
   {
-    cout << "debug: saving mean-it0.mgz" << endl;
-    MRIwrite(P.mri_mean,(outdir+"mean-it0.mgz").c_str());
+    cout << "debug: saving template-it0.mgz" << endl;
+    MRIwrite(P.mri_mean,(outdir+"template-it0.mgz").c_str());
   }
 
-   cout << "mean fname: " << P.mri_mean->fname << endl;
+   cout << "template fname: " << P.mri_mean->fname << endl;
 
   int itmax  = 10;
   double eps = 0.025;
@@ -384,7 +385,7 @@ void computeTemplate(Parameters & P)
                       P.fixtype); // gaussian pyramid will be constructed for
                                   // each Rv[i], could be optimized
       ostringstream oss;
-      oss << outdir << "tp" << i+1 << "_to_mean-it" << itcount;
+      oss << outdir << "tp" << i+1 << "_to_template-it" << itcount;
       Rv[i].setName(oss.str());
 
       // compute Alignment
@@ -469,7 +470,7 @@ void computeTemplate(Parameters & P)
       }
 
       // warp mov to mean
-      cout << "warping mov to mean..." << endl;
+      cout << "warping mov to template..." << endl;
       if (P.mri_warps[i]) MRIfree(&P.mri_warps[i]);
       P.mri_warps[i] = MRIclone(P.mri_mean,P.mri_warps[i]);
       P.mri_warps[i] = LTAtransform(P.mri_mov[i],P.mri_warps[i], P.ltas[i]);
@@ -544,13 +545,13 @@ void computeTemplate(Parameters & P)
     }
 
     // create new mean
-    cout << "Computing new mean " <<itcount << endl;
+    cout << "Computing new template " <<itcount << endl;
     P.mri_mean = averageSet(P.mri_warps, P.mri_mean,P.average,P.sat);
     if (P.debug)
     {
       ostringstream oss;
-      oss << outdir << "mean-it" << itcount << ".mgz";
-      cout << "debug: writing mean to " << oss.str() << endl;
+      oss << outdir << "template-it" << itcount << ".mgz";
+      cout << "debug: writing template to " << oss.str() << endl;
       MRIwrite(P.mri_mean,oss.str().c_str());
       strncpy(P.mri_mean->fname, oss.str().c_str(),STRLEN);
     }
@@ -841,7 +842,7 @@ void halfWayTemplate(Parameters & P)
   R.setTarget(P.mri_mov[1],P.fixvoxel,P.fixtype);
 
 //   ostringstream oss;
-//   oss << outdir << "tp" << i+1 << "_to_mean-it" << itcount;
+//   oss << outdir << "tp" << i+1 << "_to_template-it" << itcount;
   R.setName(P.mean);
 
   // use initial transform if given:
@@ -890,11 +891,11 @@ void halfWayTemplate(Parameters & P)
                                         m2hwlta->xforms[0].m_L) ;
     d2hwlta->type = LINEAR_VOX_TO_VOX ;
   }
-  // add src and dst info (use dst as target geometry in both cases)
+  // add src and dst info (use src as target geometry in both cases)
   getVolGeom(P.mri_mov[0], &m2hwlta->xforms[0].src);
-  getVolGeom(P.mri_mov[1], &m2hwlta->xforms[0].dst);
+  getVolGeom(P.mri_mov[0], &m2hwlta->xforms[0].dst);
   getVolGeom(P.mri_mov[1], &d2hwlta->xforms[0].src);
-  getVolGeom(P.mri_mov[1], &d2hwlta->xforms[0].dst);
+  getVolGeom(P.mri_mov[0], &d2hwlta->xforms[0].dst);
 
   P.ltas.resize(2,NULL);
   if (P.ltas[0]) LTAfree(&P.ltas[0]);
@@ -902,7 +903,7 @@ void halfWayTemplate(Parameters & P)
   P.ltas[0] = m2hwlta;
   P.ltas[1] = d2hwlta;
 
-  cout << " creating half-way MEAN ..." << endl;
+  cout << " creating half-way template ..." << endl;
   // take dst info from lta:
   if (P.mri_warps[0]) MRIfree(&P.mri_warps[0]);
   if (P.mri_warps[1]) MRIfree(&P.mri_warps[1]);
