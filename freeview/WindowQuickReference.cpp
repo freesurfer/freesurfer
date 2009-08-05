@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:03:31 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,6 @@ WindowQuickReference::WindowQuickReference( wxWindow* parent )
 
   wxMemoryFSHandler::AddFileWithMimeType( _("QuickRef.html"), QuickRef_binary, QuickRef_binary_LEN, _("text/html") );
   m_wndHtml->LoadPage( _("memory:QuickRef.html") );
-// m_wndHtml->LoadPage( "/homes/5/rpwang/freesurfer/dev/freeview/res/QuickRef.html" );
   wxConfigBase* config = wxConfigBase::Get();
   if ( config )
   {

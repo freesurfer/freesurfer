@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -170,7 +170,7 @@ void Region2DLine::Offset( int x, int y )
 }
 
 // indexOut returns the index of the vertex point
-// returns -1 if the pick point is not close to any vertices
+// returns -1 if the hit point is not close to any vertices
 bool Region2DLine::Contains( int x, int y, int* indexOut )
 {
   // first calculate the threshold distance in world space

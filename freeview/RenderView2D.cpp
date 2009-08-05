@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,8 +52,6 @@
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
-
-#define ID_COPY_STRUCTURE   wxID_HIGHEST + 10
 
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView2D, RenderView)

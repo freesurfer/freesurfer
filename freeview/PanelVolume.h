@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/01 22:26:53 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -103,6 +103,7 @@ private:
   void OnChoiceDirectionCode          ( wxCommandEvent& event );
   void OnSliderFrameChanged           ( wxScrollEvent& event );
   void OnTextFrameChanged             ( wxCommandEvent& event );
+  void OnCheckHeatScaleClearHigh      ( wxCommandEvent& event );
   
   void OnCheckDisplayVector           ( wxCommandEvent& event );
   void OnCheckDisplayTensor           ( wxCommandEvent& event );
@@ -157,6 +158,7 @@ private:
   wxSlider*       m_sliderHeatScaleMid;
   wxSlider*       m_sliderHeatScaleMax;
   wxSlider*       m_sliderHeatScaleOffset;
+  wxCheckBox*     m_checkHeatScaleClearHigh;
   wxTextCtrl*     m_textHeatScaleMin;
   wxTextCtrl*     m_textHeatScaleMid;
   wxTextCtrl*     m_textHeatScaleMax;

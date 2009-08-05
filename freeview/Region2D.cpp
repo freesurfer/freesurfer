@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,14 +26,6 @@
 
 #include "Region2D.h"
 #include "RenderView2D.h"
-#include <vtkActor2D.h>
-#include <vtkProperty2D.h>
-#include <vtkRenderer.h>
-#include <vtkPlaneSource.h>
-#include <vtkPolyDataMapper2D.h>
-#include <vtkPoints.h>
-#include <vtkCellArray.h>
-#include <vtkCoordinate.h>
 
 Region2D::Region2D( RenderView2D* view ) :
     Broadcaster( "Region2D" ),

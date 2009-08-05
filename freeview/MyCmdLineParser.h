@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/31 22:00:13 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -93,15 +93,17 @@ public:
   bool Parse( int argc, char* argv[] );
 
   bool Found( const char* ch );
-  bool Found( const char* ch, string* strg );
-  bool Found( const char* ch, int* value );
-  bool Found( const char* ch, double* value );
-  bool Found( const char* ch, string_array* sa );
+//  bool Found( const char* ch, string* strg);
+//  bool Found( const char* ch, int* value );
+//  bool Found( const char* ch, double* value );
+  bool Found( const char* ch, string_array* sa, int nIndex = -1  ); // -1 means last one
+  
+  int GetNumberOfRepeats( const char* ch );
 
   int GetNumberOfArguments( const char* ch );
 
   string GetArgument( const char* ch, int n, const char* chDefault = NULL );
-  string_array GetArguments( const char* ch );
+  string_array GetArguments( const char* ch, int nIndex = -1 );
 
   string_array GetFloatingArguments();
   
@@ -110,7 +112,7 @@ public:
   void PrintErrorMessage( string msg );
 
 protected:
-  bool Found( const char* ch, CmdLineEntry* e );
+  bool Found( const char* ch, CmdLineEntry* e, int nIndex = -1 );
   bool IsValid( const char* ch, CmdLineEntry* e );
 
   inline bool IsNumber(const char ch)

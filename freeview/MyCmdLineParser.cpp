@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/17 18:19:41 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -111,6 +111,7 @@ bool MyCmdLineParser::Found( const char* chFlag )
   return false;
 }
 
+/*
 bool MyCmdLineParser::Found( const char* ch, string* strg )
 {
   if ( Found( ch ) )
@@ -123,25 +124,14 @@ bool MyCmdLineParser::Found( const char* ch, string* strg )
 }
 
 
-bool MyCmdLineParser::Found( const char* ch, string_array* sa )
-{
-  if ( Found( ch ) )
-  {
-    *sa = GetArguments( ch );
-    return true;
-  }
-  else
-    return false;
-}
-
 bool MyCmdLineParser::Found( const char* ch, int* value )
 {
   if ( Found( ch ) )
-  {
+{
     string strg = GetArgument( ch, 0 );
     *value = atoi( strg.c_str() );
     return true;
-  }
+}
   else
     return false;
 }
@@ -149,29 +139,61 @@ bool MyCmdLineParser::Found( const char* ch, int* value )
 bool MyCmdLineParser::Found( const char* ch, double* value )
 {
   if ( Found( ch ) )
-  {
+{
     string strg = GetArgument( ch, 0 );
     *value = atof( strg.c_str() );
+    return true;
+}
+  else
+    return false;
+}
+*/
+
+bool MyCmdLineParser::Found( const char* ch, string_array* sa, int nIndex )
+{
+  if ( Found( ch ) )
+  {
+    *sa = GetArguments( ch, nIndex );
     return true;
   }
   else
     return false;
 }
 
-bool MyCmdLineParser::Found( const char* chFlag, CmdLineEntry* e )
+bool MyCmdLineParser::Found( const char* chFlag, CmdLineEntry* e, int nIndex )
 {
+  int n = 0;
   for ( size_t i = 0; i < m_cmdLineEntries.size(); i++ )
   {
     if ( strcmp( m_cmdLineEntries[i].shortName, chFlag ) == 0 ||
          strcmp( m_cmdLineEntries[i].longName, chFlag ) == 0 )
     {
       *e = m_cmdLineEntries[i];
-      return true;
+      if ( nIndex >= 0 && n == nIndex )
+        return true;
+          
+      n++;
     }
   }
-  return false;
+  if ( n > 0 )
+    return true;
+  else
+    return false;
 }
 
+int MyCmdLineParser::GetNumberOfRepeats( const char* chFlag )
+{
+  int n = 0; 
+  for ( size_t i = 0; i < m_cmdLineEntries.size(); i++ )
+  {
+    if ( strcmp( m_cmdLineEntries[i].shortName, chFlag ) == 0 ||
+         strcmp( m_cmdLineEntries[i].longName, chFlag ) == 0 )
+    {
+      n++;
+    }
+  }
+  return n;
+}
 
 bool MyCmdLineParser::IsValid( const char* chFlag, CmdLineEntry* e )
 {
@@ -210,10 +232,10 @@ string MyCmdLineParser::GetArgument( const char* ch, int n, const char* chDefaul
     return "";
 }
 
-string_array MyCmdLineParser::GetArguments( const char* ch )
+string_array MyCmdLineParser::GetArguments( const char* ch, int nIndex )
 {
   CmdLineEntry e;
-  if ( Found( ch, &e ) )
+  if ( Found( ch, &e, nIndex ) )
   {
     return e.arguments;
   }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/22 21:41:49 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,9 +34,6 @@
 #include "LayerMRI.h"
 #include "CursorFactory.h"
 #include <vtkRenderer.h>
-
-#define FV_CURSOR_PENCIL wxCursor( wxImage("res/images/cursor_pencil.png") )
-#define FV_CURSOR_FILL  wxCursor( wxImage("res/images/cursor_fill.png" ) )
 
 Interactor2DVolumeEdit::Interactor2DVolumeEdit( const char* layerTypeName) :
     Interactor2D(),

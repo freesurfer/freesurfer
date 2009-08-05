@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.65 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3210,7 +3210,11 @@ void MainWindow::CommandSetRAS( const wxArrayString& cmd )
        cmd[2].ToDouble( &(ras[1]) ) &&
        cmd[3].ToDouble( &(ras[2]) ) )
   {
-    GetLayerCollection( "MRI" )->SetCursorRASPosition( ras );
+    LayerCollection* lc = GetLayerCollection( "MRI" );
+    LayerMRI* layer = (LayerMRI*)lc->GetLayer( 0 );
+    if ( layer )
+      layer->RASToTarget( ras, ras );
+    lc->SetCursorRASPosition( ras );
     m_layerCollectionManager->SetSlicePosition( ras );
   }
   else

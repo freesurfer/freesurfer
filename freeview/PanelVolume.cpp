@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.28 $
+ *    $Date: 2009/08/05 17:13:06 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -79,6 +79,7 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MID" ),     PanelVolume::OnTextHeatScaleMidChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MAX" ),     PanelVolume::OnTextHeatScaleMaxChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_OFFSET" ),  PanelVolume::OnTextHeatScaleOffsetChanged )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH" ),  PanelVolume::OnCheckHeatScaleClearHigh )
   EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MIN" ),      PanelVolume::OnTextMinJetScaleChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MAX" ),      PanelVolume::OnTextMaxJetScaleChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_GRAYSCALE_MIN" ),     PanelVolume::OnTextGrayScaleMin )
@@ -160,6 +161,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_textGrayScaleMax    = XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MAX", wxTextCtrl );
   m_choiceRepresentation  = XRCCTRL( *this, "ID_CHOICE_REPRESENTATION", wxChoice );
   m_choiceMask          = XRCCTRL( *this, "ID_CHOICE_MASK", wxChoice );
+  m_checkHeatScaleClearHigh = XRCCTRL( *this, "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH", wxCheckBox );
 
   // workaround for wxformbuilder bug
   m_colorIndicator->SetSize( 40, wxDefaultCoord );
@@ -203,6 +205,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistHeatScale.push_back( m_sliderHeatScaleMid );
   m_widgetlistHeatScale.push_back( m_sliderHeatScaleMax );
   m_widgetlistHeatScale.push_back( m_sliderHeatScaleOffset );
+  m_widgetlistHeatScale.push_back( m_checkHeatScaleClearHigh );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MIN",     wxStaticText ) );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MID",     wxStaticText ) );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MAX",     wxStaticText ) );
@@ -1294,4 +1297,13 @@ void PanelVolume::OnChoiceRepresentation( wxCommandEvent& event )
       layer->GetProperties()->SetTensorRepresentation( event.GetSelection() );
     UpdateUI();
   } 
+}
+
+void PanelVolume::OnCheckHeatScaleClearHigh( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetHeatScaleClearHigh( event.IsChecked() );
+  }
 }
