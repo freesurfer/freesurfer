@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/29 22:52:38 $
- *    $Revision: 1.395.2.11 $
+ *    $Date: 2009/08/05 17:12:37 $
+ *    $Revision: 1.395.2.12 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  *
  */
 
-const char *MRI_C_VERSION = "$Revision: 1.395.2.11 $";
+const char *MRI_C_VERSION = "$Revision: 1.395.2.12 $";
 extern const char* Progname;
 
 /*-----------------------------------------------------
@@ -10505,7 +10505,7 @@ MRI *
 MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
                          int InterpMethod)
 {
-  int    y1, y2, y3, width, height, depth ;
+  int    y1, y2, y3, width, height, depth,frame ;
   VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
   MATRIX *mAinv ;     /* inverse of mA */
   Real   val, x1, x2, x3 ;
@@ -10566,27 +10566,33 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
         }
 
         //MRIsampleVolume(mri_src, x1, x2, x3, &val);
-        MRIsampleVolumeType(mri_src, x1, x2, x3, &val, InterpMethod);
-        switch (mri_dst->type)
+        for (frame = 0 ; frame < mri_src->nframes ; frame++)
         {
-        case MRI_UCHAR:
-          MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val) ;
+          MRIsampleVolumeFrameType(mri_src, x1, x2, x3, frame, InterpMethod, &val);
+          MRIsetVoxVal(mri_dst, y1, y2, y3, frame, val) ;
+#if 0
+          switch (mri_dst->type)
+          {
+          case MRI_UCHAR:
+            MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val) ;
           break ;
-        case MRI_SHORT:
-          MRISvox(mri_dst,y1,y2,y3) = (short)nint(val) ;
-          break ;
-        case MRI_FLOAT:
-          MRIFvox(mri_dst,y1,y2,y3) = (float)(val) ;
-          break ;
-        case MRI_INT:
-          MRIIvox(mri_dst,y1,y2,y3) = nint(val) ;
-          break ;
-        default:
-          ErrorReturn(NULL,
-                      (ERROR_UNSUPPORTED,
-                       "MRIlinearTransform: unsupported dst type %d",
-                       mri_dst->type)) ;
-          break ;
+          case MRI_SHORT:
+            MRISvox(mri_dst,y1,y2,y3) = (short)nint(val) ;
+            break ;
+          case MRI_FLOAT:
+            MRIFvox(mri_dst,y1,y2,y3) = (float)(val) ;
+            break ;
+          case MRI_INT:
+            MRIIvox(mri_dst,y1,y2,y3) = nint(val) ;
+            break ;
+          default:
+            ErrorReturn(NULL,
+                        (ERROR_UNSUPPORTED,
+                         "MRIlinearTransform: unsupported dst type %d",
+                         mri_dst->type)) ;
+            break ;
+          }
+#endif
         }
       }
     }
