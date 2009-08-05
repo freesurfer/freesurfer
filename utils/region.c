@@ -1,17 +1,16 @@
 /**
  * @file  region.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for the REGION data structure
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:59:52 $
- *    $Revision: 1.5.2.1 $
+ *    $Date: 2009/08/05 15:42:54 $
+ *    $Revision: 1.5.2.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,17 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   region.c
- *
- *       DESCRIPTION: utilities for the REGION  data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -258,6 +246,8 @@ REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2)
   float       min_dist = 10000.0f, dist, dx, dy, dz ;
   int         i, j, x0, y0, z0, x1, y1, z1 ;
   MRI_REGION  r3 ;
+
+  x0=y0=z0=x1=y1=z1=0;
 
   REGIONintersect(r1, r2, &r3) ;
   if (r3.dx > 0 && r3.dy > 0)
