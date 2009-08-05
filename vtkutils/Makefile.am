@@ -15,7 +15,7 @@ else
 JPEG_THINGS=$(JPEG_CFLAGS)
 endif
 
-AM_CPPFLAGS= -Wno-deprecated \
+AM_CXXFLAGS= -Wno-deprecated \
 	$(TIFF_THINGS) $(JPEG_THINGS) \
 	$(GL_CFLAGS) \
 	$(TCL_CFLAGS) \
