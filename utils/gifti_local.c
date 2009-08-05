@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/05/21 21:46:18 $
- *    $Revision: 1.1.2.4 $
+ *    $Date: 2009/08/05 22:10:21 $
+ *    $Revision: 1.1.2.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -901,12 +901,24 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
     return ERROR_NOMEMORY;
   }
 
+  /* count the real number of faces (the ones that dont have a vertex
+     with a ripflag set) */
+  int numFaces = 0;
+  int face_index;
+  for (face_index = 0; face_index < mris->nfaces; face_index++)
+  {
+    if (mris->vertices[mris->faces[face_index].v[0]].ripflag) continue;
+    if (mris->vertices[mris->faces[face_index].v[1]].ripflag) continue;
+    if (mris->vertices[mris->faces[face_index].v[2]].ripflag) continue;
+    numFaces++;
+  }
+
   /* Set its attributes. */
   faces->intent = NIFTI_INTENT_TRIANGLE;
   faces->datatype = NIFTI_TYPE_INT32;
   faces->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
   faces->num_dim = 2;
-  faces->dims[0] = mris->nfaces;    /* In highest first, dim0 = rows */
+  faces->dims[0] = numFaces;    /* In highest first, dim0 = rows */
   faces->dims[1] = 3;               /* In highest first, dim1 = cols */
   faces->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -929,16 +941,22 @@ int MRISwriteGIFTI(MRIS* mris, char *fname)
     return ERROR_NOMEMORY;
   }
 
-  /* Copy in all our data. */
-  int face_index;
+  /* Copy in all our face data (remembering to ignore faces which
+     have a vertex with the ripflag set). */
+  int faceNum = 0;
   for (face_index = 0; face_index < mris->nfaces; face_index++)
   {
-    gifti_set_DA_value_2D (faces, face_index, 0,
+    if (mris->vertices[mris->faces[face_index].v[0]].ripflag) continue;
+    if (mris->vertices[mris->faces[face_index].v[1]].ripflag) continue;
+    if (mris->vertices[mris->faces[face_index].v[2]].ripflag) continue;
+
+    gifti_set_DA_value_2D (faces, faceNum, 0,
                            mris->faces[face_index].v[0]);
-    gifti_set_DA_value_2D (faces, face_index, 1,
+    gifti_set_DA_value_2D (faces, faceNum, 1,
                            mris->faces[face_index].v[1]);
-    gifti_set_DA_value_2D (faces, face_index, 2,
+    gifti_set_DA_value_2D (faces, faceNum, 2,
                            mris->faces[face_index].v[2]);
+    faceNum++;
   }
 
   /* check for compliance */
