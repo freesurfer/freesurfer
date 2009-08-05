@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/29 19:19:25 $
- *    $Revision: 1.633 $
+ *    $Date: 2009/08/05 21:57:11 $
+ *    $Revision: 1.634 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -637,7 +637,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.633 2009/07/29 19:19:25 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.634 2009/08/05 21:57:11 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -11188,7 +11188,7 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 {
   int         ix, iy, iz, k, i, j, npts ;
   double        rx, ry, rz;
-  FILE        *fp ;
+  FILE        *fp=NULL;
   char        fname[STRLEN] ;
   int         type;
   char        line[256];
@@ -11210,7 +11210,11 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
 
   // check whether the patch file is ascii or binary
   type = MRISfileNameType(fname) ; /* using extension to get type */
-  if (type == MRIS_ASCII_TRIANGLE_FILE)  /* .ASC */
+  if (type == MRIS_GIFTI_FILE) /* .gii */
+  {
+    mris = MRISread(fname);
+  }
+  else if (type == MRIS_ASCII_TRIANGLE_FILE)  /* .ASC */
   {
     fp = fopen(fname, "r");
     if (!fp)
@@ -11451,7 +11455,7 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
       }
     }
   }
-  fclose(fp);
+  if (fp) fclose(fp);
   // remove ripflag set vertices
   MRISripFaces(mris);
   // set the patch flag

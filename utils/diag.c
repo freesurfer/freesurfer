@@ -1,15 +1,14 @@
 /**
  * @file  diag.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief diagnostic routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/06 13:39:14 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2009/08/05 21:57:11 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,17 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   diag.c
- *
- *       DESCRIPTION: diagnostic routines
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        2/5/96
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
