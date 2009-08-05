@@ -15,7 +15,7 @@ else
 JPEG_THINGS=$(JPEG_CFLAGS)
 endif
 
-AM_CXXFLAGS= -Wno-deprecated \
+AM_CPPFLAGS= -Wno-deprecated \
 	$(TIFF_THINGS) $(JPEG_THINGS) \
 	$(GL_CFLAGS) \
 	$(TCL_CFLAGS) \
@@ -23,6 +23,8 @@ AM_CXXFLAGS= -Wno-deprecated \
 	-I$(top_srcdir)/include \
 	$(VTK_CXXFLAGS) \
 	$(KWWIDGETS_CXXFLAGS)
+
+AM_CXXFLAGS=${AM_CPPFLAGS}
 
 AM_LDFLAGS=
 
