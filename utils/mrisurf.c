@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/08/06 18:54:28 $
- *    $Revision: 1.635 $
+ *    $Author: fischl $
+ *    $Date: 2009/08/06 19:03:52 $
+ *    $Revision: 1.636 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -637,7 +637,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.635 2009/08/06 18:54:28 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.636 2009/08/06 19:03:52 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62140,6 +62140,105 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   MatrixFree(&m_vox2vox) ; MatrixFree(&v1) ; MatrixFree(&v2) ;
   MRIfree(&mri_filled) ;
   return(total_volume) ;
+}
+MRI *
+MRISfillWhiteMatterInterior(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_filled, double resolution,
+                            int wm_val, int gm_val, int csf_val)
+{
+  MATRIX *m_vox2vox ;
+  double  vox_volume ;
+  int     x, y, z, label, xa, ya, za ;
+  VECTOR  *v1, *v2 ;
+  Real    val ;
+
+  mri_filled = MRISfillInterior(mris, resolution, mri_filled) ;
+  MRIbinarize(mri_filled, mri_filled, 1, 0, wm_val) ;
+
+  // This cras adjustment is now done in MRISfillInterior() DNG 7/8/08
+  //mri_filled->c_r += mri_aseg->c_r ;
+  //mri_filled->c_a += mri_aseg->c_a ;
+  //mri_filled->c_s += mri_aseg->c_s ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_filled, "f.mgz") ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri_filled, mri_aseg) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  vox_volume = mri_filled->xsize * mri_filled->ysize * mri_filled->zsize ;
+
+  for (x = 0 ; x < mri_filled->width ; x++)
+  {
+    V3_X(v1) = x ;
+    for (y = 0 ; y < mri_filled->height ; y++)
+    {
+      V3_Y(v1) = y ;
+      for (z = 0 ; z < mri_filled->depth ; z++)
+      {
+        val = MRIgetVoxVal(mri_filled, x, y, z, 0) ;
+        if (FZERO(val))
+          continue ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xa = nint(V3_X(v2)) ; ya = nint(V3_Y(v2)) ; za = nint(V3_Z(v2)) ;
+        if (xa < 0 || xa >= mri_aseg->width ||
+            ya < 0 || ya >= mri_aseg->height ||
+            za < 0 || za >= mri_aseg->depth)
+        {
+          ErrorPrintf(ERROR_BADPARM, "MRIScomputeWhiteVolume: src (%d, %d, %d) maps to (%d, %d, %d) - OOB",
+                      x, y, z, xa, ya, za) ;
+          continue ;
+        }
+        label = (int)MRIgetVoxVal(mri_aseg, xa, ya, za, 0) ;
+        if (xa == Gx && ya == Gy && za == Gz)
+          DiagBreak() ;
+        switch (label)
+        {
+        case Left_choroid_plexus:
+        case Right_choroid_plexus:
+        case Right_Lateral_Ventricle:
+        case Left_Lateral_Ventricle:
+        case Right_Inf_Lat_Vent:
+        case Left_Inf_Lat_Vent:
+          MRIsetVoxVal(mri_filled, x, y, z, 0, csf_val) ;  // ventricle
+          break ;
+        case Left_Cerebral_Cortex:
+        case Right_Cerebral_Cortex:
+        case Left_Cerebral_White_Matter:
+        case Right_Cerebral_White_Matter:
+        case Left_WM_hypointensities:
+        case Right_WM_hypointensities:
+        case CC_Posterior:
+        case CC_Mid_Posterior:
+        case CC_Central:
+        case CC_Mid_Anterior:
+        case CC_Anterior:
+        case Brain_Stem:
+          MRIsetVoxVal(mri_filled, x, y, z, 0, wm_val) ;  // white matter
+          break ;
+        case Left_Hippocampus:
+        case Right_Hippocampus:
+        case Left_Amygdala:
+        case Right_Amygdala:
+        case Left_Putamen:
+        case Left_Pallidum:
+        case Right_Putamen:
+        case Right_Pallidum:
+        case Left_Caudate:
+        case Right_Caudate:
+        case Left_Thalamus_Proper:
+        case Right_Thalamus_Proper:
+        case Left_Accumbens_area:
+        case Right_Accumbens_area:
+          MRIsetVoxVal(mri_filled, x, y, z, 0, gm_val) ;  // gray matter
+          break ;
+        }
+      }
+    }
+  }
+
+  MatrixFree(&m_vox2vox) ; MatrixFree(&v1) ; MatrixFree(&v2) ;
+  return(mri_filled) ;
 }
 static int
 mrisCheckSurfaceNbrs(MRI_SURFACE *mris)
