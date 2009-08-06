@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2009/07/29 18:47:39 $
- *    $Revision: 1.327 $
+ *    $Author: fischl $
+ *    $Date: 2009/08/06 19:03:06 $
+ *    $Revision: 1.328 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -602,6 +602,12 @@ int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y,
                                    float z) ;
 int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y,
                                   float z) ;
+double MRIScomputeWhiteVolume(MRI_SURFACE *mris, 
+                              MRI *mri_aseg, 
+                              double resolution) ;
+MRI *MRISfillWhiteMatterInterior(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_filled,
+                                 double resolution,
+                                 int wm_val, int gm_val, int csf_val);
 int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
                                float z) ;
 int MRISfindClosestVertex(MRI_SURFACE *mris,
