@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2009/06/02 14:57:01 $
- *    $Revision: 1.58 $
+ *    $Date: 2009/08/06 16:09:49 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -122,7 +122,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.58 2009/06/02 14:57:01 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.59 2009/08/06 16:09:49 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -478,7 +478,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.58 2009/06/02 14:57:01 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.59 2009/08/06 16:09:49 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -668,7 +668,7 @@ main(int argc, char *argv[]) {
     fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvaturePos);
     sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - negative (ICIn):");
     fprintf(GpSTDOUT, "%-55s%10.5f\n", pch_tmp, Gf_intrinsicCurvatureNeg);    
-    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - natural (ICIn):");
+    sprintf(pch_tmp, "curv -- Intrinsic Curvature Index - natural  (ICIt):");
     fprintf(GpSTDOUT, "%-55s%10.5f\n",pch_tmp, Gf_intrinsicCurvatureNat);
   }
 
