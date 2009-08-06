@@ -30,6 +30,7 @@ MRISUBDIRS=\
 	rbftest \
 	mri_interpolate \
 	mri_jacobian \
+	mri_compute_volume_fractions \
 	mri_label_accuracy \
 	mri_add_xform_to_header \
 	mri_bias \
