@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/08/03 19:01:36 $
-#    $Revision: 1.242 $
+#    $Date: 2009/08/06 18:27:29 $
+#    $Revision: 1.243 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.242 2009/08/03 19:01:36 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.243 2009/08/06 18:27:29 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -145,6 +145,9 @@ set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
 set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
 set diffsubj = (); # the subject used by asegstatsdiff and aparcstatsdiff
 set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
+set DoRobustMotionCor = 0; # if 1, then use mri_robust_template for motion cor
+set mc_robust_template_avg_arg = 0; # when using mri_robust_template for motion
+                     # correction, construct template from: 0 Mean, 1 Median 
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -814,7 +817,13 @@ if($DoMotionCor) then
 
   # Actually perform the motion correction -- creates rawavg
   if($#RunList > 1) then
-    set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
+    if($DoRobustMotionCor) then
+      set cmd = (mri_robust_template --mov ${RunList})
+      set cmd = ($cmd --average ${mc_robust_template_avg_arg})
+      set cmd = ($cmd --template ${rawavg})
+    else
+      set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
+    endif
     echo "#-----------------------------------------------"
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -2951,6 +2960,11 @@ while( $#argv != 0 )
     case "-nomotioncor":
     case "-nomc":
       set DoMotionCor = 0;
+      breaksw
+
+    case "-robust-motioncor":
+      set DoMotionCor = 1;
+      set DoRobustMotionCor = 1;
       breaksw
 
     case "-talairach":
