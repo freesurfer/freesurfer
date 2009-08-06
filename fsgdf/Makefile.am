@@ -18,7 +18,11 @@ endif
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libfsgdf.a
+if ENABLE_TCLTK_APPS
 libfsgdf_a_SOURCES = fsgdf.c fsgdf_wrap.c FsgdfPlot.cxx
+else
+libfsgdf_a_SOURCES = fsgdf.c fsgdf_wrap.c
+endif
 
 if ENABLE_TCLTK_APPS
 # trick to get test data into the build directory
