@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/05 21:57:11 $
- *    $Revision: 1.634 $
+ *    $Date: 2009/08/06 18:54:28 $
+ *    $Revision: 1.635 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -637,7 +637,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.634 2009/08/05 21:57:11 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.635 2009/08/06 18:54:28 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -4138,7 +4138,7 @@ MRISreadCurvatureVector(MRI_SURFACE *mris, const char *sname)
 }
 
 int
-MRISreadCurvatureIntoArray(const const char *sname,
+MRISreadCurvatureIntoArray(const char *sname,
 			   int in_array_size,
 			   float** out_array)
 {

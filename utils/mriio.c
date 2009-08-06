@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/29 23:34:51 $
- *    $Revision: 1.356 $
+ *    $Date: 2009/08/06 18:54:28 $
+ *    $Revision: 1.357 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -432,7 +432,7 @@ int MRIgetVolumeName(const char *string, char *name_only)
 } /* end MRIgetVolumeName() */
 
 static MRI *mri_read
-(const const char *fname, int type, int volume_flag, int start_frame, int end_frame)
+(const char *fname, int type, int volume_flag, int start_frame, int end_frame)
 {
   MRI *mri, *mri2;
   IMAGE *I;
