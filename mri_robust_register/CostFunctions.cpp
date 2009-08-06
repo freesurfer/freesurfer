@@ -225,11 +225,12 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 double CostFunctions::moment(MRI *i, int x, int y, int z)
 {
   double dd= 0.0;
-  for (int d = 0 ; d<i->depth; d++)
-    for (int h = 0 ; h<i->height; h++)
-      for (int w = 0 ; w<i->width; w++)
+  for (double d = 0 ; d<i->depth; d++)
+    for (double h = 0 ; h<i->height; h++)
+      for (double w = 0 ; w<i->width; w++)
       {
-        dd += pow(d+1,z) * pow(h+1,y) * pow(w+1,x) * MRIgetVoxVal(i, w,h,d,0);
+        dd += pow(d+1,z) * pow(h+1,y) * pow(w+1,x) * 
+	  MRIgetVoxVal(i, (int)w,(int)h,(int)d,0);
       }
   return dd;
 }
