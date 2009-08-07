@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2007/07/31 17:20:29 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/08/07 23:07:37 $
+ *    $Revision: 1.36.2.1 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.36 2007/07/31 17:20:29 greve Exp $";
+"$Id: mri_volsynth.c,v 1.36.2.1 2009/08/07 23:07:37 greve Exp $";
 
 char *Progname = NULL;
 
@@ -101,6 +101,7 @@ int numdof =  2;
 int dendof = 20;
 int AddOffset=0;
 MRI *offset;
+int OffsetFrame=0;
 char *sum2file = NULL;
 int NoOutput = 0;
 MRI_REGION boundingbox;
@@ -114,12 +115,15 @@ int DoCurv = 0;
 char *subject=NULL, *hemi=NULL;
 MRIS *surf;
 
+MRI *MRIsliceNo(MRI *in, MRI *out);
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
   int c,r,s;
   double val;
   FILE *fp;
+  MRI *mritmp;
 
   Progname = argv[0] ;
   argc --;
@@ -169,7 +173,7 @@ int main(int argc, char **argv)
 
   if(mritemp) {
     if(SpikeTP >= mritemp->nframes){
-      printf("ERROR: SpikeTP = %d >= mritmp->nframes = %d\n",
+      printf("ERROR: SpikeTP = %d >= mritemp->nframes = %d\n",
              SpikeTP,mritemp->nframes);
       exit(1);
     }
@@ -289,11 +293,19 @@ int main(int argc, char **argv)
       mritemp = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
     mri = MRIsetBoundingBox(mritemp,&boundingbox,ValueA,ValueB);
     if(!mri) exit(1);
-  } else if (strcmp(pdfname,"checker")==0) {
+  } 
+  else if (strcmp(pdfname,"checker")==0) {
     printf("Checker \n");
     mri=MRIchecker(mritemp,NULL);
     if(!mri) exit(1);
-  } else {
+  } 
+  else if (strcmp(pdfname,"sliceno")==0) {
+    printf("SliceNo \n");
+    mri=MRIsliceNo(mritemp,NULL);
+    if(!mri) exit(1);
+  } 
+
+else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform,\n"
 	   "const, delta, checker\n", pdfname);
     exit(1);
@@ -346,10 +358,16 @@ int main(int argc, char **argv)
     }
   }
 
-  if (AddOffset) {
+  if(AddOffset) {
     printf("Adding offset\n");
     offset = MRIread(tempid);
-    if (offset == NULL) exit(1);
+    if(offset == NULL) exit(1);
+    if(OffsetFrame == -1) OffsetFrame = nint(offset->nframes/2);
+    printf("Offset frame %d\n",OffsetFrame);
+    mritmp = fMRIframe(offset, OffsetFrame, NULL);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&offset);
+    offset = mritmp;
     fMRIaddOffset(mri, offset, NULL, mri);
   }
 
@@ -413,10 +431,13 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nogmnnorm")) gmnnorm = 0;
     else if (!strcasecmp(option, "--rescale"))   rescale=1;
     else if (!strcasecmp(option, "--norescale")) rescale=0;
-    else if (!strcasecmp(option, "--offset"))    AddOffset=1;
     else if (!strcasecmp(option, "--no-output")) NoOutput = 1;
     else if (!strcasecmp(option, "--fft"))       UseFFT = 1;
-
+    else if (!strcasecmp(option, "--offset"))    AddOffset=1;
+    else if (!strcasecmp(option, "--offset-mid")){
+      AddOffset = 1;
+      OffsetFrame = -1;
+    }
     else if (!strcmp(option, "--sum2")) {
       if (nargc < 1) argnerr(option,1);
       sum2file = pargv[0];
@@ -596,6 +617,7 @@ static void print_usage(void) {
   printf("   --temp templateid : see also --curv\n");
   printf("   --nframes nframes : override template\n");
   printf("   --offset : use template as intensity offset\n");
+  printf("   --offset-mid : use middle frame of template as intensity offset\n");
   printf("   --curv subject hemi : save output as curv (uses lh.thickness as template)\n");
   printf("\n");
   printf(" Specify geometry explicitly\n");
@@ -611,7 +633,7 @@ static void print_usage(void) {
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta, \n");
-  printf("      sphere, z, t, F, chi2, voxcrs, checker\n");
+  printf("      sphere, z, t, F, chi2, voxcrs, checker, sliceno\n");
   printf("   --bb c r s dc dr ds : bounding box (In=ValA, Out=ValB)\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
@@ -808,5 +830,21 @@ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
     }
   }
   return(mrisqrt);
+}
+
+MRI *MRIsliceNo(MRI *in, MRI *out)
+{
+  int c,r,s;
+  if(out == NULL)  out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+
+  for(c=0; c < in->width; c++){
+    for(r=0; r < in->height; r++){
+      for(s=0; s < in->depth; s++){
+	MRIsetVoxVal(out,c,r,s,0, s);
+      }
+    }
+  }
+
+  return(out);
 }
 
