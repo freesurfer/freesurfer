@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/08/03 18:13:41 $
-#    $Revision: 1.29 $
+#    $Date: 2009/08/07 22:20:40 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.29 2009/08/03 18:13:41 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.30 2009/08/07 22:20:40 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -114,9 +114,11 @@ echo "Log file is $LF"
 
 echo "Logfile for bbregister" >> $LF
 date |& tee -a $LF
+echo ""|& tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" |& tee -a $LF
 echo "cd `pwd`" |& tee -a $LF
-echo $0 |& tee -a $LF
+echo $0 $inputargs |& tee -a $LF
+echo ""|& tee -a $LF
 echo $VERSION |& tee -a $LF
 uname -a |& tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" |& tee -a $LF
@@ -274,11 +276,11 @@ echo "BBR-Run-Time-Sec $tSecRun" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "bbregister Done" |& tee -a $LF
 
-echo "To check results, run:"
+echo "To check results, run:" |& tee -a $LF
 if($#templateout) then
-  echo "tkregister2 --mov $templateout --reg $outreg --surf"
+  echo "tkregister2 --mov $templateout --reg $outreg --surf" |& tee -a $LF
 else
-  echo "tkregister2 --mov $movvol --reg $outreg --surf"
+  echo "tkregister2 --mov $movvol --reg $outreg --surf" |& tee -a $LF
 endif
 echo " "
 
