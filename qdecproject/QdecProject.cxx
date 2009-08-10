@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/03/24 22:11:38 $
- *    $Revision: 1.13.2.6 $
+ *    $Date: 2009/08/10 18:52:40 $
+ *    $Revision: 1.13.2.7 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,9 @@
  *
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <stdexcept>
@@ -1112,6 +1115,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
   hemi.push_back( "rh" );
   parc.push_back( "aparc" );
   parc.push_back( "aparc.a2005s" );
+  parc.push_back( "aparc.a2009s" );
   meas.push_back( "area" );
   meas.push_back( "volume" );
   meas.push_back( "thickness" );
