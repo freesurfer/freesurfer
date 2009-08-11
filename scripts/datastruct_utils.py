@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: datastruct_utils.py,v 1.1.2.4 2009/08/10 18:26:01 krish Exp $
+# $Id: datastruct_utils.py,v 1.1.2.5 2009/08/11 03:15:29 krish Exp $
 
 __all__ = ['Ddict', 'TableWriter', 'odict']
 
@@ -87,12 +87,6 @@ class odict(dict):
 
 (c) 2005 Tom Anderson <twic@urchin.earth.li> - all rights reserved
     """
-    @staticmethod
-    def fromkeys(ks, v=None):
-        d = odict()
-        for k in ks:
-            d[k] = v
-        return d
     def __init__(self, items=None):
         dict.__init__(self)
         self._order = []
@@ -156,7 +150,10 @@ class odict(dict):
     def __repr__(self):
         return "odict.odict(" + str(self) + ")"
     def __str__(self):
-        return "{" +", ".join(repr(k) + ": " + repr(self[k]) for k in self._order) + "}"
+        ret = None
+        for k in self._order:
+            ret = ", ".join(repr(k) + ": " + repr(self[k]))
+        return "{" + ret + "}"
 
 class _orderproxy(list): # should this be a subclass of list, or object?
     def __init__(self, od):
@@ -242,4 +239,7 @@ class _orderproxy(list): # should this be a subclass of list, or object?
     def __rmul__(self, other):
         return other * self.od._order
     def __repr__(self):
-        return "[" + ", ".join(repr(x) for x in self.od._order) + "]"
+        ret = None
+        for x in self.od._order:
+            ret = ", ".join(repr(x))
+        return "[" + ret + "]"
