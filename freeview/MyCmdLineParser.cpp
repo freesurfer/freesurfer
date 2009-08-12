@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/08/05 17:13:06 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2009/08/12 18:03:06 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 #include "MyCmdLineParser.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <string>
 #include <vector>
 
