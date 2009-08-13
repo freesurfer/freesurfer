@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/08/13 23:35:46 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,7 @@ extern "C"
 #endif
 #include "matrix.h"
 #include "mri.h"
+#include "transform.h"
 #ifdef __cplusplus
 }
 #endif
@@ -65,6 +66,10 @@ public:
   static MATRIX * getHalfRT (MATRIX * m, MATRIX * mhalf=NULL);
   static double RotMatrixLogNorm(MATRIX * m);
   static double RotMatrixGeoDist(MATRIX * a, MATRIX *b = NULL);
+  static std::pair < MATRIX *, VECTOR * > getRTfromM(MATRIX * M, MATRIX * R, VECTOR * T);
+  static MATRIX * getMfromRT(MATRIX * R, VECTOR * T, MATRIX * M);
+  static LTA* VOXmatrix2LTA(MATRIX * m, MRI* src, MRI* dst);
+  static LTA* RASmatrix2LTA(MATRIX * m, MRI* src, MRI* dst);
 
 };
 

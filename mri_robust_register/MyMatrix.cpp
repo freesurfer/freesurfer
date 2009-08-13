@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/08/13 23:35:46 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -417,5 +417,91 @@ double MyMatrix::RotMatrixGeoDist(MATRIX * a, MATRIX *b)
 
   return dist;
 
+}
+
+pair < MATRIX *, VECTOR * > MyMatrix::getRTfromM(MATRIX * M, MATRIX * R, VECTOR * T)
+{
+   // check dimenstions:
+   assert (M->rows == 4);
+   assert (M->cols == 4);
+   if (R == NULL) R = MatrixAlloc(3,3,M->type);
+   if (T == NULL) T = VectorAlloc(3,M->type);
+   assert(R->rows ==3);
+   assert(R->cols ==3);
+   assert(T->rows ==3);
+   assert(T->cols ==1);
+   
+   // check M
+   double eps = 0.000001;
+   assert (fabs(M->rptr[4][1]) < eps);
+   assert (fabs(M->rptr[4][2]) < eps);
+   assert (fabs(M->rptr[4][3]) < eps);
+   assert (fabs(M->rptr[4][4] - 1.0) < eps);
+   
+    for (int c=1; c<4;c++)
+    {
+      for (int r=1; r<4;r++)
+      {
+        R->rptr[r][c] = M->rptr[r][c];
+      }
+      T->rptr[c][1] = M->rptr[c][4];
+   }
+   
+   return pair <MATRIX *, VECTOR *> (R,T);
+}
+
+MATRIX * MyMatrix::getMfromRT(MATRIX * R, VECTOR * T, MATRIX * M)
+{
+   int type;
+   if (R != NULL) type = R->type;
+   else if ( T != NULL) type = T->type;
+   else assert(R != NULL || T != NULL);
+   
+   if (M == NULL ) M = MatrixAlloc(4,4,type);
+   if (R == NULL) R = MatrixIdentity(3,NULL);
+   if (T == NULL) T = MatrixZero(3,1,NULL);
+   
+   // check dimensions:
+   assert (M->rows == 4);
+   assert (M->cols == 4);
+   assert(R->rows ==3);
+   assert(R->cols ==3);
+   assert(T->rows ==3);
+   assert(T->cols ==1);
+   
+   
+    for (int c=1; c<4;c++)
+    {
+      for (int r=1; r<4;r++)
+      {
+        M->rptr[r][c] = R->rptr[r][c];
+      }
+      M->rptr[c][4] = T->rptr[c][1];
+      M->rptr[4][c] = 0;
+    }
+    M->rptr[4][4] = 1;
+   
+   return M;
+}
+LTA* MyMatrix::VOXmatrix2LTA(MATRIX * m, MRI* src, MRI* dst)
+{
+  LTA* ret =  LTAalloc(1,src);
+  ret->xforms[0].m_L = MRIvoxelXformToRasXform (src,dst,m,NULL) ;
+  ret->type = LINEAR_RAS_TO_RAS ;
+  getVolGeom(src, &ret->xforms[0].src);
+  getVolGeom(dst, &ret->xforms[0].dst);
+
+  return ret;
+}
+
+LTA* MyMatrix::RASmatrix2LTA(MATRIX * m, MRI* src, MRI* dst)
+{
+  LTA* ret =  LTAalloc(1,src);
+  ret->xforms[0].m_L = MatrixCopy(m,ret->xforms[0].m_L) ;
+  ret->type = LINEAR_RAS_TO_RAS ;
+  getVolGeom(src, &ret->xforms[0].src);
+  getVolGeom(dst, &ret->xforms[0].dst);
+
+  return ret;
 }
 
