@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/16 00:41:12 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/08/13 02:35:08 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,7 @@
 #include "Registration.h"
 #include "RegPowell.h"
 #include "CostFunctions.h"
+#include "MyMRI.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -116,7 +117,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.22 2009/05/16 00:41:12 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.23 2009/08/13 02:35:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -144,9 +145,9 @@ void conv(MRI * i)
   cout << "asdfasdf" << endl;
   MRIwrite(fmri,"float-1.mgz");
   MRI * sfmri;
-  sfmri = R.MRIvalscale(fmri,NULL,100);
+  sfmri = MyMRI::MRIvalscale(fmri,NULL,100);
   MRIwrite(sfmri,"float-100.mgz");
-  sfmri = R.MRIvalscale(fmri,sfmri,1000);
+  sfmri = MyMRI::MRIvalscale(fmri,sfmri,1000);
   MRIwrite(sfmri,"float-1000.mgz");
   exit(0);
 }
@@ -273,7 +274,7 @@ int main(int argc, char *argv[])
   if (R.isIscale() && Md.second > 0)
   {
     cout << "Adjusting Intensity of MOV by " << Md.second << endl;
-    P.mri_mov = R.MRIvalscale(P.mri_mov, P.mri_mov, Md.second);
+    P.mri_mov = MyMRI::MRIvalscale(P.mri_mov, P.mri_mov, Md.second);
   }
 
   // maybe warp source to target:

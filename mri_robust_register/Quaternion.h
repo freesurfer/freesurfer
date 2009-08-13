@@ -562,16 +562,9 @@ inline Quaternion Quaternion::operator*(const double& scalar) const
 
 
 // Multiplication of scalar and Quaternion from left.
-inline Quaternion operator*(const double& scalar, const Quaternion& vect)
-{
-  return vect*scalar;
-}
+Quaternion operator*(const double& scalar, const Quaternion& vect);
 
-std::ostream& operator<<(std::ostream& os, const Quaternion& q)
-{
-  q.write(os);
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const Quaternion& q);
 
 //std::istream& operator>>(std::istream& is, Quaternion& q);
 

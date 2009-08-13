@@ -122,12 +122,6 @@ public:
 
   double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
 
-  static MRI *  MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
-  static double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
-  static double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
-  static MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
-  static MRI* makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
-
 protected:
 
   //   returns weights:
@@ -175,36 +169,14 @@ private:
   std::pair < MATRIX*, VECTOR* > constructAb(MRI *mriS, MRI *mriT);
   std::pair < MATRIX*, VECTOR* > constructAb2(MRI *mriS, MRI *mriT);
 
-  // my MRI operations (helpers for construct Ab):
-  MRI * convolute(MRI * mri, MRI * filter, int dir);
-  MRI * getPrefilter();
-  MRI * getDerfilter();
-  MRI * subSample(MRI * mri);
-  MRI * getBlur(MRI* mriS);
-  MRI * getPartial(MRI* mriS, int dir);
-  bool  getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
-  MRI * getBlur2(MRI* mri);
-  bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
-
-  static int findRightSize(MRI *mri, float conform_size);
-
-  MATRIX* MRIgetZslice(MRI * mri, int slice);
 
   // conversions
-  MATRIX* getMatrix(std::vector < double > d, int r, int c=-1, MATRIX* m=NULL);
   MATRIX * rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM); // uses global rtype flag
-  MATRIX * p2mat(MATRIX * p6, MATRIX *outM);
-  MATRIX * aff2mat(MATRIX * aff, MATRIX *outM);
-  MATRIX * getHalfRT (MATRIX * m, MATRIX * mhalf=NULL);
-  static double RotMatrixLogNorm(MATRIX * m);
-  static double RotMatrixGeoDist(MATRIX * a, MATRIX *b = NULL);
+  MATRIX * p2mat(MATRIX * p6, MATRIX *outM); // calls rt2mat (uses global rtype)
 
   // gaussian pyramid:
   std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);
   void freeGaussianPyramid(std::vector< MRI* >& p);
-
-  // tools
-  double getFrobeniusDiff(MATRIX *m1, MATRIX *m2);
 
   MRI * mri_weights;
   MATRIX * mov2weights;

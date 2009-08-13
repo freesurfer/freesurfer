@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include "Registration.h"
+#include "MyMatrix.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -28,7 +29,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.6 2009/06/30 21:37:52 nicks Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.7 2009/08/13 02:35:08 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
@@ -288,10 +289,10 @@ int main(int argc, char *argv[])
   switch (disttype)
   {
   case 1 :
-    dist = sqrt(R.RigidTransDistSq(lta1->xforms[0].m_L, lta2->xforms[0].m_L))/d;
+    dist = sqrt(MyMatrix::RigidTransDistSq(lta1->xforms[0].m_L, lta2->xforms[0].m_L))/d;
     break;
   case 2 :
-    dist = sqrt(R.AffineTransDistSq(lta1->xforms[0].m_L, lta2->xforms[0].m_L))/d;
+    dist = sqrt(MyMatrix::AffineTransDistSq(lta1->xforms[0].m_L, lta2->xforms[0].m_L))/d;
     break;
   case 3 :
     dist =  cornerdiff(lta1,lta2)/d;

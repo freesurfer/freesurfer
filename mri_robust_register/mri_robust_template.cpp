@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/04 23:18:24 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/08/13 02:35:09 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -38,6 +38,8 @@
 #include "Regression.h"
 #include "RobustGaussian.h"
 #include "CostFunctions.h"
+#include "MyMatrix.h"
+#include "MyMRI.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -139,7 +141,7 @@ void initialXforms (Parameters & P, int tpi);
 void halfWayTemplate (Parameters & P);
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.9 2009/08/04 23:18:24 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.10 2009/08/13 02:35:09 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -454,7 +456,7 @@ void computeTemplate(Parameters & P)
       if (lastlta)
       {
         LTAchangeType(lastlta,LINEAR_RAS_TO_RAS); //measure dist in RAS coords
-        dists[i] = sqrt(Rv[i].AffineTransDistSq(lastlta->xforms[0].m_L,
+        dists[i] = sqrt(MyMatrix::AffineTransDistSq(lastlta->xforms[0].m_L,
                                                 P.ltas[i]->xforms[0].m_L));
         LTAfree(&lastlta);
         if (dists[i] > maxchange) maxchange = dists[i];
@@ -465,7 +467,7 @@ void computeTemplate(Parameters & P)
       if (Rv[i].isIscale() && Md.second > 0)
       {
         cout << "Adjusting Intensity of MOV by " << Md.second << endl;
-        P.mri_mov[i] = Rv[i].MRIvalscale(P.mri_mov[i],
+        P.mri_mov[i] = MyMRI::MRIvalscale(P.mri_mov[i],
                                          P.mri_mov[i], Md.second);
       }
 
@@ -913,7 +915,7 @@ void halfWayTemplate(Parameters & P)
   if (R.isIscale() && Md.second > 0)
   {
     cout << "Adjusting Intensity of MOV by " << Md.second << endl;
-    P.mri_warps[0] = R.MRIvalscale(P.mri_warps[0], P.mri_warps[0], Md.second);
+    P.mri_warps[0] = MyMRI::MRIvalscale(P.mri_warps[0], P.mri_warps[0], Md.second);
   }
   P.mri_mean = averageSet(P.mri_warps, P.mri_mean,P.average,P.sat);
 

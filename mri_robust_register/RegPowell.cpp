@@ -1,5 +1,7 @@
 #include "RegPowell.h"
 #include "CostFunctions.h"
+#include "MyMatrix.h"
+#include "MyMRI.h"
 
 #include "numerics.h"
 
@@ -40,7 +42,7 @@ float RegPowell::costFunction(float p[])
   Md.first = MatrixMultiply(Md.first,mh1,Md.first);
 
   // compute new half way maps
-  MATRIX* mh  = Registration::MatrixSqrt(Md.first);
+  MATRIX* mh  = MyMatrix::MatrixSqrt(Md.first);
   // do not just assume m = mh*mh, rather m = mh2 * mh
   // for transforming target we need mh2^-1 = mh * m^-1
   MATRIX * mi  = MatrixInverse(Md.first,NULL);
@@ -57,8 +59,8 @@ float RegPowell::costFunction(float p[])
   {
     //cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
 
-    Registration::MRIvalscale(mri_Swarp,mri_Swarp,(1.0+Md.second)*0.5);
-    Registration::MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/Md.second)*0.5);
+    MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,(1.0+Md.second)*0.5);
+    MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/Md.second)*0.5);
   }
 
   // compute error
@@ -120,7 +122,7 @@ std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,do
   // this keeps the problem symmetric
   cout << "   - warping source and target (sqrt)" << endl;
   if (mh1) MatrixFree(&mh1);
-  mh1 = MatrixSqrt(fmd.first);
+  mh1 = MyMatrix::MatrixSqrt(fmd.first);
   // do not just assume m = mh*mh, rather m = mh2 * mh
   // for transforming target we need mh2^-1 = mh * m^-1
   MATRIX * mi  = MatrixInverse(fmd.first,NULL);
