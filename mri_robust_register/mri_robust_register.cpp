@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:35:08 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/08/13 23:36:08 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -117,7 +117,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.23 2009/08/13 02:35:08 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.24 2009/08/13 23:36:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -704,7 +704,7 @@ static void printUsage(void)
 
   cout << "Optional arguments" << endl << endl;
   cout << "  -W, --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
-  cout << "      --weights wvol.mgz     output weights transformed to target space as wvol.mgz" << endl;
+  cout << "      --weights wvol.mgz     output weights (in target space) as wvol.mgz" << endl;
 
   cout << "      --halfmov hm.mgz       outputs half-way mov (mapped to halfway space)" << endl;
   cout << "      --halfdst hd.mgz       outputs half-way dst (mapped to halfway space)" << endl;
@@ -713,12 +713,13 @@ static void printUsage(void)
   cout << "      --halfdstlta hd.lta    outputs transform from dst to half-way space" << endl;
 
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
-  cout << "  -I, --iscale               estimate intensity scale factor (default no I-scaling)" << endl;
+  cout << "  -I, --iscale               estimate intensity scale factor (default no)" << endl;
+  cout << "                                !!Highly recommended for unnormalized images!!" << endl;
   cout << "      --transonly            find 3 parameter translation only" << endl;
   cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
-  cout << "      --initorient           use moments for orientation initialization (default false)" << endl;
-  cout << "                                (recommended for stripped brains, but has difficulties" << endl;
+  cout << "      --initorient           use moments for orientation init. (default false)" << endl;
+  cout << "                                (recommended for stripped brains, but not with" << endl;
   cout << "                                 with full head images with different cropping)"<<endl;
   cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
@@ -736,11 +737,11 @@ static void printUsage(void)
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
-  cout << "Mandatory or optional arguments to long options are also mandatory or optional for any" << endl;
-  cout << " corresponding short options." << endl;
+  cout << " Mandatory or optional arguments to long options are also mandatory or optional" << endl;
+  cout << " for any corresponding short options." << endl;
   cout << endl;
 
-  cout << "Report bugs to: analysis-bugs@nmr.mgh.harvard.edu" << endl;
+  cout << " Report bugs to: analysis-bugs@nmr.mgh.harvard.edu" << endl;
 
 
   /*printf("  -dist distance\n");
