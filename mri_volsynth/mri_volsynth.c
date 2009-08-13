@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/08/13 21:20:54 $
- *    $Revision: 1.39 $
+ *    $Date: 2009/08/13 21:29:20 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.39 2009/08/13 21:20:54 greve Exp $";
+"$Id: mri_volsynth.c,v 1.40 2009/08/13 21:29:20 greve Exp $";
 
 char *Progname = NULL;
 
@@ -117,6 +117,7 @@ MRIS *surf;
 
 MRI *MRIsliceNo(MRI *in, MRI *out);
 MRI *MRIindexNo(MRI *in, MRI *out);
+MRI *MRIcrs(MRI *in, MRI *out);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -316,6 +317,15 @@ int main(int argc, char **argv)
       exit(1);
     }
     mri=MRIindexNo(mritemp,NULL);
+    if(!mri) exit(1);
+  } 
+  else if (strcmp(pdfname,"crs")==0) {
+    printf("CRS \n");
+    if(mritemp == NULL){
+      printf("ERROR: need --temp with crs\n");
+      exit(1);
+    }
+    mri=MRIcrs(mritemp,NULL);
     if(!mri) exit(1);
   } 
   else {
@@ -646,7 +656,7 @@ static void print_usage(void) {
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta, \n");
-  printf("      sphere, z, t, F, chi2, voxcrs, checker, sliceno, indexno\n");
+  printf("      sphere, z, t, F, chi2, voxcrs, checker, sliceno, indexno, crs\n");
   printf("   --bb c r s dc dr ds : bounding box (In=ValA, Out=ValB)\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
@@ -848,7 +858,10 @@ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
 MRI *MRIsliceNo(MRI *in, MRI *out)
 {
   int c,r,s;
-  if(out == NULL)  out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+  if(out == NULL){
+    out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+    MRIcopyHeader(in,out);
+  }
 
   for(c=0; c < in->width; c++){
     for(r=0; r < in->height; r++){
@@ -865,7 +878,10 @@ MRI *MRIsliceNo(MRI *in, MRI *out)
 MRI *MRIindexNo(MRI *in, MRI *out)
 {
   int c,r,s, index;
-  if(out == NULL)  out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+  if(out == NULL){
+    out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+    MRIcopyHeader(in,out);
+  }
 
   index = 0;
   for(s=0; s < in->depth; s++){
@@ -880,3 +896,24 @@ MRI *MRIindexNo(MRI *in, MRI *out)
   return(out);
 }
 
+MRI *MRIcrs(MRI *in, MRI *out)
+{
+  int c,r,s;
+
+  if(out == NULL){
+    out = MRIallocSequence(in->width,in->height,in->depth,MRI_FLOAT,3);
+    MRIcopyHeader(in,out);
+  }
+
+  for(s=0; s < in->depth; s++){
+    for(r=0; r < in->height; r++){
+      for(c=0; c < in->width; c++){
+	MRIsetVoxVal(out,c,r,s,0, c);
+	MRIsetVoxVal(out,c,r,s,1, r);
+	MRIsetVoxVal(out,c,r,s,2, s);
+      }
+    }
+  }
+
+  return(out);
+}
