@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/08/07 23:06:41 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/08/13 21:20:54 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.38 2009/08/07 23:06:41 greve Exp $";
+"$Id: mri_volsynth.c,v 1.39 2009/08/13 21:20:54 greve Exp $";
 
 char *Progname = NULL;
 
@@ -116,6 +116,7 @@ char *subject=NULL, *hemi=NULL;
 MRIS *surf;
 
 MRI *MRIsliceNo(MRI *in, MRI *out);
+MRI *MRIindexNo(MRI *in, MRI *out);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -301,11 +302,23 @@ int main(int argc, char **argv)
   } 
   else if (strcmp(pdfname,"sliceno")==0) {
     printf("SliceNo \n");
+    if(mritemp == NULL){
+      printf("ERROR: need --temp with sliceno\n");
+      exit(1);
+    }
     mri=MRIsliceNo(mritemp,NULL);
     if(!mri) exit(1);
   } 
-
-else {
+  else if (strcmp(pdfname,"indexno")==0) {
+    printf("IndexNo \n");
+    if(mritemp == NULL){
+      printf("ERROR: need --temp with indexno\n");
+      exit(1);
+    }
+    mri=MRIindexNo(mritemp,NULL);
+    if(!mri) exit(1);
+  } 
+  else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform,\n"
 	   "const, delta, checker\n", pdfname);
     exit(1);
@@ -633,7 +646,7 @@ static void print_usage(void) {
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta, \n");
-  printf("      sphere, z, t, F, chi2, voxcrs, checker, sliceno\n");
+  printf("      sphere, z, t, F, chi2, voxcrs, checker, sliceno, indexno\n");
   printf("   --bb c r s dc dr ds : bounding box (In=ValA, Out=ValB)\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
@@ -841,6 +854,25 @@ MRI *MRIsliceNo(MRI *in, MRI *out)
     for(r=0; r < in->height; r++){
       for(s=0; s < in->depth; s++){
 	MRIsetVoxVal(out,c,r,s,0, s);
+      }
+    }
+  }
+
+  return(out);
+}
+
+
+MRI *MRIindexNo(MRI *in, MRI *out)
+{
+  int c,r,s, index;
+  if(out == NULL)  out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+
+  index = 0;
+  for(s=0; s < in->depth; s++){
+    for(r=0; r < in->height; r++){
+      for(c=0; c < in->width; c++){
+	MRIsetVoxVal(out,c,r,s,0, index);
+	index ++;
       }
     }
   }
