@@ -33,8 +33,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/25 17:35:40 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/08/13 18:31:13 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -106,7 +106,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.15 2009/06/25 17:35:40 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.16 2009/08/13 18:31:13 nicks Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -911,7 +911,8 @@ static void calcMeanMinLabelDistances(void)
 
     int boundaryVertexCount=0;
     // for each label...(valid label if nonzero annot id)
-    if (surf1BoundaryLabels[cti].annotation != 0)
+    if (surf1BoundaryLabels[cti].annotation != 0 &&
+        surf1BoundaryLabels[cti].annotation != 0xFFFFFFFF)
     {
       int vno;
       // for each boundary vertex on surface1...
@@ -966,7 +967,11 @@ static void calcMeanMinLabelDistances(void)
           // sanity check: we should have found a minimum distance
           if (minDist==100000000) 
           {
-            printf("ERROR: minDist==100000000 (cti=%d,vno=%d)\n",cti,vno);
+            printf("ERROR: minDist==100000000 "
+                   "(cti=%d,vno=%d,annotation1=0x%8.8X,annotation2=0x%8.8X)\n",
+                   cti,vno,
+                   surf1BoundaryLabels[cti].annotation,
+                   surf2BoundaryLabels[cti].annotation);
             exit(1);
           }
           if (minDist < 0) // stupid sanity check
@@ -1007,7 +1012,8 @@ static void calcMeanMinLabelDistances(void)
 
     int boundaryVertexCount=0;
     // for each label...(valid label if nonzero annot id)
-    if (surf2BoundaryLabels[cti].annotation != 0)
+    if (surf2BoundaryLabels[cti].annotation != 0 &&
+        surf2BoundaryLabels[cti].annotation != 0xFFFFFFFF)
     {
       int vno;
       // for each boundary vertex on surface2...
@@ -1057,7 +1063,11 @@ static void calcMeanMinLabelDistances(void)
           // sanity check: we should have found a minimum distance
           if (minDist==100000000) 
           {
-            printf("ERROR: minDist==100000000 (cti=%d,vno=%d)\n",cti,vno);
+            printf("ERROR: minDist==100000000 "
+                   "(cti=%d,vno=%d,annotation1=0x%8.8X,annotation2=0x%8.8X)\n",
+                   cti,vno,
+                   surf1BoundaryLabels[cti].annotation,
+                   surf2BoundaryLabels[cti].annotation);
             exit(1);
           }
           // save away the min distance info for this vertex
@@ -1096,7 +1106,8 @@ static void calcMeanMinLabelDistances(void)
     if ((NULL != labelsfile) && ( ! isIncludedLabel(cti) )) continue;
 
     // for each label...(valid label if nonzero annot id)
-    if (surf1BoundaryLabels[cti].annotation != 0)
+    if (surf1BoundaryLabels[cti].annotation != 0 &&
+        surf1BoundaryLabels[cti].annotation != 0xFFFFFFFF)
     {
       // sanity check
       if (surf1BoundaryLabels[cti].annotation != 
