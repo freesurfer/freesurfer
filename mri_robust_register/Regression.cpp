@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/08/13 23:15:05 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -323,14 +323,14 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
     MatrixFree(&w);
     p = lastp;
     w = lastw;
-    cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
+    if (verbose > 1) cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
     lasterror = err[count-1];
   }
   else
   {
     MatrixFree(&lastp);
     MatrixFree(&lastw);
-    cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
+    if (verbose > 1) cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
     lasterror = err[count];
   }
 
@@ -362,7 +362,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
   }
   d /= w->rows;
   dd /= ddcount;
-  cout << "          weights average: " << dd << "  zero: " << (double)zcount/ddcount << flush;
+  if (verbose > 1) cout << "          weights average: " << dd << "  zero: " << (double)zcount/ddcount << flush;
   //"  on significant b vals ( " << ddcount << " ): " << dd <<endl;
   lastweight = dd;
   lastzero   = (double)zcount/ddcount;

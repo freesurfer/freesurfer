@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.28 $
+ *    $Date: 2009/08/13 23:15:05 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -118,7 +118,7 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
 //  cout << " rtype: " << rtype << endl;
   if (rigid && rtype==2)
   {
-    cout << "rigid and rtype 2 !" << endl;
+    if (verbose > 1) cout << "rigid and rtype 2 !" << endl;
     // compute non rigid A
     rigid = false;
     Ab = constructAb(mriS,mriT);
@@ -168,12 +168,13 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
   pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
   pair < MATRIX*, MRI* > pw(NULL,NULL);
   Regression R(Ab.first,Ab.second);
+	R.setVerbose(verbose);
   if (robust)
   {
-    cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
+    if (verbose > 1) cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
     if (sat < 0) pwm = R.getRobustEstW();
     else pwm = R.getRobustEstW(sat);
-    cout << "  DONE" << endl;
+    if (verbose > 1) cout << "  DONE" << endl;
     pw.first  = pwm.first;
     pw.second = NULL;
 
@@ -211,9 +212,9 @@ pair < MATRIX*, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* m
   }
   else
   {
-    cout << "   - compute least squares estimate ..." << flush;
+    if (verbose > 1) cout << "   - compute least squares estimate ..." << flush;
     pw.first = R.getLSEst();
-    cout << "  DONE" << endl;
+    if (verbose > 1) cout << "  DONE" << endl;
     pw.second = NULL; // no weights in this case
   }
 
@@ -387,7 +388,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
   else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
   else fmd.first = initializeTransform(mriS,mriT);
 
-  if (debug > 0)
+  if (verbose > 1)
   {
     cout << "   - initial transform:\n" ;
     MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
@@ -408,7 +409,8 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
   MATRIX* mras = NULL;
   while (diff > epsit && i<=nmax)
   {
-    cout << " Iteration: " << i << endl;
+    if (verbose >0) cout << " Iteration: " << i << flush;
+		if (verbose >1) cout << endl;
     i++;
 
 
@@ -419,7 +421,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
 
     // here maybe better to symmetrically warp both images SQRT(M)
     // this keeps the problem symmetric
-    cout << "   - warping source and target (sqrt)" << endl;
+    if (verbose >1) cout << "   - warping source and target (sqrt)" << endl;
     if (mh) MatrixFree(&mh);
     // Old: half way voxelxform
     mh  = MyMatrix::MatrixSqrt(fmd.first);
@@ -451,7 +453,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
     // adjust intensity
     if (iscale)
     {
-      cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
+      if (verbose >1) cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
       //MRIvalscale(mri_Swarp,mri_Swarp,fmd.second);
       MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,(1.0+fmd.second)*0.5);
       MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/fmd.second)*0.5);
@@ -459,7 +461,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
 
 
     // compute Registration
-    cout << "   - compute new registration" << endl;
+    if (verbose >1) cout << "   - compute new registration" << endl;
     //p = computeRegistrationStepP(mri_Swarp,mri_Twarp);
     if (pw.second) MRIfree(&pw.second);
     pw = computeRegistrationStepW(mri_Swarp,mri_Twarp);
@@ -472,7 +474,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
 
 
     // store M and d
-    cout << "   - store transform" << endl;
+    if (verbose >1) cout << "   - store transform" << endl;
     //cout << endl << " current : Matrix: " << endl;
     //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
     //cout << " intens: " << cmd.second << endl;
@@ -489,9 +491,9 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
     //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
     if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
     else        diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
-    cout << "     -- old difference to prev. transform: " << diff << endl;
+    if (verbose >1) cout << "     -- old difference to prev. transform: " << diff << endl;
     diff = sqrt(MyMatrix::AffineTransDistSq(fmd.first, fmdtmp, 100));
-    cout << "     -- difference to prev. transform: " << diff << endl;
+    if (verbose >0) cout << "     -- difference to prev. transform: " << diff << endl;
     //cout << " intens: " << fmd.second << endl;
 
     MatrixFree(&fmdtmp);
@@ -550,7 +552,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
 
   if (diff > epsit) // adjust mh and mhi to new midpoint
   {
-    cout << "     -- adjusting half-way maps " << endl;
+    if (verbose >1) cout << "     -- adjusting half-way maps " << endl;
     MATRIX * ch = MyMatrix::MatrixSqrt(fmd.first);
     // do not just assume c = ch*ch, rather c = ch2 * ch
     // for transforming target we need ch2^-1 = ch * c^-1
@@ -591,7 +593,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
   else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
   else            fmd.first = initializeTransform(mriS,mriT) ;
 
-  if (debug > 0)
+  if (verbose >1) 
   {
     cout << "   - initial transform:\n" ;
     MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
@@ -615,7 +617,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
 
     if (!rigid) diffs[si] = MyMatrix::getFrobeniusDiff(fmd.first, cmd.first);
     else        diffs[si] = sqrt(MyMatrix::RigidTransDistSq(fmd.first, cmd.first));
-    cout << "       difference on sat " << sat << " to prev. transform: " << diffs[si] << endl;
+      if (verbose >1) cout << "       difference on sat " << sat << " to prev. transform: " << diffs[si] << endl;
 
     fmd.second = cmd.second;
     MatrixFree(&fmd.first);
@@ -661,8 +663,8 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
 // n: number of max iterations on each resolution
 // epsit: epsilon to stop iterations
 {
-  cout << " Registration::computeMultiresRegistration " << endl;
-  cout << "   - Gaussian Pyramid " << endl;
+  if (verbose >0) cout << endl << endl << " Registration::computeMultiresRegistration " << endl;
+  if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
   if (!mriS) mriS = mri_source;
   else
   {
@@ -701,7 +703,7 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
   else if (Minit) md.first = MatrixCopy(Minit,NULL);
   else md.first = initializeTransform(mriS,mriT);
 
-  if (debug > 0)
+  if (verbose >0 ) 
   {
     cout << "   - initial transform:\n" ;
     MatrixPrintFmt(stdout,"% 2.8f",md.first);
@@ -713,7 +715,7 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
     for (int rr = 1;rr<=3;rr++)
       md.first->rptr[rr][4]  = 0.5 *  md.first->rptr[rr][4];
 
-  if (debug >0)
+  if (verbose >1 ) 
   {
     cout << "   - initial adjusted:\n" ;
     MatrixPrintFmt(stdout,"% 2.8f",md.first);
@@ -738,7 +740,7 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
 //    MRIwrite(gpS[r],"mriS-smooth.mgz");
 //    MRIwrite(gpT[r],"mriT-smooth.mgz");
 
-    cout << endl << "Resolution: " << r << endl;
+    if (verbose >0 ) cout << endl << "Resolution: " << r << endl;
 
     if (r==0) iscale = iscaletmp; // set iscale if set by user
 
@@ -813,11 +815,11 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
 //        }
 
     // compute Registration
-    cout << "   - compute new registration" << endl;
+    if (verbose >1 ) cout << "- compute new iterative registration" << endl;
     if (cmd.first) MatrixFree(&cmd.first);
     cmd = computeIterativeRegistration(n,epsit,gpS[r],gpT[r],md.first,md.second);
 //       cmd = computeIterativeRegSat(n,gpS[r],gpT[r],md.first,md.second);
-    if (debug > 0)
+    if (verbose > 1)
     {
       cout << endl << " current : Matrix: " << endl;
       MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
@@ -854,7 +856,7 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
 //       MatrixCopy(m,md.first);
     MatrixCopy(cmd.first,md.first);
     md.second = cmd.second;
-    if (debug > 0)
+    if (verbose > 1)
     {
       cout << endl << " Matrix: " << endl;
       MatrixPrintFmt(stdout,"% 2.8f",md.first);
@@ -918,6 +920,7 @@ double  Registration::computeSatEstimate (int reslevel, int n,double epsit, MRI 
   Ab = constructAb(mri_Swarp,mri_Twarp);
   pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
   Regression R(Ab.first,Ab.second);
+	R.setVerbose(verbose);
 
   pair < double , double > interval(3,20);
   pair < double , double > wpercent;
@@ -1401,6 +1404,7 @@ void Registration::testRobust(const std::string& fname, int testno)
       Ab = constructAb(mriTs, mriTt);
       pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
       Regression R(Ab.first,Ab.second);
+			R.setVerbose(verbose);
       sat = 5;
 
       cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
@@ -1662,7 +1666,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
 // exactly as in robust paper
 {
 
-  cout << "   - constructAb: " << endl;
+  if (verbose > 1) cout << "   - constructAb: " << endl;
 
   assert(mriT != NULL);
   assert(mriS != NULL);
@@ -1681,20 +1685,20 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   if (mri_indexing) MRIfree(&mri_indexing);
   if (ss > std::numeric_limits<int>::max())
   {
-     cout << "     -- using LONG for indexing ... " << flush;
+     if (verbose > 1) cout << "     -- using LONG for indexing ... " << flush;
      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
      if (mri_indexing == NULL) 
         ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
-     cout << " done!" << endl;
+     if (verbose > 1) cout << " done!" << endl;
   }
   else 
   {
      double mu = ((double)ss) * sizeof(int) / (1024.0 * 1024.0);
-     cout << "     -- allocating " << mu << "Mb mem for indexing ... " << flush;
+     if (verbose > 1) cout << "     -- allocating " << mu << "Mb mem for indexing ... " << flush;
      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
      if (mri_indexing == NULL) 
         ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
-     cout << " done!" << endl;
+     if (verbose > 1) cout << " done!" << endl;
   }
 
   for (z = 0 ; z < mriS->depth ; z++)
@@ -1721,7 +1725,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
 //   }
 
   // we will need the derivatives
-  cout << "     -- compute derivatives ... " << flush;
+  if (verbose > 1) cout << "     -- compute derivatives ... " << flush;
   MRI *Sfx=NULL,*Sfy=NULL,*Sfz=NULL,*Sbl=NULL;
   MRI *Tfx=NULL,*Tfy=NULL,*Tfz=NULL,*Tbl=NULL;
   MyMRI::getPartials(mriS,Sfx,Sfy,Sfz,Sbl);
@@ -1743,7 +1747,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   //MRIfree(&Tfz);
   //MRIfree(&Tbl);
 
-  cout << " done!" << endl;
+  if (verbose > 1) cout << " done!" << endl;
   //MRIwrite(fx1,"fx.mgz");
   //MRIwrite(fy1,"fy.mgz");
   //MRIwrite(fz1,"fz.mgz");
@@ -1752,7 +1756,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
   MRI * fx,* fy,* fz,* ft;
   if (dosubsample)
   {
-    cout << "     -- subsample ... "<< flush;
+    if (verbose > 1) cout << "     -- subsample ... "<< flush;
 
     fx = MyMRI::subSample(fx1);
     fy = MyMRI::subSample(fy1);
@@ -1763,7 +1767,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
     MRIfree(&fz1);
     MRIfree(&ft1);
 
-    cout << " done! " << endl;
+    if (verbose > 1) cout << " done! " << endl;
   }
   else
   {
@@ -1786,7 +1790,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
      if (A == NULL || b == NULL) 
         ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A or b") ;
 
-  cout << "     -- size " << fx->width << " " << fx->height << " " << fx->depth << flush;
+  if (verbose > 1) cout << "     -- size " << fx->width << " " << fx->height << " " << fx->depth << flush;
 
   long int count = 0;
   int xp1,yp1,zp1;
@@ -1797,7 +1801,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
       {
         if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
         {
-          cout << " found a nan value!!!" << endl;
+          if (verbose > 0) cout << " found a nan value!!!" << endl;
           continue;
         }
 
@@ -1897,7 +1901,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
     assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
   }
 
-  cout << " ( " << count << " non-zero voxels )"<< endl;
+  if (verbose > 1) cout << " ( " << count << " non-zero voxels )"<< endl;
 
   MatrixFree(&A);
   MatrixFree(&b);
@@ -1907,7 +1911,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
 
 pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
 {
-  cout << " constructAb2 " << endl;
+  if (verbose > 1) cout << " constructAb2 " << endl;
   assert(mriT != NULL);
   assert(mriS != NULL);
   assert(mriS->width == mriT->width);
@@ -1934,15 +1938,15 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
       }
 
   // we will need the derivatives
-  cout << " compute derivatives ... " << flush;
+  if (verbose > 1) cout << " compute derivatives ... " << flush;
   MRI *Sfx=NULL,*Sfy=NULL,*Sfz=NULL,*Sbl=NULL;
   MRI *Tfx=NULL,*Tfy=NULL,*Tfz=NULL,*Tbl=NULL;
   MyMRI::getPartials(mriS,Sfx,Sfy,Sfz,Sbl);
   MyMRI::getPartials(mriT,Tfx,Tfy,Tfz,Tbl);
 
-  cout << " done!" << endl;
+  if (verbose > 1) cout << " done!" << endl;
 
-  cout << " Subsample ... "<< flush;
+  if (verbose > 1) cout << " Subsample ... "<< flush;
 
   MRI * fx  = MyMRI::subSample(Tfx);
   MRI * fy  = MyMRI::subSample(Tfy);
@@ -1959,7 +1963,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
   MRIfree(&Tfz);
   MRIfree(&Tbl);
 
-  cout << " done! " << endl;
+  if (verbose > 1) cout << " done! " << endl;
 
 
   // allocate the space
@@ -2032,7 +2036,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
     }
   }
 
-  cout << " Considering: " << count << " non-zero voxels"<< endl;
+  if (verbose > 1) cout << " Considering: " << count << " non-zero voxels"<< endl;
 
   MatrixFree(&A);
   MatrixFree(&b);

@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:20 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/08/13 23:15:05 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,11 +56,11 @@ public:
 
   // constructor initializing A and B
   Regression(MATRIX* Ap, MATRIX* Bp):
-      A(Ap), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1)
+      A(Ap), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1),verbose(1)
   {};
   // constructor initializing B (for simple case where x is single variable and A is (...1...)^T
   Regression(MATRIX* Bp):
-      A(NULL), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1)
+      A(NULL), B(Bp),lasterror(-1),lastweight(-1),lastzero(-1),verbose(1)
   {};
 
   // Robust solver
@@ -83,6 +83,12 @@ public:
   {
     return lastzero;
   };
+	void setVerbose(int v)
+	{
+	   verbose = v;
+		 if (v < 0 ) verbose = 0;
+		 if (v > 2 ) verbose = 2;
+  }
 
   void plotPartialSat(const std::string& fname);
 
@@ -101,6 +107,7 @@ private:
   MATRIX* A;
   MATRIX* B;
   double lasterror,lastweight,lastzero;
+	int verbose;
 };
 
 

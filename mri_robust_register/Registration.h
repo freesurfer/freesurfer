@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/08/13 23:15:05 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -51,13 +51,13 @@ class Registration
 {
 public:
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
-      robust(true),rtype(1),subsamplesize(-1),debug(0),initorient(false),
+      robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
       mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),
       mri_weights(NULL), mov2weights(NULL),dst2weights(NULL),
       lastp(NULL), mri_indexing(NULL)
   {};
   Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
-      robust(true),rtype(1),subsamplesize(-1),debug(0),initorient(false),
+      robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
       mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
       Minit(NULL),Mfinal(NULL),mri_weights(NULL),
       mov2weights(NULL),dst2weights(NULL),lastp(NULL),
@@ -90,6 +90,14 @@ public:
   void setDebug(int d)
   {
     debug = d;
+		if (d>0) verbose = 2;
+  };
+  void setVerbose(int i)
+	// 0 very quiet, 1 default, 2 detail
+  {
+	  if (i < 0) i=0;
+		else if (i > 2) i=2;
+    verbose = i;
   };
   void setIscale(bool i)
   {
@@ -172,6 +180,7 @@ protected:
   std::string name;
   std::string nbase;
   int debug;
+	int verbose;
   bool initorient;
   //bool outweights;
   //std::string weightsname;
