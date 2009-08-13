@@ -1,3 +1,29 @@
+/**
+ * @file RobustGaussian.cpp
+ * @brief A class to esimate a robust Gaussian (using median and mad)
+ *
+ */
+
+/*
+ * Original Author: Martin Reuter
+ * CVS Revision Info:
+ *    $Author: mreuter $
+ *    $Date: 2009/08/13 02:51:20 $
+ *    $Revision: 1.9 $
+ *
+ * Copyright (C) 2008-2009
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
 #include "RobustGaussian.h"
 
 #include <stdlib.h>

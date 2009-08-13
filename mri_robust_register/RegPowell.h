@@ -1,5 +1,30 @@
-//
-// RegPowell is a class to compute a robust registration using Powell
+/**
+ * @file RegPowell.h
+ * @brief A class to compute a robust registration using Powell
+ *
+ */
+
+/*
+ * Original Author: Martin Reuter
+ * CVS Revision Info:
+ *    $Author: mreuter $
+ *    $Date: 2009/08/13 02:51:19 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright (C) 2008-2009
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
 //
 // written by Martin Reuter
 // Apr. 22th ,2009

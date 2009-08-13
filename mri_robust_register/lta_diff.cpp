@@ -1,3 +1,29 @@
+/**
+ * @file  lta_diff.cpp
+ * @brief A programm to compute differences of lta files (transforms)
+ *
+ */
+
+/*
+ * Original Author: Martin Reuter
+ * CVS Revision Info:
+ *    $Author: mreuter $
+ *    $Date: 2009/08/13 02:51:20 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright (C) 2008-2009
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -29,7 +55,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.7 2009/08/13 02:35:08 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.8 2009/08/13 02:51:20 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)

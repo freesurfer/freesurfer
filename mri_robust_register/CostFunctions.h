@@ -1,9 +1,31 @@
-//
-// CostFunctions is a class that makes available many different
-// cost functions for images
-//
-// MRIiterator iterates through MRI (readonly)
-//
+/**
+ * @file  CostFunctions.h
+ * @brief A class that makes available many different cost functions for images
+ *   and to combine multiple volumes by mean or median
+ *   MRIiterator iterates through MRI (readonly)
+ */
+
+/*
+ * Original Author: Martin Reuter
+ * CVS Revision Info:
+ *    $Author: mreuter $
+ *    $Date: 2009/08/13 02:51:19 $
+ *    $Revision: 1.7 $
+ *
+ * Copyright (C) 2008-2009
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
 // written by Martin Reuter
 // March 20th ,2009
 //

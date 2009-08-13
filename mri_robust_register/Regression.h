@@ -1,7 +1,34 @@
+/**
+ * @file Regression.h
+ * @brief A class to solve overconstrained system A X = B
+ *
+ *   it uses either least squares (standard regression)
+ *   or a robust estimator (Tukey's Biweight with iterative reweighted least
+ *   squares)
+ *
+ */
+
+/*
+ * Original Author: Martin Reuter
+ * CVS Revision Info:
+ *    $Author: mreuter $
+ *    $Date: 2009/08/13 02:51:20 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright (C) 2008-2009
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
 //
-// Regression is a class to solve overconstrained system A X = B
-//   it uses either least squares (standard regression)
-//   or a robust estimator (Tukey's Biweight with iterative reweighted least squares)
 //
 // written by Martin Reuter
 // Nov. 4th ,2008
