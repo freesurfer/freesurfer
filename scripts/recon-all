@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/08/06 18:27:29 $
-#    $Revision: 1.243 $
+#    $Date: 2009/08/14 21:19:36 $
+#    $Revision: 1.244 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.243 2009/08/06 18:27:29 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.244 2009/08/14 21:19:36 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -251,6 +251,7 @@ set DoParcStats2     = 0;
 set DoCurvStats      = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
+set DoBaLabel        = 0;
 # ----------- Surface and Volume ------------------#
 set DoCortRibbonVolMask = 0;
 set DoAParc2ASeg = 0;
@@ -2746,12 +2747,43 @@ if ($DoLocalGyriIndex) then
           |& tee -a $LF |& tee -a $CF
       echo "#@# Local Gyrification Index $hemi `date`" \
           |& tee -a $SF |& tee -a $LF |& tee -a $CF
-        set cmd=(mris_compute_lgi --i ${hemi}.pial)
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
+      set cmd=(mris_compute_lgi --i ${hemi}.pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
   end # hemi
 endif # DoLocalGyriIndex
+
+
+# --------------------------------------------------------------------
+# Create Brodmann area labels by mapping from fsaverage (if it exists)
+if ($DoBaLabels) then
+  cd $subjdir/label
+  $PWD |& tee -a $LF
+  foreach hemi ($hemilist)
+      echo "#--------------------------------------------" \
+          |& tee -a $LF |& tee -a $CF
+      echo "#@# BA Labels $hemi `date`" \
+          |& tee -a $SF |& tee -a $LF |& tee -a $CF
+      if ( ! -e $SUBJECTS_DIR/fsaverage) then
+        echo "WARNING: Cannot create BA labels: fsaverage subject does not exist in SUBJECTS_DIR" \
+          |& tee -a $LF |& tee -a $CF
+      else
+        foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT)
+          set cmd=(mri_label2label \
+            --srcsubject fsaverage \
+            --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
+            --trgsubject $subjid \
+            --trglabel ./${hemi}.${balabel}.label \
+            --hemi ${hemi} \
+            --regmethod surface)
+          echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+          if($RunIt) $fs_time $cmd |& tee -a $LF
+          if($status) goto error_exit;
+        end # balabel
+      endif # fsaverage exists
+  end # hemi
+endif # DoBaLabels
 
 
 #-------------- AParc+ASeg Stats -----------------#
@@ -4092,6 +4124,12 @@ while( $#argv != 0 )
       set DoLocalGyriIndex = 1;
       breaksw;
 
+    case "-balabels":
+    case "-ba_labels":
+    case "-ba-labels":
+      set DoBaLabels = 1;
+      breaksw;
+
     case "-surfvolume":
       set DoSurfVolume = 1;
       breaksw;
@@ -4448,7 +4486,7 @@ check_params:
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
-     ! $DoCreateBaseSubj) then
+     ! $DoCreateBaseSubj && ! $DoBaLabels) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
@@ -5011,6 +5049,16 @@ points over the cortical surface. See reference [13] for details.
 -label_v1
 
 Create a label of V1, based on Hinds et al., NeuroImage 39 (2008) 1585-1599.
+
+-balabels
+-ba-labels
+-ba_labels
+
+Creates Brodmann area labels of BA1, BA2, BA3a, BA3b, BA4a, BA4p, BA6, BA44,
+BA45, V1, V2, and V5/MT by mapping labels from the 'fsaverage' subject.
+The 'fsaverage' subject must exist within the SUBJECTS_DIR.  Based on:
+"Cortical Folding Patterns and Predicting Cytoarchitecture", Fischl et al.,
+Cerebral Cortex 2007. 
 
 
 EXPERT OPTIONS FILE
