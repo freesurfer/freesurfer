@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 23:15:05 $
- *    $Revision: 1.29 $
+ *    $Date: 2009/08/15 02:24:45 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -410,9 +410,10 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
   while (diff > epsit && i<=nmax)
   {
     if (verbose >0) cout << " Iteration: " << i << flush;
+		if (verbose == 1 && subsamplesize > 0)
+		  if (mriS->width > subsamplesize || mriS->height > subsamplesize || mriS->depth > subsamplesize)
+			  cout << " (subsample " << subsamplesize << ") " << flush;
 		if (verbose >1) cout << endl;
-    i++;
-
 
     // warp source to target
 //       cout << "   - warping source" << endl;
@@ -491,9 +492,12 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
     //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
     if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
     else        diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
-    if (verbose >1) cout << "     -- old difference to prev. transform: " << diff << endl;
+    if (verbose >1) cout << "     -- old diff. to prev. transform: " << diff << endl;
     diff = sqrt(MyMatrix::AffineTransDistSq(fmd.first, fmdtmp, 100));
-    if (verbose >0) cout << "     -- difference to prev. transform: " << diff << endl;
+		ostringstream star;
+		if (diff < epsit) star << "  < " << epsit << "  :-)" ;
+		else if (i == nmax) star<< " max it: " << nmax << " reached!";
+    if (verbose >0) cout << "     -- diff. to prev. transform: " << diff << star.str() << endl;
     //cout << " intens: " << fmd.second << endl;
 
     MatrixFree(&fmdtmp);
@@ -501,8 +505,9 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
     //MatrixFree(&mh);
     //MatrixFree(&mhi);
     //MatrixFree(&mh2);
+		i++;
 
-  }
+  } // end while loop
   if (mras) MatrixFree(&mras);
   
   //   DEBUG OUTPUT
@@ -522,7 +527,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
       string n = name+string("-mriS-weights.mgz");
       MRIwrite(pw.second,n.c_str());
     }
-  }
+  } // end if debug
 
   // store weights (mapped to target space):
   if (pw.second)
@@ -707,6 +712,7 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
   {
     cout << "   - initial transform:\n" ;
     MatrixPrintFmt(stdout,"% 2.8f",md.first);
+		cout << "   - initial iscale: " << scaleinit <<endl;
   }
 
   // adjust minit to current (lowest) resolution:
@@ -862,7 +868,16 @@ pair < MATRIX*, double> Registration::computeMultiresRegistration (int stopres, 
       MatrixPrintFmt(stdout,"% 2.8f",md.first);
       cout << " intens: " << md.second << endl;
     }
-  }
+  } // resolution loop
+	
+    if (verbose == 1)
+    {
+      cout << endl << "   - final transform: " << endl;
+      MatrixPrintFmt(stdout,"% 2.8f",md.first);
+      cout << "   - final iscale: " << md.second << endl;
+    }
+	
+	
   // cleanup
   if (cmd.first) MatrixFree(&cmd.first);
   MatrixFree(&m);
