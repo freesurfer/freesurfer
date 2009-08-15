@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/15 02:39:53 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/08/15 16:12:27 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -807,6 +807,11 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
 
 bool MultiRegistration::writeMean(const std::string& mean)
 {
+	    if (! mri_mean ) 
+			{
+			   cout << " ERROR: No average exists! Skipping output." << endl;
+				 return false;
+			}
   strncpy(mri_mean->fname, mean.c_str(),STRLEN);
   return (MRIwrite(mri_mean,mean.c_str()) == 0);
 }
@@ -817,6 +822,12 @@ bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, boo
 	 int error = 0;
    for (unsigned int i = 0;i<nltas.size();i++)
 	 {
+	    if (! ltas[i] ) 
+			{
+			   cout << " ERROR: No ltas exist! Skipping output." << endl;
+				 return false;
+			}
+
       if (vox2vox)
       {
         error += (LTAchangeType(ltas[i], LINEAR_VOX_TO_VOX)==NULL);
@@ -834,6 +845,11 @@ bool MultiRegistration::writeWarps(const std::vector <  std::string >& nwarps)
 	 int error = 0;
    for (unsigned int i = 0;i<nwarps.size();i++)
 	 {
+	    if (! mri_warps[i] ) 
+			{
+			   cout << " ERROR: No warps exist! Skipping output." << endl;
+				 return false;
+			}
 		  error += MRIwrite(mri_warps[i],nwarps[i].c_str()) ;
 	 }
 	 return (error == 0);
@@ -862,6 +878,11 @@ bool MultiRegistration::writeWeights(const std::vector < std::string >& nweights
 	 int error = 0;
    for (unsigned int i = 0;i<nweights.size();i++)
 	 {
+	    if (! mri_weights[i])
+			{
+			   cout << " No weights constructed, skipping output of weights" << endl;
+				 return false;
+			}
 		  error += MRIwrite(mri_weights[i], nweights[i].c_str()) ;
 	 }
 	 return (error == 0);
