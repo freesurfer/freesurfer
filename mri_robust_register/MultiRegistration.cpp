@@ -1,5 +1,5 @@
 /**
- * @file MultiRegistration.h
+ * @file MultiRegistration.cpp
  * @brief A class to handle registration of multiple files
  *
  * MultiRegistration is a class to compute a robust registration
@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/15 16:12:27 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/08/17 22:56:41 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -674,8 +674,31 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
 //       LTAfree(&nlta);
 //       MRIfree(&warped);     
 //     }
-  }
-  
+  } // end for loop (initial registration to inittp)
+	
+	// find geometric mean intensity scale
+	if (iscale)
+	{
+	  double mint = 1.0;
+	  for (int i = 0; i<nin;i++)
+	  {
+	     int j = index[i];
+       if (i==0) intensities[j] = 1.0;
+       else
+  	   {
+  		    assert (Md[i].second > 0);
+    		  intensities[j] = Md[i].second;
+  				mint *=  intensities[j];
+    	 }
+    }
+	  // geometric mean
+	  mint = pow(mint,1.0/nin);
+	
+	  // set intenstiy factors so that geo-mean is 1:
+	  for (int i = 0;i<nin;i++)
+	    intensities[i] *= (1.0 / mint);
+	}
+	
   // find mean center
   vector <MATRIX* > mras(nin);
   mras[0] = MatrixIdentity(4,NULL);
@@ -764,17 +787,6 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
     assert(ltas.size() == mri_mov.size());
     assert(ltas[j] == NULL);
     ltas[j] = MyMatrix::RASmatrix2LTA(M,mri_mov[j],mri_mov[tpi]); // use geometry of tpi
-
-    // store intensities
-		if (iscale)
-		{
-      if (i==0) intensities[j] = 1.0;
-  		else
-  		{
-  		   assert (Md[i].second > 0);
-  		   intensities[j] = Md[i].second;
-  		}
-	  }
 			
     if (debug)
     {
