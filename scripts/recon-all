@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/08/14 21:19:36 $
-#    $Revision: 1.244 $
+#    $Date: 2009/08/18 14:38:18 $
+#    $Revision: 1.245 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.244 2009/08/14 21:19:36 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.245 2009/08/18 14:38:18 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -251,7 +251,7 @@ set DoParcStats2     = 0;
 set DoCurvStats      = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
-set DoBaLabel        = 0;
+set DoBaLabels       = 0;
 # ----------- Surface and Volume ------------------#
 set DoCortRibbonVolMask = 0;
 set DoAParc2ASeg = 0;
