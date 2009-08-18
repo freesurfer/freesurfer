@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/17 22:56:41 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/08/18 04:36:06 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -310,34 +310,37 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 			// on higher iterations use subsamplesize as passed on commandline
       int subsamp = subsamplesize;
 			// simplify first steps (only if we do not have good transforms):
-      switch (itcount)
-      {
-      case 1:
-        maxres = 2;
-        break;
-      case 2:
-        maxres = 2;
-        break;
-      case 3:
-        maxres = 1;
-        break;
-      case 4:
-        maxres = 1;
-        break;
-      case 5:
-        subsamp = 180;
-        break;
-      }
+			if (!havexforms)
+			{
+        switch (itcount)
+        {
+        case 1:
+          maxres = 2;
+          break;
+        case 2:
+          maxres = 2;
+          break;
+        case 3:
+          maxres = 1;
+          break;
+        case 4:
+          maxres = 1;
+          break;
+        case 5:
+          subsamp = 180;
+          break;
+        }
+		  }
 
-      if (havexforms) // default case, as we use the new mean space init!
-      {
-        //// tried high res iteration only:
-				// (does not make sense, we need 2 iter. on high res anyway)
-        //Md= Rv[i].computeIterativeRegistration(1,epsit,NULL,NULL,transforms[i],P.intensities[i]);
-        //dists[i] = sqrt(Rv[i].AffineTransDistSq(Md.first, transforms[i]));
-        //if (itcount ==1) subsamp = 180;	// so use subsample for first step on high res
-        maxres = 0; //go up to hig-res allways (skip first steps as above)
-      }
+//      if (havexforms) // default case, as we use the new mean space init!
+//      {
+//        //// tried high res iteration only:
+//				// (does not make sense, we need 2 iter. on high res anyway)
+//        //Md= Rv[i].computeIterativeRegistration(1,epsit,NULL,NULL,transforms[i],P.intensities[i]);
+//        //dists[i] = sqrt(Rv[i].AffineTransDistSq(Md.first, transforms[i]));
+//        //if (itcount ==1) subsamp = 180;	// so use subsample for first step on high res
+//        maxres = 0; //go up to hig-res allways (skip first steps as above)
+//      }
 
       Rv[i].setSubsamplesize(subsamp);
       Md = Rv[i].computeMultiresRegistration(maxres,
