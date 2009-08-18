@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.8 2009/06/25 01:42:13 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.9 2009/08/18 21:17:14 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -27,6 +27,11 @@ set RngSeed = 1234
 set DoReg = 1;
 set PrintHelp = 0;
 set outdir = ();
+set DoAllVol = 0;
+set vollist = (orig aseg aparc+aseg T1 brain brainmask nu norm)
+set ovlist = (curv sulc area area.pial curv.pial avg_curv \
+       inflated.H inflated.K thickness)
+set surflist = (orig white pial smoothwm inflated sphere)
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "$FREESURFER_HOME/average"
@@ -52,10 +57,19 @@ check_params_return:
 
 cd $SUBJECTS_DIR/$subject
 
-set xsubject = $subject/xhemi
-if($#outdir == 0) set outdir = $SUBJECTS_DIR/$xsubject
+if($DoAllVol) then
+  # Get a list of all mgh and mgz volumes in mri
+  cd mri
+  set vollist = (`ls *.mgz *.mgh | sed 's/.mgz//g' | sed 's/.mgh//g'`);
+  cd ..
+endif
+
+if($#outdir == 0) then
+  set xsubject = $subject/xhemi
+  set outdir = $SUBJECTS_DIR/$xsubject
+endif
 echo "outdir is $outdir" 
-mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts $outdir/stats
+mkdir -p $outdir/mri $outdir/surf $outdir/label $outdir/scripts 
 
 @ nthhemi = 0;
 foreach srchemi ($srchemilist)
@@ -63,7 +77,7 @@ foreach srchemi ($srchemilist)
   if($srchemi == lh) set trghemi = rh;
   if($srchemi == rh) set trghemi = lh;
 
-  set LF = $SUBJECTS_DIR/$xsubject/xhemireg.$srchemi.log
+  set LF = $outdir/xhemireg.$srchemi.log
   if(-e $LF) mv $LF $LF.bak
   echo "Logfile is $LF"
 
@@ -80,8 +94,16 @@ foreach srchemi ($srchemilist)
     echo "" | tee -a $LF
     echo "" | tee -a $LF
     date | tee -a $LF
-    foreach vol (orig aseg aparc+aseg T1 brain brainmask nu norm )
-      set cmd = (mri_convert mri/$vol.mgz $outdir/mri/$vol.mgz \
+    foreach vol ($vollist )
+      set invol = mri/$vol.mgz
+      if(! -e $invol) then
+        set invol = mri/$vol.mgh
+        if(! -e $invol) then
+           echo "ERROR: canot find $vol" | tee -a $LF
+           exit 1;
+        endif
+      endif
+      set cmd = (mri_convert $invol $outdir/mri/$vol.mgz \
         --left-right-reverse)
       echo $cmd  | tee -a $LF
       $cmd | tee -a $LF
@@ -102,7 +124,7 @@ foreach srchemi ($srchemilist)
   endif
 
   #--------------------------------------------------------------
-  foreach surf (orig white pial smoothwm inflated sphere)
+  foreach surf ($surflist)
     echo "" | tee -a $LF
     echo "" | tee -a $LF
     date | tee -a $LF
@@ -115,8 +137,7 @@ foreach srchemi ($srchemilist)
   end
 
   #--------------------------------------------------------------
-  foreach ov (curv sulc area area.pial curv.pial avg_curv \
-       inflated.H inflated.K thickness )
+  foreach ov ($ovlist )
     if(! -e surf/$srchemi.$ov) continue;
     echo "" | tee -a $LF
     echo "" | tee -a $LF
@@ -185,6 +206,11 @@ while( $#argv != 0 )
     case "--reg":
       if ( $#argv < 1) goto arg1err;
       set surfreg = $argv[1]; shift;
+      breaksw
+
+    case "--all-vol":
+      set DoAllVol = 1;
+      set DoReg = 0;
       breaksw
 
     case "--o":
