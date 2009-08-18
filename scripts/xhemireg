@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.9 2009/08/18 21:17:14 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.10 2009/08/18 22:29:11 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -210,6 +210,11 @@ while( $#argv != 0 )
 
     case "--all-vol":
       set DoAllVol = 1;
+      set DoReg = 0;
+      breaksw
+
+    case "--zilles":
+      set vollist = (orig T1 brain brainmask nu norm)
       set DoReg = 0;
       breaksw
 
