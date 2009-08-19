@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/03 17:17:12 $
- *    $Revision: 1.18 $
+ *    $Author: greve $
+ *    $Date: 2009/08/19 01:11:02 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.18 2009/02/03 17:17:12 nicks Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.19 2009/08/19 01:11:02 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -86,6 +86,7 @@ MRI  *seg;
 int  segbase = -1000;
 
 char *borderfile=NULL;
+char *LobesFile=NULL;
 
 static int label_index = -1 ;  // if >= 0 only extract this label
 
@@ -99,7 +100,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.18 2009/02/03 17:17:12 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.19 2009/08/19 01:11:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,6 +167,12 @@ int main(int argc, char **argv) {
   if (Surf->ct == NULL) {
     printf("ERROR: cannot find embedded color table\n");
     exit(1);
+  }
+
+  if(LobesFile){
+    MRISaparc2lobes(Surf);
+    MRISwriteAnnotation(Surf,LobesFile);
+    exit(0);
   }
 
   if(borderfile != NULL){
@@ -309,11 +316,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&segbase);
       nargsused = 1;
-    } else if (!strcmp(option, "--border")) {
+    } 
+    else if (!strcmp(option, "--border")) {
       if (nargc < 1) argnerr(option,1);
       borderfile = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--lobes")) {
+      if (nargc < 1) argnerr(option,1);
+      LobesFile = pargv[0];
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -488,11 +502,12 @@ static void check_options(void) {
     fprintf(stderr,"ERROR: No hemisphere specified\n");
     exit(1);
   }
-  if(outdir == NULL && labelbase == NULL && segfile == NULL && borderfile == NULL) {
+  if(outdir == NULL && labelbase == NULL && segfile == NULL &&
+     borderfile == NULL && LobesFile == NULL ) {
     fprintf(stderr,"ERROR: no output specified\n");
     exit(1);
   }
-  if (outdir != NULL && labelbase != NULL) {
+  if(outdir != NULL && labelbase != NULL) {
     fprintf(stderr,"ERROR: cannot specify both --outdir and --labelbase\n");
     exit(1);
   }
