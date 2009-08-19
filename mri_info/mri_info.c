@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/06/22 00:07:03 $
- *    $Revision: 1.69 $
+ *    $Date: 2009/08/19 23:55:06 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.69 $";
+char *MRI_INFO_VERSION = "$Revision: 1.70 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.69 2009/06/22 00:07:03 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.70 2009/08/19 23:55:06 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -73,6 +73,7 @@ static int PrintType = 0 ;
 static int PrintConformed = 0 ;
 static int PrintRRes = 0;
 static int PrintSRes = 0;
+static int PrintVoxVol  = 0;
 static int PrintNCols = 0;
 static int PrintNRows = 0;
 static int PrintNSlices = 0;
@@ -178,6 +179,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ysize"))   PrintCRes = 1;
     else if (!strcasecmp(option, "--sres"))    PrintSRes = 1;
     else if (!strcasecmp(option, "--zsize"))   PrintCRes = 1;
+    else if (!strcasecmp(option, "--voxvol"))  PrintVoxVol = 1;
     else if (!strcasecmp(option, "--type"))    PrintType = 1;
     else if (!strcasecmp(option, "--conformed")) PrintConformed = 1;
 
@@ -255,9 +257,10 @@ static void print_usage(void) {
   printf("   --ti : print TI to stdout\n");
   printf("   --fa : print flip angle to stdout\n");
   printf("   --pedir : print phase encode direction\n");
-  printf("   --cres : print column voxel size (xsize) to stdout\n");
-  printf("   --rres : print row    voxel size (ysize) to stdout\n");
-  printf("   --sres : print slice  voxel size (zsize) to stdout\n");
+  printf("   --cres : print column voxel size (xsize)\n");
+  printf("   --rres : print row    voxel size (ysize)\n");
+  printf("   --sres : print slice  voxel size (zsize)\n");
+  printf("   --voxvol : print voxel volume\n");
   printf("   --ncols : print number of columns (width) to stdout\n");
   printf("   --nrows : print number of rows (height) to stdout\n");
   printf("   --nslices : print number of columns (depth) to stdout\n");
@@ -440,6 +443,10 @@ static void do_file(char *fname) {
   }
   if (PrintSRes) {
     fprintf(fpout,"%g\n",mri->zsize);
+    return;
+  }
+  if (PrintVoxVol) {
+    fprintf(fpout,"%g\n",mri->xsize*mri->ysize*mri->zsize);
     return;
   }
   if (PrintNCols) {
