@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/23 16:49:47 $
- *    $Revision: 1.35 $
+ *    $Date: 2009/08/20 04:08:26 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.35 2009/07/23 16:49:47 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.36 2009/08/20 04:08:26 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -465,7 +465,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       matfile = pargv[0];
       M = MatrixReadTxt(matfile, NULL);
-      if(M==NULL) exit(1);
+      if(M==NULL){
+	printf("ERROR: reading %s\n",matfile);
+	exit(1);
+      }
       nargsused = 1;
     } 
     else if ( !strcmp(option, "--gmean") ) {
