@@ -20,6 +20,7 @@ mfiles_DATA=\
 	cortical_labeling_afd_txt.m \
 	cortical_labeling_dir_afd_txt.m \
 	cortical_labeling_table.m \
+	dice_labels.m \
 	dtifa.m \
 	dtimatrix.m \
 	fisher_twoclass.m \
