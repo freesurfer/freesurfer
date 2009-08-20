@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/08/20 19:03:43 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/08/20 19:24:48 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.26 2009/08/20 19:03:43 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.27 2009/08/20 19:24:48 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.26 2009/08/20 19:03:43 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.27 2009/08/20 19:24:48 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1275,7 +1275,14 @@ int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout) {
       break;
     }
 
-    if (dumpline ) fprintf(fpout,"%s",tmpstr);
+    if(dumpline){
+      for(nthchar=0; nthchar < strlen(tmpstr); nthchar++){
+	if(tmpstr[nthchar] == '\b') tmpstr[nthchar] = ' ';
+	if(tmpstr[nthchar] == '\r') tmpstr[nthchar] = '\n';
+	if(!isprint(tmpstr[nthchar])) tmpstr[nthchar] = '\n';
+      }
+      fprintf(fpout,"%s",tmpstr);
+    }
   }
 
   fclose(fp);
