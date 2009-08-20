@@ -15,9 +15,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:36 $
- *    $Revision: 1.25 $
+ *    $Author: greve $
+ *    $Date: 2009/08/20 19:03:43 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.25 2009/07/23 19:55:36 nicks Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.26 2009/08/20 19:03:43 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -109,6 +109,7 @@ char *RepString(int RepCode);
 char *ElementValueString(DCM_ELEMENT *e);
 int PartialDump(char *dicomfile, FILE *fp);
 int DumpSiemensASCII(char *dicomfile, FILE *fpout);
+int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout);
 
 /*size_t RepSize(int RepCode);*/
 char *ElementValueFormat(DCM_ELEMENT *e);
@@ -126,6 +127,7 @@ int DoPatientName = 1;
 
 char *title = NULL;
 int DoBackslash = 0;
+int DoAltDump = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -139,7 +141,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.25 2009/07/23 19:55:36 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.26 2009/08/20 19:03:43 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -308,6 +310,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
     else if (!strcasecmp(option, "--no-name")) DoPatientName = 0;
+    else if (!strcasecmp(option, "--alt"))   DoAltDump = 1;
 
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--i")) {
@@ -411,6 +414,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --dictionary      : dump dicom dictionary and exit\n");
   fprintf(stdout, "   --compare dcm1 dcm2 : compare on key parameters\n");
   fprintf(stdout, "   --backslash       : replace backslashes with spaces\n");
+  fprintf(stdout, "   --alt             : print alt ascii header\n");
   fprintf(stdout, "   --help            : how to use this program \n");
   fprintf(stdout, "\n");
 }
@@ -568,9 +572,10 @@ static void check_options(void) {
     exit(1);
   }
 
-  if (DoPartialDump) {
+  if(DoPartialDump) {
     PartialDump(dicomfile,stdout);
     DumpSiemensASCII(dicomfile, stdout);
+    if(DoAltDump) DumpSiemensASCIIAlt(dicomfile, stdout);
     exit(0);
   }
 
@@ -1175,6 +1180,97 @@ int DumpSiemensASCII(char *dicomfile, FILE *fpout) {
     if (rt == NULL) break;
 
     if (strncmp(tmpstr,"### ASCCONV END ###",19)==0) {
+      //printf("Turning Dump Off\n");
+      break;
+    }
+
+    if (dumpline ) fprintf(fpout,"%s",tmpstr);
+  }
+
+  fclose(fp);
+
+  return(0);
+}
+
+
+/*---------------------------------------------------------------
+  int DumpSiemensASCIIAlt() - in newer dicoms there is a 2nd ascii
+  header that begins with "### ASCCONV BEGIN #" and ends with
+  "### ASCCONV BEGIN ###".
+  ---------------------------------------------------------------*/
+int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout) {
+
+  DCM_ELEMENT *e;
+  FILE *fp;
+  // declared at top of file: char tmpstr[TMPSTRLEN];
+  int dumpline, nthchar;
+  char *rt;
+  char *BeginStr;
+  int LenBeginStr;
+  char *TestStr;
+  int nTest;
+
+  e = GetElementFromFile(dicomfile, 0x8, 0x70);
+  if (e == NULL) {
+    printf("ERROR: reading dicom file %s\n",dicomfile);
+    exit(1);
+  }
+
+  /* Siemens appears to add a space onto the end of their
+     Manufacturer sting*/
+  if (strcmp(e->d.string,"SIEMENS") != 0 &&
+      strcmp(e->d.string,"SIEMENS ") != 0) {
+    printf("Not Siemens --%s--\n",e->d.string);
+    FreeElementData(e);
+    free(e);
+    return(1);
+  }
+  FreeElementData(e);
+  free(e);
+
+  fp = fopen(dicomfile,"r");
+  if (fp == NULL) {
+    printf("ERROR: could not open dicom file %s\n",dicomfile);
+    exit(1);
+  }
+
+  BeginStr = "### ASCCONV BEGIN #";
+  LenBeginStr = strlen(BeginStr);
+  TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
+
+  /* This section steps through the file char-by-char until
+     the BeginStr is matched */
+  dumpline = 0;
+  nthchar = 0;
+  while (1) {
+    fseek(fp,nthchar, SEEK_SET);
+    nTest = fread(TestStr,sizeof(char),LenBeginStr,fp);
+    if (nTest != LenBeginStr) break;
+    if (strcmp(TestStr,BeginStr)==0) {
+      //printf("Turning Dump On\n");
+      fseek(fp,nthchar, SEEK_SET);
+      dumpline = 1;
+      break;
+    }
+    nthchar ++;
+  }
+  free(TestStr);
+
+  /* No match found */
+  if (! dumpline) {
+    fprintf(fpout,"ERROR: this looks like a SIEMENS DICOM File,\n");
+    fprintf(fpout,"       but I can't find the start of the ASCII Header\n");
+    return(1);
+  }
+
+
+  /* Once the Begin String has been matched, this section
+     prints each line until the End String is matched */
+  while (1) {
+    rt = fgets(tmpstr,TMPSTRLEN,fp);
+    if (rt == NULL) break;
+
+    if (strncmp(tmpstr,"### ASCCONV BEGIN ###",21)==0) {
       //printf("Turning Dump Off\n");
       break;
     }
