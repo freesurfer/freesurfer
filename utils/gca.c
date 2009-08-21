@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/07/18 01:23:06 $
- *    $Revision: 1.266 $
+ *    $Date: 2009/08/21 18:12:44 $
+ *    $Revision: 1.267 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -16846,18 +16846,26 @@ GCAseqRenormalizeWithAlignment(GCA *gca,
   int l;
   for (l = 0 ; l < MAX_CMA_LABELS ; l++)
   {
-    if (plabel_computed[l] != old_label_computed[l])
-           ErrorExit(ERROR_BADPARM, "%s GCA sequential renormalization: label %d not consitently computed.\n",
-                Progname, l) ;
 
-    if (plabel_computed[l] != 0)
+    if (plabel_computed[l] != 0) // we computed this label
     {
-      //printf("%d   old: %f   new: %f   final: ",l,old_label_scales[l], plabel_scales[l]);
-      old_label_offsets[l] = plabel_scales[l] * old_label_offsets[l] + plabel_offsets[l];
-      old_label_scales[l] *= plabel_scales[l];
-      old_label_peaks[l] = plabel_peaks[l];
+		  if (old_label_computed[l] != 0) // merge offsets and scales
+			{
+        //printf("%d   old: %f   new: %f   final: ",l,old_label_scales[l], plabel_scales[l]);
+        old_label_offsets[l] = plabel_scales[l] * old_label_offsets[l] + plabel_offsets[l];
+        old_label_scales[l] *= plabel_scales[l];
+		  }
+			else //no old label info -> coyp offsets and scales
+			{
+			  old_label_offsets[l] = plabel_offsets[l];
+				old_label_scales[l]  = plabel_scales[l];
+			}
+			// in any case
+      old_label_peaks[l]    = plabel_peaks[l];
+			old_label_computed[l] = plabel_computed[l];
       //printf("%f \n",old_label_scales[l]);
     }
+		// else: if not computed in this call, just keep old_label info
   }
 
     if (logfp)
