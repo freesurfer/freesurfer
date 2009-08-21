@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 01:32:01 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/08/21 19:57:52 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -53,7 +53,9 @@ SurfaceAnnotation::SurfaceAnnotation ( LayerSurface* surf ) :
 SurfaceAnnotation::~SurfaceAnnotation ()
 {
   if ( m_nIndices )
-    free( m_nIndices );
+    delete[] m_nIndices;
+  if ( m_lut )
+    CTABfree( &m_lut );
 }
 
 void SurfaceAnnotation::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
@@ -69,30 +71,34 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
   if ( m_surface )
   {
     MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-    if ( m_nIndices )
-      free( m_nIndices );
-    m_nIndexSize = mris->nvertices;
+    m_nIndices = NULL;
 
-    if ( MRISreadAnnotationIntoArray( fn, m_nIndexSize, &m_nIndices ) != 0 )
+    if ( MRISreadAnnotation( mris, fn ) != 0 )
     {
       cerr << "Could not load annotation from file " << fn << endl;
       return false;
     }
-    if ( m_lut )
-      CTABfree( &m_lut );
-    if ( MRISreadCTABFromAnnotationIfPresent( fn, &m_lut ) != 0 )
+    else
     {
-      cerr << "Could not read color table file for " << fn << endl;
-      return false;
-    }
-    int n;
-    for ( int i = 0; i < m_nIndexSize; i++ )
-    {
-      if ( CTABfindAnnotation( m_lut, m_nIndices[i], &n ) == 0 )
-        m_nIndices[i] = n;
+      if ( m_lut )
+        CTABfree( &m_lut );
+      m_lut = mris->ct;
+      
+      if ( m_nIndices )
+        delete( m_nIndices );
+      m_nIndexSize = mris->nvertices;
+      m_nIndices = new int[m_nIndexSize];  
+      int n;
+      for ( int i = 0; i < m_nIndexSize; i++ )
+      {
+        if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 )
+          m_nIndices[i] = n;
+      }      
+      
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 const char* SurfaceAnnotation::GetName()

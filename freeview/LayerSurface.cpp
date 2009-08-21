@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 01:32:01 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/08/21 19:57:52 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -183,8 +183,12 @@ bool LayerSurface::LoadAnnotationFromFile( const char* filename )
     return false;
   }
   
-  std::string fn = filename;
-  annot->SetName( fn.substr( fn.find_last_of("/\\")+1 ).c_str() );
+  wxString fn = filename;
+  fn = fn.substr( fn.find_last_of("/\\")+1 ).c_str();
+  if ( fn.Right( 6 ) == ".annot" )
+    fn = fn.Left( fn.Length()-6 );
+  annot->SetName( fn.c_str() );
+  
   m_annotations.push_back( annot );
   
   SetActiveAnnotation( m_annotations.size() - 1 );
@@ -797,28 +801,20 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
     if ( mapper )
     {
       int nCount = polydata->GetPoints()->GetNumberOfPoints();
-      this->BlockListen( true );
-//      if ( mProperties->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
-//        mProperties->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
-      this->BlockListen( false );
       vtkSmartPointer<vtkIntArray> array = vtkIntArray::SafeDownCast( polydata->GetPointData()->GetArray( "Annotation" ) );
       if ( array.GetPointer() == NULL )
       { 
         array = vtkSmartPointer<vtkIntArray>::New();          
-        array->SetNumberOfTuples( nCount ); 
+     //   array->SetNumberOfTuples( nCount ); 
         array->SetName( "Annotation" );  
         polydata->GetPointData()->AddArray( array );
       }
-//      cout << GetActiveAnnotation()->GetIndices() << "  " << nCount << endl; fflush(0);
-      int* nIndices = GetActiveAnnotation()->GetIndices();
-      for ( int i = 0; i < nCount; i++ )
-      {
-        array->SetValue( i, nIndices[i] );
-      } 
+
+      array->SetArray( GetActiveAnnotation()->GetIndices(), nCount, 1 );
       polydata->GetPointData()->SetActiveScalars( "Annotation" );
       
       vtkSmartPointer<vtkFreesurferLookupTable> lut = vtkSmartPointer<vtkFreesurferLookupTable>::New();
-      lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable() );
+      lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable(), false );  // do not clear zero
       mapper->SetLookupTable( lut );
       mapper->UseLookupTableScalarRangeOn();
       mapper->ScalarVisibilityOn();

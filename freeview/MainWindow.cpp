@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 01:32:01 $
- *    $Revision: 1.67 $
+ *    $Date: 2009/08/21 19:57:52 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2889,11 +2889,15 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
       }
       else if ( subOption == _("annot") || subOption == _("annotation") )
       {
-        // add script to load surface curvature file
-        wxArrayString script;
-        script.Add( _("loadsurfaceannotation") );
-        script.Add( subArgu );
-        m_scripts.insert( m_scripts.begin(), script );
+        // add script to load surface annotation files
+        wxArrayString annot_fns = MyUtils::SplitString( subArgu, _(",") );
+        for ( int i = annot_fns.size()-1; i >= 0; i-- )
+        {
+          wxArrayString script;
+          script.Add( _("loadsurfaceannotation") );
+          script.Add( annot_fns[i] );
+          m_scripts.insert( m_scripts.begin(), script );
+        }
       }
       else if ( subOption == _("vector") )
       {
