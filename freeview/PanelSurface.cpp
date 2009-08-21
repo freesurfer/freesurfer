@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/15 17:05:07 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,12 +35,14 @@
 #include "LayerSurface.h"
 #include "LayerPropertiesSurface.h"
 #include "FSSurface.h"
+#include "SurfaceOverlay.h"
+#include "SurfaceAnnotation.h"
 
 BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
-  EVT_MENU            ( XRCID( "ID_SURFACE_CLOSE" ),         PanelSurface::OnSurfaceClose )
-  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_CLOSE" ),         PanelSurface::OnSurfaceCloseUpdateUI )  
-  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_SURFACE" ),       PanelSurface::OnLayerSelectionChanged )
-  EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_SURFACE" ),       PanelSurface::OnLayerVisibilityChanged )
+  EVT_MENU            ( XRCID( "ID_SURFACE_CLOSE" ),          PanelSurface::OnSurfaceClose )
+  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_CLOSE" ),          PanelSurface::OnSurfaceCloseUpdateUI )  
+  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_SURFACE" ),        PanelSurface::OnLayerSelectionChanged )
+  EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_SURFACE" ),        PanelSurface::OnLayerVisibilityChanged )
 
   EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER" ),       PanelSurface::OnColorChanged )
   EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_EDGE" ),  PanelSurface::OnEdgeColorChanged )
@@ -53,23 +55,25 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_BUTTON          ( XRCID( "ID_BUTTON_OVERLAY" ),          PanelSurface::OnButtonConfigureOverlay )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_RENDER_MODE" ),      PanelSurface::OnChoiceRenderMode )
 
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_CURVATURE_MAP" ),        PanelSurface::OnChoiceCurvatureMap )
-  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_MID_POINT" ),  PanelSurface::OnSliderMidPointChanging )
-  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_MID_POINT" ),  PanelSurface::OnSliderMidPoint )
-  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_MID_POINT" ),  PanelSurface::OnSliderMidPoint )
-  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_MID_POINT" ),PanelSurface::OnSliderMidPoint )
-  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_SLOPE" ),      PanelSurface::OnSliderSlopeChanging )
-  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_SLOPE" ),      PanelSurface::OnSliderSlope )
-  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_SLOPE" ),      PanelSurface::OnSliderSlope )
-  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_SLOPE" ),    PanelSurface::OnSliderSlope )
-  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_SLOPE" ),            PanelSurface::OnTextSlope )
-  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_MID_POINT" ),        PanelSurface::OnTextMidPoint )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_ANNOTATION" ),            PanelSurface::OnChoiceAnnotation )
 
-  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_OPACITY" ),    PanelSurface::OnSliderOpacityChanging )
-  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_OPACITY" ),    PanelSurface::OnSliderOpacity )
-  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_OPACITY" ),    PanelSurface::OnSliderOpacity )
-  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_OPACITY" ),  PanelSurface::OnSliderOpacity )
-  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_OPACITY" ),          PanelSurface::OnTextOpacity )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_CURVATURE_MAP" ),         PanelSurface::OnChoiceCurvatureMap )
+  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPointChanging )
+  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPoint )
+  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPoint )
+  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_MID_POINT" ), PanelSurface::OnSliderMidPoint )
+  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_SLOPE" ),       PanelSurface::OnSliderSlopeChanging )
+  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_SLOPE" ),       PanelSurface::OnSliderSlope )
+  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_SLOPE" ),       PanelSurface::OnSliderSlope )
+  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_SLOPE" ),     PanelSurface::OnSliderSlope )
+  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_SLOPE" ),                   PanelSurface::OnTextSlope )
+  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_MID_POINT" ),               PanelSurface::OnTextMidPoint )
+
+  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacityChanging )
+  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacity )
+  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacity )
+  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_OPACITY" ),   PanelSurface::OnSliderOpacity )
+  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_OPACITY" ),       PanelSurface::OnTextOpacity )
 END_EVENT_TABLE()
 
 
@@ -118,6 +122,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_choiceOverlay       = XRCCTRL( *this, "ID_CHOICE_OVERLAY",        wxChoice );
   m_btnOverlayConfiguration 
       = XRCCTRL( *this, "ID_BUTTON_OVERLAY",        wxButton );
+  
+  m_choiceAnnotation    = XRCCTRL( *this, "ID_CHOICE_ANNOTATION",     wxChoice );
 
   m_widgetsSlope.push_back( m_sliderSlope );
   m_widgetsSlope.push_back( m_textSlope );
@@ -263,6 +269,7 @@ void PanelSurface::DoUpdateUI()
   m_choiceVector->Append( _("Load vector data...") );
   m_choiceVector->SetSelection( surf ? 1 + surf->GetActiveVector() : 0 );
   
+  // update overlay controls
   m_choiceOverlay->Clear();
   m_choiceOverlay->Append( _("Off") );
   if ( layer )
@@ -276,6 +283,19 @@ void PanelSurface::DoUpdateUI()
   m_choiceOverlay->SetSelection( layer ? 1 + layer->GetActiveOverlayIndex() : 0 );
   
   m_btnOverlayConfiguration->Show( layer && layer->GetActiveOverlayIndex() >= 0 );
+  
+  // update annotation controls
+  m_choiceAnnotation->Clear();
+  m_choiceAnnotation->Append( _("Off") );
+  if ( layer )
+  {
+    for ( int i = 0; i < layer->GetNumberOfAnnotations(); i++ )
+    {
+      m_choiceAnnotation->Append( wxString::FromAscii( layer->GetAnnotation( i )->GetName() ) );
+    }
+  }
+  m_choiceAnnotation->Append( _("Load from file...") );
+  m_choiceAnnotation->SetSelection( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
 
   int nCurvatureMap = layer ? layer->GetProperties()->GetCurvatureMap() : 0;
   for ( size_t i = 0; i < m_widgetsMidPoint.size(); i++ )
@@ -613,3 +633,21 @@ void PanelSurface::OnChoiceRenderMode( wxCommandEvent& event )
   }  
 }
 
+void PanelSurface::OnChoiceAnnotation( wxCommandEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    int nSel = event.GetSelection() - 1;
+    if ( nSel < surf->GetNumberOfAnnotations() )
+    {
+      surf->SetActiveAnnotation( nSel );
+    }
+    else
+    {
+      // load new overlay map
+      MainWindow::GetMainWindowPointer()->LoadSurfaceAnnotation();
+    }
+    UpdateUI();
+  }  
+}

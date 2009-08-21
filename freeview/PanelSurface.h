@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/15 17:05:07 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,6 +81,8 @@ private:
   void OnTextMidPoint           ( wxCommandEvent& event );
   void OnTextSlope              ( wxCommandEvent& event );
   void OnChoiceRenderMode       ( wxCommandEvent& event );
+  
+  void OnChoiceAnnotation       ( wxCommandEvent& event );
 
   void DoUpdateUI();
 
@@ -110,6 +112,8 @@ private:
   
   wxChoice*     m_choiceOverlay;
   wxButton*     m_btnOverlayConfiguration;
+  
+  wxChoice*     m_choiceAnnotation;
   
   wxChoice*     m_choiceRenderMode;
 

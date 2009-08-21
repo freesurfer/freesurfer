@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/05 17:13:06 $
- *    $Revision: 1.66 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -415,10 +415,10 @@ void MainWindow::OnClose( wxCloseEvent &event )
 {
   if ( IsProcessing() )
   {
-    wxMessageDialog dlg( this, _("There is on-going data processing. Please wait till it finishes before closing."), 
-                         _("Quit"), wxOK );
-    dlg.ShowModal();
-    return;
+    wxMessageDialog dlg( this, _("There is on-going data processing. If you force quit, any data that is being saved can be lost. Do you really want to force quit?"), 
+                         _("Force Quit"), wxYES_NO | wxNO_DEFAULT  );
+    if (dlg.ShowModal() == wxID_NO )
+      return;
   }
 
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
@@ -2308,6 +2308,10 @@ void MainWindow::RunScript()
   {
     CommandLoadSurfaceOverlay( sa );
   }
+  else if ( sa[0] == _("loadsurfaceannotation") )
+  {
+    CommandLoadSurfaceAnnotation( sa );
+  }
   else if ( sa[0] == _("loadroi") || sa[0] == _("loadlabel") )
   {
     CommandLoadROI( sa );
@@ -2883,6 +2887,14 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
           }
         }
       }
+      else if ( subOption == _("annot") || subOption == _("annotation") )
+      {
+        // add script to load surface curvature file
+        wxArrayString script;
+        script.Add( _("loadsurfaceannotation") );
+        script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
       else if ( subOption == _("vector") )
       {
         // add script to load surface vector files
@@ -3014,6 +3026,13 @@ void MainWindow::CommandLoadSurfaceOverlay( const wxArrayString& cmd )
 {
   LoadSurfaceOverlayFile( cmd[1] );
 
+  ContinueScripts();
+}
+
+void MainWindow::CommandLoadSurfaceAnnotation( const wxArrayString& cmd )
+{
+  LoadSurfaceAnnotationFile( cmd[1] );
+   
   ContinueScripts();
 }
 
@@ -3473,6 +3492,30 @@ void MainWindow::LoadSurfaceOverlayFile( const wxString& filename )
   {
     if ( layer->LoadOverlayFromFile( fn.char_str() ) )
        m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  }
+}
+
+void MainWindow::LoadSurfaceAnnotation()
+{
+  wxFileDialog dlg( this, _("Open annotation file"), m_strLastDir, _(""),
+                    _("Annotation files (*.*)|*.*"),
+                    wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    this->LoadSurfaceAnnotationFile( dlg.GetPath() );
+  }  
+}
+
+void MainWindow::LoadSurfaceAnnotationFile( const wxString& filename )
+{
+  wxString fn = filename;
+  if ( fn.Contains( _("/") ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
+  LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( layer )
+  {
+    if ( layer->LoadAnnotationFromFile( fn.char_str() ) )
+      m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 

@@ -152,6 +152,8 @@ freeview_SOURCES=\
 	StatusBar.cpp \
 	StatusBar.h \
 	string_fixed.h \
+	SurfaceAnnotation.h \
+	SurfaceAnnotation.cpp \
 	SurfaceOverlay.cpp \
 	SurfaceOverlay.h \
 	SurfaceOverlayProperties.cpp \

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/15 17:05:06 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,6 @@
 
 #include "Layer.h"
 #include "vtkSmartPointer.h"
-#include "SurfaceOverlay.h"
 #include <string>
 #include <vector>
 
@@ -51,6 +50,7 @@ class wxWindow;
 class wxCommandEvent;
 class LayerMRI;
 class SurfaceOverlay;
+class SurfaceAnnotation;
 
 class LayerSurface : public Layer
 {
@@ -62,6 +62,7 @@ public:
   bool LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event );
   bool LoadCurvatureFromFile( const char* filename );
   bool LoadOverlayFromFile( const char* filename );
+  bool LoadAnnotationFromFile( const char* filename );
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
@@ -117,6 +118,7 @@ public:
   
   double GetCurvatureValue( int nVertex );
   
+  // overlay functions
   bool HasOverlay();
   
   int GetNumberOfOverlays();
@@ -134,6 +136,23 @@ public:
   void SetActiveOverlay( const char* name );
   
   void UpdateOverlay( bool bAskRedraw = false );
+  
+  // annotation functions
+  int GetNumberOfAnnotations();
+  
+  SurfaceAnnotation* GetAnnotation( int n );
+  
+  SurfaceAnnotation* GetAnnotation( const char* name );
+  
+  int GetActiveAnnotationIndex();
+  
+  SurfaceAnnotation* GetActiveAnnotation();
+  
+  void SetActiveAnnotation( int n );
+  
+  void SetActiveAnnotation( const char* name );
+  
+  void UpdateAnnotation( bool bAskRedraw = false );
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
@@ -169,8 +188,11 @@ protected:
   vtkActor*   m_mainActor;
   vtkActor*   m_vectorActor;
   
-  std::vector< SurfaceOverlay* >  m_overlays;
+  std::vector<SurfaceOverlay*>    m_overlays;
   int         m_nActiveOverlay;
+  
+  std::vector<SurfaceAnnotation*> m_annotations;
+  int         m_nActiveAnnotation;
 };
 
 #endif

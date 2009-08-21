@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/10 19:17:27 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,12 +52,14 @@
 #include "LayerMRI.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperties.h"
+#include "SurfaceAnnotation.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
     m_surfaceSource( NULL ),
     m_bResampleToRAS( true ),
     m_volumeRef( ref ),
-    m_nActiveOverlay( -1 )
+    m_nActiveOverlay( -1 ),
+    m_nActiveAnnotation( -1 )
 {
   m_strTypeNames.push_back( "Surface" );
 
@@ -166,6 +168,29 @@ bool LayerSurface::LoadOverlayFromFile( const char* filename )
   
   this->SendBroadcast( "LayerModified", this );
   this->SendBroadcast( "LayerOverlayAdded", this );
+  return true; 
+}
+
+
+bool LayerSurface::LoadAnnotationFromFile( const char* filename )
+{
+  // create annotation
+  SurfaceAnnotation* annot = new SurfaceAnnotation( this ); 
+  bool ret = annot->LoadAnnotation( filename );
+  if ( !ret )
+  {
+    delete annot;
+    return false;
+  }
+  
+  std::string fn = filename;
+  annot->SetName( fn.substr( fn.find_last_of("/\\")+1 ).c_str() );
+  m_annotations.push_back( annot );
+  
+  SetActiveAnnotation( m_annotations.size() - 1 );
+  
+  this->SendBroadcast( "LayerModified", this );
+  this->SendBroadcast( "LayerAnnotationAdded", this );
   return true; 
 }
 
@@ -700,4 +725,112 @@ void LayerSurface::UpdateRenderMode()
       m_mainActor->GetProperty()->EdgeVisibilityOn();
       break;
   }
+}
+
+void LayerSurface::SetActiveAnnotation( int n )
+{
+  if ( n < (int)m_annotations.size() )
+  {
+    m_nActiveAnnotation = n;
+    UpdateAnnotation();
+    this->SendBroadcast( "ActiveAnnotationChanged", this );
+  }
+}
+
+void LayerSurface::SetActiveAnnotation( const char* name )
+{
+  for ( size_t i = 0; i < m_annotations.size(); i++ )
+  {
+    if ( strcmp( m_annotations[i]->GetName(), name ) == 0 )
+    {
+      SetActiveAnnotation( i );
+      return;
+    }
+  }
+}
+
+int LayerSurface::GetNumberOfAnnotations()
+{
+  return m_annotations.size();
+}
+  
+SurfaceAnnotation* LayerSurface::GetAnnotation( const char* name )
+{
+  for ( size_t i = 0; i < m_annotations.size(); i++ )
+  {
+    if ( strcmp( m_annotations[i]->GetName(), name ) == 0 )
+    {
+      return m_annotations[i];
+    }
+  }  
+  
+  return NULL;
+}
+
+int LayerSurface::GetActiveAnnotationIndex()
+{
+  return m_nActiveAnnotation;
+}
+
+SurfaceAnnotation* LayerSurface::GetActiveAnnotation()
+{
+  if ( m_nActiveAnnotation >= 0 )
+    return m_annotations[ m_nActiveAnnotation ];
+  else
+    return NULL;
+}
+
+SurfaceAnnotation* LayerSurface::GetAnnotation( int n )
+{
+  if ( n >= 0 && n < (int)m_annotations.size() )
+    return m_annotations[n];
+  else
+    return NULL;
+}
+
+void LayerSurface::UpdateAnnotation( bool bAskRedraw )
+{  
+  vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
+  vtkPolyData* polydata = mapper->GetInput();
+  if ( m_nActiveAnnotation >= 0 )
+  {
+    if ( mapper )
+    {
+      int nCount = polydata->GetPoints()->GetNumberOfPoints();
+      this->BlockListen( true );
+//      if ( mProperties->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
+//        mProperties->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
+      this->BlockListen( false );
+      vtkSmartPointer<vtkIntArray> array = vtkIntArray::SafeDownCast( polydata->GetPointData()->GetArray( "Annotation" ) );
+      if ( array.GetPointer() == NULL )
+      { 
+        array = vtkSmartPointer<vtkIntArray>::New();          
+        array->SetNumberOfTuples( nCount ); 
+        array->SetName( "Annotation" );  
+        polydata->GetPointData()->AddArray( array );
+      }
+//      cout << GetActiveAnnotation()->GetIndices() << "  " << nCount << endl; fflush(0);
+      int* nIndices = GetActiveAnnotation()->GetIndices();
+      for ( int i = 0; i < nCount; i++ )
+      {
+        array->SetValue( i, nIndices[i] );
+      } 
+      polydata->GetPointData()->SetActiveScalars( "Annotation" );
+      
+      vtkSmartPointer<vtkFreesurferLookupTable> lut = vtkSmartPointer<vtkFreesurferLookupTable>::New();
+      lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable() );
+      mapper->SetLookupTable( lut );
+      mapper->UseLookupTableScalarRangeOn();
+      mapper->ScalarVisibilityOn();
+    }
+  }
+  else
+  {
+    if ( GetActiveOverlay() >= 0 )
+      polydata->GetPointData()->SetActiveScalars( "Overlay" );
+    else
+      polydata->GetPointData()->SetActiveScalars( "Curvature" );
+  }
+  if ( bAskRedraw )
+    this->SendBroadcast( "LayerActorUpdated", this );
 }

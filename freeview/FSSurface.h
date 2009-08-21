@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -96,6 +96,7 @@ public:
   bool LoadSurface    ( const char* filename, int nSet );
   bool LoadCurvature  ( const char* filename = NULL );
   bool LoadOverlay    ( const char* filename );
+  bool LoadAnnotation ( const char* filename );
 
   bool IsSurfaceLoaded( int nSet )
   {

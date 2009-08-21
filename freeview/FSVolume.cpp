@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/29 21:44:23 $
- *    $Revision: 1.29 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1248,7 +1248,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   if ( rotations[0].Plane != -1 )
   {
     MRI* mri = rasMRI;
-    rasMRI = CreateTargetMRI( m_MRI, mri );
+    rasMRI = CreateTargetMRI( m_MRIOrigTarget, mri );
     ::MRIfree( &mri );
   }
     

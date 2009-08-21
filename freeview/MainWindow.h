@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.42 $
+ *    $Date: 2009/08/21 01:32:01 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -227,22 +227,24 @@ public:
   void LoadSurfaceVector();
   void LoadSurfaceCurvature();
   void LoadSurfaceOverlay();
+  void LoadSurfaceAnnotation();
 
-  void LoadVolumeFile( const wxString& fn, 
+  void LoadVolumeFile ( const wxString& fn, 
 		       const wxString& reg_fn, 
 		       bool bResample = true, 
            int nSampleMethod = 0 );
-  void LoadDTIFile( const wxString& fn_vector, 
+  void LoadDTIFile    ( const wxString& fn_vector, 
 		    const wxString& fn_fa, 
 		    const wxString& reg_fn, 
 		    bool Resample = true );
-  void LoadROIFile( const wxString& fn );
+  void LoadROIFile    ( const wxString& fn );
   void LoadSurfaceFile( const wxString& fn, 
 			const wxString& fn_vector = _("") );
-  void LoadSurfaceVectorFile( const wxString& fn );
-  void LoadWayPointsFile( const wxString& fn );
-  void LoadSurfaceCurvatureFile( const wxString& fn );
-  void LoadSurfaceOverlayFile( const wxString& fn );
+  void LoadSurfaceVectorFile    ( const wxString& fn );
+  void LoadWayPointsFile        ( const wxString& fn );
+  void LoadSurfaceCurvatureFile ( const wxString& fn );
+  void LoadSurfaceOverlayFile   ( const wxString& fn );
+  void LoadSurfaceAnnotationFile( const wxString& fn );
 
 // bool IsSaving()
 //  { return m_bSaving; }
@@ -320,8 +322,9 @@ protected:
   void CommandLoadROI           ( const wxArrayString& cmd );
   void CommandLoadSurface       ( const wxArrayString& cmd );
   void CommandLoadSurfaceVector ( const wxArrayString& cmd );
-  void CommandLoadSurfaceCurvature( const wxArrayString& cmd );
+  void CommandLoadSurfaceCurvature  ( const wxArrayString& cmd );
   void CommandLoadSurfaceOverlay( const wxArrayString& cmd );
+  void CommandLoadSurfaceAnnotation ( const wxArrayString& cmd );
   void CommandLoadWayPoints     ( const wxArrayString& cmd );
   void CommandScreenCapture     ( const wxArrayString& cmd );
   void CommandSetViewport       ( const wxArrayString& cmd );
