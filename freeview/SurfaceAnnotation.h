@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 01:32:01 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/08/21 21:11:38 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,9 +58,7 @@ public:
   void SetName( const char* name );
   
   bool LoadAnnotation( const char* fn );
-  
-  void MapOverlay( unsigned char* colordata );
-  
+    
   int* GetIndices()
   { 
     return m_nIndices;

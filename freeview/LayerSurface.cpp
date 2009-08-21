@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 19:57:52 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/08/21 21:11:38 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -74,7 +74,7 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
 
 // m_mainActor = vtkLODActor::New();
   m_mainActor = vtkActor::New();
-  m_mainActor->GetProperty()->SetEdgeColor( 0.4, 0.4, 0.4 );
+  m_mainActor->GetProperty()->SetEdgeColor( 0.2, 0.2, 0.2 );
   mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
   mLowResFilter->SetTargetReduction( 0.9 );
 // mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
@@ -702,6 +702,10 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
       polydata->GetPointData()->SetActiveScalars( "Overlay" );
     }
   }
+  else if ( m_nActiveAnnotation >= 0 )
+  {
+    UpdateAnnotation( false );
+  }
   else
   {
     polydata->GetPointData()->SetActiveScalars( "Curvature" );
@@ -817,15 +821,12 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
       lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable(), false );  // do not clear zero
       mapper->SetLookupTable( lut );
       mapper->UseLookupTableScalarRangeOn();
-      mapper->ScalarVisibilityOn();
+//      mapper->ScalarVisibilityOn();
     }
   }
   else
   {
-    if ( GetActiveOverlay() >= 0 )
-      polydata->GetPointData()->SetActiveScalars( "Overlay" );
-    else
-      polydata->GetPointData()->SetActiveScalars( "Curvature" );
+    UpdateColorMap();
   }
   if ( bAskRedraw )
     this->SendBroadcast( "LayerActorUpdated", this );

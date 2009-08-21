@@ -8,11 +8,11 @@
  * move each plane axially.
  */
 /*
- * Original Author: Kevin Teich
+ * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/08/21 21:11:38 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,8 +38,6 @@
 #include "SurfaceOverlayProperties.h"
 #include "FSSurface.h"
 #include <wx/filename.h>
-
-using namespace std;
 
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
     Broadcaster( "SurfaceOverlay" ),

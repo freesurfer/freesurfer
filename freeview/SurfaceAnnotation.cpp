@@ -8,11 +8,11 @@
  * move each plane axially.
  */
 /*
- * Original Author: Kevin Teich
+ * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 19:57:52 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/08/21 21:11:38 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,8 +38,6 @@
 //#include "SurfaceAnnotationProperties.h"
 #include "FSSurface.h"
 #include <wx/filename.h>
-
-using namespace std;
 
 SurfaceAnnotation::SurfaceAnnotation ( LayerSurface* surf ) :
     Broadcaster( "SurfaceAnnotation" ),
@@ -88,6 +86,8 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
         delete( m_nIndices );
       m_nIndexSize = mris->nvertices;
       m_nIndices = new int[m_nIndexSize];  
+      
+      // convert annotations to lookup table indices
       int n;
       for ( int i = 0; i < m_nIndexSize; i++ )
       {
@@ -109,11 +109,6 @@ const char* SurfaceAnnotation::GetName()
 void SurfaceAnnotation::SetName( const char* name )
 {
   m_strName = name;
-}
-
-void SurfaceAnnotation::MapOverlay( unsigned char* colordata )
-{
-//  m_properties->MapOverlayColor( colordata, m_nDataSize );
 }
 
 int SurfaceAnnotation::GetIndexAtVertex( int nVertex )
