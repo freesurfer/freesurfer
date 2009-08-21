@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/18 19:11:38 $
- *    $Revision: 1.2 $
+ *    $Author: rpwang $
+ *    $Date: 2009/08/21 19:55:29 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkFreesurferLookupTable );
-vtkCxxRevisionMacro( vtkFreesurferLookupTable, "$Revision: 1.2 $" );
+vtkCxxRevisionMacro( vtkFreesurferLookupTable, "$Revision: 1.3 $" );
 
 vtkFreesurferLookupTable::vtkFreesurferLookupTable () {
 
@@ -46,7 +46,7 @@ vtkFreesurferLookupTable::vtkFreesurferLookupTable () {
 vtkFreesurferLookupTable::~vtkFreesurferLookupTable () {}
 
 void
-vtkFreesurferLookupTable::BuildFromCTAB ( COLOR_TABLE* iCtab ) {
+vtkFreesurferLookupTable::BuildFromCTAB ( COLOR_TABLE* iCtab, bool bClearZero ) {
 
   // Go through and make entries for each valid entry we got.
   int cEntries;
@@ -57,8 +57,8 @@ vtkFreesurferLookupTable::BuildFromCTAB ( COLOR_TABLE* iCtab ) {
   this->SetTableRange( 0, cEntries );
   this->Build();
 
-  // Zero is always clear.
-  this->SetTableValue( 0, 0, 0, 0, 0 );
+  // Set zeros. Clear if requested (default).
+  this->SetTableValue( 0, 0, 0, 0, bClearZero?0:1 );
 
   // Populate those entries.
   for ( int nEntry = 1; nEntry < cEntries; nEntry++ ) {

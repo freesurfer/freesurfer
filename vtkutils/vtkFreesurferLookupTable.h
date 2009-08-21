@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/04/18 19:11:38 $
- *    $Revision: 1.2 $
+ *    $Author: rpwang $
+ *    $Date: 2009/08/21 19:55:29 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@ class vtkFreesurferLookupTable : public vtkLookupTable {
   // Description:
   // Clears and sets its internal entries by reading a Freesurfer LUT
   // file.
-  void BuildFromCTAB ( COLOR_TABLE* iCtab );
+  void BuildFromCTAB ( COLOR_TABLE* iCtab, bool bClearZero = true );
 
  protected:
 
