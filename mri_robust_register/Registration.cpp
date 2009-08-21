@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/17 22:55:21 $
- *    $Revision: 1.31 $
+ *    $Date: 2009/08/21 00:19:45 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -2328,21 +2328,36 @@ MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
 {
   cout << "   - computing initial Transform\n" ;
 
-  MATRIX* Minit = MRIgetVoxelToVoxelXform(mriS,mriT) ;
-  MRI * mri_tmp = MRIlinearTransform(mriS,NULL,Minit);
+// removed: do not trust RAS coordinates
+//  it can happen that SRC is outside of Target frame
+//  MATRIX* Minit = MRIgetVoxelToVoxelXform(mriS,mriT) ;
+//  MRI * mri_tmp = MRIlinearTransform(mriS,NULL,Minit);
+//  if (verbose > 1)
+//	{
+//      cout << endl <<"Vox2Vox (mov->dst): " << endl;
+//      MatrixPrintFmt(stdout,"% 2.8f",Minit);
+//	}
+
+  MATRIX* Minit = MatrixIdentity(4,NULL) ;
 
   // find centroids:
-  vector < double > centroidS = CostFunctions::centroid(mri_tmp);
+  vector < double > centroidS = CostFunctions::centroid(mriS);
   vector < double > centroidT = CostFunctions::centroid(mriT);
 
+  if (verbose > 1)
+	{
+	   cout << "        Centroid S: " << centroidS[0] << ", " << centroidS[1] << ", "<< centroidS[2] << endl;
+		 cout << "        Centroid T: " << centroidT[0] << ", " << centroidT[1] << ", "<< centroidT[2] << endl;	
+	}
 
   //bool initorient = false; // do not use orientation (can be off due to different cropping)
   //bool initorient = true;
   if (initorient)
   {
+	   if (verbose > 1)       cout << "     -- trying to use orientation info\n" ;
     // find orientation:
     MATRIX * evT = CostFunctions::orientation(mriT);
-    MATRIX * evS = CostFunctions::orientation(mri_tmp);
+    MATRIX * evS = CostFunctions::orientation(mriS);
 
     // adjust orientation (flip) to target
     int fcount = 0;
@@ -2407,8 +2422,9 @@ MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
 
       if (debug)
       {
-        mri_tmp = MRIlinearTransform(mriS,mri_tmp,Minit);
+        MRI* mri_tmp = MRIlinearTransform(mriS,mri_tmp,Minit);
         MRIwrite(mri_tmp,"init-align-rot.mgz");
+        MRIfree(&mri_tmp);				
       }
       MatrixFree(&evS2);
       MatrixFree(&evS2i);
@@ -2427,12 +2443,12 @@ MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
     Minit->rptr[3][4] += centroidT[2]-centroidS[2];
     if (debug)
     {
-      mri_tmp = MRIlinearTransform(mriS,mri_tmp,Minit);
+      MRI * mri_tmp = MRIlinearTransform(mriS,NULL,Minit);
       MRIwrite(mri_tmp,"init-align-trans.mgz");
+      MRIfree(&mri_tmp);
     }
   }
 
-  MRIfree(&mri_tmp);
 
   return Minit;
 }

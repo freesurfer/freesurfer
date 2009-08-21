@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:18 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/08/21 00:19:45 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -266,20 +266,28 @@ double CostFunctions::moment(MRI *i, int x, int y, int z)
 std::vector <double> CostFunctions::centroid(MRI *i)
 // M_100/M_000 , M_010/M_000 , M_001 / M_000
 {
+  //cout << "CostFunctions::centroid" << endl;
   std::vector < double > dd(3,0.0);
   double n = 0;
+	double val;
   for (int d = 0 ; d<i->depth; d++)
     for (int h = 0 ; h<i->height; h++)
       for (int w = 0 ; w<i->width; w++)
       {
-        n += MRIgetVoxVal(i, w,h,d,0);
-        dd[0] += (w+1) * MRIgetVoxVal(i, w,h,d,0);
-        dd[1] += (h+1) * MRIgetVoxVal(i, w,h,d,0);
-        dd[2] += (d+1) * MRIgetVoxVal(i, w,h,d,0);
+			  val = MRIgetVoxVal(i,w,h,d,0);
+        n += val;
+        dd[0] += (w+1) * val;
+        dd[1] += (h+1) * val;
+        dd[2] += (d+1) * val;				
       }
   dd[0] = dd[0]/n;
   dd[1] = dd[1]/n;
   dd[2] = dd[2]/n;
+	if (isnan(dd[0] +dd[1] +dd[2]))
+	{
+	   cerr << "CostFunctions::centroid is NAN (empty image? n = " << n << " )"<<endl;
+		 exit(1);
+	}
   return dd;
 }
 
