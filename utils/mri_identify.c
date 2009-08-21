@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/07/15 18:47:42 $
- *    $Revision: 1.68 $
+ *    $Author: nicks $
+ *    $Date: 2009/08/21 01:34:26 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -212,6 +212,7 @@ int string_to_type(const char *string)
     type = IMAGE_FILE;
   if (strcmp(ls, "curv") == 0) type = MRI_CURV_FILE;
   if (strcmp(ls, "gii") == 0)  type = GIFTI_FILE;
+  if (strcmp(ls, "vtk") == 0)  type = VTK_FILE;
 
   return(type);
 
@@ -358,6 +359,9 @@ int mri_identify(const char *fname_passed)
             return type;
           break;
         case GIFTI_FILE:
+          return type;
+          break;
+        case VTK_FILE:
           return type;
           break;
         default:

@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: jonnyreb $
- *    $Date: 2009/07/31 23:16:00 $
- *    $Revision: 1.385 $
+ *    $Author: nicks $
+ *    $Date: 2009/08/21 01:34:26 $
+ *    $Revision: 1.386 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -746,6 +746,7 @@ extern float ic_z_vertices[]  ;
 #define MRI_CURV_FILE                 25 // surface curv format
 #define NRRD_FILE                     26 // NRRD .nrrd single file
 #define GIFTI_FILE                    27 // GIFTI func data frames
+#define VTK_FILE                      28 // VTK
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRInonzeroValRange(MRI *mri, float *pmin, float *pmax) ;

@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/08/06 19:03:52 $
- *    $Revision: 1.636 $
+ *    $Author: nicks $
+ *    $Date: 2009/08/21 01:34:26 $
+ *    $Revision: 1.637 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -637,7 +637,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.636 2009/08/06 19:03:52 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.637 2009/08/21 01:34:26 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -4001,6 +4001,11 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
     strcpy(fname, sname) ;  /* path specified explicitly */
   mritype = mri_identify(sname);
   if (mritype == GIFTI_FILE) return(mrisReadScalarGIFTIfile(mris, fname)) ;
+  if (mritype == VTK_FILE) 
+  {
+    mris = MRISreadVTK(fname);
+    return(NO_ERROR);
+  }
   if (mritype != MRI_VOLUME_TYPE_UNKNOWN)
   {
     frame = MRISgetReadFrame();
@@ -20659,6 +20664,7 @@ DATASET POLYDATA
   }
   if (!cp || (checks != 3))
   {
+    fclose(fp);
     ErrorReturn
     (NULL,
      (ERROR_NOFILE,
@@ -20672,19 +20678,32 @@ POINTS 142921 float
   cp = fgetl(line, STRLEN, fp) ;
   if (!cp)
   {
+    fclose(fp);
     ErrorReturn
     (NULL,
      (ERROR_NOFILE,
       "MRISreadVTK: error parsing POINTS from file %s\n",fname));
   }
-  sscanf(cp, "POINTS %d float\n", &nvertices) ;
-  if (nvertices <= 0)
+  if ((sscanf(cp, "POINTS %d float\n", &nvertices)) ||
+      (sscanf(cp, "points %d float\n", &nvertices)))
   {
+    if (nvertices <= 0)
+    {
+      fclose(fp);
+      ErrorReturn
+        (NULL,
+         (ERROR_NOFILE,
+          "MRISreadVTK: error reading file %s, invalid nvertices=%d\n",
+          fname,nvertices));
+    }
+  }
+  else
+  {
+    fclose(fp);
     ErrorReturn
-    (NULL,
-     (ERROR_NOFILE,
-      "MRISreadVTK: error reading file %s, invalid nvertices=%d\n",
-      fname,nvertices));
+      (NULL,
+       (ERROR_NOFILE,
+        "MRISreadVTK: error reading file %s, no POINTS field\n",fname));
   }
 
   /* alloc MRIS structure (we'll handle faces later in the file) */
@@ -20706,6 +20725,7 @@ POLYGONS 285838 1143352
   cp = fgetl(line, STRLEN, fp) ;
   if (!cp)
   {
+    fclose(fp);
     ErrorReturn
     (NULL,
      (ERROR_NOFILE,
@@ -20713,28 +20733,43 @@ POLYGONS 285838 1143352
   }
   int nfaces = 0;
   int somenum = 0; // should be nfaces * 4
-  sscanf(cp, "POLYGONS %d %d\n", &nfaces, &somenum) ;
-  if (nfaces <= 0)
+  if ((sscanf(cp, "POLYGONS %d %d\n", &nfaces, &somenum)) ||
+      (sscanf(cp, "polygons %d %d\n", &nfaces, &somenum)))
   {
+    if (nfaces <= 0)
+    {
+      fclose(fp);
+      ErrorReturn
+        (NULL,
+         (ERROR_NOFILE,
+          "MRISreadVTK: error reading file %s, invalid nfaces=%d\n",
+          fname,nfaces));
+    }
+    if (somenum != (nfaces*4)) // check for 3-vertex face data
+    {
+      fclose(fp);
+      ErrorReturn
+        (NULL,
+         (ERROR_NOFILE,
+          "MRISreadVTK: error reading file %s, invalid POLYGON data\n",fname));
+    }
+  }
+  else
+  {
+    fclose(fp);
     ErrorReturn
     (NULL,
      (ERROR_NOFILE,
-      "MRISreadVTK: error reading file %s, invalid nfaces=%d\n",
-      fname,nfaces));
+      "MRISreadVTK: error parsing POLYGONS in file %s",fname));
   }
-  if (somenum != (nfaces*4)) // check for 3-vertex face data
-  {
-    ErrorReturn
-    (NULL,
-     (ERROR_NOFILE,
-      "MRISreadVTK: error reading file %s, invalid POLYGON data\n",fname));
-  }
+  // POLYGONS field looks valid....
 
   /* now we can book some face space */
   mris->nfaces = nfaces ;
   mris->faces = (FACE *)calloc(nfaces, sizeof(FACE)) ;
   if (!mris->faces)
   {
+    fclose(fp);
     ErrorExit(ERROR_NO_MEMORY,
               "MRISreadVTK(%d, %d): could not allocate faces",
               nfaces, sizeof(FACE));
@@ -20749,6 +20784,7 @@ POLYGONS 285838 1143352
     fscanf(fp, "%d ", &facepoints);
     if (facepoints != 3)
     {
+      fclose(fp);
       ErrorReturn
         (NULL,
          (ERROR_NOFILE,
@@ -20762,6 +20798,7 @@ POLYGONS 285838 1143352
       else fscanf(fp, "%d ", &vno) ;
       if ((vno < 0) || (vno >= nvertices))
       {
+        fclose(fp);
         ErrorReturn
           (NULL,
            (ERROR_NOFILE,
@@ -20773,11 +20810,110 @@ POLYGONS 285838 1143352
   }
   if (fno != mris->nfaces)
   {
+    fclose(fp);
     ErrorReturn
       (NULL,
        (ERROR_NOFILE,
         "MRISreadVTK: failure reading %s, fno=%d != nfaces\n",
         fname,fno,mris->nfaces));
+  }
+
+  /* at this point in the file, we're at the end, or there is possibly
+     curv or scalar data fields to read */
+  cp = fgetl(line, STRLEN, fp) ;
+  //printf("%s\n",cp);
+  int nvertices_data=0;
+  if (cp) // it appears we have another line...
+  {
+    if ((sscanf(cp, "POINT_DATA %d\n", &nvertices_data)) ||
+        (sscanf(cp, "point_data %d\n", &nvertices_data)))
+    {
+      if (nvertices != nvertices_data)
+      {
+        fclose(fp);
+        ErrorReturn
+          (NULL,
+           (ERROR_NOFILE,
+            "MRISreadVTK: error reading file %s, invalid nvertices=%d "
+            "in POINT_DATA field, expected %d vertices\n",
+            fname,nvertices_data,nvertices));
+      }
+      int nfields=0;
+      cp = fgetl(line, STRLEN, fp) ;
+      //printf("%s\n",cp);
+      if ((sscanf(cp, "FIELD %*s %d\n", &nfields)) ||
+          (sscanf(cp, "field %*s %d\n", &nfields)))
+      {
+        int num_fields;
+        for (num_fields=0; num_fields < nfields; num_fields++)
+        {
+          // parse each data field
+          char fieldName[STRLEN];
+          int fieldNum=0;
+          cp = fgetl(line, STRLEN, fp) ;
+          //printf("%s\n",cp);
+          if (sscanf(cp, "%s %d %d double\n", 
+                     fieldName,&fieldNum,&nvertices_data))
+          {
+            if (nvertices != nvertices_data)
+            {
+              fclose(fp);
+              ErrorReturn
+                (NULL,
+                 (ERROR_NOFILE,
+                  "MRISreadVTK: error reading file %s, invalid nvertices=%d "
+                  "in %s field, expected %d vertices\n",
+                  fname,nvertices_data,fieldName,nvertices));
+            }
+            // read either scalar or curv data
+            int isCurvData=0;
+            if (strncmp(fieldName,"curv",4)==0) isCurvData = 1;
+            float curvmin = 10000.0f ;
+            float curvmax = -10000.0f ;  /* for compiler warnings */
+            for (vno = 0 ; vno < mris->nvertices ; vno++)
+            {
+              VERTEX *v = &mris->vertices[vno] ;
+              float f = 0.0;
+              if (fscanf(fp, "%f\n", &f))
+              {
+                if (isCurvData)
+                {
+                  f += 100;
+                  if (vno==0) curvmin=curvmax=f;
+                  if (f>curvmax) curvmax=f;
+                  if (f<curvmin) curvmin=f;
+                  v->curv = f; // curvature data
+                }
+                else v->val = f; // regular scalar data
+              }
+              else
+              {
+                fclose(fp);
+                ErrorReturn
+                  (NULL,
+                   (ERROR_NOFILE,
+                    "MRISreadVTK: error parsing %s FIELD in file %s",
+                    fieldName,fname));
+              }
+            }
+            if (isCurvData)
+            {
+              mris->max_curv = curvmax ;
+              mris->min_curv = curvmin ;
+              //printf("maxcurv=%f, mincurv=%f\n",curvmax, curvmin);
+            }
+          }
+          else
+          {
+            fclose(fp);
+            ErrorReturn
+              (NULL,
+               (ERROR_NOFILE,
+                "MRISreadVTK: error parsing FIELDs in file %s",fname));
+          }
+        }
+      }
+    }
   }
 
   fclose(fp) ;
