@@ -1,5 +1,8 @@
-c$Header: /space/repo/1/dev/dev/talairach_avi/t4_sub.f,v 1.1 2007/05/04 22:34:03 nicks Exp $
+c$Header: /space/repo/1/dev/dev/talairach_avi/t4_sub.f,v 1.2 2009/08/21 19:14:07 nicks Exp $
 c$Log: t4_sub.f,v $
+cRevision 1.2  2009/08/21 19:14:07  nicks
+cadded width specifiers to allow compilation with gfortran
+c
 cRevision 1.1  2007/05/04 22:34:03  nicks
 cnew talairach alignment utility, using Avi Snyders registration tools
 c
@@ -31,7 +34,7 @@ c Revision 1.1  1997/01/15  09:26:57  avi
 c Initial revision
 
       subroutine t4_sub_rcsid
-      write (*,"('$Id: t4_sub.f,v 1.1 2007/05/04 22:34:03 nicks Exp $')")
+      write (*,"('$Id: t4_sub.f,v 1.2 2009/08/21 19:14:07 nicks Exp $')")
       return
       end
 
@@ -54,7 +57,7 @@ c Initial revision
     1 read(8,"(a)",end=9)string
       if(string(1:6).ne.'scale:')goto 1
       k=lnblnk(string)
-      read(string(7:k),"(f)",err=9)param(13)
+      read(string(7:k),"(f10.6)",err=9)param(13)
     9 close(8)
       end
 
@@ -70,7 +73,7 @@ c Initial revision
     1 read(8,"(a)",end=9)string
       if(string(1:6).ne.'scale:')goto 1
       k=lnblnk(string)
-      read(string(7:k),"(f)",err=9)scale
+      read(string(7:k),"(f10.6)",err=9)scale
       iget_t4_scale=0
     9 close(8)
       end
