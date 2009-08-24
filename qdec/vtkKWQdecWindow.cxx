@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/30 21:37:56 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/08/24 21:26:29 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -105,7 +105,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.38 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.39 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -934,7 +934,7 @@ vtkKWQdecWindow::CreateWidget () {
   // call the radio-button handler once to set it up
   this->SetCurrentMeasure( "Surface-based" );
 
-#if 0 // HACK disable for now, until DOSS is handled properly downstream
+#if 1 // HACK disable for now, until DOSS is handled properly downstream
   //
   // Create the Design Matrix Type frame.
   vtkSmartPointer<vtkKWFrameWithLabel> designMatrixTypeFrame =
