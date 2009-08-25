@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/08/18 14:38:18 $
-#    $Revision: 1.245 $
+#    $Date: 2009/08/25 17:24:11 $
+#    $Revision: 1.246 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.245 2009/08/18 14:38:18 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.246 2009/08/25 17:24:11 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4672,7 +4672,9 @@ usage_exit:
   echo "  -xopts-overwrite : overwrite pre-existing expert options file"
   echo ""
   echo "  -mprage : assume scan parameters are MGH MP-RAGE protocol"
-  echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol"
+  echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol."
+  echo "                  both mprage flags affect mri_normalize and mri_segment,"
+  echo "                  and assumes a darker gm."
 #  echo "  -schwartzya3t-atlas : for tal reg, use special young adult 3T atlas"
   echo ""
   echo " Notification Files (Optional)"
