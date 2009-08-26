@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 21:11:38 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/08/26 19:59:03 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -86,8 +86,8 @@ private:
   int           m_nIndexSize;
   
   std::string   m_strName;
-  LayerSurface* m_surface;
   COLOR_TABLE*  m_lut;
+  LayerSurface* m_surface;
 };
 
 #endif

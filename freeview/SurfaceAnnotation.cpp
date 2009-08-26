@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 21:11:38 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/08/26 19:59:03 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,8 +43,8 @@ SurfaceAnnotation::SurfaceAnnotation ( LayerSurface* surf ) :
     Broadcaster( "SurfaceAnnotation" ),
     Listener( "SurfaceAnnotation" ),
     m_nIndices( NULL ),
-    m_surface( surf ),
-    m_lut( NULL )
+    m_lut( NULL ),
+    m_surface( surf )
 {
 }
 
@@ -93,6 +93,8 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
       {
         if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 )
           m_nIndices[i] = n;
+        else
+          m_nIndices[i] = 0;
       }      
       
       return true;
