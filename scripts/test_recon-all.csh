@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/07/30 21:09:43 $
-#    $Revision: 1.28 $
+#    $Date: 2009/08/26 21:08:53 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,12 +49,13 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.28 2009/07/30 21:09:43 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.29 2009/08/26 21:08:53 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
 set FMAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 
+limit coredumpsize unlimited
 
 umask 002
 
@@ -271,7 +272,7 @@ set cmd=(recon-all)
 #  set cmd=(nice +19 recon-all)
 #endif
 set cmd=($cmd -s $TEST_SUBJ $INVOL)
-set cmd=($cmd -all -debug -clean -norandomness -time);
+set cmd=($cmd -all -debug -clean -norandomness -allowcoredump -time);
 echo $cmd
 if ($RunIt) then
   cd $SUBJECTS_DIR
