@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/17 13:45:45 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/08/27 02:11:39 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.9 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.10 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which);
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.9 2009/07/17 13:45:45 fischl Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.10 2009/08/27 02:11:39 fischl Exp $";
 
 char *Progname ;
 
@@ -162,8 +162,14 @@ int main(int argc, char *argv[])
 
 #if 1
   hdist = compute_hdist(mri, nvolumes, 0, hdists, which) ;
+  if (hdist < 0)
+    DiagBreak() ;
   for (n = 1 ; n < nvolumes ; n++)
+  {
+    if (hdists[n] < 0)
+      DiagBreak() ;
     fprintf(fp, "%f\n", hdists[n]) ;
+  }
 #else
   for (n = 0 ; n < nvolumes ; n++)
   {
@@ -265,6 +271,9 @@ compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which)
                 yf = y + dy * fabs(d2)/dist ;
                 zf = z + dz * fabs(d2)/dist ;
                 MRIsampleVolume(mri[n], xf, yf, zf, &zval) ;
+                if (zval < 0)
+                  DiagBreak() ;
+                zval = fabs(zval) ;
                 //                fprintf(fp, "%d %d %d %d %2.3f\n", n, x, y, z, d) ;
                 if (zval > 40)
                   DiagBreak() ;
