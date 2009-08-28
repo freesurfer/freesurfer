@@ -1,0 +1,45 @@
+#! /bin/tcsh -f
+
+set f1=$1
+set f2=$2
+set f3=$3
+
+if (( $f1 == "" ) || ( $f2 == "" ) || ( $f3 == "") ) then
+  echo "usage:   $0 <label1> <label2> <outputname>"
+  echo "example: $0 rh.BA3a.label rh.BA3b.label rh.BA3ab.union.label"
+  exit 1
+endif
+
+# save-away header and line counts
+head -n 1 $f1 > $$.tmp.f1.header
+head -n 1 $f2 > $$.tmp.f2.header
+
+grep -v "`cat $$.tmp.f1.header`" $f1 >  $$.tmp.f1.noheader
+grep -v "`cat $$.tmp.f2.header`" $f2 >  $$.tmp.f2.noheader
+head -n 1 $$.tmp.f1.noheader > $$.tmp.f1.linecount
+head -n 1 $$.tmp.f2.noheader > $$.tmp.f2.linecount
+
+# strip first two lines from label files
+grep -v "`cat $$.tmp.f1.header`" $f1 >  $$.tmp.1.f1
+grep -v "`cat $$.tmp.f2.header`" $f2 >  $$.tmp.2.f2
+grep -v "`cat $$.tmp.f1.linecount`" $$.tmp.1.f1 >  $$.tmp.f1
+grep -v "`cat $$.tmp.f2.linecount`" $$.tmp.2.f2 >  $$.tmp.f2
+
+# sort
+sort -n $$.tmp.f1 > $$.tmp.f1.sorted
+sort -n $$.tmp.f2 > $$.tmp.f2.sorted
+
+# find union and append header and line count
+cat $$.tmp.f1.sorted $$.tmp.f2.sorted > $$.tmp.unsorted
+sort -n $$.tmp.unsorted > $$.tmp.sorted
+uniq -u $$.tmp.sorted > $$.tmp.uniq
+cat $$.tmp.f1.header > $f3
+set linecount=`wc -l $$.tmp.uniq| awk '{print $1}'`
+echo $linecount >> $f3
+cat $$.tmp.uniq >> $f3
+
+# delete junk files
+rm -f $$.tmp.*
+
+
+
