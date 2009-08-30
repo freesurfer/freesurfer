@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/15 18:52:28 $
- *    $Revision: 1.159 $
+ *    $Date: 2009/08/30 22:06:32 $
+ *    $Revision: 1.160 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -179,20 +179,21 @@ int main(int argc, char *argv[]) {
   char cmdline[STRLEN] ;
   int sphinx_flag = FALSE;
   int LeftRightReverse = FALSE;
+  int FlipCols = FALSE;
   int SliceReverse = FALSE;
   int SliceBias  = FALSE;
-  float SliceBiasAlpha = 1.0;
+  float SliceBiasAlpha = 1.0,v;
   char AutoAlignFile[STRLEN];
   MATRIX *AutoAlign = NULL;
   MATRIX *cras = NULL, *vmid = NULL;
-  int ascii_flag = FALSE, c=0,r=0,s=0,f=0;
+  int ascii_flag = FALSE, c=0,r=0,s=0,f=0,c2=0;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.159 2009/07/15 18:52:28 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.160 2009/08/30 22:06:32 greve Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -297,7 +298,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.159 2009/07/15 18:52:28 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.160 2009/08/30 22:06:32 greve Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -312,6 +313,7 @@ int main(int argc, char *argv[]) {
     }
     else if(strcmp(argv[i], "--debug") == 0) debug = 1;
     else if(strcmp(argv[i], "--left-right-reverse") == 0) LeftRightReverse = 1;
+    else if(strcmp(argv[i], "--flip-cols") == 0) FlipCols = 1;
     else if(strcmp(argv[i], "--slice-reverse") == 0) SliceReverse = 1;
     else if(strcmp(argv[i], "--ascii") == 0) {
       ascii_flag = 1;
@@ -1311,7 +1313,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.159 2009/07/15 18:52:28 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.160 2009/08/30 22:06:32 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1506,6 +1508,28 @@ int main(int argc, char *argv[]) {
     MatrixFree(&T);
     MatrixFree(&vmid);
     MatrixFree(&cras);
+  }
+
+  if(FlipCols){
+    // Reverses the columns WITHOUT changing the geometry in the
+    // header.  Know what you are going here.
+    printf("WARNING: flipping cols without changing geometry\n");
+    mri2 = MRIcopy(mri,NULL);
+    printf("type %d %d\n",mri->type,mri2->type);
+    for(c=0; c < mri->width; c++){
+      c2 = mri->width - c - 1;
+      for(r=0; r < mri->height; r++){
+	for(s=0; s < mri->depth; s++){
+	  for(f=0; f < mri->nframes; f++){
+	    v = MRIgetVoxVal(mri,c,r,s,f);
+	    MRIsetVoxVal(mri2,c2,r,s,f,v);
+	  }
+	}
+      }
+    }
+    printf("type %d %d\n",mri->type,mri2->type);
+    MRIfree(&mri);
+    mri = mri2; 
   }
 
   if(SliceReverse){
