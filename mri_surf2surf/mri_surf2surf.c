@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/27 17:32:11 $
- *    $Revision: 1.81 $
+ *    $Date: 2009/08/30 23:45:40 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.81 2009/07/27 17:32:11 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.82 2009/08/30 23:45:40 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -460,7 +460,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.81 2009/07/27 17:32:11 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.82 2009/08/30 23:45:40 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -719,6 +719,12 @@ int main(int argc, char **argv) {
   }
   if (SrcVals == NULL) {
     fprintf(stderr,"ERROR loading source values from %s\n",srcvalfile);
+    exit(1);
+  }
+  n = SrcVals->width * SrcVals->height * SrcVals->depth;
+  if(SrcSurfReg->nvertices != n){
+    printf("ERROR: dimension mismatch between surface reg (%d)\n",SrcSurfReg->nvertices);
+    printf("and source data (%d)\n",n);
     exit(1);
   }
   if (SynthPDF != 0) {
