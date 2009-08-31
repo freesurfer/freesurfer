@@ -22,8 +22,8 @@ head -n 1 $$.tmp.f2.noheader > $$.tmp.f2.linecount
 # strip first two lines from label files
 grep -v "`cat $$.tmp.f1.header`" $f1 >  $$.tmp.1.f1
 grep -v "`cat $$.tmp.f2.header`" $f2 >  $$.tmp.2.f2
-grep -v "`cat $$.tmp.f1.linecount`" $$.tmp.1.f1 >  $$.tmp.f1
-grep -v "`cat $$.tmp.f2.linecount`" $$.tmp.2.f2 >  $$.tmp.f2
+grep -v --line-regexp "`cat $$.tmp.f1.linecount`" $$.tmp.1.f1 >  $$.tmp.f1
+grep -v --line-regexp "`cat $$.tmp.f2.linecount`" $$.tmp.2.f2 >  $$.tmp.f2
 
 # sort
 sort -n $$.tmp.f1 > $$.tmp.f1.sorted
