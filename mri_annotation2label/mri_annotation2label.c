@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/08/19 01:11:02 $
- *    $Revision: 1.19 $
+ *    $Author: fischl $
+ *    $Date: 2009/09/01 15:57:15 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.19 2009/08/19 01:11:02 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.20 2009/09/01 15:57:15 fischl Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.19 2009/08/19 01:11:02 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.20 2009/09/01 15:57:15 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -234,6 +234,12 @@ int main(int argc, char **argv) {
 
     printf("%3d  %5d %s\n",ani,nperannot[ani],labelfile);
     label = annotation2label(ani, Surf);
+    if (label == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "index %d not found, cannot write %s - skipping",
+                  ani, labelfile) ;
+      continue ;
+    }
     strcpy(label->subject_name,subject);
     LabelWrite(label,labelfile);
     LabelFree(&label);
@@ -373,7 +379,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"annotation = %s\n",annotation);
   fprintf(fp,"hemi = %s\n",hemi);
   if(labelbase) fprintf(fp,"labelbase = %s\n",labelbase);
-  if(outdir)    fprintf(fp,"outdir = %s\n",labelbase);
+  if(outdir)    fprintf(fp,"outdir = %s\n",outdir);
   if(segfile)   fprintf(fp,"segfile = %s\n",segfile);
   fprintf(fp,"surface   = %s\n",surfacename);
   fprintf(fp,"\n");
