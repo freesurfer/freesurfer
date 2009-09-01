@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/07/17 16:37:54 $
- *    $Revision: 1.118 $
+ *    $Author: fischl $
+ *    $Date: 2009/09/01 17:34:43 $
+ *    $Revision: 1.119 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,7 +72,7 @@ int MatrixIsSymmetric( MATRIX *matrix );
 MATRIX *
 MatrixCopy(MATRIX *mIn, MATRIX *mOut)
 {
-  int row, rows, cols ;
+  int row, rows, cols, col ;
 
   if (mIn == NULL)
   {
@@ -93,9 +93,15 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
     ErrorExit(ERROR_NO_MEMORY,
               "MatrixCopy: couldn't allocate mOut") ;
 
+#if 1
+  for (col = 1 ; col <= cols ; col++)
+    for (row = 1 ; row <= rows ; row++)
+      *MATRIX_RELT(mOut, row, col) = *MATRIX_RELT(mIn, row, col) ;
+#else
   for (row = 1 ; row <= rows ; row++)
     memmove((char *)(mOut->rptr[row]), (char *)mIn->rptr[row],
            (cols+1)*sizeof(float)) ;
+#endif
 
   return(mOut) ;
 }
@@ -2547,15 +2553,31 @@ MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 {
   MATRIX  *mT, *mTm, *mTm_inv ;
 
-  /* build (mT m)-1 mT */
+  if (m->rows < m->cols)
+  {
+    MATRIX  *mT = MatrixTranspose(m, NULL) ;
+    m_pseudo_inv = MatrixPseudoInverse(mT, m_pseudo_inv) ;
+    MatrixFree(&mT) ;
+    mT = m_pseudo_inv ;
+    m_pseudo_inv = MatrixTranspose(mT, NULL) ;
+    MatrixFree(&mT) ;
+    return(m_pseudo_inv) ;
+  }
   mT = MatrixTranspose(m, NULL) ;
+
+  /* build (mT m)-1 mT */
   mTm = MatrixMultiply(mT, m, NULL) ;
   mTm_inv = MatrixInverse(mTm, NULL) ;
   if (!mTm_inv)
   {
-    MatrixFree(&mT) ;
-    MatrixFree(&mTm) ;
-    return(NULL) ;
+    mTm_inv = MatrixSVDInverse(mTm, NULL) ;
+
+    if (!mTm_inv)
+    {
+      MatrixFree(&mT) ;
+      MatrixFree(&mTm) ;
+      return(NULL) ;
+    }
   }
   m_pseudo_inv = MatrixMultiply(mTm_inv, mT, m_pseudo_inv) ;
 
@@ -2896,6 +2918,18 @@ MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
     else
       for (r=1; r <= m->rows; r++) msum->rptr[r][1] = m->rptr[r][1];
   }
+
+  return(msum);
+}
+/*----------------------------------------------------------------*/
+double MatrixSumElts(MATRIX *m)
+{
+  int    r,c;
+  double msum ;
+
+  for (msum = 0.0, r=1; r <= m->rows; r++)
+    for (c=1; c <= m->cols; c++)
+      msum += m->rptr[r][c];
 
   return(msum);
 }

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/06/10 17:04:42 $
- *    $Revision: 1.91 $
+ *    $Date: 2009/09/01 17:34:43 $
+ *    $Revision: 1.92 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2602,3 +2602,21 @@ LabelCropPosterior(LABEL *area, float anterior_dist)
   return(NO_ERROR) ;
 }
 
+int
+LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  LabelMarkSurface(area, mris) ;  /* mark all points in label */
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked || v->ripflag)
+      continue ;
+    v->stat = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0 ;
+  }
+  MRISclearMarks(mris) ;
+  return(NO_ERROR) ;
+}
