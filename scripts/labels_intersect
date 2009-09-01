@@ -1,5 +1,7 @@
 #! /bin/tcsh -f
 
+# set echo=1
+
 set f1=$1
 set f2=$2
 set f3=$3
@@ -11,32 +13,43 @@ if (( $f1 == "" ) || ( $f2 == "" ) || ( $f3 == "") ) then
 endif
 
 # save-away header and line counts
-head -n 1 $f1 > $$.tmp.f1.header
-head -n 1 $f2 > $$.tmp.f2.header
+grep "^#" $f1 > $$.tmp.f1.header
+grep "^#" $f2 > $$.tmp.f2.header
 
-grep -v "`cat $$.tmp.f1.header`" $f1 >  $$.tmp.f1.noheader
-grep -v "`cat $$.tmp.f2.header`" $f2 >  $$.tmp.f2.noheader
-head -n 1 $$.tmp.f1.noheader > $$.tmp.f1.linecount
-head -n 1 $$.tmp.f2.noheader > $$.tmp.f2.linecount
+grep -v "`cat $$.tmp.f1.header`" $f1 > $$.tmp.f1.noheader
+grep -v "`cat $$.tmp.f2.header`" $f2 > $$.tmp.f2.noheader
+head -n 1 $$.tmp.f1.noheader > $$.tmp.f1.vertexcount
+head -n 1 $$.tmp.f2.noheader > $$.tmp.f2.vertexcount
 
-# strip first two lines from label files
-grep -v "`cat $$.tmp.f1.header`" $f1 >  $$.tmp.1.f1
-grep -v "`cat $$.tmp.f2.header`" $f2 >  $$.tmp.2.f2
-grep -v --line-regexp "`cat $$.tmp.f1.linecount`" $$.tmp.1.f1 >  $$.tmp.f1
-grep -v --line-regexp "`cat $$.tmp.f2.linecount`" $$.tmp.2.f2 >  $$.tmp.f2
+# strip header and vertex count lines from label files
+grep -v "`cat $$.tmp.f1.header`" $f1 > $$.tmp.1.f1
+grep -v "`cat $$.tmp.f2.header`" $f2 > $$.tmp.2.f2
+grep -v --line-regexp "`cat $$.tmp.f1.vertexcount`" $$.tmp.1.f1 > $$.tmp.f1
+grep -v --line-regexp "`cat $$.tmp.f2.vertexcount`" $$.tmp.2.f2 > $$.tmp.f2
 
 # sort
-sort -n $$.tmp.f1 > $$.tmp.f1.sorted
-sort -n $$.tmp.f2 > $$.tmp.f2.sorted
+sort -n -u $$.tmp.f1 $$.tmp.f2 > $$.tmp.sorted
+
+# get vertices
+cat $$.tmp.sorted | awk '{print $1}' > $$.tmp.vertices
 
 # find intersect
-comm -1 -2 $$.tmp.f1.sorted $$.tmp.f2.sorted > $$.tmp.$f3
+rm -f $$.tmp.f3 >& /dev/null
+foreach vno (`cat $$.tmp.vertices`)
+  grep --word-regexp "^${vno}" $$.tmp.f1 > $$.tmp.grep.f1
+  if ($status == 0) then
+    grep --word-regexp "^${vno}" $$.tmp.f2 > $$.tmp.grep.f2
+    if ($status == 0) then
+      cat $$.tmp.grep.f1 >> $$.tmp.f3
+    endif
+  endif
+end
 
-# append header and line count
+# append header and vertex count
 cat $$.tmp.f1.header > $f3
-set linecount=`wc -l $$.tmp.$f3 | awk '{print $1}'`
-echo $linecount >> $f3
-cat $$.tmp.$f3 >> $f3
+set vertexcount=`wc -l $$.tmp.f3 | awk '{print $1}'`
+echo $vertexcount >> $f3
+cat $$.tmp.f3 >> $f3
 
 # delete junk files
 rm -f $$.tmp.*
