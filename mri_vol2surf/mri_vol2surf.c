@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/10/23 22:37:32 $
- *    $Revision: 1.50 $
+ *    $Author: fischl $
+ *    $Date: 2009/09/01 17:35:23 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,7 +81,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.50 2008/10/23 22:37:32 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.51 2009/09/01 17:35:23 fischl Exp $";
 
 char *Progname = NULL;
 
@@ -112,8 +112,21 @@ static float IcoRadius = 100;
 static char *surfreg = "sphere.reg";
 static char *thicknessname = "thickness";
 static float ProjFrac = 0;
+static int   ProjOpt = 0 ;
+static char  *mask_label_name = NULL ;
+static char  *volume_fraction_fname = NULL ;
 static int   ProjDistFlag = 0;
 static float ProjFracMin=0.0,ProjFracMax=0.0,ProjFracDelta=1.0;
+
+MRI *build_sample_array(MRI_SURFACE *mris, MRI *mri, MATRIX *m, 
+                        float din, float dout, int nsamples, 
+                        MRI *mri_wm, MRI *mri_gm, MRI *mri_csf);
+MRI *estimate_gm_values(MRI *mri_wm, MRI *mri_gm, MRI *mri_csf,
+                        MRI *SrcVol,
+                        MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc,
+                        MRI_SURFACE *TrgSurf,
+                        int InterpMethod, int float2int, MRI *SrcHitVol) ;
+
 
 static MRI_SURFACE *Surf    = NULL;
 static MRI_SURFACE *SurfOut = NULL;
@@ -202,7 +215,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.50 2008/10/23 22:37:32 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.51 2009/09/01 17:35:23 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -408,7 +421,7 @@ int main(int argc, char **argv) {
   fflush(stdout);
 
   /* Load the thickness for projection along the normal*/
-  if (ProjFrac != 0 && ProjDistFlag == 0) {
+  if ((ProjFrac != 0 && ProjDistFlag == 0) || (ProjOpt != 0)) {
     sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,
             hemi,thicknessname);
     printf("Reading thickness %s\n",fname);
@@ -428,38 +441,73 @@ int main(int argc, char **argv) {
   /* Map the values from the volume to the surface */
   printf("Mapping Source Volume onto Source Subject Surface\n");
   fflush(stdout);
-  nproj = 0;
-  for (ProjFrac=ProjFracMin; 
-       ProjFrac <= ProjFracMax; 
-       ProjFrac += ProjFracDelta) {
-    printf("%2d %g %g %g\n",nproj+1,ProjFrac,ProjFracMin,ProjFracMax);
-    if(UseOld){
-      printf("using old\n");
-      SurfValsP = 
-	vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc,
-			Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
-			ProjDistFlag, 1);
-    }
-    else{
-      printf("using new\n");
-      SurfValsP = 
-	MRIvol2surfVSM(SrcVol, Dsrc, Surf, vsm, interpmethod, SrcHitVol, 
-		    ProjFrac, ProjDistFlag,1);
-    }
-    fflush(stdout);
-    if (SurfValsP == NULL) {
-      printf("ERROR: mapping volume to source\n");
-      exit(1);
-    }
-    if (nproj == 0) SurfVals = MRIcopy(SurfValsP,NULL);
-    else {
-      if (!GetProjMax) MRIadd(SurfVals,SurfValsP,SurfVals);
-      else            MRImax(SurfVals,SurfValsP,SurfVals);
-    }
-    MRIfree(&SurfValsP);
-    nproj ++;
+  if (ProjOpt != 0)
+  {
+    char fname[STRLEN] ;
+    MRI  *mri_gm, *mri_wm, *mri_csf ;
+    MATRIX *Qsrc, *QFWDsrc ;
+    
+    sprintf(fname, "%s.gm.mgz", volume_fraction_fname) ;
+    printf("reading gm volume fraction from %s\n", fname) ;
+    mri_gm = MRIread(fname) ;
+    if (mri_gm == NULL)
+      ErrorExit(ERROR_NOFILE, "could not read gm volume fraction from %s", 
+                fname);
+    
+    sprintf(fname, "%s.wm.mgz", volume_fraction_fname) ;
+    printf("reading wm volume fraction from %s\n", fname) ;
+    mri_wm = MRIread(fname) ;
+    if (mri_wm == NULL)
+      ErrorExit(ERROR_NOFILE, "could not read wm volume fraction from %s", 
+                fname);
+    sprintf(fname, "%s.csf.mgz", volume_fraction_fname) ;
+    printf("reading csf volume fraction from %s\n", fname) ;
+    mri_csf = MRIread(fname) ;
+    if (mri_csf == NULL)
+      ErrorExit(ERROR_NOFILE, "could not read csf volume fraction from %s", 
+                fname);
+    Qsrc = MRIxfmCRS2XYZtkreg(SrcVol);
+    Qsrc = MatrixInverse(Qsrc,Qsrc);
+    QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
+    SurfVals = build_sample_array(Surf, SrcVol, QFWDsrc, 1.0, 0.1, 10,
+                                  mri_wm, mri_gm, mri_csf) ;
+    MatrixFree(&Qsrc) ; MatrixFree(&QFWDsrc) ;
   }
-  if (!GetProjMax) MRImultiplyConst(SurfVals, 1.0/nproj, SurfVals);
+  else
+  {
+    nproj = 0;
+    for (ProjFrac=ProjFracMin; 
+         ProjFrac <= ProjFracMax; 
+         ProjFrac += ProjFracDelta) {
+      printf("%2d %g %g %g\n",nproj+1,ProjFrac,ProjFracMin,ProjFracMax);
+      if(UseOld){
+        printf("using old\n");
+        SurfValsP = 
+          vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc,
+                          Surf, ProjFrac, interpmethod, float2int, SrcHitVol,
+                          ProjDistFlag, 1);
+      }
+      else{
+        printf("using new\n");
+        SurfValsP = 
+          MRIvol2surfVSM(SrcVol, Dsrc, Surf, vsm, interpmethod, SrcHitVol, 
+                         ProjFrac, ProjDistFlag,1);
+      }
+      fflush(stdout);
+      if (SurfValsP == NULL) {
+        printf("ERROR: mapping volume to source\n");
+        exit(1);
+      }
+      if (nproj == 0) SurfVals = MRIcopy(SurfValsP,NULL);
+      else {
+        if (!GetProjMax) MRIadd(SurfVals,SurfValsP,SurfVals);
+        else            MRImax(SurfVals,SurfValsP,SurfVals);
+      }
+      MRIfree(&SurfValsP);
+      nproj ++;
+    }
+    if (!GetProjMax) MRImultiplyConst(SurfVals, 1.0/nproj, SurfVals);
+  }
 
   printf("Done mapping volume to surface\n");
   fflush(stdout);
@@ -631,6 +679,15 @@ int main(int argc, char **argv) {
     /*-------------- paint or .w --------------*/
     for (vtx = 0; vtx < SurfVals2->width; vtx++)
       SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,0) ;
+    if (mask_label_name)
+    {
+      LABEL *area ;
+      area = LabelRead(NULL, mask_label_name) ;
+      if (area == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not load label file %s", Progname, mask_label_name);
+      LabelMaskSurface(area, Surf) ;
+      LabelFree(&area) ;
+    }
     MRISwriteValues(SurfOut, outfile) ;
   } else {
     if (reshape) {
@@ -657,6 +714,19 @@ int main(int argc, char **argv) {
       } else {
         printf("INFO: nvertices is prime, cannot reshape\n");
       }
+    }
+    else if (mask_label_name)
+    {
+      LABEL *area ;
+      area = LabelRead(NULL, mask_label_name) ;
+      if (area == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not load label file %s", Progname, mask_label_name);
+      MRISclearMarks(Surf) ;
+      LabelMarkSurface(area, Surf) ;
+      for (vtx = 0; vtx < SurfVals2->width; vtx++)
+        if (SurfOut->vertices[vtx].marked == 0)
+          MRIsetVoxVal(SurfVals2, vtx, 0, 0, 0, 0) ;
+      LabelFree(&area) ;
     }
     printf("Writing to %s\n",outfile);
     printf("Dim: %d %d %d\n",
@@ -836,6 +906,11 @@ static int parse_commandline(int argc, char **argv) {
       ProjFracMax=ProjFrac;
       ProjFracDelta=1.0;
       nargsused = 1;
+    } else if (!strcmp(option, "--projopt")) {
+      if (nargc < 1) argnerr(option,1);
+      volume_fraction_fname = pargv[0] ;
+      ProjOpt = 1 ;
+      nargsused = 1;
     } else if (!strcmp(option, "--projfrac-int") ||
                !strcmp(option, "--projfrac-avg")) {
       if (nargc < 3) argnerr(option,3);
@@ -859,6 +934,11 @@ static int parse_commandline(int argc, char **argv) {
       ProjFracMax=ProjFrac;
       ProjFracDelta=1.0;
       ProjDistFlag = 1;
+      nargsused = 1;
+    } else if (!strcmp(option, "--mask")) {
+      if (nargc < 1) argnerr(option,1);
+      mask_label_name = argv[1] ;
+      printf("masking output with label %s\n", mask_label_name) ;
       nargsused = 1;
     } else if (!strcmp(option, "--projdist-int") ||
                !strcmp(option, "--projdist-avg")) {
@@ -1016,7 +1096,11 @@ static void print_usage(void) {
   printf("   --projfrac-max min max del : max along normal\n");
   printf("   --projdist mmdist : distance projection along normal \n");
   printf("   --projdist-avg min max del : average along normal\n");
+  printf("   --projopt <fraction stem> : use optimal linear estimation and previously\n"
+         "computed volume fractions (see mri_compute_volume_fractions)\n");
   printf("   --projdist-max min max del : max along normal\n");
+  printf("   --mask label : mask the output with the given label file (usually cortex)\n");
+  
   //printf("   --thickness thickness file (thickness)\n");
   printf("\n");
   printf(" Options for output\n");
@@ -1586,5 +1670,399 @@ MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
 
   return(TrgVol);
+}
+
+#if 0
+MRI *
+estimate_gm_values(MRI *mri_wm, MRI *mri_gm, MRI *mri_csf,
+        MRI *SrcVol,MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc,
+        MRI_SURFACE *TrgSurf, int InterpMethod, int float2int, MRI *SrcHitVol)
+{
+  MATRIX *QFWDsrc;
+  MATRIX *Scrs, *Txyz;
+  MRI *TrgVol, *mri_samples, *mri_voxels ;
+  int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
+  float frow_src, fcol_src, fslc_src; /* float row, col, slc in source */
+  float srcval, Tx, Ty, Tz ;
+  int frm, FreeQsrc=0;
+  int vtx,nhits;
+  float *valvect;
+  Real rval;
+  int  ProjDistFlag = 1, nskip = 1 ;
+  float ProjFrac = 0.5 ;
+
+  if(Qsrc == NULL){
+    Qsrc = MRIxfmCRS2XYZtkreg(SrcVol);
+    Qsrc = MatrixInverse(Qsrc,Qsrc);
+    FreeQsrc = 1;
+  }
+
+  /* compute the transforms */
+  QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
+  if (Gdiag_no >= 0)
+  {
+    printf("QFWDsrc: vol2surf: ------------------------------\n");
+    MatrixPrint(stdout,QFWDsrc);
+    printf("--------------------------------------------------\n");
+  }
+
+  /* preallocate the row-col-slc vectors */
+  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
+  Txyz = MatrixAlloc(4,1,MATRIX_REAL);
+  Txyz->rptr[3+1][0+1] = 1.0;
+
+  /* allocate a "volume" to hold the output */
+  TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
+  if (TrgVol == NULL) return(NULL);
+  MRIcopyHeader(SrcVol,TrgVol);
+
+  /* Zero the source hit volume */
+  if (SrcHitVol != NULL)
+  {
+    MRIconst(SrcHitVol->width,SrcHitVol->height,SrcHitVol->depth,
+             1,0,SrcHitVol);
+  }
+
+  srcval = 0;
+  valvect = (float *) calloc(sizeof(float),SrcVol->nframes);
+  nhits = 0;
+  /*--- loop through each vertex ---*/
+  mri_samples = build_sample_array(TrgSurf, SrcVol, QFWDsrc, 1.0, 0.1, 10,
+                                   mri_wm, mri_gm, mri_csf,
+                                   &mri_voxels);
+
+  for (vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip)
+  {
+    if (ProjFrac != 0.0)
+      if (ProjDistFlag)
+        ProjNormDist(&Tx,&Ty,&Tz,TrgSurf,vtx,ProjFrac);
+      else
+        ProjNormFracThick(&Tx,&Ty,&Tz,TrgSurf,vtx,ProjFrac);
+    else
+    {
+      Tx = TrgSurf->vertices[vtx].x;
+      Ty = TrgSurf->vertices[vtx].y;
+      Tz = TrgSurf->vertices[vtx].z;
+    }
+
+    /* Load the Target xyz vector */
+    Txyz->rptr[0+1][0+1] = Tx;
+    Txyz->rptr[1+1][0+1] = Ty;
+    Txyz->rptr[2+1][0+1] = Tz;
+
+    /* Compute the corresponding Source col-row-slc vector */
+    MatrixMultiply(QFWDsrc,Txyz,Scrs);
+    fcol_src = Scrs->rptr[1][1];
+    frow_src = Scrs->rptr[2][1];
+    fslc_src = Scrs->rptr[3][1];
+
+    /* nearest neighbor */
+    switch (float2int)
+    {
+    case FLT2INT_ROUND:
+      icol_src = nint(fcol_src);
+      irow_src = nint(frow_src);
+      islc_src = nint(fslc_src);
+      break;
+    case FLT2INT_FLOOR:
+      icol_src = (int)floor(fcol_src);
+      irow_src = (int)floor(frow_src);
+      islc_src = (int)floor(fslc_src);
+      break;
+    case FLT2INT_TKREG:
+      icol_src = (int)floor(fcol_src);
+      irow_src = (int) ceil(frow_src);
+      islc_src = (int)floor(fslc_src);
+      break;
+    default:
+      fprintf(stderr,"vol2surf_linear(): unrecoginized float2int code %d\n",
+              float2int);
+      MRIfree(&TrgVol);
+      return(NULL);
+      break;
+    }
+
+    /* check that the point is in the bounds of the volume */
+    if (irow_src < 0 || irow_src >= SrcVol->height ||
+        icol_src < 0 || icol_src >= SrcVol->width  ||
+        islc_src < 0 || islc_src >= SrcVol->depth ) continue;
+
+    if (Gdiag_no == vtx)
+    {
+      printf("diag -----------------------------\n");
+      printf("vtx = %d  %g %g %g\n",vtx,Tx,Ty,Tz);
+      printf("fCRS  %g %g %g\n",Scrs->rptr[1][1],
+             Scrs->rptr[2][1],Scrs->rptr[3][1]);
+      printf("CRS  %d %d %d\n",icol_src,irow_src,islc_src);
+    }
+
+
+    /* only gets here if it is in bounds */
+    nhits ++;
+
+    /* Assign output volume values */
+    if (InterpMethod == SAMPLE_TRILINEAR)
+    {
+      MRIsampleSeqVolume(SrcVol, fcol_src, frow_src, fslc_src,
+                         valvect, 0, SrcVol->nframes-1) ;
+      if (Gdiag_no == vtx)
+        printf("val = %f\n", valvect[0]) ;
+      for (frm = 0; frm < SrcVol->nframes; frm++)
+        MRIFseq_vox(TrgVol,vtx,0,0,frm) = valvect[frm];
+    }
+    else
+    {
+      for (frm = 0; frm < SrcVol->nframes; frm++)
+      {
+        switch (InterpMethod)
+        {
+        case SAMPLE_NEAREST:
+          srcval = MRIgetVoxVal(SrcVol,icol_src,irow_src,islc_src,frm);
+          break ;
+        case SAMPLE_SINC:      /* no multi-frame */
+          MRIsincSampleVolume(SrcVol, fcol_src, frow_src, fslc_src, 5, &rval) ;
+          srcval = rval;
+          break ;
+        } //switch
+        MRIFseq_vox(TrgVol,vtx,0,0,frm) = srcval;
+        if (Gdiag_no == vtx)
+          printf("val[%d] = %f\n", frm, srcval) ;
+      } // for
+    }// else
+    if (SrcHitVol != NULL)
+      MRIFseq_vox(SrcHitVol,icol_src,irow_src,islc_src,0)++;
+  }
+
+  MatrixFree(&QFWDsrc);
+  MatrixFree(&Scrs);
+  MatrixFree(&Txyz);
+  free(valvect);
+  if(FreeQsrc) MatrixFree(&Qsrc);
+
+  //printf("vol2surf_linear: nhits = %d/%d\n",nhits,TrgSurf->nvertices);
+
+  return(TrgVol);
+}
+#endif
+
+
+#define MAX_SAMPLES 1000
+#define FOUND_WM  0x01
+#define FOUND_GM  0x02
+#define FOUND_CSF 0x04
+
+#define MAX_NBRS 10000
+MRI *
+build_sample_array(MRI_SURFACE *mris, MRI *mri_src, MATRIX *m, 
+                   float din, float dout, int nsamples, 
+                   MRI *mri_wm, MRI *mri_gm, MRI *mri_csf)
+{
+  float  fcol_src, frow_src, fslc_src, Tx, Ty, Tz,
+         dist, thick, sample_dist ;
+  int    vno, vno_nbr, srcval, icol_src, irow_src, islc_src, n, nfound,  index,
+    nbr, vnum,nsize, found, done, failed, vlist[MAX_NBRS],
+    min_needed = 3*2 ; // 3 parameters estimated with 2x overdetermination
+  VERTEX *v, *vn ;
+  MATRIX *Scrs, *Txyz, *m_A, *m_p, *m_S, *m_inv;
+  MRI    *mri_samples, *mri_voxels_c, *mri_voxels_r, *mri_voxels_s, *mri_sampled ;
+  double rms_mean, rms_var ;
+
+  mri_samples = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
+  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
+  Txyz = MatrixAlloc(4,1,MATRIX_REAL);
+  Txyz->rptr[3+1][0+1] = 1.0;
+
+  mri_sampled = MRIcloneDifferentType(mri_src, MRI_UCHAR);
+  mri_voxels_c = MRIallocSequence(mris->nvertices, 1,1,MRI_INT,nsamples) ;
+  if (mri_voxels_c == NULL)
+    ErrorExit(ERROR_NOMEMORY, 
+              "build_sample_array: couldn't allocate %d x %d array",
+              nsamples, mris->nvertices)  ;
+
+  mri_voxels_r = MRIallocSequence(mris->nvertices, 1,1,MRI_INT,nsamples) ;
+  if (mri_voxels_r == NULL)
+    ErrorExit(ERROR_NOMEMORY, 
+              "build_sample_array: couldn't allocate %d x %d array",
+              nsamples, mris->nvertices)  ;
+  mri_voxels_s = MRIallocSequence(mris->nvertices, 1,1,MRI_INT,nsamples) ;
+  if (mri_voxels_s == NULL)
+    ErrorExit(ERROR_NOMEMORY, 
+              "build_sample_array: couldn't allocate %d x %d array",
+              nsamples, mris->nvertices)  ;
+
+  m_A = MatrixAlloc(MAX_SAMPLES, 3, MATRIX_REAL) ; // vfract matrix
+  m_S = MatrixAlloc(MAX_SAMPLES, 1, MATRIX_REAL) ; // observed signals
+  m_p = MatrixAlloc(3, 1, MATRIX_REAL) ;  // parameters to be computed
+
+  rms_mean = rms_var = 0.0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    thick = v->curv ;
+    dist = -din ;
+    sample_dist = (din + thick + dout) / (nsamples-1) ;
+    for (n = 0 ; n < nsamples ; n++, dist += sample_dist)
+    {
+      /* Load the Target xyz vector */
+      ProjNormDist(&Tx,&Ty,&Tz, mris, vno, dist);
+      Txyz->rptr[0+1][0+1] = Tx;
+      Txyz->rptr[1+1][0+1] = Ty;
+      Txyz->rptr[2+1][0+1] = Tz;
+      
+      /* Compute the corresponding Source col-row-slc vector */
+      MatrixMultiply(m,Txyz,Scrs);
+      fcol_src = Scrs->rptr[1][1];
+      frow_src = Scrs->rptr[2][1];
+      fslc_src = Scrs->rptr[3][1];
+      icol_src = nint(fcol_src) ;
+      irow_src = nint(frow_src) ;
+      islc_src = nint(fslc_src) ;
+      MRIsetVoxVal(mri_voxels_c, vno, 0, 0, n, icol_src) ;
+      MRIsetVoxVal(mri_voxels_r, vno, 0, 0, n, irow_src) ;
+      MRIsetVoxVal(mri_voxels_s, vno, 0, 0, n, islc_src) ;
+    }
+  }
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    nfound = index = 0 ; nsize = 1 ; failed = 0 ;
+    found = 0 ;  // bitask to make sure we find at least some of each tissue class
+    // find enough samples to do optimal linear estimation
+    do
+    {
+      switch (nsize)
+      {
+      case 1: vnum = v->vnum ; break ;
+      case 2: vnum = v->v2num ; break ;
+      default: 
+      case 3: vnum = v->v3num ; break ;
+      }        
+      memmove(vlist+1, v->v, vnum*sizeof(v->v[0])) ;
+      vlist[0] = vno ; vnum++ ;
+      for (nbr = 0 ; nbr < vnum ; nbr++)
+      {
+        float gm, wm, csf ;
+
+        vno_nbr = vlist[nbr] ;
+        vn = &mris->vertices[vno_nbr] ;
+        for (n = 0 ; n < nsamples ; n++)
+        {
+          icol_src = (int)MRIgetVoxVal(mri_voxels_c, vno_nbr, 0, 0, n);
+          irow_src = (int)MRIgetVoxVal(mri_voxels_r, vno_nbr, 0, 0, n);
+          islc_src = (int)MRIgetVoxVal(mri_voxels_s, vno_nbr, 0, 0, n);
+
+          if (MRIgetVoxVal(mri_sampled, icol_src, irow_src, islc_src, 0) == vno+1)
+            continue ; // already sampled this voxel 
+          MRIsetVoxVal(mri_sampled, icol_src, irow_src, islc_src, 0, vno+1) ;
+          srcval = MRIgetVoxVal(mri_src, icol_src, irow_src, islc_src, 0) ;
+          wm = MRIgetVoxVal(mri_wm, icol_src, irow_src, islc_src, 0) ;
+          gm = MRIgetVoxVal(mri_gm, icol_src, irow_src, islc_src, 0) ;
+          csf = MRIgetVoxVal(mri_csf, icol_src, irow_src, islc_src, 0) ;
+          if ((csf < 0.3) && (wm > 0.5) && (srcval > 5000))
+            DiagBreak() ;
+          if (index >= MAX_SAMPLES)
+            break ;
+          index++ ;
+          if (!FZERO(gm))
+          {
+            nfound++ ;
+            found |= FOUND_GM ;
+          }
+#if 0
+          else
+            continue ; // don't use
+#endif
+          if (!FZERO(wm))
+            found |= FOUND_WM ;
+          if (!FZERO(csf))
+            found |= FOUND_CSF ;
+          *MATRIX_RELT(m_A, index, 1) = gm ;
+          *MATRIX_RELT(m_A, index, 2) = wm ;
+          *MATRIX_RELT(m_A, index, 3) = csf ;
+          *MATRIX_RELT(m_S, index, 1) = srcval ;
+        }
+      }
+#if 0
+      done = (nfound >= min_needed) &&
+        ((found & FOUND_GM) && (found & FOUND_WM) && (found & FOUND_CSF));
+#endif
+      done = ((nfound >= (min_needed/2)) && (found & FOUND_GM) && (index >= min_needed) &&
+              (nsize >= 2)) ;
+      if (nsize++ >= 3 && !done)
+      {
+        ErrorPrintf(ERROR_UNSUPPORTED, "GM estimation at vno %d couldn't find enough samples",vno) ;
+        failed = 1 ;
+        break ;
+      }
+    }  while (!done);
+
+    //    MRIclear(mri_sampled) ;
+    if (failed)
+    {
+      MRIsetVoxVal(mri_samples, vno, 0, 0, 0, -1) ;
+      continue ;
+    }
+
+    m_A->rows = index ;
+    m_S->rows = index ;
+    if ((found & FOUND_WM) == 0)  // can't estimate WM intensity
+    {
+      m_A->cols = m_p->rows = 1 ;
+    }
+    else if ((found & FOUND_CSF) == 0)  // can't estimate CSF intensity
+    {
+      m_A->cols = m_p->rows = 2 ;
+    }
+    m_inv = MatrixSVDPseudoInverse(m_A, NULL) ;
+    if (m_inv == NULL)
+      DiagBreak() ;
+    MatrixMultiply(m_inv, m_S, m_p) ;
+    if (*MATRIX_RELT(m_p, 1, 1) < 0)
+      DiagBreak() ;
+    if (*MATRIX_RELT(m_p, 1, 1) < -10000)
+      DiagBreak() ;
+
+    // compute quality of linear fit
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      double rms ;
+      MATRIX *m_fit = MatrixMultiply(m_A, m_p, NULL) ;
+      MatrixSubtract(m_fit, m_S, m_fit) ;
+      MatrixSquareElts(m_fit, m_fit) ;
+      rms = sqrt(MatrixSumElts(m_fit) / index) ;
+      v->curv = rms ;
+      rms_mean += rms ; rms_var += rms*rms ;
+      MatrixFree(&m_fit) ;
+    }
+
+    MRIsetVoxVal(mri_samples, vno, 0, 0, 0, *MATRIX_RELT(m_p, 1, 1)) ;
+    m_A->cols = m_p->rows = 3 ;  // for next time
+    MatrixFree(&m_inv) ;
+  }
+
+  MRIfree(&mri_sampled) ;
+  MRIfree(&mri_voxels_c) ;
+  MRIfree(&mri_voxels_r) ;
+  MRIfree(&mri_voxels_s) ;
+  MatrixFree(&Scrs) ; MatrixFree(&Txyz) ; MatrixFree(&m_A);
+  MatrixFree(&m_p) ; MatrixFree(&m_S) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    rms_mean /= mris->nvertices ;
+    rms_var = rms_var / mris->nvertices - rms_mean*rms_mean ;
+    printf("RMS = %2.2f +- %2.2f\n", rms_mean, sqrt(rms_var)) ;
+    MRISwriteCurvature(mris, "rms_fit") ;
+  }
+  return(mri_samples) ;
 }
 
