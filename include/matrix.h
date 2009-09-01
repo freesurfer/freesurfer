@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/26 01:05:22 $
- *    $Revision: 1.66 $
+ *    $Author: fischl $
+ *    $Date: 2009/09/01 17:34:40 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -240,6 +240,7 @@ MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat);
 
 MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X);
 MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
+double  MatrixSumElts(MATRIX *m) ;
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum);
 MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
 MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst);
