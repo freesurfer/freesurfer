@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/05/22 14:06:58 $
- *    $Revision: 1.56 $
+ *    $Author: nicks $
+ *    $Date: 2009/09/01 01:22:58 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -421,7 +421,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.56 2009/05/22 14:06:58 fischl Exp $";
+"$Id: mri_segstats.c,v 1.57 2009/09/01 01:22:58 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1612,8 +1612,8 @@ static void print_usage(void) {
   printf("   --id segid <--id segid> : manually specify seg ids\n");
   printf("   --excludeid segid : exclude seg id from report\n");
   printf("   --excl-ctxgmwm : exclude cortical gray and white matter\n");
-  printf("   --surf-wm-vol : compute coritcal white volume from surf\n");
-  printf("   --surf-ctx-vol : compute coritcal white volume from surf\n");
+  printf("   --surf-wm-vol : compute cortical white volume from surf\n");
+  printf("   --surf-ctx-vol : compute cortical volumes from surf\n");
   printf("   --nonempty : only report non-empty segmentations\n");
   printf("\n");
   printf("Masking options\n");
