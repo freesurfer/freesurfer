@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/08/25 17:24:11 $
-#    $Revision: 1.246 $
+#    $Date: 2009/09/01 21:06:22 $
+#    $Revision: 1.247 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.246 2009/08/25 17:24:11 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.247 2009/09/01 21:06:22 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2502,6 +2502,12 @@ if($DoSegStats) then
   set cmd = ($cmd --etiv --subject $subjid $xopts);
   if ( ( -e surf/lh.white ) && ( -e surf/rh.white ) ) then
     set cmd = ($cmd --surf-wm-vol)
+    if ( ( -e surf/lh.pial ) && ( -e surf/rh.pial ) ) then
+      set cmd = ($cmd --surf-ctx-vol)
+    else
+      echo "\nINFO: ?h.pial surfaces not available to mri_segstats.\n"\
+       |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    endif
   else
     echo "\nINFO: ?h.white surfaces not available to mri_segstats.\n"\
      |& tee -a $SF |& tee -a $LF |& tee -a $CF
