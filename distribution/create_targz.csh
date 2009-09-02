@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.24 2009/09/02 18:18:26 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.25 2009/09/02 19:07:20 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -10,6 +10,12 @@ umask 002
 setenv PLATFORM     $1
 setenv RELEASE_TYPE $2
 setenv HOSTNAME `hostname -s`
+
+setenv OSTYPE `uname -s`
+if ("$OSTYPE" == "linux") setenv OSTYPE Linux
+if ("$OSTYPE" == "Linux") setenv OSTYPE Linux
+if ("$OSTYPE" == "darwin") setenv OSTYPE Darwin
+if ("$OSTYPE" == "Darwin") setenv OSTYPE Darwin
 
 setenv SPACE_FS /space/freesurfer
 setenv LOCAL_FS /usr/local/freesurfer
@@ -91,8 +97,12 @@ set cmd=(ln -s $RELEASE_TYPE freesurfer)
 echo $cmd
 $cmd
 
-setenv BUILD_STAMP "`cat ${LOCAL_FS}/${RELEASE_TYPE}/build-stamp.txt`"
-setenv FILENAME ${BUILD_STAMP}-full
+if ("$RELEASE_TYPE" == "dev") then
+  setenv FILENAME freesurfer-${OS}-${PLATFORM}-dev
+else
+  setenv BUILD_STAMP "`cat ${LOCAL_FS}/${RELEASE_TYPE}/build-stamp.txt`"
+  setenv FILENAME ${BUILD_STAMP}
+endif
 setenv TARNAME ${FILENAME}.tar
 echo creating $TARNAME...
 # the -h flag passed to tar is critical!  
