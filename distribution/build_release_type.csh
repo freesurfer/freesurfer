@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.130 2009/07/31 17:18:39 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.131 2009/09/02 18:17:57 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -111,7 +111,6 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
   set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
-  set TJGDIR=/usr/pubsw/packages/tiffjpegglut/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
@@ -451,11 +450,6 @@ if ($?KWWDIR) then
 endif
 if ($?EXPATDIR) then
   set cnfgr=($cnfgr --with-expat-dir=${EXPATDIR})
-endif
-if ($?TJGDIR) then
-  set cnfgr=($cnfgr --with-tiff-dir=${TJGDIR})
-  set cnfgr=($cnfgr --with-jpeg-dir=${TJGDIR})
-  set cnfgr=($cnfgr --with-glut-dir=${TJGDIR})
 endif
 set cnfgr=($cnfgr --with-tcl-dir=${TCLDIR})
 set cnfgr=($cnfgr --with-tixwish=${TIXWISH})
@@ -811,7 +805,9 @@ endif
 # create tarball
 ######################################################################
 # If building stable-pub, then create a tarball
-if ("$RELEASE_TYPE" == "stable-pub" || -e ${BUILD_HOSTNAME_DIR}/TARBALL ) then
+if ("$RELEASE_TYPE" == "stable-pub" || \
+   ("$RELEASE_TYPE" == "dev" || \
+    -e ${BUILD_HOSTNAME_DIR}/TARBALL ) then
   set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
