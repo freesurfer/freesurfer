@@ -17,6 +17,8 @@ freesurfer/NEWS
 freesurfer/bin-new
 freesurfer/bin-old
 freesurfer/bin-old-old
+freesurfer/bin.deleteme
+freesurfer/bin.deleteme*
 freesurfer/freediffusion
 freesurfer/SetUpFreeDiffusion.csh
 freesurfer/bin/recon-all-long
