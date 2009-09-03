@@ -1,0 +1,377 @@
+#!/bin/tcsh -f
+# sfa2fieldsign
+setenv FSLOUTPUTTYPE NIFTI
+
+set VERSION = '$Id: sfa2fieldsign,v 1.1 2009/09/03 20:35:42 greve Exp $';
+
+set sfadir = ();
+set regfile = ();
+set hemilist = (lh rh)
+set thresh = 2;
+set fwhm = 10;
+set ProjFrac = 0.5;
+set Patch = ();
+set outsubdir = fieldsign;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+#if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.sfa2fieldsign
+#mkdir -p $tmpdir
+
+set outdir = $sfadir/$outsubdir
+mkdir -p $outdir
+touch $outdir/$subject
+cp $regfile $outdir
+
+if($#LF == 0) set LF = $outdir/sfa2fieldsign.log
+if($LF != /dev/null) rm -f $LF
+
+echo "Log file for sfa2fieldsign" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+uname -a  | tee -a $LF
+
+# Thresholded each fsig
+foreach type (eccen polar)
+  set fsig = $sfadir/$type/omnibus/fsig.nii
+  if(! -e $fsig) then
+    echo "ERROR: cannot find $fsig" | tee -a $LF
+    exit 1;
+  endif
+  set fsigbin = $sfadir/$type/omnibus/fsig.bin.nii
+  set cmd = (mri_binarize --i $fsig --abs --min $thresh --o $fsigbin)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+end
+
+# Take intersection of thresholded fsigs
+set fsigbin = $outdir/fsig.bin.nii
+set cmd = (fslmaths $sfadir/eccen/omnibus/fsig.bin.nii \
+  -mul $sfadir/eccen/omnibus/fsig.bin.nii $fsigbin -odt float)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+foreach type (eccen polar)
+  # Mask the h file
+  set h = $sfadir/$type/h.nii
+  set hm = $sfadir/$type/h.masked.nii
+  set cmd = (fslmaths $fsigbin -mul $h $hm -odt float)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  # Mask the angle file
+  set a = $sfadir/$type/angle.nii
+  set am = $outdir/$type.masked.nii
+  set cmd = (fslmaths $fsigbin -mul $a $am -odt float)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  # Change range of polar angle for the right hemi so that it
+  # goes from -pi/2 to +pi/2. Bug in fslmaths -rem makes this fail.
+  # Add 2*PI, modulus 2*PI, subtract PI, multiply by -1
+  #set am = $outdir/$type/angle.masked.MOD.nii
+  #set cmd = (fslmaths $a -add 6.2832 -rem 6.2832 -sub 3.1425 -mul -1 \
+  #   -mas $fsigbin $am -odt float)
+  #echo $cmd | tee -a $LF
+  #$cmd | tee -a $LF
+  #if($status) exit 1;
+end
+
+foreach hemi ($hemilist)
+  foreach type (eccen polar)
+    # Resample masked h to surface
+    set hm = $sfadir/$type/h.masked.nii
+    set hmhemi = $sfadir/$type/$hemi.h.masked.mgh
+    set cmd = (mri_vol2surf --hemi $hemi --reg $regfile \
+      --mov $hm --o $hmhemi --projfrac $ProjFrac)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    # Resample masked angle to surface
+    #if($hemi == rh && $type == polar) then
+    #  set volm = $sfadir/$type/angle.masked.MOD.nii
+    #else
+    #  set volm = $sfadir/$type/angle.masked.nii
+    #endif
+    set volm = $outdir/$type.masked.nii
+    set volmhemi = $outdir/$hemi.$type.masked.mgh
+    set cmd = (mri_vol2surf --hemi $hemi --reg $regfile \
+      --mov $volm --o $volmhemi --projfrac $ProjFrac)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end # type
+  # Create FieldSign map
+  set cmd = (mri_fieldsign --s $subject --hemi $hemi \
+    --fs $outdir/$hemi.fieldsign.masked.mgh \
+    --eccen-sfa $sfadir/eccen/$hemi.h.masked.mgh \
+    --polar-sfa $sfadir/polar/$hemi.h.masked.mgh \
+    --old --fwhm $fwhm)
+  if($#Patch == 0) then
+    set cmd = ($cmd --sphere)
+  else
+    set cmd = ($cmd --patch $Patch)
+  endif
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+end # hemi
+
+date  | tee -a $LF
+echo "sfa2fieldsign done" | tee -a $LF
+echo "" | tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--sfa":
+      if($#argv < 1) goto arg1err;
+      set sfadir = $argv[1]; shift;
+      if(! -e $sfadir) then
+        echo "ERROR: cannot find $sfadir"
+        exit 1;
+      endif
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      if(! -e $regfile) then
+        echo "ERROR: cannot find $regfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "--thresh":
+      if($#argv < 1) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm":
+      if($#argv < 1) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--proj-frac":
+      if($#argv < 1) goto arg1err;
+      set ProjFrac = $argv[1]; shift;
+      breaksw
+
+    case "--patch":
+      if($#argv < 1) goto arg1err;
+      set Patch = $argv[1]; shift;
+      breaksw
+
+    case "--occip":
+      set Patch = occip.patch.flat
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--osd":
+      if($#argv < 1) goto arg1err;
+      set outsubdir = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#sfadir == 0) then
+  echo "ERROR: must spec sfa"
+  exit 1;
+endif
+if($#regfile == 0) then
+  echo "ERROR: must spec regfile"
+  exit 1;
+endif
+set subject = `head -n 1 $regfile`
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+if($#Patch) then
+  foreach hemi ($hemilist)
+    set patchfile = $SUBJECTS_DIR/$subject/surf/$hemi.$Patch
+    if(! -e $patchfile) then
+      echo "ERROR: cannot find $patchfile"
+      exit 1;
+    endif
+   end
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "sfa2fieldsign: computes fieldsign map from sfa-sess output"
+  echo ""
+  echo "Required arguments"
+  echo "  --sfa sfadir : output dir of sfa-sess"
+  echo "  --reg register.dat"
+  echo ""
+  echo "Optional arguments"
+  echo "  --thresh sigthresh (default 2)"
+  echo "  --fwhm fwhm (dfault 10mm)"
+  echo "  --proj-frac frac (dfault 0.5)"
+  echo "  --occip : use ?h.occip.patch.flat"
+  echo "  --patch patch : use ?h.patch"
+  echo "  --osd outsubdir : dir under sfa to put output (default is fieldsign)"
+  echo "  --lh : lh only"
+  echo "  --rh : rh only"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the surface fieldsign maps from sfa-sess output. It also
+masks the angle volumes and samples them to the surface. The output
+will go in sfadir/fieldsign unless the --osd flag is set, then it will
+go into sfadir/osd. Note that the subject name is derived from the 
+registration file.
+
+Eg,
+
+sfa-sess -s session -a rtopy
+
+cd session/bold
+sfa2fieldsign --sfa rtopy --reg register.dat
+
+Output (rtopy/fieldsign) will have the follwing files
+  fsig.bin.nii - intersection of polar and eccen thresholded fsigs
+  eccen.masked.nii - eccen angle (rad) volume masked by fsig.bin
+  polar.masked.nii - polar angle (rad) volume masked by fsig.bin
+  ?h.eccen.masked.mgh - masked eccen angle sampled on the ?h surface
+  ?h.polar.masked.mgh - masked polar angle sampled on the ?h surface
+  ?h.fieldsign.masked.mgh - masked fieldsign mask
+
+# To view ----------------------------
+cd rtopy/fieldsign
+
+# View the field sign map on the right hemi
+tksurfer subject rh inflated -aparc \
+  -ov rh.fieldsign.masked.mgh -fthresh 0.5
+
+# View the eccentricity angle, set colobar to 0.01-2pi radians
+tksurfer subject rh inflated -aparc \
+  -ov rh.eccen.masked.mgh \
+  -fthresh .01 -fmid 3.14 -fslope 0.15948
+
+# View the lh polar angle, set colobar to -pi/2 to +pi/2 radians
+tksurfer subject lh inflated -aparc \
+  -ov lh.polar.masked.mgh \
+  -fthresh .01 -fmid 0.79039 -fslope 0.64069
+
+# View the rh polar angle, set colobar to -pi to +pi radians
+tksurfer subject rh inflated -aparc \
+  -ov rh.polar.masked.mgh \
+  -fthresh .01 -fmid 1.575 -fslope .31948
+
+# Note: the right hemi polar angle will have values appropriate for
+# the left half of the visual field, meaning +pi/2 to pi and -pi/2 to
+# -pi. We need to come up with a fix so that it will be 
+# -pi/2 to +pi/2.
+
+
