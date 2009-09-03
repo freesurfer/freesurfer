@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.131 2009/09/02 18:17:57 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.132 2009/09/03 13:57:46 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -805,9 +805,9 @@ endif
 # create tarball
 ######################################################################
 # If building stable-pub, then create a tarball
-if ("$RELEASE_TYPE" == "stable-pub" || \
-   ("$RELEASE_TYPE" == "dev" || \
-    -e ${BUILD_HOSTNAME_DIR}/TARBALL ) then
+if (("$RELEASE_TYPE" == "stable-pub") || \
+    ("$RELEASE_TYPE" == "dev") || \
+    ( -e ${BUILD_HOSTNAME_DIR}/TARBALL)) then
   set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
   echo "$cmd" >>& $OUTPUTF
   $cmd >>& $OUTPUTF
