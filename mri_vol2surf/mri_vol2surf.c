@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/01 17:35:23 $
- *    $Revision: 1.51 $
+ *    $Author: nicks $
+ *    $Date: 2009/09/03 14:03:09 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,6 +68,10 @@
 #include "fmriutils.h"
 #include "proto.h" // nint
 
+#ifndef FZERO
+#define FZERO(f)     (fabs(f) < 0.0000001F)
+#endif
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -81,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.51 2009/09/01 17:35:23 fischl Exp $";
+"$Id: mri_vol2surf.c,v 1.52 2009/09/03 14:03:09 nicks Exp $";
 
 char *Progname = NULL;
 
@@ -215,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.51 2009/09/01 17:35:23 fischl Exp $", 
+     "$Id: mri_vol2surf.c,v 1.52 2009/09/03 14:03:09 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
