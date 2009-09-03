@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/08/26 21:08:53 $
-#    $Revision: 1.29 $
+#    $Date: 2009/09/03 14:07:43 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.29 2009/08/26 21:08:53 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.30 2009/09/03 14:07:43 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -719,19 +719,21 @@ chmod g+rw $OUTPUTF
 set END_TIME=`date`
 echo "Finish: $END_TIME" >>& $OUTPUTF
 if ($?FOUND_ERROR) then
-  echo "FAILURE(S) found in test_recon-all $TEST_SUBJ on $PROC" >>& $OUTPUTF
+  echo "FAILURE(S) found in test_recon-all $TEST_SUBJ on $PROC (${HOST})" \
+    >>& $OUTPUTF
   echo "Consult diff logs in $LOG_DIR for details" >>& $OUTPUTF
   if ($RunIt) then
-    mail -s "test_recon-all $TEST_SUBJ FAILURE(s) on $PROC" \
+    mail -s "test_recon-all $TEST_SUBJ FAILURE(s) on $PROC (${HOST})" \
         $FMAIL_LIST < $OUTPUTF
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
   endif
 else
-  echo "Success running test_recon-all $TEST_SUBJ on $PROC" >>& $OUTPUTF
+  echo "Success running test_recon-all $TEST_SUBJ on $PROC (${HOST})" \
+    >>& $OUTPUTF
   if ($RunIt) then
-    mail -s "test_recon-all $TEST_SUBJ success on $PROC" \
+    mail -s "test_recon-all $TEST_SUBJ success on $PROC (${HOST})" \
       $MAIL_LIST < $OUTPUTF
     exit 0
   endif
