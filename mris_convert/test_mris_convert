@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/03/08 00:16:37 $
-#    $Revision: 1.3 $
+#    $Date: 2009/09/04 01:32:17 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_convert,v 1.3 2008/03/08 00:16:37 nicks Exp $'
+set VERSION='$Id: test_mris_convert,v 1.4 2009/09/04 01:32:17 nicks Exp $'
 
 umask 002
 
@@ -34,7 +34,7 @@ umask 002
 gunzip -c ../mris_expand/testdata.tar.gz | tar xvf -
 
 #
-# run mris_convert, converting to ascii and gifti, then back to binary
+# run mris_convert, converting to ascii, gifti, mgh and vtk, then back to binary
 #
 
 set cmd=(./mris_convert lh.white lh.white.asc)
@@ -81,6 +81,28 @@ if ($status != 0) then
   exit 1
 endif
 
+set cmd=(./mris_convert lh.white lh.white.vtk)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+set cmd=(./mris_convert lh.white.vtk lh.vtk-white)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
 set cmd=(./mris_convert -c lh.thickness lh.white lh.new-thickness.asc)
 echo ""
 echo $cmd
@@ -92,7 +114,40 @@ if ($status != 0) then
   exit 1
 endif
 
+set cmd=(./mris_convert -c lh.thickness lh.white lh.thickness.mgh)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+set cmd=(./mris_convert -c lh.thickness.mgh lh.white lh.mgh-thickness.asc)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
 set cmd=(./mris_convert -c lh.thickness lh.white lh.thickness.gii)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+set cmd=(./mris_convert -c lh.thickness lh.white lh.white.thickness.vtk)
 echo ""
 echo $cmd
 echo $cmd >& test_mris_convert.log
@@ -124,8 +179,21 @@ if ($status != 0) then
   echo "mris_convert FAILED"
   exit 1
 endif
+
 set cmd=(./mris_convert -c lh.thickness.gii lh.white.gii \
     lh.gifti-thickness.asc)
+echo ""
+echo $cmd
+echo $cmd >& test_mris_convert.log
+echo ""
+$cmd >>& test_mris_convert.log
+if ($status != 0) then
+  echo "mris_convert FAILED"
+  exit 1
+endif
+
+set cmd=(./mris_convert -c lh.white.thickness.vtk lh.white.vtk \
+    lh.vtk-thickness.asc)
 echo ""
 echo $cmd
 echo $cmd >& test_mris_convert.log
@@ -166,8 +234,35 @@ if ($diff_status != 0) then
   exit 1
 endif
 
+set REF=(lh.white)
+set TST=(lh.vtk-white)
+set cmd=(../mris_diff/mris_diff --debug --no-check-nxyz \
+    --thresh 0.0001 $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_mris_convert.log
+$cmd >>& test_mris_convert.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
 set REF=(lh.thickness.asc)
 set TST=(lh.new-thickness.asc)
+set cmd=(diff $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_mris_convert.log
+$cmd >>& test_mris_convert.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+set REF=(lh.thickness.asc)
+set TST=(lh.mgh-thickness.asc)
 set cmd=(diff $REF $TST);
 echo ""
 echo $cmd
@@ -194,6 +289,19 @@ endif
 
 set REF=(lh.thickness.asc)
 set TST=(lh.gifti-thickness.asc)
+set cmd=(diff $REF $TST);
+echo ""
+echo $cmd
+echo $cmd >>& test_mris_convert.log
+$cmd >>& test_mris_convert.log
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+set REF=(lh.thickness.asc)
+set TST=(lh.vtk-thickness.asc)
 set cmd=(diff $REF $TST);
 echo ""
 echo $cmd
