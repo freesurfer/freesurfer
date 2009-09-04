@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/21 01:34:26 $
- *    $Revision: 1.637 $
+ *    $Date: 2009/09/04 01:33:40 $
+ *    $Revision: 1.638 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -320,15 +320,14 @@ static int   mrisWhiteNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisReadTransform(MRIS *mris, const char *mris_fname) ;
 static MRI_SURFACE *mrisReadAsciiFile(const char *fname) ;
 static MRI_SURFACE *mrisReadGeoFile(const char *fname) ;
-static MRI_SURFACE *MRISreadVTK(const char *fname) ;
+static MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) ;
 static MRI_SURFACE *mrisReadSTLfile(const char *fname) ;
-static int         mrisReadGeoFilePositions(MRI_SURFACE *mris,const char *fname) ;
+static int mrisReadGeoFilePositions(MRI_SURFACE *mris,const char *fname) ;
 static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over) ;
 static int         mrisReadTriangleFilePositions(MRI_SURFACE*mris,
-    const char *fname) ;
-
-static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname) ;
-
+                                                 const char *fname) ;
+static SMALL_SURFACE 
+*mrisReadTriangleFileVertexPositionsOnly(const char *fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, const char *fname) ;*/
 static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) ;
 static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris) ;
@@ -637,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.637 2009/08/21 01:34:26 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.638 2009/09/04 01:33:40 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -691,7 +690,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   }
   else if (type == MRIS_VTK_FILE)  /* .vtk */
   {
-    mris = MRISreadVTK(fname) ;
+    mris = MRISreadVTK(mris, fname) ;
     if (!mris)
       return(NULL) ;
     version = -3 ;
@@ -3998,12 +3997,17 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
   }
   else
+  {
     strcpy(fname, sname) ;  /* path specified explicitly */
+  }
   mritype = mri_identify(sname);
-  if (mritype == GIFTI_FILE) return(mrisReadScalarGIFTIfile(mris, fname)) ;
+  if (mritype == GIFTI_FILE)
+  {
+    return(mrisReadScalarGIFTIfile(mris, fname)) ;
+  }
   if (mritype == VTK_FILE) 
   {
-    mris = MRISreadVTK(fname);
+    mris = MRISreadVTK(mris, fname);
     return(NO_ERROR);
   }
   if (mritype != MRI_VOLUME_TYPE_UNKNOWN)
@@ -9645,7 +9649,7 @@ MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
     fprintf(stdout, "writing curvature file %s\n", fname) ;
 
   mritype = mri_identify(sname);
-  //  if(mritype != MRI_VOLUME_TYPE_UNKNOWN){
+
   if (mritype == MRI_MGH_FILE)
   {
     int  vno;
@@ -9668,7 +9672,12 @@ MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
     MRIfree(&TempMRI);
     return(NO_ERROR);
   }
-
+  else if (mritype == VTK_FILE)
+  {
+    MRISwriteVTK(mris, fname);
+    MRISwriteCurvVTK(mris, fname);
+    return(NO_ERROR);
+  }
 
   fp = fopen(fname,"wb") ;
   if (fp==NULL)
@@ -20612,7 +20621,7 @@ MRISwriteVTK(MRI_SURFACE *mris, const char *fname)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    fprintf(fp, "%f  %f  %f\n", v->x, v->y, v->z) ;
+    fprintf(fp, "%.5f  %.5f  %.5f\n", v->x, v->y, v->z) ;
   }
   fprintf(fp, "POLYGONS %d %d\n", mris->nfaces, mris->nfaces*4) ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
@@ -20634,9 +20643,43 @@ MRISwriteVTK(MRI_SURFACE *mris, const char *fname)
 
   Returns value:
 
+  Description: Append the curv data to 'fname', which
+  is assumed to have been written with point and face 
+  data via the MRISwriteVTK routine.
+  ------------------------------------------------------*/
+int
+MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname)
+{
+  FILE *fp = fopen(fname, "a") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE,
+                 "MRISwriteScalarVTK: could not open file %s",fname));
+
+  fprintf(fp, "POINT_DATA %d\n", mris->nvertices) ;
+  fprintf(fp, "FIELD FieldData 1\n") ;
+  fprintf(fp, "curv 1 %d double\n", mris->nvertices) ;
+
+  int vno ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX *v = &mris->vertices[vno] ;
+    fprintf(fp, "%.5f\n", v->curv) ;
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadVTK(const char *fname)
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
 {
   char line[STRLEN], *cp = NULL;
 
@@ -20656,9 +20699,13 @@ DATASET POLYDATA
   int checks=0;
   while ((cp = fgetl(line, STRLEN, fp)))
   {
+    // handle both upper and lower case
+    if (strncmp(cp,"VTK OUTPUT",10)==0) checks++;
     if (strncmp(cp,"vtk output",10)==0) checks++;
     if (strncmp(cp,"ASCII",5)==0) checks++;
+    if (strncmp(cp,"ascii",5)==0) checks++;
     if (strncmp(cp,"DATASET POLYDATA",16)==0) checks++;
+    if (strncmp(cp,"dataset polydata",16)==0) checks++;
     //printf("%s\n",cp);
     if (checks == 3) break;
   }
@@ -20706,16 +20753,41 @@ POINTS 142921 float
         "MRISreadVTK: error reading file %s, no POINTS field\n",fname));
   }
 
-  /* alloc MRIS structure (we'll handle faces later in the file) */
-  MRI_SURFACE *mris = MRISalloc(nvertices, 0) ;  // note: nfaces=0 for now...
-  mris->type = MRIS_TRIANGULAR_SURFACE ;
+  /* if needed, alloc MRIS structure (we'll handle faces later in the file) */
+  int newMris=0;// flag to indicate vertices and face data are empty
+  if (NULL == mris)
+  {
+    mris = MRISalloc(nvertices, 0) ;  // note: nfaces=0 for now...
+    mris->type = MRIS_TRIANGULAR_SURFACE ;
+    newMris = 1; // flag indicating need to fill-in vertex and face data
+  }
+  else
+  {
+    // confirm that the mris structure we've been passed has the same
+    // number of vertices
+    if (mris->nvertices != nvertices)
+    {
+      fclose(fp);
+      ErrorReturn
+        (NULL,
+         (ERROR_NOFILE,
+          "MRISreadVTK: error reading file %s, mismatched nvertices=%d/%d\n",
+          fname,mris->nvertices,nvertices));
+    }
+  }
 
   /* read vertices... */
   int vno;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    VERTEX *v = &mris->vertices[vno] ;
-    fscanf(fp, "%f  %f  %f\n", &v->x, &v->y, &v->z) ;
+    VERTEX v;
+    fscanf(fp, "%f %f %f", &v.x, &v.y, &v.z) ;
+    if (newMris) // if passed an mris struct, dont overwrite x,y,z
+    {
+      mris->vertices[vno].x = v.x;
+      mris->vertices[vno].y = v.y;
+      mris->vertices[vno].z = v.z;
+    }
   }
 
   /* now, if we're lucky, we've read all the vertices, and the next line
@@ -20764,17 +20836,33 @@ POLYGONS 285838 1143352
   }
   // POLYGONS field looks valid....
 
-  /* now we can book some face space */
-  mris->nfaces = nfaces ;
-  mris->faces = (FACE *)calloc(nfaces, sizeof(FACE)) ;
-  if (!mris->faces)
+  /* now we can book some face space (if we have a new mris structure) */
+  if (newMris)
   {
-    fclose(fp);
-    ErrorExit(ERROR_NO_MEMORY,
-              "MRISreadVTK(%d, %d): could not allocate faces",
-              nfaces, sizeof(FACE));
+    mris->nfaces = nfaces ;
+    mris->faces = (FACE *)calloc(nfaces, sizeof(FACE)) ;
+    if (!mris->faces)
+    {
+      fclose(fp);
+      ErrorExit(ERROR_NO_MEMORY,
+                "MRISreadVTK(%d, %d): could not allocate faces",
+                nfaces, sizeof(FACE));
+    }
+    else memset(mris->faces,0,nfaces*sizeof(FACE));
   }
-  else memset(mris->faces,0,nfaces*sizeof(FACE));
+  else
+  {
+    // confirm that the mris structure passed to us has the expected num faces
+    if (mris->nfaces != nfaces)
+    {
+      fclose(fp);
+      ErrorReturn
+        (NULL,
+         (ERROR_NOFILE,
+          "MRISreadVTK: error reading file %s, mismatched nfaces=%d/%d\n",
+          fname,mris->nfaces,nfaces));
+    }
+  }
 
   /* finally, read the face data...*/
   int fno, facepoints=0;
@@ -20793,9 +20881,8 @@ POLYGONS 285838 1143352
     int n;
     for (n = 0 ; n < 3 ; n++)
     {
-      vno = 0;
-      if (n == 2) fscanf(fp, "%d\n", &vno) ;
-      else fscanf(fp, "%d ", &vno) ;
+      vno = -1;
+      fscanf(fp, "%d", &vno) ;
       if ((vno < 0) || (vno >= nvertices))
       {
         fclose(fp);
@@ -20804,8 +20891,25 @@ POLYGONS 285838 1143352
            (ERROR_NOFILE,
             "MRISreadVTK: invalid vertex num in %s, vno = %d\n",fname,vno));
       }
-      face->v[n] = vno;
-      mris->vertices[vno].num++;
+      if (newMris) // dont overwrite face data if passed an mris struct
+      {
+        // fill-in the face data to our new mris struct
+        face->v[n] = vno;
+        mris->vertices[vno].num++;
+      }
+      else
+      {
+        // confirm that the mris structure passed to us has the same face num
+        if (face->v[n] != vno)
+        {
+          fclose(fp);
+          ErrorReturn
+            (NULL,
+             (ERROR_NOFILE,
+              "MRISreadVTK: error reading file %s, mismatched faces=%d/%d\n",
+              fname,face->v[n],vno));
+        }
+      }
     }
   }
   if (fno != mris->nfaces)
@@ -20852,7 +20956,7 @@ POLYGONS 285838 1143352
           int fieldNum=0;
           cp = fgetl(line, STRLEN, fp) ;
           //printf("%s\n",cp);
-          if (sscanf(cp, "%s %d %d double\n", 
+          if (sscanf(cp, "%s %d %d %*s\n", 
                      fieldName,&fieldNum,&nvertices_data))
           {
             if (nvertices != nvertices_data)
@@ -20868,23 +20972,24 @@ POLYGONS 285838 1143352
             // read either scalar or curv data
             int isCurvData=0;
             if (strncmp(fieldName,"curv",4)==0) isCurvData = 1;
+            if (strncmp(fieldName,"CURV",4)==0) isCurvData = 1;
             float curvmin = 10000.0f ;
             float curvmax = -10000.0f ;  /* for compiler warnings */
             for (vno = 0 ; vno < mris->nvertices ; vno++)
             {
               VERTEX *v = &mris->vertices[vno] ;
               float f = 0.0;
-              if (fscanf(fp, "%f\n", &f))
+              if (fscanf(fp, "%f", &f))
               {
+                v->curv = f; // fill-in both curvature and scalar data fields
+                v->val = f;
                 if (isCurvData)
                 {
-                  f += 100;
-                  if (vno==0) curvmin=curvmax=f;
-                  if (f>curvmax) curvmax=f;
-                  if (f<curvmin) curvmin=f;
-                  v->curv = f; // curvature data
+                  //printf("%f\n",v->curv);
+                  if (vno==0) curvmin=curvmax=v->curv;
+                  if (v->curv > curvmax) curvmax=v->curv;
+                  if (v->curv < curvmin) curvmin=v->curv;
                 }
-                else v->val = f; // regular scalar data
               }
               else
               {
