@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.25 2009/09/02 19:07:20 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.26 2009/09/05 19:37:04 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -98,7 +98,7 @@ echo $cmd
 $cmd
 
 if ("$RELEASE_TYPE" == "dev") then
-  setenv FILENAME freesurfer-${OS}-${PLATFORM}-dev
+  setenv FILENAME freesurfer-${OSTYPE}-${PLATFORM}-dev
 else
   setenv BUILD_STAMP "`cat ${LOCAL_FS}/${RELEASE_TYPE}/build-stamp.txt`"
   setenv FILENAME ${BUILD_STAMP}
