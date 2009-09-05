@@ -15,6 +15,7 @@ EXTRA_DIST=\
 	cdflib.h \
 	cephes.h \
 	chklc.h \
+	chronometer.h \
 	classify.h \
 	class_array.h \
 	cluster.h \
