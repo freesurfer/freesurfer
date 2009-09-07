@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/06/30 15:42:38 $
- *    $Revision: 1.337 $
+ *    $Author: nicks $
+ *    $Date: 2009/09/07 14:34:12 $
+ *    $Revision: 1.338 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.337 $";
+char *VERSION = "$Revision: 1.338 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.337 2009/06/30 15:42:38 greve Exp $",
+     "$Id: tkmedit.c,v 1.338 2009/09/07 14:34:12 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5913,7 +5913,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.337 2009/06/30 15:42:38 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.338 2009/09/07 14:34:12 nicks Exp $ $Name:  $\n"
         )
       );
 
@@ -11110,7 +11110,7 @@ int EditSegmentation ( tkm_tSegType iVolume,
     if ( nVolumeIndexBugs == 1 ) {
       fprintf( stderr,
                "ATTENTION: Please send the .xdebug_tkmedit file\n"
-               "           to analysis-bugs@nmr.mgh.harvard.edu\n"
+               "           to freesurfer@nmr.mgh.harvard.edu\n"
                "           when you're done.\n");
     }
     if ( nVolumeIndexBugs < 5 ) {
@@ -13501,7 +13501,7 @@ void HandleSegfault ( int nSignal ) {
 
   printf( "  : Please send the contents of the file .xdebug_tkmedit\n" );
   printf( "  : that should be in this directory to "
-          "analysis-bugs@nmr.mgh.harvard.edu\n");
+          "freesurfer@nmr.mgh.harvard.edu\n");
   printf( "  :\n" );
 
   printf( "  : Now exiting...\n" );
