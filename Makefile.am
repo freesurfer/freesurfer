@@ -225,6 +225,7 @@ MRISSUBDIRS=\
 	mris_deform \
 	mris_multiscale_stats \
 	mris_niters2fwhm \
+	mris_pmake \
 	mris_remove_variance \
 	mris_rescale \
 	mris_reverse \

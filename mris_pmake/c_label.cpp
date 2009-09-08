@@ -1,0 +1,403 @@
+/***************************************************************************
+ *   Copyright (C) 2004 by Rudolph Pienaar / Christian Haselgrove          *
+ *   {ch|rudolph}@nmr.mgh.harvard.edu                                      *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************/
+// $Id: c_label.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+
+#include "c_label.h"
+#include "dijkstra.h"
+
+#include "c_surface.h"
+#include "c_vertex.h"
+
+#include <sstream>
+
+void
+label_ply_do(
+  s_env   &ast_env
+) {
+  //
+  // PRECONDITIONS
+  // o The plyDepth field of ast_env is set.
+  //  o The ply function has been assigned.
+  // o A pattern of TRUE ripflags across the vertex space corresponding
+  //   to the label to ply has been defined.
+  //
+  // POSTCONDITIONS
+  // o Using the dijkstra engine, each vertex of the label is surrounded by
+  //   concentric "circles". The overlap of these circles defines a unidistant
+  //   delta region about the path defined by the labelled vertices.
+  //
+
+  // Should any cost values remaining in the surface be zeroed? Yes.
+
+  bool b_origHistoryFlag = ast_env.b_costHistoryPreserve;
+  bool b_surfaceCostVoid = false;
+  int  i   = 0;
+  int  j   = 0;
+  ast_env.b_costHistoryPreserve = true;
+
+  //s_env_costFctSet(&ast_env, costFunc_unityReturn, e_unity);
+
+  for (i=0; i<ast_env.pMS_active->nvertices; i++) {
+    if (ast_env.pMS_active->vertices[i].ripflag == TRUE) {
+      b_surfaceCostVoid  = !j++;
+      ast_env.startVertex = i;
+      ast_env.endVertex = i;
+      dijkstra(ast_env, ast_env.plyDepth, b_surfaceCostVoid);
+    }
+  }
+  ast_env.b_costHistoryPreserve = b_origHistoryFlag;
+}
+
+void
+label_singleVertexSet(
+  MRIS*   apmris,
+  int   avertex,
+  void   (*vertex_labelMark)
+  (VERTEX* pvertex,
+   void*  marker),
+  void*   apv_marker
+) {
+  //
+  // POSTCONDITIONS
+  // o The existing pattern of TRUE ripflags is cleared across the entire
+  //  surface.
+  // o The single vertex index has is passed to the vertex function.
+  // o Any Dijkstra "weights" that might already exist across the surface
+  //  are left intact.
+  //
+  // HISTORY
+  // 09 March 2005
+  // o Initial design and coding.
+  //
+
+  VERTEX*  pvertex;
+  int   i;
+
+  for (i = 0; i < apmris->nvertices; i++)
+    apmris->vertices[i].ripflag = FALSE;
+
+  pvertex = &apmris->vertices[avertex];
+  vertex_labelMark(pvertex, apv_marker);
+}
+
+bool
+label_terminalsFind(
+  MRIS*   apmris,
+  string   astr_fileName,
+  deque<int>&  aque_terminal
+
+) {
+  //
+  // PRECONDITIONS
+  // o No checks are performed on <astr_fileName>.
+  //
+  // POSTCONDITIONS
+  // o This function does not modify *any* internal data structures -
+  //  it is for most practical purposes, standalone.
+  // o <aque_terminal> contains a list of "terminal" vertex numbers.
+  //
+  // HISTORY
+  // 22 July 2005
+  // o Initial design and coding.
+  //
+
+  LABEL*  pLBL;
+  VERTEX*  pvertex;
+  int   vno_i   = 0;
+  int   vno_j  = 0;
+  int   vno_k  = 0;
+  int   i, j, k;
+  short  inLabel  = 0;
+  bool  b_ret  = false;
+
+  pLBL = LabelRead("", (char*) astr_fileName.c_str());
+  if (pLBL == NULL)
+    error_exit("allocating a pLBL structure", "some error occurred", 1);
+
+  aque_terminal.clear();
+  for (i=0; i <pLBL->n_points; i++) {
+    vno_i  = pLBL->lv[i].vno;
+    pvertex = &apmris->vertices[vno_i];
+    inLabel = 0;
+    for (j=0; j<pvertex->vnum; j++) {
+      vno_j = pvertex->v[j];
+      for (k=0; k< pLBL->n_points; k++) {
+        vno_k = pLBL->lv[k].vno;
+        if (vno_j==vno_k)
+          inLabel++;
+      }
+    }
+    if (inLabel==1) {
+      aque_terminal.push_back(vno_i);
+      b_ret = true;
+    }
+  }
+  LabelFree(&pLBL);
+  return b_ret;
+}
+
+
+void
+label_coreLoad(
+  MRIS*   apmris,
+  string   astr_fileName,
+  void   (*vertex_labelMark)
+  (VERTEX* pvertex,
+   void*  marker),
+  void*   apv_marker
+) {
+  //
+  // POSTCONDITIONS
+  // o The existing pattern of TRUE ripflags is cleared across the entire
+  //  surface.
+  // o A label is read from disk, and vertices on the passed surface are
+  //  marked according to (*vertex_labelMark).
+  // o No ordered "connection" profile is created between nodes.
+  // o Any Dijkstra "weights" that might already exist across the surface
+  //  are left intact.
+  //
+  // HISTORY
+  // 16 February 2005
+  // o Initial design and coding.
+  //
+  // 15 February 2006
+  // o Convert <astr_fileName> to absolute directory spec.
+  //
+
+  LABEL*  pLBL;
+  VERTEX*  pvertex;
+  int   vno = 0;
+  int   i;
+
+  pLBL = LabelRead("", (char*) astr_fileName.c_str());
+  if (pLBL == NULL)
+    error_exit("allocating a pLBL structure", "some error occurred", 1);
+
+  for (i = 0; i < apmris->nvertices; i++)
+    apmris->vertices[i].ripflag = FALSE;
+
+  for (i = 0; i < pLBL->n_points; i++) {
+    vno  = pLBL->lv[i].vno;
+    pvertex = &apmris->vertices[vno];
+    vertex_labelMark(pvertex, apv_marker);
+  }
+  LabelFree(&pLBL);
+}
+
+void
+label_workingSurface_loadFrom(
+  s_env&   st_env,
+  void   (*vertex_labelMark)
+  (VERTEX* pvertex,
+   void*  marker),
+  void*   apv_marker
+) {
+  //
+  // ARGS
+  // st_env   in   environment data
+  //
+  // DESCRIPTION
+  //  This is thin wrapper that calls label_coreLoad(...) correctly.
+  // It accesses the working surface label file as defined in the
+  // environment and loads this into the internal working surface
+  // structure. Vertices are marked with the vertex_labelMark function.
+  //
+  // HISTORY
+  // 07 February 2005
+  // o Split from "label_save()".
+  //
+
+  string  str_labelFileName;
+  MRIS*  pMS_curvature;
+
+  bool  b_clearWholeSurface = true;
+  surface_ripClear(st_env, b_clearWholeSurface);
+
+  str_labelFileName = st_env.str_workingDir + st_env.str_labelFileName;
+  pMS_curvature = st_env.pMS_curvature;
+  ULOUT(str_labelFileName);
+  label_coreLoad(pMS_curvature, str_labelFileName, vertex_labelMark, apv_marker);
+  nULOUT("\t\t\t\t[ ok ]");
+}
+
+void
+label_coreSave(
+  MRIS*   apmris,
+  string   astr_fileName,
+  bool   (*vertex_satisfyTestCondition)
+  (VERTEX* apvertex,
+   void*  apv_void),
+  void*   apv_fromCaller
+) {
+  //
+  // ARGS
+  // amris    in   surface on which to
+  //        save the label
+  // astr_fileName  in   filename to contain the
+  //        saved label
+  //
+  // DESCRIPTION
+  // Saves a label file onto the passed surface
+  //
+  // POSTCONDITIONS
+  // o Label file is written to disk.
+  //
+  // HISTORY
+  // 07 February 2005
+  // o Split from "label_save()".
+  //
+
+  LABEL*  pLBL;
+  VERTEX*  pvertex;
+  int   n = 0;
+  int   i;
+
+  for (i = 0;i < apmris->nvertices;i++) {
+// if(apmris->vertices[i].ripflag == TRUE)
+    pvertex = &apmris->vertices[i];
+    if (vertex_satisfyTestCondition(pvertex, apv_fromCaller))
+      n++;
+  }
+  pLBL = LabelAlloc(n, "", (char*) (astr_fileName).c_str());
+  if (pLBL == NULL)
+    error_exit("allocating a pLBL structure", "some error occurred", 1);
+
+  for (i = 0;i < apmris->nvertices;i++) {
+    pvertex = &apmris->vertices[i];
+    if (vertex_satisfyTestCondition(pvertex, apv_fromCaller)) {
+      pLBL->lv[pLBL->n_points].vno = i;
+      pLBL->lv[pLBL->n_points].x = apmris->vertices[i].x;
+      pLBL->lv[pLBL->n_points].y = apmris->vertices[i].y;
+      pLBL->lv[pLBL->n_points].z = apmris->vertices[i].z;
+      pLBL->n_points++;
+    }
+  }
+  LabelWrite(pLBL, (char*) (astr_fileName).c_str());
+  LabelFree(&pLBL);
+}
+
+void
+label_ply_save(
+  s_env&  st_env,
+  string  astr_filePrefix,
+  bool  b_staggered
+) {
+  //
+  // PRECONDITIONS
+  //  o ply labels should be defined on the internal working surface.
+  //
+  // POSTCONDITIONS
+  // o A series of label files are saved to the current working directory.
+  //   These are labelled <astr_filePrefix>.<N>.label where N = 1... plyDepth
+  //   and denote a label containing vertices that are N nodes distant from
+  //   a reference label curve.
+  //
+
+  int   d   = 0;
+  int   start    = (int) st_env.plyDepth;
+  string  str_labelFileName;
+  MRIS*  pMS_surface;
+  stringstream sout("");
+  float  f_plyDepth;
+  float*  pf_plyDepth;
+  void*  pv_fromCaller;
+
+  pMS_surface  = st_env.pMS_active;
+
+  if (b_staggered)
+    start = 1;
+
+  for (d=start; d<=st_env.plyDepth; d++) {
+    f_plyDepth = (float) d;
+    pf_plyDepth = &f_plyDepth;
+    pv_fromCaller = (void*) pf_plyDepth;
+    sout << st_env.str_workingDir + astr_filePrefix << d << ".label";
+    ULOUT(sout.str());
+    label_coreSave(pMS_surface, sout.str(),
+                   vertex_valLTE, pv_fromCaller);
+    nULOUT("\t\t\t\t\t\t\t[ ok ]\n");
+    sout.str("");
+  }
+}
+
+void
+label_auxSurface_saveTo(
+  s_env&   st_env,
+  bool   (*vertex_satisfyTestCondition)
+  (VERTEX* pvertex,
+   void*  apv_void),
+  void*   apv_fromCaller
+) {
+  //
+  // ARGS
+  // st_env   in   environment data
+  //
+  // DESCRIPTION
+  // This is thin wrapper that calls label_coreSave(...) correctly.
+  //  It access marked vertices on the original surface and saves these to
+  // a label file as specified in the environment structure.
+  //
+  // HISTORY
+  // 07 February 2005
+  // o Split from "label_save()".
+  //
+
+  string  str_labelFileName;
+  MRIS*  pMS_auxSurface;
+
+  str_labelFileName = st_env.str_workingDir + st_env.str_labelFileNameOS;
+  pMS_auxSurface = st_env.pMS_auxSurface;
+  label_coreSave(pMS_auxSurface, str_labelFileName,
+                 vertex_satisfyTestCondition, apv_fromCaller);
+}
+
+void
+label_workingSurface_saveTo(
+  s_env&   st_env,
+  bool   (*vertex_satisfyTestCondition)
+  (VERTEX* pvertex,
+   void*  apv_void),
+  void*   apv_fromCaller
+) {
+  //
+  // ARGS
+  // st_env   in   environment data
+  //
+  // DESCRIPTION
+  //  This is thin wrapper that calls label_coreSave(...) correctly.
+  //  It access marked vertices on the working surface and saves these to
+  // a label file as specified in the environment structure.
+  //
+  // HISTORY
+  // 07 February 2005
+  // o Split from "label_save()".
+  //
+
+  string  str_labelFileName;
+  MRIS*  pMS_curvature;
+
+  str_labelFileName = st_env.str_workingDir + st_env.str_labelFileName;
+  pMS_curvature = st_env.pMS_curvature;
+  label_coreSave(pMS_curvature, str_labelFileName,
+                 vertex_satisfyTestCondition, apv_fromCaller);
+}
+
+
+/* eof */

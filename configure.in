@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/09/04 20:10:51 $
-#    $Revision: 1.440 $
+#    $Date: 2009/09/08 22:39:27 $
+#    $Revision: 1.441 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2972,6 +2972,7 @@ AC_OUTPUT([Makefile
            mris_compute_lgi/Makefile
            mris_compute_overlap/Makefile
            mris_compute_parc_overlap/Makefile
+           mris_congeal/Makefile
            mris_convert/Makefile
            mris_distance_map/Makefile
            mris_curvature/Makefile
@@ -3003,8 +3004,8 @@ AC_OUTPUT([Makefile
            mris_ms_surface_CNR/Makefile
            mris_multiscale_stats/Makefile
            mris_niters2fwhm/Makefile
+           mris_pmake/Makefile
            mris_register/Makefile
-           mris_congeal/Makefile
            mris_register_to_volume/Makefile
            mris_remove_variance/Makefile
            mris_resample/Makefile
