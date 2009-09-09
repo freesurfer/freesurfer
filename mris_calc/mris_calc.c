@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/04/03 17:32:10 $
- *    $Revision: 1.15 $
+ *    $Author: rudolph $
+ *    $Date: 2009/09/09 23:56:17 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.15 2009/04/03 17:32:10 nicks Exp $";
+"$Id: mris_calc.c,v 1.16 2009/09/09 23:56:17 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -102,6 +102,7 @@ typedef enum _FILEACCESS {
 typedef enum _operation {
   e_mul,
   e_div,
+  e_mod,
   e_add,
   e_sub,
   e_sqd,
@@ -138,6 +139,7 @@ typedef enum _operation {
 const char* Gppch_operation[] = {
   "multiply",
   "divide",
+  "modulus",
   "add",
   "subtract",
   "square difference",
@@ -234,6 +236,7 @@ static e_operation operation_lookup(char* apch_operation);
 double fn_mul(float af_A, float af_B)   {return (af_A * af_B);}
 double fn_div(float af_A, float af_B)   {return (af_B != 0 ?
                                         (af_A / af_B) : 0.0);}
+double fn_mod(float af_A, float af_B)   {return fmod(af_A, af_B);}
 double fn_add(float af_A, float af_B)   {return (af_A + af_B);}
 double fn_sub(float af_A, float af_B)   {return (af_A - af_B);}
 double fn_sqd(float af_A, float af_B)   {return (af_A - af_B)*(af_A - af_B);}
@@ -439,10 +442,10 @@ synopsis_show(void) {
  \n\
     DESCRIPTION \n\
  \n\
-	'mris_calc' is a simple calculator that operates on FreeSurfer \n\
-	curvatures and volumes. \n\
+        'mris_calc' is a simple calculator that operates on FreeSurfer \n\
+        curvatures and volumes. \n\
  \n\
-	In most cases, the calculator functions with three arguments: \n\
+        In most cases, the calculator functions with three arguments: \n\
         two inputs and an <ACTION> linking them. Some actions, however, \n\
         operate with only one input <file1>. \n\
  \n\
@@ -456,49 +459,50 @@ synopsis_show(void) {
  \n\
     OPTIONS \n\
  \n\
-    	--output <outputCurvFile> \n\
-   	-o <outputCurvFile> \n\
+        --output <outputCurvFile> \n\
+        -o <outputCurvFile> \n\
  \n\
-    	By default, 'mris_calc' will save the output of the calculation to a \n\
-    	file in the current working directory with filestem 'out'. The file \n\
-    	extension is automatically set to the appropriate filetype based on \n\
-    	the input. For any volume type, the output defaults to '.mgz' and for \n\
-    	curvature inputs, the output defaults to '.crv'. \n\
+        By default, 'mris_calc' will save the output of the calculation to a \n\
+        file in the current working directory with filestem 'out'. The file \n\
+        extension is automatically set to the appropriate filetype based on \n\
+        the input. For any volume type, the output defaults to '.mgz' and for \n\
+        curvature inputs, the output defaults to '.crv'. \n\
  \n\
-    	--version \n\
-    	-v \n\
+        --version \n\
+        -v \n\
  \n\
-	Print out version number. \n\
+        Print out version number. \n\
  \n\
-    	--verbosity <value> \n\
+        --verbosity <value> \n\
  \n\
-	Set the verbosity of the program. Any positive value will trigger \n\
-	verbose output, displaying intermediate results. The <value> can be \n\
-	set arbitrarily. Useful mostly for debugging. \n\
+        Set the verbosity of the program. Any positive value will trigger \n\
+        verbose output, displaying intermediate results. The <value> can be \n\
+        set arbitrarily. Useful mostly for debugging. \n\
  \n\
     ACTION \n\
  \n\
-	The action to be perfomed on the two input files. This is a \n\
-	text string that defines the mathematical operation to execute. For \n\
-	two inputs, this action is applied in an indexed element-by-element \n\
-	fashion, i.e. \n\
-	 \n\
-			<file3>[n] = <file1>[n] <ACTION> <file2>[n] \n\
+        The action to be perfomed on the two input files. This is a \n\
+        text string that defines the mathematical operation to execute. For \n\
+        two inputs, this action is applied in an indexed element-by-element \n\
+        fashion, i.e. \n\
+         \n\
+                        <file3>[n] = <file1>[n] <ACTION> <file2>[n] \n\
  \n\
-	where 'n' is an index counter into the data space. \n\
+        where 'n' is an index counter into the data space. \n\
  \n\
-	ACTION  INPUTS OUTPUTS	                EFFECT \n\
+        ACTION  INPUTS OUTPUTS                  EFFECT \n\
      MATHEMATICAL \n\
-	  mul	   2      1     <outputFile> = <file1> * <file2> \n\
-	  div	   2	  1     <outputFile> = <file1> / <file2> \n\
-	  add      2	  1	<outputFile> = <file1> + <file2> \n\
-	  sub	   2	  1     <outputFile> = <file1> - <file2> \n\
-	  sqd	   2	  1     <outputFile> = (<file1> - <file2>)^2 \n\
-	  set	   2	  1     <file1>	     = <file2> \n\
-	  sqr	   1      1	<outputFile> = <file1> * <file1> \n\
-	  sqrt	   1      1     <outputFile> = sqrt(<file1>) \n\
+          mul      2      1     <outputFile> = <file1> * <file2> \n\
+          div      2      1     <outputFile> = <file1> / <file2> \n\
+          mod      2      1     <outputFile> = mod(<file1>, <file2>) \n\
+          add      2      1     <outputFile> = <file1> + <file2> \n\
+          sub      2      1     <outputFile> = <file1> - <file2> \n\
+          sqd      2      1     <outputFile> = (<file1> - <file2>)^2 \n\
+          set      2      1     <file1>      = <file2> \n\
+          sqr      1      1     <outputFile> = <file1> * <file1> \n\
+          sqrt     1      1     <outputFile> = sqrt(<file1>) \n\
           abs      1      1     <outputFile> = abs(<file1>) \n\
-	  sign	   1	  1	<outputFile> = sign(<file1>) \n\
+          sign     1      1     <outputFile> = sign(<file1>) \n\
           norm     1      1     <outputFile> = norm(<file1>) \n\
  \n\
       RELATIONAL \n\
@@ -525,8 +529,8 @@ synopsis_show(void) {
           max      1      0     print the max value (and index) of <file1> \n\
           mean     1      0     print the mean value of <file1> \n\
           std      1      0     print the standard deviation of <file1> \n\
-	  sum	   1      0	print the sum across all values of <file1> \n\
-	  prod	   1      0     print the inner product across <file1> \n\
+          sum      1      0     print the sum across all values of <file1> \n\
+          prod     1      0     print the inner product across <file1> \n\
           stats    1      0     process 'size', 'min', 'max', 'mean', 'std' \n\
  \n\
     NOTES ON ACTIONS \n\
@@ -537,14 +541,24 @@ synopsis_show(void) {
         constrained (normalized) between 0.0 and 1.0. The 'sqd' stores the \n\
         square difference between two inputs. \n\
  \n\
+        The 'mod' operation is performed by a call to the C-function, fmod(), \n\
+        and accepts either integer or floats -- in fact, ints are converted \n\
+        to floats for this operation.  Output sign convention and 0 handling \n\
+        follows that of fmod(): \n\
+ \n\
+        fmod ( ±0, y )   returns ±0 for y not zero. \n\
+        fmod ( x, y )    returns a NaN and raises the invalid floating-point \n\
+                         exception for x infinite or y zero. \n\
+        fmod ( x, ±inf ) returns x for x not infinite. \n\
+ \n\
         The 'sqr' and 'sqrt' return the square and square-root of an input \n\
         file. \n\
-	 \n\
-	The 'sign' function returns at each index of an input file: \n\
+         \n\
+        The 'sign' function returns at each index of an input file: \n\
  \n\
-		-1 if <file1>[n] <  0 \n\
-		 0 if <file1>[n] == 0 \n\
-		 1 if <file1>[n] >  0 \n\
+                -1 if <file1>[n] <  0 \n\
+                 0 if <file1>[n] == 0 \n\
+                 1 if <file1>[n] >  0 \n\
  \n\
         NOTE: For volume files, be very careful about data types! If the input \n\
         volume is has data of type UCHAR (i.e. integers between zero and 255), \n\
@@ -564,25 +578,25 @@ synopsis_show(void) {
  \n\
         most likely be *not* what you are looking for. \n\
  \n\
-	The 'set' command overwrites its input data. It still requires a valid \n\
-	<file1> -- since in most instances the 'set' command is used to set \n\
-	input data values to a single float constant, i.e. \n\
+        The 'set' command overwrites its input data. It still requires a valid \n\
+        <file1> -- since in most instances the 'set' command is used to set \n\
+        input data values to a single float constant, i.e. \n\
  \n\
-		$>mris_calc rh.area set 0.005 \n\
+                $>mris_calc rh.area set 0.005 \n\
  \n\
-	will set all values of rh.area to 0.005. It might be more meaningful \n\
-	to first make a copy of the input file, and set this \n\
+        will set all values of rh.area to 0.005. It might be more meaningful \n\
+        to first make a copy of the input file, and set this \n\
  \n\
-		$>cp rh.area rh-0.005 \n\
-		$>mris_calc rh-0.005 set 0.005 \n\
+                $>cp rh.area rh-0.005 \n\
+                $>mris_calc rh-0.005 set 0.005 \n\
  \n\
-	Similarly for volumes \n\
+        Similarly for volumes \n\
  \n\
-		$>cp orig.mgz black.mgz \n\
-		$>mris_calc black.mgz set 0 \n\
+                $>cp orig.mgz black.mgz \n\
+                $>mris_calc black.mgz set 0 \n\
  \n\
-	will result in the 'black.mgz' volume having all its intensity values \n\
-	set to 0. \n\
+        will result in the 'black.mgz' volume having all its intensity values \n\
+        set to 0. \n\
  \n\
     RELATIONAL \n\
         The relational operations apply the relevant evaluation at each \n\
@@ -620,8 +634,8 @@ synopsis_show(void) {
     DATA CONVERSION \n\
         The 'ascii' command converts <file1> to a text format file, \n\
         suitable for reading into MatLAB, for example. Note that for volumes \n\
-	data values are written out as a 1D linear array with looping order \n\
-	(slice, height, width). \n\
+        data values are written out as a 1D linear array with looping order \n\
+        (slice, height, width). \n\
  \n\
     STATISTICAL \n\
         Note also that the standard deviation can suffer from float rounding \n\
@@ -629,29 +643,29 @@ synopsis_show(void) {
  \n\
     ARBITRARY FLOATS AS SECOND INPUT ARGUMENT \n\
  \n\
-	If a second input argument is specified, 'mris_calc' will attempt to \n\
+        If a second input argument is specified, 'mris_calc' will attempt to \n\
         open the argument following <ACTION> as if it were a curvature file. \n\
         Should this file not exist, 'mris_calc' will attempt to parse the \n\
         argument as if it were a float value. \n\
  \n\
-	In such a case, 'mris_calc' will create a dummy internal \n\
-	array structure and set all its elements to this float value. \n\
+        In such a case, 'mris_calc' will create a dummy internal \n\
+        array structure and set all its elements to this float value. \n\
  \n\
     NOTES \n\
  \n\
-	<file1> and <file2> should typically be generated on the \n\
-	same subject. \n\
+        <file1> and <file2> should typically be generated on the \n\
+        same subject. \n\
  \n\
     EXAMPLES \n\
  \n\
-    	$>mris_calc rh.area mul rh.thickness \n\
-	Multiply each value in <rh.area> with the corresponding value \n\
-	in <rh.thickness>, creating a new file called 'out.crv' that \n\
-	contains the result. \n\
+        $>mris_calc rh.area mul rh.thickness \n\
+        Multiply each value in <rh.area> with the corresponding value \n\
+        in <rh.thickness>, creating a new file called 'out.crv' that \n\
+        contains the result. \n\
  \n\
-    	$>mris_calc --output rh.weightedCortex rh.area mul rh.thickness \n\
-	Same as above, but give the ouput file the more meaningful name \n\
-	of 'rh.weightedCortex'. \n\
+        $>mris_calc --output rh.weightedCortex rh.area mul rh.thickness \n\
+        Same as above, but give the ouput file the more meaningful name \n\
+        of 'rh.weightedCortex'. \n\
  \n\
         $>mris_calc rh.area max \n\
         Determine the maximum value in 'rh.area' and print to stdout. In \n\
@@ -661,9 +675,9 @@ synopsis_show(void) {
         $>mris_calc rh.area stats \n\
         Determine the size, min, max, mean, and std of 'rh.area'. \n\
  \n\
-	$>mris_calc orig.mgz sub brainmask.mgz \n\
-	Subtract the brainmask.mgz volume from the orig.mgz volume. Result is \n\
-	saved by default to out.mgz. \n\
+        $>mris_calc orig.mgz sub brainmask.mgz \n\
+        Subtract the brainmask.mgz volume from the orig.mgz volume. Result is \n\
+        saved by default to out.mgz. \n\
  \n\
         $>mris_calc -o ADC_masked.nii ADC.nii masked B0_mask.img \n\
         Mask a volume 'ADC.nii' with 'B0_mask.img', saving the output in \n\
@@ -672,29 +686,29 @@ synopsis_show(void) {
  \n\
     ADVANCED EXAMPLES \n\
  \n\
-	Consider the case when calculating the right hemisphere pseudo volume \n\
-	formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
-	file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
-	be expressed as a percentage of intercranial volume. \n\
+        Consider the case when calculating the right hemisphere pseudo volume \n\
+        formed by the FreeSurfer generated white matter 'rh.area' curvature \n\
+        file, and the cortical thickness, 'rh.thickness'. Imagine this is to \n\
+        be expressed as a percentage of intercranial volume. \n\
  \n\
-	First, calculate the volume and store in a curvature format: \n\
+        First, calculate the volume and store in a curvature format: \n\
  \n\
-		$>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
+                $>mris_calc -o rh.cortexVol rh.area mul rh.thickness \n\
  \n\
-	Now, find the intercranial volume (ICV) in the corresponding output \n\
-	file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
+        Now, find the intercranial volume (ICV) in the corresponding output \n\
+        file generated by FreeSurfer for this subject. Assume ICV = 100000. \n\
  \n\
-		$>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
-	 \n\
-	Here the second <ACTION> argument is a number and not a curvature file. \n\
+                $>mris_calc -o rh.cortexVolICV rh.cortexVol div 100000 \n\
+         \n\
+        Here the second <ACTION> argument is a number and not a curvature file. \n\
  \n\
-	We could have achieved the same effect by first creating an \n\
-	intermediate curvature file, 'rh.ICV' with each element set to \n\
-	the ICV, and then divided by this curvature: \n\
-	 \n\
-		$>cp rh.area rh.ICV \n\
-		$>mris_calc rh.ICV set 100000 \n\
-		$>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
+        We could have achieved the same effect by first creating an \n\
+        intermediate curvature file, 'rh.ICV' with each element set to \n\
+        the ICV, and then divided by this curvature: \n\
+         \n\
+                $>cp rh.area rh.ICV \n\
+                $>mris_calc rh.ICV set 100000 \n\
+                $>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
  \n\
  \n\
 \n");
@@ -1010,7 +1024,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.15 2009/04/03 17:32:10 nicks Exp $",
+     "$Id: mris_calc.c,v 1.16 2009/09/09 23:56:17 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1140,11 +1154,12 @@ operation_lookup(
 
   if(     !strcmp(apch_operation, "mul"))       e_op    = e_mul;
   else if(!strcmp(apch_operation, "div"))       e_op    = e_div;
+  else if(!strcmp(apch_operation, "mod"))       e_op    = e_mod;
   else if(!strcmp(apch_operation, "add"))       e_op    = e_add;
   else if(!strcmp(apch_operation, "sub"))       e_op    = e_sub;
   else if(!strcmp(apch_operation, "sqd"))       e_op    = e_sqd;
   else if(!strcmp(apch_operation, "sqr"))       e_op    = e_sqr;
-  else if(!strcmp(apch_operation, "sqrt"))	e_op    = e_sqrt;
+  else if(!strcmp(apch_operation, "sqrt"))		e_op    = e_sqrt;
   else if(!strcmp(apch_operation, "set"))       e_op    = e_set;
   else if(!strcmp(apch_operation, "abs"))       e_op    = e_abs;
   else if(!strcmp(apch_operation, "sign"))      e_op    = e_sign;
@@ -1427,6 +1442,7 @@ b_outCurvFile_write(e_operation e_op)
     if(
         e_op == e_mul           ||
         e_op == e_div           ||
+        e_op == e_mod		||
         e_op == e_add           ||
         e_op == e_sub           ||
         e_op == e_sqd           ||
@@ -1434,7 +1450,7 @@ b_outCurvFile_write(e_operation e_op)
         e_op == e_sqrt          ||
         e_op == e_set           ||
         e_op == e_abs           ||
-	e_op == e_sign		||
+        e_op == e_sign		||
         e_op == e_lt            ||
         e_op == e_lte           ||
         e_op == e_gt            ||
@@ -1489,6 +1505,7 @@ CURV_process(void)
   switch(Ge_operation) {
     case  e_mul:        CURV_functionRunABC(fn_mul);    break;
     case  e_div:        CURV_functionRunABC(fn_div);    break;
+    case  e_mod:        CURV_functionRunABC(fn_mod);    break;
     case  e_add:        CURV_functionRunABC(fn_add);    break;
     case  e_sub:        CURV_functionRunABC(fn_sub);    break;
     case  e_set:        CURV_functionRunABC(fn_set);    break;

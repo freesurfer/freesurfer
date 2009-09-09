@@ -61,6 +61,7 @@
      MATHEMATICAL
 	  mul	   2      1     <outputFile> = <file1> * <file2>
 	  div	   2	  1     <outputFile> = <file1> / <file2>
+	  mod      2      1     <outputFile> = <file1> % <file2>
 	  add      2	  1	<outputFile> = <file1> + <file2>
 	  sub	   2	  1     <outputFile> = <file1> - <file2>
 	  sqd	   2	  1     <outputFile> = (<file1> - <file2>)^2
@@ -106,6 +107,16 @@
         expect. The 'norm' creates an output file such that all values are
         constrained (normalized) between 0.0 and 1.0. The 'sqd' stores the
         square difference between two inputs.
+        
+        The 'mod' operation is performed by a call to the C-function, fmod(),
+        and accepts either integer or floats -- in fact, ints are converted
+        to floats for this operation. Output sign convention and 0 handling
+        follows that of fmod():
+
+        fmod ( ±0, y )   returns ±0 for y not zero.
+        fmod ( x, y )    returns a NaN and raises the invalid floating-point
+                         exception for x infinite or y zero.
+        fmod ( x, ±inf ) returns x for x not infinite.
         
         The 'sqr' and 'sqrt' return the square and square-root of an input
         file.
