@@ -2,7 +2,7 @@
 # sfa2fieldsign
 setenv FSLOUTPUTTYPE NIFTI
 
-set VERSION = '$Id: sfa2fieldsign,v 1.1 2009/09/03 20:35:42 greve Exp $';
+set VERSION = '$Id: sfa2fieldsign,v 1.2 2009/09/11 21:13:35 greve Exp $';
 
 set sfadir = ();
 set regfile = ();
@@ -358,11 +358,19 @@ tksurfer subject rh inflated -aparc \
 tksurfer subject rh inflated -aparc \
   -ov rh.eccen.masked.mgh \
   -fthresh .01 -fmid 3.14 -fslope 0.15948
+# The values will go from 0-to-2pi, which will correspond to 
+# red-to-yellow, foveal-to-peripheral. There should be no blue.
 
 # View the lh polar angle, set colobar to -pi/2 to +pi/2 radians
 tksurfer subject lh inflated -aparc \
   -ov lh.polar.masked.mgh \
   -fthresh .01 -fmid 0.79039 -fslope 0.64069
+# The values for the left hemi will go from -pi to +pi. The upper
+# visual field will be 0 to pi (red to yellow, horizontal meridian to
+# upper vertical meridian) and will appear below the calcarine
+# sulcus. The lower visual field will be 0 to -pi (blue to cyan,
+# horizontal meridian to lower vertical meridian) and will appear
+# above the calcarine sulcus.
 
 # View the rh polar angle, set colobar to -pi to +pi radians
 tksurfer subject rh inflated -aparc \
@@ -371,7 +379,8 @@ tksurfer subject rh inflated -aparc \
 
 # Note: the right hemi polar angle will have values appropriate for
 # the left half of the visual field, meaning +pi/2 to pi and -pi/2 to
-# -pi. We need to come up with a fix so that it will be 
-# -pi/2 to +pi/2.
+# -pi. This makes setting the color bar and interpreting the values
+# much harder than for the left hemi.  We need to come up with a fix
+# so that it will be -pi/2 to +pi/2.
 
 
