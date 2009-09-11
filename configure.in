@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/09/08 22:39:27 $
-#    $Revision: 1.441 $
+#    $Date: 2009/09/11 22:33:54 $
+#    $Revision: 1.442 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2857,6 +2857,7 @@ AC_OUTPUT([Makefile
            mri_fslmat_to_lta/Makefile
            mri_fwhm/Makefile
            mri_gca_ambiguous/Makefile
+           mri_gcut/Makefile
            mri_gdfglm/Makefile
            mri_glmfit/Makefile
            mri_head/Makefile
@@ -2912,7 +2913,7 @@ AC_OUTPUT([Makefile
            mri_remove_neck/Makefile
            mri_ribbon/Makefile
            mri_rigid_register/Makefile
-	   mri_robust_register/Makefile
+           mri_robust_register/Makefile
            mri_seg_diff/Makefile
            mri_seghead/Makefile
            mri_segment/Makefile
