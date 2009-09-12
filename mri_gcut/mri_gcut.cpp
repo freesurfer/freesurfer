@@ -43,6 +43,14 @@ extern "C"
 #include "graphcut.cpp"
 
 const char *Progname;
+static char vcid[] =
+"$Id: mri_gcut.cpp,v 1.2 2009/09/12 01:04:13 nicks Exp $";
+static char in_filename[STRLEN];
+static char out_filename[STRLEN];
+static char mask_filename[STRLEN];
+static bool bNeedPreprocessing = 1;
+static bool bNeedMasking = 0;
+static double _t = 0.36;
 
 static const char help[] =
   {
@@ -56,37 +64,33 @@ static const char help[] =
     "non-brain structures connected to each other by a set of (hopefully)\n"
     "narrow connections. In step 3, an undirected graph is defined on\n"
     "the image and subsequently partitioned into two portions using\n"
-    "graph cuts approach. In the last step, a post processing is applied\n"
+    "graph cuts approach. In the last step, post processing is applied\n"
     "to regain CSF and partial volume voxels that were lost during\n"
     "thresholding. For more details, see [1]\n"
     "\n"
     "When the algorithm is applied in the context of FreeSurfer pipeline,\n"
-    "on T1.mgz, one can choose to use voxels with intensity 110 in T1.mgz\n"
+    "eg. T1.mgz, one can choose to use voxels with intensity 110 in T1.mgz\n"
     "as the WM mask, rather than estimating the mask from the image by\n"
     "region growing.\n"
     "\n"
     "Usage:\n"
     "\n"
-    "./mri_gcut [-110|-mult|-T (value)] input_filename\n"
+    "./mri_gcut [-110|-mult <filename>|-T <value>] in_filename out_filename\n"
     "\n"
-    "input_filename - the name of the file that contains brain volume\n"
-    "in mgz format. Output is always stored in the file called\n"
-    "'brainmask.auto.mgz'\n"
+    "in_filename - name of the file that contains brain volume, eg. T1.mgz\n"
     "\n"
+    "out_filename - name given to output file, eg. brainmask.auto.mgz\n"
     "-110: use voxels with intensity 110 as white matter mask\n"
     "(when applied on T1.mgz, FreeSurfer only)\n"
     "\n"
-    "-mult: If there is already skull stripped volume stored in\n"
-    "'brainmask.auto.mgz' in the same folder, presumably obtained by\n"
-    "running FreeSurfer's default 'mri_watershed', the 'mri_gcut' and\n"
-    "'mri_watereshed' masks will be intersected. The result of the\n"
-    "intersection will be stored in 'brainmask.auto.mgz', while the\n"
-    "original 'brainmask.auto.mgz' will be renamed as\n"
-    "'brainmask_auto_old.mgz'. This approach will produce cleaner\n"
-    "skull strip, that is less likely to result in subsequent pial\n"
-    "surface overgrowth, see [1].\n"
+    "-mult <filename>: If there exists a skull stripped volume specified\n"
+    "by the filename arg, such as that created by 'mri_watershed', \n"
+    "the skull-stripped 'mri_gcut' image and 'filename' will be intersected\n"
+    "and the intersection stored in 'out_filename'. This approach will\n"
+    "produce cleaner skull strip, that is less likely to result in\n"
+    "subsequent pial surface overgrowth, see [1].\n"
     "\n"
-    "-T (value): set threshold to value% of WM intensity, the value\n"
+    "-T <value>: set threshold to value% of WM intensity, the value\n"
     "should be >0 and <1; larger values would correspond to cleaner\n"
     "skull strip but higher chance of brain erosion. Default is set\n"
     "conservatively at 0.36, which provide approx. the same negligible\n"
@@ -134,18 +138,109 @@ bool matrix_free(int ***pointer, int z, int y, int x)
   return 1;
 }
 
+static void print_help(void)
+{
+  printf("%s",help);
+  exit(1);
+}
+
+/* --------------------------------------------- */
+static void print_version(void) 
+{
+  printf("%s\n", vcid) ;
+  exit(1) ;
+}
+
+/* --------------------------------------------- */
+static int parse_commandline(int argc, char **argv) {
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if (argc < 3)
+  {
+    printf("\nMissing arguments!\n\n");
+    print_help();
+  }
+
+  // skip first arg (the name of the program)
+  argc--;
+  argv++;
+
+  nargc = argc;
+  pargv = argv;
+  while (nargc > 0) 
+  {
+    option = pargv[0];
+
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help")) print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcmp(option, "-110") || !strcmp(option, "--110")) 
+    {
+      bNeedPreprocessing = 0;
+    } 
+    else if (!strcmp(option, "-mult") || 
+             !strcmp(option, "--mult") ||
+             !strcmp(option, "--mask")) 
+    {
+      bNeedMasking = 1;
+      strcpy(mask_filename, pargv[0]);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "-T")) 
+    {
+      _t = atof(pargv[0]);
+      if ( _t <= 0 || _t >= 1 )
+      {
+        printf("-T (value): value range (0 ~ 1) !\n");
+        exit(1);
+      }
+      nargsused = 1;
+    } 
+    else
+    {
+      if (option[0] == '-') 
+      {
+        printf("\n%s: unknown flag \"%s\"\n", Progname, option);
+        print_help();
+        exit(1);
+      }
+      else
+      {
+        if (in_filename[0] == '\0')
+        {
+          strcpy(in_filename, option);
+        }
+        else if (out_filename[0] == '\0')
+        {
+          strcpy(out_filename, option);
+        }
+        else
+        {
+          printf("Error: extra arguments!\n\n");
+          print_help();
+          exit(1);
+        }
+      }
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+
+
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-  char inputMGZ[256];
-  bool bNeedPreprocessing = 1;
-  bool bNeedMasking = 0;
-  double _t = 0.36;
-
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.1 2009/09/11 22:33:54 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.2 2009/09/12 01:04:13 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -155,57 +250,13 @@ int main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  if ( argc == 1 || 0==strcmp("-u",argv[1]) )//usage
-  {
-    printf("usage: ");
-    printf("./mri_gcut [-110|-mult|-T (value)] filename\n\n");
-    printf("  -110: use voxels with intensity 110 as WM mask "
-           "(FreeSurfer only)\n\n");
-    printf("  -mult: apply existing \"brainmask.auto.mgz\"\n\n");
-    printf("  -T (value): set threshold to value%% of white matter "
-           "intensity, value from 0~1\"\n\n");
-    exit(0);
-  }
-  if ( 0==strcmp("--help",argv[1]) )//help
-  {
-    printf("%s",help);
-    exit(0);
-  }
-  //file name
-  strcpy(inputMGZ, argv[argc - 1]);
-  for (int i = 1; i < argc - 1; i++)
-  {
-    if ( strcmp(argv[i], "-110") == 0 )
-    {
-      bNeedPreprocessing = 0;
-    }
-    else if ( strcmp(argv[i], "-mult") == 0 )
-    {
-      bNeedMasking = 1;
-    }
-    else if ( strcmp(argv[i], "-T") == 0 )
-    {
-      _t = atof(argv[i + 1]);
-      if ( _t <= 0 || _t >= 1 )
-      {
-        printf("-T (value): value range (0 ~ 1) !\"\n");
-        exit(0);
-      }
-      i++;
-    }
-    else
-    {
-      printf("%s",help);
-      exit(0);
-    }
-  }
-
+  parse_commandline(argc, argv);
 
   MRI *mri, *mri2, *mri3, *mri_mask=NULL;
-  mri3  = MRIread(inputMGZ);
+  mri3  = MRIread(in_filename);
   if ( mri3 == NULL )
   {
-    printf("can't read file %s\nexit!", inputMGZ);
+    printf("can't read file %s\nexit!", in_filename);
     exit(0);
   }
   mri   = MRISeqchangeType(mri3, MRI_UCHAR, 0.0, 0.999, FALSE);
@@ -215,11 +266,12 @@ int main(int argc, char *argv[])
   if (bNeedMasking == 1)
   {
     printf("reading mask...\n");
-    mri_mask = MRIread("brainmask.auto.mgz");
+    mri_mask = MRIread(mask_filename);
     if ( mri_mask == NULL )
     {
-      printf("can't read \"brainmask.auto.mgz\", omit -mult option!\n");
-      bNeedMasking = 0;
+      printf("can't read %s, omit -mult option!\n", mask_filename);
+      print_help();
+      exit(1);
     }
     else
     {
@@ -228,7 +280,8 @@ int main(int argc, char *argv[])
            mri_mask->depth != mri->depth )
       {
         printf("2 masks are of different size, omit -mult option!\n");
-        bNeedMasking = 0;
+        print_help();
+        exit(1);
       }
     }
   }
@@ -380,13 +433,7 @@ int main(int argc, char *argv[])
     //fprintf(fp1, "\n");
   }
 
-  if (bNeedMasking == 1)
-  {
-    printf("writing old mask to: brainmask.auto_old.mgz\n");
-    MRIwrite(mri_mask, "brainmask.auto_old.mgz");
-  }
-  //MRIwrite(mri2, "brainmask.auto.img");
-  MRIwrite(mri2, "brainmask.auto.mgz");
+  MRIwrite(mri2, out_filename);
 
   if (mri) MRIfree(&mri);
   if (mri2) MRIfree(&mri2);
