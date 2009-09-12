@@ -197,6 +197,9 @@ freeview_SOURCES=\
 	res/CursorPolyline_png.h \
 	res/CursorPan_png.h \
 	res/CursorZoom_png.h
+	res/CursorColorPicker_png.h \
+	res/CursorGrab_png.h \
+	res/CursorMeasure_png.h
 
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
