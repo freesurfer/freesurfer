@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/23 16:49:47 $
- *    $Revision: 1.58 $
+ *    $Date: 2009/09/14 16:56:28 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.58 2009/07/23 16:49:47 greve Exp $
+  $Id: fmriutils.c,v 1.59 2009/09/14 16:56:28 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -59,7 +59,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.58 2009/07/23 16:49:47 greve Exp $");
+  return("$Id: fmriutils.c,v 1.59 2009/09/14 16:56:28 greve Exp $");
 }
 
 
@@ -2396,3 +2396,41 @@ MRI *fMRIkurtosis(MRI *y, MRI *mask)
 
   return(k);
 }
+
+
+/*!
+  \fn MATRIX *ASLinterpMatrix(). Creates a matrix that will linearly.
+  \brief Interpolate the controls to esimate their values during the
+   tag and then subtract the tag.  Assumes tag is first tp, and then
+   every other.
+  \param ntp - number of time points
+*/
+MATRIX *ASLinterpMatrix(int ntp)
+{
+  int r,c0,nrows,IsOdd;
+  MATRIX *M;
+
+  IsOdd = ntp%2;
+
+  nrows = ceil(ntp/2.0);
+
+  M = MatrixAlloc(nrows,ntp,MATRIX_REAL);
+  for(r=1; r <= nrows; r++){
+    c0 = 2*(r-1)+1;
+    if(r == 1){
+      M->rptr[r][c0]   = +1.0;
+      M->rptr[r][c0+1] = -1.0;
+      continue;
+    }
+    if(r == nrows && IsOdd){
+      M->rptr[r][c0]   = +1.0;
+      M->rptr[r][c0-1] = -1.0;
+      continue;
+    }
+    M->rptr[r][c0-1] = -0.5;
+    M->rptr[r][c0]   = +1.0;
+    M->rptr[r][c0+1] = -0.5;
+  }
+  return(M);
+}
+

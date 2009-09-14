@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/08/20 04:08:26 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/09/14 16:56:29 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.36 2009/08/20 04:08:26 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.37 2009/09/14 16:56:29 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -82,6 +82,7 @@ int DoPairedDiff=0;
 int DoPairedDiffNorm=0;
 int DoPairedDiffNorm1=0;
 int DoPairedDiffNorm2=0;
+int DoASL = 0;
 int DoVote=0;
 int DoSort=0;
 int DoCombine=0;
@@ -241,6 +242,11 @@ int main(int argc, char **argv) {
     MRIfree(&mritmp);
   }
 
+  if(DoASL){
+    printf("Computing ASL matrix matrix\n");
+    M = ASLinterpMatrix(mriout->nframes);
+  }
+
   if(M != NULL){
     printf("Multiplying by matrix\n");
     mritmp = fMRImatrixMultiply(mriout, M, NULL);
@@ -248,7 +254,6 @@ int main(int argc, char **argv) {
     MRIfree(&mriout);
     mriout = mritmp;
   }
-
 
   if(DoPaired) {
     printf("Combining pairs\n");
@@ -424,8 +429,7 @@ static int parse_commandline(int argc, char **argv) {
       DoBonfCor = 1;
     }
     else if (!strcasecmp(option, "--asl")){
-      DoPairedDiff = 1;
-      DoMean = 1;
+      DoASL = 1;
     }
     else if (!strcasecmp(option, "--paired-avg")){
       DoPaired = 1;
@@ -658,4 +662,3 @@ MATRIX *GroupedMeanMatrix(int ngroups, int ntotal)
   }
   return(M);
 }
-
