@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/09/14 16:56:28 $
- *    $Revision: 1.35 $
+ *    $Date: 2009/09/14 22:29:32 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -124,5 +124,8 @@ MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ);
 MRI *fMRIkurtosis(MRI *y, MRI *mask);
 
 MATRIX *ASLinterpMatrix(int ntp);
+MATRIX *fMRItoMatrix(MRI *fmri, MATRIX *M);
+int fMRIfromMatrix(MATRIX *M, MRI *fmri);
+MRI *fMRIspatialCorMatrix(MRI *fmri);
 
 #endif

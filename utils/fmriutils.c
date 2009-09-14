@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/09/14 16:56:28 $
- *    $Revision: 1.59 $
+ *    $Date: 2009/09/14 22:29:32 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.59 2009/09/14 16:56:28 greve Exp $
+  $Id: fmriutils.c,v 1.60 2009/09/14 22:29:32 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -59,7 +59,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.59 2009/09/14 16:56:28 greve Exp $");
+  return("$Id: fmriutils.c,v 1.60 2009/09/14 22:29:32 greve Exp $");
 }
 
 
@@ -2433,4 +2433,131 @@ MATRIX *ASLinterpMatrix(int ntp)
   }
   return(M);
 }
+
+
+/*!
+  \fn MATRIX *fMRItoMatrix(MRI *fmri, MATRIX *M)
+  \brief Stuffs an MRI into a Matrix. Frames goto rows, 
+  spatial dims go to cols. Note that cols are fastest, etc.
+  This is especially important when comparing to matlab.
+  Make sure to use fMRIfromMatrix() to undo it.
+*/
+MATRIX *fMRItoMatrix(MRI *fmri, MATRIX *M)
+{
+  int nthcol,nvox,c,r,s,f;
+  double v;
+
+  nvox = fmri->width * fmri->height * fmri->depth;
+
+  if(M == NULL){
+    printf("fMRItoMatrix: allocating %d %d\n",fmri->nframes,nvox);
+    M = MatrixAlloc(fmri->nframes,nvox,MATRIX_REAL);
+    if(M == NULL){
+      printf("fMRItoMatrix: could not alloc\n");
+      return(NULL);
+    }
+  }
+
+  printf("fMRItoMatrix: filling matrix %d %d\n",fmri->nframes,nvox);
+  nthcol = 0;
+  for(s=0; s < fmri->depth; s++) {
+    for(r=0; r < fmri->height; r++) {
+      for(c=0; c < fmri->width; c++)  {
+	for(f=0; f < fmri->nframes; f++) {
+	  v = MRIgetVoxVal(fmri,c,r,s,f);
+	  M->rptr[f+1][nthcol+1] = v;
+	}
+	nthcol ++;
+      }
+    }
+  }
+  return(M);
+}
+/*!
+  \fn fMRIfromMatrix(MATRIX *M, MRI *fmri)
+  \brief Stuffs a Matrix into an MRI. Rows goto frames.
+  Cols go to spatial dims. Note that cols are fastest, etc.
+  This is especially important when comparing to matlab.
+  Make sure to use fMRItoMatrix() to undo it. fmri cannot
+  be NULL!
+*/
+int fMRIfromMatrix(MATRIX *M, MRI *fmri)
+{
+  int nthcol,nvox,c,r,s,f;
+  double v;
+
+  nvox = fmri->width * fmri->height * fmri->depth;
+
+  printf("fMRIfromMatrix: filling fMRI %d %d\n",fmri->nframes,nvox);
+  nthcol = 0;
+  for(s=0; s < fmri->depth; s++) {
+    for(r=0; r < fmri->height; r++) {
+      for(c=0; c < fmri->width; c++)  {
+	for(f=0; f < fmri->nframes; f++) {
+	  v = M->rptr[f+1][nthcol+1];
+	  MRIsetVoxVal(fmri,c,r,s,f, v);
+	}
+	nthcol ++;
+      }
+    }
+  }
+  return(0);
+}
+
+
+/*!
+  \fn MRI *fMRIspatialCorMatrix(MRI *fmri)
+  \brief Computes the spatial correlation matrix. The result has the
+  same spatial dim as fmri and number of frames equal to the total
+  number of voxels. This can be very big!  The time courses are
+  de-meaned and normalized to unit variance making this a matrix of
+  Pearson correlations.
+*/
+MRI *fMRIspatialCorMatrix(MRI *fmri)
+{
+  int nvox;
+  MRI *scm;
+  MATRIX *M, *Mt, *MtM;
+
+  printf("fMRIspatialCorMatrix: creating matrix\n");
+  M = fMRItoMatrix(fmri,NULL);
+  if(M == NULL) return(NULL);
+  //MatrixWrite(M, "M.mat", "M");
+
+  printf("fMRIspatialCorMatrix: demeaing\n");
+  M = MatrixDemean(M,M);
+  if(M == NULL) return(NULL);
+  //MatrixWrite(M, "Mdm.mat", "Mdm");
+
+  printf("fMRIspatialCorMatrix: normalizing\n");
+  M = MatrixNormalizeCol(M,M);
+  if(M == NULL) return(NULL);
+  //MatrixWrite(M, "Mnorm.mat", "Mnorm");
+
+  printf("fMRIspatialCorMatrix: creating matrix transpose\n");
+  Mt = MatrixTranspose(M,NULL);
+  if(Mt == NULL) return(NULL);
+  //MatrixWrite(Mt, "Mt.mat", "Mt");
+
+  printf("fMRIspatialCorMatrix: multiplying\n");
+  MtM = MatrixMultiply(Mt,M,NULL);
+  //MatrixWrite(MtM, "MtM.mat", "MtM");
+
+  MatrixFree(&M);
+  MatrixFree(&Mt);
+
+  printf("fMRIspatialCorMatrix: allocating SCM\n");
+  nvox = fmri->width * fmri->height * fmri->depth;
+  scm = MRIallocSequence(fmri->width, fmri->height, fmri->depth,
+			     MRI_FLOAT, nvox);
+  if(scm == NULL) return(NULL);
+
+  printf("fMRIspatialCorMatrix: filling SCM\n");
+  fMRIfromMatrix(MtM,scm);
+
+  MatrixFree(&MtM);
+  return(scm);
+
+}
+
 
