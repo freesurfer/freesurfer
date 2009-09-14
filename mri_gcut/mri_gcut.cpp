@@ -44,7 +44,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-"$Id: mri_gcut.cpp,v 1.3 2009/09/14 17:44:07 nicks Exp $";
+"$Id: mri_gcut.cpp,v 1.4 2009/09/14 18:31:27 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -54,6 +54,34 @@ static double _t = 0.36;
 
 static const char help[] =
   {
+    "Usage:\n"
+    "\n"
+    "./mri_gcut [-110|-mult <filename>|-T <value>] in_filename out_filename\n"
+    "\n"
+    "  in_filename - name of the file that contains brain volume, eg. T1.mgz\n"
+    "\n"
+    "  out_filename - name given to output file, eg. brainmask.auto.mgz\n"
+    "\n"
+    "  -110: use voxels with intensity 110 as white matter mask\n"
+    "  (when applied on T1.mgz, FreeSurfer only)\n"
+    "\n"
+    "  -mult <filename>: If there exists a skull-stripped volume specified\n"
+    "  by the filename arg, such as that created by 'mri_watershed', the\n"
+    "  skull-stripped 'in_filename' and 'filename' will be intersected\n"
+    "  and the intersection stored in 'out_filename'. This approach will\n"
+    "  produce cleaner skull-strip, that is less likely to result in\n"
+    "  subsequent pial surface overgrowth, see [1].\n"
+    "\n"
+    "  -T <value>: set threshold to value (%) of WM intensity, the value\n"
+    "  should be >0 and <1; larger values would correspond to cleaner\n"
+    "  skull-strip but higher chance of brain erosion. Default is set\n"
+    "  conservatively at 0.36, which provide approx. the same negligible\n"
+    "  level of brain erosion as 'mri_watershed'.\n"
+    "\n"
+    "The memory needed to process a standard 256*256*256 .mgz file\n"
+    "is about 1GB ~ 1.5GB.\n"
+    "\n"
+    "Description:\n"
     "Skull stripping algorithm based on graph cuts.\n"
     "\n"
     "The algorithm consists of four main steps. In step 1, a conservative\n"
@@ -72,33 +100,6 @@ static const char help[] =
     "eg. T1.mgz, one can choose to use voxels with intensity 110 in T1.mgz\n"
     "as the WM mask, rather than estimating the mask from the image by\n"
     "region growing.\n"
-    "\n"
-    "Usage:\n"
-    "\n"
-    "./mri_gcut [-110|-mult <filename>|-T <value>] in_filename out_filename\n"
-    "\n"
-    "in_filename - name of the file that contains brain volume, eg. T1.mgz\n"
-    "\n"
-    "out_filename - name given to output file, eg. brainmask.auto.mgz\n"
-    "-110: use voxels with intensity 110 as white matter mask\n"
-    "(when applied on T1.mgz, FreeSurfer only)\n"
-    "\n"
-    "-mult <filename>: If there exists a skull stripped volume specified\n"
-    "by the filename arg, such as that created by 'mri_watershed', \n"
-    "the skull-stripped 'mri_gcut' image and 'filename' will be intersected\n"
-    "and the intersection stored in 'out_filename'. This approach will\n"
-    "produce cleaner skull strip, that is less likely to result in\n"
-    "subsequent pial surface overgrowth, see [1].\n"
-    "\n"
-    "-T <value>: set threshold to value% of WM intensity, the value\n"
-    "should be >0 and <1; larger values would correspond to cleaner\n"
-    "skull strip but higher chance of brain erosion. Default is set\n"
-    "conservatively at 0.36, which provide approx. the same negligible\n"
-    "level of brain erosion as 'mri_watershed'.\n"
-    "\n"
-    "Expected memory requirements\n"
-    "The memory needed to process a standard 256*256*256 .mgz file\n"
-    "is about 1GB ~ 1.5GB.\n"
     "\n"
     "[1] S.A. Sadananthan, W. Zheng, M.W.L. Chee, and V. Zagorodnov,\n"
     "'Skull Stripping Using Graph Cuts', Neuroimage, 2009\n"
@@ -240,7 +241,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.3 2009/09/14 17:44:07 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.4 2009/09/14 18:31:27 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
