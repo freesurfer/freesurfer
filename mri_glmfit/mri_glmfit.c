@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/27 17:42:42 $
- *    $Revision: 1.172 $
+ *    $Date: 2009/09/14 22:45:52 $
+ *    $Revision: 1.173 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -74,6 +74,7 @@ USAGE: ./mri_glmfit
    --no-logy : compute natural log of y prior to analysis
    --yhat-save : save signal estimate (yhat)
    --eres-save : save residual error (eres)
+   --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!
 
    --surf subject hemi <surfname> : needed for some flags (uses white by default)
 
@@ -553,19 +554,21 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.172 2009/07/27 17:42:42 greve Exp $";
+"$Id: mri_glmfit.c,v 1.173 2009/09/14 22:45:52 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
 
 char *yFile = NULL, *XFile=NULL, *betaFile=NULL, *rvarFile=NULL;
 char *yhatFile=NULL, *eresFile=NULL, *wFile=NULL, *maskFile=NULL;
+char *eresSCMFile=NULL;
 char *condFile=NULL;
 char *yffxvarFile = NULL;
 char *GLMDir=NULL;
 char *pvrFiles[50];
 int yhatSave=0;
 int eresSave=0;
+int eresSCMSave=0;
 int condSave=0;
 
 char *labelFile=NULL;
@@ -1577,9 +1580,16 @@ int main(int argc, char **argv) {
   sprintf(tmpstr,"%s/rstd.%s",GLMDir,format);
   MRIwrite(rstd,tmpstr);
 
-  if (mriglm->yhatsave) MRIwrite(mriglm->yhat,yhatFile);
-  if (mriglm->condsave) MRIwrite(mriglm->cond,condFile);
-  if (eresFile) MRIwrite(mriglm->eres,eresFile);
+  if(mriglm->yhatsave) MRIwrite(mriglm->yhat,yhatFile);
+  if(mriglm->condsave) MRIwrite(mriglm->cond,condFile);
+  if(eresFile) MRIwrite(mriglm->eres,eresFile);
+  if(eresSCMFile){
+    printf("Computing residual spatial correlation matrix\n");
+    mritmp = fMRIspatialCorMatrix(mriglm->eres);
+    if(mritmp == NULL) exit(1);
+    MRIwrite(mritmp,eresSCMFile);
+    MRIfree(&mritmp);
+  }
 
   sprintf(tmpstr,"%s/Xg.dat",GLMDir);
   MatrixWriteTxt(tmpstr, mriglm->Xg);
@@ -1877,6 +1887,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--yhat-save")) yhatSave = 1;
     else if (!strcasecmp(option, "--save-eres")) eresSave = 1;
     else if (!strcasecmp(option, "--eres-save")) eresSave = 1;
+    else if (!strcasecmp(option, "--eres-scm")) eresSCMSave = 1;
     else if (!strcasecmp(option, "--save-cond")) condSave = 1;
     else if (!strcasecmp(option, "--dontsave")) DontSave = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
@@ -2259,6 +2270,7 @@ printf("   --logy : compute natural log of y prior to analysis\n");
 printf("   --no-logy : compute natural log of y prior to analysis\n");
 printf("   --yhat-save : save signal estimate (yhat)\n");
 printf("   --eres-save : save residual error (eres)\n");
+printf("   --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!\n");
 printf("\n");
 printf("   --surf subject hemi <surfname> : needed for some flags (uses white by default)\n");
 printf("\n");
@@ -2713,6 +2725,10 @@ static void check_options(void) {
     rvarFile = strcpyalloc(tmpstr);
     sprintf(tmpstr,"%s/eres.%s",GLMDir,format);
     if(eresSave) eresFile = strcpyalloc(tmpstr);
+    if(eresSCMSave){
+      sprintf(tmpstr,"%s/eres.scm.%s",GLMDir,format);
+      eresSCMFile = strcpyalloc(tmpstr);
+    }
     if (yhatSave) {
       sprintf(tmpstr,"%s/yhat.%s",GLMDir,format);
       yhatFile = strcpyalloc(tmpstr);
