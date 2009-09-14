@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/08/06 18:54:28 $
- *    $Revision: 1.357 $
+ *    $Author: fischl $
+ *    $Date: 2009/09/14 16:09:14 $
+ *    $Revision: 1.358 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -9076,6 +9076,7 @@ static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
   {
     curvmri = MRIallocHeader(vnum, 1,1,MRI_FLOAT);
     curvmri->nframes = 1;
+    fclose(fp) ;
     return(curvmri);
   }
 
