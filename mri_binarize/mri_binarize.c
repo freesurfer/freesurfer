@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/06/30 15:27:53 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/09/14 18:20:27 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.20 2009/06/30 15:27:53 greve Exp $
+// $Id: mri_binarize.c,v 1.21 2009/09/14 18:20:27 greve Exp $
 
 /*
   BEGINHELP
@@ -164,7 +164,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.20 2009/06/30 15:27:53 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.21 2009/09/14 18:20:27 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -471,6 +471,27 @@ static int parse_commandline(int argc, char **argv) {
       DoMatch = 1;
     }
 
+    else if (!strcasecmp(option, "--wm+vcsf")){
+      MatchValues[0] =  2;
+      MatchValues[1] = 41;
+      MatchValues[2] = 82;
+      MatchValues[3] = 251;
+      MatchValues[4] = 252;
+      MatchValues[5] = 253;
+      MatchValues[6] = 254;
+      MatchValues[7] = 255;
+      MatchValues[8] =  4; // Left-Lateral-Ventricle
+      MatchValues[9] =  5; // Left-Inf-Lat-Vent
+      MatchValues[10] = 14; // 3rd-Ventricle
+      MatchValues[11] = 43; // Right-Lateral-Ventricle
+      MatchValues[12] = 44; // Right-Inf-Lat-Vent
+      MatchValues[13] = 72; // 5th-Ventricle
+      MatchValues[14] = 31; // Left-choroid-plexus 
+      MatchValues[15] = 63; // Right-choroid-plexus 
+      nMatch = 16;
+      DoMatch = 1;
+    }
+
     else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       InVolFile = pargv[0];
@@ -577,6 +598,7 @@ static void print_usage(void) {
   printf("   --match matchval <--match matchval>  : match instead of threshold\n");
   printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles (not 4th)\n");
+  printf("   --wm+vcsf : WM and ventricular CSF, including 4th and choroid\n");
   printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
