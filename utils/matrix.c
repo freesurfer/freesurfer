@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/01 17:34:43 $
- *    $Revision: 1.119 $
+ *    $Author: greve $
+ *    $Date: 2009/09/14 22:28:53 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3790,3 +3790,28 @@ MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v)
   return(dot) ;
 }
 
+/*!
+  \fn MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm)
+  \brief Removes the mean from each column
+*/
+MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm)
+{
+  int r,c;
+  double vsum,vmean;
+
+  if(Mdm == NULL) {
+    Mdm = MatrixAlloc(M->rows,M->cols,MATRIX_REAL);
+    if(Mdm == NULL) return(NULL);
+  }
+  if(Mdm->rows != M->rows || Mdm->cols != M->cols){
+    printf("MatrixDemean: dimension mismatch\n");
+    return(NULL);    
+  }
+  for(c=1; c <= M->cols; c++){
+    vsum = 0.0;
+    for(r=1; r <= M->rows; r++)  vsum += M->rptr[r][c];
+    vmean = vsum/M->rows;
+    for(r=1; r <= M->rows; r++) M->rptr[r][c] -= vmean;
+  }    
+  return(Mdm);
+}

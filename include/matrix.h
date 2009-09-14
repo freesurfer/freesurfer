@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/01 17:34:40 $
- *    $Revision: 1.67 $
+ *    $Author: greve $
+ *    $Date: 2009/09/14 22:28:53 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -265,5 +265,6 @@ MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr,
 int MatrixCheckFinite(MATRIX *m);
 double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v) ;
 MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k);
+MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm);
 
 #endif
