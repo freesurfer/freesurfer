@@ -1,0 +1,15 @@
+These files were created using the following code. Note that 
+lh and rh are the same. The ?h.sphere.reg files *should*
+be the same as ?h.sphere.ico7.reg. The xyz's are the same. 
+
+for(k=0; k <= 7; k++){
+  printf("%d\n",k);
+  mris = ReadIcoByOrder(k, 100);
+  sprintf(tmpstr,"lh.sphere.ico%d.reg",k);
+  MRISwrite(mris,tmpstr);
+  sprintf(tmpstr,"rh.sphere.ico%d.reg",k);
+  MRISwrite(mris,tmpstr);
+}
+
+
+ 
