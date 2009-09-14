@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/09/02 20:06:58 $
-#    $Revision: 1.248 $
+#    $Date: 2009/09/14 19:12:34 $
+#    $Revision: 1.249 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.248 2009/09/02 20:06:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.249 2009/09/14 19:12:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -83,6 +83,7 @@ set WSPctPreFlood = (); # Pre-flooding height
 set WSSeedPoint = ();   # C R S
 set WSAtlas     = 0;    # 0=don't use atlas, 1=use atlas (for skull strip)
 set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
+set DoGcut = 1;         # 1=run mri_gcut after mri_watershed
 set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
@@ -426,6 +427,7 @@ tkregister2_cmdl --all-info >> $LF
 nu_correct -version >> $LF
 mri_normalize -all-info >> $LF
 mri_watershed -all-info >> $LF
+mri_gcut -all-info >> $LF
 mri_segment -all-info >> $LF
 mri_label2label -all-info >> $LF
 mri_em_register -all-info >> $LF
@@ -1398,6 +1400,19 @@ skullstrip:
     endif
     echo $cmd > $touchdir/skull_strip.touch
 
+  endif
+
+  # Gcut:
+  # Nanyang Technological University's skull-stripper, which is intended to 
+  # work best running after watershed.  it further removes dura.  see:
+  # 'Skull Stripping Using Graph Cuts', Neuroimage, 2009
+  if($DoGcut) then
+    set BMA = brainmask.auto.mgz
+    set xopts = `fsr-getxopts mri_gcut $XOptsFile`;
+    set cmd = (mri_gcut $xopts -110 -mult $BMA T1.mgz $BMA)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
   endif
 
   skipped_skullstrip:
@@ -3303,6 +3318,10 @@ while( $#argv != 0 )
       set WSGcaAtlas = 1; breaksw
     case "-no-wsgcaatlas":
       set WSGcaAtlas = 0; breaksw
+
+    case "-no-gcut":
+      set DoGcut = 0;
+      breaksw
 
     case "-seg-wlo"
       if( $#argv < 1) goto arg1err;
