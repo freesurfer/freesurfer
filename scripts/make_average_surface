@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/09/15 16:59:28 $
-#    $Revision: 1.48 $
+#    $Date: 2009/09/15 22:48:08 $
+#    $Revision: 1.49 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.48 2009/09/15 16:59:28 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.49 2009/09/15 22:48:08 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -262,7 +262,9 @@ foreach hemi (lh rh)
   mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm  |& tee -a $LF
   echo "" | tee -a $LF
   echo "mris_inflate" | tee -a $LF
-  mris_inflate  ./${hemi}.smoothwm ./${hemi}.inflated  |& tee -a $LF
+  set niters = "";
+  if($ico_no <= 5) set niters = "-n 2";
+  mris_inflate $niters ./${hemi}.smoothwm ./${hemi}.inflated  |& tee -a $LF
   echo "" | tee -a $LF
   echo "mris_curvature" | tee -a $LF
   mris_curvature -a 10 -w ./${hemi}.white_avg |& tee -a $LF
