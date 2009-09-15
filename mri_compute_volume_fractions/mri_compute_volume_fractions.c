@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/08/06 16:18:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/09/15 17:59:15 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,9 +46,10 @@
 #include "registerio.h"
 #include "cma.h"
 
-#define WM_VAL   1
-#define GM_VAL   2
-#define CSF_VAL  3
+#define WM_VAL         1
+#define GM_VAL         2
+#define CSF_VAL        3
+#define SUBCORT_GM_VAL 4
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -56,8 +57,10 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static void usage_exit(int code) ;
 
+static int gm_val = GM_VAL ;
+static int cortex_only = 0 ;
 static char sdir[STRLEN] = "" ;
-static double resolution = .25 ;
+static double resolution = .5 ;
 MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
                                        int wm_val, int gm_val, int csf_val) ;
 int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
@@ -76,11 +79,12 @@ main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.1 2009/08/06 16:18:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.2 2009/09/15 17:59:15 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
+  Progname = argv[0] ;
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
@@ -88,8 +92,9 @@ main(int argc, char *argv[]) {
     argc -= nargs ;
     argv += nargs ;
   }
+  printf("arg = %d\n", argc) ;
 
-  if (argc != 4)
+  if (argc < 4)
     usage_exit(1) ;
   if (!strlen(sdir)) {
     cp = getenv("SUBJECTS_DIR") ;
@@ -171,14 +176,19 @@ main(int argc, char *argv[]) {
   MRIcopyLabel(mri_tmp, mri_pial, 1) ;
   MRIclear(mri_tmp) ;
   printf("filling interior of lh white matter surface...\n") ;
+  if (cortex_only)
+    gm_val = WM_VAL ;
   MRISfillWhiteMatterInterior(mris_lh_white, mri_aseg, mri_seg, resolution,
-                              WM_VAL, GM_VAL, CSF_VAL);
+                              WM_VAL, gm_val, CSF_VAL);
   printf("filling interior of rh white matter surface...\n") ;
   MRISfillWhiteMatterInterior(mris_rh_white, mri_aseg, mri_tmp, resolution,
-                              WM_VAL, GM_VAL, CSF_VAL);
+                              WM_VAL, gm_val, CSF_VAL);
   MRIcopyLabel(mri_tmp, mri_seg, WM_VAL) ;
-  MRIcopyLabel(mri_tmp, mri_seg, GM_VAL) ;
+  MRIcopyLabel(mri_tmp, mri_seg, gm_val) ;
+  MRIcopyLabel(mri_tmp, mri_seg, CSF_VAL) ;
   MRIfree(&mri_tmp) ;
+  if (cortex_only)
+    MRIreplaceValuesOnly(mri_seg, mri_seg, GM_VAL, SUBCORT_GM_VAL) ;
   
   mri_ribbon = MRInot(mri_seg, NULL) ;
   MRIcopyLabel(mri_seg, mri_pial, CSF_VAL) ;
@@ -187,7 +197,11 @@ main(int argc, char *argv[]) {
   MRIbinarize(mri_ribbon, mri_ribbon, 1, 0, GM_VAL) ;
   MRIcopyLabel(mri_ribbon, mri_seg, GM_VAL) ;
   MRIreplaceValuesOnly(mri_seg, mri_seg, CSF_VAL, 0) ;
-  add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, GM_VAL, CSF_VAL) ;
+  if (cortex_only)
+    add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, SUBCORT_GM_VAL, CSF_VAL) ;
+  else
+    add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, GM_VAL, CSF_VAL) ;
+
 
   {
     MATRIX *m_conformed_to_epi_vox2vox, *m_seg_to_conformed_vox2vox,
@@ -253,6 +267,9 @@ get_option(int argc, char *argv[]) {
     Gz = atoi(argv[4]) ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
+  } else if (!stricmp(option, "cortex")) {
+    printf("limitting gm val to cortex\n") ;
+    cortex_only = 1 ;
   } else switch (toupper(*option)) {
   case 'R':
     resolution = atof(argv[2]) ;
@@ -278,12 +295,11 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <subject> <reg file> <input volume> <output stem>\n",
+  printf("usage: %s [options] <reg file> <input volume> <output stem>\n",
          Progname) ;
   printf("  -SDIR SUBJECTS_DIR \n");
   printf(
-    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-  );
+         "\t\n");
   exit(code) ;
 }
 
@@ -447,6 +463,16 @@ add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
           break ;
         case Left_Cerebellum_Cortex:
         case Right_Cerebellum_Cortex:
+          MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
+          break ;
+        case Left_Pallidum:
+        case Right_Pallidum:
+        case Left_Thalamus_Proper:
+        case Right_Thalamus_Proper:
+        case Right_Putamen:
+        case Left_Putamen:
+        case Left_Accumbens_area:
+        case Right_Accumbens_area:  // remove them from cortex
           MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
           break ;
         default:
