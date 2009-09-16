@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.8 $
+#    $Author: greve $
+#    $Date: 2009/09/16 04:44:43 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: inorm-sess,v 1.8 2007/01/09 22:41:17 nicks Exp $'
+set VERSION = '$Id: inorm-sess,v 1.9 2009/09/16 04:44:43 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -34,7 +34,7 @@ set MC = ();
 set funcstem = (); # stem of functional volume
 set RunListFile = ();
 set nolog = 0;
-set UseMask = 0;
+set UseMask = 1;
 set use_new_inorm = 1;
 set nskip = 0;
 
@@ -164,7 +164,9 @@ foreach sess ($SessList)
                  -TR $TR -ipr $inplaneres -bpr $betplaneres \
                  -seqname $seqname);
     else
-      set cmd = (inorm2 -i $instem -nskip $nskip)
+      if(! $UseMask) set cmd = (inorm2)
+      if($UseMask)   set cmd = (inorm3)
+      set cmd = ($cmd -i $instem -nskip $nskip)
     endif
     if($UseMask) then
       set maskstem = masks/brain
@@ -297,6 +299,10 @@ while( $#argv != 0 )
       set UseMask = 1;
       breaksw
 
+    case "-no-mask":
+      set UseMask = 1;
+      breaksw
+
     case "-verbose":
       set INormArgs = ($INormArgs -verbose); 
       breaksw
@@ -379,6 +385,7 @@ usage_exit:
   echo "   -funcstem stem     : stem of functional volume (default: f or fmc)"
   echo "   -rlf runlistfile   : "
   echo "   -nskip N : do not use first N TRs in computing meanval"
+  echo "   -no-mask : do not use a mask"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
