@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/09/15 22:48:08 $
-#    $Revision: 1.49 $
+#    $Author: nicks $
+#    $Date: 2009/09/16 15:36:27 $
+#    $Revision: 1.50 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.49 2009/09/15 22:48:08 greve Exp $';
+set VERSION = '$Id: make_average_surface,v 1.50 2009/09/16 15:36:27 nicks Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -158,7 +158,7 @@ foreach hemi (lh rh)
   #--------------------------------------------------------------
   echo "#@# Making $hemi annotation ---------------------"  | tee -a $LF
   date  | tee -a $LF
-  set GCS     = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
+  set GCS     = curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
   set CPAtlas = $hemi.$GCS
   set annot = label/$hemi.aparc.annot
   set cmd = (mris_ca_label -ml-annot $CPAtlas $ico_no $annot)
