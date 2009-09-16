@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.21 2009/07/16 16:36:21 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.22 2009/09/16 22:28:27 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -141,6 +141,8 @@ while($#glmfitcmd)
   case "--debug"
   case "--perm-force"
   case "--synth"
+  case "--cortex"
+  case "dods"
     breaksw
   # Ignore these options that have one args
   case "--glmdir"
