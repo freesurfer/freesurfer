@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:36 $
- *    $Revision: 1.36 $
+ *    $Author: lzollei $
+ *    $Date: 2009/09/16 00:31:46 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,9 @@ static MORPH_PARMS  parms ;
 
 static void usage_exit(int code) ;
 static int pct = 0 ;
+static int fromFile = 0 ;
 static int use_abs = 0 ;
+
 
 static int sqr_images = 0 ;
 static double tx = 0.0 ;
@@ -127,16 +129,16 @@ MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst) {
 int
 main(int argc, char *argv[]) {
   char   **av, fname[STRLEN] ;
-  int    ac, nargs, i, num ;
+  int    ac, nargs, i, num = 0, filecount;
   MRI    *mri_src, *mri_avg = NULL, *mri_tmp ;
-  char   *in_fname, *out_fname ;
+  char   *in_fname, *out_fname, *list_fname ;
   int          msec, minutes, seconds, skipped = 0 ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.36 2009/07/23 19:55:36 nicks Exp $",
+           "$Id: mri_average.c,v 1.37 2009/09/16 00:31:46 lzollei Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -168,150 +170,277 @@ main(int argc, char *argv[]) {
   FileNameRemoveExtension(fname, fname) ;
   strcpy(parms.base_name, fname) ;
 
-  for (num = 0, i = 1 ; i < argc-1 ; i++) {
-    in_fname = argv[i] ;
-    fprintf(stderr, "%d of %d: reading %s...\n", num+1, argc-2, in_fname) ;
+  if (fromFile) {
+    
+    list_fname = argv[1] ;
+    if (! FileExists(list_fname))
+       ErrorExit(Gerror, "%s: fopen(%s) for input volume filelist failed", Progname, list_fname) ;
+    else {
+      FILE           *fp ;
+      fprintf(stderr, "reading input volume filenames from %s...\n", list_fname) ;
+      fp = fopen(list_fname, "r") ;
+      if (!fp)
+	ErrorExit(Gerror, "Volumelist file cannot be opened\n") ;
+	
+      filecount = 0;
+      while (fscanf(fp,"%s",fname) != EOF)
+	{
+	  fprintf(stderr, "%d of list: reading %s...\n", filecount+1, fname) ;
+	    
+	  /*Pretty ugly but just pasted asthe one below ... (LZ)*/
+	  mri_src = MRIread(fname) ;
+	  if (!mri_src)
+	    ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, fname) ;
+	    
+	  float src_min, src_max;
+	  MRIlimits(mri_src, &src_min, &src_max);
+	  if (src_min >= src_max)
+	    continue; 
+	    
+	  if (binarize_thresh > 0)
+	    MRIbinarize(mri_src, mri_src, binarize_thresh, 0, 100) ;
+	  if (pct)
+	    MRIbinarize(mri_src, mri_src, 1, 0, 100) ;
+	    
+	  if (scale_factor > 0)
+	    MRIscalarMul(mri_src, mri_src, scale_factor) ;
+	    
+	  if (conform) {
+	    MRI *mri_tmp ;
+	      
+	    fprintf(stderr, "embedding and interpolating volume\n") ;
+	    mri_tmp = MRIconform(mri_src) ;
+	    /*      MRIfree(&mri_src) ;*/
+	    mri_src = mri_tmp ;
+	  }
+	    
+	  if (filecount == 1) {
+	    if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz)) {
+	      MRI *mri_tmp ;
+		
+	      fprintf
+		(stderr,
+		 "translating second volume by (%2.1f, %2.1f, %2.1f)\n",
+		 tx, ty, tz) ;
+	      mri_tmp = MRItranslate(mri_src, NULL, tx, ty, tz) ;
+	      MRIfree(&mri_src) ;
+	      mri_src = mri_tmp ;
+	    }
+	    if (!FZERO(rzrot)) {
+	      MRI *mri_tmp ;
+		
+	      fprintf
+		(stderr,
+		 "rotating second volume by %2.1f degrees around Z axis\n",
+		 (float)DEGREES(rzrot)) ;
+	      mri_tmp = MRIrotateZ_I(mri_src, NULL, rzrot) ;
+	      MRIfree(&mri_src) ;
+	      mri_src = mri_tmp ;
+	    }
+	    if (!FZERO(rxrot)) {
+	      MRI *mri_tmp ;
+		
+	      fprintf
+		(stderr,
+		 "rotating second volume by %2.1f degrees around X axis\n",
+		 (float)DEGREES(rxrot)) ;
+	      mri_tmp = MRIrotateX_I(mri_src, NULL, rxrot) ;
+	      MRIfree(&mri_src) ;
+	      mri_src = mri_tmp ;
+	    }
+	    if (!FZERO(ryrot)) {
+	      MRI *mri_tmp ;
 
-    mri_src = MRIread(in_fname) ;
-    if (!mri_src)
-      ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, in_fname) ;
-    if (use_abs)
-      MRIabs(mri_src, mri_src) ;
-    if (binarize_thresh > 0)
-      MRIbinarize(mri_src, mri_src, binarize_thresh, 0, 100) ;
-    if (pct)
-      MRIbinarize(mri_src, mri_src, 1, 0, 100) ;
+	      fprintf
+		(stderr,
+		 "rotating second volume by %2.1f degrees around Y axis\n",
+		 (float)DEGREES(ryrot)) ;
+	      mri_tmp = MRIrotateY_I(mri_src, NULL, ryrot) ;
+	      MRIfree(&mri_src) ;
+	      mri_src = mri_tmp ;
+	    }
+	  }
+	  if (align && mri_avg)  /* don't align the first time */
+	    {
+	      mri_tmp = align_with_average(mri_src, mri_avg) ;
+	      MRIfree(&mri_src) ;
+	      mri_src = mri_tmp ;
+	    }
 
-    if (scale_factor > 0)
-      MRIscalarMul(mri_src, mri_src, scale_factor) ;
-
-    if (conform) {
-      MRI *mri_tmp ;
-
-      fprintf(stderr, "embedding and interpolating volume\n") ;
-      mri_tmp = MRIconform(mri_src) ;
-      /*      MRIfree(&mri_src) ;*/
-      mri_src = mri_tmp ;
+	  if (mri_avg &&
+	      ((mri_src->width != mri_avg->width) ||
+	       (mri_src->height != mri_avg->height) ||
+	       (mri_src->depth != mri_avg->depth))
+	      ) {
+	    printf("src image (%d, %d, %d) not compatible with "
+		   "avg image (%d, %d, %d)\n",
+		   mri_src->width, mri_src->height, mri_src->depth,
+		   mri_avg->width, mri_avg->height, mri_avg->depth) ;
+	    skipped++ ;
+	    continue ;
+	  }
+	  if (mri_avg == NULL)
+	    {
+	      mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+	      MRIcopyHeader(mri_src, mri_avg) ;
+	    }
+	  if (sqr_images)
+	    MRIsumSquare(mri_src, mri_avg, mri_avg) ;
+	  else
+	    MRIaverage(mri_src, filecount-skipped, mri_avg) ;
+	  MRIfree(&mri_src) ;
+ 
+	  filecount ++;
+	  /* End of reading all the files in */
+	}
+      fclose(fp);
     }
 
-    if (i == 2) {
-      if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz)) {
-        MRI *mri_tmp ;
+  } else {
+    for (num = 0, i = 1 ; i < argc-1 ; i++) {
+      in_fname = argv[i] ;
+      fprintf(stderr, "%d of %d: reading %s...\n", num+1, argc-2, in_fname) ;
 
-        fprintf
-        (stderr,
-         "translating second volume by (%2.1f, %2.1f, %2.1f)\n",
-         tx, ty, tz) ;
-        mri_tmp = MRItranslate(mri_src, NULL, tx, ty, tz) ;
-        MRIfree(&mri_src) ;
-        mri_src = mri_tmp ;
+      mri_src = MRIread(in_fname) ;
+      if (!mri_src)
+	ErrorExit(Gerror, "%s: MRIread(%s) failed", Progname, in_fname) ;
+      if (binarize_thresh > 0)
+	MRIbinarize(mri_src, mri_src, binarize_thresh, 0, 100) ;
+      if (pct)
+	MRIbinarize(mri_src, mri_src, 1, 0, 100) ;
+
+      if (scale_factor > 0)
+	MRIscalarMul(mri_src, mri_src, scale_factor) ;
+
+      if (conform) {
+	MRI *mri_tmp ;
+
+	fprintf(stderr, "embedding and interpolating volume\n") ;
+	mri_tmp = MRIconform(mri_src) ;
+	/*      MRIfree(&mri_src) ;*/
+	mri_src = mri_tmp ;
       }
+
+      if (i == 2) {
+	if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz)) {
+	  MRI *mri_tmp ;
+
+	  fprintf
+	    (stderr,
+	     "translating second volume by (%2.1f, %2.1f, %2.1f)\n",
+	     tx, ty, tz) ;
+	  mri_tmp = MRItranslate(mri_src, NULL, tx, ty, tz) ;
+	  MRIfree(&mri_src) ;
+	  mri_src = mri_tmp ;
+	}
 #if 1
-      if (!FZERO(rzrot)) {
-        MRI *mri_tmp ;
+	if (!FZERO(rzrot)) {
+	  MRI *mri_tmp ;
 
-        fprintf
-        (stderr,
-         "rotating second volume by %2.1f degrees around Z axis\n",
-         (float)DEGREES(rzrot)) ;
-        mri_tmp = MRIrotateZ_I(mri_src, NULL, rzrot) ;
-        MRIfree(&mri_src) ;
-        mri_src = mri_tmp ;
-      }
-      if (!FZERO(rxrot)) {
-        MRI *mri_tmp ;
+	  fprintf
+	    (stderr,
+	     "rotating second volume by %2.1f degrees around Z axis\n",
+	     (float)DEGREES(rzrot)) ;
+	  mri_tmp = MRIrotateZ_I(mri_src, NULL, rzrot) ;
+	  MRIfree(&mri_src) ;
+	  mri_src = mri_tmp ;
+	}
+	if (!FZERO(rxrot)) {
+	  MRI *mri_tmp ;
 
-        fprintf
-        (stderr,
-         "rotating second volume by %2.1f degrees around X axis\n",
-         (float)DEGREES(rxrot)) ;
-        mri_tmp = MRIrotateX_I(mri_src, NULL, rxrot) ;
-        MRIfree(&mri_src) ;
-        mri_src = mri_tmp ;
-      }
-      if (!FZERO(ryrot)) {
-        MRI *mri_tmp ;
+	  fprintf
+	    (stderr,
+	     "rotating second volume by %2.1f degrees around X axis\n",
+	     (float)DEGREES(rxrot)) ;
+	  mri_tmp = MRIrotateX_I(mri_src, NULL, rxrot) ;
+	  MRIfree(&mri_src) ;
+	  mri_src = mri_tmp ;
+	}
+	if (!FZERO(ryrot)) {
+	  MRI *mri_tmp ;
 
-        fprintf
-        (stderr,
-         "rotating second volume by %2.1f degrees around Y axis\n",
-         (float)DEGREES(ryrot)) ;
-        mri_tmp = MRIrotateY_I(mri_src, NULL, ryrot) ;
-        MRIfree(&mri_src) ;
-        mri_src = mri_tmp ;
-      }
+	  fprintf
+	    (stderr,
+	     "rotating second volume by %2.1f degrees around Y axis\n",
+	     (float)DEGREES(ryrot)) ;
+	  mri_tmp = MRIrotateY_I(mri_src, NULL, ryrot) ;
+	  MRIfree(&mri_src) ;
+	  mri_src = mri_tmp ;
+	}
 #else
-      if (!FZERO(ryrot) || !FZERO(rxrot) || !FZERO(rzrot)) {
-        MRI *mri_tmp ;
-        MATRIX *mX, *mY, *mZ, *mRot, *mTmp ;
+	if (!FZERO(ryrot) || !FZERO(rxrot) || !FZERO(rzrot)) {
+	  MRI *mri_tmp ;
+	  MATRIX *mX, *mY, *mZ, *mRot, *mTmp ;
 
-        mX = MatrixAllocRotation(3, x_angle, X_ROTATION) ;
-        mY = MatrixAllocRotation(3, y_angle, Y_ROTATION) ;
-        mZ = MatrixAllocRotation(3, z_angle, Z_ROTATION) ;
-        mTmp = MatrixMultiply(mX, mZ, NULL) ;
-        mRot = MatrixMultiply(mY, mTmp, NULL);
-        fprintf
-        (stderr,
-         "rotating second volume by (%2.1f, %2.1f, %2.1f) degrees\n",
-         (float)DEGREES(rxrot), (float)DEGREES(ryrot)
-         (float)DEGREES(rzrot)) ;
+	  mX = MatrixAllocRotation(3, x_angle, X_ROTATION) ;
+	  mY = MatrixAllocRotation(3, y_angle, Y_ROTATION) ;
+	  mZ = MatrixAllocRotation(3, z_angle, Z_ROTATION) ;
+	  mTmp = MatrixMultiply(mX, mZ, NULL) ;
+	  mRot = MatrixMultiply(mY, mTmp, NULL);
+	  fprintf
+	    (stderr,
+	     "rotating second volume by (%2.1f, %2.1f, %2.1f) degrees\n",
+	     (float)DEGREES(rxrot), (float)DEGREES(ryrot)
+	     (float)DEGREES(rzrot)) ;
 
-        mri_tmp = MRIrotate_I(mri_src, NULL, mRot, NULL) ;
-        MRIfree(&mri_src) ;
-        mri_src = mri_tmp ;
+	  mri_tmp = MRIrotate_I(mri_src, NULL, mRot, NULL) ;
+	  MRIfree(&mri_src) ;
+	  mri_src = mri_tmp ;
 
-        MatrixFree(&mX) ;
-        MatrixFree(&mY) ;
-        MatrixFree(&mZ) ;
-        MatrixFree(&mTmp) ;
-        MatrixFree(&mRot) ;
+	  MatrixFree(&mX) ;
+	  MatrixFree(&mY) ;
+	  MatrixFree(&mZ) ;
+	  MatrixFree(&mTmp) ;
+	  MatrixFree(&mRot) ;
+	}
+#endif
+
+#if 0
+	if (!FZERO(rxrot) || !FZERO(ryrot) || !FZERO(rzrot))
+	  MRIwrite(mri_src, "/disk2/mri/tamily/mri/tmp") ;
+#endif
       }
-#endif
-
 #if 0
-      if (!FZERO(rxrot) || !FZERO(ryrot) || !FZERO(rzrot))
-        MRIwrite(mri_src, "/disk2/mri/tamily/mri/tmp") ;
-#endif
-    }
-#if 0
-    mri_src->xsize =
-      mri_src->ysize =
+      mri_src->xsize =
+	mri_src->ysize =
         mri_src->zsize =
-          mri_src->thick = 1.0f ;
-    mri_src->imnr0 = 1 ;
-    mri_src->imnr1 = mri_src->depth ;
+	mri_src->thick = 1.0f ;
+      mri_src->imnr0 = 1 ;
+      mri_src->imnr1 = mri_src->depth ;
 #endif
-    if (align && mri_avg)  /* don't align the first time */
-    {
-      mri_tmp = align_with_average(mri_src, mri_avg) ;
-      MRIfree(&mri_src) ;
-      mri_src = mri_tmp ;
-    }
+      if (align && mri_avg)  /* don't align the first time */
+	{
+	  mri_tmp = align_with_average(mri_src, mri_avg) ;
+	  MRIfree(&mri_src) ;
+	  mri_src = mri_tmp ;
+	}
 
-    num++ ;
-    if (mri_avg &&
-        ((mri_src->width != mri_avg->width) ||
-         (mri_src->height != mri_avg->height) ||
-         (mri_src->depth != mri_avg->depth))
-       ) {
-      printf("src image (%d, %d, %d) not compatible with "
-             "avg image (%d, %d, %d)\n",
-             mri_src->width, mri_src->height, mri_src->depth,
-             mri_avg->width, mri_avg->height, mri_avg->depth) ;
-      skipped++ ;
-      continue ;
+      num++ ;
+      if (mri_avg &&
+	  ((mri_src->width != mri_avg->width) ||
+	   (mri_src->height != mri_avg->height) ||
+	   (mri_src->depth != mri_avg->depth))
+	  ) {
+	printf("src image (%d, %d, %d) not compatible with "
+	       "avg image (%d, %d, %d)\n",
+	       mri_src->width, mri_src->height, mri_src->depth,
+	       mri_avg->width, mri_avg->height, mri_avg->depth) ;
+	skipped++ ;
+	continue ;
+      }
+      if (mri_avg == NULL)
+	{
+	  mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+	  MRIcopyHeader(mri_src, mri_avg) ;
+	}
+      if (sqr_images)
+	MRIsumSquare(mri_src, mri_avg, mri_avg) ;
+      else
+	MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
+      MRIfree(&mri_src) ;
     }
-    if (mri_avg == NULL)
-    {
-      mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
-      MRIcopyHeader(mri_src, mri_avg) ;
-    }
-    if (sqr_images)
-      MRIsumSquare(mri_src, mri_avg, mri_avg) ;
-    else
-      MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
-    MRIfree(&mri_src) ;
   }
+
   if (sqr_images)
     MRIsqrtAndNormalize(mri_avg, num) ;
 
@@ -400,6 +529,10 @@ get_option(int argc, char *argv[]) {
       pct = 1 ;
       printf("binarizing images to compute pct at each voxel\n") ;
       break ;
+    case 'F':
+      fromFile = 1 ;
+      printf("read input volumes from file\n") ;
+      break ;
     case 'B':
       binarize_thresh = atof(argv[2]) ;
       printf("binarizing images with thresh %2.1f to compute pct at each voxel\n", binarize_thresh) ;
@@ -443,6 +576,7 @@ usage_exit(int code) {
   printf("usage: %s [options] <volume> ... <output volume>\n", Progname) ;
   printf("\t-a              rigid alignment of input "
          "volumes before averaging\n") ;
+  printf("\t-F              read volumes from an input file (first argument is the input filename)\n") ;
   printf("\t-dt <float n>   set dt to n (default=1e-6)\n") ;
   printf("\t-tol <float n>  set tol to n (default=1e-5)\n") ;
   printf("\t-conform        interpolate volume to be isotropic 1mm^3\n") ;
