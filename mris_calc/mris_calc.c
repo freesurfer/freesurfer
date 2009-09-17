@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2009/09/17 15:10:38 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/09/17 17:51:55 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.17 2009/09/17 15:10:38 rudolph Exp $";
+"$Id: mris_calc.c,v 1.18 2009/09/17 17:51:55 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -1026,7 +1026,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.17 2009/09/17 15:10:38 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.18 2009/09/17 17:51:55 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1211,7 +1211,7 @@ VOL_fileRead(
   ) {
 
   char  	pch_readMessage[STRBUF];
-  int		i, j, k;
+  int		i, j, k, f;
   int		I 				= 0; 
   MRI*		pMRI				= NULL;
   float*  	pf_data				= NULL;
@@ -1221,15 +1221,16 @@ VOL_fileRead(
     return e_READACCESSERROR;
   if(G_verbosity) cprints("", "ok");
   Gp_MRI		= pMRI;		// Global pointer.
-  *ap_vectorSize	= pMRI->width * pMRI->height * pMRI->depth;
+  *ap_vectorSize	= pMRI->width*pMRI->height*pMRI->depth*pMRI->nframes;
   pf_data   		= (float*) xmalloc(*ap_vectorSize * sizeof(float));
   sprintf(pch_readMessage, "Packing %s", apch_volFileName);
-  for(i=0; i<pMRI->width; i++)		// 'x', i.e. columns in slice
-    for(j=0; j<pMRI->height; j++)	// 'y', i.e. rows in slice
-      for(k=0; k<pMRI->depth; k++) {	// 'z', i.e. # of slices
-	CURV_arrayProgress_print(*ap_vectorSize, I, pch_readMessage);
-	pf_data[I++]	= (float) MRIgetVoxVal(pMRI, i, j, k, 0);
-      }
+  for(f=0; f<pMRI->nframes; f++)        // number of frames
+    for(i=0; i<pMRI->width; i++)	// 'x', i.e. columns in slice
+      for(j=0; j<pMRI->height; j++)	// 'y', i.e. rows in slice
+        for(k=0; k<pMRI->depth; k++) {	// 'z', i.e. # of slices
+	  CURV_arrayProgress_print(*ap_vectorSize, I, pch_readMessage);
+	  pf_data[I++]	= (float) MRIgetVoxVal(pMRI, i, j, k, f);
+        }
   *apf_data = pf_data;
   return(e_OK);
 }
@@ -1258,20 +1259,21 @@ VOL_fileWrite(
   //
   
   int		volSize;
-  int		i, j, k;
+  int		i, j, k, f;
   int		I				= 0;
   char  	pch_readMessage[STRBUF];
 
-  if(!Gp_MRI) 			error_noVolumeStruct();
-  volSize	= Gp_MRI->width * Gp_MRI->height * Gp_MRI->depth;
+  if(!Gp_MRI)   error_noVolumeStruct();
+  volSize	= Gp_MRI->width*Gp_MRI->height*Gp_MRI->depth*Gp_MRI->nframes;
   if(volSize != a_vectorSize)	error_volumeWriteSizeMismatch();
   sprintf(pch_readMessage, "Packing %s", apch_volFileName);
-  for(i=0; i<Gp_MRI->width; i++)		// 'x', i.e. columns in slice
-    for(j=0; j<Gp_MRI->height; j++)		// 'y', i.e. rows in slice
-      for(k=0; k<Gp_MRI->depth; k++) {		// 'z', i.e. # of slices
-	CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
-	MRIsetVoxVal(Gp_MRI, i, j, k, 0, (float) apf_data[I++]);
-      }
+  for(f=0; f<Gp_MRI->nframes; f++)              // number of frames
+    for(i=0; i<Gp_MRI->width; i++)		// 'x', i.e. columns in slice
+      for(j=0; j<Gp_MRI->height; j++)		// 'y', i.e. rows in slice
+        for(k=0; k<Gp_MRI->depth; k++) {	// 'z', i.e. # of slices
+	  CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
+	  MRIsetVoxVal(Gp_MRI, i, j, k, f, (float) apf_data[I++]);
+        }
   if(G_verbosity) cprints("Saving", "");
   return(MRIwrite(Gp_MRI, apch_volFileName));
   if(G_verbosity) cprints("", "ok");
