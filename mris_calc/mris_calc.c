@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2009/09/09 23:56:17 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/09/17 15:10:38 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.16 2009/09/09 23:56:17 rudolph Exp $";
+"$Id: mris_calc.c,v 1.17 2009/09/17 15:10:38 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -133,7 +133,8 @@ typedef enum _operation {
   e_std,
   e_sum,
   e_prod,
-  e_norm
+  e_norm,
+  e_unknown
 } e_operation;
 
 const char* Gppch_operation[] = {
@@ -170,7 +171,8 @@ const char* Gppch_operation[] = {
   "std",
   "sum",
   "product",
-  "normalize"
+  "normalize",
+  "unknown operation"
 };
 
 // -------------------------------
@@ -208,7 +210,7 @@ static MRI*		Gp_MRI			= NULL; // Pointer to most
 
 // Operation to perform on input1 and input2
 static char*    	G_pch_operator          = NULL;
-static e_operation      Ge_operation            = e_stats;
+static e_operation      Ge_operation            = e_unknown;
 
 // Output file
 static int      	G_sizeCurv3             = 0;
@@ -1024,7 +1026,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.16 2009/09/09 23:56:17 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.17 2009/09/17 15:10:38 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1081,7 +1083,9 @@ main(
   output_init();
   ret     = CURV_process();
   if(G_verbosity) printf("\n");
-  return(0);
+  if(!ret)
+      ErrorExit(ERROR_BADPARM, "Unknown operation %s failed.\n", G_pch_operator);
+  return NO_ERROR;
 }
 
 static int
@@ -1150,7 +1154,7 @@ operation_lookup(
   char* apch_operation
 ) {
 
-  e_operation   e_op = e_stats;
+  e_operation   e_op = e_unknown;
 
   if(     !strcmp(apch_operation, "mul"))       e_op    = e_mul;
   else if(!strcmp(apch_operation, "div"))       e_op    = e_div;
@@ -1487,7 +1491,9 @@ CURV_process(void)
   //  o Depending on <G_pch_operator>, a simple calculation is performed
   //    to generate G_pf_arrayCurv3.
   //  o G_pf_arrayCurv3 is saved to G_pch_curvFile3
-  //
+  //  o If the operation to perform is unknown, then return zero, 
+  //    else return 1.
+  //    
 
   float f_min           = 0.;
   float f_max           = 0.;
@@ -1551,6 +1557,10 @@ CURV_process(void)
                 // v3 = v1 / v2
                 CURV_functionRunABC(fn_div);
                 break;
+    case  e_unknown:
+            // The operand is unknown
+            // so return to caller with zero (error)
+            return 0;
   }
 
   if(Ge_operation == e_set) strcpy(G_pch_curvFile3, G_pch_curvFile1);
