@@ -48,6 +48,7 @@ libvtkutils_a_SOURCES= \
 	vtkFreesurferLookupTable.cxx \
 	vtkArrowPipeline.cxx \
 	vtkRGBATransferFunction.cxx \
+	vtkRGBAColorTransferFunction.cxx \
 	vtkFDTensorGlyph.cxx \
 	vtkODFGlyph.cxx \
 	vtkInflatePolyData.cxx \
@@ -172,6 +173,7 @@ vtkKWRGBATransferFunctionEditor.h \
 vtkKWRGBATransferFunctionEditorTester.h \
 vtkODFGlyph.h \
 vtkRGBATransferFunction.h \
+vtkRGBAColorTransferFunction.h \
 RgbatransferfunctioneditortesterLibInit.data \
 vtkKWRGBATransferFunctionEditorTester-scalars.mgh \
 IconLoaderTest.cxx IconLoaderTestIcons.txt testIconLoader
