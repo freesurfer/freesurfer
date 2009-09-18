@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/26 19:59:03 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/09/18 21:21:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,7 +32,7 @@
 #include <assert.h>
 #include "SurfaceAnnotation.h"
 #include "vtkLookupTable.h"
-#include "vtkRGBATransferFunction.h"
+#include "vtkRGBAColorTransferFunction.h"
 #include "vtkMath.h"
 #include "LayerSurface.h"
 //#include "SurfaceAnnotationProperties.h"

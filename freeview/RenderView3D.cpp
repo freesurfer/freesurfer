@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/09/18 21:21:04 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "LayerSurface.h"
 #include "SurfaceOverlayProperties.h"
 #include "SurfaceOverlay.h"
-#include "vtkRGBATransferFunction.h"
+#include "vtkRGBAColorTransferFunction.h"
 #include "Cursor3D.h"
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView3D, RenderView)

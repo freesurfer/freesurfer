@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/09/18 21:21:04 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@
 #include "vtkTexture.h"
 #include "vtkImageActor.h"
 #include "vtkActor.h"
-#include "vtkRGBATransferFunction.h"
+#include "vtkRGBAColorTransferFunction.h"
 #include "vtkLookupTable.h"
 #include "vtkProperty.h"
 #include "vtkFreesurferLookupTable.h"

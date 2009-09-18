@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 21:11:38 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/09/18 21:21:04 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #include "vtkImageActor.h"
 #include "vtkActor.h"
 #include "vtkLODActor.h"
-#include "vtkRGBATransferFunction.h"
+#include "vtkRGBAColorTransferFunction.h"
 #include "vtkLookupTable.h"
 #include "vtkProperty.h"
 #include "vtkImageReslice.h"
@@ -821,7 +821,6 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
       lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable(), false );  // do not clear zero
       mapper->SetLookupTable( lut );
       mapper->UseLookupTableScalarRangeOn();
-//      mapper->ScalarVisibilityOn();
     }
   }
   else

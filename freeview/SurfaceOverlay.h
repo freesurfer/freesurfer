@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/27 21:25:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/09/18 21:21:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,7 +36,7 @@
 #include <string>
 
 class vtkLookupTable;
-class vtkRGBATransferFunction;
+class vtkRGBAColorTransferFunction;
 class LayerSurface;
 class SurfaceOverlayProperties;
 
