@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/18 21:21:04 $
- *    $Revision: 1.33 $
+ *    $Date: 2009/09/21 17:38:58 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,6 +97,7 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
   mProperties->AddListener( this );
 
   m_actorContour = vtkActor::New();
+  m_actorContour->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
   m_propVolume = vtkVolume::New();
   
   private_buf1_3x3 = new double*[3];
@@ -348,19 +349,23 @@ void LayerMRI::UpdateColorMap ()
   case LayerPropertiesMRI::Grayscale:
     for ( int i = 0; i < 3; i++ )
       mColorMap[i]->SetLookupTable( mProperties->GetGrayScaleTable() );
+    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetGrayScaleTable() );
     break;
 
   case LayerPropertiesMRI::Heat:
     for ( int i = 0; i < 3; i++ )
       mColorMap[i]->SetLookupTable( mProperties->GetHeatScaleTable() );
+    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetHeatScaleTable() );
     break;
   case LayerPropertiesMRI::Jet:
     for ( int i = 0; i < 3; i++ )
       mColorMap[i]->SetLookupTable( mProperties->GetJetScaleTable() );
+    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetJetScaleTable() );
     break;
   case LayerPropertiesMRI::LUT:
     for ( int i = 0; i < 3; i++ )
       mColorMap[i]->SetLookupTable( mProperties->GetLUTTable() );
+    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetLUTTable() );
     break;
   default:
     break;
@@ -441,7 +446,7 @@ void LayerMRI::UpdateContour( int nSegValue )
             }
         }
     }
-    */
+    
     
   if ( GetProperties()->GetShowAsContour() && GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
   {
@@ -470,20 +475,13 @@ void LayerMRI::UpdateContour( int nSegValue )
     mapper->ScalarVisibilityOn();
     m_actorContour->SetMapper( mapper );
   }
-    
+  */  
+  
+  UpdateContourActor( nSegValue );
+  
 //	UpdateVolumeRendering();
 }
-
 /*
-  if ( GetProperties()->GetShowAsContour() )
-  {
-    MyUtils::BuildContourActor( GetImageData(),
-                                GetProperties()->GetContourMinThreshold(),
-                                GetProperties()->GetContourMaxThreshold(),
-                                m_actorContour );
-  }
-*/
-
 void LayerMRI::UpdateContourActor( int nSegValue )
 {
   SegmentationActor sa;
@@ -503,6 +501,19 @@ void LayerMRI::UpdateContourActor( int nSegValue )
     m_segActors.push_back( sa );
   }
   MyUtils::BuildContourActor( GetImageData(), nSegValue - 0.5, nSegValue + 0.5, sa.actor );
+}
+*/
+
+void LayerMRI::UpdateContourActor( int nSegValue )
+{
+  double dTh1 = GetProperties()->GetContourMinThreshold();
+  double dTh2 = GetProperties()->GetContourMaxThreshold();
+  if ( nSegValue >= 0 )
+  {
+    dTh1 = nSegValue - 0.5;
+    dTh2 = nSegValue + 0.5;
+  }
+  MyUtils::BuildContourActor( GetImageData(), dTh1, dTh2, m_actorContour );
 }
 
 void LayerMRI::UpdateVolumeRendering()

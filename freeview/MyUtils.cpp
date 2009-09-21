@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:18 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/09/21 17:38:58 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -482,6 +482,7 @@ bool MyUtils::CalculateOptimalVolume( int* vox1, int nsize1,
 }
 
 
+/*
 bool MyUtils::BuildContourActor( vtkImageData* data_in, 
                                  double dTh1, double dTh2, 
                                  vtkActor* actor_out )
@@ -489,7 +490,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   vtkImageData* imagedata = data_in;
 
 // int nValue = nThreshold;
-  int nSwell = 3;
+  int nSwell = 2;
   vtkSmartPointer<vtkImageDilateErode3D> dilate = 
     vtkSmartPointer<vtkImageDilateErode3D>::New();
   dilate->SetInput( imagedata );
@@ -550,7 +551,58 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
     return true;
   }
 }
+*/
+bool MyUtils::BuildContourActor( vtkImageData* data_in, 
+                                 double dTh1, double dTh2, 
+                                 vtkActor* actor_out )
+{
+  double nValue = 1;
+  int nSwell = 2;
+  vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+  threshold->SetInput( data_in );
+  threshold->ThresholdBetween( dTh1, dTh2 );
+  threshold->ReplaceOutOn();
+  threshold->SetOutValue( 0 );
+  
+  vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
+  dilate->SetInput(threshold->GetOutput());
+  dilate->SetKernelSize(nSwell, nSwell, nSwell);
+  dilate->SetDilateValue(nValue);
+  dilate->SetErodeValue(0);
+  vtkSmartPointer<vtkImageDilateErode3D> erode = vtkSmartPointer<vtkImageDilateErode3D>::New();
+  erode->SetInput(dilate->GetOutput());
+  erode->SetKernelSize(1, 1, 1);
+  erode->SetDilateValue(0);
+  erode->SetErodeValue(nValue);
 
+  vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
+  contour->SetInput(threshold->GetOutput());
+  contour->SetValue(0, dTh1);
+  contour->Update();
+  vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
+  vtkPolyData* polydata = contour->GetOutput();
+  polydata->Update();
+  bool ret = true;
+  if (polydata->GetNumberOfPoints() <= 0)
+  {
+    ret = false;
+  }
+  else
+  {
+    smoother->SetInput(polydata);
+    smoother->SetNumberOfIterations(30);
+    vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
+    normals->SetInput(smoother->GetOutput());
+    normals->SetFeatureAngle( 90 );
+    vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
+    stripper->SetInput(normals->GetOutput());
+    vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
+    mapper->SetInput(stripper->GetOutput());
+    mapper->ScalarVisibilityOn();
+  }
+
+  return ret;
+}
 
 bool MyUtils::BuildVolume( vtkImageData* data_in, 
                            double dTh1, double dTh2, 

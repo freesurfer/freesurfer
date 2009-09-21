@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/05 17:13:06 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/09/21 17:38:58 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -118,6 +118,8 @@ private:
   void OnCheckContour     ( wxCommandEvent& event );
   void OnSliderContourMin ( wxScrollEvent& event );
   void OnSliderContourMax ( wxScrollEvent& event );
+  void OnSliderContourMinChanging( wxScrollEvent& event );
+  void OnSliderContourMaxChanging( wxScrollEvent& event );
   void OnTextContourMin   ( wxCommandEvent& event );
   void OnTextContourMax   ( wxCommandEvent& event );
 

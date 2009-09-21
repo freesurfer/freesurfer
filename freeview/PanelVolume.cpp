@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/05 17:13:06 $
- *    $Revision: 1.29 $
+ *    $Date: 2009/09/21 17:38:58 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -103,10 +103,16 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_REPRESENTATION" ),  PanelVolume::OnChoiceRepresentation )
   
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CONTOUR" ),    PanelVolume::OnCheckContour )
-  EVT_TEXT            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),    PanelVolume::OnTextContourMin )
-  EVT_TEXT            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),    PanelVolume::OnTextContourMax )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMax )
+  EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),    PanelVolume::OnTextContourMin )
+  EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),    PanelVolume::OnTextContourMax )
+  EVT_COMMAND_SCROLL_PAGEDOWN     ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
+  EVT_COMMAND_SCROLL_PAGEUP       ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
+  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
+  EVT_COMMAND_SCROLL_THUMBTRACK   ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMinChanging )
+  EVT_COMMAND_SCROLL_PAGEDOWN     ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMax )
+  EVT_COMMAND_SCROLL_PAGEUP       ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMax )
+  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMax )
+  EVT_COMMAND_SCROLL_THUMBTRACK   ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMaxChanging )
 END_EVENT_TABLE()
 
 
@@ -172,7 +178,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_textContourMin =    XRCCTRL( *this, "ID_TEXT_CONTOUR_MIN", wxTextCtrl );
   m_textContourMax =    XRCCTRL( *this, "ID_TEXT_CONTOUR_MAX", wxTextCtrl );
 
-  m_checkContour->Hide();
+//  m_checkContour->Hide();
 
   m_luts = MainWindow::GetMainWindowPointer()->GetLUTData();
 
@@ -734,9 +740,9 @@ void PanelVolume::DoUpdateUI()
   m_checkDisplayTensor->SetValue( layer && layer->GetProperties()->GetDisplayTensor() );
   ShowWidgets( m_widgetlistVector, m_checkDisplayVector->IsChecked() || m_checkDisplayTensor->IsChecked() );  
   
-//	ShowWidgets( m_widgetlistContour, m_checkContour->IsChecked() );
-  ShowWidgets( m_widgetlistContour, false );
-  m_checkContour->Show( false /*nColorMap == LayerPropertiesMRI::LUT*/ );
+	ShowWidgets( m_widgetlistContour, m_checkContour->IsChecked() );
+//  ShowWidgets( m_widgetlistContour, false );
+//  m_checkContour->Show( false /*nColorMap == LayerPropertiesMRI::LUT*/ );
 	
 	Layout();
 	if ( layer && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
@@ -1197,6 +1203,28 @@ void PanelVolume::OnSliderContourMax( wxScrollEvent& event )
     double fMin = layer->GetProperties()->GetMinValue();
     double fMax = layer->GetProperties()->GetMaxValue();
     layer->GetProperties()->SetContourMaxThreshold( (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+  }
+}
+
+void PanelVolume::OnSliderContourMinChanging( wxScrollEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    double fMin = layer->GetProperties()->GetMinValue();
+    double fMax = layer->GetProperties()->GetMaxValue();
+    UpdateTextValue( m_textContourMin, (double)m_sliderContourMin->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+  }
+}
+
+void PanelVolume::OnSliderContourMaxChanging( wxScrollEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    double fMin = layer->GetProperties()->GetMinValue();
+    double fMax = layer->GetProperties()->GetMaxValue();
+    UpdateTextValue( m_textContourMax, (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
   }
 }
 
