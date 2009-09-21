@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/09/16 15:36:27 $
-#    $Revision: 1.50 $
+#    $Author: greve $
+#    $Date: 2009/09/21 17:14:26 $
+#    $Revision: 1.51 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_surface,v 1.50 2009/09/16 15:36:27 nicks Exp $';
+set VERSION = '$Id: make_average_surface,v 1.51 2009/09/21 17:14:26 greve Exp $';
 setenv FIX_VERTEX_AREA
 
 set PrintHelp = 0;
@@ -156,6 +156,7 @@ foreach hemi (lh rh)
   if($status) exit(1);
 
   #--------------------------------------------------------------
+  # Do we really want to do this?
   echo "#@# Making $hemi annotation ---------------------"  | tee -a $LF
   date  | tee -a $LF
   set GCS     = curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
@@ -238,7 +239,7 @@ foreach hemi (lh rh)
     echo "" | tee -a $LF
     echo "" | tee -a $LF
 
-    if($UseSymLink) then
+    if(0 && $UseSymLink) then
       pushd $sdout/$average_subject/surf/
       ln -s -f $hemi.avg_$c $hemi.$c
       popd
@@ -256,19 +257,28 @@ foreach hemi (lh rh)
   #--------------------------------------------------------------
   echo "#@# Smoothing, inflating, etc $hemi ----------------" | tee -a $LF
   cd $sdout/${average_subject}/surf
-  echo "" | tee -a $LF
   pwd     | tee -a $LF
-  echo "mris_smooth" | tee -a $LF
-  mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm  |& tee -a $LF
+
+  # This writes out ?h.area and ?h.curv. Want area, not curv.
+  set cmd = (mris_smooth -n 5 ./${hemi}.white_avg ./${hemi}.smoothwm)
+  echo $cmd |& tee -a $LF
+  $cmd | tee -a $LF
   echo "" | tee -a $LF
-  echo "mris_inflate" | tee -a $LF
+  rm $hemi.curv
+  cp $hemi.avg_curv $hemi.curv
+
   set niters = "";
   if($ico_no <= 5) set niters = "-n 2";
-  mris_inflate $niters ./${hemi}.smoothwm ./${hemi}.inflated  |& tee -a $LF
+  set cmd = (mris_inflate -no-save-sulc $niters ./${hemi}.smoothwm ./${hemi}.inflated)
+  echo $cmd |& tee -a $LF
+  $cmd | tee -a $LF
   echo "" | tee -a $LF
-  echo "mris_curvature" | tee -a $LF
-  mris_curvature -a 10 -w ./${hemi}.white_avg |& tee -a $LF
+
+  set cmd = (mris_curvature -a 10 -w ./${hemi}.white_avg)
+  echo $cmd |& tee -a $LF
+  $cmd | tee -a $LF
   echo "" | tee -a $LF
+
   if($UseSymLink) then
     ln -s -f ${hemi}.${sphere_reg} ${hemi}.sphere
     ln -s -f ${hemi}.orig_avg  ${hemi}.orig
