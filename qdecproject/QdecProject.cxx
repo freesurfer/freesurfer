@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/10 18:52:09 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/09/21 16:59:57 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1075,35 +1075,43 @@ vector< string > QdecProject::CreateStatsDataTables ()
   /*
    * start by running asegstats2table
    */
+  vector< string > segs;
+  segs.push_back( "aseg" );
+  segs.push_back( "wmparc" );
 
-  // build a command line
-  string name = "aseg.volume";
-  stringstream ssCommand;
-  ssCommand << "asegstats2table --meas volume --tablefile "
-            << this->msStatsDataTablesDir 
-            << name << ".stats.dat"
-            << " --subjects"; 
-  for( int i=0; i < numSubjects; i++ )
+  unsigned int s;
+  for (s=0; s < segs.size(); s++)
   {
-    ssCommand << " " << subjects[i];
+    // build a command line
+    stringstream name;
+    name << segs[s] << ".volume";
+    stringstream ssCommand;
+    ssCommand << "asegstats2table --meas volume --tablefile "
+              << this->msStatsDataTablesDir 
+              << name.str() << ".stats.dat "
+              << "--statsfile=" << segs[s] << ".stats "
+              << "--subjects"; 
+    for( int i=0; i < numSubjects; i++ )
+    {
+      ssCommand << " " << subjects[i];
+    }
+
+    // and run the command...
+    char* sCommand = strdup( ssCommand.str().c_str() );
+    printf( "\n----------------------------------------------------------\n" );
+    printf( "%s\n", sCommand );
+    fflush(stdout);fflush(stderr);
+    int rRun = system( sCommand );
+    if ( -1 == rRun )
+      throw runtime_error( "system call failed: " + ssCommand.str() );
+    if ( rRun > 0 )
+      throw runtime_error( "command failed: " + ssCommand.str() );
+    free( sCommand );
+
+    // save the name of this file
+    statsDataNames.push_back( name.str() );
   }
-
-  // and run the command...
-  char* sCommand = strdup( ssCommand.str().c_str() );
-  printf( "\n----------------------------------------------------------\n" );
-  printf( "%s\n", sCommand );
-  fflush(stdout);fflush(stderr);
-  int rRun = system( sCommand );
-  if ( -1 == rRun )
-    throw runtime_error( "system call failed: " + ssCommand.str() );
-  if ( rRun > 0 )
-    throw runtime_error( "command failed: " + ssCommand.str() );
-  free( sCommand );
-
-  // save the name of this file
-  statsDataNames.push_back( name );
-
-
+  
   /*
    * now the variants of aparctats2table
    */
