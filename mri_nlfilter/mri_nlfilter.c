@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/10/02 18:10:12 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/09/21 14:18:10 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "region.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.12 2007/10/02 18:10:12 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.13 2009/09/21 14:18:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -59,6 +59,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int no_offset = 0 ;
 static int filter_type = FILTER_MINMAX ;
 static float gaussian_sigma = GAUSSIAN_SIGMA ;
 static float blur_sigma = BLUR_SIGMA ;
@@ -88,7 +89,7 @@ main(int argc, char *argv[]) {
   MRI_REGION  region, clip_region ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.12 2007/10/02 18:10:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.13 2009/09/21 14:18:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -248,19 +249,26 @@ main(int argc, char *argv[]) {
         MRIfree(&mri_dir) ;
         MRIfree(&mri_filter_src) ;
 
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "applying offset field...") ;
-        if (Gdiag & DIAG_WRITE)
-          MRIwrite(mri_filter_dst, "minmax.mgz") ;
-        mri_filtered = MRIapplyOffset(mri_filter_dst, NULL, mri_offset) ;
-        if (!mri_filtered)
-          ErrorExit(ERROR_NOMEMORY,
-                    "%s: could not allocate filtered image", Progname) ;
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "done.\n") ;
-        if (region.x == 142)
+        if (no_offset)
+        {
+          mri_filtered = MRIcopy(mri_filter_dst, NULL) ;
+        }
+        else
+        {
+          if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+            fprintf(stderr, "applying offset field...") ;
+          if (Gdiag & DIAG_WRITE)
+            MRIwrite(mri_filter_dst, "minmax.mgz") ;
+          mri_filtered = MRIapplyOffset(mri_filter_dst, NULL, mri_offset) ;
+          if (!mri_filtered)
+            ErrorExit(ERROR_NOMEMORY,
+                      "%s: could not allocate filtered image", Progname) ;
+          if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+            fprintf(stderr, "done.\n") ;
+          if (region.x == 142)
           DiagBreak() ;
-        MRIfree(&mri_offset) ;
+          MRIfree(&mri_offset) ;
+        }
         MRIfree(&mri_filter_dst) ;
         if (Gdiag & DIAG_WRITE)
           MRIwrite(mri_filtered, "upfilt.mgz") ;
@@ -351,6 +359,10 @@ get_option(int argc, char *argv[]) {
         ErrorExit(ERROR_BADPARM, "%s: offset window size must be > 3",Progname);
       nargs = 1 ;
       break ;
+  case 'N':
+    no_offset =1 ;
+    printf("not using offset in filtering\n") ;
+    break ;
     case 'W':
       if (sscanf(argv[2], "%d", &offset_window_size) < 1)
         ErrorExit(ERROR_BADPARM, "%s: could not scan window size from '%s'",
