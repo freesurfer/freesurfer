@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/21 17:38:58 $
- *    $Revision: 1.34 $
+ *    $Date: 2009/09/23 16:11:44 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -730,7 +730,7 @@ void LayerMRI::SetVisible( bool bVisible )
     m_glyphActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_glyphActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
   }
-//  m_actorContour->SetVisibility( bVisible ? 1 : 0 );
+  m_actorContour->SetVisibility( bVisible ? 1 : 0 );
   this->SendBroadcast( "LayerActorUpdated", this );
 }
 
