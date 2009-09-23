@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/09/18 20:37:31 $
-#    $Revision: 1.250 $
+#    $Date: 2009/09/23 21:01:55 $
+#    $Revision: 1.251 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.250 2009/09/18 20:37:31 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.251 2009/09/23 21:01:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -61,6 +61,7 @@ set DoCleanCP    = 0;
 set DoCleanSeed  = 0;
 set DoCleanPFH   = 0;
 set DoCleanBM    = 0;
+set DoCleanBFSE  = 0;
 set DoCleanASeg  = 0;
 set DoCleanWM    = 0;
 
@@ -619,6 +620,11 @@ if($DoCleanWM) then
 endif
 if($DoCleanCP) then
    set cmd = (mv -f $subjdir/tmp/control.dat $subjdir/trash)
+   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+   if($RunIt) $cmd  |& tee -a $LF
+endif
+if($DoCleanBFSE) then
+   set cmd = (mv -f $subjdir/mri/brain.finalsurfs.manedit.mgz $subjdir/trash)
    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
    if($RunIt) $cmd  |& tee -a $LF
 endif
@@ -1791,6 +1797,15 @@ if($DoMaskBFS) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
+  # if they exist, transfer finalsurfs edits (voxels=255 and voxels=1)
+  if( -e brain.finalsurfs.manedit.mgz) then
+    set cmd = (mri_mask -transfer 255)
+    set cmd = ($cmd -keep_mask_deletion_edits)
+    set cmd = ($cmd brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz brain.finalsurfs.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
 endif
 
 #---------------- WM Segmentation --------------------------#
@@ -3619,6 +3634,7 @@ while( $#argv != 0 )
       set DoCleanBM    = 1;
       set DoCleanASeg  = 1;
       set DoCleanWM    = 1;
+      set DoCleanBFSE  = 1;
       breaksw
 
     case "-clean-cp":
@@ -3657,6 +3673,10 @@ while( $#argv != 0 )
 
     case "-clean-aseg":
       set DoCleanASeg   = 1;
+      breaksw
+
+    case "-clean-bfse":
+      set DoCleanBFSE   = 1;
       breaksw
 
     case "-all":
