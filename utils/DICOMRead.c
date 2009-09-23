@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:36 $
- *    $Revision: 1.125 $
+ *    $Date: 2009/09/23 18:03:49 $
+ *    $Revision: 1.126 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2678,6 +2678,7 @@ int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles)
 
   nthfile = 0;
   nthrun = 0;
+  nthframe = 0;
 
 #ifdef _DEBUG
   printf("    File    NthFl Ser Img  NFrs   Run NthFlRun\n");
