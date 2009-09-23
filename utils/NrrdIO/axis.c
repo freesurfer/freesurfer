@@ -673,6 +673,8 @@ nrrdAxisInfoGet_va(const Nrrd *nrrd, int axInfo, ...)
   va_list ap;
   double svec[NRRD_DIM_MAX][NRRD_SPACE_DIM_MAX];
 
+  memset(&info, 0, sizeof(info));
+
   if (!( nrrd
          && AIR_IN_CL(1, nrrd->dim, NRRD_DIM_MAX)
          && AIR_IN_OP(nrrdAxisInfoUnknown, axInfo, nrrdAxisInfoLast) ))
