@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/09/11 22:33:54 $
-#    $Revision: 1.442 $
+#    $Author: fischl $
+#    $Date: 2009/09/23 15:07:31 $
+#    $Revision: 1.443 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2952,6 +2952,7 @@ AC_OUTPUT([Makefile
            mri_compute_change_map/Makefile
            mris2rgb/Makefile
            mris_hausdorff_dist/Makefile
+           mris_map_cuts/Makefile
            mris_merge_parcellations/Makefile
            mris_distance_transform/Makefile
            mris_add_template/Makefile

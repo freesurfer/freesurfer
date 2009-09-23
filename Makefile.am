@@ -176,6 +176,7 @@ MRISSUBDIRS=\
 	spherical_stats \
 	tridec \
 	mris_register_to_volume \
+	mris_map_cuts \
 	mris_hausdorff_dist \
 	mris_merge_parcellations \
 	mris_distance_transform \
