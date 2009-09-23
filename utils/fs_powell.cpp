@@ -1,17 +1,18 @@
 /**
  * @file  fs_powell.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief This is taken from vnl_powell
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This version is created so that the initial
+ * direction, xi, can be set in the minimize method.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author$
  *    $Date$
  *    $Revision$
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,16 +21,10 @@
  * FreeSurfer source code root directory, and duplicated here:
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * General inquiries and bugs: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
-
-/**
- * This is taken from vnl_powell.  This version is created so that the initial
- * direction, xi, can be set in the minimize method.
- */
 
 // This is core/vnl/algo/vnl_powell.cxx
 #ifdef VCL_NEEDS_PRAGMA_INTERFACE
