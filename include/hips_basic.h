@@ -1,47 +1,27 @@
 /**
  * @file  hips_basic.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief basic definitions for HIPS
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Michael Landy - 12/28/90
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2009/09/23 18:25:30 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
- *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-#ifndef HIPS_BASIC_H
-#define HIPS_BASIC_H
-/*
  * Copyright (c) 1991 Michael Landy
  *
  * Disclaimer:  No guarantees of performance accompany this software,
  * nor is any responsibility assumed on the part of the authors.  All the
  * software has been tested extensively and every effort has been made to
  * insure its reliability.
+ *
  */
 
-/*
- * hips_basic.h - basic definitions for HIPS
- *
- * Michael Landy - 12/28/90
- */
+
+#ifndef HIPS_BASIC_H
+#define HIPS_BASIC_H
 
 /*
  * Machine-dependent portion
