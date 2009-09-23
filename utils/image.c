@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:51 $
- *    $Revision: 1.108 $
+ *    $Author: nicks $
+ *    $Date: 2009/09/23 18:25:04 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -850,6 +850,8 @@ ImageAccum(IMAGE *Isrc)
   int      row, col, endrow, endcol ;
   float    real, imag ;
   CPIX     *cpix ;
+
+  memset(&retval, 0, sizeof(Pixelval));
 
   endrow = Isrc->frow + Isrc->rows ;
   endcol = Isrc->fcol + Isrc->cols ;
