@@ -109,7 +109,7 @@ start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
 {
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
   boolean is_DC_band;
-  int ci, tbl;
+  int ci=0, tbl=0;
   jpeg_component_info * compptr;
 
   entropy->cinfo = cinfo;
@@ -137,8 +137,8 @@ start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
       /* AC refinement needs a correction bit buffer */
       if (entropy->bit_buffer == NULL)
         entropy->bit_buffer = (char *)
-                              (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-                                                          MAX_CORR_BITS * SIZEOF(char));
+          (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
+                                      MAX_CORR_BITS * SIZEOF(char));
     }
   }
   if (gather_statistics)
@@ -175,8 +175,8 @@ start_pass_phuff (j_compress_ptr cinfo, boolean gather_statistics)
       /* Note that jpeg_gen_optimal_table expects 257 entries in each table! */
       if (entropy->count_ptrs[tbl] == NULL)
         entropy->count_ptrs[tbl] = (long *)
-                                   (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-                                                               257 * SIZEOF(long));
+          (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
+                                      257 * SIZEOF(long));
       MEMZERO(entropy->count_ptrs[tbl], 257 * SIZEOF(long));
     }
     else
@@ -816,7 +816,7 @@ finish_pass_gather_phuff (j_compress_ptr cinfo)
 {
   phuff_entropy_ptr entropy = (phuff_entropy_ptr) cinfo->entropy;
   boolean is_DC_band;
-  int ci, tbl;
+  int ci=0, tbl=0;
   jpeg_component_info * compptr;
   JHUFF_TBL **htblptr;
   boolean did[NUM_HUFF_TBLS];

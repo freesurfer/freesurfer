@@ -86,9 +86,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2008/05/01 17:58:15 $
+** Last Update:   $Author: nicks $, $Date: 2009/09/24 20:46:40 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.31 $
+** Revision:    $Revision: 1.32 $
 ** Status:    $State: Exp $
 */
 
@@ -6301,36 +6301,23 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
           void *ctx,
           CONDITION(*rd) (void *ctx, void *buf, int toRead, int *bytesRead),
           CONDITION(*sk) (void *ctx, int offset, int flag)) {
-  CONDITION
-  cond;
-  int
-  byteOrder;
-  long
-  lastGroup = -1,
-              lastElement = -1;
-  U32
-  sequenceLength,
-  scannedSequenceLength;
-  PRIVATE_OBJECT
-  ** object;
-  PRV_GROUP_ITEM
-  * groupItem = NULL;
-  DCM_ELEMENT
-  e;
-  CTNBOOLEAN
-  convertFlag = FALSE,
-                done = FALSE,
-                       knownLength = TRUE,
-                                     explicitVR = FALSE,
-                                                  acceptVRMismatch = FALSE,
-                                                                     part10Flag = FALSE;
-  unsigned char
-  *ptr = NULL;
-  PRV_ELEMENT_ITEM
-  * elementItem = NULL;
-  CTNBOOLEAN
-  fileFlag = TRUE;
-  CONDITION flag;
+  CONDITION cond = DCM_NORMAL;
+  int byteOrder = NATIVE_ORDER;
+  long lastGroup = -1, lastElement = -1;
+  U32 sequenceLength = 0, scannedSequenceLength = 0;
+  PRIVATE_OBJECT** object = NULL;
+  PRV_GROUP_ITEM* groupItem = NULL;
+  DCM_ELEMENT e;
+  CTNBOOLEAN convertFlag = FALSE,
+    done = FALSE,
+    knownLength = TRUE,
+    explicitVR = FALSE,
+    acceptVRMismatch = FALSE,
+    part10Flag = FALSE;
+  unsigned char*ptr = NULL;
+  PRV_ELEMENT_ITEM* elementItem = NULL;
+  CTNBOOLEAN fileFlag = TRUE;
+  CONDITION flag = DCM_NORMAL;
   CTNBOOLEAN allowRepeatElements = FALSE;
 
   ptr = callerBuf;
