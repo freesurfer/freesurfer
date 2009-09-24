@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/18 21:21:04 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/09/24 14:25:15 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -78,7 +78,7 @@ void RenderView3D::InitializeRenderView3D()
   vtkCellPicker* picker = vtkCellPicker::New();
 // vtkPointPicker* picker = vtkPointPicker::New();
 // vtkPropPicker* picker = vtkPropPicker::New();
-  picker->SetTolerance( 0.001 );
+  picker->SetTolerance( 0.0001 );
   this->SetPicker( picker );
   picker->Delete();
 
@@ -120,7 +120,10 @@ void RenderView3D::RefreshAllActors()
   m_renderer->AddViewProp( m_actorFocusFrame );
 
   if ( lcm->HasLayer( "MRI" ) || lcm->HasLayer( "Surface" ) )
+  {
     m_renderer->AddViewProp( m_actorScalarBar );
+    
+  }
 
   m_renderer->ResetCameraClippingRange();
 

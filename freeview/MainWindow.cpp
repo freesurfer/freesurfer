@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 19:57:52 $
- *    $Revision: 1.68 $
+ *    $Date: 2009/09/24 14:25:15 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2356,6 +2356,10 @@ void MainWindow::RunScript()
   {
     CommandSetOpacity( sa );
   }
+  else if ( sa[0] == _("setdisplayisosurface") )
+  {
+    CommandSetDisplayIsoSurface( sa );
+  }
   else if ( sa[0] == _("setsurfaceoverlaymethod") )
   {
     CommandSetSurfaceOverlayMethod( sa );
@@ -2476,6 +2480,21 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
         script.Add( _("setopacity") );
         script.Add( subArgu );
         
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _("isosurface") )
+      {
+        wxArrayString script;
+        script.Add( _("setdisplayisosurface") );
+        wxArrayString argus = MyUtils::SplitString( subArgu, _(",") );
+        if ( argus.size() > 0 && argus[0].size() > 0 )
+        {
+          script.Add( argus[0] );
+        }
+        if ( argus.size() > 1 && argus[1].size() > 0 )
+        {
+          script.Add( argus[1] );
+        }
         m_scripts.insert( m_scripts.begin(), script );
       }
       else
@@ -2706,6 +2725,40 @@ void MainWindow::CommandSetOpacity( const wxArrayString& sa )
     {
       cerr << "Opacity value is not valid." << endl;
     }
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetDisplayIsoSurface( const wxArrayString& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {  
+    double dValue;
+    if ( sa.size() > 1 )
+    {
+      if ( sa[1].ToDouble( &dValue ) )
+      {
+        mri->GetProperties()->SetContourMinThreshold( dValue );
+      }
+      else
+      {
+        cerr << "Isosurface threshold value is not valid." << endl;
+      }
+    }
+    if ( sa.size() > 2 )
+    {
+      if ( sa[2].ToDouble( &dValue ) )
+      {
+        mri->GetProperties()->SetContourMaxThreshold( dValue );
+      }
+      else
+      {
+        cerr << "Isosurface threshold value is not valid." << endl;
+      }
+    }
+    mri->GetProperties()->SetShowAsContour( true );
   }
   
   ContinueScripts();
