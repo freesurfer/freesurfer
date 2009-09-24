@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/04/30 19:47:04 $
- *    $Revision: 1.135 $
+ *    $Author: mreuter $
+ *    $Date: 2009/09/24 17:23:29 $
+ *    $Revision: 1.136 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -784,6 +784,11 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
     {
       // use the same volume size as the src
       mri_dst = MRIclone(mri_src, NULL);
+      // reset talairach transform file name:
+      mri_dst->transform_fname[0] = '\0';
+      // maybe also reset or concatenate the actual transform 
+      // if available in mri_dst->transform (not yet implemented) ...
+			
       if (tran->dst.valid == 1) // transform dst is valid
       {
         // modify dst geometry using the transform dst value
