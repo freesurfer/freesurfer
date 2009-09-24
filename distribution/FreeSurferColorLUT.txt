@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.61 2009/07/30 15:35:29 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.62 2009/09/24 20:31:25 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -937,8 +937,8 @@
 7006  Medial-nucleus                                    2   149 2   0
 7007  Cortical-nucleus                                  221 249 166 0
 7008  Accessory-Basal-nucleus                           232 146 35  0
-7009  Corticoamygdaloid-transitio                       2   119 16  0
-7010  Anterior-amygdaloid-area-AAA                      4   115 17  0
+7009  Corticoamygdaloid-transitio                       20  60  120 0
+7010  Anterior-amygdaloid-area-AAA                      250 250 0   0
 7011  Fusion-amygdala-HP-FAH                            122 187 222 0
 7012  Hippocampal-amygdala-transition-HATA              237 12  177 0
 7013  Endopiriform-nucleus                              10  49  255 0
