@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/31 22:32:26 $
- *    $Revision: 1.323 $
+ *    $Author: krish $
+ *    $Date: 2009/09/24 21:29:31 $
+ *    $Revision: 1.324 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -622,6 +622,8 @@ char *colscalebar_label[4] = {NULL, NULL, NULL, NULL} ;
 int colscalebar_font_size = 1; /* 1 is small, 2 is med, 3 is big */
 int colscalebarvertflag = TRUE;
 int colscalebaruselabelsflag = FALSE;
+int linkvertextpflag = FALSE;
+int numvertices = 0;
 int surfaceflag = TRUE;
 int pointsflag = FALSE;
 int statflag = FALSE; /* vertex (fMRI) stats read in ? */
@@ -2313,6 +2315,13 @@ int  main(int argc,char *argv[])
       fprintf(stderr, "setting colscalebarvertflag to %d\n",
               colscalebarvertflag) ;
     }
+    else if (!stricmp(argv[i], "-linkvertextpflag"))
+    {
+      nargs = 2 ;
+      colscalebarvertflag = atoi(argv[i+1]) ;
+      fprintf(stderr, "setting linkvertextpflag to %d\n",
+              linkvertextpflag) ;
+    }
     else if (!stricmp(argv[i], "-scalebarflag"))
     {
       nargs = 2 ;
@@ -2951,6 +2960,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
   float md;
   int vno;
   /* end rkt */
+  int tpvno;
+  float tpd;
 
   if (!openglwindowflag) return(0);
 
@@ -3090,6 +3101,14 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         }
         else
         {
+	  if (linkvertextpflag)
+	  {
+            find_vertex_at_screen_point(sx, sy, &tpvno, &tpd);
+	    sclv_cur_timepoint = tpvno;
+            sclv_set_timepoint_of_field(sclv_current_field, sclv_cur_timepoint, sclv_cur_condition);
+            send_tcl_command ("UpdateAndRedraw");
+	  }
+
 
           /* begin rkt */
           if (selection>=0)
@@ -7751,6 +7770,7 @@ int read_binary_surface(char *fname)
     return(ERROR_NOFILE) ;
   MRISclearCurvature(mris) ;
   printf("surfer: vertices=%d, faces=%d\n",mris->nvertices,mris->nfaces);
+  numvertices = mris->nvertices;
   surface_compiled = 0 ;
   vertex_array_dirty = 1; /* rkt - added this */
 
@@ -20730,7 +20750,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.323 2009/07/31 22:32:26 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.324 2009/09/24 21:29:31 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21626,6 +21646,8 @@ int main(int argc, char *argv[])   /* new main */
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"colscalebarvertflag",(char *)&colscalebarvertflag,
               TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"linkvertextpflag",(char *)&linkvertextpflag,
+              TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"pointsflag",(char *)&pointsflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"surfaceflag",(char *)&surfaceflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"phasecontourflag",(char *)&phasecontourflag,
@@ -21682,6 +21704,7 @@ int main(int argc, char *argv[])   /* new main */
   /*=======================================================================*/
   /***** link global surfer INT variables to tcl equivalents */
   Tcl_LinkVar(interp,"nperdip",(char *)&sol_nperdip, TCL_LINK_INT);
+  Tcl_LinkVar(interp,"numvertices",(char *)&numvertices, TCL_LINK_INT);
   Tcl_LinkVar(interp,"scrsaveflag",(char *)&scrsaveflag, TCL_LINK_INT);
   Tcl_LinkVar(interp,"surfcolor",(char *)&surfcolor, TCL_LINK_INT);
   Tcl_LinkVar(interp,"mingm",(char *)&mingm, TCL_LINK_INT);
