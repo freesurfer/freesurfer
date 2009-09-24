@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/08/30 22:06:32 $
- *    $Revision: 1.160 $
+ *    $Author: mreuter $
+ *    $Date: 2009/09/24 17:28:41 $
+ *    $Revision: 1.161 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -139,7 +139,7 @@ int main(int argc, char *argv[]) {
   char in_name_only[STRLEN];
   char transform_fname[STRLEN];
   int transform_flag, invert_transform_flag;
-  LTA *lta_transform;
+  LTA *lta_transform = NULL;
   MRI *mri_transformed = NULL;
   int transform_type;
   MATRIX *inverse_transform_matrix;
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.160 2009/08/30 22:06:32 greve Exp $", "$Name:  $",
+   "$Id: mri_convert.c,v 1.161 2009/09/24 17:28:41 mreuter Exp $", "$Name:  $",
    cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.160 2009/08/30 22:06:32 greve Exp $", "$Name:  $"
+      "$Id: mri_convert.c,v 1.161 2009/09/24 17:28:41 mreuter Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1313,7 +1313,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.160 2009/08/30 22:06:32 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.161 2009/09/24 17:28:41 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1749,6 +1749,113 @@ int main(int argc, char *argv[]) {
   if (in_stats_flag)
     MRIprintStats(mri, stdout);
 
+  // Load the transform
+  if (transform_flag) {
+    printf("INFO: Applying transformation from file %s...\n",
+           transform_fname);
+    transform_type = TransformFileNameType(transform_fname);
+    if (transform_type == MNI_TRANSFORM_TYPE ||
+        transform_type == TRANSFORM_ARRAY_TYPE ||
+        transform_type == REGISTER_DAT ||
+        transform_type == FSLREG_TYPE) {
+      printf("Reading transform with LTAreadEx()\n");
+      // lta_transform = LTAread(transform_fname);
+      lta_transform = LTAreadEx(transform_fname);
+      if (lta_transform  == NULL) {
+        fprintf(stderr, "ERROR: Reading transform from file %s\n",
+                transform_fname);
+        exit(1);
+      }
+      if (transform_type == FSLREG_TYPE) {
+        MRI *tmp = 0;
+        if (out_like_flag == 0) {
+          printf("ERROR: fslmat does not have the information "
+                 "on the dst volume\n");
+          printf("ERROR: you must give option '--like volume' to specify the"
+                 " dst volume info\n");
+          MRIfree(&mri);
+          exit(1);
+        }
+        // now setup dst volume info
+        tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
+        // flsmat does not contain src and dst info
+        LTAmodifySrcDstGeom(lta_transform, mri, tmp);
+        // add src and dst information
+        LTAchangeType(lta_transform, LINEAR_VOX_TO_VOX);
+        MRIfree(&tmp);
+      } // end FSLREG_TYPE
+
+      if (DevXFM) {
+        printf("INFO: devolving XFM (%s)\n",devxfm_subject);
+        printf("-------- before ---------\n");
+        MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+        T = DevolveXFM(devxfm_subject,
+                       lta_transform->xforms[0].m_L, NULL);
+        if (T==NULL) exit(1);
+        printf("-------- after ---------\n");
+        MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+        printf("-----------------\n");
+      } // end DevXFM
+
+      if (invert_transform_flag) {
+        inverse_transform_matrix =
+          MatrixInverse(lta_transform->xforms[0].m_L,NULL);
+        if (inverse_transform_matrix == NULL) {
+          fprintf(stderr, "ERROR: inverting transform\n");
+          MatrixPrint(stdout,lta_transform->xforms[0].m_L);
+          exit(1);
+        }
+
+        MatrixFree(&(lta_transform->xforms[0].m_L));
+        lta_transform->xforms[0].m_L = inverse_transform_matrix;
+        // reverse src and dst target info.
+        // since it affects the c_ras values of the result
+        // in LTAtransform()
+        // question is what to do when transform src info is invalid.
+        lt = &lta_transform->xforms[0];
+        if (lt->src.valid==0) {
+          char buf[512];
+          char *p;
+          MRI *mriOrig;
+
+          fprintf(stderr, "INFO: Trying to get the source "
+                  "volume information from the transform name\n");
+          // copy transform filename
+          strcpy(buf, transform_fname);
+          // reverse look for the first '/'
+          p = strrchr(buf, '/');
+          if (p != 0) {
+            p++;
+            *p = '\0';
+            // set the terminator. i.e.
+            // ".... mri/transforms" from "
+            //..../mri/transforms/talairach.xfm"
+          } else {// no / present means only a filename is given
+            strcpy(buf, "./");
+          }
+          strcat(buf, "../orig"); // go to mri/orig from
+          // mri/transforms/
+          // check whether we can read header info or not
+          mriOrig = MRIreadHeader(buf, MRI_VOLUME_TYPE_UNKNOWN);
+          if (mriOrig) {
+            getVolGeom(mriOrig, &lt->src);
+            fprintf(stderr, "INFO: Succeeded in retrieving "
+                    "the source volume info.\n");
+          } else  printf("INFO: Failed to find %s as a source volume.  \n"
+                           "      The inverse c_(ras) may not be valid.\n",
+                         buf);
+        } // end not valid
+        copyVolGeom(&lt->dst, &vgtmp);
+        copyVolGeom(&lt->src, &lt->dst);
+        copyVolGeom(&vgtmp, &lt->src);
+      } // end invert_transform_flag
+
+    } // end transform type
+		// if type is non-linear, load transform below when applying it...
+	} // end transform_flag
+
+
+  
   if (reslice_like_flag) {
 
     if (force_template_type_flag) {
@@ -1777,6 +1884,11 @@ int main(int argc, char *argv[]) {
     template =
     MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
     MRIcopyHeader(mri, template);
+		
+		// if we loaded a transform above, set the target geometry:
+    if(lta_transform && lta_transform->xforms[0].dst.valid == 1)
+		  useVolGeomToMRI(&lta_transform->xforms[0].dst,template);
+			
     if(conform_flag) {
       conform_width = 256;
       if(conform_min == TRUE)  conform_size = findMinSize(mri, &conform_width);
@@ -1947,97 +2059,14 @@ int main(int argc, char *argv[]) {
         transform_type == TRANSFORM_ARRAY_TYPE ||
         transform_type == REGISTER_DAT ||
         transform_type == FSLREG_TYPE) {
-      printf("Reading transform with LTAreadEx()\n");
-      // lta_transform = LTAread(transform_fname);
-      lta_transform = LTAreadEx(transform_fname);
-      if (lta_transform  == NULL) {
-        fprintf(stderr, "ERROR: Reading transform from file %s\n",
-                transform_fname);
-        exit(1);
-      }
-      if (transform_type == FSLREG_TYPE) {
-        MRI *tmp = 0;
-        if (out_like_flag == 0) {
-          printf("ERROR: fslmat does not have the information "
-                 "on the dst volume\n");
-          printf("ERROR: you must give option '--like volume' to specify the"
-                 " dst volume info\n");
-          MRIfree(&mri);
+
+      // in these cases the lta_transform was loaded above
+        if (!lta_transform)
+				{
+          fprintf(stderr, "ERROR: lta should have been loaded \n");
           exit(1);
-        }
-        // now setup dst volume info
-        tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
-        // flsmat does not contain src and dst info
-        LTAmodifySrcDstGeom(lta_transform, mri, tmp);
-        // add src and dst information
-        LTAchangeType(lta_transform, LINEAR_VOX_TO_VOX);
-        MRIfree(&tmp);
-      }
-
-      if (DevXFM) {
-        printf("INFO: devolving XFM (%s)\n",devxfm_subject);
-        printf("-------- before ---------\n");
-        MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-        T = DevolveXFM(devxfm_subject,
-                       lta_transform->xforms[0].m_L, NULL);
-        if (T==NULL) exit(1);
-        printf("-------- after ---------\n");
-        MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-        printf("-----------------\n");
-      }
-
-      if (invert_transform_flag) {
-        inverse_transform_matrix =
-          MatrixInverse(lta_transform->xforms[0].m_L,NULL);
-        if (inverse_transform_matrix == NULL) {
-          fprintf(stderr, "ERROR: inverting transform\n");
-          MatrixPrint(stdout,lta_transform->xforms[0].m_L);
-          exit(1);
-        }
-
-        MatrixFree(&(lta_transform->xforms[0].m_L));
-        lta_transform->xforms[0].m_L = inverse_transform_matrix;
-        // reverse src and dst target info.
-        // since it affects the c_ras values of the result
-        // in LTAtransform()
-        // question is what to do when transform src info is invalid.
-        lt = &lta_transform->xforms[0];
-        if (lt->src.valid==0) {
-          char buf[512];
-          char *p;
-          MRI *mriOrig;
-
-          fprintf(stderr, "INFO: Trying to get the source "
-                  "volume information from the transform name\n");
-          // copy transform filename
-          strcpy(buf, transform_fname);
-          // reverse look for the first '/'
-          p = strrchr(buf, '/');
-          if (p != 0) {
-            p++;
-            *p = '\0';
-            // set the terminator. i.e.
-            // ".... mri/transforms" from "
-            //..../mri/transforms/talairach.xfm"
-          } else {// no / present means only a filename is given
-            strcpy(buf, "./");
-          }
-          strcat(buf, "../orig"); // go to mri/orig from
-          // mri/transforms/
-          // check whether we can read header info or not
-          mriOrig = MRIreadHeader(buf, MRI_VOLUME_TYPE_UNKNOWN);
-          if (mriOrig) {
-            getVolGeom(mriOrig, &lt->src);
-            fprintf(stderr, "INFO: Succeeded in retrieving "
-                    "the source volume info.\n");
-          } else  printf("INFO: Failed to find %s as a source volume.  \n"
-                           "      The inverse c_(ras) may not be valid.\n",
-                         buf);
-        }
-        copyVolGeom(&lt->dst, &vgtmp);
-        copyVolGeom(&lt->src, &lt->dst);
-        copyVolGeom(&vgtmp, &lt->src);
-      }
+				}
+			
 
       /* Think about calling MRIlinearTransform() here; need vox2vox
          transform. Can create NN version. In theory, LTAtransform()
@@ -2090,7 +2119,8 @@ int main(int argc, char *argv[]) {
         }
         mri_transformed =
           LTAtransformInterp(mri, NULL, lta_transform,resample_type_val);
-      }
+      } // end out_like_flag treatment
+			
       if (mri_transformed == NULL) {
         fprintf(stderr, "ERROR: applying transform to volume\n");
         exit(1);
