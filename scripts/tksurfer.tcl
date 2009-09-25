@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2009/01/09 05:23:34 $
-##    $Revision: 1.162 $
+##    $Date: 2009/09/25 18:28:40 $
+##    $Revision: 1.163 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -237,6 +237,8 @@ set gaLinkedVars(colscalebar_xpos) 0.925
 set gaLinkedVars(colscalebar_ypos) -0.95
 set gaLinkedVars(colscalebar_width) 0.05
 set gaLinkedVars(colscalebar_height) 0.5
+set gaLinkedVars(linkvertextpflag) 0
+set gaLinkedVars(numvertices) 0
 set gaLinkedVars(verticesflag) 0
 set gaLinkedVars(cmid) 0
 set gaLinkedVars(dipavg) 0
@@ -263,7 +265,7 @@ array set gaLinkedVarGroups {
     overlay { falpha fopaqueflag colscale truncphaseflag invphaseflag
 	revphaseflag complexvalflag foffset fthresh fmid fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
-	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag}
+	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag linkvertextpflag}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
@@ -277,7 +279,7 @@ array set gaLinkedVarGroups {
 	captionformat }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue timeresolution numprestimpoints colortablename }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue timeresolution numprestimpoints colortablename linkvertextpflag numvertices}
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints func_graph_avg_mode }
     label { colortablename selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue labels_before_overlay_flag }
@@ -970,6 +972,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	set lwPlane            $fwPlane.lwPlane
 	set fwTimePoint        $fwPlane.fwTimePoint
 	set fwCondition        $fwPlane.fwCondition
+	set linkflag           $fwPlane.linkflag
 
 	frame $fwPlane -relief ridge -border 2
 
@@ -984,10 +987,25 @@ proc DoConfigOverlayDisplayDlog {} {
 	    $fwCondition "Condition (0-$nMaxCondition)" \
 	    gaLinkedVars(fcondition) \
 	    {} 1 "0 $nMaxCondition"
+        	
+	if { $gaLinkedVars(fnumtimepoints) == $gaLinkedVars(numvertices) } {
+	checkbutton $linkflag \
+	    -variable gaLinkedVars(linkvertextpflag) \
+	    -text "Link Time Point to Vertex Index" \
+	    -font [tkm_GetNormalFont]
+        } else { 
+	checkbutton $linkflag \
+	    -variable gaLinkedVars(linkvertextpflag) \
+	    -text "Link Time Point to Vertex Index" \
+	    -font [tkm_GetNormalFont] \
+	    -state disabled
+         }
+	    
 
 	grid $lwPlane     -column 0 -row 0 -columnspan 2
 	grid $fwTimePoint -column 0 -row 1 -sticky w
 	grid $fwCondition -column 1 -row 1 -sticky w
+	grid $linkflag    -column 0 -row 2 -columnspan 2
 
 	# color scale
 	set lwColorScale  $fwColorScale.lwColorScale
