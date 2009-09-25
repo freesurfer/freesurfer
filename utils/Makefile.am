@@ -296,7 +296,7 @@ libutils_a_SOURCES=\
 bin_PROGRAMS=gifti_tool gifti_test
 gifti_tool_SOURCES=gifti_tool.c gifti_tool.h \
 	gifti_io.c gifti_xml.c nifti1_io.c znzlib.c
-gifti_tool_LDADD=$(top_builddir)/expat/libexpat.a -lz $(LIBS_NIFTI)
+gifti_tool_LDADD=$(top_builddir)/expat/libexpat.a -lz -lm $(LIBS_NIFTI)
 gifti_test_SOURCES=gifti_test.c gifti_test.h gifti_io.c gifti_xml.c
 gifti_test_LDADD=$(top_builddir)/expat/libexpat.a -lz $(LIBS_NIFTI)
 
