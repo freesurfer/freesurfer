@@ -192,24 +192,24 @@ CCubeNode* CQueue3D::GetHead(void)
 
 // -- Function prototypes
 double Mean5x5x5(int startX, int startY, int startZ, 
-                 int iSizeX, int iSizeY, int iSizeZ, unsigned char ***Mat);
+                 int iSizeX, int iSizeY, 
+                 unsigned char ***Mat);
 double Variance5x5x5(int startX, int startY, int startZ, 
-                     int iSizeX, int iSizeY, int iSizeZ,
+                     int iSizeX, int iSizeY, 
                      double mean, unsigned char ***Mat);
 double Variance8V(int startX, int startY, int startZ, 
-                  int iSizeX, int iSizeY, int iSizeZ,
+                  int iSizeX, int iSizeY, 
                   unsigned char ***Mat, int size);
 double Mean3x3x3(int startX, int startY, int startZ, 
-                 int iSizeX, int iSizeY, int iSizeZ,
-                 unsigned char ***Mat);
+                 int iSizeX, int iSizeY, unsigned char ***Mat);
 double Variance3x3x3(int startX, int startY, int startZ, 
-                     int iSizeX, int iSizeY, int iSizeZ,
+                     int iSizeX, int iSizeY, 
                      double mean, unsigned char ***Mat);
 void   SetRegion3x3x3(int startX, int startY, int startZ, 
                       int iSizeX, int iSizeY, 
                       unsigned char ***Mat, short value);
-int    Sub2Ind3D(int sX, int sY, int sZ, int iSizeX, int iSizeY);
-
+int    Sub2Ind3D(int sX, int sY, int sZ, 
+                 int iSizeX, int iSizeY);
 
 // -- Main function
 int AutoSelectSeed(gc_POS *iSeed, unsigned char ***Mat, 
@@ -246,7 +246,8 @@ int AutoSelectSeed(gc_POS *iSeed, unsigned char ***Mat,
     };
   double shortListVariance[10] =
     {
-      100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000, 100000
+      100000, 100000, 100000, 100000, 100000, 
+      100000, 100000, 100000, 100000, 100000
     };
   int shortListSeedX[10] =
     {
@@ -276,10 +277,9 @@ int AutoSelectSeed(gc_POS *iSeed, unsigned char ***Mat,
     {
       for (int sZ=size; sZ<(iSizeZ-size); sZ=sZ+size)
       {
-        mean = Mean5x5x5(sX, sY, sZ, iSizeX, iSizeY, iSizeZ, Mat);
-        variance = 
-          Variance5x5x5(sX, sY, sZ, iSizeX, iSizeY, iSizeZ, mean, Mat);
-        variance8V = Variance8V(sX, sY, sZ, iSizeX, iSizeY, iSizeZ, Mat, 5);
+        mean = Mean5x5x5(sX, sY, sZ, iSizeX, iSizeY, Mat);
+        variance = Variance5x5x5(sX, sY, sZ, iSizeX, iSizeY, mean, Mat);
+        variance8V = Variance8V(sX, sY, sZ, iSizeX, iSizeY, Mat, 5);
 
         if ( (mean>MeanThreshold) && (variance<VarianceThreshold) )
         {
@@ -289,11 +289,17 @@ int AutoSelectSeed(gc_POS *iSeed, unsigned char ***Mat,
             tempX = sX + neighbor6[n1][0];
             tempY = sY + neighbor6[n1][1];
             tempZ = sZ + neighbor6[n1][2];
-            tempMean = 
-              Mean5x5x5(tempX, tempY, tempZ, iSizeX, iSizeY, iSizeZ, Mat);
+            //boundary check again!
+            if ( tempX >= iSizeX-size || 
+                 tempY >= iSizeY-size || 
+                 tempZ >= iSizeZ-size )
+            {
+              qualifiedFlag = false;
+              break;
+            }
+            tempMean = Mean5x5x5(tempX, tempY, tempZ, iSizeX, iSizeY, Mat);
             tempVariance = Variance5x5x5(tempX, tempY, tempZ, 
-                                         iSizeX, iSizeY, iSizeZ,
-                                         tempMean, Mat);
+                                         iSizeX, iSizeY, tempMean, Mat);
 
             if (!( (tempMean>MeanThreshold) && 
                    (tempVariance<VarianceThreshold) ))
@@ -366,7 +372,10 @@ int RegionGrowing(gc_POS iSeed,
                   unsigned char ***MImage, 
                   unsigned char ***MLabel, 
                   int xVol, int yVol, int zVol, 
-                  double lmdT, double umdT, double nmdT, double vT)
+                  double lmdT, 
+                  double umdT, 
+                  double nmdT, 
+                  double vT)
 {
 
   double ptrLMeanDiffThreshold = lmdT;
@@ -404,13 +413,13 @@ int RegionGrowing(gc_POS iSeed,
 
   // -- Retrieve the seed's parameters and put it in a queue
   double meanSeed = Mean3x3x3(iSeedPosX, iSeedPosY, iSeedPosZ, 
-                              iSizeX, iSizeY, iSizeZ, MImage);
+                              iSizeX, iSizeY, MImage);
   double varianceSeed = Variance3x3x3(iSeedPosX, iSeedPosY, iSeedPosZ, 
-                                      iSizeX, iSizeY, iSizeZ,
-                                      meanSeed, MImage);
+                                      iSizeX, iSizeY, meanSeed, MImage);
   double variance8VSeed = Variance8V(iSeedPosX, iSeedPosY, iSeedPosZ, 
-                                     iSizeX, iSizeY, iSizeZ, MImage, 3);
-  int iSeedIndex = Sub2Ind3D(iSeedPosX, iSeedPosY, iSeedPosZ, iSizeX, iSizeY);
+                                     iSizeX, iSizeY, MImage, 3);
+  int iSeedIndex = Sub2Ind3D(iSeedPosX, iSeedPosY, iSeedPosZ, 
+                             iSizeX, iSizeY);
 
   CCubeNode *seedNode = new CCubeNode(iSeedPosX, iSeedPosY, iSeedPosZ, 
                                       iSeedIndex, meanSeed, 
@@ -419,9 +428,10 @@ int RegionGrowing(gc_POS iSeed,
   ptrQueue->Enqueue(seedNode);
 
   // -- Set as visited
-  SetRegion3x3x3(iSeedPosX, iSeedPosY, iSeedPosZ, iSizeX, iSizeY, MLabel, 1);
-  SetRegion3x3x3(iSeedPosX, iSeedPosY, iSeedPosZ, iSizeX, iSizeY, 
-                 ptrVisited, 1);
+  SetRegion3x3x3(iSeedPosX, iSeedPosY, iSeedPosZ, 
+                 iSizeX, iSizeY, MLabel, 1);
+  SetRegion3x3x3(iSeedPosX, iSeedPosY, iSeedPosZ, 
+                 iSizeX, iSizeY, ptrVisited, 1);
 
   // -- compute the max and min intensity of the pixels
   double minMean = meanSeed - ptrLMeanDiffThreshold;
@@ -449,12 +459,13 @@ int RegionGrowing(gc_POS iSeed,
   //double weightedVariance = 0;
   //int loopControlCount = 0;
 
-  int sixNeighbourOffset[6][3] = {{-1,0,0},
-                                  {1,0,0},
-                                  {0,-1,0},
-                                  {0,1,0},
-                                  {0,0,-1},
-                                  {0,0,1}};
+  int sixNeighbourOffset[6][3] = {
+    {-1,0,0},
+    {1,0,0},
+    {0,-1,0},
+    {0,1,0},
+    {0,0,-1},
+    {0,0,1}};
 
   while (ptrCurrentNode != NULL)
   {
@@ -482,7 +493,8 @@ int RegionGrowing(gc_POS iSeed,
 
       indexNeighborNode = Sub2Ind3D(subXNeighborNode, 
                                     subYNeighborNode, 
-                                    subZNeighborNode, iSizeX, iSizeY);
+                                    subZNeighborNode, 
+                                    iSizeX, iSizeY);
 
       if ( ptrVisited[subZNeighborNode][subYNeighborNode][subXNeighborNode] 
            != 1)
@@ -490,26 +502,24 @@ int RegionGrowing(gc_POS iSeed,
         meanNeighborNode = Mean3x3x3(subXNeighborNode, 
                                      subYNeighborNode, 
                                      subZNeighborNode, 
-                                     iSizeX, iSizeY, iSizeZ, MImage);
+                                     iSizeX, iSizeY, MImage);
         varianceNeighborNode = Variance3x3x3(subXNeighborNode, 
                                              subYNeighborNode, 
                                              subZNeighborNode, 
-                                             iSizeX, iSizeY, iSizeZ,
+                                             iSizeX, iSizeY, 
                                              meanNeighborNode, MImage);
         variance8VNeighborNode = Variance8V(subXNeighborNode, 
                                             subYNeighborNode, 
                                             subZNeighborNode, 
-                                            iSizeX, iSizeY, iSizeZ, 
+                                            iSizeX, iSizeY, 
                                             MImage, 3);
 
         //weightedVariance = (0.5*varianceNeighborNode) + (0.5*variance8VNeighborNode);
         SetRegion3x3x3(subXNeighborNode, 
                        subYNeighborNode, 
                        subZNeighborNode, 
-                       iSizeX, 
-                       iSizeY, 
-                       ptrVisited, 
-                       1);
+                       iSizeX, iSizeY, 
+                       ptrVisited, 1);
 
         if ( fabs(meanCurrentNode-meanNeighborNode) < ptrNMeanDiffThreshold
              && varianceNeighborNode < ptrVarianceThreshold
@@ -530,10 +540,8 @@ int RegionGrowing(gc_POS iSeed,
           SetRegion3x3x3(subXNeighborNode, 
                          subYNeighborNode, 
                          subZNeighborNode, 
-                         iSizeX, 
-                         iSizeY, 
-                         MLabel, 
-                         1);
+                         iSizeX, iSizeY, 
+                         MLabel, 1);
         }
       }
     }
@@ -626,14 +634,13 @@ double pre_porocessing(unsigned char ***image,
   return whitemean;
 }
 
-// -- Subroutine to compute the mean of a 5x5x5 cube, with bounds checking
+// -- Subroutine to compute the mean of a 5x5x5 cube
 double Mean5x5x5(int startX, int startY, int startZ, 
-                 int iSizeX, int iSizeY, int iSizeZ, 
-                 unsigned char ***Mat)
+                 int iSizeX, int iSizeY, unsigned char ***Mat)
 {
   const int size = 5;
-  int totalSize = 0;
   double sum = 0;
+  //int ind = 0;
 
   for (int x=startX; x<(startX+size); x++)
   {
@@ -641,27 +648,23 @@ double Mean5x5x5(int startX, int startY, int startZ,
     {
       for (int z=startZ; z<(startZ+size); z++)
       {
-        if ( (x < iSizeX) && (y < iSizeY) && (z < iSizeZ) )
-        {
-          sum = sum + Mat[z][y][x];
-          totalSize++;
-        }
+        sum = sum + Mat[z][y][x];
       }
     }
   }
 
-  double mean = sum/totalSize;
+  double mean = sum/(size*size*size);
   return mean;
 }
 
 // -- Subroutine to compute the variance of a 5x5x5 cube
 double Variance5x5x5(int startX, int startY, int startZ, 
-                     int iSizeX, int iSizeY, int iSizeZ,
+                     int iSizeX, int iSizeY, 
                      double mean, unsigned char ***Mat)
 {
   const int size = 5;
   double sum = 0;
-  int totalSize = 0;
+  //int ind = 0;
   double pixel = 0;
 
   for (int x=startX; x<(startX+size); x++)
@@ -670,60 +673,37 @@ double Variance5x5x5(int startX, int startY, int startZ,
     {
       for (int z=startZ; z<(startZ+size); z++)
       {
-        if ( (x < iSizeX) && (y < iSizeY) && (z < iSizeZ) )
-        {
-          pixel = Mat[z][y][x];
-          sum = sum + ((pixel-mean)*(pixel-mean));
-          totalSize++;
-        }
+        pixel = Mat[z][y][x];
+        sum = sum + ((pixel-mean)*(pixel-mean));
       }
     }
   }
 
-  double variance = sum/totalSize;
+  double variance = sum/(size*size*size);
   return variance;
 }
 
 // -- subrountine to compute the variance of the 8 vertices of a 5x5x5 cube
 double Variance8V(int startX, int startY, int startZ, 
-                  int iSizeX, int iSizeY, int iSizeZ,
+                  int iSizeX, int iSizeY, 
                   unsigned char ***Mat, int size)
 {
+  //const int size = 5;
   double sum = 0;
   int i;
 
   int ind[8];
   double pixel[8];
 
-  int iX,iY,iZ;
-
   ind[0] = Mat[startZ][startY][startX];
-
-  iX=startX+size; if (iX>=iSizeX) iX=iSizeX-1;
-  ind[1] = Mat[startZ][startY][iX];
-
-  iY=startY+size; if (iY>=iSizeY) iY=iSizeY-1;
-  ind[2] = Mat[startZ][iY][startX];
-
-  iX=startX+size; if (iX>=iSizeX) iX=iSizeX-1;
-  iY=startY+size; if (iY>=iSizeY) iY=iSizeY-1;
-  ind[3] = Mat[startZ][iY][iX];
-
-  iZ=startZ+size; if (iZ>=iSizeZ) iZ=iSizeZ-1;
-  ind[4] = Mat[iZ][startY][startX];
-
-  iX=startX+size; if (iX>=iSizeX) iX=iSizeX-1;
-  iZ=startZ+size; if (iZ>=iSizeZ) iZ=iSizeZ-1;
-  ind[5] = Mat[iZ][startY][iX];
-
-  iY=startY+size; if (iY>=iSizeY) iY=iSizeY-1;
-  iZ=startZ+size; if (iZ>=iSizeZ) iZ=iSizeZ-1;
-  ind[6] = Mat[iZ][iY][startX];
-
-  iX=startX+size; if (iX>=iSizeX) iX=iSizeX-1;
-  iY=startY+size; if (iY>=iSizeY) iY=iSizeY-1;
-  iZ=startZ+size; if (iZ>=iSizeZ) iZ=iSizeZ-1;
-  ind[7] = Mat[iZ][iY][iX];
+  if (startX+size)
+    ind[1] = Mat[startZ][startY][startX+size];
+  ind[2] = Mat[startZ][startY+size][startX];
+  ind[3] = Mat[startZ][startY+size][startX+size];
+  ind[4] = Mat[startZ+size][startY][startX];
+  ind[5] = Mat[startZ+size][startY][startX+size];
+  ind[6] = Mat[startZ+size][startY+size][startX];
+  ind[7] = Mat[startZ+size][startY+size][startX+size];
 
   for (i=0; i<8; i++)
   {
@@ -745,12 +725,11 @@ double Variance8V(int startX, int startY, int startZ,
 
 // -- Subroutine to compute the mean of a 3x3x3 cube
 double Mean3x3x3(int startX, int startY, int startZ, 
-                 int iSizeX, int iSizeY, int iSizeZ,
-                 unsigned char ***Mat)
+                 int iSizeX, int iSizeY, unsigned char ***Mat)
 {
   const int size = 3;
   double sum = 0;
-  int totalSize = 0;
+  //int ind = 0;
 
   for (int x=startX; x<(startX+size); x++)
   {
@@ -758,27 +737,23 @@ double Mean3x3x3(int startX, int startY, int startZ,
     {
       for (int z=startZ; z<(startZ+size); z++)
       {
-        if ( (x < iSizeX) && (y < iSizeY) && (z < iSizeZ) )
-        {
-          sum = sum + Mat[z][y][x];
-          totalSize++;
-        }
+        sum = sum + Mat[z][y][x];
       }
     }
   }
 
-  double mean = sum/totalSize;
+  double mean = sum/(size*size*size);
   return mean;
 }
 
 // -- Subroutine to compute the variance of a 5x5x5 cube
 double Variance3x3x3(int startX, int startY, int startZ, 
-                     int iSizeX, int iSizeY, int iSizeZ,
+                     int iSizeX, int iSizeY, 
                      double mean, unsigned char ***Mat)
 {
   const int size = 3;
   double sum = 0;
-  int totalSize = 0;
+  //int ind = 0;
   double pixel = 0;
 
   for (int x=startX; x<(startX+size); x++)
@@ -787,23 +762,20 @@ double Variance3x3x3(int startX, int startY, int startZ,
     {
       for (int z=startZ; z<(startZ+size); z++)
       {
-        if ( (x < iSizeX) && (y < iSizeY) && (z < iSizeZ) )
-        {
-          pixel = Mat[z][y][x];
-          sum = sum + ((pixel-mean)*(pixel-mean));
-          totalSize++;
-        }
+        pixel = Mat[z][y][x];
+        sum = sum + ((pixel-mean)*(pixel-mean));
       }
     }
   }
 
-  double variance = sum/totalSize;
+  double variance = sum/(size*size*size);
   return variance;
 }
 
 // -- Subroutine to set the region as ROI (true);
 void SetRegion3x3x3(int startX, int startY, int startZ, 
-                    int iSizeX, int iSizeY, unsigned char ***Mat, short value)
+                    int iSizeX, int iSizeY, 
+                    unsigned char ***Mat, short value)
 {
   //const int size = 3;
   Mat[startZ][startY][startX] = value;

@@ -60,10 +60,12 @@ public:
       if (last && last->next) last = last -> next;
       else
       {
-        block *next = (block *) new char [sizeof(block) + (block_size-1)*sizeof(Type)];
+        block *next = 
+          (block *) new char [sizeof(block) + (block_size-1)*sizeof(Type)];
         if (!next)
         {
-          if (error_function) (*error_function)("Not enough memory!");
+          if (error_function) 
+            (*error_function)((char*)"Not enough memory!");
           exit(1);
         }
         if (last) last -> next = next;
@@ -176,10 +178,12 @@ public:
     if (!first_free)
     {
       block *next = first;
-      first = (block *) new char [sizeof(block) + (block_size-1)*sizeof(block_item)];
+      first = 
+        (block *) new char [sizeof(block) + (block_size-1)*sizeof(block_item)];
       if (!first)
       {
-        if (error_function) (*error_function)("Not enough memory!");
+        if (error_function) 
+          (*error_function)((char*)"Not enough memory!");
         exit(1);
       }
       first_free = & (first -> data[0] );
