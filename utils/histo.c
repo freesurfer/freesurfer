@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/08/01 18:08:53 $
- *    $Revision: 1.62 $
+ *    $Author: mreuter $
+ *    $Date: 2009/09/25 20:25:47 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1484,6 +1484,12 @@ HISTOtotalInRegion(HISTO *h, int b0, int b1)
   return(total) ;
 }
 
+int
+HISTOtotal(HISTO *h)
+{
+  return HISTOtotalInRegion(h,0,h->nbins-1);	
+}
+
 
 int
 HISTOclearZeroBin(HISTOGRAM *h)
@@ -2111,3 +2117,20 @@ HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst)
   return(hdst) ;
 }
 
+double
+HISTOgetEntropy(HISTOGRAM *h) 
+{
+  double total   = (double) HISTOtotal(h);
+  double entropy = 0.0, p;
+	int b;
+
+  for (b = 0 ; b < h->nbins ; b++)
+	{
+    if (h->counts[b] > 0)
+		{
+	    p = (double)h->counts[b] / total;
+		  entropy -= p * log(p);
+		}
+  }
+  return(entropy) ;
+}

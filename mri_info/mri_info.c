@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/08/19 23:55:06 $
- *    $Revision: 1.70 $
+ *    $Author: mreuter $
+ *    $Date: 2009/09/25 20:25:51 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.70 $";
+char *MRI_INFO_VERSION = "$Revision: 1.71 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.70 2009/08/19 23:55:06 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.71 2009/09/25 20:25:51 mreuter Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -95,6 +95,7 @@ static int PrintDet = 0;
 static int PrintOrientation = 0;
 static int PrintSliceDirection = 0;
 static int PrintCRAS = 0;
+static int PrintEntropy = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
 static int PrintCmds = 0;
@@ -211,6 +212,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--orientation")) PrintOrientation = 1;
     else if (!strcasecmp(option, "--slicedirection")) PrintSliceDirection = 1;
     else if (!strcasecmp(option, "--autoalign")) PrintAutoAlign = 1;
+    else if (!strcasecmp(option, "--entropy")) PrintEntropy = 1;
     else if (!strcasecmp(option, "--cmds")) PrintCmds = 1;
     else if (!strcasecmp(option, "--o")) {
       PrintToFile = 1;
@@ -286,6 +288,7 @@ static void print_usage(void) {
   printf("   --cmds : print command-line provenance info\n");
   printf("   --voxel c r s : dump voxel value from col row slice "
          "(0-based, all frames)\n");
+  printf("   --entropy : compute and print entropy \n");
   printf("   --o file : print flagged results to file \n");
   printf("   --in_type type : explicitly specify file type "
          "(see mri_convert) \n");
@@ -377,7 +380,7 @@ static void do_file(char *fname) {
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
   }
-  if (!PrintVoxel)  mri = MRIreadHeader(fname, intype) ;
+  if (!PrintVoxel && !PrintEntropy)  mri = MRIreadHeader(fname, intype) ;
   else             mri = MRIread(fname);
   if(!mri) exit(1); // should exit with error here
 
@@ -590,6 +593,13 @@ static void do_file(char *fname) {
     MatrixPrintFmt(fpout,"%10f",mri->AutoAlign);
     return;
   }
+	if (PrintEntropy) {
+	  HISTOGRAM * h = MRIhistogram(mri, 256) ;
+		double e = HISTOgetEntropy(h);
+    fprintf(fpout,"%f\n",e);
+		HISTOfree(&h);
+		return;
+	}
   if (PrintVoxel) {
     c = VoxelCRS[0];
     r = VoxelCRS[1];
