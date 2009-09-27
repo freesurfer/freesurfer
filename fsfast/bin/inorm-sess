@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/09/16 04:44:43 $
-#    $Revision: 1.9 $
+#    $Date: 2009/09/27 21:48:43 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: inorm-sess,v 1.9 2009/09/16 04:44:43 greve Exp $'
+set VERSION = '$Id: inorm-sess,v 1.10 2009/09/27 21:48:43 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -170,6 +170,12 @@ foreach sess ($SessList)
     endif
     if($UseMask) then
       set maskstem = masks/brain
+      set tmp = `stem2fname $maskstem`;
+      if($status) then
+        echo "ERROR: cannot find `pwd`/$maskstem"|& tee -a $LF
+        echo "You may need to run preproc-sess or mkbrainmask-sess to create a brain mask"|& tee -a $LF
+        exit 1;
+      endif
       set cmd = ($cmd -mask $maskstem)
     endif
 
