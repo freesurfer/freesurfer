@@ -119,6 +119,7 @@ FSF_FILES=\
 	groupreg-sess \
 	inorm \
 	inorm2 \
+	inorm3 \
 	inorm-sess \
 	intergroupavg-sess \
 	ipfsl \
