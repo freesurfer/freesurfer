@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:37 $
- *    $Revision: 1.34 $
+ *    $Author: greve $
+ *    $Date: 2009/09/28 21:06:06 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,6 +92,7 @@ double sum2stddev(double xsum, double xsum2, int nx);
 int compare_ints(const void *v1,const void *v2);
 int nunqiue_int_list(int *idlist, int nlist);
 int *unqiue_int_list(int *idlist, int nlist, int *nunique);
+int most_frequent_int_list(int *idlist, int nlist, int *nmax);
 
 /* Necessary when Intel C/C++ compiler is used... */
 void __ltoq(void);

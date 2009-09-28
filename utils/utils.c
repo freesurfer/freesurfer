@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:56 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2009/09/28 21:06:06 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1338,6 +1338,36 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique)
     }
   }
   return(ulist);
+}
+/* ---------------------------------------------------*/
+/*!
+  \fn int most_frequent_int_list(int *idlist, int nlist)
+  \brief Returns the item in the list that appears most frequently.
+  If there is a tie, it returns the first sorted. The list will be
+  sorted.
+*/
+int most_frequent_int_list(int *idlist, int nlist, int *nmax)
+{
+  int n, *ulist, nthu, nthumax, nunique, *nper;
+
+  ulist = unqiue_int_list(idlist, nlist, &nunique) ;
+  nper = (int *) calloc(sizeof(int),nunique);
+  for(nthu=0; nthu < nunique; nthu++){
+    for(n=0; n < nlist; n++)
+      if(idlist[n] == ulist[nthu]) nper[nthu]++;
+  }
+
+  nthumax = 0;
+  *nmax = nper[nthumax];
+  for(nthu=0; nthu < nunique; nthu++){
+    if(*nmax < nper[nthu]){
+      *nmax = nper[nthu];
+      nthumax = nthu;
+    }
+  }
+
+  free(nper);
+  return(ulist[nthumax]);
 }
 
 /*--------------------------------------------------
