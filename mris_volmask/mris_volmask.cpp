@@ -9,8 +9,8 @@
  * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/03 21:05:25 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/09/28 23:07:22 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -377,6 +377,13 @@ main(int ac, char* av[])
             const_cast<char*>( (outputPath / (params.outRoot +
                                               ".mgz")).c_str() )
           );
+  // sanity-check: make sure location 0,0,0 is background (not brain)
+  if ( MRIgetVoxVal(finalMask,0,0,0,0) != 0 )
+  {
+    cerr << "ERROR: ribbon has non-zero value at location 0,0,0"
+         << endl;
+    exit(1);      
+  }
 
   /*
     if present, also write the ribbon masks by themselves
@@ -392,6 +399,13 @@ main(int ac, char* av[])
               const_cast<char*>( (outputPath / "lh." +
                                   params.outRoot + ".mgz").c_str()  )
             );
+    // sanity-check: make sure location 0,0,0 is background (not brain)
+    if ( MRIgetVoxVal(ribbon,0,0,0,0) != 0 )
+    {
+      cerr << "ERROR: lh ribbon has non-zero value at location 0,0,0"
+           << endl;
+      exit(1);      
+    }
     MRIfree(&ribbon);
 
     ribbon = FilterLabel(maskRightHemi,
@@ -401,6 +415,13 @@ main(int ac, char* av[])
               const_cast<char*>( (outputPath / "rh." +
                                   params.outRoot + ".mgz").c_str() )
             );
+    // sanity-check: make sure location 0,0,0 is background (not brain)
+    if ( MRIgetVoxVal(ribbon,0,0,0,0) != 0 )
+    {
+      cerr << "ERROR: rh ribbon has non-zero value at location 0,0,0"
+           << endl;
+      exit(1);      
+    }
     MRIfree(&ribbon);
   }
 
@@ -687,6 +708,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   implicit->CappingOff();
   implicit->SetCapValue(thickness);
   implicit->SetProcessModeToPerVoxel();
+  implicit->SetNumberOfThreads( 8 );
   implicit->Update();
 
   sp->ShallowCopy( implicit->GetOutput() );
