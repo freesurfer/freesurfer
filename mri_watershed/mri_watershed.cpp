@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/06/30 21:37:53 $
- *    $Revision: 1.75 $
+ *    $Author: fischl $
+ *    $Date: 2009/09/29 23:11:22 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.75 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.76 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.75 2009/06/30 21:37:53 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.76 2009/09/29 23:11:22 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.75 2009/06/30 21:37:53 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.76 2009/09/29 23:11:22 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1860,7 +1860,7 @@ static int calCOGMAX(MRI_variables *MRI_var,
         pb++;
       }
     }
-  if (m==0)
+  if (m<=100)
     Error("\n Problem in the COG calculation ");
 
   MRI_var->xCOG/=m;  // m is used here
@@ -2244,6 +2244,12 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
       j=MRI_var->j_global_min;
       k=MRI_var->k_global_min;
     }
+    if (i < 0 || i >= MRI_var->mri_src->width ||
+        j < 0 || j >= MRI_var->mri_src->height ||
+        k < 0 || k >= MRI_var->mri_src->depth)
+      Error("indices out of bounds\n");
+      
+
     // change the histogram of this particular i,j,k grey value
     // note that tabdim is the histogram of grey values
     MRI_var->tabdim[MRIvox(MRI_var->mri_src,i,j,k)]--;
