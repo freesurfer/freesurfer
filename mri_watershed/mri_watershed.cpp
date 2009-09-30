@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/29 23:11:22 $
- *    $Revision: 1.76 $
+ *    $Author: nicks $
+ *    $Date: 2009/09/30 20:49:06 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.76 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.77 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -855,7 +855,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.76 2009/09/29 23:11:22 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.77 2009/09/30 20:49:06 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +868,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.76 2009/09/29 23:11:22 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.77 2009/09/30 20:49:06 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1861,7 +1861,17 @@ static int calCOGMAX(MRI_variables *MRI_var,
       }
     }
   if (m<=100)
-    Error("\n Problem in the COG calculation ");
+  {
+    if (!T1) // not T1 volume
+      Error("\n Problem in the COG calculation ");
+    else
+      Error
+        ("\nProblem in the COG calculation:\n"
+         "T1.mgz may not contain properly normalized white-matter.\n"
+         "Confirm that T1.mgz has enough white-matter voxels of value 110.\n"
+         "If white-matter contains few if any voxels of value 110,\n"
+         "try adding wm control-points to nu.mgz, and re-run recon-all.\n");
+  }
 
   MRI_var->xCOG/=m;  // m is used here
   MRI_var->yCOG/=m;
