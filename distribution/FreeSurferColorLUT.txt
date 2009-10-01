@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.62 2009/09/24 20:31:25 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.63 2009/10/01 19:38:48 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -946,9 +946,9 @@
 7015  Paralaminar-nucleus                               45  205 165 0
 7016  Intercalated-nucleus                              117 160 175 0
 7017  Prepiriform-cortex                                221 217 21  0
-7018  extra1                                            104 254 253 0
-7019  extra2                                            79  195 99  0
-7020  extra3                                            61  57  211 0
+7018  Periamygdaloid-cortex                             104 254 253 0
+7019  Envelope-Amygdala                                 141 21  100 0
+7020  Extranuclear-Amydala                              225 140 141 0
 
 7100  Brainstem-inferior-colliculus                     42  201 168 0
 7101  Brainstem-cochlear-nucleus                        168 104 162 0
@@ -975,7 +975,7 @@
 # cortical labels are the same as in Simple_surface_labels2009.txt,
 # except that left hemisphere has 11100 added to the index and the
 # right has 12100 added.  The label names are also prepended with
-# ctx_lh_, ctx_rh_, wm_lh_ and wm_rh_ (note usage of _ instead of - 
+# ctx_lh_, ctx_rh_, wm_lh_ and wm_rh_ (note usage of _ instead of -
 # to differentiate from a2005s labels).
 
 #No.   Label Name:                              R   G   B    A
