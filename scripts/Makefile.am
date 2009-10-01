@@ -102,6 +102,7 @@ morph_subject_on_seychelles \
 morph_subject-rh \
 morph_tables-lh \
 morph_tables-rh \
+mri_align_long.csh \
 mri_glmfit-sim\
 mri_nu_correct.mni\
 mri-func2sph \
