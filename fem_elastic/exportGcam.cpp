@@ -92,9 +92,9 @@ main(int ac, char* av[])
   //LZ
   if ( params.strInterp.empty() )
     pmorph->m_interpolationType = SAMPLE_TRILINEAR;
-  else if(params.strInterp.c_str() == "linear")
+  else if(strcmp(params.strInterp.c_str(), "linear")==0)
     pmorph->m_interpolationType = SAMPLE_TRILINEAR;
-  else if (params.strInterp.c_str() == "nearest")
+  else if (strcmp(params.strInterp.c_str(), "nearest")==0)
     pmorph->m_interpolationType = SAMPLE_NEAREST;
   else pmorph->m_interpolationType = SAMPLE_TRILINEAR;
 
