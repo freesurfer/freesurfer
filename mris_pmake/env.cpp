@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: env.cpp,v 1.2 2009/10/01 19:44:25 nicks Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -1155,7 +1155,7 @@ costFunc_distanceReturn(
   float  wd  = pSTw->wd;
   VERTEX*  v_c  = NULL;
   MRIS*  surf  = st_env.pMS_curvature;
-  char*  pch_proc = "costFunc_distanceReturn(...)";
+  const char*  pch_proc = "costFunc_distanceReturn(...)";
   char  pch_txt[65536];
   static bool  b_warned = false;
 
@@ -1204,7 +1204,7 @@ costFunc_EuclideanReturn(
   VERTEX*  v_n  = NULL;
   MRIS*  surf  = st_env.pMS_curvature;
   static int   calls  = 0;
-  char*  pch_proc = "costFunc_EuclideanReturn(...)";
+  const char*  pch_proc = "costFunc_EuclideanReturn(...)";
   char  pch_txt[65536];
   static bool  b_warned = false;
 

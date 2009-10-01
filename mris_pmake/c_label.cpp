@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_label.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: c_label.cpp,v 1.2 2009/10/01 19:44:25 nicks Exp $
 
 #include "c_label.h"
 #include "dijkstra.h"
@@ -127,7 +127,7 @@ label_terminalsFind(
   short  inLabel  = 0;
   bool  b_ret  = false;
 
-  pLBL = LabelRead("", (char*) astr_fileName.c_str());
+  pLBL = LabelRead((char*)"", (char*) astr_fileName.c_str());
   if (pLBL == NULL)
     error_exit("allocating a pLBL structure", "some error occurred", 1);
 
@@ -186,7 +186,7 @@ label_coreLoad(
   int   vno = 0;
   int   i;
 
-  pLBL = LabelRead("", (char*) astr_fileName.c_str());
+  pLBL = LabelRead((char*)"", (char*) astr_fileName.c_str());
   if (pLBL == NULL)
     error_exit("allocating a pLBL structure", "some error occurred", 1);
 
@@ -275,7 +275,7 @@ label_coreSave(
     if (vertex_satisfyTestCondition(pvertex, apv_fromCaller))
       n++;
   }
-  pLBL = LabelAlloc(n, "", (char*) (astr_fileName).c_str());
+  pLBL = LabelAlloc(n, (char*)"", (char*) (astr_fileName).c_str());
   if (pLBL == NULL)
     error_exit("allocating a pLBL structure", "some error occurred", 1);
 
