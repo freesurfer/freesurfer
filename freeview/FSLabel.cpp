@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/01 21:23:25 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -274,7 +274,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   break;
   }
 
-  m_label = ::LabelAlloc( nCount, NULL, "" );
+  m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
   m_label->n_points = nCount;
   for ( int i = 0; i < nCount; i++ )
   {

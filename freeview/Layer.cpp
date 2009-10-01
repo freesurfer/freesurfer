@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/01 21:23:25 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -144,11 +144,12 @@ void Layer::SetSlicePosition( int nPlane, double slicePos )
 {
   wxASSERT( nPlane >= 0 && nPlane <= 2 );
 
-  char* strPlaneName[] = { "X", "Y", "Z" };
+  const char* strPlaneName[] = { "X", "Y", "Z" };
   if ( fabs( slicePos - m_dSlicePosition[ nPlane ] ) > CLOSE_DISTANCE )
   {
     m_dSlicePosition[nPlane] = slicePos;
-    this->SendBroadcast( std::string("SlicePositionChanged") + strPlaneName[nPlane], this );
+    this->SendBroadcast( std::string("SlicePositionChanged") + 
+                         strPlaneName[nPlane], this );
     OnSlicePositionChanged( nPlane );
     this->SendBroadcast( "LayerActorUpdated", this );
   }
