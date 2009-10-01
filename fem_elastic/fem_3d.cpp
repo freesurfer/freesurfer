@@ -894,9 +894,9 @@ DelaunayMesh::get()
   this->convertFormat( out );
 
   // dbg - save mesh
-  out->save_nodes("iteration");
-  out->save_elements("iteration");
-  out->save_faces("iteration");
+  out->save_nodes((char*)"iteration");
+  out->save_elements((char*)"iteration");
+  out->save_faces((char*)"iteration");
 
   delete out;
 
