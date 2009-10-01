@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2008/02/29 20:14:51 $
-#    $Revision: 1.8 $
+#    $Author: mreuter $
+#    $Date: 2009/10/01 17:57:09 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2005-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.8 2008/02/29 20:14:51 nicks Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.9 2009/10/01 17:57:09 mreuter Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -41,6 +41,7 @@ set HiRes = '';
 set outfmt = ();
 set AllowWild = 0;
 set RunIt = 1;
+set targetnum = 1; 
 
 setenv FSLOUTPUTTYPE ANALYZE
 
@@ -143,7 +144,7 @@ foreach input ($inputlist)
   echo "Converting $input " |& tee -a $LF
   date |& tee -a $LF
 
-  set imginput = $tmpdir/cor-$run.img
+  set imginput = $tmpdir/cor-$run.nii
   set imginputlist = ($imginputlist $imginput);
   rm -f $imginput
 
@@ -159,8 +160,13 @@ foreach input ($inputlist)
 end
 
 #----------- Motion Correct ---------------#
-set imgresampled = $tmpdir/resampled.img
-set imgtarget = $imginputlist[1];
+if ( $targetnum > $#inputlist) then
+  echo Target Num: $targetnum > Input Num: $#inputlist
+	echo  setting to 1
+	set targetnum = 1
+endif
+set imgresampled = $tmpdir/resampled.nii
+set imgtarget = $imginputlist[$targetnum];
 @ run = 0;
 foreach imginput ($imginputlist)
   @ run = $run + 1;
@@ -191,7 +197,7 @@ end
 echo "-----------------------------------------" |& tee -a $LF
 echo "Averaging " |& tee -a $LF
 date |& tee -a $LF
-set avgvol = $tmpdir/avgvol.img
+set avgvol = $tmpdir/avgvol.nii
 set CleanUpList = ($CleanUpList $avgvol);
 rm -f $avgvol
 set cmd = (mri_average -noconform $imginputlist $avgvol);
@@ -254,6 +260,11 @@ while( $#argv != 0 )
       set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
+    case "-target":
+      if ( $#argv == 0) goto arg1err;
+      set targetnum = $argv[1]; shift;
+      breaksw
+			
     case "-tmpdir":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -414,6 +425,7 @@ usage_exit:
   echo ""
   echo "Optional Arguments:";
   echo ""
+  echo "  -target #      : spec # of target for registration (default = 1)"
   echo "  -wild          : assume unmatched args are input files"
   echo "  -tmpdir tmpdir : directory for temporary files"
   echo "  -nocleanup     : do not delete temporary files"
@@ -443,15 +455,20 @@ that mri_motion_correct.fsl forces the input data to be float
 when converting to ANALYZE, and so the final output is is also float.
 mri_motion_correct2 keeps the native precision.
 
+The target for the registration can be selected (the default is to
+register to the first specified input volume). If the passed target
+number is larger than the number of input volumes, the first volume
+is used as target.
+
 The inputs and output can be any format accepted by mri_convert.
 
 Example 1:
 
-mri_motion_correct.fsl -i 002.mgz  -i 003 -o mc4.img
+mri_motion_correct.fsl -i 002.mgz  -i 003 -o mc4.nii
 
   002.mgz is a volume in compressed MGH format.
   003 is in COR format.
-  mc4.img (the output) is in analyze format.
+  mc4.nii (the output) is in NIFTI format.
 
 Example 2:
 
