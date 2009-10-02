@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/08/20 19:24:48 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/10/02 16:30:32 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.27 2009/08/20 19:24:48 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.28 2009/10/02 16:30:32 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.27 2009/08/20 19:24:48 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.28 2009/10/02 16:30:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -189,8 +189,10 @@ int main(int argc, char **argv) {
     exit(1);
   }/*--------------------------------------------------------------*/
 
-  if (! IsDICOM(dicomfile)) {
-    fprintf(stderr,"ERROR: %s is not a dicom file\n",dicomfile);
+  if(!IsDICOM(dicomfile)) {
+    setenv("FS_DICOM_DEBUG","1",1);
+    IsDICOM(dicomfile);
+    fprintf(stderr,"ERROR: %s is not a dicom file or some other problem\n",dicomfile);
     exit(1);
   }
 
@@ -307,7 +309,10 @@ static int parse_commandline(int argc, char **argv) {
 
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--debug")) {
+      debug = 1;
+      setenv("FS_DICOM_DEBUG","1",1);
+    }
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
     else if (!strcasecmp(option, "--no-name")) DoPatientName = 0;
     else if (!strcasecmp(option, "--alt"))   DoAltDump = 1;
@@ -815,7 +820,8 @@ int GetDimLength(char *dicomfile, int dimtype) {
   return(dimlength);
 }
 /*---------------------------------------------------------------*/
-int PartialDump(char *dicomfile, FILE *fp) {
+int PartialDump(char *dicomfile, FILE *fp) 
+{
   DCM_ELEMENT *e;
 
   e = GetElementFromFile(dicomfile, 0x8, 0x70);
