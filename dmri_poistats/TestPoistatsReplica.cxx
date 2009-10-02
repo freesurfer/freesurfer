@@ -398,7 +398,7 @@ void TestPoistatsReplica::TestFoundBestPath() {
 int main ( int argc, char** argv ) {
 
   // this is needed by the freesurfer utils library
-  Progname = "TestPoistatsReplica";
+  Progname = (char*)"TestPoistatsReplica";
 
   const int SUCCESS = 0;
   const int FAIL = 1;
