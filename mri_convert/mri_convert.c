@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/09/24 17:28:41 $
- *    $Revision: 1.161 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/02 18:44:45 $
+ *    $Revision: 1.162 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -192,9 +192,10 @@ int main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
-  (argc, argv,
-   "$Id: mri_convert.c,v 1.161 2009/09/24 17:28:41 mreuter Exp $", "$Name:  $",
-   cmdline);
+    (argc, argv,
+     "$Id: mri_convert.c,v 1.162 2009/10/02 18:44:45 nicks Exp $", 
+     "$Name:  $",
+     cmdline);
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -221,7 +222,7 @@ int main(int argc, char *argv[]) {
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
   forced_in_type = forced_out_type =
-                     forced_template_type = MRI_VOLUME_TYPE_UNKNOWN;
+    forced_template_type = MRI_VOLUME_TYPE_UNKNOWN;
   invert_transform_flag = FALSE;
 
   /* ----- get the program name ----- */
@@ -298,8 +299,9 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.161 2009/09/24 17:28:41 mreuter Exp $", "$Name:  $"
-    );
+      "$Id: mri_convert.c,v 1.162 2009/10/02 18:44:45 nicks Exp $", 
+      "$Name:  $"
+      );
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -704,7 +706,7 @@ int main(int argc, char *argv[]) {
       out_n_k_flag = TRUE;
     }
     else if(strcmp(argv[i], "-vs") == 0 ||
-	    strcmp(argv[i], "-voxsize") == 0 ) {
+            strcmp(argv[i], "-voxsize") == 0 ) {
       get_floats(argc, argv, &i, voxel_size, 3);
       voxel_size_flag = TRUE;
     }
@@ -859,8 +861,8 @@ int main(int argc, char *argv[]) {
       get_ints(argc, argv, &i, &SubSampDelta, 1);
       get_ints(argc, argv, &i, &SubSampEnd, 1);
       if(SubSampDelta == 0){
-	printf("ERROR: don't use subsample delta = 0\n");
-	exit(1);
+        printf("ERROR: don't use subsample delta = 0\n");
+        exit(1);
       }
       subsample_flag = TRUE;
     }
@@ -1297,8 +1299,6 @@ int main(int argc, char *argv[]) {
   }
 
 
-
-
   if (roi_flag && in_volume_type != GENESIS_FILE) {
     errno = 0;
     ErrorPrintf(ERROR_BADPARM, "rois must be in GE format");
@@ -1313,7 +1313,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.161 2009/09/24 17:28:41 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.162 2009/10/02 18:44:45 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1444,7 +1444,7 @@ int main(int argc, char *argv[]) {
   if(slice_crop_flag){
     printf("Cropping slices from %d to %d\n",slice_crop_start,slice_crop_stop);
     mri2  = MRIcrop(mri, 0, 0, slice_crop_start,
-		    mri->width-1, mri->height-1,slice_crop_stop);
+                    mri->width-1, mri->height-1,slice_crop_stop);
     if(mri2 == NULL) exit(1);
     MRIfree(&mri);
     mri = mri2;
@@ -1461,9 +1461,9 @@ int main(int argc, char *argv[]) {
     // subsequently reversed then a header registration will bring
     // the new and the original volume into perfect registration.
     printf("WARNING: applying left-right reversal to the input geometry\n"
-	   "without reversing the pixel data. This will likely make \n"
-	   "the volume geometry WRONG, so make sure you know what you  \n"
-	   "are doing.\n");
+           "without reversing the pixel data. This will likely make \n"
+           "the volume geometry WRONG, so make sure you know what you  \n"
+           "are doing.\n");
 
     printf("  CRAS Before: %g %g %g\n",mri->c_r,mri->c_a,mri->c_s);
     T = MRIxfmCRS2XYZ(mri, 0);
@@ -1519,12 +1519,12 @@ int main(int argc, char *argv[]) {
     for(c=0; c < mri->width; c++){
       c2 = mri->width - c - 1;
       for(r=0; r < mri->height; r++){
-	for(s=0; s < mri->depth; s++){
-	  for(f=0; f < mri->nframes; f++){
-	    v = MRIgetVoxVal(mri,c,r,s,f);
-	    MRIsetVoxVal(mri2,c2,r,s,f,v);
-	  }
-	}
+        for(s=0; s < mri->depth; s++){
+          for(f=0; f < mri->nframes; f++){
+            v = MRIgetVoxVal(mri,c,r,s,f);
+            MRIsetVoxVal(mri2,c2,r,s,f,v);
+          }
+        }
       }
     }
     printf("type %d %d\n",mri->type,mri2->type);
@@ -1564,11 +1564,11 @@ int main(int argc, char *argv[]) {
        to gradient coil nonlinearities */
     printf("INFO: unwarping ... ");
     mri_unwarped = unwarpGradientNonlinearity(mri,
-                   unwarp_gradientType,
-                   unwarp_partialUnwarp,
-                   unwarp_jacobianCorrection,
-                   unwarp_interpType,
-                   unwarp_sincInterpHW);
+                                              unwarp_gradientType,
+                                              unwarp_partialUnwarp,
+                                              unwarp_jacobianCorrection,
+                                              unwarp_interpType,
+                                              unwarp_sincInterpHW);
     MRIfree(&mri);
     mri = mri_unwarped;
     printf("done \n ");
@@ -1700,23 +1700,23 @@ int main(int argc, char *argv[]) {
 
     mri->fov = (fov_x > fov_y ?
                 (fov_x > fov_z ? fov_x : fov_z) :
-                    (fov_y > fov_z ? fov_y : fov_z) );
+                (fov_y > fov_z ? fov_y : fov_z) );
 
   }
 
   /* ----- give a warning for non-orthogonal directions ----- */
   i_dot_j = mri->x_r *
-            mri->y_r + mri->x_a *
-            mri->y_a + mri->x_s *
-            mri->y_s;
+    mri->y_r + mri->x_a *
+    mri->y_a + mri->x_s *
+    mri->y_s;
   i_dot_k = mri->x_r *
-            mri->z_r + mri->x_a *
-            mri->z_a + mri->x_s *
-            mri->z_s;
+    mri->z_r + mri->x_a *
+    mri->z_a + mri->x_s *
+    mri->z_s;
   j_dot_k = mri->y_r *
-            mri->z_r + mri->y_a *
-            mri->z_a + mri->y_s *
-            mri->z_s;
+    mri->z_r + mri->y_a *
+    mri->z_a + mri->y_s *
+    mri->z_s;
   if (fabs(i_dot_j) > CLOSE_ENOUGH ||
       fabs(i_dot_k) > CLOSE_ENOUGH ||
       fabs(i_dot_k) > CLOSE_ENOUGH) {
@@ -1842,7 +1842,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "INFO: Succeeded in retrieving "
                     "the source volume info.\n");
           } else  printf("INFO: Failed to find %s as a source volume.  \n"
-                           "      The inverse c_(ras) may not be valid.\n",
+                         "      The inverse c_(ras) may not be valid.\n",
                          buf);
         } // end not valid
         copyVolGeom(&lt->dst, &vgtmp);
@@ -1862,7 +1862,7 @@ int main(int argc, char *argv[]) {
       printf("reading template info from (type %s) volume %s...\n",
              template_type_string, reslice_like_name);
       template =
-      MRIreadHeader(reslice_like_name, forced_template_type);
+        MRIreadHeader(reslice_like_name, forced_template_type);
       if(template == NULL) {
         fprintf(stderr, "error reading from volume %s\n",
                 reslice_like_name);
@@ -1882,7 +1882,7 @@ int main(int argc, char *argv[]) {
   }
   else {
     template =
-    MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+      MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
     MRIcopyHeader(mri, template);
 		
 		// if we loaded a transform above, set the target geometry:
@@ -1898,14 +1898,14 @@ int main(int argc, char *argv[]) {
         else conform_width = findRightSize(mri, conform_size);
       }
       template->width =
-      template->height = template->depth = conform_width;
+        template->height = template->depth = conform_width;
       template->imnr0 = 1;
       template->imnr1 = conform_width;
       template->type = MRI_UCHAR;
       template->thick = conform_size;
       template->ps = conform_size;
       template->xsize =
-      template->ysize = template->zsize = conform_size;
+        template->ysize = template->zsize = conform_size;
       printf("Original Data has (%g, %g, %g) mm size "
              "and (%d, %d, %d) voxels.\n",
              mri->xsize, mri->ysize, mri->zsize,
@@ -1914,9 +1914,9 @@ int main(int argc, char *argv[]) {
              "%d voxels for all directions\n",
              conform_size, conform_width);
       template->xstart = template->ystart =
-      template->zstart = - conform_width/2;
+        template->zstart = - conform_width/2;
       template->xend =
-      template->yend = template->zend = conform_width/2;
+        template->yend = template->zend = conform_width/2;
       template->x_r = -1.0;
       template->x_a =  0.0;
       template->x_s =  0.0;
@@ -1929,14 +1929,17 @@ int main(int argc, char *argv[]) {
     }
     else if ( voxel_size_flag ) {
       template = MRIallocHeader(mri->width,
-				mri->height,
-				mri->depth,
-				mri->type );
+                                mri->height,
+                                mri->depth,
+                                mri->type );
+
       MRIcopyHeader( mri, template );
 
-      template->width   = (int) ceil( mri->xsize * mri->width / voxel_size[0] );
-      template->height  = (int) ceil( mri->ysize * mri->height / voxel_size[1] );
-      template->depth   = (int) ceil( mri->zsize * mri->depth / voxel_size[2] );
+      template->nframes = mri->nframes ;
+
+      template->width = (int)ceil( mri->xsize * mri->width / voxel_size[0] );
+      template->height = (int)ceil( mri->ysize * mri->height / voxel_size[1] );
+      template->depth = (int)ceil( mri->zsize * mri->depth / voxel_size[2] );
 
       template->xsize = voxel_size[0];
       template->ysize = voxel_size[1];
@@ -2008,23 +2011,23 @@ int main(int argc, char *argv[]) {
 
     template->fov = (fov_x > fov_y ?
                      (fov_x > fov_z ? fov_x : fov_z) :
-                         (fov_y > fov_z ? fov_y : fov_z) );
+                     (fov_y > fov_z ? fov_y : fov_z) );
 
   }
 
   /* ----- give a warning for non-orthogonal directions ----- */
   i_dot_j = template->x_r *
-            template->y_r + template->x_a *
-            template->y_a + template->x_s *
-            template->y_s;
+    template->y_r + template->x_a *
+    template->y_a + template->x_s *
+    template->y_s;
   i_dot_k = template->x_r *
-  template->z_r + template->x_a *
-  template->z_a + template->x_s *
-  template->z_s;
+    template->z_r + template->x_a *
+    template->z_a + template->x_s *
+    template->z_s;
   j_dot_k = template->y_r *
-  template->z_r + template->y_a *
-  template->z_a + template->y_s *
-  template->z_s;
+    template->z_r + template->y_a *
+    template->z_a + template->y_s *
+    template->z_s;
   if (fabs(i_dot_j) > CLOSE_ENOUGH ||
       fabs(i_dot_k) > CLOSE_ENOUGH ||
       fabs(i_dot_k) > CLOSE_ENOUGH) {
@@ -2061,11 +2064,11 @@ int main(int argc, char *argv[]) {
         transform_type == FSLREG_TYPE) {
 
       // in these cases the lta_transform was loaded above
-        if (!lta_transform)
-				{
-          fprintf(stderr, "ERROR: lta should have been loaded \n");
-          exit(1);
-				}
+      if (!lta_transform)
+      {
+        fprintf(stderr, "ERROR: lta should have been loaded \n");
+        exit(1);
+      }
 			
 
       /* Think about calling MRIlinearTransform() here; need vox2vox
@@ -2093,7 +2096,10 @@ int main(int argc, char *argv[]) {
         MRIcopyHeader(tmp, mri_transformed);
         MRIfree(&tmp);
         tmp = 0;
-        mri_transformed =  LTAtransformInterp(mri, mri_transformed, lta_transform, resample_type_val);
+        mri_transformed = LTAtransformInterp(mri, 
+                                             mri_transformed, 
+                                             lta_transform, 
+                                             resample_type_val);
       } else {
 
         if (out_center_flag)
@@ -2112,10 +2118,10 @@ int main(int argc, char *argv[]) {
                resample_type_val);
         if (Gdiag_no > 0) {
           printf
-          ("Dumping LTA ---------++++++++++++-----------------------\n");
+            ("Dumping LTA ---------++++++++++++-----------------------\n");
           LTAdump(stdout,lta_transform);
           printf
-          ("========-------------++++++++++++-------------------=====\n");
+            ("========-------------++++++++++++-------------------=====\n");
         }
         mri_transformed =
           LTAtransformInterp(mri, NULL, lta_transform,resample_type_val);
@@ -2203,7 +2209,7 @@ int main(int argc, char *argv[]) {
     printf("changing data type from %d to %d (noscale = %d)...\n",
            mri->type,template->type,no_scale_flag);
     mri2 =
-    MRISeqchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
+      MRISeqchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
     if (mri2 == NULL) {
       printf("ERROR: MRISeqchangeType\n");
       exit(1);
@@ -2234,7 +2240,7 @@ int main(int argc, char *argv[]) {
     printf("Reslicing using ");
     switch (resample_type_val) {
     case SAMPLE_TRILINEAR:
-        printf("trilinear interpolation \n");
+      printf("trilinear interpolation \n");
       break;
     case SAMPLE_NEAREST:
       printf("nearest \n");
@@ -2340,7 +2346,7 @@ int main(int argc, char *argv[]) {
   }
   if(subsample_flag){
     printf("SubSample: Start = %d  Delta = %d, End = %d\n",
-	   SubSampStart, SubSampDelta, SubSampEnd);
+           SubSampStart, SubSampDelta, SubSampEnd);
     mri2 = fMRIsubSample(mri, SubSampStart, SubSampDelta, SubSampEnd, NULL);
     if(mri2 == NULL) exit(1);
     MRIfree(&mri);
@@ -2392,11 +2398,11 @@ int main(int argc, char *argv[]) {
     fptmp = fopen(out_name,"w");
     for(f=0; f < mri->nframes; f++){
       for(s=0; s < mri->depth; s++){
-	for(r=0; r < mri->height; r++){
-	  for(c=0; c < mri->width; c++){
-	    fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
-	  }
-	}
+        for(r=0; r < mri->height; r++){
+          for(c=0; c < mri->width; c++){
+            fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
+          }
+        }
       }
     }
     fclose(fptmp);
@@ -2407,18 +2413,18 @@ int main(int argc, char *argv[]) {
     if(! SplitFrames) {
       printf("writing to %s...\n", out_name);
       if (force_out_type_flag) {
-	err = MRIwriteType(mri, out_name, out_volume_type);
-	if (err != NO_ERROR) {
-	  printf("ERROR: failure writing %s as volume type %d\n",
-		 out_name,out_volume_type);
-	  exit(1);
-	}
+        err = MRIwriteType(mri, out_name, out_volume_type);
+        if (err != NO_ERROR) {
+          printf("ERROR: failure writing %s as volume type %d\n",
+                 out_name,out_volume_type);
+          exit(1);
+        }
       } else {
-	err = MRIwrite(mri, out_name);
-	if (err != NO_ERROR) {
-	  printf("ERROR: failure writing %s\n",out_name);
-	  exit(1);
-	}
+        err = MRIwrite(mri, out_name);
+        if (err != NO_ERROR) {
+          printf("ERROR: failure writing %s\n",out_name);
+          exit(1);
+        }
       }
     }
     else {
@@ -2428,14 +2434,14 @@ int main(int argc, char *argv[]) {
       printf("Splitting frames, stem = %s, ext = %s\n",stem,ext);
       mri2 = NULL;
       for(i=0; i < mri->nframes; i++){
-	mri2 = MRIcopyFrame(mri, mri2, i, 0);
-	sprintf(tmpstr,"%s%04d.%s",stem,i,ext);
-	printf("%2d %s\n",i,tmpstr);
-	err = MRIwrite(mri2, tmpstr);
-	if (err != NO_ERROR) {
-	  printf("ERROR: failure writing %s\n",tmpstr);
-	  exit(1);
-	}
+        mri2 = MRIcopyFrame(mri, mri2, i, 0);
+        sprintf(tmpstr,"%s%04d.%s",stem,i,ext);
+        printf("%2d %s\n",i,tmpstr);
+        err = MRIwrite(mri2, tmpstr);
+        if (err != NO_ERROR) {
+          printf("ERROR: failure writing %s\n",tmpstr);
+          exit(1);
+        }
       }
     }
   }
@@ -2905,7 +2911,7 @@ void usage(FILE *stream) {
     "Note that the assumption is that the geometry information in the input\n"
     "file is otherwise accurate.\n"
     "\n"
-  );
+    );
 
   printf("\n");
   printf("Notes: \n");
