@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/08/02 01:04:26 $
- *    $Revision: 1.439 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/02 18:45:38 $
+ *    $Revision: 1.440 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.439 $";
+const char *MRI_C_VERSION = "$Revision: 1.440 $";
 
 
 /*-----------------------------------------------------
@@ -11880,6 +11880,7 @@ MRI *MRIresampleFill
 
   MRI *dest = NULL;
   MATRIX *m;
+  int nframe;
   int di, dj, dk;
   int si, sj, sk;
   float si_f, sj_f, sk_f;
@@ -11929,10 +11930,11 @@ MRI *MRIresampleFill
     MatrixPrint(stdout, m);
   }
 
-  dest = MRIalloc(template_vol->width,
-                  template_vol->height,
-                  template_vol->depth,
-                  src->type);
+  dest = MRIallocSequence(template_vol->width,
+                          template_vol->height,
+                          template_vol->depth,
+                          src->type,
+                          template_vol->nframes);
   if (dest == NULL)
     return(NULL);
   MRIreplaceValues(dest, dest, 0.0f, fill_val) ;
@@ -11945,457 +11947,460 @@ MRI *MRIresampleFill
 
   *MATRIX_RELT(dp, 4, 1) = 1.0;
 
-  for (di = 0;di < template_vol->width;di++)
+  for (nframe = 0; nframe < template_vol->nframes; nframe++)
   {
-    for (dj = 0;dj < template_vol->height;dj++)
+    for (di = 0;di < template_vol->width;di++)
     {
-      for (dk = 0;dk < template_vol->depth;dk++)
+      for (dj = 0;dj < template_vol->height;dj++)
       {
-        if (di == Gx && dj == Gy && dk == Gz)
-          DiagBreak() ;
-        *MATRIX_RELT(dp, 1, 1) = (float)di;
-        *MATRIX_RELT(dp, 2, 1) = (float)dj;
-        *MATRIX_RELT(dp, 3, 1) = (float)dk;
+        for (dk = 0;dk < template_vol->depth;dk++)
+        {
+          if (di == Gx && dj == Gy && dk == Gz)
+            DiagBreak() ;
+          *MATRIX_RELT(dp, 1, 1) = (float)di;
+          *MATRIX_RELT(dp, 2, 1) = (float)dj;
+          *MATRIX_RELT(dp, 3, 1) = (float)dk;
 
-        MatrixMultiply(m, dp, sp);
+          MatrixMultiply(m, dp, sp);
 
-        si_ff = *MATRIX_RELT(sp, 1, 1);
-        sj_ff = *MATRIX_RELT(sp, 2, 1);
-        sk_ff = *MATRIX_RELT(sp, 3, 1);
+          si_ff = *MATRIX_RELT(sp, 1, 1);
+          sj_ff = *MATRIX_RELT(sp, 2, 1);
+          sk_ff = *MATRIX_RELT(sp, 3, 1);
 
-        si = (int)floor(si_ff);
-        sj = (int)floor(sj_ff);
-        sk = (int)floor(sk_ff);
+          si = (int)floor(si_ff);
+          sj = (int)floor(sj_ff);
+          sk = (int)floor(sk_ff);
 
-        if (si == 147 && sj == 91 && sk == 86)
-          DiagBreak() ;
-        if (di == 129 && dj == 164 && dk == 147)
-          DiagBreak() ;
-        si_f = si_ff - si;
-        sj_f = sj_ff - sj;
-        sk_f = sk_ff - sk;
+          if (si == 147 && sj == 91 && sk == 86)
+            DiagBreak() ;
+          if (di == 129 && dj == 164 && dk == 147)
+            DiagBreak() ;
+          si_f = si_ff - si;
+          sj_f = sj_ff - sj;
+          sk_f = sk_ff - sk;
 
 #if 0
-        if (di % 20 == 0 && dj == di && dk == dj)
-        {
-          printf("MRIresample() sample point: %3d %3d %3d: "
-                 "%f (%3d + %f) %f (%3d + %f) %f (%3d + %f)\n",
-                 di, dj, dk,
-                 si_ff, si, si_f,
-                 sj_ff, sj, sj_f,
-                 sk_ff, sk, sk_f);
-        }
+          if (di % 20 == 0 && dj == di && dk == dj)
+          {
+            printf("MRIresample() sample point: %3d %3d %3d: "
+                   "%f (%3d + %f) %f (%3d + %f) %f (%3d + %f)\n",
+                   di, dj, dk,
+                   si_ff, si, si_f,
+                   sj_ff, sj, sj_f,
+                   sk_ff, sk, sk_f);
+          }
 #endif
 
-        if (resample_type == SAMPLE_SINC)
-        {
-          MRIsincSampleVolume(src, si_ff, sj_ff, sk_ff, 5, &pval);
-          val = (float)pval;
-        }
-        else if (resample_type == SAMPLE_CUBIC)
-        {
-          MRIcubicSampleVolume(src, si_ff, sj_ff, sk_ff, &pval);
-          val = (float)pval;
-        }
-        else
-        {
-          i_good_flag = (si >= 0 && si < src->width);
-          i1_good_flag = (si+1 >= 0 && si+1 < src->width);
-          j_good_flag = (sj >= 0 && sj < src->height);
-          j1_good_flag = (sj+1 >= 0 && sj+1 < src->height);
-          k_good_flag = (sk >= 0 && sk < src->depth);
-          k1_good_flag = (sk+1 >= 0 && sk+1 < src->depth);
-
-          if (src->type == MRI_UCHAR)
+          if (resample_type == SAMPLE_SINC)
           {
-            val000 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRIvox(src, si    , sj    , sk    ));
-            val001 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRIvox(src, si    , sj    , sk + 1));
-            val010 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRIvox(src, si    , sj + 1, sk    ));
-            val011 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRIvox(src, si    , sj + 1, sk + 1));
-            val100 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRIvox(src, si + 1, sj    , sk    ));
-            val101 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRIvox(src, si + 1, sj    , sk + 1));
-            val110 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRIvox(src, si + 1, sj + 1, sk    ));
-            val111 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRIvox(src, si + 1, sj + 1, sk + 1));
+            MRIsincSampleVolume(src, si_ff, sj_ff, sk_ff, 5, &pval);
+            val = (float)pval;
           }
-
-          if (si == 154 && sj == 134 && sk == 136)
-            DiagBreak() ;
-
-          if (src->type == MRI_SHORT)
+          else if (resample_type == SAMPLE_CUBIC)
           {
-            val000 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRISvox(src, si    , sj    , sk    ));
-            val001 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRISvox(src, si    , sj    , sk + 1));
-            val010 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRISvox(src, si    , sj + 1, sk    ));
-            val011 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRISvox(src, si    , sj + 1, sk + 1));
-            val100 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRISvox(src, si + 1, sj    , sk    ));
-            val101 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRISvox(src, si + 1, sj    , sk + 1));
-            val110 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRISvox(src, si + 1, sj + 1, sk    ));
-            val111 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRISvox(src, si + 1, sj + 1, sk + 1));
+            MRIcubicSampleVolume(src, si_ff, sj_ff, sk_ff, &pval);
+            val = (float)pval;
           }
-
-          if (src->type == MRI_INT)
+          else
           {
-            val000 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRIIvox(src, si    , sj    , sk    ));
-            val001 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRIIvox(src, si    , sj    , sk + 1));
-            val010 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRIIvox(src, si    , sj + 1, sk    ));
-            val011 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRIIvox(src, si    , sj + 1, sk + 1));
-            val100 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRIIvox(src, si + 1, sj    , sk    ));
-            val101 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRIIvox(src, si + 1, sj    , sk + 1));
-            val110 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRIIvox(src, si + 1, sj + 1, sk    ));
-            val111 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRIIvox(src, si + 1, sj + 1, sk + 1));
-          }
+            i_good_flag = (si >= 0 && si < src->width);
+            i1_good_flag = (si+1 >= 0 && si+1 < src->width);
+            j_good_flag = (sj >= 0 && sj < src->height);
+            j1_good_flag = (sj+1 >= 0 && sj+1 < src->height);
+            k_good_flag = (sk >= 0 && sk < src->depth);
+            k1_good_flag = (sk+1 >= 0 && sk+1 < src->depth);
 
-          if (src->type == MRI_LONG)
-          {
-            val000 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRILvox(src, si    , sj    , sk    ));
-            val001 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRILvox(src, si    , sj    , sk + 1));
-            val010 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRILvox(src, si    , sj + 1, sk    ));
-            val011 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRILvox(src, si    , sj + 1, sk + 1));
-            val100 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRILvox(src, si + 1, sj    , sk    ));
-            val101 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRILvox(src, si + 1, sj    , sk + 1));
-            val110 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRILvox(src, si + 1, sj + 1, sk    ));
-            val111 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRILvox(src, si + 1, sj + 1, sk + 1));
-          }
-
-          if (src->type == MRI_FLOAT)
-          {
-            val000 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRIFvox(src, si    , sj    , sk    ));
-            val001 = ( !i_good_flag ||
-                       !j_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRIFvox(src, si    , sj    , sk + 1));
-            val010 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k_good_flag ? 0.0 :
-                       (float)MRIFvox(src, si    , sj + 1, sk    ));
-            val011 = ( !i_good_flag ||
-                       !j1_good_flag ||
-                       !k1_good_flag ? 0.0 :
-                       (float)MRIFvox(src, si    , sj + 1, sk + 1));
-            val100 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRIFvox(src, si + 1, sj    , sk    ));
-            val101 = (!i1_good_flag ||
-                      !j_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRIFvox(src, si + 1, sj    , sk + 1));
-            val110 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k_good_flag ? 0.0 :
-                      (float)MRIFvox(src, si + 1, sj + 1, sk    ));
-            val111 = (!i1_good_flag ||
-                      !j1_good_flag ||
-                      !k1_good_flag ? 0.0 :
-                      (float)MRIFvox(src, si + 1, sj + 1, sk + 1));
-          }
-
-          if (resample_type == SAMPLE_TRILINEAR)
-          {
-            val = (1.0-si_f) * (1.0-sj_f) * (1.0-sk_f) * val000 +
-                  (1.0-si_f) * (1.0-sj_f) * (    sk_f) * val001 +
-                  (1.0-si_f) * (    sj_f) * (1.0-sk_f) * val010 +
-                  (1.0-si_f) * (    sj_f) * (    sk_f) * val011 +
-                  (    si_f) * (1.0-sj_f) * (1.0-sk_f) * val100 +
-                  (    si_f) * (1.0-sj_f) * (    sk_f) * val101 +
-                  (    si_f) * (    sj_f) * (1.0-sk_f) * val110 +
-                  (    si_f) * (    sj_f) * (    sk_f) * val111;
-          }
-
-          if (resample_type == SAMPLE_NEAREST)
-          {
-            if (si_f < 0.5)
+            if (src->type == MRI_UCHAR)
             {
-              if (sj_f < 0.5)
+              val000 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRIvox(src, si    , sj    , sk    ));
+              val001 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRIvox(src, si    , sj    , sk + 1));
+              val010 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRIvox(src, si    , sj + 1, sk    ));
+              val011 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRIvox(src, si    , sj + 1, sk + 1));
+              val100 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRIvox(src, si + 1, sj    , sk    ));
+              val101 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRIvox(src, si + 1, sj    , sk + 1));
+              val110 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRIvox(src, si + 1, sj + 1, sk    ));
+              val111 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRIvox(src, si + 1, sj + 1, sk + 1));
+            }
+
+            if (si == 154 && sj == 134 && sk == 136)
+              DiagBreak() ;
+
+            if (src->type == MRI_SHORT)
+            {
+              val000 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRISvox(src, si    , sj    , sk    ));
+              val001 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRISvox(src, si    , sj    , sk + 1));
+              val010 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRISvox(src, si    , sj + 1, sk    ));
+              val011 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRISvox(src, si    , sj + 1, sk + 1));
+              val100 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRISvox(src, si + 1, sj    , sk    ));
+              val101 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRISvox(src, si + 1, sj    , sk + 1));
+              val110 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRISvox(src, si + 1, sj + 1, sk    ));
+              val111 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRISvox(src, si + 1, sj + 1, sk + 1));
+            }
+
+            if (src->type == MRI_INT)
+            {
+              val000 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRIIvox(src, si    , sj    , sk    ));
+              val001 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRIIvox(src, si    , sj    , sk + 1));
+              val010 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRIIvox(src, si    , sj + 1, sk    ));
+              val011 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRIIvox(src, si    , sj + 1, sk + 1));
+              val100 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRIIvox(src, si + 1, sj    , sk    ));
+              val101 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRIIvox(src, si + 1, sj    , sk + 1));
+              val110 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRIIvox(src, si + 1, sj + 1, sk    ));
+              val111 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRIIvox(src, si + 1, sj + 1, sk + 1));
+            }
+
+            if (src->type == MRI_LONG)
+            {
+              val000 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRILvox(src, si    , sj    , sk    ));
+              val001 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRILvox(src, si    , sj    , sk + 1));
+              val010 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRILvox(src, si    , sj + 1, sk    ));
+              val011 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRILvox(src, si    , sj + 1, sk + 1));
+              val100 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRILvox(src, si + 1, sj    , sk    ));
+              val101 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRILvox(src, si + 1, sj    , sk + 1));
+              val110 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRILvox(src, si + 1, sj + 1, sk    ));
+              val111 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRILvox(src, si + 1, sj + 1, sk + 1));
+            }
+
+            if (src->type == MRI_FLOAT)
+            {
+              val000 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRIFvox(src, si    , sj    , sk    ));
+              val001 = ( !i_good_flag ||
+                         !j_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRIFvox(src, si    , sj    , sk + 1));
+              val010 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k_good_flag ? 0.0 :
+                         (float)MRIFvox(src, si    , sj + 1, sk    ));
+              val011 = ( !i_good_flag ||
+                         !j1_good_flag ||
+                         !k1_good_flag ? 0.0 :
+                         (float)MRIFvox(src, si    , sj + 1, sk + 1));
+              val100 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRIFvox(src, si + 1, sj    , sk    ));
+              val101 = (!i1_good_flag ||
+                        !j_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRIFvox(src, si + 1, sj    , sk + 1));
+              val110 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k_good_flag ? 0.0 :
+                        (float)MRIFvox(src, si + 1, sj + 1, sk    ));
+              val111 = (!i1_good_flag ||
+                        !j1_good_flag ||
+                        !k1_good_flag ? 0.0 :
+                        (float)MRIFvox(src, si + 1, sj + 1, sk + 1));
+            }
+
+            if (resample_type == SAMPLE_TRILINEAR)
+            {
+              val = (1.0-si_f) * (1.0-sj_f) * (1.0-sk_f) * val000 +
+                (1.0-si_f) * (1.0-sj_f) * (    sk_f) * val001 +
+                (1.0-si_f) * (    sj_f) * (1.0-sk_f) * val010 +
+                (1.0-si_f) * (    sj_f) * (    sk_f) * val011 +
+                (    si_f) * (1.0-sj_f) * (1.0-sk_f) * val100 +
+                (    si_f) * (1.0-sj_f) * (    sk_f) * val101 +
+                (    si_f) * (    sj_f) * (1.0-sk_f) * val110 +
+                (    si_f) * (    sj_f) * (    sk_f) * val111;
+            }
+
+            if (resample_type == SAMPLE_NEAREST)
+            {
+              if (si_f < 0.5)
               {
-                if (sk_f < 0.5)
-                  val = val000;
+                if (sj_f < 0.5)
+                {
+                  if (sk_f < 0.5)
+                    val = val000;
+                  else
+                    val = val001;
+                }
                 else
-                  val = val001;
+                {
+                  if (sk_f < 0.5)
+                    val = val010;
+                  else
+                    val = val011;
+                }
               }
               else
               {
-                if (sk_f < 0.5)
-                  val = val010;
+                if (sj_f < 0.5)
+                {
+                  if (sk_f < 0.5)
+                    val = val100;
+                  else
+                    val = val101;
+                }
                 else
-                  val = val011;
+                {
+                  if (sk_f < 0.5)
+                    val = val110;
+                  else
+                    val = val111;
+                }
               }
             }
-            else
+
+            if (resample_type == SAMPLE_WEIGHTED)
             {
-              if (sj_f < 0.5)
-              {
-                if (sk_f < 0.5)
-                  val = val100;
-                else
-                  val = val101;
-              }
-              else
-              {
-                if (sk_f < 0.5)
-                  val = val110;
-                else
-                  val = val111;
-              }
+              /* unfinished */
+              si_f2 = si_f * si_f;
+              sj_f2 = sj_f * sj_f;
+              sk_f2 = sk_f * sk_f;
+
+              ii2 = 1. / (1 - 2*si_f + si_f2);
+              ij2 = 1. / (1 - 2*sj_f + sj_f2);
+              ik2 = 1. / (1 - 2*sk_f + sk_f2);
+
+              isi_f2 = 1 / si_f2;
+              isj_f2 = 1 / sj_f2;
+              isk_f2 = 1 / sk_f2;
+
+              w000 =   ii2    + ij2    + ik2;
+              w001 =   ii2    + ij2    + isk_f2;
+              w010 =   ii2    + isj_f2 + ik2;
+              w011 =   ii2    + isj_f2 + isk_f2;
+              w100 =   isi_f2 + ij2    + ik2;
+              w101 =   isi_f2 + ij2    + isk_f2;
+              w110 =   isi_f2 + isj_f2 + ik2;
+              w111 =   isi_f2 + isj_f2 + isk_f2;
+
+              w[0] = w[1] = w[2] = w[3] =
+                w[4] = w[5] = w[6] = w[7] = 0.0;
+
+              wi[0] = 0;
+              wi[1] = 1;
+              wi[2] = 2;
+              wi[3] = 3;
+              wi[4] = 4;
+              wi[5] = 5;
+              wi[6] = 6;
+              wi[7] = 7;
+
+              if (val001 == val000)
+                wi[1] = 0;
+
+              if (val010 == val001)
+                wi[2] = 1;
+              if (val010 == val000)
+                wi[2] = 0;
+
+              if (val011 == val010)
+                wi[3] = 2;
+              if (val011 == val001)
+                wi[3] = 1;
+              if (val011 == val000)
+                wi[3] = 0;
+
+              if (val100 == val011)
+                wi[4] = 3;
+              if (val100 == val010)
+                wi[4] = 2;
+              if (val100 == val001)
+                wi[4] = 1;
+              if (val100 == val000)
+                wi[4] = 0;
+
+              if (val101 == val100)
+                wi[5] = 4;
+              if (val101 == val011)
+                wi[5] = 3;
+              if (val101 == val010)
+                wi[5] = 2;
+              if (val101 == val001)
+                wi[5] = 1;
+              if (val101 == val000)
+                wi[5] = 0;
+
+              if (val110 == val101)
+                wi[6] = 5;
+              if (val110 == val100)
+                wi[6] = 4;
+              if (val110 == val011)
+                wi[6] = 3;
+              if (val110 == val010)
+                wi[6] = 2;
+              if (val110 == val001)
+                wi[6] = 1;
+              if (val110 == val000)
+                wi[6] = 0;
+
+              if (val111 == val110)
+                wi[7] = 6;
+              if (val111 == val101)
+                wi[7] = 5;
+              if (val111 == val100)
+                wi[7] = 4;
+              if (val111 == val011)
+                wi[7] = 3;
+              if (val111 == val010)
+                wi[7] = 2;
+              if (val111 == val001)
+                wi[7] = 1;
+              if (val111 == val000)
+                wi[7] = 0;
+
+              w[wi[0]] += w000;
+              w[wi[1]] += w001;
+              w[wi[2]] += w010;
+              w[wi[3]] += w011;
+              w[wi[4]] += w100;
+              w[wi[5]] += w101;
+              w[wi[6]] += w110;
+              w[wi[7]] += w111;
+
+              mwi = 0;
+
+              if (w[1] > w[mwi])
+                mwi = 1;
+              if (w[2] > w[mwi])
+                mwi = 2;
+              if (w[3] > w[mwi])
+                mwi = 3;
+              if (w[4] > w[mwi])
+                mwi = 4;
+              if (w[5] > w[mwi])
+                mwi = 5;
+              if (w[6] > w[mwi])
+                mwi = 6;
+              if (w[7] > w[mwi])
+                mwi = 7;
+
+              if (mwi == 0)
+                val = val000;
+              if (mwi == 1)
+                val = val001;
+              if (mwi == 2)
+                val = val010;
+              if (mwi == 3)
+                val = val011;
+              if (mwi == 4)
+                val = val100;
+              if (mwi == 5)
+                val = val101;
+              if (mwi == 6)
+                val = val110;
+              if (mwi == 7)
+                val = val111;
+
             }
-          }
-
-          if (resample_type == SAMPLE_WEIGHTED)
-          {
-            /* unfinished */
-            si_f2 = si_f * si_f;
-            sj_f2 = sj_f * sj_f;
-            sk_f2 = sk_f * sk_f;
-
-            ii2 = 1. / (1 - 2*si_f + si_f2);
-            ij2 = 1. / (1 - 2*sj_f + sj_f2);
-            ik2 = 1. / (1 - 2*sk_f + sk_f2);
-
-            isi_f2 = 1 / si_f2;
-            isj_f2 = 1 / sj_f2;
-            isk_f2 = 1 / sk_f2;
-
-            w000 =   ii2    + ij2    + ik2;
-            w001 =   ii2    + ij2    + isk_f2;
-            w010 =   ii2    + isj_f2 + ik2;
-            w011 =   ii2    + isj_f2 + isk_f2;
-            w100 =   isi_f2 + ij2    + ik2;
-            w101 =   isi_f2 + ij2    + isk_f2;
-            w110 =   isi_f2 + isj_f2 + ik2;
-            w111 =   isi_f2 + isj_f2 + isk_f2;
-
-            w[0] = w[1] = w[2] = w[3] =
-                                   w[4] = w[5] = w[6] = w[7] = 0.0;
-
-            wi[0] = 0;
-            wi[1] = 1;
-            wi[2] = 2;
-            wi[3] = 3;
-            wi[4] = 4;
-            wi[5] = 5;
-            wi[6] = 6;
-            wi[7] = 7;
-
-            if (val001 == val000)
-              wi[1] = 0;
-
-            if (val010 == val001)
-              wi[2] = 1;
-            if (val010 == val000)
-              wi[2] = 0;
-
-            if (val011 == val010)
-              wi[3] = 2;
-            if (val011 == val001)
-              wi[3] = 1;
-            if (val011 == val000)
-              wi[3] = 0;
-
-            if (val100 == val011)
-              wi[4] = 3;
-            if (val100 == val010)
-              wi[4] = 2;
-            if (val100 == val001)
-              wi[4] = 1;
-            if (val100 == val000)
-              wi[4] = 0;
-
-            if (val101 == val100)
-              wi[5] = 4;
-            if (val101 == val011)
-              wi[5] = 3;
-            if (val101 == val010)
-              wi[5] = 2;
-            if (val101 == val001)
-              wi[5] = 1;
-            if (val101 == val000)
-              wi[5] = 0;
-
-            if (val110 == val101)
-              wi[6] = 5;
-            if (val110 == val100)
-              wi[6] = 4;
-            if (val110 == val011)
-              wi[6] = 3;
-            if (val110 == val010)
-              wi[6] = 2;
-            if (val110 == val001)
-              wi[6] = 1;
-            if (val110 == val000)
-              wi[6] = 0;
-
-            if (val111 == val110)
-              wi[7] = 6;
-            if (val111 == val101)
-              wi[7] = 5;
-            if (val111 == val100)
-              wi[7] = 4;
-            if (val111 == val011)
-              wi[7] = 3;
-            if (val111 == val010)
-              wi[7] = 2;
-            if (val111 == val001)
-              wi[7] = 1;
-            if (val111 == val000)
-              wi[7] = 0;
-
-            w[wi[0]] += w000;
-            w[wi[1]] += w001;
-            w[wi[2]] += w010;
-            w[wi[3]] += w011;
-            w[wi[4]] += w100;
-            w[wi[5]] += w101;
-            w[wi[6]] += w110;
-            w[wi[7]] += w111;
-
-            mwi = 0;
-
-            if (w[1] > w[mwi])
-              mwi = 1;
-            if (w[2] > w[mwi])
-              mwi = 2;
-            if (w[3] > w[mwi])
-              mwi = 3;
-            if (w[4] > w[mwi])
-              mwi = 4;
-            if (w[5] > w[mwi])
-              mwi = 5;
-            if (w[6] > w[mwi])
-              mwi = 6;
-            if (w[7] > w[mwi])
-              mwi = 7;
-
-            if (mwi == 0)
-              val = val000;
-            if (mwi == 1)
-              val = val001;
-            if (mwi == 2)
-              val = val010;
-            if (mwi == 3)
-              val = val011;
-            if (mwi == 4)
-              val = val100;
-            if (mwi == 5)
-              val = val101;
-            if (mwi == 6)
-              val = val110;
-            if (mwi == 7)
-              val = val111;
 
           }
+
+          if (dest->type == MRI_UCHAR)
+            MRIvox(dest, di, dj, dk) = (unsigned char)val;
+          if (dest->type == MRI_SHORT)
+            MRISvox(dest, di, dj, dk) = (short)val;
+          if (dest->type == MRI_INT)
+            MRIIvox(dest, di, dj, dk) = (int)val;
+          if (dest->type == MRI_LONG)
+            MRILvox(dest, di, dj, dk) = (long)val;
+          if (dest->type == MRI_FLOAT)
+            MRIFvox(dest, di, dj, dk) = (float)val;
 
         }
-
-        if (dest->type == MRI_UCHAR)
-          MRIvox(dest, di, dj, dk) = (unsigned char)val;
-        if (dest->type == MRI_SHORT)
-          MRISvox(dest, di, dj, dk) = (short)val;
-        if (dest->type == MRI_INT)
-          MRIIvox(dest, di, dj, dk) = (int)val;
-        if (dest->type == MRI_LONG)
-          MRILvox(dest, di, dj, dk) = (long)val;
-        if (dest->type == MRI_FLOAT)
-          MRIFvox(dest, di, dj, dk) = (float)val;
-
       }
     }
   }
