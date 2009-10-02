@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/09/23 18:03:49 $
- *    $Revision: 1.126 $
+ *    $Author: greve $
+ *    $Date: 2009/10/02 16:11:56 $
+ *    $Revision: 1.127 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -4339,6 +4339,7 @@ int IsDICOM(const char *fname)
   }
 
   d = 0;
+  if(getenv("FS_DICOM_DEBUG")) d = 1;
 
   if (d) printf("Entering IsDICOM (%s)\n",fname);
   fflush(stdout);
