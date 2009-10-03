@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/24 14:25:15 $
- *    $Revision: 1.44 $
+ *    $Date: 2009/10/03 01:18:34 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -89,6 +89,7 @@ public:
   void OnFileSaveROIAs        ( wxCommandEvent& event );
   void OnFileSaveROIAsUpdateUI( wxUpdateUIEvent& event );
   void OnFileLoadDTI          ( wxCommandEvent& event );
+  void OnFileLoadPVolumes     ( wxCommandEvent& event );
   void OnFileSaveScreenshot   ( wxCommandEvent& event );
   void OnFileSaveScreenshotUpdateUI( wxUpdateUIEvent& event );
   void OnFileLoadSurface      ( wxCommandEvent& event );
@@ -237,6 +238,7 @@ public:
 		    const wxString& fn_fa, 
 		    const wxString& reg_fn, 
 		    bool Resample = true );
+  void LoadPVolumeFiles( const wxArrayString& filenames, const wxString& prefix, const wxString& lut );
   void LoadROIFile    ( const wxString& fn );
   void LoadSurfaceFile( const wxString& fn, 
 			const wxString& fn_vector = _("") );
@@ -326,6 +328,7 @@ protected:
   void CommandLoadSurfaceOverlay( const wxArrayString& cmd );
   void CommandLoadSurfaceAnnotation ( const wxArrayString& cmd );
   void CommandLoadWayPoints     ( const wxArrayString& cmd );
+  void CommandLoadPVolumes      ( const wxArrayString& cmd );
   void CommandScreenCapture     ( const wxArrayString& cmd );
   void CommandSetViewport       ( const wxArrayString& cmd );
   void CommandZoom              ( const wxArrayString& cmd );
@@ -336,6 +339,7 @@ protected:
   void CommandSetOpacity        ( const wxArrayString& cmd ); 
   void CommandSetSurfaceOverlayMethod     ( const wxArrayString& cmd );
   void CommandSetSurfaceColor   ( const wxArrayString& cmd );
+  void CommandSetSurfaceEdgeColor ( const wxArrayString& cmd );
   void CommandSetWayPointsColor ( const wxArrayString& cmd );
   void CommandSetWayPointsRadius( const wxArrayString& cmd );
   void CommandSetDisplayVector  ( const wxArrayString& cmd );

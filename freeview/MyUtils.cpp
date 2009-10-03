@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/24 14:25:15 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/10/03 01:18:34 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -564,6 +564,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   threshold->ReplaceOutOn();
   threshold->SetOutValue( 0 );
   
+  // dilate/erode is not used for now
   vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
   dilate->SetInput(threshold->GetOutput());
   dilate->SetKernelSize(nSwell, nSwell, nSwell);
@@ -579,16 +580,19 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   contour->SetInput(threshold->GetOutput());
   contour->SetValue(0, dTh1);
   contour->Update();
-  vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
   vtkPolyData* polydata = contour->GetOutput();
   polydata->Update();
   bool ret = true;
-  if (polydata->GetNumberOfPoints() <= 0)
+  if ( polydata->GetNumberOfPoints() < 1 || 
+      polydata->GetNumberOfCells() < 1 )
   {
+    vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
+    mapper->SetInput( polydata );
     ret = false;
   }
   else
   {
+    vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
     smoother->SetInput(polydata);
     smoother->SetNumberOfIterations(30);
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();

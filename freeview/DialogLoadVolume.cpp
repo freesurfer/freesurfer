@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/01 20:01:41 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2009/10/03 01:18:33 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -171,7 +171,6 @@ void DialogLoadVolume::OnButtonOpen( wxCommandEvent& event )
     m_strLastDir = wxFileName( dlg.GetPath() ).GetPath();
   }
 }
-
 
 void DialogLoadVolume::OnButtonRegFile( wxCommandEvent& event )
 {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 01:32:01 $
- *    $Revision: 1.30 $
+ *    $Date: 2009/10/03 01:18:33 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -62,7 +62,7 @@ FSVolume::FSVolume( FSVolume* ref ) :
     m_volumeRef( ref ),
     m_fMinValue( 0 ),
     m_fMaxValue( 1 ),
-    m_bResampleToRAS( true ),
+    m_bResampleToRAS( false ),
     m_bBoundsCacheDirty( true ),
     m_nInterpolationMethod( SAMPLE_NEAREST )
 {

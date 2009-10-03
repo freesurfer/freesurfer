@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/24 14:25:15 $
- *    $Revision: 1.69 $
+ *    $Date: 2009/10/03 01:18:34 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -56,6 +56,7 @@
 #include "LayerSurface.h"
 #include "LayerWayPoints.h"
 #include "LayerOptimal.h"
+#include "LayerPLabel.h"
 #include "FSSurface.h"
 #include "Interactor2DROIEdit.h"
 #include "Interactor2DVoxelEdit.h"
@@ -84,6 +85,7 @@
 #include "VolumeFilterGradient.h"
 #include "DialogGradientVolume.h"
 #include "LayerPropertiesSurface.h"
+#include "DialogLoadPVolumes.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -112,6 +114,7 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU        ( XRCID( "ID_FILE_SAVE_ROI_AS" ),       MainWindow::OnFileSaveROIAs )
   EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_ROI_AS" ),       MainWindow::OnFileSaveROIAsUpdateUI )
   EVT_MENU        ( XRCID( "ID_FILE_LOAD_DTI" ),          MainWindow::OnFileLoadDTI )
+  EVT_MENU        ( XRCID( "ID_FILE_LOAD_PVOLUMES" ),     MainWindow::OnFileLoadPVolumes )
   EVT_MENU        ( XRCID( "ID_FILE_NEW_WAYPOINTS" ),     MainWindow::OnFileNewWayPoints )
   EVT_UPDATE_UI   ( XRCID( "ID_FILE_NEW_WAYPOINTS" ),     MainWindow::OnFileNewWayPointsUpdateUI )
   EVT_MENU        ( XRCID( "ID_FILE_LOAD_WAYPOINTS" ),    MainWindow::OnFileLoadWayPoints )
@@ -2272,6 +2275,30 @@ void MainWindow::LoadDTIFile( const wxString& fn_vector,
   thread->LoadVolume( layer );
 }
 
+void MainWindow::OnFileLoadPVolumes( wxCommandEvent& event )
+{
+  DialogLoadPVolumes dlg( this );
+
+  if ( dlg.ShowModal() != wxID_OK )
+    return;
+  
+  wxArrayString filenames = dlg.GetVolumeFileNames();
+  wxString prefix = dlg.GetFileNamePrefix();
+  wxString lut = dlg.GetLUT();
+  LoadPVolumeFiles( filenames, prefix, lut );
+}
+
+void MainWindow::LoadPVolumeFiles( const wxArrayString& filenames, const wxString& prefix, const wxString& lut )
+{
+  LayerPLabel* layer = new LayerPLabel( m_layerVolumeRef );
+  layer->SetVolumeFileNames( filenames );
+  layer->SetFileNamePrefix( prefix );
+  layer->SetLUT( lut );
+  
+  WorkerThread* thread = new WorkerThread( this );
+  thread->LoadVolume( layer );
+}
+
 void MainWindow::AddScript( const wxArrayString& script )
 {
   m_scripts.push_back( script );
@@ -2319,6 +2346,10 @@ void MainWindow::RunScript()
   else if ( sa[0] == _("loadwaypoints") )
   {
     CommandLoadWayPoints( sa );
+  }
+  else if ( sa[0] == _("loadpvolumes") )
+  {
+    CommandLoadPVolumes( sa );
   }
   else if ( sa[0] == _("screencapture") )
   {
@@ -2383,6 +2414,10 @@ void MainWindow::RunScript()
   else if ( sa[0] == _("setsurfacecolor") )
   {
     CommandSetSurfaceColor( sa );
+  }
+  else if ( sa[0] == _("setsurfaceedgecolor") )
+  {
+    CommandSetSurfaceEdgeColor( sa );
   }
 }
 
@@ -2847,6 +2882,23 @@ void MainWindow::CommandLoadDTI( const wxArrayString& sa )
   }
 }
 
+void MainWindow::CommandLoadPVolumes( const wxArrayString& cmd )
+{
+  wxArrayString files = MyUtils::SplitString( cmd[1], _(";") );  
+  wxString lut = _("");
+  if ( cmd.size() > 3 )
+  {
+    lut = cmd[3];
+    COLOR_TABLE* ct = m_luts->LoadColorTable( lut.char_str() );
+    if ( !ct )
+    {
+      cerr << "Can not load look up table " << lut.c_str() << endl;
+      return;
+    }
+  }
+  this->LoadPVolumeFiles( files, cmd[2], lut );
+}
+
 void MainWindow::CommandLoadROI( const wxArrayString& cmd )
 {
   LoadROIFile( cmd[1] );
@@ -2873,6 +2925,14 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
       {
         wxArrayString script;
         script.Add( _("setsurfacecolor") );
+        script.Add( subArgu );
+            
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _( "edgecolor" ) )
+      {
+        wxArrayString script;
+        script.Add( _("setsurfaceedgecolor") );
         script.Add( subArgu );
             
         m_scripts.insert( m_scripts.begin(), script );
@@ -3059,6 +3119,38 @@ void MainWindow::CommandSetSurfaceColor( const wxArrayString& cmd )
       
     if ( color.IsOk() )
       surf->GetProperties()->SetBinaryColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+    else
+      cerr << "Invalid color name or value " << cmd[1] << endl;
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetSurfaceEdgeColor( const wxArrayString& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && cmd[1] != _("null") )
+  {
+    wxColour color( cmd[1] );
+    if ( !color.IsOk() )      
+    {
+      long rgb[3];
+      wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], _(",") );
+      if ( rgb_strs.GetCount() < 3 || 
+           !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+           !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+           !rgb_strs[2].ToLong( &(rgb[2]) ) )
+      {
+        cerr << "Invalid color name or value " << cmd[1] << endl;
+      }
+      else
+      {
+        color.Set( rgb[0], rgb[1], rgb[2] );
+      }
+    }
+      
+    if ( color.IsOk() )
+      surf->GetProperties()->SetEdgeColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
     else
       cerr << "Invalid color name or value " << cmd[1] << endl;
   }

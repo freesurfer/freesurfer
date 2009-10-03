@@ -1,14 +1,14 @@
 /**
- * @file  LayerDTI.h
- * @brief Layer class for DTI volume.
+ * @file  LayerPLabel.h
+ * @brief Layer class for P-Label volumes.
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:33 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/10/03 01:18:34 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -24,8 +24,8 @@
  *
  */
 
-#ifndef LayerDTI_h
-#define LayerDTI_h
+#ifndef LayerPLabel_h
+#define LayerPLabel_h
 
 #include "LayerMRI.h"
 #include "vtkSmartPointer.h"
@@ -33,40 +33,40 @@
 
 class wxWindow;
 class wxCommandEvent;
-class LayerPropertiesDTI;
+class FSVolume;
 
-class LayerDTI : public LayerMRI
+class LayerPLabel : public LayerMRI
 {
 public:
-  LayerDTI( LayerMRI* ref );
-  virtual ~LayerDTI();
+  LayerPLabel( LayerMRI* ref );
+  virtual ~LayerPLabel();
 
-  bool LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event );
+  bool LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event );
 
-  void SetVectorFileName( const char* filename )
+  void SetVolumeFileNames( const wxArrayString& filenames )
   {
-    m_sVectorFileName = filename;
+    m_sFilenames = filenames;
   }
 
-  const char* GetVectorFileName()
+  void SetFileNamePrefix( const wxString& prefix )
   {
-    return m_sVectorFileName.c_str();
+    m_sFilenamePrefix = prefix;
   }
 
-  LayerPropertiesDTI* GetProperties();
-
-  bool GetVectorValue( double* pos_in, double* v_out );
-
+  void SetLUT( const wxString& lut )
+  {
+    m_sLUT = lut;
+  }
+  
   bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 
 protected:
   void UpdateColorMap();
-  void InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event );
-  
-  virtual void UpdateVectorActor( int nPlane );
 
-  FSVolume*  m_vectorSource;
-  std::string  m_sVectorFileName;
+  FSVolume*       m_volumeTemp;
+  wxArrayString   m_sFilenames;
+  wxString        m_sFilenamePrefix;
+  wxString        m_sLUT;
 };
 
 #endif

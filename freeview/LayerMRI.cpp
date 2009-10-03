@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/23 16:11:44 $
- *    $Revision: 1.35 $
+ *    $Date: 2009/10/03 01:18:33 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -518,6 +518,7 @@ void LayerMRI::UpdateContourActor( int nSegValue )
 
 void LayerMRI::UpdateVolumeRendering()
 {
+  /*
   if ( GetProperties()->GetShowAsContour() )
   {
     MyUtils::BuildVolume( GetImageData(),
@@ -525,6 +526,7 @@ void LayerMRI::UpdateVolumeRendering()
                           GetProperties()->GetContourMaxThreshold(),
                           m_propVolume );
   }
+  */
 }
 
 void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )

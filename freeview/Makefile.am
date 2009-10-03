@@ -33,6 +33,8 @@ freeview_SOURCES=\
 	DialogGradientVolume.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
+	DialogLoadPVolumes.cpp \
+	DialogLoadPVolumes.h \
 	DialogLoadVolume.cpp \
 	DialogLoadVolume.h \
 	DialogNewROI.cpp \
@@ -93,6 +95,8 @@ freeview_SOURCES=\
 	LayerMRI.h \
 	LayerOptimal.cpp \
 	LayerOptimal.h \
+	LayerPLabel.cpp \
+	LayerPLabel.h \
 	LayerPropertiesDTI.cpp \
 	LayerPropertiesDTI.h \
 	LayerPropertiesMRI.cpp \
@@ -196,7 +200,7 @@ freeview_SOURCES=\
 	res/CursorPencil_png.h \
 	res/CursorPolyline_png.h \
 	res/CursorPan_png.h \
-	res/CursorZoom_png.h
+	res/CursorZoom_png.h \
 	res/CursorColorPicker_png.h \
 	res/CursorGrab_png.h \
 	res/CursorMeasure_png.h
