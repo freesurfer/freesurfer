@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/29 21:44:23 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/10/05 18:41:53 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,6 +57,7 @@ FSSurface::FSSurface( FSVolume* ref ) :
 {
   m_polydata = vtkPolyData::New();
   m_polydataVector = vtkPolyData::New();
+  m_polydataVertices = vtkPolyData::New();
 
   for ( int i = 0; i < NUM_OF_VSETS; i++ )
   {
@@ -92,6 +93,7 @@ FSSurface::~FSSurface()
 
   m_polydata->Delete();
   m_polydataVector->Delete();
+  m_polydataVertices->Delete();
 }
 
 bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, const char* vector_filename  )
@@ -444,6 +446,8 @@ void FSSurface::UpdatePolyData()
   // vertex. We need to transform them from surface RAS into standard
   // RAS.
   float point[3], normal[3], surfaceRAS[3];
+  vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
+  vtkSmartPointer<vtkPoints> vert_pts = vtkSmartPointer<vtkPoints>::New();  
   for ( int vno = 0; vno < cVertices; vno++ )
   {
     surfaceRAS[0] = m_MRIS->vertices[vno].x;
@@ -458,6 +462,10 @@ void FSSurface::UpdatePolyData()
     normal[1] = m_MRIS->vertices[vno].ny;
     normal[2] = m_MRIS->vertices[vno].nz;
     newNormals->InsertNextTuple( normal );
+    
+    vert_pts->InsertNextPoint( point );
+    vtkIdType n = vno;
+    verts->InsertNextCell( 1, &n );
   }
 
   // Go through and add the face indices.
@@ -473,7 +481,9 @@ void FSSurface::UpdatePolyData()
   m_polydata->SetPoints( newPoints );
   m_polydata->GetPointData()->SetNormals( newNormals );
   newPolys->Squeeze(); // since we've estimated size; reclaim some space
-  m_polydata->SetPolys( newPolys );
+  m_polydata->SetPolys( newPolys ); 
+  m_polydataVertices->SetPoints( vert_pts );
+  m_polydataVertices->SetVerts( verts );
 // m_polydata->Update();
 }
 
@@ -496,6 +506,8 @@ void FSSurface::UpdateVerticesAndNormals()
   // vertex. We have to transform them from surface RAS into normal
   // RAS.
   float point[3], normal[3], surfaceRAS[3];
+  vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
+  vtkSmartPointer<vtkPoints> vert_pts = vtkSmartPointer<vtkPoints>::New();  
   for ( int vno = 0; vno < cVertices; vno++ )
   {
 
@@ -507,6 +519,10 @@ void FSSurface::UpdateVerticesAndNormals()
       m_volumeRef->RASToTarget( point, point );
     newPoints->InsertNextPoint( point );
 
+    vert_pts->InsertNextPoint( point );
+    vtkIdType n = vno;
+    verts->InsertNextCell( 1, &n );
+    
     normal[0] = m_MRIS->vertices[vno].nx;
     normal[1] = m_MRIS->vertices[vno].ny;
     normal[2] = m_MRIS->vertices[vno].nz;
@@ -515,7 +531,8 @@ void FSSurface::UpdateVerticesAndNormals()
 
   m_polydata->SetPoints( newPoints );
   m_polydata->GetPointData()->SetNormals( newNormals );
-// m_polydata->Update();
+  m_polydataVertices->SetPoints( vert_pts );
+  m_polydataVertices->SetVerts( verts );
 
   // if vector data exist
   UpdateVectors();
@@ -556,6 +573,8 @@ void FSSurface::UpdateVectors()
     m_polydataVector->SetVerts( verts );
   }
 }
+
+
 
 bool FSSurface::SetActiveSurface( int nIndex )
 {

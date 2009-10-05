@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 01:32:01 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/10/05 18:41:53 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -164,6 +164,7 @@ protected:
   void UpdateEdgeThickness();
   void UpdateVectorPointSize();
   void UpdateRenderMode();
+  void UpdateVertexRender();
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -187,6 +188,7 @@ protected:
   // vtkLODActor*  m_mainActor;
   vtkActor*   m_mainActor;
   vtkActor*   m_vectorActor;
+  vtkActor*   m_vertexActor;
   
   std::vector<SurfaceOverlay*>    m_overlays;
   int         m_nActiveOverlay;

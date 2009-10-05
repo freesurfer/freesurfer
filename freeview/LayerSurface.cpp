@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/18 21:21:04 $
- *    $Revision: 1.28 $
+ *    $Date: 2009/10/05 18:41:53 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -74,7 +74,7 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
 
 // m_mainActor = vtkLODActor::New();
   m_mainActor = vtkActor::New();
-  m_mainActor->GetProperty()->SetEdgeColor( 0.2, 0.2, 0.2 );
+  m_mainActor->GetProperty()->SetEdgeColor( 0.75, 0.75, 0.75 );
   mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
   mLowResFilter->SetTargetReduction( 0.9 );
 // mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
@@ -83,6 +83,10 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
   m_vectorActor = vtkActor::New();
   m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
   m_vectorActor->GetProperty()->SetPointSize( mProperties->GetVectorPointSize() );
+  
+  m_vertexActor = vtkActor::New();
+  m_vertexActor->GetProperty()->SetRepresentationToPoints();
+  m_vertexActor->VisibilityOff();
 }
 
 LayerSurface::~LayerSurface()
@@ -94,6 +98,7 @@ LayerSurface::~LayerSurface()
   }
   m_mainActor->Delete();
   m_vectorActor->Delete();
+  m_vertexActor->Delete();
 
   delete mProperties;
 
@@ -230,24 +235,15 @@ void LayerSurface::InitializeActors()
 
   // vector actor
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  /* vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
-   tube->SetInput( m_surfaceSource->GetVectorPolyData() );
-   tube->SetNumberOfSides( 6 );
-   tube->SetRadius(0.05 );*/
   mapper->SetInput(  m_surfaceSource->GetVectorPolyData() );
   m_vectorActor->SetMapper( mapper );
-  mapper->Update();
-  // try LOD actors
-  /* mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-   mLowResFilter->SetInput( m_surfaceSource->GetPolyData() );
-   mapper->SetInput( mLowResFilter->GetOutput() );
-   m_mainActor->AddLODMapper( mapper );
-   mapper->Update();
-   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-   mMediumResFilter->SetInput( m_surfaceSource->GetPolyData() );
-   mapper->SetInput( mMediumResFilter->GetOutput() );
-   m_mainActor->AddLODMapper( mapper );
-   mapper->Update();*/
+//  mapper->Update();
+  
+  // vertex actor
+  mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInput(  m_surfaceSource->GetVertexPolyData() );
+  m_vertexActor->SetMapper( mapper );
+//  mapper->Update();
 
   for ( int i = 0; i < 3; i++ )
   {
@@ -381,11 +377,12 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
 
 void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
-  renderer->AddViewProp( m_mainActor );
-  renderer->AddViewProp( m_vectorActor );
-
   for ( int i = 0; i < 3; i++ )
     renderer->AddViewProp( m_sliceActor3D[i] );
+  
+  renderer->AddViewProp( m_mainActor );
+  renderer->AddViewProp( m_vectorActor );
+  renderer->AddViewProp( m_vertexActor );
 }
 
 /*
@@ -468,9 +465,14 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, v
     this->UpdateVectorPointSize();
     this->SendBroadcast( "LayerActorUpdated", this );
   }
-  else if ( iMessage == "SurfaceRenderModeChanged", this )
+  else if ( iMessage == "SurfaceRenderModeChanged" )
   {
     this->UpdateRenderMode();
+    this->SendBroadcast( "LayerActorUpdated", this );
+  }
+  else if ( iMessage == "VertexRenderChanged" )
+  {
+    this->UpdateVertexRender();
     this->SendBroadcast( "LayerActorUpdated", this );
   }
 }
@@ -830,3 +832,11 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
   if ( bAskRedraw )
     this->SendBroadcast( "LayerActorUpdated", this );
 }
+
+void LayerSurface::UpdateVertexRender()
+{
+  m_vertexActor->SetVisibility( mProperties->GetShowVertices()? 1: 0 );
+  m_vertexActor->GetProperty()->SetPointSize( mProperties->GetVertexPointSize() );
+  m_vertexActor->GetProperty()->SetColor( mProperties->GetVertexColor() );
+}
+

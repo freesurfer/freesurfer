@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/21 01:32:01 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/10/05 18:41:53 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,11 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_BUTTON          ( XRCID( "ID_BUTTON_OVERLAY" ),          PanelSurface::OnButtonConfigureOverlay )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_RENDER_MODE" ),      PanelSurface::OnChoiceRenderMode )
 
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_ANNOTATION" ),            PanelSurface::OnChoiceAnnotation )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_ANNOTATION" ),       PanelSurface::OnChoiceAnnotation )
+  
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_SHOW_VERTICES" ),       PanelSurface::OnCheckShowVertices )
+  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_VERTEX" ),     PanelSurface::OnColorVertex )
+  EVT_SPINCTRL        ( XRCID( "ID_SPIN_VERTEX_POINT_SIZE" ),       PanelSurface::OnSpinVertexPointSize )
 
   EVT_CHOICE          ( XRCID( "ID_CHOICE_CURVATURE_MAP" ),         PanelSurface::OnChoiceCurvatureMap )
   EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPointChanging )
@@ -118,6 +122,9 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_textSlope           = XRCCTRL( *this, "ID_TEXT_SLOPE",            wxTextCtrl );
   
   m_choiceRenderMode    = XRCCTRL( *this, "ID_CHOICE_RENDER_MODE",    wxChoice );
+  m_checkShowVertices   = XRCCTRL( *this, "ID_CHECKBOX_SHOW_VERTICES",  wxCheckBox );
+  m_colorPickerVertex   = XRCCTRL( *this, "ID_COLOR_PICKER_VERTEX",   wxColourPickerCtrl );
+  m_spinVertexPointSize   = XRCCTRL( *this, "ID_SPIN_VERTEX_POINT_SIZE",   wxSpinCtrl );
   
   m_choiceOverlay       = XRCCTRL( *this, "ID_CHOICE_OVERLAY",        wxChoice );
   m_btnOverlayConfiguration 
@@ -137,6 +144,11 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_widgetsVector.push_back( m_spinVectorPointSize );
   m_widgetsVector.push_back( XRCCTRL( *this, "ID_STATIC_VECTOR_COLOR", wxStaticText ) );
   m_widgetsVector.push_back( XRCCTRL( *this, "ID_STATIC_VECTOR_POINT_SIZE", wxStaticText ) );
+  
+  m_widgetsVertex.push_back( m_colorPickerVertex );
+  m_widgetsVertex.push_back( m_spinVertexPointSize );
+  m_widgetsVertex.push_back( XRCCTRL( *this, "ID_STATIC_VERTEX_COLOR", wxStaticText ) );
+  m_widgetsVertex.push_back( XRCCTRL( *this, "ID_STATIC_VERTEX_POINT_SIZE", wxStaticText ) );
 
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 
@@ -238,6 +250,10 @@ void PanelSurface::DoUpdateUI()
       surf = layer->GetSourceSurface();     
        
       m_choiceRenderMode->SetSelection( layer->GetProperties()->GetSurfaceRenderMode() );
+      m_checkShowVertices->SetValue( layer->GetProperties()->GetShowVertices() );
+      rgb = layer->GetProperties()->GetVertexColor();
+      m_colorPickerVertex->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );     
+      m_spinVectorPointSize->SetValue( layer->GetProperties()->GetVertexPointSize() );
     }
 
     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
@@ -309,6 +325,10 @@ void PanelSurface::DoUpdateUI()
   for ( size_t i = 0; i < m_widgetsVector.size(); i++ )
   {
     m_widgetsVector[i]->Show( m_choiceVector->GetSelection() > 0 );
+  }
+  for ( size_t i = 0; i < m_widgetsVertex.size(); i++ )
+  {
+    m_widgetsVertex[i]->Show( m_checkShowVertices->GetValue() );
   }
   m_colorPicker->Enable( layer ); // && nCurvatureMap != LayerPropertiesSurface::CM_Threshold );
 
@@ -431,7 +451,6 @@ void PanelSurface::OnColorChanged( wxColourPickerEvent& event )
   }
 }
 
-
 void PanelSurface::OnEdgeColorChanged( wxColourPickerEvent& event )
 {
   LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
@@ -450,6 +469,37 @@ void PanelSurface::OnSpinEdgeThickness( wxSpinEvent& event )
     surf->GetProperties()->SetEdgeThickness( event.GetInt() );
   }
 }
+
+void PanelSurface::OnCheckShowVertices( wxCommandEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    surf->GetProperties()->ShowVertices( event.IsChecked() );
+  }
+}
+
+
+void PanelSurface::OnColorVertex( wxColourPickerEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    wxColour c = event.GetColour();
+    surf->GetProperties()->SetVertexColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+  }
+}
+
+
+void PanelSurface::OnSpinVertexPointSize( wxSpinEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    surf->GetProperties()->SetVertexPointSize( event.GetInt() );
+  }
+}
+
 
 void PanelSurface::OnChoiceVector( wxCommandEvent& event )
 {
