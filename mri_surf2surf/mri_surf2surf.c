@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/08/30 23:45:40 $
- *    $Revision: 1.82 $
+ *    $Date: 2009/10/05 19:46:42 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -343,7 +343,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.82 2009/08/30 23:45:40 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.83 2009/10/05 19:46:42 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -442,6 +442,8 @@ MRI *RMSMask = NULL;
 int SplitFrames=0;
 int ConvGaussian = 0;
 
+int UseDualHemi = 0; // Assume ?h.?h.surfreg file name, source only
+
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
   int f,tvtx,svtx,n,err;
@@ -460,7 +462,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.82 2009/08/30 23:45:40 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.83 2009/10/05 19:46:42 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -502,7 +504,7 @@ int main(int argc, char **argv) {
   } else {
     // Set source reg depending on whether hemis are same or diff
     // Changed to this on 11/30/97
-    if (!strcmp(srchemi,trghemi)) // hemis are the same
+    if(!strcmp(srchemi,trghemi) && UseDualHemi == 0) // hemis are the same
       sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,srchemi,srcsurfregfile);
     else // hemis are the different
       sprintf(fname,"%s/%s/surf/%s.%s.%s",SUBJECTS_DIR,
@@ -1270,11 +1272,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       srchemi = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--trghemi")) {
+    } 
+    else if (!strcmp(option, "--trghemi")) {
       if (nargc < 1) argnerr(option,1);
       trghemi = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--surfreg")) {
+    } 
+    else if (!strcmp(option, "--dual-hemi")) {
+      UseDualHemi = 1; // Assume ?h.?h.surfreg file name, source only
+    } 
+    else if (!strcmp(option, "--surfreg")) {
       if (nargc < 1) argnerr(option,1);
       srcsurfregfile = pargv[0];
       trgsurfregfile = pargv[0];
@@ -1355,7 +1362,11 @@ static void print_usage(void) {
   printf("   --tfmt target format\n");
   printf("   --trgdist distfile : save distance from source to target vtx\n");
   printf("   --s subject : use subject as src and target\n");
-  printf("   --hemi       hemisphere (lh or rh) \n");
+  printf("   --hemi       hemisphere : (lh or rh) for both source and targ\n");
+  printf("   --srchemi    hemisphere : (lh or rh) for source\n");
+  printf("   --trghemi    hemisphere : (lh or rh) for target\n");
+  printf("   --dual-hemi  : assume source ?h.?h.surfreg file name\n");
+
   printf("   --surfreg    source and targ surface registration (sphere.reg)  \n");
   printf("   --srcsurfreg source surface registration (sphere.reg)  \n");
   printf("   --trgsurfreg target surface registration (sphere.reg)  \n");
