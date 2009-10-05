@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/15 00:24:16 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/10/05 19:42:39 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -296,6 +296,32 @@ void QdecGlmDesign::AddDiscreteFactor ( const char* isFactorName)
  */
 void QdecGlmDesign::ClearContinuousFactors ( )
 {
+  // un-exclude any previously excluded subjects (see AddContinuousFactor)
+  // whose data is NaN for this factor
+  unsigned int nContinuousFactors = this->GetNumberOfContinuousFactors();
+  if ( nContinuousFactors > 0 )
+  {
+    for (unsigned int f=0; f < nContinuousFactors; f++)
+    {
+      
+      vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+      unsigned int nInputs = subjs.size();
+      for (unsigned int m=0; m < nInputs; m++)
+      {
+        if (isnan(subjs[m]->GetContinuousFactorValue( 
+                    this->mContinuousFactors[f]->GetFactorName().c_str() )))
+        {
+          fprintf( stdout,
+                   "\nINFO: re-including subject %s into analysis "
+                   "excluded previously due to NaN data point\n",
+                   subjs[m]->GetId().c_str() );
+          this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), false );
+        }
+      }
+    }
+  }
+
+  // NOW we can clear the factor list
   mContinuousFactors.clear();
 }
 
@@ -315,6 +341,21 @@ void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
   }
   assert( qf->IsContinuous() );
   this->mContinuousFactors.push_back( qf );
+
+  // exclude any subjects whose data is NaN for this factor
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (isnan(subjs[m]->GetContinuousFactorValue( isFactorName )))
+    {
+      fprintf( stderr,
+               "\nWARNING: will exclude subject %s from analysis "
+               "due to NaN data point!\n",
+               subjs[m]->GetId().c_str() );
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), true );
+    }
+  }
 }
 
 
