@@ -2,7 +2,7 @@
 # Makefile.am
 #
 
-AM_CPPFLAGS=$(GL_CFLAGS)
+AM_CPPFLAGS=$(GL_CFLAGS) -fno-strict-aliasing
 
 AM_LDFLAGS=
 
@@ -74,6 +74,8 @@ test_glut_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_VXL) -lz \
 	$(LIB_JPEG) $(LIB_TIFF)	$(X_LIBS) $(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
 
 # test_glut app cannot run as auto-test. it requires manual intervention.
+# to do that, just uncomment the next line and run 'make check'
+# a window should appear where random colored dots appear when moused-over
 #TESTS=test_glut
 
 foodir=$(prefix)/docs
