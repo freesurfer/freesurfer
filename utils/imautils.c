@@ -6,11 +6,11 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:52 $
- *    $Revision: 1.15 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/05 18:39:22 $
+ *    $Revision: 1.16 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -195,6 +195,11 @@ static int imaSetDictEntry(int nthEntry, char *key, int offset,
   ImaDictionary[nthEntry].typestring = typestring;
   type = imaTypeFromString(typestring);
   ImaDictionary[nthEntry].type       = type;
+  if (type < 0)
+  {
+    printf("ERROR: ima type is < 0\n");
+    return(1);
+  }
   ImaDictionary[nthEntry].typesize   = imaTypeSize[type];
 
   if (type != IMA_TYPE_STRING) ImaDictionary[nthEntry].nitems = 1;
