@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/07/21 14:15:11 $
- *    $Revision: 1.84 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/05 19:09:41 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -210,7 +210,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.84 2009/07/21 14:15:11 fischl Exp $";
+"$Id: mri_segreg.c,v 1.85 2009/10/05 19:09:41 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -346,15 +346,17 @@ int main(int argc, char **argv) {
   LABEL *label;
   int PrintT1Warning = 0, PrintT2Warning = 0;
 
+  memset(pmin,0,sizeof(pmin));
+
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.84 2009/07/21 14:15:11 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.85 2009/10/05 19:09:41 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.84 2009/07/21 14:15:11 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.85 2009/10/05 19:09:41 nicks Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
