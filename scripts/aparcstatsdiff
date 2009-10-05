@@ -75,9 +75,9 @@ if ($status) then
 endif
 rm -f $tmpout >& /dev/null
     
-set labels=`grep -e "^${stat}" ${outfile}`
-set subj1=`grep -e "^${subject1}" ${outfile}`
-set subj2=`grep -e "^${subject2}" ${outfile}`
+set labels=`grep -w "^${stat}" ${outfile}`
+set subj1=`grep -w "^${subject1}" ${outfile}`
+set subj2=`grep -w "^${subject2}" ${outfile}`
 
 if ( "$#labels" != "$#subj1" ) then
     echo "Label row and Subj1 row have unequal number of columns!"
