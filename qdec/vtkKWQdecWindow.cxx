@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/24 21:26:29 $
- *    $Revision: 1.39 $
+ *    $Date: 2009/10/05 19:43:24 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -105,7 +105,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.39 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.40 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4211,6 +4211,15 @@ vtkKWQdecWindow::UpdateScatterPlot () {
       // Get the value.
       float value = (*tSubject)->GetContinuousFactorValue( sFactor.c_str() );
       
+      // dont plot it if its NaN (ie. no data for that subject)
+      if (isnan(value)) {
+        cout << endl << "WARNING: Excluding subject " 
+             << (*tSubject)->GetId().c_str()
+             << " from plot due to NaN data point!" << endl;
+        mGraph->DeleteElement( (*tSubject)->GetId().c_str() );
+        continue;
+      }
+
       // Add this index,value pair to the list of values to graph.
       lPoints.clear();
       lPoints.push_back( nIndex );
