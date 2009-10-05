@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/02 16:11:56 $
- *    $Revision: 1.127 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/05 18:39:38 $
+ *    $Revision: 1.128 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -4885,6 +4885,8 @@ int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
   int nth, c, stop;
   double ImgPos0[3],d[3],dlength;
   DICOMInfo *dcmfi;
+
+  d[0]=d[1]=d[2]=0.0;
 
   // Keep track of image position of the first file
   for (c=0; c < 3; c++)
