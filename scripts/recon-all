@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/09/23 21:01:55 $
-#    $Revision: 1.251 $
+#    $Date: 2009/10/05 23:35:30 $
+#    $Revision: 1.252 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.251 2009/09/23 21:01:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.252 2009/10/05 23:35:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -223,8 +223,6 @@ set DoRemoveNeck     = 0;
 set DoSkullLTA       = 0;
 set DoCALabel        = 0;
 set DoASegMerge      = 0;
-set DoSegStats       = 0;
-set DoAParcASegStats = 0;
 set DoFill           = 0;
 #----- Surface -----------#
 set DoTessellate     = 0;
@@ -255,9 +253,11 @@ set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
 set DoBaLabels       = 0;
 # ----------- Surface and Volume ------------------#
+set DoSegStats       = 0;
 set DoCortRibbonVolMask = 0;
 set DoAParc2ASeg = 0;
 set DoWMParc = 0;
+set DoAParcASegStats = 0;
 
 
 set DoIsRunning  = 1;
@@ -3695,7 +3695,6 @@ while( $#argv != 0 )
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
-      set DoSegStats       = 1;
       set DoNormalization2 = 1;
       set DoMaskBFS        = 1;
       set DoSegmentation   = 1;
@@ -3717,6 +3716,7 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
@@ -3854,6 +3854,7 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
