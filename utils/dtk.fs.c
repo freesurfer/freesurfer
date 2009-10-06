@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/09/30 16:22:47 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/10/06 17:49:44 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file dtk.fs.c
   \brief FS interface to Diffusion Toolkit and TrackVis data.
   DTk http://trackvis.org/docs/?subsect=fileformat
-  $Id: dtk.fs.c,v 1.1 2009/09/30 16:22:47 greve Exp $
+  $Id: dtk.fs.c,v 1.2 2009/10/06 17:49:44 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *DTKFSSrcVersion(void)
 {
-  return("$Id: dtk.fs.c,v 1.1 2009/09/30 16:22:47 greve Exp $");
+  return("$Id: dtk.fs.c,v 1.2 2009/10/06 17:49:44 greve Exp $");
 }
 
 /*----------------------------------------------------------------*/
@@ -445,3 +445,132 @@ LABEL *DTKtrack2Label(DTK_TRACK *trk)
 }
 
 
+/*--------------------------------------------------------------
+  MRI *DTKmapTrackNos() - first tp is the number of tracks that pass
+  through the voxel, the remainder are the track numbers of the
+  passing tracks.
+  --------------------------------------------------------------*/
+MRI *DTKmapTrackNos(DTK_TRACK_SET *trkset)
+{
+  MRI *mri, *t;
+  int ntrk, c, r, s, n, nhits, nmaxhits= 2000;
+  DTK_TRACK *trk;
+
+  t = trkset->template;
+  mri = MRIallocSequence(t->width, t->height, t->depth, MRI_INT, nmaxhits);
+  if(mri == NULL) return(NULL);
+  MRIcopyHeader(t,mri);
+
+  printf("Mapping Track Numbers\n");
+  // Go thru each track
+  for(ntrk=0; ntrk < trkset->hdr->n_count; ntrk++){
+    trk = trkset->trk[ntrk];
+    // Go thru each point in the track
+    for(n=0; n < trk->npoints; n++){
+      // CRS of voxel for this point
+      c = nint(trk->c[n]);
+      r = nint(trk->r[n]);
+      s = nint(trk->s[n]);
+      if(c < 0 || c >= t->width) continue;
+      if(r < 0 || c >= t->height) continue;
+      if(s < 0 || s >= t->depth) continue;
+      // Current number of tracks passing through this voxel
+      nhits = MRIgetVoxVal(mri,c,r,s,0); 
+      // Track number for this track
+      MRIsetVoxVal(mri,c,r,s,nhits, ntrk);
+      // Update number of tracks passing through this voxel
+      nhits ++;
+      if(nhits >= nmaxhits){
+	printf("ERROR: nhits exceeds %d   %d %d %d\n",nmaxhits,c,r,s);
+	return(NULL);
+      }
+      MRIsetVoxVal(mri,c,r,s,0, nhits);
+    }
+  }
+  printf("Done mapping Track Numbers\n");
+  return(mri);
+}
+
+/*----------------------------------------------------------------*/
+MRI *DTKsegROI(DTK_TRACK_SET *trkset, MRI *seg, int segid)
+{
+  MRI *mri, *tracknos;
+  int c,r,s,id,nthid,idlist[1000],ntracks,id0,n0,trackno,n;
+  int term,cT=0,rT=0,sT=0,idT=0,pct=0;
+  DTK_TRACK *trk;
+
+  tracknos = DTKmapTrackNos(trkset);
+  if(tracknos == NULL) return(NULL);
+
+  mri = MRIallocSequence(seg->width, seg->height, seg->depth, MRI_INT, 2);
+  MRIcopyHeader(seg,mri);
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	MRIsetVoxVal(mri,c,r,s,0, 0); // make sure it starts at 0
+	id = MRIgetVoxVal(seg,c,r,s,0);
+	// Is this CRS a voxel in the seed region?
+	if(id != segid) {
+	  if(id == 2 || id == 41) continue;
+	  if(id == 11 || id == 12 || id == 13) continue;
+	  if(id == 50 || id == 51 || id == 52) continue;
+	  if(id ==  4 || id ==  5 || id == 13 || id == 28) continue;
+	  if(id == 43 || id == 44 || id == 15 || id == 60) continue;
+	  if(id == 31 || id == 63) continue;
+	  if(id == 26 || id == 58) continue;
+	  // Just set id to target seg id
+	  MRIsetVoxVal(mri,c,r,s,0, id);
+	  continue;
+	}
+	// Get number of tracks through this CRS
+	ntracks = MRIgetVoxVal(tracknos,c,r,s,0);
+	if(ntracks == 0) continue;
+	// Go through each track and find where the end 
+	// points land. Get list of all end point ids
+	nthid = 0;
+	for(n=0; n<ntracks; n++){
+	  trackno = MRIgetVoxVal(tracknos,c,r,s,n+1);
+	  trk = trkset->trk[trackno];
+	  for(term=0; term <= 1; term++){
+	    if(term==0){
+	      // "Start" of the track
+	      cT = nint(trk->c[0]);
+	      rT = nint(trk->r[0]);
+	      sT = nint(trk->s[0]);
+	    }
+	    if(term==1){
+	      // "End" of the track
+	      cT = nint(trk->c[trk->npoints-1]);
+	      rT = nint(trk->r[trk->npoints-1]);
+	      sT = nint(trk->s[trk->npoints-1]);
+	    }
+	    if(cT < 0 || cT >= seg->width)  continue;
+	    if(rT < 0 || rT >= seg->height) continue;
+	    if(sT < 0 || sT >= seg->depth)  continue;
+	    // Seg Id at this termination
+	    idT = MRIgetVoxVal(seg,cT,rT,sT,0);
+	    if(idT == segid) continue; // Dont map to self
+	    if( (idT >= 1000 && idT <= 1035) ||	(idT >= 2000 && idT <= 2035)){
+	      idlist[nthid] = idT;
+	      nthid++;
+	    }
+	  }
+	}
+	if(nthid != 0) 	{
+	  // Get the most frequently occuring label
+	  id0 = most_frequent_int_list(idlist, nthid, &n0);
+	  pct = nint(1000.0*n0/nthid); // 10x percent
+	} 
+	else id0 = 0; // nothing appropriate
+
+	MRIsetVoxVal(mri,c,r,s,0, id0);
+	MRIsetVoxVal(mri,c,r,s,1, pct);
+
+      }// C
+    } // R
+  } // S
+
+  MRIfree(&tracknos);
+  return(mri);
+}
