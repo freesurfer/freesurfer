@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/08/17 17:08:07 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2009/10/06 23:12:09 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -71,7 +71,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_expand.c,v 1.9 2007/08/17 17:08:07 fischl Exp $",
+     "$Id: mris_expand.c,v 1.10 2009/10/06 23:12:09 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -211,5 +211,6 @@ usage_exit(int code)
 {
   printf("Usage: %s [options] <input surface> <mm> <output surface>\n",
          Progname) ;
+  printf("Example: mris_expand -thickness lh.white 0.5 lh.graymid\n");
   exit(code) ;
 }
