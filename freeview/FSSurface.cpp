@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/05 18:41:53 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,9 +55,10 @@ FSSurface::FSSurface( FSVolume* ref ) :
     m_volumeRef( ref ),
     m_nActiveVector( -1 )
 {
-  m_polydata = vtkPolyData::New();
-  m_polydataVector = vtkPolyData::New();
-  m_polydataVertices = vtkPolyData::New();
+  m_polydata = vtkSmartPointer<vtkPolyData>::New();
+  m_polydataVector = vtkSmartPointer<vtkPolyData>::New();
+  m_polydataVertices = vtkSmartPointer<vtkPolyData>::New();
+  m_polydataWireframes = vtkSmartPointer<vtkPolyData>::New();
 
   for ( int i = 0; i < NUM_OF_VSETS; i++ )
   {
@@ -90,10 +91,6 @@ FSSurface::~FSSurface()
     delete[] m_vertexVectors[i].data;
   }
   m_vertexVectors.clear();
-
-  m_polydata->Delete();
-  m_polydataVector->Delete();
-  m_polydataVertices->Delete();
 }
 
 bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, const char* vector_filename  )
@@ -234,6 +231,7 @@ bool FSSurface::LoadCurvature( const char* filename )
       curvs->InsertNextValue( m_MRIS->vertices[vno].curv );
     }
     m_polydata->GetPointData()->SetScalars( curvs );
+    m_polydataWireframes->GetPointData()->SetScalars( curvs );
     m_bCurvatureLoaded = true;
 
     return true;
@@ -447,7 +445,7 @@ void FSSurface::UpdatePolyData()
   // RAS.
   float point[3], normal[3], surfaceRAS[3];
   vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
-  vtkSmartPointer<vtkPoints> vert_pts = vtkSmartPointer<vtkPoints>::New();  
+  verts->Allocate( cVertices );
   for ( int vno = 0; vno < cVertices; vno++ )
   {
     surfaceRAS[0] = m_MRIS->vertices[vno].x;
@@ -463,12 +461,13 @@ void FSSurface::UpdatePolyData()
     normal[2] = m_MRIS->vertices[vno].nz;
     newNormals->InsertNextTuple( normal );
     
-    vert_pts->InsertNextPoint( point );
     vtkIdType n = vno;
     verts->InsertNextCell( 1, &n );
   }
 
-  // Go through and add the face indices.
+  // Go through and add the face indices. 
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  lines->Allocate( cFaces * 6 );
   vtkIdType face[VERTICES_PER_FACE];
   for ( int fno = 0; fno < cFaces; fno++ )
   {
@@ -476,14 +475,20 @@ void FSSurface::UpdatePolyData()
     face[1] = m_MRIS->faces[fno].v[1];
     face[2] = m_MRIS->faces[fno].v[2];
     newPolys->InsertNextCell( 3, face );
+    lines->InsertNextCell( 2, face );
+    lines->InsertNextCell( 2, face+1 );
+    vtkIdType t[2] = { face[0], face[2] };
+    lines->InsertNextCell( 2, t );
   }
 
   m_polydata->SetPoints( newPoints );
   m_polydata->GetPointData()->SetNormals( newNormals );
   newPolys->Squeeze(); // since we've estimated size; reclaim some space
   m_polydata->SetPolys( newPolys ); 
-  m_polydataVertices->SetPoints( vert_pts );
+  m_polydataVertices->SetPoints( newPoints );
   m_polydataVertices->SetVerts( verts );
+  m_polydataWireframes->SetPoints( newPoints );
+  m_polydataWireframes->SetLines( lines ); 
 // m_polydata->Update();
 }
 
@@ -506,8 +511,6 @@ void FSSurface::UpdateVerticesAndNormals()
   // vertex. We have to transform them from surface RAS into normal
   // RAS.
   float point[3], normal[3], surfaceRAS[3];
-  vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
-  vtkSmartPointer<vtkPoints> vert_pts = vtkSmartPointer<vtkPoints>::New();  
   for ( int vno = 0; vno < cVertices; vno++ )
   {
 
@@ -518,10 +521,6 @@ void FSSurface::UpdateVerticesAndNormals()
     if ( m_volumeRef )
       m_volumeRef->RASToTarget( point, point );
     newPoints->InsertNextPoint( point );
-
-    vert_pts->InsertNextPoint( point );
-    vtkIdType n = vno;
-    verts->InsertNextCell( 1, &n );
     
     normal[0] = m_MRIS->vertices[vno].nx;
     normal[1] = m_MRIS->vertices[vno].ny;
@@ -531,8 +530,8 @@ void FSSurface::UpdateVerticesAndNormals()
 
   m_polydata->SetPoints( newPoints );
   m_polydata->GetPointData()->SetNormals( newNormals );
-  m_polydataVertices->SetPoints( vert_pts );
-  m_polydataVertices->SetVerts( verts );
+  m_polydataVertices->SetPoints( newPoints );
+  m_polydataWireframes->SetPoints( newPoints );
 
   // if vector data exist
   UpdateVectors();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/05 18:41:53 $
- *    $Revision: 1.29 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -73,20 +73,23 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
   mProperties->AddListener( this );
 
 // m_mainActor = vtkLODActor::New();
-  m_mainActor = vtkActor::New();
+  m_mainActor = vtkSmartPointer<vtkActor>::New();
   m_mainActor->GetProperty()->SetEdgeColor( 0.75, 0.75, 0.75 );
   mLowResFilter = vtkSmartPointer<vtkDecimatePro>::New();
   mLowResFilter->SetTargetReduction( 0.9 );
 // mMediumResFilter = vtkSmartPointer<vtkDecimatePro>::New();
 // mMediumResFilter->SetTargetReduction( 0.9 );
 
-  m_vectorActor = vtkActor::New();
+  m_vectorActor = vtkSmartPointer<vtkActor>::New();
   m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
   m_vectorActor->GetProperty()->SetPointSize( mProperties->GetVectorPointSize() );
   
-  m_vertexActor = vtkActor::New();
+  m_vertexActor = vtkSmartPointer<vtkActor>::New();
   m_vertexActor->GetProperty()->SetRepresentationToPoints();
   m_vertexActor->VisibilityOff();
+  
+  m_wireframeActor = vtkSmartPointer<vtkActor>::New();
+  m_wireframeActor->VisibilityOff();
 }
 
 LayerSurface::~LayerSurface()
@@ -96,9 +99,6 @@ LayerSurface::~LayerSurface()
     m_sliceActor2D[i]->Delete();
     m_sliceActor3D[i]->Delete();
   }
-  m_mainActor->Delete();
-  m_vectorActor->Delete();
-  m_vertexActor->Delete();
 
   delete mProperties;
 
@@ -243,7 +243,12 @@ void LayerSurface::InitializeActors()
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   mapper->SetInput(  m_surfaceSource->GetVertexPolyData() );
   m_vertexActor->SetMapper( mapper );
-//  mapper->Update();
+  
+  // wireframe actor
+  mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInput(  m_surfaceSource->GetWireframePolyData() );
+  m_wireframeActor->SetMapper( mapper );
+  mapper->Update();
 
   for ( int i = 0; i < 3; i++ )
   {
@@ -351,11 +356,20 @@ void LayerSurface::UpdateColorMap()
   }
 
   m_mainActor->GetProperty()->SetColor( mProperties->GetBinaryColor() );
+  m_wireframeActor->GetProperty()->SetColor( mProperties->GetBinaryColor() );
   m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
   if ( m_surfaceSource->IsCurvatureLoaded() )
   {
     if ( mProperties->GetCurvatureLUT() != m_mainActor->GetMapper()->GetLookupTable() )
+    {
       m_mainActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
+      
+    }
+    
+    if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+      m_wireframeActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
+    else if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Curvature )
+      UpdateMeshRender();
     /*  vtkSmartPointer<vtkMapperCollection> mc = m_mainActor->GetLODMappers();
       mc->InitTraversal();
       vtkMapper* mapper = NULL;
@@ -383,6 +397,7 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   renderer->AddViewProp( m_mainActor );
   renderer->AddViewProp( m_vectorActor );
   renderer->AddViewProp( m_vertexActor );
+  renderer->AddViewProp( m_wireframeActor );
 }
 
 /*
@@ -475,6 +490,11 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, v
     this->UpdateVertexRender();
     this->SendBroadcast( "LayerActorUpdated", this );
   }
+  else if ( iMessage == "MeshRenderChanged" )
+  {
+    this->UpdateMeshRender();
+    this->SendBroadcast( "LayerActorUpdated", this );
+  }
 }
 
 void LayerSurface::SetVisible( bool bVisible )
@@ -484,14 +504,18 @@ void LayerSurface::SetVisible( bool bVisible )
     m_sliceActor2D[i]->SetVisibility( ( bVisible && mProperties->GetEdgeThickness() > 0 ) ? 1 : 0 );
     m_sliceActor3D[i]->SetVisibility( ( bVisible && mProperties->GetEdgeThickness() > 0 ) ? 1 : 0 );
   }
-  m_mainActor->SetVisibility( bVisible ? 1 : 0 );
+  
+  m_mainActor->SetVisibility( bVisible && mProperties->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Wireframe );
+  m_wireframeActor->SetVisibility( bVisible && mProperties->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Surface );
+  m_vertexActor->SetVisibility( bVisible && mProperties->GetShowVertices() );
   m_vectorActor->SetVisibility( ( bVisible && m_surfaceSource && m_surfaceSource->GetActiveVector() >= 0 )? 1 : 0 );
+
   this->SendBroadcast( "LayerActorUpdated", this );
 }
 
 bool LayerSurface::IsVisible()
 {
-  return m_mainActor->GetVisibility() > 0;
+  return m_sliceActor2D[0]->GetVisibility() > 0;
 }
 
 bool LayerSurface::HasProp( vtkProp* prop )
@@ -501,7 +525,7 @@ bool LayerSurface::HasProp( vtkProp* prop )
     if ( m_sliceActor2D[i] == prop || m_sliceActor3D[i] == prop )
       return true;
   }
-  return prop == m_mainActor;
+  return (m_mainActor.GetPointer() == prop);
 }
 
 int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )
@@ -675,6 +699,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
 {  
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
   vtkPolyData* polydata = mapper->GetInput();
+  vtkPolyData* polydataWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() )->GetInput();
   if ( m_nActiveOverlay >= 0 )
   {
     if ( mapper )
@@ -692,6 +717,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           array->SetNumberOfTuples( nCount );   
           array->SetName( "Overlay" );  
           polydata->GetPointData()->AddArray( array );
+          polydataWireframe->GetPointData()->AddArray( array );
       }
       unsigned char* data = new unsigned char[ nCount*4 ];
       mProperties->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
@@ -702,6 +728,8 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
       } 
       delete[] data;
       polydata->GetPointData()->SetActiveScalars( "Overlay" );
+      if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+        polydataWireframe->GetPointData()->SetActiveScalars( "Overlay" );
     }
   }
   else if ( m_nActiveAnnotation >= 0 )
@@ -711,6 +739,8 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   else
   {
     polydata->GetPointData()->SetActiveScalars( "Curvature" );
+    if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+      polydataWireframe->GetPointData()->SetActiveScalars( "Curvature" );
   }
   if ( bAskRedraw )
     this->SendBroadcast( "LayerActorUpdated", this );
@@ -718,21 +748,23 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
 
 void LayerSurface::UpdateRenderMode()
 {
-  m_mainActor->GetProperty()->EdgeVisibilityOff();
+//  m_mainActor->GetProperty()->EdgeVisibilityOff();
 //  m_mainActor->GetProperty()->BackfaceCullingOn();
   switch ( GetProperties()->GetSurfaceRenderMode() )
   {
     case LayerPropertiesSurface::SM_Surface:
-      m_mainActor->GetProperty()->SetRepresentationToSurface();
+      m_mainActor->VisibilityOn();
+      m_wireframeActor->VisibilityOff();
       break;
     case LayerPropertiesSurface::SM_Wireframe:
-      m_mainActor->GetProperty()->SetRepresentationToWireframe();
-      m_mainActor->GetProperty()->SetLineWidth( 1 );
+      m_mainActor->VisibilityOff();
+      m_wireframeActor->VisibilityOn();
+      m_wireframeActor->GetProperty()->SetLineWidth( 1 );
       break;
     case LayerPropertiesSurface::SM_SurfaceAndWireframe:
-      m_mainActor->GetProperty()->SetRepresentationToSurface();
-      m_mainActor->GetProperty()->SetLineWidth( 2 );
-      m_mainActor->GetProperty()->EdgeVisibilityOn();
+      m_mainActor->VisibilityOn();
+      m_wireframeActor->VisibilityOn();     
+      m_wireframeActor->GetProperty()->SetLineWidth( 2 );
       break;
   }
 }
@@ -802,6 +834,8 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
 {  
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
   vtkPolyData* polydata = mapper->GetInput();
+  vtkPolyDataMapper* mapperWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
+  vtkPolyData* polydataWireframe = mapperWireframe->GetInput();
   if ( m_nActiveAnnotation >= 0 )
   {
     if ( mapper )
@@ -814,6 +848,7 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
      //   array->SetNumberOfTuples( nCount ); 
         array->SetName( "Annotation" );  
         polydata->GetPointData()->AddArray( array );
+        polydataWireframe->GetPointData()->AddArray( array );
       }
 
       array->SetArray( GetActiveAnnotation()->GetIndices(), nCount, 1 );
@@ -823,6 +858,12 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
       lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable(), false );  // do not clear zero
       mapper->SetLookupTable( lut );
       mapper->UseLookupTableScalarRangeOn();
+      if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+      {
+        polydataWireframe->GetPointData()->SetActiveScalars( "Annotation" );
+        mapperWireframe->SetLookupTable( lut );
+        mapperWireframe->UseLookupTableScalarRangeOn();
+      }
     }
   }
   else
@@ -840,3 +881,35 @@ void LayerSurface::UpdateVertexRender()
   m_vertexActor->GetProperty()->SetColor( mProperties->GetVertexColor() );
 }
 
+void LayerSurface::UpdateMeshRender()
+{
+  vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
+  vtkPolyData* polydata = mapper->GetInput();
+  vtkPolyDataMapper* mapperWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
+  vtkPolyData* polydataWireframe = mapperWireframe->GetInput();
+  mapperWireframe->SetScalarVisibility( mProperties->GetMeshColorMap() != LayerPropertiesSurface::MC_Solid ? 1:0 );
+  switch ( mProperties->GetMeshColorMap() )
+  {
+    case LayerPropertiesSurface::MC_Surface:
+      polydataWireframe->GetPointData()->SetActiveScalars( polydata->GetPointData()->GetScalars()->GetName() );
+      mapperWireframe->SetLookupTable( mapper->GetLookupTable() );
+      break;
+    case LayerPropertiesSurface::MC_Curvature:
+      {
+        // always display as threshold for curvature
+        vtkSmartPointer<vtkRGBAColorTransferFunction> lut = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
+        mProperties->BuildCurvatureLUT( lut, LayerPropertiesSurface::CM_Threshold );
+        m_wireframeActor->GetMapper()->SetLookupTable( lut );
+        polydataWireframe->GetPointData()->SetActiveScalars( "Curvature" );
+      }
+      break;
+    case LayerPropertiesSurface::MC_Overlay:
+      polydataWireframe->GetPointData()->SetActiveScalars( "Overlay" );
+      break;
+    case LayerPropertiesSurface::MC_Solid:
+      m_wireframeActor->GetProperty()->SetColor( mProperties->GetMeshColor() );
+      break;
+    default:
+      break;
+  }
+}

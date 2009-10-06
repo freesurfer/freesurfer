@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -49,10 +49,7 @@ public:
     return m_strName.c_str();
   }
 
-  void SetName( const char* name )
-  {
-    m_strName = name;
-  }
+  void SetName( const char* name );
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL ) = 0;

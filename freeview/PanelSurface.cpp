@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/05 18:41:53 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -54,6 +54,7 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_OVERLAY" ),          PanelSurface::OnChoiceOverlay )
   EVT_BUTTON          ( XRCID( "ID_BUTTON_OVERLAY" ),          PanelSurface::OnButtonConfigureOverlay )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_RENDER_MODE" ),      PanelSurface::OnChoiceRenderMode )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_MESH_COLORMAP" ),    PanelSurface::OnChoiceMeshColorMap )
 
   EVT_CHOICE          ( XRCID( "ID_CHOICE_ANNOTATION" ),       PanelSurface::OnChoiceAnnotation )
   
@@ -122,6 +123,7 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_textSlope           = XRCCTRL( *this, "ID_TEXT_SLOPE",            wxTextCtrl );
   
   m_choiceRenderMode    = XRCCTRL( *this, "ID_CHOICE_RENDER_MODE",    wxChoice );
+  m_choiceMeshColorMap  = XRCCTRL( *this, "ID_CHOICE_MESH_COLORMAP",    wxChoice );
   m_checkShowVertices   = XRCCTRL( *this, "ID_CHECKBOX_SHOW_VERTICES",  wxCheckBox );
   m_colorPickerVertex   = XRCCTRL( *this, "ID_COLOR_PICKER_VERTEX",   wxColourPickerCtrl );
   m_spinVertexPointSize   = XRCCTRL( *this, "ID_SPIN_VERTEX_POINT_SIZE",   wxSpinCtrl );
@@ -150,6 +152,9 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_widgetsVertex.push_back( XRCCTRL( *this, "ID_STATIC_VERTEX_COLOR", wxStaticText ) );
   m_widgetsVertex.push_back( XRCCTRL( *this, "ID_STATIC_VERTEX_POINT_SIZE", wxStaticText ) );
 
+  m_widgetsMesh.push_back( m_choiceMeshColorMap );
+  m_widgetsMesh.push_back( XRCCTRL( *this, "ID_STATIC_MESH_COLORMAP", wxStaticText ) );
+  
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 
   UpdateUI();
@@ -174,7 +179,7 @@ void PanelSurface::DoListenToMessage( std::string const iMsg, void* iData, void*
 
     UpdateUI();
   }
-  else if ( iMsg == "LayerMoved" )
+  else if ( iMsg == "LayerMoved" || iMsg == "LayerNameChanged" )
   {
     Layer* layer = ( Layer* )iData;
     if ( layer && layer->IsTypeOf( "Surface" ) )
@@ -250,6 +255,7 @@ void PanelSurface::DoUpdateUI()
       surf = layer->GetSourceSurface();     
        
       m_choiceRenderMode->SetSelection( layer->GetProperties()->GetSurfaceRenderMode() );
+      m_choiceMeshColorMap->SetSelection( layer->GetProperties()->GetMeshColorMap() );
       m_checkShowVertices->SetValue( layer->GetProperties()->GetShowVertices() );
       rgb = layer->GetProperties()->GetVertexColor();
       m_colorPickerVertex->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );     
@@ -329,6 +335,10 @@ void PanelSurface::DoUpdateUI()
   for ( size_t i = 0; i < m_widgetsVertex.size(); i++ )
   {
     m_widgetsVertex[i]->Show( m_checkShowVertices->GetValue() );
+  }
+  for ( size_t i = 0; i < m_widgetsMesh.size(); i++ )
+  {
+    m_widgetsMesh[i]->Show( layer && layer->GetProperties()->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Surface );
   }
   m_colorPicker->Enable( layer ); // && nCurvatureMap != LayerPropertiesSurface::CM_Threshold );
 
@@ -682,6 +692,17 @@ void PanelSurface::OnChoiceRenderMode( wxCommandEvent& event )
     surf->GetProperties()->SetSurfaceRenderMode( event.GetSelection() );
   }  
 }
+
+
+void PanelSurface::OnChoiceMeshColorMap( wxCommandEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    surf->GetProperties()->SetMeshColorMap( event.GetSelection() );
+  }  
+}
+
 
 void PanelSurface::OnChoiceAnnotation( wxCommandEvent& event )
 {

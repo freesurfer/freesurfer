@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/01 21:23:25 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,15 @@ Layer::Layer() : Listener( "Layer" ), Broadcaster( "Layer" )
 Layer::~Layer()
 {
   SendBroadcast( "LayerObjectDeleted", this );
+}
+
+void Layer::SetName( const char* name )
+{
+  if ( m_strName != name )
+  {
+    m_strName = name;
+    SendBroadcast( "LayerNameChanged", this );
+  }
 }
 
 bool Layer::IsTypeOf( std::string tname )

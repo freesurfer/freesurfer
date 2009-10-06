@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/05 18:41:53 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -29,6 +29,7 @@
 
 #include "vtkSmartPointer.h"
 #include "vtkImageData.h"
+#include "vtkPolyData.h"
 #include "vtkMatrix4x4.h"
 
 #include <vector>
@@ -44,7 +45,6 @@ extern "C"
 class wxWindow;
 class wxCommandEvent;
 class vtkTransform;
-class vtkPolyData;
 class FSVolume;
 
 class FSSurface
@@ -151,6 +151,11 @@ public:
     return m_polydataVertices;
   }
   
+  vtkPolyData* GetWireframePolyData()
+  {
+    return m_polydataWireframes;
+  }
+  
   MRIS* GetMRIS()
   {
     return m_MRIS;
@@ -183,9 +188,10 @@ protected:
   float   m_RASBounds[6];
   float   m_RASCenter[3];
 
-  vtkPolyData* m_polydata;
-  vtkPolyData* m_polydataVector;
-  vtkPolyData* m_polydataVertices;
+  vtkSmartPointer<vtkPolyData> m_polydata;
+  vtkSmartPointer<vtkPolyData> m_polydataVector;
+  vtkSmartPointer<vtkPolyData> m_polydataVertices;
+  vtkSmartPointer<vtkPolyData> m_polydataWireframes;
 
   // Hash table so we can look up vertices. Uses v->x,y,z.
   MRIS_HASH_TABLE* m_HashTable[5];

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/05 18:41:53 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,6 +81,7 @@ private:
   void OnTextMidPoint           ( wxCommandEvent& event );
   void OnTextSlope              ( wxCommandEvent& event );
   void OnChoiceRenderMode       ( wxCommandEvent& event );
+  void OnChoiceMeshColorMap     ( wxCommandEvent& event );
   
   void OnChoiceAnnotation       ( wxCommandEvent& event );
   
@@ -120,6 +121,7 @@ private:
   wxChoice*     m_choiceAnnotation;
   
   wxChoice*     m_choiceRenderMode;
+  wxChoice*     m_choiceMeshColorMap;
   
   wxCheckBox*   m_checkShowVertices;
   wxColourPickerCtrl* m_colorPickerVertex;
@@ -129,6 +131,7 @@ private:
   std::vector<wxWindow*>  m_widgetsSlope;
   std::vector<wxWindow*>  m_widgetsVector;
   std::vector<wxWindow*>  m_widgetsVertex;
+  std::vector<wxWindow*>  m_widgetsMesh;
 
   bool   m_bUINeedUpdate;
 

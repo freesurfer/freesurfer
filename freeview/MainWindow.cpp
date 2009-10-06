@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:34 $
- *    $Revision: 1.70 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2419,6 +2419,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceEdgeColor( sa );
   }
+  else if ( sa[0] == _("setlayername") )
+  {
+    CommandSetLayerName( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2532,6 +2536,14 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
         }
         m_scripts.insert( m_scripts.begin(), script );
       }
+      else if ( subOption == _("name") )
+      {
+        wxArrayString script;
+        script.Add( _("setlayername") );
+        script.Add( _("MRI") );
+        script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
@@ -2635,6 +2647,18 @@ void MainWindow::CommandSetColorMap( const wxArrayString& sa )
   ContinueScripts();
 }
 
+void MainWindow::CommandSetLayerName( const wxArrayString& cmd )
+{
+  if ( cmd.size() > 2 )
+  {
+    LayerCollection* lc = GetLayerCollection( cmd[1].c_str() );
+    if ( lc && !lc->IsEmpty() )
+    {
+      lc->GetActiveLayer()->SetName( cmd[2].c_str() );
+    }
+  }
+  ContinueScripts();
+}
 
 void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
 {
@@ -3023,6 +3047,14 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
           script.Add( vector_fns[i] );
           m_scripts.insert( m_scripts.begin(), script );
         }
+      }      
+      else if ( subOption == _("name") )
+      {
+        wxArrayString script;
+        script.Add( _("setlayername") );
+        script.Add( _("Surface") );
+        script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
       }
       else
       {
@@ -3200,21 +3232,30 @@ void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
     if ( n != wxNOT_FOUND )
     {
       wxString option = strg.Left( n ).Lower();
+      wxString argu = strg.Mid( n+1 );
       if ( option == _("color") )
       {
-        color = strg.Mid( n+1 );
+        color = argu;
       }
       else if ( option == _("splinecolor") )
       {
-        spline_color = strg.Mid( n+1 );
+        spline_color = argu;
       }
       else if ( option == _("radius") )
       {
-        radius = strg.Mid( n+1 );
+        radius = argu;
       }
       else if ( option == _("splineradius") )
       {
-        spline_radius = strg.Mid( n+1 );
+        spline_radius = argu;
+      }
+      else if ( option == _("name") )
+      {
+        wxArrayString script;
+        script.Add( _("setlayername") );
+        script.Add( _("WayPoints") );
+        script.Add( argu );
+        m_scripts.insert( m_scripts.begin(), script );
       }
       else
       {
@@ -3576,7 +3617,6 @@ void MainWindow::LoadSurfaceVector()
   }
 }
 
-
 void MainWindow::LoadSurfaceVectorFile( const wxString& filename )
 {
   wxString fn = filename;
@@ -3764,7 +3804,7 @@ void MainWindow::OnViewHistogram( wxCommandEvent& event )
   if ( m_wndHistogram->IsVisible() )
     m_wndHistogram->Hide();
   else
-	 m_wndHistogram->Show( !m_wndHistogram->IsVisible() );
+	  m_wndHistogram->Show( !m_wndHistogram->IsVisible() );
 }
 
 void MainWindow::OnViewHistogramUpdateUI( wxUpdateUIEvent& event )

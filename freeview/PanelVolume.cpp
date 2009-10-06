@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/21 17:38:58 $
- *    $Revision: 1.30 $
+ *    $Date: 2009/10/06 21:46:47 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -297,7 +297,7 @@ void PanelVolume::DoListenToMessage( std::string const iMsg, void* iData, void* 
       UpdateUI();
     }
   }
-  else if ( iMsg == "LayerMoved" )
+  else if ( iMsg == "LayerMoved" || iMsg == "LayerNameChanged" )
   {
     Layer* layer = ( Layer* )iData;
     if ( layer && layer->IsTypeOf( "MRI" ) )
