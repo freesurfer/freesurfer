@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/03/11 17:47:00 $
-#    $Revision: 1.4 $
+#    $Date: 2009/10/06 16:53:10 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,8 +24,8 @@
 
 
 if($#argv != 1) then
-  echo "USAGE: getnframes stem "
-  echo '$Id: getnframes,v 1.4 2008/03/11 17:47:00 greve Exp $'
+  echo "USAGE: getnframes stem|fname "
+  echo '$Id: getnframes,v 1.5 2009/10/06 16:53:10 greve Exp $'
   exit 1;
 endif
 
@@ -42,10 +42,14 @@ if(-e $f0) then
 endif
 
 # If it gets here, then bhdr exists or is not bshort/bfloat
-set fname = `stem2fname $stem`;
-if($status) then
-  echo "$fname"
-  exit 1;
+if(-e $stem) then
+  set fname = $stem;
+else
+  set fname = `stem2fname $stem`;
+  if($status) then
+    echo "$fname"
+    exit 1;
+  endif
 endif
 
 set cmd = (mri_info --o /tmp/$$.tmp --nframes $fname);
