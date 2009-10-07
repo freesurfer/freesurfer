@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/09/01 01:22:58 $
- *    $Revision: 1.57 $
+ *    $Author: greve $
+ *    $Date: 2009/10/07 21:03:39 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -125,6 +125,11 @@ mri_ca_label (ie, aseg.mgz) as it will only report on those
 segmentations that were actually considered during mri_ca_label.
 Note that there can still be some labels do not have any voxels 
 in the report.
+
+--ctab-unknown
+
+Assign segmentation name as UnknownSegXXXX, where XXXX is a 
+4-digit, 0-padded integer. Happens automatically with --slabel.
 
 --id segid1 <--id segid2>
 
@@ -421,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.57 2009/09/01 01:22:58 nicks Exp $";
+"$Id: mri_segstats.c,v 1.58 2009/10/07 21:03:39 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -498,6 +503,8 @@ int DoMultiply = 0;
 double MultVal = 0;
 
 int DoSNR = 0;
+int CTabUnknown = 0;
+int nCTabUnknown = 10000;      
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -674,6 +681,13 @@ int main(int argc, char **argv) {
       exit(1);
     }
   }
+  if(CTabUnknown){
+    printf("Filling ctab with unknown\n");
+    ctab = CTABalloc(nCTabUnknown);
+    for(n=0; n < ctab->nentries; n++)
+      sprintf(ctab->entries[n]->name,"UnknownSeg%04d",n);
+  }
+
   if (gcafile != NULL) {
     gca = GCAread(gcafile);
     if (gca == NULL) {
@@ -1415,12 +1429,20 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) argnerr(option,1);
       FSENVsetSUBJECTS_DIR(pargv[0]);
       nargsused = 1;
-    } else if ( !strcmp(option, "--ctab-default") ) {
+    } 
+    else if ( !strcmp(option, "--ctab-default") ) {
       FREESURFER_HOME = getenv("FREESURFER_HOME");
       ctabfile = (char *) calloc(sizeof(char),1000);
       sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
       printf("Using defalt ctab %s\n",ctabfile);
-    } else if ( !strcmp(option, "--ctab-gca") ) {
+    } 
+    else if ( !strcmp(option, "--ctab-unknown") ) {
+      FREESURFER_HOME = getenv("FREESURFER_HOME");
+      ctabfile = (char *) calloc(sizeof(char),1000);
+      sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
+      CTabUnknown = 1;
+    } 
+    else if ( !strcmp(option, "--ctab-gca") ) {
       if (nargc < 1) argnerr(option,1);
       gcafile = pargv[0];
       nargsused = 1;
@@ -1556,6 +1578,8 @@ static int parse_commandline(int argc, char **argv) {
       LabelFile = pargv[2];
       ExclSegId = 0;
       DoExclSegId = 1;
+      CTabUnknown = 1;      
+      nCTabUnknown = 2;      
       nargsused = 3;
     } 
     else if (!strcmp(option, "--segbase")) {
@@ -1683,13 +1707,18 @@ printf("bfloat).\n");
 printf("\n");
 printf("--annot subject hemi parc\n");
 printf("\n");
-printf("Create a segmentation from hemi.parc.annot. If parc is aparc or aparc.a2005s,\n");
-printf("then the segmentation numbers will match those in \n");
+printf("Create a segmentation from hemi.parc.annot. If parc is aparc or\n");
+printf("aparc.a2005s, then the segmentation numbers will match those in\n");
 printf("$FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The\n");
-printf("numbering can also be altered with --segbase. If an input is used,\n");
-printf("it must be a surface ovelay with the same dimension as the parcellation.\n");
-printf("This functionality makes mri_segstats partially redundant with \n");
+printf("numbering can also be altered with --segbase. If an input is used, it\n");
+printf("must be a surface ovelay with the same dimension as the parcellation.\n");
+printf("This functionality makes mri_segstats partially redundant with\n");
 printf("mris_anatomical_stats.\n");
+printf("\n");
+printf("--label subject hemi labelfile\n");
+printf("\n");
+printf("Create a segmentation from the given surface label. The points in \n");
+printf("the label are given a value of 1; 0 for outside.\n");
 printf("\n");
 printf("--sum summaryfile\n");
 printf("\n");
@@ -1742,6 +1771,11 @@ printf("mri_ca_label (ie, aseg.mgz) as it will only report on those \n");
 printf("segmentations that were actually considered during mri_ca_label.\n");
 printf("Note that there can still be some labels do not have any voxels \n");
 printf("in the report.\n");
+printf("\n");
+printf("--ctab-unknown\n");
+printf("\n");
+printf("Assign segmentation name as UnknownSegXXXX, where XXXX is a \n");
+printf("4-digit, 0-padded integer. Happens automatically with --slabel.\n");
 printf("\n");
 printf("--id segid1 <--id segid2>\n");
 printf("\n");
@@ -1902,14 +1936,14 @@ printf("\n");
 printf("2. mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg \n");
 printf("    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \n");
 printf("    --nonempty --excludeid 0 --sum bert.aseg.sum \n");
-printf("    --in $SUBJECTS_DIR/bert/mri/orig\n");
+printf("    --i $SUBJECTS_DIR/bert/mri/orig\n");
 printf("\n");
 printf("Same as above but intensity statistics from the orig volume\n");
 printf("will also be reported for each segmentation.\n");
 printf("\n");
 printf("3. mri_segstats --seg aseg-in-func.img \n");
 printf("    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \n");
-printf("    --nonempty --excludeid 0 --in func.img \n");
+printf("    --nonempty --excludeid 0 --i func.img \n");
 printf("    --mask spmT.img --maskthresh 2.3 \n");
 printf("    --sum bert.aseg-in-func.sum \n");
 printf("    --avgwf bert.avgwf.dat --avgwfvol bert.avgwf.img\n");
@@ -1941,7 +1975,7 @@ printf("This uses mri_label2vol to resample the automatic cortical\n");
 printf("segmentation to the functional space. For more information\n");
 printf("see mri_label2vol --help.\n");
 printf("\n");
-printf("6. mri_segstats --annot bert lh aparc --in lh.thickness --sum lh.thickness.sum \n");
+printf("6. mri_segstats --annot bert lh aparc --i lh.thickness --sum lh.thickness.sum \n");
 printf("\n");
 printf("Produce a summary of the thickness in each parcellation of aparc. This \n");
 printf("will give the same mean thicknesses as that created by mris_anatomical_stats\n");
