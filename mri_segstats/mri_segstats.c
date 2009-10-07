@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/07 21:03:39 $
- *    $Revision: 1.58 $
+ *    $Date: 2009/10/07 21:07:27 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.58 2009/10/07 21:03:39 greve Exp $";
+"$Id: mri_segstats.c,v 1.59 2009/10/07 21:07:27 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1437,10 +1437,8 @@ static int parse_commandline(int argc, char **argv) {
       printf("Using defalt ctab %s\n",ctabfile);
     } 
     else if ( !strcmp(option, "--ctab-unknown") ) {
-      FREESURFER_HOME = getenv("FREESURFER_HOME");
-      ctabfile = (char *) calloc(sizeof(char),1000);
-      sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
       CTabUnknown = 1;
+      NonEmptyOnly = 1;
     } 
     else if ( !strcmp(option, "--ctab-gca") ) {
       if (nargc < 1) argnerr(option,1);
