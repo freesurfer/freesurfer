@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.71 $
+ *    $Date: 2009/10/07 20:43:44 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2204,7 +2204,9 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   else if ( iMsg == "LayerObjectDeleted" )
   {
     if ( m_layerVolumeRef == iData )
-      m_layerVolumeRef = NULL;
+    {
+      m_layerVolumeRef = (LayerMRI*)GetActiveLayer( "MRI" );
+    }
   }
   else if ( iMsg == "MRINotVisible" )
   {

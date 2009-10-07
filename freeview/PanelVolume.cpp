@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.31 $
+ *    $Date: 2009/10/07 20:43:44 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -33,6 +33,7 @@
 #include "Layer.h"
 #include "LayerMRI.h"
 #include "LayerDTI.h"
+#include "LayerSurface.h"
 #include "LayerPropertiesMRI.h"
 #include "LayerPropertiesDTI.h"
 #include "wxColorIndicator.h"
@@ -407,6 +408,7 @@ void PanelVolume::UpdateLayerList( Layer* layer )
 void PanelVolume::OnButtonDelete( wxCommandEvent& event )
 {
   LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+  LayerCollection* lc_surf = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
   int nSel = m_listBoxLayers->GetSelection();
   if ( lc && nSel != wxNOT_FOUND )
   {
@@ -417,6 +419,16 @@ void PanelVolume::OnButtonDelete( wxCommandEvent& event )
       wxMessageDialog dlg( this, msg, _("Close"), wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
       if ( dlg.ShowModal() != wxID_YES )
         return;
+    }
+    for ( int i = 0; i < lc_surf->GetNumberOfLayers(); i++ )
+    {
+      if ( ( (LayerSurface*)lc_surf->GetLayer( i ) )->GetRefVolume() == layer )
+      {
+        wxString msg = _("One of the surfaces is using this volume as coordinate reference. You can not close it before closing the surface first.");
+        wxMessageDialog dlg( this, msg, _("Close"), wxOK );
+        dlg.ShowModal();
+        return;
+      }
     }
     m_listBoxLayers->Delete( nSel );
 

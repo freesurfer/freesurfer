@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/10/07 20:43:43 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -153,6 +153,11 @@ public:
   void SetActiveAnnotation( const char* name );
   
   void UpdateAnnotation( bool bAskRedraw = false );
+  
+  LayerMRI* GetRefVolume()
+  {
+    return m_volumeRef;
+  }
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
