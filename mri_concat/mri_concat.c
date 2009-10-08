@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/09/14 16:56:29 $
- *    $Revision: 1.37 $
+ *    $Date: 2009/10/08 19:05:07 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,8 @@
 #include "fio.h"
 #include "fmriutils.h"
 #include "version.h"
+#include "mri_identify.h"
+#include "cmdargs.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -59,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.37 2009/09/14 16:56:29 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.38 2009/10/08 19:05:07 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -102,6 +104,11 @@ char *matfile = NULL;
 MATRIX *M = NULL;
 int ngroups = 0;
 MATRIX *GroupedMeanMatrix(int ngroups, int ntotal);
+char tmpstr[2000];
+
+int DoPCA = 0;
+MRI *PCAMask = NULL;
+char *PCAMaskFile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -109,6 +116,9 @@ int main(int argc, char **argv) {
   int r,c,s,f,nframes,err;
   double v, v1, v2, vavg;
   int inputDatatype=MRI_UCHAR;
+  MATRIX *Upca=NULL,*Spca=NULL;
+  MRI *Vpca=NULL;
+  char *stem;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -379,6 +389,25 @@ int main(int argc, char **argv) {
     MRIaddConst(mriout, AddVal, mriout);
   }
 
+  if(DoPCA){
+    // Saves only non-zero components
+    printf("Computing PCA\n");
+    if(PCAMaskFile){
+      printf("  PCA Mask %s\n",PCAMaskFile);
+      PCAMask = MRIread(PCAMaskFile);
+      if(PCAMask == NULL) exit(1);
+    }
+    err=MRIpca(mriout, &Upca, &Spca, &Vpca, PCAMask);
+    if(err) exit(1);
+    stem = IDstemFromName(out);
+    sprintf(tmpstr,"%s.u.mtx",stem);
+    MatrixWriteTxt(tmpstr, Upca);
+    sprintf(tmpstr,"%s.stats.dat",stem);
+    WritePCAStats(tmpstr,Spca);
+    MRIfree(&mriout);
+    mriout = Vpca;
+  }
+
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
   if(err) exit(err);
@@ -459,7 +488,16 @@ static int parse_commandline(int argc, char **argv) {
       DoCombine = 1;
     } else if (!strcasecmp(option, "--keep-datatype")) {
       DoKeepDatatype = 1;
-    } else if ( !strcmp(option, "--i") ) {
+    } 
+    else if (!strcasecmp(option, "--pca")){
+      DoPCA = 1;
+    }
+    else if ( !strcmp(option, "--pca-mask") ) {
+      if(nargc < 1) argnerr(option,1);
+      PCAMaskFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--i") ) {
       if (nargc < 1) argnerr(option,1);
       inlist[ninputs] = pargv[0];
       ninputs ++;
@@ -551,6 +589,8 @@ static void print_usage(void) {
   printf("   --min  : compute min of concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
+  printf("   --pca  : output is pca. U is output.u.mtx and S is output.stats.dat\n");
+  printf("   --pca-mask mask  : Only use voxels whose mask > 0.5\n");
   printf("\n");
   printf("   --max-bonfcor  : compute max and bonferroni correct (assumes -log10(p))\n");
   printf("   --mul mulval   : multiply by mulval\n");
