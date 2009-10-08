@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/08 21:19:07 $
- *    $Revision: 1.60 $
+ *    $Date: 2009/10/08 23:16:41 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -126,11 +126,6 @@ segmentations that were actually considered during mri_ca_label.
 Note that there can still be some labels do not have any voxels 
 in the report.
 
---ctab-unknown
-
-Assign segmentation name as UnknownSegXXXX, where XXXX is a 
-4-digit, 0-padded integer. Happens automatically with --slabel.
-
 --ctab-out
 
 Create an output color table (like FreeSurferColor.txt) with just
@@ -162,10 +157,10 @@ the following lines in the table:
   # surface-based-volume mm3 lh-cerebral-white-matter 266579.428518
   # surface-based-volume mm3 rh-cerebral-white-matter 265945.120671
 
---nonempty
+--empty
 
-Only report on segmentations that have actual representations in the
-segmentation volume.
+Report on segmentations listed in the color table even if they 
+are not found in the segmentation volume.
 
 --mask maskvol
 
@@ -244,8 +239,7 @@ can be specified:
      purposes.
   3. If the user does not specify either --id or a color table, then 
      all the ids from the segmentation volume are used.
-This list can be further reduced by specifying masks, --nonempty,
-and --excludeid.
+This list can be further reduced by specifying masks and --excludeid.
 
 MEASURES OF BRAIN VOLUME
 
@@ -285,7 +279,7 @@ EXAMPLES
 
 1. mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg 
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt 
-    --nonempty --excludeid 0 --sum bert.aseg.sum 
+    --excludeid 0 --sum bert.aseg.sum 
 
 This will compute the segmentation statistics from the automatic
 FreeSurfer subcortical segmentation for non-empty segmentations and
@@ -294,7 +288,7 @@ bert.aseg.sum.
 
 2. mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg 
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt 
-    --nonempty --excludeid 0 --sum bert.aseg.sum 
+    --excludeid 0 --sum bert.aseg.sum 
     --i $SUBJECTS_DIR/bert/mri/orig
 
 Same as above but intensity statistics from the orig volume
@@ -302,7 +296,7 @@ will also be reported for each segmentation.
 
 3. mri_segstats --seg aseg-in-func.img 
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt 
-    --nonempty --excludeid 0 --i func.img 
+    --excludeid 0 --i func.img 
     --mask spmT.img --maskthresh 2.3 
     --sum bert.aseg-in-func.sum 
     --avgwf bert.avgwf.dat --avgwfvol bert.avgwf.img
@@ -432,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.60 2009/10/08 21:19:07 greve Exp $";
+"$Id: mri_segstats.c,v 1.61 2009/10/08 23:16:41 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -457,7 +451,7 @@ long seed = 0;
 MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol, *mri_aseg;
 int nsegid0, *segidlist0;
 int nsegid, *segidlist;
-int NonEmptyOnly = 0;
+int NonEmptyOnly = 1;
 int UserSegIdList[1000];
 int nUserSegIdList = 0;
 int DoExclSegId = 0, ExclSegId = 0;
@@ -510,8 +504,6 @@ int DoMultiply = 0;
 double MultVal = 0;
 
 int DoSNR = 0;
-int CTabUnknown = 0;
-int nCTabUnknown = 10000;      
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -687,12 +679,6 @@ int main(int argc, char **argv) {
       printf("ERROR: reading %s\n",ctabfile);
       exit(1);
     }
-  }
-  if(CTabUnknown){
-    printf("Filling ctab with unknown\n");
-    ctab = CTABalloc(nCTabUnknown);
-    for(n=0; n < ctab->nentries; n++)
-      sprintf(ctab->entries[n]->name,"UnknownSeg%04d",n);
   }
 
   if (gcafile != NULL) {
@@ -1323,7 +1309,8 @@ int main(int argc, char **argv) {
     for (n=0; n < nsegid; n++) {
       fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
               StatSumTable[n].nhits, StatSumTable[n].vol);
-      if (ctab != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
+      if(ctab != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
+      else             fprintf(fp,"Seg%04d",StatSumTable[n].id);
       if (InVolFile != NULL){
         fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
                 StatSumTable[n].mean, StatSumTable[n].std,
@@ -1432,6 +1419,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--dontrun"))   dontrun = 1;
     else if (!strcasecmp(option, "--nonempty")) NonEmptyOnly = 1;
+    else if (!strcasecmp(option, "--empty"))    NonEmptyOnly = 0;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
     else if ( !strcmp(option, "--etiv-only") ) DoETIVonly = 1;
@@ -1462,10 +1450,6 @@ static int parse_commandline(int argc, char **argv) {
       ctabfile = (char *) calloc(sizeof(char),1000);
       sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",FREESURFER_HOME);
       printf("Using defalt ctab %s\n",ctabfile);
-    } 
-    else if ( !strcmp(option, "--ctab-unknown") ) {
-      CTabUnknown = 1;
-      NonEmptyOnly = 1;
     } 
     else if ( !strcmp(option, "--ctab-gca") ) {
       if (nargc < 1) argnerr(option,1);
@@ -1610,8 +1594,6 @@ static int parse_commandline(int argc, char **argv) {
       LabelFile = pargv[2];
       ExclSegId = 0;
       DoExclSegId = 1;
-      CTabUnknown = 1;      
-      nCTabUnknown = 2;      
       nargsused = 3;
     } 
     else if (!strcmp(option, "--segbase")) {
@@ -1670,7 +1652,7 @@ static void print_usage(void) {
   printf("   --excl-ctxgmwm : exclude cortical gray and white matter\n");
   printf("   --surf-wm-vol : compute cortical white volume from surf\n");
   printf("   --surf-ctx-vol : compute cortical volumes from surf\n");
-  printf("   --nonempty : only report non-empty segmentations\n");
+  printf("   --empty : report all segmentations in ctab, even if not in the seg\n");
   printf("   --ctab-out ctaboutput : create a ctab with only your segs\n");
   printf("\n");
   printf("Masking options\n");
@@ -1805,11 +1787,6 @@ printf("segmentations that were actually considered during mri_ca_label.\n");
 printf("Note that there can still be some labels do not have any voxels \n");
 printf("in the report.\n");
 printf("\n");
-printf("--ctab-unknown\n");
-printf("\n");
-printf("Assign segmentation name as UnknownSegXXXX, where XXXX is a \n");
-printf("4-digit, 0-padded integer. Happens automatically with --slabel.\n");
-printf("\n");
 printf("--ctab-out\n");
 printf("\n");
 printf("Create an output color table (like FreeSurferColor.txt) with just\n");
@@ -1923,8 +1900,7 @@ printf("     used to determine the name of the segmentation for reporint\n");
 printf("     purposes.\n");
 printf("  3. If the user does not specify either --id or a color table, then \n");
 printf("     all the ids from the segmentation volume are used.\n");
-printf("This list can be further reduced by specifying masks, --nonempty,\n");
-printf("and --excludeid.\n");
+printf("This list can be further reduced by specifying masks, --excludeid.\n");
 printf("\n");
 printf("MEASURES OF BRAIN VOLUME\n");
 printf("\n");
@@ -1964,7 +1940,7 @@ printf("EXAMPLES\n");
 printf("\n");
 printf("1. mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg \n");
 printf("    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \n");
-printf("    --nonempty --excludeid 0 --sum bert.aseg.sum \n");
+printf("    --excludeid 0 --sum bert.aseg.sum \n");
 printf("\n");
 printf("This will compute the segmentation statistics from the automatic\n");
 printf("FreeSurfer subcortical segmentation for non-empty segmentations and\n");
@@ -1973,7 +1949,7 @@ printf("bert.aseg.sum.\n");
 printf("\n");
 printf("2. mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg \n");
 printf("    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \n");
-printf("    --nonempty --excludeid 0 --sum bert.aseg.sum \n");
+printf("    --excludeid 0 --sum bert.aseg.sum \n");
 printf("    --i $SUBJECTS_DIR/bert/mri/orig\n");
 printf("\n");
 printf("Same as above but intensity statistics from the orig volume\n");
@@ -1981,7 +1957,7 @@ printf("will also be reported for each segmentation.\n");
 printf("\n");
 printf("3. mri_segstats --seg aseg-in-func.img \n");
 printf("    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \n");
-printf("    --nonempty --excludeid 0 --i func.img \n");
+printf("    --excludeid 0 --i func.img \n");
 printf("    --mask spmT.img --maskthresh 2.3 \n");
 printf("    --sum bert.aseg-in-func.sum \n");
 printf("    --avgwf bert.avgwf.dat --avgwfvol bert.avgwf.img\n");
