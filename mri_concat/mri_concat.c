@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/08 19:05:07 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/10/08 19:20:17 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.38 2009/10/08 19:05:07 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.39 2009/10/08 19:20:17 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *inlist[5000];
@@ -109,6 +109,7 @@ char tmpstr[2000];
 int DoPCA = 0;
 MRI *PCAMask = NULL;
 char *PCAMaskFile = NULL;
+int DoSCM = 0; // spat cor matrix
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -389,6 +390,14 @@ int main(int argc, char **argv) {
     MRIaddConst(mriout, AddVal, mriout);
   }
 
+  if(DoSCM){
+    printf("Computing spatial correlation matrix (%d)\n",mriout->nframes);
+    mritmp = fMRIspatialCorMatrix(mriout);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   if(DoPCA){
     // Saves only non-zero components
     printf("Computing PCA\n");
@@ -492,6 +501,9 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--pca")){
       DoPCA = 1;
     }
+    else if (!strcasecmp(option, "--scm")){
+      DoSCM = 1;
+    }
     else if ( !strcmp(option, "--pca-mask") ) {
       if(nargc < 1) argnerr(option,1);
       PCAMaskFile = pargv[0];
@@ -591,6 +603,7 @@ static void print_usage(void) {
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("   --pca  : output is pca. U is output.u.mtx and S is output.stats.dat\n");
   printf("   --pca-mask mask  : Only use voxels whose mask > 0.5\n");
+  printf("   --scm  : compute spatial covariance matrix (can be huge!)\n");
   printf("\n");
   printf("   --max-bonfcor  : compute max and bonferroni correct (assumes -log10(p))\n");
   printf("   --mul mulval   : multiply by mulval\n");
