@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2009/09/24 21:29:31 $
- *    $Revision: 1.324 $
+ *    $Date: 2009/10/08 22:55:38 $
+ *    $Revision: 1.325 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -623,6 +623,7 @@ int colscalebar_font_size = 1; /* 1 is small, 2 is med, 3 is big */
 int colscalebarvertflag = TRUE;
 int colscalebaruselabelsflag = FALSE;
 int linkvertextpflag = FALSE;
+int linkvertexlabelavgflag = FALSE;
 int numvertices = 0;
 int surfaceflag = TRUE;
 int pointsflag = FALSE;
@@ -3101,6 +3102,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         }
         else
         {
+	  /* if the vertex index is linked to the timepoint in the config overlay dialog */
 	  if (linkvertextpflag)
 	  {
             find_vertex_at_screen_point(sx, sy, &tpvno, &tpd);
@@ -3109,7 +3111,54 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
             send_tcl_command ("UpdateAndRedraw");
 	  }
 
+	  /* if the vertex index is linked to the avg of the ROI in the config overlay dialog */
+	  if (linkvertexlabelavgflag)
+	  {
+            LABEL* area;
+	    int n, current_vno, vno;
+	    float *values, *average;
+	    int label_index = -1;
+	    int num_found;
 
+	    /* tpvno is the vertex of the clicked point */
+            find_vertex_at_screen_point(sx, sy, &tpvno, &tpd);
+	    /* try and find the label corresponding to the clicked vertex number */
+	    labl_find_label_by_vno (tpvno, labl_selected_label+1,
+				  &label_index, 1, &num_found);
+	    /* idea is to get the list of vertices belonging to this label (area) */ 
+	    area = labl_labels[label_index].label ;
+	    /* allocate memory for values and average*/
+            values = (float*) calloc( mris->nvertices, sizeof(float) );
+            average = (float*) calloc( mris->nvertices, sizeof(float) );
+            if (values == NULL || average == NULL)
+                ErrorReturn(ERROR_NOMEMORY,
+                (ERROR_NOMEMORY,
+                 "linkvertexlabelavg: couldn't allocate values or average storage."));
+	    /* for every vertex in the area ( label ) , get the associated timepoint values 
+	     * add them all to the average array */
+	    for (n = 0  ; n < area->n_points ; n++)
+	    {
+	      if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
+	      {
+	        current_vno = area->lv[n].vno ;
+                sclv_get_values_for_field_and_timepoint (sclv_current_field, current_vno,
+                                                         sclv_cur_condition, values);
+		for (vno=0; vno < mris->nvertices; vno++) average[vno] += values[vno];
+	      }
+	    }
+	    /* in every vertex v, set average[vno] as the timepoint value */
+            for (vno = 0 ; vno < mris->nvertices ; vno++)
+            { 
+	      VERTEX *v;
+              v = &mris->vertices[vno] ;
+	      sclv_set_value(v, sclv_current_field, average[vno] / area->n_points);
+	    }
+
+	    free(values);
+	    free(average);
+            send_tcl_command ("UpdateAndRedraw");
+
+          }
           /* begin rkt */
           if (selection>=0)
           {
@@ -20750,7 +20799,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.324 2009/09/24 21:29:31 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.325 2009/10/08 22:55:38 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21647,6 +21696,8 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"colscalebarvertflag",(char *)&colscalebarvertflag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"linkvertextpflag",(char *)&linkvertextpflag,
+              TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"linkvertexlabelavgflag",(char *)&linkvertexlabelavgflag,
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"pointsflag",(char *)&pointsflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"surfaceflag",(char *)&surfaceflag, TCL_LINK_BOOLEAN);
