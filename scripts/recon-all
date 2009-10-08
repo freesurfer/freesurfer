@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/10/05 23:35:30 $
-#    $Revision: 1.252 $
+#    $Author: greve $
+#    $Date: 2009/10/08 23:17:36 $
+#    $Revision: 1.253 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.252 2009/10/05 23:35:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.253 2009/10/08 23:17:36 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2549,7 +2549,7 @@ if($DoSegStats) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
-  set cmd = ($cmd --pv mri/norm.mgz )
+  set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --excludeid 0)
   set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
@@ -2655,7 +2655,7 @@ if($DoWMParc) then
   echo $cmd > $touchdir/wmaparc.touch
   # Do segstats while we're here
   set cmd = (mri_segstats --seg mri/wmparc.mgz --sum stats/wmparc.stats \
-    --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg \
+    --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  --empty\
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
     --in-intensity-units MR --etiv --subject $subjid --surf-wm-vol \
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt )
@@ -2859,7 +2859,7 @@ if($DoAParcASegStats) then
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
-  set cmd = ($cmd --excludeid 0 --ctab-default)
+  set cmd = ($cmd --excludeid 0 --ctab-default --empty)
   set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
