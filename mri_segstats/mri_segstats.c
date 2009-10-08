@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/07 21:07:27 $
- *    $Revision: 1.59 $
+ *    $Date: 2009/10/08 21:19:07 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -130,6 +130,11 @@ in the report.
 
 Assign segmentation name as UnknownSegXXXX, where XXXX is a 
 4-digit, 0-padded integer. Happens automatically with --slabel.
+
+--ctab-out
+
+Create an output color table (like FreeSurferColor.txt) with just
+the segmentations reported in the output. 
 
 --id segid1 <--id segid2>
 
@@ -410,6 +415,7 @@ typedef struct {
   char name[1000];
   int nhits;
   float vol;
+  int red, green, blue; // 0-255
   float min, max, range, mean, std, snr;
 }
 STATSUMENTRY;
@@ -426,7 +432,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.59 2009/10/07 21:07:27 greve Exp $";
+"$Id: mri_segstats.c,v 1.60 2009/10/08 21:19:07 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -486,6 +492,7 @@ char *ctabfile = NULL;
 COLOR_TABLE *ctab = NULL;
 STATSUMENTRY *StatSumTable = NULL;
 STATSUMENTRY *StatSumTable2 = NULL;
+char *ctabfileOut = NULL;
 
 MRIS *mris;
 char *subject = NULL;
@@ -936,7 +943,8 @@ int main(int argc, char **argv) {
       StatSumTable[n].id = segidlist[n];
       strcpy(StatSumTable[n].name, "\0");
     }
-  } else { /* Get from user or color table */
+  } 
+  else { /* Get from user or color table */
     if (ctab != NULL) {
       if (nUserSegIdList == 0) {
         /* User has not spec anything, so use all the ids in the color table */
@@ -953,14 +961,17 @@ int main(int argc, char **argv) {
         usersegid=0;
         for (n=0; n < ntotalsegid; n++) {
           CTABisEntryValid(ctab,n,&valid);
-          if (!valid)
-            continue;
+          if(!valid) continue;
           StatSumTable[usersegid].id = n;
           CTABcopyName(ctab,n,StatSumTable[usersegid].name,
                        sizeof(StatSumTable[usersegid].name));
+	  CTABrgbAtIndexi(ctab, n, &StatSumTable[usersegid].red, 
+			  &StatSumTable[usersegid].green, 
+			  &StatSumTable[usersegid].blue);
           usersegid++;
         }
-      } else {
+      } 
+      else {
         /* User has specified --id, use those and get names from ctab */
         nsegid = nUserSegIdList;
         StatSumTable = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegid);
@@ -977,9 +988,13 @@ int main(int argc, char **argv) {
           }
           CTABcopyName(ctab,ind,StatSumTable[n].name,
                        sizeof(StatSumTable[n].name));
+	  CTABrgbAtIndexi(ctab, ind, &StatSumTable[n].red, 
+			  &StatSumTable[n].green, 
+			  &StatSumTable[n].blue);
         }
       }
-    } else { /* User specified ids, but no color table */
+    } 
+    else { /* User specified ids, but no color table */
       nsegid = nUserSegIdList;
       StatSumTable = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegid);
       for (n=0; n < nsegid; n++)
@@ -1093,6 +1108,9 @@ int main(int argc, char **argv) {
       StatSumTable2[nthsegid].mean  = StatSumTable[n].mean;
       StatSumTable2[nthsegid].std   = StatSumTable[n].std;
       StatSumTable2[nthsegid].snr   = StatSumTable[n].snr;
+      StatSumTable2[nthsegid].red   = StatSumTable[n].red;
+      StatSumTable2[nthsegid].green = StatSumTable[n].green;
+      StatSumTable2[nthsegid].blue  = StatSumTable[n].blue;
       strcpy(StatSumTable2[nthsegid].name,StatSumTable[n].name);
       nthsegid++;
     }
@@ -1315,6 +1333,15 @@ int main(int argc, char **argv) {
       }
       fprintf(fp,"\n");
     }
+    fclose(fp);
+  }
+
+  if(ctabfileOut != NULL){
+    fp = fopen(ctabfileOut,"w");
+    for (n=0; n < nsegid; n++)
+      fprintf(fp,"%d %-30s %3d %3d %3d 0\n",StatSumTable[n].id,
+	      StatSumTable[n].name,StatSumTable[n].red,
+	      StatSumTable[n].green,StatSumTable[n].blue);
     fclose(fp);
   }
 
@@ -1549,11 +1576,18 @@ static int parse_commandline(int argc, char **argv) {
       FrameAvgVolFile = pargv[0];
       DoFrameAvg = 1;
       nargsused = 1;
-    } else if ( !strcmp(option, "--ctab") ) {
+    } 
+    else if ( !strcmp(option, "--ctab") ) {
       if (nargc < 1) argnerr(option,1);
       ctabfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--frame")) {
+    } 
+    else if ( !strcmp(option, "--ctab-out") ) {
+      if (nargc < 1) argnerr(option,1);
+      ctabfileOut = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--frame")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&frame);
       nargsused = 1;
@@ -1637,6 +1671,7 @@ static void print_usage(void) {
   printf("   --surf-wm-vol : compute cortical white volume from surf\n");
   printf("   --surf-ctx-vol : compute cortical volumes from surf\n");
   printf("   --nonempty : only report non-empty segmentations\n");
+  printf("   --ctab-out ctaboutput : create a ctab with only your segs\n");
   printf("\n");
   printf("Masking options\n");
   printf("   --mask maskvol : must be same size as seg \n");
@@ -1774,6 +1809,11 @@ printf("--ctab-unknown\n");
 printf("\n");
 printf("Assign segmentation name as UnknownSegXXXX, where XXXX is a \n");
 printf("4-digit, 0-padded integer. Happens automatically with --slabel.\n");
+printf("\n");
+printf("--ctab-out\n");
+printf("\n");
+printf("Create an output color table (like FreeSurferColor.txt) with just\n");
+printf("the segmentations reported in the output.\n");
 printf("\n");
 printf("--id segid1 <--id segid2>\n");
 printf("\n");
@@ -2024,6 +2064,16 @@ static void check_options(void) {
   if(DoSurfCtxVol && subject == NULL){
     printf("ERROR: need --subject with --surf-ctx-vol\n");
     exit(1);
+  }
+  if(ctabfileOut && !ctabfile){
+    printf("ERROR: need an input ctab to create output ctab\n");
+    exit(1);
+  }
+  if(ctabfileOut){
+    if(!strcmp(ctabfileOut,ctabfile)){
+      printf("ERROR: output ctab is the same as input\n");
+      exit(1);
+    }
   }
   if (masksign == NULL) masksign = "abs";
   return;
