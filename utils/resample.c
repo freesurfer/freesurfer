@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/26 01:15:52 $
- *    $Revision: 1.31 $
+ *    $Author: greve $
+ *    $Date: 2009/10/08 16:39:12 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.31 2008/08/26 01:15:52 fischl Exp $
+  $Id: resample.c,v 1.32 2009/10/08 16:39:12 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another,
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -82,6 +82,7 @@
 #include "diag.h"
 #include "matrix.h"
 #include "mri.h"
+#include "mri2.h"
 #include "mrisurf.h"
 #include "mrishash.h"
 #include "label.h"
@@ -447,6 +448,13 @@ MRI *label2mask_linear(MRI *SrcVol,
   float mskval, voxsize;
   int vlbl;
   int c,r,s,nfinalmask;
+
+  if(SrcMskVol){
+    if(MRIdimMismatch(SrcVol, SrcMskVol, 0)){
+      printf("ERROR: label2mask_linear: dimension mismatch\n");
+      return(NULL);
+    }
+  }
 
   /* compute the transforms */
   QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
@@ -1018,6 +1026,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
     }
   }
   printf("\n");
+  if(UseHash) MHTfree(&SrcHash);
 
   if (ResampleVtxMapFile != NULL) fclose(fp);
 
@@ -1058,7 +1067,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
             MRIFseq_vox(SrcSurfVals,svtx,0,0,f);
       }
     }
-    if (UseHash)MHTfree(&TrgHash);
+    if(UseHash) MHTfree(&TrgHash);
     printf("Reverse Loop had %d hits\n",nrevhits);
   }
 
