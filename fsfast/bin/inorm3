@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/09/16 04:38:20 $
-#    $Revision: 1.1 $
+#    $Date: 2009/10/08 23:19:50 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: inorm3,v 1.1 2009/09/16 04:38:20 greve Exp $';
+set VERSION = '$Id: inorm3,v 1.2 2009/10/08 23:19:50 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -82,7 +82,7 @@ set segsum = $tmpdir/f.mean.sum
 mri_segstats --i $meanvol --seg $maskvol --id 1 --sum $segsum
 if($status) exit 1;
 
-set meanval = `grep -v \# $segsum | awk '{print $5}'`
+set meanval = `grep -v \# $segsum | awk '{print $6}'`
 echo $meanval | tee $meanvalfile
 
 if($cleanup) rm -r $tmpdir
