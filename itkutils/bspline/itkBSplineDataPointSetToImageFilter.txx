@@ -500,7 +500,7 @@ BSplineDataPointSetToImageFilter<TInputPointSet, TOutputImage>
         It != this->m_InputPointData->End(); ++It )
     {
     
-    PointType point;
+    PointType point=NULL;
     this->GetInput()->GetPoint( It.Index(), &point );
 
     for ( unsigned int i = 0; i < ImageDimension; i++ )
