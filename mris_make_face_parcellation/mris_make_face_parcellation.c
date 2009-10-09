@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/09 11:32:40 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/10/09 20:04:27 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@
 
 
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.5 2009/10/09 11:32:40 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.6 2009/10/09 20:04:27 fischl Exp $";
 
 typedef struct
 {
@@ -103,7 +103,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.5 2009/10/09 11:32:40 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.6 2009/10/09 20:04:27 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -111,7 +111,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.5 2009/10/09 11:32:40 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.6 2009/10/09 20:04:27 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -384,7 +384,7 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
   iter = done = 0 ; 
   do
   {
-    if ((iter % parms->write_iterations) == 0)
+    if (parms->write_iterations > 0 && ((iter % parms->write_iterations) == 0))
       write_snapshot(mris, parms, iter) ;
     nchanged = 0 ;
     build_parcellation_border_permutation(mris, vertex_permutation, &nborder) ;
@@ -449,7 +449,7 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
         
     printf("iter %d: nchanged = %d, nborder = %d, energy = %2.3f (%2.3f)\n", iter, nchanged,nborder,min_energy,parc_energy);
   }  while (!done) ;
-  if ((iter % parms->write_iterations) == 0)
+  if (parms->write_iterations > 0 && ((iter % parms->write_iterations) == 0))
     write_snapshot(mris, parms, iter) ;
   MRIfree(&mri_stats) ; MRIfree(&mri_means) ; MRIfree(&mri_vars) ;
   free(nbrs) ; free(vertex_permutation) ;
