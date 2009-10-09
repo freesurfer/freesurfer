@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/10/08 22:55:38 $
- *    $Revision: 1.325 $
+ *    $Author: greve $
+ *    $Date: 2009/10/09 16:35:14 $
+ *    $Revision: 1.326 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20799,7 +20799,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.325 2009/10/08 22:55:38 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.326 2009/10/09 16:35:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25746,7 +25746,7 @@ int sclv_set_current_threshold_from_percentile (float thresh, float mid,
 int sclv_set_threshold_from_percentile (int field, float thresh, float mid,
                                         float max)
 {
-  float thresh_value, mid_value, max_value;
+  float thresh_value=0, mid_value=0, max_value=0;
 
   if (field < 0 || field >= NUM_SCALAR_VALUES)
     return (ERROR_BADPARM);
