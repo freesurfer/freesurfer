@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/20 23:17:28 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/09 01:24:46 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 #include <ctype.h>
 
 #include "macros.h"
+#include "timer.h"
 #include "error.h"
 #include "tags.h"
 #include "diag.h"
@@ -46,8 +47,18 @@
 #include "version.h"
 #include "mrishash.h"
 
+
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.3 2009/02/20 23:17:28 nicks Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.4 2009/10/09 01:24:46 fischl Exp $";
+
+typedef struct
+{
+  int    write_iterations ;
+  char   base_name[STRLEN] ;
+  int    max_iterations ;
+  double tol ;
+  double l_markov ;
+} PARMS ;
 
 int main(int argc, char *argv[]) ;
 
@@ -55,9 +66,20 @@ static int  get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
+static int write_snapshot(MRI_SURFACE *mris, PARMS *parms, int n) ;
+static double markov_energy(MRI_SURFACE *mris) ;
+static int adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mri_cmatrix,
+                                          PARMS *parms) ;
 
+static int
+update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int new_parcel,
+                               MRI *mri_cmatrix, MRI *mri_means, MRI *mri_vars, 
+                               MRI *mri_stats);
 char *Progname ;
 
+static char *cmatrix_fname = NULL ;
+static MRI  *mri_cmatrix ;
+static PARMS  parms ;
 int
 main(int argc, char *argv[]) {
   char               **av, *in_fname, *ico_fname, *out_fname, path[STRLEN], ico_name[STRLEN] ;
@@ -71,16 +93,25 @@ main(int argc, char *argv[]) {
   FACE               *face ;
   MHT                *mht ;
   VERTEX             *v ;
+  int                msec, minutes, seconds ;
+  struct timeb       start ;
+
+  parms.max_iterations = 100 ;
+  parms.tol = 1e-4 ;
+  parms.l_markov = 50 ;
+  TimerStart(&start) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.3 2009/02/20 23:17:28 nicks Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.4 2009/10/09 01:24:46 fischl Exp $",
    "$Name:  $", cmdline);
+
+  setRandomSeed(1L) ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.3 2009/02/20 23:17:28 nicks Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.4 2009/10/09 01:24:46 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -119,6 +150,16 @@ main(int argc, char *argv[]) {
     scale = 256 / mris_ico->nfaces ;
   else
     scale = 1 ;
+
+  if (cmatrix_fname)  // read in a correlation matrix for refining the parcellation
+  {
+    mri_cmatrix = MRIread(cmatrix_fname) ;
+    if (mri_cmatrix == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface %s\n", Progname, cmatrix_fname) ;
+    
+    if (mri_cmatrix->width != mris->nvertices || mri_cmatrix->nframes != mris->nvertices)
+      ErrorExit(ERROR_BADFILE, "%s: cmatrix must be %d x 1 x 1 x %d",Progname,mris->nvertices,mris->nvertices);
+  }
 
   MRISaddCommandLine(mris, cmdline) ;
 
@@ -186,7 +227,7 @@ main(int argc, char *argv[]) {
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    if (((vno % (mris->nvertices/10))) == 0)
+    if ((((vno % (mris->nvertices/10))) == 0) && DIAG_VERBOSE_ON)
       printf("%2.1f%% done\n", 100.0*(float)vno / mris->nvertices) ;
     v = &mris->vertices[vno] ;
     MHTfindClosestFaceGeneric(mht, mris, 
@@ -206,11 +247,28 @@ main(int argc, char *argv[]) {
     }
     CTABannotationAtIndex(mris->ct, fno, &annot);
     v->annotation = annot ;
+    v->marked = fno ;
   }
 
+  if (mri_cmatrix)
+  {
+    char fname[STRLEN], *cp ;
+    FileNameOnly(out_fname, fname) ;
+    strcpy(parms.base_name, fname) ;
+    cp = strrchr(parms.base_name, '.') ;
+    if (cp)
+      *cp = 0 ; // take out extension
+
+    adjust_parcellation_boundaries(mris, mris_ico, mri_cmatrix, &parms) ;
+  }
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing annotation to %s\n", out_fname) ;
   MRISwriteAnnotation(mris, out_fname) ;
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ;
+  seconds = seconds % 60 ;
+  fprintf(stderr, "parcellation took %d minutes and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -228,9 +286,29 @@ get_option(int argc, char *argv[]) {
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
+  else if (!stricmp(option, "markov")){
+    parms.l_markov = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting markov coefficient to %2.3f\n", parms.l_markov) ;
+  }
+  else if (!stricmp(option, "tol")){
+    parms.tol = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting tol to %2.3f\n", parms.tol) ;
+  }
   else if (!stricmp(option, "-version")){
     print_version() ;
   } else switch (toupper(*option)) {
+  case 'C':
+    cmatrix_fname = argv[2] ;
+    nargs = 1 ;
+    printf("reading correlation matrix from %s\n", cmatrix_fname) ;
+    break ;
+  case 'M':
+    parms.max_iterations = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting max iterations to %d\n", parms.max_iterations) ;
+    break ;
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       printf("debugging vertex %d\n", Gdiag_no) ;
@@ -238,7 +316,9 @@ get_option(int argc, char *argv[]) {
       break ;
     case 'W':
       Gdiag |= DIAG_WRITE ;
+      parms.write_iterations = atoi(argv[2]) ;
       nargs = 1 ;
+      printf("setting write iterations to %d\n", parms.write_iterations) ;
       break ;
     case '?':
     case 'U':
@@ -276,4 +356,382 @@ print_version(void) {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
+static double compute_parcellation_energy(MRI_SURFACE *mris, MRI *mri_stats, PARMS *parms, double *penergy, MRI *mri_means, MRI *mri_vars) ;
+static int build_parcellation_border_permutation(MRI_SURFACE *mris, int *vertex_permutation, 
+                                                 int *pnborder) ;
+static int compute_parcellation_statistics(MRI_SURFACE *mris, MRI *mri_cmatrix, MRI *mri_stats, MRI *mri_means, MRI *mri_vars);
 
+static int
+adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mri_cmatrix,
+                               PARMS *parms)
+{
+  MRI     *mri_stats, *mri_means, *mri_vars ;
+  int     *vertex_permutation, parcel, nborder, done, nchanged, iter, index, *nbrs, nparcels,  
+    min_parcel,vno, n, nframes;
+  double  energy, min_energy, last_energy, parc_energy ;
+  VERTEX  *v, *vn ;
+
+  nframes = mri_cmatrix->nframes ;
+  nparcels = mris_ico->nfaces ;
+  mri_stats = MRIallocSequence(nparcels, 1, 1, MRI_FLOAT, 3) ;
+  mri_means = MRIallocSequence(nparcels, 1, 1, MRI_FLOAT, nframes) ;
+  mri_vars = MRIallocSequence(nparcels, 1, 1, MRI_FLOAT, nframes) ;
+
+  nbrs = (int *)calloc(nparcels, sizeof(int)) ;
+  vertex_permutation = (int *)calloc(mris->nvertices, sizeof(int)) ;
+  if (vertex_permutation == NULL)
+    ErrorExit(ERROR_NOMEMORY, "adjust_parcellation_boundaries: could not allocated permutation");
+  iter = done = 0 ; 
+  do
+  {
+    if ((iter % parms->write_iterations) == 0)
+      write_snapshot(mris, parms, iter) ;
+    nchanged = 0 ;
+    build_parcellation_border_permutation(mris, vertex_permutation, &nborder) ;
+
+    compute_parcellation_statistics(mris, mri_cmatrix, mri_stats, mri_means, mri_vars) ;
+    last_energy = energy = compute_parcellation_energy(mris, mri_stats, parms, &parc_energy, mri_means, mri_vars) ;
+    if (iter == 0)
+      printf("iter %d: nchanged = %d, nborder = %d, energy = %2.3f (%2.3f)\n", iter, nchanged,nborder,energy,parc_energy);
+    for (index = 0 ; index < nborder ; index++)
+    {
+      vno = vertex_permutation[index] ;
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      parcel = v->marked ;
+
+      // build list of all neihboring parcels at this point
+      memset(nbrs, 0, nparcels*sizeof(int)) ;
+      min_parcel = parcel ; min_energy = energy ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (v->v[n] == Gdiag_no)
+          DiagBreak() ;
+        if (vn->marked != parcel && nbrs[vn->marked] != 1) // not already done
+        {
+          // try changing the parcel and see if it decreases the energy
+          nbrs[vn->marked] = 1 ;  // only do it once
+          update_parcellation_statistics(mris, vno, parcel, vn->marked,
+                                         mri_cmatrix, mri_means, mri_vars, mri_stats);
+          v->marked = vn->marked ;
+          energy = compute_parcellation_energy(mris, mri_stats, parms, &parc_energy, mri_means, mri_vars) ;
+          update_parcellation_statistics(mris, vno, vn->marked, parcel,
+                                         mri_cmatrix, mri_means, mri_vars, mri_stats);
+          if (energy < min_energy)
+          {
+            min_energy = energy ;
+            min_parcel = vn->marked ;
+          }
+          v->marked = parcel ;
+        }
+      }
+      if (min_parcel != parcel)
+      {
+        int annot ;
+        v->marked = min_parcel ;
+        energy = min_energy ;
+        nchanged++ ;
+        CTABannotationAtIndex(mris->ct, v->marked, &annot);
+        v->annotation = annot ;
+        update_parcellation_statistics(mris, vno, parcel, min_parcel,
+                                       mri_cmatrix, mri_means, mri_vars, mri_stats);
+      }
+      energy = compute_parcellation_energy(mris, mri_stats, parms, &parc_energy, mri_means, mri_vars) ;
+      if (!FZERO(energy- min_energy))
+        DiagBreak() ;
+    }
+    done = (nchanged == 0) || (iter++ > parms->max_iterations) ||
+      ((last_energy-energy)/last_energy < parms->tol) ;
+        
+    printf("iter %d: nchanged = %d, nborder = %d, energy = %2.3f (%2.3f)\n", iter, nchanged,nborder,min_energy,parc_energy);
+  }  while (!done) ;
+  if ((iter % parms->write_iterations) == 0)
+    write_snapshot(mris, parms, iter) ;
+  MRIfree(&mri_stats) ; MRIfree(&mri_means) ; MRIfree(&mri_vars) ;
+  free(nbrs) ; free(vertex_permutation) ;
+  return(NO_ERROR) ;
+}
+
+#define PARCELLATION_EPSILON 0.1
+static double
+compute_parcellation_energy(MRI_SURFACE *mris, MRI *mri_stats, PARMS *parms, double *penergy, MRI *mri_means, MRI *mri_vars)
+{
+  double  energy, var_within, var_between, mean, mean_nbr, parc_energy ;
+  int     **nbrs, parcel, vno, n, nparcels, n_nbrs ;
+  VERTEX  *v, *vn ;
+
+  nparcels = mri_stats->width ;
+  nbrs = (int **)calloc(nparcels, sizeof(int *)) ;
+  for (parcel = 0 ; parcel < nparcels ; parcel++)
+    nbrs[parcel] = (int *)calloc(nparcels, sizeof(int)) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ; 
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue;
+    parcel = v->marked ;
+    for (n = 0 ; n < v->v[n] ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      nbrs[parcel][vn->marked] = 1 ;
+    }
+  }
+  for (parcel = 0, energy = 0.0 ; parcel < nparcels ; parcel++)
+  {
+    var_within = MRIgetVoxVal(mri_stats, parcel, 0, 0, 1) ;
+    var_between = 0.0 ;
+    mean = MRIgetVoxVal(mri_stats, parcel, 0, 0, 0) ;
+    for (n_nbrs = n = 0 ; n < nparcels ; n++)
+    {
+      if (n != parcel && nbrs[parcel][n] > 0)
+      {
+        n_nbrs++ ;
+        mean_nbr = MRIgetVoxVal(mri_stats, n, 0, 0, 0) ;
+        var_between += SQR(mean-mean_nbr) ;
+      }
+    }
+    if (n_nbrs > 0)
+      var_between /= n_nbrs ;
+    energy += var_between / (var_within+PARCELLATION_EPSILON) ;
+  }
+  energy /= nparcels ;
+  for (parcel = 0 ; parcel < nparcels ; parcel++)
+    free(nbrs[parcel]) ;
+  free(nbrs) ; 
+
+  parc_energy = 10000*energy ;
+  energy = parc_energy + parms->l_markov * markov_energy(mris) ;
+  *penergy = parc_energy ;
+  return(energy) ;
+}
+
+static int
+build_parcellation_border_permutation(MRI_SURFACE *mris, int *vertex_permutation, int *pnborder)
+{
+  int    vno, nborder, n, tmp, index ;
+  VERTEX *v, *vn ;
+
+  for (nborder = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (v->v[n] == Gdiag_no)
+        DiagBreak() ;
+      if (vn->marked != v->marked)
+        break ;
+    }
+    if (n < v->vnum)   // is a border vertex
+      vertex_permutation[nborder++] = vno ;
+  }
+
+  for (n = 0 ; n < nborder ; n++)
+  {
+    index = randomNumber(0.0, (double)(nborder-0.0001)) ;
+    tmp = vertex_permutation[n] ;
+    vertex_permutation[n] = vertex_permutation[index] ;
+    vertex_permutation[index] = tmp ;
+  }
+
+  *pnborder = nborder ;
+  return(NO_ERROR) ;
+}
+
+/*
+  frame 0 of mri_stats will be the mean for the ith parcellation unit
+  frame 1 of mri_stats will be the variance for the ith parcellation unit
+  frame 2 of mri_stats will be the # of vertices in the ith parcellation unit
+*/
+static int
+compute_parcellation_statistics(MRI_SURFACE *mris, MRI *mri_cmatrix, MRI *mri_stats,
+                                MRI *mri_means, MRI *mri_vars)
+{
+  
+  int    vno, parcel, nparcels, frame, nframes ;
+  VERTEX *v ;
+  double  var, mean,val, dof, mean_total, var_total ;
+  
+  if (Gdiag_no >= 0) 
+    printf("computing parcellation statistics\n") ;
+  nframes = mri_cmatrix->nframes ;
+  nparcels = mri_stats->width ;
+  MRIclear(mri_stats) ; MRIclear(mri_means) ; MRIclear(mri_vars) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    dof = MRIgetVoxVal(mri_stats, v->marked, 0, 0, 2) ;
+    MRIsetVoxVal(mri_stats, v->marked, 0, 0, 2, dof+1) ;
+    if (v->marked == Gdiag_no)
+      printf("adding %d to parcel %d, dofs = %d, ", vno, v->marked, (int)dof+1) ;
+
+    for (frame = 0 ; frame < nframes ; frame++)
+    {
+      val = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, frame) ;
+      mean = MRIgetVoxVal(mri_means, v->marked, 0, 0, frame) ;
+      var = MRIgetVoxVal(mri_vars, v->marked, 0, 0, frame) ;
+      mean += val ;
+      var += val*val ;
+      MRIsetVoxVal(mri_means, v->marked, 0, 0, frame, mean) ;
+      MRIsetVoxVal(mri_vars, v->marked, 0, 0, frame, var) ;
+      if (v->marked == Gdiag_no && frame == 2)
+        printf("\tval = %2.3f, mean = %2.3f, var = %2.5f\n", val, mean, var) ;
+    }
+  }
+
+  for (parcel = 0 ; parcel < nparcels ; parcel++)
+  {
+    dof = MRIgetVoxVal(mri_stats, parcel, 0, 0, 2) ;
+    if (dof <= 0)
+      continue ;
+    for (mean_total = var_total = 0.0, frame = 0 ; frame < nframes ; frame++)
+    {
+      mean = MRIgetVoxVal(mri_means, parcel, 0, 0, frame) ;
+      var = MRIgetVoxVal(mri_vars, parcel, 0, 0, frame) ;
+      mean /= dof ;
+      var = var / dof - mean*mean ;
+      if (var < 0)
+      {
+        FILE *fp = fopen("val.log", "w") ;
+
+        for (vno = 0 ; vno < mris->nvertices ; vno++)
+        {
+          v = &mris->vertices[vno] ;
+          if (v->marked != parcel)
+            continue ;
+          val = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, frame) ;
+          fprintf(fp, "%f\n", val) ;
+        }
+        fclose(fp) ;
+        DiagBreak() ;
+      }
+      //      MRIsetVoxVal(mri_means, parcel, 0, 0, frame, mean) ;
+      //      MRIsetVoxVal(mri_vars, parcel, 0, 0, frame, var) ;
+      mean_total += mean ; var_total += var ;
+    }
+    mean_total /= nframes ;  var_total /= nframes ;
+    MRIsetVoxVal(mri_stats, parcel, 0,0, 0, mean_total) ;
+    MRIsetVoxVal(mri_stats, parcel, 0,0, 1, var_total) ;
+  }
+  return(NO_ERROR) ;
+}
+static int
+write_snapshot(MRI_SURFACE *mris, PARMS *parms, int n)
+{
+  char fname[STRLEN] ;
+
+  sprintf(fname, "%s.%3.3d.annot", parms->base_name, n) ;
+  printf("writing snapshot to %s\n", fname) ;
+  MRISwriteAnnotation(mris, fname) ;
+  return(NO_ERROR) ;
+}
+
+static double
+markov_energy(MRI_SURFACE *mris)
+{
+  int    vno, nborders, n ;
+  VERTEX *v, *vn ;
+  double energy ;
+
+  for (energy = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    for (nborders = n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->marked != v->marked)
+        nborders++ ;
+    }
+    energy += exp((double)nborders/(double)v->vnum)-1 ;
+  }
+  energy /= mris->nvertices ;
+  return(energy) ;
+}
+
+static int
+update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int new_parcel,
+                               MRI *mri_cmatrix, MRI *mri_means, MRI *mri_vars, 
+                               MRI *mri_stats)
+{
+  int    frame, dofs, nframes ;
+  double mean, var, val, total_mean, total_var ;
+
+  nframes = mri_means->nframes ;
+  dofs = MRIgetVoxVal(mri_stats, old_parcel, 0, 0, 2) - 1 ;
+  MRIsetVoxVal(mri_stats, old_parcel, 0, 0, 2, dofs) ;
+  if (old_parcel == Gdiag_no)
+    printf("removing %d from parcel %d, dofs = %d, ", vno, old_parcel, dofs) ;
+
+  for (total_mean = total_var = 0.0, frame = 0 ; frame < nframes ; frame++)
+  {
+    val = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, frame) ;
+
+    mean = MRIgetVoxVal(mri_means, old_parcel, 0, 0, frame) ;
+    mean -= val ;
+    var = MRIgetVoxVal(mri_vars, old_parcel, 0, 0, frame) ;
+    var -= (val*val) ;
+    MRIsetVoxVal(mri_means, old_parcel, 0, 0, frame, mean) ;
+    MRIsetVoxVal(mri_vars, old_parcel, 0, 0, frame, var) ;
+    mean /= dofs ;
+    var = var /  dofs - mean*mean ;
+    if (var < 0)
+      DiagBreak() ;
+    total_mean += mean ;
+    total_var += var ;
+    if (old_parcel == Gdiag_no && frame == 2)
+      printf("\tval = %2.3f, mean = %2.3f, var = %2.5f\n", val, mean, var) ;
+  }
+  total_mean /= nframes ; total_var /= nframes ;
+  MRIsetVoxVal(mri_stats, old_parcel, 0, 0, 0, total_mean) ;
+  MRIsetVoxVal(mri_stats, old_parcel, 0, 0, 1, total_var) ;
+  
+  dofs = MRIgetVoxVal(mri_stats, new_parcel, 0, 0, 2)+1 ;
+  MRIsetVoxVal(mri_stats, new_parcel, 0, 0, 2, dofs) ;
+  if (new_parcel == Gdiag_no)
+    printf("adding %d to parcel %d, dofs = %d, ", vno, new_parcel, dofs) ;
+  for (total_mean = total_var = 0.0, frame = 0 ; frame < nframes ; frame++)
+  {
+    val = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, frame) ;
+
+    mean = MRIgetVoxVal(mri_means, new_parcel, 0, 0, frame) ;
+    mean += val ;
+    var = MRIgetVoxVal(mri_vars, new_parcel, 0, 0, frame) ;
+    var += (val*val) ;
+    MRIsetVoxVal(mri_means, new_parcel, 0, 0, frame, mean) ;
+    MRIsetVoxVal(mri_vars, new_parcel, 0, 0, frame, var) ;
+    mean /= dofs ;
+    var = var /  dofs - mean*mean ;
+    if (var < 0)
+      DiagBreak() ;
+    total_mean += mean ;
+    total_var += var ;
+    if (new_parcel == Gdiag_no && frame == 2)
+      printf("\tval = %2.3f, mean = %2.3f, var = %2.5f\n", val, mean, var) ;
+  }
+  total_mean /= nframes ; total_var /= nframes ;
+  MRIsetVoxVal(mri_stats, new_parcel, 0, 0, 0, total_mean) ;
+  MRIsetVoxVal(mri_stats, new_parcel, 0, 0, 1, total_var) ;
+  MRIsetVoxVal(mri_stats, new_parcel, 0, 0, 2, dofs) ;
+
+  return(NO_ERROR) ;
+}
