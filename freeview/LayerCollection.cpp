@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/10/09 18:09:03 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -108,9 +108,6 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
   {
     if ( m_layers[i] == layer )
     {
-      if (deleteObject)
-        delete m_layers[i];
-
       m_layers.erase( m_layers.begin() + i );
 
       if ( m_layers.size() == 0 )
@@ -124,6 +121,9 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
       }
 
       this->SendBroadcast( "LayerRemoved", layer );
+      
+      if (deleteObject)
+        delete layer;
 
       return true;
     }
