@@ -13,9 +13,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/04/01 17:18:11 $
- *    $Revision: 1.125 $
+ *    $Author: greve $
+ *    $Date: 2009/10/09 18:37:06 $
+ *    $Revision: 1.126 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2036,7 +2036,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
         if ( iTool.GetMode() == ScubaToolState::navigation ) {
 
           // Put the window relative translations into window relative.
-          Point3<float> move;
+          Point3<float> move=NULL;
           switch ( mViewState.GetInPlane() ) {
           case ViewState::X:
             move.Set( moveInOut, moveLeftRight, moveUpDown );
@@ -2074,7 +2074,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 
               // Put the window relative translations into window
               // relative. Note we don't move in or out in this tool.
-              Point3<float> move;
+              Point3<float> move=NULL;
               switch ( mViewState.GetInPlane() ) {
               case ViewState::X:
                 move.Set( 0, -moveLeftRight, -moveUpDown );
