@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/04/02 17:14:46 $
- *    $Revision: 1.108 $
+ *    $Author: greve $
+ *    $Date: 2009/10/09 17:12:39 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.108 2009/04/02 17:14:46 mreuter Exp $";
+"$Id: tkregister2.c,v 1.109 2009/10/09 17:12:39 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -3600,9 +3600,37 @@ void write_reg(char *fname) {
   printf("RegMat ---------------------------\n");
   MatrixPrint(stdout,RegMatTmp);
 
+  if(fname != NULL){
+    make_backup(fname);
+    fp = fopen(fname,"w");
+    if (fp==NULL) {
+      printf("register: ### can't create file %s\n",fname);
+      return;
+    }
+    fprintf(fp,"%s\n",pname);
+    fprintf(fp,"%f\n",ps_2);
+    fprintf(fp,"%f\n",st_2);
+    if(fscale_2 == 0.0) fscale_2 = .1;
+    fprintf(fp,"%f\n",fscale_2);
+    for (i=0;i<4;i++) {
+      for (j=0;j<4;j++)
+	//fprintf(fp,"%e ",tm[i][j]);
+	fprintf(fp,"%e ",RegMatTmp->rptr[i+1][j+1]);
+      fprintf(fp,"\n");
+    }
+    fprintf(fp,"round\n");
+    printf("register: file %s written\n",fname);
+    fclose(fp);
+  }    
+
+  if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
+  if(freeviewfname != NULL) write_freeviewreg(freeviewfname);
+  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
+  if(ltaoutfname != NULL) write_lta(ltaoutfname);
+
   if(fstal) {
     if(ZeroCRAS){
-      printf("UnZeroing CRAS for output xfm\n");
+      printf("UnZeroing CRAS for fstal output xfm\n");
       RegMatTmp = MatrixMultiply(RegMatTmp,invMcras0,RegMatTmp);
     }
     make_backup(talxfmfile);
@@ -3614,34 +3642,7 @@ void write_reg(char *fname) {
     fp = fopen(touchfile,"w");
     fprintf(fp,"talairach registration %s edited by tkregister2\n",talxfmfile);
     fclose(fp);
-    return;
   }
-
-  make_backup(fname);
-  fp = fopen(fname,"w");
-  if (fp==NULL) {
-    printf("register: ### can't create file %s\n",fname);
-    return;
-  }
-  fprintf(fp,"%s\n",pname);
-  fprintf(fp,"%f\n",ps_2);
-  fprintf(fp,"%f\n",st_2);
-  if(fscale_2 == 0.0) fscale_2 = .1;
-  fprintf(fp,"%f\n",fscale_2);
-  for (i=0;i<4;i++) {
-    for (j=0;j<4;j++)
-      //fprintf(fp,"%e ",tm[i][j]);
-      fprintf(fp,"%e ",RegMatTmp->rptr[i+1][j+1]);
-    fprintf(fp,"\n");
-  }
-  fprintf(fp,"round\n");
-  printf("register: file %s written\n",fname);
-  fclose(fp);
-
-  if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
-  if(freeviewfname != NULL) write_freeviewreg(freeviewfname);
-  if(xfmoutfname != NULL) write_xfmreg(xfmoutfname);
-  if(ltaoutfname != NULL) write_lta(ltaoutfname);
 
   return;
 }
@@ -4860,7 +4861,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.108 2009/04/02 17:14:46 mreuter Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.109 2009/10/09 17:12:39 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
