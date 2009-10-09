@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/02 18:44:45 $
- *    $Revision: 1.162 $
+ *    $Author: greve $
+ *    $Date: 2009/10/09 21:57:31 $
+ *    $Revision: 1.163 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.162 2009/10/02 18:44:45 nicks Exp $", 
+     "$Id: mri_convert.c,v 1.163 2009/10/09 21:57:31 greve Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -299,7 +299,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.162 2009/10/02 18:44:45 nicks Exp $", 
+      "$Id: mri_convert.c,v 1.163 2009/10/09 21:57:31 greve Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -319,6 +319,10 @@ int main(int argc, char *argv[]) {
     else if(strcmp(argv[i], "--slice-reverse") == 0) SliceReverse = 1;
     else if(strcmp(argv[i], "--ascii") == 0) {
       ascii_flag = 1;
+      force_out_type_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--ascii+crsf") == 0) {
+      ascii_flag = 2;
       force_out_type_flag = TRUE;
     }
     else if(strcmp(argv[i], "--invert_contrast") == 0)
@@ -1313,7 +1317,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.162 2009/10/02 18:44:45 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.163 2009/10/09 21:57:31 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2400,7 +2404,10 @@ int main(int argc, char *argv[]) {
       for(s=0; s < mri->depth; s++){
         for(r=0; r < mri->height; r++){
           for(c=0; c < mri->width; c++){
-            fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
+	    if(ascii_flag == 1)
+	      fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
+	    if(ascii_flag == 2)
+	      fprintf(fptmp,"%3d %3d %3d %3d %lf \n",c,r,s,f,MRIgetVoxVal(mri,c,r,s,f));
           }
         }
       }
@@ -2759,6 +2766,7 @@ void usage(FILE *stream) {
   printf("--ascii : save output as ascii. This will be a data file with a single \n");
   printf("    column of data. The fastest dimension will be col, then row, \n");
   printf("    then slice, then frame.\n");
+  printf("--ascii+crsf : same as --ascii but includes col row slice and frame\n");
   printf("\n");
   printf("Other options\n");
   printf("\n");
