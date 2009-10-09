@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/09 01:24:46 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/10/09 11:32:40 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@
 
 
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.4 2009/10/09 01:24:46 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.5 2009/10/09 11:32:40 fischl Exp $";
 
 typedef struct
 {
@@ -103,7 +103,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.4 2009/10/09 01:24:46 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.5 2009/10/09 11:32:40 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -111,7 +111,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.4 2009/10/09 01:24:46 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.5 2009/10/09 11:32:40 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -368,7 +368,7 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
   MRI     *mri_stats, *mri_means, *mri_vars ;
   int     *vertex_permutation, parcel, nborder, done, nchanged, iter, index, *nbrs, nparcels,  
     min_parcel,vno, n, nframes;
-  double  energy, min_energy, last_energy, parc_energy ;
+  double  energy, min_energy = 1e10, last_energy, parc_energy ;
   VERTEX  *v, *vn ;
 
   nframes = mri_cmatrix->nframes ;
