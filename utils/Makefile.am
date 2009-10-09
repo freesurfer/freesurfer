@@ -87,6 +87,7 @@ libutils_main_SOURCES=\
 	DICOMRead.c \
 	diffuse.c \
 	dti.c \
+	dtk.fs.c \
 	error.c \
 	evschutils.c \
 	fftutils.c \
