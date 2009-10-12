@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/06 17:49:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/10/12 12:14:11 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file dtk.fs.c
   \brief FS interface to Diffusion Toolkit and TrackVis data.
   DTk http://trackvis.org/docs/?subsect=fileformat
-  $Id: dtk.fs.c,v 1.2 2009/10/06 17:49:44 greve Exp $
+  $Id: dtk.fs.c,v 1.3 2009/10/12 12:14:11 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *DTKFSSrcVersion(void)
 {
-  return("$Id: dtk.fs.c,v 1.2 2009/10/06 17:49:44 greve Exp $");
+  return("$Id: dtk.fs.c,v 1.3 2009/10/12 12:14:11 greve Exp $");
 }
 
 /*----------------------------------------------------------------*/
@@ -101,7 +101,7 @@ DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile)
   // This should be 1000 bytes
   nread = fread(dtkset->hdr,sizeof(DTK_HDR),1,fp);
   if(nread != 1){
-    printf("ERROR: DTKloadTrackSet(): Read only %ld items\n",nread);
+    printf("ERROR: DTKloadTrackSet(): Read only %d items\n",(int)nread);
     fclose(fp);
     return(NULL);
   }
