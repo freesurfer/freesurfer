@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/15 02:27:30 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/10/13 20:14:27 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -111,6 +111,7 @@ struct Parameters
   bool   noit;
 	bool   quick;
 	int    subsamplesize;
+	bool   fixtp;
 };
 
 // Initializations:
@@ -137,7 +138,8 @@ static struct Parameters P =
 	1,
 	false,
 	false,
-	SSAMPLE
+	SSAMPLE,
+	false
 };
 
 
@@ -145,14 +147,12 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.11 2009/08/15 02:27:30 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.12 2009/10/13 20:14:27 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
 //static FILE *diag_fp = NULL ;
 
-
-using namespace std;
 
 int main(int argc, char *argv[])
 {
@@ -224,7 +224,7 @@ int main(int argc, char *argv[])
 		//   by registering everything first to inittp
 		//   res 0: up to highest resolution, eps 0.01: accurate
     if(P.iltas.size() == 0 && P.inittp > 0) 
-		  MR.initialXforms(P.inittp,0,5,0.01);
+		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
 	
 	  // create template:
     MR.averageSet(0);
@@ -233,10 +233,17 @@ int main(int argc, char *argv[])
   // run registrations
   else if (nin == 2)
 	{
-	  // here default params are adjusted for just 2 images (if not passed):
-	  if (P.iterate == -1) P.iterate = 5;
-		if (P.epsit <= 0)    P.epsit   = 0.01;
-	  MR.halfWayTemplate(0,P.iterate,P.epsit,P.lta_vox2vox);		
+	
+    if(P.iltas.size() == 0 && P.inittp > 0) 
+		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
+
+  	  // create template:
+      MR.averageSet(0);
+	
+//	  // here default params are adjusted for just 2 images (if not passed):
+//	  if (P.iterate == -1) P.iterate = 5;
+//		if (P.epsit <= 0)    P.epsit   = 0.01;
+//	  MR.halfWayTemplate(0,P.iterate,P.epsit,P.lta_vox2vox);		
   }
   else
   {
@@ -247,7 +254,7 @@ int main(int argc, char *argv[])
 		//   turns out accurate b) performs better and saves us
 		//   from more global iterations (reg to template) later
     if(P.iltas.size() == 0 && P.inittp > 0) 
-		  MR.initialXforms(P.inittp,0,5,0.01);
+		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
 		  //MR.initialXforms(P.inittp,1,5,0.05);
 
     // here default is adjusted for several images (and real mean/median target):
@@ -322,9 +329,10 @@ static void printUsage(void)
   cout << "  --weights weights1.mgz ... output weights in target space" << endl;
   cout << "  --average #                construct template from: 0 Mean, 1 Median (default)" << endl;
   cout << "  --inittp #                 use TP# for spacial init (default 1), 0: no init" << endl;
-
+  cout << "  --fixtp                    map everthing to init TP# (init TP is not resampled)" << endl;
+	
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
-  cout << "  --iscale               allow also intensity scaling on high-res. (default no)" << endl;
+  cout << "  --iscale                   allow also intensity scaling (default no)" << endl;
 //  cout << "      --transonly            find 3 parameter translation only" << endl;
 //  cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "  --ixforms t1.lta t2.lta .. use initial transforms (lta) on source  ('id'=identity)" << endl;
@@ -512,6 +520,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.noit = true;
     nargs = 0 ;
     cout << "Will output only first template (no iterations)!" << endl;
+  }
+  else if (!strcmp(option, "FIXTP") )
+  {
+    P.fixtp = true;
+    nargs = 0 ;
+    cout << "Will map everything to init TP!" << endl;
   }
   else if (!strcmp(option, "WEIGHTS") )
   {
