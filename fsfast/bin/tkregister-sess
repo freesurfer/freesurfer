@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/01 17:06:30 $
-#    $Revision: 1.27 $
+#    $Date: 2009/10/13 17:04:24 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.27 2009/06/01 17:06:30 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.28 2009/10/13 17:04:24 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -99,7 +99,7 @@ pwd  >> $LF
 echo "$0 $inputargs" >> $LF
 echo "" >> $LF
 hostname  >> $LF
-which tkregister >> $LF
+which tkregister2 >> $LF
 
 goto parse_args;
 parse_args_return:
@@ -140,17 +140,17 @@ foreach sess ($SessList)
     endif
     set subject = `cat subjectname`;
     if(! -e $SUBJECTS_DIR/$subject) then
-      echo "ERROR: $subject is not in SUBJECTS_DIR"
-      echo "  SUBJECTS_DIR is $SUBJECTS_DIR"
+      echo "ERROR: $subject is not in SUBJECTS_DIR" |& tee -a $LF
+      echo "  SUBJECTS_DIR is $SUBJECTS_DIR" |& tee -a $LF
       exit 1;
     endif
     set anatdir = $SUBJECTS_DIR/$subject/mri/$anatvol.mgz;
     if(! -e $anatdir)  set anatdir = $SUBJECTS_DIR/$subject/mri/$anatvol
   endif
 
-  echo "INFO: anatdir set to $anatdir"
+  echo "INFO: anatdir set to $anatdir" |& tee -a $LF
   if(! -e $anatdir ) then
-    echo "ERROR: $anatdir does not exist"
+    echo "ERROR: $anatdir does not exist" |& tee -a $LF
     exit 1;
   endif
 
@@ -169,7 +169,7 @@ foreach sess ($SessList)
 
   ## Get the directory of the functional registration data ##
   if(! -e $rsd ) then
-    echo "ERROR: $rsd does not exist"
+    echo "ERROR: $rsd does not exist"|& tee -a $LF
     exit 1;
   endif
   if($#Run == 0) then
@@ -182,7 +182,7 @@ foreach sess ($SessList)
   else
     set funcdir = $rsd/$Run
     if(! -e $funcdir) then
-      echo "ERROR: $Run does not exist in $rsd"
+      echo "ERROR: $Run does not exist in $rsd" |& tee -a $LF
       exit 1;
     endif
     set RunUse = $Run
