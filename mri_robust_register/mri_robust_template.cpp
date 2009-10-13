@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/10/13 20:14:27 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/10/13 21:41:36 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -147,7 +147,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.12 2009/10/13 20:14:27 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.13 2009/10/13 21:41:36 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -359,7 +359,7 @@ static void printUsage(void)
   cout << " corresponding short options." << endl;
   cout << endl;
 
-  cout << "Report bugs to: analysis-bugs@nmr.mgh.harvard.edu" << endl;
+  cout << "Report bugs to: Freesurfer@nmr.mgh.harvard.edu" << endl;
 
   cout << endl;
 }

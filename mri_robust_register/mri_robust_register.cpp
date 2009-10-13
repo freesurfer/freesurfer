@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 23:36:08 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/10/13 21:41:36 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -117,14 +117,12 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.24 2009/08/13 23:36:08 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.25 2009/10/13 21:41:36 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
 //static FILE *diag_fp = NULL ;
 
-
-using namespace std;
 
 void conv(MRI * i)
 {
@@ -741,7 +739,7 @@ static void printUsage(void)
   cout << " for any corresponding short options." << endl;
   cout << endl;
 
-  cout << " Report bugs to: analysis-bugs@nmr.mgh.harvard.edu" << endl;
+  cout << " Report bugs to: Freesurfer@nmr.mgh.harvard.edu" << endl;
 
 
   /*printf("  -dist distance\n");
