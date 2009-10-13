@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 23:15:05 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/10/13 21:42:23 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -154,6 +154,10 @@ public:
 
   double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
 
+  const std::vector < double > & getCentroidS(){return centroidS;};
+  const std::vector < double > & getCentroidT(){return centroidT;};
+	
+
 protected:
 
   //   returns weights:
@@ -165,6 +169,9 @@ protected:
 
   //conversion
   std::pair < MATRIX*, double > convertP2Md(MATRIX* p);
+	
+	MRI * applyParams(MRI * mri_in, VECTOR* p, MRI * mri_dst=NULL, bool inverse=false);
+
 
   // initial registration using moments
   MATRIX * initializeTransform(MRI *mri_in, MRI *mri_ref);
@@ -187,8 +194,10 @@ protected:
 
   MRI * mri_source;
   std::vector < MRI* > gpS;
+  std::vector < double > centroidS;
   MRI * mri_target;
   std::vector < MRI* > gpT;
+	std::vector < double > centroidT;
   MATRIX * Minit;
   MATRIX * Mfinal;
   double iscalefinal;
@@ -201,7 +210,6 @@ private:
   MATRIX* constructR(MATRIX* p);
   std::pair < MATRIX*, VECTOR* > constructAb(MRI *mriS, MRI *mriT);
   std::pair < MATRIX*, VECTOR* > constructAb2(MRI *mriS, MRI *mriT);
-
 
   // conversions
   MATRIX * rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM); // uses global rtype flag

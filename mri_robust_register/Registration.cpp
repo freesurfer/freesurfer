@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/21 00:19:45 $
- *    $Revision: 1.32 $
+ *    $Date: 2009/10/13 21:42:23 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -458,9 +458,12 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
       //MRIvalscale(mri_Swarp,mri_Swarp,fmd.second);
       MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,(1.0+fmd.second)*0.5);
       MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/fmd.second)*0.5);
+//      double si = sqrt(fmd.second);
+//      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
+//      MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
     }
 
-
+    // ============================
     // compute Registration
     if (verbose >1) cout << "   - compute new registration" << endl;
     //p = computeRegistrationStepP(mri_Swarp,mri_Twarp);
@@ -488,6 +491,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegistration( int nmax,do
     fmd.first = MatrixMultiply(fmd.first,mh,fmd.first);
 
     fmd.second *= cmd.second;
+		iscalefinal = fmd.second;
     //cout << endl << " Matrix: " << endl;
     //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
     if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
@@ -1185,10 +1189,6 @@ void Registration::testRobust(const std::string& fname, int testno)
 
   cout << " testRobust " << fname << "  testno: " << testno << endl;
 
-  char fn[fname.length()+1];
-  for (uint i = 0;i<fname.length();i++)
-    fn[i] = fname[i];
-  fn[fname.length()] = '\0';
 
 //  MRI * mri1 = MRIalloc(10, 10, 10, MRI_FLOAT);
 //  MRI * mri2 = MRIalloc(10, 10, 10, MRI_FLOAT);
@@ -1216,8 +1216,8 @@ void Registration::testRobust(const std::string& fname, int testno)
 
 
 
-  MRI * mri = MRIread(fn) ;
-  cout << " Read MRI successfully!" << endl;
+  MRI * mri = MRIread(fname.c_str()) ;
+  cout << " Read MRI " << fname.c_str() << " successfully!" << endl;
 
 //    MATRIX*  testm  = MatrixAllocRotation(4,0.08,Z_ROTATION);
 //     testm->rptr[1][4] = 2.2;
@@ -1855,13 +1855,13 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
 
         //cout << "x: " << x << " y: " << y << " z: " << z << " coutn: "<< count << endl;
         //cout << " " << count << " mrifx: " << MRIFvox(mri_fx, x, y, z) << " mrifx int: " << (int)MRIvox(mri_fx,x,y,z) <<endl;
+				int dof = 0;
         if (transonly)
         {
           *MATRIX_RELT(A, count, 1) = MRIFvox(fx, x, y, z);
           *MATRIX_RELT(A, count, 2) = MRIFvox(fy, x, y, z);
           *MATRIX_RELT(A, count, 3) = MRIFvox(fz, x, y, z);
-         // if (iscale) *MATRIX_RELT(A, count, 4) = MRIFvox(Sbl, x, y, z);
-          if (iscale) *MATRIX_RELT(A, count, 4) = MRIFvox(Tbl, x, y, z);
+				  dof = 3;
         }
         else if (rigid)
         {
@@ -1871,8 +1871,7 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
           *MATRIX_RELT(A, count, 4) = MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1;
           *MATRIX_RELT(A, count, 5) = MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1;
           *MATRIX_RELT(A, count, 6) = MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1;
-//          if (iscale) *MATRIX_RELT(A, count, 7) = MRIFvox(Sbl, x, y, z);
-          if (iscale) *MATRIX_RELT(A, count, 7) = MRIFvox(Tbl, x, y, z);
+					dof = 6;
 					
         }
         else // affine
@@ -1889,11 +1888,15 @@ pair < MATRIX*, VECTOR* > Registration::constructAb(MRI *mriS, MRI *mriT)
           *MATRIX_RELT(A, count, 10) = MRIFvox(fz, x, y, z)*yp1;
           *MATRIX_RELT(A, count, 11) = MRIFvox(fz, x, y, z)*zp1;
           *MATRIX_RELT(A, count, 12) = MRIFvox(fz, x, y, z);
-         // if (iscale) *MATRIX_RELT(A, count, 13) = MRIFvox(Sbl, x, y, z);
-          if (iscale) *MATRIX_RELT(A, count, 13) = MRIFvox(Tbl, x, y, z);
+					dof = 12;
         }
 
-        *MATRIX_RELT(b, count, 1) = - MRIFvox(ft, x, y, z);
+////          if (iscale) *MATRIX_RELT(A, count, 7) = MRIFvox(Sbl, x, y, z);
+          if (iscale) *MATRIX_RELT(A, count, dof+1) = MRIFvox(Tbl, x, y, z);
+//			double s = iscalefinal;
+ //        if (iscale) *MATRIX_RELT(A, count, dof+1) = - 0.5 * ( (1.0/sqrt(s*s*s)) *MRIFvox(Tbl, x, y, z) + (1.0/sqrt(s)) *MRIFvox(Sbl,x,y,z));
+				 
+         *MATRIX_RELT(b, count, 1) = - MRIFvox(ft, x, y, z);
 
       }
       
@@ -2069,6 +2072,58 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
 
 }
 
+
+MRI * Registration::applyParams(MRI * mri_in, VECTOR* p, MRI * mri_dst, bool inverse)
+{
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIallocSequence(mri_in->width, mri_in->height, mri_in->depth, mri_in->type,mri_in->nframes) ;
+    MRIcopyHeader(mri_in, mri_dst) ;
+  }
+
+  assert (mri_in->width == mri_dst->width);
+	assert (mri_in->height== mri_dst->height);
+	assert (mri_in->depth == mri_dst->depth);
+	assert (mri_in->type  == mri_dst->type);
+	assert (mri_in->nframes == mri_dst->nframes);
+	assert (mri_in->nframes == 1);
+
+
+  // depending on number of params etc, apply:
+	bool doiscale = (p->rows == 4 || p->rows==7 || p->rows == 13);
+	assert (doiscale == iscale);
+	
+	
+	// here we use global rtype:
+	pair < MATRIX*, double> Md = convertP2Md(p);
+	
+	if (!inverse)
+	{
+    mri_dst = MRIlinearTransform(mri_in,mri_dst, Md.first);
+		Md.second = *MATRIX_RELT(p, p->rows, 1);
+	}
+	else
+	{
+    MATRIX* mi = MatrixInverse(Md.first, NULL);
+	  mri_dst = MRIlinearTransform(mri_in,mri_dst, mi);
+    MatrixFree(&mi);
+		Md.second = 1.0/ *MATRIX_RELT(p, p->rows, 1);
+	}
+	
+
+  // adjust intensity
+  if (doiscale)
+  {
+    //if (verbose >1) cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
+    MyMRI::MRIvalscale(mri_dst,mri_dst,Md.second);
+  }
+
+  return mri_dst;
+
+}
+
+
 MATRIX* Registration::constructR(MATRIX* p)
 // Construct restriction matrix (to restrict the affine problem to less parameters)
 // if p->rows == 6 use only rigid
@@ -2242,8 +2297,9 @@ pair < MATRIX*, double > Registration::convertP2Md(MATRIX* p)
     //cout << " has intensity " << endl;
     // cut off intensity scale
 		
-    //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
+//    //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
     ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
+//    ret.second = *MATRIX_RELT(p, p->rows, 1);
 		
     pt=  MatrixAlloc(p->rows -1, 1,MATRIX_REAL);
     for (int rr = 1; rr<p->rows; rr++)
@@ -2251,7 +2307,10 @@ pair < MATRIX*, double > Registration::convertP2Md(MATRIX* p)
   }
   else pt = MatrixCopy(p,NULL);
 
-  if (pt->rows == 12) ret.first = MyMatrix::aff2mat(pt,NULL);
+  if (pt->rows == 12)
+	{
+	  ret.first = MyMatrix::aff2mat(pt,NULL);
+	} 
   else if (pt->rows == 6)
   {
     ret.first = p2mat(pt,NULL);
@@ -2341,8 +2400,10 @@ MATRIX * Registration::initializeTransform(MRI *mriS, MRI *mriT)
   MATRIX* Minit = MatrixIdentity(4,NULL) ;
 
   // find centroids:
-  vector < double > centroidS = CostFunctions::centroid(mriS);
-  vector < double > centroidT = CostFunctions::centroid(mriT);
+	centroidS.clear();
+	centroidT.clear();
+  centroidS = CostFunctions::centroid(mriS);
+  centroidT = CostFunctions::centroid(mriT);
 
   if (verbose > 1)
 	{
@@ -2516,6 +2577,7 @@ void Registration::setSource (MRI * s, bool fixvoxel, bool fixtype)
   if (! (fixvoxel || fixtype)) mri_source = MRIcopy(s,mri_source);
   else mri_source = MyMRI::makeConform(s,NULL,fixvoxel,fixtype);
   if (gpS.size() > 0) freeGaussianPyramid(gpS);
+	centroidS.clear();
   //cout << "mri_source" << mri_source << endl;
 }
 
@@ -2525,6 +2587,7 @@ void Registration::setTarget (MRI * t, bool fixvoxel, bool fixtype)
   if (! (fixvoxel || fixtype))   mri_target = MRIcopy(t,mri_target);
   else mri_target = MyMRI::makeConform(t,NULL,fixvoxel,fixtype);
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
+	centroidT.clear();
   //cout << "mri_target" << mri_target << endl;
 }
 
