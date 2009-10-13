@@ -11,10 +11,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/12/08 16:19:55 $
-#    $Revision: 1.52 $
+#    $Date: 2009/10/13 17:01:00 $
+#    $Revision: 1.53 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.52 2008/12/08 16:19:55 nicks Exp $';
+set VERSION = '$Id: mris_preproc,v 1.53 2009/10/13 17:01:00 nicks Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -52,6 +52,7 @@ set paireddiffnorm = 0;
 set paireddiffnorm1 = 0;
 set paireddiffnorm2 = 0;
 set catmean = 0;
+set catstd = 0;
 set synth = 0;
 set srcsurf = 0;
 set srcvol  = 0;
@@ -303,7 +304,8 @@ if(! $CacheOutOnly) then
   if($paireddiffnorm)  set cmd = ($cmd --paired-diff-norm);
   if($paireddiffnorm1) set cmd = ($cmd --paired-diff-norm1);
   if($paireddiffnorm2) set cmd = ($cmd --paired-diff-norm2);
-  if($catmean)    set cmd = ($cmd --mean);
+  if($catmean)         set cmd = ($cmd --mean);
+  if($catstd)          set cmd = ($cmd --std);
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
@@ -604,6 +606,10 @@ while( $#argv != 0 )
       set catmean = 1;
       breaksw
 
+    case "--std":
+      set catstd = 1;
+      breaksw
+
     case "--paired-diff":
       set paireddiff = 1;
       breaksw
@@ -642,6 +648,18 @@ while( $#argv != 0 )
 
     case "--nolog":
       set nolog = 1;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
       breaksw
 
     case "--debug":
@@ -790,6 +808,10 @@ if($srcsurf && $#projfrac != 0) then
   echo "ERROR: can only use projfrac with volume-based sources"
   exit 1;
 endif
+if($catmean && $catstd) then
+  echo "ERROR: cannot specify both --mean and --std"
+  exit 1;
+endif
 if($#meas && $#isplist) then
   echo "ERROR: cannot specify both --meas and --is"
   exit 1;
@@ -935,6 +957,7 @@ usage_exit:
   echo "  --cache-out-update tmpdir : implies --cach-out-only"
   echo ""
   echo "  --mean : compute the mean of all inputs"
+  echo "  --std : compute the standard deviation of all inputs"
   echo "  --reshape : reshape spatial dimensions"
   echo "  --surfreg SurfReg : default is sphere.reg"
   echo ""
@@ -1124,6 +1147,10 @@ paired diffs), compute the mean of all inputs. This may be helpful
 as part of a lower-level analysis. Eg, if there are multiple measures
 for each subjects, these can be averaged together for each subject
 separately, then combined in a second call to mris_preproc.
+
+--std
+
+Similar to --mean, except standard deviation is computed.
 
 --synth
 
