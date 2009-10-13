@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/18 04:36:06 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/10/13 20:10:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -175,8 +175,11 @@ bool MultiRegistration::averageSet(int itdebug)
     for (unsigned int i = 0;i<nin;i++)
     {  
       if (mri_warps[i]) MRIfree(&mri_warps[i]); 
-      mri_warps[i] = MRIclone(mri_mov[0],mri_warps[i]);
-      mri_warps[i] = LTAtransform(mri_mov[i],mri_warps[i], ltas[i]);
+      //mri_warps[i] = MRIclone(mri_mov[0],mri_warps[i]);
+      //mri_warps[i] = LTAtransform(mri_mov[i],mri_warps[i], ltas[i]);
+			// use geometry from ltas
+			// (if initXforms was called, this is the center of mass of all tps)
+      mri_warps[i] = LTAtransform(mri_mov[i],NULL, ltas[i]);
 			if (iscale)
 			{
 			   mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i],mri_warps[i], intensities[i]);
@@ -604,7 +607,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
 }
 
 
-bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double epsit)
+bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int iterate, double epsit)
 // will set ltas (as RAS to RAS )
 // tpi 1....n
 // uses outdir
@@ -626,9 +629,11 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
   index[tpi] = 0;
 
 
-  // Register everything to first TP (coarse)
-  vector < Registration > Rv(nin);
+  // Register everything to tpi TP
+//  vector < Registration > Rv(nin);
   vector < std::pair <MATRIX*, double> > Md(nin);
+	vector < double >  centroid;
+
   Md[0].first = MatrixIdentity(4,NULL);
   Md[0].second= 1.0;
   for (int i = 1;i<nin;i++) 
@@ -648,6 +653,9 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
 		
     // compute Alignment (maxres,iterate,epsit) are passed above
     Md[i] = R.computeMultiresRegistration(maxres,iterate,epsit);
+		
+		// get centroid of tpi:
+		if (i==1) centroid = R.getCentroidT();
 
 //    ostringstream oss2;
 //    oss2 << "tp" << j+1;    
@@ -678,6 +686,45 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
 //       MRIfree(&warped);     
 //     }
   } // end for loop (initial registration to inittp)
+	
+	assert(ltas.size() == mri_mov.size());
+	if (fixtp) // we are basically done, as we maped to this (itp) TP
+	{
+			
+    for (int i = 0;i<nin;i++) 
+    {
+  	  int j = index[i]; // use new index
+      
+      assert(ltas[j] == NULL);
+      ltas[j] = MyMatrix::VOXmatrix2LTA(Md[i].first,mri_mov[j],mri_mov[tpi]); // use geometry of tpi
+    	intensities[j] = Md[i].second;
+			
+      if (debug)
+      {
+        ostringstream oss;
+        oss << outdir << "tp" << j+1 << "_to_mcoord";
+        LTAwriteEx(ltas[j], (oss.str()+".lta").c_str()) ;
+        MRI * warped = LTAtransform(mri_mov[j],NULL, ltas[j]);
+        if (iscale)
+        {
+          string fn = oss.str() + "-intensity.txt";
+          ofstream f(fn.c_str(),ios::out);
+          f << Md[i].second;
+          f.close();
+	
+          warped = MyMRI::MRIvalscale(warped,warped, Md[i].second);
+        }
+        MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
+        MRIfree(&warped);     
+      }
+    
+      // cleanup
+      MatrixFree(&Md[i].first);
+	  }
+		
+		return true;
+	} // end fixtp
+	
 	
 	// find geometric mean intensity scale
 	if (iscale)
@@ -721,7 +768,7 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
     MyMatrix::getRTfromM(mras[i],rot,trans);
    //MatrixPrintFmt(stdout,"% 2.8f",trans); cout << endl;
    //cout << " Mras: " << endl;
-   //MatrixPrintFmt(stdout,"% 2.8f",mras); cout << endl;
+   //MatrixPrintFmt(stdout,"% 2.8f",mras[i]); cout << endl;
 
     // reverse order (first translate, then rotate)
     // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
@@ -729,7 +776,7 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
     //cout << " roti: " << endl;MatrixPrintFmt(stdout,"% 2.8f",roti); cout << endl;
     
     trans = MatrixMultiply(roti,trans,trans);
-    //cout << "transi: - " << endl; MatrixPrintFmt(stdout,"% 2.8f",trans[i]); cout << endl;
+    //cout << "transi: - " << endl; MatrixPrintFmt(stdout,"% 2.8f",trans); cout << endl;
     
 //     if (P.debug) // output transonly
 //     {
@@ -758,6 +805,7 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
   //cout << "meanr: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
   
   // project meanr back to SO(3) (using polar decomposition)
+	assert(rigid);
   VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
   MATRIX * mv = MatrixSVD(meanr,vz,NULL);
   //MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
@@ -769,9 +817,35 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
   //cout << " meanr.proj: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
   MatrixFree(&mv);
   MatrixFree(&vz);
-
-  // construct maps from each image to the mean space
+  // Mm is the matrix from tpi ras to mean ras:
   MATRIX * Mm = MyMatrix::getMfromRT(meanr,meant,NULL);
+
+
+  // construct target geometry for the mean space by centering
+	// at the mean of all tp centroids mapped to the mean space
+	// (the mean space may be outside any of the input RAS geometries)
+	// copy initial geometry from TPI (keep directions/rotation)
+	MRI * template_geo = MRIclone(mri_mov[tpi],NULL);
+	// map average centroid from TPI vox space to mean RAS space:
+	MATRIX * tpi_v2r   = MRIgetVoxelToRasXform(mri_mov[tpi]);
+	VECTOR * ncenter   = VectorAlloc(4, MATRIX_REAL) ;
+	for (uint ii = 0; ii<3;ii++)
+	   VECTOR_ELT(ncenter,ii+1) = centroid[ii];
+  VECTOR_ELT(ncenter,4) = 1.0;
+	// map to RAS:
+	ncenter = MatrixMultiply(tpi_v2r, ncenter, ncenter);
+	// map to mean space
+	ncenter = MatrixMultiply(Mm, ncenter, ncenter);
+  // set new center in geometry
+	template_geo->c_r = VECTOR_ELT(ncenter,1);
+	template_geo->c_a = VECTOR_ELT(ncenter,2);
+	template_geo->c_s = VECTOR_ELT(ncenter,3);
+  template_geo->ras_good_flag = 1;
+  MRIreInitCache(template_geo);
+	
+	
+	
+  // construct maps from each image to the mean space
   MATRIX * M = NULL;
   //cout << " Mm: " << endl; MatrixPrintFmt(stdout,"% 2.8f",Mm); cout << endl;
   for (int i = 0;i<nin;i++) 
@@ -789,7 +863,7 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
     // make lta from M (M is RAS to RAS)
     assert(ltas.size() == mri_mov.size());
     assert(ltas[j] == NULL);
-    ltas[j] = MyMatrix::RASmatrix2LTA(M,mri_mov[j],mri_mov[tpi]); // use geometry of tpi
+    ltas[j] = MyMatrix::RASmatrix2LTA(M,mri_mov[j],template_geo); // use geometry of template_geo
 			
     if (debug)
     {
@@ -815,6 +889,7 @@ bool MultiRegistration::initialXforms(int tpi, int maxres, int iterate, double e
     MatrixFree(&Md[i].first);
   }
   //cleanup
+	MRIfree(&template_geo);
   MatrixFree(&M);
   MatrixFree(&Mm);
   return true;

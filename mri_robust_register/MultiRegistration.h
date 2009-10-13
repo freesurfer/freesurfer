@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/15 02:39:53 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/10/13 20:10:53 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -68,7 +68,7 @@ public:
 	 ~MultiRegistration()
 	  {clear();};
 	 
-   bool initialXforms(int tpi, int regmaxres, int regitmax, double regeps);
+   bool initialXforms(int tpi, bool fixtp, int regmaxres, int regitmax, double regeps);
    bool computeTemplate(int avitmax, double aveps, int regitmax, double regeps);
    bool halfWayTemplate(int regmaxres, int regitmax, double regeps, bool vox2vox);
 
