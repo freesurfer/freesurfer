@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/06/08 23:44:37 $
- *    $Revision: 1.61 $
+ *    $Author: ohinds $
+ *    $Date: 2009/10/13 20:56:13 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.61 2009/06/08 23:44:37 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.62 2009/10/13 20:56:13 ohinds Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.61 2009/06/08 23:44:37 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.62 2009/10/13 20:56:13 ohinds Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -723,7 +723,7 @@ main(int argc, char *argv[])
         (log_fp,
          "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
          wm_volume,
-         mris->total_area,
+         areas[i],
          volumes[i],
          thicknesses[i],
          sqrt(thickness_vars[i]),
@@ -740,7 +740,7 @@ main(int argc, char *argv[])
         fprintf
         (log_fp,
          "%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.0f\t%2.1f\n",
-         mris->total_area,
+         areas[i],
          volumes[i],
          thicknesses[i],
          sqrt(thickness_vars[i]),
