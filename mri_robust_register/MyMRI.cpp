@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/10/13 20:08:00 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -68,7 +68,7 @@ MRI* MyMRI::makeConform(MRI *mri, MRI *out, bool fixvoxel, bool fixtype)
 
   if (fixvoxel)
   {
-    cout << "Making input confrom to 1mm voxels" << endl;
+    cout << "Making input conform to 1mm voxels" << endl;
     printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
            mri->xsize, mri->ysize, mri->zsize,
            mri->width, mri->height, mri->depth);
