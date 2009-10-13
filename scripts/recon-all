@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/10/08 23:17:36 $
-#    $Revision: 1.253 $
+#    $Author: nicks $
+#    $Date: 2009/10/13 17:34:21 $
+#    $Revision: 1.254 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.253 2009/10/08 23:17:36 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.254 2009/10/13 17:34:21 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2527,6 +2527,10 @@ foreach hemi ($hemilist)
       |& tee -a $LF |& tee -a $CF
     echo "#@# Label V1 $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    if ( ! -e $SUBJECTS_DIR/V1_average) then
+      echo "ERROR: V1_average subject does not exist in SUBJECTS_DIR!"
+      goto error_exit;
+    endif
     cd $subjdir/label > /dev/null
     $PWD |& tee -a $LF
     set cmd=(predict_v1.sh)
