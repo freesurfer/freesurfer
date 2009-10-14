@@ -1,17 +1,16 @@
 /**
  * @file  mris_twoclass.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief computes autocorrelation function of a curvature file
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/01 16:20:52 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/14 20:58:17 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -47,7 +46,7 @@
 #include "sig.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.10 2007/01/01 16:20:52 fischl Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.11 2009/10/14 20:58:17 nicks Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -226,7 +225,7 @@ main(int argc, char *argv[]) {
   *cp, *subject_name, subjects_dir[STRLEN], *out_prefix,
   **c1_subjects, **c2_subjects, *stat_suffix ;
   int          ac, nargs, n, num_class1, num_class2, i, nvertices,
-  avgs, max_snr_avgs, nlabels = 0, num_found, total_found,
+  avgs, max_snr_avgs, nlabels = 0, num_found = 0, total_found,
                                 num_above_thresh ;
 #if 0
   int          done, vno ;
@@ -258,7 +257,7 @@ main(int argc, char *argv[]) {
     fp = fopen("scalespace.dat", "w") ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.10 2007/01/01 16:20:52 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.11 2009/10/14 20:58:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
