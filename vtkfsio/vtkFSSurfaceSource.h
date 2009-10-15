@@ -1,17 +1,16 @@
 /**
  * @file  vtkFSSurfaceSource.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief import a freesurfer surface file into vtk
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/08/08 20:10:55 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/15 18:09:12 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
