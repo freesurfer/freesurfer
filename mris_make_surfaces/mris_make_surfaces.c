@@ -11,11 +11,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/05 13:46:04 $
- *    $Revision: 1.109 $
+ *    $Author: nicks $
+ *    $Date: 2009/10/16 18:35:02 $
+ *    $Revision: 1.110 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.109 2009/02/05 13:46:04 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.110 2009/10/16 18:35:02 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.109 2009/02/05 13:46:04 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.110 2009/10/16 18:35:02 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.109 2009/02/05 13:46:04 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.110 2009/10/16 18:35:02 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1411,6 +1411,10 @@ get_option(int argc, char *argv[]) {
     min_border_white_set = 1 ;
     min_border_white = atof(argv[2]) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "wlo")) { // same flag name as mri_segment
+    min_border_white_set = 1 ;
+    min_border_white = atof(argv[2]) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "scale_std")) {
     std_scale = atof(argv[2]);
     printf("scale the estimated WM and GM std by %g \n", std_scale) ;
@@ -1420,6 +1424,10 @@ get_option(int argc, char *argv[]) {
     min_gray_at_white_border = atof(argv[2]) ;
     nargs = 1 ;
   } else if (!stricmp(option, "max_gray")) {
+    max_gray_set = 1 ;
+    max_gray = atof(argv[2]) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "ghi")) { // same flag name as mri_segment
     max_gray_set = 1 ;
     max_gray = atof(argv[2]) ;
     nargs = 1 ;
