@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/10/16 18:37:01 $
-#    $Revision: 1.255 $
+#    $Author: mreuter $
+#    $Date: 2009/10/16 18:43:24 $
+#    $Revision: 1.256 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.255 2009/10/16 18:37:01 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.256 2009/10/16 18:43:24 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -775,11 +775,13 @@ if($DoMotionCor) then
     # longitudinal processing:
     # just copy from the cross-sectionaly processed data for this subject
     cd $subjdir/mri/
-    set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz)
-    set cmd = ($cmd orig/)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    if (-e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
+      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz)
+      set cmd = ($cmd orig/)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
 
     set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz .)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
