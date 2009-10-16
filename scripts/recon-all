@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2009/10/16 18:43:24 $
-#    $Revision: 1.256 $
+#    $Author: nicks $
+#    $Date: 2009/10/16 19:07:12 $
+#    $Revision: 1.257 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.256 2009/10/16 18:43:24 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.257 2009/10/16 19:07:12 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -84,6 +84,8 @@ set WSPctPreFlood = (); # Pre-flooding height
 set WSSeedPoint = ();   # C R S
 set WSAtlas     = 0;    # 0=don't use atlas, 1=use atlas (for skull strip)
 set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
+set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
+                        # to do atlas alignment during mri_watershed
 set DoGcut = 1;         # 1=run mri_gcut after mri_watershed
 set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
@@ -711,7 +713,8 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   echo "#@# Longitudinal Base Subject Creation `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   if ($#BaseSubjsList == 0) then
-    echo "ERROR: must specify subjects for base subject using -base-tp"
+    echo "ERROR: must specify subjects for base subject using -base-tp" \
+      |& tee -a $LF 
     goto error_exit;
   endif
   cd $subjdir > /dev/null
@@ -775,7 +778,11 @@ if($DoMotionCor) then
     # longitudinal processing:
     # just copy from the cross-sectionaly processed data for this subject
     cd $subjdir/mri/
-    if (-e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
+    if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
+      echo "ERROR: ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz does not exist!" \
+        |& tee -a $LF 
+      goto error_exit;
+    else  
       set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz)
       set cmd = ($cmd orig/)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -1244,25 +1251,32 @@ skullstrip:
   set BM  = brainmask.mgz
 
   if ($WSGcaAtlas || $DoMultiStrip) then
-    # if using the GCA atlas to help with the skull-strip, then run the
-    # GCA registration (mri_em_register) to align to an atlas with a skull,
-    # unless that file already exists
-    if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
-      set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
-      set cmd2 = (mri_em_register)
-      set cmd2 = ($cmd2 -skull)
-      set cmd2 = ($cmd2 $xopts2 nu.mgz $FREESURFER_HOME/average/$GCASkull)
-      set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
-      echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd2 |& tee -a $LF
-      if($status) goto error_exit;
-      echo $cmd2 > $touchdir/em_register.touch
+    if ( ! $WSUseTalXfm) then # dont bother if using talairach.xfm
+      # if using the GCA atlas to help with the skull-strip, then run the
+      # GCA registration (mri_em_register) to align to an atlas with a skull,
+      # unless that file already exists
+      if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
+        set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
+        set cmd2 = (mri_em_register)
+        set cmd2 = ($cmd2 -skull)
+        set cmd2 = ($cmd2 $xopts2 nu.mgz $FREESURFER_HOME/average/$GCASkull)
+        set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
+        echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd2 |& tee -a $LF
+        if($status) goto error_exit;
+        echo $cmd2 > $touchdir/em_register.touch
+      endif
     endif
 
     if ($WSGcaAtlas) then
       # if just using -brain_atlas flag, then include necessary options
-      set opts = (-brain_atlas $FREESURFER_HOME/average/$GCASkull \
-                  transforms/talairach_with_skull.lta $opts)
+      if ($WSUseTalXfm) then
+        set opts = (-brain_atlas $FREESURFER_HOME/average/$GCASkull \
+                    transforms/talairach.xfm $opts)
+      else
+        set opts = (-brain_atlas $FREESURFER_HOME/average/$GCASkull \
+                    transforms/talairach_with_skull.lta $opts)
+      endif
     endif
   endif
 
@@ -3340,6 +3354,10 @@ while( $#argv != 0 )
       set WSGcaAtlas = 1; breaksw
     case "-no-wsgcaatlas":
       set WSGcaAtlas = 0; breaksw
+    case "-wstalxfm":
+      set WSUseTalXfm = 1; breaksw
+    case "-no-wstalxfm":
+      set WSUseTalXfm = 0; breaksw
 
     case "-no-gcut":
       set DoGcut = 0;
