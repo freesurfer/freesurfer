@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/10/13 17:34:21 $
-#    $Revision: 1.254 $
+#    $Date: 2009/10/16 18:37:01 $
+#    $Revision: 1.255 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.254 2009/10/13 17:34:21 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.255 2009/10/16 18:37:01 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -90,8 +90,8 @@ set ConformMin = 0;     # 1=conformed to min dimension
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
 set Norm3dIters = ();   # passed as -n to mri_normalize
 set NormMaxGrad = 1;    # passed as -g to mri_normalize (input: -normmaxgrad)
-set WMSeg_wlo = ();
-set WMSeg_ghi = ();
+set WMSeg_wlo = ();  # from -seg-ghi and -seg-wlo, passed to mri_segment
+set WMSeg_ghi = ();  #                             and mris_make_surfaces
 set FixWithGA = 1;   # for topology fixer
 set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
@@ -2154,15 +2154,16 @@ foreach hemi ($hemilist)
       if ( ! $UseAseg) set cmd = ($cmd -noaseg)
       if ($NoAparcMakeSurf) set cmd = ($cmd -noaparc)
       if ($NoCortexLabel) set cmd = ($cmd -cortex 0)
-      set cmd = ($cmd -long -max 3.5 \
-        -mgz -T1 brain.finalsurfs $xopts $subjid $hemi)
+      set cmd = ($cmd -long -max 3.5 -mgz -T1 brain.finalsurfs)
+      set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi)
     else
       # default stream:
       set cmd = (mris_make_surfaces)
       if ( ! $UseAseg) set cmd = ($cmd -noaseg)
       if ($NoAparcMakeSurf) set cmd = ($cmd -noaparc)
       if ($NoCortexLabel) set cmd = ($cmd -cortex 0)
-      set cmd = ($cmd -mgz -T1 brain.finalsurfs $xopts $subjid $hemi);
+      set cmd = ($cmd -mgz -T1 brain.finalsurfs)
+      set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     endif
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4737,8 +4738,8 @@ usage_exit:
   echo "  -no-fix-with-ga : do not use genetic algorithm when fixing topology"
   echo "  -fix-diag-only  : topology fixer runs until ?h.defect_labels files"
   echo "                    are created, then stops"
-  echo "  -seg-wlo wlo : set wlo value for mri_segment"
-  echo "  -seg-ghi ghi : set ghi value for mri_segment"
+  echo "  -seg-wlo wlo : set wlo value for mri_segment and mris_make_surfaces"
+  echo "  -seg-ghi ghi : set ghi value for mri_segment and mris_make_surfaces"
   echo "  -nothicken   : pass '-thicken 0' to mri_segment"
   echo "  -no-ca-align-after : turn off -align-after with mri_ca_register"
   echo "  -no-ca-align : turn off -align with mri_ca_label"
