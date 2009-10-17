@@ -824,6 +824,18 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("GenerateClusterStats",argv[1]))&&(argc == 2))
+    {
+    op->GenerateClusterStats();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("GotoNextCluster",argv[1]))&&(argc == 2))
+    {
+    op->GotoNextCluster();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("CreateScalarTableEntry",argv[1]))&&(argc == 6))
     {
     char    *temp0;
@@ -1345,6 +1357,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorReverse\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorShowPositive\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorShowNegative\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  GenerateClusterStats\n",NULL);
+    Tcl_AppendResult(interp,"  GotoNextCluster\n",NULL);
     Tcl_AppendResult(interp,"  CreateScalarTableEntry\t with 4 args\n",NULL);
     Tcl_AppendResult(interp,"  SurfaceScalarColorsEditorChanged\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorMin\t with 1 arg\n",NULL);
@@ -1476,6 +1490,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorReverse" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorShowPositive" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorShowNegative" );
+    Tcl_DStringAppendElement ( &dString, "GenerateClusterStats" );
+    Tcl_DStringAppendElement ( &dString, "GotoNextCluster" );
     Tcl_DStringAppendElement ( &dString, "CreateScalarTableEntry" );
     Tcl_DStringAppendElement ( &dString, "SurfaceScalarColorsEditorChanged" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorMin" );
@@ -2820,6 +2836,40 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "void SetSurfaceScalarsColorShowNegative (int ibShow);" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
     /* Closing for SetSurfaceScalarsColorShowNegative */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: GenerateClusterStats */
+    if ( strcmp ( argv[2], "GenerateClusterStats" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "GenerateClusterStats" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for GenerateClusterStats */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void GenerateClusterStats ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for GenerateClusterStats */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: GotoNextCluster */
+    if ( strcmp ( argv[2], "GotoNextCluster" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "GotoNextCluster" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for GotoNextCluster */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void GotoNextCluster ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for GotoNextCluster */
 
     Tcl_DStringResult ( interp, &dString );
     Tcl_DStringFree ( &dString );

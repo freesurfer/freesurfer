@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/14 02:27:00 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/10/17 22:54:43 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,6 +38,7 @@
 
 extern "C" {
 #include "colortab.h"
+#include "surfcluster.h"
 }
 
 #include "vtkKWWindow.h"
@@ -255,6 +256,10 @@ class vtkKWQdecWindow : public vtkKWWindow
   void SetSurfaceScalarsColorReverse ( int ibReverse );
   void SetSurfaceScalarsColorShowPositive ( int ibShow );
   void SetSurfaceScalarsColorShowNegative ( int ibShow );
+
+  // Called by Generate Cluster Stats button and Next button
+  void GenerateClusterStats ();
+  void GotoNextCluster ();
 
   // Called by the scalars window when an entry needs to be
   // completed. We make a label widget from the cell text.
@@ -647,6 +652,11 @@ class vtkKWQdecWindow : public vtkKWWindow
   bool mbSurfaceScalarsColorReverse;
   bool mbSurfaceScalarsColorShowPositive;
   bool mbSurfaceScalarsColorShowNegative;
+
+  // cluster stats info
+  SCS *mClusterStats;
+  int mnClusters; // number of clusters in mClusterStats array
+  int mCurrentCluster; // index of cluster in the cross-hairs
 
   // If true, this will draw the curvature with green/red when there
   // is no scalar up. Otherwise, it will be drawn in binary gray, as

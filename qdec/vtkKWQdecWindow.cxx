@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/05 19:43:24 $
- *    $Revision: 1.40 $
+ *    $Date: 2009/10/17 22:54:43 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,7 +97,6 @@
 #include "QdecProject.h"
 
 extern "C" {
-#include "colortab.h"
 #include "mrisutils.h"
 #include "fsenv.h"
 }
@@ -105,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.40 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.41 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -162,6 +161,9 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mbSurfaceScalarsColorReverse( false ),
   mbSurfaceScalarsColorShowPositive( true ),
   mbSurfaceScalarsColorShowNegative( true ),
+  mClusterStats( NULL ),
+  mnClusters( 0 ),
+  mCurrentCluster( 0 ),
   mbDrawCurvatureGreenRedIfNoScalars( false ),
   mSurfaceScalarsColorsFDRRate( 0.05 ),
   mSimulationIterations( 10000 ),
@@ -2556,6 +2558,10 @@ vtkKWQdecWindow::SetCurrentSurfaceScalars ( int inEntry ) {
     }
   }
 
+  // reset cluster info
+  if( mClusterStats ) free( mClusterStats );
+  mClusterStats = NULL;
+  mnClusters = 0;
 }
 
 
@@ -2577,6 +2583,11 @@ vtkKWQdecWindow::ClearSurfaceScalars () {
   // Update our menu and page.
   this->UpdateDisplayPage();
   this->UpdateCommandStatus();
+
+  // reset cluster info
+  if( mClusterStats ) free( mClusterStats );
+  mClusterStats = NULL;
+  mnClusters = 0;
 }
 
 
@@ -2604,6 +2615,11 @@ vtkKWQdecWindow::UnloadSurfaceScalars () {
   // Update our menu and page.
   this->UpdateDisplayPage();
   this->UpdateCommandStatus();
+
+  // reset cluster info
+  if( mClusterStats ) free( mClusterStats );
+  mClusterStats = NULL;
+  mnClusters = 0;
 }
 
 
@@ -3366,7 +3382,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       mEditorSurfaceScalarColors->ExpandCanvasWidthOn();
       //  mEditorSurfaceScalarColors->SetCanvasWidth( 450 );
       mEditorSurfaceScalarColors->SetCanvasHeight( 150 );
-      mEditorSurfaceScalarColors->SetLabelText("Threshold (colors)");
+      mEditorSurfaceScalarColors->SetLabelText("Threshold");
       mEditorSurfaceScalarColors->SetRangeLabelPositionToTop();
       mEditorSurfaceScalarColors->SetPointPositionInValueRangeToTop();
       mEditorSurfaceScalarColors->SetPointStyleToCursorDown();
@@ -3473,6 +3489,40 @@ vtkKWQdecWindow::UpdateDisplayPage () {
                   labeledEntryOffset->GetWidgetName());
     this->Script( "pack %s -side top -fill x",
                   frameEntries->GetWidgetName() );
+
+
+    // Buttons to generate stats on clusters and goto next cluster
+    vtkSmartPointer<vtkKWFrameWithLabel> frameClusterBtns =
+      vtkSmartPointer<vtkKWFrameWithLabel>::New();
+    frameClusterBtns->SetParent( editorUserFrame );
+    frameClusterBtns->SetLabelText("Clusters");
+    frameClusterBtns->Create();
+    this->Script( "pack %s -side top -fill x",
+                  frameClusterBtns->GetWidgetName() );
+    vtkSmartPointer<vtkKWFrame> subframeClusterBtns = 
+      vtkSmartPointer<vtkKWFrame>::New();
+    subframeClusterBtns->SetParent( frameClusterBtns->GetFrame() );
+    subframeClusterBtns->Create();
+    this->Script( "pack %s -side top -anchor center", 
+                  subframeClusterBtns->GetWidgetName() );
+
+    vtkSmartPointer<vtkKWPushButton> buttonGenerateClusterStats = 
+      vtkSmartPointer<vtkKWPushButton>::New();
+    buttonGenerateClusterStats->SetParent( subframeClusterBtns );
+    buttonGenerateClusterStats->Create();
+    buttonGenerateClusterStats->SetText("Generate Cluster Stats and Goto Max");
+    buttonGenerateClusterStats->SetCommand( this, "GenerateClusterStats" );
+
+    vtkSmartPointer<vtkKWPushButton> buttonNextCluster = 
+      vtkSmartPointer<vtkKWPushButton>::New();
+    buttonNextCluster->SetParent( subframeClusterBtns );
+    buttonNextCluster->Create();
+    buttonNextCluster->SetText("Next");
+    buttonNextCluster->SetCommand( this, "GotoNextCluster" );
+
+    this->Script( "pack %s %s -side left",
+                  buttonGenerateClusterStats ->GetWidgetName(),
+                  buttonNextCluster ->GetWidgetName() );
 
     // Correction for Multiple-Comparisons stuff, inside its own frame
     vtkSmartPointer<vtkKWFrameWithLabel> cmcFrame =
@@ -4004,6 +4054,132 @@ vtkKWQdecWindow::SetSurfaceScalarsColorOffset ( double iOffset ) {
   }
 }
 
+
+void
+vtkKWQdecWindow::GenerateClusterStats () {
+
+  this->SetStatusText( "Generating stats on clusters..." );
+  try {
+
+    if( maSurfaceSource.find( msCurrentSurfaceSource ) ==
+        maSurfaceSource.end() ||
+        maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
+        maSurfaceScalars.end() ) {
+      throw runtime_error( "Must have a surface loaded and scalar selected.");
+    }
+
+    // get surface struct, and insert current scalars into its val slots
+    MRIS* mris = maSurfaceSource[msCurrentSurfaceSource]->GetMRIS();
+    vtkFloatArray* scalars = maSurfaceScalars[mnCurrentSurfaceScalars].mValues;
+    for( int nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
+      mris->vertices[nVertex].val = scalars->GetTuple1( nVertex );
+      mris->vertices[nVertex].ripflag = 0;
+    }
+
+    // tal transform (not really necessary for fsaverage, since its already
+    // in tal space, but not always true for other average subjects)
+    MATRIX* XFM = 
+      DevolveXFM(mEntryAverageSubject->GetValue(), NULL, "talairach.xfm");
+
+    // call main cluster stats generator...
+    mnClusters = 0;
+    cout << "\nGenerating cluster stats using min threshold of " << 
+      mSurfaceScalarsColorMin << "...\n";
+    mClusterStats = 
+      sclustMapSurfClusters(mris,
+                            mSurfaceScalarsColorMin, // threshold min
+                            -1,  // threshold max
+                            0,   // threshold sign (0=abs)
+                            0,   // min area (ignore)
+                            &mnClusters, // return
+                            XFM); // tal transform
+    if( NULL == mClusterStats )
+      throw runtime_error( "Unable to generate cluster stats\n" );
+    else
+      this->SetStatusText( "Completed generation of cluster stats" );
+    cout << "Found " << mnClusters << " clusters:\n";
+
+    // screen dump cluster info
+    fprintf
+      (stdout,
+       "ClusterNo  Max   VtxMax  Size(mm2)   TalX   TalY   TalZ NVtxs\n");
+    for (int n=0; n < mnClusters; n++) {
+      fprintf(stdout," %4d  %8.4f  %6d    %6.2f  %6.1f %6.1f %6.1f %4d\n",
+              n+1,
+              mClusterStats[n].maxval, 
+              mClusterStats[n].vtxmaxval,
+              mClusterStats[n].area,
+              mClusterStats[n].xxfm, 
+              mClusterStats[n].yxfm, 
+              mClusterStats[n].zxfm,
+              mClusterStats[n].nmembers);
+    }
+
+    // jump to max vertex
+    if (mnClusters > 0) {
+      this->SelectSurfaceVertex( mClusterStats[0].vtxmaxval );
+    }
+
+  } catch (exception& e) {
+    stringstream ssError;
+    ssError << "Error generating cluster stats\n" << e.what();
+    this->GetApplication()->ErrorMessage( ssError.str().c_str() );
+    this->SetStatusText( "Error generating cluster stats" );
+  }
+}
+
+void
+vtkKWQdecWindow::GotoNextCluster () {
+
+  try {
+
+    if( maSurfaceSource.find( msCurrentSurfaceSource ) ==
+        maSurfaceSource.end() ||
+        maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
+        maSurfaceScalars.end() ) {
+      throw runtime_error( "Must have a surface loaded and scalar selected.");
+    }
+
+    if( NULL == mClusterStats ) {
+      throw runtime_error( "Must generate cluster stats first.");
+    }
+
+    if( 0 == mnClusters ) {
+      throw runtime_error( "There are zero clusters.");
+    }
+
+    // advance index to next cluster (with wrap)
+    if (++mCurrentCluster >= mnClusters) {
+      mCurrentCluster = 0;
+    }
+
+    // screen dump cluster info
+    fprintf
+      (stdout,
+       "ClusterNo  Max   VtxMax  Size(mm2)   TalX   TalY   TalZ NVtxs\n");
+    int n = mCurrentCluster;
+    fprintf(stdout," %4d  %8.4f  %6d    %6.2f  %6.1f %6.1f %6.1f %4d\n",
+            n+1,
+            mClusterStats[n].maxval, 
+            mClusterStats[n].vtxmaxval,
+            mClusterStats[n].area,
+            mClusterStats[n].xxfm, 
+            mClusterStats[n].yxfm, 
+            mClusterStats[n].zxfm,
+            mClusterStats[n].nmembers);
+
+    // jump to max vertex of the current cluster
+    if (mnClusters > 0) {
+      this->SelectSurfaceVertex( mClusterStats[mCurrentCluster].vtxmaxval );
+    }
+
+  } catch (exception& e) {
+    stringstream ssError;
+    ssError << "Error advancing to next cluster\n" << e.what();
+    this->GetApplication()->ErrorMessage( ssError.str().c_str() );
+  }
+}
+
 void
 vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
 
@@ -4014,7 +4190,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
         maSurfaceSource.end() ||
         maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
         maSurfaceScalars.end() ) {
-      throw runtime_error( "Must have a surface loaded and scalars selected.");
+      throw runtime_error( "Must have a surface loaded and scalar selected.");
     }
 
     // If they are only looking at positive or negative values, set the
