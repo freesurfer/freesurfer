@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/21 01:02:52 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/10/17 22:47:24 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA).
@@ -262,8 +262,10 @@ int FsgdfPlot::SetPoint( int inVertex )
   stringstream eval;
   eval << "FsgdfPlot_SetPoint " <<  this->mGDFID << " " << inVertex << " 0 0";
   int code = Tcl_Eval( this->mInterp, eval.str().c_str() );
-  cerr << Tcl_GetStringResult( this->mInterp ) << endl;
-  if (code == TCL_OK) return(0); else return(1);
+  if (code == TCL_OK) return(0); else {
+    cerr << Tcl_GetStringResult( this->mInterp ) << endl;
+    return(1);
+  }
 }
 
 
