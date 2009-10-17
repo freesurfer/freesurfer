@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/09/21 16:59:57 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/10/17 22:50:32 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -385,6 +385,18 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   if( 0 != rSystem ) {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
 	     "link talairach.xfm file (cmd=%s)\n", sCommand.c_str() );
+    return -1;
+  }
+
+  // orig.mgz
+  sCommand = "ln -s " +
+    fnSubjectsDir + "/" + sSubjectName + "/mri/orig.mgz " +
+    fnExpandedProjectDir + "/" + sSubjectName + "/mri";
+  cout << sCommand << endl;
+  rSystem = system( sCommand.c_str() );
+  if( 0 != rSystem ) {
+    fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
+	     "link orig.mgz file (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
