@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:21 $
- *    $Revision: 1.45 $
+ *    $Date: 2009/10/17 01:07:13 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1086,13 +1086,17 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
   }
 
   if (classno >= gd->nclasses) {
-    printf("ERROR: gdfOffsetSlope: class number %d exceeds max %d\n",
-           classno,gd->nclasses);
+    if (gd->nclasses) {
+      printf("ERROR: gdfOffsetSlope: class number %d exceeds max %d\n",
+             classno,gd->nclasses);
+    }
     return(1);
   }
-  if (varno >= gd->nvariables) {
-    printf("ERROR: gdfOffsetSlope: variable number %d exceeds max %d\n",
-           varno,gd->nvariables);
+  if (varno >= gd->nvariables)  {
+    if (gd->nvariables) {
+      printf("ERROR: gdfOffsetSlope: variable number %d exceeds max %d\n",
+             varno,gd->nvariables);
+    }
     return(1);
   }
   if (c < 0 || c >= gd->data->width ||
@@ -1112,7 +1116,7 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
 
   b = MatrixMultiply(gd->T,y,NULL);
   printf("c=%d, r=%d, s=%d\n",c,r,s);
-  printf("b =========================\n");
+  printf("b=\n=========================\n");
   MatrixPrint(stdout,b);
   printf("=========================\n");
 
@@ -1130,7 +1134,6 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
   *slope = b->rptr[nslope+1][1];
 
   printf("offset = %g, slope = %g\n",*offset,*slope);
-
 
   MatrixFree(&y);
   MatrixFree(&b);
