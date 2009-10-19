@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/08 19:20:17 $
- *    $Revision: 1.39 $
+ *    $Date: 2009/10/19 14:06:25 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,10 +61,11 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.39 2009/10/08 19:20:17 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.40 2009/10/19 14:06:25 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
-char *inlist[5000];
+#define NInMAX 400000
+char *inlist[NInMAX];
 int ninputs = 0;
 char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
@@ -552,6 +553,10 @@ static int parse_commandline(int argc, char **argv) {
     } else {
       inlist[ninputs] = option;
       ninputs ++;
+      if(ninputs > NInMAX){
+	printf("ERROR: ninputs > %d\n",NInMAX);
+	exit(1);
+      }
       //fprintf(stderr,"ERROR: Option %s unknown\n",option);
       //if(singledash(option))
       //fprintf(stderr,"       Did you really mean -%s ?\n",option);
