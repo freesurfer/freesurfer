@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/09 21:57:31 $
- *    $Revision: 1.163 $
+ *    $Date: 2009/10/19 20:54:57 $
+ *    $Revision: 1.164 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,6 +84,8 @@ int main(int argc, char *argv[]) {
   int conform_width_256_flag;
   int parse_only_flag;
   int reorder_flag;
+  int reorder4_vals[4];
+  int reorder4_flag;
   int in_stats_flag, out_stats_flag;
   int read_only_flag, no_write_flag;
   char in_name[STRLEN], out_name[STRLEN];
@@ -193,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.163 2009/10/09 21:57:31 greve Exp $", 
+     "$Id: mri_convert.c,v 1.164 2009/10/19 20:54:57 greve Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -252,6 +254,7 @@ int main(int argc, char *argv[]) {
   nochange_flag = FALSE ;
   parse_only_flag = FALSE;
   reorder_flag = FALSE;
+  reorder4_flag = FALSE;
   in_stats_flag = FALSE;
   out_stats_flag = FALSE;
   read_only_flag = FALSE;
@@ -299,7 +302,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.163 2009/10/09 21:57:31 greve Exp $", 
+      "$Id: mri_convert.c,v 1.164 2009/10/19 20:54:57 greve Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -312,6 +315,10 @@ int main(int argc, char *argv[]) {
     if(strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--reorder") == 0) {
       get_ints(argc, argv, &i, reorder_vals, 3);
       reorder_flag = TRUE;
+    }
+    if(strcmp(argv[i], "-r4") == 0 || strcmp(argv[i], "--reorder4") == 0) {
+      get_ints(argc, argv, &i, reorder4_vals, 4);
+      reorder4_flag = TRUE;
     }
     else if(strcmp(argv[i], "--debug") == 0) debug = 1;
     else if(strcmp(argv[i], "--left-right-reverse") == 0) LeftRightReverse = 1;
@@ -1265,6 +1272,10 @@ int main(int argc, char *argv[]) {
       printf("reordering, values are %d %d %d\n",
              reorder_vals[0], reorder_vals[1], reorder_vals[2]);
 
+    if (reorder4_flag)
+      printf("reordering, values are %d %d %d %d\n",
+             reorder4_vals[0], reorder4_vals[1], reorder4_vals[2], reorder4_vals[3]);
+
     printf("translation of otl labels is %s\n",
            translate_labels_flag ? "on" : "off");
 
@@ -1317,7 +1328,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.163 2009/10/09 21:57:31 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.164 2009/10/19 20:54:57 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2288,6 +2299,20 @@ int main(int argc, char *argv[]) {
     mri = mri2;
   }
 
+  /* ----- reorder if necessary ----- */
+  if (reorder4_flag) {
+    printf("reordering all axes...\n");
+    printf("reordering, values are %d %d %d %d\n",
+	   reorder4_vals[0], reorder4_vals[1], reorder4_vals[2], reorder4_vals[3]);
+    mri2 = MRIreorder4(mri, reorder4_vals);
+    if(mri2 == NULL) {
+      fprintf(stderr, "error reordering all axes\n");
+      exit(1);
+    }
+    MRIfree(&mri);
+    mri = mri2;
+  }
+
   /* ----- store the gdf file stem ----- */
   strcpy(mri->gdf_image_stem, gdf_image_stem);
 
@@ -2770,13 +2795,16 @@ void usage(FILE *stream) {
   printf("\n");
   printf("Other options\n");
   printf("\n");
-  printf("  -r, --reorder olddim1 olddim2 olddim3\n");
+  printf("  -r, --reorder  olddim1 olddim2 olddim3\n");
+  printf("  -r4,--reorder4 olddim1 olddim2 olddim3 olddim4\n");
   printf("\n");
-  printf("  Reorders axes such that olddim1 is the "
-         "new column dimension,\n");
-  printf("  olddim2 is the new row dimension, "
-         "olddim3 is the new slice \n");
-  printf("  dimension. Example: 2 1 3 will swap rows and cols.\n");
+  printf("  Reorders axes such that olddim1 is the new column dimension,\n");
+  printf("  olddim2 is the new row dimension, olddim3 is the new slice, and \n");
+  printf("  olddim4 is the new frame dimension.\n");
+  printf("     Example: 2 1 3 will swap rows and cols.\n");
+  printf("  If using -r4, the output geometry will likely be wrong. It is best\n");
+  printf("  to re-run mri_convert and specify a correctly oriented volume through \n");
+  printf("  the --in_like option.\n");
   printf("\n");
   printf("  --invert_contrast threshold\n");
   printf("\n");

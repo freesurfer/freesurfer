@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/14 16:09:14 $
- *    $Revision: 1.358 $
+ *    $Author: greve $
+ *    $Date: 2009/10/19 20:54:57 $
+ *    $Revision: 1.359 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -12312,6 +12312,55 @@ mghWrite(MRI *mri, const char *fname, int frame)
   myclose(fp);
 
   return(NO_ERROR) ;
+}
+
+/*!
+\fn MRI *MRIreorder4(MRI *mri, int order[4])
+\brief Can reorders all 4 dimensions. Just copies old header to new.
+\param mri - input
+\param order[4] - new order of old dims
+*/
+MRI *MRIreorder4(MRI *mri, int order[4])
+{
+  MRI *new;
+  int n,olddims[4], newdims[4];
+  int dold[4], dnew[4];
+  int c0, r0, s0, f0;
+  int c1, r1, s1, f1;
+  double v;
+
+  olddims[0] = mri->width;
+  olddims[1] = mri->height;
+  olddims[2] = mri->depth;
+  olddims[3] = mri->nframes;
+
+  for(n=0; n<4; n++) newdims[n] = olddims[order[n]-1];
+  //for(n=0; n<4; n++) printf("%d %d  %d  %d\n",n,order[n],olddims[n],newdims[n]);
+  new = MRIallocSequence(newdims[0],newdims[1],newdims[2],mri->type,newdims[3]);
+  if(new == NULL) return(NULL);
+  MRIcopyHeader(mri,new);
+
+  for(c0=0; c0 < mri->width; c0++){
+    for(r0=0; r0 < mri->height; r0++){
+      for(s0=0; s0 < mri->depth; s0++){
+	for(f0=0; f0 < mri->nframes; f0++){
+	  dold[0] = c0;
+	  dold[1] = r0;
+	  dold[2] = s0;
+	  dold[3] = f0;
+	  for(n=0; n<4; n++) dnew[n] = dold[order[n]-1];
+	  c1 = dnew[0];
+	  r1 = dnew[1];
+	  s1 = dnew[2];
+	  f1 = dnew[3];
+	  v = MRIgetVoxVal(mri,c0,r0,s0,f0);
+	  MRIsetVoxVal(new,c1,r1,s1,f1, v);
+	}
+      }
+    }
+  }
+
+  return(new);
 }
 
 
