@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/01 15:57:28 $
- *    $Revision: 1.33 $
+ *    $Author: rpwang $
+ *    $Date: 2009/10/20 21:38:34 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1241,6 +1241,46 @@ int CTABfindName(COLOR_TABLE *ct,const char *name, int *index)
   return (NO_ERROR);
 }
 
+
+/*------------------------------------------------------------------
+  CTABfindEntryByName() - given the string name of a structure, return the
+  entry number( NOT index!) in the color table that matches the name 
+  -----------------------------------------------------------------*/
+int CTABfindEntryByName(COLOR_TABLE *ct,const char *name, int *nEntry)
+{
+  int structure;
+
+  if (NULL==ct)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, 
+                 "CTABfindName: ct was NULL"));
+  if (NULL==name)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, 
+                 "CTABfindName: name was NULL"));
+  if (NULL==index)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, 
+                 "CTABfindName: output parameter was NULL"));
+
+  int n = 0;
+  for (structure = 0; structure < ct->nentries; structure++)
+  {
+    if (NULL != ct->entries[structure])
+    {
+      if (stricmp(name, ct->entries[structure]->name) == 0)
+      {
+        *nEntry = n;
+        return (NO_ERROR);
+      }
+      n++;
+    }
+  }
+
+  /* If we got here, we didn't find a match. */
+  *nEntry = -1;
+  return (NO_ERROR);
+}
 
 
 /*--------------------------------------------------------------*/

@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.22 $
+ *    $Author: rpwang $
+ *    $Date: 2009/10/20 21:38:35 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -140,6 +140,7 @@ int CTABfindDuplicateNames(COLOR_TABLE *ct);
    color wasn't found. */
 int CTABfindRGBi(COLOR_TABLE *ct, int r, int g, int b, int*index);
 int CTABfindName(COLOR_TABLE *ct, const char *name, int*index);
+int CTABfindEntryByName(COLOR_TABLE *ct, const char *name, int*nEntry);
 
 /* Print the color table to a file stream. This is a valid format for
    the ASCII file, but is not guaranteed to be the same as the
