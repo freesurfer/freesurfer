@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.46 $
+ *    $Date: 2009/10/20 21:41:39 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -60,6 +60,7 @@ class LayerMRI;
 class WindowHistogram;
 class WindowOverlayConfiguration;
 class DialogGradientVolume;
+class ConnectivityData;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -241,12 +242,14 @@ public:
   void LoadPVolumeFiles( const wxArrayString& filenames, const wxString& prefix, const wxString& lut );
   void LoadROIFile    ( const wxString& fn );
   void LoadSurfaceFile( const wxString& fn, 
-			const wxString& fn_vector = _("") );
+			const wxString& fn_patch = _("")
+      );
   void LoadSurfaceVectorFile    ( const wxString& fn );
   void LoadWayPointsFile        ( const wxString& fn );
   void LoadSurfaceCurvatureFile ( const wxString& fn );
   void LoadSurfaceOverlayFile   ( const wxString& fn );
   void LoadSurfaceAnnotationFile( const wxString& fn );
+  void LoadConnectivityDataFile ( const wxString& data_file, const wxString& lut );
 
 // bool IsSaving()
 //  { return m_bSaving; }
@@ -317,6 +320,11 @@ public:
   void ConfigureOverlay();
   
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, std::vector<double>& scales );
+  
+  ConnectivityData* GetConnectivityData()
+  {
+    return m_connectivity;
+  }
 
 protected:
   void CommandLoadVolume        ( const wxArrayString& cmd );
@@ -327,6 +335,7 @@ protected:
   void CommandLoadSurfaceCurvature  ( const wxArrayString& cmd );
   void CommandLoadSurfaceOverlay( const wxArrayString& cmd );
   void CommandLoadSurfaceAnnotation ( const wxArrayString& cmd );
+  void CommandLoadConnectivityData  ( const wxArrayString& cmd );
   void CommandLoadWayPoints     ( const wxArrayString& cmd );
   void CommandLoadPVolumes      ( const wxArrayString& cmd );
   void CommandScreenCapture     ( const wxArrayString& cmd );
@@ -340,6 +349,8 @@ protected:
   void CommandSetSurfaceOverlayMethod     ( const wxArrayString& cmd );
   void CommandSetSurfaceColor   ( const wxArrayString& cmd );
   void CommandSetSurfaceEdgeColor ( const wxArrayString& cmd );
+  void CommandSetSurfaceEdgeThickness ( const wxArrayString& cmd );
+  void CommandSetSurfaceOffset  ( const wxArrayString& cmd );
   void CommandSetWayPointsColor ( const wxArrayString& cmd );
   void CommandSetWayPointsRadius( const wxArrayString& cmd );
   void CommandSetDisplayVector  ( const wxArrayString& cmd );
@@ -387,6 +398,8 @@ private:
 
   LayerCollectionManager* m_layerCollectionManager;
   LayerMRI*       m_layerVolumeRef;
+  
+  ConnectivityData*   m_connectivity;
 
   SettingsGeneral     m_settingsGeneral;
   Settings2D          m_settings2D;

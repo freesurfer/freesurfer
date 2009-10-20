@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/18 21:21:04 $
- *    $Revision: 1.4 $
+ *    $Date: 2009/10/20 21:41:40 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,14 +76,21 @@ public:
   
   int GetIndexAtVertex( int nVertex );
   
+  void GetAnnotationPoint( int nIndex, double* pt_out );
+  
+  std::string GetAnnotationNameAtIndex( int nIndex );
+  
   std::string GetAnnotationNameAtVertex( int nVertex );
    
 protected:
+  void Reset();
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   
 private:
   int*          m_nIndices;
   int           m_nIndexSize;
+  int*          m_nCenterVertices;  // center vertex of each annotation
+  int           m_nAnnotations;     // number of valid annotations
   
   std::string   m_strName;
   COLOR_TABLE*  m_lut;

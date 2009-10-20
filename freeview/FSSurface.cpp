@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/10/20 21:41:39 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -93,7 +93,9 @@ FSSurface::~FSSurface()
   m_vertexVectors.clear();
 }
 
-bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, const char* vector_filename  )
+bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, 
+                          const char* vector_filename,
+                          const char* patch_filename )
 {
   if ( m_MRIS )
     ::MRISfree( &m_MRIS );
@@ -109,6 +111,14 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   {
     cerr << "MRISread failed" << endl;
     return false;
+  }
+  
+  if ( patch_filename )
+  {
+    if ( ::MRISreadPatch( m_MRIS, patch_filename ) != 0 )
+    {
+      cerr << "Can not load patch file " << patch_filename << endl;
+    }
   }
   // Get some info from the MRIS. This can either come from the volume
   // geometry data embedded in the surface; this is done for newer
@@ -161,10 +171,13 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   SaveNormals ( m_MRIS, SurfaceMain );
   m_bSurfaceLoaded[SurfaceMain] = true;
 
-  LoadSurface ( "white",    SurfaceWhite );
-  LoadSurface ( "pial",     SurfacePial );
-  LoadSurface ( "orig",     SurfaceOriginal );
-  LoadSurface ( "inflated", SurfaceInflated );
+  if ( !patch_filename )
+  {
+    LoadSurface ( "white",    SurfaceWhite );
+    LoadSurface ( "pial",     SurfacePial );
+    LoadSurface ( "orig",     SurfaceOriginal );
+    LoadSurface ( "inflated", SurfaceInflated );
+  }
   
   RestoreVertices( m_MRIS, SurfaceMain );
 
@@ -471,14 +484,17 @@ void FSSurface::UpdatePolyData()
   vtkIdType face[VERTICES_PER_FACE];
   for ( int fno = 0; fno < cFaces; fno++ )
   {
-    face[0] = m_MRIS->faces[fno].v[0];
-    face[1] = m_MRIS->faces[fno].v[1];
-    face[2] = m_MRIS->faces[fno].v[2];
-    newPolys->InsertNextCell( 3, face );
-    lines->InsertNextCell( 2, face );
-    lines->InsertNextCell( 2, face+1 );
-    vtkIdType t[2] = { face[0], face[2] };
-    lines->InsertNextCell( 2, t );
+    if ( m_MRIS->faces[fno].ripflag == 0 )
+    {
+      face[0] = m_MRIS->faces[fno].v[0];
+      face[1] = m_MRIS->faces[fno].v[1];
+      face[2] = m_MRIS->faces[fno].v[2];
+      newPolys->InsertNextCell( 3, face );
+      lines->InsertNextCell( 2, face );
+      lines->InsertNextCell( 2, face+1 );
+      vtkIdType t[2] = { face[0], face[2] };
+      lines->InsertNextCell( 2, t );
+    }  
   }
 
   m_polydata->SetPoints( newPoints );

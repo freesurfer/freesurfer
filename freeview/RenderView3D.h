@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/08 19:23:38 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/10/20 21:41:40 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -30,6 +30,7 @@
 #include "RenderView.h"
 
 class Cursor3D;
+class vtkActor;
 
 class VTK_RENDERING_EXPORT RenderView3D : public RenderView
 {
@@ -49,6 +50,7 @@ public:
   void CancelUpdateMouseRASPosition();
 
   void UpdateCursorRASPosition( int posX, int posY );
+  void UpdateConnectivityDisplay();
 
   void UpdateViewByWorldCoordinate();
 
@@ -66,8 +68,8 @@ public:
 protected:
   void OnInternalIdle();
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
+  void DoUpdateConnectivityDisplay( double* pos );
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
-  
 
   void PreScreenshot();
   void PostScreenshot();
@@ -79,8 +81,10 @@ private:
   int  m_nCursorCoord[2];
   bool m_bToUpdateRASPosition;
   bool m_bToUpdateCursorPosition;
+  bool m_bToUpdateConnectivity;
 
   Cursor3D* m_cursor3D;
+  std::vector<vtkActor*> m_connActors;
 
   bool m_bSliceVisibility[3];
 

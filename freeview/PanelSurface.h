@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/10/20 21:41:40 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -88,6 +88,8 @@ private:
   void OnCheckShowVertices      ( wxCommandEvent& event );
   void OnColorVertex            ( wxColourPickerEvent& event );
   void OnSpinVertexPointSize    ( wxSpinEvent& event );
+  
+  void OnTextPosition           ( wxCommandEvent& event );
 
   void DoUpdateUI();
 
@@ -126,6 +128,8 @@ private:
   wxCheckBox*   m_checkShowVertices;
   wxColourPickerCtrl* m_colorPickerVertex;
   wxSpinCtrl*   m_spinVertexPointSize;
+  
+  wxTextCtrl*   m_textPosition;
 
   std::vector<wxWindow*>  m_widgetsMidPoint;
   std::vector<wxWindow*>  m_widgetsSlope;

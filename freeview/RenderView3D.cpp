@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/24 14:25:15 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/10/20 21:41:40 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
 
 #include "RenderView3D.h"
 #include "MainWindow.h"
+#include "ConnectivityData.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include <vtkRenderer.h>
@@ -74,6 +75,7 @@ void RenderView3D::InitializeRenderView3D()
 
   m_bToUpdateRASPosition = false;
   m_bToUpdateCursorPosition = false;
+  m_bToUpdateConnectivity = false;
 
   vtkCellPicker* picker = vtkCellPicker::New();
 // vtkPointPicker* picker = vtkPointPicker::New();
@@ -88,6 +90,11 @@ void RenderView3D::InitializeRenderView3D()
   m_cursor3D = new Cursor3D( this );
   
   m_actorScalarBar->SetNumberOfLabels( 4 );
+  
+  // two actos for connectivity display
+  m_connActors.push_back( vtkActor::New() );
+  m_connActors.push_back( vtkActor::New() );
+  
 }
 
 RenderView3D* RenderView3D::New()
@@ -99,6 +106,9 @@ RenderView3D* RenderView3D::New()
 RenderView3D::~RenderView3D()
 {
   delete m_cursor3D;
+  for ( size_t i = 0; i < m_connActors.size(); i++ )
+    m_connActors[i]->Delete();
+  m_connActors.clear();
 }
 
 void RenderView3D::PrintSelf(ostream& os, vtkIndent indent)
@@ -121,10 +131,12 @@ void RenderView3D::RefreshAllActors()
 
   if ( lcm->HasLayer( "MRI" ) || lcm->HasLayer( "Surface" ) )
   {
-    m_renderer->AddViewProp( m_actorScalarBar );
-    
+    m_renderer->AddViewProp( m_actorScalarBar );    
   }
-
+  
+  for ( size_t i = 0; i < m_connActors.size(); i++ )
+    m_renderer->AddViewProp( m_connActors[i] );
+  
   m_renderer->ResetCameraClippingRange();
 
   NeedRedraw();
@@ -187,6 +199,22 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
       else
         lc_mri->SetCurrentRASPosition( pos );
     }
+    
+    if ( bCursor && m_bToUpdateConnectivity )
+    {
+      DoUpdateConnectivityDisplay( pos );
+      m_bToUpdateConnectivity = false;
+    }
+  }
+}
+
+void RenderView3D::DoUpdateConnectivityDisplay( double* pos )
+{
+  ConnectivityData* conn = MainWindow::GetMainWindowPointer()->GetConnectivityData();
+  if ( conn && conn->IsValid() )
+  {
+    conn->BuildConnectivityActors( pos, m_connActors );
+    NeedRedraw();
   }
 }
 
@@ -196,6 +224,13 @@ void RenderView3D::UpdateCursorRASPosition( int posX, int posY )
   m_nCursorCoord[0] = posX;
   m_nCursorCoord[1] = posY;
 }
+
+
+void RenderView3D::UpdateConnectivityDisplay()
+{
+  m_bToUpdateConnectivity = true;
+}
+
 
 void RenderView3D::OnInternalIdle()
 {
@@ -261,3 +296,4 @@ void RenderView3D::UpdateScalarBar()
   else
     RenderView::UpdateScalarBar();
 }
+

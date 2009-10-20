@@ -19,6 +19,8 @@ freeview_SOURCES=\
 	BrushProperty.cpp \
 	BrushProperty.h \
 	CommonDataStruct.h \
+	ConnectivityData.cpp \
+	ConnectivityData.h \
 	ControlPanel.cpp \
 	ControlPanel.h \
 	Cursor2D.cpp \

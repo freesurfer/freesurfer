@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/07 20:43:44 $
- *    $Revision: 1.72 $
+ *    $Date: 2009/10/20 21:41:39 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -86,6 +86,7 @@
 #include "DialogGradientVolume.h"
 #include "LayerPropertiesSurface.h"
 #include "DialogLoadPVolumes.h"
+#include "ConnectivityData.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -242,6 +243,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_bResampleToRAS = false;
   m_bToUpdateToolbars = false;
   m_layerVolumeRef = NULL;
+  m_connectivity = NULL;
   m_nPrevActiveViewId = -1;
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
@@ -405,8 +407,9 @@ MainWindow::~MainWindow()
 
   delete m_layerCollectionManager;
   delete m_luts;
-
   delete m_propertyBrush;
+  if ( m_connectivity )
+    delete m_connectivity;
 }
 
 MainWindow* MainWindow::GetMainWindowPointer()
@@ -1731,7 +1734,7 @@ void MainWindow::OnViewToggleSurfaceVisibility( wxCommandEvent& event )
   LayerCollection* lc = GetLayerCollection( "Surface" );
   if ( !lc->IsEmpty() )
   {
-    Layer* layer = lc->GetActiveLayer();
+    Layer* layer = lc->GetActiveLayer();  
     if ( layer )
       layer->SetVisible( !layer->IsVisible() );
   }
@@ -2301,6 +2304,18 @@ void MainWindow::LoadPVolumeFiles( const wxArrayString& filenames, const wxStrin
   thread->LoadVolume( layer );
 }
 
+void MainWindow::LoadConnectivityDataFile( const wxString& data_file, const wxString& lut )
+{
+  LayerCollection* lc = GetLayerCollection( "Surface" );
+  if ( lc->GetNumberOfLayers() < 2 )
+    return;
+  
+  if ( !m_connectivity )
+    m_connectivity = new ConnectivityData();
+  
+  m_connectivity->Load( data_file, lut, (LayerSurface*)lc->GetLayer( 0 ), (LayerSurface*)lc->GetLayer( 1 ) );
+}
+
 void MainWindow::AddScript( const wxArrayString& script )
 {
   m_scripts.push_back( script );
@@ -2340,6 +2355,10 @@ void MainWindow::RunScript()
   else if ( sa[0] == _("loadsurfaceannotation") )
   {
     CommandLoadSurfaceAnnotation( sa );
+  }
+  else if ( sa[0] == _("loadconnectivity") )
+  {
+    CommandLoadConnectivityData( sa );
   }
   else if ( sa[0] == _("loadroi") || sa[0] == _("loadlabel") )
   {
@@ -2397,6 +2416,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlayMethod( sa );
   }
+  else if ( sa[0] == _("setsurfaceoffset") )
+  {
+    CommandSetSurfaceOffset( sa );
+  }
   else if ( sa[0] == _("setwaypointscolor") )
   {
     CommandSetWayPointsColor( sa );
@@ -2420,6 +2443,10 @@ void MainWindow::RunScript()
   else if ( sa[0] == _("setsurfaceedgecolor") )
   {
     CommandSetSurfaceEdgeColor( sa );
+  }
+  else if ( sa[0] == _("setsurfaceedgethickness") )
+  {
+    CommandSetSurfaceEdgeThickness( sa );
   }
   else if ( sa[0] == _("setlayername") )
   {
@@ -2925,6 +2952,14 @@ void MainWindow::CommandLoadPVolumes( const wxArrayString& cmd )
   this->LoadPVolumeFiles( files, cmd[2], lut );
 }
 
+void MainWindow::CommandLoadConnectivityData( const wxArrayString& cmd )
+{
+  if ( cmd.size() > 2 )
+    this->LoadConnectivityDataFile( cmd[1], cmd[2] );
+  
+  ContinueScripts();
+}
+
 void MainWindow::CommandLoadROI( const wxArrayString& cmd )
 {
   LoadROIFile( cmd[1] );
@@ -2939,7 +2974,7 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
   int nIgnoreEnd = fullfn.find( _("#"), nIgnoreStart+1 );
   wxArrayString sa_fn = MyUtils::SplitString( fullfn, _(":"), nIgnoreStart, nIgnoreEnd - nIgnoreStart + 1 );
   wxString fn = sa_fn[0];
-//  wxString fn_vector = "";
+  wxString fn_patch = _("");
   for ( size_t k = 1; k < sa_fn.size(); k++ )
   {
     int n = sa_fn[k].Find( _("=") );
@@ -2959,6 +2994,14 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
       {
         wxArrayString script;
         script.Add( _("setsurfaceedgecolor") );
+        script.Add( subArgu );
+            
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _( "edgethickness" ) )
+      {
+        wxArrayString script;
+        script.Add( _("setsurfaceedgethickness") );
         script.Add( subArgu );
             
         m_scripts.insert( m_scripts.begin(), script );
@@ -3049,13 +3092,26 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
           script.Add( vector_fns[i] );
           m_scripts.insert( m_scripts.begin(), script );
         }
-      }      
+      }    
+      else if ( subOption == _("patch") )
+      {
+        fn_patch = subArgu;
+      }  
       else if ( subOption == _("name") )
       {
         wxArrayString script;
         script.Add( _("setlayername") );
         script.Add( _("Surface") );
         script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _( "offset" ) )
+      {
+        wxArrayString script;
+        script.Add( _("setsurfaceoffset") );
+        wxArrayString values = MyUtils::SplitString( subArgu, _(",") );
+        for ( size_t i = 0; i < values.size(); i++ )
+          script.Add( values[i] );
         m_scripts.insert( m_scripts.begin(), script );
       }
       else
@@ -3065,7 +3121,7 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
       }
     }
   }
-  LoadSurfaceFile( fn );
+  LoadSurfaceFile( fn, fn_patch );
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const wxArrayString& cmd )
@@ -3189,6 +3245,43 @@ void MainWindow::CommandSetSurfaceEdgeColor( const wxArrayString& cmd )
       cerr << "Invalid color name or value " << cmd[1] << endl;
   }
   
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetSurfaceEdgeThickness( const wxArrayString& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    long thickness;
+    if ( !cmd[1].ToLong( &thickness ) )
+      cerr << "Invalid edge thickness value. Must be a integer." << endl;
+    else
+      surf->GetProperties()->SetEdgeThickness( thickness );
+  }
+  
+  ContinueScripts();
+}
+
+
+void MainWindow::CommandSetSurfaceOffset( const wxArrayString& cmd )
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    double pos[3];
+    if ( cmd.size() < 4 || 
+         !cmd[1].ToDouble( &(pos[0]) ) ||
+         !cmd[2].ToDouble( &(pos[1]) ) ||
+         !cmd[3].ToDouble( &(pos[2]) ) )
+    {
+      cerr << "Invalid surface offset inputs. Need 3 numbers." << endl;
+    }
+    else
+    {
+      surf->GetProperties()->SetPosition( pos ); 
+    } 
+  }
   ContinueScripts();
 }
 
@@ -3590,7 +3683,7 @@ void MainWindow::LoadSurface()
   }
 }
 
-void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_vector )
+void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_patch )
 {
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
 
@@ -3601,7 +3694,7 @@ void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_v
 //  layerName = wxFileName( layerName ).GetName();
   layer->SetName( layerName.char_str() );
   layer->SetFileName( fn.GetFullPath().char_str() );
-  layer->SetVectorFileName( fn_vector.char_str() );
+  layer->SetPatchFileName( fn_patch.char_str() );
 
   WorkerThread* thread = new WorkerThread( this );
   thread->LoadSurface( layer );

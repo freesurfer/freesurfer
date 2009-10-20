@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/07 20:43:43 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/10/20 21:41:39 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,6 +97,11 @@ public:
     m_sFilename = fn;
   }
 
+  void SetPatchFileName( const char* fn )
+  {
+    m_sPatchFilename = fn;
+  }
+  
   void SetVectorFileName( const char* fn )
   {
     m_sVectorFilename = fn;
@@ -158,6 +163,8 @@ public:
   {
     return m_volumeRef;
   }
+  
+  int GetHemisphere();
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
@@ -171,6 +178,7 @@ protected:
   void UpdateRenderMode();
   void UpdateVertexRender();
   void UpdateMeshRender();
+  void UpdateActorPositions();
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -187,6 +195,7 @@ protected:
   LayerMRI*   m_volumeRef;
 
   std::string   m_sFilename;
+  std::string   m_sPatchFilename;
   std::string   m_sVectorFilename;
 
   vtkActor*   m_sliceActor2D[3];

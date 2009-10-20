@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/10/20 21:41:39 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -74,6 +74,7 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
     if ( event.LeftUp() )
     {
       view->UpdateCursorRASPosition( event.GetX(), event.GetY() );
+      view->UpdateConnectivityDisplay();
     }
   }
   else

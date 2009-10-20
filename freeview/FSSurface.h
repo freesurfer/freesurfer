@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/10/20 21:41:39 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,9 @@ public:
 
   enum ACTIVE_SURFACE { SurfaceMain = 0, SurfaceInflated, SurfaceWhite, SurfacePial, SurfaceOriginal };
 
-  bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, const char* vector_filename = NULL );
+  bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, 
+                 const char* vector_filename = NULL,
+                 const char* patch_filename = NULL );
 
   bool MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event );
 
@@ -96,7 +98,6 @@ public:
   bool LoadSurface    ( const char* filename, int nSet );
   bool LoadCurvature  ( const char* filename = NULL );
   bool LoadOverlay    ( const char* filename );
-  bool LoadAnnotation ( const char* filename );
 
   bool IsSurfaceLoaded( int nSet )
   {

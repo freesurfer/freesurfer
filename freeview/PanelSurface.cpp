@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/10/20 21:41:40 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@
 #include "FSSurface.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceAnnotation.h"
+#include "MyUtils.h"
 
 BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_MENU            ( XRCID( "ID_SURFACE_CLOSE" ),          PanelSurface::OnSurfaceClose )
@@ -79,6 +80,8 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacity )
   EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_OPACITY" ),   PanelSurface::OnSliderOpacity )
   EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_OPACITY" ),       PanelSurface::OnTextOpacity )
+  
+  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_POSITION" ),       PanelSurface::OnTextPosition )
 END_EVENT_TABLE()
 
 
@@ -133,6 +136,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
       = XRCCTRL( *this, "ID_BUTTON_OVERLAY",        wxButton );
   
   m_choiceAnnotation    = XRCCTRL( *this, "ID_CHOICE_ANNOTATION",     wxChoice );
+  
+  m_textPosition        = XRCCTRL( *this, "ID_TEXT_POSITION",         wxTextCtrl );
 
   m_widgetsSlope.push_back( m_sliderSlope );
   m_widgetsSlope.push_back( m_textSlope );
@@ -226,6 +231,9 @@ void PanelSurface::DoUpdateUI()
   FSSurface* surf = NULL;
   if ( bHasSurface )
   {
+    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
+    for ( int i = 0; i < (int)m_listBoxLayers->GetCount() && i < lc->GetNumberOfLayers(); i++ )
+      m_listBoxLayers->Check( i, lc->GetLayer( i )->IsVisible() );
     layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
     {
@@ -260,9 +268,12 @@ void PanelSurface::DoUpdateUI()
       rgb = layer->GetProperties()->GetVertexColor();
       m_colorPickerVertex->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );     
       m_spinVectorPointSize->SetValue( layer->GetProperties()->GetVertexPointSize() );
+      
+      double* dPos = layer->GetProperties()->GetPosition();
+      wxString value_strg = ( (wxString)_("") << dPos [0] << _(" ") << dPos[1] << _(" ") << dPos[2] );
+      m_textPosition->ChangeValue( value_strg );
     }
 
-    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
     lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );
   }
  /*  
@@ -719,6 +730,27 @@ void PanelSurface::OnChoiceAnnotation( wxCommandEvent& event )
       // load new overlay map
       MainWindow::GetMainWindowPointer()->LoadSurfaceAnnotation();
     }
+    UpdateUI();
+  }  
+}
+
+void PanelSurface::OnTextPosition( wxCommandEvent& event )
+{
+  wxArrayString sa = MyUtils::SplitString( m_textPosition->GetValue(), _(",") );
+  if ( sa.Count() < 3 )
+    sa = MyUtils::SplitString( m_textPosition->GetValue(), _(" ") );
+  
+  double pos[3];
+  if ( sa.Count() < 3 || !sa[0].ToDouble( pos ) || !sa[1].ToDouble( pos+1 ) || !sa[2].ToDouble( pos+2 ) )
+  {
+    cerr << "Please enter 3 numbers." << endl;
+    return;
+  }
+      
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    surf->GetProperties()->SetPosition( pos );
     UpdateUI();
   }  
 }

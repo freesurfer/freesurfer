@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.30 $
+ *    $Date: 2009/10/20 21:41:39 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -119,7 +119,9 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
   m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
 // m_surfaceSource->SetResampleToRAS( m_bResampleToRAS );
   if ( !m_surfaceSource->MRISRead( m_sFilename.c_str(), wnd, event,
-                                   m_sVectorFilename.size() > 0 ? m_sVectorFilename.c_str() : NULL ) )
+                                   m_sVectorFilename.size() > 0 ? m_sVectorFilename.c_str() : NULL,
+                                   m_sPatchFilename.size() > 0 ? m_sPatchFilename.c_str() : NULL )
+                                  )
     return false;
 
   InitializeSurface();
@@ -495,6 +497,11 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, v
     this->UpdateMeshRender();
     this->SendBroadcast( "LayerActorUpdated", this );
   }
+  else if ( iMessage == "PositionChanged" )
+  {
+    this->UpdateActorPositions();
+    this->SendBroadcast( "LayerActorUpdated", this );
+  }
 }
 
 void LayerSurface::SetVisible( bool bVisible )
@@ -515,7 +522,7 @@ void LayerSurface::SetVisible( bool bVisible )
 
 bool LayerSurface::IsVisible()
 {
-  return m_sliceActor2D[0]->GetVisibility() > 0;
+  return m_mainActor->GetVisibility() > 0;
 }
 
 bool LayerSurface::HasProp( vtkProp* prop )
@@ -540,15 +547,19 @@ int LayerSurface::GetVertexIndexAtTarget( double* ras, double* distance )
 {
   if ( m_surfaceSource == NULL )
     return -1;
-
+    
+  double ras_o[3];
+  double* offset = mProperties->GetPosition();
+  for ( int i = 0; i < 3; i++ )
+    ras_o[i] = ras[i] - offset[i];
   if ( m_volumeRef )
   {
     double realRas[3];
-    m_volumeRef->TargetToRAS( ras, realRas );
+    m_volumeRef->TargetToRAS( ras_o, realRas );
     return m_surfaceSource->FindVertexAtRAS( realRas, distance );
   }
   else
-    return m_surfaceSource->FindVertexAtRAS( ras, distance );
+    return m_surfaceSource->FindVertexAtRAS( ras_o, distance );
 }
 
 
@@ -570,6 +581,10 @@ bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
   if ( bRet && m_volumeRef )
     m_volumeRef->RASToTarget( ras, ras );
 
+  double* offset = mProperties->GetPosition();
+  for ( int i = 0; i < 3; i++ )
+    ras[i] += offset[i];
+  
   return bRet;
 }
 
@@ -913,3 +928,20 @@ void LayerSurface::UpdateMeshRender()
       break;
   }
 }
+
+void LayerSurface::UpdateActorPositions()
+{
+  for ( int i = 0; i < 3; i++ )
+    m_sliceActor3D[i]->SetPosition( mProperties->GetPosition() );  
+  
+  m_mainActor->SetPosition( mProperties->GetPosition() );
+  m_vectorActor->SetPosition( mProperties->GetPosition() );
+  m_vertexActor->SetPosition( mProperties->GetPosition() );
+  m_wireframeActor->SetPosition( mProperties->GetPosition() );
+}
+
+int LayerSurface::GetHemisphere()
+{
+  return m_surfaceSource->GetMRIS()->hemisphere;
+}
+
