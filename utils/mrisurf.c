@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/05 18:38:37 $
- *    $Revision: 1.639 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/20 13:56:46 $
+ *    $Revision: 1.640 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.639 2009/10/05 18:38:37 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.640 2009/10/20 13:56:46 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -10711,7 +10711,8 @@ MRISwriteAnnotation(MRI_SURFACE *mris,const char *sname)
 
   if (mris->ct)   /* also write annotation in */
   {
-    printf("writing colortable into annotation file...\n") ;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("writing colortable into annotation file...\n") ;
     fwriteInt(TAG_OLD_COLORTABLE, fp) ;
     CTABwriteIntoBinary(mris->ct, fp);
   }
@@ -11027,6 +11028,49 @@ MRIScopyMarksToAnnotation(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->annotation = v->marked ;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISmaxMarked(MRI_SURFACE *mris)
+{
+  int    vno, max_marked ;
+  VERTEX *v ;
+
+
+  max_marked = mris->vertices[0].marked ;
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    if (v->marked > max_marked)
+      max_marked =  v->marked ; ;
+  }
+  return(max_marked) ;
+}
+int
+MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris)
+{
+  int    vno, index ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    CTABfindIndexFromAnnotation(mris->ct, v->annotation, &index) ;
+    if (index  < 0)
+      ErrorPrintf(ERROR_BADPARM, "%s: could not find index for vno %d annotation %x\n", 
+                  "MRIScopyAnnotationsToMarkedIndex", vno, v->annotation) ;
+
+    v->marked = index ;
   }
   return(NO_ERROR) ;
 }
@@ -11470,6 +11514,10 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
     }
   }
   if (fp) fclose(fp);
+  for (k = 0 ; k < mris->nvertices ; k++)
+    if (mris->vertices[k].num == 0 || mris->vertices[k].vnum == 0)
+      mris->vertices[k].ripflag = 1 ;
+
   // remove ripflag set vertices
   MRISripFaces(mris);
   // set the patch flag
@@ -11499,6 +11547,14 @@ MRISreadPatch(MRI_SURFACE *mris, const char *pname)
     return(ret) ;
   // remove ripflag set vertices
   MRISremoveRipped(mris) ;
+
+  {
+    int k ;
+    for (k = 0 ; k < mris->nvertices ; k++)
+      if (mris->vertices[k].num == 0 || mris->vertices[k].vnum == 0)
+        mris->vertices[k].ripflag = 1 ;
+  }
+
   // recalculate properties
   MRISupdateSurface(mris) ;
 
@@ -32164,6 +32220,68 @@ mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2)
     v->vtotal-- ;
   }
   return(NO_ERROR) ;
+}
+
+/*
+  nsubs = 1 --> divide edge in half
+        = 2 --> divide edge in half twice, add 3 vertices
+        = 3 --> divide edge in half three times, add 7 vertices
+*/
+#define MAX_SURFACE_FACES 200000
+int
+MRISdivideEdges(MRI_SURFACE *mris, int nsubdivisions)
+{
+  int      nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
+  FACE     *f ;
+  
+  for (nadded = sub = 0 ; sub < nsubdivisions ; sub++)
+  {
+    nfaces = mris->nfaces ;  nvertices = mris->nvertices ; // before adding any
+    for (fno = 0 ; fno < nfaces ; fno++)
+      faces[fno] = fno ;
+    for (fno = 0 ; fno < nfaces ; fno++)
+    {
+      int tmp ;
+
+      index = (int)randomNumber(0.0, (double)(nfaces-0.0001)) ;
+      tmp = faces[fno] ;
+      if (faces[fno] == Gdiag_no || faces[index] == Gdiag_no)
+        DiagBreak() ;
+      faces[fno] = faces[index] ;
+      faces[index] = tmp ;
+    }
+
+    for (index = 0 ; index < nfaces ; index++)
+    {
+      fno = faces[index] ;
+      f = &mris->faces[fno] ;
+      if (fno == Gdiag_no)
+        DiagBreak() ;
+
+      if (f->v[0] < nvertices && f->v[1] < nvertices)
+        if (mrisDivideEdge(mris, f->v[0], f->v[1]) == NO_ERROR)
+          nadded++ ;
+      if (f->v[0] < nvertices && f->v[2] < nvertices)
+        if (mrisDivideEdge(mris, f->v[0], f->v[2]) == NO_ERROR)
+          nadded++ ;
+      if (f->v[1] < nvertices && f->v[2] < nvertices)
+        if (mrisDivideEdge(mris, f->v[1], f->v[2]) == NO_ERROR)
+          nadded++ ;
+    }
+  }
+        
+  if (Gdiag & DIAG_SHOW && nadded > 0)
+  {
+    fprintf(stdout,
+            "MRISdivideEdges(%d): %d vertices added: # of vertices=%d, # of faces=%d.\n",
+            nsubdivisions, nadded, mris->nvertices, mris->nfaces) ;
+#if 0
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+#endif
+  }
+  return(nadded) ;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -58764,7 +58882,7 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
   values are stored in an MRI_VOLUME structure with the number of
   spatial voxels equal to the number of nvertices on the surface. Can
   handle multiple frames. Can be performed in-place. If Targ is NULL,
-  it will automatically allocate a new MRI strucutre. Note that the
+  it will automatically allocate a new MRI structure. Note that the
   input MRI struct does not have to have any particular configuration
   of cols, rows, and slices as long as the product equals nvertices.
   Does not smooth data from ripped vertices into unripped vertices
@@ -64850,5 +64968,91 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
 
   MHTfree(&mht_pial) ;
   return(NO_ERROR) ;
+}
+
+MRI *
+MRISlaplacian(MRI_SURFACE *mris, MRI *mri_cmatrix, double inner_width, double outer_width)
+{
+  int    vno, vno2, i, num, n ;
+  VERTEX *v, *vn ;
+  MRI    *mri_laplacian ;
+  double val0, val1, rms ;
+
+  mri_laplacian = MRIalloc(mris->nvertices, 1, 1, MRI_FLOAT) ;
+  if (mri_laplacian == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISlaplacian: could not allocate laplacian struct");
+
+  for (vno= 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    rms = 0.0 ; num = 0 ;
+    for (n = 0 ; n < v->vtotal; n++)
+    {
+      vno2 = v->v[n];
+      vn = &mris->vertices[vno2] ;
+      for (i = 0 ; i < mri_cmatrix->nframes ; i++)
+      {
+        val0 = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, i) ;
+        val1 = MRIgetVoxVal(mri_cmatrix, vno2, 0, 0, i) ;
+        rms += (val0 - val1) * (val0 - val1) ;
+      }
+    }
+    rms = sqrt(rms / (v->vtotal * mri_cmatrix->nframes)) ;
+    MRIsetVoxVal(mri_laplacian, vno, 0, 0, 0, rms);
+  }
+
+  return(mri_laplacian) ;
+}
+double
+MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp, 
+                int which, MRI *mri_vals)
+{
+  double val, x[VERTICES_PER_FACE], y[VERTICES_PER_FACE], 
+         dx1, dy1, dx2, dy2, e1x, e1y, e1z, e2x, e2y, e2z, x0, y0, a0, a1, a2,
+         val0, val1, val2;
+  int    n ;
+  VERTEX *v ;
+
+  e1x = e2x = e1y = e2y = 0.0 ;
+  for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[f->v[n]] ;
+    e1x += v->e1x ; e1y += v->e1y ; e1z += v->e1z ;
+    e2x += v->e2x ; e2y += v->e2y ; e2z += v->e2z ;
+  }
+
+  for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[f->v[n]] ;
+    x[n] = v->x*e1x + v->y*e1y + v->z*e1z ;
+    y[n] = v->x*e2x + v->y*e2y + v->z*e2z ;
+  }
+  x0 = xp*e1x + yp*e1y + zp*e1z ;
+  y0 = xp*e2x + yp*e2y + zp*e2z ;
+
+  dx1 = x[1]-x0 ;dy1 = y[1]-y0 ;
+  dx2 = x[2]-x0 ;dy2 = y[2]-y0;
+  a0 = 0.5*fabs(dx1*dy2 - dx1*dx2) ;
+
+  dx1 = x[0]-x0 ;dy1 = y[0]-y0 ;
+  dx2 = x[2]-x0 ;dy2 = y[2]-y0;
+  a1 = 0.5*fabs(dx1*dy2 - dx1*dx2) ;
+
+  dx1 = x[0]-x0 ;dy1 = y[0]-y0 ;
+  dx2 = x[1]-x0 ;dy2 = y[1]-y0;
+  a2 = 0.5*fabs(dx1*dy2 - dx1*dx2) ;
+
+  val0 = MRIgetVoxVal(mri_vals, f->v[0], 0, 0, 0) ;
+  val1 = MRIgetVoxVal(mri_vals, f->v[1], 0, 0, 0) ;
+  val2 = MRIgetVoxVal(mri_vals, f->v[2], 0, 0, 0) ;
+
+  a0 /= (a0+a1+a2) ;
+  a1 /= (a0+a1+a2) ;
+  a2 /= (a0+a1+a2) ;
+  val = a0*val0 + a1+val1 + a2*val2 ;
+  return(val) ;
 }
 
