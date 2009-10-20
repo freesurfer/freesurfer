@@ -836,6 +836,26 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("GotoPrevCluster",argv[1]))&&(argc == 2))
+    {
+    op->GotoPrevCluster();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+  if ((!strcmp("GotoCluster",argv[1]))&&(argc == 3))
+    {
+    int      temp0;
+    error = 0;
+
+    if (Tcl_GetInt(interp,argv[2],&tempi) != TCL_OK) error = 1;
+    temp0 = tempi;
+    if (!error)
+    {
+    op->GotoCluster(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
   if ((!strcmp("CreateScalarTableEntry",argv[1]))&&(argc == 6))
     {
     char    *temp0;
@@ -1359,6 +1379,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorShowNegative\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  GenerateClusterStats\n",NULL);
     Tcl_AppendResult(interp,"  GotoNextCluster\n",NULL);
+    Tcl_AppendResult(interp,"  GotoPrevCluster\n",NULL);
+    Tcl_AppendResult(interp,"  GotoCluster\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  CreateScalarTableEntry\t with 4 args\n",NULL);
     Tcl_AppendResult(interp,"  SurfaceScalarColorsEditorChanged\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorMin\t with 1 arg\n",NULL);
@@ -1492,6 +1514,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorShowNegative" );
     Tcl_DStringAppendElement ( &dString, "GenerateClusterStats" );
     Tcl_DStringAppendElement ( &dString, "GotoNextCluster" );
+    Tcl_DStringAppendElement ( &dString, "GotoPrevCluster" );
+    Tcl_DStringAppendElement ( &dString, "GotoCluster" );
     Tcl_DStringAppendElement ( &dString, "CreateScalarTableEntry" );
     Tcl_DStringAppendElement ( &dString, "SurfaceScalarColorsEditorChanged" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorMin" );
@@ -2870,6 +2894,41 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "void GotoNextCluster ();" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
     /* Closing for GotoNextCluster */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: GotoPrevCluster */
+    if ( strcmp ( argv[2], "GotoPrevCluster" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "GotoPrevCluster" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for GotoPrevCluster */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void GotoPrevCluster ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for GotoPrevCluster */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: GotoCluster */
+    if ( strcmp ( argv[2], "GotoCluster" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "GotoCluster" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringAppendElement ( &dString, "int" );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for GotoCluster */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void GotoCluster (int iCurrentCluster);" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for GotoCluster */
 
     Tcl_DStringResult ( interp, &dString );
     Tcl_DStringFree ( &dString );

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/17 22:54:43 $
- *    $Revision: 1.41 $
+ *    $Date: 2009/10/20 20:43:57 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.41 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.42 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3510,7 +3510,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       vtkSmartPointer<vtkKWPushButton>::New();
     buttonGenerateClusterStats->SetParent( subframeClusterBtns );
     buttonGenerateClusterStats->Create();
-    buttonGenerateClusterStats->SetText("Generate Cluster Stats and Goto Max");
+    buttonGenerateClusterStats->SetText("Find Clusters and Goto Max");
     buttonGenerateClusterStats->SetCommand( this, "GenerateClusterStats" );
 
     vtkSmartPointer<vtkKWPushButton> buttonNextCluster = 
@@ -3520,9 +3520,17 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     buttonNextCluster->SetText("Next");
     buttonNextCluster->SetCommand( this, "GotoNextCluster" );
 
-    this->Script( "pack %s %s -side left",
-                  buttonGenerateClusterStats ->GetWidgetName(),
-                  buttonNextCluster ->GetWidgetName() );
+    vtkSmartPointer<vtkKWPushButton> buttonPrevCluster = 
+      vtkSmartPointer<vtkKWPushButton>::New();
+    buttonPrevCluster->SetParent( subframeClusterBtns );
+    buttonPrevCluster->Create();
+    buttonPrevCluster->SetText("Prev");
+    buttonPrevCluster->SetCommand( this, "GotoPrevCluster" );
+
+    this->Script( "pack %s %s %s -side left",
+                  buttonGenerateClusterStats->GetWidgetName(),
+                  buttonNextCluster->GetWidgetName(),
+                  buttonPrevCluster->GetWidgetName() );
 
     // Correction for Multiple-Comparisons stuff, inside its own frame
     vtkSmartPointer<vtkKWFrameWithLabel> cmcFrame =
@@ -4130,6 +4138,26 @@ vtkKWQdecWindow::GenerateClusterStats () {
 
 void
 vtkKWQdecWindow::GotoNextCluster () {
+  // advance index to next cluster (with wrap)
+  if (++mCurrentCluster >= mnClusters) {
+    mCurrentCluster = 0;
+  }
+
+  this->GotoCluster( mCurrentCluster );
+}
+
+void
+vtkKWQdecWindow::GotoPrevCluster () {
+    // rewind index to previous cluster (with wrap)
+    if (--mCurrentCluster < 0) {
+      mCurrentCluster = mnClusters-1;
+    }
+
+  this->GotoCluster( mCurrentCluster );
+}
+
+void
+vtkKWQdecWindow::GotoCluster ( int iCurrentCluster ) {
 
   try {
 
@@ -4148,16 +4176,11 @@ vtkKWQdecWindow::GotoNextCluster () {
       throw runtime_error( "There are zero clusters.");
     }
 
-    // advance index to next cluster (with wrap)
-    if (++mCurrentCluster >= mnClusters) {
-      mCurrentCluster = 0;
-    }
-
     // screen dump cluster info
     fprintf
       (stdout,
        "ClusterNo  Max   VtxMax  Size(mm2)   TalX   TalY   TalZ NVtxs\n");
-    int n = mCurrentCluster;
+    int n = iCurrentCluster;
     fprintf(stdout," %4d  %8.4f  %6d    %6.2f  %6.1f %6.1f %6.1f %4d\n",
             n+1,
             mClusterStats[n].maxval, 
@@ -4170,7 +4193,7 @@ vtkKWQdecWindow::GotoNextCluster () {
 
     // jump to max vertex of the current cluster
     if (mnClusters > 0) {
-      this->SelectSurfaceVertex( mClusterStats[mCurrentCluster].vtxmaxval );
+      this->SelectSurfaceVertex( mClusterStats[iCurrentCluster].vtxmaxval );
     }
 
   } catch (exception& e) {

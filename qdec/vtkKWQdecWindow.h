@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/17 22:54:43 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/10/20 20:43:58 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -260,6 +260,8 @@ class vtkKWQdecWindow : public vtkKWWindow
   // Called by Generate Cluster Stats button and Next button
   void GenerateClusterStats ();
   void GotoNextCluster ();
+  void GotoPrevCluster ();
+  void GotoCluster ( int iCurrentCluster );
 
   // Called by the scalars window when an entry needs to be
   // completed. We make a label widget from the cell text.
