@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/10/20 13:56:46 $
- *    $Revision: 1.640 $
+ *    $Author: greve $
+ *    $Date: 2009/10/20 22:24:23 $
+ *    $Revision: 1.641 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.640 2009/10/20 13:56:46 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.641 2009/10/20 22:24:23 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -65016,7 +65016,7 @@ MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp,
   int    n ;
   VERTEX *v ;
 
-  e1x = e2x = e1y = e2y = 0.0 ;
+  e1x = e2x = e1y = e2y = e1z = e2z = 0.0 ;
   for (n = 0 ; n < VERTICES_PER_FACE ; n++)
   {
     v = &mris->vertices[f->v[n]] ;
