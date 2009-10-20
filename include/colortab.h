@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/10/20 21:38:35 $
- *    $Revision: 1.23 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/20 22:07:31 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -140,6 +140,7 @@ int CTABfindDuplicateNames(COLOR_TABLE *ct);
    color wasn't found. */
 int CTABfindRGBi(COLOR_TABLE *ct, int r, int g, int b, int*index);
 int CTABfindName(COLOR_TABLE *ct, const char *name, int*index);
+int CTABfindIndexFromAnnotation(COLOR_TABLE *ct, int annot, int *index);
 int CTABfindEntryByName(COLOR_TABLE *ct, const char *name, int*nEntry);
 
 /* Print the color table to a file stream. This is a valid format for
@@ -153,4 +154,10 @@ int CTABwriteFileASCII(COLOR_TABLE *ct,const char *fname);
 // Creates a new color table with name added
 COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold,const char *name);
 
+#define AnnotToRGB(annot,r,g,b)             \
+  r = annot & 0xff ;                            \
+  g = (annot >> 8) & 0xff ;                     \
+  b = (annot >> 16) & 0xff ;
+#define RGBToAnnot(r,g,b,annot)                                     \
+  annot = ((r) & 0xff) | (((g) & 0xff) << 8) | (((b) & 0xff) << 16);
 #endif

@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/10/20 21:38:34 $
- *    $Revision: 1.34 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/20 22:07:23 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1160,6 +1160,13 @@ int CTABfindDuplicateNames(COLOR_TABLE *ct)
 }
 
 
+int CTABfindIndexFromAnnotation(COLOR_TABLE *ct, int annot, int *index)
+{
+  int   r, g, b ;
+
+  AnnotToRGB(annot, r, g, b) ;  // macro
+  return(CTABfindRGBi(ct, r, g, b, index)) ;
+}
 /*------------------------------------------------------------------
   CTABfindRGBi() - given the RGB of a structure, return the
   index into the color table that matches the RGB (yes, this function
