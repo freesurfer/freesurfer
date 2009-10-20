@@ -1,17 +1,16 @@
 /**
  * @file  mripolv.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utils for calcing/filtring MRI data based on planes of least variance
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:36 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/10/20 19:28:03 $
+ *    $Revision: 1.39 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,22 +19,10 @@
  * FreeSurfer source code root directory, and duplicated here:
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * Inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
-
-/*
- *       FILE NAME:   mripolv.c
- *
- *       DESCRIPTION: utilities for calculating and filtering
- *                    MRI data based on planes of least variance
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 /*-----------------------------------------------------
                     INCLUDE FILES
 -------------------------------------------------------*/
@@ -1509,7 +1496,7 @@ init_basis_vectors(void)
                 "x (%2.2f, %2.2f, %2.2f)\n",
                 vertex, ic_x_vertices[vertex], ic_y_vertices[vertex],
                 ic_z_vertices[vertex], e1_x_v[vertex], e1_y_v[vertex],
-                e1_z_v[vertex],e2_x_v[vertex], e2_y_v[vertex], e2_z_v[vertex]) ;
+                e1_z_v[vertex],e2_x_v[vertex],e2_y_v[vertex],e2_z_v[vertex]) ;
     DiagFprintf(0L, "lengths: %2.3f, %2.3f, %2.3f\n",
                 sqrt(e3_x*e3_x+e3_y*e3_y+e3_z*e3_z),
                 sqrt(e1_x*e1_x+e1_y*e1_y+e1_z*e1_z),
@@ -2122,7 +2109,16 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                 xv = nint((Real)x + (up_dist+1.5)*nx) ;
                 yv = nint((Real)y + (up_dist+1.5)*ny) ;
                 zv = nint((Real)z + (up_dist+1.5)*nz) ;
-                if ((MRIindexNotInVolume(mri_T1,xv,yv,zv) == 0) && !MRIvox(mri_dst, xv, yv, zv))
+                // bounds-checking
+                if (xv >= mri_dst->width || xv < 0 || 
+                    yv >= mri_dst->height || yv < 0 ||
+                    zv >= mri_dst->depth || zv < 0)
+                {
+                  ErrorExit(ERROR_BADPARM,"ERROR: MRIthickenThinWMStrands: "
+                            "invalid x,y,z!\n");
+                }
+                if ((MRIindexNotInVolume(mri_T1,xv,yv,zv) == 0) && 
+                    !MRIvox(mri_dst, xv, yv, zv))
                 {
                   up_added = 1 ;
                   xv = nint((Real)x + (up_dist+.5)*nx) ;
@@ -2144,6 +2140,14 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                 xv = nint((Real)x - (down_dist+1.5)*nx) ;
                 yv = nint((Real)y - (down_dist+1.5)*ny) ;
                 zv = nint((Real)z - (down_dist+1.5)*nz) ;
+                // bounds-checking
+                if (xv >= mri_dst->width || xv < 0 || 
+                    yv >= mri_dst->height || yv < 0 ||
+                    zv >= mri_dst->depth || zv < 0)
+                {
+                  ErrorExit(ERROR_BADPARM,"ERROR: MRIthickenThinWMStrands: "
+                            "invalid x,y,z!\n");
+                }
                 if (!MRIvox(mri_dst, xv, yv, zv))
                 {
                   down_added = 1 ;
