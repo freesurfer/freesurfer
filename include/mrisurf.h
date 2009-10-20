@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/09/04 01:33:39 $
- *    $Revision: 1.329 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/20 13:57:13 $
+ *    $Revision: 1.330 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1299,6 +1299,7 @@ int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces);
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
+int MRISdivideEdges(MRI_SURFACE *mris, int npoints) ;
 int MRISremoveTriangleLinks(MRI_SURFACE *mris) ;
 int MRISsetOriginalFileName(char *orig_name) ;
 int MRISsetSulcFileName(const char *sulc_name) ;
@@ -1879,3 +1880,8 @@ int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, in
 int MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertices);
 int MRISvertexCoord2XYZ_float (VERTEX * v, int which, float  *x, float  *y, float  *z);
 int MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, int which, float *px, float *py, float *pz);
+MRI *MRISlaplacian(MRI_SURFACE *mris, MRI *mri_cmatrix, double inner_width, double outer_width);
+double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp, 
+                       int which, MRI *mri_vals) ;
+int MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris) ;
+int MRISmaxMarked(MRI_SURFACE *mris) ;
