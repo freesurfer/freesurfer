@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/17 01:07:13 $
- *    $Revision: 1.46 $
+ *    $Date: 2009/10/21 21:27:23 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1115,10 +1115,12 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
   for (n=0; n<nf; n++) y->rptr[n+1][1] = MRIFseq_vox(gd->data,c,r,s,n);
 
   b = MatrixMultiply(gd->T,y,NULL);
-  printf("c=%d, r=%d, s=%d\n",c,r,s);
-  printf("b=\n=========================\n");
-  MatrixPrint(stdout,b);
-  printf("=========================\n");
+  if (Gdiag) {
+    printf("c=%d, r=%d, s=%d\n",c,r,s);
+    printf("b=\n=========================\n");
+    MatrixPrint(stdout,b);
+    printf("=========================\n");
+  }
 
   *offset = b->rptr[classno+1][1];
 
@@ -1127,13 +1129,17 @@ int gdfOffsetSlope(FSGD *gd, int classno, int varno,
   if (strcmp(gd->DesignMatMethod,"dods") == 0)
     nslope = classno + ((varno+1) * gd->nclasses);
 
-  printf("nc = %d, nv = %d, method = %s, classno=%d, varno = %d, n=%d\n",
-         gd->nclasses, gd->nvariables, gd->DesignMatMethod,
-         classno,varno,nslope);
+  if (Gdiag) {
+    printf("nc = %d, nv = %d, method = %s, classno=%d, varno = %d, n=%d\n",
+           gd->nclasses, gd->nvariables, gd->DesignMatMethod,
+           classno,varno,nslope);
+  }
 
   *slope = b->rptr[nslope+1][1];
 
-  printf("offset = %g, slope = %g\n",*offset,*slope);
+  if (Gdiag) {
+    printf("offset = %g, slope = %g\n",*offset,*slope);
+  }
 
   MatrixFree(&y);
   MatrixFree(&b);
