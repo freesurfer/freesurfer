@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/20 20:43:58 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/10/21 21:29:44 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -124,6 +124,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   // This does not change the active scalars file.
   int  LoadSurfaceScalars ( const char* ifnScalars, 
                             const char* isLabel=NULL,
+                            const char* isLabel2=NULL,
                             int inFrame=0 );
 
   // Load a surface scalar file and associated color map and display
@@ -623,6 +624,7 @@ class vtkKWQdecWindow : public vtkKWWindow
     vtkSmartPointer<vtkFloatArray> mValues;
     std::string mfnSource;
     std::string msLabel;
+    std::string msLabel2;
   } SurfaceScalar;
 
   // Data objects.

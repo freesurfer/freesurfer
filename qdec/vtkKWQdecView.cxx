@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/15 00:22:24 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/10/21 21:29:44 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -71,7 +71,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.10 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -720,7 +720,8 @@ vtkKWQdecView::SetShowAnnotation ( int ibShow ) {
 }
 
 void
-vtkKWQdecView::SetVertexAnnotationLookup ( QdecVertexAnnotationLookup* iLookup ) {
+vtkKWQdecView::SetVertexAnnotationLookup 
+( QdecVertexAnnotationLookup* iLookup ) {
 
   mAnnotationLookup = iLookup;
 }

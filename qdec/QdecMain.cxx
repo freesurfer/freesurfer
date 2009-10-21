@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:22:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/10/21 21:29:44 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,8 @@
 
 extern "C" {
 
+#include "diag.h"
+#include "error.h"
 #include "unistd.h" // getcwd
 #include "tix.h"
   
@@ -48,6 +50,9 @@ using namespace std;
 const char* Progname = "qdec";
 
 int main ( int argc, char** argv ) {
+
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
 
   // if SUBJECTS_DIR is not set, then set it to the current working dir
   if ( NULL == getenv( "SUBJECTS_DIR" ) ) {

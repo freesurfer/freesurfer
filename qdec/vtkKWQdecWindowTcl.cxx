@@ -258,21 +258,23 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
-  if ((!strcmp("LoadSurfaceScalars",argv[1]))&&(argc == 5))
+  if ((!strcmp("LoadSurfaceScalars",argv[1]))&&(argc == 6))
     {
     char    *temp0;
     char    *temp1;
-    int      temp2;
+    char    *temp2;
+    int      temp3;
     int      temp20;
     error = 0;
 
     temp0 = argv[2];
     temp1 = argv[3];
-    if (Tcl_GetInt(interp,argv[4],&tempi) != TCL_OK) error = 1;
-    temp2 = tempi;
+    temp2 = argv[4];
+    if (Tcl_GetInt(interp,argv[5],&tempi) != TCL_OK) error = 1;
+    temp3 = tempi;
     if (!error)
     {
-    temp20 = (op)->LoadSurfaceScalars(temp0,temp1,temp2);
+    temp20 = (op)->LoadSurfaceScalars(temp0,temp1,temp2,temp3);
     char tempResult[1024];
     sprintf(tempResult,"%i",temp20);
     Tcl_SetResult(interp, tempResult, TCL_VOLATILE);
@@ -1318,7 +1320,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  LoadSurface\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  LoadGDFFile\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  LoadAnnotation\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  LoadSurfaceScalars\t with 3 args\n",NULL);
+    Tcl_AppendResult(interp,"  LoadSurfaceScalars\t with 4 args\n",NULL);
     Tcl_AppendResult(interp,"  LoadSurfaceOverlayScalars\t with 2 args\n",NULL);
     Tcl_AppendResult(interp,"  LoadSurfaceCurvatureScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  LoadLabel\t with 1 arg\n",NULL);
@@ -1839,11 +1841,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringStartSublist ( &dString );
     Tcl_DStringAppendElement ( &dString, "string" );
     Tcl_DStringAppendElement ( &dString, "string" );
+    Tcl_DStringAppendElement ( &dString, "string" );
     Tcl_DStringAppendElement ( &dString, "int" );
     Tcl_DStringEndSublist ( &dString );
     /* Documentation for LoadSurfaceScalars */
     Tcl_DStringAppendElement ( &dString, "" );
-    Tcl_DStringAppendElement ( &dString, "int LoadSurfaceScalars (const char *ifnScalars, const char *isLabelNULL, int inFrame);" );
+    Tcl_DStringAppendElement ( &dString, "int LoadSurfaceScalars (const char *ifnScalars, const char *isLabelNULL, const char *isLabel2NULL, int inFrame);" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
     /* Closing for LoadSurfaceScalars */
 

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/20 20:43:57 $
- *    $Revision: 1.42 $
+ *    $Date: 2009/10/21 21:29:44 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.42 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.43 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -2009,12 +2009,15 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
       this->GetProgressGauge()->SetValue( (float)nStep++ * stepIncrement );
       vector<string> fnContrastSigFiles = iGlmResults->GetContrastSigFiles();
       vector<string> sContrastQuestions = iGlmResults->GetContrastQuestions();
+      vector<string> sContrastNames = iGlmResults->GetContrastNames();
       assert( fnContrastSigFiles.size() == sContrastQuestions.size() );
+      assert( sContrastQuestions.size() == sContrastNames.size() );
       for( unsigned int i=0;
            i < iGlmResults->GetContrastSigFiles().size(); i++) {
         QdecUtilities::AssertFileIsReadable( fnContrastSigFiles[i] );
         int nScalar = this->LoadSurfaceScalars( fnContrastSigFiles[i].c_str(),
-                                                sContrastQuestions[i].c_str());
+                                                sContrastQuestions[i].c_str(),
+                                                sContrastNames[i].c_str());
         if( nScalar < 0 )
           throw runtime_error( string("Couldn't load scalars from ") + 
                                fnContrastSigFiles[i] );
@@ -2149,6 +2152,7 @@ vtkKWQdecWindow::LoadGDFFile ( const char* ifnGDFFile ) {
 int  
 vtkKWQdecWindow::LoadSurfaceScalars ( const char* ifnScalars, 
                                       const char* isLabel,
+                                      const char* isLabel2,
                                       int inFrame ) {
   int rnEntry = -1;
 
@@ -2177,6 +2181,9 @@ vtkKWQdecWindow::LoadSurfaceScalars ( const char* ifnScalars,
       string::size_type lastSlash = fnScalars.rfind( "/" );
       maSurfaceScalars[nEntry].msLabel =
         fnScalars.substr( lastSlash+1, string::npos ).c_str();
+    }
+    if( isLabel2 ) {
+      maSurfaceScalars[nEntry].msLabel2 = isLabel2;
     }
 
     // Return the index of the scalars we loaded.
@@ -4091,7 +4098,9 @@ vtkKWQdecWindow::GenerateClusterStats () {
 
     // call main cluster stats generator...
     mnClusters = 0;
-    cout << "\nGenerating cluster stats using min threshold of " << 
+    fprintf(stdout,
+            "============================================================\n");
+    cout << "Generating cluster stats using min threshold of " << 
       mSurfaceScalarsColorMin << "...\n";
     mClusterStats = 
       sclustMapSurfClusters(mris,
@@ -4105,14 +4114,19 @@ vtkKWQdecWindow::GenerateClusterStats () {
       throw runtime_error( "Unable to generate cluster stats\n" );
     else
       this->SetStatusText( "Completed generation of cluster stats" );
-    cout << "Found " << mnClusters << " clusters:\n";
+    cout << "Found " << mnClusters << " clusters, for contrast '"
+         << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2
+         << "':" << endl;
 
     // screen dump cluster info
     fprintf
       (stdout,
-       "ClusterNo  Max   VtxMax  Size(mm2)   TalX   TalY   TalZ NVtxs\n");
+       "ClusterNo  Max   VtxMax  Size(mm2)   "
+       "TalX   TalY   TalZ NVtxs Annotation\n"
+       "---------  ---   ------  ---------   "
+       "----   ----   ---- ----- ----------\n");
     for (int n=0; n < mnClusters; n++) {
-      fprintf(stdout," %4d  %8.4f  %6d    %6.2f  %6.1f %6.1f %6.1f %4d\n",
+      fprintf(stdout," %4d  %8.4f  %6d    %6.2f  %6.1f %6.1f %6.1f %4d  %s\n",
               n+1,
               mClusterStats[n].maxval, 
               mClusterStats[n].vtxmaxval,
@@ -4120,8 +4134,11 @@ vtkKWQdecWindow::GenerateClusterStats () {
               mClusterStats[n].xxfm, 
               mClusterStats[n].yxfm, 
               mClusterStats[n].zxfm,
-              mClusterStats[n].nmembers);
+              mClusterStats[n].nmembers,
+              this->GetAnnotationForVertex(mClusterStats[n].vtxmaxval));
     }
+    fprintf(stdout,
+            "============================================================\n");
 
     // jump to max vertex
     if (mnClusters > 0) {
@@ -4179,9 +4196,10 @@ vtkKWQdecWindow::GotoCluster ( int iCurrentCluster ) {
     // screen dump cluster info
     fprintf
       (stdout,
-       "ClusterNo  Max   VtxMax  Size(mm2)   TalX   TalY   TalZ NVtxs\n");
+       "ClusterNo  Max   VtxMax  Size(mm2)   "
+       "TalX   TalY   TalZ NVtxs Annotation\n");
     int n = iCurrentCluster;
-    fprintf(stdout," %4d  %8.4f  %6d    %6.2f  %6.1f %6.1f %6.1f %4d\n",
+    fprintf(stdout," %4d  %8.4f  %6d    %6.2f  %6.1f %6.1f %6.1f %4d  %s\n",
             n+1,
             mClusterStats[n].maxval, 
             mClusterStats[n].vtxmaxval,
@@ -4189,7 +4207,8 @@ vtkKWQdecWindow::GotoCluster ( int iCurrentCluster ) {
             mClusterStats[n].xxfm, 
             mClusterStats[n].yxfm, 
             mClusterStats[n].zxfm,
-            mClusterStats[n].nmembers);
+            mClusterStats[n].nmembers,
+            this->GetAnnotationForVertex(mClusterStats[n].vtxmaxval));
 
     // jump to max vertex of the current cluster
     if (mnClusters > 0) {
@@ -5504,9 +5523,15 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
     // If we have surface scalars...
     if( surfaceScalars ) {
 
-      // Show the label in the annoation.
-      mView->SetAnnotationMessage
-        ( maSurfaceScalars[mnCurrentSurfaceScalars].msLabel.c_str() );
+      // Show the label in the annoation (by annotation, here we mean the
+      // text printed at the top of the black view screen).
+      stringstream ssLabel;
+      ssLabel << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel;
+      if ( "" != maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2 ) {
+        ssLabel << endl << "Contrast: "
+                << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2;
+      }
+      mView->SetAnnotationMessage( ssLabel.str().c_str() );
 
       // Pass it to the view as the lookup scalars. This way we'll
       // only print surface scalar values and not curvature values when
