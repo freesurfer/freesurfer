@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:39 $
- *    $Revision: 1.31 $
+ *    $Date: 2009/10/21 21:22:52 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -501,6 +501,7 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, v
   {
     this->UpdateActorPositions();
     this->SendBroadcast( "LayerActorUpdated", this );
+    this->SendBroadcast( "SurfacePositionChanged", this );
   }
 }
 

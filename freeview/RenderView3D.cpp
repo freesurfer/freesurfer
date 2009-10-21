@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 22:13:45 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/10/21 21:22:53 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -199,21 +199,16 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
       else
         lc_mri->SetCurrentRASPosition( pos );
     }
-    
-    if ( bCursor && m_bToUpdateConnectivity )
-    {
-      DoUpdateConnectivityDisplay( pos );
-      m_bToUpdateConnectivity = false;
-    }
   }
 }
 
-void RenderView3D::DoUpdateConnectivityDisplay( double* pos )
+void RenderView3D::DoUpdateConnectivityDisplay()
 {
   ConnectivityData* conn = MainWindow::GetMainWindowPointer()->GetConnectivityData();
   if ( conn && conn->IsValid() )
   {
-    conn->BuildConnectivityActors( pos, m_connActors );
+    conn->BuildConnectivityActors( m_connActors );
+    m_renderer->ResetCameraClippingRange();
     NeedRedraw();
   }
 }
@@ -245,6 +240,11 @@ void RenderView3D::OnInternalIdle()
   {
     DoUpdateRASPosition( m_nCursorCoord[0], m_nCursorCoord[1], true );
     m_bToUpdateCursorPosition = false;
+  }
+  if ( m_bToUpdateConnectivity )
+  {
+    DoUpdateConnectivityDisplay();
+    m_bToUpdateConnectivity = false;
   }
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:39 $
- *    $Revision: 1.73 $
+ *    $Date: 2009/10/21 21:22:53 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -243,10 +243,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_bResampleToRAS = false;
   m_bToUpdateToolbars = false;
   m_layerVolumeRef = NULL;
-  m_connectivity = NULL;
   m_nPrevActiveViewId = -1;
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
+  m_connectivity = new ConnectivityData();
 
   wxXmlResource::Get()->LoadFrame( this, NULL, wxT("ID_MAIN_WINDOW") );
 
@@ -2228,6 +2228,10 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
                          _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
   }
+  else if ( iMsg == "SurfacePositionChanged" )
+  {
+    m_view3D->UpdateConnectivityDisplay();
+  }
 }
 
 void MainWindow::OnFileLoadDTI( wxCommandEvent& event )
@@ -2308,10 +2312,10 @@ void MainWindow::LoadConnectivityDataFile( const wxString& data_file, const wxSt
 {
   LayerCollection* lc = GetLayerCollection( "Surface" );
   if ( lc->GetNumberOfLayers() < 2 )
+  {
+    cerr << "Can not load connectivity data. Please load both hemisphere surfaces first!" << endl;
     return;
-  
-  if ( !m_connectivity )
-    m_connectivity = new ConnectivityData();
+  }
   
   m_connectivity->Load( data_file, lut, (LayerSurface*)lc->GetLayer( 0 ), (LayerSurface*)lc->GetLayer( 1 ) );
 }
