@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/21 21:29:44 $
- *    $Revision: 1.43 $
+ *    $Date: 2009/10/22 18:06:57 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.43 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.44 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4114,9 +4114,12 @@ vtkKWQdecWindow::GenerateClusterStats () {
       throw runtime_error( "Unable to generate cluster stats\n" );
     else
       this->SetStatusText( "Completed generation of cluster stats" );
-    cout << "Found " << mnClusters << " clusters, for contrast '"
+    cout << "Found " << mnClusters << " clusters" << endl;
+    cout << "Contrast: '" 
          << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2
-         << "':" << endl;
+         << "', " << mQdecProject->GetGlmDesign()->GetSmoothness() 
+         << "fwhm, DOF: " 
+         << mQdecProject->GetGlmDesign()->GetDegreesOfFreedom() << endl;
 
     // screen dump cluster info
     fprintf
