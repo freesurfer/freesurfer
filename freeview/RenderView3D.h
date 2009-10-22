@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/21 21:22:53 $
- *    $Revision: 1.13 $
+ *    $Date: 2009/10/22 18:29:45 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -84,8 +84,6 @@ private:
   bool m_bToUpdateConnectivity;
 
   Cursor3D* m_cursor3D;
-  std::vector<vtkActor*> m_connActors;
-
   bool m_bSliceVisibility[3];
 
   // any class wishing to process wxWindows events must use this macro

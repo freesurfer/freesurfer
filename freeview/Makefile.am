@@ -177,6 +177,8 @@ freeview_SOURCES=\
 	vtkDijkstraImageContourLineInterpolator.h \
 	vtkDijkstraImageGeodesicPath.cxx \
 	vtkDijkstraImageGeodesicPath.h \
+	WindowConnectivityConfiguration.cpp \
+	WindowConnectivityConfiguration.h \
 	WindowHistogram.cpp \
 	WindowHistogram.h \
 	WindowQuickReference.cpp \

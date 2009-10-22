@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/21 21:22:53 $
- *    $Revision: 1.74 $
+ *    $Date: 2009/10/22 18:29:45 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -79,6 +79,7 @@
 #include "DialogOptimalVolume.h"
 #include "WindowHistogram.h"
 #include "WindowOverlayConfiguration.h"
+#include "WindowConnectivityConfiguration.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperties.h"
 #include "DialogSaveVolumeAs.h"
@@ -319,6 +320,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_layerCollectionManager->GetLayerCollection( "Surface" )->AddListener( m_pixelInfoPanel );
   m_layerCollectionManager->AddListener( this );
 
+  m_connectivity->AddListener( m_view3D );
+  
   m_wndQuickReference = new WindowQuickReference( this );
   m_wndQuickReference->Hide();
 
@@ -335,7 +338,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   
   m_wndOverlayConfiguration = new WindowOverlayConfiguration( this );
   m_wndOverlayConfiguration->Hide();
-
+  
+  m_wndConnectivityConfiguration = new WindowConnectivityConfiguration( this );
+  m_wndConnectivityConfiguration->Hide();
+  
   UpdateToolbars();
   
   m_nViewLayout = VL_2X2;
@@ -2318,6 +2324,8 @@ void MainWindow::LoadConnectivityDataFile( const wxString& data_file, const wxSt
   }
   
   m_connectivity->Load( data_file, lut, (LayerSurface*)lc->GetLayer( 0 ), (LayerSurface*)lc->GetLayer( 1 ) );
+  if ( m_connectivity->IsValid() )
+    m_wndConnectivityConfiguration->ShowWindow();
 }
 
 void MainWindow::AddScript( const wxArrayString& script )

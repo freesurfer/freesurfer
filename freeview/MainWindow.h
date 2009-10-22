@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:39 $
- *    $Revision: 1.47 $
+ *    $Date: 2009/10/22 18:29:45 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,7 @@ class DialogRotateVolume;
 class LayerMRI;
 class WindowHistogram;
 class WindowOverlayConfiguration;
+class WindowConnectivityConfiguration;
 class DialogGradientVolume;
 class ConnectivityData;
 
@@ -325,7 +326,7 @@ public:
   {
     return m_connectivity;
   }
-
+  
 protected:
   void CommandLoadVolume        ( const wxArrayString& cmd );
   void CommandLoadDTI           ( const wxArrayString& cmd );
@@ -384,7 +385,8 @@ private:
   ToolWindowEdit*     m_toolWindowEdit;
   DialogRotateVolume* m_dlgRotateVolume;
   WindowHistogram*    m_wndHistogram;
-  WindowOverlayConfiguration* m_wndOverlayConfiguration;
+  WindowOverlayConfiguration*       m_wndOverlayConfiguration;
+  WindowConnectivityConfiguration*  m_wndConnectivityConfiguration; 
   DialogGradientVolume*       m_dlgGradientVolume;
 
   RenderView2D*   m_viewAxial;

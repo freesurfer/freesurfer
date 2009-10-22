@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/21 21:22:53 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/10/22 18:29:45 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -90,11 +90,6 @@ void RenderView3D::InitializeRenderView3D()
   m_cursor3D = new Cursor3D( this );
   
   m_actorScalarBar->SetNumberOfLabels( 4 );
-  
-  // two actos for connectivity display
-  m_connActors.push_back( vtkActor::New() );
-  m_connActors.push_back( vtkActor::New() );
-  
 }
 
 RenderView3D* RenderView3D::New()
@@ -106,9 +101,6 @@ RenderView3D* RenderView3D::New()
 RenderView3D::~RenderView3D()
 {
   delete m_cursor3D;
-  for ( size_t i = 0; i < m_connActors.size(); i++ )
-    m_connActors[i]->Delete();
-  m_connActors.clear();
 }
 
 void RenderView3D::PrintSelf(ostream& os, vtkIndent indent)
@@ -134,8 +126,7 @@ void RenderView3D::RefreshAllActors()
     m_renderer->AddViewProp( m_actorScalarBar );    
   }
   
-  for ( size_t i = 0; i < m_connActors.size(); i++ )
-    m_renderer->AddViewProp( m_connActors[i] );
+  MainWindow::GetMainWindowPointer()->GetConnectivityData()->AppendProps( m_renderer );
   
   m_renderer->ResetCameraClippingRange();
 
@@ -205,11 +196,10 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
 void RenderView3D::DoUpdateConnectivityDisplay()
 {
   ConnectivityData* conn = MainWindow::GetMainWindowPointer()->GetConnectivityData();
-  if ( conn && conn->IsValid() )
+  if ( conn->IsValid() && conn->GetDisplayMode() != ConnectivityData::DM_All )
   {
-    conn->BuildConnectivityActors( m_connActors );
-    m_renderer->ResetCameraClippingRange();
-    NeedRedraw();
+    conn->BuildConnectivityActors();
+//    NeedRedraw();
   }
 }
 
@@ -255,6 +245,11 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void
     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
     m_cursor3D->SetPosition( lc->GetCursorRASPosition() );
   }
+  else if ( iMsg == "ConnectivityActorUpdated" )
+  {
+    m_renderer->ResetCameraClippingRange();
+    NeedRedraw();
+  }
 
   RenderView::DoListenToMessage( iMsg, iData, sender );
 }
@@ -277,8 +272,7 @@ void RenderView3D::PreScreenshot()
   if ( !s.HideCursor )
     m_cursor3D->AppendActor( m_renderer );
 
-  for ( size_t i = 0; i < m_connActors.size(); i++ )
-    m_renderer->AddViewProp( m_connActors[i] );
+  MainWindow::GetMainWindowPointer()->GetConnectivityData()->AppendProps( m_renderer );
   
   // add scalar bar
   m_renderer->AddViewProp( m_actorScalarBar );
