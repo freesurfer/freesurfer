@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/31 22:13:26 $
- *    $Revision: 1.31 $
+ *    $Author: greve $
+ *    $Date: 2009/10/22 23:35:53 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.31 2009/07/31 22:13:26 nicks Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.32 2009/10/22 23:35:53 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -130,6 +130,8 @@ int UseNativeVox2RAS=0;
 int UseNewASeg2Vol=1;
 
 int UseAParcPlusASeg = 0;
+int DoStatThresh = 0;
+double StatThresh = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -143,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.31 2009/07/31 22:13:26 nicks Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.32 2009/10/22 23:35:53 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.31 2009/07/31 22:13:26 nicks Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.32 2009/10/22 23:35:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -342,6 +344,9 @@ int main(int argc, char **argv) {
 
     // Go through each point in the label
     for (nthpoint = 0; nthpoint < srclabel->n_points; nthpoint++) {
+      if(DoStatThresh) 
+	if(srclabel->lv[nthpoint].stat < StatThresh) continue; 
+
       if (debug) printf("  nthpoint = %d\n",nthpoint);
 
       if (DoProj) { // Project along the surface normal
@@ -538,6 +543,12 @@ static int parse_commandline(int argc, char **argv) {
       subject = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--stat-thresh")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&StatThresh);
+      DoStatThresh = 1;
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--identity")){
       RegIdentity = 1;
     }
@@ -604,6 +615,7 @@ static void print_usage(void) {
   printf("   --o volid : output volume\n");
   printf("   --hits hitvolid : each frame is nhits for a label\n");
   printf("   --label-stat statvol : map the label stats field into the vol\n");
+  printf("   --stat-thresh thresh : only use label point where stat > thresh\n");
   printf("\n");
   printf("   --native-vox2ras : use native vox2ras xform instead of tkregister-style\n");
   printf("   --version : print version and exit\n");
@@ -928,6 +940,10 @@ static void check_options(void) {
 
   if(DoLabelStatVol && nlabels == 0){
     printf("ERROR: %s: must specify a --label with --label-stat\n",Progname);
+    exit(1);
+  }
+  if(DoLabelStatVol && nlabels == 0){
+    printf("ERROR: %s: must specify a --label with --stat-thresh\n",Progname);
     exit(1);
   }
 
