@@ -2,7 +2,7 @@
 # sfa2fieldsign
 setenv FSLOUTPUTTYPE NIFTI
 
-set VERSION = '$Id: sfa2fieldsign,v 1.3 2009/10/23 18:21:19 greve Exp $';
+set VERSION = '$Id: sfa2fieldsign,v 1.4 2009/10/23 18:56:11 greve Exp $';
 
 set sfadir = ();
 set regfile = ();
@@ -91,7 +91,7 @@ foreach type (eccen polar)
   # Create the angle file (already there with dev)
   set a = $sfadir/$type/angle.nii
   set cmd = (mri_convert --frame 9 $h $a)
-  echo $cmd 
+  echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
   # Mask the angle file
