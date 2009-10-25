@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/02 18:45:38 $
- *    $Revision: 1.440 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/25 14:21:32 $
+ *    $Revision: 1.441 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.440 $";
+const char *MRI_C_VERSION = "$Revision: 1.441 $";
 
 
 /*-----------------------------------------------------
@@ -15713,6 +15713,36 @@ MRIzeroMeanTimecourse(MRI *mri_src, MRI *mri_dst)
           val = MRIgetVoxVal(mri_src, x, y, z, f) ;
           MRIsetVoxVal(mri_dst, x, y, z, f, val-mean) ;
         }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*
+  compute the mean from the timecourse at each voxel.
+*/
+MRI *
+MRImeanTimecourse(MRI *mri_src, MRI *mri_dst)
+{
+  int     x, y, z, f ;
+  double  mean ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->height ; z++)
+      {
+        for (mean = 0.0, f = 0 ; f < mri_src->nframes ; f++)
+          mean += MRIgetVoxVal(mri_src, x, y, z, f) ;
+        mean /= mri_src->nframes ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, mean) ;
       }
     }
   }

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/04/27 18:51:30 $
- *    $Revision: 1.73 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/25 14:21:33 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1961,8 +1961,11 @@ MRI *
 MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 {
   int     width, height, depth, x, y, z, whalf, x0, y0, z0 ;
+#if 0
   BUFTYPE *psrc ;
-  float   *pdst, wcubed, val ;
+  float   *pdst
+#endif
+  float   wcubed, val ;
 
   wcubed = (float)(wsize*wsize*wsize) ;
   whalf = wsize/2 ;
@@ -1976,6 +1979,7 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
+#if 0
   if (mri_dst->type != MRI_FLOAT)
     ErrorReturn(mri_dst,
                 (ERROR_UNSUPPORTED, "MRImean: dst must be MRI_FLOAT")) ;
@@ -2038,6 +2042,7 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
     }
   }
   else  // non UCHAR image
+#endif
   {
     int num ;
 
@@ -6273,7 +6278,7 @@ MRInormalizeFrameVectorLength(MRI *mri_src, MRI *mri_dst)
           val = MRIgetVoxVal(mri_src, x, y, z, f) ;
           mag += (val*val) ;
         }
-        mag = sqrt(mag) ;
+        mag = sqrt(mag/mri_src->nframes) ;
         if (!FZERO(mag))
         {
           for (f = 0 ; f < mri_dst->nframes ; f++)
@@ -6283,6 +6288,64 @@ MRInormalizeFrameVectorLength(MRI *mri_src, MRI *mri_dst)
             MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
           }
         }
+      }
+
+  return(mri_dst) ;
+}
+/*
+  normalize the length of the sequence at each voxel to be unity.
+*/
+MRI   *
+MRIcomputeFrameVectorLength(MRI *mri_src, MRI *mri_dst)
+{
+  int   x, y, z, f ;
+  float val, mag ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        for (mag = 0.0, f = 0 ; f < mri_src->nframes ; f++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          mag += (val*val) ;
+        }
+        mag = sqrt(mag/mri_src->nframes) ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, mag) ;
+      }
+
+  return(mri_dst) ;
+}
+
+MRI   *
+MRIcomputeFrameVectorL1Length(MRI *mri_src, MRI *mri_dst)
+{
+  int   x, y, z, f ;
+  float val, mag ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+        for (mag = 0.0, f = 0 ; f < mri_src->nframes ; f++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          mag += fabs(val) ;
+        }
+        mag /= mri_src->nframes ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, mag) ;
       }
 
   return(mri_dst) ;
