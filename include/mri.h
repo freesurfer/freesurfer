@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/19 20:54:56 $
- *    $Revision: 1.387 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/25 14:22:03 $
+ *    $Revision: 1.388 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -482,6 +482,8 @@ MRI   *MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct) ;
 #endif
 
 MRI   *MRInormalizeFrameVectorLength(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIcomputeFrameVectorLength(MRI *mri_src, MRI *mri_dst);
+MRI   *MRIcomputeFrameVectorL1Length(MRI *mri_src, MRI *mri_dst);
 
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
@@ -1099,6 +1101,7 @@ int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri, int mask_size) ;
 
 MRI *MRIzeroMeanTimecourse(MRI *mri_src, MRI *mri_dst);
+MRI *MRImeanTimecourse(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIzeroMean(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIlog10(MRI *inmri, MRI *mask, MRI *outmri, int negflag);
 MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out);
