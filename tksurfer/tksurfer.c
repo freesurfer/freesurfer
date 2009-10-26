@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/09 16:35:14 $
- *    $Revision: 1.326 $
+ *    $Author: krish $
+ *    $Date: 2009/10/26 20:06:41 $
+ *    $Revision: 1.327 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -14681,7 +14681,7 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors)
          grayscale value. if just surfcolor and curvflag are on,
          get a red/green color based on the curvature. else just
          use the solid background color. */
-      if ((surfcolor && overlayflag && curvflag) || forcegraycurvatureflag)
+      if ((surfcolor && overlayflag && curvflag) && forcegraycurvatureflag)
       {
         /* grayscale curvature */
         mode = REAL_VAL;
@@ -20799,7 +20799,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.326 2009/10/09 16:35:14 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.327 2009/10/26 20:06:41 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
