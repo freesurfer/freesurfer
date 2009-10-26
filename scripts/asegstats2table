@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os, sys, optparse
@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.25 2009/07/23 17:20:14 krish Exp $
+# $Id: asegstats2table,v 1.26 2009/10/26 18:08:52 krish Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -100,7 +100,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.25 2009/07/23 17:20:14 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.26 2009/10/26 18:08:52 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
