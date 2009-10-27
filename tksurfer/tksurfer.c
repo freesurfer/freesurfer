@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/10/26 20:20:37 $
- *    $Revision: 1.328 $
+ *    $Author: fischl $
+ *    $Date: 2009/10/27 14:58:05 $
+ *    $Revision: 1.329 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2198,6 +2198,9 @@ int  main(int argc,char *argv[])
   int load_curv = FALSE;
   char annotation_fname[NAME_LENGTH] = "";
 
+  int take_snapshot = FALSE;
+  char snap_fname[NAME_LENGTH] = "";
+
   int load_colortable = FALSE;
   char colortable_fname[NAME_LENGTH] = "";
 
@@ -2506,6 +2509,12 @@ int  main(int argc,char *argv[])
       load_annotation = TRUE;
       labl_draw_style = LABL_STYLE_OUTLINE;
       nargs = 1 ;
+    }
+    else if (!stricmp(argv[i], "-snap") ||!stricmp(argv[i], "-snapshot"))
+    {
+      strcpy (snap_fname, argv[i+1]) ;
+      take_snapshot = TRUE;
+      nargs = 2 ;
     }
     else if (!stricmp(argv[i], "-lrrev"))
     {
@@ -2929,6 +2938,13 @@ int  main(int argc,char *argv[])
     restore_zero_position() ;
     rotate_brain(-90.0, 'x') ;
     redraw() ;
+  }
+
+  if (take_snapshot)
+  {
+    printf("saving snapshot to %s and exiting\n", snap_fname) ;
+    save_tiff(snap_fname) ;
+    exit(0) ;
   }
 
   return(0) ;
@@ -20799,7 +20815,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.328 2009/10/26 20:20:37 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.329 2009/10/27 14:58:05 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
