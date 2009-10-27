@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/27 14:58:05 $
- *    $Revision: 1.329 $
+ *    $Date: 2009/10/27 14:59:41 $
+ *    $Revision: 1.330 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -18761,6 +18761,7 @@ print_help_tksurfer(void)
 
   printf("-annotation <filename> : load an annotation\n");
   printf("-aparc : set annotation to aparc.annot and use outline mode\n");
+  printf("-snap <filename> : save initial view to <filename> and exit\n");
   printf("-colortable <filename> : load a color table file\n");
   printf("-labels-under : display labels under any overlay\n");
   printf("-label-outline : draw labels as outlines\n");
@@ -20815,7 +20816,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.329 2009/10/27 14:58:05 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.330 2009/10/27 14:59:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
