@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/07 20:43:44 $
- *    $Revision: 1.32 $
+ *    $Date: 2009/10/27 21:55:29 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -539,14 +539,15 @@ void PanelVolume::OnChoiceLUT( wxCommandEvent& event )
 
 void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
 {
-  if ( ct != m_curCTAB )
+  if ( ct && ct != m_curCTAB )
   {
     m_curCTAB = ct;
     m_listColorTable->Clear();
     m_listColorTable->FitInside();
     int nTotalCount = 0;
     CTABgetNumberOfTotalEntries( ct, &nTotalCount );
-    int nValid;
+//    cout << nTotalCount << endl;
+    int nValid = 0;
     char name[1000];
     int nSel = -1;
     long nValue = 0;
@@ -1134,7 +1135,7 @@ void PanelVolume::OnVolumeCopySettingUpdateUI( wxUpdateUIEvent& event )
 void PanelVolume::OnVolumePasteSetting( wxCommandEvent& event )
 {
   LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  layer->GetProperties()->CopySetttings( m_layerCopied->GetProperties() );
+  layer->GetProperties()->CopySettings( m_layerCopied->GetProperties() );
 }
 
 void PanelVolume::OnVolumePasteSettingUpdateUI( wxUpdateUIEvent& event )
@@ -1152,7 +1153,7 @@ void PanelVolume::OnVolumePasteSettingAll( wxCommandEvent& event )
   {
     LayerMRI* layer = (LayerMRI*)lc->GetLayer( i );
     if ( layer->GetProperties()->GetColorMap() == m_layerCopied->GetProperties()->GetColorMap() )
-      layer->GetProperties()->CopySetttings( m_layerCopied->GetProperties() );
+      layer->GetProperties()->CopySettings( m_layerCopied->GetProperties() );
   }
 }
 

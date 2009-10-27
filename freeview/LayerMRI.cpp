@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:33 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/10/27 21:55:29 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -203,7 +203,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
 
     if ( bCopyVoxelData )
     {
-      mProperties->CopySetttings( mri->mProperties ); 
+      mProperties->CopySettings( mri->mProperties ); 
       SetModified();
     }
   }
@@ -790,7 +790,7 @@ std::string LayerMRI::GetLabelName( double value )
     int nValid = 0;
     int nTotalCount = 0;
     CTABgetNumberOfTotalEntries( ct, &nTotalCount );
-    if ( nIndex < nTotalCount )
+    if ( nIndex > 0 && nIndex < nTotalCount )
       CTABisEntryValid( ct, nIndex, &nValid );
     if ( nValid && CTABcopyName( ct, nIndex, name, 128 ) == 0 )
     {
