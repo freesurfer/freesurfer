@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2009/10/08 22:55:50 $
-##    $Revision: 1.164 $
+##    $Date: 2009/10/27 22:52:24 $
+##    $Revision: 1.165 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -237,8 +237,7 @@ set gaLinkedVars(colscalebar_xpos) 0.925
 set gaLinkedVars(colscalebar_ypos) -0.95
 set gaLinkedVars(colscalebar_width) 0.05
 set gaLinkedVars(colscalebar_height) 0.5
-set gaLinkedVars(linkvertextpflag) 0
-set gaLinkedVars(linkvertexlabelavgflag) 0
+set gaLinkedVars(linkvertexmode) 0
 set gaLinkedVars(numvertices) 0
 set gaLinkedVars(verticesflag) 0
 set gaLinkedVars(cmid) 0
@@ -266,8 +265,8 @@ array set gaLinkedVarGroups {
     overlay { falpha fopaqueflag colscale truncphaseflag invphaseflag
 	revphaseflag complexvalflag foffset fthresh fmid fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
-	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag linkvertextpflag 
-	linkvertexlabelavgflag}
+	ignorezeroesinhistogramflag autosetfslope labels_before_overlay_flag linkvertexmode 
+	}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
@@ -281,7 +280,7 @@ array set gaLinkedVarGroups {
 	captionformat }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue timeresolution numprestimpoints colortablename linkvertextpflag linkvertexlabelavgflag numvertices}
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag colscalebarvertflag colscalebartextflag colscalebartickflag colscalebar_xpos colscalebar_ypos colscalebar_width colscalebar_height colscalebaruselabelsflag colscalebar_font_size colscalebar_label1 colscalebar_label2 colscalebar_label3 colscalebar_label4 verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue timeresolution numprestimpoints colortablename linkvertexmode numvertices}
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints func_graph_avg_mode }
     label { colortablename selectlabelflag drawlabelflag labelstyle labeloutlinered labeloutlinegreen labeloutlineblue labels_before_overlay_flag }
@@ -971,11 +970,13 @@ proc DoConfigOverlayDisplayDlog {} {
 	}
 
 	# The plane of data we're viewing.
-	set lwPlane            $fwPlane.lwPlane
-	set fwTimePoint        $fwPlane.fwTimePoint
-	set fwCondition        $fwPlane.fwCondition
-	set linkflag           $fwPlane.linkflag
-	set linkavglabelflag   $fwPlane.linkavglabelflag
+	set lwPlane              $fwPlane.lwPlane
+	set fwTimePoint          $fwPlane.fwTimePoint
+	set fwCondition          $fwPlane.fwCondition
+	set linkdefaultflag      $fwPlane.linkdefaultflag
+	set linktpflag           $fwPlane.linktpflag
+	set linkavglabelflag     $fwPlane.linkavglabelflag
+	set linknormavglabelflag $fwPlane.linknormavglabelflag
 
 	frame $fwPlane -relief ridge -border 2
 
@@ -991,37 +992,42 @@ proc DoConfigOverlayDisplayDlog {} {
 	    gaLinkedVars(fcondition) \
 	    {} 1 "0 $nMaxCondition"
         	
+	# linkvertexmode options
+	# default option linkvertexmode<-0
+	# time point and vertex index are linked option selected. linkvertexmode<−1
+	# avg within a ROI and vertex index are linked option selected. linkvertexmode<−2
+	# normalized avg within a ROI and vertex index are linked option selected. linkvertexmode<−3
+	radiobutton $linkdefaultflag -font [tkm_GetNormalFont] \
+	-variable gaLinkedVars(linkvertexmode) -value 0 -text "Default mode"
 	if { $gaLinkedVars(fnumtimepoints) == $gaLinkedVars(numvertices) } {
-	checkbutton $linkflag \
-	    -variable gaLinkedVars(linkvertextpflag) \
-	    -text "Link Time Point to Vertex Index" \
-	    -font [tkm_GetNormalFont]
-        } else { 
-	checkbutton $linkflag \
-	    -variable gaLinkedVars(linkvertextpflag) \
-	    -text "Link Time Point to Vertex Index" \
-	    -font [tkm_GetNormalFont] \
-	    -state disabled
+	  radiobutton $linktpflag -font [tkm_GetNormalFont] \
+	  -variable gaLinkedVars(linkvertexmode) -value 1 -text "Link Time Point to Vertex Index" 
+	    if  { [tkm_IsGroupEnabled mg_LabelLoaded] } {
+	    radiobutton $linkavglabelflag -font [tkm_GetNormalFont] \
+	    -variable gaLinkedVars(linkvertexmode) -value 2 -text "Link Average within a ROI to Vertex Index"
+	    radiobutton $linknormavglabelflag -font [tkm_GetNormalFont] \
+	    -variable gaLinkedVars(linkvertexmode) -value 3 -text "Link Normalized Average within a ROI to Vertex Index"
+            } else {
+	    radiobutton $linkavglabelflag -font [tkm_GetNormalFont] \
+	    -variable gaLinkedVars(linkvertexmode) -value 2 -text "Link Average within a ROI to Vertex Index" \
+	    -state disabled 
+	    radiobutton $linknormavglabelflag -font [tkm_GetNormalFont] \
+	    -variable gaLinkedVars(linkvertexmode) -value 3 -text "Link Normalized Average within a ROI to Vertex Index" \
+	    -state disabled 
+            } 
+         } else {
+	  radiobutton $linktpflag -font [tkm_GetNormalFont] \
+	  -variable gaLinkedVars(linkvertexmode) -value 1 -text "Link Time Point to Vertex Index" \
+	  -state disabled
          }
-	
-	if { ($gaLinkedVars(fnumtimepoints)==$gaLinkedVars(numvertices)) && ([tkm_IsGroupEnabled mg_LabelLoaded]) } {
-	checkbutton $linkavglabelflag \
-	    -variable gaLinkedVars(linkvertexlabelavgflag) \
-	    -text "Link Average within a ROI to Vertex Index" \
-	    -font [tkm_GetNormalFont]
-        } else {
-	checkbutton $linkavglabelflag \
-	    -variable gaLinkedVars(linkvertextplabelavgflag) \
-	    -text "Link Average within a ROI to Vertex Index" \
-	    -font [tkm_GetNormalFont] \
-	    -state disabled
-        }	
 
 	grid $lwPlane     -column 0 -row 0 -columnspan 2
 	grid $fwTimePoint -column 0 -row 1 -sticky w
 	grid $fwCondition -column 1 -row 1 -sticky w
-	grid $linkflag    -column 0 -row 2 -columnspan 2
-	grid $linkavglabelflag    -column 0 -row 3 -columnspan 2
+	grid $linkdefaultflag    -column 0 -row 2 -columnspan 2 -sticky w
+	grid $linktpflag    -column 0 -row 3 -columnspan 2 -sticky w
+	grid $linkavglabelflag    -column 0 -row 4 -columnspan 2 -sticky w
+	grid $linknormavglabelflag    -column 0 -row 5 -columnspan 2 -sticky w
 
 	# color scale
 	set lwColorScale  $fwColorScale.lwColorScale

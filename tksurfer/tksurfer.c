@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/10/27 14:59:41 $
- *    $Revision: 1.330 $
+ *    $Author: krish $
+ *    $Date: 2009/10/27 22:52:18 $
+ *    $Revision: 1.331 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -622,8 +622,7 @@ char *colscalebar_label[4] = {NULL, NULL, NULL, NULL} ;
 int colscalebar_font_size = 1; /* 1 is small, 2 is med, 3 is big */
 int colscalebarvertflag = TRUE;
 int colscalebaruselabelsflag = FALSE;
-int linkvertextpflag = FALSE;
-int linkvertexlabelavgflag = FALSE;
+int linkvertexmode = 0;
 int numvertices = 0;
 int surfaceflag = TRUE;
 int pointsflag = FALSE;
@@ -1174,6 +1173,9 @@ void draw_marked_vertices ();
 /* end rkt */
 
 void LoadMRISMask(void);
+
+/* krish -- if linktimepoint mode is enabled */
+void link_timepoint_ROI(int vno);
 
 /* external prototypes */
 void buffer_to_image(unsigned char *buf,unsigned char**im,int ysize,int xsize);
@@ -2319,12 +2321,12 @@ int  main(int argc,char *argv[])
       fprintf(stderr, "setting colscalebarvertflag to %d\n",
               colscalebarvertflag) ;
     }
-    else if (!stricmp(argv[i], "-linkvertextpflag"))
+    else if (!stricmp(argv[i], "-linkvertexmode"))
     {
       nargs = 2 ;
       colscalebarvertflag = atoi(argv[i+1]) ;
-      fprintf(stderr, "setting linkvertextpflag to %d\n",
-              linkvertextpflag) ;
+      fprintf(stderr, "setting linkvertexmode to %d\n",
+              linkvertexmode) ;
     }
     else if (!stricmp(argv[i], "-scalebarflag"))
     {
@@ -3119,7 +3121,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         else
         {
 	  /* if the vertex index is linked to the timepoint in the config overlay dialog */
-	  if (linkvertextpflag)
+	  if (linkvertexmode == 1)
 	  {
             find_vertex_at_screen_point(sx, sy, &tpvno, &tpd);
 	    sclv_cur_timepoint = tpvno;
@@ -3128,53 +3130,11 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  }
 
 	  /* if the vertex index is linked to the avg of the ROI in the config overlay dialog */
-	  if (linkvertexlabelavgflag)
-	  {
-            LABEL* area;
-	    int n, current_vno, vno;
-	    float *values, *average;
-	    int label_index = -1;
-	    int num_found;
-
-	    /* tpvno is the vertex of the clicked point */
+	  if (linkvertexmode == 2 || linkvertexmode == 3)
+          {
             find_vertex_at_screen_point(sx, sy, &tpvno, &tpd);
-	    /* try and find the label corresponding to the clicked vertex number */
-	    labl_find_label_by_vno (tpvno, labl_selected_label+1,
-				  &label_index, 1, &num_found);
-	    /* idea is to get the list of vertices belonging to this label (area) */ 
-	    area = labl_labels[label_index].label ;
-	    /* allocate memory for values and average*/
-            values = (float*) calloc( mris->nvertices, sizeof(float) );
-            average = (float*) calloc( mris->nvertices, sizeof(float) );
-            if (values == NULL || average == NULL)
-                ErrorReturn(ERROR_NOMEMORY,
-                (ERROR_NOMEMORY,
-                 "linkvertexlabelavg: couldn't allocate values or average storage."));
-	    /* for every vertex in the area ( label ) , get the associated timepoint values 
-	     * add them all to the average array */
-	    for (n = 0  ; n < area->n_points ; n++)
-	    {
-	      if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
-	      {
-	        current_vno = area->lv[n].vno ;
-                sclv_get_values_for_field_and_timepoint (sclv_current_field, current_vno,
-                                                         sclv_cur_condition, values);
-		for (vno=0; vno < mris->nvertices; vno++) average[vno] += values[vno];
-	      }
-	    }
-	    /* in every vertex v, set average[vno] as the timepoint value */
-            for (vno = 0 ; vno < mris->nvertices ; vno++)
-            { 
-	      VERTEX *v;
-              v = &mris->vertices[vno] ;
-	      sclv_set_value(v, sclv_current_field, average[vno] / area->n_points);
-	    }
-
-	    free(values);
-	    free(average);
-            send_tcl_command ("UpdateAndRedraw");
-
-          }
+            link_timepoint_ROI(tpvno);
+	  }
           /* begin rkt */
           if (selection>=0)
           {
@@ -6252,6 +6212,20 @@ select_vertex_by_vno (int vno)
     func_clear_selection ();
     func_select_voxel (selection, v->origx, v->origy, v->origz);
     func_graph_timecourse_selection ();
+  }
+  
+  /* if the vertex index is linked to the timepoint in the config overlay dialog (linkvertexmode is 1 )*/
+  if (linkvertexmode ==1)
+  {
+    sclv_cur_timepoint = vno;
+    sclv_set_timepoint_of_field(sclv_current_field, sclv_cur_timepoint, sclv_cur_condition);
+    send_tcl_command("UpdateAndRedraw");
+  }
+  
+  /* if the vertex index is linked to the avg (or normalized avg) of ROI in the config overlay dialog (linkvertexmode is 2 or 3)*/
+  if (linkvertexmode == 2 || linkvertexmode==3)
+  {
+    link_timepoint_ROI(vno);
   }
 
   /* select the label at this vertex, if there is one. */
@@ -20816,7 +20790,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.330 2009/10/27 14:59:41 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.331 2009/10/27 22:52:18 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21712,10 +21686,6 @@ int main(int argc, char *argv[])   /* new main */
               TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"colscalebarvertflag",(char *)&colscalebarvertflag,
               TCL_LINK_BOOLEAN);
-  Tcl_LinkVar(interp,"linkvertextpflag",(char *)&linkvertextpflag,
-              TCL_LINK_BOOLEAN);
-  Tcl_LinkVar(interp,"linkvertexlabelavgflag",(char *)&linkvertexlabelavgflag,
-              TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"pointsflag",(char *)&pointsflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"surfaceflag",(char *)&surfaceflag, TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"phasecontourflag",(char *)&phasecontourflag,
@@ -21790,6 +21760,8 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"blinkdelay",(char *)&blinkdelay, TCL_LINK_INT);
   Tcl_LinkVar(interp,"blinktime",(char *)&blinktime, TCL_LINK_INT);
   Tcl_LinkVar(interp,"select",(char *)&selection, TCL_LINK_INT);
+  Tcl_LinkVar(interp,"linkvertexmode",(char *)&linkvertexmode,
+              TCL_LINK_INT);
 
   /* begin rkt */
   Tcl_LinkVar(interp,"vertexset",(char *)&vset_current_set, TCL_LINK_INT);
@@ -26428,6 +26400,65 @@ int sclv_load_label_value_file (char *fname, int field)
   return (ERROR_NONE);
 }
 
+/* krish -- linktimepoint with ROI(avg or normalized avg ) mode */
+void link_timepoint_ROI(int vno)
+{
+    LABEL* area;
+    int n, current_vno, tmpvno;
+    float *values, *average, *stddev;
+    int label_index = -1;
+    int num_found;
+
+    /* try and find the label corresponding to the clicked vertex number */
+    labl_find_label_by_vno (vno, labl_selected_label+1,
+			  &label_index, 1, &num_found);
+    /* idea is to get the list of vertices belonging to this label (area) */ 
+    area = labl_labels[label_index].label ;
+    /* allocate memory for values and average*/
+    values = (float*) calloc( mris->nvertices, sizeof(float) );
+    average = (float*) calloc( mris->nvertices, sizeof(float) );
+    stddev = (float*) calloc( mris->nvertices, sizeof(float) );
+    if (values == NULL || average == NULL || stddev == NULL){
+      printf("link_timepoint_ROI(): couldn't allocate one or more of values/average/stddev storage .\n");
+      return;
+    }
+    /* for every vertex in the area ( label ) , get the associated timepoint values 
+     * add them all to the average array ( also calculate variance)*/
+    for (n = 0  ; n < area->n_points ; n++)
+    {
+      if (area->lv[n].vno > 0 && area->lv[n].vno < mris->nvertices)
+      {
+	current_vno = area->lv[n].vno ;
+	sclv_get_values_for_field_and_timepoint (sclv_current_field, current_vno,
+						 sclv_cur_condition, values);
+	for (tmpvno=0; tmpvno < mris->nvertices; tmpvno++) 
+	  average[tmpvno] += values[tmpvno] / area->n_points;
+	/* calculate the variance */
+        if (linkvertexmode == 3)
+          for (tmpvno=0; tmpvno < mris->nvertices; tmpvno++) 
+	    stddev[tmpvno] += pow(values[tmpvno]-average[tmpvno], 2);
+      }
+    }
+        
+      
+    /* in every vertex v, set average[vno] or stddev[vno] as the timepoint value */
+    for (tmpvno = 0 ; tmpvno < mris->nvertices ; tmpvno++)
+    { 
+      VERTEX *v;
+      v = &mris->vertices[tmpvno] ;
+      if (linkvertexmode == 2) 
+        sclv_set_value(v, sclv_current_field, average[tmpvno] );
+      if ( linkvertexmode == 3 ) {
+        stddev[tmpvno] = sqrt(stddev[tmpvno] / area->n_points);
+        sclv_set_value(v, sclv_current_field, stddev[tmpvno] );
+      }
+    }
+
+    free(values);
+    free(average);
+    free(stddev);
+    send_tcl_command ("UpdateAndRedraw");
+}
 /* ---------------------------------------------------------------------- */
 
 /* ------------------------------------------------------ multiple labels */
