@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2009/10/27 22:52:18 $
- *    $Revision: 1.331 $
+ *    $Date: 2009/10/28 00:34:35 $
+ *    $Revision: 1.332 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -20790,7 +20790,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.331 2009/10/27 22:52:18 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.332 2009/10/28 00:34:35 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -26450,7 +26450,12 @@ void link_timepoint_ROI(int vno)
         sclv_set_value(v, sclv_current_field, average[tmpvno] );
       if ( linkvertexmode == 3 ) {
         stddev[tmpvno] = sqrt(stddev[tmpvno] / area->n_points);
-        sclv_set_value(v, sclv_current_field, stddev[tmpvno] );
+	if ( fabs(stddev[tmpvno]) < epsilon ) {
+	  sclv_set_value(v, sclv_current_field, average[tmpvno] / stddev[tmpvno] );
+	}
+	else {
+	  sclv_set_value(v, sclv_current_field, average[tmpvno] );
+	}
       }
     }
 
