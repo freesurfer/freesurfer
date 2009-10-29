@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/27 21:55:29 $
- *    $Revision: 1.33 $
+ *    $Date: 2009/10/29 15:15:20 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -508,12 +508,12 @@ void PanelVolume::OnChoiceColorMap( wxCommandEvent& event )
     if ( layer )
     {
       int nColorMap = (long)(void*)m_choiceColorMap->GetClientData( event.GetSelection() );
-      layer->GetProperties()->SetColorMap( (LayerPropertiesMRI::ColorMapType)nColorMap );
       if ( layer->GetProperties()->GetLUTCTAB() == NULL )
       {
         COLOR_TABLE* ct = m_luts->GetColorTable( 0 );
         layer->GetProperties()->SetLUTCTAB( ct );
       }
+      layer->GetProperties()->SetColorMap( (LayerPropertiesMRI::ColorMapType)nColorMap );
     }
   }
   UpdateUI();
@@ -621,7 +621,8 @@ void PanelVolume::DoUpdateUI()
         m_choiceLUT->Append( wxString::FromAscii( m_luts->GetName( i ) ) );
       }
       m_choiceLUT->Append( _("Load lookup table...") );
-			m_choiceLUT->SetSelection( m_luts->GetIndex( layer->GetProperties()->GetLUTCTAB() ) );
+      int nSel = m_luts->GetIndex( layer->GetProperties()->GetLUTCTAB() );
+      m_choiceLUT->SetSelection( nSel >= 0 ? nSel : 0 );
 	
 			UpdateTextValue( m_textDrawValue, (double)layer->GetFillValue() );
       double dwindow = layer->GetProperties()->GetWindow();
