@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:11:35 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,6 +47,7 @@ DialogNewVolume::DialogNewVolume( wxWindow* parent, LayerCollection* col_mri )
   m_checkCopyVoxel  = XRCCTRL( *this, "ID_CHECK_COPY_VOXEL", wxCheckBox );
   m_textName        = XRCCTRL( *this, "ID_TEXT_NAME", wxTextCtrl );
   m_choiceTemplate  = XRCCTRL( *this, "ID_CHOICE_TEMPLATE", wxChoice );
+  m_choiceDataType  = XRCCTRL( *this, "ID_CHOICE_DATA_TYPE", wxChoice );
 
   std::vector<Layer*> layers = col_mri->GetLayers();
   int nSel = 0;
@@ -88,6 +89,14 @@ LayerMRI* DialogNewVolume::GetTemplate()
 {
   return ( LayerMRI* )( void* )m_choiceTemplate->
     GetClientData( m_choiceTemplate->GetSelection() );
+}
+
+int DialogNewVolume::GetDataType()
+{
+  if ( m_choiceDataType->GetSelection() == (int)m_choiceDataType->GetCount()-1 )
+    return GetTemplate()->GetDataType();
+  else
+    return m_choiceDataType->GetSelection();
 }
 
 void DialogNewVolume::OnOK( wxCommandEvent& event )

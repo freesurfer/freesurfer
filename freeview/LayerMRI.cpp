@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 15:15:20 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -174,13 +174,13 @@ bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
   return true;
 }
 
-bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData )
+bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type )
 {
   if ( m_volumeSource )
     delete m_volumeSource;
 
   m_volumeSource = new FSVolume( mri->m_volumeSource );
-  m_volumeSource->Create( mri->m_volumeSource, bCopyVoxelData );
+  m_volumeSource->Create( mri->m_volumeSource, bCopyVoxelData, data_type );
 
   m_bResampleToRAS = mri->m_bResampleToRAS;
   m_bReorient = mri->m_bReorient;
@@ -1321,3 +1321,9 @@ void LayerMRI::ResetWindowLevel()
   GetProperties()->SetMinMaxJetScaleWindow( range[0], range[1] );
   GetProperties()->SetHeatScale( range[0], (range[0]+range[1])/2, range[1] );
 }
+
+int LayerMRI::GetDataType()
+{
+  return (m_volumeSource?m_volumeSource->GetDataType():-1);
+}
+

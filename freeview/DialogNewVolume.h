@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,8 @@ public:
 
   bool GetCopyVoxel();
   void SetCopyVoxel( bool bVoxel );
+  
+  int GetDataType();
 
   LayerMRI* GetTemplate();
 
@@ -54,9 +56,10 @@ public:
   void OnTextEnter( wxCommandEvent& event );
 
 private:
-  wxCheckBox*  m_checkCopyVoxel;
-  wxChoice*  m_choiceTemplate;
-  wxTextCtrl*  m_textName;
+  wxCheckBox*   m_checkCopyVoxel;
+  wxChoice*     m_choiceTemplate;
+  wxTextCtrl*   m_textName;
+  wxChoice*     m_choiceDataType;
 
   DECLARE_EVENT_TABLE()
 };

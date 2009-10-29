@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:39 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1027,3 +1027,4 @@ double FSSurface::GetCurvatureValue( int nVertex )
 {
   return m_MRIS->vertices[nVertex].curv;
 }
+

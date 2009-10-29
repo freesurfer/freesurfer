@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/22 18:29:45 $
- *    $Revision: 1.75 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -538,7 +538,7 @@ void MainWindow::NewVolume()
 
   // finally we are about to create new volume.
   LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
-  layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel() );
+  layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType() );
   layer_new->SetName( dlg.GetVolumeName().char_str() );
   col_mri->AddLayer( layer_new );
 

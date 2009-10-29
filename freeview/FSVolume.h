@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/14 22:03:28 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@ public:
   FSVolume( FSVolume* ref );
   virtual ~FSVolume();
 
-  void Create( FSVolume* src, bool bCopyVoxelData );
+  void Create( FSVolume* src, bool bCopyVoxelData, int data_type );
 
   bool MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool MRIWrite( const char* filename, bool bSaveToOriginal = true );
@@ -157,6 +157,8 @@ public:
   
   void SetInterpolationMethod( int nMethod );
 
+  int GetDataType();
+  
   MATRIX* GetTargetToRASMatrix();
   
 protected:

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:33 $
- *    $Revision: 1.31 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -224,7 +224,7 @@ bool FSVolume::LoadRegistrationMatrix( const char* filename )
   return true;
 }
 
-void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData )
+void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
 {
   if ( m_MRI )
     ::MRIfree( &m_MRI );
@@ -259,18 +259,18 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData )
 
 // SetOriginalOrigin( src_vol->m_fOriginalOrigin );
 
+  if ( data_type == -1 )
+    data_type = src_vol->m_MRI->type;
+  
+  m_MRI = MRIallocSequence( src_vol->m_MRI->width, 
+                            src_vol->m_MRI->height, 
+                            src_vol->m_MRI->depth,
+                            data_type, 1 );
   if ( bCopyVoxelData )
   {
-    m_MRI = MRIcopy( src_vol->m_MRI, NULL );
+    MRIcopy( src_vol->m_MRI, m_MRI );
   }
-  else
-  {
-    m_MRI = MRIallocSequence( src_vol->m_MRI->width, 
-			      src_vol->m_MRI->height, 
-			      src_vol->m_MRI->depth,
-                              src_vol->m_MRI->type, 1 );
-  }
-
+  
   if ( NULL == m_MRI )
   {
     cerr << "Couldn't allocate new mri." << endl;
@@ -285,7 +285,7 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData )
     m_MRIOrigTarget = MRIallocHeader( mri->width, 
 				      mri->height, 
 				      mri->depth, 
-				      mri->type );
+				      data_type );
     MRIcopyHeader( mri, m_MRIOrigTarget );
   }
 
@@ -366,10 +366,11 @@ void FSVolume::SetMRITarget( MRI* mri )
     if ( m_MRITarget )
       ::MRIfree( &m_MRITarget );
 
+    // must use source data type!
     m_MRITarget = MRIallocHeader( mri->width, 
 				  mri->height, 
 				  mri->depth, 
-				  mri->type );
+          m_MRI->type );    
     MRIcopyHeader( mri, m_MRITarget );
   }
 }
@@ -1789,4 +1790,12 @@ void FSVolume::TkRegToNativeRAS( const double* pos_in, double* pos_out )
 void FSVolume::SetInterpolationMethod( int nMethod )
 {
   m_nInterpolationMethod = nMethod;
+}
+
+int FSVolume::GetDataType()
+{
+  if ( m_MRI )
+    return m_MRI->type;
+  else
+    return -1;
 }

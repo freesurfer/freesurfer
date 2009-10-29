@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/20 19:34:09 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/10/29 20:53:43 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -33,7 +33,6 @@
 #include <string>
 #include <vector>
 
-class vtkFSVolumeSource;
 class vtkImageReslice;
 class vtkImageMapToColors;
 class vtkTransform;
@@ -60,7 +59,7 @@ public:
 
 //  bool LoadVolumeFromFile( std::string filename );
   bool LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event );
-  bool Create( LayerMRI* mri, bool bCopyVoxel );
+  bool Create( LayerMRI* mri, bool bCopyVoxel, int data_type = -1 );
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
@@ -141,6 +140,8 @@ public:
   bool GetVoxelValueRange( const double* pt0, const double* pt1, 
                            int nPlane, double* range_out );
   void ResetWindowLevel();
+  
+  int GetDataType();
   
 protected:
   virtual void SetModified();
