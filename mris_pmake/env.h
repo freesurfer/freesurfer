@@ -1,10 +1,10 @@
 /***************************************************************************
  *   Copyright (C) 2004 by Rudolph Pienaar / Christian Haselgrove          *
- *    Center for Morphometric Analysis       *
- *    Massachusetts General Hospital        *
- *    Building 149, 13th St.         *
- *    Charlestown, MA 02129         *
- *    {ch|rudolph}@nmr.mgh.harvard.edu      *
+ *    Center for Morphometric Analysis                                     *
+ *    Massachusetts General Hospital                                       *
+ *    Building 149, 13th St.                                               *
+ *    Charlestown, MA 02129                                                *
+ *    {ch|rudolph}@nmr.mgh.harvard.edu                                     *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.1 2009/09/08 22:39:27 nicks Exp $
+/// $Id: env.h,v 1.2 2009/10/29 15:30:49 rudolph Exp $
 ///
 ///
 
@@ -66,14 +66,14 @@ using namespace std;
 
 /// Weights and values for the main cost function polynomial.
 typedef struct _weights {
-  float wd;   // distance
-  float wc;   // curve
-  float wh;   // sulcal height
-  float wdc;   // distance X curve
-  float wdh;   // distance X height
-  float wch;   // curve X height
-  float wdch;   // distance X curve X height
-  float wdir;   // direction vector
+  float wd;         // distance
+  float wc;         // curve
+  float wh;         // sulcal height
+  float wdc;        // distance X curve
+  float wdh;        // distance X height
+  float wch;        // curve X height
+  float wdch;       // distance X curve X height
+  float wdir;       // direction vector
 }
 s_weights;
 
@@ -103,14 +103,14 @@ void  s_weights_setAll( s_weights& asw,
 /// transition weights, we can force the path search algorithm
 /// to choose to strongly avoid areas of zero-crossing.
 typedef struct _Dweights {
-  float Dwd;   // distance
-  float Dwc;   // curve
-  float Dwh;   // sulcal height
-  float Dwdc;   // distance X curve
-  float Dwdh;   // distance X height
-  float Dwch;   // curve X height
-  float Dwdch;   // distance X curve X height
-  float Dwdir;   // direction vector
+  float Dwd;            // distance
+  float Dwc;            // curve
+  float Dwh;            // sulcal height
+  float Dwdc;           // distance X curve
+  float Dwdh;           // distance X height
+  float Dwch;           // curve X height
+  float Dwdch;          // distance X curve X height
+  float Dwdir;          // direction vector
 }
 s_Dweights;
 
@@ -138,11 +138,11 @@ void  s_Dweights_setAll( s_Dweights& asw,
 /// cost function, and is populated with per-call information.
 ///
 typedef struct _iterInfo {
-  int  iter;
-  float  f_distance;
-  float  f_curvature;
-  float  f_sulcalHeight;
-  float  f_dir;
+  int       iter;
+  float     f_distance;
+  float     f_curvature;
+  float     f_sulcalHeight;
+  float     f_dir;
 }
 s_iterInfo;
 
@@ -163,89 +163,86 @@ typedef enum {
 } e_LOG;
 
 typedef struct _env {
-  s_weights* pSTw;   // weight structure
-  s_Dweights* pSTDw;   // Del weight structure
+  s_weights*    pSTw;                       // weight structure
+  s_Dweights*   pSTDw;                      // Del weight structure
 
-  int  timeoutSec;  // listen timeout
-  int  port;   // port on which to listen
+  int           timeoutSec;                 // listen timeout
+  int           port;                       // port on which to listen
   // for async control
 
-  int  lw;   // left width (for std format)
-  int  rw;   // right width (for std format)
+  int           lw;                         // left width (for stdout format)
+  int           rw;                         // right width (for stdout format)
 
-  bool  b_syslogPrepend; // prepend syslog style
-  C_SMessage* pcsm_syslog;  // log file for "sys" events
-  C_SMessage* pcsm_userlog;  // log file for "user" events
-  C_SMessage* pcsm_resultlog;  // log file for "result" event
+  bool          b_syslogPrepend;            // prepend syslog style
+  C_SMessage*   pcsm_syslog;                // log file for "sys" events
+  C_SMessage*   pcsm_userlog;               // log file for "user" events
+  C_SMessage*   pcsm_resultlog;             // log file for "result" event
 
-  bool  b_labelFile_save; // flag: save label file
-  bool  b_patchFile_save; // flag: save patch file
-  bool  b_transitionPenalties; // flag: apply transition
+  bool          b_labelFile_save;           // flag: save label file
+  bool          b_patchFile_save;           // flag: save patch file?
+  bool          b_transitionPenalties;      // flag: apply transition?
   // penalties
 
-  string  str_workingDir;  // directory containing input
-  // and output files
-  string  str_patchFileName; // file to contain path "patch"
-  string  str_labelFileName; // file to contain path "label"
-  string  str_labelFileNameOS; // file to contain path "patch"
-  // projected back onto
-  // the "Original Surface"
-  string  str_optionsFileName; // file containing meta options
-  string  str_costFileName; // file containing final costs
+  string        str_workingDir;             // directory containing input
+                                            //+ and output files
+  string        str_patchFileName;          // file to contain path "patch"
+  string        str_labelFileName;          // file to contain path "label"
+  string        str_labelFileNameOS;        // aux file to contain path "label"
+                                            //+ projected back onto
+                                            //+ the "Original Surface"
+  string        str_optionsFileName;        // file containing meta options
+  string        str_costFileName;           // file containing final costs
 
-  int  startVertex;  // index of the start vertex
-  int  endVertex;  // index of the end vertex
-  float  plyDepth;  // ply depth around a core path
+  int           startVertex;                // index of the start vertex
+  int           endVertex;                  // index of the end vertex
+  float         plyDepth;                   // ply depth around a core path
 
-  e_SURFACE esf_active;  // the current active surface
-  string*  pstr_activeName; // names of each surface
-  int  totalNumSurfaces; // total number of surfaces
-  MRIS*  pMS_active;  // a pointer (used by ply
-  // functions) to specifiy
-  // a particular surface to
-  // process
-  MRIS*  pMS_curvature;  // (inflated) curvature surface
-  MRIS*  pMS_sulcal;  // (inflated) sulcal height
-  // surface
-  MRIS*  pMS_auxSurface;  // auxillary (optional)
-  // surface
+  e_SURFACE     esf_active;                 // the current active surface
+  string*       pstr_activeName;            // names of each surface
+  int           totalNumSurfaces;           // total number of surfaces
+  MRIS*         pMS_active;                 // a pointer (used by several
+                                            // functions) to specifiy
+                                            // a particular surface to
+                                            // process
+  MRIS*         pMS_curvature;              // (inflated) curvature surface
+  MRIS*         pMS_sulcal;                 // (inflated) sulcal height surface
+  MRIS*         pMS_auxSurface;             // auxillary (optional) surface
 
-  bool  b_surfacesKeepInSync; // flag: behavioural /
-  // conditional. Evaluate
-  // if wanting to merge
-  // information from one
-  // surface to another.
+  bool          b_surfacesKeepInSync;       // flag: behavioural /
+                                            //+ conditional. Evaluate
+                                            //+ if wanting to merge
+                                            //+ information from one
+                                            //+ surface to another.
 
-  bool  b_surfacesClear; // flag: behavioural /
-  // conditional. Should be
-  // true for most cases.
-  // If false, prevents the
-  // clearing of rips
-  // after a path search.
-  // Useful when keeping
-  // a pattern for cases
-  // when correlation needs
-  // to be calculated.
+  bool          b_surfacesClear;            // flag: behavioural /
+                                            //+ conditional. Should be
+                                            //+ true for most cases.
+                                            //+ If false, prevents the
+                                            //+ clearing of rips
+                                            //+ after a path search.
+                                            //+ Useful when keeping
+                                            //+ a pattern for cases
+                                            //+ when correlation needs
+                                            //+ to be calculated.
 
-  bool  b_costHistoryPreserve; // flag: preserve cost history
-  // on surface between
-  // successive calls to
-  // dijkstra function.
-  // Set to TRUE if finding
-  // ply distances from
-  // existing path
-  int  totalNumFunctions; // total number of cost
-  // functions
-  e_COSTFUNCTION ecf_current;  // the current cost function
-  string*  pstr_functionName; // names of each cost function
-  float  (*costFunc_do)  // a cost function to operate
-  // on this environment
-  (
-    s_env&  st_env,
-    s_iterInfo* pst_iterInfo,
-    int   vno_c,
-    int   j,
-    bool  b_relNextReference
+  bool          b_costHistoryPreserve;      // flag: preserve cost history
+                                            //+ on surface between
+                                            //+ successive calls to
+                                            //+ dijkstra function.
+                                            //+ Set to TRUE if finding
+                                            //+ ply distances from
+                                            //+ existing path
+  int           totalNumFunctions;          // total number of cost
+                                            // functions
+  e_COSTFUNCTION ecf_current;               // the current cost function
+  string*       pstr_functionName;          // names of each cost function
+  float  (*costFunc_do)                     // a cost function to operate
+  (                                         //+ on this environment
+    s_env&          st_env,
+    s_iterInfo*     pst_iterInfo,
+    int             vno_c,
+    int             j,
+    bool            b_relNextReference
   );
 }
 s_env;

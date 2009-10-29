@@ -17,39 +17,39 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_vertex.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: c_vertex.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $
 
 #include "c_vertex.h"
 #include "dijkstra.h"
 
 bool
 vertex_valLTE(
-  VERTEX*   pvertex,
-  void*   pv_void
+    VERTEX*     pvertex,
+    void*       pv_void
 ) {
   return((pvertex->val >= 0) &&  (pvertex->val <= *((float*) pv_void)));
 }
 
 bool
 vertex_alwaysTrue(
-  VERTEX*   pvertex,
-  void*   pv_void
+    VERTEX*     pvertex,
+    void*       pv_void
 ) {
   return true;
 }
 
 bool
 vertex_ripFlagIsTrue(
-  VERTEX*   pvertex,
-  void*   pv_void
+    VERTEX*     pvertex,
+    void*       pv_void
 ) {
   return(pvertex->ripflag == TRUE);
 }
 
 void
 vertex_ripFlagMark(
-  VERTEX*   pvertex,
-  void*   pv_mark
+    VERTEX*     pvertex,
+    void*       pv_mark
 ) {
   char* pch_mark = (char*) pv_mark;
   pvertex->ripflag = *pch_mark;
@@ -57,8 +57,8 @@ vertex_ripFlagMark(
 
 void
 vertex_signumFunctional(
-  VERTEX*   apvertex,
-  void*   apv_functional
+    VERTEX*     apvertex,
+    void*       apv_functional
 ) {
   s_signumFunctional*  ps_signum  =
     (s_signumFunctional*)apv_functional;
@@ -70,8 +70,8 @@ vertex_signumFunctional(
 
 void
 vertex_rawCurveSum(
-  VERTEX*   apvertex,
-  void*   apv_functional
+    VERTEX*     apvertex,
+    void*       apv_functional
 ) {
   s_rawCurve*   ps_rawC =
     (s_rawCurve*)apv_functional;
@@ -82,8 +82,8 @@ vertex_rawCurveSum(
 
 void
 vertex_rawCurveMinMax(
-  VERTEX*   apvertex,
-  void*   apv_functional
+    VERTEX*     apvertex,
+    void*       apv_functional
 ) {
   //
   // PRECONDITIONS
@@ -108,8 +108,8 @@ vertex_rawCurveMinMax(
 
 void
 vertex_curveAreaSum(
-  VERTEX*   apvertex,
-  void*   apv_functional
+    VERTEX*     apvertex,
+    void*       apv_functional
 ) {
   s_integratedCurve*  ps_totalIC =
     (s_integratedCurve*)apv_functional;
@@ -130,16 +130,16 @@ vertex_curveAreaSum(
 
 bool
 vertex_isDijkVirgin(
-  VERTEX*   pvertex,
-  void*   pv_void
+    VERTEX*     pvertex,
+    void*       pv_void
 ) {
   return(pvertex->marked == DIJK_VIRGIN);
 }
 
 void
 vertex_annotationMark(
-  VERTEX*   pvertex,
-  void*   pv_mark
+    VERTEX*     pvertex,
+    void*       pv_mark
 ) {
   int* mark = (int*) pv_mark;
   pvertex->annotation = *mark;

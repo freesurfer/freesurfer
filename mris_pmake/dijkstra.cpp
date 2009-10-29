@@ -103,27 +103,29 @@ mark(MRIS *surf, int vno, int m, bool b_overwrite) {
   return(NO_ERROR);
 } /* end mark() */
 
-int dijkstra( s_env&   st_env,
-              float  af_maxAllowedCost,
-              bool  ab_surfaceCostVoid) {
-  int   i, j;
-  int   vno_c   = -1;
-  int   vno_n   = -1;
-  int   vno_i, vno_f;
-  VERTEX   *v_c, *v_n;
-  float   cost, f_pathCost;
-  struct d_node  *dn, *dn_next;
-  int   rv;
-  s_iterInfo  st_iterInfo;
-  MRIS*  surf   = st_env.pMS_active;
-  bool  b_relNextReference  = true;
+int dijkstra(
+    s_env&          st_env,
+    float           af_maxAllowedCost,
+    bool            ab_surfaceCostVoid)
+{
+    int             i, j;
+    int             vno_c   = -1;
+    int             vno_n   = -1;
+    int             vno_i, vno_f;
+    VERTEX          *v_c, *v_n;
+    float           cost, f_pathCost;
+    struct d_node   *dn, *dn_next;
+    int             rv;
+    s_iterInfo      st_iterInfo;
+    MRIS*           surf                = st_env.pMS_active;
+    bool            b_relNextReference  = true;
 
   // If we aren't going to preserve cost history in the environment, then we
   // will by default always be able to write path costs
-  bool  b_canWriteCostVal = !st_env.b_costHistoryPreserve;
-  static int  calls    = 0;
-  int   marked    = 0;
-  int   totalLoops  = -1;
+  bool              b_canWriteCostVal   = !st_env.b_costHistoryPreserve;
+  static int        calls               = 0;
+  int               marked              = 0;
+  int               totalLoops          = -1;
 
   /* --- sanity checks --- */
   vno_i  = st_env.startVertex;

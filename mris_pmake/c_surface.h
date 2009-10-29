@@ -1,10 +1,10 @@
 /***************************************************************************
  *   Copyright (C) 2004 by Rudolph Pienaar / Christian Haselgrove          *
- *    Center for Morphometric Analysis       *
- *    Massachusetts General Hospital        *
- * Building 149, 13th St.         *
- *  Charlestown, MA 02129         *
- *     {ch|rudolph}@nmr.mgh.harvard.edu      *
+ *    Center for Morphometric Analysis                                     *
+ *    Massachusetts General Hospital                                       *
+ *    Building 149, 13th St.                                               *
+ *    Charlestown, MA 02129                                                *
+ *     {ch|rudolph}@nmr.mgh.harvard.edu                                    *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -32,7 +32,7 @@
 ///
 /// \b HISTORY
 /// 15 March 2005 - Initial consolidation from several other sources.
-/// $Id: c_surface.h,v 1.1 2009/09/08 22:39:27 nicks Exp $
+/// $Id: c_surface.h,v 1.2 2009/10/29 15:30:49 rudolph Exp $
 ///
 ///
 
@@ -93,17 +93,17 @@ surface_vertexFunction_do(
 /// \return    (void)
 void
 surface_vertexPatternCopy(
-  s_env&   st_env,
-  MRIS*   apMS_source,
-  MRIS*   apMS_target,
-  bool   (*vertex_satisfyTestCondition)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apvsource_extra,
-  void   (*vertex_modify)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apvtarget_extra
+    s_env&      st_env,
+    MRIS*       apMS_source,
+    MRIS*       apMS_target,
+    bool        (*vertex_satisfyTestCondition)
+    (VERTEX*    pvertex,
+        void*   pv_extra),
+    void*       apvsource_extra,
+    void        (*vertex_modify)
+    (VERTEX*    pvertex,
+        void*   pv_extra),
+    void*       apvtarget_extra
 );
 
 /// \fn void surface_signumFunction_do(s_env& st_env)

@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: c_surface.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -63,17 +63,17 @@ surface_annotation_do(
 
 void
 surface_vertexPatternCopy(
-  s_env&   st_env,
-  MRIS*   apMS_source,
-  MRIS*   apMS_target,
-  bool   (*vertex_satisfyTestCondition)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apvsource_extra,
-  void   (*vertex_modify)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apvtarget_extra
+    s_env&      st_env,
+    MRIS*       apMS_source,
+    MRIS*       apMS_target,
+    bool        (*vertex_satisfyTestCondition)
+    (VERTEX* pvertex,
+    void*       pv_extra),
+    void*       apvsource_extra,
+    void        (*vertex_modify)
+    (VERTEX*    pvertex,
+    void*       pv_extra),
+    void*       apvtarget_extra
 ) {
 
   //
@@ -304,13 +304,13 @@ surface_workingToAux_ripTrueCopy(
   s_env&  st_env
 ) {
 
-  char  ch_rip;
-  char*  pch_rip;
-  void*  pv_rip;
+  char      ch_rip;
+  char*     pch_rip;
+  void*     pv_rip;
 
-  ch_rip  = (char) TRUE;
-  pch_rip  = &ch_rip;
-  pv_rip  = (void*) pch_rip;
+  ch_rip    = (char) TRUE;
+  pch_rip   = &ch_rip;
+  pv_rip    = (void*) pch_rip;
 
   surface_vertexPatternCopy( st_env,
                              st_env.pMS_curvature,
@@ -361,7 +361,8 @@ surface_ripMark(
     ii = st_env.pMS_active->vertices[i].old_undefval;
     jj = i;
     ofs << ii << "\t" << jj;
-    f_cost = costFunc_defaultDetermine(st_env, &st_iterInfo, ii, jj, b_relNextReference);
+//     f_cost = costFunc_defaultDetermine(st_env, &st_iterInfo, ii, jj, b_relNextReference);
+    f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj, b_relNextReference);
     ofs << "\t"   << f_cost;
     ofs << "\t"  << st_iterInfo.iter;
     ofs << "\t"  << st_iterInfo.f_distance;
@@ -382,10 +383,10 @@ surface_ripClear(
 ) {
   //
   // ARGS
-  // st_env   in  environment data
-  // b_wholeSurfaceForce in  if true, force a "clear"
-  //       across the whole
-  //       surface
+  // st_env                     in              environment data
+  // b_wholeSurfaceForce        in              if true, force a "clear"
+  //                                            across the whole
+  //                                            surface
   //
   // DESCRIPTION
   //  Clears all ripflags. Necessary for "HUP" considerations.

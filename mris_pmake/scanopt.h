@@ -22,7 +22,7 @@
 //
 // VERSION
 //
-// $Id: scanopt.h,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: scanopt.h,v 1.2 2009/10/29 15:30:49 rudolph Exp $
 //
 //
 // DESCRIPTION
@@ -89,7 +89,9 @@
 // o "Updated" to g++ 3.x format
 // o Expanded to accommodate "equal linked" parameters
 //
-
+// 27 October 2009
+// o Resurrection and "beautifying".
+// 
 
 #include <iostream>
 #include <string>
@@ -120,39 +122,40 @@ protected:
   // and str_proc[] variables are maintained by the debug_push|pop
   // methods
   //
-  string  str_obj;                // name of object class
-  string  str_name;               // name of object variable
-  int     id;                     // id of agent
-  int     iter;                   // current iteration in an
-  //      arbitrary processing scheme
-  int     verbosity;              // debug related value for object
-  int     warnings;               // show warnings (and warnings level)
-  int     stackDepth;             // current pseudo stack depth
+  string  str_obj;                  // name of object class
+  string  str_name;                 // name of object variable
+  int     id;                       // id of agent
+  int     iter;                     // current iteration in an
+                                    //+ arbitrary processing scheme
+  int     verbosity;                // debug related value for object
+  int     warnings;                 // show warnings (and warnings level)
+  int     stackDepth;               // current pseudo stack depth
   string  str_proc[C_scanopt_STACKDEPTH];   // execution procedure stack
 
 
 protected:
-  int                             argc;           // size of string vector
-  list<string>                    Lstr_body;      // string list containint
-  //      options and values
-  list<string>::iterator          Lstr_iter;      // an iterator to move over the
-  //      list
+  int                             argc;             // size of string vector
+  list<string>                    Lstr_body;        // string list containing
+                                                    //+ options and values
+  list<string>::iterator          Lstr_iter;        // an iterator to move over 
+                                                    //+ the list
 
-  map<string, string>             map_opt;        // a map associating possible
-  //      optName and optVal pairs
-  map<string, string>::iterator   map_iter;       // an iterator to move over the map
+  map<string, string>             map_opt;          // a map associating 
+                                                    //+ possible optName and 
+                                                    //+ optVal pairs
+  map<string, string>::iterator   map_iter;         // an iterator to move over the map
 
-  string                          str_optDes;     // the "pattern" that defines
-  //      a string as an option.
-  //      Typically this will be
-  //      either "-" or "--".
-  string                          str_optSep;     // separator string that links
-  //      an option to its value.
-  //      Typically this will be
-  //      whitespace.
+  string                          str_optDes;       // the "pattern" that defines
+                                                    //+ a string as an option.
+                                                    //+ Typically this will be
+                                                    //+ either "-" or "--".
+  string                          str_optSep;       // separator string that links
+                                                    //+ an option to its value.
+                                                    //+ Typically this will be
+                                                    //+ whitespace.
 
-  // methods
 
+    // methods
 
 public:
   //
@@ -196,77 +199,33 @@ public:
     function_trace("C_scanopt", astr_msg, "");
   };
 
-  //
-  // access block
-  //
-  void    print();                        // print object
-  int     stackDepth_get()        const {
-    return stackDepth;
-  };
-  void    stackDepth_set(int anum) {
-    stackDepth = anum;
-  };
-  int     iter_get()              const {
-    return iter;
-  };
-  void    iter_set(int anum) {
-    iter = anum;
-  };
-  int     id_get()                const {
-    return id;
-  };
-  void    id_set(int anum) {
-    id = anum;
-  };
-  int     verbosity_get()         const {
-    return verbosity;
-  };
-  void    verbosity_set(int anum) {
-    verbosity = anum;
-  };
-  int     warnings_get()          const {
-    return warnings;
-  };
-  void    warnings_set(int anum) {
-    warnings = anum;
-  };
-  string  str_obj_get()           const {
-    return str_obj;
-  };
-  void    str_obj_set(string astr) {
-    str_obj = astr;
-  };
-  string  str_name_get()          const {
-    return str_name;
-  };
-  void    str_name_set(string astr) {
-    str_name = astr;
-  };
-  string  str_proc_get()          const {
-    return str_proc[stackDepth_get()];
-  };
-  void    str_proc_set(int depth, string astr) {
-    str_proc[depth] = astr;
-  };
+    //
+    // access block
+    //
+    void    print();                        // print object
+    int     stackDepth_get()const {return stackDepth;};
+    void    stackDepth_set(int anum) {stackDepth = anum;};
+    int     iter_get()      const   {return iter;};
+    void    iter_set(int anum)      {iter = anum;};
+    int     id_get()        const   {return id;};
+    void    id_set(int anum)        {id = anum;};
+    int     verbosity_get() const   {return verbosity;};
+    void    verbosity_set(int anum) {verbosity = anum;};
+    int     warnings_get()  const   {return warnings;};
+    void    warnings_set(int anum)  {warnings = anum;};
+    string  str_obj_get()   const   {return str_obj;};
+    void    str_obj_set(string astr) {str_obj = astr;};
+    string  str_name_get()  const   {return str_name;};
+    void    str_name_set(string astr) {str_name = astr;};
+    string  str_proc_get()  const   {return str_proc[stackDepth_get()];};
+    void    str_proc_set(int depth, string astr) {str_proc[depth] = astr;};
+    int     argc_get()      const   {return argc;};
+    void    argc_set(int anum)      {argc = anum;};
+    string  str_optDes_get() const  {return str_optDes;};
+    void    str_optDes_set(string astr) {str_optDes = astr;};
+    string  str_optSep_get() const  {return str_optSep;};
+    void    str_optSep_set(string astr) {str_optSep = astr;};
 
-  int     argc_get()              const {
-    return argc;
-  };
-  void    argc_set(int anum) {
-    argc = anum;
-  };
-  string  str_optDes_get()        const {
-    return str_optDes;
-  };
-  void    str_optDes_set(string astr) {
-    str_optDes = astr;
-  };
-  string  str_optSep_get()        const {
-    return str_optSep;
-  };
-  void    str_optSep_set(string astr) {
-    str_optSep = astr;
-  };
   //
   // miscellaneous block
   //

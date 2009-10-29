@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: asynch.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -36,7 +36,7 @@ asynchEvent_processWGHT(
   int lw     = ast_env.lw;
   int rw     = ast_env.rw;
 
-  string str_errorAct = "Checking <WGHT>";
+  string str_errorAct = "checking <WGHT>";
 
   string str_object = "";
   string str_verb = "";
@@ -49,7 +49,7 @@ asynchEvent_processWGHT(
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
-    error_exit(str_errorAct, "Some error occurred in the 3parse.", 1);
+    warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "all") {
     if (str_verb == "get") {
@@ -163,7 +163,7 @@ asynchEvent_processDWGHT(
   int lw     = ast_env.lw;
   int rw     = ast_env.rw;
 
-  string str_errorAct = "Checking <DWGHT>";
+  string str_errorAct = "checking <DWGHT>";
 
   string str_object = "";
   string str_verb = "";
@@ -290,7 +290,7 @@ asynchEvent_processVERTEX(
   int lw     = st_env.lw;
   int rw     = st_env.rw;
 
-  string str_errorAct = "Checking <VERTEX>";
+  string str_errorAct = "checking <VERTEX>";
 
   string  str_object = "";
   string  str_verb = "";
@@ -347,7 +347,7 @@ asynchEvent_processENV(
   int lw     = st_env.lw;
   int rw     = st_env.rw;
 
-  string str_errorAct = "Checking <ENV>";
+  string str_errorAct = "checking <ENV>";
 
   string  str_object = "";
   string  str_verb = "";
@@ -512,7 +512,7 @@ asynchEvent_processLABEL(
   int lw     = st_env.lw;
   int rw     = st_env.rw;
 
-  string str_errorAct  = "Checking <VERTEX>";
+  string str_errorAct  = "checking <LABEL>";
 
   string  str_object = "";
   string  str_verb = "";
@@ -530,19 +530,19 @@ asynchEvent_processLABEL(
     error_exit(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_verb == "singleVertexSet") {
-    char ch_mark  = TRUE;
-    char* pch_mark = &ch_mark;
-    void* pv_mark  = (void*) pch_mark;
+    char    ch_mark  = TRUE;
+    char*   pch_mark = &ch_mark;
+    void*   pv_mark  = (void*) pch_mark;
     if (!str_modifier.length())
       return false;
     int vertex  = atoi(str_modifier.c_str());
-    if (str_object == "workingSurface") {
+    if (str_object          == "workingSurface") {
       label_singleVertexSet(st_env.pMS_curvature, vertex,
                             vertex_ripFlagMark, pv_mark);
-    } else if (str_object == "auxSurface") {
+    } else if (str_object   == "auxSurface") {
       label_singleVertexSet(st_env.pMS_auxSurface, vertex,
                             vertex_ripFlagMark, pv_mark);
-    } else if (str_object == "activeSurface") {
+    } else if (str_object   == "activeSurface") {
       label_singleVertexSet(st_env.pMS_active, vertex,
                             vertex_ripFlagMark, pv_mark);
     } else
@@ -558,13 +558,13 @@ asynchEvent_processLABEL(
       return false;
     if (relDirSpec_test(str_modifier))
       str_fileSpec = st_env.str_workingDir + str_modifier;
-    if (str_object == "workingSurface") {
+    if (str_object          == "workingSurface") {
       label_coreLoad(st_env.pMS_curvature, str_fileSpec,
                      vertex_ripFlagMark, pv_mark);
-    } else if (str_object == "auxSurface") {
+    } else if (str_object   == "auxSurface") {
       label_coreLoad(st_env.pMS_auxSurface, str_fileSpec,
                      vertex_ripFlagMark, pv_mark);
-    } else if (str_object == "activeSurface") {
+    } else if (str_object   == "activeSurface") {
       label_coreLoad(st_env.pMS_active, str_fileSpec,
                      vertex_ripFlagMark, pv_mark);
     } else
@@ -577,13 +577,13 @@ asynchEvent_processLABEL(
       return false;
     if (relDirSpec_test(str_modifier))
       str_fileSpec = st_env.str_workingDir + str_modifier;
-    if (str_object == "workingSurface") {
+    if (str_object          == "workingSurface") {
       label_coreSave(st_env.pMS_curvature, str_fileSpec,
                      vertex_ripFlagIsTrue, pv_void);
-    } else if (str_object == "auxSurface") {
+    } else if (str_object   == "auxSurface") {
       label_coreSave(st_env.pMS_auxSurface, str_fileSpec,
                      vertex_ripFlagIsTrue, pv_void);
-    } else if (str_object == "activeSurface") {
+    } else if (str_object   == "activeSurface") {
       label_coreSave(st_env.pMS_active, str_fileSpec,
                      vertex_ripFlagIsTrue, pv_void);
     } else
@@ -667,7 +667,7 @@ asynchEvent_processSURFACE(
   string    astr_comms
 ) {
 
-  string  str_errorAct = "Checking <SURFACE>";
+  string  str_errorAct = "checking <SURFACE>";
 
   string  str_object = "";
   string  str_verb = "";
@@ -810,11 +810,11 @@ asynchEvent_process(
   //
 
   //debug_push("asynchEvent_process");
-  unsigned   pos   = 0;
-  string  str_path  = "";
-  string  str_optionsFile  = "";
-  string  str_optionsArg  = "";
-  string  str_text  = "";
+  unsigned      pos             = 0;
+  string        str_path        = "";
+  string        str_optionsFile = "";
+  string        str_optionsArg  = "";
+  string        str_text        = "";
 
   stringstream Gsout("");
 
@@ -823,33 +823,39 @@ asynchEvent_process(
   pos = str_event.find("SYSECHO");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 8)
-      error_exit("checking <SYSECHO>", "no argument was found.", 2);
-    str_text  = str_event.substr(pos+8);
-    Gsout.str("");
-    Gsout << "ECHO: " << str_text << endl;
-    SLOUT(Gsout.str());
+        warn("checking <SYSECHO>", "no argument was found.", 2);
+    else {
+        str_text  = str_event.substr(pos+8);
+        Gsout.str("");
+        Gsout << "ECHO: " << str_text << endl;
+        SLOUT(Gsout.str());
+    }    
   }
 
   // Check for USERECHO
   pos = str_event.find("USERECHO");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 9)
-      error_exit("checking <USERECHO>", "no argument was found.", 2);
-    str_text  = str_event.substr(pos+9);
-    Gsout.str("");
-    Gsout << "ECHO: " << str_text << endl;
-    ULOUT(Gsout.str());
+      warn("checking <USERECHO>", "no argument was found.", 2);
+    else {
+        str_text  = str_event.substr(pos+9);
+        Gsout.str("");
+        Gsout << "ECHO: " << str_text << endl;
+        ULOUT(Gsout.str());
+    }
   }
 
   // Check for RESULTECHO
   pos = str_event.find("RESULTECHO");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 11)
-      error_exit("checking <RESULTECHO>", "no argument was found.", 2);
-    str_text  = str_event.substr(pos+11);
-    Gsout.str("");
-    Gsout << "ECHO: " << str_text << endl;
-    RLOUT(Gsout.str());
+      warn("checking <RESULTECHO>", "no argument was found.", 2);
+    else {
+        str_text  = str_event.substr(pos+11);
+        Gsout.str("");
+        Gsout << "ECHO: " << str_text << endl;
+        RLOUT(Gsout.str());
+    }
   }
 
   // Check for OPT
@@ -857,27 +863,29 @@ asynchEvent_process(
   if (pos != (unsigned)string::npos) {
     string str_pathAbs;
     if (str_event.length() < 4)
-      error_exit("checking <OPT>", "no argument was found.", 2);
-    str_optionsArg = str_event.substr(pos+4);
+      warn("checking <OPT>", "no argument was found.", 2);
+    else {
+        str_optionsArg = str_event.substr(pos+4);
 
-    pos = str_optionsArg.rfind("/");
-    str_path  = (pos == (unsigned)string::npos) ?
-                "./" :
-                str_optionsArg.substr(0, pos);
-    str_optionsFile = (pos == (unsigned)string::npos) ?
-                      str_optionsArg :
-                      str_optionsArg.substr(pos+1);
+        pos = str_optionsArg.rfind("/");
+        str_path  = (pos == (unsigned)string::npos) ?
+                    "./" :
+                    str_optionsArg.substr(0, pos);
+        str_optionsFile = (pos == (unsigned)string::npos) ?
+                        str_optionsArg :
+                        str_optionsArg.substr(pos+1);
 
-    str_pathAbs  = str_path;
-    str_rel2absDirSpec_change(str_path, str_pathAbs);
-    st_env.str_workingDir  = str_pathAbs + "/";
-    st_env.str_optionsFileName = str_optionsFile;
-    Gsout.str("");
-    Gsout << "PATH: " << st_env.str_workingDir << endl;
-    SLOUT(Gsout.str());
-    Gsout.str("");
-    Gsout << "OptionsFile: " << st_env.str_optionsFileName << endl;
-    SLOUT(Gsout.str());
+        str_pathAbs  = str_path;
+        str_rel2absDirSpec_change(str_path, str_pathAbs);
+        st_env.str_workingDir  = str_pathAbs + "/";
+        st_env.str_optionsFileName = str_optionsFile;
+        Gsout.str("");
+        Gsout << "PATH: " << st_env.str_workingDir << endl;
+        SLOUT(Gsout.str());
+        Gsout.str("");
+        Gsout << "OptionsFile: " << st_env.str_optionsFileName << endl;
+        SLOUT(Gsout.str());
+    }
   }
 
   // Check for CWD
@@ -885,14 +893,16 @@ asynchEvent_process(
   if (pos != (unsigned)string::npos) {
     string str_pathAbs;
     if (str_event.length() < 4)
-      error_exit("checking <CWD>", "no argument was found.", 2);
-    str_path  = str_event.substr(pos+4);
-    str_pathAbs  = str_path;
-    str_rel2absDirSpec_change(str_path, str_pathAbs);
-    st_env.str_workingDir = str_pathAbs + "/";
-    Gsout.str("");
-    Gsout << "PATH: " << st_env.str_workingDir << endl;
-    SLOUT(Gsout.str());
+      warn("checking <CWD>", "no argument was found.", 2);
+    else {
+        str_path  = str_event.substr(pos+4);
+        str_pathAbs  = str_path;
+        str_rel2absDirSpec_change(str_path, str_pathAbs);
+        st_env.str_workingDir = str_pathAbs + "/";
+        Gsout.str("");
+        Gsout << "PATH: " << st_env.str_workingDir << endl;
+        SLOUT(Gsout.str());
+    }
   }
 
   // Check for HELP

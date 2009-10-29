@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.2 2009/10/01 19:44:25 nicks Exp $
+// $Id: env.cpp,v 1.3 2009/10/29 15:30:49 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -205,17 +205,17 @@ s_weights_print(
 
 void
 s_weights_setAll(
-  s_weights& asw,
-  float  af
+    s_weights&  asw,
+    float       af
 ) {
-  asw.wd  = af;
-  asw.wc  = af;
-  asw.wh  = af;
-  asw.wdc  = af;
-  asw.wdh  = af;
-  asw.wch  = af;
-  asw.wdch = af;
-  asw.wdir = af;
+    asw.wd      = af;
+    asw.wc      = af;
+    asw.wh      = af;
+    asw.wdc     = af;
+    asw.wdh     = af;
+    asw.wch     = af;
+    asw.wdch    = af;
+    asw.wdir    = af;
 }
 
 void
@@ -256,99 +256,99 @@ s_Dweights_print(
 
 void
 s_Dweights_setAll(
-  s_Dweights& asw,
-  float  af
+    s_Dweights&     asw,
+    float           af
 ) {
-  asw.Dwd  = af;
-  asw.Dwc  = af;
-  asw.Dwh  = af;
-  asw.Dwdc = af;
-  asw.Dwdh = af;
-  asw.Dwch = af;
-  asw.Dwdch = af;
-  asw.Dwdir = af;
+    asw.Dwd     = af;
+    asw.Dwc     = af;
+    asw.Dwh     = af;
+    asw.Dwdc    = af;
+    asw.Dwdh    = af;
+    asw.Dwch    = af;
+    asw.Dwdch   = af;
+    asw.Dwdir   = af;
 }
 
 void
 s_env_nullify(
-  s_env&  st_env) {
-  //
-  // ARGS
-  // st_env  in  environment to nullify
-  //
-  // DESC
-  // "nullify", i.e. set relevant records files to NULL / zero / ""
-  // This is something of a pseudo constructor.
-  //
-  // PRECONDITIONS
-  // o Use *directly* after declaring a s_env struct
-  //
-  // HISTORY
-  // 15 December 2004
-  // o Initial design and coding.
-  //
+    s_env&  st_env) {
+    //
+    // ARGS
+    // st_env  in  environment to nullify
+    //
+    // DESC
+    // "nullify", i.e. set relevant records files to NULL / zero / ""
+    // This is something of a pseudo constructor.
+    //
+    // PRECONDITIONS
+    // o Use *directly* after declaring a s_env struct
+    //
+    // HISTORY
+    // 15 December 2004
+    // o Initial design and coding.
+    //
 
-  st_env.pSTw    = NULL;
-  st_env.pSTDw   = NULL;
+    st_env.pSTw                     = NULL;
+    st_env.pSTDw                    = NULL;
 
-  st_env.timeoutSec   = 0;
-  st_env.port    = 0;
+    st_env.timeoutSec               = 0;
+    st_env.port                     = 0;
 
-  st_env.lw    = 20;
-  st_env.rw    = 20;
+    st_env.lw                       = 20;
+    st_env.rw                       = 20;
 
-  st_env.b_syslogPrepend  = false;
-  st_env.pcsm_syslog   = NULL;
-  st_env.pcsm_userlog   = NULL;
-  st_env.pcsm_resultlog  = NULL;
+    st_env.b_syslogPrepend          = false;
+    st_env.pcsm_syslog              = NULL;
+    st_env.pcsm_userlog             = NULL;
+    st_env.pcsm_resultlog           = NULL;
 
-  st_env.b_labelFile_save  = false;
-  st_env.b_patchFile_save  = false;
-  st_env.b_transitionPenalties = false;
+    st_env.b_labelFile_save         = false;
+    st_env.b_patchFile_save         = false;
+    st_env.b_transitionPenalties    = false;
 
-  st_env.str_workingDir  = "";
-  st_env.str_patchFileName  = "";
-  st_env.str_labelFileNameOS  = "";
-  st_env.str_labelFileName  = "";
-  st_env.str_costFileName  = "";
+    st_env.str_workingDir           = "";
+    st_env.str_patchFileName        = "";
+    st_env.str_labelFileNameOS      = "";
+    st_env.str_labelFileName        = "";
+    st_env.str_costFileName         = "";
 
-  st_env.startVertex   = 0;
-  st_env.endVertex   = 0;
-  st_env.plyDepth   = 0;
+    st_env.startVertex              = 0;
+    st_env.endVertex                = 0;
+    st_env.plyDepth                 = 0;
 
-  st_env.pMS_active   = NULL;
-  st_env.pMS_auxSurface  = NULL;
-  st_env.pMS_curvature  = NULL;
-  st_env.pMS_sulcal   = NULL;
+    st_env.pMS_active               = NULL;
+    st_env.pMS_auxSurface           = NULL;
+    st_env.pMS_curvature            = NULL;
+    st_env.pMS_sulcal               = NULL;
 
-  st_env.b_surfacesKeepInSync  = false;
-  st_env.b_surfacesClear  = true;
-  st_env.b_costHistoryPreserve = false;
-  st_env.costFunc_do   = NULL;
+    st_env.b_surfacesKeepInSync     = false;
+    st_env.b_surfacesClear          = true;
+    st_env.b_costHistoryPreserve    = false;
+    st_env.costFunc_do              = NULL;
 
-  // Define the cost functions for human readable setting / getting
-  st_env.totalNumFunctions  = 4;
-  st_env.ecf_current   = e_default;
-  st_env.pstr_functionName  = new string[st_env.totalNumFunctions];
-  st_env.pstr_functionName[0]  = "default";
-  st_env.pstr_functionName[1]  = "unity";
-  st_env.pstr_functionName[2]  = "euclid";
-  st_env.pstr_functionName[3]  = "distance";
+    // Define the cost functions for human readable setting / getting
+    st_env.totalNumFunctions        = 4;
+    st_env.ecf_current              = e_default;
+    st_env.pstr_functionName        = new string[st_env.totalNumFunctions];
+    st_env.pstr_functionName[0]     = "default";
+    st_env.pstr_functionName[1]     = "unity";
+    st_env.pstr_functionName[2]     = "euclid";
+    st_env.pstr_functionName[3]     = "distance";
 
-  // Define the active surface tracker
-  st_env.totalNumSurfaces  = 3;
-  st_env.esf_active   = e_workingCurvature;
-  st_env.pstr_activeName  = new string[st_env.totalNumSurfaces];
-  st_env.pstr_activeName[0]  = "workingCurvature";
-  st_env.pstr_activeName[1]  = "workingSulcal";
-  st_env.pstr_activeName[2]  = "auxillary";
+    // Define the active surface tracker
+    st_env.totalNumSurfaces         = 3;
+    st_env.esf_active               = e_workingCurvature;
+    st_env.pstr_activeName          = new string[st_env.totalNumSurfaces];
+    st_env.pstr_activeName[0]       = "workingCurvature";
+    st_env.pstr_activeName[1]       = "workingSulcal";
+    st_env.pstr_activeName[2]       = "auxillary";
 
 }
 
 void
 s_env_scan(
-  s_env&   st_env,
-  C_scanopt&  cso_options
+    s_env&          st_env,
+    C_scanopt&      cso_options
 ) {
   //
   // ARGS
@@ -382,43 +382,43 @@ s_env_scan(
   //   the result of a correlation operation to some external process.
   //
 
-  static int  calls     = 0;
+  static int    calls                   = 0;
 
-  static MRIS* pMS_curvature    = NULL;
-  static MRIS* pMS_auxSurface    = NULL;
-  static MRIS* pMS_sulcal    = NULL;
-  string  str_value    = "";
-  string  str_surfaceFileName   = "";
-  string  str_auxSurfaceFileName   = "";
-  string  str_curvatureFileName   = "";
-  string  str_sulcalFileName   = "";
-  string  str_patchFileName   = "";
-  string  str_labelFileName   = "";
-  string  str_labelFileNameOS   = "";
-  string  str_costFileName   = "";
-  string  str_userMsgFileName   = "";
-  string  str_sysMsgFileName   = "";
-  string  str_resultMsgFileName   = "";
+  static MRIS*  pMS_curvature           = NULL;
+  static MRIS*  pMS_auxSurface          = NULL;
+  static MRIS*  pMS_sulcal              = NULL;
+  string        str_value               = "";
+  string        str_surfaceFileName     = "";
+  string        str_auxSurfaceFileName  = "";
+  string        str_curvatureFileName   = "";
+  string        str_sulcalFileName      = "";
+  string        str_patchFileName       = "";
+  string        str_labelFileName       = "";
+  string        str_labelFileNameOS     = "";
+  string        str_costFileName        = "";
+  string        str_userMsgFileName     = "";
+  string        str_sysMsgFileName      = "";
+  string        str_resultMsgFileName   = "";
 
-  bool  b_labelFile_save   = true;
-  bool  b_transitionPenalties   = true;
-  bool  b_patchFile_save   = true;
-  bool  b_syslogPrepend    = true;
+  bool          b_labelFile_save        = true;
+  bool          b_transitionPenalties   = true;
+  bool          b_patchFile_save        = true;
+  bool          b_syslogPrepend         = true;
 
-  int   startVertex    = 0;
-  int   endVertex    = 0;
-  int   port     = 0;
-  int   timeoutSec    = 0;
+  int           startVertex             = 0;
+  int           endVertex               = 0;
+  int           port                    = 0;
+  int           timeoutSec              = 0;
 
   // These are used to re-read possibly new files if a HUP
   // is sent to the process with changed options file.
-  static string str_surfaceFileNameOld  = "";
-  static string str_auxSurfaceFileNameOld = "";
-  static string str_curvatureFileNameOld = "";
-  static string str_sulcalFileNameOld  = "";
-  static string str_userMsgFileNameOld  = "";
-  static string str_sysMsgFileNameOld  = "";
-  static string str_resultMsgFileNameOld = "";
+  static string str_surfaceFileNameOld      = "";
+  static string str_auxSurfaceFileNameOld   = "";
+  static string str_curvatureFileNameOld    = "";
+  static string str_sulcalFileNameOld       = "";
+  static string str_userMsgFileNameOld      = "";
+  static string str_sysMsgFileNameOld       = "";
+  static string str_resultMsgFileNameOld    = "";
 
   if (cso_options.scanFor("startVertex", &str_value))
     startVertex  = atoi(str_value.c_str());
@@ -619,29 +619,29 @@ s_env_scan(
     nULOUT("\t\t\t[ ok ]\n");
   }
 
-  st_env.b_labelFile_save  = b_labelFile_save;
-  st_env.b_transitionPenalties = b_transitionPenalties;
-  st_env.b_patchFile_save  = b_patchFile_save;
-  st_env.startVertex   = startVertex;
-  st_env.endVertex   = endVertex;
-  st_env.port    = port;
-  st_env.timeoutSec   = timeoutSec;
-  st_env.str_patchFileName  = str_patchFileName + ".patch";
-  st_env.str_labelFileName  = str_labelFileName;
-  st_env.str_labelFileNameOS  = str_labelFileNameOS;
-  st_env.str_costFileName  = str_costFileName;
+  st_env.b_labelFile_save           = b_labelFile_save;
+  st_env.b_transitionPenalties      = b_transitionPenalties;
+  st_env.b_patchFile_save           = b_patchFile_save;
+  st_env.startVertex                = startVertex;
+  st_env.endVertex                  = endVertex;
+  st_env.port                       = port;
+  st_env.timeoutSec                 = timeoutSec;
+  st_env.str_patchFileName          = str_patchFileName + ".patch";
+  st_env.str_labelFileName          = str_labelFileName;
+  st_env.str_labelFileNameOS        = str_labelFileNameOS;
+  st_env.str_costFileName           = str_costFileName;
 
 //    if(!calls) {
-  st_env.pMS_active   = pMS_curvature;
-  st_env.pMS_auxSurface  = pMS_auxSurface;
-  st_env.pMS_sulcal   = pMS_sulcal;
-  st_env.pMS_curvature  = pMS_curvature;
+  st_env.pMS_active                 = pMS_curvature;
+  st_env.pMS_auxSurface             = pMS_auxSurface;
+  st_env.pMS_sulcal                 = pMS_sulcal;
+  st_env.pMS_curvature              = pMS_curvature;
 
-  str_surfaceFileNameOld  = str_surfaceFileName;
-  str_curvatureFileNameOld  = str_curvatureFileName;
-  str_sulcalFileNameOld  = str_sulcalFileName;
-  str_userMsgFileNameOld  = str_userMsgFileName;
-  str_sysMsgFileNameOld  = str_sysMsgFileName;
+  str_surfaceFileNameOld            = str_surfaceFileName;
+  str_curvatureFileNameOld          = str_curvatureFileName;
+  str_sulcalFileNameOld             = str_sulcalFileName;
+  str_userMsgFileNameOld            = str_userMsgFileName;
+  str_sysMsgFileNameOld             = str_sysMsgFileName;
 //    }
 
   nSLOUT("\t\t\t\t\t\t\t[ ok ]\n");
@@ -728,14 +728,14 @@ s_env_surfaceSulcal_set(
   //
   // POSTCONDITIONS
   // o The sulcal heights described in astr_filenName are mapped
-  //   onto pMS_curvature.
+  //   onto pMS_sulcal.
   //
   // HISTORY
   // 26 April 2005
   // o Initial design and coding.
   //
 
-  if (!st_env.pMS_curvature)
+  if (!st_env.pMS_sulcal)
     return false;
 
   ULOUT("Mapping sulcal texture on primary surface...");
@@ -758,14 +758,14 @@ s_env_auxSurfaceCurvature_set(
   //
   // POSTCONDITIONS
   // o The curvatures described in astr_filenName are mapped
-  //   onto pMS_curvature.
+  //   onto pMS_auxSurface.
   //
   // HISTORY
   // 26 April 2005
   // o Initial design and coding.
   //
 
-  if (!st_env.pMS_curvature)
+  if (!st_env.pMS_auxSurface)
     return false;
 
   ULOUT("Mapping curvature texture on auxillary surface...");
@@ -972,39 +972,38 @@ s_env_costFctSetIndex(
 
 void
 s_env_costFctSet(
-  s_env*  pst_env,
-  float (*acost_fct) (
-    s_env&  st_env,
-    s_iterInfo* pst_iterInfo,
-    int   vno_c,
-    int   j,
-    bool  b_relNextReference
-  ),
-  e_COSTFUNCTION aecf_new
+    s_env*          pst_env,
+    float   (*acost_fct) (
+        s_env&      st_env,
+        s_iterInfo* pst_iterInfo,
+        int         vno_c,
+        int         j,
+        bool        b_relNextReference
+    ),
+    e_COSTFUNCTION  aecf_new
 ) {
-  pst_env->costFunc_do = acost_fct;
-  pst_env->ecf_current = aecf_new;
+    pst_env->costFunc_do = acost_fct;
+    pst_env->ecf_current = aecf_new;
 };
-
 
 float
 costFunc_defaultDetermine(
-  s_env&  st_env,
-  s_iterInfo* pst_iterInfo,
-  int   vno_c,
-  int   j,
-  bool  b_relNextReference) {
-  //
-  // HISTORY
-  //  09 November 2004
-  // o Added st_iterInfo
-  //
+    s_env&          st_env,
+    s_iterInfo*     pst_iterInfo,
+    int             vno_c,
+    int             j,
+    bool            b_relNextReference) {
+    //
+    // HISTORY
+    //  09 November 2004
+    // o Added st_iterInfo
+    //
 
-  int   vno_n;
-  VERTEX*  v_c;
-  VERTEX*  v_n;
-  float   dist, ave_curv, curv, max_height, cost;
-  s_weights* pSTw = st_env.pSTw;
+  int           vno_n;
+  VERTEX*       v_c;
+  VERTEX*       v_n;
+  float         dist, ave_curv, curv, max_height, cost;
+  s_weights*    pSTw = st_env.pSTw;
   MRIS*  surf = st_env.pMS_curvature;
 
   v_c = &surf->vertices[vno_c];
@@ -1028,12 +1027,12 @@ costFunc_defaultDetermine(
   float f_height = 0.;
   float f_dir  = 0.;
 
-  st_V3D   V3_c; // current point
-  st_V3D   V3_n; // next points
-  st_V3D   V3_cn;  // vector from current to next
-  static st_V3D  V3_e;  // end point
-  st_V3D   V3_ce; // vector from current to end
-  static int calls = 0;
+  st_V3D        V3_c;           // current point
+  st_V3D        V3_n;           // next points
+  st_V3D        V3_cn;          // vector from current to next
+  static st_V3D V3_e;           // end point
+  st_V3D        V3_ce;          // vector from current to end
+  static int    calls = 0;
 
   if (!calls) {
     V3_e.f_x = st_env.pMS_curvature->vertices[st_env.endVertex].x;
@@ -1106,147 +1105,147 @@ costFunc_defaultDetermine(
 
 float
 costFunc_unityReturn(
-  s_env&  st_env,
-  s_iterInfo* pst_iterInfo,
-  int   vno_c,
-  int   j,
-  bool  b_relNextReference) {
-  //
-  // POSTCONDITIONS
-  //  o Will always return a 1.0 as the transition cost. This is used primarily
-  //   in determining logical distances between nodes in the vertex.
-  //
-  //   Most of the function arguments are superfluous in this case.
-  //
-  // HISTORY
-  // 15 February 2005
-  // o Initial development
-  //
+    s_env&          st_env,
+    s_iterInfo*     pst_iterInfo,
+    int             vno_c,
+    int             j,
+    bool            b_relNextReference) {
+    //
+    // POSTCONDITIONS
+    //  o Will always return a 1.0 as the transition cost. This is used 
+    //    primarily in determining logical distances between nodes in the 
+    //    vertex.
+    //
+    //   Most of the function arguments are superfluous in this case.
+    //
+    // HISTORY
+    // 15 February 2005
+    // o Initial development
+    //
 
-  float   cost = 1.0;
-  return(cost);
-
+    float   cost = 1.0;
+    return(cost);
 }
 
 float
 costFunc_distanceReturn(
-  s_env&  st_env,
-  s_iterInfo* pst_iterInfo,
-  int   vno_c,
-  int   j,
-  bool  b_relNextReference) {
-  //
-  // PRECONDITIONS
-  // o Distance concept is only valid for "relative" neighbours.
-  //
-  // POSTCONDITIONS
-  //  o Returns the weighted distance as stored in the MRIS.
-  //
-  //   Most of the function arguments are superfluous in this case.
-  //
-  // HISTORY
-  // 09 March 2005
-  // o Initial development
-  //
+    s_env&          st_env,
+    s_iterInfo*     pst_iterInfo,
+    int             vno_c,
+    int             j,
+    bool            b_relNextReference)
+{
+    //
+    // PRECONDITIONS
+    // o Distance concept is only valid for "relative" neighbours.
+    //
+    // POSTCONDITIONS
+    //  o Returns the weighted distance as stored in the MRIS.
+    //
+    //   Most of the function arguments are superfluous in this case.
+    //
+    // HISTORY
+    // 09 March 2005
+    // o Initial development
+    //
 
-  float   f_cost   = 0.0;
-  float  f_distance = 0.0;
-  s_weights*  pSTw  = st_env.pSTw;
-  float  wd  = pSTw->wd;
-  VERTEX*  v_c  = NULL;
-  MRIS*  surf  = st_env.pMS_curvature;
-  const char*  pch_proc = "costFunc_distanceReturn(...)";
-  char  pch_txt[65536];
-  static bool  b_warned = false;
+    float       f_cost      = 0.0;
+    float       f_distance  = 0.0;
+    s_weights*  pSTw        = st_env.pSTw;
+    float       wd          = pSTw->wd;
+    VERTEX*     v_c         = NULL;
+    MRIS*       surf        = st_env.pMS_curvature;
+    char*       pch_proc    = "costFunc_distanceReturn(...)";
+    char        pch_txt[65536];
+    static bool b_warned    = false;
 
-  v_c   = &surf->vertices[vno_c];
-  f_distance   = v_c->dist[j];
+    v_c         = &surf->vertices[vno_c];
+    f_distance  = v_c->dist[j];
 
-  f_cost  = f_distance * wd;
-  if (wd <= 0.) {
-    sprintf(pch_txt, "calculating cost in %s", pch_proc);
-    error_exit(pch_txt, "wd must be greater than zero.", 1);
-  }
-  if (wd != 1. && !b_warned) {
-    sprintf(pch_txt, "calculating cost in %s", pch_proc);
-    warn(pch_txt, "wd is not equal to 1. Distances will be skewed", 1);
-    b_warned = true;
-  }
+    f_cost  = f_distance * wd;
+    if (wd <= 0.) {
+        sprintf(pch_txt, "calculating cost in %s", pch_proc);
+        error_exit(pch_txt, "wd must be greater than zero.", 1);
+    }
+    if (wd != 1. && !b_warned) {
+        sprintf(pch_txt, "calculating cost in %s", pch_proc);
+        warn(pch_txt, "wd is not equal to 1. Distances will be skewed", 1);
+        b_warned = true;
+    }
 
-  return(f_cost);
-
+    return(f_cost);
 }
 
 float
 costFunc_EuclideanReturn(
-  s_env&  st_env,
-  s_iterInfo* pst_iterInfo,
-  int   vno_c,
-  int   j,
-  bool  b_relNextReference) {
-  //
-  // POSTCONDITIONS
-  //  o Returns the Euclidean distance between a vertex and its neighbour.
-  //   This distance is weighted by 'w_d'.
-  //
-  //   Most of the function arguments are superfluous in this case.
-  //
-  // HISTORY
-  // 09 March 2005
-  // o Initial development
-  //
+    s_env&          st_env,
+    s_iterInfo*     pst_iterInfo,
+    int             vno_c,
+    int             j,
+    bool            b_relNextReference) {
+    //
+    // POSTCONDITIONS
+    //  o Returns the Euclidean distance between a vertex and its neighbour.
+    //   This distance is weighted by 'w_d'.
+    //
+    //   Most of the function arguments are superfluous in this case.
+    //
+    // HISTORY
+    // 09 March 2005
+    // o Initial development
+    //
 
-  float   f_cost   = 0.0;
-  float  f_distance = 0.0;
-  int   vno_n  = 0;
-  ;
-  VERTEX*  v_c  = NULL;
-  VERTEX*  v_n  = NULL;
-  MRIS*  surf  = st_env.pMS_curvature;
-  static int   calls  = 0;
-  const char*  pch_proc = "costFunc_EuclideanReturn(...)";
-  char  pch_txt[65536];
-  static bool  b_warned = false;
+    float       f_cost      = 0.0;
+    float       f_distance  = 0.0;
+    int         vno_n       = 0;
 
-  v_c = &surf->vertices[vno_c];
-  if (b_relNextReference) {
-    vno_n = v_c->v[j];
-    v_n = &surf->vertices[vno_n];
-  } else {
-    v_n = &surf->vertices[j];
-  }
+    VERTEX*     v_c         = NULL;
+    VERTEX*     v_n         = NULL;
+    MRIS*       surf        = st_env.pMS_curvature;
+    static int  calls       = 0;
+    char*       pch_proc    = "costFunc_EuclideanReturn(...)";
+    char        pch_txt[65536];
+    static bool b_warned = false;
 
-  s_weights*  pSTw  = st_env.pSTw;
-  float  wd  = pSTw->wd;
+    v_c = &surf->vertices[vno_c];
+    if (b_relNextReference) {
+        vno_n = v_c->v[j];
+        v_n = &surf->vertices[vno_n];
+    } else {
+        v_n = &surf->vertices[j];
+    }
 
-  if (wd <= 0.) {
-    sprintf(pch_txt, "calculating cost in %s", pch_proc);
-    error_exit(pch_txt, "wd must be greater than zero.", 1);
-  }
-  if (wd != 1. && !b_warned) {
-    sprintf(pch_txt, "calculating cost in %s", pch_proc);
-    warn(pch_txt, "wd is not equal to 1. Distances will be skewed", 1);
-    b_warned = true;
-  }
+    s_weights*  pSTw  = st_env.pSTw;
+    float  wd  = pSTw->wd;
 
-  st_V3D   V3_c; // current point
-  st_V3D   V3_n; // next points
+    if (wd <= 0.) {
+        sprintf(pch_txt, "calculating cost in %s", pch_proc);
+        error_exit(pch_txt, "wd must be greater than zero.", 1);
+    }
+    if (wd != 1. && !b_warned) {
+        sprintf(pch_txt, "calculating cost in %s", pch_proc);
+        warn(pch_txt, "wd is not equal to 1. Distances will be skewed", 1);
+        b_warned = true;
+    }
 
-  calls++;
+    st_V3D   V3_c; // current point
+    st_V3D   V3_n; // next points
 
-  // Cartesian points "current" and "next"
-  V3_c.f_x = v_c->x;
-  V3_n.f_x = v_n->x;
-  V3_c.f_y = v_c->y;
-  V3_n.f_y = v_n->y;
-  V3_c.f_z = v_c->z;
-  V3_n.f_z = v_n->z;
+    calls++;
 
-  f_distance = V3D_distance(V3_c, V3_n);
+    // Cartesian points "current" and "next"
+    V3_c.f_x    = v_c->x;
+    V3_n.f_x    = v_n->x;
+    V3_c.f_y    = v_c->y;
+    V3_n.f_y    = v_n->y;
+    V3_c.f_z    = v_c->z;
+    V3_n.f_z    = v_n->z;
 
-  f_cost = f_distance * wd;
+    f_distance  = V3D_distance(V3_c, V3_n);
 
-  return(f_cost);
+    f_cost      = f_distance * wd;
+
+    return(f_cost);
 }
 
 

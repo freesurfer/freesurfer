@@ -41,6 +41,13 @@
 ///
 ///  Week of 20 September 2004 - kdevelop integration / cvs setup
 ///
+///  27 October 2009
+///  o Resurrection!
+///    Changed setting of default cost function to occur during system
+///    init. Previously this happened prior to each call to dijkstra(...).
+///    This allows for dijkstra RUN to use arbitrary cost (old behaviour
+///    was to only allow arbitrary cost function selection for ply searching).
+///    
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -74,23 +81,22 @@ using namespace std;
 #include "c_surface.h"
 
 static struct option const longopts[] = {
-  {"optionsFile", required_argument,  NULL, 'o'
-  },
-  {"dir",  required_argument,  NULL, 'd'},
-  {"version",   no_argument,  NULL, 'v'},
-  {"listen",   no_argument,  NULL, 'l'},
-  {"listenOnPort", required_argument, NULL, 'L'},
+  {"optionsFile",       required_argument,      NULL, 'o'},
+  {"dir",               required_argument,      NULL, 'd'},
+  {"version",           no_argument,            NULL, 'v'},
+  {"listen",            no_argument,            NULL, 'l'},
+  {"listenOnPort",      required_argument,      NULL, 'L'},
   {NULL, 0, NULL, 0}
 };
 
-char*  Gpch_Progname;
-char*  Progname = Gpch_Progname;
-string  G_SELF          = "";  // "My" name
-string          G_VERSION       =   // version
-  "$Id: mris_pmake.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $";
-stringstream Gsout("");
-int   G_lw   = 20;  // print column
-int   G_rw  = 20;  // widths (left and right)
+char*   Gpch_Progname;
+char*   Progname        = Gpch_Progname;
+string  G_SELF          = "";           // "My" name
+string  G_VERSION       =               // version
+  "$Id: mris_pmake.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $";
+stringstream            Gsout("");
+int     G_lw            = 40;           // print column
+int     G_rw            = 20;           // widths (left and right)
 
 void
 version_show(void) {
@@ -119,63 +125,79 @@ synopsis_show(void) {
   //  o Initial design and coding.
   //
 
-  cout << endl << "NAME";
-  cout << endl << "";
-  cout << endl << "\tdijskstra_p1.cpp";
-  cout << endl << "\t\t" << G_VERSION;
-  cout << endl << "";
-  cout << endl << "SYNOPSIS";
-  cout << endl << "";
-  cout << endl << "\tdijkstra_p1 [OPTIONS]";
-  cout << endl << "";
-  cout << endl << "DESC";
-  cout << endl << "";
-  cout << endl << "\t`dijkstra_p1' (prototype 1) attempts to trace sulcal regions on a";
-  cout << endl << "\tfreesurfer processed brain volume.";
-  cout << endl << "";
-  cout << endl << "\tIts behaviour is governed largely by the following command-line options:";
-  cout << endl << "";
-  cout << endl << "\tOPTIONS:";
-  cout << endl << "";
-  cout << endl << "\t--optionsFile=<fileName>, -o <fileName>";
-  cout << endl << "";
-  cout << endl << "\tThis defines an options file that contains several runtime parameters, including";
-  cout << endl << "\tcost function variables, start and terminal path vertex indices, etc.";
-  cout << endl << "";
-  cout << endl << "\tNote that this will default to a file called \"options.txt\" If this contains";
-  cout << endl << "\ta directory prefix, this will be assumed to indicate the working directory for";
-  cout << endl << "\tany generated output files.";
-  cout << endl << "";
-  cout << endl << "\t--dir=<dirName>, -d <dirName>";
-  cout << endl << "";
-  cout << endl << "\tThe working directory. If <fileName> contains a directory prefix, this will";
-  cout << endl << "\toverride that prefix. Used to specify directory that contains the optionFile";
-  cout << endl << "\tand any generated output files.";
-  cout << endl << "";
-  cout << endl << "\tNote that this will default to a file called \"options.txt\"";
-  cout << endl << "";
-  cout << endl << "\t--listen";
-  cout << endl << "";
-  cout << endl << "\tStart in LISTEN mode, i.e. do not calculate a path, but simply listen on";
-  cout << endl << "\tembedded socket (see options file for further instructions). Note that the";
-  cout << endl << "\tenvironment described in the options file is still parsed in this mode.";
-  cout << endl << "\tThis parameter is useful in forcing a re-read of a possibly changed";
-  cout << endl << "\toptions file, without acting on these changes.";
-  cout << endl << "";
-  cout << endl << "\t--listenOnPort <port>";
-  cout << endl << "";
-  cout << endl << "\tSimilar to above, but do not parse environment. Create a server socket on";
-  cout << endl << "\t<port> and do nothing else. In this mode, the program requires an explicit";
-  cout << endl << "\t'HUP' text string to be UDP-sent to <port> to perform the actual path search.";
-  cout << endl << "";
-  cout << endl << "";
-  cout << endl << "";
+  const char*   pch_synopsis = "\n\
+ \n\
+NAME \n\
+ \n\
+    mris_pmake \n\
+ \n\
+SYNOPSIS \n\
+ \n\
+    mris_pmake          [--optionsFile=<fileName>]              \\ \n\
+                        [--dir=<workingDir>]                    \\ \n\
+                        [--listen | --listenOnPort <port>] \n\
+ \n\
+DESCRIPTION \n\
+ \n\
+    'mris_pmake' generates paths on FreeSurfer surfaces based on an edge cost \n\
+    and Dijkstra's algorithm. \n\
+ \n\
+    In its simplest usage, a <start> and <end> vertex index on the surface is \n\
+    specified (typically in the <optionsFile>), and the program calculates the \n\
+    shortest path connected the points as well as the path cost. 'Shortest' \n\
+    path in this case only has meaning in the context of the cost function that \n\
+    is being evaluated. \n\
+ \n\
+    The program can also be used to calculate regions, specifying a <center> \n\
+    vertex and tagging all vertices that satisfy some cost constraint away from \n\
+    this vertex. Usually this is used to tag all vertices a certain distance \n\
+    away from the <start> vertex. \n\
+ \n\
+    An interactive mode of operation is also available through a companion \n\
+    Python script called 'dsh' that allows asychronous setting of <start> and \n\
+    <end> vertices, changes in the cost function weights, etc. This 'dsh' \n\
+    script is probably the best and easiest way to run 'mris_pmake'. \n\
+ \n\
+OPTIONS \n\
+ \n\
+    --optionsFile=<fileName> \n\
+    The main configuration file that specifies the startup run-time behaviour \n\
+    of the program, including cost function variables, start and terminal \n\
+    vertex indices, cost function, input files, output files, etc. \n\
+ \n\
+    If the <fileName> contains a directory prefix, this directory will be \n\
+    assumed to be the working directory. \n\
+ \n\
+    Default is 'options.txt' \n\
+ \n\
+    --dir=<workingDir> \n\
+    The working directory. This will override a working directory that might \n\
+    have been specified in the <fileName> prefix. \n\
+ \n\
+    Defaults is current directory. \n\
+ \n\
+    --listen \n\
+    Start in LISTEN mode, i.e. initialize the program, but do not actually \n\
+    calculate a path. Instead, once ready, start listening on the embedded \n\
+    server socket for instructions. Send a 'RUN' string in a UDP packet to \n\
+    the port specified in <optionsFile> to perform the path search. \n\
+ \n\
+    --listenOnPort <port> \n\
+    Similar to above, but do not interpret the <optionsFile> environment. \n\
+    Essentially create the server port on <port> and do nothing else. In this \n\
+    mode, the program requires an explicit 'HUP' text string to be sent as \n\
+    a UDP packet to <port> to read the enviroment and perform the search. \n\
+ \n\
+ \n\
+\n";
+
+   cout << pch_synopsis;
 }
 
 int
 main(
-  int   argc,
-  char**   ppch_argv) {
+    int         argc,
+    char**      ppch_argv) {
 
   /* ----- initializations ----- */
 
@@ -185,31 +207,33 @@ main(
 
   Gpch_Progname  = strrchr(ppch_argv[0], '/');
   Gpch_Progname  = (Gpch_Progname == NULL ? ppch_argv[0] : Gpch_Progname+1);
-  string  str_progname(Gpch_Progname);
-  G_SELF  = str_progname;
-  ;
+  string                        str_progname(Gpch_Progname);
+  G_SELF                                                = str_progname;
 
-  string   str_asynchComms  = "HUP";
-  C_scanopt*    pcso_options  = NULL;
-  s_env   st_env;
+  string                        str_asynchComms         = "HUP";
+  C_scanopt*                    pcso_options            = NULL;
+  s_env                         st_env;
   s_env_nullify(st_env);
 
-  s_weights   st_costWeight;
-  s_Dweights   st_DcostWeight;
-  c_SSocket_UDP_receive* pCSSocketReceive = NULL;
-  bool   b_socketCreated  = false;
+  s_weights                     st_costWeight;
+  s_Dweights                    st_DcostWeight;
+  c_SSocket_UDP_receive*        pCSSocketReceive        = NULL;
+  bool                          b_socketCreated         = false;
 
   // Prior to completely populating the enter st_env structure, we fill in
   // some defaults to "boot strap" the process.
-  st_env.str_workingDir = "./";
-  st_env.str_optionsFileName = "options.txt";
-  st_env.b_surfacesKeepInSync = true;   // This allows us to
-  // propogate changes
-  // in the working
-  // surface to the
-  // auxillary surface.
-  string   str_optionsFQName  = "";
-  string   str_patchFQName  = "";
+  st_env.str_workingDir         = "./";
+  st_env.str_optionsFileName    = "options.txt";
+  st_env.b_surfacesKeepInSync   = true;         // This allows us to
+                                                //+ propogate changes
+                                                //+ in the working
+                                                //+ surface to the
+                                                //+ auxillary surface.
+
+  // Set the default cost function in the enviroment
+  s_env_costFctSet(&st_env, costFunc_defaultDetermine, e_default);
+  string        str_optionsFQName       = "";
+  string        str_patchFQName         = "";
 
   // Process command line options
   while (1) {
@@ -249,52 +273,50 @@ main(
   // The main functional and event processing loop
   while (str_asynchComms != "TERM") {
 
-    if ( str_asynchComms == "HUP"  ||  \
-         str_asynchComms == "LISTEN" || \
-         str_asynchComms == "LISTENPORT" || \
+    if ( str_asynchComms == "HUP"           || \
+         str_asynchComms == "LISTEN"        || \
+         str_asynchComms == "LISTENPORT"    || \
          str_asynchComms == "RUN") {
 
-      system("echo > lock");   // signal a "lock"
-      // semaphore on
-      //  the file system
+      system("echo > lock");            // signal a "lock"
+                                        //+ semaphore on
+                                        //+ the file system
 
       if (str_asynchComms != "RUN") {
         // Create scanopt objects to parse the (possibly changed)
         // options file
         str_optionsFQName = st_env.str_workingDir + st_env.str_optionsFileName;
-        pcso_options  = new C_scanopt(str_optionsFQName, e_EquLink);
+        pcso_options      = new C_scanopt(str_optionsFQName, e_EquLink);
 
         if (str_asynchComms != "LISTENPORT") {
           // Parse the options file
-          s_env_scan( st_env, *pcso_options);
-          s_weights_scan( st_costWeight,  *pcso_options);
-          s_Dweights_scan( st_DcostWeight, *pcso_options);
-          st_env.pSTw  = &st_costWeight;
-          st_env.pSTDw = &st_DcostWeight;
+          s_env_scan(       st_env,         *pcso_options);
+          s_weights_scan(   st_costWeight,  *pcso_options);
+          s_Dweights_scan(  st_DcostWeight, *pcso_options);
+          st_env.pSTw  =    &st_costWeight;
+          st_env.pSTDw =    &st_DcostWeight;
         }
 
         if (st_env.port && !b_socketCreated) {
           // Create a UDP socket
           pCSSocketReceive  = new c_SSocket_UDP_receive(
                                 st_env.port, st_env.timeoutSec);
-          b_socketCreated = true;
+          b_socketCreated   = true;
         }
         if (!pCSSocketReceive)
           str_asynchComms = "TERM";
       }
 
-      if ( str_asynchComms == "HUP"  ||  \
-           str_asynchComms == "RUN" &&
-           st_env.pSTw != NULL) {
+      if ( (str_asynchComms  == "HUP" || str_asynchComms  == "RUN") &&
+           st_env.pSTw      != NULL) {
         Gsout.str("");
         Gsout << "Determining path from vertex " << st_env.startVertex;
-        Gsout  << " to vertex " << st_env.endVertex << "..." << flush;
+        Gsout << " to vertex " << st_env.endVertex << "..." << flush;
         ULOUT(Gsout.str());
         SLOUT("PROCESSING: path");
 
         //----------------------------------
         // The "heart" of this entire system
-        s_env_costFctSet(&st_env, costFunc_defaultDetermine, e_default);
         if (!dijkstra(st_env)) exit(1);
         //----------------------------------
 
@@ -318,7 +340,7 @@ main(
         }
 
         if (st_env.b_labelFile_save) {
-          ULOUT("Labelling and saving all target vertices... ");
+          ULOUT("Labeling and saving all target vertices... ");
           //label_save(st_env);
           void* pv_void = NULL;
           label_workingSurface_saveTo(st_env, vertex_ripFlagIsTrue, pv_void);

@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_label.cpp,v 1.2 2009/10/01 19:44:25 nicks Exp $
+// $Id: c_label.cpp,v 1.3 2009/10/29 15:30:49 rudolph Exp $
 
 #include "c_label.h"
 #include "dijkstra.h"
@@ -29,72 +29,72 @@
 
 void
 label_ply_do(
-  s_env   &ast_env
+    s_env       &ast_env
 ) {
-  //
-  // PRECONDITIONS
-  // o The plyDepth field of ast_env is set.
-  //  o The ply function has been assigned.
-  // o A pattern of TRUE ripflags across the vertex space corresponding
-  //   to the label to ply has been defined.
-  //
-  // POSTCONDITIONS
-  // o Using the dijkstra engine, each vertex of the label is surrounded by
-  //   concentric "circles". The overlap of these circles defines a unidistant
-  //   delta region about the path defined by the labelled vertices.
-  //
+    //
+    // PRECONDITIONS
+    // o The plyDepth field of ast_env is set.
+    //  o The ply function has been assigned.
+    // o A pattern of TRUE ripflags across the vertex space corresponding
+    //   to the label to ply has been defined.
+    //
+    // POSTCONDITIONS
+    // o Using the dijkstra engine, each vertex of the label is surrounded by
+    //   concentric "circles". The overlap of these circles defines a unidistant
+    //   delta region about the path defined by the labelled vertices.
+    //
 
-  // Should any cost values remaining in the surface be zeroed? Yes.
+    // Should any cost values remaining in the surface be zeroed? Yes.
 
-  bool b_origHistoryFlag = ast_env.b_costHistoryPreserve;
-  bool b_surfaceCostVoid = false;
-  int  i   = 0;
-  int  j   = 0;
-  ast_env.b_costHistoryPreserve = true;
+    bool b_origHistoryFlag          = ast_env.b_costHistoryPreserve;
+    bool b_surfaceCostVoid          = false;
+    int  i                          = 0;
+    int  j                          = 0;
+    ast_env.b_costHistoryPreserve   = true;
 
-  //s_env_costFctSet(&ast_env, costFunc_unityReturn, e_unity);
+    //s_env_costFctSet(&ast_env, costFunc_unityReturn, e_unity);
 
-  for (i=0; i<ast_env.pMS_active->nvertices; i++) {
-    if (ast_env.pMS_active->vertices[i].ripflag == TRUE) {
-      b_surfaceCostVoid  = !j++;
-      ast_env.startVertex = i;
-      ast_env.endVertex = i;
-      dijkstra(ast_env, ast_env.plyDepth, b_surfaceCostVoid);
+    for (i=0; i<ast_env.pMS_active->nvertices; i++) {
+        if (ast_env.pMS_active->vertices[i].ripflag == TRUE) {
+        b_surfaceCostVoid  = !j++;
+        ast_env.startVertex = i;
+        ast_env.endVertex = i;
+        dijkstra(ast_env, ast_env.plyDepth, b_surfaceCostVoid);
+        }
     }
-  }
-  ast_env.b_costHistoryPreserve = b_origHistoryFlag;
+    ast_env.b_costHistoryPreserve = b_origHistoryFlag;
 }
 
 void
 label_singleVertexSet(
-  MRIS*   apmris,
-  int   avertex,
-  void   (*vertex_labelMark)
-  (VERTEX* pvertex,
-   void*  marker),
-  void*   apv_marker
+    MRIS*       apmris,
+    int         avertex,
+    void        (*vertex_labelMark)
+    (VERTEX*    pvertex,
+        void*   marker),
+    void*       apv_marker
 ) {
-  //
-  // POSTCONDITIONS
-  // o The existing pattern of TRUE ripflags is cleared across the entire
-  //  surface.
-  // o The single vertex index has is passed to the vertex function.
-  // o Any Dijkstra "weights" that might already exist across the surface
-  //  are left intact.
-  //
-  // HISTORY
-  // 09 March 2005
-  // o Initial design and coding.
-  //
+    //
+    // POSTCONDITIONS
+    // o The existing pattern of TRUE ripflags is cleared across the entire
+    //  surface.
+    // o The single vertex index has is passed to the vertex function.
+    // o Any Dijkstra "weights" that might already exist across the surface
+    //  are left intact.
+    //
+    // HISTORY
+    // 09 March 2005
+    // o Initial design and coding.
+    //
 
-  VERTEX*  pvertex;
-  int   i;
+    VERTEX*  pvertex;
+    int   i;
 
-  for (i = 0; i < apmris->nvertices; i++)
-    apmris->vertices[i].ripflag = FALSE;
+    for (i = 0; i < apmris->nvertices; i++)
+        apmris->vertices[i].ripflag = FALSE;
 
-  pvertex = &apmris->vertices[avertex];
-  vertex_labelMark(pvertex, apv_marker);
+    pvertex = &apmris->vertices[avertex];
+    vertex_labelMark(pvertex, apv_marker);
 }
 
 bool
@@ -156,12 +156,12 @@ label_terminalsFind(
 
 void
 label_coreLoad(
-  MRIS*   apmris,
-  string   astr_fileName,
-  void   (*vertex_labelMark)
-  (VERTEX* pvertex,
-   void*  marker),
-  void*   apv_marker
+    MRIS*       apmris,
+    string      astr_fileName,
+    void        (*vertex_labelMark)
+    (VERTEX*    pvertex,
+        void*   marker),
+    void*       apv_marker
 ) {
   //
   // POSTCONDITIONS
@@ -181,10 +181,10 @@ label_coreLoad(
   // o Convert <astr_fileName> to absolute directory spec.
   //
 
-  LABEL*  pLBL;
-  VERTEX*  pvertex;
-  int   vno = 0;
-  int   i;
+  LABEL*    pLBL;
+  VERTEX*   pvertex;
+  int       vno         = 0;
+  int       i;
 
   pLBL = LabelRead((char*)"", (char*) astr_fileName.c_str());
   if (pLBL == NULL)
@@ -203,38 +203,38 @@ label_coreLoad(
 
 void
 label_workingSurface_loadFrom(
-  s_env&   st_env,
-  void   (*vertex_labelMark)
-  (VERTEX* pvertex,
-   void*  marker),
-  void*   apv_marker
+    s_env&      st_env,
+    void        (*vertex_labelMark)
+    (VERTEX*    pvertex,
+        void*   marker),
+    void*       apv_marker
 ) {
-  //
-  // ARGS
-  // st_env   in   environment data
-  //
-  // DESCRIPTION
-  //  This is thin wrapper that calls label_coreLoad(...) correctly.
-  // It accesses the working surface label file as defined in the
-  // environment and loads this into the internal working surface
-  // structure. Vertices are marked with the vertex_labelMark function.
-  //
-  // HISTORY
-  // 07 February 2005
-  // o Split from "label_save()".
-  //
+    //
+    // ARGS
+    // st_env   in   environment data
+    //
+    // DESCRIPTION
+    //  This is thin wrapper that calls label_coreLoad(...) correctly.
+    // It accesses the working surface label file as defined in the
+    // environment and loads this into the internal working surface
+    // structure. Vertices are marked with the vertex_labelMark function.
+    //
+    // HISTORY
+    // 07 February 2005
+    // o Split from "label_save()".
+    //
 
-  string  str_labelFileName;
-  MRIS*  pMS_curvature;
+    string      str_labelFileName;
+    MRIS*       pMS_curvature;
 
-  bool  b_clearWholeSurface = true;
-  surface_ripClear(st_env, b_clearWholeSurface);
+    bool        b_clearWholeSurface = true;
+    surface_ripClear(st_env, b_clearWholeSurface);
 
-  str_labelFileName = st_env.str_workingDir + st_env.str_labelFileName;
-  pMS_curvature = st_env.pMS_curvature;
-  ULOUT(str_labelFileName);
-  label_coreLoad(pMS_curvature, str_labelFileName, vertex_labelMark, apv_marker);
-  nULOUT("\t\t\t\t[ ok ]");
+    str_labelFileName   = st_env.str_workingDir + st_env.str_labelFileName;
+    pMS_curvature       = st_env.pMS_curvature;
+    ULOUT(str_labelFileName);
+    label_coreLoad(pMS_curvature, str_labelFileName, vertex_labelMark, apv_marker);
+    nULOUT("\t\t\t\t[ ok ]");
 }
 
 void
@@ -339,63 +339,63 @@ label_ply_save(
 
 void
 label_auxSurface_saveTo(
-  s_env&   st_env,
-  bool   (*vertex_satisfyTestCondition)
-  (VERTEX* pvertex,
-   void*  apv_void),
-  void*   apv_fromCaller
+    s_env&      st_env,
+    bool        (*vertex_satisfyTestCondition)
+    (VERTEX*    pvertex,
+        void*   apv_void),
+    void*       apv_fromCaller
 ) {
-  //
-  // ARGS
-  // st_env   in   environment data
-  //
-  // DESCRIPTION
-  // This is thin wrapper that calls label_coreSave(...) correctly.
-  //  It access marked vertices on the original surface and saves these to
-  // a label file as specified in the environment structure.
-  //
-  // HISTORY
-  // 07 February 2005
-  // o Split from "label_save()".
-  //
+    //
+    // ARGS
+    // st_env   in   environment data
+    //
+    // DESCRIPTION
+    // This is thin wrapper that calls label_coreSave(...) correctly.
+    //  It access marked vertices on the original surface and saves these to
+    // a label file as specified in the environment structure.
+    //
+    // HISTORY
+    // 07 February 2005
+    // o Split from "label_save()".
+    //
 
-  string  str_labelFileName;
-  MRIS*  pMS_auxSurface;
+    string        str_labelFileName;
+    MRIS*         pMS_auxSurface;
 
-  str_labelFileName = st_env.str_workingDir + st_env.str_labelFileNameOS;
-  pMS_auxSurface = st_env.pMS_auxSurface;
-  label_coreSave(pMS_auxSurface, str_labelFileName,
+    str_labelFileName   = st_env.str_workingDir + st_env.str_labelFileNameOS;
+    pMS_auxSurface      = st_env.pMS_auxSurface;
+    label_coreSave(pMS_auxSurface, str_labelFileName,
                  vertex_satisfyTestCondition, apv_fromCaller);
 }
 
 void
 label_workingSurface_saveTo(
-  s_env&   st_env,
-  bool   (*vertex_satisfyTestCondition)
-  (VERTEX* pvertex,
-   void*  apv_void),
-  void*   apv_fromCaller
+    s_env&      st_env,
+    bool        (*vertex_satisfyTestCondition)
+    (VERTEX*    pvertex,
+        void*   apv_void),
+    void*       apv_fromCaller
 ) {
-  //
-  // ARGS
-  // st_env   in   environment data
-  //
-  // DESCRIPTION
-  //  This is thin wrapper that calls label_coreSave(...) correctly.
-  //  It access marked vertices on the working surface and saves these to
-  // a label file as specified in the environment structure.
-  //
-  // HISTORY
-  // 07 February 2005
-  // o Split from "label_save()".
-  //
+    //
+    // ARGS
+    // st_env   in   environment data
+    //
+    // DESCRIPTION
+    //  This is thin wrapper that calls label_coreSave(...) correctly.
+    //  It access marked vertices on the working surface and saves these to
+    // a label file as specified in the environment structure.
+    //
+    // HISTORY
+    // 07 February 2005
+    // o Split from "label_save()".
+    //
 
-  string  str_labelFileName;
-  MRIS*  pMS_curvature;
+    string      str_labelFileName;
+    MRIS*       pMS_curvature;
 
-  str_labelFileName = st_env.str_workingDir + st_env.str_labelFileName;
-  pMS_curvature = st_env.pMS_curvature;
-  label_coreSave(pMS_curvature, str_labelFileName,
+    str_labelFileName   = st_env.str_workingDir + st_env.str_labelFileName;
+    pMS_curvature       = st_env.pMS_curvature;
+    label_coreSave(pMS_curvature, str_labelFileName,
                  vertex_satisfyTestCondition, apv_fromCaller);
 }
 
