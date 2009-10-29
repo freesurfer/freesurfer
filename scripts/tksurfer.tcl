@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: krish $
-##    $Date: 2009/10/27 22:52:24 $
-##    $Revision: 1.165 $
+##    $Date: 2009/10/29 21:21:30 $
+##    $Revision: 1.166 $
 ##
 ## Copyright (C) 2002-2007,
 ## The General Hospital Corporation (Boston, MA). 
@@ -1019,6 +1019,12 @@ proc DoConfigOverlayDisplayDlog {} {
 	  radiobutton $linktpflag -font [tkm_GetNormalFont] \
 	  -variable gaLinkedVars(linkvertexmode) -value 1 -text "Link Time Point to Vertex Index" \
 	  -state disabled
+	  radiobutton $linkavglabelflag -font [tkm_GetNormalFont] \
+	  -variable gaLinkedVars(linkvertexmode) -value 2 -text "Link Average within a ROI to Vertex Index" \
+	  -state disabled 
+	  radiobutton $linknormavglabelflag -font [tkm_GetNormalFont] \
+	  -variable gaLinkedVars(linkvertexmode) -value 3 -text "Link Normalized Average within a ROI to Vertex Index" \
+	  -state disabled 
          }
 
 	grid $lwPlane     -column 0 -row 0 -columnspan 2
