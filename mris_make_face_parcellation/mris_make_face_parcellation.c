@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/29 00:38:50 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/10/29 11:23:57 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.8 2009/10/29 00:38:50 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.9 2009/10/29 11:23:57 fischl Exp $";
 
 typedef struct
 {
@@ -186,7 +186,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.8 2009/10/29 00:38:50 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.9 2009/10/29 11:23:57 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -194,7 +194,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.8 2009/10/29 00:38:50 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.9 2009/10/29 11:23:57 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1040,7 +1040,7 @@ compute_parcellation_statistics(MRI_SURFACE *mris, MRI *mri_cmatrix, MRI *mri_st
         var = (var - dof*mean*mean) / (dof-1);
       else
         var = (var / dof - mean*mean) ;
-      if (var < 0)
+      if (var < 0 && dof > 2)
       {
         FILE *fp = fopen("val.log", "w") ;
 
@@ -1162,7 +1162,7 @@ update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int n
       var = (var - dofs*mean*mean) / (dofs-1);
     else
       var = (var /  dofs - mean*mean) ;
-    if (var < 0)
+    if (dofs > 2 && var < 0)
       DiagBreak() ;
     total_mean += mean ;
     total_var += var ;
@@ -1196,7 +1196,7 @@ update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int n
       var = (var - dofs*mean*mean) / (dofs-1);
     else
       var = (var /  dofs - mean*mean) ;
-    if (var < 0)
+    if (dofs > 2 && var < 0)
       DiagBreak() ;
     total_mean += mean ;
     total_var += var ;
@@ -1517,6 +1517,7 @@ compute_parcellation_energy_change(MRI_SURFACE *mris, PARMS *parms,
   int     parcel, n, nparcels, n_nbrs, nframes ;
   VERTEX  *v ;
 
+  energy_new = energy_old = dist_within_old = dist_within_new = 0.0 ;
   nparcels = parms->stats.nparcels ;
 
   v = &mris->vertices[vno] ;
