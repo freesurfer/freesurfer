@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/29 11:23:57 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/10/29 17:36:11 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.9 2009/10/29 11:23:57 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.10 2009/10/29 17:36:11 fischl Exp $";
 
 typedef struct
 {
@@ -186,7 +186,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.9 2009/10/29 11:23:57 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.10 2009/10/29 17:36:11 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -194,7 +194,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.9 2009/10/29 11:23:57 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.10 2009/10/29 17:36:11 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -799,7 +799,7 @@ compute_parcellation_energy(MRI_SURFACE *mris, MRI *mri_stats, PARMS *parms,
                             double *penergy, MRI *mri_means, MRI *mri_vars, 
                             MRI *mri_cmatrix)
 {
-  double  energy, parc_energy, markov, gauss ;
+  double  energy = 0.0, parc_energy, markov, gauss ;
 
   if (parms->l_var > 0)
   {
