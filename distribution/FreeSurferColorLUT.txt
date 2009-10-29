@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.63 2009/10/01 19:38:48 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.64 2009/10/29 22:01:15 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -946,7 +946,7 @@
 7015  Paralaminar-nucleus                               45  205 165 0
 7016  Intercalated-nucleus                              117 160 175 0
 7017  Prepiriform-cortex                                221 217 21  0
-7018  Periamygdaloid-cortex                             104 254 253 0
+7018  Periamygdaloid-cortex                             20  60  120 0
 7019  Envelope-Amygdala                                 141 21  100 0
 7020  Extranuclear-Amydala                              225 140 141 0
 
