@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/01 15:57:15 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2009/10/29 20:11:01 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.20 2009/09/01 15:57:15 fischl Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.21 2009/10/29 20:11:01 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -86,6 +86,7 @@ MRI  *seg;
 int  segbase = -1000;
 
 char *borderfile=NULL;
+char *BorderAnnotFile=NULL;
 char *LobesFile=NULL;
 
 static int label_index = -1 ;  // if >= 0 only extract this label
@@ -96,11 +97,11 @@ static int label_index = -1 ;  // if >= 0 only extract this label
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
   int err,vtxno,ano,ani,vtxani,animax;
-  int nargs;
+  int nargs,IsBorder;
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.20 2009/09/01 15:57:15 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.21 2009/10/29 20:11:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -175,10 +176,28 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  if(borderfile != NULL){
-    printf("Computing border\n");
+  if(borderfile || BorderAnnotFile){
+    printf("Computing annot border\n");
     border = MRISannot2border(Surf);
-    MRIwrite(border,borderfile);
+    if(BorderAnnotFile){
+      for (vtxno = 0; vtxno < Surf->nvertices; vtxno++) {
+	IsBorder = MRIgetVoxVal(border,vtxno,0,0,0);
+	if(IsBorder) continue;
+	Surf->vertices[vtxno].annotation = 0;
+      }
+      err = MRISwriteAnnotation(Surf,BorderAnnotFile);
+      if(err){
+	printf("ERROR: cannot write %s\n",BorderAnnotFile);
+	exit(1);
+      }
+    }
+    if(borderfile){
+      MRIwrite(border,borderfile);
+      if(err){
+	printf("ERROR: cannot write %s\n",BorderAnnotFile);
+	exit(1);
+      }
+    }
     exit(0);
   }
 
@@ -275,7 +294,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--a2005s"))  annotation = "aparc.a2005s";
 
     /* -------- source inputs ------ */
-    else if (!strcmp(option, "--subject")) {
+    else if(!strcmp(option, "--subject") || !strcmp(option, "--s")) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
@@ -328,6 +347,11 @@ static int parse_commandline(int argc, char **argv) {
       borderfile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--border-annot")) {
+      if (nargc < 1) argnerr(option,1);
+      BorderAnnotFile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--lobes")) {
       if (nargc < 1) argnerr(option,1);
       LobesFile = pargv[0];
@@ -362,6 +386,7 @@ static void print_usage(void) {
   printf("   --seg segfile : output will be a segmentation 'volume'\n");
   printf("   --segbase base : add base to the annotation number to get seg value\n");
   printf("   --border borderfile : output will be a binary overlay of the parc borders \n");
+  printf("   --border-annot borderannot : default goes in subject/label\n");
   printf("\n");
   printf("   --annotation as found in SUBJDIR/labels <aparc>\n");
   printf("   --sd <SUBJECTS_DIR>  specify SUBJECTS_DIR on cmdline\n") ;
