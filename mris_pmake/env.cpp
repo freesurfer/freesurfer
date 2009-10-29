@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.3 2009/10/29 15:30:49 rudolph Exp $
+// $Id: env.cpp,v 1.4 2009/10/29 21:02:47 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -321,6 +321,7 @@ s_env_nullify(
     st_env.pMS_curvature            = NULL;
     st_env.pMS_sulcal               = NULL;
 
+    st_env.b_useAbsCurvs            = false;
     st_env.b_surfacesKeepInSync     = false;
     st_env.b_surfacesClear          = true;
     st_env.b_costHistoryPreserve    = false;
@@ -352,8 +353,8 @@ s_env_scan(
 ) {
   //
   // ARGS
-  // cso_options  in  scanopt structure to be parsed
-  // st_env   in/out  environment structure to be filled
+  //    cso_options     in              scanopt structure to be parsed
+  //    st_env          in/out          environment structure to be filled
   //
   // DESCRIPTION
   // Scans the options file structure for environment data.
@@ -381,6 +382,9 @@ s_env_scan(
   //   optimisation of cost weights - the system needed to communicate
   //   the result of a correlation operation to some external process.
   //
+  // 29 October 2009
+  // o Added 'b_useAbsCurvs'.
+  // 
 
   static int    calls                   = 0;
 
@@ -400,6 +404,7 @@ s_env_scan(
   string        str_sysMsgFileName      = "";
   string        str_resultMsgFileName   = "";
 
+  bool          b_useAbsCurvs           = true;
   bool          b_labelFile_save        = true;
   bool          b_transitionPenalties   = true;
   bool          b_patchFile_save        = true;
@@ -500,6 +505,13 @@ s_env_scan(
     error_exit("scanning user options",
                "I couldn't find b_transitionPenalties.",
                32);
+
+  if (cso_options.scanFor("b_useAbsCurvs", &str_value))
+    b_useAbsCurvs =  atoi(str_value.c_str());
+  else
+    error_exit("scanning user options",
+               "I couldn't find b_useAbsCurvs.",
+               33);
 
   if (cso_options.scanFor("controlPort", &str_value))
     port   =  atoi(str_value.c_str());
@@ -999,108 +1011,122 @@ costFunc_defaultDetermine(
     // o Added st_iterInfo
     //
 
-  int           vno_n;
-  VERTEX*       v_c;
-  VERTEX*       v_n;
-  float         dist, ave_curv, curv, max_height, cost;
-  s_weights*    pSTw = st_env.pSTw;
-  MRIS*  surf = st_env.pMS_curvature;
+    int           vno_n;
+    VERTEX*       v_c;
+    VERTEX*       v_n;
+    float         dist, ave_curv, curv, max_height, max_curv, cost;
+    s_weights*    pSTw = st_env.pSTw;
+    MRIS*         surf = st_env.pMS_curvature;
 
-  v_c = &surf->vertices[vno_c];
-  if (b_relNextReference) {
-    vno_n = v_c->v[j];
-    v_n = &surf->vertices[vno_n];
-  } else {
-    v_n = &surf->vertices[j];
-  }
+    v_c = &surf->vertices[vno_c];
+    if (b_relNextReference) {
+        vno_n = v_c->v[j];
+        v_n = &surf->vertices[vno_n];
+    } else {
+        v_n = &surf->vertices[j];
+    }
 
-  float wd  = pSTw->wd;
-  float wdc = pSTw->wdc;
-  float wc  = pSTw->wc;
-  float wdh = pSTw->wdh;
-  float wh  = pSTw->wh;
-  float wch = pSTw->wch;
+    float wd  = pSTw->wd;
+    float wdc = pSTw->wdc;
+    float wc  = pSTw->wc;
+    float wdh = pSTw->wdh;
+    float wh  = pSTw->wh;
+    float wch = pSTw->wch;
 
-  float wdch  = pSTw->wdch;
-  float wdir  = pSTw->wdir;
+    float wdch  = pSTw->wdch;
+    float wdir  = pSTw->wdir;
 
-  float f_height = 0.;
-  float f_dir  = 0.;
+    float f_height      = 0.;
+    float f_dir         = 0.;
 
-  st_V3D        V3_c;           // current point
-  st_V3D        V3_n;           // next points
-  st_V3D        V3_cn;          // vector from current to next
-  static st_V3D V3_e;           // end point
-  st_V3D        V3_ce;          // vector from current to end
-  static int    calls = 0;
+    st_V3D        V3_c;           // current point
+    st_V3D        V3_n;           // next points
+    st_V3D        V3_cn;          // vector from current to next
+    static st_V3D V3_e;           // end point
+    st_V3D        V3_ce;          // vector from current to end
+    static int    calls = 0;
 
-  if (!calls) {
-    V3_e.f_x = st_env.pMS_curvature->vertices[st_env.endVertex].x;
-    V3_e.f_y = st_env.pMS_curvature->vertices[st_env.endVertex].y;
-    V3_e.f_z = st_env.pMS_curvature->vertices[st_env.endVertex].z;
-  }
-  calls++;
+    if (!calls) {
+        V3_e.f_x = st_env.pMS_curvature->vertices[st_env.endVertex].x;
+        V3_e.f_y = st_env.pMS_curvature->vertices[st_env.endVertex].y;
+        V3_e.f_z = st_env.pMS_curvature->vertices[st_env.endVertex].z;
+    }
+    calls++;
 
-  // Cartesian points "current" and "next"
-  V3_c.f_x = v_c->x;
-  V3_n.f_x = v_n->x;
-  V3_c.f_y = v_c->y;
-  V3_n.f_y = v_n->y;
-  V3_c.f_z = v_c->z;
-  V3_n.f_z = v_n->z;
+    // Cartesian points "current" and "next"
+    V3_c.f_x = v_c->x;
+    V3_n.f_x = v_n->x;
+    V3_c.f_y = v_c->y;
+    V3_n.f_y = v_n->y;
+    V3_c.f_z = v_c->z;
+    V3_n.f_z = v_n->z;
 
-  // direction vectors
-  V3D_normalizedDirection_find(V3_c, V3_n, &V3_cn);
-  V3D_normalizedDirection_find(V3_c, V3_e, &V3_ce);
+    // direction vectors
+    V3D_normalizedDirection_find(V3_c, V3_n, &V3_cn);
+    V3D_normalizedDirection_find(V3_c, V3_e, &V3_ce);
 
-  float f_dot = V3D_dot(V3_cn, V3_ce); // dot product is "1"
-  // for colinear
-  // vectors
-  f_dir  = 1 - f_dot;
+    float f_dot = V3D_dot(V3_cn, V3_ce);        // dot product is "1"
+                                                //+ for colinear
+                                                //+ vectors
+    f_dir  = 1 - f_dot;
 
-  max_height = (st_env.pMS_sulcal->max_curv);
-  f_height = max_height - st_env.pMS_sulcal->vertices[vno_c].curv;
+    if (b_relNextReference)
+        dist = v_c->dist[j];
+    else
+        dist = V3D_distance(V3_c, V3_n);
 
-  if (b_relNextReference)
-    dist = v_c->dist[j];
-  else
-    dist = V3D_distance(V3_c, V3_n);
-// ave_curv  = (v_c->curv + v_n->curv) / 2.0;
+    // Arguably two possibilities for thinking about the
+    // curvature connecting the current vertex to its
+    // neighbour. Initially I thought to take a simple
+    // average between the current and neighbour vertex
+    // curvatures, but this has 'artifacts' across zero
+    // crossings when the curvature changes sign. I then
+    // simply just took the neighbour curvature as the
+    // curvature between 'here' and 'there' to avoid
+    // all these sign-issues.
 
-  ave_curv  = v_n->curv;
+    // ave_curv  = (v_c->curv + v_n->curv) / 2.0;
+    ave_curv                     = v_n->curv;
 
-  pst_iterInfo->iter   = calls;
-  pst_iterInfo->f_distance = dist;
-  pst_iterInfo->f_curvature = ave_curv;
-  pst_iterInfo->f_sulcalHeight = st_env.pMS_sulcal->vertices[vno_c].curv;
-  pst_iterInfo->f_dir  = f_dir;
+    pst_iterInfo->iter           = calls;
+    pst_iterInfo->f_distance     = dist;
+    pst_iterInfo->f_curvature    = ave_curv;
+    pst_iterInfo->f_sulcalHeight = st_env.pMS_sulcal->vertices[vno_c].curv;
+    pst_iterInfo->f_dir          = f_dir;
 
-  // Initial testing revealed that 'wdch' was particularly sensitive to *=10,
-  //  and resulted in considerable (negative) impact on overall
-  // trajectory
+    // Initial testing revealed that 'wdch' was particularly sensitive to *=10,
+    //  and resulted in considerable (negative) impact on overall
+    // trajectory
 
-  if (st_env.b_transitionPenalties && ave_curv<0) {
-    wc *= st_env.pSTDw->Dwc;
-    wdc   *= st_env.pSTDw->Dwdc;
-    wch   *= st_env.pSTDw->Dwch;
-    wdch  *= st_env.pSTDw->Dwdch;
-  }
-  if (st_env.b_transitionPenalties &&  f_height<0) {
-    wh *= st_env.pSTDw->Dwh;
-    wdh *= st_env.pSTDw->Dwdh;
-    wch   *= st_env.pSTDw->Dwch;
-    wdch *= st_env.pSTDw->Dwdch;
-  }
-  curv  = (surf->max_curv - ave_curv);
-// cost   = dist + 20.0 * dist * curv;
-  cost  =  wd  * dist   + wc  * curv   +
-           wh  * f_height   + wdc * dist * curv  +
-           wdh * dist * f_height  + wch * curv * f_height +
-           wdch * dist * curv * f_height +
-           wdir * f_dir;
+    if (st_env.b_transitionPenalties && ave_curv<0) {
+        wc      *= st_env.pSTDw->Dwc;
+        wdc     *= st_env.pSTDw->Dwdc;
+        wch     *= st_env.pSTDw->Dwch;
+        wdch    *= st_env.pSTDw->Dwdch;
+    }
+    if (st_env.b_transitionPenalties &&  f_height<0) {
+        wh      *= st_env.pSTDw->Dwh;
+        wdh     *= st_env.pSTDw->Dwdh;
+        wch     *= st_env.pSTDw->Dwch;
+        wdch    *= st_env.pSTDw->Dwdch;
+    }
 
-  return(cost);
+    max_height  = (st_env.pMS_sulcal->max_curv);
+    max_curv    = (st_env.pMS_curvature->max_curv);
+    if(st_env.b_useAbsCurvs) {
+        f_height        = fabs(f_height);
+        curv            = fabs(ave_curv);
+    } else {
+        f_height        = max_height - st_env.pMS_sulcal->vertices[vno_c].curv;
+        curv            = max_curv   - ave_curv;
+    }
+    // cost   = dist + 20.0 * dist * curv;
+    cost  = wd*dist                     + wc*curv               +
+            wh*f_height                 + wdc*dist*curv         +
+            wdh*dist*f_height           + wch*curv*f_height     +
+            wdch*dist*curv*f_height     + wdir*f_dir;
 
+    return(cost);
 }
 
 float

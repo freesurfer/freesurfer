@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $
+// $Id: asynch.cpp,v 1.3 2009/10/29 21:02:47 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -176,7 +176,7 @@ asynchEvent_processDWGHT(
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
-    error_exit(str_errorAct, "Some error occurred in the 3parse.", 1);
+    warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "all") {
     if (str_verb == "get") {
@@ -304,7 +304,7 @@ asynchEvent_processVERTEX(
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
-    error_exit(str_errorAct, "Some error occurred in the 3parse.", 1);
+    warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "start") {
     if (str_verb == "get") {
@@ -361,7 +361,7 @@ asynchEvent_processENV(
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
-    error_exit(str_errorAct, "Some error occurred in the 3parse.", 1);
+    warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "surfaceFile") {
     if (str_verb == "set") {
@@ -527,7 +527,7 @@ asynchEvent_processLABEL(
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
-    error_exit(str_errorAct, "Some error occurred in the 3parse.", 1);
+    warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_verb == "singleVertexSet") {
     char    ch_mark  = TRUE;
@@ -683,7 +683,7 @@ asynchEvent_processSURFACE(
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
-    error_exit(str_errorAct, "Some error occurred in the 3parse.", 1);
+    warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "active") {
     if (str_verb == "get") {
@@ -917,60 +917,72 @@ asynchEvent_process(
   pos = str_event.find("ENV");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 4)
-      error_exit("checking <ENV>", "no argument was found.", 2);
-    // Now remove the ENV<sp> string
-    str_event.erase(0, 4);
-    asynchEvent_processENV(st_env, str_event);
+        warn("checking <ENV>", "no argument was found.", 2);
+    else {
+        // Now remove the ENV<sp> string
+        str_event.erase(0, 4);
+        asynchEvent_processENV(st_env, str_event);
+    }
   }
 
   // Check for DWGHT
   pos = str_event.find("DWGHT");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 6)
-      error_exit("checking <DWGHT>", "no argument was found.", 2);
-    // Now remove the DWGHT<sp> string
-    str_event.erase(0, 6);
-    asynchEvent_processDWGHT(st_env, str_event);
+      warn("checking <DWGHT>", "no argument was found.", 2);
+    else {
+        // Now remove the DWGHT<sp> string
+        str_event.erase(0, 6);
+        asynchEvent_processDWGHT(st_env, str_event);
+    }
   }
 
   // Check for WGHT
   pos = str_event.find("WGHT");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 5)
-      error_exit("checking <WGHT>", "no argument was found.", 2);
-    // Now remove the WGHT<sp> string
-    str_event.erase(0, 5);
-    asynchEvent_processWGHT(st_env, str_event);
+      warn("checking <WGHT>", "no argument was found.", 2);
+    else {
+        // Now remove the WGHT<sp> string
+        str_event.erase(0, 5);
+        asynchEvent_processWGHT(st_env, str_event);
+    }
   }
 
   // Check for VERTEX
   pos = str_event.find("VERTEX");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 7)
-      error_exit("checking <VERTEX>", "no argument was found.", 2);
-    // Now remove the VERTEX<sp> string
-    str_event.erase(0, 7);
-    asynchEvent_processVERTEX(st_env, str_event);
+      warn("checking <VERTEX>", "no argument was found.", 2);
+    else {
+        // Now remove the VERTEX<sp> string
+        str_event.erase(0, 7);
+        asynchEvent_processVERTEX(st_env, str_event);
+    }
   }
 
   // Check for LABEL
   pos = str_event.find("LABEL");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 6)
-      error_exit("checking <LABEL>", "no argument was found.", 2);
-    // Now remove the VERTEX<sp> string
-    str_event.erase(0, 6);
-    asynchEvent_processLABEL(st_env, str_event);
+      warn("checking <LABEL>", "no argument was found.", 2);
+    else {
+        // Now remove the VERTEX<sp> string
+        str_event.erase(0, 6);
+        asynchEvent_processLABEL(st_env, str_event);
+    }
   }
 
   // Check for SURFACE
   pos = str_event.find("SURFACE");
   if (pos != (unsigned)string::npos) {
     if (str_event.length() < 7)
-      error_exit("checking <SURFACE>", "no argument was found.", 2);
-    // Now remove the VERTEX<sp> string
-    str_event.erase(0, 8);
-    asynchEvent_processSURFACE(st_env, str_event);
+      warn("checking <SURFACE>", "no argument was found.", 2);
+    else {
+        // Now remove the VERTEX<sp> string
+        str_event.erase(0, 8);
+        asynchEvent_processSURFACE(st_env, str_event);
+    }
   }
 
 

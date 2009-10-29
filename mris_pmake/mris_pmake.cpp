@@ -17,18 +17,18 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-/// \file dijkstra_p1.cpp
+/// \file mris_pmake.cpp
 ///
 /// \brief Brief description
 /// Determine the shortest path on a freesurfer brain curvature map.
 ///
 /// \b NAME
 ///
-/// dijkstra_p1 (dijkstra prototype 1)
+/// mris_pmake (dijkstra prototype 1)
 ///
 /// \b SYNPOSIS
 ///
-/// dijkstra_p1 <--optionsFile [fileName]> <--dir [workingDir]> [--listen] [--listenOnPort <port>]
+/// mris_pmake <--optionsFile [fileName]> <--dir [workingDir]> [--listen] [--listenOnPort <port>]
 ///
 /// \b DESCRIPTION
 ///
@@ -93,7 +93,7 @@ char*   Gpch_Progname;
 char*   Progname        = Gpch_Progname;
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.3 2009/10/29 21:02:47 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -127,6 +127,7 @@ synopsis_show(void) {
 
   const char*   pch_synopsis = "\n\
  \n\
+ \n\
 NAME \n\
  \n\
     mris_pmake \n\
@@ -144,9 +145,9 @@ DESCRIPTION \n\
  \n\
     In its simplest usage, a <start> and <end> vertex index on the surface is \n\
     specified (typically in the <optionsFile>), and the program calculates the \n\
-    shortest path connected the points as well as the path cost. 'Shortest' \n\
+    shortest path connected the points as well as the path cost. \"Shortest\" \n\
     path in this case only has meaning in the context of the cost function that \n\
-    is being evaluated. \n\
+    is being evaluated (see COST FUNCTION for details). \n\
  \n\
     The program can also be used to calculate regions, specifying a <center> \n\
     vertex and tagging all vertices that satisfy some cost constraint away from \n\
@@ -157,6 +158,36 @@ DESCRIPTION \n\
     Python script called 'dsh' that allows asychronous setting of <start> and \n\
     <end> vertices, changes in the cost function weights, etc. This 'dsh' \n\
     script is probably the best and easiest way to run 'mris_pmake'. \n\
+ \n\
+COST FUNCTION \n\
+ \n\
+    The cost function is currently a multi-dimensional weight vector of \n\
+    following form: \n\
+ \n\
+       p = w  d +  w c + w h + w  dc + w  dh + w  ch + w   dch + w   (dir) \n\
+            d       c     h     dc      dh      ch      dch       dir \n\
+ \n\
+       where \n\
+ \n\
+       w_d     : weighting factor for distance, d \n\
+       w_c     : weighting factor for curvature, c \n\
+       w_h     : weighting factor for sulcal height, h \n\
+       w_dc    : weighting factor for product of distance and curve \n\
+       w_dh    : weighting factor for product of distance and height \n\
+       w_ch    : weighting factor for product of curve and height \n\
+       w_dch   : weighting factor for product of distance, curve, and height \n\
+       w_dir   : weighting factor for direction \n\
+ \n\
+    The curvature, c, is specified in the <optionsFile> with the 'curvatureFile' \n\
+    option, and the height, h, is specified in the <optionsFile> with the \n\
+    'sulcalHeightFile'. These names are somewhat historical, and in theory any \n\
+    valid FreeSurfer overlay can be used for 'c' and 'h'. \n\
+ \n\
+    An additional non-linear penalty is also available, and if \n\
+    'b_transitionPenalties' is TRUE, will be applied to the cost function, by \n\
+    an index-to-index multiplication of the cost vector. It currently triggered \n\
+    if the original 'c' value undergoes a zero-crossing along a trajectory \n\
+    path. \n\
  \n\
 OPTIONS \n\
  \n\
@@ -177,7 +208,8 @@ OPTIONS \n\
     Defaults is current directory. \n\
  \n\
     --listen \n\
-    Start in LISTEN mode, i.e. initialize the program, but do not actually \n\
+    Start in LISTEN mode, i.e. initialize the program and read the default \n\
+    'options.txt' file parsing surfaces and curvatures, but do not actually \n\
     calculate a path. Instead, once ready, start listening on the embedded \n\
     server socket for instructions. Send a 'RUN' string in a UDP packet to \n\
     the port specified in <optionsFile> to perform the path search. \n\
@@ -186,8 +218,45 @@ OPTIONS \n\
     Similar to above, but do not interpret the <optionsFile> environment. \n\
     Essentially create the server port on <port> and do nothing else. In this \n\
     mode, the program requires an explicit 'HUP' text string to be sent as \n\
-    a UDP packet to <port> to read the enviroment and perform the search. \n\
+    a UDP packet to <port> to read the default enviroment, or an options file \n\
+    can be spec'd by sending a UDP string 'OPT <optionsFile>'. \n\
  \n\
+EXAMPLE USE \n\
+ \n\
+    The best mechanism to run a 'mris_pmake' process is from a companion \n\
+    'shell' called 'dsh'. The use of 'dsh' is beyond the scope of this help, \n\
+    but in the simplest case (and assuming a valid <optionsFile>), simply \n\
+    run 'dsh' and wait for it to provide a prompt. At the prompt type 'RUN' \n\
+    and wait for the next prompt, at which simply type 'quit'. \n\
+ \n\
+    Direct running of 'mris_pmake' can be somewhat cumbersome, since by default \n\
+    the process was designed to parse a surface, calculate a cost, and then \n\
+    stay resident for additional instructions. These instructions are delivered \n\
+    using UDP sockets communication. In this manner, an external 'controller' \n\
+    could initialze a 'mris_pmake', read surfaces and curvatures, and then \n\
+    RUN different path searches with different vertices and/or modified cost \n\
+    function vectors. \n\
+ \n\
+    'mris_pmake' communicates on three different channels. Most operational \n\
+    data is sent to a channel called <userMessages> (in the <optionsFile>). \n\
+    System-type messages are sent to a channel called <sysMessages> and results \n\
+    are sent to <resultMessages>. If these are defined as files, then the \n\
+    channel simply logs to the file. If these are specifed as 'localhost:XXXX' \n\
+    then these channels are created as UDP sockets to which 'mris_pmake' \n\
+    transmits data. \n\
+ \n\
+    That all having been said, how do I do a quick-and-dirty run for \n\
+    'mris_pmake'? \n\
+ \n\
+        o Make sure you have a valid <optionsFile> in the working directory \n\
+        o run 'mris_pmake' \n\
+        o Monitor the <userMessages> channel and wait for: \n\
+                \"Listening for socket comms...\" \n\
+        o Send a UDP string \"TERM\" to the <controlPort> of 'mris_pmake' \n\
+ \n\
+    OR, just run 'mris_pmake', wait until a file defined by <costFile> in \n\
+    the <optionsFile> appears on the file system (typically a few seconds) \n\
+    and then hit <ctrl>C. \n\
  \n\
 \n";
 
@@ -201,7 +270,7 @@ main(
 
   /* ----- initializations ----- */
 
-  /*    char*  ppch_default[] = { "dijkstra_p1" , "--listen"};
+  /*    char*  ppch_default[] = { "mris_pmake" , "--listen"};
       argc  = 2;
       ppch_argv  = ppch_default;*/
 

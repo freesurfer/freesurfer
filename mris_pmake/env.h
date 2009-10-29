@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.2 2009/10/29 15:30:49 rudolph Exp $
+/// $Id: env.h,v 1.3 2009/10/29 21:02:47 rudolph Exp $
 ///
 ///
 
@@ -168,7 +168,7 @@ typedef struct _env {
 
   int           timeoutSec;                 // listen timeout
   int           port;                       // port on which to listen
-  // for async control
+                                            //+ for async control
 
   int           lw;                         // left width (for stdout format)
   int           rw;                         // right width (for stdout format)
@@ -181,8 +181,9 @@ typedef struct _env {
   bool          b_labelFile_save;           // flag: save label file
   bool          b_patchFile_save;           // flag: save patch file?
   bool          b_transitionPenalties;      // flag: apply transition?
-  // penalties
-
+                                            // penalties
+  bool          b_useAbsCurvs;              // flag: if true, use abs(curv)
+                                            //+ for cost function calculations
   string        str_workingDir;             // directory containing input
                                             //+ and output files
   string        str_patchFileName;          // file to contain path "patch"

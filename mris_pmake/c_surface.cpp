@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $
+// $Id: c_surface.cpp,v 1.3 2009/10/29 21:02:47 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -363,7 +363,7 @@ surface_ripMark(
     ofs << ii << "\t" << jj;
 //     f_cost = costFunc_defaultDetermine(st_env, &st_iterInfo, ii, jj, b_relNextReference);
     f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj, b_relNextReference);
-    ofs << "\t"   << f_cost;
+    ofs << "\t"  << f_cost;
     ofs << "\t"  << st_iterInfo.iter;
     ofs << "\t"  << st_iterInfo.f_distance;
     ofs << "\t"  << st_iterInfo.f_curvature;
