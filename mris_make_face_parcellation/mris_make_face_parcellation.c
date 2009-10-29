@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/28 17:59:55 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/10/29 00:38:50 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.7 2009/10/28 17:59:55 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.8 2009/10/29 00:38:50 fischl Exp $";
 
 typedef struct
 {
@@ -172,7 +172,7 @@ main(int argc, char *argv[]) {
   VERTEX             *v ;
   int                msec, minutes, seconds ;
   struct timeb       start ;
-  MRI                *mri_smatrix ;
+  MRI                *mri_smatrix = NULL ;
 
 
   parms.max_iterations = 100 ;
@@ -186,7 +186,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.7 2009/10/28 17:59:55 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.8 2009/10/29 00:38:50 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -194,7 +194,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.7 2009/10/28 17:59:55 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.8 2009/10/29 00:38:50 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -749,16 +749,16 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
         int annot ;
         double den_old, den_new, num_old, num_new ;
 
-        v->marked = min_parcel ;
         energy_change = 
           compute_parcellation_energy_change(mris, parms, mri_cmatrix, mri_means, mri_vars, vno, 
-                                             vn->marked, &den_old, &den_new, 
+                                             min_parcel, &den_old, &den_new, 
                                              &num_old, &num_new) ;
         parms->stats.energy_num = parms->stats.energy_num + num_new - num_old ;
         parms->stats.energy_den = parms->stats.energy_den + den_new - den_old ;
         if (parms->energy_type == ENERGY_VARIANCE)
           update_parcellation_statistics(mris, vno, v->marked, min_parcel,
                                          mri_cmatrix, mri_means, mri_vars, mri_stats, parms);
+        v->marked = min_parcel ;
         nchanged++ ;
         CTABannotationAtIndex(mris->ct, v->marked, &annot);
         v->annotation = annot ;
@@ -988,12 +988,13 @@ compute_parcellation_statistics(MRI_SURFACE *mris, MRI *mri_cmatrix, MRI *mri_st
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->marked < 0)
       continue ;
+    parcel = v->marked ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    dof = MRIgetVoxVal(mri_stats, v->marked, 0, 0, 2) ;
-    MRIsetVoxVal(mri_stats, v->marked, 0, 0, 2, dof+1) ;
+    dof = MRIgetVoxVal(mri_stats, v->marked, 0, 0, 2)+1 ;
+    MRIsetVoxVal(mri_stats, v->marked, 0, 0, 2, dof) ;
     if (v->marked == Gdiag_no && Gdiag_no >= 0)
-      printf("adding %d to parcel %d, dofs = %d, ", vno, v->marked, (int)dof+1) ;
+      printf("adding %d to parcel %d, dofs = %d, ", vno, v->marked, (int)dof) ;
 
     for (frame = 0 ; frame < nframes ; frame++)
     {
@@ -1002,6 +1003,22 @@ compute_parcellation_statistics(MRI_SURFACE *mris, MRI *mri_cmatrix, MRI *mri_st
       var = MRIgetVoxVal(mri_vars, v->marked, 0, 0, frame) ;
       mean += val ;
       var += val*val ;
+      if (parcel == 133 && frame == 322 && DIAG_VERBOSE_ON)
+      {
+        printf("adding vno %d: %f to parcel %d, now %f +- %f (var=%f), dof=%d\n",
+               vno, val, parcel, mean, var,
+               (var - (mean*mean/dof)) / (dof-1),(int)dof);
+      }
+      if (dof > 2 && (((var - (mean*mean/dof)) / (dof-1)) < 0))
+      {
+        double m, v ;
+        m = mean / dof ;
+        v = (var - dof*m*m) / (dof-1);
+
+        if (v < -1e-6)
+          DiagBreak() ;
+      }
+            
       MRIsetVoxVal(mri_means, v->marked, 0, 0, frame, mean) ;
       MRIsetVoxVal(mri_vars, v->marked, 0, 0, frame, var) ;
       if (v->marked == Gdiag_no && frame == 2 && Gdiag_no >= 0)
@@ -1130,9 +1147,14 @@ update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int n
     val = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, frame) ;
 
     mean = MRIgetVoxVal(mri_means, old_parcel, 0, 0, frame) ;
-    mean -= val ;
     var = MRIgetVoxVal(mri_vars, old_parcel, 0, 0, frame) ;
+    mean -= val ;
     var -= (val*val) ;
+    if (old_parcel == 133 && frame == 322 && DIAG_VERBOSE_ON)
+      printf("removing vno %d: %f from parcel %d, now %f +- %f (var=%f), dofs=%d\n",
+             vno, val, old_parcel, mean, var,
+             (var - (mean*mean/dofs)) / (dofs-1),dofs);
+            
     MRIsetVoxVal(mri_means, old_parcel, 0, 0, frame, mean) ;
     MRIsetVoxVal(mri_vars, old_parcel, 0, 0, frame, var) ;
     mean /= dofs ;
@@ -1160,9 +1182,13 @@ update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int n
     val = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, frame) ;
 
     mean = MRIgetVoxVal(mri_means, new_parcel, 0, 0, frame) ;
-    mean += val ;
     var = MRIgetVoxVal(mri_vars, new_parcel, 0, 0, frame) ;
+    mean += val ;
     var += (val*val) ;
+    if (new_parcel == 133 && frame == 322 && DIAG_VERBOSE_ON)
+      printf("contributing vno %d: %f to parcel %d, now %f +- %f (var=%f), dofs=%d\n",
+             vno, val,new_parcel, mean, var,
+             (var - (mean*mean/dofs)) / (dofs-1),dofs);
     MRIsetVoxVal(mri_means, new_parcel, 0, 0, frame, mean) ;
     MRIsetVoxVal(mri_vars, new_parcel, 0, 0, frame, var) ;
     mean /= dofs ;
@@ -1181,7 +1207,7 @@ update_parcellation_statistics(MRI_SURFACE *mris, int vno, int old_parcel, int n
   MRIsetVoxVal(mri_stats, new_parcel, 0, 0, 0, total_mean) ;
   MRIsetVoxVal(mri_stats, new_parcel, 0, 0, 1, total_var) ;
   MRIsetVoxVal(mri_stats, new_parcel, 0, 0, 2, dofs) ;
-
+  mris->vertices[vno].marked = new_parcel ;
   return(NO_ERROR) ;
 }
 
@@ -1572,14 +1598,12 @@ compute_parcellation_energy_change(MRI_SURFACE *mris, PARMS *parms,
 #else
       update_parcellation_statistics(mris, vno, parcel, parcel_to_move_to,
                                      mri_cmatrix, mri_means, mri_vars, parms->mri_stats, parms);
-      v->marked = parcel_to_move_to ;
       energy_new = 
         compute_variance_energy_for_vertex_change(mris, parms, mri_cmatrix, mri_means, mri_vars, 
                                                   &dist_within_new, &dist_between_new, vno, parcel,
                                                   parcel_to_move_to) ;
       update_parcellation_statistics(mris, vno, parcel_to_move_to, parcel,
                                      mri_cmatrix, mri_means, mri_vars, parms->mri_stats, parms);
-      v->marked = parcel ;
       energy_old = 
         compute_variance_energy_for_vertex_change(mris, parms, mri_cmatrix, mri_means, mri_vars, 
                                                   &dist_within_new, &dist_between_new, vno, parcel_to_move_to,
