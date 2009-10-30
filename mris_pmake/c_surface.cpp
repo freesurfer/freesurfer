@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.4 2009/10/30 21:47:41 rudolph Exp $
+// $Id: c_surface.cpp,v 1.5 2009/10/30 21:55:06 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
