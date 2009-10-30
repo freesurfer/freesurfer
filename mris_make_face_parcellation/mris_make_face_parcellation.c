@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/29 17:36:11 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/10/30 11:24:37 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.10 2009/10/29 17:36:11 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.11 2009/10/30 11:24:37 fischl Exp $";
 
 typedef struct
 {
@@ -186,7 +186,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.10 2009/10/29 17:36:11 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.11 2009/10/30 11:24:37 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -194,7 +194,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.10 2009/10/29 17:36:11 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.11 2009/10/30 11:24:37 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1517,7 +1517,8 @@ compute_parcellation_energy_change(MRI_SURFACE *mris, PARMS *parms,
   int     parcel, n, nparcels, n_nbrs, nframes ;
   VERTEX  *v ;
 
-  energy_new = energy_old = dist_within_old = dist_within_new = 0.0 ;
+  dist_between_old = dist_between_new = 
+    energy_new = energy_old = dist_within_old = dist_within_new = 0.0 ;
   nparcels = parms->stats.nparcels ;
 
   v = &mris->vertices[vno] ;
