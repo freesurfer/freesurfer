@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.4 2009/10/29 21:02:47 rudolph Exp $
+// $Id: env.cpp,v 1.5 2009/10/30 20:33:47 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -631,34 +631,35 @@ s_env_scan(
     nULOUT("\t\t\t[ ok ]\n");
   }
 
-  st_env.b_labelFile_save           = b_labelFile_save;
-  st_env.b_transitionPenalties      = b_transitionPenalties;
-  st_env.b_patchFile_save           = b_patchFile_save;
-  st_env.startVertex                = startVertex;
-  st_env.endVertex                  = endVertex;
-  st_env.port                       = port;
-  st_env.timeoutSec                 = timeoutSec;
-  st_env.str_patchFileName          = str_patchFileName + ".patch";
-  st_env.str_labelFileName          = str_labelFileName;
-  st_env.str_labelFileNameOS        = str_labelFileNameOS;
-  st_env.str_costFileName           = str_costFileName;
+    st_env.b_useAbsCurvs              = b_useAbsCurvs;
+    st_env.b_labelFile_save           = b_labelFile_save;
+    st_env.b_transitionPenalties      = b_transitionPenalties;
+    st_env.b_patchFile_save           = b_patchFile_save;
+    st_env.startVertex                = startVertex;
+    st_env.endVertex                  = endVertex;
+    st_env.port                       = port;
+    st_env.timeoutSec                 = timeoutSec;
+    st_env.str_patchFileName          = str_patchFileName + ".patch";
+    st_env.str_labelFileName          = str_labelFileName;
+    st_env.str_labelFileNameOS        = str_labelFileNameOS;
+    st_env.str_costFileName           = str_costFileName;
 
-//    if(!calls) {
-  st_env.pMS_active                 = pMS_curvature;
-  st_env.pMS_auxSurface             = pMS_auxSurface;
-  st_env.pMS_sulcal                 = pMS_sulcal;
-  st_env.pMS_curvature              = pMS_curvature;
+    //    if(!calls) {
+    st_env.pMS_active                 = pMS_curvature;
+    st_env.pMS_auxSurface             = pMS_auxSurface;
+    st_env.pMS_sulcal                 = pMS_sulcal;
+    st_env.pMS_curvature              = pMS_curvature;
 
-  str_surfaceFileNameOld            = str_surfaceFileName;
-  str_curvatureFileNameOld          = str_curvatureFileName;
-  str_sulcalFileNameOld             = str_sulcalFileName;
-  str_userMsgFileNameOld            = str_userMsgFileName;
-  str_sysMsgFileNameOld             = str_sysMsgFileName;
-//    }
+    str_surfaceFileNameOld            = str_surfaceFileName;
+    str_curvatureFileNameOld          = str_curvatureFileName;
+    str_sulcalFileNameOld             = str_sulcalFileName;
+    str_userMsgFileNameOld            = str_userMsgFileName;
+    str_sysMsgFileNameOld             = str_sysMsgFileName;
+    //    }
 
-  nSLOUT("\t\t\t\t\t\t\t[ ok ]\n");
+    nSLOUT("\t\t\t\t\t\t\t[ ok ]\n");
 
-  calls++;
+    calls++;
 }
 
 bool
