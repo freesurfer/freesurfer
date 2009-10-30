@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.3 2009/10/29 21:02:47 rudolph Exp $
+// $Id: c_surface.cpp,v 1.4 2009/10/30 21:47:41 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -324,56 +324,66 @@ surface_workingToAux_ripTrueCopy(
 
 void
 surface_ripMark(
-  s_env&   st_env
+    s_env&              st_env
 ) {
-  //
-  // ARGS
-  // st_env   in   environment data
-  //
-  // DESCRIPTION
-  //  Adds a TRUE to the ripflag of each vertex that is part of the
-  // Dijskstra path. Also saves the route itself and cost information
-  // to a text file.
-  //
-  // PRECONDITIONS
-  // o Rips on the "active" surface are marked.
-  //
-  // HISTORY
-  // 18 November 2004
-  //  o Initial design and coding.
-  //
-  // 10 March 2005
-  // o Added "active" surface.
-  //
+    //
+    // ARGS
+    // st_env   in   environment data
+    //
+    // DESCRIPTION
+    // Adds a TRUE to the ripflag of each vertex that is part of the
+    // Dijskstra path. Also saves the route itself and cost information
+    // to a text file.
+    //
+    // PRECONDITIONS
+    // o Rips on the "active" surface are marked.
+    //
+    // HISTORY
+    // 18 November 2004
+    //  o Initial design and coding.
+    //
+    // 10 March 2005
+    // o Added "active" surface.
+    //
+    // 30 October 2009
+    // o Added cumulative cost value to result channel and stdout.
+    //
 
-  s_iterInfo  st_iterInfo;
-  string  str_costFile =  st_env.str_workingDir +
-                          st_env.str_costFileName;
-  ofstream  ofs(str_costFile.c_str(), ios::out);
-  int   i;
-  int   ii, jj;
-  float  f_cost = 0.;
-  bool  b_relNextReference = false;
-  ofs.flags(ios::fixed );
+    s_iterInfo  st_iterInfo;
+    string      str_costFile            = st_env.str_workingDir +
+                                          st_env.str_costFileName;
+    ofstream    ofs(str_costFile.c_str(), ios::out);
+    int         i;
+    int         ii, jj;
+    float       f_cost                  = 0.;
+    float       f_costSum               = 0.;
+    bool        b_relNextReference    = false;
+    ofs.flags(ios::fixed );
 
-  for (i = st_env.endVertex; i != st_env.startVertex;
-       i = st_env.pMS_active->vertices[i].old_undefval) {
-    ii = st_env.pMS_active->vertices[i].old_undefval;
-    jj = i;
-    ofs << ii << "\t" << jj;
-//     f_cost = costFunc_defaultDetermine(st_env, &st_iterInfo, ii, jj, b_relNextReference);
-    f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj, b_relNextReference);
-    ofs << "\t"  << f_cost;
-    ofs << "\t"  << st_iterInfo.iter;
-    ofs << "\t"  << st_iterInfo.f_distance;
-    ofs << "\t"  << st_iterInfo.f_curvature;
-    ofs << "\t"  << st_iterInfo.f_sulcalHeight;
-    ofs << "\t"  << st_iterInfo.f_dir;
-    ofs << endl;
+    for (i = st_env.endVertex; i != st_env.startVertex;
+        i = st_env.pMS_active->vertices[i].old_undefval) {
+        ii = st_env.pMS_active->vertices[i].old_undefval;
+        jj = i;
+        ofs << ii << "\t" << jj;
+        f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj, b_relNextReference);
+        ofs << "\t"  << f_cost;
+        ofs << "\t"  << st_iterInfo.iter;
+        ofs << "\t"  << st_iterInfo.f_distance;
+        ofs << "\t"  << st_iterInfo.f_curvature;
+        ofs << "\t"  << st_iterInfo.f_sulcalHeight;
+        ofs << "\t"  << st_iterInfo.f_dir;
+        ofs << endl;
+        st_env.pMS_active->vertices[i].ripflag = TRUE;
+        f_costSum += f_cost;
+    }
     st_env.pMS_active->vertices[i].ripflag = TRUE;
-  }
-  st_env.pMS_active->vertices[i].ripflag = TRUE;
-  ofs.close();
+    ofs.close();
+    stringstream sout("");
+    sout << "Total path cost: " << f_costSum    << endl;
+    cout << sout.str();
+    // When the prcoess is controlled from 'dsh', data that
+    // appears on the result log channel is echo'd to stdout.
+    nRLOUT(sout.str());
 }
 
 void
