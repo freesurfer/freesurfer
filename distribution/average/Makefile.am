@@ -80,6 +80,7 @@ install: install-fooDATA
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/fsaverage \
 		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -Rf $(top_builddir)/distribution/average/V1_average
 	gunzip -c $(top_srcdir)/distribution/average/V1_average.tar.gz | tar xvf -
@@ -87,26 +88,31 @@ install: install-fooDATA
 		$(DESTDIR)$(prefix)/bin
 	mv $(top_builddir)/distribution/average/V1_average \
 		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage3
 	rm -Rf $(top_builddir)/distribution/average/fsaverage3
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage3.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/fsaverage3 \
 		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage3
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage4
 	rm -Rf $(top_builddir)/distribution/average/fsaverage4
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage4.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/fsaverage4 \
 		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage4
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage5
 	rm -Rf $(top_builddir)/distribution/average/fsaverage5
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage5.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/fsaverage5 \
 		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage5
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage6
 	rm -Rf $(top_builddir)/distribution/average/fsaverage6
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage6.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/fsaverage6 \
 		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage6
 	cd surf; make install
 
 uninstall-hook:
