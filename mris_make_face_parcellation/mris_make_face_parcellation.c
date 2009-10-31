@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/30 11:24:37 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/10/31 13:13:23 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.11 2009/10/30 11:24:37 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.12 2009/10/31 13:13:23 fischl Exp $";
 
 typedef struct
 {
@@ -186,7 +186,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.11 2009/10/30 11:24:37 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.12 2009/10/31 13:13:23 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -194,7 +194,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.11 2009/10/30 11:24:37 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.12 2009/10/31 13:13:23 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -678,6 +678,7 @@ adjust_parcellation_boundaries(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, MRI *mr
     best_energy_change, last_penergy ;
   VERTEX  *v, *vn ;
 
+  energy = last_energy = 0.0 ;
   nframes = mri_cmatrix->nframes ;
   nparcels = parms->stats.nparcels ;
   mri_stats = MRIallocSequence(nparcels, 1, 1, MRI_FLOAT, 3) ;
