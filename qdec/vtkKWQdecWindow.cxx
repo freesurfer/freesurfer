@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/22 18:06:57 $
- *    $Revision: 1.44 $
+ *    $Date: 2009/10/31 18:30:50 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.44 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.45 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -3912,11 +3912,11 @@ vtkKWQdecWindow::SetSurfaceScalarsColorMin ( double iMin ) {
       mEntrySurfaceScalarsColorMin->SetValueAsDouble
         ( mSurfaceScalarsColorMin );
 
-    // Update the editor.
-    this->UpdateSurfaceScalarsColorsEditor();
-
-    // Draw with the new values.
-    this->ComposeSurfaceScalarsAndShow();
+    // Update the Mid value as well, by 0.0001, since this typically
+    // what you would always do anyway.
+    this->SetSurfaceScalarsColorMid( iMin + 0.0001 );
+    // note that the prior call will update the editor, and
+    // draw with the new values.
   }
 }
 
