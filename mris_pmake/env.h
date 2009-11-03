@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.3 2009/10/29 21:02:47 rudolph Exp $
+/// $Id: env.h,v 1.4 2009/11/03 19:48:25 rudolph Exp $
 ///
 ///
 
@@ -306,35 +306,34 @@ void  s_env_log_file_changeTo(
 );
 
 void s_env_activeSurfaceList(
-  s_env&   ast_env
+    s_env&      ast_env
 );
 
 void s_env_activeSurfaceSetIndex(
-  s_env*   apst_env,
-  int   aindex
+    s_env*      apst_env,
+    int         aindex
 );
 
 
 void s_env_costFctList(
-  s_env&   ast_env
+    s_env&      ast_env
 );
 
-void s_env_costFctSetIndex(
-  s_env*   apst_env,
-  int   aindex
+int s_env_costFctSetIndex(
+    s_env*      apst_env,
+    int         aindex
 );
 
 void  s_env_costFctSet(
-  s_env*   pst_env,
-  float (*cost_fct)
-  (
-    s_env&  st_env,
-    s_iterInfo* pst_iterInfo,
-    int   vno_c,
-    int   j,
-    bool  b_relNextReference
-  ),
-  e_COSTFUNCTION  aecf_new = e_default
+    s_env*      pst_env,
+    float       (*cost_fct) (
+        s_env&          st_env,
+        s_iterInfo*     pst_iterInfo,
+        int             vno_c,
+        int             j,
+        bool            b_relNextReference
+    ),
+    e_COSTFUNCTION  aecf_new = e_default
 );
 
 /// \fn float costFunc_defaultDetermine(s_env& st_env, s_iterInfo* pst_iterInfo, int vno_c, int j, bool b_relNextReference = true);

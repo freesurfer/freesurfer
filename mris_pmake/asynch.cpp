@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.3 2009/10/29 21:02:47 rudolph Exp $
+// $Id: asynch.cpp,v 1.4 2009/11/03 19:48:24 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -349,11 +349,11 @@ asynchEvent_processENV(
 
   string str_errorAct = "checking <ENV>";
 
-  string  str_object = "";
-  string  str_verb = "";
-  string  str_modifier = "";
-  string  str_sep  = " ";
-  int   val  = 0;
+  string  str_object    = "";
+  string  str_verb      = "";
+  string  str_modifier  = "";
+  string  str_sep       = " ";
+  int     val           = 0;
   stringstream Gsout("");
 
   std::_Ios_Fmtflags origFlags;
@@ -416,6 +416,20 @@ asynchEvent_processENV(
       Gsout << "Setting auxSurfaceCurvature to \t\t\t\t\t[ " << str_modifier << " ]" << endl;
       if (!s_env_auxSurfaceCurvature_set(st_env, str_modifier))
         error_exit("Setting auxSurfaceCurvature", "Some error occurred", 1);
+      ULOUT(Gsout.str());
+    }
+  }
+
+  if (str_object == "costFunctionIndex") {
+    if (str_verb == "get")
+        s_env_costFctList(st_env);
+    else if (str_verb == "set") {
+      if (!str_modifier.length())
+        return false;
+      Gsout.str("");
+      Gsout << "Setting costFunctionIndex to \t\t\t\t\t[ " << str_modifier << " ]" << endl;
+      if (s_env_costFctSetIndex(&st_env, atoi(str_modifier.c_str())) == -1)
+        error_exit("setting costFunctionIndex", "Some error occurred", 1);
       ULOUT(Gsout.str());
     }
   }

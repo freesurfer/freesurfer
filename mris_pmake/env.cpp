@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.5 2009/10/30 20:33:47 rudolph Exp $
+// $Id: env.cpp,v 1.6 2009/11/03 19:48:24 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -936,7 +936,7 @@ void
 s_env_costFctList(
   s_env& ast_env
 ) {
-  int  lw  = 30;
+  int  lw = 30;
   int  rw = 20;
 
   CW(lw, "Current cost function:");
@@ -949,11 +949,12 @@ s_env_costFctList(
   }
 }
 
-void
+int
 s_env_costFctSetIndex(
-  s_env*  apst_env,
-  int  aindex
+    s_env*      apst_env,
+    int         aindex
 ) {
+  int   ret = -1;
   switch (aindex) {
   case 0:
     s_env_costFctSet(  apst_env,
@@ -981,17 +982,22 @@ s_env_costFctSetIndex(
                        (e_COSTFUNCTION) 0);
     break;
   }
+  if(aindex < 0 || aindex > 3)
+      ret       = -1;
+  else
+      ret       = aindex;
+  return ret;
 }
 
 void
 s_env_costFctSet(
     s_env*          pst_env,
-    float   (*acost_fct) (
-        s_env&      st_env,
-        s_iterInfo* pst_iterInfo,
-        int         vno_c,
-        int         j,
-        bool        b_relNextReference
+    float               (*acost_fct) (
+        s_env&              st_env,
+        s_iterInfo*         pst_iterInfo,
+        int                 vno_c,
+        int                 j,
+        bool                b_relNextReference
     ),
     e_COSTFUNCTION  aecf_new
 ) {
