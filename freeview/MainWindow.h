@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/22 18:29:45 $
- *    $Revision: 1.48 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,6 +55,7 @@ class LUTDataHolder;
 class wxToolBar;
 class BrushProperty;
 class ToolWindowEdit;
+class ToolWindowMeasure;
 class DialogRotateVolume;
 class LayerMRI;
 class WindowHistogram;
@@ -383,6 +384,7 @@ private:
   wxToolBar*          m_toolbarBrush;
   wxPanel*            m_panelToolbarHolder;
   ToolWindowEdit*     m_toolWindowEdit;
+  ToolWindowMeasure*  m_toolWindowMeasure;
   DialogRotateVolume* m_dlgRotateVolume;
   WindowHistogram*    m_wndHistogram;
   WindowOverlayConfiguration*       m_wndOverlayConfiguration;

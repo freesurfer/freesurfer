@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/05 17:13:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -142,18 +142,20 @@ void Region2DLine::Show( bool bShow )
   Update();
 }
 
-void Region2DLine::GetWorldPoint1( double* pt )
+void Region2DLine::GetWorldPoint( int nIndex, double* pt )
 {
-  pt[0] = m_dPt1[0];
-  pt[1] = m_dPt1[1];
-  pt[2] = m_dPt1[2];
-}
-  
-void Region2DLine::GetWorldPoint2( double* pt )
-{
-  pt[0] = m_dPt2[0];
-  pt[1] = m_dPt2[1];
-  pt[2] = m_dPt2[2];
+  if ( nIndex == 0 )
+  {
+    pt[0] = m_dPt1[0];
+    pt[1] = m_dPt1[1];
+    pt[2] = m_dPt1[2];
+  }
+  else
+  {
+    pt[0] = m_dPt2[0];
+    pt[1] = m_dPt2[1];
+    pt[2] = m_dPt2[2];
+  }
 }
 
 void Region2DLine::Offset( int x, int y )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/11/03 22:51:28 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,7 @@
 #include "LayerMRI.h"
 #include "CursorFactory.h"
 #include "Region2DLine.h"
+#include "Region2DRectangle.h"
 #include <vtkRenderer.h>
 
 #define FV_CURSOR_PENCIL wxCursor( wxImage("res/images/cursor_pencil.png") )
@@ -74,18 +75,27 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
       Region2D* reg = view->GetRegion( m_nMousePosX, m_nMousePosY, &m_nPointIndex );
       if ( !reg )   // drawing
       {
-        Region2DLine* reg_line = new Region2DLine( view );
-        reg_line->SetLine( m_nMousePosX, m_nMousePosY, m_nMousePosX, m_nMousePosY ); 
-        view->AddRegion( reg_line );
-        m_region = reg_line;
-        ((Region2DLine*)m_region)->SetPoint1( m_nMousePosX, m_nMousePosY );
+        if ( m_nAction == MM_Line )
+        {
+          Region2DLine* reg_line = new Region2DLine( view );
+          reg_line->SetLine( m_nMousePosX, m_nMousePosY, m_nMousePosX, m_nMousePosY ); 
+          view->AddRegion( reg_line );
+          m_region = reg_line;
+        }
+        else if ( m_nAction == MM_Rectangle )
+        {
+          Region2DRectangle* reg_rect = new Region2DRectangle( view );
+          reg_rect->SetRect( m_nMousePosX, m_nMousePosY, 1, 1 );
+          view->AddRegion( reg_rect );
+          m_region = reg_rect;
+        }
         m_bDrawing = true;
       }
       else      // editing
       {
         m_region = reg;
         m_bEditing = true;
-        ((Region2DLine*)m_region)->Highlight();
+        m_region->Highlight();
         view->NeedRedraw();
       }
       return false;
@@ -113,7 +123,16 @@ bool Interactor2DMeasure::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* 
  //     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
  //     mri->SendBroadcast( "LayerEdited", mri );
       if ( m_region )
-        ((Region2DLine*)m_region)->SetPoint2( m_nMousePosX, m_nMousePosY );
+      {
+        if ( m_nAction == MM_Line )
+        {
+          ((Region2DLine*)m_region)->SetPoint2( m_nMousePosX, m_nMousePosY );
+        }
+        else if ( m_nAction == MM_Rectangle )
+        {
+          ((Region2DRectangle*)m_region)->SetBottomRight( m_nMousePosX, m_nMousePosY );
+        }
+      }
     }
     else
     {
@@ -155,7 +174,14 @@ bool Interactor2DMeasure::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView
 
     if ( m_region )
     {
-      ((Region2DLine*)m_region)->SetPoint2( posX, posY );
+      if ( m_nAction == MM_Line )
+      {
+        ((Region2DLine*)m_region)->SetPoint2( posX, posY );
+      }
+      else if ( m_nAction == MM_Rectangle )
+      {
+        ((Region2DRectangle*)m_region)->SetBottomRight( posX, posY );
+      }
       view->NeedRedraw();
     }
 

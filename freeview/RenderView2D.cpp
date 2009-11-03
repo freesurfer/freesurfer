@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/05 17:13:06 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -509,8 +509,10 @@ void RenderView2D::StopSelection()
   
   if ( layer )
   {
-    double range[2];
-    if ( layer->GetVoxelValueRange( m_selection2D->m_dPt0, m_selection2D->m_dPt2, m_nViewPlane, range ) )
+    double range[2], m_dPt0[3], m_dPt2[3];
+    m_selection2D->GetWorldPoint( 0, m_dPt0 );
+    m_selection2D->GetWorldPoint( 2, m_dPt2 );
+    if ( layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
     {
       switch ( layer->GetProperties()->GetColorMap() )
       {

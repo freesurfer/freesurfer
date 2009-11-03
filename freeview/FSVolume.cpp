@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.32 $
+ *    $Date: 2009/11/03 22:51:28 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -299,9 +299,12 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     m_imageData = vtkSmartPointer<vtkImageData>::New();
   }
 
-  if ( bCopyVoxelData )
+  if ( bCopyVoxelData )   
   {
-    m_imageData->DeepCopy( src_vol->m_imageData );
+    if ( data_type != src_vol->GetDataType() )
+      cerr << "Can not copy voxel data with different data type." << endl;
+    else
+      m_imageData->DeepCopy( src_vol->m_imageData );
   }
   else
   {
@@ -334,9 +337,12 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     m_imageData->AllocateScalars();
     char* ptr = ( char* )m_imageData->GetScalarPointer();
     int* nDim = m_imageData->GetDimensions();
-    memset( ptr, 
-	    0, 
-	    m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
+    if ( !bCopyVoxelData )
+    {
+      memset( ptr, 
+	       0, 
+	       m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
+    }
   }
 }
 
@@ -1407,7 +1413,7 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
       }
     }
 
-    if ( nZ%(max(1, zZ/5)) == 0 )
+    if ( wnd && nZ%(max(1, zZ/5)) == 0 )
     {
       event.SetInt( event.GetInt() + nProgressStep );
       wxPostEvent( wnd, event );

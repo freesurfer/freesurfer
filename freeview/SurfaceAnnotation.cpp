@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:40 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -200,3 +200,13 @@ std::string SurfaceAnnotation::GetAnnotationNameAtIndex( int nIndex )
   return ""; 
 }
 
+void SurfaceAnnotation::GetAnnotationColorAtIndex( int nIndex, int* rgb )
+{
+  int nValid = 0;
+  int nTotalCount = 0;
+  CTABgetNumberOfTotalEntries( m_lut, &nTotalCount );
+  if ( nIndex < nTotalCount )
+    CTABisEntryValid( m_lut, nIndex, &nValid );
+  if ( nValid )
+    CTABrgbAtIndexi( m_lut, nIndex, rgb, rgb+1, rgb+2 );
+}

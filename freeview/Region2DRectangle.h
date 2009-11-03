@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,21 +58,20 @@ public:
   
   void Show( bool bshow );
   
+  void Highlight( bool bHighlight );
+  
   void Update();
   
-  void GetWorldPoint1( double* pt );
-  void GetWorldPoint2( double* pt );
-
-  double    m_dPt0[3];       // rect in screen coordinate
-  double    m_dPt1[3];
-  double    m_dPt2[3];
-  double    m_dPt3[3];
+  void GetWorldPoint( int nIndex, double* pt );
 
 protected:
   void UpdateWorldCoords();  
+  int GetRange( double[3][2] );
   
   vtkSmartPointer<vtkActor2D> m_actorRect;
   int       m_nX1, m_nX2, m_nY1, m_nY2;
+  double    m_dPt[4][3];       // rect in world coordinate
+
 };
 
 #endif

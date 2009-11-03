@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/21 21:22:53 $
- *    $Revision: 1.6 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -86,6 +86,8 @@ public:
   std::string GetAnnotationNameAtIndex( int nIndex );
   
   std::string GetAnnotationNameAtVertex( int nVertex );
+  
+  void GetAnnotationColorAtIndex( int nIndex, int* rgb );
    
 protected:
   void Reset();

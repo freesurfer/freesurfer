@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:34 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -328,6 +328,7 @@ void MyUtils::NormalizedViewportToWorld( vtkRenderer* renderer,
   renderer->NormalizedViewportToView( world_x, world_y, world_z );
   renderer->ViewToWorld( world_x, world_y, world_z );
 }
+
 void MyUtils::WorldToViewport( vtkRenderer* renderer, 
                                double world_x, double world_y, double world_z, 
                                double& x, double& y, double& z )

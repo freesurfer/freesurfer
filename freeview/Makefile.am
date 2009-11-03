@@ -166,6 +166,8 @@ freeview_SOURCES=\
 	SurfaceOverlayProperties.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
+	ToolWindowMeasure.cpp \
+	ToolWindowMeasure.h \
 	VolumeFilter.cpp \
 	VolumeFilter.h \
 	VolumeFilterGradient.cpp \

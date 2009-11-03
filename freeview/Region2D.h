@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,11 +40,6 @@ public:
   Region2D( RenderView2D* view );
   virtual ~Region2D();
 
-  void SetRect( int left, int top, int w, int h );
-  
-  void SetTopLeft( int left, int top );
-  void SetBottomRight( int right, int bottom );
-  
   virtual void Offset( int nX, int nY ) = 0;
   
   virtual void UpdatePoint( int nIndex, int nX, int nY ) = 0;
@@ -58,6 +53,8 @@ public:
   virtual void Show( bool bshow );
   
   virtual void Update();
+  
+  virtual void GetWorldPoint( int nIndex, double* pt ) = 0;
 
 protected:
   RenderView2D* m_view;

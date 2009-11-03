@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/11/03 22:51:29 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,7 @@
 #include <vtkCellArray.h>
 #include <vtkCoordinate.h>
 #include <vtkPolyData.h>
+#include <vtkMath.h>
 
 Region2DRectangle::Region2DRectangle( RenderView2D* view ) :
   Region2D( view )
@@ -41,7 +42,9 @@ Region2DRectangle::Region2DRectangle( RenderView2D* view ) :
   m_actorRect = vtkSmartPointer<vtkActor2D>::New();
   m_actorRect->GetProperty()->SetColor( 1, 0, 0 );
   m_actorRect->GetProperty()->SetOpacity( 0.5 );
-  m_actorRect->VisibilityOff();
+//  m_actorRect->VisibilityOff();
+  
+  Highlight( true );
 }
 
 Region2DRectangle::~Region2DRectangle()
@@ -61,10 +64,10 @@ void Region2DRectangle::SetRect( int left, int top, int w, int h )
 
 void Region2DRectangle::UpdateWorldCoords()
 {
-  m_view->MousePositionToRAS( m_nX1, m_nY1, m_dPt0 ); 
-  m_view->MousePositionToRAS( m_nX1, m_nY2, m_dPt1 ); 
-  m_view->MousePositionToRAS( m_nX2, m_nY2, m_dPt2 ); 
-  m_view->MousePositionToRAS( m_nX2, m_nY1, m_dPt3 ); 
+  m_view->MousePositionToRAS( m_nX1, m_nY1, m_dPt[0] ); 
+  m_view->MousePositionToRAS( m_nX1, m_nY2, m_dPt[1] ); 
+  m_view->MousePositionToRAS( m_nX2, m_nY2, m_dPt[2] ); 
+  m_view->MousePositionToRAS( m_nX2, m_nY1, m_dPt[3] ); 
 }
 
 void Region2DRectangle::SetTopLeft( int left, int top )
@@ -92,10 +95,10 @@ void Region2DRectangle::Update()
   
   double pt0[3], pt1[3], pt2[3], pt3[3];
  
-  m_view->WorldToViewport( m_dPt0[0], m_dPt0[1], m_dPt0[2], pt0[0], pt0[1], pt0[2] );
-  m_view->WorldToViewport( m_dPt1[0], m_dPt1[1], m_dPt1[2], pt1[0], pt1[1], pt1[2] );
-  m_view->WorldToViewport( m_dPt2[0], m_dPt2[1], m_dPt2[2], pt2[0], pt2[1], pt2[2] );
-  m_view->WorldToViewport( m_dPt3[0], m_dPt3[1], m_dPt3[2], pt3[0], pt3[1], pt3[2] );
+  m_view->WorldToViewport( m_dPt[0][0], m_dPt[0][1], m_dPt[0][2], pt0[0], pt0[1], pt0[2] );
+  m_view->WorldToViewport( m_dPt[1][0], m_dPt[1][1], m_dPt[1][2], pt1[0], pt1[1], pt1[2] );
+  m_view->WorldToViewport( m_dPt[2][0], m_dPt[2][1], m_dPt[2][2], pt2[0], pt2[1], pt2[2] );
+  m_view->WorldToViewport( m_dPt[3][0], m_dPt[3][1], m_dPt[3][2], pt3[0], pt3[1], pt3[2] );
   
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> poly = vtkSmartPointer<vtkCellArray>::New();
@@ -129,29 +132,137 @@ void Region2DRectangle::Show( bool bShow )
   Update();
 }
 
-void Region2DRectangle::GetWorldPoint1( double* pt )
+void Region2DRectangle::GetWorldPoint( int nIndex, double* pt )
 {
-  pt[0] = m_dPt0[0];
-  pt[1] = m_dPt0[1];
-  pt[2] = m_dPt0[2];
-}
-  
-void Region2DRectangle::GetWorldPoint2( double* pt )
-{
-  pt[0] = m_dPt2[0];
-  pt[1] = m_dPt2[1];
-  pt[2] = m_dPt2[2];
+  if ( nIndex >= 0 && nIndex <= 3 )
+  {
+    pt[0] = m_dPt[nIndex][0];
+    pt[1] = m_dPt[nIndex][1];
+    pt[2] = m_dPt[nIndex][2];
+  }
 }
 
 bool Region2DRectangle::Contains( int nX, int nY, int* nIndexOut )
 {
-  return false;
+  // first calculate the threshold distance in world space
+  double pt1[3], pt2[3];
+  m_view->MousePositionToRAS( 0, 0, pt1 );
+  m_view->MousePositionToRAS( 5, 5, pt2 );
+  double dTh2 = vtkMath::Distance2BetweenPoints( pt1, pt2 );
+  
+  // calculate the hit point in world space
+  double pt[3];
+  m_view->MousePositionToRAS( nX, nY, pt );
+  
+  for ( int i = 0; i < 4; i++ )
+  {
+    if ( vtkMath::Distance2BetweenPoints( pt, m_dPt[i] ) < dTh2 )
+    {
+      if ( nIndexOut )
+        *nIndexOut = i;
+      return true;
+    }
+  }
+  
+  if ( nIndexOut )
+    *nIndexOut = -1;
+  
+  double range[3][2];
+  GetRange( range );  
+  if ( pt[0] >= range[0][0] && pt[0] <= range[0][1] &&
+       pt[1] >= range[1][0] && pt[1] <= range[1][1] &&
+       pt[2] >= range[2][0] && pt[2] <= range[2][1] )
+  {
+    return true;
+  }
+  else
+    return false;
 }
 
-void Region2DRectangle::Offset( int nX, int nY )
+// return the index of the screen depth dimension
+int Region2DRectangle::GetRange( double range[3][2] )
 {
+  for ( int i = 0; i < 3; i++ )
+  {
+    range[i][0] = range[i][1] = m_dPt[0][i];
+  }
+  
+  for ( int i = 0; i < 4; i++ )
+  {
+    for ( int j = 0; j < 3; j++ )
+    {
+      if ( range[j][0] > m_dPt[i][j] )
+        range[j][0] = m_dPt[i][j];
+      else if ( range[j][1] < m_dPt[i][j] )
+        range[j][1] = m_dPt[i][j];
+    }
+  }  
+  
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( fabs( range[i][0] - range[i][1] ) < 0.000001 )
+      return i;
+  }
+  
+  return 0;
+}
+
+void Region2DRectangle::Highlight( bool bHighlight )
+{
+  m_actorRect->GetProperty()->SetColor( bHighlight?0:1, 1, 0);
+}
+
+void Region2DRectangle::Offset( int x, int y )
+{
+  double pt0[3], pt[3];
+  m_view->MousePositionToRAS( 0, 0, pt0 );
+  m_view->MousePositionToRAS( x, y, pt );
+  for ( int j = 0; j < 4; j++ )
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      m_dPt[j][i] += ( pt[i] - pt0[i] );
+    }
+  }
+  Update(); 
 }
   
-void Region2DRectangle::UpdatePoint( int nIndex, int nX, int nY )
+void Region2DRectangle::UpdatePoint( int nIndex, int x, int y )
 {
+   /* 
+  if ( nIndex >= 0 && nIndex < 4 )
+  {
+    m_view->MousePositionToRAS( nX, nY, m_dPt[nIndex] );
+    
+    Update();
+  }
+*/
+  if ( nIndex >= 0 && nIndex < 4 )
+  {
+    int nDiag = (nIndex+2)%4;
+    int xp, yp;
+    m_view->WorldToScreen( m_dPt[nDiag][0], m_dPt[nDiag][1], m_dPt[nDiag][2], xp, yp );
+    int nX1, nY1, nX2, nY2;
+    if ( nIndex == 0 )
+    {
+      nX1 = x;  nY1 = y;
+      nX2 = xp; nY2 = yp;
+    }
+    else if ( nIndex == 1 )
+    {
+      nX1 = x;  nY1 = yp;
+      nX2 = xp; nY2 = y;
+    }
+    else if ( nIndex == 2 )
+    {
+      nX1 = xp; nY1 = yp;
+      nX2 = x;  nY2 = y;
+    }
+    else
+    {
+      nX1 = xp; nY1 = y;
+      nX2 = x;  nY2 = yp;
+    }
+    SetRect( nX1, nY1, nX2-nX1, nY2-nY1 );
+  }  
 }

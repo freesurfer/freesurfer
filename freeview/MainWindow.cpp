@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.76 $
+ *    $Date: 2009/11/03 22:51:28 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -75,6 +75,7 @@
 #include "Cursor2D.h"
 #include "Cursor3D.h"
 #include "ToolWindowEdit.h"
+#include "ToolWindowMeasure.h"
 #include "DialogRotateVolume.h"
 #include "DialogOptimalVolume.h"
 #include "WindowHistogram.h"
@@ -330,6 +331,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   PositionStatusBar();
 
   m_toolWindowEdit = NULL;
+  m_toolWindowMeasure = NULL;
   m_dlgRotateVolume = NULL;
   m_dlgGradientVolume = NULL;
 
@@ -1099,14 +1101,13 @@ void MainWindow::DoUpdateToolbars()
 {
   if ( !m_toolWindowEdit )
     m_toolWindowEdit = new ToolWindowEdit( this );
+  if ( !m_toolWindowMeasure )
+    m_toolWindowMeasure = new ToolWindowMeasure( this );
     
-  if ( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
-       m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit )
-  {
-    m_toolWindowEdit->Show();
-  }
-  else
-    m_toolWindowEdit->Hide();
+  m_toolWindowEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
+      m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
+  
+  m_toolWindowMeasure->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_Measure );
 
   m_toolWindowEdit->UpdateTools();
 
