@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/19 14:06:25 $
- *    $Revision: 1.40 $
+ *    $Date: 2009/11/04 18:37:56 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.40 2009/10/19 14:06:25 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.41 2009/11/04 18:37:56 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -111,6 +111,7 @@ int DoPCA = 0;
 MRI *PCAMask = NULL;
 char *PCAMaskFile = NULL;
 int DoSCM = 0; // spat cor matrix
+int DoCheck = 1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -146,32 +147,47 @@ int main(int argc, char **argv) {
   }
 
   printf("ninputs = %d\n",ninputs);
-  printf("Checking inputs\n");
-  for(nthin = 0; nthin < ninputs; nthin++) {
-    if(Gdiag_no > 0 || debug) {
-      printf("Checking %2d %s\n",nthin,inlist[nthin]);
-      fflush(stdout);
-    }
-    mritmp = MRIreadHeader(inlist[nthin],MRI_VOLUME_TYPE_UNKNOWN);
-    if (mritmp == NULL) {
-      printf("ERROR: reading %s\n",inlist[nthin]);
-      exit(1);
-    }
-    if (nthin == 0) {
-      nc = mritmp->width;
-      nr = mritmp->height;
-      ns = mritmp->depth;
-    }
-    if (mritmp->width != nc ||
-        mritmp->height != nr ||
-        mritmp->depth != ns) {
-      printf("ERROR: dimension mismatch between %s and %s\n",
-             inlist[0],inlist[nthin]);
-      exit(1);
-    }
+  if(DoCheck){
+    printf("Checking inputs\n");
+    for(nthin = 0; nthin < ninputs; nthin++) {
+      if(Gdiag_no > 0 || debug) {
+	printf("Checking %2d %s\n",nthin,inlist[nthin]);
+	fflush(stdout);
+      }
+      mritmp = MRIreadHeader(inlist[nthin],MRI_VOLUME_TYPE_UNKNOWN);
+      if (mritmp == NULL) {
+	printf("ERROR: reading %s\n",inlist[nthin]);
+	exit(1);
+      }
+      if (nthin == 0) {
+	nc = mritmp->width;
+	nr = mritmp->height;
+	ns = mritmp->depth;
+      }
+      if (mritmp->width != nc ||
+	  mritmp->height != nr ||
+	  mritmp->depth != ns) {
+	printf("ERROR: dimension mismatch between %s and %s\n",
+	       inlist[0],inlist[nthin]);
+	exit(1);
+      }
 
-    nframestot += mritmp->nframes;
-    inputDatatype = mritmp->type; // used by DoKeepDatatype option
+      nframestot += mritmp->nframes;
+      inputDatatype = mritmp->type; // used by DoKeepDatatype option
+      MRIfree(&mritmp);
+    }
+  } 
+  else {
+    printf("NOT Checking inputs, assuming nframestot = ninputs\n");
+    nframestot = ninputs;
+    mritmp = MRIreadHeader(inlist[0],MRI_VOLUME_TYPE_UNKNOWN);
+    if (mritmp == NULL) {
+      printf("ERROR: reading %s\n",inlist[0]);
+      exit(1);
+    }
+    nc = mritmp->width;
+    nr = mritmp->height;
+    ns = mritmp->depth;
     MRIfree(&mritmp);
   }
 
@@ -449,6 +465,8 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--check"))    DoCheck = 1;
+    else if (!strcasecmp(option, "--no-check")) DoCheck = 0;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
     else if (!strcasecmp(option, "--mean-div-n")) DoMeanDivN = 1;
     else if (!strcasecmp(option, "--mean2"))      DoMeanDivN = 1;
@@ -615,6 +633,7 @@ static void print_usage(void) {
   printf("   --add addval   : add addval\n");
   printf("\n");
   printf("   --mask maskfile : mask used with --vote or --sort\n");
+  printf("   --no-check : do not check inputs (faster)\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
   printf("\n");
