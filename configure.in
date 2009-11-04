@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/10/03 22:56:14 $
-#    $Revision: 1.444 $
+#    $Author: rpwang $
+#    $Date: 2009/11/04 18:38:49 $
+#    $Revision: 1.445 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3113,6 +3113,7 @@ AC_OUTPUT([Makefile
            scuba/Makefile
            scuba2/Makefile
            freeview/Makefile
+	   connectgraph/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
            stim/Makefile

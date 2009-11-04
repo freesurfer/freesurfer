@@ -4,13 +4,13 @@
 
 #######################################################################
 # When you create your own program directory, copy the 'from' to the 
-# 'to' lines to your Makefile.am and change dummy to your program name.
+# 'to' lines to your Makefile.am and change connectgraph to your program name.
 #  
 # 0. mkdir  dev/yourdir and put .c file in there
 # 1. modify dev/configure.in to have yourdir/Makefile
 # 2. modify dev/Makefile.am to have yourdir as one of SUBDIRS
-# 3. create dev/yourdir/Makefile.am  (follow dummy/Makefile.am)
-#      i.e. replace dummy with your program name.
+# 3. create dev/yourdir/Makefile.am  (follow connectgraph/Makefile.am)
+#      i.e. replace connectgraph with your program name.
 #
 # 4. automake -v at the top directory, i.e. dev/ (which will create 
 #    Makefile.in in yourdir directory)
@@ -31,10 +31,14 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include
 
-bin_PROGRAMS = dummy
-dummy_SOURCES=dummy.c
-dummy_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-dummy_LDFLAGS=$(OS_LDFLAGS)
+bin_PROGRAMS = connectgraph
+connectgraph_SOURCES =\
+	connectgraph.cpp \
+	MyCmdLineParser.cpp \
+	MyCmdLineParser.h
+					
+connectgraph_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+connectgraph_LDFLAGS=$(OS_LDFLAGS)
 
 # to --------------------------------------------------
 #
@@ -53,7 +57,7 @@ dummy_LDFLAGS=$(OS_LDFLAGS)
 # The program listed as check_PROGRAMS are not compiled under standard 
 # "make". Only "make check" will compile them.
 # 
-# Please don't remove myown.c from this dummy directory.
+# Please don't remove myown.c from this connectgraph directory.
 ########################################################################
 #check_PROGRAMS=myown
 
