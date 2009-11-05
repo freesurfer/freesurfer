@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/10/16 19:07:12 $
-#    $Revision: 1.257 $
+#    $Date: 2009/11/05 22:24:52 $
+#    $Revision: 1.258 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.257 2009/10/16 19:07:12 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.258 2009/11/05 22:24:52 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2575,7 +2575,12 @@ if($DoSegStats) then
   set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
-  set cmd = ($cmd --etiv --subject $subjid $xopts);
+  if ( -e mri/transforms/talairach.xfm ) then
+    set cmd = ($cmd --etiv);
+  else
+    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
+    echo "      due to missing talairach.xfm file" |& tee -a $LF
+  endif
   if ( ( -e surf/lh.white ) && ( -e surf/rh.white ) ) then
     set cmd = ($cmd --surf-wm-vol)
     if ( ( -e surf/lh.pial ) && ( -e surf/rh.pial ) ) then
@@ -2590,7 +2595,7 @@ if($DoSegStats) then
   endif
   #set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
-  set cmd = ($cmd $xopts);
+  set cmd = ($cmd --subject $subjid $xopts);
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
