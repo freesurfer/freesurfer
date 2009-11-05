@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/11/04 18:37:56 $
- *    $Revision: 1.41 $
+ *    $Date: 2009/11/05 21:26:58 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.41 2009/11/04 18:37:56 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.42 2009/11/05 21:26:58 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -225,6 +225,7 @@ int main(int argc, char **argv) {
   }
   mriout = MRIallocSequence(nc,nr,ns,datatype,nframestot);
   if (mriout == NULL) exit(1);
+  printf("Done allocing\n");
 
   fout = 0;
   for (nthin = 0; nthin < ninputs; nthin++) {
@@ -519,6 +520,9 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--pca")){
       DoPCA = 1;
+    }
+    else if (!strcasecmp(option, "--chunk")){
+      setenv("FS_USE_MRI_CHUNK","1",1);
     }
     else if (!strcasecmp(option, "--scm")){
       DoSCM = 1;
