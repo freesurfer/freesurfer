@@ -310,6 +310,7 @@ SUBDIRS=\
 	itkio \
 	itkutils \
 	tetgen \
+	connectgraph \
 	qdecproject \
 	svm-lib \
 	distribution \
