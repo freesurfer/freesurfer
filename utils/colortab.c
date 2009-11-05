@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/10/20 22:07:23 $
- *    $Revision: 1.35 $
+ *    $Author: greve $
+ *    $Date: 2009/11/05 21:17:11 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1294,6 +1294,7 @@ int CTABfindEntryByName(COLOR_TABLE *ct,const char *name, int *nEntry)
 int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
 {
   int structure;
+  char *tmpstr;
 
   if (NULL==ct)
     ErrorReturn(ERROR_BADPARM,
@@ -1306,12 +1307,14 @@ int CTABprintASCII(COLOR_TABLE *ct, FILE *fp)
 
   for (structure = 0; structure < ct->nentries; structure++)  {
     if (NULL != ct->entries[structure])    {
+      tmpstr = deblank(ct->entries[structure]->name);
       fprintf (fp, "%3d  %-30s  %3d %3d %3d  %3d\n",
-               structure + ct->idbase, ct->entries[structure]->name,
+               structure + ct->idbase, tmpstr,
                ct->entries[structure]->ri,
                ct->entries[structure]->gi,
                ct->entries[structure]->bi,
                255 - ct->entries[structure]->ai); /* alpha = 255-trans */
+      free(tmpstr);
     }
   }
 
