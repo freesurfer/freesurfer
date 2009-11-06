@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/17 22:50:32 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/11/06 01:02:56 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1089,7 +1089,10 @@ vector< string > QdecProject::CreateStatsDataTables ()
    */
   vector< string > segs;
   segs.push_back( "aseg" );
-  segs.push_back( "wmparc" );
+  if (NULL == getenv("QDEC_SKIP_WMPARC_STAT"))
+  {
+    segs.push_back( "wmparc" );
+  }
 
   unsigned int s;
   for (s=0; s < segs.size(); s++)
