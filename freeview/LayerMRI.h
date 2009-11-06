@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/11/06 20:12:06 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -139,6 +139,10 @@ public:
 
   bool GetVoxelValueRange( const double* pt0, const double* pt1, 
                            int nPlane, double* range_out );
+  
+  bool GetVoxelStats( const double* pt0, const double* pt1, 
+                           int nPlane, double* mean_out, double* sd_out = NULL );
+  
   void ResetWindowLevel();
   
   int GetDataType();

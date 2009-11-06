@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/11/06 20:12:06 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,14 +35,27 @@
 #include <vtkCoordinate.h>
 #include <vtkPolyData.h>
 #include <vtkMath.h>
+#include <vtkTextActor.h>
+#include <vtkTextProperty.h>
+#include "LayerMRI.h"
 
 Region2DRectangle::Region2DRectangle( RenderView2D* view ) :
   Region2D( view )
 {
+  m_bEnableStats = true;
+  
   m_actorRect = vtkSmartPointer<vtkActor2D>::New();
   m_actorRect->GetProperty()->SetColor( 1, 0, 0 );
-  m_actorRect->GetProperty()->SetOpacity( 0.5 );
+  m_actorRect->GetProperty()->SetOpacity( 0.6 );
 //  m_actorRect->VisibilityOff();
+  
+  m_actorText = vtkSmartPointer<vtkTextActor>::New();
+  m_actorText->SetTextScaleModeToNone();
+  m_actorText->GetTextProperty()->SetColor( 1, 1, 1 );
+  m_actorText->GetTextProperty()->ShadowOn(); 
+  m_actorText->GetTextProperty()->SetFontSize( 16 );  
+  m_actorText->GetTextProperty()->SetFontFamilyToTimes();
+  m_actorText->GetTextProperty()->SetJustificationToCentered();
   
   Highlight( true );
 }
@@ -119,11 +132,29 @@ void Region2DRectangle::Update()
   coords->SetCoordinateSystemToViewport();
   mapper->SetTransformCoordinate( coords );
   m_actorRect->SetMapper( mapper );
+  
+  if ( m_bEnableStats )
+  {
+    LayerMRI* layer = m_view->GetFirstNonLabelVolume();
+    if ( layer )
+    {
+      double mean, sd;
+      layer->GetVoxelStats( m_dPt[0], m_dPt[2], m_view->GetViewPlane(), &mean, &sd );
+      char ch[1000];
+      sprintf( ch, "%.2f +/-%.2f", mean, sd );
+      m_actorText->SetInput( ch );
+      double pt[3];
+      for ( int i = 0; i < 3; i++ )
+        pt[i] = ( pt0[i] + pt2[i] ) / 2;
+      m_actorText->SetPosition( pt );
+    }
+  }
 }
 
 void Region2DRectangle::AppendProp( vtkRenderer* renderer )
 {
   renderer->AddViewProp( m_actorRect );
+  renderer->AddViewProp( m_actorText );
 }
 
 void Region2DRectangle::Show( bool bShow )

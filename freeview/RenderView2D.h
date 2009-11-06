@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/03 20:29:27 $
- *    $Revision: 1.15 $
+ *    $Date: 2009/11/06 20:12:06 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,7 @@ class Interactor2DROIEdit;
 class Interactor2DWayPointsEdit;
 class Region2DRectangle;
 class Region2D;
+class LayerMRI;
 
 class VTK_RENDERING_EXPORT RenderView2D : public RenderView
 {
@@ -104,6 +105,8 @@ public:
   Region2D* GetRegion( int nX, int nY, int* index_out = NULL );
   void AddRegion( Region2D* region );
   void DeleteRegion( Region2D* region );
+  
+  LayerMRI* GetFirstNonLabelVolume();
   
 protected:
   void Initialize2D();

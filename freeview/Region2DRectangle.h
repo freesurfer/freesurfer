@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/11/06 20:12:06 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -33,6 +33,7 @@
 #include <vector>
 #include "vtkSmartPointer.h"
 
+class vtkTextActor;
 class vtkActor2D;
 class RenderView2D;
 class vtkRenderer;
@@ -63,15 +64,22 @@ public:
   void Update();
   
   void GetWorldPoint( int nIndex, double* pt );
+  
+  void SetEnableStats( bool bStats )
+  {
+    m_bEnableStats = bStats;
+  }
 
 protected:
   void UpdateWorldCoords();  
   int GetRange( double[3][2] );
   
-  vtkSmartPointer<vtkActor2D> m_actorRect;
+  vtkSmartPointer<vtkActor2D>   m_actorRect;
+  vtkSmartPointer<vtkTextActor> m_actorText;
   int       m_nX1, m_nX2, m_nY1, m_nY2;
   double    m_dPt[4][3];       // rect in world coordinate
-
+  
+  bool      m_bEnableStats;
 };
 
 #endif

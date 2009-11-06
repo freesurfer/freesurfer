@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:28 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/11/06 20:12:06 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,9 +36,6 @@
 #include "Region2DLine.h"
 #include "Region2DRectangle.h"
 #include <vtkRenderer.h>
-
-#define FV_CURSOR_PENCIL wxCursor( wxImage("res/images/cursor_pencil.png") )
-#define FV_CURSOR_FILL  wxCursor( wxImage("res/images/cursor_fill.png" ) )
 
 Interactor2DMeasure::Interactor2DMeasure() :
     Interactor2D(),
@@ -256,7 +253,10 @@ void Interactor2DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
       }
       else
       {
-        wnd->SetCursor( CursorFactory::CursorMeasure );
+        if ( m_nAction == MM_Line ) 
+          wnd->SetCursor( CursorFactory::CursorMeasureLine );
+        else if ( m_nAction == MM_Rectangle )
+          wnd->SetCursor( CursorFactory::CursorMeasureRectangle );
       }
     }   
   }

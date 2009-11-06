@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.39 $
+ *    $Date: 2009/11/06 20:12:06 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1312,6 +1312,74 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
   
   return true;
 }
+
+// Get rectangle region stats
+bool LayerMRI::GetVoxelStats( const double* pt0, const double* pt1, int nPlane, double* mean_out, double* sd_out )
+{
+  double* orig = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  int* dim = m_imageData->GetDimensions();
+  
+  if ( nPlane < 0 || nPlane >= dim[nPlane] )
+    return false;
+  
+  // find the index range of the selection
+  int n0[3] = { 10000000, 10000000, 10000000 }, 
+  n1[3] = { -10000000, -10000000, -10000000 };
+  n0[nPlane] = n1[nPlane] = (int)( ( pt0[nPlane] - orig[nPlane] ) / voxel_size[nPlane] + 0.5 ); 
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( i != nPlane )
+    {
+      int p0 = (int)( ( pt0[i] - orig[i] ) / voxel_size[i] + 0.5 ); 
+      int p1 = (int)( ( pt1[i] - orig[i] ) / voxel_size[i] + 0.5 ); 
+      p0 = max( 0, min( dim[i]-1, p0 ) );
+      p1 = max( 0, min( dim[i]-1, p1 ) );
+      n0[i] = min( p0, min( p1, n0[i] ) );
+      n1[i] = max( p0, max( p1, n0[i] ) );
+    }
+  }
+  
+  int nActiveComp = GetActiveFrame();  
+  double dMean = 0;
+  int nCount = 0;
+  for ( int i = n0[0]; i <= n1[0]; i++ )
+  {
+    for ( int j = n0[1]; j <= n1[1]; j++ )
+    {
+      for ( int k = n0[2]; k <= n1[2]; k++ )
+      {
+        dMean += m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+        nCount++;
+      }
+    }
+  }
+  if ( nCount > 0 )
+    *mean_out = dMean / nCount;
+  
+  if ( sd_out )
+  {
+    double sd = 0;
+    for ( int i = n0[0]; i <= n1[0]; i++ )
+    {
+      for ( int j = n0[1]; j <= n1[1]; j++ )
+      {
+        for ( int k = n0[2]; k <= n1[2]; k++ )
+        {
+          double value = m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+          sd += ( value-(*mean_out) ) * ( value-(*mean_out) );
+        }
+      }
+    }
+    if (nCount > 1)
+      *sd_out = sqrt( sd / (nCount-1) );
+    else
+      *sd_out = 0;
+  }
+  
+  return true;
+}
+
 
 void LayerMRI::ResetWindowLevel()
 {

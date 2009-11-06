@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/11/06 20:12:06 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -77,6 +77,7 @@ void RenderView2D::Initialize2D()
   m_annotation2D = new Annotation2D;
   m_cursor2D = new Cursor2D( this );
   m_selection2D = new Region2DRectangle( this );
+  m_selection2D->SetEnableStats( false );
 
   m_interactorNavigate  = new Interactor2DNavigate();
   m_interactorMeasure  = new Interactor2DMeasure();
@@ -497,16 +498,8 @@ void RenderView2D::UpdateSelection( int nX, int nY )
 void RenderView2D::StopSelection()
 {
   m_selection2D->Show( false );
-  
-  std::vector<Layer*> layers = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetLayers();
-  LayerMRI* layer = NULL;
-  for ( size_t i = 0; i < layers.size(); i++ )
-  {
-    layer = ( LayerMRI*)layers[i];
-    if ( layer->IsVisible() && layer->GetProperties()->GetColorMap() != LayerPropertiesMRI::LUT )
-      break;
-  }
-  
+
+  LayerMRI* layer = GetFirstNonLabelVolume();
   if ( layer )
   {
     double range[2], m_dPt0[3], m_dPt2[3];
@@ -528,6 +521,18 @@ void RenderView2D::StopSelection()
       }
     }
   }
+}
+
+LayerMRI* RenderView2D::GetFirstNonLabelVolume( )
+{
+  std::vector<Layer*> layers = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetLayers();
+  for ( size_t i = 0; i < layers.size(); i++ )
+  {
+    LayerMRI* layer = ( LayerMRI*)layers[i];
+    if ( layer->IsVisible() && layer->GetProperties()->GetColorMap() != LayerPropertiesMRI::LUT )
+      return layer;
+  }
+  return NULL;
 }
 
 Region2D* RenderView2D::GetRegion( int nX, int nY, int* index_out )
