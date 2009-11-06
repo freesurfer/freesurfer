@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/06 01:02:14 $
- *    $Revision: 1.46 $
+ *    $Date: 2009/11/06 01:07:11 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.46 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.47 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4840,7 +4840,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     ssTksurferCmd2 << envVars->FREESURFER_HOME << "/bin/tksurfer "
                   << isElement << " " 
                   << "rh inflated "
-                  << "-annotation aparc.annot";
+                  << "-annotation aparc.annot &";
     ssTksurferCommand2 << "set err [catch { exec "
                        << ssTksurferCmd2.str().c_str()
                        << " }] ; ";
