@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/31 18:30:50 $
- *    $Revision: 1.45 $
+ *    $Date: 2009/11/06 01:02:14 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.45 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.46 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4807,7 +4807,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     ssTkmeditCmd << envVars->FREESURFER_HOME << "/bin/tkmedit "
                  << isElement << " norm.mgz " 
                  << "lh.white -aux-surface rh.white "
-                 << "-segmentation aseg.mgz";
+                 << "-segmentation aseg.mgz &";
     ssTkmeditCommand << "set err [catch { exec "
                      << ssTkmeditCmd.str().c_str()
                      << " }] ; if { $err != 0 } { "
@@ -4826,7 +4826,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     ssTksurferCmd << envVars->FREESURFER_HOME << "/bin/tksurfer "
                   << isElement << " " 
                   << "lh inflated "
-                  << "-annotation aparc.annot";
+                  << "-annotation aparc.annot &";
     ssTksurferCommand << "set err [catch { exec "
                       << ssTksurferCmd.str().c_str()
                       << " }] ; ";
