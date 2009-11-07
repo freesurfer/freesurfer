@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.132 2009/09/03 13:57:46 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.133 2009/11/07 01:34:27 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -595,6 +595,13 @@ endif
 if ("${RELEASE_TYPE}" == "stable-pub") then
   echo "CMD: strip ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
   strip ${INSTALL_DIR}/bin-new/* >& /dev/null
+endif
+# compress binaries using 'upx', greatly reducing their size even more (3x)
+if ("${RELEASE_TYPE}" == "stable-pub") then
+  if ( -e /usr/pubsw/bin/upx )
+    echo "CMD: /usr/pubsw/bin/upx ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
+    /usr/pubsw/bin/upx ${INSTALL_DIR}/bin-new/* >& /dev/null
+  endif
 endif
 #
 # Shift bin/ to bin-old/ to keep old versions.
