@@ -1,5 +1,5 @@
 function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
-% [vol, M, mr_parms, Mdc, volsz] = load_mgh(fname,<slices>,<frames>,<headeronly>)
+% [vol, M, mr_parms, volsz] = load_mgh(fname,<slices>,<frames>,<headeronly>)
 %
 % fname - path of the mgh file
 % 
@@ -29,9 +29,9 @@ function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2009/07/01 17:12:55 $
-%    $Revision: 1.18 $
+%    $Author: nicks $
+%    $Date: 2009/11/09 22:36:52 $
+%    $Revision: 1.19 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
