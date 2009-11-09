@@ -9,10 +9,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/06 20:45:16 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/11/09 19:21:07 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -216,6 +216,7 @@ int main ( int argc, char** argv ) {
                                  sDiscreteFactor2.c_str(),
                                  sContinuousFactor1.c_str(),
                                  sContinuousFactor2.c_str(),
+                                 NULL, 0,
                                  sMeasurement.c_str(), sHemisphere.c_str(),
                                  smoothness, NULL ) ) {
       cerr << "Error: Couldn't create design. Make sure your parameters are "
