@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/05 19:42:39 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/11/09 06:56:19 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -115,6 +115,8 @@ bool QdecGlmDesign::IsValid ( )
  * @param  isSecondDiscreteFactor
  * @param  isFirstContinuousFactor
  * @param  isSecondContinuousFactor
+ * @param  isNuisanceFactors
+ * @param  inNumNuisanceFactors
  * @param  isMeasure
  * @param  isHemi
  * @param  iSmoothnessLevel
@@ -126,6 +128,8 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
                             const char* isSecondDiscreteFactor,
                             const char* isFirstContinuousFactor,
                             const char* isSecondContinuousFactor,
+                            const char** isNuisanceFactors,
+                            int inNumNuisanceFactors,
                             const char* isMeasure,
                             const char* isHemi,
                             int iSmoothnessLevel,
@@ -144,6 +148,7 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
   // delete any prior runs
   mDiscreteFactors.clear();    // We don't own the data in these
   mContinuousFactors.clear();  // containers; QdecDataTable does
+  mNuisanceFactors.clear();
 
   while (mContrasts.size() != 0)
   {
@@ -221,6 +226,20 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
     }
     assert( qf->IsContinuous() );
     this->mContinuousFactors.push_back( qf );
+  }
+  if ( (NULL != isNuisanceFactors) && (inNumNuisanceFactors) )
+  {
+    for( int i=0; i < inNumNuisanceFactors; i++ )
+    {
+      qf = this->mDataTable->GetFactor( isNuisanceFactors[i] );
+      if( NULL == qf )
+      {
+        fprintf( stderr,"ERROR: QdecGlmDesign::Create: bad factor!\n" );
+        return -1;
+      }
+      assert( qf->IsContinuous() );
+      this->mNuisanceFactors.push_back( qf );
+    }
   }
   if ( 0 == (this->mDiscreteFactors.size() + this->mContinuousFactors.size()) )
   {
@@ -341,6 +360,74 @@ void QdecGlmDesign::AddContinuousFactor ( const char* isFactorName)
   }
   assert( qf->IsContinuous() );
   this->mContinuousFactors.push_back( qf );
+
+  // exclude any subjects whose data is NaN for this factor
+  vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+  unsigned int nInputs = subjs.size();
+  for (unsigned int m=0; m < nInputs; m++)
+  {
+    if (isnan(subjs[m]->GetContinuousFactorValue( isFactorName )))
+    {
+      fprintf( stderr,
+               "\nWARNING: will exclude subject %s from analysis "
+               "due to NaN data point!\n",
+               subjs[m]->GetId().c_str() );
+      this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), true );
+    }
+  }
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::ClearNuisanceFactors ( )
+{
+  // un-exclude any previously excluded subjects (see AddNuisanceFactor)
+  // whose data is NaN for this factor
+  unsigned int nNuisanceFactors = this->GetNumberOfNuisanceFactors();
+  if ( nNuisanceFactors > 0 )
+  {
+    for (unsigned int f=0; f < nNuisanceFactors; f++)
+    {
+      
+      vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
+      unsigned int nInputs = subjs.size();
+      for (unsigned int m=0; m < nInputs; m++)
+      {
+        if (isnan(subjs[m]->GetContinuousFactorValue( 
+                    this->mNuisanceFactors[f]->GetFactorName().c_str() )))
+        {
+          fprintf( stdout,
+                   "\nINFO: re-including subject %s into analysis "
+                   "excluded previously due to NaN data point\n",
+                   subjs[m]->GetId().c_str() );
+          this->SetExcludeSubjectID( subjs[m]->GetId().c_str(), false );
+        }
+      }
+    }
+  }
+
+  // NOW we can clear the factor list
+  mNuisanceFactors.clear();
+}
+
+
+/**
+ *
+ */
+void QdecGlmDesign::AddNuisanceFactor ( const char* isFactorName)
+{
+  QdecFactor* qf = this->mDataTable->GetFactor( isFactorName );
+  if( NULL == qf )
+  {
+    fprintf( stderr,
+             "ERROR: QdecGlmDesign::AddNuisanceFactor: bad factor!\n" );
+    mDataTable->Dump( stderr );
+    return;
+  }
+  assert( qf->IsContinuous() );
+  this->mNuisanceFactors.push_back( qf );
 
   // exclude any subjects whose data is NaN for this factor
   vector< QdecSubject* > subjs = this->mDataTable->GetSubjects();
@@ -749,11 +836,14 @@ int QdecGlmDesign::GetNumberOfRegressors( )
   if( this->msDesignMatrixType == "dods" )
   {
     Nr = this->GetNumberOfClasses() * 
-    ( this->GetNumberOfContinuousFactors() + 1 );
+    ( this->GetNumberOfContinuousFactors() + 
+      this->GetNumberOfNuisanceFactors() + 1 );
   }
   else if( this->msDesignMatrixType == "doss" )
   {
-    Nr = this->GetNumberOfClasses() + this->GetNumberOfContinuousFactors();
+    Nr = this->GetNumberOfClasses() + 
+      this->GetNumberOfContinuousFactors() +
+      this->GetNumberOfNuisanceFactors();
   }
 
   return(Nr);
@@ -877,6 +967,12 @@ int QdecGlmDesign::WriteFsgdFile ( )
       fprintf( fp, "%s ",
                this->mContinuousFactors[f]->GetFactorName().c_str() );
     }
+    unsigned int nNuisanceFactors = this->GetNumberOfNuisanceFactors();
+    for (unsigned int f=0; f < nNuisanceFactors; f++)
+    {
+      fprintf( fp, "%s ",
+               this->mNuisanceFactors[f]->GetFactorName().c_str() );
+    }
     fprintf( fp, "\n" );
   }
 
@@ -913,6 +1009,13 @@ int QdecGlmDesign::WriteFsgdFile ( )
       {
         const char* factorName = 
           this->mContinuousFactors[f]->GetFactorName().c_str();
+        fprintf( fp, "%lf ", subjs[m]->GetContinuousFactorValue(factorName) );
+      }
+      unsigned int nNuisanceFactors = this->GetNumberOfNuisanceFactors();
+      for (unsigned f=0; f < nNuisanceFactors; f++)
+      {
+        const char* factorName = 
+          this->mNuisanceFactors[f]->GetFactorName().c_str();
         fprintf( fp, "%lf ", subjs[m]->GetContinuousFactorValue(factorName) );
       }
     }
@@ -952,6 +1055,7 @@ int QdecGlmDesign::GenerateContrasts ( )
     return -1;
   }
   unsigned int ncf = this->GetNumberOfContinuousFactors();
+  unsigned int nnf = this->GetNumberOfNuisanceFactors();
   unsigned int nreg = this->GetNumberOfRegressors();
 
   /*----------------------------------------------------------*/
@@ -993,6 +1097,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 2)
       {
@@ -1688,4 +1809,9 @@ QdecGlmDesign::GetDiscreteFactors () const {
 vector<QdecFactor*> const& 
 QdecGlmDesign::GetContinuousFactors () const {
   return mContinuousFactors;
+}
+
+vector<QdecFactor*> const& 
+QdecGlmDesign::GetNuisanceFactors () const {
+  return mNuisanceFactors;
 }

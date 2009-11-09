@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/21 21:29:44 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/11/09 06:57:53 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -230,14 +230,18 @@ class vtkKWQdecWindow : public vtkKWWindow
   // either maDiscreteFactorSelection or maContinuousFactorSelection.
   void DiscreteFactorsListBoxCallback ();
   void ContinuousFactorsListBoxCallback ();
+  void NuisanceFactorsListBoxCallback ();
 
   // Makes sure that a list box only has two items selected, and that
   // they are reflected properly within the given array.
   void ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
-                                       int iaSelections[2] );
+                                       int iaSelections[2],
+                                       int iMaxFactors);
 
+#if 0 // HACK
   // Called from Contrast tab
   void NuisanceFactorsListBoxCallback ();
+#endif
 
   // Called when the user selects a continuous factor for the scatter plot.
   void ScatterPlotListBoxCallback ();
@@ -374,6 +378,8 @@ class vtkKWQdecWindow : public vtkKWWindow
   static const char* ksDesignPanelName;
   static const char* ksContrastPanelName;
   static const char* ksDisplayPanelName;
+  static const int kMaxDiscreteFactors;
+  static const int kMaxContinuousFactors;
   const char* mCurrentNotebookPanelName;
 
   // Enable or disable buttons and menu items based on program state.
@@ -559,6 +565,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   // Widgets in the Design panel.
   vtkSmartPointer<vtkKWListBox>     mListDiscreteFactors;
   vtkSmartPointer<vtkKWListBox>     mListContinuousFactors;
+  vtkSmartPointer<vtkKWListBox>     mListNuisanceFactors;
   vtkSmartPointer<vtkKWRadioButtonSet>  mRadBtnSetMeasure;
   vtkSmartPointer<vtkKWRadioButtonSet>  mRadBtnSetSurfaceMeasure;
   vtkSmartPointer<vtkKWMenuButton>  mMenuMorphMeasure;
@@ -572,8 +579,10 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWFrame>       mFrameVolumeMeasures;
   vtkSmartPointer<vtkKWEntry>       mEntryDegreesOfFreedom;
 
+#if 0 // HACK 
   // Widgets in the Contrast panel.
   vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel> mListNuisanceFactors;
+#endif
 
   // Widgets for the Display panel.
   vtkSmartPointer<vtkKWFrame>           mFrameSurface;

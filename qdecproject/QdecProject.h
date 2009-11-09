@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/15 00:24:16 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/11/09 06:56:19 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -273,6 +273,8 @@ public:
    * @param  isSecondDiscreteFactor
    * @param  isFirstContinuousFactor
    * @param  isSecondContinuousFactor
+   * @param  isNuisanceFactors
+   * @parma  iNumNuisanceFactors
    * @param  isMeasure
    * @param  isHemi
    * @param  iSmoothnessLevel
@@ -283,6 +285,8 @@ public:
                         const char* isSecondDiscreteFactor,
                         const char* isFirstContinuousFactor,
                         const char* isSecondContinuousFactor,
+                        const char** isNuisanceFactors,
+                        int iNumNuisanceFactors,
                         const char* isMeasure,
                         const char* isHemi,
                         int iSmoothnessLevel,
@@ -305,6 +309,8 @@ public:
    * @param  isSecondDiscreteFactor
    * @param  isFirstContinuousFactor
    * @param  isSecondContinuousFactor
+   * @param  isNuisanceFactors
+   * @parma  iNumNuisanceFactors
    * @param  isMeasure
    * @param  iProgressUpdateGUI
    */
@@ -313,6 +319,8 @@ public:
                         const char* isSecondDiscreteFactor,
                         const char* isFirstContinuousFactor,
                         const char* isSecondContinuousFactor,
+                        const char** isNuisanceFactors,
+                        int iNumNuisanceFactors,
                         const char* isMeasure,
                         ProgressUpdateGUI* iProgressUpdateGUI );
 

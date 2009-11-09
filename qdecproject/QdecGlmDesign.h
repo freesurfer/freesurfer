@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/08/13 19:23:14 $
- *    $Revision: 1.7 $
+ *    $Date: 2009/11/09 06:56:19 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -70,6 +70,8 @@ public:
    * @param  isSecondDiscreteFactor
    * @param  isFirstContinuousFactor
    * @param  isSecondContinuousFactor
+   * @param  isNuisanceFactors
+   * @param  inNumNuisanceFactors
    * @param  isMeasure
    * @param  isHemi
    * @param  iSmoothnessLevel
@@ -81,6 +83,8 @@ public:
                const char* isSecondDiscreteFactor,
                const char* isFirstContinuousFactor,
                const char* isSecondContinuousFactor,
+               const char** isNuisanceFactors,
+               int inNumNuisanceFactors,
                const char* isMeasure,
                const char* isHemi,
                int iSmoothnessLevel,
@@ -108,6 +112,18 @@ public:
    *
    */
   void AddContinuousFactor ( const char* isFactorName);
+
+
+  /**
+   *
+   */
+  void ClearNuisanceFactors ( );
+
+
+  /**
+   *
+   */
+  void AddNuisanceFactor ( const char* isFactorName);
 
 
   /**
@@ -338,6 +354,7 @@ public:
    */
   vector<QdecFactor*> const& GetDiscreteFactors () const;
   vector<QdecFactor*> const& GetContinuousFactors () const;
+  vector<QdecFactor*> const& GetNuisanceFactors () const;
 
 private:
 
@@ -351,6 +368,8 @@ private:
   vector< QdecFactor* > mDiscreteFactors;
   // Stores selected continous factors.  Initially empty.
   vector< QdecFactor* > mContinuousFactors;
+  // Stores selected nuisance factors.  Initially empty.
+  vector< QdecFactor* > mNuisanceFactors;
   string msMeasure;
   string msHemi;
   int mSmoothness;
@@ -381,6 +400,10 @@ private:
   int GetNumberOfContinuousFactors ( ) 
   { 
     return this->mContinuousFactors.size(); 
+  }
+  int GetNumberOfNuisanceFactors ( ) 
+  { 
+    return this->mNuisanceFactors.size(); 
   }
 
   /**

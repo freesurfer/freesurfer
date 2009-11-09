@@ -666,6 +666,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("NuisanceFactorsListBoxCallback",argv[1]))&&(argc == 2))
+    {
+    op->NuisanceFactorsListBoxCallback();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("ScatterPlotListBoxCallback",argv[1]))&&(argc == 2))
     {
     op->ScatterPlotListBoxCallback();
@@ -1366,6 +1372,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  DiscreteFactorsListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  ContinuousFactorsListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  NuisanceFactorsListBoxCallback\n",NULL);
+    Tcl_AppendResult(interp,"  NuisanceFactorsListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  ScatterPlotListBoxCallback\n",NULL);
     Tcl_AppendResult(interp,"  AnalyzeDesign\n",NULL);
     Tcl_AppendResult(interp,"  SetSubjectsDir\t with 1 arg\n",NULL);
@@ -1500,6 +1507,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "SetCurrentSurfaceScalarsFromTableSelection" );
     Tcl_DStringAppendElement ( &dString, "DiscreteFactorsListBoxCallback" );
     Tcl_DStringAppendElement ( &dString, "ContinuousFactorsListBoxCallback" );
+    Tcl_DStringAppendElement ( &dString, "NuisanceFactorsListBoxCallback" );
     Tcl_DStringAppendElement ( &dString, "NuisanceFactorsListBoxCallback" );
     Tcl_DStringAppendElement ( &dString, "ScatterPlotListBoxCallback" );
     Tcl_DStringAppendElement ( &dString, "AnalyzeDesign" );
@@ -2614,6 +2622,23 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "void ContinuousFactorsListBoxCallback ();" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
     /* Closing for ContinuousFactorsListBoxCallback */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: NuisanceFactorsListBoxCallback */
+    if ( strcmp ( argv[2], "NuisanceFactorsListBoxCallback" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "NuisanceFactorsListBoxCallback" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for NuisanceFactorsListBoxCallback */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void NuisanceFactorsListBoxCallback ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for NuisanceFactorsListBoxCallback */
 
     Tcl_DStringResult ( interp, &dString );
     Tcl_DStringFree ( &dString );

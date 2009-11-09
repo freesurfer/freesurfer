@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/06 01:02:56 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/11/09 06:56:19 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -253,15 +253,16 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   // Create the design. This will be used in the results.
   errorCode = 
     this->mGlmDesign->Create ( this->mDataTable,
-			       sAnalysisName.c_str(),
-			       sDiscreteFactor1.c_str(),
-			       sDiscreteFactor2.c_str(),
-			       sContinuousFactor1.c_str(),
-			       sContinuousFactor2.c_str(),
-			       sMeasure.c_str(),
-			       sHemisphere.c_str(),
-			       smoothness,
-			       NULL );
+                               sAnalysisName.c_str(),
+                               sDiscreteFactor1.c_str(),
+                               sDiscreteFactor2.c_str(),
+                               sContinuousFactor1.c_str(),
+                               sContinuousFactor2.c_str(),
+                               NULL, 0,
+                               sMeasure.c_str(),
+                               sHemisphere.c_str(),
+                               smoothness,
+                               NULL );
   if( errorCode )
     return errorCode;
   
@@ -607,10 +608,13 @@ int QdecProject::LoadDataTable ( const char* isFileName )
  */
 int QdecProject::VerifySubjects ( )
 {
+  fprintf(stdout,"Verifying subject data");
   int errs=0;
   vector< QdecSubject* > theSubjects = this->mDataTable->GetSubjects();
   for (unsigned int i=0; i < theSubjects.size(); i++) 
   {
+    fprintf(stdout,".");
+    fflush(stdout);
     string id = theSubjects[i]->GetId();
     string sCommand = "ls " + 
       this->GetSubjectsDir() + "/" + id + " >& /dev/null";
@@ -621,6 +625,7 @@ int QdecProject::VerifySubjects ( )
       errs++;
     }
   }
+  fprintf(stdout,"Subject verification complete.\n");
 
   return errs;
 }
@@ -779,6 +784,8 @@ string QdecProject::GetHemi ( )
  * @param  isSecondDiscreteFactor
  * @param  isFirstContinuousFactor
  * @param  isSecondContinuousFactor
+ * @param  isNuisanceFactors
+ * @parma  iNumNuisanceFactors
  * @param  isMeasure
  * @param  isHemi
  * @param  iSmoothnessLevel
@@ -789,6 +796,8 @@ int QdecProject::CreateGlmDesign ( const char* isName,
                                    const char* isSecondDiscreteFactor,
                                    const char* isFirstContinuousFactor,
                                    const char* isSecondContinuousFactor,
+                                   const char** isNuisanceFactors,
+                                   int iNumNuisanceFactors,
                                    const char* isMeasure,
                                    const char* isHemi,
                                    int iSmoothnessLevel,
@@ -797,15 +806,17 @@ int QdecProject::CreateGlmDesign ( const char* isName,
 
   int errorCode;
   errorCode = this->mGlmDesign->Create ( this->mDataTable,
-					 isName,
-					 isFirstDiscreteFactor,
-					 isSecondDiscreteFactor,
-					 isFirstContinuousFactor,
-					 isSecondContinuousFactor,
-					 isMeasure,
-					 isHemi,
-					 iSmoothnessLevel,
-					 iProgressUpdateGUI );
+                                         isName,
+                                         isFirstDiscreteFactor,
+                                         isSecondDiscreteFactor,
+                                         isFirstContinuousFactor,
+                                         isSecondContinuousFactor,
+                                         isNuisanceFactors,
+                                         iNumNuisanceFactors,
+                                         isMeasure,
+                                         isHemi,
+                                         iSmoothnessLevel,
+                                         iProgressUpdateGUI );
   if( errorCode )
     return errorCode;
 
@@ -858,6 +869,8 @@ int QdecProject::CreateGlmDesign ( const char* isName,
  * @param  isSecondDiscreteFactor
  * @param  isFirstContinuousFactor
  * @param  isSecondContinuousFactor
+ * @param  isNuisanceFactors
+ * @parma  iNumNuisanceFactors
  * @param  isMeasure
  * @param  iProgressUpdateGUI
  */
@@ -866,21 +879,25 @@ int QdecProject::CreateGlmDesign ( const char* isName,
                                    const char* isSecondDiscreteFactor,
                                    const char* isFirstContinuousFactor,
                                    const char* isSecondContinuousFactor,
+                                   const char** isNuisanceFactors,
+                                   int iNumNuisanceFactors,
                                    const char* isMeasure,
                                    ProgressUpdateGUI* iProgressUpdateGUI )
 {
 
   int errorCode;
   errorCode = this->mGlmDesign->Create ( this->mDataTable,
-					 isName,
-					 isFirstDiscreteFactor,
-					 isSecondDiscreteFactor,
-					 isFirstContinuousFactor,
-					 isSecondContinuousFactor,
-					 isMeasure,
-					 NULL,
-					 0,
-					 iProgressUpdateGUI );
+                                         isName,
+                                         isFirstDiscreteFactor,
+                                         isSecondDiscreteFactor,
+                                         isFirstContinuousFactor,
+                                         isSecondContinuousFactor,
+                                         isNuisanceFactors,
+                                         iNumNuisanceFactors,
+                                         isMeasure,
+                                         NULL,
+                                         0,
+                                         iProgressUpdateGUI );
   if( errorCode )
     return errorCode;
 

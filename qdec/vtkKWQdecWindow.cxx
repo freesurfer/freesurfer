@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/06 01:07:11 $
- *    $Revision: 1.47 $
+ *    $Date: 2009/11/09 06:57:53 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,12 +104,15 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.47 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.48 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
 const char* vtkKWQdecWindow::ksContrastPanelName = "Contrast";
 const char* vtkKWQdecWindow::ksDisplayPanelName = "Display";
+
+const int vtkKWQdecWindow::kMaxDiscreteFactors = 2;
+const int vtkKWQdecWindow::kMaxContinuousFactors = 1;
 
 vtkKWQdecWindow::vtkKWQdecWindow () :
   vtkKWWindow(),
@@ -932,6 +935,19 @@ vtkKWQdecWindow::CreateWidget () {
   mListContinuousFactors->SetSelectionModeToMultiple();
   mListContinuousFactors->
     SetSelectionCommand( this, "ContinuousFactorsListBoxCallback" );
+
+  listBox = vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
+  listBox->SetParent( factorsFrame->GetFrame() );
+  listBox->SetLabelText( "Nuisance Factors:" );
+  listBox->Create();
+  listBox->SetLabelPositionToTop();
+  mListNuisanceFactors = listBox->GetWidget()->GetWidget();
+  mListNuisanceFactors->ExportSelectionOff();
+  mListNuisanceFactors->SetHeight ( 5 );
+  this->Script( "pack %s -fill x -expand y", listBox->GetWidgetName() );
+  mListNuisanceFactors->SetSelectionModeToMultiple();
+  mListNuisanceFactors->
+    SetSelectionCommand( this, "NuisanceFactorsListBoxCallback" );
 
   // call the radio-button handler once to set it up
   this->SetCurrentMeasure( "Surface-based" );
@@ -1840,8 +1856,10 @@ vtkKWQdecWindow::LoadDataTable ( const char* ifnDataTable ) {
 
       if( this->mQdecProject->LoadDataTable( ifnDataTable ) )
         throw runtime_error( "Error loading the data table." );
-      else
+      else {
         this->mQdecProject->DumpDataTable( stdout );
+        cout << "Data table loading completed successfully." << endl;
+      }
 
       // data table may have set SUBJECTS_DIR, so update our mEntry display
       string sSubjectsDir = this->mQdecProject->GetSubjectsDir();
@@ -2799,14 +2817,15 @@ vtkKWQdecWindow::DiscreteFactorsListBoxCallback () {
   assert( mListDiscreteFactors.GetPointer() );
 
   this->ManageFactorListBoxSelections( mListDiscreteFactors,
-                                       maDiscreteFactorSelection );
+                                       maDiscreteFactorSelection,
+                                       kMaxDiscreteFactors);
 
   // keep the QdecGlmDesign object up-to-date
   assert( mQdecProject ) ;
   assert( mQdecProject->GetGlmDesign() );
   QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
   design->ClearDiscreteFactors();
-  for( unsigned int i=0; i < 2; i++ ) {
+  for( int i=0; i < kMaxDiscreteFactors; i++ ) {
     if( -1 != maDiscreteFactorSelection[i] ) {
       design->AddDiscreteFactor
         ( strdup( mListDiscreteFactors->GetItem
@@ -2826,14 +2845,15 @@ vtkKWQdecWindow::ContinuousFactorsListBoxCallback () {
   assert( mListContinuousFactors.GetPointer() );
 
   this->ManageFactorListBoxSelections( mListContinuousFactors,
-                                       maContinuousFactorSelection );
+                                       maContinuousFactorSelection,
+                                       kMaxContinuousFactors);
 
   // keep the QdecGlmDesign object up-to-date
   assert( mQdecProject ) ;
   assert( mQdecProject->GetGlmDesign() );
   QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
   design->ClearContinuousFactors();
-  for( unsigned int i=0; i < 2; i++ ) {
+  for( int i=0; i < kMaxContinuousFactors; i++ ) {
     if( -1 != maContinuousFactorSelection[i] ) {
       design->AddContinuousFactor
         ( strdup( mListContinuousFactors->GetItem
@@ -2847,10 +2867,35 @@ vtkKWQdecWindow::ContinuousFactorsListBoxCallback () {
   }
 }
 
+void
+vtkKWQdecWindow::NuisanceFactorsListBoxCallback () {
+
+  assert( mListNuisanceFactors.GetPointer() );
+
+  // keep the QdecGlmDesign object up-to-date
+  assert( mQdecProject ) ;
+  assert( mQdecProject->GetGlmDesign() );
+  QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+  design->ClearNuisanceFactors();
+  for( int nItem = 0; nItem < mListNuisanceFactors->GetNumberOfItems(); 
+       nItem++ ) {
+    if(mListNuisanceFactors->GetSelectState(nItem)) {
+      design->AddNuisanceFactor
+        ( strdup( mListNuisanceFactors->GetItem( nItem ) ) );
+    }
+  }
+
+  // update degrees of freedom value
+  if( mEntryDegreesOfFreedom ) {
+    mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
+  }
+}
+
 
 void
 vtkKWQdecWindow::ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
-                                                 int iaSelections[2] ) {
+                                                 int iaSelections[2],
+                                                 int iMaxFactors) {
 
   // Make sure that we only have two items selected, max. If more than
   // two, unselect the first one.
@@ -2859,7 +2904,7 @@ vtkKWQdecWindow::ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
     if( iListBox->GetSelectState( nItem ) )
       cSelected++;
 
-  if( cSelected > 2 ) {
+  if( cSelected > iMaxFactors ) {
 
     // Unselect the first one.
     int nUnselect = iaSelections[0];
@@ -2897,27 +2942,6 @@ vtkKWQdecWindow::ManageFactorListBoxSelections ( vtkKWListBox* iListBox,
     }
   }
 }
-
-void
-vtkKWQdecWindow::NuisanceFactorsListBoxCallback () {
-
-  assert( mListNuisanceFactors.GetPointer() );
-
-  int cSelected = 0;
-  for( int nItem = 0; 
-       nItem < 
-         mListNuisanceFactors->GetWidget()->GetWidget()->GetNumberOfItems(); 
-       nItem++ )
-    if(mListNuisanceFactors->GetWidget()->GetWidget()->GetSelectState(nItem))
-      cSelected++;
-
-  if( cSelected == 0 ) {
-    mListNuisanceFactors->SetLabelText( "<none selected>" );
-  } else {
-    mListNuisanceFactors->SetLabelText( "" );
-  }
-}
-
 
 void
 vtkKWQdecWindow::UpdateSubjectsPage () {
@@ -2965,6 +2989,7 @@ vtkKWQdecWindow::UpdateDesignPage () {
 
   assert( mListDiscreteFactors.GetPointer() );
   assert( mListContinuousFactors.GetPointer() );
+  assert( mListNuisanceFactors.GetPointer() );
   assert( mQdecProject ) ;
   if ( ! mQdecProject->HaveDataTable() ) return;
   assert( mQdecProject->GetDataTable() );
@@ -2984,12 +3009,15 @@ vtkKWQdecWindow::UpdateDesignPage () {
   // Clear the factor lists.
   mListDiscreteFactors->DeleteAll();
   mListContinuousFactors->DeleteAll();
+  mListNuisanceFactors->DeleteAll();
 
   // Get the current factors selected for this design.
   vector<QdecFactor*> const& lDiscreteFactors =
     design->GetDiscreteFactors();
   vector<QdecFactor*> const& lContinuousFactors = 
     design->GetContinuousFactors();
+  vector<QdecFactor*> const& lNuisanceFactors = 
+    design->GetNuisanceFactors();
   int nDiscreteSelection = 0;
   int nContinuousSelection = 0;
 
@@ -3031,6 +3059,22 @@ vtkKWQdecWindow::UpdateDesignPage () {
     }
   }
 
+  factors = this->mQdecProject->GetDataTable()->GetContinuousFactorNames();
+  for(unsigned int i=0; i < factors.size(); i++) {
+    mListNuisanceFactors->Append( factors[i].c_str() );
+
+    // If this factor is one of our chosen nuisance factors from the
+    // design, select this item.
+    for(unsigned int j=0; j < lNuisanceFactors.size(); j++) {
+      if (lNuisanceFactors[j]) {
+        string factorName = lNuisanceFactors[j]->GetFactorName();
+        if (factorName == factors[i]) {
+          mListNuisanceFactors->SetSelectState( i, 1 );
+        }
+      }
+    }
+  }
+
   // update degrees of freedom value
   if( mEntryDegreesOfFreedom ) {
     mEntryDegreesOfFreedom->SetValueAsInt( design->GetDegreesOfFreedom() );
@@ -3038,6 +3082,7 @@ vtkKWQdecWindow::UpdateDesignPage () {
 }
 
 
+#if 0 // HACK
 void
 vtkKWQdecWindow::UpdateContrastPage () {
 
@@ -3063,7 +3108,7 @@ vtkKWQdecWindow::UpdateContrastPage () {
       ( lContinuousFactors[j]->GetFactorName().c_str() );
   }
 }
-
+#endif
 
 void
 vtkKWQdecWindow::UpdateDisplayPage () {
@@ -3245,7 +3290,7 @@ vtkKWQdecWindow::UpdateDisplayPage () {
       vtkSmartPointer<vtkKWFrameWithLabel>::New();
     scalarsFrame->SetParent( mFrameSurfaceScalars );
     scalarsFrame->Create();
-    scalarsFrame->SetLabelText( "Scalars" );
+    scalarsFrame->SetLabelText( "Analysis Results" );
     this->Script( "pack %s -side top -fill both",
                   scalarsFrame->GetWidgetName() );
 
@@ -4707,11 +4752,13 @@ vtkKWQdecWindow::NotebookPageRaised ( const char* isTitle ) {
     this->mCurrentNotebookPanelName = ksDesignPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->SetStatusText( "Design matrix creation" );
+#if 0 //HACK
   } else if ( 0 == strcmp( isTitle, ksContrastPanelName ) ) {
     this->mCurrentNotebookPanelName = ksContrastPanelName;
     this->GetViewFrame()->UnpackChildren();
     this->SetStatusText( "Contrast matrix creation and analysis launch" );
     this->UpdateContrastPage();
+#endif
   } else if ( 0 == strcmp( isTitle, ksDisplayPanelName ) ) {
     this->mCurrentNotebookPanelName = ksDisplayPanelName;
     this->GetViewFrame()->UnpackChildren();
@@ -5841,6 +5888,17 @@ vtkKWQdecWindow::AnalyzeDesign () {
     } else {
       cf2 = strdup( sNone );
     }
+    int numNuisanceFactors = 0;
+    const char* nuisanceFactors[1000];
+    for( int nItem = 0; nItem < mListNuisanceFactors->GetNumberOfItems(); 
+         nItem++ ) {
+      if(mListNuisanceFactors->GetSelectState(nItem)) {
+        nuisanceFactors[numNuisanceFactors] = 
+          strdup( mListNuisanceFactors->GetItem( nItem ) );
+        numNuisanceFactors++;
+      }
+      if(numNuisanceFactors>=999) break;
+    }
 
     // Now create the design input files (checking for validity before running)
     if( this->mQdecProject->CreateGlmDesign
@@ -5849,6 +5907,8 @@ vtkKWQdecWindow::AnalyzeDesign () {
          df2, // second discrete factor
          cf1, // first continuous factor
          cf2, // second continuous factor
+         nuisanceFactors,
+         numNuisanceFactors,
          measure,
          hemi,
          smoothness,
