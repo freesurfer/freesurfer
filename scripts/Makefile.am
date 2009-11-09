@@ -26,6 +26,7 @@ dcmunpack \
 deface_subject \
 defect-seg \
 dicom-rename \
+dsh \
 dt_recon \
 epidewarp.fsl\
 extract_talairach_avi_QA.awk \
