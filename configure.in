@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: rpwang $
-#    $Date: 2009/11/04 18:38:49 $
-#    $Revision: 1.445 $
+#    $Author: nicks $
+#    $Date: 2009/11/10 07:37:39 $
+#    $Revision: 1.446 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1669,6 +1669,57 @@ AC_SUBST(JPEG_LIBS)
 AC_SUBST(LIB_JPEG)
 AC_SUBST(LIB_BLT_JPEG)
 
+
+################################################################
+# eXpat
+################################################################
+# default is to use the libexpat included in freesurfer src tree,
+# local libexpat static lib declared later in LIBS_MGH.
+# allow someone to override with their own using --with-expat-dir:
+ac_expat_includes="NO"
+ac_expat_libraries="NO"
+ac_expat_bindir="NO"
+EXPAT_CFLAGS=""
+EXPAT_LIBS=""
+LIB_EXPAT=""
+AC_MSG_CHECKING(Expat directory)
+
+AC_ARG_WITH(expat-dir,
+[  --with-expat-dir=DIR    where the root of Expat is installed.],
+  [  ac_expat_includes="$withval"/include
+     ac_expat_libraries="$withval"/lib
+     ac_expat_bindir="$withval"/bin
+  ])
+
+if test ! "$ac_expat_includes" = "NO"; then
+  AC_MSG_RESULT(Expat directory is $withval)
+  EXPAT_CFLAGS=-I$ac_expat_includes
+else
+  AC_MSG_RESULT(Expat directory is not supplied)
+fi
+if test ! "$ac_expat_libraries" = "NO"; then
+  EXPAT_LIBS=-L$ac_expat_libraries
+  LIB_EXPAT="-lexpat"
+fi
+
+AM_CONDITIONAL(USE_LOCAL_EXPAT, test "$ac_expat_libraries" = "NO")
+
+AC_SUBST(EXPAT_CFLAGS)
+AC_SUBST(EXPAT_LIBS)
+AC_SUBST(LIB_EXPAT)
+
+#
+# these are used by the local freesurfer expat source, 
+# declared in config.h
+# 
+AC_DEFINE([XML_NS], 1,
+[Define to make XML Namespaces functionality available.])
+AC_DEFINE([XML_DTD], 1,
+[Define to make parameter entity parsing functionality available.])
+AC_DEFINE([XML_CONTEXT_BYTES], 1024,
+[Define to specify how much context to retain around the current parse point.])
+
+
 ################################################################
 # Qt
 ################################################################
@@ -1987,7 +2038,8 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   WXCONFIG="${WXWIDGETS_DIR}/bin/wx-config"
   WXWIDGETS_CFLAGS="`${WXCONFIG} --cflags`"
   WXWIDGETS_CXXFLAGS="`${WXCONFIG} --cxxflags`"
-  WXWIDGETS_LIBS="`${WXCONFIG} --libs`"
+  # we want to use the local / static jpeg, tiff and expat libs
+  WXWIDGETS_LIBS="`${WXCONFIG} --libs | sed 's/-ljpeg/..\/jpeg\/libjpeg.a/g' | sed 's/-ltiff/..\/tiff\/libtiff.a/g' | sed 's/-lexpat/..\/expat\/libexpat.a/g'`"
 
   # except wx-config isn't so handy in including some header paths on Linux:
   if test -d /usr/include/gtk-2.0 ; then
@@ -2131,56 +2183,6 @@ AC_SUBST(ITK_CFLAGS)
 AC_SUBST(ITK_LIBS)
 AC_SUBST(ITK_LIB)
 AC_SUBST(LIBS_ITK)
-
-
-################################################################
-# eXpat
-################################################################
-# default is to use the libexpat included in freesurfer src tree,
-# local libexpat static lib declared later in LIBS_MGH.
-# allow someone to override with their own using --with-expat-dir:
-ac_expat_includes="NO"
-ac_expat_libraries="NO"
-ac_expat_bindir="NO"
-EXPAT_CFLAGS=""
-EXPAT_LIBS=""
-LIB_EXPAT=""
-AC_MSG_CHECKING(Expat directory)
-
-AC_ARG_WITH(expat-dir,
-[  --with-expat-dir=DIR    where the root of Expat is installed.],
-  [  ac_expat_includes="$withval"/include
-     ac_expat_libraries="$withval"/lib
-     ac_expat_bindir="$withval"/bin
-  ])
-
-if test ! "$ac_expat_includes" = "NO"; then
-  AC_MSG_RESULT(Expat directory is $withval)
-  EXPAT_CFLAGS=-I$ac_expat_includes
-else
-  AC_MSG_RESULT(Expat directory is not supplied)
-fi
-if test ! "$ac_expat_libraries" = "NO"; then
-  EXPAT_LIBS=-L$ac_expat_libraries
-  LIB_EXPAT="-lexpat"
-fi
-
-AM_CONDITIONAL(USE_LOCAL_EXPAT, test "$ac_expat_libraries" = "NO")
-
-AC_SUBST(EXPAT_CFLAGS)
-AC_SUBST(EXPAT_LIBS)
-AC_SUBST(LIB_EXPAT)
-
-#
-# these are used by the local freesurfer expat source, 
-# declared in config.h
-# 
-AC_DEFINE([XML_NS], 1,
-[Define to make XML Namespaces functionality available.])
-AC_DEFINE([XML_DTD], 1,
-[Define to make parameter entity parsing functionality available.])
-AC_DEFINE([XML_CONTEXT_BYTES], 1024,
-[Define to specify how much context to retain around the current parse point.])
 
 
 #####################################################
@@ -2841,7 +2843,7 @@ AC_OUTPUT([Makefile
            fsgdf/Makefile
            fslutils/Makefile
            glut/Makefile
-	   gpu_utils/Makefile
+           gpu_utils/Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile
