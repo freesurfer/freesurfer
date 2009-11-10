@@ -1,15 +1,17 @@
 /**
  * @file  surfcluster.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief routines for growing clusters on the surface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * routines for growing clusters on the surface
+ * based on intensity thresholds and area threshold. Note: this
+ * makes use of the undefval in the MRI_SURFACE structure.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/12/21 19:15:33 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/10 07:40:12 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
