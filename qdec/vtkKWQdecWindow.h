@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/09 06:57:53 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/11/10 04:05:47 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -192,6 +192,9 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // Save the view's contents as a TIFF.
   void SaveTIFFImage ( const char* ifnTIFF, int iMagnificationLevel = 1 );
+
+  // Time-saver 'macro' to create commonly needed snapshots
+  void QuickSnapsTIFF ();
 
   // Set the current scalars index and call
   // ComposeSurfaceScalarsAndShow().
@@ -502,6 +505,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   MenuItem* mMenuSaveProjectFile;
   MenuItem* mMenuSaveScatterPlotPostscript;
   MenuItem* mMenuSaveTIFF;
+  MenuItem* mMenuQuickSnapsTIFF;
   MenuItem* mMenuSaveGDFPostscript;
   MenuItem* mMenuSaveLabel;
   MenuItem* mMenuMapLabel;

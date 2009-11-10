@@ -531,6 +531,12 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("QuickSnapsTIFF",argv[1]))&&(argc == 2))
+    {
+    op->QuickSnapsTIFF();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("SetCurrentSurfaceScalars",argv[1]))&&(argc == 3))
     {
     int      temp0;
@@ -1356,6 +1362,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SaveLabel\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  MapLabelToSubjects\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SaveTIFFImage\t with 2 args\n",NULL);
+    Tcl_AppendResult(interp,"  QuickSnapsTIFF\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentSurfaceScalars\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  ClearSurfaceScalars\n",NULL);
     Tcl_AppendResult(interp,"  UnloadSurfaceScalars\n",NULL);
@@ -1492,6 +1499,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "SaveLabel" );
     Tcl_DStringAppendElement ( &dString, "MapLabelToSubjects" );
     Tcl_DStringAppendElement ( &dString, "SaveTIFFImage" );
+    Tcl_DStringAppendElement ( &dString, "QuickSnapsTIFF" );
     Tcl_DStringAppendElement ( &dString, "SetCurrentSurfaceScalars" );
     Tcl_DStringAppendElement ( &dString, "ClearSurfaceScalars" );
     Tcl_DStringAppendElement ( &dString, "UnloadSurfaceScalars" );
@@ -2362,6 +2370,23 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "void SaveTIFFImage (const char *ifnTIFF, int iMagnificationLevel);" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
     /* Closing for SaveTIFFImage */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: QuickSnapsTIFF */
+    if ( strcmp ( argv[2], "QuickSnapsTIFF" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "QuickSnapsTIFF" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for QuickSnapsTIFF */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void QuickSnapsTIFF ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for QuickSnapsTIFF */
 
     Tcl_DStringResult ( interp, &dString );
     Tcl_DStringFree ( &dString );

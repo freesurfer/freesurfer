@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/09 06:57:53 $
- *    $Revision: 1.48 $
+ *    $Date: 2009/11/10 04:05:47 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.48 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.49 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -126,6 +126,7 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mMenuSaveProjectFile( NULL ),
   mMenuSaveScatterPlotPostscript( NULL ),
   mMenuSaveTIFF( NULL ),
+  mMenuQuickSnapsTIFF( NULL ),
   mMenuSaveGDFPostscript( NULL ),
   mMenuSaveLabel( NULL ),
   mMenuMapLabel( NULL ),
@@ -188,6 +189,7 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuSaveProjectFile;
   delete mMenuSaveScatterPlotPostscript;
   delete mMenuSaveTIFF;
+  delete mMenuQuickSnapsTIFF;
   delete mMenuSaveGDFPostscript;
   delete mMenuSaveLabel;
   delete mMenuMapLabel;
@@ -467,6 +469,13 @@ vtkKWQdecWindow::CreateWidget () {
   mMenuSaveTIFF->
     MakeCommand( this->GetFileMenu(), nItem++,
                  "Save TIFF...", this, "SaveTIFFImageFromDlog",
+                 NULL, "SaveTIFF" );
+
+  // QuickSnaps TIFF
+  mMenuQuickSnapsTIFF = new MenuItem();
+  mMenuQuickSnapsTIFF->
+    MakeCommand( this->GetFileMenu(), nItem++,
+                 "QuickSnaps TIFF...", this, "QuickSnapsTIFF",
                  NULL, "SaveTIFF" );
 
   // Save Postcript of GDF
@@ -1723,6 +1732,130 @@ vtkKWQdecWindow::SaveTIFFImageFromDlog () {
                          labeledEntry->GetWidget()->GetValueAsInt() );
   }
 }
+
+/*
+ * Time-saver 'macro' to create commonly needed snapshots
+ */
+void vtkKWQdecWindow::QuickSnapsTIFF () {
+
+  // gotta have a scalar selected
+  try {
+    if( maSurfaceSource.find( msCurrentSurfaceSource ) ==
+        maSurfaceSource.end() ||
+        maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
+        maSurfaceScalars.end() ) {
+      throw runtime_error( "Must select from analysis results first.");
+    }
+  } catch ( exception& e ) {
+    this->GetApplication()->ErrorMessage( e.what() );
+    return;
+  }
+
+  // pop-up box stating what it will do
+  string sPopUpMsg = 
+    "This operation will perform the following time-saver steps:\n"
+    "\n"
+    " - Find the maximum value and move cursor to that vertex\n"
+    " - Disable display of green cross-hair\n"
+    " - Set display surface to inflated\n"
+    " - Restore the camera to lateral view\n"
+    " - Save TIFF image using a filename composed of relevant parameters\n"
+    " - Rotate 180d to medial view\n"
+    " - Save another TIFF image\n"
+    " - Set display surface to pial\n"
+    " - Restore the camera to lateral view\n"
+    " - Save another TIFF image\n"
+    " - Rotate 180d to medial view\n"
+    " - Save another TIFF image\n"
+    "\n"
+    "Image files will be written into the directory:\n";
+  sPopUpMsg += this->mQdecProject->GetWorkingDir();
+
+  // pop-up box describing what it is going to do
+  if ( vtkKWMessageDialog::PopupOkCancel ( this->GetApplication(), 
+                                           this, "", sPopUpMsg.c_str() ) ) {
+    // Ok was clicked, proceed...
+
+    // - Find the maximum value and move cursor to that vertex
+    this->GenerateClusterStats();
+
+    // - Set display surface to inflated
+    this->SetCurrentSurface( "inflated" );
+
+    // - Restore the camera to lateral view
+    this->RestoreView();
+
+    // - Disable display of green cross-hair
+    this->ShowCursor( false );
+
+// poop
+
+
+    // formulate a base filename composed of relevant parameters
+    string sBaseFileName = this->mQdecProject->GetWorkingDir() + "/";
+    sBaseFileName += maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2;
+
+    // append nuisance factors, if any
+    QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+    vector<QdecFactor*> const& lNuisanceFactors = 
+      design->GetNuisanceFactors();
+    for(unsigned int j=0; j < lNuisanceFactors.size(); j++) {
+      if (lNuisanceFactors[j]) {
+        string factorName = "_";
+        factorName += lNuisanceFactors[j]->GetFactorName();
+        sBaseFileName += factorName;
+      }
+    }
+    
+    // - Save TIFF image
+    string sFileName = sBaseFileName + "-inflated-lateral.tiff";
+    this->SaveTIFFImage( sFileName.c_str(), 1 );
+    sPopUpMsg = "\nCreated file: " + sFileName + "\n";
+
+    // - Rotate 180d to medial view
+    mView->AnimateCameraAzimuthNegative( );
+    mView->AnimateCameraAzimuthNegative( );
+
+    // - Disable display of green cross-hair
+    this->ShowCursor( false );
+
+    // - Save another TIFF image
+    sFileName = sBaseFileName + "-inflated-medial.tiff";
+    this->SaveTIFFImage( sFileName.c_str(), 1 );
+    sPopUpMsg += "\nCreated file: " + sFileName + "\n";
+
+    // - Set display surface to pial
+    this->SetCurrentSurface( "pial" );
+
+    // - Restore the camera to lateral view
+    this->RestoreView();
+
+    // - Disable display of green cross-hair
+    this->ShowCursor( false );
+
+    // - Save another TIFF image
+    sFileName = sBaseFileName + "-pial-lateral.tiff";
+    this->SaveTIFFImage( sFileName.c_str(), 1 );
+    sPopUpMsg += "\nCreated file: " + sFileName + "\n";
+
+    // - Rotate 180d to medial view
+    mView->AnimateCameraAzimuthNegative( );
+    mView->AnimateCameraAzimuthNegative( );
+
+    // - Disable display of green cross-hair
+    this->ShowCursor( false );
+
+    // - Save another TIFF image
+    sFileName = sBaseFileName + "-pial-medial.tiff";
+    this->SaveTIFFImage( sFileName.c_str(), 1 );
+    sPopUpMsg += "\nCreated file: " + sFileName + "\n";
+
+    sPopUpMsg += "\nQuickSnaps complete!\n";
+    vtkKWMessageDialog::PopupMessage ( this->GetApplication(),
+                                       this, "", sPopUpMsg.c_str() );
+  }
+}
+
 
 void
 vtkKWQdecWindow::SaveGDFPostscriptFromDlog () {
@@ -4125,7 +4258,7 @@ vtkKWQdecWindow::GenerateClusterStats () {
         maSurfaceSource.end() ||
         maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
         maSurfaceScalars.end() ) {
-      throw runtime_error( "Must have a surface loaded and scalar selected.");
+      throw runtime_error( "Must have a surface loaded and results selected.");
     }
 
     // get surface struct, and insert current scalars into its val slots
@@ -5722,15 +5855,18 @@ vtkKWQdecWindow::UpdateCommandStatus () {
   }
 
   assert( mMenuSaveTIFF );
+  assert( mMenuQuickSnapsTIFF );
   assert( mBtnSaveTIFF.GetPointer() );
   if( (maSurfaceSource.size() > 0) &&
       mView &&
       ( mCurrentNotebookPanelName == ksDisplayPanelName) ) {
     mBtnSaveTIFF->SetStateToNormal();
     mMenuSaveTIFF->SetStateToNormal();
+    mMenuQuickSnapsTIFF->SetStateToNormal();
   } else {
     mBtnSaveTIFF->SetStateToDisabled();
     mMenuSaveTIFF->SetStateToDisabled();
+    mMenuQuickSnapsTIFF->SetStateToDisabled();
   }
 
   assert( mMenuSaveGDFPostscript );
