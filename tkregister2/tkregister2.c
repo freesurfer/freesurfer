@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/09 17:12:39 $
- *    $Revision: 1.109 $
+ *    $Date: 2009/11/11 00:14:45 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.109 2009/10/09 17:12:39 greve Exp $";
+"$Id: tkregister2.c,v 1.110 2009/11/11 00:14:45 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1372,7 +1372,7 @@ static int parse_commandline(int argc, char **argv) {
       // Assume RAS2RAS and uses vox2ras from input volumes:
       // Note: This ignores the volume geometry in the LTA file.
       XFM = MatrixInverse(lta->xforms[0].m_L,NULL);
-      sprintf(tmpstr,"%s/%s/mri/nu_noneck.mgz",subjectsdir,subjectid);
+      sprintf(tmpstr,"%s/%s/mri/nu.mgz",subjectsdir,subjectid);
       targ_vol_id = strcpyalloc(tmpstr);
       mov_vol_id = strcpyalloc(lta->xforms->dst.fname);
       if(! fio_FileExistsReadable(mov_vol_id)){
@@ -4861,7 +4861,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.109 2009/10/09 17:12:39 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.110 2009/11/11 00:14:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
