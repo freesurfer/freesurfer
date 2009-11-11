@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:04 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/11 18:33:47 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_apply_bias.c,v 1.2 2006/12/29 02:09:04 nicks Exp $",
+           "$Id: mri_apply_bias.c,v 1.3 2009/11/11 18:33:47 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -80,11 +80,15 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if (argc < 4)
     usage_exit(1) ;
 
   mri_orig = MRIread(argv[1]) ;
+  if (mri_orig == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not read %s",Progname, argv[1]) ;
   mri_bias = MRIread(argv[2]) ;
+  if (mri_bias == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not read %s",Progname, argv[2]) ;
 
   mri_norm = apply_bias(mri_orig, NULL, mri_bias);
 
