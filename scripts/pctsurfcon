@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/07/27 16:42:48 $
-#    $Revision: 1.6 $
+#    $Date: 2009/11/11 18:31:40 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.6 2009/07/27 16:42:48 greve Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.7 2009/11/11 18:31:40 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -37,8 +37,10 @@ set DoRH = 1;
 set Reshape = (--reshape);
 set Reshape = (--noreshape);
 
-set GMProjFrac = 0.5;
+set GMProjFrac = ();
+set GMProjAbs = ();
 set WMProjAbs = 2;
+
 set Interp = trilinear
 set OutBase = w-g.pct;
 set ConSign = +100;
@@ -110,8 +112,9 @@ foreach hemi ($hemilist)
   # Sample surf in gray matter
   set gm = $tmpdir/$hemi.gm.$ext
   set cmd = (mri_vol2surf --mov $mov \
-    --hemi $hemi $Reshape --interp $Interp \
-    --projfrac $GMProjFrac --o $gm)
+    --hemi $hemi $Reshape --interp $Interp --o $gm)
+  if($#GMProjFrac) set cmd = ($cmd --projfrac $GMProjFrac)
+  if($#GMProjAbs) set cmd = ($cmd --projdist $GMProjAbs)
   if($#reg == 0) set cmd = ($cmd --regheader $subject);
   if($#reg != 0) set cmd = ($cmd --reg $reg);
   echo $cmd
@@ -204,6 +207,11 @@ while( $#argv != 0 )
       set GMProjFrac = $argv[1]; shift;
       breaksw
 
+    case "--gm-proj-abs":
+      if($#argv < 1) goto arg1err;
+      set GMProjAbs = $argv[1]; shift;
+      breaksw
+
     case "--wm-proj-abs":
       if($#argv < 1) goto arg1err;
       set WMProjAbs = $argv[1]; shift;
@@ -276,6 +284,13 @@ check_params:
     exit 1;
   endif
 
+  if($#GMProjFrac && $#GMProjAbs) then
+    echo "ERROR: cannot --gm-proj-abs and --gm-proj-frac"
+    exit 1;
+  endif
+
+  if($#GMProjFrac == 0 && $#GMProjAbs == 0) set GMProjFrac = 0.5;
+
 goto check_params_return;
 ############--------------##################
 
@@ -306,7 +321,8 @@ usage_exit:
   echo "  --b outbase : use outbase instead of $OutBase (?h.$OutBase.mgh)"
   echo "  --lh-only, --no-rh : compute lh only"
   echo "  --rh-only, --no-lh : compute rh only"
-  echo "  --gm-proj-frac frac : GM projection fraction (default is $GMProjFrac)"
+  echo "  --gm-proj-frac frac : GM projection fraction (default, 0.5)"
+  echo "  --gm-proj-abs  dist : GM projection distance (default is to use frac)"
   echo "  --wm-proj-abs  dist : WM projection distance (default is $WMProjAbs mm)"
   echo "  --neg : compute G-W instead of W-G"
   echo ""
