@@ -26,8 +26,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/10/08 19:20:24 $
-#    $Revision: 1.17 $
+#    $Date: 2009/11/11 20:57:49 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.17 2008/10/08 19:20:24 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.18 2009/11/11 20:57:49 nicks Exp $';
 
 #set echo=1
 
@@ -485,6 +485,8 @@ foreach subject (${SUBJECTS})
     set cmd=($cmd -talairach)
     set cmd=($cmd -normalization)
     set cmd=($cmd -skullstrip)
+    # note: -nosubcortseg is a better option, because a 
+    # subcortical atlas may not even exist yet!!!!
     set cmd=($cmd -subcortseg)
     set cmd=($cmd -normalization2)
     if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
