@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/11/12 19:37:03 $
- *    $Revision: 1.57 $
+ *    $Date: 2009/11/12 19:57:48 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,13 +50,16 @@ mri_vol2vol
   --talres resolution : set voxel size 1mm or 2mm (def is 1)
   --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)
 
-  --fstarg            : use orig.mgz from subject in --reg as target
+  --fstarg <vol>      : use vol <orig.mgz> from subject in --reg as target
   --crop scale        : crop and change voxel size
   --slice-crop sS sE  : crop output slices to be within sS and sE
   --slice-reverse     : reverse order of slices, update vox2ras
   --slice-bias alpha  : apply half-cosine bias field
 
-  --interp interptype : interpolation trilinear or nearest (def is trilin)
+  --trilin            : trilinear interpolation (default)
+  --nearest           : nearest neighbor interpolation
+  --interp interptype : interpolation trilin or nearest (def is trilin)
+
   --precision precisionid : output precision (def is float)
   --kernel            : save the trilinear interpolation kernel instead
 
@@ -173,10 +176,11 @@ or can be specified with --sd.
 Set the resolution of the output when using --fstal. By default, it
 is 2 mm, but can be changed to 1.0 mm with --fstalres 1
 
---fstarg
+--fstarg <vol>
 
-Set target to orig.mgz from the subject found in register.dat
-file. Requires --reg.  Same as tkregister2.
+Set target to vol from the subject found in register.dat
+file. If vol is not specified, uses orig.mgz. Requires --reg.  
+Same as tkregister2.
 
 --crop scale
 
@@ -192,7 +196,8 @@ updated to reflect the new limits.
 --interp method
 
 Interpolate the output based on the given method. Legal values are:
-trilin aand nearest. trilin is the default.
+trilin and nearest. trilin is the default. Can also use --trilin
+or --nearest.
 
 --precision precisionid
 
@@ -449,7 +454,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.57 2009/11/12 19:37:03 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.58 2009/11/12 19:57:48 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -457,6 +462,7 @@ int debug = 0, gdiagno = -1;
 char *movvolfile=NULL;
 char *targvolfile=NULL;
 int  fstarg = 0;
+char *fstargfile = "orig.mgz";
 char *outvolfile=NULL, *outdir=NULL;
 char *regfile=NULL;
 char *xfmfile=NULL;
@@ -555,12 +561,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.57 2009/11/12 19:37:03 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.58 2009/11/12 19:57:48 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.57 2009/11/12 19:37:03 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.58 2009/11/12 19:57:48 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -999,7 +1005,6 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))    debug = 1;
     else if (!strcasecmp(option, "--tal"))      fstal = 1;
     else if (!strcasecmp(option, "--inv"))      invert = 1;
-    else if (!strcasecmp(option, "--fstarg"))   fstarg = 1;
     else if (!strcasecmp(option, "--no-resample")) noresample = 1;
     else if (!strcasecmp(option, "--regheader")) regheader = 1;
     else if (!strcasecmp(option, "--kernel"))    DoKernel = 1;
@@ -1013,7 +1018,16 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
-    } else if (!strcasecmp(option, "--inv-morph")) {
+    } 
+    else if (!strcasecmp(option, "--fstarg")){
+      fstarg = 1;
+      if(CMDnthIsArg(nargc, pargv, 0)){
+        fstargfile = pargv[0];
+        nargsused = 1;
+      } 
+      printf("fstargfile %s\n",fstargfile);
+    }
+    else if (!strcasecmp(option, "--inv-morph")) {
       DoMorph = 1;
       InvertMorph = 1;
       fstarg = 1;
@@ -1131,7 +1145,14 @@ static int parse_commandline(int argc, char **argv) {
         sscanf(pargv[1],"%d",&sinchw);
         nargsused ++;
       }
-    } else if (istringnmatch(option, "--precision",0)) {
+    } 
+    else if (istringnmatch(option, "--trilin",6)) {
+      interpmethod = "trilinear";
+    } 
+    else if (istringnmatch(option, "--nearest",7)) {
+      interpmethod = "nearest";
+    } 
+    else if (istringnmatch(option, "--precision",0)) {
       if (nargc < 1) argnerr(option,1);
       precision = pargv[0];
       precisioncode = MRIprecisionCode(precision);
@@ -1233,13 +1254,16 @@ printf("  --tal               : map to a sub FOV of MNI305 (with --reg only)\n")
 printf("  --talres resolution : set voxel size 1mm or 2mm (def is 1)\n");
 printf("  --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)\n");
 printf("\n");
-printf("  --fstarg            : use orig.mgz from subject in --reg as target\n");
+printf("  --fstarg <vol>      : use vol <orig.mgz> from subject in --reg as target\n");
 printf("  --crop scale        : crop and change voxel size\n");
 printf("  --slice-crop sS sE  : crop output slices to be within sS and sE\n");
 printf("  --slice-reverse     : reverse order of slices, update vox2ras\n");
 printf("  --slice-bias alpha  : apply half-cosine bias field\n");
 printf("\n");
-printf("  --interp interptype : interpolation trilinear or nearest (def is trilin)\n");
+printf("  --trilin            : trilinear interpolation (default)\n");
+printf("  --nearest           : nearest neighbor interpolation\n");
+printf("  --interp interptype : interpolation trilin or nearest (def is trilin)\n");
+printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
 printf("\n");
@@ -1255,8 +1279,6 @@ printf("  --seed seed : seed for synth (def is to set from time of day)\n");
 printf("\n");
 printf("  --no-save-reg : do not write out output volume registration matrix\n");
 printf("\n");
-printf("  --nomr : Don't copy the template MR parameters, but instead preserve\n\t   the input volume ones (this is the default)\n");
-printf("  --mr :   Copy the template MR parameters\n") ;
 printf("  --help : go ahead, make my day\n");
 printf("  --debug\n");
 printf("  --version\n");
@@ -1358,10 +1380,11 @@ printf("\n");
 printf("Set the resolution of the output when using --fstal. By default, it\n");
 printf("is 2 mm, but can be changed to 1.0 mm with --fstalres 1\n");
 printf("\n");
-printf("--fstarg\n");
+printf("--fstarg <vol>\n");
 printf("\n");
-printf("Set target to orig.mgz from the subject found in register.dat\n");
-printf("file. Requires --reg.  Same as tkregister2.\n");
+printf("Set target to vol from the subject found in register.dat\n");
+printf("file. If vol is not specified, uses orig.mgz. Requires --reg.  \n");
+printf("Same as tkregister2.\n");
 printf("\n");
 printf("--crop scale\n");
 printf("\n");
@@ -1377,7 +1400,8 @@ printf("\n");
 printf("--interp method\n");
 printf("\n");
 printf("Interpolate the output based on the given method. Legal values are:\n");
-printf("trilin aand nearest. trilin is the default.\n");
+printf("trilin and nearest. trilin is the default. Can also use --trilin\n");
+printf("or --nearest.\n");
 printf("\n");
 printf("--precision precisionid\n");
 printf("\n");
@@ -1388,6 +1412,11 @@ printf("--kernel\n");
 printf("\n");
 printf("Save the trilinear interpolation kernel at each voxel instead of the\n");
 printf("interpolated image.\n");
+printf("\n");
+printf("--nomr\n");
+printf("\n");
+printf("Don't copy the template MR parameters, but instead preserve the input volume \n");
+printf("ones\n");
 printf("\n");
 printf("--help\n");
 printf("\n");
@@ -1631,7 +1660,7 @@ static void check_options(void) {
     exit(1);
   }
   if(fstarg) {
-    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,fstargfile);
     if (!fio_FileExistsReadable(tmpstr))
       sprintf(tmpstr,"%s/%s/mri/orig",SUBJECTS_DIR,subject);
     targvolfile = strcpyalloc(tmpstr);
