@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2009/09/17 17:51:55 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/11/12 16:19:42 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.18 2009/09/17 17:51:55 rudolph Exp $";
+"$Id: mris_calc.c,v 1.19 2009/11/12 16:19:42 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -1026,7 +1026,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.18 2009/09/17 17:51:55 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.19 2009/11/12 16:19:42 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1261,7 +1261,8 @@ VOL_fileWrite(
   int		volSize;
   int		i, j, k, f;
   int		I				= 0;
-  char  	pch_readMessage[STRBUF];
+  char          	pch_readMessage[STRBUF];
+  int           ret;
 
   if(!Gp_MRI)   error_noVolumeStruct();
   volSize	= Gp_MRI->width*Gp_MRI->height*Gp_MRI->depth*Gp_MRI->nframes;
@@ -1274,9 +1275,14 @@ VOL_fileWrite(
 	  CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
 	  MRIsetVoxVal(Gp_MRI, i, j, k, f, (float) apf_data[I++]);
         }
-  if(G_verbosity) cprints("Saving", "");
-  return(MRIwrite(Gp_MRI, apch_volFileName));
-  if(G_verbosity) cprints("", "ok");
+  sprintf(pch_readMessage, "Saving result to '%s'", apch_volFileName);
+  cprints(pch_readMessage, "");
+  ret = MRIwrite(Gp_MRI, apch_volFileName);
+  if(!ret)
+    cprints("", "ok");
+  else
+    cprints("", "error");
+  return(ret);
 }
 
 /*!
