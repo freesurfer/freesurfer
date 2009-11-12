@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/10 04:05:47 $
- *    $Revision: 1.49 $
+ *    $Date: 2009/11/12 22:36:49 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.49 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.50 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -934,7 +934,7 @@ vtkKWQdecWindow::CreateWidget () {
 
   listBox = vtkSmartPointer<vtkKWListBoxWithScrollbarsWithLabel>::New();
   listBox->SetParent( factorsFrame->GetFrame() );
-  listBox->SetLabelText( "Continuous (Covariates):" );
+  listBox->SetLabelText( "Continuous (Covariate):" );
   listBox->Create();
   listBox->SetLabelPositionToTop();
   mListContinuousFactors = listBox->GetWidget()->GetWidget();
@@ -1787,9 +1787,6 @@ void vtkKWQdecWindow::QuickSnapsTIFF () {
 
     // - Disable display of green cross-hair
     this->ShowCursor( false );
-
-// poop
-
 
     // formulate a base filename composed of relevant parameters
     string sBaseFileName = this->mQdecProject->GetWorkingDir() + "/";
@@ -5331,7 +5328,7 @@ vtkKWQdecWindow::SetStatsImportItem ( const char* isStatsImportItem ) {
   ssFname << this->mQdecProject->GetStatsDataTablesDir() 
           << "/" << isStatsImportItem << ".stats.dat";
 
-  // hack: aseg.vol.stats.dat file uses word 'volume' as is fsid column name
+  // kluge: aseg.vol.stats.dat file uses word 'volume' as is fsid column name
   stringstream ssFsIdColName;
   if ( !strcmp(isStatsImportItem,"aseg.vol") ) ssFsIdColName << "volume";
   else ssFsIdColName << isStatsImportItem;

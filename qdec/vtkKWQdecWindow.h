@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/10 04:05:47 $
- *    $Revision: 1.21 $
+ *    $Date: 2009/11/12 22:36:49 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -650,6 +650,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkFloatArray> mCurvatureScalars;
   std::map<int,SurfaceScalar> maSurfaceScalars;
   int mnCurrentSurfaceScalars;
+  std::map<int,SurfaceScalar> maSavedSurfaceScalars;
   int* maAnnotationIndicies;
   COLOR_TABLE* mAnnotationTable;
   vtkSmartPointer<vtkFloatArray> mOverlayScalars;

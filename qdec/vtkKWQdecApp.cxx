@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/14 02:26:59 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/11/12 22:36:49 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.8 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.9 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -82,8 +82,8 @@ vtkKWQdecApp::vtkKWQdecApp () :
 
   // Set some application stuff.
   this->SetName( "Qdec" );
-  this->SetMajorVersion( 1 ); // v1.2
-  this->SetMinorVersion( 2 );
+  this->SetMajorVersion( 1 ); // v1.3
+  this->SetMinorVersion( 3 );
   this->SetHelpDialogStartingPage
     ("https://surfer.nmr.mgh.harvard.edu/fswiki/Qdec");
   this->SupportSplashScreenOn ( );
