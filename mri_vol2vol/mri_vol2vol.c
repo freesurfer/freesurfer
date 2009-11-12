@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/07/21 20:13:16 $
- *    $Revision: 1.56 $
+ *    $Author: greve $
+ *    $Date: 2009/11/12 19:37:03 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -449,7 +449,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.56 2009/07/21 20:13:16 fischl Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.57 2009/11/12 19:37:03 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -546,7 +546,7 @@ char *vsmvolfile=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
-  char regfile[1000];
+  char regfile0[1000];
   char cmdline[CMD_LINE_LEN] ;
   double costs[8];
   FILE *fp;
@@ -555,12 +555,12 @@ int main(int argc, char **argv) {
   MRI_REGION box;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.56 2009/07/21 20:13:16 fischl Exp $",
+                          "$Id: mri_vol2vol.c,v 1.57 2009/11/12 19:37:03 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.56 2009/07/21 20:13:16 fischl Exp $",
+                                "$Id: mri_vol2vol.c,v 1.57 2009/11/12 19:37:03 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -939,8 +939,8 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  sprintf(regfile,"%s.reg",outvolfile);
-  printf("INFO: writing registration matrix to %s\n",regfile);
+  sprintf(regfile0,"%s.reg",outvolfile);
+  printf("INFO: writing registration matrix to %s\n",regfile0);
   if(fstal) {
     R = Rtal;
     subject_outreg = "fsaverage";
@@ -953,16 +953,16 @@ int main(int argc, char **argv) {
   }
 
   if(SaveReg) {
-    regio_write_register(regfile,subject_outreg,out->xsize,
+    regio_write_register(regfile0,subject_outreg,out->xsize,
                          out->zsize,1,R,FLT2INT_ROUND);
     printf("To check registration, run:\n");
     printf("\n");
     if (!fstal) {
       printf("  tkregister2 --mov %s --targ %s --reg %s \n",
-             outvolfile,tempvolfile,regfile);
+             outvolfile,tempvolfile,regfile0);
     }  else {
       printf("  tkregister2 --s %s --surf white --reg %s --mov %s \n",
-             subject_outreg,regfile,outvolfile);
+             subject_outreg,regfile0,outvolfile);
     }
   }
 
@@ -1034,14 +1034,24 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       targvolfile = pargv[0];
       nargsused = 1;
-    } else if (istringnmatch(option, "--reg",0)) {
+    } 
+    else if (istringnmatch(option, "--reg",0)) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
                                 &intensity, &R, &float2int);
       if (err) exit(1);
       nargsused = 1;
-    } else if (istringnmatch(option, "--reg-final",0)) {
+    } 
+    else if (istringnmatch(option, "--mni152reg",0)) {
+      sprintf(tmpstr,"%s/average/mni152.register.dat",getenv("FREESURFER_HOME"));
+      regfile = strcpyalloc(tmpstr);
+      err = regio_read_register(regfile, &subject, &ipr, &bpr,
+                                &intensity, &R, &float2int);
+      if (err) exit(1);
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--reg-final",0)) {
       if (nargc < 1) argnerr(option,1);
       RegFileFinal = pargv[0];
       nargsused = 1;
