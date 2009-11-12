@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 15:15:20 $
- *    $Revision: 1.34 $
+ *    $Date: 2009/11/12 22:09:08 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,7 @@
 BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_LISTBOX         ( XRCID( "ID_LISTBOX_VOLUMES" ),        PanelVolume::OnLayerSelectionChanged )
   EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_VOLUMES" ),        PanelVolume::OnLayerVisibilityChanged )
-  // EVT_LISTBOX_DCLICK  ( XRCID( "ID_LISTBOX_VOLUMES" ) ),   PanelVolume::OnListDoubleClicked )
+  EVT_LISTBOX_DCLICK  ( XRCID( "ID_LISTBOX_VOLUMES" ),        PanelVolume::OnListDoubleClicked )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_OPACITY" ),         PanelVolume::OnSliderOpacityChanged )
   EVT_BUTTON          ( XRCID( "ID_BUTTON_LOAD" ),            PanelVolume::OnButtonLoad )
   EVT_BUTTON          ( XRCID( "ID_BUTTON_MOVE_UP" ),         PanelVolume::OnButtonMoveUp )
@@ -486,16 +486,7 @@ void PanelVolume::OnListDoubleClicked( wxCommandEvent& event )
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
     {
-      wxTextEntryDialog dlg( this, _("Enter the name of the volume:"), 
-                             _("Volume"), 
-                             wxString::FromAscii( layer->GetName() ) );
-      if ( dlg.ShowModal() == wxID_OK )
-      {
-        layer->SetName( dlg.GetValue().Trim( true ).Trim( false ).char_str() );
-        bool bChecked = m_listBoxLayers->IsChecked( event.GetInt() );
-        m_listBoxLayers->SetString( event.GetInt(), wxString::FromAscii( layer->GetName() ) );
-        m_listBoxLayers->Check( event.GetInt(), bChecked );
-      }
+      MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->MoveToTop( layer );
     }
   }
 }

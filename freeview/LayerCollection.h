@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/11/12 22:09:08 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,7 @@ public:
   bool RemoveLayer( Layer* layer, bool deleteObject = true );
   bool MoveLayerUp( Layer* layer );
   bool MoveLayerDown( Layer* layer );
+  bool MoveToTop( Layer* layer );
   bool CycleLayer();
 
   void Append2DProps( vtkRenderer* renderer, int nImagePlane );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/09 18:09:03 $
- *    $Revision: 1.17 $
+ *    $Date: 2009/11/12 22:09:08 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -186,6 +186,46 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
       Layer* temp = unlocked_layers[i+1];
       unlocked_layers[i+1] = layer;
       unlocked_layers[i] = temp;
+
+      // restore locked layers
+      for ( size_t j = 0; j < m_layers.size(); j++ )
+      {
+        if ( m_layers[j]->IsLocked() )
+        {
+          if ( j < unlocked_layers.size() )
+            unlocked_layers.insert( unlocked_layers.begin() + j, m_layers[j] );
+          else
+            unlocked_layers.push_back( m_layers[j] );
+        }
+      }
+      m_layers = unlocked_layers;
+
+      this->SendBroadcast( "LayerMoved", layer );
+
+      return true;
+    }
+  }
+  return false;
+}
+
+bool LayerCollection::MoveToTop( Layer* layer )
+{
+  std::vector<Layer*> unlocked_layers;
+  for ( size_t i = 0; i < m_layers.size(); i++ )
+  {
+    if ( !m_layers[i]->IsLocked() )
+      unlocked_layers.push_back( m_layers[i] );
+  }
+
+  for ( size_t i = 0; i < unlocked_layers.size(); i++)
+  {
+    if ( unlocked_layers[i] == layer )
+    {
+      for ( int j = i; j > 0 ; j-- )
+      {
+        unlocked_layers[j] = unlocked_layers[j-1];
+      }
+      unlocked_layers[0] = layer;
 
       // restore locked layers
       for ( size_t j = 0; j < m_layers.size(); j++ )
