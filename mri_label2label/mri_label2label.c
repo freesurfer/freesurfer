@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/01 20:02:01 $
- *    $Revision: 1.37 $
+ *    $Date: 2009/11/13 18:42:10 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.37 2008/12/01 20:02:01 greve Exp $
+  $Id: mri_label2label.c,v 1.38 2009/11/13 18:42:10 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -98,7 +98,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.37 2008/12/01 20:02:01 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.38 2009/11/13 18:42:10 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -163,6 +163,7 @@ int SrcInv = 0, TrgInv = 0;
 int DoPaint = 0;
 double PaintMax = 2.0;
 int DoRescale = 1;
+int DoOutMaskStat = 0;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -182,7 +183,7 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.37 2008/12/01 20:02:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.38 2009/11/13 18:42:10 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -212,8 +213,8 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: FREESURFER_HOME not defined in environment\n");
     exit(1);
   }
-  printf("SUBJECTS_DIR    is %s\n",SUBJECTS_DIR);
-  printf("FREESURFER_HOME is %s\n",FREESURFER_HOME);
+  printf("SUBJECTS_DIR    %s\n",SUBJECTS_DIR);
+  printf("FREESURFER_HOME %s\n",FREESURFER_HOME);
 
   /*--- Load in Source Label ------*/
   if (usepathfiles) {
@@ -633,8 +634,14 @@ int main(int argc, char **argv) {
     }
 
     if(OutMaskFile){
-      printf("Creating output mask %s\n",OutMaskFile);
+      printf("Creating output %s\n",OutMaskFile);
       outmask = MRISlabel2Mask(TrgSurfReg,trglabel,NULL);
+      if(DoOutMaskStat){
+	printf("Saving output statistic\n");
+	for (n = 0; n < trglabel->n_points; n++) {
+	  MRIsetVoxVal(outmask, trglabel->lv[n].vno,0,0,0, trglabel->lv[n].stat);
+	}
+      }
       MRIwrite(outmask,OutMaskFile);
       MRIfree(&outmask);
     }
@@ -686,6 +693,9 @@ int main(int argc, char **argv) {
   return(0);
 }
 /* --------------------------------------------- */
+/* --------------------------------------------- */
+/* --------------------------------------------- */
+
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
@@ -852,11 +862,19 @@ static int parse_commandline(int argc, char **argv) {
       RegFile = pargv[0];
       regmethod = "volume";
       nargsused = 1;
-    } else if (!strcmp(option, "--outmask")) {
+    } 
+    else if (!strcmp(option, "--outmask")) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--outstat")) {
+      if (nargc < 1) argnerr(option,1);
+      OutMaskFile = pargv[0];
+      DoOutMaskStat = 1;
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -884,6 +902,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --trglabel     output label file \n");
   printf("   --outmask      maskfile : save output label as a binary mask (surf only)\n");
+  printf("   --outstat      statfile : save output label stat as a mask (surf only)\n");
   printf("   --sample       output subject surface : sample label onto surface \n");
   printf("\n");
   printf("   --regmethod    registration method (surface, volume) \n");
