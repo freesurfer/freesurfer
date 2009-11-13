@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/10/28 00:34:35 $
- *    $Revision: 1.332 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/13 19:20:18 $
+ *    $Revision: 1.333 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2196,9 +2196,12 @@ int  main(int argc,char *argv[])
   char timecourse_offset_fname[NAME_LENGTH];
   char timecourse_offset_reg[NAME_LENGTH];
 
+  int load_label = FALSE;
   int load_annotation = FALSE;
   int load_curv = FALSE;
+  int load_sulc = FALSE;
   char annotation_fname[NAME_LENGTH] = "";
+  char label_fname[NAME_LENGTH] = "";
 
   int take_snapshot = FALSE;
   char snap_fname[NAME_LENGTH] = "";
@@ -2533,6 +2536,11 @@ int  main(int argc,char *argv[])
       nargs = 1 ;
       load_curv = TRUE;
     }
+    else if (!stricmp(argv[i], "-sulc"))
+    {
+      nargs = 1 ;
+      load_sulc = TRUE;
+    }
     else if (!stricmp(argv[i], "-gray"))
     {
       nargs = 1 ;
@@ -2543,6 +2551,12 @@ int  main(int argc,char *argv[])
     {
       nargs = 1 ;
       labels_before_overlay_flag = TRUE;
+    }
+    else if (!stricmp(argv[i], "-label"))
+    {
+      nargs = 2 ;
+      load_label = TRUE ;
+      strncpy (label_fname, argv[i+1], sizeof(label_fname));
     }
     else if (!stricmp(argv[i], "-label-outline"))
     {
@@ -2833,6 +2847,11 @@ int  main(int argc,char *argv[])
     read_binary_curvature(cfname) ;
     val_to_stat() ;
   }
+  if (load_sulc)
+  {
+    read_binary_curvature(kfname) ;
+    val_to_stat() ;
+  }
 
 
 #if 0
@@ -2880,7 +2899,6 @@ int  main(int argc,char *argv[])
     err = labl_import_annotation (annotation_fname);
     if (err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
   }
-
   /* If we didn't load an annotation or color table filename, load the
      default color table. */
   if (!load_colortable && !load_annotation)
@@ -2949,6 +2967,13 @@ int  main(int argc,char *argv[])
     exit(0) ;
   }
 
+  if (load_label)
+  {
+    err = labl_load (label_fname);
+    if (err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
+  }
+
+  sclv_send_current_field_info ();  // sends fmid/fthresh to gui
   return(0) ;
 }
 
@@ -7796,7 +7821,7 @@ int read_binary_surface(char *fname)
   if (LeftRightRev)
   {
     printf("Applying Left-Right reversal\n");
-    MRISreverse(mris, REVERSE_X) ;
+    MRISreverse(mris, REVERSE_X, 1) ;
   }
 
   marked = (int *)calloc(mris->nvertices, sizeof(int)) ;
@@ -20790,7 +20815,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.332 2009/10/28 00:34:35 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.333 2009/11/13 19:20:18 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -25484,7 +25509,9 @@ int sclv_send_current_field_info ()
   sclv_send_histogram (sclv_current_field);
 
   sprintf(cmd, "set gaLinkedVar(fslope) %f", fslope);
+  sprintf(cmd, "set gaLinkedVar(fmid) %f", fmid);
   sprintf(cmd, "set gaLinkedVar(fthreshmax) %f", fthreshmax);
+  sprintf(cmd, "set gaLinkedVar(fthresh) %f", fthresh);
   sprintf (cmd, "UpdateLinkedVarGroup overlay");
   send_tcl_command (cmd);
   sprintf (cmd, "OverlayLayerChanged");
@@ -26271,6 +26298,7 @@ int sclv_apply_color_for_value (float f, float opacity,
 
   return (NO_ERROR);
 }
+
 
 int sclv_load_label_value_file (char *fname, int field)
 {
