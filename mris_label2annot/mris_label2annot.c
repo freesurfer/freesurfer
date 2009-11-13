@@ -7,9 +7,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/05 13:45:23 $
- *    $Revision: 1.14 $
+ *    $Author: greve $
+ *    $Date: 2009/11/13 17:42:11 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -89,6 +89,11 @@ is mainly good for debugging.
 Start label numbering at index 0 instead of index 1. Do not map unhit
 vertices (ie, vertices without a label) to 0.
 
+--thresh threshold
+
+Require that the stat field of the vertex in the label be greather 
+than threshold.
+
 EXAMPLE:
 
 mris_label2annot --s bert --h lh --ctab aparc.annot.ctab \\
@@ -157,7 +162,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.14 2009/02/05 13:45:23 fischl Exp $";
+"$Id: mris_label2annot.c,v 1.15 2009/11/13 17:42:11 greve Exp $";
 
 
 static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
@@ -184,6 +189,8 @@ char *NHitsFile=NULL;
 int MapUnhitToUnknown=1;
 char *labeldir=NULL;
 int labeldirdefault=0;
+int DoLabelThresh = 0;
+double LabelThresh = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -257,6 +264,7 @@ int main(int argc, char *argv[]) {
                LabelFiles[nthlabel],n,vtxno);
         exit(1);
       }
+      if(DoLabelThresh && label->lv[n].stat < LabelThresh) continue;
       if (MRIgetVoxVal(nhits,vtxno,0,0,0) > 0) {
         printf
           ("WARNING: vertex %d maps to multiple labels! (overwriting)\n",
@@ -343,7 +351,8 @@ static int parse_commandline(int argc, char **argv) {
       }
       CTabFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--l")) {
+    } 
+    else if (!strcmp(option, "--l")) {
       if (nargc < 1) CMDargNErr(option,1);
       if (!fio_FileExistsReadable(pargv[0])) {
         printf("ERROR: cannot find or read %s\n",pargv[0]);
@@ -352,7 +361,14 @@ static int parse_commandline(int argc, char **argv) {
       LabelFiles[nlabels] = pargv[0];
       nlabels++;
       nargsused = 1;
-    } else if (!strcmp(option, "--ldir")) {
+    } 
+    else if (!strcmp(option, "--thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&LabelThresh);
+      DoLabelThresh = 1;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--ldir")) {
       if (nargc < 1) CMDargNErr(option,1);
       labeldir = pargv[0];
       nargsused = 1;
@@ -401,6 +417,7 @@ static void print_usage(void) {
   printf("   --ldir labeldir : when not using --l\n");
   printf("   --ldir-default : use subject/labels as labeldir\n");
   printf("   --no-unknown : do not map unhit labels to index 0\n");
+  printf("   --thresh thresh : threshold label by stats field\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -582,7 +599,7 @@ static void dump_options(FILE *fp) {
   if(AnnotPath) fprintf(fp,"AnnotPath  %s\n",AnnotPath);
   if (NHitsFile) fprintf(fp,"NHitsFile %s\n",NHitsFile);
   fprintf(fp,"nlables %d\n",nlabels);
-
+  fprintf(fp,"LabelThresh %d %lf\n",DoLabelThresh,LabelThresh);
   return;
 }
 static int
