@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2009/07/27 20:12:44 $
- *    $Revision: 1.54 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/13 19:21:43 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.54 2009/07/27 20:12:44 rudolph Exp $";
+"$Id: mris_register.c,v 1.55 2009/11/13 19:21:43 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -142,14 +142,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.54 2009/07/27 20:12:44 rudolph Exp $", 
+     "$Id: mris_register.c,v 1.55 2009/11/13 19:21:43 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.54 2009/07/27 20:12:44 rudolph Exp $", 
+     "$Id: mris_register.c,v 1.55 2009/11/13 19:21:43 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -287,6 +287,10 @@ main(int argc, char *argv[])
     mris_template = MRISread(template_fname) ;
     if (mris_template == NULL)
       ErrorExit(ERROR_NOFILE, "") ;
+#if 0
+    if (reverse_flag)
+      MRISreverse(mris_template, REVERSE_X, 1) ;
+#endif
     MRISsaveVertexPositions(mris_template, CANONICAL_VERTICES) ;
     MRIScomputeMetricProperties(mris_template) ;
     MRISstoreMetricProperties(mris_template) ;
@@ -388,7 +392,6 @@ main(int argc, char *argv[])
   if (nbrs > 1)
     MRISresetNeighborhoodSize(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-  if (reverse_flag) MRISreverse(mris, REVERSE_X) ;
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
@@ -413,6 +416,16 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_BADFILE, "%s: could not read canon surface %s",
               Progname, canon_name) ;
 
+  if (reverse_flag) 
+  {
+    MRISreverse(mris, REVERSE_X, 1) ;
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISreverse(mris, REVERSE_X, 0) ;
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+  }
 #if 0
   MRISsaveVertexPositions
     (mris, CANONICAL_VERTICES) ;  // uniform spherical positions
