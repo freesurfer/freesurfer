@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/20 22:24:23 $
- *    $Revision: 1.641 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/13 19:20:54 $
+ *    $Revision: 1.642 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.641 2009/10/20 22:24:23 greve Exp $");
+  return("$Id: mrisurf.c,v 1.642 2009/11/13 19:20:54 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7538,7 +7538,7 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       sse_angle += delta*delta ;
     }
     if (!finite(sse_area) || !finite(sse_angle))
-      ErrorExit(ERROR_BADPARM, "sse is not finite at face %d!\n",fno);
+      ErrorExit(ERROR_BADPARM, "sse (%f, %f) is not finite at face %d!\n",sse_area,sse_angle,fno);
   }
 
   sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
@@ -29279,7 +29279,7 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
   \brief Reverse sign of one of the dimensions of the surface coords.
   If reversing X, the order of the verticies is also reversed.
 */
-int MRISreverse(MRI_SURFACE *mris, int which)
+int MRISreverse(MRI_SURFACE *mris, int which, int reverse_face_order)
 {
   int    vno ;
   float  x, y, z ;
@@ -29310,7 +29310,7 @@ int MRISreverse(MRI_SURFACE *mris, int which)
     v->y = y ;
     v->z = z ;
   }
-  if(which == REVERSE_X)   /* swap order of faces */
+  if(which == REVERSE_X && reverse_face_order)   // swap order of faces 
     MRISreverseFaceOrder(mris);
 
   return(NO_ERROR) ;
