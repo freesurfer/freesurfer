@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:25:48 $
- *    $Revision: 1.8 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/14 14:19:59 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_reverse.c,v 1.8 2009/03/04 19:25:48 mreuter Exp $";
+static char vcid[] = "$Id: mris_reverse.c,v 1.9 2009/11/14 14:19:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,7 +65,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE        *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.8 2009/03/04 19:25:48 mreuter Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_reverse.c,v 1.9 2009/11/14 14:19:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -112,7 +112,7 @@ main(int argc, char *argv[]) {
   }
 
   FileNamePath(out_fname, path) ;
-  MRISreverse(mris, which) ;
+  MRISreverse(mris, which, 1) ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing reversed surface to %s\n", out_fname) ;
   mris->type = MRIS_TRIANGULAR_SURFACE ;
