@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/01 18:28:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/11/15 14:46:32 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: hiam_register.c,v 1.3 2007/01/01 18:28:23 fischl Exp $";
+static char vcid[] = "$Id: hiam_register.c,v 1.4 2009/11/15 14:46:32 fischl Exp $";
 
 
 static float sigmas[] = {
@@ -203,7 +203,7 @@ main(int argc, char *argv[]) {
     MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   if (reverse_flag)
-    MRISreverse(mris, REVERSE_X) ;
+    MRISreverse(mris, REVERSE_X, 1) ;
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
   if (!FZERO(parms.l_dist))
