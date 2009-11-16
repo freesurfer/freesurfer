@@ -1,4 +1,4 @@
-/**
+ /*
  * @file  tksurfer.c
  * @brief Tcl/Tk-based cortical surface viewer
  *
@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/16 15:50:02 $
- *    $Revision: 1.334 $
+ *    $Author: krish $
+ *    $Date: 2009/11/16 19:49:26 $
+ *    $Revision: 1.335 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1607,6 +1607,8 @@ int sclv_read_from_dotw_frame (char* fname, int field);
 int sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
                            char* registration, int field);
 
+int sclv_read_from_annotcorr (char* fname, int field);
+
 /* Creates a new overlay and fills it with the stat values from a
    label. */
 int sclv_new_from_label (int field, int label);
@@ -2181,7 +2183,7 @@ int  main(int argc,char *argv[])
   char *word;
   char path[MAX_DIR_DEPTH][NAME_LENGTH];
   int  nargs = 0;
-  char *functional_fnames[100], *patch_name = NULL ;
+  char *functional_fnames[100], *patch_name = NULL, *overlayannotfname = NULL;
   int  noverlays = 0 ;
   /* begin rkt */
   FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_Identity;
@@ -2202,6 +2204,7 @@ int  main(int argc,char *argv[])
   int load_annotation = FALSE;
   int load_curv = FALSE;
   int load_sulc = FALSE;
+  int overlayannotflag = FALSE; 
   char annotation_fname[NAME_LENGTH] = "";
   char label_fname[NAME_LENGTH] = "";
 
@@ -2250,6 +2253,20 @@ int  main(int argc,char *argv[])
       load_curv = TRUE;
       noverlays++ ;
       forcegraycurvatureflag = TRUE;
+      labl_draw_style = LABL_STYLE_OUTLINE;
+    }
+    else if (!stricmp(argv[i], "-overlay-annot-corrmatrix"))
+    {
+      nargs = 2;
+      overlayannotfname = argv[i+1] ;
+      if (!fio_FileExistsReadable(overlayannotfname))
+      {
+	printf("ERROR: cannot find %s\n",overlayannotfname);
+	exit(1);
+      }
+      load_curv = TRUE;
+      forcegraycurvatureflag = TRUE;
+      overlayannotflag = TRUE;
       labl_draw_style = LABL_STYLE_OUTLINE;
     }
     else if (!stricmp(argv[i], "-overlay-reg") ||
@@ -2862,7 +2879,6 @@ int  main(int argc,char *argv[])
     val_to_stat() ;
   }
 
-
 #if 0
   read_binary_areas(afname);
 #endif
@@ -2908,6 +2924,12 @@ int  main(int argc,char *argv[])
     err = labl_import_annotation (annotation_fname);
     if (err && getenv("TK_EXIT_ON_CMD_ERROR")!=NULL) exit(1);
   }
+  
+  if (overlayannotfname)
+  {
+    sclv_read_from_annotcorr(overlayannotfname, SCLV_VAL);
+  }
+
   /* If we didn't load an annotation or color table filename, load the
      default color table. */
   if (!load_colortable && !load_annotation)
@@ -9644,6 +9666,245 @@ sclv_read_from_volume (char* fname, FunD_tRegistrationType reg_type,
   return (ERROR_NONE);
 }
 
+int sclv_read_from_annotcorr (char* fname, int field)
+{
+  FunD_tErr volume_error;
+  FunD_tErr eResult = FunD_tErr_NoError;
+  FunD_tRegistrationType reg_type = FunD_tRegistration_NoneNeeded;
+  char cmd[STRLEN];
+  char val_name[STRLEN];
+  int li_x, li_y, vnox, vnoy, annotformat=0;
+  int lvnox, lvnoy;
+  float val;
+  MRI *mriannotoverlay, *mrinverts;
+  LABEL *labelx, *labely;
+  mriFunctionalDataRef this;
+  mriVolumeRef volm = NULL;
+  
+  /* unload this field if it already exists */
+  sclv_unload_field (field);
+  
+  this = (mriFunctionalDataRef) malloc(sizeof(mriFunctionalData));
+  this->mSignature = FunD_kSignature;
+  
+  strcpy( this->msFileName, fname );
+  /* Init values. */
+  this->mSampleType = FunD_tSampleType_Nearest;
+  this->mConvMethod = FunD_tConversionMethod_FFF;
+  this->mNumTimePoints = -1;
+  this->mNumConditions = -1;
+  this->mbNullConditionPresent = FALSE;
+  this->mpData = NULL;
+  this->mMinValue = 10000;
+  this->mMaxValue = -10000;
+  this->mTimeResolution = 0;
+  this->mNumPreStimTimePoints = 0;
+  this->mIdxToIdxTransform = NULL;
+  this->mOriginalIdxToIdxTransform = NULL;
+  this->mbErrorDataPresent = FALSE;
+  this->mCovMtx = NULL;
+  this->mpResampledData = NULL;
+  this->mClientXMin = 0;
+  this->mClientYMin = 0;
+  this->mClientZMin = 0;
+  this->mClientXMax = -1;
+  this->mClientYMax = -1;
+  this->mClientZMax = -1;
+  this->mbHaveClientBounds = FALSE;
+  this->mbScalar = FALSE;
+
+  this->mFrequencies = NULL;
+  this->mNumBins = 0;
+  
+  /* Init transform objects */
+  DebugNote( ("Creating idx to idx transform") );
+  Trns_New( &(this->mIdxToIdxTransform) );
+
+  /* Load the data. And create a nvertices x nvertices timepoint volume */
+  mriannotoverlay = MRIread(fname);
+  //printf("labl_num_labels : %d\n", labl_num_labels);
+  //printf("mriannotoverlay->width : %d\n", mriannotoverlay->width);
+  //printf("mriannotoverlay->height : %d\n", mriannotoverlay->height);
+  /* the annotoverlay volume has to have num_labels x 1 x 1 x num_labels size 
+   * or num_labels x num_labels x 1 x 1 size */
+  if (mriannotoverlay->width > 1 && mriannotoverlay->height == 1 &&
+      mriannotoverlay->depth == 1 && mriannotoverlay->nframes > 1 )
+  {
+    annotformat = 1;
+    if ( mriannotoverlay->width != labl_num_labels || mriannotoverlay->nframes != labl_num_labels)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "sclv_read_from_annotcorr: every non-zero dimension of the annot overlay file must be the number of labels"));
+  }
+  else if (mriannotoverlay->width > 1 && mriannotoverlay->height > 1 &&
+      mriannotoverlay->depth == 1 && mriannotoverlay->nframes == 1 )
+  {
+    annotformat = 2;
+    if ( mriannotoverlay->width != labl_num_labels || mriannotoverlay->height != labl_num_labels)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "sclv_read_from_annotcorr: every non-zero dimension of the annot overlay file must be the number of labels"));
+  }
+  else
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM,
+                 "sclv_read_from_annotcorr: annot correlation matrix wrong format"));
+  
+  mrinverts  = MRIallocSequence( mris->nvertices, 1, 1, 
+		                 mriannotoverlay->type,
+				 mris->nvertices);
+  MRIcopyHeader(mriannotoverlay, mrinverts);
+  /* create a nverts x 1 x 1 x nverts volume from the annotation volume */
+  for ( li_x = 0; li_x < labl_num_labels ; li_x++)
+  {
+    labelx = labl_labels[li_x].label;
+    for (lvnox = 0; lvnox < labelx->n_points; lvnox++)
+    {
+      vnox = labelx->lv[lvnox].vno;
+      if ( vnox < 0 || vnox >= mris->nvertices )
+        continue;
+      for ( li_y = 0; li_y < labl_num_labels ; li_y++)
+      {
+	if ( annotformat == 1)      
+          val = MRIgetVoxVal(mriannotoverlay, li_x, 0, 0, li_y);
+	else val = MRIgetVoxVal(mriannotoverlay, li_x, li_y, 0, 0);
+        labely = labl_labels[li_y].label;
+        for (lvnoy = 0; lvnoy < labely->n_points; lvnoy++)
+        {
+          vnoy = labely->lv[lvnoy].vno;
+	  MRIsetVoxVal(mrinverts, vnox, 0, 0, vnoy, val);
+        }
+      }
+    }
+  }
+
+  this->mpData = mrinverts;
+
+  /* Try to parse a stem header if we have a stem specified. */
+  DebugNote( ("Trying stem header") );
+  eResult = FunD_FindAndParseStemHeader_( this );
+  if ( FunD_tErr_NoError != eResult )
+  {
+
+    DebugNote( ("Guess meta information") );
+    eResult = FunD_GuessMetaInformation_( this );
+  }
+  
+  /* Try to reshape if we can. */
+  DebugNote( ("Trying reshape with %d values", mris->nvertices) );
+  FunD_ReshapeIfScalar_( this, mris->nvertices, NULL );
+
+  
+  /* If we're not scalar by now, parse the registration file */
+  if ( !this->mbScalar )
+  {
+    DebugNote( ("Parsing registration file") );
+    eResult = FunD_ParseRegistrationAndInitMatricies_( this,
+              reg_type,
+              volm );
+  }
+
+  /* Get the value range. */
+  DebugNote( ("Getting value range") );
+  MRIvalRange( this->mpData, &this->mMinValue, &this->mMaxValue );
+
+  volume_error = FunD_ClientSpaceIsTkRegRAS (this);
+  if (volume_error!=FunD_tErr_NoError)
+  {
+    if (NULL != this)
+      FunD_Delete (&this);
+    sclv_unload_field (field);
+    printf("surfer: couldn't load %s\n",fname);
+    ErrorReturn(func_convert_error(volume_error),
+                (func_convert_error(volume_error),
+                 "sclv_read_from_volume: error in "
+                 "FunD_ClientSpaceIsTkRegRAS\n"));
+  }
+  
+  /* set the scalar volume field */
+  sclv_field_info[field].is_scalar_volume = TRUE;
+  
+  printf ("surfer: Interpreting overlay volume %s "
+            "as an encoded annotation correlation volume.\n", fname);
+  
+  /* save the volume and mark this field as binary */
+  sclv_field_info[field].is_functional_volume = TRUE;
+  sclv_field_info[field].func_volume = this;
+  
+  /* get the range information */
+  volume_error =
+    FunD_GetValueRange (sclv_field_info[field].func_volume,
+                        &sclv_field_info[field].min_value,
+                        &sclv_field_info[field].max_value);
+  if (volume_error!=FunD_tErr_NoError)
+  {
+    if (NULL != this)
+      FunD_Delete (&this);
+    sclv_unload_field (field);
+    ErrorReturn(func_convert_error(volume_error),
+                (func_convert_error(volume_error),
+                 "sclv_read_from_annotcorr: error in FunD_GetValueRange\n"));
+  }
+  volume_error =
+    FunD_GetNumConditions (sclv_field_info[field].func_volume,
+                           &sclv_field_info[field].num_conditions);
+  if (volume_error!=FunD_tErr_NoError)
+  {
+    if (NULL != this)
+      FunD_Delete (&this);
+    sclv_unload_field (field);
+    ErrorReturn(func_convert_error(volume_error),
+                (func_convert_error(volume_error),
+                 "sclv_read_from_annotcorr: error in FunD_GetNumConditions\n"));
+  }
+  volume_error =
+    FunD_GetNumTimePoints (sclv_field_info[field].func_volume,
+                           &sclv_field_info[field].num_timepoints);
+  if (volume_error!=FunD_tErr_NoError)
+  {
+    if (NULL != this)
+      FunD_Delete (&this);
+    sclv_unload_field (field);
+    ErrorReturn(func_convert_error(volume_error),
+                (func_convert_error(volume_error),
+                 "sclv_read_from_annotcorr: error in FunD_GetNumTimePoints\n"));
+  }
+  
+  /* paint the first condition/timepoint in this field */
+  sclv_set_timepoint_of_field (field, 0, 0);
+  if (sclv_field_info[field].num_timepoints > 1)
+  {
+    enable_menu_set(MENUSET_TIMECOURSE_LOADED, 1) ;
+    enable_menu_set(MENUSET_OVERLAY_LOADED, 1) ;
+  }
+
+  /* calc the frquencies */
+  sclv_calc_frequencies (field);
+
+  /* turn on the overlay flag and select this value set */
+  vertex_array_dirty = 1 ;
+  overlayflag = TRUE;
+  colscale = HEAT_SCALE ;
+  linkvertexmode = 1;
+  sclv_set_current_field (field);
+
+  /* set the field name to the name of the stem loaded */
+  FileNameOnly (fname, val_name);
+  sprintf (cmd, "UpdateValueLabelName %d \"%s\"", field, val_name);
+  send_tcl_command (cmd);
+  sprintf (cmd, "ShowValueLabel %d 1", field);
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup view");
+  send_tcl_command (cmd);
+  sprintf (cmd, "UpdateLinkedVarGroup overlay");
+  send_tcl_command (cmd);
+
+  /* enable the menu items */
+  enable_menu_set (MENUSET_OVERLAY_LOADED, 1);
+
+  MRIfree(&mriannotoverlay);
+  return (ERROR_NONE);
+}
 
 int sclv_new_from_label (int field, int label)
 {
@@ -9930,6 +10191,8 @@ swap_stat_val(void)
   /* begin rkt */
   /* swap the names of the val and stat labels */
   sprintf (cmd, "SwapValueLabelNames %d %d", SCLV_VAL, SCLV_VALSTAT);
+      load_curv = TRUE;
+      forcegraycurvatureflag = TRUE;
   send_tcl_command (cmd);
   /* end rkt */
 #endif
@@ -20934,7 +21197,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.334 2009/11/16 15:50:02 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.335 2009/11/16 19:49:26 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
