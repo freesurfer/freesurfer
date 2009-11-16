@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/13 19:20:18 $
- *    $Revision: 1.333 $
+ *    $Date: 2009/11/16 15:50:02 $
+ *    $Revision: 1.334 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1083,6 +1083,7 @@ int read_pial_vertex_coordinates(void) ;
 int read_canon_vertex_coordinates(char *fname) ;
 void send_spherical_point(char *subject_name,char *canon_name,
                           char *orig_fname);
+void send_contralateral_point(char *canon_name, char *orig_name) ;
 void send_to_subject(char *subject_name) ;
 static void resend_to_subject(void) ;
 void invert_surface(void) ;
@@ -2180,7 +2181,8 @@ int  main(int argc,char *argv[])
   char *word;
   char path[MAX_DIR_DEPTH][NAME_LENGTH];
   int  nargs = 0;
-  char *functional_fname = NULL, *patch_name = NULL ;
+  char *functional_fnames[100], *patch_name = NULL ;
+  int  noverlays = 0 ;
   /* begin rkt */
   FunD_tRegistrationType overlay_reg_type = FunD_tRegistration_Identity;
   char overlay_reg[NAME_LENGTH];
@@ -2239,13 +2241,14 @@ int  main(int argc,char *argv[])
         !stricmp(argv[i], "-overlay"))
     {
       nargs = 2 ;
-      functional_fname = argv[i+1] ;
-      if (!fio_FileExistsReadable(functional_fname))
+      functional_fnames[noverlays] = argv[i+1] ;
+      if (!fio_FileExistsReadable(functional_fnames[noverlays]))
       {
-        printf("ERROR: cannot find %s\n",functional_fname);
+        printf("ERROR: cannot find %s\n",functional_fnames[noverlays]);
         exit(1);
       }
       load_curv = TRUE;
+      noverlays++ ;
       forcegraycurvatureflag = TRUE;
       labl_draw_style = LABL_STYLE_OUTLINE;
     }
@@ -2826,17 +2829,23 @@ int  main(int argc,char *argv[])
       read_canon_vertex_coordinates(fname) ;
   }
 
-  if (functional_fname)
+  if (noverlays > 0)
   {  /* -o specified on command line */
-    if (strlen(functional_fname) > 2 &&
-        strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
+    int i ;
+    char *functional_fname ;
+    for (i = 0 ; i < noverlays ; i++)
     {
-      read_binary_values(functional_fname) ;
-    }
-    else
-    {
-      sclv_read_from_volume(functional_fname, overlay_reg_type,
-                            overlay_reg, SCLV_VAL);
+      functional_fname = functional_fnames[i] ;
+      if (strlen(functional_fname) > 2 &&
+          strcmp (&functional_fname[strlen(functional_fname)-2], ".w") == 0)
+      {
+        read_binary_values(functional_fname) ;
+      }
+      else
+      {
+        sclv_read_from_volume(functional_fname, overlay_reg_type,
+                              overlay_reg, i);
+      }
     }
     overlayflag = TRUE ;
     colscale = HEAT_SCALE ;
@@ -8041,6 +8050,116 @@ send_spherical_point(char *subject_name, char *canon_name, char *orig_name)
   copy_edit_dat_file_name (fname, sizeof(fname));
 #else
   sprintf(fname, "%s/%s/tmp/edit.dat", subjectsdir, subject_name) ;
+#endif
+  if (DIAG_VERBOSE_ON)
+    printf("writing coordinates to file %s\n", fname) ;
+  fp = fopen(fname,"w");
+  if (fp==NULL)
+  {
+    printf("surfer: ### can't create file %s\n",fname);
+    PR return;
+  }
+  if (DIAG_VERBOSE_ON)
+    printf("vertex %d coordinates:\n", min_vno);
+#if 0
+  if (transform_loaded)
+    printf("TALAIRACH (%2.1f %2.1f %2.1f)\n",x_tal,y_tal,z_tal);
+#endif
+  if (DIAG_VERBOSE_ON)
+    printf("ORIGINAL  (%2.1f %2.1f %2.1f)\n",x,y,z);
+
+  /* Write the point to the file. */
+  fprintf(fp,"%f %f %f\n",sv->x,sv->y,sv->z);
+
+#if 0
+  fprintf(fp,"%f %f %f\n",x_tal,y_tal,z_tal);
+#endif
+  fclose(fp);
+}
+void
+send_contralateral_point(char *canon_name, char *orig_name)
+{
+  float           x, y, z, dx, dy, dz, dist, min_dist ;
+  SMALL_VERTEX    *sv ;
+  VERTEX          *v ;
+  char            fname[STRLEN] ;
+  SMALL_SURFACE   *mriss ;
+  int             vno, min_vno ;
+  FILE            *fp ;
+
+  if (selection < 0)
+  {
+    printf("must select a vertex.\n") ;
+    return ;
+  }
+  if (canonsurfloaded == FALSE)
+  {
+    if (DIAG_VERBOSE_ON)
+      printf("reading canonical vertex positions from %s...\n", canon_name) ;
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    if (MRISreadVertexPositions(mris, canon_name) != NO_ERROR)
+    {
+      canonsurffailed = TRUE ;
+      return ;
+    }
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    canonsurfloaded = TRUE ;
+  }
+
+  sprintf(fname, "%s/%s/surf/%s", subjectsdir, pname, canon_name) ;
+  if (DIAG_VERBOSE_ON)
+    printf("reading spherical coordinates for subject %s from %s...\n",
+           pname, fname) ;
+
+  mriss = MRISSread(fname) ;
+  if (!mriss)
+  {
+    fprintf(stderr, "### could not open surface file %s\n", fname) ;
+    return ;
+  }
+
+  v = &mris->vertices[selection] ;
+  x = v->cx ;
+  y = v->cy ;
+  z = v->cz ;
+  min_dist = 1000000.0f ;
+  min_vno = -1 ;
+  for (vno = 0 ; vno < mriss->nvertices ; vno++)
+  {
+    sv = &mriss->vertices[vno] ;
+    dx = sv->x - x ;
+    dy = sv->y - y ;
+    dz = sv->z - z ;
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      min_vno  = vno ;
+    }
+  }
+  MRISSfree(&mriss) ;
+
+  printf("closest vertex %d is %2.1f mm distant.\n", min_vno, min_dist) ;
+
+  sprintf(fname, "%s/%s/surf/%s", subjectsdir, pname, orig_name) ;
+  if (DIAG_VERBOSE_ON)
+    printf("reading original coordinates for subject %s from %s...\n",
+           pname, fname) ;
+
+  mriss = MRISSread(fname) ;
+  if (!mriss)
+  {
+    fprintf(stderr, "### could not open surface file %s\n", fname) ;
+    return ;
+  }
+
+  sv = &mriss->vertices[min_vno] ;
+
+#if 0
+  copy_edit_dat_file_name (fname, sizeof(fname));
+#else
+  sprintf(fname, "%s/%s/tmp/edit.dat", subjectsdir, pname) ;
 #endif
   if (DIAG_VERBOSE_ON)
     printf("writing coordinates to file %s\n", fname) ;
@@ -20815,7 +20934,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.333 2009/11/13 19:20:18 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.334 2009/11/16 15:50:02 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
