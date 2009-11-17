@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/09/03 14:03:09 $
- *    $Revision: 1.52 $
+ *    $Author: greve $
+ *    $Date: 2009/11/17 20:54:33 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.52 2009/09/03 14:03:09 nicks Exp $";
+"$Id: mri_vol2surf.c,v 1.53 2009/11/17 20:54:33 greve Exp $";
 
 char *Progname = NULL;
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.52 2009/09/03 14:03:09 nicks Exp $", 
+     "$Id: mri_vol2surf.c,v 1.53 2009/11/17 20:54:33 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -734,7 +734,11 @@ int main(int argc, char **argv) {
     printf("Writing to %s\n",outfile);
     printf("Dim: %d %d %d\n",
            SurfVals2->width,SurfVals2->height,SurfVals2->depth);
-    MRIwriteType(SurfVals2,outfile,outtype);
+    err = MRIwriteType(SurfVals2,outfile,outtype);
+    if(err){
+      printf("ERROR: saving %s\n",outfile);
+      exit(1);
+    }
   }
 
   return(0);
