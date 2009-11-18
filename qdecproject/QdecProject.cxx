@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/09 06:56:19 $
- *    $Revision: 1.28 $
+ *    $Date: 2009/11/18 04:46:17 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1118,7 +1118,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
     stringstream name;
     name << segs[s] << ".volume";
     stringstream ssCommand;
-    ssCommand << "asegstats2table --meas volume --tablefile "
+    ssCommand << "asegstats2table --common-segs --meas volume --tablefile "
               << this->msStatsDataTablesDir 
               << name.str() << ".stats.dat "
               << "--statsfile=" << segs[s] << ".stats "
