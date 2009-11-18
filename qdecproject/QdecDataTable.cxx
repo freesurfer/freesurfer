@@ -9,8 +9,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/18 04:47:38 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/11/18 06:02:04 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1000,8 +1000,15 @@ vector< double > QdecDataTable::GetMeanAndStdDev( const char* isFactorName )
   for (unsigned int i=0; i < this->GetSubjects().size(); i++,N++)
   {
     d = subjects[i]->GetContinuousFactorValue( isFactorName );
-    Sum  += d;
-    Sum2 += (d*d);
+    if (isnan(d))
+    {
+      N--;
+    }
+    else
+    {
+      Sum  += d;
+      Sum2 += (d*d);
+    }
   }
 
   double Avg = Sum/N;
