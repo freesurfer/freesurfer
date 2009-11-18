@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/15 23:23:36 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/11/18 04:47:38 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -42,19 +42,17 @@ public:
 
   static const int qdecDiscreteFactorType = 1;
   static const int qdecContinuousFactorType = 2;
+  static const int qdecIgnoreType = 3;
 
   // Constructors/Destructors
   //
 
-  QdecFactor ( const char* isName,
-               int iType /* ==1 discrete or ==2 continuous */ );
-  QdecFactor ( const char* isName,
-               int iType, // ==1 discrete
+  QdecFactor ( const char* isName, int iType );
+  QdecFactor ( const char* isName, int iType, 
                const char* iValue,
                vector< string > iLevelNames );
-  QdecFactor ( const char* isName,
-               int iType, // ==2 continuous
-               double iValue );  
+  QdecFactor ( const char* isName, int iType, double iValue );  
+  QdecFactor ( const char* isName, int iType, const char* iValue );
   QdecFactor ( const QdecFactor* iFactor ); //Copy constructor
 
   virtual ~QdecFactor ( );
@@ -62,24 +60,30 @@ public:
   /**
    * @return bool
    */
-  bool IsDiscrete ( );
+  bool IsDiscrete ( ) 
+  { if ( mType == qdecDiscreteFactorType ) return true; return false; };
 
   /**
    * 
    */
-  void SetDiscrete ( ) { mType = qdecDiscreteFactorType; } ;
+  void SetDiscrete ( ) { mType = qdecDiscreteFactorType; };
 
   /**
    * @return bool
    */
-  bool IsContinuous ( );
+  bool IsContinuous ( ) 
+  { if ( mType == qdecContinuousFactorType ) return true; return false; };
 
+  /**
+   * @return bool
+   */
+  bool Ignore ( ) 
+  { if ( mType == qdecIgnoreType ) return true; return false; };
 
   /**
    * @return string
    */
-  string GetFactorName ( );
-
+  string GetFactorName ( ) { return msName; };
 
   /**
    * GetFactorTypeName() - returns the string name of the
@@ -104,18 +108,16 @@ public:
    */
   void SetHaveDotLevelsFile ( ) { mHaveDotLevelsFile = true; };
   
-
   /**
    * @return vector< string >
    */
-  vector<string> GetLevelNames ( );
+  vector<string> GetLevelNames ( ) { return mLevelNames; };
 
   /**
    * Returns true if the given levelName is in our list of known level names
    * @return bool
    */
   bool ValidLevelName ( const char* iLevelName );
-
 
   /**
    * @return int   Number of levels in this factor (assume its discrete)
@@ -126,8 +128,8 @@ public:
    * Returns the value of the discrete factor stored in this instance
    * @return string
    */
-  string GetDiscreteValue ( );
-
+  string GetDiscreteValue ( ) 
+  { assert(mType == qdecDiscreteFactorType); return msDiscreteValue; };
 
   /**
    * Returns the value of the continuous factor stored in this instance.
@@ -143,6 +145,25 @@ public:
    */
   double GetContinuousValue ( const char* isDiscreteValue );
 
+  /**
+   * Returns the value of the 'ignore' factor stored in this instance
+   * @return string
+   */
+  string GetIgnoreValue ( ) 
+  { assert(mType == qdecIgnoreType); return msIgnoreValue; };
+
+  /**
+   *
+   * Returns true if this factor is an ordinal number (not a float)
+   */
+  bool IsOrdinal( ) { return mOrdinal; }
+
+  /**
+   *
+   * Indicate this factor is an ordinal
+   */
+  void SetOrdinal( ) { mOrdinal = true; };
+
 private:
 
   // private attributes
@@ -152,9 +173,14 @@ private:
   // this factor data for each subject.
   string msName;
 
-  // if ==1, continuous
-  // if ==2, discrete
+  // discrete, continuous or ignore
   int mType;
+
+  string msDiscreteValue;
+
+  double mContinuousValue;
+
+  string msIgnoreValue;
 
   // Names of possible levels (for instance, if this factor is 'gender',
   // then the two possible names are 'Female' and 'Male').
@@ -163,10 +189,10 @@ private:
   // true if user create a factor.levels file containing the valid level names
   bool mHaveDotLevelsFile;
 
-  string msDiscreteValue;
-
-  double mContinuousValue;
-
+  // true if user created an ordinal.factors file listing this factor,
+  // in which case this factor is read as an integer (but still stored as
+  // a float) and written to disk as an integer if data table is saved
+  bool mOrdinal;
 };
 
 #endif // QDECFACTOR_H

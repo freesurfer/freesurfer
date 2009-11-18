@@ -1,19 +1,20 @@
 /**
  * @file  QdecFactor.cpp
- * @brief Stores a factor, which can be either discrete or continuous
+ * @brief Stores a factor, which can be either discrete, continuous or ignore
  *
  * An example of a discrete factor is gender (male or female) or
  * diagnosis (demented or nondemented).  An example continuous factor is
- * age, or volume of a subcortical structure.
+ * age, or volume of a subcortical structure.  An example of a 'factor' to
+ * ignore is a column containing a string for an alternate subject ID.
  */
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/01/15 00:24:16 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/11/18 04:47:38 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -36,31 +37,25 @@
 // Constructors/Destructors
 //
 
-QdecFactor::QdecFactor ( const char* isName,
-                         int iType /* ==1 discrete or ==2 continuous */ )
+QdecFactor::QdecFactor ( const char* isName, int iType )
 {
   msName = isName;
-
-  // if ==1, continuous
-  // if ==2, discrete
   mType = iType;
-  assert( (mType == 1) || (mType == 2) );
-
+  assert( (mType == qdecDiscreteFactorType) || 
+          (mType == qdecContinuousFactorType) || 
+          (mType == qdecIgnoreType) );
   mHaveDotLevelsFile = false;
+  mOrdinal = false;
 }
 
 QdecFactor::QdecFactor ( const char* isName,
-                         int iType, // ==1 discrete
+                         int iType,
                          const char* iValue,
                          vector< string > iLevelNames )
 {
   msName = isName;
-
-  // if ==1, continuous
-  // if ==2, discrete
   mType = iType;
-  assert( mType == 1 );
-
+  assert( mType == qdecDiscreteFactorType );
   msDiscreteValue = iValue;
   mLevelNames = iLevelNames;
   mHaveDotLevelsFile = false;
@@ -68,19 +63,26 @@ QdecFactor::QdecFactor ( const char* isName,
 
 
 QdecFactor::QdecFactor ( const char* isName,
-                         int iType, // ==2 continuous
+                         int iType,
                          double iValue )
 {
   msName = isName;
-
-  // if ==1, continuous
-  // if ==2, discrete
   mType = iType;
-  assert( mType == 2 );
-
+  assert( mType == qdecContinuousFactorType );
   mContinuousValue = iValue;
-
   mHaveDotLevelsFile = false;
+  mOrdinal = false;
+}
+
+
+QdecFactor::QdecFactor ( const char* isName,
+                         int iType,
+                         const char* iValue )
+{
+  msName = isName;
+  mType = iType;
+  assert( mType == qdecIgnoreType );
+  msIgnoreValue = iValue;
 }
 
 
@@ -93,6 +95,7 @@ QdecFactor::QdecFactor ( const QdecFactor *iFactor )
   mContinuousValue = iFactor->mContinuousValue;
   msDiscreteValue = iFactor->msDiscreteValue;
   mHaveDotLevelsFile = iFactor->mHaveDotLevelsFile;
+  mOrdinal = false;
 } 
 
 QdecFactor::~QdecFactor ( )
@@ -101,34 +104,6 @@ QdecFactor::~QdecFactor ( )
 //
 // Methods
 //
-
-/**
- * @return bool
- */
-bool QdecFactor::IsDiscrete ( )
-{
-  if ( mType == 1 ) return true;
-  return false;
-}
-
-
-/**
- * @return bool
- */
-bool QdecFactor::IsContinuous ( )
-{
-  if ( mType == 2 ) return true;
-  return false;
-}
-
-
-/**
- * @return string
- */
-string QdecFactor::GetFactorName ( )
-{
-  return msName;
-}
 
 
 /**
@@ -140,6 +115,7 @@ string QdecFactor::GetFactorTypeName ( )
 {
   if (this->IsContinuous())return("continuous");
   if (this->IsDiscrete())  return("discrete");
+  if (this->Ignore())  return("ignore");
   return("type-error");
 }
 
@@ -157,16 +133,6 @@ void QdecFactor::AddLevelName ( string isLevelName )
   mLevelNames.push_back( isLevelName );
 }
 
-
-/**
- * @return vector< string >
- */
-vector< string > QdecFactor::GetLevelNames ( )
-{
-  return mLevelNames;
-}
-
-
 /**
  * Returns true if the given levelName is in our list of known level names
  * @return bool
@@ -179,18 +145,6 @@ bool QdecFactor::ValidLevelName ( const char* iLevelName )
   }
   return false;
 }
-
-/**
- * Returns the value of the discrete factor stored in this instance
- * (null if this is not a discrete factor).
- * @return string
- */
-string QdecFactor::GetDiscreteValue ( )
-{
-  assert( mType == 1 );
-  return msDiscreteValue;
-}
-
 
 /**
  * Returns the value of the continous factor stored in this instance.

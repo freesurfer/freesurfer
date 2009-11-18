@@ -9,10 +9,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/30 21:37:56 $
- *    $Revision: 1.22 $
+ *    $Date: 2009/11/18 04:47:38 $
+ *    $Revision: 1.23 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -240,6 +240,71 @@ int QdecDataTable::Load (const char* isFileName,
   }
 
   /*
+   * Look for a file named ignore.factors which can list any factors the
+   * user wishes to ignore (stuff like alternate subject ids which are 
+   * neither continuous nor discrete data)
+   */
+  vector < string > sIgnoreFactors;
+  string fnDataTable = isFileName;
+  string fnPath;
+  string::size_type nPreLastSlash = fnDataTable.rfind( '/' );
+  if( string::npos != nPreLastSlash )
+    fnPath = fnDataTable.substr( 0, nPreLastSlash );
+  else
+    fnPath = ".";
+  stringstream fnIgnore;
+  fnIgnore << fnPath << "/ignore.factors";
+  ifstream ifsIgnoreFile( fnIgnore.str().c_str(), ios::in );
+  if (ifsIgnoreFile.good())
+  {
+    cout << "Reading factors to ignore from config file "
+         << fnIgnore.str().c_str() << endl;
+    char tmpstr2[2048];
+    while ( ifsIgnoreFile.getline(tmpstr2,2000,UNIX_EOL).good()  )
+    {
+      if (strlen(tmpstr2) >= 1)
+      {
+        cout << "\t" << tmpstr2 << endl;;
+        sIgnoreFactors.push_back( strdup(tmpstr2) );
+      }
+    }
+    ifsIgnoreFile.close();
+    cout << "done." << endl;
+  }
+
+  /*
+   * Look for a file named ordinal.factors which can list the continuous
+   * factors that are known to be integers (not floating point).
+   * useful only when saving the project file so that an integer doesnt get
+   * written as a float.
+   */
+  vector < string > sOrdinalFactors;
+  nPreLastSlash = fnDataTable.rfind( '/' );
+  if( string::npos != nPreLastSlash )
+    fnPath = fnDataTable.substr( 0, nPreLastSlash );
+  else
+    fnPath = ".";
+  stringstream fnOrdinal;
+  fnOrdinal << fnPath << "/ordinal.factors";
+  ifstream ifsOrdinalFile( fnOrdinal.str().c_str(), ios::in );
+  if (ifsOrdinalFile.good())
+  {
+    cout << "Reading factors to consider as ordinal from config file "
+         << fnOrdinal.str().c_str() << endl;
+    char tmpstr2[2048];
+    while ( ifsOrdinalFile.getline(tmpstr2,2000,UNIX_EOL).good()  )
+    {
+      if (strlen(tmpstr2) >= 1)
+      {
+        cout << "\t" << tmpstr2 << endl;
+        sOrdinalFactors.push_back( strdup(tmpstr2) );
+      }
+    }
+    ifsOrdinalFile.close();
+    cout << "done." << endl;
+  }
+
+  /*
    * read-in the factor names from the first non-commented line of input
    */
   ifsDatFile.clear();
@@ -282,13 +347,26 @@ int QdecDataTable::Load (const char* isFileName,
       } //else cout << "token: %s\n",token);
     }
 
-    char factor[1024];
+    char factor[2048];
     strncpy( factor, token, sizeof(factor) );
     //cout << "factor: " << factor << endl;
 
+    // determine if this factor should be ignored (by comparing against
+    // what we may have read from the ignore.factors file parsed earlier)
+    bool bIgnore = false;
+    for (unsigned int n=0; n < sIgnoreFactors.size(); n++)
+    {
+      //cout << this->mIgnoreFactors[n].c_str() << "  " << factor << endl;
+      if (strcmp(sIgnoreFactors[n].c_str(),factor)==0)
+      {
+        bIgnore = true;
+      }
+    }
+
     // if there exists a file called 'factor'.levels, where 'factor' is the
     // token read from the line, then it is a discrete factor, in which
-    // case we'll read its valid levels, otherwise, assume its continuous
+    // case we'll read its valid levels, otherwise, assume its continuous or
+    // ignore it
 
     // Extract the path of the data table from the data table file name.
     string fnDataTable = isFileName;
@@ -304,7 +382,7 @@ int QdecDataTable::Load (const char* isFileName,
     fnLevels << fnPath << "/" << factor << ".levels";
     //cout << fnLevels.str().c_str() << endl;
 
-    // Try to open the levels file.
+    // Try to open the levels file (implicitly means this is discrete)
     ifstream ifsLevelFile( fnLevels.str().c_str(), ios::in );
     if (ifsLevelFile.good())
     {
@@ -318,18 +396,19 @@ int QdecDataTable::Load (const char* isFileName,
       {
         if (strlen(tmpstr2) >= 1)
         {
-          cout << "'" << tmpstr2 << "',";
+          cout << "\t" << tmpstr2 << endl;
           qf->AddLevelName( tmpstr2 );
           levelCount++;
         }
       }
       qf->SetHaveDotLevelsFile();
       ifsLevelFile.close();
-      cout << " done" << endl;
+      cout << "done." << endl;
+
       // error check: cannot have just one level (or no levels)
       if ( levelCount < 2 )
       {
-        cerr << "ERROR: " << fnLevels << " is invalid."
+        cerr << "ERROR: " << fnLevels.str().c_str() << " is invalid."
              << " Must have at least two levels." << endl;
         ifsDatFile.close();
         return (-1);
@@ -337,10 +416,29 @@ int QdecDataTable::Load (const char* isFileName,
       // ok, so add it to our factors storage
       this->mFactors.push_back ( qf );
     }
-    else
+    else if ( bIgnore )
+    {
+      // factor to ignore
+      QdecFactor* qf = new QdecFactor( strdup(factor), // name
+                                       QdecFactor::qdecIgnoreType );
+      this->mFactors.push_back ( qf );
+    }
+    else // must be continuous
     {
       QdecFactor* qf = new QdecFactor( strdup(factor), // name
                                        QdecFactor::qdecContinuousFactorType );
+
+      // determine if this factor is ordinal (by comparing against
+      // what we may have read from the ordinal.factors file parsed earlier)
+      for (unsigned int n=0; n < sOrdinalFactors.size(); n++)
+      {
+        if (strcmp(sOrdinalFactors[n].c_str(),factor)==0)
+        {
+          qf->SetOrdinal( );
+          break;
+        }
+      }
+
       this->mFactors.push_back ( qf );
     }
 
@@ -395,7 +493,7 @@ int QdecDataTable::Load (const char* isFileName,
            << isFileName << endl;
       ifsDatFile.close();
       return (-1);
-    } //else cout << "token: " << token << endl;
+    } // else cout << "token: " << token << endl;
 
     int numContFactors = 0; // these are used for sanity-checking
     int numDiscFactors = 0;
@@ -414,24 +512,36 @@ int QdecDataTable::Load (const char* isFileName,
         int retCode = sscanf(token,"%lf",&dtmp);
         if (retCode == 1 &&
             ! this->mFactors[nthfactor]->IsDiscrete() &&
-            ! this->mFactors[nthfactor]->HaveDotLevelsFile()) 
+            ! this->mFactors[nthfactor]->HaveDotLevelsFile() &&
+            ! this->mFactors[nthfactor]->Ignore() )
         { // yes!  its a continuous factor
           //cout << "\t" << nthInput << ": " << dtmp << endl;
           QdecFactor* qf =
             new QdecFactor( this->mFactors[nthfactor]->GetFactorName().c_str(),
                             QdecFactor::qdecContinuousFactorType,
                             dtmp /* value */ );
+          if ( this->mFactors[nthfactor]->IsOrdinal() ) qf->SetOrdinal();
           theFactors.push_back( qf ); // save this factor data
           // for later sanity-checking:
           if (nthInput == 0) numExpContFactors++; 
           numContFactors++;
+        }
+        else if ( this->mFactors[nthfactor]->Ignore() )
+        {
+          // this column is being ignored (ie, its not a factor, but 
+          // we still need to save the data in case we save the file later)
+          QdecFactor* qf =
+            new QdecFactor( this->mFactors[nthfactor]->GetFactorName().c_str(),
+                            QdecFactor::qdecIgnoreType,
+                            (const char*)strdup(token) /* value */ );
+          theFactors.push_back( qf ); 
         }
         else // it must be a discrete factor
         {
           // if discrete, then check that its valid (a known level name, as
           // read from a factor.levels file that user optionally created)
           if ( this->mFactors[nthfactor]->IsDiscrete() &&
-               this->mFactors[nthfactor]->HaveDotLevelsFile() && 
+               this->mFactors[nthfactor]->HaveDotLevelsFile() &&
                ! this->mFactors[nthfactor]->ValidLevelName( token ) )
           {
             cerr << endl << "ERROR: Subject " << subj_id 
@@ -449,7 +559,7 @@ int QdecDataTable::Load (const char* isFileName,
             return(-1);
           }
           else // we dont know about this discrete factor, so update mFactors
-          {
+          { 
             this->mFactors[nthfactor]->SetDiscrete();
             this->mFactors[nthfactor]->AddLevelName( token );
           }
@@ -514,9 +624,9 @@ int QdecDataTable::Load (const char* isFileName,
   ifsDatFile.close();
 
   // check for discrete factors having only one level
-  for (int n=0; n < nFactors; n++)
+  for ( int n=0; n < nFactors; n++ )
   {
-    if (this->mFactors[n]->IsDiscrete())
+    if ( this->mFactors[n]->IsDiscrete() )
     {
       if ( 1 == this->mFactors[n]->GetNumberOfLevels() )
       {
@@ -546,6 +656,7 @@ int QdecDataTable::Load (const char* isFileName,
 /**
  * @return int
  * @param  isFileName
+ * 
  */
 int QdecDataTable::Save (const char* isFileName )
 {
@@ -567,7 +678,7 @@ int QdecDataTable::Save (const char* isFileName )
   }
 
   const char* fsid = "fsid";
-  fprintf(fp,"%-16s",fsid); // first line, first column: our file identifier
+  fprintf(fp,"%s",fsid); // first line/column: our file identifier
   for (int m=0; m < nInputs; m++)
   {
     vector < QdecFactor* > subjectFactors = this->mSubjects[m]->GetFactors();
@@ -577,26 +688,46 @@ int QdecDataTable::Save (const char* isFileName )
     {
       for (unsigned int n=0; n < subjectFactors.size(); n++)
       {
-        fprintf(fp," %-16s",subjectFactors[n]->GetFactorName().c_str());
+        fprintf(fp," %s",subjectFactors[n]->GetFactorName().c_str());
       }
       fprintf(fp,"\n");
     }
 
     // now the data belonging to each subject, one subject per line
-    fprintf(fp,"%-16s ",this->mSubjects[m]->GetId().c_str());
+    fprintf(fp,"%s ",this->mSubjects[m]->GetId().c_str());
     for (unsigned int n=0; n < subjectFactors.size(); n++)
     {
       if (subjectFactors[n]->IsDiscrete())
-        fprintf(fp,"%-16s ",subjectFactors[n]->GetDiscreteValue().c_str());
+      {
+        fprintf(fp,"%s ",subjectFactors[n]->GetDiscreteValue().c_str());
+      }
+      else if (subjectFactors[n]->Ignore())
+      {
+        fprintf(fp,"%s ",subjectFactors[n]->GetIgnoreValue().c_str());
+      }
+      else if (subjectFactors[n]->IsOrdinal())
+      {
+        double value = subjectFactors[n]->GetContinuousValue();
+        if ( isnan(value) )
+        {
+          fprintf(fp,"NaN ");
+        }
+        else
+        {
+          fprintf(fp,"%d ",(int)value);
+        }
+      }
       else
-        fprintf(fp,"%-16.3f ",subjectFactors[n]->GetContinuousValue());
+      {
+        fprintf(fp,"%.9lf ",subjectFactors[n]->GetContinuousValue());
+      }
     }
     fprintf(fp,"\n");
   }
 
   fclose(fp);
 
-  cout << "Saved file" << isFileName << endl;
+  cout << "Saved file " << isFileName << endl;
 
   return 0;
 }
@@ -626,6 +757,8 @@ void QdecDataTable::Dump (FILE* fp )
     {
       if (subjectFactors[n]->IsDiscrete())
         fprintf(fp,"%s ",subjectFactors[n]->GetDiscreteValue().c_str());
+      else if (subjectFactors[n]->Ignore())
+        fprintf(fp,"%s ",subjectFactors[n]->GetIgnoreValue().c_str());
       else
         fprintf(fp,"%lf ",subjectFactors[n]->GetContinuousValue());
     }
@@ -776,9 +909,9 @@ QdecFactor* QdecDataTable::GetFactor ( const char* isSubjectName,
 vector< string > QdecDataTable::GetDiscreteFactorNames ( )
 {
   vector < string > discreteFactorNames;
-  for (unsigned int i=0; i < this->mFactors.size(); i++)
+  for ( unsigned int i=0; i < this->mFactors.size(); i++ )
   {
-    if (this->mFactors[i]->IsDiscrete())
+    if ( this->mFactors[i]->IsDiscrete() )
     {
       discreteFactorNames.push_back
         ( this->mFactors[i]->GetFactorName() );
