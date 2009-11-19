@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/11/19 19:15:45 $
-#    $Revision: 1.447 $
+#    $Date: 2009/11/19 22:42:11 $
+#    $Revision: 1.448 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -610,7 +610,10 @@ AC_SUBST(NVCCFLAGS)
 
 # warn the user about missing functionality
 if( test x$NVCC = xno ) then
-    AC_MSG_WARN([Nvidia CUDA nvcc compiler not found. CUDA support will not be built. If you have CUDA and need CUDA support, check the path to CUDA and specify --with-cuda=/path/to/cuda])
+    echo "Nvidia CUDA nvcc compiler not found."
+    echo "CUDA support will not be built."
+    echo "If you have CUDA and need CUDA support,"
+    echo "check the path to CUDA and specify --with-cuda=/path/to/cuda"
 fi
 
 ##############################################################
@@ -673,6 +676,7 @@ if test "$CPUTYPE" = "NO"; then
       ;;
     x86_64-*)
       cpu386=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
+      CPUTYPE=x86_64
       case "$cpu386" in
         AMDAthlon64)
         CPUTYPE=athlon64
@@ -723,6 +727,9 @@ case "$CPUTYPE" in
      ;;
   athlon-fx)
 #     CPUFLAGS="-march=x86-64"
+     CPUFLAGS="-m64"
+     ;;
+  x86_64)
      CPUFLAGS="-m64"
      ;;
   G4)
@@ -2172,6 +2179,17 @@ if test "$itk_apps" = "yes"; then
   $ac_itk_libraries/libitkjpeg12.a \
   $ac_itk_libraries/libitkjpeg16.a \
   $ac_itk_libraries/libITKDICOMParser.a"
+
+  # ITK v3.16.0 needs libuuid for function `gdcm::Util::GenerateUUID'
+  if test -e /usr/lib/libuuid.a ; then
+     LIB_UUID_A="/usr/lib/libuuid.a"
+     AC_SUBST(LIB_UUID_A)
+  fi
+  if test -e /usr/lib64/libuuid.a ; then
+     LIB_UUID_A="/usr/lib64/libuuid.a"
+     AC_SUBST(LIB_UUID_A)
+  fi
+  LIBS_ITK="$LIBS_ITK $LIB_UUID_A"
 else
   AC_MSG_RESULT([Not building ITK apps.])
 fi
