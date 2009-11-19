@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 18:39:41 $
- *    $Revision: 1.643 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/19 22:52:17 $
+ *    $Revision: 1.644 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -636,7 +636,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.643 2009/11/19 18:39:41 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.644 2009/11/19 22:52:17 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -20677,7 +20677,7 @@ MRISwriteVTK(MRI_SURFACE *mris, const char *fname)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    fprintf(fp, "%.5f  %.5f  %.5f\n", v->x, v->y, v->z) ;
+    fprintf(fp, "%.9f  %.9f  %.9f\n", v->x, v->y, v->z) ;
   }
   fprintf(fp, "POLYGONS %d %d\n", mris->nfaces, mris->nfaces*4) ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
@@ -20720,7 +20720,7 @@ MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     VERTEX *v = &mris->vertices[vno] ;
-    fprintf(fp, "%.5f\n", v->curv) ;
+    fprintf(fp, "%.9f\n", v->curv) ;
   }
 
   fclose(fp) ;
