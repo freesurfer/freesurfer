@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/13 19:21:15 $
- *    $Revision: 1.331 $
+ *    $Date: 2009/11/19 18:39:34 $
+ *    $Revision: 1.332 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1313,6 +1313,7 @@ int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) ;
 int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 int MRISimportValVector(MRI_SURFACE *mris, float *vals) ;
 int MRISexportValVector(MRI_SURFACE *mris, float *vals) ;
+int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col) ;
 
 
 /* multi-timepoint (or stc) files */
