@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/07/17 18:58:30 $
- *    $Revision: 1.91 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:04:13 $
+ *    $Revision: 1.92 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -180,13 +180,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.91 2009/07/17 18:58:30 mreuter Exp $",
+   "$Id: mri_ca_label.c,v 1.92 2009/11/19 18:04:13 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.91 2009/07/17 18:58:30 mreuter Exp $",
+           "$Id: mri_ca_label.c,v 1.92 2009/11/19 18:04:13 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -905,6 +905,7 @@ main(int argc, char *argv[]) {
     mri_labeled = mri_tmp ;
   }
 
+  mri_labeled->ct = gca->ct ;  // embed color table in output volume
   /*  GCAfree(&gca) ; */MRIfree(&mri_inputs) ;
 #if 0
   if (filter) {
