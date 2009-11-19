@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/19 20:54:57 $
- *    $Revision: 1.359 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 15:12:32 $
+ *    $Revision: 1.360 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -11976,6 +11976,15 @@ mghRead(const char *fname, int read_volume, int frame)
     {
       switch (tag)
       {
+      case TAG_OLD_COLORTABLE:
+        /* We have a color table, read it with CTABreadFromBinary. If it
+           fails, it will print its own error message. */
+        fprintf(stderr, "reading colortable from MGH file...\n") ;
+        mri->ct = CTABreadFromBinary (fp);
+        if (NULL != mri->ct)
+          fprintf(stderr, "colortable with %d entries read (originally %s)\n",
+                  mri->ct->nentries, mri->ct->fname);
+        break ;
       case TAG_OLD_MGH_XFORM:
       case TAG_MGH_XFORM:
 
@@ -12298,6 +12307,14 @@ mghWrite(MRI *mri, const char *fname, int frame)
   if(mri->AutoAlign) TAGwriteAutoAlign(fp, mri->AutoAlign);
   if(mri->pedir) TAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
   else TAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
+
+  if (mri->ct)
+  {
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("writing colortable into annotation file...\n") ;
+    fwriteInt(TAG_OLD_COLORTABLE, fp) ;
+    CTABwriteIntoBinary(mri->ct, fp);
+  }
 
   // write other tags
   {
