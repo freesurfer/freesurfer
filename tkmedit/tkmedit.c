@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/09/07 14:34:12 $
- *    $Revision: 1.338 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 15:10:58 $
+ *    $Revision: 1.339 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.338 $";
+char *VERSION = "$Revision: 1.339 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.338 2009/09/07 14:34:12 nicks Exp $",
+     "$Id: tkmedit.c,v 1.339 2009/11/19 15:10:58 fischl Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5913,7 +5913,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.338 2009/09/07 14:34:12 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.339 2009/11/19 15:10:58 fischl Exp $ $Name:  $\n"
         )
       );
 
@@ -10049,11 +10049,20 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
                        eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   }
 
-  /* Try to load the color table. */
-  DebugNote( ("Loading color table.") );
-  eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-  DebugAssertThrowX( (tkm_tErr_NoErr == eResult),
-                     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  // see if there is a ctab stored in volume first
+  if (newVolume->mpMriValues->ct != NULL)
+  {
+    gColorTable[iVolume] = newVolume->mpMriValues->ct ;
+    SendColorTableInformationToTcl( iVolume );
+  }
+  else
+  {
+    /* Try to load the color table. */
+    DebugNote( ("Loading color table.") );
+    eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
+    DebugAssertThrowX( (tkm_tErr_NoErr == eResult),
+                       eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
 
 
   /* allocate flag volume from the new segmentation volume. set
@@ -10174,11 +10183,18 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
     Volm_Conform( newVolume );
   }
 
-  /* Try to load the color table. */
-  DebugNote( ("Loading color table.") );
-  eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
-                     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  if (newVolume->mpMriValues->ct != NULL) // ctab embedded in volume
+  {
+    gColorTable[iVolume] = newVolume->mpMriValues->ct ;
+    SendColorTableInformationToTcl( iVolume );
+  }
+  else /* Try to load the color table. */
+  {
+    DebugNote( ("Loading color table.") );
+    eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
+                       eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
 
   /* allocate changed volume */
   DebugNote( ("Creating segmentation flag volume") );
