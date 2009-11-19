@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/31 13:13:23 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/11/19 18:35:45 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.12 2009/10/31 13:13:23 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.13 2009/11/19 18:35:45 fischl Exp $";
 
 typedef struct
 {
@@ -96,6 +96,7 @@ typedef struct
 
 int main(int argc, char *argv[]) ;
 
+static int write_annot_correlations(MRI_SURFACE *mris, MRI *mri_cmatrix, PARMS *parms, char *fname) ;
 static double compute_distance_energy(MRI_SURFACE *mris, PARMS *parms, MRI *mri_cmatrix, 
                                       double *penergy_num, double *penergy_den)  ;
 static double compute_variance_energy(MRI_SURFACE *mris, PARMS *parms, MRI *mri_cmatrix, MRI *mri_means, 
@@ -157,6 +158,9 @@ static char *evaluate_fname = NULL ;
 static char *log_fname = NULL ;
 static int randomize = 0 ;
 static int  do_vertices =1 ;
+static char *write_corr_fname = NULL ;
+static char *write_annot_fname = NULL ;
+
 int
 main(int argc, char *argv[]) {
   char               **av, *in_fname, *ico_fname, *out_fname, path[STRLEN], ico_name[STRLEN] ;
@@ -186,7 +190,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.12 2009/10/31 13:13:23 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.13 2009/11/19 18:35:45 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -194,7 +198,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.12 2009/10/31 13:13:23 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.13 2009/11/19 18:35:45 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -258,6 +262,15 @@ main(int argc, char *argv[]) {
       mri_smatrix = compute_eta_matrix(mris, mri_cmatrix, NULL, 0.3, max_dist) ;
   }
 
+  if (write_annot_fname)
+  {
+    if (MRISreadAnnotation(mris, write_annot_fname) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not load annotation from %s",Progname,write_annot_fname);
+    MRIScopyAnnotationsToMarkedIndex(mris) ;
+    parms.stats.nparcels = MRISmaxMarked(mris)+1 ;
+    write_annot_correlations(mris, mri_cmatrix, &parms, write_corr_fname) ;
+    exit(0) ;
+  }
   if (evaluate_fname)  // load  a previously computed annotation and compute it's energy
   {
     MRI *mri_stats, *mri_means, *mri_vars ;
@@ -374,7 +387,7 @@ main(int argc, char *argv[]) {
       r = r % 256 ; g = g % 256 ; b = b %256 ;
       if (r > 255 || g > 255 || b > 255)
         DiagBreak() ;
-      sprintf (mris->ct->entries[vno]->name, "%s vertex %d", ico_name, vno);
+      sprintf (mris->ct->entries[vno]->name, "%s_vertex_%d", ico_name, vno);
       mris->ct->entries[vno]->ri = r ;
       mris->ct->entries[vno]->gi = g ;
       mris->ct->entries[vno]->bi = b ;
@@ -447,7 +460,7 @@ main(int argc, char *argv[]) {
       r = r % 256 ; g = g % 256 ; b = b %256 ;
       if (r > 255 || g > 255 || b > 255)
         DiagBreak() ;
-      sprintf (mris->ct->entries[fno]->name, "%s face %d", ico_name, fno);
+      sprintf (mris->ct->entries[fno]->name, "%s_face_%d", ico_name, fno);
       mris->ct->entries[fno]->ri = r ;
       mris->ct->entries[fno]->gi = g ;
       mris->ct->entries[fno]->bi = b ;
@@ -522,6 +535,8 @@ main(int argc, char *argv[]) {
 
     allocate_stats(mris, &parms, do_vertices ? mris_ico->nvertices : mris_ico->nfaces, mri_cmatrix) ;
     adjust_parcellation_boundaries(mris, mris_ico, mri_cmatrix, &parms) ;
+    if (write_corr_fname)
+      write_annot_correlations(mris, mri_cmatrix, &parms, write_corr_fname) ;
   }
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing annotation to %s\n", out_fname) ;
@@ -552,6 +567,18 @@ get_option(int argc, char *argv[]) {
     parms.l_markov = atof(argv[2]) ;
     nargs = 1 ;
     printf("setting markov coefficient to %2.6f\n", parms.l_markov) ;
+  }
+  else if (!stricmp(option, "write_corr")){
+    write_corr_fname  = argv[2] ;
+    nargs = 1 ;
+    printf("writing parcellation correlation matrix to %s\n", write_corr_fname) ;
+  }
+  else if (!stricmp(option, "wonly")){
+    write_corr_fname  = argv[2] ;
+    write_annot_fname = argv[3] ;
+    nargs = 2 ;
+    printf("writing parcellation correlation matrix from %s to %s\n", 
+           write_annot_fname, write_corr_fname) ;
   }
   else if (!stricmp(option, "var")){
     parms.l_var = atof(argv[2]) ;
@@ -2084,5 +2111,46 @@ compute_variance_energy_for_vertex_change(MRI_SURFACE *mris, PARMS *parms,
   *penergy_num = var_within_total ;
   *penergy_den = var_between_total ;
   return(parms->stats.nparcels * energy) ;
+}
+
+static int
+write_annot_correlations(MRI_SURFACE *mris, MRI *mri_cmatrix, PARMS *parms, char *fname)
+{
+  MRI  *mri_corr, *mri_counts ;
+  int  vno, source_parcel, target_parcel, frame, nframes, nparcels ;
+  double corr, total_corr, num ;
+
+  nparcels = parms->stats.nparcels ; nframes = mri_cmatrix->nframes ;
+  mri_corr = MRIalloc(nparcels, nparcels, 1, MRI_FLOAT) ;
+  mri_counts = MRIalloc(nparcels, nparcels, 1, MRI_FLOAT) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    source_parcel = mris->vertices[vno].marked ;
+    for (frame = 0 ; frame < nframes ; frame++)
+    {
+      target_parcel = mris->vertices[frame].marked ;
+      corr = MRIgetVoxVal(mri_cmatrix, vno, 0, 0, frame) ;
+      total_corr = MRIgetVoxVal(mri_corr, source_parcel, target_parcel, 0, 0) ;
+      MRIsetVoxVal(mri_corr, source_parcel, target_parcel, 0, 0, total_corr + corr) ;
+      num = MRIgetVoxVal(mri_counts,source_parcel, target_parcel, 0, 0) ;
+      MRIsetVoxVal(mri_counts, source_parcel, target_parcel, 0, 0, num+1) ;
+    }
+  }
+
+  for (source_parcel = 0 ; source_parcel < nparcels ; source_parcel++)
+    for (target_parcel = 0 ; target_parcel < nparcels ; target_parcel++)
+    {
+      num = MRIgetVoxVal(mri_counts, source_parcel, target_parcel, 0, 0) ;
+      if (num > 0)
+      {
+        corr = MRIgetVoxVal(mri_corr, source_parcel, target_parcel, 0, 0) ;
+        MRIsetVoxVal(mri_corr, source_parcel, target_parcel, 0, 0, corr/num) ;
+      }
+    }
+
+  MRIwrite(mri_corr, fname) ;
+  MRIfree(&mri_corr) ;
+  return(NO_ERROR) ;
 }
 
