@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.10 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:57:48 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,6 +90,25 @@ ICOSAHEDRON *read_icosahedron_by_order(int order) ;
 int IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz) ;
 int IcoFindNClosestVertices(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz, int num, int *pv) ;
 
+
+#define MAX_ICP_LEVELS 8
+typedef struct
+{
+  int  nfaces ;   // total # of faces (first dimension of faces)
+  int  *nmapped ;  // # of finer scale faces within this face
+  int  **faces ;
+} ICO_FACE_LIST, ICF ;
+
+typedef struct 
+{
+  int         min_level ;
+  int         nlevels ;
+  MRI_SURFACE *icos[MAX_ICP_LEVELS] ;
+  ICF         *icfs[MAX_ICP_LEVELS] ;
+} ICO_PYRAMID, ICP ;
+
+ICO_PYRAMID *ICPread(int min_level, int max_level) ;
+int          ICPfree(ICP **picp) ;
 
 #endif
 
