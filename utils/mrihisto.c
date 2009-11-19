@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/01/10 01:41:43 $
- *    $Revision: 1.38 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:54:41 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -129,7 +129,7 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ;
   bmax = (BUFTYPE)fmax ;
-  if (!nbins)
+  if (nbins <= 0)
     nbins = nint(fmax - fmin + 1.0) ;
   if (nbins <= 0)
     nbins = 255 ;
@@ -944,10 +944,15 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           break;
 
         default:
-          ErrorReturn(NULL, 
-                      (ERROR_UNSUPPORTED,
-                       "MRIhistogramLabel: unsupported type %d",
-                       mri->type));
+          fval = MRIgetVoxVal(mri, x, y, z, 0);
+          bin_no = nint((fval - fmin) / (float)bin_size);
+          if (bin_no < 0 || bin_no >= histo->nbins)
+            DiagBreak() ;
+          if (bin_no < 0)
+            bin_no = 0 ;
+          else if (bin_no >= histo->nbins)
+            bin_no = histo->nbins-1 ;
+          histo->counts[bin_no]++;
           break ;
         }
       }
