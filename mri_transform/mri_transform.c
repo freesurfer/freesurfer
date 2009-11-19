@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/10/22 18:34:57 $
- *    $Revision: 1.12 $
+ *    $Date: 2009/11/19 19:06:12 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 //E/ should be in transform.h if it isn't already
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.12 2008/10/22 18:34:57 fischl Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.13 2009/11/19 19:06:12 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -94,7 +94,7 @@ main(int argc, char *argv[]) {
 #endif
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.12 2008/10/22 18:34:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.13 2009/11/19 19:06:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -175,6 +175,8 @@ main(int argc, char *argv[]) {
     if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s",
                 Progname, xform_fname) ;
+    if (out_like_fname == NULL)
+      TransformSetMRIVolGeomToDst(transform, mri_out) ;
 
     if (transform->type != MORPH_3D_TYPE) {
       lta = (LTA *)(transform->xform) ;
@@ -261,14 +263,15 @@ main(int argc, char *argv[]) {
     gcam = (GCAM *)(transform->xform) ;
     if (gcam->type == GCAM_RAS)
     {
+#if 0
+      printf("!!! warning - no output geometry specified (should use -out_like <fname>) !!!!\n");
+#endif
       GCAMrasToVox(gcam, mri_out) ;
-      if (out_like_fname == NULL)
-        printf("!!! warning - no output geometry specified (should use -out_like <fname>) !!!!\n");
     }
     if (invert_flag)
-      mri_out = TransformApplyInverse(transform, mri_in, NULL) ;
+      mri_out = TransformApplyInverseType(transform,mri_in,NULL,resample_type);
     else
-      mri_out = TransformApply(transform, mri_in, NULL) ;
+      mri_out = TransformApplyType(transform, mri_in, NULL, resample_type) ;
   }
 
   fprintf(stderr, "writing output to %s.\n", out_vol) ;
@@ -369,6 +372,7 @@ get_option(int argc, char *argv[]) {
         usage_exit();
         exit(1);
       }
+      printf("setting resample type to %d\n", resample_type) ;
       nargs = 1 ;
       break ;
     case '?':
