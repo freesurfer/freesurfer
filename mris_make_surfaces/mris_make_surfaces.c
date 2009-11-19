@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/16 18:35:02 $
- *    $Revision: 1.110 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:35:00 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.110 2009/10/16 18:35:02 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.111 2009/11/19 18:35:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -215,6 +215,7 @@ static int MGZ = 1; // for use with MGZ format
 static int longitudinal = 0;
 
 static int pial_num = 0 ; 
+static int pial_nbrs = 0 ;
 static int white_num = 0 ;
 #define MAX_VERTICES 1000
 static float pial_vals[MAX_VERTICES] ;
@@ -241,13 +242,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.110 2009/10/16 18:35:02 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.111 2009/11/19 18:35:00 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.110 2009/10/16 18:35:02 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.111 2009/11/19 18:35:00 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -476,6 +477,8 @@ main(int argc, char *argv[]) {
               Progname, fname) ;
   MRISaddCommandLine(mris, cmdline) ;
 
+  if (pial_nbrs > 2)
+    MRISsetNeighborhoodSize(mris, pial_nbrs) ;
   if (auto_detect_stats) {
     MRI *mri_tmp ;
     float white_mode, gray_mode ;
@@ -1108,14 +1111,32 @@ main(int argc, char *argv[]) {
        min_csf,(max_csf+max_gray_at_csf_border)/2,
        current_sigma, 2*max_thickness, parms.fp,
        GRAY_CSF, mri_mask, thresh) ;
-      MRISaddToValues(mris, white_target_offset) ;
+      MRISaddToValues(mris, pial_target_offset) ;
       {
-        int i, vno ;
+        int i, vno, n, vtotal ;
+        VERTEX *v ;
         for (i = 0; i < pial_num ; i++)
         {
           vno = pial_vnos[i] ;
-          mris->vertices[vno].val = pial_vals[i] ;
-          mris->vertices[vno].marked = 1 ;
+          v = &mris->vertices[vno] ;
+          v->val = pial_vals[i] ;
+          v->marked = 1 ;
+          v->val2 = current_sigma ;
+
+          vtotal = 0 ;
+          switch (pial_nbrs)
+          {
+          case 1: vtotal = v->vnum ; break ;
+          case 2: vtotal = v->v2num ; break ;
+          case 3: vtotal = v->v3num ; break ;
+          default: break ;
+          }
+          for (n = 0 ; n < vtotal ; n++)
+          { 
+            mris->vertices[v->v[n]].val = pial_vals[i] ;
+            mris->vertices[v->v[n]].marked = 1 ;
+            mris->vertices[v->v[n]].val2 = current_sigma ;
+          }
         }
       }
       MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
@@ -1373,6 +1394,10 @@ get_option(int argc, char *argv[]) {
     printf("constraining pial surface val for vno %d to be %2.0f\n", pial_vnos[pial_num], pial_vals[pial_num]) ;
     pial_num++ ;
     nargs = 2 ;
+  } else if (!stricmp(option, "pnbrs")){
+    pial_nbrs = atoi(argv[2]) ;
+    printf("setting pvals out to %d nbrs\n", pial_nbrs) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "T1") || !stricmp(option, "gvol")) {
     strcpy(T1_name, argv[2]) ;
     printf("using %s as T1 volume...\n", T1_name) ;
