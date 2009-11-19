@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/07/17 16:36:51 $
- *    $Revision: 1.98 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:02:21 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,8 @@
 
 #include "mri.h"
 #include "transform.h"
+#include "colortab.h"
+
 #define MIN_PRIOR  0.5
 #define MAX_GCA_INPUTS 1000
 /* GCA types *************/
@@ -42,10 +44,14 @@
 #define GCA_PARAM      2  // used T1 and PD data to create GCA
 #define GCA_UNKNOWN   99  // what ???
 
-#define FILE_TAG        0xab2c
-#define TAG_PARAMETERS  0x0001
-#define TAG_GCA_TYPE    0x0002
-#define TAG_GCA_DIRCOS  0x0003
+
+// somehow these were in here and not in tags.h. For backwards compatibility
+// have to keep using them
+#define FILE_TAG            0xab2c
+#define TAG_PARAMETERS      0x0001
+#define TAG_GCA_TYPE        0x0002
+#define TAG_GCA_DIRCOS      0x0003
+#define TAG_GCA_COLORTABLE  0x0004  
 
 /* the volume that the classifiers are distributed within */
 #define DEFAULT_VOLUME_SIZE   256
@@ -179,6 +185,7 @@ typedef struct
   MATRIX       *tal_r_to_i__;
   MATRIX       *tmp__;
 	int          total_training ;
+  COLOR_TABLE  *ct ;
 }
 GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
