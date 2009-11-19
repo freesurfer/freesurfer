@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/25 14:21:32 $
- *    $Revision: 1.441 $
+ *    $Date: 2009/11/19 18:56:14 $
+ *    $Revision: 1.442 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.441 $";
+const char *MRI_C_VERSION = "$Revision: 1.442 $";
 
 
 /*-----------------------------------------------------
@@ -12483,7 +12483,7 @@ int MRIlimits(MRI *mri, float *min, float *max)
 {
 
   float val;
-  int i, j, k;
+  int i, j, k, f;
 
   if (mri == NULL)
     return(NO_ERROR);
@@ -12491,19 +12491,34 @@ int MRIlimits(MRI *mri, float *min, float *max)
   if (mri->slices == NULL)
     return(NO_ERROR);
 
-  if (mri->type == MRI_UCHAR)
-  {
-    *min = *max = (float)MRIvox(mri, 0, 0, 0);
+#if 1
+  *min = *max = (float)MRIgetVoxVal(mri, 0, 0, 0, 0);
+  for (f = 0 ; f < mri->nframes ; f++)
     for (i = 0;i < mri->width;i++)
       for (j = 0;j < mri->height;j++)
         for (k = 0;k < mri->depth;k++)
         {
-          val = (float)MRIvox(mri, i, j, k);
+          val = (float)MRIgetVoxVal(mri, i, j, k, f);
           if (val < *min)
             *min = val;
           if (val > *max)
             *max = val;
         }
+#else
+  if (mri->type == MRI_UCHAR)
+  {
+    *min = *max = (float)MRIvox(mri, 0, 0, 0);
+    for (f = 0 ; f < mri->nframes ; f++)
+      for (i = 0;i < mri->width;i++)
+        for (j = 0;j < mri->height;j++)
+          for (k = 0;k < mri->depth;k++)
+          {
+            val = (float)MRIseq_vox(mri, i, j, k, f);
+            if (val < *min)
+              *min = val;
+            if (val > *max)
+              *max = val;
+          }
 
   }
 
@@ -12578,6 +12593,7 @@ int MRIlimits(MRI *mri, float *min, float *max)
         }
 
   }
+#endif
 
   return(NO_ERROR);
 
