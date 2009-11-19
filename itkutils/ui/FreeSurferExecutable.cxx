@@ -8,6 +8,15 @@
 
 #include "FreeSurferExecutable.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <stdlib.h> // getenv
+#ifdef __cplusplus
+}
+#endif
+
 FreeSurferExecutable::FreeSurferExecutable( int inArgs, char ** iaArgs ) {
   m_Parser = new CommandParser( inArgs, iaArgs );
   
@@ -418,7 +427,7 @@ FreeSurferExecutable::GetMachine() {
 
 std::string
 FreeSurferExecutable::GetEnvironmentVariable( std::string variable ) {
-  char *result = std::getenv( variable.c_str() );
+  char *result = getenv( variable.c_str() );
   std::string stringResult;
   if( result == NULL ) {
     stringResult = "not set";
