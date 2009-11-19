@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/18 14:36:08 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/11/19 15:11:20 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -167,8 +167,11 @@ VLSTcreate(MRI *mri,
     free(vl->zi) ;
     vl->xi = vl->yi = vl->zi = NULL ;
   }
+  vl->nvox = nvox ;
   if (vl->xi == NULL)
   {
+    if (nvox == 0)
+      nvox = 1 ;
     vl->xd = (float *)calloc(nvox, sizeof(float)) ;
     vl->yd = (float *)calloc(nvox, sizeof(float)) ;
     vl->zd = (float *)calloc(nvox, sizeof(float)) ;
@@ -181,7 +184,6 @@ VLSTcreate(MRI *mri,
   if (!vl || !vl->xi || !vl->yi || !vl->zi)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
               Progname, nvox) ;
-  vl->nvox = nvox ;
   for (nvox = x = 0 ; x < mri->width ; x+=skip)
   {
     for (y = 0 ; y < mri->height ; y+=skip)

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/16 14:21:33 $
- *    $Revision: 1.71 $
+ *    $Date: 2009/11/19 15:11:20 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2966,6 +2966,7 @@ MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
 
   return(mri_dst) ;
 }
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -3708,4 +3709,79 @@ MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst,
   while (nfilled > 0) ;
 
   return(mri_dst) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  set voxels with a different value in mri1 and mri2 to a dst_val in target volume
+  ------------------------------------------------------*/
+int
+MRIsetDifferentVoxelsWithValue(MRI *mri1, MRI *mri2, MRI *mri_dst, int dst_val)
+{
+  int     width, height, depth, x, y, z, nvox ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri1, NULL) ;
+  MRIcheckVolDims(mri1, mri_dst);
+  MRIcheckVolDims(mri2, mri_dst);
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+  
+  for (nvox = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (MRIgetVoxVal(mri1, x, y, z, 0) != MRIgetVoxVal(mri2, x, y, z, 0))
+        {
+          MRIsetVoxVal(mri_dst, x, y, z, 0, dst_val) ;
+          nvox++ ;
+        }
+      }
+    }
+  }
+  return(nvox) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  set voxels with value in src volume to a different value in target volume
+  ------------------------------------------------------*/
+int
+MRIsetVoxelsWithValue(MRI *mri_src, MRI *mri_dst, int src_val, int dst_val)
+{
+  int     width, height, depth, x, y, z, nvox ;
+  
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src, NULL) ;
+  MRIcheckVolDims(mri_src, mri_dst);
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  
+  for (nvox = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (MRIgetVoxVal(mri_src, x, y, z, 0) == src_val)
+        {
+          MRIsetVoxVal(mri_dst, x, y, z, 0, dst_val) ;
+          nvox++ ;
+        }
+      }
+    }
+  }
+  return(nvox) ;
 }
