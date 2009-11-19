@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:50 $
- *    $Revision: 1.143 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 19:00:29 $
+ *    $Revision: 1.144 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,8 @@
 #endif
 
 extern const char* Progname;
+
+MRI *MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst) ;
 
 int gcam_write_grad = 0 ;
 
@@ -643,6 +645,9 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   double base_sigma, pct_change, rms, last_rms = 0.0, 
     orig_dt,l_smooth, start_rms=0.0, l_orig_smooth ;
 
+  if (FZERO(parms->min_sigma))
+    parms->min_sigma = 0.4 ;
+
   // debugging
   if (mri)
   {
@@ -937,7 +942,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
           }
         while (pct_change > parms->tol) ;
         parms->sigma /= 4 ;
-        if (parms->sigma < 0.4)
+        if (parms->sigma < parms->min_sigma)
           break ;
         /*      GCAMremoveCompressedRegions(gcam, 0.1) ;*/
       }
@@ -4287,6 +4292,12 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
       gcamRemoveCompressedNodes(gcam, mri, parms, parms->ratio_thresh) ;
     }
 
+    if (gcam->neg > 0)   // couldn't unfold everything
+    {
+      printf("---------- unfolding failed - restoring original position --------------------\n");
+      GCAMcopyNodePositions(gcam, SAVED2_POSITIONS, CURRENT_POSITIONS) ;
+      gcamComputeMetricProperties(gcam) ;
+    }
     if (parms->l_area_smoothness > 0 && (Gdiag & DIAG_WRITE))
     {
       char fname[STRLEN] ;
@@ -4527,7 +4538,10 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
       GCAMmorphToAtlas(parms->mri_diag ? parms->mri_diag : parms->mri,
                        gcam, NULL, -1, parms->diag_sample_type) ;
   sprintf(base_name, "%s_%4.4d", parms->base_name, iter) ;
-  sprintf(fname, "%s.mgz", base_name) ;
+  if (getenv("DONT_COMPRESS"))
+    sprintf(fname, "%s.mgh", base_name) ;
+  else
+    sprintf(fname, "%s.mgz", base_name) ;
   printf("writing snapshot to %s\n", fname) ;
   MRIwrite(mri_morphed, fname) ;
 
@@ -4543,7 +4557,10 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
         GCAMmorphToAtlas(parms->mri_diag ? parms->mri_diag : parms->mri,
                          gcam, NULL, -1, SAMPLE_TRILINEAR) ;
     sprintf(base_name, "%s_%4.4d", parms->base_name, iter) ;
-    sprintf(fname, "%s_intensity.mgz", base_name) ;
+    if (getenv("DONT_COMPRESS"))
+      sprintf(fname, "%s_intensity.mgh", base_name) ;
+    else
+      sprintf(fname, "%s_intensity.mgz", base_name) ;
     printf("writing snapshot to %s\n", fname) ;
     MRIwrite(mri_morphed, fname) ;
   }
@@ -4565,7 +4582,10 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
         GCAMmorphToAtlas(parms->mri_diag2,
                          gcam, NULL, -1, parms->diag_sample_type) ;
     sprintf(base_name, "d2.%s_%4.4d", parms->base_name, iter) ;
-    sprintf(fname, "%s.mgz", base_name) ;
+    if (getenv("DONT_COMPRESS"))
+      sprintf(fname, "%s.mgh", base_name) ;
+    else
+      sprintf(fname, "%s.mgz", base_name) ;
     printf("writing snapshot to %s\n", fname) ;
     MRIwrite(mri_morphed, fname) ;
     
@@ -4581,7 +4601,10 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
           GCAMmorphToAtlas(parms->mri_diag ? parms->mri_diag : parms->mri,
                            gcam, NULL, -1, SAMPLE_TRILINEAR) ;
       sprintf(base_name, "d2.%s_%4.4d", parms->base_name, iter) ;
-      sprintf(fname, "%s_intensity.mgz", base_name) ;
+      if (getenv("DONT_COMPRESS"))
+        sprintf(fname, "%s_intensity.mgh", base_name) ;
+      else
+        sprintf(fname, "%s_intensity.mgz", base_name) ;
       printf("writing snapshot to %s\n", fname) ;
       MRIwrite(mri_morphed, fname) ;
     }
@@ -10845,6 +10868,8 @@ GCAMrasToVox(GCA_MORPH *gcam, MRI *mri)
         gcamn->x = V3_X(v2) ;
         gcamn->y = V3_Y(v2) ;
         gcamn->z = V3_Z(v2) ;
+        if (nint(gcamn->x) == Gx && nint(gcamn->y) == Gy && nint(gcamn->z) == Gz)
+          DiagBreak() ;
 
         V3_X(v1) = gcamn->origx ;
         V3_Y(v1) = gcamn->origy ;
@@ -13846,7 +13871,7 @@ GCAMMScomputeOptimalScale(GCAM_MS *gcam_ms, TRANSFORM *transform, MRI *mri_input
             MRIsetVoxVal(mri_s_index, x, y, z, 0, best_s) ;
 
           sigma = gcam_ms->sigmas[best_s] ;
-          if ((x == Ggca_x && y == Ggca_y && z == Ggca_z) || (x == Gx2 && y == Gy2 && z == Gx2))
+          if ((x == Ggca_x && y == Ggca_y && z == Ggca_z) || (x == Gx2 && y == Gy2 && z == Gz2))
             printf("setting optimal scale at (%d, %d, %d) to %2.3f, l=%s, p=%2.5f\n", 
                    x, y, z, sigma, cma_label_to_name(best_label), best_p) ;
           
@@ -14326,6 +14351,7 @@ MRIcomputeGaussNewtonStep(MRI *mri_source, MRI *mri_atlas, MRI *mri_v, MRI *mri_
   return(NO_ERROR) ;
 }
 
+#if 1
 static int
 gcamScaleAndSquare(MRI *mri_s_old, MRI *mri_s_new) 
 {
@@ -14364,13 +14390,14 @@ gcamScaleAndSquare(MRI *mri_s_old, MRI *mri_s_new)
 #endif
         if (x == Gx && y == Gy && z == Gz)
         {
-          printf("mriScaleAndSquare(%d, %d, %d): Dx = (%2.2f, %2.2f, %2.2f)\n",
+          printf("gcamScaleAndSquare(%d, %d, %d): Dx = (%2.2f, %2.2f, %2.2f)\n",
                  Gx, Gy, Gz,dx_old+dx, dy_old+dy, dz_old+dz) ;
         }
       }
 
   return(NO_ERROR) ;
 }
+#endif
 MRI *
 MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst)
 {
@@ -14386,7 +14413,9 @@ MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-#if 0
+
+        // should use new update to sample old warp, then do vector addition
+#if 0  // used to be 0 before Thomas broke everything
         dx2 = MRIgetVoxVal(mri_warp2, x, y, z, 0) ;
         dy2 = MRIgetVoxVal(mri_warp2, x, y, z, 1) ;
         dz2 = MRIgetVoxVal(mri_warp2, x, y, z, 2) ;
@@ -14664,7 +14693,11 @@ GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels,
     
     for ( ; dt <= 1.0 ; dt *= 2.0)
     {
+#if 1
       gcamScaleAndSquare(mri_s_old, mri_s_new) ;
+#else
+      MRIcomposeWarps(mri_s_old, mri_s_old, mri_s_new) ;
+#endif
       MRIcopy(mri_s_new, mri_s_old) ;
     }
     
@@ -15021,11 +15054,18 @@ MRIcomputeDistanceTransformStep(MRI *mri_source, MRI *mri_atlas, MRI *mri_delta,
         dz = MRIgetVoxVal(mri_delta, x, y, z, 2) ;
 
         tval = MRIgetVoxVal(mri_atlas, x, y, z, frame) ;
+#if 0
+        // used to be if 1 before Thomas broke everything
         MRIsampleVolumeFrameType(mri_source, x+dx, y+dy, z+dz, frame, SAMPLE_TRILINEAR,
                                  &sval) ;
         MRIsampleVolumeGradientFrame(mri_source, 
                                      x+dx, y+dy, z+dz, 
                                      &Ix, &Iy, &Iz, frame) ;
+#else
+        sval = MRIgetVoxVal(mri_source, x, y, z, 0) ;
+        MRIsampleVolumeGradientFrame(mri_source, x, y, z, 
+                                     &Ix, &Iy, &Iz, frame) ;
+#endif
         norm = sqrt(Ix*Ix + Iy*Iy + Iz*Iz) ;
         if (!FZERO(norm))
         {
