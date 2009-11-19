@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 19:09:12 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,17 +41,24 @@
 #include "mri_conform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_cnr.c,v 1.6 2006/12/29 02:09:06 nicks Exp $";
+static char vcid[] = "$Id: mri_cnr.c,v 1.7 2009/11/19 19:09:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+static int MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out, 
+                            double step_in, double step_out, MATRIX *m_linfit);
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static double compute_volume_cnr(MRI_SURFACE *mris, MRI *mri) ;
+static double compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) ;
 char *Progname ;
+static char *log_fname = NULL ;
+
+static char *slope_fname = NULL ;
+static double dist_in, dist_out, step_in, step_out ;
+static int interp = SAMPLE_TRILINEAR ;
 
 int
 main(int argc, char *argv[]) {
@@ -62,7 +69,7 @@ main(int argc, char *argv[]) {
   double      cnr_total, cnr = 0.0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.6 2006/12/29 02:09:06 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.7 2009/11/19 19:09:12 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -93,6 +100,7 @@ main(int argc, char *argv[]) {
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
     sprintf(fname, "%s/%s.pial", path, hemi) ;
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
@@ -108,20 +116,41 @@ main(int argc, char *argv[]) {
         printf("TR = %2.1f msec, flip angle = %2.0f degrees, TE = %2.1f msec\n",
                mri->tr, DEGREES(mri->flip_angle), mri->te) ;
 
-      if (!mri_template)
-        mri_template = MRIconform(mri) ;
-      mri_tmp = MRIresample(mri, mri_template, SAMPLE_NEAREST) ;
-      MRIfree(&mri) ;
-      mri = mri_tmp ;
+      if (0)
+      {
+        if (!mri_template)
+          mri_template = MRIconform(mri) ;
+        mri_tmp = MRIresample(mri, mri_template, SAMPLE_NEAREST) ;
+        MRIfree(&mri) ;
+        mri = mri_tmp ;
+      }
 
       if (!j)
-        cnr = compute_volume_cnr(mris, mri) ;
+        cnr = compute_volume_cnr(mris, mri, log_fname) ;
       else {
-        cnr += compute_volume_cnr(mris, mri) ;
+        cnr += compute_volume_cnr(mris, mri, log_fname) ;
         cnr /= 2.0 ;
         printf("CNR = %2.3f\n", cnr) ;
       }
 
+      if (slope_fname)
+      {
+        MATRIX *m_linfit ;
+
+        m_linfit = MatrixAlloc(mris->nvertices, 2, MATRIX_REAL) ; 
+        if (m_linfit == NULL)
+          ErrorExit(ERROR_NOMEMORY, "%s: could not allocate slope/offset amtrix", Progname) ;
+        MRIScomputeSlope(mris, mri, dist_in, dist_out, step_in, step_out, m_linfit);
+        MRISimportValFromMatrixColumn(mris, m_linfit, 1) ;
+        sprintf(fname, "%s/%s.%s.slope.mgz", path, hemi, slope_fname) ;
+        MRISwriteValues(mris, fname) ;
+        MRISimportValFromMatrixColumn(mris, m_linfit, 2) ;
+        sprintf(fname, "%s/%s.%s.offset.mgz", path, hemi, slope_fname) ;
+        MRISwriteValues(mris, fname) ;
+        
+
+        MatrixFree(&m_linfit) ;
+      }
       MRIfree(&mri) ;
     }
     cnr_total += cnr ;
@@ -149,6 +178,19 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-version"))
     print_version() ;
   else switch (toupper(*option)) {
+  case 'L':
+    log_fname = argv[2] ;
+    printf("logging g/w cnr to %s\n", log_fname) ;
+    nargs = 1 ;
+    break ;
+  case 'S':
+    slope_fname = argv[2];
+    dist_in = atof(argv[3]) ;
+    dist_out = atof(argv[4]) ;
+    step_in = atof(argv[5]) ;
+    step_out = atof(argv[6]) ;
+    nargs = 5 ;
+    break ;
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
@@ -179,6 +221,8 @@ print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <surf directory> <vol 1> <vol 2> ...\n",
           Progname) ;
+  fprintf(stderr, 
+          "\t-s <slope fname> <dist in> <dist out> <step in> <step out>\n") ;
 }
 
 static void
@@ -198,7 +242,7 @@ print_version(void) {
   current vertex positions = pial
 */
 static double
-compute_volume_cnr(MRI_SURFACE *mris, MRI *mri) {
+compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
   double  gray_white_cnr, gray_csf_cnr, gray_var, white_var, csf_var, gray_mean, white_mean, csf_mean ;
   float   thickness ;
   Real    x, y, z, gray, white, csf ;
@@ -261,9 +305,74 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri) {
   printf("\tgray/white CNR = %2.3f, gray/csf CNR = %2.3f\n",
          gray_white_cnr, gray_csf_cnr) ;
 
+  if (log_fname)
+  {
+    FILE    *fp ;
+    fp = fopen(log_fname, "a") ;
+    if (fp == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not open file %s", Progname, log_fname) ;
+    fprintf(fp, "%f %f %f %f %f %f %f %f\n", gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean, 
+            sqrt(white_var), sqrt(gray_var), sqrt(csf_var)) ;
+
+  }
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
 
   return((gray_white_cnr + gray_csf_cnr)/2.0) ;
+}
+
+static int
+MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out, 
+                 double step_in, double step_out, MATRIX *m_linfit)
+{
+  int      vno, nsamples, n ;
+  VERTEX   *v ;
+  MATRIX   *m_X, *m_Y, *m_P, *m_pinv = NULL ;
+  double   d, xv, yv, zv, x, y, z, val ;
+
+  nsamples = 1 + (int)(dist_in / step_in) + (int)(dist_out / step_out) ;
+  m_X = MatrixAlloc(2, nsamples, MATRIX_REAL) ;
+  m_Y = MatrixAlloc(1, nsamples, MATRIX_REAL) ;
+  m_P = MatrixAlloc(1, 2, MATRIX_REAL) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    for (n = 0, d = -dist_in ; d < 0.0 ; d += step_in, n++)
+    {
+      x = v->whitex + d*v->nx ; y = v->whitey + d*v->ny ; z = v->whitez + d*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
+      MRIsampleVolumeType(mri, xv, yv, zv, &val, interp) ;
+      *MATRIX_RELT(m_Y, 1, n+1) = val ;
+      *MATRIX_RELT(m_X, 1, n+1) = d ;
+      *MATRIX_RELT(m_X, 2, n+1) = 1 ;
+    }
+    n++ ;   // include val at 0
+    x = v->whitex ; y = v->whitey ; z = v->whitez ;
+    MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
+    MRIsampleVolumeType(mri, xv, yv, zv, &val, interp) ;
+    *MATRIX_RELT(m_Y, 1, n+1) = val ;
+    *MATRIX_RELT(m_X, 1, n+1) = 0.0 ;
+    *MATRIX_RELT(m_X, 2, n+1) = 1 ;
+
+    for (d = step_out ; d <= dist_out ; d += step_out, n++)
+    {
+      x = v->whitex + d*v->nx ; y = v->whitey + d*v->ny ; z = v->whitez + d*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri, x, y, z, &xv, &yv, &zv) ;
+      MRIsampleVolumeType(mri, xv, yv, zv, &val, interp) ;
+      *MATRIX_RELT(m_Y, 1, n+1) = val ;
+      *MATRIX_RELT(m_X, 1, n+1) = d ;
+      *MATRIX_RELT(m_X, 2, n+1) = 1 ;
+    }
+
+    m_pinv = MatrixPseudoInverse(m_X, m_pinv) ;
+    MatrixMultiply(m_Y, m_pinv, m_P) ;
+    *MATRIX_RELT(m_linfit, vno+1, 1) = *MATRIX_RELT(m_P, 1, 1) ;
+    *MATRIX_RELT(m_linfit, vno+1, 2) = *MATRIX_RELT(m_P, 1, 2) ;
+    MatrixFree(&m_pinv) ;
+  }
+
+  return(NO_ERROR) ;
 }
 
