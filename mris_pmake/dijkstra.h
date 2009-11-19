@@ -140,8 +140,8 @@ class C_dlist {
 
 protected:
 
-  s_node*   mpnode_ordered;
-  MRIS*   mpMS_surface;
+  s_node*       mpnode_ordered;
+  MRIS*         mpMS_surface;
 
   // methods
 

@@ -64,7 +64,6 @@ using namespace std;
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-//#include <string.h>
 #include <getopt.h>
 
 #include <sys/types.h>
@@ -72,6 +71,7 @@ using namespace std;
 
 #include "scanopt.h"
 #include "dijkstra.h"
+#include "C_mpmProg.h"
 #include "c_SSocket.h"
 #include "pstream.h"
 #include "general.h"
@@ -93,7 +93,7 @@ char*   Gpch_Progname;
 char*   Progname        = Gpch_Progname;
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.3 2009/10/29 21:02:47 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.4 2009/11/19 21:15:20 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -376,7 +376,17 @@ main(
           str_asynchComms = "TERM";
       }
 
-      if ( (str_asynchComms  == "HUP" || str_asynchComms  == "RUN") &&
+      if( (str_asynchComms      == "RUNPROG")                           &&
+           st_env.pSTw          != NULL) {
+        Gsout.str("");
+        Gsout << "Running embedded program '";
+        Gsout << st_env.pstr_mpmProgName[st_env.empm_current];
+        Gsout << "'"    << endl;
+        C_mpmProg*      p_mpm;
+        p_mpm           = st_env.pCmpmProg;
+      }
+
+      if ( (str_asynchComms  == "HUP" || str_asynchComms  == "RUN")     &&
            st_env.pSTw      != NULL) {
         Gsout.str("");
         Gsout << "Determining path from vertex " << st_env.startVertex;

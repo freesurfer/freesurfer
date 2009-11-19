@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.4 2009/11/03 19:48:25 rudolph Exp $
+/// $Id: env.h,v 1.5 2009/11/19 21:15:20 rudolph Exp $
 ///
 ///
 
@@ -62,7 +62,8 @@ extern  "C" {
 #include <string>
 using namespace std;
 
-
+// Forward declaration
+class C_mpmProg;
 
 /// Weights and values for the main cost function polynomial.
 typedef struct _weights {
@@ -162,60 +163,64 @@ typedef enum {
   e_user, e_sys, e_result
 } e_LOG;
 
-typedef struct _env {
-  s_weights*    pSTw;                       // weight structure
-  s_Dweights*   pSTDw;                      // Del weight structure
+typedef enum {
+    e_autodijk
+} e_MPMPROG;
 
-  int           timeoutSec;                 // listen timeout
-  int           port;                       // port on which to listen
+typedef struct _env {
+    s_weights*    pSTw;                     // weight structure
+    s_Dweights*   pSTDw;                    // Del weight structure
+
+    int           timeoutSec;               // listen timeout
+    int           port;                     // port on which to listen
                                             //+ for async control
 
-  int           lw;                         // left width (for stdout format)
-  int           rw;                         // right width (for stdout format)
+    int           lw;                       // left width (for stdout format)
+    int           rw;                       // right width (for stdout format)
 
-  bool          b_syslogPrepend;            // prepend syslog style
-  C_SMessage*   pcsm_syslog;                // log file for "sys" events
-  C_SMessage*   pcsm_userlog;               // log file for "user" events
-  C_SMessage*   pcsm_resultlog;             // log file for "result" event
+    bool          b_syslogPrepend;          // prepend syslog style
+    C_SMessage*   pcsm_syslog;              // log file for "sys" events
+    C_SMessage*   pcsm_userlog;             // log file for "user" events
+    C_SMessage*   pcsm_resultlog;           // log file for "result" event
 
-  bool          b_labelFile_save;           // flag: save label file
-  bool          b_patchFile_save;           // flag: save patch file?
-  bool          b_transitionPenalties;      // flag: apply transition?
+    bool          b_labelFile_save;         // flag: save label file
+    bool          b_patchFile_save;         // flag: save patch file?
+    bool          b_transitionPenalties;    // flag: apply transition?
                                             // penalties
-  bool          b_useAbsCurvs;              // flag: if true, use abs(curv)
+    bool          b_useAbsCurvs;            // flag: if true, use abs(curv)
                                             //+ for cost function calculations
-  string        str_workingDir;             // directory containing input
+    string        str_workingDir;           // directory containing input
                                             //+ and output files
-  string        str_patchFileName;          // file to contain path "patch"
-  string        str_labelFileName;          // file to contain path "label"
-  string        str_labelFileNameOS;        // aux file to contain path "label"
+    string        str_patchFileName;        // file to contain path "patch"
+    string        str_labelFileName;        // file to contain path "label"
+    string        str_labelFileNameOS;      // aux file to contain path "label"
                                             //+ projected back onto
                                             //+ the "Original Surface"
-  string        str_optionsFileName;        // file containing meta options
-  string        str_costFileName;           // file containing final costs
+    string        str_optionsFileName;      // file containing meta options
+    string        str_costFileName;         // file containing final costs
 
-  int           startVertex;                // index of the start vertex
-  int           endVertex;                  // index of the end vertex
-  float         plyDepth;                   // ply depth around a core path
+    int           startVertex;              // index of the start vertex
+    int           endVertex;                // index of the end vertex
+    float         plyDepth;                 // ply depth around a core path
 
-  e_SURFACE     esf_active;                 // the current active surface
-  string*       pstr_activeName;            // names of each surface
-  int           totalNumSurfaces;           // total number of surfaces
-  MRIS*         pMS_active;                 // a pointer (used by several
+    e_SURFACE     esf_active;               // the current active surface
+    string*       pstr_activeName;          // names of each surface
+    int           totalNumSurfaces;         // total number of surfaces
+    MRIS*         pMS_active;               // a pointer (used by several
                                             // functions) to specifiy
                                             // a particular surface to
                                             // process
-  MRIS*         pMS_curvature;              // (inflated) curvature surface
-  MRIS*         pMS_sulcal;                 // (inflated) sulcal height surface
-  MRIS*         pMS_auxSurface;             // auxillary (optional) surface
+    MRIS*         pMS_curvature;            // (inflated) curvature surface
+    MRIS*         pMS_sulcal;               // (inflated) sulcal height surface
+    MRIS*         pMS_auxSurface;           // auxillary (optional) surface
 
-  bool          b_surfacesKeepInSync;       // flag: behavioural /
+    bool          b_surfacesKeepInSync;     // flag: behavioural /
                                             //+ conditional. Evaluate
                                             //+ if wanting to merge
                                             //+ information from one
                                             //+ surface to another.
 
-  bool          b_surfacesClear;            // flag: behavioural /
+    bool          b_surfacesClear;          // flag: behavioural /
                                             //+ conditional. Should be
                                             //+ true for most cases.
                                             //+ If false, prevents the
@@ -226,32 +231,37 @@ typedef struct _env {
                                             //+ when correlation needs
                                             //+ to be calculated.
 
-  bool          b_costHistoryPreserve;      // flag: preserve cost history
+    bool          b_costHistoryPreserve;    // flag: preserve cost history
                                             //+ on surface between
                                             //+ successive calls to
                                             //+ dijkstra function.
                                             //+ Set to TRUE if finding
                                             //+ ply distances from
                                             //+ existing path
-  int           totalNumFunctions;          // total number of cost
+    int           totalNumFunctions;        // total number of cost
                                             // functions
-  e_COSTFUNCTION ecf_current;               // the current cost function
-  string*       pstr_functionName;          // names of each cost function
-  float  (*costFunc_do)                     // a cost function to operate
-  (                                         //+ on this environment
-    s_env&          st_env,
-    s_iterInfo*     pst_iterInfo,
-    int             vno_c,
-    int             j,
-    bool            b_relNextReference
-  );
-}
-s_env;
+    e_COSTFUNCTION ecf_current;             // the current cost function
+    string*       pstr_functionName;        // names of each cost function
+    float  (*costFunc_do)                   // a cost function to operate
+    (                                       //+ on this environment
+        s_env&          st_env,
+        s_iterInfo*     pst_iterInfo,
+        int             vno_c,
+        int             j,
+        bool            b_relNextReference
+    );
+
+    int                 totalmpmProgs;      // total number of mpmProgs
+    string*             pstr_mpmProgName;   // names of each mpmProg
+    bool                b_mpmProgUse;       // flag toggle on using mpm's
+    e_MPMPROG           empm_current;       // mpm program index to run
+    C_mpmProg*          pCmpmProg;          // handle to mpmProg object to run
+} s_env;
 
 void
 s_env_scan(
-  s_env&   st_env,
-  C_scanopt&  cso_options
+    s_env&              st_env,
+    C_scanopt&          cso_options
 );
 
 /// \fn void s_env_nullify( s_env& st_env);
@@ -261,48 +271,52 @@ s_env_scan(
 void s_env_nullify( s_env& st_env);
 
 bool s_env_b_surfacesKeepInSync_get(
-  s_env&   ast_env);
+    s_env&      ast_env
+);
 
 void s_env_b_surfacesKeepInSync_set(
-  s_env&   ast_env,
-  bool   b_val);
+    s_env&      ast_env,
+    bool        b_val
+);
 
 bool s_env_b_surfacesClear_get(
-  s_env&   ast_env);
+    s_env&   ast_env
+);
 
 void s_env_b_surfacesClear_set(
-  s_env&   ast_env,
-  bool   b_val);
+    s_env&      ast_env,
+    bool        b_val
+);
 
 bool s_env_surfaceFile_set(
-  s_env&   st_env,
-  string   astr_fileName
+    s_env&      st_env,
+    string      astr_fileName
 );
 
 bool s_env_surfaceCurvature_set(
-  s_env&   st_env,
-  string   astr_fileName
+    s_env&      st_env,
+    string      astr_fileName
 );
 
 bool s_env_surfaceSulcal_set(
-  s_env&   st_env,
-  string   astr_fileName
+    s_env&      st_env,
+    string      astr_fileName
 );
 
 bool s_env_auxSurfaceFile_set(
-  s_env&   st_env,
-  string   astr_fileName
+    s_env&      st_env,
+    string      astr_fileName
 );
 
 bool s_env_auxSurfaceCurvature_set(
-  s_env&   st_env,
-  string   astr_fileName
+    s_env&      st_env,
+    string      astr_fileName
 );
 
 void  s_env_log_file_changeTo(
-  s_env&   ast_env,
-  e_LOG   ae_log,
-  string   astr_newName
+    s_env&      ast_env,
+    e_LOG       ae_log,
+    string      astr_newName
 );
 
 void s_env_activeSurfaceList(
@@ -314,6 +328,14 @@ void s_env_activeSurfaceSetIndex(
     int         aindex
 );
 
+void s_env_mpmProgList(
+    s_env&      ast_env
+);
+
+int s_env_mpmProgSetIndex(
+    s_env*      apst_env,
+    int         aindex
+);
 
 void s_env_costFctList(
     s_env&      ast_env

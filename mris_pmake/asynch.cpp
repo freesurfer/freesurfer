@@ -17,12 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.4 2009/11/03 19:48:24 rudolph Exp $
+// $Id: asynch.cpp,v 1.5 2009/11/19 21:15:20 rudolph Exp $
 
 #include <string>
 #include <sstream>
 
 #include "asynch.h"
+#include "C_mpmProg.h"
 #include "c_vertex.h"
 #include "c_label.h"
 #include "c_surface.h"
@@ -363,6 +364,22 @@ asynchEvent_processENV(
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
     warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
+  if (str_object == "mpmProg") {
+    if (str_verb == "use")
+        st_env.b_mpmProgUse     = true;
+    if (str_verb == "get")
+        s_env_mpmProgList(st_env);
+    else if (str_verb == "set") {
+      if (!str_modifier.length())
+        return false;
+      Gsout.str("");
+      Gsout << "Setting mpmProgIndex to \t\t\t\t\t[ " << str_modifier << " ]" << endl;
+      if (s_env_mpmProgSetIndex(&st_env, atoi(str_modifier.c_str())) == -1)
+        error_exit("setting mpmProgIndex", "Some error occurred", 1);
+      ULOUT(Gsout.str());
+    }
+  }
+
   if (str_object == "surfaceFile") {
     if (str_verb == "set") {
       if (!str_modifier.length())
@@ -513,6 +530,54 @@ asynchEvent_processENV(
     }
   }
 
+  cout.flags(origFlags);
+  return true;
+}
+
+bool
+asynchEvent_processMPMPROG(
+    s_env&      st_env,
+    string      astr_comms
+) {
+
+  int lw     = st_env.lw;
+  int rw     = st_env.rw;
+
+  string str_errorAct = "checking <MPMPROG>";
+
+  string  str_object    = "";
+  string  str_verb      = "";
+  string  str_modifier  = "";
+  string  str_sep       = " ";
+  int     val           = 0;
+  stringstream Gsout("");
+
+  std::_Ios_Fmtflags origFlags;
+  origFlags  = cout.flags();
+  cout.setf(ios::left);
+
+  if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
+    warn(str_errorAct, "Some error occurred in the 3parse.", 1);
+
+  if (str_object == "polar") {
+    C_mpmProg*          pC_mpmEnv = st_env.pCmpmProg;
+    C_mpmProg_autodijk* pC_mpm_autodijk;
+    pC_mpm_autodijk     = dynamic_cast<C_mpmProg_autodijk*>(pC_mpmEnv);
+    if (str_verb == "get") {
+        CW(lw, "Polar vertex:")
+        val             = pC_mpm_autodijk->vertexPolar_get();
+        CWn(rw, val);
+    }
+    else if (str_verb == "set") {
+      if (!str_modifier.length())
+        return false;
+      Gsout.str("");
+      Gsout << "Setting polar vertex to \t\t\t\t\t[ " << str_modifier;
+      Gsout << " ]" << endl;
+      pC_mpm_autodijk->vertexPolar_set(atoi(str_modifier.c_str()));
+      ULOUT(Gsout.str());
+    }
+  }
   cout.flags(origFlags);
   return true;
 }
@@ -939,6 +1004,18 @@ asynchEvent_process(
     }
   }
 
+  // Check for MPMPROG
+  pos = str_event.find("MPMPROG");
+  if (pos != (unsigned)string::npos) {
+    if (str_event.length() < 4)
+        warn("checking <MPMPROG>", "no argument was found.", 2);
+    else {
+        // Now remove the MPMPROG<sp> string
+        str_event.erase(0, 8);
+        asynchEvent_processMPMPROG(st_env, str_event);
+    }
+  }
+
   // Check for DWGHT
   pos = str_event.find("DWGHT");
   if (pos != (unsigned)string::npos) {
@@ -1005,43 +1082,43 @@ asynchEvent_process(
 
 string
 asynchEvent_poll(
-  c_SSocket_UDP_receive*  pCSocketUDPR,
-  int    maxPolls
+    c_SSocket_UDP_receive*      pCSocketUDPR,
+    int                         maxPolls
 ) {
-  //
-  // ARGS
-  // pcSocketUDPR   in  socket on which to
-  //        listen
-  // maxPolls   in  maximum amount of
-  //        polls before
-  //        returning.
-  //
-  // DESCRIPTION
-  // Listens on a given socket, and returns a string (received)
-  // payload. This method polls the socket, so it will only return
-  // if there is data.
-  //
-  // The amount of polls is controlled by <maxPolls>, which in a
-  // time domain will wait for (timoutSec * maxPolls).
-  //
-  // HISTORY
-  // 18 November 2004
-  // o Initial design and coding.
-  //
+    //
+    // ARGS
+    // pcSocketUDPR   in  socket on which to
+    //        listen
+    // maxPolls   in  maximum amount of
+    //        polls before
+    //        returning.
+    //
+    // DESCRIPTION
+    // Listens on a given socket, and returns a string (received)
+    // payload. This method polls the socket, so it will only return
+    // if there is data.
+    //
+    // The amount of polls is controlled by <maxPolls>, which in a
+    // time domain will wait for (timoutSec * maxPolls).
+    //
+    // HISTORY
+    // 18 November 2004
+    // o Initial design and coding.
+    //
 
-  int  i, rval;
-  string str_payload = "TERM";
+    int  i, rval;
+    string str_payload = "TERM";
 
-  if (!pCSocketUDPR)
+    if (!pCSocketUDPR)
+        return str_payload;
+
+    for (i=0; i<maxPolls; i++) {
+        rval = pCSocketUDPR->recv(str_payload);
+        if (rval > 0)
+        break;
+    }
+
     return str_payload;
-
-  for (i=0; i<maxPolls; i++) {
-    rval = pCSocketUDPR->recv(str_payload);
-    if (rval > 0)
-      break;
-  }
-
-  return str_payload;
 }
 
 /* eof */

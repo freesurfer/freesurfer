@@ -17,10 +17,11 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.6 2009/11/03 19:48:24 rudolph Exp $
+// $Id: env.cpp,v 1.7 2009/11/19 21:15:20 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
+#include "C_mpmProg.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -335,6 +336,13 @@ s_env_nullify(
     st_env.pstr_functionName[1]     = "unity";
     st_env.pstr_functionName[2]     = "euclid";
     st_env.pstr_functionName[3]     = "distance";
+
+    // Define the internal mpmProg modules for human readable setting / getting
+    st_env.totalmpmProgs            = 1;
+    st_env.b_mpmProgUse             = false;
+    st_env.empm_current             = e_autodijk;
+    st_env.pstr_mpmProgName         = new string[st_env.totalmpmProgs];
+    st_env.pstr_mpmProgName[0]      = "autodijk";
 
     // Define the active surface tracker
     st_env.totalNumSurfaces         = 3;
@@ -931,6 +939,49 @@ s_env_activeSurfaceSetIndex(
     break;
   }
 }
+
+void
+s_env_mpmProgList(
+  s_env& ast_env
+) {
+  int  lw = 30;
+  int  rw = 20;
+
+  CW(lw, "Current mpmProg:");
+  CWn(rw, ast_env.pstr_mpmProgName[ast_env.empm_current]);
+  CW(lw, "mpmProg use flag:");
+  CWn(rw, ast_env.b_mpmProgUse);
+
+  cout << "All available mpmProgs:" << endl;
+  for (int i=0; i<ast_env.totalmpmProgs; i++) {
+    cout << "mpmProg index " << i << ": ";
+    cout << ast_env.pstr_mpmProgName[i] << endl;
+  }
+}
+
+int
+s_env_mpmProgSetIndex(
+    s_env*      apst_env,
+    int         aindex
+) {
+  int   ret = -1;
+  apst_env->b_mpmProgUse        = true;
+  switch (aindex) {
+  case 0:
+    apst_env->empm_current      = (e_MPMPROG) aindex;
+    apst_env->pCmpmProg         = new C_mpmProg_autodijk(apst_env);
+    break;
+  default:
+    apst_env->empm_current      = (e_MPMPROG) aindex;
+    break;
+  }
+  if(aindex < 0 || aindex > apst_env->totalmpmProgs)
+      ret       = -1;
+  else
+      ret       = aindex;
+  return ret;
+}
+
 
 void
 s_env_costFctList(
