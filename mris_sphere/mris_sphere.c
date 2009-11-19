@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/03/01 01:45:18 $
- *    $Revision: 1.48 $
+ *    $Date: 2009/11/19 19:04:20 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "version.h"
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.48 2008/03/01 01:45:18 fischl Exp $";
+  "$Id: mris_sphere.c,v 1.49 2009/11/19 19:04:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -119,13 +119,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.48 2008/03/01 01:45:18 fischl Exp $",
+   "$Id: mris_sphere.c,v 1.49 2009/11/19 19:04:20 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.48 2008/03/01 01:45:18 fischl Exp $",
+           "$Id: mris_sphere.c,v 1.49 2009/11/19 19:04:20 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -298,7 +298,11 @@ main(int argc, char *argv[]) {
     */
     /*    inflation_parms.l_repulse_ratio = .1 ;*/
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-    //    MRISexpandSurface(mris, 3, &inflation_parms, 0) ;
+    if (l_expand > 0)
+    {
+      MRISexpandSurface(mris, target_radius/2, &inflation_parms, 0) ;
+      l_expand = parms.l_expand = 0 ;
+    }
     MRIScenter(mris, mris) ;
     mris->x0 = mris->xctr ;
     mris->y0 = mris->yctr ;
