@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/12/16 19:15:44 $
- *    $Revision: 1.61 $
+ *    $Date: 2009/11/19 18:02:37 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -63,6 +63,7 @@ static char *wmsa_fname = NULL ;
 
 static int gca_flags = GCA_NO_FLAGS ;
 
+static COLOR_TABLE *ctab = NULL ;
 char *Progname ;
 static void usage_exit(int code) ;
 static char *mask_fname = NULL ;
@@ -129,7 +130,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.61 2008/12/16 19:15:44 fischl Exp $",
+           "$Id: mri_ca_train.c,v 1.62 2009/11/19 18:02:37 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -924,6 +925,7 @@ main(int argc, char *argv[])
 
   printf("writing trained GCA to %s...\n", out_fname) ;
   GCAcheck(gca) ;
+  gca->ct = ctab ;  // read in with -ctab option
   if (GCAwrite(gca, out_fname) != NO_ERROR)
     ErrorExit
     (ERROR_BADFILE, "%s: could not write gca to %s", Progname, out_fname) ;
@@ -1152,6 +1154,14 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("reading template for histogram equalization from %s...\n",
            heq_fname) ;
+  }
+  else if (!stricmp(option, "ctab"))
+  {
+    printf("reading color table from %s and embedding in .gca file", argv[2]) ;
+    ctab = CTABreadASCII(argv[2]) ;
+    if (ctab == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read color table from %s", Progname,argv[2]);
+    nargs = 1 ;
   }
   else if (!stricmp(option, "T1"))
   {
