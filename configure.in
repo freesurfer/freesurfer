@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/11/10 07:37:39 $
-#    $Revision: 1.446 $
+#    $Date: 2009/11/19 19:15:45 $
+#    $Revision: 1.447 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2893,6 +2893,7 @@ AC_OUTPUT([Makefile
            mri_cc/Makefile
            mri_cht2p/Makefile
            mri_cnr/Makefile
+           mri_compile_edits/Makefile
            mri_compute_overlap/Makefile
            mri_compute_seg_overlap/Makefile
            mri_concat/Makefile
@@ -3115,7 +3116,7 @@ AC_OUTPUT([Makefile
            scuba/Makefile
            scuba2/Makefile
            freeview/Makefile
-	   connectgraph/Makefile
+           connectgraph/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
            stim/Makefile
