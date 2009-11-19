@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/10/25 14:22:03 $
- *    $Revision: 1.388 $
+ *    $Date: 2009/11/19 15:11:41 $
+ *    $Revision: 1.389 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 #include "const.h"
 #include "matrix.h"
 #include "machine.h"
+#include "colortab.h"
 
 #define BUFTYPE  unsigned char
 
@@ -153,7 +154,7 @@ typedef struct
   int    bytes_per_slice; // # bytes per slice
   int    bytes_per_vol; // # bytes per volume/timepoint
   int    bytes_total; // # total number of pixel bytes in the struct
-
+  COLOR_TABLE *ct ;
 }
 MRI_IMAGE, MRI ;
 
@@ -908,6 +909,8 @@ MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI*mri_dst, int wsize) ;
 int MRIvoxelsInLabel(MRI *mri, int label) ;
 int MRItotalVoxelsOn(MRI *mri, int thresh) ;
 int MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int val) ;
+int MRIsetVoxelsWithValue(MRI *mri_src, MRI *mri_dst, int src_val, int dst_val) ;
+int MRIsetDifferentVoxelsWithValue(MRI *mri1, MRI *mri2, MRI *mri_dst, int dst_val) ;
 int MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
                          int label) ;
 MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize,
