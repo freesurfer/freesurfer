@@ -2,14 +2,13 @@
  * @file  connectgraph.c
  * @brief Export connectivity data to graphviz data format
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Ruopeng Wang 
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/11/05 19:37:11 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/19 22:43:13 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,9 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-// $Id: connectgraph.cpp,v 1.1 2009/11/05 19:37:11 krish Exp $
 
 /*
   BEGINHELP
@@ -58,11 +54,17 @@ extern "C"
 
 using namespace std;
 
-char *Progname = "connectgraph";
+const char *Progname = "connectgraph";
 
 CmdLineEntry cmdLineDesc[] =
 {
-  CmdLineEntry( CMD_LINE_OPTION, "th", "threshold", "<THRESHOLD_VALUE>", "Set threshold of the output connectivity data.", 1, 1 ),
+  CmdLineEntry( CMD_LINE_OPTION, 
+                "th", 
+                "threshold", 
+                "<THRESHOLD_VALUE>", 
+                "Set threshold of the output connectivity data.", 
+                1, 
+                1 ),
   CmdLineEntry( CMD_LINE_NONE )
 };
 
@@ -71,7 +73,9 @@ char progDesc[] = "Convert connectivity data to graphviz data file.";
 /*---------------------------------------------------------------*/
 int main( int argc, char *argv[] ) 
 {
-  MyCmdLineParser cmd( (const char*)"connectgraph DATA_FILE ANNOTATION_FILE OUTPUT_FILE ", (CmdLineEntry*)cmdLineDesc );
+  MyCmdLineParser cmd( 
+    (const char*)"connectgraph DATA_FILE ANNOTATION_FILE OUTPUT_FILE ", 
+    (CmdLineEntry*)cmdLineDesc );
   cmd.SetProgramDescription( progDesc );
   if ( !cmd.Parse( argc, (char**)argv ) )
   {
@@ -98,9 +102,11 @@ int main( int argc, char *argv[] )
   
   // load color table
   COLOR_TABLE* ctab = NULL;
-  if ( MRISreadCTABFromAnnotationIfPresent( floatingArgs[1].c_str(), &ctab ) != 0 )
+  if ( MRISreadCTABFromAnnotationIfPresent( 
+         floatingArgs[1].c_str(), &ctab ) != 0 )
   {
-    cerr << "Can not load color table from  " << floatingArgs[1].c_str() << endl;
+    cerr << "Can not load color table from  " 
+         << floatingArgs[1].c_str() << endl;
     return 1;
   }
     
@@ -161,11 +167,14 @@ int main( int argc, char *argv[] )
     {
       int r = 255, g = 255, b = 255;
       CTABrgbAtIndexi( ctab, i, &r, &g, &b );
-      fprintf( fp, "node [style=\"filled\", color=\"#%02x%02x%02x\"]; %d;\n", r, g, b, i );
+      fprintf( fp, 
+               "node [style=\"filled\", color=\"#%02x%02x%02x\"]; %d;\n", 
+               r, g, b, i );
     }
   }
   fprintf( fp, "%s", strg_buffer.c_str() );
-  string name = floatingArgs[0].substr( floatingArgs[0].find_last_of( '/' ) + 1 );
+  string name = 
+    floatingArgs[0].substr( floatingArgs[0].find_last_of( '/' ) + 1 );
   fprintf( fp, "label=\"%s (%f, %f)\";\n}\n", name.c_str(), dThreshold, dMax );
   
   if ( ctab )

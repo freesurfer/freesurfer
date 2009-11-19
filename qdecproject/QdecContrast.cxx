@@ -11,9 +11,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/09/20 17:45:14 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/19 22:40:56 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,15 @@
 #include <sys/stat.h>
 
 #include "QdecContrast.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <stdio.h> // printf
+#ifdef __cplusplus
+}
+#endif
 
 
 // Constructors/Destructors
