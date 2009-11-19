@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/02/01 01:33:54 $
- *    $Revision: 1.30 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:58:12 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -292,6 +292,10 @@ GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris)
 
     /* now update prior statistics */
     GCSAupdateNodeGibbsPriors(cpn, v->annotation, mris, vno) ;
+    if (vno== Gdiag_no)
+      printf("\tv %d: annot %s, inputs [%2.3f %2.3f]\n",
+             Gdiag_no, annotation_to_name(v->annotation, NULL),
+             v_inputs[0], v_inputs[1]) ;
   }
 
   return(NO_ERROR) ;
