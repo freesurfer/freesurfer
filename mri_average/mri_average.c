@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2009/09/16 00:31:46 $
- *    $Revision: 1.37 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 19:10:17 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -101,24 +101,26 @@ MRIsqrtAndNormalize(MRI *mri, float num) {
 
 MRI  *
 MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst) {
-  int   x, y, z ;
+  int   x, y, z, f ;
   Real  val1, val2, val_dst ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri1, NULL) ;
 
-  for (x = 0 ; x < mri1->width ; x++) {
-    for (y = 0 ; y < mri1->height ; y++) {
-      for (z = 0 ; z < mri1->depth ; z++) {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        val1 = MRIgetVoxVal(mri1, x, y, z,0) ;
-        if (mri2)
-          val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
-        else
-          val2 = 0 ;
-        val_dst = val1*val1 + val2 ;
-        MRIsetVoxVal(mri_dst, x, y, z, 0, val_dst);
+  for (f=0 ; f < mri1->nframes ; f++) {
+    for (x = 0 ; x < mri1->width ; x++) {
+      for (y = 0 ; y < mri1->height ; y++) {
+        for (z = 0 ; z < mri1->depth ; z++) {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+          val1 = MRIgetVoxVal(mri1, x, y, z,f) ;
+          if (mri2)
+            val2 = MRIgetVoxVal(mri2, x, y, z, f) ;
+          else
+            val2 = 0 ;
+          val_dst = val1*val1 + val2 ;
+          MRIsetVoxVal(mri_dst, x, y, z, f, val_dst);
+        }
       }
     }
   }
@@ -138,7 +140,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.37 2009/09/16 00:31:46 lzollei Exp $",
+           "$Id: mri_average.c,v 1.38 2009/11/19 19:10:17 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -281,7 +283,7 @@ main(int argc, char *argv[]) {
 	  }
 	  if (mri_avg == NULL)
 	    {
-	      mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+	      mri_avg = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT, mri_src->nframes) ;
 	      MRIcopyHeader(mri_src, mri_avg) ;
 	    }
 	  if (sqr_images)
@@ -421,22 +423,22 @@ main(int argc, char *argv[]) {
 	   (mri_src->height != mri_avg->height) ||
 	   (mri_src->depth != mri_avg->depth))
 	  ) {
-	printf("src image (%d, %d, %d) not compatible with "
-	       "avg image (%d, %d, %d)\n",
-	       mri_src->width, mri_src->height, mri_src->depth,
-	       mri_avg->width, mri_avg->height, mri_avg->depth) ;
-	skipped++ ;
-	continue ;
+        printf("src image (%d, %d, %d) not compatible with "
+               "avg image (%d, %d, %d)\n",
+               mri_src->width, mri_src->height, mri_src->depth,
+               mri_avg->width, mri_avg->height, mri_avg->depth) ;
+        skipped++ ;
+        continue ;
       }
       if (mri_avg == NULL)
-	{
-	  mri_avg = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
-	  MRIcopyHeader(mri_src, mri_avg) ;
-	}
+      {
+        mri_avg = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT, mri_src->nframes) ;
+        MRIcopyHeader(mri_src, mri_avg) ;
+      }
       if (sqr_images)
-	MRIsumSquare(mri_src, mri_avg, mri_avg) ;
+        MRIsumSquare(mri_src, mri_avg, mri_avg) ;
       else
-	MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
+        MRIaverage(mri_src, (i-1)-skipped, mri_avg) ;
       MRIfree(&mri_src) ;
     }
   }
