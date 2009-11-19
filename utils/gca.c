@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/08/21 18:12:44 $
- *    $Revision: 1.267 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:02:07 $
+ *    $Revision: 1.268 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,7 @@
 #include <errno.h>
 
 #include "mri.h"
+#include "tags.h"
 #include "error.h"
 #include "diag.h"
 #include "utils.h"
@@ -2329,6 +2330,13 @@ GCAwrite(GCA *gca, const char *fname)
     }
   }
 
+  if (gca->ct)
+  {
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("writing colortable into GCA file...\n") ;
+    fwriteInt(TAG_GCA_COLORTABLE, fp) ;
+    CTABwriteIntoBinary(gca->ct, fp);
+  }
   // write direction cosine information
   fwriteInt(TAG_GCA_DIRCOS, fp);
   fwriteFloat(gca->x_r, fp);
@@ -2712,6 +2720,15 @@ GCAread(const char *fname)
         // tag = freadInt(fp) ;
         switch (tag)
         {
+        case TAG_GCA_COLORTABLE:
+          /* We have a color table, read it with CTABreadFromBinary. If it
+             fails, it will print its own error message. */
+          fprintf(stderr, "reading colortable from GCA file...\n") ;
+          gca->ct = CTABreadFromBinary (fp);
+          if (NULL != gca->ct)
+            fprintf(stderr, "colortable with %d entries read (originally %s)\n",
+                    gca->ct->nentries, gca->ct->fname);
+          break ;
         case TAG_GCA_TYPE:
           freadInt(fp) ;   /* skip num=1 */
           gca->type = freadInt(fp) ;
