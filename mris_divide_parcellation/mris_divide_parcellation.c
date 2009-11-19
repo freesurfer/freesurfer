@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/07/30 14:39:49 $
- *    $Revision: 1.9 $
+ *    $Date: 2009/11/19 19:05:12 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,7 +105,7 @@ ENDHELP ----------------------------------------------------------------
 
 */
 
-// $Id: mris_divide_parcellation.c,v 1.9 2007/07/30 14:39:49 fischl Exp $
+// $Id: mris_divide_parcellation.c,v 1.10 2009/11/19 19:05:12 fischl Exp $
 
 
 
@@ -135,7 +135,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.9 2007/07/30 14:39:49 fischl Exp $";
+static char vcid[] = "$Id: mris_divide_parcellation.c,v 1.10 2009/11/19 19:05:12 fischl Exp $";
 char *Progname = NULL;
 
 static char sdir[STRLEN] = "" ;
@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
 
   for (index = 0 ; index < mris->ct->nentries ; index++)
     if (nunits[index] > 1)
-      printf("dividing %s into %d parts\n", mris->ct->entries[index]->name, nunits[index]) ;
+      printf("dividing %s (%d) into %d parts\n", mris->ct->entries[index]->name, index, nunits[index]) ;
 
   MRISdivideAnnotation(mris, nunits) ;
 

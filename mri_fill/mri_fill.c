@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:36 $
- *    $Revision: 1.112 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 19:07:00 $
+ *    $Revision: 1.113 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.112 2009/07/23 19:55:36 nicks Exp $";
+  "$Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -1553,7 +1553,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.112 2009/07/23 19:55:36 nicks Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1561,7 +1561,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.112 2009/07/23 19:55:36 nicks Exp $", 
+           "$Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2738,6 +2738,8 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold) {
     for (imnr=im0;imnr!=im1;imnr+=dir) {
       for (i=i0;i!=i1;i+=dir) {
         for (j=j0;j!=j1;j+=dir) {
+          if (j == Gx && i == Gy && imnr == Gz)
+            DiagBreak() ;
           if (MRIvox(mri_fill, j, i, imnr) ==0)   /* not filled yet */
           {
             if ((threshold<0 &&   /* previous filled off */
@@ -5626,6 +5628,8 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg) {
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
       for (x=0; x < width; x++) {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         MRIvox(mri_ctrl,x,y,z) = 0;
         MRIvox(mri_fill, x, y, z) = 0;
         MRIvox(mri_fill_lh, x, y, z) = 0;
