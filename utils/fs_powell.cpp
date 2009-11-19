@@ -30,9 +30,16 @@
 #ifdef VCL_NEEDS_PRAGMA_INTERFACE
 #pragma implementation
 #endif
-//:
-// \file
 #include "fs_vnl/fs_powell.h"
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <stdio.h> // printf
+#ifdef __cplusplus
+}
+#endif
 
 #include <vcl_cassert.h>
 #include <vnl/vnl_math.h>
@@ -141,7 +148,8 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
 
     for (int i=0;i<n;i++)
     {
-      if(verbose_) printf("    i %d  niters %d\n",(int)i, (int)num_iterations_);
+      if(verbose_) 
+        printf("    i %d  niters %d\n",(int)i, (int)num_iterations_);
 
       // xit = ith column of xi
       for (int j = 0; j < n; ++j)
@@ -168,7 +176,8 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
     }
     if(verbose_){
       printf("  niters %d  fp=%f fret=%f\n",(int)num_iterations_,fp,fret);
-      printf("  check: %lf <= %lf\n",2.0*vcl_fabs(fp-fret),ftol*(vcl_fabs(fp)+vcl_fabs(fret)));
+      printf("  check: %lf <= %lf\n",
+             2.0*vcl_fabs(fp-fret),ftol*(vcl_fabs(fp)+vcl_fabs(fret)));
     }
 
     if (2.0*vcl_fabs(fp-fret) <= ftol*(vcl_fabs(fp)+vcl_fabs(fret)))
