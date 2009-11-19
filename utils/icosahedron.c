@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:51 $
- *    $Revision: 1.17 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 18:57:40 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -8451,4 +8451,128 @@ IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny, flo
     }
   }
   return(max_n) ;
+}
+
+
+static ICO_FACE_LIST *
+ICPbuildFaceList(MRI_SURFACE *ico1, MRI_SURFACE *ico2)
+{
+  ICO_FACE_LIST   *icf ;
+  FACE            *f1, *f2 ;
+  int             fno1, fno2, min_fno, index ;
+  double          cx1, cy1, cz1, cx2, cy2, cz2, dist, min_dist ;
+
+  icf = (ICF *)calloc(1, sizeof(ICF)) ;
+  if (icf == NULL)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate ICF", "ICPbuildFaceList") ;
+  
+  icf->nmapped = (int *)calloc(ico1->nfaces, sizeof(icf->nmapped[0])) ;
+  if (icf->nmapped == NULL)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate ICF nmapped", "ICPbuildFaceList") ;
+  icf->faces = (int **)calloc(ico1->nfaces, sizeof(icf->faces[0])) ;
+  if (icf->faces == NULL)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate ICF faces", "ICPbuildFaceList") ;
+  icf->nfaces = ico1->nfaces ;
+  
+  // count # of ico2 faces mapped to each ico1 face
+  for (fno2 = 0 ; fno2 < ico2->nfaces ; fno2++)
+  {
+    f2 = &ico2->faces[fno2] ; min_fno = 0 ;
+    cx2 = (ico2->vertices[f2->v[0]].x + ico2->vertices[f2->v[1]].x + ico2->vertices[f2->v[2]].x) / 3 ;
+    cy2 = (ico2->vertices[f2->v[0]].y + ico2->vertices[f2->v[1]].y + ico2->vertices[f2->v[2]].y) / 3 ;
+    cz2 = (ico2->vertices[f2->v[0]].z + ico2->vertices[f2->v[1]].z + ico2->vertices[f2->v[2]].z) / 3 ;
+
+    // find every hires face in ico2 surface find the ico1 face that it is closest to
+
+    min_dist = 1e10 ;
+    for (fno1 = 0 ; fno1 < ico1->nfaces ; fno1++)
+    {
+      f1 = &ico1->faces[fno1];
+      cx1 = (ico1->vertices[f1->v[0]].x + ico1->vertices[f1->v[1]].x + ico1->vertices[f1->v[2]].x) / 3 ;
+      cy1 = (ico1->vertices[f1->v[0]].y + ico1->vertices[f1->v[1]].y + ico1->vertices[f1->v[2]].y) / 3 ;
+      cz1 = (ico1->vertices[f1->v[0]].z + ico1->vertices[f1->v[1]].z + ico1->vertices[f1->v[2]].z) / 3 ;
+      dist = sqrt(SQR(cx2-cx1)+SQR(cy2-cy1)+SQR(cz2-cz1)) ;
+      if (dist < min_dist)
+      {
+        min_dist = dist ;
+        min_fno = fno1 ;
+      }
+    }
+    icf->nmapped[min_fno]++ ;
+  }
+
+  // build list of ico2 faces mapped to each ico1 face
+  for (fno1 = 0 ; fno1 < ico1->nfaces ; fno1++)
+  {
+    if (icf->nmapped[fno1] <= 0)
+    {
+      DiagBreak() ;
+      continue ;
+    }
+    icf->faces[fno1] = (int *)calloc(icf->nmapped[fno1], sizeof(int)) ;
+    if (icf->faces[fno1] == NULL)
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate ICF nmapped", "ICPbuildFaceList") ;
+    icf->nmapped[fno1] = 0 ; // will use it as an index in the next loop
+  }
+  for (fno2 = 0 ; fno2 < ico2->nfaces ; fno2++)
+  {
+    f2 = &ico2->faces[fno2] ; min_fno = 0 ;
+    cx2 = (ico2->vertices[f2->v[0]].x + ico2->vertices[f2->v[1]].x + ico2->vertices[f2->v[2]].x) / 3 ;
+    cy2 = (ico2->vertices[f2->v[0]].y + ico2->vertices[f2->v[1]].y + ico2->vertices[f2->v[2]].y) / 3 ;
+    cz2 = (ico2->vertices[f2->v[0]].z + ico2->vertices[f2->v[1]].z + ico2->vertices[f2->v[2]].z) / 3 ;
+
+    // find every hires face in ico2 surface find the ico1 face that it is closest to
+
+    min_dist = 1e10 ;
+    for (fno1 = 0 ; fno1 < ico1->nfaces ; fno1++)
+    {
+      f1 = &ico1->faces[fno1];
+      cx1 = (ico1->vertices[f1->v[0]].x + ico1->vertices[f1->v[1]].x + ico1->vertices[f1->v[2]].x) / 3 ;
+      cy1 = (ico1->vertices[f1->v[0]].y + ico1->vertices[f1->v[1]].y + ico1->vertices[f1->v[2]].y) / 3 ;
+      cz1 = (ico1->vertices[f1->v[0]].z + ico1->vertices[f1->v[1]].z + ico1->vertices[f1->v[2]].z) / 3 ;
+      dist = sqrt(SQR(cx2-cx1)+SQR(cy2-cy1)+SQR(cz2-cz1)) ;
+      if (dist < min_dist)
+      {
+        min_dist = dist ;
+        min_fno = fno1 ;
+      }
+    }
+    index = icf->nmapped[min_fno] ;
+    icf->nmapped[min_fno]++ ;
+    icf->faces[min_fno][index] = fno2 ;
+  }
+
+  return(icf) ;
+}
+
+
+ICO_PYRAMID *
+ICPread(int min_level, int max_level)
+{
+  ICO_PYRAMID  *icp ;
+  char         *cp, fname[STRLEN] ;
+  int          ico_no ;
+
+  cp = getenv("FREESURFER_HOME") ;
+  if (cp == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: FREESURFER_HOME must be defined in the env",
+              "ICPread") ;
+
+  icp = (ICP *)calloc(1, sizeof(ICP)) ;
+  if (icp == NULL)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate ICP", "ICPread") ;
+  icp->nlevels = max_level-min_level+1 ;
+  for (ico_no = min_level ; ico_no <= max_level ; ico_no++)
+  {
+    sprintf(fname, "%s/lib/bem/ic%d.tri", cp, ico_no) ;
+    icp->icos[ico_no] = ICOread(fname) ;
+    if (icp->icos[ico_no] == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read ico from %s", "ICPread", fname) ;
+  }
+
+  for (ico_no = min_level ; ico_no < max_level ; ico_no++)
+  {
+    icp->icfs[ico_no] = ICPbuildFaceList(icp->icos[ico_no], icp->icos[ico_no+1]) ;
+  }
+  return(icp) ;
 }
