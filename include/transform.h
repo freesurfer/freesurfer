@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:37 $
- *    $Revision: 1.61 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/19 19:11:26 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -193,6 +193,12 @@ MRI       *TransformApplyInverse(TRANSFORM *transform,
                                  MRI *mri_src, MRI *mri_dst) ;
 
 MATRIX* TransformCompose(TRANSFORM *transform);
+
+int     TransformGetSrcVolGeom(TRANSFORM *transform, VOL_GEOM *vg) ;
+int     TransformGetDstVolGeom(TRANSFORM *transform, VOL_GEOM *vg) ;
+int     TransformSetMRIVolGeomToSrc(TRANSFORM *transform, MRI *mri) ;
+int     TransformSetMRIVolGeomToDst(TRANSFORM *transform, MRI *mri) ;
+
 
 // VOL_GEOM utilities
 void initVolGeom(VOL_GEOM *vg);
