@@ -40,6 +40,7 @@
 
 #include "fs_vnl/fs_lbfgs.h"
 #include <vcl_cmath.h>
+#include "diag.h"
 #include <vcl_iostream.h>
 #include <vcl_iomanip.h> // for setw (replaces cout.form())
 
@@ -170,6 +171,11 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
     iprint[0] = trace ? 1 : -1; // -1 no o/p, 0 start and end, 1 every iter.
     iprint[1] = 0; // 1 prints X and G
+    if (DIAG_VERBOSE_ON)
+    {
+      iprint[0] = 1 ; // -1 no o/p, 0 start and end, 1 every iter.
+      iprint[1] = 1 ; // 1 prints X and G
+    }
     v3p_netlib_lbfgs_(
       &n, &m, x.data_block(), &f, g.data_block(), &diagco, diag.data_block(),
       iprint, &eps, &local_xtol, w.data_block(), &iflag, &lbfgs_global);
