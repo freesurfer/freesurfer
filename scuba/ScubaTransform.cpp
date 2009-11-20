@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/15 20:41:47 $
- *    $Revision: 1.16 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:11 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -462,11 +462,13 @@ ScubaTransform::TreatAsRegistration ( VolumeCollection const& iSourceVolume,
   // return. Otherwise go to native to undo the current registration
   // first.
   if ( mIsRegistration ) 
+  {
     if ( iSourceVolume.GetID() == mSourceVolume->GetID() &&
          iDestVolume.GetID()   == mDestVolume->GetID() ) 
       return;
     else 
       TreatAsNative();
+  }
 
   // Get the MRIs from the volumes.
   MRI* sourceMRI = const_cast<MRI*>(iSourceVolume.GetMRI());

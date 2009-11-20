@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:27 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:11 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 extern "C" {
 #include "error.h"
 #include "colortab.h"
+#include <string.h> // strcmp
 }
 
 using namespace std;

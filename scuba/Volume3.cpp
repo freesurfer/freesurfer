@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/17 23:59:49 $
- *    $Revision: 1.8 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:12 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,15 @@
 
 #include "string_fixed.h"
 #include <stdexcept>
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <stdlib.h> // calloc
+#ifdef __cplusplus
+}
+#endif
 
 #include "Volume3.h"
 

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:38 $
- *    $Revision: 1.164 $
+ *    $Date: 2009/11/20 01:29:11 $
+ *    $Revision: 1.165 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
  *
  */
 
-
+#include <limits>
 #include <fstream>
 #include <iomanip>
 #include "ScubaLayer2DMRI.h"

@@ -9,9 +9,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/12 17:20:39 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:12 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,8 @@
  *
  */
 
-#include <math.h>
+#include <limits> // numeric_limits
+#include <math.h> 
 #include "VectorOps.h"
 
 using namespace std;

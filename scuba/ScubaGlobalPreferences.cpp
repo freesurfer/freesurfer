@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/22 04:39:28 $
- *    $Revision: 1.29 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:11 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,14 @@
 #include "ScubaGlobalPreferences.h"
 #include "PreferencesManager.h"
 #include "ScubaKeyCombo.h"
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <string.h> // strcmp
+#ifdef __cplusplus
+}
+#endif
 
 using namespace std;
 

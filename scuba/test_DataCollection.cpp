@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 23:19:43 $
- *    $Revision: 1.14 $
+ *    $Date: 2009/11/20 01:29:12 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,8 +103,8 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
     Assert( (col2.GetLabel() == "col2"), "col2 label incorrect" );
     TestCollection col3( "col3" );
     Assert( (col3.GetLabel() == "col3"), "col3 label incorrect" );
-    Assert( (col1.GetID() != col2.GetID() != col3.GetID()),
-            "not unique IDs" );
+//    Assert( (col1.GetID() != col2.GetID() != col3.GetID()),
+    //          "not unique IDs" );
 
 
     TestCollection* col4 = new TestCollection( "col4" );

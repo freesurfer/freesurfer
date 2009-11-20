@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/11 21:47:12 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:11 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@
 #include <stdexcept>
 #include <queue>
 #include <vector>
+#include <limits>
 
 #include "ShortestPathFinder.h"
 

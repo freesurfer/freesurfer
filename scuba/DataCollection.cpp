@@ -11,9 +11,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/17 23:59:48 $
- *    $Revision: 1.31 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:11 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,14 @@
 #include <errno.h>
 #include <stdexcept>
 #include "DataCollection.h"
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <string.h> // strcmp
+#ifdef __cplusplus
+}
+#endif
 
 using namespace std;
 

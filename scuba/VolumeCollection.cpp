@@ -12,9 +12,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/04/16 20:35:18 $
- *    $Revision: 1.120 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:12 $
+ *    $Revision: 1.121 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
  */
 
 
+#include <limits>
 #include "string_fixed.h"
 #include <cassert>
 #include <errno.h>
@@ -3099,7 +3100,7 @@ VolumeCollection::DoValueRangeFill ( VolumeCollection const& iSourceVol,
 				     std::vector<ValueRangeFillElement> const& lElements) {
 
   // Do the same walk through of voxels that we do in the get histogram.
-  int range[3]; range[0]=0; range[2]=0; range[3]=0;
+  int range[3]; range[0]=0; range[1]=0; range[2]=0;
   GetMRIIndexRange( range );
 
   Point3<int> index( 0, 0, 0 );

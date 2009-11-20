@@ -7,9 +7,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/16 20:48:14 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 01:29:12 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,15 @@
 
 #include "string_fixed.h"
 #include <stdexcept>
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 #include <math.h>
+#include <stdlib.h> // abs
+#ifdef __cplusplus
+}
+#endif
 #include "Utilities.h"
 #include "VectorOps.h"
 
