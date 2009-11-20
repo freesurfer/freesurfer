@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.5 2009/11/19 21:15:20 rudolph Exp $
+// $Id: asynch.cpp,v 1.6 2009/11/20 19:35:17 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -534,6 +534,18 @@ asynchEvent_processENV(
   return true;
 }
 
+C_mpmProg_autodijk*
+pC_autodijk_cast(
+    C_mpmProg*          pmpm,
+    C_mpmProg_autodijk* pC_mpmProg_autodijk
+) {
+    pC_mpmProg_autodijk         = dynamic_cast<C_mpmProg_autodijk*>(pmpm);
+    if(!pC_mpmProg_autodijk) {
+        cout << "The embedded mpmProg is not of type 'autodijk'" << endl;
+    }
+    return pC_mpmProg_autodijk;
+}
+
 bool
 asynchEvent_processMPMPROG(
     s_env&      st_env,
@@ -559,10 +571,30 @@ asynchEvent_processMPMPROG(
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
     warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
+  if (str_object == "vertexInfo") {
+//     C_mpmProg*          pC_mpmEnv = st_env.pCmpmProg;
+    C_mpmProg_autodijk*         pC_autodijk     = NULL;
+    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk)) == NULL)
+        return false;
+//     pC_mpm_autodijk     = dynamic_cast<C_mpmProg_autodijk*>(pC_mpmEnv);
+/*    if(!pC_mpm_autodijk) {
+        cout << "The embedded mpmProg is not of type 'autodijk'" << endl;
+        return false;
+    }*/
+    if (str_verb == "get") {
+        CW(lw, "Polar vertex:"); CWn(rw, pC_autodijk->vertexPolar_get());
+
+    }
+  }
+  
   if (str_object == "polar") {
     C_mpmProg*          pC_mpmEnv = st_env.pCmpmProg;
     C_mpmProg_autodijk* pC_mpm_autodijk;
     pC_mpm_autodijk     = dynamic_cast<C_mpmProg_autodijk*>(pC_mpmEnv);
+    if(!pC_mpm_autodijk) {
+        cout << "The embedded mpmProg is not of type 'autodijk'" << endl;
+        return false;
+    }
     if (str_verb == "get") {
         CW(lw, "Polar vertex:")
         val             = pC_mpm_autodijk->vertexPolar_get();

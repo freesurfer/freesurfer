@@ -93,7 +93,7 @@ char*   Gpch_Progname;
 char*   Progname        = Gpch_Progname;
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.4 2009/11/19 21:15:20 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.5 2009/11/20 19:35:17 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -342,10 +342,11 @@ main(
   // The main functional and event processing loop
   while (str_asynchComms != "TERM") {
 
-    if ( str_asynchComms == "HUP"           || \
-         str_asynchComms == "LISTEN"        || \
-         str_asynchComms == "LISTENPORT"    || \
-         str_asynchComms == "RUN") {
+    if ( str_asynchComms == "HUP"               || \
+         str_asynchComms == "LISTEN"            || \
+         str_asynchComms == "LISTENPORT"        || \
+         str_asynchComms == "RUN"               || \
+         str_asynchComms == "RUNPROG") {
 
       system("echo > lock");            // signal a "lock"
                                         //+ semaphore on
@@ -382,8 +383,7 @@ main(
         Gsout << "Running embedded program '";
         Gsout << st_env.pstr_mpmProgName[st_env.empm_current];
         Gsout << "'"    << endl;
-        C_mpmProg*      p_mpm;
-        p_mpm           = st_env.pCmpmProg;
+        st_env.pCmpmProg->run();
       }
 
       if ( (str_asynchComms  == "HUP" || str_asynchComms  == "RUN")     &&
