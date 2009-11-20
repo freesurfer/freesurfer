@@ -7,8 +7,8 @@
  * Original Author: D. Jen
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/01/16 17:40:14 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/11/20 01:44:26 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,7 @@ extern "C"
 {
 #include "matrix.h"
 #include "error.h"
+#include "stdlib.h"
 }
 
 class NRWrapperTest : public CppUnit::TestFixture

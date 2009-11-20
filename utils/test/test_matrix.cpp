@@ -7,8 +7,8 @@
  * Original Author: Dennis Jen
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/14 22:56:22 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/11/20 01:44:26 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@
 extern "C"
 {
 #include "matrix.h"
+#include "stdlib.h"
 }
 
 class MatrixTest : public CppUnit::TestFixture
