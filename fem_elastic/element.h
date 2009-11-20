@@ -13,12 +13,13 @@
 // Class definition
 //
 
-typedef enum Frame
+typedef enum
 {
   src,
   dst,
   both
-};
+} Frame;
+
 
 template<int n>
 class TElement

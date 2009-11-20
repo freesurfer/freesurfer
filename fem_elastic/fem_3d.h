@@ -51,7 +51,7 @@ public:
   virtual double shape_fct(int node_id, const tCoords& pt) const;
 private:
   bool contains(const tDblCoords& c1, const tDblCoords& c2,
-                const tDblCoords& c3, const tDblCoords& c3,
+                const tDblCoords& c3, const tDblCoords& c4,
                 const tCoords& ci) const;
   double vol(const tDblCoords& c1, const tDblCoords& c2,
              const tDblCoords& c3, const tDblCoords& c4) const;

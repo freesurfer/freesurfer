@@ -5,8 +5,8 @@
 #include <list>
 
 // BOOST
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/exception.hpp>
+//#include <boost/filesystem/operations.hpp>
+//#include <boost/filesystem/exception.hpp>
 
 // OWN
 #include "solver.h"
