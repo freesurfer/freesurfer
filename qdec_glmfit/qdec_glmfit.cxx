@@ -9,8 +9,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/09 19:21:07 $
- *    $Revision: 1.8 $
+ *    $Date: 2009/11/20 01:35:51 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 
 extern "C" {
 #include <getopt.h>
+#include <stdlib.h> // exit
 }
 
 #include <string>
