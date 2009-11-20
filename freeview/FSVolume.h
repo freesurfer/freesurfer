@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.20 $
+ *    $Date: 2009/11/20 17:54:13 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 extern "C"
 {
 #include "mri.h"
+#include "colortab.h"
 }
 
 class wxWindow;
@@ -161,6 +162,11 @@ public:
   
   MATRIX* GetTargetToRASMatrix();
   
+  COLOR_TABLE*  GetEmbeddedColorTable()
+  {
+    return m_ctabEmbedded;
+  }
+  
 protected:
   bool LoadRegistrationMatrix( const char* filename );
   void MapMRIToImage( wxWindow* wnd, wxCommandEvent& event );
@@ -181,7 +187,8 @@ protected:
   MRI*      m_MRIRef;   // reference target space, can also serve as the registration target. header only
   MRI*      m_MRIOrigTarget; // orignal target space, header only
   MATRIX*   m_matReg;
-
+  COLOR_TABLE*  m_ctabEmbedded;
+  
   FSVolume* m_volumeRef;
 
   double    m_RASToVoxelMatrix[16];

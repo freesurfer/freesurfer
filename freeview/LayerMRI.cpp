@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/06 20:12:06 $
- *    $Revision: 1.40 $
+ *    $Date: 2009/11/20 17:54:13 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,6 +57,7 @@
 #include "FSVolume.h"
 #include "MainWindow.h"
 #include "vtkMath.h"
+
 
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
@@ -1392,6 +1393,10 @@ void LayerMRI::ResetWindowLevel()
 
 int LayerMRI::GetDataType()
 {
-  return (m_volumeSource?m_volumeSource->GetDataType():-1);
+  return ( m_volumeSource ? m_volumeSource->GetDataType() : -1 );
 }
 
+COLOR_TABLE* LayerMRI::GetEmbeddedColorTable()
+{
+  return ( m_volumeSource ? m_volumeSource->GetEmbeddedColorTable(): NULL );
+}

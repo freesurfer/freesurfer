@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/12 22:09:08 $
- *    $Revision: 1.35 $
+ *    $Date: 2009/11/20 17:54:14 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@
 #include "LayerPropertiesMRI.h"
 #include "LayerPropertiesDTI.h"
 #include "wxColorIndicator.h"
+#include "FSVolume.h"
 #include "DialogEditLookupTable.h"
 
 BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
@@ -512,7 +513,7 @@ void PanelVolume::OnChoiceColorMap( wxCommandEvent& event )
 
 void PanelVolume::OnChoiceLUT( wxCommandEvent& event )
 {
-  if ( event.GetSelection() >= m_luts->GetCount() )
+  if ( event.GetSelection() == (int)m_choiceLUT->GetCount()-1 )
   {
     MainWindow::GetMainWindowPointer()->LoadLUT();
   }
@@ -521,8 +522,13 @@ void PanelVolume::OnChoiceLUT( wxCommandEvent& event )
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
     {
-      COLOR_TABLE* ct = m_luts->GetColorTable( event.GetSelection() );
-      layer->GetProperties()->SetLUTCTAB( ct );
+      if ( event.GetSelection() < m_luts->GetCount() )
+      {
+        COLOR_TABLE* ct = m_luts->GetColorTable( event.GetSelection() );
+        layer->GetProperties()->SetLUTCTAB( ct );
+      }
+      else
+        layer->GetProperties()->SetLUTCTAB( layer->GetEmbeddedColorTable() );
     }
   }
   UpdateUI();
@@ -611,9 +617,11 @@ void PanelVolume::DoUpdateUI()
       {
         m_choiceLUT->Append( wxString::FromAscii( m_luts->GetName( i ) ) );
       }
+      if ( layer->GetEmbeddedColorTable() )
+        m_choiceLUT->Append( _("Embedded") );
       m_choiceLUT->Append( _("Load lookup table...") );
       int nSel = m_luts->GetIndex( layer->GetProperties()->GetLUTCTAB() );
-      m_choiceLUT->SetSelection( nSel >= 0 ? nSel : 0 );
+      m_choiceLUT->SetSelection( nSel >= 0 ? nSel : m_luts->GetCount() );
 	
 			UpdateTextValue( m_textDrawValue, (double)layer->GetFillValue() );
       double dwindow = layer->GetProperties()->GetWindow();

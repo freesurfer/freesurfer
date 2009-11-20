@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:28 $
- *    $Revision: 1.33 $
+ *    $Date: 2009/11/20 17:54:13 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,7 @@ FSVolume::FSVolume( FSVolume* ref ) :
     m_MRIRef( NULL ),
     m_MRIOrigTarget( NULL ),
     m_matReg( NULL ),
+    m_ctabEmbedded( NULL ),
     m_volumeRef( ref ),
     m_fMinValue( 0 ),
     m_fMaxValue( 1 ),
@@ -95,6 +96,9 @@ FSVolume::~FSVolume()
 
   if ( m_matReg )
     ::MatrixFree( &m_matReg );
+  
+  if ( m_ctabEmbedded )
+    ::CTABfree( &m_ctabEmbedded );
 }
 
 bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event )
@@ -115,6 +119,9 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
     return false;
   }
 
+  if ( m_MRI->ct != NULL )
+    m_ctabEmbedded = CTABdeepCopy( m_MRI->ct );
+  
   if ( reg_filename && !m_MRIRef )
   {
     cerr << "Error: A target volume must be loaded first to apply registration matrix." << endl;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/06 20:12:06 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/11/20 17:54:13 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,11 @@
 #include "CommonDataStruct.h"
 #include <string>
 #include <vector>
+
+extern "C"
+{
+#include "colortab.h"
+} 
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -146,6 +151,8 @@ public:
   void ResetWindowLevel();
   
   int GetDataType();
+  
+  COLOR_TABLE* GetEmbeddedColorTable();
   
 protected:
   virtual void SetModified();
