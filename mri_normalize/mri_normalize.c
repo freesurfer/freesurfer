@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/13 16:26:26 $
- *    $Revision: 1.58 $
+ *    $Date: 2009/11/20 18:16:13 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,14 +113,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.58 2009/03/13 16:26:26 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.59 2009/11/20 18:16:13 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.58 2009/03/13 16:26:26 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.59 2009/11/20 18:16:13 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -394,7 +394,7 @@ get_option(int argc, char *argv[]) {
     interior_fname1 = argv[2] ;
     interior_fname2 = argv[3] ;
     nargs = 2 ;
-    printf("using surfaces %s and %s to compute wm interior", 
+    printf("using surfaces %s and %s to compute wm interior\n", 
            interior_fname1, interior_fname2) ;
   } else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE")) {
     scan_type = MRI_MGH_MPRAGE;
