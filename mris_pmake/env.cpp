@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.8 2009/11/20 00:24:08 nicks Exp $
+// $Id: env.cpp,v 1.9 2009/11/20 22:05:10 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -295,7 +295,7 @@ s_env_nullify(
     st_env.timeoutSec               = 0;
     st_env.port                     = 0;
 
-    st_env.lw                       = 20;
+    st_env.lw                       = 40;
     st_env.rw                       = 20;
 
     st_env.b_syslogPrepend          = false;

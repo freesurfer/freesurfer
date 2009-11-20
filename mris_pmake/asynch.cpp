@@ -17,12 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.6 2009/11/20 19:35:17 rudolph Exp $
+// $Id: asynch.cpp,v 1.7 2009/11/20 22:05:10 rudolph Exp $
 
 #include <string>
 #include <sstream>
 
 #include "asynch.h"
+#include "general.h"
 #include "C_mpmProg.h"
 #include "c_vertex.h"
 #include "c_label.h"
@@ -367,14 +368,18 @@ asynchEvent_processENV(
   if (str_object == "mpmProg") {
     if (str_verb == "use")
         st_env.b_mpmProgUse     = true;
+        colprintf(lw, rw, "mpmProg use set", "[ ok ]\n");
     if (str_verb == "get")
         s_env_mpmProgList(st_env);
     else if (str_verb == "set") {
-      if (!str_modifier.length())
-        return false;
+      if (!str_modifier.length()) return false;
+      val       = atoi(str_modifier.c_str());
+      lprintf(lw, "mpmProg '%s' object built",
+              st_env.pstr_mpmProgName[val].c_str());
+      lprintf(rw, "[ ok ]\n");
       Gsout.str("");
       Gsout << "Setting mpmProgIndex to \t\t\t\t\t[ " << str_modifier << " ]" << endl;
-      if (s_env_mpmProgSetIndex(&st_env, atoi(str_modifier.c_str())) == -1)
+      if (s_env_mpmProgSetIndex(&st_env, val) == -1)
         error_exit("setting mpmProgIndex", "Some error occurred", 1);
       ULOUT(Gsout.str());
     }
@@ -536,8 +541,8 @@ asynchEvent_processENV(
 
 C_mpmProg_autodijk*
 pC_autodijk_cast(
-    C_mpmProg*          pmpm,
-    C_mpmProg_autodijk* pC_mpmProg_autodijk
+    C_mpmProg*                  pmpm,
+    C_mpmProg_autodijk*&        pC_mpmProg_autodijk
 ) {
     pC_mpmProg_autodijk         = dynamic_cast<C_mpmProg_autodijk*>(pmpm);
     if(!pC_mpmProg_autodijk) {
@@ -561,7 +566,6 @@ asynchEvent_processMPMPROG(
   string  str_verb      = "";
   string  str_modifier  = "";
   string  str_sep       = " ";
-  int     val           = 0;
   stringstream Gsout("");
 
   std::_Ios_Fmtflags origFlags;
@@ -572,41 +576,35 @@ asynchEvent_processMPMPROG(
     warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "vertexInfo") {
-//     C_mpmProg*          pC_mpmEnv = st_env.pCmpmProg;
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
-    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk)) == NULL)
-        return false;
-//     pC_mpm_autodijk     = dynamic_cast<C_mpmProg_autodijk*>(pC_mpmEnv);
-/*    if(!pC_mpm_autodijk) {
-        cout << "The embedded mpmProg is not of type 'autodijk'" << endl;
-        return false;
-    }*/
+    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
     if (str_verb == "get") {
-        CW(lw, "Polar vertex:"); CWn(rw, pC_autodijk->vertexPolar_get());
-
+        colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
+                  pC_autodijk->vertexPolar_get());
+        colprintf(lw, rw, "Start vertex:", "[ %d ]\n",
+                  pC_autodijk->vertexStart_get());
+        colprintf(lw, rw, "Step vertex:",  "[ %d ]\n",
+                  pC_autodijk->vertexStep_get());
+        colprintf(lw, rw, "End vertex:",   "[ %d ]\n",
+                  pC_autodijk->vertexEnd_get());
     }
   }
   
   if (str_object == "polar") {
-    C_mpmProg*          pC_mpmEnv = st_env.pCmpmProg;
-    C_mpmProg_autodijk* pC_mpm_autodijk;
-    pC_mpm_autodijk     = dynamic_cast<C_mpmProg_autodijk*>(pC_mpmEnv);
-    if(!pC_mpm_autodijk) {
-        cout << "The embedded mpmProg is not of type 'autodijk'" << endl;
-        return false;
-    }
+    C_mpmProg_autodijk*         pC_autodijk     = NULL;
+    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
     if (str_verb == "get") {
-        CW(lw, "Polar vertex:")
-        val             = pC_mpm_autodijk->vertexPolar_get();
-        CWn(rw, val);
+        colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
+                  pC_autodijk->vertexPolar_get());
     }
     else if (str_verb == "set") {
-      if (!str_modifier.length())
-        return false;
+      if (!str_modifier.length()) return false;
+      colprintf(lw, rw, "mpmProg polar vertex set to", "[ %s ]\n",
+                str_modifier.c_str());
       Gsout.str("");
       Gsout << "Setting polar vertex to \t\t\t\t\t[ " << str_modifier;
       Gsout << " ]" << endl;
-      pC_mpm_autodijk->vertexPolar_set(atoi(str_modifier.c_str()));
+      pC_autodijk->vertexPolar_set(atoi(str_modifier.c_str()));
       ULOUT(Gsout.str());
     }
   }

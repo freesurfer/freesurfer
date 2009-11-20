@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.1 2009/11/19 21:15:20 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.2 2009/11/20 22:05:10 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -218,6 +218,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     if(s_env_costFctSetIndex(mps_env, m_costFunctionIndex) == -1)
         error_exit("setting costFunctionIndex", "Could not set index", 1);
     s_env_activeSurfaceSetIndex(mps_env, 0);
+    mvertex_end         = mps_env->pMS_curvature->nvertices;
     
     debug_pop();
 }

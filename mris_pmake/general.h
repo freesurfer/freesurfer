@@ -62,6 +62,10 @@ typedef enum {
   e_gaussian, e_mean
 } e_CURVATURE;
 
+void    lprintf(int lw, const char* format, ...);
+void    colprintf(int lw, int rw,
+                  const char* pch_lstr, const char* format, ...);
+
 /// A *very* simple structure to handle some recurring 3D vector operations.
 /// It would make more sense to use a CMatrix class, but that is perhaps
 /// too much of an overkill right now. Same argument for creating a

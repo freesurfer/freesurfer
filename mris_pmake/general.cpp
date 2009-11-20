@@ -8,6 +8,30 @@
 extern char  *Progname;
 extern string  G_SELF;
 
+void
+lprintf(int lw, const char* format, ...) {
+    char pch_buffer[65536];
+    va_list vp_arg;
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    printf("%*s", lw, pch_buffer);
+    fflush(stdout);
+}
+
+void
+colprintf(int lw, int rw, const char* pch_lstr, const char* format, ...) {
+    char pch_buffer[65536];
+    va_list vp_arg;
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    printf("%*s", lw, pch_lstr);
+    printf("%*s", rw, pch_buffer);
+    fflush(stdout);
+}
+
+
 float
 V3D_normalizedDirection_find(
   st_V3D&  V_A,

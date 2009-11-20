@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.1 2009/11/19 21:15:20 rudolph Exp $
+/// $Id: C_mpmProg.h,v 1.2 2009/11/20 22:05:10 rudolph Exp $
 ///
 ///
 
@@ -207,11 +207,20 @@ class C_mpmProg_autodijk : public C_mpmProg {
     void        vertexStart_set(int avalue) {
             mvertex_start       = avalue;
     };
+    int         vertexStart_get() {
+            return(mvertex_start);
+    };
     void        vertexStep_set(int avalue) {
             mvertex_step        = avalue;
     };
+    int         vertexStep_get() {
+            return(mvertex_step);
+    };
     void        vertexEnd_set(int avalue) {
             mvertex_end         = avalue;
+    };
+    int         vertexEnd_get() {
+            return(mvertex_end);
     };
     void        print(void);
 
