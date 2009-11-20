@@ -7,9 +7,9 @@
 /*
  * Original Author: Florent Segonne 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 19:07:47 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/20 00:16:33 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
 
             printf("writing csf vox (%d) to %s\n", csf_vox, csf_name) ;
             fp = fopen(csf_name, "w") ;
-            fprintf(fp, "%2.1f\n", csf_vox) ;
+            fprintf(fp, "%2.1f\n", (float)csf_vox) ;
             fclose(fp) ;
           }
       }
