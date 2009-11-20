@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/12 22:36:49 $
- *    $Revision: 1.50 $
+ *    $Date: 2009/11/20 22:25:57 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.50 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.51 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -5709,7 +5709,11 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
       ssLabel << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel;
       if ( "" != maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2 ) {
         ssLabel << endl << "Contrast: "
-                << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2;
+                << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2
+                << endl << "n=" 
+                << mEntryNumberOfSubjects->GetValue() 
+                << ", DOF="  
+                << mQdecProject->GetGlmDesign()->GetDegreesOfFreedom();
       }
       mView->SetAnnotationMessage( ssLabel.str().c_str() );
 
