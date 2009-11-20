@@ -1,17 +1,16 @@
 /**
  * @file  cmd_line_interface.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief simplifies the command-line parsing interface in a new application
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/11/20 00:32:39 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2004-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,16 +24,6 @@
  *
  */
 
-
-//
-//
-//  12/17/2004 Gheorghe Postelnicu
-//
-// class CCmdLineInterface
-//    - simplifies the command-line parsing interface in a new application
-//
-//
-
 #ifndef H_CMD_LINE_INTERFACE_H
 #define H_CMD_LINE_INTERFACE_H
 
@@ -43,7 +32,15 @@
 #include <vector>
 #include <string>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <stdio.h> // printf
 #include <stdlib.h>
+#ifdef __cplusplus
+}
+#endif
 
 #define GMP_ISOPTION(c) ((c) == '-')
 
@@ -52,14 +49,15 @@
 // when the user wants a certain type of option to be handled
 //     they will just have to specify
 //     - name
-//     - add pointers to the addresses that will be affected when the option is found
+//     - add pointers to the addresses that will be affected 
+//       when the option is found
 //     - help text that gives a generic description
 template <class T>
 class CCmdLineOption {
 protected:
   std::string       m_strOption;
   std::string       m_strHelp;
-  std::vector<T *>  m_pars;       // this contains all the parameters assigned to the option
+  std::vector<T *>  m_pars; // this contains parameters assigned to the option
   int               m_iPars;
   int               m_iCur;
   bool              m_bInput;
@@ -67,7 +65,8 @@ protected:
 public:
 
   CCmdLineOption() {}
-  CCmdLineOption(const char *i_strName, int i_iPars, const char *i_strHelp) : m_strOption(), m_strHelp() {
+  CCmdLineOption(const char *i_strName, int i_iPars, const char *i_strHelp)
+    : m_strOption(), m_strHelp() {
     m_strOption = i_strName;
     m_iPars = i_iPars;
     if ( i_strHelp )
@@ -124,7 +123,8 @@ public:
   std::string GetHelp() const {
     char chBuf[10];
     sprintf(chBuf, "%d", m_iPars);
-    std::string strBuf = std::string("--") + m_strOption + "\t pars = " + chBuf + "\t" + m_strHelp;
+    std::string strBuf = std::string("--") 
+      + m_strOption + "\t pars = " + chBuf + "\t" + m_strHelp;
     return strBuf;
   }
 
@@ -160,7 +160,8 @@ public:
   }
 
   int GetArgs() const {
-    return 0; // there is no actual parameter involved - the presence of the option IS  the flag
+    return 0; // there is no actual parameter involved 
+    // - the presence of the option IS  the flag
   }
 
   std::string GetHelp() const {
@@ -220,9 +221,11 @@ public:
 // class CCmdLineInterface
 //
 //   this is a placeholder for a list of potential options
-//   the redundance in the code is present here because I did not know how to handle the typing in a generic way
+//   the redundance in the code is present here because I did not 
+//   know how to handle the typing in a generic way
 //
-//   one must notice that another limitation is that all options are only allowed to have parameters that have the same type
+//   one must notice that another limitation is that all options 
+//   are only allowed to have parameters that have the same type
 
 class CCmdLineInterface {
   std::string   m_strProgName;
@@ -240,20 +243,28 @@ public:
     m_strProgName = i_strProgName;
   }
 
-  // the pointers in the following functions HAVE to be initialized at the time of the call
-  //    this code has been designed so that these pointers hold variables addresses
+  // the pointers in the following functions HAVE to be 
+  //    initialized at the time of the call
+  //    this code has been designed so that these pointers 
+  //    hold variables addresses
   //    this simplifies the writing and the passage of parameters....
-  void AddOptionInt(const char *i_cstrName, int *piVal, const char *help=NULL);
-  void AddOptionInt(const char *i_cstrName, int *piVal1,int *piVal2, const char *help=NULL);
-  void AddOptionFloat(const char *i_cstrName, float *pfVal, char *help=NULL);
-  void AddOptionFloat(const char *i_cstrName, float *pfVal1, float *pfVal2, char *help=NULL);
-  void AddOptionString(const char *i_cstrName, std::string *pstrVal, const char *help=NULL);
-  void AddOptionString(const char *i_cstrName, std::string *pstrVal_1,
-                       std::string *pstrVal_2, const char* help=NULL);
+  void AddOptionInt
+    (const char *i_cstrName, int *piVal, const char *help=NULL);
+  void AddOptionInt
+    (const char *i_cstrName, int *piVal1,int *piVal2, const char *help=NULL);
+  void AddOptionFloat
+    (const char *i_cstrName, float *pfVal, char *help=NULL);
+  void AddOptionFloat
+    (const char *i_cstrName, float *pfVal1, float *pfVal2, char *help=NULL);
+  void AddOptionString
+    (const char *i_cstrName, std::string *pstrVal, const char *help=NULL);
+  void AddOptionString
+    (const char *i_cstrName, std::string *pstrVal_1,
+     std::string *pstrVal_2, const char* help=NULL);
   // a bool option is basically just a flag
   // no parameters at all
-  void AddOptionBool(const char *i_cstrName, bool *pbVal, const char *help=NULL);
-
+  void AddOptionBool
+    (const char *i_cstrName, bool *pbVal, const char *help=NULL);
   void AddIoItem(std::string *pStrItem, const char *help=NULL) {
     CCmdLineIo item(pStrItem, help);
 
@@ -262,12 +273,14 @@ public:
 
   //
   // this will do the actual parsing
-  //   all the options should of course be registered using one of the preceding functions
+  //   all the options should of course be registered 
+  //   using one of the preceding functions
   //   at the time of this call
   //
   // any option name should be preceded by a '-'
   //
-  // the return value is the number of read items in the command-line string array
+  // the return value is the number of read items in the 
+  // command-line string array
   bool Parse(int argc, char *argv[]);
 
   void PrintHelp() const;
@@ -275,7 +288,5 @@ public:
   void print() const;
 
 };
-
-
 
 #endif // H_CMD_LINE_INTERFACE_H
