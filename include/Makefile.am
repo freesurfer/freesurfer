@@ -33,6 +33,7 @@ EXTRA_DIST=\
 	diag.h \
 	DICOMRead.h \
 	dti.h \
+	dtk.fs.h \
 	error.h \
 	evschutils.h \
 	fastmarching.h \
