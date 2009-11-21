@@ -7,9 +7,9 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/11/11 00:14:45 $
- *    $Revision: 1.110 $
+ *    $Author: fischl $
+ *    $Date: 2009/11/21 20:57:47 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.110 2009/11/11 00:14:45 greve Exp $";
+"$Id: tkregister2.c,v 1.111 2009/11/21 20:57:47 fischl Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1285,6 +1285,17 @@ static int parse_commandline(int argc, char **argv) {
       if (err) exit(1);
       mkheaderreg = 1;
       nargsused = 1;
+    } else if (!strcmp(option, "--ixfm")) {
+      MATRIX *m_tmp ;
+      if (nargc < 1) argnerr(option,1);
+      xfmfname = pargv[0];
+      printf("INFO: reading xfm file %s, trying as MINC xfm \n",xfmfname);
+      err = regio_read_mincxfm(xfmfname, &m_tmp,NULL);
+      if (err) exit(1);
+      printf("inverting registration\n") ;
+      XFM = MatrixInverse(m_tmp, NULL) ; MatrixFree(&m_tmp) ;
+      mkheaderreg = 1;
+      nargsused = 1;
     } else if (!strcmp(option, "--reg")) {
       if (nargc < 1) argnerr(option,1);
       regfname = pargv[0];
@@ -1537,6 +1548,7 @@ static void print_usage(void) {
   printf("   --surf-rgb R G B : set surface color (0-255) \n");
   printf("   --lh-only : only load/display left hemi \n");
   printf("   --rh-only : only load/display right hemi \n");
+  printf("   --ixfm file : MNI-style inverse registration input matrix\n");
   printf("   --xfm file : MNI-style registration input matrix\n");
   printf("   --xfmout file : MNI-style registration output matrix\n");
   printf("   --fsl file : FSL-style registration input matrix\n");
@@ -4861,7 +4873,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.110 2009/11/11 00:14:45 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.111 2009/11/21 20:57:47 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
