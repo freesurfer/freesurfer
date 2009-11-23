@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/20 18:16:13 $
- *    $Revision: 1.59 $
+ *    $Date: 2009/11/23 16:19:50 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -100,6 +100,9 @@ static int read_flag = 0 ;
 static int no1d = 0 ;
 static int file_only = 0 ;
 
+static char *surface_fname = NULL ;
+static TRANSFORM *surface_xform ;
+
 int
 main(int argc, char *argv[]) {
   char   **av ;
@@ -113,14 +116,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.59 2009/11/20 18:16:13 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.60 2009/11/23 16:19:50 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.59 2009/11/20 18:16:13 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.60 2009/11/23 16:19:50 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -156,12 +159,76 @@ main(int argc, char *argv[]) {
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s",
               Progname, in_fname) ;
+  MRIaddCommandLine(mri_src, cmdline) ;
+  if (surface_fname)
+  {
+    MRI_SURFACE *mris ;
+    MRI         *mri_dist, *mri_dist_sup, *mri_ctrl ;
+    LTA          *lta= NULL ;
+
+    mris = MRISread(surface_fname) ;
+    if (mris == NULL)
+      ErrorExit(ERROR_NOFILE,"%s: could not surface %s",Progname,surface_fname);
+    TransformInvert(surface_xform, NULL) ;
+    if (surface_xform->type == MNI_TRANSFORM_TYPE ||
+        surface_xform->type == TRANSFORM_ARRAY_TYPE ||
+        surface_xform->type  == REGISTER_DAT) {
+      lta = (LTA *)(surface_xform->xform) ;
+      
+#if 0
+      if (invert) {
+        VOL_GEOM vgtmp;
+        LT *lt;
+        MATRIX *m_tmp = lta->xforms[0].m_L ;
+        lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+        MatrixFree(&m_tmp) ;
+        lt = &lta->xforms[0];
+        if (lt->dst.valid == 0 || lt->src.valid == 0) {
+          fprintf(stderr, "WARNING:***************************************************************\n");
+          fprintf(stderr, "WARNING:dst volume infor is invalid.  Most likely produce wrong inverse.\n");
+          fprintf(stderr, "WARNING:***************************************************************\n");
+        }
+        copyVolGeom(&lt->dst, &vgtmp);
+        copyVolGeom(&lt->src, &lt->dst);
+        copyVolGeom(&vgtmp, &lt->src);
+      }
+#endif
+    }
+
+    MRIStransform(mris, NULL, surface_xform, NULL) ;
+    mri_dist = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
+    printf("computing distance transform\n") ;
+    MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize) ;
+    MRIscalarMul(mri_dist, mri_dist, -1) ;
+    printf("computing nonmaximum suppression\n") ;
+    mri_dist_sup = MRInonMaxSuppress(mri_dist, NULL, 0, 1) ;
+    mri_ctrl = MRIcloneDifferentType(mri_dist_sup, MRI_UCHAR) ;
+    MRIbinarize(mri_dist_sup, mri_ctrl, 1.5, CONTROL_NONE, CONTROL_MARKED) ;
+    MRIwrite(mri_dist, "d.mgz");
+    MRIwrite(mri_dist_sup, "dm.mgz");
+    MRIwrite(mri_ctrl, "c.mgz");
+    mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, 0.0) ;
+    if (bias_sigma> 0)
+    {
+      MRI *mri_kernel = MRIgaussian1d(bias_sigma, -1) ;
+      MRIwrite(mri_bias, "b.mgz") ;
+      printf("smoothing bias field\n") ;
+      MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
+      MRIwrite(mri_bias, "bs.mgz") ;
+      MRIfree(&mri_kernel);
+    }
+    MRIfree(&mri_ctrl) ;
+    mri_dst = MRIapplyBiasCorrectionSameGeometry
+              (mri_src, mri_bias, mri_dst, 
+               DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+    MRIwrite(mri_dst, out_fname) ;
+    exit(0) ;
+  }
   if (!mriConformed(mri_src) && conform > 0) {
     printf("unconformed source detected - conforming...\n") ;
     mri_src = MRIconform(mri_src) ;
   }
 
-  MRIaddCommandLine(mri_src, cmdline) ;
   if (mask_fname) {
     MRI *mri_mask ;
 
@@ -390,6 +457,13 @@ get_option(int argc, char *argv[]) {
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  } else if (!stricmp(option, "SURFACE")) {
+    surface_fname = argv[2] ;
+    surface_xform = TransformRead(argv[3]) ;
+    if (surface_xform == NULL)
+      ErrorExit(ERROR_NOFILE, "%s:could not load xform from %s",Progname,
+                argv[3]) ;
+    nargs = 2 ;
   } else if (!stricmp(option, "INTERIOR")) {
     interior_fname1 = argv[2] ;
     interior_fname2 = argv[3] ;
