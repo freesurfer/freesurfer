@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.47 2009/11/20 15:24:55 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.48 2009/11/23 20:30:16 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.47 2009/11/20 15:24:55 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.48 2009/11/23 20:30:16 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -61,11 +61,7 @@ else
     output=1
 fi
 
-if [ -n "$USER" ]; then
-    output=0
-fi
-
-if [ -n "$PS1" ]; then
+if [[ -z "$USER" || -z "$PS1" ]]; then
     output=0
 fi
 
