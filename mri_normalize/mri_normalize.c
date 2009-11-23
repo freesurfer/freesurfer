@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/23 16:19:50 $
- *    $Revision: 1.60 $
+ *    $Date: 2009/11/23 16:38:00 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -116,14 +116,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.60 2009/11/23 16:19:50 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.61 2009/11/23 16:38:00 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.60 2009/11/23 16:19:50 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.61 2009/11/23 16:38:00 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -204,17 +204,27 @@ main(int argc, char *argv[]) {
     mri_dist_sup = MRInonMaxSuppress(mri_dist, NULL, 0, 1) ;
     mri_ctrl = MRIcloneDifferentType(mri_dist_sup, MRI_UCHAR) ;
     MRIbinarize(mri_dist_sup, mri_ctrl, 1.5, CONTROL_NONE, CONTROL_MARKED) ;
-    MRIwrite(mri_dist, "d.mgz");
-    MRIwrite(mri_dist_sup, "dm.mgz");
-    MRIwrite(mri_ctrl, "c.mgz");
+    if (control_point_fname)
+    {
+      MRI3dUseFileControlPoints(mri_src, control_point_fname) ;
+      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+    }
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      MRIwrite(mri_dist, "d.mgz");
+      MRIwrite(mri_dist_sup, "dm.mgz");
+      MRIwrite(mri_ctrl, "c.mgz");
+    }
     mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, 0.0) ;
     if (bias_sigma> 0)
     {
       MRI *mri_kernel = MRIgaussian1d(bias_sigma, -1) ;
-      MRIwrite(mri_bias, "b.mgz") ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        MRIwrite(mri_bias, "b.mgz") ;
       printf("smoothing bias field\n") ;
       MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
-      MRIwrite(mri_bias, "bs.mgz") ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        MRIwrite(mri_bias, "bs.mgz") ;
       MRIfree(&mri_kernel);
     }
     MRIfree(&mri_ctrl) ;
@@ -643,6 +653,9 @@ usage_exit(int code) {
   printf("  -v Gvx Gvy Gvz     for debugging\n");
   printf("  -d Gx Gy Gz        for debugging\n");
   printf("  -r controlpoints biasfield : for reading\n");
+  printf("  -surface <surface> <xform> : normalize based on the skelton of the\ninterior"
+         "                               of the transformed surface\n") ;
+         
   printf("  -u or -h           print usage\n");
   printf("  \n");
 
