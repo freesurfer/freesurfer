@@ -39,6 +39,7 @@ Gb_quiet                = 0
 Gb_threadTERM           = 0
 Gb_threadREADY          = 0
 Gb_timerReset		= 0
+Gb_syncSend             = 1
 Gtimer_READY		= 0
 Gb_threadTimerStarted 	= 0
 Gb_allTERM              = 0
@@ -206,7 +207,7 @@ G_SYNOPSIS = """
 """
 
 Gstr_SELF	= sys.argv[0]
-Gstr_VERSION	= "$Id: dsh,v 1.1 2009/11/03 15:11:12 rudolph Exp $"
+Gstr_VERSION	= "$Id: dsh,v 1.2 2009/11/25 17:00:52 rudolph Exp $"
 G_dieNow	= 0
 
 class dijkResultLogHandler(SocketServer.BaseRequestHandler) :
@@ -463,19 +464,20 @@ def thread_waitTERM():
 def SYNCsend():
 	global Gb_timerReset, Gb_threadTimerStarted
 	global Gtimer_READY
-	print "Pulsing engine with 'SYNC'... ",
-	thread_transmit("SYNC")
-	Gtimer_READY.cancel()
-	Gb_timerReset 		= 1
-	Gb_threadTimerStarted 	= 0
-	dijkstraRunning		= dijkstra_isRunning()
-	if(dijkstraRunning == 256):
-		print "(Engine failure detected - code %s)" % dijkstraRunning
-		error_exit("sending 'SYNC'", 
-			   "it appears as though the engine has died.",
-			   10)
-	else:
-		print "(Engine still running - code %s)" % dijkstraRunning
+        if Gb_syncSend:
+            print "Pulsing engine with 'SYNC'... ",
+            thread_transmit("SYNC")
+            Gtimer_READY.cancel()
+            Gb_timerReset 		= 1
+            Gb_threadTimerStarted 	= 0
+            dijkstraRunning		= dijkstra_isRunning()
+            if(dijkstraRunning == 256):
+                    print "(Engine failure detected - code %s)" % dijkstraRunning
+                    error_exit("sending 'SYNC'",
+                            "it appears as though the engine has died.",
+                            10)
+            else:
+                    print "(Engine still running - code %s)" % dijkstraRunning
 
 	
 		
@@ -701,6 +703,9 @@ else:
 					for line in F_sourceScript.readlines():
 						line_send(line)
 					F_sourceScript.close()
+                elif str_userInput == "noSync":
+                        print "Disabling re-sync pulsing"
+                        Gb_syncSend     = 0
 		elif str_userInput == "version":
 			print Gstr_VERSION
 		else:
