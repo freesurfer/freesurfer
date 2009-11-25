@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.5 2009/11/19 21:15:20 rudolph Exp $
+/// $Id: env.h,v 1.6 2009/11/25 19:30:18 rudolph Exp $
 ///
 ///
 
@@ -198,6 +198,12 @@ typedef struct _env {
                                             //+ the "Original Surface"
     string        str_optionsFileName;      // file containing meta options
     string        str_costFileName;         // file containing final costs
+    bool          b_costPathSave;           // toggle for creating the costFile
+                                            //+ by turning OFF, extra speed
+                                            //+ is available for cases when
+                                            //+ system running in tight
+                                            //+ loops, typically when executing
+                                            //+ mpmProgs
 
     int           startVertex;              // index of the start vertex
     int           endVertex;                // index of the end vertex

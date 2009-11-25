@@ -5,8 +5,9 @@
 #include "general.h"
 #include "pathconvert.h"
 
-extern char  *Progname;
-extern string  G_SELF;
+extern char     *Progname;
+extern string   G_SELF;
+extern bool     Gb_stdout;
 
 void
 lprintf(int lw, const char* format, ...) {
@@ -15,7 +16,7 @@ lprintf(int lw, const char* format, ...) {
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    printf("%*s", lw, pch_buffer);
+    if(Gb_stdout) printf("%*s", lw, pch_buffer);
     fflush(stdout);
 }
 
@@ -26,8 +27,10 @@ colprintf(int lw, int rw, const char* pch_lstr, const char* format, ...) {
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    printf("%*s", lw, pch_lstr);
-    printf("%*s", rw, pch_buffer);
+    if(Gb_stdout) {
+        printf("%*s", lw, pch_lstr);
+        printf("%*s", rw, pch_buffer);
+    }
     fflush(stdout);
 }
 

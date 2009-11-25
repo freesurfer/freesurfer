@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.9 2009/11/20 22:05:10 rudolph Exp $
+// $Id: env.cpp,v 1.10 2009/11/25 19:30:18 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -312,6 +312,7 @@ s_env_nullify(
     st_env.str_labelFileNameOS      = "";
     st_env.str_labelFileName        = "";
     st_env.str_costFileName         = "";
+    st_env.b_costPathSave           = true;
 
     st_env.startVertex              = 0;
     st_env.endVertex                = 0;
@@ -343,6 +344,7 @@ s_env_nullify(
     st_env.empm_current             = e_autodijk;
     st_env.pstr_mpmProgName         = new string[st_env.totalmpmProgs];
     st_env.pstr_mpmProgName[0]      = "autodijk";
+    st_env.pCmpmProg                = NULL; // Not yet created!
 
     // Define the active surface tracker
     st_env.totalNumSurfaces         = 3;
@@ -651,6 +653,7 @@ s_env_scan(
     st_env.str_labelFileName          = str_labelFileName;
     st_env.str_labelFileNameOS        = str_labelFileNameOS;
     st_env.str_costFileName           = str_costFileName;
+    st_env.b_costPathSave             = true;
 
     //    if(!calls) {
     st_env.pMS_active                 = pMS_curvature;
@@ -944,18 +947,21 @@ void
 s_env_mpmProgList(
   s_env& ast_env
 ) {
-  int  lw = 30;
-  int  rw = 20;
+  int  lw       = ast_env.lw;
+  int  rw       = ast_env.rw;
 
-  CW(lw, "Current mpmProg:");
-  CWn(rw, ast_env.pstr_mpmProgName[ast_env.empm_current]);
-  CW(lw, "mpmProg use flag:");
-  CWn(rw, ast_env.b_mpmProgUse);
+  colprintf(lw, rw, "Current mpmProg index:name" , "[ %d:%s ]\n",
+            (int) ast_env.empm_current,
+            ast_env.pstr_mpmProgName[ast_env.empm_current].c_str());
+  colprintf(lw, rw, "ENV mpmProg use flag:", "[ %d ]\n", ast_env.b_mpmProgUse);
+  colprintf(lw, rw, "mpmProg pointer:", "[ %d ]\n", ast_env.pCmpmProg);
+  if(ast_env.pCmpmProg) colprintf(lw, rw, "mpmProg initialized:", "[ ok ]\n");
+  else colprintf(lw, rw, "mpmProg initialized:", "[ no ]\n");
 
-  cout << "All available mpmProgs:" << endl;
+  lprintf(lw, "\nAll available mpmProgs:-\n");
   for (int i=0; i<ast_env.totalmpmProgs; i++) {
-    cout << "mpmProg index " << i << ": ";
-    cout << ast_env.pstr_mpmProgName[i] << endl;
+      colprintf(lw, rw, "index:name", "[ %d:%s ]\n",
+                i, ast_env.pstr_mpmProgName[i].c_str());
   }
 }
 
@@ -964,18 +970,26 @@ s_env_mpmProgSetIndex(
     s_env*      apst_env,
     int         aindex
 ) {
-  int   ret = -1;
-  apst_env->b_mpmProgUse        = true;
+  int   ret     = -1;
+  int   lw      = apst_env->lw;
+  int   rw      = apst_env->rw;
   switch (aindex) {
-  case 0:
-    apst_env->empm_current      = (e_MPMPROG) aindex;
-    apst_env->pCmpmProg         = new C_mpmProg_autodijk(apst_env);
-    break;
-  default:
-    apst_env->empm_current      = (e_MPMPROG) aindex;
-    break;
+    case 0:
+        apst_env->b_mpmProgUse      = true;
+        apst_env->empm_current      = (e_MPMPROG) aindex;
+        if(apst_env->pCmpmProg) {
+            lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
+            lprintf(lw, "Attempting to destruct existing mpmProg...");
+            delete apst_env->pCmpmProg;
+            colprintf(lw, rw, "", "[ ok ]\n");
+        }
+        apst_env->pCmpmProg         = new C_mpmProg_autodijk(apst_env);
+        break;
+    default:
+        apst_env->empm_current      = (e_MPMPROG) 0;
+        break;
   }
-  if(aindex < 0 || aindex > apst_env->totalmpmProgs)
+  if(aindex < 0 || aindex >= apst_env->totalmpmProgs)
       ret       = -1;
   else
       ret       = aindex;

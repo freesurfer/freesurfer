@@ -91,9 +91,11 @@ static struct option const longopts[] = {
 
 char*   Gpch_Progname;
 char*   Progname        = Gpch_Progname;
+bool    Gb_stdout       = true;         // Global flag controlling output to
+                                        //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.5 2009/11/20 19:35:17 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.6 2009/11/25 19:30:18 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -383,7 +385,12 @@ main(
         Gsout << "Running embedded program '";
         Gsout << st_env.pstr_mpmProgName[st_env.empm_current];
         Gsout << "'"    << endl;
-        st_env.pCmpmProg->run();
+        ULOUT(Gsout.str());
+        if(st_env.pCmpmProg) st_env.pCmpmProg->run();
+        else {
+            fprintf(stderr, "Warning -- mpmProg has not been created!\n");
+            fprintf(stderr, "Have you run 'ENV mpmProg set <X>'?\n");
+        }
       }
 
       if ( (str_asynchComms  == "HUP" || str_asynchComms  == "RUN")     &&

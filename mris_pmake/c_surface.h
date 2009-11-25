@@ -32,7 +32,7 @@
 ///
 /// \b HISTORY
 /// 15 March 2005 - Initial consolidation from several other sources.
-/// $Id: c_surface.h,v 1.2 2009/10/29 15:30:49 rudolph Exp $
+/// $Id: c_surface.h,v 1.3 2009/11/25 19:30:18 rudolph Exp $
 ///
 ///
 
@@ -60,15 +60,15 @@ using namespace std;
 
 void
 surface_vertexFunction_do(
-  s_env&   st_env,
-  bool   (*vertex_satisfyTestCondition)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apv_conditional,
-  void   (*vertex_function)
-  (VERTEX* pvertex,
-   void*  pv_extra),
-  void*   apv_functional
+  s_env&        st_env,
+  bool          (*vertex_satisfyTestCondition)
+                (VERTEX*        pvertex,
+                void*           pv_extra),
+  void*         apv_conditional,
+  void          (*vertex_function)
+                (VERTEX*        pvertex,
+                void*           pv_extra),
+  void*         apv_functional
 );
 
 /// \fn void surface_vertexPatternCopy(s_env& st_env, MRIS* apMS_source, MRIS* apMS_target, bool (*vertex_satisfyTestCondition) (VERTEX* pvertex, void* pv_extra), void* apvsource_extra, void (*vertex_modify) (VERTEX* pvertex, void* pv_extra), void*apvtarget_extra)
@@ -185,8 +185,8 @@ surface_annotation_do(
 /// \brief This traces an already solved dijkstra path on a surface and sets
 ///  each member vertex's ripflag to TRUE
 /// \param  st_env  the problem environment
-/// \return (void)
-void
+/// \return the total cost of traveling along the marked path
+float
 surface_ripMark(
   s_env&   st_env
 );

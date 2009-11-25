@@ -163,12 +163,17 @@ int dijkstra(
   // condition, otherwise the while() will terminate after one loop.
   while ( vno_c!=vno_f || !totalLoops) {
     totalLoops++;
+    if(totalLoops == st_env.pMS_curvature->nvertices-1)
+        printf("here!\n");
 
 //     cout << "Here - totalLoops = " << totalLoops << endl;
 
     /* set vno_c (find min) */
     if (d_list == NULL) {
       ErrorPrintf(ERROR_BADPARM, "dijkstra(): out of vertices");
+      colprintf(st_env.lw, st_env.rw, "start:stop", "[ %d:%d ]\n",
+                st_env.startVertex,
+                st_env.endVertex);
       goto error;
     }
 

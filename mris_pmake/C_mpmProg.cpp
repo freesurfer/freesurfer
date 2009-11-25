@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.2 2009/11/20 22:05:10 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.3 2009/11/25 19:30:18 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -27,6 +27,8 @@
 #include "c_vertex.h"
 
 #include <sstream>
+
+extern bool     Gb_stdout;
 
 //
 //\\\---
@@ -214,6 +216,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     mvertex_end         = 0;
     m_costFunctionIndex = 0;
     mb_surfaceRipClear  = true;
+    mprogressIter       = 1;
 
     if(s_env_costFctSetIndex(mps_env, m_costFunctionIndex) == -1)
         error_exit("setting costFunctionIndex", "Could not set index", 1);
@@ -239,7 +242,7 @@ C_mpmProg_autodijk::print() {
   C_mpmProg::print();
 }
 
-int
+float
 C_mpmProg_autodijk::cost_compute(
     int         a_start,
     int         a_end
@@ -254,18 +257,42 @@ C_mpmProg_autodijk::cost_compute(
     // computation.
     //
 
-    int         ret;
+    int         ok;
+    int         lw      = mps_env->lw;
+    int         rw      = mps_env->rw;
+    float       f_cost  = 0.0;
+    static int  calls   = -1;
 
     mps_env->startVertex = a_start;
     mps_env->endVertex   = a_end;
 
-    ret = dijkstra(*mps_env); // costs are written to vertex elements along
-                              //+ the path in the MRIS structure.
+    calls++;
+    if(!(calls % mprogressIter)) {
+        colprintf(lw, rw, "[start -> end = cost]", "[ %d -> %d = ",
+                            mps_env->startVertex,
+                            mps_env->endVertex);
+    }
+    if(a_start == a_end) {
+        f_cost          = 0.0;
+    } else {
+        ok = dijkstra(*mps_env);  // costs are written to vertex elements along
+                                  //+ the path in the MRIS structure.
 
+        if(!ok) {
+            fprintf(stderr, " fail ]\n");
+            fprintf(stderr, "dijkstra failure, returning to system.\n");
+            exit(1);
+        }
+        f_cost      = surface_ripMark(*mps_env);
+
+    }
+    if(!(calls % mprogressIter)) {
+        if(Gb_stdout) printf(" %f ]\n", f_cost);
+    }
     if(mb_surfaceRipClear) {
         surface_ripClear(*mps_env, mb_surfaceRipClear);
     }                    
-    return ret;
+    return f_cost;
 }
 
 int
@@ -275,10 +302,11 @@ C_mpmProg_autodijk::run() {
     // Main entry to the actual 'run' core of the mpmProg
     //
 
-    int         ret = 0;
+    float       f_cost  = 0.0;
+    int         ret     = 1;
 
     for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step) {
-        ret = cost_compute(mvertex_polar, v);
+        f_cost = cost_compute(mvertex_polar, v);
     }
     return ret;
 }

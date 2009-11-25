@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.2 2009/11/20 22:05:10 rudolph Exp $
+/// $Id: C_mpmProg.h,v 1.3 2009/11/25 19:30:18 rudolph Exp $
 ///
 ///
 
@@ -83,6 +83,7 @@ class C_mpmProg {
 
     s_env*      mps_env;                        // Pointer to the main
                                                 //+ environment
+    bool        b_created;                                                                   
 
     //
     // Method members
@@ -190,6 +191,9 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         mvertex_end;
     int         m_costFunctionIndex;
     bool        mb_surfaceRipClear;
+    int         mprogressIter;                  // Number of iterations to
+                                                //+ loop before showing
+                                                //+ progress to stdout
       
   public:
     C_mpmProg_autodijk(s_env* aps_env);
@@ -198,6 +202,12 @@ class C_mpmProg_autodijk : public C_mpmProg {
     //
     // Access block
     //
+    void        surfaceRipClear_set(bool avalue) {
+            mb_surfaceRipClear  = avalue;
+    };
+    int         surfaceRipClear_get() {
+            return(mb_surfaceRipClear);
+    };
     void        vertexPolar_set(int avalue) {
             mvertex_polar       = avalue;
     };
@@ -222,6 +232,12 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         vertexEnd_get() {
             return(mvertex_end);
     };
+    void        progressIter_set(int avalue) {
+            mprogressIter       = avalue;
+    };
+    int         progressIter_get() {
+            return(mprogressIter);
+    };
     void        print(void);
 
     //
@@ -229,7 +245,7 @@ class C_mpmProg_autodijk : public C_mpmProg {
     //
 
     virtual int         run(void);
-    int                 cost_compute(int start, int end);
+    float               cost_compute(int start, int end);
 };
 
 

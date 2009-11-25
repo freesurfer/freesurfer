@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.5 2009/10/30 21:55:06 rudolph Exp $
+// $Id: c_surface.cpp,v 1.6 2009/11/25 19:30:18 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -322,7 +322,7 @@ surface_workingToAux_ripTrueCopy(
                            );
 }
 
-void
+float
 surface_ripMark(
     s_env&              st_env
 ) {
@@ -337,6 +337,7 @@ surface_ripMark(
     //
     // PRECONDITIONS
     // o Rips on the "active" surface are marked.
+    // o The cumulative cost of traveling along the marked path is returned.
     //
     // HISTORY
     // 18 November 2004
@@ -352,38 +353,43 @@ surface_ripMark(
     s_iterInfo  st_iterInfo;
     string      str_costFile            = st_env.str_workingDir +
                                           st_env.str_costFileName;
-    ofstream    ofs(str_costFile.c_str(), ios::out);
     int         i;
     int         ii, jj;
     float       f_cost                  = 0.;
     float       f_costSum               = 0.;
     bool        b_relNextReference    = false;
+
+    ofstream    ofs(str_costFile.c_str(), ios::out);
     ofs.flags(ios::fixed );
 
     for (i = st_env.endVertex; i != st_env.startVertex;
         i = st_env.pMS_active->vertices[i].old_undefval) {
         ii = st_env.pMS_active->vertices[i].old_undefval;
         jj = i;
-        ofs << ii << "\t" << jj;
-        f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj, b_relNextReference);
-        ofs << "\t"  << f_cost;
-        ofs << "\t"  << st_iterInfo.iter;
-        ofs << "\t"  << st_iterInfo.f_distance;
-        ofs << "\t"  << st_iterInfo.f_curvature;
-        ofs << "\t"  << st_iterInfo.f_sulcalHeight;
-        ofs << "\t"  << st_iterInfo.f_dir;
-        ofs << endl;
+        f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj,
+                                    b_relNextReference);
         st_env.pMS_active->vertices[i].ripflag = TRUE;
         f_costSum += f_cost;
+        if(st_env.b_costPathSave) {
+            ofs << ii << "\t" << jj;
+            ofs << "\t"  << f_cost;
+            ofs << "\t"  << st_iterInfo.iter;
+            ofs << "\t"  << st_iterInfo.f_distance;
+            ofs << "\t"  << st_iterInfo.f_curvature;
+            ofs << "\t"  << st_iterInfo.f_sulcalHeight;
+            ofs << "\t"  << st_iterInfo.f_dir;
+            ofs << endl;
+        }
     }
     st_env.pMS_active->vertices[i].ripflag = TRUE;
-    ofs.close();
+    if(st_env.b_costPathSave) ofs.close();
     stringstream sout("");
     sout << "Total path cost: " << f_costSum    << endl;
-    cout << sout.str();
+//     cout << sout.str();
     // When the prcoess is controlled from 'dsh', data that
     // appears on the result log channel is echo'd to stdout.
-    nRLOUT(sout.str());
+//     nRLOUT(sout.str());
+    return f_costSum;
 }
 
 void

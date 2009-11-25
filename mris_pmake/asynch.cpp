@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.7 2009/11/20 22:05:10 rudolph Exp $
+// $Id: asynch.cpp,v 1.8 2009/11/25 19:30:18 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -28,6 +28,8 @@
 #include "c_vertex.h"
 #include "c_label.h"
 #include "c_surface.h"
+
+extern  bool    Gb_stdout;
 
 bool
 asynchEvent_processWGHT(
@@ -365,23 +367,50 @@ asynchEvent_processENV(
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
     warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
+  if (str_object == "costPathSave") {
+    if (str_verb == "set") {
+      if (!str_modifier.length())
+        return false;
+      val = atoi(str_modifier.c_str());
+      st_env.b_costPathSave     = (bool) val;
+      colprintf(lw, rw, "costPathSave flag", "[ %d ]\n", (int)val);
+    }
+  }
+
+  if (str_object == "stdout") {
+    if (str_verb == "set") {
+      if (!str_modifier.length())
+        return false;
+      Gb_stdout = atoi(str_modifier.c_str());
+      colprintf(lw, rw, "Confirmation to stdout", "[ %d ]\n", (int)Gb_stdout);
+    }
+  }
+
   if (str_object == "mpmProg") {
-    if (str_verb == "use")
+    if (str_verb == "list")
+        s_env_mpmProgList(st_env);
+    if (str_verb == "use") {
         st_env.b_mpmProgUse     = true;
         colprintf(lw, rw, "mpmProg use set", "[ ok ]\n");
+    }
     if (str_verb == "get")
         s_env_mpmProgList(st_env);
     else if (str_verb == "set") {
       if (!str_modifier.length()) return false;
       val       = atoi(str_modifier.c_str());
-      lprintf(lw, "mpmProg '%s' object built",
-              st_env.pstr_mpmProgName[val].c_str());
-      lprintf(rw, "[ ok ]\n");
-      Gsout.str("");
-      Gsout << "Setting mpmProgIndex to \t\t\t\t\t[ " << str_modifier << " ]" << endl;
-      if (s_env_mpmProgSetIndex(&st_env, val) == -1)
-        error_exit("setting mpmProgIndex", "Some error occurred", 1);
-      ULOUT(Gsout.str());
+      if (s_env_mpmProgSetIndex(&st_env, val) == -1) {
+        fprintf(stderr, "\nThere is no valid mpmProg at index %d.\n", val);
+        fprintf(stderr, "Use 'ENV mpmProg list' ");
+        fprintf(stderr, "for a list of valid indices.\n");
+      } else {
+        lprintf(lw, "'%s' built",
+                st_env.pstr_mpmProgName[val].c_str());
+        lprintf(rw, "[ ok ]\n");
+        Gsout.str("");
+        Gsout << "Setting mpmProgIndex to \t\t\t\t\t[ ";
+        Gsout << str_modifier << " ]" << endl;
+        ULOUT(Gsout.str());
+      }
     }
   }
 
@@ -575,10 +604,10 @@ asynchEvent_processMPMPROG(
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
     warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
-  if (str_object == "vertexInfo") {
+  if (str_object == "info") {
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
     if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
-    if (str_verb == "get") {
+    if (str_verb == "get" || str_verb == "list") {
         colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
                   pC_autodijk->vertexPolar_get());
         colprintf(lw, rw, "Start vertex:", "[ %d ]\n",
@@ -587,9 +616,32 @@ asynchEvent_processMPMPROG(
                   pC_autodijk->vertexStep_get());
         colprintf(lw, rw, "End vertex:",   "[ %d ]\n",
                   pC_autodijk->vertexEnd_get());
+        colprintf(lw, rw, "Progress Iter:","[ %d ]\n",
+                  pC_autodijk->progressIter_get());
+        colprintf(lw, rw, "Surface ripClear:","[ %d ]\n",
+                  pC_autodijk->surfaceRipClear_get());
     }
   }
   
+  if (str_object == "progressIter") {
+    C_mpmProg_autodijk*         pC_autodijk     = NULL;
+    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
+    if (str_verb == "get") {
+        colprintf(lw, rw, "Show progress at each iter:", "[ %d ]\n",
+                  pC_autodijk->progressIter_get());
+    }
+    else if (str_verb == "set") {
+      if (!str_modifier.length()) return false;
+      pC_autodijk->progressIter_set(atoi(str_modifier.c_str()));
+      colprintf(lw, rw, "mpmProg progressIter set to", "[ %s ]\n",
+                str_modifier.c_str());
+      Gsout.str("");
+      Gsout << "Setting progressIter to \t\t\t\t\t[ " << str_modifier;
+      Gsout << " ]" << endl;
+      ULOUT(Gsout.str());
+    }
+  }
+
   if (str_object == "polar") {
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
     if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
@@ -608,7 +660,8 @@ asynchEvent_processMPMPROG(
       ULOUT(Gsout.str());
     }
   }
-  cout.flags(origFlags);
+
+   cout.flags(origFlags);
   return true;
 }
 
