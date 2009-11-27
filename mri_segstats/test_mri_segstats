@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/11/23 15:29:58 $
-#    $Revision: 1.1 $
+#    $Date: 2009/11/27 21:20:50 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2009
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_segstats,v 1.1 2009/11/23 15:29:58 nicks Exp $'
+set VERSION='$Id: test_mri_segstats,v 1.2 2009/11/27 21:20:50 nicks Exp $'
 
 umask 002
 
@@ -36,6 +36,7 @@ gunzip -c testdata.tar.gz | tar xvf -
 #
 # run command
 #
+setenv SUBJECTS_DIR $PWD
 set cmd=(./mri_segstats --subject testdata --etiv-only)
 echo ""
 echo $cmd
