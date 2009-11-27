@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.10 2009/11/25 19:30:18 rudolph Exp $
+// $Id: env.cpp,v 1.11 2009/11/27 23:05:42 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -979,9 +979,9 @@ s_env_mpmProgSetIndex(
         apst_env->empm_current      = (e_MPMPROG) aindex;
         if(apst_env->pCmpmProg) {
             lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
-            lprintf(lw, "Attempting to destruct existing mpmProg...");
+            lprintf(lw, "Deleting existing mpmProg '%s'...", apst_env->pstr_mpmProgName[0].c_str());
             delete apst_env->pCmpmProg;
-            colprintf(lw, rw, "", "[ ok ]\n");
+            lprintf(rw, "[ ok ]\n");
         }
         apst_env->pCmpmProg         = new C_mpmProg_autodijk(apst_env);
         break;
