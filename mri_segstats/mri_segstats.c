@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/08 23:16:41 $
- *    $Revision: 1.61 $
+ *    $Author: nicks $
+ *    $Date: 2009/11/29 16:42:20 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.61 2009/10/08 23:16:41 greve Exp $";
+"$Id: mri_segstats.c,v 1.62 2009/11/29 16:42:20 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1310,7 +1310,7 @@ int main(int argc, char **argv) {
       fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, StatSumTable[n].id,
               StatSumTable[n].nhits, StatSumTable[n].vol);
       if(ctab != NULL) fprintf(fp,"%-30s ",StatSumTable[n].name);
-      else             fprintf(fp,"Seg%04d",StatSumTable[n].id);
+      else             fprintf(fp,"Seg%04d ",StatSumTable[n].id);
       if (InVolFile != NULL){
         fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
                 StatSumTable[n].mean, StatSumTable[n].std,
