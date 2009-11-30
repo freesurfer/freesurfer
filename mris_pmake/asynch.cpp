@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.8 2009/11/25 19:30:18 rudolph Exp $
+// $Id: asynch.cpp,v 1.9 2009/11/30 20:14:44 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -637,6 +637,25 @@ asynchEvent_processMPMPROG(
                 str_modifier.c_str());
       Gsout.str("");
       Gsout << "Setting progressIter to \t\t\t\t\t[ " << str_modifier;
+      Gsout << " ]" << endl;
+      ULOUT(Gsout.str());
+    }
+  }
+
+  if (str_object == "vertexEnd") {
+    C_mpmProg_autodijk*         pC_autodijk     = NULL;
+    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
+    if (str_verb == "get") {
+        colprintf(lw, rw, "End vertex:", "[ %d ]\n",
+                  pC_autodijk->vertexEnd_get());
+    }
+    else if (str_verb == "set") {
+      if (!str_modifier.length()) return false;
+      pC_autodijk->vertexEnd_set(atoi(str_modifier.c_str()));
+      colprintf(lw, rw, "mpmProg vertexEnd set to", "[ %s ]\n",
+                str_modifier.c_str());
+      Gsout.str("");
+      Gsout << "Setting vertexEnd to \t\t\t\t\t[ " << str_modifier;
       Gsout << " ]" << endl;
       ULOUT(Gsout.str());
     }

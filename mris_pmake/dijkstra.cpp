@@ -136,6 +136,9 @@ int dijkstra(
   assert(vno_f >= 0);
   assert(vno_f < surf->nvertices);
 
+  // If start == end, return immediately
+  if(vno_i == vno_f) return TRUE;
+
   if (!st_env.b_costHistoryPreserve) {
     assert(!surf->vertices[vno_i].ripflag);
     assert(!surf->vertices[vno_f].ripflag);

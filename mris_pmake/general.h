@@ -62,6 +62,20 @@ typedef enum {
   e_gaussian, e_mean
 } e_CURVATURE;
 
+typedef enum _FILEACCESS {
+        e_UNSPECIFIED           = -10,
+        e_WRONGMAGICNUMBER      = -1,
+        e_OK                    =  0,
+        e_READACCESSERROR       =  1,
+        e_WRITEACCESSERROR      =  2
+} e_FILEACCESS;
+
+short CURV_arrayProgress_print(
+  int   asize,
+  int   acurrent,
+  char* apch_message
+);
+
 void    lprintf(int lw, const char* format, ...);
 void    colprintf(int lw, int rw,
                   const char* pch_lstr, const char* format, ...);

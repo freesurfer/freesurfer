@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.3 2009/11/25 19:30:18 rudolph Exp $
+/// $Id: C_mpmProg.h,v 1.4 2009/11/30 20:14:44 rudolph Exp $
 ///
 ///
 
@@ -48,6 +48,7 @@ extern  "C" {
 #include "mrisurf.h"
 #include "label.h"
 #include "error.h"
+#include "fio.h"
 
 #ifdef __cplusplus
 }
@@ -189,11 +190,17 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         mvertex_start;
     int         mvertex_step;
     int         mvertex_end;
+    int         mvertex_total;
     int         m_costFunctionIndex;
     bool        mb_surfaceRipClear;
     int         mprogressIter;                  // Number of iterations to
                                                 //+ loop before showing
                                                 //+ progress to stdout
+    float*      mpf_cost;                       // Cost as calculated by
+                                                //+ autodijk
+    string      mstr_costFileName;              // Parsed from the environment
+                                                //+ structure
+    string      mstr_costFullPath;              // Full path to cost file                                            
       
   public:
     C_mpmProg_autodijk(s_env* aps_env);
@@ -246,6 +253,7 @@ class C_mpmProg_autodijk : public C_mpmProg {
 
     virtual int         run(void);
     float               cost_compute(int start, int end);
+    e_FILEACCESS        CURV_fileWrite();
 };
 
 

@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.3 2009/11/25 19:30:18 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.4 2009/11/30 20:14:44 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -68,7 +68,7 @@ C_mpmProg::error(
     extern int errno;
 
     cerr << "\nFatal error encountered.\n";
-    cerr << "\tSSocket `" << mstr_name << "' (id: " << mid << ")\n";
+    cerr << "\tC_mpmProg `" << mstr_name << "' (id: " << mid << ")\n";
     cerr << "\tCurrent function: " << mstr_obj << "::" << str_proc_get() << "\n";
     cerr << "\t" << astr_msg << "\n";
     perror("Error returned from system");
@@ -84,7 +84,7 @@ C_mpmProg::warn(
 {
     if (mwarnings) {
         cerr << "\nWarning.\n";
-        cerr << "\tSSocket `" << mstr_name << "' (id: " << mid << ")\n";
+        cerr << "\tC_mpmProg `" << mstr_name << "' (id: " << mid << ")\n";
         cerr << "\tCurrent function: " << mstr_obj << "::" << str_proc_get() << "\n";
         cerr << "\t" << astr_msg << " (warning code: " << code << ")\n";
     }
@@ -202,6 +202,9 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     // DESC
     // Basically a thin "fall-through" constructor to the base
     // class.
+    // 
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
     //
     // HISTORY
     // 17 November 2009
@@ -221,16 +224,53 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     if(s_env_costFctSetIndex(mps_env, m_costFunctionIndex) == -1)
         error_exit("setting costFunctionIndex", "Could not set index", 1);
     s_env_activeSurfaceSetIndex(mps_env, 0);
+    mstr_costFileName   = mps_env->str_costCurvFile;
+    mstr_costFullPath   = mps_env->str_workingDir + "/" + mstr_costFileName;
     mvertex_end         = mps_env->pMS_curvature->nvertices;
+    mvertex_total       = mvertex_end;
+    mpf_cost            = new float[mvertex_total];
+    for(int i=0; i<mvertex_end; i++)
+        mpf_cost[i]     = 0.0;
     
     debug_pop();
 }
 
 C_mpmProg_autodijk::~C_mpmProg_autodijk() {
-  //
-  // Destructor
-  //
+    //
+    // Destructor
+    //
+
+    delete [] mpf_cost;
+
 }
+
+/*!
+  \fn C_mpmProg_autodijk::CURV_fileWrite()
+  \brief Write a FreeSurfer curvature array to a file
+  \return If curvature file is successfully written, return e_OK, else return e_WRITEACCESSERROR.
+*/
+e_FILEACCESS
+C_mpmProg_autodijk::CURV_fileWrite()
+{
+  FILE* FP_curv;
+  int   i;
+  char  pch_readMessage[65536];
+
+  if((FP_curv = fopen(mstr_costFullPath.c_str(), "w")) == NULL)
+    return(e_WRITEACCESSERROR);
+  fwrite3(NEW_VERSION_MAGIC_NUMBER, FP_curv);
+  fwriteInt(mvertex_total, FP_curv);
+  fwriteInt(mps_env->pMS_curvature->nfaces, FP_curv);
+  fwriteInt((int)1, FP_curv);
+  sprintf(pch_readMessage, "Writing %s", mstr_costFileName.c_str());
+  for(i=0; i<mvertex_total; i++) {
+    CURV_arrayProgress_print(mvertex_total, i, pch_readMessage);
+    fwriteFloat(mpf_cost[i], FP_curv);
+  }
+  fclose(FP_curv);
+  return(e_OK);
+}
+
 
 void
 C_mpmProg_autodijk::print() {
@@ -305,9 +345,19 @@ C_mpmProg_autodijk::run() {
     float       f_cost  = 0.0;
     int         ret     = 1;
 
+    debug_push("run");
+
+    // Calculate the costs
     for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step) {
         f_cost = cost_compute(mvertex_polar, v);
+        mpf_cost[v]     = f_cost;
     }
+
+    // Write the cost curv file
+    if((ret=CURV_fileWrite()) != e_OK)
+        error("I could not save the cost curv file.");
+    
+    debug_pop();
     return ret;
 }
 

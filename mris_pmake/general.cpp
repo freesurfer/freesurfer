@@ -34,6 +34,47 @@ colprintf(int lw, int rw, const char* pch_lstr, const char* format, ...) {
     fflush(stdout);
 }
 
+short
+CURV_arrayProgress_print(
+    int   asize,
+    int   acurrent,
+    char* apch_message
+    ) {
+    //
+    // PRECONDITIONS
+    //  o <acurrent> is the current index being processed in a stream.
+    //  o If <apch_message> is non-NULL, then prefix the progress bar
+    //    with <apch_message> (and terminate progress bar with [ ok ]).
+    //
+    // POSTCONDITIONS
+    //  o For every 5% of processed asize a "#" is written to G_FP
+    //
+
+    static int    fivePerc        = 0;
+    FILE*         G_FP            = NULL;
+    fivePerc        = (int) (0.05 * asize);
+
+    if(Gb_stdout) G_FP            = stdout;
+    else if ((G_FP = fopen("/dev/null", "w")) == NULL)
+        error_exit("accessing /dev/null", "I could not access sink.", 1);
+
+    if(!acurrent) {
+        if(apch_message != NULL)
+        fprintf(G_FP, "%*s", G_LC, apch_message);
+        fprintf(G_FP, " [");
+        fflush(G_FP);
+    }
+    if(acurrent%fivePerc == fivePerc-1) {
+        fprintf(G_FP, "#");
+        fflush(G_FP);
+    }
+    if(acurrent == asize-1) {
+        fprintf(G_FP, "] ");
+        if(apch_message != NULL)
+        fprintf(G_FP, "%*s\n", 1, "[ ok ]");
+    }
+    return 1;
+}
 
 float
 V3D_normalizedDirection_find(
@@ -327,7 +368,7 @@ error_exit(
   //
 
   cerr << endl << G_SELF;
-  cerr << endl << "\tDanger, Will Robinson!";
+  cerr << endl << "\tI'm sorry, but an error condition has occured.";
   cerr << endl << "\tWhile I was "    << str_action;
   cerr << endl << "\t"                << str_errorMsg;
   cerr << endl;

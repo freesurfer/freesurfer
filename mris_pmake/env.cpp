@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.11 2009/11/27 23:05:42 rudolph Exp $
+// $Id: env.cpp,v 1.12 2009/11/30 20:14:44 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -345,6 +345,8 @@ s_env_nullify(
     st_env.pstr_mpmProgName         = new string[st_env.totalmpmProgs];
     st_env.pstr_mpmProgName[0]      = "autodijk";
     st_env.pCmpmProg                = NULL; // Not yet created!
+    // autodijk
+    st_env.str_costCurvFile         = "autodijk.cost.crv";
 
     // Define the active surface tracker
     st_env.totalNumSurfaces         = 3;
@@ -435,6 +437,9 @@ s_env_scan(
   static string str_sysMsgFileNameOld       = "";
   static string str_resultMsgFileNameOld    = "";
 
+  // mpmProg options
+  static string str_costCurvFile            = "autodijk.cost.crv";
+  
   if (cso_options.scanFor("startVertex", &str_value))
     startVertex  = atoi(str_value.c_str());
   else
@@ -561,6 +566,9 @@ s_env_scan(
                "I couldn't find resultMessages.",
                53);
 
+  if (cso_options.scanFor("costCurvFile", &str_value))
+    str_costCurvFile    =  str_value;
+
   st_env.b_syslogPrepend = b_syslogPrepend;
   e_SMessageIO esm_io  = eSM_cpp;
   int pos   = 0;
@@ -667,6 +675,9 @@ s_env_scan(
     str_userMsgFileNameOld            = str_userMsgFileName;
     str_sysMsgFileNameOld             = str_sysMsgFileName;
     //    }
+
+    // mpmProg
+    st_env.str_costCurvFile           = str_costCurvFile;
 
     nSLOUT("\t\t\t\t\t\t\t[ ok ]\n");
 
