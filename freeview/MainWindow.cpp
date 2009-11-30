@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:28 $
- *    $Revision: 1.77 $
+ *    $Date: 2009/11/30 22:04:46 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -571,7 +571,7 @@ void MainWindow::SaveVolume()
   if ( fn.IsEmpty() )
   {
     wxFileDialog dlg( this, _("Save volume file"), m_strLastDir, _(""),
-                      _("Volume files (*.nii;*.nii.gz;*.img;*.mgz)|*.nii;*.nii.gz;*.img;*.mgz|All files (*.*)|*.*"),
+                      _("Volume files (*.mgz;*.mgh;*.nii;*.nii.gz;*.img)|*.mgz;*.mgh;*.nii;*.nii.gz;*.img|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_OK )
     {
@@ -584,7 +584,8 @@ void MainWindow::SaveVolume()
     if ( !MyUtils::HasExtension( fn, _("nii") ) &&
           !MyUtils::HasExtension( fn, _("nii.gz") ) &&
           !MyUtils::HasExtension( fn, _("img") ) &&
-          !MyUtils::HasExtension( fn, _("mgz") )
+          !MyUtils::HasExtension( fn, _("mgz") ) &&
+          !MyUtils::HasExtension( fn, _("mgh") )
        )
     {
       fn += _(".mgz");
