@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/06 20:12:06 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/11/30 21:17:20 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -184,6 +184,8 @@ bool Region2DRectangle::Contains( int nX, int nY, int* nIndexOut )
   // calculate the hit point in world space
   double pt[3];
   m_view->MousePositionToRAS( nX, nY, pt );
+  int nPlane = m_view->GetViewPlane();
+  pt[nPlane] = m_dPt[0][nPlane];
   
   for ( int i = 0; i < 4; i++ )
   {
@@ -296,4 +298,12 @@ void Region2DRectangle::UpdatePoint( int nIndex, int x, int y )
     }
     SetRect( nX1, nY1, nX2-nX1, nY2-nY1 );
   }  
+}
+
+void Region2DRectangle::UpdateSlicePosition( int nPlane, double pos )
+{
+  for ( int i = 0; i < 4; i++ )
+    m_dPt[i][nPlane] = pos;
+
+  Region2D::UpdateSlicePosition( nPlane, pos );
 }

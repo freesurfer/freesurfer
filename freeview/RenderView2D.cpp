@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/06 20:12:06 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/11/30 21:17:20 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -231,6 +231,18 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* iData, void
        iMsg == "LayerMoved" ||
        iMsg == "LayerRemoved" )
   {
+    if ( iMsg == "LayerRemoved" )
+    {
+      if ( MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() && m_regions.size() > 0 )
+      {
+        for ( size_t i = 0; i < m_regions.size(); i++ )
+        {
+          delete m_regions[i];
+        }
+        m_regions.clear();
+        RefreshAllActors();
+      }
+    }
     UpdateAnnotation();
   }
   else if ( iMsg == "CursorRASPositionChanged" )
@@ -250,6 +262,15 @@ void RenderView2D::DoListenToMessage ( std::string const iMsg, void* iData, void
       {
         SyncZoomTo( view );
       }
+    }
+  }
+  else if ( iMsg == "SlicePositionChanged" )
+  {
+    double slicePos[3];
+    MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetSlicePosition( slicePos );
+    for ( size_t i = 0; i < m_regions.size(); i++ )
+    {
+      m_regions[i]->UpdateSlicePosition( m_nViewPlane, slicePos[m_nViewPlane] );
     }
   }
 

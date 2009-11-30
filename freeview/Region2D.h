@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/11/30 21:17:20 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -53,6 +53,8 @@ public:
   virtual void Show( bool bshow );
   
   virtual void Update();
+  
+  virtual void UpdateSlicePosition( int nPlane, double pos );
   
   virtual void GetWorldPoint( int nIndex, double* pt ) = 0;
 

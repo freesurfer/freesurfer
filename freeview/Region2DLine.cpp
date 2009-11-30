@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/11/30 21:17:20 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -184,6 +184,8 @@ bool Region2DLine::Contains( int x, int y, int* indexOut )
   // calculate the hit point in world space
   double pt[3];
   m_view->MousePositionToRAS( x, y, pt );
+  int nPlane = m_view->GetViewPlane();
+  pt[nPlane] = m_dPt1[nPlane];
   
   if ( vtkMath::Distance2BetweenPoints( pt, m_dPt1 ) < dTh2 )
   {
@@ -221,4 +223,11 @@ void Region2DLine::UpdatePoint( int nIndex, int nX, int nY )
   else if ( nIndex == 1 )
     m_view->MousePositionToRAS( nX, nY, m_dPt2 );
   Update();
+}
+
+void Region2DLine::UpdateSlicePosition( int nPlane, double pos )
+{
+  m_dPt1[nPlane] = pos;
+  m_dPt2[nPlane] = pos;
+  Region2D::UpdateSlicePosition( nPlane, pos );
 }

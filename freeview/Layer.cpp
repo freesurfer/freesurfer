@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/11/30 21:17:19 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -146,21 +146,20 @@ void Layer::SetSlicePosition( double* slicePos )
     SetSlicePosition( i, slicePos[i] );
   }
   this->BlockBroadcast( false );
-  this->SendBroadcast( "LayerActorUpdated", this );
+//  this->SendBroadcast( "SlicePositionChanged", this );
+//  this->SendBroadcast( "LayerActorUpdated", this );
 }
 
 void Layer::SetSlicePosition( int nPlane, double slicePos )
 {
   wxASSERT( nPlane >= 0 && nPlane <= 2 );
 
-  const char* strPlaneName[] = { "X", "Y", "Z" };
   if ( fabs( slicePos - m_dSlicePosition[ nPlane ] ) > CLOSE_DISTANCE )
   {
     m_dSlicePosition[nPlane] = slicePos;
-    this->SendBroadcast( std::string("SlicePositionChanged") + 
-                         strPlaneName[nPlane], this );
+//    this->SendBroadcast( "SlicePositionChanged", this );
     OnSlicePositionChanged( nPlane );
-    this->SendBroadcast( "LayerActorUpdated", this );
+//    this->SendBroadcast( "LayerActorUpdated", this );
   }
 }
 
