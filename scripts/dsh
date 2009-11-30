@@ -14,20 +14,19 @@ from   	threading	import *
 from    subprocess      import *
 import 	SocketServer
 from	dgmsocket	import *
+import  time
 
 # Some global defaults
 Gstr_sourceScript	= '-x'
 Gstr_sourceCmd		= '-x'
 Gstr_optionsFile	= 'options.txt'
 Gstr_host		= 'localhost'
-try:
-	Gstr_thisHost   = os.environ['HOSTNAME']
-except:
-	Gstr_thisHost	= "localhost"
-try:
-	Gstr_hostType	= os.environ['HOSTTYPE']
-except:
-	Gstr_hostType	= ""
+Gstr_hostType           = ''
+Gstr_thisHost           = 'localhost'
+Glstr_uname             = os.uname()
+if len(Glstr_uname):
+    Gstr_thisHost       = Glstr_uname[1];
+    Gstr_hostType       = "%s-%s" % (Glstr_uname[0], Glstr_uname[4])
 Gstr_port           	= '1701'
 Gstr_portResult		= '1835'
 Gstr_portSys		= '1834'
@@ -207,7 +206,7 @@ G_SYNOPSIS = """
 """
 
 Gstr_SELF	= sys.argv[0]
-Gstr_VERSION	= "$Id: dsh,v 1.2 2009/11/25 17:00:52 rudolph Exp $"
+Gstr_VERSION	= "$Id: dsh,v 1.3 2009/11/30 20:09:29 rudolph Exp $"
 G_dieNow	= 0
 
 class dijkResultLogHandler(SocketServer.BaseRequestHandler) :
@@ -465,7 +464,8 @@ def SYNCsend():
 	global Gb_timerReset, Gb_threadTimerStarted
 	global Gtimer_READY
         if Gb_syncSend:
-            print "Pulsing engine with 'SYNC'... ",
+            print "%s %s pulsing engine with 'SYNC'... " % \
+                (time.asctime(time.localtime()), Gstr_thisHost)
             thread_transmit("SYNC")
             Gtimer_READY.cancel()
             Gb_timerReset 		= 1
@@ -476,10 +476,8 @@ def SYNCsend():
                     error_exit("sending 'SYNC'",
                             "it appears as though the engine has died.",
                             10)
-            else:
-                    print "(Engine still running - code %s)" % dijkstraRunning
-
-	
+            #else:
+                    #print "(Engine still running - code %s)" % dijkstraRunning
 		
 def thread_waitREADY():
 	#
@@ -603,7 +601,7 @@ for o, a in opts:
 # Startup messages
 #
 if(not Gb_nonInteractive):
-	print "Welcome to the mris_pmake shell, 'dsh'"
+	print "Welcome to the mris_pmake shell, 'dsh', running on '%s'" % Gstr_thisHost
 	print "CVS version " + Gstr_VERSION
 	print "\nType 'quit' to return gracefully to system."
 	print "Note that this will terminate any running 'mris_pmake' engine.\n"
@@ -634,7 +632,7 @@ if Gstr_host == 'localhost':
         else:
             if(not Gb_nonInteractive):
                 print "\n\t'mris_pmake' is already running on ",
-                print "host '" + Gstr_host + "'."
+                print "host '" + Gstr_thisHost + "'."
                 print "\n\tI will connect to this process."
                 print "\tPlease note that I cannot capture console output"
                 print "\tfrom an already running 'mris_pmake' process. Any."
