@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: c_SMessage.cpp,v 1.2 2009/12/01 19:46:09 rudolph Exp $
 //
 // DESC
 //
@@ -90,8 +90,9 @@ void C_SMessage::error( string astr_msg,
   //
 
   cerr << "\nFatal error encountered.\n";
-  cerr << "\tscanopt object `"        << str_name     << "' (id: " << id << ")\n";
-  cerr << "\tCurrent function: "      << str_obj << "::";
+  cerr << "\tC_SMessage object `"       << str_name;
+  cerr << "' (id: " << id << ")\n";
+  cerr << "\tCurrent function: "        << str_obj      << "::";
   cerr << str_proc_get() << "\n";
   cerr << "\t" << astr_msg << "\n";
   cerr << "Throwing an exception to (this) with code " << code << "\n\n";
@@ -111,8 +112,9 @@ void C_SMessage::warn( string astr_msg,
   //
 
   cerr << "\nWarning.\n";
-  cerr << "\tWorld `"                 << str_name     << "' (id: " << id << ")\n";
-  cerr << "\tCurrent function: "      << str_obj    << "::";
+  cerr << "\tC_SMessage object `"       << str_name;
+  cerr << "' (id: " << id << ")\n";
+  cerr << "\tCurrent function: "        << str_obj      << "::";
   cerr << str_proc_get() << "\n";
   cerr << "\t" << astr_msg << "(code: " << code << ")\n";
 }
@@ -138,7 +140,7 @@ void C_SMessage::function_trace(string astr_msg,
     for (int i = 0; i < stackDepth_get(); i++)
       str_tab += "\t";
     if (str_objectName != str_name_get() )
-      cerr << "\nStochastic World `" << str_name_get();
+      cerr << "\nC_SMessage`" << str_name_get();
     cerr << "' (id: " << id_get() << ")\n";
     if (str_funcName != str_proc_get()) {
       cerr << "\n" << str_tab << "Current function: " << str_obj;
@@ -158,55 +160,63 @@ void    C_SMessage::core_construct(     string  astr_name,
                                         int     a_verbosity,
                                         int     a_warnings,
                                         int     a_stackDepth,
-                                        string  astr_proc) {
-  //
-  // ARGS
-  // astr_name        in              name of object
-  // a_id             in              id of object
-  // a_iter           in              current iteration in arbitrary scheme
-  // a_verbosity      in              verbosity of object
-  // a_stackDepth     in              stackDepth
-  // astr_proc        in              current proc that has been "debug_push"ed
-  //
-  // DESC
-  // Simply fill in the core values of the object with some defaults
-  //
-  // HISTORY
-  //  o Initial design and coding
-  //
-  // 24 September 2001
-  //  o Added syslogID
-  //
+                                        string  astr_proc) 
+{
+    //
+    // ARGS
+    // astr_name        in              name of object
+    // a_id             in              id of object
+    // a_iter           in              current iteration in arbitrary scheme
+    // a_verbosity      in              verbosity of object
+    // a_stackDepth     in              stackDepth
+    // astr_proc        in              current proc that has been "debug_push"ed
+    //
+    // DESC
+    // Simply fill in the core values of the object with some defaults
+    //
+    // HISTORY
+    //  o Initial design and coding
+    //
+    // 24 September 2001
+    //  o Added syslogID
+    //
 
-  str_obj                     = "C_SMessage";
-  str_name                    = astr_name;
-  id                          = a_id;
-  iter                        = a_iter;
-  verbosity                   = a_verbosity;
-  warnings                    = a_warnings;
-  stackDepth                  = a_stackDepth;
-  str_proc[stackDepth]        = astr_proc;
+    str_obj                     = "C_SMessage";
+    str_name                    = astr_name;
+    id                          = a_id;
+    iter                        = a_iter;
+    verbosity                   = a_verbosity;
+    warnings                    = a_warnings;
+    stackDepth                  = a_stackDepth;
+    str_proc[stackDepth]        = astr_proc;
 
-  str_syslogID  = "";
-  b_fileSpecified  = false;
-  pFILE_out   = NULL;
+    b_canPrint                  = true;
+    b_syslogPrepend             = false;
+    
+    str_syslogID                = "";
+    b_fileSpecified             = false;
+    pFILE_out                   = NULL;
 
-  b_socketCreated  = false;
-  pcSS   = NULL;
+    b_socketCreated             = false;
+    pcSS                        = NULL;
+
+    lw                          = 40;
+    rw                          = 40;
+    cw                          = 40;
 }
 
 C_SMessage::C_SMessage(
-  string   astr_body,
-  e_SMessageFormat  ae_format,
-  FILE*            apFILE_out,
-  e_SMessageIO  ae_IO) {
+    string                      astr_body,
+    e_SMessageFormat            ae_format,
+    FILE*                       apFILE_out,
+    e_SMessageIO                ae_IO) {
   //
   // ARGS
-  // astr_body        in              initial value of the payload
-  // ae_format        in              format descriptor for the payload
-  // pFILE_out        in              default stream (stdout) to which
-  //                                          payload is sent
-  // ae_IO  in  IO style (C or C++)
+  // astr_body          in              initial value of the payload
+  // ae_format          in              format descriptor for the payload
+  // pFILE_out          in              default stream (stdout) to which
+  //                                    + payload is sent
+  // ae_IO              in              IO style (C or C++)
   //
   // DESC
   // Constructor
@@ -374,17 +384,17 @@ C_SMessage::~C_SMessage() {
 }
 
 void C_SMessage::dump(
-  bool  ab_syslogPrepend,
-  string  astr_outOfBand
+    bool                ab_syslogPrepend,
+    string              astr_outOfBand
 ) {
   //
   // ARGS
-  // astr_outOfBound  in  if length is non-zero, will
-  //       dump this string
-  //       instead of str_payload
-  // ab_syslogPrepend in  bool flag. If true
-  //       do syslog_prepend
-  //       with write operation
+  // astr_outOfBound    in              if length is non-zero, will
+  //                                    dump this string
+  //                                    instead of str_payload
+  // ab_syslogPrepend   in              bool flag. If true
+  //                                    do syslog_prepend
+  //                                    with write operation
   //
   // DESC
   //  "dump" the payload (or the outOfBand string) to the specified file
@@ -439,7 +449,7 @@ void C_SMessage::dump(
     switch (e_IO) {
     case eSS:
       if (astr_outOfBand.length())
-        pcSS->sendStr(str_syslogPrepend+ astr_outOfBand);
+        pcSS->sendStr(str_syslogPrepend + astr_outOfBand);
       else
         pcSS->sendStr(str_syslogPrepend + str_payload);
       break;
@@ -572,114 +582,154 @@ C_SMessage::timer(
 
 bool
 C_SMessage::file_changeTo(
-  string   astr_filename,
-  e_SMessageIO ae_IO) {
-  //
-  // ARGS
-  //  astr_filename   in      new filename to channel output to
-  // ae_IO  in type of channel (C or C++)
-  //
-  // DESC
-  //  This method associates the internal file pointer
-  //  with the passed filename. It's primary purpose is
-  //  to allow a convenient mechanism to re-direct the
-  //  stream of an already created C_SMessage object.
-  //
-  //  This method understands two "special" filenames -
-  //  "stdout" and "stderr" which, although passed as
-  //  strings, are interpreted as file pointers.
-  //
-  //  If the <ae_IO> is 'eSS', a socket is assumed. The
-  // <astr_filename> is interpreted as '<host>:<port>'.
-  //
-  // HISTORY
-  // 14 September 2000
-  //  o Initial design and coding.
-  //
-  // 18 June 2001
-  //  o Added "/dev/null" as special file type (changes e_format and
-  //    blocks all write attempts on channel during dump()).
-  //
-  // 27 June 2001
-  //  o Expanded to accommodate C and C++ style output
-  //
-  // 05 July 2001
-  //  o Closing file streams only if != (stdout || stderr)
-  //  o C++ style open mode set to ios:app
-  //
-  // 13 July 2001
-  //  o Adopted new C++ approach
-  //
-  // 15 March 2002
-  // o Changed C++ approach for g++-3.x.
-  //
-  // 05 April 2005
-  //  o c_SSocket incorporation.
-  //
+    string                      astr_filename,
+    e_SMessageIO                ae_IO) {
+    //
+    // ARGS
+    //  astr_filename           in              new filename to channel output
+    //  ae_IO                   in              type of channel (C or C++)
+    //
+    // DESC
+    //  This method associates the internal file pointer
+    //  with the passed filename. It's primary purpose is
+    //  to allow a convenient mechanism to re-direct the
+    //  stream of an already created C_SMessage object.
+    //
+    //  This method understands two "special" filenames -
+    //  "stdout" and "stderr" which, although passed as
+    //  strings, are interpreted as file pointers.
+    //
+    //  If the <ae_IO> is 'eSS', a socket is assumed. The
+    // <astr_filename> is interpreted as '<host>:<port>'.
+    //
+    // HISTORY
+    // 14 September 2000
+    //  o Initial design and coding.
+    //
+    // 18 June 2001
+    //  o Added "/dev/null" as special file type (changes e_format and
+    //    blocks all write attempts on channel during dump()).
+    //
+    // 27 June 2001
+    //  o Expanded to accommodate C and C++ style output
+    //
+    // 05 July 2001
+    //  o Closing file streams only if != (stdout || stderr)
+    //  o C++ style open mode set to ios:app
+    //
+    // 13 July 2001
+    //  o Adopted new C++ approach
+    //
+    // 15 March 2002
+    // o Changed C++ approach for g++-3.x.
+    //
+    // 05 April 2005
+    //  o c_SSocket incorporation.
+    //
 
-  debug_push("file_changeTo");
+    debug_push("file_changeTo");
 
-  // Close legacy files
-  if ( b_fileSpecified ) {
-    if (ofs_out.is_open())
-      ofs_out.close();
-    if (pFILE_out) {
-      fflush(pFILE_out);
-      fclose(pFILE_out);
+    // Close legacy files
+    if ( b_fileSpecified ) {
+        if (ofs_out.is_open())
+        ofs_out.close();
+        if (pFILE_out) {
+        fflush(pFILE_out);
+        fclose(pFILE_out);
+        }
     }
-  }
-  b_fileSpecified  = false;
+    b_fileSpecified  = false;
 
-  e_IO  = ae_IO;
-  str_filename = astr_filename;
+    e_IO  = ae_IO;
+    str_filename = astr_filename;
 
-  switch (e_IO) {
-  case eSM_c:
-    FILE*       pFILE_stream;
-    if (astr_filename == "stdout")
-      pFILE_out       = stdout;
-    else if (astr_filename == "stderr")
-      pFILE_out       = stderr;
-    else if (astr_filename == "/dev/null")
-      e_format = eSM_devnull;
-    else {
-      if ( (pFILE_stream = fopen(astr_filename.c_str(), "a")) == NULL) {
-        string  str_error = "Cannot open file " + astr_filename;
-        error(str_error);
-      }
-      pFILE_out           = pFILE_stream;
+    switch (e_IO) {
+    case eSM_c:
+        FILE*       pFILE_stream;
+        if (astr_filename == "stdout")
+        pFILE_out       = stdout;
+        else if (astr_filename == "stderr")
+        pFILE_out       = stderr;
+        else if (astr_filename == "/dev/null")
+        e_format = eSM_devnull;
+        else {
+        if ( (pFILE_stream = fopen(astr_filename.c_str(), "a")) == NULL) {
+            string  str_error = "Cannot open file " + astr_filename;
+            error(str_error);
+        }
+        pFILE_out           = pFILE_stream;
+        }
+        break;
+    case eSM_cpp:
+        if ( str_filename == "/dev/null")
+        e_format = eSM_devnull;
+
+        if ( (str_filename != "stdout") && str_filename != "stderr" ) {
+        ofs_out.open(astr_filename.c_str(), ios::app);
+        if (!ofs_out)
+            error("Could not create output file:" + astr_filename, -1);
+        b_fileSpecified = true;
+        }
+        break;
+    case eSS:
+        string str_remotehost;  // host to receive UDP transmission
+        string str_remoteport;  // port on remote hostname
+        int  pos;               // position of separating ":"
+        int  port;
+        pos = astr_filename.find_first_of(":");
+        string str_msg =  "For SSocket-type target, destination string ";
+        str_msg += "must be '<hostname>:<port>'.\n";
+        str_msg += "\tThe ':' char has to be present.";
+        if ((unsigned)pos == (unsigned) string::npos) error(str_msg);
+        str_remotehost = astr_filename.substr(0, pos);
+        str_remoteport = astr_filename.substr(pos+1);
+        port = atoi(str_remoteport.c_str());
+        if (b_socketCreated) delete pcSS;
+        pcSS = new c_SSocket_UDP_transmit(str_remotehost, port);
+        break;
     }
-    break;
-  case eSM_cpp:
-    if ( str_filename == "/dev/null")
-      e_format = eSM_devnull;
+    debug_pop();
+    return true;
+}
 
-    if ( (str_filename != "stdout") && str_filename != "stderr" ) {
-      ofs_out.open(astr_filename.c_str(), ios::app);
-      if (!ofs_out)
-        error("Could not create output file:" + astr_filename, -1);
-      b_fileSpecified = true;
+
+void
+C_SMessage::lprintf(const char* format, ...) {
+    char        pch_buffer[65536];
+    va_list     vp_arg;
+    string      str_syslog      = "";
+    string      str_buffer      = "";
+    
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    if(b_canPrint) {
+        if(b_syslogPrepend) str_syslog = syslog_prepend();
+        str_buffer      = str_syslog + " " + pch_buffer;
+        printf("%*s", lw, str_buffer.c_str());
     }
-    break;
-  case eSS:
-    string str_remotehost;  // host to receive UDP transmission
-    string str_remoteport;  // port on remote hostname
-    int  pos;   // position of separating ":"
-    int  port;
-    pos = astr_filename.find_first_of(":");
-    string str_msg =  "For SSocket-type target, destination string ";
-    str_msg += "must be '<hostname>:<port>'.\n";
-    str_msg += "\tThe ':' char has to be present.";
-    if ((unsigned)pos == (unsigned) string::npos)
-      error(str_msg);
-    str_remotehost = astr_filename.substr(0, pos);
-    str_remoteport = astr_filename.substr(pos+1);
-    port = atoi(str_remoteport.c_str());
-    if (b_socketCreated)
-      delete pcSS;
-    pcSS = new c_SSocket_UDP_transmit(str_remotehost, port);
-    break;
-  }
-  debug_pop();
-  return true;
+    fflush(stdout);
+}
+
+void
+C_SMessage::colprintf(
+        const char*             pch_lstr,
+        const char*             format, ...
+        )
+{
+    char        pch_buffer[65536];
+    va_list     vp_arg;
+    string      str_syslog      = "";
+    string      str_buffer      = "";
+
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    if(b_canPrint) {
+        if(b_syslogPrepend) str_syslog = syslog_prepend();
+        str_buffer      = str_syslog + " " + pch_lstr;
+        printf("%*s", lw, str_buffer.c_str());
+        printf("%*s", rw, pch_buffer);
+    }
+    fflush(stdout);
 }

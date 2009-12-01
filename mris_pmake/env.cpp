@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.12 2009/11/30 20:14:44 rudolph Exp $
+// $Id: env.cpp,v 1.13 2009/12/01 19:46:09 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -299,6 +299,14 @@ s_env_nullify(
     st_env.rw                       = 20;
 
     st_env.b_syslogPrepend          = false;
+    st_env.stdout                   = new C_SMessage( "",
+                                           eSM_raw,
+                                           "stdout",
+                                           eSM_c);
+    st_env.stdout->b_syslogPrepend_set(true);
+    st_env.stdout->lw_set(st_env.lw);
+    st_env.stdout->rw_set(st_env.rw);
+    st_env.stdout->b_canPrint_set(true);
     st_env.pcsm_syslog              = NULL;
     st_env.pcsm_userlog             = NULL;
     st_env.pcsm_resultlog           = NULL;

@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.7 2009/11/30 20:14:45 rudolph Exp $
+/// $Id: env.h,v 1.8 2009/12/01 19:46:09 rudolph Exp $
 ///
 ///
 
@@ -179,6 +179,7 @@ typedef struct _env {
     int           rw;                       // right width (for stdout format)
 
     bool          b_syslogPrepend;          // prepend syslog style
+    C_SMessage*   stdout;                   // stdout C_SMessage object
     C_SMessage*   pcsm_syslog;              // log file for "sys" events
     C_SMessage*   pcsm_userlog;             // log file for "user" events
     C_SMessage*   pcsm_resultlog;           // log file for "result" event
