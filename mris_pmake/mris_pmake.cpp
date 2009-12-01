@@ -95,7 +95,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.6 2009/11/25 19:30:18 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.7 2009/12/01 02:45:26 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -290,6 +290,7 @@ main(
   s_Dweights                    st_DcostWeight;
   c_SSocket_UDP_receive*        pCSSocketReceive        = NULL;
   bool                          b_socketCreated         = false;
+  float                         f_cost                  = 0.0;
 
   // Prior to completely populating the enter st_env structure, we fill in
   // some defaults to "boot strap" the process.
@@ -365,8 +366,10 @@ main(
           s_env_scan(       st_env,         *pcso_options);
           s_weights_scan(   st_costWeight,  *pcso_options);
           s_Dweights_scan(  st_DcostWeight, *pcso_options);
-          st_env.pSTw  =    &st_costWeight;
-          st_env.pSTDw =    &st_DcostWeight;
+          st_env.pSTw   =       &st_costWeight;
+          st_env.pSTDw  =       &st_DcostWeight;
+          G_lw          =       st_env.lw;
+          G_rw          =       st_env.rw;
         }
 
         if (st_env.port && !b_socketCreated) {
@@ -408,11 +411,13 @@ main(
 
         nULOUT("\t\t[ ok ]\n");
         nSLOUT("\t\t\t\t\t\t[ ok ]\n");
-        Gsout.str("");
 
         ULOUT("Marking (rip) path along vertices...");
         s_env_activeSurfaceSetIndex(&st_env, (int) e_workingCurvature);
-        surface_ripMark(st_env);
+        f_cost = surface_ripMark(st_env);
+        colprintf(G_lw, G_rw, "Total path cost:", "%f\n", f_cost);
+        Gsout.str(""); Gsout << f_cost;
+        nRLOUT(Gsout.str());
         nULOUT("\t\t\t\t[ ok ]\n");
 
         if (st_env.b_patchFile_save) {

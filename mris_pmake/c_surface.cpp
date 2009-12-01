@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.6 2009/11/25 19:30:18 rudolph Exp $
+// $Id: c_surface.cpp,v 1.7 2009/12/01 02:45:26 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -383,12 +383,6 @@ surface_ripMark(
     }
     st_env.pMS_active->vertices[i].ripflag = TRUE;
     if(st_env.b_costPathSave) ofs.close();
-    stringstream sout("");
-    sout << "Total path cost: " << f_costSum    << endl;
-//     cout << sout.str();
-    // When the prcoess is controlled from 'dsh', data that
-    // appears on the result log channel is echo'd to stdout.
-//     nRLOUT(sout.str());
     return f_costSum;
 }
 

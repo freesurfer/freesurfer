@@ -34,6 +34,16 @@ colprintf(int lw, int rw, const char* pch_lstr, const char* format, ...) {
     fflush(stdout);
 }
 
+char* 
+colsprintf(int lw, int rw, char* pch_buffer,
+           const char* pch_lstr, const char* format, ...) {
+    va_list vp_arg;
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    return pch_buffer;
+}
+
 short
 CURV_arrayProgress_print(
     int   asize,
