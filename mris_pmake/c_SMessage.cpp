@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.2 2009/12/01 19:46:09 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.3 2009/12/01 20:24:17 rudolph Exp $
 //
 // DESC
 //
@@ -36,7 +36,8 @@ using namespace std;
 #include <sys/times.h>
 #include <time.h>
 
-#include <stdlib.h>
+// #include <stdlib.h>
+#include <unistd.h>
 
 #include <c_SMessage.h>
 
@@ -477,55 +478,62 @@ void C_SMessage::dump(
 
 string
 C_SMessage::syslog_prepend() {
-  //
-  // DESC
-  // Returns a string that conforms (roughly) to the first few
-  // fields of syslog type output.
-  //
-  // This method is usually called by some object that contains
-  // a C_SMessage object. The data field, str_syslogID, is used
-  // to convey optional "external" information relevant to the
-  // syslog stamp.
-  //
-  // PRECONDITIONS
-  //  o Attempts to emulate POSIX (Linux) type of syslogging.
-  //  o Assumes the existence of HOSTNAME env variable.
-  //
-  // POSTCONDITIONS
-  //  o creates a string of the following format:
-  //   [$date] [$HOSTNAME] astr_ID
-  //  o note that each time this method is called, it will prepend
-  //   the str_payload variable with a syslog entry... so don't call
-  //   it multiple times on the same payload!
-  //
-  // HISTORY
-  // 24 September 2001
-  // o Initial design and coding.
-  //
-  // 08 December 2005
-  // o Note that in some architectures / machines the call to
-  //  to getenv("HOSTNAME") fails in strange and bizarre ways!
-  //
+    //
+    // DESC
+    // Returns a string that conforms (roughly) to the first few
+    // fields of syslog type output.
+    //
+    // This method is usually called by some object that contains
+    // a C_SMessage object. The data field, str_syslogID, is used
+    // to convey optional "external" information relevant to the
+    // syslog stamp.
+    //
+    // PRECONDITIONS
+    //  o Attempts to emulate POSIX (Linux) type of syslogging.
+    //  o Assumes the existence of HOSTNAME env variable.
+    //
+    // POSTCONDITIONS
+    //  o creates a string of the following format:
+    //   [$date] [$HOSTNAME] astr_ID
+    //  o note that each time this method is called, it will prepend
+    //   the str_payload variable with a syslog entry... so don't call
+    //   it multiple times on the same payload!
+    //
+    // HISTORY
+    // 24 September 2001
+    // o Initial design and coding.
+    //
+    // 08 December 2005
+    // o Note that in some architectures / machines the call to
+    //  to getenv("HOSTNAME") fails in strange and bizarre ways!
+    //
+    // 01 December 2009
+    // o getenv("HOSTNAME") borks on ubuntu despite the 'try' block.
+    //   Rewrote using gethostname().
+    //
 
-  time_t  time_now  = time(NULL);
-  stringstream sstream("");
-  string  str_hostname("");
+    time_t              time_now                = time(NULL);
+    stringstream        sstream("");
+    string              str_hostname("");
+    char                pch_buffer[65536];
+    int                 ret                     = 0;
 
-  try {
-    str_hostname = getenv("HOSTNAME");
-  } catch (...) {
-    str_hostname = "";
-  }
+    try {
+        ret = gethostname(pch_buffer, 65536);
+        str_hostname = pch_buffer;
+    } catch (...) {
+        str_hostname = "";
+    }
 
-  // Time stamp issues
-  string  str_time = ctime(&time_now);
-  // strip out trailing `YYYY\n'
-  str_time.erase(str_time.length()-5);
-  sstream << str_time << " ";
+    // Time stamp issues
+    string  str_time = ctime(&time_now);
+    // strip out trailing `YYYY\n'
+    str_time.erase(str_time.length()-5);
+    sstream << str_time << " ";
 
-  sstream <<  str_hostname << " " << str_syslogID << "\t";
+    sstream <<  str_hostname << " " << str_syslogID << "\t";
 
-  return(sstream.str());
+    return(sstream.str());
 }
 
 bool
