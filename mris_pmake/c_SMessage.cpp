@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.3 2009/12/01 20:24:17 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.4 2009/12/02 19:25:29 rudolph Exp $
 //
 // DESC
 //
@@ -542,9 +542,8 @@ C_SMessage::timer(
 ) {
   //
   // ARGS
-  //  e_timerAction  in  enumerated timer
-  //       action to
-  //       take.
+  //  e_timerAction     in      enumerated timer
+  //                            action to take.
   //
   // DESC
   //  This method does some simple timer-type processing.

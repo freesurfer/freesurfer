@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.h
-// $Id: c_SMessage.h,v 1.2 2009/12/01 19:46:09 rudolph Exp $
+// $Id: c_SMessage.h,v 1.3 2009/12/02 19:25:29 rudolph Exp $
 //
 // DESCRIPTION
 //
@@ -59,7 +59,7 @@
 //
 // 01 December 2009
 // o Added lprintf and colprintf methods -- NOT FULLY INTEGRATED with Sockets
-// o Addeed b_canPrint -- NOT FULLY INTEGRATED YET!
+// o Added b_canPrint -- NOT FULLY INTEGRATED YET!
 // 
 
 #ifndef __C_SMESSAGE_H__
