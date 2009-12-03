@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/09/23 15:07:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/12/03 22:31:25 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,7 +64,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris_in, *mris_out ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_map_cuts.c,v 1.1 2009/09/23 15:07:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_map_cuts.c,v 1.2 2009/12/03 22:31:25 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -186,10 +186,12 @@ static void
 usage_exit(int code) {
   printf("usage: %s [options] <input patch> <output patch>",
          Progname) ;
+#if 0
   printf(
     "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
   );
   printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
+#endif
   exit(code) ;
 }
 
