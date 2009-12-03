@@ -28,6 +28,7 @@ MRISUBDIRS=\
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
+	mri_compile_edits \
 	mri_interpolate \
 	mri_jacobian \
 	mri_compile_edits \
@@ -177,6 +178,7 @@ MRISSUBDIRS=\
 	spherical_stats \
 	tridec \
 	mris_register_to_volume \
+	mris_parcellate_connectivity \
 	mris_map_cuts \
 	mris_hausdorff_dist \
 	mris_merge_parcellations \
