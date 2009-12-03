@@ -7,8 +7,8 @@
  * Original Author: Thomas Witzel
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/03 00:48:30 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/12/03 08:13:34 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,8 @@ extern "C" {
 	void MRISCfreeGradients(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
 	void MRISCuploadGradients(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
 	void MRISCdownloadGradients(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
-	
+	void MRISCdeviceInfo();
+
 	/* computational routines */
 	void MRISCcomputeVertexDistances(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
 	void MRISCaverageGradients(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, unsigned int niter);
