@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 18:39:34 $
- *    $Revision: 1.332 $
+ *    $Date: 2009/12/03 22:11:11 $
+ *    $Revision: 1.333 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -107,6 +107,7 @@ typedef struct vertex_type_
   float tx, ty, tz ;     /* tmp coordinate storage */
   float tx2, ty2, tz2 ;  /* tmp coordinate storage */
   float origx, origy, origz ;   /* original coordinates */
+  float targx, targy, targz ;   // target coordinates
   float pialx, pialy, pialz ;   /* pial surface coordinates */
   float whitex, whitey, whitez ;/* white surface coordinates */
   float infx, infy, infz; /* inflated coordinates */
@@ -427,6 +428,7 @@ typedef struct
   float   l_repulse_ratio ;   /* repulsize force on tessellation */
   float   l_boundary ;        /* coefficient of boundary term */
   float   l_dist ;            /* coefficient of distance term */
+  float   l_location ;        // target location term
   float   l_neg ;
   float   l_intensity ;       /* for settling surface at a specified val */
   float   l_sphere ;          /* for expanding the surface to a sphere */
@@ -701,6 +703,7 @@ int          MRISwriteAreaError(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwritePatch(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteValues(MRI_SURFACE *mris, const char *fname) ;
+int          MRISwriteD(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname);
 int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
@@ -949,6 +952,7 @@ double       MRISParea(MRI_SP *mrisp) ;
 #define PIAL_VERTICES       7
 #define TMP2_VERTICES       8
 #define WHITE_VERTICES      9
+#define TARGET_VERTICES     10
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
 int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
@@ -1022,6 +1026,7 @@ int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain,
                       MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
+int   MRISaverageD(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2s(MRI_SURFACE *mris, int navgs) ;
@@ -1140,6 +1145,7 @@ int  MRISripFaces(MRI_SURFACE *mris) ;
 int  MRISremoveRipped(MRI_SURFACE *mris) ;
 int  MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
+int  MRISsoapBubbleD(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterVals(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) ;
@@ -1612,6 +1618,7 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris,
    case TMP_VERTICES:       (*vx) = (v)->tx;     (*vy) = (v)->ty;     (*vz) = (v)->tz; break; \
    case CANONICAL_VERTICES: (*vx) = (v)->cx;     (*vy) = (v)->cy;     (*vz) = (v)->cz; break; \
    case CURRENT_VERTICES:   (*vx) = (v)->x;      (*vy) = (v)->y;      (*vz) = (v)->z; break; \
+   case TARGET_VERTICES:   (*vx) = (v)->targx;   (*vy) = (v)->targy;  (*vz) = (v)->targz; break; \
    case INFLATED_VERTICES:  (*vx) = (v)->infx;   (*vy) = (v)->infy;   (*vz) = (v)->infz; break; \
    case FLATTENED_VERTICES: (*vx) = (v)->fx;     (*vy) = (v)->fy;     (*vz) = (v)->fz; break; \
    case PIAL_VERTICES:      (*vx) = (v)->pialx;  (*vy) = (v)->pialy;  (*vz) = (v)->pialz; break; \
