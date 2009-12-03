@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/03 00:52:42 $
- *    $Revision: 1.645 $
+ *    $Date: 2009/12/03 08:32:41 $
+ *    $Revision: 1.646 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -670,7 +670,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.645 2009/12/03 00:52:42 twitzel Exp $");
+  return("$Id: mrisurf.c,v 1.646 2009/12/03 08:32:41 twitzel Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7564,6 +7564,8 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
  	struct timeval tv1,tv2,result;
  
  	
+	/* Get some device info */
+	MRISCdeviceInfo();
  	/* Okay the neighborhood of the surface will not change anywhere in here,
  		 so we can upload this all at once
 		 This is the important part, no function called by this function should
@@ -20658,15 +20660,15 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
 {
 	struct timeval tv1,tv2,result;
 	
-	gettimeofday(&tv1,NULL);
-  MRIScomputeNormals(mris);
-	gettimeofday(&tv2,NULL);			
-	timeval_subtract(&result,&tv2,&tv1);
-	printf("MRIScomputeMetricProperties->MRIScomputeNormals: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
-
 	if(mris->status == MRIS_SPHERE ||
 		 mris->status == MRIS_PARAMETERIZED_SPHERE)
 	{
+		gettimeofday(&tv1,NULL);
+		MRIScomputeNormals(mris);
+		gettimeofday(&tv2,NULL);			
+		timeval_subtract(&result,&tv2,&tv1);
+		printf("MRIScomputeMetricProperties->MRIScomputeNormals: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		
 		/* UPLOAD the vertices here */
 		MRISCuploadVertices(mrics,mris);
 		
@@ -20681,11 +20683,13 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
 		MRISCdownloadDistances(mrics,mris);
 	} else {
 		gettimeofday(&tv1,NULL);
-		MRIScomputeMetricProperties(mris);
+		int rval = MRIScomputeMetricProperties(mris);
 		gettimeofday(&tv2,NULL);			
 		timeval_subtract(&result,&tv2,&tv1);
 		printf("CPU MRIScomputeMetricProperties->mrisComputeVertexDistances: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		return rval;
 	}
+
 	gettimeofday(&tv1,NULL);
   mrisComputeSurfaceDimensions(mris);
 	gettimeofday(&tv2,NULL);			
