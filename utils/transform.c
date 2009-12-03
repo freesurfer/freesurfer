@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/09/24 17:23:29 $
- *    $Revision: 1.136 $
+ *    $Author: fischl $
+ *    $Date: 2009/12/03 20:07:34 $
+ *    $Revision: 1.137 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -798,6 +798,9 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         if (DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: Modifying dst geometry, "
                   "using the transform dst\n");
+        MRIfree(&mri_dst) ;
+        mri_dst = MRIalloc(tran->dst.width, tran->dst.height, tran->dst.depth,mri_src->type) ;
+        MRIsetResolution(mri_dst, tran->dst.xsize, tran->dst.ysize, tran->dst.zsize) ;
         useVolGeomToMRI(&tran->dst,mri_dst);
       }
       else if (getenv("USE_AVERAGE305"))
