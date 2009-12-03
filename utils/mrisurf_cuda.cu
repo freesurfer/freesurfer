@@ -7,8 +7,8 @@
  * Original Author: Thomas Witzel
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/03 00:49:39 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/12/03 08:13:05 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +24,11 @@
  *
  */
 
+/* manually this compiles by 
+
+   nvcc -I ../include/ -I /usr/pubsw/packages/mni/current/include/ -DCUDA_SURF_FN -arch=sm_13 -c mrisurf_cuda.cu
+
+*/
 #ifdef CUDA_SURF_FN
 
 #include <stdio.h>
@@ -72,6 +77,16 @@ static int timeval_subtract (struct timeval *result,struct timeval * x,struct ti
   
 	/* Return 1 if result is negative. */
 	return x->tv_sec < y->tv_sec;
+}
+
+/* this function is purely for debug and should be replaced with a proper function
+	 from the freesurfer environment
+*/
+void MRISCdeviceInfo()
+{
+	cudaDeviceProp deviceProp;
+	cudaGetDeviceProperties(&deviceProp, 0);
+	printf ("      device %d:%s\n", 0,deviceProp.name);
 }
 
 void MRISCcheckCUDAError(const char *msg)
@@ -273,7 +288,7 @@ void MRISCuploadVertices(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
 void MRISCdownloadDistances(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
 {
 	VERTEX *v;
-	int vno,n;
+	int vno; /* n; */
 	timeval tv1,tv2,result;
 	
 	if(mrics->h_Distances == NULL || mrics->d_Distances == NULL) {
@@ -287,8 +302,15 @@ void MRISCdownloadDistances(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
 	// now sort into structure
 	for(vno=0; vno<mris->nvertices; vno++) {
 		v = &(mris->vertices[vno]);	
+		/* Lets see whether we can speed this up with memcpy 
+			 yep, memcpy seems about 35% faster here than the loop below
+		*/
+		memcpy(v->dist,mrics->h_Distances+ctr,v->vtotal*sizeof(float));
+		ctr += v->vtotal;
+		/*
 		for(n=0; n<v->vtotal; n++,ctr++)
 			v->dist[n] = mrics->h_Distances[ctr];
+		*/
 	}
 	gettimeofday(&tv2,NULL);
 	timeval_subtract(&result,&tv2,&tv1);
