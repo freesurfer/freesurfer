@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2009/01/08 22:48:04 $
- *    $Revision: 1.23 $
+ *    $Author: fischl $
+ *    $Date: 2009/12/03 22:30:38 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // Nov. 9th ,2000
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: lzollei $
-// Revision Date  : $Date: 2009/01/08 22:48:04 $
-// Revision       : $Revision: 1.23 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2009/12/03 22:30:38 $
+// Revision       : $Revision: 1.24 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -398,23 +398,26 @@ main(int argc, char *argv[])
       char fname[STRLEN] ;
       MRI  *mri_gca ;
 		
-      sprintf(fname, "%s_target.mgz", mp.base_name) ;
-      if (mp.diag_morph_from_atlas == 0)
-	{
-	  printf("writing target volume to %s...\n", fname) ;
-	  MRIwrite(mri_target, fname) ;
-	  sprintf(fname, "%s_target", mp.base_name) ;
-	  MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
-	}
+      if (getenv("DONT_COMPRESS"))
+        sprintf(fname, "%s_target.mgh", mp.base_name) ;
       else
-	{
-	  if (use_aseg)
-	    mri_gca = GCAMwriteMRI(gcam, NULL, GCAM_LABEL) ;
-	  else
-	    {
-	      mri_gca = MRIclone(mri_source, NULL) ;
-	      GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-	    }
+        sprintf(fname, "%s_target.mgz", mp.base_name) ;
+      if (mp.diag_morph_from_atlas == 0)
+      {
+        printf("writing target volume to %s...\n", fname) ;
+        MRIwrite(mri_target, fname) ;
+        sprintf(fname, "%s_target", mp.base_name) ;
+        MRIwriteImageViews(mri_target, fname, IMAGE_SIZE) ;
+      }
+      else
+      {
+        if (use_aseg)
+          mri_gca = GCAMwriteMRI(gcam, NULL, GCAM_LABEL) ;
+        else
+        {
+          mri_gca = MRIclone(mri_source, NULL) ;
+          GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+        }
 	  printf("writing target volume to %s...\n", fname) ;
 	  MRIwrite(mri_gca, fname) ;
 	  sprintf(fname, "%s_target", mp.base_name) ;
