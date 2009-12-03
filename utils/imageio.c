@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:51 $
- *    $Revision: 1.46 $
+ *    $Author: fischl $
+ *    $Date: 2009/12/03 22:17:00 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1248,6 +1248,7 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
     // orientation is bot-left
     TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_BOTLEFT);
     TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samples_per_pixel);
+    TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_INT);
     TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bits_per_sample);
     TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
