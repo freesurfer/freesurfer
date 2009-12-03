@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/29 16:42:20 $
- *    $Revision: 1.62 $
+ *    $Date: 2009/12/03 00:15:48 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.62 2009/11/29 16:42:20 nicks Exp $";
+"$Id: mri_segstats.c,v 1.63 2009/12/03 00:15:48 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1296,7 +1296,7 @@ int main(int argc, char **argv) {
     fprintf(fp,"# ColHeaders  Index SegId ");
     if (!mris) fprintf(fp,"NVoxels Volume_mm3 ");
     else      fprintf(fp,"NVertices Area_mm2 ");
-    if (ctab) fprintf(fp,"StructName ");
+    fprintf(fp,"StructName ");
     if(InVolFile){
       fprintf(fp,"%sMean %sStdDev %sMin %sMax %sRange  ",
                            InIntensityName, InIntensityName,
