@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/31 22:26:18 $
- *    $Revision: 1.9 $
+ *    $Author: krish $
+ *    $Date: 2009/12/03 23:09:30 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
 
 #include <wx/wx.h>
 #include <wx/filename.h>
+#include <iostream>
 #include "LUTDataHolder.h"
 
 LUTDataHolder::LUTDataHolder()

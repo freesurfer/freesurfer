@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/11/12 22:09:08 $
- *    $Revision: 1.18 $
+ *    $Author: krish $
+ *    $Date: 2009/12/03 23:09:31 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,7 @@
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include <math.h>
+#include <iostream>
 
 LayerCollection::LayerCollection( std::string strType) :
     Listener( "LayerCollection" ),

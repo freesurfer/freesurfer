@@ -233,6 +233,31 @@ freeview_LDADD=\
 	$(WXWIDGETS_LIBS)
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
+# and if the OS is MACOSX have a different install-hook to create a bundle
+if HAVE_MAC_OSX
+install-exec-hook:freeview
+	mkdir $(DESTDIR)$(bindir)/Freeview.app
+	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents
+	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
+	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
+	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
+	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
+	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
+	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "open Freeview.app \$$argv" >> $(DESTDIR)$(bindir)/freeview
+	chmod a+x $(DESTDIR)$(bindir)/freeview
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/freeview
+	rm -rf $(DESTDIR)$(bindir)/Freeview.app
+else
 install-exec-hook:freeview
 	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/freeview.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
@@ -247,6 +272,7 @@ install-exec-hook:freeview
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview.bin
+endif
 
 else
 bin_PROGRAMS =
