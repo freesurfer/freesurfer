@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/12/19 22:03:39 $
-#    $Revision: 1.18 $
+#    $Author: fischl $
+#    $Date: 2009/12/03 22:33:03 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
 # uncomment this to increase number of allowable open files:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_subject,v 1.18 2008/12/19 22:03:39 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.19 2009/12/03 22:33:03 fischl Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -245,6 +245,7 @@ usage_exit:
   echo "   --no-link : do not link back to the original SUBJECTS_DIR with --sd-out"
   echo "   --sdir <SUBJECTS_DIR to use instead of the one in the env>"
   echo "   --sd      : same as --sdir"
+  echo "   --ico <ico order> : change order of icosahedron (default=7)"
   echo "   --xform <transform_fname>   : filename of transform file"
   echo "   --surf-reg <surface name>   : alternative registration surface"
   echo "                                 default: sphere.reg"
