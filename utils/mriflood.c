@@ -7,9 +7,9 @@
 /*
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
- *    $Author: jonnyreb $
- *    $Date: 2009/07/31 21:43:15 $
- *    $Revision: 1.29 $
+ *    $Author: fischl $
+ *    $Date: 2009/12/03 22:14:27 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.29 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.30 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -811,6 +811,8 @@ MRI *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst)
   depth=mri_src->depth;
 
   /* Set seed voxel in corner of voxel in corner of box */
+  if (mri_dst == NULL)
+    mri_dst = MRIcopy(mri_src, NULL) ;
   val = (int)MRIgetVoxVal(mri_dst,1,1,1,0)|subvoxmask(0,0,0);
   MRIsetVoxVal(mri_dst,1,1,1,0,val) ;
 
