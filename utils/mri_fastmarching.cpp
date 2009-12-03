@@ -35,6 +35,16 @@ extern "C" MRI *MRIextractDistanceMap( MRI *mri_src,
 {
   MRI *mri_distance = NULL;
 
+#if 0
+  int  free_mri = 0 ;
+
+  if (mri_src->type != MRI_FLOAT)
+  {
+    mri_src = MRIchangeType(mri_src, MRI_FLOAT, 0, 1, 1) ;
+    free_mri = 1 ;
+  }
+#endif
+
   // make sure that the max distance is greater than 0
   if( max_distance <= 0 ) {
     max_distance = 2*MAX(MAX(mri_src->width,mri_src->height),mri_src->depth);
@@ -54,8 +64,7 @@ extern "C" MRI *MRIextractDistanceMap( MRI *mri_src,
   if ( mri_dst->width != mri_src->width || 
        mri_dst->height != mri_src->height || 
        mri_dst->depth != mri_src->depth || 
-       mri_dst->type != MRI_FLOAT ||
-       mri_src->type != MRI_FLOAT) {
+       mri_dst->type != MRI_FLOAT) {
 
     if ( mri_dst->width != mri_src->width )
       fprintf(stderr,"ERROR : incompatible structure with mri_src:\n"
@@ -75,10 +84,6 @@ extern "C" MRI *MRIextractDistanceMap( MRI *mri_src,
     if ( mri_dst->type != MRI_FLOAT )
       fprintf(stderr,"ERROR : incompatible structure with mri_dst:\n"
         "mri_dst->type=%d != MRI_FLOAT\n", mri_dst->type);
-
-    if ( mri_src->type != MRI_FLOAT )
-      fprintf(stderr,"ERROR : incompatible structure with mri_src:\n"
-        "mri_src->type=%d != MRI_FLOAT\n", mri_src->type);
 
   } else {
 
