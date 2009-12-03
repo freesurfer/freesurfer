@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/09/15 17:59:15 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/12/03 01:14:52 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,7 +79,7 @@ main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.2 2009/09/15 17:59:15 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.3 2009/12/03 01:14:52 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -389,11 +389,9 @@ MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
         }
         else  // sample in other direction
         {
-          V3_X(v1) = x ;
-          V3_Y(v1) = y ;
-          V3_Z(v1) = z ;
-          MatrixMultiply(m_vox2vox, v1, v2) ;
-          MatrixMultiply(m_vox2vox, v1, v2) ;
+          V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+          MatrixMultiply(m_inv, v1, v2) ;
+          MatrixMultiply(m_inv, v1, v2) ;
           xs = nint(V3_X(v2)) ; ys = nint(V3_Y(v2)) ; zs = nint(V3_Z(v2)) ;
           if (xs >= 0 && ys >= 0 && zs >= 0 &&
               xs < mri_seg->width && ys < mri_seg->height && zs < mri_seg->depth)
@@ -410,7 +408,8 @@ MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
           }
         }
       }
-  VectorFree(&v1) ; VectorFree(&v2) ;
+  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_inv) ;
+  MRIfree(&mri_counts) ;
 
   return(NO_ERROR) ;
 }
