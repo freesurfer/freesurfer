@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/23 16:38:00 $
- *    $Revision: 1.61 $
+ *    $Date: 2009/12/03 22:29:20 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,7 @@ static MRI *add_interior_points(MRI *mri_src, MRI *mri_vals,
 static int conform = 1 ;
 static int gentle_flag = 0 ;
 static int nosnr = 1 ;
+static double min_dist = 2.5 ; // mm away from border in -surface
 
 static float bias_sigma = 8.0 ;
 
@@ -116,14 +117,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.61 2009/11/23 16:38:00 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.62 2009/12/03 22:29:20 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.61 2009/11/23 16:38:00 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.62 2009/12/03 22:29:20 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -203,7 +204,7 @@ main(int argc, char *argv[]) {
     printf("computing nonmaximum suppression\n") ;
     mri_dist_sup = MRInonMaxSuppress(mri_dist, NULL, 0, 1) ;
     mri_ctrl = MRIcloneDifferentType(mri_dist_sup, MRI_UCHAR) ;
-    MRIbinarize(mri_dist_sup, mri_ctrl, 1.5, CONTROL_NONE, CONTROL_MARKED) ;
+    MRIbinarize(mri_dist_sup, mri_ctrl, min_dist, CONTROL_NONE, CONTROL_MARKED) ;
     if (control_point_fname)
     {
       MRI3dUseFileControlPoints(mri_src, control_point_fname) ;
@@ -474,6 +475,11 @@ get_option(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s:could not load xform from %s",Progname,
                 argv[3]) ;
     nargs = 2 ;
+  } else if (!stricmp(option, "MIN_DIST")) {
+    min_dist = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("retaining nonmaximum suppressed points that are at least %2.3fmm from the boundary\n",
+           min_dist) ;
   } else if (!stricmp(option, "INTERIOR")) {
     interior_fname1 = argv[2] ;
     interior_fname2 = argv[3] ;
