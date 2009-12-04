@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/30 22:04:46 $
- *    $Revision: 1.78 $
+ *    $Date: 2009/12/04 21:57:12 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -89,6 +89,7 @@
 #include "LayerPropertiesSurface.h"
 #include "DialogLoadPVolumes.h"
 #include "ConnectivityData.h"
+#include "DialogSaveScreenshot.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -244,6 +245,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_bProcessing = false;
   m_bResampleToRAS = false;
   m_bToUpdateToolbars = false;
+  m_bDoScreenshot = false;
   m_layerVolumeRef = NULL;
   m_nPrevActiveViewId = -1;
   m_luts = new LUTDataHolder();
@@ -334,6 +336,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_toolWindowMeasure = NULL;
   m_dlgRotateVolume = NULL;
   m_dlgGradientVolume = NULL;
+  m_dlgSaveScreenshot = NULL;
 
   m_wndHistogram = new WindowHistogram( this );
   m_wndHistogram->Hide();
@@ -1894,6 +1897,9 @@ void MainWindow::OnInternalIdle()
     }
     run_once = true;
   }
+  
+  if ( m_bDoScreenshot )
+    DoSaveScreenshot();
 }
 
 void MainWindow::OnEditPreferences( wxCommandEvent& event )
@@ -3640,6 +3646,7 @@ RenderView* MainWindow::GetPreviousActiveView()
     return m_viewRender[ m_nPrevActiveViewId ];
 }
 
+/*
 void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
 {
   int nId = GetActiveViewId();
@@ -3671,6 +3678,66 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
       dlg.ShowModal();
     }
   }
+}
+*/
+
+void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
+{
+  if ( !m_dlgSaveScreenshot )
+    m_dlgSaveScreenshot = new DialogSaveScreenshot( this );
+  
+  if ( !m_dlgSaveScreenshot->IsVisible() )
+  {
+    m_dlgSaveScreenshot->SetSettings( m_settingsScreenshot );
+    m_dlgSaveScreenshot->SetFileName( m_strLastDir );
+    m_dlgSaveScreenshot->SetFilterIndex( m_nScreenshotFilterIndex );
+    m_dlgSaveScreenshot->Show();
+  }
+}
+  
+bool MainWindow::SaveScreenshot()
+{
+  int nId = GetActiveViewId();
+  if ( nId < 0 )
+    nId = m_nPrevActiveViewId;
+
+  if ( nId < 0 )
+  {
+    wxMessageDialog dlg( this, _("Can not identify active view."), _("Error"), wxOK );
+    dlg.ShowModal();
+    return false;
+  }
+  
+  wxString fn = m_dlgSaveScreenshot->GetFileName();
+  if ( fn.IsEmpty() )
+    return false;
+  
+  m_viewRender[nId]->Render();
+  m_bDoScreenshot = true;
+  return true;
+}
+
+void MainWindow::DoSaveScreenshot()
+{
+  wxString fn = m_dlgSaveScreenshot->GetFileName();
+  m_settingsScreenshot = m_dlgSaveScreenshot->GetSettings();
+  int nId = GetActiveViewId();
+  if ( nId < 0 )
+    nId = m_nPrevActiveViewId;
+   
+  if ( !fn.IsEmpty() )
+  {
+    m_strLastDir = MyUtils::GetNormalizedPath( fn );
+    m_nScreenshotFilterIndex = m_dlgSaveScreenshot->GetFilterIndex();
+    if ( !m_viewRender[nId]->SaveScreenshot( fn, 
+          m_settingsScreenshot.Magnification,
+          m_settingsScreenshot.AntiAliasing ) )
+    {
+      wxMessageDialog dlg( this, _("Error occured writing to file. Please make sure you have right permission and the disk is not full."), _("Error"), wxOK );
+      dlg.ShowModal();
+    }
+  }
+  m_bDoScreenshot = false;
 }
 
 void MainWindow::OnFileSaveScreenshotUpdateUI( wxUpdateUIEvent& event )

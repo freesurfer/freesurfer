@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/20 17:54:13 $
- *    $Revision: 1.41 $
+ *    $Date: 2009/12/04 21:57:12 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -224,8 +224,18 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 
   if ( IsModified() || m_bReorient )
     m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
+  else
+  {
+    if ( !m_volumeSource->Restore( m_sFilename.c_str(), 
+                                  m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL, 
+                                  wnd, 
+                                  event ) )
+    {
+      cerr << "Failed to load original volume. Restore from converted volume (not good)." << endl;
+      m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
+    }
+  }
 
-// wxPostEvent( wnd, event );
   bool bSaved = m_volumeSource->MRIWrite( m_sFilename.c_str(), !m_bReorient );
   m_bModified = !bSaved;
 
@@ -241,6 +251,17 @@ bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   if ( IsModified() )
     m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
+  else
+  {
+    if ( !m_volumeSource->Restore( m_sFilename.c_str(), 
+          m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL, 
+          wnd, 
+          event ) )
+    {
+      cerr << "Failed to load original volume. Restore from converted volume (not good)." << endl;
+      m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
+    }
+  }
 
   int nSampleMethod = rotations[0].SampleMethod;
   if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )

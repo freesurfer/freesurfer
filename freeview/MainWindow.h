@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.49 $
+ *    $Date: 2009/12/04 21:57:12 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -62,6 +62,7 @@ class WindowHistogram;
 class WindowOverlayConfiguration;
 class WindowConnectivityConfiguration;
 class DialogGradientVolume;
+class DialogSaveScreenshot;
 class ConnectivityData;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
@@ -307,6 +308,8 @@ public:
   {
     return m_settingsScreenshot;
   }
+  
+  bool SaveScreenshot();
 
   void SetAction( int nAction );
 
@@ -362,6 +365,7 @@ protected:
   void CommandSetLayerName      ( const wxArrayString& cmd );
 
   void OnInternalIdle();
+
   virtual void DoListenToMessage ( std::string const iMsg, void* iData, void* sender );
 
 private:
@@ -371,6 +375,7 @@ private:
   void ShowControlPanel( bool bShow );
   void UpdateToolbars();
   void DoUpdateToolbars();
+  void DoSaveScreenshot(); 
 
   ControlPanel*       m_controlPanel;
   PixelInfoPanel*     m_pixelInfoPanel;
@@ -390,6 +395,7 @@ private:
   WindowOverlayConfiguration*       m_wndOverlayConfiguration;
   WindowConnectivityConfiguration*  m_wndConnectivityConfiguration; 
   DialogGradientVolume*       m_dlgGradientVolume;
+  DialogSaveScreenshot*       m_dlgSaveScreenshot;
 
   RenderView2D*   m_viewAxial;
   RenderView2D*   m_viewSagittal;
@@ -423,6 +429,7 @@ private:
 // bool   m_bSaving;
 // bool   m_bLoading;
   bool            m_bProcessing;
+  bool            m_bDoScreenshot;
 
   std::vector<wxArrayString> m_scripts;
 

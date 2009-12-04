@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/20 17:54:13 $
- *    $Revision: 1.34 $
+ *    $Date: 2009/12/04 21:57:12 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,6 +58,7 @@ FSVolume::FSVolume( FSVolume* ref ) :
     m_MRITarget( NULL ),
     m_MRIRef( NULL ),
     m_MRIOrigTarget( NULL ),
+    m_MRITemp( NULL ),
     m_matReg( NULL ),
     m_ctabEmbedded( NULL ),
     m_volumeRef( ref ),
@@ -94,6 +95,9 @@ FSVolume::~FSVolume()
   if ( m_MRIOrigTarget )
     ::MRIfree( &m_MRIOrigTarget );
 
+  if ( m_MRITemp )
+    ::MRIfree( &m_MRITemp );
+
   if ( m_matReg )
     ::MatrixFree( &m_matReg );
   
@@ -101,17 +105,20 @@ FSVolume::~FSVolume()
     ::CTABfree( &m_ctabEmbedded );
 }
 
-bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event )
+bool FSVolume::LoadMRI( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event )
 {
-  if ( m_MRI )
-    ::MRIfree( &m_MRI );
-
   event.SetInt( event.GetInt() + 1 );
   wxPostEvent( wnd, event );
+  
+  MRI* tempMRI = m_MRI;
 
   char* fn = strdup( filename );
-  m_MRI = ::MRIread( fn );
+  m_MRI = ::MRIread( fn );      // could be long process
   free( fn );
+  
+  // release the old header after loading so there is no gap where m_MRI becomes NULL during re-loading process
+  if ( tempMRI )
+    ::MRIfree( &tempMRI );
 
   if ( m_MRI == NULL )
   {
@@ -137,15 +144,61 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
 
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
 
-  this->CopyMatricesFromMRI();
-  this->MapMRIToImage( wnd, event );
-  
-  if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
-  {
-    m_MRIOrigTarget = CreateTargetMRI( m_MRI, m_volumeRef->m_MRIOrigTarget, false );
-  } 
-
   return true;
+}
+
+
+bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event )
+{
+  if ( LoadMRI( filename, reg_filename, wnd, event ) )
+  {  
+    
+    this->CopyMatricesFromMRI();
+    this->MapMRIToImage( wnd, event );
+  
+    if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
+    {
+      m_MRIOrigTarget = CreateTargetMRI( m_MRI, m_volumeRef->m_MRIOrigTarget, false );
+    } 
+  
+    // free MRI pixel space
+    MRI* mri = MRIallocHeader( m_MRI->width, 
+                              m_MRI->height, 
+                              m_MRI->depth, 
+                              m_MRI->type );
+    MRIcopyHeader( m_MRI, mri );
+    MRIfree( &m_MRI );
+    m_MRI = mri;
+  
+    return true;
+  }
+  else
+    return false;
+}
+
+bool FSVolume::Restore( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event )
+{
+  if ( LoadMRI( filename, reg_filename, wnd, event ) )
+  {  
+    // create m_MRITemp for save/rotate
+    if ( m_MRITemp )
+      MRIfree( &m_MRITemp );
+    
+    MRI* mri = MRIallocHeader( m_MRI->width, 
+                               m_MRI->height, 
+                               m_MRI->depth, 
+                               m_MRI->type );
+    MRIcopyHeader( m_MRI, mri );
+    m_MRITemp = m_MRI;
+    m_MRI = mri;
+  
+    return true;
+  }
+  else
+  {
+    cerr << "Restore failed." << endl;
+    return false;
+  }
 }
 
 // read in registration file and convert it to tkreg style
@@ -388,6 +441,7 @@ void FSVolume::SetMRITarget( MRI* mri )
   }
 }
 
+/*
 bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
 {
   char* fn = strdup( filename );
@@ -424,14 +478,51 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
 
   return err == 0;
 }
+*/
 
-bool FSVolume::MRIWrite()
+bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
 {
-  int err = ::MRIwrite( m_MRI, m_MRI->fname );
+  if ( !m_MRITemp )
+  {
+    cerr << "Volume not ready for save." << endl;
+    return false;
+  }
+  
+  if ( !bSaveToOriginalSpace && m_MRIOrigTarget) 
+    MRIcopyHeader( m_MRIOrigTarget, m_MRITemp );
+  
+  char* fn = strdup( filename );
+  int err;
+  err = ::MRIwrite( m_MRITemp, fn );
+  free( fn );
+
   if ( err != 0 )
   {
     cerr << "MRIwrite failed" << endl;
   }
+
+  MRIfree( &m_MRITemp );
+  m_MRITemp = NULL;
+  
+  return err == 0;
+}
+
+bool FSVolume::MRIWrite()
+{
+  if ( !m_MRITemp )
+  {
+    cerr << "Volume not ready for save." << endl;
+    return false;
+  }
+  
+  int err = ::MRIwrite( m_MRITemp, m_MRI->fname );
+  if ( err != 0 )
+  {
+    cerr << "MRIwrite failed" << endl;
+  }
+  MRIfree( &m_MRITemp );
+  m_MRITemp = NULL;
+   
   return err == 0;
 }
 
@@ -495,22 +586,29 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
       }  
     }
   }
-
+  
+  // create m_MRItemp for writing or rotation
+  if ( m_MRITemp )
+    MRIfree( &m_MRITemp );
+   
   if ( resampleToOriginal )
   {
-    MRIvol2Vol( mri, m_MRI, vox2vox, m_nInterpolationMethod, 0 );
+    m_MRITemp = MRIallocSequence( m_MRI->width, 
+                                m_MRI->height, 
+                                m_MRI->depth, 
+                                m_MRI->type,
+                                m_MRI->nframes );
+    MRIcopyHeader( m_MRI, m_MRITemp );
+    MRIvol2Vol( mri, m_MRITemp, vox2vox, m_nInterpolationMethod, 0 );
+    MRIfree( &mri );
   }
   else
   {
-    // swap target and mri
-    MRI* temp = m_MRITarget;
-    m_MRITarget = mri;
-    mri = temp;
+    m_MRITemp = mri;
   }
 
-  MRIfree( &mri );
   MatrixFree( &vox2vox );
-  MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
+  MRIvalRange( m_MRITemp, &m_fMinValue, &m_fMaxValue );
 }
 
 double FSVolume::GetVoxelValue( int i, int j, int k, int frame )
@@ -845,10 +943,9 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
     MatrixFree( &vox2vox );
   }
 
-// cout << "MRIvol2Vol finished" << endl;
-
   SetMRITarget( rasMRI );
   UpdateRASToRASMatrix();
+
 
   CreateImage( rasMRI, wnd, event );
 
@@ -1183,6 +1280,12 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
 {
   if ( rotations.size() == 0 )
     return false;
+  
+  if ( !m_MRITemp )
+  {
+    cerr << "Volume not ready for rotation" << endl;
+    return false;
+  }
 
   MRI* rasMRI;
   if ( rotations[0].Plane == -1 )   // restore
@@ -1269,9 +1372,12 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   if ( nSampleMethod < 0 )
     nSampleMethod = rotations[0].SampleMethod;
   if ( rotations[0].Plane == -1 )
-    MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
+    MRIvol2Vol( m_MRITemp, rasMRI, NULL, m_nInterpolationMethod, 0 );
   else
-    MRIvol2Vol( m_MRI, rasMRI, NULL, nSampleMethod, 0 );
+    MRIvol2Vol( m_MRITemp, rasMRI, NULL, nSampleMethod, 0 );
+  
+  MRIfree( &m_MRITemp );
+  m_MRITemp = NULL;
 
   // copy vox2vox
   MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
