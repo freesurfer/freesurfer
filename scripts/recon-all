@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/11/05 22:24:52 $
-#    $Revision: 1.258 $
+#    $Date: 2009/12/04 18:04:15 $
+#    $Revision: 1.259 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.258 2009/11/05 22:24:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.259 2009/12/04 18:04:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2683,8 +2683,14 @@ if($DoWMParc) then
   set cmd = (mri_segstats --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  --empty\
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
-    --in-intensity-units MR --etiv --subject $subjid --surf-wm-vol \
+    --in-intensity-units MR --subject $subjid --surf-wm-vol \
     --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt )
+  if ( -e mri/transforms/talairach.xfm ) then
+    set cmd = ($cmd --etiv);
+  else
+    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
+    echo "      due to missing talairach.xfm file" |& tee -a $LF
+  endif
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -2889,7 +2895,13 @@ if($DoAParcASegStats) then
   set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
-  set cmd = ($cmd --etiv --subject $subjid $xopts);
+  set cmd = ($cmd --subject $subjid);
+  if ( -e mri/transforms/talairach.xfm ) then
+    set cmd = ($cmd --etiv);
+  else
+    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
+    echo "      due to missing talairach.xfm file" |& tee -a $LF
+  endif
   set cmd = ($cmd $xopts);
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
