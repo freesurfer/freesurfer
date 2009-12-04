@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.6 2009/12/04 22:20:55 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.7 2009/12/04 22:22:14 rudolph Exp $
 //
 // DESC
 //
@@ -838,7 +838,8 @@ C_SMessage::colprintf(
         )
 {
     char        pch_buffer[65536];
-    int         retlw, retrw;
+    int         retlw           = 0;
+    int         retrw           = 0;
     va_list     vp_arg;
     string      str_syslog      = "";
     string      str_buffer      = "";
