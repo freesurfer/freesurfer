@@ -199,9 +199,9 @@ relDirSpec_test(
 ) {
   //
   // ARGS
-  //  astr_dirSpec  in  input string containing a
-  //      (possibly) relative directory
-  //      specification
+  //  astr_dirSpec      in      input string containing a
+  //                            + (possibly) relative directory
+  //                            + specification
   //
   // DESCRIPTION
   // Checks the directory (or file) specified by <astr_dirSpec>
@@ -235,15 +235,15 @@ str_rel2absDirSpec_change(
 ) {
   //
   // ARGS
-  //  astr_rel  in  input string containing a
-  //      (possibly) relative directory
-  //      specification
-  //  astr_abs  out  output string containing the
-  //      input as an absolute directory
-  //      specification.
+  //  astr_rel          in      input string containing a
+  //                            + (possibly) relative directory
+  //                            + specification
+  //  astr_abs          out     output string containing the
+  //                            + input as an absolute directory
+  //                            + specification.
   //
   // DESCRIPTION
-  //  Convert the (possibly) relative directory specification in
+  // Convert the (possibly) relative directory specification in
   // <astr_rel> to an absolute directory specification that is
   // stored in <astr_abs>.
   //

@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.h
-// $Id: c_SMessage.h,v 1.3 2009/12/02 19:25:29 rudolph Exp $
+// $Id: c_SMessage.h,v 1.4 2009/12/04 22:18:21 rudolph Exp $
 //
 // DESCRIPTION
 //
@@ -199,96 +199,36 @@ class C_SMessage {
     // access block
     //
     void    print();                        // print object
-    int     stackDepth_get()        const {
-        return stackDepth;
-    };
-    void    stackDepth_set(int anum) {
-        stackDepth = anum;
-    };
-    int     iter_get()              const {
-        return iter;
-    };
-    void    iter_set(int anum) {
-        iter = anum;
-    };
-    int     id_get()                const {
-        return id;
-    };
-    void    id_set(int anum) {
-        id = anum;
-    };
-    int     verbosity_get()         const {
-        return verbosity;
-    };
-    void    verbosity_set(int anum) {
-        verbosity = anum;
-    };
-    int     warnings_get()          const {
-        return warnings;
-    };
-    void    warnings_set(int anum) {
-        warnings = anum;
-    };
-    string  str_obj_get()           const {
-        return str_obj;
-    };
-    void    str_obj_set(string astr) {
-        str_obj = astr;
-    };
-    string  str_name_get()          const {
-        return str_name;
-    };
-    void    str_name_set(string astr) {
-        str_name = astr;
-    };
-    string  str_proc_get()
-    const {
-        return str_proc[stackDepth_get()];
-    };
-    void    str_proc_set(int depth, string astr) {
-        str_proc[depth] = astr;
-    };
-
-    string str_filename_get()
-    const {
-        return str_filename;
-    };
-    FILE*   pFILE_out_get()         const {
-        return pFILE_out;
-    };
-    void    pFILE_out_set(FILE* apFILE) {
-        pFILE_out = apFILE;
-    };
-    string str_syslogID_get() const {
-        return str_syslogID;
-    };
-    void str_syslogID_set(string astr) {
-        str_syslogID = astr;
-    };
-    string  str_payload_get()       const {
-        return str_payload;
-    };
-    void    str_payload_set(string astr) {
-        str_payload = astr;
-    };
-    void    str_payload_append(string astr) {
-        str_payload.append(astr);
-    };
-    void    str_payload_prepend(string astr) {
-        str_payload.insert(0, astr);
-    };
-    e_SMessageFormat e_format_get()  const {
-        return e_format;
-    };
-    void    e_format_set(e_SMessageFormat ae_format) {
-        e_format  = ae_format;
-    };
-    e_SMessageIO e_IO_get() const {
-        return e_IO;
-    };
-    void e_IO_set(e_SMessageIO ae_IO) {
-        e_IO  = ae_IO;
-    };
+    int     stackDepth_get()            const   {return stackDepth;};
+    void    stackDepth_set(int anum)            {stackDepth = anum;};
+    int     iter_get()                  const   {return iter;};
+    void    iter_set(int anum)                  {iter = anum;};
+    int     id_get()                    const   {return id;};
+    void    id_set(int anum)                    {id = anum;};
+    int     verbosity_get()             const   {return verbosity;};
+    void    verbosity_set(int anum)             {verbosity = anum;};
+    int     warnings_get()              const   {return warnings;};
+    void    warnings_set(int anum)              {warnings = anum;};
+    string  str_obj_get()               const   {return str_obj;};
+    void    str_obj_set(string astr)            {str_obj = astr;};
+    string  str_name_get()              const   {return str_name;};
+    void    str_name_set(string astr)           {str_name = astr;};
+    string  str_proc_get()              const   {return str_proc[stackDepth_get()];};
+    void    str_proc_set(int depth, string astr) {str_proc[depth] = astr;};
+    string str_filename_get()           const   {return str_filename;};
+    FILE*   pFILE_out_get()             const   {return pFILE_out;};
+    void    pFILE_out_set(FILE* apFILE)         {pFILE_out = apFILE;};
+    string str_syslogID_get()           const   {return str_syslogID;};
+    void str_syslogID_set(string astr)          {str_syslogID = astr;};
+    string  str_payload_get()           const   {return str_payload;};
+    void    str_payload_set(string astr)        {str_payload = astr;};
+    void    str_payload_clear()                 {str_payload = "";};
+    void    str_payload_append(string astr)     {str_payload.append(astr);};
+    void    str_payload_prepend(string astr)    {str_payload.insert(0, astr);};
+    e_SMessageFormat e_format_get()     const   {return e_format;};
+    void    e_format_set(e_SMessageFormat ae_format) {e_format  = ae_format;};
+    e_SMessageIO e_IO_get()             const   {return e_IO;};
+    void e_IO_set(e_SMessageIO ae_IO)           {e_IO  = ae_IO;};
 
     void lw_set(int aval) {lw = aval;};
     void rw_set(int aval) {rw = aval;};
@@ -300,8 +240,21 @@ class C_SMessage {
     // miscellaneous block - the main functionality provided by
     // this class
     //
-    void        lprintf(        const char*             format, ...);
-    void        colprintf(
+    int         lprintf(        const char*             format, ...);
+    int         colprintf(
+                                const char*             pch_lstr,
+                                const char*             format, ...
+        );
+    int         pprintf(        const char*             format, ...);
+    int         plprintf(       const char*             format, ...);
+    int         pcolprintf(
+                                const char*             pch_lstr,
+                                const char*             format, ...
+        );
+    int         lprintf(        string&                 str_bufferOut,
+                                const char*             format, ...);
+    int         colprintf(
+                                string&                 str_bufferOut,
                                 const char*             pch_lstr,
                                 const char*             format, ...
         );

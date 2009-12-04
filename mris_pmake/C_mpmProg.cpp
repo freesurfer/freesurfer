@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.5 2009/12/01 19:46:09 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.6 2009/12/04 22:18:21 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -308,7 +308,7 @@ C_mpmProg_autodijk::cost_compute(
 
     calls++;
     if(!(calls % mprogressIter)) {
-        mps_env->stdout->colprintf(
+        mps_env->pcsm_stdout->colprintf(
                             "path and dijkstra cost", "[ %d -> %d/%d = ",
                             mps_env->startVertex,
                             mps_env->endVertex,

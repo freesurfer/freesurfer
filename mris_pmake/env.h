@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.8 2009/12/01 19:46:09 rudolph Exp $
+/// $Id: env.h,v 1.9 2009/12/04 22:18:21 rudolph Exp $
 ///
 ///
 
@@ -179,10 +179,16 @@ typedef struct _env {
     int           rw;                       // right width (for stdout format)
 
     bool          b_syslogPrepend;          // prepend syslog style
-    C_SMessage*   stdout;                   // stdout C_SMessage object
+    C_SMessage*   pcsm_stdout;              // stdout C_SMessage object
+    C_SMessage*   pcsm_optionsFile;         // message wrapper for options file
+    string        str_userMsgLog;
+    string        str_sysMsgLog;
+    string        str_resultMsgLog;
     C_SMessage*   pcsm_syslog;              // log file for "sys" events
     C_SMessage*   pcsm_userlog;             // log file for "user" events
     C_SMessage*   pcsm_resultlog;           // log file for "result" event
+    int           serverControlPort;        // port on which internal server 
+                                            //+ listens
 
     bool          b_labelFile_save;         // flag: save label file
     bool          b_patchFile_save;         // flag: save patch file?
@@ -192,6 +198,8 @@ typedef struct _env {
                                             //+ for cost function calculations
     string        str_workingDir;           // directory containing input
                                             //+ and output files
+    string        str_patchFileStem;
+    string        str_labelFileStem;
     string        str_patchFileName;        // file to contain path "patch"
     string        str_labelFileName;        // file to contain path "label"
     string        str_labelFileNameOS;      // aux file to contain path "label"
@@ -217,6 +225,10 @@ typedef struct _env {
                                             // functions) to specifiy
                                             // a particular surface to
                                             // process
+    string        str_mainSurfaceFileName; 
+    string        str_auxSurfaceFileName;
+    string        str_mainCurvatureFileName;
+    string        str_auxCurvatureFileName;
     MRIS*         pMS_curvature;            // (inflated) curvature surface
     MRIS*         pMS_sulcal;               // (inflated) sulcal height surface
     MRIS*         pMS_auxSurface;           // auxillary (optional) surface
@@ -267,6 +279,11 @@ typedef struct _env {
     string              str_costCurvFile;   // file containing per vertex costs
                                             //+ for 'autodijk'
 } s_env;
+
+void
+s_env_defaultsSet(
+    s_env&              st_env
+);
 
 void
 s_env_scan(

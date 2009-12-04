@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.13 2009/12/01 19:46:09 rudolph Exp $
+// $Id: env.cpp,v 1.14 2009/12/04 22:18:21 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -299,14 +299,15 @@ s_env_nullify(
     st_env.rw                       = 20;
 
     st_env.b_syslogPrepend          = false;
-    st_env.stdout                   = new C_SMessage( "",
+    st_env.pcsm_stdout              = new C_SMessage( "",
                                            eSM_raw,
                                            "stdout",
                                            eSM_c);
-    st_env.stdout->b_syslogPrepend_set(true);
-    st_env.stdout->lw_set(st_env.lw);
-    st_env.stdout->rw_set(st_env.rw);
-    st_env.stdout->b_canPrint_set(true);
+    st_env.pcsm_stdout->b_syslogPrepend_set(true);
+    st_env.pcsm_stdout->lw_set(st_env.lw);
+    st_env.pcsm_stdout->rw_set(st_env.rw);
+    st_env.pcsm_stdout->b_canPrint_set(true);
+    st_env.pcsm_optionsFile         = NULL;
     st_env.pcsm_syslog              = NULL;
     st_env.pcsm_userlog             = NULL;
     st_env.pcsm_resultlog           = NULL;
@@ -363,6 +364,98 @@ s_env_nullify(
     st_env.pstr_activeName[0]       = "workingCurvature";
     st_env.pstr_activeName[1]       = "workingSulcal";
     st_env.pstr_activeName[2]       = "auxillary";
+
+}
+
+void
+s_env_defaultsSet(
+    s_env&              st_env
+) {
+    //
+    // ARGS
+    //  st_env          in/out          environment structure to be filled
+    //
+    // DESCRIPTION
+    // Sets environment structure with basic (non-NULL) defaults. Its main
+    // purpose is to set a basic number of values such that a complete
+    // options file can be created.
+    //
+    // PRECONDITIONS
+    // o st_env must be non-NULL. To be safe, this function also calls 
+    //   's_env_nullify' on the env structure.
+    //   
+    // POSTCONDITIONS
+    // o defaults are all set.
+    // o complex structures are *not* initialized!
+    // o data is stored to internal pcsm_optionsFile class.
+    //   
+    // HISTORY
+    // 04 December, 2009
+    // o Initial design and coding.
+    //
+
+    st_env.str_workingDir               = "./";
+    st_env.str_optionsFileName          = "./options.txt";
+    st_env.pcsm_optionsFile             = new C_SMessage( "",
+                                                eSM_raw,
+                                                st_env.str_optionsFileName,
+                                                eSM_c);
+
+    s_env_nullify(st_env);
+    st_env.startVertex                  = 0;
+    st_env.endVertex                    = 0;
+
+    st_env.str_mainSurfaceFileName      = "";
+    st_env.str_auxSurfaceFileName       = "";
+    st_env.str_mainCurvatureFileName    = "";
+    st_env.str_auxCurvatureFileName     = "";
+
+    st_env.b_patchFile_save             = false;
+    st_env.b_labelFile_save             = true;
+
+    st_env.b_useAbsCurvs                = false;
+    st_env.str_costFileName             = "cost.txt";
+    st_env.str_patchFileStem            = "dijk";
+    st_env.str_labelFileStem            = "dijk";
+    st_env.str_labelFileName            = "dijkAuxSurface";
+
+    st_env.b_syslogPrepend              = true;
+    st_env.str_userMsgLog               = "./user_msg.log";
+    st_env.str_sysMsgLog                = "localhost:1834";
+    st_env.str_resultMsgLog             = "localhost:1835";
+    st_env.serverControlPort            = 1701;
+    st_env.timeoutSec                   = 60;
+
+    st_env.pSTw                         = new s_weights;
+    st_env.pSTDw                        = new s_Dweights;
+
+    s_weights_setAll(*st_env.pSTw, 0.0);
+    st_env.pSTw->wc                      = 1.0;
+
+    st_env.b_transitionPenalties        = false;
+    s_Dweights_setAll(*st_env.pSTDw, 1.0);
+
+}
+
+void
+s_env_optionsFile_write(
+    s_env&              st_env
+) {
+  //
+  // ARGS
+  //    st_env          in              environment structure to be saved to 
+  //                                    + an optionsFile
+  //
+  // DESCRIPTION
+  // Writes a "quick-and-dirty" options file to disk
+  //
+  // HISTORY
+  // 04 December 2009
+  // o Initial design and coding.
+  //
+
+  
+
 
 }
 

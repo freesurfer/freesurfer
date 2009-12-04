@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.4 2009/12/02 19:25:29 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.5 2009/12/04 22:18:21 rudolph Exp $
 //
 // DESC
 //
@@ -262,106 +262,106 @@ C_SMessage::C_SMessage(
 
 
 C_SMessage::C_SMessage(
-  string                  astr_body,
-  e_SMessageFormat        ae_format,
-  string                  astr_filename,
-  e_SMessageIO  ae_IO) {
-  //
-  // ARGS
-  //  astr_body       in              initial value of the payload
-  //  ae_format       in              format descriptor for the payload
-  //  astr_filename   in              filename in which payload must be
-  //                                          appended. If <ae_IO> is 'eSS'
-  //      then filename is assumed to
-  //      be in "hostname:port"  format.
-  //  ae_IO  in  IO style (C, C++, or SSocket)
-  //
-  // DESC
-  //  Constructor
-  //  Creates and initialises object.
-  //
-  // HISTORY
-  // 13 September 2000
-  //  o Initial design and coding.
-  //    C-Style file handling is used since I couldn't find a simple
-  //    way to use C++ streams and default parameters and using a unified
-  //    interface over cout and text files
-  //
-  // 27 June 2001
-  //  o Expanded to handle C++ style IO
-  //
-  // 13 July 2001
-  //  o Adopted new C++ approach
-  //
-  // 15 March 2002
-  // o Changed C++ output concerns for g++-3.x. Final referencing for dumping
-  //   to stream is now handled exclusively by the dump() method. The constructor
-  //   merely opens an output file if so specified and sets a boolean flag
-  //   correspondingly.
-  //
-  // 05 April 2005
-  //  o Incorporated c_SSocket UDP transmit class
-  //
+    string                      astr_body,
+    e_SMessageFormat            ae_format,
+    string                      astr_filename,
+    e_SMessageIO                ae_IO) {
+    //
+    // ARGS
+    //  astr_body               in              initial value of the payload
+    //  ae_format               in              payload format descriptor
+    //  astr_filename           in              filename in which payload must be
+    //                                          + appended. If <ae_IO> is 'eSS'
+    //                                          + then filename is assumed to
+    //                                          + be in "hostname:port"  format.
+    //  ae_IO                   in              IO style (C, C++, or SSocket)
+    //
+    // DESC
+    //  Constructor
+    //  Creates and initialises object.
+    //
+    // HISTORY
+    // 13 September 2000
+    //  o Initial design and coding.
+    //    C-Style file handling is used since I couldn't find a simple
+    //    way to use C++ streams and default parameters and using a unified
+    //    interface over cout and text files
+    //
+    // 27 June 2001
+    //  o Expanded to handle C++ style IO
+    //
+    // 13 July 2001
+    //  o Adopted new C++ approach
+    //
+    // 15 March 2002
+    // o Changed C++ output concerns for g++-3.x. Final referencing for dumping
+    //   to stream is now handled exclusively by the dump() method. The constructor
+    //   merely opens an output file if so specified and sets a boolean flag
+    //   correspondingly.
+    //
+    // 05 April 2005
+    //  o Incorporated c_SSocket UDP transmit class
+    //
 
-  core_construct();
-  debug_push("C_SMessage");
+    core_construct();
+    debug_push("C_SMessage");
 
-  FILE*        pFILE_stream;
-  str_filename = astr_filename;
-  b_fileSpecified = false;
+    FILE*                       pFILE_stream;
+    str_filename                = astr_filename;
+    b_fileSpecified             = false;
 
-  if (str_filename  == "/dev/null")
-    e_format = eSM_devnull;
-  else {
-    str_payload.assign(astr_body);
-    e_format = ae_format;
-    e_IO  = ae_IO;
+    if (str_filename  == "/dev/null")
+        e_format        = eSM_devnull;
+    else {
+        str_payload.assign(astr_body);
+        e_format        = ae_format;
+        e_IO            = ae_IO;
 
-    switch (e_IO) {
-    case eSM_cpp:
-      pFILE_out = NULL;
-      if ( (str_filename != "stdout") && str_filename != "stderr" ) {
-        ofs_out.open(astr_filename.c_str(), ios::app);
-        if (!ofs_out)
-          error("Could not create output file:" + astr_filename, -1);
-        b_fileSpecified = true;
-      }
-      break;
+        switch (e_IO) {
+        case eSM_cpp:
+            pFILE_out = NULL;
+            if ( (str_filename != "stdout") && str_filename != "stderr" ) {
+                ofs_out.open(astr_filename.c_str(), ios::app);
+                if (!ofs_out)
+                    error("Could not create output file:" + astr_filename, -1);
+                b_fileSpecified = true;
+            }
+        break;
 
-    case eSM_c:
-      if (astr_filename == "stdout")
-        pFILE_out       = stdout;
-      else if (astr_filename == "stderr")
-        pFILE_out        = stderr;
-      else {
-        if ( (pFILE_stream = fopen(astr_filename.c_str(), "a")) == NULL) {
-          string  str_error = "Cannot open file " + astr_filename;
-          error(str_error, -1);
+        case eSM_c:
+            if (astr_filename == "stdout")
+                pFILE_out       = stdout;
+            else if (astr_filename == "stderr")
+                pFILE_out        = stderr;
+            else {
+                if ( (pFILE_stream = fopen(astr_filename.c_str(), "a")) == NULL) {
+                string  str_error = "Cannot open file " + astr_filename;
+                error(str_error, -1);
+            }
+            pFILE_out  = pFILE_stream;
+            }
+        break;
+
+        case eSS:
+            string  str_remotehost;         // host to receive UDP transmission
+            string  str_remoteport;         // port on remote hostname
+            int     pos;                    // position of separating ":"
+            int     port;
+            pos = astr_filename.find_first_of(":");
+            string str_msg =  "For SSocket-type target, destination string ";
+            str_msg += "must be '<hostname>:<port>'.\n";
+            str_msg += "\tThe ':' char has to be present.";
+            if ((unsigned)pos == (unsigned) string::npos)
+                error(str_msg);
+            str_remotehost = astr_filename.substr(0, pos);
+            str_remoteport = astr_filename.substr(pos+1);
+            port = atoi(str_remoteport.c_str());
+            pcSS = new c_SSocket_UDP_transmit(str_remotehost, port);
+            b_socketCreated = true;
+            break;
         }
-        pFILE_out  = pFILE_stream;
-      }
-      break;
-
-    case eSS:
-      string str_remotehost;  // host to receive UDP transmission
-      string str_remoteport;  // port on remote hostname
-      int pos;   // position of separating ":"
-      int  port;
-      pos = astr_filename.find_first_of(":");
-      string str_msg =  "For SSocket-type target, destination string ";
-      str_msg += "must be '<hostname>:<port>'.\n";
-      str_msg += "\tThe ':' char has to be present.";
-      if ((unsigned)pos == (unsigned) string::npos)
-        error(str_msg);
-      str_remotehost = astr_filename.substr(0, pos);
-      str_remoteport = astr_filename.substr(pos+1);
-      port = atoi(str_remoteport.c_str());
-      pcSS = new c_SSocket_UDP_transmit(str_remotehost, port);
-      b_socketCreated = true;
-      break;
     }
-  }
-  debug_pop();
+    debug_pop();
 }
 
 C_SMessage::~C_SMessage() {
@@ -390,12 +390,12 @@ void C_SMessage::dump(
 ) {
   //
   // ARGS
-  // astr_outOfBound    in              if length is non-zero, will
-  //                                    dump this string
-  //                                    instead of str_payload
   // ab_syslogPrepend   in              bool flag. If true
   //                                    do syslog_prepend
   //                                    with write operation
+  // astr_outOfBound    in              if length is non-zero, will
+  //                                    dump this string
+  //                                    instead of str_payload
   //
   // DESC
   //  "dump" the payload (or the outOfBand string) to the specified file
@@ -700,9 +700,10 @@ C_SMessage::file_changeTo(
 }
 
 
-void
+int
 C_SMessage::lprintf(const char* format, ...) {
     char        pch_buffer[65536];
+    int         ret;
     va_list     vp_arg;
     string      str_syslog      = "";
     string      str_buffer      = "";
@@ -713,18 +714,131 @@ C_SMessage::lprintf(const char* format, ...) {
     if(b_canPrint) {
         if(b_syslogPrepend) str_syslog = syslog_prepend();
         str_buffer      = str_syslog + " " + pch_buffer;
-        printf("%*s", lw, str_buffer.c_str());
+        ret = fprintf(pFILE_out, "%*s", lw, str_buffer.c_str());
     }
     fflush(stdout);
+    return ret;
 }
 
-void
+int
+C_SMessage::pprintf(const char* format, ...) {
+    char        pch_buffer[65536];
+    char        pch_bufferOut[131072];
+    int         ret;
+    va_list     vp_arg;
+    string      str_syslog      = "";
+    string      str_buffer      = "";
+
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    if(b_syslogPrepend) str_syslog = syslog_prepend();
+    str_buffer          = str_syslog + " " + pch_buffer;
+    ret = sprintf(pch_bufferOut, "%s", str_buffer.c_str());
+    str_payload         += pch_bufferOut;
+    return ret;
+}
+
+int
+C_SMessage::plprintf(const char* format, ...) {
+    char        pch_buffer[65536];
+    char        pch_bufferOut[131072];
+    int         ret;
+    va_list     vp_arg;
+    string      str_syslog      = "";
+    string      str_buffer      = "";
+
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    if(b_syslogPrepend) str_syslog = syslog_prepend();
+    str_buffer          = str_syslog + " " + pch_buffer;
+    ret = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    str_payload         += pch_bufferOut;
+    return ret;
+}
+
+int
+C_SMessage::lprintf(
+    string&     str_bufferOut,
+    const char* format, ...)
+{
+    char        pch_buffer[65536];
+    char        pch_bufferOut[131072];
+    int         ret;
+    va_list     vp_arg;
+    string      str_syslog      = "";
+    string      str_buffer      = "";
+
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    if(b_syslogPrepend) str_syslog = syslog_prepend();
+    str_buffer      = str_syslog + " " + pch_buffer;
+    ret = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    str_bufferOut  = pch_bufferOut;
+    return ret;
+}
+
+int
+C_SMessage::pcolprintf(
+        const char*             pch_lstr,
+        const char*             format, ...
+        )
+{
+    char        pch_buffer[65536];
+    char        pch_bufferOut[131072];
+    int         retlw, retrw;
+    va_list     vp_arg;
+    string      str_syslog      = "";
+    string      str_buffer      = "";
+
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    if(b_syslogPrepend) str_syslog = syslog_prepend();
+    str_buffer          = str_syslog + " " + pch_lstr;
+    retlw = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    str_payload         += pch_bufferOut;
+    retrw = sprintf(pch_bufferOut, "%*s", rw, pch_buffer);
+    str_payload        += pch_bufferOut;
+    return retlw + retrw;
+}
+
+int
+C_SMessage::colprintf(
+        string&                 str_bufferOut,
+        const char*             pch_lstr,
+        const char*             format, ...
+        )
+{
+    char        pch_buffer[65536];
+    char        pch_bufferOut[131072];
+    int         retlw, retrw;
+    va_list     vp_arg;
+    string      str_syslog      = "";
+    string      str_buffer      = "";
+
+    va_start(vp_arg, format);
+    vsnprintf(pch_buffer, 65536, format, vp_arg);
+    va_end(vp_arg);
+    if(b_syslogPrepend) str_syslog = syslog_prepend();
+    str_buffer          = str_syslog + " " + pch_lstr;
+    retlw = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    str_bufferOut       = pch_bufferOut;
+    retrw = sprintf(pch_bufferOut, "%*s", rw, pch_buffer);
+    str_bufferOut       += pch_bufferOut;
+    return retlw + retrw;
+}
+
+int
 C_SMessage::colprintf(
         const char*             pch_lstr,
         const char*             format, ...
         )
 {
     char        pch_buffer[65536];
+    int         retlw, retrw;
     va_list     vp_arg;
     string      str_syslog      = "";
     string      str_buffer      = "";
@@ -735,8 +849,9 @@ C_SMessage::colprintf(
     if(b_canPrint) {
         if(b_syslogPrepend) str_syslog = syslog_prepend();
         str_buffer      = str_syslog + " " + pch_lstr;
-        printf("%*s", lw, str_buffer.c_str());
-        printf("%*s", rw, pch_buffer);
+        retlw = fprintf(pFILE_out, "%*s", lw, str_buffer.c_str());
+        retrw = fprintf(pFILE_out, "%*s", rw, pch_buffer);
     }
     fflush(stdout);
+    return retlw + retrw;
 }
