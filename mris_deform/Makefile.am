@@ -5,7 +5,7 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
-bin_PROGRAMS = mris_deform mris_exvivo_deform
+bin_PROGRAMS = mris_deform mris_ca_deform
 mris_deform_SOURCES=mris_deform.c
 mris_deform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_deform_LDFLAGS=$(OS_LDFLAGS)
@@ -20,6 +20,6 @@ mris_deform_LDFLAGS=$(OS_LDFLAGS)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-mris_exvivo_deform_SOURCES=mris_exvivo_deform.c
-mris_exvivo_deform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mris_exvivo_deform_LDFLAGS=$(OS_LDFLAGS)
+mris_ca_deform_SOURCES=mris_ca_deform.c
+mris_ca_deform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mris_ca_deform_LDFLAGS=$(OS_LDFLAGS)
