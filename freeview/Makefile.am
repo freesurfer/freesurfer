@@ -236,11 +236,11 @@ freeview_LDADD=\
 # and if the OS is MACOSX have a different install-hook to create a bundle
 if HAVE_MAC_OSX
 install-exec-hook:freeview
-	mkdir $(DESTDIR)$(bindir)/Freeview.app
-	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents
-	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
-	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
-	mkdir $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
 	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
 	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
 	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
@@ -249,7 +249,7 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
-	echo "open Freeview.app \$$argv" >> $(DESTDIR)$(bindir)/freeview
+	echo "open $(DESTDIR)$(bindir)/Freeview.app \$$argv" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
