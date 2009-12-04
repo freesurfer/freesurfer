@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.5 2009/12/04 22:18:21 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.6 2009/12/04 22:20:55 rudolph Exp $
 //
 // DESC
 //
@@ -703,7 +703,7 @@ C_SMessage::file_changeTo(
 int
 C_SMessage::lprintf(const char* format, ...) {
     char        pch_buffer[65536];
-    int         ret;
+    int         ret             = 0;
     va_list     vp_arg;
     string      str_syslog      = "";
     string      str_buffer      = "";
