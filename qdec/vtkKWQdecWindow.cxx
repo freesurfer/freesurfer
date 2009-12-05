@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/20 22:25:57 $
- *    $Revision: 1.51 $
+ *    $Date: 2009/12/05 18:30:14 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,7 +104,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.51 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.52 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -1790,20 +1790,26 @@ void vtkKWQdecWindow::QuickSnapsTIFF () {
 
     // formulate a base filename composed of relevant parameters
     string sBaseFileName = this->mQdecProject->GetWorkingDir() + "/";
-    sBaseFileName += maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2;
+    if (maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2.length() > 0) {
+      sBaseFileName += maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2;
 
-    // append nuisance factors, if any
-    QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
-    vector<QdecFactor*> const& lNuisanceFactors = 
-      design->GetNuisanceFactors();
-    for(unsigned int j=0; j < lNuisanceFactors.size(); j++) {
-      if (lNuisanceFactors[j]) {
-        string factorName = "_";
-        factorName += lNuisanceFactors[j]->GetFactorName();
-        sBaseFileName += factorName;
+      // append nuisance factors, if any
+      QdecGlmDesign* design =  mQdecProject->GetGlmDesign();
+      vector<QdecFactor*> const& lNuisanceFactors = 
+        design->GetNuisanceFactors();
+      for(unsigned int j=0; j < lNuisanceFactors.size(); j++) {
+        if (lNuisanceFactors[j]) {
+          string factorName = "_";
+          factorName += lNuisanceFactors[j]->GetFactorName();
+          sBaseFileName += factorName;
+        }
       }
+    } else {
+      // doesnt have a label name (which would be the case if a scalar file
+      // was loaded manually) so give it the filename (better than nothing)
+      sBaseFileName = maSurfaceScalars[mnCurrentSurfaceScalars].mfnSource;
     }
-    
+
     // - Save TIFF image
     string sFileName = sBaseFileName + "-inflated-lateral.tiff";
     this->SaveTIFFImage( sFileName.c_str(), 1 );
@@ -5708,6 +5714,7 @@ vtkKWQdecWindow::ComposeSurfaceScalarsAndShow () {
       stringstream ssLabel;
       ssLabel << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel;
       if ( "" != maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2 ) {
+        this->UpdateNumberOfSubjects();
         ssLabel << endl << "Contrast: "
                 << maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2
                 << endl << "n=" 
