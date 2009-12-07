@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/05 19:46:42 $
- *    $Revision: 1.83 $
+ *    $Date: 2009/12/07 18:28:24 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -304,6 +304,7 @@ ENDHELP
 #include "colortab.h"
 #include "fsenv.h"
 #include "utils.h"
+#include "cmdargs.h"
 
 int DumpSurface(MRIS *surf, char *outfile);
 MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, int nSmoothSteps, MRI *Targ);
@@ -343,7 +344,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.83 2009/10/05 19:46:42 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.84 2009/12/07 18:28:24 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -443,6 +444,7 @@ int SplitFrames=0;
 int ConvGaussian = 0;
 
 int UseDualHemi = 0; // Assume ?h.?h.surfreg file name, source only
+MRI *RegTarg = NULL;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -462,7 +464,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.83 2009/10/05 19:46:42 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.84 2009/12/07 18:28:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -949,6 +951,7 @@ int main(int argc, char **argv) {
       printf("Reversing Face Order\n");
       MRISreverseFaceOrder(TrgSurfReg);
     }
+    if(RegTarg) getVolGeom(RegTarg, &TrgSurfReg->vg);
     MRISwrite(TrgSurfReg, trgvalfile);
   } else if (UseSurfSrc == SURF_SRC_ANNOT) {
     printf("Converting to target annot\n");
@@ -1106,13 +1109,35 @@ static int parse_commandline(int argc, char **argv) {
       UseSurfSrc = SURF_SRC_TAL_XYZ;
       nargsused = 1;
     } else if (!strcasecmp(option, "--reg")) {
+      if(nargc < 1) argnerr(option,1);
+      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
+                                &intensity, &XFM, &float2int);
+      if(err) exit(1);
+      ApplyReg = 1;
+      nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1) ){
+	printf("Reading header for %s\n",pargv[1]);
+	RegTarg = MRIreadHeader(pargv[1],MRI_VOLUME_TYPE_UNKNOWN);
+	if(RegTarg == NULL) exit(1);
+	nargsused ++;
+      }
+    } 
+    else if (!strcasecmp(option, "--reg-inv")) {
       if (nargc < 1) argnerr(option,1);
       err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
                                 &intensity, &XFM, &float2int);
       if (err) exit(1);
+      XFM = MatrixInverse(XFM,NULL);
       ApplyReg = 1;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--reg-diff")) {
+      if(CMDnthIsArg(nargc, pargv, 1) ){
+	printf("Reading header for %s\n",pargv[1]);
+	RegTarg = MRIreadHeader(pargv[1],MRI_VOLUME_TYPE_UNKNOWN);
+	if(RegTarg == NULL) exit(1);
+	nargsused ++;
+      }
+    } 
+    else if (!strcasecmp(option, "--reg-diff")) {
       if (nargc < 1) argnerr(option,1);
       err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
                                 &intensity, &XFMSubtract, &float2int);
@@ -1129,15 +1154,7 @@ static int parse_commandline(int argc, char **argv) {
       RMSMaskFile = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--reg-inv")) {
-      if (nargc < 1) argnerr(option,1);
-      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
-                                &intensity, &XFM, &float2int);
-      if (err) exit(1);
-      XFM = MatrixInverse(XFM,NULL);
-      ApplyReg = 1;
-      nargsused = 1;
-    } else if (!strcasecmp(option, "--reg-inv-lrrev")) {
+    else if (!strcasecmp(option, "--reg-inv-lrrev")) {
       // See docs below on MRIleftRightRevMatrix() for what this
       // is and how it works.
       if (nargc < 1) argnerr(option,1);
@@ -1352,8 +1369,8 @@ static void print_usage(void) {
   printf("   --sval-annot annotfile : map annotation \n");
   printf("   --sval-nxyz surfname : use surface normals of surfname as input \n");
   printf("   --sfmt   source format\n");
-  printf("   --reg register.dat     : apply register.dat to sval-xyz\n");
-  printf("   --reg-inv register.dat : apply inv(register.dat) to sval-xyz\n");
+  printf("   --reg register.dat <volgeom> : apply register.dat to sval-xyz\n");
+  printf("   --reg-inv register.dat <volgeom> : apply inv(register.dat) to sval-xyz\n");
   printf("   --srcicoorder when srcsubject=ico and src is .w\n");
   printf("   --trgsubject target subject\n");
   printf("   --trgicoorder when trgsubject=ico\n");
