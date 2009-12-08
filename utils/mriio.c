@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 15:12:32 $
- *    $Revision: 1.360 $
+ *    $Date: 2009/12/08 00:42:20 $
+ *    $Revision: 1.361 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -11920,6 +11920,9 @@ mghRead(const char *fname, int read_volume, int frame)
     mri->xsize =     xsize ;
     mri->ysize =     ysize ;
     mri->zsize =     zsize ;
+
+    mri->ps    = mri->xsize;
+    mri->thick = mri->zsize;
 
     mri->x_r = x_r  ;
     mri->x_a = x_a  ;

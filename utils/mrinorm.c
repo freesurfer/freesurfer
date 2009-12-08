@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/03/17 15:20:04 $
- *    $Revision: 1.91 $
+ *    $Date: 2009/12/08 00:42:21 $
+ *    $Revision: 1.92 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -4552,92 +4552,92 @@ it's odd */
 MRI *
 MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl)
 {
-MRI              *mri_ratio, *mri_mean, *mri_std/*, *mri_tmp = NULL */;
-MRI_SEGMENTATION *mriseg ;
-int              s1, s2, b ;
-HISTOGRAM        *h ;
-float            total, num ;
-
-if (mri_ctrl == NULL)
-{
-mri_ctrl = MRIalloc(mri_src->width,
-mri_src->height,
-mri_src->depth,
-MRI_UCHAR) ;
-MRIcopyHeader(mri_src, mri_ctrl) ;
-}
-
-mri_mean = MRImean(mri_src, NULL, WSIZE(mri_src)) ;
-mri_std = MRIstd(mri_src, NULL, mri_mean, WSIZE(mri_src)) ;
-mri_ratio = MRIdivide(mri_mean, mri_std, NULL) ;
-MRImask(mri_ratio, mri_std, mri_ratio, 0, 0) ;
-if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-{
-MRIwrite(mri_mean, "m.mgz") ;
-MRIwrite(mri_std, "s.mgz") ;
-}
-
-MRIfree(&mri_mean) ; MRIfree(&mri_std) ;
-
-h = MRIhistogram(mri_ratio, 0) ;
-
-/* don't count background voxels */
-for (total = 0.0f, b = 1 ; b < h->nbins ; b++)
-  total += h->counts[b] ;
-for (num = 0.0f, b = h->nbins-1 ; b >= 1 ; b--)
-{
-  num += h->counts[b] ;
-  if (num > 20000)   /* use voxels that are in the top .5% of SNR */
-    break ;
-}
-printf("using SNR threshold %2.3f at bin %d\n", h->bins[b], b) ;
-
-if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-{
-  HISTOplot(h, "h.plt") ;
-  MRIwrite(mri_ratio, "rb.mgz") ;
-}
-mriseg = MRIsegment(mri_ratio, h->bins[b], 2*h->bins[h->nbins-1]);
-HISTOfree(&h) ;
-s1 = MRIsegmentMax(mriseg) ;
-MRIsegmentToImage(mri_ratio, mri_ctrl, mriseg, s1) ;
-num = mriseg->segments[s1].nvoxels ;
-mriseg->segments[s1].nvoxels = 0 ;
-s2 = MRIsegmentMax(mriseg) ;
-MRIsegmentToImage(mri_ratio, mri_ctrl, mriseg, s2) ;
-mriseg->segments[s1].nvoxels = num ;
-
-printf("using segments %d and %d with %d and %d voxels, "
-       "centroids (%2.0f, %2.0f, %2.0f) and (%2.0f, %2.0f, %2.0f)\n",
-       s1, s2, mriseg->segments[s1].nvoxels,
-       mriseg->segments[s2].nvoxels,
-       mriseg->segments[s1].cx,
-       mriseg->segments[s1].cy,
-       mriseg->segments[s1].cz,
-       mriseg->segments[s2].cx,
-       mriseg->segments[s2].cy,
-       mriseg->segments[s2].cz) ;
-MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
+  MRI              *mri_ratio, *mri_mean, *mri_std/*, *mri_tmp = NULL */;
+  MRI_SEGMENTATION *mriseg ;
+  int              s1, s2, b ;
+  HISTOGRAM        *h ;
+  float            total, num ;
+  
+  if (mri_ctrl == NULL)
+  {
+    mri_ctrl = MRIalloc(mri_src->width,
+                        mri_src->height,
+                        mri_src->depth,
+                        MRI_UCHAR) ;
+    MRIcopyHeader(mri_src, mri_ctrl) ;
+  }
+  
+  mri_mean = MRImean(mri_src, NULL, WSIZE(mri_src)) ;
+  mri_std = MRIstd(mri_src, NULL, mri_mean, WSIZE(mri_src)) ;
+  mri_ratio = MRIdivide(mri_mean, mri_std, NULL) ;
+  MRImask(mri_ratio, mri_std, mri_ratio, 0, 0) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_mean, "m.mgz") ;
+    MRIwrite(mri_std, "s.mgz") ;
+  }
+  
+  MRIfree(&mri_mean) ; MRIfree(&mri_std) ;
+  
+  h = MRIhistogram(mri_ratio, 0) ;
+  
+  /* don't count background voxels */
+  for (total = 0.0f, b = 1 ; b < h->nbins ; b++)
+    total += h->counts[b] ;
+  for (num = 0.0f, b = h->nbins-1 ; b >= 1 ; b--)
+  {
+    num += h->counts[b] ;
+    if (num > 20000)   /* use voxels that are in the top .5% of SNR */
+      break ;
+  }
+  printf("using SNR threshold %2.3f at bin %d\n", h->bins[b], b) ;
+  
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    HISTOplot(h, "h.plt") ;
+    MRIwrite(mri_ratio, "rb.mgz") ;
+  }
+  mriseg = MRIsegment(mri_ratio, h->bins[b], 2*h->bins[h->nbins-1]);
+  HISTOfree(&h) ;
+  s1 = MRIsegmentMax(mriseg) ;
+  MRIsegmentToImage(mri_ratio, mri_ctrl, mriseg, s1) ;
+  num = mriseg->segments[s1].nvoxels ;
+  mriseg->segments[s1].nvoxels = 0 ;
+  s2 = MRIsegmentMax(mriseg) ;
+  MRIsegmentToImage(mri_ratio, mri_ctrl, mriseg, s2) ;
+  mriseg->segments[s1].nvoxels = num ;
+  
+  printf("using segments %d and %d with %d and %d voxels, "
+         "centroids (%2.0f, %2.0f, %2.0f) and (%2.0f, %2.0f, %2.0f)\n",
+         s1, s2, mriseg->segments[s1].nvoxels,
+         mriseg->segments[s2].nvoxels,
+         mriseg->segments[s1].cx,
+         mriseg->segments[s1].cy,
+         mriseg->segments[s1].cz,
+         mriseg->segments[s2].cx,
+         mriseg->segments[s2].cy,
+         mriseg->segments[s2].cz) ;
+  MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
 #if 0
-while (MRIvoxelsInLabel(mri_ctrl, CONTROL_MARKED) > 10000)
-{
-  mri_tmp = MRIerode(mri_ctrl, mri_tmp) ;
-  if (MRIvoxelsInLabel(mri_tmp, CONTROL_MARKED) < 100)
-    break ;
-  MRIcopy(mri_tmp, mri_ctrl) ;
-}
+  while (MRIvoxelsInLabel(mri_ctrl, CONTROL_MARKED) > 10000)
+  {
+    mri_tmp = MRIerode(mri_ctrl, mri_tmp) ;
+    if (MRIvoxelsInLabel(mri_tmp, CONTROL_MARKED) < 100)
+      break ;
+    MRIcopy(mri_tmp, mri_ctrl) ;
+  }
 #endif
-if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-{
-  MRIwrite(mri_ctrl, "csnr.mgz") ;
-}
-if (Gx >= 0)
-  printf("(%d, %d, %d) is %san control point\n",
-         Gx, Gy, Gz, MRIvox(mri_ctrl, Gx, Gy,Gz) ? "" : "NOT ") ;
-
-MRIsegmentFree(&mriseg) ;
-MRIfree(&mri_ratio) ; /*MRIfree(&mri_tmp) ;*/
-return(mri_ctrl) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_ctrl, "csnr.mgz") ;
+  }
+  if (Gx >= 0)
+    printf("(%d, %d, %d) is %san control point\n",
+           Gx, Gy, Gz, MRIvox(mri_ctrl, Gx, Gy,Gz) ? "" : "NOT ") ;
+  
+  MRIsegmentFree(&mriseg) ;
+  MRIfree(&mri_ratio) ; /*MRIfree(&mri_tmp) ;*/
+  return(mri_ctrl) ;
 }
 
 
