@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 23:15:05 $
- *    $Revision: 1.11 $
+ *    $Date: 2009/12/08 18:56:47 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -70,6 +70,7 @@ public:
 
   // Least Squares
   MATRIX* getLSEst    (MATRIX* outX = NULL);
+  MATRIX* getWeightedLSEst    (MATRIX* sqrtweights, MATRIX* outX = NULL);
 
   double getLastError()
   {

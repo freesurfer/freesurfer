@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 23:15:05 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/12/08 18:56:47 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -198,7 +198,7 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
   vector < double > err(MAXIT+1);
   err[0] = numeric_limits<double>::infinity();
   err[1] = 1e20;
-  int count = 1, rr, cc;
+  int count = 1; // rr, cc;
   double sigma;
 
   MATRIX * w = MatrixConstVal(1.0,A->rows,1,NULL);
@@ -214,11 +214,11 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
   if (lastw == NULL || lastr == NULL || lastp == NULL)
      ErrorExit(ERROR_NO_MEMORY,"Regression::getRobustEstWAB could not allocate memory for lastw,lastr,lastp") ;
 
-  MATRIX * wAi = NULL, *v = NULL;
-  MATRIX * wA = MatrixAlloc(A->rows, A->cols, MATRIX_REAL);
-  MATRIX * wr = MatrixAlloc(A->rows, 1, MATRIX_REAL);
-  if (wA == NULL || wr == NULL )
-     ErrorExit(ERROR_NO_MEMORY,"Regression::getRobustEstWAB could not allocate memory for wA,wr") ;
+//   MATRIX * wAi = NULL, *v = NULL;
+//   MATRIX * wA = MatrixAlloc(A->rows, A->cols, MATRIX_REAL);
+//   MATRIX * wr = MatrixAlloc(A->rows, 1, MATRIX_REAL);
+//   if (wA == NULL || wr == NULL )
+//      ErrorExit(ERROR_NO_MEMORY,"Regression::getRobustEstWAB could not allocate memory for wA,wr") ;
 
   // compute error (lastr = b-A*p)
   //v     = MatrixMultiply(A,p,NULL);
@@ -250,39 +250,40 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
     }
 
 
-    // solve WLS with the new weights
-    // compute wA  where w = sqrt(W);
-    for (rr = 1;rr<=wA->rows;rr++)
-      for (cc = 1;cc<=wA->cols;cc++)
-        wA->rptr[rr][cc] = A->rptr[rr][cc] * w->rptr[rr][1];
+//     // solve WLS with the new weights
+//     // compute wA  where w = sqrt(W);
+//     for (rr = 1;rr<=wA->rows;rr++)
+//       for (cc = 1;cc<=wA->cols;cc++)
+//         wA->rptr[rr][cc] = A->rptr[rr][cc] * w->rptr[rr][1];
+// 
+//     // compute wr  = ((b-A*p).*w);
+//     for (rr = 1;rr<=wr->rows;rr++)
+//       wr->rptr[rr][1] = lastr->rptr[rr][1] * w->rptr[rr][1];
+// 
+//     // compute new p = lastp + pinv(wA)*wr
+//     //wAi = MatrixPseudoInverse(wA,wAi);
+//     if (wAi != NULL) MatrixFree(&wAi);
+//     wAi = MatrixSVDPseudoInverse(wA,NULL);
+// 
+//     if (wAi == NULL)
+//     {
+//       cerr << "    Regression::getRobustEstW  could not compute pseudo inverse!" << endl;
+//       //cerr << " wa: " << endl ;
+//       //   MatrixPrintFmt(stdout,"% 2.8f",wAi);
+//       //cerr << endl;
+//       assert(wAi != NULL);
+//     }
+//     //cout << " got inverse" << endl;
+//     // MatrixPrintFmt(stdout,"% 2.8f",wAi);
+//     // cout << endl;
+//     // MatrixPrintFmt(stdout,"% 2.8f",wr);
+//     // cout << endl;
+// 
+//     v   = MatrixMultiply(wAi,wr,v);
+//     // cout << " asdf" << endl;
+//     MatrixAdd(lastp,v,p);
 
-    // compute wr  = ((b-A*p).*w);
-    for (rr = 1;rr<=wr->rows;rr++)
-      wr->rptr[rr][1] = lastr->rptr[rr][1] * w->rptr[rr][1];
-
-    // compute new p = lastp + pinv(wA)*wr
-    //wAi = MatrixPseudoInverse(wA,wAi);
-    if (wAi != NULL) MatrixFree(&wAi);
-    wAi = MatrixSVDPseudoInverse(wA,NULL);
-
-    if (wAi == NULL)
-    {
-      cerr << "    Regression::getRobustEstW  could not compute pseudo inverse!" << endl;
-      //cerr << " wa: " << endl ;
-      //   MatrixPrintFmt(stdout,"% 2.8f",wAi);
-      //cerr << endl;
-      assert(wAi != NULL);
-    }
-    //cout << " got inverse" << endl;
-    // MatrixPrintFmt(stdout,"% 2.8f",wAi);
-    // cout << endl;
-    // MatrixPrintFmt(stdout,"% 2.8f",wr);
-    // cout << endl;
-
-    v   = MatrixMultiply(wAi,wr,v);
-    // cout << " asdf" << endl;
-    MatrixAdd(lastp,v,p);
-
+    p = getWeightedLSEst(w,p);
 
     // compute new residual and total errors (using new p)
     // r = b - (A*p)
@@ -336,10 +337,10 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
 
   MatrixFree(&lastr);
   MatrixFree(&r);
-  MatrixFree(&wA);
-  MatrixFree(&wr);
-  MatrixFree(&wAi);
-  MatrixFree(&v);
+//  MatrixFree(&wA);
+//  MatrixFree(&wr);
+//  MatrixFree(&wAi);
+//  MatrixFree(&v);
 
 //    cout << " p-final  : "<< endl;
 //    MatrixPrintFmt(stdout,"% 2.8f",p);
@@ -368,6 +369,46 @@ pair < MATRIX *, MATRIX *> Regression::getRobustEstWAB(double sat, double sig)
   lastzero   = (double)zcount/ddcount;
   return pair < MATRIX*, MATRIX*> (p,w);
 
+}
+
+
+MATRIX* Regression::getWeightedLSEst(MATRIX* w, MATRIX* outX)
+// w is a vector representing a diagnoal matrix with the sqrt of the weights as elements
+// solving p = [A^T W A]^{-1} A^T W b     (with W = diag(w_i^2) )
+// done by computing M := Sqrt(W) A and and  wb := sqrt(W) b
+// then we have p = [ M^T M ]^{-1} M^T wb    which is solved by computing the pseudo inverse
+// of psdi(M) and then p = psdi(M) * wb
+{
+  int rr, cc;
+	
+  // compute wA  where w = sqrt(W);
+  MATRIX * wA = MatrixAlloc(A->rows, A->cols, MATRIX_REAL);
+  if (wA == NULL) ErrorExit(ERROR_NO_MEMORY,"Regression::getWeightedLSEst could not allocate memory for wA") ;
+  for (rr = 1;rr<=wA->rows;rr++)
+    for (cc = 1;cc<=wA->cols;cc++)
+      wA->rptr[rr][cc] = A->rptr[rr][cc] * w->rptr[rr][1];
+  
+	// compute pseudoInverse of wA:
+	MATRIX * wAi = MatrixSVDPseudoInverse(wA,NULL);
+  if (wAi == NULL)
+  {
+      cerr << "    Regression::getWeightedLSEst  could not compute pseudo inverse!" << endl;
+      assert(wAi != NULL);
+  }
+
+  // compute wb:
+	VECTOR * wb  = MatrixAlloc(B->rows,1, MATRIX_REAL);
+  if (wb == NULL) ErrorExit(ERROR_NO_MEMORY,"Regression::getWeightedLSEst could not allocate memory for wb") ;
+  for (rr = 1;rr<=B->rows;rr++)
+    wb->rptr[rr][1] = B->rptr[rr][1] * w->rptr[rr][1];
+  
+	// compute wAi * wb
+  outX = MatrixMultiply(wAi,wb,outX);
+
+  MatrixFree(&wA);
+	MatrixFree(&wb);
+
+  return outX;
 }
 
 MATRIX* Regression::getLSEst(MATRIX* outX)
