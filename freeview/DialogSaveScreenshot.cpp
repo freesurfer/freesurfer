@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.1 $
+ *    $Date: 2009/12/08 22:21:21 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,7 +81,6 @@ void DialogSaveScreenshot::OnOK( wxCommandEvent& event )
   {
     if ( wxFile::Exists( GetFileName() ) )
     {
-      
       wxMessageDialog dlg( this, 
                           _("File exists. Do you want to overwrite it?"), 
                           _("Warning"), 

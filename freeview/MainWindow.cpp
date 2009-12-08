@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.79 $
+ *    $Date: 2009/12/08 22:21:21 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -90,6 +90,8 @@
 #include "DialogLoadPVolumes.h"
 #include "ConnectivityData.h"
 #include "DialogSaveScreenshot.h"
+#include "DialogSavePointSetAs.h"
+#include "DialogLoadPointSet.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -933,7 +935,7 @@ void MainWindow::OnFileNewWayPointsUpdateUI( wxUpdateUIEvent& event )
   event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() );
 }
 
-
+/*
 void MainWindow::LoadWayPoints()
 {
   if ( GetLayerCollection( "MRI" )->IsEmpty() )
@@ -948,14 +950,41 @@ void MainWindow::LoadWayPoints()
     this->LoadWayPointsFile( dlg.GetPath() );
   }
 }
+*/
+
+void MainWindow::LoadWayPoints()
+{
+  if ( GetLayerCollection( "MRI" )->IsEmpty() )
+  {
+    return;
+  }
+  DialogLoadPointSet dlg( this );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    if ( dlg.GetPointSetType() == LayerPropertiesWayPoints::WayPoints )
+      this->LoadWayPointsFile( dlg.GetFileName() );
+    else if ( dlg.GetPointSetType() == LayerPropertiesWayPoints::ControlPoints )
+      this->LoadControlPointsFile( dlg.GetFileName() );
+  }
+}
 
 void MainWindow::LoadWayPointsFile( const wxString& fn )
+{
+  this->LoadPointSetFile( fn, LayerPropertiesWayPoints::WayPoints );
+}
+
+void MainWindow::LoadControlPointsFile( const wxString& fn )
+{
+  this->LoadPointSetFile( fn, LayerPropertiesWayPoints::ControlPoints );
+}
+
+void MainWindow::LoadPointSetFile( const wxString& fn, int type )
 {
   m_strLastDir = MyUtils::GetNormalizedPath( fn );
 
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
-  LayerWayPoints* wp = new LayerWayPoints( mri );
+  LayerWayPoints* wp = new LayerWayPoints( mri, type );
   wp->SetName( wxFileName( fn ).GetName().char_str() );
   if ( wp->LoadFromFile( (const char*)fn.char_str() ) )
   {
@@ -969,7 +998,7 @@ void MainWindow::LoadWayPointsFile( const wxString& fn )
     }
     col_wp->AddLayer( wp );
 
-    m_controlPanel->RaisePage( _("Way Points") );
+    m_controlPanel->RaisePage( _("Point Sets") );
   }
   else
   {
@@ -977,9 +1006,7 @@ void MainWindow::LoadWayPointsFile( const wxString& fn )
     wxMessageDialog dlg( this, _( "Can not load Way Points from " ) + fn, _("Error"), wxOK );
     dlg.ShowModal();
   }
-
 }
-
 
 void MainWindow::NewWayPoints()
 {
@@ -993,13 +1020,13 @@ void MainWindow::NewWayPoints()
     return;
   }
 
-  // enter the name of the new ROI
+  // enter the name of the new point set
   DialogNewWayPoints dlg( this, col_mri );
-  dlg.SetWayPointsName( _("New Way Points") );
+  dlg.SetWayPointsName( _("New Point Set") );
   if ( dlg.ShowModal() != wxID_OK )
     return;
 
-  // finally we are about to create new ROI.
+  // finally we are about to create new point set.
   LayerCollection* col_wp = m_layerCollectionManager->GetLayerCollection( "WayPoints" );
   if ( col_wp->IsEmpty() )
   {
@@ -1008,11 +1035,11 @@ void MainWindow::NewWayPoints()
     col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
     col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
   }
-  LayerWayPoints* layer_wp = new LayerWayPoints( dlg.GetTemplate() );
+  LayerWayPoints* layer_wp = new LayerWayPoints( dlg.GetTemplate(), dlg.GetType() );
   layer_wp->SetName( dlg.GetWayPointsName().char_str() );
   col_wp->AddLayer( layer_wp );
 
-  m_controlPanel->RaisePage( _("Way Points") );
+  m_controlPanel->RaisePage( _("Point Sets") );
 
   m_viewAxial->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
   m_viewCoronal->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
@@ -1037,6 +1064,7 @@ void MainWindow::SaveWayPoints()
   wxString fn = wxString::FromAscii( layer_wp->GetFileName() );
   if ( fn.IsEmpty() )
   {
+    /*
     wxFileDialog dlg( this, _("Save Way Points file"), m_strLastDir, _(""),
                       _("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
@@ -1044,13 +1072,20 @@ void MainWindow::SaveWayPoints()
     {
       fn = dlg.GetPath();
     }
+    */
+    SaveWayPointsAs();
   }
-
-  if ( !fn.IsEmpty() )
+  else
   {
-    if ( !MyUtils::HasExtension( fn, _("label") ) )
+    if ( layer_wp->GetProperties()->GetType() == LayerPropertiesWayPoints::WayPoints &&
+         !MyUtils::HasExtension( fn, _("label") ) )
     {
       fn += _(".label");
+    }
+    if ( layer_wp->GetProperties()->GetType() == LayerPropertiesWayPoints::ControlPoints &&
+         !MyUtils::HasExtension( fn, _("dat") ) )
+    {
+      fn += _(".dat");
     }
     layer_wp->SetFileName( fn.char_str() );
     layer_wp->ResetModified();
@@ -1058,7 +1093,6 @@ void MainWindow::SaveWayPoints()
     thread->SaveWayPoints( layer_wp );
   }
 }
-
 
 void MainWindow::SaveWayPointsAs()
 {
@@ -1070,19 +1104,19 @@ void MainWindow::SaveWayPointsAs()
   }
   else if ( !layer_wp->IsVisible() )
   {
-    wxMessageDialog dlg( this, _("Current Way Points layer is not visible. Please turn it on before saving."), 
+    wxMessageDialog dlg( this, _("Current Point Set layer is not visible. Please turn it on before saving."), 
                          _("Error"), wxOK );
     dlg.ShowModal();
     return;
   }
 
   wxString fn = wxString::FromAscii( layer_wp->GetFileName() );
-  wxFileDialog dlg( this, _("Save Way Points file as"), m_strLastDir, fn,
-                    _("Way Points files (*.label)|*.label|All files (*.*)|*.*"),
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+  DialogSavePointSetAs dlg( this );
+  dlg.SetPointSetType( layer_wp->GetProperties()->GetType() );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    layer_wp->SetFileName( dlg.GetPath().char_str() );
+    layer_wp->SetFileName( dlg.GetFileName().char_str() );
+    layer_wp->GetProperties()->SetType( dlg.GetPointSetType() );
     SaveWayPoints();
     m_controlPanel->UpdateUI();
   }

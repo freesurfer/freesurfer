@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:40 $
- *    $Revision: 1.23 $
+ *    $Date: 2009/12/08 22:21:21 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,8 @@
 BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_MENU            ( XRCID( "ID_SURFACE_CLOSE" ),          PanelSurface::OnSurfaceClose )
   EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_CLOSE" ),          PanelSurface::OnSurfaceCloseUpdateUI )  
+  EVT_MENU            ( XRCID( "ID_SURFACE_LOCK" ),           PanelSurface::OnSurfaceLock )
+  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_LOCK" ),           PanelSurface::OnSurfaceLockUpdateUI )  
   EVT_LISTBOX         ( XRCID( "ID_LISTBOX_SURFACE" ),        PanelSurface::OnLayerSelectionChanged )
   EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_SURFACE" ),        PanelSurface::OnLayerVisibilityChanged )
 
@@ -401,7 +403,21 @@ void PanelSurface::OnButtonMoveDown( wxCommandEvent& event )
 }
 */
 
+void PanelSurface::OnSurfaceLock( wxCommandEvent& event )
+{
+  LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->Lock( event.IsChecked() );
+  }
+}
 
+void PanelSurface::OnSurfaceLockUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+  LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  event.Check( layer && layer->IsLocked() );
+}
 
 void PanelSurface::OnSurfaceClose( wxCommandEvent& event )
 {

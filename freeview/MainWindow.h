@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.50 $
+ *    $Date: 2009/12/08 22:21:21 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -248,7 +248,8 @@ public:
 			const wxString& fn_patch = _("")
       );
   void LoadSurfaceVectorFile    ( const wxString& fn );
-  void LoadWayPointsFile        ( const wxString& fn );
+  void LoadWayPointsFile        ( const wxString& fn );  
+  void LoadControlPointsFile    ( const wxString& fn );
   void LoadSurfaceCurvatureFile ( const wxString& fn );
   void LoadSurfaceOverlayFile   ( const wxString& fn );
   void LoadSurfaceAnnotationFile( const wxString& fn );
@@ -369,6 +370,7 @@ protected:
   virtual void DoListenToMessage ( std::string const iMsg, void* iData, void* sender );
 
 private:
+  void LoadPointSetFile( const wxString& fn, int type );
   void ContinueScripts();
   void SetViewLayout( int nLayout );
   void SetMainView( int nView );

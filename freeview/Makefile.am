@@ -35,6 +35,8 @@ freeview_SOURCES=\
 	DialogGradientVolume.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
+	DialogLoadPointSet.cpp \
+	DialogLoadPointSet.h \
 	DialogLoadPVolumes.cpp \
 	DialogLoadPVolumes.h \
 	DialogLoadVolume.cpp \
@@ -51,6 +53,8 @@ freeview_SOURCES=\
 	DialogPreferences.h \
 	DialogRotateVolume.cpp \
 	DialogRotateVolume.h \
+	DialogSavePointSetAs.cpp \
+	DialogSavePointSetAs.h \
 	DialogSaveScreenshot.cpp \
 	DialogSaveScreenshot.h \
 	DialogSaveVolumeAs.cpp \

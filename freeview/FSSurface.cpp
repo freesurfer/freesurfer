@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/29 20:53:43 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/12/08 22:21:21 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -125,6 +125,8 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   // surfaces. Or it can come from the source information in the
   // transform. We use it to get the RAS center offset for the
   // surface->RAS transform.
+  
+  
   m_SurfaceToRASMatrix[0] = 1;
   m_SurfaceToRASMatrix[1] = 0;
   m_SurfaceToRASMatrix[2] = 0;
@@ -142,6 +144,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   m_SurfaceToRASMatrix[14] = 0;
   m_SurfaceToRASMatrix[15] = 1;
   
+  /*
   if ( m_MRIS->vg.valid )
   {
     m_SurfaceToRASMatrix[3] = m_MRIS->vg.c_r;
@@ -154,6 +157,27 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
     m_SurfaceToRASMatrix[7] = -m_MRIS->lta->xforms[0].src.c_a;
     m_SurfaceToRASMatrix[11] = -m_MRIS->lta->xforms[0].src.c_s;
   }
+  */
+  
+  if ( m_MRIS->vg.valid )
+  {
+    MRI* tmp = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR);
+    useVolGeomToMRI(&m_MRIS->vg, tmp);
+    MATRIX* vox2rasScanner = MRIxfmCRS2XYZ(tmp, 0);
+    MATRIX* vo2rasTkReg = MRIxfmCRS2XYZtkreg(tmp);
+    MATRIX* vox2rasTkReg_inv = MatrixInverse( vo2rasTkReg, NULL );
+    MATRIX* M = MatrixMultiply( vox2rasScanner, vox2rasTkReg_inv, NULL );
+    for ( int i = 0; i < 16; i++ )
+    {
+      m_SurfaceToRASMatrix[i] = 
+        (double) *MATRIX_RELT( M, (i/4)+1, (i%4)+1 );
+    }
+    MRIfree( &tmp );
+    MatrixFree( &vox2rasScanner );
+    MatrixFree( &vo2rasTkReg );
+    MatrixFree( &vox2rasTkReg_inv );
+    MatrixFree( &M );
+  }  
 
   // Make our transform object and set the matrix.
   m_SurfaceToRASTransform = vtkSmartPointer<vtkTransform>::New();

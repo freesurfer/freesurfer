@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:40 $
- *    $Revision: 1.16 $
+ *    $Date: 2009/12/08 22:21:21 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,6 +55,8 @@ protected:
 private:
   void OnSurfaceClose           ( wxCommandEvent& event );
   void OnSurfaceCloseUpdateUI   ( wxUpdateUIEvent& event );
+  void OnSurfaceLock            ( wxCommandEvent& event );
+  void OnSurfaceLockUpdateUI    ( wxUpdateUIEvent& event );
   
   void OnSliderOpacityChanging  ( wxScrollEvent& event );
   void OnSliderOpacity          ( wxScrollEvent& event );
