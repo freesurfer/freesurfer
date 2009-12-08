@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/08 22:21:21 $
- *    $Revision: 1.80 $
+ *    $Date: 2009/12/08 22:34:38 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1734,6 +1734,9 @@ void MainWindow::OnViewCycleLayerUpdateUI( wxUpdateUIEvent& event )
     break;
   case 1:   // ROI
     lc = GetLayerCollection( "ROI" );
+    break;
+  case 2:   // surface
+    lc = GetLayerCollection( "Surface" );
     break;
   }
 
