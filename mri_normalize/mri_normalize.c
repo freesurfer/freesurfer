@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/03 22:29:20 $
- *    $Revision: 1.62 $
+ *    $Date: 2009/12/08 00:42:46 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -117,14 +117,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.62 2009/12/03 22:29:20 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.63 2009/12/08 00:42:46 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.62 2009/12/03 22:29:20 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.63 2009/12/08 00:42:46 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -391,10 +391,50 @@ main(int argc, char *argv[]) {
         if (mri_dst == NULL)
           mri_dst = MRIcopy(mri_src, NULL) ;
       } else {
-        printf("computing initial normalization using SNR...\n") ;
-        mri_dst = MRInormalizeHighSignalLowStd
-                  (mri_src, mri_dst, bias_sigma,
-                   DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+        if (nosnr)
+        {
+          if (interior_fname1)
+          {
+            MRIS *mris_interior1, *mris_interior2 ;
+            MRI  *mri_ctrl ;
+
+            printf("computing initial normalization using surface interiors\n");
+            mri_ctrl = MRIcloneDifferentType(mri_src, MRI_UCHAR) ;
+            mris_interior1 = MRISread(interior_fname1) ;
+            if (mris_interior1 == NULL)
+              ErrorExit(ERROR_NOFILE, 
+                        "%s: could not read white matter surface from %s\n", 
+                        Progname, interior_fname1) ;
+            mris_interior2 = MRISread(interior_fname2) ;
+            if (mris_interior2 == NULL)
+              ErrorExit(ERROR_NOFILE, 
+                        "%s: could not read white matter surface from %s\n", 
+                        Progname, interior_fname2) ;
+            add_interior_points(mri_ctrl, mri_dst, intensity_above, 1.25*intensity_below, 
+                                mris_interior1, mris_interior2, mri_aseg, mri_ctrl) ;
+            MRISfree(&mris_interior1) ;
+            MRISfree(&mris_interior2) ;
+            mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, 0.0) ;
+            if (bias_sigma> 0)
+            {
+              MRI *mri_kernel = MRIgaussian1d(bias_sigma, -1) ;
+              MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
+              MRIfree(&mri_kernel);
+            }
+            mri_dst = MRIapplyBiasCorrectionSameGeometry(mri_src, mri_bias, mri_dst, 
+                                                         DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+            MRIfree(&mri_ctrl) ;
+          }
+          else  // no initial normalization specified
+            mri_dst = MRIclone(mri_src, NULL) ;
+        }
+        else
+        {
+          printf("computing initial normalization using SNR...\n") ;
+          mri_dst = MRInormalizeHighSignalLowStd
+            (mri_src, mri_dst, bias_sigma,
+             DEFAULT_DESIRED_WHITE_MATTER_VALUE) ; 
+        }
       }
       if (!mri_dst)
         ErrorExit
@@ -882,42 +922,64 @@ add_interior_points(MRI *mri_src, MRI *mri_vals, float intensity_above,
                     MRI_SURFACE *mris_white2,
                     MRI *mri_aseg, MRI *mri_dst)
 {
-  int   x, y, z, ctrl, label ;
+  int   x, y, z, ctrl, label, i ;
   float val ;
   MRI   *mri_core ;
   MRI   *mri_interior, *mri_tmp ;
 
-  mri_interior = MRIclone(mri_aseg, NULL) ;
-  MRISfillInterior(mris_white1, mri_aseg->xsize, mri_interior) ;
-  mri_tmp = MRIclone(mri_aseg, NULL) ;
-  MRISfillInterior(mris_white2, mri_aseg->xsize, mri_tmp) ;
+  mri_interior = MRIclone(mri_src, NULL) ;
+  MRISfillInterior(mris_white1, mri_src->xsize, mri_interior) ;
+  mri_tmp = MRIclone(mri_src, NULL) ;
+  MRISfillInterior(mris_white2, mri_src->xsize, mri_tmp) ;
   MRIcopyLabel(mri_tmp, mri_interior, 1) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_interior, "i.mgz") ;
-  MRIfree(&mri_tmp) ;
   mri_core = MRIerode(mri_interior, NULL) ;
+  for (i = 1 ; i < nint(1.0/mri_src->xsize) ; i++)
+  {
+    MRIcopy(mri_core, mri_tmp) ;
+    MRIerode(mri_tmp, mri_core) ;
+  }
+  MRIfree(&mri_tmp) ;
 
-  for (x = 0 ; x < mri_src->width ; x++)
-    for (y = 0 ; y < mri_src->height ; y++)
-      for (z = 0 ; z < mri_src->depth ; z++)
-      {
-        if (Gx == x && Gy == y && Gz == z)
-          DiagBreak() ;
-        ctrl = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-        if (ctrl == 0)  // add in some missed ones that are inside the surface
+  if (mri_aseg == NULL)
+  {
+    for (x = 0 ; x < mri_src->width ; x++)
+      for (y = 0 ; y < mri_src->height ; y++)
+        for (z = 0 ; z < mri_src->depth ; z++)
         {
-          label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-
-          if (IS_GM(label) || IS_WM(label))
-          {
-            val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;
-            if ((val >= 110-intensity_below && val <= 110 + intensity_above)&&
-                MRIgetVoxVal(mri_core, x, y, z, 0) > 0)
-              ctrl = 1 ;
-          }
+          if (Gx == x && Gy == y && Gz == z)
+            DiagBreak() ;
+          ctrl = MRIgetVoxVal(mri_core, x, y, z, 0) ;
+          if (ctrl > 0) 
+            MRIsetVoxVal(mri_dst, x, y, z, 0, ctrl) ;
         }
-        MRIsetVoxVal(mri_dst, x, y, z, 0, ctrl) ;
-      }
+  }
+  else
+  {
+    for (x = 0 ; x < mri_src->width ; x++)
+      for (y = 0 ; y < mri_src->height ; y++)
+        for (z = 0 ; z < mri_src->depth ; z++)
+        {
+          if (Gx == x && Gy == y && Gz == z)
+            DiagBreak() ;
+          ctrl = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          if (ctrl == 0)  // add in some missed ones that are inside the surface
+          {
+            label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+            
+            if (IS_GM(label) || IS_WM(label))
+            {
+              val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;
+              if ((val >= 110-intensity_below && val <= 110 + intensity_above)&&
+                  MRIgetVoxVal(mri_core, x, y, z, 0) > 0)
+                ctrl = 1 ;
+            }
+          }
+          MRIsetVoxVal(mri_dst, x, y, z, 0, ctrl) ;
+        }
+  }
+
   MRIfree(&mri_core) ;
   return(mri_dst) ;
 }
