@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/09/25 20:25:47 $
- *    $Revision: 1.63 $
+ *    $Author: fischl $
+ *    $Date: 2009/12/08 00:45:07 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1556,9 +1556,10 @@ HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
   int   b0, nv ;
   float min_count ;
 
+  b0 = HISTOfindNextPeak(hsrc, 0, 4) ;
   hdst = HISTOcopy(hsrc, hdst) ;
-  min_count = hsrc->counts[0]*0.1 ;
-  for (b0 = 1 ; b0 < hsrc->nbins ; b0++)
+  min_count = hsrc->counts[b0]*0.1 ;
+  for ( ; b0 < hsrc->nbins ; b0++)
     if (hdst->counts[b0] < min_count)
       break ;
 
