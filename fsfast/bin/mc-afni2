@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/03/01 03:07:59 $
-#    $Revision: 1.5 $
+#    $Date: 2009/12/09 18:09:08 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mc-afni2,v 1.5 2007/03/01 03:07:59 greve Exp $';
+set VERSION = '$Id: mc-afni2,v 1.6 2009/12/09 18:09:08 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -89,6 +89,8 @@ if(-e $mcdat) then
     exit 1;
   endif
 endif
+set matdat = `fname2stem $outvol`.mat
+
 
 # Output directory
 set outdir = `dirname $outvol`;
@@ -147,8 +149,8 @@ if($status) exit 1;
 set newoutvol = $tmpdir/outvol.nii.gz
 
 # Now, finally, do the motion correction
-set cmd = (3dvolreg -verbose -dfile $mcdat \
-           -base $newtempvol -prefix $newoutvol $newinvol)
+set cmd = (3dvolreg -verbose -dfile $mcdat -1Dmatrix_save $matdat \
+           -base $newtempvol -prefix $newoutvol $newinvol )
 echo "#@# --------------------------------" |& tee -a $LF
 pwd       |& tee -a $LF
 echo $cmd |& tee -a $LF
