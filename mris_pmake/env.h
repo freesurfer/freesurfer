@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.9 2009/12/04 22:18:21 rudolph Exp $
+/// $Id: env.h,v 1.10 2009/12/09 22:30:02 rudolph Exp $
 ///
 ///
 
@@ -205,6 +205,8 @@ typedef struct _env {
     string        str_labelFileNameOS;      // aux file to contain path "label"
                                             //+ projected back onto
                                             //+ the "Original Surface"
+    bool          b_optionsFileUse;         // Initialize from options file
+                                            //+ or command line arguments
     string        str_optionsFileName;      // file containing meta options
     string        str_costFileName;         // file containing final costs
     bool          b_costPathSave;           // toggle for creating the costFile
@@ -225,7 +227,9 @@ typedef struct _env {
                                             // functions) to specifiy
                                             // a particular surface to
                                             // process
-    string        str_mainSurfaceFileName; 
+    string        str_subject;
+    string        str_hemi;
+    string        str_mainSurfaceFileName;
     string        str_auxSurfaceFileName;
     string        str_mainCurvatureFileName;
     string        str_auxCurvatureFileName;
@@ -283,6 +287,12 @@ typedef struct _env {
 void
 s_env_defaultsSet(
     s_env&              st_env
+);
+
+void
+s_env_optionsFile_write(
+    s_env&              st_env,
+    bool                ab_setToDefaults        = false                        
 );
 
 void

@@ -169,14 +169,14 @@ str_rel2absDirSpec_change(
 void warn(
   string          str_action,
   string          str_errorMsg,
-  int  errorCode
+  int             errorCode
 );
 
 void
 error_exit(
   string          str_action,
   string          str_errorMsg,
-  int  errorCode
+  int             errorCode
 );
 
 void

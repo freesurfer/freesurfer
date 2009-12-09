@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.14 2009/12/04 22:18:21 rudolph Exp $
+// $Id: env.cpp,v 1.15 2009/12/09 22:30:02 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -394,14 +394,16 @@ s_env_defaultsSet(
     // o Initial design and coding.
     //
 
+    s_env_nullify(st_env);
     st_env.str_workingDir               = "./";
     st_env.str_optionsFileName          = "./options.txt";
     st_env.pcsm_optionsFile             = new C_SMessage( "",
                                                 eSM_raw,
                                                 st_env.str_optionsFileName,
                                                 eSM_c);
+    st_env.pcsm_optionsFile->lw_set(20);
+    st_env.pcsm_optionsFile->rw_set(60);
 
-    s_env_nullify(st_env);
     st_env.startVertex                  = 0;
     st_env.endVertex                    = 0;
 
@@ -439,23 +441,59 @@ s_env_defaultsSet(
 
 void
 s_env_optionsFile_write(
-    s_env&              st_env
+    s_env&              st_env,
+    bool                ab_setToDefaults
 ) {
-  //
-  // ARGS
-  //    st_env          in              environment structure to be saved to 
-  //                                    + an optionsFile
-  //
-  // DESCRIPTION
-  // Writes a "quick-and-dirty" options file to disk
-  //
-  // HISTORY
-  // 04 December 2009
-  // o Initial design and coding.
-  //
+    //
+    // ARGS
+    //  st_env                  in      environment structure to be saved to
+    //                                  + an optionsFile
+    //  ab_setToDefaults        in      if true, call s_env_defaultsSet(...)
+    //
+    // DESCRIPTION
+    // Writes a "quick-and-dirty" options file to disk.
+    // 
+    // POSTCONDITIONS
+    // o a new options file is written to disk.
+    //
+    // HISTORY
+    // 04 December 2009
+    // o Initial design and coding.
+    //
 
-  
+    C_SMessage*                 O;
 
+    if(ab_setToDefaults)        s_env_defaultsSet(st_env);
+
+    O                           = st_env.pcsm_optionsFile;
+
+    O->pprintf("#\n# auto-generated optionsFile\n#\n\n");
+
+    O->pcolprintf("surfaceFile",        "= %s\n",
+                  st_env.str_mainSurfaceFileName.c_str());
+    O->pcolprintf("auxSurfaceFile",     "= %s\n",
+                  st_env.str_auxSurfaceFileName.c_str());
+    O->pcolprintf("curvatureFile",      "= %s\n",
+                  st_env.str_mainCurvatureFileName.c_str());
+    O->pcolprintf("sulcalHeightFile",   "= %s\n",
+                  st_env.str_auxCurvatureFileName.c_str());
+    O->pprintf("\n\n");
+    O->pcolprintf("b_patchFile_save",   "= %d\n",
+                  st_env.b_patchFile_save);
+    O->pcolprintf("b_labelFile_save",   "= %d\n",
+                  st_env.b_labelFile_save);
+    O->pcolprintf("b_useAbsCurvs",      "= %d\n",
+                  st_env.b_useAbsCurvs);
+    O->pprintf("\n\n");
+    O->pcolprintf("costFile",           "= %s\n",
+                  st_env.str_costFileName.c_str());
+    O->pcolprintf("patchFile",          "= %s\n",
+                  st_env.str_patchFileStem.c_str());
+    O->pcolprintf("labelFile",          "= %s\n",
+                  st_env.str_labelFileStem.c_str());
+
+
+    O->dump();
 
 }
 

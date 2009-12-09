@@ -2,6 +2,7 @@
  *   Copyright (C) 2004 by Rudolph Pienaar / Christian Haselgrove          *
  *   {ch|rudolph}@nmr.mgh.harvard.edu                                      *
  *                                                                         *
+ *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
@@ -47,7 +48,10 @@
 ///    init. Previously this happened prior to each call to dijkstra(...).
 ///    This allows for dijkstra RUN to use arbitrary cost (old behaviour
 ///    was to only allow arbitrary cost function selection for ply searching).
-///    
+///
+///  November - December 2009
+///  o Modification to allow running without dsh.
+///  
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -64,11 +68,11 @@ using namespace std;
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <getopt.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include "help.h"
 #include "scanopt.h"
 #include "dijkstra.h"
 #include "C_mpmProg.h"
@@ -80,14 +84,7 @@ using namespace std;
 #include "c_label.h"
 #include "c_surface.h"
 
-static struct option const longopts[] = {
-  {"optionsFile",       required_argument,      NULL, 'o'},
-  {"dir",               required_argument,      NULL, 'd'},
-  {"version",           no_argument,            NULL, 'v'},
-  {"listen",            no_argument,            NULL, 'l'},
-  {"listenOnPort",      required_argument,      NULL, 'L'},
-  {NULL, 0, NULL, 0}
-};
+extern  const option longopts[];
 
 char*   Gpch_Progname;
 char*   Progname        = Gpch_Progname;
@@ -95,175 +92,10 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.7 2009/12/01 02:45:26 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.8 2009/12/09 22:30:02 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
-
-void
-version_show(void) {
-  //
-  // DESC
-  //  Show program version.
-  //
-  // HISTORY
-  // 21 October 2004
-  //  o Initial design and coding.
-  //
-
-  cout << endl << "\t\t" << G_VERSION;
-  cout << endl << "";
-  exit(0);
-}
-
-void
-synopsis_show(void) {
-  //
-  // DESC
-  //  Show a simple synopsis of program usage.
-  //
-  // HISTORY
-  // 24 September 2004
-  //  o Initial design and coding.
-  //
-
-  const char*   pch_synopsis = "\n\
- \n\
- \n\
-NAME \n\
- \n\
-    mris_pmake \n\
- \n\
-SYNOPSIS \n\
- \n\
-    mris_pmake          [--optionsFile=<fileName>]              \\ \n\
-                        [--dir=<workingDir>]                    \\ \n\
-                        [--listen | --listenOnPort <port>] \n\
- \n\
-DESCRIPTION \n\
- \n\
-    'mris_pmake' generates paths on FreeSurfer surfaces based on an edge cost \n\
-    and Dijkstra's algorithm. \n\
- \n\
-    In its simplest usage, a <start> and <end> vertex index on the surface is \n\
-    specified (typically in the <optionsFile>), and the program calculates the \n\
-    shortest path connected the points as well as the path cost. \"Shortest\" \n\
-    path in this case only has meaning in the context of the cost function that \n\
-    is being evaluated (see COST FUNCTION for details). \n\
- \n\
-    The program can also be used to calculate regions, specifying a <center> \n\
-    vertex and tagging all vertices that satisfy some cost constraint away from \n\
-    this vertex. Usually this is used to tag all vertices a certain distance \n\
-    away from the <start> vertex. \n\
- \n\
-    An interactive mode of operation is also available through a companion \n\
-    Python script called 'dsh' that allows asychronous setting of <start> and \n\
-    <end> vertices, changes in the cost function weights, etc. This 'dsh' \n\
-    script is probably the best and easiest way to run 'mris_pmake'. \n\
- \n\
-COST FUNCTION \n\
- \n\
-    The cost function is currently a multi-dimensional weight vector of \n\
-    following form: \n\
- \n\
-       p = w  d +  w c + w h + w  dc + w  dh + w  ch + w   dch + w   (dir) \n\
-            d       c     h     dc      dh      ch      dch       dir \n\
- \n\
-       where \n\
- \n\
-       w_d     : weighting factor for distance, d \n\
-       w_c     : weighting factor for curvature, c \n\
-       w_h     : weighting factor for sulcal height, h \n\
-       w_dc    : weighting factor for product of distance and curve \n\
-       w_dh    : weighting factor for product of distance and height \n\
-       w_ch    : weighting factor for product of curve and height \n\
-       w_dch   : weighting factor for product of distance, curve, and height \n\
-       w_dir   : weighting factor for direction \n\
- \n\
-    The curvature, c, is specified in the <optionsFile> with the 'curvatureFile' \n\
-    option, and the height, h, is specified in the <optionsFile> with the \n\
-    'sulcalHeightFile'. These names are somewhat historical, and in theory any \n\
-    valid FreeSurfer overlay can be used for 'c' and 'h'. \n\
- \n\
-    An additional non-linear penalty is also available, and if \n\
-    'b_transitionPenalties' is TRUE, will be applied to the cost function, by \n\
-    an index-to-index multiplication of the cost vector. It currently triggered \n\
-    if the original 'c' value undergoes a zero-crossing along a trajectory \n\
-    path. \n\
- \n\
-OPTIONS \n\
- \n\
-    --optionsFile=<fileName> \n\
-    The main configuration file that specifies the startup run-time behaviour \n\
-    of the program, including cost function variables, start and terminal \n\
-    vertex indices, cost function, input files, output files, etc. \n\
- \n\
-    If the <fileName> contains a directory prefix, this directory will be \n\
-    assumed to be the working directory. \n\
- \n\
-    Default is 'options.txt' \n\
- \n\
-    --dir=<workingDir> \n\
-    The working directory. This will override a working directory that might \n\
-    have been specified in the <fileName> prefix. \n\
- \n\
-    Defaults is current directory. \n\
- \n\
-    --listen \n\
-    Start in LISTEN mode, i.e. initialize the program and read the default \n\
-    'options.txt' file parsing surfaces and curvatures, but do not actually \n\
-    calculate a path. Instead, once ready, start listening on the embedded \n\
-    server socket for instructions. Send a 'RUN' string in a UDP packet to \n\
-    the port specified in <optionsFile> to perform the path search. \n\
- \n\
-    --listenOnPort <port> \n\
-    Similar to above, but do not interpret the <optionsFile> environment. \n\
-    Essentially create the server port on <port> and do nothing else. In this \n\
-    mode, the program requires an explicit 'HUP' text string to be sent as \n\
-    a UDP packet to <port> to read the default enviroment, or an options file \n\
-    can be spec'd by sending a UDP string 'OPT <optionsFile>'. \n\
- \n\
-EXAMPLE USE \n\
- \n\
-    The best mechanism to run a 'mris_pmake' process is from a companion \n\
-    'shell' called 'dsh'. The use of 'dsh' is beyond the scope of this help, \n\
-    but in the simplest case (and assuming a valid <optionsFile>), simply \n\
-    run 'dsh' and wait for it to provide a prompt. At the prompt type 'RUN' \n\
-    and wait for the next prompt, at which simply type 'quit'. \n\
- \n\
-    Direct running of 'mris_pmake' can be somewhat cumbersome, since by default \n\
-    the process was designed to parse a surface, calculate a cost, and then \n\
-    stay resident for additional instructions. These instructions are delivered \n\
-    using UDP sockets communication. In this manner, an external 'controller' \n\
-    could initialze a 'mris_pmake', read surfaces and curvatures, and then \n\
-    RUN different path searches with different vertices and/or modified cost \n\
-    function vectors. \n\
- \n\
-    'mris_pmake' communicates on three different channels. Most operational \n\
-    data is sent to a channel called <userMessages> (in the <optionsFile>). \n\
-    System-type messages are sent to a channel called <sysMessages> and results \n\
-    are sent to <resultMessages>. If these are defined as files, then the \n\
-    channel simply logs to the file. If these are specifed as 'localhost:XXXX' \n\
-    then these channels are created as UDP sockets to which 'mris_pmake' \n\
-    transmits data. \n\
- \n\
-    That all having been said, how do I do a quick-and-dirty run for \n\
-    'mris_pmake'? \n\
- \n\
-        o Make sure you have a valid <optionsFile> in the working directory \n\
-        o run 'mris_pmake' \n\
-        o Monitor the <userMessages> channel and wait for: \n\
-                \"Listening for socket comms...\" \n\
-        o Send a UDP string \"TERM\" to the <controlPort> of 'mris_pmake' \n\
- \n\
-    OR, just run 'mris_pmake', wait until a file defined by <costFile> in \n\
-    the <optionsFile> appears on the file system (typically a few seconds) \n\
-    and then hit <ctrl>C. \n\
- \n\
-\n";
-
-   cout << pch_synopsis;
-}
 
 int
 main(
@@ -271,11 +103,6 @@ main(
     char**      ppch_argv) {
 
   /* ----- initializations ----- */
-
-  /*    char*  ppch_default[] = { "mris_pmake" , "--listen"};
-      argc  = 2;
-      ppch_argv  = ppch_default;*/
-
   Gpch_Progname  = strrchr(ppch_argv[0], '/');
   Gpch_Progname  = (Gpch_Progname == NULL ? ppch_argv[0] : Gpch_Progname+1);
   string                        str_progname(Gpch_Progname);
@@ -308,39 +135,7 @@ main(
   string        str_patchFQName         = "";
 
   // Process command line options
-  while (1) {
-    int opt;
-    int optionIndex = 0;
-    opt = getopt_long(argc, ppch_argv, "", longopts, &optionIndex);
-    if ( opt == -1)
-      break;
-
-    switch (opt) {
-    case 'o':
-      st_env.str_optionsFileName.assign(optarg, strlen(optarg));
-      break;
-    case 'd':
-      st_env.str_workingDir.assign(optarg, strlen(optarg));
-      break;
-    case 'l':
-      str_asynchComms = "LISTEN";
-      break;
-    case 'L':
-      str_asynchComms   = "LISTENPORT";
-      st_env.port   = atoi(optarg);
-      st_env.timeoutSec  = 60;
-      break;
-    case '?':
-      synopsis_show();
-      exit(1);
-      break;
-    case 'v':
-      version_show();
-      break;
-    default:
-      cout << "?? getopt returned character code " << opt << endl;
-    }
-  }
+  str_asynchComms       = commandLineOptions_process(argc, ppch_argv, st_env);
 
   // The main functional and event processing loop
   while (str_asynchComms != "TERM") {

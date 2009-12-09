@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.7 2009/12/04 22:22:14 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.8 2009/12/09 22:30:02 rudolph Exp $
 //
 // DESC
 //
@@ -255,9 +255,9 @@ C_SMessage::C_SMessage(
     error("This constructor can only be used for C-style C_SMessage objects", -1);
 
   str_payload.assign(astr_body);
-  e_format            = ae_format;
-  pFILE_out           = apFILE_out;
-  e_IO  = ae_IO;
+  e_format              = ae_format;
+  pFILE_out             = apFILE_out;
+  e_IO                  = ae_IO;
 }
 
 
@@ -265,7 +265,9 @@ C_SMessage::C_SMessage(
     string                      astr_body,
     e_SMessageFormat            ae_format,
     string                      astr_filename,
-    e_SMessageIO                ae_IO) {
+    e_SMessageIO                ae_IO,
+    e_FileMode                  ae_fileMode
+) {
     //
     // ARGS
     //  astr_body               in              initial value of the payload
@@ -275,6 +277,7 @@ C_SMessage::C_SMessage(
     //                                          + then filename is assumed to
     //                                          + be in "hostname:port"  format.
     //  ae_IO                   in              IO style (C, C++, or SSocket)
+    //  ae_fileMode             in              overwrite/append
     //
     // DESC
     //  Constructor
@@ -302,12 +305,16 @@ C_SMessage::C_SMessage(
     // 05 April 2005
     //  o Incorporated c_SSocket UDP transmit class
     //
+    // 09 December 2009
+    //  o file append/overwrite
+    //  
 
     core_construct();
     debug_push("C_SMessage");
 
     FILE*                       pFILE_stream;
     str_filename                = astr_filename;
+    string                      str_fileMode    = "";
     b_fileSpecified             = false;
 
     if (str_filename  == "/dev/null")
@@ -321,7 +328,10 @@ C_SMessage::C_SMessage(
         case eSM_cpp:
             pFILE_out = NULL;
             if ( (str_filename != "stdout") && str_filename != "stderr" ) {
-                ofs_out.open(astr_filename.c_str(), ios::app);
+                if(ae_fileMode == eAppend)
+                    ofs_out.open(astr_filename.c_str(), ios::app);
+                else
+                    ofs_out.open(astr_filename.c_str(), ios::out);
                 if (!ofs_out)
                     error("Could not create output file:" + astr_filename, -1);
                 b_fileSpecified = true;
@@ -334,9 +344,12 @@ C_SMessage::C_SMessage(
             else if (astr_filename == "stderr")
                 pFILE_out        = stderr;
             else {
-                if ( (pFILE_stream = fopen(astr_filename.c_str(), "a")) == NULL) {
-                string  str_error = "Cannot open file " + astr_filename;
-                error(str_error, -1);
+                if(ae_fileMode == eAppend)     str_fileMode    = "a";
+                else                            str_fileMode    = "w";
+                if ( (pFILE_stream = fopen(astr_filename.c_str(),
+                                            str_fileMode.c_str())) == NULL) {
+                    string  str_error = "Cannot open file " + astr_filename;
+                    error(str_error, -1);
             }
             pFILE_out  = pFILE_stream;
             }
@@ -714,7 +727,7 @@ C_SMessage::lprintf(const char* format, ...) {
     if(b_canPrint) {
         if(b_syslogPrepend) str_syslog = syslog_prepend();
         str_buffer      = str_syslog + " " + pch_buffer;
-        ret = fprintf(pFILE_out, "%*s", lw, str_buffer.c_str());
+        ret = fprintf(pFILE_out, "%-*s", lw, str_buffer.c_str());
     }
     fflush(stdout);
     return ret;
@@ -753,7 +766,7 @@ C_SMessage::plprintf(const char* format, ...) {
     va_end(vp_arg);
     if(b_syslogPrepend) str_syslog = syslog_prepend();
     str_buffer          = str_syslog + " " + pch_buffer;
-    ret = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    ret = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
     str_payload         += pch_bufferOut;
     return ret;
 }
@@ -775,7 +788,7 @@ C_SMessage::lprintf(
     va_end(vp_arg);
     if(b_syslogPrepend) str_syslog = syslog_prepend();
     str_buffer      = str_syslog + " " + pch_buffer;
-    ret = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    ret = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
     str_bufferOut  = pch_bufferOut;
     return ret;
 }
@@ -798,9 +811,9 @@ C_SMessage::pcolprintf(
     va_end(vp_arg);
     if(b_syslogPrepend) str_syslog = syslog_prepend();
     str_buffer          = str_syslog + " " + pch_lstr;
-    retlw = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    retlw = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
     str_payload         += pch_bufferOut;
-    retrw = sprintf(pch_bufferOut, "%*s", rw, pch_buffer);
+    retrw = sprintf(pch_bufferOut, "%-*s", rw, pch_buffer);
     str_payload        += pch_bufferOut;
     return retlw + retrw;
 }
@@ -824,9 +837,9 @@ C_SMessage::colprintf(
     va_end(vp_arg);
     if(b_syslogPrepend) str_syslog = syslog_prepend();
     str_buffer          = str_syslog + " " + pch_lstr;
-    retlw = sprintf(pch_bufferOut, "%*s", lw, str_buffer.c_str());
+    retlw = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
     str_bufferOut       = pch_bufferOut;
-    retrw = sprintf(pch_bufferOut, "%*s", rw, pch_buffer);
+    retrw = sprintf(pch_bufferOut, "%-*s", rw, pch_buffer);
     str_bufferOut       += pch_bufferOut;
     return retlw + retrw;
 }
@@ -850,8 +863,8 @@ C_SMessage::colprintf(
     if(b_canPrint) {
         if(b_syslogPrepend) str_syslog = syslog_prepend();
         str_buffer      = str_syslog + " " + pch_lstr;
-        retlw = fprintf(pFILE_out, "%*s", lw, str_buffer.c_str());
-        retrw = fprintf(pFILE_out, "%*s", rw, pch_buffer);
+        retlw = fprintf(pFILE_out, "%-*s", lw, str_buffer.c_str());
+        retrw = fprintf(pFILE_out, "%-*s", rw, pch_buffer);
     }
     fflush(stdout);
     return retlw + retrw;

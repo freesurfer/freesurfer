@@ -31,12 +31,15 @@
 ///
 /// \b HISTORY
 /// 15 March 2005 - Initial consolidation from several other sources.
-/// $Id: help.h,v 1.1 2009/09/08 22:39:27 nicks Exp $
+/// $Id: help.h,v 1.2 2009/12/09 22:30:02 rudolph Exp $
 ///
 ///
 
 #ifndef __HELP_H__
 #define __HELP_H__
+
+#include <getopt.h>
+
 
 #include "general.h"
 #include "env.h"
@@ -57,6 +60,34 @@ extern  "C" {
 #include <string>
 using namespace std;
 
+extern string   G_VERSION;
+
+static struct option const longopts[] = {
+  {"optionsFile",       required_argument,      NULL, 'o'},
+  {"dir",               required_argument,      NULL, 'D'},
+  {"version",           no_argument,            NULL, 'v'},
+  {"listen",            no_argument,            NULL, 'l'},
+  {"listenOnPort",      required_argument,      NULL, 'L'},
+  {"subject",           required_argument,      NULL, 'S'},
+  {"hemi",              required_argument,      NULL, 'h'},
+  {"surface0",          required_argument,      NULL, 's'},
+  {"surface1",          required_argument,      NULL, 't'},
+  {"curv0",             required_argument,      NULL, 'c'},
+  {"curv1",             required_argument,      NULL, 'd'},
+  {"mpmProg",           required_argument,      NULL, 'm'},
+  {"mpmArgs",           required_argument,      NULL, 'M'},
+
+  {NULL, 0, NULL, 0}
+};
+
+string
+commandLineOptions_process(
+    int         argc,
+    char**      ppch_argv,
+    s_env&      st_env                           
+);
+
+void synopsis_show(void);
 
 void asynchEvent_processHELP(
   s_env&   st_env,

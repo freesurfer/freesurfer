@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.h
-// $Id: c_SMessage.h,v 1.4 2009/12/04 22:18:21 rudolph Exp $
+// $Id: c_SMessage.h,v 1.5 2009/12/09 22:30:02 rudolph Exp $
 //
 // DESCRIPTION
 //
@@ -86,6 +86,10 @@ typedef enum {
     eSM_c,        // C style I/O
     eSS           // Simple Socket style I/O
 } e_SMessageIO;
+
+typedef enum {
+    eAppend, eOverwrite
+} e_FileMode;
 
 typedef enum {
   eSM_start, eSM_stop
@@ -172,7 +176,8 @@ class C_SMessage {
         string                  astr_body       = "",
         e_SMessageFormat        ae_format       = eSM_raw,
         string                  astr_filename   = "stdout",
-        e_SMessageIO            ae_IO           = eSM_cpp
+        e_SMessageIO            ae_IO           = eSM_cpp,
+        e_FileMode              ae_fileMode     = eAppend
         );
     ~C_SMessage();
 
