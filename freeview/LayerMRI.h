@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/20 17:54:13 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/12/09 19:42:51 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -153,6 +153,8 @@ public:
   int GetDataType();
   
   COLOR_TABLE* GetEmbeddedColorTable();
+  
+  void SnagToVoxelCenter( const double* pt_in, double* pt_out );
   
 protected:
   virtual void SetModified();

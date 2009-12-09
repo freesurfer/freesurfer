@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/08 22:21:21 $
- *    $Revision: 1.51 $
+ *    $Date: 2009/12/09 19:42:52 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -343,6 +343,7 @@ protected:
   void CommandLoadSurfaceAnnotation ( const wxArrayString& cmd );
   void CommandLoadConnectivityData  ( const wxArrayString& cmd );
   void CommandLoadWayPoints     ( const wxArrayString& cmd );
+  void CommandLoadControlPoints ( const wxArrayString& cmd );
   void CommandLoadPVolumes      ( const wxArrayString& cmd );
   void CommandScreenCapture     ( const wxArrayString& cmd );
   void CommandSetViewport       ( const wxArrayString& cmd );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/08 22:34:38 $
- *    $Revision: 1.81 $
+ *    $Date: 2009/12/09 19:42:52 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2425,6 +2425,10 @@ void MainWindow::RunScript()
   {
     CommandLoadWayPoints( sa );
   }
+  else if ( sa[0] == _("loadcontrolpoints") )
+  {
+    CommandLoadControlPoints( sa );
+  }
   else if ( sa[0] == _("loadpvolumes") )
   {
     CommandLoadPVolumes( sa );
@@ -3441,6 +3445,67 @@ void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
   ContinueScripts();
 }
 
+
+void MainWindow::CommandLoadControlPoints( const wxArrayString& cmd )
+{
+  wxArrayString options = MyUtils::SplitString( cmd[1], _(":") );
+  wxString fn = options[0];
+  wxString color = _("null");
+  wxString radius = _("0");
+  for ( size_t i = 1; i < options.GetCount(); i++ )
+  {
+    wxString strg = options[i];
+    int n = strg.Find( _("=") );
+    if ( n != wxNOT_FOUND )
+    {
+      wxString option = strg.Left( n ).Lower();
+      wxString argu = strg.Mid( n+1 );
+      if ( option == _("color") )
+      {
+        color = argu;
+      }
+      else if ( option == _("radius") )
+      {
+        radius = argu;
+      }
+      else if ( option == _("name") )
+      {
+        wxArrayString script;
+        script.Add( _("setlayername") );
+        script.Add( _("WayPoints") );
+        script.Add( argu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
+      }
+    }
+  }
+  
+  if ( color != _("null") )
+  {
+    wxArrayString script;
+    script.Add( _("setwaypointscolor") );
+    script.Add( color );
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  if ( radius != _("0") )
+  {
+    wxArrayString script;
+    script.Add( _("setwaypointsradius") );
+    script.Add( radius );
+    
+    m_scripts.insert( m_scripts.begin(), script );
+  }
+  
+  LoadControlPointsFile( fn );
+
+  ContinueScripts();
+}
+
 void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
 {
   LayerWayPoints* wp = (LayerWayPoints*)GetLayerCollection( "WayPoints" )->GetActiveLayer();
@@ -3472,7 +3537,7 @@ void MainWindow::CommandSetWayPointsColor( const wxArrayString& cmd )
         cerr << "Invalid color name or value " << cmd[1] << endl;
     }
     
-    if ( cmd[2] != _("null") )
+    if ( cmd.size() > 2 && cmd[2] != _("null") )
     {
       wxColour color( cmd[2] );
       if ( !color.IsOk() )      
@@ -3516,7 +3581,7 @@ void MainWindow::CommandSetWayPointsRadius( const wxArrayString& cmd )
         cerr << "Invalid way points radius." << endl;
     }
     
-    if ( cmd[2] != _("0") )
+    if ( cmd.size() > 2 && cmd[2] != _("0") )
     {
       double dvalue;
       if ( cmd[2].ToDouble( &dvalue ) )

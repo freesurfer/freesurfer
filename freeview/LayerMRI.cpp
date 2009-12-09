@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.42 $
+ *    $Date: 2009/12/09 19:42:51 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1402,7 +1402,6 @@ bool LayerMRI::GetVoxelStats( const double* pt0, const double* pt1, int nPlane, 
   return true;
 }
 
-
 void LayerMRI::ResetWindowLevel()
 {
   double range[2];
@@ -1420,4 +1419,20 @@ int LayerMRI::GetDataType()
 COLOR_TABLE* LayerMRI::GetEmbeddedColorTable()
 {
   return ( m_volumeSource ? m_volumeSource->GetEmbeddedColorTable(): NULL );
+}
+
+void LayerMRI::SnagToVoxelCenter( const double* pt_in, double* pt_out )
+{
+  if ( m_imageData == NULL )
+  {
+    pt_out[0] = pt_in[0];
+    pt_out[1] = pt_in[1];
+    pt_out[2] = pt_in[2];
+    return;
+  }
+
+  double* orig = m_imageData->GetOrigin();
+  double* vsize = m_imageData->GetSpacing();
+  for ( int i = 0; i < 3; i++ )
+    pt_out[i] = ( (int)( (pt_in[i] - orig[i])/vsize[i] + 0.5 ) ) * vsize[i] + orig[i];
 }
