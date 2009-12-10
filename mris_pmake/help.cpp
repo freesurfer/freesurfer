@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.2 2009/12/09 22:30:02 rudolph Exp $
+// $Id: help.cpp,v 1.3 2009/12/10 21:18:45 rudolph Exp $
 
 #include "help.h"
 
@@ -195,14 +195,15 @@ commandLineOptions_process(
 ) {
 
     bool        b_optionsFileUse                = true;
+    bool        b_useAbsCurvs                   = false;
     
-    string      str_asynchComms                 = "NOP";
+    string      str_asynchComms                 = "HUP";
     string      str_subjectsDir                 = "";
     string      str_subject                     = "";
     string      str_hemi                        = "";
 
-    string      str_mpmProg                     = "autodijk";
-    string      str_mpmArgs                     = "";
+    string      str_mpmProg                     = "";
+    string      str_mpmArgs                     = "-x";
 
     string      str_mainSurfaceFileName         = "inflated";
     string      str_auxSurfaceFileName          = "smoothwm";
@@ -223,6 +224,10 @@ commandLineOptions_process(
         break;
 
         switch (opt) {
+            case 'a':
+                b_useAbsCurvs           = true;
+                b_optionsFileUse        = true;
+            break;
             case 'o':
                 st_env.str_optionsFileName.assign(optarg, strlen(optarg));
             break;
@@ -282,16 +287,29 @@ commandLineOptions_process(
         }
     }
     st_env.str_hemi             = str_hemi;
-    string str_p                = str_subjectsDir + "/" + str_subject + "/surf/s";
+    string str_p                = str_subjectsDir + "/" + str_subject + "/surf/";
     st_env.b_optionsFileUse     = b_optionsFileUse;
     while(!st_env.b_optionsFileUse) {
         s_env_defaultsSet(st_env);
-        st_env.str_mainSurfaceFileName      = str_p + str_mainSurfaceFileName;
-        st_env.str_auxSurfaceFileName       = str_p + str_auxSurfaceFileName;
-        st_env.str_mainCurvatureFileName    = str_p + str_mainCurvatureFileName;
-        st_env.str_auxCurvatureFileName     = str_p + str_auxCurvatureFileName;
+        st_env.b_useAbsCurvs                = b_useAbsCurvs;
+        st_env.str_mainSurfaceFileName      = str_p+str_hemi+"."+str_mainSurfaceFileName;
+        st_env.str_auxSurfaceFileName       = str_p+str_hemi+"."+str_auxSurfaceFileName;
+        st_env.str_mainCurvatureFileName    = str_p+str_hemi+"."+str_mainCurvatureFileName;
+        st_env.str_auxCurvatureFileName     = str_p+str_hemi+"."+str_auxCurvatureFileName;
+        if(!str_mpmProg.length())
+            error_exit("processing command line options,",
+               "you must also specify '--mpmProg <mpmProg>'.",
+               20);
+        if(str_mpmProg != "autodijk")
+            error_exit("processing command line options,",
+                "I didn't recognize the <mpmProg>. Currently, only 'autodijk' is supported.",
+                20);
+        if(str_mpmProg == "autodijk") st_env.empm_current = e_autodijk;
+        st_env.b_mpmProgUse                     = true;
+        st_env.str_mpmArgs                      = str_mpmArgs;
         s_env_optionsFile_write(st_env);
-        st_env.b_optionsFileUse             = true;
+        st_env.b_optionsFileUse                 = true;
+        str_asynchComms                         = "INITMPMPROG";
     }
     return str_asynchComms;
 }

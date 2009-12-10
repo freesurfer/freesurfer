@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.8 2009/12/09 22:30:02 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.9 2009/12/10 21:18:44 rudolph Exp $
 //
 // DESC
 //
@@ -725,8 +725,11 @@ C_SMessage::lprintf(const char* format, ...) {
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
     if(b_canPrint) {
-        if(b_syslogPrepend) str_syslog = syslog_prepend();
-        str_buffer      = str_syslog + " " + pch_buffer;
+        if(b_syslogPrepend) {
+            str_syslog      = syslog_prepend();
+            str_buffer      = str_syslog + " " + pch_buffer;
+        } else
+            str_buffer      = pch_buffer;
         ret = fprintf(pFILE_out, "%-*s", lw, str_buffer.c_str());
     }
     fflush(stdout);
@@ -745,8 +748,11 @@ C_SMessage::pprintf(const char* format, ...) {
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    if(b_syslogPrepend) str_syslog = syslog_prepend();
-    str_buffer          = str_syslog + " " + pch_buffer;
+    if(b_syslogPrepend) {
+        str_syslog      = syslog_prepend();
+        str_buffer      = str_syslog + " " + pch_buffer;
+    } else
+        str_buffer      = pch_buffer;
     ret = sprintf(pch_bufferOut, "%s", str_buffer.c_str());
     str_payload         += pch_bufferOut;
     return ret;
@@ -764,8 +770,11 @@ C_SMessage::plprintf(const char* format, ...) {
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    if(b_syslogPrepend) str_syslog = syslog_prepend();
-    str_buffer          = str_syslog + " " + pch_buffer;
+    if(b_syslogPrepend) {
+        str_syslog      = syslog_prepend();
+        str_buffer      = str_syslog + " " + pch_buffer;
+    } else 
+        str_buffer      = pch_buffer;
     ret = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
     str_payload         += pch_bufferOut;
     return ret;
@@ -786,8 +795,11 @@ C_SMessage::lprintf(
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    if(b_syslogPrepend) str_syslog = syslog_prepend();
-    str_buffer      = str_syslog + " " + pch_buffer;
+    if(b_syslogPrepend) {
+        str_syslog      = syslog_prepend();
+        str_buffer      = str_syslog + " " + pch_buffer;
+    } else
+        str_buffer      = pch_buffer;
     ret = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
     str_bufferOut  = pch_bufferOut;
     return ret;
@@ -802,6 +814,7 @@ C_SMessage::pcolprintf(
     char        pch_buffer[65536];
     char        pch_bufferOut[131072];
     int         retlw, retrw;
+    int         len;
     va_list     vp_arg;
     string      str_syslog      = "";
     string      str_buffer      = "";
@@ -809,12 +822,20 @@ C_SMessage::pcolprintf(
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    if(b_syslogPrepend) str_syslog = syslog_prepend();
-    str_buffer          = str_syslog + " " + pch_lstr;
+    if(b_syslogPrepend) {
+        str_syslog      = syslog_prepend();
+        str_buffer      = str_syslog + " " + pch_lstr;
+    } else
+        str_buffer      = pch_lstr;
     retlw = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
-    str_payload         += pch_bufferOut;
-    retrw = sprintf(pch_bufferOut, "%-*s", rw, pch_buffer);
-    str_payload        += pch_bufferOut;
+    str_payload.append(pch_bufferOut);
+    len = strlen(pch_buffer);
+    if(pch_buffer[len-1] == '\n') {
+        pch_buffer[len-1] = '\0';
+        retrw = sprintf(pch_bufferOut, "%-*s\n", rw, pch_buffer);
+    } else
+        retrw = sprintf(pch_bufferOut, "%-*s", rw, pch_buffer);
+    str_payload.append(pch_bufferOut);
     return retlw + retrw;
 }
 
@@ -828,6 +849,7 @@ C_SMessage::colprintf(
     char        pch_buffer[65536];
     char        pch_bufferOut[131072];
     int         retlw, retrw;
+    int         len             = 0;
     va_list     vp_arg;
     string      str_syslog      = "";
     string      str_buffer      = "";
@@ -835,11 +857,19 @@ C_SMessage::colprintf(
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    if(b_syslogPrepend) str_syslog = syslog_prepend();
-    str_buffer          = str_syslog + " " + pch_lstr;
+    if(b_syslogPrepend) {
+        str_syslog      = syslog_prepend();
+        str_buffer      = str_syslog + " " + pch_lstr;
+    } else
+        str_buffer      = pch_lstr;
     retlw = sprintf(pch_bufferOut, "%-*s", lw, str_buffer.c_str());
     str_bufferOut       = pch_bufferOut;
-    retrw = sprintf(pch_bufferOut, "%-*s", rw, pch_buffer);
+    len = strlen(pch_buffer);
+    if(pch_buffer[len-1] == '\n') {
+        pch_buffer[len-1] = '\0';
+        retrw = sprintf(pch_bufferOut, "%-*s\n", rw, pch_buffer);
+    } else
+        retrw = sprintf(pch_bufferOut, "%-*s", rw, pch_buffer);
     str_bufferOut       += pch_bufferOut;
     return retlw + retrw;
 }
@@ -853,6 +883,7 @@ C_SMessage::colprintf(
     char        pch_buffer[65536];
     int         retlw           = 0;
     int         retrw           = 0;
+    int         len             = 0;
     va_list     vp_arg;
     string      str_syslog      = "";
     string      str_buffer      = "";
@@ -861,10 +892,18 @@ C_SMessage::colprintf(
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
     if(b_canPrint) {
-        if(b_syslogPrepend) str_syslog = syslog_prepend();
-        str_buffer      = str_syslog + " " + pch_lstr;
-        retlw = fprintf(pFILE_out, "%-*s", lw, str_buffer.c_str());
-        retrw = fprintf(pFILE_out, "%-*s", rw, pch_buffer);
+        if(b_syslogPrepend) {
+            str_syslog      = syslog_prepend();
+            str_buffer      = str_syslog + " " + pch_lstr;
+        } else
+            str_buffer      = pch_lstr;
+        retlw   = fprintf(pFILE_out, "%-*s", lw, str_buffer.c_str());
+        len     = strlen(pch_buffer);
+        if(pch_buffer[len-1] == '\n') {
+            pch_buffer[len-1] = '\0';
+            retrw =  fprintf(pFILE_out, "%-*s\n", rw, pch_buffer);
+        } else
+            retrw =  fprintf(pFILE_out, "%-*s", rw, pch_buffer);
     }
     fflush(stdout);
     return retlw + retrw;

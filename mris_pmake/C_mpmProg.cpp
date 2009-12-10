@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.6 2009/12/04 22:18:21 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.7 2009/12/10 21:18:44 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -219,7 +219,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     mvertex_end         = 0;
     m_costFunctionIndex = 0;
     mb_surfaceRipClear  = true;
-    mprogressIter       = 1;
+    mprogressIter       = 100;
 
     if(s_env_costFctSetIndex(mps_env, m_costFunctionIndex) == -1)
         error_exit("setting costFunctionIndex", "Could not set index", 1);
@@ -298,8 +298,6 @@ C_mpmProg_autodijk::cost_compute(
     //
 
     int         ok;
-/*    int         lw      = mps_env->lw;
-    int         rw      = mps_env->rw;*/
     float       f_cost  = 0.0;
     static int  calls   = -1;
 
@@ -326,7 +324,6 @@ C_mpmProg_autodijk::cost_compute(
             exit(1);
         }
         f_cost      = surface_ripMark(*mps_env);
-
     }
     if(!(calls % mprogressIter)) {
         if(Gb_stdout) printf(" %f ]\n", f_cost);

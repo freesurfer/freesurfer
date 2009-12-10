@@ -92,7 +92,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.8 2009/12/09 22:30:02 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.9 2009/12/10 21:18:45 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -144,6 +144,7 @@ main(
          str_asynchComms == "LISTEN"            || \
          str_asynchComms == "LISTENPORT"        || \
          str_asynchComms == "RUN"               || \
+         str_asynchComms == "INITMPMPROG"       || \
          str_asynchComms == "RUNPROG") {
 
       system("echo > lock");            // signal a "lock"
@@ -177,6 +178,11 @@ main(
           str_asynchComms = "TERM";
       }
 
+      if (str_asynchComms       == "INITMPMPROG") {
+        s_env_mpmProgSetIndex(&st_env, st_env.empm_current);
+        str_asynchComms         = "RUNPROG";
+      }
+      
       if( (str_asynchComms      == "RUNPROG")                           &&
            st_env.pSTw          != NULL) {
         Gsout.str("");

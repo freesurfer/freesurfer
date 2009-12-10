@@ -31,7 +31,7 @@
 ///
 /// \b HISTORY
 /// 15 March 2005 - Initial consolidation from several other sources.
-/// $Id: help.h,v 1.2 2009/12/09 22:30:02 rudolph Exp $
+/// $Id: help.h,v 1.3 2009/12/10 21:18:45 rudolph Exp $
 ///
 ///
 
@@ -76,6 +76,7 @@ static struct option const longopts[] = {
   {"curv1",             required_argument,      NULL, 'd'},
   {"mpmProg",           required_argument,      NULL, 'm'},
   {"mpmArgs",           required_argument,      NULL, 'M'},
+  {"useAbsCurvs",       no_argument,            NULL, 'a'},
 
   {NULL, 0, NULL, 0}
 };

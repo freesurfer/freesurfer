@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.10 2009/12/09 22:30:02 rudolph Exp $
+/// $Id: env.h,v 1.11 2009/12/10 21:18:45 rudolph Exp $
 ///
 ///
 
@@ -279,6 +279,8 @@ typedef struct _env {
     bool                b_mpmProgUse;       // flag toggle on using mpm's
     e_MPMPROG           empm_current;       // mpm program index to run
     C_mpmProg*          pCmpmProg;          // handle to mpmProg object to run
+    string              str_mpmArgs;        // User spec'd, semi-colon delimited
+                                            //+ arg string
     // autodijk options
     string              str_costCurvFile;   // file containing per vertex costs
                                             //+ for 'autodijk'
