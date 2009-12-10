@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.3 2009/12/10 21:18:45 rudolph Exp $
+// $Id: help.cpp,v 1.4 2009/12/10 22:02:18 rudolph Exp $
 
 #include "help.h"
 
@@ -42,14 +42,26 @@ NAME \n\
  \n\
 SYNOPSIS \n\
  \n\
+    (Using existing options file) \n\
     mris_pmake          [--optionsFile=<fileName>]              \\ \n\
                         [--dir=<workingDir>]                    \\ \n\
                         [--listen | --listenOnPort <port>] \n\
  \n\
+    (No options file; will create) \n\
+    mris_pmake          --subject       <subj>                  \\ \n\
+                        --hemi          <hemi>                  \\ \n\
+                        --surface0      <surface0File>          \\ \n\
+                        --surface1      <surface1File>          \\ \n\
+                        --curv0         <curv0File>             \\ \n\
+                        --curv1         <curv1File>             \\ \n\
+                        --useAbsCurvs                           \\ \n\
+                        --mpmProg       <mpmProgName>           \\ \n\
+                        --mpmArgs       <argsForMpmProg> \n\
+ \n\
 DESCRIPTION \n\
  \n\
-    'mris_pmake' generates paths on FreeSurfer surfaces based on an edge cost \n\
-    and Dijkstra's algorithm. \n\
+    'mris_pmake' calculates paths and related costs on FreeSurfer \n\
+    surfaces based on an edge cost and Dijkstra's algorithm. \n\
  \n\
     In its simplest usage, a <start> and <end> vertex index on the surface is \n\
     specified (typically in the <optionsFile>), and the program calculates the \n\
@@ -57,10 +69,11 @@ DESCRIPTION \n\
     path in this case only has meaning in the context of the cost function that \n\
     is being evaluated (see COST FUNCTION for details). \n\
  \n\
-    The program can also be used to calculate regions, specifying a <center> \n\
-    vertex and tagging all vertices that satisfy some cost constraint away from \n\
-    this vertex. Usually this is used to tag all vertices a certain distance \n\
-    away from the <start> vertex. \n\
+    More complex use is enabled through embedded 'mpmProgs' that perform \n\
+    various functions based around Dijkstra calculations. Such mpmProgs include \n\
+    'autodijk' which calculates the cost in moving from a reference to all \n\
+    other vertices in the mesh, and 'patchMake' which generates label \n\
+    patches about a set of seed vertices. \n\
  \n\
     An interactive mode of operation is also available through a companion \n\
     Python script called 'dsh' that allows asychronous setting of <start> and \n\
@@ -99,6 +112,8 @@ COST FUNCTION \n\
  \n\
 OPTIONS \n\
  \n\
+----Command line options if an <optionsFile> is already present: \n\
+ \n\
     --optionsFile=<fileName> \n\
     The main configuration file that specifies the startup run-time behaviour \n\
     of the program, including cost function variables, start and terminal \n\
@@ -129,6 +144,49 @@ OPTIONS \n\
     a UDP packet to <port> to read the default enviroment, or an options file \n\
     can be spec'd by sending a UDP string 'OPT <optionsFile>'. \n\
  \n\
+----Command line options if no <optionsFile> is present. One will be created \n\
+    when 'mris_pmake' starts. \n\
+ \n\
+    --subject <subj> (Must be specified) \n\
+    Set the subject to <subj>. This is assumed relative to an env variable \n\
+    SUBJECTS_DIR. \n\
+ \n\
+    --hemi <hemi> (Must be specified) \n\
+    The hemisphere to process. \n\
+ \n\
+    --surface0 <surface0File> (Defaults to 'inflated') \n\
+    The main mesh surface to read. This is relative to the 'surf' dir of \n\
+    <subj> and does not include a hemisphere prefix, e.g. 'smoothwm'. \n\
+ \n\
+    --surface1 <surface1File> (Defaults to 'smoothwm') \n\
+    The aux mesh surface to read. This is relative to the 'surf' dir of \n\
+    <subj> and does not include a hemisphere prefix, e.g. 'smoothwm'. \n\
+ \n\
+    --curve0 <curv0File> (Defaults to 'smoothwm.H.crv') \n\
+    The main curvature function maps. This is relative to the 'surf' dir of \n\
+    <subj> and does not include a hemisphere prefix, e.g. 'smoothwm.H.crv'. \n\
+    This curvature map is used as the 'c' parameter in the internal cost \n\
+    function. \n\
+ \n\
+    --curve1 <curv1File> (Defaults to 'sulc') \n\
+    The aux curvature function maps. This is relative to the 'surf' dir of \n\
+    <subj> and does not include a hemisphere prefix, e.g. 'smoothwm.H.crv'. \n\
+    This curvature map is used as the 'h' parameter in the internal cost \n\
+    function. \n\
+ \n\
+    --useAbsCurvs \n\
+    If specified, use an fabs(...) on each curvature map. Otherwise, the \n\
+    curvature map field is offset so that its minimum value (most negative) \n\
+    is zero. \n\
+ \n\
+    --mpmProg <mpmProgName> \n\
+    The mpmProg to run. \n\
+ \n\
+    --mpmArgs <argsForMpmProg> \n\
+    A semi-colon delimited list of arguments for the specified <mpmProg>. \n\
+    This list is of course dependent on the particular mpmProg being \n\
+    executed. \n\
+ \n\
 EXAMPLE USE \n\
  \n\
     The best mechanism to run a 'mris_pmake' process is from a companion \n\
@@ -137,13 +195,10 @@ EXAMPLE USE \n\
     run 'dsh' and wait for it to provide a prompt. At the prompt type 'RUN' \n\
     and wait for the next prompt, at which simply type 'quit'. \n\
  \n\
-    Direct running of 'mris_pmake' can be somewhat cumbersome, since by default \n\
-    the process was designed to parse a surface, calculate a cost, and then \n\
-    stay resident for additional instructions. These instructions are delivered \n\
-    using UDP sockets communication. In this manner, an external 'controller' \n\
-    could initialze a 'mris_pmake', read surfaces and curvatures, and then \n\
-    RUN different path searches with different vertices and/or modified cost \n\
-    function vectors. \n\
+    Alternatively, 'mris_pmake' can be evoked in a more conventional \n\
+    FreeSurfer manner, specifying subject and hemisphere by using appropriate \n\
+    command line args. This is most useful when non-interactive behaviour \n\
+    is desired and typically implies running an embedded mpmProg. \n\
  \n\
     'mris_pmake' communicates on three different channels. Most operational \n\
     data is sent to a channel called <userMessages> (in the <optionsFile>). \n\
@@ -153,19 +208,31 @@ EXAMPLE USE \n\
     then these channels are created as UDP sockets to which 'mris_pmake' \n\
     transmits data. \n\
  \n\
-    That all having been said, how do I do a quick-and-dirty run for \n\
-    'mris_pmake'? \n\
+    HOW DO I RUN 'AUTODIJK'? \n\
  \n\
-        o Make sure you have a valid <optionsFile> in the working directory \n\
-        o run 'mris_pmake' \n\
-        o Monitor the <userMessages> channel and wait for: \n\
-                \"Listening for socket comms...\" \n\
-        o Send a UDP string \"TERM\" to the <controlPort> of 'mris_pmake' \n\
+    A. With an existing options file and 'dsh': \n\
+        1. Start 'dsh' by typing 'dsh' at the Linux prompt. Make sure \n\
+           your current directory contains a valid 'options.txt' file. \n\
+        2. When 'dsh' starts, it will parse the options file and control \n\
+           'mris_pmake' to read relevant surface and curvature files. \n\
+        3. Once done, 'dsh' will present a prompt. Type: \n\
+            >ENV mpmProg set 0 \n\
+           This will create an 'autodijk' mpmProg. \n\
+        3a. Optionally set some parameters for the mpmProg: \n\
+            >MPMPROG polarVertex set 100 \n\
+        4. To run, type: \n\
+            >RUNPROG \n\
+           This will run the created autodjik. \n\
  \n\
-    OR, just run 'mris_pmake', wait until a file defined by <costFile> in \n\
-    the <optionsFile> appears on the file system (typically a few seconds) \n\
-    and then hit <ctrl>C. \n\
+   B. Without an options file: \n\
+        1. From the Linux prompt, make sure your SUBJECTS_DIR is properly \n\
+           set. \n\
+        2. For a subject called '11' and using the rh.smoothwm.K1.crv file \n\
+           as main curvature function, type: \n\
+            >mris_pmake --subject 11 --hemi rh --curv0 smoothwm.K1.crv \\ \n\
+                        --mpmProg autodijk \n\
  \n\
+\n\
 \n";
 
    cout << pch_synopsis;
