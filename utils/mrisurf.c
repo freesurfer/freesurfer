@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/03 22:11:03 $
- *    $Revision: 1.647 $
+ *    $Date: 2009/12/11 14:56:59 $
+ *    $Revision: 1.648 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -674,7 +674,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.647 2009/12/03 22:11:03 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.648 2009/12/11 14:56:59 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -32321,6 +32321,29 @@ MRIScopyVal2ToVal(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->val = v->val2 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+   copy the v->val2bak field into the v->val for every vertex
+  ------------------------------------------------------*/
+int
+MRIScopyVal2BakToVal(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->val = v->val2bak ;
   }
   return(NO_ERROR) ;
 }

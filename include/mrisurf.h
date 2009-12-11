@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/03 22:11:11 $
- *    $Revision: 1.333 $
+ *    $Date: 2009/12/11 14:57:09 $
+ *    $Revision: 1.334 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1070,6 +1070,7 @@ int   MRIScopyCurvatureToValues(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureToImagValues(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureFromValues(MRI_SURFACE *mris) ;
 int   MRIScopyVal2ToVal(MRI_SURFACE *mris) ;
+int   MRIScopyVal2BakToVal(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris) ;
 int   MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) ;
