@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/09/25 20:25:44 $
- *    $Revision: 1.36 $
+ *    $Author: fischl $
+ *    $Date: 2009/12/11 14:56:36 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -131,5 +131,6 @@ HISTOGRAM *HISTOgaussianPDF(HISTOGRAM *h, double mean, double sigma, int nbins) 
 HISTOGRAM *HISTOgaussianCDF(HISTOGRAM *h, double mean, double sigma, int nbins) ;
 double    HISTOgetCount(HISTOGRAM *h, float bin_val);
 double    HISTOgetEntropy(HISTOGRAM *h);
+HISTOGRAM *HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters) ;
 
 #endif
