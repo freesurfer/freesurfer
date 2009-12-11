@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/08 00:45:07 $
- *    $Revision: 1.64 $
+ *    $Date: 2009/12/11 14:56:27 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1749,7 +1749,9 @@ HISTO *HISTObins(int nbins, double min, double max)
 
   h = HISTOalloc(nbins);
   h->bin_size = (max-min)/(nbins-1);
-  for (n=0; n < nbins; n++)  h->bins[n] = min + h->bin_size*n;
+  for (n=0; n < nbins; n++)  
+    h->bins[n] = min + h->bin_size*n;
+  h->min = min ; h->max = max ;
 
   return(h);
 }
@@ -1955,7 +1957,9 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
     HISTOplot(hz, "hz.plt") ;
   }
 
-  bin = HISTOfindBinWithCount(hcdf, max_percentile) ;
+  bin = HISTOfindNextValley(h, peak) ;
+  if (bin < 0)
+    bin = HISTOfindBinWithCount(hcdf, max_percentile) ;
   thresh = hcdf->bins[bin] ;  // threshold for computing variance
   min_bin = HISTOfindBin(hz, -thresh) ;
   max_bin = HISTOfindBin(hz, thresh) ;
@@ -1965,7 +1969,7 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
     max_bin = MIN(hz->nbins-1, max_bin-1) ;
   }
   zbin = HISTOfindBin(hz, 0) ;
-  delta_sigma = h->bin_size/10 ; max_sigma = habs->nbins*habs->bin_size/10;
+  delta_sigma = h->bin_size/10 ; max_sigma = habs->nbins*habs->bin_size/2;
   best_sse = -1 ; best_sigma = 0 ;
   for (sigma = delta_sigma ; sigma <= max_sigma ; sigma += delta_sigma)
   {
@@ -2134,4 +2138,43 @@ HISTOgetEntropy(HISTOGRAM *h)
 		}
   }
   return(entropy) ;
+}
+
+HISTOGRAM *
+HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters)
+{
+  int    n, b, *control ;
+  double *tmp ;
+
+  tmp = (double *)calloc(hsrc->nbins, sizeof(double)) ;
+  control = (int *)calloc(hsrc->nbins, sizeof(int)) ;
+
+  hdst = HISTOcopy(hsrc, hdst) ;
+
+  for (b = 0 ; b < hsrc->nbins ; b++)
+    if (hsrc->counts[b] > 0)
+      control[b] = 1 ;   // in case hsrc == hdst
+
+  for (n = 0 ; n < niters ; n++)
+  {
+    for (b = 0 ; b < hsrc->nbins ; b++)
+    {
+      if (control[b])
+        tmp[b] = hsrc->counts[b] ;
+      else
+      {
+        if (b == 0)
+          tmp[b] = (hdst->counts[b] + hdst->counts[b+1])/2 ;
+        else if (b == hdst->nbins-1)
+          tmp[b] = (hdst->counts[b] + hdst->counts[b-1])/2 ;
+        else
+          tmp[b] = (hdst->counts[b+1] + hdst->counts[b] + hdst->counts[b-1])/3 ;
+      }
+    }
+    for (b = 0 ; b < hsrc->nbins ; b++)
+      hdst->counts[b] = tmp[b] ;
+  }
+
+  free(tmp) ; free(control) ;
+  return(hdst) ;
 }
