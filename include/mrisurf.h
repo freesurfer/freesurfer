@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/11 14:57:09 $
- *    $Revision: 1.334 $
+ *    $Date: 2009/12/12 15:01:12 $
+ *    $Revision: 1.335 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -96,6 +96,8 @@ typedef struct vertex_type_
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
   float pnx,pny,pnz;     /* pial normal */
+  float wnx,wny,wnz;     /* white normal */
+  float onx,ony,onz;     /* original normal */
   float dx, dy, dz ;     /* current change in position */
   float odx, ody, odz ;  /* last change of position (for momentum) */
   float tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
@@ -888,6 +890,7 @@ double       MRISmomentumTimeStep(MRI_SURFACE *mris,
                                   float n_averages) ;
 int          MRISapplyGradient(MRI_SURFACE *mris, double dt) ;
 int          MRIScomputeNormals(MRI_SURFACE *mris) ;
+int          MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs) ;
 int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
 double       MRISrescaleMetricProperties(MRIS *surf);
 int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
