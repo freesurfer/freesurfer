@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/11 14:56:59 $
- *    $Revision: 1.648 $
+ *    $Date: 2009/12/13 19:57:11 $
+ *    $Revision: 1.649 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -674,7 +674,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.648 2009/12/11 14:56:59 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.649 2009/12/13 19:57:11 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -65343,6 +65343,15 @@ MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, doub
     case CURRENT_VERTICES:
       mrisNormalFace(mris, v->f[n], (int)v->n[n],snorm);
       break ;
+    case ORIGINAL_VERTICES:
+      mrisOrigNormalFace(mris, v->f[n], (int)v->n[n],snorm);
+      break ;
+    case WHITE_VERTICES:
+      mrisWhiteNormalFace(mris, v->f[n], (int)v->n[n],snorm);
+      break ;
+    case PIAL_VERTICES:
+      mrisPialNormalFace(mris, v->f[n], (int)v->n[n],snorm);
+      break ;
     default:
       ErrorExit(ERROR_BADPARM, "MRIScomputeNormal: which = %d not supported", which) ;
       break ;
@@ -65354,7 +65363,7 @@ MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, doub
   if (!num)
     return(ERROR_BADPARM) ;
   mrisNormalize(norm);
-  *pnx = norm[0] ; *pnx = norm[1] ;  *pnx = norm[2] ; 
+  *pnx = norm[0] ; *pny = norm[1] ;  *pnz = norm[2] ; 
   return(NO_ERROR) ;
 }
 static double
@@ -66217,5 +66226,84 @@ MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp,
   a2 /= (a0+a1+a2) ;
   val = a0*val0 + a1+val1 + a2*val2 ;
   return(val) ;
+}
+
+int
+MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
+{
+  int     vno, n, i ;
+  VERTEX  *v, *vn ;
+  double  nx, ny, nz, norm ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    MRIScomputeNormal(mris, which, vno, &nx, &ny, &nz) ;
+    switch (which)
+    {
+    case CURRENT_VERTICES:   v->nx = nx ;  v->ny = ny ;  v->nz = nz ; break ;
+    case WHITE_VERTICES:     v->wnx = nx ; v->wny = ny ; v->wnz = nz ; break ;
+    case PIAL_VERTICES:      v->pnx = nx ; v->pny = ny ; v->pnz = nz ; break ;
+    case ORIGINAL_VERTICES:  v->onx = nx ; v->ony = ny ; v->onz = nz ; break ;
+    }
+  }
+  for (i = 0 ; i < navgs ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      switch (which)
+      {
+      default:
+      case CURRENT_VERTICES:   nx = v->nx ;  ny = v->ny ;  nz = v->nz ; break ;
+      case WHITE_VERTICES:     nx = v->wnx ; ny = v->wny ; nz = v->wnz ; break ;
+      case PIAL_VERTICES:      nx = v->pnx ; ny = v->pny ; nz = v->pnz ; break ;
+      case ORIGINAL_VERTICES:  nx = v->onx ; ny = v->ony ; nz = v->onz ; break ;
+      }
+      v->tdx = nx ; v->tdy = ny ; v->tdz = nz ;  
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (vn->ripflag)
+          continue ;
+        switch (which)
+        {
+        default:
+        case CURRENT_VERTICES:   nx = vn->nx ;  ny = vn->ny ;  nz = vn->nz ; break ;
+        case WHITE_VERTICES:     nx = vn->wnx ; ny = vn->wny ; nz = vn->wnz ; break ;
+        case PIAL_VERTICES:      nx = vn->pnx ; ny = vn->pny ; nz = vn->pnz ; break ;
+        case ORIGINAL_VERTICES:  nx = vn->onx ; ny = vn->ony ; nz = vn->onz ; break ;
+        }
+        v->tdx += nx ;  v->tdy += ny ;  v->tdz += nz ; 
+      }
+      norm = sqrt(v->tdx * v->tdx + v->tdy * v->tdy + v->tdz*v->tdz) ;
+      if (!FZERO(norm))
+      {
+        v->tdx /= norm ;
+        v->tdy /= norm ;
+        v->tdz /= norm ;
+      }
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      switch (which)
+      {
+      default:
+      case CURRENT_VERTICES:   v->nx = v->tdx ;  v->ny = v->tdy ;  v->nz = v->tdz ; break ;
+      case WHITE_VERTICES:     v->wnx = v->tdx ; v->wny = v->tdy ; v->wnz = v->tdz ; break ;
+      case PIAL_VERTICES:      v->pnx = v->tdx ; v->pny = v->tdy ; v->pnz = v->tdz ; break ;
+      case ORIGINAL_VERTICES:  v->onx = v->tdx ; v->ony = v->tdy ; v->onz = v->tdz ; break ;
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
 }
 
