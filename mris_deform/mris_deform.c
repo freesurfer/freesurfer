@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/11 18:08:31 $
- *    $Revision: 1.10 $
+ *    $Date: 2009/12/13 14:41:31 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -158,7 +158,7 @@ main(int argc, char *argv[]) {
   dp.sigma = sigma ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.10 2009/12/11 18:08:31 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.11 2009/12/13 14:41:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -829,6 +829,7 @@ find_optimal_distance(MRI_SURFACE *mris, MRI *mri, int vno,
                                double *kernel, double dist, double step, int nsamples, 
                                char *fname);
 
+  max_out_len = 1 ;
   step = mri->xsize/2 ;
   switch (error_type)
   {
