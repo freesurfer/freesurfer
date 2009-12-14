@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.25 $
+ *    $Date: 2009/12/14 19:22:32 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -597,7 +597,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
     smoother->SetInput(polydata);
     smoother->SetNumberOfIterations(30);
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
-    normals->SetInput(smoother->GetOutput());
+    normals->SetInput(polydata); //smoother->GetOutput());
     normals->SetFeatureAngle( 90 );
     vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
     stripper->SetInput(normals->GetOutput());

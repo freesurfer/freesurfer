@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/09 19:42:51 $
- *    $Revision: 1.43 $
+ *    $Date: 2009/12/14 19:22:32 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -231,7 +231,7 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
                                   wnd, 
                                   event ) )
     {
-      cerr << "Failed to load original volume. Restore from converted volume (not good)." << endl;
+      cerr << "Restore from converted volume." << endl;
       m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
     }
   }

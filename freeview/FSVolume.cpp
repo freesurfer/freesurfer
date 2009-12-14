@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.35 $
+ *    $Date: 2009/12/14 19:22:31 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -110,21 +110,24 @@ bool FSVolume::LoadMRI( const char* filename, const char* reg_filename, wxWindow
   event.SetInt( event.GetInt() + 1 );
   wxPostEvent( wnd, event );
   
+  // save old header to release later so there is no gap where m_MRI becomes NULL during re-loading process
   MRI* tempMRI = m_MRI;
 
   char* fn = strdup( filename );
   m_MRI = ::MRIread( fn );      // could be long process
   free( fn );
-  
-  // release the old header after loading so there is no gap where m_MRI becomes NULL during re-loading process
-  if ( tempMRI )
-    ::MRIfree( &tempMRI );
 
   if ( m_MRI == NULL )
   {
     cerr << "MRIread failed" << endl;
+    if ( tempMRI )
+      m_MRI = tempMRI;
     return false;
   }
+  
+  // if m_MRI successfully loaded, release old header.
+  if ( tempMRI )
+    ::MRIfree( &tempMRI );
 
   if ( m_MRI->ct != NULL )
     m_ctabEmbedded = CTABdeepCopy( m_MRI->ct );
@@ -491,6 +494,20 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
   if ( !bSaveToOriginalSpace && m_MRIOrigTarget) 
     MRIcopyHeader( m_MRIOrigTarget, m_MRITemp );
   
+  // check if file writable
+  FILE* fp = fopen( filename, "w" );
+  if ( !fp )
+  {
+    cerr << "Failed to open file " << filename 
+         << " for write. Please check if the directory exists and you have permission to write in that location." 
+         << endl;
+    MRIfree( &m_MRITemp );
+    m_MRITemp = NULL;
+    return false;
+  }
+  else
+    fclose( fp );
+  
   char* fn = strdup( filename );
   int err;
   err = ::MRIwrite( m_MRITemp, fn );
@@ -546,7 +563,6 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
 			       m_MRI->nframes );
   MRIcopyHeader( m_MRITarget, mri );
 
-// cout << "begin copy pixels" << endl;
   if ( mri->nframes > 1 )
   {
     for ( int j = 0; j < mri->height; j++ )
