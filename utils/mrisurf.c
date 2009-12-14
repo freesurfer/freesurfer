@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/12/13 19:57:11 $
- *    $Revision: 1.649 $
+ *    $Author: twitzel $
+ *    $Date: 2009/12/14 14:00:52 $
+ *    $Revision: 1.650 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -609,6 +609,10 @@ static int timeval_subtract (struct timeval *result,struct timeval * x,struct ti
 	return x->tv_sec < y->tv_sec;
 }
 
+/* this stuff could be useful outside CUDA_SURF_FN as well */
+static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms);
+static void mrisDeleteIP(INTEGRATION_PARMS *parms);
+
 #endif /* CUDA_SURF_FN */
 
 /*--------------------------------------------------------------------*/
@@ -674,7 +678,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.649 2009/12/13 19:57:11 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.650 2009/12/14 14:00:52 twitzel Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1949,6 +1953,10 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   int          diag_vno1, diag_vno2 ;
   char         *cp ;
 
+#ifdef CUDA_SURF_FN
+	fprintf(stdout,"XOXO MRISsampleDistances MODIFIES dist_orig !\n");
+	fflush(stdout);
+#endif
   if ((cp = getenv("VDIAG1")) != NULL)
     diag_vno1 = atoi(cp) ;
   else
@@ -3377,6 +3385,11 @@ mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   VERTEX  *v, *vn ;
   float   d, xd, yd, zd, circumference = 0.0f, angle ;
   VECTOR  *v1, *v2 ;
+
+#ifdef CUDA_SURF_FN
+	fprintf(stdout,"XOXO mrisComputeOriginalVertexDistances MODIFIES dist_orig !\n");
+	fflush(stdout);
+#endif
 
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
@@ -7856,12 +7869,14 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 			fprintf(stdout, "rotating brain by (%2.1f, %2.1f, %2.1f)\n",
 							alpha, beta, gamma) ;
 		}
+		
  		/* add one more here */
 		mrisProjectSurface(mris) ;
 		mrisComputeMetricPropertiesCUDA(mrisc,mris) ;
 		if (Gdiag_no >= 0)
 			fprintf(stdout, "v %d curvature = %2.3f\n",
 							Gdiag_no, mris->vertices[Gdiag_no].H) ;
+
 		/* only print stuff out if we actually took a step */
 		sse = MRIScomputeSSE(mris, parms) ;
 		if (!FZERO(old_sse) && ((old_sse-sse)/(old_sse) < sse_thresh))
@@ -7880,7 +7895,11 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 		}
 		
 		parms->t++ ;
+		printf("@@@ Entering log-status !\n"); fflush(stdout);
 		mrisLogStatus(mris, parms, stderr, delta_t, old_sse) ;
+	
+		printf("@@@ Finished log-status !\n"); fflush(stdout);
+
 		if (Gdiag & DIAG_WRITE)
 			mrisLogStatus(mris, parms, parms->fp, delta_t, -1) ;
 		
@@ -7890,6 +7909,7 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 		if ((write_iterations > 0) &&
 				!((t+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
 			mrisWriteSnapshot(mris, parms, t+1) ;
+
 		if (mris->status == MRIS_PLANE && mris->neg_area > 4*mris->total_area)
 		{
 			fprintf(stdout, "flipping flattened patch...\n") ;
@@ -8003,7 +8023,33 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   *pangle_rms =(float)sqrt(sse_angle/(double)(ntriangles*ANGLES_PER_TRIANGLE));
   *pcorr_rms = (float)sqrt(sse_corr / (double)nv) ;
 
+#ifdef CUDA_SURF_FN
+	INTEGRATION_PARMS *tparms;
+	
+	/* Change the parameters such that the distance error won't be calculated in
+		 MRIScomputeSSE
+
+		 This optimization doesn't buy really anything, but serves to test a lazy
+		 evaluation scheme.
+	*/
+	tparms = mrisCloneIP(parms);
+	tparms->l_dist = 0.0;
+	tparms->l_corr = 0.0;
+	tparms->l_curv = 0.0;
+	
+	rms = MRIScomputeSSE(mris, tparms);
+	
+	mrisDeleteIP(tparms);
+	
+	/* Now add the distance error */
+	rms +=
+		sse_dist * parms->l_dist +
+		sse_corr * parms->l_corr +
+		sse_curv * parms->l_curv * CURV_SCALE;
+	
+#else
   rms = MRIScomputeSSE(mris, parms) ;
+#endif
 
 #if 0
   rms =
@@ -15929,6 +15975,11 @@ MRISstoreMetricProperties(MRI_SURFACE *mris)
   VERTEX  *v ;
   FACE    *f ;
 
+#ifdef CUDA_SURF_FN
+	fprintf(stdout,"XOXO MRISstoreMetricProperties MODIFIES dist_orig !\n");
+	fflush(stdout);
+#endif
+
 #if 0
   MRIScomputeNormals(mris);              /* update vertex areas */
   MRIScomputeTriangleProperties(mris) ;  /* update triangle properties */
@@ -18711,6 +18762,15 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       DiagBreak() ;
   }
 
+#ifdef CUDA_SURF_FN
+	/* investigate some of the flags. Neither being true would help tremendously with
+		 the GPU implementation as it removes the need to have or produce the information
+		 involved with these flags
+	*/
+	fprintf(stdout,"mrisComputeDistanceError: parms->dist_error=%d, parms->vsmoothness=%d, sse_dist=%lg\n",
+					(parms->dist_error!=NULL),(parms->vsmoothness!=NULL),sse_dist);
+#endif /* CUDA_SURF_FN */
+
   /*fprintf(stdout, "max_del = %f at v %d, n %d\n", max_del, max_v, max_n) ;*/
   return(sse_dist) ;
 }
@@ -20599,18 +20659,18 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt, flo
   {
     sse  = mrisComputeError(mris, parms,&area_rms,&angle_rms,&curv_rms,&dist_rms,
                             &corr_rms);
-    
+
     if (fyi)
       parms->l_corr=0.0f;
-    
-#if  0
+
+#if 0
     sse = MRIScomputeSSE(mris, parms) ;
 #endif
 #if 0
     sse /= (float)MRISvalidVertices(mris) ;
     sse = sqrt(sse) ;
 #endif
-    
+
     if (mris->status==MRIS_SPHERICAL_PATCH) return NO_ERROR;
     
     if (FZERO(parms->l_corr) &&
@@ -31420,6 +31480,11 @@ MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which)
   smean_error, smean_orig_error ;
   VECTOR  *v1, *v2 ;
 
+#ifdef CUDA_SURF_FN
+	fprintf(stdout, "XOXO MRIstoreAnalyticDistanced MODIFIES dist_orig\n");
+	fflush(stdout);
+#endif
+
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
 
@@ -31486,6 +31551,10 @@ MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct)
   int    vno, n ;
   VERTEX *v ;
 
+#ifdef CUDA_SURF_FN
+	fprintf(stdout,"XOXO MRISdisturbOriginalDistances MODIFIES dist_orig !\n");
+	fflush(stdout);
+#endif /* CUDA_SURF_FN */
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -58995,6 +59064,11 @@ MRISclearOrigDistances(MRI_SURFACE *mris)
   int     vno, n ;
   VERTEX  *v ;
 
+#ifdef CUDA_SURF_FN
+	fprintf(stdout,"XOXO MRISclearOrigDistances MODIFIES dist_orig !\n");
+	fflush(stdout);
+#endif
+
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -65690,6 +65764,11 @@ MRIScomputeAllDistances(MRI_SURFACE *mris)
   int    vno, n, nvalid, *old_v, vno2, done = 0 ;
   LABEL  *area ;
 
+#ifdef CUDA_SURF_FN
+	fprintf(stdout,"XOXO MRIScomputeAllDistances MODIFIES dist_orig !\n");
+	fflush(stdout);
+#endif
+
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "\ncomputing complete distance matrix...\n") ;
   area = LabelAlloc(1, NULL, NULL) ;
@@ -66228,6 +66307,24 @@ MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp,
   return(val) ;
 }
 
+#ifdef CUDA_SURF_FN
+static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms)
+ {
+	 /* this needs some work to check whether this is successful */
+	 INTEGRATION_PARMS *rval = malloc(sizeof(INTEGRATION_PARMS));
+
+	 memcpy(rval,parms,sizeof(INTEGRATION_PARMS));
+	 return rval;
+ }
+
+static void mrisDeleteIP(INTEGRATION_PARMS *parms)
+ {
+	 if(parms != NULL)
+		 free(parms);
+ }
+
+#endif /* CUDA_SURF_FN */
+
 int
 MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
 {
@@ -66264,7 +66361,7 @@ MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
       case PIAL_VERTICES:      nx = v->pnx ; ny = v->pny ; nz = v->pnz ; break ;
       case ORIGINAL_VERTICES:  nx = v->onx ; ny = v->ony ; nz = v->onz ; break ;
       }
-      v->tdx = nx ; v->tdy = ny ; v->tdz = nz ;  
+      v->tdx = nx ; v->tdy = ny ; v->tdz = nz ;
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
