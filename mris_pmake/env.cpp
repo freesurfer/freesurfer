@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.16 2009/12/10 21:18:45 rudolph Exp $
+// $Id: env.cpp,v 1.17 2009/12/14 16:21:51 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -299,6 +299,7 @@ s_env_nullify(
     st_env.rw                       = 20;
 
     st_env.b_syslogPrepend          = false;
+    st_env.b_exitOnDone             = false;
     st_env.pcsm_stdout              = new C_SMessage( "",
                                            eSM_raw,
                                            "stdout",
@@ -348,11 +349,12 @@ s_env_nullify(
     st_env.pstr_functionName[3]     = "distance";
 
     // Define the internal mpmProg modules for human readable setting / getting
-    st_env.totalmpmProgs            = 1;
+    st_env.totalmpmProgs            = 2;
     st_env.b_mpmProgUse             = false;
-    st_env.empm_current             = e_autodijk;
+    st_env.empm_current             = e_NOP;
     st_env.pstr_mpmProgName         = new string[st_env.totalmpmProgs];
-    st_env.pstr_mpmProgName[0]      = "autodijk";
+    st_env.pstr_mpmProgName[0]      = "NOP";
+    st_env.pstr_mpmProgName[1]      = "autodijk";
     st_env.pCmpmProg                = NULL; // Not yet created!
     // autodijk
     st_env.str_costCurvFile         = "autodijk.cost.crv";
@@ -439,6 +441,8 @@ s_env_defaultsSet(
     s_Dweights_setAll(*st_env.pSTDw, 1.0);
 
     st_env.str_costCurvFile             = "autodijk.cost.crv";
+    st_env.b_exitOnDone                 = true;
+    st_env.b_costPathSave               = false;
 
 }
 
@@ -501,6 +505,10 @@ s_env_optionsFile_write(
                     st_env.b_labelFile_save);
     O->pcolprintf("b_useAbsCurvs",      " = %d\n",
                     st_env.b_useAbsCurvs);
+    O->pcolprintf("b_exitOnDone",       " = %d\n",
+                    st_env.b_exitOnDone);
+    O->pcolprintf("b_costPathSave",     " = %d\n",
+                    st_env.b_costPathSave);
     O->pprintf("\n# Output file names and file stems\n");
     O->pcolprintf("costFile",           " = %s\n",
                     st_env.str_costFileName.c_str());
@@ -629,6 +637,8 @@ s_env_scan(
   bool          b_patchFile_save        = true;
   bool          b_syslogPrepend         = true;
   bool          b_mpmProgUse            = false;
+  bool          b_exitOnDone            = false;
+  bool          b_costPathSave          = true;
 
   int           startVertex             = 0;
   int           endVertex               = 0;
@@ -783,6 +793,10 @@ s_env_scan(
       mpmProgID         = atoi(str_value.c_str());
   if (cso_options.scanFor("mpmArgs",            &str_value))
       str_mpmArgs       = str_value;
+  if (cso_options.scanFor("b_exitOnDone",       &str_value))
+      b_exitOnDone      = atoi(str_value.c_str());
+  if (cso_options.scanFor("b_costPathSave",     &str_value))
+      b_costPathSave    = atoi(str_value.c_str());
       
   st_env.b_syslogPrepend = b_syslogPrepend;
   e_SMessageIO esm_io  = eSM_cpp;
@@ -906,7 +920,7 @@ s_env_scan(
     st_env.str_labelFileName            = str_labelFileName;
     st_env.str_labelFileNameOS          = str_labelFileNameOS;
     st_env.str_costFileName             = str_costFileName;
-    st_env.b_costPathSave               = true;
+    st_env.b_costPathSave               = b_costPathSave;
 
     //    if(!calls) {
     st_env.pMS_active                   = pMS_curvature;
@@ -926,6 +940,7 @@ s_env_scan(
     st_env.b_mpmProgUse                 = b_mpmProgUse;
     st_env.str_mpmArgs                  = str_mpmArgs;
     st_env.empm_current                 = (e_MPMPROG) mpmProgID;
+    st_env.b_exitOnDone                 = b_exitOnDone;
 
     nSLOUT("\t\t\t\t\t\t\t[ ok ]\n");
 
@@ -1234,6 +1249,17 @@ s_env_mpmProgSetIndex(
   int   rw      = apst_env->rw;
   switch (aindex) {
     case 0:
+        apst_env->b_mpmProgUse      = true;
+        apst_env->empm_current      = (e_MPMPROG) aindex;
+        if(apst_env->pCmpmProg) {
+            lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
+            lprintf(lw, "Deleting existing mpmProg '%s'...", apst_env->pstr_mpmProgName[0].c_str());
+            delete apst_env->pCmpmProg;
+            lprintf(rw, "[ ok ]\n");
+        }
+        apst_env->pCmpmProg         = new C_mpmProg_NOP(apst_env);
+        break;
+    case 1:
         apst_env->b_mpmProgUse      = true;
         apst_env->empm_current      = (e_MPMPROG) aindex;
         if(apst_env->pCmpmProg) {

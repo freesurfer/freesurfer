@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.4 2009/11/30 20:14:44 rudolph Exp $
+/// $Id: C_mpmProg.h,v 1.5 2009/12/14 16:21:51 rudolph Exp $
 ///
 ///
 
@@ -180,6 +180,29 @@ class C_mpmProg {
 
     virtual int         run(void)                = 0;
 
+};
+
+class C_mpmProg_NOP : public C_mpmProg {
+
+  protected:
+
+    int         msleepSeconds;
+
+ public:
+    C_mpmProg_NOP(s_env* aps_env);
+    ~C_mpmProg_NOP(void);
+
+    //
+    // Access block
+    //
+    void        sleepSeconds_set(int avalue) {msleepSeconds = avalue;};
+    int         sleepSeconds_get()      const {return(msleepSeconds);};
+
+    //
+    // Functional block
+    //
+
+    virtual int         run(void);
 };
 
 class C_mpmProg_autodijk : public C_mpmProg {

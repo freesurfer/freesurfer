@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.4 2009/12/10 22:02:18 rudolph Exp $
+// $Id: help.cpp,v 1.5 2009/12/14 16:21:51 rudolph Exp $
 
 #include "help.h"
 
@@ -263,6 +263,7 @@ commandLineOptions_process(
 
     bool        b_optionsFileUse                = true;
     bool        b_useAbsCurvs                   = false;
+    bool        b_validMpmProg                  = false;
     
     string      str_asynchComms                 = "HUP";
     string      str_subjectsDir                 = "";
@@ -367,15 +368,23 @@ commandLineOptions_process(
             error_exit("processing command line options,",
                "you must also specify '--mpmProg <mpmProg>'.",
                20);
-        if(str_mpmProg != "autodijk")
+        if(str_mpmProg == "NOP") {
+            b_validMpmProg      = true;
+            st_env.empm_current = e_NOP;
+        }
+        if(str_mpmProg == "autodijk") {
+            b_validMpmProg      = true;
+            st_env.empm_current = e_autodijk;
+        }
+        if(!b_validMpmProg)
             error_exit("processing command line options,",
-                "I didn't recognize the <mpmProg>. Currently, only 'autodijk' is supported.",
+                "I didn't recognize the <mpmProg>.",
                 20);
-        if(str_mpmProg == "autodijk") st_env.empm_current = e_autodijk;
         st_env.b_mpmProgUse                     = true;
         st_env.str_mpmArgs                      = str_mpmArgs;
         s_env_optionsFile_write(st_env);
         st_env.b_optionsFileUse                 = true;
+        st_env.b_exitOnDone                     = true;
         str_asynchComms                         = "INITMPMPROG";
     }
     return str_asynchComms;

@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.9 2009/11/30 20:14:44 rudolph Exp $
+// $Id: asynch.cpp,v 1.10 2009/12/14 16:21:51 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -568,6 +568,18 @@ asynchEvent_processENV(
   return true;
 }
 
+C_mpmProg_NOP*
+pC_NOP_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_NOP*&             pC_mpmProg_NOP
+) {
+    pC_mpmProg_NOP              = dynamic_cast<C_mpmProg_NOP*>(pmpm);
+    if(!pC_mpmProg_NOP) {
+        cout << "The embedded mpmProg is not of type 'NOP'" << endl;
+    }
+    return pC_mpmProg_NOP;
+}
+
 C_mpmProg_autodijk*
 pC_autodijk_cast(
     C_mpmProg*                  pmpm,
@@ -605,22 +617,34 @@ asynchEvent_processMPMPROG(
     warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "info") {
+    C_mpmProg_NOP*              pC_NOP          = NULL;
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
-    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
-    if (str_verb == "get" || str_verb == "list") {
-        colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
-                  pC_autodijk->vertexPolar_get());
-        colprintf(lw, rw, "Start vertex:", "[ %d ]\n",
-                  pC_autodijk->vertexStart_get());
-        colprintf(lw, rw, "Step vertex:",  "[ %d ]\n",
-                  pC_autodijk->vertexStep_get());
-        colprintf(lw, rw, "End vertex:",   "[ %d ]\n",
-                  pC_autodijk->vertexEnd_get());
-        colprintf(lw, rw, "Progress Iter:","[ %d ]\n",
-                  pC_autodijk->progressIter_get());
-        colprintf(lw, rw, "Surface ripClear:","[ %d ]\n",
-                  pC_autodijk->surfaceRipClear_get());
-    }
+    switch(st_env.empm_current) {
+        case e_NOP:
+            if( (pC_NOP_cast(st_env.pCmpmProg, pC_NOP))==NULL) return false;
+            if (str_verb == "get" || str_verb == "list") {
+                colprintf(lw, rw, "Sleep seconds:", "[ %d ]\n",
+                        pC_NOP->sleepSeconds_get());
+            }
+        break;
+        case e_autodijk:
+            if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
+            if (str_verb == "get" || str_verb == "list") {
+                colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
+                        pC_autodijk->vertexPolar_get());
+                colprintf(lw, rw, "Start vertex:", "[ %d ]\n",
+                        pC_autodijk->vertexStart_get());
+                colprintf(lw, rw, "Step vertex:",  "[ %d ]\n",
+                        pC_autodijk->vertexStep_get());
+                colprintf(lw, rw, "End vertex:",   "[ %d ]\n",
+                        pC_autodijk->vertexEnd_get());
+                colprintf(lw, rw, "Progress Iter:","[ %d ]\n",
+                        pC_autodijk->progressIter_get());
+                colprintf(lw, rw, "Surface ripClear:","[ %d ]\n",
+                        pC_autodijk->surfaceRipClear_get());
+            }
+      break;
+      }
   }
   
   if (str_object == "progressIter") {

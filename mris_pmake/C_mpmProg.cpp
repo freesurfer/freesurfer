@@ -18,13 +18,14 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.7 2009/12/10 21:18:44 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.8 2009/12/14 16:21:51 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
 
 #include "c_surface.h"
 #include "c_vertex.h"
+#include "unistd.h"
 
 #include <sstream>
 
@@ -185,6 +186,64 @@ C_mpmProg::print() {
     cout << "object name:\t"    << mstr_name    << endl;
     cout << "object id:\t"      << mid          << endl;
     cout << "object type:\t"    << mstr_obj     << endl;
+}
+
+//
+//\\\***
+// C_mpmProg_NOP definitions ****>>>>
+/////***
+//
+
+C_mpmProg_NOP::C_mpmProg_NOP(
+    s_env*      aps_env) : C_mpmProg(aps_env)
+{
+    //
+    // ARGS
+    //
+    // DESC
+    // Basically a thin "fall-through" constructor to the base
+    // class.
+    //
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
+    //
+    // HISTORY
+    // 14 December 2009
+    // o Initial design and coding.
+    //
+
+    debug_push("C_mpmProg_NOP");
+
+    msleepSeconds       = 5;
+
+    debug_pop();
+}
+
+C_mpmProg_NOP::~C_mpmProg_NOP() {
+    //
+    // Destructor
+    //
+
+}
+
+int
+C_mpmProg_NOP::run() {
+    //
+    // DESC
+    // Main entry to the actual 'run' core of the mpmProg
+    //
+
+    int         ret     = 1;
+
+    debug_push("run");
+
+    // Sleep for 'msleepSeconds'
+    mps_env->pcsm_stdout->colprintf("Sleeping for interval (seconds)", "[ %d ]\n",
+                                     msleepSeconds);
+    sleep(msleepSeconds);
+
+    debug_pop();
+    return ret;
 }
 
 //

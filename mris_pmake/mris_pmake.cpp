@@ -92,7 +92,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.9 2009/12/10 21:18:45 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.10 2009/12/14 16:21:51 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -195,6 +195,7 @@ main(
             fprintf(stderr, "Warning -- mpmProg has not been created!\n");
             fprintf(stderr, "Have you run 'ENV mpmProg set <X>'?\n");
         }
+        if(st_env.b_exitOnDone) str_asynchComms = "TERM";
       }
 
       if ( (str_asynchComms  == "HUP" || str_asynchComms  == "RUN")     &&
@@ -264,9 +265,8 @@ main(
     }
 
     // Listen on the socket for asynchronous user evernts
-    if (pCSSocketReceive) {
+    if (pCSSocketReceive && !st_env.b_exitOnDone) {
       SLOUT("Ready\n");
-      system("rm lock 2>/dev/null");  // "unlock" semaphore
       ULOUT("Listening for socket comms...\n");
       str_asynchComms  = asynchEvent_poll(pCSSocketReceive, 5);
       Gsout.str("");
@@ -290,6 +290,7 @@ main(
   if (st_env.pcsm_userlog) {
     st_env.pcsm_userlog->timer(eSM_stop);
   }
+  system("rm -f lock 2>/dev/null");  // "unlock" semaphore
   return EXIT_SUCCESS;
 
 } /* end main() */

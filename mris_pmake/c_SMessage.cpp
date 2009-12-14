@@ -18,7 +18,7 @@
 // NAME
 //
 //      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.9 2009/12/10 21:18:44 rudolph Exp $
+// $Id: c_SMessage.cpp,v 1.10 2009/12/14 16:21:51 rudolph Exp $
 //
 // DESC
 //
@@ -38,6 +38,7 @@ using namespace std;
 
 // #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <c_SMessage.h>
 
