@@ -92,7 +92,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.10 2009/12/14 16:21:51 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.11 2009/12/14 22:00:27 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -110,6 +110,7 @@ main(
 
   string                        str_asynchComms         = "HUP";
   C_scanopt*                    pcso_options            = NULL;
+  struct stat                   pst_fileInfo;
   s_env                         st_env;
   s_env_nullify(st_env);
 
@@ -155,6 +156,10 @@ main(
         // Create scanopt objects to parse the (possibly changed)
         // options file
         str_optionsFQName = st_env.str_workingDir + st_env.str_optionsFileName;
+        if(stat(str_optionsFQName.c_str(), &pst_fileInfo))
+          error_exit("checking on the options file,",
+                     "I couldn't access the options file. Does it exist?",
+                     40);
         pcso_options      = new C_scanopt(str_optionsFQName, e_EquLink);
 
         if (str_asynchComms != "LISTENPORT") {

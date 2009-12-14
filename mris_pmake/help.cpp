@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.5 2009/12/14 16:21:51 rudolph Exp $
+// $Id: help.cpp,v 1.6 2009/12/14 22:00:27 rudolph Exp $
 
 #include "help.h"
 
@@ -265,8 +265,9 @@ commandLineOptions_process(
     bool        b_useAbsCurvs                   = false;
     bool        b_validMpmProg                  = false;
     
-    string      str_asynchComms                 = "HUP";
+    string      str_asynchComms                 = "INITMPMPROG";
     string      str_subjectsDir                 = "";
+    char*       pch_subjectsDir;
     string      str_subject                     = "";
     string      str_hemi                        = "";
 
@@ -278,12 +279,10 @@ commandLineOptions_process(
     string      str_mainCurvatureFileName       = "smoothwm.H.crv";
     string      str_auxCurvatureFileName        = "sulc";
 
-    try {
-        str_subjectsDir = getenv("SUBJECTS_DIR");
-    } catch (...) {
-        error_exit("processing environment",
-                    "SUBJECTS_DIR env variable is not set.", 10);
-    }
+    if( (pch_subjectsDir = getenv("SUBJECTS_DIR")) == NULL)
+        error_exit("processing environment,",
+                    "it seems that the SUBJECTS_DIR env variable is not set.", 10);
+    str_subjectsDir     = pch_subjectsDir;
     while (1) {
         int opt;
         int optionIndex = 0;
