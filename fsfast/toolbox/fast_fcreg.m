@@ -1,5 +1,5 @@
 % fast_fcreg.m
-% $Id: fast_fcreg.m,v 1.5 2007/04/27 22:53:57 greve Exp $
+% $Id: fast_fcreg.m,v 1.6 2009/12/14 18:47:32 greve Exp $
 
 %flacfile
 %sess 
@@ -46,6 +46,8 @@ for nthrun = 1:nruns
   seg = MRIread(segpath);
   if(isempty(seg)) return; end
 
+  fprintf('nSVD = %d\n',nSVD);
+  
   if(WMOrthog)
     wm   = (seg.vol ==  2 | seg.vol == 41);
     wm = fast_dilate(wm,1,1,1); % erode 1 in-plane
@@ -106,9 +108,24 @@ for nthrun = 1:nruns
     end
     fprintf('%2d segid = %d,  nseg = %g\n',nthseg,segid,nseg);
     fseg = fmat(:,indseg);
-    rseg = mean(Rd*fseg,2);
-    rseg = rseg/sqrt(sum(rseg.^2));
-    fcreg = [fcreg rseg];
+    if(nSVD == 0) 
+      % Take the mean over the given Seg
+      rseg = mean(Rd*fseg,2);
+      rseg = rseg/sqrt(sum(rseg.^2));
+      fcreg = [fcreg rseg];
+    else
+      % Concat all waveforms in the Seg for later SVD
+      fcreg = [fcreg Rd*fseg];
+    end
+  end
+
+  if(nSVD ~= 0) 
+    [Utmp Stmp Vtmp] = svd(fcreg);
+    pvs = 100*diag(Stmp)/sum(diag(Stmp));
+    cpvs = cumsum(pvs);
+    fprintf('SVD CPVS: %4.1f %4.1f %4.1f %4.1f %4.1f\n',cpvs(1:5));
+    fprintf('SVD CPVS Tot (n=%d): %4.1f\n',nSVD,cpvs(nSVD));
+    fcreg = Utmp(:,1:nSVD);
   end
   
   fname = sprintf('%s/%s/%s',fsdp,runid,fcregstem);
