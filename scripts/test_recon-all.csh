@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/09/03 14:07:43 $
-#    $Revision: 1.30 $
+#    $Date: 2009/12/14 16:32:01 $
+#    $Revision: 1.31 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.30 2009/09/03 14:07:43 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.31 2009/12/14 16:32:01 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -166,7 +166,7 @@ echo "FREESURFER_HOME: $FREESURFER_HOME"
 # running another test run until somebody figures out why it failed.
 # the flag file 'test_recon-all_FAILED' will  need to be deleted manually.
 if (-e $SUBJECTS_DIR/test_recon-all_FAILED) then
-    set msg="Prior $PROC test_recon-all FAILED! Fix it!"
+    set msg="Prior $PROC test_recon-all FAILED on $HOST! Fix it!"
     echo ${msg}
     mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
@@ -178,7 +178,7 @@ endif
 # completion of recon-all, and so should not exist
 if (-e $SUBJECTS_DIR/$TEST_SUBJ) then
   if ($?SKIP_RECON) goto continue1
-    set msg="$PROC test_recon-all already running!"
+    set msg="$PROC test_recon-all already running on $HOST !"
     echo ${msg}
     mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
@@ -571,7 +571,7 @@ end # foreach hemi ($TEST_HEMIS)
 
 set STATS_FILES=(aseg.stats \
 lh.aparc.a2009s.stats lh.aparc.stats \
-rh.aparc.a2009s.stats rh.aparc.stats)
+rh.aparc.a2009s.stats rh.aparc.stats wmparc.stats)
 
 foreach statfile ($STATS_FILES)
   set REF_STAT   = $SUBJECTS_DIR/ref_subj/stats/$statfile
@@ -582,21 +582,25 @@ foreach statfile ($STATS_FILES)
   set cmd1c=(grep -v "cvs_version" $SUBJECTS_DIR/ref.stats)
   set cmd1d=(grep -v "${REF_SUBJ}" $SUBJECTS_DIR/ref.stats)
   set cmd1e=(grep -v "hostname" $SUBJECTS_DIR/ref.stats)
+  set cmd1f=(grep -v "SUBJECTS_DIR" $SUBJECTS_DIR/ref.stats)
   echo $cmd1a
   echo $cmd1b
   echo $cmd1c
   echo $cmd1d
   echo $cmd1e
+  echo $cmd1f
   set cmd2a=(grep -v "TimeStamp" $TST_STAT)
   set cmd2b=(grep -v "CreationTime" $SUBJECTS_DIR/tst.stats)
   set cmd2c=(grep -v "cvs_version" $SUBJECTS_DIR/tst.stats)
   set cmd2d=(grep -v "${TEST_SUBJ}" $SUBJECTS_DIR/tst.stats)
   set cmd2e=(grep -v "hostname" $SUBJECTS_DIR/tst.stats)
+  set cmd2f=(grep -v "SUBJECTS_DIR" $SUBJECTS_DIR/tst.stats)
   echo $cmd2a
   echo $cmd2b
   echo $cmd2c
   echo $cmd2d
   echo $cmd2e
+  echo $cmd2f
   set cmd3=(diff $SUBJECTS_DIR/ref.$statfile $SUBJECTS_DIR/tst.$statfile)
   echo $cmd3
   if ($RunIt) then
@@ -610,6 +614,8 @@ foreach statfile ($STATS_FILES)
     $cmd1d >& $SUBJECTS_DIR/ref.stats.tmp
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
     $cmd1e >& $SUBJECTS_DIR/ref.stats.tmp
+    mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
+    $cmd1f >& $SUBJECTS_DIR/ref.stats.tmp
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.$statfile
     $cmd2a >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
@@ -620,6 +626,8 @@ foreach statfile ($STATS_FILES)
     $cmd2d >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
     $cmd2e >& $SUBJECTS_DIR/tst.stats.tmp
+    mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
+    $cmd2f >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.$statfile
     $cmd3 >& $STATSDIFFF
     set stats_diff_status=$status
@@ -722,6 +730,7 @@ if ($?FOUND_ERROR) then
   echo "FAILURE(S) found in test_recon-all $TEST_SUBJ on $PROC (${HOST})" \
     >>& $OUTPUTF
   echo "Consult diff logs in $LOG_DIR for details" >>& $OUTPUTF
+  echo "Output SUBJECTS_DIR is $SUBJECTS_DIR" >>& $OUTPUTF
   if ($RunIt) then
     mail -s "test_recon-all $TEST_SUBJ FAILURE(s) on $PROC (${HOST})" \
         $FMAIL_LIST < $OUTPUTF
