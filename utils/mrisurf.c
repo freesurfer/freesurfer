@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/14 14:00:52 $
- *    $Revision: 1.650 $
+ *    $Date: 2009/12/14 20:05:53 $
+ *    $Revision: 1.651 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -581,6 +581,8 @@ static MATRIX *getSRASToTalSRAS(LT *lt);
 static int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris);
 static int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages);
 static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
+static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms);
+static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms);
 
 /* this stuff is needed for some of the benchmarking I have been doing */
 #include <sys/time.h>
@@ -678,7 +680,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.650 2009/12/14 14:00:52 twitzel Exp $");
+  return("$Id: mrisurf.c,v 1.651 2009/12/14 20:05:53 twitzel Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7606,6 +7608,7 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
  	MRISCuploadVertices(mrisc,mris);
  	MRISCuploadTotalNeighborArray(mrisc,mris);
  	MRISCallocDistances(mrisc,mris);
+	MRISCuploadDistOrigArray(mrisc,mris);
 	
 	if (Gdiag & DIAG_WRITE && parms->fp == NULL)
 	{
@@ -8257,6 +8260,173 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(sse) ;
 }
 
+#ifdef CUDA_SURF_FN
+static double
+MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
+{
+  double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
+    area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere, sse_thick_min, sse_thick_parallel,
+    sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, sse_repulse, sse_tsmooth, sse_loc,
+  sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap, sse_dura, sse_nlspring;
+  int     ano, fno ;
+  FACE    *face ;
+  MHT     *mht_v_current = NULL ;
+  MHT     *mht_f_current = NULL ;
+
+
+#if METRIC_SCALE
+  if (mris->patch || mris->noscale)
+    area_scale = 1.0 ;
+  else
+    area_scale = mris->orig_area / mris->total_area ;
+#else
+  area_scale = 1.0 ;
+#endif
+
+  sse_repulse = 
+    sse_repulsive_ratio =
+    sse_tsmooth = 
+    sse_nl_area = 
+    sse_nl_dist = 
+    sse_corr =
+    sse_angle = 
+    sse_neg_area = 
+    sse_val = 
+    sse_sphere =
+    sse_shrinkwrap = 
+    sse_expandwrap = 
+    sse_area = 
+    sse_dura =
+    sse_lap = 
+    sse_spring = 
+    sse_curv = 
+    sse_dist = 
+    sse_tspring = 
+    sse_loc =
+    sse_nlspring =
+    sse_grad = 0.0;
+
+  if (!FZERO(parms->l_repulse))
+  {
+    mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
+    mht_f_current = MHTfillTable(mris, mht_f_current);
+  }
+
+  if (!FZERO(parms->l_angle)||!FZERO(parms->l_area)||(!FZERO(parms->l_parea)))
+  {
+    for (fno = 0 ; fno < mris->nfaces ; fno++)
+    {
+      face = &mris->faces[fno] ;
+      if (face->ripflag)
+        continue ;
+
+      delta = (double)(area_scale*face->area - face->orig_area) ;
+#if ONLY_NEG_AREA_TERM
+      if (face->area < 0.0f)
+        sse_neg_area += delta*delta ;
+#endif
+      sse_area += delta*delta ;
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+      {
+        delta = deltaAngle(face->angle[ano],face->orig_angle[ano]);
+#if ONLY_NEG_AREA_TERM
+        if (face->angle[ano] >= 0.0f)
+          delta = 0.0f ;
+#endif
+        sse_angle += delta*delta ;
+      }
+      if (!finite(sse_area) || !finite(sse_angle))
+        ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n",fno);
+    }
+  }
+  if (parms->l_repulse > 0)
+    sse_repulse
+    = mrisComputeRepulsiveEnergy(mris, parms->l_repulse, mht_v_current, 
+                                 mht_f_current) ;
+  sse_repulsive_ratio =
+    mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio) ;
+  sse_tsmooth = mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth) ;
+  sse_thick_min = mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms) ;
+  sse_thick_parallel = mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms) ;
+  if (!FZERO(parms->l_nlarea))
+    sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
+  if (!DZERO(parms->l_nldist))
+    sse_nl_dist = mrisComputeNonlinearDistanceSSE(mris) ;
+  if (!DZERO(parms->l_dist))
+    sse_dist = mrisComputeDistanceErrorCUDA(mris, mrisc, parms) ;
+  if (!DZERO(parms->l_spring))
+    sse_spring = mrisComputeSpringEnergy(mris) ;
+  if (!DZERO(parms->l_lap))
+    sse_lap = mrisComputeLaplacianEnergy(mris) ;
+  if (!DZERO(parms->l_tspring))
+    sse_tspring = mrisComputeTangentialSpringEnergy(mris) ;
+  if (!DZERO(parms->l_nlspring))
+    sse_nlspring = mrisComputeNonlinearSpringEnergy(mris, parms) ;
+  if (!DZERO(parms->l_curv))
+    sse_curv = mrisComputeQuadraticCurvatureSSE(mris, parms->l_curv) ;
+  l_corr = (double)(parms->l_corr + parms->l_pcorr) ;
+  if (!DZERO(l_corr))
+    sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
+  if (!DZERO(parms->l_intensity))
+    sse_val = mrisComputeIntensityError(mris, parms) ;
+  if (!DZERO(parms->l_location))
+    sse_loc = mrisComputeTargetLocationError(mris, parms) ;
+  if (!DZERO(parms->l_dura))
+    sse_dura = mrisComputeDuraError(mris, parms) ;
+  if (!DZERO(parms->l_grad))
+    sse_grad = mrisComputeIntensityGradientError(mris, parms) ;
+  if (!DZERO(parms->l_sphere))
+    sse_sphere = mrisComputeSphereError(mris, parms->l_sphere, parms->a) ;
+  if (!DZERO(parms->l_shrinkwrap))
+    sse_shrinkwrap =
+      mrisComputeShrinkwrapError(mris, parms->mri_brain, parms->l_shrinkwrap) ;
+  if (!DZERO(parms->l_expandwrap))
+    sse_expandwrap =
+      mrisComputeExpandwrapError(mris, parms->mri_brain, parms->l_expandwrap,
+                                 parms->target_radius) ;
+
+  sse = 0 ;
+
+  if (gMRISexternalSSE)
+    sse = (*gMRISexternalSSE)(mris, parms) ;
+  sse +=
+    (double)parms->l_area      * sse_neg_area + sse_repulse + 
+    (double)parms->l_tsmooth   * sse_tsmooth +
+    (double)parms->l_thick_min * sse_thick_min +
+    (double)parms->l_thick_parallel * sse_thick_parallel +
+    (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
+    (double)parms->l_intensity * sse_val +
+    (double)parms->l_location  * sse_loc +
+    (double)parms->l_lap       * sse_lap +
+    (double)parms->l_shrinkwrap * sse_shrinkwrap +
+    (double)parms->l_expandwrap * sse_expandwrap +
+    (double)parms->l_grad      * sse_grad +
+    (double)parms->l_parea     * sse_area +
+    (double)parms->l_nldist    * sse_nl_dist +
+    (double)parms->l_nlarea    * sse_nl_area +
+    (double)parms->l_angle     * sse_angle +
+    (double)parms->l_dist      * sse_dist +
+    (double)parms->l_nlspring  * sse_nlspring +
+    (double)parms->l_spring    * sse_spring +
+    (double)parms->l_dura      * sse_dura +
+    (double)parms->l_tspring   * sse_tspring +
+    (double)l_corr             * sse_corr +
+    (double)parms->l_curv      * CURV_SCALE * sse_curv ;
+
+  if (parms->flags & IP_USE_MULTIFRAMES)
+    sse += (double)mrisComputeVectorCorrelationError(mris, parms, 1) ;
+
+  if (mht_v_current)
+    MHTfree(&mht_v_current) ;
+  if (mht_f_current)
+    MHTfree(&mht_f_current) ;
+
+  if (!devFinite(sse))
+    DiagBreak() ;
+  return(sse) ;
+}
+
+#endif //CUDA_SURF_FN
 
 /*-----------------------------------------------------
   Parameters:
@@ -9968,10 +10138,10 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
       mrisProjectSurface(mris) ;
       mrisComputeMetricPropertiesCUDA(mrisc,mris) ;
 
-      sse = MRIScomputeSSE(mris, parms) ;
+      sse = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
       fprintf(fp2, "%f  %f  %f\n", delta_t, sse, predicted_sse) ;
       mrisProjectSurface(mris) ;
-      sse = MRIScomputeSSE(mris, parms) ;
+      sse = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
       fprintf(fp, "%f  %f  %f\n", delta_t, sse, predicted_sse) ;
       fflush(fp) ;
       MRISrestoreOldPositions(mris) ;
@@ -10006,7 +10176,7 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
 		printf("mrisLineMinimize->MRIScomputeMetricProperties %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
 
 		gettimeofday(&tv3,NULL);
-		sse = MRIScomputeSSE(mris, parms) ;
+		sse = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
 		gettimeofday(&tv4,NULL);			
 		timeval_subtract(&result,&tv4,&tv3);
 		printf("mrisLineMinimize->MRIScomputeSSE %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
@@ -10032,7 +10202,7 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
     MRISapplyGradient(mris, min_delta) ;
     mrisProjectSurface(mris) ;
     mrisComputeMetricPropertiesCUDA(mrisc,mris) ;
-    min_sse = MRIScomputeSSE(mris, parms) ;
+    min_sse = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
     MRISrestoreOldPositions(mris) ;
   }
 
@@ -10052,13 +10222,13 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
   MRISapplyGradient(mris, dt0) ;
   mrisProjectSurface(mris) ;
   mrisComputeMetricPropertiesCUDA(mrisc,mris) ;
-  sse0 = MRIScomputeSSE(mris, parms) ;
+  sse0 = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
   MRISrestoreOldPositions(mris) ;
 
   MRISapplyGradient(mris, dt2) ;
   mrisProjectSurface(mris) ;
   mrisComputeMetricPropertiesCUDA(mrisc,mris) ;
-  sse2 = MRIScomputeSSE(mris, parms) ;
+  sse2 = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
   MRISrestoreOldPositions(mris) ;
 
   /* now fit a quadratic form to these values */
@@ -10124,7 +10294,7 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
         MRISapplyGradient(mris, new_min_delta) ;
         mrisProjectSurface(mris) ;
         mrisComputeMetricPropertiesCUDA(mrisc,mris) ;
-        sse = MRIScomputeSSE(mris, parms) ;
+        sse = MRIScomputeSSE_CUDA(mris, mrisc,parms) ;
         MRISrestoreOldPositions(mris) ;
         dt_in[N] = new_min_delta ;
         sse_out[N++] = sse ;
@@ -18775,7 +18945,43 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(sse_dist) ;
 }
 
+#ifdef CUDA_SURF_FN
+static float
+mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
+{
+  double  dist_scale, sse_dist;
 
+#if METRIC_SCALE
+  if (mris->patch)
+    dist_scale = 1.0 ;
+  else
+    if (mris->status == MRIS_PARAMETERIZED_SPHERE)
+      dist_scale = sqrt(mris->orig_area / mris->total_area) ;
+    else
+      dist_scale = mris->neg_area < mris->total_area ?
+                   sqrt(mris->orig_area / (mris->total_area-mris->neg_area)) :
+                   sqrt(mris->orig_area / mris->total_area) ;
+#else
+  dist_scale = 1.0 ;
+#endif
+
+	/*
+	if(dist_scale != 1.0) {
+		fprintf(stdout,"FYFYF: dist_scale = %lg\n",dist_scale);
+	}
+	*/
+
+	if(parms->vsmoothness == NULL && parms->dist_error == NULL) {
+		sse_dist = (double)(MRISCcomputeDistanceError(mrisc,dist_scale));
+	} else {
+		sse_dist = mrisComputeDistanceError(mris,parms);
+	}
+
+	fprintf(stdout,"mrisComputeDistanceErrorCUDA: **************************************** sse_dist=%lg\n",sse_dist);
+  return(sse_dist) ;
+}
+
+#endif /* CUDA_SURF_FN */
 /*-----------------------------------------------------
   Parameters:
 

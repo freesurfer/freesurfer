@@ -7,8 +7,8 @@
  * Original Author: Thomas Witzel
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/03 08:13:34 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/12/14 20:05:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,8 @@ typedef struct MRI_CUDA_SURFACE_
 	float *h_Distances;              /* distance vector */
 	float *d_Distances;
 	
+	float *d_DistancesOrig;          /* original distance vector */
+	
 	float4 *h_D;      /* host memory for gradients */
 	float4 *d_D;      /* device memory for gradients */
 	float4 *d_TD;     /* device memory for temporary gradients */
@@ -78,9 +80,13 @@ extern "C" {
 	void MRISCdownloadGradients(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
 	void MRISCdeviceInfo();
 
+	void MRISCallocDistOrigArray(MRI_CUDA_SURFACE *mrics);
+	void MRISCuploadDistOrigArray(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
+	
 	/* computational routines */
 	void MRISCcomputeVertexDistances(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris);
 	void MRISCaverageGradients(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, unsigned int niter);
+	float MRISCcomputeDistanceError(MRI_CUDA_SURFACE *mrisc, float dist_scale);
 	
 #ifdef __cplusplus
 }

@@ -7,8 +7,8 @@
  * Original Author: Thomas Witzel
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/03 08:13:05 $
- *    $Revision: 1.2 $
+ *    $Date: 2009/12/14 20:05:53 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,10 +40,19 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <sys/time.h>
+#include <thrust/version.h>
+#include <thrust/device_ptr.h>
+#include <thrust/transform_reduce.h>
+#include <thrust/functional.h>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <cmath>
 
+/* Note mrisurf.h cannot be before thrust libraries .... */
 #include "mrisurf.h"
 #include "mrisurf_cuda.h"
-#include <sys/time.h>
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -117,6 +126,8 @@ void MRISCinitSurface(MRI_CUDA_SURFACE *mrics)
 	
 	mrics->h_Distances = NULL;
 	mrics->d_Distances = NULL;
+
+	mrics->d_DistancesOrig = NULL;
 
 	mrics->h_D = NULL;
 	mrics->d_D = NULL;
@@ -198,6 +209,11 @@ void MRISCcleanupSurface(MRI_CUDA_SURFACE *mrics)
 	if(mrics->d_NNeighbors != NULL) {
 		cudaFree(mrics->d_NNeighbors);
 		mrics->d_NNeighbors = NULL;
+	}
+
+	if(mrics->d_DistancesOrig != NULL) {
+		cudaFree(mrics->d_DistancesOrig);
+		mrics->d_DistancesOrig = NULL;
 	}
 }
 
@@ -397,6 +413,58 @@ void MRISCallocTotalNeighborArray(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
 	}
 }
 
+/* allocate a dist_orig vector if it is not already allocated */
+void MRISCallocDistOrigArray(MRI_CUDA_SURFACE *mrics)
+{
+	unsigned int ntotal = mrics->ntotalneighbors;
+	/* allocate device memory */
+	if(mrics->d_DistancesOrig != NULL)
+		cudaFree(mrics->d_DistancesOrig);
+	
+	cudaMalloc((void **)&(mrics->d_DistancesOrig),ntotal*sizeof(float));
+	MRISCcheckCUDAError("MRISCallocDistOrigArray: cannot allocate device memory !");
+}
+
+/* upload the dist_orig vector to the GPU device. This assumes that the neighborhood structure is
+	 already uploaded to some extent
+	 a download routine is not needed because this is never modified by the GPU 
+*/
+void MRISCuploadDistOrigArray(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
+{
+	if(mrics->d_DistancesOrig == NULL)
+		MRISCallocDistOrigArray(mrics);
+
+	unsigned int ntotal = mrics->ntotalneighbors;
+	unsigned int ctr = 0;
+	
+	float *tmp = new float[ntotal];
+	if(tmp == NULL) {
+		fprintf(stderr,"MRISCuploadDistOrigArray: cannot allocate temporary buffer !");
+		exit(-1);
+	}
+	
+	for(int vno = 0; vno < mris->nvertices; vno++) {
+		VERTEX *v = &(mris->vertices[vno]);
+		if(v->ripflag) {
+			fprintf(stderr,"PANIC: RIPFLAG IS NOT SUPPORTED !\n");
+		}
+		
+		for(int n=0; n<v->vtotal; n++)
+			tmp[ctr++] = v->dist_orig[n];
+	}
+	// transfer the data
+	cudaMemcpy(mrics->d_DistancesOrig,
+						 tmp,
+						 mrics->ntotalneighbors*sizeof(float),
+						 cudaMemcpyHostToDevice);
+	MRISCcheckCUDAError("MRISCuploadDistOrigArray: cannot transfer the data !");
+	// free the tmp vector
+	delete [] tmp;
+}
+
+/* upload the neighbor structure to the GPU
+	 a download routine is not needed because this is never modifed by the GPU
+*/
 void MRISCuploadTotalNeighborArray(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
 {
 	unsigned int ntotal = 0;
@@ -440,25 +508,25 @@ void MRISCuploadTotalNeighborArray(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
 						 mrics->h_TotalNeighborArray,
 						 mrics->ntotalneighbors*sizeof(unsigned int),
 						 cudaMemcpyHostToDevice);
-	MRISCcheckCUDAError("MRISuploadVertices: cannot transfer data !");
+	MRISCcheckCUDAError("MRISCuploadTotalNeighborArray: cannot transfer neighbor array !");
 	
 	cudaMemcpy(mrics->d_TotalNeighborOffsets,
 						 mrics->h_TotalNeighborOffsets,
 						 mrics->nvertices*sizeof(unsigned int),
 						 cudaMemcpyHostToDevice);
-	MRISCcheckCUDAError("MRISuploadVertices: cannot transfer data !");
+	MRISCcheckCUDAError("MRISCuploadTotalNeighborArray: cannot transfer neighbor offsets !");
 	
 	cudaMemcpy(mrics->d_NTotalNeighbors,
 						 mrics->h_NTotalNeighbors,
 						 mrics->nvertices*sizeof(unsigned int),
 						 cudaMemcpyHostToDevice);
-	MRISCcheckCUDAError("MRISuploadVertices: cannot transfer data !");
+	MRISCcheckCUDAError("MRISCuploadTotalNeighborArray: cannot transfer ntotalneighbors !");
 	
 	cudaMemcpy(mrics->d_NNeighbors,
 						 mrics->h_NNeighbors,
 						 mrics->nvertices*sizeof(unsigned int),
 						 cudaMemcpyHostToDevice);
-	MRISCcheckCUDAError("MRISuploadVertices: cannot transfer data !");
+	MRISCcheckCUDAError("MRISCuploadTotalNeighborArray: cannot transfer nneighbors !");
 }
 
 void MRISCallocGradients(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
@@ -779,4 +847,58 @@ void MRISCaverageGradients(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, unsigned 
 	MRISCcheckCUDAError("MRISCaverageGradients");
 }
 
+/* MRISCcomputeDistanceError()
+
+   this function is based on the mrisComputeDistanceError function used in mrisurf.c
+	 Based on observations this function will have the following limitations compared to 
+	 the original function
+	 it does NOT support parms->dist_error NOR parms->vsmoothness 
+	 it also IGNORES the .neg property
+
+	 This is a reduction function. It can only be done in double precision on SM_13 hardware
+*/
+template<typename T>
+struct square
+{
+    __host__ __device__
+        T operator()(const T& x) const { 
+            return x * x;
+        }
+};
+
+struct ssxpy_functor
+{
+    const float a;
+
+    ssxpy_functor(float _a) : a(_a) {}
+
+    __host__ __device__
+        float operator()(const float& x, const float& y) const { 
+            return x - a * y;
+        }
+};
+
+float MRISCcomputeDistanceError(MRI_CUDA_SURFACE *mrisc, float dist_scale)
+{
+	// allocate a temporary difference vector
+	thrust::device_vector<float> Diff(mrisc->ntotalneighbors);
+
+	// generate thrust device pointers from the device pointers we already have
+	thrust::device_ptr<float> dist_ptr(mrisc->d_Distances);
+	thrust::device_ptr<float> dist_origptr(mrisc->d_DistancesOrig);
+	
+	if(dist_scale == 1.0) {
+		thrust::transform(dist_origptr, dist_origptr+mrisc->ntotalneighbors, dist_ptr, Diff.begin(), thrust::minus<float>());
+	} else {
+		thrust::transform(dist_origptr, dist_origptr+mrisc->ntotalneighbors, dist_ptr, Diff.begin(), ssxpy_functor(dist_scale));
+	}
+	square<float>        unary_op;
+	thrust::plus<float> binary_op;
+	float init = 0;
+	
+	float norm = thrust::transform_reduce(Diff.begin(), Diff.end(), unary_op, init, binary_op);
+	
+	std::cout << "norm = " << norm << std::endl;
+	return norm; 
+}
 #endif /* CUDA_SURF_FN */
