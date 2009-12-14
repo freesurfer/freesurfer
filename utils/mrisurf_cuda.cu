@@ -7,8 +7,8 @@
  * Original Author: Thomas Witzel
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/14 20:05:53 $
- *    $Revision: 1.3 $
+ *    $Date: 2009/12/14 22:04:22 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -898,7 +898,6 @@ float MRISCcomputeDistanceError(MRI_CUDA_SURFACE *mrisc, float dist_scale)
 	
 	float norm = thrust::transform_reduce(Diff.begin(), Diff.end(), unary_op, init, binary_op);
 	
-	std::cout << "norm = " << norm << std::endl;
 	return norm; 
 }
 #endif /* CUDA_SURF_FN */
