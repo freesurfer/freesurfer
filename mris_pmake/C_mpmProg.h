@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.5 2009/12/14 16:21:51 rudolph Exp $
+/// $Id: C_mpmProg.h,v 1.6 2009/12/15 17:28:04 rudolph Exp $
 ///
 ///
 
@@ -216,6 +216,15 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         mvertex_total;
     int         m_costFunctionIndex;
     bool        mb_surfaceRipClear;
+    bool        mb_performExhaustive;           // If true, perform cost
+                                                //+ calculations from polar
+                                                //+ to every other vertex in
+                                                //+ mesh -- useful only for
+                                                //+ debugging/memory testing
+                                                //+ since a search from 
+                                                //+ vertex->vertex will cover
+                                                //+ whole mesh anyway in single
+                                                //+ sweep.
     int         mprogressIter;                  // Number of iterations to
                                                 //+ loop before showing
                                                 //+ progress to stdout

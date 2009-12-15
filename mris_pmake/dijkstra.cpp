@@ -136,9 +136,6 @@ int dijkstra(
   assert(vno_f >= 0);
   assert(vno_f < surf->nvertices);
 
-  // If start == end, return immediately
-  if(vno_i == vno_f) return TRUE;
-
   if (!st_env.b_costHistoryPreserve) {
     assert(!surf->vertices[vno_i].ripflag);
     assert(!surf->vertices[vno_f].ripflag);
@@ -166,11 +163,14 @@ int dijkstra(
   // condition, otherwise the while() will terminate after one loop.
   while ( vno_c!=vno_f || !totalLoops) {
     totalLoops++;
-    if(totalLoops == st_env.pMS_curvature->nvertices-1)
-        printf("here!\n");
-
-//     cout << "Here - totalLoops = " << totalLoops << endl;
-
+    if(totalLoops >= st_env.pMS_curvature->nvertices-1) {
+      // If this condition is true, we have processed all available vertices
+      // in the mesh -- typically only occurs if the startVertex == endVertex
+      // and is used for 'autodijk' type calculations.
+      rv = TRUE;
+      goto clean;
+    }
+    
     /* set vno_c (find min) */
     if (d_list == NULL) {
       ErrorPrintf(ERROR_BADPARM, "dijkstra(): out of vertices");
@@ -200,18 +200,6 @@ int dijkstra(
 
       cost = st_env.costFunc_do(st_env, &st_iterInfo, vno_c, j, b_relNextReference);
       f_pathCost = v_c->val + cost;
-
-      /*
-      if(v_n->marked == DIJK_VIRGIN) {
-      v_n->val = f_pathCost;
-      v_n->old_undefval = vno_c;
-      if(mark(surf, vno_n, DIJK_IN_PLAY) != NO_ERROR)
-       goto error;
-      } else if(f_pathCost < v_n->val) {
-      v_n->val = f_pathCost;
-      v_n->old_undefval = vno_c;
-      }
-      */
 
       // Break out of while if af_maxAllowedCost is violated.
       if (af_maxAllowedCost && (f_pathCost > af_maxAllowedCost)) continue;

@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.8 2009/12/14 16:21:51 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.9 2009/12/15 17:28:03 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -272,13 +272,14 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
 
     debug_push("C_mpmProg_autodijk");
 
-    mvertex_polar       = 0;
-    mvertex_start       = 0;
-    mvertex_step        = 1;
-    mvertex_end         = 0;
-    m_costFunctionIndex = 0;
-    mb_surfaceRipClear  = true;
-    mprogressIter       = 100;
+    mvertex_polar               = 0;
+    mvertex_start               = 0;
+    mvertex_step                = 1;
+    mvertex_end                 = 0;
+    m_costFunctionIndex         = 0;
+    mb_performExhaustive        = false;
+    mb_surfaceRipClear          = true;
+    mprogressIter               = 100;
 
     if(s_env_costFctSetIndex(mps_env, m_costFunctionIndex) == -1)
         error_exit("setting costFunctionIndex", "Could not set index", 1);
@@ -371,19 +372,15 @@ C_mpmProg_autodijk::cost_compute(
                             mps_env->endVertex,
                             mvertex_total);
     }
-    if(a_start == a_end) {
-        f_cost          = 0.0;
-    } else {
-        ok = dijkstra(*mps_env);  // costs are written to vertex elements along
-                                  //+ the path in the MRIS structure.
+    ok = dijkstra(*mps_env);  // costs are written to vertex elements along
+                              //+ the path in the MRIS structure.
 
-        if(!ok) {
-            fprintf(stderr, " fail ]\n");
-            fprintf(stderr, "dijkstra failure, returning to system.\n");
-            exit(1);
-        }
-        f_cost      = surface_ripMark(*mps_env);
+    if(!ok) {
+        fprintf(stderr, " fail ]\n");
+        fprintf(stderr, "dijkstra failure, returning to system.\n");
+        exit(1);
     }
+    f_cost      = surface_ripMark(*mps_env);
     if(!(calls % mprogressIter)) {
         if(Gb_stdout) printf(" %f ]\n", f_cost);
     }
@@ -405,12 +402,21 @@ C_mpmProg_autodijk::run() {
 
     debug_push("run");
 
-    // Calculate the costs
-    for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step) {
-        f_cost = cost_compute(mvertex_polar, v);
-        mpf_cost[v]     = f_cost;
+    if(mb_performExhaustive) {
+      // Calculate the costs from polar to every other vertex in
+      // mesh *explicitly*. DO NOT USE -- ONLY FOR DEBUGGING!! A
+      // single sweep of the dijkstra from polar->polar will
+      // have the same result in seconds... the exhaustive search
+      // can take multiple hours.
+      for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step) {
+          f_cost        = cost_compute(mvertex_polar, v);
+          mpf_cost[v]   = f_cost;
+      }
+    } else {
+      f_cost            = cost_compute(mvertex_polar, mvertex_polar);
+      for(int v = 0; v < mvertex_end; v++)
+        mpf_cost[v]     = mps_env->pMS_active->vertices[v].val;
     }
-
     // Write the cost curv file
     if((ret=CURV_fileWrite()) != e_OK)
         error("I could not save the cost curv file.");

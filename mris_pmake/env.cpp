@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.17 2009/12/14 16:21:51 rudolph Exp $
+// $Id: env.cpp,v 1.18 2009/12/15 17:28:04 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
