@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/09 19:42:52 $
- *    $Revision: 1.52 $
+ *    $Date: 2009/12/15 22:49:03 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,6 +44,7 @@ class wxSplitterWindow;
 class wxFileHistory;
 class wxSpinEvent;
 class wxMouseEvent;
+class wxToolBar;
 class RenderView;
 class RenderView2D;
 class RenderView3D;
@@ -63,6 +64,7 @@ class WindowOverlayConfiguration;
 class WindowConnectivityConfiguration;
 class DialogGradientVolume;
 class DialogSaveScreenshot;
+class DialogSavePoint;
 class ConnectivityData;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
@@ -194,6 +196,11 @@ public:
   void OnToolOptimalVolumeUpdateUI  ( wxUpdateUIEvent& event );
   void OnToolGradientVolume         ( wxCommandEvent& event );
   void OnToolGradientVolumeUpdateUI ( wxUpdateUIEvent& event );
+  void OnToolSaveGotoPoint          ( wxCommandEvent& event );
+  void OnToolSaveGotoPointUpdateUI  ( wxUpdateUIEvent& event );
+  void OnToolGotoPoint              ( wxCommandEvent& event );
+  void OnToolGotoPointUpdateUI      ( wxUpdateUIEvent& event );
+  void OnToolMenuGotoPoint          ( wxCommandEvent& event );
 
   void OnMouseEnterWindow           ( wxMouseEvent& event );
 
@@ -332,6 +339,10 @@ public:
     return m_connectivity;
   }
   
+  bool GetCursorRAS( double* ras_out );
+  
+  void UpdateGotoPoints();
+  
 protected:
   void CommandLoadVolume        ( const wxArrayString& cmd );
   void CommandLoadDTI           ( const wxArrayString& cmd );
@@ -379,6 +390,7 @@ private:
   void UpdateToolbars();
   void DoUpdateToolbars();
   void DoSaveScreenshot(); 
+  void BuildGotoPointMenu( wxMenu* menu );
 
   ControlPanel*       m_controlPanel;
   PixelInfoPanel*     m_pixelInfoPanel;
@@ -387,6 +399,7 @@ private:
   wxPanel*            m_renderViewHolder;
   WindowQuickReference* m_wndQuickReference;
   StatusBar*          m_statusBar;
+  wxToolBar*          m_toolbarMain;
   wxToolBar*          m_toolbarVoxelEdit;
   wxToolBar*          m_toolbarROIEdit;
   wxToolBar*          m_toolbarBrush;
@@ -399,6 +412,8 @@ private:
   WindowConnectivityConfiguration*  m_wndConnectivityConfiguration; 
   DialogGradientVolume*       m_dlgGradientVolume;
   DialogSaveScreenshot*       m_dlgSaveScreenshot;
+  DialogSavePoint*            m_dlgSavePoint;
+  wxMenu*           m_menuGotoPoints;
 
   RenderView2D*   m_viewAxial;
   RenderView2D*   m_viewSagittal;
@@ -425,6 +440,8 @@ private:
   int             m_nScreenshotFilterIndex;
 
   LUTDataHolder*  m_luts;
+  
+  wxArrayString   m_strGotoPoints;
 
   int             m_nRedrawCount;
   bool            m_bToUpdateToolbars;

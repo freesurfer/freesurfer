@@ -53,6 +53,8 @@ freeview_SOURCES=\
 	DialogPreferences.h \
 	DialogRotateVolume.cpp \
 	DialogRotateVolume.h \
+	DialogSavePoint.cpp \
+	DialogSavePoint.h \
 	DialogSavePointSetAs.cpp \
 	DialogSavePointSetAs.h \
 	DialogSaveScreenshot.cpp \

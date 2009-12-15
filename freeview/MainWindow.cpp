@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/09 19:42:52 $
- *    $Revision: 1.82 $
+ *    $Date: 2009/12/15 22:49:03 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -92,10 +92,11 @@
 #include "DialogSaveScreenshot.h"
 #include "DialogSavePointSetAs.h"
 #include "DialogLoadPointSet.h"
+#include "DialogSavePoint.h"
 
 #define CTRL_PANEL_WIDTH 240
 
-#define ID_FILE_RECENT1     10001
+#define ID_TOOL_GOTO_POINT_1  (wxID_HIGHEST+100)
 
 // ----------------------------------------------------------------------------
 // event tables and other macros for wxWindows
@@ -212,6 +213,12 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolumeUpdateUI )
   EVT_MENU        ( XRCID( "ID_TOOL_GRADIENT_VOLUME" ),   MainWindow::OnToolGradientVolume )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GRADIENT_VOLUME" ),   MainWindow::OnToolGradientVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_SAVE_POINT" ),        MainWindow::OnToolSaveGotoPoint )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_SAVE_POINT" ),        MainWindow::OnToolSaveGotoPointUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_GOTO_POINT" ),        MainWindow::OnToolGotoPoint )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT" ),        MainWindow::OnToolGotoPointUpdateUI )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT_SUBMENU" ),        MainWindow::OnToolGotoPointUpdateUI )
+  EVT_MENU_RANGE  ( ID_TOOL_GOTO_POINT_1, ID_TOOL_GOTO_POINT_1+1000,            MainWindow::OnToolMenuGotoPoint )
   
   EVT_MENU  ( XRCID( "ID_HELP_QUICK_REF" ),               MainWindow::OnHelpQuickReference )
   EVT_MENU  ( XRCID( "ID_HELP_ABOUT" ),                   MainWindow::OnHelpAbout )
@@ -268,6 +275,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_splitterMain->SetMinimumPaneSize( 80 );
 // sizer->Add( m_splitterMain, 1, wxEXPAND );
 
+  
+  m_toolbarMain = GetToolBar();
   m_toolbarVoxelEdit = XRCCTRL( *this, "ID_TOOLBAR_VOXEL_EDIT", wxToolBar );
   m_toolbarROIEdit = XRCCTRL( *this, "ID_TOOLBAR_ROI_EDIT", wxToolBar );
   m_toolbarBrush = XRCCTRL( *this, "ID_TOOLBAR_BRUSH", wxToolBar );
@@ -339,6 +348,9 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_dlgRotateVolume = NULL;
   m_dlgGradientVolume = NULL;
   m_dlgSaveScreenshot = NULL;
+  m_dlgSavePoint = NULL;
+  
+  m_menuGotoPoints = NULL;
 
   m_wndHistogram = new WindowHistogram( this );
   m_wndHistogram->Hide();
@@ -404,10 +416,16 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 
     bool bShow = true;
     config->Read( _("/MainWindow/ShowControlPanel" ), &bShow, true );
+    
+    wxString tempStrg = config->Read( _("/MainWindow/GotoPoints"), _("") );
+    if ( !tempStrg.IsEmpty() )
+      m_strGotoPoints = MyUtils::SplitString( tempStrg, ";" );
 
     ShowControlPanel( bShow );
   }
   SetViewLayout( m_nViewLayout );
+  
+  UpdateGotoPoints();
 }
 
 // frame destructor
@@ -423,6 +441,9 @@ MainWindow::~MainWindow()
   delete m_propertyBrush;
   if ( m_connectivity )
     delete m_connectivity;
+  
+  if ( m_menuGotoPoints )
+    delete m_menuGotoPoints;
 }
 
 MainWindow* MainWindow::GetMainWindowPointer()
@@ -512,7 +533,12 @@ void MainWindow::OnClose( wxCloseEvent &event )
     config->Write( _("/Screenshot/AntiAliasing" ),  m_settingsScreenshot.AntiAliasing );
 
     config->Write( _("/MainWindow/ShowControlPanel" ), m_controlPanel->IsShown() );
-
+    if ( m_dlgSavePoint )
+    {
+      m_strGotoPoints = m_dlgSavePoint->GetGotoPoints();
+      config->Write( _("/MainWindow/GotoPoints"), MyUtils::JoinStrings( m_strGotoPoints, ";" ) );
+    }
+    
     m_fileHistory->Save( *config );
   }
 
@@ -3783,6 +3809,99 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
 }
 */
 
+void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
+{
+  if ( !m_dlgSavePoint )
+  {
+    m_dlgSavePoint = new DialogSavePoint( this );
+    m_dlgSavePoint->SetGotoPoints( m_strGotoPoints );
+  }
+  
+  m_dlgSavePoint->Show();
+}
+
+void MainWindow::OnToolSaveGotoPointUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( !GetLayerCollection("MRI")->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
+}
+
+void MainWindow::UpdateGotoPoints()
+{  
+  if ( m_dlgSavePoint )
+    m_strGotoPoints = m_dlgSavePoint->GetGotoPoints();
+  
+  wxMenuBar* menubar = GetMenuBar();
+  if ( menubar )
+  {
+    int nId = menubar->FindMenuItem( _("Tools"), _("Goto Saved Points") );
+    if ( nId != wxNOT_FOUND )
+    {
+      wxMenuItem* item = menubar->FindItem( nId );
+      wxMenu* menu = item->GetMenu();
+      menu->Remove( item );
+      wxMenu* submenu = new wxMenu;
+      BuildGotoPointMenu( submenu );
+      if ( item->GetSubMenu() )
+        delete item->GetSubMenu();
+      item->SetSubMenu( submenu );
+      menu->Insert( 1, item );
+    }
+  }
+}
+
+void MainWindow::BuildGotoPointMenu( wxMenu* menu )
+{
+  for ( size_t i = 0; i < m_strGotoPoints.size(); i++ )
+  {
+    wxArrayString ar = MyUtils::SplitString( m_strGotoPoints[i], "," );
+    int nItemId = menu->FindItem( ar[0] );
+    wxMenu* subMenu = NULL;
+    if ( nItemId == wxNOT_FOUND )
+    {
+      subMenu = new wxMenu;
+      menu->AppendSubMenu( subMenu, ar[0] );
+    }
+    else
+    {
+      subMenu = menu->FindItem( nItemId )->GetSubMenu();
+    }
+    
+    if ( subMenu )
+    {
+      subMenu->Append( ID_TOOL_GOTO_POINT_1 + (int)i, ar[1] );
+    }
+  }
+}
+
+void MainWindow::OnToolGotoPoint( wxCommandEvent& event )
+{
+  if( !m_menuGotoPoints )
+    m_menuGotoPoints = new wxMenu;
+
+  BuildGotoPointMenu( m_menuGotoPoints );
+  PopupMenu( m_menuGotoPoints, 800, 0 );
+  delete m_menuGotoPoints;
+  m_menuGotoPoints = NULL;
+}
+
+void MainWindow::OnToolGotoPointUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( ( !GetLayerCollection("MRI")->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() ) &&
+      !m_strGotoPoints.IsEmpty() );
+  event.Check( m_menuGotoPoints );
+}
+
+void MainWindow::OnToolMenuGotoPoint( wxCommandEvent& event )
+{
+  int n = event.GetId() - ID_TOOL_GOTO_POINT_1;
+  if ( n < 0 )
+    return; 
+
+  wxArrayString ar = MyUtils::SplitString( m_strGotoPoints[n], "," );
+  ar.RemoveAt( 0 );
+  CommandSetRAS( ar );  
+}
+
 void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
 {
   if ( !m_dlgSaveScreenshot )
@@ -4155,3 +4274,25 @@ void MainWindow::LoadLUT()
     CommandSetLUT( sa );
   }
 }
+
+bool MainWindow::GetCursorRAS( double* ras_out )
+{
+  LayerCollection* lc_mri = GetLayerCollection( "MRI" );
+  LayerCollection* lc_surf = GetLayerCollection( "Surface" );
+  
+  if ( !lc_mri->IsEmpty() )
+  {
+    LayerMRI* mri = ( LayerMRI* )lc_mri->GetLayer( 0 );
+    mri->RemapPositionToRealRAS( lc_mri->GetCursorRASPosition(), ras_out );
+    
+    return true;
+  }
+  else if ( !lc_surf->IsEmpty() )
+  {
+    lc_surf->GetCurrentRASPosition( ras_out );
+    return true;
+  }
+  else
+    return false;
+}
+

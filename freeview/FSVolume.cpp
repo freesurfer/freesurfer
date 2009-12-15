@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/14 19:22:31 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/12/15 22:49:03 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -494,7 +494,7 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
   if ( !bSaveToOriginalSpace && m_MRIOrigTarget) 
     MRIcopyHeader( m_MRIOrigTarget, m_MRITemp );
   
-  // check if file writable
+  // check if file is writable
   FILE* fp = fopen( filename, "w" );
   if ( !fp )
   {

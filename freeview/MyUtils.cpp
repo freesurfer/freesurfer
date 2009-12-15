@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/14 19:22:32 $
- *    $Revision: 1.26 $
+ *    $Date: 2009/12/15 22:49:03 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -182,6 +182,18 @@ wxString MyUtils::GetNormalizedFullPath( const wxString& filename )
                 wxPATH_NORM_ABSOLUTE | 
                 wxPATH_NORM_TILDE );
   return fn.GetFullPath();
+}
+
+wxString MyUtils::JoinStrings( const wxArrayString& strglist, const wxString& glue )
+{
+  if ( strglist.size() == 0 )
+    return "";
+  
+  wxString strg = "";
+  for ( size_t i = 0; i < strglist.size() - 1; i++ )
+    strg += strglist[i] + glue;
+  
+  return ( strg + strglist[strglist.size()-1] );
 }
 
 wxArrayString MyUtils::SplitString( const wxString& strg_to_split, 
