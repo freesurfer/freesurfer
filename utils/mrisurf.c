@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
  *    $Author: twitzel $
- *    $Date: 2009/12/14 20:05:53 $
- *    $Revision: 1.651 $
+ *    $Date: 2009/12/15 11:58:45 $
+ *    $Revision: 1.652 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -680,7 +680,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.651 2009/12/14 20:05:53 twitzel Exp $");
+  return("$Id: mrisurf.c,v 1.652 2009/12/15 11:58:45 twitzel Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7881,7 +7881,7 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 							Gdiag_no, mris->vertices[Gdiag_no].H) ;
 
 		/* only print stuff out if we actually took a step */
-		sse = MRIScomputeSSE(mris, parms) ;
+		sse = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
 		if (!FZERO(old_sse) && ((old_sse-sse)/(old_sse) < sse_thresh))
 		{
 			if (++nsmall > MAX_SMALL)
@@ -7943,7 +7943,12 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 	if (!FZERO(parms->l_repulse))
 		MHTfree(&mht_v_current) ;
 	
-	parms->ending_sse = MRIScomputeSSE(mris, parms) ;
+	// If this is a plane, its possible the CPU Metric Properties were called last
+	// and the distance vector on the GPU is outdated.
+	if(mris->status != MRIS_PLANE) 
+		parms->ending_sse = MRIScomputeSSE_CUDA(mris, mrisc, parms);
+	else
+		parms->ending_sse = MRIScomputeSSE(mris, parms) ;
 	/*  mrisProjectSurface(mris) ;*/
  	MRISCcleanupSurface(mrisc);
 	return(parms->t-parms->start_t) ;  /* return actual # of steps taken */
@@ -21120,6 +21125,8 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
 	printf("MRIScomputeMetricProperties->MRIScomputeTriangleProperties: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
 
   mris->avg_vertex_area = mris->total_area/mris->nvertices;
+	// this would obviously require the distances
+	
   mris->avg_vertex_dist = MRISavgInterVertexDist(mris, &mris->std_vertex_dist);
   mrisOrientSurface(mris);
   // See also MRISrescaleMetricProperties()
