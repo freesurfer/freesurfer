@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.26 2009/09/05 19:37:04 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.27 2009/12/16 18:07:34 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -27,9 +27,9 @@ if ($?USE_SPACE_MINERVA) then
   setenv LOCAL_FS /space/minerva/1/users/nicks/build/install/${HOSTNAME}
 endif
 
-if ("$PLATFORM" == "rh9") then
-    if ("${HOSTNAME}" != "kani" ) then
-        echo "must run on machine kani"
+if ("$PLATFORM" == "centos5_x86_64") then
+    if ("${HOSTNAME}" != "terrier" ) then
+        echo "must run on machine terrier"
         exit 1
     endif
 else if ("$PLATFORM" == "centos4") then
@@ -65,7 +65,8 @@ else if ("$PLATFORM" == "tiger-i686") then
 else
     echo "Usage:"
     echo "$0 <platform> <release_type>"
-    echo "where <platform> is rh9, centos4, centos4_x86_64, leopard-ppc, leopard-i686, tiger-ppc or tiger-i686"
+    echo "where <platform> is centos5_x86_64, centos4, centos4_x86_64,"
+    echo "         leopard-ppc, leopard-i686, tiger-ppc or tiger-i686"
     echo "and <release_type> is either dev, or stable-pub"
     exit 1
 endif
