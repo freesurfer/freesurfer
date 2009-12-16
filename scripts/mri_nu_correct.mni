@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/11/11 04:57:58 $
-#    $Revision: 1.11 $
+#    $Date: 2009/12/16 20:15:41 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.11 2009/11/11 04:57:58 greve Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.12 2009/12/16 20:15:41 greve Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -35,7 +35,7 @@ set StopThresh = ();
 set Distance = ();
 set FWHM = ();
 set LF = ();
-set UseFloat = 0;
+set UseFloat = 1;
 
 set debug = 0;
 set PrintHelp = 0;
@@ -118,8 +118,38 @@ end
 echo " " |& tee -a $LF
 echo " " |& tee -a $LF
 
-# Convert nu back to cor or mgz, use --like to keep all the header info
 set numnc = $tmpdir/nu$nIters.mnc
+
+if($UseFloat) then
+  # Rescale so that global mean of output = mean of input
+  set ones = $tmpdir/ones.mgz
+  set cmd = (mri_binarize --i $numnc --min -1 --o $ones);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  set cmd = (mri_segstats --id 1 --seg $ones --i $InVol \
+    --sum $tmpdir/sum.junk --avgwf $tmpdir/input.mean.dat)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  set inmean = `cat $tmpdir/input.mean.dat`
+
+  set cmd = (mri_segstats --id 1 --seg $ones --i $numnc \
+    --sum $tmpdir/sum.junk --avgwf $tmpdir/output.mean.dat)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  set outmean = `cat $tmpdir/output.mean.dat`
+
+  set scale = `echo $inmean/$outmean | bc -l`
+  set cmd = (mris_calc -o $numnc $numnc mul $scale)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
+# Convert nu back to cor or mgz, use --like to keep all the header info
 set cmd = (mri_convert ${HiRes} $numnc $OutVol --like $InVol)
 if($UseFloat && $#HiRes == 0) set cmd = ($cmd --conform)
 echo $cmd |& tee -a $LF
@@ -254,8 +284,8 @@ usage_exit:
   echo " --stop thresh        : N3 option"
   echo " --distance Distance  : N3 -distance option"
   echo " --fwhm FWHM          : N3 -fwhm option"
-  echo " --float : use floating point internally"
-  echo " --no-float : do NOT use floating point internally (default)"
+  echo " --float : use floating point internally (default)"
+  echo " --no-float : do NOT use floating point internally"
   echo ""
   echo " --cm        : conform COR volumes to the min voxel size "
   echo ""
