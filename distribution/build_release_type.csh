@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.133 2009/11/07 01:34:27 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.134 2009/12/16 18:07:10 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -656,6 +656,15 @@ else
 endif
 echo "CMD: mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin" >>& $OUTPUTF
 mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin >>& $OUTPUTF
+# one final step is to change the freeview script path in Macs
+# Basically the end of freeview script has "open <BINPATH>/Freeview.app
+# But because of our bin-new procedure, even if we rename the directory bin-new to bin,
+# the path inside the freeview script remains "bin-new".. change that to point to bin
+if ("$HOSTNAME" == "hima") then
+    sed s/bin-new/bin/ ${INSTALL_DIR}/bin/freeview > ${INSTALL_DIR}/bin/freeview.new
+    mv ${INSTALL_DIR}/bin/freeview.new ${INSTALL_DIR}/bin/freeview
+    chmod a+x ${INSTALL_DIR}/bin/freeview
+endif
 #
 # make install is now complete, and /bin dir is now setup with new code
 #
