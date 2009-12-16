@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/05 19:09:41 $
- *    $Revision: 1.85 $
+ *    $Date: 2009/12/16 19:48:22 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -210,7 +210,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.85 2009/10/05 19:09:41 nicks Exp $";
+"$Id: mri_segreg.c,v 1.86 2009/12/16 19:48:22 nicks Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -350,13 +350,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.85 2009/10/05 19:09:41 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.86 2009/12/16 19:48:22 nicks Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.85 2009/10/05 19:09:41 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.86 2009/12/16 19:48:22 nicks Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -627,9 +627,9 @@ int main(int argc, char **argv) {
     printf("------------------------------------\n");
     nsubsampsave = nsubsamp;
     nsubsamp = nsubsampbrute;
-    printf("Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
+    printf("Brute force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
     fprintf(fp,"\n");
-    fprintf(fp,"Bruce force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
+    fprintf(fp,"Brute force preopt %g %g %g, n = %d\n",PreOptMin,PreOptMax,PreOptDelta,n);
     fflush(stdout); fflush(fp);
     mincost = 10e10;
     PreOptAtMin = 0;
