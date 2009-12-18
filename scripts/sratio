@@ -2,7 +2,7 @@
 # sratio - signed ratio
 #   +A/B if A>B
 #   -B/A if B>A
-# $Id: sratio,v 1.2 2008/10/03 18:24:23 greve Exp $
+# $Id: sratio,v 1.3 2009/12/18 02:23:37 greve Exp $
 
 #
 # sratio
@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/03 18:24:23 $
-#    $Revision: 1.2 $
+#    $Date: 2009/12/18 02:23:37 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -62,49 +62,49 @@ mkdir -p $tmpdir
 
 # A > B
 set AgtB = $tmpdir/AgtB.$code.nii
-set cmd = (fslmaths $A -sub $B $AgtB)
+set cmd = (fscalc.fsl $A -sub $B $AgtB)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # B > A (A < B)
 set BgtA = $tmpdir/BgtA.$code.nii
-set cmd = (fslmaths $B -sub $A $BgtA)
+set cmd = (fscalc.fsl $B -sub $A $BgtA)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # A/B
 set AdivB = $tmpdir/AdivB.$code.nii
-set cmd = (fslmaths $A -div $B $AdivB)
+set cmd = (fscalc.fsl $A -div $B $AdivB)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # -B/A
 set BdivA = $tmpdir/BdivA.$code.nii
-set cmd = (fslmaths $B -div $A -mul -1 $BdivA) # signed by -1
+set cmd = (fscalc.fsl $B -div $A -mul -1 $BdivA) # signed by -1
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # Anum = A/B where A > B
 set Anum = $tmpdir/Anum.$code.nii
-set cmd = (fslmaths $AdivB -mas $AgtB $Anum)
+set cmd = (fscalc.fsl $AdivB -mas $AgtB $Anum)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # Bnum = -B/A where  B > A
 set Bnum = $tmpdir/Bnum.$code.nii
-set cmd = (fslmaths $BdivA -mas $BgtA $Bnum)
+set cmd = (fscalc.fsl $BdivA -mas $BgtA $Bnum)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 # Now just add Anum and Bnum
 set sAdivBtmp = $tmpdir/sAdivB.$code.nii
-set cmd = (fslmaths $Anum -add $Bnum $sAdivBtmp)
+set cmd = (fscalc.fsl $Anum -add $Bnum $sAdivBtmp)
 echo $cmd
 $cmd
 if($status) exit 1;
