@@ -9,11 +9,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/12/16 13:56:07 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2009/12/18 16:32:58 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -171,7 +171,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.12 2009/12/16 13:56:07 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.13 2009/12/18 16:32:58 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -878,7 +878,7 @@ find_optimal_distance(MRI_SURFACE *mris, MRI *mri, int vno,
   double kernel[MAX_PROFILE_LEN], nx, ny, nz, intensity_profile[MAX_PROFILE_LEN] ;
   double  wm_val,csf_val;
   double  best_dist, dist, step, sse, min_sse, ig_width, sg_width, offset ;
-  int     ig_len, sg_len, in_len, best_ig_len, best_sg_len, min_ig_len, max_ig_len,best_out_len,
+  int     ig_len, sg_len, in_len, best_ig_len=0, best_sg_len=0, min_ig_len, max_ig_len,best_out_len,
     min_sg_len, max_sg_len, out_len, csf_len ;
   double  best_intensity_offset=0.0,min_intensity_offset,max_intensity_offset,intensity_step,
     intensity_offset, wm_dist, csf_dist ; 
