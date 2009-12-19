@@ -141,6 +141,31 @@ FFILES=\
 	t4_sub.f \
 	to_711-2B.f
 
+# trick to get test data into the build directory (during make distcheck)
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/distribution/average/mni305.cor.mgz"; \
+	then \
+		cp -v $(top_srcdir)/distribution/average/mni305.cor.mgz \
+					$(top_builddir)/distribution/average/; fi;
+	if ! test -f "$(top_builddir)/scripts/tkregister2.tcl"; then \
+		cp -v $(top_srcdir)/scripts/tkregister2.tcl \
+					$(top_builddir)/scripts/; fi;
+	if ! test -f "$(top_builddir)/talairach_avi/nu.mgz"; then \
+		cp -v $(top_srcdir)/talairach_avi/nu.mgz \
+					$(top_builddir)/talairach_avi/; fi;
+	if ! test -f "$(top_builddir)/talairach_avi/reference-tal.xfm"; then \
+		cp -v $(top_srcdir)/talairach_avi/reference-tal.xfm \
+					$(top_builddir)/talairach_avi/; fi;
+	if ! test -f "$(top_builddir)/talairach_avi/711-2C_as_mni_average_305.4dfp.img"; then \
+		cp -v $(top_srcdir)/talairach_avi/711-2C* \
+					$(top_builddir)/talairach_avi/; fi;
+	if ! test -f "$(top_builddir)/talairach_avi/"; then \
+		cp -v $(top_srcdir)/talairach_avi/ \
+					$(top_builddir)/talairach_avi/; fi;
+
+check_PROGRAMS=foo
+
 TESTS=test_libg2c test_talairach_avi
 
 EXTRA_DIST=$(dist_bin_SCRIPTS) \
