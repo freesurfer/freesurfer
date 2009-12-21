@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:20 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/12/21 19:46:30 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -24,8 +24,8 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-#ifndef RegPowell_H
-#define RegPowell_H
+#ifndef RobustGaussian_H
+#define RobustGaussian_H
 
 #include <utility>
 
