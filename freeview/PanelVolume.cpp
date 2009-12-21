@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/20 17:54:14 $
- *    $Revision: 1.36 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,7 @@
 #include "wx/wx.h"
 
 #include "PanelVolume.h"
+#include <wx/clrpicker.h>
 #include <wx/xrc/xmlres.h>
 #include "MainWindow.h"
 #include "LayerCollection.h"
@@ -107,6 +108,9 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CONTOUR" ),    PanelVolume::OnCheckContour )
   EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),    PanelVolume::OnTextContourMin )
   EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),    PanelVolume::OnTextContourMax )
+  EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_CONTOUR" ), PanelVolume::OnColorContour )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECK_USE_IMAGE_COLORMAP" ),  PanelVolume::OnCheckUseImageColorMap )
+  
   EVT_COMMAND_SCROLL_PAGEDOWN     ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
   EVT_COMMAND_SCROLL_PAGEUP       ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
   EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
@@ -179,7 +183,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_sliderContourMax =  XRCCTRL( *this, "ID_SLIDER_CONTOUR_MAX", wxSlider );
   m_textContourMin =    XRCCTRL( *this, "ID_TEXT_CONTOUR_MIN", wxTextCtrl );
   m_textContourMax =    XRCCTRL( *this, "ID_TEXT_CONTOUR_MAX", wxTextCtrl );
-
+  m_checkUseImageColorMap = XRCCTRL( *this, "ID_CHECK_USE_IMAGE_COLORMAP", wxCheckBox );
+  m_colorpickerContour    = XRCCTRL( *this, "ID_COLORPICKER_CONTOUR", wxColourPickerCtrl );
 //  m_checkContour->Hide();
 
   m_luts = MainWindow::GetMainWindowPointer()->GetLUTData();
@@ -250,8 +255,11 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistContour.push_back( m_sliderContourMax );
   m_widgetlistContour.push_back( m_textContourMin );
   m_widgetlistContour.push_back( m_textContourMax );
+  m_widgetlistContour.push_back( m_checkUseImageColorMap );
+  m_widgetlistContour.push_back( m_colorpickerContour );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MIN", wxStaticText ) );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MAX", wxStaticText ) );
+  m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_COLOR", wxStaticText ) );
   
   m_widgetlistEditable.push_back( XRCCTRL( *this, "ID_STATIC_BRUSH_VALUE", wxStaticText ) );
   m_widgetlistEditable.push_back( m_textDrawValue );  
@@ -701,6 +709,11 @@ void PanelVolume::DoUpdateUI()
 			m_sliderContourMax->SetValue( (int)( ( layer->GetProperties()->GetContourMaxThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
 			UpdateTextValue( m_textContourMin, layer->GetProperties()->GetContourMinThreshold() );
 			UpdateTextValue( m_textContourMax, layer->GetProperties()->GetContourMaxThreshold() );
+      m_checkUseImageColorMap->SetValue( layer->GetProperties()->GetContourUseImageColorMap() );
+      m_colorpickerContour->Enable( !layer->GetProperties()->GetContourUseImageColorMap() );
+      double rgb[3];
+      layer->GetProperties()->GetContourColor( rgb );
+      m_colorpickerContour->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
       
       m_choiceRepresentation->Clear();
       if ( layer->GetProperties()->GetDisplayVector() )
@@ -1348,3 +1361,25 @@ void PanelVolume::OnCheckHeatScaleClearHigh( wxCommandEvent& event )
     layer->GetProperties()->SetHeatScaleClearHigh( event.IsChecked() );
   }
 }
+
+
+void PanelVolume::OnCheckUseImageColorMap( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetContourUseImageColorMap( event.IsChecked() );
+  }
+}
+
+void PanelVolume::OnColorContour( wxColourPickerEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    wxColour c = event.GetColour();
+    layer->GetProperties()->SetContourColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+  }
+}
+
+

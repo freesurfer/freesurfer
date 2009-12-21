@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/15 22:49:03 $
- *    $Revision: 1.53 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,7 +36,8 @@
 #include "CommonDataStruct.h"
 #include <vector>
 
-#define ID_WORKER_THREAD wxID_HIGHEST + 1
+#define ID_WORKER_THREAD          wxID_HIGHEST + 1
+#define ID_THREAD_BUILD_CONTOUR   wxID_HIGHEST + 2
 
 class ControlPanel;
 class wxPanel;
@@ -205,6 +206,7 @@ public:
   void OnMouseEnterWindow           ( wxMouseEvent& event );
 
   void OnWorkerThreadResponse       ( wxCommandEvent& event );
+  void OnBuildContourThreadResponse ( wxCommandEvent& event );
 
   void OnSpinBrushSize              ( wxSpinEvent& event );
   void OnSpinBrushTolerance         ( wxSpinEvent& event );

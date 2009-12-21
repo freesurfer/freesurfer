@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/21 17:38:58 $
- *    $Revision: 1.18 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,8 @@ class wxComboBox;
 class wxChoice;
 class wxTextCtrl;
 class wxColorIndicator;
+class wxColourPickerCtrl;
+class wxColourPickerEvent;
 class Layer;
 class LayerMRI;
 
@@ -122,6 +124,8 @@ private:
   void OnSliderContourMaxChanging( wxScrollEvent& event );
   void OnTextContourMin   ( wxCommandEvent& event );
   void OnTextContourMax   ( wxCommandEvent& event );
+  void OnCheckUseImageColorMap  ( wxCommandEvent& event );
+  void OnColorContour     ( wxColourPickerEvent& event );
 
   void DoUpdateUI();
   void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
@@ -186,6 +190,8 @@ private:
   wxSlider*       m_sliderContourMax;
   wxTextCtrl*     m_textContourMin;
   wxTextCtrl*     m_textContourMax;
+  wxCheckBox*     m_checkUseImageColorMap;
+  wxColourPickerCtrl* m_colorpickerContour;
 
   std::vector<wxWindow*> m_widgetlistGrayScale;
   std::vector<wxWindow*> m_widgetlistHeatScale;

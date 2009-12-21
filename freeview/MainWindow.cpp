@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/15 22:49:03 $
- *    $Revision: 1.83 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -230,6 +230,7 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   */
   
   EVT_MENU      ( ID_WORKER_THREAD,                   MainWindow::OnWorkerThreadResponse )
+  EVT_MENU      ( ID_THREAD_BUILD_CONTOUR,            MainWindow::OnBuildContourThreadResponse )
   EVT_SPINCTRL  ( XRCID( "ID_SPIN_BRUSH_SIZE" ),      MainWindow::OnSpinBrushSize )
   EVT_SPINCTRL  ( XRCID( "ID_SPIN_BRUSH_TOLERANCE" ), MainWindow::OnSpinBrushTolerance )
   EVT_CHECKBOX  ( XRCID( "ID_CHECK_TEMPLATE" ),       MainWindow::OnCheckBrushTemplate )
@@ -2261,6 +2262,19 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
     // if ( event.GetInt() > m_statusBar->m_gaugeBar->GetValue() )
     m_statusBar->m_gaugeBar->SetValue( event.GetInt() );
   }
+}
+
+void MainWindow::OnBuildContourThreadResponse( wxCommandEvent& event )
+{
+  LayerMRI* mri = (LayerMRI*)( (void*)event.GetClientData() );
+  if ( GetLayerCollection( "MRI" )->GetLayerIndex( mri ) < 0 ||
+       mri->GetBuildContourThreadID() != event.GetInt() )
+    return;
+  
+  mri->RealizeContourActor();
+  
+  if ( mri->GetProperties()->GetShowAsContour() )
+    NeedRedraw();
 }
 
 void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )

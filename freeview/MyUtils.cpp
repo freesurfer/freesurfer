@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/15 22:49:03 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,6 +44,7 @@
 #include <vtkImageData.h>
 #include <vtkImageDilateErode3D.h>
 #include <vtkContourFilter.h>
+#include <vtkMarchingContourFilter.h>
 #include <vtkPolyData.h>
 #include <vtkCellArray.h>
 #include <vtkSmoothPolyDataFilter.h>
@@ -589,7 +590,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   erode->SetDilateValue(0);
   erode->SetErodeValue(nValue);
 
-  vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
+  vtkSmartPointer<vtkMarchingContourFilter> contour = vtkSmartPointer<vtkMarchingContourFilter>::New();
   contour->SetInput(threshold->GetOutput());
   contour->SetValue(0, dTh1);
   contour->Update();
@@ -609,7 +610,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
     smoother->SetInput(polydata);
     smoother->SetNumberOfIterations(30);
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
-    normals->SetInput(polydata); //smoother->GetOutput());
+    normals->SetInput(smoother->GetOutput());
     normals->SetFeatureAngle( 90 );
     vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
     stripper->SetInput(normals->GetOutput());

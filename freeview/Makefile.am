@@ -14,6 +14,8 @@ bin_PROGRAMS = freeview
 freeview_SOURCES=\
 	Annotation2D.cpp \
 	Annotation2D.h \
+	BuildContourThread.cpp \
+	BuildContourThread.h \
 	Broadcaster.cpp \
 	Broadcaster.h \
 	BrushProperty.cpp \

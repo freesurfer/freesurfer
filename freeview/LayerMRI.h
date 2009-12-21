@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/09 19:42:51 $
- *    $Revision: 1.27 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,9 +55,12 @@ class LayerPropertiesMRI;
 class FSVolume;
 class wxWindow;
 class wxCommandEvent;
+class BuildContourThread;
 
 class LayerMRI : public LayerVolumeBase
 {
+  friend class BuildContourThread;
+  
 public:
   LayerMRI( LayerMRI* ref );
   virtual ~LayerMRI();
@@ -156,6 +159,13 @@ public:
   
   void SnagToVoxelCenter( const double* pt_in, double* pt_out );
   
+  int GetBuildContourThreadID()
+  {
+    return m_nThreadID;
+  }
+  
+  void RealizeContourActor();
+  
 protected:
   virtual void SetModified();
 
@@ -166,6 +176,8 @@ protected:
   void UpdateTextureSmoothing();
   void UpdateContour( int nSegIndex = -1 );
   void UpdateContourActor( int nSegIndex );
+  void UpdateContourColor();
+  void ShowContour();
   void UpdateVolumeRendering();
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
@@ -212,6 +224,9 @@ protected:
   
   vtkActor*   m_actorContour;
   vtkVolume*  m_propVolume;
+  
+  int         m_nThreadID;
+  vtkActor*   m_actorContourTemp;
   
 private:
   double**    private_buf1_3x3;

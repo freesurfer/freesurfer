@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.24 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -379,7 +379,10 @@ void RenderView::OnInternalIdle()
 
   if ( IsShown() && m_nRedrawCount > 0 )
   {
+    wxCursor cursor = GetCursor();
+    SetCursor( wxCURSOR_WAIT ); 
     Render();
+    SetCursor( cursor );
     m_nRedrawCount--;
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/14 19:22:32 $
- *    $Revision: 1.44 $
+ *    $Date: 2009/12/21 21:26:44 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,6 +57,7 @@
 #include "FSVolume.h"
 #include "MainWindow.h"
 #include "vtkMath.h"
+#include "BuildContourThread.h"
 
 
 #ifndef max
@@ -98,8 +99,13 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
   mProperties->AddListener( this );
 
   m_actorContour = vtkActor::New();
-  m_actorContour->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
+  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
+  m_actorContour->SetMapper( mapper );
   m_propVolume = vtkVolume::New();
+  m_actorContourTemp = NULL;
+  
+  m_nThreadID = 0;
   
   private_buf1_3x3 = new double*[3];
   private_buf2_3x3 = new double*[3];
@@ -141,6 +147,9 @@ LayerMRI::~LayerMRI()
   }
   delete[] private_buf1_3x3;
   delete[] private_buf2_3x3;
+  
+  if ( m_actorContourTemp )
+    m_actorContourTemp->Delete();
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -528,6 +537,7 @@ void LayerMRI::UpdateContourActor( int nSegValue )
 
 void LayerMRI::UpdateContourActor( int nSegValue )
 {
+  /*
   double dTh1 = GetProperties()->GetContourMinThreshold();
   double dTh2 = GetProperties()->GetContourMaxThreshold();
   if ( nSegValue >= 0 )
@@ -536,6 +546,41 @@ void LayerMRI::UpdateContourActor( int nSegValue )
     dTh2 = nSegValue + 0.5;
   }
   MyUtils::BuildContourActor( GetImageData(), dTh1, dTh2, m_actorContour );
+  */
+  
+  
+  m_nThreadID++;
+  BuildContourThread* thread = new BuildContourThread( MainWindow::GetMainWindowPointer() );
+  thread->BuildContour( this, nSegValue, m_nThreadID );
+}
+
+void LayerMRI::RealizeContourActor()
+{
+  if ( m_actorContourTemp && m_actorContourTemp->GetMapper() )
+  {
+    m_actorContour->SetMapper( m_actorContourTemp->GetMapper() );
+    UpdateContourColor();
+  }
+}
+
+void LayerMRI::ShowContour()
+{
+  if ( !m_actorContourTemp )
+    UpdateContour();
+}
+
+void LayerMRI::UpdateContourColor()
+{
+  if ( mProperties->GetContourUseImageColorMap() )
+  {
+    m_actorContour->GetMapper()->ScalarVisibilityOn();
+  }
+  else
+  {
+    m_actorContour->GetMapper()->ScalarVisibilityOff();
+    m_actorContour->GetProperty()->SetColor( mProperties->GetContourColor() );
+  }
+  UpdateColorMap();
 }
 
 void LayerMRI::UpdateVolumeRendering()
@@ -713,12 +758,19 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void*
   }
   else if ( iMessage == "LayerContourChanged" )
   {
-    this->UpdateContour();
+    if ( this->GetProperties()->GetShowAsContour() )
+      this->UpdateContour();
+    this->SendBroadcast( "LayerActorUpdated", this, this );
+  }
+  else if ( iMessage == "LayerContourColorChanged" )
+  {
+    this->UpdateContourColor();
     this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   else if ( iMessage == "LayerContourShown" )
   {
-    this->UpdateContour();
+    if ( this->GetProperties()->GetShowAsContour() )
+      this->ShowContour();
     this->SendBroadcast( iMessage, this, this );
   }
   else if ( iMessage == "DisplayModeChanged" )
