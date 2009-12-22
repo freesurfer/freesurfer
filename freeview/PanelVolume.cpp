@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.37 $
+ *    $Date: 2009/12/22 18:21:44 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -544,7 +544,7 @@ void PanelVolume::OnChoiceLUT( wxCommandEvent& event )
 
 void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
 {
-  if ( ct && ct != m_curCTAB )
+  if ( ct && ( ct != m_curCTAB || m_bColorTableNeedReset ) )
   {
     m_curCTAB = ct;
     m_listColorTable->Clear();
@@ -556,7 +556,13 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
     char name[1000];
     int nSel = -1;
     long nValue = 0;
-    m_textDrawValue->GetValue().ToLong( &nValue );
+    if ( !m_textDrawValue->GetValue().ToLong( &nValue ) )
+    {
+      LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+      if ( layer )
+        nValue = (int)layer->GetFillValue();
+    }
+      
     int nValidCount = 0;
     for ( int i = 0; i < nTotalCount; i++ )
     {
@@ -565,14 +571,56 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       {
         CTABcopyName( ct, i, name, 1000 );
         m_listColorTable->Append( wxString::Format( _("%d: %s"), i, name ) );
-        if ( nValidCount == nValue )
+        if ( i == nValue )
           nSel = nValidCount;
         nValidCount++;
       }
     }
     if ( nSel >= 0 )
       m_listColorTable->SetSelection( nSel );
+    
+    m_bColorTableNeedReset = false;
   }
+}
+
+void PanelVolume::SearchInColorTable( const wxString& search_strg )
+{
+  if ( !m_curCTAB )
+    return;
+  
+  m_listColorTable->Clear();
+  m_listColorTable->FitInside();
+  int nTotalCount = 0;
+  CTABgetNumberOfTotalEntries( m_curCTAB, &nTotalCount );
+  char name[1000];
+  int nValid;
+  int nCount = 0;
+  int nSel = -1;
+  int nValue = 0;
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+    nValue = (int)layer->GetFillValue();
+  for ( int i = 0; i < nTotalCount; i++ )
+  {
+    CTABisEntryValid( m_curCTAB, i, &nValid );
+    if ( nValid )
+    {
+      CTABcopyName( m_curCTAB, i, name, 1000 );
+      wxString strName = name;
+      strName.MakeLower();
+      if ( strName.Find( search_strg.Lower() ) != wxNOT_FOUND )
+      {
+        m_listColorTable->Append( wxString::Format( _("%d: %s"), i, name ) );
+        if ( i == nValue )
+          nSel = nCount;
+        nCount++;
+      }
+    }
+  }
+  if ( nSel >= 0 )
+    m_listColorTable->SetSelection( nSel );
+  
+  m_bColorTableNeedReset = true;
 }
 
 void PanelVolume::ShowWidgets( std::vector<wxWindow*>& list, bool bShow )
@@ -773,7 +821,8 @@ void PanelVolume::DoUpdateUI()
 	Layout();
 	if ( layer && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
 	{
-		PopulateColorTable( layer->GetProperties()->GetLUTCTAB() );
+    if ( m_curCTAB != layer->GetProperties()->GetLUTCTAB() )
+      PopulateColorTable( layer->GetProperties()->GetLUTCTAB() );
     
 		UpdateColorIndicator();    
     
@@ -838,12 +887,17 @@ void PanelVolume::OnColorSelectionChanged( wxCommandEvent& event )
 
 void PanelVolume::OnTextFillValueChanged( wxCommandEvent& event )
 {
-  wxString strgvalue = m_textDrawValue->GetValue();
+  wxString strgvalue = m_textDrawValue->GetValue().Trim( true ).Trim( false );
   long nvalue;
   double dvalue;
-  if ( strgvalue.ToLong( &nvalue ) )
+  if ( strgvalue.IsEmpty() )
+  {
+    PopulateColorTable( m_curCTAB );
+  }
+  else if ( strgvalue.ToLong( &nvalue ) )
   {
     m_listColorTable->SetSelection( wxNOT_FOUND );
+    bool bFound = false;
     for ( int i = 0; i < (int)m_listColorTable->GetCount(); i++ )
     {
       wxString strg = m_listColorTable->GetString( i );
@@ -851,6 +905,7 @@ void PanelVolume::OnTextFillValueChanged( wxCommandEvent& event )
       {
         m_listColorTable->SetFirstItem( i );
         m_listColorTable->SetSelection( i );
+        bFound = true;
         break;
       }
     }
@@ -860,6 +915,15 @@ void PanelVolume::OnTextFillValueChanged( wxCommandEvent& event )
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
       layer->SetFillValue( (float)nvalue );
+    
+    if ( !bFound )
+    {
+      PopulateColorTable( m_curCTAB );
+    }
+  }
+  else if ( !strgvalue.IsEmpty() ) // do a search
+  {
+    SearchInColorTable( strgvalue );
   }
 }
 

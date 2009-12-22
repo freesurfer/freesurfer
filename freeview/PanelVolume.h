@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.19 $
+ *    $Date: 2009/12/22 18:21:44 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -130,6 +130,7 @@ private:
   void DoUpdateUI();
   void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
   void PopulateColorTable( COLOR_TABLE* ct );
+  void SearchInColorTable( const wxString& search_strg );
   void UpdateColorIndicator();
 
   void UpdateLayerList( Layer* layer );
@@ -207,7 +208,8 @@ private:
   LUTDataHolder* m_luts;
 
   COLOR_TABLE*  m_curCTAB;
-
+  bool          m_bColorTableNeedReset;
+      
   bool          m_bUINeedUpdate;
 
   LayerMRI*     m_layerCopied;
