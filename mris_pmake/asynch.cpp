@@ -17,14 +17,13 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.10 2009/12/14 16:21:51 rudolph Exp $
+// $Id: asynch.cpp,v 1.11 2009/12/22 18:56:15 rudolph Exp $
 
 #include <string>
 #include <sstream>
 
 #include "asynch.h"
 #include "general.h"
-#include "C_mpmProg.h"
 #include "c_vertex.h"
 #include "c_label.h"
 #include "c_surface.h"
@@ -685,7 +684,7 @@ asynchEvent_processMPMPROG(
     }
   }
 
-  if (str_object == "polar") {
+  if (str_object == "vertexPolar") {
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
     if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
     if (str_verb == "get") {

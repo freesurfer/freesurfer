@@ -165,7 +165,6 @@ str_rel2absDirSpec_change(
   string&  astr_abs
 );
 
-
 void warn(
   string          str_action,
   string          str_errorMsg,

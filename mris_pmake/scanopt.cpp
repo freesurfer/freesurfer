@@ -21,7 +21,7 @@
 //
 // VERSION
 //
-// $Id: scanopt.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: scanopt.cpp,v 1.2 2009/12/22 18:56:15 rudolph Exp $
 //
 // DESC
 //
@@ -34,8 +34,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cstdlib>
 #include <iterator>
+#include <vector>
+#include <algorithm>
 using namespace std;
 
 #include <scanopt.h>
@@ -205,6 +208,7 @@ C_scanopt::core_construct(
 
   str_optDes  = "--";
   str_optSep  = "";
+  str_equ     = "=";
 
 }
 
@@ -242,13 +246,13 @@ C_scanopt::map_opt_build(
   string      str_opt;
   string      str_val;
   const bool  b_found = false;                // if a search string
-  //      is found at the
-  //      beginning of a
-  //      search, index is
-  //      zero, which means
-  //      that the bool of
-  //      a positive find
-  //      is false :-P
+                                              //+ is found at the
+                                              //+ beginning of a
+                                              //+ search, index is
+                                              //+ zero, which means
+                                              //+ that the bool of
+                                              //+ a positive find
+                                              //+ is false :-P
 
   switch (e_tokType) {
   case e_DesTag:
@@ -282,7 +286,7 @@ C_scanopt::map_opt_build(
       str_Equ         = *(++Lstr_iter);       // that may be a couplet
       str_argvB       = *(++Lstr_iter);       // linked by an equal sign
       //cout << i << "\t" << argc << "\t" << str_argvA << "\t" << str_Equ << "\t" << str_argvB << endl;
-      if (str_Equ.find("=") == b_found) {
+      if (str_Equ.find(str_equ) == b_found) {
         map_opt.insert(pair<string, string>(str_argvA, str_argvB));
       }
       --Lstr_iter;
@@ -295,7 +299,8 @@ C_scanopt::C_scanopt(
   int             a_argc,
   char**          appch_argv,
   string          astr_optDes             /*= "--"                */,
-  string          astr_optSep             /*= " "                 */
+  string          astr_optSep             /*= " "                 */,
+  string          astr_equ                /*= "="                 */                   
 ) {
   //
   // ARGS
@@ -328,6 +333,7 @@ C_scanopt::C_scanopt(
   core_construct();
   str_optDes_set(     astr_optDes);
   str_optSep_set(     astr_optSep);
+  str_equ_set(        astr_equ);
 
   argc_set(   a_argc);
   for (int i=0; i<a_argc; i++)
@@ -340,7 +346,8 @@ C_scanopt::C_scanopt(
   string                  astr_filename,
   e_SCANOPT_tokType       e_tokType               /*= e_DesTag    */,
   string                  astr_optDes             /*= "--"        */,
-  string                  astr_optSep             /*= " "         */
+  string                  astr_optSep             /*= " "         */,
+  string                  astr_equ                /*= "="         */
 ) {
   //
   // ARGS
@@ -355,7 +362,7 @@ C_scanopt::C_scanopt(
   // HISTORY
   // 08 September 2000
   //  o Initial design and coding.
-  //
+  //  
 
   core_construct();
 
@@ -366,6 +373,7 @@ C_scanopt::C_scanopt(
 
   str_optDes_set(     astr_optDes);
   str_optSep_set(     astr_optSep);
+  str_equ_set(        astr_equ);
 
   ifstream    istream_optFile(astr_filename.c_str());
   if (!istream_optFile) {
@@ -384,6 +392,102 @@ C_scanopt::C_scanopt(
 
   istream_optFile.close();
   debug_pop();
+}
+
+int
+str_tokenize(
+    const string&       str,
+    vector<string>&     tokens,
+    const string&       delimiters = " ")
+{
+    int tokenCount      = 0;
+    
+    // Skip delimiters at beginning.
+    string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+    // Find first "non-delimiter".
+    string::size_type pos     = str.find_first_of(delimiters, lastPos);
+
+    while (string::npos != pos || string::npos != lastPos)
+    {
+        // Found a token, add it to the vector.
+        tokens.push_back(str.substr(lastPos, pos - lastPos));
+        // Skip delimiters.  Note the "not_of"
+        lastPos = str.find_first_not_of(delimiters, pos);
+        // Find next "non-delimiter"
+        pos = str.find_first_of(delimiters, lastPos);
+        tokenCount++;
+    }
+    return tokenCount;
+}
+
+C_scanopt::C_scanopt(
+    string                      astr_options,
+    string                      astr_delimiter          /*= ";"         */,
+    e_SCANOPT_tokType           e_tokType               /*= e_EquLink   */,
+    string                      astr_optDes             /*= "--"        */,
+    string                      astr_optSep             /*= " "         */,
+    string                      astr_equ                /*= "="         */
+) {
+    //
+    // ARGS
+    //  astr_options            in                      string with all options
+    //  astr_delimiter          in                      delimited string
+    //  astr_optDes             in                      option DESignator
+    //  astr_optSep             in                      option separator
+    //
+    // DESC
+    //  Constructor
+    //  Parses the <astr_options> into tokens delimited by <astr_delimiter>, and
+    //  builds internal map.
+    //
+    // HISTORY
+    // 21 December 2009
+    //  o Initial design and coding.
+    //
+
+    core_construct();
+
+    debug_push("C_scanopt");
+    int                 pairLines       = 0;
+    int                 size            = 0;
+    vector<string>      v_lines;
+    vector<string>      v_option;
+
+    str_optDes_set(     astr_optDes);
+    str_optSep_set(     astr_optSep);
+    str_equ_set(        astr_equ);
+
+    v_lines.clear();
+    if((pairLines=str_tokenize(astr_options, v_lines, astr_delimiter))!=0) {
+        // First loop over each "line" of options... 
+        //+ each line is separated by <astr_delimiter>
+        for(vector<string>::iterator i = v_lines.begin();
+            i != v_lines.end(); i++) {
+            // Now tokenizing each line on the <astr_eq>
+            // cout << "Tokenizing " << *i << endl;
+            v_option.clear();
+            if( str_tokenize(*i, v_option, astr_equ) ) {
+                // Push the option and its value into the internal
+                // Lstr_body...
+                for(vector<string>::iterator j = v_option.begin();
+                    j != v_option.end(); j++) {
+                    // cout << "\tPushing " << *j << endl;
+                    Lstr_body.push_back(*j);
+                    if(j==v_option.begin()) {
+                        size++;
+                        Lstr_body.push_back(astr_equ);
+                    }
+                    size++;
+                }
+            }
+        }
+    }
+
+    argc = size;
+
+    map_opt_build(e_tokType);
+
+    debug_pop();
 }
 
 C_scanopt::~C_scanopt() {
@@ -411,7 +515,7 @@ C_scanopt::print() {
     cout << ">" << *(Lstr_iter++) << "< ";
   cout                                                << endl;
 
-  cout << "\tList length\t" << argc                     << endl;
+  cout << "\tList length\t" << argc                   << endl;
 
   cout << "\tSTL option map"                          << endl;
   map_iter    = map_opt.begin();
@@ -421,8 +525,9 @@ C_scanopt::print() {
     map_iter++;
   }
   cout                                                << endl;
-  cout << "\tstr_optDes\t"    << str_optDes_get()     << endl;
-  cout << "\tstr_optSep\t"    << str_optSep_get()     << endl;
+  cout << "\tstr_optDes\t"    << "->" << str_optDes_get() << "<-" << endl;
+  cout << "\tstr_optSep\t"    << "->" << str_optSep_get() << "<-" << endl;
+  cout << "\tstr_equ\t\t"     << "->" << str_equ_get()    << "<-" << endl;
 }
 
 bool

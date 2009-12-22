@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.6 2009/12/14 22:00:27 rudolph Exp $
+// $Id: help.cpp,v 1.7 2009/12/22 18:56:15 rudolph Exp $
 
 #include "help.h"
 
@@ -349,6 +349,7 @@ commandLineOptions_process(
             case 'M':
                 str_mpmArgs                     = optarg;
                 b_optionsFileUse                = false;
+            break;
             default:
                 cout << "?? getopt returned character code " << opt << endl;
         }

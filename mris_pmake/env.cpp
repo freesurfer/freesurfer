@@ -17,11 +17,12 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.18 2009/12/15 17:28:04 rudolph Exp $
+// $Id: env.cpp,v 1.19 2009/12/22 18:56:15 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
 #include "C_mpmProg.h"
+#include "asynch.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -1269,6 +1270,18 @@ s_env_mpmProgSetIndex(
             lprintf(rw, "[ ok ]\n");
         }
         apst_env->pCmpmProg         = new C_mpmProg_autodijk(apst_env);
+        // Check for any command-line spec'd args for the 'autodijk' mpmProg:
+        if(apst_env->str_mpmArgs != "-x") {
+            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
+                                                e_EquLink, "--", " ", ":");
+            C_mpmProg_autodijk*         pC_autodijk     = NULL;
+            string      str_polarVertex = "0";
+            int         polarVertex     = 0;
+            if(cso_mpm.scanFor("vertexPolar", &str_polarVertex))
+                polarVertex     = atoi(str_polarVertex.c_str());
+                pC_autodijk_cast(apst_env->pCmpmProg, pC_autodijk);
+                pC_autodijk->vertexPolar_set(polarVertex);
+        }
         break;
     default:
         apst_env->empm_current      = (e_MPMPROG) 0;

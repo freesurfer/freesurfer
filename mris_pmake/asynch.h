@@ -51,6 +51,7 @@ extern  "C" {
 #include "mrisurf.h"
 #include "label.h"
 #include "error.h"
+#include "C_mpmProg.h"
 
 #ifdef __cplusplus
 }
@@ -148,6 +149,28 @@ asynchEvent_processENV(
   string    astr_comms
 );
 
+/// \fn void asynchEvent_processMPMPROG(s_env& st_env, string str_comms)
+/// \brief Process socket-based access to the core problem environment
+/// \param ast_env   Core simulation environment
+/// \param astr_comms  Control string parsed from socket
+/// \return  true|false  Status: success or fail.
+bool
+asynchEvent_processMPMPROG(
+    s_env&      st_env,
+    string      astr_comms
+);
+
+C_mpmProg_NOP*
+pC_NOP_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_NOP*&             pC_mpmProg_NOP
+);
+
+C_mpmProg_autodijk*
+pC_autodijk_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_autodijk*&        pC_mpmProg_autodijk
+);
 
 #endif //__ASYNCH_H__
 
