@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/22 18:21:44 $
- *    $Revision: 1.38 $
+ *    $Date: 2009/12/23 05:35:56 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1249,19 +1249,21 @@ void PanelVolume::OnCheckContour( wxCommandEvent& event )
 
 void PanelVolume::OnTextContourMin( wxCommandEvent& event )
 {
-  double dvalue;
-  if ( m_textContourMin->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetContourMinThreshold() != dvalue )
-    {
-      layer->GetProperties()->SetContourMinThreshold( dvalue );
-    }
-  }
+  // update both threshold input
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( !layer )
+    return;
+  
+  double dMin = layer->GetProperties()->GetContourMinThreshold();
+  double dMax = layer->GetProperties()->GetContourMaxThreshold();
+  m_textContourMin->GetValue().ToDouble( &dMin );
+  m_textContourMax->GetValue().ToDouble( &dMax );
+  layer->GetProperties()->SetContourThreshold( dMin, dMax );
 }
 
 void PanelVolume::OnTextContourMax( wxCommandEvent& event )
 {
+  /*
   double dvalue;
   if ( m_textContourMax->GetValue().ToDouble( &dvalue ) )
   {
@@ -1271,6 +1273,8 @@ void PanelVolume::OnTextContourMax( wxCommandEvent& event )
       layer->GetProperties()->SetContourMaxThreshold( dvalue );
     }
   }
+  */
+  OnTextContourMin( event );
 }
 
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.45 $
+ *    $Date: 2009/12/23 05:35:55 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,10 +81,12 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     // m_nSliceNumber[i] = 0;
     m_sliceActor2D[i] = vtkImageActor::New();
     m_sliceActor3D[i] = vtkImageActor::New();
-    /* m_sliceActor2D[i]->GetProperty()->SetAmbient( 1 );
-     m_sliceActor2D[i]->GetProperty()->SetDiffuse( 0 );
-     m_sliceActor3D[i]->GetProperty()->SetAmbient( 1 );
-     m_sliceActor3D[i]->GetProperty()->SetDiffuse( 0 );*/
+    /* 
+    m_sliceActor2D[i]->GetProperty()->SetAmbient( 1 );
+    m_sliceActor2D[i]->GetProperty()->SetDiffuse( 0 );
+    m_sliceActor3D[i]->GetProperty()->SetAmbient( 1 );
+    m_sliceActor3D[i]->GetProperty()->SetDiffuse( 0 );
+    */
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
     
@@ -103,7 +105,6 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
   mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
   m_actorContour->SetMapper( mapper );
   m_propVolume = vtkVolume::New();
-  m_actorContourTemp = NULL;
   
   m_nThreadID = 0;
   
@@ -147,9 +148,6 @@ LayerMRI::~LayerMRI()
   }
   delete[] private_buf1_3x3;
   delete[] private_buf2_3x3;
-  
-  if ( m_actorContourTemp )
-    m_actorContourTemp->Delete();
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -376,13 +374,11 @@ void LayerMRI::UpdateColorMap ()
     for ( int i = 0; i < 3; i++ )
       mColorMap[i]->SetLookupTable( NULL );
     break;
-
   case LayerPropertiesMRI::Grayscale:
     for ( int i = 0; i < 3; i++ )
       mColorMap[i]->SetLookupTable( mProperties->GetGrayScaleTable() );
     m_actorContour->GetMapper()->SetLookupTable( mProperties->GetGrayScaleTable() );
     break;
-
   case LayerPropertiesMRI::Heat:
     for ( int i = 0; i < 3; i++ )
       mColorMap[i]->SetLookupTable( mProperties->GetHeatScaleTable() );
@@ -428,112 +424,9 @@ void LayerMRI::UpdateTextureSmoothing ()
 }
 
 void LayerMRI::UpdateContour( int nSegValue )
-{
-    /*
-	if ( GetProperties()->GetShowAsContour() )
-	{
-		MyUtils::BuildContourActor( GetImageData(), 
-									GetProperties()->GetContourMinThreshold(), 
-									GetProperties()->GetContourMaxThreshold(),
-									m_actorContour );
-  }
-    */
-    
-    /*
-    if ( GetProperties()->GetShowAsContour() && GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
-    {
-        if ( nSegValue >= 0 )   // only update the given index
-        {
-            UpdateContourActor( nSegValue );
-        }
-        else    // update all
-        {
-            double overall_range[2];
-            m_imageData->GetPointData()->GetScalars()->GetRange( overall_range );
-            cout << overall_range[0] << " " << overall_range[1] << endl;
-            for ( size_t i = 0; i < m_segActors.size(); i++ )
-            {
-                m_segActors[i].actor->Delete();
-            }
-            m_segActors.clear();
-            vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
-            threshold->SetOutputScalarTypeToShort();
-            threshold->SetInput( GetImageData() );            
-            int range[2];
-            for ( int i = (int)overall_range[0]; i <= overall_range[1]; i++ )
-            {
-                threshold->ThresholdBetween( i-0.5, i+0.5 );
-                threshold->ReplaceOutOn();
-                threshold->SetOutValue( 0 );
-                threshold->Update();
-                threshold->GetOutput()->GetPointData()->GetScalars()->GetRange( range[2] );
-                if ( range[1] > 0 )
-                {
-                    SegmentationActor sa;
-                    sa.id = i;
-                    MyUtils::BuildContourActor( GetImageData(), nSegValue - 0.5, nSegValue + 0.5, sa.actor );
-                    m_segActors.push_back( sa );
-                } 
-            }
-        }
-    }
-    
-    
-  if ( GetProperties()->GetShowAsContour() && GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
-  {
-    double overall_range[2];
-    m_imageData->GetPointData()->GetScalars()->GetRange( overall_range );
-    //   cout << overall_range[0] << " " << overall_range[1] << endl;
-    vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
-    threshold->SetOutputScalarTypeToShort();
-    threshold->SetInput( m_imageData );
-    threshold->ThresholdBetween( overall_range[0], overall_range[1] );
-    threshold->ReplaceOutOn();
-    threshold->SetOutValue( 0 );
-    vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
-    contour->SetInput( threshold->GetOutput() );
-    int n = 0;
-    if ( overall_range[0] == 0 )
-      overall_range[0] = 1;
-    for ( int i = (int)overall_range[0]; i <= overall_range[1]; i++ )
-    {
-      contour->SetValue( n++, i );
-    }
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInput( contour->GetOutput() );
-    mapper->SetLookupTable( mProperties->GetLUTTable() );
-    mapper->SetScalarRange( overall_range );
-    mapper->ScalarVisibilityOn();
-    m_actorContour->SetMapper( mapper );
-  }
-  */  
-  
+{  
   UpdateContourActor( nSegValue );
-  
-//	UpdateVolumeRendering();
 }
-/*
-void LayerMRI::UpdateContourActor( int nSegValue )
-{
-  SegmentationActor sa;
-  sa.id = -1;
-  for ( size_t i = 0; i < m_segActors.size(); i++ )
-  {
-    if ( m_segActors[i].id == nSegValue )
-    {
-      sa = m_segActors[i];
-      break;
-    }
-  }
-  if ( sa.id < 0 )
-  {
-    sa.id = nSegValue;
-    sa.actor = vtkActor::New();
-    m_segActors.push_back( sa );
-  }
-  MyUtils::BuildContourActor( GetImageData(), nSegValue - 0.5, nSegValue + 0.5, sa.actor );
-}
-*/
 
 void LayerMRI::UpdateContourActor( int nSegValue )
 {
@@ -548,15 +441,18 @@ void LayerMRI::UpdateContourActor( int nSegValue )
   MyUtils::BuildContourActor( GetImageData(), dTh1, dTh2, m_actorContour );
   */
   
-  
+  // Generate a new thread id before creating the thread. so that mainwindow will be able to determine 
+  // if a build contour result is already expired, by comparing the returned id and current id. If they
+  // are different, it means a new thread is rebuilding the contour
   m_nThreadID++;
   BuildContourThread* thread = new BuildContourThread( MainWindow::GetMainWindowPointer() );
   thread->BuildContour( this, nSegValue, m_nThreadID );
 }
 
+// Contour mapper is ready, attach it to the actor   
 void LayerMRI::RealizeContourActor()
 {
-  if ( m_actorContourTemp && m_actorContourTemp->GetMapper() )
+  if ( m_actorContourTemp.GetPointer() && m_actorContourTemp->GetMapper() )
   {
     m_actorContour->SetMapper( m_actorContourTemp->GetMapper() );
     UpdateContourColor();
@@ -565,7 +461,7 @@ void LayerMRI::RealizeContourActor()
 
 void LayerMRI::ShowContour()
 {
-  if ( !m_actorContourTemp )
+  if ( !m_actorContourTemp.GetPointer() )
     UpdateContour();
 }
 

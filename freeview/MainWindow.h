@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.54 $
+ *    $Date: 2009/12/23 05:35:55 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -448,8 +448,6 @@ private:
   int             m_nRedrawCount;
   bool            m_bToUpdateToolbars;
 
-// bool   m_bSaving;
-// bool   m_bLoading;
   bool            m_bProcessing;
   bool            m_bDoScreenshot;
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.28 $
+ *    $Date: 2009/12/23 05:35:55 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -226,7 +226,7 @@ protected:
   vtkVolume*  m_propVolume;
   
   int         m_nThreadID;
-  vtkActor*   m_actorContourTemp;
+  vtkSmartPointer<vtkActor> m_actorContourTemp;
   
 private:
   double**    private_buf1_3x3;
