@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/21 21:27:23 $
- *    $Revision: 1.47 $
+ *    $Date: 2009/12/23 01:29:53 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -639,8 +639,10 @@ static FSGD *gdfReadV1(char *gdfname) {
            " DeMeaning will NOT be done.\n");
     gd->DeMean = 0;
   } else {
-    if (gd->DeMean) printf("INFO: demeaning continous variables\n");
-    else           printf("INFO: NOT demeaning continous variables\n");
+    if (gd->nvariables > 0) {
+      if (gd->DeMean) printf("INFO: demeaning continuous variables\n");
+      else           printf("INFO: NOT demeaning continuous variables\n");
+    }
   }
 
   gdfVarMeans(gd);
@@ -910,7 +912,9 @@ int gdfVarMeans(FSGD *gd) {
   for (vno = 0; vno < gd->nvariables; vno++)
     gd->VarMeans[vno] /= gd->ninputs;
 
-  printf("Continuous Variable Means (all subjects)\n");
+  if (gd->nvariables > 0) {
+    printf("Continuous Variable Means (all subjects)\n");
+  }
   for (vno = 0; vno < gd->nvariables; vno++)
     printf("%d %s %g\n",vno,gd->varlabel[vno],gd->VarMeans[vno]);
 
@@ -944,12 +948,14 @@ int gdfClassVarMeans(FSGD *gd) {
       gd->ClassVarMeans[cno][vno] /= gd->NPerClass[cno];
   }
 
-  printf("Class Means of each Continuous Variable\n");
-  for (cno = 0; cno < gd->nclasses; cno++) {
-    printf("%d %s",cno+1,gd->classlabel[cno]);
-    for (vno = 0; vno < gd->nvariables; vno++)
-      printf("%8.4f ",gd->ClassVarMeans[cno][vno]);
-    printf("\n");
+  if (gd->nvariables > 0) {
+    printf("Class Means of each Continuous Variable\n");
+    for (cno = 0; cno < gd->nclasses; cno++) {
+      printf("%d %s",cno+1,gd->classlabel[cno]);
+      for (vno = 0; vno < gd->nvariables; vno++)
+        printf("%8.4f ",gd->ClassVarMeans[cno][vno]);
+      printf("\n");
+    }
   }
 
   return(0);
