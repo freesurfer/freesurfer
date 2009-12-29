@@ -5,9 +5,9 @@
 /*
  * Original Author:  Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/22 01:41:01 $
- *    $Revision: 1.8 $
+ *    $Author: mreuter $
+ *    $Date: 2009/12/29 02:44:25 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,9 @@ extern "C"
 #endif
 
 #include "matrix.h"
+
+
+  MATRIX* MatrixSqrt(MATRIX * m, MATRIX * sqrtm);
 
 #define SPLINE_USE_QUADRATIC         0
 #define SPLINE_USE_FIRST_DERIVATIVE  1
