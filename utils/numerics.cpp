@@ -5,9 +5,9 @@
 /*
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/22 01:40:24 $
- *    $Revision: 1.13 $
+ *    $Author: mreuter $
+ *    $Date: 2009/12/29 02:48:04 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,8 @@
 #include <vnl/vnl_random.h>
 #include <vnl/vnl_vector.h>
 #include <vnl/vnl_matrix.h>
+#include <vnl/vnl_vector_fixed.h>
+#include <vnl/vnl_matrix_fixed.h>
 
 #include <vnl/algo/vnl_cholesky.h>
 #include <vnl/algo/vnl_svd.h>
@@ -38,6 +40,7 @@
 #include <vnl/algo/vnl_qr.h>
 #include <vnl/algo/vnl_real_eigensystem.h>
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
+#include <vnl/vnl_inverse.h>
 
 #include "fs_vnl/fs_powell.h"
 #include "fs_vnl/fs_lbfgs.h"
@@ -1834,6 +1837,135 @@ void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
 {
   free((FREE_ARG) (m[nrl]+ncl-NR_END));
   free((FREE_ARG) (m+nrl-NR_END));
+}
+
+/*  AUTHOR : Martin Reuter
+    CREATED: 12/28/2009
+    Computes Denman and Beavers square root iteration up to an epsilon in imax steps
+    
+    Input: 4x4 affine transformation matrix M
+    Algorithm computes sqrt of 3x3 part and then adjusts the translation part
+    Output: 4x4 sqrt of M
+*/
+vnl_matrix_fixed < double,4,4 > MatrixSqrt(const vnl_matrix_fixed < double,4,4 >& m)
+{
+  //assert(m.rows() == 4 && m.cols() == 4);
+	
+  vnl_matrix_fixed < double,3,3 > R;// = m.extract(3,3,0,0);
+  for (int rr = 0; rr<3; rr++)
+    for (int cc = 0; cc<3; cc++)
+    {
+      R[rr][cc] = m[rr][cc];
+    }
+
+
+  //Denman and Beavers square root iteration
+
+  int imax = 100;
+  double eps = 0.00001;  // important to be small to guarantee symmetry,
+                         // but even adding two zeros did not show differences in tests
+  double err = 1000;
+  //cout << "using square root iteartion (" << imax << ")"<< endl;
+  vnl_matrix_fixed < double,3,3 > Yn(R);
+  vnl_matrix_fixed < double,3,3 > Zn; Zn.set_identity();
+  vnl_matrix_fixed < double,3,3 > Yni,Zni;
+  vnl_matrix_fixed < double,3,3 > Ysq;	
+
+  int count = 0;
+  while (count<imax && err > eps)
+  {
+    count++;
+
+    //store invrse here (we change Yn below)
+    Yni = vnl_inverse(Yn);
+    Zni = vnl_inverse(Zn);
+
+    // add inverse:
+    Yn += Zni;
+    Zn += Yni;
+
+    Yn *= 0.5;
+    Zn *= 0.5;
+
+    Ysq = Yn * Yn;
+    Ysq -= R;
+    err = Ysq.absolute_value_max();
+    //cout << " iteration " << count << "  err: "<< err << endl;
+  }
+
+  if (count > imax)
+  {
+    std::cerr << "Matrix Sqrt did not converge in " << imax << " steps!" << std::endl;
+    std::cerr << "   ERROR: " << err << std::endl;
+    //std::assert(err <= eps);
+    exit(1);
+  }
+
+  // compute new T
+  // Rh1 = R + I
+  vnl_matrix_fixed < double,3,3 > Rh1(Yn);
+  Rh1[0][0] += 1; Rh1[1][1] +=1; Rh1[2][2] += 1;
+
+  vnl_vector_fixed < double,3 > T;
+  T[0] = m[0][3]; T[1] = m[1][3]; T[2] = m[2][3];
+
+  // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
+  vnl_vector_fixed < double,3 > Th = vnl_inverse(Rh1) * T; //vnl_svd<double>(Rh1).solve(T);
+
+  // put everything together:
+  vnl_matrix_fixed < double,4,4 > msqrt;
+  msqrt[0][3] = Th[0];
+  msqrt[1][3] = Th[1];
+  msqrt[2][3] = Th[2];
+  msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
+  for (int c=0; c<3; c++)
+    for (int r=0; r<3; r++)
+      msqrt[r][c] = Yn[r][c];
+
+
+//    bool test = true;
+//    if (test)
+//    {
+//       vnl_matrix < double > ms2 = msqrt * msqrt;
+//       ms2 -= m;
+//       double sum = ms2.absolute_value_max();
+//       if (sum > eps)
+//       {
+//          cerr << " Error : " << sum << endl;
+// 				 cerr << " sqrt(M): " << endl << msqrt << endl;
+//          cerr << endl;
+//          assert(1==2);
+//       }
+//    }
+
+  return msqrt;
+}
+
+
+extern "C" MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm)
+{
+  int i,j;
+  vnl_matrix_fixed < double, 4 ,4 > vnl_m;
+  
+  if (m->rows != 4 || m->cols != 4)
+  {
+    std::cerr << " Numerics MatrixSqrt m must be 4x4 " << std::endl;
+    exit(1);
+  }
+
+  for (i=0;i<4;i++)
+  for (j=0;j<4;j++)
+    vnl_m[i][j] = m->rptr[i+1][j+1];
+
+  vnl_matrix_fixed < double , 4, 4> vnl_msqrt = MatrixSqrt(vnl_m);
+
+  if (sqrtm == NULL) sqrtm = MatrixAlloc(4,4,MATRIX_REAL);
+
+  for (i=0;i<4;i++)
+  for (j=0;j<4;j++)
+    sqrtm->rptr[i+1][j+1] = vnl_msqrt[i][j];
+  
+  return sqrtm;
 }
 
 
