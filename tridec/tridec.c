@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:18 $
- *    $Revision: 1.5 $
+ *    $Date: 2009/12/30 19:38:50 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,8 @@
 #include "const.h"
 #include "version.h"
 
+const char* Progname = "tridec";
+
 int
 main(int argc,char *argv[]) {
 
@@ -44,7 +46,7 @@ main(int argc,char *argv[]) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.5 2006/12/29 02:09:18 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tridec.c,v 1.6 2009/12/30 19:38:50 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
