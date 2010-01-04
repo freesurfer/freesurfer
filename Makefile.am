@@ -28,7 +28,6 @@ MRISUBDIRS=\
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
-	mri_compile_edits \
 	mri_interpolate \
 	mri_jacobian \
 	mri_compile_edits \
