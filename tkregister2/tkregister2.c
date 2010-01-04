@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/04 16:07:01 $
- *    $Revision: 1.112 $
+ *    $Date: 2010/01/04 18:44:42 $
+ *    $Revision: 1.113 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.112 2010/01/04 16:07:01 fischl Exp $";
+"$Id: tkregister2.c,v 1.113 2010/01/04 18:44:42 fischl Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -3534,28 +3534,8 @@ void  read_reg(char *fname) {
   char *tmpstr;
   float ipr, bpr, fscale;
 
-#if 1
-  {
-    LTA *lta = LTAreadEx(fname) ;
-    if (lta == NULL)
-      err = ERROR_NOFILE ;
-    else
-    {
-      err = NO_ERROR ;
-      RegMat = MatrixCopy(lta->xforms[0].m_L, NULL) ;
-      ipr = lta->xforms[0].src.xsize ;
-      bpr = lta->xforms[0].src.zsize ;
-      float2int = float2int_use ;
-      fscale = .15 ;
-      tmpstr = (char *)calloc(strlen(lta->subject+1), sizeof(char));
-      strcpy(tmpstr, lta->subject) ;
-      LTAfree(&lta) ;
-    }
-  }
-#else
   err = regio_read_register(fname, &tmpstr, &ipr, &bpr,
                             &fscale, &RegMat, &float2int);
-#endif
   if (err) {
     printf("ERROR: reading %s\n",fname);
     exit(1);
@@ -4908,7 +4888,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.112 2010/01/04 16:07:01 fischl Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.113 2010/01/04 18:44:42 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
