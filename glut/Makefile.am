@@ -4,10 +4,6 @@
 
 AM_CPPFLAGS=$(GL_CFLAGS) -fno-strict-aliasing
 
-AM_LDFLAGS=
-
-LIBS=
-
 if HAVE_OPENGL_LIBS
 noinst_LIBRARIES=libglut.a
 endif

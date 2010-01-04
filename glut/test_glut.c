@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/26 00:49:08 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/01/04 19:05:40 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include "../include/xGLutWindow.h"
 #include "../include/version.h"
+
+const char* Progname = "test_glut";
 
 /* window data */
 static xGLutWindowRef  gWindow = NULL;
@@ -232,7 +234,7 @@ int main ( int argc, char** argv ) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: test_glut.c,v 1.1 2008/02/26 00:49:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: test_glut.c,v 1.2 2010/01/04 19:05:40 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
