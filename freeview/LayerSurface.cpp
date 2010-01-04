@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/21 21:22:52 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/01/04 20:52:35 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -570,6 +570,14 @@ bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
     return false;
 
   return m_surfaceSource->GetRASAtVertex( nVertex, ras );
+}
+
+bool LayerSurface::GetSurfaceRASAtVertex( int nVertex, double* ras )
+{
+  if ( m_surfaceSource == NULL )
+    return false;
+
+  return m_surfaceSource->GetSurfaceRASAtVertex( nVertex, ras );
 }
 
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:39 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/01/04 20:52:35 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -78,9 +78,11 @@ public:
 
   int GetVertexIndexAtTarget( double* ras, double* distance );
 
-  bool GetRASAtVertex( int nVertex, double* ras );
+  bool GetRASAtVertex       ( int nVertex, double* ras );
+  bool GetSurfaceRASAtVertex( int nVertex, double* ras );
 
   bool GetTargetAtVertex( int nVertex, double* ras );
+  
 
   FSSurface* GetSourceSurface()
   {

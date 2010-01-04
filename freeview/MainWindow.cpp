@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/23 05:35:55 $
- *    $Revision: 1.85 $
+ *    $Date: 2010/01/04 20:52:35 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3846,6 +3846,9 @@ void MainWindow::UpdateGotoPoints()
 {  
   if ( m_dlgSavePoint )
     m_strGotoPoints = m_dlgSavePoint->GetGotoPoints();
+  
+  if ( m_strGotoPoints.size() == 0 )
+    return;
   
   wxMenuBar* menubar = GetMenuBar();
   if ( menubar )
