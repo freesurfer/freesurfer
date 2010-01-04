@@ -7,10 +7,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/26 15:53:48 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/01/04 19:52:01 $
+ *    $Revision: 1.9 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -33,6 +33,7 @@
 #include <GL/glx.h>
 #include "version.h"
 
+const char* Progname = "test_window_env";
 Display *gDisplay = NULL;
 int gScreen = 0;
 Window gRoot = 0;
@@ -51,7 +52,7 @@ int main ( int argc, char** argv ) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: test_window_env.c,v 1.8 2008/02/26 15:53:48 nicks Exp $", 
+     "$Id: test_window_env.c,v 1.9 2010/01/04 19:52:01 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
