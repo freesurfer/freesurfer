@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/04 18:45:08 $
- *    $Revision: 1.85 $
+ *    $Date: 2010/01/04 19:52:05 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -346,7 +346,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.85 2010/01/04 18:45:08 fischl Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.86 2010/01/04 19:52:05 fischl Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -466,7 +466,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.85 2010/01/04 18:45:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.86 2010/01/04 19:52:05 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1132,6 +1132,7 @@ static int parse_commandline(int argc, char **argv) {
                                  lta->xforms[0].dst.depth, MRI_UCHAR) ;
         MRIcopyVolGeomToMRI(RegTarg, &lta->xforms[0].dst) ;
         LTAfree(&lta) ;
+        err = 0 ;
       }
       else
         err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
