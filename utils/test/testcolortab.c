@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/04/09 18:45:16 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/01/04 15:40:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,8 @@
 #include <string.h>
 
 #include "colortab.h"
+
+const char* Progname = "testcolortab";
 
 int main(int argc, char *argv[])
 {

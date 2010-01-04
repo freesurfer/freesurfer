@@ -231,6 +231,8 @@ int main(int argc, char *argv[]) {
   char * cp;
   Progname = argv[0];
 
+  if (getenv("SKIP_MRISHASH_TEST")) exit(77); // bypass
+
   printf("Program: %s  V1.07: \n", Progname);
 
   cp = getenv("FREESURFER_HOME");

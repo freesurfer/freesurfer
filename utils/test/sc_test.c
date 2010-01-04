@@ -7,8 +7,8 @@
  * Original Author: Nick Schmansky, Silvester Czanner
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/15 06:18:03 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/01/04 15:40:57 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,6 +64,8 @@ static unsigned int passed = 0;
 static unsigned int failed = 0;
 
 static unsigned int verbose = 1;
+
+const char* Progname = "sc_test";
 
 void
 sc_test (int status, const char *test_description,...)

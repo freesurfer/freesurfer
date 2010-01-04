@@ -147,6 +147,8 @@ int main(int argc, char *argv[]) {
   char * cp;
   int rslt = 0; // default to OK
 
+  if (getenv("SKIP_MRISHASH_TEST")) exit(77); // bypass
+
   Progname = argv[0];
   init_various(Progname);  // and gw_log_init
 

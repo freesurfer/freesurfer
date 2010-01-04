@@ -68,6 +68,8 @@ int main(int argc, char *argv[]) {
   MRI * mri;
   int rslt;
 
+  if (getenv("SKIP_MRISHASH_TEST")) exit(77); // bypass
+
   Progname = argv[0];
   printf("------------------------------\n");
   sprintf(msg, "Program: %s  V1.08", Progname);

@@ -1,17 +1,16 @@
 /**
  * @file  test_c_nr_wrapper.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief test some of the numerical recipes replacements
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:46 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/01/04 15:40:57 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -30,6 +28,8 @@
 #include <time.h>
 
 #include "numerics.h"
+
+const char* Progname = "test_c_nr_wrapper";
 
 int main(int argc, char *argv[])
 {

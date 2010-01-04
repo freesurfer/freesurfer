@@ -7,8 +7,8 @@
  * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 19:26:11 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/01/04 15:40:57 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@ extern "C"
 const int MAX = 5;
 const double MAXD=1.7976931348623157e+308;
 const double MIND=2.2250738585072014e-308;
+const char* Progname = "extest";
 
 using namespace std;
 
