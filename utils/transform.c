@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/03 20:07:34 $
- *    $Revision: 1.137 $
+ *    $Date: 2010/01/04 15:58:32 $
+ *    $Revision: 1.138 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,8 @@
 #include "matrix.h"
 #include "transform.h"
 #include "mri_circulars.h"
+#include "resample.h"
+#include "registerio.h"
 
 extern const char* Progname;
 
@@ -437,6 +439,7 @@ LTAwrite(LTA *lta, const char *fname)
   int              i ;
   char             ext[STRLEN] ;
 
+  return(LTAwriteEx(lta, fname)) ;
   if (!stricmp(FileNameExtension(fname, ext), "XFM"))
     return(ltaMNIwrite(lta, fname)) ;
 
@@ -482,6 +485,7 @@ LTAread(const char *fname)
   LTA       *lta ;
   MATRIX    *V, *W, *m_tmp ;
 
+  return(LTAreadEx(fname)) ;  // no reason not to always use it
   type = TransformFileNameType(fname);
   switch (type)
   {
@@ -2536,17 +2540,22 @@ static LTA *
 ltaReadRegisterDat(const char *fname)
 {
   LTA        *lta ;
-  fMRI_REG   *reg ;
+  char       *tmpstr ;
+  float      ipr, bpr ;
+  int        err, float2int ;
+  MATRIX     *R ;
+
 
   lta = LTAalloc(1, NULL) ;
   lta->xforms[0].sigma = 1.0f ;
   lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
-  reg = StatReadRegistration(fname) ;
-  if (reg == NULL)
+  err = regio_read_register((char *)fname, &tmpstr, &ipr, &bpr, &lta->fscale, &R,
+                            &float2int);
+  if (err > 0)
     ErrorReturn(NULL,(ERROR_BADPARM, 
                       "ltaReadRegisterDat: could not read %s", fname));
-  MatrixCopy(reg->mri2fmri, lta->xforms[0].m_L) ;
-  StatFreeRegistration(&reg) ;
+  strcpy(lta->subject, tmpstr) ; free(tmpstr) ;
+  MatrixCopy(R, lta->xforms[0].m_L) ; MatrixFree(&R) ;
 
   lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
   return(lta) ;
@@ -2973,6 +2982,18 @@ LTA *ltaReadFileEx(const char *fname)
       }
     }
   }
+
+  // these are extras for tkregister2 that may or may not be in the file
+  lta->subject[0] = 0 ; lta->fscale = .15 ; 
+  while (fgets(line, STRLEN-1, fp))
+  {
+    printf("reading extra input line %s", line) ;
+    if (strncmp(line, "subject", 7)==0)
+      sscanf(line, "%*s %s", lta->subject) ;
+    else if (strncmp(line, "fscale", 6)==0)
+      sscanf(line, "%*s %f", &lta->fscale) ;
+  }
+
   fclose(fp) ;
   return(lta) ;
 }
@@ -3089,10 +3110,18 @@ int LTAprint(FILE *fp, const LTA *lta)
     fprintf(fp, "dst volume info\n");
     writeVolGeom(fp, &lta->xforms[i].dst);
   }
-  return 1;
+
+  // tkregister2 stuff
+  {
+    if (strlen(lta->subject) > 0)
+      fprintf(fp, "subject %s\n", lta->subject) ;
+    if (lta->fscale > 0)
+      fprintf(fp, "fscale %f\n", lta->fscale) ;
+  }
+  return(NO_ERROR) ;
 }
 
-int // OK means 1, BAD means 0
+int // (NOT TRUE ANYMORE: OK means 1, BAD means 0 )  use standard ERROR returns
 LTAwriteEx(const LTA *lta, const char *fname)
 {
   FILE             *fp;
@@ -3102,7 +3131,18 @@ LTAwriteEx(const LTA *lta, const char *fname)
 
   if (!stricmp(FileNameExtension((char *) fname, ext), "XFM"))
     // someone defined NO_ERROR to be 0 and thus I have to change it
-    return(!ltaMNIwrite((LTA *) lta, (char *)fname)) ;
+    return(ltaMNIwrite((LTA *) lta, (char *)fname)) ;
+  else if (!stricmp(FileNameExtension((char *) fname, ext), "DAT"))
+  {
+    int err ;
+    err =  regio_write_register((char*)fname, (char *)lta->subject, lta->xforms[0].src.xsize,
+                                lta->xforms[0].src.zsize, lta->fscale, lta->xforms[0].m_L,
+                                FLT2INT_TKREG);
+    if (err == 0)
+      return(NO_ERROR) ;
+    else
+      return(ERROR_NOFILE);
+  }
 
   fp = fopen(fname,"w");
   if (fp==NULL)
@@ -3120,7 +3160,7 @@ LTAwriteEx(const LTA *lta, const char *fname)
   LTAprint(fp, lta);
   fclose(fp) ;
 
-  return 1;
+  return(NO_ERROR);
 }
 
 // add src and voxel information
@@ -3516,7 +3556,33 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
                 " requesting physvox-to-physvox to %d ", ltatype);
       break;
     }
+  } 
+  else if (lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
+  {
+    MATRIX *m_sras2ras ;
+    MRI    *mri_tmp ;
+
+    lt = &lta->xforms[0];
+    m_L = lt->m_L;
+    switch (ltatype)
+    {
+    case LINEAR_RAS_TO_RAS:
+      mri_tmp = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR) ;
+      MRIcopyVolGeomToMRI(mri_tmp, &lt->dst) ;
+      m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
+      MRIfree(&mri_tmp) ;
+      lt->m_L = MatrixMultiply(m_sras2ras, m_L, NULL) ;
+      MatrixFree(&m_L) ;
+      lta->type = ltatype ;
+      break ;
+    default:
+      ErrorExit(ERROR_BADPARM, "LTAchangeType unsupported: you are"
+                " requesting COR_RAS_TO_COR_RAS to %d ", ltatype);
+      break;
+    }
+    printf("transformed matrix:\n") ;MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
   }
+
   // fill inverse part
   LTAinvert(lta);
   return lta;
