@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 19:11:26 $
- *    $Revision: 1.62 $
+ *    $Date: 2010/01/04 15:58:16 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,8 +72,9 @@ typedef struct
   LINEAR_TRANSFORM  *xforms ;         /* transforms */
   LINEAR_TRANSFORM  *inv_xforms ;     /* inverse transforms */
   int               type ;
-}
-LINEAR_TRANSFORM_ARRAY, LTA ;
+  float             fscale ;        // for tkregister2
+  char              subject[STRLEN];// for tkregister2
+} LINEAR_TRANSFORM_ARRAY, LTA ;
 
 #include "mri.h"
 typedef struct
