@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/12/16 19:48:22 $
- *    $Revision: 1.86 $
+ *    $Author: fischl $
+ *    $Date: 2010/01/04 15:58:47 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -172,6 +172,7 @@
 #include "fmriutils.h"
 #include "numerics.h"
 #include "annotation.h"
+#include "transform.h"
 
 #ifdef X
 #undef X
@@ -210,7 +211,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.86 2009/12/16 19:48:22 nicks Exp $";
+"$Id: mri_segreg.c,v 1.87 2010/01/04 15:58:47 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -350,13 +351,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.86 2009/12/16 19:48:22 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.87 2010/01/04 15:58:47 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.86 2009/12/16 19:48:22 nicks Exp $",
+     "$Id: mri_segreg.c,v 1.87 2010/01/04 15:58:47 fischl Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -400,7 +401,7 @@ int main(int argc, char **argv) {
     MRIabs(mov,mov);
   }
 
-  // Load an anatomical for refernece
+  // Load an anatomical for reference
   sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
   anat = MRIread(tmpstr); // Just need a template
   if(anat == NULL) exit(1);
@@ -821,10 +822,30 @@ int main(int argc, char **argv) {
   fprintf(fp,"\n");
   
   if(outregfile){
+    int type = TransformFileNameType(outregfile);
     printf("Writing optimal reg to %s \n",outregfile);
     fflush(stdout);
-    regio_write_register(outregfile,subject,mov->xsize,
-			 mov->zsize,intensity,R,FLT2INT_ROUND);
+    if (type == TRANSFORM_ARRAY_TYPE || 1)
+    {
+      LTA *lta = LTAalloc(1, NULL) ;
+      LT  *lt;
+      
+      printf("saving transform to LTA file\n") ;
+      strcpy(lta->subject, subject) ;
+      lta->fscale = intensity ;
+      lt = &lta->xforms[0] ;
+      lt->m_L = MatrixCopy(R,NULL) ;
+      getVolGeom(anat, &lt->dst) ;
+      getVolGeom(mov, &lt->src) ;
+      strcpy(lt->src.fname, movvolfile) ;
+      lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+      LTAwriteEx(lta, outregfile) ;
+      LTAfree(&lta) ;
+    }
+    else // this is disabled
+      regio_write_register(outregfile,subject,mov->xsize,
+                           mov->zsize,intensity,R,FLT2INT_ROUND);
+
   }
   
   if(outfile) {
@@ -1108,9 +1129,27 @@ static int parse_commandline(int argc, char **argv) {
 	    istringnmatch(option, "--reg",0)) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
+#if 1
+      {
+        LTA *lta = LTAalloc(1, NULL) ;
+        lta = LTAread(regfile) ;
+        if (lta == NULL)
+          exit(1) ;
+        subject = (char *)calloc(strlen(lta->subject)+1, sizeof(char)) ;
+        strcpy(subject, lta->subject) ;
+        float2int = FLT2INT_TKREG ;
+        intensity = lta->fscale ;
+        ipr = lta->xforms[0].src.xsize ;
+        bpr = lta->xforms[0].src.zsize ;
+        R0 = MatrixCopy(lta->xforms[0].m_L, NULL) ;
+        LTAfree(&lta) ;
+        err = 0 ;
+      }
+#else
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
                                 &intensity, &R0, &float2int);
       if (err) exit(1);
+#endif
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--regheader")){
