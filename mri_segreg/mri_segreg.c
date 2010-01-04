@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/04 15:58:47 $
- *    $Revision: 1.87 $
+ *    $Date: 2010/01/04 18:44:35 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -211,7 +211,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.87 2010/01/04 15:58:47 fischl Exp $";
+"$Id: mri_segreg.c,v 1.88 2010/01/04 18:44:35 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -351,13 +351,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.87 2010/01/04 15:58:47 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.88 2010/01/04 18:44:35 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.87 2010/01/04 15:58:47 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.88 2010/01/04 18:44:35 fischl Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -835,9 +835,9 @@ int main(int argc, char **argv) {
       lta->fscale = intensity ;
       lt = &lta->xforms[0] ;
       lt->m_L = MatrixCopy(R,NULL) ;
-      getVolGeom(anat, &lt->dst) ;
-      getVolGeom(mov, &lt->src) ;
-      strcpy(lt->src.fname, movvolfile) ;
+      getVolGeom(anat, &lt->src) ;
+      getVolGeom(mov, &lt->dst) ;
+      strcpy(lt->dst.fname, movvolfile) ;
       lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
       LTAwriteEx(lta, outregfile) ;
       LTAfree(&lta) ;
@@ -1129,27 +1129,9 @@ static int parse_commandline(int argc, char **argv) {
 	    istringnmatch(option, "--reg",0)) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
-#if 1
-      {
-        LTA *lta = LTAalloc(1, NULL) ;
-        lta = LTAread(regfile) ;
-        if (lta == NULL)
-          exit(1) ;
-        subject = (char *)calloc(strlen(lta->subject)+1, sizeof(char)) ;
-        strcpy(subject, lta->subject) ;
-        float2int = FLT2INT_TKREG ;
-        intensity = lta->fscale ;
-        ipr = lta->xforms[0].src.xsize ;
-        bpr = lta->xforms[0].src.zsize ;
-        R0 = MatrixCopy(lta->xforms[0].m_L, NULL) ;
-        LTAfree(&lta) ;
-        err = 0 ;
-      }
-#else
       err = regio_read_register(regfile, &subject, &ipr, &bpr,
                                 &intensity, &R0, &float2int);
       if (err) exit(1);
-#endif
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--regheader")){
