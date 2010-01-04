@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/21 20:57:47 $
- *    $Revision: 1.111 $
+ *    $Date: 2010/01/04 16:07:01 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.111 2009/11/21 20:57:47 fischl Exp $";
+"$Id: tkregister2.c,v 1.112 2010/01/04 16:07:01 fischl Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -3534,8 +3534,28 @@ void  read_reg(char *fname) {
   char *tmpstr;
   float ipr, bpr, fscale;
 
+#if 1
+  {
+    LTA *lta = LTAreadEx(fname) ;
+    if (lta == NULL)
+      err = ERROR_NOFILE ;
+    else
+    {
+      err = NO_ERROR ;
+      RegMat = MatrixCopy(lta->xforms[0].m_L, NULL) ;
+      ipr = lta->xforms[0].src.xsize ;
+      bpr = lta->xforms[0].src.zsize ;
+      float2int = float2int_use ;
+      fscale = .15 ;
+      tmpstr = (char *)calloc(strlen(lta->subject+1), sizeof(char));
+      strcpy(tmpstr, lta->subject) ;
+      LTAfree(&lta) ;
+    }
+  }
+#else
   err = regio_read_register(fname, &tmpstr, &ipr, &bpr,
                             &fscale, &RegMat, &float2int);
+#endif
   if (err) {
     printf("ERROR: reading %s\n",fname);
     exit(1);
@@ -3601,7 +3621,7 @@ void write_reg(char *fname) {
   extern char talxfmfile[2000];
   extern MATRIX *RegMat, *Mtc;
   static MATRIX *RegMatTmp=NULL;
-  int i,j;
+  //  int i,j;
   FILE *fp;
   char touchfile[1000];
 
@@ -3613,7 +3633,22 @@ void write_reg(char *fname) {
   MatrixPrint(stdout,RegMatTmp);
 
   if(fname != NULL){
+    if(fscale_2 == 0.0) fscale_2 = .1;
     make_backup(fname);
+#if 1
+    // BRF - use lta code
+    {
+      LTA *lta = LTAalloc(1, NULL) ;
+      strcpy(lta->subject, pname) ;
+      lta->fscale = fscale_2 ;
+      lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL) ;
+      lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+      if (LTAwrite(lta, fname) != NO_ERROR)
+        printf("register: ### can't create file %s\n",fname);
+      LTAfree(&lta) ;
+        
+    }
+#else
     fp = fopen(fname,"w");
     if (fp==NULL) {
       printf("register: ### can't create file %s\n",fname);
@@ -3622,7 +3657,6 @@ void write_reg(char *fname) {
     fprintf(fp,"%s\n",pname);
     fprintf(fp,"%f\n",ps_2);
     fprintf(fp,"%f\n",st_2);
-    if(fscale_2 == 0.0) fscale_2 = .1;
     fprintf(fp,"%f\n",fscale_2);
     for (i=0;i<4;i++) {
       for (j=0;j<4;j++)
@@ -3633,6 +3667,7 @@ void write_reg(char *fname) {
     fprintf(fp,"round\n");
     printf("register: file %s written\n",fname);
     fclose(fp);
+#endif
   }    
 
   if(fslregoutfname != NULL) write_fslreg(fslregoutfname);
@@ -4873,7 +4908,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.111 2009/11/21 20:57:47 fischl Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.112 2010/01/04 16:07:01 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
