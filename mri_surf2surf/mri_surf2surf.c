@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/12/07 18:28:24 $
- *    $Revision: 1.84 $
+ *    $Author: fischl $
+ *    $Date: 2010/01/04 18:45:08 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -305,6 +305,8 @@ ENDHELP
 #include "fsenv.h"
 #include "utils.h"
 #include "cmdargs.h"
+#include "proto.h"
+#include "mri_circulars.h"
 
 int DumpSurface(MRIS *surf, char *outfile);
 MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma, int nSmoothSteps, MRI *Targ);
@@ -344,7 +346,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.84 2009/12/07 18:28:24 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.85 2010/01/04 18:45:08 fischl Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -464,7 +466,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.84 2009/12/07 18:28:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.85 2010/01/04 18:45:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1007,7 +1009,7 @@ int main(int argc, char **argv) {
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
-  char **pargv, *option ;
+  char **pargv, *option, tmp[STRLEN] ;
   float ipr, bpr, intensity;
   int float2int,err;
   char *regsubject;
@@ -1110,8 +1112,30 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcasecmp(option, "--reg")) {
       if(nargc < 1) argnerr(option,1);
-      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
-                                &intensity, &XFM, &float2int);
+      if (!stricmp(FileNameExtension(pargv[0], tmp), "LTA"))
+      {
+        LTA *lta ;
+        lta = LTAread(pargv[0]) ;
+        if (lta == NULL)
+          return(1) ;
+        regsubject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
+        strcpy(regsubject, lta->subject) ;
+        intensity = lta->fscale ;
+        float2int = FLT2INT_ROUND ;
+        ipr = lta->xforms[0].dst.xsize ;
+        bpr = lta->xforms[0].dst.zsize ;
+        XFM = MatrixCopy(lta->xforms[0].m_L, NULL) ;
+        if (lta->type != LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
+          printf("!!! WARNING: non TKREG .lta file %s read in regio_read_register !!!\n",
+                 pargv[0]) ;
+        RegTarg = MRIallocHeader(lta->xforms[0].dst.width, lta->xforms[0].dst.height, 
+                                 lta->xforms[0].dst.depth, MRI_UCHAR) ;
+        MRIcopyVolGeomToMRI(RegTarg, &lta->xforms[0].dst) ;
+        LTAfree(&lta) ;
+      }
+      else
+        err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
+                                  &intensity, &XFM, &float2int);
       if(err) exit(1);
       ApplyReg = 1;
       nargsused = 1;
