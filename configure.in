@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/05 19:37:10 $
-#    $Revision: 1.452 $
+#    $Date: 2010/01/05 20:17:01 $
+#    $Revision: 1.453 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -577,7 +577,7 @@ else
    if test -e /usr/lib64 ; then
       CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcudart"
    fi
-   NVCC="nvcc"
+   NVCC="/usr/local/cuda/bin/nvcc"
 fi
 AC_SUBST(CUDA_CFLAGS)
 AC_SUBST(CUDA_LIBS)
