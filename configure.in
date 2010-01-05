@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2009/12/04 01:10:33 $
-#    $Revision: 1.450 $
+#    $Author: nicks $
+#    $Date: 2010/01/05 19:23:51 $
+#    $Revision: 1.451 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -567,10 +567,16 @@ if test -n "$with_cuda"
 then
    CUDA_CFLAGS="-I$with_cuda/include"
    CUDA_LIBS="-L$with_cuda/lib -lcuda -lcudart"
+   if test -e /usr/lib64 ; then
+      CUDA_LIBS="-L$with_cuda/lib64 -lcuda -lcudart"
+   fi
    NVCC="$with_cuda/bin/nvcc"
 else
    CUDA_CFLAGS="-I/usr/local/cuda/include"
    CUDA_LIBS="-L/usr/local/cuda/lib -lcuda -lcudart"
+   if test -e /usr/lib64 ; then
+      CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcudart"
+   fi
    NVCC="nvcc"
 fi
 AC_SUBST(CUDA_CFLAGS)
@@ -589,10 +595,6 @@ AC_ARG_ENABLE([emu],
    esac],
    [EMULATION=false]
 )
-if( test ! x$NVCC = xno ) 
-then
-        AC_DEFINE([CUDA],[1],[Defined if CUDA should be used])
-fi
 
 # setup  nvcc flags
 if  test x$DEBUG = xtrue
@@ -606,7 +608,6 @@ then
    NVCCFLAGS+=" -deviceemu"
 fi
 AC_SUBST(NVCCFLAGS)
-
 
 # warn the user about missing functionality
 if( test x$NVCC = xno ) then
@@ -2910,6 +2911,7 @@ AC_OUTPUT([Makefile
            mri_gcab_train/Makefile
            mri_cc/Makefile
            mri_cht2p/Makefile
+           mri_cluster/Makefile
            mri_cnr/Makefile
            mri_compile_edits/Makefile
            mri_compute_overlap/Makefile
