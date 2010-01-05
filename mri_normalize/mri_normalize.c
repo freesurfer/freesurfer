@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/08 00:42:46 $
- *    $Revision: 1.63 $
+ *    $Date: 2010/01/05 15:39:32 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,6 +103,7 @@ static int file_only = 0 ;
 
 static char *surface_fname = NULL ;
 static TRANSFORM *surface_xform ;
+static char *surface_xform_fname = NULL ;
 
 int
 main(int argc, char *argv[]) {
@@ -117,14 +118,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.63 2009/12/08 00:42:46 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.64 2010/01/05 15:39:32 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.63 2009/12/08 00:42:46 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.64 2010/01/05 15:39:32 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -196,7 +197,8 @@ main(int argc, char *argv[]) {
 #endif
     }
 
-    MRIStransform(mris, NULL, surface_xform, NULL) ;
+    if (stricmp(surface_xform_fname, "identity.nofile") != 0)
+      MRIStransform(mris, NULL, surface_xform, NULL) ;
     mri_dist = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
     printf("computing distance transform\n") ;
     MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize) ;
@@ -511,6 +513,7 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "SURFACE")) {
     surface_fname = argv[2] ;
     surface_xform = TransformRead(argv[3]) ;
+    surface_xform_fname = argv[3] ;
     if (surface_xform == NULL)
       ErrorExit(ERROR_NOFILE, "%s:could not load xform from %s",Progname,
                 argv[3]) ;
