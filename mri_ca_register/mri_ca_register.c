@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/07/17 19:01:18 $
- *    $Revision: 1.68 $
+ *    $Author: rge21 $
+ *    $Date: 2010/01/05 18:32:47 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -63,6 +63,10 @@
 #include "transform.h"
 #include "mrisegment.h"
 #include "version.h"
+
+#ifdef FS_CUDA
+#include "devicemanagement.h"
+#endif
 
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
@@ -169,6 +173,10 @@ main(int argc, char *argv[]) {
   int          label_computed[MAX_CMA_LABELS];
 	int          got_scales =0;
 
+#ifdef FS_CUDA
+	AcquireDevice();
+#endif
+
   parms.l_log_likelihood = 0.2f ;
   parms.niterations = 500 ;
   parms.levels = 6 ;
@@ -207,7 +215,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.68 2009/07/17 19:01:18 mreuter Exp $", 
+     "$Id: mri_ca_register.c,v 1.69 2010/01/05 18:32:47 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
