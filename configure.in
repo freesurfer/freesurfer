@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/05 19:23:51 $
-#    $Revision: 1.451 $
+#    $Date: 2010/01/05 19:37:10 $
+#    $Revision: 1.452 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2911,7 +2911,6 @@ AC_OUTPUT([Makefile
            mri_gcab_train/Makefile
            mri_cc/Makefile
            mri_cht2p/Makefile
-           mri_cluster/Makefile
            mri_cnr/Makefile
            mri_compile_edits/Makefile
            mri_compute_overlap/Makefile
