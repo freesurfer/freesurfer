@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/04 18:44:35 $
- *    $Revision: 1.88 $
+ *    $Date: 2010/01/06 21:23:39 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -211,7 +211,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.88 2010/01/04 18:44:35 fischl Exp $";
+"$Id: mri_segreg.c,v 1.89 2010/01/06 21:23:39 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -351,13 +351,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.88 2010/01/04 18:44:35 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.89 2010/01/06 21:23:39 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.88 2010/01/04 18:44:35 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.89 2010/01/06 21:23:39 fischl Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -825,7 +825,7 @@ int main(int argc, char **argv) {
     int type = TransformFileNameType(outregfile);
     printf("Writing optimal reg to %s \n",outregfile);
     fflush(stdout);
-    if (type == TRANSFORM_ARRAY_TYPE || 1)
+    if (type == TRANSFORM_ARRAY_TYPE)
     {
       LTA *lta = LTAalloc(1, NULL) ;
       LT  *lt;
