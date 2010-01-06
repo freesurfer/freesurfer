@@ -69,6 +69,8 @@ foo_DATA=\
 	mni305.cor.subfov1.reg \
 	mni305.cor.subfov2.reg \
 	mni152.register.dat
+	mni152.mni305.cor.subfov1.dat \
+	mni152.mni305.cor.subfov2.dat 
 endif
 
 EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz V1_average.tar.gz \
