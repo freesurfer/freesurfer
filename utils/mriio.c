@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/12/08 00:42:20 $
- *    $Revision: 1.361 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:22:56 $
+ *    $Revision: 1.362 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -11651,13 +11651,13 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 #define MGH_VERSION       1
 
 // declare function pointer
-static int (*myclose)(FILE *stream);
+//static int (*myclose)(FILE *stream);
 
 static MRI *
 mghRead(const char *fname, int read_volume, int frame)
 {
   MRI  *mri ;
-  FILE  *fp = 0;
+  znzFile fp;
   int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
   bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag, i ;
   BUFTYPE *buf ;
@@ -11668,11 +11668,11 @@ mghRead(const char *fname, int read_volume, int frame)
   //  int tag_data_size;
   char *ext;
   int gzipped=0;
-  char command[STRLEN];
   int nread;
   int tag;
 
   ext = strrchr(fname, '.') ;
+  int valid_ext = 0;
   if (ext)
   {
     ++ext;
@@ -11680,65 +11680,34 @@ mghRead(const char *fname, int read_volume, int frame)
     if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz"))
     {
       gzipped = 1;
-      myclose = pclose;  // assign function pointer for closing
-#if defined(Darwin) || defined(SunOS)
-      // zcat on Max OS always appends and assumes a .Z extention,
-      // whereas we want .m3z
-      strcpy(command, "gunzip -c ");
-#else
-      strcpy(command, "zcat ");
-#endif
-      if (!fio_FileExistsReadable(fname))
-      {
-        printf("ERROR: cannot find %s\n",fname);
-        return(NULL);
-      }
-      strcat(command, fname);
-
-      errno = 0;
-      fp = popen(command, "r");
-      if (!fp)
-      {
-        int tmperrno=errno;
-        errno = 0;
-        ErrorReturn(NULL, (ERROR_BADPARM,
-                           "mghRead: encountered error executing: '%s'"
-                           ",frame %d, errno %d",
-                           command,frame,tmperrno)) ;
-      }
-      if (errno)
-      {
-        int tmperrno=errno;
-        pclose(fp);
-        errno = 0;
-        ErrorReturn(NULL, (ERROR_BADPARM,
-                           "mghRead: encountered error executing: '%s'"
-                           ",frame %d,errno=%d",
-                           command,frame,tmperrno)) ;
-      }
+      valid_ext = 1;
     }
     else if (!stricmp(ext, "mgh"))
     {
-      myclose = fclose; // assign function pointer for closing
-      fp = fopen(fname, "rb") ;
-      if (!fp)
-      {
-        errno = 0;
-        ErrorReturn
-        (NULL,
-         (ERROR_BADPARM,
-          "mghRead(%s, %d): could not open file",
-          fname, frame)) ;
-      }
+      valid_ext = 1;
     }
   }
-
-  // sanity-check that a file was actually opened
-  if (!fp)
+  
+  if (valid_ext)
+  {
+    fp = znzopen( fname, "rb", gzipped );
+    if (znz_isnull(fp))
+    {
+      errno = 0;
+      ErrorReturn
+          (NULL,
+           (ERROR_BADPARM,
+            "mghRead(%s, %d): could not open file",
+            fname, frame)) ;
+    }
+  }
+  else
+  {
     ErrorReturn(NULL,(ERROR_BADPARM,
                       "mghRead(%s, %d): could not open file.\n"
                       "Filename extension must be .mgh, .mgh.gz or .mgz",
                       fname, frame));
+  }
 
   /* keep the compiler quiet */
   xsize = ysize = zsize = 0;
@@ -11747,44 +11716,44 @@ mghRead(const char *fname, int read_volume, int frame)
   z_r = z_a = z_s = 0;
   c_r = c_a = c_s = 0;
 
-  nread = freadIntEx(&version, fp) ;
+  nread = znzreadIntEx(&version, fp) ;
   if (!nread)
     ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): read error",
                        fname, frame)) ;
 
-  width = freadInt(fp) ;
-  height = freadInt(fp) ;
-  depth =  freadInt(fp) ;
-  nframes = freadInt(fp) ;
-  type = freadInt(fp) ;
-  dof = freadInt(fp) ;
+  width = znzreadInt(fp) ;
+  height = znzreadInt(fp) ;
+  depth =  znzreadInt(fp) ;
+  nframes = znzreadInt(fp) ;
+  type = znzreadInt(fp) ;
+  dof = znzreadInt(fp) ;
 
   unused_space_size = UNUSED_SPACE_SIZE-sizeof(short) ;
 
-  good_ras_flag = freadShort(fp) ;
+  good_ras_flag = znzreadShort(fp) ;
   if (good_ras_flag > 0)
   {     /* has RAS and voxel size info */
     unused_space_size -= USED_SPACE_SIZE ;
-    xsize = freadFloat(fp) ;
-    ysize = freadFloat(fp) ;
-    zsize = freadFloat(fp) ;
+    xsize = znzreadFloat(fp) ;
+    ysize = znzreadFloat(fp) ;
+    zsize = znzreadFloat(fp) ;
 
-    x_r = freadFloat(fp) ;
-    x_a = freadFloat(fp) ;
-    x_s = freadFloat(fp) ;
-    y_r = freadFloat(fp) ;
-    y_a = freadFloat(fp) ;
-    y_s = freadFloat(fp) ;
+    x_r = znzreadFloat(fp) ;
+    x_a = znzreadFloat(fp) ;
+    x_s = znzreadFloat(fp) ;
+    y_r = znzreadFloat(fp) ;
+    y_a = znzreadFloat(fp) ;
+    y_s = znzreadFloat(fp) ;
 
-    z_r = freadFloat(fp) ;
-    z_a = freadFloat(fp) ;
-    z_s = freadFloat(fp) ;
-    c_r = freadFloat(fp) ;
-    c_a = freadFloat(fp) ;
-    c_s = freadFloat(fp) ;
+    z_r = znzreadFloat(fp) ;
+    z_a = znzreadFloat(fp) ;
+    z_s = znzreadFloat(fp) ;
+    c_r = znzreadFloat(fp) ;
+    c_a = znzreadFloat(fp) ;
+    c_s = znzreadFloat(fp) ;
   }
   /* so stuff can be added to the header in the future */
-  fread(unused_buf, sizeof(char), unused_space_size, fp) ;
+  znzread(unused_buf, sizeof(char), unused_space_size, fp) ;
 
   switch (type)
   {
@@ -11816,10 +11785,10 @@ mghRead(const char *fname, int read_volume, int frame)
     { // pipe cannot seek
       int count;
       for (count=0; count < mri->nframes*width*height*depth*bpv; count++)
-        fgetc(fp);
+        znzgetc(fp);
     }
     else
-      fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
+      znzseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
   }
   else
   {
@@ -11830,10 +11799,10 @@ mghRead(const char *fname, int read_volume, int frame)
       { // pipe cannot seek
         int count;
         for (count=0; count < frame*width*height*depth*bpv; count++)
-          fgetc(fp);
+          znzgetc(fp);
       }
       else
-        fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+        znzseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
       nframes = 1 ;
     }
     else
@@ -11856,10 +11825,10 @@ mghRead(const char *fname, int read_volume, int frame)
     {
       for (z = 0 ; z < depth ; z++)
       {
-        if ((int)fread(buf, sizeof(char), bytes, fp) != bytes)
+        if ((int)znzread(buf, sizeof(char), bytes, fp) != bytes)
         {
           // fclose(fp) ;
-          myclose(fp);
+          znzclose(fp);
           free(buf) ;
           ErrorReturn
           (NULL,
@@ -11957,15 +11926,15 @@ mghRead(const char *fname, int read_volume, int frame)
     setDirectionCosine(mri, MRI_CORONAL);
   }
   // read TR, Flip, TE, TI, FOV
-  if (freadFloatEx(&(mri->tr), fp))
+  if (znzreadFloatEx(&(mri->tr), fp))
   {
-    if (freadFloatEx(&fval, fp))
+    if (znzreadFloatEx(&fval, fp))
     {
       mri->flip_angle = fval;
       // flip_angle is double. I cannot use the same trick.
-      if (freadFloatEx(&(mri->te), fp))
-        if (freadFloatEx(&(mri->ti), fp))
-          if (freadFloatEx(&(mri->fov), fp))
+      if (znzreadFloatEx(&(mri->te), fp))
+        if (znzreadFloatEx(&(mri->ti), fp))
+          if (znzreadFloatEx(&(mri->fov), fp))
             ;
     }
   }
@@ -11975,7 +11944,7 @@ mghRead(const char *fname, int read_volume, int frame)
     char *fnamedir;
     char tmpstr[1000];
 
-    while ((tag = TAGreadStart(fp, &len)) != 0)
+    while ((tag = znzTAGreadStart(fp, &len)) != 0)
     {
       switch (tag)
       {
@@ -11983,7 +11952,7 @@ mghRead(const char *fname, int read_volume, int frame)
         /* We have a color table, read it with CTABreadFromBinary. If it
            fails, it will print its own error message. */
         fprintf(stderr, "reading colortable from MGH file...\n") ;
-        mri->ct = CTABreadFromBinary (fp);
+        mri->ct = znzCTABreadFromBinary (fp);
         if (NULL != mri->ct)
           fprintf(stderr, "colortable with %d entries read (originally %s)\n",
                   mri->ct->nentries, mri->ct->fname);
@@ -11994,8 +11963,8 @@ mghRead(const char *fname, int read_volume, int frame)
         // First, try a path relative to fname (not the abs path)
         fnamedir = fio_dirname(fname);
         sprintf(tmpstr,"%s/transforms/talairach.xfm",fnamedir);
-	free(fnamedir); fnamedir= NULL;
-        fgets(mri->transform_fname, len+1, fp);
+	      free(fnamedir); fnamedir= NULL;
+        znzgets(mri->transform_fname, len+1, fp);
         // If this file exists, copy it to transform_fname
         if (FileExists(tmpstr)) strcpy(mri->transform_fname,tmpstr);
         if (FileExists(mri->transform_fname))
@@ -12043,22 +12012,22 @@ mghRead(const char *fname, int read_volume, int frame)
                     "mghRead(%s): too many commands (%d) in file",
                     fname,mri->ncmds);
         mri->cmdlines[mri->ncmds] = (char*) calloc(len+1, sizeof(char)) ;
-        fread(mri->cmdlines[mri->ncmds], sizeof(char), len, fp) ;
+        znzread(mri->cmdlines[mri->ncmds], sizeof(char), len, fp) ;
         mri->cmdlines[mri->ncmds][len] = 0 ;
         mri->ncmds++ ;
         break ;
 
       case TAG_AUTO_ALIGN:
-        mri->AutoAlign = TAGreadAutoAlign(fp);
+        mri->AutoAlign = znzTAGreadAutoAlign(fp);
         break;
 
       case TAG_PEDIR:
 	mri->pedir = (char*)calloc(len+1,sizeof(char));
-        fread(mri->pedir,sizeof(char),len,fp);
+        znzread(mri->pedir,sizeof(char),len,fp);
         break;
 
       default:
-        TAGskip(fp, tag, (long long)len) ;
+        znzTAGskip(fp, tag, (long long)len) ;
         break ;
       }
     }
@@ -12066,7 +12035,7 @@ mghRead(const char *fname, int read_volume, int frame)
 
 
   // fclose(fp) ;
-  myclose(fp);
+  znzclose(fp);
 
   // xstart, xend, ystart, yend, zstart, zend are not stored
   mri->xstart = - mri->width/2.*mri->xsize;
@@ -12088,13 +12057,13 @@ mghRead(const char *fname, int read_volume, int frame)
 static int
 mghWrite(MRI *mri, const char *fname, int frame)
 {
-  FILE  *fp =0;
+  znzFile fp;
   int   ival, start_frame, end_frame, x, y, z, width, height, depth,
   unused_space_size, flen ;
   char  buf[UNUSED_SPACE_SIZE+1] ;
   float fval ;
   short sval ;
-  int gzipped = 0, err;
+  int gzipped = 0;
   char *ext;
 
   if (frame >= 0)
@@ -12106,55 +12075,31 @@ mghWrite(MRI *mri, const char *fname, int frame)
   }
   ////////////////////////////////////////////////////////////
   ext = strrchr(fname, '.') ;
+  int valid_ext = 0;
   if (ext)
   {
-    char command[STRLEN];
     ++ext;
     // if mgz, then it is compressed
     if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz"))
     {
-      // route stdout to a file
       gzipped = 1;
-      myclose = pclose; // assign function pointer for closing
-      // pipe writeto "gzip" open
-      // pipe can executed under shell and thus understands >
-      strcpy(command, "gzip -f -c > ");
-      strcat(command, fname);
-      errno = 0;
-      fp = popen(command, "w");
-      err = errno;
-      if (!fp)
-      {
-        printf("ERROR: opening pipe %s, errno = %d\n",command,err);
-        printf("%s\n",strerror(err));
-        errno = 0;
-        ErrorReturn
-        (ERROR_BADPARM,
-         (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
-          fname, frame)) ;
-      }
-      if (errno)
-      {
-        pclose(fp);
-        errno = 0;
-        ErrorReturn
-        (ERROR_BADPARM,
-         (ERROR_BADPARM,"mghWrite(%s, %d): gzip had error",
-          fname, frame)) ;
-      }
+      valid_ext = 1;
     }
     else if (!stricmp(ext, "mgh"))
     {
-      fp = fopen(fname, "wb") ;
-      myclose = fclose; // assign function pointer for closing
-      if (!fp)
-      {
-        errno = 0;
-        ErrorReturn
-        (ERROR_BADPARM,
-         (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
-          fname, frame)) ;
-      }
+      valid_ext = 1;
+    }
+  }
+  if ( valid_ext )
+  {
+    fp = znzopen(fname, "wb", gzipped) ;
+    if (znz_isnull(fp))
+    {
+      errno = 0;
+      ErrorReturn
+          (ERROR_BADPARM,
+           (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
+            fname, frame)) ;
     }
   }
   else
@@ -12166,57 +12111,47 @@ mghWrite(MRI *mri, const char *fname, int frame)
                  fname)) ;
   }
 
-  // sanity-check: make sure a file pointer was assigned
-  if (fp==0)
-  {
-    errno = 0;
-    ErrorReturn
-    (ERROR_BADPARM,
-     (ERROR_BADPARM,"mghWrite(%s, %d): could not open file: fp==0",
-      fname, frame)) ;
-  }
-
   /* WARNING - adding or removing anything before nframes will
      cause mghAppend to fail.
   */
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
-  fwriteInt(MGH_VERSION, fp) ;
-  fwriteInt(mri->width, fp) ;
-  fwriteInt(mri->height, fp) ;
-  fwriteInt(mri->depth, fp) ;
-  fwriteInt(mri->nframes, fp) ;
-  fwriteInt(mri->type, fp) ;
-  fwriteInt(mri->dof, fp) ;
+  znzwriteInt(MGH_VERSION, fp) ;
+  znzwriteInt(mri->width, fp) ;
+  znzwriteInt(mri->height, fp) ;
+  znzwriteInt(mri->depth, fp) ;
+  znzwriteInt(mri->nframes, fp) ;
+  znzwriteInt(mri->type, fp) ;
+  znzwriteInt(mri->dof, fp) ;
 
   unused_space_size = UNUSED_SPACE_SIZE - USED_SPACE_SIZE - sizeof(short) ;
 
   /* write RAS and voxel size info */
-  fwriteShort(mri->ras_good_flag ? 1 : -1, fp) ;
-  fwriteFloat(mri->xsize, fp) ;
-  fwriteFloat(mri->ysize, fp) ;
-  fwriteFloat(mri->zsize, fp) ;
+  znzwriteShort(mri->ras_good_flag ? 1 : -1, fp) ;
+  znzwriteFloat(mri->xsize, fp) ;
+  znzwriteFloat(mri->ysize, fp) ;
+  znzwriteFloat(mri->zsize, fp) ;
 
-  fwriteFloat(mri->x_r, fp) ;
-  fwriteFloat(mri->x_a, fp) ;
-  fwriteFloat(mri->x_s, fp) ;
+  znzwriteFloat(mri->x_r, fp) ;
+  znzwriteFloat(mri->x_a, fp) ;
+  znzwriteFloat(mri->x_s, fp) ;
 
-  fwriteFloat(mri->y_r, fp) ;
-  fwriteFloat(mri->y_a, fp) ;
-  fwriteFloat(mri->y_s, fp) ;
+  znzwriteFloat(mri->y_r, fp) ;
+  znzwriteFloat(mri->y_a, fp) ;
+  znzwriteFloat(mri->y_s, fp) ;
 
-  fwriteFloat(mri->z_r, fp) ;
-  fwriteFloat(mri->z_a, fp) ;
-  fwriteFloat(mri->z_s, fp) ;
+  znzwriteFloat(mri->z_r, fp) ;
+  znzwriteFloat(mri->z_a, fp) ;
+  znzwriteFloat(mri->z_s, fp) ;
 
-  fwriteFloat(mri->c_r, fp) ;
-  fwriteFloat(mri->c_a, fp) ;
-  fwriteFloat(mri->c_s, fp) ;
+  znzwriteFloat(mri->c_r, fp) ;
+  znzwriteFloat(mri->c_a, fp) ;
+  znzwriteFloat(mri->c_s, fp) ;
 
   /* so stuff can be added to the header in the future */
   memset(buf, 0, UNUSED_SPACE_SIZE*sizeof(char)) ;
-  fwrite(buf, sizeof(char), unused_space_size, fp) ;
+  znzwrite(buf, sizeof(char), unused_space_size, fp) ;
 
   for (frame = start_frame ; frame <= end_frame ; frame++)
   {
@@ -12232,7 +12167,7 @@ mghWrite(MRI *mri, const char *fname, int frame)
             if (z == 74 && y == 16 && x == 53)
               DiagBreak() ;
             sval = MRISseq_vox(mri,x,y,z,frame) ;
-            fwriteShort(sval, fp) ;
+            znzwriteShort(sval, fp) ;
           }
           break ;
         case MRI_INT:
@@ -12241,7 +12176,7 @@ mghWrite(MRI *mri, const char *fname, int frame)
             if (z == 74 && y == 16 && x == 53)
               DiagBreak() ;
             ival = MRIIseq_vox(mri,x,y,z,frame) ;
-            fwriteInt(ival, fp) ;
+            znzwriteInt(ival, fp) ;
           }
           break ;
         case MRI_FLOAT:
@@ -12252,11 +12187,11 @@ mghWrite(MRI *mri, const char *fname, int frame)
             fval = MRIFseq_vox(mri,x,y,z,frame) ;
             //if(x==10 && y == 0 && z == 0 && frame == 67)
             // printf("MRIIO: %g\n",fval);
-            fwriteFloat(fval, fp) ;
+            znzwriteFloat(fval, fp) ;
           }
           break ;
         case MRI_UCHAR:
-          if ((int)fwrite(&MRIseq_vox(mri,0,y,z,frame),
+          if ((int)znzwrite(&MRIseq_vox(mri,0,y,z,frame),
                      sizeof(BUFTYPE), width, fp)
               != width)
           {
@@ -12280,11 +12215,11 @@ mghWrite(MRI *mri, const char *fname, int frame)
     }
   }
 
-  fwriteFloat(mri->tr, fp) ;
-  fwriteFloat(mri->flip_angle, fp) ;
-  fwriteFloat(mri->te, fp) ;
-  fwriteFloat(mri->ti, fp) ;
-  fwriteFloat(mri->fov, fp); // somebody forgot this
+  znzwriteFloat(mri->tr, fp) ;
+  znzwriteFloat(mri->flip_angle, fp) ;
+  znzwriteFloat(mri->te, fp) ;
+  znzwriteFloat(mri->ti, fp) ;
+  znzwriteFloat(mri->fov, fp); // somebody forgot this
 
   // if mri->transform_fname has non-zero length
   // I write a tag with strlength and write it
@@ -12296,27 +12231,27 @@ mghWrite(MRI *mri, const char *fname, int frame)
     fwriteInt(flen+1, fp); // write the size + 1 (for null) of string
     fputs(mri->transform_fname, fp);
 #else
-    TAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen+1) ;
+    znzTAGwrite(fp, TAG_MGH_XFORM, mri->transform_fname, flen+1) ;
 #endif
   }
   // If we have any saved tag data, write it.
   if ( NULL != mri->tag_data )
   {
     // Int is 32 bit on 32 bit and 64 bit os and thus it is safer
-    fwriteInt(mri->tag_data_size, fp);
-    fwrite( mri->tag_data, mri->tag_data_size, 1, fp );
+    znzwriteInt(mri->tag_data_size, fp);
+    znzwrite( mri->tag_data, mri->tag_data_size, 1, fp );
   }
 
-  if(mri->AutoAlign) TAGwriteAutoAlign(fp, mri->AutoAlign);
-  if(mri->pedir) TAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
-  else TAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
+  if(mri->AutoAlign) znzTAGwriteAutoAlign(fp, mri->AutoAlign);
+  if(mri->pedir) znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
+  else znzTAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
 
   if (mri->ct)
   {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       printf("writing colortable into annotation file...\n") ;
-    fwriteInt(TAG_OLD_COLORTABLE, fp) ;
-    CTABwriteIntoBinary(mri->ct, fp);
+    znzwriteInt(TAG_OLD_COLORTABLE, fp) ;
+    znzCTABwriteIntoBinary(mri->ct, fp);
   }
 
   // write other tags
@@ -12324,12 +12259,12 @@ mghWrite(MRI *mri, const char *fname, int frame)
     int i ;
 
     for (i = 0 ; i < mri->ncmds ; i++)
-      TAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i])+1) ;
+      znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i])+1) ;
   }
 
 
   // fclose(fp) ;
-  myclose(fp);
+  znzclose(fp);
 
   return(NO_ERROR) ;
 }

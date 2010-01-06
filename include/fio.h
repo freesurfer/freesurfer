@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.19 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:22:56 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,8 @@
 
 #ifndef FIO_H
 #define FIO_H
+
+#include "znzlib.h"
 
 FILE  *MGHopen_file(const char *fname,const char *rwmode) ;
 int   putf(float f, FILE *fp) ;
@@ -58,6 +60,33 @@ int   fwrite1(int v,FILE *fp) ;
 int   fwrite2(int v, FILE *fp) ;
 int   fwrite3(int v, FILE *fp) ;
 int   fwrite4(int v, FILE *fp) ;
+
+/* znzlib support routines */
+int   znzread1(int *v, znzFile fp) ;
+int   znzread2(int *v, znzFile fp) ;
+int   znzread3(int *v, znzFile fp) ;
+int   znzread4(float *v, znzFile fp) ;
+double 	znzreadDouble  (znzFile fp) ;
+float   znzreadFloat	  (znzFile fp) ;
+int     znzreadInt     (znzFile fp) ;
+long long znzreadLong  (znzFile fp) ;
+short   znzreadShort   (znzFile fp) ;
+
+/* return 1 if succeed, return 0 if fail */
+int znzreadDoubleEx  (double *pd,  znzFile fp) ;
+int znzreadFloatEx   (float *pf,   znzFile fp) ;
+int znzreadIntEx     (int *pi,     znzFile fp) ;
+int znzreadShortEx   (short *ps,   znzFile fp) ;
+
+int znzwriteDouble (double d,  znzFile fp) ;
+int znzwriteFloat  (float f,   znzFile fp) ;
+int znzwriteShort  (short s,   znzFile fp) ;
+int znzwriteInt    (int v,     znzFile fp) ;
+int znzwriteLong   (long long v, znzFile fp) ;
+int znzwrite1      (int v,     znzFile fp) ;
+int znzwrite2      (int v,     znzFile fp) ;
+int znzwrite3      (int v,     znzFile fp) ;
+int znzwrite4      (int v,     znzFile fp) ;
 
 char *fio_basename(const char *pathname,const char *ext);
 char *fio_dirname(const char *pathname);

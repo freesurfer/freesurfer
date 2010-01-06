@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/11/05 21:17:11 $
- *    $Revision: 1.36 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:22:56 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,11 @@ static int         CTABwriteIntoBinaryV1(COLOR_TABLE *ct, FILE *fp);
 static int         CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp);
 static COLOR_TABLE *CTABreadFromBinaryV1(FILE *fp, int nentries);
 static COLOR_TABLE *CTABreadFromBinaryV2(FILE *fp);
+
+static int         znzCTABwriteIntoBinaryV1(COLOR_TABLE *ct, znzFile fp);
+static int         znzCTABwriteIntoBinaryV2(COLOR_TABLE *ct, znzFile fp);
+static COLOR_TABLE *znzCTABreadFromBinaryV1(znzFile fp, int nentries);
+static COLOR_TABLE *znzCTABreadFromBinaryV2(znzFile fp);
 
 int ctabDuplicates;
 
@@ -748,6 +753,404 @@ CTABwriteIntoBinaryV2(COLOR_TABLE *ct, FILE *fp)
       fwriteInt (ct->entries[structure]->bi, fp);
       t = 255 - ct->entries[structure]->ai; /* alpha = 255-trans */
       fwriteInt (t, fp);
+    }
+  }
+
+  return(NO_ERROR);
+}
+
+/*------------------------------------------------------------------
+znzlib support
+-------------------------------------------------------------------*/
+
+COLOR_TABLE *znzCTABreadFromBinary(znzFile fp)
+{
+  COLOR_TABLE   *ct;
+  int           version;
+
+  if (znz_isnull(fp))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM, "CTABreadFromBinary: fp was NULL"));
+
+  /* Our goal here is to see what vesion we're reading/writing. Look
+  at the first int in the stream. If it's > 0, it's the old format,
+  and this int is the number of bins to have. If it's < 0, it's the
+  new format, and is the negative version number. */
+  version = znzreadInt(fp);
+
+  ct = NULL;
+  if (version > 0 )
+  {
+    /* With v1, we pass in the "version" number we just got, as it's
+    the number of entries. */
+    ct = znzCTABreadFromBinaryV1 (fp, version);
+  }
+  else
+  {
+    /* Take the negative to get the real version number. */
+    version = -version;
+
+    /* Read the right version. */
+    if (version == 2)
+    {
+      ct = znzCTABreadFromBinaryV2 (fp);
+    }
+    else
+    {
+      /* Unsupported version. */
+      ErrorReturn(NULL,
+                  (ERROR_BADFILE, "CTABreadFromBinary: unknown version"));
+    }
+  }
+
+  return(ct);
+}
+
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int znzCTABwriteIntoBinary(COLOR_TABLE *ct, znzFile fp)
+{
+  int result;
+
+  if (NULL==ct)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "CTABwriteIntoBinary: ct was NULL"));
+  if (znz_isnull(fp))
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "CTABwriteIntoBinary: fp was NULL"));
+
+  /* Just switch on the version we want to write. */
+  switch (ct->version)
+  {
+    case 1:
+      result = znzCTABwriteIntoBinaryV1 (ct, fp);
+      break;
+    case 2:
+      result = znzCTABwriteIntoBinaryV2 (ct, fp);
+      break;
+    default:
+      ErrorReturn(ERROR_BADPARM,
+                  (ERROR_BADPARM, "CTABwriteIntoBinary: unknown version"));
+  }
+
+  return(result);
+}
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+COLOR_TABLE *
+    znzCTABreadFromBinaryV1(znzFile fp, int nentries)
+{
+  COLOR_TABLE        *ct;
+  int                structure, len;
+  char               *name;
+  int                t;
+
+  if (nentries < 0)
+    ErrorReturn
+        (NULL,
+         (ERROR_BADPARM, "CTABreadFromBinaryV1: nentries was %d", nentries));
+
+  /* Allocate our table. */
+  ct = (COLOR_TABLE *)calloc (1, sizeof(COLOR_TABLE));
+  if (ct == NULL)
+    ErrorReturn
+        (NULL,
+         (ERROR_NO_MEMORY, "CTABreadFromBinaryV1: could not allocate table"));
+
+  /* Allocate the array of NULL CTE ptrs. */
+  ct->nentries = nentries;
+  ct->entries = (COLOR_TABLE_ENTRY**)
+      calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY*));
+  if (ct->entries == NULL)
+  {
+    CTABfree (&ct);
+    ErrorReturn(NULL, (ERROR_NO_MEMORY, "CTABreadFromBinaryV1: could not "
+        "allocate %d entries", ct->nentries));
+  }
+
+  /* We'll write the same version to binary. */
+  ct->version = 1;
+
+  /* Read the file name. Read it into a temp buffer first to avoid
+  overflow. */
+  len = znzreadInt (fp);
+  if (len < 0)
+  {
+    CTABfree (&ct);
+    ErrorReturn(NULL, (ERROR_BADFILE, "CTABreadFromBinaryV1: file name "
+        "length was %d", len));
+  }
+  name = (char*) malloc (len+1);
+  znzread (name, sizeof(char), len, fp);
+  strncpy (ct->fname, name, sizeof(ct->fname));
+  free (name);
+
+  /* For each entry, read in the info. We assume these have sequential
+  structure indices. */
+  for (structure = 0; structure < ct->nentries; structure++)
+  {
+    ct->entries[structure] = (CTE*) malloc(sizeof(CTE));
+    if (NULL == ct->entries[structure])
+    {
+      CTABfree (&ct);
+      ErrorReturn(NULL, (ERROR_NO_MEMORY, "CTABreadFromBinaryV1: could "
+          "not allocate entry for structure %d", structure));
+    }
+
+    /* Read the structure name. */
+    len = znzreadInt(fp);
+    if (len < 0)
+    {
+      CTABfree (&ct);
+      ErrorReturn(NULL, (ERROR_BADFILE, "CTABreadFromBinaryV1: structure "
+          "%d name length was %d", structure, len));
+    }
+    name = (char*) malloc (len+1);
+    znzread(name, sizeof(char), len, fp);
+    strncpy (ct->entries[structure]->name, name,
+             sizeof(ct->entries[structure]->name));
+    ct->entries[structure]->name[len] = 0 ;
+
+    ct->entries[structure]->ri = znzreadInt(fp);
+    ct->entries[structure]->gi = znzreadInt(fp);
+    ct->entries[structure]->bi = znzreadInt(fp);
+    t = znzreadInt(fp);
+    ct->entries[structure]->ai = 255-t; /* alpha = 255-trans */
+
+    /* Now calculate the float versions. */
+    ct->entries[structure]->rf =
+        (float)ct->entries[structure]->ri / 255.0;
+    ct->entries[structure]->gf =
+        (float)ct->entries[structure]->gi / 255.0;
+    ct->entries[structure]->bf =
+        (float)ct->entries[structure]->bi / 255.0;
+    ct->entries[structure]->af =
+        (float)ct->entries[structure]->ai / 255.0;
+  }
+
+  return(ct);
+}
+
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int
+    znzCTABwriteIntoBinaryV1(COLOR_TABLE *ct, znzFile fp)
+{
+  int  i;
+  int  t;
+
+  if (NULL==ct)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "CTABwriteIntoBinaryV1: ct was NULL"));
+  if (znz_isnull(fp))
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "CTABwriteIntoBinaryV1: fp was NULL"));
+
+  /* This is the old version which didn't have a version number
+  written at the beginning of the stream, so just start
+  writing. First we write the number of entries we have. */
+  znzwriteInt (ct->nentries, fp);
+
+  /* Now the length of the filename and the filename with an extra
+  character for the null terminator. */
+  znzwriteInt (strlen(ct->fname)+1, fp);
+  znzwrite (ct->fname, sizeof(char), strlen (ct->fname)+1, fp);
+
+  /* Now for each bine, if it's not null, write it to the stream. We
+  don't write the structure number as it's implicit in the
+  order. Note that this doesn't save structure indecies if there
+  are skipped entries properly, but that's a feature of v1. */
+  for (i = 0; i < ct->nentries; i++)
+  {
+    if (NULL != ct->entries[i])
+    {
+      znzwriteInt (strlen(ct->entries[i]->name)+1, fp);
+      znzwrite (ct->entries[i]->name,
+              sizeof(char), strlen (ct->entries[i]->name)+1, fp);
+      znzwriteInt (ct->entries[i]->ri, fp);
+      znzwriteInt (ct->entries[i]->gi, fp);
+      znzwriteInt (ct->entries[i]->bi, fp);
+      t = 255 - ct->entries[i]->ai; /* alpha = 255-trans */
+      znzwriteInt (t, fp);
+    }
+  }
+
+  return(NO_ERROR);
+}
+
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+COLOR_TABLE *
+    znzCTABreadFromBinaryV2(znzFile fp)
+{
+  COLOR_TABLE        *ct;
+  int                nentries, num_entries_to_read, i;
+  int                structure, len;
+  char               *name;
+  int                t;
+
+  /* Read the number of entries from the stream. Note that this is
+  really the max structure index; some of these entries could be
+  blank. */
+  nentries = znzreadInt (fp);
+  if (nentries < 0)
+    ErrorReturn
+        (NULL,
+         (ERROR_BADFILE, "CTABreadFromBinaryV2: nentries was %d", nentries));
+
+  /* Allocate our table. */
+  ct = (COLOR_TABLE *)calloc (1, sizeof(COLOR_TABLE));
+  if (ct == NULL)
+    ErrorReturn
+        (NULL,
+         (ERROR_NO_MEMORY, "CTABreadFromBinaryV2: could not allocate table"));
+
+  /* Allocate the array of NULL CTE ptrs. */
+  ct->nentries = nentries;
+  ct->entries = (COLOR_TABLE_ENTRY**)
+      calloc (ct->nentries, sizeof(COLOR_TABLE_ENTRY*));
+  if (ct->entries == NULL)
+    ErrorReturn(NULL, (ERROR_NO_MEMORY, "CTABreadFromBinaryV2: could not "
+        "allocate %d entries", ct->nentries));
+
+  /* We'll write the same version to binary. */
+  ct->version = 2;
+
+  /* Read the file name. Read it into a temp buffer first to avoid
+  overflow. */
+  len = znzreadInt (fp);
+  if (len < 0)
+    ErrorReturn(NULL, (ERROR_BADFILE, "CTABreadFromBinaryV2: file name length "
+        "was %d", len));
+  name = (char*) malloc (len+1);
+  znzread (name, sizeof(char), len, fp);
+  strncpy (ct->fname, name, sizeof(ct->fname));
+  free (name);
+
+  /* Read the number of entries to read. */
+  num_entries_to_read = znzreadInt (fp);
+
+  /* For each entry, read in the info. */
+  for (i = 0; i < num_entries_to_read; i++)
+  {
+    /* Read a structure number first. */
+    structure = znzreadInt(fp);
+    if (structure < 0)
+    {
+      CTABfree (&ct);
+      ErrorReturn(NULL, (ERROR_BADFILE, "CTABreadFromBinaryV2: read entry "
+          "index %d", structure));
+    }
+
+    /* See if we already have an entry here. */
+    if (NULL != ct->entries[structure])
+    {
+      CTABfree (&ct);
+      ErrorReturn(NULL,(ERROR_BADFILE, "CTABreadFromBinaryV2: Duplicate "
+          "structure %d", structure));
+    }
+
+    /* Create the entry */
+    ct->entries[structure] = (CTE*) malloc (sizeof(CTE));
+    if (NULL == ct->entries[structure])
+      ErrorReturn
+          (NULL, 
+           (ERROR_NO_MEMORY, 
+            "CTABreadFromBinaryV2: could not allocate entry for structure %d", 
+            structure));
+    
+    /* Read the structure name. */
+    len = znzreadInt (fp);
+    if (len < 0)
+    {
+      CTABfree (&ct);
+      ErrorReturn(NULL, (ERROR_BADFILE, "CTABreadFromBinaryV2: structure "
+          "%d name length was %d", structure, len));
+    }
+    name = (char*) malloc (len+1);
+    znzread(name, sizeof(char), len, fp);
+    strncpy (ct->entries[structure]->name, name,
+             sizeof(ct->entries[structure]->name));
+
+    /* Read in the color. */
+    ct->entries[structure]->ri = znzreadInt(fp);
+    ct->entries[structure]->gi = znzreadInt(fp);
+    ct->entries[structure]->bi = znzreadInt(fp);
+    t = znzreadInt(fp);
+    ct->entries[structure]->ai = 255-t; /* alpha = 255-trans */
+
+    /* Now calculate the float versions. */
+    ct->entries[structure]->rf =
+        (float)ct->entries[structure]->ri / 255.0;
+    ct->entries[structure]->gf =
+        (float)ct->entries[structure]->gi / 255.0;
+    ct->entries[structure]->bf =
+        (float)ct->entries[structure]->bi / 255.0;
+    ct->entries[structure]->af =
+        (float)ct->entries[structure]->ai / 255.0;
+  }
+
+  return(ct);
+}
+
+
+/*-------------------------------------------------------------------
+  ----------------------------------------------------------------*/
+int
+    znzCTABwriteIntoBinaryV2(COLOR_TABLE *ct, znzFile fp)
+{
+  int structure;
+  int i, t;
+  int num_entries_to_write;
+
+  if (NULL==ct)
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "CTABwriteIntoBinaryV2: ct was NULL"));
+  if (znz_isnull(fp))
+    ErrorReturn(ERROR_BADPARM,
+                (ERROR_BADPARM, "CTABwriteIntoBinaryV2: fp was NULL"));
+
+  /* Write our negative version number. */
+  znzwriteInt (-2, fp);
+
+  /* First we write the number of entries we have. Note that this is
+  really the max structure index; some of these entries could be
+  blank. */
+  znzwriteInt (ct->nentries, fp);
+
+  /* Now the length of the filename and the filename with an extra
+  character for the null terminator. */
+  znzwriteInt (strlen(ct->fname)+1, fp);
+  znzwrite (ct->fname, sizeof(char), strlen (ct->fname)+1, fp);
+
+  /* We have to run through our table and count our non-null
+  entries. */
+  num_entries_to_write = 0;
+  for (i = 0; i < ct->nentries; i++)
+    if (NULL != ct->entries[i])
+      num_entries_to_write++;
+  znzwriteInt (num_entries_to_write, fp);
+
+  /* Now for each bin, if it's not null, write it to the stream. */
+  for (structure = 0; structure < ct->nentries; structure++)
+  {
+    if (NULL != ct->entries[structure])
+    {
+      /* Write the structure number, then name, then color
+      info. */
+      znzwriteInt (structure, fp);
+      znzwriteInt (strlen(ct->entries[structure]->name)+1, fp);
+      znzwrite (ct->entries[structure]->name,
+              sizeof(char), strlen (ct->entries[structure]->name)+1, fp);
+      znzwriteInt (ct->entries[structure]->ri, fp);
+      znzwriteInt (ct->entries[structure]->gi, fp);
+      znzwriteInt (ct->entries[structure]->bi, fp);
+      t = 255 - ct->entries[structure]->ai; /* alpha = 255-trans */
+      znzwriteInt (t, fp);
     }
   }
 

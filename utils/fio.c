@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:36 $
- *    $Revision: 1.34 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:22:56 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -347,6 +347,281 @@ fwriteDouble(double d, FILE *fp)
 #endif
   return(fwrite(&d,sizeof(double),1,fp));
 }
+
+
+/*------ znzlib support ------------*/
+int
+znzread1(int *v, znzFile fp)
+{
+  unsigned char c;
+  int  ret ;
+
+  ret = znzread(&c,1,1,fp);
+  *v = c;
+  return(ret) ;
+}
+
+
+int
+znzread2(int *v, znzFile fp)
+{
+  short s;
+  int   ret ;
+
+  ret = znzread(&s,2,1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  s = swapShort(s) ;
+#endif
+  *v = s;
+  return(ret) ;
+}
+
+int
+znzread3(int *v, znzFile fp)
+{
+  unsigned int i = 0;
+  int  ret ;
+
+  ret = znzread(&i,3,1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  i = (unsigned int)swapInt(i) ;
+#endif
+  *v = ((i>>8) & 0xffffff);
+  return(ret) ;
+}
+
+int
+znzread4(float *v, znzFile fp)
+{
+  float f;
+  int   ret ;
+
+  ret = znzread(&f,4,1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  f = swapFloat(f) ;
+#endif
+  *v = f;
+  return(ret) ;
+}
+
+int
+znzwrite1(int v, znzFile fp)
+{
+  unsigned char c = (unsigned char)v;
+
+  return(znzwrite(&c,1,1,fp));
+}
+
+int
+znzwrite2(int v, znzFile fp)
+{
+  short s ;
+
+  if (v > 0x7fff)    /* don't let it overflow */
+    v = 0x7fff ;
+  else if (v < -0x7fff)
+    v = -0x7fff ;
+  s = (short)v;
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  s = swapShort(s) ;
+#endif
+  return(znzwrite(&s,2,1,fp));
+}
+
+int
+znzwrite3(int v, znzFile fp)
+{
+  unsigned int i = (unsigned int)(v<<8);
+
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  i = (unsigned int)swapInt(i) ;
+#endif
+  return(znzwrite(&i,3,1,fp));
+}
+
+int
+znzwrite4(int v, znzFile fp)
+{
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  v = swapInt(v) ;
+#endif
+  return(znzwrite(&v,4,1,fp));
+}
+
+int
+znzwriteShort(short s, znzFile fp)
+{
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  s = swapShort(s) ;
+#endif
+  return(znzwrite(&s, sizeof(short), 1, fp)) ;
+}
+
+double
+znzreadDouble(znzFile fp)
+{
+  double d;
+  int   ret ;
+
+  ret = znzread(&d,sizeof(double),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  d = swapDouble(d) ;
+#endif
+  if (ret != 1)
+    ErrorPrintf(ERROR_BADFILE, "znzreadDouble: znzread failed") ;
+  return(d) ;
+}
+
+int
+znzreadInt(znzFile fp)
+{
+  int  i, nread ;
+
+  nread = znzread(&i,sizeof(int),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  i = swapInt(i) ;
+#endif
+  return(i) ;
+}
+
+long long
+znzreadLong(znzFile fp)
+{
+  int  nread ;
+  long long i ;
+
+  nread = znzread(&i,sizeof(long long),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  i = swapLong64(i) ;
+#endif
+  return(i) ;
+}
+
+
+short
+znzreadShort(znzFile fp)
+{
+  int   nread ;
+  short s ;
+
+  nread = znzread(&s,sizeof(short),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  s = swapShort(s) ;
+#endif
+  if (nread != 1)
+    ErrorPrintf(ERROR_BADFILE, "znzreadShort: znzread failed") ;
+  return(s) ;
+}
+
+/*******************************************************/
+/* read routines which can be used for fread           */
+/* the usage is                                        */
+/*                                                     */
+/* while (znzread..Ex(., fp))                            */
+/*   dosomething();                                    */
+/*******************************************************/
+int znzreadFloatEx(float *pf, znzFile fp)
+{
+  int   ret ;
+  ret = znzread(pf,sizeof(float),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  *pf = swapFloat(*pf) ;
+#endif
+  return ret;
+}
+
+int znzreadDoubleEx(double *pd, znzFile fp)
+{
+  int   ret ;
+  ret = znzread(pd,sizeof(double),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  *pd = swapDouble(*pd) ;
+#endif
+  return ret;
+}
+
+int znzreadIntEx(int *pi, znzFile fp)
+{
+  int nread ;
+  nread = znzread(pi,sizeof(int),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+                       *pi = swapInt(*pi) ; /* swapInt(int i) */
+#endif
+  return(nread);
+}
+
+int znzreadShortEx(short *ps, znzFile fp)
+{
+  int   nread ;
+  nread = znzread(ps,sizeof(short),1,fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  *ps = swapShort(*ps) ;
+#endif
+  return(nread) ;
+}
+
+/******************************************************/
+int
+znzwriteInt(int v, znzFile fp)
+{
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  v = swapInt(v) ;
+#endif
+  return(znzwrite(&v,sizeof(int),1,fp));
+}
+
+int
+znzwriteLong(long long v, znzFile fp)
+{
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  v = swapLong64(v) ;
+#endif
+  return(znzwrite(&v,sizeof(long long),1,fp));
+}
+
+/*----------------------------------------*/
+float znzreadFloat(znzFile fp)
+{
+  char  buf[4];
+  float f;
+  int   ret ;
+
+  ret = znzread(buf,4,1,fp);
+  //ret = fread(&f,4,1,fp); // old way
+  if (ret != 1) ErrorPrintf(ERROR_BADFILE, "freadFloat: fread failed") ;
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  byteswapbuffloat(buf,1);
+  //f = swapFloat(f);  // old way
+#endif
+//error: dereferencing type-punned pointer will break strict-aliasing rules:
+//  f = *((float*)buf);
+  memcpy(&f,&buf,sizeof(float));
+  return(f) ;
+}
+/*----------------------------------------*/
+int znzwriteFloat(float f, znzFile fp)
+{
+  int ret;
+  char  buf[4];
+  memmove(buf,&f,4);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  byteswapbuffloat(buf,1);
+  //f = swapFloat(f);  // old way
+#endif
+  ret = znzwrite(buf,sizeof(float),1,fp);
+  //ret = fwrite(&f,sizeof(float),1,fp);  // old way
+  return(ret);
+}
+/*----------------------------------------*/
+int
+znzwriteDouble(double d, znzFile fp)
+{
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  d = swapDouble(d) ;
+#endif
+  return(znzwrite(&d,sizeof(double),1,fp));
+}
+
 
 /*------------------------------------------------------
   fio_dirname() - function to replicate the functionality

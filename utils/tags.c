@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/01/09 08:03:46 $
- *    $Revision: 1.7 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:22:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -180,4 +180,151 @@ MATRIX *TAGreadAutoAlign(FILE *fp)
   }
   return(M);
 }
+
+
+/* zlib support */
+
+int
+znzTAGskip(znzFile fp, int tag, long long len)
+{
+#if 1
+  unsigned char *buf ;
+  int ret ;
+
+  buf = (unsigned char *)calloc(len, sizeof(unsigned char)) ;
+  if (buf==NULL)
+    ErrorExit(ERROR_NOMEMORY,
+              "TAGskip: failed to calloc %u bytes!\n",len);
+  ret = znzread(buf, sizeof(unsigned char), len, fp) ;
+  free(buf) ;
+  return(ret) ;
+#else
+  return(znzseek(fp, len, SEEK_CUR)) ;  // doesn't work for gzipped files
+#endif
+}
+
+int znzTAGreadStart(znzFile fp, long long *plen)
+{
+  int  tag ;
+
+  tag = znzreadInt(fp) ;
+  if (znzeof(fp))
+    return(0) ;
+  switch (tag)
+  {
+  case TAG_OLD_MGH_XFORM:
+    *plen = (long long)znzreadInt(fp) ;  /* sorry - backwards compatibility
+                                                            with Tosa's stuff */
+    *plen = *plen -1 ; // doesn't include null
+    break ;
+  case TAG_OLD_SURF_GEOM:    // these don't take lengths at all
+  case TAG_OLD_USEREALRAS:
+  case TAG_OLD_COLORTABLE:
+    *plen = 0 ;
+    break ;
+  default:
+    *plen = znzreadLong(fp) ;
+  }
+
+  return(tag) ;
+}
+
+int
+znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len)
+{
+  long here ;
+
+  znzwriteInt(tag, fp) ;
+
+  here = znztell(fp) ;
+  *phere = (long long)here ;
+  znzwriteLong(len, fp) ;
+
+  return(NO_ERROR) ;
+}
+
+int znzTAGwrite(znzFile fp, int tag, void *buf, long long len)
+{
+  long long here ;
+
+  znzTAGwriteStart(fp, tag, &here, len) ;
+  znzwrite(buf, sizeof(char), len, fp) ;
+  znzTAGwriteEnd(fp, here) ;
+  return(NO_ERROR) ;
+}
+
+int
+znzTAGwriteEnd(znzFile fp, long long there)
+{
+  long long here ;
+
+  here = znztell(fp) ;
+#if 0
+  fseek(fp, there, SEEK_SET) ;
+  fwriteLong((long long)(here-(there+sizeof(long long))), fp) ;
+  fseek(fp, here, SEEK_SET) ;
+#endif
+
+  return(NO_ERROR) ;
+}
+
+int
+znzTAGwriteCommandLine(znzFile fp, char *cmd_line)
+{
+  long long here ;
+
+  znzTAGwriteStart(fp, TAG_CMDLINE, &here, strlen(cmd_line)+1) ;
+  znzprintf(fp, "%s", cmd_line) ;
+  znzTAGwriteEnd(fp, here) ;
+  return(NO_ERROR) ;
+}
+
+int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M)
+{
+  long long here ;
+  char buf[16*100];
+  long long len;
+
+  bzero(buf,16*100);
+  sprintf(buf,"AutoAlign %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf %10lf",
+    M->rptr[1][1],M->rptr[1][2],M->rptr[1][3],M->rptr[1][4],
+    M->rptr[2][1],M->rptr[2][2],M->rptr[2][3],M->rptr[2][4],
+    M->rptr[3][1],M->rptr[3][2],M->rptr[3][3],M->rptr[3][4],
+    M->rptr[4][1],M->rptr[4][2],M->rptr[4][3],M->rptr[4][4]);
+  len = strlen(buf);
+  znzTAGwriteStart(fp, TAG_AUTO_ALIGN, &here, len) ;
+  znzwrite(buf, sizeof(char), len, fp) ;
+
+  znzTAGwriteEnd(fp, here) ;
+  return(NO_ERROR) ;
+}
+
+MATRIX *znzTAGreadAutoAlign(znzFile fp)
+{
+  /* no fscanf equivalent in zlib!! have to hack it */
+  char buf[16*100];
+  bzero(buf,16*100);
+  
+  int cnt = 0;
+  int c = 0;
+  while ( (c = znzgetc(fp)) != '\0' )
+  {
+    buf[cnt] = c;
+    cnt++;
+  }
+  
+  MATRIX *M;
+  M = MatrixAlloc(4,4,MATRIX_REAL);
+  char ch[100];
+  sscanf(buf,"%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", ch, 
+         &(M->rptr[1][1]), &(M->rptr[1][2]), &(M->rptr[1][3]), &(M->rptr[1][4]),
+         &(M->rptr[2][1]), &(M->rptr[2][2]), &(M->rptr[2][3]), &(M->rptr[2][4]),
+         &(M->rptr[3][1]), &(M->rptr[3][2]), &(M->rptr[3][3]), &(M->rptr[3][4]),
+         &(M->rptr[4][1]), &(M->rptr[4][2]), &(M->rptr[4][3]), &(M->rptr[4][4])
+        ); 
+  
+  return(M);
+  
+}
+
 

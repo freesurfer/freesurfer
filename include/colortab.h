@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/10/20 22:07:31 $
- *    $Revision: 1.24 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:22:57 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,7 @@
 
 #include "const.h"
 #include "stdio.h"
+#include "znzlib.h"
 
 /* A color table entry. The index of the entry in the table itself is
    the structure index. */
@@ -76,6 +77,10 @@ extern int ctabDuplicates;
    code) and then binary information for each entry. */
 COLOR_TABLE *CTABreadFromBinary(FILE *fp);
 int         CTABwriteIntoBinary(COLOR_TABLE *ct, FILE *fp);
+
+/* zlib support */
+COLOR_TABLE * znzCTABreadFromBinary(znzFile fp);
+int           znzCTABwriteIntoBinary(COLOR_TABLE *ct, znzFile fp);
 
 /* Allocates an empty table. Here, all entries are allocated and
    filled with random colors. */

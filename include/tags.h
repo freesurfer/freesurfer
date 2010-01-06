@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/11/06 02:04:16 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:22:57 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,9 +27,11 @@
 
 
 #include "matrix.h"
+#include "znzlib.h"
 
 #ifndef TAGS_H
 #define TAGS_H
+
 
 #define TAG_OLD_COLORTABLE          1
 #define TAG_OLD_USEREALRAS          2
@@ -62,5 +64,15 @@ int TAGwriteCommandLine(FILE *fp, char *cmd_line) ;
 int TAGwrite(FILE *fp, int tag, void *buf, long long len) ;
 int TAGwriteAutoAlign(FILE *fp, MATRIX *M);
 MATRIX *TAGreadAutoAlign(FILE *fp);
+
+/* zlib i/o support */
+int znzTAGreadStart(znzFile fp, long long *plen) ;
+int znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len) ;
+int znzTAGwriteEnd(znzFile fp, long long there) ;
+int znzTAGskip(znzFile fp, int tag, long long len) ;
+int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) ;
+int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) ;
+int znzTAGwriteAutoAlign(znzFile fp, MATRIX *M);
+MATRIX *znzTAGreadAutoAlign(znzFile fp);
 
 #endif
