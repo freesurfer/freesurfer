@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/05 20:17:01 $
-#    $Revision: 1.453 $
+#    $Date: 2010/01/06 04:54:22 $
+#    $Revision: 1.454 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -572,12 +572,14 @@ then
    fi
    NVCC="$with_cuda/bin/nvcc"
 else
-   CUDA_CFLAGS="-I/usr/local/cuda/include"
-   CUDA_LIBS="-L/usr/local/cuda/lib -lcuda -lcudart"
-   if test -e /usr/lib64 ; then
-      CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcudart"
+   if test -e /usr/local/cuda ; then
+      CUDA_CFLAGS="-I/usr/local/cuda/include"
+      CUDA_LIBS="-L/usr/local/cuda/lib -lcuda -lcudart"
+      if test -e /usr/lib64 ; then
+         CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcudart"
+      fi
+      NVCC="/usr/local/cuda/bin/nvcc"
    fi
-   NVCC="/usr/local/cuda/bin/nvcc"
 fi
 AC_SUBST(CUDA_CFLAGS)
 AC_SUBST(CUDA_LIBS)
