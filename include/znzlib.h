@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:01 $
- *    $Revision: 1.3 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/06 22:49:06 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -129,6 +129,8 @@ extern "C"
   int znzputc(int c, znzFile file);
 
   int znzgetc(znzFile file);
+
+  int znzeof(znzFile file);
 
 #if !defined(WIN32)
   int znzprintf(znzFile stream, const char *format, ...);
