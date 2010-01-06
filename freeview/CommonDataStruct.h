@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/01/06 02:07:19 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,6 +38,7 @@ struct SettingsGeneral
   wxColour  BackgroundColor;
   wxColour  CursorColor;
   int       CursorStyle;  
+  bool      SaveCopy;
 };
 
 struct Settings2D

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/23 05:35:55 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/01/06 02:07:19 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -344,6 +344,11 @@ public:
   bool GetCursorRAS( double* ras_out );
   
   void UpdateGotoPoints();
+  
+  bool GetSaveCopy()
+  {
+    return m_settingsGeneral.SaveCopy;
+  }
   
 protected:
   void CommandLoadVolume        ( const wxArrayString& cmd );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/04 20:52:35 $
- *    $Revision: 1.86 $
+ *    $Date: 2010/01/06 02:07:19 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -390,6 +390,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
     m_settingsGeneral.BackgroundColor = wxColour( config->Read( _("/RenderWindow/BackgroundColor"), _("rgb(0,0,0)") ) );
     m_settingsGeneral.CursorColor = wxColour( config->Read( _("/RenderWindow/CursorColor"), _("rgb(255,0,0)") ) );
     m_settingsGeneral.CursorStyle = config->Read( _("/RenderWindow/CursorStyle"), Cursor2D::CS_Short );
+    config->Read( _("/Settings/SaveCopy"), &m_settingsGeneral.SaveCopy, true );
+    
     m_viewAxial   ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
     m_viewSagittal->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
     m_viewCoronal ->SetBackgroundColor( m_settingsGeneral.BackgroundColor );
@@ -524,6 +526,7 @@ void MainWindow::OnClose( wxCloseEvent &event )
     config->Write( _("/RenderWindow/CursorColor"),      m_settingsGeneral.CursorColor.GetAsString( wxC2S_CSS_SYNTAX ) );
     config->Write( _("/RenderWindow/CursorStyle"),      m_settingsGeneral.CursorStyle );
     config->Write( _("/RenderWindow/SyncZoomFactor"),   m_settings2D.SyncZoomFactor );
+    config->Write( _("/Settings/SaveCopy"),             m_settingsGeneral.SaveCopy );
     
     config->Write( _("/RenderWindow/ShowScalarBar"), 
                    ( m_nMainView >= 0 ? m_viewRender[m_nMainView]->GetShowScalarBar() : false ) );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/08 22:21:21 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/01/06 02:07:19 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -348,27 +348,6 @@ void FSSurface::SaveVertices( MRIS* mris, int nSet )
   if ( !mris || nSet >= NUM_OF_VSETS )
     return;
 
-  /*
-  int nvertices = mris->nvertices;
-  VERTEX *v;
-
-  if ( m_fVertexSets[nSet] == NULL )
-  {
-   m_fVertexSets[nSet] = new VertexItem[nvertices];
-   if ( !m_fVertexSets[nSet] )
-   {
-    cerr << "Can not allocate memory for vertex sets." << endl;
-    return;
-   }
-  }
-  for ( int vno = 0; vno < nvertices; vno++ )
-  {
-   v = &mris->vertices[vno];
-   m_fVertexSets[nSet][vno].x = v->x;
-   m_fVertexSets[nSet][vno].y = v->y;
-   m_fVertexSets[nSet][vno].z = v->z;
-  }
-  */
   SaveVertices( mris, m_fVertexSets[nSet] );
 }
 

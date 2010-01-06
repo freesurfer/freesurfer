@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/30 21:31:05 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/01/06 02:07:19 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,6 +47,7 @@ DialogPreferences::DialogPreferences( wxWindow* parent )
   m_colorPickerBackground->SetFocus();
   m_colorPickerCursor       = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
   m_choiceCursorStyle       = XRCCTRL( *this, "ID_CHOICE_CURSOR_STYLE", wxChoice );
+  m_checkSaveCopy           = XRCCTRL( *this, "ID_CHECK_SAVE_COPY", wxCheckBox );
   m_checkSyncZoomFactor     = XRCCTRL( *this, "ID_CHECK_SYNC_ZOOM", wxCheckBox );
 
   m_checkHideCursor   = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR", wxCheckBox );
@@ -68,6 +69,7 @@ void DialogPreferences::SetGeneralSettings( const SettingsGeneral& s )
   m_colorPickerBackground->SetColour( s.BackgroundColor );
   m_colorPickerCursor->SetColour( s.CursorColor );
   m_choiceCursorStyle->SetSelection( s.CursorStyle );
+  m_checkSaveCopy->SetValue( s.SaveCopy );
 }
 
 SettingsGeneral DialogPreferences::GetGeneralSettings()
@@ -76,6 +78,7 @@ SettingsGeneral DialogPreferences::GetGeneralSettings()
   s.BackgroundColor = m_colorPickerBackground->GetColour();
   s.CursorColor = m_colorPickerCursor->GetColour();
   s.CursorStyle = m_choiceCursorStyle->GetSelection();
+  s.SaveCopy    = m_checkSaveCopy->GetValue();
 
   return s;
 }

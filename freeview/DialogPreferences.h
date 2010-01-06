@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/30 21:31:05 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/01/06 02:07:19 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,6 +57,7 @@ private:
   wxColourPickerCtrl* m_colorPickerBackground;
   wxColourPickerCtrl* m_colorPickerCursor;
   wxChoice*           m_choiceCursorStyle;
+  wxCheckBox*         m_checkSaveCopy;
   wxCheckBox*         m_checkSyncZoomFactor;
 
   wxCheckBox*         m_checkHideCursor;
