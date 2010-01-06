@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 02:07:19 $
- *    $Revision: 1.87 $
+ *    $Date: 2010/01/06 22:19:51 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,6 +97,8 @@
 #define CTRL_PANEL_WIDTH 240
 
 #define ID_TOOL_GOTO_POINT_1  (wxID_HIGHEST+100)
+
+#define ID_TIMER_WRITE_MOVIE_FRAMES     1
 
 // ----------------------------------------------------------------------------
 // event tables and other macros for wxWindows
@@ -241,6 +243,9 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_CLOSE         ( MainWindow::OnClose )
   EVT_KEY_DOWN      ( MainWindow::OnKeyDown )
   EVT_ICONIZE       ( MainWindow::OnIconize )
+
+  EVT_TIMER         ( ID_TIMER_WRITE_MOVIE_FRAMES,    MainWindow::OnTimerWriteMovieFrames )
+
 END_EVENT_TABLE()
 
 // ----------------------------------------------------------------------------
@@ -370,6 +375,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   wxConfigBase* config = wxConfigBase::Get();
   m_fileHistory = new wxFileHistory( m_nMaxRecentFiles, wxID_FILE1 );
   wxMenu* fileMenu = GetMenuBar()->GetMenu( 0 )->FindItem( XRCID("ID_FILE_SUBMENU_RECENT") )->GetSubMenu();
+  m_settingsGeneral.SaveCopy = true;
   if ( config )
   {
     int x = config->Read( _T("/MainWindow/PosX"), 50L );
@@ -429,6 +435,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   SetViewLayout( m_nViewLayout );
   
   UpdateGotoPoints();
+  
+  m_timerWriteMovieFrames.SetOwner( this, ID_TIMER_WRITE_MOVIE_FRAMES );
 }
 
 // frame destructor
@@ -4317,5 +4325,10 @@ bool MainWindow::GetCursorRAS( double* ras_out )
   }
   else
     return false;
+}
+
+void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
+{
+  
 }
 

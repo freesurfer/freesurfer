@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/15 22:49:03 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/01/06 22:19:51 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -131,6 +131,17 @@ bool FSVolume::LoadMRI( const char* filename, const char* reg_filename, wxWindow
 
   if ( m_MRI->ct != NULL )
     m_ctabEmbedded = CTABdeepCopy( m_MRI->ct );
+  
+  /*
+  if ( m_MRI->AutoAlign != NULL )
+  {
+    MATRIX* M = m_MRI->AutoAlign;
+    cout << M->rptr[1][1] << " " << M->rptr[1][2] << " " << M->rptr[1][3] << " " << M->rptr[1][4] << endl
+        << M->rptr[2][1] << " " << M->rptr[2][2] << " " << M->rptr[2][3] << " " << M->rptr[2][4] << endl
+        << M->rptr[3][1] << " " << M->rptr[3][2] << " " << M->rptr[3][3] << " " << M->rptr[3][4] << endl
+        << M->rptr[4][1] << " " << M->rptr[4][2] << " " << M->rptr[4][3] << " " << M->rptr[4][4] << endl;
+  }
+  */
   
   if ( reg_filename && !m_MRIRef )
   {

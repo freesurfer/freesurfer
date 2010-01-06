@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/01/06 22:19:52 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -95,7 +95,7 @@ public:
   
   void Zoom( double dFactor );
 
-  void NeedRedraw();
+  void NeedRedraw( bool bForce = false );
 
   void ResetView();
 

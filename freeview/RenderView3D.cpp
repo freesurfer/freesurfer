@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/22 18:29:45 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/01/06 22:19:52 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -294,3 +294,7 @@ void RenderView3D::UpdateScalarBar()
     RenderView::UpdateScalarBar();
 }
 
+void RenderView3D::Azimuth( double angle )
+{
+  
+}

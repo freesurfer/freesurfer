@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 02:07:19 $
- *    $Revision: 1.56 $
+ *    $Date: 2010/01/06 22:19:52 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -30,6 +30,7 @@
 #include <wx/wx.h>
 #include <wx/frame.h>
 #include <wx/dynarray.h>
+#include <wx/timer.h>
 #include "Listener.h"
 #include "Broadcaster.h"
 #include "LayerCollectionManager.h"
@@ -217,7 +218,8 @@ public:
   void OnIconize            ( wxIconizeEvent& event );
   void OnClose              ( wxCloseEvent &event );
   void OnKeyDown            ( wxKeyEvent &event );
-
+  void OnTimerWriteMovieFrames  ( wxTimerEvent& event );
+  
   void LoadVolume();
   void NewVolume();
   void SaveVolume();
@@ -458,8 +460,10 @@ private:
 
   std::vector<wxArrayString> m_scripts;
 
-  BrushProperty* m_propertyBrush;
+  BrushProperty*  m_propertyBrush;
 
+  wxTimer         m_timerWriteMovieFrames;
+  
   DECLARE_CLASS( MainWindow )
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/01/06 22:19:52 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -368,9 +368,15 @@ wxColour RenderView::GetBackgroundColor() const
   return wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
 }
 
-void RenderView::NeedRedraw()
+void RenderView::NeedRedraw( bool bForce )
 {
-  m_nRedrawCount = 1;
+  if ( bForce )
+  {
+    m_nRedrawCount = 0;
+    Render();
+  }
+  else
+    m_nRedrawCount = 1;
 }
 
 void RenderView::OnInternalIdle()
