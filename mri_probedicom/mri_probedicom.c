@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/02 16:30:32 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/01/07 21:55:30 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.28 2009/10/02 16:30:32 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.29 2010/01/07 21:55:30 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.28 2009/10/02 16:30:32 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.29 2010/01/07 21:55:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -464,6 +464,7 @@ static void print_help(void) {
     "      institution        8 80\n"
     "      date               8 20\n"
     "      time               8 30\n"
+    "      image type         8 8\n"
     "      patient name       10 10\n"
     "      series number      20 11\n"
     "      image number       20 13\n"
@@ -914,6 +915,13 @@ int PartialDump(char *dicomfile, FILE *fp)
   e = GetElementFromFile(dicomfile, 0x18, 0x23);
   if (e != NULL) {
     fprintf(fp,"AcquisitionType %s\n",e->d.string);
+    FreeElementData(e);
+    free(e);
+  }
+
+  e = GetElementFromFile(dicomfile, 0x8, 0x8);
+  if (e != NULL) {
+    fprintf(fp,"ImageType %s\n",e->d.string);
     FreeElementData(e);
     free(e);
   }
