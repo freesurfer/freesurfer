@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/04 15:58:32 $
- *    $Revision: 1.138 $
+ *    $Author: greve $
+ *    $Date: 2010/01/07 15:49:38 $
+ *    $Revision: 1.139 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1395,26 +1395,20 @@ int TransformFileNameType(const char *fname)
   number = strchr(buf, '#') ;
   if (number)  *number = 0 ;  /* don't consider : part of extension */
 
-  if (!dot)   dot = strrchr(buf, '.') ;
+  if(!dot) dot = strrchr(buf, '.') ;
 
-  if (dot)
-  {
+  if(dot){
     dot++ ;
     StrUpper(buf) ;
-    if (!strcmp(dot, "M3D"))
-      return(MORPH_3D_TYPE) ;
-    else if (!strcmp(dot, "M3Z"))
-      return(MORPH_3D_TYPE);
-    else if (!strcmp(dot, "LTA"))
-      return(TRANSFORM_ARRAY_TYPE) ;
-    else if (!strcmp(dot, "FSLMAT"))
-      return(FSLREG_TYPE) ;
-    else if (!strcmp(dot, "DAT"))
-      return(REGISTER_DAT) ;
-    else if (!strcmp(dot, "OCT"))
-      return(TRANSFORM_ARRAY_TYPE) ;
-    else if (!strcmp(dot, "XFM"))
-      return(MNI_TRANSFORM_TYPE) ;
+    if      (!strcmp(dot, "M3D"))      return(MORPH_3D_TYPE) ;
+    else if (!strcmp(dot, "M3Z"))      return(MORPH_3D_TYPE);
+    else if (!strcmp(dot, "OCT"))      return(TRANSFORM_ARRAY_TYPE) ;
+    else if (!strcmp(dot, "XFM"))      return(MNI_TRANSFORM_TYPE) ;
+    else if (!strcmp(dot, "FSLMAT"))   return(FSLREG_TYPE) ;
+    else if (!strcmp(dot, "LTA"))      return(TRANSFORM_ARRAY_TYPE) ;
+    else if (!strcmp(dot, "DAT"))      return(REGISTER_DAT) ;
+    else if (!strcmp(dot, "REG"))      return(REGISTER_DAT) ;
+    else                               return(REGISTER_DAT) ;
   }
 
   return(file_type) ;
