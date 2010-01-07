@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 22:19:51 $
- *    $Revision: 1.48 $
+ *    $Date: 2010/01/07 23:33:04 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -188,7 +188,8 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type )
     delete m_volumeSource;
 
   m_volumeSource = new FSVolume( mri->m_volumeSource );
-  m_volumeSource->Create( mri->m_volumeSource, bCopyVoxelData, data_type );
+  if ( !m_volumeSource->Create( mri->m_volumeSource, bCopyVoxelData, data_type ) )
+    return false;
 
   m_bResampleToRAS = mri->m_bResampleToRAS;
   m_bReorient = mri->m_bReorient;
@@ -244,7 +245,8 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
     }
   }
   */
-  m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
+  if ( !m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient ) )
+    return false;
   
   // now first save a copy of the old file if required
   if ( MainWindow::GetMainWindowPointer()->GetSaveCopy() )
@@ -267,7 +269,10 @@ bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
   m_bResampleToRAS = false;
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   if ( IsModified() )
-    m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event );
+  {
+    if ( !m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event ) )
+      return false;
+  }
   else
   {
     if ( !m_volumeSource->Restore( m_sFilename.c_str(), 

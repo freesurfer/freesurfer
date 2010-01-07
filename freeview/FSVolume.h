@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/01/07 23:33:04 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@ public:
   FSVolume( FSVolume* ref );
   virtual ~FSVolume();
 
-  void Create( FSVolume* src, bool bCopyVoxelData, int data_type );
+  bool Create( FSVolume* src, bool bCopyVoxelData, int data_type );
 
   bool MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool MRIWrite( const char* filename, bool bSaveToOriginal = true );
@@ -63,7 +63,7 @@ public:
   
   double GetVoxelValue( int i, int j, int k, int frame );
   
-  void UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxCommandEvent& event, 
+  bool UpdateMRIFromImage( vtkImageData* rasImage, wxWindow* wnd, wxCommandEvent& event, 
                            bool resampleToOriginal = true );
 
   vtkImageData* GetImageOutput();
@@ -171,11 +171,11 @@ public:
 protected:
   bool LoadMRI( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool LoadRegistrationMatrix( const char* filename );
-  void MapMRIToImage( wxWindow* wnd, wxCommandEvent& event );
+  bool MapMRIToImage( wxWindow* wnd, wxCommandEvent& event );
   void CopyMRIDataToImage( MRI* mri, vtkImageData* image, wxWindow* wnd, wxCommandEvent& event );
   void CopyMatricesFromMRI();
-  void CreateImage( MRI* mri, wxWindow* wnd, wxCommandEvent& event );
-  void ResizeRotatedImage( MRI* mri, MRI* refTarget, vtkImageData* refImageData, double* rasPoint,
+  bool CreateImage( MRI* mri, wxWindow* wnd, wxCommandEvent& event );
+  bool ResizeRotatedImage( MRI* mri, MRI* refTarget, vtkImageData* refImageData, double* rasPoint,
                     wxWindow* wnd, wxCommandEvent& event );
   void UpdateRASToRASMatrix();
   MRI* CreateTargetMRI( MRI* src, MRI* refTarget, bool AllocatePixel = true );

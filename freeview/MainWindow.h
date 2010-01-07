@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 22:19:52 $
- *    $Revision: 1.57 $
+ *    $Date: 2010/01/07 23:33:05 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -99,7 +99,9 @@ public:
   void OnFileLoadDTI          ( wxCommandEvent& event );
   void OnFileLoadPVolumes     ( wxCommandEvent& event );
   void OnFileSaveScreenshot   ( wxCommandEvent& event );
-  void OnFileSaveScreenshotUpdateUI( wxUpdateUIEvent& event );
+  void OnFileSaveScreenshotUpdateUI   ( wxUpdateUIEvent& event );
+  void OnFileSaveMovieFrames  ( wxCommandEvent& event );
+  void OnFileSaveMovieFramesUpdateUI  ( wxUpdateUIEvent& event );
   void OnFileLoadSurface      ( wxCommandEvent& event );
 
   void OnFileNewWayPoints     ( wxCommandEvent& event );
@@ -352,6 +354,10 @@ public:
     return m_settingsGeneral.SaveCopy;
   }
   
+  void StartWriteMovieFrames();
+  
+  void StopWriteMovieFrames();
+  
 protected:
   void CommandLoadVolume        ( const wxArrayString& cmd );
   void CommandLoadDTI           ( const wxArrayString& cmd );
@@ -441,6 +447,7 @@ private:
   SettingsGeneral     m_settingsGeneral;
   Settings2D          m_settings2D;
   SettingsScreenshot  m_settingsScreenshot;
+  SettingsMovieFrames m_settingsMovieFrames;
 
   wxString        m_strLastDir;
   wxFileHistory*  m_fileHistory;

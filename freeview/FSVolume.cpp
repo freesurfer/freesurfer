@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 22:19:51 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/01/07 23:33:04 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -168,7 +168,8 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
   {  
     
     this->CopyMatricesFromMRI();
-    this->MapMRIToImage( wnd, event );
+    if ( !this->MapMRIToImage( wnd, event ) )
+      return false;
   
     if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
     {
@@ -298,7 +299,7 @@ bool FSVolume::LoadRegistrationMatrix( const char* filename )
   return true;
 }
 
-void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
+bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
 {
   if ( m_MRI )
     ::MRIfree( &m_MRI );
@@ -340,15 +341,15 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
                             src_vol->m_MRI->height, 
                             src_vol->m_MRI->depth,
                             data_type, 1 );
+  if ( NULL == m_MRI )
+  {
+    cerr << "Could not allocate new mri volume." << endl;
+    return false;
+  }  
+  
   if ( bCopyVoxelData )
   {
     MRIcopy( src_vol->m_MRI, m_MRI );
-  }
-  
-  if ( NULL == m_MRI )
-  {
-    cerr << "Couldn't allocate new mri." << endl;
-    return;
   }
 
   SetMRITarget( src_vol->m_MRITarget );
@@ -399,7 +400,6 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
       break;
     case MRI_SHORT:
       m_imageData->SetScalarTypeToShort();
-      ;
       break;
     default:
       break;
@@ -418,6 +418,7 @@ void FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
 	       m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
     }
   }
+  return true;
 }
 
 void FSVolume::SetMRI( MRI*& mri_out, MRI* mri_in )
@@ -554,7 +555,7 @@ bool FSVolume::MRIWrite()
   return err == 0;
 }
 
-void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, 
+bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, 
 				   wxWindow* wnd, 
            wxCommandEvent& event,
            bool resampleToOriginal )
@@ -567,11 +568,18 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
     *MATRIX_RELT((vox2vox),(i/4)+1,(i%4)+1) = m_VoxelToVoxelMatrix[i];
   }
 
+  // create a target volume
   MRI* mri = MRIallocSequence( m_MRITarget->width, 
 			       m_MRITarget->height, 
 			       m_MRITarget->depth, 
 			       m_MRITarget->type, 
 			       m_MRI->nframes );
+  if ( mri == NULL )
+  {
+    cout << "Can not allocate mri volume for buffering." << endl;
+    return false;
+  }
+  
   MRIcopyHeader( m_MRITarget, mri );
 
   if ( mri->nframes > 1 )
@@ -625,6 +633,12 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
                                 m_MRI->depth, 
                                 m_MRI->type,
                                 m_MRI->nframes );
+    if ( m_MRITemp == NULL )
+    {
+      cout << "Can not allocate mri volume for buffering." << endl;
+      MRIfree( &mri );
+      return false;
+    }
     MRIcopyHeader( m_MRI, m_MRITemp );
     MRIvol2Vol( mri, m_MRITemp, vox2vox, m_nInterpolationMethod, 0 );
     MRIfree( &mri );
@@ -636,6 +650,7 @@ void FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
 
   MatrixFree( &vox2vox );
   MRIvalRange( m_MRITemp, &m_fMinValue, &m_fMaxValue );
+  return true;
 }
 
 double FSVolume::GetVoxelValue( int i, int j, int k, int frame )
@@ -759,6 +774,10 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
     mri = MRIallocSequence( dim[0], dim[1], dim[2], src->type, src->nframes );
   else
     mri = MRIallocHeader( dim[0], dim[1], dim[2], src->type );
+  
+  if ( mri == NULL )
+    return NULL;
+  
   MRIcopyHeader( refTarget, mri );
   MRIsetResolution( mri, src->xsize, src->ysize, src->zsize );
   Real p0[3];
@@ -772,7 +791,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
   return mri;
 }
 
-void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
+bool FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 {
   event.SetInt( event.GetInt() + 1 );
   wxPostEvent( wnd, event );
@@ -794,6 +813,12 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 			       mri->depth, 
 			       m_MRI->type, 
 			       m_MRI->nframes );
+    if ( rasMRI == NULL )
+    {
+      cerr << "Can not allocate memory for volume transformation" << endl;
+      MatrixFree( &m );
+      return false;
+    }
     MRIcopyHeader( mri, rasMRI );
   }
   else if ( m_bResampleToRAS )
@@ -806,8 +831,9 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 			       m_MRI->type, m_MRI->nframes );
     if ( rasMRI == NULL )
     {
-      cerr << "Can not allocate memory for rasMRI" << endl;
-      return;
+      cerr << "Can not allocate memory for volume transformation" << endl;
+      MatrixFree( &m );
+      return false;
     }
     MRIsetResolution( rasMRI, voxelSize[0], voxelSize[1], voxelSize[2] );
 
@@ -891,8 +917,9 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
 				 m_MRI->type, m_MRI->nframes );
       if ( rasMRI == NULL )
       {
-        cerr << "Can not allocate memory for rasMRI" << endl;
-        return;
+        cerr << "Can not allocate memory for volume transformation" << endl;
+        MatrixFree( &m );
+        return false;
       }
       MRIsetResolution( rasMRI, voxelSize[0], voxelSize[1], voxelSize[2] );
 
@@ -912,8 +939,9 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
       rasMRI = CreateTargetMRI( m_MRI, m_volumeRef->m_MRITarget );
       if ( rasMRI == NULL )
       {
-        cerr << "Can not allocate memory for rasMRI" << endl;
-        return;
+        cerr << "Can not allocate memory for volume transformation" << endl;
+        MatrixFree( &m );
+        return false;
       }
     }
   }
@@ -973,8 +1001,8 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
   SetMRITarget( rasMRI );
   UpdateRASToRASMatrix();
 
-
-  CreateImage( rasMRI, wnd, event );
+  if ( !CreateImage( rasMRI, wnd, event ) )
+    return false;
 
   // copy mri pixel data to vtkImage we will use for display
   CopyMRIDataToImage( rasMRI, m_imageData, wnd, event );
@@ -983,6 +1011,8 @@ void FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
   m_bBoundsCacheDirty = true;
 
   ::MRIfree( &rasMRI );
+  
+  return true;
 }
 
 void FSVolume::UpdateRASToRASMatrix()
@@ -1010,7 +1040,7 @@ void FSVolume::UpdateRASToRASMatrix()
   MatrixFree( &mTarg );
 }
 
-void FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
+bool FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
 {
   // first copy mri data to image
   vtkDataArray *scalars = NULL;
@@ -1025,7 +1055,7 @@ void FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
   if ( m_MRI == NULL )
   {
     cerr << "No MRI is present." << endl;
-    return;
+    return false;
   }
 
   int zX = rasMRI->width;
@@ -1119,8 +1149,8 @@ void FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
 
   if ( NULL == scalars )
   {
-    cerr << "Couldn't allocate scalars array." << endl;
-    return;
+    cerr << "Could not allocate scalars array." << endl;
+    return false;
   }
 
   // change the number of components to store tuples
@@ -1130,7 +1160,11 @@ void FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
   }
 
   cValues = zX * zY * zZ;
-  scalars->Allocate( cValues );
+  if ( !scalars->Allocate( cValues ) )
+  {
+    cerr << "Could not allocate scalars array." << endl;
+    return false;
+  }
   scalars->SetNumberOfTuples( zX*zY*zZ );
 
   // Assign the scalars array to the image.
@@ -1142,10 +1176,11 @@ void FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
     event.SetInt( event.GetInt() + ( 100 - event.GetInt() ) / 10 );
     wxPostEvent( wnd, event );
   }
+  return true;
 }
 
 
-void FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* refImageData,
+bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* refImageData,
                                    double* rasPoint,
                                    wxWindow* wnd, wxCommandEvent& event )
 {
@@ -1162,7 +1197,7 @@ void FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   if ( m_MRI == NULL )
   {
     cerr << "No MRI is present." << endl;
-    return;
+    return false;
   }
 
   int zX = rasMRI->width;
@@ -1275,8 +1310,8 @@ void FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
 
   if ( NULL == scalars )
   {
-    cerr << "Couldn't allocate scalars array." << endl;
-    return;
+    cerr << "Could not allocate scalars array." << endl;
+    return false;
   }
 
   // change the number of components to store tuples
@@ -1298,6 +1333,7 @@ void FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
     event.SetInt( event.GetInt() + ( 100 - event.GetInt() ) / 10 );
     wxPostEvent( wnd, event );
   }
+  return true;
 }
 
 bool FSVolume::Rotate( std::vector<RotationElement>& rotations, 
@@ -1328,6 +1364,11 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
                                m_MRIOrigTarget->depth,
                                m_MRI->type,
                                m_MRI->nframes );
+    if ( rasMRI == NULL )
+    {
+      cout << "Can not allocate memory for volume transformation." << endl;
+      return false;
+    }
     MRIcopyHeader( m_MRIOrigTarget, rasMRI );
   }
   else    // rotate
@@ -1414,11 +1455,17 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   }
   MatrixFree( &vox2vox );
   
+  bool bUpdateImage;
   if ( rotations[0].Plane == -1 )
-    CreateImage( rasMRI, wnd, event );
+    bUpdateImage = CreateImage( rasMRI, wnd, event );
   else
     // copy mri pixel data to vtkImage we will use for display
-    ResizeRotatedImage( rasMRI, m_MRITarget, m_imageData, rotations[0].Point, wnd, event ); 
+    bUpdateImage = ResizeRotatedImage( rasMRI, m_MRITarget, m_imageData, rotations[0].Point, wnd, event ); 
+  
+  if ( !bUpdateImage )
+  {
+    return false;
+  }
 
   CopyMRIDataToImage( rasMRI, m_imageData, wnd, event );
   

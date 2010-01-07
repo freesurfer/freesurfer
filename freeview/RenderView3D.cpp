@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 22:19:52 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/01/07 23:33:05 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -296,5 +296,7 @@ void RenderView3D::UpdateScalarBar()
 
 void RenderView3D::Azimuth( double angle )
 {
-  
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->Azimuth( angle );
+  NeedRedraw();
 }

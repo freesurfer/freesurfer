@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 22:19:51 $
- *    $Revision: 1.88 $
+ *    $Date: 2010/01/07 23:33:05 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -134,6 +134,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_WAYPOINTS_AS" ), MainWindow::OnFileSaveWayPointsAsUpdateUI )
   EVT_MENU        ( XRCID( "ID_FILE_SCREENSHOT" ),        MainWindow::OnFileSaveScreenshot )
   EVT_UPDATE_UI   ( XRCID( "ID_FILE_SCREENSHOT" ),        MainWindow::OnFileSaveScreenshotUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_MOVIE_FRAMES" ), MainWindow::OnFileSaveMovieFrames )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_MOVIE_FRAMES" ), MainWindow::OnFileSaveMovieFramesUpdateUI )
   EVT_MENU        ( XRCID( "ID_FILE_LOAD_SURFACE" ),      MainWindow::OnFileLoadSurface )
   EVT_MENU        ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigate )
   EVT_UPDATE_UI   ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigateUpdateUI )
@@ -376,6 +378,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_fileHistory = new wxFileHistory( m_nMaxRecentFiles, wxID_FILE1 );
   wxMenu* fileMenu = GetMenuBar()->GetMenu( 0 )->FindItem( XRCID("ID_FILE_SUBMENU_RECENT") )->GetSubMenu();
   m_settingsGeneral.SaveCopy = true;
+  m_settingsMovieFrames.AngleStep = 1.0;
+  m_settingsMovieFrames.OutputExtension = _("png");
   if ( config )
   {
     int x = config->Read( _T("/MainWindow/PosX"), 50L );
@@ -583,7 +587,14 @@ void MainWindow::NewVolume()
 
   // finally we are about to create new volume.
   LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
-  layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType() );
+  if ( !layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType() ) )
+  {
+    wxMessageDialog dlg( this, _("Can not create new volume."), 
+                         _("Error"), wxOK );
+    dlg.ShowModal();
+    delete layer_new;
+    return;
+  }
   layer_new->SetName( dlg.GetVolumeName().char_str() );
   col_mri->AddLayer( layer_new );
 
@@ -4327,8 +4338,46 @@ bool MainWindow::GetCursorRAS( double* ras_out )
     return false;
 }
 
-void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
+void MainWindow::OnFileSaveMovieFrames( wxCommandEvent& event )
 {
-  
+  StartWriteMovieFrames();
 }
 
+void MainWindow::OnFileSaveMovieFramesUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() ); 
+}
+
+void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
+{
+  double angle_step = m_settingsMovieFrames.AngleStep;
+  wxString fn;
+  fn.Printf( "/tmp/frames/frame%03d.png", m_settingsMovieFrames.StepCount );
+  m_view3D->SaveScreenshot( fn, 
+                            m_settingsScreenshot.Magnification,
+                            m_settingsScreenshot.AntiAliasing );
+  m_view3D->Azimuth( angle_step );
+  NeedRedraw( true );
+  m_settingsMovieFrames.StepCount ++;
+  double angle = m_settingsMovieFrames.StepCount * angle_step;
+  m_statusBar->m_gaugeBar->SetValue( (int)(100*angle/360) );
+  if ( angle > 360 )
+  {
+    StopWriteMovieFrames();
+  }
+}
+
+void MainWindow::StartWriteMovieFrames()
+{
+  mkdir( "/tmp/frames", S_IREAD | S_IWRITE );
+  m_timerWriteMovieFrames.Start( 1000 ); 
+  m_statusBar->m_gaugeBar->Show();
+  m_statusBar->m_gaugeBar->SetValue( 0 );
+}
+
+void MainWindow::StopWriteMovieFrames()
+{
+  m_timerWriteMovieFrames.Stop();
+  m_settingsMovieFrames.StepCount = 0;
+  m_statusBar->m_gaugeBar->Hide();
+}
