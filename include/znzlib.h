@@ -1,30 +1,20 @@
 /**
  * @file  znzlib.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief zipped or non-zipped library
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * This library provides an interface to both compressed (gzip/zlib) 
+ * and uncompressed (normal) file IO.  The functions are written to 
+ * have the same interface as the standard file IO functions.        
+ *
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Mark Jenkinson, FMRIB Centre, University of Oxford
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/06 22:49:06 $
- *    $Revision: 1.4 $
- *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
- *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *    $Author: nicks $
+ *    $Date: 2010/01/07 19:11:05 $
+ *    $Revision: 1.5 $
  *
  */
-
 
 #ifndef _ZNZLIB_H_
 #define _ZNZLIB_H_
@@ -77,6 +67,11 @@ extern "C"
 #include <stdarg.h>
 
   //#include "config.h"
+
+#ifdef Darwin
+#define __MACTYPES__
+#define Byte unsigned char
+#endif
 
 #ifdef HAVE_ZLIB
 #include "zlib.h"

@@ -1,17 +1,16 @@
 /**
  * @file  matfile.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Matlab file interface
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:36 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2010/01/07 19:11:05 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -28,10 +27,6 @@
 
 #ifndef MATFILE_H
 #define MATFILE_H
-
-#ifdef Darwin
-typedef unsigned char  Byte;
-#endif
 
 #include "znzlib.h"
 #include "matrix.h"
