@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/06 21:23:39 $
- *    $Revision: 1.89 $
+ *    $Author: greve $
+ *    $Date: 2010/01/07 15:50:17 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -211,7 +211,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.89 2010/01/06 21:23:39 fischl Exp $";
+"$Id: mri_segreg.c,v 1.90 2010/01/07 15:50:17 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -351,13 +351,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.89 2010/01/06 21:23:39 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.90 2010/01/07 15:50:17 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.89 2010/01/06 21:23:39 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.90 2010/01/07 15:50:17 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -823,10 +823,9 @@ int main(int argc, char **argv) {
   
   if(outregfile){
     int type = TransformFileNameType(outregfile);
-    printf("Writing optimal reg to %s \n",outregfile);
+    printf("Writing optimal reg to %s, type = %d \n",outregfile,type);
     fflush(stdout);
-    if (type == TRANSFORM_ARRAY_TYPE)
-    {
+    if (type == TRANSFORM_ARRAY_TYPE) {
       LTA *lta = LTAalloc(1, NULL) ;
       LT  *lt;
       
@@ -1772,8 +1771,8 @@ int MRISbbrSurfs(char *subject)
 
   if(UseLH){
     // Load the LH white surface, project it into WM and Ctx
-    printf("Loading lh.white surf\n");
-    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+    printf("Loading lh.%s surf\n",surfname);
+    sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,surfname);
     lhwm = MRISread(tmpstr); // starts as white, projected in
     if(lhwm == NULL) exit(1);
     lhctx = MRISread(tmpstr); // starts as white, projected out
@@ -1840,8 +1839,8 @@ int MRISbbrSurfs(char *subject)
   printf("Projecting RH Surfs\n");
   if(UseRH){
     // Load the RH white surface, project it into WM and Ctx
-    printf("Loading rh.white surf\n");
-    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+    printf("Loading rh.%s surf\n",surfname);
+    sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,surfname);
     rhwm = MRISread(tmpstr);
     if(rhwm == NULL) exit(1);
     rhctx = MRISread(tmpstr);
