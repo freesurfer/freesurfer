@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/22 21:41:49 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/01/08 21:06:43 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -311,7 +311,6 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
   }
   char** mask = MyUtils::AllocateMatrix<char>( ny, nx );
   int i, j;
-  int nTolerance = m_propertyBrush->GetBrushTolerance();
   double* draw_range = m_propertyBrush->GetDrawRange();
   double* exclude_range = m_propertyBrush->GetExcludeRange();
   LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
@@ -324,6 +323,9 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
   }
   int nActiveComp = this->GetActiveFrame();
   float fVoxelValue = ref->GetScalarComponentAsFloat( n[0], n[1], n[2], 0 );
+  double fRange[2];
+  ref->GetScalarRange( fRange );
+  double fTolerance = (fRange[1]-fRange[0]) * m_propertyBrush->GetBrushTolerance() / 100.0;   // tolerance is percentage
   switch ( nPlane )
   {
   case 0:
@@ -333,7 +335,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
       {
         for ( j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= nTolerance
+          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -345,7 +347,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
         for ( j = 0; j < ny; j++ )
         {
           mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveComp ) <= 0  &&
-                         fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= nTolerance
+              fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -358,7 +360,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
       {
         for ( int j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= nTolerance
+          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -370,7 +372,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
         for ( int j = 0; j < ny; j++ )
         {
           mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveComp ) <= 0  &&
-                         fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= nTolerance
+              fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -383,7 +385,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
       {
         for ( j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= nTolerance
+          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -395,7 +397,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
         for ( j = 0; j < ny; j++ )
         {
           mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveComp ) <= 0  &&
-                         fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= nTolerance
+              fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
