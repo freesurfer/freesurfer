@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/07 23:33:05 $
- *    $Revision: 1.89 $
+ *    $Date: 2010/01/08 18:10:08 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -4345,7 +4345,8 @@ void MainWindow::OnFileSaveMovieFrames( wxCommandEvent& event )
 
 void MainWindow::OnFileSaveMovieFramesUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() ); 
+  event.Enable( !m_bProcessing && 
+      ( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() ) ); 
 }
 
 void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
@@ -4369,10 +4370,11 @@ void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
 
 void MainWindow::StartWriteMovieFrames()
 {
-  mkdir( "/tmp/frames", S_IREAD | S_IWRITE );
-  m_timerWriteMovieFrames.Start( 1000 ); 
+  system( "mkdir /tmp/frames" );
   m_statusBar->m_gaugeBar->Show();
+  m_settingsMovieFrames.StepCount = 0;
   m_statusBar->m_gaugeBar->SetValue( 0 );
+  m_timerWriteMovieFrames.Start( 1000 ); 
 }
 
 void MainWindow::StopWriteMovieFrames()
