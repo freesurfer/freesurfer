@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.16 2009/10/26 18:08:52 krish Exp $
+# $Id: aparcstats2table,v 1.17 2010/01/08 20:08:23 krish Exp $
 
 # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
 measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'meancurv':6 }
@@ -79,7 +79,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.16 2009/10/26 18:08:52 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.17 2010/01/08 20:08:23 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -151,13 +151,17 @@ def roi_setops(table, subjects):
     One which is the union of all ROIs of all subjects
     And another which is a list of ROIs only common to all subjects
     """
-    all_parcs = Set([])
+    _all_parcs = []
     for subject in subjects:
-        all_parcs = all_parcs | Set(table[subject].keys())
+        _all_parcs.append( table[subject].keys())
+    # we have a list of lists. Flatten it. 
+    temp_parcs = [item for sublist in _all_parcs for item in sublist]
+    all_parcs = fsutils.unique_union(temp_parcs)
     
-    common_parcs = Set(table[subjects[0]].keys())
+    common_parcs = table[subjects[0]].keys()
     for subject in subjects[1:]:
-        common_parcs = common_parcs & Set(table[subject].keys())
+        common_parcs = fsutils.intersect_order(common_parcs, table[subject].keys())
+    
     return (all_parcs, common_parcs) 
 
 def build_table(options):
@@ -170,7 +174,7 @@ def build_table(options):
     subjdir = fsutils.check_subjdirs()
     
     # init the table
-    table = fsutils.Ddict(fsutils.odict)
+    table = fsutils.Ddict(fsutils.StableDict)
 
     o = options
     if o.verboseflag: print '\nParsing individual stats files\n' + '-'*40 
@@ -211,7 +215,7 @@ def build_table(options):
         # table['bert']['putamen'] doesn't exist. We
         # should make it 0 somehow. Thus we get a nice grid which we can output.
         
-        new_table = fsutils.Ddict(fsutils.odict)
+        new_table = fsutils.Ddict(fsutils.StableDict)
         for subject in o.subjects:
             for parc in all_parcs:
                 if not parc in table[subject]:
@@ -226,7 +230,7 @@ def build_table(options):
         # Note that for union, we init'ed with an empty set.
         # Here we init the intersection with the ROIs for the first subject 
 
-        new_table = fsutils.Ddict(fsutils.odict)
+        new_table = fsutils.Ddict(fsutils.StableDict)
         for subject in o.subjects:
             for parc in common_parcs:
                 new_table[subject][parc] = table[subject][parc]

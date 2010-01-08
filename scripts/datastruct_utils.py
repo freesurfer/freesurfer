@@ -1,7 +1,9 @@
 # Original author - Krish Subramaniam
-# $Id: datastruct_utils.py,v 1.4 2009/08/11 03:14:28 krish Exp $
+# $Id: datastruct_utils.py,v 1.5 2010/01/08 20:08:23 krish Exp $
+from __future__ import generators
 
-__all__ = ['Ddict', 'TableWriter', 'odict']
+__all__ = ['Ddict', 'TableWriter', 'StableDict', 'unique_union',
+           'intersect_order']
 
 class Ddict(dict):
     """
@@ -80,166 +82,261 @@ class TableWriter:
             fp.write('\n')
         fp.close()    
         
-class odict(dict):
-    """An ordered dict (odict). This is a dict which maintains an order to its items; the order is rather like that of a list, in that new items are, by default, added to the end, but items can be rearranged. Note that updating an item (setting a value where the key is already in the dict) is not considered to create a new item, and does not affect the position of that key in the order. However, if an item is deleted, then a new item with the same key is added, this is considered a new item.
-    
-    This order is visible in two ways. Firstly, whenever an implicit order of the items in the dict is exposed, for example when it is iterated over, or when it is stringified, the proper order is used. Secondly, the member variable 'order' is a list of all the keys in the dict, in order; this is a magic list, which presents a 'live' view of the odict, and which can be modified only in certain ways: items can be deleted, in which case they are removed from the underlying odict, and they can be rearranged using the sort, reverse, move and swap methods (the latter two being unique to this class), but new items cannot be added in any way.
 
-(c) 2005 Tom Anderson <twic@urchin.earth.li> - all rights reserved
+# stabledict.py,v 1.13 2007/08/28 07:53:44 martin Exp
+# This module has been tested with CPython 2.2.3, 2.3.5, 2.4.4, 2.5 and  2.5.1.
+# It won't compile on Python 2.1.X or lower because of missing features.
+# It won't work with Python 3.X because of the changed dict protocol. (PEP3106)
+# From package StableDict, PSF licensed by Martin Kammerhofer
+# http://pypi.python.org/pypi/StableDict/0.2
+
+"""
+A dictionary class remembering insertion order.
+
+Order (i.e. the sequence) of insertions is remembered (internally
+stored in a hidden list attribute) and replayed when iterating. A
+StableDict does NOT sort or organize the keys in any other way.
+"""
+
+from warnings import warn as _warn
+
+# Helper metaclass-function.  Not exported by default but accessible
+# as StableDict.__metaclass__.
+def copy_baseclass_docs(classname, bases, dict, metaclass=type):
+    """Copy docstrings from baseclass.
+
+    When overriding methods in a derived class the docstrings can
+    frequently be copied from the base class unmodified.  According to
+    the DRY principle (Don't Repeat Yourself) this should be
+    automated. Putting a reference to this function into the
+    __metaclass__ slot of a derived class will automatically copy
+    docstrings from the base classes for all doc-less members of the
+    derived class.
     """
-    def __init__(self, items=None):
-        dict.__init__(self)
-        self._order = []
-        self.order = _orderproxy(self)
-        if (items != None):
-            self.update(items)
-    def __setitem__(self, k, v):
-        if (not k in self):
-            self._order.append(k)
-        dict.__setitem__(self, k, v)
-    def __delitem__(self, k):
-        dict.__delitem__(self, k)
-        self._order.remove(k)
-    def update(self, items):
-        if (not isinstance(items, dict)):
-            items = dict(items) # thus handles both dicts and sequences of pairs
-        for k in items:
-            self[k] = items[k]
-    def pop(self, k, d=None):
-        self._order.remove(k)
-        return dict.pop(self, d)
-    def popitem(self, i=-1):
-        "Pops the item at index i in the order, defaulting to the last."
-        if (len(self) == 0):
-            raise KeyError, "odict is empty"
-        k = self._order.pop(i)
-        v = dict.pop(self, k)
-        return v
-    def clear(self):
-        dict.clear(self)
-        self._order[:] = []
-    def __iter__(self):
-        return self.iterkeys()
-    def keys(self):
-        return list(self._order)
-    def iterkeys(self):
-        return iter(self._order)
-    def values(self):
-        return [self[k] for k in self._order]
-    def itervalues(self):
-        for k in self.iterkeys():
-            yield self[k]
-    def items(self):
-        return [(k, self[k]) for k in self._order]
-    def iteritems(self):
-        for k in self.iterkeys():
-            yield (k, self[k])
-    # the minimal set of comparison methods seems to be eq, ne and cmp; not sure why
-    def __eq__(self, other):
-        if (len(self) != len(other)):
-            return False
-        return icmp(self.iteritems(), other.iteritems()) == 0
-    def __ne__(self, other):
-        return not self == other
-    def __cmp__(self, other):
-        "If other is an odict, compares the two as if comparing their items lists. If not, compares their types."
-        if (isinstance(other, odict)):
-            return icmp(self.iteritems(), other.iteritems())
-        else:
-            return cmp(type(self), type(other)) # i think this is the right thing to do ...
-    def __repr__(self):
-        return "odict.odict(" + str(self) + ")"
-    def __str__(self):
-        ret = None
-        for k in self._order:
-            ret = ", ".join(repr(k) + ": " + repr(self[k]))
-        return "{" + ret + "}"
+    for (name, member) in dict.iteritems():
+        if getattr(member, "__doc__", None):
+            continue
+        for base in bases: # look only in direct ancestors
+            basemember = getattr(base, name, None)
+            if not basemember:
+                continue
+            basememberdoc = getattr(basemember, "__doc__", None)
+            if basememberdoc:
+                member.__doc__ = basememberdoc
+    return metaclass(classname, bases, dict)
 
-class _orderproxy(list): # should this be a subclass of list, or object?
-    def __init__(self, od):
-        self.od = od
-    def __getitem__(self, i):
-        return self.od._order[i]
-    def __getslice__(self, i, j):
-        return self.od._order[i:j]
-    def __setitem__(self, i, x):
-        raise NotImplementedError, "assignment to an order list is not possible"
-    def __setslice__(self, i, j, xs):
-        raise NotImplementedError, "slice assignment to an order list is not possible"
-    def insert(self, i, x):
-        raise NotImplementedError, "insertion into an order list is not possible (yes that is a word!)"
-    def append(self, x):
-        raise NotImplementedError, "appension to an order list is not possible (yes that is a word!)"
-    def extend(self, xs):
-        raise NotImplementedError, "extension of an order list is not possible"
-    def __iadd__(self, other):
-        raise NotImplementedError, "in-place addition to an order list is not possible"
-    def __imul__(self, other):
-        raise NotImplementedError, "in-place multiplication of an order list is not possible"
-    def __delitem__(self, i):
-        del self.od[self.od._order[i]]
-    def __delslice__(self, i, j):
-        for x in self.od._order[i:j]: # we rely on slices being copies here
-            del self.od[x]
-    def pop(self, i=-1):
-        k = self.od._order[i]
-        del self.od[k] # incurs an unnecessary list.remove
-        return k
-    def remove(self, v):
-        del self.od[v]
-    def move(self, i, j):
-        "Moves an item from index i to index j; morally equivalent to self.insert(j, self.pop(i))."
-        self.od._order.insert(j, self.od._order.pop(i))
-    def swap(self, i, j):
-        "Swaps the items at indices i and j."
-        t = self.od._order[j]
-        self.od._order[j] = self.od._order[i]
-        self.od._order[i] = t
-    def reverse(self):
-        self.od._order.reverse()
-    def sort(self, **kwargs): #cmp, key, reverse
-        self.od._order.sort(**kwargs)
-    def __len__(self):
-        return len(self.od)
-    def __contains__(self, x):
-        return x in self.od
-    def count(self, x):
-        return self.od._order.count(x)
-    def index(self, x, start=0, stop=None):
-        if (stop == None):
-            return self.od._order.index(x, start)
-        else:
-            return self.od._order.index(x, start, stop)
-    def __iter__(self):
-        return iter(self.od._order)
-    def __reversed__(self):
-        return self.od._order.__reversed__()
-    # it appears we have to override the individual rich comparison methods
-    def __eq__(self, other):
-        return self.od._order == other
-    def __ne__(self, other):
-        return self.od._order != other
-    def __gt__(self, other):
-        return self.od._order > other
-    def __ge__(self, other):
-        return self.od._order >= other
-    def __lt__(self, other):
-        return self.od._order < other
-    def __le__(self, other):
-        return self.od._order <= other
-    # slightly weirdly, it looks like we don't actually need to override __cmp__
-    def __cmp__(self, other):
-        return cmp(self.od._order, other)
-    def __add__(self, other):
-        return self.od._order + other
-    def __radd__(self, other):
-        return list(other) + self.od._order
-    def __mul__(self, other):
-        return self.od._order * other
-    def __rmul__(self, other):
-        return other * self.od._order
+
+# String constants for Exceptions / Warnings:
+_ERRsizeChanged = "StableDict changed size during iteration!"
+_WRNnoOrderArg  = "StableDict created/updated from unordered mapping object"
+_WRNnoOrderKW   = \
+              "StableDict created/updated with (unordered!) keyword arguments"
+
+
+# Note: This class won't work with Python 3000 because the dict
+#       protocol will change according to PEP3106. (However porting it
+#       to Python 3.X will not be much of an effort.)
+class StableDict(dict):
+    """Dictionary remembering insertion order
+
+    Order of item assignment is preserved and repeated when iterating
+    over an instance.
+
+    CAVEAT: When handing an unordered dict to either the constructor
+    or the update() method the resulting order is obviously
+    undefined. The same applies when initializing or updating with
+    keyword arguments; i.e. keyword argument order is not preserved. A
+    runtime warning will be issued in these cases via the
+    warnings.warn function."""
+
+    __metaclass__ = copy_baseclass_docs # copy docstrings from base class
+
+    # Python 2.2 does not mangle __* inside __slots__
+    __slots__ = ("_StableDict__ksl",) # key sequence list aka __ksl
+
+    # @staticmethod
+    def is_ordered(dictInstance):
+        """Returns true if argument is known to be ordered."""
+        if isinstance(dictInstance, StableDict):
+            return True
+        try: # len() may raise an exception.
+            if len(dictInstance) <= 1:
+                return True # A length <= 1 implies ordering.
+        except:
+            pass
+        return False # Assume dictInstance.keys() is _not_ ordered.
+    is_ordered = staticmethod(is_ordered)
+
+    def __init__(self, *arg, **kw):
+        if arg:
+            if len(arg) > 1:
+                raise TypeError("at most one argument permitted")
+            arg = arg[0]
+            if hasattr(arg, "keys"):
+                if not self.is_ordered(arg):
+                    _warn(_WRNnoOrderArg, RuntimeWarning, stacklevel=2)
+                super(StableDict, self).__init__(arg, **kw)
+                self.__ksl = arg.keys()
+            else: # Must be a sequence of 2-tuples.
+                super(StableDict, self).__init__(**kw)
+                self.__ksl = []
+                for pair in arg:
+                    if len(pair) != 2:
+                        raise ValueError("not a 2-tuple", pair)
+                    self.__setitem__(pair[0], pair[1])
+                if kw:
+                    ksl = self.__ksl
+                    for k in super(StableDict, self).iterkeys():
+                        if k not in ksl:
+                            ksl.append(k)
+                    self.__ksl = ksl
+        else: # No positional argument given.
+            super(StableDict, self).__init__(**kw)
+            self.__ksl = super(StableDict, self).keys()
+        if len(kw) > 1:
+            # There have been additionial keyword arguments.
+            # Since Python passes them in an (unordered) dict
+            # we cannot possibly preserve their order (without
+            # inspecting the source or byte code of the call).
+            _warn(_WRNnoOrderKW, RuntimeWarning, stacklevel=2)
+
+    def update(self, *arg, **kw):
+        if arg:
+            if len(arg) > 1:
+                raise TypeError("at most one non-keyword argument permitted")
+            arg = arg[0]
+            if hasattr(arg, "keys"):
+                if not self.is_ordered(arg):
+                    _warn(_WRNnoOrderArg, RuntimeWarning, stacklevel=2)
+                super(StableDict, self).update(arg)
+                ksl = self.__ksl
+                for k in arg.keys():
+                    if k not in ksl:
+                        ksl.append(k)
+                self.__ksl = ksl
+            else: # Must be a sequence of 2-tuples.
+                 for pair in arg:
+                    if len(pair) != 2:
+                        raise ValueError("not a 2-tuple", pair)
+                    self.__setitem__(pair[0], pair[1])
+        if kw:
+            # There have been additionial keyword arguments.
+            # Since Python passes them in an (unordered) dict
+            # we cannot possibly preserve their order (without
+            # inspecting the source or byte code of the call).
+            if len(kw) > 1:
+                _warn(_WRNnoOrderKW, RuntimeWarning, stacklevel=2)
+            super(StableDict, self).update(kw)
+            ksl = self.__ksl
+            for k in kw.iterkeys():
+                if k not in ksl:
+                    ksl.append(k)
+            self.__ksl = ksl
+
+    def __str__(self):
+        def _repr(x):
+            if x is self:
+                return "StableDict({...})" # Avoid unbounded recursion.
+            return repr(x)
+        return ( "StableDict({" + ", ".join([
+                 "%r: %s" % (k, _repr(v)) for k, v in self.iteritems()])
+                 + "})" )
+
+    # Try to achieve: self == eval(repr(self))
     def __repr__(self):
-        ret = None
-        for x in self.od._order:
-            ret = ", ".join(repr(x))
-        return "[" + ret + "]"
+        def _repr(x):
+            if x is self:
+                return "StableDict({...})" # Avoid unbounded recursion.
+            return repr(x)
+        return ( "StableDict([" + ", ".join([
+                 "(%r, %s)" % (k, _repr(v)) for k, v in self.iteritems()])
+                 + "])" )
+
+    def __setitem__(self, key, value):
+        super(StableDict, self).__setitem__(key, value)
+        if key not in self.__ksl:
+            self.__ksl.append(key)
+
+    def __delitem__(self, key):
+        if key in self.__ksl:
+            self.__ksl.remove(key)
+        super(StableDict, self).__delitem__(key)
+
+    def __iter__(self):
+        length = len(self)
+        for key in self.__ksl[:]:
+            yield key
+        if length != len(self):
+            raise RuntimeError(_ERRsizeChanged)
+
+    def keys(self):
+        return self.__ksl[:]
+
+    def iterkeys(self):
+        return self.__iter__()
+
+    def values(self):
+        return [ self[k] for k in self.__ksl ]
+
+    def itervalues(self):
+        length = len(self)
+        for key in self.__ksl[:]:
+            yield self[key]
+        if length != len(self):
+            raise RuntimeError(_ERRsizeChanged)
+
+    def items(self):
+        return [ (k, self[k]) for k in self.__ksl ]
+
+    def iteritems(self):
+        length = len(self)
+        for key in self.__ksl[:]:
+            yield ( key, self[key] )
+        if length != len(self):
+            raise RuntimeError(_ERRsizeChanged)
+
+    def clear(self):
+        super(StableDict, self).clear()
+        self.__ksl = []
+
+    def copy(self):
+        return StableDict(self)
+
+    def pop(self, k, *default):
+        if k in self.__ksl:
+            self.__ksl.remove(k)
+        return super(StableDict, self).pop(k, *default)
+
+    def popitem(self):
+        item = super(StableDict, self).popitem()
+        try:
+            self.__ksl.remove(item[0])
+        except:
+            raise ValueError("cannot remove", item, self.__ksl, self)
+        return item
+
+# Our metaclass function became a method.  Make it a function again.
+StableDict.__metaclass__ = staticmethod(copy_baseclass_docs)
+
+# Given a sequence, return a sequence with unique items with order intact
+def unique_union(seq):
+    seen = {}
+    result = []
+    for item in seq:
+        if item in seen: continue
+        seen[item] = 1
+        result.append(item)
+    return result
+
+# Given 2 sequences return the intersection with order intact as much as
+# possible 
+def intersect_order(s1, s2):
+    seen = {}
+    result = []
+    for item in s1:
+        if item in seen: continue
+        seen[item] = 1
+    for item in s2:
+        if item not in seen: continue
+        result.append(item)
+    return result

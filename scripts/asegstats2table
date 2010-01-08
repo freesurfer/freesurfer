@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.26 2009/10/26 18:08:52 krish Exp $
+# $Id: asegstats2table,v 1.27 2010/01/08 20:08:23 krish Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -100,7 +100,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.26 2009/10/26 18:08:52 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.27 2010/01/08 20:08:23 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -242,24 +242,18 @@ def sanity_check_segs(table, rows, stats, verbose=False):
     be! ), the union ( segs ) should be equal to intersection(segs)
     return False otherwise.. the program quits
     """
-    union = Set([])
-    intersection = Set(table[rows[0]].keys())
+    _union = []
+    intersection = table[rows[0]].keys()
     if verbose:
         print 'Displaying debugging information for each subject, statsfile'
     for count, row in enumerate(rows):
-        rowkeys = Set(table[row].keys())
-        union = union | rowkeys
-        intersection = intersection &  rowkeys
+        rowkeys = table[row].keys()
+        _union.append(rowkeys)
+        intersection = fsutils.intersect_order(intersection, rowkeys)
         if verbose:
-            print '-'*40
-            print 'FILENAME: ', stats[count][2]
-            print 'union of segmentations till now - current stats segmentations'
-            print list(union - rowkeys)
-            print 'current stats segs - intersection of segmentations till now'
-            print list(rowkeys - intersection)
-            print 'union of segs till now  - intersection of segs till now'
-            print list(union - intersection)
-
+            pass
+    temp_union = [item for sublist in _union for item in sublist]
+    union = fsutils.unique_union(temp_union)
     if union == intersection:
         return (union, intersection, True)
     else:
@@ -303,7 +297,7 @@ def build_table(options):
     
     rows = []
     # init the table
-    table = fsutils.Ddict(fsutils.odict)
+    table = fsutils.Ddict(fsutils.StableDict)
     for statno, subname, statfile in stats:
         if os.path.exists( statfile):
             if o.verboseflag:
@@ -350,17 +344,17 @@ def build_table(options):
     if not sanityflag:
         if o.common_flag:
             # write only the common segmentations
-            new_table = fsutils.Ddict(fsutils.odict)
+            new_table = fsutils.Ddict(fsutils.StableDict)
             for row in rows:
                 for seg in intersection:
                     new_table[row][seg]  = table[row][seg]
 
             table = new_table
-            cols = list(intersection)
+            cols = intersection
         
         elif o.all_flag:
             # write all the segs
-            new_table = fsutils.Ddict(fsutils.odict)
+            new_table = fsutils.Ddict(fsutils.StableDict)
             for row in rows: 
                 for seg in union:
                     if not seg in table[row]:
@@ -368,7 +362,7 @@ def build_table(options):
                     else:
                         new_table[row][seg] = table[row][seg]
             table = new_table
-            cols = list(union)
+            cols = union
 
         else:
             print 'ERROR: All stat files should have the same segmentations'
