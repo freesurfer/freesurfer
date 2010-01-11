@@ -7,10 +7,10 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.17 2010/01/08 20:08:23 krish Exp $
+# $Id: aparcstats2table,v 1.18 2010/01/11 19:18:55 greve Exp $
 
 # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
-measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'meancurv':6 }
+measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'thicknessstd':5, 'meancurv':6 }
 # map of delimeter choices and string literals
 delimiter2char = {'comma':',', 'tab':'\t', 'space':' ', 'semicolon':';'}
 
@@ -42,7 +42,8 @@ and moves on to the next.
 
 By default, the area (mm2) of each parcellation is reported. This can
 be changed with '--meas measure', where measure can be area, volume
-(ie, volume of gray matter), thickness, or meancurv.
+(ie, volume of gray matter), thickness, thicknessstd, or meancurv.
+thicknessstd is the standard dev of thickness across space.
 
 Example:
  aparcstats2table --hemi lh --subjects 004 008 --parc aparc.a2009s 
@@ -79,14 +80,14 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.17 2010/01/08 20:08:23 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.18 2010/01/11 19:18:55 greve Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
     h_s = ' subjectname'
     h_hemi = '(REQUIRED) lh or rh'
     h_parc = 'parcellation.. default is aparc ( alt aparc.a2009s)'
-    h_meas = 'measure: default is area ( alt volume, thickness, meancurv)'
+    h_meas = 'measure: default is area ( alt volume, thickness, thicknessstd, meancurv)'
     h_skip = 'if a subject does not have input, skip it'
     h_t = '(REQUIRED) output table file'
     h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
@@ -108,7 +109,7 @@ def options_parse():
     parser.add_option('-p', '--parc', dest='parc',
                       default='aparc', help=h_parc)
     parser.add_option('-m', '--measure', dest='meas',
-                      choices=('area','volume','thickness','meancurv'),
+                      choices=('area','volume','thickness','thicknessstd','meancurv'),
                       default='area', help=h_meas)
     parser.add_option('-d', '--delimiter', dest='delimiter',
                       choices=('comma','tab','space','semicolon'),
@@ -133,7 +134,7 @@ def options_parse():
             print 'ERROR: atleast 1 subject must be provided'
             sys.exit(1)
     else:
-        print 'ERROR: --subjects sub1 .. is mandatory'
+        print 'ERROR: --subjects sub1 .. is mandatory. See --help for more info'
         sys.exit(1)
 
     if not options.outputfile:
