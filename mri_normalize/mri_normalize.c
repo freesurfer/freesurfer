@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/05 15:39:32 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/01/11 17:15:27 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,6 +48,8 @@
 #include "version.h"
 #include "cma.h"
 
+static int remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src, 
+                                   MRI *mri_ctrl_dst) ;
 static MRI *MRIremoveWMOutliers(MRI *mri_src,
                                 MRI *mri_src_ctrl,
                                 MRI *mri_dst_ctrl, int intensity_below) ;
@@ -118,14 +120,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.64 2010/01/05 15:39:32 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.65 2010/01/11 17:15:27 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.64 2010/01/05 15:39:32 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.65 2010/01/11 17:15:27 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -168,6 +170,18 @@ main(int argc, char *argv[]) {
     MRI         *mri_dist, *mri_dist_sup, *mri_ctrl ;
     LTA          *lta= NULL ;
 
+    if (control_point_fname)  // do one pass with only file control points first 
+    {
+      MRI3dUseFileControlPoints(mri_src, control_point_fname) ;
+      mri_dst =
+        MRI3dGentleNormalize(mri_src,
+                             NULL,
+                             DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+                             NULL,
+                             intensity_above,
+                             intensity_below/2,1,
+                             bias_sigma);
+    }
     mris = MRISread(surface_fname) ;
     if (mris == NULL)
       ErrorExit(ERROR_NOFILE,"%s: could not surface %s",Progname,surface_fname);
@@ -199,7 +213,7 @@ main(int argc, char *argv[]) {
 
     if (stricmp(surface_xform_fname, "identity.nofile") != 0)
       MRIStransform(mris, NULL, surface_xform, NULL) ;
-    mri_dist = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
+    mri_dist = MRIcloneDifferentType(mri_dst, MRI_FLOAT) ;
     printf("computing distance transform\n") ;
     MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize) ;
     MRIscalarMul(mri_dist, mri_dist, -1) ;
@@ -208,16 +222,16 @@ main(int argc, char *argv[]) {
     mri_ctrl = MRIcloneDifferentType(mri_dist_sup, MRI_UCHAR) ;
     MRIbinarize(mri_dist_sup, mri_ctrl, min_dist, CONTROL_NONE, CONTROL_MARKED) ;
     if (control_point_fname)
-    {
-      MRI3dUseFileControlPoints(mri_src, control_point_fname) ;
       MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
-    }
+
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       MRIwrite(mri_dist, "d.mgz");
       MRIwrite(mri_dist_sup, "dm.mgz");
       MRIwrite(mri_ctrl, "c.mgz");
     }
+    MRIeraseBorderPlanes(mri_ctrl, 4) ;
+    remove_surface_outliers(mri_ctrl, mri_dist, mri_src, mri_ctrl) ;
     mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, 0.0) ;
     if (bias_sigma> 0)
     {
@@ -987,3 +1001,57 @@ add_interior_points(MRI *mri_src, MRI *mri_vals, float intensity_above,
   return(mri_dst) ;
 }
 
+#define WSIZE_MM  10
+static int
+remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src, 
+                                   MRI *mri_ctrl_dst)
+{
+  int       x, y, z, wsize ;
+  HISTOGRAM *h, *hs ;
+  double    mean, sigma, val ;
+  MRI       *mri_outlier = MRIclone(mri_ctrl_src, NULL) ;
+
+  mri_ctrl_dst = MRIcopy(mri_ctrl_src, mri_ctrl_dst) ;
+  wsize = nint(WSIZE_MM/mri_src->xsize) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if ((int)MRIgetVoxVal(mri_ctrl_src, x, y,z, 0) == 0)
+          continue ; // not a control point
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        if (val < 80 || val > 130)
+        {
+          MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, 0) ;  // remove it as a control point
+          MRIsetVoxVal(mri_outlier, x, y, z, 0, 1) ;   // diagnostics
+          continue ;
+        }
+        if (val > 100 || val < 120)
+          continue ;   // not an outlier
+        h = MRIhistogramVoxel(mri_src, 0, NULL, x, y, z, wsize, mri_dist, mri_src->xsize) ;
+        HISTOsoapBubbleZeros(h, h, 100) ;
+        hs = HISTOsmooth(h, NULL, .5);
+        HISTOrobustGaussianFit(hs, .5, &mean, &sigma) ;
+#define MAX_SIGMA 10   // for intensity normalized images
+        if (sigma > MAX_SIGMA)
+          sigma = MAX_SIGMA ;
+        if (fabs((mean-val)/sigma) > 2)
+        {
+          MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, 0) ;  // remove it as a control point
+          MRIsetVoxVal(mri_outlier, x, y, z, 0, 1) ;   // diagnostics
+        }
+
+        if (Gdiag & DIAG_WRITE)
+        {
+          HISTOplot(h, "h.plt") ;
+          HISTOplot(h, "hs.plt") ;
+        }
+        HISTOfree(&h) ; HISTOfree(&hs) ;
+      }
+  if (Gdiag & DIAG_WRITE)
+    MRIwrite(mri_outlier, "o.mgz") ;
+  MRIfree(&mri_outlier) ;
+  return(NO_ERROR) ;
+}
