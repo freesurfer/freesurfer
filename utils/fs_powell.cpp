@@ -161,7 +161,7 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
       vnl_brent brent(&f1d);
       double ax = 0.0;
       double xx = initial_step_;
-      double bx;
+      double bx = 0;
       brent.bracket_minimum(&ax, &xx, &bx);
       fret = brent.minimize_given_bounds(bx, xx, ax, linmin_xtol_, &xx);
       f1d.uninit(xx, p);
