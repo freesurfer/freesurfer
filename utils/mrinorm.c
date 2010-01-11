@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/08 00:42:21 $
- *    $Revision: 1.92 $
+ *    $Date: 2010/01/11 17:15:54 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2175,6 +2175,7 @@ MRI3dGentleNormalize(MRI *mri_src,
     else
     {
       int nctrl ;
+      double mean ;
 
       mri_ctrl = MRIalloc(mri_src->width,
                           mri_src->height,
@@ -2182,8 +2183,11 @@ MRI3dGentleNormalize(MRI *mri_src,
                           MRI_UCHAR) ;
       MRIcopyHeader(mri_src, mri_ctrl) ;
       nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
+      mean = MRImeanInLabel(mri_src, mri_ctrl, 255) ;
       fprintf(stderr,
-              "only using %d control points from file...\n", nctrl) ;
+              "only using %d control points from file, mean %2.1f, scaling by %2.2f...\n", 
+              nctrl, mean, wm_target/mean) ;
+      MRIscalarMul(mri_src, mri_src, wm_target/mean) ;
       if (getenv("WRITE_CONTROL_POINTS") != NULL)
       {
         printf("writing control point volume to c.mgz\n") ;
