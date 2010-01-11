@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/23 05:35:55 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/01/11 21:30:14 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -84,7 +84,10 @@ public:
   void RASToOriginalIndex( const double* pos, int* n );
   void OriginalIndexToRAS( const int* n, double* pos );
 
-  LayerPropertiesMRI* GetProperties();
+  inline LayerPropertiesMRI* GetProperties()
+  {
+    return (LayerPropertiesMRI*)mProperties;
+  }
 
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
@@ -197,7 +200,6 @@ protected:
 
   virtual void OnSlicePositionChanged( int nPlane );
 
-  LayerPropertiesMRI*      mProperties;
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkImageReslice>   mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];

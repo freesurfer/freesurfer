@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/01/11 21:30:14 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,11 +52,6 @@ LayerDTI::~LayerDTI()
 {
   if ( m_vectorSource )
     delete m_vectorSource;
-}
-
-LayerPropertiesDTI* LayerDTI::GetProperties()
-{
-  return ( LayerPropertiesDTI* )mProperties;
 }
 
 bool LayerDTI::LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event )
@@ -148,11 +143,11 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 
 void LayerDTI::UpdateColorMap()
 {
-  if ( mProperties->GetColorMap() == LayerPropertiesMRI::DirectionCoded )
+  if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::DirectionCoded )
   {
     for ( int i = 0; i < 3; i++ )
     {
-      mColorMap[i]->SetLookupTable( ( (LayerPropertiesDTI*)mProperties )->GetDirectionCodedTable() );
+      mColorMap[i]->SetLookupTable( GetProperties()->GetDirectionCodedTable() );
       mColorMap[i]->SetActiveComponent( 1 );
     }
   }

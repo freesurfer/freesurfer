@@ -63,6 +63,8 @@ freeview_SOURCES=\
 	DialogSaveScreenshot.h \
 	DialogSaveVolumeAs.cpp \
 	DialogSaveVolumeAs.h \
+	DialogWriteMovieFrames.cpp \
+	DialogWriteMovieFrames.h \
 	FSLabel.cpp \
 	FSLabel.h \
 	FSSurface.cpp \
@@ -109,6 +111,8 @@ freeview_SOURCES=\
 	LayerOptimal.h \
 	LayerPLabel.cpp \
 	LayerPLabel.h \
+	LayerProperties.cpp \
+	LayerProperties.h \
 	LayerPropertiesDTI.cpp \
 	LayerPropertiesDTI.h \
 	LayerPropertiesMRI.cpp \

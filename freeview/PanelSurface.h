@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/08 22:21:21 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -85,6 +85,8 @@ private:
   void OnChoiceRenderMode       ( wxCommandEvent& event );
   void OnChoiceMeshColorMap     ( wxCommandEvent& event );
   
+  void OnCheckHideInfo          ( wxCommandEvent& event );
+  
   void OnChoiceAnnotation       ( wxCommandEvent& event );
   
   void OnCheckShowVertices      ( wxCommandEvent& event );
@@ -132,6 +134,8 @@ private:
   wxSpinCtrl*   m_spinVertexPointSize;
   
   wxTextCtrl*   m_textPosition;
+  
+  wxCheckBox*   m_checkHideInfo;
 
   std::vector<wxWindow*>  m_widgetsMidPoint;
   std::vector<wxWindow*>  m_widgetsSlope;

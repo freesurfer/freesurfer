@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/22 18:21:44 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -126,6 +126,8 @@ private:
   void OnTextContourMax   ( wxCommandEvent& event );
   void OnCheckUseImageColorMap  ( wxCommandEvent& event );
   void OnColorContour     ( wxColourPickerEvent& event );
+  
+  void OnCheckHideInfo    ( wxCommandEvent& event );
 
   void DoUpdateUI();
   void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
@@ -193,6 +195,8 @@ private:
   wxTextCtrl*     m_textContourMax;
   wxCheckBox*     m_checkUseImageColorMap;
   wxColourPickerCtrl* m_colorpickerContour;
+  
+  wxCheckBox*     m_checkHideInfo;
 
   std::vector<wxWindow*> m_widgetlistGrayScale;
   std::vector<wxWindow*> m_widgetlistHeatScale;

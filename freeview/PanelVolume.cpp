@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/23 05:35:56 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -105,11 +105,13 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_INVERSION" ),       PanelVolume::OnChoiceInversion )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_REPRESENTATION" ),  PanelVolume::OnChoiceRepresentation )
   
-  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CONTOUR" ),    PanelVolume::OnCheckContour )
-  EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),    PanelVolume::OnTextContourMin )
-  EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),    PanelVolume::OnTextContourMax )
-  EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_CONTOUR" ), PanelVolume::OnColorContour )
-  EVT_CHECKBOX        ( XRCID( "ID_CHECK_USE_IMAGE_COLORMAP" ),  PanelVolume::OnCheckUseImageColorMap )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CONTOUR" ),           PanelVolume::OnCheckContour )
+  EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),     PanelVolume::OnTextContourMin )
+  EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),     PanelVolume::OnTextContourMax )
+  EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_CONTOUR" ),  PanelVolume::OnColorContour )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECK_USE_IMAGE_COLORMAP" ),   PanelVolume::OnCheckUseImageColorMap )
+  
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HIDE_INFO" ),         PanelVolume::OnCheckHideInfo )
   
   EVT_COMMAND_SCROLL_PAGEDOWN     ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
   EVT_COMMAND_SCROLL_PAGEUP       ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
@@ -187,6 +189,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_colorpickerContour    = XRCCTRL( *this, "ID_COLORPICKER_CONTOUR", wxColourPickerCtrl );
 //  m_checkContour->Hide();
 
+  m_checkHideInfo = XRCCTRL( *this, "ID_CHECKBOX_HIDE_INFO", wxCheckBox );
+  
   m_luts = MainWindow::GetMainWindowPointer()->GetLUTData();
 
   m_choiceDirectionCode->Append( _("RAS -> RGB") );
@@ -778,6 +782,8 @@ void PanelVolume::DoUpdateUI()
         m_choiceRepresentation->SetSelection( layer->GetProperties()->GetTensorRepresentation() );
         m_choiceInversion->SetSelection( layer->GetProperties()->GetTensorInversion() );
       }
+      
+      m_checkHideInfo->SetValue( !layer->GetProperties()->GetShowInfo() );
 		}
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -1450,4 +1456,12 @@ void PanelVolume::OnColorContour( wxColourPickerEvent& event )
   }
 }
 
+void PanelVolume::OnCheckHideInfo( wxCommandEvent& event )
+{
+  Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetShowInfo( !event.IsChecked() );
+  }
+}
 

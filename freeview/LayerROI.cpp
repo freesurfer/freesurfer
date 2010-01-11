@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/18 21:21:04 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -69,8 +69,8 @@ LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerVolumeBase()
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
   }
-  mROIProperties = new LayerPropertiesROI();
-  mROIProperties->AddListener( this );
+  mProperties = new LayerPropertiesROI();
+  mProperties->AddListener( this );
 
   m_layerSource = layerMRI;
   m_imageDataRef = layerMRI->GetImageData();
@@ -106,8 +106,6 @@ LayerROI::~LayerROI()
     m_sliceActor2D[i]->Delete();
     m_sliceActor3D[i]->Delete();
   }
-
-  delete mROIProperties;
 
   if ( m_label )
     delete m_label;
@@ -153,7 +151,7 @@ void LayerROI::InitializeActors()
     // Image to colors using color table.
     //
     mColorMap[i] = vtkSmartPointer<vtkImageMapToColors>::New();
-    mColorMap[i]->SetLookupTable( mROIProperties->GetLookupTable() );
+    mColorMap[i]->SetLookupTable( GetProperties()->GetLookupTable() );
     mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
     mColorMap[i]->SetOutputFormatToRGBA();
     mColorMap[i]->PassAlphaToOutputOn();
@@ -177,17 +175,17 @@ void LayerROI::UpdateOpacity()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetOpacity( mROIProperties->GetOpacity() );
-    m_sliceActor3D[i]->SetOpacity( mROIProperties->GetOpacity() );
+    m_sliceActor2D[i]->SetOpacity( GetProperties()->GetOpacity() );
+    m_sliceActor3D[i]->SetOpacity( GetProperties()->GetOpacity() );
   }
 }
 
 void LayerROI::UpdateColorMap ()
 {
-  assert( mROIProperties );
+  assert( GetProperties() );
 
   for ( int i = 0; i < 3; i++ )
-    mColorMap[i]->SetLookupTable( mROIProperties->GetLookupTable() );
+    mColorMap[i]->SetLookupTable( GetProperties()->GetLookupTable() );
   // m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
 }
 
@@ -212,7 +210,7 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
   if ( !m_layerSource )
     return;
 
-  assert( mROIProperties );
+  assert( GetProperties() );
 
   vtkSmartPointer<vtkMatrix4x4> matrix =
     vtkSmartPointer<vtkMatrix4x4>::New();
@@ -270,11 +268,6 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
   }
 }
 
-LayerPropertiesROI* LayerROI::GetProperties()
-{
-  return mROIProperties;
-}
-
 void LayerROI::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
@@ -287,6 +280,7 @@ void LayerROI::DoListenToMessage( std::string const iMessage, void* iData, void*
     this->UpdateOpacity();
     this->SendBroadcast( "LayerActorUpdated", this, this );
   }
+  LayerVolumeBase::DoListenToMessage( iMessage, iData, sender );
 }
 
 void LayerROI::SetVisible( bool bVisible )

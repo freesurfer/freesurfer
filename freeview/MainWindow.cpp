@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/08 18:10:08 $
- *    $Revision: 1.90 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -93,6 +93,7 @@
 #include "DialogSavePointSetAs.h"
 #include "DialogLoadPointSet.h"
 #include "DialogSavePoint.h"
+#include "DialogWriteMovieFrames.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -357,6 +358,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_dlgGradientVolume = NULL;
   m_dlgSaveScreenshot = NULL;
   m_dlgSavePoint = NULL;
+  m_dlgWriteMovieFrames = NULL;
   
   m_menuGotoPoints = NULL;
 
@@ -368,6 +370,9 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   
   m_wndConnectivityConfiguration = new WindowConnectivityConfiguration( this );
   m_wndConnectivityConfiguration->Hide();
+  
+  m_dlgWriteMovieFrames = new DialogWriteMovieFrames( this );
+  m_dlgWriteMovieFrames->Hide();
   
   UpdateToolbars();
   
@@ -468,7 +473,7 @@ MainWindow* MainWindow::GetMainWindowPointer()
 
 void MainWindow::OnClose( wxCloseEvent &event )
 {
-  if ( IsProcessing() )
+  if ( IsProcessing() || IsWritingMovieFrames() )
   {
     wxMessageDialog dlg( this, _("There is on-going data processing. If you force quit, any data that is being saved can be lost. Do you really want to force quit?"), 
                          _("Force Quit"), wxYES_NO | wxNO_DEFAULT  );
@@ -2055,7 +2060,7 @@ void MainWindow::OnFileSave( wxCommandEvent& event )
 void MainWindow::OnFileSaveUpdateUI( wxUpdateUIEvent& event )
 {
   LayerMRI* layer = ( LayerMRI* )( GetLayerCollection( "MRI" )->GetActiveLayer() );
-  event.Enable( layer && layer->IsModified() && !IsProcessing() );
+  event.Enable( layer && layer->IsModified() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -2067,7 +2072,7 @@ void MainWindow::OnFileSaveAs( wxCommandEvent& event )
 void MainWindow::OnFileSaveAsUpdateUI( wxUpdateUIEvent& event )
 {
   LayerMRI* layer = ( LayerMRI* )( GetLayerCollection( "MRI" )->GetActiveLayer() );
-  event.Enable( layer && layer->IsEditable() && !IsProcessing() );
+  event.Enable( layer && layer->IsEditable() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 void MainWindow::OnFileLoadROI( wxCommandEvent& event )
@@ -2077,7 +2082,7 @@ void MainWindow::OnFileLoadROI( wxCommandEvent& event )
 
 void MainWindow::OnFileLoadROIUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -2089,7 +2094,7 @@ void MainWindow::OnFileSaveROI( wxCommandEvent& event )
 void MainWindow::OnFileSaveROIUpdateUI( wxUpdateUIEvent& event )
 {
   LayerROI* layer = ( LayerROI* )( GetLayerCollection( "ROI" )->GetActiveLayer() );
-  event.Enable( layer && layer->IsModified() && !IsProcessing() );
+  event.Enable( layer && layer->IsModified() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -2101,7 +2106,7 @@ void MainWindow::OnFileSaveROIAs( wxCommandEvent& event )
 void MainWindow::OnFileSaveROIAsUpdateUI( wxUpdateUIEvent& event )
 {
   LayerROI* layer = ( LayerROI* )( GetLayerCollection( "ROI" )->GetActiveLayer() );
-  event.Enable( layer && !IsProcessing() );
+  event.Enable( layer && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -2112,7 +2117,7 @@ void MainWindow::OnFileLoadWayPoints( wxCommandEvent& event )
 
 void MainWindow::OnFileLoadWayPointsUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -2124,7 +2129,7 @@ void MainWindow::OnFileSaveWayPoints( wxCommandEvent& event )
 void MainWindow::OnFileSaveWayPointsUpdateUI( wxUpdateUIEvent& event )
 {
   LayerWayPoints* layer = ( LayerWayPoints* )( GetLayerCollection( "WayPoints" )->GetActiveLayer() );
-  event.Enable( layer && layer->IsModified() && !IsProcessing() );
+  event.Enable( layer && layer->IsModified() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -2136,7 +2141,7 @@ void MainWindow::OnFileSaveWayPointsAs( wxCommandEvent& event )
 void MainWindow::OnFileSaveWayPointsAsUpdateUI( wxUpdateUIEvent& event )
 {
   LayerWayPoints* layer = ( LayerWayPoints* )( GetLayerCollection( "WayPoints" )->GetActiveLayer() );
-  event.Enable( layer && !IsProcessing() );
+  event.Enable( layer && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -4163,7 +4168,7 @@ void MainWindow::OnToolRotateVolume( wxCommandEvent& event )
 void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
 {
 // event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -4186,7 +4191,7 @@ void MainWindow::OnToolOptimalVolume( wxCommandEvent& event )
 void MainWindow::OnToolOptimalVolumeUpdateUI( wxUpdateUIEvent& event )
 {
 // event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
-  event.Enable( GetLayerCollection( "MRI" )->GetNumberOfLayers() > 1 && !IsProcessing() );
+  event.Enable( GetLayerCollection( "MRI" )->GetNumberOfLayers() > 1 && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 void MainWindow::OnToolGradientVolume( wxCommandEvent& event )
@@ -4218,7 +4223,7 @@ void MainWindow::OnToolGradientVolume( wxCommandEvent& event )
 void MainWindow::OnToolGradientVolumeUpdateUI( wxUpdateUIEvent& event )
 {
 // event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() );
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
 
@@ -4339,8 +4344,11 @@ bool MainWindow::GetCursorRAS( double* ras_out )
 }
 
 void MainWindow::OnFileSaveMovieFrames( wxCommandEvent& event )
-{
-  StartWriteMovieFrames();
+{  
+  if ( !m_dlgWriteMovieFrames->IsVisible() )
+  {
+    m_dlgWriteMovieFrames->Show();
+  }
 }
 
 void MainWindow::OnFileSaveMovieFramesUpdateUI( wxUpdateUIEvent& event )
@@ -4353,14 +4361,17 @@ void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
 {
   double angle_step = m_settingsMovieFrames.AngleStep;
   wxString fn;
-  fn.Printf( "/tmp/frames/frame%03d.png", m_settingsMovieFrames.StepCount );
+  fn.Printf( "%sframe%03d.%s", 
+             m_settingsMovieFrames.OutputLocation.c_str(),
+             m_settingsMovieFrames.StepCount,
+             m_settingsMovieFrames.OutputExtension.c_str() );
   m_view3D->SaveScreenshot( fn, 
                             m_settingsScreenshot.Magnification,
                             m_settingsScreenshot.AntiAliasing );
   m_view3D->Azimuth( angle_step );
   NeedRedraw( true );
   m_settingsMovieFrames.StepCount ++;
-  double angle = m_settingsMovieFrames.StepCount * angle_step;
+  double angle = m_settingsMovieFrames.StepCount * fabs(angle_step);
   m_statusBar->m_gaugeBar->SetValue( (int)(100*angle/360) );
   if ( angle > 360 )
   {
@@ -4370,9 +4381,22 @@ void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
 
 void MainWindow::StartWriteMovieFrames()
 {
-  system( "mkdir /tmp/frames" );
   m_statusBar->m_gaugeBar->Show();
   m_settingsMovieFrames.StepCount = 0;
+  if ( !m_dlgWriteMovieFrames->GetOutputLocation().IsEmpty() )
+  {
+    m_settingsMovieFrames.OutputLocation = m_dlgWriteMovieFrames->GetOutputLocation(); 
+    if ( m_settingsMovieFrames.OutputLocation[m_settingsMovieFrames.OutputLocation.Len()-1] != '/' )
+      m_settingsMovieFrames.OutputLocation += _("/");
+  }
+  if ( m_dlgWriteMovieFrames->GetAngleStep() != 0 )
+  {
+    m_settingsMovieFrames.AngleStep = m_dlgWriteMovieFrames->GetAngleStep();
+  }
+  wxString cmd = "mkdir ";
+  cmd += m_settingsMovieFrames.OutputLocation;
+  system( cmd.c_str() );
+  m_settingsMovieFrames.OutputExtension = m_dlgWriteMovieFrames->GetOutputExtension();
   m_statusBar->m_gaugeBar->SetValue( 0 );
   m_timerWriteMovieFrames.Start( 1000 ); 
 }

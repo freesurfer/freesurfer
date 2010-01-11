@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/30 21:17:19 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/01/11 21:30:14 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
 
 #include "wx/wx.h"
 #include "Layer.h"
+#include "LayerProperties.h"
 #include <math.h>
 
 #define CLOSE_DISTANCE 1e-6
@@ -40,10 +41,13 @@ Layer::Layer() : Listener( "Layer" ), Broadcaster( "Layer" )
     m_dWorldSize[i] = 0;
   }
   m_bLocked = false;
+  mProperties = NULL;
 }
 
 Layer::~Layer()
 {
+  if ( mProperties )
+    delete mProperties;
   SendBroadcast( "LayerObjectDeleted", this );
 }
 
@@ -184,3 +188,10 @@ void Layer::Lock( bool bLock )
   m_bLocked = bLock;
   this->SendBroadcast( "LayerLockChanged", this );
 }
+
+void Layer::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
+{
+  if ( iMessage == _( "ShowInfoChanged" ) )
+    this->SendBroadcast( "LayerShowInfoChanged", iData, this );
+}
+

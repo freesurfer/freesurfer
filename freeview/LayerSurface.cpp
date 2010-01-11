@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/04 20:52:35 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,8 +81,8 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
 // mMediumResFilter->SetTargetReduction( 0.9 );
 
   m_vectorActor = vtkSmartPointer<vtkActor>::New();
-  m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
-  m_vectorActor->GetProperty()->SetPointSize( mProperties->GetVectorPointSize() );
+  m_vectorActor->GetProperty()->SetColor( GetProperties()->GetVectorColor() );
+  m_vectorActor->GetProperty()->SetPointSize( GetProperties()->GetVectorPointSize() );
   
   m_vertexActor = vtkSmartPointer<vtkActor>::New();
   m_vertexActor->GetProperty()->SetRepresentationToPoints();
@@ -99,8 +99,6 @@ LayerSurface::~LayerSurface()
     m_sliceActor2D[i]->Delete();
     m_sliceActor3D[i]->Delete();
   }
-
-  delete mProperties;
 
   if ( m_surfaceSource )
     delete m_surfaceSource;
@@ -127,7 +125,7 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
   InitializeSurface();
   InitializeActors();
 
-  mProperties->SetSurfaceSource( m_surfaceSource );
+  GetProperties()->SetSurfaceSource( m_surfaceSource );
 
   event.SetInt( 100 );
   wxPostEvent( wnd, event );
@@ -280,13 +278,13 @@ void LayerSurface::InitializeActors()
 //  m_sliceActor2D[i]->GetBackfaceProperty()->BackfaceCullingOff();
     m_sliceActor2D[i]->SetProperty( m_sliceActor2D[i]->MakeProperty() );
     m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
-    m_sliceActor2D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
+    m_sliceActor2D[i]->GetProperty()->SetLineWidth( GetProperties()->GetEdgeThickness() );
 
     m_sliceActor3D[i]->SetMapper( mapper2 );
 //  m_sliceActor3D[i]->SetBackfaceProperty( m_sliceActor3D[i]->MakeProperty() );
 //  m_sliceActor3D[i]->GetBackfaceProperty()->BackfaceCullingOff();
     m_sliceActor3D[i]->SetProperty( m_sliceActor3D[i]->MakeProperty() );
-    m_sliceActor3D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
+    m_sliceActor3D[i]->GetProperty()->SetLineWidth( GetProperties()->GetEdgeThickness() );
     m_sliceActor2D[i]->GetProperty()->SetInterpolationToFlat();
 
     // Set ourselves up.
@@ -304,18 +302,18 @@ void LayerSurface::UpdateOpacity()
     // m_sliceActor2D[i]->GetProperty()->SetOpacity( mProperties->GetOpacity() );
     // m_sliceActor3D[i]->SetOpacity( mProperties->GetOpacity() );
   }
-  m_mainActor->GetProperty()->SetOpacity( mProperties->GetOpacity() );
+  m_mainActor->GetProperty()->SetOpacity( GetProperties()->GetOpacity() );
 }
 
 void LayerSurface::UpdateEdgeThickness()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
-    m_sliceActor3D[i]->GetProperty()->SetLineWidth( mProperties->GetEdgeThickness() );
+    m_sliceActor2D[i]->GetProperty()->SetLineWidth( GetProperties()->GetEdgeThickness() );
+    m_sliceActor3D[i]->GetProperty()->SetLineWidth( GetProperties()->GetEdgeThickness() );
   }
   
-  if ( mProperties->GetEdgeThickness() == 0 )
+  if ( GetProperties()->GetEdgeThickness() == 0 )
   {
     if ( IsVisible() )
     {
@@ -340,7 +338,7 @@ void LayerSurface::UpdateVectorPointSize()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_vectorActor->GetProperty()->SetPointSize( mProperties->GetVectorPointSize() );
+    m_vectorActor->GetProperty()->SetPointSize( GetProperties()->GetVectorPointSize() );
   }
 }
 
@@ -351,33 +349,33 @@ void LayerSurface::UpdateColorMap()
 
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->GetProperty()->SetColor( mProperties->GetEdgeColor() );
-    m_sliceActor3D[i]->GetProperty()->SetColor( mProperties->GetEdgeColor() );
+    m_sliceActor2D[i]->GetProperty()->SetColor( GetProperties()->GetEdgeColor() );
+    m_sliceActor3D[i]->GetProperty()->SetColor( GetProperties()->GetEdgeColor() );
     m_sliceActor2D[i]->GetMapper()->ScalarVisibilityOff();
     m_sliceActor3D[i]->GetMapper()->ScalarVisibilityOff();
   }
 
-  m_mainActor->GetProperty()->SetColor( mProperties->GetBinaryColor() );
-  m_wireframeActor->GetProperty()->SetColor( mProperties->GetBinaryColor() );
-  m_vectorActor->GetProperty()->SetColor( mProperties->GetVectorColor() );
+  m_mainActor->GetProperty()->SetColor( GetProperties()->GetBinaryColor() );
+  m_wireframeActor->GetProperty()->SetColor( GetProperties()->GetBinaryColor() );
+  m_vectorActor->GetProperty()->SetColor( GetProperties()->GetVectorColor() );
   if ( m_surfaceSource->IsCurvatureLoaded() )
   {
-    if ( mProperties->GetCurvatureLUT() != m_mainActor->GetMapper()->GetLookupTable() )
+    if ( GetProperties()->GetCurvatureLUT() != m_mainActor->GetMapper()->GetLookupTable() )
     {
-      m_mainActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
+      m_mainActor->GetMapper()->SetLookupTable( GetProperties()->GetCurvatureLUT() );
       
     }
     
-    if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
-      m_wireframeActor->GetMapper()->SetLookupTable( mProperties->GetCurvatureLUT() );
-    else if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Curvature )
+    if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+      m_wireframeActor->GetMapper()->SetLookupTable( GetProperties()->GetCurvatureLUT() );
+    else if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Curvature )
       UpdateMeshRender();
     /*  vtkSmartPointer<vtkMapperCollection> mc = m_mainActor->GetLODMappers();
       mc->InitTraversal();
       vtkMapper* mapper = NULL;
       while ( ( mapper = mc->GetNextItem() ) != NULL )
       {
-       mapper->SetLookupTable( mProperties->GetCurvatureLUT() );
+    mapper->SetLookupTable( GetProperties()->GetCurvatureLUT() );
       } */
   }
   
@@ -455,11 +453,6 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   }
 }
 
-LayerPropertiesSurface* LayerSurface::GetProperties()
-{
-  return mProperties;
-}
-
 void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
@@ -503,19 +496,21 @@ void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, v
     this->SendBroadcast( "LayerActorUpdated", this );
     this->SendBroadcast( "SurfacePositionChanged", this );
   }
+  
+  Layer::DoListenToMessage( iMessage, iData, sender );
 }
 
 void LayerSurface::SetVisible( bool bVisible )
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetVisibility( ( bVisible && mProperties->GetEdgeThickness() > 0 ) ? 1 : 0 );
-    m_sliceActor3D[i]->SetVisibility( ( bVisible && mProperties->GetEdgeThickness() > 0 ) ? 1 : 0 );
+    m_sliceActor2D[i]->SetVisibility( ( bVisible && GetProperties()->GetEdgeThickness() > 0 ) ? 1 : 0 );
+    m_sliceActor3D[i]->SetVisibility( ( bVisible && GetProperties()->GetEdgeThickness() > 0 ) ? 1 : 0 );
   }
   
-  m_mainActor->SetVisibility( bVisible && mProperties->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Wireframe );
-  m_wireframeActor->SetVisibility( bVisible && mProperties->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Surface );
-  m_vertexActor->SetVisibility( bVisible && mProperties->GetShowVertices() );
+  m_mainActor->SetVisibility( bVisible && GetProperties()->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Wireframe );
+  m_wireframeActor->SetVisibility( bVisible && GetProperties()->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Surface );
+  m_vertexActor->SetVisibility( bVisible && GetProperties()->GetShowVertices() );
   m_vectorActor->SetVisibility( ( bVisible && m_surfaceSource && m_surfaceSource->GetActiveVector() >= 0 )? 1 : 0 );
 
   this->SendBroadcast( "LayerActorUpdated", this );
@@ -550,7 +545,7 @@ int LayerSurface::GetVertexIndexAtTarget( double* ras, double* distance )
     return -1;
     
   double ras_o[3];
-  double* offset = mProperties->GetPosition();
+  double* offset = GetProperties()->GetPosition();
   for ( int i = 0; i < 3; i++ )
     ras_o[i] = ras[i] - offset[i];
   if ( m_volumeRef )
@@ -590,7 +585,7 @@ bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
   if ( bRet && m_volumeRef )
     m_volumeRef->RASToTarget( ras, ras );
 
-  double* offset = mProperties->GetPosition();
+  double* offset = GetProperties()->GetPosition();
   for ( int i = 0; i < 3; i++ )
     ras[i] += offset[i];
   
@@ -730,8 +725,8 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
     {
       int nCount = polydata->GetPoints()->GetNumberOfPoints();
       this->BlockListen( true );
-//      if ( mProperties->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
-//        mProperties->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
+//      if ( GetProperties()->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
+//        GetProperties()->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
       this->BlockListen( false );
       vtkSmartPointer<vtkUnsignedCharArray> array = vtkUnsignedCharArray::SafeDownCast( polydata->GetPointData()->GetArray( "Overlay" ) );
       if ( array.GetPointer() == NULL )
@@ -744,7 +739,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           polydataWireframe->GetPointData()->AddArray( array );
       }
       unsigned char* data = new unsigned char[ nCount*4 ];
-      mProperties->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+      GetProperties()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
       GetActiveOverlay()->MapOverlay( data );
       for ( int i = 0; i < nCount; i++ )
       {
@@ -752,7 +747,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
       } 
       delete[] data;
       polydata->GetPointData()->SetActiveScalars( "Overlay" );
-      if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+      if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
         polydataWireframe->GetPointData()->SetActiveScalars( "Overlay" );
     }
   }
@@ -763,7 +758,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   else
   {
     polydata->GetPointData()->SetActiveScalars( "Curvature" );
-    if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+    if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
       polydataWireframe->GetPointData()->SetActiveScalars( "Curvature" );
   }
   if ( bAskRedraw )
@@ -882,7 +877,7 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
       lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable(), false );  // do not clear zero
       mapper->SetLookupTable( lut );
       mapper->UseLookupTableScalarRangeOn();
-      if ( mProperties->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+      if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
       {
         polydataWireframe->GetPointData()->SetActiveScalars( "Annotation" );
         mapperWireframe->SetLookupTable( lut );
@@ -900,9 +895,9 @@ void LayerSurface::UpdateAnnotation( bool bAskRedraw )
 
 void LayerSurface::UpdateVertexRender()
 {
-  m_vertexActor->SetVisibility( mProperties->GetShowVertices()? 1: 0 );
-  m_vertexActor->GetProperty()->SetPointSize( mProperties->GetVertexPointSize() );
-  m_vertexActor->GetProperty()->SetColor( mProperties->GetVertexColor() );
+  m_vertexActor->SetVisibility( GetProperties()->GetShowVertices()? 1: 0 );
+  m_vertexActor->GetProperty()->SetPointSize( GetProperties()->GetVertexPointSize() );
+  m_vertexActor->GetProperty()->SetColor( GetProperties()->GetVertexColor() );
 }
 
 void LayerSurface::UpdateMeshRender()
@@ -911,8 +906,8 @@ void LayerSurface::UpdateMeshRender()
   vtkPolyData* polydata = mapper->GetInput();
   vtkPolyDataMapper* mapperWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
   vtkPolyData* polydataWireframe = mapperWireframe->GetInput();
-  mapperWireframe->SetScalarVisibility( mProperties->GetMeshColorMap() != LayerPropertiesSurface::MC_Solid ? 1:0 );
-  switch ( mProperties->GetMeshColorMap() )
+  mapperWireframe->SetScalarVisibility( GetProperties()->GetMeshColorMap() != LayerPropertiesSurface::MC_Solid ? 1:0 );
+  switch ( GetProperties()->GetMeshColorMap() )
   {
     case LayerPropertiesSurface::MC_Surface:
       polydataWireframe->GetPointData()->SetActiveScalars( polydata->GetPointData()->GetScalars()->GetName() );
@@ -922,7 +917,7 @@ void LayerSurface::UpdateMeshRender()
       {
         // always display as threshold for curvature
         vtkSmartPointer<vtkRGBAColorTransferFunction> lut = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
-        mProperties->BuildCurvatureLUT( lut, LayerPropertiesSurface::CM_Threshold );
+        GetProperties()->BuildCurvatureLUT( lut, LayerPropertiesSurface::CM_Threshold );
         m_wireframeActor->GetMapper()->SetLookupTable( lut );
         polydataWireframe->GetPointData()->SetActiveScalars( "Curvature" );
       }
@@ -931,7 +926,7 @@ void LayerSurface::UpdateMeshRender()
       polydataWireframe->GetPointData()->SetActiveScalars( "Overlay" );
       break;
     case LayerPropertiesSurface::MC_Solid:
-      m_wireframeActor->GetProperty()->SetColor( mProperties->GetMeshColor() );
+      m_wireframeActor->GetProperty()->SetColor( GetProperties()->GetMeshColor() );
       break;
     default:
       break;
@@ -941,12 +936,12 @@ void LayerSurface::UpdateMeshRender()
 void LayerSurface::UpdateActorPositions()
 {
   for ( int i = 0; i < 3; i++ )
-    m_sliceActor3D[i]->SetPosition( mProperties->GetPosition() );  
+    m_sliceActor3D[i]->SetPosition( GetProperties()->GetPosition() );  
   
-  m_mainActor->SetPosition( mProperties->GetPosition() );
-  m_vectorActor->SetPosition( mProperties->GetPosition() );
-  m_vertexActor->SetPosition( mProperties->GetPosition() );
-  m_wireframeActor->SetPosition( mProperties->GetPosition() );
+  m_mainActor->SetPosition( GetProperties()->GetPosition() );
+  m_vectorActor->SetPosition( GetProperties()->GetPosition() );
+  m_vertexActor->SetPosition( GetProperties()->GetPosition() );
+  m_wireframeActor->SetPosition( GetProperties()->GetPosition() );
 }
 
 int LayerSurface::GetHemisphere()

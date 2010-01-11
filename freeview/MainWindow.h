@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/07 23:33:05 $
- *    $Revision: 1.58 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -67,6 +67,7 @@ class WindowConnectivityConfiguration;
 class DialogGradientVolume;
 class DialogSaveScreenshot;
 class DialogSavePoint;
+class DialogWriteMovieFrames;
 class ConnectivityData;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
@@ -358,6 +359,11 @@ public:
   
   void StopWriteMovieFrames();
   
+  bool IsWritingMovieFrames()
+  {
+    return m_timerWriteMovieFrames.IsRunning();
+  }
+  
 protected:
   void CommandLoadVolume        ( const wxArrayString& cmd );
   void CommandLoadDTI           ( const wxArrayString& cmd );
@@ -427,6 +433,7 @@ private:
   WindowConnectivityConfiguration*  m_wndConnectivityConfiguration; 
   DialogGradientVolume*       m_dlgGradientVolume;
   DialogSaveScreenshot*       m_dlgSaveScreenshot;
+  DialogWriteMovieFrames*     m_dlgWriteMovieFrames;
   DialogSavePoint*            m_dlgSavePoint;
   wxMenu*           m_menuGotoPoints;
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/04 20:52:35 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,11 @@ public:
 
   void SetSlicePositionToWorldCenter();
 
-  LayerPropertiesSurface* GetProperties();
+  inline LayerPropertiesSurface* GetProperties()
+  {
+    return (LayerPropertiesSurface*)mProperties;
+  }
+  
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
 
@@ -184,7 +188,6 @@ protected:
 
   virtual void OnSlicePositionChanged( int nPlane );
 
-  LayerPropertiesSurface*     mProperties;
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkPlane>     mReslicePlane[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];

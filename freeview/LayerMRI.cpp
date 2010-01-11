@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/07 23:33:04 $
- *    $Revision: 1.49 $
+ *    $Date: 2010/01/11 21:30:14 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -130,8 +130,7 @@ LayerMRI::~LayerMRI()
 	m_propVolume->Delete();
 	
   if ( m_sFilename.size() > 0 )
-    mProperties->SaveSettings( m_sFilename.c_str() );
-	delete mProperties;
+    GetProperties()->SaveSettings( m_sFilename.c_str() );
 	
 	if ( m_volumeSource )
 		delete m_volumeSource;
@@ -176,8 +175,8 @@ bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
   InitializeVolume();
   InitializeActors();
 
-  mProperties->SetVolumeSource( m_volumeSource );
-  mProperties->RestoreSettings( m_sFilename.c_str() );
+  GetProperties()->SetVolumeSource( m_volumeSource );
+  GetProperties()->RestoreSettings( m_sFilename.c_str() );
   
   return true;
 }
@@ -205,14 +204,14 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type )
 
     InitializeActors();
 
-    mProperties->SetVolumeSource( m_volumeSource );
+    GetProperties()->SetVolumeSource( m_volumeSource );
     // mProperties->SetColorMap( LayerPropertiesMRI::LUT );
 
     m_sFilename = "";
 
     if ( bCopyVoxelData )
     {
-      mProperties->CopySettings( mri->mProperties ); 
+      GetProperties()->CopySettings( mri->GetProperties() ); 
       SetModified();
     }
   }
@@ -346,7 +345,7 @@ void LayerMRI::InitializeActors()
     // Image to colors using color table.
     //
     mColorMap[i] = vtkSmartPointer<vtkImageMapToColors>::New();
-    mColorMap[i]->SetLookupTable( mProperties->GetGrayScaleTable() );
+    mColorMap[i]->SetLookupTable( GetProperties()->GetGrayScaleTable() );
     mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
     mColorMap[i]->SetOutputFormatToRGBA();
     mColorMap[i]->PassAlphaToOutputOn();
@@ -371,19 +370,19 @@ void LayerMRI::UpdateOpacity()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetOpacity( mProperties->GetOpacity() );
-    m_sliceActor3D[i]->SetOpacity( mProperties->GetOpacity() );
+    m_sliceActor2D[i]->SetOpacity( GetProperties()->GetOpacity() );
+    m_sliceActor3D[i]->SetOpacity( GetProperties()->GetOpacity() );
   }
 }
 
 void LayerMRI::UpdateColorMap ()
 {
-  assert( mProperties );
+  assert( GetProperties() );
 
   for ( int i = 0; i < 3; i++ )
     mColorMap[i]->SetActiveComponent( m_nActiveFrame );
 
-  switch ( mProperties->GetColorMap() )
+  switch ( GetProperties()->GetColorMap() )
   {
   case LayerPropertiesMRI::NoColorMap:
     for ( int i = 0; i < 3; i++ )
@@ -391,23 +390,23 @@ void LayerMRI::UpdateColorMap ()
     break;
   case LayerPropertiesMRI::Grayscale:
     for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( mProperties->GetGrayScaleTable() );
-    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetGrayScaleTable() );
+      mColorMap[i]->SetLookupTable( GetProperties()->GetGrayScaleTable() );
+    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetGrayScaleTable() );
     break;
   case LayerPropertiesMRI::Heat:
     for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( mProperties->GetHeatScaleTable() );
-    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetHeatScaleTable() );
+      mColorMap[i]->SetLookupTable( GetProperties()->GetHeatScaleTable() );
+    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetHeatScaleTable() );
     break;
   case LayerPropertiesMRI::Jet:
     for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( mProperties->GetJetScaleTable() );
-    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetJetScaleTable() );
+      mColorMap[i]->SetLookupTable( GetProperties()->GetJetScaleTable() );
+    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetJetScaleTable() );
     break;
   case LayerPropertiesMRI::LUT:
     for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( mProperties->GetLUTTable() );
-    m_actorContour->GetMapper()->SetLookupTable( mProperties->GetLUTTable() );
+      mColorMap[i]->SetLookupTable( GetProperties()->GetLUTTable() );
+    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetLUTTable() );
     break;
   default:
     break;
@@ -416,25 +415,25 @@ void LayerMRI::UpdateColorMap ()
 
 void LayerMRI::UpdateResliceInterpolation ()
 {
-  assert( mProperties );
+  assert( GetProperties() );
 
   for ( int i = 0; i < 3; i++ )
   {
     if ( mReslice[i].GetPointer() )
     {
-      mReslice[i]->SetInterpolationMode( mProperties->GetResliceInterpolation() );
+      mReslice[i]->SetInterpolationMode( GetProperties()->GetResliceInterpolation() );
     }
   }
 }
 
 void LayerMRI::UpdateTextureSmoothing ()
 {
-  assert( mProperties );
+  assert( GetProperties() );
 
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetInterpolate( mProperties->GetTextureSmoothing() );
-    m_sliceActor3D[i]->SetInterpolate( mProperties->GetTextureSmoothing() );
+    m_sliceActor2D[i]->SetInterpolate( GetProperties()->GetTextureSmoothing() );
+    m_sliceActor3D[i]->SetInterpolate( GetProperties()->GetTextureSmoothing() );
   }
 }
 
@@ -482,14 +481,14 @@ void LayerMRI::ShowContour()
 
 void LayerMRI::UpdateContourColor()
 {
-  if ( mProperties->GetContourUseImageColorMap() )
+  if ( GetProperties()->GetContourUseImageColorMap() )
   {
     m_actorContour->GetMapper()->ScalarVisibilityOn();
   }
   else
   {
     m_actorContour->GetMapper()->ScalarVisibilityOff();
-    m_actorContour->GetProperty()->SetColor( mProperties->GetContourColor() );
+    m_actorContour->GetProperty()->SetColor( GetProperties()->GetContourColor() );
   }
   UpdateColorMap();
 }
@@ -511,7 +510,7 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
   wxASSERT ( nPlane >= 0 && nPlane <= 2 );
 
-  if ( mProperties->GetDisplayVector() || mProperties->GetDisplayTensor() )
+  if ( GetProperties()->GetDisplayVector() || GetProperties()->GetDisplayTensor() )
     renderer->AddViewProp( m_glyphActor2D[nPlane] );
   else
     renderer->AddViewProp( m_sliceActor2D[nPlane] );
@@ -524,7 +523,7 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 	{
 		if ( !bContour && ( bSliceVisibility == NULL || bSliceVisibility[i] ) )
     {
-      if ( mProperties->GetDisplayVector() || mProperties->GetDisplayTensor() )
+      if ( GetProperties()->GetDisplayVector() || GetProperties()->GetDisplayTensor() )
         renderer->AddViewProp( m_glyphActor3D[i] );
 			else
         renderer->AddViewProp( m_sliceActor3D[i] );
@@ -572,7 +571,7 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
   if ( m_volumeSource == NULL || nPlane < 0 || nPlane > 2)
     return;
 
-  assert( mProperties );
+  assert( GetProperties() );
  
   // display slice image
   vtkSmartPointer<vtkMatrix4x4> matrix =
@@ -630,19 +629,14 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
       break;
   }
   // display 4D data as vector
-  if ( mProperties->GetDisplayVector() )
+  if ( GetProperties()->GetDisplayVector() )
   {
     UpdateVectorActor( nPlane );
   }
-  else if ( mProperties->GetDisplayTensor() )
+  else if ( GetProperties()->GetDisplayTensor() )
   {
     UpdateTensorActor( nPlane );
   }
-}
-
-LayerPropertiesMRI* LayerMRI::GetProperties()
-{
-  return mProperties;
 }
 
 void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
@@ -688,8 +682,8 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void*
   {
     for ( int i = 0; i < 3; i++ )
     {
-      if ( mProperties->GetDisplayTensor() && 
-           mProperties->GetTensorRepresentation() == LayerPropertiesMRI::TR_Ellipsoid )
+      if ( GetProperties()->GetDisplayTensor() && 
+           GetProperties()->GetTensorRepresentation() == LayerPropertiesMRI::TR_Ellipsoid )
       {
         m_glyphActor2D[i]->GetProperty()->SetInterpolationToGouraud();
         m_glyphActor3D[i]->GetProperty()->SetInterpolationToGouraud();
@@ -700,12 +694,13 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void*
         m_glyphActor3D[i]->GetProperty()->SetInterpolationToFlat();
       }
     }
-    if ( mProperties->GetDisplayVector() )
+    if ( GetProperties()->GetDisplayVector() )
       this->UpdateVectorActor();
-    else if ( mProperties->GetDisplayTensor() )
+    else if ( GetProperties()->GetDisplayTensor() )
       this->UpdateTensorActor();
     this->SendBroadcast( iMessage, this, this );
   }
+  LayerVolumeBase::DoListenToMessage( iMessage, iData, sender );
 }
 
 void LayerMRI::SetVisible( bool bVisible )
@@ -1245,7 +1240,7 @@ void LayerMRI::GetRASCenter( double* rasPt )
 
 void LayerMRI::UpdateVoxelValueRange( double dValue )
 {
-  mProperties->UpdateValueRange( dValue );
+  GetProperties()->UpdateValueRange( dValue );
 }
 
 // Get voxel value range of a selected rectangle region defined by pt0, pt1

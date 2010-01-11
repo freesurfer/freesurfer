@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/08 22:21:21 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -64,6 +64,8 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_SHOW_VERTICES" ),       PanelSurface::OnCheckShowVertices )
   EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_VERTEX" ),     PanelSurface::OnColorVertex )
   EVT_SPINCTRL        ( XRCID( "ID_SPIN_VERTEX_POINT_SIZE" ),       PanelSurface::OnSpinVertexPointSize )
+  
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HIDE_INFO" ),           PanelSurface::OnCheckHideInfo )
 
   EVT_CHOICE          ( XRCID( "ID_CHOICE_CURVATURE_MAP" ),         PanelSurface::OnChoiceCurvatureMap )
   EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPointChanging )
@@ -83,7 +85,7 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_OPACITY" ),   PanelSurface::OnSliderOpacity )
   EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_OPACITY" ),       PanelSurface::OnTextOpacity )
   
-  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_POSITION" ),       PanelSurface::OnTextPosition )
+  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_POSITION" ),      PanelSurface::OnTextPosition )
 END_EVENT_TABLE()
 
 
@@ -115,23 +117,23 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_textFileName        = XRCCTRL( *this, "ID_TEXT_FILENAME",         wxTextCtrl );
   m_spinEdgeThickness   = XRCCTRL( *this, "ID_SPIN_EDGE_THICKNESS",   wxSpinCtrl );
 
-  m_choiceVector        = XRCCTRL( *this, "ID_CHOICE_VECTORS",        wxChoice );
-  m_colorPickerVector   = XRCCTRL( *this, "ID_COLOR_PICKER_VECTOR",   wxColourPickerCtrl );
-  m_spinVectorPointSize = XRCCTRL( *this, "ID_SPIN_VECTOR_POINT_SIZE", wxSpinCtrl );
+  m_choiceVector        = XRCCTRL( *this, "ID_CHOICE_VECTORS",          wxChoice );
+  m_colorPickerVector   = XRCCTRL( *this, "ID_COLOR_PICKER_VECTOR",     wxColourPickerCtrl );
+  m_spinVectorPointSize = XRCCTRL( *this, "ID_SPIN_VECTOR_POINT_SIZE",  wxSpinCtrl );
 
-  m_sliderOpacity       = XRCCTRL( *this, "ID_SLIDER_OPACITY",        wxSlider );
+  m_sliderOpacity       = XRCCTRL( *this, "ID_SLIDER_OPACITY",          wxSlider );
 
-  m_choiceCurvatureMap  = XRCCTRL( *this, "ID_CHOICE_CURVATURE_MAP",  wxChoice );
-  m_sliderMidPoint      = XRCCTRL( *this, "ID_SLIDER_MID_POINT",      wxSlider );
-  m_sliderSlope         = XRCCTRL( *this, "ID_SLIDER_SLOPE",          wxSlider );
-  m_textMidPoint        = XRCCTRL( *this, "ID_TEXT_MID_POINT",        wxTextCtrl );
-  m_textSlope           = XRCCTRL( *this, "ID_TEXT_SLOPE",            wxTextCtrl );
+  m_choiceCurvatureMap  = XRCCTRL( *this, "ID_CHOICE_CURVATURE_MAP",    wxChoice );
+  m_sliderMidPoint      = XRCCTRL( *this, "ID_SLIDER_MID_POINT",        wxSlider );
+  m_sliderSlope         = XRCCTRL( *this, "ID_SLIDER_SLOPE",            wxSlider );
+  m_textMidPoint        = XRCCTRL( *this, "ID_TEXT_MID_POINT",          wxTextCtrl );
+  m_textSlope           = XRCCTRL( *this, "ID_TEXT_SLOPE",              wxTextCtrl );
   
-  m_choiceRenderMode    = XRCCTRL( *this, "ID_CHOICE_RENDER_MODE",    wxChoice );
+  m_choiceRenderMode    = XRCCTRL( *this, "ID_CHOICE_RENDER_MODE",      wxChoice );
   m_choiceMeshColorMap  = XRCCTRL( *this, "ID_CHOICE_MESH_COLORMAP",    wxChoice );
   m_checkShowVertices   = XRCCTRL( *this, "ID_CHECKBOX_SHOW_VERTICES",  wxCheckBox );
-  m_colorPickerVertex   = XRCCTRL( *this, "ID_COLOR_PICKER_VERTEX",   wxColourPickerCtrl );
-  m_spinVertexPointSize   = XRCCTRL( *this, "ID_SPIN_VERTEX_POINT_SIZE",   wxSpinCtrl );
+  m_colorPickerVertex   = XRCCTRL( *this, "ID_COLOR_PICKER_VERTEX",     wxColourPickerCtrl );
+  m_spinVertexPointSize = XRCCTRL( *this, "ID_SPIN_VERTEX_POINT_SIZE",  wxSpinCtrl );
   
   m_choiceOverlay       = XRCCTRL( *this, "ID_CHOICE_OVERLAY",        wxChoice );
   m_btnOverlayConfiguration 
@@ -140,6 +142,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   m_choiceAnnotation    = XRCCTRL( *this, "ID_CHOICE_ANNOTATION",     wxChoice );
   
   m_textPosition        = XRCCTRL( *this, "ID_TEXT_POSITION",         wxTextCtrl );
+  
+  m_checkHideInfo       = XRCCTRL( *this, "ID_CHECKBOX_HIDE_INFO",    wxCheckBox );
 
   m_widgetsSlope.push_back( m_sliderSlope );
   m_widgetsSlope.push_back( m_textSlope );
@@ -274,23 +278,12 @@ void PanelSurface::DoUpdateUI()
       double* dPos = layer->GetProperties()->GetPosition();
       wxString value_strg = ( (wxString)_("") << dPos [0] << _(" ") << dPos[1] << _(" ") << dPos[2] );
       m_textPosition->ChangeValue( value_strg );
+      
+  //    m_checkHideInfo->SetValue( !layer->GetProperties()->GetShowInfo() );
     }
 
     lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );
   }
- /*  
-  MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
-   
-  m_btnDelete->Enable( bHasSurface && !mainWnd->IsProcessing() );
-  m_btnSurfaceMain->Enable( bHasSurface );
-  m_btnSurfaceInflated->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) );
-  m_btnSurfaceWhite->Enable ( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) );
-  m_btnSurfacePial->Enable ( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
-  m_btnSurfaceOriginal->Enable( bHasSurface && surf && surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) );
-// m_colorPicker->Enable( layer );
-// m_colorPickerEdge->Enable( layer );
-// m_choiceVector->Enable( layer );
-  */
 
   m_choiceVector->Clear();
   m_choiceVector->Append( _("Off") );
@@ -770,3 +763,13 @@ void PanelSurface::OnTextPosition( wxCommandEvent& event )
     UpdateUI();
   }  
 }
+
+void PanelSurface::OnCheckHideInfo( wxCommandEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    surf->GetProperties()->SetShowInfo( !event.IsChecked() );
+  }  
+}
+

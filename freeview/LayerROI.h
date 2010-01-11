@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/03/20 19:03:53 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/01/11 21:30:15 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -65,7 +65,10 @@ public:
   void SetVisible( bool bVisible = true );
   bool IsVisible();
 
-  LayerPropertiesROI* GetProperties();
+  inline LayerPropertiesROI* GetProperties()
+  {
+    return (LayerPropertiesROI*)mProperties;
+  }
 
   bool SaveROI( wxWindow* wnd, wxCommandEvent& event );
 
@@ -80,8 +83,6 @@ protected:
   virtual void SetModified();
 
   virtual void OnSlicePositionChanged( int nPlane );
-
-  LayerPropertiesROI*      mROIProperties;
 
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkImageReslice>   mReslice[3];

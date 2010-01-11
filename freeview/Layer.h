@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/06 21:46:47 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/01/11 21:30:14 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@ class vtkRenderer;
 class vtkProp;
 class wxWindow;
 class wxCommandEvent;
+class LayerProperties;
 
 class Layer : public Listener, public Broadcaster
 {
@@ -106,16 +107,24 @@ public:
   void Lock( bool bLock );
 
   std::string GetEndType();
+  
+  inline LayerProperties* GetProperties()
+  {
+    return mProperties;
+  }
 
 protected:
+  virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );
   std::string  m_strName;
-  double   m_dSlicePosition[3];
-  double   m_dWorldOrigin[3];
-  double   m_dWorldVoxelSize[3];
+  double    m_dSlicePosition[3];
+  double    m_dWorldOrigin[3];
+  double    m_dWorldVoxelSize[3];
   double    m_dWorldSize[3];
 
   bool   m_bLocked;
 
+  LayerProperties*  mProperties;  
+      
   std::string  m_strError;
   std::vector<std::string> m_strTypeNames;
 };
