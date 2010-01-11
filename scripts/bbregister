@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/12/16 20:01:32 $
-#    $Revision: 1.31 $
+#    $Date: 2010/01/11 17:59:01 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.31 2009/12/16 20:01:32 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.32 2010/01/11 17:59:01 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -54,6 +54,7 @@ set Offset2 = 0;
 set Contrast = ()
 set TolF = 1e-8;
 set Tol1D = 1e-3;
+set nPowellMax = 36;
 set DOF = 6;
 set FSLDOF = 6;
 
@@ -209,7 +210,8 @@ set MinCostFile = $outreg.mincost; # This will be the final cost
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
-  --c0 $Offset2 --mincost $MinCostFile --dof $DOF)
+  --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
+  --nmax $nPowellMax)
 if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
 if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
 if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
@@ -502,7 +504,7 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set Tol = $argv[1]; shift;
       set TolF = $Tol
-      set Tol1D = $Tol
+      # set Tol1D = $Tol; only set tolf!
       breaksw
 
     case "--tolf":
@@ -513,6 +515,11 @@ while( $#argv != 0 )
     case "--tol1d":
       if ( $#argv < 1) goto arg1err;
       set Tol1D = $argv[1]; shift;
+      breaksw
+
+    case "--nmax":
+      if ( $#argv < 1) goto arg1err;
+      set nPowellMax = $argv[1]; shift;
       breaksw
 
     case "--gm-proj-frac":
@@ -723,9 +730,10 @@ usage_exit:
   echo "   --slope1 slope1 : cost slope for 1st stage (default is $Slope1)"
   echo "   --slope2  slope2 : cost slope for 2nd stage (default is $Slope2)"
   echo "   --offset2 offset2 : cost offset for 2nd stage (default is $Offset2)"
-  echo "   --tol tol : 2nd stage tolerance (1D and F)"
+  echo "   --tol tol : 2nd stage loop tolerance (same as --tolf)"
+  echo "   --tolf  tolf : 2nd stage loop tolerance (same as --tol)"
   echo "   --tol1d tol1d : 2nd stage 1D tolerance "
-  echo "   --tolf  tolf : 2nd stage F tolerance "
+  echo "   --nmax nPowellMax : set max number of iterations (default $nPowellMax)"
   echo "   --rand-init randmax : randomly change input to 1st stage reg"
   echo "   --gm-proj-frac frac : default is 0.5"
   echo "   --gm-proj-abs abs   : use absolute instead of relative"
@@ -822,6 +830,18 @@ SPM8.
 
 (requires "newer" versions of SPM). 
 Ordinarily, 
+
+
+TOLERANCES
+
+There are three tolerances that can be set:
+1. The 1D minimization tolerance (--tol1d, default 1e-3).
+2. Loop tolerance (--tolf, default 1e-8).
+3. The maximum number of iterations (36).
+
+Be careful making these more stringent as they can cause 
+underflows and NaNs.
+
 
 EXAMPLES:
 
