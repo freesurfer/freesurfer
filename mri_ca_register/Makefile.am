@@ -34,7 +34,7 @@ include $(top_srcdir)/Makefile.extra
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 
-NVCCFLAGS += -arch sm_13
+NVCCFLAGS += -g -arch sm_13 --ptxas-options=-v
 
 # rules for building cuda files
 .cu.o:
