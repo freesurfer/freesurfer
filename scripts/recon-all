@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/12/11 19:40:42 $
-#    $Revision: 1.260 $
+#    $Date: 2010/01/12 20:14:27 $
+#    $Revision: 1.261 $
 #
-# Copyright (C) 2002-2009,
+# Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.260 2009/12/11 19:40:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.261 2010/01/12 20:14:27 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -176,6 +176,7 @@ set face_template  = face.gca
 # For subcortical segmentation
 set GCA      = RB_all_2008-03-26.gca
 set GCASkull = RB_all_withskull_2008-03-26.gca
+set GCADIR   = "${FREESURFER_HOME}/average"
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "${FREESURFER_HOME}/average"
@@ -187,6 +188,7 @@ set AvgCurvTif = average.curvature.filled.buckner40.tif
 set OLD_OLD_GCS = curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
 set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
 set GCS = curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
+set GCSDIR = "${FREESURFER_HOME}/average"
 
 # Christophe Destrieux cortical parcellation atlas (-cortparc2):
 set OLD_OLD_DESTRIEUX_GCS = atlas2002_simple.gcs
@@ -462,9 +464,11 @@ mri_or -all-info >> $LF
 mri_fuse_segmentations -all-info >> $LF
 
 echo "#######################################" >> $LF
+echo "GCADIR $GCADIR" >> $LF
 echo "GCA $GCA" >> $LF
 echo "GCASkull $GCASkull" >> $LF
 echo "AvgCurvTif $AvgCurvTif" >> $LF
+echo "GCSDIR $GCSDIR" >> $LF
 echo "GCS $GCS" >> $LF
 echo "#######################################" >> $LF
 
@@ -1259,7 +1263,7 @@ skullstrip:
         set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
         set cmd2 = (mri_em_register)
         set cmd2 = ($cmd2 -skull)
-        set cmd2 = ($cmd2 $xopts2 nu.mgz $FREESURFER_HOME/average/$GCASkull)
+        set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
         set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
         echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $cmd2 |& tee -a $LF
@@ -1271,10 +1275,10 @@ skullstrip:
     if ($WSGcaAtlas) then
       # if just using -brain_atlas flag, then include necessary options
       if ($WSUseTalXfm) then
-        set opts = (-brain_atlas $FREESURFER_HOME/average/$GCASkull \
+        set opts = (-brain_atlas ${GCADIR}/$GCASkull \
                     transforms/talairach.xfm $opts)
       else
-        set opts = (-brain_atlas $FREESURFER_HOME/average/$GCASkull \
+        set opts = (-brain_atlas ${GCADIR}/$GCASkull \
                     transforms/talairach_with_skull.lta $opts)
       endif
     endif
@@ -1355,7 +1359,7 @@ skullstrip:
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
         set LTA = transforms/talairach_with_skull.lta
         set cmd = (mri_log_likelihood -orig T1.mgz $BMA)
-        set cmd = ($cmd $xopts $FREESURFER_HOME/average/$GCA $LTA)
+        set cmd = ($cmd $xopts ${GCADIR}/$GCA $LTA)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) then
           $fs_time $cmd |& tee -a $LF |& tee -a ll_tmp
@@ -1482,12 +1486,12 @@ if($DoGCAReg) then
     if($DoCreateBaseSubj) then
       # base subj processing (norm_template instead of nu, and no mask needed):
       set cmd = (mri_em_register -mask brainmask.mgz $xopts \
-                  norm_template.mgz $FREESURFER_HOME/average/$GCA \
+                  norm_template.mgz ${GCADIR}/$GCA \
                   transforms/talairach.lta)
     else
       # default processing:
       set cmd = (mri_em_register -mask brainmask.mgz $xopts \
-                  nu.mgz $FREESURFER_HOME/average/$GCA \
+                  nu.mgz ${GCADIR}/$GCA \
                   transforms/talairach.lta)
     endif
   endif
@@ -1535,7 +1539,7 @@ if($DoCANormalize) then
     # default stream
     set cmd = ($cmd nu.mgz)
   endif
-  set cmd = ($cmd $FREESURFER_HOME/average/$GCA)
+  set cmd = ($cmd ${GCADIR}/$GCA)
   set cmd = ($cmd transforms/talairach.lta norm.mgz)
 
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -1569,7 +1573,7 @@ if($DoCAReg) then
   set cmd = ($cmd $UseCAAlignAfter)
   set cmd = ($cmd -mask brainmask.mgz)
   set cmd = ($cmd $xopts norm.mgz \
-             $FREESURFER_HOME/average/$GCA \
+             ${GCADIR}/$GCA \
              transforms/talairach.m3z)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1614,7 +1618,7 @@ if($DoRemoveNeck) then
   endif
   set cmd = (mri_remove_neck -radius $RmNeckRadius $xopts \
              nu.mgz $xform \
-             $FREESURFER_HOME/average/$GCA nu_noneck.mgz)
+             ${GCADIR}/$GCA nu_noneck.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -1628,7 +1632,7 @@ if($DoSkullLTA) then
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
   set cmd = (mri_em_register -skull -t transforms/talairach.lta \
-     $xopts nu_noneck.mgz $FREESURFER_HOME/average/$GCASkull \
+     $xopts nu_noneck.mgz ${GCADIR}/$GCASkull \
      transforms/talairach_with_skull.lta)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1730,7 +1734,7 @@ if($DoCALabel) then
   endif
   set cmd = ($cmd $xopts norm.mgz)
   set cmd = ($cmd transforms/talairach.m3z)
-  set cmd = ($cmd $FREESURFER_HOME/average/$GCA)
+  set cmd = ($cmd ${GCADIR}/$GCA)
   set cmd = ($cmd ${asegbasename}.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -2413,7 +2417,7 @@ foreach hemi ($hemilist)
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
-    set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS
+    set CPAtlas = ${GCSDIR}/$hemi.$GCS
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
@@ -2459,7 +2463,7 @@ foreach hemi ($hemilist)
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
-    set CPAtlas = $FREESURFER_HOME/average/${hemi}.${DESTRIEUX_GCS}
+    set CPAtlas = ${GCSDIR}/${hemi}.${DESTRIEUX_GCS}
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
@@ -2593,7 +2597,7 @@ if($DoSegStats) then
     echo "\nINFO: ?h.white surfaces not available to mri_segstats.\n"\
      |& tee -a $SF |& tee -a $LF |& tee -a $CF
   endif
-  #set cmd = ($cmd --ctab-gca $FREESURFER_HOME/average/$GCA)
+  #set cmd = ($cmd --ctab-gca ${GCADIR}/$GCA)
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd --subject $subjid $xopts);
   $PWD |& tee -a $LF
@@ -3296,9 +3300,19 @@ while( $#argv != 0 )
       set GCASkull = $argv[1]; shift;
       breaksw
 
+    case "-gca-dir":
+      if ( $#argv < 1) goto arg1err;
+      set GCADIR = $argv[1]; shift;
+      breaksw
+
     case "-gcs":
       if ( $#argv < 1) goto arg1err;
       set GCS = $argv[1]; shift;
+      breaksw
+
+    case "-gcs-dir":
+      if ( $#argv < 1) goto arg1err;
+      set GCSDIR = $argv[1]; shift;
       breaksw
 
     case "-fill":
@@ -4484,13 +4498,13 @@ check_params:
     exit 1;
   endif
 
-  if(! -e $FREESURFER_HOME/average/$GCA ) then
-    echo "ERROR: cannot find $FREESURFER_HOME/average/$GCA" |& tee -a $LF
+  if(! -e ${GCADIR}/$GCA ) then
+    echo "ERROR: cannot find ${GCADIR}/$GCA" |& tee -a $LF
     exit 1;
   endif
 
-  if(! -e $FREESURFER_HOME/average/$GCASkull ) then
-    echo "ERROR: cannot find $FREESURFER_HOME/average/$GCASkull" \
+  if(! -e ${GCADIR}/$GCASkull ) then
+    echo "ERROR: cannot find ${GCADIR}/$GCASkull" \
       |& tee -a $LF
     exit 1;
   endif
@@ -4501,12 +4515,12 @@ check_params:
       echo "ERROR: cannot find $avgtif."
       exit 1;
     endif
-    set GCSHemi = $FREESURFER_HOME/average/$hemi.$GCS
+    set GCSHemi = ${GCSDIR}/$hemi.$GCS
     if(! -e $GCSHemi) then
       echo "ERROR: cannot find $GCSHemi."
       exit 1;
     endif
-    set CPAtlas = $FREESURFER_HOME/average/$hemi.$GCS
+    set CPAtlas = ${GCSDIR}/$hemi.$GCS
     if(! -e $CPAtlas) then
       echo "ERROR: cannot find $CPAtlas."
       exit 1;
@@ -5042,7 +5056,8 @@ tkmedit and record the Volume Index values (NOT the XYZ coordinates).
 
 Specify the name of the gaussian classifier array (GCA) file
 to be used with GCA registration and automatic subcortical
-segmentation. It must be found in the FREESURFER_HOME/average directory.
+segmentation. It must be found in the FREESURFER_HOME/average directory (or
+use -gca-dir to specify an alternate path).
 The Default is RB_all_YYYY-MM-DD.gca located in
 FREESURFER_HOME/average. This has no effect unless the GCA registration
 or subcortical segmentation stages are to be performed.
@@ -5051,14 +5066,16 @@ or subcortical segmentation stages are to be performed.
 
 Specify the name of the gaussian classifier array (GCA) file to be used with
 registration with skull.  It must be found in the FREESURFER_HOME/average
-directory. The default is RB_all_withskull_YYYY-MM-DD.gca located in
+directory (or use -gca-dir to specify an alternate path).
+The default is RB_all_withskull_YYYY-MM-DD.gca located in
 FREESURFER_HOME/average.
 
 -gcs gcsfile
 
 Specify the name of the gaussian classifier surface atlas (GCS) file
 to be used for the cortical parcellation stage. It must be found in the
-FREESURFER_HOME/average directory. The default is named
+FREESURFER_HOME/average directory (or use -gcs-dir to specify an alternate 
+path). The default is named 
 curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs and is located in
 FREESURFER_HOME/average.
 
