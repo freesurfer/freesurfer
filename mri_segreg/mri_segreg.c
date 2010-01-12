@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/01/07 15:50:17 $
- *    $Revision: 1.90 $
+ *    $Date: 2010/01/12 00:07:27 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -211,7 +211,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.90 2010/01/07 15:50:17 greve Exp $";
+"$Id: mri_segreg.c,v 1.91 2010/01/12 00:07:27 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -351,13 +351,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.90 2010/01/07 15:50:17 greve Exp $",
+     "$Id: mri_segreg.c,v 1.91 2010/01/12 00:07:27 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.90 2010/01/07 15:50:17 greve Exp $",
+     "$Id: mri_segreg.c,v 1.91 2010/01/12 00:07:27 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1770,6 +1770,7 @@ int MRISbbrSurfs(char *subject)
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
   if(UseLH){
+    printf("Projecting LH Surfs\n");
     // Load the LH white surface, project it into WM and Ctx
     printf("Loading lh.%s surf\n",surfname);
     sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,surfname);
@@ -1792,7 +1793,6 @@ int MRISbbrSurfs(char *subject)
 
     printf("GM Proj: %d %lf %lf\n",DoGMProjFrac,GMProjFrac,GMProjAbs);
     printf("WM Proj: %d %lf %lf\n",DoWMProjFrac,WMProjFrac,WMProjAbs);
-    printf("Projecting LH Surfs\n");
     for(n = 0; n < lhwm->nvertices; n++){
       if(DoWMProjAbs)  ProjNormDist(&fx, &fy, &fz, lhwm,  n, -WMProjAbs);
       if(DoWMProjFrac) ProjNormFracThick(&fx, &fy, &fz, lhwm,  n, -WMProjFrac);
@@ -1836,8 +1836,8 @@ int MRISbbrSurfs(char *subject)
     }
   }
 
-  printf("Projecting RH Surfs\n");
   if(UseRH){
+    printf("Projecting RH Surfs\n");
     // Load the RH white surface, project it into WM and Ctx
     printf("Loading rh.%s surf\n",surfname);
     sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,surfname);
