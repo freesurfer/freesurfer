@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 15:11:41 $
- *    $Revision: 1.389 $
+ *    $Date: 2010/01/12 12:19:49 $
+ *    $Revision: 1.390 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -765,6 +765,8 @@ int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 
 #include "histo.h" // HISTOGRAM
+HISTOGRAM *MRIhistogramVoxel(MRI *mri, int nbins, HISTOGRAM *histo, int x0, int y0, int z0,
+                             int wsize, MRI *mri_thresh, float thresh) ;
 int        *MRIhistogramLabels(MRI *mri, int *counts, int max_label);
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 HISTOGRAM  *MRIhistogramLabel(MRI *mri, MRI *mri_labeled,
