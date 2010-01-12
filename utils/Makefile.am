@@ -146,7 +146,6 @@ libutils_main_SOURCES=\
 	mriclass.c \
 	mri_conform.c \
 	mricurv.c \
-	mrifilter.c \
 	mriflood.c \
 	mriFunctionalDataAccess.c \
 	mriHeadPointList.c \
@@ -229,6 +228,16 @@ libutils_main_SOURCES=\
 	mriio_nrrd_itk.cpp \
 	numerics.cpp
 
+# libutils_cpu_SOURCES and libutils_gpu_SOURCES are paired, for use in
+# implementing GPU (CUDA-based) routines to replace its CPU implementation.
+# see libutils_a_SOURCES and libutils_cuda_a_SOURCES below to see how these
+# are used.
+libutils_cpu_SOURCES=\
+	mrifilter.c
+
+libutils_gpu_SOURCES=\
+	mrifilter.c
+
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \
 	$(srcdir)/$(cephes_dir)/chdtr.c \
@@ -291,8 +300,30 @@ libutils_nrrdio_SOURCES=\
 
 libutils_a_SOURCES=\
 	$(libutils_main_SOURCES) \
+	$(libutils_cpu_SOURCES) \
 	$(libutils_cephes_SOURCES) \
 	$(libutils_nrrdio_SOURCES)
+
+## ----
+## CUDA
+## ----
+
+# BUILDCUDA is defined if configure.in finds CUDA
+if BUILDCUDA
+# rules for building cuda files
+.cu.o:
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
+
+noinst_LIBRARIES += libutils_cuda.a
+
+libutils_cuda_a_SOURCES=\
+	$(libutils_main_SOURCES) \
+	$(libutils_gpu_SOURCES) \
+	$(libutils_cephes_SOURCES) \
+	$(libutils_nrrdio_SOURCES)
+endif
+
+
 
 bin_PROGRAMS=gifti_tool gifti_test
 gifti_tool_SOURCES=gifti_tool.c gifti_tool.h \
