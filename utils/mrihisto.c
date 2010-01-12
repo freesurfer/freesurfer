@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 18:54:41 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/01/12 16:21:37 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,6 +58,11 @@
 /*-----------------------------------------------------
   STATIC PROTOTYPES
   -------------------------------------------------------*/
+static HISTOGRAM *mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
+                                                  MRI_REGION *region, MRI *mri_thresh, 
+                                                  float thresh);
+static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
+                                     MRI_REGION *region);
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
                                      MRI_REGION *region);
 static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo,
@@ -1266,4 +1271,133 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   else
     MRIvox(mri_labeled, x, y, z) = MRI_NOT_WHITE ;
   return(mri_labeled) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+HISTOGRAM *
+MRIhistogramVoxel(MRI *mri, int nbins, HISTOGRAM *histo, int x0, int y0, int z0,
+                  int wsize, MRI *mri_thresh, float thresh)
+{
+  int               whalf ;
+  float             fmin, fmax, bin_size ;
+  MRI_REGION        region ;
+
+  whalf = (wsize-1)/2 ;
+  region.x = x0 - whalf ; region.dx = wsize ;
+  region.y = y0 - whalf ; region.dy = wsize ;
+  region.z = z0 - whalf ; region.dz = wsize ;
+  MRIvalRangeRegion(mri, &fmin, &fmax, &region) ;
+  if (nbins <= 0)
+    nbins = nint(fmax - fmin + 1.0) ;
+  if (nbins <= 0)
+    nbins = 255 ;
+
+  if (!histo)
+    histo = HISTOalloc(nbins) ;
+  else
+  {
+    if (histo->nbins < nbins)
+      HISTOrealloc(histo, nbins) ;
+    else
+      histo->nbins = nbins;
+  }
+  HISTOclear(histo, histo) ;
+  bin_size = (fmax - fmin + 1) / (float)nbins ;
+  histo->bin_size = bin_size ;
+  
+  if (mri_thresh == NULL)
+    mriHistogramRegion(mri, nbins, histo, &region) ;
+  else
+    mriHistogramRegionWithThreshold(mri, nbins, histo, &region, mri_thresh, thresh) ;
+
+  HISTOsoapBubbleZeros(histo, histo,100);
+  return(histo) ;
+}
+static HISTOGRAM *
+mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
+                                MRI_REGION *region, MRI *mri_thresh, 
+                                float thresh)
+{
+  int        width, height, depth, x, y, z, bin_no, x0, y0, z0 ;
+  float      fmin, fmax, bin_size, val ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  width = region->x + region->dx ;
+  if (width > mri->width)
+    width = mri->width ;
+  height = region->y + region->dy ;
+  if (height > mri->height)
+    height = mri->height ;
+  depth = region->z + region->dz ;
+  if (depth > mri->depth)
+    depth = mri->depth ;
+  x0 = region->x ;
+  if (x0 < 0)
+    x0 = 0 ;
+  y0 = region->y ;
+  if (y0 < 0)
+    y0 = 0 ;
+  z0 = region->z ;
+  if (z0 < 0)
+    z0 = 0 ;
+
+  fmin = 1e10 ; fmax = -fmin ;
+  for (z = z0 ; z < depth ; z++)
+  {
+    for (y = y0 ; y < height ; y++)
+    {
+      for (x = x0 ; x < width ; x++)
+      {
+        val = MRIgetVoxVal(mri_thresh, x, y, z, 0) ;
+        if (val < thresh)
+          continue ;
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+        if (val < fmin)
+          fmin = val ;
+        if (val > fmax)
+          fmax = val ;
+      }
+    }
+  }
+
+  if (!nbins)
+    nbins = nint(fmax - fmin + 1.0) ;
+
+  if (!histo)
+    histo = HISTOalloc(nbins) ;
+  else
+  {
+    if (histo->nbins < nbins)
+      HISTOrealloc(histo, nbins);
+    else
+      histo->nbins = nbins;
+  }
+  HISTOclear(histo, histo) ;
+
+  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
+  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
+    histo->bins[bin_no] = (bin_no)*histo->bin_size+fmin ;
+
+  for (z = z0 ; z < depth ; z++)
+  {
+    for (y = y0 ; y < height ; y++)
+    {
+      for (x = x0 ; x < width ; x++)
+      {
+        val = MRIgetVoxVal(mri_thresh, x, y, z, 0) ;
+        if (val < thresh)
+          continue ;
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+        HISTOaddSample(histo, val, fmin, fmax) ;
+      }
+    }
+  }
+
+  return(histo) ;
 }
