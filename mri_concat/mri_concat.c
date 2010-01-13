@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/11/05 21:26:58 $
- *    $Revision: 1.42 $
+ *    $Author: mreuter $
+ *    $Date: 2010/01/13 20:27:10 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.42 2009/11/05 21:26:58 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.43 2010/01/13 20:27:10 mreuter Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -72,6 +72,7 @@ MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
 char *maskfile = NULL;
 int DoMean=0;
 int DoMeanDivN=0;
+int DoMedian=0;
 int DoSum=0;
 int DoVar=0;
 int DoStd=0;
@@ -336,6 +337,12 @@ int main(int argc, char **argv) {
     MRIfree(&mriout);
     mriout = mritmp;
   }
+  if(DoMedian) {
+    printf("Computing median across frames\n");
+    mritmp = MRIframeMedian(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
   if(DoMeanDivN) {
     printf("Computing mean2 = sum/(nframes^2)\n");
     mritmp = MRIframeSum(mriout,NULL);
@@ -469,6 +476,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--check"))    DoCheck = 1;
     else if (!strcasecmp(option, "--no-check")) DoCheck = 0;
     else if (!strcasecmp(option, "--mean"))   DoMean = 1;
+    else if (!strcasecmp(option, "--median"))   DoMedian = 1;
     else if (!strcasecmp(option, "--mean-div-n")) DoMeanDivN = 1;
     else if (!strcasecmp(option, "--mean2"))      DoMeanDivN = 1;
     else if (!strcasecmp(option, "--sum"))    DoSum = 1;
@@ -619,6 +627,7 @@ static void print_usage(void) {
   printf("   --pos  : set input negatives to 0\n");
   printf("   --neg  : set input postives to 0\n");
   printf("   --mean : compute mean of concatenated volumes\n");
+	printf("   --median : compute median of concatenated volumes\n");
   printf("   --mean-div-n : compute mean/nframes (good for var) \n");
   printf("   --sum  : compute sum of concatenated volumes\n");
   printf("   --var  : compute var  of concatenated volumes\n");
