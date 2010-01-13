@@ -1,18 +1,17 @@
 /**
  * @file  mrifilter.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief filter routines on MRI data
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/01/13 17:48:54 $
- *    $Revision: 1.75 $
+ *    $Author: nicks $
+ *    $Date: 2010/01/13 19:27:53 $
+ *    $Revision: 1.76 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2010,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,20 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   mri.c
- *
- *       DESCRIPTION: utilities for MRI  data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -273,8 +260,10 @@ MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction, MRI *mri_dir)
 #if DEBUG_OFFSET
               if (DEBUG_POINT(x,y,z))
                 fprintf(fp,
-                        "(%d, %d, %d): (%2.1f, %2.1f, %2.1f), dot = %2.2f, prod = %2.1f (%2.1f)\n",
-                        x+x0, y+y0, z+z0, dx, dy, dz, dot, (x0*ox + y0*oy + z0*oz), dir) ;
+                        "(%d, %d, %d): (%2.1f, %2.1f, %2.1f), "
+                        "dot = %2.2f, prod = %2.1f (%2.1f)\n",
+                        x+x0, y+y0, z+z0, dx, dy, dz, 
+                        dot, (x0*ox + y0*oy + z0*oz), dir) ;
 #endif
             }
           }
@@ -811,7 +800,7 @@ MRIxSobelRegion(MRI *mri_src, MRI *mri_x, int frame, MRI_REGION *region)
     mri_x->zend = mri_src->zstart + d * mri_src->zsize ;
   }
 
-  /* applying sobel in x-y plane, don't worry about boundary conditions in z  */
+  /* applying sobel in x-y plane, don't worry about boundary conditions in z */
   /* don't apply sobel to outer ring to pixels to avoid border effects */
   width-- ;
   height-- ;
@@ -864,7 +853,7 @@ MRIySobelRegion(MRI *mri_src, MRI *mri_y, int frame, MRI_REGION *region)
     MRIcopyHeader(mri_src, mri_y) ;
   }
 
-  /* applying sobel in x-y plane, don't worry about boundary conditions in z  */
+  /* applying sobel in x-y plane, don't worry about boundary conditions in z */
   /* don't apply sobel to outer ring of pixels to avoid border effects */
   width-- ;
   height-- ;
@@ -916,7 +905,7 @@ MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame, MRI_REGION *region)
     MRIcopyHeader(mri_src, mri_z) ;
   }
 
-  /* applying sobel in x-z plane, don't worry about boundary conditions in y  */
+  /* applying sobel in x-z plane, don't worry about boundary conditions in y */
   /* don't apply sobel to outer ring of pixels to avoid border effects */
   width-- ;
   depth-- ;
@@ -973,7 +962,6 @@ MRIlaplacian(MRI *mri_src, MRI *mri_laplacian)
     }
   }
 
-
   return(mri_laplacian) ;
 }
 /*-----------------------------------------------------
@@ -986,8 +974,9 @@ MRIlaplacian(MRI *mri_src, MRI *mri_laplacian)
           Compute two vectors orthogonal to each other and to a third
 ------------------------------------------------------*/
 int
-compute_tangent_vectors(float nx, float ny, float nz, 
-                        float *pe1x, float *pe1y, float *pe1z, float *pe2x, float *pe2y, float *pe2z)
+compute_tangent_vectors(float nx, float ny, float nz,
+                        float *pe1x, float *pe1y, float *pe1z, 
+                        float *pe2x, float *pe2y, float *pe2z)
 {
   float vx, vy, vz, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, len ;
 
@@ -1019,17 +1008,25 @@ compute_tangent_vectors(float nx, float ny, float nz,
   }
   else
   {
-    e1_x /= len ; e1_y /= len ; e1_z /= len ; 
+    e1_x /= len ;
+    e1_y /= len ;
+    e1_z /= len ;
   }
 
   e2_x = e1_y*nz - e1_z*ny ;
   e2_y = e1_x*nz - e1_z*nx ;
   e2_z = e1_y*nx - e1_x*ny ;
   len = sqrt(e2_x*e2_x+e2_y*e2_y+e2_z*e2_z) ;
-  e2_x /= len ; e2_y /= len ; e2_z /= len ; 
-  
-  *pe1x = e1_x ; *pe1y = e1_y ; *pe1z = e1_z ; 
-  *pe2x = e2_x ; *pe2y = e2_y ; *pe2z = e2_z ; 
+  e2_x /= len ;
+  e2_y /= len ;
+  e2_z /= len ;
+
+  *pe1x = e1_x ;
+  *pe1y = e1_y ;
+  *pe1z = e1_z ;
+  *pe2x = e2_x ;
+  *pe2y = e2_y ;
+  *pe2z = e2_z ;
 
 #if 0
   DiagFprintf(0L,
@@ -1055,7 +1052,8 @@ compute_tangent_vectors(float nx, float ny, float nz,
           compute the 2nd derivative in the specified direction
 ------------------------------------------------------*/
 MRI *
-MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv, float nx, float ny, float nz)
+MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv, 
+                            float nx, float ny, float nz)
 {
   int   x, y, z, dn, d1, d2 ;
   float deriv, xf, yf, zf, e1x, e1y, e1z, e2x, e2y, e2z, wt  = 1;
@@ -1079,16 +1077,20 @@ MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv, float nx, float ny, fl
           switch (dn)
           {
           case 1:
-          case -1: wt = 1 ; break ;
+          case -1:
+            wt = 1 ;
+            break ;
           default:
-          case 0:  wt = -2; break ;
+          case 0:
+            wt = -2;
+            break ;
           }
           for (d1 = -1 ; d1 <= 1 ; d1++)   // first tangent direction
             for (d2 = -1 ; d2 <= 1 ; d2++)   // secont tangent direction
             {
-              xf = x + dn * nx + d1 * e1x + d2 * e2x ; 
-              yf = y + dn * ny + d1 * e1y + d2 * e2y ; 
-              zf = z + dn * nz + d1 * e1z + d2 * e2z ; 
+              xf = x + dn * nx + d1 * e1x + d2 * e2x ;
+              yf = y + dn * ny + d1 * e1y + d2 * e2y ;
+              zf = z + dn * nz + d1 * e1z + d2 * e2z ;
               MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
               deriv += (val*wt) ;
             }
@@ -1140,7 +1142,7 @@ MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag)
           py = &MRIFseq_vox(mri_grad, 0, y, z, 1) ;
           pz = &MRIFseq_vox(mri_grad, 0, y, z, 2) ;
           pmag = &MRIFvox(mri_mag, 0, y, z) ;
-          
+
           for (x = 0 ; x < width ; x++)
           {
             xval = *px++ ;
@@ -1163,7 +1165,7 @@ MRIsobel(MRI *mri_src, MRI *mri_grad, MRI *mri_mag)
           py = &MRIFseq_vox(mri_grad, 0, y, z, 1) ;
           pz = &MRIFseq_vox(mri_grad, 0, y, z, 2) ;
           pmag = &MRIFvox(mri_mag, 0, y, z) ;
-          
+
           for (x = 0 ; x < width ; x++)
           {
             xval = MRIgetVoxVal(mri_grad, x, y, z, 0) ;
@@ -1210,11 +1212,12 @@ MRIxSobel(MRI *mri_src, MRI *mri_x, int frame)
 
   if (mri_src->type != MRI_UCHAR || mri_x->type != MRI_FLOAT)
     ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIxSobel: unsupported src or dst type (%d or %d)",
+                (ERROR_UNSUPPORTED, 
+                 "MRIxSobel: unsupported src or dst type (%d or %d)",
                  mri_src->type, mri_x->type)) ;
 
 
-  /* applying sobel in x-y plane, don't worry about boundary conditions in z  */
+  /* applying sobel in x-y plane, don't worry about boundary conditions in z */
   /* don't apply sobel to outer ring to pixels to avoid border effects */
   width-- ;
   height-- ;
@@ -1266,7 +1269,6 @@ MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame)
     MRIcopyHeader(mri_src, mri_x) ;
   }
 
-
   /* applying sobel in x-y plane */
   width-- ;
   height-- ;
@@ -1274,7 +1276,6 @@ MRIxSobelForAllTypes(MRI *mri_src, MRI *mri_x, int frame)
   {
     for (y = 1 ; y < height ; y++)
     {
-
       tr_pix[0] = 0;
       tr_pix[1] = y-1;
       tr_pix[2] = z;
@@ -1354,9 +1355,10 @@ MRIySobel(MRI *mri_src, MRI *mri_y, int frame)
 
   if (mri_src->type != MRI_UCHAR || mri_y->type != MRI_FLOAT)
     ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIySobel: unsupported src or dst type (%d or %d)",
+                (ERROR_UNSUPPORTED, 
+                 "MRIySobel: unsupported src or dst type (%d or %d)",
                  mri_src->type, mri_y->type)) ;
-  /* applying sobel in x-y plane, don't worry about boundary conditions in z  */
+  /* applying sobel in x-y plane, don't worry about boundary conditions in z */
   /* don't apply sobel to outer ring of pixels to avoid border effects */
   width-- ;
   height-- ;
@@ -1455,6 +1457,8 @@ MRIySobelForAllTypes(MRI *mri_src, MRI *mri_y, int frame)
 
   return(mri_y) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1487,10 +1491,11 @@ MRIzSobel(MRI *mri_src, MRI *mri_z, int frame)
 
   if (mri_src->type != MRI_UCHAR || mri_z->type != MRI_FLOAT)
     ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIzSobel: unsupported src or dst type (%d or %d)",
+                (ERROR_UNSUPPORTED, 
+                 "MRIzSobel: unsupported src or dst type (%d or %d)",
                  mri_src->type, mri_z->type)) ;
 
-  /* applying sobel in x-z plane, don't worry about boundary conditions in y  */
+  /* applying sobel in x-z plane, don't worry about boundary conditions in y */
   /* don't apply sobel to outer ring of pixels to avoid border effects */
   width-- ;
   depth-- ;
@@ -1517,6 +1522,7 @@ MRIzSobel(MRI *mri_src, MRI *mri_z, int frame)
 
   return(mri_z) ;
 }
+
 
 MRI *
 MRIzSobelForAllTypes(MRI *mri_src, MRI *mri_z, int frame)
@@ -1588,6 +1594,7 @@ MRIzSobelForAllTypes(MRI *mri_src, MRI *mri_z, int frame)
   return(mri_z) ;
 }
 
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1607,6 +1614,8 @@ MRIzScore(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_std)
   region.dx = mri_src->width ;
   return(MRIzScoreRegion(mri_src, mri_dst, mri_mean, mri_std, &region)) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1688,6 +1697,8 @@ MRIzScoreRegion(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_std,
   }
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1767,6 +1778,8 @@ MRImeanRegion(MRI *mri_src, MRI *mri_dst, int wsize,MRI_REGION *region)
   }
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1863,6 +1876,8 @@ MRIstdRegion(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize,
   }
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -1951,6 +1966,8 @@ MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize)
   }
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -2083,6 +2100,8 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 
   return(mri_dst) ;
 }
+
+
 MRI *
 MRIinvert(MRI *mri_src, MRI *mri_dst)
 {
@@ -2145,6 +2164,8 @@ MRIinvert(MRI *mri_src, MRI *mri_dst)
 #endif
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -2159,7 +2180,7 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
   static float *sort_array = NULL ;
   static int   sort_size = 0 ;
   int     width, height, depth, x, y, z, whalf, x0, y0, z0,
-          median_index, wcubed, yi, zi, xmin, xmax, ymin, ymax, zmin, zmax ;
+  median_index, wcubed, yi, zi, xmin, xmax, ymin, ymax, zmin, zmax ;
   float   *sptr ;
 
   width = mri_src->width ;
@@ -2189,7 +2210,9 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
 
   if (box)
   {
-    xmin = box->x ; ymin = box->y ; zmin = box->z ;
+    xmin = box->x ;
+    ymin = box->y ;
+    zmin = box->z ;
     xmax = box->x+box->dx-1 ;
     ymax = box->y+box->dy-1 ;
     zmax = box->z+box->dz-1 ;
@@ -2197,9 +2220,11 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
   else
   {
     xmin = ymin = zmin = 0 ;
-    xmax = width-1 ; ymax = height-1 ; zmax = depth-1 ;
+    xmax = width-1 ;
+    ymax = height-1 ;
+    zmax = depth-1 ;
   }
-    
+
   for (z = zmin ; z <= zmax ; z++)
   {
     for (y = ymin ; y <= ymax ; y++)
@@ -2309,6 +2334,8 @@ compare_sort_array(const void *pc1, const void *pc2)
 
   return(0) ;
 }
+
+
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -2364,6 +2391,8 @@ MRIgaussian1d(float sigma, int max_len)
 
   return(mri) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -2435,6 +2464,8 @@ MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
   }
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
 MRIconvolveGaussian() - see also MRIgaussianSmooth();
 ------------------------------------------------------*/
@@ -2451,7 +2482,7 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 
   StartChronometer( &tTotal );
 
-#ifdef CUDA
+#ifdef FS_CUDA
 	printf( "%s: CUDA version\n", __FUNCTION__ );
 #endif
 
@@ -2501,6 +2532,8 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 
   return(mri_dst) ;
 }
+
+
 /*---------------------------------------------------------------------
   MRIgaussianSmooth() - performs isotropic gaussian spatial smoothing.
   The standard deviation of the gaussian is std. If norm is set to 1,
@@ -2669,17 +2702,21 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   MatrixFree(&v);
   MatrixFree(&vg);
 
-  if(norm)  {
+  if (norm)
+  {
     // Compute the sum of the kernel. Note the expected variance
     // will be sum(k^2)
     scale = 0;
     vmf = 0;
-    for (c=0; c < src->width; c++) {
-      for (r=0; r < src->height; r++) {
-        for (s=0; s < src->depth; s++)  {
-	  val = (vc->rptr[c+1][1] * vr->rptr[r+1][1] * vs->rptr[s+1][1]);
+    for (c=0; c < src->width; c++)
+    {
+      for (r=0; r < src->height; r++)
+      {
+        for (s=0; s < src->depth; s++)
+        {
+          val = (vc->rptr[c+1][1] * vr->rptr[r+1][1] * vs->rptr[s+1][1]);
           scale += (val);
-	  vmf += (val*val);
+          vmf += (val*val);
         }
       }
     }
@@ -2710,7 +2747,8 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
 
   return(targ);
 }
-/*---------------------------------------------------------------------------------
+
+/*----------------------------------------------------------------------------
   MRImaskedGaussianSmooth() - smooths only within the binary mask.
   Source values outside the mask do not contribute to target values
   inside the mask. Target values outside the mask are set to 0. The
@@ -2721,7 +2759,7 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
   if the mask is NULL. As a test, you can input the mask as both
   the src and binmask. The targ should end up being the same as
   the mask. See also MRIgaussianSmooth().
-  ---------------------------------------------------------------------------------*/
+  ---------------------------------------------------------------------------*/
 MRI *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ)
 {
   MRI *binmasksm, *srcmasked;
@@ -2782,6 +2820,7 @@ MRI *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ)
   return(targ);
 }
 
+
 /**
  * MRImodifySampledHeader
  *
@@ -2816,6 +2855,7 @@ static void MRImodifySampledHeader(MRI *mri_src, MRI *mri_dst)
   // header modified update cached info
   MRIreInitCache(mri_dst);
 }
+
 
 /*-----------------------------------------------------
         Parameters:
@@ -2870,6 +2910,8 @@ MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst)
 #endif
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -2923,6 +2965,8 @@ MRIreduceMeanAndStd(MRI *mri_src, MRI *mri_dst)
 #endif
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -2944,7 +2988,9 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   MRI     *mtmp1, *mtmp2 ;
   MATRIX  *m_vox2ras, *m_scale, *m_tmp ;
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
   if (width <= 1 || height <= 1 || depth <= 1)
     ErrorExit(ERROR_BADPARM, "MRIreduce: insufficient dimension (%d, %d, %d)",
@@ -2969,11 +3015,13 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   mri_dst->zend = mri_src->zend ;
   m_vox2ras = MRIgetVoxelToRasXform(mri_src) ;
   m_scale = MatrixIdentity(4, NULL) ;
-  *MATRIX_RELT(m_scale, 1,1) = 2.0; 
-  *MATRIX_RELT(m_scale, 2,2) = 2.0 ; 
+  *MATRIX_RELT(m_scale, 1,1) = 2.0;
+  *MATRIX_RELT(m_scale, 2,2) = 2.0 ;
   *MATRIX_RELT(m_scale, 3,3) = 2.0;
   m_tmp = MatrixMultiply(m_vox2ras, m_scale, NULL) ;
-  MatrixFree(&m_vox2ras) ; MatrixFree(&m_scale) ; m_vox2ras = m_tmp ;
+  MatrixFree(&m_vox2ras) ;
+  MatrixFree(&m_scale) ;
+  m_vox2ras = m_tmp ;
   MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
   MatrixFree(&m_vox2ras) ;
   //  MRImodifySampledHeader(mri_src, mri_dst);
@@ -2982,6 +3030,8 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
 
   return(mri_dst) ;
 }
+
+
 MRI *
 MRIreduce2D(MRI *mri_src, MRI *mri_dst)
 {
@@ -2993,7 +3043,8 @@ MRIreduce2D(MRI *mri_src, MRI *mri_dst)
   depth = mri_src->depth ;
 
   if (width <= 1 || height <= 1)
-    ErrorExit(ERROR_BADPARM, "MRIreduce2D: insufficient dimension (%d, %d)",width, height) ;
+    ErrorExit(ERROR_BADPARM, 
+              "MRIreduce2D: insufficient dimension (%d, %d)",width, height) ;
 
   mtmp1 = MRIconvolve1d(mri_src, NULL, kernel, KERNEL_SIZE, MRI_WIDTH, 0,0) ;
   mri_dst = MRIreduceSlice(mtmp1, mri_dst, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
@@ -3003,6 +3054,8 @@ MRIreduce2D(MRI *mri_src, MRI *mri_dst)
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -3037,6 +3090,8 @@ MRIreduceByte(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mtmp2) ;
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -3054,7 +3109,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
   BUFTYPE       *inBase ;
   float         *ki, total, *inBase_f, *foutPix, val ;
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
   printf( "%s: Sizes are w=%i h=%i d=%i\n", __FUNCTION__, width, height, depth );
 
@@ -3078,7 +3135,9 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
   halflen = len/2 ;
 
-  xi = mri_src->xi ; yi = mri_src->yi ; zi = mri_src->zi ;
+  xi = mri_src->xi ;
+  yi = mri_src->yi ;
+  zi = mri_src->zi ;
 
   switch (mri_src->type)
   {
@@ -3118,7 +3177,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       (float)(MRIseq_vox(mri_src, x,yi[y+i-halflen],z, src_frame));
+                (float)(MRIseq_vox(mri_src, x,yi[y+i-halflen],z, src_frame));
 
             *foutPix++ = total ;
           }
@@ -3137,7 +3196,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       (float)(MRIseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
+                (float)(MRIseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
 
             *foutPix++ = total ;
           }
@@ -3185,7 +3244,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       MRIFseq_vox(mri_src, x,yi[y+i-halflen],z, src_frame);
+                MRIFseq_vox(mri_src, x,yi[y+i-halflen],z, src_frame);
 
             *foutPix++ = total ;
           }
@@ -3204,7 +3263,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       MRIFseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame);
+                MRIFseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame);
 
             *foutPix++ = total ;
           }
@@ -3285,6 +3344,8 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -3358,7 +3419,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       (float)(MRIseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
+                (float)(MRIseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
 
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -3377,7 +3438,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       (float)(MRIseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
+                (float)(MRIseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
 
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -3420,7 +3481,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       MRIseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame);
+                MRIseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame);
 
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -3439,7 +3500,7 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
             for (ki = k, i = 0 ; i < len ; i++)
               total += *ki++ *
-                       MRIseq_vox(mri_src,x,y,zi[z+i-halflen],src_frame);
+                MRIseq_vox(mri_src,x,y,zi[z+i-halflen],src_frame);
 
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -3456,6 +3517,8 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -3526,7 +3589,7 @@ MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
           for (ki = k, i = 0 ; i < len ; i++)
             total += *ki++ *
-                     (float)(MRISseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
+              (float)(MRISseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
 
           *outPix++ = (short)nint(total) ;
         }
@@ -3545,7 +3608,7 @@ MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
           for (ki = k, i = 0 ; i < len ; i++)
             total += *ki++ *
-                     (float)(MRISseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
+              (float)(MRISseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
 
           *outPix++ = (short)nint(total) ;
         }
@@ -3556,6 +3619,8 @@ MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -3626,7 +3691,7 @@ MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
           for (ki = k, i = 0 ; i < len ; i++)
             total += *ki++ *
-                     (float)(MRIFseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
+              (float)(MRIFseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
 
           *outPix++ = total ;
         }
@@ -3645,7 +3710,7 @@ MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
           for (ki = k, i = 0 ; i < len ; i++)
             total += *ki++ *
-                     (float)(MRIFseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
+              (float)(MRIFseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
 
           *outPix++ = total ;
         }
@@ -3656,6 +3721,8 @@ MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -3688,7 +3755,9 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
   }
 
 #if 0
-  if (((mri_dst->type != MRI_UCHAR) && (mri_dst->type != MRI_FLOAT)) || (mri_src->type != MRI_FLOAT))
+  if (((mri_dst->type != MRI_UCHAR) && 
+       (mri_dst->type != MRI_FLOAT)) || 
+      (mri_src->type != MRI_FLOAT))
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,
                  "MRIreduce1d: src %d or dst %d format unsupported",
@@ -3722,7 +3791,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
               xi = 0 ;
             else if (xi >= swidth)
               xi = swidth - 1 ;
-            
+
             val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
             total = total + k[i] * val ;
           }
@@ -3794,6 +3863,8 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -3817,11 +3888,16 @@ MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
   {
     mri_dst = MRIalloc(swidth/2, sheight/2, sdepth, MRI_UCHAR) ;
     mri_dst->imnr1 = mri_dst->imnr0 + mri_dst->depth - 1 ;
-    MRIsetResolution(mri_dst, mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize) ;
+    MRIsetResolution(mri_dst, 
+                     mri_src->xsize*2, 
+                     mri_src->ysize*2, 
+                     mri_src->zsize) ;
   }
 
 #if 0
-  if (((mri_dst->type != MRI_UCHAR) && (mri_dst->type != MRI_FLOAT)) || (mri_src->type != MRI_FLOAT))
+  if (((mri_dst->type != MRI_UCHAR) && 
+       (mri_dst->type != MRI_FLOAT)) || 
+      (mri_src->type != MRI_FLOAT))
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,
                  "MRIreduce1d: src %d or dst %d format unsupported",
@@ -3898,6 +3974,8 @@ MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -4025,6 +4103,8 @@ MRIreduce1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 
   return(mri_dst) ;
 }
+
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -4097,7 +4177,6 @@ MRIxcorrWindow(MRI *mri_ref, MRI *mri_in, MRI *mri_dst, int window_size)
           {
             if (ky < 0 || ky >= height)
               continue ;
-
 #if 1
             pref = &MRIvox(mri_ref,xoff,ky,kz) ;
             pin = &MRIvox(mri_in, 0, y, z) ;
@@ -4137,8 +4216,9 @@ MRIxcorrWindow(MRI *mri_ref, MRI *mri_in, MRI *mri_dst, int window_size)
 MRI *
 MRInxcorrWindow(MRI *mri_ref, MRI *mri_in, MRI *mri_dst, int window_size)
 {
-  int     width, height, depth, xoff, yoff, zoff, x0, y0, z0, kx, ky, kz, kxend,
-  whalf, x, y, z, dst_width, dst_height, dst_depth;
+  int width, height, depth, xoff, yoff, zoff, 
+    x0, y0, z0, kx, ky, kz, kxend,
+    whalf, x, y, z, dst_width, dst_height, dst_depth;
   BUFTYPE *pref, *pin, ref, in ;
   float   dst, norm, *pdst ;
 
@@ -4482,7 +4562,7 @@ MRI *
 MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
 {
   int      x, y, z, width, height, depth, xk, yk, zk, xi, yi, zi,
-           slabel, dlabel, nw, ng ;
+  slabel, dlabel, nw, ng ;
   BUFTYPE  *psrc, *pdst ;
 
   if (!mri_dst)
@@ -4505,7 +4585,7 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
           slabel = *psrc++ ;
-          
+
           dlabel = MRI_AMBIGUOUS ;
           if (slabel == MRI_WHITE)  /* see if it is next to an MRI_NOT_WHITE */
           {
@@ -4531,7 +4611,8 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                 break ;
             }
           }
-          else if (slabel == MRI_NOT_WHITE)/*see if it is next to an MRI_WHITE */
+          else if (slabel == MRI_NOT_WHITE)/*see if it is next 
+                                             to an MRI_WHITE */
           {
             for (zk = -1 ; zk <= 1 ; zk++)
             {
@@ -4544,7 +4625,8 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                   xi = mri_src->xi[x+xk] ;
                   if (MRIvox(mri_src, xi, yi, zi) == MRI_WHITE)
                   {
-                    dlabel = MRI_NOT_WHITE ; /* mark it as a gray border voxel */
+                    dlabel = MRI_NOT_WHITE ; /* mark it as a 
+                                                gray border voxel */
                     break ;
                   }
                 }
@@ -4555,7 +4637,7 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                 break ;
             }
           }
-          
+
           if (dlabel == MRI_WHITE)
             nw++ ;
           else if (dlabel == MRI_NOT_WHITE)
@@ -4576,7 +4658,7 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
           slabel = nint(MRIgetVoxVal(mri_src, x, y, z, 0)) ;
-          
+
           dlabel = MRI_AMBIGUOUS ;
           if (slabel == MRI_WHITE)  /* see if it is next to an MRI_NOT_WHITE */
           {
@@ -4589,9 +4671,11 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                 for (xk = -1 ; xk <= 1 ; xk++)
                 {
                   xi = mri_src->xi[x+xk] ;
-                  if ((int)MRIgetVoxVal(mri_src, xi, yi, zi,0) == MRI_NOT_WHITE)
+                  if ((int)MRIgetVoxVal(mri_src, xi, yi, zi,0) == 
+                      MRI_NOT_WHITE)
                   {
-                    dlabel = MRI_WHITE ;  /* mark it as a white border voxel */
+                    dlabel = MRI_WHITE ;  /* mark it as a 
+                                             white border voxel */
                     break ;
                   }
                 }
@@ -4602,7 +4686,8 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                 break ;
             }
           }
-          else if (slabel == MRI_NOT_WHITE)/*see if it is next to an MRI_WHITE */
+          else if (slabel == MRI_NOT_WHITE)/*see if it is next 
+                                             to an MRI_WHITE */
           {
             for (zk = -1 ; zk <= 1 ; zk++)
             {
@@ -4615,7 +4700,8 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                   xi = mri_src->xi[x+xk] ;
                   if ((int)MRIgetVoxVal(mri_src, xi, yi, zi,0) == MRI_WHITE)
                   {
-                    dlabel = MRI_NOT_WHITE ; /* mark it as a gray border voxel */
+                    dlabel = MRI_NOT_WHITE ; /* mark it as a 
+                                                gray border voxel */
                     break ;
                   }
                 }
@@ -4626,7 +4712,7 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                 break ;
             }
           }
-          
+
           if (dlabel == MRI_WHITE)
             nw++ ;
           else if (dlabel == MRI_NOT_WHITE)
@@ -5036,10 +5122,10 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
                           float *pmean_gm, float *psigma_gm)
 {
   MRI       *mri_border ;
-  int       x, y, z, width, height, depth, label, border_label, ngray, nwhite, 
-            nbins, bin, peak ;
+  int       x, y, z, width, height, depth, label, border_label, ngray, nwhite,
+  nbins, bin, peak ;
   double    white_min, white_max, white_mean, white_std,
-            gray_min, gray_max, gray_mean, gray_std, val ;
+  gray_min, gray_max, gray_mean, gray_std, val ;
   HISTOGRAM *h_white, *h_gray ;
   float     min_val, max_val, white_mode, gray_mode ;
 
@@ -5219,7 +5305,10 @@ MRIthreshModeFilter(MRI *mri_src, MRI *mri_dst, int niter, float thresh)
 }
 
 MRI   *
-MRImodeFilterWithControlPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
+MRImodeFilterWithControlPoints(MRI *mri_src, 
+                               MRI *mri_ctrl, 
+                               MRI *mri_dst, 
+                               int niter)
 {
   int   x, y, z, n, width, height, depth, histo[256], xk, yk, zk,
   xi, yi, zi, val, i, max_histo, max_i, npts ;
@@ -5243,7 +5332,9 @@ MRImodeFilterWithControlPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
         {
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
-          if (MRIvox(mri_ctrl, x, y, z) == 1)  /* an original control point - don't change */
+          if (MRIvox(mri_ctrl, x, y, z) == 1)  /* an original 
+                                                  control point 
+                                                  - don't change */
           {
             MRIvox(mri_dst,x,y,z) = MRIvox(mri_tmp,x,y,z) ;
             continue ;
@@ -5281,7 +5372,8 @@ MRImodeFilterWithControlPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
             }
           }
           MRIvox(mri_dst, x, y, z) = max_i ;
-          MRIvox(mri_ctrl, x, y, z) = 2 ;   /* comes from a control point - use it to spread values */
+          MRIvox(mri_ctrl, x, y, z) = 2 ;   /* comes from a control point 
+                                               - use it to spread values */
         }
       }
     }
@@ -5386,7 +5478,7 @@ MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize)
         {
           dI_d2 = MRIvoxelGradientDir2ndDerivative(mri_src, x, y, z, wsize) ;
           MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(127*(1+tanh(dI_d2/30))) ;
-          
+
         }
       }
     }
@@ -5410,7 +5502,11 @@ MRIgradientDir2ndDerivative(MRI *mri_src, MRI *mri_dst, int wsize)
 }
 
 MRI *
-MRIsmoothLabel(MRI *mri_intensity, MRI *mri_label, MRI *mri_smooth, int niter, int label)
+MRIsmoothLabel(MRI *mri_intensity, 
+               MRI *mri_label, 
+               MRI *mri_smooth, 
+               int niter, 
+               int label)
 {
   int   x, y, z, n, xi, yi, zi, xk, yk, zk, i, l ;
   float val, val_mean ;
@@ -5472,7 +5568,10 @@ MRIxDerivative(MRI *mri_src, MRI *mri_dx)
 
   if (mri_dx == NULL)
   {
-    mri_dx = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    mri_dx = MRIalloc(mri_src->width, 
+                      mri_src->height, 
+                      mri_src->depth, 
+                      MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_dx) ;
   }
 
@@ -5500,7 +5599,8 @@ MRIyDerivative(MRI *mri_src, MRI *mri_dy)
 
   if (mri_dy == NULL)
   {
-    mri_dy = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    mri_dy = 
+      MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_dy) ;
   }
 
@@ -5526,7 +5626,8 @@ MRIzDerivative(MRI *mri_src, MRI *mri_dz)
 
   if (mri_dz == NULL)
   {
-    mri_dz = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    mri_dz = 
+      MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_dz) ;
   }
 
@@ -5550,23 +5651,26 @@ MRIzDerivative(MRI *mri_src, MRI *mri_dz)
  \param len - dimension of the MRI image
  \param std - standard deviation of the gaussian filter
  \param norm - 1 for normalization of the gaussian field
- 
+
   \brief creates an MRI image with a 3D gaussian distribution
   */
-MRI *MRI_Gaussian(int len, float std, int norm, int xsize, int ysize, int zsize){
+MRI *MRI_Gaussian(int len, float std, int norm, 
+                  int xsize, int ysize, int zsize)
+{
   int x, y, z;
   float val;
   float  var = std*std;
   float  f = sqrt(2*M_PI)*std;
-  
-  
+
+
   MRI *g;
   g = MRIallocSequence(len, len, len,MRI_FLOAT, 1);
   for (y = 0 ; y <  len ; y++)
     for (x = 0 ; x < len; x++)
-      for (z = 0 ; z <  len; z++){
-	val = exp( (2-FFTdist(x,y,z,xsize, ysize, zsize,len))/(2*var) )/f;
-	MRIsetVoxVal(g, x, y, z, 0, val);
+      for (z = 0 ; z <  len; z++)
+      {
+        val = exp( (2-FFTdist(x,y,z,xsize, ysize, zsize,len))/(2*var) )/f;
+        MRIsetVoxVal(g, x, y, z, 0, val);
       }
   return(g);
 }
@@ -5574,184 +5678,211 @@ MRI *MRI_Gaussian(int len, float std, int norm, int xsize, int ysize, int zsize)
  \fn MRI* MRI_fft(MRI *mri_src, MRI* dst)
  \param mri_src - the MRI source (spatial)
  \param dst - the MRI destination (freq - 2 frames)
- 
-  \brief MRI_fft applies a FFT transform to 
-  the mri_src. The result is in 2 frames : the 
-  first is the modulus (whose quarters has been 
+
+  \brief MRI_fft applies a FFT transform to
+  the mri_src. The result is in 2 frames : the
+  first is the modulus (whose quarters has been
   shifted), the second is the argument
 */
-MRI* MRI_fft(MRI *mri_src, MRI* dst){
+MRI* MRI_fft(MRI *mri_src, MRI* dst)
+{
   int dimension, w, h, d;
   int x, y, z, k, j, f;
   float ***src, ***dst_r, ***dst_i;
   MRI *new_mri;
-  
+
   w = mri_src->width;
   h = mri_src->height;
   d = mri_src->depth;
 
   //be sure it is a power of 2 size image
-  if (!FFTisPowerOf2(mri_src->depth) || !FFTisPowerOf2(mri_src->height) || !FFTisPowerOf2(mri_src->width)){ 
+  if (!FFTisPowerOf2(mri_src->depth) || 
+      !FFTisPowerOf2(mri_src->height) || 
+      !FFTisPowerOf2(mri_src->width))
+  {
     if (d >= w )
       dimension = (d >= h ? d :h);
     else
       dimension = (h >= w ? h :w);
     dimension = FFTpow2(FFTlog2(dimension));
-    printf("The dimension is not a power of 2. Build a new image (size : %i)\n", dimension);
-    
-    new_mri = MRIallocSequence(dimension, dimension, dimension,MRI_FLOAT, mri_src->nframes);
+    printf("The dimension is not a power of 2. "
+           "Build a new image (size : %i)\n", dimension);
+
+    new_mri = MRIallocSequence(dimension, dimension, dimension,
+                               MRI_FLOAT, mri_src->nframes);
     MRIcopyHeader(mri_src, new_mri) ;
-  
+
     for (f = 0 ; f < mri_src->nframes ; f++)
-      for (z = 0 ; z < dimension ; z++) 
-	for (y = 0 ; y < dimension ; y++) 
-	  for (x = 0 ; x < dimension ; x++){ 
-            if (z>=mri_src->depth ||  y >= mri_src->height || x >= mri_src->width)
-    	      MRIsetVoxVal(new_mri, x, y, z, f, 0);
-	    else
-    	      MRIsetVoxVal(new_mri, x, y, z, f, MRIgetVoxVal(mri_src, x, y, z, f));
-	    }
+      for (z = 0 ; z < dimension ; z++)
+        for (y = 0 ; y < dimension ; y++)
+          for (x = 0 ; x < dimension ; x++)
+          {
+            if (z>=mri_src->depth ||  
+                y >= mri_src->height || 
+                x >= mri_src->width)
+              MRIsetVoxVal(new_mri, x, y, z, f, 0);
+            else
+              MRIsetVoxVal(new_mri, x, y, z, f, 
+                           MRIgetVoxVal(mri_src, x, y, z, f));
+          }
     mri_src = new_mri;
   }
   else
     dimension = mri_src->depth;
-    
-  if (dst == NULL){
+
+  if (dst == NULL)
+  {
     dst = MRIallocSequence(mri_src->width,mri_src->height,mri_src->depth,
-                            MRI_FLOAT,2*mri_src->nframes);
-    if (dst == NULL){
+                           MRI_FLOAT,2*mri_src->nframes);
+    if (dst == NULL)
+    {
       printf("ERROR: MRI_fft: could not alloc\n");
       return(NULL);
     }
     MRIcopy(mri_src,dst);
   }
-  else{
-    if (mri_src->width != dst->width){
+  else
+  {
+    if (mri_src->width != dst->width)
+    {
       printf("ERROR: MRI_fft: width dimension mismatch\n");
       return(NULL);
     }
-    if (mri_src->height != dst->height){
+    if (mri_src->height != dst->height)
+    {
       printf("ERROR: MRI_fft: height dimension mismatch\n");
       return(NULL);
     }
-    if (mri_src->depth != dst->depth){
+    if (mri_src->depth != dst->depth)
+    {
       printf("ERROR: MRI_fft: depth dimension mismatch\n");
       return(NULL);
     }
-    if (2*mri_src->nframes != dst->nframes){
+    if (2*mri_src->nframes != dst->nframes)
+    {
       printf("ERROR: MRI_fft: frames dimension mismatch\n");
       return(NULL);
     }
     MRIcopyHeader(mri_src,dst);
   }
-  
-  
-  
-  
+
   src  = (float ***) malloc( dimension*sizeof(float** ) );
   dst_r = (float ***) malloc( dimension*sizeof(float** ) );
   dst_i = (float ***) malloc( dimension*sizeof(float** ) );
-  for ( k = 0; k<dimension; k++){
+  for ( k = 0; k<dimension; k++)
+  {
     src[k]  = (float **) malloc( dimension*sizeof(float* ) );
     dst_r[k] = (float **) malloc( dimension*sizeof(float* ) );
     dst_i[k] = (float **) malloc( dimension*sizeof(float* ) );
-    for ( j = 0; j<dimension; j++){
-    src[k][j]  = (float *) malloc( dimension*sizeof(float ) );
-    dst_r[k][j] = (float *) malloc( dimension*sizeof(float ) );
-    dst_i[k][j] = (float *) malloc( dimension*sizeof(float ) );
+    for ( j = 0; j<dimension; j++)
+    {
+      src[k][j]  = (float *) malloc( dimension*sizeof(float ) );
+      dst_r[k][j] = (float *) malloc( dimension*sizeof(float ) );
+      dst_i[k][j] = (float *) malloc( dimension*sizeof(float ) );
     }
   }
 
-  for (f=0; f<mri_src->nframes; f++){
-      //Initialize the image and intermediate MRI
-      for (z = 0; z < dimension ; z++)
-	for (y = 0 ; y < dimension ; y++)
-	  for (x = 0 ; x < dimension ; x++)
-	     src[x][y][z] = MRIgetVoxVal(mri_src,x, y, z, f);
+  for (f=0; f<mri_src->nframes; f++)
+  {
+    //Initialize the image and intermediate MRI
+    for (z = 0; z < dimension ; z++)
+      for (y = 0 ; y < dimension ; y++)
+        for (x = 0 ; x < dimension ; x++)
+          src[x][y][z] = MRIgetVoxVal(mri_src,x, y, z, f);
 
-      //FFT   
-      if (f ==0)  printf("FFT : 1D -");
-      for (x = 0 ; x < dimension ; x++)
-	for (y = 0 ; y < dimension ; y++)
-	   RFFTforward(src[x][y], dimension,dst_r[x][y] ,dst_i[x][y] );
-      FFTswitch_with_z(dst_r, dimension, 0);
-      FFTswitch_with_z(dst_i, dimension, 0);
-      if (f ==0)  printf(" 2D -");
-      for (x = 0 ; x < dimension ; x++)
-	for (y = 0 ; y < dimension ; y++)
-	   CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
-      FFTswitch_with_z(dst_r, dimension, 0);
-      FFTswitch_with_z(dst_i, dimension, 0);
-      FFTswitch_with_z(dst_r, dimension, 1);
-      FFTswitch_with_z(dst_i, dimension, 1);
-      if (f ==0)  printf(" 3D\n");
-      for (x = 0 ; x < dimension ; x++)
-	for (y = 0 ; y < dimension ; y++)
-	   CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
-      FFTswitch_with_z(dst_r, dimension, 1);
-      FFTswitch_with_z(dst_i, dimension, 1);
+    //FFT
+    if (f ==0)  printf("FFT : 1D -");
+    for (x = 0 ; x < dimension ; x++)
+      for (y = 0 ; y < dimension ; y++)
+        RFFTforward(src[x][y], dimension,dst_r[x][y] ,dst_i[x][y] );
+    FFTswitch_with_z(dst_r, dimension, 0);
+    FFTswitch_with_z(dst_i, dimension, 0);
+    if (f ==0)  printf(" 2D -");
+    for (x = 0 ; x < dimension ; x++)
+      for (y = 0 ; y < dimension ; y++)
+        CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
+    FFTswitch_with_z(dst_r, dimension, 0);
+    FFTswitch_with_z(dst_i, dimension, 0);
+    FFTswitch_with_z(dst_r, dimension, 1);
+    FFTswitch_with_z(dst_i, dimension, 1);
+    if (f ==0)  printf(" 3D\n");
+    for (x = 0 ; x < dimension ; x++)
+      for (y = 0 ; y < dimension ; y++)
+        CFFTforward(dst_r[x][y] ,dst_i[x][y], dimension);
+    FFTswitch_with_z(dst_r, dimension, 1);
+    FFTswitch_with_z(dst_i, dimension, 1);
 
-      // from (real, imaginary) to (mudulus, argument)
-      FFTreim_to_modarg ( dst_r, dst_i, dimension); 
-      dst_r = FFTinv_quarter(dst_r, dimension);      
-      //Write the result
-      for (z = 0; z < dimension ; z++)
-	for (y = 0 ; y <dimension ; y++)
-	  for (x = 0 ; x < dimension; x++){
-	      MRIsetVoxVal(dst ,x, y, z, 2*f  , dst_r[x][y][z]);	
-	      MRIsetVoxVal(dst ,x, y, z, 2*f+1, dst_i[x][y][z]);
-	    }
+    // from (real, imaginary) to (mudulus, argument)
+    FFTreim_to_modarg ( dst_r, dst_i, dimension);
+    dst_r = FFTinv_quarter(dst_r, dimension);
+    //Write the result
+    for (z = 0; z < dimension ; z++)
+      for (y = 0 ; y <dimension ; y++)
+        for (x = 0 ; x < dimension; x++)
+        {
+          MRIsetVoxVal(dst ,x, y, z, 2*f  , dst_r[x][y][z]);
+          MRIsetVoxVal(dst ,x, y, z, 2*f+1, dst_i[x][y][z]);
+        }
   }
   free(src);
-  free(dst_r); free(dst_i);
+  free(dst_r);
+  free(dst_i);
   return(dst);
 }
 /*!
  \fn MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d)
  \param src - the MRI source (freq domain - 2 frames)
  \param dst - the MRI destination (back into spatial domain)
- \param w, h, d - dimension of the original image in the 
+ \param w, h, d - dimension of the original image in the
  spatial domain
- 
-  \brief MRI_ifft applies an inverse FFT to the mri_src : 
-  the modulus on the first frame and the argument in the 
+
+  \brief MRI_ifft applies an inverse FFT to the mri_src :
+  the modulus on the first frame and the argument in the
   second. The output is a single frame MRI with the real
    inverse.w h d, specifies the output size, if different
    from the size of the image in the frequency domain.
 */
 
-MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d){
+MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d)
+{
   int dimension;
   int x, y, z, k, j, f;
   float ***dst_r, ***dst_i;
 
   dimension = src->width;
 
-   if(src->nframes%2 !=0)
-      printf("ERROR: MRI_ifft: frames of input\n");
+  if (src->nframes%2 !=0)
+    printf("ERROR: MRI_ifft: frames of input\n");
 
-  if (dst == NULL){
+  if (dst == NULL)
+  {
     dst = MRIallocSequence(w,h,d, MRI_FLOAT,src->nframes/2);
-    if (dst == NULL){
+    if (dst == NULL)
+    {
       printf("ERROR: MRI_ifft: could not alloc\n");
       return(NULL);
     }
     MRIcopyHeader(src,dst);
   }
-  else{
-    if (w != dst->width){
+  else
+  {
+    if (w != dst->width)
+    {
       printf("ERROR: MRI_ifft: width dimension mismatch\n");
       return(NULL);
     }
-    if (h != dst->height){
+    if (h != dst->height)
+    {
       printf("ERROR: MRI_ifft: height dimension mismatch\n");
       return(NULL);
     }
-    if (d != dst->depth){
+    if (d != dst->depth)
+    {
       printf("ERROR: MRI_ifft: depth dimension mismatch\n");
       return(NULL);
     }
-    if (src->nframes != 2*dst->nframes){
+    if (src->nframes != 2*dst->nframes)
+    {
       printf("ERROR: MRI_ifft: frames dimension mismatch\n");
       return(NULL);
     }
@@ -5760,115 +5891,131 @@ MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d){
 
   dst_r = (float ***) malloc( dimension*sizeof(float** ) );
   dst_i = (float ***) malloc( dimension*sizeof(float** ) );
-  for ( k = 0; k<dimension; k++){
+  for ( k = 0; k<dimension; k++)
+  {
     dst_r[k] = (float **) malloc( dimension*sizeof(float* ) );
     dst_i[k] = (float **) malloc( dimension*sizeof(float* ) );
-    for ( j = 0; j<dimension; j++){
-    dst_r[k][j] = (float *) malloc( dimension*sizeof(float ) );
-    dst_i[k][j] = (float *) malloc( dimension*sizeof(float ) );
+    for ( j = 0; j<dimension; j++)
+    {
+      dst_r[k][j] = (float *) malloc( dimension*sizeof(float ) );
+      dst_i[k][j] = (float *) malloc( dimension*sizeof(float ) );
     }
   }
- 
-  for (f=0; f<src->nframes/2; f++){
-      //Initialize the image and intermediate MRI
-      for (z = 0; z < dimension ; z++)
-	for (y = 0 ; y < dimension ; y++)
-	  for (x = 0 ; x < dimension ; x++){
-	     dst_r[x][y][z] = MRIgetVoxVal(src,x, y, z, 2*f  );
-	     dst_i[x][y][z] = MRIgetVoxVal(src,x, y, z, 2*f+1);
-	  }
 
-      // back to (real, imaginary)
-      dst_r = FFTinv_quarter(dst_r, dimension);
-      FFTmodarg_to_reim (dst_r,  dst_i,dimension);
+  for (f=0; f<src->nframes/2; f++)
+  {
+    //Initialize the image and intermediate MRI
+    for (z = 0; z < dimension ; z++)
+      for (y = 0 ; y < dimension ; y++)
+        for (x = 0 ; x < dimension ; x++)
+        {
+          dst_r[x][y][z] = MRIgetVoxVal(src,x, y, z, 2*f  );
+          dst_i[x][y][z] = MRIgetVoxVal(src,x, y, z, 2*f+1);
+        }
 
-       //FFT inverse
-      if (f ==0)  printf("inverse FFT : 1D -");
-      for (x = 0 ; x < dimension ; x++)
-	for (y = 0 ; y < dimension ; y++)
-	   CFFTbackward( dst_r[x][y] ,dst_i[x][y], dimension);
-      FFTswitch_with_z(dst_r, dimension, 0);
-      FFTswitch_with_z(dst_i, dimension, 0);
-      if (f ==0)  printf(" 2D -");
-      for (x = 0 ; x < dimension ; x++)
-	for (y = 0 ; y < dimension ; y++)
-	   CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
-      FFTswitch_with_z(dst_r, dimension, 0);
-      FFTswitch_with_z(dst_i, dimension, 0);
-      FFTswitch_with_z(dst_r, dimension, 1);
-      FFTswitch_with_z(dst_i, dimension, 1);
-      if (f ==0)  printf(" 3D\n");
-      for (x = 0 ; x < dimension ; x++)
-	for (y = 0 ; y < dimension ; y++)
-	   CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
-      FFTswitch_with_z(dst_r, dimension, 1);
-      FFTswitch_with_z(dst_i, dimension, 1);
+    // back to (real, imaginary)
+    dst_r = FFTinv_quarter(dst_r, dimension);
+    FFTmodarg_to_reim (dst_r,  dst_i,dimension);
 
-      //Write the result
-      for (z = 0; z < d ; z++)
-	for (y = 0 ; y < h ; y++)
-	  for (x = 0 ; x < w; x++)
-	      MRIsetVoxVal(dst ,x, y, z, f, dst_r[x][y][z]);	       
+    //FFT inverse
+    if (f ==0)  printf("inverse FFT : 1D -");
+    for (x = 0 ; x < dimension ; x++)
+      for (y = 0 ; y < dimension ; y++)
+        CFFTbackward( dst_r[x][y] ,dst_i[x][y], dimension);
+    FFTswitch_with_z(dst_r, dimension, 0);
+    FFTswitch_with_z(dst_i, dimension, 0);
+    if (f ==0)  printf(" 2D -");
+    for (x = 0 ; x < dimension ; x++)
+      for (y = 0 ; y < dimension ; y++)
+        CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
+    FFTswitch_with_z(dst_r, dimension, 0);
+    FFTswitch_with_z(dst_i, dimension, 0);
+    FFTswitch_with_z(dst_r, dimension, 1);
+    FFTswitch_with_z(dst_i, dimension, 1);
+    if (f ==0)  printf(" 3D\n");
+    for (x = 0 ; x < dimension ; x++)
+      for (y = 0 ; y < dimension ; y++)
+        CFFTbackward(dst_r[x][y] ,dst_i[x][y], dimension);
+    FFTswitch_with_z(dst_r, dimension, 1);
+    FFTswitch_with_z(dst_i, dimension, 1);
+
+    //Write the result
+    for (z = 0; z < d ; z++)
+      for (y = 0 ; y < h ; y++)
+        for (x = 0 ; x < w; x++)
+          MRIsetVoxVal(dst ,x, y, z, f, dst_r[x][y][z]);
   }
-  
-  free(dst_r); free(dst_i);
+
+  free(dst_r);
+  free(dst_i);
   return(dst);
 }
 /*!
  \fn MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm)
  \param src - the MRI source (spatial domain)
  \param dst - the MRI destination (spatial domain)
- \param std - standard deviation of the gaussian filter 
+ \param std - standard deviation of the gaussian filter
  \param norm - normalizes the gaussian field
- 
-  \brief MRI_fft_smooth computes the fft transform of src, then 
-  apply a gaussian smoothing filter in the freq domain: ie multiply 
-  the shifted modulus by a gaussian MRI, and then computes the 
+
+  \brief MRI_fft_smooth computes the fft transform of src, then
+  apply a gaussian smoothing filter in the freq domain: ie multiply
+  the shifted modulus by a gaussian MRI, and then computes the
   inverse FFT. The result is in dst.
 */
-MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
-  MRI *src_fft = NULL, *fft_sm = NULL, *g; 
+MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm)
+{
+  MRI *src_fft = NULL, *fft_sm = NULL, *g;
   MRI *g_fft, *temp;
   int dimension, f;
-  
-  if (dst == NULL){
-    dst = MRIallocSequence(src->width,src->height,src->depth,MRI_FLOAT,src->nframes);
-    if (dst == NULL){
+
+  if (dst == NULL)
+  {
+    dst = MRIallocSequence(src->width,src->height,src->depth,
+                           MRI_FLOAT,src->nframes);
+    if (dst == NULL)
+    {
       printf("ERROR: MRI_fft_gaussian: could not alloc\n");
       return(NULL);
     }
     MRIcopy(src,dst);
   }
-  else{
-    if (src->width != dst->width){
+  else
+  {
+    if (src->width != dst->width)
+    {
       printf("ERROR: MRI_fft_gaussian: width dimension mismatch\n");
       return(NULL);
     }
-    if (src->height != dst->height){
+    if (src->height != dst->height)
+    {
       printf("ERROR: MRI_fft_gaussian: height dimension mismatch\n");
       return(NULL);
     }
-    if (src->depth != dst->depth){
+    if (src->depth != dst->depth)
+    {
       printf("ERROR: MRI_fft_gaussian: depth dimension mismatch\n");
       return(NULL);
     }
-    if (src->nframes != dst->nframes){
+    if (src->nframes != dst->nframes)
+    {
       printf("ERROR: MRI_fft_gaussian: frames dimension mismatch\n");
       return(NULL);
     }
     if (src != dst) MRIcopy(src,dst);
   }
-  
+
   src_fft = MRI_fft(src, src_fft);
   dimension = src_fft->width;
-  
-  printf("Gaussian "); 
-  g = MRI_Gaussian(dimension, std, norm, src_fft->xsize, src_fft->ysize, src_fft->zsize);
+
+  printf("Gaussian ");
+  g = MRI_Gaussian(dimension, std, norm, 
+                   src_fft->xsize, src_fft->ysize, src_fft->zsize);
   g_fft = MRI_fft(g, NULL);
   MRIfree(&g);
-  
+
   temp = MRIallocSequence(dimension,dimension,dimension,MRI_FLOAT, 1);
-  for (f = 0 ; f < src->nframes ; f++){
+  for (f = 0 ; f < src->nframes ; f++)
+  {
     temp = MRIcopyFrame(src_fft, temp, 2*f, 0);
     fft_sm = MRImultiply(temp, g_fft, NULL); //only frame 0
     src_fft = MRIcopyFrame(fft_sm, src_fft, 0, 2*f);
@@ -5884,56 +6031,68 @@ MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm){
  \param src - the MRI source (spatial domain)
  \param dst - the MRI destination (spatial domain)
  \param percent - parameter of the lowpass filter
- 
-  \brief MRI_fft_smooth computes the fft transform of src, then 
-  apply a lowpass filter in the freq domain: ie keep only 
-  "percent" percent of the lowest freqs, and then computes the 
+
+  \brief MRI_fft_smooth computes the fft transform of src, then
+  apply a lowpass filter in the freq domain: ie keep only
+  "percent" percent of the lowest freqs, and then computes the
   inverse FFT. The result is in dst.
 */
 
-MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent){
-  MRI *src_fft; 
+MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent)
+{
+  MRI *src_fft;
   int x, y, z, f;
-  
-   if (dst == NULL){
-    dst = MRIallocSequence(src->width,src->height,src->depth,MRI_FLOAT,src->nframes);
-    if (dst == NULL){
+
+  if (dst == NULL)
+  {
+    dst = MRIallocSequence(src->width,src->height,src->depth,
+                           MRI_FLOAT,src->nframes);
+    if (dst == NULL)
+    {
       printf("ERROR: MRI_fft_lowpass: could not alloc\n");
       return(NULL);
     }
     MRIcopy(src,dst);
   }
-  else{
-    if (src->width != dst->width){
+  else
+  {
+    if (src->width != dst->width)
+    {
       printf("ERROR: MRI_fft_lowpass: width dimension mismatch\n");
       return(NULL);
     }
-    if (src->height != dst->height){
+    if (src->height != dst->height)
+    {
       printf("ERROR: MRI_fft_lowpass: height dimension mismatch\n");
       return(NULL);
     }
-    if (src->depth != dst->depth){
+    if (src->depth != dst->depth)
+    {
       printf("ERROR: MRI_fft_lowpass: depth dimension mismatch\n");
       return(NULL);
     }
-    if (src->nframes != dst->nframes){
+    if (src->nframes != dst->nframes)
+    {
       printf("ERROR: MRI_fft_lowpass: frames dimension mismatch\n");
       return(NULL);
     }
     if (src != dst) MRIcopy(src,dst);
   }
-  
+
   src_fft = MRI_fft(src, NULL);
   float threshold = (float)percent*src_fft->depth/100;
-  
+
   for (f = 0 ; f < src->nframes ; f++)
     for (z = 0; z < src_fft->depth ; z++)
       for (y = 0 ; y < src_fft->height ; y++)
-	for (x = 0 ; x < src_fft->width; x++){
-	     if (FFTdist(x, y, z,src_fft->xsize, src_fft->ysize, src_fft->zsize, src_fft->depth)> threshold*threshold)
-      	       MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);	 
-	}
-	
+        for (x = 0 ; x < src_fft->width; x++)
+        {
+          if (FFTdist(x, y, z,
+                      src_fft->xsize, src_fft->ysize, src_fft->zsize, 
+                      src_fft->depth)> threshold*threshold)
+            MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);
+        }
+
   MRI_ifft(src_fft, dst , src->width, src->height, src->depth);
   MRIfree(&src_fft);
   return(dst);
@@ -5944,54 +6103,65 @@ MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent){
  \param src - the MRI source (spatial domain)
  \param dst - the MRI destination (spatial domain)
  \param percent - parameter of the highpass filter
- 
-  \brief MRI_fft_smooth computes the fft transform of src, then 
-  apply a lowpass filter in the freq domain: ie remove the 
-  "percent" percent of the lowest freqs, and then computes the 
+
+  \brief MRI_fft_smooth computes the fft transform of src, then
+  apply a lowpass filter in the freq domain: ie remove the
+  "percent" percent of the lowest freqs, and then computes the
   inverse FFT. The result is in dst.
 */
-MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
-  MRI *src_fft; 
+MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent)
+{
+  MRI *src_fft;
   int x, y, z, f;
-  
-   if (dst == NULL){
-    dst = MRIallocSequence(src->width,src->height,src->depth,MRI_FLOAT,src->nframes);
-    if (dst == NULL){
+
+  if (dst == NULL)
+  {
+    dst = MRIallocSequence(src->width,src->height,src->depth,
+                           MRI_FLOAT,src->nframes);
+    if (dst == NULL)
+    {
       printf("ERROR: MRI_fft_highpass: could not alloc\n");
       return(NULL);
     }
     MRIcopy(src,dst);
   }
-  else{
-    if (src->width != dst->width){
+  else
+  {
+    if (src->width != dst->width)
+    {
       printf("ERROR: MRI_fft_highpass: width dimension mismatch\n");
       return(NULL);
     }
-    if (src->height != dst->height){
+    if (src->height != dst->height)
+    {
       printf("ERROR: MRI_fft_highpass: height dimension mismatch\n");
       return(NULL);
     }
-    if (src->depth != dst->depth){
+    if (src->depth != dst->depth)
+    {
       printf("ERROR: MRI_fft_highpass: depth dimension mismatch\n");
       return(NULL);
     }
-    if (src->nframes != dst->nframes){
+    if (src->nframes != dst->nframes)
+    {
       printf("ERROR: MRI_fft_highpass: frames dimension mismatch\n");
       return(NULL);
     }
-    if (src != dst) MRIcopy(src,dst);	
+    if (src != dst) MRIcopy(src,dst);
   }
-    src_fft = MRI_fft(src, NULL);
+  src_fft = MRI_fft(src, NULL);
   float threshold = (float)percent*src_fft->depth/100;
-  
+
   for (f = 0 ; f < src->nframes ; f++)
     for (z = 0; z < src_fft->depth ; z++)
       for (y = 0 ; y < src_fft->height ; y++)
-	for (x = 0 ; x < src_fft->width; x++){
-	     if (FFTdist(x, y, z, src_fft->xsize, src_fft->ysize, src_fft->zsize,src_fft->depth)< threshold*threshold)
-      	       MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);	 
-	}
-	
+        for (x = 0 ; x < src_fft->width; x++)
+        {
+          if (FFTdist(x, y, z, src_fft->xsize, src_fft->ysize, src_fft->zsize,
+                      src_fft->depth)< threshold*threshold)
+            MRIsetVoxVal(src_fft,x,y,z, 2*f, 0);
+        }
+
   MRI_ifft(src_fft, dst , src->width, src->height, src->depth);
   MRIfree(&src_fft);
   return(dst);
@@ -6003,37 +6173,44 @@ MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent){
   in-place. Handles multiple frames. See also MRIconvolveGaussian()
   and MRImaskedGaussianSmooth().
   -------------------------------------------------------------------*/
-MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, 
-			 MRI *targ)
+MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
+                         MRI *targ)
 {
   int c,r,s,f,cstop,rstop,sstop;
   MATRIX *v, *vg, *G;
   MATRIX *vr=NULL, *vc=NULL, *vs=NULL;
   double scale, val, aa=1.0,bb=1.0,cc=1.0,vmf;
 
-  if (targ == NULL)  {
+  if (targ == NULL)
+  {
     targ = MRIallocSequence(src->width,src->height,src->depth,
                             MRI_FLOAT,src->nframes);
-    if (targ == NULL)    {
+    if (targ == NULL)
+    {
       printf("ERROR: MRIgaussianSmoothNI: could not alloc\n");
       return(NULL);
     }
     MRIcopy(src,targ);
   }
-  else  {
-    if (src->width != targ->width)    {
+  else
+  {
+    if (src->width != targ->width)
+    {
       printf("ERROR: MRIgaussianSmoothNI: width dimension mismatch\n");
       return(NULL);
     }
-    if (src->height != targ->height)    {
+    if (src->height != targ->height)
+    {
       printf("ERROR: MRIgaussianSmoothNI: height dimension mismatch\n");
       return(NULL);
     }
-    if (src->depth != targ->depth)    {
+    if (src->depth != targ->depth)
+    {
       printf("ERROR: MRIgaussianSmoothNI: depth dimension mismatch\n");
       return(NULL);
     }
-    if (src->nframes != targ->nframes)    {
+    if (src->nframes != targ->nframes)
+    {
       printf("ERROR: MRIgaussianSmoothNI: frames dimension mismatch\n");
       return(NULL);
     }
@@ -6041,58 +6218,68 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   }
 
   /* Smooth the columns */
-  if(cstd > 0){
+  if (cstd > 0)
+  {
     printf("Smoothing columns by std=%g\n",cstd);
     G  = GaussianMatrix(src->width, cstd/src->xsize, 1, NULL);
     v  = MatrixAlloc(src->width,1,MATRIX_REAL);
     vg = MatrixAlloc(src->width,1,MATRIX_REAL);
-    for (r=0; r < src->height; r++) {
-      if (Gdiag_no > 0) {
-	printf("%d ",r);
-	if (r%10==9) printf("\n");
+    for (r=0; r < src->height; r++)
+    {
+      if (Gdiag_no > 0)
+      {
+        printf("%d ",r);
+        if (r%10==9) printf("\n");
       }
-      for (s=0; s < src->depth; s++)    {
-	for (f=0; f < src->nframes; f++)      {
-	  for (c=0; c < src->width; c++)
-	    v->rptr[c+1][1] = MRIgetVoxVal(targ,c,r,s,f);
-	  MatrixMultiply(G,v,vg);
-	  for (c=0; c < src->width; c++)
-	    MRIsetVoxVal(targ,c,r,s,f,vg->rptr[c+1][1]);
-	}
+      for (s=0; s < src->depth; s++)
+      {
+        for (f=0; f < src->nframes; f++)
+        {
+          for (c=0; c < src->width; c++)
+            v->rptr[c+1][1] = MRIgetVoxVal(targ,c,r,s,f);
+          MatrixMultiply(G,v,vg);
+          for (c=0; c < src->width; c++)
+            MRIsetVoxVal(targ,c,r,s,f,vg->rptr[c+1][1]);
+        }
       }
     }
     if (Gdiag_no > 0) printf("\n");
-    
+
     // This is for scaling
     vc = MatrixAlloc(src->width,1,MATRIX_REAL) ;
     for (c=0; c < src->width; c++)
       vc->rptr[c+1][1] = G->rptr[src->width/2][c+1];
-  
+
     MatrixFree(&G);
     MatrixFree(&v);
     MatrixFree(&vg);
   }
 
-  if(rstd > 0){
+  if (rstd > 0)
+  {
     /* Smooth the rows */
     printf("Smoothing rows by std=%g\n",rstd);
     G = GaussianMatrix(src->height, rstd/src->ysize, 1, NULL);
     v  = MatrixAlloc(src->height,1,MATRIX_REAL);
     vg = MatrixAlloc(src->height,1,MATRIX_REAL);
-    for (c=0; c < src->width; c++){
-      if (Gdiag_no > 0) {
-	printf("%d ",c);
-	if (c%10==9) printf("\n");
+    for (c=0; c < src->width; c++)
+    {
+      if (Gdiag_no > 0)
+      {
+        printf("%d ",c);
+        if (c%10==9) printf("\n");
       }
-      
-      for (s=0; s < src->depth; s++)    {
-	for (f=0; f < src->nframes; f++)      {
-	  for (r=0; r < src->height; r++)
-	    v->rptr[r+1][1] = MRIgetVoxVal(targ,c,r,s,f);
-	  MatrixMultiply(G,v,vg);
-	  for (r=0; r < src->height; r++)
-	    MRIsetVoxVal(targ,c,r,s,f,vg->rptr[r+1][1]);
-	}
+
+      for (s=0; s < src->depth; s++)
+      {
+        for (f=0; f < src->nframes; f++)
+        {
+          for (r=0; r < src->height; r++)
+            v->rptr[r+1][1] = MRIgetVoxVal(targ,c,r,s,f);
+          MatrixMultiply(G,v,vg);
+          for (r=0; r < src->height; r++)
+            MRIsetVoxVal(targ,c,r,s,f,vg->rptr[r+1][1]);
+        }
       }
     }
     if (Gdiag_no > 0) printf("\n");
@@ -6100,40 +6287,45 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
     vr = MatrixAlloc(src->height,1,MATRIX_REAL) ;
     for (r=0; r < src->height; r++)
       vr->rptr[r+1][1] = G->rptr[src->height/2][r+1];
-    
+
     MatrixFree(&G);
     MatrixFree(&v);
     MatrixFree(&vg);
   }
 
   /* Smooth the slices */
-  if(sstd > 0){
+  if (sstd > 0)
+  {
     printf("Smoothing slices by std=%g\n",sstd);
     G = GaussianMatrix(src->depth, sstd/src->zsize, 1, NULL);
     v  = MatrixAlloc(src->depth,1,MATRIX_REAL);
     vg = MatrixAlloc(src->depth,1,MATRIX_REAL);
-    for (c=0; c < src->width; c++)  {
-      if (Gdiag_no > 0)    {
-	printf("%d ",c);
-	if (c%10==9) printf("\n");
+    for (c=0; c < src->width; c++)
+    {
+      if (Gdiag_no > 0)
+      {
+        printf("%d ",c);
+        if (c%10==9) printf("\n");
       }
-      for (r=0; r < src->height; r++)    {
-	for (f=0; f < src->nframes; f++)      {
-	  for (s=0; s < src->depth; s++)
-	    v->rptr[s+1][1] = MRIgetVoxVal(targ,c,r,s,f);
-	  MatrixMultiply(G,v,vg);
-	  for (s=0; s < src->depth; s++)
-	    MRIsetVoxVal(targ,c,r,s,f,vg->rptr[s+1][1]);
-	}
+      for (r=0; r < src->height; r++)
+      {
+        for (f=0; f < src->nframes; f++)
+        {
+          for (s=0; s < src->depth; s++)
+            v->rptr[s+1][1] = MRIgetVoxVal(targ,c,r,s,f);
+          MatrixMultiply(G,v,vg);
+          for (s=0; s < src->depth; s++)
+            MRIsetVoxVal(targ,c,r,s,f,vg->rptr[s+1][1]);
+        }
       }
     }
     if (Gdiag_no > 0) printf("\n");
-    
+
     // This is for scaling
     vs = MatrixAlloc(src->depth,1,MATRIX_REAL) ;
     for (s=0; s < src->depth; s++)
       vs->rptr[s+1][1] = G->rptr[src->depth/2][s+1];
-    
+
     MatrixFree(&G);
     MatrixFree(&v);
     MatrixFree(&vg);
@@ -6143,55 +6335,67 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   // will be sum(k^2)
   scale = 0;
   vmf = 0;
-  if(cstd > 0.0) cstop = src->width;
+  if (cstd > 0.0) cstop = src->width;
   else           cstop = 1;
-  if(rstd > 0.0) rstop = src->height;
+  if (rstd > 0.0) rstop = src->height;
   else           rstop = 1;
-  if(sstd > 0.0) sstop = src->depth;
+  if (sstd > 0.0) sstop = src->depth;
   else           sstop = 1;
-  for (c=0; c < cstop; c++){
-    for (r=0; r < rstop; r++){
-      for (s=0; s < sstop; s++){
-	if(cstd > 0.0) aa = vc->rptr[c+1][1];
-	if(rstd > 0.0) bb = vr->rptr[r+1][1];
-	if(sstd > 0.0) cc = vs->rptr[s+1][1];
-	scale += (aa*bb*cc);
-	vmf += ((aa*bb*cc)*(aa*bb*cc));
+  for (c=0; c < cstop; c++)
+  {
+    for (r=0; r < rstop; r++)
+    {
+      for (s=0; s < sstop; s++)
+      {
+        if (cstd > 0.0) aa = vc->rptr[c+1][1];
+        if (rstd > 0.0) bb = vr->rptr[r+1][1];
+        if (sstd > 0.0) cc = vs->rptr[s+1][1];
+        scale += (aa*bb*cc);
+        vmf += ((aa*bb*cc)*(aa*bb*cc));
       }
     }
   }
   printf("MRIguassianSmoothNI(): scale = %g\n",scale);
   printf("MRIguassianSmoothNI(): VMF = %g, VRF = %g\n",vmf,1.0/vmf);
-    
+
   // Divide by the sum of the kernel so that a smoothed delta function
   // will sum to one and so that a constant input yields const output.
-  for (c=0; c < src->width; c++)    {
-    for (r=0; r < src->height; r++)      {
-      for (s=0; s < src->depth; s++)        {
-	for (f=0; f < src->nframes; f++)          {
-	  val = MRIgetVoxVal(targ,c,r,s,f);
-	  MRIsetVoxVal(targ,c,r,s,f,val/scale);
-	}
+  for (c=0; c < src->width; c++)
+  {
+    for (r=0; r < src->height; r++)
+    {
+      for (s=0; s < src->depth; s++)
+      {
+        for (f=0; f < src->nframes; f++)
+        {
+          val = MRIgetVoxVal(targ,c,r,s,f);
+          MRIsetVoxVal(targ,c,r,s,f,val/scale);
+        }
       }
     }
   }
 
-  if(vc) MatrixFree(&vc);
-  if(vr) MatrixFree(&vr);
-  if(vs) MatrixFree(&vs);
+  if (vc) MatrixFree(&vc);
+  if (vr) MatrixFree(&vr);
+  if (vs) MatrixFree(&vs);
 
   return(targ);
 }
 
 MRI *
-MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int label, MRI **pmri_ctrl)
+MRIsegmentationSurfaceNormals(MRI *mri_seg, 
+                              MRI *mri_normals, 
+                              int label, 
+                              MRI **pmri_ctrl)
 {
   int    x, y, z, border ;
   float  nx, ny, nz ;
   MRI    *mri_border ;
 
   mri_border = MRImarkLabelBorderVoxels(mri_seg, NULL, label, 1, 0) ;
-  mri_normals = MRIallocSequence(mri_seg->width, mri_seg->height, mri_seg->depth, MRI_FLOAT, 3) ;
+  mri_normals = 
+    MRIallocSequence(mri_seg->width, mri_seg->height, mri_seg->depth, 
+                     MRI_FLOAT, 3) ;
   MRIcopyHeader(mri_seg, mri_normals) ;
 
   for (x = 0; x < mri_seg->width; x++)
@@ -6205,7 +6409,8 @@ MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int label, MRI **p
         border = nint(MRIgetVoxVal(mri_border, x, y, z, 0)) ;
         if (border == 0)
           continue ;
-        if (MRIcomputeBorderNormalAtVoxel(mri_seg, x, y, z, &nx, &ny, &nz, label) > 0)
+        if (MRIcomputeBorderNormalAtVoxel(mri_seg, x, y, z, 
+                                          &nx, &ny, &nz, label) > 0)
         {
           MRIsetVoxVal(mri_normals, x, y, z, 0, nx) ;
           MRIsetVoxVal(mri_normals, x, y, z, 1, ny) ;
@@ -6222,9 +6427,10 @@ MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int label, MRI **p
 }
 
 int
-MRIcomputeBorderNormalAtVoxel(MRI *mri_seg, 
-                              int x0, int y0, int z0, 
-                              float *pnx, float *pny,float *pnz, int target_label)
+MRIcomputeBorderNormalAtVoxel(MRI *mri_seg,
+                              int x0, int y0, int z0,
+                              float *pnx, float *pny,float *pnz, 
+                              int target_label)
 {
   int   olabel, x1, y1, z1, xk, yk, zk, label, num ;
   float nx, ny, nz, mag ;
@@ -6267,15 +6473,21 @@ MRIcomputeBorderNormalAtVoxel(MRI *mri_seg,
   if (olabel != target_label) // make normal point outwards
   {
 
-    nx *= -1 ; ny *= -1 ; nz *= -1 ;
+    nx *= -1 ;
+    ny *= -1 ;
+    nz *= -1 ;
   }
 
   mag = sqrt(nx*nx + ny*ny  + nz*nz) ;
   if (!FZERO(mag))
   {
-    nx /= mag ; ny /= mag ; nz /= mag ;
+    nx /= mag ;
+    ny /= mag ;
+    nz /= mag ;
   }
-  *pnx = nx ; *pny = ny ; *pnz = nz ;  // return in image coords
+  *pnx = nx ;
+  *pny = ny ;
+  *pnz = nz ;  // return in image coords
 
   return(num) ;
 }
@@ -6326,7 +6538,8 @@ MRIcomputeFrameVectorLength(MRI *mri_src, MRI *mri_dst)
 
   if (mri_dst == NULL)
   {
-    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, 
+                       MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
@@ -6354,7 +6567,8 @@ MRIcomputeFrameVectorL1Length(MRI *mri_src, MRI *mri_dst)
 
   if (mri_dst == NULL)
   {
-    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, 
+                       MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
