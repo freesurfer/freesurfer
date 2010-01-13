@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/06 04:54:22 $
-#    $Revision: 1.454 $
+#    $Date: 2010/01/13 15:30:08 $
+#    $Revision: 1.455 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2353,7 +2353,11 @@ if test "$ac_expat_libraries" = "NO"; then
   LIBS_MGH="${LIBS_MGH} expat/libexpat.a"
 fi
 
+# to support CUDA, use libutils_cuda instead of libutils:
+LIBS_CUDA_MGH=`echo ${LIBS_MGH} | sed 's/libutils/libutils_cuda/g'`
+
 AC_SUBST(LIBS_MGH)
+AC_SUBST(LIBS_CUDA_MGH)
 AC_SUBST(LIB_JPEG)
 AC_SUBST(LIB_TIFF)
 AC_SUBST(LIB_EXPAT)
