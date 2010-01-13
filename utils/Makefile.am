@@ -318,7 +318,8 @@ libutils_cuda_a_SOURCES=\
 	$(libutils_nrrdio_SOURCES) \
 	devicemanagement.cu\
         mriconvolve1d_cuda.cu\
-        mri_transfer.cu
+        mri_transfer.cu\
+        mrivol2vol_cuda.cu
 
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA
