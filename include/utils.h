@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/09/28 21:06:06 $
- *    $Revision: 1.35 $
+ *    $Author: mreuter $
+ *    $Date: 2010/01/13 20:26:24 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -100,5 +100,11 @@ void __qtol(void);
 
 char *GetNthItemFromString(const char *str, int nth) ;
 int CountItemsInString(const char *str) ;
+
+/* Routines for Robust Gaussians (Median and MAD) */
+float kth_smallest(float a[], int n, int k);
+float quick_select(float a[], int n, int k);
+float median(float a[],int n);
+float mad(float a[], int n);
 
 #endif

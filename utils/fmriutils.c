@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/09/14 22:29:32 $
- *    $Revision: 1.60 $
+ *    $Author: mreuter $
+ *    $Date: 2010/01/13 20:25:55 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.60 2009/09/14 22:29:32 greve Exp $
+  $Id: fmriutils.c,v 1.61 2010/01/13 20:25:55 mreuter Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -50,6 +50,7 @@ double round(double x);
 #include "fsglm.h"
 #include "numerics.h"
 #include "diag.h"
+#include "utils.h"
 
 #ifdef X
 #undef X
@@ -59,7 +60,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.60 2009/09/14 22:29:32 greve Exp $");
+  return("$Id: fmriutils.c,v 1.61 2010/01/13 20:25:55 mreuter Exp $");
 }
 
 
@@ -1709,6 +1710,35 @@ MRI *MRIframeMean(MRI *vol, MRI *volmn)
   return(volmn);
 }
 
+/*---------------------------------------------------------------
+  MRIframeMedian() - computes median over frames of each voxel.
+  --------------------------------------------------------------*/
+MRI *MRIframeMedian(MRI *vol, MRI *volmn)
+{
+  int c, r, s, f;
+  float* t = (float *)calloc(vol->nframes, sizeof(float));
+
+  if (volmn == NULL)
+  {
+    volmn = MRIallocSequence(vol->width,vol->height,vol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(vol,volmn);
+  }
+
+  for (c=0; c < vol->width; c++)
+  {
+    for (r=0; r < vol->height; r++)
+    {
+      for (s=0; s < vol->depth; s++)
+      {
+        for (f=0; f < vol->nframes; f++)
+          t[f] = MRIgetVoxVal(vol,c,r,s,f);
+        MRIsetVoxVal(volmn,c,r,s,0,median(t,vol->nframes));
+      }//s
+    }//r
+  }//c
+	free(t);
+  return(volmn);
+}
 
 /*---------------------------------------------------------------
   MRIframeSum() - computes sum over frames of each voxel.

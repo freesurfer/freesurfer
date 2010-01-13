@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/09/28 21:06:06 $
- *    $Revision: 1.73 $
+ *    $Author: mreuter $
+ *    $Date: 2010/01/13 20:25:55 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1423,4 +1423,187 @@ char *GetNthItemFromString(const char *str, int nth)
 
   item = strcpyalloc(tmpstr);
   return(item);
+}
+
+/*---------------------------------------------------------------------------
+   Function :   kth_smallest()
+   In       :   array of elements, # of elements in the array, rank k
+   Out      :   one element
+   Job      :   find the kth smallest element in the array
+
+                Reference:
+
+                  Author: Wirth, Niklaus
+                   Title: Algorithms + data structures = programs
+               Publisher: Englewood Cliffs: Prentice-Hall, 1976
+    Physical description: 366 p.
+                  Series: Prentice-Hall Series in Automatic Computation
+									
+									
+									reorders a[] (of length n)
+                  returns k_th smallest in array
+                  can be used to compute the median
+
+ ---------------------------------------------------------------------------*/
+float kth_smallest(float a[], int n, int k)
+{
+  int i,j,l,m ;
+  float x,t ;
+  int kk = k-1;
+    
+  l=0 ;
+  m=n-1 ;
+  while (l<m)
+  {
+    x=a[kk] ;
+    i=l ;
+    j=m ;
+    do
+    {
+      while (a[i]<x) i++ ;
+      while (x<a[j]) j-- ;
+      if (i<=j)
+      {
+				t=a[i];a[i]=a[j];a[j]=t;
+        i++ ;
+        j-- ;
+      }
+    }
+    while (i<=j) ;
+    if (j<kk) l=i ;
+    if (kk<i) m=j ;
+  }
+  return a[kk];
+}
+
+
+/*---------------------------------------------------------------------------
+  * This Quickselect routine is based on the algorithm described in
+  * "Numerical recipes in C", Second Edition,
+  * Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5
+ ---------------------------------------------------------------------------*/
+float quick_select(float arr[], int n, int k)
+{
+  int low, high ;
+  int median;
+  int middle, ll, hh;
+	float t;
+
+
+  low = 0 ;
+  high = n-1 ;
+  median = k-1;
+  for (;;)
+  {
+    if (high <= low) /* One element only */
+    {
+      return arr[median] ;
+    }
+    if (high == low + 1)
+    { /* Two elements only */
+      if (arr[low] > arr[high])
+      {
+				t = arr[low]; arr[low] = arr[high]; arr[high] = t;
+      }
+      return arr[median] ;
+    }
+    /* Find median of low, middle and high items; swap into position low */
+    middle = (low + high) / 2;
+    if (arr[middle] > arr[high])
+    {
+			t = arr[middle]; arr[middle] = arr[high]; arr[high] = t;
+    }  
+    if (arr[low] > arr[high])
+    {
+			t = arr[low]; arr[low] = arr[high]; arr[high] = t;
+    }
+    if (arr[middle] > arr[low])
+    {
+			t = arr[middle]; arr[middle] = arr[low]; arr[low] = t;
+    }
+      
+    /* Swap low item (now in position middle) into position (low+1) */
+	  t = arr[middle]; arr[middle] = arr[low+1]; arr[low+1] = t;
+    /* Nibble from each end towards middle, swapping items when stuck */
+    ll = low + 1;
+    hh = high;
+    for (;;)
+    {
+      do ll++;
+      while (arr[low] > arr[ll]) ;
+      do hh--;
+      while (arr[hh] > arr[low]) ;
+      if (hh < ll)
+        break;
+	    t = arr[ll]; arr[ll] = arr[hh]; arr[hh] = t;
+    }
+    /* Swap middle item (in position low) back into correct position */
+	    t = arr[low]; arr[low] = arr[hh]; arr[hh] = t;
+    /* Re-set active partition */
+    if (hh <= median)
+      low = ll;
+    if (hh >= median)
+      high = hh - 1;
+  }
+}
+
+/*---------------------------------------------------------------------------
+// Function median:
+//       compute median
+//       Input float array t[] of length n
+//       computation in situ, t will be reordered
+ ---------------------------------------------------------------------------*/
+float median(float t[],int n)
+{
+
+  float q,q2;
+  if (n%2 == 1) //odd
+  {
+    q = kth_smallest(t,n,(n+1)/2);
+    return q;
+  }
+
+  /*  else even: */
+
+/*  q = kth_smallest(t,n,n/2);
+   q2 = kth_smallest(t,n,n/2 + 1); */
+
+  q  = quick_select(t,n,n/2);
+  q2 = quick_select(t,n,n/2 + 1);
+
+  return 0.5 * (q + q2);
+
+}
+
+/*---------------------------------------------------------------------------
+// Function mad:
+//       compute median absolute deviation
+//       (robust estimate for sigma):
+//          1.4826 med_i(|r_i - med_j(r_j)|)
+//
+//       Input float array a[] of length n
+//       computation in situ, a will be reordered
+//
+ ---------------------------------------------------------------------------*/
+float mad(float a[], int n)
+{
+  float d, mm,medi;
+	int i;
+  float* t = (float *)calloc(n, sizeof(float));
+  
+	d = 1.4826;
+	
+  medi = median(a,n);
+	
+  if (t == NULL) 
+     ErrorExit(ERROR_NO_MEMORY,"utils.c mad(...) could not allocate memory for t") ;
+     
+  for (i=0;i<n;i++)
+  {
+    t[i] = fabs(a[i] -medi);
+  }
+
+  mm = median(t,n);
+  free(t);
+  return d * mm;
 }
