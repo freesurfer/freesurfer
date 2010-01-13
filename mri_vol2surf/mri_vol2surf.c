@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/11/17 20:54:33 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/01/13 03:14:55 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.53 2009/11/17 20:54:33 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.54 2010/01/13 03:14:55 greve Exp $";
 
 char *Progname = NULL;
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.53 2009/11/17 20:54:33 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.54 2010/01/13 03:14:55 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -827,12 +827,19 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       srcregfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--regheader")) {
+    } 
+    else if (!strcmp(option, "--regheader")) {
       if (nargc < 1) argnerr(option,1);
       regheader = 1;
       srcsubject = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--rot")) {
+    } 
+    else if (!strcmp(option, "--mni152reg")) {
+      sprintf(tmpstr,"%s/average/mni152.register.dat",
+	      getenv("FREESURFER_HOME"));
+      srcregfile = strcpyalloc(tmpstr);
+    } 
+    else if (!strcmp(option, "--rot")) {
       if (nargc < 3) argnerr(option,3);
       // Angles are in degrees
       sscanf(pargv[0],"%lf",&angles[0]);
@@ -1079,6 +1086,7 @@ static void print_usage(void) {
   printf("   --ref reference volume name (default=orig.mgz\n");
   printf("   --reg source registration  \n");
   printf("   --regheader subject\n");
+  printf("   --mni152reg : assume mov is in MNI152 space\n");
   printf("   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
   printf("   --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
   printf("   --float2int float-to-int conversion method "
