@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/01/13 15:30:08 $
-#    $Revision: 1.455 $
+#    $Author: rge21 $
+#    $Date: 2010/01/13 15:52:47 $
+#    $Revision: 1.456 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -601,9 +601,9 @@ AC_ARG_ENABLE([emu],
 # setup  nvcc flags
 if  test x$DEBUG = xtrue
 then
-   NVCCFLAGS="-g"
+   NVCCFLAGS="-g -arch sm_13 --ptxas-options=-v"
 else
-   NVCCFLAGS="-use_fast_math"
+   NVCCFLAGS="-use_fast_math -arch sm_13 --ptxas-options=-v -g"
 fi
 if test x$EMULATION = xtrue
 then
