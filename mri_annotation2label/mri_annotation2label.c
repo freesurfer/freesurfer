@@ -7,8 +7,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/29 20:11:01 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/01/13 00:01:07 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.21 2009/10/29 20:11:01 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.22 2010/01/13 00:01:07 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -88,7 +88,8 @@ int  segbase = -1000;
 char *borderfile=NULL;
 char *BorderAnnotFile=NULL;
 char *LobesFile=NULL;
-
+char *StatFile=NULL;
+MRI  *Stat=NULL;
 static int label_index = -1 ;  // if >= 0 only extract this label
 
 
@@ -97,11 +98,11 @@ static int label_index = -1 ;  // if >= 0 only extract this label
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
   int err,vtxno,ano,ani,vtxani,animax;
-  int nargs,IsBorder;
+  int nargs,IsBorder,k;
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.21 2009/10/29 20:11:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.22 2010/01/13 00:01:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -234,32 +235,48 @@ int main(int argc, char **argv) {
   }
   printf("max index = %d\n",animax);
 
+  // Load statistic file
+  if(StatFile){
+    printf("Loading stat file %s\n",StatFile);
+    Stat = MRIread(StatFile);
+    if(Stat == NULL) exit(1);
+    if(Stat->width != Surf->nvertices){
+      printf("ERROR: dimension mismatch between surface (%d) and stat (%d)\n",
+	     Surf->nvertices,Stat->width);
+      exit(1);
+    }
+  }
+
   // Go thru each index present and save a label
   for (ani=0; ani <= animax; ani++) {
 
-    if (label_index >= 0 && ani != label_index)
-      continue ;
+    if (label_index >= 0 && ani != label_index)      continue ;
     if (nperannot[ani] == 0) {
       if (DIAG_VERBOSE_ON)
         printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
       continue;
     }
 
-    if (labelbase != NULL)
-      sprintf(labelfile,"%s-%03d.label",labelbase,ani);
-    if (outdir != NULL)
-      sprintf(labelfile,"%s/%s.%s.label",outdir,hemi,
-              Surf->ct->entries[ani]->name);
+    if (labelbase != NULL)  sprintf(labelfile,"%s-%03d.label",labelbase,ani);
+    if (outdir != NULL)     sprintf(labelfile,"%s/%s.%s.label",outdir,hemi,
+				    Surf->ct->entries[ani]->name);
 
     printf("%3d  %5d %s\n",ani,nperannot[ani],labelfile);
     label = annotation2label(ani, Surf);
-    if (label == NULL)
-    {
+    if(label == NULL){
       ErrorPrintf(ERROR_BADPARM, "index %d not found, cannot write %s - skipping",
                   ani, labelfile) ;
       continue ;
     }
     strcpy(label->subject_name,subject);
+
+    if(Stat){
+      for(k=0; k < label->n_points; k++){
+	vtxno = label->lv[k].vno;
+	label->lv[k].stat = MRIgetVoxVal(Stat,vtxno,0,0,0);
+      }
+    }
+
     LabelWrite(label,labelfile);
     LabelFree(&label);
   }
@@ -302,11 +319,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       SUBJECTS_DIR = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--surface") || !strcmp(option, "--surf")) {
+    } 
+    else if (!strcmp(option, "--surface") || !strcmp(option, "--surf")) {
       if (nargc < 1) argnerr(option,1);
       surfacename = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--labelbase")) {
+    } 
+    else if (!strcmp(option, "--stat")){
+      if(nargc < 1) argnerr(option,1);
+      StatFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--labelbase")) {
       if (nargc < 1) argnerr(option,1);
       labelbase = pargv[0];
       nargsused = 1;
@@ -391,6 +415,7 @@ static void print_usage(void) {
   printf("   --annotation as found in SUBJDIR/labels <aparc>\n");
   printf("   --sd <SUBJECTS_DIR>  specify SUBJECTS_DIR on cmdline\n") ;
   printf("   --surface    name of surface <white>. Only affect xyz in label.\n");
+  printf("   --stat statfile : surface overlay file (curv or volume format).\n");
   printf("\n");
   printf("   --table : obsolete. Now gets from annotation file\n");
   printf("\n");
@@ -457,6 +482,12 @@ static void print_help(void) {
     "Creates an overlay file in which the boundaries of the parcellations are \n"
     "set to 1 and everything else is 0. This can then be loaded as an overlay\n"
     "in tksurfer.\n"
+    " \n"
+    " --stat StatFile\n"
+    " \n"
+    " Put the value from the StatFile into the Stat field in the label. StatFile\n"
+    " must be a curv or surface overlay (eg, mgh) format (eg, lh.thickness).\n"
+    " \n"
     " \n"
     "Convert annotation into a volume-encoded surface segmentation file. This \n"
     "Bugs:\n"
