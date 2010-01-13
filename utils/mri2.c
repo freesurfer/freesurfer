@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/13 19:27:04 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/01/13 20:59:52 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,10 @@
 #include "sig.h"
 #include "cma.h"
 #include "chronometer.h"
+
+#ifdef FS_CUDA
+#include "mrivol2vol_cuda.h"
+#endif
 
 #define VERBOSE_MODE
 
@@ -695,12 +699,16 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
 int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
                int InterpCode, float param)
 {
+#ifdef FS_CUDA
+  int cudaReturn;
+#else
   int   ct,  rt,  st,  f;
   int   ics, irs, iss;
   float fcs, frs, fss;
-  float *valvect;
-  int sinchw;
   Real rval;
+  float *valvect;
+#endif
+  int sinchw;
   MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
   int FreeMats=0;
 
@@ -746,12 +754,25 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   }
 
   sinchw = nint(param);
+#ifndef FS_CUDA
   valvect = (float *) calloc(sizeof(float),src->nframes);
+#endif
 
 #ifdef VERBOSE_MODE
   StartChronometer( &tSample );
 #endif
 
+#ifdef FS_CUDA
+  printf( "%s: Calling CUDA routine with NULL matrix!\n", __FUNCTION__ );
+  cudaReturn = MRIvol2vol_cuda( src, targ,
+				NULL,
+				InterpCode,
+				param );
+  if( cudaReturn != 0 ) {
+    fprintf( stderr, "%s: CUDA call failed!\n", __FUNCTION__ );
+    exit( EXIT_FAILURE );
+  }
+#else
   for (ct=0; ct < targ->width; ct++)
   {
     for (rt=0; rt < targ->height; rt++)
@@ -804,12 +825,15 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
       } /* target col */
     } /* target row */
   } /* target slice */
+#endif
 
 #ifdef VERBOSE_MODE
   StopChronometer( &tSample );
 #endif
 
+#ifndef FS_CUDA
   free(valvect);
+#endif
   if (FreeMats)
   {
     MatrixFree(&V2Rsrc);
