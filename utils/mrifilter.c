@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/10/25 14:21:33 $
- *    $Revision: 1.74 $
+ *    $Author: rge21 $
+ *    $Date: 2010/01/13 17:48:54 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,8 @@
 #include "talairachex.h"
 #include "fftutils.h"
 #include "mrinorm.h"
+
+#include "chronometer.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -2443,6 +2445,17 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   MRI  *mtmp1, *mri_tmp ;
   float *kernel ;
 
+  Chronometer tTotal;
+
+  InitChronometer( &tTotal );
+
+  StartChronometer( &tTotal );
+
+#ifdef CUDA
+	printf( "%s: CUDA version\n", __FUNCTION__ );
+#endif
+
+
   kernel = &MRIFvox(mri_gaussian, 0, 0, 0) ;
   klen = mri_gaussian->width ;
   width = mri_src->width ;
@@ -2482,6 +2495,10 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
     mri_dst = mri_src ;
     MRIfree(&mri_tmp) ;
   }
+
+  StopChronometer( &tTotal );
+  printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
+
   return(mri_dst) ;
 }
 /*---------------------------------------------------------------------
@@ -3039,8 +3056,14 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
+  printf( "%s: Sizes are w=%i h=%i d=%i\n", __FUNCTION__, width, height, depth );
+
   if (!mri_dst)
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+
+  printf( "%s: src type is %i\n", __FUNCTION__, mri_src->type );
+  printf( "%s: dst type is %i\n", __FUNCTION__, mri_dst->type );
+  printf( "%s: kernel size is %i\n", __FUNCTION__, len );
 
   if (mri_dst->type == MRI_UCHAR)
     return(MRIconvolve1dByte(mri_src,mri_dst,k,len,axis,src_frame,dst_frame));

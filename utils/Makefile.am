@@ -154,6 +154,7 @@ libutils_main_SOURCES=\
 	mriio.c \
 	MRIio_old.c \
 	mri_level_set.c \
+	mrifilter.c \
 	mrimorph.c \
 	mrinorm.c \
 	mripolv.c \
@@ -228,17 +229,6 @@ libutils_main_SOURCES=\
 	mriio_nrrd_itk.cpp \
 	numerics.cpp
 
-# libutils_cpu_SOURCES and libutils_gpu_SOURCES are paired, for use in
-# implementing GPU (CUDA-based) routines to replace its CPU implementation.
-# see libutils_a_SOURCES and libutils_cuda_a_SOURCES below to see how these
-# are used.
-libutils_cpu_SOURCES=\
-	mrifilter.c
-
-libutils_gpu_SOURCES=\
-        devicemanagement.cu \
-	mrifilter.c
-
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \
 	$(srcdir)/$(cephes_dir)/chdtr.c \
@@ -301,7 +291,6 @@ libutils_nrrdio_SOURCES=\
 
 libutils_a_SOURCES=\
 	$(libutils_main_SOURCES) \
-	$(libutils_cpu_SOURCES) \
 	$(libutils_cephes_SOURCES) \
 	$(libutils_nrrdio_SOURCES)
 
@@ -313,15 +302,18 @@ libutils_a_SOURCES=\
 if BUILDCUDA
 # rules for building cuda files
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) -I$(top_srcdir)/include
 
 noinst_LIBRARIES += libutils_cuda.a
 
 libutils_cuda_a_SOURCES=\
 	$(libutils_main_SOURCES) \
-	$(libutils_gpu_SOURCES) \
 	$(libutils_cephes_SOURCES) \
-	$(libutils_nrrdio_SOURCES)
+	$(libutils_nrrdio_SOURCES) \
+	devicemanagement.cu
+
+libutils_cuda_a_CFLAGS=-DFS_CUDA
+
 endif
 
 
