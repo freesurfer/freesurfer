@@ -236,6 +236,7 @@ libutils_cpu_SOURCES=\
 	mrifilter.c
 
 libutils_gpu_SOURCES=\
+        devicemanagement.cu \
 	mrifilter.c
 
 libutils_cephes_SOURCES=\
