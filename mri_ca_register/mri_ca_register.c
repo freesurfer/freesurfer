@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/05 18:32:47 $
- *    $Revision: 1.69 $
+ *    $Date: 2010/01/13 17:46:54 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -174,7 +174,7 @@ main(int argc, char *argv[]) {
 	int          got_scales =0;
 
 #ifdef FS_CUDA
-	AcquireDevice();
+	AcquireCUDADevice();
 #endif
 
   parms.l_log_likelihood = 0.2f ;
@@ -215,7 +215,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.69 2010/01/05 18:32:47 rge21 Exp $", 
+     "$Id: mri_ca_register.c,v 1.70 2010/01/13 17:46:54 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
