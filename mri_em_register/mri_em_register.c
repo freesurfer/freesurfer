@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.64 2010/01/05 19:22:59 nicks Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.65 2010/01/13 17:45:04 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -43,8 +43,7 @@
 #include "version.h"
 #ifdef FS_CUDA
 #include "chronometer.h"
-#include "findoptimaltransform.h"
-#include "findoptimaltranslation.h"
+#include "devicemanagement.h"
 #include "computelogsampleprob.h"
 #endif // FS_CUDA
 
@@ -189,14 +188,14 @@ main(int argc, char *argv[])
 
 #ifdef FS_CUDA
   // Force CUDA initialisation
-  InitCUDA();
+  AcquireCUDADevice();
 #endif // FS_CUDA
 
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.64 2010/01/05 19:22:59 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.65 2010/01/13 17:45:04 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

@@ -21,10 +21,10 @@ if BUILDCUDA
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
 bin_PROGRAMS += mri_em_register_cuda
 mri_em_register_cuda_SOURCES = mri_em_register.c \
-computelogsampleprob.cu findoptimaltransform.cu findoptimaltranslation.cu
+                               computelogsampleprob.cu
 mri_em_register_cuda_CFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
 mri_em_register_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
-mri_em_register_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(CUDA_LIBS)
+mri_em_register_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
 mri_em_register_cuda_LDFLAGS = $(OS_LDFLAGS) 
 mri_em_register_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_em_register_cuda_CFLAGS) \
