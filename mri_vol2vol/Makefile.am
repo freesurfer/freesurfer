@@ -17,3 +17,29 @@ mri_vol2vol_LDFLAGS=$(OS_LDFLAGS)
 # release' target.
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
+
+
+## ----
+## CUDA
+## ----
+
+# BUILDCUDA is defined if configure.in finds CUDA
+if BUILDCUDA
+
+# rules for building cuda files
+.cu.o:
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
+
+bin_PROGRAMS += mri_vol2vol_cuda
+
+mri_vol2vol_cuda_SOURCES = mri_vol2vol.c
+
+mri_vol2vol_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
+mri_vol2vol_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+mri_vol2vol_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
+mri_vol2vol_cuda_LDFLAGS = $(OS_LDFLAGS) 
+mri_vol2vol_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_em_register_cuda_CFLAGS) \
+        $(CFLAGS) $(mri_em_register_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
+endif

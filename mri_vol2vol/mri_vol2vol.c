@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/12/10 19:00:41 $
- *    $Revision: 1.59 $
+ *    $Author: rge21 $
+ *    $Date: 2010/01/13 18:34:58 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -429,6 +429,12 @@ ENDHELP --------------------------------------------------------------
 #include "pdf.h"
 #include "cmdargs.h"
 
+#ifdef FS_CUDA
+#include "devicemanagement.h"
+#endif
+
+
+
 #ifdef X
 #undef X
 #endif
@@ -454,7 +460,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.59 2009/12/10 19:00:41 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.60 2010/01/13 18:34:58 rge21 Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -560,13 +566,18 @@ int main(int argc, char **argv) {
   MRI *crop, *cropnew, *mri;
   MRI_REGION box;
 
+#ifdef FS_CUDA
+  AcquireCUDADevice();
+#endif
+
+
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.59 2009/12/10 19:00:41 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.60 2010/01/13 18:34:58 rge21 Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.59 2009/12/10 19:00:41 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.60 2010/01/13 18:34:58 rge21 Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
