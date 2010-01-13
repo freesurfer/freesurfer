@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/03/19 22:00:24 $
- *    $Revision: 1.52 $
+ *    $Author: rge21 $
+ *    $Date: 2010/01/13 19:27:04 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,9 @@
 #include "mri2.h"
 #include "sig.h"
 #include "cma.h"
+#include "chronometer.h"
+
+#define VERBOSE_MODE
 
 /*-------------------------------------------------------------
   mri_load_bvolume() -- same as bf_ldvolume() but returns an
@@ -701,6 +704,24 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
   int FreeMats=0;
 
+#ifdef VERBOSE_MODE
+  Chronometer tTotal, tSample;
+
+  printf( "%s: Begin\n", __FUNCTION__ );
+
+  printf( "Sources sizes are w=%i h=%i d=%i f=%i\n",
+	  src->width, src->height, src->depth, src->nframes );
+  printf( "src type is %i\n", src->type );
+
+  printf( "Target sizes are w=%i h=%i d=%i f=%i\n",
+	  src->width, src->height, src->depth, src->nframes );
+  printf( "targ type is %i\n", targ->type );
+
+  InitChronometer( &tTotal );
+  InitChronometer( &tSample );
+  StartChronometer( &tTotal );
+#endif
+
   if (src->nframes != targ->nframes)
   {
     printf("ERROR: MRIvol2vol: source and target have different number "
@@ -726,6 +747,10 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
   sinchw = nint(param);
   valvect = (float *) calloc(sizeof(float),src->nframes);
+
+#ifdef VERBOSE_MODE
+  StartChronometer( &tSample );
+#endif
 
   for (ct=0; ct < targ->width; ct++)
   {
@@ -780,6 +805,10 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
     } /* target row */
   } /* target slice */
 
+#ifdef VERBOSE_MODE
+  StopChronometer( &tSample );
+#endif
+
   free(valvect);
   if (FreeMats)
   {
@@ -788,6 +817,16 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
     MatrixFree(&V2Rtarg);
     MatrixFree(&Vt2s);
   }
+
+#ifdef VERBOSE_MODE
+  StopChronometer( &tTotal );
+
+
+  printf( "Timings ------------\n" );
+  printf( "  tSample : %9.3f ms\n", GetChronometerValue( &tSample ) );
+  printf( "Total     : %9.3f ms\n", GetChronometerValue( &tTotal ) );
+  printf( "%s: Done\n", __FUNCTION__ );
+#endif
 
   return(0);
 }
