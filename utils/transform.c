@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/01/07 15:49:38 $
- *    $Revision: 1.139 $
+ *    $Author: mreuter $
+ *    $Date: 2010/01/13 20:23:50 $
+ *    $Revision: 1.140 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -786,13 +786,6 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
     // when the dst volume is not given
     if (!mri_dst)
     {
-      // use the same volume size as the src
-      mri_dst = MRIclone(mri_src, NULL);
-      // reset talairach transform file name:
-      mri_dst->transform_fname[0] = '\0';
-      // maybe also reset or concatenate the actual transform 
-      // if available in mri_dst->transform (not yet implemented) ...
-			
       if (tran->dst.valid == 1) // transform dst is valid
       {
         // modify dst geometry using the transform dst value
@@ -802,7 +795,6 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         if (DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: Modifying dst geometry, "
                   "using the transform dst\n");
-        MRIfree(&mri_dst) ;
         mri_dst = MRIalloc(tran->dst.width, tran->dst.height, tran->dst.depth,mri_src->type) ;
         MRIsetResolution(mri_dst, tran->dst.xsize, tran->dst.ysize, tran->dst.zsize) ;
         useVolGeomToMRI(&tran->dst,mri_dst);
@@ -813,6 +805,10 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
                 "USE_AVERAGE305 set\n");
         fprintf(stderr, "INFO: Modifying dst c_(r,a,s), "
                 "using average_305 values\n");
+        // use the same volume size as the src
+        mri_dst = MRIclone(mri_src, NULL);
+        // reset talairach transform file name:
+        mri_dst->transform_fname[0] = '\0';
         mri_dst->c_r = -0.0950;
         mri_dst->c_a = -16.5100;
         mri_dst->c_s = 9.7500;
@@ -826,8 +822,16 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         MRIreInitCache(mri_dst);
       }
       else
+			{
         fprintf(stderr, "INFO: Transform dst volume "
                 "info is not used (valid flag = 0).\n");
+        // use the same volume size as the src
+        mri_dst = MRIclone(mri_src, NULL);
+        // reset talairach transform file name:
+        mri_dst->transform_fname[0] = '\0';
+        // maybe also reset or concatenate the actual transform 
+        // if available in mri_dst->transform (not yet implemented) ...
+			}
     }
     ////////////////////////////////////////////////////////////////////////
     if (lta->type == LINEAR_RAS_TO_RAS)
