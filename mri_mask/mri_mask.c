@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/09/24 20:34:11 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2010/01/14 20:35:45 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.12 2007/09/24 20:34:11 greve Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.13 2010/01/14 20:35:45 nicks Exp $";
 
 void usage(int exit_val);
 
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.12 2007/09/24 20:34:11 greve Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.13 2010/01/14 20:35:45 nicks Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs ;
@@ -316,7 +316,7 @@ void usage(int exit_val) {
           "   -T #         threshold mask volume at # "
           "(i.e., all values <= T considered as zero) \n");
   fprintf(fout,
-          "   -abs : take abs() before applying threshold");
+          "   -abs : take abs() before applying threshold\n");
   fprintf(fout, 
           "   -transfer #  transfer only voxel value # from mask to out\n");
   fprintf(fout,
