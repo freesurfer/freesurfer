@@ -1,0 +1,326 @@
+#!/bin/tcsh -f
+# rcbf-prep
+
+set VERSION = '$Id: rcbf-prep,v 1.1 2010/01/14 20:43:29 greve Exp $';
+
+set outdir = ();
+set subject = ();
+set rcbf = ();
+set reg = ();
+set template = ();
+set roitab = ();
+set segname = aparc+aseg.mgz
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.rcbf
+mkdir -p $tmpdir
+
+if($#LF == 0) set LF = $outdir/rcbf-prep.log
+if($LF != /dev/null) rm -f $LF
+
+echo "Log file for rcbf-prep" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+uname -a  | tee -a $LF
+date | tee -a $LF
+
+# Convert the rCBF, change to float
+set cmd = (mri_convert $rcbf $outdir/rcbf.nii -odt float)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+set rcbf = $outdir/rcbf.nii
+
+# Compute actual rCBF in mL/100g/min
+set cmd = (fslmaths $rcbf -sub 2048 -div 5 $rcbf)
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Convert/copy the template
+set cmd = (mri_convert $template $outdir/template.nii)
+set template = $outdir/template.nii
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Copy ROI table
+cp $roitab $outdir/roi.table
+set roitab = $outdir/roi.table
+
+# Copy reg or register
+if($#reg != 0) then
+  cp $reg $outdir/register.dat
+else
+  set reg = $outdir/register.dat
+  set cmd = (bbregister --mov $template --bold --init-fsl \
+    --s $subject --reg $reg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
+# Sample rcbf onto the subject and fsaverage surface
+foreach hemi (lh rh)
+  set out = $outdir/$hemi.rcbf.mgh
+  set cmd = (mri_vol2surf --mov $rcbf --hemi $hemi \
+   --projfrac 0.5 --o $out --reg $reg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+  set out = $outdir/$hemi.rcbf.fsaverage.mgh
+  set cmd = (mri_vol2surf --mov $rcbf --hemi $hemi \
+   --projfrac 0.5 --o $out --reg $reg --trgsubject fsaverage)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+end
+
+# Sample rcbf onto the mni305/fsaverage
+set out = $outdir/rcbf.mni305.nii
+set cmd = (mri_vol2vol --mov $rcbf --reg $reg \
+  --tal --talres 2 --interp trilinear --no-save-reg\
+  --o $out)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Sample rcbf onto the subject's anatomy (for ROI ana)
+set rcbfanat = $outdir/rcbf.anat.nii
+set cmd = (mri_vol2vol --mov $rcbf --reg $reg \
+  --fstarg --interp trilinear  --o $rcbfanat --no-save-reg)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Average within ROIs
+set tab = $outdir/roi.dat
+set cmd = (mri_segstats --seg $seg --ctab $roitab \
+  --i $rcbfanat --sum $tab)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+rm -f $rcbfanat
+
+echo "rcbf-prep done `date`" | tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--rcbf":
+      if($#argv < 1) goto arg1err;
+      set rcbf = $argv[1]; shift;
+      if(! -e $rcbf) then
+        echo "ERROR: cannot find $rcbf"
+        exit 1;
+      endif
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg"
+        exit 1;
+      endif
+      set subject = `head -n 1 $reg`
+      breaksw
+
+    case "--roitab":
+      if($#argv < 1) goto arg1err;
+      set roitab = $argv[1]; shift;
+      if(! -e $roitab) then
+        echo "ERROR: cannot find $roitab"
+        exit 1;
+      endif
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set segname = $argv[1]; shift;
+      breaksw
+
+    case "--t":
+      if($#argv < 1) goto arg1err;
+      set template = $argv[1]; shift;
+      if(! -e $template) then
+        echo "ERROR: cannot find $template"
+        exit 1;
+      endif
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#rcbf == 0) then
+  echo "ERROR: must spec rcbf"
+  exit 1;
+endif
+if($#outdir == 0) then
+  echo "ERROR: must spec outdir"
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+  exit 1;
+endif
+if($#template == 0) set template = $rcbf;
+if($#roitab == 0) set roitab = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set seg = $SUBJECTS_DIR/$subject/mri/$segname
+if(! -e $seg) then
+  echo "ERROR: cannot find $seg"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "rcbf-prep"
+  echo ""
+  echo " --o outdir"
+  echo " --rcbf rcbfvol"
+  echo " --s subject (or use --reg)"
+  echo ""
+  echo " --roitab ROITable (like FreeSurferColorLUT.txt)"
+  echo " --reg register.dat (instead of subject)"
+  echo " --t template (instead of using rcbf itself)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs intergration of rCBF as produced by Siemens scanners (usually
+the ep2d_pasl sequence) with FreeSurfer analysis in preparation for
+group analysis. It creates an output directory (--o), registers the
+rCBF (--rcbf) to the FreeSurfer anatomical for the subject
+(--subject), resamples to both hemispheres (?h.rcbf.mgh) and to MNI305
+(rcbf.mni305.nii) and creates a stats file (roi.dat). These can
+be merged with rcbf-merge in preparation for group analysis.
+The results will be in mL/100g/min.
+
+See surfer.nmr.mgh.harvard.edu/fswiki/RcbfProc for more info.
+
+Other options:
+
+--roitab roi-table
+
+This is the table which specfies which the ROIs will be summarized. By
+default, $FREESURFER_HOME/FreeSurferColorLUT.txt is used. This has a
+lot of ROIs. If you do not want all of them then make a copy and
+delete the ones that you do not want and pass as --roitab.
+
