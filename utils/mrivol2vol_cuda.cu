@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/13 20:59:52 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/01/14 20:45:24 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@ extern "C" {
 #include "cudacheck.h"
 
 #include "mri_transfer.h"
-#include "mrislices_cuda.h"
+#include "mrislices_cuda.cuh"
 
 
 #include "mrivol2vol_cuda.h"
