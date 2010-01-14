@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:14 $
- *    $Revision: 1.50 $
+ *    $Author: krish $
+ *    $Date: 2010/01/14 20:43:57 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -250,7 +250,7 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
   // now first save a copy of the old file if required
   if ( MainWindow::GetMainWindowPointer()->GetSaveCopy() )
   {
-    wxString new_fn = m_sFilename + "~";
+    wxString new_fn = wxString(m_sFilename.c_str()) + "~";
     rename( m_sFilename.c_str(), new_fn.c_str() );
   }
   
