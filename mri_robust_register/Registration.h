@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/10/13 21:42:23 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -46,22 +46,24 @@ extern "C"
 #include <string>
 #include <vector>
 //#include <iostream>
+#include <vnl/vnl_vector.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/vnl_matrix_fixed.h>
 
 class Registration
 {
 public:
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
-      mri_source(NULL),mri_target(NULL), Minit(NULL),Mfinal(NULL),
-      mri_weights(NULL), mov2weights(NULL),dst2weights(NULL),
-      lastp(NULL), mri_indexing(NULL)
+      inittransform(true),highit(-1),mri_source(NULL),mri_target(NULL),
+      iscalefinal(1.0),floatsvd(false),wlimit(0.175),resample(false),
+			mri_weights(NULL), mri_indexing(NULL)
   {};
   Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
-      mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
-      Minit(NULL),Mfinal(NULL),mri_weights(NULL),
-      mov2weights(NULL),dst2weights(NULL),lastp(NULL),
-      mri_indexing(NULL)
+      inittransform(true),highit(-1),mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
+      iscalefinal(1.0),floatsvd(false),wlimit(0.175),resample(false),
+			mri_weights(NULL),mri_indexing(NULL)
   {};
 
   virtual ~Registration();
@@ -87,6 +89,10 @@ public:
   {
     sat = d;
   };
+  void setHighit(int i)
+  {
+    highit = i;
+  };
   void setDebug(int d)
   {
     debug = d;
@@ -107,9 +113,9 @@ public:
   {
     rtype = r;
   };
-  void setMinit(MATRIX* m)
+  void setMinit(const vnl_matrix < double > & m)
   {
-    Minit = MatrixCopy(m,Minit);
+    Minit =m;
   };
   void setSource (MRI * s, bool fixvoxel = false, bool fixtype = false);
   void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
@@ -122,6 +128,18 @@ public:
   {
     initorient = io;
   };
+  void setInitTransform(bool it)
+  {
+    inittransform = it;
+  };
+	void setFloatSVD(bool b)
+	{
+	  floatsvd = b;
+  }
+	void setWLimit( double d)
+	{
+	  wlimit = d;
+	}
 
   bool isIscale()
   {
@@ -135,19 +153,23 @@ public:
   {
     return mri_weights;
   };
-  std::pair <MATRIX*, MATRIX*> getHalfWayMaps()
-  {
-    std::pair <MATRIX*, MATRIX*> md2w(mov2weights,dst2weights);
-    return md2w;
-  };
+  std::pair <vnl_matrix_fixed< double, 4, 4 > , vnl_matrix_fixed < double, 4, 4 > > getHalfWayMaps();
+
+  double findSaturation (MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double >& Minit = vnl_matrix < double >(), double iscaleinit = 1.0 );
+  std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
 
   // compute registration
-  virtual std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
-  std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
-  std::pair <MATRIX*, double> computeMultiresRegistration (int stopres, int n,double epsit, MRI * mriS= NULL, MRI* mriT= NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+  virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
+  void computeMultiresRegistration (int stopres, int n,double epsit, MRI * mriS= NULL, MRI* mriT= NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
 
-  bool warpSource(const std::string & fname, MATRIX* M = NULL, double is = -1);
-  bool warpSource(MRI* orig, MRI* target, const std::string &fname, MATRIX* M = NULL, double is = -1);
+  // get final transform (might be different from mfinal due to possible resampling)
+	vnl_matrix_fixed < double , 4 , 4 >  getFinalVox2Vox ();
+  double getFinalIscale() {return iscalefinal;};
+
+  double estimateIScale(MRI *mriS, MRI *mriT);
+
+//   bool warpSource(const std::string & fname, MATRIX* M = NULL, double is = -1);
+//   bool warpSource(MRI* orig, MRI* target, const std::string &fname, MATRIX* M = NULL, double is = -1);
 
   // testing
   void testRobust(const std::string & fname, int testno);
@@ -161,20 +183,21 @@ public:
 protected:
 
   //   returns weights:
-  std::pair < MATRIX*, MRI* > computeRegistrationStepW(MRI * mriS = NULL, MRI* mriT=NULL);
+  std::pair < vnl_vector <double >, MRI* > computeRegistrationStepW(MRI * mriS = NULL, MRI* mriT=NULL);
   //   returns param vector:
-  MATRIX* computeRegistrationStepP(MRI * mriS, MRI* mriT);
+  vnl_vector <double > computeRegistrationStepP(MRI * mriS, MRI* mriT);
   //   returns 4x4 matrix and iscale:
-  std::pair <MATRIX*, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
+  std::pair < vnl_matrix_fixed <double,4,4 >, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
 
   //conversion
-  std::pair < MATRIX*, double > convertP2Md(MATRIX* p);
+  std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector <double >& p);
+  std::pair < MATRIX*, double > convertP2MATRIXd(MATRIX* p);
 	
-	MRI * applyParams(MRI * mri_in, VECTOR* p, MRI * mri_dst=NULL, bool inverse=false);
+	MRI * applyParams(MRI * mri_in, const vnl_vector<double>& p, MRI * mri_dst=NULL, bool inverse=false);
 
 
   // initial registration using moments
-  MATRIX * initializeTransform(MRI *mri_in, MRI *mri_ref);
+  vnl_matrix_fixed < double,4,4>  initializeTransform(MRI *mri_in, MRI *mri_ref);
   int init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L); // NOT TESTED !!!!!!!
 
   double sat;
@@ -189,8 +212,8 @@ protected:
   int debug;
 	int verbose;
   bool initorient;
-  //bool outweights;
-  //std::string weightsname;
+	bool inittransform;
+  int highit;
 
   MRI * mri_source;
   std::vector < MRI* > gpS;
@@ -198,33 +221,43 @@ protected:
   MRI * mri_target;
   std::vector < MRI* > gpT;
 	std::vector < double > centroidT;
-  MATRIX * Minit;
-  MATRIX * Mfinal;
+  vnl_matrix < double >  Minit;
+  vnl_matrix < double >  Mfinal;
   double iscalefinal;
+	bool floatsvd;
+  double wlimit;
 
-
+  bool resample;
+	vnl_matrix < double >  Rsrc;
+	vnl_matrix < double >  Rtrg;
 
 private:
 
   // construct Ab and R:
   MATRIX* constructR(MATRIX* p);
-  std::pair < MATRIX*, VECTOR* > constructAb(MRI *mriS, MRI *mriT);
+  //std::pair < MATRIX*, VECTOR* > constructAb(MRI *mriS, MRI *mriT);
+  //std::pair < vnl_matrix <double>, vnl_vector <double> > constructAb(MRI *mriS, MRI *mriT);
+  void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < double > &A, vnl_vector < double> &b);
   std::pair < MATRIX*, VECTOR* > constructAb2(MRI *mriS, MRI *mriT);
 
   // conversions
   MATRIX * rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM); // uses global rtype flag
   MATRIX * p2mat(MATRIX * p6, MATRIX *outM); // calls rt2mat (uses global rtype)
 
+  std::pair< MRI* , vnl_matrix_fixed < double, 4, 4> > makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
+
   // gaussian pyramid:
   std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);
   void freeGaussianPyramid(std::vector< MRI* >& p);
 
   MRI * mri_weights;
-  MATRIX * mov2weights;
-  MATRIX * dst2weights;
+  vnl_matrix < double> mov2weights;
+  vnl_matrix < double> dst2weights;
+	double wcheck; // set from computeRegistrationStepW
+	double wchecksqrt; // set from computeRegistrationStepW
 
   // help vars
-  MATRIX* lastp;
+	vnl_vector < double > lastp;
   double zeroweights;
 
   MRI * mri_indexing;

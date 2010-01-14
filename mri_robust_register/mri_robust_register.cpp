@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/10/13 21:41:36 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/01/14 19:41:05 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -43,10 +43,15 @@
 #include <vector>
 #include <cassert>
 
+#include <vnl/vnl_inverse.h>
+#include <vnl/vnl_matrix_fixed.h>
+
 #include "Registration.h"
+#include "Regression.h"
 #include "RegPowell.h"
 #include "CostFunctions.h"
 #include "MyMRI.h"
+#include "MyMatrix.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -107,9 +112,14 @@ struct Parameters
   MRI*   mri_dst;
   bool   dosatest;
   bool   initorient;
+	bool   inittrans;
+	int    verbose;
+	int    highit;
+	bool   floatsvd;
+	double wlimit;
 };
 static struct Parameters P =
-  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false
+  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16
   };
 
 
@@ -117,7 +127,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.25 2009/10/13 21:41:36 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.26 2010/01/14 19:41:05 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -150,10 +160,41 @@ void conv(MRI * i)
   exit(0);
 }
 
+void testRegression()
+{
+
+  int n = 200;
+  vnl_matrix < double > A(n,1);
+  vnl_vector < double > b(n);
+
+  for (int i = 0;i<n; i++)
+	{
+       A[i][0] = i;
+       b[i]    = 4*i;
+	}
+  for (int i = 0;i<n; i+=5)
+	{
+    b[i] = 0;
+	}
+	
+	Regression R1(A,b);
+  vnl_vector < double >  M1 = R1.getLSEst();
+	cout << M1 << endl;
+	cout << endl <<endl;
+
+	Regression R2(A,b);
+  vnl_vector < double >  M2 = R2.getRobustEst();
+	cout << M1 << endl;
+	cout << endl <<endl;
+
+  exit(0);
+
+}
+
 int main(int argc, char *argv[])
 {
   { // for valgrind, so that everything is freed
-  cout << vcid << endl;
+  cout << vcid << endl << endl;
   // set the environment variable
   // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
@@ -199,13 +240,14 @@ int main(int argc, char *argv[])
   cout << " NC difference before: " << CostFunctions::normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
 
   // compute Alignment
-  std::pair <MATRIX*, double> Md;
+  //std::pair <MATRIX*, double> Md;
   if (P.satest) R.computeSatEstimate(2,P.iterate,P.epsit);
-  else if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
-  else if (P.nomulti)  Md = R.computeIterativeRegistration(P.iterate,P.epsit);
-  else Md = R.computeMultiresRegistration(0,P.iterate,P.epsit);
+//  else if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
+  else if (P.satit) {  R.findSaturation(); R.computeMultiresRegistration(0,P.iterate,P.epsit); }
+  else if (P.nomulti) R.computeIterativeRegistration(P.iterate,P.epsit);
+  else R.computeMultiresRegistration(0,P.iterate,P.epsit);
 
-  if (P.satit || P.satest)
+  if (P.satest) // old stuff, can be removed ?
   {
     cout << "run:" << endl;
     cout << " gnuplot " << R.getName() << "-sat.plot ; \\ " << endl;
@@ -223,8 +265,10 @@ int main(int argc, char *argv[])
   //Md.second = 1;
 
   // Print results:
+  std::pair <MATRIX*, double> Md;
   cout << endl << "Final Transform:" << endl;
-  
+  Md.first = MyMatrix::convertVNL2MATRIX(R.getFinalVox2Vox());
+	Md.second = R.getFinalIscale();
   MatrixPrintFmt(stdout,"% 2.8f",Md.first);
   if (R.isIscale()) cout << "Intenstiy Scale Factor: " << Md.second << endl;
   cout << endl ;
@@ -278,11 +322,9 @@ int main(int argc, char *argv[])
   // maybe warp source to target:
   if (P.warpout != "")
   {
-    //R.warpSource("simple-"+P.warpout,Md.first,Md.second); // can be used if mov and dst are copied to R
-    //R.warpSource(P.mri_mov,P.mri_dst,"better-"+P.warpout,Md.first,Md.second); // uses original mov and dst
-
     //cout << "using lta" << endl;
     int nframes = P.mri_mov->nframes;
+		if (P.mri_mov->nframes > 1) cout << " WARNING: movable has more than one frame !!! Only warp first ..." << endl;
     P.mri_mov->nframes = 1 ; // only map frame 1
     MRI *mri_aligned = MRIclone(P.mri_dst,NULL);
     mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
@@ -302,6 +344,7 @@ int main(int argc, char *argv[])
     MRIwrite(mri_aligned, P.warpout.c_str()) ;
     MRIfree(&mri_aligned) ;
 
+    cout << endl;
     cout << "To check aligned result, run:" << endl;
     cout << "  tkmedit -f "<< P.dst <<" -aux " << P.warpout << endl;
   }
@@ -313,16 +356,16 @@ int main(int argc, char *argv[])
     MRI * mri_weights = R.getWeights(); // in original half way space
     if (mri_weights != NULL)
     {
-      // map to target and use target geometry (RAS)
-      std::pair <MATRIX*, MATRIX*> map2weights = R.getHalfWayMaps();
-      MATRIX * hinv = MatrixInverse(map2weights.second,NULL);
+      // map to target and use target geometry 
+      std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > map2weights = R.getHalfWayMaps();
+      vnl_matrix_fixed < double, 4, 4> hinv = vnl_inverse(map2weights.second);
       MRI * wtarg = MRIalloc(P.mri_dst->width,P.mri_dst->height,P.mri_dst->depth,MRI_FLOAT);
       MRIcopyHeader(P.mri_dst,wtarg);
       wtarg->type = MRI_FLOAT;
-      wtarg = MRIlinearTransform(mri_weights,wtarg, hinv);
+      wtarg = MyMRI::MRIlinearTransform(mri_weights,wtarg, hinv);
       MRIwrite(wtarg, P.weightsout.c_str()) ;
       MRIfree(&wtarg);
-      MatrixFree(&hinv);
+      //MatrixFree(&hinv);
       cout << "or even overlay the weights:" <<endl;
       cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
     }
@@ -333,32 +376,37 @@ int main(int argc, char *argv[])
   // write out images in half way space
   if (P.halfmov != "" || P.halfdst != "" || P.halfweights != "" || P.halfdstlta != "" || P.halfmovlta != "")
   {
-    cout << "creating half way data ..." << endl;
-    std::pair < MATRIX*, MATRIX*> maps2weights = R.getHalfWayMaps();
+    cout << endl;
+    cout << "Creating half way data ..." << endl;
+    std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > maps2weights = R.getHalfWayMaps();
+    MRI * mri_weights = R.getWeights();
+				
     LTA * m2hwlta = LTAalloc(1,P.mri_mov);
     LTA * d2hwlta = LTAalloc(1,P.mri_dst);
     if (!P.lta_vox2vox) // do ras to ras
     {
       // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
       // (use geometry of destination space for half-way)
-      m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, P.mri_dst, maps2weights.first, m2hwlta->xforms[0].m_L) ;
+      m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_mov, mri_weights, MyMatrix::convertVNL2MATRIX(maps2weights.first), m2hwlta->xforms[0].m_L) ;
       m2hwlta->type = LINEAR_RAS_TO_RAS ;
-      d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_dst, P.mri_dst, maps2weights.second, d2hwlta->xforms[0].m_L) ;
+      d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (P.mri_dst, mri_weights, MyMatrix::convertVNL2MATRIX(maps2weights.second), d2hwlta->xforms[0].m_L) ;
       d2hwlta->type = LINEAR_RAS_TO_RAS ;
     }
     else // vox to vox
     {
       // cout << "saving VOX2VOX..." << endl ;
-      m2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.first, m2hwlta->xforms[0].m_L) ;
+      //m2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.first, m2hwlta->xforms[0].m_L) ;
+      m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first, m2hwlta->xforms[0].m_L) ;
       m2hwlta->type = LINEAR_VOX_TO_VOX ;
-      d2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.second, m2hwlta->xforms[0].m_L) ;
+      //d2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.second, d2hwlta->xforms[0].m_L) ;
+      d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second, d2hwlta->xforms[0].m_L) ;
       d2hwlta->type = LINEAR_VOX_TO_VOX ;
     }
-    // add src and dst info (use dst as target geometry in both cases)
+    // add src and dst info (use mri_weights as target geometry in both cases)
     getVolGeom(P.mri_mov, &m2hwlta->xforms[0].src);
-    getVolGeom(P.mri_dst, &m2hwlta->xforms[0].dst);
+    getVolGeom(mri_weights, &m2hwlta->xforms[0].dst);
     getVolGeom(P.mri_dst, &d2hwlta->xforms[0].src);
-    getVolGeom(P.mri_dst, &d2hwlta->xforms[0].dst);
+    getVolGeom(mri_weights, &d2hwlta->xforms[0].dst);
 
     // write lta to half way
     if (P.halfmovlta != "") LTAwriteEx(m2hwlta, P.halfmovlta.c_str()) ;
@@ -371,7 +419,6 @@ int main(int argc, char *argv[])
       MRI* mri_Swarp = LTAtransform(P.mri_mov,NULL, m2hwlta);
       MRIwrite(mri_Swarp,P.halfmov.c_str());
 
-      MRI * mri_weights = R.getWeights();
       MRIiterator mw(mri_weights);
       MRIiterator ms(mri_Swarp);
       double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
@@ -450,7 +497,7 @@ int main(int argc, char *argv[])
     }
     if (P.halfweights != "")
     {
-      MRI * mri_weights = R.getWeights();
+      //MRI * mri_weights = R.getWeights();
       if (mri_weights != NULL)
       {
         cout << " saving half-way weights ..." << endl;
@@ -463,11 +510,13 @@ int main(int argc, char *argv[])
 
   if (P.debug >0)
   {
+    cout << endl;
     cout << "To check debug output, run:" << endl;
     std::string name = R.getName();
     cout << "  tkmedit -f " << name << "-mriS-warp.mgz -aux " << name << "-mriT-warp.mgz -overlay " << name << "-mriS-weights.mgz" << endl;
   }
 
+  cout << endl;
   cout << "To check transform, run:" << endl;
   cout << "  tkregister2 --mov "<< P.mov <<" --targ " << P.dst <<" --lta " << P.lta << " --reg " << R.getName() << ".reg" << endl;
 
@@ -483,7 +532,7 @@ int main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  cout << "registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
+  cout << endl << "Registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
   //if (diag_fp) fclose(diag_fp) ;
   } // for valgrind, so that everything is free
   exit(0) ;
@@ -715,85 +764,44 @@ static void printUsage(void)
   cout << "                                !!Highly recommended for unnormalized images!!" << endl;
   cout << "      --transonly            find 3 parameter translation only" << endl;
   cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
-  cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
+  cout << "                                default is align center (using moments)" << endl;
   cout << "      --initorient           use moments for orientation init. (default false)" << endl;
   cout << "                                (recommended for stripped brains, but not with" << endl;
   cout << "                                 with full head images with different cropping)"<<endl;
+	cout << "      --noinit               skip transform init, default: transl. of centers" << endl;
   cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
   cout << "      --maxit <#>            iterate max # times on each resolution (default "<<P.iterate<<")"  << endl;
-  cout << "      --epsit <float>        stop iterations when below <float> (default "<<P.epsit <<")" << endl;
+  cout << "      --highit <#>           iterate max # times on highest resol. (default "<<P.iterate<<")"  << endl;
+  cout << "      --epsit <real>         stop iterations when below <real> (default "<<P.epsit <<")" << endl;
   cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "      --sat <float>          set saturation for robust estimator (default "<<SAT<<")" << endl;
+  cout << "      --sat <real>           set saturation for robust estimator (default "<<SAT<<")" << endl;
+  cout << "      --satit                determine good sat iteratively" << endl;
+	cout << "      --wlimit <real>        sets maximal outlier limit in satit (default "<<P.wlimit<<")" << endl;
   cout << "      --subsample <#>        subsample if dim > # on all axes (default no subs.)" << endl;
+  cout << "      --floatsvd             float svd (instead of double) saves ~1Gig Memory" << endl;
   cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
   cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
   cout << "      --uchar                set volumes type to UCHAR (with intens. scaling)" << endl;
   cout << "      --conform              conform volumes to 1mm vox (256^3)" << endl;
-  cout << "      --satit                iterate on highest res with different sat" << endl;
-  cout << "      --debug                show debug output (default no debug output)" << endl;
+  cout << "      --debug                create debug hw-images (default: no debug files)" << endl;
+  cout << "      --verbose              0 quiet, 1 normal (default), 2 detail" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
-  cout << " Mandatory or optional arguments to long options are also mandatory or optional" << endl;
-  cout << " for any corresponding short options." << endl;
+  cout << endl;
+  cout << " Important Note: " << endl;
+	cout << " If the registration looks wrong, try to switch on intensity scaling (--iscale)." << endl;
+  cout << " Still the registration can fail if the images contain, for example, non linear" << endl;
+	cout << " differences. In these cases the default saturation value is too low and too" << endl;
+	cout << " many voxels are considered outlier early in the process. You can check this by" << endl;
+	cout << " outputing the weights (--weights ow.mgz) and by looking at them in: " << endl;
+	cout << "    tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz  " << endl;
+	cout << " If most of the brain is labeled outlier, try to set the saturation to a higher" << endl;
+	cout << " value (eg. --sat 9) or use --satit to automatically determine a good sat value." << endl;
   cout << endl;
 
   cout << " Report bugs to: Freesurfer@nmr.mgh.harvard.edu" << endl;
-
-
-  /*printf("  -dist distance\n");
-  printf("  -nomap\n");
-  printf("  -flash\n");
-  printf("  -mask mask\n");
-  printf("  -skull\n");
-  printf("  -uns nbrspacing\n");
-  printf("  -diag diagfile\n");
-  printf("  -debug_voxel x y z\n");
-  printf("  -debug_label label\n");
-  printf("  -tr TR\n");
-  printf("  -te TE\n");
-  printf("  -alpha alpha\n");
-  printf("  -example T1 seg\n");
-  printf("  -samples fname\n");
-  printf("  -fsamples fname\n");
-  printf("  -nsamples fname\n");
-  printf("  -contrast\n");
-  printf("  -flash_parms parameter\n");
-  printf("  -transonly \n");
-  printf("  -write_mean fname\n");
-  printf("  -prior min_prior\n");
-  printf("  -spacing max_spacing\n");
-  printf("  -scales nscales\n");
-  printf("  -novar\n");
-  printf("  -dt dt\n");
-  printf("  -tol tol\n");
-  printf("  -center\n");
-  printf("  -noscale\n");
-  printf("  -noiscale\n");
-  printf("  -num num_xforms\n");
-  printf("  -area area\n");
-  printf("  -nlarea nlarea\n");
-  printf("  -levels levels\n");
-  printf("  -intensity intensity\n");
-  printf("  -reduce nreductions\n");
-  printf("  -nsamples nsamples\n");
-  printf("  -norm fname\n");
-  printf("  -trans max_trans\n");
-  printf("  -steps max_angles\n");
-  printf("  -l xform long_reg\n");
-  printf("  -f controlpoints\n");
-  printf("  -d tx ty tz\n");
-  printf("  -r rx ry rz\n");
-  printf("  -t xform\n");
-  printf("  -b blur_sigma\n");
-  printf("  -v diagno\n");
-  printf("  -s max_angles\n");
-  printf("  -max_angle max_angle in radians (def=15 deg)\n");
-  printf("  -n niters\n");
-  printf("  -w write_iters\n");
-  printf("  -p ctl_point_pct : use top pct percent wm points as control points\n");
-  printf("  -m momentum\n");*/
 
 
   cout << endl;
@@ -813,8 +821,13 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setTransonly(P.transonly);
   R.setRobust(!P.leastsquares);
   R.setSaturation(P.sat);
+	R.setVerbose(P.verbose); // set before debug, as debug sets its own verbose level
   R.setDebug(P.debug);
+	R.setHighit(P.highit);
+	R.setInitTransform(P.inittrans);
   R.setInitOrient(P.initorient);
+	R.setFloatSVD(P.floatsvd);
+	R.setWLimit(P.wlimit);
   //R.setOutputWeights(P.weights,P.weightsout);
 
 
@@ -873,7 +886,7 @@ static void initRegistration(Registration & R, Parameters & P)
 
     if (st)
     {
-      R.setMinit(mi);
+      R.setMinit(MyMatrix::convertMATRIX2VNL(mi));
     }
     MatrixFree(&mi);
 
@@ -890,7 +903,7 @@ static void initRegistration(Registration & R, Parameters & P)
       {
         ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, P.transform.c_str(), lta->type) ;
       }
-      R.setMinit(lta->xforms[0].m_L);
+      R.setMinit(MyMatrix::convertMATRIX2VNL(lta->xforms[0].m_L));
     }
   }
 
@@ -1072,6 +1085,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.initorient = true;
     cout << "Using moments for initial orientation!" << endl;
   }
+  else if (!strcmp(option, "NOINIT"))
+  {
+    P.inittrans = false;
+    cout << "Skipping init of transform !" << endl;
+  }
   else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L")  )
   {
     P.leastsquares = true;
@@ -1082,6 +1100,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.iterate = atoi(argv[1]);
     nargs = 1 ;
     cout << "Performing maximal " << P.iterate << " iterations on each resolution" << endl;
+  }
+  else if (!strcmp(option, "HIGHIT")  )
+  {
+    P.highit = atoi(argv[1]);
+    nargs = 1 ;
+    cout << "Performing maximal " << P.highit << " iterations on highest resolution" << endl;
   }
   else if (!strcmp(option, "EPSIT") )
   {
@@ -1101,6 +1125,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1 ;
     cout << "Using saturation " << P.sat << " in M-estimator!" << endl;
   }
+  else if (!strcmp(option, "WLIMIT")  )
+  {
+    P.wlimit = atof(argv[1]);
+    nargs = 1 ;
+    cout << "Using wlimit in satit " << P.wlimit <<  endl;
+  }
   else if (!strcmp(option, "SUBSAMPLE") )
   {
     P.subsamplesize = atoi(argv[1]);
@@ -1112,7 +1142,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.satit = true;
     nargs = 0 ;
-    cout << "Will iterate with different SAT and output plot!" << endl;
+    cout << "Will iterate with different SAT to ensure outliers below wlimit!" << endl;
   }
   else if (!strcmp(option, "SATEST") )
   {
@@ -1120,11 +1150,23 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will estimate SAT!" << endl;
   }
+  else if (!strcmp(option, "FLOATSVD") )
+  {
+    P.floatsvd = true;
+    nargs = 0 ;
+    cout << "Will perform SVD with float precision only to reduce mem usage!" << endl;
+  }
   else if (!strcmp(option, "DEBUG") )
   {
     P.debug = 1;
     nargs = 0 ;
     cout << "Will output debug info and files!" << endl;
+  }
+  else if (!strcmp(option, "VERBOSE") )
+  {
+    P.verbose = atoi(argv[1]);
+    nargs = 1 ;
+    cout << "Will use verbose level : " << P.verbose << endl;
   }
   else if (!strcmp(option, "WEIGHTS") )
   {
@@ -1213,326 +1255,6 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     exit(1);
   }
 
-
-  /*  if (!strcmp(option, "DIST") || !strcmp(option, "DISTANCE")) {
-      // seems like not used.
-      parms.l_dist = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("l_dist = %2.2f\n", parms.l_dist) ;
-    } else if (!strcmp(option, "NOMAP")) {
-      // seems not used
-      nomap = 1 ;
-    } else if (!stricmp(option, "FLASH")) {
-      map_to_flash = 1 ;
-      printf("using FLASH forward model to predict intensity values...\n") ;
-    } else if (!stricmp(option, "MAX_ANGLE")) {
-      MAX_ANGLE = RADIANS(atof(argv[2])) ;
-      printf("using %2.2f deg as max angle for rotational search\n",
-             DEGREES(MAX_ANGLE)) ;
-      nargs = 1 ;
-    } else if (!stricmp(option, "BABY")) {
-      baby = 1 ;
-      printf("using baby brain intensity model\n") ;
-    } else if (!strcmp(option, "MASK")) {
-      mask_fname = argv[2] ;
-      nargs = 1 ;
-      printf("using MR volume %s to mask input volume...\n", mask_fname) ;
-    } else if (!strcmp(option, "SKULL")) {
-      unknown_nbr_spacing = 5 ;
-      printf("aligning to atlas containing skull, "
-             "setting unknown_nbr_spacing = %d\n",
-             unknown_nbr_spacing) ;
-      skull = 1 ;
-    } else if (!strcmp(option, "RIGID")) {
-      rigid = 1 ;
-      printf("constraining transform to be rigid\n") ;
-    } else if (!strcmp(option, "UNS")) {
-      unknown_nbr_spacing = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("aligning to atlas containing skull, "
-             "setting unknown_nbr_spacing = %d\n",
-             unknown_nbr_spacing) ;
-    }
-    /////// debug options //////////////////////////////////
-    else if (!strcmp(option, "DIAG")) {
-      diag_fp = fopen(argv[2], "w") ;
-      if (!diag_fp)
-        ErrorExit
-        (ERROR_NOFILE,
-         "%s: could not open diag file %s for writing",
-         Progname, argv[2]) ;
-      printf("opening diag file %s for writing\n", argv[2]) ;
-      nargs = 1 ;
-    } else if (!strcmp(option, "DEBUG_VOXEL")) {
-      Gx = atoi(argv[2]) ;
-      Gy = atoi(argv[3]) ;
-      Gz = atoi(argv[4]) ;
-      nargs = 3 ;
-      printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-    } else if (!strcmp(option, "DEBUG_LABEL")) {
-      Ggca_label = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("debugging label %s (%d)\n",
-             cma_label_to_name(Ggca_label), Ggca_label) ;
-    }
-    ////////// TR, TE, Alpha ////////////////////////////////
-    else if (!strcmp(option, "TR")) {
-      TR = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("using TR=%2.1f msec\n", TR) ;
-    } else if (!strcmp(option, "TE")) {
-      TE = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("using TE=%2.1f msec\n", TE) ;
-    } else if (!strcmp(option, "ALPHA")) {
-      nargs = 1 ;
-      alpha = RADIANS(atof(argv[2])) ;
-      printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
-    } else if (!strcmp(option, "EXAMPLE")) {
-      example_T1 = argv[2] ;
-      example_segmentation = argv[3] ;
-      printf("using %s and %s as example T1 and segmentations respectively.\n",
-             example_T1, example_segmentation) ;
-      nargs = 2 ;
-    }
-    /////////////// writing out various samples /////////////////
-    else if (!strcmp(option, "SAMPLES")) {
-      sample_fname = argv[2] ;
-      nargs = 1 ;
-      printf("writing control points to %s...\n", sample_fname) ;
-    } else if (!strcmp(option, "FSAMPLES") || !strcmp(option, "ISAMPLES")) {
-      transformed_sample_fname = argv[2] ;
-      nargs = 1 ;
-      printf("writing transformed control points to %s...\n",
-             transformed_sample_fname) ;
-    } else if (!strcmp(option, "NSAMPLES")) {
-      normalized_transformed_sample_fname = argv[2] ;
-      nargs = 1 ;
-      printf("writing  transformed normalization control points to %s...\n",
-             normalized_transformed_sample_fname) ;
-    }
-    ///////////////////
-    else if (!strcmp(option, "CONTRAST")) {
-      use_contrast = 1 ;
-      printf("using contrast to find labels...\n") ;
-    } else if (!strcmp(option, "RENORM")) {
-      renormalization_fname = argv[2] ;
-      nargs = 1 ;
-      printf("renormalizing using predicted intensity values in %s...\n",
-             renormalization_fname) ;
-    } else if (!strcmp(option, "FLASH_PARMS")) {
-      tissue_parms_fname = argv[2] ;
-      nargs = 1 ;
-      printf("using FLASH forward model and tissue parms in %s to predict"
-             " intensity values...\n", tissue_parms_fname) ;
-    } else if (!strcmp(option, "TRANSONLY")) {
-      translation_only = 1 ;
-      printf("only computing translation parameters...\n") ;
-    } else if (!strcmp(option, "WRITE_MEAN")) {
-      gca_mean_fname = argv[2] ;
-      nargs = 1 ;
-      printf("writing gca means to %s...\n", gca_mean_fname) ;
-    } else if (!strcmp(option, "PRIOR")) {
-      min_prior = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("using prior threshold %2.2f\n", min_prior) ;
-    } else if (!strcmp(option, "SPACING")) {
-      max_spacing = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("using max GCA spacing %d...\n", max_spacing) ;
-    } else if (!stricmp(option, "SCALES") || !stricmp(option, "SCALES")) {
-      nscales = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("finding optimal linear transform over %d scales...\n", nscales);
-    } else if (!stricmp(option, "NOVAR")) {
-      novar = 1 ;
-      printf("not using variance estimates\n") ;
-    } else if (!strcmp(option, "DT")) {
-      parms.dt = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("dt = %2.2e\n", parms.dt) ;
-    } else if (!strcmp(option, "TOL")) {
-      tol = parms.tol = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("tol = %2.2e\n", parms.tol) ;
-    } else if (!strcmp(option, "CENTER")) {
-      center = 1 ;
-      printf("using GCA centroid as origin of transform\n") ;
-    } else if (!strcmp(option, "NOSCALE")) {
-      noscale = 1 ;
-      printf("disabling scaling...\n") ;
-    } else if (!strcmp(option, "NOISCALE")) {
-      noiscale = 1 ;
-      printf("disabling intensity scaling...\n") ;
-    } else if (!strcmp(option, "NUM")) {
-      num_xforms = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("finding a total of %d linear transforms\n", num_xforms) ;
-    } else if (!strcmp(option, "AREA")) {
-      parms.l_area = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("l_area = %2.2f\n", parms.l_area) ;
-    } else if (!strcmp(option, "NLAREA")) {
-      parms.l_nlarea = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("l_nlarea = %2.2f\n", parms.l_nlarea) ;
-    } else if (!strcmp(option, "LEVELS")) {
-      parms.levels = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("levels = %d\n", parms.levels) ;
-    } else if (!strcmp(option, "INTENSITY") || !strcmp(option, "CORR")) {
-      parms.l_intensity = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("l_intensity = %2.2f\n", parms.l_intensity) ;
-    } else if (!stricmp(option, "reduce")) {
-      nreductions = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("reducing input images %d times before aligning...\n",
-             nreductions) ;
-    } else if (!stricmp(option, "nsamples")) {
-      nsamples = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("using %d samples of GCA...\n", nsamples) ;
-    } else if (!stricmp(option, "norm")) {
-      norm_fname = argv[2] ;
-      nargs = 1 ;
-      printf("intensity normalizing and writing to %s...\n",norm_fname);
-    } else if (!stricmp(option, "trans")) {
-      MAX_TRANS = atof(argv[2]) ;
-      nargs = 1 ;
-      printf("setting max translation search range to be %2.1f\n", MAX_TRANS) ;
-    } else if (!stricmp(option, "steps")) {
-      max_angles = atoi(argv[2]) ;
-      nargs = 1 ;
-      printf("taking %d angular steps...\n", max_angles) ;
-    } else switch (*option) {
-      case 'L':   // for longitudinal analysis
-      {
-        TRANSFORM *reg_transform ;
-
-        xform_name = argv[2] ;
-        long_reg_fname = argv[3] ;
-        nargs = 2 ;
-        printf("reading previously computed atlas xform %s "
-               "and applying registration %s\n",
-               xform_name, long_reg_fname) ;
-        parms.transform = transform = TransformRead(argv[2]) ;
-        if (transform == NULL)
-          ErrorExit
-          (ERROR_NOFILE,
-           "%s: could not read transform from %s",
-           Progname, argv[2]) ;
-        Glta = parms.lta = (LTA *)transform->xform ;
-        reg_transform = TransformRead(argv[3]) ;
-        if (reg_transform == NULL)
-          ErrorExit
-          (ERROR_NOFILE,
-           "%s: could not read registration from %s",
-           Progname, argv[3]) ;
-        transform_loaded = 1 ;
-        TransformInvert(reg_transform, NULL) ;
-        MatrixMultiply(((LTA *)(transform->xform))->xforms[0].m_L,
-                       ((LTA *)(reg_transform->xform))->inv_xforms[0].m_L,
-                       ((LTA *)(transform->xform))->xforms[0].m_L) ;
-        TransformFree(&reg_transform) ;
-      }
-      break ;
-      case 'F':
-        ctl_point_fname = argv[2] ;
-        nargs = 1 ;
-        printf("reading manually defined control points from %s\n",
-               ctl_point_fname) ;
-        break ;
-      case 'D':
-        tx = atof(argv[2]) ;
-        ty = atof(argv[3]) ;
-        tz = atof(argv[4]) ;
-        nargs = 3 ;
-        break ;
-      case 'R':
-        rxrot = RADIANS(atof(argv[2])) ;
-        ryrot = RADIANS(atof(argv[3])) ;
-        rzrot = RADIANS(atof(argv[4])) ;
-        nargs = 3 ;
-        break ;
-      case 'T':
-        parms.transform = transform = TransformRead(argv[2]) ;
-        Glta = parms.lta = (LTA *)transform->xform ;
-  #if 0
-        parms.lta = LTAreadEx(argv[2]) ; // used to be LTAread()
-  #endif
-        if (!parms.lta)
-          ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",
-                    Progname, argv[2]) ;
-        if (parms.lta->type!=LINEAR_VOX_TO_VOX)
-          ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d",
-                    Progname, argv[2], parms.lta->type) ;
-        nargs = 1 ;
-        printf("using previously computed transform %s\n", argv[2]) ;
-        if (parms.lta->type != LINEAR_VOX_TO_VOX) {
-          fprintf(stdout,
-                  "ERROR: must use LINEAR_VOX_TO_VOX (=0) transform. "
-                  "The type was %d.\n",
-                  parms.lta->type);
-          exit(1);
-        }
-        transform_loaded = 1 ;
-        break ;
-      case 'B':
-        blur_sigma = atof(argv[2]) ;
-        nargs = 1 ;
-        printf("blurring input image with sigma=%2.3f\n", blur_sigma);
-        break ;
-      case 'V':
-        Gdiag_no = atoi(argv[2]) ;
-        nargs = 1 ;
-        break ;
-      case 'S':
-  #if 0
-        parms.sigma = atof(argv[2]) ;
-        printf("using sigma=%2.3f as upper bound on blurring.\n",
-               parms.sigma) ;
-        nargs = 1 ;
-  #else
-        MAX_ANGLES = MAX_TRANS_STEPS = max_angles = (float)atoi(argv[2]) ;
-        nargs = 1 ;
-        printf("examining %2.0f different trans/rot/scale values...\n",
-               MAX_ANGLES);
-  #endif
-        break ;
-      case '?':
-      case 'U':
-        printUsage();
-        exit(1) ;
-        break ;
-      case 'N':
-        parms.niterations = atoi(argv[2]) ;
-        nargs = 1 ;
-        printf("niterations = %d\n", parms.niterations) ;
-        break ;
-      case 'W':
-        parms.write_iterations = atoi(argv[2]) ;
-        nargs = 1 ;
-        printf("write iterations = %d\n", parms.write_iterations) ;
-        Gdiag |= DIAG_WRITE ;
-        break ;
-      case 'P':
-        ctl_point_pct = atof(argv[2]) ;
-        nargs = 1 ;
-        printf("using top %2.1f%% wm points as control points....\n",
-               100.0*ctl_point_pct) ;
-        break ;
-      case 'M':
-        parms.momentum = atof(argv[2]) ;
-        nargs = 1 ;
-        printf("momentum = %2.2f\n", parms.momentum) ;
-        break ;
-      default:
-        printf("unknown option %s\n", argv[1]) ;
-        exit(1) ;
-        break ;
-      }
-      */
   fflush(stdout);
 
   return(nargs) ;

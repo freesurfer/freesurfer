@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <vnl/vnl_inverse.h>
 
 using namespace std;
 
@@ -42,43 +43,46 @@ RegPowell* RegPowell::tocurrent = NULL;
 MRI * RegPowell::scf = NULL;
 MRI * RegPowell::tcf = NULL;
 int RegPowell::pcount = 0;
-MATRIX * RegPowell::mh1 = NULL;
-MATRIX * RegPowell::mh2 = NULL;
+vnl_matrix_fixed < double, 4, 4> RegPowell::mh1 = vnl_matrix_fixed < double, 4, 4>();
+vnl_matrix_fixed < double, 4, 4> RegPowell::mh2 = vnl_matrix_fixed < double, 4, 4>();
 int RegPowell::icount = 0;
 
-float RegPowell::costFunction(float p[])
+float RegPowell::costFunction(float p[])// starting at 1
 {
 //cout << " costFunction (" << flush;
 
 
   // copy p into vector
-  MATRIX * v = MatrixAlloc(pcount,1,MATRIX_REAL);
-  for (int i = 1;i<=pcount; i++)
+  //MATRIX * v = MatrixAlloc(pcount,1,MATRIX_REAL);
+	vnl_vector < double > v (pcount);
+  for (int i = 0;i<pcount; i++)
   {
-    v->rptr[i][1] = p[i];
+    v[i] = p[i+1];// p starting 1
 //      cout << p[i] << " ";
   }
 //    cout << ") = " << flush;
 
   // transform into matrix and iscale double
-  pair < MATRIX*, double > Md = tocurrent->convertP2Md(v);
+  pair < vnl_matrix_fixed < double , 4, 4 > , double > Md = tocurrent->convertP2Md(v);
 
   // new full M = mh2 * cm * mh1
-  Md.first = MatrixMultiply(mh2,Md.first,Md.first);
-  Md.first = MatrixMultiply(Md.first,mh1,Md.first);
+  //Md.first = MatrixMultiply(mh2,Md.first,Md.first);
+  //Md.first = MatrixMultiply(Md.first,mh1,Md.first);
+	Md.first = mh2 * Md.first * mh1;
 
   // compute new half way maps
-  MATRIX* mh  = MyMatrix::MatrixSqrt(Md.first);
+  vnl_matrix_fixed < double , 4, 4 > mh  = MyMatrix::MatrixSqrt(Md.first);
   // do not just assume m = mh*mh, rather m = mh2 * mh
   // for transforming target we need mh2^-1 = mh * m^-1
-  MATRIX * mi  = MatrixInverse(Md.first,NULL);
-  MATRIX * mhi = MatrixMultiply(mh1,mi,NULL);
-
+  //MATRIX * mi  = MatrixInverse(Md.first,NULL);
+  //MATRIX * mhi = MatrixMultiply(mh1,mi,NULL);
+  vnl_matrix_fixed < double , 4, 4 > mhi = mh1 * vnl_inverse(Md.first);
+	
   // map both to half way
   MRI* mri_Swarp = MRIclone(scf,NULL);
-  mri_Swarp = MRIlinearTransform(scf,mri_Swarp, mh);
+  mri_Swarp = MyMRI::MRIlinearTransform(scf,mri_Swarp, mh);
   MRI* mri_Twarp = MRIclone(scf,NULL); // bring them to same space (just use src geometry)
-  mri_Twarp = MRIlinearTransform(tcf,mri_Twarp, mhi);
+  mri_Twarp = MyMRI::MRIlinearTransform(tcf,mri_Twarp, mhi);
 
   // adjust intensity
   if (tocurrent->iscale)
@@ -111,16 +115,16 @@ float RegPowell::costFunction(float p[])
   // clean up
   MRIfree(&mri_Swarp);
   MRIfree(&mri_Twarp);
-  MatrixFree(&v);
-  MatrixFree(&Md.first);
-  MatrixFree(&mhi);
-  MatrixFree(&mh);
-  MatrixFree(&mi);
+  //MatrixFree(&v);
+  //MatrixFree(&Md.first);
+  //MatrixFree(&mhi);
+  //MatrixFree(&mh);
+  //MatrixFree(&mi);
 
   return d;
 }
 
-std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, MRI* mriT, MATRIX* m, double iscaleinit)
+void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > & m , double iscaleinit)
 // retruns 4x4 matrix and iscale value
 {
   if (!mriS) mriS = mri_source;
@@ -130,32 +134,36 @@ std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,do
 
   tocurrent = this; // so that we can access this from static cost function
 
-  pair < MATRIX*, double > fmd(NULL,iscaleinit);
+  pair < vnl_matrix_fixed < double, 4, 4> , double > fmd(vnl_matrix_fixed < double, 4 , 4> () ,iscaleinit);
 
   // check if mi (inital transform) is passed
-  if (m) fmd.first = MatrixCopy(m,NULL);
-  else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
+  if (!m.empty()) fmd.first = m;
+  else if (!Minit.empty()) fmd.first = Minit;
   else fmd.first = initializeTransform(mriS,mriT) ;
 
   if (debug > 0)
   {
     cout << "   - initial transform:\n" ;
-    MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+    //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+		cout << fmd.first << endl;
   }
 
 
   // here maybe better to symmetrically warp both images SQRT(M)
   // this keeps the problem symmetric
   cout << "   - warping source and target (sqrt)" << endl;
-  if (mh1) MatrixFree(&mh1);
+  //if (mh1) MatrixFree(&mh1);
   mh1 = MyMatrix::MatrixSqrt(fmd.first);
   // do not just assume m = mh*mh, rather m = mh2 * mh
   // for transforming target we need mh2^-1 = mh * m^-1
-  MATRIX * mi  = MatrixInverse(fmd.first,NULL);
-  MATRIX * mhi = MatrixMultiply(mh1,mi,NULL);
+  //MATRIX * mi  = MatrixInverse(fmd.first,NULL);
+  //MATRIX * mhi = MatrixMultiply(mh1,mi,NULL);
+  vnl_matrix_fixed < double, 4, 4 > mhi = mh1 * vnl_inverse(fmd.first);
+	
   //set static
-  if (mh2) MatrixFree(&mh2);
-  mh2 = MatrixInverse(mhi,NULL); // M = mh2 * mh1
+  //if (mh2) MatrixFree(&mh2);
+  //mh2 = MatrixInverse(mhi,NULL); // M = mh2 * mh1
+  mh2 = vnl_inverse(mhi); // M = mh2 * mh1
 
   //if (mri_Swarp) MRIfree(&mri_Swarp);
   //mri_Swarp = MRIclone(mriS,NULL);
@@ -164,9 +172,9 @@ std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,do
   //mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry)
   //mri_Twarp = MRIlinearTransform(mriT,mri_Twarp, mhi);
 
-  //MatrixFree(&mh);
-  MatrixFree(&mhi);
-  MatrixFree(&mi);
+ // //MatrixFree(&mh);
+  //MatrixFree(&mhi);
+ // MatrixFree(&mi);
 
   // adjust intensity later in first powell call
 
@@ -238,39 +246,43 @@ std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,do
   }
   while (fret < fstart) ;
 
-  MATRIX * v = MatrixAlloc(RegPowell::pcount,1,MATRIX_REAL);
+  vnl_vector < double > v(RegPowell::pcount);
   for (int i = 1;i<=RegPowell::pcount; i++)
-    v->rptr[i][1] = p[i];
-  MatrixPrintFmt(stdout,"% 2.8f",v);
+    v[i-1] = p[i];
+ // MatrixPrintFmt(stdout,"% 2.8f",v);
+	cout << v << endl;
 
-  if (fmd.first) MatrixFree(&fmd.first);
+  //if (fmd.first) MatrixFree(&fmd.first);
   fmd = convertP2Md(v);
-  MatrixFree(&v);
-  MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+  //MatrixFree(&v);
+  //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
+	cout << fmd.first << endl;
 
   free_matrix(xi, 1, pcount+1, 1, pcount+1) ;
   free_vector(p, 1, pcount+1) ;
 
   // new full M = mh2 * cm * mh1
-  fmd.first = MatrixMultiply(mh2,fmd.first,fmd.first);
-  fmd.first = MatrixMultiply(fmd.first,mh1,fmd.first);
-  Mfinal = MatrixCopy(fmd.first, Mfinal);
+  //fmd.first = MatrixMultiply(mh2,fmd.first,fmd.first);
+  //fmd.first = MatrixMultiply(fmd.first,mh1,fmd.first);
+  fmd.first = mh2 * fmd.first * mh1;
+  Mfinal = fmd.first;
   iscalefinal = fmd.second;
 
   cout << endl << " DONE " << endl;
   cout << endl << "Final Transform:" << endl;
-  ;
-  MatrixPrintFmt(stdout,"% 2.8f",Mfinal);
+  
+  //MatrixPrintFmt(stdout,"% 2.8f",Mfinal);
+	cout << Mfinal << endl;
 
   MRI* mri_Swarp = MRIclone(mriT,NULL);
-  mri_Swarp = MRIlinearTransform(mriS,mri_Swarp,Mfinal);
+  mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp,Mfinal);
   MRIwrite(mriS,"mriS.mgz");
   MRIwrite(mri_Swarp,"mriSwarp.mgz");
   MRIwrite(mriT,"mriT.mgz");
 
 //  exit(1);
 
-  return fmd ;
+//  return fmd ;
 
 
 //
@@ -279,7 +291,7 @@ std::pair <MATRIX*, double> RegPowell::computeIterativeRegistration( int nmax,do
 //        pw = computeRegistrationStepW(mri_Swarp,mri_Twarp);
 //
 //        if (cmd.first != NULL) MatrixFree(&cmd.first);
-//        cmd = convertP2Md(pw.first);
+//        cmd = convertP2MATRIXd(pw.first);
 //        if (lastp) MatrixFree(&lastp);
 //        lastp = pw.first;
 //        pw.first = NULL;

@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:20 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/01/14 19:41:05 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.8 2009/08/13 02:51:20 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.9 2010/01/14 19:41:05 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
@@ -243,13 +243,14 @@ int main(int argc, char *argv[])
   if (argc < 3)
   {
     cout << endl;
-    cout << argv[0] << " file1.lta file2.lta [dist-type] [norm-div]" << endl;
+    cout << argv[0] << " file1.lta file2.lta [dist-type] [norm-div] [invert1]" << endl;
     cout << endl;
     cout << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)" << endl;
     cout << "    dist-type " << endl;
     cout << "       1  (default) Rigid Transform Distance (||log(R)|| + ||T||)" << endl;
     cout << "       2            Affine Transform Distance (RMS) " << endl;
     cout << "       3            8-corners mean distance after transform " << endl;
+		cout << "    invert1         1 true, 0 false (default)" << endl;
     cout << endl;
     exit(1);
   }
@@ -264,6 +265,9 @@ int main(int argc, char *argv[])
     assert(double(disttype) == atof(argv[3]));
   }
   if (argc >4 ) d = atof(argv[4]);
+	
+	bool invert1 = false;
+	if (argc >5 ) invert1 = (atoi(argv[5]) == 1);
 
   if (disttype == 100)
   {
@@ -306,6 +310,34 @@ int main(int argc, char *argv[])
     cerr << "Could not open one of the LTA input files" << endl;
     exit(1);
   }
+
+  if (invert1 )
+	{
+    VOL_GEOM vgtmp;
+    LT *lt;
+    MATRIX *m_tmp = lta1->xforms[0].m_L ;
+    lta1->xforms[0].m_L = MatrixInverse(lta1->xforms[0].m_L, NULL) ;
+    MatrixFree(&m_tmp) ;
+    lt = &lta1->xforms[0];
+    if (lt->dst.valid == 0 || lt->src.valid == 0)
+    {
+      fprintf
+        (stderr, 
+         "WARNING:********************************************************\n");
+      fprintf
+        (stderr, 
+         "WARNING:dst or src volume is invalid.  Inverse likely wrong.\n");
+      fprintf
+        (stderr, 
+         "WARNING:********************************************************\n");
+    }
+    copyVolGeom(&lt->dst, &vgtmp);
+    copyVolGeom(&lt->src, &lt->dst);
+    copyVolGeom(&vgtmp, &lt->src);
+  }
+
+
+
   LTAchangeType(lta1,LINEAR_RAS_TO_RAS);
   LTAchangeType(lta2,LINEAR_RAS_TO_RAS);
 

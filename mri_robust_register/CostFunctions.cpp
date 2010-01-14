@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/21 00:19:45 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/01/14 19:41:03 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,9 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
+#include <vnl/vnl_matrix_fixed.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/algo/vnl_symmetric_eigensystem.h>
 
 using namespace std;
 
@@ -291,8 +294,8 @@ std::vector <double> CostFunctions::centroid(MRI *i)
   return dd;
 }
 
-MATRIX* CostFunctions::orientation(MRI *i)
-// M_ijk is the moment(i,j,k)
+vnl_matrix_fixed < double ,3,3> CostFunctions::orientation(MRI *i)
+// M_ijk below is the moment(i,j,k)
 {
   // compute mean
   std::vector < double > dd(3,0.0);
@@ -300,8 +303,9 @@ MATRIX* CostFunctions::orientation(MRI *i)
   double val;
   int wp1, hp1, dp1;
 
-  MATRIX* cov = MatrixAlloc(3,3,MATRIX_REAL);
-  cov = MatrixZero(3,3,cov);
+//  MATRIX* cov = MatrixAlloc(3,3,MATRIX_REAL);
+//  cov = MatrixZero(3,3,cov);
+	vnl_matrix_fixed < double, 3,3> cov(0.0);
 
   for (int d = 0 ; d<i->depth; d++)
   {
@@ -319,12 +323,12 @@ MATRIX* CostFunctions::orientation(MRI *i)
         dd[1] += (hp1) * val; // M_010
         dd[2] += (dp1) * val; // M_001
 
-        cov->rptr[1][1] += wp1*wp1*val; // M_200
-        cov->rptr[2][2] += hp1*hp1*val; // M_020
-        cov->rptr[3][3] += dp1*dp1*val; // M_002
-        cov->rptr[1][2] += wp1*hp1*val; // M_110
-        cov->rptr[2][3] += hp1*dp1*val; // M_011
-        cov->rptr[1][3] += wp1*dp1*val; // M_101
+        cov[0][0] += wp1*wp1*val; // M_200
+        cov[1][1] += hp1*hp1*val; // M_020
+        cov[2][2] += dp1*dp1*val; // M_002
+        cov[0][1] += wp1*hp1*val; // M_110
+        cov[1][2] += hp1*dp1*val; // M_011
+        cov[0][2] += wp1*dp1*val; // M_101
 
 
       }
@@ -336,32 +340,39 @@ MATRIX* CostFunctions::orientation(MRI *i)
   dd[2] = dd[2]/n;
 
   // compute cov matrix
-  cov->rptr[1][1] = (cov->rptr[1][1]/n)- dd[0]*dd[0]; // M_200/M_000 - mean_x^2
-  cov->rptr[2][2] = (cov->rptr[2][2]/n)- dd[1]*dd[1];
-  cov->rptr[3][3] = (cov->rptr[3][3]/n)- dd[2]*dd[2];
-  cov->rptr[1][2] = (cov->rptr[1][2]/n)- dd[0]*dd[1]; // M_110/M_000 - mean_x * mean_y
-  cov->rptr[2][3] = (cov->rptr[2][3]/n)- dd[1]*dd[2];
-  cov->rptr[1][3] = (cov->rptr[1][3]/n)- dd[0]*dd[2];
+  cov[0][0] = (cov[0][0]/n)- dd[0]*dd[0]; // M_200/M_000 - mean_x^2
+  cov[1][1] = (cov[1][1]/n)- dd[1]*dd[1];
+  cov[2][2] = (cov[2][2]/n)- dd[2]*dd[2];
+  cov[0][1] = (cov[0][1]/n)- dd[0]*dd[1]; // M_110/M_000 - mean_x * mean_y
+  cov[1][2] = (cov[1][2]/n)- dd[1]*dd[2];
+  cov[0][2] = (cov[0][2]/n)- dd[0]*dd[2];
 
-  // mirror off diagonal elements
-  cov->rptr[2][1] = cov->rptr[1][2];
-  cov->rptr[3][2] = cov->rptr[2][3];
-  cov->rptr[3][1] = cov->rptr[1][3];
+  // mirror off diagonal elements: cov is symmetric
+  cov[1][0] = cov[0][1];
+  cov[2][1] = cov[1][2];
+  cov[2][0] = cov[0][2];
 
   // compute Eigenvectors
-  float eval[3];
-  MATRIX* evec = MatrixEigenSystem(cov, eval ,NULL) ;
+  vnl_symmetric_eigensystem < double > SymEig(cov);
   // should be sorted:
-  assert(eval[0] >= eval[1]);
-  assert(eval[1] >= eval[2]);
+  assert(SymEig.D[0] >= SymEig.D[1]);
+  assert(SymEig.D[1] >= SymEig.D[2]);
+	vnl_matrix < double > evec (SymEig.V);
+	
+//   float eval[3];
+//   MATRIX* evec = MatrixEigenSystem(cov, eval ,NULL) ;
+//   // should be sorted:
+//   assert(eval[0] >= eval[1]);
+//   assert(eval[1] >= eval[2]);
 
   // make det positive:
-  double d = MatrixDeterminant(evec);
+  //double d = MatrixDeterminant(evec);
+  double d = SymEig.determinant();
   if (d<0)
   {
     //cout << "Orientation: neg. determinant ..  fixing" << endl;
-    for (int r=1;r<4;r++)
-      evec->rptr[r][1] = - evec->rptr[r][1];
+    for (int r=0;r<3;r++)
+      evec[r][0] = - evec[r][0];
   }
 
 
@@ -369,7 +380,7 @@ MATRIX* CostFunctions::orientation(MRI *i)
   //cout << " evecs: " << endl;
   // MatrixPrintFmt(stdout,"% 2.8f",evec);
 
-  MatrixFree(&cov);
+  //MatrixFree(&cov);
   return evec;
 
 }

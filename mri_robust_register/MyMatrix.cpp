@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 23:35:46 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -28,9 +28,356 @@
 
 #include "MyMatrix.h"
 #include "Quaternion.h"
+#include <vnl/vnl_inverse.h>
+#include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_determinant.h>
+#include <vnl/vnl_vector_fixed.h>
+#include <vnl/vnl_matrix_fixed.h>
 
 using namespace std;
 
+
+////// conversion stuff  (note vnl stuff is double, MATRIX is float !!!)
+
+MATRIX* MyMatrix::convertVNL2MATRIX(const vnl_vector <double > & v, MATRIX* outM)
+{
+   if (outM == NULL) outM = MatrixAlloc(v.size(),1,MATRIX_REAL);
+	 assert ((int) v.size() == outM->rows);
+	 assert (1 == outM->cols);
+	 
+	 for (unsigned int r = 0; r< v.size(); r++)
+	    outM->rptr[r+1][1] = v[r];
+	 return outM;
+}
+
+MATRIX* MyMatrix::convertVNL2MATRIX(const vnl_matrix <double > & m, MATRIX* outM)
+{
+   if (outM == NULL) outM = MatrixAlloc(m.rows(),m.cols(),MATRIX_REAL);
+	 assert ((int) m.rows() == outM->rows);
+	 assert ((int) m.cols() == outM->cols);
+	 
+	 for (unsigned int r = 0; r< m.rows(); r++)
+	 for (unsigned int c = 0; c< m.cols(); c++)
+	    outM->rptr[r+1][c+1] = m[r][c];
+	 return outM;
+}
+
+vnl_vector <double > MyMatrix::convertVECTOR2VNL(VECTOR* m)
+{
+   assert(m->cols == 1);
+   vnl_vector <double>  ret(m->rows);
+	 
+	 for (int r = 0; r< m->rows; r++)
+	    ret[r] = m->rptr[r+1][1];
+	 return ret;
+}
+
+vnl_matrix <double > MyMatrix::convertMATRIX2VNL(MATRIX* m)
+{
+   vnl_matrix <double> ret(m->rows, m->cols);
+	 
+	 for (int r = 0; r< m->rows; r++)
+	 for (int c = 0; c< m->cols; c++)
+	    ret[r][c] = m->rptr[r+1][c+1];
+	 return ret;
+}
+
+
+////// VNL stuff
+
+
+vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& m)
+{
+  assert(m.rows() == 4 && m.cols() == 4);
+	
+	vnl_matrix_fixed < double,3,3 > R;// = m.extract(3,3,0,0);
+  for (int rr = 0; rr<3; rr++)
+    for (int cc = 0; cc<3; cc++)
+    {
+      R[rr][cc] = m[rr][cc];
+    }
+
+
+  //Denman and Beavers square root iteration
+
+  int imax = 100;
+  double eps = 0.00001;  // important to be small to guarantee symmetry,
+	                       // but even adding two zeros did not show any 
+												 // differences in tests
+	double err = 1000;
+  //cout << "using square root iteartion (" << imax << ")"<< endl;
+	vnl_matrix_fixed < double,3,3 > Yn(R);
+	vnl_matrix_fixed < double,3,3 > Zn; Zn.set_identity();
+	vnl_matrix_fixed < double,3,3 > Yni,Zni;
+	vnl_matrix_fixed < double,3,3 > Ysq;	
+
+  int count = 0;
+  while (count<imax && err > eps)
+  {
+    count++;
+
+    //store invrse here (we change Yn below)
+    Yni = vnl_inverse(Yn);
+		Zni = vnl_inverse(Zn);
+
+    // add inverse:
+    Yn += Zni;
+    Zn += Yni;
+
+    Yn *= 0.5;
+    Zn *= 0.5;
+
+    Ysq = Yn * Yn;
+    Ysq -= R;
+    err = Ysq.absolute_value_max();
+		//cout << " iteration " << count << "  err: "<< err << endl;
+  }
+
+  if (count > imax)
+  {
+    cerr << "Matrix Sqrt did not converge in " << imax << " steps!" << endl;
+    cerr << "   ERROR: " << err << endl;
+    assert(err <= eps);
+  }
+
+  // compute new T
+	// Rh1 = R + I
+	vnl_matrix_fixed < double,3,3 > Rh1(Yn);
+	Rh1[0][0] += 1; Rh1[1][1] +=1; Rh1[2][2] += 1;
+
+  vnl_vector_fixed < double,3 > T;
+	T[0] = m[0][3]; T[1] = m[1][3]; T[2] = m[2][3];
+
+  // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
+  vnl_vector_fixed < double,3 > Th = vnl_inverse(Rh1) * T; //vnl_svd<double>(Rh1).solve(T);
+
+  // put everything together:
+  vnl_matrix < double > msqrt(4,4);
+  msqrt[0][3] = Th[0];
+	msqrt[1][3] = Th[1];
+	msqrt[2][3] = Th[2];
+	msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
+  for (int c=0; c<3; c++)
+    for (int r=0; r<3; r++)
+		  msqrt[r][c] = Yn[r][c];
+
+
+//    bool test = true;
+//    if (test)
+//    {
+//       vnl_matrix < double > ms2 = msqrt * msqrt;
+//       ms2 -= m;
+//       double sum = ms2.absolute_value_max();
+//       if (sum > eps)
+//       {
+//          cerr << " Error : " << sum << endl;
+// 				 cerr << " sqrt(M): " << endl << msqrt << endl;
+//          cerr << endl;
+//          assert(1==2);
+//       }
+//    }
+
+  return msqrt;
+}
+
+double MyMatrix::AffineTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b, double r)
+// computes squared distance between a and b (4x4 affine transformations)
+// D^2 = 1/5 r^2 Tr(A^tA) +  ||T_d||^2
+// where T_d is the translation and A the Affine
+// of the matrix d = a - b
+// r is the radius specifying the volume of interest
+// (this distance is used in Jenkinson 1999 RMS deviation - tech report
+//    www.fmrib.ox.ac.uk/analysis/techrep )
+// the center of the brain should be at the origin
+{
+
+  vnl_matrix <double> drigid(a);
+  if (!b.empty()) drigid -= b;
+	else
+	{
+	   vnl_matrix<double> id(drigid.rows(),drigid.cols());
+		 id.set_identity();
+		 drigid -= id;
+	}
+
+  double EPS = 0.000001;
+  assert(drigid.rows() ==4 && drigid.cols() == 4);
+  assert(fabs(drigid[3][0]) < EPS);
+  assert(fabs(drigid[3][1]) < EPS);
+  assert(fabs(drigid[3][2]) < EPS);
+
+  //cout << " drigid: " << endl;
+  //MatrixPrintFmt(stdout,"% 2.8f",drigid);
+
+  // translation norm quadrat:
+  double tdq = 0;
+  for (int i=0; i < 3; i++)
+  {
+    tdq += drigid[i][3] * drigid[i][3];
+    drigid[i][3] = 0.0;
+    drigid[3][i] = 0.0;
+  }
+  drigid[3][3] = 0.0;
+
+  //cout << " trans dist2: " << tdq << endl;
+	
+
+  drigid = drigid.transpose() * drigid;
+
+  // Trace of A^t A
+  double tr = 0.0;
+  for (int i=0; i < 3; i++)
+  {
+    tr += drigid[i][i];
+  }
+
+
+  return (1.0/5.0) * r*r* tr + tdq;
+
+}
+
+double MyMatrix::RigidTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b)
+// computes squared distance between a and b (4x4 rigid transformations)
+// D^2 = ||T_d||^2 + |log R_d|^2
+// where T_d is the translation and R_d the rotation
+// of the matrix d that rigidly transforms a to b
+{
+
+  vnl_matrix <double> drigid;
+  if (b.empty()) drigid = a;
+  else
+  {
+    drigid = vnl_matrix_inverse<double>(a);
+    drigid = b * drigid;
+  }
+
+  double EPS = 0.000001;
+  assert(drigid.rows() ==4 && drigid.cols() == 4);
+  assert(fabs(drigid[3][0]) < EPS);
+  assert(fabs(drigid[3][1]) < EPS);
+  assert(fabs(drigid[3][2]) < EPS);
+  assert(fabs(drigid[3][3]-1) < EPS);
+
+  //cout << " drigid: " << endl;
+  //MatrixPrintFmt(stdout,"% 2.8f",drigid);
+
+  // translation norm quadrat:
+  double tdq = 0;
+  for (int r=0; r < 3; r++)
+  {
+    tdq += drigid[r][3] * drigid[r][3];
+  }
+
+  //cout << " trans dist2: " << tdq << endl;
+
+  // rotation norm:
+  double rd = RotMatrixLogNorm(drigid);
+  //cout << " rd: " << rd << endl;
+
+
+  return rd*rd + tdq;
+
+}
+
+double MyMatrix::getFrobeniusDiff(const vnl_matrix < double >&m1, const vnl_matrix < double >&m2)
+{
+
+  assert(m1.rows() == m2.rows());
+  assert(m1.cols() == m2.cols());
+	
+	return (m1-m2).fro_norm();
+}
+
+double  MyMatrix::RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 >& m)
+// computes Frobenius norm of log of rot matrix
+// this is equivalent to geodesic distance on rot matrices
+// will look only at first three rows and colums and
+// expects a rotation matrix there
+{
+  // assert we have no stretching only rot (and trans)
+  double det = vnl_determinant(m);;
+  //cout << " det: " << det << endl;
+  if (fabs(det-1.0) > 0.001)
+  {
+    cerr << "There is streching! det: " << det << endl;
+    assert (fabs(det-1.0) < 0.001);
+  }
+
+  double trace = 0.0;
+  for (int n=0; n < 3; n++) trace += m[n][n];
+  //cout << " trace : " << trace << endl;
+  trace = 0.5*(trace-1.0);
+  if (trace > 1.0) trace = 1.0;
+  if (trace < -1.0) trace = -1.0;
+  //cout << "  0.5*(trace-1): " << trace << endl;
+  double theta = acos(trace); // gives [0..pi]
+
+  return sqrt(2.0) * theta;
+
+}
+
+vnl_matrix < double > MyMatrix::getVNLMatrix(std::vector < double > d, int r)
+// convert double array to matrix
+{
+  int c = (int)d.size() / r;
+  assert(r*c == (int)d.size());
+	
+  vnl_matrix < double > m(r,c);
+	
+  int rr,cc, count=0;
+  for (rr = 0 ; rr < r ; rr++)
+    for (cc = 0 ; cc < c  ; cc++)
+    {
+      m[rr][cc] = d[count];
+      count++;
+    }
+
+  return m;
+}
+
+void MyMatrix::getRTfromM(const vnl_matrix_fixed < double , 4 , 4 > &m,
+	                              vnl_matrix_fixed < double , 3 , 3 > &r, 
+														    vnl_vector_fixed < double, 3 >      &t)
+{
+	r = m.extract(3,3);
+	t = m.extract(3,1,3,0).get_column(0);
+}
+
+vnl_matrix_fixed < double , 4 , 4 >  MyMatrix::getMfromRT(
+	                             const vnl_matrix_fixed < double , 3 , 3 > &r, 
+															 const vnl_vector_fixed < double, 3 >      &t)
+{
+  vnl_matrix_fixed < double, 4, 4 > m;
+	m.set_identity();
+	m.set_columns(0,r);
+	m.set_column(3,t);
+	return m;
+}
+
+LTA* MyMatrix::VOXmatrix2LTA(const vnl_matrix_fixed < double, 4 , 4 >& m, MRI* src, MRI* dst)
+{
+  LTA* ret =  LTAalloc(1,src);
+  ret->xforms[0].m_L = convertVNL2MATRIX(m,ret->xforms[0].m_L);
+  ret->xforms[0].m_L = MRIvoxelXformToRasXform (src,dst,ret->xforms[0].m_L,ret->xforms[0].m_L) ;
+  ret->type = LINEAR_RAS_TO_RAS ;
+  getVolGeom(src, &ret->xforms[0].src);
+  getVolGeom(dst, &ret->xforms[0].dst);
+
+  return ret;
+}
+
+LTA* MyMatrix::RASmatrix2LTA(const vnl_matrix_fixed < double, 4 , 4 >& m, MRI* src, MRI* dst)
+{
+  LTA* ret =  LTAalloc(1,src);
+  ret->xforms[0].m_L = convertVNL2MATRIX(m,ret->xforms[0].m_L);
+  ret->type = LINEAR_RAS_TO_RAS ;
+  getVolGeom(src, &ret->xforms[0].src);
+  getVolGeom(dst, &ret->xforms[0].dst);
+
+  return ret;
+}
+
+////// MATRIX stuff
 
 double MyMatrix::AffineTransDistSq(MATRIX * a, MATRIX * b, double r)
 // computes squared distance between a and b (4x4 affine transformations)

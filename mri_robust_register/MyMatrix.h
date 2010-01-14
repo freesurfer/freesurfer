@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 23:35:46 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -48,16 +48,51 @@ extern "C"
 #include <utility>
 #include <string>
 #include <vector>
+#include <vnl/vnl_vector.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/vnl_vector_fixed.h>
+#include <vnl/vnl_matrix_fixed.h>
 
 class MyMatrix
 {
 public:
+
+  // conversion
+  static MATRIX* convertVNL2MATRIX(const vnl_vector <double > & v, MATRIX* outM = NULL);
+  static MATRIX* convertVNL2MATRIX(const vnl_matrix <double > & v, MATRIX* outM = NULL);
+  static vnl_vector <double > convertVECTOR2VNL(VECTOR* m);
+  static vnl_matrix <double > convertMATRIX2VNL(MATRIX* m);
+
+//======== VNL STUFF ===========================================================================
+
+  // operations
+  static vnl_matrix < double >  MatrixSqrt(const vnl_matrix < double >& m);
+
+  // distances
+  static double RigidTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b  = vnl_matrix<double>());
+  static double AffineTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b = vnl_matrix<double>(), double r=100);
+  static double getFrobeniusDiff(const vnl_matrix < double >&m1, const vnl_matrix < double >&m2);
+
+  // conversions
+  static vnl_matrix < double > getVNLMatrix(std::vector < double > d, int r);
+  static double RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 > &m);
+  static LTA* VOXmatrix2LTA(const vnl_matrix_fixed < double, 4, 4 >&m, MRI* src, MRI* dst);
+  static LTA* RASmatrix2LTA(const vnl_matrix_fixed < double, 4, 4 >&m, MRI* src, MRI* dst);
+  static void getRTfromM(const vnl_matrix_fixed < double , 4 , 4 > &m,
+	                             vnl_matrix_fixed < double , 3 , 3 > &r, 
+															 vnl_vector_fixed < double, 3 >      &t);
+  static vnl_matrix_fixed < double , 4 , 4 >  getMfromRT(
+	                             const vnl_matrix_fixed < double , 3 , 3 > &r, 
+															 const vnl_vector_fixed < double, 3 >      &t);
+
+//========= MATRIX STUFF ========================================================================
+	
   // distances
   static double RigidTransDistSq(MATRIX *a, MATRIX *b = NULL);
   static double AffineTransDistSq(MATRIX *a, MATRIX *b = NULL, double r=100);
   static double getFrobeniusDiff(MATRIX *m1, MATRIX *m2);
 
-  // opeartions
+  // operations
   static MATRIX * MatrixSqrt(MATRIX * m, MATRIX * sqrtm=NULL);
 
   // conversions

@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/01/14 19:41:03 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -47,6 +47,7 @@ extern "C"
 //#include <string>
 #include <vector>
 #include <iostream>
+#include <vnl/vnl_matrix_fixed.h>
 
 class CostFunctions
 {
@@ -61,7 +62,7 @@ public:
   static double mad(MRI *i, double d = 1.4826);
   static double moment(MRI * i, int x, int y, int z);
   static std::vector < double > centroid (MRI * i);
-  static MATRIX* orientation (MRI * i);
+  static vnl_matrix_fixed < double,3,3 > orientation (MRI * i);
 
   static double leastSquares(MRI * i1, MRI * i2 = NULL);
   static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);

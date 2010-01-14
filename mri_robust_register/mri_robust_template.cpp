@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/10/13 21:41:36 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/01/14 19:41:05 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -112,6 +112,8 @@ struct Parameters
 	bool   quick;
 	int    subsamplesize;
 	bool   fixtp;
+	bool   satit;
+	string conform;
 };
 
 // Initializations:
@@ -139,7 +141,9 @@ static struct Parameters P =
 	false,
 	false,
 	SSAMPLE,
-	false
+	false,
+	false,
+	""
 };
 
 
@@ -147,7 +151,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.13 2009/10/13 21:41:36 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.14 2010/01/14 19:41:05 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -156,7 +160,7 @@ char *Progname = NULL;
 
 int main(int argc, char *argv[])
 {
-  cout << vcid << endl;
+  cout << vcid << endl << endl;
   // set the environment variable
   // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
@@ -204,6 +208,7 @@ int main(int argc, char *argv[])
   MR.setTransonly(P.transonly);
   MR.setRobust(!P.leastsquares);
   MR.setSaturation(P.sat);
+  MR.setSatit(P.satit);
 	MR.setFixVoxel(P.fixvoxel);
 	MR.setFixType(P.fixtype);
 	MR.setAverage(P.average);
@@ -253,6 +258,7 @@ int main(int argc, char *argv[])
 		//   b) res 0: up to highest res., eps 0.01 accurate reg.
 		//   turns out accurate b) performs better and saves us
 		//   from more global iterations (reg to template) later
+		// remains open if subsampling speeds up things w/o increasing iterations later
     if(P.iltas.size() == 0 && P.inittp > 0) 
 		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
 		  //MR.initialXforms(P.inittp,1,5,0.05);
@@ -268,6 +274,7 @@ int main(int argc, char *argv[])
 
   cout << "Writing final template: " << P.mean << endl;
 	MR.writeMean(P.mean);
+	if (P.conform != "") MR.writeConformMean(P.conform);
 
   // output transforms and warps
   cout << "Writing final transforms (warps etc.)..." << endl;
@@ -345,18 +352,19 @@ static void printUsage(void)
 	cout << "                               (if #tp>2 default 0.03, else 0.01 for 2tp reg.)" << endl;
 //  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
   cout << "  --sat <float>              set saturation for robust estimator (default "<<SAT<<")" << endl;
+  cout << "  --satit                    find saturation for robust estimator" << endl;
   cout << "  --subsample <#>            subsample if dim > # on all axes (default no subs.)" << endl;
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
 //  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
-  cout << "  --uchar                    set input type to UCHAR (with intensity scaling)" << endl;
-  cout << "  --conform                  conform volumes to 1mm vox (256^3)" << endl;
+//  cout << "  --uchar                    set input type to UCHAR (with intensity scaling)" << endl;
+  cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
 //  cout << "      --satit                iterate on highest res with different sat" << endl;
   cout << "  --debug                    show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
-  cout << "Mandatory or optional arguments to long options are also mandatory or optional for any" << endl;
-  cout << " corresponding short options." << endl;
+  cout << "Important Note: The input images should all have the same intensity level!" << endl;
+  cout << "Good images are, for example, the T1.mgz and norm.mgz from the FreeSurfer stream." << endl;
   cout << endl;
 
   cout << "Report bugs to: Freesurfer@nmr.mgh.harvard.edu" << endl;
@@ -527,6 +535,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will map everything to init TP!" << endl;
   }
+  else if (!strcmp(option, "SATIT") )
+  {
+    P.satit = true;
+    nargs = 0 ;
+    cout << "Will estimate SAT iteratively!" << endl;
+  }
   else if (!strcmp(option, "WEIGHTS") )
   {
     nargs = 0;
@@ -571,16 +585,22 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "CONFORM") )
   {
-    P.fixvoxel = true;
-    nargs = 0 ;
-    cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
+    P.conform = argv[1];
+    nargs = 1 ;
+    cout << "Will output conform template (256^3 and 1mm voxels)!" << endl;
   }
-  else if (!strcmp(option, "UCHAR") )
-  {
-    P.fixtype = true;
-    nargs = 0 ;
-    cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
-  }
+//   else if (!strcmp(option, "CONFORM") )
+//   {
+//     P.fixvoxel = true;
+//     nargs = 0 ;
+//     cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
+//   }
+//   else if (!strcmp(option, "UCHAR") )
+//   {
+//     P.fixtype = true;
+//     nargs = 0 ;
+//     cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
+//   }
   else if (!strcmp(option, "INITTP") )
   {
     P.inittp = atoi(argv[1]);

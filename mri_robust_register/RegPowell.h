@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:19 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@ public:
   virtual ~RegPowell()
   {};
 
-  virtual std::pair <MATRIX*, double> computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+  virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
 
 protected:
 
@@ -68,8 +68,8 @@ protected:
   static MRI * scf;
   static MRI * tcf;
   static int pcount;
-  static MATRIX * mh1;
-  static MATRIX * mh2;
+  static vnl_matrix_fixed < double , 4, 4 > mh1;
+  static vnl_matrix_fixed < double , 4, 4 > mh2;
   static int icount;
 
 };

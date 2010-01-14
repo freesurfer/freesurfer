@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/10/13 20:10:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vnl/vnl_inverse.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/vnl_matrix_fixed.h>
+#include <vnl/algo/vnl_svd.h>
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -146,7 +150,7 @@ void MultiRegistration::initRegistration(Registration & R)
   //R.setDebug(debug);
   
 	
-	//if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
+	if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
 
 //   int pos = P.mov[n].rfind(".");
 //   if (pos > 0) R.setName(P.mov[n].substr(0,pos));
@@ -193,6 +197,44 @@ bool MultiRegistration::averageSet(int itdebug)
     }
     mri_mean = averageSet(mri_warps, mri_mean,average,sat);
     return true;
+}
+
+MRI* MultiRegistration::averageConformSet(int itdebug)
+// maps mov to template (using ltas)
+// adjust intensities (if iscale)
+// creates template acording to average:1 mean, 2 median..
+{
+  unsigned int nin = mri_mov.size();
+	assert(nin > 1);
+	assert (ltas.size() == nin);
+	assert (intensities.size() == nin);
+	
+	std::vector < MRI* > mri_cwarps(nin,NULL);
+
+    cout << "warping movs and creating conform template..." << endl;
+		if (iscale) cout << " allow intensity scaling" << endl;
+    for (unsigned int i = 0;i<nin;i++)
+    {  
+
+			// use geometry from ltas
+			// (if initXforms was called, this is the center of mass of all tps)
+      mri_cwarps[i] = LTAtransform(mri_mov[i],NULL, ltas[i]);
+			//????
+			
+			
+			if (iscale)
+			{
+			   mri_cwarps[i] = MyMRI::MRIvalscale(mri_cwarps[i],mri_cwarps[i], intensities[i]);
+			}
+      if (debug)
+      {
+        ostringstream oss;
+        oss << outdir << "tp" << i+1 << "_to_template_conform-it"<<itdebug<<".mgz";
+        MRIwrite(mri_cwarps[i], oss.str().c_str()) ;
+      }
+    }
+    MRI* mri_cmean = averageSet(mri_cwarps, NULL,average,sat);
+    return mri_cmean;
 }
 
 bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, double epsit)
@@ -259,13 +301,15 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
   int itcount = 0;
   double maxchange = 100;
 
-  vector < MATRIX * > transforms(mri_mov.size(),NULL);
+  //vector < MATRIX * > transforms(mri_mov.size(),NULL);
+  vector < vnl_matrix_fixed < double, 4, 4> > transforms(mri_mov.size());
   if (havexforms) //init transforms
   {
      for (int i=0;i<nin;i++)
      {
         LTAchangeType(ltas[i],LINEAR_VOX_TO_VOX); //vox2vox for registration
-        transforms[i] = MatrixCopy(ltas[i]->xforms[0].m_L, NULL);
+        //transforms[i] = MatrixCopy(ltas[i]->xforms[0].m_L, NULL);
+        transforms[i] = MyMatrix::convertMATRIX2VNL(ltas[i]->xforms[0].m_L);
      }
 	
   }
@@ -306,7 +350,8 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       Rv[i].setName(oss.str());
 
       // compute Alignment
-      std::pair <MATRIX*, double> Md;
+      //std::pair <MATRIX*, double> Md;
+      std::pair <vnl_matrix_fixed < double, 4, 4>, double> Md;
       //int iterate = P.iterate;
       //double epsit= P.epsit;
       int maxres = 0;
@@ -346,14 +391,17 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 //      }
 
       Rv[i].setSubsamplesize(subsamp);
-      Md = Rv[i].computeMultiresRegistration(maxres,
+			if (satit) Rv[i].findSaturation();
+      Rv[i].computeMultiresRegistration(maxres,
                                                iterate,
                                                epsit,
                                                NULL,
                                                NULL,
                                                transforms[i],
                                                intensities[i]);
-      if (transforms[i]) MatrixFree(&transforms[i]);
+		  Md.first  = Rv[i].getFinalVox2Vox();
+			Md.second = Rv[i].getFinalIscale();
+      //if (transforms[i]) MatrixFree(&transforms[i]);
       transforms[i] = Md.first;
       intensities[i] = Md.second;
 
@@ -426,15 +474,20 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
         // if we have weights:  
         if (mri_weights[i] != NULL)
         {
-          std::pair <MATRIX*, MATRIX*> map2weights = Rv[i].getHalfWayMaps();
-          MATRIX * hinv = MatrixInverse(map2weights.second,NULL);
+          //std::pair <MATRIX*, MATRIX*> map2weights = Rv[i].getHalfWayMaps();
+          //MATRIX * hinv = MatrixInverse(map2weights.second,NULL);
+          std::pair <vnl_matrix_fixed < double , 4, 4> , vnl_matrix_fixed < double, 4, 4 > > map2weights = Rv[i].getHalfWayMaps();
+          vnl_matrix_fixed < double , 4, 4>  hinv = vnl_inverse(map2weights.second);
 
           cout << endl;
-          MatrixPrint(stdout,map2weights.first) ;
+          //MatrixPrint(stdout,map2weights.first) ;
+					cout << map2weights.first << endl;
           cout << endl;
-          MatrixPrint(stdout,map2weights.second) ;
+          //MatrixPrint(stdout,map2weights.second) ;
+					cout << map2weights.second << endl;
           cout << endl;
-          MatrixPrint(stdout,hinv) ;
+          //MatrixPrint(stdout,hinv) ;
+					cout << hinv << endl;
           cout << endl;
 
           MRI * wtarg = MRIalloc(mri_weights[i]->width,
@@ -448,11 +501,11 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
           wtarg->i_to_r__ = MatrixCopy(mri_mean->i_to_r__, wtarg->i_to_r__);
           wtarg->r_to_i__ = MatrixCopy(mri_mean->r_to_i__, wtarg->r_to_i__);
 
-          wtarg = MRIlinearTransform(mri_weights[i],wtarg, hinv);
+          wtarg = MyMRI::MRIlinearTransform(mri_weights[i],wtarg, hinv);
           MRIwrite(wtarg, (oss.str()+"-weights.mgz").c_str()) ;
           MRIwrite(mri_weights[i], (oss.str()+"-www.mgz").c_str());
           MRIfree(&wtarg);
-          MatrixFree(&hinv);
+          //MatrixFree(&hinv);
           MatrixFree(&v2r);
         }
       } // if debug end
@@ -515,7 +568,8 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
   R.setName(oss.str().c_str());
 
   // use initial transform if given:
-  MATRIX *minit = NULL;
+  //MATRIX *minit = NULL;
+  vnl_matrix_fixed < double , 4 , 4 > minit;
 	assert(ltas.size() ==2);
   if (ltas[0])
   {
@@ -523,46 +577,54 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
     LTAchangeType(ltas[1],LINEAR_VOX_TO_VOX); //vox2vox for registration
     assert (ltas[0]->type == LINEAR_VOX_TO_VOX);
     assert (ltas[1]->type == LINEAR_VOX_TO_VOX);
-    minit = MatrixInverse(ltas[1]->xforms[0].m_L,NULL);
-    minit = MatrixMultiply(minit,ltas[0]->xforms[0].m_L,minit);
+    minit = vnl_inverse(MyMatrix::convertMATRIX2VNL(ltas[1]->xforms[0].m_L)) * MyMatrix::convertMATRIX2VNL(ltas[0]->xforms[0].m_L) ;
     R.setDebug(1);
   }	
 		
   // compute Alignment
-  std::pair <MATRIX*, double> Md;
+  //std::pair <MATRIX*, double> Md;
+  std::pair < vnl_matrix_fixed < double, 4, 4> , double> Md;
 	// adjust subsamplesize, if passed:
 	if (subsamplesize > 0 ) R.setSubsamplesize(subsamplesize);
-  Md = R.computeMultiresRegistration(maxres,iterate,epsit,NULL,NULL,minit);
-	if (minit) MatrixFree(&minit);
+	if (satit) R.findSaturation();
+  R.computeMultiresRegistration(maxres,iterate,epsit,NULL,NULL,minit);
+	Md.first  = R.getFinalVox2Vox();
+	Md.second = R.getFinalIscale();
+	//if (minit) MatrixFree(&minit);
   intensities[0] = Md.second;
   intensities[1] = 1;
 
   cout << "creating half way data ..." << endl;
-  std::pair < MATRIX*, MATRIX*> maps2weights = R.getHalfWayMaps();
+	assert(MyMRI::isIsotropic(mri_mov[0]) && MyMRI::isIsotropic(mri_mov[1]));
+	
+  std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > maps2weights = R.getHalfWayMaps();
   LTA * m2hwlta = LTAalloc(1,mri_mov[0]);
   LTA * d2hwlta = LTAalloc(1,mri_mov[1]);
   if (!vox2vox) // do ras to ras
   {
     // cout << "converting VOX to RAS and saving RAS2RAS..." << endl ;
-    // (use geometry of destination space for half-way)
+    // (use geometry of destination space for half-way) WIll NOT WORK FOR nonistorpic due to internal resampling
+		m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first);
     m2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (mri_mov[0],
                                                       mri_mov[1],
-                                                      maps2weights.first,
+                                                      m2hwlta->xforms[0].m_L,
                                                       m2hwlta->xforms[0].m_L) ;
     m2hwlta->type = LINEAR_RAS_TO_RAS ;
+		
+		d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second);
     d2hwlta->xforms[0].m_L = MRIvoxelXformToRasXform (mri_mov[1],
                                                       mri_mov[1],
-                                                      maps2weights.second,
+                                                      d2hwlta->xforms[0].m_L,
                                                       d2hwlta->xforms[0].m_L) ;
     d2hwlta->type = LINEAR_RAS_TO_RAS ;
   }
   else // vox to vox
   {
     // cout << "saving VOX2VOX..." << endl ;
-    m2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.first,
+    m2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.first,
                                         m2hwlta->xforms[0].m_L) ;
     m2hwlta->type = LINEAR_VOX_TO_VOX ;
-    d2hwlta->xforms[0].m_L = MatrixCopy(maps2weights.second,
+    d2hwlta->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(maps2weights.second,
                                         m2hwlta->xforms[0].m_L) ;
     d2hwlta->type = LINEAR_VOX_TO_VOX ;
   }
@@ -602,7 +664,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
     for (unsigned int i = 0;i<mri_weights.size();i++)
       mri_weights[i] = MRIcopy(mri_weights[0],NULL);
 			
-  MatrixFree(&Md.first);
+  //MatrixFree(&Md.first);
 	return true;
 }
 
@@ -631,10 +693,11 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 
   // Register everything to tpi TP
 //  vector < Registration > Rv(nin);
-  vector < std::pair <MATRIX*, double> > Md(nin);
+  vector < std::pair <vnl_matrix_fixed < double, 4, 4> , double> > Md(nin);
 	vector < double >  centroid;
 
-  Md[0].first = MatrixIdentity(4,NULL);
+  //Md[0].first = MatrixIdentity(4,NULL);
+  Md[0].first.set_identity();
   Md[0].second= 1.0;
   for (int i = 1;i<nin;i++) 
   {
@@ -652,7 +715,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     R.setName(oss.str());
 		
     // compute Alignment (maxres,iterate,epsit) are passed above
-    Md[i] = R.computeMultiresRegistration(maxres,iterate,epsit);
+	  if (satit) R.findSaturation();
+    R.computeMultiresRegistration(maxres,iterate,epsit);
+		Md[i].first = R.getFinalVox2Vox();
+		Md[i].second = R.getFinalIscale();
 		
 		// get centroid of tpi:
 		if (i==1) centroid = R.getCentroidT();
@@ -719,7 +785,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
       }
     
       // cleanup
-      MatrixFree(&Md[i].first);
+      //MatrixFree(&Md[i].first);
 	  }
 		
 		return true;
@@ -750,19 +816,26 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 	}
 	
   // find mean center
-  vector <MATRIX* > mras(nin);
-  mras[0] = MatrixIdentity(4,NULL);
-  MATRIX* rot = MatrixIdentity(3,NULL);
-  MATRIX* roti = NULL;
-  MATRIX* trans = VectorAlloc(3,MATRIX_REAL);
-  MATRIX* meant = MatrixZero(3,1,NULL);
-  MATRIX* meanr = MatrixIdentity(3,NULL);
+//   vector <MATRIX* > mras(nin);
+//   mras[0] = MatrixIdentity(4,NULL);
+//   MATRIX* rot = MatrixIdentity(3,NULL);
+//   MATRIX* roti = NULL;
+//   MATRIX* trans = VectorAlloc(3,MATRIX_REAL);
+//   MATRIX* meant = MatrixZero(3,1,NULL);
+//   MATRIX* meanr = MatrixIdentity(3,NULL);
+  vector < vnl_matrix_fixed < double, 4, 4> > mras(nin);
+  mras[0].set_identity();
+  vnl_matrix_fixed < double, 3, 3> rot; rot.set_identity();
+  vnl_matrix_fixed < double, 3, 3> roti;
+  vnl_vector_fixed < double, 3 > trans;
+  vnl_vector_fixed < double, 3 > meant(0.0);
+  vnl_matrix_fixed < double, 3, 3> meanr; meanr.set_identity();
   for (int i = 1;i<nin;i++) 
   {
 	  int j = index[i];
     cout << "  computing coord of TP "<< j+1 <<" ( "<<mov[j]<<" )" << endl;
 		cout << "   wrt to TP "<<tpi+1<<" ( "<<mov[tpi]<<" )" << endl;
-    mras[i] = MRIvoxelXformToRasXform (mri_mov[j],mri_mov[tpi],Md[i].first,mras[i]);
+    mras[i] = MyMRI::MRIvoxelXformToRasXform (mri_mov[j],mri_mov[tpi],Md[i].first);
     //MatrixPrintFmt(stdout,"% 2.8f",mras);cout << endl;
     // split into rotation translation
     MyMatrix::getRTfromM(mras[i],rot,trans);
@@ -772,10 +845,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 
     // reverse order (first translate, then rotate)
     // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
-    roti  = MatrixTranspose(rot,roti); // inverse
+    roti  = rot.transpose(); // inverse
     //cout << " roti: " << endl;MatrixPrintFmt(stdout,"% 2.8f",roti); cout << endl;
     
-    trans = MatrixMultiply(roti,trans,trans);
+    trans = roti * trans;
     //cout << "transi: - " << endl; MatrixPrintFmt(stdout,"% 2.8f",trans); cout << endl;
     
 //     if (P.debug) // output transonly
@@ -790,36 +863,45 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 //       MRIfree(&warped);
 //       MatrixFree(&Mtemp);         
 //     }
-    meant = MatrixSubtract(meant,trans,meant);
-    meanr = MatrixAdd(meanr,roti,meanr);
+    meant -= trans;
+    meanr += roti;
   }
   
-  MatrixFree(&roti);
-  MatrixFree(&trans);
-  MatrixFree(&rot);
 
   //average
-  meant = MatrixScalarMul(meant,1.0/nin,meant);
+  meant = (1.0/nin) * meant;
   //cout << "meant: " << endl; MatrixPrintFmt(stdout,"% 2.8f",meant); cout << endl;
-  meanr = MatrixScalarMul(meanr,1.0/nin,meanr);
+  meanr = (1.0/nin) *meanr;
   //cout << "meanr: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
   
   // project meanr back to SO(3) (using polar decomposition)
 	assert(rigid);
-  VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
-  MATRIX * mv = MatrixSVD(meanr,vz,NULL);
-  //MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
-  //MatrixPrintFmt(stdout,"% 2.8f",vz); cout << endl;
-  //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
-  mv = MatrixTranspose(mv,mv);
-  //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
-  meanr = MatrixMultiply(meanr,mv,meanr);
-  //cout << " meanr.proj: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
-  MatrixFree(&mv);
-  MatrixFree(&vz);
-  // Mm is the matrix from tpi ras to mean ras:
-  MATRIX * Mm = MyMatrix::getMfromRT(meanr,meant,NULL);
-
+//   VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
+//   MATRIX * mv = MatrixSVD(meanr,vz,NULL);
+//   //MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
+//   //MatrixPrintFmt(stdout,"% 2.8f",vz); cout << endl;
+//   //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
+//   mv = MatrixTranspose(mv,mv);
+//   //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
+//   meanr = MatrixMultiply(meanr,mv,meanr);
+//   //cout << " meanr.proj: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
+//   MatrixFree(&mv);
+//   MatrixFree(&vz);
+//   // Mm is the matrix from tpi ras to mean ras:
+//   MATRIX * Mm = MyMatrix::getMfromRT(meanr,meant,NULL);
+  vnl_svd < double > svd_decomp(meanr);
+  if ( svd_decomp.valid() )
+  {
+      vnl_matrix < double > mv = svd_decomp.V();
+			mv.inplace_transpose();
+			meanr = meanr * mv;
+  }
+  else
+  {
+     cerr << "MultiRegistration::initialXforms ERROR: SVD not possible?" << endl;
+		 exit(1);
+  }
+  vnl_matrix_fixed < double, 4, 4 > Mm(MyMatrix::getMfromRT(meanr,meant));
 
   // construct target geometry for the mean space by centering
 	// at the mean of all tp centroids mapped to the mean space
@@ -827,26 +909,44 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 	// copy initial geometry from TPI (keep directions/rotation)
 	MRI * template_geo = MRIclone(mri_mov[tpi],NULL);
 	// map average centroid from TPI vox space to mean RAS space:
-	MATRIX * tpi_v2r   = MRIgetVoxelToRasXform(mri_mov[tpi]);
-	VECTOR * ncenter   = VectorAlloc(4, MATRIX_REAL) ;
+// 	MATRIX * tpi_v2r   = MRIgetVoxelToRasXform(mri_mov[tpi]);
+// 	VECTOR * ncenter   = VectorAlloc(4, MATRIX_REAL) ;
+// 	for (uint ii = 0; ii<3;ii++)
+// 	   VECTOR_ELT(ncenter,ii+1) = centroid[ii];
+//   VECTOR_ELT(ncenter,4) = 1.0;
+// 	// map to RAS:
+// 	ncenter = MatrixMultiply(tpi_v2r, ncenter, ncenter);
+// 	// map to mean space
+// 	ncenter = MatrixMultiply(Mm, ncenter, ncenter);
+//   // set new center in geometry
+// 	template_geo->c_r = VECTOR_ELT(ncenter,1);
+// 	template_geo->c_a = VECTOR_ELT(ncenter,2);
+// 	template_geo->c_s = VECTOR_ELT(ncenter,3);
+//   template_geo->ras_good_flag = 1;
+//   MRIreInitCache(template_geo);
+	
+	MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[tpi]);
+	vnl_matrix_fixed < double, 4, 4> tpi_v2r(MyMatrix::convertMATRIX2VNL(mv2r_temp));
+	MatrixFree(&mv2r_temp);
+	vnl_vector_fixed < double, 4 > ncenter;
 	for (uint ii = 0; ii<3;ii++)
-	   VECTOR_ELT(ncenter,ii+1) = centroid[ii];
-  VECTOR_ELT(ncenter,4) = 1.0;
+	   ncenter[ii] = centroid[ii];
+  ncenter[3] = 1.0;
 	// map to RAS:
-	ncenter = MatrixMultiply(tpi_v2r, ncenter, ncenter);
+	ncenter = tpi_v2r * ncenter;
 	// map to mean space
-	ncenter = MatrixMultiply(Mm, ncenter, ncenter);
+	ncenter = Mm * ncenter;
   // set new center in geometry
-	template_geo->c_r = VECTOR_ELT(ncenter,1);
-	template_geo->c_a = VECTOR_ELT(ncenter,2);
-	template_geo->c_s = VECTOR_ELT(ncenter,3);
+	template_geo->c_r = ncenter[0];
+	template_geo->c_a = ncenter[1];
+	template_geo->c_s = ncenter[2];
   template_geo->ras_good_flag = 1;
   MRIreInitCache(template_geo);
 	
 	
-	
   // construct maps from each image to the mean space
-  MATRIX * M = NULL;
+  //MATRIX * M = NULL;
+  vnl_matrix_fixed < double, 4, 4>  M;
   //cout << " Mm: " << endl; MatrixPrintFmt(stdout,"% 2.8f",Mm); cout << endl;
   for (int i = 0;i<nin;i++) 
   {
@@ -857,7 +957,8 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     //                     then do the mean rot and move to mean location
 
     //MatrixPrintFmt(stdout,"% 2.8f",mras[i]); cout << endl;
-    M = MatrixMultiply(Mm,mras[i],M);
+    //M = MatrixMultiply(Mm,mras[i],M);
+    M = Mm * mras[i];
     //MatrixPrintFmt(stdout,"% 2.8f",M); cout << endl;
     
     // make lta from M (M is RAS to RAS)
@@ -885,13 +986,13 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     }
     
     // cleanup
-    MatrixFree(&mras[i]);
-    MatrixFree(&Md[i].first);
+    //MatrixFree(&mras[i]);
+    //MatrixFree(&Md[i].first);
   }
   //cleanup
 	MRIfree(&template_geo);
-  MatrixFree(&M);
-  MatrixFree(&Mm);
+  //MatrixFree(&M);
+  //MatrixFree(&Mm);
   return true;
 }
 
@@ -904,6 +1005,22 @@ bool MultiRegistration::writeMean(const std::string& mean)
 			}
   strncpy(mri_mean->fname, mean.c_str(),STRLEN);
   return (MRIwrite(mri_mean,mean.c_str()) == 0);
+}
+
+bool MultiRegistration::writeConformMean(const std::string& mean)
+{
+  if (! mri_mean ) 
+	{
+		cout << " ERROR: No average exists! Skipping output." << endl;
+		return false;
+	}
+			
+  // create conform mean
+	MRI * mri_cmean = averageConformSet(0);
+			
+  strncpy(mri_cmean->fname, mean.c_str(),STRLEN);
+	int ok = MRIwrite(mri_cmean,mean.c_str());
+  return (ok == 0);
 }
 
 bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, bool vox2vox,const string & mean)
@@ -1041,8 +1158,9 @@ MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
     cout << "    using tukey biweight" << endl;
     // robust tukey biweight
     int x,y,z,i;
-    MATRIX* b = MatrixAlloc(set.size(),1,MATRIX_REAL);
-    pair < MATRIX* , MATRIX* >  muw;
+//     MATRIX* b = MatrixAlloc(set.size(),1,MATRIX_REAL);
+//     pair < MATRIX* , MATRIX* >  muw;
+    vnl_vector < double > b(set.size());
     assert(set.size() > 0);
     if (!mean) mean = MRIclone(set[0],NULL);
     for (z = 0 ; z < set[0]->depth ; z++)
@@ -1053,17 +1171,20 @@ MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
           for (i=0; i<(int) set.size();i++)
           {
             //cout << "i: " << i << endl;
-            b->rptr[i+1][1] = MRIgetVoxVal(set[i],x,y,z,0);
+            //b->rptr[i+1][1] = MRIgetVoxVal(set[i],x,y,z,0);
+            b[i] = MRIgetVoxVal(set[i],x,y,z,0);
           }
           //cout << endl << "intgensities at this voxel:" << endl; ;
           //MatrixPrintFmt(stdout,"% 2.8f",b);
 
           Regression R(b);
-          muw = R.getRobustEstW(sat);
+					vnl_vector < double > p = R.getRobustEst(sat);
+          //muw = R.getRobustEstW(sat);
           //    cout << " tukey mean: " << muw.first->rptr[1][1] << endl;
-          MRIsetVoxVal(mean,x,y,z,0,muw.first->rptr[1][1]);
-          MatrixFree(&muw.first);
-          MatrixFree(&muw.second);
+          //MRIsetVoxVal(mean,x,y,z,0,muw.first->rptr[1][1]);
+          MRIsetVoxVal(mean,x,y,z,0,p[0]);
+          //MatrixFree(&muw.first);
+          //MatrixFree(&muw.second);
         }
   }
   else if (method ==3) // needs more development (sigma..)
@@ -1072,10 +1193,14 @@ MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
     // robust tukey biweight
     int x,y,z,i;
     int n = set[0]->depth * set[0]->height *  set[0]->width ;
-    MATRIX* b = MatrixAlloc(set.size()*n,1,MATRIX_REAL);
-    MATRIX* A = MatrixAlloc(set.size()*n,n,MATRIX_REAL);
-    A = MatrixZero(A->rows,A->cols,A);
-    pair < MATRIX* , MATRIX* >  muw;
+//     MATRIX* b = MatrixAlloc(set.size()*n,1,MATRIX_REAL);
+//     MATRIX* A = MatrixAlloc(set.size()*n,n,MATRIX_REAL);
+//     A = MatrixZero(A->rows,A->cols,A);
+//     pair < MATRIX* , MATRIX* >  muw;
+    vnl_matrix < double > A(set.size()*n,n);
+		vnl_vector < double > b(set.size()*n);
+		A.fill(0.0);
+		
     assert(set.size() > 0);
     if (!mean) mean = MRIclone(set[0],NULL);
     for (i=0; i<(int) set.size();i++)
@@ -1090,9 +1215,11 @@ MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
           {
             // cout << " x: " << x << " y: " << y << " z: " <<z << "  size: " << set.size() <<endl;
             //cout << "i: " << i << endl;
-            b->rptr[pcount*set.size()+i+1][1] =
-              MRIgetVoxVal(set[i],x,y,z,0);
-            A->rptr[pcount*set.size()+i+1][pcount+1] = 1;
+//             b->rptr[pcount*set.size()+i+1][1] =
+//               MRIgetVoxVal(set[i],x,y,z,0);
+//             A->rptr[pcount*set.size()+i+1][pcount+1] = 1;
+               b[pcount*set.size()+i] = MRIgetVoxVal(set[i],x,y,z,0);
+							 A[pcount*set.size()+i][pcount] = 1.0;
             pcount++;
           }
     }
@@ -1100,18 +1227,21 @@ MRI* MultiRegistration::averageSet(const vector < MRI * >& set,
     //MatrixPrintFmt(stdout,"% 2.8f",b);
 
     Regression R(A,b);
-    muw = R.getRobustEstW(sat);
+    //muw = R.getRobustEstW(sat);
+		vnl_vector < double > p = R.getRobustEst(sat);
     //    cout << " tukey mean: " << muw.first->rptr[1][1] << endl;
     int pcount = 0;
     for (z = 0 ; z < set[0]->depth ; z++)
       for (y = 0 ; y < set[0]->height ; y++)
         for (x = 0 ; x < set[0]->width ; x++)
         {
+          //pcount++;
+          //MRIsetVoxVal(mean,x,y,z,0,muw.first->rptr[pcount][1]);
+          MRIsetVoxVal(mean,x,y,z,0,p[pcount]);
           pcount++;
-          MRIsetVoxVal(mean,x,y,z,0,muw.first->rptr[pcount][1]);
         }
-    MatrixFree(&muw.first);
-    MatrixFree(&muw.second);
+    //MatrixFree(&muw.first);
+    //MatrixFree(&muw.second);
 
   }
   else

@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/10/13 20:10:53 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -55,12 +55,12 @@ extern "C"
 class MultiRegistration
 {
 public:
-   MultiRegistration():outdir("./"),transonly(false),rigid(true),robust(true),sat(4.685),
+   MultiRegistration():outdir("./"),transonly(false),rigid(true),robust(true),sat(4.685),satit(false),
 	                     debug(0),iscale(false),subsamplesize(-1),fixvoxel(false),
 											 fixtype(false),average(1),mri_mean(NULL)
 		{};
 	 MultiRegistration(const std::vector < std::string > mov):outdir("./"),transonly(false),
-	                     rigid(true),robust(true),sat(4.685),debug(0),iscale(false),
+	                     rigid(true),robust(true),sat(4.685),satit(false),debug(0),iscale(false),
 											 subsamplesize(-1),fixvoxel(false),fixtype(false),average(1),
 											 mri_mean(NULL)
 	  { loadMovables(mov);};
@@ -73,6 +73,7 @@ public:
    bool halfWayTemplate(int regmaxres, int regitmax, double regeps, bool vox2vox);
 
 	 bool writeMean(const std::string& mean);
+	 bool writeConformMean(const std::string& cmean);
 	 bool writeLTAs(const std::vector < std::string > & nltas, bool vox2vox, const std::string & mean);
 	 bool writeWarps(const std::vector <  std::string >& nwarps);
 	 bool writeIntensities(const std::vector < std::string >& nintens);
@@ -104,6 +105,10 @@ public:
   {
     sat = d;
   };
+  void setSatit(bool b)
+  {
+    satit = b;
+  };
   void setDebug(int d)
   {
     debug = d;
@@ -130,6 +135,8 @@ public:
   };
 	
 	bool averageSet(int itdebug = 0);
+	MRI * averageConformSet(int itdebug = 0);
+	
   static MRI* averageSet(const std::vector < MRI * >& set,
                        MRI* mean, int method, double sat);
 											 
@@ -156,6 +163,7 @@ private:
   bool   rigid;
   bool   robust;
   double sat;
+	bool   satit;
   int    debug;
   bool   iscale;
 	int    subsamplesize;

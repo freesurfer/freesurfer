@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/10/13 20:08:00 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/14 19:41:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,7 @@
 #include <cassert>
 #include <iostream>
 #include "MyMRI.h"
+#include "MyMatrix.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -42,124 +43,6 @@ extern "C"
 #endif
 
 using namespace std;
-
-// mainly extraced from mri_convert
-MRI* MyMRI::makeConform(MRI *mri, MRI *out, bool fixvoxel, bool fixtype)
-{
-
-  out = MRIcopy(mri,out);
-
-  if (mri->type == MRI_UCHAR && mri->xsize == 1 && mri->ysize == 1 && mri->zsize ==1
-      && mri->thick == 1 && mri->ps == 1) return out;
-
-
-  double conform_size = 1;
-  int conform_width = findRightSize(mri, conform_size);
-
-  MRI * temp = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
-  MRIcopyHeader(mri, temp);
-  temp->width = temp->height = temp->depth = conform_width;
-  temp->imnr0 = 1;
-  temp->imnr1 = conform_width;
-  temp->type = MRI_UCHAR;
-  temp->thick = conform_size;
-  temp->ps = conform_size;
-  temp->xsize = temp->ysize = temp->zsize = conform_size;
-
-  if (fixvoxel)
-  {
-    cout << "Making input conform to 1mm voxels" << endl;
-    printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
-           mri->xsize, mri->ysize, mri->zsize,
-           mri->width, mri->height, mri->depth);
-    printf("Data is conformed to %g mm size and %d voxels for all directions\n",
-           conform_size, conform_width);
-  }
-  temp->xstart = temp->ystart = temp->zstart = - conform_width/2;
-  temp->xend = temp->yend = temp->zend = conform_width/2;
-  temp->x_r = -1.0;
-  temp->x_a =  0.0;
-  temp->x_s =  0.0;
-  temp->y_r =  0.0;
-  temp->y_a =  0.0;
-  temp->y_s = -1.0;
-  temp->z_r =  0.0;
-  temp->z_a =  1.0;
-  temp->z_s =  0.0;
-
-  /* ----- change type if necessary ----- */
-  int no_scale_flag = FALSE;
-  if (mri->type != temp->type && fixtype)
-  {
-    printf("changing data type from %d to %d (noscale = %d)...\n",
-           mri->type,temp->type,no_scale_flag);
-    MRI * mri2  = MRISeqchangeType(out, temp->type, 0.0, 0.999, no_scale_flag);
-    if (mri2 == NULL)
-    {
-      printf("ERROR: MRISeqchangeType\n");
-      exit(1);
-    }
-    MRIfree(&out);
-    out = mri2;
-  }
-
-  /* ----- reslice if necessary ----- */
-  if ((mri->xsize != temp->xsize ||
-       mri->ysize != temp->ysize ||
-       mri->zsize != temp->zsize ||
-       mri->width != temp->width ||
-       mri->height != temp->height ||
-       mri->depth != temp->depth ||
-       mri->x_r != temp->x_r ||
-       mri->x_a != temp->x_a ||
-       mri->x_s != temp->x_s ||
-       mri->y_r != temp->y_r ||
-       mri->y_a != temp->y_a ||
-       mri->y_s != temp->y_s ||
-       mri->z_r != temp->z_r ||
-       mri->z_a != temp->z_a ||
-       mri->z_s != temp->z_s ||
-       mri->c_r != temp->c_r ||
-       mri->c_a != temp->c_a ||
-       mri->c_s != temp->c_s) && fixvoxel)
-  {
-    printf("Reslicing using ");
-
-    int resample_type_val = SAMPLE_TRILINEAR;
-
-    switch (resample_type_val)
-    {
-    case SAMPLE_TRILINEAR:
-      printf("trilinear interpolation \n");
-      break;
-    case SAMPLE_NEAREST:
-      printf("nearest \n");
-      break;
-    case SAMPLE_SINC:
-      printf("sinc \n");
-      break;
-    case SAMPLE_CUBIC:
-      printf("cubic \n");
-      break;
-    case SAMPLE_WEIGHTED:
-      printf("weighted \n");
-      break;
-    }
-    MRI * mri2 = MRIresample(out, temp, resample_type_val);
-    if (mri2 == NULL)
-    {
-      cerr << "makeConform: MRIresample did not return MRI" << endl;
-      exit(1);
-    }
-    MRIfree(&out);
-    out = mri2;
-  }
-
-  MRIfree(&temp);
-  return out;
-
-
-}
 
 
 MRI * MyMRI::MRIvalscale(MRI *mri_src, MRI *mri_dst, double s)
@@ -420,6 +303,10 @@ bool MyMRI::getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* 
 
   assert(outfx == NULL && outfy == NULL && outfz == NULL && outblur == NULL );
 
+  //double size = mri->width *mri->height * mri->depth *sizeof(float) / (1024.0 * 1024.0);
+	//cout.precision(4);
+  //cout << " MyMRI::getPartials allocation  max: " << 5 * size << " Mb  return = " << 4*size << " Mb" << endl;
+
   // construct convolution masks:
   MRI *mri_prefilter = getPrefilter();
   MRI *mri_derfilter = getDerfilter();
@@ -428,21 +315,21 @@ bool MyMRI::getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* 
   MRI* mbz   = convolute(mri,mri_prefilter,3);
 
   MRI* mdzby = convolute(mdz,mri_prefilter,2);
+  MRIfree(&mdz);
+  outfz = convolute(mdzby,mri_prefilter,1);
+  MRIfree(&mdzby);
+	
   MRI* mbzby = convolute(mbz,mri_prefilter,2);
   MRI* mbzdy = convolute(mbz,mri_derfilter,2);
-  MRIfree(&mdz);
   MRIfree(&mbz);
-
-  outfx = convolute(mbzby,mri_derfilter,1);
   outfy = convolute(mbzdy,mri_prefilter,1);
-  outfz = convolute(mdzby,mri_prefilter,1);
+  MRIfree(&mbzdy);
+	
+  outfx = convolute(mbzby,mri_derfilter,1);
   outblur = convolute(mbzby,mri_prefilter,1);
+  MRIfree(&mbzby);
 
   //cout << " size fx: " << outfx->width << " " << outfx->height << " " << outfx->depth << endl;
-
-  MRIfree(&mdzby);
-  MRIfree(&mbzby);
-  MRIfree(&mbzdy);
 
   MRIfree(&mri_prefilter);
   MRIfree(&mri_derfilter);
@@ -474,11 +361,11 @@ bool MyMRI::getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI*
 
 
 
-// this function is called when conform is done
-// copied from mri_convert
-int MyMRI::findRightSize(MRI *mri, float conform_size)
+std::vector < int >  MyMRI::findRightSize(MRI *mri, float conform_size, bool conform)
+// determines width, height, depth to cover mri with conform_size isotropic voxels
+//  bool conform makes cube image (w=h=d) and adjust to min of 256
 {
-  // user gave the conform_size
+
   double xsize, ysize, zsize;
   double fwidth, fheight, fdepth, fmax;
   int conform_width;
@@ -489,9 +376,17 @@ int MyMRI::findRightSize(MRI *mri, float conform_size)
 
   // now decide the conformed_width
   // calculate the size in mm for all three directions
-  fwidth = mri->xsize*mri->width;
+  fwidth  = mri->xsize*mri->width;
   fheight = mri->ysize*mri->height;
-  fdepth = mri->zsize*mri->depth;
+  fdepth  = mri->zsize*mri->depth;
+	
+	vector < int > ret(3);
+	ret[0] = (int) ceil(fwidth/conform_size);
+	ret[1] = (int) ceil(fheight/conform_size);
+	ret[2] = (int) ceil(fdepth/conform_size);
+	
+	if (! conform) return ret;
+	
   // pick the largest
   if (fwidth> fheight)
     fmax = (fwidth > fdepth) ? fwidth : fdepth;
@@ -507,25 +402,47 @@ int MyMRI::findRightSize(MRI *mri, float conform_size)
   else if ((conform_width -256.)/256. < 0.1)
     conform_width = 256;
 
-  // if more than 256, warn users
-  if (conform_width > 256)
-  {
-    fprintf(stderr, "WARNING =================="
-            "++++++++++++++++++++++++"
-            "=======================================\n");
-    fprintf(stderr, "The physical sizes are "
-            "(%.2f mm, %.2f mm, %.2f mm), "
-            "which cannot fit in 256^3 mm^3 volume.\n",
-            fwidth, fheight, fdepth);
-    fprintf(stderr, "The resulting volume will have %d slices.\n",
-            conform_width);
-    fprintf(stderr, "If you find problems, please let us know "
-            "(freesurfer@nmr.mgh.harvard.edu).\n");
-    fprintf(stderr, "=================================================="
-            "++++++++++++++++++++++++"
-            "===============\n\n");
-  }
-  return conform_width;
+//   // if more than 256, warn users
+//   if (conform_width > 256)
+//   {
+// //     fprintf(stderr, "WARNING =================="
+// //             "++++++++++++++++++++++++"
+// //             "=======================================\n");
+// //     fprintf(stderr, "The physical sizes are "
+// //             "(%.2f mm, %.2f mm, %.2f mm), "
+// //             "which cannot fit in 256^3 mm^3 volume.\n",
+// //             fwidth, fheight, fdepth);
+// //     fprintf(stderr, "The resulting volume will have %d slices.\n",
+// //             conform_width);
+// //     fprintf(stderr, "If you find problems, please let us know "
+// //             "(freesurfer@nmr.mgh.harvard.edu).\n");
+// //     fprintf(stderr, "=================================================="
+// //             "++++++++++++++++++++++++"
+// //             "===============\n\n");
+//       cout << " ... Will not fit into 256^3 volume, will have " << conform_width << " slices" << endl;
+//   }
+
+  
+	ret[0] = conform_width;
+	ret[1] = conform_width;
+	ret[2] = conform_width;
+
+  return ret;
+}
+
+bool MyMRI::isConform(MRI * mri)
+{
+
+  return ( mri->xsize == 1   && mri->ysize == 1   && mri->zsize == 1 &&
+	         mri->width == 256 && mri->height == 256 && mri->depth == 256 );
+
+}
+
+bool MyMRI::isIsotropic(MRI * mri)
+{
+
+  return ( mri->xsize == mri->ysize  && mri->xsize ==  mri->zsize );
+
 }
 
 MATRIX* MyMRI::MRIgetZslice(MRI * mri, int slice)
@@ -548,3 +465,35 @@ MATRIX* MyMRI::MRIgetZslice(MRI * mri, int slice)
   return m;
 }
 
+MRI * MyMRI::MRIlinearTransform(MRI* mriS, MRI* mriT, const vnl_matrix_fixed < double,4,4 >& m)
+{
+   MATRIX * mm = MyMatrix::convertVNL2MATRIX(m,NULL);
+	 mriT = ::MRIlinearTransform(mriS,mriT,mm);
+	 MatrixFree(&mm);
+	 return mriT;
+}
+
+vnl_matrix_fixed < double, 4, 4 > MyMRI::MRIvoxelXformToRasXform(MRI * mri_src, MRI * mri_dst, const vnl_matrix_fixed < double,4,4> &m_vox)
+{
+  MATRIX *m_ras_to_voxel, *m_voxel_to_ras;
+
+  if (!mri_dst)
+    mri_dst = mri_src ;  /* assume they will be in the same space */
+
+  m_ras_to_voxel = MRIgetRasToVoxelXform(mri_src) ;
+  m_voxel_to_ras = MRIgetVoxelToRasXform(mri_dst) ;
+
+  //m_tmp = MatrixMultiply(m_voxel_xform, m_ras_to_voxel, NULL) ;
+  //m_ras_xform = MatrixMultiply(m_voxel_to_ras, m_tmp, m_ras_xform) ;
+	
+	vnl_matrix_fixed < double, 4, 4 > m_ras = MyMatrix::convertMATRIX2VNL(m_voxel_to_ras) *
+	     m_vox * MyMatrix::convertMATRIX2VNL(m_ras_to_voxel);
+
+
+  MatrixFree(&m_voxel_to_ras);
+  MatrixFree(&m_ras_to_voxel);
+
+  return(m_ras) ;
+
+
+}

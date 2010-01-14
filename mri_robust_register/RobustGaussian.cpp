@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/08/13 02:51:20 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/01/14 19:41:05 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -75,7 +75,7 @@ pair < double , int > RobustGaussian::quick_selectI(double arr[], int n, int k)
       if (arr[low] > arr[high])
       {
         ELEM_SWAPD(arr[low], arr[high]) ;
-	ELEM_SWAPI(pos[low], pos[high]) ;
+        ELEM_SWAPI(pos[low], pos[high]) ;
       }
       int pp = pos[median];
       free(pos);
@@ -233,7 +233,7 @@ std::pair < double , int> RobustGaussian::kth_smallestI(double a[], int n, int k
       if (i<=j)
       {
         ELEM_SWAPD(a[i],a[j]) ;
-	ELEM_SWAPI(pos[i],pos[j]);
+        ELEM_SWAPI(pos[i],pos[j]);
         i++ ;
         j-- ;
       }
@@ -335,6 +335,22 @@ double RobustGaussian::median(double t[],int n)
 
 }
 
+void mmm (double a[], int n)
+{
+
+	 if (n <= 0) return;
+   double min = a[0];
+	 double max = a[0];
+	 double mean = 0.0;
+   for (int i = 1;i<n;i++)
+	 {
+	    if (a[i] < min) min = a[i];
+			if (a[i] > max) max = a[i];
+			mean += a[i];
+	 }
+	 mean /= n;
+	 cout << " min: " << min << "  max: " << max << "  mean: " << mean << endl;
+}
 
 double RobustGaussian::mad(double a[], int n, double d)
 // robust estimate for sigma (using median absolute deviation)
@@ -342,19 +358,29 @@ double RobustGaussian::mad(double a[], int n, double d)
 // array a will be reordered!
 {
   double medi = median(a,n);
-  //cout << " median: " << medi << endl;
+//	mmm(a,n);
+//	cout << " median: " << medi << endl;
+	
   double* t = (double *)calloc(n, sizeof(double));
   if (t == NULL) 
      ErrorExit(ERROR_NO_MEMORY,"RobustGaussian::mad could not allocate memory for t") ;
      
+//	double min = fabs(a[0] -medi);
+//	double max = fabs(a[0] -medi);
+//	double mean = 0.0;
   for (int i=0;i<n;i++)
   {
     t[i] = fabs(a[i] -medi);
-    //cout  << t[i] << " " << flush;
+//		if (t[i] < min) min = t[i];
+//		if (t[i] > max) max = t[i];
+//		mean += t[i];
+//    //cout  << t[i] << " " << flush;
   }
-  //cout <<endl;
+//	mean /= n;
+//	cout << " min: " << min << "  max: " << max << "  mean: " << mean << endl;
+
   double mm = median(t,n);
-  //cout << " mmedian: " << mm << endl;
+  //cout << endl <<" RobustGaussian::mad median: " << mm << endl;
   free(t);
   return d * mm;
 }
