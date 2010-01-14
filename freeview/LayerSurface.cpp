@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/01/14 20:54:32 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -117,10 +117,10 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
   m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
 // m_surfaceSource->SetResampleToRAS( m_bResampleToRAS );
   if ( !m_surfaceSource->MRISRead( m_sFilename.c_str(), wnd, event,
-                                   m_sVectorFilename.size() > 0 ? m_sVectorFilename.c_str() : NULL,
-                                   m_sPatchFilename.size() > 0 ? m_sPatchFilename.c_str() : NULL )
-                                  )
-    return false;
+                                    m_sVectorFilename.size() > 0 ? m_sVectorFilename.c_str() : NULL,
+                                    m_sPatchFilename.size() > 0 ? m_sPatchFilename.c_str() : NULL )
+                                    )
+      return false;
 
   InitializeSurface();
   InitializeActors();

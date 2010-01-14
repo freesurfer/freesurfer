@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2010/01/14 20:43:57 $
- *    $Revision: 1.51 $
+ *    $Author: rpwang $
+ *    $Date: 2010/01/14 20:54:32 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,10 @@
 #include "vtkAppendPolyData.h"
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
+#include "vtkMarchingSquares.h"
+#include "vtkPolyDataToImageStencil.h"
+#include "vtkImageStencil.h"
+#include "vtkSimpleLabelEdgeFilter.h"
 
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
@@ -356,6 +360,8 @@ void LayerMRI::InitializeActors()
     m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
     m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
 
+    mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
+    
     // Set ourselves up.
     this->OnSlicePositionChanged( i );
   }
@@ -637,6 +643,10 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
   {
     UpdateTensorActor( nPlane );
   }
+  else if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT && GetProperties()->GetShowLabelOutline() )
+  {
+    UpdateLabelOutline();
+  }
 }
 
 void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
@@ -700,6 +710,12 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void*
       this->UpdateTensorActor();
     this->SendBroadcast( iMessage, this, this );
   }
+  else if ( iMessage == "LayerLabelOutlineChanged" )
+  {
+    UpdateLabelOutline();
+    this->SendBroadcast( "LayerActorUpdated", this, this );
+  }
+  
   LayerVolumeBase::DoListenToMessage( iMessage, iData, sender );
 }
 
@@ -1394,3 +1410,21 @@ void LayerMRI::SnagToVoxelCenter( const double* pt_in, double* pt_out )
   for ( int i = 0; i < 3; i++ )
     pt_out[i] = ( (int)( (pt_in[i] - orig[i])/vsize[i] + 0.5 ) ) * vsize[i] + orig[i];
 }
+
+void LayerMRI::UpdateLabelOutline()
+{
+  if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT && GetProperties()->GetShowLabelOutline() )
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      mEdgeFilter[i]->SetInput( mReslice[i]->GetOutput() );
+      mColorMap[i]->SetInput( mEdgeFilter[i]->GetOutput() );
+    }
+  }
+  else
+  {
+    for ( int i = 0; i < 3; i++ )
+      mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+  }
+}
+

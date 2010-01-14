@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:14 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/01/14 20:54:32 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,7 @@ extern "C"
 
 class vtkImageReslice;
 class vtkImageMapToColors;
+class vtkSimpleLabelEdgeFilter;
 class vtkTransform;
 class vtkTexture;
 class vtkPolyDataMapper;
@@ -186,6 +187,8 @@ protected:
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
   virtual void UpdateVectorActor( int nPlane );
   
+  void UpdateLabelOutline();
+  
   void UpdateTensorActor();
   void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
   
@@ -201,8 +204,9 @@ protected:
   virtual void OnSlicePositionChanged( int nPlane );
 
   // Pipeline ------------------------------------------------------------
-  vtkSmartPointer<vtkImageReslice>   mReslice[3];
+  vtkSmartPointer<vtkImageReslice>      mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
+  vtkSmartPointer<vtkSimpleLabelEdgeFilter>   mEdgeFilter[3];
 
   FSVolume*   m_volumeSource;
   FSVolume*   m_volumeRef;

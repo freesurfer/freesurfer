@@ -193,6 +193,8 @@ freeview_SOURCES=\
 	vtkDijkstraImageContourLineInterpolator.h \
 	vtkDijkstraImageGeodesicPath.cxx \
 	vtkDijkstraImageGeodesicPath.h \
+	vtkSimpleLabelEdgeFilter.cpp \
+	vtkSimpleLabelEdgeFilter.h \
 	WindowConnectivityConfiguration.cpp \
 	WindowConnectivityConfiguration.h \
 	WindowHistogram.cpp \

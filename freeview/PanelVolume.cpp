@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/01/14 20:54:32 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -105,7 +105,9 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_INVERSION" ),       PanelVolume::OnChoiceInversion )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_REPRESENTATION" ),  PanelVolume::OnChoiceRepresentation )
   
-  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CONTOUR" ),           PanelVolume::OnCheckContour )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_LABEL_OUTLINE" ),      PanelVolume::OnCheckShowLabelOutline )
+  
+  EVT_CHECKBOX              ( XRCID( "ID_CHECKBOX_CONTOUR" ),     PanelVolume::OnCheckContour )
   EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MIN" ),     PanelVolume::OnTextContourMin )
   EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),     PanelVolume::OnTextContourMax )
   EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_CONTOUR" ),  PanelVolume::OnColorContour )
@@ -179,7 +181,9 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
 
   // workaround for wxformbuilder bug
   m_colorIndicator->SetSize( 40, wxDefaultCoord );
-
+  
+  m_checkShowLabelOutline   =      XRCCTRL( *this, "ID_CHECKBOX_LABEL_OUTLINE", wxCheckBox );
+  
   m_checkContour =      XRCCTRL( *this, "ID_CHECKBOX_CONTOUR", wxCheckBox );
   m_sliderContourMin =  XRCCTRL( *this, "ID_SLIDER_CONTOUR_MIN", wxSlider );
   m_sliderContourMax =  XRCCTRL( *this, "ID_SLIDER_CONTOUR_MAX", wxSlider );
@@ -784,6 +788,9 @@ void PanelVolume::DoUpdateUI()
       }
       
       m_checkHideInfo->SetValue( !layer->GetProperties()->GetShowInfo() );
+      
+      m_checkShowLabelOutline->SetValue( layer->GetProperties()->GetShowLabelOutline() );
+      m_checkShowLabelOutline->Show( nColorMap == LayerPropertiesMRI::LUT );
 		}
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -1465,3 +1472,11 @@ void PanelVolume::OnCheckHideInfo( wxCommandEvent& event )
   }
 }
 
+void PanelVolume::OnCheckShowLabelOutline( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetShowLabelOutline( event.IsChecked() );
+  }
+}

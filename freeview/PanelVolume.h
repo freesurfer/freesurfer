@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/01/14 20:54:32 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -117,6 +117,8 @@ private:
   void OnSliderGrayScaleMin     ( wxScrollEvent& event );
   void OnSliderGrayScaleMax     ( wxScrollEvent& event );
   
+  void OnCheckShowLabelOutline  ( wxCommandEvent& event );
+  
   void OnCheckContour     ( wxCommandEvent& event );
   void OnSliderContourMin ( wxScrollEvent& event );
   void OnSliderContourMax ( wxScrollEvent& event );
@@ -188,6 +190,8 @@ private:
   wxChoice*       m_choiceRepresentation;
   wxChoice*       m_choiceMask;
 
+  wxCheckBox*     m_checkShowLabelOutline;
+  
   wxCheckBox*     m_checkContour;
   wxSlider*       m_sliderContourMin;
   wxSlider*       m_sliderContourMax;
