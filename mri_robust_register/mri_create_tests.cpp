@@ -1,0 +1,555 @@
+/**
+ * @file  mri_create_tests.cpp
+ * @brief Creates a modified image with noise or transformed 
+ *
+ */
+
+/*
+ * Original Author: Martin Reuter
+ * CVS Revision Info:
+ *    $Author: mreuter $
+ *    $Date: 2010/01/14 22:55:17 $
+ *    $Revision: 1.1 $
+ *
+ * Copyright (C) 2008-2012
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *
+ */
+
+
+//
+// mri_create_tests.cpp
+//
+// written by Martin Reuter
+// Oct. 12th ,2009
+//
+////////////////////////////////////////////////////////////////////
+
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <cassert>
+
+#include <ctime> 
+#include <cstdlib>
+
+#include "Quaternion.h"
+#include "MyMRI.h"
+
+// all other software are all in "C"
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include "error.h"
+#include "macros.h"
+#include "mri.h"
+#include "matrix.h"
+#include "timer.h"
+#include "diag.h"
+#include "mrimorph.h"
+#include "version.h"
+
+#ifdef __cplusplus
+}
+#endif
+
+using namespace std;
+
+struct Parameters
+{
+  string in;
+  string in_t;
+  string outs;
+  string outt;
+  string ltain;
+  string ltaout;
+  string mask;
+  MRI*   mri_in;
+  double noise;
+	int    outlier;
+	int    outlierbox;
+	bool   translation;
+	bool   rotation;
+	double iscale;
+	bool   doiscale;
+	string iscaleout;
+};
+
+static struct Parameters P =
+  { "","","","","","","",NULL,0.0,0,-1,false,false,1.0,false,""
+  };
+
+
+static void printUsage(void);
+static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
+
+static char vcid[] = "$Id: mri_create_tests.cpp,v 1.1 2010/01/14 22:55:17 mreuter Exp $";
+char *Progname = NULL;
+
+
+std::vector < int > get_random(int lowest, int highest, int num=3) 
+{ 
+    
+		unsigned int ttt = time(0);
+		//cout << " seed: " << ttt << endl;
+		srand(ttt);
+		vector < int > ret(num);
+    //int lowest=1, highest=10; 
+    int range=(highest-lowest)+1; 
+    for(int index=0; index<num; index++)
+		{ 
+		   int r = rand();
+			 //cout << " rand: " << r/(RAND_MAX + 1.0) << endl;
+       ret[index] = lowest+int(range*(r/(RAND_MAX + 1.0)));
+    } 
+		return ret;
+}
+
+int main(int argc, char *argv[])
+{
+  { // for valgrind, so that everything is freed
+  cout << vcid << endl;
+
+  // Default initialization
+  int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  if (nargs && argc - nargs == 1) exit (0);
+  argc -= nargs;
+  Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+//  DiagInit(NULL, NULL, NULL) ;
+
+  if (!parseCommandLine(argc, argv, P))
+  {
+    printUsage();
+    exit(1);
+  }
+
+ // ================================================================================= 
+	
+	// read input
+	MRI* mriS = MRIread(P.in.c_str());
+	assert(mriS!= NULL);
+	MRI* mriT = NULL;
+	if (P.in_t == "")
+    mriT = MRIcopy(mriS,NULL);
+	else
+	  mriT = MRIread(P.in_t.c_str());
+	assert(mriT!= NULL);
+	
+	// mask target
+	if (P.mask != "")
+	{
+	   cout << " Applying mask " << P.mask << " to SOURCE" << endl;
+     MRI *mri_mask ;
+     mri_mask = MRIread(P.mask.c_str()) ;
+     if (!mri_mask)
+       ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+                 Progname, P.mask.c_str()) ;
+     MRImask(mriS, mri_mask, mriS, 0, 0) ;
+     MRIfree(&mri_mask) ;
+   }
+	
+	// read/construct lta
+	if (P.ltain != "" && (P.translation || P.rotation))
+	{
+	  cerr << " Cannot specify lta-in AND (translation OR rotation)" << endl;
+		exit(1);
+	}
+	LTA * lta = NULL;
+  if (P.ltain != "")
+	{
+	        // try to read other transform
+      TRANSFORM * trans = TransformRead(P.ltain.c_str());
+      lta =  (LTA *)trans->xform ;
+      if (!lta)
+        ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, P.ltain.c_str()) ;
+      lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+      if (lta->type!=LINEAR_VOX_TO_VOX)
+      {
+        ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, P.ltain.c_str(), lta->type) ;
+      }
+      //R.setMinit(lta->xforms[0].m_L);
+	   cout << " Read " << P.ltain << " transform." << endl;
+	}
+	else
+	{
+	   lta = LTAalloc(1,mriS);
+     lta->type = LINEAR_VOX_TO_VOX;
+	   //MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
+	}
+	
+	if (P.translation)
+	{
+	  vector < int > t = get_random(-5,5,3);
+//		vector < int > t(3,4);
+		assert(t.size() == 3);
+		//double length = sqrt(t[0]*t[0] + t[1] * t[1] + t[2] * t[2]);
+		//t[0] \= length; t[1] \= length; t[2] \= length;
+		cout << " Random Translation: ( " << 2*t[0] << " , " << 2*t[1] << " , " << 2*t[2] << " )" << endl;
+    *MATRIX_RELT(lta->xforms[0].m_L, 1, 4) = t[0] ;
+    *MATRIX_RELT(lta->xforms[0].m_L, 2, 4) = t[1] ;
+    *MATRIX_RELT(lta->xforms[0].m_L, 3, 4) = t[2] ;
+  }
+
+MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
+	
+	if (P.rotation)
+	{
+	  vector < int > t = get_random(-100,100,4);
+		double length = sqrt(t[1]*t[1] + t[2] * t[2] + t[3] * t[3]);
+	  Quaternion Q;
+		Q.importRotVec((5.0*M_PI/360.0)*t[0]/100.0,t[1]/length,t[2]/length,t[3]/length);
+		vector < double > R = Q.getRotMatrix3d();
+		cout << " Random Rotation: " << endl;
+		for (int r = 0 ; r<3;r++)
+		{
+		  for (int c = 0 ; c<3;c++)
+			{
+			  //cout << R[r*3+c] << " " << flush;
+		    *MATRIX_RELT(lta->xforms[0].m_L, r+1, c+1) = R[r*3+c] ;   
+			}
+			//cout << endl;
+		}
+    //MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
+		
+		// should be around center of the image:
+		MATRIX * T1 = MatrixIdentity(4,NULL);
+		MATRIX * T2 = MatrixIdentity(4,NULL);
+		*MATRIX_RELT(T1, 1, 4) = - mriS->width / 2;   
+		*MATRIX_RELT(T2, 1, 4) = mriS->width / 2;   
+		*MATRIX_RELT(T1, 2, 4) = - mriS->height / 2;   
+		*MATRIX_RELT(T2, 2, 4) = mriS->height / 2;   
+		*MATRIX_RELT(T1, 3, 4) = - mriS->depth / 2;   
+		*MATRIX_RELT(T2, 3, 4) = mriS->depth / 2;   
+		lta->xforms[0].m_L = MatrixMultiply(lta->xforms[0].m_L, T1, lta->xforms[0].m_L);
+		lta->xforms[0].m_L = MatrixMultiply(T2, lta->xforms[0].m_L, lta->xforms[0].m_L);
+    //MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
+		
+		MatrixFree(&T1);
+		MatrixFree(&T2);
+		
+	}	 
+	assert(lta != NULL);
+	
+	// apply lta to image:  // symmetric
+	MATRIX* a  = MatrixCopy(lta->xforms[0].m_L,NULL);
+	MATRIX* ai = MatrixInverse(lta->xforms[0].m_L,NULL);
+	lta->xforms[0].m_L =  MatrixMultiply(a,a,lta->xforms[0].m_L);
+	
+	cout << " Final Transform Matrix: " << endl;
+	MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L);
+	cout <<  " Determinant: " << MatrixDeterminant(lta->xforms[0].m_L) << endl <<endl;
+	
+  mriS = MRIlinearTransformInterp(mriS,NULL, ai, SAMPLE_TRILINEAR);
+  mriT = MRIlinearTransformInterp(mriT,NULL, a, SAMPLE_TRILINEAR);
+		
+	// iscale random
+	double iscale = P.iscale;
+	if (P.doiscale)
+	{
+	  vector < int > s = get_random(95,105,1);
+		iscale = s[0]/100.0;		
+	}
+	
+	if (iscale != 1.0) // symmetric
+	{
+	  cout<< " Scaling Intenisty: " << iscale << endl;
+    mriS = MyMRI::MRIvalscale(mriS, mriS, 1.0/sqrt(iscale));
+    mriT = MyMRI::MRIvalscale(mriT, mriT, sqrt(iscale) );
+	}
+	
+	// noise
+	if (P.noise > 0.0)
+	{
+	   cout << " Applying noise to image: "<< P.noise << endl;
+     MRI * mri_noise = MRIrandn(mriT->width, mriT->height, mriT->depth,1,
+                       0, P.noise, NULL) ;
+     MRImaskZero(mri_noise, mriT, mri_noise) ;
+     MRIadd(mriT, mri_noise, mriT) ;
+	   MRIfree(&mri_noise);
+	}
+	
+	// outlier
+  if (P.outlier > 0)
+	{
+// 	  cout << " Setting " << P.outlier << " random voxels to [200...255]" << endl;
+// 	  vector <int> p = get_random(0,255,P.outlier*3);
+// 		vector <int> t = get_random(0,255,P.outlier);
+// 		for (int i = 0;i<P.outlier;i++)
+// 		   MRIvox(mriT,p[i*3],p[i*3+1],p[i*3+2]) = t[i];
+ 	  cout << " Setting " << P.outlier << " random voxel boxes 20^3" << endl;
+ 	  vector <int> p = get_random(10,245,P.outlier*3);
+ 		vector <int> t = get_random(0,255,P.outlier);
+ 		for (int i = 0;i<P.outlier;i++)
+		for (int x = 0;x<20;x++)
+		for (int y = 0;y<20;y++)
+		for (int z = 0;z<20;z++)
+		{
+		   int xx = p[i*3]+x-10;
+			 int yy = p[i*3+1]+y-10;
+			 int zz = p[i*3+2]+z-10;
+			 if (xx < 0 || yy < 0 || zz<0 || xx >= mriT->width || yy>= mriT->height || yy>= mriT->depth) 
+			   continue;
+			 if (i < P.outlier/2)  MRIvox(mriT,xx,yy,zz) = t[i];
+			 else MRIvox(mriS,xx,yy,zz) = t[i];
+	  }
+	}
+
+  if (P.outlierbox > 0)
+	{	   
+	   int offset = 128;
+		 cout << " Creating Outlier Box [ " << offset << " , " << P.outlierbox+offset << " ]^3 with values [200..255]" << endl;
+		 vector < int > t = get_random(200,255,P.outlierbox*P.outlierbox*P.outlierbox);
+		 int count = 0;
+	   for (int x = 0;x<P.outlierbox;x++)
+	   for (int y = 0;y<P.outlierbox;y++)
+	   for (int z = 0;z<P.outlierbox;z++)
+		 {
+	      MRIvox(mriT, offset+x, offset+y, offset+z) = t[count] ;
+				count++;
+		 }
+	}
+
+
+//====================== OUTPUT ==========================================
+
+   //cout << " OUTPUT results ... " << endl;
+
+  // output source and target
+    cout << " OUTPUT source MRI : "<< P.outs << endl;
+    MRIwrite(mriS, P.outs.c_str()) ;
+		
+    cout << " OUTPUT target MRI : "<< P.outt << endl;
+    MRIwrite(mriT, P.outt.c_str()) ;
+	
+
+  // output lta:
+	if (P.ltaout != "")
+	{
+     cout << " OUTPUT LTA : " << P.ltaout<< endl;
+     // add src and dst info
+     getVolGeom(mriS, &lta->xforms[0].src);
+     getVolGeom(mriT, &lta->xforms[0].dst);
+     LTAwriteEx(lta, P.ltaout.c_str()) ;
+	}
+	
+    MRIfree(&mriS) ;
+    MRIfree(&mriT) ;
+
+  // output iscale:
+  if (P.iscaleout != "")
+  {
+	  if (iscale != 1.0)
+		{
+     cout << " OUTPUT iscale file : " << P.iscaleout << endl;
+      ofstream f(P.iscaleout.c_str(),ios::out);
+      f << iscale;
+      f.close();
+		}
+		else cout << " No iscale used, therefore will not ouput (iscale = 1.0)" << endl;
+  }
+
+  }
+}
+
+/*----------------------------------------------------------------------
+  ----------------------------------------------------------------------*/
+static void printUsage(void)
+{
+  cout << endl << endl;
+  cout << "Usage: mri_create_tests <required arguments>" << endl <<endl;
+
+  cout << "Creates test cases for the registraition by mapping" << endl ;
+  cout << "the input to a source (half way backward) and to a" << endl ;
+  cout << "target (half way forward)." << endl ;
+	cout << endl;
+
+  cout << "Required arguments" << endl << endl ;
+  cout << "  --in   invol.mgz       input volume to be modified" << endl;
+  cout << "  --outs outsrc.mgz      output source volume name" << endl;
+  cout << "  --outt outtarget.mgz   output target volume name" << endl;
+  cout << endl;
+
+  cout << "Optional arguments" << endl << endl;
+  cout << "  --int  intvol.mgz      input target volume to be modified" << endl;
+	cout << "                           Must be in same space as invol.mgz" << endl;
+  cout << "  --lta-in lta           apply lta (transform)" << endl;
+  cout << "  --mask mask.mgz        mask src mri with mask.mgz" << endl;
+  cout << "  --noise <float>        add global Gaussian noise" << endl;
+  cout << "  --outlier <int>        add <int> outlier voxel randomly" << endl;
+  cout << "  --outlier-box <int>    add box 0..<int> containing random voxels" << endl;
+  cout << "  --translation          apply random translation" << endl;
+	cout << "  --rotation             apply random rotation" << endl;
+	cout << "  --lta-out lta          write used random transform to lta" << endl;
+	cout << "  --intensity            apply random intensity scaling" << endl;
+	cout << "  --iscale <double>      use as fixed intensity scaling parameter" << endl;
+	cout << "  --iscale-out <string>  write used intensity scaling parameter" << endl;
+	
+
+  cout << endl << endl;
+
+  cout << " Report bugs to: Freesurfer@nmr.mgh.harvard.edu" << endl;
+
+
+
+  cout << endl;
+
+}
+/*!
+\fn int parseNextCommand(int argc, char **argv)
+\brief Parses the command-line for next command
+\param   argc  number of command line arguments
+\param   argv  pointer to a character pointer
+\param      P  reference to parameters
+\returns       number of used arguments for this command
+*/
+static int parseNextCommand(int argc, char *argv[], Parameters & P)
+{
+  int  nargs = 0 ;
+  char *option ;
+
+  option = argv[0] + 1 ;                     // remove '-'
+  if (option[0] == '-') option = option +1;  // remove second '-'
+  StrUpper(option) ;
+
+  //cout << " option: " << option << endl;
+
+  if (!strcmp(option, "IN"))
+  {
+    P.in = string(argv[1]);
+    nargs = 1;
+    cout << "Using "<< P.in << " as input volume." << endl;
+  }
+  else if (!strcmp(option, "INT"))
+  {
+    P.in_t = string(argv[1]);
+    nargs = 1;
+    cout << "Using "<< P.in_t << " as input target volume." << endl;
+  }
+  else if (!strcmp(option, "OUTS")  )
+  {
+    P.outs = string(argv[1]);
+    nargs = 1;
+    cout << "Using "<< P.outs << " as output source volume." << endl;
+  }
+  else if (!strcmp(option, "OUTT")  )
+  {
+    P.outt = string(argv[1]);
+    nargs = 1;
+    cout << "Using "<< P.outt << " as output target volume." << endl;
+  }
+  else if (!strcmp(option, "LTA-IN")   )
+  {
+    P.ltain = string(argv[1]);
+    nargs = 1;
+    cout << "Input transform as "<< P.ltain << " . " << endl;
+  }
+  else if (!strcmp(option, "LTA-OUT")   )
+  {
+    P.ltaout = string(argv[1]);
+    nargs = 1;
+    cout << "Storing transform as "<< P.ltaout << " . " << endl;
+  }
+  else if (!strcmp(option, "MASK")   )
+  {
+    P.mask = string(argv[1]);
+    nargs = 1;
+    cout << "Using mask "<< P.mask << " . " << endl;
+  }
+  else if (!strcmp(option, "NOISE")  )
+  {
+    P.noise = atof(argv[1]);
+    nargs = 1 ;
+    cout << "Using global Gaussian noise " << P.noise << " ." << endl;
+  }
+  else if (!strcmp(option, "OUTLIER")  )
+  {
+    P.outlier = atoi(argv[1]);
+    nargs = 1 ;
+    cout << "Randomly inserting " << P.outlier << " outlier voxel." << endl;
+  }
+  else if (!strcmp(option, "OUTLIER-BOX")  )
+  {
+    P.outlierbox = atoi(argv[1]);
+    nargs = 1 ;
+    cout << "Inserting outlier box at 0 .. " << P.outlierbox << " ." << endl;
+  }
+  else if (!strcmp(option, "TRANSLATION")  )
+  {
+    P.translation = true;
+    nargs = 0 ;
+    cout << "Creating random translation." << endl;
+  }
+  else if (!strcmp(option, "ROTATION")  )
+  {
+    P.rotation = true;
+    nargs = 0 ;
+    cout << "Creating random rotation." << endl;
+  }
+  else if (!strcmp(option, "INTENSITY")  )
+  {
+    P.doiscale = true;
+    nargs = 0 ;
+    cout << "Applying random intensity scaling." << endl;
+  }
+  else if (!strcmp(option, "ISCALE")   )
+  {
+    P.iscale = atof(argv[1]);
+    nargs = 1;
+    cout << "Using intensity scale "<< P.iscale << " . " << endl;
+  }
+  else if (!strcmp(option, "ISCALE-OUT")   )
+  {
+    P.iscaleout = string(argv[1]);
+    nargs = 1;
+    cout << "Writing intensity scale as "<< P.iscaleout << " . " << endl;
+  }
+  else
+  {
+    cerr << "Option: " << argv[0] << " unknown !! " << endl;
+    exit(1);
+  }
+
+
+  fflush(stdout);
+
+  return(nargs) ;
+}
+
+
+/*!
+\fn int parseCommandLine(int argc, char **argv)
+\brief Parses the command-line
+\param   argc  number of command line arguments
+\param   argv  pointer to a character pointer
+\param      P  reference to parameters
+\returns       if all necessary parameters were set
+*/
+static bool parseCommandLine(int argc, char *argv[], Parameters & P)
+{
+  int nargs;
+
+  for ( ; argc > 0 && ISOPTION(*argv[0]) ; argc--, argv++)
+  {
+    nargs = parseNextCommand(argc, argv,P) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+  return (P.in != "" && P.outs != "" && P.outt != "");
+}
+
