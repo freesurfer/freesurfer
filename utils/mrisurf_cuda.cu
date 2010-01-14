@@ -6,11 +6,11 @@
 /* 
  * Original Author: Thomas Witzel
  * CVS Revision Info:
- *    $Author: twitzel $
- *    $Date: 2009/12/14 22:04:22 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2010/01/14 22:57:12 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,16 +20,15 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 /* manually this compiles by 
 
-   nvcc -I ../include/ -I /usr/pubsw/packages/mni/current/include/ -DCUDA_SURF_FN -arch=sm_13 -c mrisurf_cuda.cu
+   nvcc -I ../include/ -DFS_CUDA -arch=sm_13 -c mrisurf_cuda.cu
 
 */
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 
 #include <stdio.h>
 #include <string.h>
@@ -900,4 +899,5 @@ float MRISCcomputeDistanceError(MRI_CUDA_SURFACE *mrisc, float dist_scale)
 	
 	return norm; 
 }
-#endif /* CUDA_SURF_FN */
+
+#endif /* FS_CUDA */

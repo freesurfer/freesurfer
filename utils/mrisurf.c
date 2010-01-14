@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: twitzel $
- *    $Date: 2009/12/15 11:58:45 $
- *    $Revision: 1.652 $
+ *    $Author: nicks $
+ *    $Date: 2010/01/14 22:57:11 $
+ *    $Revision: 1.653 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -576,19 +576,31 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2,
 
 static MATRIX *getSRASToTalSRAS(LT *lt);
 
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
+
 #include "mrisurf_cuda.h"
-static int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris);
-static int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages);
-static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms);
-static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms);
+static int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,
+                                           MRI_SURFACE *mris);
+static int mrisIntegrateCUDA(MRI_SURFACE *mris, 
+                             INTEGRATION_PARMS *parms, 
+                             int n_averages);
+static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,
+                                   MRI_SURFACE *mris, 
+                                   INTEGRATION_PARMS *parms);
+static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, 
+                                          MRI_CUDA_SURFACE *mrisc, 
+                                          INTEGRATION_PARMS *parms);
+static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, 
+                                  MRI_CUDA_SURFACE *mrisc, 
+                                  INTEGRATION_PARMS *parms);
 
 /* this stuff is needed for some of the benchmarking I have been doing */
 #include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
-static int timeval_subtract (struct timeval *result,struct timeval * x,struct timeval * y)
+static int timeval_subtract (struct timeval *result,
+                             struct timeval * x,
+                             struct timeval * y)
 {
 	/* Perform the carry for the later subtraction by updating y. */
 	if (x->tv_usec < y->tv_usec) {
@@ -611,11 +623,12 @@ static int timeval_subtract (struct timeval *result,struct timeval * x,struct ti
 	return x->tv_sec < y->tv_sec;
 }
 
-/* this stuff could be useful outside CUDA_SURF_FN as well */
+/* this stuff could be useful outside FS_CUDA as well */
 static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms);
 static void mrisDeleteIP(INTEGRATION_PARMS *parms);
 
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
+
 
 /*--------------------------------------------------------------------*/
 
@@ -680,7 +693,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.652 2009/12/15 11:58:45 twitzel Exp $");
+  return("$Id: mrisurf.c,v 1.653 2010/01/14 22:57:11 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1955,10 +1968,6 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   int          diag_vno1, diag_vno2 ;
   char         *cp ;
 
-#ifdef CUDA_SURF_FN
-	fprintf(stdout,"XOXO MRISsampleDistances MODIFIES dist_orig !\n");
-	fflush(stdout);
-#endif
   if ((cp = getenv("VDIAG1")) != NULL)
     diag_vno1 = atoi(cp) ;
   else
@@ -3387,11 +3396,6 @@ mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   VERTEX  *v, *vn ;
   float   d, xd, yd, zd, circumference = 0.0f, angle ;
   VECTOR  *v1, *v2 ;
-
-#ifdef CUDA_SURF_FN
-	fprintf(stdout,"XOXO mrisComputeOriginalVertexDistances MODIFIES dist_orig !\n");
-	fflush(stdout);
-#endif
 
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
@@ -6653,7 +6657,8 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
                          MAX_NEG_AREA_PCT, 2);
   MRISresetNeighborhoodSize(mris, 3) ;
 
-  if (mris->status == MRIS_PLANE && parms->complete_dist_mat == 0)  /* smooth out remaining folds */
+  if (mris->status == MRIS_PLANE && 
+      parms->complete_dist_mat == 0)  /* smooth out remaining folds */
   {
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "smoothing final surface...\n") ;
@@ -6666,11 +6671,11 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     parms->dt = 0.5f ;
     parms->momentum = 0.0f ;
     parms->n_averages = 0 ;
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 		mrisIntegrateCUDA(mris, parms, 0) ;
 #else 
     MRISintegrate(mris, parms, 0) ;
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
     /*    mrisRemoveNegativeArea(mris, parms, 0, MAX_NEG_AREA_PCT, 1);*/
   }
 
@@ -7149,11 +7154,11 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     for (done=0, n_averages = base_averages; !done ; n_averages /= 4)
     {
       parms->n_averages = n_averages ;
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 			steps = mrisIntegrateCUDA(mris, parms, n_averages) ;
 #else
       steps = MRISintegrate(mris, parms, n_averages) ;
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
       parms->start_t += steps ;
       total_steps += steps ;
       pct_neg = 100.0*mris->neg_area/(mris->neg_area+mris->total_area) ;
@@ -7267,11 +7272,11 @@ mrisIntegrationEpoch(MRI_SURFACE *mris,
        n_averages /= 4)
   {
     parms->n_averages = n_averages ;
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 		steps = mrisIntegrateCUDA(mris, parms, n_averages) ;
 #else
     steps = MRISintegrate(mris, parms, n_averages) ;
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
 
     if (n_averages > 0 && parms->flags & IP_RETRY_INTEGRATION &&
         ((parms->integration_type == INTEGRATE_LINE_MINIMIZE) ||
@@ -7285,20 +7290,20 @@ mrisIntegrationEpoch(MRI_SURFACE *mris,
       parms->niterations = 10 ;
       parms->start_t += steps ;
       total_steps += steps ;
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 			steps = mrisIntegrateCUDA(mris, parms, n_averages) ;
 #else
       steps = MRISintegrate(mris, parms, n_averages) ;
-#endif
+#endif /* FS_CUDA */
       parms->integration_type = integration_type ;
       parms->niterations = niter ;
       parms->start_t += steps ;
       total_steps += steps ;
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
       steps = mrisIntegrateCUDA(mris, parms, n_averages) ;
 #else
 			steps = MRISintegrate(mris, parms, n_averages) ;
-#endif
+#endif /* FS_CUDA */
     }
     parms->start_t += steps ;
     total_steps += steps ;
@@ -7578,7 +7583,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 }
 
 
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 /* mrisIntegrateCUDA
 
    this is basically a fork of MRISIntegrate, but it shouldn't be.
@@ -7594,7 +7599,6 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   MHT     *mht_v_current = NULL ;
  	struct timeval tv1,tv2,result;
  
- 	
 	/* Get some device info */
 	MRISCdeviceInfo();
  	/* Okay the neighborhood of the surface will not change anywhere in here,
@@ -7629,7 +7633,8 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 	l_area = parms->l_area ;
 	write_iterations = parms->write_iterations ;
 	niterations = parms->niterations ;
-	if (((parms->flags & IPFLAG_QUICK) == 0) && ((parms->flags & IPFLAG_NOSCALE_TOL) == 0))
+	if (((parms->flags & IPFLAG_QUICK) == 0) && 
+      ((parms->flags & IPFLAG_NOSCALE_TOL) == 0))
 		tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
 	else
 		tol = parms->tol ;
@@ -7670,8 +7675,7 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 						mris->vertices[Gdiag_no].z) ;
 	total_small = 0.0 ;
 	nsmall = 0 ;
-	
-	
+		
 	total_vertices = (double)MRISvalidVertices(mris) ;
 	neg = MRIScountNegativeTriangles(mris) ;
 	pct_neg = (double)neg / total_vertices ;
@@ -7687,27 +7691,35 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 				MHTfillVertexTableRes(mris, mht_v_current,CURRENT_VERTICES, 3.0);
  		gettimeofday(&tv2,NULL);			
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("MHTfillVertexTableRes: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("MHTfillVertexTableRes: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
  		gettimeofday(&tv1,NULL);
 		if (!FZERO(parms->l_curv))
 			MRIScomputeSecondFundamentalForm(mris) ;
  		gettimeofday(&tv2,NULL);			
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("MRIScomputeSecondFundamentalForm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("MRIScomputeSecondFundamentalForm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
 		MRISclearGradient(mris) ;      /* clear old deltas */
  		gettimeofday(&tv1,NULL);
 		mrisComputeVariableSmoothnessCoefficients(mris, parms) ;
  		gettimeofday(&tv2,NULL);			
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeVariableSmoothnessCoefficient: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeVariableSmoothnessCoefficient: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
  		
  		gettimeofday(&tv1,NULL);
 		mrisComputeDistanceTerm(mris, parms) ;
  		gettimeofday(&tv2,NULL);			
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeDistanceTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeDistanceTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
  		gettimeofday(&tv1,NULL);
 		if (Gdiag & DIAG_WRITE && parms->write_iterations > 0 && DIAG_VERBOSE_ON)
@@ -7738,9 +7750,10 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 		
  		gettimeofday(&tv2,NULL);			
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("Preparation phase A: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("Preparation phase A: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
- 		
 #if 0
 		mrisComputeCurvatureTerm(mris, parms) ;
 		mrisComputeNegTerm(mris, parms) ;
@@ -7752,16 +7765,20 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 																	mht_v_current);
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeRepulsiveRatioTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeRepulsiveRatioTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
  		
  		gettimeofday(&tv1,NULL);
 		mrisComputeLaplacianTerm(mris, parms->l_lap) ;
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeLaplacianTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeLaplacianTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
- 		/* Due to the overhead for uploading and downloading the gradients, this is only worthwile for more
- 			 than 4 averages, I think
+ 		/* Due to the overhead for uploading and downloading the gradients, 
+       this is only worthwile for more than 4 averages, I think
  		*/
  		if(n_averages > 4) {
  			gettimeofday(&tv1,NULL);
@@ -7771,51 +7788,66 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
  			MRISCdownloadGradients(mrisc,mris);
  			gettimeofday(&tv2,NULL);
  			timeval_subtract(&result,&tv2,&tv1);
- 			printf("CUDA MRISCverageGradients: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 			printf("CUDA MRISCverageGradients: %ld ms\n",
+             result.tv_sec*1000+result.tv_usec/1000); 
+      fflush(stdout);
  		} else {
  			gettimeofday(&tv1,NULL);
  			MRISaverageGradients(mris, n_averages) ;
  			gettimeofday(&tv2,NULL);
  			timeval_subtract(&result,&tv2,&tv1);
- 			printf("CPU MRISaverageGradients: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 			printf("CPU MRISaverageGradients: %ld ms\n",
+             result.tv_sec*1000+result.tv_usec/1000); 
+      fflush(stdout);
  		}
-		
-		
+				
  		gettimeofday(&tv1,NULL);
 		mrisComputeSpringTerm(mris, parms->l_spring) ;
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeSpringTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeSpringTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
  		gettimeofday(&tv1,NULL);
 		mrisComputeThicknessMinimizationTerm(mris, parms->l_thick_min, parms) ;
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeThicknessMinimizationTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeThicknessMinimizationTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
  		gettimeofday(&tv1,NULL);
 		mrisComputeThicknessParallelTerm(mris, parms->l_thick_parallel, parms) ;
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeThicknessParallelTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeThicknessParallelTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
  		
  		gettimeofday(&tv1,NULL);
 		mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeTangentialSpringTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeTangentialSpringTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		
  		gettimeofday(&tv1,NULL);
 		mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeNonlinearSpringTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeNonlinearSpringTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		
  		gettimeofday(&tv1,NULL);
 		mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
  		gettimeofday(&tv2,NULL);
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("mrisComputeQuadraticCurvatureTerm: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("mrisComputeQuadraticCurvatureTerm: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
  		
 		if (Gdiag & DIAG_WRITE && parms->write_iterations > 0 && DIAG_VERBOSE_ON)
 		{
@@ -7859,7 +7891,9 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
  		gettimeofday(&tv2,NULL);
  		
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("Search phase: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("Search phase: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000); 
+    fflush(stdout);
 		
  		gettimeofday(&tv1,NULL);
 		if (!FZERO(parms->l_pcorr) && (Gdiag & DIAG_SHOW))
@@ -7923,7 +7957,9 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
  		gettimeofday(&tv2,NULL);
 		
  		timeval_subtract(&result,&tv2,&tv1);
- 		printf("Application phase: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+ 		printf("Application phase: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		
 		if (FZERO(sse))
        break ;
@@ -7943,8 +7979,8 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 	if (!FZERO(parms->l_repulse))
 		MHTfree(&mht_v_current) ;
 	
-	// If this is a plane, its possible the CPU Metric Properties were called last
-	// and the distance vector on the GPU is outdated.
+	// If this is a plane, its possible the CPU Metric Properties were called
+	// last and the distance vector on the GPU is outdated.
 	if(mris->status != MRIS_PLANE) 
 		parms->ending_sse = MRIScomputeSSE_CUDA(mris, mrisc, parms);
 	else
@@ -7954,7 +7990,8 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 	return(parms->t-parms->start_t) ;  /* return actual # of steps taken */
 }
   
-#endif
+#endif /* FS_CUDA */
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -8002,7 +8039,9 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       sse_angle += delta*delta ;
     }
     if (!finite(sse_area) || !finite(sse_angle))
-      ErrorExit(ERROR_BADPARM, "sse (%f, %f) is not finite at face %d!\n",sse_area,sse_angle,fno);
+      ErrorExit(ERROR_BADPARM, 
+                "sse (%f, %f) is not finite at face %d!\n",
+                sse_area,sse_angle,fno);
   }
 
   sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
@@ -8031,7 +8070,7 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   *pangle_rms =(float)sqrt(sse_angle/(double)(ntriangles*ANGLES_PER_TRIANGLE));
   *pcorr_rms = (float)sqrt(sse_corr / (double)nv) ;
 
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 	INTEGRATION_PARMS *tparms;
 	
 	/* Change the parameters such that the distance error won't be calculated in
@@ -8057,7 +8096,7 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 	
 #else
   rms = MRIScomputeSSE(mris, parms) ;
-#endif
+#endif /* FS_CUDA */
 
 #if 0
   rms =
@@ -8073,8 +8112,13 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 
 
 static double
-mrisComputeSSE_MEF(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, MRI *mri30, MRI *mri5, 
-                   double weight30, double weight5, MHT *mht)
+mrisComputeSSE_MEF(MRI_SURFACE *mris, 
+                   INTEGRATION_PARMS *parms, 
+                   MRI *mri30, 
+                   MRI *mri5, 
+                   double weight30, 
+                   double weight5, 
+                   MHT *mht)
 {
   double sse, l_intensity, rms;
 
@@ -8265,19 +8309,23 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(sse) ;
 }
 
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 static double
-MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
+MRIScomputeSSE_CUDA(MRI_SURFACE *mris, 
+                    MRI_CUDA_SURFACE *mrisc, 
+                    INTEGRATION_PARMS *parms)
 {
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
-    area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere, sse_thick_min, sse_thick_parallel,
-    sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, sse_repulse, sse_tsmooth, sse_loc,
-  sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap, sse_dura, sse_nlspring;
+    area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere, 
+    sse_thick_min, sse_thick_parallel,
+    sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, sse_repulse, 
+    sse_tsmooth, sse_loc,
+    sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap, 
+    sse_dura, sse_nlspring;
   int     ano, fno ;
   FACE    *face ;
   MHT     *mht_v_current = NULL ;
   MHT     *mht_f_current = NULL ;
-
 
 #if METRIC_SCALE
   if (mris->patch || mris->noscale)
@@ -8351,8 +8399,10 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARM
   sse_repulsive_ratio =
     mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio) ;
   sse_tsmooth = mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth) ;
-  sse_thick_min = mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms) ;
-  sse_thick_parallel = mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms) ;
+  sse_thick_min = 
+    mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms) ;
+  sse_thick_parallel = 
+    mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms) ;
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
   if (!DZERO(parms->l_nldist))
@@ -8431,7 +8481,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARM
   return(sse) ;
 }
 
-#endif //CUDA_SURF_FN
+#endif /* FS_CUDA */
 
 /*-----------------------------------------------------
   Parameters:
@@ -8444,7 +8494,8 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARM
   minimized (as opposed to computeError above).
   ------------------------------------------------------*/
 double
-MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+MRIScomputeSSEExternal(MRI_SURFACE *mris, 
+                       INTEGRATION_PARMS *parms,
                        double *ext_sse)
 {
   double  sse ;
@@ -10046,7 +10097,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(dt_in[mini]) ;
 }
 
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 
 /* mrisLineMinimizeCUDA:
 
@@ -10055,7 +10106,9 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 */
 static double
-mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,
+                     MRI_SURFACE *mris, 
+                     INTEGRATION_PARMS *parms)
 {
   char    fname[STRLEN] ;
   FILE    *fp = NULL ;
@@ -10155,7 +10208,9 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
 
 	gettimeofday(&tv2,NULL);			
 	timeval_subtract(&result,&tv2,&tv1);
-	printf("mrisLineMinimize phase 1: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+	printf("mrisLineMinimize phase 1: %ld ms\n",
+         result.tv_sec*1000+result.tv_usec/1000);
+  fflush(stdout);
 
 	gettimeofday(&tv1,NULL);
   /* pick starting step size */
@@ -10166,25 +10221,33 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
     MRISapplyGradient(mris, delta_t) ;
 		gettimeofday(&tv4,NULL);			
 		timeval_subtract(&result,&tv4,&tv3);
-		printf("mrisLineMinimize->MRISapplyGradient %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		printf("mrisLineMinimize->MRISapplyGradient %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		
 		gettimeofday(&tv3,NULL);
     mrisProjectSurface(mris) ;
 		gettimeofday(&tv4,NULL);			
 		timeval_subtract(&result,&tv4,&tv3);
-		printf("mrisLineMinimize->mrisProjectSurface %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		printf("mrisLineMinimize->mrisProjectSurface %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		
 		gettimeofday(&tv3,NULL);
     mrisComputeMetricPropertiesCUDA(mrisc,mris) ;
     gettimeofday(&tv4,NULL);			
 		timeval_subtract(&result,&tv4,&tv3);
-		printf("mrisLineMinimize->MRIScomputeMetricProperties %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		printf("mrisLineMinimize->MRIScomputeMetricProperties %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 
 		gettimeofday(&tv3,NULL);
 		sse = MRIScomputeSSE_CUDA(mris, mrisc, parms) ;
 		gettimeofday(&tv4,NULL);			
 		timeval_subtract(&result,&tv4,&tv3);
-		printf("mrisLineMinimize->MRIScomputeSSE %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		printf("mrisLineMinimize->MRIScomputeSSE %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 
     if (sse <= min_sse)   /* new minimum found */
     {
@@ -10197,7 +10260,9 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
   }
 	gettimeofday(&tv2,NULL);			
 	timeval_subtract(&result,&tv2,&tv1);
-	printf("mrisLineMinimize phase try dt: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+	printf("mrisLineMinimize phase try dt: %ld ms\n",
+         result.tv_sec*1000+result.tv_usec/1000);
+  fflush(stdout);
 
 	gettimeofday(&tv1,NULL);
 	
@@ -10246,7 +10311,9 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
 
 	gettimeofday(&tv2,NULL);			
 	timeval_subtract(&result,&tv2,&tv1);
-	printf("mrisLineMinimize phase 2: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+	printf("mrisLineMinimize phase 2: %ld ms\n",
+         result.tv_sec*1000+result.tv_usec/1000);
+  fflush(stdout);
 
 	gettimeofday(&tv1,NULL);
   mX = MatrixAlloc(N, 3, MATRIX_REAL) ;
@@ -10285,7 +10352,6 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
     MatrixFree(&m_xTx_inv) ;
     MatrixFree(&m_xTy) ;
 
-
     dt_in[N] = 0 ;
     sse_out[N++] = starting_sse ;
     if (finite(a) && !FZERO(a))
@@ -10317,7 +10383,9 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
 
 	gettimeofday(&tv2,NULL);			
 	timeval_subtract(&result,&tv2,&tv1);
-	printf("mrisLineMinimize phase 3: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+	printf("mrisLineMinimize phase 3: %ld ms\n",
+         result.tv_sec*1000+result.tv_usec/1000);
+  fflush(stdout);
 
 	gettimeofday(&tv1,NULL);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -10334,7 +10402,6 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
       mini = i ;
     }
   }
-
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "min %d (%2.3f)\n", mini, dt_in[mini]) ;
@@ -10377,12 +10444,14 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,MRI_SURFACE *mris, INTEGRATION_PARM
 
 	gettimeofday(&tv2,NULL);			
 	timeval_subtract(&result,&tv2,&tv1);
-	printf("mrisLineMinimize phase 4: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+	printf("mrisLineMinimize phase 4: %ld ms\n",
+         result.tv_sec*1000+result.tv_usec/1000);
+  fflush(stdout);
 
 	return(dt_in[mini]) ;
 }
 
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
 
 /*-----------------------------------------------------
   Parameters:
@@ -16150,11 +16219,6 @@ MRISstoreMetricProperties(MRI_SURFACE *mris)
   VERTEX  *v ;
   FACE    *f ;
 
-#ifdef CUDA_SURF_FN
-	fprintf(stdout,"XOXO MRISstoreMetricProperties MODIFIES dist_orig !\n");
-	fflush(stdout);
-#endif
-
 #if 0
   MRIScomputeNormals(mris);              /* update vertex areas */
   MRIScomputeTriangleProperties(mris) ;  /* update triangle properties */
@@ -18937,22 +19001,25 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       DiagBreak() ;
   }
 
-#ifdef CUDA_SURF_FN
-	/* investigate some of the flags. Neither being true would help tremendously with
-		 the GPU implementation as it removes the need to have or produce the information
-		 involved with these flags
+#ifdef FS_CUDA
+	/* investigate some of the flags. Neither being true would help 
+     tremendously with the GPU implementation as it removes the need 
+     to have or produce the information involved with these flags
 	*/
-	fprintf(stdout,"mrisComputeDistanceError: parms->dist_error=%d, parms->vsmoothness=%d, sse_dist=%lg\n",
+	fprintf(stdout,"mrisComputeDistanceError: parms->dist_error=%d, "
+          "parms->vsmoothness=%d, sse_dist=%lg\n",
 					(parms->dist_error!=NULL),(parms->vsmoothness!=NULL),sse_dist);
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
 
   /*fprintf(stdout, "max_del = %f at v %d, n %d\n", max_del, max_v, max_n) ;*/
   return(sse_dist) ;
 }
 
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 static float
-mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
+mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, 
+                             MRI_CUDA_SURFACE *mrisc, 
+                             INTEGRATION_PARMS *parms)
 {
   double  dist_scale, sse_dist;
 
@@ -18986,7 +19053,9 @@ mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRA
   return(sse_dist) ;
 }
 
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
+
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -21072,8 +21141,7 @@ MRIScomputeMetricProperties(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
-
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 /* this is a fork of mrisComputeMetricProperties,
 	 but ultimately shouldn't be
 */
@@ -21089,7 +21157,9 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
 		MRIScomputeNormals(mris);
 		gettimeofday(&tv2,NULL);			
 		timeval_subtract(&result,&tv2,&tv1);
-		printf("MRIScomputeMetricProperties->MRIScomputeNormals: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		printf("MRIScomputeMetricProperties->MRIScomputeNormals: %ld ms\n",
+           result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		
 		/* UPLOAD the vertices here */
 		MRISCuploadVertices(mrics,mris);
@@ -21099,7 +21169,9 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
 		MRISCcomputeVertexDistances(mrics,mris);
 		gettimeofday(&tv2,NULL);			
 		timeval_subtract(&result,&tv2,&tv1);
-		printf("CUDA MRIScomputeMetricProperties->mrisComputeVertexDistances: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		printf("CUDA MRIScomputeMetricProperties->mrisComputeVertexDistances: "
+           "%ld ms\n",result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		
 		/* DOWNLOAD distances */
 		MRISCdownloadDistances(mrics,mris);
@@ -21108,7 +21180,9 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
 		int rval = MRIScomputeMetricProperties(mris);
 		gettimeofday(&tv2,NULL);			
 		timeval_subtract(&result,&tv2,&tv1);
-		printf("CPU MRIScomputeMetricProperties->mrisComputeVertexDistances: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+		printf("CPU MRIScomputeMetricProperties->mrisComputeVertexDistances: "
+           "%ld ms\n",result.tv_sec*1000+result.tv_usec/1000);
+    fflush(stdout);
 		return rval;
 	}
 
@@ -21116,13 +21190,17 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
   mrisComputeSurfaceDimensions(mris);
 	gettimeofday(&tv2,NULL);			
 	timeval_subtract(&result,&tv2,&tv1);
-	printf("MRIScomputeMetricProperties->mrisComputeSurfaceDimensions: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+	printf("MRIScomputeMetricProperties->mrisComputeSurfaceDimensions: "
+         "%ld ms\n",result.tv_sec*1000+result.tv_usec/1000);
+  fflush(stdout);
 
 	gettimeofday(&tv1,NULL);
   MRIScomputeTriangleProperties(mris);  /* compute areas and normals */
 	gettimeofday(&tv2,NULL);			
 	timeval_subtract(&result,&tv2,&tv1);
-	printf("MRIScomputeMetricProperties->MRIScomputeTriangleProperties: %ld ms\n",result.tv_sec*1000+result.tv_usec/1000); fflush(stdout);
+	printf("MRIScomputeMetricProperties->MRIScomputeTriangleProperties: "
+         "%ld ms\n",result.tv_sec*1000+result.tv_usec/1000);
+  fflush(stdout);
 
   mris->avg_vertex_area = mris->total_area/mris->nvertices;
 	// this would obviously require the distances
@@ -21140,7 +21218,7 @@ mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics,MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
 
 /* --------------------------------------------------------------------
    MRISrescaleMetricProperties() - rescale metric properties (area,
@@ -31693,11 +31771,6 @@ MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which)
   smean_error, smean_orig_error ;
   VECTOR  *v1, *v2 ;
 
-#ifdef CUDA_SURF_FN
-	fprintf(stdout, "XOXO MRIstoreAnalyticDistanced MODIFIES dist_orig\n");
-	fflush(stdout);
-#endif
-
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
 
@@ -31763,11 +31836,6 @@ MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct)
 {
   int    vno, n ;
   VERTEX *v ;
-
-#ifdef CUDA_SURF_FN
-	fprintf(stdout,"XOXO MRISdisturbOriginalDistances MODIFIES dist_orig !\n");
-	fflush(stdout);
-#endif /* CUDA_SURF_FN */
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -59277,11 +59345,6 @@ MRISclearOrigDistances(MRI_SURFACE *mris)
   int     vno, n ;
   VERTEX  *v ;
 
-#ifdef CUDA_SURF_FN
-	fprintf(stdout,"XOXO MRISclearOrigDistances MODIFIES dist_orig !\n");
-	fflush(stdout);
-#endif
-
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -65977,11 +66040,6 @@ MRIScomputeAllDistances(MRI_SURFACE *mris)
   int    vno, n, nvalid, *old_v, vno2, done = 0 ;
   LABEL  *area ;
 
-#ifdef CUDA_SURF_FN
-	fprintf(stdout,"XOXO MRIScomputeAllDistances MODIFIES dist_orig !\n");
-	fflush(stdout);
-#endif
-
   if (Gdiag & DIAG_SHOW)
     fprintf(stdout, "\ncomputing complete distance matrix...\n") ;
   area = LabelAlloc(1, NULL, NULL) ;
@@ -66520,7 +66578,7 @@ MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp,
   return(val) ;
 }
 
-#ifdef CUDA_SURF_FN
+#ifdef FS_CUDA
 static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms)
  {
 	 /* this needs some work to check whether this is successful */
@@ -66535,8 +66593,7 @@ static void mrisDeleteIP(INTEGRATION_PARMS *parms)
 	 if(parms != NULL)
 		 free(parms);
  }
-
-#endif /* CUDA_SURF_FN */
+#endif /* FS_CUDA */
 
 int
 MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)

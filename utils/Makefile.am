@@ -301,14 +301,10 @@ libutils_a_SOURCES=\
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 # rules for building cuda files
-
-NVCCINCLUDE = -I/usr/pubsw/packages/mni/current/include/ \
-              -I$(top_srcdir)/include\
-              -I$(top_srcdir)/include/dicom
-
+NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
 
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDE)
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA
 
 noinst_LIBRARIES += libutils_cuda.a
 
@@ -316,13 +312,13 @@ libutils_cuda_a_SOURCES=\
 	$(libutils_main_SOURCES) \
 	$(libutils_cephes_SOURCES) \
 	$(libutils_nrrdio_SOURCES) \
-	devicemanagement.cu\
-        mriconvolve1d_cuda.cu\
-        mri_transfer.cu\
-        mrivol2vol_cuda.cu
+	devicemanagement.cu \
+	mriconvolve1d_cuda.cu \
+  mri_transfer.cu \
+  mrivol2vol_cuda.cu \
+	mrisurf_cuda.cu
 
-
-libutils_cuda_a_CFLAGS=-DFS_CUDA
+libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 
 endif
 
