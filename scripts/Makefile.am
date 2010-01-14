@@ -123,6 +123,7 @@ plot_structure_stats.tcl \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
+rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
 recon-all-dev \
