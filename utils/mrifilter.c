@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/13 19:27:53 $
- *    $Revision: 1.76 $
+ *    $Author: rge21 $
+ *    $Date: 2010/01/14 13:47:08 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -3113,15 +3113,15 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  printf( "%s: Sizes are w=%i h=%i d=%i\n", __FUNCTION__, width, height, depth );
+  //printf( "%s: Sizes are w=%i h=%i d=%i\n", __FUNCTION__, width, height, depth );
 
   if (!mri_dst)
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
-
+  /*
   printf( "%s: src type is %i\n", __FUNCTION__, mri_src->type );
   printf( "%s: dst type is %i\n", __FUNCTION__, mri_dst->type );
   printf( "%s: kernel size is %i\n", __FUNCTION__, len );
-
+  */
   if (mri_dst->type == MRI_UCHAR)
     return(MRIconvolve1dByte(mri_src,mri_dst,k,len,axis,src_frame,dst_frame));
   else if (mri_dst->type == MRI_SHORT)
