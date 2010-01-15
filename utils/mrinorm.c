@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/11 17:15:54 $
- *    $Revision: 1.93 $
+ *    $Date: 2010/01/15 14:10:45 $
+ *    $Revision: 1.94 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2184,6 +2184,13 @@ MRI3dGentleNormalize(MRI *mri_src,
       MRIcopyHeader(mri_src, mri_ctrl) ;
       nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
       mean = MRImeanInLabel(mri_src, mri_ctrl, 255) ;
+      if (nctrl == 0 || FZERO(mean))
+      {
+        MRIcopy(mri_src, mri_norm) ;
+        ErrorReturn(mri_norm, (ERROR_BADPARM,
+                               "MRI3dGentleNormalize: mean = %2.1f, nctrl = %d, norm failed",
+                               mean, nctrl)) ;
+      }
       fprintf(stderr,
               "only using %d control points from file, mean %2.1f, scaling by %2.2f...\n", 
               nctrl, mean, wm_target/mean) ;
