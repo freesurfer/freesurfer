@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/11/19 19:15:46 $
- *    $Revision: 1.443 $
+ *    $Author: mreuter $
+ *    $Date: 2010/01/15 01:11:25 $
+ *    $Revision: 1.444 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.443 $";
+const char *MRI_C_VERSION = "$Revision: 1.444 $";
 
 
 /*-----------------------------------------------------
@@ -1157,7 +1157,7 @@ inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
       *((long *)p)  = nint(voxval);
       break;
     case MRI_FLOAT:
-      *((float *)p) = nint(voxval);
+      *((float *)p) = voxval;
       break;
     }
   }
