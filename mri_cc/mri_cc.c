@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/15 00:23:31 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/01/15 19:51:56 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -165,13 +165,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.24 2010/01/15 00:23:31 mreuter Exp $",
+   "$Id: mri_cc.c,v 1.25 2010/01/15 19:51:56 mreuter Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.24 2010/01/15 00:23:31 mreuter Exp $",
+           "$Id: mri_cc.c,v 1.25 2010/01/15 19:51:56 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1269,14 +1269,14 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "ASEG"))
   {
     strcpy(aseg_fname, argv[2]) ;
-    printf("reading input aseg from %s\n", aseg_fname);
+    printf("will read input aseg from %s\n", aseg_fname);
     use_aseg = 1 ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "LTA"))
   {
     strcpy(lta_fname, argv[2]) ;
-    printf("writing lta as %s\n", lta_fname);
+    printf("will write lta as %s\n", lta_fname);
     write_lta = 1 ;
     nargs = 1 ;
   }
@@ -1493,14 +1493,8 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   printf("final transformation (x=%2.1f, yr=%2.3f, zr=%2.3f):\n",x0_best,
          DEGREES(yrot_best), DEGREES(zrot_best)) ;
   MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
-/*  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    LTAwrite(lta, "test.lta") ; */
-  if (write_lta)
-	{
-	   getVolGeom(mri_norm, &lta->xforms[0].src);
-     getVolGeom(mri_norm, &lta->xforms[0].dst);
-	   LTAwrite(lta, lta_fname);
-	}
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    LTAwrite(lta, "test.lta") ; 
   MatrixFree(&m_trans) ;
   MatrixFree(&m_trans_inv) ;
   MatrixFree(&m_tmp) ;
@@ -1594,6 +1588,8 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   best_slice += xmin ;
 
   printf("best xformed slice %d\n", best_slice) ;
+
+
   // erase voxels in other slices (for now)
   for (x0 = xmin ; x0 <= xmax  ; x0++)
   {
@@ -1758,13 +1754,33 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
         {
           changed = 1 ;
           *pyc = y0 ;
+					y0_best = y0;
           *pzc = z0 ;
+					z0_best = z0;
           break ;
         }
       }
     i-- ;
   }
   while (changed == 0) ;
+
+  if (write_lta)
+	{
+	   LTA* lta2 = LTAalloc(1,mri_norm);
+		 lta2->xforms[0].m_L  = MatrixCopy(lta->xforms[0].m_L,lta2->xforms[0].m_L);
+     lta2->xforms[0].type = LINEAR_VOX_TO_VOX ;
+	   getVolGeom(mri_norm, &lta2->xforms[0].src);
+     getVolGeom(mri_norm, &lta2->xforms[0].dst);
+		 
+		 // adjust translation info so that CC center is at 128,128,128
+     *MATRIX_RELT(lta2->xforms[0].m_L, 1, 4) += 128 - best_slice;
+     *MATRIX_RELT(lta2->xforms[0].m_L, 2, 4) += 128 - y0_best ;
+     *MATRIX_RELT(lta2->xforms[0].m_L, 3, 4) += 128 - z0_best ;
+		 
+	   LTAwrite(lta2, lta_fname);
+		 LTAfree(&lta2);
+	}
+
 
   LTAinvert(lta) ;
 
