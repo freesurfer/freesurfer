@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/02/06 20:36:10 $
- *    $Revision: 1.23 $
+ *    $Author: mreuter $
+ *    $Date: 2010/01/15 00:23:31 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -56,9 +56,11 @@
 #include "tritri.h"
 
 static int use_aseg = 1 ;
+static int write_lta = 0 ;
 static int force = 0 ;
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
+static void     print_usage();
 static char     *wmvolume = "mri/wm" ;
 char            *Progname ;
 static int      dxi=2;  // thickness on either side of midline
@@ -72,6 +74,7 @@ static int skip = 0 ;
 static LTA *lta = 0;
 static char output_fname[STRLEN] = "aseg_with_cc.mgz";
 static char aseg_fname[STRLEN] = "aseg.mgz" ;
+static char lta_fname[STRLEN] = "" ;
 static MRI *remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited) ;
 static int cc_cutting_plane_correct(MRI *mri_aseg,
                                     double x0, double y0, double z0,
@@ -162,13 +165,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.23 2008/02/06 20:36:10 nicks Exp $",
+   "$Id: mri_cc.c,v 1.24 2010/01/15 00:23:31 mreuter Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.23 2008/02/06 20:36:10 nicks Exp $",
+           "$Id: mri_cc.c,v 1.24 2010/01/15 00:23:31 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -188,9 +191,11 @@ main(int argc, char *argv[])
   fflush(stderr);
 
   if ((argc < 2) || (argc > 2))
+	{
+	  print_usage();
     ErrorExit(ERROR_BADPARM,
-              "usage: %s <subject>", Progname);
-
+              "", Progname);
+  }
   TimerStart(&then) ;
 
   if (!strlen(sdir))
@@ -584,7 +589,7 @@ main(int argc, char *argv[])
     }
 
     sprintf(ofname,"%s/%s/mri/%s",data_dir,argv[1], output_fname) ;
-    fprintf(stdout, "writing aseg with callosum to to %s...\n", ofname) ;
+    fprintf(stdout, "writing aseg with callosum to %s...\n", ofname) ;
     MRIwrite(mri_aseg, ofname) ;
   }
 
@@ -1218,7 +1223,28 @@ edge_detection(MRI *mri_temp, int edge_count, int signal)
  Description:
  ----------------------------------------------------------------------*/
 
+static void 
+print_usage()
+{
+      fprintf(stdout,
+              "usage: %s <subject>\n\n",
+              Progname) ;
+			fprintf(stdout," -o <fname>     write aseg including CC to SDIR/mri/<fname> \n");
+			fprintf(stdout," -aseg <fname>  read aseg from SDIR/mri/<fname> \n");
+			fprintf(stdout," -sdir <dname>  set SUBJECTS_DIR to <dname> \n");
+			fprintf(stdout," -lta <fname>   write rotation lta to global <fname> \n");
+			fprintf(stdout," -force         proccess regardless of existing CC in input\n");
+			fprintf(stdout," -f             include fornix in segmentation \n");
+			fprintf(stdout," -d <int>       subdivide into <int> compartments \n");
+			fprintf(stdout," -t <int>       setting CC thickness to <int> mm \n");
+			fprintf(stdout," -s <int>       skipping <int> voxels in rotational align \n");
+			
+    fprintf(stdout,
+            "\nSegments the corpus callosum into five parts divided along\n"
+            "the primary eigendirection (mostly anterior/posterior), and\n"
+            "writes the results to <subject>/mri/aseg.mgz\n");
 
+}
 static int
 get_option(int argc, char *argv[])
 {
@@ -1247,30 +1273,23 @@ get_option(int argc, char *argv[])
     use_aseg = 1 ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "LTA"))
+  {
+    strcpy(lta_fname, argv[2]) ;
+    printf("writing lta as %s\n", lta_fname);
+    write_lta = 1 ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "force"))
   {
     force = 1 ;
     printf("processing regardless of existence of cc in input volume\n") ;
   }
-  else if ((!stricmp(option, "help")) ||
-           (!stricmp(option, "-help")))
-  {
-    fprintf(stdout,
-            "Usage: %s <subject>\n\n",
-            Progname) ;
-    fprintf(stdout,
-            "Segments the corpus callosum into five parts divided along\n"
-            "the primary eigendirection (mostly anterior/posterior), and\n"
-            "writes the results to <subject>/mri/aseg.mgz\n");
-    exit(1);
-  }
   else switch (toupper(*option))
     {
     case '?':
     case 'U':
-      fprintf(stdout,
-              "usage: %s <subject>\n",
-              Progname) ;
+		  print_usage();
       exit(1) ;
       break ;
     case 'F':
@@ -1474,8 +1493,14 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   printf("final transformation (x=%2.1f, yr=%2.3f, zr=%2.3f):\n",x0_best,
          DEGREES(yrot_best), DEGREES(zrot_best)) ;
   MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    LTAwrite(lta, "test.lta") ;
+/*  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    LTAwrite(lta, "test.lta") ; */
+  if (write_lta)
+	{
+	   getVolGeom(mri_norm, &lta->xforms[0].src);
+     getVolGeom(mri_norm, &lta->xforms[0].dst);
+	   LTAwrite(lta, lta_fname);
+	}
   MatrixFree(&m_trans) ;
   MatrixFree(&m_trans_inv) ;
   MatrixFree(&m_tmp) ;
