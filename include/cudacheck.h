@@ -23,7 +23,7 @@
       exit( EXIT_FAILURE );						\
     } } while( 0 );
 
-#define CUDA_CHECK_KERNEL( errorMessage ) do {	\
+#define CUDA_CHECK_ERROR( errorMessage ) do {	\
     cudaError_t err = cudaGetLastError();	\
     if( cudaSuccess != err) {						\
       fprintf(stderr, "Cuda error: %s in file '%s' in line %i : %s.\n",	\
