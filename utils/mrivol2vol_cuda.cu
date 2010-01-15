@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/14 20:45:24 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/15 16:11:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,10 +68,10 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
   uint4 srcDimsAct, srcDimsGPU;
   uint4 targDimsAct, targDimsGPU;
 
-  srcDimsAct = MRI_GetSlicesDims( src );
-  srcDimsGPU = MRI_GetSlicesDimsonGPU( src );
-  targDimsAct = MRI_GetSlicesDims( targ );
-  targDimsGPU = MRI_GetSlicesDimsonGPU( targ );
+  srcDimsAct = MRI_GetDimsAllFrames( src );
+  srcDimsGPU = MRI_GetDimsAllFramesGPU( src );
+  targDimsAct = MRI_GetDimsAllFrames( targ );
+  targDimsGPU = MRI_GetDimsAllFramesGPU( targ );
 
   // Get the source MRI onto the GPU
 
