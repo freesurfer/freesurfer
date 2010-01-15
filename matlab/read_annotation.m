@@ -61,12 +61,11 @@ function [vertices, label, colortable] = Read_Brain_Annotation(filename, varargi
 
 %
 % read_annotation.m
-%
 % Original Author: Bruce Fischl
 % CVS Revision Info:
 %    $Author: rudolph $
-%    $Date: 2010/01/14 18:55:38 $
-%    $Revision: 1.5 $
+%    $Date: 2010/01/15 13:48:11 $
+%    $Revision: 1.6 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
