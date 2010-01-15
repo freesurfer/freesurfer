@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/12 20:14:27 $
-#    $Revision: 1.261 $
+#    $Date: 2010/01/15 16:49:33 $
+#    $Revision: 1.262 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.261 2010/01/12 20:14:27 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.262 2010/01/15 16:49:33 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2653,21 +2653,27 @@ if($DoAParc2ASeg) then
   echo "#@# AParc-to-ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
-  # Rahul's
+  # Desikan (or whatever was specified by -gcs)
   set cmd = (mri_aparc2aseg --s $subjid --volmask $xopts)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/aparc2aseg.touch
-  # Now do Christophe's
-  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
-  set cmd = (mri_aparc2aseg --s $subjid --volmask --${DESTRIEUX_NAME} $xopts)
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
+  # Now do Christophe's (if exist, which they may not, if -nocortparc2 used)
+  if( -e ${subjdir}/label/lh.aparc.${DESTRIEUX_NAME}.annot && \
+      -e ${subjdir}/label/rh.aparc.${DESTRIEUX_NAME}.annot ) then
+    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+    set cmd = (mri_aparc2aseg --s $subjid --volmask --${DESTRIEUX_NAME} $xopts)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
+  else
+    echo "INFO: skipping ${DESTRIEUX_NAME} aparc2aseg" \
+    |& tee -a $LF |& tee -a $CF
+  endif
 endif
 
 # ----------------- WMParc ---------------------------------------- #
