@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/12/14 16:32:01 $
-#    $Revision: 1.31 $
+#    $Date: 2010/01/15 04:16:47 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.31 2009/12/14 16:32:01 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.32 2010/01/15 04:16:47 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -360,7 +360,7 @@ foreach tstvol ($TEST_VOLUMES)
         grep -v created $SUBJECTS_DIR/$TEST_SUBJ/mri/transforms/$xform \
             > $SUBJECTS_DIR/tst.$xform
         set cmd=(diff $SUBJECTS_DIR/ref.$xform $SUBJECTS_DIR/tst.$xform)           
-        $cmd
+        $cmd >& $LOG_DIR/diff-$xform.txt
         set diff_status=$status
         if ($diff_status != 0) then
           printf "***FAILED :: diff $xform\n" >>& $OUTPUTF
