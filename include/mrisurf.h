@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/12 15:01:12 $
- *    $Revision: 1.335 $
+ *    $Date: 2010/01/15 15:53:17 $
+ *    $Revision: 1.336 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -439,6 +439,7 @@ typedef struct
   float   l_convex ;          /* convexity term */
   float   l_tsmooth ;         /* thickness smoothness term */
   float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
+  float   l_osurf_repulse ;   /* repulsive outer surface (for layer IV) */
   float   l_external ;        /* external (user-defined) coefficient */
   float   l_thick_parallel ;  // term that encourages thickness vectors to be parallel
   float   l_thick_min ;       // term that encourages thickness vectors to be minimal
@@ -956,6 +957,7 @@ double       MRISParea(MRI_SP *mrisp) ;
 #define TMP2_VERTICES       8
 #define WHITE_VERTICES      9
 #define TARGET_VERTICES     10
+#define LAYERIV_VERTICES    11
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
 int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
@@ -1513,6 +1515,7 @@ int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
 int  MRISsetCurvature(MRI_SURFACE *mris, float val) ;
 int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
 
+int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal) ;
 int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) ;
