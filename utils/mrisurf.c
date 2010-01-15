@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/14 22:57:11 $
- *    $Revision: 1.653 $
+ *    $Author: fischl $
+ *    $Date: 2010/01/15 21:49:26 $
+ *    $Revision: 1.654 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -553,6 +553,7 @@ static int mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno) ;
 static int  mrisRipVertices(MRI_SURFACE *mris) ;
 #endif
 static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri) ;
+static double mrisRmsDistanceError(MRI_SURFACE *mris) ;
 static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int mrisStoreVtotalInV3num(MRI_SURFACE *mris) ;
 static int  mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno,
@@ -693,7 +694,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.653 2010/01/14 22:57:11 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.654 2010/01/15 21:49:26 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -17214,6 +17215,8 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
     sigma = v->val2 ;
     if (FZERO(sigma))
       sigma = sigma_global ;
+    if (FZERO(sigma))
+      sigma = 0.25 ;
 
     nx = v->nx ; ny = v->ny ; nz = v->nz ;
 
@@ -17334,7 +17337,7 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, MRI *mri_bra
 {
   int     vno ;
   VERTEX  *v ;
-  Real    dx, dy, dz ;
+  Real    dx, dy, dz, norm ;
 
 
   if (FZERO(l_location))
@@ -17350,11 +17353,6 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, MRI *mri_bra
 
     dx = v->targx - v->x ; dy = v->targy-v->y ; dz = v->targz-v->z ;
 
-    v->dx += l_location * dx ;
-    v->dy += l_location * dy ;
-    v->dz += l_location * dz ;
-
-
     if (vno == Gdiag_no)
     {
       fprintf(stdout,
@@ -17362,6 +17360,16 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, MRI *mri_bra
               v->targx, v->targy, v->targz, v->x, v->y, v->z, dx, dy, dz,
               dx*v->nx+dy*v->ny+dz*v->nz) ;
     }
+    norm = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (norm > 1) // so things move at the same speed
+    {
+      dx /= norm ; dy /= norm ; dz /= norm ;
+    }
+    
+    v->dx += l_location * dx ;
+    v->dy += l_location * dy ;
+    v->dz += l_location * dz ;
+
   }
 
   return(NO_ERROR) ;
@@ -24844,6 +24852,7 @@ MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
       if (v->ripflag)
         continue ;
       pnb = v->v ;
+      //      vnum = v->vtotal ;   BRF - used to be vnum
       vnum = v->vnum ;
       val_list[0] = v->val ;
       for (num = 1, vnb = 0 ; vnb < vnum ; vnb++)
@@ -24866,6 +24875,57 @@ MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
       if (v->ripflag)
         continue ;
       v->val = v->tdx ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
+{
+  int    i, vno, vnb, *pnb, vnum, num ;
+  float  val_list[MAX_NEIGHBORS] ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < nmedians ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      pnb = v->v ;
+      if (vtotal)
+        vnum = v->vtotal ;
+      else
+        vnum = v->vnum ; 
+      val_list[0] = v->d ;
+      for (num = 1, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+
+        val_list[num++] = vn->d ;
+      }
+      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals) ;
+      if (ISODD(num))
+        v->tdx = val_list[(num-1)/2] ;
+      else
+        v->tdx = (val_list[num/2] + val_list[num/2-1])/2 ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->d = v->tdx ;
     }
   }
   return(NO_ERROR) ;
@@ -26704,7 +26764,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   double sse, delta_t = 0.0, rms, dt, 
     l_intensity, base_dt, last_sse,last_rms, max_mm;
   MHT    *mht = NULL, *mht_v_orig = NULL, *mht_v_current = NULL, 
-         *mht_f_current = NULL ;
+    *mht_f_current = NULL, *mht_pial = NULL ;
   struct timeb  then ;
   int msec ;
 
@@ -26714,6 +26774,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   if (!FZERO(parms->l_surf_repulse))
     mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES) ;
 
+  if (parms->l_osurf_repulse > 0)   // repel inwards from outer surface
+    mht_pial = MHTfillVertexTableRes(mris, NULL, PIAL_VERTICES,3.0) ;
   base_dt = parms->dt ;
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
@@ -26757,7 +26819,10 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mrisWriteSnapshot(mris, parms, 0) ;
 
   avgs = parms->n_averages ;
-  last_rms = rms = mrisRmsValError(mris, mri_brain) ;
+  if (!FZERO(parms->l_location))
+    last_rms = rms = mrisRmsDistanceError(mris) ;
+  else
+    last_rms = rms = mrisRmsValError(mris, mri_brain) ;
   last_sse = sse = MRIScomputeSSE(mris, parms) ;
   if (DZERO(parms->l_intensity) && parms->l_external > 0)
     last_rms = rms = 10*sqrt(sse/MRISvalidVertices(mris)) ;
@@ -26810,6 +26875,9 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mrisComputeExpandwrapTerm(mris, mri_brain, parms->l_expandwrap) ;
     mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
     mrisComputeSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_v_orig);
+    if (parms->l_osurf_repulse > 0)
+      mrisComputeWhichSurfaceRepulsionTerm
+        (mris, -parms->l_osurf_repulse, mht_pial, PIAL_VERTICES,.1);
     if (gMRISexternalGradient)
       (*gMRISexternalGradient)(mris, parms) ;
 
@@ -26865,15 +26933,18 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
         MHTcheckFaces(mris, mht) ;
       MRIScomputeMetricProperties(mris) ;
-      rms = mrisRmsValError(mris, mri_brain) ;
+      if (!FZERO(parms->l_location))
+        rms = mrisRmsDistanceError(mris) ;
+      else
+        rms = mrisRmsValError(mris, mri_brain) ;
       sse = MRIScomputeSSE(mris, parms) ;
       if (DZERO(parms->l_intensity) && parms->l_external > 0)
         rms = 10*sqrt(sse/MRISvalidVertices(mris)) ;
       done = 1 ;
       /* check to see if the error decreased substantially, if not
       reduce the  step size  */
-      if ((parms->check_tol &&  rms > last_rms-(last_rms*parms->tol)) ||
-          ((parms->check_tol == 0) && (rms > last_rms-0.05)))
+      if ((parms->check_tol && (last_rms-rms)/last_rms < parms->tol) ||
+          ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms-0.05)))
       {
         nreductions++ ;
         parms->dt *= REDUCTION_PCT ;
@@ -26903,7 +26974,10 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     enforce_link_positions(mris) ;
     mrisTrackTotalDistanceNew(mris) ;  /* computes signed
                              deformation amount */
-    rms = mrisRmsValError(mris, mri_brain) ;
+    if (!FZERO(parms->l_location))
+      rms = mrisRmsDistanceError(mris) ;
+    else
+      rms = mrisRmsValError(mris, mri_brain) ;
     sse = MRIScomputeSSE(mris, parms) ;
     if (DZERO(parms->l_intensity) && parms->l_external > 0)
       rms = 10*sqrt(sse/MRISvalidVertices(mris)) ;
@@ -33629,7 +33703,7 @@ MRISsoapBubbleD(MRI_SURFACE *mris, int navgs)
   double  mean ;
 
   fprintf(stdout,
-          "performing soap bubble smoothing of D for %d iterations.\n",
+          "performing soap bubble smoothing of D vals for %d iterations.\n",
           navgs) ;
   for (i = 0 ; i < navgs ; i++)
   {
@@ -60310,8 +60384,6 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
   int vtx, useval=0, usecurv=0, nvox, c, r, s;
   float val;
 
-  if (Gdiag_no > 0) printf("MRIcopyMRIS\n");
-
   if (mri == NULL)
   {
     mri = MRIallocSequence(surf->nvertices, 1, 1, MRI_FLOAT, Frame+1);
@@ -66674,3 +66746,14 @@ MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
   return(NO_ERROR) ;
 }
 
+static double
+mrisRmsDistanceError(MRI_SURFACE *mris)
+{
+  INTEGRATION_PARMS parms;
+  double rms ;
+
+  memset(&parms, 0, sizeof(parms)) ;
+  parms.l_location = 1 ;
+  rms = mrisComputeTargetLocationError(mris, &parms);
+  return(sqrt(rms / MRISvalidVertices(mris))) ;
+}
