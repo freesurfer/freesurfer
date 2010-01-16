@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/15 19:51:56 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/01/16 01:26:57 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2004-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -165,13 +165,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.25 2010/01/15 19:51:56 mreuter Exp $",
+   "$Id: mri_cc.c,v 1.26 2010/01/16 01:26:57 mreuter Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.25 2010/01/15 19:51:56 mreuter Exp $",
+           "$Id: mri_cc.c,v 1.26 2010/01/16 01:26:57 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1493,7 +1493,7 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   printf("final transformation (x=%2.1f, yr=%2.3f, zr=%2.3f):\n",x0_best,
          DEGREES(yrot_best), DEGREES(zrot_best)) ;
   MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+ /* if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)*/
     LTAwrite(lta, "test.lta") ; 
   MatrixFree(&m_trans) ;
   MatrixFree(&m_trans_inv) ;
@@ -1772,10 +1772,10 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
 	   getVolGeom(mri_norm, &lta2->xforms[0].src);
      getVolGeom(mri_norm, &lta2->xforms[0].dst);
 		 
-		 // adjust translation info so that CC center is at 128,128,128
+		 // adjust translation info so that best slice it at 128 y z
      *MATRIX_RELT(lta2->xforms[0].m_L, 1, 4) += 128 - best_slice;
-     *MATRIX_RELT(lta2->xforms[0].m_L, 2, 4) += 128 - y0_best ;
-     *MATRIX_RELT(lta2->xforms[0].m_L, 3, 4) += 128 - z0_best ;
+     // *MATRIX_RELT(lta2->xforms[0].m_L, 2, 4) += 128 - y0_best ;
+     // *MATRIX_RELT(lta2->xforms[0].m_L, 3, 4) += 128 - z0_best ;
 		 
 	   LTAwrite(lta2, lta_fname);
 		 LTAfree(&lta2);
