@@ -10,7 +10,7 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- * $Id: cudadetect.cpp,v 1.1 2010/01/15 23:31:55 nicks Exp $
+ * $Id: cudadetect.cpp,v 1.2 2010/01/16 06:10:51 nicks Exp $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -37,8 +37,10 @@
 #include <stdlib.h>
 #include <dlfcn.h>
 
+#ifdef FS_CUDA
 #include <cuda.h>
 #include <cuda_runtime_api.h>
+#endif /* FS_CUDA */
 
 #ifdef __linux
 const char* cudalibname = "libcudart.so";
@@ -94,11 +96,17 @@ int main(int argc, char **argv)
     printf("*** No CUDA enabled device(s) detected! ***\n");
     return 1;
   }
-  // print device info
+
+#ifdef FS_CUDA
+  // print device info (if cuda is installed)
   return dump();
+#else
+  return 0;
+#endif /* FS_CUDA */
 }
 
 
+#ifdef FS_CUDA
 /////////////////////////////////////////////////////////////////////////////
 // Device info dump (this code is taken from the SDK's deviceQuery example)
 /////////////////////////////////////////////////////////////////////////////
@@ -204,3 +212,4 @@ static int dump()
 
   return (0);
 }
+#endif /* FS_CUDA */
