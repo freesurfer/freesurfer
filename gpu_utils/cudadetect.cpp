@@ -10,7 +10,7 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- * $Id: cudadetect.cpp,v 1.2 2010/01/16 06:10:51 nicks Exp $
+ * $Id: cudadetect.cpp,v 1.3 2010/01/16 06:12:47 nicks Exp $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,7 @@
 #ifdef FS_CUDA
 #include <cuda.h>
 #include <cuda_runtime_api.h>
+static int dump();
 #endif /* FS_CUDA */
 
 #ifdef __linux
@@ -49,8 +50,6 @@ const char* cudalibname = "libcudart.so";
 #ifdef __APPLE__
 const char* cudalibname = "libcudart.dylib";
 #endif
-
-static int dump();
 
 /* we make use of dlopen and dlclose calls of Linux and MacOSX to check whether
  * the libraries exist. Then we make sure one of the basic calls in that
