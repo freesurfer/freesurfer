@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/12 12:14:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/18 21:40:30 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file dtk.fs.c
   \brief FS interface to Diffusion Toolkit and TrackVis data.
   DTk http://trackvis.org/docs/?subsect=fileformat
-  $Id: dtk.fs.c,v 1.3 2009/10/12 12:14:11 greve Exp $
+  $Id: dtk.fs.c,v 1.4 2010/01/18 21:40:30 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,11 +51,13 @@ double round(double x);
 #undef X
 #endif
 
+double trkvisOffset = 0.5;
+
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTKFSSrcVersion(void)
 {
-  return("$Id: dtk.fs.c,v 1.3 2009/10/12 12:14:11 greve Exp $");
+  return("$Id: dtk.fs.c,v 1.4 2010/01/18 21:40:30 greve Exp $");
 }
 
 /*----------------------------------------------------------------*/
@@ -124,12 +126,13 @@ DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile)
   dr = dtkset->hdr->voxel_size[1];
   ds = dtkset->hdr->voxel_size[2];
 
-  printf("Loading %d tracks\n",dtkset->hdr->n_count);
+  printf("Allocating %d tracks\n",dtkset->hdr->n_count);
   dtkset->trk = (DTK_TRACK**)calloc(sizeof(DTK_TRACK*),dtkset->hdr->n_count);
+  printf("Loading %d tracks\n",dtkset->hdr->n_count);
   for(nthtrk=0; nthtrk < dtkset->hdr->n_count ; nthtrk++){
-    //if(nthtrk % 1000 == 0) printf("%5d\n",nthtrk);
     dtkset->trk[nthtrk] = DTKreadTrack(fp, dtkset->hdr->n_scalars, 
 				       dtkset->hdr->n_properties,dc,dr,ds);
+    //if(nthtrk % 1000 == 0) printf("%5d %d\n",nthtrk,dtkset->trk[nthtrk]->npoints);
     if(dtkset->trk[nthtrk] == NULL){
       printf("ERROR: DTKloadTrackSet(): loading track %d\n",nthtrk);
       fclose(fp);
@@ -180,9 +183,9 @@ DTK_TRACK *DTKreadTrack(FILE *fp, int n_scalars, int n_properties,
     fread(&x,sizeof(float),1,fp);
     fread(&y,sizeof(float),1,fp);
     fread(&z,sizeof(float),1,fp);
-    trk->c[n] = x/dc;
-    trk->r[n] = y/dr;
-    trk->s[n] = z/ds;
+    trk->c[n] = x/dc - trkvisOffset;
+    trk->r[n] = y/dr - trkvisOffset;
+    trk->s[n] = z/ds - trkvisOffset;
     for(ns = 0; ns < trk->n_scalars; ns++)
       fread(&(trk->scalars[ns][n]),sizeof(float),1,fp);
   }
@@ -199,9 +202,9 @@ int DTKwriteTrack(FILE *fp, DTK_TRACK *trk, float dc, float dr, float ds)
 
   fwrite(&(trk->npoints),sizeof(int),1,fp);    
   for(n=0; n < trk->npoints; n++){
-    x = trk->c[n]*dc;
-    y = trk->r[n]*dr;
-    z = trk->s[n]*ds;
+    x = (trk->c[n]+trkvisOffset)*dc;
+    y = (trk->r[n]+trkvisOffset)*dr;
+    z = (trk->s[n]+trkvisOffset)*ds;
     fwrite(&x,sizeof(float),1,fp);
     fwrite(&y,sizeof(float),1,fp);
     fwrite(&z,sizeof(float),1,fp);
@@ -313,18 +316,56 @@ int DTKlabelTracks(DTK_TRACK_SET *trkset, MRI *seg)
 {
   int nthtrk, c, r, s, n;
   DTK_TRACK *trk;
+  int ndiv=2000,nthdiv;
+  double dc,dr,ds;
+
+  //printf("Labeling tracks\n");
+  for(nthtrk = 0; nthtrk < trkset->hdr->n_count; nthtrk++){
+    trk = trkset->trk[nthtrk];
+    trk->label = (int *) calloc(sizeof(int),trk->npoints);
+    for(n=0; n < trk->npoints-1; n++){
+      dc = (trk->c[n+1]-trk->c[n])/ndiv;
+      dr = (trk->r[n+1]-trk->r[n])/ndiv;
+      ds = (trk->s[n+1]-trk->s[n])/ndiv;
+      for(nthdiv=0; nthdiv < ndiv; nthdiv++){
+	c = (int)round(trk->c[n] + dc*nthdiv);
+	r = (int)round(trk->r[n] + dr*nthdiv);
+	s = (int)round(trk->s[n] + ds*nthdiv);
+	if(c < 0 || c >= seg->width)  continue;
+	if(r < 0 || r >= seg->height) continue;
+	if(s < 0 || s >= seg->depth)  continue;
+	if(trk->label[n]) continue;
+	trk->label[n] = MRIgetVoxVal(seg,c,r,s,0);
+	//printf("%d %d  %d %d %d  %4.1lf %4.1lf %4.1lf  %d\n",nthtrk,n,c,r,s,
+	//     trk->c[n],trk->r[n],trk->s[n],trk->label[n]);
+      }
+    }
+    //printf("Done labeling tracks\n");
+  }
+  return(0);
+}
+
+/*-------------------------------------------------------------*/
+int DTKlabelTracks0(DTK_TRACK_SET *trkset, MRI *seg)
+{
+  int nthtrk, c, r, s, n;
+  DTK_TRACK *trk;
+  //printf("Labeling tracks\n");
   for(nthtrk = 0; nthtrk < trkset->hdr->n_count; nthtrk++){
     trk = trkset->trk[nthtrk];
     trk->label = (int *) calloc(sizeof(int),trk->npoints);
     for(n=0; n < trk->npoints; n++){
-      c = nint(trk->c[n]);
-      r = nint(trk->r[n]);
-      s = nint(trk->s[n]);
+      c = (int)round(trk->c[n]);
+      r = (int)round(trk->r[n]);
+      s = (int)round(trk->s[n]);
       if(c < 0 || c >= seg->width) continue;
       if(r < 0 || r >= seg->height) continue;
       if(s < 0 || s >= seg->depth) continue;
       trk->label[n] = MRIgetVoxVal(seg,c,r,s,0);
+      //printf("%d %d  %d %d %d  %4.1lf %4.1lf %4.1lf  %d\n",nthtrk,n,c,r,s,
+      //     trk->c[n],trk->r[n],trk->s[n],trk->label[n]);
     }
+    //printf("Done labeling tracks\n");
   }
   return(0);
 }
@@ -386,11 +427,42 @@ DTK_TRACK_SET *DTKextractSeg(DTK_TRACK_SET *trkset, int segid)
       }
     }
     if(isSeg){
-      newset->trk = (DTK_TRACK**)realloc(newset->trk,sizeof(DTK_TRACK*)*(newset->hdr->n_count+1));
+      //printf("nthtrk=%d isSeg=%d %d %d\n",nthtrk,isSeg,id,segid);
+      newset->trk = (DTK_TRACK**)
+	realloc(newset->trk,sizeof(DTK_TRACK*)*(newset->hdr->n_count+1));
       newset->trk[newset->hdr->n_count] = DTKcopyTrack(trk);
       newset->hdr->n_count ++;
     }
   }
+  printf("Found %d \n",newset->hdr->n_count);
+  return(newset);
+}
+
+/*---------------------------------------------------------------*/
+DTK_TRACK_SET *DTKextractSegEndPoints(DTK_TRACK_SET *trkset, int segid)
+{
+  int nthtrk;
+  DTK_TRACK *trk;
+  DTK_TRACK_SET *newset;
+
+  newset = (DTK_TRACK_SET *) calloc(sizeof(DTK_TRACK_SET),1);
+  newset->template = trkset->template;
+  newset->hdr = (DTK_HDR *) calloc(sizeof(DTK_HDR),1);
+  memcpy(newset->hdr,trkset->hdr,sizeof(DTK_HDR));
+  newset->hdr->n_count = 0;
+
+  for(nthtrk = 0; nthtrk < trkset->hdr->n_count; nthtrk++){
+    trk = trkset->trk[nthtrk];
+    
+    if(trk->label[0] == segid || trk->label[trk->npoints-1] == segid){
+      //printf("nthtrk=%d isSeg=%d %d %d\n",nthtrk,isSeg,id,segid);
+      newset->trk = (DTK_TRACK**)
+	realloc(newset->trk,sizeof(DTK_TRACK*)*(newset->hdr->n_count+1));
+      newset->trk[newset->hdr->n_count] = DTKcopyTrack(trk);
+      newset->hdr->n_count ++;
+    }
+  }
+  printf("Found %d \n",newset->hdr->n_count);
   return(newset);
 }
 
@@ -453,7 +525,7 @@ LABEL *DTKtrack2Label(DTK_TRACK *trk)
 MRI *DTKmapTrackNos(DTK_TRACK_SET *trkset)
 {
   MRI *mri, *t;
-  int ntrk, c, r, s, n, nhits, nmaxhits= 2000;
+  int ntrk, c, r, s, n, nhits, nmaxhits = 10000;
   DTK_TRACK *trk;
 
   t = trkset->template;
@@ -468,11 +540,11 @@ MRI *DTKmapTrackNos(DTK_TRACK_SET *trkset)
     // Go thru each point in the track
     for(n=0; n < trk->npoints; n++){
       // CRS of voxel for this point
-      c = nint(trk->c[n]);
-      r = nint(trk->r[n]);
-      s = nint(trk->s[n]);
+      c = (int)round(trk->c[n]);
+      r = (int)round(trk->r[n]);
+      s = (int)round(trk->s[n]);
       if(c < 0 || c >= t->width) continue;
-      if(r < 0 || c >= t->height) continue;
+      if(r < 0 || r >= t->height) continue;
       if(s < 0 || s >= t->depth) continue;
       // Current number of tracks passing through this voxel
       nhits = MRIgetVoxVal(mri,c,r,s,0); 
@@ -535,15 +607,15 @@ MRI *DTKsegROI(DTK_TRACK_SET *trkset, MRI *seg, int segid)
 	  for(term=0; term <= 1; term++){
 	    if(term==0){
 	      // "Start" of the track
-	      cT = nint(trk->c[0]);
-	      rT = nint(trk->r[0]);
-	      sT = nint(trk->s[0]);
+	      cT = (int)round(trk->c[0]);
+	      rT = (int)round(trk->r[0]);
+	      sT = (int)round(trk->s[0]);
 	    }
 	    if(term==1){
 	      // "End" of the track
-	      cT = nint(trk->c[trk->npoints-1]);
-	      rT = nint(trk->r[trk->npoints-1]);
-	      sT = nint(trk->s[trk->npoints-1]);
+	      cT = (int)round(trk->c[trk->npoints-1]);
+	      rT = (int)round(trk->r[trk->npoints-1]);
+	      sT = (int)round(trk->s[trk->npoints-1]);
 	    }
 	    if(cT < 0 || cT >= seg->width)  continue;
 	    if(rT < 0 || rT >= seg->height) continue;
