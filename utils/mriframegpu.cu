@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 16:55:33 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/01/19 18:42:52 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -60,6 +59,23 @@ void CopyMRIrowToContiguous<unsigned char>( const MRI* src, unsigned char* h_sla
 	  &MRIseq_vox( src, 0, iy, iz, iFrame ),
 	  src->width*sizeof(unsigned char) );
 }
+
+// ====================================================
+
+
+template<>
+void CopyMRIcontiguousToRow<unsigned char>( MRI* dst, const unsigned char* h_slab,
+					    const unsigned int iy,
+					    const unsigned int iz,
+					    const unsigned int iFrame ) {
+  // Do the copy
+  memcpy( &MRIseq_vox( dst, 0, iy, iz, iFrame ),
+	  h_slab,
+	  dst->width*sizeof(unsigned char) );
+}
+
+
+
 
 
 // ======================================================

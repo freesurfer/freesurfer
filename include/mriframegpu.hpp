@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 16:55:38 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/01/19 18:42:53 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -44,7 +43,8 @@ extern "C" {
 
 #include "cudacheck.h"
 
-// ------
+// ==================================================================
+
 
 //! Templated function to convert type to MRI->type
 template<typename T>
@@ -56,18 +56,6 @@ template<> int GetAsMRItype<unsigned char>( const unsigned char tmp );
 
 // ------
 
-//! Index computation function
-static __device__ __host__ unsigned int MRI_GetIndex1D( const unsigned int ix,
-							const unsigned int iy,
-							const unsigned int iz,
-							const dim3 dims ) {
-  /*!
-    Utility routine to perform index calculations on the host and on the device.
-    Ideally, this would be a class member
-  */
-
-  return( ix + ( dims.x * ( iy + ( dims.y * iz ) ) ) );
-}
 
 // ------
 
@@ -86,6 +74,24 @@ void CopyMRIrowToContiguous<unsigned char>( const MRI* src, unsigned char* h_sla
 					    const unsigned int iy,
 					    const unsigned int iz,
 					    const unsigned int iFrame );
+
+
+//! Templated memory copy for a row of MRI frame data
+template<typename T>
+void CopyMRIcontiguousToRow( MRI *dst, const T* h_slab,
+			      const unsigned int iy,
+			      const unsigned int iz,
+			      const unsigned int iFrame ) {
+  std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
+}
+
+
+template<>
+void CopyMRIcontiguousToRow<unsigned char>( MRI* dst, const unsigned char* h_slab,
+					    const unsigned int iy,
+					    const unsigned int iz,
+					    const unsigned int iFrame );
+
 
 // ================================================================
 
@@ -143,7 +149,7 @@ public:
     */
     
     // Sanity check
-    T tmp;
+    T tmp = 0;
     if( src->type != GetAsMRItype(tmp)  ) {
       std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
 	src->type << std::endl;
@@ -200,17 +206,7 @@ public:
     T* h_data;
 
     // Start with some sanity checks
-    T tmp;
-    if( src->type != GetAsMRItype( tmp ) ) {
-      std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
-	src->type << std::endl;
-      exit( EXIT_FAILURE );
-    }
-
-    if( !this->CheckDims( src ) ) {
-      std::cerr << __FUNCTION__ << ": Dimension mismatch, reallocating" << std::endl;
-      this->Allocate( src );
-    }
+    this->VerifyMRI( src );
 
     if( iFrame >= src->nframes ) {
       std:: cerr << __FUNCTION__ << ": Bad frame requested " << iFrame << std::endl;
@@ -239,11 +235,116 @@ public:
     CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
   }
 
+
+
+  //! Receives the given MRI frame from the GPU
+  void Recv( MRI* dst, const unsigned int iFrame ) const {
+    /*!
+      Retrieves the given MRI frame from the GPU.
+      For now, this allocates its own memory and does the
+      copy synchronously
+    */
+
+    T* h_data;
+
+    // Start with sanity checks
+    this->VerifyMRI( dst );
+
+    if( iFrame >= dst->nframes ) {
+      std:: cerr << __FUNCTION__ << ": Bad frame requested " << iFrame << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    const size_t bSize = this->GetBufferSize();
+
+    // Allocate contiguous host memory
+    CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data, bSize, cudaHostAllocDefault ) );
+
+    // Retrieve from GPU
+    cudaMemcpy3DParms cpyPrms = {0};
+    cpyPrms.srcPtr = this->d_data;
+    cpyPrms.dstPtr = make_cudaPitchedPtr( (void*)h_data, gpuDims.x*sizeof(T), gpuDims.x, gpuDims.y );
+    cpyPrms.extent = this->extent;
+    cpyPrms.kind = cudaMemcpyDeviceToHost;
+
+    CUDA_SAFE_CALL( cudaMemcpy3D( &cpyPrms ) );
+
+    // Retrieve from contiguous RAM
+    this->InhumeFrame( dst, h_data, iFrame );
+
+    // Release host memory
+    CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
+  }
+
+    
+  // --------------------------------------------------------
+  // Subscripting operators
+
+  __device__ T operator() ( const unsigned int ix,
+			    const unsigned int iy,
+			    const unsigned int iz ) const {
+    const char* data = reinterpret_cast<const char*>(this->d_data.ptr);
+    size_t pitch = this->d_data.pitch; // Rows are pitch apart
+    size_t slicePitch = pitch * extent.height; // Slices are slicePitch apart
+
+    const char* slice = data + ( iz * slicePitch );
+    const char* row = slice + ( iy * pitch );
+
+    return( reinterpret_cast<const T*>(row)[ix] );
+  }
+
+
+  __device__ T& operator() ( const unsigned int ix,
+			     const unsigned int iy,
+			     const unsigned int iz ) {
+    char* data = reinterpret_cast<char*>(this->d_data.ptr);
+    size_t pitch = this->d_data.pitch; // Rows are pitch apart
+    size_t slicePitch = pitch * extent.height; // Slices are slicePitch apart
+
+    char* slice = data + ( iz * slicePitch );
+    char* row = slice + ( iy * pitch );
+
+    return( reinterpret_cast<T*>(row)[ix] );
+  }
+
+
+  //! Clamps input integer into range
+  __device__ unsigned int ClampCoord( const int i,
+				      const unsigned int iMax ) const {
+    /*!
+      Performs clamping on the input index.
+      Negative values are set to 0, values greater than iMax-1 are
+      set to iMax-1
+    */
+    if( i < 0 ) {
+      return 0;
+    } else if( i > (iMax-1) ) {
+      return( iMax-1 );
+    } else {
+      return i;
+    }
+  }
+
+  /*
+  MRIframeGPU( const MRIframeGPU& src ) : cpuDims(src.cpuDims),
+					  gpuDims(src.gpuDims),
+					  extent(src.extent),
+					  d_data(src.d_data) {
+
+    std::cerr << __PRETTY_FUNCTION__ << ": Begin" << std::endl;
+    std::cerr << src.d_data.ptr << std::endl;
+    std::cerr << src.d_data.ptr << std::endl;
+    std::cerr << __PRETTY_FUNCTION__ << ": End" << std::endl;
+    
+  }
+  */
+
+
 private:
 
   // ----------------------------------------------------------------------
   // Prevent copying
-  
+  /*
   //! Copy constructor - don't use
   MRIframeGPU( const MRIframeGPU& src ) : cpuDims(make_uint3(0,0,0)),
 			gpuDims(make_uint3(0,0,0)),
@@ -252,6 +353,7 @@ private:
     std::cerr << __PRETTY_FUNCTION__ << ": Please don't use copy constructor" << std::endl;
     exit( EXIT_FAILURE );
   }
+  */
 
   //! Assignment operator - don't use
   MRIframeGPU& operator=( const MRIframeGPU &src ) {
@@ -279,16 +381,37 @@ private:
   // ----------------------------------------------------------------------
   
   //! Function to sanity check dimensions
-  bool CheckDims( const MRI* src ) const {
+  bool CheckDims( const MRI* mri ) const {
     
     bool goodDims;
 
-    goodDims = ( src->width == this->cpuDims.x );
-    goodDims = goodDims && ( src->height == this->cpuDims.y );
-    goodDims = goodDims && ( src->depth == this->cpuDims.z );
+    goodDims = ( mri->width == this->cpuDims.x );
+    goodDims = goodDims && ( mri->height == this->cpuDims.y );
+    goodDims = goodDims && ( mri->depth == this->cpuDims.z );
 
     return( goodDims );
   }
+
+  //! Method to sanity check MRI
+  void VerifyMRI( const MRI* mri ) const {
+
+    T tmp;
+    tmp = 0;
+    if( mri->type != GetAsMRItype(tmp)  ) {
+      std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
+	mri->type << std::endl;
+      exit( EXIT_FAILURE );
+      // Shut the compiler up
+      std::cout << tmp << std::endl;
+    }
+
+    if( !this->CheckDims( mri ) ) {
+      std::cerr << __PRETTY_FUNCTION__ << ": Size mismatch" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+  }
+
+    
 
 
   // ----------------------------------------------------------------------
@@ -316,16 +439,64 @@ private:
       exit( EXIT_FAILURE );
     }
 
+    this->VerifyMRI( src );
+      
+
     // Main extraction loop
     for( unsigned int iz=0; iz<this->cpuDims.z; iz++ ) {
       for( unsigned int iy=0; iy<this->cpuDims.y; iy++ ) {
-	unsigned int iStart = MRI_GetIndex1D( 0, iy, iz, this->gpuDims );
+	unsigned int iStart = this->Index1D( 0, iy, iz );
 
 	CopyMRIrowToContiguous( src, &( h_slab[iStart] ), iy, iz, iFrame );
       }
+    } 
+  }
+
+
+  //! Copies contiguous memory to an MRI frame
+  void InhumeFrame( MRI* dst, const T *h_slab, const unsigned int iFrame ) const {
+    /*!
+      Copies a block of contiguous host memory on the host into an MRI frame.
+      Assumes that everything is all properly allocated, so things are not fanatically
+      verified
+    */
+    
+    // Start with a few sanity checks
+    if( iFrame >= dst->nframes ) {
+      std::cerr << __FUNCTION__ << ": iFrame out of range" << std::endl;
+      exit( EXIT_FAILURE );
     }
     
+    if( h_slab == NULL ) {
+      std::cerr << __FUNCTION__ << ": h_slab unallocated" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    this->VerifyMRI( dst );
+
+    // Main extraction loop
+    for( unsigned int iz=0; iz<this->cpuDims.z; iz++ ) {
+      for( unsigned int iy=0; iy<this->cpuDims.y; iy++ ) {
+	unsigned int iStart = this->Index1D( 0, iy, iz );
+	
+	CopyMRIcontiguousToRow( dst, &( h_slab[iStart] ), iy, iz, iFrame );
+      }
+    }
   }
+
+
+  // ----------------------------------------------------------------------
+
+  // Index into host memory defined by gpuDims
+  unsigned int Index1D( const unsigned int ix,
+			const unsigned int iy,
+			const unsigned int iz ) const {
+    return( ix + ( this->gpuDims.x * ( iy + ( this->gpuDims.y * iz ) ) ) );
+  }
+
+
+    
+
 };
 
 
