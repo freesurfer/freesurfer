@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 20:03:05 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/01/19 20:48:34 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,6 @@
 extern "C" {
 #include "mri.h"
 }
-
 
 
 #include "cudacheck.h"
@@ -73,20 +72,23 @@ void CopyMRIrowToContiguous( const MRI *src, T* h_slab,
 
 
 template<>
-void CopyMRIrowToContiguous<unsigned char>( const MRI* src, unsigned char* h_slab,
+void CopyMRIrowToContiguous<unsigned char>( const MRI* src,
+					    unsigned char* h_slab,
 					    const unsigned int iy,
 					    const unsigned int iz,
 					    const unsigned int iFrame );
 
 template<>
-void CopyMRIrowToContiguous<short>( const MRI* src, short* h_slab,
+void CopyMRIrowToContiguous<short>( const MRI* src,
+				    short* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
 				    const unsigned int iFrame );
 
 
 template<>
-void CopyMRIrowToContiguous<float>( const MRI* src, float* h_slab,
+void CopyMRIrowToContiguous<float>( const MRI* src,
+				    float* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
 				    const unsigned int iFrame );
@@ -94,29 +96,33 @@ void CopyMRIrowToContiguous<float>( const MRI* src, float* h_slab,
 
 //! Templated memory copy for a row of MRI frame data
 template<typename T>
-void CopyMRIcontiguousToRow( MRI *dst, const T* h_slab,
-			      const unsigned int iy,
-			      const unsigned int iz,
-			      const unsigned int iFrame ) {
+void CopyMRIcontiguousToRow( MRI *dst, const
+			     T* h_slab,
+			     const unsigned int iy,
+			     const unsigned int iz,
+			     const unsigned int iFrame ) {
   std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
   exit( EXIT_FAILURE );
 }
 
 
 template<>
-void CopyMRIcontiguousToRow<unsigned char>( MRI* dst, const unsigned char* h_slab,
+void CopyMRIcontiguousToRow<unsigned char>( MRI* dst,
+					    const unsigned char* h_slab,
 					    const unsigned int iy,
 					    const unsigned int iz,
 					    const unsigned int iFrame );
 
 template<>
-void CopyMRIcontiguousToRow<short>( MRI* dst, const short* h_slab,
+void CopyMRIcontiguousToRow<short>( MRI* dst,
+				    const short* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
 				    const unsigned int iFrame );
 
 template<>
-void CopyMRIcontiguousToRow<float>( MRI* dst, const float* h_slab,
+void CopyMRIcontiguousToRow<float>( MRI* dst,
+				    const float* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
 				    const unsigned int iFrame );
@@ -153,7 +159,6 @@ public:
  
   //! Destructor
   ~MRIframeGPU( void ) {
-    std::cerr << __PRETTY_FUNCTION__ << std::endl;
     this->Release();
   }
 
@@ -246,7 +251,9 @@ public:
     const size_t bSize = this->GetBufferSize();
 
     // Allocate contiguous host memory
-    CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data, bSize, cudaHostAllocDefault ) );
+    CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data,
+				   bSize,
+				   cudaHostAllocDefault ) );
     memset( h_data, 0 , bSize );
 
     // Extract the data
@@ -254,7 +261,10 @@ public:
 
     // Do the copy
     cudaMemcpy3DParms copyParams = {0};
-    copyParams.srcPtr = make_cudaPitchedPtr( (void*)h_data, gpuDims.x*sizeof(T), gpuDims.x, gpuDims.y );
+    copyParams.srcPtr = make_cudaPitchedPtr( (void*)h_data,
+					     gpuDims.x*sizeof(T),
+					     gpuDims.x,
+					     gpuDims.y );
     copyParams.dstPtr = this->d_data;
     copyParams.extent = this->extent;
     copyParams.kind = cudaMemcpyHostToDevice;
@@ -288,12 +298,17 @@ public:
     const size_t bSize = this->GetBufferSize();
 
     // Allocate contiguous host memory
-    CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data, bSize, cudaHostAllocDefault ) );
+    CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data,
+				   bSize,
+				   cudaHostAllocDefault ) );
 
     // Retrieve from GPU
     cudaMemcpy3DParms cpyPrms = {0};
     cpyPrms.srcPtr = this->d_data;
-    cpyPrms.dstPtr = make_cudaPitchedPtr( (void*)h_data, gpuDims.x*sizeof(T), gpuDims.x, gpuDims.y );
+    cpyPrms.dstPtr = make_cudaPitchedPtr( (void*)h_data,
+					  gpuDims.x*sizeof(T),
+					  gpuDims.x,
+					  gpuDims.y );
     cpyPrms.extent = this->extent;
     cpyPrms.kind = cudaMemcpyDeviceToHost;
 
@@ -332,16 +347,15 @@ private:
 
   // ----------------------------------------------------------------------
   // Prevent copying
-  /*
+
   //! Copy constructor - don't use
   MRIframeGPU( const MRIframeGPU& src ) : cpuDims(make_uint3(0,0,0)),
-			gpuDims(make_uint3(0,0,0)),
-			extent(make_cudaExtent(0,0,0)),
-			d_data(make_cudaPitchedPtr(NULL,0,0,0)) {
+					  gpuDims(make_uint3(0,0,0)),
+					  extent(make_cudaExtent(0,0,0)),
+					  d_data(make_cudaPitchedPtr(NULL,0,0,0)) {
     std::cerr << __PRETTY_FUNCTION__ << ": Please don't use copy constructor" << std::endl;
     exit( EXIT_FAILURE );
   }
-  */
 
   //! Assignment operator - don't use
   MRIframeGPU& operator=( const MRIframeGPU &src ) {
@@ -360,8 +374,11 @@ private:
     */
     unsigned int nBlocks;
     
-    nBlocks = static_cast<unsigned int>( ceilf( static_cast<float>(arrayLength) /
-						kAllocationBlock ) );
+    float nBfloat;
+
+    nBfloat = static_cast<float>(arrayLength) /kAllocationBlock;
+
+    nBlocks = static_cast<unsigned int>( ceilf( nBfloat ) );
 
     return( nBlocks*kAllocationBlock );
   }
@@ -385,7 +402,9 @@ private:
   // Functions for converting MRI frames data to and from contiguous memory
   
   //! Copies a single frame into contiguous memory
-  void ExhumeFrame( const MRI* src, T *h_slab, const unsigned int iFrame ) const {
+  void ExhumeFrame( const MRI* src,
+		    T *h_slab,
+		    const unsigned int iFrame ) const {
     /*!
       Copies a single MRI frame into contiguous memory on the host.
       Assumes that all the memory has been allocated and GPU dimensions set,
@@ -421,7 +440,9 @@ private:
 
 
   //! Copies contiguous memory to an MRI frame
-  void InhumeFrame( MRI* dst, const T *h_slab, const unsigned int iFrame ) const {
+  void InhumeFrame( MRI* dst,
+		    const T *h_slab,
+		    const unsigned int iFrame ) const {
     /*!
       Copies a block of contiguous host memory on the host into an MRI frame.
       Assumes that everything is all properly allocated, so things are not fanatically
@@ -479,7 +500,7 @@ private:
   doesn't go zapping memory allocations prematurely
 */
 template<typename T>
-class OnGPU {
+class MRIframeOnGPU {
 public:
   //! Padded data size
   dim3 dims;
@@ -491,12 +512,12 @@ public:
   // Constructors
   
   //! Default constructor
-  OnGPU( void ) : dims(make_uint3(0,0,0)),
+  MRIframeOnGPU( void ) : dims(make_uint3(0,0,0)),
 		  extent(make_cudaExtent(0,0,0)),
 		  data(make_cudaPitchedPtr(NULL,0,0,0)) {};
   
   //! Constructor from MRIframeGPU
-  OnGPU( const MRIframeGPU<T>& src ) : dims(src.gpuDims),
+  MRIframeOnGPU( const MRIframeGPU<T>& src ) : dims(src.gpuDims),
 				       extent(src.extent),
 				       data(src.d_data) {};
   
@@ -508,8 +529,10 @@ public:
 			    const unsigned int iy,
 			    const unsigned int iz ) const {
     const char* data = reinterpret_cast<const char*>(this->data.ptr);
-    size_t pitch = this->data.pitch; // Rows are pitch apart
-    size_t slicePitch = pitch * this->extent.height; // Slices are slicePitch apart
+    // Rows are pitch apart
+    size_t pitch = this->data.pitch;
+    // Slices are slicePitch apart
+    size_t slicePitch = pitch * this->extent.height;
     
     const char* slice = data + ( iz * slicePitch );
     const char* row = slice + ( iy * pitch );
@@ -522,8 +545,8 @@ public:
 			     const unsigned int iy,
 			     const unsigned int iz ) {
     char* data = reinterpret_cast<char*>(this->data.ptr);
-    size_t pitch = this->data.pitch; // Rows are pitch apart
-    size_t slicePitch = pitch * this->extent.height; // Slices are slicePitch apart
+    size_t pitch = this->data.pitch;
+    size_t slicePitch = pitch * this->extent.height;
     
     char* slice = data + ( iz * slicePitch );
     char* row = slice + ( iy * pitch );

@@ -319,8 +319,7 @@ libutils_cuda_a_SOURCES=\
         mriframegpu.cu \
 	devicemanagement.cu \
 	mriconvolve1d_cuda.cu \
-  mri_transfer.cu \
-  mrivol2vol_cuda.cu \
+        mrivol2vol_cuda.cu \
 	mrisurf_cuda.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)

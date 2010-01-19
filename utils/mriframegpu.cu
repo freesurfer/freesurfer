@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 20:03:03 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/19 20:48:32 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,8 @@ template<> int GetAsMRItype<float>( const float tmp ) {
 // ====================================================
 
 template<>
-void CopyMRIrowToContiguous<unsigned char>( const MRI* src, unsigned char* h_slab,
+void CopyMRIrowToContiguous<unsigned char>( const MRI* src,
+					    unsigned char* h_slab,
 					    const unsigned int iy,
 					    const unsigned int iz,
 					    const unsigned int iFrame ) {
@@ -60,7 +61,8 @@ void CopyMRIrowToContiguous<unsigned char>( const MRI* src, unsigned char* h_sla
 
 
 template<>
-void CopyMRIrowToContiguous<short>( const MRI* src, short* h_slab,
+void CopyMRIrowToContiguous<short>( const MRI* src,
+				    short* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
 				    const unsigned int iFrame ) {
@@ -73,7 +75,8 @@ void CopyMRIrowToContiguous<short>( const MRI* src, short* h_slab,
 
 
 template<>
-void CopyMRIrowToContiguous<float>( const MRI* src, float* h_slab,
+void CopyMRIrowToContiguous<float>( const MRI* src,
+				    float* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
 				    const unsigned int iFrame ) {
@@ -91,7 +94,8 @@ void CopyMRIrowToContiguous<float>( const MRI* src, float* h_slab,
 
 
 template<>
-void CopyMRIcontiguousToRow<unsigned char>( MRI* dst, const unsigned char* h_slab,
+void CopyMRIcontiguousToRow<unsigned char>( MRI* dst,
+					    const unsigned char* h_slab,
 					    const unsigned int iy,
 					    const unsigned int iz,
 					    const unsigned int iFrame ) {

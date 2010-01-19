@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/15 16:11:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/01/19 20:48:32 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,8 +41,8 @@ extern "C" {
 #include "chronometer.hpp"
 #include "cudacheck.h"
 
-#include "mri_transfer.h"
-#include "mrislices_cuda.cuh"
+//#include "mri_transfer.h"
+//#include "mrislices_cuda.cuh"
 
 
 #include "mrivol2vol_cuda.h"
@@ -65,13 +65,7 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
   // Need to track 'actual' and GPU dimensions
   // Recall that GPU dimensions will be padded
   // to multiples of 16
-  uint4 srcDimsAct, srcDimsGPU;
-  uint4 targDimsAct, targDimsGPU;
-
-  srcDimsAct = MRI_GetDimsAllFrames( src );
-  srcDimsGPU = MRI_GetDimsAllFramesGPU( src );
-  targDimsAct = MRI_GetDimsAllFrames( targ );
-  targDimsGPU = MRI_GetDimsAllFramesGPU( targ );
+  
 
   // Get the source MRI onto the GPU
 
