@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 19:17:35 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/19 20:03:05 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,8 @@ int GetAsMRItype( const T tmp ) {
 }
 
 template<> int GetAsMRItype<unsigned char>( const unsigned char tmp );
+template<> int GetAsMRItype<short>( const short tmp );
+template<> int GetAsMRItype<float>( const float tmp );
 
 // ------
 
@@ -66,6 +68,7 @@ void CopyMRIrowToContiguous( const MRI *src, T* h_slab,
 			     const unsigned int iz,
 			     const unsigned int iFrame ) {
   std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
+  exit( EXIT_FAILURE );
 }
 
 
@@ -75,6 +78,19 @@ void CopyMRIrowToContiguous<unsigned char>( const MRI* src, unsigned char* h_sla
 					    const unsigned int iz,
 					    const unsigned int iFrame );
 
+template<>
+void CopyMRIrowToContiguous<short>( const MRI* src, short* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame );
+
+
+template<>
+void CopyMRIrowToContiguous<float>( const MRI* src, float* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame );
+
 
 //! Templated memory copy for a row of MRI frame data
 template<typename T>
@@ -83,6 +99,7 @@ void CopyMRIcontiguousToRow( MRI *dst, const T* h_slab,
 			      const unsigned int iz,
 			      const unsigned int iFrame ) {
   std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
+  exit( EXIT_FAILURE );
 }
 
 
@@ -91,6 +108,18 @@ void CopyMRIcontiguousToRow<unsigned char>( MRI* dst, const unsigned char* h_sla
 					    const unsigned int iy,
 					    const unsigned int iz,
 					    const unsigned int iFrame );
+
+template<>
+void CopyMRIcontiguousToRow<short>( MRI* dst, const short* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame );
+
+template<>
+void CopyMRIcontiguousToRow<float>( MRI* dst, const float* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame );
 
 
 // ================================================================
@@ -124,7 +153,7 @@ public:
  
   //! Destructor
   ~MRIframeGPU( void ) {
-    std::cerr << __PRETTY_FUNCTION__ << endl;
+    std::cerr << __PRETTY_FUNCTION__ << std::endl;
     this->Release();
   }
 
@@ -277,6 +306,27 @@ public:
     CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
   }
 
+
+  // ----------------------------------------------------------------------
+  //! Method to sanity check MRI
+  void VerifyMRI( const MRI* mri ) const {
+
+    T tmp;
+    tmp = 0;
+    if( mri->type != GetAsMRItype(tmp)  ) {
+      std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
+	mri->type << std::endl;
+      exit( EXIT_FAILURE );
+      // Shut the compiler up
+      std::cout << tmp << std::endl;
+    }
+
+    if( !this->CheckDims( mri ) ) {
+      std::cerr << __PRETTY_FUNCTION__ << ": Size mismatch" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+  }
+
  
 private:
 
@@ -329,27 +379,6 @@ private:
 
     return( goodDims );
   }
-
-  //! Method to sanity check MRI
-  void VerifyMRI( const MRI* mri ) const {
-
-    T tmp;
-    tmp = 0;
-    if( mri->type != GetAsMRItype(tmp)  ) {
-      std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
-	mri->type << std::endl;
-      exit( EXIT_FAILURE );
-      // Shut the compiler up
-      std::cout << tmp << std::endl;
-    }
-
-    if( !this->CheckDims( mri ) ) {
-      std::cerr << __PRETTY_FUNCTION__ << ": Size mismatch" << std::endl;
-      exit( EXIT_FAILURE );
-    }
-  }
-
-    
 
 
   // ----------------------------------------------------------------------

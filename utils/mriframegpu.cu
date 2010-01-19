@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 18:42:52 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/01/19 20:03:03 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,15 @@ template<> int GetAsMRItype<unsigned char>( const unsigned char tmp ) {
 }
 
 
+template<> int GetAsMRItype<short>( const short tmp ) {
+  return( MRI_SHORT );
+}
+
+template<> int GetAsMRItype<float>( const float tmp ) {
+  return( MRI_FLOAT );
+}
+
+
 
 // ====================================================
 
@@ -43,22 +52,40 @@ void CopyMRIrowToContiguous<unsigned char>( const MRI* src, unsigned char* h_sla
 					    const unsigned int iy,
 					    const unsigned int iz,
 					    const unsigned int iFrame ) {
-  // Sanity checks
-  if( src->type != GetAsMRItype( h_slab[0] ) ) {
-    std::cerr << __PRETTY_FUNCTION__ << ": Type mismatch" << std::endl;
-    exit( EXIT_FAILURE );
-  }
-
-  if( iFrame >= src->nframes ) {
-    std::cerr << __PRETTY_FUNCTION__ << ": Frame out of range" << std::endl;
-    exit( EXIT_FAILURE );
-  }
-
   // Do the copy
   memcpy( h_slab,
 	  &MRIseq_vox( src, 0, iy, iz, iFrame ),
 	  src->width*sizeof(unsigned char) );
 }
+
+
+template<>
+void CopyMRIrowToContiguous<short>( const MRI* src, short* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame ) {
+  // Do the copy
+  memcpy( h_slab,
+	  &MRISseq_vox( src, 0, iy, iz, iFrame ),
+	  src->width*sizeof(short) );
+}
+
+
+
+template<>
+void CopyMRIrowToContiguous<float>( const MRI* src, float* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame ) {
+  
+  // Do the copy
+  memcpy( h_slab,
+	  &MRIFseq_vox( src, 0, iy, iz, iFrame ),
+	  src->width*sizeof(float) );
+}
+
+
+
 
 // ====================================================
 
@@ -74,6 +101,30 @@ void CopyMRIcontiguousToRow<unsigned char>( MRI* dst, const unsigned char* h_sla
 	  dst->width*sizeof(unsigned char) );
 }
 
+
+template<>
+void CopyMRIcontiguousToRow<short>( MRI* dst, const short* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame ) {
+  // Do the copy
+  memcpy( &MRISseq_vox( dst, 0, iy, iz, iFrame ),
+	  h_slab,
+	  dst->width*sizeof(short) );
+}
+
+
+
+template<>
+void CopyMRIcontiguousToRow<float>( MRI* dst, const float* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame ) {
+  // Do the copy
+  memcpy( &MRIFseq_vox( dst, 0, iy, iz, iFrame ),
+	  h_slab,
+	  dst->width*sizeof(float) );
+}
 
 
 
