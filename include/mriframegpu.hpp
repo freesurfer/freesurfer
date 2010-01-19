@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 18:42:53 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/01/19 19:17:35 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -124,6 +124,7 @@ public:
  
   //! Destructor
   ~MRIframeGPU( void ) {
+    std::cerr << __PRETTY_FUNCTION__ << endl;
     this->Release();
   }
 
@@ -276,70 +277,7 @@ public:
     CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
   }
 
-    
-  // --------------------------------------------------------
-  // Subscripting operators
-
-  __device__ T operator() ( const unsigned int ix,
-			    const unsigned int iy,
-			    const unsigned int iz ) const {
-    const char* data = reinterpret_cast<const char*>(this->d_data.ptr);
-    size_t pitch = this->d_data.pitch; // Rows are pitch apart
-    size_t slicePitch = pitch * extent.height; // Slices are slicePitch apart
-
-    const char* slice = data + ( iz * slicePitch );
-    const char* row = slice + ( iy * pitch );
-
-    return( reinterpret_cast<const T*>(row)[ix] );
-  }
-
-
-  __device__ T& operator() ( const unsigned int ix,
-			     const unsigned int iy,
-			     const unsigned int iz ) {
-    char* data = reinterpret_cast<char*>(this->d_data.ptr);
-    size_t pitch = this->d_data.pitch; // Rows are pitch apart
-    size_t slicePitch = pitch * extent.height; // Slices are slicePitch apart
-
-    char* slice = data + ( iz * slicePitch );
-    char* row = slice + ( iy * pitch );
-
-    return( reinterpret_cast<T*>(row)[ix] );
-  }
-
-
-  //! Clamps input integer into range
-  __device__ unsigned int ClampCoord( const int i,
-				      const unsigned int iMax ) const {
-    /*!
-      Performs clamping on the input index.
-      Negative values are set to 0, values greater than iMax-1 are
-      set to iMax-1
-    */
-    if( i < 0 ) {
-      return 0;
-    } else if( i > (iMax-1) ) {
-      return( iMax-1 );
-    } else {
-      return i;
-    }
-  }
-
-  /*
-  MRIframeGPU( const MRIframeGPU& src ) : cpuDims(src.cpuDims),
-					  gpuDims(src.gpuDims),
-					  extent(src.extent),
-					  d_data(src.d_data) {
-
-    std::cerr << __PRETTY_FUNCTION__ << ": Begin" << std::endl;
-    std::cerr << src.d_data.ptr << std::endl;
-    std::cerr << src.d_data.ptr << std::endl;
-    std::cerr << __PRETTY_FUNCTION__ << ": End" << std::endl;
-    
-  }
-  */
-
-
+ 
 private:
 
   // ----------------------------------------------------------------------
@@ -498,6 +436,91 @@ private:
     
 
 };
+
+
+
+
+ 
+//! Ancillary class for use in kernel calls
+/*!
+  This is an auxillary class, for use in actual
+  kernel calls.
+  The kernel invocation has to be on a call-by-value
+  copy, so we want to make sure that the destructor
+  doesn't go zapping memory allocations prematurely
+*/
+template<typename T>
+class OnGPU {
+public:
+  //! Padded data size
+  dim3 dims;
+  //! Extent of allocated 3D array
+  cudaExtent extent;
+  //! Pointer to the allocated memory
+  cudaPitchedPtr data;
+  // --------------------------------------------------------
+  // Constructors
+  
+  //! Default constructor
+  OnGPU( void ) : dims(make_uint3(0,0,0)),
+		  extent(make_cudaExtent(0,0,0)),
+		  data(make_cudaPitchedPtr(NULL,0,0,0)) {};
+  
+  //! Constructor from MRIframeGPU
+  OnGPU( const MRIframeGPU<T>& src ) : dims(src.gpuDims),
+				       extent(src.extent),
+				       data(src.d_data) {};
+  
+  
+  // --------------------------------------------------------
+  // Subscripting operators
+  
+  __device__ T operator() ( const unsigned int ix,
+			    const unsigned int iy,
+			    const unsigned int iz ) const {
+    const char* data = reinterpret_cast<const char*>(this->data.ptr);
+    size_t pitch = this->data.pitch; // Rows are pitch apart
+    size_t slicePitch = pitch * this->extent.height; // Slices are slicePitch apart
+    
+    const char* slice = data + ( iz * slicePitch );
+    const char* row = slice + ( iy * pitch );
+    
+      return( reinterpret_cast<const T*>(row)[ix] );
+  }
+  
+  
+  __device__ T& operator() ( const unsigned int ix,
+			     const unsigned int iy,
+			     const unsigned int iz ) {
+    char* data = reinterpret_cast<char*>(this->data.ptr);
+    size_t pitch = this->data.pitch; // Rows are pitch apart
+    size_t slicePitch = pitch * this->extent.height; // Slices are slicePitch apart
+    
+    char* slice = data + ( iz * slicePitch );
+    char* row = slice + ( iy * pitch );
+    
+    return( reinterpret_cast<T*>(row)[ix] );
+  }
+  
+    
+  //! Clamps input integer into range
+  __device__ unsigned int ClampCoord( const int i,
+				      const unsigned int iMax ) const {
+    /*!
+      Performs clamping on the input index.
+      Negative values are set to 0, values greater than iMax-1 are
+      set to iMax-1
+    */
+    if( i < 0 ) {
+      return 0;
+    } else if( i > (iMax-1) ) {
+      return( iMax-1 );
+    } else {
+	return i;
+    }
+  }
+};
+
 
 
 
