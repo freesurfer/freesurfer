@@ -303,6 +303,10 @@ if BUILDCUDA
 # rules for building cuda files
 NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
 
+G++FLAGS = -Wall -Wextra -Weffc++
+
+NVCCFLAGS += $(patsubst -%, --compiler-options -%, $(G++FLAGS) )
+
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA
 
@@ -312,6 +316,7 @@ libutils_cuda_a_SOURCES=\
 	$(libutils_main_SOURCES) \
 	$(libutils_cephes_SOURCES) \
 	$(libutils_nrrdio_SOURCES) \
+        mriframegpu.cu \
 	devicemanagement.cu \
 	mriconvolve1d_cuda.cu \
   mri_transfer.cu \
@@ -319,6 +324,9 @@ libutils_cuda_a_SOURCES=\
 	mrisurf_cuda.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
+
+mriframegpu_cuda.o: ../include/mriframegpu.hpp
+mriconvolve1d_cuda.o: ../include/mriframegpu.hpp
 
 endif
 
