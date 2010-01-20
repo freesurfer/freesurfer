@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 20:48:34 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/01/20 18:16:16 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -135,8 +135,6 @@ void CopyMRIcontiguousToRow<float>( MRI* dst,
 template<typename T>
 class MRIframeGPU {
 public:
-  //! Basic allocation block on the GPU
-  static const unsigned int kAllocationBlock = 16;
 
   //! Original data size
   dim3 cpuDims;
@@ -177,10 +175,12 @@ public:
   }
 
   //! Extracts frame dimensions from a given MRI and allocates the memory
-  void Allocate( const MRI* src ) {
+  void Allocate( const MRI* src, const unsigned int padSize = 1 ) {
     /*!
       Fills out the cpuDims, gpuDims and extent data members.
       Uses this information to call cudaMalloc3D
+      @params[in] src The MRI to use as a template
+      @params[in] padSize Each dimension will be padded to be a multiple of this
     */
     
     // Sanity check
@@ -188,6 +188,11 @@ public:
     if( src->type != GetAsMRItype(tmp)  ) {
       std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
 	src->type << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    if( padSize == 0 ) {
+      std::cerr << __FUNCTION__ << ": Must have non-zero padSize" << std::endl;
       exit( EXIT_FAILURE );
     }
 
@@ -201,9 +206,9 @@ public:
     this->cpuDims.z = src->depth;
 
     // Generate the dimensions on the GPU
-    this->gpuDims.x = this->RoundToBlock( cpuDims.x );
-    this->gpuDims.y = this->RoundToBlock( cpuDims.y );
-    this->gpuDims.z = this->RoundToBlock( cpuDims.z );
+    this->gpuDims.x = this->RoundToBlock( cpuDims.x, padSize );
+    this->gpuDims.y = this->RoundToBlock( cpuDims.y, padSize );
+    this->gpuDims.z = this->RoundToBlock( cpuDims.z, padSize );
 
     // Make the extent
     this->extent = make_cudaExtent( this->gpuDims.x * sizeof(T),
@@ -366,21 +371,22 @@ private:
 
   // ----------------------------------------------------------------------
 
-  //! Rounds an array length up to kAllocationBlock
-  unsigned int RoundToBlock( const unsigned int arrayLength ) const {
+  //! Rounds an array length up to multiple of given padding size
+  unsigned int RoundToBlock( const unsigned int arrayLength,
+			     const unsigned int padSize ) const {
     /*!
       Rounds the given array length up to the next multiple of
-      kAllocationBlock
+      padSize
     */
     unsigned int nBlocks;
     
     float nBfloat;
 
-    nBfloat = static_cast<float>(arrayLength) /kAllocationBlock;
+    nBfloat = static_cast<float>(arrayLength) / padSize;
 
     nBlocks = static_cast<unsigned int>( ceilf( nBfloat ) );
 
-    return( nBlocks*kAllocationBlock );
+    return( nBlocks * padSize );
   }
 
   // ----------------------------------------------------------------------
