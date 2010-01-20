@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/06 22:22:56 $
- *    $Revision: 1.8 $
+ *    $Author: greve $
+ *    $Date: 2010/01/20 23:38:30 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@ TAGskip(FILE *fp, int tag, long long len)
   buf = (unsigned char *)calloc(len, sizeof(unsigned char)) ;
   if (buf==NULL)
     ErrorExit(ERROR_NOMEMORY,
-              "TAGskip: failed to calloc %u bytes!\n",len);
+              "TAGskip: tag=%d, failed to calloc %u bytes!\n",tag, len);
   ret = fread(buf, sizeof(unsigned char), len, fp) ;
   free(buf) ;
   return(ret) ;
@@ -194,7 +194,7 @@ znzTAGskip(znzFile fp, int tag, long long len)
   buf = (unsigned char *)calloc(len, sizeof(unsigned char)) ;
   if (buf==NULL)
     ErrorExit(ERROR_NOMEMORY,
-              "TAGskip: failed to calloc %u bytes!\n",len);
+              "znzTAGskip: tag=%d, failed to calloc %u bytes!\n",tag, len);
   ret = znzread(buf, sizeof(unsigned char), len, fp) ;
   free(buf) ;
   return(ret) ;
