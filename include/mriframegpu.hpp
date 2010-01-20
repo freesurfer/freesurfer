@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/20 18:16:16 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/01/20 18:52:58 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,87 +45,6 @@ extern "C" {
 // ==================================================================
 
 
-//! Templated function to convert type to MRI->type
-template<typename T>
-int GetAsMRItype( const T tmp ) {
-  return( -1 );
-}
-
-template<> int GetAsMRItype<unsigned char>( const unsigned char tmp );
-template<> int GetAsMRItype<short>( const short tmp );
-template<> int GetAsMRItype<float>( const float tmp );
-
-// ------
-
-
-// ------
-
-//! Templated memory copy for a row of MRI frame data
-template<typename T>
-void CopyMRIrowToContiguous( const MRI *src, T* h_slab,
-			     const unsigned int iy,
-			     const unsigned int iz,
-			     const unsigned int iFrame ) {
-  std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
-  exit( EXIT_FAILURE );
-}
-
-
-template<>
-void CopyMRIrowToContiguous<unsigned char>( const MRI* src,
-					    unsigned char* h_slab,
-					    const unsigned int iy,
-					    const unsigned int iz,
-					    const unsigned int iFrame );
-
-template<>
-void CopyMRIrowToContiguous<short>( const MRI* src,
-				    short* h_slab,
-				    const unsigned int iy,
-				    const unsigned int iz,
-				    const unsigned int iFrame );
-
-
-template<>
-void CopyMRIrowToContiguous<float>( const MRI* src,
-				    float* h_slab,
-				    const unsigned int iy,
-				    const unsigned int iz,
-				    const unsigned int iFrame );
-
-
-//! Templated memory copy for a row of MRI frame data
-template<typename T>
-void CopyMRIcontiguousToRow( MRI *dst, const
-			     T* h_slab,
-			     const unsigned int iy,
-			     const unsigned int iz,
-			     const unsigned int iFrame ) {
-  std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
-  exit( EXIT_FAILURE );
-}
-
-
-template<>
-void CopyMRIcontiguousToRow<unsigned char>( MRI* dst,
-					    const unsigned char* h_slab,
-					    const unsigned int iy,
-					    const unsigned int iz,
-					    const unsigned int iFrame );
-
-template<>
-void CopyMRIcontiguousToRow<short>( MRI* dst,
-				    const short* h_slab,
-				    const unsigned int iy,
-				    const unsigned int iz,
-				    const unsigned int iFrame );
-
-template<>
-void CopyMRIcontiguousToRow<float>( MRI* dst,
-				    const float* h_slab,
-				    const unsigned int iy,
-				    const unsigned int iz,
-				    const unsigned int iFrame );
 
 
 // ================================================================
@@ -184,8 +103,7 @@ public:
     */
     
     // Sanity check
-    T tmp = 0;
-    if( src->type != GetAsMRItype(tmp)  ) {
+    if( src->type != this->MRItype()  ) {
       std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
 	src->type << std::endl;
       exit( EXIT_FAILURE );
@@ -248,7 +166,7 @@ public:
     // Start with some sanity checks
     this->VerifyMRI( src );
 
-    if( iFrame >= src->nframes ) {
+    if( iFrame >= static_cast<unsigned int>(src->nframes) ) {
       std:: cerr << __FUNCTION__ << ": Bad frame requested " << iFrame << std::endl;
       exit( EXIT_FAILURE );
     }
@@ -295,7 +213,7 @@ public:
     // Start with sanity checks
     this->VerifyMRI( dst );
 
-    if( iFrame >= dst->nframes ) {
+    if( iFrame >= static_cast<unsigned int>(dst->nframes) ) {
       std:: cerr << __FUNCTION__ << ": Bad frame requested " << iFrame << std::endl;
       exit( EXIT_FAILURE );
     }
@@ -331,14 +249,10 @@ public:
   //! Method to sanity check MRI
   void VerifyMRI( const MRI* mri ) const {
 
-    T tmp;
-    tmp = 0;
-    if( mri->type != GetAsMRItype(tmp)  ) {
+    if( mri->type != this->MRItype()  ) {
       std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
 	mri->type << std::endl;
       exit( EXIT_FAILURE );
-      // Shut the compiler up
-      std::cout << tmp << std::endl;
     }
 
     if( !this->CheckDims( mri ) ) {
@@ -346,6 +260,12 @@ public:
       exit( EXIT_FAILURE );
     }
   }
+
+  //! Method to return MRI type (has specialisations below)
+  int MRItype( void ) const {
+    return(-1);
+  }
+
 
  
 private:
@@ -396,9 +316,9 @@ private:
     
     bool goodDims;
 
-    goodDims = ( mri->width == this->cpuDims.x );
-    goodDims = goodDims && ( mri->height == this->cpuDims.y );
-    goodDims = goodDims && ( mri->depth == this->cpuDims.z );
+    goodDims = ( static_cast<unsigned int>(mri->width) == this->cpuDims.x );
+    goodDims = goodDims && ( static_cast<unsigned int>(mri->height) == this->cpuDims.y );
+    goodDims = goodDims && ( static_cast<unsigned int>(mri->depth) == this->cpuDims.z );
 
     return( goodDims );
   }
@@ -414,14 +334,16 @@ private:
     /*!
       Copies a single MRI frame into contiguous memory on the host.
       Assumes that all the memory has been allocated and GPU dimensions set,
-      so everything is not fanatically verified
+      so everything is not fanatically verified.
+      The name of this method should not be taken as a value judgement
+      of the CPU-side datastructure.
       @param[in] src The source MRI
       @param[out] h_slab Pointer to the destination array (must be already allocated)
       @param[in] iFrame Which frame to grab
     */
   
     // Start with a few sanity checks
-    if( iFrame >= src->nframes ) {
+    if( iFrame >= static_cast<unsigned int>(src->nframes) ) {
       std::cerr << __FUNCTION__ << ": iFrame out of range" << std::endl;
       exit( EXIT_FAILURE );
     }
@@ -439,10 +361,11 @@ private:
       for( unsigned int iy=0; iy<this->cpuDims.y; iy++ ) {
 	unsigned int iStart = this->Index1D( 0, iy, iz );
 
-	CopyMRIrowToContiguous( src, &( h_slab[iStart] ), iy, iz, iFrame );
+	this->ExhumeRow( src, &( h_slab[iStart] ), iy, iz, iFrame );
       }
     } 
   }
+
 
 
   //! Copies contiguous memory to an MRI frame
@@ -456,7 +379,7 @@ private:
     */
     
     // Start with a few sanity checks
-    if( iFrame >= dst->nframes ) {
+    if( iFrame >= static_cast<unsigned int>(dst->nframes) ) {
       std::cerr << __FUNCTION__ << ": iFrame out of range" << std::endl;
       exit( EXIT_FAILURE );
     }
@@ -473,9 +396,45 @@ private:
       for( unsigned int iy=0; iy<this->cpuDims.y; iy++ ) {
 	unsigned int iStart = this->Index1D( 0, iy, iz );
 	
-	CopyMRIcontiguousToRow( dst, &( h_slab[iStart] ), iy, iz, iFrame );
+	this->InhumeRow( dst, &( h_slab[iStart] ), iy, iz, iFrame );
       }
     }
+  }
+
+
+  //! Wrapper around memcpy for MRI->contiguous transfers
+  void ExhumeRow( const MRI* src,
+		  T *h_slab,
+		  const unsigned int iy,
+		  const unsigned int iz,
+		  const unsigned int iFrame ) const {
+    /*!
+      Specialised method to copy a row of an MRI frame
+      into contiguous memory.
+      The row of x voxels are specified by iy, iz and iFrame.
+      This default method aborts the program
+    */
+
+    std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised data type " << src->type << std::endl;
+    exit( EXIT_FAILURE );
+  }
+
+
+  //! Wrapper around memcpy for contiguous->MRI transfers
+  void InhumeRow( MRI* dst,
+		  const T *h_slab,
+		  const unsigned int iy,
+		  const unsigned int iz,
+		  const unsigned int iFrame ) const {
+    /*!
+      Specialised method to copy a chunk of contiguous
+      memory into a row of an MRI frame.
+      The row of x voxels are specified by iy, iz and iFrame.
+      This default method aborts the program
+    */
+
+    std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised data type " << dst->type << std::endl;
+    exit( EXIT_FAILURE );
   }
 
 
@@ -488,13 +447,58 @@ private:
     return( ix + ( this->gpuDims.x * ( iy + ( this->gpuDims.y * iz ) ) ) );
   }
 
-
-    
-
 };
 
 
+// Declarations of specialised methods
 
+template<> int MRIframeGPU<unsigned char>::MRItype( void ) const;
+template<> int MRIframeGPU<short>::MRItype( void ) const;
+template<> int MRIframeGPU<float>::MRItype( void ) const;
+
+
+
+template<>
+void MRIframeGPU<unsigned char>::ExhumeRow( const MRI* src,
+					    unsigned char* h_slab,
+					    const unsigned int iy,
+					    const unsigned int iz,
+					    const unsigned int iFrame ) const;
+template<>
+void MRIframeGPU<short>::ExhumeRow( const MRI* src,
+					  short* h_slab,
+					  const unsigned int iy,
+					  const unsigned int iz,
+					  const unsigned int iFrame ) const;
+template<>
+void MRIframeGPU<float>::ExhumeRow( const MRI* src,
+				    float* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame ) const;
+
+
+
+template<>
+void MRIframeGPU<unsigned char>::InhumeRow( MRI* dst,
+					    const unsigned char* h_slab,
+					    const unsigned int iy,
+					    const unsigned int iz,
+					    const unsigned int iFrame ) const;
+template<>
+void MRIframeGPU<short>::InhumeRow( MRI* dst,
+				    const short* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame ) const;
+template<>
+void MRIframeGPU<float>::InhumeRow( MRI* dst,
+				    const float* h_slab,
+				    const unsigned int iy,
+				    const unsigned int iz,
+				    const unsigned int iFrame ) const;
+
+// ===================================================================================
 
  
 //! Ancillary class for use in kernel calls
@@ -519,8 +523,8 @@ public:
   
   //! Default constructor
   MRIframeOnGPU( void ) : dims(make_uint3(0,0,0)),
-		  extent(make_cudaExtent(0,0,0)),
-		  data(make_cudaPitchedPtr(NULL,0,0,0)) {};
+			  extent(make_cudaExtent(0,0,0)),
+			  data(make_cudaPitchedPtr(NULL,0,0,0)) {};
   
   //! Constructor from MRIframeGPU
   MRIframeOnGPU( const MRIframeGPU<T>& src ) : dims(src.gpuDims),

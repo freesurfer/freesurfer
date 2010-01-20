@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 20:48:32 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/01/20 18:52:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,30 +29,27 @@
 
 // ====================================================
 
-
-template<> int GetAsMRItype<unsigned char>( const unsigned char tmp ) {
+template<> int MRIframeGPU<unsigned char>::MRItype( void ) const {
   return( MRI_UCHAR );
 }
 
-
-template<> int GetAsMRItype<short>( const short tmp ) {
+template<> int MRIframeGPU<short>::MRItype( void ) const {
   return( MRI_SHORT );
 }
 
-template<> int GetAsMRItype<float>( const float tmp ) {
+template<> int MRIframeGPU<float>::MRItype( void ) const {
   return( MRI_FLOAT );
 }
-
 
 
 // ====================================================
 
 template<>
-void CopyMRIrowToContiguous<unsigned char>( const MRI* src,
+void MRIframeGPU<unsigned char>::ExhumeRow( const MRI* src,
 					    unsigned char* h_slab,
 					    const unsigned int iy,
 					    const unsigned int iz,
-					    const unsigned int iFrame ) {
+					    const unsigned int iFrame ) const {
   // Do the copy
   memcpy( h_slab,
 	  &MRIseq_vox( src, 0, iy, iz, iFrame ),
@@ -61,11 +58,11 @@ void CopyMRIrowToContiguous<unsigned char>( const MRI* src,
 
 
 template<>
-void CopyMRIrowToContiguous<short>( const MRI* src,
+void MRIframeGPU<short>::ExhumeRow( const MRI* src,
 				    short* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
-				    const unsigned int iFrame ) {
+				    const unsigned int iFrame ) const {
   // Do the copy
   memcpy( h_slab,
 	  &MRISseq_vox( src, 0, iy, iz, iFrame ),
@@ -75,11 +72,11 @@ void CopyMRIrowToContiguous<short>( const MRI* src,
 
 
 template<>
-void CopyMRIrowToContiguous<float>( const MRI* src,
+void MRIframeGPU<float>::ExhumeRow( const MRI* src,
 				    float* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
-				    const unsigned int iFrame ) {
+				    const unsigned int iFrame ) const {
   
   // Do the copy
   memcpy( h_slab,
@@ -94,11 +91,11 @@ void CopyMRIrowToContiguous<float>( const MRI* src,
 
 
 template<>
-void CopyMRIcontiguousToRow<unsigned char>( MRI* dst,
+void MRIframeGPU<unsigned char>::InhumeRow( MRI* dst,
 					    const unsigned char* h_slab,
 					    const unsigned int iy,
 					    const unsigned int iz,
-					    const unsigned int iFrame ) {
+					    const unsigned int iFrame ) const {
   // Do the copy
   memcpy( &MRIseq_vox( dst, 0, iy, iz, iFrame ),
 	  h_slab,
@@ -107,10 +104,11 @@ void CopyMRIcontiguousToRow<unsigned char>( MRI* dst,
 
 
 template<>
-void CopyMRIcontiguousToRow<short>( MRI* dst, const short* h_slab,
+void MRIframeGPU<short>::InhumeRow( MRI* dst,
+				    const short* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
-				    const unsigned int iFrame ) {
+				    const unsigned int iFrame ) const {
   // Do the copy
   memcpy( &MRISseq_vox( dst, 0, iy, iz, iFrame ),
 	  h_slab,
@@ -120,10 +118,11 @@ void CopyMRIcontiguousToRow<short>( MRI* dst, const short* h_slab,
 
 
 template<>
-void CopyMRIcontiguousToRow<float>( MRI* dst, const float* h_slab,
+void MRIframeGPU<float>::InhumeRow( MRI* dst,
+				    const float* h_slab,
 				    const unsigned int iy,
 				    const unsigned int iz,
-				    const unsigned int iFrame ) {
+				    const unsigned int iFrame ) const {
   // Do the copy
   memcpy( &MRIFseq_vox( dst, 0, iy, iz, iFrame ),
 	  h_slab,
