@@ -1,17 +1,19 @@
 /**
  * @file  mris_sphere.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Inflates a surface to a sphere
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Cortical Surface-Based Analysis II: Inflation, Flattening, and a
+ * Surface-Based Coordinate System", Fischl, B., Sereno, M.I., Dale, A.M.
+ * (1999) NeuroImage, 9(2):195-207.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 19:04:20 $
- *    $Revision: 1.49 $
+ *    $Author: nicks $
+ *    $Date: 2010/01/20 22:51:46 $
+ *    $Revision: 1.50 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,11 +23,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,8 +44,12 @@
 #include "timer.h"
 #include "version.h"
 
+#ifdef FS_CUDA
+#include "mrisurf_cuda.h"
+#endif // FS_CUDA
+
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.49 2009/11/19 19:04:20 fischl Exp $";
+  "$Id: mris_sphere.c,v 1.50 2010/01/20 22:51:46 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -119,19 +122,24 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.49 2009/11/19 19:04:20 fischl Exp $",
+   "$Id: mris_sphere.c,v 1.50 2010/01/20 22:51:46 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.49 2009/11/19 19:04:20 fischl Exp $",
+           "$Id: mris_sphere.c,v 1.50 2010/01/20 22:51:46 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   Gdiag = DIAG_SHOW ;
+
+#ifdef FS_CUDA
+  /* print GPU device info */
+  MRISCdeviceInfo();
+#endif // FS_CUDA
 
   TimerStart(&then) ;
   Progname = argv[0] ;
@@ -266,7 +274,8 @@ main(int argc, char *argv[]) {
 
   if (target_radius < 0) {
     target_radius = sqrt(mris->total_area / (4*M_PI)) ;
-    printf("setting target radius to be %2.3f to match surface areas\n", target_radius) ;
+    printf("setting target radius to be %2.3f to match surface areas\n", 
+           target_radius) ;
   }
   //  MRISsampleAtEachDistance(mris, parms.nbhd_size, parms.max_nbrs) ;
   if (!load && inflate) {
@@ -656,7 +665,7 @@ static void
 print_help(void) {
   print_usage() ;
   fprintf(stderr,
-          "\nThis program will add a template into an average surface.\n");
+          "\nThis program will inflated a surface into a sphere.\n");
   //  fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
