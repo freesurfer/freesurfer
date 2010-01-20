@@ -92,7 +92,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.11 2009/12/14 22:00:27 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.12 2010/01/20 21:43:13 rudolph Exp $";
 stringstream            Gsout("");
 int     G_lw            = 40;           // print column
 int     G_rw            = 20;           // widths (left and right)
@@ -167,10 +167,10 @@ main(
           s_env_scan(       st_env,         *pcso_options);
           s_weights_scan(   st_costWeight,  *pcso_options);
           s_Dweights_scan(  st_DcostWeight, *pcso_options);
-          st_env.pSTw   =       &st_costWeight;
-          st_env.pSTDw  =       &st_DcostWeight;
-          G_lw          =       st_env.lw;
-          G_rw          =       st_env.rw;
+          st_env.pSTw                   = &st_costWeight;
+          st_env.pSTDw                  = &st_DcostWeight;
+          G_lw                          = st_env.lw;
+          G_rw                          = st_env.rw;
         }
 
         if (st_env.port && !b_socketCreated) {

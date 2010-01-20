@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.7 2009/12/22 18:56:15 rudolph Exp $
+// $Id: help.cpp,v 1.8 2010/01/20 21:43:13 rudolph Exp $
 
 #include "help.h"
 
@@ -216,7 +216,7 @@ EXAMPLE USE \n\
         2. When 'dsh' starts, it will parse the options file and control \n\
            'mris_pmake' to read relevant surface and curvature files. \n\
         3. Once done, 'dsh' will present a prompt. Type: \n\
-            >ENV mpmProg set 0 \n\
+            >ENV mpmProg set 1 \n\
            This will create an 'autodijk' mpmProg. \n\
         3a. Optionally set some parameters for the mpmProg: \n\
             >MPMPROG polarVertex set 100 \n\

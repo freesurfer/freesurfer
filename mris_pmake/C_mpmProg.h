@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.6 2009/12/15 17:28:04 rudolph Exp $
+/// $Id: C_mpmProg.h,v 1.7 2010/01/20 21:43:13 rudolph Exp $
 ///
 ///
 
@@ -247,6 +247,15 @@ class C_mpmProg_autodijk : public C_mpmProg {
     int         surfaceRipClear_get() {
             return(mb_surfaceRipClear);
     };
+
+    void        costFile_set(string avalue) {
+        mstr_costFileName   = avalue;
+        mstr_costFullPath   = mps_env->str_workingDir + "/" + mstr_costFileName;
+    };
+    string      costFile_get() {
+            return(mstr_costFileName);
+    };
+    
     void        vertexPolar_set(int avalue) {
             mvertex_polar       = avalue;
     };

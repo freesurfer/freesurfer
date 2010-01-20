@@ -22,7 +22,7 @@
 //
 // VERSION
 //
-// $Id: scanopt.h,v 1.3 2009/12/22 18:56:15 rudolph Exp $
+// $Id: scanopt.h,v 1.4 2010/01/20 21:43:13 rudolph Exp $
 //
 //
 // DESCRIPTION
@@ -101,6 +101,9 @@
 #include <string>
 #include <map>
 #include <list>
+
+#include <vector>
+
 using namespace std;
 
 #ifndef __SCANOPT_H__
@@ -259,5 +262,11 @@ public:
   bool    scanFor(string  astr_target,    // the main purpose of the class
                   string* apstr_value);
 };
+
+int     str_tokenize(
+            const string&       str,
+            vector<string>&     tokens,
+            const string&       delimiters = " " );
+
 
 #endif //__SCANOPT_H__

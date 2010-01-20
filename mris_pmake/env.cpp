@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.19 2009/12/22 18:56:15 rudolph Exp $
+// $Id: env.cpp,v 1.20 2010/01/20 21:43:13 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -441,7 +441,7 @@ s_env_defaultsSet(
     st_env.b_transitionPenalties        = false;
     s_Dweights_setAll(*st_env.pSTDw, 1.0);
 
-    st_env.str_costCurvFile             = "autodijk.cost.crv";
+    st_env.str_costCurvFile             = st_env.str_hemi + ".autodijk.crv";
     st_env.b_exitOnDone                 = true;
     st_env.b_costPathSave               = false;
 
@@ -474,103 +474,104 @@ s_env_optionsFile_write(
     if(ab_setToDefaults)        s_env_defaultsSet(st_env);
 
     O                           = st_env.pcsm_optionsFile;
+    if(O) {
+        O->pprintf("\n#\n# auto-generated optionsFile\n#\n\n");
 
-    O->pprintf("\n#\n# auto-generated optionsFile\n#\n\n");
+        O->pprintf("\n# Input surfaces and curvature functions\n");
+        O->pcolprintf("surfaceFile",        " = %s\n",
+                        st_env.str_mainSurfaceFileName.c_str());
+        O->pcolprintf("auxSurfaceFile",     " = %s\n",
+                        st_env.str_auxSurfaceFileName.c_str());
+        O->pcolprintf("curvatureFile",      " = %s\n",
+                        st_env.str_mainCurvatureFileName.c_str());
+        O->pcolprintf("sulcalHeightFile",   " = %s\n",
+                        st_env.str_auxCurvatureFileName.c_str());
+        O->pprintf("\n# Start and End vertices\n\n");
+        O->pcolprintf("startVertex",        " = %d\n",
+                        st_env.startVertex);
+        O->pcolprintf("endVertex",          " = %d\n",
+                        st_env.endVertex);
+        O->pprintf("\n# Control flags and settings\n");
+        O->pcolprintf("controlPort",         " = %d\n",
+                        st_env.serverControlPort);
+        O->pcolprintf("timeoutSec",          " = %d\n",
+                        st_env.timeoutSec);
+        O->pcolprintf("b_transitionPenalties", " = %d\n",
+                        st_env.b_transitionPenalties);
+        O->pcolprintf("b_syslogPrepend",     " = %d\n",
+                        st_env.b_syslogPrepend);
+        O->pcolprintf("b_patchFile_save",   " = %d\n",
+                        st_env.b_patchFile_save);
+        O->pcolprintf("b_labelFile_save",   " = %d\n",
+                        st_env.b_labelFile_save);
+        O->pcolprintf("b_useAbsCurvs",      " = %d\n",
+                        st_env.b_useAbsCurvs);
+        O->pcolprintf("b_exitOnDone",       " = %d\n",
+                        st_env.b_exitOnDone);
+        O->pcolprintf("b_costPathSave",     " = %d\n",
+                        st_env.b_costPathSave);
+        O->pprintf("\n# Output file names and file stems\n");
+        O->pcolprintf("costFile",           " = %s\n",
+                        st_env.str_costFileName.c_str());
+        O->pcolprintf("patchFile",          " = %s\n",
+                        st_env.str_patchFileStem.c_str());
+        O->pcolprintf("labelFile",          " = %s\n",
+                        st_env.str_labelFileStem.c_str());
+        O->pcolprintf("labelFileAuxSurface"," = %s\n",
+                        st_env.str_labelFileNameOS.c_str());
+        O->pprintf("\n# Messaging channels\n");
+        O->pcolprintf("userMessages",        " = %s\n",
+                        st_env.str_userMsgLog.c_str());
+        O->pcolprintf("sysMessages",         " = %s\n",
+                        st_env.str_sysMsgLog.c_str());
+        O->pcolprintf("resultMessages",      " = %s\n",
+                        st_env.str_resultMsgLog.c_str());
+        O->pprintf("\n# Weights\n");
+        O->pcolprintf("wd",                 " = %f\n",
+                        st_env.pSTw->wd);
+        O->pcolprintf("wc",                 " = %f\n",
+                        st_env.pSTw->wc);
+        O->pcolprintf("wh",                 " = %f\n",
+                        st_env.pSTw->wh);
+        O->pcolprintf("wdc",                " = %f\n",
+                        st_env.pSTw->wdc);
+        O->pcolprintf("wdh",                " = %f\n",
+                        st_env.pSTw->wdh);
+        O->pcolprintf("wch",                " = %f\n",
+                        st_env.pSTw->wch);
+        O->pcolprintf("wdch",               " = %f\n",
+                        st_env.pSTw->wdch);
+        O->pcolprintf("wdir",               " = %f\n",
+                        st_env.pSTw->wdir);
+        O->pprintf("\n# Transitional penality weights\n");
+        O->pcolprintf("Dwd",                " = %f\n",
+                        st_env.pSTDw->Dwd);
+        O->pcolprintf("Dwc",                " = %f\n",
+                        st_env.pSTDw->Dwc);
+        O->pcolprintf("Dwh",                " = %f\n",
+                        st_env.pSTDw->Dwh);
+        O->pcolprintf("Dwdc",               " = %f\n",
+                        st_env.pSTDw->Dwdc);
+        O->pcolprintf("Dwdh",               " = %f\n",
+                        st_env.pSTDw->Dwdh);
+        O->pcolprintf("Dwch",               " = %f\n",
+                        st_env.pSTDw->Dwch);
+        O->pcolprintf("Dwdch",              " = %f\n",
+                        st_env.pSTDw->Dwdch);
+        O->pcolprintf("Dwdir",              " = %f\n",
+                        st_env.pSTDw->Dwdir);
+        O->pprintf("\n# mpmProg\n");
+        O->pcolprintf("b_mpmProgUse",       " = %d\n",
+                        st_env.b_mpmProgUse);
+        O->pcolprintf("mpmProgID",          " = %d\n",
+                        st_env.empm_current);
+        O->pcolprintf("mpmArgs",            " = %s\n",
+                        st_env.str_mpmArgs.c_str());
+        O->pcolprintf("costCurvFile",       " = %s\n",
+                        st_env.str_costCurvFile.c_str());
 
-    O->pprintf("\n# Input surfaces and curvature functions\n");
-    O->pcolprintf("surfaceFile",        " = %s\n",
-                    st_env.str_mainSurfaceFileName.c_str());
-    O->pcolprintf("auxSurfaceFile",     " = %s\n",
-                    st_env.str_auxSurfaceFileName.c_str());
-    O->pcolprintf("curvatureFile",      " = %s\n",
-                    st_env.str_mainCurvatureFileName.c_str());
-    O->pcolprintf("sulcalHeightFile",   " = %s\n",
-                    st_env.str_auxCurvatureFileName.c_str());
-    O->pprintf("\n# Start and End vertices\n\n");
-    O->pcolprintf("startVertex",        " = %d\n",
-                    st_env.startVertex);
-    O->pcolprintf("endVertex",          " = %d\n",
-                    st_env.endVertex);
-    O->pprintf("\n# Control flags and settings\n");
-    O->pcolprintf("controlPort",         " = %d\n",
-                    st_env.serverControlPort);
-    O->pcolprintf("timeoutSec",          " = %d\n",
-                    st_env.timeoutSec);
-    O->pcolprintf("b_transitionPenalties", " = %d\n",
-                    st_env.b_transitionPenalties);                
-    O->pcolprintf("b_syslogPrepend",     " = %d\n",
-                    st_env.b_syslogPrepend);
-    O->pcolprintf("b_patchFile_save",   " = %d\n",
-                    st_env.b_patchFile_save);
-    O->pcolprintf("b_labelFile_save",   " = %d\n",
-                    st_env.b_labelFile_save);
-    O->pcolprintf("b_useAbsCurvs",      " = %d\n",
-                    st_env.b_useAbsCurvs);
-    O->pcolprintf("b_exitOnDone",       " = %d\n",
-                    st_env.b_exitOnDone);
-    O->pcolprintf("b_costPathSave",     " = %d\n",
-                    st_env.b_costPathSave);
-    O->pprintf("\n# Output file names and file stems\n");
-    O->pcolprintf("costFile",           " = %s\n",
-                    st_env.str_costFileName.c_str());
-    O->pcolprintf("patchFile",          " = %s\n",
-                    st_env.str_patchFileStem.c_str());
-    O->pcolprintf("labelFile",          " = %s\n",
-                    st_env.str_labelFileStem.c_str());
-    O->pcolprintf("labelFileAuxSurface"," = %s\n",
-                    st_env.str_labelFileNameOS.c_str());
-    O->pprintf("\n# Messaging channels\n");
-    O->pcolprintf("userMessages",        " = %s\n",
-                    st_env.str_userMsgLog.c_str());
-    O->pcolprintf("sysMessages",         " = %s\n",
-                    st_env.str_sysMsgLog.c_str());
-    O->pcolprintf("resultMessages",      " = %s\n",
-                    st_env.str_resultMsgLog.c_str());
-    O->pprintf("\n# Weights\n");
-    O->pcolprintf("wd",                 " = %f\n",
-                    st_env.pSTw->wd);
-    O->pcolprintf("wc",                 " = %f\n",
-                    st_env.pSTw->wc);
-    O->pcolprintf("wh",                 " = %f\n",
-                    st_env.pSTw->wh);
-    O->pcolprintf("wdc",                " = %f\n",
-                    st_env.pSTw->wdc);
-    O->pcolprintf("wdh",                " = %f\n",
-                    st_env.pSTw->wdh);
-    O->pcolprintf("wch",                " = %f\n",
-                    st_env.pSTw->wch);
-    O->pcolprintf("wdch",               " = %f\n",
-                    st_env.pSTw->wdch);
-    O->pcolprintf("wdir",               " = %f\n",
-                    st_env.pSTw->wdir);
-    O->pprintf("\n# Transitional penality weights\n");
-    O->pcolprintf("Dwd",                " = %f\n",
-                    st_env.pSTDw->Dwd);
-    O->pcolprintf("Dwc",                " = %f\n",
-                    st_env.pSTDw->Dwc);
-    O->pcolprintf("Dwh",                " = %f\n",
-                    st_env.pSTDw->Dwh);
-    O->pcolprintf("Dwdc",               " = %f\n",
-                    st_env.pSTDw->Dwdc);
-    O->pcolprintf("Dwdh",               " = %f\n",
-                    st_env.pSTDw->Dwdh);
-    O->pcolprintf("Dwch",               " = %f\n",
-                    st_env.pSTDw->Dwch);
-    O->pcolprintf("Dwdch",              " = %f\n",
-                    st_env.pSTDw->Dwdch);
-    O->pcolprintf("Dwdir",              " = %f\n",
-                    st_env.pSTDw->Dwdir);
-    O->pprintf("\n# mpmProg\n");
-    O->pcolprintf("b_mpmProgUse",       " = %d\n",
-                    st_env.b_mpmProgUse);
-    O->pcolprintf("mpmProgID",          " = %d\n",
-                    st_env.empm_current);
-    O->pcolprintf("mpmArgs",            " = %s\n",
-                    st_env.str_mpmArgs.c_str());
-    O->pcolprintf("costCurvFile",       " = %s\n",
-                    st_env.str_costCurvFile.c_str());
-
-    O->dump();
+        O->dump();
+    }
 }
 
 void
@@ -841,9 +842,9 @@ s_env_scan(
     st_env.pcsm_syslog->timer(eSM_start);
 
   SLOUT("PARSING: env");
-  string  str_surfaceFileNameAbs;
+  string str_surfaceFileNameAbs;
   string str_auxSurfaceFileNameAbs;
-  string  str_curvatureFileNameAbs;
+  string str_curvatureFileNameAbs;
   string str_sulcalFileNameAbs;
 
   if (str_surfaceFileName  != str_surfaceFileNameOld) {
@@ -942,6 +943,25 @@ s_env_scan(
     st_env.str_mpmArgs                  = str_mpmArgs;
     st_env.empm_current                 = (e_MPMPROG) mpmProgID;
     st_env.b_exitOnDone                 = b_exitOnDone;
+
+    if(!st_env.str_hemi.length() || !st_env.str_subject.length()) {
+        // Parse the surface text to extract the hemisphere 
+        //+ and subject name
+        vector<string>                  v_dir;
+        vector<string>                  v_surface;
+        vector<string>::iterator        i;
+        string                          str_surfaceFile = "";
+        int                             tokens  = 0;
+
+        tokens = str_tokenize(str_surfaceFileName, v_dir, "/");
+        if(!tokens)
+            str_surfaceFile = str_surfaceFileName;
+        else
+            str_surfaceFile = v_dir.at(tokens-1);
+        str_tokenize(str_surfaceFile, v_surface, ".");
+        st_env.str_hemi         = v_surface.at(0);
+        st_env.str_subject      = v_dir.at(tokens-3);
+    }
 
     nSLOUT("\t\t\t\t\t\t\t[ ok ]\n");
 
@@ -1274,13 +1294,21 @@ s_env_mpmProgSetIndex(
         if(apst_env->str_mpmArgs != "-x") {
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
                                                 e_EquLink, "--", " ", ":");
-            C_mpmProg_autodijk*         pC_autodijk     = NULL;
-            string      str_polarVertex = "0";
-            int         polarVertex     = 0;
-            if(cso_mpm.scanFor("vertexPolar", &str_polarVertex))
+            string      str_polarVertex         = "0";
+            string      str_costCurvStem        = "";
+            int         polarVertex             = 0;
+            C_mpmProg_autodijk* pC_autodijk     = NULL;
+            pC_autodijk_cast(apst_env->pCmpmProg, pC_autodijk);
+            if(cso_mpm.scanFor("vertexPolar", &str_polarVertex)) {
                 polarVertex     = atoi(str_polarVertex.c_str());
-                pC_autodijk_cast(apst_env->pCmpmProg, pC_autodijk);
                 pC_autodijk->vertexPolar_set(polarVertex);
+            }
+            if(cso_mpm.scanFor("costCurvStem", &str_costCurvStem)) {
+                apst_env->str_costCurvFile = apst_env->str_hemi + "." +
+                                             str_costCurvStem + ".crv";
+                pC_autodijk->costFile_set(apst_env->str_costCurvFile);
+                s_env_optionsFile_write(*apst_env);
+            }
         }
         break;
     default:

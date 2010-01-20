@@ -21,7 +21,7 @@
 //
 // VERSION
 //
-// $Id: scanopt.cpp,v 1.2 2009/12/22 18:56:15 rudolph Exp $
+// $Id: scanopt.cpp,v 1.3 2010/01/20 21:43:13 rudolph Exp $
 //
 // DESC
 //
@@ -37,7 +37,6 @@
 #include <sstream>
 #include <cstdlib>
 #include <iterator>
-#include <vector>
 #include <algorithm>
 using namespace std;
 
@@ -398,7 +397,7 @@ int
 str_tokenize(
     const string&       str,
     vector<string>&     tokens,
-    const string&       delimiters = " ")
+    const string&       delimiters)
 {
     int tokenCount      = 0;
     
