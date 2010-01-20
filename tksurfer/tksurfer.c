@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/11/16 19:49:26 $
- *    $Revision: 1.335 $
+ *    $Author: greve $
+ *    $Date: 2010/01/20 23:53:47 $
+ *    $Revision: 1.336 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -6954,12 +6954,13 @@ rotate_brain(float a, char c)
   loadmatrix(m2);
 }
 
-void
-read_image_info(char *fpref)
+void read_image_info(char *fpref)
 {
   char fname[NAME_LENGTH];
   MRI* mri_header;
   FILE* fTest;
+
+  printf("Reading image info (%s/%s)\n",subjectsdir, pname);
 
   mri_header = NULL;
   sprintf (fname, "%s.info", fpref);
@@ -6967,59 +6968,57 @@ read_image_info(char *fpref)
   if (NULL != fTest)
   {
     fclose (fTest);
+    printf("Reading %s\n",fname);
     mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
   }
 
-  if (NULL == mri_header)
-  {
-    sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
-    fTest = fopen (fname, "r");
-    if (NULL != fTest)
-    {
-      fclose (fTest);
-      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
-    }
-  }
-
-  if (NULL == mri_header)
-  {
-    sprintf (fname, "%s/%s/mri/T1.mgz", subjectsdir, pname);
-    fTest = fopen (fname, "r");
-    if (NULL != fTest)
-    {
-      fclose (fTest);
-      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
-    }
-  }
-  if (NULL == mri_header)
-  {
+  if (NULL == mri_header){
+    // Start with orig since it is most likely to be there
     sprintf (fname, "%s/%s/mri/orig.mgz", subjectsdir, pname);
     fTest = fopen (fname, "r");
     if (NULL != fTest)
     {
       fclose (fTest);
+      printf("Reading %s\n",fname);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
   }
-  if (NULL == mri_header)
-  {
+  if (NULL == mri_header){
     sprintf (fname, "%s/%s/mri/orig.mgh", subjectsdir, pname);
     fTest = fopen (fname, "r");
     if (NULL != fTest)
     {
       fclose (fTest);
+      printf("Reading %s\n",fname);
       mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
     }
   }
-
-  if (NULL == mri_header)
-  {
+  if (NULL == mri_header) {
+    sprintf (fname, "%s/%s/mri/T1.mgh", subjectsdir, pname);
+    fTest = fopen (fname, "r");
+    if (NULL != fTest)
+    {
+      fclose (fTest);
+      printf("Reading %s\n",fname);
+      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+    }
+  }
+  if (NULL == mri_header){
+    sprintf (fname, "%s/%s/mri/T1.mgz", subjectsdir, pname);
+    fTest = fopen (fname, "r");
+    if (NULL != fTest)
+    {
+      fclose (fTest);
+      printf("Reading %s\n",fname);
+      mri_header = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+    }
+  }
+  if (NULL == mri_header){
     printf ("ERROR: could not read header info from T1 or orig in %s/%s/mri\n",
             subjectsdir, pname);
     exit(1);
   }
-  if (mri_header)
-  {
+  if (mri_header){
     printf ("surfer: Reading header info from %s\n", fname);
     imnr0 = mri_header->imnr0;
     imnr1 = mri_header->imnr1;
@@ -21197,7 +21196,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.335 2009/11/16 19:49:26 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.336 2010/01/20 23:53:47 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
