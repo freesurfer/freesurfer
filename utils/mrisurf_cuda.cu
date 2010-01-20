@@ -7,8 +7,8 @@
  * Original Author: Thomas Witzel
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/01/20 21:58:32 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/01/20 22:49:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA).
@@ -101,7 +101,7 @@ static int timeval_subtract (struct timeval *result,
 void MRISCdeviceInfo() {
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, 0);
-  printf ("      device %d:%s\n", 0,deviceProp.name);
+  printf ("      CUDA device %d: %s\n", 0,deviceProp.name);
 }
 
 void MRISCcheckCUDAError(const char *msg) {
