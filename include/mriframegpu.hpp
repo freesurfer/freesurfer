@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/20 18:52:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/01/20 19:52:45 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -154,11 +154,17 @@ public:
   // Data transfer
 
   //! Send the given MRI frame to the GPU
-  void Send( const MRI* src, const unsigned int iFrame ) {
+  void Send( const MRI* src,
+	     const unsigned int iFrame,
+	     void* const h_work = NULL,
+	     const cudaStream_t stream = 0 ) {
     /*!
       Sends the given MRI frame to the GPU.
-      For now, this allocates its own memory, and does
-      the copy synchronously
+      Optional arguments can be used to supply page-locked
+      host memory for the transfer, and a stream in which
+      to perform the transfer.
+      If supplied, the array h_work must be at least
+      this->GetBufferSize() bytes long
     */
 
     T* h_data;
@@ -170,14 +176,23 @@ public:
       std:: cerr << __FUNCTION__ << ": Bad frame requested " << iFrame << std::endl;
       exit( EXIT_FAILURE );
     }
-    
-    const size_t bSize = this->GetBufferSize();
 
-    // Allocate contiguous host memory
-    CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data,
-				   bSize,
-				   cudaHostAllocDefault ) );
-    memset( h_data, 0 , bSize );
+    const size_t bSize = this->GetBufferSize();
+    // See if we were supplied with workspace
+    if( h_work != NULL ) {
+      h_data = reinterpret_cast<T*>(h_work);
+    } else {
+
+      // Allocate contiguous host memory
+      CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data,
+				     bSize,
+				     cudaHostAllocDefault ) );
+    }
+
+    // Zero the memory if needed
+    if( this->IsPadded() ) {
+      memset( h_data, 0 , bSize );
+    }
 
     // Extract the data
     this->ExhumeFrame( src, h_data, iFrame );
@@ -192,20 +207,29 @@ public:
     copyParams.extent = this->extent;
     copyParams.kind = cudaMemcpyHostToDevice;
 
-    CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
+    CUDA_SAFE_CALL( cudaMemcpy3DAsync( &copyParams, stream ) );
 
-    // Release host memory
-    CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
+    // Release host memory if needed
+    if( h_work == NULL ) {
+      CUDA_SAFE_CALL( cudaStreamSynchronize( stream ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
+    }
   }
 
 
 
   //! Receives the given MRI frame from the GPU
-  void Recv( MRI* dst, const unsigned int iFrame ) const {
+  void Recv( MRI* dst,
+	     const unsigned int iFrame,
+	     void* const h_work = NULL,
+	     const cudaStream_t stream = 0 ) const {
     /*!
       Retrieves the given MRI frame from the GPU.
-      For now, this allocates its own memory and does the
-      copy synchronously
+      Optional arguments can be used to supply page-locked
+      host memory for the transfer, and a stream in which
+      to perform the transfer.
+      If supplied, the array h_work must be at least
+      this->GetBufferSize() bytes long
     */
 
     T* h_data;
@@ -220,10 +244,14 @@ public:
 
     const size_t bSize = this->GetBufferSize();
 
-    // Allocate contiguous host memory
-    CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data,
-				   bSize,
-				   cudaHostAllocDefault ) );
+    // Allocate contiguous host memory if needed
+    if( h_work != NULL ) {
+      h_data = reinterpret_cast<T*>(h_work);
+    } else {
+      CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data,
+				     bSize,
+				     cudaHostAllocDefault ) );
+    }
 
     // Retrieve from GPU
     cudaMemcpy3DParms cpyPrms = {0};
@@ -235,13 +263,16 @@ public:
     cpyPrms.extent = this->extent;
     cpyPrms.kind = cudaMemcpyDeviceToHost;
 
-    CUDA_SAFE_CALL( cudaMemcpy3D( &cpyPrms ) );
+    CUDA_SAFE_CALL( cudaMemcpy3DAsync( &cpyPrms, stream ) );
+    CUDA_SAFE_CALL( cudaStreamSynchronize( stream ) );
 
     // Retrieve from contiguous RAM
     this->InhumeFrame( dst, h_data, iFrame );
 
     // Release host memory
-    CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
+    if( h_work == NULL ) {
+      CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
+    }
   }
 
 
@@ -307,6 +338,25 @@ private:
     nBlocks = static_cast<unsigned int>( ceilf( nBfloat ) );
 
     return( nBlocks * padSize );
+  }
+
+
+  //! Checks to see if we're padding on the GPU
+  bool IsPadded( void ) const {
+    /*!
+      It's sometimes useful to know if the sizes
+      on the CPU and GPU match exactly.
+      This method is used for checking for
+      this property.
+    */
+    bool res;
+
+    // Check for equality, return inverse
+    res = (this->cpuDims.x == this->gpuDims.x );
+    res = res && (this->cpuDims.y == this->gpuDims.y );
+    res = res && (this->cpuDims.z == this->gpuDims.z );
+
+    return( !res );
   }
 
   // ----------------------------------------------------------------------
