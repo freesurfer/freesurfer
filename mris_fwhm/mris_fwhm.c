@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/21 03:00:38 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/01/20 23:59:47 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.22 2009/07/21 03:00:38 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.23 2010/01/20 23:59:47 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
-  if(DHiters2fwhm > 0){
+  if(DHniters > 0){
     DHiters2fwhm(surf, DHvtxno, DHniters, DHfile);
     exit(0);
   }
