@@ -10,6 +10,9 @@ using namespace std;
 
 #include "devicemanagement.h"
 
+//! Flag to enable timing of GPU functions
+int gEnableGPUTiming;
+
 // ==============================================
 
 
@@ -47,4 +50,18 @@ void AcquireCUDADevice( void ) {
   CUDA_SAFE_CALL( cudaGetDeviceProperties( &devProp, iDevice ) );
   cout << "CUDA device: " << devProp.name << endl;
   
+}
+
+
+
+// ==============================================
+
+
+void EnableGPUTiming( void ) {
+  gEnableGPUTiming = true;
+}
+
+
+void DisableGPUTiming( void ) {
+  gEnableGPUTiming = false;
 }

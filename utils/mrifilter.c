@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/21 16:47:15 $
- *    $Revision: 1.78 $
+ *    $Date: 2010/01/21 18:28:21 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 
 #include "chronometer.h"
 #ifdef FS_CUDA
-#include "mriconvolve1d_cuda.h"
+#include "mriconvolve_cuda.h"
 #endif
 
 /*-----------------------------------------------------
