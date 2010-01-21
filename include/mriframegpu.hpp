@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/21 15:04:44 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/01/21 15:21:45 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -601,7 +601,7 @@ namespace GPU {
       // --------------------------------------------------------
       // Constructors
       
-  //! Default constructor
+      //! Default constructor
       MRIframeOnGPU( void ) : dims(make_uint3(0,0,0)),
 			      extent(make_cudaExtent(0,0,0)),
 			      data(make_cudaPitchedPtr(NULL,0,0,0)) {};
