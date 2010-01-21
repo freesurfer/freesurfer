@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/14 13:47:08 $
- *    $Revision: 1.77 $
+ *    $Date: 2010/01/21 16:47:15 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,9 @@
 #include "mrinorm.h"
 
 #include "chronometer.h"
+#ifdef FS_CUDA
+#include "mriconvolve1d_cuda.h"
+#endif
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -3104,24 +3107,28 @@ MRI *
 MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
               int src_frame, int dst_frame)
 {
-  int           x, y, z, width, height, halflen, depth, *xi, *yi, *zi ;
+  int width, height, depth;
+#ifndef FS_CUDA
+  int           x, y, z,  halflen, *xi, *yi, *zi ;
   register int  i ;
   BUFTYPE       *inBase ;
   float         *ki, total, *inBase_f, *foutPix, val ;
+#endif
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  //printf( "%s: Sizes are w=%i h=%i d=%i\n", __FUNCTION__, width, height, depth );
 
   if (!mri_dst)
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
-  /*
-  printf( "%s: src type is %i\n", __FUNCTION__, mri_src->type );
-  printf( "%s: dst type is %i\n", __FUNCTION__, mri_dst->type );
-  printf( "%s: kernel size is %i\n", __FUNCTION__, len );
-  */
+
+#ifdef FS_CUDA
+  MRIconvolve1d_cuda( mri_src, mri_dst,
+		      k, len,
+		      axis,
+		      src_frame, dst_frame );
+#else
   if (mri_dst->type == MRI_UCHAR)
     return(MRIconvolve1dByte(mri_src,mri_dst,k,len,axis,src_frame,dst_frame));
   else if (mri_dst->type == MRI_SHORT)
@@ -3341,6 +3348,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
     }
     break ;
   }
+#endif
 
   return(mri_dst) ;
 }
