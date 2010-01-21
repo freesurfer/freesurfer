@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/20 19:52:45 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/01/21 14:30:22 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -297,7 +297,23 @@ public:
     return(-1);
   }
 
+  //! Method to check padding size of an MRI
+  bool CheckPadding( const unsigned int padSize ) const {
+    /*!
+      Some routines may require that the data on the GPU
+      are sized to a multiple of padSize.
+      This routine checks the size of gpuDims.
+    */
 
+    bool res;
+
+    res = ( (this->gpuDims.x % padSize) == 0 );
+    res = res && ( (this->gpuDims.y % padSize) == 0 );
+    res = res && ( (this->gpuDims.z % padSize) == 0 );
+
+    return( res );
+  }
+  
  
 private:
 
