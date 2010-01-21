@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/29 18:42:25 $
-#    $Revision: 1.22 $
+#    $Date: 2010/01/21 19:45:27 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.22 2009/06/29 18:42:25 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.23 2010/01/21 19:45:27 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -168,8 +168,6 @@ foreach sess ($SessList)
     if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
-    if($DoInorm)    set cmd = ($cmd -inorm);
-    if(! $DoInorm)  set cmd = ($cmd -no-inorm);
     echo "$sessid MC -----------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -207,8 +205,6 @@ foreach sess ($SessList)
     if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
-    if($DoInorm)    set cmd = ($cmd -inorm);
-    if(! $DoInorm)  set cmd = ($cmd -noinorm);
     echo "$sessid Volume Smoothing ---------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
@@ -268,7 +264,7 @@ foreach sess ($SessList)
     if($nolog) set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($MaskPerRun) set cmd = ($cmd -perrun);
-    echo "$sessid Inorm ------------------------" |& tee -a $LF
+    echo "$sessid Mask ------------------------" |& tee -a $LF
     date      |& tee -a $LF
     pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -356,11 +352,6 @@ while( $#argv != 0 )
     case "-smout":
       if ( $#argv == 0) goto arg1err;
       set smoutstem = $argv[1]; shift;
-      breaksw
-
-    case "-inorm":
-      if ( $#argv == 0) goto arg1err;
-      set inormstem = $argv[1]; shift;
       breaksw
 
     case "-mask":
