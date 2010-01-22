@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.20 2010/01/20 21:43:13 rudolph Exp $
+// $Id: env.cpp,v 1.21 2010/01/22 17:28:47 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -944,7 +944,9 @@ s_env_scan(
     st_env.empm_current                 = (e_MPMPROG) mpmProgID;
     st_env.b_exitOnDone                 = b_exitOnDone;
 
-    if(!st_env.str_hemi.length() || !st_env.str_subject.length()) {
+    if(    !st_env.str_hemi.length()
+        || !st_env.str_subject.length()
+        || !st_env.str_mainSurfaceFileName.length()) {
         // Parse the surface text to extract the hemisphere 
         //+ and subject name
         vector<string>                  v_dir;
@@ -959,8 +961,9 @@ s_env_scan(
         else
             str_surfaceFile = v_dir.at(tokens-1);
         str_tokenize(str_surfaceFile, v_surface, ".");
-        st_env.str_hemi         = v_surface.at(0);
-        st_env.str_subject      = v_dir.at(tokens-3);
+        st_env.str_hemi                 = v_surface.at(0);
+        st_env.str_mainSurfaceFileName  = v_surface.at(1);
+        st_env.str_subject              = v_dir.at(tokens-3);
     }
 
     nSLOUT("\t\t\t\t\t\t\t[ ok ]\n");
@@ -1305,7 +1308,8 @@ s_env_mpmProgSetIndex(
             }
             if(cso_mpm.scanFor("costCurvStem", &str_costCurvStem)) {
                 apst_env->str_costCurvFile = apst_env->str_hemi + "." +
-                                             str_costCurvStem + ".crv";
+                        apst_env->str_mainSurfaceFileName       + "." + 
+                        str_costCurvStem + ".crv";
                 pC_autodijk->costFile_set(apst_env->str_costCurvFile);
                 s_env_optionsFile_write(*apst_env);
             }
