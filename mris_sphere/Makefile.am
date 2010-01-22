@@ -34,8 +34,8 @@ mris_sphere_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
 mris_sphere_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
 mris_sphere_cuda_LDFLAGS = $(OS_LDFLAGS) 
 mris_sphere_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_em_register_cuda_CFLAGS) \
-        $(CFLAGS) $(mri_em_register_cuda_LDFLAGS) $(LDFLAGS) -o $@
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mris_sphere_cuda_CFLAGS) \
+        $(CFLAGS) $(mris_sphere_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
 endif
 
