@@ -14,6 +14,31 @@ mris_remove_intersection_SOURCES=mris_remove_intersection.c
 mris_remove_intersection_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_remove_intersection_LDFLAGS=$(OS_LDFLAGS)
 
+## ----
+## CUDA
+## ----
+
+# BUILDCUDA is defined if configure.in finds CUDA
+if BUILDCUDA
+
+NVCCFLAGS += -g -arch sm_13 --ptxas-options=-v
+
+# rules for building cuda files
+.cu.o:
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) -I$(top_srcdir)/include
+
+bin_PROGRAMS += mris_fix_topology_cuda
+mris_fix_topology_cuda_SOURCES = mris_fix_topology.c
+mris_fix_topology_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
+mris_fix_topology_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+mris_fix_topology_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
+mris_fix_topology_cuda_LDFLAGS = $(OS_LDFLAGS) 
+mris_fix_topology_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mris_fix_topology_cuda_CFLAGS) \
+        $(CFLAGS) $(mris_fix_topology_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
+endif
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
