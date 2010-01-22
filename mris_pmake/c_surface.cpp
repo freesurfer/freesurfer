@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.7 2009/12/01 02:45:26 rudolph Exp $
+// $Id: c_surface.cpp,v 1.8 2010/01/22 17:58:35 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -425,6 +425,10 @@ surface_ripClear(
   //   "fix" this, the default behaviour of this function has been changed
   //   to also reset the cost value of a vertex.
   //
+  // 22 January 2010
+  // o Fixed logic error with wholeSurface iteration! Did not have
+  //   {} around for loop internals!
+  //
 
   int   i;
 
@@ -433,16 +437,14 @@ surface_ripClear(
          i = st_env.pMS_active->vertices[i].old_undefval) {
       st_env.pMS_active->vertices[i].ripflag  = FALSE;
       st_env.pMS_active->vertices[i].val  = -1.0;
-//     st_env.pMS_active->vertices[i].old_undefval = 0;
     }
     st_env.pMS_active->vertices[i].ripflag   = FALSE;
     st_env.pMS_active->vertices[i].val  = -1.0;
-// st_env.pMS_active->vertices[i].old_undefval = 0;
   } else {
-    for (i = 0; i < st_env.pMS_active->nvertices; i++)
+    for (i = 0; i < st_env.pMS_active->nvertices; i++) {
       st_env.pMS_active->vertices[i].ripflag  = FALSE;
-    st_env.pMS_active->vertices[i].val  = -1.0;
-//     st_env.pMS_active->vertices[i].old_undefval = 0;
+      st_env.pMS_active->vertices[i].val  = -1.0;
+    }
   }
 }
 
