@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.10 2010/01/20 21:43:13 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.11 2010/01/22 18:38:05 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -278,7 +278,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     mvertex_end                 = 0;
     m_costFunctionIndex         = 0;
     mb_performExhaustive        = false;
-    mb_surfaceRipClear          = true;
+    mb_surfaceRipClear          = false;
     mprogressIter               = 100;
 
     if(s_env_costFctSetIndex(mps_env, m_costFunctionIndex) == -1)
