@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/21 15:21:45 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/01/25 15:01:51 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -170,7 +170,9 @@ namespace GPU {
 	  host memory for the transfer, and a stream in which
 	  to perform the transfer.
 	  If supplied, the array h_work must be at least
-	  this->GetBufferSize() bytes long
+	  this->GetBufferSize() bytes long.
+	  Furthermore, the calling routine is responsible for
+	  synchronising the stream
 	*/
 	
 	T* h_data;
@@ -212,7 +214,7 @@ namespace GPU {
 	copyParams.extent = this->extent;
 	copyParams.kind = cudaMemcpyHostToDevice;
 	
-	CUDA_SAFE_CALL( cudaMemcpy3DAsync( &copyParams, stream ) );
+	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &copyParams, stream ) );
 	
 	// Release host memory if needed
 	if( h_work == NULL ) {
@@ -268,7 +270,7 @@ namespace GPU {
 	cpyPrms.extent = this->extent;
 	cpyPrms.kind = cudaMemcpyDeviceToHost;
 
-	CUDA_SAFE_CALL( cudaMemcpy3DAsync( &cpyPrms, stream ) );
+	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cpyPrms, stream ) );
 	CUDA_SAFE_CALL( cudaStreamSynchronize( stream ) );
 	
 	// Retrieve from contiguous RAM

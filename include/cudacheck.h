@@ -15,16 +15,25 @@
 #endif
 
 
+//! Macro to wrap up a call to the CUDA API. Forces synchronisation
 #define CUDA_SAFE_CALL( call ) do {                                     \
-    cudaError_t err = call;						\
+    cudaError err = call;						\
     if( cudaSuccess != err ) {						\
       fprintf( stderr, "CUDA Error in file '%s' on line %i : %s.\n",	\
 	       __FILE__, __LINE__, cudaGetErrorString( err ) );		\
       exit( EXIT_FAILURE );						\
-    } } while( 0 );
+    }									\
+    err = cudaThreadSynchronize();					\
+    if( cudaSuccess != err ) {						\
+      fprintf( stderr, "CUDA Error in file '%s' on line %i : %s.\n",	\
+	       __FILE__, __LINE__, cudaGetErrorString( err ) );		\
+      exit( EXIT_FAILURE );						\
+    }									\
+  } while( 0 );
 
+//! Synchronising macro to check for CUDA errors
 #define CUDA_CHECK_ERROR( errorMessage ) do {	\
-    cudaError_t err = cudaGetLastError();	\
+    cudaError err = cudaGetLastError();	\
     if( cudaSuccess != err) {						\
       fprintf(stderr, "Cuda error: %s in file '%s' in line %i : %s.\n",	\
 	      errorMessage, __FILE__, __LINE__, cudaGetErrorString( err) ); \
@@ -37,6 +46,35 @@
       exit(EXIT_FAILURE);						\
     }									\
   } while( 0 );
+
+
+#if CUDA_FORCE_SYNC
+#define CUDA_SAFE_CALL_ASYNC( call ) CUDA_SAFE_CALL( call );
+#define CUDA_CHECK_ERROR_ASYNC( call ) CUDA_CHECK_ERROR( call );
+
+#else
+#define CUDA_SAFE_CALL_ASYNC( call ) do { \
+    cudaError err = call;						\
+    if( cudaSuccess != err ) {						\
+      fprintf( stderr, "CUDA Error in file '%s' on line %i : %s.\n",	\
+	       __FILE__, __LINE__, cudaGetErrorString( err ) );		\
+      fprintf( stderr, "Check made asynchronously. May be reporting earlier error\n" ); \
+      exit( EXIT_FAILURE );						\
+    } } while( 0 );
+
+#define CUDA_CHECK_ERROR_ASYNC( errorMessage ) do {	\
+    cudaError err = cudaGetLastError();					\
+    if( cudaSuccess != err) {						\
+      fprintf(stderr, "Cuda error: %s in file '%s' in line %i : %s.\n",	\
+	      errorMessage, __FILE__, __LINE__, cudaGetErrorString( err) ); \
+      fprintf( stderr, \
+	       "Check made asynchronously. May be reporting earlier error\n" ); \
+      exit( EXIT_FAILURE );						\
+    }									\
+  } while( 0 );
+
+
+#endif
 
 
 #endif

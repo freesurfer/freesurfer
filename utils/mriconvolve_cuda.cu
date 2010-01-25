@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/21 18:28:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/01/25 15:01:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -470,6 +470,7 @@ namespace GPU {
 	threads.z = 1;
 	
 	MRIConvolveKernelX<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU );
+	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelX failed!" );
 	break;
 	
       case MRI_HEIGHT:
@@ -481,6 +482,7 @@ namespace GPU {
 	threads.z = 1;
 	
 	MRIConvolveKernelY<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU );
+	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelY failed!" );
 	break;
 	
       case MRI_DEPTH:
@@ -491,6 +493,7 @@ namespace GPU {
 	threads.z = 1;
 	
 	MRIConvolveKernelZ<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU );
+	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelZ failed!" );
 	break;
 	
       default:
@@ -520,9 +523,8 @@ namespace GPU {
 	the results
 	Things are written this way to avoid nastily nested switch statements.
       */
-#ifdef SHOW_TIMINGS
+
       tMRIconv1dTotal.Start();
-#endif
 
       GPU::Classes::MRIframeGPU<T> srcGPU;
       GPU::Classes::MRIframeGPU<U> dstGPU;
@@ -531,23 +533,17 @@ namespace GPU {
       size_t srcWorkSize, dstWorkSize;
       
       // Allocate the GPU arrays
-#ifdef SHOW_TIMINGS
       tMRIconv1dMem.Start();
-#endif
       srcGPU.Allocate( src, kConv1dBlockSize );
       dstGPU.Allocate( dst, kConv1dBlockSize );
-#ifdef SHOW_TIMINGS
       tMRIconv1dMem.Stop();
-#endif
       
       // Put in some sanity checks
       srcGPU.VerifyMRI( src );
       dstGPU.VerifyMRI( dst );
       
-#ifdef SHOW_TIMINGS
-      tMRIconv1dMemHost.Start();
-#endif
       // Allocate the workspace array
+      tMRIconv1dMemHost.Start();
       srcWorkSize = srcGPU.GetBufferSize();
       dstWorkSize = dstGPU.GetBufferSize();
       
@@ -560,53 +556,30 @@ namespace GPU {
 				       dstWorkSize,
 				       cudaHostAllocDefault ) );
       }
-#ifdef SHOW_TIMINGS
       tMRIconv1dMemHost.Stop();
-#endif
 
       // Send the source data
-#ifdef SHOW_TIMINGS
       tMRIconv1dSend.Start();
-#endif
       srcGPU.Send( src, srcFrame, h_workspace );
-#ifdef SHOW_TIMINGS
-      CUDA_SAFE_CALL( cudaThreadSynchronize() );
       tMRIconv1dSend.Stop();
-#endif
       
       // Run the convolution
-#ifdef SHOW_TIMINGS
       tMRIconv1dCompute.Start();
-#endif
       MRIConvolve1dGPU( srcGPU, dstGPU, axis );
-#ifdef SHOW_TIMINGS
-      CUDA_SAFE_CALL( cudaThreadSynchronize() );
       tMRIconv1dCompute.Stop();
-#endif
   
   // Retrieve the answers
-#ifdef SHOW_TIMINGS
       tMRIconv1dRecv.Start();
-#endif
       dstGPU.Recv( dst, dstFrame, h_workspace );
-#ifdef SHOW_TIMINGS
-      CUDA_SAFE_CALL( cudaThreadSynchronize() );
       tMRIconv1dRecv.Stop();
-#endif
       
-#ifdef SHOW_TIMINGS
       tMRIconv1dMemHost.Start();
-#endif
       CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
-#ifdef SHOW_TIMINGS
       tMRIconv1dMemHost.Stop();
-#endif
       
       CUDA_CHECK_ERROR( "1D Convolution failure" );
       
-#ifdef SHOW_TIMINGS
       tMRIconv1dTotal.Stop();
-#endif
       
       // No need to release - destructor will do that automatically
     }
@@ -703,6 +676,10 @@ void MRIconvShowTimers( void ) {
   std::cout << "=============================================" << std::endl;
   std::cout << "GPU convolution timers" << std::endl;
   std::cout << "----------------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+  std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+  std::cout << "Timings may not be accurate" << std::endl;
+#endif
   std::cout << std::endl;
 
   std::cout << "MRIConv1dDispatch" << std::endl;
