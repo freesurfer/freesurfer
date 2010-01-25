@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 15:01:51 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/01/25 15:11:51 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,8 +171,8 @@ namespace GPU {
 	  to perform the transfer.
 	  If supplied, the array h_work must be at least
 	  this->GetBufferSize() bytes long.
-	  Furthermore, the calling routine is responsible for
-	  synchronising the stream
+	  Furthermore, the calling routine is responsible
+	  for synchronisation
 	*/
 	
 	T* h_data;
