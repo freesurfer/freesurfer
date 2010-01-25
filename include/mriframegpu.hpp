@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 15:11:51 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/01/25 15:26:08 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,12 +59,6 @@ namespace GPU {
     class MRIframeGPU {
     public:
       // -------------------------------------------------------
-      // Public data members
-
-      //! Original data size
-      dim3 cpuDims;
-      //! Padded data size
-      dim3 gpuDims;
 
       // Declare the related 'kernel' class a friend for private access
       friend class MRIframeOnGPU<T>;
@@ -84,7 +78,14 @@ namespace GPU {
 	this->Release();
       }
 
-  
+      // --------------------------------------------------------
+      // Data accessors
+
+      //! Return the dimensions on the GPU of this MRI frame
+      dim3 GetGPUDims( void ) const {
+	return( this->gpuDims );
+      }
+      
   
       // --------------------------------------------------------
       // Memory manipulation
@@ -325,7 +326,11 @@ namespace GPU {
     private:
       // --------------------------------------------------------------------
       // Data members
-      
+
+      //! Original data size
+      dim3 cpuDims;
+      //! Data size on GPU (may be padded)
+      dim3 gpuDims;
       //! Extent of allocated 3D array
       cudaExtent extent;
       //! Pointer to the allocated memory

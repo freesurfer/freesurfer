@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 15:01:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/01/25 15:26:05 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -437,10 +437,14 @@ namespace GPU {
 	@param[in] myStream CUDA stream which should be used (Defaults to stream 0)
       */
       
+
+      const dim3 srcDims = src.GetGPUDims();
+      const dim3 dstDims = dst.GetGPUDims();
+
       // Check dimensions
-      if( (src.gpuDims.x != dst.gpuDims.x) &&
-	  (src.gpuDims.y != dst.gpuDims.y) &&
-	  (src.gpuDims.z != dst.gpuDims.z) ) {
+      if( (srcDims.x != dstDims.x) &&
+	  (srcDims.y != dstDims.y) &&
+	  (srcDims.z != dstDims.z) ) {
 	std::cerr << __FUNCTION__ << ": Dimension mismatch" << std::endl;
 	exit( EXIT_FAILURE );
       }
@@ -462,9 +466,8 @@ namespace GPU {
       
       switch( axis ) {
       case MRI_WIDTH:
-	grid.x = (src.gpuDims.x/kConv1dBlockSize) *
-	  (src.gpuDims.y/kConv1dBlockSize);
-	grid.y = src.gpuDims.z;
+	grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
+	grid.y = srcDims.z;
 	grid.z = 1;
 	threads.x = threads.y = kConv1dBlockSize;
 	threads.z = 1;
@@ -474,9 +477,8 @@ namespace GPU {
 	break;
 	
       case MRI_HEIGHT:
-	grid.x = (src.gpuDims.x/kConv1dBlockSize) *
-	  (src.gpuDims.y/kConv1dBlockSize);
-	grid.y = src.gpuDims.z;
+	grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
+	grid.y = srcDims.z;
 	grid.z = 1;
 	threads.x = threads.y = kConv1dBlockSize;
 	threads.z = 1;
@@ -487,8 +489,8 @@ namespace GPU {
 	
       case MRI_DEPTH:
 	// Slight change, since we do (x,z) patches
-	grid.x = (src.gpuDims.x/kConv1dBlockSize) * (src.gpuDims.z/kConv1dBlockSize);
-	grid.y = src.gpuDims.y;
+	grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.z/kConv1dBlockSize);
+	grid.y = srcDims.y;
 	threads.x = threads.y = kConv1dBlockSize;
 	threads.z = 1;
 	
