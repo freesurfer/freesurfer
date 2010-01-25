@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 19:26:25 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/01/25 21:06:02 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -164,44 +164,6 @@ namespace GPU {
     }
 
 
-    // =================================================
-
-
-    //! Function to coerce the convolution result to the desired type
-    template<typename T>
-    __device__ T GetFinal( const float in ) {
-      return( in );
-    }
-    
-    
-    template<>
-    __device__ unsigned char GetFinal<unsigned char>( const float in ) {
-      
-      return( static_cast<unsigned char>( rintf( in ) ) );
-    }
-    
-    
-    template<>
-    __device__ short GetFinal<short>( const float in ) {
-      
-      return( static_cast<short>( rintf( in ) ) );
-    }
-    
-    
-    template<>
-    __device__ int GetFinal<int>( const float in ) {
-      
-      return( static_cast<int>( rintf( in ) ) );
-    }
-    
-    
-    template<>
-    __device__ long GetFinal<long>( const float in ) {
-      
-      return( static_cast<long>( rintf( in ) ) );
-    }
-    
-    
     // ==================================================
     
     //! Function to round up the convolution kernel size
@@ -281,7 +243,7 @@ namespace GPU {
 	__syncthreads();
       }
       
-      dst(myx, myy, iz) = GetFinal<U>(myVoxel);
+      dst(myx, myy, iz) = dst.ConvertFloat( myVoxel );
       
     }
     
@@ -343,7 +305,7 @@ namespace GPU {
 	__syncthreads();
       }
       
-      dst(myx, myy, iz) = GetFinal<U>(myVoxel);
+      dst(myx, myy, iz) = dst.ConvertFloat( myVoxel );
       
     }
     
@@ -407,7 +369,7 @@ namespace GPU {
 	__syncthreads();
       }
       
-      dst(myx, iy, myz) = GetFinal<U>(myVoxel);
+      dst(myx, iy, myz) = dst.ConvertFloat( myVoxel );
   
     }
 

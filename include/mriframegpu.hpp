@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 20:16:43 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/01/25 21:06:08 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,7 +90,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.16 2010/01/25 20:16:43 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.17 2010/01/25 21:06:08 rge21 Exp $";
       }
       
   
@@ -752,7 +752,19 @@ namespace GPU {
 	return( reinterpret_cast<T*>(row)[ix] );
       }
       
+
+      //! Utility function to convert float to the class' datatype
+      __device__ T ConvertFloat( const float in ) const {
+	/*!
+	  This template is specialised for each supported class.
+	  The unspecialised default will write a constant
+	  negative value
+	*/
+	return( -1 );
+      }
       
+      // --------------------------------------------------------
+
       //! Clamps input integer into range
       __device__ unsigned int ClampCoord( const int i,
 					  const unsigned int iMax ) const {
@@ -770,6 +782,21 @@ namespace GPU {
 	}
       }
     };
+
+    template<> __device__
+    unsigned char MRIframeOnGPU<unsigned char>::ConvertFloat( const float in ) const {
+      return( static_cast<unsigned char>( rintf( in ) ) );
+    }
+
+    template<> __device__
+    short MRIframeOnGPU<short>::ConvertFloat( const float in ) const {
+      return( static_cast<short>( rintf( in ) ) );
+    }
+
+    template<> __device__
+    float MRIframeOnGPU<float>::ConvertFloat( const float in ) const {
+      return( in );
+    }
     
   }
 }
