@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.11 2009/10/01 23:59:45 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.12 2010/01/25 16:55:26 greve Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -31,7 +31,7 @@ set DoAllVol = 0;
 set vollist = (orig aseg aparc+aseg T1 brain brainmask nu norm)
 set ovlist = (curv sulc area area.pial curv.pial avg_curv \
        inflated.H inflated.K thickness)
-set surflist = (orig white pial smoothwm inflated)
+set surflist = (orig white pial smoothwm inflated sphere)
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "$FREESURFER_HOME/average"
