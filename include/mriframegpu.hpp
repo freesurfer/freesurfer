@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 15:26:08 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/01/25 19:03:32 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,6 +85,11 @@ namespace GPU {
       dim3 GetGPUDims( void ) const {
 	return( this->gpuDims );
       }
+
+      //! Return information about the file version
+      const char* VersionString( void ) const {
+	return "$Id: mriframegpu.hpp,v 1.15 2010/01/25 19:03:32 rge21 Exp $";
+      }
       
   
       // --------------------------------------------------------
@@ -99,6 +104,7 @@ namespace GPU {
 	return( nElements * sizeof(T) );
       }
 
+
       //! Extracts frame dimensions from a given MRI and allocates the memory
       void Allocate( const MRI* src,
 		     const unsigned int padSize = 1 ) {
@@ -109,13 +115,35 @@ namespace GPU {
 	  @params[in] padSize Each dimension will be padded to be a multiple of this
 	*/
 	
-	// Sanity check
+	// Sanity checks
 	if( src->type != this->MRItype()  ) {
 	  std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
 	    src->type << std::endl;
 	  exit( EXIT_FAILURE );
 	}
+
+	if( padSize == 0 ) {
+	  std::cerr << __FUNCTION__ << ": Must have non-zero padSize" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
 	
+	
+	dim3 myDims = make_uint3( src->width, src->height, src->depth );
+
+	this->Allocate( myDims, padSize );
+      }
+
+
+
+      //! Allocates storage based on input dimensions and padding
+      void Allocate( const dim3 cpuDims,
+		     const unsigned int padSize = 1 ) {
+	/*!
+	  Given a set of dimensions on the CPU, sets up cpuDims, gpuDims
+	  and extent data members based on the padSize argument.
+	  Uses this to do a cudaMalloc3D
+	*/
+
 	if( padSize == 0 ) {
 	  std::cerr << __FUNCTION__ << ": Must have non-zero padSize" << std::endl;
 	  exit( EXIT_FAILURE );
@@ -126,19 +154,17 @@ namespace GPU {
 	this->Release();
 	
 	// Make a note of the dimensions on the CPU
-	this->cpuDims.x = src->width;
-	this->cpuDims.y = src->height;
-	this->cpuDims.z = src->depth;
+	this->cpuDims = cpuDims;
 	
 	// Generate the dimensions on the GPU
-	this->gpuDims.x = this->RoundToBlock( cpuDims.x, padSize );
-	this->gpuDims.y = this->RoundToBlock( cpuDims.y, padSize );
-	this->gpuDims.z = this->RoundToBlock( cpuDims.z, padSize );
+	this->gpuDims.x = this->RoundToBlock( this->cpuDims.x, padSize );
+	this->gpuDims.y = this->RoundToBlock( this->cpuDims.y, padSize );
+	this->gpuDims.z = this->RoundToBlock( this->cpuDims.z, padSize );
 	
 	// Make the extent
 	this->extent = make_cudaExtent( this->gpuDims.x * sizeof(T),
-					gpuDims.y,
-					gpuDims.z );
+					this->gpuDims.y,
+					this->gpuDims.z );
 	
 	// Allocate the memory
 	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
