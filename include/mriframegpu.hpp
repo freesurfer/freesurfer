@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 19:03:32 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/01/25 20:16:43 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,11 +70,13 @@ namespace GPU {
       MRIframeGPU( void ) : cpuDims(make_uint3(0,0,0)),
 			    gpuDims(make_uint3(0,0,0)),
 			    extent(make_cudaExtent(0,0,0)),
-			    d_data(make_cudaPitchedPtr(NULL,0,0,0)) {};
+			    d_data(make_cudaPitchedPtr(NULL,0,0,0)),
+			    dca_data(NULL) {};
 
  
       //! Destructor
       ~MRIframeGPU( void ) {
+	this->ReleaseArray();
 	this->Release();
       }
 
@@ -88,7 +90,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.15 2010/01/25 19:03:32 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.16 2010/01/25 20:16:43 rge21 Exp $";
       }
       
   
@@ -104,6 +106,7 @@ namespace GPU {
 	return( nElements * sizeof(T) );
       }
 
+      // -----
 
       //! Extracts frame dimensions from a given MRI and allocates the memory
       void Allocate( const MRI* src,
@@ -133,7 +136,7 @@ namespace GPU {
 	this->Allocate( myDims, padSize );
       }
 
-
+      // -----
 
       //! Allocates storage based on input dimensions and padding
       void Allocate( const dim3 cpuDims,
@@ -151,6 +154,7 @@ namespace GPU {
 	
 	
 	// Get rid of old data
+	this->ReleaseArray();
 	this->Release();
 	
 	// Make a note of the dimensions on the CPU
@@ -169,11 +173,12 @@ namespace GPU {
 	// Allocate the memory
 	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
       }
-      
+
+      // -----
       
       //! Releases memory associated with class instance
       void Release( void ) {
-	if( d_data.ptr != NULL ) {
+	if( this->d_data.ptr != NULL ) {
 	  CUDA_SAFE_CALL( cudaFree( d_data.ptr ) );
 	}
 	this->cpuDims = make_uint3(0,0,0);
@@ -182,7 +187,42 @@ namespace GPU {
 	this->d_data = make_cudaPitchedPtr(NULL,0,0,0);
       }
 
+      // -----
+
+      //! Allocates the CUDA array member
+      void AllocateArray( void ) {
+	/*!
+	  Allocates the CUDA array member based on the existing
+	  data stored in the class.
+	  Checks to see that the sizes are non-zero by
+	  examining the d_data pointer
+	*/
+
+	// Check for initialisation
+	if( this->d_data.ptr == NULL ) {
+	  std::cerr << __FUNCTION__ << ": d_data is NULL!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	// Shouldn't need to release old memory - happens in Allocate
+
+	cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
+
+	CUDA_SAFE_CALL( cudaMalloc3DArray( &(this->dca_data),
+					   &cd,
+					   this->extent ) );
+      }
       
+      // -----
+
+      //! Releases the CUDA array member
+      void ReleaseArray( void ) {
+	if( this->dca_data != NULL ) {
+	  CUDA_SAFE_CALL( cudaFreeArray( this->dca_data ) );
+	  this->dca_data = NULL;
+	}
+      }
+
       // --------------------------------------------------------
       // Data transfer
       
@@ -250,6 +290,7 @@ namespace GPU {
 	}
       }
       
+      // -----
       
       
       //! Receives the given MRI frame from the GPU
@@ -308,7 +349,37 @@ namespace GPU {
 	  CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
 	}
       }
-      
+
+
+      // -----
+
+      //! Copies frame data to a CUDA array for texturing
+      void SendArray( const cudaStream_t myStream = 0 ) {
+	/*!
+	  Method to copy the data currently on the GPU
+	  into a CUDA array, which can then be used in a
+	  texture.
+	  Copy is done asynchronously within the (optionally)
+	  given stream
+	*/
+	if( this->d_data.ptr == NULL ) {
+	  std::cerr << __FUNCTION__ << ": GPU data not available!" << std::endl;
+	}
+
+	if( this->dca_data == NULL ) {
+	  std::cerr << __FUNCTION__ << ": CUDA array not allocated!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	cudaMemcpy3DParms cp = {0};
+	
+	cp.srcPtr = this->d_data;
+	cp.dstArray = this->dca_data;
+	cp.extent = this->extent;
+	cp.kind = cudaMemcpyDeviceToDevice;
+
+	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cp, myStream ) );
+      }
       
       // ----------------------------------------------------------------------
       //! Method to sanity check MRI
@@ -361,6 +432,8 @@ namespace GPU {
       cudaExtent extent;
       //! Pointer to the allocated memory
       cudaPitchedPtr d_data;
+      //! CUDA array for texturing
+      cudaArray *dca_data;
 
       // ----------------------------------------------------------------------
       // Prevent copying
@@ -479,7 +552,7 @@ namespace GPU {
 	} 
       }
       
-
+      // -----
 
       //! Copies contiguous memory to an MRI frame
       void InhumeFrame( MRI* dst,
@@ -514,6 +587,7 @@ namespace GPU {
 	}
       }
       
+      // -----
       
       //! Wrapper around memcpy for MRI->contiguous transfers
       void ExhumeRow( const MRI* src,
@@ -532,6 +606,7 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
+      // -----
 
       //! Wrapper around memcpy for contiguous->MRI transfers
       void InhumeRow( MRI* dst,
