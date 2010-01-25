@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 15:26:05 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/25 19:26:25 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -504,6 +504,7 @@ namespace GPU {
 	std::cerr << "in a universe with three spatial dimensions" << std::endl;
 	std::cerr << "Please adjust your reality accordingly, ";
 	std::cerr << "and try again" << std::endl;
+	std::cerr << "MRIframeGPU version was:\n" << src.VersionString() << std::endl;
 	exit( EXIT_FAILURE );
       }
       
