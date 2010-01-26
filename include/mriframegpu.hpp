@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 21:06:08 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/01/26 15:20:52 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,7 +90,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.17 2010/01/25 21:06:08 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.18 2010/01/26 15:20:52 rge21 Exp $";
       }
       
   
@@ -165,13 +165,10 @@ namespace GPU {
 	this->gpuDims.y = this->RoundToBlock( this->cpuDims.y, padSize );
 	this->gpuDims.z = this->RoundToBlock( this->cpuDims.z, padSize );
 	
-	// Make the extent
-	this->extent = make_cudaExtent( this->gpuDims.x * sizeof(T),
-					this->gpuDims.y,
-					this->gpuDims.z );
+	// Do the actual allocation
+	this->AllocateFromDims();
 	
-	// Allocate the memory
-	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
+	
       }
 
       // -----
@@ -418,6 +415,11 @@ namespace GPU {
 	
 	return( res );
       }
+
+      //! Method to check if the CUDA array is allocated
+      bool HasArray( void ) const {
+	return( this->dca_data != NULL );
+      }
   
  
     private:
@@ -454,6 +456,25 @@ namespace GPU {
       }
 
       
+      // ----------------------------------------------------------------------
+
+      //! Allocates extent and memory space from object's gpuDims member
+      void AllocateFromDims( void ) {
+	/*!
+	  This routine allocates GPU memory to hold an MRI frame, and
+	  also sets up the extent data member.
+	  It assumes that the gpuDims data member has been correctly
+	  set prior to the call.
+	*/
+	// Make the extent
+	this->extent = make_cudaExtent( this->gpuDims.x * sizeof(T),
+					this->gpuDims.y,
+					this->gpuDims.z );
+	
+	// Allocate the memory
+	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
+      }
+
       // ----------------------------------------------------------------------
       
       //! Rounds an array length up to multiple of given padding size

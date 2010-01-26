@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/19 20:48:32 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/01/26 15:20:47 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,6 @@
 
 #include <iostream>
 #include <iomanip>
-using namespace std;
 
 
 extern "C" {
@@ -41,13 +40,46 @@ extern "C" {
 #include "chronometer.hpp"
 #include "cudacheck.h"
 
-//#include "mri_transfer.h"
-//#include "mrislices_cuda.cuh"
 
+#include "mriframegpu.hpp"
+#include "affinegpu.hpp"
 
 #include "mrivol2vol_cuda.h"
 
 // ==============================================================
+
+namespace GPU {
+  namespace Algorithms {
+
+    const unsigned int kVol2VolBlockSize = 16;
+
+    //! Dispatch function for the transformation kernel
+    template<typename T>
+    void MRIVol2VolGPU( const GPU::Classes::MRIframeGPU<T> &src,
+			GPU::Classes::MRIframeGPU<T> &dst,
+			const cudaStream_t myStream = 0 ){
+      /*!
+	This is the dispatch function for the vol2vol kernel.
+	The src MRI must already be in its CUDA array, and the
+	dst MRI must be padded
+      */
+      if( !src.HasArray() ) {
+	std::cerr << __FUNCTION__ <<
+	  ": Source array must be in CUDA array" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( !dst.CheckPadding( kVol2VolBlockSize ) ) {
+	std::cerr << __FUNCTION__ <<
+	  ": Destination array must be padded" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+	
+
+    }  
+
+  }
+}
 
 
 int MRIvol2vol_cuda( const MRI* src, MRI* targ, 
@@ -60,7 +92,7 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
     once that routine has performed necessary checks
   */
 
-  cout << __FUNCTION__ << ": Begin" << endl;
+  std::cout << __FUNCTION__ << ": Begin" << std::endl;
 
   // Need to track 'actual' and GPU dimensions
   // Recall that GPU dimensions will be padded
