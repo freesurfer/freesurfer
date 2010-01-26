@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/04 15:58:16 $
- *    $Revision: 1.63 $
+ *    $Date: 2010/01/26 23:25:13 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -193,7 +193,8 @@ MRI       *TransformApplyType(TRANSFORM *transform,
 MRI       *TransformApplyInverse(TRANSFORM *transform,
                                  MRI *mri_src, MRI *mri_dst) ;
 
-MATRIX* TransformCompose(TRANSFORM *transform);
+TRANSFORM *TransformCompose(TRANSFORM *t_src, MATRIX *m_left, MATRIX *m_right, TRANSFORM *t_dst);
+LTA       *LTAcompose(LTA *lta_src, MATRIX *m_left, MATRIX *m_right, LTA *lta_dst) ;
 
 int     TransformGetSrcVolGeom(TRANSFORM *transform, VOL_GEOM *vg) ;
 int     TransformGetDstVolGeom(TRANSFORM *transform, VOL_GEOM *vg) ;
@@ -247,5 +248,6 @@ int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 MATRIX *MRIangles2RotMat(double *angles);
 double *SegRegCost(MRI *regseg, MRI *f, double *costs);
 MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R);
+
 
 #endif
