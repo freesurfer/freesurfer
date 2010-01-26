@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2010/01/16 03:51:32 $
-#    $Revision: 1.263 $
+#    $Author: nicks $
+#    $Date: 2010/01/26 23:33:05 $
+#    $Revision: 1.264 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.263 2010/01/16 03:51:32 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.264 2010/01/26 23:33:05 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4175,10 +4175,14 @@ while( $#argv != 0 )
       breaksw;
 
     case "-tal-check":
+    case "-talcheck":
       set DoTalCheck = 1;
       breaksw;
 
     case "-notal-check":
+    case "-no-tal-check":
+    case "-notalcheck":
+    case "-no-talcheck":
       set DoTalCheck = 0;
       breaksw;
 
