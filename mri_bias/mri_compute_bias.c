@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/01/01 20:52:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/26 20:12:13 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "timer.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "transform.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -53,6 +54,7 @@ static char sdir[STRLEN] = "" ;
 static float pad=20;
 static double sigma = 4.0 ;
 static int normalize = 0 ;
+static char *xform_name ;
 
 int
 main(int argc, char *argv[])
@@ -64,11 +66,12 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   struct timeb start ;
 	double       c_r, c_a, c_s ;
+  MATRIX       *m_vox2vox ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_compute_bias.c,v 1.3 2007/01/01 20:52:23 fischl Exp $", 
+     "$Id: mri_compute_bias.c,v 1.4 2010/01/26 20:12:13 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -105,12 +108,14 @@ main(int argc, char *argv[])
 
 	mri_bias = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
 	mri_counts = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
+#if 0
 	mri_bias->c_r = (double)mri_bias->width/2.0 ;
 	mri_bias->c_a = (double)mri_bias->height/2.0 ;
 	mri_bias->c_s = (double)mri_bias->depth/2.0 ;
 	mri_counts->c_r = (double)mri_counts->width/2.0 ;
 	mri_counts->c_a = (double)mri_counts->height/2.0 ;
 	mri_counts->c_s = (double)mri_counts->depth/2.0 ;
+#endif
 
   for (i = 1 ; i < argc-1 ; i++)
 	{
@@ -153,6 +158,31 @@ main(int argc, char *argv[])
 			mri_counts->c_r = mri_counts->c_a = mri_counts->c_s = 0;
 			MRIreInitCache(mri_bias) ; MRIreInitCache(mri_counts) ;
 		}
+    if (xform_name)
+    {
+      TRANSFORM    *transform ;
+      MRI          *mri ;
+      sprintf(fname, "%s/%s/mri/transforms/%s", sdir, subject, xform_name) ;
+      transform = TransformRead(fname) ;
+      if (transform == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not load transform from %s", Progname, fname) ;
+      m_vox2vox = MRIgetVoxelToVoxelXform(mri_bias, mri_orig) ;
+      //      TransformCompose(transform, m_vox2vox, NULL, transform) ;
+      mri = MRIclone(mri_bias, NULL) ;
+      //      mri->c_r = mri->c_a = mri->c_s = 0 ;
+      TransformApplyType(transform, mri_orig, mri, SAMPLE_TRILINEAR) ;
+      MRIfree(&mri_orig) ; mri_orig = mri ;
+      mri = MRIclone(mri_bias, NULL) ;
+      //      mri->c_r = mri->c_a = mri->c_s = 0 ;
+      TransformApplyType(transform, mri_T1, mri, SAMPLE_TRILINEAR) ;
+      MRIfree(&mri_T1) ; mri_T1 = mri ;
+
+      mri = MRIclone(mri_bias, NULL) ;
+      //      mri->c_r = mri->c_a = mri->c_s = 0 ;
+      TransformApplyType(transform, mri_brain, mri, SAMPLE_TRILINEAR) ;
+      MRIfree(&mri_brain) ; mri_brain = mri ;
+      TransformFree(&transform) ;
+    }
 		update_bias(mri_orig, mri_T1, mri_brain, mri_bias, mri_counts, normalize) ;
 	}
 
@@ -192,8 +222,21 @@ get_option(int argc, char *argv[])
 		printf("using SUBJECTS_DIR %s\n", sdir);
 		nargs = 1 ;
 	}
+  else if (!stricmp(option, "debug_voxel")) 
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
   else switch (toupper(*option))
 	{
+  case 'T':
+    xform_name = argv[2] ;
+    nargs = 1 ;
+    printf("applying xform %s to input datasets\n", xform_name) ;
+    break ;
 	case 'S':
 		sigma = atof(argv[2]) ;
 		nargs = 1 ;

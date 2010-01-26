@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/11 18:33:47 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/01/26 20:12:13 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@
 #include "timer.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "transform.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -48,6 +49,7 @@ static MRI *apply_bias(MRI *mri_orig, MRI *mri_norm, MRI *mri_bias) ;
 char *Progname ;
 
 static void usage_exit(int code) ;
+static char *xform_fname = NULL ;
 
 int
 main(int argc, char *argv[]) {
@@ -60,7 +62,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_apply_bias.c,v 1.3 2009/11/11 18:33:47 fischl Exp $",
+           "$Id: mri_apply_bias.c,v 1.4 2010/01/26 20:12:13 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -90,6 +92,19 @@ main(int argc, char *argv[]) {
   if (mri_bias == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read %s",Progname, argv[2]) ;
 
+  if (xform_fname)
+  {
+    TRANSFORM    *transform ;
+    MRI          *mri ;
+
+    transform = TransformRead(xform_fname) ;
+    if (transform == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load transform %s", Progname, xform_fname) ;
+    mri = MRIcloneDifferentType(mri_orig, MRI_FLOAT) ;
+    TransformApplyInverse(transform, mri_bias, mri) ;
+    MRIfree(&mri_bias) ; mri_bias = mri ;
+    
+  }
   mri_norm = apply_bias(mri_orig, NULL, mri_bias);
 
   fprintf(stderr, "writing to %s...\n", argv[3]) ;
@@ -117,7 +132,19 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "sdir")) {}
+  else if (!stricmp(option, "debug_voxel")) 
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
   else switch (toupper(*option)) {
+  case 'T':
+    xform_fname = argv[2] ;
+    nargs = 1 ;
+    break ;
     case '?':
     case 'U':
       usage_exit(0) ;
@@ -163,6 +190,8 @@ apply_bias(MRI *mri_orig, MRI *mri_norm, MRI *mri_bias) {
       V3_Y(v1) = y ;
       for (z = 0 ; z < mri_orig->depth ; z++) {
         V3_Z(v1) = z ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         val_orig = MRIgetVoxVal(mri_orig, x, y, z, 0) ;
         MatrixMultiply(m_vox2vox, v1, v2) ;
         xd = V3_X(v2) ;
