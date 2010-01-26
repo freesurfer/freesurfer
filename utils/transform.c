@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/01/13 20:23:50 $
- *    $Revision: 1.140 $
+ *    $Author: fischl $
+ *    $Date: 2010/01/26 16:41:35 $
+ *    $Revision: 1.141 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1963,6 +1963,7 @@ TransformRead(const char *fname)
 {
   TRANSFORM *trans ;
   GCA_MORPH *gcam = NULL ;
+  char      fname_no_path[STRLEN] ;
 
   trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
   memset(trans, 0, sizeof(TRANSFORM));
@@ -1971,9 +1972,11 @@ TransformRead(const char *fname)
   // firstly, check for filename 'identify.nofile', which does not exist
   // as a file, but instead is used to force creation of an identity
   // matrix of type linear vox2vox
-  if (0 == strcmp(fname, "identity.nofile"))
+  FileNameOnly(fname, fname_no_path) ;
+  if (0 == strcmp(fname_no_path, "identity.nofile"))
   {
     trans->type = LINEAR_VOX_TO_VOX;
+    trans->type = LINEAR_RAS_TO_RAS;
     LTA* lta = LTAalloc(1, NULL);
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
     lta->xforms[0].type = trans->type;
@@ -2506,9 +2509,8 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
     // mri_dst = MRIinverseLinearTransform(mri_src, NULL,
     //      ((LTA *)transform->xform)->xforms[0].m_L);
     lta = (LTA*) transform->xform;
-    LTAinvert(lta);
-    mri_dst = LTAtransform(mri_src, NULL, lta);
-    LTAinvert(lta); // restore the original
+    LTAinvert(lta) ;
+    mri_dst = LTAinverseTransformInterp(mri_src, mri_dst, lta, SAMPLE_TRILINEAR);
     break ;
   }
   return(mri_dst) ;
@@ -2527,7 +2529,7 @@ TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int 
     // mri_dst = MRIinverseLinearTransform(mri_src, NULL,
     //      ((LTA *)transform->xform)->xforms[0].m_L);
     lta = (LTA*) transform->xform;
-    mri_dst = LTAinverseTransformInterp(mri_src, NULL, lta, interp_type);
+    mri_dst = LTAinverseTransformInterp(mri_src, mri_dst, lta, interp_type);
     break ;
   }
   return(mri_dst) ;
@@ -3001,18 +3003,21 @@ LTA *
 LTAreadEx(const char *fname)
 {
   int       type ;
+  char      fname_no_path[STRLEN] ;
   LTA       *lta=NULL ;
 #if 0
   MATRIX *V, *W, *m_tmp;
 #endif
 
+  FileNameOnly(fname, fname_no_path) ;
   // firstly, check for filename 'identify.nofile', which does not exist
   // as a file, but instead is used to force creation of an identity
   // matrix of type linear vox2vox
-  if (0 == strcmp(fname, "identity.nofile"))
+  if (0 == strcmp(fname_no_path, "identity.nofile"))
   {
     LTA* lta = LTAalloc(1, NULL);
     lta->type = LINEAR_VOX_TO_VOX;
+    lta->type = LINEAR_RAS_TO_RAS;
     lta->xforms[0].m_L = MatrixIdentity(4, NULL);
     lta->xforms[0].type = lta->type;
     return lta;
@@ -3217,9 +3222,15 @@ ltaFSLread(const char *fname)
   return(lta) ;
 }
 
+/*
+  compute the inverse transforms and vol_geom for the LTA. Note: this does not
+  change the value of the forward m_L transform to be the inverse! It merely
+  fills in the inverse xforms.
+*/
 LTA *LTAinvert(LTA *lta)
 {
   int i;
+
   for (i=0; i < lta->num_xforms; ++i)
   {
     if (MatrixInverse(lta->xforms[i].m_L, lta->inv_xforms[i].m_L) == NULL)
@@ -4352,5 +4363,44 @@ TransformSetMRIVolGeomToDst(TRANSFORM *transform, MRI *mri)
   TransformGetDstVolGeom(transform, &vg) ;
   MRIcopyVolGeomToMRI(mri, &vg) ;
   return(NO_ERROR) ;
+}
+
+LTA *
+LTAcompose(LTA *lta_src, MATRIX *m_left, MATRIX *m_right, LTA *lta_dst)
+{
+  if (lta_dst == NULL)
+  {
+    lta_dst = LTAalloc(1, NULL) ;
+    copyVolGeom(&lta_src->xforms[0].src, &lta_dst->xforms[0].src) ;
+    copyVolGeom(&lta_src->xforms[0].dst, &lta_dst->xforms[0].dst) ;
+  }
+  if (m_left)
+    MatrixMultiply(m_left, lta_src->xforms[0].m_L, lta_dst->xforms[0].m_L) ;
+  if (m_right)
+    MatrixMultiply(lta_src->xforms[0].m_L, m_right, lta_dst->xforms[0].m_L) ;
+  return(lta_dst) ;
+}
+
+TRANSFORM *
+TransformCompose(TRANSFORM *t_src, MATRIX *m_left, MATRIX *m_right, TRANSFORM *t_dst)
+{
+  LTA   *lta_src, *lta_dst ;
+
+  if (t_dst == NULL)
+    t_dst= TransformAlloc(t_src->type, NULL) ;
+
+  switch (t_src->type)
+  {
+  default:
+    lta_src = (LTA *)(t_src->xform) ;
+    lta_dst = (LTA *)(t_dst->xform) ;
+    LTAcompose(lta_src, m_left, m_right, lta_dst) ;
+    break ;
+  case MORPH_3D_TYPE:
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "TransformCompose: MORPH_3D_TYPE unsupported")) ;
+    break ;
+  }
+  return(t_dst) ;
 }
 
