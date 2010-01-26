@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/13 20:19:01 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/01/26 16:54:40 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,10 +36,11 @@ extern "C" {
 
 
 #include "mri.h"
+#include "matrix.h"
 
   //! Implementation of MRIvol2vol for the GPU
   int MRIvol2vol_cuda( const MRI* src, MRI* targ, 
-		       const float* transformMatrx,
+		       const MATRIX* transformMatrix,
 		       const int InterpMode,
 		       const float param );
     

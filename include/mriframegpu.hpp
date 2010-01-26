@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/26 15:20:52 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/01/26 16:54:40 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,9 +90,14 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.18 2010/01/26 15:20:52 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.19 2010/01/26 16:54:40 rge21 Exp $";
       }
       
+      //! Return pointer to the cudaArray
+      cudaArray* GetArray( void ) const {
+	return( this->dca_data );
+      }
+
   
       // --------------------------------------------------------
       // Memory manipulation
