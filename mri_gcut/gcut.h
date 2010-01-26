@@ -1,11 +1,11 @@
 /*
- * Original Author: Vitali Zagorodnov, ZHU Jiaqi (September, 2009)
+ * Original Author: Vitali Zagorodnov, ZHU Jiaqi (Sept. 2009, revised Jan. 2010)
  * CVS Revision Info:
  *    $Author:
  *    $Date:
  *    $Revision:
  *
- * Copyright (C) 2009
+ * Copyright (C) 2009-2010
  * Nanyang Technological University, Singapore
  * All rights reserved.
  *
@@ -15,7 +15,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -26,6 +25,13 @@ typedef struct
   int z;
 }
 gc_POS;
+
+typedef struct {
+	int x;
+	int y;
+	int z;
+	int current_child;
+}lc_Component;
 
 class CCubeNode
 {

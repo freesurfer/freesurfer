@@ -10,7 +10,7 @@
  *    $Date:
  *    $Revision:
  *
- * Copyright (C) 2009
+ * Copyright (C) 2009-2010
  * Nanyang Technological University, Singapore
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -44,7 +43,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-"$Id: mri_gcut.cpp,v 1.4 2009/09/14 18:31:27 nicks Exp $";
+"$Id: mri_gcut.cpp,v 1.5 2010/01/26 19:51:08 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -241,7 +240,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.4 2009/09/14 18:31:27 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.5 2010/01/26 19:51:08 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -341,16 +340,19 @@ int main(int argc, char *argv[])
   double whitemean;
   if (bNeedPreprocessing == 0)
   {
-    whitemean = pre_porocessing(mri ->slices,
-                                label,
-                                mri->width,
-                                mri->height,
-                                mri->depth);
+    // pre-processed: 110 intensity voxels are the WM
+    pre_porocessing(mri ->slices,
+                    label,
+                    mri->width,
+                    mri->height,
+                    mri->depth);
+    /* 
     if ( whitemean < 0 )
     {
       printf("whitemean < 0 error!\n");
       exit(0);
     }
+    */
     whitemean = 110;
     printf("use voxels with intensity 110 as WM mask\n");
   }
