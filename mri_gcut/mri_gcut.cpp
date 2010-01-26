@@ -43,7 +43,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-"$Id: mri_gcut.cpp,v 1.5 2010/01/26 19:51:08 nicks Exp $";
+"$Id: mri_gcut.cpp,v 1.6 2010/01/26 22:10:12 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -240,7 +240,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.5 2010/01/26 19:51:08 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.6 2010/01/26 22:10:12 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -345,7 +345,8 @@ int main(int argc, char *argv[])
                     label,
                     mri->width,
                     mri->height,
-                    mri->depth);
+                    mri->depth,
+                    110);
     /* 
     if ( whitemean < 0 )
     {
