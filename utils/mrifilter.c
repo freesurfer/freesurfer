@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/21 18:28:21 $
- *    $Revision: 1.79 $
+ *    $Date: 2010/01/26 14:20:12 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2503,6 +2503,11 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
+
+  if( mri_src->type != mri_dst->type ) {
+    fprintf( stderr, "%s: Source and destination types differ!\n", __FUNCTION__ );
+    exit( EXIT_FAILURE );
+  }
 
   if (mri_dst == mri_src)
     mri_tmp = mri_dst = MRIclone(mri_src, NULL) ;
