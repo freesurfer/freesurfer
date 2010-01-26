@@ -1,5 +1,5 @@
-function [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)
-% [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)
+function [fftaxis, deltafreq, indaxis] = fast_fftaxis(Ntp,TR)
+% [fftaxis deltafreq indaxis] = fast_fftaxis(Ntp,TR)
 %
 % Returns the frequencies at which the fft is computed, 
 % from DC to the nyquist frequency. There will be Ntp/2 + 1
@@ -19,9 +19,9 @@ function [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2010/01/26 23:11:37 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -37,7 +37,7 @@ function [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)
 %
 
 if(nargin ~= 2) 
-  msg = 'USAGE: [fftaxis, deltafreq] = fast_fftaxis(Ntp,TR)';
+  msg = 'USAGE: [fftaxis deltafreq indaxis] = fast_fftaxis(Ntp,TR)';
   qoe(msg); error(msg);
 end
 
@@ -45,5 +45,5 @@ nn = 0:round(Ntp/2);
 freqmax = (1/TR)/2;         % Nyquist
 deltafreq = freqmax/(Ntp/2); % Measured from 0 to Nyquist
 fftaxis = deltafreq*nn;
-
+indaxis = nn+1;
 return;
