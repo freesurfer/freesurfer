@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/12 12:19:49 $
- *    $Revision: 1.390 $
+ *    $Author: rge21 $
+ *    $Date: 2010/01/27 19:21:45 $
+ *    $Revision: 1.391 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -149,11 +149,11 @@ typedef struct
   // volume is allocated one big buffer.
   int    ischunked; // 1 means alloc is one big chunk
   void   *chunk; // pointer to the one big chunk of buffer
-  int    bytes_per_vox; // # bytes per voxels
-  int    bytes_per_row; // # bytes per row
-  int    bytes_per_slice; // # bytes per slice
-  int    bytes_per_vol; // # bytes per volume/timepoint
-  int    bytes_total; // # total number of pixel bytes in the struct
+  size_t    bytes_per_vox; // # bytes per voxels
+  size_t    bytes_per_row; // # bytes per row
+  size_t    bytes_per_slice; // # bytes per slice
+  size_t    bytes_per_vol; // # bytes per volume/timepoint
+  size_t    bytes_total; // # total number of pixel bytes in the struct
   COLOR_TABLE *ct ;
 }
 MRI_IMAGE, MRI ;
