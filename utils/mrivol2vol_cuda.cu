@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/27 15:32:06 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/01/27 16:02:34 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,6 +59,12 @@ namespace GPU {
   namespace Algorithms {
 
     const unsigned int kVol2VolBlockSize = 16;
+
+    // Some timers
+    SciGPU::Utilities::Chronometer tVol2VolMem, tVol2VolMemHost;
+    SciGPU::Utilities::Chronometer tVol2VolMRISendFrame, tVol2VolMRIRecvFrame;
+    SciGPU::Utilities::Chronometer tVol2VolMRISendArray, tVol2VolCompute;
+    SciGPU::Utilities::Chronometer tVol2VolTotal;
 
     // ---------------------------------------
 
@@ -287,7 +293,7 @@ namespace GPU {
 	threads.x = threads.y = kVol2VolBlockSize;
 	threads.z = 1;
 	MRIVol2VolKernel<T,U><<<grid,threads>>>( dstGPU, transform );
-	CUDA_CHECK_ERROR( "MRIVol2VolKernel call failed!\n" );
+	CUDA_CHECK_ERROR_ASYNC( "MRIVol2VolKernel call failed!\n" );
 	break;
 
       case SAMPLE_SINC:
@@ -309,37 +315,76 @@ namespace GPU {
 				 const int InterpMode,
 				 const float param ) {
       
+      tVol2VolTotal.Start();
+
       // Get hold of the affine transformation
       GPU::Classes::AffineTransformation myTransform( transformMatrix );
 
       GPU::Classes::MRIframeGPU<T> srcGPU;
       GPU::Classes::MRIframeGPU<U> dstGPU;
 
+      char* h_workspace;
+      size_t srcWorkSize, dstWorkSize;
+
       // Allocate GPU arrays
+      tVol2VolMem.Start();
       srcGPU.Allocate( src );
       srcGPU.AllocateArray();
       dstGPU.Allocate( targ, kVol2VolBlockSize );
+      tVol2VolMem.Stop();
 
       // Sanity check
       srcGPU.VerifyMRI( src );
       dstGPU.VerifyMRI( targ );
 
+      // Allocate workspace array
+      tVol2VolMemHost.Start();
+      srcWorkSize = srcGPU.GetBufferSize();
+      dstWorkSize = dstGPU.GetBufferSize();
+      
+      if( srcWorkSize > dstWorkSize ) {
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
+				       srcWorkSize,
+				       cudaHostAllocDefault ) );
+      } else {
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
+				       dstWorkSize,
+				       cudaHostAllocDefault ) );
+      }
+      tVol2VolMemHost.Stop();
+
       // Loop over frames
       for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
 	// Get the next source frame
-	srcGPU.Send( src, iFrame );
+	tVol2VolMRISendFrame.Start();
+	srcGPU.Send( src, iFrame, h_workspace );
+	tVol2VolMRISendFrame.Stop();
 	
 	// Put it into a CUDA array
+	tVol2VolMRISendArray.Start();
 	srcGPU.SendArray();
+	tVol2VolMRISendArray.Stop();
 
 	// Run the convolution
+	tVol2VolCompute.Start();
 	MRIVol2VolGPU( srcGPU, dstGPU, myTransform, InterpMode );
+	tVol2VolCompute.Stop();
 
 	// Get the results back
-	dstGPU.Recv( targ, iFrame );
+	tVol2VolMRIRecvFrame.Start();
+	dstGPU.Recv( targ, iFrame, h_workspace );
+	tVol2VolMRIRecvFrame.Stop();
       }
 
-      // No need to release - destructors will handle it
+      CUDA_CHECK_ERROR( "MRI Vol2Vol failed on GPU" );
+
+      // Release workspace array
+      tVol2VolMemHost.Start();
+      CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+      tVol2VolMemHost.Stop();
+
+      // No need to release MRIframeGPU types - destructors will handle it
+      tVol2VolTotal.Stop();
     }
 
     //! Dispatch routine to add templating
@@ -379,6 +424,8 @@ namespace GPU {
 }
 
 
+// ======================================================
+
 int MRIvol2vol_cuda( const MRI* src, MRI* targ, 
 		     const MATRIX* transformMatrix,
 		     const int InterpMode,
@@ -397,6 +444,13 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
 								    param );
     break;
 
+  case MRI_FLOAT:
+    GPU::Algorithms::MRIVol2VolAllFramesDstDispatch<float>( src, targ,
+							    transformMatrix,
+							    InterpMode,
+							    param );
+    break;
+
   default:
     std::cerr << __FUNCTION__ << ": Unrecognised data type "
 	      << src->type << std::endl;
@@ -408,3 +462,49 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
   return( 0 );
 }
     
+
+
+
+// ======================================================
+
+
+// ======================================================
+
+//! Stream insertion operator for timer
+static std::ostream& operator<<( std::ostream& os,
+				 const SciGPU::Utilities::Chronometer& timer ) {
+  
+  os << std::setw(9) << std::setprecision(6) << timer.GetAverageTime() << " ms (avg) ";
+  os << std::setw(9) << std::setprecision(6) << timer.GetTime() << " ms (tot)";
+
+  return( os );
+}
+
+
+void MRIvol2volShowTimers( void ) {
+  /*!
+    Pretty prints timers to std.out
+  */
+  
+
+  std::cout << "=============================================" << std::endl;
+  std::cout << "GPU Vol2Vol timers" << std::endl;
+  std::cout << "------------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+  std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+  std::cout << "Timings may not be accurate" << std::endl;
+#endif
+  std::cout << std::endl;
+
+  std::cout << "MRIVol2VolAllFramesGPU" << std::endl;
+  std::cout << "Host Memory : " << GPU::Algorithms::tVol2VolMemHost << std::endl;
+  std::cout << "GPU Memory  : " << GPU::Algorithms::tVol2VolMem << std::endl;
+  std::cout << "Send Frame  : " << GPU::Algorithms::tVol2VolMRISendFrame << std::endl;
+  std::cout << "Send Array  : " << GPU::Algorithms::tVol2VolMRISendArray << std::endl;
+  std::cout << "Compute     : " << GPU::Algorithms::tVol2VolCompute << std::endl;
+  std::cout << "Recv Frame  : " << GPU::Algorithms::tVol2VolMRIRecvFrame << std::endl;
+  std::cout << "---------------------" << std::endl;
+  std::cout << "Total : " << GPU::Algorithms::tVol2VolTotal << std::endl;
+
+  std::cout << "=============================================" << std::endl;
+}
