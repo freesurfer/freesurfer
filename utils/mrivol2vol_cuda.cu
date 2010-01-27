@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/26 16:54:37 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/01/27 15:10:06 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -154,7 +154,10 @@ namespace GPU {
 
       return( texVal );
     }
-      
+    
+
+    // ---------------------------------------
+
 
     //! Kernel to perform the affine transformation
     template<typename T>
@@ -246,8 +249,48 @@ namespace GPU {
 
       // Unbind the texture
       UnbindSourceTexture<T>();
-
     }  
+
+
+    //! Routine to use GPU for vol2vol on all MRI frames
+    template<typename T>
+    void MRIVol2VolAllFramesGPU( const MRI* src, MRI* targ,
+				 const MATRIX* transformMatrix,
+				 const int InterpMode,
+				 const float param ) {
+      
+      // Get hold of the affine transformation
+      GPU::Classes::AffineTransformation myTransform( transformMatrix );
+
+      GPU::Classes::MRIframeGPU<T> srcGPU;
+      GPU::Classes::MRIframeGPU<T> dstGPU;
+
+      // Allocate GPU arrays
+      srcGPU.Allocate( src );
+      srcGPU.AllocateArray();
+      dstGPU.Allocate( targ, kVol2VolBlockSize );
+
+      // Sanity check
+      srcGPU.VerifyMRI( src );
+      dstGPU.VerifyMRI( targ );
+
+      // Loop over frames
+      for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
+	// Get the next source frame
+	srcGPU.Send( src, iFrame );
+	
+	// Put it into a CUDA array
+	srcGPU.SendArray();
+
+	// Run the convolution
+	MRIVol2VolGPU( srcGPU, dstGPU, myTransform, InterpMode );
+
+	// Get the results back
+	dstGPU.Recv( targ, iFrame );
+      }
+
+      // No need to release - destructors will handle it
+    }
 
   }
 }
@@ -263,47 +306,21 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
     once that routine has performed necessary checks
   */
 
-  std::cout << __FUNCTION__ << ": Begin" << std::endl;
+  switch( src->type ) {
+  case MRI_UCHAR:
+    GPU::Algorithms::MRIVol2VolAllFramesGPU<unsigned char>( src, targ,
+							    transformMatrix,
+							    InterpMode,
+							    param );
+    break;
 
-  // Need to track 'actual' and GPU dimensions
-  // Recall that GPU dimensions will be padded
-  // to multiples of 16
-  
-  
-  GPU::Classes::AffineTransformation myTransform( transformMatrix );
-
-  // Get the source MRI onto the GPU
-
-  // Promote source MRI data to float on the GPU
-
-  // Release original src data on GPU
-
-  // Allocate destination float array on GPU
-
-  // Allocate CUDA array to hold one frame of data
-
-
-  // Loop over frames
-  for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
-    GPU::Classes::MRIframeGPU<unsigned char> src, dst;
-    
-    GPU::Algorithms::MRIVol2VolGPU( src, dst, myTransform, InterpMode );
-    // Copy src frame into CUDA array
-
-    // Bind the array to a texture
-
-    // Run the kernel on this frame
-
-    // Unbind texture and array
+  default:
+    std::cerr << __FUNCTION__ << ": Unrecognised data type "
+	      << src->type << std::endl;
+    exit( EXIT_FAILURE );
   }
+  
 
-  // Release CUDA array
-
-  // Release src float data
-
-  // Convert destination data back to desired data type
-
-  // Get destination data back from the GPU
 
   return( 0 );
 }

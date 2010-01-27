@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/25 21:06:02 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/01/27 15:10:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -533,7 +533,7 @@ namespace GPU {
       MRIConvolve1dGPU( srcGPU, dstGPU, axis );
       tMRIconv1dCompute.Stop();
   
-  // Retrieve the answers
+      // Retrieve the answers
       tMRIconv1dRecv.Start();
       dstGPU.Recv( dst, dstFrame, h_workspace );
       tMRIconv1dRecv.Stop();
