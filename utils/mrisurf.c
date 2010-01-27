@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/20 22:50:46 $
- *    $Revision: 1.655 $
+ *    $Author: fischl $
+ *    $Date: 2010/01/27 20:41:33 $
+ *    $Revision: 1.656 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.655 2010/01/20 22:50:46 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.656 2010/01/27 20:41:33 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -12480,7 +12480,7 @@ int
 MRISreadWhiteCoordinates(MRI_SURFACE *mris, const char *sname)
 {
   if (!sname)
-    sname = "inflated" ;
+    sname = "white" ;
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
     return(Gerror) ;
@@ -27888,7 +27888,12 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick)
       fprintf(stdout, "%d of %d vertices processed\n", vno,mris->nvertices) ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
+      v->curv = 0 ;
       continue ;
+    }
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     nx = v->nx ;
     ny = v->ny ;
     nz = v->nz ;
@@ -27955,6 +27960,8 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick)
       nwg_bad++ ;
       min_dist = max_thick ;
     }
+    if (min_dist < 0)
+      DiagBreak() ;
     v->curv = min_dist ;
   }
 
@@ -27964,6 +27971,8 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick)
     if (!(vno % 25000))
       fprintf(stdout, "%d of %d vertices processed\n", vno,mris->nvertices) ;
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (v->ripflag)
       continue ;
     nx = v->nx ;
@@ -28035,7 +28044,11 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick)
       min_dist = max_thick ;
       ngw_bad++ ;
     }
+    if (min_dist < 0)
+      DiagBreak() ;
     v->curv = (v->curv+min_dist)/2 ;
+    if (v->curv < 0)
+      DiagBreak() ;
   }
 
   fprintf(stdout, "thickness calculation complete, %d:%d truncations.\n",
