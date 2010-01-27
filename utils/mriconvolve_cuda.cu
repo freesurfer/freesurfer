@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/27 15:10:06 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/01/27 17:01:44 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -514,7 +514,7 @@ namespace GPU {
       
       if( srcWorkSize > dstWorkSize ) {
 	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
-				   srcWorkSize,
+				       srcWorkSize,
 				       cudaHostAllocDefault ) );
       } else {
 	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
