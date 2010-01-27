@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/13 20:59:52 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/01/27 15:18:06 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -763,9 +763,8 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 #endif
 
 #ifdef FS_CUDA
-  printf( "%s: Calling CUDA routine with NULL matrix!\n", __FUNCTION__ );
   cudaReturn = MRIvol2vol_cuda( src, targ,
-				NULL,
+				Vt2s,
 				InterpCode,
 				param );
   if( cudaReturn != 0 ) {
