@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/27 15:10:06 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/01/27 15:32:06 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -107,6 +107,40 @@ namespace GPU {
 
     }
 
+    
+    template<>
+    void BindSourceTexture<float>( const GPU::Classes::MRIframeGPU<float>& src,
+				   const int InterpMode ) {
+      /*!
+	Binds the unsigned char texture
+      */
+
+      dt_src_float.normalized = false;
+      dt_src_float.addressMode[0] = cudaAddressModeClamp;
+      dt_src_float.addressMode[1] = cudaAddressModeClamp;
+      dt_src_float.addressMode[2] = cudaAddressModeClamp;
+
+      // Set the interpolation
+      switch( InterpMode ) {
+      case SAMPLE_NEAREST:
+	dt_src_float.filterMode = cudaFilterModePoint;
+	break;
+
+      case SAMPLE_TRILINEAR:
+	dt_src_float.filterMode = cudaFilterModeLinear;
+	break;
+
+      default:
+	std::cerr << __FUNCTION__ << ": Unrecognised InterpMode "
+		  << InterpMode << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_src_float, src.GetArray() ) );
+
+    }
+
+
     // ---------------------------------------
 
     //! Templated texture unbinding
@@ -121,6 +155,10 @@ namespace GPU {
 
     template<> void UnbindSourceTexture<unsigned char>( void ) {
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_uchar ) );
+    }
+
+    template<> void UnbindSourceTexture<float>( void ) {
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_float ) );
     }
 
     // ---------------------------------------
@@ -156,12 +194,23 @@ namespace GPU {
     }
     
 
+    template<>
+    __device__ float FetchSrcVoxel<float>( const float3 r ) {
+      // Do the fetch, remembering texel centre offset
+      float texVal;
+      
+      texVal = tex3D( dt_src_float, r.x+0.5f, r.y+0.5f, r.z+0.5f );
+
+      // No need to convert - float texture read mode was ElementType
+      return( texVal );
+    }
+
     // ---------------------------------------
 
 
     //! Kernel to perform the affine transformation
-    template<typename T>
-    __global__ void MRIVol2VolKernel( GPU::Classes::MRIframeOnGPU<T> dst,
+    template<typename T, typename U>
+    __global__ void MRIVol2VolKernel( GPU::Classes::MRIframeOnGPU<U> dst,
 				      GPU::Classes::AffineTransformation afTrans ) {
       /*!
 	Kernel to perform the affine transformation supplied on the
@@ -192,10 +241,11 @@ namespace GPU {
       dst( myx, myy, iz ) = dst.ConvertFloat( FetchSrcVoxel<T>( rOut ) );
     }
 
+
     //! Dispatch function for the transformation kernel
-    template<typename T>
+    template<typename T, typename U>
     void MRIVol2VolGPU( const GPU::Classes::MRIframeGPU<T> &src,
-			GPU::Classes::MRIframeGPU<T> &dst,
+			GPU::Classes::MRIframeGPU<U> &dst,
 			const GPU::Classes::AffineTransformation& transform,
 			const int InterpMode,
 			const cudaStream_t myStream = 0 ){
@@ -224,7 +274,7 @@ namespace GPU {
 
       const dim3 dstDims = dst.GetGPUDims();
       dim3 grid, threads;
-      GPU::Classes::MRIframeOnGPU<T> dstGPU(dst);
+      GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
 
       // Main dispatch
       switch( InterpMode ) {
@@ -236,7 +286,7 @@ namespace GPU {
 	grid.z = 1;
 	threads.x = threads.y = kVol2VolBlockSize;
 	threads.z = 1;
-	MRIVol2VolKernel<<<grid,threads>>>( dstGPU, transform );
+	MRIVol2VolKernel<T,U><<<grid,threads>>>( dstGPU, transform );
 	CUDA_CHECK_ERROR( "MRIVol2VolKernel call failed!\n" );
 	break;
 
@@ -253,7 +303,7 @@ namespace GPU {
 
 
     //! Routine to use GPU for vol2vol on all MRI frames
-    template<typename T>
+    template<typename T, typename U>
     void MRIVol2VolAllFramesGPU( const MRI* src, MRI* targ,
 				 const MATRIX* transformMatrix,
 				 const int InterpMode,
@@ -263,7 +313,7 @@ namespace GPU {
       GPU::Classes::AffineTransformation myTransform( transformMatrix );
 
       GPU::Classes::MRIframeGPU<T> srcGPU;
-      GPU::Classes::MRIframeGPU<T> dstGPU;
+      GPU::Classes::MRIframeGPU<U> dstGPU;
 
       // Allocate GPU arrays
       srcGPU.Allocate( src );
@@ -292,6 +342,39 @@ namespace GPU {
       // No need to release - destructors will handle it
     }
 
+    //! Dispatch routine to add templating
+    template<typename T>
+    void MRIVol2VolAllFramesDstDispatch( const MRI* src, MRI* targ,
+					 const MATRIX* transformMatrix,
+					 const int InterpMode,
+					 const float param ) {
+      /*!
+	A thin wrapper to produce the correct template
+	based on the type of the target MRI
+      */
+
+      switch( targ->type ) {
+      case MRI_UCHAR:
+	MRIVol2VolAllFramesGPU<T,unsigned char>( src, targ,
+						 transformMatrix,
+						 InterpMode,
+						 param );
+	break;
+
+      case MRI_FLOAT:
+	MRIVol2VolAllFramesGPU<T,float>( src, targ,
+					 transformMatrix,
+					 InterpMode,
+					 param );
+	break;
+
+      default:
+	std::cerr << __FUNCTION__ << ": Unrecognised target type "
+		  << targ->type << std::endl;
+	exit( EXIT_FAILURE );
+      }
+    }
+
   }
 }
 
@@ -308,10 +391,10 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
 
   switch( src->type ) {
   case MRI_UCHAR:
-    GPU::Algorithms::MRIVol2VolAllFramesGPU<unsigned char>( src, targ,
-							    transformMatrix,
-							    InterpMode,
-							    param );
+    GPU::Algorithms::MRIVol2VolAllFramesDstDispatch<unsigned char>( src, targ,
+								    transformMatrix,
+								    InterpMode,
+								    param );
     break;
 
   default:
