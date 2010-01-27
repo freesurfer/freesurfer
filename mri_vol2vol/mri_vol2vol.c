@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/13 18:34:58 $
- *    $Revision: 1.60 $
+ *    $Date: 2010/01/27 16:03:17 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -429,8 +429,11 @@ ENDHELP --------------------------------------------------------------
 #include "pdf.h"
 #include "cmdargs.h"
 
+#include "chronometer.h"
+
 #ifdef FS_CUDA
 #include "devicemanagement.h"
+#include "mrivol2vol_cuda.h"
 #endif
 
 
@@ -460,7 +463,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.60 2010/01/13 18:34:58 rge21 Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.61 2010/01/27 16:03:17 rge21 Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -572,12 +575,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.60 2010/01/13 18:34:58 rge21 Exp $",
+                          "$Id: mri_vol2vol.c,v 1.61 2010/01/27 16:03:17 rge21 Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.60 2010/01/13 18:34:58 rge21 Exp $",
+                                "$Id: mri_vol2vol.c,v 1.61 2010/01/27 16:03:17 rge21 Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -985,6 +988,10 @@ int main(int argc, char **argv) {
 
   printf("\n");
   printf("mri_vol2vol done\n");
+
+#ifdef FS_CUDA
+  MRIvol2volShowTimers();
+#endif
 
   return(0);
 }
