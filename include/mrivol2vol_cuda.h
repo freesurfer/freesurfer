@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/26 16:54:40 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/01/27 16:02:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,9 @@ extern "C" {
 		       const MATRIX* transformMatrix,
 		       const int InterpMode,
 		       const float param );
-    
+
+  //! Print timers
+  void MRIvol2volShowTimers( void );
     
 
 #if defined(__cplusplus)
