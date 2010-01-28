@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/01/27 20:24:16 $
- *    $Revision: 1.446 $
+ *    $Author: nicks $
+ *    $Date: 2010/01/28 18:11:25 $
+ *    $Revision: 1.447 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.446 $";
+const char *MRI_C_VERSION = "$Revision: 1.447 $";
 
 
 /*-----------------------------------------------------
@@ -5855,7 +5855,7 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
   if (mri->chunk == NULL)
   {
     printf("ERROR: MRIallocChunk(): could not alloc %lu\n",
-	   (size_t)mri->bytes_total);
+	   (unsigned long)mri->bytes_total);
     return(NULL);
   }
   //printf("Allocing MRI with Chunk\n");
