@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/26 20:12:13 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/01/28 15:28:40 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int update_bias(MRI *mri_orig, MRI *mri_T1, MRI *mri_brain, MRI *mri_bias, MRI *mri_counts, int normalize) ;
-static int normalize_bias(MRI *mri_bias, MRI *mri_counts);
+static int normalize_bias(MRI *mri_bias, MRI *mri_counts, int normalize);
 
 char *Progname ;
 
@@ -71,7 +71,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_compute_bias.c,v 1.4 2010/01/26 20:12:13 fischl Exp $", 
+     "$Id: mri_compute_bias.c,v 1.5 2010/01/28 15:28:40 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -183,10 +183,10 @@ main(int argc, char *argv[])
       MRIfree(&mri_brain) ; mri_brain = mri ;
       TransformFree(&transform) ;
     }
-		update_bias(mri_orig, mri_T1, mri_brain, mri_bias, mri_counts, normalize) ;
+		update_bias(mri_orig, mri_T1, mri_brain, mri_bias, mri_counts, 0) ;
 	}
 
-	normalize_bias(mri_bias, mri_counts);
+	normalize_bias(mri_bias, mri_counts, normalize);
   mri_kernel = MRIgaussian1d(sigma, 0) ;
 	mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel) ;
 	MRIfree(&mri_kernel) ; 
@@ -294,15 +294,17 @@ update_bias(MRI *mri_orig, MRI *mri_T1, MRI *mri_brain, MRI *mri_bias, MRI *mri_
 		{
 			for (z = 0 ; z < mri_orig->depth ; z++)
 			{
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
 				val_orig = MRIgetVoxVal(mri_orig, x, y, z, 0) ;
 				val_T1 = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
 				if (FZERO(val_orig))
 					continue ;
-				bias = val_T1/val_orig ;
-				MRIsetVoxVal(mri_tmp, x, y, z, 0, bias) ;
 				val_brain = MRIgetVoxVal(mri_brain, x, y, z, 0) ;
 				if (FZERO(val_brain))  // don't use it for mean calculation
 					continue ;
+				bias = val_T1/val_orig ;
+				MRIsetVoxVal(mri_tmp, x, y, z, 0, bias) ;
 				mn += bias ;
 				num++ ;
 			}
@@ -319,6 +321,11 @@ update_bias(MRI *mri_orig, MRI *mri_T1, MRI *mri_brain, MRI *mri_bias, MRI *mri_
 			{
 				for (z = 0 ; z < mri_orig->depth ; z++)
 				{
+          val_brain = MRIgetVoxVal(mri_brain, x, y, z, 0) ;
+          if (FZERO(val_brain))  // don't use it for mean calculation
+            continue ;
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
 					bias = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
 					bias /= mn ;
 					MRIsetVoxVal(mri_tmp, x, y, z, 0, bias) ;
@@ -336,13 +343,20 @@ update_bias(MRI *mri_orig, MRI *mri_T1, MRI *mri_brain, MRI *mri_bias, MRI *mri_
 			V3_Y(v1) = y ;
 			for (z = 0 ; z < mri_orig->depth ; z++)
 			{
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
 				val_orig = MRIgetVoxVal(mri_orig, x, y, z, 0) ;
 				if (FZERO(val_orig))
 					continue ;  // not set
+				val_brain = MRIgetVoxVal(mri_brain, x, y, z, 0) ;
+				if (FZERO(val_brain))  // don't use it for mean calculation
+					continue ;
 				V3_Z(v1) = z ;
 				bias = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
 				MatrixMultiply(m_vox2vox, v1, v2) ;
 				xd = V3_X(v2) ; yd = V3_Y(v2) ;zd = V3_Z(v2);
+        if (nint(xd) == Gx && nint(yd) == Gy && nint(zd) == Gz)
+          DiagBreak() ;
 				MRIinterpolateIntoVolume(mri_bias, xd, yd, zd, bias);
 				MRIinterpolateIntoVolume(mri_counts, xd, yd, zd, 1);
 			}
@@ -355,14 +369,14 @@ update_bias(MRI *mri_orig, MRI *mri_T1, MRI *mri_brain, MRI *mri_bias, MRI *mri_
 }
 
 static int
-normalize_bias(MRI *mri_bias, MRI *mri_counts)
+normalize_bias(MRI *mri_bias, MRI *mri_counts, int normalize)
 {
-	int    x, y, z ;
-	double count, bias ;
+	int    x, y, z, num ;
+	double count, bias, mn ;
 	MRI    *mri_ctrl ;
 
   mri_ctrl = MRIalloc(mri_bias->width, mri_bias->height, mri_bias->depth, MRI_UCHAR) ;
-	for (x = 0 ; x < mri_bias->width ; x++)
+	for (mn = 0.0, num = x = 0 ; x < mri_bias->width ; x++)
 	{
 		for (y = 0 ; y < mri_bias->height ; y++)
 		{
@@ -376,11 +390,18 @@ normalize_bias(MRI *mri_bias, MRI *mri_counts)
 				bias = MRIgetVoxVal(mri_bias, x, y, z, 0) ;
 				MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_MARKED) ;
 				bias /= count ;
+        mn += bias ;
+        num++ ;
 				MRIsetVoxVal(mri_bias, x, y, z, 0, bias) ;
 			}
 		}
 	}
 
+  if (normalize && num > 0)
+  {
+    mn /= num ;
+    MRIscalarMul(mri_bias, mri_bias, 1.0/mn) ;
+  }
   MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
   MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 5) ;
 
