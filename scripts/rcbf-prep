@@ -1,7 +1,8 @@
 #!/bin/tcsh -f
 # rcbf-prep
 
-set VERSION = '$Id: rcbf-prep,v 1.1 2010/01/14 20:43:29 greve Exp $';
+set VERSION = '$Id: rcbf-prep,v 1.2 2010/01/28 17:17:28 greve Exp $';
+setenv FSLOUTPUTTYPE NIFTI
 
 set outdir = ();
 set subject = ();
@@ -66,6 +67,7 @@ set rcbf = $outdir/rcbf.nii
 
 # Compute actual rCBF in mL/100g/min
 set cmd = (fslmaths $rcbf -sub 2048 -div 5 $rcbf)
+echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
