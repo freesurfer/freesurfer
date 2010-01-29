@@ -18,12 +18,12 @@ G_SYNOPSIS="
 
  NAME
 
- 	mris_roiCircle.bash
-        $Id: mris_roiCircle,v 1.2 2010/01/29 21:17:37 rudolph Exp $
+ 	mris_roiCircle
+        $Id: mris_roiCircle,v 1.3 2010/01/29 21:20:08 rudolph Exp $
 
  SYNOPSIS
 
- 	mris_roiCircle.bash     -S <subject>            \\
+ 	mris_roiCircle          -S <subject>            \\
                                 -s <surfaceFile>        \\
                                 -h <hemi>               \\
                                 [-l <vertexList>]	\\
@@ -88,6 +88,9 @@ G_SYNOPSIS="
  
  15 January 2010
  o Resurrection and streamlining from earlier scripts.
+
+ 29 January 2010
+ o Final testing / alpha release.
 
 "
 
@@ -177,7 +180,8 @@ while getopts s:S:h:v:l:d:f:t option ; do
 		d) Gi_distance=$OPTARG          ;;
 		t) Gb_terminateEngine=0         ;;
                 v) Gi_verbose=$OPTARG           ;;
-		\?) synopsis_show               ;;
+		\?) synopsis_show
+                    shut_down 1                 ;;
 	esac
 done
 
