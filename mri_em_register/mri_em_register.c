@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.65 2010/01/13 17:45:04 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.66 2010/01/29 18:29:10 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -195,7 +195,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.65 2010/01/13 17:45:04 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.66 2010/01/29 18:29:10 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1408,7 +1408,6 @@ find_optimal_translation
   int      i ;
 
 #ifdef FS_CUDA
-#define TRANSLATION_CUDA 1
   Chronometer tTranslationLoop;
   InitChronometer( &tTranslationLoop );
 #endif // FS_CUDA
@@ -1444,9 +1443,7 @@ find_optimal_translation
        min_trans, max_trans, delta,
        &myMaxLogP, &mydx, &mydy, &mydz );
     */
-#if TRANSLATION_CUDA
     CUDA_LogSampleProbabilityPrepare( gca, gcas, mri, nsamples );
-#endif
     StartChronometer( &tTranslationLoop );
 #endif // FS_CUDA
 
@@ -1468,10 +1465,8 @@ find_optimal_translation
           // get the transform
           m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
           // calculate the LogSample probability
-#if TRANSLATION_CUDA
 #ifdef FS_CUDA
           log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
-#endif // FS_CUDA
 #else
           log_p =
             local_GCAcomputeLogSampleProbability
@@ -1498,9 +1493,7 @@ find_optimal_translation
 
 #ifdef FS_CUDA
     StopChronometer( &tTranslationLoop );
-#if TRANSLATION_CUDA
     CUDA_LogSampleProbabilityRelease();
-#endif
     printf( "%s: itCount = %li\n", __FUNCTION__, itCount );
 #endif // FS_CUDA
 
