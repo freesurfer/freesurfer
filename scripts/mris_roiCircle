@@ -1,0 +1,260 @@
+#!/bin/bash
+
+# "include" the set of common script functions
+source /homes/9/rudolph/arch/scripts/common.bash
+
+# Defaults
+declare -i Gi_verbose=0
+declare -i Gi_distance=-1                # default radial distance in mm
+declare -i Gb_terminateEngine=1
+
+G_VERTEXFILE="-x"
+G_VERTEXLIST="-x"
+G_SUBJECT="-x"
+G_SURFACE="-x"
+G_HEMI="-x"
+
+G_SYNOPSIS="
+
+ NAME
+
+ 	roi_circle.bash
+
+ SYNOPSIS
+
+ 	roi_circle.bash		-S <subject>            \\
+                                -s <surfaceFile>        \\
+                                -h <hemi>               \\
+                                [-l <vertexList>]	\\
+				[-d <radialDistance]	\\
+				[-t]                    \\
+                                [-v <verbosity> 
+
+ DESCRIPTION
+
+ 	'roi_circle.bash' is a simple bash-script that paints circular
+        ROIs about vertices of interest on a FreeSurfer surface.
+
+        The heavy lifting is actually performed by the 'mris_pmake' engine,
+        which in turn is controlled by an intermediary script, 'dsh'. 
+        
+        'roi_circle.bash' simply creates a dsh-script and passes this to
+        'dsh', which in turn spawns the actual engine.
+
+	
+ OPTIONS
+ 
+        -v <verbosity> (Optional)
+        Verbosity level.
+
+        -S <subject> (Required)
+        The FreeSurfer subject to evaluate. Note the flag is capital 'S'.
+        
+        -s <surfaceFile> (Required)
+        The FreeSurfer mesh surface to read. Note the flag is lowercase 's'.
+        
+        -h <hemi> (Required)
+        The hemisphere to process.
+ 
+	-l <vertexList> (Either one of '-l ...' or '-f ...' is required)
+	A list of vertices about which to generate radial distances. Enclose
+        in quotes, and separate with a single space.
+
+        -f <vertexFile> (Either one of '-l ...' or '-f ...' is required)
+        A file containing a list of vertices about which to generate
+        radial distances. Can be used in conjunction with '-v <vertexList>.
+	
+	-d <radialDistance> (Required)
+	The radial distance about each vertex in <vertexList>.
+	
+	-t (Optional -- for advanced users only!)
+	Do not terminate engine on exit. By default, the engine will exit when 
+        this script finishes. For 99% of use cases, this is valid. If however 
+        the engine is to remain resident after this script finishes, pass the 
+        '-t'. 
+
+ PRECONDITIONS
+ 
+        o FreeSurfer 'dev' environment.
+        o Defined SUBJECTS_DIR
+        
+ POSTCONDITIONS
+
+ 	o A set of FreeSurfer label files will be created, one for
+	  each seed vertex. 
+	
+ HISTORY
+ 
+ 15 January 2010
+ o Resurrection and streamlining from earlier scripts.
+
+"
+
+###\\\
+# Global variables
+###///
+SELF=`basename $0`
+PID=$$
+DSHSCRIPT="/tmp/vertexArea.dsh.$PID"
+
+# Actions
+A_subject="checking on the <subject>"
+A_hemi="checking on the hemisphere flag"
+A_surface="checking on the <surface>"
+A_fileCheck="checking for prerequisite files" 
+A_optionsCreate="running initial options-pass"
+A_vertexFileCheck="checking on the passed <vertexFile>" 
+A_vertexList="generating the internal list of ROI vertex seeds"
+A_distanceCheck="checking on radial distance"
+A_dshScript="executing the 'dsh' script"
+
+# Error messages
+EM_subject="I couldn't seem to access the subject dir."
+EM_hemi="I don't think you specified the '-h <hemi>'."
+EM_surface="I couldn't seem to access the surface file."
+EM_optionsCreate="I detected a failure with 'mris_pmake'."
+EM_fileCheck="I couldn't find a required file."
+EM_vertexFileCheck="I couldn't access the file. Does it exist? Permission?" 
+EM_vertexList="it seems as if this list is empty."
+EM_distanceCheck="did you specify a proper '-d <radialDistance>'?"
+EM_dshScript="some error occured with the 'dsh' call."
+
+# Error codes
+EC_subject="1"
+EC_hemi="2"
+EC_surface="3"
+EC_optionsCreate="4"
+EC_fileCheck="10"
+EC_vertexFileCheck="20" 
+EC_vertexList="21"
+EC_distanceCheck="30"
+EC_dshScript="40"
+
+###\\\
+# Function definitions
+###///
+
+function dshScript_generate
+{
+        #
+        # ARGS
+        #       $1              in              the seed vertex
+        #       $2              in              distance
+        #
+        # DESC
+        #       Generates a dsh script that produces a region label
+        #       which is centered on a passed seed vertex and extends
+        #       for a given distance.
+        #
+        
+        local   seed=$1
+        local   distance=$2
+                
+        echo "SURFACE active set 0"                             > $DSHSCRIPT
+        echo "LABEL activeSurface singleVertexSet $seed"        >> $DSHSCRIPT
+        echo "LABEL ply set $distance"                          >> $DSHSCRIPT
+        echo "LABEL ply functionAssign 2"                       >> $DSHSCRIPT
+        echo "LABEL ply do"                                     >> $DSHSCRIPT
+        echo "LABEL ply save area-${seed}-"                     >> $DSHSCRIPT
+}
+
+
+### Main:
+
+###\\\
+# Process command options
+###///
+
+while getopts s:S:h:v:l:d:f:t option ; do 
+	case "$option"
+	in
+                S) G_SUBJECT=$OPTARG            ;;
+                s) G_SURFACE=$OPTARG            ;;
+                h) G_HEMI=$OPTARG               ;;
+		l) G_VERTEXLIST=$OPTARG         ;;
+                f) G_VERTEXFILE=$OPTARG         ;;
+		d) Gi_distance=$OPTARG          ;;
+		t) Gb_terminateEngine=0         ;;
+                v) Gi_verbose=$OPTARG           ;;
+		\?) synopsis_show               ;;
+	esac
+done
+
+verbosity_check
+topDir=$(pwd)
+echo ""
+cprint  "hostname"      "[ $(hostname) ]"
+
+REQUIREDFILES="SSocket_client dsh mris_pmake"
+for file in $REQUIREDFILES ; do
+        lprint "Checking for access to $file"
+        file_checkOnPath $file || fatal fileCheck
+done
+
+VERTEXLIST=""
+if [[ "$G_VERTEXFILE" != "-x" ]] ; then
+        lprint  "Checking on <vertexFile>"
+        fileExist_check $G_VERTEXFILE || fatal vertexFileCheck
+        FILELIST=$(cat $G_VERTEXFILE)
+        VERTEXLIST="$FILELIST "
+fi
+
+if [[ "$G_VERTEXLIST" != "-x" ]] ; then
+        lprint "Adding specified vertices to list"
+        VERTEXLIST="$VERTEXLIST $G_VERTEXLIST"
+        ret_check $?
+fi
+
+G_SUBJECTDIR="${SUBJECTS_DIR}/$G_SUBJECT"
+lprint "Checking on <subject> dir"
+dirExist_check $G_SUBJECTDIR $G_SUBJECTDIR || fatal subject
+
+lprint "Checking on <surface> file"
+G_SURFACEFILE="${G_SUBJECTDIR}/surf/${G_HEMI}.${G_SURFACE}"
+fileExist_check $G_SURFACEFILE $G_SURFACEFILE || fatal surface
+
+if (( G_distance == -1 )) ; then fatal distanceCheck ; fi
+
+cprint "Radial distance"        "[ $Gi_distance mm ]"
+cprint "Terminate engine"       "[ $Gb_terminateEngine ]"
+
+
+#
+# Generate the 'options.txt' file
+if [[ ! -f options.txt ]] ; then
+    lprint "Generating an options.txt file..."
+    mris_pmake --subject $G_SUBJECT --hemi $G_HEMI --surface0 $G_SURFACE --mpmProg NOP >/dev/null
+    ret_check $? || fatal optionsCreate
+fi
+
+#
+# Comment out the 'b_exitOnDone' flag
+lprint  "Editing b_exitOnDone"
+sed -i 's/^b_exitOnDone/#b_exitOnDone/' options.txt
+ret_check $?
+
+#
+# Make sure the 'wd' weight is 1.0000
+lprint "Editing the 'wd' weight"
+sed -i '/^wd /s/0\./1\./g' options.txt
+ret_check $?
+
+# Generate a set of dsh scripts about each vertex
+#	and execute them
+for vertex in $VERTEXLIST ; do
+    lprint "Circle about vertex $vertex, radius $Gi_distance..."
+    dshScript_generate $vertex $Gi_distance
+    rprint "[ ok ]"
+    lprint "Executing script..."
+    dsh -s $DSHSCRIPT 2>/dev/null >/dev/null
+    ret=$?
+    ret_check $ret || fatal dshScript
+    rm $DSHSCRIPT
+done
+
+# Clean up all the spawned processes
+if (( Gb_terminateEngine )) ; then
+	dsh -c "TERM" -q
+fi
+	
+shut_down 0
