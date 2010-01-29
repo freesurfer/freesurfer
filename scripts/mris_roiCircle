@@ -18,11 +18,12 @@ G_SYNOPSIS="
 
  NAME
 
- 	roi_circle.bash
+ 	mris_roiCircle.bash
+        $Id: mris_roiCircle,v 1.2 2010/01/29 21:17:37 rudolph Exp $
 
  SYNOPSIS
 
- 	roi_circle.bash		-S <subject>            \\
+ 	mris_roiCircle.bash     -S <subject>            \\
                                 -s <surfaceFile>        \\
                                 -h <hemi>               \\
                                 [-l <vertexList>]	\\
@@ -32,13 +33,13 @@ G_SYNOPSIS="
 
  DESCRIPTION
 
- 	'roi_circle.bash' is a simple bash-script that paints circular
+ 	'mris_roiCircle' is a simple bash-script that paints circular
         ROIs about vertices of interest on a FreeSurfer surface.
 
         The heavy lifting is actually performed by the 'mris_pmake' engine,
         which in turn is controlled by an intermediary script, 'dsh'. 
         
-        'roi_circle.bash' simply creates a dsh-script and passes this to
+        'mris_roiCircle' simply creates a dsh-script and passes this to
         'dsh', which in turn spawns the actual engine.
 
 	
