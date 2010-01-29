@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/26 23:33:05 $
-#    $Revision: 1.264 $
+#    $Date: 2010/01/29 20:05:15 $
+#    $Revision: 1.265 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.264 2010/01/26 23:33:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.265 2010/01/29 20:05:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -678,14 +678,14 @@ if($#InputList != 0) then
     if ($nth == 1) then
       # assume first input has 'correct' dimensions
       set firstInput = ($InputVol)
-      set rows = `mri_info --nrows $InputVol`
-      set cols = `mri_info --ncols $InputVol`
-      set slices = `mri_info --nslices $InputVol`
+      set rows = `mri_info --nrows $InputVol |& tail --lines 1`
+      set cols = `mri_info --ncols $InputVol |& tail --lines 1`
+      set slices = `mri_info --nslices $InputVol |& tail --lines 1`
     else
       # check subsequent against the first input
-      set nrows = `mri_info --nrows $InputVol`
-      set ncols = `mri_info --ncols $InputVol`
-      set nslices = `mri_info --nslices $InputVol`
+      set nrows = `mri_info --nrows $InputVol |& tail --lines 1`
+      set ncols = `mri_info --ncols $InputVol |& tail --lines 1`
+      set nslices = `mri_info --nslices $InputVol |& tail --lines 1`
       if (($nrows != $rows) || \
           ($ncols != $cols) || \
           ($nslices != $slices)) then
