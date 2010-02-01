@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/07 23:33:04 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/02/01 19:13:19 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -160,7 +160,6 @@ bool FSVolume::LoadMRI( const char* filename, const char* reg_filename, wxWindow
 
   return true;
 }
-
 
 bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event )
 {
@@ -502,9 +501,29 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
     cerr << "Volume not ready for save." << endl;
     return false;
   }
-  
+    
+  LTA* lta = NULL;
   if ( !bSaveToOriginalSpace && m_MRIOrigTarget) 
+  {
+    // prepare lta to be saved later
+    LINEAR_TRANSFORM *lt ;
+    VOL_GEOM srcG, dstG;
+
+    lta = LTAalloc(1, NULL) ;
+    lt = &lta->xforms[0] ;
+    lt->sigma = 1.0f ;
+    lt->x0 = lt->y0 = lt->z0 = 0 ;
+    lta->type = LINEAR_VOX_TO_VOX;
+    lt->m_L = MRIgetVoxelToVoxelXform( m_MRI, m_MRITemp );
+
     MRIcopyHeader( m_MRIOrigTarget, m_MRITemp );
+    
+    getVolGeom(m_MRI,     &srcG);
+    getVolGeom(m_MRITemp, &dstG);
+    
+    lta->xforms[0].src = srcG;
+    lta->xforms[0].dst = dstG;
+  }
   
   // check if file is writable
   FILE* fp = fopen( filename, "w" );
@@ -529,6 +548,23 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
   {
     cerr << "MRIwrite failed" << endl;
   }
+  else if ( lta )
+  {
+    // save lta file only if volume was saved successfully
+    string fname = filename;
+    fname = fname + ".lta";
+    fp = fopen(fname.c_str(),"w");
+    if(!fp)
+    {
+      cerr << "ERROR: cannot open for writing: " << fname.c_str() << endl;
+    }
+    LTAprint(fp, lta);
+
+    fclose( fp );
+  }
+  
+  if ( lta )
+    LTAfree(&lta);
 
   MRIfree( &m_MRITemp );
   m_MRITemp = NULL;
@@ -1387,8 +1423,8 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
       MatrixCopy( m_tmp1, m_r );
       MatrixFree( &m_tmp );
       MatrixFree( &m_tmp1 );
-
     }
+    
     MATRIX* m_new = MatrixMultiply( m_r, m, NULL );
 
     rasMRI = MRIallocHeader( m_MRITarget->width,

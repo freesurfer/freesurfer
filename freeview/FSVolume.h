@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/07 23:33:04 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/02/01 19:13:19 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -189,7 +189,7 @@ protected:
   MRI*      m_MRIRef;         // reference target space, can also serve as the registration target. header only
   MRI*      m_MRIOrigTarget;  // orignal target space, header only
   MRI*      m_MRITemp;        // temp mri for saving
-  MATRIX*   m_matReg;
+  MATRIX*   m_matReg;   
   COLOR_TABLE*  m_ctabEmbedded;
   
   FSVolume* m_volumeRef;
