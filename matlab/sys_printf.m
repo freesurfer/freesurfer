@@ -3,6 +3,7 @@ function [s] = sys_printf(varargin)
 % NAME
 %
 %  function [s] = sys_printf(format, ...)
+%  $Id: sys_printf.m,v 1.2 2010/02/01 20:52:10 rudolph Exp $
 %
 % ARGUMENTS
 % INPUT

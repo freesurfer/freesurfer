@@ -9,6 +9,7 @@ function [hf, hp, av_filtered] = mris_display(astr_mris, astr_curv, varargin)
 %                               af_bandFilter,          ...
 %                               ab_invMap>
 %                         )
+% $Id: mris_display.m,v 1.2 2010/02/01 20:52:10 rudolph Exp $
 %
 %
 % ARGUMENTS

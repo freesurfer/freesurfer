@@ -3,6 +3,7 @@ function [] = colprintf(aC, astr_LC, varargin)
 % NAME
 %
 %  function [] = colprintf(aC, astr_LC, format, ...)
+%  $Id: colprintf.m,v 1.2 2010/02/01 20:52:10 rudolph Exp $
 %
 % ARGUMENTS
 % INPUT
