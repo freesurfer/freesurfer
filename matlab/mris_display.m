@@ -9,7 +9,7 @@ function [hf, hp, av_filtered] = mris_display(astr_mris, astr_curv, varargin)
 %                               af_bandFilter,          ...
 %                               ab_invMap>
 %                         )
-% $Id: mris_display.m,v 1.2 2010/02/01 20:52:10 rudolph Exp $
+% $Id: mris_display.m,v 1.3 2010/02/01 21:16:13 rudolph Exp $
 %
 %
 % ARGUMENTS
@@ -100,11 +100,11 @@ end
 if length(varargin) >= 4, b_invCurv = varargin{4};      end
 
 % Read curvature file
-cprintsn('Reading curvature file', astr_curv);
+colprintf('40;40', 'Reading curvature file', astr_curv);
 [v_curv, fnum] = read_curv(astr_curv);
-cprintdn('Number of curv elements', numel(v_curv));
+colprintf('40;40', 'Number of curv elements', sprintf('%d', numel(v_curv)));
 if b_invCurv
-    cprintdn('Invert curvature data sign', b_invCurv);
+    colprintf('40;40', 'Invert curvature data sign', sprintf('%d', b_invCurv));
     v_curv = v_curv * -1;
 end
 
