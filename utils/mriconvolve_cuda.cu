@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 15:09:58 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/02/02 15:23:47 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,7 +76,13 @@ namespace GPU {
     SciGPU::Utilities::Chronometer tMRIconv1dSend, tMRIconv1dRecv;
     SciGPU::Utilities::Chronometer tMRIconv1dCompute;
     SciGPU::Utilities::Chronometer tMRIconv1dTotal;
+
     
+    SciGPU::Utilities::Chronometer tMRIconvGaussMem, tMRIconvGaussMemHost;
+    SciGPU::Utilities::Chronometer tMRIconvGaussSend, tMRIconvGaussRecv;
+    SciGPU::Utilities::Chronometer tMRIconvGaussCompute;
+    SciGPU::Utilities::Chronometer tMRIconvGaussTotal;
+
     // =================================================
     
     //! Array to contain the convolution kernel on the device
@@ -560,40 +566,55 @@ namespace GPU {
 	Assumes that the texture is already set up on the GPU
       */
 
+      tMRIconvGaussTotal.Start();
+
       GPU::Classes::MRIframeGPU<T> frame1, frame2;
 
       char* h_workspace;
       size_t workSize;
 
       // Do some allocation
+      tMRIconvGaussMem.Start();
       frame1.Allocate( src, kConv1dBlockSize );
       frame2.Allocate( src, kConv1dBlockSize );
+      tMRIconvGaussMem.Stop();
 
       // Verify (note frame2 verified from dst)
       frame1.VerifyMRI( src );
       frame2.VerifyMRI( dst );
 
       // Allocate workspace
+      tMRIconvGaussMemHost.Start();
       workSize = frame1.GetBufferSize();
       CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
 				     workSize,
 				     cudaHostAllocDefault ) );
+      tMRIconvGaussMemHost.Stop();
 
       // Loop over frame
       for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
+	tMRIconvGaussSend.Start();
 	frame1.Send( src, iFrame, h_workspace );
+	tMRIconvGaussSend.Stop();
 
+	tMRIconvGaussCompute.Start();
 	MRIConvolve1dGPU( frame1, frame2, MRI_WIDTH );
 	MRIConvolve1dGPU( frame2, frame1, MRI_HEIGHT );
 	MRIConvolve1dGPU( frame1, frame2, MRI_DEPTH );
+	tMRIconvGaussCompute.Stop();
 
+	tMRIconvGaussRecv.Start();
 	frame2.Recv( dst, iFrame, h_workspace );
+	tMRIconvGaussRecv.Stop();
       }
 
+      tMRIconvGaussMemHost.Start();
       CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+      tMRIconvGaussMemHost.Stop();
 
       CUDA_CHECK_ERROR( "Gaussian convolution failure" );
 
+      tMRIconvGaussTotal.Stop();
     }
 
     //! Dispatch wrapper
@@ -685,6 +706,14 @@ MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
     GPU::Algorithms::MRIConvGaussianDispatch<unsigned char>( src, dst );
     break;
 
+  case MRI_SHORT:
+    GPU::Algorithms::MRIConvGaussianDispatch<short>( src, dst );
+    break;
+
+  case MRI_FLOAT:
+    GPU::Algorithms::MRIConvGaussianDispatch<float>( src, dst );
+    break;
+
   default:
     std::cerr << __FUNCTION__ << ": Unrecognised source MRI type " << src->type << std::endl;
     exit( EXIT_FAILURE );
@@ -735,6 +764,16 @@ void MRIconvShowTimers( void ) {
   std::cout << "Receive       : " << GPU::Algorithms::tMRIconv1dRecv << std::endl;
   std::cout << "------------------------------------------" << std::endl;
   std::cout << "Total : " << GPU::Algorithms::tMRIconv1dTotal << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "MRIConvGaussianDispatch" << std::endl;
+  std::cout << "Host Memory   : " << GPU::Algorithms::tMRIconvGaussMemHost << std::endl;
+  std::cout << "GPU Memory    : " << GPU::Algorithms::tMRIconvGaussMem << std::endl;
+  std::cout << "Send          : " << GPU::Algorithms::tMRIconvGaussSend << std::endl;
+  std::cout << "Compute       : " << GPU::Algorithms::tMRIconvGaussCompute << std::endl;
+  std::cout << "Receive       : " << GPU::Algorithms::tMRIconvGaussRecv << std::endl;
+  std::cout << "------------------------------------------" << std::endl;
+  std::cout << "Total : " << GPU::Algorithms::tMRIconvGaussTotal << std::endl;
   std::cout << std::endl;
 
   std::cout << "=============================================" << std::endl;

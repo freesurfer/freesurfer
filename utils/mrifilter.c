@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 15:09:58 $
- *    $Revision: 1.81 $
+ *    $Date: 2010/02/02 15:23:47 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2482,17 +2482,6 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 #endif
   float *kernel ;
 
-  Chronometer tTotal;
-
-  InitChronometer( &tTotal );
-
-  StartChronometer( &tTotal );
-
-#ifdef FS_CUDA
-	printf( "%s: CUDA version\n", __FUNCTION__ );
-#endif
-
-
   kernel = &MRIFvox(mri_gaussian, 0, 0, 0) ;
   klen = mri_gaussian->width ;
   width = mri_src->width ;
@@ -2543,9 +2532,6 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
     MRIfree(&mri_tmp) ;
   }
 #endif
-
-  StopChronometer( &tTotal );
-  printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
 
   return(mri_dst) ;
 }
