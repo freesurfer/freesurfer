@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 18:46:18 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/02 19:16:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -106,14 +106,14 @@ namespace GPU {
 
       const unsigned int by = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
       const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
-      const unsigned int iz = blockIdx.y;
+      const int iz = blockIdx.y;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
       
       const unsigned int ixStart = bx * kMRImeanBlockSize;
       const unsigned int iyStart = by * kMRImeanBlockSize;
-      const unsigned int ix = ixStart + tx;
-      const unsigned int iy = iyStart + ty;
+      const int ix = ixStart + tx;
+      const int iy = iyStart + ty;
 
       // Accumulator
       float myVal = 0;
@@ -128,10 +128,6 @@ namespace GPU {
       const unsigned int myyMax = min( actualDims.y, iy + wHalf );
       const unsigned int myzMin = max( 0           , iz - wHalf );
       const unsigned int myzMax = min( actualDims.z, iz + wHalf );
-
-      const unsigned long myVol = ( myxMax - myxMin ) *
-	(myyMax - myyMin ) *
-	(myxMax - myzMin );
 
       // Again, declare int to remove need for some casts
       const int patchSize = Roundup( wHalf, kMRImeanBlockSize );
@@ -179,7 +175,11 @@ namespace GPU {
 
       }
 
-      dst( ix, iy, iz ) = dst.ConvertFloat( myVal / myVol );
+      const unsigned long myVolume = ( myxMax - myxMin ) *
+	(myyMax - myyMin ) *
+	(myzMax - myzMin );
+
+      dst( ix, iy, iz ) = dst.ConvertFloat( myVal / myVolume );
     }
 
 
@@ -315,7 +315,9 @@ MRI* MRImean_cuda( const MRI* src, MRI* dst,
 		   const unsigned int wSize ) {
   /*!
     Wrapper around the GPU routine, to be called from the
-    original MRImean routine
+    original MRImean routine.
+    Note that the frames default to zero, per the original
+    MRImean routine.
   */
 
   switch( src->type ) {
