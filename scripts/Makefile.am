@@ -189,6 +189,7 @@ xsanatreg
 
 tcldir = $(prefix)/lib/tcl
 tcl_SCRIPTS= \
+allisons_surfaces.tcl \
 curv-flat.tcl \
 curv-views.tcl \
 dara_data.tcl \
