@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/27 17:01:44 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/02/02 15:09:58 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -548,7 +548,54 @@ namespace GPU {
       
       // No need to release - destructor will do that automatically
     }
-    
+
+
+    //! Wrapper for Gaussian convolution
+    template<typename T>
+    void MRIConvGaussianDispatch( const MRI* src, MRI* dst ) {
+      /*!
+	Function to run the 3D gaussian convolution on the GPU
+	without pulling intermediate results back to the host.
+	Assumes that src and dst types are the same.
+	Assumes that the texture is already set up on the GPU
+      */
+
+      GPU::Classes::MRIframeGPU<T> frame1, frame2;
+
+      char* h_workspace;
+      size_t workSize;
+
+      // Do some allocation
+      frame1.Allocate( src, kConv1dBlockSize );
+      frame2.Allocate( src, kConv1dBlockSize );
+
+      // Verify (note frame2 verified from dst)
+      frame1.VerifyMRI( src );
+      frame2.VerifyMRI( dst );
+
+      // Allocate workspace
+      workSize = frame1.GetBufferSize();
+      CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
+				     workSize,
+				     cudaHostAllocDefault ) );
+
+      // Loop over frame
+      for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
+	frame1.Send( src, iFrame, h_workspace );
+
+	MRIConvolve1dGPU( frame1, frame2, MRI_WIDTH );
+	MRIConvolve1dGPU( frame2, frame1, MRI_HEIGHT );
+	MRIConvolve1dGPU( frame1, frame2, MRI_DEPTH );
+
+	frame2.Recv( dst, iFrame, h_workspace );
+      }
+
+      CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+
+      CUDA_CHECK_ERROR( "Gaussian convolution failure" );
+
+    }
+
     //! Dispatch wrapper
     template<typename T>
     void MRIConv1dDispatchWrap( const MRI* src, MRI* dst,
@@ -580,7 +627,8 @@ namespace GPU {
 
 
 MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
-			 const float *kernel, const int kernelLength,
+			 const float *kernel,
+			 const unsigned int kernelLength,
 			 const int axis,
 			 const int srcFrame, const int dstFrame ) {
   /*!
@@ -618,6 +666,38 @@ MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
 
   return( dst );
 }
+
+// =================================================
+
+MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
+			       const float *kernel,
+			       const unsigned int kernelLength ) {
+  /*!
+    Implementation of MRIconvolveGaussian for the GPU.
+    Designed to be called form that routine
+  */
+
+  // Send the convolution kernel
+  GPU::Algorithms::MRIconv1d_SendKernel( kernel, kernelLength );
+
+  switch( src->type ) {
+  case MRI_UCHAR:
+    GPU::Algorithms::MRIConvGaussianDispatch<unsigned char>( src, dst );
+    break;
+
+  default:
+    std::cerr << __FUNCTION__ << ": Unrecognised source MRI type " << src->type << std::endl;
+    exit( EXIT_FAILURE );
+  }
+
+
+  // Release the kernel
+  GPU::Algorithms::MRIconv1d_ReleaseKernel();
+
+
+  return( dst );
+}
+
 
 
 

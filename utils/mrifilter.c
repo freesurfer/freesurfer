@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/26 14:20:12 $
- *    $Revision: 1.80 $
+ *    $Date: 2010/02/02 15:09:58 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2475,8 +2475,11 @@ MRIconvolveGaussian() - see also MRIgaussianSmooth();
 MRI *
 MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 {
-  int  width, height, depth, klen, frame ;
-  MRI  *mtmp1, *mri_tmp ;
+  int  width, height, depth, klen;
+#ifndef FS_CUDA
+  int frame;
+  MRI  *mtmp1, *mri_tmp;
+#endif
   float *kernel ;
 
   Chronometer tTotal;
@@ -2509,6 +2512,9 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
     exit( EXIT_FAILURE );
   }
 
+#ifdef FS_CUDA
+  mri_dst = MRIconvolveGaussian_cuda( mri_src, mri_dst, kernel, klen );
+#else  
   if (mri_dst == mri_src)
     mri_tmp = mri_dst = MRIclone(mri_src, NULL) ;
   else
@@ -2525,15 +2531,18 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
     MRIcopyFrame(mtmp1, mri_dst, 0, frame) ;    /* convert it back to UCHAR */
   }
 
-  MRIcopyHeader(mri_src, mri_dst) ;
   MRIfree(&mtmp1) ;
+#endif
+  MRIcopyHeader(mri_src, mri_dst) ;
 
+#ifndef FS_CUDA
   if (mri_tmp) // src and dst are the same
   {
     MRIcopy(mri_tmp, mri_src) ;
     mri_dst = mri_src ;
     MRIfree(&mri_tmp) ;
   }
+#endif
 
   StopChronometer( &tTotal );
   printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/21 18:28:24 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/02 15:10:01 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,10 +40,15 @@ extern "C" {
 
 
   MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
-			   const float *kernel, const int kernelLength,
+			   const float *kernel,
+			   const unsigned int kernelLength,
 			   const int axis,
 			   const int srcFrame, const int dstFrame );
     
+  MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
+				 const float *kernel,
+				 const unsigned int kernelLength );
+
   void MRIconvShowTimers( void );
   
 
