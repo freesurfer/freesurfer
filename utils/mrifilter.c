@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 15:23:47 $
- *    $Revision: 1.82 $
+ *    $Date: 2010/02/02 19:38:07 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -48,6 +48,7 @@
 #include "chronometer.h"
 #ifdef FS_CUDA
 #include "mriconvolve_cuda.h"
+#include "mrimean_cuda.h"
 #endif
 
 /*-----------------------------------------------------
@@ -1982,12 +1983,16 @@ MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize)
 MRI *
 MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 {
-  int     width, height, depth, x, y, z, whalf, x0, y0, z0 ;
+  int     width, height, depth, whalf;
 #if 0
   BUFTYPE *psrc ;
   float   *pdst
 #endif
-  float   wcubed, val ;
+  float   wcubed;
+#ifndef FS_CUDA
+  int x, y, z, x0, y0, z0;
+  float val;
+#endif
 
   wcubed = (float)(wsize*wsize*wsize) ;
   whalf = wsize/2 ;
@@ -2001,6 +2006,9 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
+#ifdef FS_CUDA
+  mri_dst = MRImean_cuda( mri_src, mri_dst, wsize );
+#else
 #if 0
   if (mri_dst->type != MRI_FLOAT)
     ErrorReturn(mri_dst,
@@ -2100,6 +2108,7 @@ MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
       }
     }
   }
+#endif
 
   return(mri_dst) ;
 }

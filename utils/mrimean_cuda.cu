@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 19:16:57 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/02 19:38:07 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -130,11 +130,11 @@ namespace GPU {
       const unsigned int myzMax = min( actualDims.z, iz + wHalf );
 
       // Again, declare int to remove need for some casts
-      const int patchSize = Roundup( wHalf, kMRImeanBlockSize );
+      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
 
       // Loop over z levels (iz is the same for all threads in the block)
       for( unsigned int currZ = max( 0, iz - wHalf );
-	   currZ < min( actualDims.z, iz + wHalf );
+	   currZ <= min( actualDims.z-1, iz + wHalf );
 	   currZ++ ) {
 
 	__shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
@@ -175,9 +175,9 @@ namespace GPU {
 
       }
 
-      const unsigned long myVolume = ( myxMax - myxMin ) *
-	(myyMax - myyMin ) *
-	(myzMax - myzMin );
+      const unsigned long myVolume = ( myxMax - myxMin + 1 ) *
+	(myyMax - myyMin + 1 ) *
+	(myzMax - myzMin + 1 );
 
       dst( ix, iy, iz ) = dst.ConvertFloat( myVal / myVolume );
     }
@@ -225,7 +225,7 @@ namespace GPU {
       threads.x = threads.y = kMRImeanBlockSize;
       threads.z = 1;
 
-      MRImeanKernel<T,U><<<grid,threads>>>( srcGPU, dstGPU, srcCPUdims, wSize );
+      MRImeanKernel<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU, srcCPUdims, wSize );
       CUDA_CHECK_ERROR_ASYNC( "MRImeanKernel failed!" );
     }
     
