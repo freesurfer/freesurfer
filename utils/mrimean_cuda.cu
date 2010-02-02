@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 19:38:07 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/02 21:03:03 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -298,6 +298,14 @@ namespace GPU {
 	MRImeanDispatch<T,unsigned char>( src, dst, wSize, srcFrame, dstFrame );
 	break;
 
+      case MRI_SHORT:
+	MRImeanDispatch<T,short>( src, dst, wSize, srcFrame, dstFrame );
+	break;
+
+      case MRI_FLOAT:
+	MRImeanDispatch<T,float>( src, dst, wSize, srcFrame, dstFrame );
+	break;
+
       default:
 	std::cerr << __FUNCTION__
 		  << ": Unrecognised destination MRI type "
@@ -323,6 +331,14 @@ MRI* MRImean_cuda( const MRI* src, MRI* dst,
   switch( src->type ) {
   case MRI_UCHAR:
     GPU::Algorithms::MRImeanDispatchWrap<unsigned char>( src, dst, wSize, 0, 0 );
+    break;
+
+  case MRI_SHORT:
+    GPU::Algorithms::MRImeanDispatchWrap<short>( src, dst, wSize, 0, 0 );
+    break;
+
+  case MRI_FLOAT:
+    GPU::Algorithms::MRImeanDispatchWrap<float>( src, dst, wSize, 0, 0 );
     break;
 
   default:
