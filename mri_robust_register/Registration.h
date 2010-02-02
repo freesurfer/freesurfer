@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/02/02 20:29:25 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -119,6 +119,7 @@ public:
   };
   void setSource (MRI * s, bool fixvoxel = false, bool fixtype = false);
   void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
+	void setSourceAndTarget(MRI * s, MRI * t, bool fixvoxel = false, bool fixtype = false);
   void setSubsamplesize (int sss)
   {
     subsamplesize = sss;
@@ -244,7 +245,7 @@ private:
   MATRIX * rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM); // uses global rtype flag
   MATRIX * p2mat(MATRIX * p6, MATRIX *outM); // calls rt2mat (uses global rtype)
 
-  std::pair< MRI* , vnl_matrix_fixed < double, 4, 4> > makeConform(MRI *mri, MRI *out, bool fixvoxel = true, bool fixtype = true);
+  std::pair< MRI* , vnl_matrix_fixed < double, 4, 4> > makeIsotropic(MRI *mri, MRI *out, double vsize = -1, int xdim =-1, int ydim=-1, int zdim=-1, bool fixtype = true);
 
   // gaussian pyramid:
   std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);

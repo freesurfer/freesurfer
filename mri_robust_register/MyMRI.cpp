@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/02 20:29:25 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -381,9 +381,12 @@ std::vector < int >  MyMRI::findRightSize(MRI *mri, float conform_size, bool con
   fdepth  = mri->zsize*mri->depth;
 	
 	vector < int > ret(3);
-	ret[0] = (int) ceil(fwidth/conform_size);
-	ret[1] = (int) ceil(fheight/conform_size);
-	ret[2] = (int) ceil(fdepth/conform_size);
+	double eps = 0.0001; // to prevent ceil(2.0*64 / 2.0) = ceil(64.000000000001) = 65
+	ret[0] = (int) ceil((fwidth/conform_size)-eps);
+	ret[1] = (int) ceil((fheight/conform_size)-eps);
+	ret[2] = (int) ceil((fdepth/conform_size)-eps);
+	
+	//cout << " zsize: " << zsize << " depth: " << mri->depth << " fdepth: " << fdepth << " new depth: " << ret[2] << endl;
 	
 	if (! conform) return ret;
 	

@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:05 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/02/02 20:29:25 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -127,7 +127,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.26 2010/01/14 19:41:05 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.27 2010/02/02 20:29:25 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -236,8 +236,9 @@ int main(int argc, char *argv[])
 //  cout << " sdev mov : " << CostFunctions::sdev(P.mri_mov) << "  sdev dst: " << CostFunctions::sdev(P.mri_dst) << endl;
 //  cout << " median mov : " << CostFunctions::median(P.mri_mov) << "  median dst: " << CostFunctions::median(P.mri_dst) << endl;
 //  cout << " mad mov : " << CostFunctions::mad(P.mri_mov) << "  mad dst: " << CostFunctions::mad(P.mri_dst) << endl;
-  cout << " LS difference before: " << CostFunctions::leastSquares(P.mri_mov,P.mri_dst) << endl;
-  cout << " NC difference before: " << CostFunctions::normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
+// does not work with different image dimensions:
+//  cout << " LS difference before: " << CostFunctions::leastSquares(P.mri_mov,P.mri_dst) << endl;
+//  cout << " NC difference before: " << CostFunctions::normalizedCorrelation(P.mri_mov,P.mri_dst) << endl;
 
   // compute Alignment
   //std::pair <MATRIX*, double> Md;
@@ -338,8 +339,9 @@ int main(int argc, char *argv[])
 //      cout << " sdev warp : " << CostFunctions::sdev(mri_aligned) << "  sdev dst: " << CostFunctions::sdev(P.mri_dst) << endl;
 //      cout << " median warp : " << CostFunctions::median(mri_aligned) << "  median dst: " << CostFunctions::median(P.mri_dst) << endl;
 //      cout << " mad warp : " << CostFunctions::mad(mri_aligned) << "  mad dst: " << CostFunctions::mad(P.mri_dst) << endl;
-    cout << " LS difference after: " << CostFunctions::leastSquares(mri_aligned,P.mri_dst) << endl;
-    cout << " NC difference after: " << CostFunctions::normalizedCorrelation(mri_aligned,P.mri_dst) << endl;
+// does not work with different image dimensions:
+//    cout << " LS difference after: " << CostFunctions::leastSquares(mri_aligned,P.mri_dst) << endl;
+//    cout << " NC difference after: " << CostFunctions::normalizedCorrelation(mri_aligned,P.mri_dst) << endl;
 
     MRIwrite(mri_aligned, P.warpout.c_str()) ;
     MRIfree(&mri_aligned) ;
@@ -958,8 +960,8 @@ static void initRegistration(Registration & R, Parameters & P)
 //     MRIcopyFrame(mri_tmp, mri_src, 0, i) ;
 //     MRIfree(&mri_tmp) ;
 //   }
-//   R.setSource(mri_src,P.fixvoxel,P.fixtype);
-//   MRIfree(&mri_src);
+////   R.setSource(mri_src,P.fixvoxel,P.fixtype);
+////   MRIfree(&mri_src);
 
   ///////////  read MRI Source //////////////////////////////////////////////////
   cout <<  "reading source '"<<P.mov<<"'..."<< endl ;
@@ -984,9 +986,6 @@ static void initRegistration(Registration & R, Parameters & P)
     MRImask(mri_mov, mri_mask, mri_mov, 0, 0) ;
     MRIfree(&mri_mask) ;
   }
-  R.setSource(mri_mov,P.fixvoxel,P.fixtype);
-  MRIfree(&mri_mov);
-
 
   ///////////  read MRI Target //////////////////////////////////////////////////
   cout <<  "reading target '"<<P.dst<<"'..."<< endl ;
@@ -1011,7 +1010,10 @@ static void initRegistration(Registration & R, Parameters & P)
     MRImask(mri_dst, mri_mask, mri_dst, 0, 0) ;
     MRIfree(&mri_mask) ;
   }
-  R.setTarget(mri_dst,P.fixvoxel,P.fixtype);
+
+	
+  R.setSourceAndTarget(mri_mov,mri_dst,P.fixvoxel,P.fixtype);
+  MRIfree(&mri_mov);
   MRIfree(&mri_dst);
 
 //   cout << endl;

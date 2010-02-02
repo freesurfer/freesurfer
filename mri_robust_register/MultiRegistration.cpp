@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/02/02 20:29:25 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -90,9 +90,10 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
 
   assert (mri_mov.size () == 0);
   int n = (int) pmov.size();
+	assert(n>0);
   mri_mov.resize(n);
 	mov = pmov; // copy of input filenames
-
+  vector < double > msize (pmov.size());
   for (unsigned int i = 0;i<mov.size(); i++)
   {
     cout << "reading source '"<<mov[i]<<"'..." << endl;
@@ -103,7 +104,18 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
       ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: could not open input volume %s.\n",
                 mov[i].c_str()) ;
     }
+		msize[i] = mri_mov[i]->xsize;
+		if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
+		if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	
   }
+	double mm = msize[0];
+	for (unsigned int i = 1;i<mov.size();i++)
+	   if (msize[i] != mm)
+		 {
+       cerr << "MultiRegistration::loadMovables: images have different voxel sizes.\n";
+			 cerr << "  First make conform.\n";
+       exit(1);		 
+		 }
 
   mri_warps.resize(n,NULL);
   intensities.resize(n,1.0);
@@ -560,8 +572,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
 
   Registration R;
   initRegistration(R); //set parameter
-  R.setSource(mri_mov[0],fixvoxel,fixtype);
-  R.setTarget(mri_mov[1],fixvoxel,fixtype);
+  R.setSourceAndTarget(mri_mov[0],mri_mov[1],fixvoxel,fixtype);
 
   ostringstream oss;
   oss << outdir << "halfway_template.mgz";
@@ -709,9 +720,8 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     oss << outdir << "tp" << j+1 << "_to_tp" << tpi;
     
     Registration R;
-    R.setSource(mri_mov[j],fixvoxel,fixtype);
     initRegistration(R); //set parameter
-    R.setTarget(mri_mov[tpi], fixvoxel, fixtype);
+    R.setSourceAndTarget(mri_mov[j],mri_mov[tpi],fixvoxel,fixtype);
     R.setName(oss.str());
 		
     // compute Alignment (maxres,iterate,epsit) are passed above

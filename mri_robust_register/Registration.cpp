@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/02/02 20:29:25 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -3357,13 +3357,64 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 
+void Registration::setSourceAndTarget (MRI * s,MRI * t, bool fixvoxel, bool fixtype)
+// both need to be in the same voxel space
+{
+  cout << "Registration::setSourceAndTarget ..." << endl;
+	
+	// we will make images isotropic
+	double minsize = s->xsize;
+  // get smallest dimension
+  if (s->ysize < minsize) minsize = s->ysize;
+	if (s->zsize < minsize) minsize = s->zsize;
+	if (t->xsize < minsize) minsize = t->xsize;
+	if (t->ysize < minsize) minsize = t->ysize;
+	if (t->zsize < minsize) minsize = t->zsize;
+  vector < int > s_dim = MyMRI::findRightSize(s, minsize,false);
+  vector < int > t_dim = MyMRI::findRightSize(t, minsize,false);
+  for (uint i = 0;i<3;i++)
+	  if (s_dim[i] < t_dim[i]) s_dim[i] = t_dim[i];
+
+  cout << "   Asserting " << minsize <<"mm isotropic and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
+
+  // source
+	pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,minsize,s_dim[0],s_dim[1],s_dim[2],fixtype);
+	if (mri_source) MRIfree(&mri_source);
+	mri_source = mm.first;
+	Rsrc = mm.second;
+	if (debug)
+	{
+	   string n = name+string("-mriS-resample.mgz");
+     MRIwrite(mri_source,n.c_str());
+  }
+	   
+	// target
+	mm = makeIsotropic(t,NULL,minsize,s_dim[0],s_dim[1],s_dim[2],fixtype);
+	if (mri_target) MRIfree(&mri_target);
+	mri_target = mm.first;
+	Rtrg = mm.second;
+	if (debug)
+	{
+	  string n = name+string("-mriT-resample.mgz");
+    MRIwrite(mri_target,n.c_str());
+  }
+		 
+	
+  if (gpS.size() > 0) freeGaussianPyramid(gpS);
+	centroidS.clear();
+  if (gpT.size() > 0) freeGaussianPyramid(gpT);
+	centroidT.clear();
+}
+
+
 void Registration::setSource (MRI * s, bool fixvoxel, bool fixtype)
 //local copy
 {
   if (! (fixvoxel || fixtype))
 	{
 	
-    if (s->xsize != 1 || s->ysize != 1 || s->zsize != 1)
+   // if (s->xsize != 1 || s->ysize != 1 || s->zsize != 1)
+    if (s->xsize != s->ysize || s->ysize != s->zsize )
 	  {
 // 		  cerr << "Cannot deal naturally with non-uniform voxels! " << endl;
 // 		  cerr << "Source voxel sizes: " << s->xsize << " , " << s->ysize  << " , " <<  s->zsize << endl;
@@ -3371,12 +3422,16 @@ void Registration::setSource (MRI * s, bool fixvoxel, bool fixtype)
 // 		  exit(1);
         fixvoxel = true;
 	  }
-	  else mri_source = MRIcopy(s,mri_source);
+	  else
+		{
+		   mri_source = MRIcopy(s,mri_source);
+			 Rsrc.set_identity();
+		}
 	}
   
 	if (fixvoxel || fixtype)
 	{
-	   pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeConform(s,NULL,fixvoxel,fixtype);
+	   pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,-1,-1,-1,-1,fixtype);
 		 if (mri_source) MRIfree(&mri_source);
 		 mri_source = mm.first;
 		 Rsrc = mm.second;
@@ -3397,7 +3452,7 @@ void Registration::setTarget (MRI * t, bool fixvoxel, bool fixtype)
   if (! (fixvoxel || fixtype))
 	{
 	
-    if (t->xsize != 1 || t->ysize != 1 || t->zsize != 1)
+    if (t->xsize != t->ysize || t->ysize != t->zsize )
 	  {
 // 		  cerr << "Cannot deal naturally with non-uniform voxels! " << endl;
 // 		  cerr << "Target voxel sizes: " << t->xsize << " , " << t->ysize  << " , " <<  t->zsize << endl;
@@ -3405,13 +3460,17 @@ void Registration::setTarget (MRI * t, bool fixvoxel, bool fixtype)
 // 		  exit(1);
         fixvoxel = true;
 	  }
-		else  mri_target = MRIcopy(t,mri_target);
+		else
+		{
+		   mri_target = MRIcopy(t,mri_target);
+			 Rtrg.set_identity();
+		}
   }
 	
   
   if ( (fixvoxel || fixtype))
 	{
-	   pair < MRI*, vnl_matrix_fixed <double, 4, 4> > mm = makeConform(t,NULL,fixvoxel,fixtype);
+	   pair < MRI*, vnl_matrix_fixed <double, 4, 4> > mm = makeIsotropic(t,NULL,-1,-1,-1,-1,fixtype);
 		 if (mri_target) MRIfree(&mri_target);
 		 mri_target = mm.first;
 		 Rtrg = mm.second;
@@ -3439,41 +3498,62 @@ void Registration::setName(const std::string &n)
 }
 
 
-std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> > Registration::makeConform(MRI *mri, MRI *out, bool fixvoxel, bool fixtype)
+std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> >
+Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim, int zdim, bool fixtype)
 // makes the voxel size isotropic (and vox2ras map standard)
 {
 
   out = MRIcopy(mri,out);
-	//MATRIX * Rm = NULL;
-	vnl_matrix_fixed < double , 4, 4> Rm;Rm.set_identity();
-
-  if (! fixtype &&  mri->xsize ==  mri->ysize  && mri->xsize ==  mri->zsize )
-	   return std::pair <MRI*, vnl_matrix_fixed <double, 4, 4> >(out,Rm);
-		 
-	if (! fixvoxel && mri->type == MRI_UCHAR)
-	   return std::pair <MRI*, vnl_matrix_fixed <double, 4, 4> >(out,Rm);
-
-  if (mri->type == MRI_UCHAR && mri->xsize == 1 && mri->ysize == 1 && mri->zsize ==1
-      && mri->thick == 1 && mri->ps == 1) return std::pair <MRI*, vnl_matrix_fixed <double, 4, 4> >(out,Rm);
-
-  
-  double conform_size = mri->xsize;
-	if (mri->ysize < conform_size) conform_size = mri->ysize;
-	if (mri->zsize < conform_size) conform_size = mri->zsize;
 	
+	vnl_matrix_fixed < double , 4, 4> Rm;Rm.set_identity();
+	
+	// determine conform size
+  double conform_size = vsize;
+	if (conform_size < 0) // if not set use minimum:
+	{
+    conform_size = mri->xsize;
+	  if (mri->ysize < conform_size) conform_size = mri->ysize;
+	  if (mri->zsize < conform_size) conform_size = mri->zsize;
+	}
+	// get dimensions:
   vector < int > conform_dimensions = MyMRI::findRightSize(mri, conform_size,false);
+	if (xdim > 0)
+	{
+	  if (xdim < conform_dimensions[0])
+	  {
+	     cerr << "Registration::makeConform specified xdim too small to cover image" << endl;
+		   exit (1);
+	  }
+		else conform_dimensions[0] = xdim;
+	}
+	if (ydim > 0)
+	{
+	  if (ydim < conform_dimensions[1])
+	  {
+	     cerr << "Registration::makeConform specified ydim too small to cover image" << endl;
+		   exit (1);
+	  }
+		else conform_dimensions[1] = ydim;
+	}
+	if (zdim > 0)
+	{
+	  if (zdim < conform_dimensions[2])
+	  {
+	     cerr << "Registration::makeConform specified zdim too small to cover image" << endl;
+		   exit (1);
+	  }
+		else conform_dimensions[2] = zdim;
+	}
 
-  // permute dimensions according to rotation (RAS see below)
-
-
-  MRI * temp = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+	
+  MRI * temp = MRIallocHeader(conform_dimensions[0], conform_dimensions[1], conform_dimensions[2], MRI_UCHAR);
   MRIcopyHeader(mri, temp);
   temp->width  = conform_dimensions[0];
 	temp->height = conform_dimensions[1];
 	temp->depth  = conform_dimensions[2];
+  temp->type   = MRI_UCHAR;
   temp->imnr0  = 1;
   temp->imnr1  = temp->depth;
-  temp->type   = MRI_UCHAR;
   temp->thick  = conform_size;
   temp->ps     = conform_size;
   temp->xsize  = temp->ysize = temp->zsize = conform_size;
@@ -3481,9 +3561,9 @@ std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> > Registration::makeConform(M
   temp->xstart = -conform_dimensions[0]/2;
 	temp->ystart = -conform_dimensions[1]/2;
 	temp->zstart = -conform_dimensions[2]/2;
-  temp->xend   = conform_dimensions[0]/2;
-	temp->yend   = conform_dimensions[1]/2;
-	temp->zend   = conform_dimensions[2]/2;
+  temp->xend   =  conform_dimensions[0]/2;
+	temp->yend   =  conform_dimensions[1]/2;
+	temp->zend   =  conform_dimensions[2]/2;
 	// keep directional cosines from original (why rotate, just skrews up the dimenisons)
 //   temp->x_r = -1.0;
 //   temp->x_a =  0.0;
@@ -3512,24 +3592,32 @@ std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> > Registration::makeConform(M
   }
 
   /* ----- reslice if necessary ----- */
-  if ((mri->xsize != temp->xsize ||
-       mri->ysize != temp->ysize ||
-       mri->zsize != temp->zsize ||
-       mri->width != temp->width ||
-       mri->height != temp->height ||
-       mri->depth != temp->depth ||
-       mri->x_r != temp->x_r ||
-       mri->x_a != temp->x_a ||
-       mri->x_s != temp->x_s ||
-       mri->y_r != temp->y_r ||
-       mri->y_a != temp->y_a ||
-       mri->y_s != temp->y_s ||
-       mri->z_r != temp->z_r ||
-       mri->z_a != temp->z_a ||
-       mri->z_s != temp->z_s ||
-       mri->c_r != temp->c_r ||
-       mri->c_a != temp->c_a ||
-       mri->c_s != temp->c_s) && fixvoxel)
+//   if ((mri->xsize != temp->xsize ||
+//        mri->ysize != temp->ysize ||
+//        mri->zsize != temp->zsize ||
+//        mri->width != temp->width ||
+//        mri->height != temp->height ||
+//        mri->depth != temp->depth ||
+//        mri->x_r != temp->x_r ||
+//        mri->x_a != temp->x_a ||
+//        mri->x_s != temp->x_s ||
+//        mri->y_r != temp->y_r ||
+//        mri->y_a != temp->y_a ||
+//        mri->y_s != temp->y_s ||
+//        mri->z_r != temp->z_r ||
+//        mri->z_a != temp->z_a ||
+//        mri->z_s != temp->z_s ||
+//        mri->c_r != temp->c_r ||
+//        mri->c_a != temp->c_a ||
+//        mri->c_s != temp->c_s) && fixvoxel > 0)
+
+  double eps = 0.00001;
+  if (fabs (mri->xsize - temp->xsize) > eps  ||
+      fabs (mri->ysize - temp->ysize) > eps  ||
+      fabs (mri->zsize - temp->zsize) > eps ||
+      mri->width  != temp->width  ||
+      mri->height != temp->height ||
+      mri->depth  != temp->depth )
   {
 		resample = true;
 		// store resample matrix
@@ -3574,17 +3662,14 @@ std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> > Registration::makeConform(M
 //   	temp->yend   = conform_dimensions[rlookup[1]]/2;
 //   	temp->zend   = conform_dimensions[rlookup[2]]/2;
 		
-
-    cout << "Making input conform to "<<conform_size<<"mm^3 voxels" << endl;
-    printf("   Original: (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
-           mri->xsize, mri->ysize, mri->zsize,
-           mri->width, mri->height, mri->depth);
-    printf("   Internally resampled to %g mm size and (%d, %d, %d) voxels.\n",
-           conform_size, temp->width,temp->height,temp->depth);
+    printf("   Original : (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+           mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
+    printf("   Resampled: (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+           temp->xsize,temp->ysize,temp->zsize, temp->width,temp->height,temp->depth);
 
     int resample_type_val = SAMPLE_TRILINEAR;
 
-    printf("Reslicing using ");
+    printf("   Reslicing using ");
     switch (resample_type_val)
     {
     case SAMPLE_TRILINEAR:
@@ -3604,6 +3689,8 @@ std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> > Registration::makeConform(M
       break;
     }
     MRI * mri2 = MRIresample(out, temp, resample_type_val);
+//    printf("   Output   : (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+//           mri2->xsize,mri2->ysize,mri2->zsize, mri2->width,mri2->height,mri2->depth);
 		
     if (mri2 == NULL)
     {
