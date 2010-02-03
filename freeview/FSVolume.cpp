@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/01 19:13:19 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/02/03 19:33:24 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -336,20 +336,23 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
   if ( data_type == -1 )
     data_type = src_vol->m_MRI->type;
   
-  m_MRI = MRIallocSequence( src_vol->m_MRI->width, 
+  m_MRI = MRIallocHeader( src_vol->m_MRI->width, 
                             src_vol->m_MRI->height, 
                             src_vol->m_MRI->depth,
-                            data_type, 1 );
+                            data_type );
   if ( NULL == m_MRI )
   {
     cerr << "Could not allocate new mri volume." << endl;
     return false;
   }  
   
+  // do not copy original MRI voxel data anymore
+  /*
   if ( bCopyVoxelData )
   {
     MRIcopy( src_vol->m_MRI, m_MRI );
   }
+  */
 
   SetMRITarget( src_vol->m_MRITarget );
 
@@ -364,8 +367,9 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
   }
 
   // Copy the header from the template into the new mri.
-  if ( !bCopyVoxelData )
-    MRIcopyHeader( src_vol->m_MRI, m_MRI );
+//  if ( !bCopyVoxelData )
+  // always copy header only
+  MRIcopyHeader( src_vol->m_MRI, m_MRI );
 
 // if ( !m_imageData.GetPointer() )
   if ( m_imageData == NULL )
@@ -548,9 +552,8 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
   {
     cerr << "MRIwrite failed" << endl;
   }
-  else if ( lta )
+  else if ( lta )    // save lta file only if volume was saved successfully
   {
-    // save lta file only if volume was saved successfully
     string fname = filename;
     fname = fname + ".lta";
     fp = fopen(fname.c_str(),"w");
@@ -559,7 +562,6 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
       cerr << "ERROR: cannot open for writing: " << fname.c_str() << endl;
     }
     LTAprint(fp, lta);
-
     fclose( fp );
   }
   

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/14 20:54:32 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/02/03 19:33:24 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,7 @@ class vtkProp;
 class vtkVolume;
 class vtkPolyData;
 class vtkPolyDataAlgorithm;
+class vtkImageResample;
 class vtkUnsignedCharArray;
 class LayerPropertiesMRI;
 class FSVolume;
@@ -188,6 +189,7 @@ protected:
   virtual void UpdateVectorActor( int nPlane );
   
   void UpdateLabelOutline();
+  void UpdateUpSampleMethod();
   
   void UpdateTensorActor();
   void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
@@ -207,6 +209,7 @@ protected:
   vtkSmartPointer<vtkImageReslice>      mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
   vtkSmartPointer<vtkSimpleLabelEdgeFilter>   mEdgeFilter[3];
+  vtkSmartPointer<vtkImageResample>     mResample[3];
 
   FSVolume*   m_volumeSource;
   FSVolume*   m_volumeRef;

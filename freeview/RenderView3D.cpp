@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/07 23:33:05 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/02/03 19:33:24 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -149,6 +149,66 @@ void RenderView3D::UpdateViewByWorldCoordinate()
   cam->SetViewUp( 0, 0, 1 );
   m_renderer->ResetCameraClippingRange();
 }
+
+// snap the camera to the nearest axis
+void RenderView3D::SnapToNearestAxis()
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  double v[3], v_up[3];
+  cam->OrthogonalizeViewUp();
+  cam->GetDirectionOfProjection(v);
+  cam->GetViewUp(v_up);
+  double wcenter[3];
+  for ( int i = 0; i < 3; i++ )
+  {
+    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+  }
+  cam->SetFocalPoint( wcenter );
+  
+  if ( fabs(v[0]) > fabs(v[1]) && fabs(v[0]) > fabs(v[2]) )
+  {
+    v[0] = ( v[0] > 0 ? 1 : -1 );
+    v[1] = v[2] = 0;
+  }
+  else if ( fabs(v[1]) > fabs(v[2]) )
+  {
+    v[1] = ( v[1] > 0 ? 1 : -1 );
+    v[0] = v[2] = 0;
+  }
+  else
+  {
+    v[2] = ( v[2] > 0 ? 1 : -1 );
+    v[0] = v[1] = 0;
+  }
+  
+  if ( fabs(v_up[0]) > fabs(v_up[1]) && fabs(v_up[0]) > fabs(v_up[2]) )
+  {
+    v_up[0] = ( v_up[0] > 0 ? 1 : -1 );
+    v_up[1] = v_up[2] = 0;
+  }
+  else if ( fabs(v_up[1]) > fabs(v_up[2]) )
+  {
+    v_up[1] = ( v_up[1] > 0 ? 1 : -1 );
+    v_up[0] = v_up[2] = 0;
+  }
+  else
+  {
+    v_up[2] = ( v_up[2] > 0 ? 1 : -1 );
+    v_up[0] = v_up[1] = 0;
+  }
+  
+  double pos[3];
+  for ( int i = 0; i < 3; i++ )
+  {
+    pos[i] = wcenter[i] - ( m_dWorldSize[i] * v[i] * 2.5 );
+  }
+  cam->SetPosition( pos );
+  cam->SetViewUp( v_up );
+  m_renderer->ResetCameraClippingRange();
+  
+  NeedRedraw();
+}
+
 
 void RenderView3D::UpdateMouseRASPosition( int posX, int posY )
 {

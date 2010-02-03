@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 22:19:52 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/02/03 19:33:24 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -66,6 +66,8 @@ public:
   void UpdateScalarBar();
   
   void Azimuth( double angle );
+  
+  void SnapToNearestAxis();
   
 protected:
   void OnInternalIdle();

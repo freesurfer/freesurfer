@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.91 $
+ *    $Date: 2010/02/03 19:33:24 $
+ *    $Revision: 1.92 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -177,6 +177,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_3D" ),                MainWindow::OnView3DUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_RESET" ),             MainWindow::OnViewReset )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_RESET" ),             MainWindow::OnViewResetUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SNAP_TO_AXIS" ),      MainWindow::OnViewSnapToAxis )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SNAP_TO_AXIS" ),      MainWindow::OnViewSnapToAxisUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_SCALAR_BAR" ),        MainWindow::OnViewScalarBar )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SCALAR_BAR" ),        MainWindow::OnViewScalarBarUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_COORDINATE" ),        MainWindow::OnViewCoordinate )
@@ -1680,6 +1682,16 @@ void MainWindow::OnViewReset( wxCommandEvent& event )
 }
 
 void MainWindow::OnViewResetUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
+}
+
+void MainWindow::OnViewSnapToAxis( wxCommandEvent& event )
+{
+  m_view3D->SnapToNearestAxis();
+}
+
+void MainWindow::OnViewSnapToAxisUpdateUI( wxUpdateUIEvent& event )
 {
   event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/14 20:54:32 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/02/03 19:33:24 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -114,6 +114,7 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHECKBOX        ( XRCID( "ID_CHECK_USE_IMAGE_COLORMAP" ),   PanelVolume::OnCheckUseImageColorMap )
   
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HIDE_INFO" ),         PanelVolume::OnCheckHideInfo )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_UPSAMPLE_METHOD" ),     PanelVolume::OnChoiceUpSampleMethod )
   
   EVT_COMMAND_SCROLL_PAGEDOWN     ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
   EVT_COMMAND_SCROLL_PAGEUP       ( XRCID( "ID_SLIDER_CONTOUR_MIN" ),  PanelVolume::OnSliderContourMin )
@@ -178,6 +179,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_choiceRepresentation  = XRCCTRL( *this, "ID_CHOICE_REPRESENTATION", wxChoice );
   m_choiceMask          = XRCCTRL( *this, "ID_CHOICE_MASK", wxChoice );
   m_checkHeatScaleClearHigh = XRCCTRL( *this, "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH", wxCheckBox );
+  
+  m_choiceUpSampleMethod  = XRCCTRL( *this, "ID_CHOICE_UPSAMPLE_METHOD", wxChoice );
 
   // workaround for wxformbuilder bug
   m_colorIndicator->SetSize( 40, wxDefaultCoord );
@@ -791,6 +794,8 @@ void PanelVolume::DoUpdateUI()
       
       m_checkShowLabelOutline->SetValue( layer->GetProperties()->GetShowLabelOutline() );
       m_checkShowLabelOutline->Show( nColorMap == LayerPropertiesMRI::LUT );
+      
+      m_choiceUpSampleMethod->SetSelection( layer->GetProperties()->GetUpSampleMethod() );
 		}
 	}
 	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
@@ -1478,5 +1483,14 @@ void PanelVolume::OnCheckShowLabelOutline( wxCommandEvent& event )
   if ( layer )
   {
     layer->GetProperties()->SetShowLabelOutline( event.IsChecked() );
+  }
+}
+
+void PanelVolume::OnChoiceUpSampleMethod( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetUpSampleMethod( event.GetSelection() );
   }
 }

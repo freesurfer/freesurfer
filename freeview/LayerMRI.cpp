@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/14 20:54:32 $
- *    $Revision: 1.52 $
+ *    $Date: 2010/02/03 19:33:24 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,6 +55,7 @@
 #include "vtkPolyDataToImageStencil.h"
 #include "vtkImageStencil.h"
 #include "vtkSimpleLabelEdgeFilter.h"
+#include "vtkImageResample.h"
 
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
@@ -361,6 +362,11 @@ void LayerMRI::InitializeActors()
     m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
 
     mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
+    mResample[i] = vtkSmartPointer<vtkImageResample>::New();
+    mResample[i]->SetAxisMagnificationFactor( 0, 2.0 );
+    mResample[i]->SetAxisMagnificationFactor( 1, 2.0 );
+    mResample[i]->SetAxisMagnificationFactor( 2, 2.0 );
+    mResample[i]->SetInterpolationModeToNearestNeighbor();
     
     // Set ourselves up.
     this->OnSlicePositionChanged( i );
@@ -713,6 +719,11 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void*
   else if ( iMessage == "LayerLabelOutlineChanged" )
   {
     UpdateLabelOutline();
+    this->SendBroadcast( "LayerActorUpdated", this, this );
+  }
+  else if ( iMessage == "LayerUpSampleMethodChanged" )
+  {
+    UpdateUpSampleMethod();
     this->SendBroadcast( "LayerActorUpdated", this, this );
   }
   
@@ -1415,16 +1426,60 @@ void LayerMRI::UpdateLabelOutline()
 {
   if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT && GetProperties()->GetShowLabelOutline() )
   {
+    double* vsize = m_imageData->GetSpacing();
     for ( int i = 0; i < 3; i++ )
     {
-      mEdgeFilter[i]->SetInput( mReslice[i]->GetOutput() );
+      double pos[3] = { vsize[0]/4.0, vsize[1]/4.0, vsize[2]/4.0 };
+      mResample[i]->SetInput( mReslice[i]->GetOutput() );
+      mEdgeFilter[i]->SetInput( mResample[i]->GetOutput() );
       mColorMap[i]->SetInput( mEdgeFilter[i]->GetOutput() );
+      pos[i] = m_dSlicePosition[i];
+      m_sliceActor2D[i]->SetPosition( pos[0], (i==0?-pos[1]:pos[1]), pos[2] );
+      m_sliceActor3D[i]->SetPosition( pos[0], (i==0?-pos[1]:pos[1]), pos[2] );
     }
   }
   else
   {
     for ( int i = 0; i < 3; i++ )
+    {
+      double pos[3] = { 0, 0, 0};
       mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+      pos[i] = m_dSlicePosition[i]; 
+      m_sliceActor2D[i]->SetPosition( pos );
+      m_sliceActor3D[i]->SetPosition( pos );
+    }
+  }
+}
+
+void LayerMRI::UpdateUpSampleMethod()
+{
+  switch ( GetProperties()->GetUpSampleMethod() )
+  {
+    case LayerPropertiesMRI::UM_NearestNeighbor:
+      for ( int i = 0; i < 3; i++ )
+        mResample[i]->SetInterpolationModeToNearestNeighbor();
+      break;
+    case LayerPropertiesMRI::UM_BiLinear:
+      for ( int i = 0; i < 3; i++ )
+        mResample[i]->SetInterpolationModeToLinear();
+      break;
+    default:
+      break;
+  }
+  if ( GetProperties()->GetUpSampleMethod() == LayerPropertiesMRI::UM_None )
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+    }
+  }
+  else
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      mResample[i]->SetInput( mReslice[i]->GetOutput() );
+      mColorMap[i]->SetInput( mResample[i]->GetOutput() );
+    }
   }
 }
 
