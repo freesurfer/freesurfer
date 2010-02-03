@@ -265,7 +265,7 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
-	echo "open $(DESTDIR)$(bindir)/Freeview.app \$$argv" >> $(DESTDIR)$(bindir)/freeview
+	echo "exec $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
