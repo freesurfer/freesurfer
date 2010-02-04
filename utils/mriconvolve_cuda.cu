@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 19:47:53 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/02/04 19:55:25 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -417,104 +417,12 @@ namespace GPU {
 
 
     
-    //! Dispatch routine with transfers
-    template<typename T, typename U>
-    void MRIConv1dDispatch( const MRI* src, MRI* dst,
-			    const int axis,
-			    const int srcFrame, const int dstFrame ) {
-      /*!
-	This is a dispatch routine for the 1D convolution on the GPU.
-	It transfers the data to the GPU, runs the convolution, and retrieves
-	the results
-	Things are written this way to avoid nastily nested switch statements.
-      */
-
-      tMRIconv1dTotal.Start();
-
-      GPU::Classes::MRIframeGPU<T> srcGPU;
-      GPU::Classes::MRIframeGPU<U> dstGPU;
-      
-      char* h_workspace;
-      size_t srcWorkSize, dstWorkSize;
-      
-      // Allocate the GPU arrays
-      tMRIconv1dMem.Start();
-      srcGPU.Allocate( src, kConv1dBlockSize );
-      dstGPU.Allocate( dst, kConv1dBlockSize );
-      tMRIconv1dMem.Stop();
-      
-      // Put in some sanity checks
-      srcGPU.VerifyMRI( src );
-      dstGPU.VerifyMRI( dst );
-      
-      // Allocate the workspace array
-      tMRIconv1dMemHost.Start();
-      srcWorkSize = srcGPU.GetBufferSize();
-      dstWorkSize = dstGPU.GetBufferSize();
-      
-      if( srcWorkSize > dstWorkSize ) {
-	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
-				       srcWorkSize,
-				       cudaHostAllocDefault ) );
-      } else {
-	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
-				       dstWorkSize,
-				       cudaHostAllocDefault ) );
-      }
-      tMRIconv1dMemHost.Stop();
-
-      // Send the source data
-      tMRIconv1dSend.Start();
-      srcGPU.Send( src, srcFrame, h_workspace );
-      tMRIconv1dSend.Stop();
-      
-      // Run the convolution
-      tMRIconv1dCompute.Start();
-      MRIConvolve1dGPU( srcGPU, dstGPU, axis );
-      tMRIconv1dCompute.Stop();
-  
-      // Retrieve the answers
-      tMRIconv1dRecv.Start();
-      dstGPU.Recv( dst, dstFrame, h_workspace );
-      tMRIconv1dRecv.Stop();
-      
-      tMRIconv1dMemHost.Start();
-      CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
-      tMRIconv1dMemHost.Stop();
-      
-      CUDA_CHECK_ERROR( "1D Convolution failure" );
-      
-      tMRIconv1dTotal.Stop();
-      
-      // No need to release - destructor will do that automatically
-    }
+    
 
 
     
 
-    //! Dispatch wrapper
-    template<typename T>
-    void MRIConv1dDispatchWrap( const MRI* src, MRI* dst,
-				const int axis,
-				const int srcFrame, const int dstFrame ) {
-      switch( dst->type ) {
-      case MRI_UCHAR:
-	MRIConv1dDispatch<T,unsigned char>( src, dst, axis, srcFrame, dstFrame );
-	break;
-	
-      case MRI_SHORT:
-	MRIConv1dDispatch<T,short>( src, dst, axis, srcFrame, dstFrame );
-	break;
-	
-      case MRI_FLOAT:
-	MRIConv1dDispatch<T,float>( src, dst, axis, srcFrame, dstFrame );
-	break;
-
-      default:
-	std::cerr << __FUNCTION__ << ": Unrecognised destination MRI type " << dst->type << std::endl;
-	exit( EXIT_FAILURE );
-      }
-    }
+    
 
 
     
@@ -546,15 +454,15 @@ namespace GPU {
 
 	switch( src->type ) {
 	case MRI_UCHAR:
-	  GPU::Algorithms::MRIConv1dDispatchWrap<unsigned char>( src, dst, axis, srcFrame, dstFrame );
+	  this->DispatchWrap1D<unsigned char>( src, dst, axis, srcFrame, dstFrame );
 	  break;
 	  
 	case MRI_SHORT:
-	  GPU::Algorithms::MRIConv1dDispatchWrap<short>( src, dst, axis, srcFrame, dstFrame );
+	  this->DispatchWrap1D<short>( src, dst, axis, srcFrame, dstFrame );
 	  break;
 	  
 	case MRI_FLOAT:
-	  GPU::Algorithms::MRIConv1dDispatchWrap<float>( src, dst, axis, srcFrame, dstFrame );
+	  this->DispatchWrap1D<float>( src, dst, axis, srcFrame, dstFrame );
 	  break;
 	  
 	default:
@@ -565,6 +473,66 @@ namespace GPU {
 	}
 	
 	this->UnbindKernel();
+      }
+
+      //! Dispatch routine with transfers
+      template<typename T, typename U>
+      void Dispatch1D( const MRI* src, MRI* dst,
+		       const int axis,
+		       const int srcFrame, const int dstFrame ) const {
+	/*!
+	  This is a dispatch routine for the 1D convolution on
+	  the GPU.
+	  It transfers the data to the GPU, runs the convolution,
+	  and retrieves the results
+	  Things are written this way to avoid nastily nested
+	  switch statements.
+	  It assumes that the convolution kernel texture is already
+	  bound
+	*/
+
+	GPU::Classes::MRIframeGPU<T> srcGPU;
+	GPU::Classes::MRIframeGPU<U> dstGPU;
+      
+	char* h_workspace;
+	size_t srcWorkSize, dstWorkSize;
+      
+	// Allocate the GPU arrays
+	srcGPU.Allocate( src, kConv1dBlockSize );
+	dstGPU.Allocate( dst, kConv1dBlockSize );
+	
+	// Put in some sanity checks
+	srcGPU.VerifyMRI( src );
+	dstGPU.VerifyMRI( dst );
+	
+	// Allocate the workspace array
+	srcWorkSize = srcGPU.GetBufferSize();
+	dstWorkSize = dstGPU.GetBufferSize();
+      
+	if( srcWorkSize > dstWorkSize ) {
+	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
+					 srcWorkSize,
+					 cudaHostAllocDefault ) );
+	} else {
+	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
+					 dstWorkSize,
+					 cudaHostAllocDefault ) );
+	}
+
+	// Send the source data
+	srcGPU.Send( src, srcFrame, h_workspace );
+
+	// Run the convolution
+	MRIConvolve1dGPU( srcGPU, dstGPU, axis );
+	
+	// Retrieve the answers
+	dstGPU.Recv( dst, dstFrame, h_workspace );
+	
+	CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+      
+	CUDA_CHECK_ERROR( "1D Convolution failure" );
+	
+	// No need to release - destructor will do that automatically
       }
 
 
@@ -763,6 +731,37 @@ namespace GPU {
 	  this->kernelAllocSize = 0;
 	}
       }
+
+      // ----------------------------------------------
+      //! Dispatch wrapper for 1D convolutions for dst type
+      template<typename T>
+      void DispatchWrap1D( const MRI* src, MRI* dst,
+			   const int axis,
+			   const int srcFrame, const int dstFrame ) const {
+	switch( dst->type ) {
+	case MRI_UCHAR:
+	  this->Dispatch1D<T,unsigned char>( src, dst, axis,
+					     srcFrame, dstFrame );
+	  break;
+	  
+	case MRI_SHORT:
+	  this->Dispatch1D<T,short>( src, dst, axis,\
+				     srcFrame, dstFrame );
+	  break;
+	  
+	case MRI_FLOAT:
+	  this->Dispatch1D<T,float>( src, dst, axis,
+				     srcFrame, dstFrame );
+	  break;
+	  
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised destination MRI type " << dst->type
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+      }
+
 
     };
     
