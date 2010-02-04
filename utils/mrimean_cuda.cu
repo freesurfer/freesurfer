@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 18:21:53 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/02/04 18:32:13 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -348,6 +348,10 @@ namespace GPU {
       mutable char* h_workspace;
       //! Size of private workspace
       mutable size_t workSize;
+
+      mutable SciGPU::Utilities::Chronometer tMem, tHostMem;
+      mutable SciGPU::Utilities::Chronometer tSend, tRecv, tCompute;
+      mutable SciGPU::Utilities::Chronometer tTotal;
       
       // =======================
       
@@ -385,10 +389,12 @@ namespace GPU {
 	if( this->workSize < nBytes ) {
 	  this->Release();
 
+	  this->tHostMem.Start();
 	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&(this->h_workspace),
 					 nBytes,
 					 cudaHostAllocDefault ) );
 	  this->workSize = nBytes;
+	  this->tHostMem.Stop();
 	}
       }
 	  
@@ -396,9 +402,11 @@ namespace GPU {
       //! Releases internal pinned memory buffer
       void Release( void ) const {
 	if( h_workspace != NULL ) {
+	  this->tHostMem.Start();
 	  CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
 	  h_workspace = NULL;
 	  workSize = 0;
+	  this->tHostMem.Stop();
 	}
       }
 
@@ -431,6 +439,15 @@ namespace GPU {
       //! Destructor
       ~MRImean( void ) {
 	this->Release();
+
+	std::cout << "=================" << std::endl;
+	std::cout << "GPU Mean timers" << std::endl;
+	std::cout << "---------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+	std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+	std::cout << "Timings may not be accurate" << std::endl;
+#endif
+	std::cout << std::endl;
       }
 
 
