@@ -173,6 +173,7 @@ tal_compare \
 talsegprob \
 tcl_setup \
 test_recon-all.csh \
+test_fs_tutorial.csh \
 thickdiffmap \
 unpack_ima1.tcl \
 unpackimadir \
