@@ -227,7 +227,8 @@ libutils_main_SOURCES=\
 	mri_fastmarching.cpp \
 	mriio_nrrd.c \
 	mriio_nrrd_itk.cpp \
-	numerics.cpp
+	numerics.cpp \
+        chronometerpp.cpp
 
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \

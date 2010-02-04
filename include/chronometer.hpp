@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <time.h>
 
+#include <iostream>
 
 
 namespace SciGPU {
@@ -89,7 +90,8 @@ namespace SciGPU {
 	return( msecs / nStarts );
       }
       
-      
+      friend std::ostream& operator<<( std::ostream& os,
+				       const Chronometer& me );
     private:
       bool running;          //!< Whether the timer is running
       float accTime;         //!< Accumulated time for this timer (ms)
