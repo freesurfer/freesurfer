@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 18:59:03 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/02/04 19:47:53 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,75 +85,9 @@ namespace GPU {
 
     // =================================================
     
-    //! Array to contain the convolution kernel on the device
-    static float* d_mriconv1d_kernel;
-
     // =================================================
     
-    //! Prepares convolution kernel for use
-    void MRIconv1d_SendKernel( const float* kernel,
-			       const unsigned int nVals ) {
-      /*!
-	This routine is responsible for preparing the dtl_mriconv1d_kernel
-	texture for use.
-	The array on the device is padded with an extra zero on each end,
-	to save us some explicit boundary condition checks (the texture
-	units will handle them).
-	@param[in] kernel Array containing the kernel values
-	@param[in] nVals The number of values in the kernel
-      */
-
-      // Allocate and zero GPU memory
-      CUDA_SAFE_CALL( cudaMalloc( (void**)&d_mriconv1d_kernel,
-				  (2+nVals)*sizeof(float) ) );
-      CUDA_SAFE_CALL( cudaMemset( d_mriconv1d_kernel,
-				  0,
-				  (2+nVals)*sizeof(float) ) );
-
-      // Copy the convolution kernel to the GPU
-      // Note the extra offset
-      CUDA_SAFE_CALL( cudaMemcpy( &(d_mriconv1d_kernel[1]),
-				  kernel,
-				  nVals*sizeof(float),
-				  cudaMemcpyHostToDevice ) );
-
-      // Copy the size of the texture to device constant memory
-      CUDA_SAFE_CALL( cudaMemcpyToSymbol( "dc_mriconv1d_kernel_nVals",
-					  &nVals,
-					  sizeof(unsigned int) ) );
-
-      // ------------------
-      // Set up the texture
-      
-      cudaChannelFormatDesc cd_kernel = cudaCreateChannelDesc<float>();
-      
-      // Describe the addressing modes
-      dtl_mriconv1d_kernel.normalized = false;
-      dtl_mriconv1d_kernel.addressMode[0] = cudaAddressModeClamp;
-      dtl_mriconv1d_kernel.filterMode = cudaFilterModePoint;
-      
-      // Bind the texture together
-      CUDA_SAFE_CALL( cudaBindTexture( 0,
-				       dtl_mriconv1d_kernel,
-				       d_mriconv1d_kernel,
-				       cd_kernel,
-				       (2+nVals)*sizeof(float) ) );
-    }
     
-    
-    // ----------------
-
-    //! Releases convolution kernel after use
-    void MRIconv1d_ReleaseKernel( void ) {
-      /*!
-	Releases everything on the device associated with the convolution kernel
-      */
-      CUDA_SAFE_CALL( cudaUnbindTexture( dtl_mriconv1d_kernel ) );
-      CUDA_SAFE_CALL( cudaFree( d_mriconv1d_kernel ) );
-      d_mriconv1d_kernel = NULL;
-    }
-
-
     // ----------------
 
     //! Device function to perform convolution kernel look ups
@@ -556,66 +490,7 @@ namespace GPU {
     }
 
 
-    //! Wrapper for Gaussian convolution
-    template<typename T>
-    void MRIConvGaussianDispatch( const MRI* src, MRI* dst ) {
-      /*!
-	Function to run the 3D gaussian convolution on the GPU
-	without pulling intermediate results back to the host.
-	Assumes that src and dst types are the same.
-	Assumes that the texture is already set up on the GPU
-      */
-
-      tMRIconvGaussTotal.Start();
-
-      GPU::Classes::MRIframeGPU<T> frame1, frame2;
-
-      char* h_workspace;
-      size_t workSize;
-
-      // Do some allocation
-      tMRIconvGaussMem.Start();
-      frame1.Allocate( src, kConv1dBlockSize );
-      frame2.Allocate( src, kConv1dBlockSize );
-      tMRIconvGaussMem.Stop();
-
-      // Verify (note frame2 verified from dst)
-      frame1.VerifyMRI( src );
-      frame2.VerifyMRI( dst );
-
-      // Allocate workspace
-      tMRIconvGaussMemHost.Start();
-      workSize = frame1.GetBufferSize();
-      CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
-				     workSize,
-				     cudaHostAllocDefault ) );
-      tMRIconvGaussMemHost.Stop();
-
-      // Loop over frame
-      for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
-	tMRIconvGaussSend.Start();
-	frame1.Send( src, iFrame, h_workspace );
-	tMRIconvGaussSend.Stop();
-
-	tMRIconvGaussCompute.Start();
-	MRIConvolve1dGPU( frame1, frame2, MRI_WIDTH );
-	MRIConvolve1dGPU( frame2, frame1, MRI_HEIGHT );
-	MRIConvolve1dGPU( frame1, frame2, MRI_DEPTH );
-	tMRIconvGaussCompute.Stop();
-
-	tMRIconvGaussRecv.Start();
-	frame2.Recv( dst, iFrame, h_workspace );
-	tMRIconvGaussRecv.Stop();
-      }
-
-      tMRIconvGaussMemHost.Start();
-      CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
-      tMRIconvGaussMemHost.Stop();
-
-      CUDA_CHECK_ERROR( "Gaussian convolution failure" );
-
-      tMRIconvGaussTotal.Stop();
-    }
+    
 
     //! Dispatch wrapper
     template<typename T>
@@ -640,11 +515,263 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
     }
+
+
+    
+    //! Class to contain MRI convolution algorithms
+    class MRIconvolve {
+    public:
+      // ---------------------------------------
+      //! Constructor with stream (also default)
+      MRIconvolve( const cudaStream_t s = 0 ) : stream(s),
+						d_kernel(NULL),
+						kernelAllocSize(0) {}
+
+      //! Destructor
+      ~MRIconvolve( void ) {
+	this->ReleaseKernel();
+      }
+
+
+      // ---------------------------------------
+
+      //! Dispatch for 1D convolution of unknown type
+      void Convolve1D( const MRI* src, MRI* dst,
+		       const float *kernel,
+		       const unsigned int kernelLength,
+		       const int axis,
+		       const int srcFrame, const int dstFrame ) {
+
+	this->BindKernel( kernel, kernelLength );
+
+	switch( src->type ) {
+	case MRI_UCHAR:
+	  GPU::Algorithms::MRIConv1dDispatchWrap<unsigned char>( src, dst, axis, srcFrame, dstFrame );
+	  break;
+	  
+	case MRI_SHORT:
+	  GPU::Algorithms::MRIConv1dDispatchWrap<short>( src, dst, axis, srcFrame, dstFrame );
+	  break;
+	  
+	case MRI_FLOAT:
+	  GPU::Algorithms::MRIConv1dDispatchWrap<float>( src, dst, axis, srcFrame, dstFrame );
+	  break;
+	  
+	default:
+	  std::cerr << __FUNCTION__
+		    <<": Unrecognised source MRI type " << src->type
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	this->UnbindKernel();
+      }
+
+
+      // ---------------------------------------------------
+
+      //! Dispatch for gaussian convolution of unknown type
+      void ConvolveGaussian( const MRI* src, MRI* dst,
+			     const float *kernel,
+			     const unsigned int kernelLength ) {
+	/*!
+	  Implementation of MRIconvolveGaussian for the GPU,
+	  but doesn't attempt to allocate inputs
+	*/
+
+	// Send the convolution kernel
+	this->BindKernel( kernel, kernelLength );
+
+	switch( src->type ) {
+	case MRI_UCHAR:
+	  this->GaussianDispatch<unsigned char>( src, dst );
+	  break;
+	  
+	case MRI_SHORT:
+	  this->GaussianDispatch<short>( src, dst );
+	  break;
+	  
+	case MRI_FLOAT:
+	  this->GaussianDispatch<float>( src, dst );
+	  break;
+	  
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised source MRI type " << src->type
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	this->UnbindKernel();
+      }
+
+
+      //! Wrapper for Gaussian convolution
+      template<typename T>
+      void GaussianDispatch( const MRI* src, MRI* dst ) const {
+	/*!
+	  Function to run the 3D gaussian convolution on the GPU
+	  without pulling intermediate results back to the host.
+	  Assumes that src and dst types are the same.
+	  Assumes that the texture is already set up on the GPU.
+	  Also works on every frame in the MRI, which may or may
+	  not be what you want.
+	*/
+
+	GPU::Classes::MRIframeGPU<T> frame1, frame2;
+
+	char* h_workspace;
+	size_t workSize;
+
+	// Do some allocation
+	frame1.Allocate( src, kConv1dBlockSize );
+	frame2.Allocate( src, kConv1dBlockSize );
+
+	// Verify (note frame2 verified from dst)
+	frame1.VerifyMRI( src );
+	frame2.VerifyMRI( dst );
+
+	// Allocate workspace
+	workSize = frame1.GetBufferSize();
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
+				       workSize,
+				       cudaHostAllocDefault ) );
+
+	// Loop over frame
+	for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
+	  frame1.Send( src, iFrame, h_workspace );
+
+	  MRIConvolve1dGPU( frame1, frame2, MRI_WIDTH );
+	  MRIConvolve1dGPU( frame2, frame1, MRI_HEIGHT );
+	  MRIConvolve1dGPU( frame1, frame2, MRI_DEPTH );
+	  
+	  frame2.Recv( dst, iFrame, h_workspace );
+	}
+
+	CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+
+	CUDA_CHECK_ERROR( "Gaussian convolution failure" );
+      }
+
+      // ---------------------------------------
+      
+      void BindKernel( const float *kernel, const unsigned int nVals ) {
+	/*!
+	  This routine is responsible for preparing the dtl_mriconv1d_kernel
+	  texture for use.
+	  The array on the device is padded with an extra zero on each end,
+	  to save us some explicit boundary condition checks (the texture
+	  units will handle them).
+	  There's no need for a matching release, since rebinding
+	  a texture implicitly unbinds the previous, and the destructor
+	  handles the memory release
+	  @param[in] kernel Array containing the kernel values
+	  @param[in] nVals The number of values in the kernel
+	*/
+
+	// Allocate and zero GPU memory
+	this->AllocateKernel( 2 + nVals );
+	CUDA_SAFE_CALL( cudaMemset( this->d_kernel,
+				    0,
+				    (2+nVals)*sizeof(float) ) );
+
+	// Copy the convolution kernel to the GPU
+	// Note the extra offset
+	CUDA_SAFE_CALL( cudaMemcpy( &(this->d_kernel[1]),
+				    kernel,
+				    nVals*sizeof(float),
+				    cudaMemcpyHostToDevice ) );
+	
+	// Copy the size of the texture to device constant memory
+	CUDA_SAFE_CALL( cudaMemcpyToSymbol( "dc_mriconv1d_kernel_nVals",
+					    &nVals,
+					    sizeof(unsigned int) ) );
+
+	// ------------------
+	// Set up the texture
+	
+	cudaChannelFormatDesc cd_kernel = cudaCreateChannelDesc<float>();
+      
+	// Describe the addressing modes
+	dtl_mriconv1d_kernel.normalized = false;
+	dtl_mriconv1d_kernel.addressMode[0] = cudaAddressModeClamp;
+	dtl_mriconv1d_kernel.filterMode = cudaFilterModePoint;
+      
+	// Bind the texture together
+	CUDA_SAFE_CALL( cudaBindTexture( 0,
+					 dtl_mriconv1d_kernel,
+					 this->d_kernel,
+					 cd_kernel,
+					 (2+nVals)*sizeof(float) ) );
+      }
+
+      // Unbinds the kernel texture
+      void UnbindKernel( void ) {
+	CUDA_SAFE_CALL( cudaUnbindTexture( dtl_mriconv1d_kernel ) );
+      }
+      
+      // ==============================================================
+    private:
+      //! Stream to use for operations
+      cudaStream_t stream;
+
+      //! Device memory to hold convolution kernel
+      float *d_kernel;
+      //! Currently allocated convolution kernel size in floats (may not be fully used)
+      unsigned int kernelAllocSize;
+
+      // ----------------------------------------------
+      // Suppress copying
+      MRIconvolve( const MRIconvolve& src ) : stream(0),
+					      d_kernel(NULL),
+					      kernelAllocSize(0) {
+	std::cerr << __FUNCTION__
+		  << ": Please do not copy"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+      MRIconvolve& operator=( const MRIconvolve& src ) {
+	std::cerr << __FUNCTION__
+		  << ": Please do not copy"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+      // ----------------------------------------------
+
+      //! Allocates convolution kernel array on the device
+      void AllocateKernel( const unsigned int nFloats ) {
+	/*!
+	  Allocates space on the device to hold the
+	  convolution kernel, in necessary.
+	  @param[in] nFloats Number of floats required
+	*/
+	if( this->kernelAllocSize < nFloats ) {
+	  this->ReleaseKernel();
+
+	  CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_kernel),
+				      nFloats * sizeof(float) ) );
+	  this->kernelAllocSize = nFloats;
+	}
+      }
+
+      //! Releases device array associated with convolution kernel
+      void ReleaseKernel( void ) {
+	if( this->d_kernel != NULL ) {
+	  CUDA_SAFE_CALL( cudaFree( this->d_kernel ) );
+	  this->kernelAllocSize = 0;
+	}
+      }
+
+    };
     
   }
 }
 
 // =================================================
+
+static GPU::Algorithms::MRIconvolve myConvolve;
 
 
 MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
@@ -659,31 +786,10 @@ MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
     As such, I don't expect it to be fast
   */
 
-
-  // Get the convolution kernel to the GPU
-  GPU::Algorithms::MRIconv1d_SendKernel( kernel, kernelLength );
-
-  switch( src->type ) {
-  case MRI_UCHAR:
-    GPU::Algorithms::MRIConv1dDispatchWrap<unsigned char>( src, dst, axis, srcFrame, dstFrame );
-    break;
-
-  case MRI_SHORT:
-    GPU::Algorithms::MRIConv1dDispatchWrap<short>( src, dst, axis, srcFrame, dstFrame );
-    break;
-
-  case MRI_FLOAT:
-    GPU::Algorithms::MRIConv1dDispatchWrap<float>( src, dst, axis, srcFrame, dstFrame );
-    break;
-    
-  default:
-    std::cerr << __FUNCTION__ << ": Unrecognised source MRI type " << src->type << std::endl;
-    exit( EXIT_FAILURE );
-  }
-  
-  // Release the convolution kernel
-  GPU::Algorithms::MRIconv1d_ReleaseKernel();
-
+  myConvolve.Convolve1D( src, dst,
+			 kernel, kernelLength,
+			 axis,
+			 srcFrame, dstFrame );
 
   return( dst );
 }
@@ -698,31 +804,7 @@ MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
     Designed to be called form that routine
   */
 
-  // Send the convolution kernel
-  GPU::Algorithms::MRIconv1d_SendKernel( kernel, kernelLength );
-
-  switch( src->type ) {
-  case MRI_UCHAR:
-    GPU::Algorithms::MRIConvGaussianDispatch<unsigned char>( src, dst );
-    break;
-
-  case MRI_SHORT:
-    GPU::Algorithms::MRIConvGaussianDispatch<short>( src, dst );
-    break;
-
-  case MRI_FLOAT:
-    GPU::Algorithms::MRIConvGaussianDispatch<float>( src, dst );
-    break;
-
-  default:
-    std::cerr << __FUNCTION__ << ": Unrecognised source MRI type " << src->type << std::endl;
-    exit( EXIT_FAILURE );
-  }
-
-
-  // Release the kernel
-  GPU::Algorithms::MRIconv1d_ReleaseKernel();
-
+  myConvolve.ConvolveGaussian( src, dst, kernel, kernelLength );
 
   return( dst );
 }
@@ -736,7 +818,7 @@ void MRIconvShowTimers( void ) {
   /*!
     Pretty prints timers to std.out
   */
-
+#if 0
   std::cout << "=============================================" << std::endl;
   std::cout << "GPU convolution timers" << std::endl;
   std::cout << "----------------------" << std::endl;
@@ -767,4 +849,5 @@ void MRIconvShowTimers( void ) {
   std::cout << std::endl;
 
   std::cout << "=============================================" << std::endl;
+#endif
 }
