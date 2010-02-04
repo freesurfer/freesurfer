@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 20:03:19 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/02/04 20:25:45 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,25 +70,9 @@ namespace GPU {
   namespace Algorithms {
 
     const unsigned int kConv1dBlockSize = 16;
-    
-    // Some timers
-    SciGPU::Utilities::Chronometer tMRIconv1dMem, tMRIconv1dMemHost;
-    SciGPU::Utilities::Chronometer tMRIconv1dSend, tMRIconv1dRecv;
-    SciGPU::Utilities::Chronometer tMRIconv1dCompute;
-    SciGPU::Utilities::Chronometer tMRIconv1dTotal;
-
-    
-    SciGPU::Utilities::Chronometer tMRIconvGaussMem, tMRIconvGaussMemHost;
-    SciGPU::Utilities::Chronometer tMRIconvGaussSend, tMRIconvGaussRecv;
-    SciGPU::Utilities::Chronometer tMRIconvGaussCompute;
-    SciGPU::Utilities::Chronometer tMRIconvGaussTotal;
-
+  
     // =================================================
     
-    // =================================================
-    
-    
-    // ----------------
 
     //! Device function to perform convolution kernel look ups
     __device__ float GetMRIconvkernel( const int i ) {
@@ -315,113 +299,6 @@ namespace GPU {
 
 
 
-
-
-
-    //! Runs the 1D convolution kernel on the GPU
-    template<typename T, typename U>
-    void MRIConvolve1dGPU( const GPU::Classes::MRIframeGPU<T> &src,
-			   GPU::Classes::MRIframeGPU<U> &dst,
-			   const int axis,  
-			   const cudaStream_t myStream = 0 ) {
-      
-      /*!
-	Runs the 1D convolution kernel on the GPU.
-	Prior to calling this routine, MRIconv1d_SendKernel must
-	be called to set up the convolution kernel
-	@param[in] d_src The set of source frames
-	@param[out] d_dst The set of destination frames
-	@param[in] axis Which axis to do the convolution along
-	@param[in] srcDims Dimensions of the source frames
-	@param[in] dstDims Dimensions of the destinaiton frames
-	@param[in] srcFrame Which frame of the source to use
-	@param[in] dstFrame Which frame of the destination to use
-	@param[in] myStream CUDA stream which should be used (Defaults to stream 0)
-      */
-      
-
-      const dim3 srcDims = src.GetGPUDims();
-      const dim3 dstDims = dst.GetGPUDims();
-
-      // Check dimensions
-      if( (srcDims.x != dstDims.x) &&
-	  (srcDims.y != dstDims.y) &&
-	  (srcDims.z != dstDims.z) ) {
-	std::cerr << __FUNCTION__ << ": Dimension mismatch" << std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      // Check padding (only need to do one, given above check)
-      if( !dst.CheckPadding( kConv1dBlockSize ) ) {
-	std::cerr << __FUNCTION__ <<
-	  ": Arrays on GPU must be padded to multiples of kConv1dBlockSize" <<
-	  std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      
-      dim3 grid, threads;
-      GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
-      GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
-      
-      //cudaPrintfInit( 1024L*1024L*512 );
-      
-      switch( axis ) {
-      case MRI_WIDTH:
-	grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
-	grid.y = srcDims.z;
-	grid.z = 1;
-	threads.x = threads.y = kConv1dBlockSize;
-	threads.z = 1;
-	
-	MRIConvolveKernelX<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU );
-	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelX failed!" );
-	break;
-	
-      case MRI_HEIGHT:
-	grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
-	grid.y = srcDims.z;
-	grid.z = 1;
-	threads.x = threads.y = kConv1dBlockSize;
-	threads.z = 1;
-	
-	MRIConvolveKernelY<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU );
-	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelY failed!" );
-	break;
-	
-      case MRI_DEPTH:
-	// Slight change, since we do (x,z) patches
-	grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.z/kConv1dBlockSize);
-	grid.y = srcDims.y;
-	threads.x = threads.y = kConv1dBlockSize;
-	threads.z = 1;
-	
-	MRIConvolveKernelZ<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU );
-	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelZ failed!" );
-	break;
-	
-      default:
-	std::cerr << __FUNCTION__ << ": Incompatible universe detected." << std::endl;
-	std::cerr << "GPU functions are only tested ";
-	std::cerr << "in a universe with three spatial dimensions" << std::endl;
-	std::cerr << "Please adjust your reality accordingly, ";
-	std::cerr << "and try again" << std::endl;
-	std::cerr << "MRIframeGPU version was:\n" << src.VersionString() << std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      //cudaPrintfDisplay( stdout, true );
-      
-      //cudaPrintfEnd();
-    }
-
-
-    
-    
-
-
-    
-
     
 
 
@@ -435,7 +312,11 @@ namespace GPU {
 						d_kernel(NULL),
 						kernelAllocSize(0),
 						h_workspace(NULL),
-						workSize(0) {}
+						workSize(0),
+						tMem(), tHostMem(),
+						tSend(), tRecv(),
+						tCompute1d(), tTotal1d(),
+						tComputeGauss(), tTotalGauss() {}
 
       //! Destructor
       ~MRIconvolve( void ) {
@@ -477,6 +358,8 @@ namespace GPU {
 	
 	this->UnbindKernel();
       }
+
+      // --
 
       //! Dispatch routine with transfers
       template<typename T, typename U>
@@ -520,19 +403,115 @@ namespace GPU {
 	}
 
 	// Send the source data
+	this->tSend.Start();
 	srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
+	this->tSend.Stop();
 
 	// Run the convolution
-	MRIConvolve1dGPU( srcGPU, dstGPU, axis, this->stream );
-	
+	this->tCompute1d.Start();
+	this->RunGPU1D( srcGPU, dstGPU, axis );
+	this->tCompute1d.Stop();
+
 	// Retrieve the answers
+	this->tRecv.Start();
 	dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
-      
-	CUDA_CHECK_ERROR( "1D Convolution failure" );
+	this->tRecv.Stop();
+
+	CUDA_CHECK_ERROR_ASYNC( "1D Convolution failure" );
 	
 	// No need to release - destructor will do that automatically
       }
 
+      // --
+      
+      //! Runs the 1D convolution kernel on the GPU
+      template<typename T, typename U>
+      void RunGPU1D( const GPU::Classes::MRIframeGPU<T> &src,
+		     GPU::Classes::MRIframeGPU<U> &dst,
+		     const int axis ) const {
+	
+	/*!
+	  Runs the 1D convolution kernel on the GPU.
+	  Prior to calling this routine, convolution
+	  kernel must be set up on the device
+	  
+	*/
+      
+
+	const dim3 srcDims = src.GetGPUDims();
+	const dim3 dstDims = dst.GetGPUDims();
+
+	// Check dimensions
+	if( (srcDims.x != dstDims.x) &&
+	    (srcDims.y != dstDims.y) &&
+	    (srcDims.z != dstDims.z) ) {
+	  std::cerr << __FUNCTION__
+		    << ": Dimension mismatch" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+      
+	// Check padding (only need to do one, given above check)
+	if( !dst.CheckPadding( kConv1dBlockSize ) ) {
+	  std::cerr << __FUNCTION__
+		    << ": Arrays improperly padded"
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+      
+	
+	dim3 grid, threads;
+	GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
+	GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
+      
+	switch( axis ) {
+	case MRI_WIDTH:
+	  grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
+	  grid.y = srcDims.z;
+	  grid.z = 1;
+	  threads.x = threads.y = kConv1dBlockSize;
+	  threads.z = 1;
+	  
+	  MRIConvolveKernelX<T,U><<<grid,threads,0,this->stream>>>( srcGPU, dstGPU );
+	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelX failed!" );
+	  break;
+	  
+	case MRI_HEIGHT:
+	  grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
+	  grid.y = srcDims.z;
+	  grid.z = 1;
+	  threads.x = threads.y = kConv1dBlockSize;
+	  threads.z = 1;
+	  
+	  MRIConvolveKernelY<T,U><<<grid,threads,0,this->stream>>>( srcGPU, dstGPU );
+	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelY failed!" );
+	  break;
+	  
+	case MRI_DEPTH:
+	  // Slight change, since we do (x,z) patches
+	  grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.z/kConv1dBlockSize);
+	  grid.y = srcDims.y;
+	  threads.x = threads.y = kConv1dBlockSize;
+	  threads.z = 1;
+	  
+	  MRIConvolveKernelZ<T,U><<<grid,threads,0,this->stream>>>( srcGPU, dstGPU );
+	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelZ failed!" );
+	  break;
+	  
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Incompatible universe detected." << std::endl;
+	  std::cerr << "GPU functions are only tested ";
+	  std::cerr << "in a universe with three spatial dimensions" << std::endl;
+	  std::cerr << "Please adjust your reality accordingly, ";
+	  std::cerr << "and try again" << std::endl;
+	  std::cerr << "MRIframeGPU version was:\n" << src.VersionString() << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+      }
+
+
+    
+    
 
       // ---------------------------------------------------
 
@@ -571,6 +550,8 @@ namespace GPU {
 	this->UnbindKernel();
       }
 
+      // --
+
 
       //! Wrapper for Gaussian convolution
       template<typename T>
@@ -585,13 +566,13 @@ namespace GPU {
 	*/
 
 	GPU::Classes::MRIframeGPU<T> frame1, frame2;
-
-	char* h_workspace;
 	size_t workSize;
 
 	// Do some allocation
+	this->tMem.Start();
 	frame1.Allocate( src, kConv1dBlockSize );
 	frame2.Allocate( src, kConv1dBlockSize );
+	this->tMem.Stop();
 
 	// Verify (note frame2 verified from dst)
 	frame1.VerifyMRI( src );
@@ -599,24 +580,26 @@ namespace GPU {
 
 	// Allocate workspace
 	workSize = frame1.GetBufferSize();
-	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
-				       workSize,
-				       cudaHostAllocDefault ) );
+	this->AllocateWorkspace( workSize );
 
 	// Loop over frame
-	for( unsigned int iFrame=0; iFrame < src->nframes; iFrame++ ) {
-	  frame1.Send( src, iFrame, h_workspace );
+	for( int iFrame=0; iFrame < src->nframes; iFrame++ ) {
+	  this->tSend.Start();
+	  frame1.Send( src, iFrame, this->h_workspace, this->stream );
+	  this->tSend.Stop();
 
-	  MRIConvolve1dGPU( frame1, frame2, MRI_WIDTH );
-	  MRIConvolve1dGPU( frame2, frame1, MRI_HEIGHT );
-	  MRIConvolve1dGPU( frame1, frame2, MRI_DEPTH );
-	  
-	  frame2.Recv( dst, iFrame, h_workspace );
+	  this->tComputeGauss.Start();
+	  this->RunGPU1D( frame1, frame2, MRI_WIDTH );
+	  this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
+	  this->RunGPU1D( frame1, frame2, MRI_DEPTH );
+	  this->tComputeGauss.Stop();
+
+	  this->tSend.Start();
+	  frame2.Recv( dst, iFrame, this->h_workspace, this->stream );
+	  this->tSend.Stop();
 	}
 
-	CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
-
-	CUDA_CHECK_ERROR( "Gaussian convolution failure" );
+	CUDA_CHECK_ERROR_ASYNC( "Gaussian convolution failure" );
       }
 
       // ---------------------------------------
@@ -634,6 +617,7 @@ namespace GPU {
 	  @param[in] kernel Array containing the kernel values
 	  @param[in] nVals The number of values in the kernel
 	*/
+	this->tTextureKernel.Start();
 
 	// Allocate and zero GPU memory
 	this->AllocateKernel( 2 + nVals );
@@ -669,6 +653,8 @@ namespace GPU {
 					 this->d_kernel,
 					 cd_kernel,
 					 (2+nVals)*sizeof(float) ) );
+
+	this->tTextureKernel.Stop();
       }
 
       // Unbinds the kernel texture
@@ -692,6 +678,10 @@ namespace GPU {
       mutable size_t workSize;
 
       mutable SciGPU::Utilities::Chronometer tMem, tHostMem;
+      mutable SciGPU::Utilities::Chronometer tSend, tRecv;
+      mutable SciGPU::Utilities::Chronometer tTextureKernel;
+      mutable SciGPU::Utilities::Chronometer tCompute1d, tTotal1d;
+      mutable SciGPU::Utilities::Chronometer tComputeGauss, tTotalGauss;
 
       // ----------------------------------------------
       // Suppress copying
@@ -699,7 +689,11 @@ namespace GPU {
 					      d_kernel(NULL),
 					      kernelAllocSize(0),
 					      h_workspace(NULL),
-					      workSize(0) {
+					      workSize(0),
+					      tMem(), tHostMem(),
+					      tSend(), tRecv(),
+					      tCompute1d(), tTotal1d(),
+					      tComputeGauss(), tTotalGauss() {
 	std::cerr << __FUNCTION__
 		  << ": Please do not copy"
 		  << std::endl;
