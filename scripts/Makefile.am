@@ -115,6 +115,7 @@ mri_motion_correct2 \
 mri_motion_correct.fsl \
 mri-sph2surf \
 mris_preproc \
+mris_roiCircle \
 mris_volsmooth \
 ms_refine_subject \
 parc_atlas_jackknife_test \
