@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.12 2009/12/14 16:21:51 rudolph Exp $
+/// $Id: env.h,v 1.13 2010/02/04 19:16:49 ginsburg Exp $
 ///
 ///
 
@@ -164,7 +164,7 @@ typedef enum {
 } e_LOG;
 
 typedef enum {
-    e_NOP, e_autodijk
+    e_NOP, e_autodijk,e_autodijk_fast
 } e_MPMPROG;
 
 typedef struct _env {

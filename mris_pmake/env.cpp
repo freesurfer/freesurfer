@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.21 2010/01/22 17:28:47 rudolph Exp $
+// $Id: env.cpp,v 1.22 2010/02/04 19:16:49 ginsburg Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -350,12 +350,13 @@ s_env_nullify(
     st_env.pstr_functionName[3]     = "distance";
 
     // Define the internal mpmProg modules for human readable setting / getting
-    st_env.totalmpmProgs            = 2;
+    st_env.totalmpmProgs            = 3;
     st_env.b_mpmProgUse             = false;
     st_env.empm_current             = e_NOP;
     st_env.pstr_mpmProgName         = new string[st_env.totalmpmProgs];
     st_env.pstr_mpmProgName[0]      = "NOP";
     st_env.pstr_mpmProgName[1]      = "autodijk";
+    st_env.pstr_mpmProgName[2]      = "autodijk_fast";
     st_env.pCmpmProg                = NULL; // Not yet created!
     // autodijk
     st_env.str_costCurvFile         = "autodijk.cost.crv";
@@ -1293,6 +1294,38 @@ s_env_mpmProgSetIndex(
             lprintf(rw, "[ ok ]\n");
         }
         apst_env->pCmpmProg         = new C_mpmProg_autodijk(apst_env);
+        // Check for any command-line spec'd args for the 'autodijk' mpmProg:
+        if(apst_env->str_mpmArgs != "-x") {
+            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
+                                                e_EquLink, "--", " ", ":");
+            string      str_polarVertex         = "0";
+            string      str_costCurvStem        = "";
+            int         polarVertex             = 0;
+            C_mpmProg_autodijk* pC_autodijk     = NULL;
+            pC_autodijk_cast(apst_env->pCmpmProg, pC_autodijk);
+            if(cso_mpm.scanFor("vertexPolar", &str_polarVertex)) {
+                polarVertex     = atoi(str_polarVertex.c_str());
+                pC_autodijk->vertexPolar_set(polarVertex);
+            }
+            if(cso_mpm.scanFor("costCurvStem", &str_costCurvStem)) {
+                apst_env->str_costCurvFile = apst_env->str_hemi + "." +
+                        apst_env->str_mainSurfaceFileName       + "." + 
+                        str_costCurvStem + ".crv";
+                pC_autodijk->costFile_set(apst_env->str_costCurvFile);
+                s_env_optionsFile_write(*apst_env);
+            }
+        }
+        break;
+    case 2:
+        apst_env->b_mpmProgUse      = true;
+        apst_env->empm_current      = (e_MPMPROG) aindex;
+        if(apst_env->pCmpmProg) {
+            lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
+            lprintf(lw, "Deleting existing mpmProg '%s'...", apst_env->pstr_mpmProgName[0].c_str());
+            delete apst_env->pCmpmProg;
+            lprintf(rw, "[ ok ]\n");
+        }
+        apst_env->pCmpmProg         = new C_mpmProg_autodijk_fast(apst_env);
         // Check for any command-line spec'd args for the 'autodijk' mpmProg:
         if(apst_env->str_mpmArgs != "-x") {
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",

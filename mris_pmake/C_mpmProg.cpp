@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.11 2010/01/22 18:38:05 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.12 2010/02/04 19:16:49 ginsburg Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -63,7 +63,7 @@ void C_mpmProg::debug_pop() {
 void
 C_mpmProg::error(
     string      astr_msg        /* = ""  Error message */,
-    int         code            /* = 1  Error ID  */) 
+    int         code            /* = 1  Error ID  */)
 {
 
     extern int errno;
@@ -261,7 +261,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     // DESC
     // Basically a thin "fall-through" constructor to the base
     // class.
-    // 
+    //
     // PRECONDITIONS
     // o aps_env must be fully instantiated.
     //
@@ -291,7 +291,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
     mpf_cost            = new float[mvertex_total];
     for(int i=0; i<mvertex_end; i++)
         mpf_cost[i]     = 0.0;
-    
+
     debug_pop();
 }
 
@@ -351,7 +351,7 @@ C_mpmProg_autodijk::cost_compute(
     // ARGS
     // a_start          in              start vertex index
     // a_end            in              end vertex index
-    // 
+    //
     // DESC
     // Sets the main environment and then calls a dijkstra
     // computation.
@@ -386,7 +386,7 @@ C_mpmProg_autodijk::cost_compute(
     }
     if(mb_surfaceRipClear) {
         surface_ripClear(*mps_env, mb_surfaceRipClear);
-    }                    
+    }
     return f_cost;
 }
 
@@ -420,7 +420,142 @@ C_mpmProg_autodijk::run() {
     // Write the cost curv file
     if((ret=CURV_fileWrite()) != e_OK)
         error("I could not save the cost curv file.");
-    
+
+    debug_pop();
+    return ret;
+}
+
+//
+//\\\***
+// C_mpmProg_autodijk_fast definitions ****>>>>
+/////***
+//
+
+///
+/// Constructor
+/// \param apps_env Freesurfer environment
+///
+C_mpmProg_autodijk_fast::C_mpmProg_autodijk_fast(s_env* aps_env) :
+    C_mpmProg_autodijk(aps_env)
+{
+    debug_push("C_mpmProg_autodijk_fast");
+
+    debug_pop();
+}
+
+///
+/// Destructor
+///
+C_mpmProg_autodijk_fast::~C_mpmProg_autodijk_fast()
+{
+}
+
+///
+/// Convert the freesurfer environment MRI surface representation into
+/// a representation that is formatted for consumption by the OpenCL
+/// algorithm
+/// \param graph Pointer to the graph data to generate
+///
+void C_mpmProg_autodijk_fast::genOpenCLGraphRepresentation(GraphData *graph)
+{
+    MRIS*           surf = mps_env->pMS_active;
+    s_iterInfo      st_iterInfo;
+    bool            b_relNextReference  = true;
+
+    cout << "Converting graph to fast representation... " << endl;
+    // Allocate memory for each of the vertices
+    graph->vertexCount = surf->nvertices;
+    graph->vertexArray = new int[surf->nvertices];
+
+    // Determine the size of the edge and weight buffers
+    int numEdges = 0;
+    for(int i = 0; i < surf->nvertices; i++)
+    {
+        numEdges += surf->vertices[i].vnum;
+    }
+
+    // Allocate memory for the edge and weight arrays
+    graph->edgeCount = numEdges;
+    graph->edgeArray = new int[numEdges];
+    graph->weightArray = new float[numEdges];
+
+    // Now create the edge list and compute all of the edge weights
+    int curEdgeIndex = 0;
+    for(int i = 0; i < surf->nvertices; i++)
+    {
+        VERTEX *curVertex = &surf->vertices[i];
+
+        // Assign the edge index for this vertex
+        graph->vertexArray[i] = curEdgeIndex;
+
+        for(int j = 0; j < curVertex->vnum; j++)
+        {
+            // index for the neighbor
+            graph->edgeArray[curEdgeIndex] = curVertex->v[j];
+
+            // Compute the weight for this edge
+            float cost = mps_env->costFunc_do(*mps_env, &st_iterInfo, i, j, b_relNextReference);
+            graph->weightArray[curEdgeIndex] = cost;
+
+            curEdgeIndex++;
+        }
+    }
+}
+///
+/// Run method - the main entry to the 'run' core of the mpmProg
+///
+int C_mpmProg_autodijk_fast::run()
+{
+    int         ret     = 1;
+
+    debug_push("run");
+
+    GraphData graph;
+    genOpenCLGraphRepresentation(&graph);
+
+    // Create the list of source indices, here we only ever do one source
+    int sourceVertices = mvertex_polar;
+
+    // Allocate array for results (the algorithm will write out a result
+    // for each vertex in the graph)
+    float *results = new float[graph.vertexCount];
+
+    // Perform a Dijkstra run
+    cout << "Running Dijkstra's algorithm..." << endl;
+
+#ifdef FS_OPENCL
+    // We have implemented various flavors of the Dijkstra algorithm that runs with
+    // OpenCL using either CPU-only, GPU+CPU, Multi GPU, or Multi GPU + CPU.  Based
+    // on what set of devices is available, this function will choose which implementation
+    // to use.  This version of Dijkstra selects which devices to use automatically.
+
+    // If compiled with OpenCL support, run the OpenCL version of the algorithm
+    runDijkstraOpenCL(&graph, &sourceVertices, results, 1);
+#else
+    // If not compiled with OpenCL, run the reference version of the algorithm
+    runDijkstraRef(&graph, &sourceVertices, results, 1);
+#endif
+
+    cout << "Done." << endl;
+
+    // Save back the resulting costs
+    for(int v = mvertex_start; v < mvertex_end; v+=mvertex_step)
+    {
+        mpf_cost[v] = results[v];
+    }
+
+    // Free temporary results buffer
+    delete [] results;
+
+    // Free up memory from allocation of graph data
+    delete [] graph.vertexArray;
+    delete [] graph.edgeArray;
+    delete [] graph.weightArray;
+
+    // Write the cost curv file
+    if((ret=CURV_fileWrite()) != e_OK)
+        error("I could not save the cost curv file.");
+
     debug_pop();
     return ret;
 }

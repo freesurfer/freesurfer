@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: rge21 $
-#    $Date: 2010/01/13 15:52:47 $
-#    $Revision: 1.456 $
+#    $Author: ginsburg $
+#    $Date: 2010/02/04 19:16:48 $
+#    $Revision: 1.457 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -557,6 +557,54 @@ AC_ARG_ENABLE(openmp,
    fi  
  ])
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
+
+##############################################################
+# OPENCL enabling - added by Dan Ginsburg
+##############################################################
+AC_ARG_WITH([opencl],
+   [  --with-opencl=PATH         prefix where opencl is installed])
+
+use_opencl="no"
+
+OPENCL_LIB_EXT="lib" # Use /lib by default
+case "${target}" in
+ x86_64-*)
+ OPENCL_LIB_EXT="lib64"
+ ;;
+esac
+
+OPENCL_INCDIR=""
+if test "$OS" = "Darwin"; then
+    # On Mac OS X 10.6, OpenCL is provided by Apple so look for these
+    # directories by default
+	
+    OPENCL_CFLAGS="-I/System/Library/Frameworks/OpenCL.framework/Headers"
+    OPENCL_LIBS="-framework OpenCL"
+    OPENCL_INCDIR="/System/Library/Frameworks/OpenCL.framework/Headers"
+elif test -n "$with_opencl"
+then
+    # For Linux, the OpenCL implementation directory should be specified
+    # using --with-opencl.  Currently, the ATI Stream SDK v2.0 and 
+    # NVIDIA GPU SDK provides an OpenCL implementation.  You must
+    # also have the appropriate driver installed to get GPU support.
+    # The ATI Stream SDK provides generic CPU support across both AMD
+    # and Intel CPUs.
+
+    OPENCL_CFLAGS="-I$with_opencl/include"
+    OPENCL_LIBS="-L$with_opencl/$(OPENCL_LIB_EXT) -lOpenCL"
+    OPENCL_INCDIR="$with_opencl/include/CL"    
+fi
+AC_SUBST(OPENCL_CFLAGS)
+AC_SUBST(OPENCL_LIBS)
+
+AC_CHECK_FILE($OPENCL_INCDIR/cl.h, use_opencl="yes", use_opencl="no")
+
+AM_CONDITIONAL(BUILDOPENCL, test x$use_opencl = xyes)
+
+if( test ! "x$use_opencl" = "xno" ) 
+then
+	AC_DEFINE([FS_OPENCL],[1],[Defined if OPENCL should be used])
+fi
 
 #############################################################
 # Nvidia CUDA enabling
@@ -2869,6 +2917,7 @@ AC_OUTPUT([Makefile
            fslutils/Makefile
            glut/Makefile
            gpu_utils/Makefile
+	   opencl_algorithms/Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile

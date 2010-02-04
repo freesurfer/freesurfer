@@ -2,8 +2,6 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include
-AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mris_pmake
 mris_pmake_SOURCES = \
@@ -24,8 +22,18 @@ mris_pmake_SOURCES = \
 	scanopt.cpp \
 	surface.cpp
 
-mris_pmake_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mris_pmake_LDFLAGS = $(OS_LDFLAGS)
+if BUILDOPENCL # Include OpenCL version of algorithms
+    AM_CFLAGS=-I$(top_srcdir)/include
+    AM_CXXFLAGS=-I$(top_srcdir)/include -I../opencl_algorithms/ $(OPENCL_CFLAGS)
+    mris_pmake_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH)) ../opencl_algorithms/libopencl_algorithms.a $(OPENCL_LIBS)
+    mris_pmake_LDFLAGS = $(OS_LDFLAGS)
+else # No OpenCL present
+    AM_CFLAGS=-I$(top_srcdir)/include
+    AM_CXXFLAGS=-I$(top_srcdir)/include -I../opencl_algorithms/ 
+    mris_pmake_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH)) ../opencl_algorithms/libopencl_algorithms.a
+    mris_pmake_LDFLAGS = $(OS_LDFLAGS)
+endif
+
 
 EXTRA_DIST=asynch.h c_label.h C_mpmProg.h c_SMessage.h c_SSocket.h \
 	c_surface.h c_vertex.h dijkstra.h env.h general.h help.h pathconvert.h \

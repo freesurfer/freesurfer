@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.7 2010/01/20 21:43:13 rudolph Exp $
+/// $Id: C_mpmProg.h,v 1.8 2010/02/04 19:16:49 ginsburg Exp $
 ///
 ///
 
@@ -42,6 +42,10 @@
 
 #ifdef __cplusplus
 extern  "C" {
+#endif
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
 #endif
 
 #include "mri.h"
@@ -55,6 +59,8 @@ extern  "C" {
 #endif
 
 #include "env.h"
+
+#include "oclDijkstraKernel.h"
 
 #include <string>
 using namespace std;
@@ -295,6 +301,42 @@ class C_mpmProg_autodijk : public C_mpmProg {
     virtual int         run(void);
     float               cost_compute(int start, int end);
     e_FILEACCESS        CURV_fileWrite();
+};
+
+///
+/// \class C_mpmProg_autodijk_fast
+/// \brief This class implements the Dijkstra algorithm using a fast implementation
+///        of the Single Source Shortest Path algorithm.  If compiled with OpenCL, it
+///        will run a parallel accelerated version of the algorithm.  If not, it will
+///        just run a single threaded fast version of the algorithm on the CPU
+///
+class C_mpmProg_autodijk_fast : public C_mpmProg_autodijk 
+{
+  protected:
+
+    ///
+    /// Convert the freesurfer environment MRI surface representation into
+    /// a representation that is formatted for consumption by the OpenCL
+    /// algorithm
+    /// \param graph Pointer to the graph data to generate
+    ///
+    void genOpenCLGraphRepresentation(GraphData *graph);
+
+  public:
+    ///
+    //  Constructor
+    //
+    C_mpmProg_autodijk_fast(s_env* aps_env);
+    
+    ///
+    //  Destructor
+    //
+    virtual ~C_mpmProg_autodijk_fast(void);
+
+    //
+    // Functional block
+    //
+    virtual int         run(void);
 };
 
 

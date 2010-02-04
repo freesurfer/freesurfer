@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.8 2010/01/20 21:43:13 rudolph Exp $
+// $Id: help.cpp,v 1.9 2010/02/04 19:16:49 ginsburg Exp $
 
 #include "help.h"
 
@@ -376,6 +376,10 @@ commandLineOptions_process(
             b_validMpmProg      = true;
             st_env.empm_current = e_autodijk;
         }
+        if(str_mpmProg == "autodijk_fast") {
+   	    b_validMpmProg      = true;
+            st_env.empm_current = e_autodijk_fast;
+	}
         if(!b_validMpmProg)
             error_exit("processing command line options,",
                 "I didn't recognize the <mpmProg>.",

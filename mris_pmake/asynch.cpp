@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.11 2009/12/22 18:56:15 rudolph Exp $
+// $Id: asynch.cpp,v 1.12 2010/02/04 19:16:49 ginsburg Exp $
 
 #include <string>
 #include <sstream>
@@ -627,6 +627,7 @@ asynchEvent_processMPMPROG(
             }
         break;
         case e_autodijk:
+        case e_autodijk_fast:  
             if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
             if (str_verb == "get" || str_verb == "list") {
                 colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
