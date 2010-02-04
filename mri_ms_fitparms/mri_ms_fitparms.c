@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/17 13:56:54 $
- *    $Revision: 1.60 $
+ *    $Date: 2010/02/04 21:09:58 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2009/07/17 13:56:54 $
-// Revision       : $Revision: 1.60 $
+// Revision Date  : $Date: 2010/02/04 21:09:58 $
+// Revision       : $Revision: 1.61 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -110,7 +110,7 @@ static int sinchalfwindow = 3;
 
 static char *residual_name = NULL ;
 
-#define MAX_IMAGES 200
+#define MAX_IMAGES 500
 
 
 static double FLASHforwardModel(double flip_angle, double TR, double PD,
@@ -218,12 +218,12 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.60 2009/07/17 13:56:54 fischl Exp $", "$Name:  $",
+   "$Id: mri_ms_fitparms.c,v 1.61 2010/02/04 21:09:58 fischl Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_ms_fitparms.c,v 1.60 2009/07/17 13:56:54 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_ms_fitparms.c,v 1.61 2010/02/04 21:09:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1095,28 +1095,30 @@ FLASHforwardModel(double flip_angle, double TR, double PD, double T1) {
   return(FLASH) ;
 }
 
-#define T1_MIN 10.0
-#define T1_MAX 7000.0
-#define MAX_NVALS 5000
-#define MAX_NVOLS MAX_IMAGES
+#define T1_MIN     10.0
+#define T1_MAX     20000.0
+#define MAX_NVALS  5000
+#define MAX_NVOLS  MAX_IMAGES
 #define FAk_MAX    2.0
 #define FAk_MIN    0.5
 
+
+static double SignalTableValues[MAX_NVALS][MAX_NVOLS]; // won't fit on stack
 static double
 estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
                    MRI *mri_T1, MRI *mri_PD, MRI *mri_sse,
                    MATRIX **M_reg, LTA *lta) {
-  double   SignalTableValues[MAX_NVALS][MAX_NVOLS], SignalTableT1[MAX_NVALS],\
-  SignalTableNorm[MAX_NVALS], ImageValues[MAX_NVOLS], total_sse ;
+  double   SignalTableT1[MAX_NVALS], SignalTableNorm[MAX_NVALS], 
+           ImageValues[MAX_NVOLS], total_sse ;
   double   se, best_se, ss, sse, err, val, norm, T1, PD, xf, yf, zf ;
-  int      i, j, x, y, z, indx, min_indx, max_indx, best_indx, center_indx, \
-  stepindx;
-  int      width=mri_T1->width, height=mri_T1->height, depth=mri_T1->depth, \
+  int      i, j, x, y, z, indx, min_indx, max_indx, best_indx, center_indx, 
+           stepindx;
+  int      width=mri_T1->width, height=mri_T1->height, depth=mri_T1->depth, 
                                        nvalues=MAX_NVALS, nevals;
   int      nstep=11, step[11]={1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
-  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], *voxvec1, *voxvec2, \
-  *rasvec1, *rasvec2, *m_xform = NULL ;
+  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], *voxvec1, *voxvec2, 
+           *rasvec1, *rasvec2, *m_xform = NULL ;
 
   if (lta) {
     m_xform = MatrixInverse(lta->xforms[0].m_L, NULL) ;
