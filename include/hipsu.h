@@ -1,17 +1,16 @@
 /**
  * @file  hipsu.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief Header file for hips utility functions
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/04 18:12:22 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -185,7 +184,7 @@ int adddec(int i);
 int addstr(char *s);
 /******************* fread_ol.c ***********************/
 int fread_oldhdr(FILE *fp,struct header *hd,char *firsts,char *fname);
-int getline(FILE *fp,char **s ,int *l);
+//int getline(FILE *fp,char **s ,int *l);
 int swallownl(FILE *fp);
 int hfgets(char *s,int n,FILE *fp);
 /******************* free_hea.c ***********************/
