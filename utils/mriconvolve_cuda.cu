@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 19:55:25 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/02/04 20:03:19 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -433,11 +433,14 @@ namespace GPU {
       //! Constructor with stream (also default)
       MRIconvolve( const cudaStream_t s = 0 ) : stream(s),
 						d_kernel(NULL),
-						kernelAllocSize(0) {}
+						kernelAllocSize(0),
+						h_workspace(NULL),
+						workSize(0) {}
 
       //! Destructor
       ~MRIconvolve( void ) {
 	this->ReleaseKernel();
+	this->ReleaseWorkspace();
       }
 
 
@@ -494,12 +497,13 @@ namespace GPU {
 	GPU::Classes::MRIframeGPU<T> srcGPU;
 	GPU::Classes::MRIframeGPU<U> dstGPU;
       
-	char* h_workspace;
 	size_t srcWorkSize, dstWorkSize;
       
 	// Allocate the GPU arrays
+	this->tMem.Start();
 	srcGPU.Allocate( src, kConv1dBlockSize );
 	dstGPU.Allocate( dst, kConv1dBlockSize );
+	this->tMem.Stop();
 	
 	// Put in some sanity checks
 	srcGPU.VerifyMRI( src );
@@ -510,25 +514,19 @@ namespace GPU {
 	dstWorkSize = dstGPU.GetBufferSize();
       
 	if( srcWorkSize > dstWorkSize ) {
-	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
-					 srcWorkSize,
-					 cudaHostAllocDefault ) );
+	  this->AllocateWorkspace( srcWorkSize );
 	} else {
-	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
-					 dstWorkSize,
-					 cudaHostAllocDefault ) );
+	  this->AllocateWorkspace( dstWorkSize );
 	}
 
 	// Send the source data
-	srcGPU.Send( src, srcFrame, h_workspace );
+	srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
 
 	// Run the convolution
-	MRIConvolve1dGPU( srcGPU, dstGPU, axis );
+	MRIConvolve1dGPU( srcGPU, dstGPU, axis, this->stream );
 	
 	// Retrieve the answers
-	dstGPU.Recv( dst, dstFrame, h_workspace );
-	
-	CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+	dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
       
 	CUDA_CHECK_ERROR( "1D Convolution failure" );
 	
@@ -688,11 +686,20 @@ namespace GPU {
       //! Currently allocated convolution kernel size in floats (may not be fully used)
       unsigned int kernelAllocSize;
 
+      //! Private pinned memory workspace
+      mutable char* h_workspace;
+      //! Size of private workspace
+      mutable size_t workSize;
+
+      mutable SciGPU::Utilities::Chronometer tMem, tHostMem;
+
       // ----------------------------------------------
       // Suppress copying
       MRIconvolve( const MRIconvolve& src ) : stream(0),
 					      d_kernel(NULL),
-					      kernelAllocSize(0) {
+					      kernelAllocSize(0),
+					      h_workspace(NULL),
+					      workSize(0) {
 	std::cerr << __FUNCTION__
 		  << ": Please do not copy"
 		  << std::endl;
@@ -731,9 +738,37 @@ namespace GPU {
 	  this->kernelAllocSize = 0;
 	}
       }
+      
+      // ----------------------------------------------
+
+      //! Ensures internal pinned memory buffer is at least of size nBytes
+      void AllocateWorkspace( const size_t nBytes ) const {
+	if( this->workSize < nBytes ) {
+	  this->ReleaseWorkspace();
+
+	  this->tHostMem.Start();
+	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&(this->h_workspace),
+					 nBytes,
+					 cudaHostAllocDefault ) );
+	  this->workSize = nBytes;
+	  this->tHostMem.Stop();
+	}
+      }
+	  
+
+      //! Releases internal pinned memory buffer
+      void ReleaseWorkspace( void ) const {
+	if( h_workspace != NULL ) {
+	  this->tHostMem.Start();
+	  CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+	  h_workspace = NULL;
+	  workSize = 0;
+	  this->tHostMem.Stop();
+	}
+      }
 
       // ----------------------------------------------
-      //! Dispatch wrapper for 1D convolutions for dst type
+      //! Dispatch wrapper for 1D convolutions based on dst type
       template<typename T>
       void DispatchWrap1D( const MRI* src, MRI* dst,
 			   const int axis,
