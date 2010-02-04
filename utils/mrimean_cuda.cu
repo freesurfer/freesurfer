@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 18:05:23 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/02/04 18:21:53 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,10 +91,10 @@ namespace GPU {
     
     //! Kernel to compute x direction means
     template<typename T>
-    __global__ void MRImeanXkernel( const GPU::Classes::MRIframeOnGPU<T> src,
-				    GPU::Classes::MRIframeOnGPU<float> dst,
-				    const dim3 actualDims,
-				    const unsigned int wSize ) {
+    __global__ void MRImeanX( const GPU::Classes::MRIframeOnGPU<T> src,
+			      GPU::Classes::MRIframeOnGPU<float> dst,
+			      const dim3 actualDims,
+			      const unsigned int wSize ) {
       /*!
 	Kernel to compute means in the x direction, based on
 	the given window size.
@@ -158,10 +158,10 @@ namespace GPU {
     
     //! Kernel to compute y direction means
     template<typename T>
-    __global__ void MRImeanYkernel( const GPU::Classes::MRIframeOnGPU<T> src,
-				    GPU::Classes::MRIframeOnGPU<float> dst,
-				    const dim3 actualDims,
-				    const unsigned int wSize ) {
+    __global__ void MRImeanY( const GPU::Classes::MRIframeOnGPU<T> src,
+			      GPU::Classes::MRIframeOnGPU<float> dst,
+			      const dim3 actualDims,
+			      const unsigned int wSize ) {
       /*!
 	Kernel to compute means in the y direction, based on
 	the given window size.
@@ -225,10 +225,10 @@ namespace GPU {
 
     //! Kernel to compute z direction means
     template<typename T>
-    __global__ void MRImeanZkernel( const GPU::Classes::MRIframeOnGPU<T> src,
-				    GPU::Classes::MRIframeOnGPU<float> dst,
-				    const dim3 actualDims,
-				    const unsigned int wSize ) {
+    __global__ void MRImeanZ( const GPU::Classes::MRIframeOnGPU<T> src,
+			      GPU::Classes::MRIframeOnGPU<float> dst,
+			      const dim3 actualDims,
+			      const unsigned int wSize ) {
       /*!
 	Kernel to compute means in the x direction, based on
 	the given window size.
@@ -334,77 +334,6 @@ namespace GPU {
 
 
 
-    //! Runs the mean filtering kernel
-    template<typename T, typename U>
-    void MRIDoMeanGPU( const GPU::Classes::MRIframeGPU<T> &src,
-		       GPU::Classes::MRIframeGPU<U> &dst,
-		       const unsigned int wSize,  
-		       const cudaStream_t myStream = 0 ) {
-      /*!
-	Runs the mean filtering kernel on the GPU.
-	Assumes most things are properly set already
-      */
-      const dim3 srcDims = src.GetGPUDims();
-      const dim3 dstDims = dst.GetGPUDims();
-      const dim3 srcCPUdims = src.GetCPUDims();
-
-      // Check dimensions
-      if( (srcDims.x != dstDims.x) &&
-	  (srcDims.y != dstDims.y) &&
-	  (srcDims.z != dstDims.z) ) {
-	std::cerr << __FUNCTION__ << ": Dimension mismatch"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      // Check padding (only need to do one, given above check)
-      if( !dst.CheckPadding( kMRImeanBlockSize ) ) {
-	std::cerr << __FUNCTION__
-		  << ": Arrays on GPU must be padded to multiples"
-		  << " of kMRImeanBlockSize" << std::endl;
-	exit( EXIT_FAILURE );
-      }
-
-      // We need intermediates which are floats
-      GPU::Classes::MRIframeGPU<float> f1, f2;
-
-      // Get correctly sized intermediates
-      f1.Allocate( src );
-      f2.Allocate( src );
-
-      // Create the GPU kernel objects
-      GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
-      GPU::Classes::MRIframeOnGPU<float> f1GPU( f1 );
-      GPU::Classes::MRIframeOnGPU<float> f2GPU( f2 );
-      GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
-
-      // Do the three convolutions. Recall objects have same dims
-      dim3 grid, threads;
-
-      grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
-      grid.y = dstDims.z;
-      grid.z = 1;
-      threads.x = threads.y = kMRImeanBlockSize;
-      threads.z = 1;
-
-      // Do the X direction
-      MRImeanXkernel<<<grid,threads,0,myStream>>>( srcGPU, f1GPU, srcCPUdims, wSize );
-      // Do the Y direction
-      MRImeanYkernel<<<grid,threads,0,myStream>>>( f1GPU, f2GPU, srcCPUdims, wSize );
-
-      // Slight change for Z direction
-      grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.z/kMRImeanBlockSize);
-      grid.y = dstDims.y;
-      MRImeanZkernel<<<grid,threads,0,myStream>>>( f2GPU, f1GPU, srcCPUdims, wSize );
-
-      // Normalise
-      grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
-      grid.y = dstDims.z;
-      MRImeanNormal<<<grid,threads,0,myStream>>>( f1GPU, dstGPU, srcCPUdims, wSize );
-
-
-      CUDA_CHECK_ERROR_ASYNC( "MRImeanKernel failed!" );
-    }
     
 
 
@@ -413,12 +342,16 @@ namespace GPU {
     //! Wrapper class for the MRI mean algorithm
     class MRImean {
     private:
+      //! Stream which should be used for this instance
       cudaStream_t stream;
+      //! Private pinned memory workspace
       mutable char* h_workspace;
+      //! Size of private workspace
       mutable size_t workSize;
       
       // =======================
       
+      // Wrapper function
       template<typename T>
       void DispatchWrap( const MRI* src, MRI* dst,
 			 const unsigned int wSize,
@@ -469,13 +402,37 @@ namespace GPU {
 	}
       }
 
+      // =========================
+      // Prevent copying
+
+      MRImean( const MRImean& src ) : stream(0),
+				      h_workspace(NULL),
+				      workSize(0) {
+	std::cerr << __FUNCTION__
+		  << ": Please don't copy these objects"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+      MRImean& operator=( const MRImean& src ) {
+	std::cerr << __FUNCTION__
+		  << ": Please don't copy these objects"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
 
     public:
-      //! Default constructor
-      MRImean( void ) : stream(0),
-			h_workspace(NULL),
-			workSize(0) {}
+      //! Constructor with stream (also default constructor)
+      MRImean( const cudaStream_t s = 0 ) : stream(s),
+					    h_workspace(NULL),
+					    workSize(0) {}
       
+      //! Destructor
+      ~MRImean( void ) {
+	this->Release();
+      }
+
 
       //! Dispatch for data on the CPU of unknown type
       void DoMean( const MRI* src, MRI* dst,
@@ -544,12 +501,91 @@ namespace GPU {
 	srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
 
 	// Run the filter
-	MRIDoMeanGPU( srcGPU, dstGPU, wSize, this->stream );
+	this->RunGPU( srcGPU, dstGPU, wSize );
 
 	// Get the results
 	dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
 
 	CUDA_CHECK_ERROR( "Mean filtering failure" );
+      }
+
+
+      
+      //! Runs the mean filtering kernel
+      template<typename T, typename U>
+      void RunGPU( const GPU::Classes::MRIframeGPU<T> &src,
+		   GPU::Classes::MRIframeGPU<U> &dst,
+		   const unsigned int wSize ) const {
+	/*!
+	  Runs the mean filtering kernel on the GPU.
+	  Assumes most things are properly set already
+	*/
+	const dim3 srcDims = src.GetGPUDims();
+	const dim3 dstDims = dst.GetGPUDims();
+	const dim3 srcCPUdims = src.GetCPUDims();
+
+	// Check dimensions
+	if( (srcDims.x != dstDims.x) &&
+	    (srcDims.y != dstDims.y) &&
+	    (srcDims.z != dstDims.z) ) {
+	  std::cerr << __FUNCTION__ << ": Dimension mismatch"
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	// Check padding (only need to do one, given above check)
+	if( !dst.CheckPadding( kMRImeanBlockSize ) ) {
+	  std::cerr << __FUNCTION__
+		    << ": Arrays on GPU must be padded to multiples"
+		    << " of kMRImeanBlockSize" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	// We need intermediates which are floats
+	GPU::Classes::MRIframeGPU<float> f1, f2;
+
+	// Get correctly sized intermediates
+	f1.Allocate( src );
+	f2.Allocate( src );
+
+	// Create the GPU kernel objects
+	GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
+	GPU::Classes::MRIframeOnGPU<float> f1GPU( f1 );
+	GPU::Classes::MRIframeOnGPU<float> f2GPU( f2 );
+	GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
+
+	// Do the three convolutions. Recall objects have same dims
+	dim3 grid, threads;
+
+	grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
+	grid.y = dstDims.z;
+	grid.z = 1;
+	threads.x = threads.y = kMRImeanBlockSize;
+	threads.z = 1;
+
+	// Do the X direction
+	MRImeanX<<<grid,threads,0,this->stream>>>( srcGPU, f1GPU,
+						   srcCPUdims, wSize );
+	CUDA_CHECK_ERROR_ASYNC( "MRImeanX kernel failed" );
+
+	// Do the Y direction
+	MRImeanY<<<grid,threads,0,this->stream>>>( f1GPU, f2GPU,
+						   srcCPUdims, wSize );
+	CUDA_CHECK_ERROR_ASYNC( "MRImeanY kernel failed" );
+
+	// Slight change for Z direction
+	grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.z/kMRImeanBlockSize);
+	grid.y = dstDims.y;
+	MRImeanZ<<<grid,threads,0,this->stream>>>( f2GPU, f1GPU,
+							 srcCPUdims, wSize );
+	CUDA_CHECK_ERROR_ASYNC( "MRImeanZ kernel failed" );
+
+	// Normalise
+	grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
+	grid.y = dstDims.z;
+	MRImeanNormal<<<grid,threads,0,this->stream>>>( f1GPU, dstGPU,
+							srcCPUdims, wSize );
+	CUDA_CHECK_ERROR_ASYNC( "MRImeanNormal failed!" );
       }
 
     };
