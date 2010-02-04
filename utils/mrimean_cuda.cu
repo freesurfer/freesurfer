@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 18:47:07 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/02/04 18:59:03 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -439,7 +439,7 @@ namespace GPU {
       //! Destructor
       ~MRImean( void ) {
 	this->Release();
-
+#ifdef CUDA_SHOW_TIMINGS
 	std::cout << "==================================" << std::endl;
 	std::cout << "GPU Mean timers" << std::endl;
 	std::cout << "---------------" << std::endl;
@@ -457,6 +457,7 @@ namespace GPU {
 	std::cout << "--------------" << std::endl;
 	std::cout << "Total : " << this->tTotal << std::endl;
 	std::cout << "==================================" << std::endl;
+#endif
       }
 
 

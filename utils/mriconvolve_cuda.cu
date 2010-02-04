@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 15:23:47 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/02/04 18:59:03 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -731,16 +731,6 @@ MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
 
 
 // ======================================================
-
-//! Stream insertion operator for timer
-static std::ostream& operator<<( std::ostream& os,
-				 const SciGPU::Utilities::Chronometer& timer ) {
-  
-  os << std::setw(9) << std::setprecision(6) << timer.GetAverageTime() << " ms (avg) ";
-  os << std::setw(9) << std::setprecision(6) << timer.GetTime() << " ms (tot)";
-
-  return( os );
-}
 
 void MRIconvShowTimers( void ) {
   /*!

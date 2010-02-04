@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/27 16:02:34 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/02/04 18:59:03 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -470,15 +470,6 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
 
 // ======================================================
 
-//! Stream insertion operator for timer
-static std::ostream& operator<<( std::ostream& os,
-				 const SciGPU::Utilities::Chronometer& timer ) {
-  
-  os << std::setw(9) << std::setprecision(6) << timer.GetAverageTime() << " ms (avg) ";
-  os << std::setw(9) << std::setprecision(6) << timer.GetTime() << " ms (tot)";
-
-  return( os );
-}
 
 
 void MRIvol2volShowTimers( void ) {
