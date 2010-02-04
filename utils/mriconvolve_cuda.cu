@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 20:39:07 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/02/04 20:46:49 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -343,12 +343,12 @@ namespace GPU {
 	std::cout << std::endl;
 
 	std::cout << "Convolve 1D:" << std::endl;
-	std::cout << "Compute : " << this->tCompute1d << std::endl;
+	std::cout << "      Compute : " << this->tCompute1d << std::endl;
 	std::cout << "Total         : " << this->tTotal1d << std::endl;
 	std::cout << std::endl;
 
 	std::cout << "Convolve Gauss:" << std::endl;
-	std::cout << "Compute : " << this->tComputeGauss << std::endl;
+	std::cout << "      Compute : " << this->tComputeGauss << std::endl;
 	std::cout << "Total         : " << this->tTotalGauss << std::endl;
 	std::cout << std::endl;
 
@@ -555,7 +555,8 @@ namespace GPU {
       //! Dispatch for gaussian convolution of unknown type
       void ConvolveGaussian( const MRI* src, MRI* dst,
 			     const float *kernel,
-			     const unsigned int kernelLength ) {
+			     const unsigned int kernelLength,
+			     const int srcFrame, const int dstFrame ) {
 	/*!
 	  Implementation of MRIconvolveGaussian for the GPU,
 	  but doesn't attempt to allocate inputs
@@ -568,15 +569,18 @@ namespace GPU {
 
 	switch( src->type ) {
 	case MRI_UCHAR:
-	  this->GaussianDispatch<unsigned char>( src, dst );
+	  this->GaussianDispatch<unsigned char>( src, dst,
+						 srcFrame, dstFrame );
 	  break;
 	  
 	case MRI_SHORT:
-	  this->GaussianDispatch<short>( src, dst );
+	  this->GaussianDispatch<short>( src, dst,
+					 srcFrame, dstFrame );
 	  break;
 	  
 	case MRI_FLOAT:
-	  this->GaussianDispatch<float>( src, dst );
+	  this->GaussianDispatch<float>( src, dst,
+					 srcFrame, dstFrame );
 	  break;
 	  
 	default:
@@ -596,7 +600,8 @@ namespace GPU {
 
       //! Wrapper for Gaussian convolution
       template<typename T>
-      void GaussianDispatch( const MRI* src, MRI* dst ) const {
+      void GaussianDispatch( const MRI* src, MRI* dst,
+			     const int srcFrame, const int dstFrame ) const {
 	/*!
 	  Function to run the 3D gaussian convolution on the GPU
 	  without pulling intermediate results back to the host.
@@ -623,22 +628,19 @@ namespace GPU {
 	workSize = frame1.GetBufferSize();
 	this->AllocateWorkspace( workSize );
 
-	// Loop over frame
-	for( int iFrame=0; iFrame < src->nframes; iFrame++ ) {
-	  this->tSend.Start();
-	  frame1.Send( src, iFrame, this->h_workspace, this->stream );
-	  this->tSend.Stop();
-
-	  this->tComputeGauss.Start();
-	  this->RunGPU1D( frame1, frame2, MRI_WIDTH );
-	  this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
-	  this->RunGPU1D( frame1, frame2, MRI_DEPTH );
-	  this->tComputeGauss.Stop();
-
-	  this->tRecv.Start();
-	  frame2.Recv( dst, iFrame, this->h_workspace, this->stream );
-	  this->tRecv.Stop();
-	}
+	this->tSend.Start();
+	frame1.Send( src, srcFrame, this->h_workspace, this->stream );
+	this->tSend.Stop();
+	
+	this->tComputeGauss.Start();
+	this->RunGPU1D( frame1, frame2, MRI_WIDTH );
+	this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
+	this->RunGPU1D( frame1, frame2, MRI_DEPTH );
+	this->tComputeGauss.Stop();
+	
+	this->tRecv.Start();
+	frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
+	this->tRecv.Stop();
 
 	CUDA_CHECK_ERROR_ASYNC( "Gaussian convolution failure" );
       }
@@ -874,7 +876,11 @@ MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
     Designed to be called form that routine
   */
 
-  myConvolve.ConvolveGaussian( src, dst, kernel, kernelLength );
+  for( int iFrame=0; iFrame < src->nframes; iFrame++ ) {
+    myConvolve.ConvolveGaussian( src, dst,
+				 kernel, kernelLength,
+				 iFrame, iFrame );
+  }
 
   return( dst );
 }
