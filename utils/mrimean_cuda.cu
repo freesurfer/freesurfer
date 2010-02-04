@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 21:03:03 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/02/04 17:20:02 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -88,40 +88,235 @@ namespace GPU {
       return( num * tmpVal );
     }
 
-    //! Kernel to perform the mean filter
-    template<typename T, typename U>
-    __global__ void MRImeanKernel( const GPU::Classes::MRIframeOnGPU<T> src,
-				   GPU::Classes::MRIframeOnGPU<U> dst,
-				   const dim3 actualDims,
-				   const unsigned int wSize ) {
+    
+    //! Kernel to compute x direction means
+    template<typename T>
+    __global__ void MRImeanXkernel( const GPU::Classes::MRIframeOnGPU<T> src,
+				    GPU::Classes::MRIframeOnGPU<float> dst,
+				    const dim3 actualDims,
+				    const unsigned int wSize ) {
       /*!
-	Kernel to do the mean filtering.
-	Each block will do one 16x16 (x,y) patch of the dst MRI.
-	The z co-ordinate will be in blockIdx.y.
-	The (x,y) location of the patch will be derived from blockIdx.x.
-	The data dimensions on the GPU will be padded to multiples
-	of 16 by the calling routine, but we still need the actual
-	dimensions on the CPU
+	Kernel to compute means in the x direction, based on
+	the given window size.
+	Basically, does a 1D convolution, but with different
+	boundary conditions to MRIConvolveKernelX.
+	Also, since this is meant to be part of a pipeline,
+	the destination type must be float
       */
-
       const unsigned int by = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
       const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
-      const int iz = blockIdx.y;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
       
-      const unsigned int ixStart = bx * kMRImeanBlockSize;
-      const unsigned int iyStart = by * kMRImeanBlockSize;
+      const int ixStart = bx * kMRImeanBlockSize;
+      const int iyStart = by * kMRImeanBlockSize;
+
       const int ix = ixStart + tx;
       const int iy = iyStart + ty;
+      const int iz = blockIdx.y;
+
+      const int wHalf = wSize/2;
+
+      // Calculate voxels which will contribute, clamping to edges
+      const unsigned int myxMin = max( 0           , ix - wHalf );
+      const unsigned int myxMax = min( actualDims.x, ix + wHalf );
+
+      // Again, declare int to remove need for some casts
+      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
 
       // Accumulator
       float myVal = 0;
 
-      // Declared int to eliminate negative number problems
-      const int wHalf = wSize / 2;
+      __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
+
+      // Calculate patch limits (note integer declarations avoid -ve trouble)
+      const int xFirst = max( 0, ixStart - patchSize );
+      const int xLast = min( src.dims.x - patchSize, ixStart + patchSize );
+
+      for( int xBegin = xFirst; xBegin <= xLast; xBegin += kMRImeanBlockSize ) {
+	// Load the patch
+	currPatch[ty][tx] = src( xBegin+tx, iy, iz );
+	__syncthreads();
+
+	// Accumulate desired values
+	for( unsigned int i=0; i<kMRImeanBlockSize; i++ ) {
+	  int actx = xBegin + i;
+
+	  if( (actx>=myxMin) && (actx<=myxMax) ) {
+	    myVal += currPatch[ty][i];
+	  }
+
+	}
+
+	__syncthreads();
+      }
+
+      // Save result
+      dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+    }
+
+    
+    //! Kernel to compute y direction means
+    template<typename T>
+    __global__ void MRImeanYkernel( const GPU::Classes::MRIframeOnGPU<T> src,
+				    GPU::Classes::MRIframeOnGPU<float> dst,
+				    const dim3 actualDims,
+				    const unsigned int wSize ) {
+      /*!
+	Kernel to compute means in the y direction, based on
+	the given window size.
+	Basically, does a 1D convolution, but with different
+	boundary conditions to MRIConvolveKernelY.
+	Also, since this is meant to be part of a pipeline,
+	the destination type must be float
+      */
+      const unsigned int by = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
+      const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
+      const unsigned int tx = threadIdx.x;
+      const unsigned int ty = threadIdx.y;
+      
+      const int ixStart = bx * kMRImeanBlockSize;
+      const int iyStart = by * kMRImeanBlockSize;
+
+      const int ix = ixStart + tx;
+      const int iy = iyStart + ty;
+      const int iz = blockIdx.y;
+
+      const int wHalf = wSize/2;
 
       // Calculate voxels which will contribute, clamping to edges
+      const unsigned int myyMin = max( 0           , iy - wHalf );
+      const unsigned int myyMax = min( actualDims.x, iy + wHalf );
+
+      // Again, declare int to remove need for some casts
+      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
+
+      // Accumulator
+      float myVal = 0;
+
+      __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
+
+      // Calculate patch limits (note integer declarations avoid -ve trouble)
+      const int yFirst = max( 0, iyStart - patchSize );
+      const int yLast = min( src.dims.y - patchSize, iyStart + patchSize );
+
+      for( int yBegin = yFirst; yBegin <= yLast; yBegin += kMRImeanBlockSize ) {
+	// Load the patch
+	currPatch[ty][tx] = src( ix, yBegin+ty, iz );
+	__syncthreads();
+
+	// Accumulate desired values
+	for( unsigned int i=0; i<kMRImeanBlockSize; i++ ) {
+	  int acty = yBegin + i;
+
+	  if( (acty>=myyMin) && (acty<=myyMax) ) {
+	    myVal += currPatch[i][tx];
+	  }
+
+	}
+
+	__syncthreads();
+      }
+
+      // Save result
+      dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+    }
+
+
+    //! Kernel to compute z direction means
+    template<typename T>
+    __global__ void MRImeanZkernel( const GPU::Classes::MRIframeOnGPU<T> src,
+				    GPU::Classes::MRIframeOnGPU<float> dst,
+				    const dim3 actualDims,
+				    const unsigned int wSize ) {
+      /*!
+	Kernel to compute means in the x direction, based on
+	the given window size.
+	Basically, does a 1D convolution, but with different
+	boundary conditions to MRIConvolveKernelZ.
+	Also, since this is meant to be part of a pipeline,
+	the destination type must be float
+      */
+      const unsigned int bz = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
+      const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
+      const unsigned int tx = threadIdx.x;
+      // Note... tz is threadIdx.y
+      const unsigned int tz = threadIdx.y;
+      
+      const int ixStart = bx * kMRImeanBlockSize;
+      const int izStart = bz * kMRImeanBlockSize;
+
+      const int ix = ixStart + tx;
+      const int iy = blockIdx.y;
+      const int iz = izStart + tz;
+
+      const int wHalf = wSize/2;
+
+      // Calculate voxels which will contribute, clamping to edges
+      const unsigned int myzMin = max( 0           , iz - wHalf );
+      const unsigned int myzMax = min( actualDims.z, iz + wHalf );
+
+      // Again, declare int to remove need for some casts
+      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
+
+      // Accumulator
+      float myVal = 0;
+
+      __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
+
+      // Calculate patch limits (note integer declarations avoid -ve trouble)
+      const int zFirst = max( 0, izStart - patchSize );
+      const int zLast = min( src.dims.z - patchSize, izStart + patchSize );
+
+      for( int zBegin = zFirst; zBegin <= zLast; zBegin += kMRImeanBlockSize ) {
+	// Load the patch
+	currPatch[tz][tx] = src( ix, iy, zBegin+tz );
+	__syncthreads();
+
+	// Accumulate desired values
+	for( unsigned int i=0; i<kMRImeanBlockSize; i++ ) {
+	  int actz = zBegin + i;
+
+	  if( (actz>=myzMin) && (actz<=myzMax) ) {
+	    myVal += currPatch[i][tx];
+	  }
+
+	}
+
+	__syncthreads();
+      }
+
+      // Save result
+      dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+    }
+
+
+    //! Kernel to normalise means
+    template<typename U>
+    __global__ void MRImeanNormal( const GPU::Classes::MRIframeOnGPU<float> src,
+				   GPU::Classes::MRIframeOnGPU<U> dst,
+				   const dim3 actualDims,
+				   const unsigned int wSize ) {
+      /*!
+	Kernel to normalise the means computed by the earlier
+	stages.
+	As such, the input type must be a float
+      */
+      const unsigned int by = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
+      const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
+      const unsigned int tx = threadIdx.x;
+      const unsigned int ty = threadIdx.y;
+      
+      const int ixStart = bx * kMRImeanBlockSize;
+      const int iyStart = by * kMRImeanBlockSize;
+
+      const int ix = ixStart + tx;
+      const int iy = iyStart + ty;
+      const int iz = blockIdx.y;
+
+      const int wHalf = wSize/2;
+
+      // Calculate voxels which contributed, clamping to edges
       const unsigned int myxMin = max( 0           , ix - wHalf );
       const unsigned int myxMax = min( actualDims.x, ix + wHalf );
       const unsigned int myyMin = max( 0           , iy - wHalf );
@@ -129,57 +324,12 @@ namespace GPU {
       const unsigned int myzMin = max( 0           , iz - wHalf );
       const unsigned int myzMax = min( actualDims.z, iz + wHalf );
 
-      // Again, declare int to remove need for some casts
-      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
-
-      // Loop over z levels (iz is the same for all threads in the block)
-      for( unsigned int currZ = max( 0, iz - wHalf );
-	   currZ <= min( actualDims.z-1, iz + wHalf );
-	   currZ++ ) {
-
-	__shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
-
-	// Compute loop limits
-	// Note that some of the arguments are declared integer to avoid need for casts
-	const int xFirst = max( 0, ixStart - patchSize );
-	const int xLast = min( src.dims.x - patchSize, ixStart + patchSize );
-
-	const int yFirst = max( 0, iyStart - patchSize );
-	const int yLast = min( src.dims.y - patchSize, iyStart + patchSize );
-
-	// Loop over patches
-	for( int yBegin = yFirst; yBegin <= yLast; yBegin += kMRImeanBlockSize ) {
-	  for( int xBegin = xFirst; xBegin <= xLast; xBegin += kMRImeanBlockSize ) {
-	    // Load up the patch
-	    currPatch[ty][tx] = src( xBegin+tx, yBegin+ty, currZ );
-	    __syncthreads();
-
-	    // Accumulate within the patch
-	    for( int curry = 0; curry < kMRImeanBlockSize; curry++ ) {
-	      for( int currx = 0; currx < kMRImeanBlockSize; currx++ ) {
-		
-		int actx = xBegin+currx;
-		int acty = yBegin+curry;
-
-		if( (actx>=myxMin) && (actx<=myxMax) &&
-		    (acty>=myyMin) && (acty<=myyMax) ) {
-		  myVal += currPatch[curry][currx];
-		}
-
-	      }
-	    }
-	    __syncthreads();
-	  }
-	}
-
-
-      }
 
       const unsigned long myVolume = ( myxMax - myxMin + 1 ) *
 	(myyMax - myyMin + 1 ) *
 	(myzMax - myzMin + 1 );
 
-      dst( ix, iy, iz ) = dst.ConvertFloat( myVal / myVolume );
+      dst( ix, iy, iz ) = dst.ConvertFloat( src( ix, iy, iz ) / myVolume );
     }
 
 
@@ -215,9 +365,21 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
-      dim3 grid, threads;
+      // We need intermediates which are floats
+      GPU::Classes::MRIframeGPU<float> f1, f2;
+
+      // Get correctly sized intermediates
+      f1.Allocate( src );
+      f2.Allocate( src );
+
+      // Create the GPU kernel objects
       GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
+      GPU::Classes::MRIframeOnGPU<float> f1GPU( f1 );
+      GPU::Classes::MRIframeOnGPU<float> f2GPU( f2 );
       GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
+
+      // Do the three convolutions. Recall objects have same dims
+      dim3 grid, threads;
 
       grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
       grid.y = dstDims.z;
@@ -225,7 +387,22 @@ namespace GPU {
       threads.x = threads.y = kMRImeanBlockSize;
       threads.z = 1;
 
-      MRImeanKernel<T,U><<<grid,threads,0,myStream>>>( srcGPU, dstGPU, srcCPUdims, wSize );
+      // Do the X direction
+      MRImeanXkernel<<<grid,threads,0,myStream>>>( srcGPU, f1GPU, srcCPUdims, wSize );
+      // Do the Y direction
+      MRImeanYkernel<<<grid,threads,0,myStream>>>( f1GPU, f2GPU, srcCPUdims, wSize );
+
+      // Slight change for Z direction
+      grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.z/kMRImeanBlockSize);
+      grid.y = dstDims.y;
+      MRImeanZkernel<<<grid,threads,0,myStream>>>( f2GPU, f1GPU, srcCPUdims, wSize );
+
+      // Normalise
+      grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
+      grid.y = dstDims.z;
+      MRImeanNormal<<<grid,threads,0,myStream>>>( f1GPU, dstGPU, srcCPUdims, wSize );
+
+
       CUDA_CHECK_ERROR_ASYNC( "MRImeanKernel failed!" );
     }
     

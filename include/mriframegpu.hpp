@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 18:46:22 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/02/04 17:20:03 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.20 2010/02/02 18:46:22 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.21 2010/02/04 17:20:03 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -179,6 +179,29 @@ namespace GPU {
 	this->AllocateFromDims();
 	
 	
+      }
+
+      // -----
+
+      //! Allocates storage to match dimensions of given MRIframe
+      template<typename U>
+      void Allocate( const MRIframeGPU<U>& src ) {
+	/*!
+	  Copies the dimensions from the given source
+	  MRIframeGPU (which may be of different datatype)
+	  and then allocates memory for the current object
+	*/
+	
+	// Get rid of the old
+	this->ReleaseArray();
+	this->Release();
+
+	// Get the new
+	this->cpuDims = src.GetCPUDims();
+	this->gpuDims = src.GetGPUDims();
+
+	// Do the allocation
+	this->AllocateFromDims();
       }
 
       // -----
