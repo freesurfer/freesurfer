@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 17:20:03 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/02/04 18:25:57 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.21 2010/02/04 17:20:03 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.22 2010/02/04 18:25:57 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -130,13 +130,16 @@ namespace GPU {
 	
 	// Sanity checks
 	if( src->type != this->MRItype()  ) {
-	  std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
-	    src->type << std::endl;
+	  std::cerr << __PRETTY_FUNCTION__
+		    << ": MRI type mismatch against "
+		    << src->type << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 
 	if( padSize == 0 ) {
-	  std::cerr << __FUNCTION__ << ": Must have non-zero padSize" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": Must have non-zero padSize"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
@@ -158,7 +161,9 @@ namespace GPU {
 	*/
 
 	if( padSize == 0 ) {
-	  std::cerr << __FUNCTION__ << ": Must have non-zero padSize" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": Must have non-zero padSize"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
@@ -230,7 +235,9 @@ namespace GPU {
 
 	// Check for initialisation
 	if( this->d_data.ptr == NULL ) {
-	  std::cerr << __FUNCTION__ << ": d_data is NULL!" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": d_data is NULL!"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 
@@ -278,7 +285,9 @@ namespace GPU {
 	this->VerifyMRI( src );
 	
 	if( iFrame >= static_cast<unsigned int>(src->nframes) ) {
-	  std:: cerr << __FUNCTION__ << ": Bad frame requested " << iFrame << std::endl;
+	  std:: cerr << __FUNCTION__
+		     << ": Bad frame requested " << iFrame
+		     << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
@@ -343,7 +352,9 @@ namespace GPU {
 	this->VerifyMRI( dst );
 	
 	if( iFrame >= static_cast<unsigned int>(dst->nframes) ) {
-	  std:: cerr << __FUNCTION__ << ": Bad frame requested " << iFrame << std::endl;
+	  std:: cerr << __FUNCTION__
+		     << ": Bad frame requested " << iFrame
+		     << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
@@ -393,11 +404,15 @@ namespace GPU {
 	  given stream
 	*/
 	if( this->d_data.ptr == NULL ) {
-	  std::cerr << __FUNCTION__ << ": GPU data not available!" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": GPU data not available!"
+		    << std::endl;
 	}
 
 	if( this->dca_data == NULL ) {
-	  std::cerr << __FUNCTION__ << ": CUDA array not allocated!" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": CUDA array not allocated!"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 
@@ -416,13 +431,16 @@ namespace GPU {
       void VerifyMRI( const MRI* mri ) const {
 	
 	if( mri->type != this->MRItype()  ) {
-	  std::cerr << __PRETTY_FUNCTION__ << ": MRI type mismatch against " <<
-	    mri->type << std::endl;
+	  std::cerr << __PRETTY_FUNCTION__
+		    << ": MRI type mismatch against "
+		    << mri->type << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
 	if( !this->CheckDims( mri ) ) {
-	  std::cerr << __PRETTY_FUNCTION__ << ": Size mismatch" << std::endl;
+	  std::cerr << __PRETTY_FUNCTION__
+		    << ": Size mismatch"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
       }
@@ -478,13 +496,17 @@ namespace GPU {
 					      gpuDims(make_uint3(0,0,0)),
 					      extent(make_cudaExtent(0,0,0)),
 					      d_data(make_cudaPitchedPtr(NULL,0,0,0)) {
-	std::cerr << __PRETTY_FUNCTION__ << ": Please don't use copy constructor" << std::endl;
+	std::cerr << __PRETTY_FUNCTION__
+		  << ": Please don't use copy constructor"
+		  << std::endl;
 	exit( EXIT_FAILURE );
       }
       
       //! Assignment operator - don't use
       MRIframeGPU& operator=( const MRIframeGPU &src ) {
-	std::cerr << __PRETTY_FUNCTION__ << ": Please don't use assignment operator" << std::endl;
+	std::cerr << __PRETTY_FUNCTION__
+		  << ": Please don't use assignment operator"
+		  << std::endl;
 	exit( EXIT_FAILURE );
       }
 
@@ -584,12 +606,16 @@ namespace GPU {
 	
 	// Start with a few sanity checks
 	if( iFrame >= static_cast<unsigned int>(src->nframes) ) {
-	  std::cerr << __FUNCTION__ << ": iFrame out of range" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": iFrame out of range"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
 	if( h_slab == NULL ) {
-	  std::cerr << __FUNCTION__ << ": h_slab unallocated" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": h_slab unallocated"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
@@ -613,19 +639,24 @@ namespace GPU {
 			const T *h_slab,
 			const unsigned int iFrame ) const {
 	/*!
-	  Copies a block of contiguous host memory on the host into an MRI frame.
-	  Assumes that everything is all properly allocated, so things are not fanatically
-	  verified
+	  Copies a block of contiguous host memory on the host
+	  into an MRI frame.
+	  Assumes that everything is all properly allocated,
+	  so things are not fanatically verified
 	*/
 	
 	// Start with a few sanity checks
 	if( iFrame >= static_cast<unsigned int>(dst->nframes) ) {
-	  std::cerr << __FUNCTION__ << ": iFrame out of range" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": iFrame out of range"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
 	if( h_slab == NULL ) {
-	  std::cerr << __FUNCTION__ << ": h_slab unallocated" << std::endl;
+	  std::cerr << __FUNCTION__
+		    << ": h_slab unallocated"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
@@ -656,7 +687,9 @@ namespace GPU {
 	  This default method aborts the program
 	*/
 	
-	std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised data type " << src->type << std::endl;
+	std::cerr << __PRETTY_FUNCTION__
+		  << ": Unrecognised data type "
+		  << src->type << std::endl;
 	exit( EXIT_FAILURE );
       }
 
@@ -675,7 +708,9 @@ namespace GPU {
 	  This default method aborts the program
 	*/
 	
-	std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised data type " << dst->type << std::endl;
+	std::cerr << __PRETTY_FUNCTION__
+		  << ": Unrecognised data type "
+		  << dst->type << std::endl;
 	exit( EXIT_FAILURE );
       }
       
