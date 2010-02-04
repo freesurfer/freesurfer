@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:14 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -195,3 +195,13 @@ void Layer::DoListenToMessage( std::string const iMessage, void* iData, void* se
     this->SendBroadcast( "LayerShowInfoChanged", iData, this );
 }
 
+void Layer::GetBounds( double* bounds )
+{
+  double* origin = GetWorldOrigin();
+  double* size = GetWorldSize();
+  for ( int i = 0; i < 3; i++ )
+  {
+    bounds[i*2] = origin[i];
+    bounds[i*2+1] = origin[i] + size[i];
+  }
+}

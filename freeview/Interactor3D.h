@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,10 +43,13 @@ public:
   virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
 
 protected:
+  virtual void UpdateCursor( wxEvent& event, wxWindow* wnd );
+  
   int  m_nMousePosX;
   int  m_nMousePosY;
 
   bool m_bWindowLevel;
+  bool m_bMoveSlice;
 };
 
 #endif

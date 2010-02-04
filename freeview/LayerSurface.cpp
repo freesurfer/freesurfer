@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/14 20:54:32 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -528,7 +528,7 @@ bool LayerSurface::HasProp( vtkProp* prop )
     if ( m_sliceActor2D[i] == prop || m_sliceActor3D[i] == prop )
       return true;
   }
-  return (m_mainActor.GetPointer() == prop);
+  return (m_mainActor.GetPointer() == prop || m_wireframeActor.GetPointer() == prop);
 }
 
 int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )

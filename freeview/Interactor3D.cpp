@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/14 19:22:32 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,6 +31,7 @@
 #include "LayerCollectionManager.h"
 #include "LayerPropertiesMRI.h"
 #include "LayerMRI.h"
+#include "CursorFactory.h"
 #include <vtkRenderer.h>
 
 Interactor3D::Interactor3D() :
@@ -56,6 +57,10 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
   {
     m_bWindowLevel = true;
   }
+  else if ( view->GetHighlightedSlice() >= 0 )
+  {
+    m_bMoveSlice = true;
+  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -69,6 +74,7 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
   RenderView3D* view = ( RenderView3D* )renderview;
 
   m_bWindowLevel = false;
+  m_bMoveSlice = false;
   if ( event.GetX() == m_nMousePosX && event.GetY() == m_nMousePosY )
   {
     if ( event.LeftUp() )
@@ -118,6 +124,12 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
         w = 0;
       layer->GetProperties()->SetWindowLevel( w, l );
     }
+    m_nMousePosX = posX;
+    m_nMousePosY = posY;
+  }
+  else if ( m_bMoveSlice )
+  {
+    view->MoveSliceInScreenCoord( m_nMousePosX, m_nMousePosY, posX, posY );
     m_nMousePosX = posX;
     m_nMousePosY = posY;
   }
@@ -173,3 +185,15 @@ bool Interactor3D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
 
   return false;
 }
+
+void Interactor3D::UpdateCursor( wxEvent& event, wxWindow* wnd )
+{
+  RenderView3D* view = ( RenderView3D* )wnd;
+  if ( view->GetHighlightedSlice() >= 0 )
+  {
+    wnd->SetCursor( CursorFactory::CursorGrab );
+  }
+  else
+    Interactor::UpdateCursor( event, wnd );
+}
+

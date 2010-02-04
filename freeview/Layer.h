@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:14 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -112,6 +112,8 @@ public:
   {
     return mProperties;
   }
+  
+  virtual void GetBounds( double* bounds );
 
 protected:
   virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );

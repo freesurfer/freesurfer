@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 #define RenderView3D_h
 
 #include "RenderView.h"
+#include "vtkSmartPointer.h"
 
 class Cursor3D;
 class vtkActor;
@@ -69,12 +70,23 @@ public:
   
   void SnapToNearestAxis();
   
+  inline int GetHighlightedSlice()
+  {
+    return m_nSliceHighlighted;
+  }
+  
+  void MoveSliceInScreenCoord( int x1, int y1, int x2, int y2 );
+  
 protected:
   void OnInternalIdle();
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
   void DoUpdateConnectivityDisplay();
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
+  void UpdateSliceFrames();
+  void HighlightSliceFrame( int n );
+  bool UpdateBounds();
+  
   void PreScreenshot();
   void PostScreenshot();
 
@@ -89,6 +101,10 @@ private:
 
   Cursor3D* m_cursor3D;
   bool m_bSliceVisibility[3];
+  vtkSmartPointer<vtkActor> m_actorSliceFrames[3];
+  
+  double  m_dBounds[6];
+  int     m_nSliceHighlighted;
 
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()

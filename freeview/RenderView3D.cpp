@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,10 @@
 #include <vtkRenderer.h>
 #include "vtkConeSource.h"
 #include "vtkPolyDataMapper.h"
+#include "vtkProperty.h"
+#include "vtkPoints.h"
+#include "vtkPointData.h"
+#include "vtkCellArray.h"
 #include "vtkActor.h"
 #include "vtkCamera.h"
 #include "vtkActor2D.h"
@@ -40,6 +44,9 @@
 #include "vtkPropPicker.h"
 #include "vtkProp3DCollection.h"
 #include "vtkScalarBarActor.h"
+#include "vtkPlane.h"
+#include "vtkMath.h"
+#include "vtkTubeFilter.h"
 #include "Interactor3DNavigate.h"
 #include "LayerSurface.h"
 #include "SurfaceOverlayProperties.h"
@@ -80,12 +87,20 @@ void RenderView3D::InitializeRenderView3D()
   vtkCellPicker* picker = vtkCellPicker::New();
 // vtkPointPicker* picker = vtkPointPicker::New();
 // vtkPropPicker* picker = vtkPropPicker::New();
-  picker->SetTolerance( 0.0001 );
+  picker->SetTolerance( 0.001 );
   this->SetPicker( picker );
   picker->Delete();
 
   for ( int i = 0; i < 3; i++ )
+  {
+    m_actorSliceFrames[i] = vtkSmartPointer<vtkActor>::New();
+    m_actorSliceFrames[i]->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
+    m_actorSliceFrames[i]->GetProperty()->SetRepresentationToWireframe();
+    m_actorSliceFrames[i]->GetProperty()->SetDiffuse( 0.0 );
+    m_actorSliceFrames[i]->GetProperty()->SetAmbient( 1.0 );
     m_bSliceVisibility[i] = true;
+  }
+  HighlightSliceFrame( -1 );
 
   m_cursor3D = new Cursor3D( this );
   
@@ -123,10 +138,15 @@ void RenderView3D::RefreshAllActors()
 
   if ( lcm->HasLayer( "MRI" ) || lcm->HasLayer( "Surface" ) )
   {
-    m_renderer->AddViewProp( m_actorScalarBar );    
+    m_renderer->AddViewProp( m_actorScalarBar ); 
+    for ( int i = 0; i < 3; i++ )
+      m_renderer->AddViewProp( m_actorSliceFrames[i] );  
   }
   
   MainWindow::GetMainWindowPointer()->GetConnectivityData()->AppendProps( m_renderer );
+  
+  for ( int i = 0; i < 3; i++ )
+    m_renderer->AddViewProp( m_actorSliceFrames[i] );
   
   m_renderer->ResetCameraClippingRange();
 
@@ -154,10 +174,14 @@ void RenderView3D::UpdateViewByWorldCoordinate()
 void RenderView3D::SnapToNearestAxis()
 {
   vtkCamera* cam = m_renderer->GetActiveCamera();
-  double v[3], v_up[3];
-  cam->OrthogonalizeViewUp();
-  cam->GetDirectionOfProjection(v);
-  cam->GetViewUp(v_up);
+  double v[3], v_up[3];
+
+  cam->OrthogonalizeViewUp();
+
+  cam->GetDirectionOfProjection(v);
+
+  cam->GetViewUp(v_up);
+
   double wcenter[3];
   for ( int i = 0; i < 3; i++ )
   {
@@ -239,8 +263,14 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
     picker->GetPickPosition( pos );
 
     vtkProp* prop = picker->GetViewProp();
+    if ( !prop )
+    {
+      HighlightSliceFrame( -1 );
+      return;
+    }
+    
     // cout << pos[0] << " " << pos[1] << " " << pos[2] << ",   " << prop << endl;
-    if ( prop && ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) || lc_surface->HasProp( prop ) ) )
+    if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) || lc_surface->HasProp( prop ) )
     {
       if ( bCursor )
       {
@@ -249,6 +279,33 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
       }
       else
         lc_mri->SetCurrentRASPosition( pos );
+      
+      HighlightSliceFrame( -1 );
+    }
+    else
+    {
+      double tolerance = 0.1;
+      
+      for ( int i = 0; i < 3; i++ )
+      {
+        if ( m_actorSliceFrames[i].GetPointer() == prop )
+        {
+          if ( fabs( pos[0] - m_dBounds[0] ) < tolerance ||
+               fabs( pos[0] - m_dBounds[1] ) < tolerance ||
+               fabs( pos[1] - m_dBounds[2] ) < tolerance ||
+               fabs( pos[1] - m_dBounds[3] ) < tolerance ||
+               fabs( pos[2] - m_dBounds[4] ) < tolerance ||
+               fabs( pos[2] - m_dBounds[5] ) < tolerance 
+             )
+          {
+            HighlightSliceFrame( i );
+            return;
+          }
+        }
+      }
+      
+      // no frame was picked
+      HighlightSliceFrame( -1 );
     }
   }
 }
@@ -304,11 +361,20 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void
   {
     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
     m_cursor3D->SetPosition( lc->GetCursorRASPosition() );
+    UpdateSliceFrames();
   }
   else if ( iMsg == "ConnectivityActorUpdated" )
   {
     m_renderer->ResetCameraClippingRange();
     NeedRedraw();
+  }
+  else if ( iMsg == "SlicePositionChanged" )
+  {  
+    UpdateSliceFrames();
+  }
+  else if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" )
+  {
+    UpdateBounds();
   }
 
   RenderView::DoListenToMessage( iMsg, iData, sender );
@@ -359,4 +425,189 @@ void RenderView3D::Azimuth( double angle )
   vtkCamera* cam = m_renderer->GetActiveCamera();
   cam->Azimuth( angle );
   NeedRedraw();
+}
+
+bool RenderView3D::UpdateBounds()
+{
+  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+  LayerCollection* lc = lcm->GetLayerCollection( "MRI" );
+  double bounds[6] = { 1000000, -1000000, 1000000, -1000000, 1000000, -1000000 };
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  {
+    double bd[6];
+    lc->GetLayer( i )->GetBounds( bd );
+    for ( int j = 0; j < 3; j++ )
+    {
+      if ( bounds[j*2] > bd[j*2] )
+        bounds[j*2] = bd[j*2];
+      if ( bounds[j*2+1] < bd[j*2+1] )
+        bounds[j*2+1] = bd[j*2+1];
+    }
+  } 
+  for ( int i = 0; i < 6; i++ )
+    m_dBounds[i] = bounds[i];
+  
+  return true;
+}
+
+void RenderView3D::UpdateSliceFrames()
+{
+  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+  LayerCollection* lc = lcm->GetLayerCollection( "MRI" );
+  double* bounds = m_dBounds;
+  double* slicepos = lc->GetSlicePosition();
+
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
+  points->InsertPoint( 0, slicepos[0], bounds[2], bounds[4] );
+  points->InsertPoint( 1, slicepos[0], bounds[2], bounds[5] );
+  points->InsertPoint( 2, slicepos[0], bounds[3], bounds[5] );
+  points->InsertPoint( 3, slicepos[0], bounds[3], bounds[4] );
+  vtkIdType ids[5] = { 0, 1, 2, 3, 0 };
+  lines->InsertNextCell( 5, ids );
+  polys->InsertNextCell( 4, ids );
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints( points );
+  polydata->SetLines( lines );
+  polydata->SetPolys( polys );
+  vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[0]->GetMapper())->SetInput( polydata );
+  
+  points = vtkSmartPointer<vtkPoints>::New();
+  points->InsertPoint( 0, bounds[0], slicepos[1], bounds[4] );
+  points->InsertPoint( 1, bounds[0], slicepos[1], bounds[5] );
+  points->InsertPoint( 2, bounds[1], slicepos[1], bounds[5] );
+  points->InsertPoint( 3, bounds[1], slicepos[1], bounds[4] );
+  polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints( points );
+  polydata->SetLines( lines );
+  polydata->SetPolys( polys );
+  vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[1]->GetMapper())->SetInput( polydata );
+  
+  points = vtkSmartPointer<vtkPoints>::New();
+  points->InsertPoint( 0, bounds[0], bounds[2], slicepos[2] );
+  points->InsertPoint( 1, bounds[0], bounds[3], slicepos[2] );
+  points->InsertPoint( 2, bounds[1], bounds[3], slicepos[2] );
+  points->InsertPoint( 3, bounds[1], bounds[2], slicepos[2] );
+  polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints( points );
+  polydata->SetLines( lines );
+  polydata->SetPolys( polys );
+  vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[2]->GetMapper())->SetInput( polydata );
+
+  NeedRedraw();
+}
+
+void RenderView3D::HighlightSliceFrame( int n )
+{
+  double colors[][3] = { { 1, 0.1, 0.1}, { 0.1, 1, 0.1 }, { 0.1, 0.1, 1 } };
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_actorSliceFrames[i]->GetProperty()->SetLineWidth( 2 );
+    m_actorSliceFrames[i]->GetProperty()->SetColor( colors[i] );
+  }
+  if ( n >= 0 && n <= 2 )
+  {
+    m_actorSliceFrames[n]->GetProperty()->SetLineWidth( 4 );
+    m_actorSliceFrames[n]->GetProperty()->SetColor( 1, 1, 1 );
+  }
+  m_nSliceHighlighted = n;
+  if ( m_actorSliceFrames[0]->GetMapper()->GetInput() )
+    NeedRedraw();
+}
+
+#define min(a, b) (a < b ? a : b)
+// move slice from (x1, y1) to (x2, y2) in screen coordinate
+void RenderView3D::MoveSliceInScreenCoord( int x1, int y1, int x2, int y2 )
+{
+  if ( m_nSliceHighlighted < 0 )
+    return;
+  
+  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+  LayerCollection* lc = lcm->GetLayerCollection( "MRI" );
+  double* bounds = m_dBounds;
+  double slicepos[3];
+  lc->GetSlicePosition( slicepos );
+  double pt1[3], pt2[3], pt[3], t = 0;
+  this->ScreenToWorld( x1, y1, -100, pt1[0], pt1[1], pt1[2] );
+  this->ScreenToWorld( x1, y1, 100, pt2[0], pt2[1], pt2[2] );
+  double n[3] = { 0, 0, 0 };
+  n[m_nSliceHighlighted] = 1;
+  vtkPlane::IntersectWithLine( pt1, pt2, n, slicepos, t, pt );
+  if ( t >= 10000000 )
+  {
+    pt[0] = pt1[0];
+    pt[1] = pt1[1];
+    pt[2] = pt1[2];
+  }
+  
+  double v[3] = { 0, 0, 0 };
+  switch ( m_nSliceHighlighted )
+  {
+    case 0:
+      if ( min( fabs( pt[1] - bounds[2] ), fabs( pt[1] - bounds[3] ) ) <
+           min( fabs( pt[2] - bounds[4] ), fabs( pt[2] - bounds[5] ) ) )
+      {
+        v[1] = 1;
+        if ( fabs( pt[1] - bounds[2] ) < fabs( pt[1] - bounds[3] ) )
+          pt[1] = bounds[2];
+        else
+          pt[1] = bounds[3];
+      }
+      else
+      {
+        v[2] = 1;
+        if ( fabs( pt[2] - bounds[4] ) < fabs( pt[2] - bounds[5] ) )
+          pt[2] = bounds[4];
+        else
+          pt[2] = bounds[5];
+      }
+      break;
+    case 1:
+      if ( min( fabs( pt[0] - bounds[0] ), fabs( pt[0] - bounds[1] ) ) <
+           min( fabs( pt[2] - bounds[4] ), fabs( pt[2] - bounds[5] ) ) )
+      {
+        v[0] = 1;
+        if ( fabs( pt[0] - bounds[0] ) < fabs( pt[0] - bounds[1] ) )
+          pt[0] = bounds[0];
+        else
+          pt[0] = bounds[1];
+      }
+      else
+      {
+        v[2] = 1;
+        if ( fabs( pt[2] - bounds[4] ) < fabs( pt[2] - bounds[5] ) )
+          pt[2] = bounds[4];
+        else
+          pt[2] = bounds[5];
+      }
+      break;
+    case 2:
+      if ( min( fabs( pt[0] - bounds[0] ), fabs( pt[0] - bounds[1] ) ) <
+           min( fabs( pt[1] - bounds[2] ), fabs( pt[1] - bounds[3] ) ) )
+      {
+        v[0] = 1;
+        if ( fabs( pt[0] - bounds[0] ) < fabs( pt[0] - bounds[1] ) )
+          pt[0] = bounds[0];
+        else
+          pt[0] = bounds[1];
+      }
+      else
+      {
+        v[1] = 1;
+        if ( fabs( pt[1] - bounds[2] ) < fabs( pt[1] - bounds[3] ) )
+          pt[1] = bounds[2];
+        else
+          pt[1] = bounds[3];
+      }
+      break;
+  }
+  pt[m_nSliceHighlighted] = slicepos[m_nSliceHighlighted];
+  this->ScreenToWorld( x2, y2, -100, pt1[0], pt1[1], pt1[2] );
+  this->ScreenToWorld( x2, y2, 100, pt2[0], pt2[1], pt2[2] );
+  double new_pt[3];
+  vtkPlane::IntersectWithLine( pt1, pt2, v, pt, t, new_pt );
+  lcm->OffsetSlicePosition( m_nSliceHighlighted, new_pt[m_nSliceHighlighted] - slicepos[m_nSliceHighlighted], false );
+  slicepos[m_nSliceHighlighted] = new_pt[m_nSliceHighlighted];
+  lc->SetCursorRASPosition( slicepos );
 }

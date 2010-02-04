@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 22:19:52 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -536,4 +536,8 @@ void RenderView::WorldToScreen( double world_x, double world_y, double world_z, 
   y = (int)( GetClientSize().GetHeight()-dy );
 }
 
+void RenderView::ScreenToWorld( int x, int y, int z, double& world_x, double& world_y, double& world_z )
+{
+  MyUtils::ViewportToWorld( m_renderer, x, GetClientSize().GetHeight()-y, z, world_x, world_y, world_z );
+}
 

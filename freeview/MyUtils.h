@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/15 22:49:03 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -69,7 +69,14 @@ public:
                                 const char* filename, bool bAntiAliasing = false, int nMag = 1 );
   static void ViewportToWorld( vtkRenderer* renderer, double x, double y,
                                double& world_x, double& world_y, double& world_z );
+  
+  static void ViewportToWorld( vtkRenderer* renderer, double x, double y, double z, 
+                               double& world_x, double& world_y, double& world_z );
+  
   static void NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y,
+                                         double& world_x, double& world_y, double& world_z );
+  
+  static void NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y, double z,
                                          double& world_x, double& world_y, double& world_z );
 
   static void WorldToViewport( vtkRenderer* renderer, double world_x, double world_y,

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/23 05:35:55 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/02/04 22:41:46 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -316,6 +316,16 @@ bool MyUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
 }
 
 
+void MyUtils::ViewportToWorld( vtkRenderer* renderer, double x, double y, double z,
+                               double& world_x, double& world_y, double& world_z )
+{
+  world_x = x;
+  world_y = y;
+  renderer->ViewportToNormalizedViewport( world_x, world_y );
+  NormalizedViewportToWorld( renderer, world_x, world_y, z,
+                             world_x, world_y, world_z ); 
+}
+
 void MyUtils::ViewportToWorld( vtkRenderer* renderer, 
                                double x, double y, 
                                double& world_x, 
@@ -330,16 +340,25 @@ void MyUtils::ViewportToWorld( vtkRenderer* renderer,
 }
 
 void MyUtils::NormalizedViewportToWorld( vtkRenderer* renderer, 
-                                         double x, double y, 
+                                         double x, double y, double z,
                                          double& world_x, 
                                          double& world_y, 
                                          double& world_z )
 {
   world_x = x;
   world_y = y;
-  world_z = 0;
+  world_z = z;
   renderer->NormalizedViewportToView( world_x, world_y, world_z );
   renderer->ViewToWorld( world_x, world_y, world_z );
+}
+
+void MyUtils::NormalizedViewportToWorld( vtkRenderer* renderer, 
+                                         double x, double y, 
+                                         double& world_x, 
+                                         double& world_y, 
+                                         double& world_z )
+{
+  NormalizedViewportToWorld( renderer, x, y, 0.0, world_x, world_y, world_z );
 }
 
 void MyUtils::WorldToViewport( vtkRenderer* renderer, 
