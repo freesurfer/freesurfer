@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 18:59:03 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/02/04 20:24:51 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -415,7 +415,10 @@ namespace GPU {
 
       MRImean( const MRImean& src ) : stream(0),
 				      h_workspace(NULL),
-				      workSize(0) {
+				      workSize(0),
+				      tMem(), tHostMem(),
+				      tSend(), tRecv(),
+				      tCompute(), tTotal() {
 	std::cerr << __FUNCTION__
 		  << ": Please don't copy these objects"
 		  << std::endl;
@@ -434,7 +437,10 @@ namespace GPU {
       //! Constructor with stream (also default constructor)
       MRImean( const cudaStream_t s = 0 ) : stream(s),
 					    h_workspace(NULL),
-					    workSize(0) {}
+					    workSize(0),
+					    tMem(), tHostMem(),
+					    tSend(), tRecv(),
+					    tCompute(), tTotal() {}
       
       //! Destructor
       ~MRImean( void ) {
