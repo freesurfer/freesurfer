@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 18:32:13 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/02/04 18:47:07 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -440,7 +440,7 @@ namespace GPU {
       ~MRImean( void ) {
 	this->Release();
 
-	std::cout << "=================" << std::endl;
+	std::cout << "==================================" << std::endl;
 	std::cout << "GPU Mean timers" << std::endl;
 	std::cout << "---------------" << std::endl;
 #ifndef CUDA_FORCE_SYNC
@@ -448,6 +448,15 @@ namespace GPU {
 	std::cout << "Timings may not be accurate" << std::endl;
 #endif
 	std::cout << std::endl;
+
+	std::cout << "Host Memory : " << this->tHostMem << std::endl;
+	std::cout << "GPU Memory  : " << this->tMem << std::endl;
+	std::cout << "Send        : " << this->tSend << std::endl;
+	std::cout << "Compute     : " << this->tCompute << std::endl;
+	std::cout << "Receive     : " << this->tRecv << std::endl;
+	std::cout << "--------------" << std::endl;
+	std::cout << "Total : " << this->tTotal << std::endl;
+	std::cout << "==================================" << std::endl;
       }
 
 
@@ -489,6 +498,7 @@ namespace GPU {
 	  GPU.
 	  Transfers data to the GPU, and retrieves the results
 	*/
+	this->tTotal.Start();
 
 	GPU::Classes::MRIframeGPU<T> srcGPU;
 	GPU::Classes::MRIframeGPU<U> dstGPU;
@@ -496,9 +506,10 @@ namespace GPU {
 	size_t srcWorkSize, dstWorkSize;
       
 	// Allocate the GPU arrays
+	this->tMem.Start();
 	srcGPU.Allocate( src, kMRImeanBlockSize );
 	dstGPU.Allocate( dst, kMRImeanBlockSize );
-
+	this->tMem.Stop();
 
 	// Put in some sanity checks
 	srcGPU.VerifyMRI( src );
@@ -515,15 +526,21 @@ namespace GPU {
 	}
 
 	// Send the source data
+	this->tSend.Start();
 	srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
+	this->tSend.Stop();
 
 	// Run the filter
 	this->RunGPU( srcGPU, dstGPU, wSize );
 
 	// Get the results
+	this->tRecv.Start();
 	dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
+	this->tRecv.Stop();
 
 	CUDA_CHECK_ERROR( "Mean filtering failure" );
+
+	this->tTotal.Stop();
       }
 
 
@@ -562,8 +579,10 @@ namespace GPU {
 	GPU::Classes::MRIframeGPU<float> f1, f2;
 
 	// Get correctly sized intermediates
+	this->tMem.Start();
 	f1.Allocate( src );
 	f2.Allocate( src );
+	this->tMem.Stop();
 
 	// Create the GPU kernel objects
 	GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
@@ -579,6 +598,8 @@ namespace GPU {
 	grid.z = 1;
 	threads.x = threads.y = kMRImeanBlockSize;
 	threads.z = 1;
+
+	this->tCompute.Start();
 
 	// Do the X direction
 	MRImeanX<<<grid,threads,0,this->stream>>>( srcGPU, f1GPU,
@@ -603,6 +624,8 @@ namespace GPU {
 	MRImeanNormal<<<grid,threads,0,this->stream>>>( f1GPU, dstGPU,
 							srcCPUdims, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanNormal failed!" );
+
+	this->tCompute.Stop();
       }
 
     };
