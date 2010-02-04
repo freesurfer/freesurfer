@@ -14,7 +14,10 @@
 //NJS begin
 extern GLXFBConfigSGIX glXGetFBConfigFromVisualSGIX (Display *, XVisualInfo *);
 extern int glXGetFBConfigAttribSGIX (Display *, GLXFBConfigSGIX, int, int *);
-//NJS end
+#ifndef GLX_NONE_EXT
+#define GLX_NONE_EXT  0x8000
+#endif
+///NJS end
 
 /* glxcaps matches the criteria macros listed in glutint.h, but
    only list the first set (those that correspond to GLX visual
