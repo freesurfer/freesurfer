@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.27 2010/01/08 20:08:23 krish Exp $
+# $Id: asegstats2table,v 1.28 2010/02/04 19:57:31 greve Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -100,7 +100,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.27 2010/01/08 20:08:23 krish Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.28 2010/02/04 19:57:31 greve Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -108,7 +108,7 @@ def options_parse():
     h_subf = 'name of the file which has the list of subjects ( one subject per line)'
     h_inp = ' input1 <input2 input3..>'
     h_i = ' inputname'
-    h_meas = 'measure: default is vol ( alt: mean, std)'
+    h_meas = 'measure: default is volume ( alt: mean, std)'
     h_max = ' maximum segmentation number to report'
     h_seg = 'segno1 <segno2 segno3..> : only include given segmentation numbers'
     h_noseg = 'segno1 <segno2 segno3..> : exclude given segmentation numbers'
@@ -184,6 +184,7 @@ def options_parse():
 
     if options.subjects is None and options.inputs is None and options.subjectsfile is None: 
         print 'ERROR: Specify one of --subjects, --inputs or --subjectsfile'
+        print '       or run with --help for help.'
         sys.exit(1)
     
     if options.subjects is not None and options.inputs is not None:
