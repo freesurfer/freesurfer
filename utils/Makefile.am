@@ -311,7 +311,7 @@ NVCCFLAGS += $(patsubst -%, --compiler-options -%, $(G++FLAGS) )
 
 
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
 
 noinst_LIBRARIES += libutils_cuda.a
 

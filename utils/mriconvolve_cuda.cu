@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 20:25:45 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/02/04 20:39:07 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -315,6 +315,7 @@ namespace GPU {
 						workSize(0),
 						tMem(), tHostMem(),
 						tSend(), tRecv(),
+						tTextureKernel(),
 						tCompute1d(), tTotal1d(),
 						tComputeGauss(), tTotalGauss() {}
 
@@ -322,6 +323,38 @@ namespace GPU {
       ~MRIconvolve( void ) {
 	this->ReleaseKernel();
 	this->ReleaseWorkspace();
+
+#ifdef CUDA_SHOW_TIMINGS
+	std::cout << "==================================" << std::endl;
+	std::cout << "GPU convolution timers" << std::endl;
+	std::cout << "----------------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+	std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+	std::cout << "Timings may not be accurate" << std::endl;
+#endif
+	std::cout << std::endl;
+
+	std::cout << "General:" << std::endl;
+	std::cout << "Host Memory   : " << this->tHostMem << std::endl;
+	std::cout << "GPU Memory    : " << this->tMem << std::endl;
+	std::cout << "Send          : " << this->tSend << std::endl;
+	std::cout << "Receive       : " << this->tRecv << std::endl;
+	std::cout << "Conv. kernel  : " << this->tTextureKernel << std::endl;
+	std::cout << std::endl;
+
+	std::cout << "Convolve 1D:" << std::endl;
+	std::cout << "Compute : " << this->tCompute1d << std::endl;
+	std::cout << "Total         : " << this->tTotal1d << std::endl;
+	std::cout << std::endl;
+
+	std::cout << "Convolve Gauss:" << std::endl;
+	std::cout << "Compute : " << this->tComputeGauss << std::endl;
+	std::cout << "Total         : " << this->tTotalGauss << std::endl;
+	std::cout << std::endl;
+
+
+	std::cout << "==================================" << std::endl;
+#endif
       }
 
 
@@ -333,6 +366,8 @@ namespace GPU {
 		       const unsigned int kernelLength,
 		       const int axis,
 		       const int srcFrame, const int dstFrame ) {
+
+	this->tTotal1d.Start();
 
 	this->BindKernel( kernel, kernelLength );
 
@@ -357,6 +392,8 @@ namespace GPU {
 	}
 	
 	this->UnbindKernel();
+
+	this->tTotal1d.Stop();
       }
 
       // --
@@ -524,6 +561,8 @@ namespace GPU {
 	  but doesn't attempt to allocate inputs
 	*/
 
+	this->tTotalGauss.Start();
+
 	// Send the convolution kernel
 	this->BindKernel( kernel, kernelLength );
 
@@ -548,6 +587,8 @@ namespace GPU {
 	}
 
 	this->UnbindKernel();
+
+	this->tTotalGauss.Stop();
       }
 
       // --
@@ -594,9 +635,9 @@ namespace GPU {
 	  this->RunGPU1D( frame1, frame2, MRI_DEPTH );
 	  this->tComputeGauss.Stop();
 
-	  this->tSend.Start();
+	  this->tRecv.Start();
 	  frame2.Recv( dst, iFrame, this->h_workspace, this->stream );
-	  this->tSend.Stop();
+	  this->tRecv.Stop();
 	}
 
 	CUDA_CHECK_ERROR_ASYNC( "Gaussian convolution failure" );
@@ -692,6 +733,7 @@ namespace GPU {
 					      workSize(0),
 					      tMem(), tHostMem(),
 					      tSend(), tRecv(),
+					      tTextureKernel(),
 					      tCompute1d(), tTotal1d(),
 					      tComputeGauss(), tTotalGauss() {
 	std::cerr << __FUNCTION__
@@ -837,45 +879,3 @@ MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
   return( dst );
 }
 
-
-
-
-// ======================================================
-
-void MRIconvShowTimers( void ) {
-  /*!
-    Pretty prints timers to std.out
-  */
-#if 0
-  std::cout << "=============================================" << std::endl;
-  std::cout << "GPU convolution timers" << std::endl;
-  std::cout << "----------------------" << std::endl;
-#ifndef CUDA_FORCE_SYNC
-  std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
-  std::cout << "Timings may not be accurate" << std::endl;
-#endif
-  std::cout << std::endl;
-
-  std::cout << "MRIConv1dDispatch" << std::endl;
-  std::cout << "Host Memory   : " << GPU::Algorithms::tMRIconv1dMemHost << std::endl;
-  std::cout << "GPU Memory    : " << GPU::Algorithms::tMRIconv1dMem << std::endl;
-  std::cout << "Send          : " << GPU::Algorithms::tMRIconv1dSend << std::endl;
-  std::cout << "Compute       : " << GPU::Algorithms::tMRIconv1dCompute << std::endl;
-  std::cout << "Receive       : " << GPU::Algorithms::tMRIconv1dRecv << std::endl;
-  std::cout << "------------------------------------------" << std::endl;
-  std::cout << "Total : " << GPU::Algorithms::tMRIconv1dTotal << std::endl;
-  std::cout << std::endl;
-
-  std::cout << "MRIConvGaussianDispatch" << std::endl;
-  std::cout << "Host Memory   : " << GPU::Algorithms::tMRIconvGaussMemHost << std::endl;
-  std::cout << "GPU Memory    : " << GPU::Algorithms::tMRIconvGaussMem << std::endl;
-  std::cout << "Send          : " << GPU::Algorithms::tMRIconvGaussSend << std::endl;
-  std::cout << "Compute       : " << GPU::Algorithms::tMRIconvGaussCompute << std::endl;
-  std::cout << "Receive       : " << GPU::Algorithms::tMRIconvGaussRecv << std::endl;
-  std::cout << "------------------------------------------" << std::endl;
-  std::cout << "Total : " << GPU::Algorithms::tMRIconvGaussTotal << std::endl;
-  std::cout << std::endl;
-
-  std::cout << "=============================================" << std::endl;
-#endif
-}

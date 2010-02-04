@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 15:10:01 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/04 20:39:10 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,8 +49,6 @@ extern "C" {
 				 const float *kernel,
 				 const unsigned int kernelLength );
 
-  void MRIconvShowTimers( void );
-  
 
 #if defined(__cplusplus)
 };
