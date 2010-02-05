@@ -325,7 +325,8 @@ libutils_cuda_a_SOURCES=\
         mrivol2vol_cuda.cu \
 	mrisurf_cuda.cu \
         affinegpu.cu\
-        mrimean_cuda.cu
+        mrimean_cuda.cu\
+        gcasgpu.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 
@@ -333,6 +334,7 @@ libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 mriframegpu_cuda.o: ../include/mriframegpu.hpp
 mriconvolve_cuda.o: ../include/mriframegpu.hpp
 affinegpu.o: ../include/affinegpu.hpp
+gcasgpu.o: ../include/gcasgpu.hpp
 
 endif
 
