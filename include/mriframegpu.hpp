@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 17:25:28 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/02/05 17:55:12 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,22 +82,22 @@ namespace GPU {
       // Data accessors
 
       //! Return the dimensions on the GPU of this MRI frame
-      dim3 GetGPUDims( void ) const {
+      const dim3 GetGPUDims( void ) const {
 	return( this->gpuDims );
       }
 
       //! Return the dimensions on the CPU of this MRI frame
-      dim3 GetCPUDims( void ) const {
+      const dim3 GetCPUDims( void ) const {
 	return( this->cpuDims );
       }
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.24 2010/02/05 17:25:28 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.25 2010/02/05 17:55:12 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
-      cudaArray* GetArray( void ) const {
+      const cudaArray* GetArray( void ) const {
 	return( this->dca_data );
       }
 
