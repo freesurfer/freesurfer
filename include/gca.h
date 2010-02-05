@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 18:02:21 $
- *    $Revision: 1.99 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/05 16:41:33 $
+ *    $Revision: 1.100 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,11 @@
 
 #ifndef GCA_H
 #define GCA_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 
 #include "mri.h"
 #include "transform.h"
@@ -506,5 +511,11 @@ GCA *gcaAllocMax(int ninputs, float prior_spacing, float node_spacing,
                  int width, int height, int depth,
                  int max_labels, int flags) ;
 int GCAreadLabelIntensities(char *fname, float *label_scales, float *label_offsets) ;
+
+#if defined(__cplusplus)
+};
+#endif
+
+
 
 #endif
