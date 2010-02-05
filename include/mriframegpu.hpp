@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 18:25:57 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/02/05 16:14:19 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,9 +35,7 @@
 
 #include <cuda_runtime.h>
 
-extern "C" {
 #include "mri.h"
-}
 
 
 #include "cudacheck.h"
@@ -95,7 +93,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.22 2010/02/04 18:25:57 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.23 2010/02/05 16:14:19 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray

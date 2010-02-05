@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 20:39:10 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/05 16:14:19 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,12 +30,13 @@
 
 
 
+
+#include "mri.h"
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-
-#include "mri.h"
 
 
 

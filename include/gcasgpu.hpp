@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 14:41:32 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/05 16:14:18 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 #ifndef GCAS_GPU_CUDA_H
 #define GCAS_GPU_CUDA_H
 
-
+//#include "mri.h"
 
 
 // ====================================================
@@ -41,7 +41,7 @@ namespace GPU {
 
     class GCASonemeanGPU {
     public:
-
+      // -----------------------------
       //! Default constructor
       GCASonemeanGPU( void ) : nSamples(0), nSamplesAlloc(0),
 			       d_x(NULL), d_y(NULL), d_z(NULL),
@@ -54,6 +54,14 @@ namespace GPU {
 	this->Release();
       }
 
+      // -----------------------------
+#if 0
+      //! Sends GCAS info to the GPU 
+      void SendGPU( GCA *gca,
+		    GCA_SAMPLE *gcaSample,
+		    MRI *mri_inputs,
+		    const int nSamples );
+#endif
       // =================================
     private:
       //! Number of samples in this GCAS

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/09/14 22:28:53 $
- *    $Revision: 1.68 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/05 16:14:19 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,11 @@
 
 #ifndef MATRIX_H
 #define MATRIX_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 
 #ifdef X
 #undef X
@@ -266,5 +271,10 @@ int MatrixCheckFinite(MATRIX *m);
 double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v) ;
 MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k);
 MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm);
+
+#if defined(__cplusplus)
+};
+#endif
+
 
 #endif

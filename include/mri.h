@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/29 15:02:42 $
- *    $Revision: 1.393 $
+ *    $Date: 2010/02/05 16:14:19 $
+ *    $Revision: 1.394 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,11 @@
 
 #ifndef MRI_H
 #define MRI_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 
 #include "minc_volume_io.h"
 #include "const.h"
@@ -1246,6 +1251,11 @@ int MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
                                short *z_indices);
 MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist, MRI *mri_ref_dist, 
                                            MRI *mri_dst_dist);
+
+
+#if defined(__cplusplus)
+};
+#endif
 
 
 #endif

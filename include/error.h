@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:32 $
- *    $Revision: 1.18 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/05 16:14:18 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,12 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+
 int     ErrorInit(char *fname,
                   int (*vfprint)(FILE *fp, const char *fmt, va_list args),
                   int (*vprint)(const char *fmt, va_list args)) ;
@@ -58,5 +64,10 @@ int     ErrorPrintf(int ecode, const char *fmt, ...) ;
 #define ERROR_OUT_OF_BOUNDS   -8
 
 extern int Gerror ;    /* global error value */
+
+#if defined(__cplusplus)
+};
+#endif
+
 
 #endif

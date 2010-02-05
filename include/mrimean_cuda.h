@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/02 17:34:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/05 16:14:19 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,12 +29,13 @@
 #ifndef MRI_MEAN_CUDA_H
 #define MRI_MEAN_CUDA_H
 
+#include "mri.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 
-#include "mri.h"
 
   MRI* MRImean_cuda( const MRI* src, MRI* dst,
 		     const unsigned int wSize );
