@@ -7,9 +7,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/06/30 21:37:56 $
- *    $Revision: 1.4 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/02/05 15:33:39 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ QdecUtilities::FileNamePath(const char *fname, const char *pathName)
   char *slash ;
 
   strcpy((char*)pathName, fname) ;
-  slash = strrchr(pathName, '/') ;
+  slash = (char*)strrchr(pathName, '/') ;
   if (slash) *slash = 0 ; /* remove file name */
   else
 #ifndef Linux
