@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/04 20:46:49 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/02/05 16:14:10 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,12 +33,6 @@
 #include <iomanip>
 
 
-extern "C" {
-#include "mri.h"
-}
-
-//#include "cuPrintf.cu"
-
 #include "chronometer.hpp"
 #include "cudacheck.h"
 
@@ -47,9 +41,6 @@ extern "C" {
 
 
 #include "mriconvolve_cuda.h"
-
-
-//#define SHOW_TIMINGS
 
 
 /*
