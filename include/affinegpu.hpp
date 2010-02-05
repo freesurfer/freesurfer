@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 17:30:19 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/05 20:39:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,8 @@ extern "C" {
 namespace GPU {
 
   namespace Classes {
-    
+
+
     //! Class to hold an affine transformation
     class AffineTransformation {
     public:
@@ -94,6 +95,69 @@ namespace GPU {
       //! The matrix itself, stored row major
       float matrix[kMatrixSize];
     };
+
+
+
+    //! Class to hold an affine transformation in shared memory
+    class AffineTransShared {
+    public:
+      //! Elements in an affine vector
+      static const unsigned int kVectorSize = AffineTransformation::kVectorSize;
+      //! Size of the affine matrix
+      static const unsigned int kMatrixSize = kVectorSize*kVectorSize;
+
+      //! Constructor from pointer
+      __device__ AffineTransShared( float *ptr ) : matrix(ptr) {};
+
+      //! RHS subscripting operator
+      __device__ float operator() ( const unsigned int i,
+				    const unsigned int j ) const {
+	return( this->matrix[j+(i*kVectorSize)] );
+      }
+
+      //! LHS subscripting operator
+      __device__ float& operator() ( const unsigned int i,
+				     const unsigned int j ) {
+	return( this->matrix[j+(i*kVectorSize)] );
+      }
+
+      //! Routine to set up identity
+      __device__ void SetIdentity( void ) {
+	// Only done by first 16 threads
+	if( threadIdx.x < kMatrixSize ) {
+	 
+	  const unsigned int div = threadIdx.x / kVectorSize;
+	  const unsigned int mod = threadIdx.x % kVectorSize;
+
+	  if( div == mod ) {
+	    matrix[threadIdx.x] = 1;
+	  } else {
+	    matrix[threadIdx.x] = 0;
+	  }
+
+	}
+
+      }
+
+      //! Routine to set up translation
+      __device__ void SetTranslation( const float3& trans ) {
+	// Only done by first thread
+	if( threadIdx.x == 0 ) {
+	  this->operator() (0,3) = trans.x;
+	  this->operator() (1,3) = trans.y;
+	  this->operator() (2,3) = trans.z;
+	  this->operator() (3,3) = 1;
+	}
+      }
+
+    private:
+      //! Default constructor (don't use!)
+      __device__ AffineTransShared( void ) : matrix(NULL) {};
+
+      //! Pointer to relevant memory
+      float *matrix;
+    };
+      
   }
 }
 
