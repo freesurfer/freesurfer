@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/26 15:20:47 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/05 20:56:44 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,18 @@ namespace GPU {
       /*!
 	Default constructor zeros the matrix
       */
+      
+      // Have a little sanity check
+      if( kVectorSize != 4 ) {
+	std::cerr << __FUNCTION__
+		  << ": Incompatible universe detected"
+		  << std::endl
+		  << "Please adjust number of spatial dimensions "
+		  << "to 3 and try again"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
       for( unsigned int i=0; i<kMatrixSize; i++ ) {
 	this->matrix[i] = 0;
       }
