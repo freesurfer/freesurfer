@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/06 22:22:56 $
- *    $Revision: 1.362 $
+ *    $Author: greve $
+ *    $Date: 2010/02/05 23:48:09 $
+ *    $Revision: 1.363 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -10132,6 +10132,14 @@ static MRI *niiRead(const char *fname, int read_volume)
   mri->c_a = mri->c_a * space_units_factor;
   mri->c_s = mri->c_s * space_units_factor;
   mri->tr = mri->tr * time_units_factor;
+
+  mri->fov = mri->xsize * mri->width;
+  mri->xstart = -(mri->xsize * mri->width)/2.0;
+  mri->xend   = -(mri->xsize * mri->width)/2.0;
+  mri->ystart = -(mri->ysize * mri->height)/2.0;
+  mri->yend   = -(mri->ysize * mri->height)/2.0;
+  mri->zstart = -(mri->zsize * mri->depth)/2.0;
+  mri->zend   = -(mri->zsize * mri->depth)/2.0;
 
   if (Gdiag_no > 0)
   {
