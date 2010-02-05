@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 17:25:28 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/05 17:36:54 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -152,6 +152,16 @@ namespace GPU {
 						      means(src.d_means),
 						      priors(src.d_priors),
 						      covars(src.d_covars) {}
+
+      //! Accessor for locations
+      __device__ float3 GetLocation( const unsigned int i ) const {
+	float3 r;
+	r.x = this->x[i];
+	r.y = this->y[i];
+	r.z = this->z[i];
+
+	return( r );
+      }
 
     private:
       // ================================================
