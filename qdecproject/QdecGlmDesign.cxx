@@ -12,8 +12,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/09 06:56:19 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/02/05 00:54:31 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -836,8 +836,8 @@ int QdecGlmDesign::GetNumberOfRegressors( )
   if( this->msDesignMatrixType == "dods" )
   {
     Nr = this->GetNumberOfClasses() * 
-    ( this->GetNumberOfContinuousFactors() + 
-      this->GetNumberOfNuisanceFactors() + 1 );
+      ( this->GetNumberOfContinuousFactors() +
+        this->GetNumberOfNuisanceFactors() + 1 );
   }
   else if( this->msDesignMatrixType == "doss" )
   {
@@ -959,7 +959,8 @@ int QdecGlmDesign::WriteFsgdFile ( )
   else fprintf(fp,"Class Main\n");
 
   unsigned int nContinuousFactors = this->GetNumberOfContinuousFactors();
-  if ( nContinuousFactors > 0 )
+  unsigned int nNuisanceFactors = this->GetNumberOfNuisanceFactors();
+  if (( nContinuousFactors > 0 ) || ( nNuisanceFactors > 0 ))
   {
     fprintf(fp,"Variables ");
     for (unsigned int f=0; f < nContinuousFactors; f++)
@@ -967,7 +968,6 @@ int QdecGlmDesign::WriteFsgdFile ( )
       fprintf( fp, "%s ",
                this->mContinuousFactors[f]->GetFactorName().c_str() );
     }
-    unsigned int nNuisanceFactors = this->GetNumberOfNuisanceFactors();
     for (unsigned int f=0; f < nNuisanceFactors; f++)
     {
       fprintf( fp, "%s ",
@@ -1003,7 +1003,7 @@ int QdecGlmDesign::WriteFsgdFile ( )
       fprintf(fp,"%s ",ClassName.c_str());
     }
     else fprintf( fp,"Main " );
-    if ( nContinuousFactors > 0 )
+    if (( nContinuousFactors > 0 ) || ( nNuisanceFactors > 0 ))
     {
       for (unsigned f=0; f < nContinuousFactors; f++)
       {
@@ -1011,7 +1011,6 @@ int QdecGlmDesign::WriteFsgdFile ( )
           this->mContinuousFactors[f]->GetFactorName().c_str();
         fprintf( fp, "%lf ", subjs[m]->GetContinuousFactorValue(factorName) );
       }
-      unsigned int nNuisanceFactors = this->GetNumberOfNuisanceFactors();
       for (unsigned f=0; f < nNuisanceFactors; f++)
       {
         const char* factorName = 
@@ -1081,6 +1080,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 "Does the average %s differ from zero?",
                 this->msMeasure.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 1)
       {
@@ -1136,6 +1152,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 contFactorName.c_str(),
                 otherFactorName.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -1183,6 +1216,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 "Does the average %s differ from zero?",
                 this->msMeasure.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 1)
       {
@@ -1201,6 +1251,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 contFactorName.c_str(),
                 df1Name.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 2)
       {
@@ -1224,6 +1291,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 df1Name.c_str(),
                 otherContFactorName.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -1250,6 +1334,23 @@ int QdecGlmDesign::GenerateContrasts ( )
         sprintf(tmpstr,"Does the average %s differ between %s and %s?",
                 this->msMeasure.c_str(),df1l1name,df1l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 1)
       {
@@ -1266,6 +1367,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 contFactorName.c_str(),
                 df1l1name,df1l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 2)
       {
@@ -1288,6 +1406,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 otherContFactorName.c_str(),
                 df1l1name,df1l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -1347,6 +1482,23 @@ int QdecGlmDesign::GenerateContrasts ( )
         sprintf(tmpstr,"Does the average %s differ from zero?",
                 this->msMeasure.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 1)
       {
@@ -1365,6 +1517,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 contFactorName.c_str(),
                 df1Name.c_str(),df2Name.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 2)
       {
@@ -1388,6 +1557,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 df1Name.c_str(),df2Name.c_str(),
                 otherContFactorName.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -1419,6 +1605,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 df2Name.c_str(),
                 df1l1name,df1l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 1)
       {
@@ -1438,6 +1641,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 df2Name.c_str(),
                 df1l1name,df1l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 2)
       {
@@ -1462,6 +1682,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 otherContFactorName.c_str(),
                 df1l1name,df1l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -1493,6 +1730,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 df1Name.c_str(),
                 df2l1name,df2l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 1)
       {
@@ -1512,6 +1766,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 df1Name.c_str(),
                 df2l1name,df2l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 2)
       {
@@ -1536,6 +1807,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 otherContFactorName.c_str(),
                 df2l1name,df2l2name);
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
@@ -1564,6 +1852,23 @@ int QdecGlmDesign::GenerateContrasts ( )
         sprintf(tmpstr,"Is there a %s--%s interaction in the mean %s?",
                 df1name,df2name,this->msMeasure.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 1)
       {
@@ -1582,6 +1887,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       else if (ncf == 2)
       {
@@ -1606,6 +1928,23 @@ int QdecGlmDesign::GenerateContrasts ( )
                 this->msMeasure.c_str(),
                 contFactorName.c_str());
         question = strdup(tmpstr);
+        if (nnf)
+        {
+          sprintf(tmpstr, "%s\nNuisance factors:", question.c_str());
+          question = strdup(tmpstr);
+          char nfstr[2048];
+          nfstr[0]=0;
+          for (unsigned int nthnf = 0; nthnf < nnf; nthnf++)
+          {
+            QdecFactor* nuisanceFactor = this->mNuisanceFactors[nthnf];
+            string nuisanceFactorName = nuisanceFactor->GetFactorName();
+            strcat(nfstr," ");
+            strcat(nfstr,nuisanceFactorName.c_str());
+            if (strlen(nfstr) > 2000) break;
+          }
+          sprintf(tmpstr, "%s%s", question.c_str(), nfstr);
+          question = strdup(tmpstr);
+        }
       }
       QdecContrast* newContrast = new QdecContrast ( contrast,
                                                      name,
