@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 16:14:10 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/05 17:25:22 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +24,7 @@
  *
  */
 
+using namespace std;
 
 #include "cudacheck.h"
 
@@ -37,6 +38,94 @@ namespace GPU {
 
   namespace Classes {
 
+
+    void GCASonemeanGPU::SendGPU( GCA *gca,
+				  GCA_SAMPLE *gcaSample,
+				  MRI *mri_inputs,
+				  const int nSamples ) {
+      /*!
+	Sends the given GCAS to the GPU, doing
+	various other things whose use is currently
+	obscure.
+      */
+
+      // Verify the number of inputs
+      if( gca->ninputs != 1 ) {
+	cerr << __FUNCTION__
+	     << ": Can only have one input"
+	     << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      // Allocate device memory
+      this->Allocate( nSamples );
+
+      // Identity transform matrix
+      MATRIX *identity = MatrixIdentity( 4, NULL );
+      TRANSFORM *identityTransform = TransformAlloc( LINEAR_VOX_TO_VOX, NULL );
+      static_cast<LTA*>(identityTransform->xform)->xforms[0].m_L = identity;
+      
+      // Allocate some arrays
+      int* myx = new int[nSamples];
+      int* myy = new int[nSamples];
+      int* myz = new int[nSamples];
+      
+      float* covars = new float[nSamples];
+      float* priors = new float[nSamples];
+      float* means = new float[nSamples];
+
+      for( int i=0; i<nSamples; i++ ) {
+	// Copy code from GCAcomputeLogSampleProbability() in gca.c
+	int xp = gcaSample[i].xp;
+	int yp = gcaSample[i].yp;
+	int zp = gcaSample[i].zp;
+    
+	if( GCApriorToSourceVoxel( gca, mri_inputs, identityTransform,
+				   xp, yp, zp,
+				   &myx[i], &myy[i], &myz[i] ) != NO_ERROR ) {
+	  cerr << __FUNCTION__ << ": Failed with i=" << i << endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	// These lines require the check for ninputs==1
+	covars[i] = gcaSample[i].covars[0];
+	means[i] = gcaSample[i].means[0];
+	priors[i] = gcaSample[i].prior;
+	
+      }
+
+      // Send to the GPU
+      CUDA_SAFE_CALL( cudaMemcpy( this->d_x, myx,
+				  nSamples*sizeof(int),
+				  cudaMemcpyHostToDevice ) );
+      CUDA_SAFE_CALL( cudaMemcpy( this->d_y, myy,
+				  nSamples*sizeof(int),
+				  cudaMemcpyHostToDevice ) );
+      CUDA_SAFE_CALL( cudaMemcpy( this->d_z, myz,
+				  nSamples*sizeof(int),
+				  cudaMemcpyHostToDevice ) );
+
+      CUDA_SAFE_CALL( cudaMemcpy( this->d_means, means,
+				  nSamples*sizeof(float),
+				  cudaMemcpyHostToDevice ) );
+      CUDA_SAFE_CALL( cudaMemcpy( this->d_covars, covars,
+				  nSamples*sizeof(float),
+				  cudaMemcpyHostToDevice ) );
+      CUDA_SAFE_CALL( cudaMemcpy( this->d_priors, priors,
+				  nSamples*sizeof(float),
+				  cudaMemcpyHostToDevice ) );
+
+      // Release memory
+      delete[] myx;
+      delete[] myy;
+      delete[] myz;
+      delete[] covars;
+      delete[] priors;
+      delete[] means;
+
+      // Following should also free the identity matrix
+      TransformFree( &identityTransform );
+    }
 
     // ##################################################
     
