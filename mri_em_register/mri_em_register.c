@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.66 2010/01/29 18:29:10 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.67 2010/02/05 19:59:27 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,7 @@
 #include "chronometer.h"
 #include "devicemanagement.h"
 #include "computelogsampleprob.h"
+#include "findoptimaltranslation.h"
 #endif // FS_CUDA
 
 static void printUsage(void);
@@ -195,7 +196,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.66 2010/01/29 18:29:10 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.67 2010/02/05 19:59:27 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1407,6 +1408,14 @@ find_optimal_translation
   log_p, max_log_p, mean_trans ;
   int      i ;
 
+  log_p = 0;
+  x_trans = 0;
+  y_trans = 0;
+  z_trans = 0;
+
+
+#define FAST_TRANSLATION 0
+
 #ifdef FS_CUDA
   Chronometer tTranslationLoop;
   InitChronometer( &tTranslationLoop );
@@ -1434,10 +1443,14 @@ find_optimal_translation
 
 #ifdef FS_CUDA
     unsigned long itCount = 0;
-    /*
+    
+    if( itCount > 0 ) {
+      ;
+    }
+
     unsigned int nTrans = 1+((max_trans-min_trans)/delta);
     printf( "%s: nTrans = %i\n", __FUNCTION__, nTrans );
-
+    /*
     float myMaxLogP, mydx, mydy, mydz;
     FindOptimalTranslation( gca, gcas, mri, m_L, nsamples,
        min_trans, max_trans, delta,
@@ -1447,6 +1460,13 @@ find_optimal_translation
     StartChronometer( &tTranslationLoop );
 #endif // FS_CUDA
 
+#if FAST_TRANSLATION
+#ifdef FS_CUDA
+    float myMaxLogP, mydx, mydy, mydz;
+    FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
+			    &myMaxLogP, &mydx, &mydy, &mydz );
+#endif
+#else
     for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
     {
       *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
@@ -1478,7 +1498,7 @@ find_optimal_translation
             x_max = x_trans ;
             y_max = y_trans ;
             z_max = z_trans ;
-#if 0
+#if 1
             printf("new max p %2.1f found at "
                    "(%2.1f, %2.1f, %2.1f)\n",
                    max_log_p, x_trans, y_trans, z_trans) ;
@@ -1496,6 +1516,8 @@ find_optimal_translation
     CUDA_LogSampleProbabilityRelease();
     printf( "%s: itCount = %li\n", __FUNCTION__, itCount );
 #endif // FS_CUDA
+
+#endif // FAST_TRANSLATION
 
     if (Gdiag & DIAG_SHOW)
       printf(
@@ -1530,6 +1552,7 @@ find_optimal_translation
           GetAverageChronometerValue( &tTranslationLoop ),
           tTranslationLoop.nStarts );
 #endif // FS_CUDA
+  //exit( EXIT_SUCCESS );
 
   return(max_log_p) ;
 }
