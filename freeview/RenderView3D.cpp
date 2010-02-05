@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/02/05 17:06:03 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -87,7 +87,7 @@ void RenderView3D::InitializeRenderView3D()
   vtkCellPicker* picker = vtkCellPicker::New();
 // vtkPointPicker* picker = vtkPointPicker::New();
 // vtkPropPicker* picker = vtkPropPicker::New();
-  picker->SetTolerance( 0.001 );
+  picker->SetTolerance( 0.0005 );
   this->SetPicker( picker );
   picker->Delete();
 
@@ -284,7 +284,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
     }
     else
     {
-      double tolerance = 0.1;
+      double tolerance = 5;
       
       for ( int i = 0; i < 3; i++ )
       {
@@ -430,20 +430,23 @@ void RenderView3D::Azimuth( double angle )
 bool RenderView3D::UpdateBounds()
 {
   LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-  LayerCollection* lc = lcm->GetLayerCollection( "MRI" );
   double bounds[6] = { 1000000, -1000000, 1000000, -1000000, 1000000, -1000000 };
-  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  for ( int n = 0; n < 1; n++ )
   {
-    double bd[6];
-    lc->GetLayer( i )->GetBounds( bd );
-    for ( int j = 0; j < 3; j++ )
+    LayerCollection* lc = lcm->GetLayerCollection( (n == 0 ? "MRI" : "Surface") );
+    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
     {
-      if ( bounds[j*2] > bd[j*2] )
-        bounds[j*2] = bd[j*2];
-      if ( bounds[j*2+1] < bd[j*2+1] )
-        bounds[j*2+1] = bd[j*2+1];
-    }
-  } 
+      double bd[6];
+      lc->GetLayer( i )->GetBounds( bd );
+      for ( int j = 0; j < 3; j++ )
+      {
+        if ( bounds[j*2] > bd[j*2] )
+          bounds[j*2] = bd[j*2];
+        if ( bounds[j*2+1] < bd[j*2+1] )
+          bounds[j*2+1] = bd[j*2+1];
+      }
+    } 
+  }
   for ( int i = 0; i < 6; i++ )
     m_dBounds[i] = bounds[i];
   
@@ -454,6 +457,8 @@ void RenderView3D::UpdateSliceFrames()
 {
   LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
   LayerCollection* lc = lcm->GetLayerCollection( "MRI" );
+  if ( lc->IsEmpty() )
+    lc = lcm->GetLayerCollection( "Surface" );
   double* bounds = m_dBounds;
   double* slicepos = lc->GetSlicePosition();
 
@@ -525,6 +530,8 @@ void RenderView3D::MoveSliceInScreenCoord( int x1, int y1, int x2, int y2 )
   
   LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
   LayerCollection* lc = lcm->GetLayerCollection( "MRI" );
+  if ( lc->IsEmpty() )
+    lc = lcm->GetLayerCollection( "Surface" );
   double* bounds = m_dBounds;
   double slicepos[3];
   lc->GetSlicePosition( slicepos );
