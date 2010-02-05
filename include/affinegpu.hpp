@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/01/26 15:20:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/05 17:30:19 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -80,6 +80,7 @@ namespace GPU {
 	// Do the multiplication
 	for( unsigned int i=0; i<kVectorSize; i++ ) {
 	  r2[i] = 0;
+	  #pragma unroll 4
 	  for( unsigned int j=0; j<kVectorSize; j++ ) {
 	    r2[i] += this->operator() ( i, j ) * r1[j];
 	  }
