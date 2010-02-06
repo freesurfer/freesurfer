@@ -1,15 +1,15 @@
-function indtrig = triggerfinder(trigger)
-% indtrig = triggerfinder(trigger)
+function indtrigger = triggerfinder(trigger)
+% indtrigger = triggerfinder(trigger)
 % 
 % Finds the index of the rising edge of the trigger. Trigger should
 % be a (mostly) binary waveform. The threshold is set to half way
 % between the min and max.
 %
-% $Id: triggerfinder.m,v 1.1 2008/09/10 18:15:50 greve Exp $
+% $Id: triggerfinder.m,v 1.2 2010/02/06 22:15:28 greve Exp $
 
 indtrig = [];
-if(nargin ~= 2)
-  fprintf('indtrig = triggerfinder(trigger)\n');
+if(nargin ~= 1)
+  fprintf('indtrigger = triggerfinder(trigger)\n');
   return
 end
 
