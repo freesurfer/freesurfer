@@ -6,7 +6,7 @@ function [indpeak twfPer indtrough] = peakfinder(twf)
 % samples. If the 1st or last peak are less than 90% of the mean of
 % the rest of the peaks, they are exluded.
 %
-% $Id: peakfinder.m,v 1.3 2010/01/22 00:09:21 greve Exp $
+% $Id: peakfinder.m,v 1.4 2010/02/06 23:14:12 greve Exp $
 
 indpeak = [];
 
@@ -33,6 +33,7 @@ twfQuartPerSamp = round(twfPerSamp/4);
 
 % Assume global peak is a local peak
 [tmp k0] = max(twf);
+fprintf('global peak at %d %f\n',k0,k0/25);
 
 % Look ahead, starting at global peak
 indpeak = k0;
@@ -69,17 +70,27 @@ while(1)
   indpeakrev = [indpeakrev kmax];
   kprev = kmax;
 end
+npeaks = length(indpeak);
 
 % Convert reversed indices to forard indices
 indpeakrevfor = Ntp - indpeakrev + 1;
 indpeak = sort([indpeak indpeakrevfor]);
 
-% Decide whether to eliminate the first and/or last peak
+% Decide whether to eliminate the first peak
+% Compute mean of closest 3 peaks
 peakfirst = twf(indpeak(1));
+indpm = [2:min(4,Ntp)];
+peakmean = mean(twf(indpeak(indpm)));
+% Must be greater than 0.7 times this mean
+if(peakfirst < .7*peakmean)  indpeak = indpeak(2:end); end
+
+% Decide whether to eliminate the last peak
+% Compute mean of closest 3 peaks
 peaklast  = twf(indpeak(end));
-peakmean = mean(twf(indpeak(2:end-1)));
-if(peakfirst < .9*peakmean)  indpeak = indpeak(2:end); end
-if(peaklast < .9*peakmean)   indpeak = indpeak(1:end-1); end
+indpm = [max(npeaks-3,1),npeaks-1];
+peakmean = mean(twf(indpeak(indpm)));
+% Must be greater than 0.7 times this mean
+if(peaklast  < .7*peakmean)  indpeak = indpeak(1:end-1); end
 
 npeaks = length(indpeak);
 indtrough = zeros(size(indpeak));
