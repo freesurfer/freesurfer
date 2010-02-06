@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.66 2010/01/07 22:48:24 rpwang Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.67 2010/02/06 04:27:06 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -165,6 +165,9 @@
 166 Posterior-fossa			    14  48  255 0 
 167 Scalp				    166 42  42  0
 168 Hematoma				    121 18  134 0
+
+180 Left-Cortical-Dysplasia		    73  61  139 0	    
+181 Right-Cortical-Dysplasia		    73  62  139 0
 
 
 193 Left-hippocampal_fissure                0   196 255 0
