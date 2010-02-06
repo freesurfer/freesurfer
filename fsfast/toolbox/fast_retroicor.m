@@ -5,7 +5,7 @@ function [X M] = fast_retroicor(t,indpeak,M,peakamp,troughamp)
 % Correction of Physiological Motion Effects in fMRI: RETROICOR. MRM,
 % 2000, 44:162-167.
 %
-% $Id: fast_retroicor.m,v 1.3 2010/02/06 22:00:29 greve Exp $
+% $Id: fast_retroicor.m,v 1.4 2010/02/06 23:14:53 greve Exp $
 
 X = [];
 
@@ -49,6 +49,34 @@ for nthpeak = 1:npeaks-1
     s = 2 + 2*(h-1);
     X(k1:k2,s) = amp(nthpeak)*sin(h*phik) + baseline(nthpeak);
   end
+  if(nthpeak == 1)
+    % Time before the 1st peak
+    k1 = 1;
+    k2 = indpeak(1);
+    tk = t(k1:k2)-t(k2);
+    phik = 2*pi*tk/dt;
+    for h = 1:M
+      c = 1 + 2*(h-1);
+      X(k1:k2,c) = amp(nthpeak)*cos(h*phik) + baseline(nthpeak);
+      s = 2 + 2*(h-1);
+      X(k1:k2,s) = amp(nthpeak)*sin(h*phik) + baseline(nthpeak);
+    end
+  end
+  if(nthpeak == npeaks-1)
+    % Time after the last peak
+    k1 = indpeak(npeaks);
+    k2 = nt;
+    tk = t(k1:k2)-t(k1);
+    phik = 2*pi*tk/dt;
+    for h = 1:M
+      c = 1 + 2*(h-1);
+      X(k1:k2,c) = amp(nthpeak)*cos(h*phik) + baseline(nthpeak);
+      s = 2 + 2*(h-1);
+      X(k1:k2,s) = amp(nthpeak)*sin(h*phik) + baseline(nthpeak);
+    end
+  end
+  
+
 end
 
 return;
