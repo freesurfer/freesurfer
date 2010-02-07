@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/24 22:02:02 $
-#    $Revision: 1.6 $
+#    $Date: 2010/02/07 22:50:52 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2007-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 
 #
-set VERSION = '$Id: talairach_avi,v 1.6 2009/06/24 22:02:02 nicks Exp $'
+set VERSION = '$Id: talairach_avi,v 1.7 2010/02/07 22:50:52 nicks Exp $'
 
 set InVol = ();
 set XFM = ();
@@ -71,45 +71,33 @@ if($#LF == 0) set LF = ${OutDir}/talairach_avi.log
 if(-e $LF) mv $LF $LF.bak
 touch $LF
 
-pwd | tee -a $LF
-which talairach_avi | tee -a $LF
-echo $cmdargs | tee -a $LF
-echo $VERSION | tee -a $LF
-uname -a | tee -a $LF
-date | tee -a $LF
-
-echo ""
-echo "--------------------------------------------"
-echo ""
+pwd >>& $LF
+which talairach_avi >>& $LF
+echo $cmdargs >>& $LF
+echo $VERSION >>& $LF
+uname -a >>& $LF
+date >>& $LF
 
 # Convert input to analyze
 set cmd = (mri_convert $InVol talsrcimg.img)
-$cmd |& tee -a $LF
+$cmd >>& $LF
 if($status) then
-  echo "ERROR: converting to Analyze" |& tee -a $LF
+  echo "ERROR: converting to Analyze" >>& $LF
   exit 1;
 endif
-
-echo ""
-echo "--------------------------------------------"
-echo ""
 
 # run Avi's registration tool
 setenv REFDIR ${FREESURFER_HOME}/average
 setenv MPR2MNI305_TARGET ${target}
 set cmd = (mpr2mni305 talsrcimg)
 if ($debug) set cmd=($cmd debug)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
+echo $cmd >>& $LF
+$cmd >>& $LF
 set st = $status
 if($st) then
   echo "ERROR: mpr2mni305 failed, see $LF"
   exit 1;
 endif
-
-echo ""
-echo "--------------------------------------------"
-echo ""
 
 # transform results back to mni305 space
 set cmd = (tkregister2_cmdl \
@@ -119,24 +107,21 @@ set cmd = (tkregister2_cmdl \
     --vox2vox talsrcimg_to_${target}_t4_vox2vox.txt \
     --noedit \
     --reg talsrcimg.reg.tmp.dat)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
+echo $cmd >>& $LF
+$cmd >>& $LF
 set st = $status
-mv -vf talsrcimg_to_${target}_t4_vox2vox.txt transforms/
+mv -f talsrcimg_to_${target}_t4_vox2vox.txt transforms/
 if($st) then
   echo "ERROR: tkregister2_cmdl failed, see $LF"
   exit 1;
 endif
 
-rm -vf talsrcimg*
+rm -f talsrcimg*
 
-echo ""
-echo "--------------------------------------------"
-echo ""
-echo " " |& tee -a $LF
-echo " " |& tee -a $LF
-date | tee -a $LF
-echo "talairach_avi done" | tee -a $LF
+echo " " >>& $LF
+echo " " >>& $LF
+date >>& $LF
+echo "talairach_avi done" >>& $LF
 
 exit 0;
 ###############################################
