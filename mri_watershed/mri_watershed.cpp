@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/09/30 20:49:06 $
- *    $Revision: 1.77 $
+ *    $Author: fischl $
+ *    $Date: 2010/02/08 22:32:02 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.77 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.78 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -548,6 +548,14 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->skull_type=1;
     nargs = 0 ;
     fprintf(stdout,"Mode:          surface expanded") ;
+  } 
+  else if (!strcmp(option, "debug_voxel")) 
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
   else if (!strcmp(option, "T1"))
   {
@@ -855,7 +863,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.77 2009/09/30 20:49:06 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.78 2010/02/08 22:32:02 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -868,7 +876,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.77 2009/09/30 20:49:06 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.78 2010/02/08 22:32:02 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -895,8 +903,7 @@ int main(int argc, char *argv[])
 
   fprintf(stdout,"\n*********************************************************"
           "\nThe input file is %s"
-          "\nThe output file is %s"
-          "\nIf this is incorrect, please exit with CTL-C\n\n",
+          "\nThe output file is %s",
           in_fname,out_fname);
  
   if (( parms->Tregion ||
@@ -1313,6 +1320,8 @@ void MRI_weight_atlas(MRI *mri_with_skull,
     {
       for (x = 0 ; x < mri_with_skull->width ; x++)
       {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         GCAsourceVoxelToPrior(parms->gca, 
                               mri_with_skull, 
                               transform, 
@@ -2162,7 +2171,18 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
         tmp=intensity_percent[k];
     }
 
-  analyseWM(intensity_percent,MRI_var);
+  /////////////////////////////////////////////////////////////////////
+  // if T1 image, the values are fixed
+  if (parms->T1)
+  {
+    MRI_var->WM_intensity=WM_CONST;
+    MRI_var->WM_HALF_MAX=MRI_var->WM_HALF_MIN=WM_CONST;
+    MRI_var->WM_VARIANCE=5;
+    MRI_var->WM_MAX=WM_CONST;
+    MRI_var->WM_MIN=WM_CONST;
+  }
+  else
+    analyseWM(intensity_percent,MRI_var);
 
   if (MRI_var->WM_intensity < MRI_var->CSF_intensity)
   {
@@ -4439,7 +4459,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
   unsigned char tab[4][9];
   double px,py,pz,tx,ty,tz;
   MRIS* mris;
-  int  n[6], sum;
+  int  n[6], sum, found_wm, try_bigger_wm_lims;
 
   mris=MRI_var->mris;
 
@@ -4461,85 +4481,97 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
   if (parms->Tregion == 1)
     MRIScomputeCloserLabel(parms,MRI_var);
 
-// Analyse the csf
-  for (kv=0;kv<mris->nvertices;kv++)
+  // Analyse the csf
+  for (try_bigger_wm_lims = 0 ; try_bigger_wm_lims <= 1 ; try_bigger_wm_lims++)
   {
-    find_normal(mris->vertices[kv].nx,
-                mris->vertices[kv].ny,
-                mris->vertices[kv].nz,
-                n1,n2,MRI_var->direction);
-    //
-    mris->vertices[kv].e1x=n1[0];
-    mris->vertices[kv].e1y=n1[1];
-    mris->vertices[kv].e1z=n1[2];
-    //
-    mris->vertices[kv].e2x=n2[0];
-    mris->vertices[kv].e2y=n2[1];
-    mris->vertices[kv].e2z=n2[2];
-    //
-    val=MRI_var->Imax;
-    rp=0;
-    for (h=-2;h<2;h++) // near surface area by h=-2, -1, 0, 1
+    found_wm = 0 ;
+    if (try_bigger_wm_lims)  // brf for GLOBAL region empty error
     {
-      px=mris->vertices[kv].x-h*mris->vertices[kv].nx;
-      py=mris->vertices[kv].y-h*mris->vertices[kv].ny;
-      pz=mris->vertices[kv].z-h*mris->vertices[kv].nz;
-      // get the voxel coordinates
-      myWorldToVoxel(MRI_var->mri_src,px,py,pz,&tx,&ty,&tz);
-      i=(int)(tx+0.5);
-      j=(int)(ty+0.5);
-      k=(int)(tz+0.5);
-      // if inside the volume
-      if (!(k<0||k>=MRI_var->depth||
-            i<0||i>=MRI_var->width||
-            j<0||j>=MRI_var->height))
+      printf(" ^^^^^^^^ couldn't find WM with original limits - expanding ^^^^^^\n") ;
+      MRI_var->WM_MIN -= 10 ;
+      MRI_var->WM_MAX += 10 ;
+    }
+    for (kv=0;kv<mris->nvertices;kv++)
+    {
+      find_normal(mris->vertices[kv].nx,
+                  mris->vertices[kv].ny,
+                  mris->vertices[kv].nz,
+                  n1,n2,MRI_var->direction);
+      //
+      mris->vertices[kv].e1x=n1[0];
+      mris->vertices[kv].e1y=n1[1];
+      mris->vertices[kv].e1z=n1[2];
+      //
+      mris->vertices[kv].e2x=n2[0];
+      mris->vertices[kv].e2y=n2[1];
+      mris->vertices[kv].e2z=n2[2];
+      //
+      val=MRI_var->Imax;
+      rp=0;
+      for (h=-2;h<2;h++) // near surface area by h=-2, -1, 0, 1
       {
-        // get the voxel value
-        val_buff=MRIvox(MRI_var->mri_src,i,j,k);
-        // find the min with h value
-        if (val>val_buff)
+        px=mris->vertices[kv].x-h*mris->vertices[kv].nx;
+        py=mris->vertices[kv].y-h*mris->vertices[kv].ny;
+        pz=mris->vertices[kv].z-h*mris->vertices[kv].nz;
+        // get the voxel coordinates
+        myWorldToVoxel(MRI_var->mri_src,px,py,pz,&tx,&ty,&tz);
+        i=(int)(tx+0.5);
+        j=(int)(ty+0.5);
+        k=(int)(tz+0.5);
+        // if inside the volume
+        if (!(k<0||k>=MRI_var->depth||
+              i<0||i>=MRI_var->width||
+              j<0||j>=MRI_var->height))
         {
-          rp=h;              // the height where min occurred.
-          val=val_buff;
+          // get the voxel value
+          val_buff=MRIvox(MRI_var->mri_src,i,j,k);
+          // find the min with h value
+          if (val>val_buff)
+          {
+            rp=h;              // the height where min occurred.
+            val=val_buff;
+          }
         }
       }
-    }
-    //
-    if (val<3*MRI_var->CSF_intensity)
-    {
-      for (a=-1;a<2;a++)       // orthogonal to normal direction
+      //
+      if (val<3*MRI_var->CSF_intensity)
       {
-        for (b=-1;b<2;b++)     // orthogonal to normal direction
+        for (a=-1;a<2;a++)       // orthogonal to normal direction
         {
-          px=mris->vertices[kv].x -rp*
-            mris->vertices[kv].nx + a*n1[0]+b*n2[0];
-          py=mris->vertices[kv].y -rp*
-            mris->vertices[kv].ny + a*n1[1]+b*n2[1];
-          pz=mris->vertices[kv].z -rp*
-            mris->vertices[kv].nz + a*n1[2]+b*n2[2];
-
-          myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
-          i=(int)(tx+0.5);
-          j=(int)(ty+0.5);
-          k=(int)(tz+0.5);
-
-          if (!(k<0||k>=MRI_var->depth||
-                i<0||i>=MRI_var->width||
-                j<0||j>=MRI_var->height))
+          for (b=-1;b<2;b++)     // orthogonal to normal direction
           {
-            val=MRIvox(MRI_var->mri_src,i,j,k);
-            CSF_percent[GLOBAL][val]++; // create histogram
-            n[0]++;
-            if (parms->Tregion == 1)
+            px=mris->vertices[kv].x -rp*
+              mris->vertices[kv].nx + a*n1[0]+b*n2[0];
+            py=mris->vertices[kv].y -rp*
+              mris->vertices[kv].ny + a*n1[1]+b*n2[1];
+            pz=mris->vertices[kv].z -rp*
+              mris->vertices[kv].nz + a*n1[2]+b*n2[2];
+            
+            myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+            i=(int)(tx+0.5);
+            j=(int)(ty+0.5);
+            k=(int)(tz+0.5);
+            
+            if (!(k<0||k>=MRI_var->depth||
+                  i<0||i>=MRI_var->width||
+                  j<0||j>=MRI_var->height))
             {
-              CSF_percent[mris->vertices[kv].annotation][val]++;
-              n[mris->vertices[kv].annotation]++;
+              val=MRIvox(MRI_var->mri_src,i,j,k);
+              CSF_percent[GLOBAL][val]++; // create histogram
+              n[0]++;
+              if (parms->Tregion == 1)
+              {
+                CSF_percent[mris->vertices[kv].annotation][val]++;
+                n[mris->vertices[kv].annotation]++;
+              }
+              
             }
-
           }
         }
       }
     }
+    if (found_wm)
+      break ;
   }
 
   // for each region of the brain : global, L, R * c, b, other
@@ -4637,7 +4669,10 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
       // if find White Matter (mean and variation
       // are of white matter), then stop
       if (FindWM(tab,MRI_var))
+      {
+        found_wm = 1 ;
         break;
+      }
     }
     // now we found at certain depth h where white matter is.
     // if not, then int_percent[] are all zeros.  ... bug
