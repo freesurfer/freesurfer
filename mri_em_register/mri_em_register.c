@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.69 2010/02/09 17:34:34 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.70 2010/02/09 18:10:41 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.69 2010/02/09 17:34:34 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.70 2010/02/09 18:10:41 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1455,25 +1455,18 @@ find_optimal_translation
 
     unsigned int nTrans = 1+((max_trans-min_trans)/delta);
     printf( "%s: nTrans = %i\n", __FUNCTION__, nTrans );
-    /*
-    float myMaxLogP, mydx, mydy, mydz;
-    FindOptimalTranslation( gca, gcas, mri, m_L, nsamples,
-       min_trans, max_trans, delta,
-       &myMaxLogP, &mydx, &mydy, &mydz );
-    */
     StartChronometer( &tTranslationLoop );
 #endif // FS_CUDA
 
-#ifdef FS_CUDA
-#if FAST_TRANSLATION
+#if defined(FS_CUDA) && FAST_TRANSLATION
     float myMaxLogP, mydx, mydy, mydz;
     FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
 			    &myMaxLogP, &mydx, &mydy, &mydz );
-    if( 0 ) {
+    max_log_p = myMaxLogP;
+    x_max = mydx;
+    y_max = mydy;
+    z_max = mydz;
 #else
-      if( 1 ) {
-#endif
-#endif
     for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
     {
       *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
@@ -1499,18 +1492,13 @@ find_optimal_translation
             local_GCAcomputeLogSampleProbability
             (gca, gcas, mri, m_L_tmp,nsamples) ;
 #endif
-
-#if 1
-	  printf( "%4.1f (%4.1f, %4.1f, %4.1f)\n",
-		  log_p, x_trans, y_trans, z_trans );
-#endif
           if (log_p > max_log_p)
           {
             max_log_p = log_p ;
             x_max = x_trans ;
             y_max = y_trans ;
             z_max = z_trans ;
-#if 1
+#if 0
             printf("new max p %2.1f found at "
                    "(%2.1f, %2.1f, %2.1f)\n",
                    max_log_p, x_trans, y_trans, z_trans) ;
@@ -1522,19 +1510,13 @@ find_optimal_translation
         }
       }
     }
-
-#ifdef FS_CUDA
-#if FAST_TRANSLATION
-      }
-#else
-    }
-#endif
 #endif
 
 #ifdef FS_CUDA
     StopChronometer( &tTranslationLoop );
     printf( "%s: itCount = %li\n", __FUNCTION__, itCount );
 #endif // FS_CUDA
+
 
     if (Gdiag & DIAG_SHOW)
       printf(
@@ -1546,7 +1528,7 @@ find_optimal_translation
     *MATRIX_RELT(m_trans, 2, 4) = y_max ;
     *MATRIX_RELT(m_trans, 3, 4) = z_max ;
     // create a new transform by multiplying the previous one.
-    MatrixMultiply(m_trans, m_L, m_L_tmp) ;
+    m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
     MatrixCopy(m_L_tmp, m_L) ;
     max_log_p = local_GCAcomputeLogSampleProbability
                 (gca, gcas, mri, m_L,nsamples) ;
