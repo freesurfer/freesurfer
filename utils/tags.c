@@ -1,17 +1,16 @@
 /**
  * @file  tags.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utils for adding tags (meta info) to mgz/h files
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/01/20 23:38:30 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/09 17:52:30 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2005-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -33,8 +31,6 @@
 #include "fio.h"
 #include "error.h"
 #include "tags.h"
-
-/* $Id : $Exp */
 
 int
 TAGskip(FILE *fp, int tag, long long len)
@@ -66,7 +62,7 @@ int TAGreadStart(FILE *fp, long long *plen)
   {
   case TAG_OLD_MGH_XFORM:
     *plen = (long long)freadInt(fp) ;  /* sorry - backwards compatibility
-                                                            with Tosa's stuff */
+                                          with Tosa's stuff */
     *plen = *plen -1 ; // doesn't include null
     break ;
   case TAG_OLD_SURF_GEOM:    // these don't take lengths at all
@@ -214,7 +210,7 @@ int znzTAGreadStart(znzFile fp, long long *plen)
   {
   case TAG_OLD_MGH_XFORM:
     *plen = (long long)znzreadInt(fp) ;  /* sorry - backwards compatibility
-                                                            with Tosa's stuff */
+                                            with Tosa's stuff */
     *plen = *plen -1 ; // doesn't include null
     break ;
   case TAG_OLD_SURF_GEOM:    // these don't take lengths at all
@@ -317,14 +313,23 @@ MATRIX *znzTAGreadAutoAlign(znzFile fp)
   M = MatrixAlloc(4,4,MATRIX_REAL);
   char ch[100];
   sscanf(buf,"%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", ch, 
-         &(M->rptr[1][1]), &(M->rptr[1][2]), &(M->rptr[1][3]), &(M->rptr[1][4]),
-         &(M->rptr[2][1]), &(M->rptr[2][2]), &(M->rptr[2][3]), &(M->rptr[2][4]),
-         &(M->rptr[3][1]), &(M->rptr[3][2]), &(M->rptr[3][3]), &(M->rptr[3][4]),
-         &(M->rptr[4][1]), &(M->rptr[4][2]), &(M->rptr[4][3]), &(M->rptr[4][4])
+         &(M->rptr[1][1]),
+         &(M->rptr[1][2]),
+         &(M->rptr[1][3]),
+         &(M->rptr[1][4]),
+         &(M->rptr[2][1]),
+         &(M->rptr[2][2]),
+         &(M->rptr[2][3]),
+         &(M->rptr[2][4]),
+         &(M->rptr[3][1]),
+         &(M->rptr[3][2]),
+         &(M->rptr[3][3]),
+         &(M->rptr[3][4]),
+         &(M->rptr[4][1]),
+         &(M->rptr[4][2]),
+         &(M->rptr[4][3]),
+         &(M->rptr[4][4])
         ); 
   
   return(M);
-  
 }
-
-
