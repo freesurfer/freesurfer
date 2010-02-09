@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 20:39:15 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/09 15:33:42 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,6 +91,11 @@ namespace GPU {
 	return( make_float3( r2[0], r2[1], r2[2] ) );
       }
 
+      //! Accessor for the actual pointer
+      __device__ const float* GetPointer( void ) const {
+	return( &(this->matrix[0]) );
+      }
+
     private:
       //! The matrix itself, stored row major
       float matrix[kMatrixSize];
@@ -121,15 +126,22 @@ namespace GPU {
 	return( this->matrix[j+(i*kVectorSize)] );
       }
 
+
+      //! Routine to compute i and j for this thread
+      __device__ void Getij( unsigned int& i, unsigned int& j ) const {
+	i = threadIdx.x / kVectorSize;
+	j = threadIdx.x % kVectorSize;
+      }
+
       //! Routine to set up identity
       __device__ void SetIdentity( void ) {
 	// Only done by first 16 threads
 	if( threadIdx.x < kMatrixSize ) {
 	 
-	  const unsigned int div = threadIdx.x / kVectorSize;
-	  const unsigned int mod = threadIdx.x % kVectorSize;
+	  unsigned int i, j;
+	  this->Getij( i, j );
 
-	  if( div == mod ) {
+	  if( i == j ) {
 	    matrix[threadIdx.x] = 1;
 	  } else {
 	    matrix[threadIdx.x] = 0;
@@ -143,10 +155,34 @@ namespace GPU {
       __device__ void SetTranslation( const float3& trans ) {
 	// Only done by first thread
 	if( threadIdx.x == 0 ) {
-	  this->operator() (0,3) = trans.x;
-	  this->operator() (1,3) = trans.y;
-	  this->operator() (2,3) = trans.z;
-	  this->operator() (3,3) = 1;
+	  (*this)(0,3) = trans.x;
+	  (*this)(1,3) = trans.y;
+	  (*this)(2,3) = trans.z;
+	  (*this)(3,3) = 1;
+	}
+      }
+
+      //! Routine to multiply two matrices
+      __device__ void Multiply( const AffineTransShared& a,
+			       const AffineTransShared& b ) {
+	/*!
+	  Performs the matrix-multiply a*b and stores the
+	  result in the current object.
+	*/
+
+	if( threadIdx.x < kMatrixSize ) {
+	  unsigned int i, j;
+	  this->Getij( i, j );
+
+	  float myVal = 0;
+
+	  #pragma unroll 4
+	  for( unsigned int k=0; k<kVectorSize; k++ ) {
+	    myVal += a(i,k) * b(k,j);
+	  }
+
+	  (*this)(i,j) = myVal;
+	  
 	}
       }
 
