@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/09 18:29:38 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/02/09 18:40:57 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -188,7 +188,7 @@ namespace GPU {
       }
 
       //! Routine to set up x rotation
-      __device__void SetXRotation( const float theta ) {
+      __device__ void SetXRotation( const float theta ) {
 	/*!
 	  This routine sets the affine matrix locations
 	  corresponding to a rotation about the X axis
@@ -210,7 +210,7 @@ namespace GPU {
 
 
       //! Routine to set up y rotation
-      __device__void SetYRotation( const float theta ) {
+      __device__ void SetYRotation( const float theta ) {
 	/*!
 	  This routine sets the affine matrix locations
 	  corresponding to a rotation about the Y axis
@@ -232,7 +232,7 @@ namespace GPU {
 
 
       //! Routine to set up z rotation
-      __device__void SetZRotation( const float theta ) {
+      __device__ void SetZRotation( const float theta ) {
 	/*!
 	  This routine sets the affine matrix locations
 	  corresponding to a rotation about the Z axis
