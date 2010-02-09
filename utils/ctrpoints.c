@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2010/02/09 16:37:57 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,9 +32,9 @@
 // originally written by y.tosa
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 01:49:31 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2010/02/09 16:37:57 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -56,7 +56,7 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
   char text[256];
   int val;
   int numpoints;
-  int num_control_points;
+  int num_control_points, nargs;
   MPoint *pointArray = 0;
 
   *useRealRAS = 0;
@@ -112,7 +112,12 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
   for (i = 0 ; i < num_control_points ; i++)
   {
     cp = fgetl(line, 199, fp) ;
-    sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
+    nargs = sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
+    if (nargs != 3)
+    {
+      i-- ;    // not a control point
+      continue ;
+    }
     pointArray[i].x = (Real) xw;
     pointArray[i].y = (Real) yw;
     pointArray[i].z = (Real) zw;

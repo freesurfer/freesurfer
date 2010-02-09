@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/15 14:10:45 $
- *    $Revision: 1.94 $
+ *    $Date: 2010/02/09 16:37:57 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2045,7 +2045,7 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
                  MRI_UCHAR) ;
       MRIcopyHeader(mri_src, mri_ctrl) ;
       nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
-      fprintf(stderr, "only using %d control points from file...\n",
+      fprintf(stderr, "only using %d unique control points from file...\n",
               nctrl) ;
       if (getenv("WRITE_CONTROL_POINTS") != NULL)
       {
