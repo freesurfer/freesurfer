@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/09/14 22:28:53 $
- *    $Revision: 1.120 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/09 15:08:01 $
+ *    $Revision: 1.121 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,7 +70,7 @@ MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m,
 int MatrixIsSymmetric( MATRIX *matrix );
 
 MATRIX *
-MatrixCopy(MATRIX *mIn, MATRIX *mOut)
+MatrixCopy( const MATRIX *mIn, MATRIX *mOut )
 {
   int row, rows, cols, col ;
 
@@ -108,7 +108,7 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
 
 
 MATRIX *
-MatrixInverse(MATRIX *mIn, MATRIX *mOut)
+MatrixInverse( const MATRIX *mIn, MATRIX *mOut)
 {
   float  **a, **y;
   int    isError, i, j, rows, cols, alloced = 0 ;
@@ -235,7 +235,7 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
 
 
 MATRIX *
-MatrixAlloc(int rows, int cols, int type)
+MatrixAlloc( const int rows, const int cols, const int type)
 {
   MATRIX *mat ;
   int    row, nelts;
@@ -392,7 +392,7 @@ MatrixFree(MATRIX **pmat)
 
 
 MATRIX *
-MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
+MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
 {
   int   col, row, i, rows, cols, m1_cols ;
   float *r3 ;
@@ -533,7 +533,7 @@ MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3)
 }
 
 
-int MatrixPrint(FILE *fp, MATRIX *mat)
+int MatrixPrint(FILE *fp, const MATRIX *mat)
 {
   int  row, col, rows, cols ;
 
@@ -852,7 +852,7 @@ MatrixTranspose(MATRIX *mIn, MATRIX *mOut)
 
 
 MATRIX  *
-MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
+MatrixAdd( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut)
 {
   int  row, col, rows, cols ;
 
@@ -891,7 +891,7 @@ MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
 
 
 MATRIX  *
-MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
+MatrixSubtract( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut)
 {
   int  row, col, rows, cols ;
 
@@ -928,7 +928,7 @@ MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut)
 
 
 MATRIX  *
-MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut)
+MatrixScalarMul( const MATRIX *mIn, const float val, MATRIX *mOut)
 {
   int  row, col, rows, cols ;
 
@@ -1145,8 +1145,13 @@ MatrixDiag(MATRIX *mDiag, MATRIX *mOut)
 
 
 MATRIX *
-MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
-                 int rows, int cols, int dest_row, int dest_col)
+MatrixCopyRegion( const MATRIX *mSrc, MATRIX *mDst,
+		  const int start_row,
+		  const int start_col,
+		  const int rows,
+		  const int cols,
+		  const int dest_row,
+		  const int dest_col)
 {
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col ;
 
@@ -1200,8 +1205,13 @@ MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
 
 
 MATRIX *
-MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
-                     int rows, int cols, int dest_row, int dest_col)
+MatrixCopyRealRegion( const MATRIX *mSrc, MATRIX *mDst,
+		      const int start_row,
+		      const int start_col,
+		      const int rows,
+		      const int cols,
+		      const int dest_row,
+		      const int dest_col)
 {
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col ;
 
@@ -1259,8 +1269,13 @@ MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
 
 
 MATRIX *
-MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col,
-                     int rows, int cols, int dest_row, int dest_col)
+MatrixCopyImagRegion( const MATRIX *mSrc, MATRIX *mDst,
+		      const int start_row,
+		      const int start_col,
+		      const int rows,
+		      const int cols,
+		      const int dest_row,
+		      const int dest_col )
 {
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col ;
 

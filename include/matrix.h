@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 16:14:19 $
- *    $Revision: 1.69 $
+ *    $Date: 2010/02/09 15:08:10 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,43 +81,55 @@ COMPLEX_FLOAT, *CPTR ;
 
 MATRIX  *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) ;
 int     MatrixCheck(MATRIX *m) ;
-MATRIX  *MatrixInverse(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixInverse( const MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 MATRIX  *MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 MATRIX  *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 #define MatrixLeftPseudoInverse MatrixPseudoInverse
-MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
+MATRIX  *MatrixAlloc( const int rows, const int cols, const int type);
 int     MatrixFree(MATRIX **pmat) ;
-MATRIX  *MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3) ;
-MATRIX  *MatrixCopy(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3) ;
+MATRIX  *MatrixCopy( const MATRIX *mIn, MATRIX *mOut );
 int     MatrixWriteTxt(const char *fname, MATRIX *mat) ;
 MATRIX  *MatrixReadTxt(const char *fname, MATRIX *mat) ;
 MATRIX  *MatrixRead(const char *fname) ;
 int     MatrixWrite(MATRIX *mIn,const char *fname, const char *name) ;
 MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
-int     MatrixPrint(FILE *fp, MATRIX *mat) ;
+int     MatrixPrint(FILE *fp, const MATRIX *mat) ;
 int MatrixPrintFmt(FILE *fp,const char *fmt, MATRIX *mat);
 int     MatrixPrintOneLine(FILE *fp, MATRIX *mat) ;
 int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
-MATRIX  *MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
-MATRIX  *MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
-MATRIX  *MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut) ;
+MATRIX  *MatrixAdd( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
+MATRIX  *MatrixSubtract( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
+MATRIX  *MatrixScalarMul( const MATRIX *mIn, const float val, MATRIX *mOut) ;
 MATRIX  *MatrixClear(MATRIX *mat) ;
 MATRIX  *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
 MATRIX  *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) ;
-MATRIX  *MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
-                          int start_col, int rows, int cols,
-                          int dest_row, int dest_col) ;
-MATRIX  *MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst,int start_row,
-                              int start_col, int rows, int cols,
-                              int dest_row, int dest_col) ;
-MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
-                              int start_col, int rows, int cols,
-                              int dest_row, int dest_col) ;
+MATRIX  *MatrixCopyRegion( const MATRIX *mSrc, MATRIX *mDst,
+			   const int start_row,
+			   const int start_col,
+			   const int rows,
+			   const int cols,
+			   const int dest_row,
+			   const int dest_col );
+MATRIX  *MatrixCopyRealRegion( const MATRIX *mSrc, MATRIX *mDst,
+			       const int start_row,
+			       const int start_col,
+			       const int rows,
+			       const int cols,
+			       const int dest_row,
+			       const int dest_col  );
+MATRIX  *MatrixCopyImagRegion( const MATRIX *mSrc, MATRIX *mDst,
+			       const int start_row,
+			       const int start_col,
+			       const int rows,
+			       const int cols,
+			       const int dest_row,
+			       const int dest_col );
 MATRIX  *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
                          int start_col, int rows, int cols, float val);
 MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
