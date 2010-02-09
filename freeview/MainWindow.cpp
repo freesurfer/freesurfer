@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/02/09 03:45:03 $
- *    $Revision: 1.93 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/09 23:51:56 $
+ *    $Revision: 1.94 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1695,7 +1695,7 @@ void MainWindow::OnViewSnapToAxis( wxCommandEvent& event )
 
 void MainWindow::OnViewSnapToAxisUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( m_view3D->IsShown() && !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
+  event.Enable( (m_view3D->IsShown() && !GetLayerCollection( "MRI" )->IsEmpty()) || !GetLayerCollection( "Surface" )->IsEmpty() );
 }
 
 void MainWindow::OnViewSliceFrames( wxCommandEvent& event )
