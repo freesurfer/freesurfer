@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/09 17:52:30 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2010/02/09 23:16:13 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2005-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -203,9 +203,11 @@ int znzTAGreadStart(znzFile fp, long long *plen)
 {
   int  tag ;
 
-  tag = znzreadInt(fp) ;
+  if ( znzreadIntEx(&tag, fp) != 1 )
+    return(0);
   if (znzeof(fp))
     return(0) ;
+
   switch (tag)
   {
   case TAG_OLD_MGH_XFORM:
@@ -308,6 +310,7 @@ MATRIX *znzTAGreadAutoAlign(znzFile fp)
     buf[cnt] = c;
     cnt++;
   }
+  znzseek(fp, -1, SEEK_CUR);
   
   MATRIX *M;
   M = MatrixAlloc(4,4,MATRIX_REAL);
