@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/02/09 03:45:03 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -129,7 +129,7 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
   }
   else if ( m_bMoveSlice )
   {
-    view->MoveSliceInScreenCoord( m_nMousePosX, m_nMousePosY, posX, posY );
+    view->MoveSliceToScreenCoord( posX, posY );
     m_nMousePosX = posX;
     m_nMousePosY = posY;
   }

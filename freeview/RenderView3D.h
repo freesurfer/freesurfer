@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/02/09 03:45:03 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,7 @@
 
 class Cursor3D;
 class vtkActor;
+class vtkCubeSource;
 
 class VTK_RENDERING_EXPORT RenderView3D : public RenderView
 {
@@ -75,7 +76,11 @@ public:
     return m_nSliceHighlighted;
   }
   
-  void MoveSliceInScreenCoord( int x1, int y1, int x2, int y2 );
+  void MoveSliceToScreenCoord( int x, int y );
+  
+  bool GetShowSliceFrames();
+  
+  void SetShowSliceFrames( bool bShow );
   
 protected:
   void OnInternalIdle();
@@ -102,10 +107,15 @@ private:
   Cursor3D* m_cursor3D;
   bool m_bSliceVisibility[3];
   vtkSmartPointer<vtkActor> m_actorSliceFrames[3];
+  vtkSmartPointer<vtkActor> m_actorSliceBoundingBox[3];
+  vtkSmartPointer<vtkCubeSource>  m_cubeSliceBoundingBox[3];
   
   double  m_dBounds[6];
+  double  m_dBoundingTolerance;
   int     m_nSliceHighlighted;
 
+  double  m_dIntersectPoint[3];
+  
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()
 

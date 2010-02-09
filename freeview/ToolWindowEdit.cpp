@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/02/09 03:45:03 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -133,6 +133,7 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
       config->Write( _T("/ToolWindowEdit/PosY"), (long) y );
     }
   }
+  MainWindow::GetMainWindowPointer()->SetFocus();
 }
 
 void ToolWindowEdit::ResetPosition()

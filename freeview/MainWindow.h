@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.60 $
+ *    $Date: 2010/02/09 03:45:03 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -141,7 +141,9 @@ public:
   void OnViewScalarBar        ( wxCommandEvent& event );
   void OnViewScalarBarUpdateUI( wxUpdateUIEvent& event );
   void OnViewCoordinate       ( wxCommandEvent& event );
-  void OnViewCoordinateUpdateUI ( wxUpdateUIEvent& event );
+  void OnViewCoordinateUpdateUI   ( wxUpdateUIEvent& event );
+  void OnViewSliceFrames      ( wxCommandEvent& event );
+  void OnViewSliceFramesUpdateUI  ( wxUpdateUIEvent& event );
 
   void OnViewHistogram        ( wxCommandEvent& event );
   void OnViewHistogramUpdateUI( wxUpdateUIEvent& event );

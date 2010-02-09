@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.92 $
+ *    $Date: 2010/02/09 03:45:03 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -179,6 +179,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_RESET" ),             MainWindow::OnViewResetUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_SNAP_TO_AXIS" ),      MainWindow::OnViewSnapToAxis )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SNAP_TO_AXIS" ),      MainWindow::OnViewSnapToAxisUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_SLICE_FRAMES" ),      MainWindow::OnViewSliceFrames )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SLICE_FRAMES" ),      MainWindow::OnViewSliceFramesUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_SCALAR_BAR" ),        MainWindow::OnViewScalarBar )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_SCALAR_BAR" ),        MainWindow::OnViewScalarBarUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_COORDINATE" ),        MainWindow::OnViewCoordinate )
@@ -1693,7 +1695,18 @@ void MainWindow::OnViewSnapToAxis( wxCommandEvent& event )
 
 void MainWindow::OnViewSnapToAxisUpdateUI( wxUpdateUIEvent& event )
 {
-  event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
+  event.Enable( m_view3D->IsShown() && !GetLayerCollection( "MRI" )->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
+}
+
+void MainWindow::OnViewSliceFrames( wxCommandEvent& event )
+{
+  m_view3D->SetShowSliceFrames( !m_view3D->GetShowSliceFrames() );
+}
+
+void MainWindow::OnViewSliceFramesUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( m_view3D->IsShown() );
+  event.Check( m_view3D->GetShowSliceFrames() );
 }
 
 void MainWindow::ShowControlPanel( bool bShow )
