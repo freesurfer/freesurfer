@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.68 2010/02/09 16:13:27 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.69 2010/02/09 17:34:34 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.68 2010/02/09 16:13:27 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.69 2010/02/09 17:34:34 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1464,13 +1464,16 @@ find_optimal_translation
     StartChronometer( &tTranslationLoop );
 #endif // FS_CUDA
 
-#if FAST_TRANSLATION
 #ifdef FS_CUDA
+#if FAST_TRANSLATION
     float myMaxLogP, mydx, mydy, mydz;
     FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
 			    &myMaxLogP, &mydx, &mydy, &mydz );
-#endif
+    if( 0 ) {
 #else
+      if( 1 ) {
+#endif
+#endif
     for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
     {
       *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
@@ -1496,6 +1499,11 @@ find_optimal_translation
             local_GCAcomputeLogSampleProbability
             (gca, gcas, mri, m_L_tmp,nsamples) ;
 #endif
+
+#if 1
+	  printf( "%4.1f (%4.1f, %4.1f, %4.1f)\n",
+		  log_p, x_trans, y_trans, z_trans );
+#endif
           if (log_p > max_log_p)
           {
             max_log_p = log_p ;
@@ -1516,11 +1524,17 @@ find_optimal_translation
     }
 
 #ifdef FS_CUDA
+#if FAST_TRANSLATION
+      }
+#else
+    }
+#endif
+#endif
+
+#ifdef FS_CUDA
     StopChronometer( &tTranslationLoop );
     printf( "%s: itCount = %li\n", __FUNCTION__, itCount );
 #endif // FS_CUDA
-
-#endif // FAST_TRANSLATION
 
     if (Gdiag & DIAG_SHOW)
       printf(
