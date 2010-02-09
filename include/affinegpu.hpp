@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/09 15:33:42 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/09 18:29:38 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -153,6 +153,14 @@ namespace GPU {
 
       //! Routine to set up translation
       __device__ void SetTranslation( const float3& trans ) {
+	/*!
+	  This routine sets the affine matrix locations
+	  corresponding to translation to the given
+	  translation vector.
+	  It leaves everything else untouched, so if you
+	  want a pure transformation matrix, call
+	  SetIdentity first.
+	*/
 	// Only done by first thread
 	if( threadIdx.x == 0 ) {
 	  (*this)(0,3) = trans.x;
@@ -162,12 +170,97 @@ namespace GPU {
 	}
       }
 
+      //! Routine to set up scaling
+      __device__ void SetScaling( const float3& scale ) {
+	/*!
+	  This routine sets the affine matrix locations
+	  corresponding to a scaling to the given
+	  vector.
+	  It leaves everything else untouched, so if you
+	  want a pure scaling matrix, call
+	  SetIdentity first.
+	*/
+	if( threadIdx.x == 0 ) {
+	  (*this)(0,0) = scale.x;
+	  (*this)(1,1) = scale.y;
+	  (*this)(2,2) = scale.z;
+	}
+      }
+
+      //! Routine to set up x rotation
+      __device__void SetXRotation( const float theta ) {
+	/*!
+	  This routine sets the affine matrix locations
+	  corresponding to a rotation about the X axis
+	  of the given angle.
+	  It leaves everything else untouched, so if you
+	  want a pure rotation matrix, call
+	  SetIdentity first.
+	*/
+	if( threadIdx.x == 0 ) {
+	  float s, c;
+	  sincosf( theta, &s, &c );
+	  
+	  (*this)(1,1) =  c;
+	  (*this)(1,2) =  s;
+	  (*this)(2,1) = -s;
+	  (*this)(2,2) =  c;
+	}
+      }
+
+
+      //! Routine to set up y rotation
+      __device__void SetYRotation( const float theta ) {
+	/*!
+	  This routine sets the affine matrix locations
+	  corresponding to a rotation about the Y axis
+	  of the given angle.
+	  It leaves everything else untouched, so if you
+	  want a pure rotation matrix, call
+	  SetIdentity first.
+	*/
+	if( threadIdx.x == 0 ) {
+	  float s, c;
+	  sincosf( theta, &s, &c );
+	  
+	  (*this)(0,0) =  c;
+	  (*this)(0,2) = -s;
+	  (*this)(2,0) =  s;
+	  (*this)(2,2) =  c;
+	}
+      }
+
+
+      //! Routine to set up z rotation
+      __device__void SetZRotation( const float theta ) {
+	/*!
+	  This routine sets the affine matrix locations
+	  corresponding to a rotation about the Z axis
+	  of the given angle.
+	  It leaves everything else untouched, so if you
+	  want a pure rotation matrix, call
+	  SetIdentity first.
+	*/
+	if( threadIdx.x == 0 ) {
+	  float s, c;
+	  sincosf( theta, &s, &c );
+	  
+	  (*this)(0,0) =  c;
+	  (*this)(0,1) =  s;
+	  (*this)(1,0) = -s;
+	  (*this)(1,1) =  c;
+	}
+      }
+
+
       //! Routine to multiply two matrices
       __device__ void Multiply( const AffineTransShared& a,
 			       const AffineTransShared& b ) {
 	/*!
 	  Performs the matrix-multiply a*b and stores the
 	  result in the current object.
+	  Multiplication will be performed by the first
+	  warp of the block, and will have bank conflicts
 	*/
 
 	if( threadIdx.x < kMatrixSize ) {
@@ -185,6 +278,31 @@ namespace GPU {
 	  
 	}
       }
+
+
+      //! Routine to transform a float3 vector
+      __device__ float3 transform( const float3& a ) const {
+	float r1[kVectorSize], r2[kVectorSize];
+	
+	// Set up in put affine vector
+	r1[0] = a.x;
+	r1[1] = a.y;
+	r1[2] = a.z;
+	r1[3] = 1;
+
+	// Do the multiplication
+	for( unsigned int i=0; i<kVectorSize; i++ ) {
+	  r2[i] = 0;
+	  #pragma unroll 4
+	  for( unsigned int j=0; j<kVectorSize; j++ ) {
+	    r2[i] += (*this)( i, j ) * r1[j];
+	  }
+	}
+
+	// Construct float3 return value
+	return( make_float3( r2[0], r2[1], r2[2] ) );
+      }
+	
 
     private:
       //! Default constructor (don't use!)
