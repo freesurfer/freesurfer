@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.70 2010/02/09 18:10:41 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.71 2010/02/09 18:17:16 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.70 2010/02/09 18:10:41 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.71 2010/02/09 18:17:16 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1413,12 +1413,9 @@ find_optimal_translation
   y_trans = 0;
   z_trans = 0;
 
-
 #define FAST_TRANSLATION 1
 
 #ifdef FS_CUDA
-  Chronometer tTranslationLoop;
-  InitChronometer( &tTranslationLoop );
 #if FAST_TRANSLATION
   CUDA_OptimalTranslationPrepare( gca, gcas, mri, nsamples );
 #else
@@ -1446,19 +1443,8 @@ find_optimal_translation
       fflush(stdout) ;
     }
 
-#ifdef FS_CUDA
-    unsigned long itCount = 0;
-    
-    if( itCount > 0 ) {
-      ;
-    }
-
-    unsigned int nTrans = 1+((max_trans-min_trans)/delta);
-    printf( "%s: nTrans = %i\n", __FUNCTION__, nTrans );
-    StartChronometer( &tTranslationLoop );
-#endif // FS_CUDA
-
 #if defined(FS_CUDA) && FAST_TRANSLATION
+     unsigned int nTrans = 1+((max_trans-min_trans)/delta);
     float myMaxLogP, mydx, mydy, mydz;
     FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
 			    &myMaxLogP, &mydx, &mydy, &mydz );
@@ -1504,19 +1490,10 @@ find_optimal_translation
                    max_log_p, x_trans, y_trans, z_trans) ;
 #endif
           }
-#ifdef FS_CUDA
-          itCount++;
-#endif // FS_CUDA
         }
       }
     }
 #endif
-
-#ifdef FS_CUDA
-    StopChronometer( &tTranslationLoop );
-    printf( "%s: itCount = %li\n", __FUNCTION__, itCount );
-#endif // FS_CUDA
-
 
     if (Gdiag & DIAG_SHOW)
       printf(
@@ -1546,18 +1523,12 @@ find_optimal_translation
   MatrixFree(&m_trans) ;
 
 #ifdef FS_CUDA
-  printf( "%s: tTranslationLoop = %f ms (average of %li calls)\n",
-          __FUNCTION__,
-          GetAverageChronometerValue( &tTranslationLoop ),
-          tTranslationLoop.nStarts );
-
 #if FAST_TRANSLATION
   CUDA_OptimalTranslationRelease();
 #else
   CUDA_LogSampleProbabilityRelease();
 #endif
-#endif // FS_CUDA
-  //exit( EXIT_SUCCESS );
+#endif
 
   return(max_log_p) ;
 }
