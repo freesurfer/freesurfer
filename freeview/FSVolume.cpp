@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/02/09 20:24:51 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -795,12 +795,42 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
       }
     }
   }
-  int dim[3];
-  dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / src->xsize + 0.5 );
-  dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / src->ysize + 0.5 );
-  dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / src->zsize + 0.5 );
   
-//  cout << "dim: " << dim[0] << " " << dim[1] << " " << dim[2] << endl;
+  // find out the voxelsize of the converted target volume
+  MATRIX* mat = MRIgetVoxelToVoxelXform( src, refTarget );
+  double m[16];
+  for ( int i = 0; i < 16; i++ )
+  {
+    m[i] = (double) *MATRIX_RELT((mat),(i/4)+1,(i%4)+1);
+  }
+  double pixelSize[3] = { 1, 1, 1 };
+  if ( fabs( m[0] ) > fabs( m[4] ) && fabs( m[0] ) > fabs( m[8] ) )
+    pixelSize[0] = src->xsize;
+  else if ( fabs( m[4] ) > fabs( m[8] ) )
+    pixelSize[1] = src->xsize;
+  else
+    pixelSize[2] = src->xsize;
+
+  if ( fabs( m[1] ) > fabs( m[5] ) && fabs( m[1] ) > fabs( m[9] ) )
+    pixelSize[0] = src->ysize;
+  else if ( fabs( m[5] ) > fabs( m[9] ) )
+    pixelSize[1] = src->ysize;
+  else
+    pixelSize[2] = src->ysize;
+
+  if ( fabs( m[2] ) > fabs( m[6] ) && fabs( m[2] ) > fabs( m[10] ) )
+    pixelSize[0] = src->zsize;
+  else if ( fabs( m[6] ) > fabs( m[10] ) )
+    pixelSize[1] = src->zsize;
+  else
+    pixelSize[2] = src->zsize;
+  
+  // calculate dimension of the converted target volume
+  int dim[3];
+  dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / pixelSize[0] + 0.5 );
+  dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / pixelSize[1] + 0.5 );
+  dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / pixelSize[2] + 0.5 );
+  
 //  cout << "indexBounds: " << indexBounds[0] << " " << indexBounds[2] << " " << indexBounds[4] << endl;
   
   MRI* mri;
@@ -813,7 +843,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
     return NULL;
   
   MRIcopyHeader( refTarget, mri );
-  MRIsetResolution( mri, src->xsize, src->ysize, src->zsize );
+  MRIsetResolution( mri, pixelSize[0], pixelSize[1], pixelSize[2] );
   Real p0[3];
   ::MRIvoxelToWorld( refTarget, 
                      indexBounds[0]+0.5, 

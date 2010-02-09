@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/09 03:45:03 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/02/09 20:24:52 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,7 +57,7 @@
 #include "vtkBoundingBox.h"
 #include "Cursor3D.h"
 
-#define SLICE_PICKER_PIXEL_TOLERANCE  12
+#define SLICE_PICKER_PIXEL_TOLERANCE  15
 
 IMPLEMENT_DYNAMIC_CLASS(RenderView3D, RenderView)
 
@@ -159,12 +159,6 @@ void RenderView3D::RefreshAllActors()
   }
   
   MainWindow::GetMainWindowPointer()->GetConnectivityData()->AppendProps( m_renderer );
-  
-  for ( int i = 0; i < 3; i++ )
-  {
-    m_renderer->AddViewProp( m_actorSliceFrames[i] );
-//    m_renderer->AddViewProp( m_actorSliceBoundingBox[i] );
-  }
   
   m_renderer->ResetCameraClippingRange();
 
