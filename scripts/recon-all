@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/29 20:05:15 $
-#    $Revision: 1.265 $
+#    $Date: 2010/02/09 23:59:36 $
+#    $Revision: 1.266 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.265 2010/01/29 20:05:15 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.266 2010/02/09 23:59:36 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1085,7 +1085,7 @@ if($DoTalCheck) then
       set std=(0.0046)  # buckner40 std TalAviQA
       set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
       echo "z-score: ${zscore}" |& tee -a $LF
-      set zscoreThreshold=(-6) # conservative value, but catches M.Harms subjs.
+      set zscoreThreshold=(-8) # conservative value, but catches M.Harms subjs.
       if ($zscore <= $zscoreThreshold) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
         echo "       z-score = ${zscore} <= ${zscoreThreshold} = threshold" \
