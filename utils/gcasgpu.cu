@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 17:25:22 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/09 14:40:46 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,10 +39,10 @@ namespace GPU {
   namespace Classes {
 
 
-    void GCASonemeanGPU::SendGPU( GCA *gca,
-				  GCA_SAMPLE *gcaSample,
-				  MRI *mri_inputs,
-				  const int nSamples ) {
+    void GCASampleGPU::SendGPU( GCA *gca,
+				GCA_SAMPLE *gcaSample,
+				MRI *mri_inputs,
+				const int nSamples ) {
       /*!
 	Sends the given GCAS to the GPU, doing
 	various other things whose use is currently
@@ -131,10 +131,10 @@ namespace GPU {
     
     // Memory management
 
-    void GCASonemeanGPU::Allocate( const unsigned int n ) {
+    void GCASampleGPU::Allocate( const unsigned int n ) {
       if( this->nSamplesAlloc < n ) {
 	this->Release();
-
+	
 	CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_x),
 				    n*sizeof(int) ) );
 	CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_y),
@@ -155,7 +155,7 @@ namespace GPU {
       this->nSamples = n;
     }
 
-    void GCASonemeanGPU::Release( void ) {
+    void GCASampleGPU::Release( void ) {
       if( this->nSamplesAlloc != 0 ) {
 	CUDA_SAFE_CALL( cudaFree( d_x ) );
 	CUDA_SAFE_CALL( cudaFree( d_y ) );

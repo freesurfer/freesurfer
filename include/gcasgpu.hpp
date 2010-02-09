@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 17:36:54 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/09 14:40:56 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,21 +42,21 @@ namespace GPU {
   namespace Classes {
 
     // Forward declaration on class passed to kernel
-    class GCASonGPUonemean;
+    class GCASonGPU;
 
     //! Class to hold GCAS with one mean per location
-    class GCASonemeanGPU {
+    class GCASampleGPU {
     public:
       // -----------------------------
       //! Default constructor
-      GCASonemeanGPU( void ) : nSamples(0), nSamplesAlloc(0),
-			       d_x(NULL), d_y(NULL), d_z(NULL),
-			       d_means(NULL),
-			       d_priors(NULL),
-			       d_covars(NULL) {}
-
+      GCASampleGPU( void ) : nSamples(0), nSamplesAlloc(0),
+			     d_x(NULL), d_y(NULL), d_z(NULL),
+			     d_means(NULL),
+			     d_priors(NULL),
+			     d_covars(NULL) {}
+      
       // Destructor
-      ~GCASonemeanGPU( void ) {
+      ~GCASampleGPU( void ) {
 	this->Release();
       }
 
@@ -69,7 +69,7 @@ namespace GPU {
 		    const int nSamples );
 
       // Declase related 'kernel' class a friend for private access
-      friend class GCASonGPUonemean;
+      friend class GCASonGPU;
 
       // =================================
     private:
@@ -103,29 +103,29 @@ namespace GPU {
       // Inhibit copying
 
       //! Copy constructor aborts
-      GCASonemeanGPU( const GCASonemeanGPU& src ) : nSamples(0),
-						    nSamplesAlloc(0),
-						    d_x(NULL),
-						    d_y(NULL),
-						    d_z(NULL),
-						    d_means(NULL),
-						    d_priors(NULL),
-						    d_covars(NULL) {
+      GCASampleGPU( const GCASampleGPU& src ) : nSamples(0),
+						nSamplesAlloc(0),
+						d_x(NULL),
+						d_y(NULL),
+						d_z(NULL),
+						d_means(NULL),
+						d_priors(NULL),
+						d_covars(NULL) {
 	std::cerr << __FUNCTION__ << ": Please don't copy"
 		  << std::endl;
 	exit( EXIT_FAILURE );
       }
 
       //! Assignment operator aborts
-      GCASonemeanGPU& operator=( const GCASonemeanGPU& src ) {
+      GCASampleGPU& operator=( const GCASampleGPU& src ) {
 	std::cerr << __FUNCTION__ << ": Please don't copy"
 		  << std::endl;
 	exit( EXIT_FAILURE );
       }
     };
+    
 
-
-    class GCASonGPUonemean {
+    class GCASonGPU {
     public:
       //! Number of samples
       unsigned int nSamples;
@@ -144,14 +144,14 @@ namespace GPU {
       //! List of covariances
       float *covars;
       
-      //! Construct from GCASonemeanGPU
-      GCASonGPUonemean( const GCASonemeanGPU& src ) : nSamples(src.nSamples),
-						      x(src.d_x),
-						      y(src.d_y),
-						      z(src.d_z),
-						      means(src.d_means),
-						      priors(src.d_priors),
-						      covars(src.d_covars) {}
+      //! Construct from GCASGPU
+      GCASonGPU( const GCASampleGPU& src ) : nSamples(src.nSamples),
+					     x(src.d_x),
+					     y(src.d_y),
+					     z(src.d_z),
+					     means(src.d_means),
+					     priors(src.d_priors),
+					     covars(src.d_covars) {}
 
       //! Accessor for locations
       __device__ float3 GetLocation( const unsigned int i ) const {
@@ -167,16 +167,16 @@ namespace GPU {
       // ================================================
 
       //! Default constructor should not be used
-      GCASonGPUonemean( void ) : nSamples(0),
-				 x(NULL), y(NULL), z(NULL),
-				 means(NULL), priors(NULL), covars(NULL) {
+      GCASonGPU( void ) : nSamples(0),
+			  x(NULL), y(NULL), z(NULL),
+			  means(NULL), priors(NULL), covars(NULL) {
 	std::cerr << __FUNCTION__ << ": Please don't use"
 		  << std::endl;
 	exit( EXIT_FAILURE );
       }
 
       //! Assignment operator should not be used
-      GCASonGPUonemean& operator=( const GCASonGPUonemean& src ) {
+      GCASonGPU& operator=( const GCASonGPU& src ) {
 	std::cerr << __FUNCTION__ << ": Please don't use"
 		  << std::endl;
 	exit( EXIT_FAILURE );
