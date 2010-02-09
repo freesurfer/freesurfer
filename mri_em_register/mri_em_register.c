@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.67 2010/02/05 19:59:27 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.68 2010/02/09 16:13:27 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.67 2010/02/05 19:59:27 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.68 2010/02/09 16:13:27 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1414,11 +1414,16 @@ find_optimal_translation
   z_trans = 0;
 
 
-#define FAST_TRANSLATION 0
+#define FAST_TRANSLATION 1
 
 #ifdef FS_CUDA
   Chronometer tTranslationLoop;
   InitChronometer( &tTranslationLoop );
+#if FAST_TRANSLATION
+  CUDA_OptimalTranslationPrepare( gca, gcas, mri, nsamples );
+#else
+  CUDA_LogSampleProbabilityPrepare( gca, gcas, mri, nsamples );
+#endif
 #endif // FS_CUDA
 
   delta = (max_trans-min_trans) / trans_steps ;
@@ -1456,7 +1461,6 @@ find_optimal_translation
        min_trans, max_trans, delta,
        &myMaxLogP, &mydx, &mydy, &mydz );
     */
-    CUDA_LogSampleProbabilityPrepare( gca, gcas, mri, nsamples );
     StartChronometer( &tTranslationLoop );
 #endif // FS_CUDA
 
@@ -1513,7 +1517,6 @@ find_optimal_translation
 
 #ifdef FS_CUDA
     StopChronometer( &tTranslationLoop );
-    CUDA_LogSampleProbabilityRelease();
     printf( "%s: itCount = %li\n", __FUNCTION__, itCount );
 #endif // FS_CUDA
 
@@ -1551,6 +1554,12 @@ find_optimal_translation
           __FUNCTION__,
           GetAverageChronometerValue( &tTranslationLoop ),
           tTranslationLoop.nStarts );
+
+#if FAST_TRANSLATION
+  CUDA_OptimalTranslationRelease();
+#else
+  CUDA_LogSampleProbabilityRelease();
+#endif
 #endif // FS_CUDA
   //exit( EXIT_SUCCESS );
 
