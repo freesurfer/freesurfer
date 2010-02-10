@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/01/27 15:18:06 $
- *    $Revision: 1.55 $
+ *    $Author: rpwang $
+ *    $Date: 2010/02/10 21:20:22 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,11 @@
 #ifdef FS_CUDA
 #include "mrivol2vol_cuda.h"
 #endif
+
+/* overwrite generic nint to speed up execution 
+  Make sure NOT use calls like nint(f++) in this file!
+*/
+#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 
 #define VERBOSE_MODE
 
