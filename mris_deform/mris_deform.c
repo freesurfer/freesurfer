@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/10 18:27:48 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/10 22:31:47 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -259,7 +259,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.19 2010/02/10 18:27:48 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.20 2010/02/10 22:31:47 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2926,8 +2926,9 @@ compute_best_neighborhood_profile(MRI_SURFACE *mris, MRI *mri,int vno, DP *dp)
 {
   VP     *vp ;
   int    best_profile, wm_len, ig_len, sg_len, i, profile_len, n, stria_len, num, tsteps ;
-  double kernel[MAX_PROFILE_LEN], nx, ny, nz, wm_intensity_offset, sg_intensity_offset, in_dist, wm_val,
-         intensity_profile[MAX_PROFILE_LEN],norm, ig_dist, sg_dist, v1_rms_total, 
+  double kernel[MAX_PROFILE_LEN], nx, ny, nz, wm_intensity_offset, sg_intensity_offset, in_dist,
+    wm_val=0,
+    intensity_profile[MAX_PROFILE_LEN],norm, ig_dist, sg_dist, v1_rms_total, 
     generic_rms_total, generic_rms, v1_rms ;
   VERTEX *v, *vn ;
   double (*profile_error_func)(double *kernel, double *intensity_profile, 
