@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/02/10 00:49:55 $
- *    $Revision: 1.96 $
+ *    $Date: 2010/02/10 01:01:23 $
+ *    $Revision: 1.97 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3818,7 +3818,7 @@ MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
   for (nctrl = i = 0 ; i < num_control_points ; i++)
   {
     x = xctrl[i] ; y = yctrl[i] ; z = zctrl[i] ;
-    if (MRIindexNotInVolume(MRI *mri, x, y, z) == 0)
+    if (MRIindexNotInVolume(mri_ctrl, x, y, z) == 0)
     {
       if (MRIvox(mri_ctrl, x, y, z) == 0)
         nctrl++ ;
