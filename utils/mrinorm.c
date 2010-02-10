@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/02/09 16:37:57 $
- *    $Revision: 1.95 $
+ *    $Date: 2010/02/10 00:49:55 $
+ *    $Revision: 1.96 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -3812,18 +3812,23 @@ MRI3dWriteBias(char *t_bias_volume_fname)
 int
 MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
 {
-  int  i, nctrl ;
+  int  i, nctrl, x, y, z, bad = 0 ;
 
   /* read in control points from a file (if specified) */
   for (nctrl = i = 0 ; i < num_control_points ; i++)
   {
-    /*    if (!MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]))*/
+    x = xctrl[i] ; y = yctrl[i] ; z = zctrl[i] ;
+    if (MRIindexNotInVolume(MRI *mri, x, y, z) == 0)
     {
-      if (MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) == 0)
+      if (MRIvox(mri_ctrl, x, y, z) == 0)
         nctrl++ ;
-      MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) = value ;
+      MRIvox(mri_ctrl, x, y, z) = value ;
     }
+    else
+      bad++ ;
   }
+  if (bad > 0)
+    ErrorPrintf(ERROR_BADFILE, "!!!!! %d control points rejected for being out of bounds !!!!!!\n") ;
   return(nctrl) ;
 }
 
