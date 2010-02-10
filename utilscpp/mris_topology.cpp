@@ -11,8 +11,8 @@
  * Original Author: Florence Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/10 21:48:48 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/02/10 22:09:33 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,9 @@
 
 #include "mris_topology.h"
 #include "topology/patchdisk.h"
+extern "C" {
 #include "utils.h"
+}
 
 #define __PRINT_MODE 0
 #define WHICH_OUTPUT stderr
