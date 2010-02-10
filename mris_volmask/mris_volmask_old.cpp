@@ -1,19 +1,18 @@
 /**
- * @file  mris_volmask_new.cpp
+ * @file  mris_volmask.cpp
  * @brief Uses the 4 surfaces of a scan to construct a mask volume
  *
  * Uses the 4 surfaces of a scan to construct a mask volume showing the
  * position of each voxel with respect to the surfaces - GM, WM, LH or RH.
- * 
- * Uses the MRISOBBTree algorithm
  */
 /*
- * Original Author: Krish Subramaniam
+ * Original Author: Gheorghe Postelnicu
  * CVS Revision Info:
  *    $Author: krish $
  *    $Date: 2010/02/10 00:29:35 $
+ *    $Revision: 1.1 $
  *
- * Copyright (C) 2009,
+ * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -28,15 +27,25 @@
  */
 
 // STL
+#include <queue>
 #include <string>
 #include <iostream>
 #include <iomanip>
 #include <cstdio>
 #include <vector>
 
-#include "MRISOBBTree.h"
-#include "MRISDistanceField.h"
-#include "fastmarching.h"
+// option to not use VTK libs to perform surface/volume intersection detection
+// this is useful to build a version w/o the VTK/GL dependency, which is
+// problematic for cluster machines which may not have those libs
+#ifndef NO_VTK
+// VTK
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkPolyData.h>
+#include <vtkStructuredPoints.h>
+#include <vtkImplicitModeller.h>
+#include <vtkOBBTree.h>
+#endif
 #include "cmd_line_interface.h"
 
 // FS
@@ -52,8 +61,6 @@ extern "C"
 #include "gca.h"
 };
 char *Progname;
-
-typedef Math::Point<int> Pointd;
 
 // static function declarations
 // forward declaration
@@ -97,10 +104,16 @@ LoadInputFiles(const IoParams& params,
                MRIS*& surfRightWhite,
                MRIS*& surfRightPial) throw(IoError) ;
 
-MRI* ComputeSurfaceDistanceFunction
+/*
+  converts vertices to the index space
+*/
+void ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
+                                     MRI* vol);
+
+void ComputeSurfaceDistanceFunction
 (MRIS* mris, //input surface
- MRI* mriInOut, //output MRI structure
- float resolution); 
+ float thickness, // cap value for the precise distance value
+ MRI* mriInOut); // output mri structure
 
 MRI* CreateHemiMask(MRI* dpial, MRI* dwhite,
                     const unsigned char lblWhite,
@@ -218,7 +231,9 @@ main(int ac, char* av[])
 
   //---------------------
   // proces white surface - convert to voxel-space
-  //
+#ifndef NO_VTK
+  ConvertSurfaceVertexCoordinates(surfLeftWhite, mriTemplate);
+#endif
   // allocate distance
   MRI* dLeftWhite = MRIalloc( mriTemplate->width,
                               mriTemplate->height,
@@ -229,10 +244,14 @@ main(int ac, char* av[])
   // Computes the signed distance to given surface. Sign indicates
   // whether it is on the inside or outside. params.capValue -
   // saturation/clip value for distance.
-  std::cout << "computing distance to left white surface \n" ;
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction(surfLeftWhite,
-                                 dLeftWhite,
-                                 params.capValue);
+                                 params.capValue,
+                                 dLeftWhite);
+#else
+  std::cout << "computing distance to left white surface \n" ;
+  MRIScomputeDistanceToSurface(surfLeftWhite, dLeftWhite, mriTemplate->xsize) ;
+#endif
   // if the option is there, output distance
   if ( params.bSaveDistance )
     MRIwrite
@@ -243,15 +262,22 @@ main(int ac, char* av[])
 
   //-----------------------
   // process pial surface
+#ifndef NO_VTK
+  ConvertSurfaceVertexCoordinates(surfLeftPial,  mriTemplate);
+#endif
   MRI* dLeftPial = MRIalloc( mriTemplate->width,
                              mriTemplate->height,
                              mriTemplate->depth,
                              MRI_FLOAT);
   MRIcopyHeader(mriTemplate,dLeftPial);
-  std::cout << "computing distance to left pial surface \n" ;
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction(surfLeftPial,
-                                 dLeftPial,
-                                 params.capValue);
+                                 params.capValue,
+                                 dLeftPial);
+#else
+  std::cout << "computing distance to left pial surface \n" ;
+  MRIScomputeDistanceToSurface(surfLeftPial, dLeftPial, mriTemplate->xsize) ;
+#endif
   if ( params.bSaveDistance )
     MRIwrite
     ( dLeftPial,
@@ -275,15 +301,24 @@ main(int ac, char* av[])
 
   //-------------------
   // process white
+#ifndef NO_VTK
+  ConvertSurfaceVertexCoordinates(surfRightWhite,mriTemplate);
+#endif
   MRI* dRightWhite = MRIalloc( mriTemplate->width,
                                mriTemplate->height,
                                mriTemplate->depth,
                                MRI_FLOAT);
   MRIcopyHeader(mriTemplate, dRightWhite);
-  std::cout << "computing distance to right white surface \n" ;
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction( surfRightWhite,
-                                  dRightWhite,
-                                  params.capValue);
+                                  params.capValue,
+                                  dRightWhite);
+#else
+  std::cout << "computing distance to right white surface \n" ;
+  MRIScomputeDistanceToSurface(surfRightWhite, 
+                               dRightWhite, 
+                               mriTemplate->xsize) ;
+#endif
   if ( params.bSaveDistance )
     MRIwrite
     ( dRightWhite,
@@ -293,15 +328,22 @@ main(int ac, char* av[])
 
   //--------------------
   // process pial
+#ifndef NO_VTK
+  ConvertSurfaceVertexCoordinates(surfRightPial, mriTemplate);
+#endif
   MRI* dRightPial = MRIalloc( mriTemplate->width,
                               mriTemplate->height,
                               mriTemplate->depth,
                               MRI_FLOAT);
   MRIcopyHeader(mriTemplate, dRightPial);
-  std::cout << "computing distance to right pial surface \n" ;
+#ifndef NO_VTK
   ComputeSurfaceDistanceFunction(surfRightPial,
-                                 dRightPial,
-                                 params.capValue);
+                                 params.capValue,
+                                 dRightPial);
+#else
+  std::cout << "computing distance to right pial surface \n" ;
+  MRIScomputeDistanceToSurface(surfRightPial, dRightPial, mriTemplate->xsize) ;
+#endif
   if ( params.bSaveDistance )
     MRIwrite
     ( dRightPial,
@@ -611,141 +653,145 @@ LoadInputFiles(const IoParams& params,
   return pathOutput;
 }
 
-
-
-MRI*
+#ifndef NO_VTK
+void
 ComputeSurfaceDistanceFunction(MRIS* mris,
-                               MRI* mri_distfield,
-                               float thickness)
+                               float thickness,
+                               MRI* vol)
 {
-  int res;
-  MRI *mri_visited, *_mridist; 
-  _mridist  = MRIclone(mri_distfield, NULL);
-  mri_visited  = MRIcloneDifferentType(mri_distfield, MRI_INT);
+  vtkPoints* points;
+  vtkCellArray* faces;
+  vtkPolyData* mesh;
 
-  // Convert surface vertices to vox space
-  Math::ConvertSurfaceRASToVoxel(mris, mri_distfield);
-  
-  // Find the distance field 
-  MRISDistanceField *distfield = new MRISDistanceField(mris, _mridist);
-  distfield->SetMaxDistance(thickness);
-  distfield->Generate(); //mri_dist now has the distancefield 
-
-  // Construct the OBB Tree
-  MRISOBBTree* OBBTree = new MRISOBBTree(mris);
-  OBBTree->ConstructTree();
-  
-  std::queue<Pointd* > ptsqueue;
-  // iterate through all the volume points 
-  // and apply sign 
-  for(int i=0; i< mri_distfield->width; i++)
+  points = vtkPoints::New();
+  points->SetNumberOfPoints( mris->nvertices );
+  VERTEX* pvtx = &( mris->vertices[0] );
+  for (unsigned int ui(0), nvertices(mris->nvertices);
+       ui < nvertices; ++ui, ++pvtx )
   {
-    //std::cerr << i <<" ";
-    for(int j=0; j< mri_distfield->height; j++)
+    points->SetPoint(ui, pvtx->x, pvtx->y, pvtx->z);
+  } // next point (vertex)
+
+  faces = vtkCellArray::New();
+  faces->Allocate( mris->nfaces );
+  FACE* pface = &( mris->faces[0] );
+  for ( unsigned int ui(0), nfaces(mris->nfaces);
+        ui < nfaces; ++ui, ++pface )
+  {
+    faces->InsertNextCell((long long int)VERTICES_PER_FACE);
+    for ( int i = 0; i < VERTICES_PER_FACE; i++ )
     {
-      for(int k=0; k< mri_distfield->depth; k++)
+      faces->InsertCellPoint(pface->v[i]);
+    }
+  } // next cell (face)
+
+  mesh = vtkPolyData::New();
+  mesh->SetPoints(points);
+  mesh->SetPolys(faces);
+  mesh->Modified();
+
+  vtkStructuredPoints* sp = vtkStructuredPoints::New();
+  int dims[3] = { vol->width,
+                  vol->height,
+                  vol->depth };
+  sp->SetDimensions(dims);
+
+  // compute the unsigned distance
+  vtkImplicitModeller* implicit = vtkImplicitModeller::New();
+  implicit->SetInput(mesh);
+  double bounds[6] =
+    { 0, dims[0]-1, 0, dims[1]-1, 0, dims[2]-1 };
+  implicit->SetModelBounds(bounds);
+  implicit->SetMaximumDistance( thickness );
+  implicit->SetSampleDimensions(dims);
+  implicit->AdjustBoundsOff();
+  implicit->CappingOff();
+  implicit->SetCapValue(thickness);
+  implicit->SetProcessModeToPerVoxel();
+  implicit->SetNumberOfThreads( 8 );
+  implicit->Update();
+
+  sp->ShallowCopy( implicit->GetOutput() );
+
+  // determine if voxels are inside or outside
+  // minimize no calls to  vtkOBBTree::InsideOrOutside - costly
+
+  vtkOBBTree* obb = vtkOBBTree::New();
+  obb->CacheCellBoundsOff();
+  obb->SetDataSet(mesh);
+  obb->AutomaticOn();
+  obb->SetTolerance(0);
+  obb->BuildLocator();
+
+  // array for voxels inside, outside or yet to determin
+  int npoints = sp->GetNumberOfPoints();
+  int *inout = new int[npoints];
+  memset(inout, 0, npoints*sizeof(int));
+  float *tab = (float*)sp->GetScalarPointer();
+
+  std::queue<vtkIdType> filo;
+
+  vtkIdType incx,incy,incz;
+  sp->GetIncrements(incx,incy,incz);
+
+  // iterate thru each volume point, apply sign to tab
+  for (vtkIdType i=0; i<npoints; ++i)
+  {
+    if (inout[i]) continue; // skip if already visited
+
+    double pt[3];
+    sp->GetPoint(i,pt);
+    const int _inout = obb->InsideOrOutside(pt); // sign
+    if ( _inout == 0 ) std::cerr << "Warning: voxel could not be classified\n";
+
+    filo.push(i);
+    while (!filo.empty())
+    {
+      const vtkIdType j = filo.front();
+      filo.pop();
+      if (inout[j]) continue;
+
+      inout[j] = _inout;
+      const float dist = tab[j]; // unsigned distance
+      tab[j] *= _inout; // make it signed
+
+      // mark its neighbors if distance > 1 (triangle inequality)
+      if ( dist>1 )
       {
-        if ( MRIIvox(mri_visited, i, j, k )) continue; 
-        res = OBBTree->PointInclusionTest(i, j, k);
-        Pointd *pt = new Pointd;
-        pt->v[0] = i; pt->v[1] = j; pt->v[2] = k;
-        ptsqueue.push( pt );
-
-        // First serve all the points in the queue before going to the next voxel
-        while ( !ptsqueue.empty() )
-        {
-          // serve the front and pop it
-          Pointd *p = ptsqueue.front();
-          const int x = p->v[0];
-          const int y = p->v[1];
-          const int z = p->v[2];
-          delete p;
-          ptsqueue.pop();
-
-          if ( MRIIvox(mri_visited, x, y, z) ) continue; 
-          MRIIvox(mri_visited, x, y, z) =  res;
-          const float dist = MRIFvox(_mridist, x, y, z);
-          MRIFvox(_mridist, x, y, z) =  dist*res;
-
-          // mark its 6 neighbors if distance > 1 ( triangle inequality )
-          if ( dist > 1 )
-          {
-            // left neighbor in x
-            if ( x>0 && !MRIIvox(mri_visited, x-1, y, z))
-            {
-              Pointd *ptemp = new Pointd;
-              ptemp->v[0]   = x - 1;
-              ptemp->v[1]   = y;
-              ptemp->v[2]   = z;
-              ptsqueue.push(ptemp);
-            }
-            // bottom neighbor in y
-            if ( y>0 && !MRIIvox(mri_visited, x, y-1, z))
-            {
-              Pointd *ptemp = new Pointd;
-              ptemp->v[0]   = x;
-              ptemp->v[1]   = y - 1;
-              ptemp->v[2]   = z;
-              ptsqueue.push(ptemp);
-            }
-            // front neighbor in z
-            if ( z>0 && !MRIIvox(mri_visited, x, y, z-1))
-            { 
-              Pointd *ptemp = new Pointd;
-              ptemp->v[0]   = x;
-              ptemp->v[1]   = y;
-              ptemp->v[2]   = z - 1;
-              ptsqueue.push(ptemp);
-            }
-            // right neighbor in x
-            if ( x<mri_visited->width-1 && !MRIIvox(mri_visited, x+1, y, z))
-            {
-              Pointd *ptemp = new Pointd;
-              ptemp->v[0]   = x + 1;
-              ptemp->v[1]   = y;
-              ptemp->v[2]   = z;
-              ptsqueue.push(ptemp);
-            }
-            // top neighbor in y
-            if ( y<mri_visited->height-1 && !MRIIvox(mri_visited, x, y+1, z))
-            {
-              Pointd *ptemp = new Pointd;
-              ptemp->v[0]   = x;
-              ptemp->v[1]   = y + 1;
-              ptemp->v[2]   = z;
-              ptsqueue.push(ptemp);
-            }
-            // back neighbor in z
-            if ( z<mri_visited->depth-1 && !MRIIvox(mri_visited, x, y, z+1))
-            {
-              Pointd *ptemp = new Pointd;
-              ptemp->v[0]   = x;
-              ptemp->v[1]   = y;
-              ptemp->v[2]   = z + 1;
-              ptsqueue.push(ptemp);
-            }
-          }
-        }
+        const int x = j%incy;          //col
+        const int y = (j%incz) / incy; //row
+        const int z = j/incz;          //slice
+        // If not on boundary of volume and have not visited neighbor,
+        // then push
+        if (x>0 && !inout[j-incx]) filo.push(j-incx);
+        if (y>0 && !inout[j-incy]) filo.push(j-incy);
+        if (z>0 && !inout[j-incz]) filo.push(j-incz);
+        if (x<dims[0]-1 && !inout[j+incx]) filo.push(j+incx);
+        if (y<dims[1]-1 && !inout[j+incy]) filo.push(j+incy);
+        if (z<dims[2]-1 && !inout[j+incz]) filo.push(j+incz);
       }
     }
-  }
-  for(int i=0; i< mri_distfield->width; i++)
+  } // next i
+
+  for (vtkIdType j=0; j<npoints; ++j)
   {
-    for(int j=0; j< mri_distfield->height; j++)
-    {
-      for(int k=0; k< mri_distfield->depth; k++)
-      {
-        MRIFvox(mri_distfield, i, j, k) = MRIFvox(_mridist, i, j, k);
-      }
-    }
+    const int x = j%incy;
+    const int y = (j%incz) / incy;
+    const int z = j/incz;
+
+    MRIsetVoxVal(vol, x,y,z,0, tab[j] );
   }
 
-  MRIfree(&mri_visited);
-  MRIfree(&_mridist);
-  delete OBBTree;
-  delete distfield;
-  return(mri_distfield);
+  // free the objects that we New'd!  they want to be free!!!!!
+  // according to vtkObject.h, the Delete() method should be used to delete.
+  obb->Delete();
+  implicit->Delete();
+  sp->Delete();
+  mesh->Delete();
+  faces->Delete();
+  points->Delete();
 }
+#endif
 
 MRI*
 CreateHemiMask(MRI* dpial,
@@ -771,12 +817,21 @@ CreateHemiMask(MRI* dpial,
             y == (unsigned int)Gy && 
             z == (unsigned int)Gz)
           DiagBreak() ;
+#ifndef NO_VTK
         if ( MRIFvox(dwhite,x,y,z) > 0 )
           MRIsetVoxVal(mri, x,y,z,0, lblWhite);
         else if ( MRIFvox(dpial,x,y,z) > 0 )
           MRIsetVoxVal(mri, x,y,z,0, lblRibbon);
         else
           MRIsetVoxVal(mri,x,y,z,0, lblBackground);
+#else
+        if ( MRIgetVoxVal(dwhite,x,y,z,0) < 0 )
+          MRIsetVoxVal(mri, x,y,z,0, lblWhite);
+        else if ( MRIgetVoxVal(dpial,x,y,z,0) < 0 )
+          MRIsetVoxVal(mri, x,y,z,0, lblRibbon);
+        else
+          MRIsetVoxVal(mri,x,y,z,0, lblBackground);
+#endif
       } // next x,y,z
 
   return mri;
@@ -822,6 +877,33 @@ MRI* CombineMasks(MRI* maskOne,
   return mri;
 }
 
+void
+ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
+                                MRI* vol)
+{
+  double cx, cy, cz;
+  Real vx, vy, vz;
+
+  VERTEX* pvtx = &( mris->vertices[0] );
+  unsigned int nvertices = (unsigned int)mris->nvertices;
+
+  for ( unsigned int ui=0;
+        ui < nvertices;
+        ++ui, ++pvtx )
+  {
+    cx = pvtx->x;
+    cy = pvtx->y;
+    cz = pvtx->z;
+
+    MRIsurfaceRASToVoxel( vol,
+                          cx, cy, cz,
+                          &vx, &vy, &vz);
+
+    pvtx->x = vx;
+    pvtx->y = vy;
+    pvtx->z = vz;
+  } // next ui, pvtx
+}
 
 MRI* FilterLabel(MRI* initialMask,
                  const unsigned char lbl)
