@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/28 18:11:25 $
- *    $Revision: 1.447 $
+ *    $Author: fischl $
+ *    $Date: 2010/02/10 19:50:19 $
+ *    $Revision: 1.448 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.447 $";
+const char *MRI_C_VERSION = "$Revision: 1.448 $";
 
 
 /*-----------------------------------------------------
@@ -1380,7 +1380,15 @@ MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
     {
       for (y = 0 ; y < height ; y++)
       {
-        switch (mri_src->type)
+        if (1)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            dval = MRIgetVoxVal(mri_src, x, y, z, frame) ;
+            MRIsetVoxVal(mri_dst, x, y, z, frame, dval*scalar) ;
+          }
+        }
+        else switch (mri_src->type)
         {
         case MRI_UCHAR:
           psrc = &MRIseq_vox(mri_src, 0, y, z, frame) ;
