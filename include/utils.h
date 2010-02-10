@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/01/13 20:26:24 $
- *    $Revision: 1.36 $
+ *    $Author: rpwang $
+ *    $Date: 2010/02/10 21:07:55 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -106,5 +106,8 @@ float kth_smallest(float a[], int n, int k);
 float quick_select(float a[], int n, int k);
 float median(float a[],int n);
 float mad(float a[], int n);
+
+/* define nint as a function now */
+int nint( double f );
 
 #endif

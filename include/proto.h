@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/12 19:13:49 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/02/10 21:07:55 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,7 +96,7 @@ int fwrite(void *ptr, int size, int nitems, FILE *fp) ;
 #ifdef Darwin
 #include "utils.h"
 void *malloc(size_t byteSize) ;
-#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
+//#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /* ((int)(rint((double)f))) */
 #if 0
 double drand48(void);
@@ -113,7 +113,7 @@ int ftime(struct timeb *tp) ;
 /*----------- Linux -----------------------*/
 #ifdef Linux
 #include "macros.h"
-#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
+//#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /* ((int)(rint((double)f))) */
 
 #if 0
@@ -126,7 +126,7 @@ void swab(const void *from, void *to, size_t n);
 
 #ifdef SunOS
 int ftime(struct timeb *tp) ;
-#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
+//#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /* ((in ((int)(rint((double)f))) */
 #include <ieeefp.h>
 /*void bzero(void *s, int n);*/
@@ -135,7 +135,7 @@ int ftime(struct timeb *tp) ;
 
 /*----------- IRIX (SGI) -------------------*/
 #ifdef IRIX
-#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
+//#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /*  ((int)(rint((double)f))) */
 /*#define isnan(f)  0*/
 double rint(double x) ;
@@ -143,7 +143,7 @@ double rint(double x) ;
 
 /*----------- MSDOS -----------------------*/
 #ifdef _MSDOS
-#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
+//#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 /* ((int)((double)f+(f < 0 ? -0.5 : 0.5))) */
 #define isnan(f) 0
 #define unlink _unlink
@@ -152,9 +152,8 @@ double rint(double x) ;
 
 /*----------- Windows Cygwin -----------------------*/
 #ifdef Windows_NT
-#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
+//#define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 #endif   /* Windows Cygwin */
 
 #endif   /* #ifndef PROTO_H */
-
 

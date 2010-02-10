@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/01/13 20:25:55 $
- *    $Revision: 1.74 $
+ *    $Author: rpwang $
+ *    $Date: 2010/02/10 21:07:55 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1606,4 +1606,10 @@ float mad(float a[], int n)
   mm = median(t,n);
   free(t);
   return d * mm;
+}
+
+
+int nint( double f )
+{
+  return (f<0?((int)(f-0.5)):((int)(f+0.5)));
 }
