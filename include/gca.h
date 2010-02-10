@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 16:41:33 $
- *    $Revision: 1.100 $
+ *    $Date: 2010/02/10 16:55:50 $
+ *    $Revision: 1.101 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -197,10 +197,12 @@ GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 int  GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs) ;
 int  GCAunifyVariance(GCA *gca) ;
-int GCAvoxelToPriorReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
-                        Real *pxp, Real *pyp, Real *pzp);
-int  GCAvoxelToPrior(GCA *gca, MRI *mri,
-                     int xv, int yv, int zv, int *pxp,int *pyp,int *pzp);
+int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
+			 const Real xv, const Real yv, const Real zv,
+			 Real *pxp, Real *pyp, Real *pzp );
+int  GCAvoxelToPrior( GCA *gca, const MRI *mri,
+		      const int xv, const int yv, const int zv,
+		      int *pxp,int *pyp,int *pzp );
 int  GCAvoxelToNode(GCA *gca, MRI *mri,
                     int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
 int  GCAvoxelToPriorNearest(GCA *gca, MRI *mri,

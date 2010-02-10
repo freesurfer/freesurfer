@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.3 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/10 16:55:50 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +30,9 @@
 // talairachex.h
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:00 $
-// Revision       : $Revision: 1.3 $
+// Revision Author: $Author: rge21 $
+// Revision Date  : $Date: 2010/02/10 16:55:50 $
+// Revision       : $Revision: 1.4 $
 /////////////////////////////////////////////////////////////////////////////
 // new talairach related routines with Ex
 //  takes lta as the talairach transform (use LTAreadEx routine)
@@ -50,7 +50,13 @@ MATRIX *MtalVoxelFromVoxel(MRI *mri_src, const LTA *lta);
 MATRIX *MvoxelFromTalairach(MRI *mri_dst, const LTA *lta);
 MATRIX *MvoxelFromTalVoxel(MRI *mri_dst, const LTA *lta);
 MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta);
-void TransformWithMatrix(MATRIX *mat, Real x, Real y, Real z, Real *px, Real *py, Real *pz);
+void TransformWithMatrix( const MATRIX *mat,
+			  const Real x,
+			  const Real y,
+			  const Real z,
+			  Real *px,
+			  Real *py,
+			  Real *pz );
 
 int
 ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta);

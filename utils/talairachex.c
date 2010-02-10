@@ -7,9 +7,9 @@
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:34 $
- *    $Revision: 1.11 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/10 16:55:46 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2003-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -224,7 +224,13 @@ MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta)
   return res;
 }
 
-void TransformWithMatrix(MATRIX *mat, Real x, Real y, Real z, Real *px, Real *py, Real *pz)
+void TransformWithMatrix( const MATRIX *mat,
+			  const Real x,
+			  const Real y,
+			  const Real z,
+			  Real *px,
+			  Real *py,
+			  Real *pz )
 {
   // VECTOR *src, *dst;
   if (src__ == 0)

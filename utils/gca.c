@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 18:02:07 $
- *    $Revision: 1.268 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/10 16:55:46 $
+ *    $Revision: 1.269 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -997,14 +997,19 @@ GCAvoxelToNodeNearest(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
 ////////////////////////////////////////////////////////////////////
 // transform from template -> prior
 ////////////////////////////////////////////////////////////////////
-int GCAvoxelToPriorReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
-                        Real *pxp, Real *pyp, Real *pzp)
+int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
+			 const Real xv, const Real yv, const Real zv,
+			 Real *pxp, Real *pyp, Real *pzp )
 {
   MATRIX *rasFromVoxel = mri->i_to_r__; //extract_i_to_r(mri);
   MATRIX *priorFromRAS = gca->prior_r_to_i__;
   //extract_r_to_i(gca->mri_prior__);
-  MATRIX *voxelToPrior = gca->tmp__;
+  MATRIX *voxelToPrior = gca->tmp__; // GCA const except for this....
   MatrixMultiply(priorFromRAS, rasFromVoxel, gca->tmp__);
+
+  /*!
+    @bugs gca->tmp__ used as temporary workspace
+  */
 
   TransformWithMatrix(voxelToPrior, xv, yv, zv, pxp, pyp, pzp);
 
@@ -1016,12 +1021,17 @@ int GCAvoxelToPriorReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
 }
 
 int
-GCAvoxelToPrior(GCA *gca, MRI *mri, int xv, int yv, int zv,
-                int *pxp, int *pyp, int *pzp)
+GCAvoxelToPrior( GCA *gca, const MRI *mri,
+		 const int xv, const int yv, const int zv,
+		 int *pxp, int *pyp, int *pzp )
 {
   Real xp, yp, zp;
   int ixp, iyp, izp;
   int errCode = NO_ERROR;
+
+  /*!
+    @bugs gca would be const if its tmp__ variable wasn't used as workspace in GCAvoxelToPriorReal
+  */
 
   GCAvoxelToPriorReal(gca, mri, xv, yv, zv, &xp, &yp, &zp);
 
