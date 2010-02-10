@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.72 2010/02/09 21:05:44 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.73 2010/02/10 16:30:47 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.72 2010/02/09 21:05:44 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.73 2010/02/10 16:30:47 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2288,6 +2288,16 @@ find_optimal_linear_xform
 #ifdef FS_CUDA
                       itCount++;
 #endif
+#if 0
+		      printf( "%s: log_p = %f\n", __FUNCTION__, log_p );
+		      printf( "%s: Translation (%4.2f, %4.2f, %4.2f)\n",
+			      __FUNCTION__, x_trans, y_trans, z_trans );
+		      printf( "%s: Rotation (%4.2f, %4.2f, %4.2f)\n",
+			      __FUNCTION__, x_angle, y_angle, z_angle );
+		      printf( "%s: Scale (%4.2f, %4.2f, %4.2f)\n",
+			      __FUNCTION__, x_scale, y_scale, z_scale );
+		      exit( 0 );
+#endif
                     }
                   }
                 }
@@ -2322,7 +2332,7 @@ find_optimal_linear_xform
     *MATRIX_RELT(m_scale,2,2) = y_max_scale ;
     *MATRIX_RELT(m_scale,3,3) = z_max_scale ;
     m_tmp = MatrixMultiply(m_scale, m_origin_inv, m_tmp) ;
-    MatrixMultiply(m_origin, m_tmp, m_scale) ;
+    m_scale = MatrixMultiply(m_origin, m_tmp, m_scale) ;
 
     x_max_scale = y_max_scale = z_max_scale = 1.0 ;
 
@@ -2332,13 +2342,14 @@ find_optimal_linear_xform
     max_scale = mean_scale + delta_scale ;
 
     /* update L to reflect new maximum and search around it */
-    MatrixReallocRotation(4, x_max_rot, X_ROTATION, m_x_rot) ;
-    MatrixReallocRotation(4, y_max_rot, Y_ROTATION, m_y_rot) ;
-    MatrixReallocRotation(4, z_max_rot, Z_ROTATION, m_z_rot) ;
-    MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
-    MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
+    m_x_rot = MatrixReallocRotation(4, x_max_rot, X_ROTATION, m_x_rot) ;
+    m_y_rot = MatrixReallocRotation(4, y_max_rot, Y_ROTATION, m_y_rot) ;
+    m_z_rot = MatrixReallocRotation(4, z_max_rot, Z_ROTATION, m_z_rot) ;
+    m_tmp = MatrixMultiply(m_y_rot, m_x_rot, m_tmp) ;
+    m_rot = MatrixMultiply(m_z_rot, m_tmp, m_rot) ;
     m_tmp2 = MatrixMultiply(m_rot, m_origin_inv, m_tmp2) ;
-    MatrixMultiply(m_origin, m_tmp2, m_rot) ;
+    m_rot = MatrixMultiply(m_origin, m_tmp2, m_rot) ;
+
 
     m_tmp2 = MatrixMultiply(m_scale, m_rot, m_tmp2) ;
     m_tmp3 = MatrixMultiply(m_tmp2, m_L, m_tmp3) ;
@@ -2347,8 +2358,10 @@ find_optimal_linear_xform
     *MATRIX_RELT(m_trans, 1, 4) = x_max_trans ;
     *MATRIX_RELT(m_trans, 2, 4) = y_max_trans ;
     *MATRIX_RELT(m_trans, 3, 4) = z_max_trans ;
-    MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
+    m_L_tmp = MatrixMultiply(m_trans, m_tmp3, m_L_tmp) ;
+  
 
+  
     MatrixCopy(m_L_tmp, m_L) ;
 
     x_max_trans = y_max_trans = z_max_trans = 0.0 ;
