@@ -32,7 +32,7 @@ mris_volmask_CXXFLAGS=$(AM_CFLAGS) $(VXL_CFLAGS) -Wno-non-virtual-dtor
 mris_volmask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) 
 
 # trick to get test data into the build directory
-foo_SOURCES=
+#foo_SOURCES=
 #foo:
 #	if ! test -f "$(top_builddir)/mri_aparc2aseg/testdata2.tar.gz"; then \
 #		cp -v $(top_srcdir)/mri_aparc2aseg/testdata2.tar.gz \
@@ -46,17 +46,17 @@ foo_SOURCES=
 # CPPUNIT tests
 if HAVE_CPPUNIT
 
-check_PROGRAMS = TestMRISOBBTree TestMRISDistanceField 
+#check_PROGRAMS = TestMRISOBBTree TestMRISDistanceField 
 
-TESTS = TestMRISOBBTree TestMRISDistanceField
+#TESTS = TestMRISOBBTree TestMRISDistanceField
 
-TestMRISOBBTree_SOURCES = TestMRISOBBTree.cpp  
-TestMRISOBBTree_CXXFLAGS=$(AM_CFLAGS) $(CPPUNIT_CFLAGS) $(VXL_CFLAGS) -Wno-non-virtual-dtor
-TestMRISOBBTree_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(CPPUNIT_LIBS) -lcppunit
+#TestMRISOBBTree_SOURCES = TestMRISOBBTree.cpp  
+#TestMRISOBBTree_CXXFLAGS=$(AM_CFLAGS) $(CPPUNIT_CFLAGS) $(VXL_CFLAGS) -Wno-non-virtual-dtor
+#TestMRISOBBTree_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(CPPUNIT_LIBS) -lcppunit
 
-TestMRISDistanceField_SOURCES = TestMRISDistanceField.cpp  
-TestMRISDistanceField_CXXFLAGS=$(AM_CFLAGS) $(CPPUNIT_CFLAGS) $(VXL_CFLAGS) -Wno-non-virtual-dtor
-TestMRISDistanceField_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(CPPUNIT_LIBS) -lcppunit
+#TestMRISDistanceField_SOURCES = TestMRISDistanceField.cpp  
+#TestMRISDistanceField_CXXFLAGS=$(AM_CFLAGS) $(CPPUNIT_CFLAGS) $(VXL_CFLAGS) -Wno-non-virtual-dtor
+#TestMRISDistanceField_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(CPPUNIT_LIBS) -lcppunit
 endif
 
 # put a wrapper around the bin, used to setup VTK enviro vars
