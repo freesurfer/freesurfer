@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/12/11 14:56:27 $
- *    $Revision: 1.65 $
+ *    $Date: 2010/02/10 14:04:17 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1179,7 +1179,10 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
 
   bin_size = (bmax - bmin) / ((float)histo->nbins-1) ;
   bin_no = nint((val - bmin) / bin_size) ;
-  histo->counts[bin_no]++ ;
+  if (bin_no < histo->nbins && bin_no >= 0)
+    histo->counts[bin_no]++ ;
+  else
+    DiagBreak() ;
 
   return(bin_no) ;
 }
@@ -1963,10 +1966,20 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
   thresh = hcdf->bins[bin] ;  // threshold for computing variance
   min_bin = HISTOfindBin(hz, -thresh) ;
   max_bin = HISTOfindBin(hz, thresh) ;
-  if (min_bin >= max_bin)
+  if (hz->nbins == 0)
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "HISTOrobustGaussianFit: 0 length cdf"));
+  while (min_bin >= max_bin)  // shouldn't happen
   {
     min_bin = MAX(0, min_bin-1) ;
-    max_bin = MIN(hz->nbins-1, max_bin-1) ;
+    max_bin = MIN(hz->nbins-1, max_bin+1) ;
+  }
+#define MIN_BINS 12   // need enough data to estimate parameters of gaussian
+  if (max_bin - min_bin < MIN_BINS)
+  {
+    max_bin += (MIN_BINS - (max_bin-min_bin))/2 ;
+    min_bin -= (MIN_BINS - (max_bin-min_bin))/2 ;
+    min_bin = MAX(0, min_bin) ;
+    max_bin = MIN(hz->nbins-1, max_bin) ;
   }
   zbin = HISTOfindBin(hz, 0) ;
   delta_sigma = h->bin_size/10 ; max_sigma = habs->nbins*habs->bin_size/2;
