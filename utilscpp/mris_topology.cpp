@@ -10,11 +10,11 @@
 /*
  * Original Author: Florence Segonne
  * CVS Revision Info:
- *    $Author: segonne $
- *    $Date: 2007/02/13 17:16:41 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/10 21:48:48 $
+ *    $Revision: 1.34 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,14 +24,13 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 
 #include "mris_topology.h"
 #include "topology/patchdisk.h"
-#include "proto.h"
+#include "utils.h"
 
 #define __PRINT_MODE 0
 #define WHICH_OUTPUT stderr
@@ -281,15 +280,20 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms)
 
 			//increase the euler number by 2
 			int correct;
-			if (n == 0 ) correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
-			else correct = surface->CutPatch(-1,parms.max_face,10);//always trying 10 times at least
-
+			if (n == 0 ){
+        correct = surface->CutPatch(-2,parms.max_face,parms.nminimal_attempts);
+      }
+			else {
+        //always trying 10 times at least
+        correct = surface->CutPatch(-1,parms.max_face,10);
+      }
 			npatches++;
 
 			if (correct < 0) {
-				fprintf(WHICH_OUTPUT,
-								"\r      PBM: Euler Number incorrect for surface (defect %d)\n",
-								parms.defect_number);
+				fprintf(
+          WHICH_OUTPUT,
+          "\r      PBM: Euler Number incorrect for surface (defect %d)\n",
+          parms.defect_number);
 				delete surface;
 				continue;
 			}
@@ -305,8 +309,8 @@ extern "C" bool MRISincreaseEuler(MRIS* &mris,TOPOFIX_PARMS &parms)
 
 			MRIScopyHeader(mris,mris_work);
 			MRISsaveVertexPositions(mris_work, INFLATED_VERTICES); /*saving current 
-																															 vertex positions 
-																															 into inflated */
+																														 vertex positions 
+                                                             into inflated */
 			parms.mris_defect=mris_work;
 
 			euler = MRISgetEuler(mris_work);
