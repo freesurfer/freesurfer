@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/09 18:40:57 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/02/10 16:31:21 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -311,7 +311,128 @@ namespace GPU {
       //! Pointer to relevant memory
       float *matrix;
     };
+    
+
+    //! Class to hold a 2x2 matrix
+    class Matrix2x2 {
+    public:
+      static const unsigned int kVectorSize = 2;
+      static const unsigned int kMatrixSize = kVectorSize*kVectorSize;
+
+
+      //! RHS subscripting operator
+      __device__ float operator() ( const unsigned int i,
+				    const unsigned int j ) const {
+	return( this->matrix[j+(i*kVectorSize)] );
+      }
+
+      //! LHS subscripting operator
+      __device__ float& operator() ( const unsigned int i,
+				     const unsigned int j ) {
+	return( this->matrix[j+(i*kVectorSize)] );
+      }
+
+
+      //! Assignment operator
+      __device__ Matrix2x2& operator=( const Matrix2x2& src ) {
+#pragma unroll 2
+	for( unsigned int i=0; i<kVectorSize; i++ ) {
+#pragma unroll 2
+	  for( unsigned int j=0; j<kVectorSize; j++ ) {
+	    (*this)(i,j) = src(i,j);
+	  }
+	}
+
+	return *this;
+      }
+
       
+      //! Self addition of another 2x2 matrix
+      __device__ Matrix2x2& operator+=( const Matrix2x2& b ) {
+#pragma unroll 2
+	for( unsigned int i=0; i<kVectorSize; i++ ) {
+#pragma unroll 2
+	  for( unsigned int j=0; j<kVectorSize; j++ ) {
+	    (*this)(i,j) += b(i,j);
+	  }
+	}
+	
+	return *this;
+      }
+      
+      //! Addition of 2x2 matrices
+      __device__ Matrix2x2 operator+( const Matrix2x2& b ) const {
+	return (Matrix2x2( *this ) += b );
+      }
+      
+      
+      //! Self subtraction of another 2x2 matrix
+      __device__ Matrix2x2& operator-=( const Matrix2x2& b ) {
+#pragma unroll 2
+	for( unsigned int i=0; i<kVectorSize; i++ ) {
+#pragma unroll 2
+	  for( unsigned int j=0; j<kVectorSize; j++ ) {
+	    (*this)(i,j) -= b(i,j);
+	  }
+	}
+	
+	return *this;
+      }
+      
+      //! Subtraction of 2x2 matrices
+      __device__ Matrix2x2 operator-( const Matrix2x2& b ) const {
+	return (Matrix2x2( *this ) -= b );
+      }
+      
+      //! Multiplication of 2x2 matrices
+      __device__ Matrix2x2 operator*( const Matrix2x2& b ) const {
+	Matrix2x2 res;
+	
+#pragma unroll 2
+	for( unsigned int i=0; i<kVectorSize; i++ ) {
+#pragma unroll 2
+	  for( unsigned int j=0; j<kVectorSize; j++ ) {
+	    res(i,j) = 0;
+#pragma unroll 2
+	    for( unsigned int k=0; k<kVectorSize; k++ ) {
+	      res(i,j) += (*this)(i,k) * b(k,j);
+	    }
+	  }
+	}
+
+	return( res );
+      }
+      
+      //! Determinant calculation
+      __device__ float det( void ) const {
+	float res;
+	res = (*this)(0,0) * (*this)(1,1);
+	res -= (*this)(0,1) * (*this)(1,0);
+	return( res );
+      }
+
+      //! Inversion in place
+      __device__ Matrix2x2 inverse( void ) const {
+	Matrix2x2 res;
+
+	// Get determinant
+	float d = this->det();
+
+	// Swap leading diagonal (and use determinant)
+	res(0,0) = (*this)(1,1) / d;
+	res(1,1) = (*this)(0,0) / d;
+
+	// Negate counter-diagonal (and use determinant)
+	res(1,0) = - (*this)(0,1) / d;
+	res(0,1) = - (*this)(1,0) / d;
+	
+	return( res );
+      }
+
+    private:
+      //! The matrix itself
+      float matrix[kMatrixSize];
+    };
   }
 }
 
