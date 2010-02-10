@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/02/10 15:32:13 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/02/10 17:43:36 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -259,7 +259,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.17 2010/02/10 15:32:13 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.18 2010/02/10 17:43:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1734,7 +1734,7 @@ mark_wm_index_okay(double *intensity_profile, int *wm_index_okay,
                    int wm_len, double min_wm_intensity, double max_wm_intensity,
                    int current_index, int len)
 {
-  int    index, inside, wm_samples, wm_start ;
+  int    index, inside, wm_samples, wm_start=-1 ;
 
   memset(wm_index_okay, 0, len*sizeof(int)) ;
   for (inside = wm_samples = 0, index = current_index-(wm_len-1) ; index < len ; index++)
