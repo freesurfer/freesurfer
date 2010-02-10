@@ -10,7 +10,11 @@ test_window_env_SOURCES=test_window_env.c
 test_window_env_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(LIBS_OPENGL) $(X_LIBS) -lGL
 test_window_env_LDFLAGS=
+if HAVE_MAC_OSX
+TESTS=
+else
 TESTS=test_window_env
+endif
 else
 bin_PROGRAMS=
 endif
