@@ -11,7 +11,7 @@
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2010/02/10 00:29:35 $
+ *    $Date: 2010/02/10 16:42:23 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #include <vector>
 
 #include "MRISOBBTree.h"
-#include "MRISDistanceField.h"
+#include "MRISdistancefield.h"
 #include "fastmarching.h"
 #include "cmd_line_interface.h"
 
