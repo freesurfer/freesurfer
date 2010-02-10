@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/02/10 17:43:36 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/02/10 18:27:48 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -259,7 +259,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.18 2010/02/10 17:43:36 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.19 2010/02/10 18:27:48 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2943,7 +2943,7 @@ compute_best_neighborhood_profile(MRI_SURFACE *mris, MRI *mri,int vno, DP *dp)
     fname2 = "intensity.dat" ;
   }
   else
-    fname = NULL ;
+    fname = fname2 = NULL ;
 
   stria_len = nint((dp->stria_width+STRIA_OFFSET) / dp->step) ;
   v = &mris->vertices[vno] ;
