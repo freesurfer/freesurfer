@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/10 16:55:46 $
- *    $Revision: 1.269 $
+ *    $Date: 2010/02/11 16:37:09 $
+ *    $Revision: 1.270 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -1349,9 +1349,10 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
 // transform from node->template->source
 ////////////////////////////////////////////////////////////////////
 int
-GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
-                           int xp, int yp, int zp,
-                           float *pxv, float *pyv, float *pzv)
+GCApriorToSourceVoxelFloat( GCA *gca,
+			    const MRI *mri, TRANSFORM *transform,
+			    const int xp, const int yp, const int zp,
+			    float *pxv, float *pyv, float *pzv )
 {
   int   width, height, depth;
   Real  xt, yt, zt ;
@@ -1481,9 +1482,10 @@ GCAnodeToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform,
 }
 
 int
-GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform,
-                      int xp, int yp, int zp,
-                      int *pxv, int *pyv, int *pzv)
+GCApriorToSourceVoxel( GCA *gca,
+		       const MRI *mri, TRANSFORM *transform,
+		       const int xp, const int yp, const int zp,
+		       int *pxv, int *pyv, int *pzv )
 {
   float  xf, yf, zf ;
   int errCode = NO_ERROR;

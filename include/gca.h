@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/10 16:55:50 $
- *    $Revision: 1.101 $
+ *    $Date: 2010/02/11 16:37:11 $
+ *    $Revision: 1.102 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -383,11 +383,14 @@ float getPrior(GCA_PRIOR *gcap, int label) ;
 int   GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn) ;
 int   GCAfreeGibbs(GCA *gca) ;
 GC1D *GCAfindPriorGC(GCA *gca, int xp, int yp, int zp,int label) ;
-int  GCApriorToSourceVoxel(GCA *gca, MRI *mri, TRANSFORM *transform, int xp, int yp, int zp,
-                           int *pxv, int *pyv, int *pzv) ;
-int  GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
-                                int xp, int yp, int zp,
-                                float *pxv, float *pyv, float *pzv) ;
+int  GCApriorToSourceVoxel( GCA *gca,
+			    const MRI *mri, TRANSFORM *transform,
+			    const int xp, const int yp, const int zp,
+			    int *pxv, int *pyv, int *pzv );
+int  GCApriorToSourceVoxelFloat( GCA *gca,
+				 const MRI *mri, TRANSFORM *transform,
+				 const int xp, const int yp, const int zp,
+				 float *pxv, float *pyv, float *pzv );
 int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template) ;
 int GCAcheck(GCA *gca) ;
 GC1D *GCAfindClosestValidGC(GCA *gca,
