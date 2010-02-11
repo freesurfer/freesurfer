@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.74 2010/02/11 14:51:40 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.75 2010/02/11 16:40:56 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -42,10 +42,8 @@
 #include "mrinorm.h"
 #include "version.h"
 #ifdef FS_CUDA
-#include "chronometer.h"
 #include "devicemanagement.h"
-#include "computelogsampleprob.h"
-#include "findoptimaltranslation.h"
+#include "em_register_cuda.h"
 #endif // FS_CUDA
 
 static void printUsage(void);
@@ -196,7 +194,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.74 2010/02/11 14:51:40 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.75 2010/02/11 16:40:56 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1051,26 +1049,13 @@ find_optimal_transform
 
   /////////////////////////////////////////////////////////////////////////////
 #ifdef FS_CUDA
-  Chronometer tInitialMaxLog_p;
-  printf( "%s: CUDA test\n", __FUNCTION__ );
-  CUDA_LogSampleProbabilityPrepare( gca, gcas, mri, nsamples );
-  float logp_cuda = CUDA_ComputeLogSampleProbability( m_L );
-  CUDA_LogSampleProbabilityRelease();
-  InitChronometer( &tInitialMaxLog_p );
-  StartChronometer( &tInitialMaxLog_p );
-#endif // FS_CUDA
-
+  CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
+  max_log_p = CUDA_ComputeLogSampleProbability( m_L );
+  CUDA_em_register_Release();
+#else
   max_log_p =
     local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-
-#ifdef FS_CUDA
-  StopChronometer( &tInitialMaxLog_p );
-  printf( "\n%s: Computed initial max log_p in %f ms\n\n",
-          __FUNCTION__,
-          GetChronometerValue( &tInitialMaxLog_p ) );
-  printf( "%s: max_log_p = %8.3f %8.3f\n",
-          __FUNCTION__, max_log_p, logp_cuda );
-#endif // FS_CUDA
+#endif
 
   // create volume from gca with the size of input
   mri_gca = MRIclone(mri, NULL) ;
@@ -1416,11 +1401,7 @@ find_optimal_translation
 #define FAST_TRANSLATION 1
 
 #ifdef FS_CUDA
-#if FAST_TRANSLATION
-  CUDA_OptimalTranslationPrepare( gca, gcas, mri, nsamples );
-#else
-  CUDA_LogSampleProbabilityPrepare( gca, gcas, mri, nsamples );
-#endif
+  CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
 #endif // FS_CUDA
 
   delta = (max_trans-min_trans) / trans_steps ;
@@ -1446,8 +1427,8 @@ find_optimal_translation
 #if defined(FS_CUDA) && FAST_TRANSLATION
      unsigned int nTrans = 1+((max_trans-min_trans)/delta);
     float myMaxLogP, mydx, mydy, mydz;
-    FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
-			    &myMaxLogP, &mydx, &mydy, &mydz );
+    CUDA_FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
+				 &myMaxLogP, &mydx, &mydy, &mydz );
     max_log_p = myMaxLogP;
     x_max = mydx;
     y_max = mydy;
@@ -1523,11 +1504,7 @@ find_optimal_translation
   MatrixFree(&m_trans) ;
 
 #ifdef FS_CUDA
-#if FAST_TRANSLATION
-  CUDA_OptimalTranslationRelease();
-#else
-  CUDA_LogSampleProbabilityRelease();
-#endif
+  CUDA_em_register_Release();
 #endif
 
   return(max_log_p) ;
@@ -2112,11 +2089,7 @@ find_optimal_linear_xform
   
 
 #ifdef FS_CUDA
-#if FAST_TRANSFORM
-  CUDA_OptimalTranslationPrepare( gca, gcas, mri, nsamples );
-#else
-  CUDA_LogSampleProbabilityPrepare( gca, gcas, mri, nsamples );
-#endif
+  CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
 #endif // FS_CUDA
 
   if (rigid)
@@ -2172,15 +2145,15 @@ find_optimal_linear_xform
     unsigned int nTrans = 1+((max_trans-min_trans)/delta_trans);
     printf( "%s: %i %i %i\n", __FUNCTION__, nScale, nAngle, nTrans );
 
-    FindOptimalTransform( m_L, m_origin,
-			  min_trans, max_trans, nTrans,
-			  min_scale, max_scale, nScale,
-			  min_angle, max_angle, nAngle,
-			  &max_log_p,
-			  &x_max_trans, &y_max_trans, &z_max_trans,
-			  &x_max_scale, &y_max_scale, &z_max_scale,
-			  &x_max_rot, &y_max_rot, &z_max_rot );
-
+    CUDA_FindOptimalTransform( m_L, m_origin,
+			       min_trans, max_trans, nTrans,
+			       min_scale, max_scale, nScale,
+			       min_angle, max_angle, nAngle,
+			       &max_log_p,
+			       &x_max_trans, &y_max_trans, &z_max_trans,
+			       &x_max_scale, &y_max_scale, &z_max_scale,
+			       &x_max_rot, &y_max_rot, &z_max_rot );
+    
 #else
 
 
@@ -2377,11 +2350,7 @@ find_optimal_linear_xform
 
 
 #ifdef FS_CUDA
-#if FAST_TRANSLATION
-  CUDA_OptimalTranslationRelease();
-#else
-  CUDA_LogSampleProbabilityRelease();
-#endif
+  CUDA_em_register_Release();
 #endif
 
   return(max_log_p) ;
