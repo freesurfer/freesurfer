@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/26 23:25:13 $
- *    $Revision: 1.64 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/11 20:45:13 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,12 @@
 #define MGH_TRANSFORM_H
 
 #include "matrix.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+
 #include "const.h"
 
 typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
@@ -248,6 +254,11 @@ int TransformVox2Ras(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst);
 MATRIX *MRIangles2RotMat(double *angles);
 double *SegRegCost(MRI *regseg, MRI *f, double *costs);
 MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R);
+
+#if defined(__cplusplus)
+};
+#endif
+
 
 
 #endif
