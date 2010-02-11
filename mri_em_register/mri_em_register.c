@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.73 2010/02/10 16:30:47 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.74 2010/02/11 14:51:40 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -196,7 +196,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.73 2010/02/10 16:30:47 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.74 2010/02/11 14:51:40 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2101,7 +2101,7 @@ find_optimal_linear_xform
   double mean_scale, x_max_trans, y_max_trans, z_max_trans, mean_trans ;
   int    i ;
 
-  #define FAST_TRANSFORM 0
+  #define FAST_TRANSFORM 1
 
 #if !( defined(FS_CUDA) && FAST_TRANSFORM )
   double x_trans, y_trans, z_trans;
@@ -2112,9 +2112,6 @@ find_optimal_linear_xform
   
 
 #ifdef FS_CUDA
-  Chronometer tTransformLoop;
-  InitChronometer( &tTransformLoop );
-  printf( "\n\n%s: Begin ==================\n", __FUNCTION__ );
 #if FAST_TRANSFORM
   CUDA_OptimalTranslationPrepare( gca, gcas, mri, nsamples );
 #else
@@ -2186,12 +2183,6 @@ find_optimal_linear_xform
 
 #else
 
-#ifdef FS_CUDA
-    StartChronometer( &tTransformLoop );
-#if !FAST_TRANSFORM
-    unsigned long itCount = 0;
-#endif
-#endif
 
     // scale /////////////////////////////////////////////////////////////
     for (x_scale = min_scale ; x_scale <= max_scale ; x_scale += delta_scale)
@@ -2285,9 +2276,6 @@ find_optimal_linear_xform
                         y_max_trans = y_trans ;
                         z_max_trans = z_trans ;
                       }
-#ifdef FS_CUDA
-                      itCount++;
-#endif
 #if 0
 		      printf( "%s: log_p = %f\n", __FUNCTION__, log_p );
 		      printf( "%s: Translation (%4.2f, %4.2f, %4.2f)\n",
@@ -2310,10 +2298,6 @@ find_optimal_linear_xform
 
 #endif 
 
-#if defined(FS_CUDA) && !FAST_TRANSFORM
-    StopChronometer( &tTransformLoop );
-    printf( "%s: itCount = %li\n", __FUNCTION__, itCount );
-#endif
 
     if (Gdiag & DIAG_SHOW)
     {
@@ -2380,12 +2364,6 @@ find_optimal_linear_xform
     max_angle = mean_angle + delta_rot ;
   }
 
-#ifdef FS_CUDA
-  printf( "%s: tTransformLoop = %f ms (average of %li calls)\n",
-          __FUNCTION__,
-          GetAverageChronometerValue( &tTransformLoop ),
-          tTransformLoop.nStarts );
-#endif
 
   MatrixFree(&m_x_rot) ;
   MatrixFree(&m_y_rot) ;
@@ -2397,9 +2375,6 @@ find_optimal_linear_xform
   MatrixFree(&m_trans) ;
   MatrixFree(&m_tmp3) ;
 
-#ifdef FS_CUDA
-  printf( "\n%s: End ====================\n\n", __FUNCTION__ );
-#endif // FS_CUDA
 
 #ifdef FS_CUDA
 #if FAST_TRANSLATION
