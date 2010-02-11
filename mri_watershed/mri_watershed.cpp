@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/08 22:32:02 $
- *    $Revision: 1.78 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/11 20:48:01 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -29,7 +29,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.78 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.79 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -863,7 +863,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.78 2010/02/08 22:32:02 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.79 2010/02/11 20:48:01 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -876,7 +876,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.78 2010/02/08 22:32:02 fischl Exp $", 
+     "$Id: mri_watershed.cpp,v 1.79 2010/02/11 20:48:01 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -903,7 +903,7 @@ int main(int argc, char *argv[])
 
   fprintf(stdout,"\n*********************************************************"
           "\nThe input file is %s"
-          "\nThe output file is %s",
+          "\nThe output file is %s\n",
           in_fname,out_fname);
  
   if (( parms->Tregion ||
@@ -1600,18 +1600,19 @@ static int Watershed(STRIP_PARMS *parms,MRI_variables *MRI_var)
   if (Pre_CharSorting(parms,MRI_var)==-1)
     return -1;
 
-  fprintf(stdout,"\n preflooding height equal to %d percent", parms->hpf) ;
+  fprintf(stdout,"\n      preflooding height equal to %d percent", 
+          parms->hpf) ;
 
   CharSorting(MRI_var);
-  fprintf(stdout,"\ndone");
+  fprintf(stdout,"\ndone.");
 
-  fprintf(stdout,"\nAnalyze\n");
+  fprintf(stdout,"\nAnalyze...\n");
   Analyze(parms,MRI_var);
-  fprintf(stdout,"\ndone");
+  fprintf(stdout,"\ndone.");
 
   fprintf(stdout,"\nPostAnalyze...");
   PostAnalyze(parms,MRI_var);
-  fprintf(stdout,"done\n");
+  fprintf(stdout,"done.\n");
   fflush(stdout);
 
   return 0;
@@ -4487,7 +4488,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
     found_wm = 0 ;
     if (try_bigger_wm_lims)  // brf for GLOBAL region empty error
     {
-      printf(" ^^^^^^^^ couldn't find WM with original limits - expanding ^^^^^^\n") ;
+      printf("\n^^^^^^^^ couldn't find WM with original limits - expanding ^^^^^^\n") ;
       MRI_var->WM_MIN -= 10 ;
       MRI_var->WM_MAX += 10 ;
     }
