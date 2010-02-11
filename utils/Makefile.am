@@ -326,7 +326,8 @@ libutils_cuda_a_SOURCES=\
 	mrisurf_cuda.cu \
         affinegpu.cu\
         mrimean_cuda.cu\
-        gcasgpu.cu
+        gcasgpu.cu\
+        cudatypeutils.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 
