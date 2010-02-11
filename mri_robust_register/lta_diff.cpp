@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:05 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/02/11 01:20:26 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.9 2010/01/14 19:41:05 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.10 2010/02/11 01:20:26 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
@@ -245,12 +245,12 @@ int main(int argc, char *argv[])
     cout << endl;
     cout << argv[0] << " file1.lta file2.lta [dist-type] [norm-div] [invert1]" << endl;
     cout << endl;
-    cout << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)" << endl;
     cout << "    dist-type " << endl;
-    cout << "       1  (default) Rigid Transform Distance (||log(R)|| + ||T||)" << endl;
-    cout << "       2            Affine Transform Distance (RMS) " << endl;
+    cout << "       1            Rigid Transform Distance (||log(R)|| + ||T||)" << endl;
+    cout << "       2  (default) Affine Transform Distance (RMS) " << endl;
     cout << "       3            8-corners mean distance after transform " << endl;
-		cout << "    invert1         1 true, 0 false (default)" << endl;
+    cout << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)" << endl;
+		cout << "    invert1         invert first LTA: 1 true, 0 false (default)" << endl;
     cout << endl;
     exit(1);
   }
@@ -258,7 +258,7 @@ int main(int argc, char *argv[])
   string lta2f = argv[2];
 
   double d = 1.0;
-  int disttype = 1;
+  int disttype = 2;
   if (argc >3 )
   {
     disttype = atoi(argv[3]);
