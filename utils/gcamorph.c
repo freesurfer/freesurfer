@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 19:00:29 $
- *    $Revision: 1.144 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/11 20:58:01 $
+ *    $Revision: 1.145 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +52,10 @@
 #include "utils.h"
 #include "fio.h"
 #include "mri_circulars.h"
+
+#ifdef FS_CUDA
+#include "chronometer.h"
+#endif
 
 #if WITH_DMALLOC
 #include <dmalloc.h>
@@ -3047,6 +3051,12 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
   VECTOR         *v_i, *v_j, *v_k ;
 
+#ifdef FS_CUDA
+  Chronometer tCMP;
+  InitChronometer( &tCMP );
+  StartChronometer( &tCMP );
+#endif
+
   Ginvalid = 0 ;
   v_i = VectorAlloc(3, MATRIX_REAL) ;
   v_j = VectorAlloc(3, MATRIX_REAL) ;
@@ -3075,6 +3085,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
         neg = num = 0 ;
         gcamn->area = 0.0 ;
 
+
         // one side
         if ((i < width-1) && (j < height-1) && (k < depth-1))
         {
@@ -3101,9 +3112,9 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
             gcamn->area1 = area1 ;
             gcamn->area += area1 ;
           }
-        }
-        else
+        } else {
           gcamn->area1 = 0 ;
+	}
 
 
         // the other side
@@ -3132,31 +3143,37 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
             }
             gcamn->area += area2 ;
           }
-        }
-        else
+        } else {
           gcamn->area2 = 0 ;
+	}
 
-        if (num > 0)
+        if (num > 0) {
           gcamn->area = gcamn->area / (float)num ; // average volume
-        else
-        {
-          if (i == Gx && j == Gy && k == Gz)
+        } else {
+          if (i == Gx && j == Gy && k == Gz) {
             DiagBreak() ;
+	  }
           gcamn->invalid = GCAM_AREA_INVALID ;
           gcamn->area = 0 ;
         }
+
         if ((gcamn->invalid == 0) && neg && (gcamn->orig_area > 0))
         {
+
           if (i > 0 && j > 0 && k > 0&&
-              i < gcam->width-1 && j < gcam->height-1 && k < gcam->depth-1)
+              i < gcam->width-1 && j < gcam->height-1 && k < gcam->depth-1) {
             DiagBreak() ;
-          if (gcam->neg == 0 && getenv("SHOW_NEG"))
+	  }
+
+          if (gcam->neg == 0 && getenv("SHOW_NEG")) {
             printf("node (%d, %d, %d), label %s (%d) - NEGATIVE!\n",
                    i, j, k, cma_label_to_name(gcamn->label), gcamn->label) ;
+	  }
           gcam->neg++ ;
         }
-        if (gcamn->invalid)
+        if (gcamn->invalid) {
           Ginvalid++ ;
+	}
       }
     }
   }
@@ -3164,6 +3181,13 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   VectorFree(&v_i) ;
   VectorFree(&v_j) ;
   VectorFree(&v_k) ;
+
+#ifdef FS_CUDA
+  StopChronometer( &tCMP );
+  printf( "%s: Complete in %9.3f ms\n",
+	  __FUNCTION__, GetChronometerValue( &tCMP ) );
+#endif
+
   return(NO_ERROR) ;
 }
 #else
