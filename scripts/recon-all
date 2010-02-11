@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/02/09 23:59:36 $
-#    $Revision: 1.266 $
+#    $Author: mreuter $
+#    $Date: 2010/02/11 17:22:53 $
+#    $Revision: 1.267 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.266 2010/02/09 23:59:36 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.267 2010/02/11 17:22:53 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -782,27 +782,31 @@ if($DoMotionCor) then
     # longitudinal processing:
     # just copy from the cross-sectionaly processed data for this subject
     cd $subjdir/mri/
-    if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
-      echo "ERROR: ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz does not exist!" \
-        |& tee -a $LF 
-      goto error_exit;
-    else  
+    if ( -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
       set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz)
       set cmd = ($cmd orig/)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
+    endif 
+
+    if ( -e ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz ) then
+      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz .)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
     endif
 
-    set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz .)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-
-    set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz .)
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz ) then
+      echo "ERROR: ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz does not exist!" \
+        |& tee -a $LF 
+      goto error_exit;
+    else  
+      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz .)
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
 
     goto motioncor_done
   endif
