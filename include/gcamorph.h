@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.52 $
+ *    $Author: rge21 $
+ *    $Date: 2010/02/11 20:48:29 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,10 @@
 #include "mri.h"
 #include "gca.h"
 #include "transform.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define GCAM_UNLABELED   0
 #define GCAM_LABELED     1
@@ -419,4 +423,12 @@ MRI *replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels,
                     int combine_labels[8][2], int ncombine_labels, 
                     GCA_MORPH_PARMS *parms) ;
 double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
+
+
+
+#if defined(__cplusplus)
+};
+#endif
+
+
 #endif
