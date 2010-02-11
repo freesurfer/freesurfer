@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.75 2010/02/11 16:40:56 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.76 2010/02/11 16:48:32 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -41,9 +41,12 @@
 #include "cma.h"
 #include "mrinorm.h"
 #include "version.h"
+
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
+#define FAST_TRANSLATION 1
+#define FAST_TRANSFORM 1
 #endif // FS_CUDA
 
 static void printUsage(void);
@@ -194,7 +197,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.75 2010/02/11 16:40:56 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.76 2010/02/11 16:48:32 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1398,7 +1401,6 @@ find_optimal_translation
   y_trans = 0;
   z_trans = 0;
 
-#define FAST_TRANSLATION 1
 
 #ifdef FS_CUDA
   CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
@@ -2078,7 +2080,6 @@ find_optimal_linear_xform
   double mean_scale, x_max_trans, y_max_trans, z_max_trans, mean_trans ;
   int    i ;
 
-  #define FAST_TRANSFORM 1
 
 #if !( defined(FS_CUDA) && FAST_TRANSFORM )
   double x_trans, y_trans, z_trans;
