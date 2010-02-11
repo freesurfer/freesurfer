@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/09 14:40:56 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/02/11 16:37:42 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,8 +64,8 @@ namespace GPU {
 
       //! Sends GCAS info to the GPU 
       void SendGPU( GCA *gca,
-		    GCA_SAMPLE *gcaSample,
-		    MRI *mri_inputs,
+		    const GCA_SAMPLE *gcaSample,
+		    const MRI *mri_inputs,
 		    const int nSamples );
 
       // Declase related 'kernel' class a friend for private access

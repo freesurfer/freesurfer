@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/09 14:40:46 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/11 16:37:40 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,8 +40,8 @@ namespace GPU {
 
 
     void GCASampleGPU::SendGPU( GCA *gca,
-				GCA_SAMPLE *gcaSample,
-				MRI *mri_inputs,
+				const GCA_SAMPLE *gcaSample,
+				const MRI *mri_inputs,
 				const int nSamples ) {
       /*!
 	Sends the given GCAS to the GPU, doing
