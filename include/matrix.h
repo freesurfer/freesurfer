@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/09 15:08:10 $
- *    $Revision: 1.70 $
+ *    $Date: 2010/02/11 19:16:19 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -182,18 +182,18 @@ MATRIX *MatrixAsciiReadRaw(const char *fname, MATRIX *m) ;
 #define V3_LOAD       VECTOR3_LOAD
 
 double Vector3Angle(VECTOR *v1, VECTOR *v2) ;
-float  VectorLen(VECTOR *v) ;
-float  VectorAngle(VECTOR *v1, VECTOR *v2) ;
-float  VectorDot(VECTOR *v1, VECTOR *v2) ;
+float  VectorLen( const VECTOR *v ) ;
+float  VectorAngle( const VECTOR *v1, const VECTOR *v2) ;
+float  VectorDot( const VECTOR *v1, const VECTOR *v2) ;
 float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
 double MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_cov, VECTOR *v);
 double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius);
 VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
 MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
-VECTOR *VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst) ;
-float  VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3) ;
-VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
+VECTOR *VectorCrossProduct( const VECTOR *v1, const VECTOR *v2, VECTOR *vdst) ;
+float  VectorTripleProduct( const VECTOR *v1, const VECTOR *v2, const VECTOR *v3) ;
+VECTOR *VectorNormalize( const VECTOR *vin, VECTOR *vout) ;
 MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
 
 /* these are macro versions that work on 3-d vectors */

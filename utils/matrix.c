@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/09 15:08:01 $
- *    $Revision: 1.121 $
+ *    $Date: 2010/02/11 19:16:17 $
+ *    $Revision: 1.122 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2154,7 +2154,7 @@ MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
   calculate and return the Euclidean norm of the vector v.
 */
 float
-VectorLen(VECTOR *v)
+VectorLen( const VECTOR *v )
 {
   int   i ;
   float len, vi ;
@@ -2171,7 +2171,7 @@ VectorLen(VECTOR *v)
 
 /*  compute the dot product of 2 vectors */
 float
-VectorDot(VECTOR *v1, VECTOR *v2)
+VectorDot( const VECTOR *v1, const VECTOR *v2 )
 {
   int   i ;
   float dot ;
@@ -2417,7 +2417,7 @@ float MatrixNSConditionNumber(MATRIX *m)
   in vdst, allocating it if necessary.
 */
 VECTOR *
-VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst)
+VectorCrossProduct( const VECTOR *v1, const VECTOR *v2, VECTOR *vdst)
 {
   float   x1, x2, y1, y2, z1, z2 ;
 
@@ -2445,7 +2445,7 @@ VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst)
   compute the triple scalar product v1 x v2 . v3
 */
 float
-VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3)
+VectorTripleProduct( const VECTOR *v1, const VECTOR *v2, const VECTOR *v3)
 {
   float   x1, x2, y1, y2, z1, z2, x3, y3, z3, total ;
 
@@ -2470,7 +2470,7 @@ VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3)
 
 
 VECTOR *
-VectorNormalize(VECTOR *vin, VECTOR *vout)
+VectorNormalize( const VECTOR *vin, VECTOR *vout)
 {
   float  len ;
   int    row, col, rows, cols ;
@@ -2494,7 +2494,7 @@ VectorNormalize(VECTOR *vin, VECTOR *vout)
 
 
 float
-VectorAngle(VECTOR *v1, VECTOR *v2)
+VectorAngle( const VECTOR *v1, const VECTOR *v2 )
 {
   float  angle, l1, l2, dot, norm ;
 
