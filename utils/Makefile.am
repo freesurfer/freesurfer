@@ -307,6 +307,7 @@ NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
 G++FLAGS = -Wall -Wextra -Weffc++
 
 NVCCFLAGS += $(patsubst -%, --compiler-options -%, $(G++FLAGS) )
+NVCCFLAGS += -Xopencc "-Wall"
 
 
 
