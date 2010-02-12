@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/11 16:40:56 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/12 19:20:28 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -212,7 +212,12 @@ void TranslationLogps( const GPU::Classes::AffineTransformation base,
 
   
   // Compute the final result
-  logps[ blockIdx.x ] = SumLogPs( final, gcas );
+
+  float myLogP = SumLogPs( final, gcas );
+
+  if( threadIdx.x == 0 ) {
+    logps[ blockIdx.x ] = myLogP;
+  }
 }
 
 
@@ -305,8 +310,12 @@ void TransformLogps( const GPU::Classes::AffineTransformation base,
 
   // -- All threads now have access to the transformation
   
+  float myLogp = SumLogPs( B, gcas );
+
   // Write the final result
-  logps[ b1d ] = SumLogPs( B, gcas );
+  if( threadIdx.x == 0 ) {
+    logps[ b1d ] = myLogp;
+  }
 }
 
 
