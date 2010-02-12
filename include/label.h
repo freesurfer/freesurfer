@@ -8,9 +8,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/09/01 17:34:40 $
- *    $Revision: 1.44 $
+ *    $Author: mreuter $
+ *    $Date: 2010/02/12 01:43:07 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,8 +66,8 @@ int     LabelFillUnassignedVertices(MRI_SURFACE *mris,
                                     int coords);
 int     LabelFree(LABEL **parea) ;
 int     LabelDump(FILE *fp, LABEL *area) ;
-LABEL   *LabelRead(char *subject_name, char *label_name) ;
-int     LabelWrite(LABEL *area, char *fname) ;
+LABEL   *LabelRead(const char *subject_name,const char *label_name) ;
+int     LabelWrite(LABEL *area,const char *fname) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelThreshold(LABEL *area, float thresh) ;
 int     LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh);
@@ -82,6 +82,7 @@ int     LabelRipRestOfSurfaceWithThreshold(LABEL *area,
     MRI_SURFACE *mris,
     float thresh) ;
 int     LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
+int     LabelIntersect(LABEL *area1, LABEL *area2) ;
 int     LabelRemoveDuplicates(LABEL *area) ;
 int     LabelHasVertex(int vtxno, LABEL *lb);
 LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
