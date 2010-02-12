@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.76 2010/02/11 16:48:32 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.77 2010/02/12 19:43:30 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -197,7 +197,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.76 2010/02/11 16:48:32 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.77 2010/02/12 19:43:30 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1490,8 +1490,12 @@ find_optimal_translation
     // create a new transform by multiplying the previous one.
     m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
     MatrixCopy(m_L_tmp, m_L) ;
+#ifdef FS_CUDA
+    max_log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
+#else
     max_log_p = local_GCAcomputeLogSampleProbability
                 (gca, gcas, mri, m_L,nsamples) ;
+#endif
 
     x_max = y_max = z_max = 0.0 ;
     /* we've translated transform by old maxs */
@@ -2106,9 +2110,12 @@ find_optimal_linear_xform
                               = x_max_rot = y_max_rot = z_max_rot = 0.0 ;
   x_max_scale = y_max_scale = z_max_scale = 1.0f ;
   m_scale = MatrixIdentity(4, NULL) ;
+#ifdef FS_CUDA
+  max_log_p = CUDA_ComputeLogSampleProbability( m_L );
+#else
   max_log_p = local_GCAcomputeLogSampleProbability
               (gca, gcas, mri, m_L, nsamples) ;
-
+#endif
 
   // Loop a set number of times to polish transform
 
