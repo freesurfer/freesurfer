@@ -219,6 +219,7 @@ MRISSUBDIRS=\
 	mris_info \
 	mris_jacobian \
 	mris_label_area \
+	mris_label_calc \
 	mris_label_mode \
 	mris_label2annot \
 	mris_make_average_surface \
