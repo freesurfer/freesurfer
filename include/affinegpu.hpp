@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/10 16:31:21 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/02/12 19:30:24 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,6 +79,7 @@ namespace GPU {
 	r1[3] = 1;
 
 	// Do the multiplication
+	#pragma unroll 4
 	for( unsigned int i=0; i<kVectorSize; i++ ) {
 	  r2[i] = 0;
 	  #pragma unroll 4
@@ -291,6 +292,7 @@ namespace GPU {
 	r1[3] = 1;
 
 	// Do the multiplication
+	#pragma unroll 4
 	for( unsigned int i=0; i<kVectorSize; i++ ) {
 	  r2[i] = 0;
 	  #pragma unroll 4
