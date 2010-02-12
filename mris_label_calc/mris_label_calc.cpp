@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/12 01:48:12 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/12 02:19:01 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -53,7 +53,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.1 2010/02/12 01:48:12 mreuter Exp $";
+//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.2 2010/02/12 02:19:01 mreuter Exp $";
 char *Progname = NULL;
 
 
@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
 	  assert (l2 != NULL);
 	  LABEL * ret = LabelCombine(l1,l2);
 		LabelRemoveDuplicates(ret);
+		ret->subject_name[0]='\0';
 		LabelWrite(ret,of.c_str());
 	}
 	else if (comm == "intersect")
@@ -105,6 +106,7 @@ int main(int argc, char *argv[])
 	  assert (l1 != NULL);
 	  assert (l2 != NULL);
 		LabelIntersect(l1,l2);
+		l1->subject_name[0]='\0';
 		LabelWrite(l1,of.c_str());
 	
 	}
