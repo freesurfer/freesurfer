@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 16:42:52 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/02/12 20:57:57 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,8 @@
 #include <cuda_runtime.h>
 
 #include "mri.h"
+
+#include "volumegpu.hpp"
 
 #include "cudatypeutils.hpp"
 #include "cudacheck.h"
@@ -87,7 +89,7 @@ namespace GPU {
       
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.27 2010/02/12 16:42:52 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.28 2010/02/12 20:57:57 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -134,7 +136,7 @@ namespace GPU {
 
       // -----
 
-      //! Allocates storage based on input dimensions and padding
+      //! Allocates storage based on input dimensions
       void Allocate( const dim3 myDims ) {
 	/*!
 	  Given a set of dimensions on the CPU, sets up everything
