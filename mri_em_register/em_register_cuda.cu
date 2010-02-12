@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 19:20:28 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/12 19:27:38 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -130,12 +130,32 @@ __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
   __syncthreads();
 
   // Perform reduction sum
+#if 0
+  // Slow but always correct version
   for( unsigned int d=blockDim.x / 2; d>0; d>>=1 ) {
     if( threadIdx.x < d ) { 
       myLogps[threadIdx.x] += myLogps[threadIdx.x+d];
     }
     __syncthreads();
   }
+#else
+  // Version optimised for a warpsize of 32
+  for( unsigned int d=blockDim.x / 2; d>32; d>>=1 ) {
+    if( threadIdx.x < d ) { 
+      myLogps[threadIdx.x] += myLogps[threadIdx.x+d];
+    }
+    __syncthreads();
+  }
+
+  if( threadIdx.x < 32 ) {
+    myLogps[threadIdx.x] += myLogps[threadIdx.x+32];
+    myLogps[threadIdx.x] += myLogps[threadIdx.x+16];
+    myLogps[threadIdx.x] += myLogps[threadIdx.x+8];
+    myLogps[threadIdx.x] += myLogps[threadIdx.x+4];
+    myLogps[threadIdx.x] += myLogps[threadIdx.x+2];
+    myLogps[threadIdx.x] += myLogps[threadIdx.x+1];
+  }
+#endif
 
   return( myLogps[0] );
 }
