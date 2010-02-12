@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 15:50:05 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/02/12 17:27:23 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -112,8 +112,8 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which will contribute, clamping to edges
-      const unsigned int myxMin = max( 0         , ix - wHalf );
-      const unsigned int myxMax = min( dst.dims.x, ix + wHalf );
+      const unsigned int myxMin = max( 0           , ix - wHalf );
+      const unsigned int myxMax = min( dst.dims.x-1, ix + wHalf );
 
       // Again, declare int to remove need for some casts
       const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
@@ -124,8 +124,10 @@ namespace GPU {
       __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
 
       // Calculate patch limits (note integer declarations avoid -ve trouble)
+      const int xDimRound = Roundup( src.dims.x, kMRImeanBlockSize );
       const int xFirst = max( 0, ixStart - patchSize );
-      const int xLast = min( src.dims.x - patchSize, ixStart + patchSize );
+      const int xLast  = min( xDimRound - kMRImeanBlockSize,
+			      ixStart + patchSize );
 
       for( int xBegin = xFirst; xBegin <= xLast; xBegin += kMRImeanBlockSize ) {
 	// Load the patch
@@ -181,8 +183,8 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which will contribute, clamping to edges
-      const unsigned int myyMin = max( 0         , iy - wHalf );
-      const unsigned int myyMax = min( dst.dims.y, iy + wHalf );
+      const unsigned int myyMin = max( 0           , iy - wHalf );
+      const unsigned int myyMax = min( dst.dims.y-1, iy + wHalf );
 
       // Again, declare int to remove need for some casts
       const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
@@ -193,8 +195,11 @@ namespace GPU {
       __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
 
       // Calculate patch limits (note integer declarations avoid -ve trouble)
+      const int yDimRound = Roundup( src.dims.y, kMRImeanBlockSize );
+
       const int yFirst = max( 0, iyStart - patchSize );
-      const int yLast = min( src.dims.y - patchSize, iyStart + patchSize );
+      const int yLast  = min( yDimRound - kMRImeanBlockSize,
+			      iyStart + patchSize );
 
       for( int yBegin = yFirst; yBegin <= yLast; yBegin += kMRImeanBlockSize ) {
 	// Load the patch
@@ -251,8 +256,8 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which will contribute, clamping to edges
-      const unsigned int myzMin = max( 0         , iz - wHalf );
-      const unsigned int myzMax = min( dst.dims.z, iz + wHalf );
+      const unsigned int myzMin = max( 0           , iz - wHalf );
+      const unsigned int myzMax = min( dst.dims.z-1, iz + wHalf );
 
       // Again, declare int to remove need for some casts
       const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
@@ -263,9 +268,12 @@ namespace GPU {
       __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
 
       // Calculate patch limits (note integer declarations avoid -ve trouble)
-      const int zFirst = max( 0, izStart - patchSize );
-      const int zLast = min( src.dims.z - patchSize, izStart + patchSize );
+      const int zDimRound = Roundup( src.dims.z, kMRImeanBlockSize );
 
+      const int zFirst = max( 0, izStart - patchSize );
+      const int zLast  = min( zDimRound - kMRImeanBlockSize,
+			      izStart + patchSize );
+ 
       for( int zBegin = zFirst; zBegin <= zLast; zBegin += kMRImeanBlockSize ) {
 	// Load the patch
 	currPatch[tz][tx] = src( ix, iy, zBegin+tz );
@@ -317,12 +325,12 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which contributed, clamping to edges
-      const unsigned int myxMin = max( 0         , ix - wHalf );
-      const unsigned int myxMax = min( dst.dims.x, ix + wHalf );
-      const unsigned int myyMin = max( 0         , iy - wHalf );
-      const unsigned int myyMax = min( dst.dims.y, iy + wHalf );
-      const unsigned int myzMin = max( 0         , iz - wHalf );
-      const unsigned int myzMax = min( dst.dims.z, iz + wHalf );
+      const unsigned int myxMin = max( 0           , ix - wHalf );
+      const unsigned int myxMax = min( dst.dims.x-1, ix + wHalf );
+      const unsigned int myyMin = max( 0           , iy - wHalf );
+      const unsigned int myyMax = min( dst.dims.y-1, iy + wHalf );
+      const unsigned int myzMin = max( 0           , iz - wHalf );
+      const unsigned int myzMax = min( dst.dims.z-1, iz + wHalf );
 
 
       const unsigned long myVolume = ( myxMax - myxMin + 1 ) *
