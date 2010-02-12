@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/02 18:42:38 $
- *    $Revision: 1.93 $
+ *    $Author: mreuter $
+ *    $Date: 2010/02/12 01:43:40 $
+ *    $Revision: 1.94 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,13 +48,13 @@
 extern const char* Progname;
 
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
-static Transform *labelLoadTransform(char *subject_name, char *sdir,
+static Transform *labelLoadTransform(const char *subject_name, const char *sdir,
                                      General_transform *transform) ;
 
 #define MAX_VERTICES 500000
 /*-----------------------------------------------------
 ------------------------------------------------------*/
-LABEL *LabelRead(char *subject_name, char *label_name)
+LABEL *LabelRead(const char *subject_name, const char *label_name)
 {
   LABEL  *area ;
   char   fname[STRLEN], *cp, line[STRLEN], subjects_dir[STRLEN], lname[STRLEN];
@@ -457,7 +457,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
-LabelWrite(LABEL *area, char *label_name)
+LabelWrite(LABEL *area, const char *label_name)
 {
   FILE   *fp ;
   int    n, num, nbytes ;
@@ -621,6 +621,35 @@ LabelRemoveOverlap(LABEL *area1, LABEL *area2)
         break ;
       }
     }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelIntersect(LABEL *area1, LABEL *area2)
+{
+  int   n1, n2, vno ;
+	int found;
+
+  for (n1 = 0 ; n1 < area1->n_points ; n1++)
+  {
+    vno = area1->lv[n1].vno ;
+		found = 0;
+    for (n2 = 0 ; n2 < area2->n_points ; n2++)
+    {
+      if (vno == area2->lv[n2].vno)
+      {
+        found = 1;
+        break ;
+      }
+    }
+		if (found == 0) area1->lv[n1].deleted = 1;
   }
   return(NO_ERROR) ;
 }
@@ -945,7 +974,7 @@ LabelFillAll(LABEL *area, int *vertex_list, int nvertices,
         Description
 ------------------------------------------------------*/
 static Transform *
-labelLoadTransform(char *subject_name, char *sdir,General_transform *transform)
+labelLoadTransform(const char *subject_name, const char *sdir,General_transform *transform)
 {
   char xform_fname[STRLEN] ;
 
