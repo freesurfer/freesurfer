@@ -100,6 +100,7 @@ MRISUBDIRS=\
 	mri_mcsim \
 	mri_mc \
 	mri_matrix_multiply \
+	mri_mi_nl_align \
 	mri_modify \
 	mri_multispectral_segment \
 	mri_nlfilter \
