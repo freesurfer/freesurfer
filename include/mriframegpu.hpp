@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 15:50:09 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/02/12 16:42:52 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,7 +87,7 @@ namespace GPU {
       
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.26 2010/02/12 15:50:09 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.27 2010/02/12 16:42:52 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -208,7 +208,7 @@ namespace GPU {
 	  exit( EXIT_FAILURE );
 	}
 
-	// Shouldn't need to release old memory - happens in Allocate
+	this->ReleaseArray();
 
 	cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
 
@@ -811,6 +811,16 @@ namespace GPU {
 	bool res = ( ix < (this->dims.x) );
 	res = res && ( iy < (this->dims.y) );
 	res = res && ( iz < (this->dims.z) );
+
+	return( res );
+      }
+
+      //! Checks is given location is in volume within given tolerance
+      __device__ bool InFuzzyVolume( const float3& r,
+				     const float tol ) const {
+	bool res = ( (r.x>-tol) && (r.x<(this->dims.x+tol)) );
+	res = res && (r.y>-tol) && (r.y<(this->dims.y+tol));
+	res = res && (r.z>-tol) && (r.z<(this->dims.z+tol));
 
 	return( res );
       }
